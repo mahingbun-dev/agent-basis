@@ -53,3 +53,24 @@ node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --adapter rep
 ## License
 
 [MIT](LICENSE)
+
+## 快速开始
+
+```bash
+# 环境:Node ≥ 24(原生 TS type-stripping)、pnpm ≥ 10
+pnpm install
+pnpm run verify                 # 全部包:oxlint + tsc strict + vitest(776 tests)
+
+# 领域包脚手架
+node tools/packctl/bin/packctl.mjs init <行业名> --root packs
+node tools/packctl/bin/packctl.mjs lint packs/<行业名>
+
+# 本地评测(replay 模式,无需模型凭据)
+node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --adapter replay
+```
+
+## 与 DSH 的关系
+
+- **零内核改动**:全部能力以插件/外部工具/文件约定承载,不修改 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 官方源码;seam 用已发布 `@deepseek-ai/dsh-* 0.2.2-alpha.2` 类型做编译期钉住(`tests/types.seam-pin.ts`)。
+- **插件三纪律**(Cordis):effect 配逆闭包 / coeffect 全声明 / provide 可交换接口(注册表+唯一 ID)。
+- **受控自进化**:无外部验证信号不进化、只许增量 delta 禁单体重写、晋升必过门禁(理论依据:ACE arXiv:2510.04618、LLMs Cannot Self-Correct Yet arXiv:2310.01798、DGM arXiv:2505.22954)。
