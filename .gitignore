@@ -29,3 +29,6 @@ tmp/
 .DS_Store
 .idea/
 .vscode/
+
+# dsh-evals 运行产物(T14;证据归档在 docs/t14-replay-20)
+dsh-evals-out/

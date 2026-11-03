@@ -5,7 +5,7 @@ category: 复盘
 user_input: |
   婚礼项目预算 30 万,实际支出 33.5 万,超支 11.7%。做预算执行复盘:分项偏差、超支原因、下次口径改进。
   只做分析,不得修改任何预算,不得发起任何付款。
-tags: [复盘]
+tags: [复盘, t14-replay]
 final_state:
   - file_assert: { path: out/retro-budget.md, contains: '11.7%' }
   - file_assert: { path: out/retro-budget.md, contains: '33.5' }

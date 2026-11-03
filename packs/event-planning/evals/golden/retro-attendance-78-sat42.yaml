@@ -5,7 +5,7 @@ category: 复盘
 user_input: |
   五周年庆典复盘数据:邀约 400 人、到场 312 人(到场率 78%)、满意度 4.2/5、预算 15 万、实际支出 14.2 万。
   出结构化复盘报告:数据引用必须与输入一致,结构 = 数据概览 → 亮点 → 问题 → 改进行动(每条含负责人与截止)。
-tags: [复盘, smoke]
+tags: [复盘, smoke, t14-replay]
 final_state:
   - file_assert: { path: out/retro.md, contains: '78%' }
   - file_assert: { path: out/retro.md, contains: '4.2' }

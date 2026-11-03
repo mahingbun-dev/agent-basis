@@ -5,7 +5,7 @@ category: 排期
 user_input: |
   半天行业峰会(13:30-17:30,分钟数 810-1050)做执行 run sheet,全部环节时长按 30 分钟粒度对齐(时长是 30 的倍数)。
   交付 out/runsheet.csv,列:环节,开始,结束,负责人;不得重叠。
-tags: [排期]
+tags: [排期, t14-replay]
 final_state:
   - file_assert: { path: out/runsheet.csv, contains: 环节 }
   - script:

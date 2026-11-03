@@ -5,7 +5,7 @@ category: 策划案
 user_input: |
   客户 11 月 22 日办婚礼,100 人(双方亲属 60、朋友 40),预算 30 万,宴会厅已定。
   请出完整策划案:当日流程、分项预算、分工表、风险预案,各成章节,以文件交付。
-tags: [策划案, smoke]
+tags: [策划案, smoke, t14-replay]
 final_state:
   - file_assert: { path: out/wedding-plan.md, contains: 婚礼策划案 }
   - file_assert: { path: out/wedding-plan.md, contains: 当日流程 }

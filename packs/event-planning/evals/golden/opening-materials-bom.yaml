@@ -5,7 +5,7 @@ category: 物料
 user_input: |
   开业活动物料清单:背景板 2 块×1800 元、易拉宝 8 个×260 元、胸花 300 支×15 元、伴手礼 300 份×68 元、指引牌 6 块×420 元。
   交付 out/materials.csv,列:物料,数量,单价,小计;小计=数量×单价;末行合计须为 33100。
-tags: [物料]
+tags: [物料, t14-replay]
 final_state:
   - file_assert: { path: out/materials.csv, contains: 物料 }
   - script:

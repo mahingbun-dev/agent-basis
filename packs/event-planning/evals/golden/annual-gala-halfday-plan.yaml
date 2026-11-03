@@ -5,7 +5,7 @@ category: 策划案
 user_input: |
   公司五周年庆典,半天(14:00-18:00),200 人,预算 15 万,须含开场致辞、颁奖、团队节目、茶歇。
   出完整策划案(议程/预算/分工/预案),以文件交付。
-tags: [策划案]
+tags: [策划案, t14-replay]
 final_state:
   - file_assert: { path: out/annual-gala-plan.md, contains: 五周年 }
   - file_assert: { path: out/annual-gala-plan.md, contains: 议程 }

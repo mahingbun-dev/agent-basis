@@ -1,0 +1,14 @@
+{"type":"turn/start","seq":1,"time":1762000000100,"data":{"turn":1}}
+{"type":"user/message","seq":2,"time":1762000000200,"data":{"message":{"role":"user","content":[{"type":"text","text":"客户 11 月 22 日办婚礼,100 人(双方亲属 60、朋友 40),预算 30 万,宴会厅已定。\n请出完整策划案:当日流程、分项预算、分工表、风险预案,各成章节,以文件交付。\n"}]}}}
+{"type":"step/start","seq":3,"time":1762000000300,"data":{"turn":1,"step":1}}
+{"type":"assistant/message","seq":4,"time":1762000000400,"data":{"turn":1,"step":1,"message":{"role":"assistant","content":[{"type":"text","text":"按四章节结构出完整婚礼策划案,先取模板再算分项预算。"}]},"stream":[],"usage":{"inputTokens":900,"outputTokens":260}}}
+{"type":"tool/call","seq":5,"time":1762000000500,"data":{"turn":1,"step":1,"callId":"c1","name":"template_search","arguments":"{\"q\":\"婚礼策划案\"}"}}
+{"type":"tool/result","seq":6,"time":1762000000600,"data":{"turn":1,"step":1,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c1"}}}
+{"type":"tool/call","seq":7,"time":1762000000700,"data":{"turn":1,"step":1,"callId":"c2","name":"budget_calc","arguments":"{\"total\":300000}"}}
+{"type":"tool/result","seq":8,"time":1762000000800,"data":{"turn":1,"step":1,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c2"}}}
+{"type":"step/start","seq":9,"time":1762000000900,"data":{"turn":1,"step":2}}
+{"type":"tool/call","seq":10,"time":1762000001000,"data":{"turn":1,"step":2,"callId":"c3","name":"write_file","arguments":"{\"path\":\"out/wedding-plan.md\"}"}}
+{"type":"tool/result","seq":11,"time":1762000001100,"data":{"turn":1,"step":2,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c3"}}}
+{"type":"assistant/message","seq":12,"time":1762000001200,"data":{"turn":1,"step":2,"message":{"role":"assistant","content":[{"type":"text","text":"婚礼策划案已按当日流程/分项预算/分工/风险预案四章交付 out/wedding-plan.md。"}]},"stream":[],"usage":{"inputTokens":1300,"outputTokens":420}}}
+{"type":"turn/end","seq":13,"time":1762000001300,"data":{"turn":1,"reason":{"kind":"completed"}}}
+{"type":"plugin:basis-evals/workspace","seq":14,"time":1762000001400,"data":{"files":{"out/wedding-plan.md":"# 婚礼策划案(11 月 22 日 · 100 人 · 预算 30 万)\n\n## 一、当日流程\n10:00 迎宾签到 → 11:58 仪式开始 → 12:30 午宴开席 → 15:00 敬酒 → 17:00 送客。\n\n## 二、分项预算\n场地 100000、餐饮 150000(100×1500)、物料 20000、人工 15000、机动 15000,合计 300000。\n\n## 三、分工\n双方亲属 60 人由家属组对接,朋友 40 人由策划组对接;总控/签到/ AV/ 引导四岗各设负责人。\n\n## 四、风险预案\n雨天转室内备用动线;餐饮备损 3%;AV 双机互备;超时压缩合影环节。\n"}}}

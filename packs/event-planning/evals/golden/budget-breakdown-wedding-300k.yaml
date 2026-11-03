@@ -5,7 +5,7 @@ category: 预算
 user_input: |
   婚礼预算 30 万做分项预算表:场地、餐饮、物料、人工、机动五类;餐饮按 100 人×1500 元;机动金不低于总额 5%。
   交付 out/budget.csv,列:类别,数量,单价,小计;小计=数量×单价;分项加总必须恰为 300000(整数元,不带千分位)。
-tags: [预算, smoke]
+tags: [预算, smoke, t14-replay]
 final_state:
   - file_assert: { path: out/budget.csv, contains: 类别 }
   - script:

@@ -5,7 +5,7 @@ category: 物料
 user_input: |
   300 人会议物料:帆布袋 300×22 元、手册 300×8 元、胸牌 320×3.5 元(备损)、瓶装水 600×1.5 元、签字笔 320×2 元(备损)。
   交付 out/kit.csv,列:物料,数量,单价,小计;小计=数量×单价;合计须为 11660。
-tags: [物料]
+tags: [物料, t14-replay]
 final_state:
   - file_assert: { path: out/kit.csv, contains: 物料 }
   - script:

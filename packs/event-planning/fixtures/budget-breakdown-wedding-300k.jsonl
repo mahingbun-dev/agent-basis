@@ -1,0 +1,12 @@
+{"type":"turn/start","seq":1,"time":1762000000100,"data":{"turn":1}}
+{"type":"user/message","seq":2,"time":1762000000200,"data":{"message":{"role":"user","content":[{"type":"text","text":"婚礼预算 30 万做分项预算表:场地、餐饮、物料、人工、机动五类;餐饮按 100 人×1500 元;机动金不低于总额 5%。\n交付 out/budget.csv,列:类别,数量,单价,小计;小计=数量×单价;分项加总必须恰为 300000(整数元,不带千分位)。\n"}]}}}
+{"type":"step/start","seq":3,"time":1762000000300,"data":{"turn":1,"step":1}}
+{"type":"assistant/message","seq":4,"time":1762000000400,"data":{"turn":1,"step":1,"message":{"role":"assistant","content":[{"type":"text","text":"餐饮 100×1500 固定,其余四类分配到恰好 30 万,机动金按 5% 下限 15000 单列。"}]},"stream":[],"usage":{"inputTokens":900,"outputTokens":260}}}
+{"type":"tool/call","seq":5,"time":1762000000500,"data":{"turn":1,"step":1,"callId":"c1","name":"budget_calc","arguments":"{\"total\":300000}"}}
+{"type":"tool/result","seq":6,"time":1762000000600,"data":{"turn":1,"step":1,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c1"}}}
+{"type":"step/start","seq":7,"time":1762000000700,"data":{"turn":1,"step":2}}
+{"type":"tool/call","seq":8,"time":1762000000800,"data":{"turn":1,"step":2,"callId":"c2","name":"write_file","arguments":"{\"path\":\"out/budget.csv\"}"}}
+{"type":"tool/result","seq":9,"time":1762000000900,"data":{"turn":1,"step":2,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c2"}}}
+{"type":"assistant/message","seq":10,"time":1762000001000,"data":{"turn":1,"step":2,"message":{"role":"assistant","content":[{"type":"text","text":"分项预算已交付 out/budget.csv:五类加总恰为 300000,机动金 15000(5%)。"}]},"stream":[],"usage":{"inputTokens":1300,"outputTokens":420}}}
+{"type":"turn/end","seq":11,"time":1762000001100,"data":{"turn":1,"reason":{"kind":"completed"}}}
+{"type":"plugin:basis-evals/workspace","seq":12,"time":1762000001200,"data":{"files":{"out/budget.csv":"类别,数量,单价,小计\n场地,1,100000,100000\n餐饮,100,1500,150000\n物料,1,20000,20000\n人工,1,15000,15000\n机动,1,15000,15000\n"}}}

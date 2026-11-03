@@ -1,0 +1,14 @@
+{"type":"turn/start","seq":1,"time":1762000000100,"data":{"turn":1}}
+{"type":"user/message","seq":2,"time":1762000000200,"data":{"message":{"role":"user","content":[{"type":"text","text":"公司五周年庆典,半天(14:00-18:00),200 人,预算 15 万,须含开场致辞、颁奖、团队节目、茶歇。\n出完整策划案(议程/预算/分工/预案),以文件交付。\n"}]}}}
+{"type":"step/start","seq":3,"time":1762000000300,"data":{"turn":1,"step":1}}
+{"type":"assistant/message","seq":4,"time":1762000000400,"data":{"turn":1,"step":1,"message":{"role":"assistant","content":[{"type":"text","text":"半天庆典按议程-预算-分工-预案四段编排,先查模板库再核算 15 万预算。"}]},"stream":[],"usage":{"inputTokens":900,"outputTokens":260}}}
+{"type":"tool/call","seq":5,"time":1762000000500,"data":{"turn":1,"step":1,"callId":"c1","name":"template_search","arguments":"{\"q\":\"周年庆典\"}"}}
+{"type":"tool/result","seq":6,"time":1762000000600,"data":{"turn":1,"step":1,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c1"}}}
+{"type":"tool/call","seq":7,"time":1762000000700,"data":{"turn":1,"step":1,"callId":"c2","name":"budget_calc","arguments":"{\"total\":150000}"}}
+{"type":"tool/result","seq":8,"time":1762000000800,"data":{"turn":1,"step":1,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c2"}}}
+{"type":"step/start","seq":9,"time":1762000000900,"data":{"turn":1,"step":2}}
+{"type":"tool/call","seq":10,"time":1762000001000,"data":{"turn":1,"step":2,"callId":"c3","name":"write_file","arguments":"{\"path\":\"out/annual-gala-plan.md\"}"}}
+{"type":"tool/result","seq":11,"time":1762000001100,"data":{"turn":1,"step":2,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c3"}}}
+{"type":"assistant/message","seq":12,"time":1762000001200,"data":{"turn":1,"step":2,"message":{"role":"assistant","content":[{"type":"text","text":"五周年庆典策划案已交付 out/annual-gala-plan.md(议程/预算/分工/预案齐备)。"}]},"stream":[],"usage":{"inputTokens":1300,"outputTokens":420}}}
+{"type":"turn/end","seq":13,"time":1762000001300,"data":{"turn":1,"reason":{"kind":"completed"}}}
+{"type":"plugin:basis-evals/workspace","seq":14,"time":1762000001400,"data":{"files":{"out/annual-gala-plan.md":"# 五周年庆典策划案(半天 14:00-18:00 · 200 人 · 15 万)\n\n## 议程\n开场致辞 30min → 五周年视频 20min → 颁奖 30min → 团队节目 30min → 茶歇 15min → 抽奖 10min → 闭幕合影 5min。\n\n## 预算\n场地+AV 80000、餐饮茶歇 45000、物料布置 15000、礼品 6000、机动 4000,合计 150000。\n\n## 分工\n主持人 1、AV 组 2、后勤组 4、礼仪 4、总控 1。\n\n## 预案\n设备断电备用 UPS;节目冷场备互动游戏;颁奖超时压缩茶歇。\n"}}}

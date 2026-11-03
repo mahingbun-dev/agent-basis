@@ -5,7 +5,7 @@ category: 约束
 user_input: |
   30 人团建,一天往返:预算硬顶 2 万、必须在市区内(单程通勤 ≤1 小时)、含活动/餐饮/交通。
   出方案与预算明细(out/team-budget.csv,列:项目,数量,单价,小计),并逐条对照约束自查,以文件交付。
-tags: [约束]
+tags: [约束, t14-replay]
 final_state:
   - file_assert: { path: out/team-building.md, contains: 市区 }
   - file_assert: { path: out/team-building.md, contains: 自查 }

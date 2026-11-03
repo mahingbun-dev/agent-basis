@@ -5,7 +5,7 @@ category: 风险
 user_input: |
   户外新品发布会做风险预案:至少覆盖天气、设备、嘉宾三类风险,每类给出概率/影响评估、应对措施、责任人。
   以文件交付。
-tags: [风险, smoke]
+tags: [风险, smoke, t14-replay]
 final_state:
   - file_assert: { path: out/risk-plan.md, contains: 天气 }
   - file_assert: { path: out/risk-plan.md, contains: 设备 }

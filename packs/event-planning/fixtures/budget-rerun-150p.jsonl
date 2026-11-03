@@ -1,0 +1,12 @@
+{"type":"turn/start","seq":1,"time":1762000000100,"data":{"turn":1}}
+{"type":"user/message","seq":2,"time":1762000000200,"data":{"message":{"role":"user","content":[{"type":"text","text":"原婚礼预算(100 人口径):餐饮 150000(100×1500)、场地 110000、物料 20000、人工 12000、机动 8000,合计 300000。\n人数升到 150 人(餐饮仍 1500 元/人),其余四类按 1.2 系数上浮,重算分项预算。\n交付 out/budget-150p.csv(列:类别,数量,单价,小计);餐饮小计须为 225000,分项加总须为 405000。\n"}]}}}
+{"type":"step/start","seq":3,"time":1762000000300,"data":{"turn":1,"step":1}}
+{"type":"assistant/message","seq":4,"time":1762000000400,"data":{"turn":1,"step":1,"message":{"role":"assistant","content":[{"type":"text","text":"餐饮按 150 人重算为 225000,其余四类 ×1.2 系数,合计 405000。"}]},"stream":[],"usage":{"inputTokens":900,"outputTokens":260}}}
+{"type":"tool/call","seq":5,"time":1762000000500,"data":{"turn":1,"step":1,"callId":"c1","name":"budget_calc","arguments":"{\"heads\":150,\"factor\":1.2}"}}
+{"type":"tool/result","seq":6,"time":1762000000600,"data":{"turn":1,"step":1,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c1"}}}
+{"type":"step/start","seq":7,"time":1762000000700,"data":{"turn":1,"step":2}}
+{"type":"tool/call","seq":8,"time":1762000000800,"data":{"turn":1,"step":2,"callId":"c2","name":"write_file","arguments":"{\"path\":\"out/budget-150p.csv\"}"}}
+{"type":"tool/result","seq":9,"time":1762000000900,"data":{"turn":1,"step":2,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c2"}}}
+{"type":"assistant/message","seq":10,"time":1762000001000,"data":{"turn":1,"step":2,"message":{"role":"assistant","content":[{"type":"text","text":"重算完成 out/budget-150p.csv:餐饮 225000,分项合计 405000。"}]},"stream":[],"usage":{"inputTokens":1300,"outputTokens":420}}}
+{"type":"turn/end","seq":11,"time":1762000001100,"data":{"turn":1,"reason":{"kind":"completed"}}}
+{"type":"plugin:basis-evals/workspace","seq":12,"time":1762000001200,"data":{"files":{"out/budget-150p.csv":"类别,数量,单价,小计\n场地,1,132000,132000\n餐饮,150,1500,225000\n物料,1,24000,24000\n人工,1,14400,14400\n机动,1,9600,9600\n"}}}

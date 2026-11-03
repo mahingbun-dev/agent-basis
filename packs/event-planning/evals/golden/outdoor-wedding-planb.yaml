@@ -5,7 +5,7 @@ category: 风险
 user_input: |
   户外草坪婚礼,11 月下旬。做雨备 B 计划:降水概率 >40% 即启动室内备用场地,给出决策时点、切换动作与分工。
   先查活动日天气再写方案,以文件交付。
-tags: [风险]
+tags: [风险, t14-replay]
 final_state:
   - file_assert: { path: out/plan-b.md, contains: 雨备 }
   - file_assert: { path: out/plan-b.md, contains: 备用场地 }

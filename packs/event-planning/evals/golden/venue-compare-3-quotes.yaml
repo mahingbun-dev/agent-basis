@@ -5,7 +5,7 @@ category: 比选
 user_input: |
   五周年庆典场地三家候选:开元厅报价 8.8 万(含 AV)、洲际厅 10.2 万(不含 AV,AV 另需 1.2 万)、万豪厅 9.5 万(含 AV)。
   出对比表:统一折算到含 AV 总价再比,给推荐与理由,并引用每家报价来源,以文件交付。
-tags: [比选, smoke]
+tags: [比选, smoke, t14-replay]
 final_state:
   - file_assert: { path: out/venue-comparison.md, contains: 对比 }
   - file_assert: { path: out/venue-comparison.md, contains: 开元厅 }
