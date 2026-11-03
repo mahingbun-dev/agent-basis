@@ -7,7 +7,7 @@
 | 任务 | 状态 | 提交 | 备注 |
 |---|---|---|---|
 | T0 地基 @basis/root | 完成 | T0: agent-basis monorepo 脚手架 | 验收门通过:pnpm --filter @basis/root run verify exit 0(oxlint+tsgolint 桥、tsc strict、vitest 5 测试全绿;tools/basis-smoke 为约定载体包) |
-| T1 治理 @basis/governance | 待开发 | | 规则引擎 allow/ask/deny、预算守卫、PII、审计投影、egress-lite |
+| T1 治理 @basis/governance | 完成 | T1: @basis/governance 五模块+DSH seam 钉住 | 验收门通过:pnpm --filter @basis/governance run verify exit 0(oxlint 0 错、tsc strict、vitest 74/74);规则引擎 deny 优先 fail-closed、预算截断(turn-stopping cancel+工具 deny)、PII 拦截、审计双 sink、egress 白名单;seam 用已发布 dsh-* 0.2.2-alpha.2 类型编译期钉住,真实 DSH 运行时联调后置 |
 | T2 记忆 @basis/memory | 待开发 | | M1 文件记忆 + M2 sqlite 实体记录,effect 配逆真删 |
 | T3 交互 @basis/interact | 待开发 | | hitl.yaml 校验、R0-R3 映射、富审批卡片、提问合并 |
 | T4 评测 @basis/evals | 待开发 | | golden YAML、AgentAdapter 双适配、终态+轨迹断言、CLI |

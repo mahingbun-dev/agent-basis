@@ -5,7 +5,12 @@ packages:
   - tools/*
 
 # 依赖版本单一事实源:所有包用 "catalog:" 引用,升级只改这里。
+# @deepseek-ai/dsh-* 钉在与 ../dsh-repo 相同的 0.2.2-alpha.2(seam 类型即取自该版本)。
 catalog:
+  '@deepseek-ai/cordis': 4.0.6-alpha.1
+  '@deepseek-ai/dsh-agent': 0.2.2-alpha.2
+  '@deepseek-ai/dsh-session': 0.2.2-alpha.2
+  '@deepseek-ai/dsh-tools': 0.2.2-alpha.2
   '@stylistic/eslint-plugin': ^5.10.0
   '@types/node': ^24.10.1
   'eslint-plugin-sonarjs': ^4.2.0
@@ -13,3 +18,4 @@ catalog:
   oxlint-tsgolint: 7.0.2001
   typescript: ^6.0.3
   vitest: ^4.1.11
+  yaml: ^2.9.1
