@@ -9,7 +9,7 @@
 | T0 地基 @basis/root | 完成 | T0: agent-basis monorepo 脚手架 | 验收门通过:pnpm --filter @basis/root run verify exit 0(oxlint+tsgolint 桥、tsc strict、vitest 5 测试全绿;tools/basis-smoke 为约定载体包) |
 | T1 治理 @basis/governance | 完成 | T1: @basis/governance 五模块+DSH seam 钉住 | 验收门通过:pnpm --filter @basis/governance run verify exit 0(oxlint 0 错、tsc strict、vitest 74/74);规则引擎 deny 优先 fail-closed、预算截断(turn-stopping cancel+工具 deny)、PII 拦截、审计双 sink、egress 白名单;seam 用已发布 dsh-* 0.2.2-alpha.2 类型编译期钉住,真实 DSH 运行时联调后置 |
 | T2 记忆 @basis/memory | 待开发 | | M1 文件记忆 + M2 sqlite 实体记录,effect 配逆真删 |
-| T3 交互 @basis/interact | 待开发 | | hitl.yaml 校验、R0-R3 映射、富审批卡片、提问合并 |
+| T3 交互 @basis/interact | 完成 | T3: @basis/interact 五模块(hitl 分档/预设产物/富审批卡片/提问合并/负信号) | 验收门通过:pnpm --filter @basis/interact run verify exit 0(oxlint 0 错、tsc strict、vitest 55/55);hitl.yaml 校验 fail-closed(default_grade 只许 R2/R3、R3 专属键严检、最高档优先裁决)、R0-R3→permission-presets 产物、卡片五字段+R3 附加、≤3 问/卡合并+合并率统计、被拒/被修改负信号总线;seam 直用已发布 dsh-{user-questions,user-approval,permission-presets,sandbox} 0.2.2-alpha.2 官方类型,真实 DSH 运行时联调后置 |
 | T4 评测 @basis/evals | 待开发 | | golden YAML、AgentAdapter 双适配、终态+轨迹断言、CLI |
 | T5 脚手架 @basis/packctl | 待开发 | | pack init / lint / check |
 | T6 金集 packs/event-planning | 待开发 | | @event/pack 骨架 + 30 条 golden(含 3 条审批红线) |
