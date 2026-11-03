@@ -1,0 +1,60 @@
+# tenant realm 配置模板:@basis/extra(T13)
+# 规范见同包 docs/tenant-realm.md;本文件可被 loadTenantRealmConfig() 原样加载校验。
+#
+# 结构:{ industries: [ { slug: 行业, customers: [客户...] } ] }
+# - slug / 客户名:小写字母数字 + 连字符分段(^[a-z0-9]+(-[a-z0-9]+)*$)
+# - 行业间互不可见;同行业客户间互不可见;客户可见行业共享物
+# - realm key 由加载器推导:ind:<行业> 与 ind:<行业>:cust:<客户>
+#
+# 示例取自设计文档 13 号《活动策划领域包 v0 草案》的行业与示例客户。
+
+industries:
+  # 行业 1:活动策划(L2 @event/pack 首个领域)
+  - slug: event-planning
+    customers:
+      - acme          # 示例客户 A
+      - beta-corp     # 示例客户 B
+  # 行业 2:法律咨询(占位,示范多行业并存)
+  - slug: legal-consulting
+    customers: []
+
+# ---------------------------------------------------------------------------
+# 下述片段不属本模板的加载面(加载器只认 industries),是组合层把文档
+# 变成 profile 行树的参考形态(buildTenantGroupRows 的 customerPluginRows
+# 产物示例):cordis:group 两层嵌套,客户组内放租户作用域插件行。
+#
+# - id: ind-event-planning            # 行业组:行业共享物挂这里
+#   name: cordis:group
+#   group: true
+#   config:
+#     - id: knowledge-industry         # 行业知识库(同行业客户共享,只读挂载)
+#       name: '@basis/knowledge'
+#       config:
+#         backend: wiki-local
+#         wikiRoot: packs/event-planning/wiki
+#     - id: cust-acme                  # 客户组:私有物挂这里
+#       name: cordis:group
+#       group: true
+#       config:
+#         - id: memory                 # 客户私有实体记忆
+#           name: '@basis/memory'
+#           config:
+#             realm: 'ind:event-planning:cust:acme'   # = formatRealm(...) 的 key
+#             sqlitePath: tenants/ind-event-planning/cust-acme/memory.db
+#         - id: storage                # 客户私有存储(分库)
+#           name: '@deepseek-ai/dsh-storage'
+#           config:
+#             root: tenants/ind-event-planning/cust-acme/storage
+#     - id: cust-beta-corp
+#       name: cordis:group
+#       group: true
+#       config:
+#         - id: memory
+#           name: '@basis/memory'
+#           config:
+#             realm: 'ind:event-planning:cust:beta-corp'
+#             sqlitePath: tenants/ind-event-planning/cust-beta-corp/memory.db
+#
+# 纪律(docs/tenant-realm.md §6):audit sink 只挂 root;隔离服务 provide 与
+# inject 必须经 tenantRealmLabel(realm) 取同一 label 的 ctx.isolate。
+# ---------------------------------------------------------------------------

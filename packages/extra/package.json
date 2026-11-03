@@ -1,0 +1,31 @@
+{
+  "name": "@basis/extra",
+  "description": "L1 收尾插件(T13):①egress 完整版——域名白名单判定器(通配域名+端口,fail-closed)+出网工具包装器(在 @basis/governance egress-lite 之上叠加域名级管控,包装 ToolDefinition.execute,拒未列名域名于执行前);②reviewer preset——只读审查 subagent 的 preset 配置产物(agent-preset 行 + dsh-persona 行模板 + 工具白名单 read/grep/glob 语义 + tool-subagent 委派行,schema 校验 fail-closed);③tenant realm——行业→客户两级 Cordis isolate realm 规范 + 配置模板 + 加载校验(对齐设计文档 12 §10.3)。seam 形态取自已发布 @deepseek-ai/dsh-{tools,llm,agent-preset,persona,subagent} 0.2.2-alpha.2。",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@basis/governance": "workspace:*",
+    "@deepseek-ai/cordis": "catalog:",
+    "@deepseek-ai/dsh-agent-preset": "catalog:",
+    "@deepseek-ai/dsh-llm": "catalog:",
+    "@deepseek-ai/dsh-persona": "catalog:",
+    "@deepseek-ai/dsh-subagent": "catalog:",
+    "@deepseek-ai/dsh-tools": "catalog:",
+    "yaml": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
