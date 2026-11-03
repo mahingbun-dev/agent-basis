@@ -1,52 +1,55 @@
 # agent-basis —— 领域 Agent 基座
 
-在 DeepSeek Harness(DSH)之上构建的 **L1 基座插件 + L2 领域包** pnpm monorepo。目标:把"组织向"能力(治理 / 记忆 / 人机交互 / 评测 / 通道 / 自进化)做成可跨行业复用的 Cordis 插件,首个领域包为活动策划(@event/pack)。
+在 DeepSeek Harness(DSH)之上构建的 **L1 基座插件 + L2 领域包** pnpm monorepo。目标:把"组织向"能力(治理 / 记忆 / 人机交互 / 评测 / 通道 / 受控自进化)做成可跨行业复用的 Cordis 插件;行业差异收敛为一份"领域包"(persona + skills + tools + policies + evals + hitl),验收标准 = 该包的评测通过率。
 
-## 设计文档(单一事实源)
+**当前状态**:12 个包 + 2 个 CLI + 1 个领域包已实现并通过验收(全局 verify 12 包 776 测试全绿;活动策划金集 30 条含 3 条审批红线,replay 20/20)。真连联调(ai-evo 门禁 / DSH 宿主装载 / WeKnora / 微信邮箱)进行中,详见 [DEV-REPORT.md](DEV-REPORT.md)。
+
+## 架构
+
+```
+L2 领域包(每行业一份)   packs/event-planning(@event/pack)
+L1 基座插件(跨行业复用)
+  governance    规则引擎(deny 优先 fail-closed)+ 预算守卫 + PII + 审计 + egress
+  memory        三层记忆(M1 文件 / M2 sqlite 实体)、forget=逆闭包真删
+  interact      HITL 风险分档 R0-R3、富审批卡片、提问合并、审批负信号
+  knowledge     wiki-local(FTS5+LIKE 混检)↔ WeKnora 双后端、提案制写入、三层过期过滤
+  observe       失败信号表、token/成本/缓存命中率聚合、漂移检测
+  evolve        受控自进化:SKILL 条目化 delta、进化账本、G0/G1/G2 门禁、prompt-audit
+  channels      微信(三路径)/飞书/钉钉/邮箱双向 + 一次性审批令牌(防重放)
+  cache-guard   KV-cache 前缀稳定性检查(DeepSeek 缓存价差 ~50×)
+  extra         egress 域名白名单、reviewer preset、多租户 realm
+tools           packctl(init/lint/check)· evals(dsh-evals:终态+轨迹+红线断言)
+L0 DSH 内核     官方 MIT,锁版 0.2.2-alpha.2,零内核改动
+```
+
+设计原则:一切能力走 DSH 开放 seam(`ctx.tools` / approval waterfall / turn-stopping / systemPrompt sections / 事件流),**100% 不改内核**;插件遵守 Cordis 三纪律(effect 配逆 / coeffect 全声明 / provide 可交换接口)。
+
+## 快速上手
+
+前置:Node 24+(type-stripping 直跑 TS)、pnpm 11。
+
+```bash
+pnpm install
+pnpm -w run verify            # 全仓 776 测试
+
+# 生成新行业领域包骨架并体检
+node tools/packctl/bin/packctl.mjs init 你的行业 --root .
+node tools/packctl/bin/packctl.mjs lint packs/你的行业
+
+# 回放适配器跑领域包金集
+node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --adapter replay
+```
+
+## 文档
 
 | 文档 | 内容 |
 |---|---|
-| [08-基座插件体系与总体架构](/Users/sunny/Library/CloudStorage/SynologyDrive-Obsidian/技术开发/领域Agent基座/08-基座插件体系与总体架构.md) | L0/L1/L2 分层、插件清单、Cordis 三纪律 |
-| [09-RSI自进化机制设计](/Users/sunny/Library/CloudStorage/SynologyDrive-Obsidian/技术开发/领域Agent基座/09-RSI自进化机制设计.md) | 反思-策展-应用闭环、G0/G1/G2 流水线 |
-| [10-dsh-evolve详细设计](/Users/sunny/Library/CloudStorage/SynologyDrive-Obsidian/技术开发/领域Agent基座/10-dsh-evolve详细设计.md) | SKILL.md 条目化、五种 delta、ledger |
-| [11-知识插件-dsh-knowledge可插拔设计](/Users/sunny/Library/CloudStorage/SynologyDrive-Obsidian/技术开发/领域Agent基座/11-知识插件-dsh-knowledge可插拔设计.md) | wiki-local FTS5、provenance、双路检索 |
-| [12-功能点清单与承载方式决策](/Users/sunny/Library/CloudStorage/SynologyDrive-Obsidian/技术开发/领域Agent基座/12-功能点清单与承载方式决策.md) | 每个功能点落在哪个包 |
-| [13-活动策划领域包v0草案](/Users/sunny/Library/CloudStorage/SynologyDrive-Obsidian/技术开发/领域Agent基座/13-活动策划领域包v0草案.md) | @event/pack 骨架与 golden set |
-| [14-开发总排期与工作流执行](/Users/sunny/Library/CloudStorage/SynologyDrive-Obsidian/技术开发/领域Agent基座/14-开发总排期与工作流执行.md) | 14 个任务的分解、验收门、韧性规则 |
+| [DEV-REPORT.md](DEV-REPORT.md) | 开发执行报告:任务清单、验证证据、受阻项 |
+| [PROGRESS.md](PROGRESS.md) | 14 任务进度表(每任务一提交) |
+| [qa/INDEPENDENT-QA.md](qa/INDEPENDENT-QA.md) | 独立测试验收(不信任开发验收):缺陷清单与对抗测试记录 |
+| [docs/design/](docs/design/) | 设计文档 15 篇(业界调研 / 架构 / RSI 自进化 / 独立测试) |
+| [docs/ai-evo-integration.md](docs/ai-evo-integration.md) | ai-evo 评测平台对接手动步骤 |
 
-进度看板:[PROGRESS.md](./PROGRESS.md)。总装完成后产出 DEV-REPORT.md 并回写 Obsidian 15 号文档(T14)。
+## License
 
-## 布局
-
-```
-agent-basis/
-├── packages/          # L1 基座插件(governance / memory / interact / knowledge / observe / evolve / channels / cache-guard / extra …)
-├── tools/             # CLI 与工具(evals、packctl …)+ basis-smoke(约定载体包)
-├── pnpm-workspace.yaml# packages/* + tools/*;catalog: 统一依赖版本
-├── tsconfig.base.json # strict 全开(见下),各包 extends
-└── .oxlintrc.json     # 取经 dsh-repo:手选严格规则 + typeAware(tsgolint 桥)+ @stylistic/sonarjs
-```
-
-DSH 官方源码(只读参考)在相邻的 `../dsh-repo/`,API 形态以其 `packages/*/README.md` 与 `docs/` 为准。
-
-## 每包约定(新增包照抄 tools/basis-smoke)
-
-1. **package.json**:`"exports": { ".": "./src/index.ts" }`(源码直出,跨包 workspace 依赖无需构建即获得类型与运行时);devDependencies 用 `catalog:` 引用 typescript / vitest / @types/node。
-2. **scripts**:`"verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run"` —— 这是每个任务的验收门,根 `pnpm run verify` 会递归执行全部包的 verify。
-3. **tsconfig.json**:`{ "extends": "../../tsconfig.base.json", "include": ["src", "tests"] }`;基础 strict 含 `noUncheckedIndexedAccess` / `exactOptionalPropertyTypes` / `noImplicitOverride` / `noUnusedLocals` / `verbatimModuleSyntax`。
-4. **vitest.config.ts**:node 环境,`include: ['tests/**/*.spec.ts']`;测试用相对路径 `../src/index.ts` 导入被测源码(pnpm 严格隔离下不做自名导入)。
-5. **测试必须真实**:真实断言、真实运行;测试文件里 non-null 断言等已按 dsh-repo 惯例放宽(见 .oxlintrc.json tests override),src 保持全严。
-
-## 验证
-
-```bash
-pnpm install          # 首次
-pnpm run verify       # = pnpm -r --if-present run verify,所有包 lint+typecheck+单测
-pnpm --filter <包名> run verify   # 单包验收门
-```
-
-## Cordis 三纪律(所有包强制)
-
-1. **effect 配逆闭包**:凡有副作用,必须返回可执行的 undo;
-2. **coeffect 全声明**:不碰旁路全局,依赖走声明式注入;
-3. **provide 可交换接口**:注册表 + 唯一 ID(`@basis/*`、`@<industry>/*` 命名空间),同 ID 重复注册先配逆旧的。
+[MIT](LICENSE)
