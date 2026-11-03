@@ -1,0 +1,11 @@
+id: strict-trajectory
+description: strict 模式·调用序列必须严格等于 [web_search, write_file, todo_write]
+user_input: 调研场地并写场地简报,然后登记待办
+tags: [strict-suite]
+final_state:
+  - file_assert:
+      path: venue-brief.md
+      contains: 场地简报
+trajectory:
+  mode: strict
+  calls: [web_search, write_file, todo_write]

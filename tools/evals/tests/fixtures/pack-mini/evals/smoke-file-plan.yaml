@@ -1,0 +1,19 @@
+id: smoke-file-plan
+description: 冒烟·检索模板后生成活动策划方案(file 终态 + subset 轨迹 + 预算)
+user_input: 帮我生成一份年会活动策划方案,先查模板
+answer:
+  contains: 方案已生成
+tags: [smoke, core]
+final_state:
+  - file_assert:
+      path: plan.md
+      contains: 备用场地清单
+trajectory:
+  mode: subset
+  calls: [knowledge_search, write_file]
+  must_call: [write_file]
+  must_not_call: [rm_rf, shell]
+  max_steps: 3
+budget:
+  max_turns: 2
+  max_tokens: 1000

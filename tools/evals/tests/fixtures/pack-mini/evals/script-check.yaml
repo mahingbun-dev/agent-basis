@@ -1,0 +1,8 @@
+id: script-check
+description: script 终态·对物化的 numbers.txt 求和,stdout 需为 6
+user_input: 汇总报名人数
+tags: [smoke, core]
+final_state:
+  - script:
+      command: awk '{s+=$1} END {print s}' numbers.txt
+      stdout_contains: '6'

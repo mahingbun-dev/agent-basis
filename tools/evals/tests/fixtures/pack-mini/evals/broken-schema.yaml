@@ -1,0 +1,6 @@
+id: broken-schema
+description: schema 负样本·final_state 应为数组,此文件用于 loadErrors 路径
+user_input: 该文件的 schema 是坏的
+final_state:
+  file_assert:
+    path: whatever.md

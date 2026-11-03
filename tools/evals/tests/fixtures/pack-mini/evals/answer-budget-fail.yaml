@@ -1,0 +1,11 @@
+id: answer-budget-fail
+description: 负样本·fixture 故意违反 answer/budget/must_not_call,期望该 case 判 FAIL(测试断言失败分类)
+user_input: 整理历届活动数据
+answer:
+  contains: 这句话在最终回答里一定不存在
+tags: [negative]
+trajectory:
+  must_not_call: [shell]
+budget:
+  max_turns: 2
+  max_tokens: 1000

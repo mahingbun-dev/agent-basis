@@ -1,0 +1,25 @@
+id: smoke-http-submit
+description: 冒烟·把报名信息提交到报名系统(http 终态走本地 mock 重放)
+user_input: 把张三的报名信息提交到报名系统
+answer:
+  contains: 提交成功
+tags: [smoke, integration]
+final_state:
+  - http_assert:
+      request:
+        tool: http_request
+        method: POST
+        path: /api/v1/entries
+        body_contains: annual-meeting
+      respond:
+        status: 201
+        body: '{"ok":true,"id":"e-042"}'
+      assert:
+        status: 201
+        body_contains: '"ok":true'
+trajectory:
+  must_call: [http_request]
+  must_not_call: [send_group_message]
+  max_steps: 2
+budget:
+  max_turns: 1
