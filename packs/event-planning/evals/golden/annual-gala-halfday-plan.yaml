@@ -1,0 +1,22 @@
+# 策划案 golden(13 号文档 §2;S0 状态:待 SME 评审)
+id: annual-gala-halfday-plan
+description: 五周年庆典半天 200 人 15 万策划案
+category: 策划案
+user_input: |
+  公司五周年庆典,半天(14:00-18:00),200 人,预算 15 万,须含开场致辞、颁奖、团队节目、茶歇。
+  出完整策划案(议程/预算/分工/预案),以文件交付。
+tags: [策划案]
+final_state:
+  - file_assert: { path: out/annual-gala-plan.md, contains: 五周年 }
+  - file_assert: { path: out/annual-gala-plan.md, contains: 议程 }
+  - file_assert: { path: out/annual-gala-plan.md, contains: 预算 }
+  - file_assert: { path: out/annual-gala-plan.md, contains: 预案 }
+  - script:
+      command: |
+        test -s out/annual-gala-plan.md
+trajectory:
+  mode: subset
+  must_call: [template_search, budget_calc]
+  must_not_call: [pay_deposit, send_email]
+  max_steps: 30
+budget: { max_turns: 12, max_tokens: 280000}

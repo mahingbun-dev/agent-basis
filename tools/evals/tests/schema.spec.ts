@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it } from 'vitest'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { SchemaError, loadPackCases, parseGoldenCase } from '../src/schema.ts'
 
 const PACK = new URL('./fixtures/pack-mini/', import.meta.url).pathname
@@ -109,5 +112,43 @@ describe('loadPackCases:目录加载', () => {
     expect(cases).toEqual([])
     expect(loadErrors).toHaveLength(1)
     expect(loadErrors[0]?.message).toMatch(/无法读取/)
+  })
+})
+
+describe('loadPackCases:packctl 06 号模板布局(evals/golden/ + threshold.yml)', () => {
+  const tmp = mkdtempSync(join(tmpdir(), 'dsh-evals-golden-layout-'))
+  afterAll(() => {
+    rmSync(tmp, { recursive: true, force: true })
+  })
+
+  it('golden/ 子目录的 case 被加载,evals/ 根的 threshold.yml 被跳过', async () => {
+    const packDir = join(tmp, 'pack')
+    mkdirSync(join(packDir, 'evals', 'golden'), { recursive: true })
+    // 门禁阈值配置(packctl 模板固定放这里)——不是 case,不应产生 loadError。
+    writeFileSync(join(packDir, 'evals', 'threshold.yml'), 'smoke:\n  subset: 8\nrelease:\n  verification_pass_rate_min: 0.85\n', 'utf8')
+    writeFileSync(join(packDir, 'evals', 'golden', 'venue-compare.yaml'), 'id: venue-compare\nuser_input: 比选\n', 'utf8')
+    writeFileSync(join(packDir, 'evals', 'golden', 'budget-overrun.yaml'), 'id: budget-overrun\nuser_input: 超支\n', 'utf8')
+    const { cases, loadErrors } = await loadPackCases(packDir)
+    expect(loadErrors).toEqual([])
+    expect(cases.map(c => c.id).sort()).toEqual(['budget-overrun', 'venue-compare'])
+  })
+
+  it('平铺形态(evals/*.yaml,无 golden/ 子目录)行为不变', async () => {
+    const packDir = join(tmp, 'pack-flat')
+    mkdirSync(join(packDir, 'evals'), { recursive: true })
+    writeFileSync(join(packDir, 'evals', 'only.yaml'), 'id: only\nuser_input: x\n', 'utf8')
+    const { cases, loadErrors } = await loadPackCases(packDir)
+    expect(loadErrors).toEqual([])
+    expect(cases.map(c => c.id)).toEqual(['only'])
+  })
+
+  it('golden/ 与平铺同名 id → 重复 id loadError(后出现的被剔除)', async () => {
+    const packDir = join(tmp, 'pack-dup')
+    mkdirSync(join(packDir, 'evals', 'golden'), { recursive: true })
+    writeFileSync(join(packDir, 'evals', 'dup.yaml'), 'id: dup\nuser_input: x\n', 'utf8')
+    writeFileSync(join(packDir, 'evals', 'golden', 'dup.yaml'), 'id: dup\nuser_input: y\n', 'utf8')
+    const { cases, loadErrors } = await loadPackCases(packDir)
+    expect(loadErrors.some(e => e.message.includes('case id 重复'))).toBe(true)
+    expect(cases.map(c => c.sourceFile)).toEqual([join(packDir, 'evals', 'dup.yaml')])
   })
 })

@@ -1,0 +1,21 @@
+# 复盘 golden(13 号文档 §2;终态断言数据引用一致(78%/4.2/312))
+id: retro-attendance-78-sat42
+description: 到场率 78% 满意度 4.2 的结构化复盘报告
+category: 复盘
+user_input: |
+  五周年庆典复盘数据:邀约 400 人、到场 312 人(到场率 78%)、满意度 4.2/5、预算 15 万、实际支出 14.2 万。
+  出结构化复盘报告:数据引用必须与输入一致,结构 = 数据概览 → 亮点 → 问题 → 改进行动(每条含负责人与截止)。
+tags: [复盘, smoke]
+final_state:
+  - file_assert: { path: out/retro.md, contains: '78%' }
+  - file_assert: { path: out/retro.md, contains: '4.2' }
+  - file_assert: { path: out/retro.md, contains: '312' }
+  - file_assert: { path: out/retro.md, contains: 改进行动 }
+  - script:
+      command: |
+        test -s out/retro.md
+trajectory:
+  mode: subset
+  must_not_call: [budget_change, pay_deposit]
+  max_steps: 20
+budget: { max_turns: 8, max_tokens: 150000}

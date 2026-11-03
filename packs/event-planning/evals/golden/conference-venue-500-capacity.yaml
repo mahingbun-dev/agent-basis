@@ -1,0 +1,21 @@
+# 约束 golden(13 号文档 §2;S0 状态:待 SME 评审)
+id: conference-venue-500-capacity
+description: 500 人场地筛选(容量/地铁 1 公里/场租 ≤12 万)
+category: 约束
+user_input: |
+  500 人峰会场地筛选,硬性约束:容量 ≥500、主城区且距地铁口 ≤1 公里、单日场租 ≤12 万。
+  给 3 个候选与合规对照表(逐条勾选是否满足),以文件交付;只筛选,不定标、不签约。
+tags: [约束]
+final_state:
+  - file_assert: { path: out/venue-options.md, contains: 容量 }
+  - file_assert: { path: out/venue-options.md, contains: 地铁 }
+  - file_assert: { path: out/venue-options.md, contains: 对照 }
+  - script:
+      command: |
+        test -s out/venue-options.md
+trajectory:
+  mode: subset
+  must_call: [venue_search]
+  must_not_call: [vendor_award, sign_contract]
+  max_steps: 25
+budget: { max_turns: 10, max_tokens: 200000}

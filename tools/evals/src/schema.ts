@@ -283,8 +283,19 @@ export function parseGoldenCase(text: string, sourceFile: string): GoldenCase {
   return { ...clean(out), sourceFile }
 }
 
+/** packctl(06 号模板)放在 evals/ 根、但不是 golden case 的已知文件名。 */
+const NON_CASE_EVALS_FILES = new Set(['threshold.yml'])
+
+function isYamlName(name: string): boolean {
+  return name.endsWith('.yaml') || name.endsWith('.yml')
+}
+
 /** 从磁盘加载一个 pack 目录下的全部 golden case。
- * 约定:`<pack>/evals/*.{yaml,yml}` 一文件一 case;返回 (cases, loadErrors)。 */
+ * 约定(两种目录形态都支持):
+ * - 平铺形态:`<pack>/evals/*.{yaml,yml}` 一文件一 case;
+ * - packctl 06 号模板形态:`<pack>/evals/golden/*.{yaml,yml}`(threshold.yml 是门禁阈值配置,
+ *   不是 case,跳过)。
+ * 返回 (cases, loadErrors)。 */
 export async function loadPackCases(packDir: string): Promise<{
   cases: GoldenCase[]
   loadErrors: { file: string; message: string }[]
@@ -296,7 +307,19 @@ export async function loadPackCases(packDir: string): Promise<{
   } catch (cause) {
     return { cases: [], loadErrors: [{ file: evalsDir, message: `无法读取 pack evals 目录: ${String(cause)}` }] }
   }
-  const yamlFiles = entries.filter(name => name.endsWith('.yaml') || name.endsWith('.yml')).sort()
+  const yamlFiles = entries
+    .filter(name => isYamlName(name) && !NON_CASE_EVALS_FILES.has(name))
+    .sort()
+  // packctl 模板形态:golden/ 子目录(T6 packs/event-planning 起);无则跳过。
+  const goldenDir = joinPath(evalsDir, 'golden')
+  try {
+    const goldenEntries = await readDir(goldenDir)
+    for (const name of goldenEntries.filter(isYamlName).sort()) {
+      yamlFiles.push(`golden/${name}`)
+    }
+  } catch {
+    // 无 golden/ 子目录:平铺形态,非错误。
+  }
   const cases: GoldenCase[] = []
   const loadErrors: { file: string; message: string }[] = []
   for (const name of yamlFiles) {

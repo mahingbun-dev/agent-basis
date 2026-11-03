@@ -1,0 +1,21 @@
+# 物料 golden(13 号文档 §2;终态含确定性 script 断言:数量×单价=小计 + 合计正确)
+id: opening-materials-bom
+description: 开业活动物料清单,小计与合计必须正确
+category: 物料
+user_input: |
+  开业活动物料清单:背景板 2 块×1800 元、易拉宝 8 个×260 元、胸花 300 支×15 元、伴手礼 300 份×68 元、指引牌 6 块×420 元。
+  交付 out/materials.csv,列:物料,数量,单价,小计;小计=数量×单价;末行合计须为 33100。
+tags: [物料]
+final_state:
+  - file_assert: { path: out/materials.csv, contains: 物料 }
+  - script:
+      command: |
+        awk -F, 'NR>1 && $1 != "合计" { if ($2 * $3 != $4) exit 1 }' out/materials.csv
+  - script:
+      command: |
+        awk -F, 'NR>1 && $1 != "合计" { s += $4 } END { exit !(s == 33100) }' out/materials.csv
+trajectory:
+  mode: subset
+  must_call: [budget_calc]
+  max_steps: 20
+budget: { max_turns: 8, max_tokens: 150000}

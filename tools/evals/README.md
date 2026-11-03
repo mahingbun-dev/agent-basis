@@ -9,7 +9,9 @@
 
 ```
 <pack>/
-  evals/*.yaml            # golden case,一文件一 case
+  evals/*.yaml            # golden case,一文件一 case(平铺形态)
+  evals/golden/*.yaml     # 同上(packctl 06 号模板形态,T6 packs/event-planning 起;两种形态二选一或并存)
+  evals/threshold.yml     # packctl 模板的门禁阈值配置 —— 已知非 case 文件,加载时跳过
   fixtures/<case-id>.jsonl # replay 适配器的会话 fixture(DSH SessionEvent 每行一个)
 ```
 

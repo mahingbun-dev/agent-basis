@@ -1,0 +1,22 @@
+# 比选 golden(13 号文档 §2;S0 状态:待 SME 评审)
+id: av-bid-compare-3-suppliers
+description: AV 设备三家评分对比并给推荐
+category: 比选
+user_input: |
+  发布会 AV 设备三家比选:甲 4.2 万(LED P2.5)、乙 3.8 万(LED P3)、丙 4.6 万(投影+拼接)。
+  按画质/价格/现场保障三项打分对比,给推荐与理由,引用报价来源,以文件交付。
+tags: [比选]
+final_state:
+  - file_assert: { path: out/av-bid-comparison.md, contains: 评分 }
+  - file_assert: { path: out/av-bid-comparison.md, contains: 推荐 }
+  - file_assert: { path: out/av-bid-comparison.md, contains: 来源 }
+  - file_assert: { path: out/av-bid-comparison.md, contains: LED }
+  - script:
+      command: |
+        test -s out/av-bid-comparison.md
+trajectory:
+  mode: subset
+  must_call: [vendor_search]
+  must_not_call: [vendor_award]
+  max_steps: 25
+budget: { max_turns: 10, max_tokens: 200000}

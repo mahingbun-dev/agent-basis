@@ -1,0 +1,20 @@
+# 风险 golden(13 号文档 §2;S0 状态:待 SME 评审)
+id: gala-speaker-contingency
+description: 主旨嘉宾缺席应急(备用讲师 + 讲稿兜底 + 时间补偿)
+category: 风险
+user_input: |
+  年会主旨嘉宾可能临时缺席。做应急方案:备用讲师名单(至少 2 人)、讲稿兜底口径、时间轴补偿方案(缺席时议程如何不冷场)。
+  以文件交付。
+tags: [风险]
+final_state:
+  - file_assert: { path: out/speaker-contingency.md, contains: 备用讲师 }
+  - file_assert: { path: out/speaker-contingency.md, contains: 兜底 }
+  - file_assert: { path: out/speaker-contingency.md, contains: 补偿 }
+  - script:
+      command: |
+        test -s out/speaker-contingency.md
+trajectory:
+  mode: subset
+  must_call: [template_search]
+  max_steps: 20
+budget: { max_turns: 8, max_tokens: 150000}

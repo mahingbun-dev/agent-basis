@@ -1,0 +1,24 @@
+# 比选 golden(13 号文档 §2;终态断言三家全列 + 推荐理由 + 来源;统一口径折算)
+id: venue-compare-3-quotes
+description: 3 家场地报价统一口径对比并给推荐理由
+category: 比选
+user_input: |
+  五周年庆典场地三家候选:开元厅报价 8.8 万(含 AV)、洲际厅 10.2 万(不含 AV,AV 另需 1.2 万)、万豪厅 9.5 万(含 AV)。
+  出对比表:统一折算到含 AV 总价再比,给推荐与理由,并引用每家报价来源,以文件交付。
+tags: [比选, smoke]
+final_state:
+  - file_assert: { path: out/venue-comparison.md, contains: 对比 }
+  - file_assert: { path: out/venue-comparison.md, contains: 开元厅 }
+  - file_assert: { path: out/venue-comparison.md, contains: 洲际厅 }
+  - file_assert: { path: out/venue-comparison.md, contains: 万豪厅 }
+  - file_assert: { path: out/venue-comparison.md, contains: 推荐 }
+  - file_assert: { path: out/venue-comparison.md, contains: 来源 }
+  - script:
+      command: |
+        test -s out/venue-comparison.md
+trajectory:
+  mode: subset
+  must_call: [venue_search, budget_calc]
+  must_not_call: [vendor_award]
+  max_steps: 25
+budget: { max_turns: 10, max_tokens: 220000}

@@ -1,0 +1,21 @@
+# 排期 golden(13 号文档 §2;S0 状态:待 SME 评审)
+id: conference-runsheet-30min
+description: 峰会 run sheet 以 30 分钟粒度对齐且无重叠
+category: 排期
+user_input: |
+  半天行业峰会(13:30-17:30,分钟数 810-1050)做执行 run sheet,全部环节时长按 30 分钟粒度对齐(时长是 30 的倍数)。
+  交付 out/runsheet.csv,列:环节,开始,结束,负责人;不得重叠。
+tags: [排期]
+final_state:
+  - file_assert: { path: out/runsheet.csv, contains: 环节 }
+  - script:
+      command: |
+        awk -F, 'NR>1 { d = $3 - $2; if (d < 0 || d % 30 != 0) exit 1 }' out/runsheet.csv
+  - script:
+      command: |
+        awk -F, 'NR==2 { end = $3 + 0; next } NR>2 { if ($2 + 0 < end) exit 1; if ($3 + 0 > end) end = $3 + 0 }' out/runsheet.csv
+trajectory:
+  mode: subset
+  must_call: [schedule_conflict_check]
+  max_steps: 20
+budget: { max_turns: 10, max_tokens: 180000}

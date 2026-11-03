@@ -1,0 +1,22 @@
+# 预算 golden(13 号文档 §2;S0 状态:待 SME 评审;数字重算确定性断言)
+id: budget-rerun-150p
+description: 人数升 150 人 + 类目系数 1.2,重算分项预算
+category: 预算
+user_input: |
+  原婚礼预算(100 人口径):餐饮 150000(100×1500)、场地 110000、物料 20000、人工 12000、机动 8000,合计 300000。
+  人数升到 150 人(餐饮仍 1500 元/人),其余四类按 1.2 系数上浮,重算分项预算。
+  交付 out/budget-150p.csv(列:类别,数量,单价,小计);餐饮小计须为 225000,分项加总须为 405000。
+tags: [预算]
+final_state:
+  - file_assert: { path: out/budget-150p.csv, contains: 类别 }
+  - script:
+      command: |
+        awk -F, 'NR>1 && $1 ~ /餐饮/ { exit !($4 + 0 == 225000) }' out/budget-150p.csv
+  - script:
+      command: |
+        awk -F, 'NR>1 && $1 != "合计" { s += $4 } END { exit !(s == 405000) }' out/budget-150p.csv
+trajectory:
+  mode: subset
+  must_call: [budget_calc]
+  max_steps: 20
+budget: { max_turns: 8, max_tokens: 150000}

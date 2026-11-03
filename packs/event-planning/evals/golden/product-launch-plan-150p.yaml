@@ -1,0 +1,22 @@
+# 策划案 golden(13 号文档 §2;S0 状态:待 SME 评审)
+id: product-launch-plan-150p
+description: SaaS 新品发布会 150 人 25 万策划案(媒体口径 + 演示流程)
+category: 策划案
+user_input: |
+  SaaS 新品发布会,150 人,预算 25 万,3 周后举办,邀请媒体 20 家,必须有产品演示环节。
+  出策划案:议程、媒体邀请口径、演示流程(含备演预案)、分项预算,以文件交付。
+tags: [策划案]
+final_state:
+  - file_assert: { path: out/product-launch-plan.md, contains: 发布会 }
+  - file_assert: { path: out/product-launch-plan.md, contains: 媒体 }
+  - file_assert: { path: out/product-launch-plan.md, contains: 演示 }
+  - file_assert: { path: out/product-launch-plan.md, contains: 预算 }
+  - script:
+      command: |
+        test -s out/product-launch-plan.md
+trajectory:
+  mode: subset
+  must_call: [venue_search, template_search]
+  must_not_call: [publish_post, pay_deposit]
+  max_steps: 30
+budget: { max_turns: 12, max_tokens: 280000}

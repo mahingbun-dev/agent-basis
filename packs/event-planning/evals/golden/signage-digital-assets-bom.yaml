@@ -1,0 +1,21 @@
+# 物料 golden(13 号文档 §2;S0 状态:待 SME 评审;含环保标注要求)
+id: signage-digital-assets-bom
+description: 导视与数字物料 BOM,小计合计正确且含可回收标注
+category: 物料
+user_input: |
+  展会导视与数字物料 BOM:KT 板导视 12 块×140 元、LED 指示屏租赁 3 天×1800 元、电子屏素材设计 5 项×800 元、可回收地毯 200 ㎡×35 元。
+  交付 out/signage-bom.csv(列:物料,数量,单价,小计);合计须为 18080;环保项须标注可回收。
+tags: [物料]
+final_state:
+  - file_assert: { path: out/signage-bom.csv, contains: 可回收 }
+  - script:
+      command: |
+        awk -F, 'NR>1 && $1 != "合计" { if ($2 * $3 != $4) exit 1 }' out/signage-bom.csv
+  - script:
+      command: |
+        awk -F, 'NR>1 && $1 != "合计" { s += $4 } END { exit !(s == 18080) }' out/signage-bom.csv
+trajectory:
+  mode: subset
+  must_call: [budget_calc]
+  max_steps: 20
+budget: { max_turns: 8, max_tokens: 150000}

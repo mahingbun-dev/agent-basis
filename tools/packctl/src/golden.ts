@@ -5,12 +5,27 @@
  * 1. pack lint 用 validateGoldenCase 校验 `evals/golden/` 非空且可加载(GOLD0xx);
  * 2. 直接导出 loadGoldenCase/loadGoldenDir 供 @basis/evals(T4)消费 —— 「可被 evals 加载」
  *    的判定即本模块本身,避免两套解析器漂移。
+ *
+ * 双形态口径(T6 落地时与 @basis/evals schema.ts 对齐钉住,两类文件都合法):
+ * - 模板形态(pack init):final_state 单断言映射 / approval_flow 字符串数组 / answer 字符串;
+ * - 条目形态(@basis/evals 可执行,字段对齐 ai-evo):final_state 单键条目数组 /
+ *   approval_flow {tool,outcome,not_executed,min_count}(审批红线断言) /
+ *   answer {contains|match}。评测执行走 @basis/evals runner,消费条目形态。
  */
 import { basename, join } from 'node:path'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { asStringArray, isRecord, parseYaml } from './util.ts'
 import { error, warning } from './types.ts'
-import type { Finding, GoldenBudget, GoldenCase, GoldenFinalState, GoldenJudge, GoldenTrajectory } from './types.ts'
+import type {
+  Finding,
+  GoldenAnswerAssert,
+  GoldenBudget,
+  GoldenCase,
+  GoldenFinalState,
+  GoldenFinalStateEntry,
+  GoldenJudge,
+  GoldenTrajectory,
+} from './types.ts'
 
 const GOLDEN_EXT = /\.(ya?ml)$/i
 
@@ -43,9 +58,7 @@ export function loadGoldenCaseText(text: string, relPath: string): { case?: Gold
   if (raw.tags !== undefined && asStringArray(raw.tags) === undefined) {
     issues.push(error('GOLD005', relPath, 'tags 必须是字符串数组'))
   }
-  if (raw.answer !== undefined && typeof raw.answer !== 'string') {
-    issues.push(error('GOLD005', relPath, 'answer 必须是字符串'))
-  }
+  validateAnswer(raw.answer, relPath, issues)
   if (raw.judge !== undefined && (!isRecord(raw.judge) || typeof raw.judge.rubric !== 'string')) {
     issues.push(error('GOLD005', relPath, 'judge 必须是 { rubric: string }'))
   }
@@ -69,7 +82,7 @@ export function loadGoldenCaseText(text: string, relPath: string): { case?: Gold
   const golden: GoldenCase = {
     id: id as string,
     user_input: userInput as string,
-    ...(typeof raw.answer === 'string' ? { answer: raw.answer } : {}),
+    ...(raw.answer !== undefined ? { answer: raw.answer as string | GoldenAnswerAssert } : {}),
     ...(tags !== undefined ? { tags } : {}),
     ...(finalState !== undefined ? { final_state: finalState } : {}),
     ...(trajectory !== undefined ? { trajectory } : {}),
@@ -80,25 +93,79 @@ export function loadGoldenCaseText(text: string, relPath: string): { case?: Gold
   return { case: golden, issues }
 }
 
-function validateFinalState(value: unknown, relPath: string, issues: Finding[]): GoldenFinalState | undefined {
-  if (value === undefined) return undefined
+/** answer 双形态:字符串(模板形态)或 {contains|match}(条目形态,@basis/evals AnswerAssert)。 */
+function validateAnswer(value: unknown, relPath: string, issues: Finding[]): void {
+  if (value === undefined) return
+  if (typeof value === 'string') return
   if (!isRecord(value)) {
-    issues.push(error('GOLD005', relPath, 'final_state 必须是映射'))
+    issues.push(error('GOLD005', relPath, 'answer 必须是字符串或 { contains | match } 映射'))
+    return
+  }
+  const hasContains = typeof value.contains === 'string'
+  const hasMatch = typeof value.match === 'string'
+  if (!hasContains && !hasMatch) {
+    issues.push(error('GOLD005', relPath, 'answer 映射必须含 contains 或 match 之一(字符串)'))
+  }
+  if (value.ignore_case !== undefined && typeof value.ignore_case !== 'boolean') {
+    issues.push(error('GOLD005', relPath, 'answer.ignore_case 必须是布尔'))
+  }
+}
+
+/**
+ * final_state 双形态:
+ * - 映射形态(模板):{ file_assert | http_assert | db_assert | script } 至少一项;
+ * - 条目形态(@basis/evals / ai-evo 可执行口径):单键条目数组,顺序执行。
+ */
+function validateFinalState(
+  value: unknown,
+  relPath: string,
+  issues: Finding[],
+): GoldenFinalState | readonly GoldenFinalStateEntry[] | undefined {
+  if (value === undefined) return undefined
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      issues.push(error('GOLD005', relPath, 'final_state 条目数组不能为空(至少一个断言)'))
+      return undefined
+    }
+    const entries: GoldenFinalStateEntry[] = []
+    value.forEach((item, index) => {
+      const at = `${relPath} final_state[${String(index)}]`
+      if (!isRecord(item) || Object.keys(item).length !== 1) {
+        issues.push(error('GOLD005', at, 'final_state 条目必须恰好一个键(file_assert|http_assert|script)'))
+        return
+      }
+      const key = Object.keys(item)[0] ?? ''
+      const inner = item[key]
+      if (key === 'file_assert') {
+        validateFileAssert(inner, at, issues)
+        entries.push({ file_assert: inner } as GoldenFinalStateEntry)
+      } else if (key === 'http_assert') {
+        validateHttpAssert(inner, at, issues)
+        entries.push({ http_assert: inner } as GoldenFinalStateEntry)
+      } else if (key === 'script') {
+        validateScriptAssert(inner, at, issues)
+        entries.push({ script: inner } as GoldenFinalStateEntry)
+      } else {
+        issues.push(error('GOLD005', at, `final_state 条目键应为 file_assert|http_assert|script,实际: ${key}`))
+      }
+    })
+    return entries
+  }
+  if (!isRecord(value)) {
+    issues.push(error('GOLD005', relPath, 'final_state 必须是映射或单键条目数组'))
     return undefined
   }
   const fileAssert = value.file_assert
   if (fileAssert !== undefined) {
-    if (!isRecord(fileAssert) || typeof fileAssert.path !== 'string') {
-      issues.push(error('GOLD005', relPath, 'final_state.file_assert 必须是 { path: string, contains?: string[] }'))
-    }
+    validateFileAssert(fileAssert, `${relPath} final_state.file_assert`, issues)
   }
   const httpAssert = value.http_assert
-  if (httpAssert !== undefined && (!isRecord(httpAssert) || typeof httpAssert.url !== 'string')) {
-    issues.push(error('GOLD005', relPath, 'final_state.http_assert 必须是 { url: string, ... }'))
+  if (httpAssert !== undefined) {
+    validateHttpAssert(httpAssert, `${relPath} final_state.http_assert`, issues)
   }
   const script = value.script
-  if (script !== undefined && (!isRecord(script) || typeof script.command !== 'string')) {
-    issues.push(error('GOLD005', relPath, 'final_state.script 必须是 { command: string, expect_exit?: number }'))
+  if (script !== undefined) {
+    validateScriptAssert(script, `${relPath} final_state.script`, issues)
   }
   const hasAny = ['file_assert', 'http_assert', 'db_assert', 'script'].some(k => value[k] !== undefined)
   if (!hasAny) {
@@ -107,16 +174,99 @@ function validateFinalState(value: unknown, relPath: string, issues: Finding[]):
   return value
 }
 
+/** file_assert:双口径 contains(数组=模板形态 / 字符串=条目形态)都接受,path 必填。 */
+function validateFileAssert(value: unknown, at: string, issues: Finding[]): void {
+  if (!isRecord(value) || typeof value.path !== 'string' || value.path.length === 0) {
+    issues.push(error('GOLD005', at, 'file_assert 必须是 { path: string, contains?: string | string[] }'))
+    return
+  }
+  if (value.contains !== undefined && typeof value.contains !== 'string' && !asStringArray(value.contains)) {
+    issues.push(error('GOLD005', at, 'file_assert.contains 必须是字符串或字符串数组'))
+  }
+  if (value.not_contains !== undefined && typeof value.not_contains !== 'string') {
+    issues.push(error('GOLD005', at, 'file_assert.not_contains 必须是字符串'))
+  }
+  if (value.exists !== undefined && typeof value.exists !== 'boolean') {
+    issues.push(error('GOLD005', at, 'file_assert.exists 必须是布尔'))
+  }
+}
+
+/** http_assert:url(模板形态)或 request/respond/assert(@basis/evals HttpAssert)任一形态。 */
+function validateHttpAssert(value: unknown, at: string, issues: Finding[]): void {
+  if (!isRecord(value)) {
+    issues.push(error('GOLD005', at, 'http_assert 必须是映射'))
+    return
+  }
+  const hasUrl = typeof value.url === 'string'
+  const hasT4Shape = ['request', 'respond', 'assert'].some(k => value[k] !== undefined)
+  if (!hasUrl && !hasT4Shape) {
+    issues.push(error('GOLD005', at, 'http_assert 必须是 { url, ... }(模板形态)或 { request|respond|assert }(@basis/evals 形态)'))
+  }
+  for (const key of ['request', 'respond', 'assert'] as const) {
+    if (value[key] !== undefined && !isRecord(value[key])) {
+      issues.push(error('GOLD005', at, `http_assert.${key} 必须是映射`))
+    }
+  }
+  if (value.expect_status !== undefined && typeof value.expect_status !== 'number') {
+    issues.push(error('GOLD005', at, 'http_assert.expect_status 必须是数字'))
+  }
+}
+
+function validateScriptAssert(value: unknown, at: string, issues: Finding[]): void {
+  if (!isRecord(value) || typeof value.command !== 'string' || value.command.length === 0) {
+    issues.push(error('GOLD005', at, 'script 必须是 { command: string, expect_exit?: number }'))
+    return
+  }
+  if (value.expect_exit !== undefined && typeof value.expect_exit !== 'number') {
+    issues.push(error('GOLD005', at, 'script.expect_exit 必须是数字'))
+  }
+  if (value.stdout_contains !== undefined && typeof value.stdout_contains !== 'string') {
+    issues.push(error('GOLD005', at, 'script.stdout_contains 必须是字符串'))
+  }
+}
+
+const APPROVAL_OUTCOMES = ['allowed-once', 'rejected', 'cancelled', 'unavailable'] as const
+
+/**
+ * trajectory 双形态:
+ * - approval_flow:字符串数组(模板形态)或 { tool, outcome, not_executed, min_count }
+ *   (@basis/evals ApprovalFlowAssert,审批红线案例的可执行形态);
+ * - calls/must_call/must_not_call:字符串数组;mode 四模式;max_steps 正数。
+ */
 function validateTrajectory(value: unknown, relPath: string, issues: Finding[]): GoldenTrajectory | undefined {
   if (value === undefined) return undefined
   if (!isRecord(value)) {
     issues.push(error('GOLD005', relPath, 'trajectory 必须是映射'))
     return undefined
   }
-  for (const key of ['must_call', 'must_not_call', 'approval_flow'] as const) {
+  for (const key of ['calls', 'must_call', 'must_not_call'] as const) {
     const v = value[key]
     if (v !== undefined && asStringArray(v) === undefined) {
       issues.push(error('GOLD005', relPath, `trajectory.${key} 必须是字符串数组`))
+    }
+  }
+  const approval = value.approval_flow
+  if (approval !== undefined) {
+    if (Array.isArray(approval)) {
+      if (asStringArray(approval) === undefined) {
+        issues.push(error('GOLD005', relPath, 'trajectory.approval_flow 必须是字符串数组或 { tool, outcome, not_executed, min_count } 映射'))
+      }
+    } else if (isRecord(approval)) {
+      if (approval.tool !== undefined && typeof approval.tool !== 'string') {
+        issues.push(error('GOLD005', relPath, 'trajectory.approval_flow.tool 必须是字符串'))
+      }
+      if (approval.outcome !== undefined
+        && (typeof approval.outcome !== 'string' || !APPROVAL_OUTCOMES.includes(approval.outcome as typeof APPROVAL_OUTCOMES[number]))) {
+        issues.push(error('GOLD005', relPath, `trajectory.approval_flow.outcome 必须是 ${APPROVAL_OUTCOMES.join('|')} 之一(对齐 DSH approval/decided)`))
+      }
+      if (approval.not_executed !== undefined && typeof approval.not_executed !== 'boolean') {
+        issues.push(error('GOLD005', relPath, 'trajectory.approval_flow.not_executed 必须是布尔'))
+      }
+      if (approval.min_count !== undefined && (typeof approval.min_count !== 'number' || approval.min_count < 1)) {
+        issues.push(error('GOLD005', relPath, 'trajectory.approval_flow.min_count 必须是 >=1 的数'))
+      }
+    } else {
+      issues.push(error('GOLD005', relPath, 'trajectory.approval_flow 必须是字符串数组或 { tool, outcome, not_executed, min_count } 映射'))
     }
   }
   if (value.max_steps !== undefined && (typeof value.max_steps !== 'number' || value.max_steps <= 0)) {

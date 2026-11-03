@@ -1,0 +1,20 @@
+# 复盘 golden(13 号文档 §2;S0 状态:待 SME 评审)
+id: retro-nps-actions
+description: NPS 32 → 目标 45 的改进行动清单
+category: 复盘
+user_input: |
+  展会 NPS 32(目标 45),观众留言高频词:排队久、展位难找、礼品单薄。
+  出改进行动清单:针对每个高频词给行动,每条含负责人与截止时间,以文件交付。
+tags: [复盘]
+final_state:
+  - file_assert: { path: out/nps-actions.md, contains: 排队 }
+  - file_assert: { path: out/nps-actions.md, contains: 负责人 }
+  - file_assert: { path: out/nps-actions.md, contains: 截止 }
+  - script:
+      command: |
+        test -s out/nps-actions.md
+trajectory:
+  mode: subset
+  must_not_call: [send_email]
+  max_steps: 20
+budget: { max_turns: 8, max_tokens: 150000}

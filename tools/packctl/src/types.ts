@@ -31,21 +31,36 @@ export function hasErrors(findings: readonly Finding[]): boolean {
 }
 
 // ── golden case(07 号文档 §3.2;字段与 ai-evo Excel/终态校验器/轨迹断言同口径)──
+// 双形态口径(T6 与 @basis/evals(T4)对齐后钉住):
+// - 映射形态(packctl init 模板):final_state 是单断言映射;approval_flow 是字符串数组;
+//   answer 是字符串;
+// - 条目形态(@basis/evals / ai-evo 可执行口径):final_state 是单键条目数组
+//   [{file_assert|http_assert|script}, …];approval_flow 是 {tool,outcome,not_executed,min_count};
+//   answer 是 {contains|match,ignore_case}。
+// 两种形态都合法;评测执行(@basis/evals runner)消费条目形态,pack lint 对两者都只做结构校验。
 
 export interface GoldenFileAssert {
   readonly path: string
-  readonly contains?: readonly string[]
+  /** 映射形态:字符串数组;条目形态(@basis/evals FileAssert):单个字符串。 */
+  readonly contains?: readonly string[] | string
+  readonly not_contains?: string
+  readonly exists?: boolean
 }
 
 export interface GoldenHttpAssert {
-  readonly url: string
+  /** 映射形态必填;条目形态(@basis/evals HttpAssert)用 request/respond/assert,无 url。 */
+  readonly url?: string
   readonly expect_status?: number
   readonly contains?: readonly string[]
+  readonly request?: Record<string, unknown>
+  readonly respond?: Record<string, unknown>
+  readonly assert?: Record<string, unknown>
 }
 
 export interface GoldenScriptAssert {
   readonly command: string
   readonly expect_exit?: number
+  readonly stdout_contains?: string
 }
 
 export interface GoldenFinalState {
@@ -55,16 +70,40 @@ export interface GoldenFinalState {
   readonly script?: GoldenScriptAssert
 }
 
+/** 条目形态的 final_state 单键条目(对齐 @basis/evals FinalStateAssert 联合)。 */
+export type GoldenFinalStateEntry =
+  | { readonly file_assert: GoldenFileAssert }
+  | { readonly http_assert: GoldenHttpAssert }
+  | { readonly script: GoldenScriptAssert }
+
+/** 审批红线断言(条目形态;对齐 @basis/evals ApprovalFlowAssert,语义由其 runner 执行)。 */
+export interface GoldenApprovalFlow {
+  readonly tool?: string
+  readonly outcome?: 'allowed-once' | 'rejected' | 'cancelled' | 'unavailable'
+  readonly not_executed?: boolean
+  readonly min_count?: number
+}
+
+/** answer 断言(条目形态;contains 子串或 match 正则,二选一)。 */
+export interface GoldenAnswerAssert {
+  readonly contains?: string
+  readonly match?: string
+  readonly ignore_case?: boolean
+}
+
 /** 轨迹断言:四模式对齐 ai-evo(strict/unordered/subset/superset)+ forbidden 调用。 */
 export interface GoldenTrajectory {
   readonly mode?: 'strict' | 'unordered' | 'subset' | 'superset'
+  readonly calls?: readonly string[]
   readonly must_call?: readonly string[]
   readonly must_not_call?: readonly string[]
   readonly max_steps?: number
-  readonly approval_flow?: readonly string[]
+  /** 映射形态:字符串数组;条目形态:GoldenApprovalFlow 对象。 */
+  readonly approval_flow?: readonly string[] | GoldenApprovalFlow
 }
 
 export interface GoldenBudget {
+  readonly max_turns?: number
   readonly max_tokens?: number
   readonly max_cost_cny?: number
   readonly cache_hit_rate_min?: number
@@ -78,9 +117,9 @@ export interface GoldenJudge {
 export interface GoldenCase {
   readonly id: string
   readonly user_input: string
-  readonly answer?: string
+  readonly answer?: string | GoldenAnswerAssert
   readonly tags?: readonly string[]
-  readonly final_state?: GoldenFinalState
+  readonly final_state?: GoldenFinalState | readonly GoldenFinalStateEntry[]
   readonly trajectory?: GoldenTrajectory
   readonly budget?: GoldenBudget
   readonly judge?: GoldenJudge

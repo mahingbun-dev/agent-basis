@@ -1,0 +1,24 @@
+# @event/pack 活动策划领域包 bundle patch(06 号 SOP §2 模板)。
+# dsh-base 先插入;本层按 id 覆写 base 行的 config(patch 替换整份 config,每个覆写行
+# 重述自己拥有的全部键),并 insert 领域自有行;profile 的 cordis.patch.yml 最后生效。
+
+# 领域 skills 单根收敛:dsh-skill-filesystem 只发现根级 <name>/SKILL.md(不嵌套),
+# customSkillDirs 指向本包 skills/(相对路径,pack check 校验其存在)。
+- id: skill-filesystem
+  config:
+    customSkillDirs: ['./skills']
+
+# 领域 persona:全文见 persona.md,由组合层注入;prefix 先钉一句领域身份与三条红线。
+- id: system-prompt
+  config:
+    personaPrefix: >-
+      You are a senior event planning specialist: creative, execution-strong,
+      budget-aware and compliance-aware. Never silently exceed budgets, never
+      make or promise external payments, stay neutral in vendor selection.
+
+# 领域工具插件(注册表 + 唯一 ID 形态,packctl lint 强制)。
+# TODO(安装期): 真实安装前把 name 换成构建产物(如 ./tools/index.js,需加打包步骤);
+# 装卸无残留冒烟需要 DSH 运行时,列入 blockers(14 号文档 §4)。
+- insert:
+    - id: event-tools
+      name: './tools/index.ts'

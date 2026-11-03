@@ -1,0 +1,24 @@
+# 排期 golden(13 号文档 §2;S0 状态:待 SME 评审)
+id: wedding-day-ceremony-flow
+description: 婚礼仪式段 6 环节时间线,分钟级无重叠
+category: 排期
+user_input: |
+  婚礼当日仪式段 10:00-12:00(分钟数 600-720)拆 6 个环节:迎宾、入场、证婚、交换戒指、致辞、合影。
+  交付 out/wedding-timeline.csv,列:环节,开始,结束,负责人;不得重叠、不超时段。
+tags: [排期]
+final_state:
+  - file_assert: { path: out/wedding-timeline.csv, contains: 环节 }
+  - script:
+      command: |
+        test "$(tail -n +2 out/wedding-timeline.csv | wc -l | tr -d ' ')" -eq 6
+  - script:
+      command: |
+        awk -F, 'NR>1 { if ($2 + 0 < 600 || $3 + 0 > 720) exit 1 }' out/wedding-timeline.csv
+  - script:
+      command: |
+        awk -F, 'NR==2 { end = $3 + 0; next } NR>2 { if ($2 + 0 < end) exit 1; if ($3 + 0 > end) end = $3 + 0 }' out/wedding-timeline.csv
+trajectory:
+  mode: subset
+  must_call: [schedule_conflict_check]
+  max_steps: 20
+budget: { max_turns: 10, max_tokens: 180000}

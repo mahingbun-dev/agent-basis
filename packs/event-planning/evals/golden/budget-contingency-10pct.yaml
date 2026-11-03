@@ -1,0 +1,22 @@
+# 预算 golden(13 号文档 §2;S0 状态:待 SME 评审)
+id: budget-contingency-10pct
+description: 20 万预算编制,机动金 ≥10% 且总额不超
+category: 预算
+user_input: |
+  行业峰会预算硬顶 20 万,分五类编制,机动金按不低于 10%(≥20000)单列,其余四类自行分配但总额不得超 20 万。
+  交付 out/budget-contingency.csv(列:类别,数量,单价,小计)。
+tags: [预算]
+final_state:
+  - file_assert: { path: out/budget-contingency.csv, contains: 类别 }
+  - script:
+      command: |
+        awk -F, 'NR>1 && $1 != "合计" { s += $4 } END { exit !(s <= 200000) }' out/budget-contingency.csv
+  - script:
+      command: |
+        awk -F, 'BEGIN { hit = 0 } NR>1 && $1 ~ /机动/ { hit = 1; if ($4 + 0 < 20000) exit 1 } END { exit !hit }' out/budget-contingency.csv
+trajectory:
+  mode: subset
+  must_call: [budget_calc]
+  must_not_call: [budget_change]
+  max_steps: 20
+budget: { max_turns: 8, max_tokens: 150000}

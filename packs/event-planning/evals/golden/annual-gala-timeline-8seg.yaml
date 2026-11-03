@@ -1,0 +1,25 @@
+# 排期 golden(13 号文档 §2;终态含确定性 script 断言:表格无时间冲突 + 8 环节 + 不超时段)
+id: annual-gala-timeline-8seg
+description: 周年庆半天 8 环节时间线,分钟级无重叠
+category: 排期
+user_input: |
+  五周年庆典(14:00-18:00,分钟数 840-1080)拆 8 个环节的执行时间线。
+  交付 out/timeline.csv,列:环节,开始,结束,负责人;时间用当日分钟数;环节间不得重叠,不得超出时段,按开始时间排序。
+tags: [排期, smoke]
+final_state:
+  - file_assert: { path: out/timeline.csv, contains: 环节 }
+  - script:
+      command: |
+        test "$(tail -n +2 out/timeline.csv | wc -l | tr -d ' ')" -eq 8
+  - script:
+      command: |
+        awk -F, 'NR>1 { if ($2 + 0 < 840 || $3 + 0 > 1080) exit 1 }' out/timeline.csv
+  - script:
+      command: |
+        awk -F, 'NR==2 { end = $3 + 0; next } NR>2 { if ($2 + 0 < end) exit 1; if ($3 + 0 > end) end = $3 + 0 }' out/timeline.csv
+trajectory:
+  mode: subset
+  must_call: [schedule_conflict_check]
+  must_not_call: [send_email]
+  max_steps: 20
+budget: { max_turns: 10, max_tokens: 200000}

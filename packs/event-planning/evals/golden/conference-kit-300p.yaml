@@ -1,0 +1,21 @@
+# 物料 golden(13 号文档 §2;S0 状态:待 SME 评审;备损系数场景)
+id: conference-kit-300p
+description: 300 人会议伴手礼 kit 清单(含备损)小计合计正确
+category: 物料
+user_input: |
+  300 人会议物料:帆布袋 300×22 元、手册 300×8 元、胸牌 320×3.5 元(备损)、瓶装水 600×1.5 元、签字笔 320×2 元(备损)。
+  交付 out/kit.csv,列:物料,数量,单价,小计;小计=数量×单价;合计须为 11660。
+tags: [物料]
+final_state:
+  - file_assert: { path: out/kit.csv, contains: 物料 }
+  - script:
+      command: |
+        awk -F, 'NR>1 && $1 != "合计" { if ($2 * $3 != $4) exit 1 }' out/kit.csv
+  - script:
+      command: |
+        awk -F, 'NR>1 && $1 != "合计" { s += $4 } END { exit !(s == 11660) }' out/kit.csv
+trajectory:
+  mode: subset
+  must_call: [budget_calc, vendor_search]
+  max_steps: 20
+budget: { max_turns: 8, max_tokens: 150000}

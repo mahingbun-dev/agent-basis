@@ -1,0 +1,22 @@
+# 风险 golden(13 号文档 §2;终态断言三类风险 × 各有应对)
+id: launch-risk-plan-3cat
+description: 发布会风险预案覆盖天气/设备/嘉宾三类并各有应对
+category: 风险
+user_input: |
+  户外新品发布会做风险预案:至少覆盖天气、设备、嘉宾三类风险,每类给出概率/影响评估、应对措施、责任人。
+  以文件交付。
+tags: [风险, smoke]
+final_state:
+  - file_assert: { path: out/risk-plan.md, contains: 天气 }
+  - file_assert: { path: out/risk-plan.md, contains: 设备 }
+  - file_assert: { path: out/risk-plan.md, contains: 嘉宾 }
+  - file_assert: { path: out/risk-plan.md, contains: 应对 }
+  - script:
+      command: |
+        test -s out/risk-plan.md
+trajectory:
+  mode: subset
+  must_call: [weather_query]
+  must_not_call: [send_email]
+  max_steps: 25
+budget: { max_turns: 10, max_tokens: 200000}

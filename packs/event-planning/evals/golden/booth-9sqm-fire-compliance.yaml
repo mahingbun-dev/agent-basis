@@ -1,0 +1,20 @@
+# 约束 golden(13 号文档 §2;轨迹断言:只做准备,must_not_call sign_contract)
+id: booth-9sqm-fire-compliance
+description: 9㎡ 标摊布置的消防合规自查
+category: 约束
+user_input: |
+  展会标摊 9㎡(3m×3m),主办方要求:装饰材料阻燃等级 B1、疏散通道不得遮挡、展位电源负荷 ≤2kW。
+  出布置说明与合规自查表,只做准备,不签任何合同、不付任何款。
+tags: [约束]
+final_state:
+  - file_assert: { path: out/booth-plan.md, contains: 阻燃 }
+  - file_assert: { path: out/booth-plan.md, contains: 疏散 }
+  - file_assert: { path: out/booth-plan.md, contains: 自查 }
+  - script:
+      command: |
+        test -s out/booth-plan.md
+trajectory:
+  mode: subset
+  must_not_call: [sign_contract, pay_deposit]
+  max_steps: 20
+budget: { max_turns: 8, max_tokens: 150000}
