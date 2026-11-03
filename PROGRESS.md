@@ -6,7 +6,7 @@
 
 | 任务 | 状态 | 提交 | 备注 |
 |---|---|---|---|
-| T0 地基 @basis/root | 待开发 | | monorepo 脚手架(pnpm/tsconfig strict/vitest/oxlint/verify)+ git init |
+| T0 地基 @basis/root | 完成 | T0: agent-basis monorepo 脚手架 | 验收门通过:pnpm --filter @basis/root run verify exit 0(oxlint+tsgolint 桥、tsc strict、vitest 5 测试全绿;tools/basis-smoke 为约定载体包) |
 | T1 治理 @basis/governance | 待开发 | | 规则引擎 allow/ask/deny、预算守卫、PII、审计投影、egress-lite |
 | T2 记忆 @basis/memory | 待开发 | | M1 文件记忆 + M2 sqlite 实体记录,effect 配逆真删 |
 | T3 交互 @basis/interact | 待开发 | | hitl.yaml 校验、R0-R3 映射、富审批卡片、提问合并 |
