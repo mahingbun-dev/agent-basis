@@ -1,0 +1,15 @@
+packages:
+  # L1 基座插件(governance / memory / interact / evals / knowledge / observe / evolve / channels / cache-guard / extra)
+  - packages/*
+  # 跨行业工具与 CLI(packctl / evals CLI 等)及约定载体包
+  - tools/*
+
+# 依赖版本单一事实源:所有包用 "catalog:" 引用,升级只改这里。
+catalog:
+  '@stylistic/eslint-plugin': ^5.10.0
+  '@types/node': ^24.10.1
+  'eslint-plugin-sonarjs': ^4.2.0
+  oxlint: 1.81.0
+  oxlint-tsgolint: 7.0.2001
+  typescript: ^6.0.3
+  vitest: ^4.1.11

@@ -1,0 +1,31 @@
+# secrets / local state
+.env
+.env.*
+!.env.example
+
+# dependencies & pnpm
+node_modules/
+.pnpm-store/
+pnpm-debug.log*
+
+# build output
+lib/
+dist/
+*.tsbuildinfo
+
+# test & coverage artifacts
+coverage/
+.storages/
+.sessions/
+*.sqlite-shm
+*.sqlite-wal
+
+# scratch
+tmp/
+.cache/
+.oxlint-contract-*/
+
+# editor / OS
+.DS_Store
+.idea/
+.vscode/

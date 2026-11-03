@@ -1,0 +1,21 @@
+{
+  "name": "@basis/smoke",
+  "description": "工程地基约定载体包:证明根 toolchain(oxlint+tsgolint / tsc --noEmit strict / vitest)在子包内可用,并作为新包脚手架的活样例。它自身的 verify 就是根 verify 门的一部分。",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

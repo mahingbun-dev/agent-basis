@@ -1,0 +1,26 @@
+{
+  "name": "@basis/root",
+  "description": "领域 Agent 基座 monorepo:L1 基座插件 + L2 领域包,构建于 DeepSeek Harness (DSH) 之上。设计文档见 README.md。",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "verify": "pnpm -r --if-present run verify",
+    "lint": "oxlint .",
+    "test": "pnpm -r --if-present run test"
+  },
+  "devDependencies": {
+    "@stylistic/eslint-plugin": "catalog:",
+    "@types/node": "catalog:",
+    "eslint-plugin-sonarjs": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
