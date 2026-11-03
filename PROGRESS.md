@@ -15,7 +15,7 @@
 | T6 金集 packs/event-planning | 待开发 | | @event/pack 骨架 + 30 条 golden(含 3 条审批红线) |
 | T7 平台对接 docs/ | 待开发 | | ai-evo 探活;无 Key 则产手动对接文档,不阻塞 |
 | T8 知识 @basis/knowledge | 待开发 | | wiki-local FTS5+LIKE 回退、provenance、四工具、dual RRF 骨架 |
-| T9 观测 @basis/observe | 待开发 | | evolve_signal 存储、成本/缓存命中率聚合、漂移快照 |
+| T9 观测 @basis/observe | 完成 | T9: @basis/observe 观测插件四模块+DSH seam 钉住 | 验收门通过:pnpm --filter @basis/observe run verify exit 0(oxlint 0 错、tsc strict、vitest 60/60);evolve_signal sqlite 存取((kind,ref) 去重幂等+trajectory_hash 聚类+json_each tag 查询)、事件流→指标聚合(request/header 类事件锚定路由,tokens 互斥四桶/成本估算/缓存命中率/轮数)、feedback 低分入队(版本 churn 不重复)、漂移快照 diff(默认+自定义阈值/方向语义/除零护栏);seam 用已发布 dsh-{session,llm,message-feedback} 0.2.2-alpha.2 类型编译期钉住,真实 DSH 运行时联调后置 |
 | T10 自进化 @basis/evolve | 待开发 | | 条目解析+五种 delta、ledger、G0/G1/G2 流水线、prompt-audit |
 | T11 通道 @basis/channels | 待开发 | | 渠道绑定、webhook 网关、一次性审批令牌、适配器接口 |
 | T12 缓存守护 @basis/cache-guard | 待开发 | | 前缀稳定性检查(动态前缀检测)、命中率指标 |
