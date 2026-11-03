@@ -1,0 +1,27 @@
+{
+  "name": "@basis/packctl",
+  "description": "L2 领域包脚手架 CLI(B' 承载,12 号文档 §10.1):pack init 按 06 号 SOP 模板生成领域包骨架;pack lint 做结构完整 / Cordis 纪律静态检查(无旁路全局、导出可交换接口形态)/ SKILL.md 条目锚点与 metadata.evo.entries 配对 / golden 目录非空且可被 evals 加载;pack check 做静态冒烟(bundle 声明引用的文件都存在)。golden 加载器供 @basis/evals 复用(07 号文档 §3.2 字段口径)。",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "packctl": "./bin/packctl.mjs"
+  },
+  "scripts": {
+    "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "yaml": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

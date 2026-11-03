@@ -11,7 +11,7 @@
 | T2 记忆 @basis/memory | 待开发 | | M1 文件记忆 + M2 sqlite 实体记录,effect 配逆真删 |
 | T3 交互 @basis/interact | 完成 | T3: @basis/interact 五模块(hitl 分档/预设产物/富审批卡片/提问合并/负信号) | 验收门通过:pnpm --filter @basis/interact run verify exit 0(oxlint 0 错、tsc strict、vitest 55/55);hitl.yaml 校验 fail-closed(default_grade 只许 R2/R3、R3 专属键严检、最高档优先裁决)、R0-R3→permission-presets 产物、卡片五字段+R3 附加、≤3 问/卡合并+合并率统计、被拒/被修改负信号总线;seam 直用已发布 dsh-{user-questions,user-approval,permission-presets,sandbox} 0.2.2-alpha.2 官方类型,真实 DSH 运行时联调后置 |
 | T4 评测 @basis/evals | 待开发 | | golden YAML、AgentAdapter 双适配、终态+轨迹断言、CLI |
-| T5 脚手架 @basis/packctl | 待开发 | | pack init / lint / check |
+| T5 脚手架 @basis/packctl | 完成 | T5: @basis/packctl init/lint/check 三命令 | 验收门通过:pnpm --filter @basis/packctl run verify exit 0(oxlint 0 错、tsc strict、vitest 63/63);init 生成 06 号模板骨架且原样过自身 lint/check;lint=结构(PACK0xx)+Cordis 纪律(CORD001 旁路全局/CORD002-005 注册表+唯一 ID 可交换接口)+SKILL.md 锚点↔metadata.evo.entries 双向配对(SKILL0xx)+golden 完整可加载(GOLD0xx,加载器供 T4 复用);check=CHK001-004 静态引用冒烟;三类坏包(缺锚点/缺 golden/引用缺失)必报错有单测钉住;真实装卸冒烟留 blockers(CHK900 常态告警) |
 | T6 金集 packs/event-planning | 待开发 | | @event/pack 骨架 + 30 条 golden(含 3 条审批红线) |
 | T7 平台对接 docs/ | 待开发 | | ai-evo 探活;无 Key 则产手动对接文档,不阻塞 |
 | T8 知识 @basis/knowledge | 待开发 | | wiki-local FTS5+LIKE 回退、provenance、四工具、dual RRF 骨架 |
