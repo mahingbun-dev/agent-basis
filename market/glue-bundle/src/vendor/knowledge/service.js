@@ -1,6 +1,6 @@
-import { isVisibleInSearch } from "./visibility.ts";
-import { fuseByRRF } from "./rrf.ts";
-import { KnowledgeError } from "./errors.ts";
+import { isVisibleInSearch } from "./visibility.js";
+import { fuseByRRF } from "./rrf.js";
+import { KnowledgeError } from "./errors.js";
 const KNOWLEDGE_SERVICE_ID = "@basis/knowledge";
 const BACKEND_PRIORITY = ["weknora", "wiki-local"];
 function backendPriority(id) {

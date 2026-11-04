@@ -1,7 +1,7 @@
-import { EntityMemoryStore } from "./entity-store.ts";
-import { buildEntityIndex } from "./index-builder.ts";
-import { NotesStore } from "./notes.ts";
-import { BuiltinPiiGuard } from "./pii.ts";
+import { EntityMemoryStore } from "./entity-store.js";
+import { buildEntityIndex } from "./index-builder.js";
+import { NotesStore } from "./notes.js";
+import { BuiltinPiiGuard } from "./pii.js";
 const MEMORY_SERVICE_ID = "@basis/memory";
 function createMemory(options) {
   const piiGuard = options.pii ?? new BuiltinPiiGuard();

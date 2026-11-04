@@ -1,4 +1,4 @@
-import { isRecord } from "./errors.ts";
+import { isRecord } from "./errors.js";
 class BudgetGuard {
   #config;
   #hooks;

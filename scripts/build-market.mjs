@@ -34,7 +34,8 @@ function readdirDeep(dir) {
   return files
 }
 
-/** esbuild 逐文件编译(保留模块结构,.ts import 自动改写为 .js)。 */
+/** esbuild 逐文件编译(保留模块结构)。注意:多入口非 bundle 模式下 esbuild 不改写显式
+ * `.ts` 相对 import(实测保留 `../vendor/x/index.ts`),需后处理改成 `.js`。 */
 async function compileTree(stageDir, outDir) {
   const entries = readdirDeep(stageDir).filter(file => file.endsWith('.ts'))
   if (entries.length === 0) fail(`${stageDir} 无 .ts 入口`)
@@ -47,6 +48,18 @@ async function compileTree(stageDir, outDir) {
     target: 'node20',
     logLevel: 'warning',
   })
+  // 后处理:相对 import 的 .ts → .js(esbuild 多入口模式不做这件事)
+  for (const file of readdirDeep(outDir)) {
+    if (!file.endsWith('.js')) continue
+    const text = readFileSync(file, 'utf8')
+    const fixed = text.replace(/(\.\.?\/[^'"]+?)\.ts(["'])/g, '$1.js$2')
+    if (fixed !== text) writeFileSync(file, fixed)
+  }
+  // 断言:产物不允许残留相对 .ts import
+  for (const file of readdirDeep(outDir)) {
+    if (!file.endsWith('.js')) continue
+    if (/\.\.?\/[^'"]+?\.ts["']/.test(readFileSync(file, 'utf8'))) fail(`${file} 残留相对 .ts import`)
+  }
   return entries.length
 }
 

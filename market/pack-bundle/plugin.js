@@ -7,7 +7,7 @@ import {
   createTemplateTool,
   createApprovalTool,
   createGuardTool
-} from "./tools/index.ts";
+} from "./tools/index.js";
 const EVENT_TOOLS_PLUGIN_NAME = "event-tools";
 const OUTPUT = {
   schema: { type: "object", additionalProperties: true },

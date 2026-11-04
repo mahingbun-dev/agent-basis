@@ -1,4 +1,4 @@
-import { matchAnyGlob } from "./glob.ts";
+import { matchAnyGlob } from "./glob.js";
 const DEFAULT_OUTBOUND_TOOL_GLOBS = ["web_*", "http_*", "fetch_*", "mcp__*"];
 class EgressLite {
   #config;

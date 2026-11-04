@@ -1,4 +1,4 @@
-import { MEMORY_INDEX_BUDGET_TOKENS, estimateTokens } from "./tokens.ts";
+import { MEMORY_INDEX_BUDGET_TOKENS, estimateTokens } from "./tokens.js";
 const MAX_LINES = 64;
 const DEFAULT_MAX_SUMMARY_CHARS = 40;
 function buildEntityIndex(records, options = {}) {

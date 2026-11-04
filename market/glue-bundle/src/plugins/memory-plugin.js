@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { attachMemory, createMemory, dshHost } from "../vendor/memory/index.ts";
+import { attachMemory, createMemory, dshHost } from "../vendor/memory/index.js";
 const BASIS_MEMORY_PLUGIN_NAME = "basis-memory";
 function defineMemoryPlugin(config = {}) {
   return {

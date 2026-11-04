@@ -1,5 +1,5 @@
 import { defineTool } from "@deepseek-ai/dsh-tools";
-import { isPiiBlockedError } from "./pii.ts";
+import { isPiiBlockedError } from "./pii.js";
 const MEMORY_TOOL_NAMES = ["memory_write", "memory_read", "memory_search", "memory_forget"];
 const MEMORY_INDEX_SECTION_NAME = "memory:index";
 const MEMORY_INDEX_SECTION_ORDER = 9e3;

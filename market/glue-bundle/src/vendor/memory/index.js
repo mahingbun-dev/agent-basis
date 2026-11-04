@@ -1,9 +1,9 @@
-import { BuiltinPiiGuard, BUILTIN_PII_PATTERNS, isPiiBlockedError, PiiBlockedError } from "./pii.ts";
-import { NotesStore, tokenize } from "./notes.ts";
-import { EntityMemoryStore } from "./entity-store.ts";
-import { buildEntityIndex } from "./index-builder.ts";
-import { MEMORY_INDEX_BUDGET_TOKENS, estimateTokens } from "./tokens.ts";
-import { createMemory, MEMORY_SERVICE_ID } from "./memory.ts";
+import { BuiltinPiiGuard, BUILTIN_PII_PATTERNS, isPiiBlockedError, PiiBlockedError } from "./pii.js";
+import { NotesStore, tokenize } from "./notes.js";
+import { EntityMemoryStore } from "./entity-store.js";
+import { buildEntityIndex } from "./index-builder.js";
+import { MEMORY_INDEX_BUDGET_TOKENS, estimateTokens } from "./tokens.js";
+import { createMemory, MEMORY_SERVICE_ID } from "./memory.js";
 import {
   attachMemory,
   createMemoryIndexSection,
@@ -12,7 +12,7 @@ import {
   MEMORY_INDEX_SECTION_NAME,
   MEMORY_INDEX_SECTION_ORDER,
   MEMORY_TOOL_NAMES
-} from "./tools.ts";
+} from "./tools.js";
 export {
   BUILTIN_PII_PATTERNS,
   BuiltinPiiGuard,

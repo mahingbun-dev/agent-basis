@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { PiiFilter, RuleEngine } from "../vendor/governance/index.ts";
+import { PiiFilter, RuleEngine } from "../vendor/governance/index.js";
 const GOVERNANCE_SERVICE_ID = "governance";
 function emptyRules() {
   return RuleEngine.parse("rules: []", "glue:empty");

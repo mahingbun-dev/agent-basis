@@ -1,7 +1,7 @@
 import { parse as parseYaml } from "yaml";
-import { GovernanceConfigError, isRecord } from "./errors.ts";
-import { matchAnyGlob } from "./glob.ts";
-import { stableStringify } from "./types.ts";
+import { GovernanceConfigError, isRecord } from "./errors.js";
+import { matchAnyGlob } from "./glob.js";
+import { stableStringify } from "./types.js";
 const EFFECTS = ["allow", "ask", "deny"];
 const RULE_KEYS = /* @__PURE__ */ new Set(["id", "effect", "tools", "argsContains", "reason"]);
 class RuleEngine {

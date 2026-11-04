@@ -1,10 +1,10 @@
 import * as nodeFs from "node:fs";
 import { dirname } from "node:path";
-import { WikiIndexer } from "./indexer.ts";
-import { isVisibleInSearch } from "./visibility.ts";
-import { formatCitation, parseWikiPage, serializeWikiPage } from "./frontmatter.ts";
-import { fuseByRRF } from "./rrf.ts";
-import { KnowledgeNotFoundError, KnowledgeStateError } from "./errors.ts";
+import { WikiIndexer } from "./indexer.js";
+import { isVisibleInSearch } from "./visibility.js";
+import { formatCitation, parseWikiPage, serializeWikiPage } from "./frontmatter.js";
+import { fuseByRRF } from "./rrf.js";
+import { KnowledgeNotFoundError, KnowledgeStateError } from "./errors.js";
 function createNodeFsAdapter(fs) {
   return {
     listMarkdownFiles(root) {

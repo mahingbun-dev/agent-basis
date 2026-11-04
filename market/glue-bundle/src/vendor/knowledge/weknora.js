@@ -1,5 +1,5 @@
-import { isRecord } from "./errors.ts";
-import { formatCitation } from "./frontmatter.ts";
+import { isRecord } from "./errors.js";
+import { formatCitation } from "./frontmatter.js";
 const SEARCH_PATH = "/api/v1/knowledge-search";
 class WeKnoraBackend {
   id = "weknora";

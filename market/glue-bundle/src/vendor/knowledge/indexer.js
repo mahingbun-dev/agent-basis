@@ -1,5 +1,5 @@
 import { DatabaseSync } from "node:sqlite";
-import { fuseByRRF } from "./rrf.ts";
+import { fuseByRRF } from "./rrf.js";
 const VISIBILITY_SQL = `status <> 'deprecated'
   AND (superseded_by IS NULL OR superseded_by = '')
   AND NOT (trust = 'agent_drafted' AND review <> 'reviewed')`;

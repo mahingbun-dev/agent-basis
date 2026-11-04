@@ -1,5 +1,5 @@
-import { formatCitation } from "./frontmatter.ts";
-import { isRecord } from "./errors.ts";
+import { formatCitation } from "./frontmatter.js";
+import { isRecord } from "./errors.js";
 const STRING = { type: "string" };
 function buildKnowledgeTools(service) {
   const search = {

@@ -1,6 +1,6 @@
-import { isRecord } from "./errors.ts";
-import { serializeArgs } from "./rules.ts";
-import { FileAuditSink, MemoryAuditSink } from "./sink.ts";
+import { isRecord } from "./errors.js";
+import { serializeArgs } from "./rules.js";
+import { FileAuditSink, MemoryAuditSink } from "./sink.js";
 class AuditProjector {
   #sinks;
   #pii;

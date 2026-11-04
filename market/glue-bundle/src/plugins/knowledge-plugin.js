@@ -1,6 +1,6 @@
 import * as nodeFs from "node:fs";
 import { join } from "node:path";
-import { WikiLocalBackend, createKnowledgeService, createNodeFsAdapter, toDshTools } from "../vendor/knowledge/index.ts";
+import { WikiLocalBackend, createKnowledgeService, createNodeFsAdapter, toDshTools } from "../vendor/knowledge/index.js";
 const BASIS_KNOWLEDGE_PLUGIN_NAME = "basis-knowledge";
 function defineKnowledgePlugin(config = {}) {
   return {

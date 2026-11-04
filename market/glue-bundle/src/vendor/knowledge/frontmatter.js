@@ -1,5 +1,5 @@
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
-import { KnowledgeFormatError, isRecord } from "./errors.ts";
+import { KnowledgeFormatError, isRecord } from "./errors.js";
 const STATUSES = ["active", "stale", "deprecated"];
 const TRUSTS = ["official", "verified", "agent_drafted"];
 const REVIEWS = ["reviewed", "pending"];

@@ -1,4 +1,4 @@
-import { createBudgetTool } from "./budget-tool.ts";
+import { createBudgetTool } from "./budget-tool.js";
 const APPROVAL_TOOL_SERVICE_ID = "@event/approval-tool";
 function createApprovalTool() {
   const budget = createBudgetTool();

@@ -1,12 +1,12 @@
-import { KnowledgeError, KnowledgeFormatError, KnowledgeNotFoundError, KnowledgeStateError, isRecord } from "./errors.ts";
-import { extractChangelog, extractSnippet, extractWikilinks, formatCitation, parseWikiPage, serializeWikiPage } from "./frontmatter.ts";
-import { WikiIndexer } from "./indexer.ts";
-import { hiddenReason, isVisibleInSearch } from "./visibility.ts";
-import { fuseByRRF, hitKey } from "./rrf.ts";
-import { WikiLocalBackend, createNodeFsAdapter, slugify } from "./wiki.ts";
-import { WeKnoraBackend, mapSearchResponse, weknoraCitation } from "./weknora.ts";
-import { KNOWLEDGE_SERVICE_ID, createKnowledgeService } from "./service.ts";
-import { buildKnowledgeTools, toDshToolDefinition, toDshTools } from "./tools.ts";
+import { KnowledgeError, KnowledgeFormatError, KnowledgeNotFoundError, KnowledgeStateError, isRecord } from "./errors.js";
+import { extractChangelog, extractSnippet, extractWikilinks, formatCitation, parseWikiPage, serializeWikiPage } from "./frontmatter.js";
+import { WikiIndexer } from "./indexer.js";
+import { hiddenReason, isVisibleInSearch } from "./visibility.js";
+import { fuseByRRF, hitKey } from "./rrf.js";
+import { WikiLocalBackend, createNodeFsAdapter, slugify } from "./wiki.js";
+import { WeKnoraBackend, mapSearchResponse, weknoraCitation } from "./weknora.js";
+import { KNOWLEDGE_SERVICE_ID, createKnowledgeService } from "./service.js";
+import { buildKnowledgeTools, toDshToolDefinition, toDshTools } from "./tools.js";
 export {
   KNOWLEDGE_SERVICE_ID,
   KnowledgeError,
