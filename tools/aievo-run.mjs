@@ -386,7 +386,17 @@ export async function main(argv, io = {}) {
   return EXIT.ERROR;
 }
 
-const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+// 入口判断两侧 realpath:经符号链接调用(如工作区根 tools -> agent-basis/tools)时,
+// ESM 会把 import.meta.url 解析为物理路径而 process.argv[1] 仍是符号路径,严格字符串比较会静默跳过 main()。
+const isMain = (() => {
+  const argv1 = process.argv[1];
+  if (!argv1) return false;
+  try {
+    return fs.realpathSync(argv1) === fs.realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return import.meta.url === pathToFileURL(argv1).href;
+  }
+})();
 if (isMain) {
   main(process.argv.slice(2)).then((code) => {
     process.exitCode = code;
