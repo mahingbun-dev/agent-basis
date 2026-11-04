@@ -2,6 +2,8 @@
 
 在 DeepSeek Harness(DSH)之上构建的 **L1 基座插件 + L2 领域包** pnpm monorepo。目标:把"组织向"能力(治理 / 记忆 / 人机交互 / 评测 / 通道 / 受控自进化)做成可跨行业复用的 Cordis 插件;行业差异收敛为一份"领域包"(persona + skills + tools + policies + evals + hitl),验收标准 = 该包的评测通过率。
 
+[![CI](https://github.com/mahingbun-dev/agent-basis/actions/workflows/ci.yml/badge.svg)](https://github.com/mahingbun-dev/agent-basis/actions/workflows/ci.yml)
+
 **当前状态**:12 个包 + 2 个 CLI + 1 个领域包已实现并通过验收(全局 verify 12 包 776 测试全绿;活动策划金集 30 条含 3 条审批红线,replay 20/20)。真连联调(ai-evo 门禁 / DSH 宿主装载 / WeKnora / 微信邮箱)进行中,详见 [DEV-REPORT.md](DEV-REPORT.md)。
 
 ## 架构

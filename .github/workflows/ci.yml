@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify(oxlint + tsc strict + vitest,12 包)
+        run: pnpm -w run verify
+
+      - name: Lint 领域包(packs/*)
+        run: node tools/packctl/bin/packctl.mjs lint packs/event-planning
+
+      - name: 评测 replay 冒烟(dsh-evals,t14-replay 子集)
+        run: node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --subset t14-replay --adapter replay
