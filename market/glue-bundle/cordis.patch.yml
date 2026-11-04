@@ -1,0 +1,13 @@
+# @basis/glue bundle:三个基座插件(governance/memory/knowledge)
+# 装载形态:insert 语义插入基础树——cordis patch 的裸 id 行只按 id 覆写既有行,
+# 基础树无 basis-* 行时会被 applyPatches 丢弃(dsh-app-boot/lib/index.js applyPatches:
+# "patch: entry %C not found" → continue),插件永远不进解析树(2026-11-04 E2E 实测:
+# pluginInventory/list 221 条无 @basis/glue 任何条目,budget_calc 所在 @event/pack
+# 以 - insert: 形态正常装载)。参照 packs/event-planning/cordis.patch.yml 同款 insert。
+- insert:
+    - id: basis-governance
+      name: '@basis/glue/governance-plugin'
+    - id: basis-memory
+      name: '@basis/glue/memory-plugin'
+    - id: basis-knowledge
+      name: '@basis/glue/knowledge-plugin'

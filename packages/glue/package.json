@@ -17,12 +17,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@basis/governance": "git+https://github.com/mahingbun-dev/agent-basis.git#basis-pkgs&path:/packages/governance",
-    "@basis/knowledge": "git+https://github.com/mahingbun-dev/agent-basis.git#basis-pkgs&path:/packages/knowledge",
-    "@basis/memory": "git+https://github.com/mahingbun-dev/agent-basis.git#basis-pkgs&path:/packages/memory",
-    "@deepseek-ai/cordis": "4.0.6-alpha.1",
-    "@deepseek-ai/dsh-tools": "0.2.2-alpha.2",
-    "yaml": "^2.9.1"
+    "@basis/governance": "workspace:*",
+    "@basis/knowledge": "workspace:*",
+    "@basis/memory": "workspace:*",
+    "@deepseek-ai/cordis": "catalog:",
+    "@deepseek-ai/dsh-tools": "catalog:",
+    "yaml": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

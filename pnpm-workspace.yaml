@@ -7,14 +7,6 @@ packages:
 allowBuilds:
   esbuild: true
 
-# T21:glue/memory 面向插件市场(git 安装)声明了 git 钉标签的兄弟依赖 spec
-# (#basis-pkgs → 指向包含本套修复的提交,见 market/index.json)。仓库内开发时用
-# overrides 映回 workspace 链接——本地改动即时生效,发布语义留给 git 安装路径。
-overrides:
-  '@basis/governance': 'workspace:*'
-  '@basis/knowledge': 'workspace:*'
-  '@basis/memory': 'workspace:*'
-
 # 依赖版本单一事实源:所有包用 "catalog:" 引用,升级只改这里。
 # @deepseek-ai/dsh-* 钉在与 ../dsh-repo 相同的 0.2.2-alpha.2(seam 类型即取自该版本)。
 catalog:

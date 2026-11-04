@@ -1,0 +1,26 @@
+{
+  "name": "@basis/glue",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "组合层 glue bundle(市场自包含构建,由 scripts/build-market-glue.mjs 生成):把 @basis 的 memory/knowledge/governance 服务装配为真实 DSH 宿主可挂载的插件。源码 vendor 自 packages/{glue,governance,memory,knowledge}。",
+  "exports": {
+    ".": "./src/index.ts",
+    "./memory-plugin": "./src/plugins/memory-plugin.ts",
+    "./knowledge-plugin": "./src/plugins/knowledge-plugin.ts",
+    "./governance-plugin": "./src/plugins/governance-plugin.ts",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@deepseek-ai/cordis": "4.0.6-alpha.1",
+    "@deepseek-ai/dsh-system-prompt": "0.2.2-alpha.2",
+    "@deepseek-ai/dsh-tools": "0.2.2-alpha.2",
+    "yaml": "^2.9.1"
+  },
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
