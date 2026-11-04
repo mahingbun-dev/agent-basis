@@ -57,7 +57,7 @@
           "source": {
             "type": "git",
             "url": "https://github.com/mahingbun-dev/agent-basis",
-            "commit": "e9c3fb4259a848fd728d0d2a9a0e9c03191240fe",
+            "commit": "f6c30a3e919685eebe752093b14a811bcaa72fc9",
             "path": "market/glue-bundle"
           }
         }
@@ -94,7 +94,7 @@
           "source": {
             "type": "git",
             "url": "https://github.com/mahingbun-dev/agent-basis",
-            "commit": "e9c3fb4259a848fd728d0d2a9a0e9c03191240fe",
+            "commit": "f6c30a3e919685eebe752093b14a811bcaa72fc9",
             "path": "packs/event-planning"
           }
         }
