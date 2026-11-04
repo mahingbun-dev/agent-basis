@@ -46,7 +46,7 @@ const CSS = `
 [data-basis-panel='section-title'] { margin: 0; font-size: 15px; line-height: 22px; font-weight: 600; color: var(--dsw-alias-label-primary); }
 [data-basis-panel='section-note'] { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); overflow-wrap: anywhere; }
 
-[data-basis-panel='cards'] { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+[data-basis-panel='cards'] { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
 [data-basis-panel='card'] {
   display: flex; flex-direction: column; gap: 6px; min-width: 0;
   padding: 12px 14px; border-radius: var(--dsw-radius-xl, 14px);
@@ -55,10 +55,11 @@ const CSS = `
 }
 [data-basis-panel='card']:hover { background: var(--dsw-alias-interactive-bg-hover); }
 [data-basis-panel-card='event-tools'] { grid-column: 1 / -1; }
-[data-basis-panel='card-title'] { display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--dsw-alias-label-primary); }
-[data-basis-panel='card-count'] { color: var(--dsw-alias-label-tertiary); font-weight: 400; }
+[data-basis-panel='card-kicker'] { display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--dsw-alias-label-tertiary); letter-spacing: 0.01em; }
+[data-basis-panel='card-count'] { font-weight: 400; }
+[data-basis-panel='tile-row'] { display: flex; align-items: baseline; gap: 22px; padding: 2px 0 4px; }
+[data-basis-panel='metric-value'] { font-size: 22px; line-height: 26px; font-weight: 650; font-variant-numeric: tabular-nums; color: var(--dsw-alias-label-primary); letter-spacing: -0.01em; }
 [data-basis-panel='metric'] { display: inline-flex; align-items: baseline; gap: 6px; }
-[data-basis-panel='metric-value'] { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--dsw-alias-label-primary); }
 [data-basis-panel='metric-label'] { font-size: 12px; color: var(--dsw-alias-label-tertiary); }
 [data-basis-panel='kv'] { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 12px; font-variant-numeric: tabular-nums; }
 [data-basis-panel='kv-key'] { font-size: 12px; color: var(--dsw-alias-label-tertiary); }

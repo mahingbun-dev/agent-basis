@@ -42,21 +42,14 @@ function GovernanceCard({ snapshot, t }: { readonly snapshot: BasisPanelSnapshot
   const governance = snapshot.governance
   return (
     <section data-basis-panel="card" data-basis-panel-card="governance" aria-label={t('services.governance')}>
-      <div data-basis-panel="card-title">{t('services.governance')}</div>
-      <div data-basis-panel="metric-row">
-        <Metric label={t('units.rules')} value={<span data-basis-panel="rule-count">{governance.ruleCount}</span>} />
-      </div>
-      <div data-basis-panel="metric-row">
-        <Metric label={t('units.entries')} value={<span data-basis-panel="audit-count">{governance.auditEntries}</span>} />
-        <span data-basis-panel="metric-label">{t('services.audit')}</span>
+      <div data-basis-panel="card-kicker">{t('services.governance')}</div>
+      <div data-basis-panel="tile-row">
+        <Metric label={t('services.rules')} value={<span data-basis-panel="rule-count">{governance.ruleCount}</span>} />
+        <Metric label={t('services.audit')} value={<span data-basis-panel="audit-count">{governance.auditEntries}</span>} />
       </div>
       <div data-basis-panel="kv">
-        <span data-basis-panel="kv-key">{t('services.rules')}</span>
-        <span data-basis-panel="rule-source">{governance.ruleSource}</span>
-        {governance.auditSource !== null && (
-          <span data-basis-panel="kv-key">{t('services.audit')}</span>
-        )}
-        {governance.auditSource !== null && <span data-basis-panel="audit-source">{governance.auditSource}</span>}
+        <span data-basis-panel="kv-key">规则源</span>
+        <span data-basis-panel="kv-value" data-basis-panel-detail="rule-source">{governance.ruleSource}</span>
       </div>
     </section>
   )
@@ -66,13 +59,13 @@ function MemoryCard({ snapshot, t }: { readonly snapshot: BasisPanelSnapshot, re
   const memory = snapshot.memory
   return (
     <section data-basis-panel="card" data-basis-panel-card="memory" aria-label={t('services.memory')}>
-      <div data-basis-panel="card-title">{t('services.memory')}</div>
-      <div data-basis-panel="metric-row">
+      <div data-basis-panel="card-kicker">{t('services.memory')}</div>
+      <div data-basis-panel="tile-row">
         <Metric label={t('services.entities')} value={<span data-basis-panel="entity-count">{memory.entityCount}</span>} />
       </div>
       <div data-basis-panel="kv">
         <span data-basis-panel="kv-key">{t('services.recentKeys')}</span>
-        <span data-basis-panel="memory-keys">
+        <span data-basis-panel="kv-value" data-basis-panel-detail="memory-keys">
           {memory.recentKeys.length === 0
             ? <span data-basis-panel="placeholder">{t('state.empty')}</span>
             : memory.recentKeys.map(key => (
@@ -90,16 +83,14 @@ function KnowledgeCard({ snapshot, t }: { readonly snapshot: BasisPanelSnapshot,
   const knowledge = snapshot.knowledge
   return (
     <section data-basis-panel="card" data-basis-panel-card="knowledge" aria-label={t('services.knowledge')}>
-      <div data-basis-panel="card-title">{t('services.knowledge')}</div>
-      <div data-basis-panel="metric-row">
+      <div data-basis-panel="card-kicker">{t('services.knowledge')}</div>
+      <div data-basis-panel="tile-row">
         <Metric label={t('services.wikiDocs')} value={<span data-basis-panel="wiki-doc-count">{knowledge.wikiDocCount}</span>} />
-      </div>
-      <div data-basis-panel="metric-row">
         <Metric label={t('services.proposals')} value={<span data-basis-panel="proposal-count">{knowledge.proposalCount}</span>} />
       </div>
       <div data-basis-panel="kv">
         <span data-basis-panel="kv-key">{t('services.weknora')}</span>
-        <span data-basis-panel="weknora-status">{knowledge.weknora.status}</span>
+        <span data-basis-panel="kv-value" data-basis-panel-detail="weknora-status">{knowledge.weknora.status}</span>
       </div>
     </section>
   )
@@ -124,10 +115,7 @@ function ToolsCard({ snapshot, t, lang }: { readonly snapshot: BasisPanelSnapsho
   const tools = snapshot.tools
   return (
     <section data-basis-panel="card" data-basis-panel-card="event-tools" aria-label={t('services.tools')}>
-      <div data-basis-panel="card-title">
-        {t('services.tools')}
-        <span data-basis-panel="card-count">({tools.length})</span>
-      </div>
+      <div data-basis-panel="card-kicker">{t('services.tools')} <span data-basis-panel="card-count">· {tools.length}</span></div>
       {tools.length === 0
         ? <span data-basis-panel="placeholder">{t('state.empty')}</span>
         : (

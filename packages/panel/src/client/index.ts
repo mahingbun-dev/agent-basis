@@ -81,10 +81,12 @@ export function apply(ctx: PanelClientContext): () => void {
   // 对话框一键触发条(官方席位 conversation.composer.dock:composer 卡下方
   // 常驻条目,session 作用域)。官方 SessionStandardProps 注入 inputActions
   // (setDraft/submit = 用户按 Enter 的同一条路径,R3 照常走审批)。
-  ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register({
-    name: 'conversation.composer.dock',
-    key: PANEL_ID,
+  // 两个官方席位都试(composer.dock 未渲染,改用 input.right 紧凑位):
+  ctx.slots.inject('conversation.input.right', () => ctx.slots.register({
+    name: 'conversation.input.right',
+    id: 'basis-panel-trigger',
     locale: NS,
+    inject: () => ({}),
   }, ComposerChips))
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
     name: 'sidebar.panellist',
