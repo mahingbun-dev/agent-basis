@@ -28,3 +28,6 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
     },
   }
 }
+
+// DSH bundle loader 取 default export 插件实例(对齐 @event/pack plugin.ts 形态)
+export default defineMemoryPlugin()

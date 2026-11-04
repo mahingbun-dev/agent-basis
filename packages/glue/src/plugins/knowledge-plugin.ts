@@ -47,3 +47,6 @@ export function defineKnowledgePlugin(config: KnowledgePluginConfig = {}) {
     },
   }
 }
+
+// DSH bundle loader 取 default export 插件实例(对齐 @event/pack plugin.ts 形态)
+export default defineKnowledgePlugin()
