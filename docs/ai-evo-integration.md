@@ -213,3 +213,21 @@ print('rows=', len(rows))
 - 本文所有平台操作均为**文档产出**,未替用户执行注册/建 Key/退 demo/建任务(14 号 §5 划归用户侧;退 demo 涉及 NAS 生产容器重建)。
 - aievo-cli 未在本机安装实测(PyPI 发布状态未验证),§3 命令形态源自源码仓 README;装好后如有参数漂移,以 `aievo --help` 为准。
 - 门禁判定真跑(verification_pass_rate / trajectory_match_rate 实际产出)依赖 M1-M7 完成,属运行时联调,列入 T14 总装验收范围。
+
+## 7. 平台侧线冗余降级记录(T5,2026-11-04)
+
+> 背景:另一会话曾建 25/6 两个侧线数据集,与主线 12/4/4 三数据集(release/admission/heldout v1)内容重复。**不物理删除**,改名降级保留可追溯(设计文档 18 号 §6 第 5 项)。
+
+实测操作(全部 JWT 鉴权,`GET/PUT /api/v1/evaluation/datasets[.../{id}]`):
+
+| 数据集 id | 原名 | 行数 | 降级后 name | description 追加 |
+|---|---|---|---|---|
+| `ds_e6ef85b4c3db` | 活动策划金集v1-main | 25 | `[deprecated-侧线冗余] 活动策划金集v1-main` | T5 降级标注(侧线冗余,未删除) |
+| `ds_df13514fe2c4` | 活动策划金集v1-heldout | 6 | `[deprecated-侧线冗余] 活动策划金集v1-heldout` | 同上 |
+
+改名后全量列表复核(PUT 200 + GET 断言 17 项全过):
+
+- **主线三件套完好未动**:`ds_1e9470dbe7f4` event-goldenset-release-v1(12)/`ds_facebc33b2af` admission-v1(4)/`ds_24c9051325b7` heldout-v1(4),name 与 question_count 均未变;三门禁任务绑定关系不变(release=completed,admission/heldout=pending)。
+- **两个侧线数据行数不变**(25/6,PUT 仅触及 name/description,openapi `UpdateDatasetRequest` 实测仅此二字段)。
+- 同场其余数据集(demo 种子 `demo-dataset-001`、平台早期 `ds_5ca3a7cf59ef` 回归测试问答集)非本项目产物,未动。
+- **agentbasis_qa 账号未动**(按任务约定):openapi 实测无删除用户端点;禁用面为 `PATCH /api/v1/teams/{team_code}/members/{user_code}/status`(body `{"is_active": false}`,**仅超管可用**),属平台管理侧操作,留用户执行(UI 或超管凭证调用)。
