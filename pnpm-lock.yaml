@@ -385,23 +385,23 @@ importers:
   tools/evals:
     dependencies:
       '@deepseek-ai/dsh-session':
-        specifier: 'catalog:'
+        specifier: 0.2.2-alpha.2
         version: 0.2.2-alpha.2(@deepseek-ai/cordis@4.0.6-alpha.1)(@deepseek-ai/dsh-scope@0.2.2-alpha.2(@deepseek-ai/cordis@4.0.6-alpha.1))
       '@deepseek-ai/dsh-user-approval':
-        specifier: 'catalog:'
+        specifier: 0.2.2-alpha.2
         version: 0.2.2-alpha.2(5b480ce62130e0250cdd20e94d1b8774)
       yaml:
-        specifier: 'catalog:'
+        specifier: ^2.9.1
         version: 2.9.1
     devDependencies:
       '@types/node':
-        specifier: 'catalog:'
+        specifier: ^24.10.1
         version: 24.19.2
       typescript:
-        specifier: 'catalog:'
+        specifier: ^6.0.3
         version: 6.0.3
       vitest:
-        specifier: 'catalog:'
+        specifier: ^4.1.11
         version: 4.1.12(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(yaml@2.9.1))
 
   tools/packctl:

@@ -86,3 +86,4 @@ dsh-evals run --pack <目录> [--subset smoke] [--case <id>] [--adapter replay|a
 - 独立 CLI(B'),不注册任何 Cordis ctx seam;可交换接口 = `AgentAdapter` 注册表(唯一 id);
 - 断言器全部纯函数/显式 IO;fixture 与真实会话的 JSON 一律运行期校验(events.ts),schema 违例不抛给进程而是记 `loadErrors`(分类 schema);
 - 验证门:`pnpm --filter @basis/evals run verify` = oxlint + tsc --noEmit(strict)+ vitest run + `python3 -m unittest discover -s python`(driver 侧 EventMapper 单测,含真实样本回放)。
+  调用形态:依赖用钉版本(非 catalog:)、bin 用包内/仓根显式相对路径 —— 单包 scope 的 install-before-run 与 PATH 注入缺失场景(验收环境实证)均不依赖 workspace catalogs 与注入 PATH;升级版本时同步改 pnpm-workspace.yaml catalog。
