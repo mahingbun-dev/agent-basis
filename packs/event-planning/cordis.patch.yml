@@ -17,8 +17,10 @@
       make or promise external payments, stay neutral in vendor selection.
 
 # 领域工具插件(注册表 + 唯一 ID 形态,packctl lint 强制)。
-# TODO(安装期): 真实安装前把 name 换成构建产物(如 ./tools/index.js,需加打包步骤);
-# 装卸无残留冒烟需要 DSH 运行时,列入 blockers(14 号文档 §4)。
+# 装载配方(18 号文档 §5,与 @basis/glue 同通道):宿主 profile 的
+# dsh.profile.bundles 加 @event/pack + file: 包安装(pnpm)+ node_modules/@event
+# 改 symlink(realpath 在 node_modules 外,Node 24 type-stripping 合法)——
+# 无需打包步骤,.ts 插件即装载产物。plugin.ts 里 apply 配逆全量 disposer。
 - insert:
     - id: event-tools
-      name: './tools/index.ts'
+      name: '@event/pack/plugin'

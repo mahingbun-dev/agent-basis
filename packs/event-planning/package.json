@@ -4,6 +4,15 @@
   "private": true,
   "type": "module",
   "description": "活动策划领域包(L2,13 号文档 v0):persona + skills + 行业工具 + policies + 30 条 golden(含 3 条审批红线)+ hitl 分档。目录名 event-planning,npm 名按 13 号文档 §1 用 @event/pack(@<industry>/* 命名空间,industry=event)。",
+  "exports": {
+    ".": "./tools/index.ts",
+    "./plugin": "./plugin.ts",
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.6-alpha.1",
+    "@deepseek-ai/dsh-tools": ">=0.2.2-alpha.2"
+  },
   "dsh": {
     "manifestVersion": 1,
     "bundle": {
@@ -11,6 +20,6 @@
     }
   },
   "scripts": {
-    "verify": "node ../../tools/packctl/bin/packctl.mjs lint . && node evals/verify-goldenset.mjs"
+    "verify": "node ../../tools/packctl/bin/packctl.mjs lint . && node evals/verify-goldenset.mjs && node --test tools/*.test.mjs"
   }
 }

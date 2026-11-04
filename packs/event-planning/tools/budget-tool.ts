@@ -37,7 +37,9 @@ export function createBudgetTool(): EventBudgetTool {
   return {
     id: BUDGET_TOOL_SERVICE_ID,
     lineTotal(line) {
-      return toFen(toFen(line.quantity * line.unitPriceCny)) / 100
+      // 分单位一次换算即可(旧实现 toFen(toFen(...)) 双重换算放大 100 倍,
+      // 由 tools/budget-tool.test.mjs 的 golden 口径用例钉住)。
+      return toFen(line.quantity * line.unitPriceCny) / 100
     },
     total(lines) {
       return toFen(lines.reduce((sumFen, line) => sumFen + toFen(line.quantity * line.unitPriceCny), 0) / 100) / 100

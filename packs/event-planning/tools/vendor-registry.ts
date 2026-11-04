@@ -63,3 +63,65 @@ export function createVendorRegistry(): VendorRegistry {
     },
   }
 }
+
+// ── 场地库(venue_search 的确定性核心)──────────────────────────────────────
+// golden venue-compare-3-quotes(conference-venue-500-capacity /
+// teambuilding-30p-20k-urban)的 must_call 目标:容量/区位/统一口径报价检索。
+
+/** 一条场地记录(统一口径字段与 VendorQuote 同构 + 容量/区位)。 */
+export interface VenueRecord {
+  readonly name: string
+  readonly district: string
+  readonly metro?: string
+  readonly capacity: number
+  readonly quoteCny: number
+  readonly includesAv: boolean
+  /** includesAv=false 时的 AV 差价(计入统一口径)。 */
+  readonly avExtraCny?: number
+  readonly source: string
+}
+
+/** 场地检索过滤(全部可缺省;命中按容量升序、可比价升序稳定排序)。 */
+export interface VenueSearchFilters {
+  readonly keyword?: string
+  readonly capacityMin?: number
+  readonly district?: string
+}
+
+/** 检索命中条目:原样记录 + 统一口径(含 AV)可比价。 */
+export interface VenueHit {
+  readonly venue: VenueRecord
+  readonly comparableTotalCny: number
+}
+
+/** 内置场地库样例(v0 内存库;真实库接 @basis/knowledge 后由种子迁移)。 */
+export const VENUE_CATALOG: readonly VenueRecord[] = [
+  { name: '开元厅', district: '市中心', metro: '地铁2号线 开元站', capacity: 520, quoteCny: 88000, includesAv: true, source: '开元酒店 2026 报价单 #A-1041' },
+  { name: '洲际厅', district: '市中心', metro: '地铁1号线 洲际站', capacity: 480, quoteCny: 102000, includesAv: false, avExtraCny: 12000, source: '洲际酒店 2026 报价单 #B-2210' },
+  { name: '万豪厅', district: '高新区', metro: '地铁3号线 万豪站', capacity: 500, quoteCny: 95000, includesAv: true, source: '万豪酒店 2026 报价单 #C-0778' },
+  { name: '滨江宴会厅', district: '江畔', metro: '地铁4号线 滨江站', capacity: 300, quoteCny: 62000, includesAv: true, source: '滨江会展 2026 报价单 #D-0132' },
+  { name: '云顶会议中心', district: '高新区', capacity: 800, quoteCny: 158000, includesAv: false, avExtraCny: 18000, source: '云顶会展 2026 报价单 #E-5501' },
+  { name: '老城会堂', district: '老城区', capacity: 260, quoteCny: 38000, includesAv: false, avExtraCny: 6000, source: '老城会堂 2026 报价单 #F-0093' },
+]
+
+/** 统一口径折算:含 AV 总价(报价 + 不含 AV 时的 AV 差价)。 */
+export function comparableVenueTotal(venue: VenueRecord): number {
+  return venue.quoteCny + (venue.includesAv ? 0 : (venue.avExtraCny ?? 0))
+}
+
+/** 场地检索:关键词命中名称/区位,容量下限过滤,返回统一口径可比价。 */
+export function searchVenueCatalog(
+  filters: VenueSearchFilters,
+  catalog: readonly VenueRecord[] = VENUE_CATALOG,
+): readonly VenueHit[] {
+  const keyword = filters.keyword?.trim() ?? ''
+  return catalog
+    .filter(venue => {
+      if (filters.capacityMin !== undefined && venue.capacity < filters.capacityMin) return false
+      if (filters.district !== undefined && !venue.district.includes(filters.district)) return false
+      if (keyword.length > 0 && !(venue.name.includes(keyword) || venue.district.includes(keyword))) return false
+      return true
+    })
+    .map(venue => ({ venue, comparableTotalCny: comparableVenueTotal(venue) }))
+    .sort((a, b) => a.venue.capacity - b.venue.capacity || a.comparableTotalCny - b.comparableTotalCny || a.venue.name.localeCompare(b.venue.name))
+}
