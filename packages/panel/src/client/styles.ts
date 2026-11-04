@@ -54,6 +54,7 @@ const CSS = `
   border: 0.5px solid var(--dsw-alias-border-l2);
 }
 [data-basis-panel='card']:hover { background: var(--dsw-alias-interactive-bg-hover); }
+[data-basis-panel-card='event-tools'] { grid-column: 1 / -1; }
 [data-basis-panel='card-title'] { display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--dsw-alias-label-primary); }
 [data-basis-panel='card-count'] { color: var(--dsw-alias-label-tertiary); font-weight: 400; }
 [data-basis-panel='metric'] { display: inline-flex; align-items: baseline; gap: 6px; }
@@ -66,9 +67,9 @@ const CSS = `
 [data-basis-panel='tool-list'] { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 [data-basis-panel='tool'] { display: flex; flex-direction: column; gap: 1px; padding: 6px 8px; border-radius: var(--dsw-radius-md, 8px); }
 [data-basis-panel='tool']:hover { background: var(--dsw-alias-interactive-bg-hover); }
-[data-basis-panel='tool-head'] { display: flex; align-items: center; gap: 8px; min-width: 0; }
+[data-basis-panel='tool-head'] { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; }
 [data-basis-panel='tool-label'] { font-size: 13px; font-weight: 500; color: var(--dsw-alias-label-primary); }
-[data-basis-panel='tool-id'] { font-size: 11px; color: var(--dsw-alias-label-tertiary); }
+[data-basis-panel='tool-id'] { font-size: 11px; color: var(--dsw-alias-label-tertiary); overflow-wrap: anywhere; }
 [data-basis-panel='tool-desc'] { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); overflow-wrap: anywhere; }
 [data-basis-panel='risk'] {
   flex: none; font-size: 10px; font-weight: 600; line-height: 16px;
