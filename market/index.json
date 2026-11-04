@@ -1,27 +1,55 @@
 {
   "format": 1,
-  "title": { "en": "Agent Basis Plugins", "zh": "Agent Basis 基座插件" },
+  "title": {
+    "en": "Agent Basis Plugins",
+    "zh": "Agent Basis 基座插件"
+  },
   "description": {
     "en": "Custom plugin index of the agent-basis repository: the glue composition bundle and the event-planning domain pack.",
     "zh": "agent-basis 仓库的自定义插件索引:基座组合层 glue 与活动策划领域包。"
   },
   "metadata": {
     "categories": {
-      "foundation": { "title": { "en": "Foundation", "zh": "基座与组合" } },
-      "domain": { "title": { "en": "Domain Pack", "zh": "领域包" } }
+      "foundation": {
+        "title": {
+          "en": "Foundation",
+          "zh": "基座与组合"
+        }
+      },
+      "domain": {
+        "title": {
+          "en": "Domain Pack",
+          "zh": "领域包"
+        }
+      }
     }
   },
   "plugins": [
     {
       "name": "@basis/glue",
-      "title": { "en": "Basis Glue Bundle", "zh": "基座组合层 Glue" },
+      "title": {
+        "en": "Basis Glue Bundle",
+        "zh": "基座组合层 Glue"
+      },
       "description": {
         "en": "Composition bundle that mounts the @basis memory, knowledge, and governance services as real DSH host plugins.",
         "zh": "组合层 bundle:把 @basis 的 memory/knowledge/governance 服务装配为真实 DSH 宿主可挂载的插件。"
       },
       "homepage": "https://github.com/mahingbun-dev/agent-basis",
-      "repository": { "url": "https://github.com/mahingbun-dev/agent-basis", "directory": "packages/glue" },
-      "metadata": { "category": "foundation", "keywords": ["basis", "glue", "memory", "knowledge", "governance"] },
+      "repository": {
+        "url": "https://github.com/mahingbun-dev/agent-basis",
+        "directory": "packages/glue"
+      },
+      "metadata": {
+        "category": "foundation",
+        "keywords": [
+          "basis",
+          "glue",
+          "memory",
+          "knowledge",
+          "governance"
+        ]
+      },
       "versions": [
         {
           "version": "0.0.0",
@@ -29,7 +57,7 @@
           "source": {
             "type": "git",
             "url": "https://github.com/mahingbun-dev/agent-basis",
-            "commit": "d55fbaeef1dcfbe96b4ca1b96ea2b0e9c53802ce",
+            "commit": "fa5b787f4f0f2cb99c498ce30117131a487f5d22",
             "path": "packages/glue"
           }
         }
@@ -37,14 +65,28 @@
     },
     {
       "name": "@event/pack",
-      "title": { "en": "Event Planning Pack", "zh": "活动策划领域包" },
+      "title": {
+        "en": "Event Planning Pack",
+        "zh": "活动策划领域包"
+      },
       "description": {
         "en": "Event-planning domain pack: persona, skills, industry tools with approval red lines, policies, and golden sets.",
         "zh": "活动策划领域包:persona + skills + 行业工具(含审批红线)+ policies + golden 集。"
       },
       "homepage": "https://github.com/mahingbun-dev/agent-basis",
-      "repository": { "url": "https://github.com/mahingbun-dev/agent-basis", "directory": "packs/event-planning" },
-      "metadata": { "category": "domain", "keywords": ["event", "planning", "basis", "domain-pack"] },
+      "repository": {
+        "url": "https://github.com/mahingbun-dev/agent-basis",
+        "directory": "packs/event-planning"
+      },
+      "metadata": {
+        "category": "domain",
+        "keywords": [
+          "event",
+          "planning",
+          "basis",
+          "domain-pack"
+        ]
+      },
       "versions": [
         {
           "version": "0.1.0",
@@ -52,7 +94,7 @@
           "source": {
             "type": "git",
             "url": "https://github.com/mahingbun-dev/agent-basis",
-            "commit": "d55fbaeef1dcfbe96b4ca1b96ea2b0e9c53802ce",
+            "commit": "fa5b787f4f0f2cb99c498ce30117131a487f5d22",
             "path": "packs/event-planning"
           }
         }
