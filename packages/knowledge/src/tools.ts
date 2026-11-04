@@ -119,7 +119,9 @@ export function buildKnowledgeTools(service: KnowledgeService): KnowledgeTools {
         backends: reports.map(r => ({
           id: r.id,
           ok: r.ok,
-          reason: r.reason,
+          // DSH 工具输出须 lossless JSON:undefined 值属性会被 snapshotJsonValue 判非 JSON
+          // ("value is not lossless JSON");健康时 reason 缺席,条件展开而非赋 undefined。
+          ...(r.reason !== undefined ? { reason: r.reason } : {}),
           doc_count: r.doc_count,
           capabilities: r.capabilities,
         })),
@@ -197,7 +199,7 @@ const HIT_SCHEMA: JsonSchemaNode = {
 const SEARCH_OUTPUT: JsonSchemaNode = {
   type: 'object',
   properties: {
-    ok: { const: true },
+    ok: { type: 'boolean', const: true },
     query: STRING,
     contributed: { type: 'array', items: STRING },
     count: { type: 'integer' },
@@ -209,7 +211,7 @@ const SEARCH_OUTPUT: JsonSchemaNode = {
 const READ_OUTPUT: JsonSchemaNode = {
   type: 'object',
   properties: {
-    ok: { const: true },
+    ok: { type: 'boolean', const: true },
     doc: {
       type: 'object',
       properties: {
@@ -229,7 +231,7 @@ const READ_OUTPUT: JsonSchemaNode = {
 const STATUS_OUTPUT: JsonSchemaNode = {
   type: 'object',
   properties: {
-    ok: { const: true },
+    ok: { type: 'boolean', const: true },
     backends: {
       type: 'array',
       items: {
@@ -249,7 +251,7 @@ const STATUS_OUTPUT: JsonSchemaNode = {
 const PROPOSE_OUTPUT: JsonSchemaNode = {
   type: 'object',
   properties: {
-    ok: { const: true },
+    ok: { type: 'boolean', const: true },
     proposal_id: STRING,
     backend: STRING,
     state: { type: 'string', enum: ['pending'] },

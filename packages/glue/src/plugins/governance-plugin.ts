@@ -37,10 +37,12 @@ export function defineGovernancePlugin(config: { rulesPath?: string } = {}) {
         ? RuleEngine.parse(readFileSync(rulesPath, 'utf8'), rulesPath)
         : emptyRules()
       const world: GovernanceWorld = { rules, pii: new PiiFilter() }
-      const holder = ctx as unknown as { governance?: GovernanceWorld }
-      holder.governance = world
+      // 官方 seam:ctx 属性必须经 provide 声明后才能赋值,裸赋值抛
+      // "cannot set property \"governance\" without provide"(cordis Context set 陷阱),
+      // 且不 provide 则 memory/knowledge 的 inject(governance) 永远 pending。
+      const dispose = ctx.provide(GOVERNANCE_SERVICE_ID, world)
       return () => {
-        delete holder.governance
+        dispose()
       }
     },
   }
