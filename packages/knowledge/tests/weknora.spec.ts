@@ -1,4 +1,4 @@
-/** WeKnora 适配器测试:未启用 not-configured、HTTP 调用层形态、响应映射、fail-soft。真连后置(blockers)。 */
+/** WeKnora 适配器测试:未启用 not-configured、HTTP 调用层形态、响应映射、fail-soft、真实载荷校准(2026-11-04 真连采样)。 */
 import { describe, expect, it } from 'vitest'
 import { WeKnoraBackend, mapSearchResponse } from '../src/index.ts'
 import type { WeKnoraConfig, WeKnoraRequestInit, WeKnoraResponse } from '../src/index.ts'
@@ -108,7 +108,7 @@ describe('HTTP 调用层(官方 /api/v1/knowledge-search 形态)', () => {
 })
 
 describe('SearchResult → KnowledgeHit 映射(provenance 填全)', () => {
-  it('标准载荷映射:content/score/来源定位', () => {
+  it('文档形态(官方文档字段 document_name/source_locators,防御式保留)', () => {
     const hits = mapSearchResponse({
       success: true,
       data: [
@@ -153,5 +153,75 @@ describe('SearchResult → KnowledgeHit 映射(provenance 填全)', () => {
     expect(hits.length).toBe(2)
     expect(hits[0]!.score).toBeGreaterThan(hits[1]!.score)
     expect(hits[0]!.score).toBeLessThanOrEqual(1)
+  })
+})
+
+/** 2026-11-04 真连采样(http://MaNas:8080,bge-m3 local embedding,event-kb-smoke 检索「预算」首命中,原样拷贝)。 */
+const REAL_SEARCH_PAYLOAD = {
+  data: [
+    {
+      id: '88a11ab5-21b7-4218-b3fd-715f5a4042e9',
+      content: '活动预算管理规范\n\n年度发布会预算总额不超过 50 万元,其中场地租赁预算占 30%,餐饮预算占 20%。预算变更超过 10% 需走审批流程。\n',
+      knowledge_id: 'd2cf162b-ae1a-41a3-82c0-4747b273e59a',
+      chunk_index: 0,
+      knowledge_title: 'event-budget.md',
+      start_at: 0,
+      end_at: 72,
+      seq: 0,
+      score: 0.016393442622950817,
+      match_type: 0,
+      sub_chunk_id: null,
+      metadata: {},
+      chunk_type: 'text',
+      parent_chunk_id: '',
+      image_info: '',
+      knowledge_filename: 'event-budget.md',
+      knowledge_source: '',
+      knowledge_channel: 'web',
+      matched_content: 'event-budget.md\n活动预算管理规范\n\n年度发布会预算总额不超过 50 万元,其中场地租赁预算占 30%,餐饮预算占 20%。预算变更超过 10% 需走审批流程。',
+      knowledge_base_id: 'f835dc14-2f58-4235-bbc0-0b4d85ec3d71',
+    },
+  ],
+  success: true,
+}
+
+describe('真实载荷校准(2026-11-04 MaNas:8080 真连采样)', () => {
+  it('真实命中形态:标题取 knowledge_title,doc_id 取 knowledge_id(非 chunk id),score 直读', () => {
+    const hits = mapSearchResponse(REAL_SEARCH_PAYLOAD, 8)
+    expect(hits.length).toBe(1)
+    const hit = hits[0]!
+    expect(hit.ref.doc_id).toBe('d2cf162b-ae1a-41a3-82c0-4747b273e59a')
+    expect(hit.ref.source_uri).toBe('weknora://d2cf162b-ae1a-41a3-82c0-4747b273e59a')
+    expect(hit.title).toBe('event-budget.md')
+    expect(hit.snippet).toContain('预算总额不超过 50 万元')
+    expect(hit.score).toBeCloseTo(0.016393442622950817, 15)
+    expect(hit.provenance.origin).toContain('event-budget.md')
+    expect(hit.provenance.trust).toBe('official')
+  })
+
+  it('真实载荷经 HTTP 层贯通:请求体形态与真实服务端兼容(真连已验)', async () => {
+    const seen: { url: string; body: string }[] = []
+    const backend = new WeKnoraBackend({
+      enabled: true,
+      baseUrl: 'http://MaNas:8080',
+      token: 'real-run-token',
+      knowledgeBaseIds: ['f835dc14-2f58-4235-bbc0-0b4d85ec3d71'],
+      fetchImpl: async (url, init) => {
+        seen.push({ url, body: init.body })
+        return jsonResponse(REAL_SEARCH_PAYLOAD)
+      },
+    })
+    const hits = await backend.search({ query: '预算', top_k: 8 })
+    expect(seen[0]!.url).toBe('http://MaNas:8080/api/v1/knowledge-search')
+    const body = JSON.parse(seen[0]!.body) as Record<string, unknown>
+    expect(body).toEqual({
+      query: '预算',
+      knowledge_base_ids: ['f835dc14-2f58-4235-bbc0-0b4d85ec3d71'],
+      match_count: 8,
+      rerank: { enabled: true },
+    })
+    expect(hits.length).toBe(1)
+    expect(hits[0]!.title).toBe('event-budget.md')
+    expect((await backend.health()).ok).toBe(true)
   })
 })

@@ -6,7 +6,9 @@
  * - HTTP 调用层:POST {baseUrl}/api/v1/knowledge-search(WeKnora v0.9 官方 API 文档),凭据经
  *   token/tokenRef+resolveCredential 注入(secrets 不进配置文件,对齐 DSH credentials 哲学);
  * - 映射:平台 SearchResult → KnowledgeHit(provenance 填全;平台托管文档视为 official+reviewed);
- * - 真连验证后置:blockers 注明「需运行时联调」——响应字段防御式窄化,联调时按真实载荷校准。
+ * - 真连校准(2026-11-04,MaNas:8080,scripts/weknora-smoke.mjs 全链路:建库→上传→检索→删库):
+ *   命中为 chunk 粒度,标题在 knowledge_title/knowledge_filename(真实载荷无 document_name),
+ *   文档 id 在 knowledge_id(chunk 自身 id 另存),相似度直字段 score(实测 BM25 量级可远小于 1)。
  *
  * coeffect:fetch 实现、凭据解析器、超时全部注入;effect:无状态(不落盘),dispose 无副作用。
  * 失败语义 fail-soft:transport/映射失败 → search [] + health.ok=false(检索不能因高级后端宕机而崩)。
@@ -112,9 +114,10 @@ export class WeKnoraBackend implements KnowledgeBackend {
   }
 
   read(_ref: DocRef): Promise<KnowledgeDoc> {
-    // 平台文档详情 API 未在 v0.9 检索文档中列出;检索结果自带 content 足够消费。
-    // read 留待真连联调(见 blockers),当前 fail-fast 并说明。
-    return Promise.reject(new Error('weknora read 未实现:等待运行时联调(检索结果已含 content,可先用 knowledge_search)'))
+    // 真连冒烟(2026-11-04)已覆盖检索链路;read 仍未实现:KnowledgeHit.ref 只带 knowledge_id,
+    // 平台文档详情需先归到 knowledge_base(GET /api/v1/knowledge-bases/:id/knowledge),ref 无库归属。
+    // fail-fast 并说明;消费方先用 knowledge_search(命中自带 content)。
+    return Promise.reject(new Error('weknora read 未实现:ref 缺库归属,待平台文档详情接口联调(检索结果已含 content,可先用 knowledge_search)'))
   }
 
   health(): Promise<BackendHealth> {
@@ -135,10 +138,10 @@ export function mapSearchResponse(payload: unknown, topK: number): readonly Know
     const content = pickString(entry, 'content', 'text') ?? ''
     const docId = pickString(entry, 'knowledge_id', 'id', 'document_id')
     if (docId === undefined) continue
-    const title = pickString(entry, 'document_name', 'title', 'name') ?? docId
+    const title = pickString(entry, 'knowledge_title', 'document_name', 'title', 'name', 'knowledge_filename') ?? docId
     const score = pickScore(entry, index)
     const locator = firstLocator(entry)
-    const originParts = [pickString(entry, 'document_name', 'title'), locator?.quote, locator?.section]
+    const originParts = [pickString(entry, 'knowledge_title', 'document_name', 'title'), locator?.quote, locator?.section]
     const origin = originParts.filter((p): p is string => p !== undefined).join(' / ')
     hits.push({
       ref: { doc_id: docId, source_uri: `weknora://${docId}`, backend: 'weknora' },
