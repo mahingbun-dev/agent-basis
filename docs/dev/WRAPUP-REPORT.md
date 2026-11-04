@@ -53,3 +53,34 @@
 1. **GitHub Social preview**:API 不可达,请在仓库 Settings → Social preview 手动上传 `docs/assets/social-preview.svg`(1280×640,<1MB)。
 2. **禁用平台 QA 账号 agentbasis_qa**:平台 openapi 无删除用户端点,禁用面为超管 `PATCH /api/v1/teams/{team_code}/members/{user_code}/status`(body `{"is_active": false}`);建议在平台 UI 或以超管凭证操作。
 3. **README 徽章口径**(可选):「776 tests」为基线口径,当前 HEAD 实测 783 vitest + 19 unittest,如需更新徽章另行处理(不在本批范围)。
+
+---
+
+# 附录:全功能交付增量(T18–T22 + 收尾)
+
+日期:2026-11-04(第二批)· 范围 `d37c9a2..852084b`(19 提交,86 个新增文件,packages/docs/market/scripts/packs 计 +6851/−8)· 批末 CI run [41833054004](https://github.com/mahingbun-dev/agent-basis/actions/runs/41833054004) **success**
+
+## 增量结论
+
+上一批(本报告正文)交付的是包级可测性与评测/门禁面;本批把基座推进到「宿主真装载、页面可见、市场可装、端到端验收全绿」:DSH Web 宿主三插件真实装载(T18)、基座面板 `@basis/panel`(T19)、用户指南与用户级 skill(T20)、自定义插件市场索引与 git 安装可装性终案(T21)、agent-basis × DSH Web 全功能 E2E 验收七大项 22 子断言全 PASS(T22)。窗口内每次 push 的远端 CI 全部 success(9 个 run,见「CI 证据」)。
+
+## 增量任务表
+
+| 任务 | 状态 | 产出(提交) | 要点 |
+|---|---|---|---|
+| T18 宿主真实装载 | done | `ed9a6ab`(插件模块补 default export)、`12cbaa5`(三处断链修复) | ego 严断言 E2E 实测抓出:cordis.patch.yml 裸 id 行被 applyPatches 丢弃→改 insert 语义并首次入库;governance-plugin 裸赋值抛错→改官方 `ctx.provide` seam;knowledge 输出 `{const:true}` 缺 type、`reason:undefined` 非 lossless JSON 两处宿主校验修复。修复后 pluginInventory 四插件(basis-governance/basis-memory/basis-knowledge/event-tools)全 active;新会话三工具(memory_search/knowledge_status/budget_calc)结构化锚点断言 exit 0;`pnpm -r run verify` 全仓 exit 0 |
+| T19 基座面板 | done | `3c6d0e4`(`@basis/panel`)、`484c42d`(verify 环境适配) | DSH Web 双面插件:服务清单/操作指引/可观测样例三区块,`data-basis-panel*` 结构化锚点;ego 严断言 20/20 PASS;包 verify 25/25(适配手法对齐 T17 先例:显式 .bin 路径 + .npmrc 双拼写键) |
+| T20 用户指南 | done | `d55fbae` | `docs/USER-GUIDE.md` 与 `~/.agents/skills/agent-basis-guide/SKILL.md` 同源(正文逐字节一致);13 触发小节与面板 7 指引 id 对应;gate ego round-01/02 exit 0;panel verify 25/25、evals verify 97/97 + unittest 19/19 |
+| T21 市场索引与可安装性 | done | `5fe3def` → `805eecf` 共 12 提交 | 自定义索引 `market/index.json`(官方 parseMarketIndex VALID);安装链修复:fa5b787 依赖规格可外部解析(git 标签 path spec)→e9c3fb4 自包含 vendor bundle→4034830 终案编译 JS(`scripts/build-market.mjs`,Node type stripping 不支持 node_modules 下 .ts,实测 ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING)→f6c30a3 编译后 .ts→.js 后处理断言→5291030/ec7bfe2 @deepseek-ai/* 转 peerDependencies(普通依赖经 hoisted 顶掉宿主 dsh-tools/system-prompt,实测 startup failed)→805eecf 长期索引源切 raw.githubusercontent.com(仓库已转 public,用户拍板),冷缓存进程发现页 ego 复验 4/4 PASS |
+| T22 全功能 E2E 验收 | done | `fe102bd`、`852084b` | `docs/dev/ACCEPTANCE-REPORT.md`:A–G 七大项扩为 22 子断言全 PASS(22/0/0)。memory 写/检/存三层(轨迹 JSON + sqlite 行)、knowledge fail-closed、governance 审批闭环(budget_change 允许→allowed-once / 拒绝→rejected;pay_deposit 补测 payment-request 59400 + executed false)、@event 只读两工具、面板三区块锚点、发现页搜 basis、USER-GUIDE/SKILL 正文 7849 字符同源;两次断言脚本口径失败原文如实保留。verify:governance 74/74、memory 80/80、knowledge 76/76、glue 0 错、panel 25/25、event-pack 40/40 全 exit 0 |
+| 收尾(本附录所在批次) | done | 本提交 | push + CI 轮询 + Obsidian 归档 + 本附录,见下节 |
+
+## CI 证据
+
+`gh run list`(`--branch main`,2026-11-04 实查):窗口 `d37c9a2..852084b` 内 9 个 push run 全部 **success**,批末 head 覆盖:`d37c9a2`→41781363833、`5fe3def`→41819165836、`dafe9eb`→41824151982、`42565cd`→41824844525、`11eea93`→41825406896、`7cc76c8`→41825436624、`ec7bfe2`→41826124062、`805eecf`→41830326688、`852084b`→41833054004(`gh run watch --exit-status` exit 0,verify job 52s:Install / Verify(oxlint + tsc strict + vitest 12 包)/ Lint 领域包 / 评测 replay 冒烟全 ✓;仅 Node 20 actions 弃用与 ubuntu-latest 迁移两条非致命注解,与上一批同象)。中间提交以批内推送,head 已被逐 run 覆盖。
+
+## 收尾动作(本附录提交时执行)
+
+1. `git push origin main`:`805eecf..852084b`(T22 两提交)→ CI 41833054004 success(见上)。
+2. `ACCEPTANCE-REPORT.md` 原样归档 Obsidian:`技术开发/领域Agent基座/20-全功能验收报告.md`(`cmp` 字节一致,14779 字节;该目录仅新建此一个文件)。
+3. 本附录提交并随批推送;正文(上一批报告)保持原样未改。
