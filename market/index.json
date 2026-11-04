@@ -57,7 +57,7 @@
           "source": {
             "type": "git",
             "url": "https://github.com/mahingbun-dev/agent-basis",
-            "commit": "f6c30a3e919685eebe752093b14a811bcaa72fc9",
+            "commit": "52910300342740a338a935d23e6ea0ddb23c0da4",
             "path": "market/glue-bundle"
           }
         }
@@ -94,7 +94,7 @@
           "source": {
             "type": "git",
             "url": "https://github.com/mahingbun-dev/agent-basis",
-            "commit": "f6c30a3e919685eebe752093b14a811bcaa72fc9",
+            "commit": "52910300342740a338a935d23e6ea0ddb23c0da4",
             "path": "market/pack-bundle"
           }
         }
