@@ -14,10 +14,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@basis/governance": "workspace:*",
-    "@deepseek-ai/cordis": "catalog:",
-    "@deepseek-ai/dsh-system-prompt": "catalog:",
-    "@deepseek-ai/dsh-tools": "catalog:"
+    "@basis/governance": "git+https://github.com/mahingbun-dev/agent-basis.git#basis-pkgs&path:/packages/governance",
+    "@deepseek-ai/cordis": "4.0.6-alpha.1",
+    "@deepseek-ai/dsh-system-prompt": "0.2.2-alpha.2",
+    "@deepseek-ai/dsh-tools": "0.2.2-alpha.2"
   },
   "devDependencies": {
     "@types/node": "catalog:",
