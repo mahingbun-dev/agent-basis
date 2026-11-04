@@ -61,7 +61,7 @@ trajectory:
 | id | 实现 | 说明 |
 |---|---|---|
 | `replay` | `src/adapters/replay.ts` | 读 fixture jsonl 回放:事件 → 断言;`plugin:basis-evals/workspace` 记录物化终态文件 |
-| `acp` | `src/adapters/acp.ts` + `python/dsh_eval_driver.py` | 经 DSH Python SDK(`deepseek-harness-sdk`)驱动真实 session;NDJSON 协议回传事件。**真实运行需 pip 安装 SDK + DSH_HOME + provider 凭据,联调列入 blockers**;TS 侧管线由 stub driver(同协议)真跑覆盖 |
+| `acp` | `src/adapters/acp.ts` + `python/dsh_eval_driver.py` | 经 DSH Python SDK(`deepseek-harness-sdk`)驱动真实 session;NDJSON 协议回传事件。2026-11-04 真跑打通(docs/acp-real-6/):pip -e dsh-repo/python/sdk + DSH_HOME 隔离宿主(~/.dsh-evals,sdk profile 走 litellm)+ LITELLM_API_KEY。通知→事件映射双侧同口径容忍真实包裹层级(SDK `Notification` dataclass 的 `session.event`→`payload.event`;`params.sessionEvents` 批;无事件载荷 method 落 ignorable),由**真实样本回放**单测钉住:`python/test_event_mapper.py`(unittest)+ `tests/acp-real-notification.spec.ts`(vitest),样本 `docs/acp-real-6/notifications-sample.jsonl` 由 `scripts/sample-notifications.mjs` 采集;6 条真实会话日志的重放验证:`scripts/replay-acp-real-notifications.mjs`(turns=0 清零) |
 
 ## CLI
 
@@ -85,4 +85,4 @@ dsh-evals run --pack <目录> [--subset smoke] [--case <id>] [--adapter replay|a
 
 - 独立 CLI(B'),不注册任何 Cordis ctx seam;可交换接口 = `AgentAdapter` 注册表(唯一 id);
 - 断言器全部纯函数/显式 IO;fixture 与真实会话的 JSON 一律运行期校验(events.ts),schema 违例不抛给进程而是记 `loadErrors`(分类 schema);
-- 验证门:`pnpm --filter @basis/evals run verify` = oxlint + tsc --noEmit(strict)+ vitest run。
+- 验证门:`pnpm --filter @basis/evals run verify` = oxlint + tsc --noEmit(strict)+ vitest run + `python3 -m unittest discover -s python`(driver 侧 EventMapper 单测,含真实样本回放)。

@@ -100,12 +100,16 @@ export function usageOf(event: SessionEventLike): TokenUsageLike | undefined {
   }
 }
 
-/** assistant/message / user/message 的文本块拼接(非 text 块跳过)。 */
+/** assistant/message / user/message 的文本块拼接(非 text 块跳过)。
+ * 包裹层级双容忍(真实样本实证 docs/acp-real-6/notifications-sample.jsonl):
+ * assistant/message 走 data.message.content;真实 user/message 是 data.content 直挂
+ * (session 事件 surface 形态,无 message 包裹)。 */
 export function messageTextOf(event: SessionEventLike): string | undefined {
   if (event.type !== 'assistant/message' && event.type !== 'user/message') return undefined
   const data = asRecord(event.data)
-  const message = data === undefined ? undefined : asRecord(data.message)
-  const content = message === undefined ? undefined : message.content
+  if (data === undefined) return undefined
+  const message = asRecord(data.message)
+  const content = (message === undefined ? undefined : message.content) ?? data.content
   if (!Array.isArray(content)) return undefined
   const parts: string[] = []
   for (const block of content) {

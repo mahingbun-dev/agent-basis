@@ -11,7 +11,7 @@ export function sessionsLines(result: PackRunResult): string[] {
     answer: item.caseData.answer ?? null,
     tags: item.caseData.tags,
     status: item.status,
-    adapter: item.caseData.adapter ?? 'replay',
+    adapter: item.adapterId,
     final_answer: item.finalAnswerText,
     metrics: {
       turns: item.metrics.turns,

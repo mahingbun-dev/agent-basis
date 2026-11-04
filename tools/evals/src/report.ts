@@ -50,7 +50,7 @@ export function renderReport(result: PackRunResult): string {
   lines.push('| id | adapter | status | tags | 失败分类 |', '|---|---|---|---|---|')
   for (const item of result.results) {
     const categories = [...new Set(item.failures.map(failure => failure.category))].join(',') || '-'
-    lines.push(`| ${item.caseData.id} | ${item.caseData.adapter ?? 'replay'} | ${item.status} | ${item.caseData.tags.join(', ') || '-'} | ${categories} |`)
+    lines.push(`| ${item.caseData.id} | ${item.adapterId} | ${item.status} | ${item.caseData.tags.join(', ') || '-'} | ${categories} |`)
   }
   lines.push('')
   const failed = result.results.filter(item => item.status === 'fail')

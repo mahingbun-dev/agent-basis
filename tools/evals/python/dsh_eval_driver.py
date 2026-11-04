@@ -11,16 +11,24 @@
 
 协议消费方:tools/evals/src/adapters/acp.ts(AcpAdapter)。
 
-阻塞说明(列入 blockers):真实运行需要
-  1) pip install deepseek-harness-sdk(带平台 runtime wheel);
-  2) DSH_HOME 隔离目录 + provider/model 凭据(DEEPSEEK_API_KEY 等)。
-本脚本按 python/sdk/README.md 的公开 API 编写,未做运行时联调
-(TS 侧管线由 tests/acp.adapter.spec.ts 用同协议 stub 真跑覆盖)。
+运行前提(2026-11-04 真跑打通,docs/acp-real-6/):pip 安装 deepseek-harness-sdk
+(pip -e dsh-repo/python/sdk)+ DSH_HOME 隔离目录(~/.dsh-evals,sdk profile 经
+litellm 路由)+ LITELLM_API_KEY 环境变量;dsh_bin 指向 npm 全局 dsh
+(/opt/homebrew/bin/dsh,避开同名 pip 包装脚本)。
+真实通知样本的采集与回放:scripts/sample-notifications.mjs +
+tools/evals/python/test_event_mapper.py(样本 fixture 断言)。
 
-事件映射口径:SDK 的 on_notification 回调逐条投递 Session 树通知(wire order)。
-通知体若已是 DSH SessionEvent 形态({type, seq, time, data})则原样透传;
-否则尽力从 params 中提取,提取不出时补 seq/time 后透传,由 TS 侧 coerceEvent
-再校验(不伪造、不吞错——TS 侧把无法解析的行记为 notes)。
+事件映射口径(T17 真实样本实证,docs/acp-real-6/notifications-sample.jsonl):
+SDK 的 on_notification 回调逐条投递 Session 树通知(wire order),收到的是
+deepseek_harness Notification **dataclass**(method/payload,
+python/sdk/src/deepseek_harness/client.py:473),不是 dict —— 旧版按 dict 解析
+导致全部通知被丢弃(turns=0 根因②)。实际形态:
+  ⓪ session.event → payload = {sessionId, event: {type, seq, time, data, ignorable?}}
+    (事件本体自带 seq/time,原样透传;ignorable 保留)
+  ① 其余 method(session.status / subagent.* / session.query.completed /
+    user-question.cancelled)无事件载荷 → ignorable driver/notification 保留可观测性;
+  ② 兼容 dict 形态(测试桩/历史样本):直接事件包 {type,...}、JSON-RPC {method, params}
+    (params.event 单包 / params.sessionEvents 批)。
 """
 
 from __future__ import annotations
@@ -38,49 +46,89 @@ def emit(payload: dict) -> None:
 
 
 class EventMapper:
-    """把 SDK 通知规整为 DSH SessionEvent 包形态。"""
+    """把 SDK 通知规整为 DSH SessionEvent 包形态(输入见模块 docstring 的形态清单)。"""
 
     def __init__(self) -> None:
         self._seq = 0
 
-    def map(self, notification: object) -> dict | None:
+    def map(self, notification: object) -> list[dict]:
+        """一条通知 → 0..n 个事件包(批形态 sessionEvents 可一包多事件)。"""
         record = _as_dict(notification)
-        if record is None:
+        if record is not None and isinstance(record.get("type"), str):
+            # 形态 ②a:已是事件包 {type, seq, time, data}
+            normalized = self._normalize(record)
+            return [normalized] if normalized is not None else []
+        parts = _notification_parts(notification)
+        if parts is None:
+            return []
+        method, params = parts
+        inner = params if isinstance(params, dict) else {}
+        events: list[dict] = []
+        for candidate in _event_candidates(inner):
+            normalized = self._normalize(candidate)
+            if normalized is not None:
+                events.append(normalized)
+        if events:
+            return events
+        if isinstance(method, str) and method:
+            # 形态 ①:无事件载荷的 method → ignorable 记录(保留可观测性,不参与断言)
+            return [self._ignorable(method, inner)]
+        return []
+
+    def _normalize(self, event: dict) -> dict | None:
+        if not isinstance(event.get("type"), str):
             return None
-        # 形态 ①:已是事件包 {type, seq, time, data}
-        if isinstance(record.get("type"), str):
-            return {
-                "type": record["type"],
-                "seq": _int_or(record.get("seq"), self._next_seq()),
-                "time": _int_or(record.get("time"), _now_ms()),
-                "data": record.get("data", {}),
-            }
-        # 形态 ②:JSON-RPC 通知 {method, params}——事件可能在 params 里
-        params = record.get("params")
-        inner = _as_dict(params)
-        if inner is not None and isinstance(inner.get("type"), str):
-            return {
-                "type": inner["type"],
-                "seq": _int_or(inner.get("seq"), self._next_seq()),
-                "time": _int_or(inner.get("time"), _now_ms()),
-                "data": inner.get("data", {}),
-            }
-        method = record.get("method")
-        if isinstance(method, str):
-            # 形态 ③:只有 method 的通知,保守透传为 ignorable 记录
-            self._seq += 1
-            return {
-                "type": "driver/notification",
-                "seq": self._seq,
-                "time": _now_ms(),
-                "data": {"method": method, "params": params},
-                "ignorable": True,
-            }
-        return None
+        record = {
+            "type": event["type"],
+            "seq": _int_or(event.get("seq"), self._next_seq()),
+            "time": _int_or(event.get("time"), _now_ms()),
+            "data": event.get("data") if isinstance(event.get("data"), dict) else {},
+        }
+        if event.get("ignorable") is True:
+            record["ignorable"] = True
+        return record
+
+    def _ignorable(self, method: str, params: dict) -> dict:
+        now = _now_ms()
+        return {
+            "type": "driver/notification",
+            "seq": now,
+            "time": now,
+            "data": {"method": method, "params": params},
+            "ignorable": True,
+        }
 
     def _next_seq(self) -> int:
         self._seq += 1
         return self._seq
+
+
+def _notification_parts(notification: object) -> tuple[object, object] | None:
+    """从 Notification dataclass(形态 ⓪)或 dict JSON-RPC 包(形态 ②)取 (method, params)。"""
+    if not isinstance(notification, dict):
+        method = getattr(notification, "method", None)
+        if isinstance(method, str):
+            return (method, getattr(notification, "payload", None))
+        return None
+    method = notification.get("method")
+    if not isinstance(method, str):
+        return None
+    params = notification.get("params")
+    if not isinstance(params, dict):
+        params = notification.get("payload")
+    return (method, params)
+
+
+def _event_candidates(inner: dict) -> list[dict]:
+    """事件载荷候选:params/params.event 单包(实证主形态)与 params.sessionEvents 批。"""
+    candidates: list[object] = []
+    single = inner.get("event")
+    if single is not None:
+        candidates.append(single)
+    batch = inner.get("sessionEvents")
+    if isinstance(batch, list):
+        candidates.extend(batch)
+    return [item for item in candidates if isinstance(item, dict)]
 
 
 def _as_dict(value: object) -> dict | None:
@@ -145,13 +193,12 @@ def main() -> int:
 
     def on_notification(notification: object) -> None:
         try:
-            event = mapper.map(notification)
+            events = mapper.map(notification)
         except Exception:  # noqa: BLE001 —— 单条通知失败不拖垮整轮
-            event = None
-        if event is None:
-            return
+            events = []
         with lock:
-            emit({"kind": "event", "event": event})
+            for event in events:
+                emit({"kind": "event", "event": event})
 
     kwargs: dict = {
         "cwd": config.get("cwd") or None,
@@ -173,19 +220,21 @@ def main() -> int:
 
     approval_response = config.get("approval_response")
     responder: threading.Thread | None = None
+    if approval_response is not None:
+        # 审批红线 case:SDK 侧接管审批(approval_requests=True)+ 编程应答器。
+        # 应答面在 HarnessClient(facade 不代理):harness.client.next_request()/respond()
+        # (python/sdk/README.md「Client approvals」)。
+        kwargs["approval_requests"] = True
     try:
         harness = DeepSeekHarness(**kwargs)
     except TypeError:
         # 老版本 SDK 可能不接受部分关键字——逐个降级重试一次
-        for key in ("reasoning_effort", "max_tokens"):
+        for key in ("reasoning_effort", "max_tokens", "approval_requests"):
             kwargs.pop(key, None)
         harness = DeepSeekHarness(**kwargs)
 
     try:
-        if approval_response is not None:
-            # 审批红线 case:以编程应答器回答 permission prompt
-            # (python/sdk/README.md「Client approvals」:approval_requests=True
-            #  且 handler 就绪;真实联调时验证 API 形态 —— blockers)
+        if approval_response is not None and kwargs.get("approval_requests") is True:
             responder = threading.Thread(
                 target=_answer_approvals,
                 args=(harness, approval_response),
@@ -209,16 +258,18 @@ def main() -> int:
 
 
 def _answer_approvals(harness: object, outcome: str) -> None:
-    """尽力应答 approval 请求(需要 SDK 暴露 next_request/respond;失败即退出线程)。"""
-    next_request = getattr(harness, "next_request", None)
-    respond = getattr(harness, "respond", None)
+    """应答 approval 请求:next_request/respond 在 HarnessClient(facade 不代理)。失败即退出线程。"""
+    client = getattr(harness, "client", None)
+    next_request = getattr(client, "next_request", None)
+    respond = getattr(client, "respond", None)
     if not callable(next_request) or not callable(respond):
+        now = _now_ms()
         emit({
             "kind": "event",
             "event": {
                 "type": "driver/notification",
-                "seq": int(time.time() * 1000),
-                "time": _now_ms(),
+                "seq": now,
+                "time": now,
                 "data": {"note": "SDK 未暴露 approval 应答面,approval_response 配置未生效"},
                 "ignorable": True,
             },
@@ -231,9 +282,17 @@ def _answer_approvals(harness: object, outcome: str) -> None:
             return
         if request is None:
             return
-        decision = {"outcome": outcome} if outcome != "allowed-once" else {"outcome": "allowed-once"}
+        if getattr(request, "method", "") != "approval/request":
+            try:
+                respond_error = getattr(client, "respond_error", None)
+                if callable(respond_error):
+                    respond_error(request.id, code=-32601, message="driver: unsupported client request")
+            except Exception:  # noqa: BLE001
+                return
+            continue
+        decision = {"outcome": outcome}
         try:
-            respond(getattr(request, "id", None), decision)
+            respond(request.id, decision)
         except Exception:  # noqa: BLE001
             return
 

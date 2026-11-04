@@ -92,6 +92,7 @@ async function runCase(caseData: GoldenCase, options: RunPackOptions): Promise<C
   }
   return {
     caseData,
+    adapterId,
     status: failures.length === 0 ? 'pass' : 'fail',
     failures,
     sessionRef,

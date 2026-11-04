@@ -220,6 +220,8 @@ export interface AgentAdapter {
 /** 单条 case 的评测结果。 */
 export interface CaseResult {
   readonly caseData: GoldenCase
+  /** 实际使用的适配器 id(区别于 caseData.adapter 的声明值;写入 sessions.jsonl)。 */
+  readonly adapterId: string
   readonly status: 'pass' | 'fail'
   readonly failures: readonly FailureDetail[]
   readonly sessionRef: string

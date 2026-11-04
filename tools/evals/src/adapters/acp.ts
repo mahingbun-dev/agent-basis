@@ -10,9 +10,10 @@
  *   {"kind":"error","message":"..."}
  * 非零退出 / 无 done / 超时 → harness 失败(不伪造结果)。
  *
- * 注意(设计文档 14 §4 韧性规则):依赖 DSH 运行时(pip 安装 deepseek-harness-sdk
- * + DSH_HOME + provider/model 凭据)。真实联调列入 blockers;本适配器的协议解析
- * 与管线由 tests/acp.adapter.spec.ts 用 stub driver(同协议、无 DSH 依赖)真跑覆盖。
+ * 真实运行前提(2026-11-04 打通,docs/acp-real-6/):pip deepseek-harness-sdk +
+ * DSH_HOME 隔离宿主 + litellm 路由凭据。coerceEvents 与 python 侧 EventMapper
+ * 对同一套真实通知形态(docs/acp-real-6/notifications-sample.jsonl)保持双侧容忍,
+ * 由 tests/acp-real-notification.spec.ts 用真实样本回放钉住。
  */
 import { spawn } from 'node:child_process'
 import * as path from 'node:path'
@@ -59,11 +60,57 @@ function parseDriverLine(raw: string): DriverLine | undefined {
   return record as unknown as DriverLine
 }
 
-function coerceEvent(value: unknown): SessionEventLike | undefined {
+/** 事件包直接形态校验:{type, seq, time, data}(ignorable 保留;缺 seq/time 视为畸形丢弃,不在 TS 侧伪造)。 */
+function asDirectEvent(value: unknown): SessionEventLike | undefined {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
   const record = value as Record<string, unknown>
   if (typeof record.type !== 'string' || typeof record.seq !== 'number' || typeof record.time !== 'number') return undefined
-  return { type: record.type, seq: record.seq, time: record.time, data: record.data }
+  return {
+    type: record.type,
+    seq: record.seq,
+    time: record.time,
+    data: record.data,
+    ...(record.ignorable === true ? { ignorable: true } : {}),
+  }
+}
+
+/**
+ * 容忍真实通知包裹层级(与 python 侧 EventMapper 同口径,样本实证
+ * docs/acp-real-6/notifications-sample.jsonl):
+ * ⓪ driver 规整后的直接事件包 {type, seq, time, data};
+ * ① SDK Notification 序列化形 {method:"session.event", payload:{sessionId, event}};
+ * ② JSON-RPC 树通知 {method, params}:事件在 params.event(单包)或
+ *    params.sessionEvents(批,一条通知多事件);
+ * 其余无事件载荷的 method(session.status、subagent 系、session.query.completed 等)
+ * → ignorable driver/notification(保留可观测性,不参与断言)。
+ */
+export function coerceEvents(value: unknown): SessionEventLike[] {
+  const direct = asDirectEvent(value)
+  if (direct !== undefined) return [direct]
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return []
+  const record = value as Record<string, unknown>
+  if (typeof record.method !== 'string') return []
+  const rawParams = record.payload !== undefined ? record.payload : record.params
+  const params = typeof rawParams === 'object' && rawParams !== null && !Array.isArray(rawParams)
+    ? rawParams as Record<string, unknown>
+    : {}
+  const events: SessionEventLike[] = []
+  const single = asDirectEvent(params.event)
+  if (single !== undefined) events.push(single)
+  if (Array.isArray(params.sessionEvents)) {
+    for (const item of params.sessionEvents) {
+      const mapped = asDirectEvent(item)
+      if (mapped !== undefined) events.push(mapped)
+    }
+  }
+  if (events.length > 0) return events
+  return [driverNotification(record.method, params)]
+}
+
+/** 无事件载荷通知的 ignorable 规整记录(seq/time 用当前毫秒,天然晚于真实事件序)。 */
+function driverNotification(method: string, params: Record<string, unknown>): SessionEventLike {
+  const now = Date.now()
+  return { type: 'driver/notification', seq: now, time: now, data: { method, params }, ignorable: true }
 }
 
 export class AcpAdapter implements AgentAdapter {
@@ -174,8 +221,7 @@ function consumeLine(line: string, events: SessionEventLike[], notes: string[]):
       return sessionId === undefined ? undefined : { sessionId }
     }
     case 'event': {
-      const event = coerceEvent(parsed.event)
-      if (event !== undefined) events.push(event)
+      for (const event of coerceEvents(parsed.event)) events.push(event)
       return undefined
     }
     case 'done': {

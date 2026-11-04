@@ -12,8 +12,8 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
-    "test": "vitest run",
+    "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run && python3 -m unittest discover -s python -p 'test_*.py'",
+    "test": "vitest run && python3 -m unittest discover -s python -p 'test_*.py'",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
