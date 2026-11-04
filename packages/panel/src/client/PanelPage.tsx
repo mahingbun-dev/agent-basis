@@ -6,6 +6,7 @@
 import { useCallback, useState, type ReactElement, type ReactNode } from 'react'
 import type { BasisPanelSnapshot, ToolCard } from '../types.ts'
 import { GUIDE_PROMPTS } from '../prompts.ts'
+import { toolLocale } from './locales.ts'
 
 /** 快照加载状态(inject hooks 份额的快照值)。 */
 export type PanelSnapshotState =
@@ -24,6 +25,8 @@ export interface PanelPageProps {
   readonly refresh: () => void
   /** 标准语言席位(locale 插件绑定)。 */
   readonly t: (key: string) => string
+  /** 当前语言(工具名/说明本地化用)。 */
+  readonly lang: 'zh' | 'en'
 }
 
 function Metric({ label, value }: { readonly label: string, readonly value: ReactNode }): ReactElement {
@@ -102,28 +105,34 @@ function KnowledgeCard({ snapshot, t }: { readonly snapshot: BasisPanelSnapshot,
   )
 }
 
-function ToolRow({ tool }: { readonly tool: ToolCard }): ReactElement {
+function ToolRow({ tool, lang }: { readonly tool: ToolCard, readonly lang: 'zh' | 'en' }): ReactElement {
+  const loc = toolLocale(lang, tool.name)
+  const risk = tool.r3 ? 'R3' : tool.risk
   return (
-    <li data-basis-panel="tool" data-basis-panel-tool={tool.name} data-basis-panel-risk={tool.risk}>
-      <span>{tool.name}</span>
-      {tool.r3 && <span data-basis-panel="risk" data-basis-panel-r3="true">R3</span>}
+    <li data-basis-panel="tool" data-basis-panel-tool={tool.name} data-basis-panel-risk={risk}>
+      <span data-basis-panel="tool-head">
+        <span data-basis-panel="tool-label">{loc.label}</span>
+        {risk !== 'R0' && <span data-basis-panel="risk" data-basis-panel-risk={risk}>{risk}</span>}
+        <span data-basis-panel="tool-id">{tool.name}</span>
+      </span>
+      <span data-basis-panel="tool-desc">{loc.desc}</span>
     </li>
   )
 }
 
-function ToolsCard({ snapshot, t }: { readonly snapshot: BasisPanelSnapshot, readonly t: (key: string) => string }): ReactElement {
+function ToolsCard({ snapshot, t, lang }: { readonly snapshot: BasisPanelSnapshot, readonly t: (key: string) => string, readonly lang: 'zh' | 'en' }): ReactElement {
   const tools = snapshot.tools
   return (
     <section data-basis-panel="card" data-basis-panel-card="event-tools" aria-label={t('services.tools')}>
       <div data-basis-panel="card-title">
         {t('services.tools')}
-        <span data-basis-panel="metric-label"> ({tools.length})</span>
+        <span data-basis-panel="card-count">({tools.length})</span>
       </div>
       {tools.length === 0
         ? <span data-basis-panel="placeholder">{t('state.empty')}</span>
         : (
           <ul data-basis-panel="tool-list">
-            {tools.map(tool => <ToolRow key={tool.name} tool={tool} />)}
+            {tools.map(tool => <ToolRow key={tool.name} tool={tool} lang={lang} />)}
           </ul>
         )}
     </section>
@@ -204,8 +213,10 @@ function SessionRow({ session, t }: {
 }
 
 /** 面板根组件。 */
-export function PanelPage({ useSnapshot, refresh, t }: PanelPageProps): ReactElement {
+export function PanelPage({ useSnapshot, refresh, t, lang }: Omit<PanelPageProps, never> & { lang?: 'zh' | 'en' }): ReactElement {
   const state = useSnapshot(snapshot => snapshot)
+  // 语言跟随 DSH 系统(官方把当前语言写在 <html lang>;切换即时生效,字典更新触发重渲染)
+  const uiLang: 'zh' | 'en' = lang ?? ((document.documentElement.lang || '').toLowerCase().startsWith('zh') ? 'zh' : 'en')
   return (
     <div data-basis-panel="root" aria-label={t('panel')}>
       <div data-basis-panel="toolbar">
@@ -213,6 +224,13 @@ export function PanelPage({ useSnapshot, refresh, t }: PanelPageProps): ReactEle
         <button type="button" data-basis-panel="refresh" onClick={refresh}>{t('refresh')}</button>
       </div>
       <p data-basis-panel="sub">{t('subtitle')}</p>
+
+      <div data-basis-panel="steps" data-basis-panel-steps="true">
+        <span data-basis-panel="steps-title">{t('steps.title')}</span>
+        <span>{t('steps.one')}</span>
+        <span>{t('steps.two')}</span>
+        <span>{t('steps.three')}</span>
+      </div>
 
       <section data-basis-panel="section" data-basis-panel-section="services" aria-label={t('services')}>
         <h2 data-basis-panel="section-title">{t('services')}</h2>
@@ -223,7 +241,7 @@ export function PanelPage({ useSnapshot, refresh, t }: PanelPageProps): ReactEle
             <GovernanceCard snapshot={state.snapshot} t={t} />
             <MemoryCard snapshot={state.snapshot} t={t} />
             <KnowledgeCard snapshot={state.snapshot} t={t} />
-            <ToolsCard snapshot={state.snapshot} t={t} />
+            <ToolsCard snapshot={state.snapshot} t={t} lang={uiLang} />
           </div>
         )}
       </section>
