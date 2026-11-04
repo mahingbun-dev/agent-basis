@@ -192,7 +192,9 @@ node tools/packctl/bin/packctl.mjs lint packs/<行业名>          # 结构/Cord
 ### Web「发现」标签(推荐)
 
 1. 打开 Web → 侧栏「**插件**」页 → 切到「**发现**」标签
-2. 首次使用点「**添加索引源**」(或工具栏「插件索引」菜单 →「管理索引源…」),填入插件索引的 http(s) URL——索引是一份 JSON 清单,列出可安装的组合包
+2. 首次使用点「**添加索引源**」(或工具栏「插件索引」菜单 →「管理索引源…」),填入插件索引的 http(s) URL——索引是一份 JSON 清单,列出可安装的组合包。
+   本仓库自家插件(@basis/glue、@event/pack)的长期索引源:**`https://raw.githubusercontent.com/mahingbun-dev/agent-basis/main/market/index.json`**
+   (离线演示备用:仓库根 `python3 -m http.server 8765 -d market/` 后填 `http://127.0.0.1:8765/index.json`)
 3. 搜索/按标签筛选 → 卡片上点「**安装**」→ 确认对话框(显示版本、来源 spec、registry)→ 确认后进入安装检查界面
 4. 装完到「已安装」标签启用/停用;装新组合包默认启用,basis-web profile 无 HMR 时按提示重启生效
 
@@ -212,7 +214,9 @@ node tools/packctl/bin/packctl.mjs lint packs/<行业名>          # 结构/Cord
 /opt/homebrew/bin/dsh plugin --profile <name> remove <package>
 ```
 
-### agent-basis 自家插件(basis-web profile,file: 依赖方式)
+### agent-basis 自家插件(basis-web profile)
+
+**推荐:走上面的「发现」标签 + 本仓库长期索引源安装,不再手工拷文件。**以下 file: 依赖方式仅作开发态联调保留(源码改动即时生效):
 
 ```bash
 pnpm --filter @basis/panel run verify            # 先构建验证(含 lib/client.js)
