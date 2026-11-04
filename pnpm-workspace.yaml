@@ -4,6 +4,9 @@ packages:
   # 跨行业工具与 CLI(packctl / evals CLI 等)及约定载体包
   - tools/*
 
+allowBuilds:
+  esbuild: true
+
 # 依赖版本单一事实源:所有包用 "catalog:" 引用,升级只改这里。
 # @deepseek-ai/dsh-* 钉在与 ../dsh-repo 相同的 0.2.2-alpha.2(seam 类型即取自该版本)。
 catalog:
@@ -27,6 +30,13 @@ catalog:
   # tools/evals(T4)以 catalog: 引用;补齐同一 0.2.2-alpha.2 钉版家族,否则全仓 install 失败
   '@deepseek-ai/dsh-user-approval': 0.2.2-alpha.2
   '@deepseek-ai/dsh-user-questions': 0.2.2-alpha.2
+  # panel(T19):Host 半边 BasisPanelGateway 的 Remote/TypertRemoteService 基类
+  '@deepseek-ai/dsh-typert-protocol': 0.2.2-alpha.2
+  # panel(T19):浏览器半边 bundle 构建(esbuild)与 React(运行时 react 由 dsh web
+  # 壳基线模块表注入,这里仅构建期装载与单测执行使用)
+  esbuild: 0.28.2
+  react: 18.3.1
+  '@types/react': 18.3.31
   '@stylistic/eslint-plugin': ^5.10.0
   '@types/node': ^24.10.1
   'eslint-plugin-sonarjs': ^4.2.0
