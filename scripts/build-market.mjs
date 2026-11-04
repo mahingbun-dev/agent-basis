@@ -128,11 +128,16 @@ async function buildGlue() {
       './governance-plugin': './src/plugins/governance-plugin.js',
       './package.json': './package.json',
     },
+    // @deepseek-ai/* 必须走 peerDependencies(宿主运行时自带,与 @event/pack 同款):
+    // 普通依赖会因 nodeLinker:hoisted 顶掉 dsh 自带版本,实测导致宿主 tools/system-prompt
+    // 行被兼容性禁用、启动失败。yaml 宿主不提供,保持普通依赖。
     dependencies: {
-      '@deepseek-ai/cordis': '4.0.6-alpha.1',
-      '@deepseek-ai/dsh-system-prompt': '0.2.2-alpha.2',
-      '@deepseek-ai/dsh-tools': '0.2.2-alpha.2',
       'yaml': '^2.9.1',
+    },
+    peerDependencies: {
+      '@deepseek-ai/cordis': '>=4.0.6-alpha.1',
+      '@deepseek-ai/dsh-system-prompt': '>=0.2.2-alpha.2',
+      '@deepseek-ai/dsh-tools': '>=0.2.2-alpha.2',
     },
     dsh: { manifestVersion: 1, bundle: { patch: './cordis.patch.yml' } },
   }
