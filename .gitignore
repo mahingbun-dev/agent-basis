@@ -34,3 +34,6 @@ tmp/
 dsh-evals-out/
 .secrets/
 qa-work/
+
+# python unittest 产物(tools/evals verify 链)
+__pycache__/
