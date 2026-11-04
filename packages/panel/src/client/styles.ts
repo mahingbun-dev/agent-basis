@@ -98,6 +98,18 @@ const CSS = `
 [data-basis-panel='session-metrics'] { display: flex; gap: 14px; flex-wrap: wrap; font-variant-numeric: tabular-nums; font-size: 12px; color: var(--dsw-alias-label-tertiary); }
 [data-basis-panel='session-last'] { font-size: 11px; color: var(--dsw-alias-label-tertiary); }
 
+
+/* 对话框一键触发条(conversation.composer.dock,composer 卡下方) */
+[data-basis-panel='chips'] { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 2px 4px 6px; }
+[data-basis-panel='chips-label'] { font-size: 12px; color: var(--dsw-alias-label-tertiary); }
+[data-basis-panel='chip'] {
+  padding: 3px 12px; font: inherit; font-size: 12px; line-height: 18px; cursor: pointer;
+  color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-1, transparent);
+  border: 0.5px solid var(--dsw-alias-border-l2); border-radius: 999px;
+}
+[data-basis-panel='chip']:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); border-color: var(--dsw-alias-border-l3); }
+[data-basis-panel='chip']:disabled { opacity: 0.5; cursor: default; }
+
 [data-basis-panel='placeholder'] { font-size: 12px; color: var(--dsw-alias-label-tertiary); }
 [data-basis-panel='error'] { color: var(--dsw-alias-state-error-primary); overflow-wrap: anywhere; }
 `

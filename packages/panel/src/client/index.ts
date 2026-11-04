@@ -14,6 +14,7 @@
  */
 import { PanelIcon } from './PanelIcon.tsx'
 import { PanelPage, type PanelSnapshotState } from './PanelPage.tsx'
+import { ComposerChips } from './ComposerChips.tsx'
 import { NS, en, zh } from './locales.ts'
 import { injectPanelStyles } from './styles.ts'
 import type { BasisPanelSnapshot } from '../types.ts'
@@ -77,6 +78,14 @@ export function apply(ctx: PanelClientContext): () => void {
       t,
     }),
   }, PanelPage))
+  // 对话框一键触发条(官方席位 conversation.composer.dock:composer 卡下方
+  // 常驻条目,session 作用域)。官方 SessionStandardProps 注入 inputActions
+  // (setDraft/submit = 用户按 Enter 的同一条路径,R3 照常走审批)。
+  ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register({
+    name: 'conversation.composer.dock',
+    key: PANEL_ID,
+    locale: NS,
+  }, ComposerChips))
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
     name: 'sidebar.panellist',
     id: PANEL_ID,
