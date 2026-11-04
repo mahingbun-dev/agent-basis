@@ -26,6 +26,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import threading
 import time
@@ -96,6 +97,26 @@ def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
+def _pick_default_dsh() -> str | None:
+    """选 npm 安装的 dsh CLI:跳过 pip 包的 python 包装脚本(同名的 runtime 启动器)。"""
+    import shutil
+
+    candidates = [shutil.which("dsh"), "/opt/homebrew/bin/dsh", "/usr/local/bin/dsh"]
+    for cand in candidates:
+        if not cand:
+            continue
+        try:
+            with open(cand, "rb") as fh:
+                head = fh.read(64)
+        except OSError:
+            continue
+        # python 包装脚本(#!... python)是 deepseek-harness-sdk 的 runtime 启动器,不是 node CLI
+        if head.startswith(b"#!") and b"python" in head:
+            continue
+        return cand
+    return None
+
+
 def main() -> int:
     line = sys.stdin.readline()
     if not line.strip():
@@ -134,12 +155,21 @@ def main() -> int:
 
     kwargs: dict = {
         "cwd": config.get("cwd") or None,
-        "on_notification": on_notification,
     }
     for key in ("dsh_home", "provider", "model", "reasoning_effort", "max_tokens"):
         value = config.get(key)
         if value is not None:
             kwargs[key] = value
+    # SDK 默认模型(deepseek-v4-flash)与网关目录(deepseek-flash)不一致时回落到目录内模型
+    if "model" not in kwargs:
+        kwargs["model"] = "deepseek-flash"
+    # 2026-11-04 联调补充:dsh_bin(本地无打包 runtime 闭包时指向全局 dsh CLI)与 env 注入。
+    # 子进程默认继承父环境——dsh-evals 启动时带上 LITELLM_API_KEY 即可;env 字段用于显式覆盖。
+    dsh_bin = config.get("dsh_bin") or os.environ.get("DSH_EVALS_DSH_BIN") or _pick_default_dsh()
+    if dsh_bin:
+        kwargs["dsh_bin"] = dsh_bin
+    if isinstance(config.get("env"), dict):
+        kwargs["env"] = config["env"]
 
     approval_response = config.get("approval_response")
     responder: threading.Thread | None = None
@@ -163,7 +193,9 @@ def main() -> int:
             )
             responder.start()
 
-        result = harness.run(config["user_input"], session_id=config.get("session_id") or None)
+        result = harness.start_session(config.get("session_id") or None).run(
+            config["user_input"], on_notification=on_notification
+        )
         emit({"kind": "session", "session_id": getattr(result, "session_id", "") or ""})
         emit({
             "kind": "done",

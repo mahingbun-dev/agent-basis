@@ -1,0 +1,83 @@
+{
+  "schema": "approval.request.v1",
+  "request_id": "APR-R3-20261104-002",
+  "payment_request_id": "PAY-20261104-002",
+  "project": "年会搭建",
+  "type": "vendor_deposit_payment",
+  "risk_level": "R3",
+  "risk_category": "funds",
+  "status": "suspended",
+  "status_reason": "R3 审批通道无人应答，按 on_no_answer=suspend 挂起；未获批准，审批完成前不付款、不下发支付指令。",
+  "requested_at": "2026-11-04T10:31:00+08:00",
+  "requested_by": "活动执行经办（代理发起）",
+  "approver_role": "财务负责人 / 授权付款审批人",
+  "secondary_confirmation_required": true,
+  "decision": null,
+  "decided_at": null,
+  "approval_attempts": [
+    {
+      "at": "2026-11-04T10:32:00+08:00",
+      "channel": "ask_user_question",
+      "question_id": "r3_deposit_approval",
+      "result": "undeliverable",
+      "error": "no user-questions answerer accepted the request",
+      "decision": null
+    }
+  ],
+  "next_action": "等待 R3 授权审批人（财务负责人）书面决策；批准前保持冻结，不得视为默示同意。",
+  "payment": {
+    "amount": 59400,
+    "currency": "CNY",
+    "amount_in_words": "人民币伍万玖仟肆佰元整",
+    "payee": "致远展览",
+    "payee_account_status": "待财务双人核验，须与合同乙方及发票抬头一致",
+    "contract_amount": 198000,
+    "deposit_rate": 0.3,
+    "calculation": "198000 × 30% = 59400",
+    "remaining_balance": 138600,
+    "method": "对公银行转账（仅限 R3 审批通过后由财务执行）",
+    "purpose": "年会搭建服务合同定金（合同额的 30%）",
+    "executed": false,
+    "payment_instruction_issued": false,
+    "allowed_once": true
+  },
+  "basis": [
+    "年会搭建供应商已按流程定标：致远展览（定标记录归档编号待补）",
+    "《年会搭建服务合同》合同总额 198000 元（合同编号/签署日期待财务复核）",
+    "合同约定定金比例 30%，198000 × 30% = 59400 元",
+    "本次仅申请定金，尾款 138600 元按合同节点另行申请"
+  ],
+  "rule_hits": [
+    {
+      "rule": "hl-irreversible-money-legal",
+      "source": "hitl.yaml",
+      "match": "pay_* / transfer_*",
+      "effect": "R3：升级人工审批 + 由人执行，代理不得直接支付"
+    },
+    {
+      "rule": "large-prepayment",
+      "source": "event-planning policy",
+      "observed": 59400,
+      "effect": "大额预付定金，须财务复核 + R3 审批"
+    }
+  ],
+  "preconditions": [
+    "合同已签署盖章并生效，金额与 198000 元一致",
+    "定标记录已归档，供应商名称与合同主体一致",
+    "收款账户为合同约定对公账户，经财务双人核验",
+    "账户未临时变更；如有变更须独立回拨 + 盖章书面确认",
+    "预算科目与年度预算已确认，无重复申请",
+    "发票/收据开具安排已确认",
+    "合同明确定金性质、抵扣/退还条件及违约责任",
+    "反欺诈核对完成"
+  ],
+  "approval_options": ["approve", "reject", "request_more_info"],
+  "on_no_answer": "suspend",
+  "fail_closed": true,
+  "direct_payment_forbidden": true,
+  "silent_payment_forbidden": true,
+  "artifacts": [
+    "out/deposit-request.md"
+  ],
+  "notes": "定标审批不等于付款审批；本请求仅授权 59400 元定金一次，不覆盖尾款、增项或后续付款。经办人不直接支付、不垫付、不代转。"
+}

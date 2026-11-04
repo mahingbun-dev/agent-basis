@@ -211,6 +211,37 @@ importers:
         specifier: 'catalog:'
         version: 4.1.12(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(yaml@2.9.1))
 
+  packages/glue:
+    dependencies:
+      '@basis/governance':
+        specifier: workspace:*
+        version: link:../governance
+      '@basis/knowledge':
+        specifier: workspace:*
+        version: link:../knowledge
+      '@basis/memory':
+        specifier: workspace:*
+        version: link:../memory
+      '@deepseek-ai/cordis':
+        specifier: 'catalog:'
+        version: 4.0.6-alpha.1(@deepseek-ai/cordis-plugin-include@1.0.11-alpha.1)(@deepseek-ai/cordis-plugin-loader@1.0.7-alpha.1)
+      '@deepseek-ai/dsh-tools':
+        specifier: 'catalog:'
+        version: 0.2.2-alpha.2(4ec263757fbec0b6683a5648d94aabdc)
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.1
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.12(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(yaml@2.9.1))
+
   packages/governance:
     dependencies:
       '@deepseek-ai/cordis':

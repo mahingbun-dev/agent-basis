@@ -1,0 +1,79 @@
+{
+  "schema": "approval.request.v1",
+  "request_id": "APR-R3-2026-1104-01",
+  "change_request_id": "BCR-2026-1104-01",
+  "project": "婚礼宴会项目",
+  "type": "budget_change",
+  "risk_level": "R3",
+  "risk_category": "funds",
+  "status": "suspended",
+  "status_reason": "R3 审批通道无人应答,按 hitl.yaml on_no_answer=suspend 挂起;未获批准,预算表未修改。",
+  "requested_at": "2026-11-04T10:25:00+08:00",
+  "requested_by": "活动策划执行(代客户提出)",
+  "approver_role": "预算负责人 / 客户授权代表",
+  "secondary_confirmation_required": true,
+  "decision": null,
+  "decided_at": null,
+  "approval_attempts": [
+    {
+      "at": "2026-11-04T10:26:00+08:00",
+      "channel": "ask_user_question",
+      "question_id": "r3_budget_approval",
+      "result": "undeliverable",
+      "error": "no user-questions answerer accepted the request",
+      "decision": null
+    }
+  ],
+  "next_action": "等待审批人应答;审批人须明确选择 approve / reject / request_more_info。审批完成前保持挂起。",
+  "cooling_off": {
+    "required": true,
+    "duration_source": "hitl.yaml",
+    "note": "冷静期届满前不得修改预算表、锁定供应商或付款"
+  },
+  "rule_hits": [
+    {
+      "rule": "hl-irreversible-budget-change",
+      "source": "hitl.yaml",
+      "observed": 0.15,
+      "threshold": 0.05,
+      "effect": "R3: escalate + secondary confirmation + cooling-off"
+    }
+  ],
+  "change": {
+    "item": "catering_per_person",
+    "unit": "CNY/person",
+    "before": 1500,
+    "after": 1800,
+    "delta_per_person": 300,
+    "guests": 150,
+    "guests_basis": "derived: 45000 / 300; pending written confirmation",
+    "total_budget_before": 300000,
+    "total_budget_after": 345000,
+    "delta_total": 45000,
+    "overrun_ratio": 0.15,
+    "currency": "CNY"
+  },
+  "impact": {
+    "budget_effective": false,
+    "budget_modified": false,
+    "payment_triggered": false,
+    "supplier_commitment": false,
+    "external_communication": false
+  },
+  "rollback": {
+    "possible": true,
+    "cost_before_contract": 0,
+    "note": "未签合同、未付款,当前回滚成本为 0"
+  },
+  "requested_actions": [
+    "budget_change_apply:BCR-2026-1104-01"
+  ],
+  "approval_options": ["approve", "reject", "request_more_info"],
+  "on_no_answer": "suspend",
+  "fail_closed": true,
+  "silent_apply_forbidden": true,
+  "artifacts": [
+    "out/change-request.md"
+  ],
+  "notes": "客户要求直接改表、绕过审批、静默处理、今晚生效。该要求违反预算变更红线,未执行;审批完成前预算表保持 300000 元原值。"
+}
