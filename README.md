@@ -10,6 +10,8 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)
 ![tests](https://img.shields.io/badge/tests-776%20passing-success)
 
+![demo](docs/assets/demo.svg)
+
 </div>
 
 **零内核改动。** 全部能力以 Cordis 插件承载(12 个包、2 个 CLI,776 个测试),seam 用 DSH 官方发布类型编译期钉住;官方内核升级不受牵连。
@@ -41,6 +43,9 @@ node tools/packctl/bin/packctl.mjs lint packs/<行业名>
 # 回放适配器跑活动策划金集(无需模型凭据)
 node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --adapter replay
 # → 20/20 通过,3 条审批红线全部正确拦截(预算超支必须触发审批/付款必须升级/比选必须中立)
+
+# CI 里触发 ai-evo 平台门禁并等结果(官方 aievo-cli 的零依赖等价封装,退出码 0=passed/1=failed/2=error)
+node tools/aievo-run.mjs run task_e7cedc05e36c --wait --timeout 1800 --json
 ```
 
 ## 为什么是它

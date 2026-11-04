@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="sTitle sDesc">
+  <title id="sTitle">agent-basis · 领域 Agent 基座</title>
+  <desc id="sDesc">项目名 agent-basis。定位:领域 Agent 基座,DeepSeek Harness 之上的治理/记忆/评测/受控自进化插件体系。三个关键词徽块:零内核改动、评测即门禁、受控自进化。右下角版本 v0.1.0。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b0f16"/>
+      <stop offset="0.55" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#101726"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#58a6ff"/>
+      <stop offset="1" stop-color="#bc8cff"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#bg)"/>
+
+  <!-- 装饰:右上角淡淡的终端提示符 -->
+  <text x="1244" y="252" text-anchor="end" font-size="230" font-weight="700" fill="#161d2b" font-family="'SF Mono',ui-monospace,Menlo,Consolas,'Liberation Mono',monospace">&gt;_</text>
+
+  <!-- 顶栏小标 -->
+  <text x="90" y="102" font-size="19" letter-spacing="6" fill="#58a6ff" font-family="'SF Mono',ui-monospace,Menlo,Consolas,'Liberation Mono',monospace">DSH PLUGIN STACK</text>
+
+  <!-- 主标题 -->
+  <rect x="90" y="168" width="6" height="118" rx="3" fill="url(#accent)"/>
+  <text x="118" y="212" font-size="30" fill="#79c0ff" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif">领域 Agent 基座</text>
+  <text x="112" y="296" font-size="84" font-weight="700" fill="#e6edf3" letter-spacing="1" font-family="'SF Mono',ui-monospace,Menlo,Consolas,'Liberation Mono',monospace">agent-basis</text>
+
+  <!-- 一句话定位 -->
+  <text x="118" y="352" font-size="26" fill="#c9d1d9" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif">DeepSeek Harness 之上的 治理 / 记忆 / 评测 / 受控自进化 插件体系</text>
+
+  <!-- 三个关键词徽块 -->
+  <rect x="90" y="420" width="216" height="60" rx="12" fill="#58a6ff" fill-opacity="0.10" stroke="#58a6ff" stroke-opacity="0.85"/>
+  <circle cx="122" cy="450" r="5" fill="#58a6ff"/>
+  <text x="140" y="459" font-size="25" font-weight="600" fill="#e6edf3" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif">零内核改动</text>
+
+  <rect x="326" y="420" width="216" height="60" rx="12" fill="#bc8cff" fill-opacity="0.10" stroke="#bc8cff" stroke-opacity="0.85"/>
+  <circle cx="358" cy="450" r="5" fill="#bc8cff"/>
+  <text x="376" y="459" font-size="25" font-weight="600" fill="#e6edf3" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif">评测即门禁</text>
+
+  <rect x="562" y="420" width="216" height="60" rx="12" fill="#3fb950" fill-opacity="0.10" stroke="#3fb950" stroke-opacity="0.85"/>
+  <circle cx="594" cy="450" r="5" fill="#3fb950"/>
+  <text x="612" y="459" font-size="25" font-weight="600" fill="#e6edf3" font-family="'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif">受控自进化</text>
+
+  <!-- 底栏:仓库地址 + 版本 -->
+  <text x="90" y="588" font-size="21" fill="#8b949e" font-family="'SF Mono',ui-monospace,Menlo,Consolas,'Liberation Mono',monospace">github.com/mahingbun-dev/agent-basis</text>
+  <rect x="1072" y="552" width="118" height="46" rx="23" fill="#161b22" stroke="#30363d"/>
+  <text x="1131" y="582" text-anchor="middle" font-size="21" font-weight="600" fill="#e6edf3" font-family="'SF Mono',ui-monospace,Menlo,Consolas,'Liberation Mono',monospace">v0.1.0</text>
+</svg>
