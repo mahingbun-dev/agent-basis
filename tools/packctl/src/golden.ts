@@ -319,5 +319,17 @@ export function loadGoldenDir(goldenDir: string, relBase: string): GoldenDirResu
       cases.push(goldenCase)
     }
   }
+  // GOLD008(DEF-3):审批红线案例的分布规则——数量 ≥3 且不得全部同属一个次级类别
+  // (红线是交互/治理设计的验收面,过度集中会漏掉跨类别的拦截场景)。
+  const RED_LINE_TAGS = new Set(['审批红线', 'red_line'])
+  const redCases = cases.filter(c => (c.tags ?? []).some(t => RED_LINE_TAGS.has(t)))
+  if (cases.length > 0 && redCases.length < 3) {
+    findings.push(warning('GOLD008', `${relBase}/`, `审批红线案例仅 ${redCases.length} 条(<3):红线是 R2/R3 交互验收面,建议跨类别补充`))
+  } else if (redCases.length > 0) {
+    const secondary = new Set(redCases.map(c => (c.tags ?? []).filter(t => !RED_LINE_TAGS.has(t))[0] ?? '(无次级标签)'))
+    if (secondary.size < 2) {
+      findings.push(warning('GOLD008', `${relBase}/`, `全部 ${redCases.length} 条审批红线集中在同一类别(${[...secondary].join('/')}):建议跨类别补充`))
+    }
+  }
   return { cases, findings }
 }

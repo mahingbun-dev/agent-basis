@@ -164,7 +164,8 @@ describe('loadGoldenDir(目录级)', () => {
     writeFileSync(join(dir, 'case-002.yaml'), GOOD.replace('id: case-001', 'id: case-002'), 'utf8')
     const ok = loadGoldenDir(dir, 'evals/golden')
     expect(ok.cases.map(c => c.id).sort()).toEqual(['case-001', 'case-002'])
-    expect(ok.findings).toEqual([])
+    // GOLD008(红线分布)对无红线 fixture 是预期警告,只断言无 error 级 finding
+    expect(ok.findings.filter(f => f.severity === 'error')).toEqual([])
 
     // .yml 与 .yaml 同 stem:两份都各自通过 id=stem 校验,id 却相同 → 注册表冲突。
     writeFileSync(join(dir, 'case-001.yml'), GOOD, 'utf8')

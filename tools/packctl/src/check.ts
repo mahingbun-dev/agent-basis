@@ -11,7 +11,7 @@
  *    + profile 启动 + 卸载无残留验证),按 14 号文档 §4 留 blockers,不伪造结果。
  */
 import { existsSync, readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve, sep } from 'node:path'
 import { isRecord, parseYaml, splitFrontmatter } from './util.ts'
 import { readPackPackageJson, readYamlFile, scanSkills } from './pack.ts'
 import { error, warning } from './types.ts'
@@ -87,8 +87,14 @@ export function checkPack(packRoot: string): PackCheckResult {
       const cleaned = target.split('#')[0] ?? target
       if (cleaned.length === 0) continue
       const abs = join(dirname(skill.absPath), cleaned)
+      // DEF-2:显式报"路径越界",与"文件不存在"区分(根因不同:前者是链接写错层级,后者是文件缺失)。
+      const packAbs = resolve(packRoot)
+      if (!resolve(abs).startsWith(packAbs + sep)) {
+        findings.push(error('CHK004', skill.relPath, `正文链接 ${target} 越出领域包根目录(相对路径写错层级,如多了 ../;应位于 ${packAbs} 之内)`))
+        continue
+      }
       if (!existsSync(abs)) {
-        findings.push(error('CHK004', skill.relPath, `正文链接引用的文件 ${target} 不存在`))
+        findings.push(error('CHK004', skill.relPath, `正文链接引用的文件 ${target} 不存在(相对 ${dirname(skill.relPath)}/)`))
       }
     }
   }

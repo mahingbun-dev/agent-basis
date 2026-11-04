@@ -71,7 +71,9 @@ describe('init → lint → check 全链路(真实文件)', () => {
     expect(runPack(['lint', packDir, '--json'], cliIo)).toBe(0)
     const parsed = JSON.parse(lines.join('\n')) as Array<{ packRoot: string; findings: unknown[] }>
     expect(parsed.length).toBe(1)
-    expect(parsed[0]?.findings).toEqual([])
+    // GOLD008(红线分布)对无红线 fixture 是预期警告,只断言无 error 级 finding
+    const errs = (parsed[0]?.findings as Array<{ severity: string }>).filter(f => f.severity === 'error')
+    expect(errs).toEqual([])
   })
 })
 

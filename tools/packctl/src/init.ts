@@ -243,11 +243,13 @@ rules:
 
     'evals/golden/case-001.yaml': `# golden case(07 号文档 §3.2 字段口径;与 ai-evo Excel/终态校验器/轨迹断言同源)。
 # S0 立项时与 SME 一起替换为真实任务;审批红线类案例(静默通过=失败)必含。
+# 注意:answer 是断言不是文本——对象形态 {contains: 子串} 或 {match: 正则},不需要就整段注释掉(DEF-1)。
 id: case-001
 user_input: |
   (示例任务输入:S0 立项时替换为 ${industry} 领域的真实 golden task)
-answer: |
 tags: [示例]
+# answer:
+#   contains: 预算
 final_state:
   file_assert: { path: 'out/deliverable.md', contains: [] }
 trajectory:
