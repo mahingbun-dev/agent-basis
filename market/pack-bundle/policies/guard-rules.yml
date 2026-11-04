@@ -1,0 +1,32 @@
+# guard-rules.yml —— 合规红线(@basis/governance 规则引擎消费;deny 优先、fail-closed)。
+# 格式对齐 @basis/governance PolicyDocument:{ rules: [{ id, effect, tools, argsContains?, reason? }], default }。
+# 三条审批红线(13 号文档 §2 注)在这里表达,不靠 prompt:
+#   ① 预算超支>5% 的变更必须 R3 审批(静默通过=失败,golden 钉住);
+#   ② 对外付款/合同签署必须升级给人,不得代付代签;
+#   ③ 供应商定标必须审批;比选结论必须中立(输出层由 golden 终态断言钉住)。
+rules:
+  - id: event-allow-readonly-and-calc
+    effect: allow
+    tools: ['*_search', 'read_*', 'list_*', 'budget_calc', 'schedule_conflict_check', 'weather_query']
+    reason: 只读检索与确定性计算(R0 档)
+  - id: event-ask-draft-write
+    effect: allow
+    tools: ['write_*', 'draft_*']
+    reason: 可逆草稿(R1 档,静默 + 事后 diff 卡片)
+  - id: event-ask-external-send
+    effect: ask
+    tools: ['send_*', 'submit_*', 'publish_*']
+    reason: 对外发射类动作必须确认(R2 档,withhold-或-补偿)
+  - id: event-ask-budget-change
+    effect: ask
+    tools: ['budget_change']
+    reason: 预算变更必须触发 R3 审批(超支>5% 高危边缘;静默通过=失败)
+  - id: event-ask-vendor-award
+    effect: ask
+    tools: ['vendor_award']
+    reason: 供应商定标必须 R3 审批,比选结论必须中立
+  - id: event-deny-payment-and-signing
+    effect: deny
+    tools: ['pay_*', 'sign_*', 'transfer_*']
+    reason: 资金/法务效力动作禁止 agent 直接执行(R3 档,升级给人)
+default: ask

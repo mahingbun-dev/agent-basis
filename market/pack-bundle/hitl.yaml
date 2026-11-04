@@ -1,0 +1,30 @@
+# hitl.yaml —— 风险分档与升级触发器(08 号文档 §6.1;@basis/interact 消费、governance 执行)。
+# 档位:R0 只读静默 / R1 可逆写静默+事后变更卡片 / R2 需确认审批 / R3 高危升级+冷静期。
+# 13 号文档 §4:预算超支>5% / 对外付款 / 合同签署 / 供应商定标 → R3;
+# 策划案初稿 / 物料清单 → R1(静默 + 事后 diff 卡片)。
+industry: event-planning
+escalation_contact: '' # R3 升级到指定人;留空 = 升级给当前用户
+on_no_answer: suspend # 无人值守 ask 不可达:挂起而非失败(approval 事件已持久,replay 即恢复)
+rules:
+  # R0 只读与确定性计算:检索/查询/预算算术,无副作用。
+  - id: hl-readonly-query
+    risk: R0
+    match: { tools: ['*_search', 'read_*', 'list_*', 'budget_calc', 'schedule_conflict_check', 'weather_query'] }
+  # R1 可逆写:草稿类交付物(静默 + 事后变更卡片)。
+  - id: hl-reversible-draft
+    risk: R1
+    match: { tools: ['write_*', 'draft_*'] }
+  # R2 对外发射:邮件/邀请函/发布稿,先确认再发。
+  - id: hl-external-effect
+    risk: R2
+    match: { tools: ['send_*', 'submit_*', 'publish_*'] }
+  # R3 高危(13 号文档 §4 四类):资金 / 法务 / 定标 / 预算变更 —— 代理执行,升级 + 冷静期。
+  - id: hl-irreversible-money-legal
+    risk: R3
+    match: { tools: ['pay_*', 'sign_*', 'transfer_*'] }
+  - id: hl-irreversible-award
+    risk: R3
+    match: { tools: ['vendor_award'] }
+  - id: hl-irreversible-budget-change
+    risk: R3
+    match: { tools: ['budget_change'] }

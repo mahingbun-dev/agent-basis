@@ -1,0 +1,10 @@
+# profile.yml —— 领域包 profile 叠加声明(06 号模板:继承 dsh-base,叠加 L1 基座 bundles 与本包)。
+# L1 基座包已落地:T1 governance / T3 interact / T8 knowledge;T2 memory / T9 observe 随排期追加。
+name: event-planning
+extends:
+  - dsh-base
+bundles:
+  - '@basis/governance'
+  - '@basis/interact'
+  - '@basis/knowledge'
+  - '@event/pack'
