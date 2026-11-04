@@ -2,8 +2,10 @@
 // acp 适配器测试桩:与 python/dsh_eval_driver.py 说同一套 NDJSON 协议,
 // 但不依赖 deepseek-harness-sdk —— 用于真跑 TS 侧 spawn/解析/断言管线。
 // 行为由 stdin 配置驱动:
-//   session_id=boom       → 输出 {"kind":"error"}(协议错误路径)
-//   session_id=slow       → 睡 5s(超时路径,测试配 1s 超时)
+//   session_id=boom      → 输出 {"kind":"error"}(协议错误路径)
+//   session_id=slow      → 睡 5s(超时路径,测试配 1s 超时)
+//   session_id 以 cfg- 开头 → 先回显收到的整份 config(ignorable driver/notification
+//                            事件,测试断言 adapter→driver 传参,如 approval_response)
 //   其它                   → 输出一条完整会话(含审批事件)
 import { setTimeout as sleep } from 'node:timers/promises'
 
@@ -30,6 +32,15 @@ if (config.session_id === 'slow') {
   await sleep(5000)
   emit({ kind: 'done', finish_reason: 'completed', final_response: 'too late' })
   process.exit(0)
+}
+
+if (String(config.session_id).startsWith('cfg-')) {
+  emit({
+    kind: 'event',
+    event: {
+      type: 'driver/notification', seq: 0, time: 0, data: { echoedConfig: config }, ignorable: true,
+    },
+  })
 }
 
 emit({ kind: 'session', session_id: `stub-session-${config.session_id}` })

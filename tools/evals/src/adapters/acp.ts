@@ -14,6 +14,15 @@
  * DSH_HOME 隔离宿主 + litellm 路由凭据。coerceEvents 与 python 侧 EventMapper
  * 对同一套真实通知形态(docs/acp-real-6/notifications-sample.jsonl)保持双侧容忍,
  * 由 tests/acp-real-notification.spec.ts 用真实样本回放钉住。
+ *
+ * 审批应答(红线 case):config 恒带 approval_response(口径见 approvalResponseOf),
+ * driver 侧据此置 approval_requests=True 并起应答线程接管全部 approval/request ——
+ * 未接管时 runtime 缺省应答链一律 rejected,T17 样本实证 pay_deposit 审批被静默拒。
+ *
+ * 领域 skills 装载:config 带 skill_dir(<pack>/skills)。包内 cordis.patch.yml 的
+ * customSkillDirs './skills' 相对 runtime 进程 cwd 解析(skill-filesystem/src/index.ts:168
+ * 的 resolve(root)),不指向包根 —— 2026-11-04 r2 联调实证领域 skill 不进目录、模型
+ * 不知道 out/ 交付约定。driver 按 SDK 官方 patches 通道用绝对路径覆写该行。
  */
 import { spawn } from 'node:child_process'
 import * as path from 'node:path'
@@ -37,6 +46,24 @@ export interface AcpAdapterOptions {
 }
 
 const DEFAULT_TIMEOUT_SECONDS = 600
+
+/**
+ * 应答器可发送的 approval decision outcome(dsh-repo python/sdk
+ * models.py:86 Literal["allowed-once","rejected","cancelled"];unavailable 只是
+ * 被观测的 fail-closed 结局,不是客户端可发送的决定)。
+ */
+const SENDABLE_APPROVAL_OUTCOMES: readonly string[] = ['allowed-once', 'rejected', 'cancelled']
+
+/**
+ * 审批应答口径:golden 声明了 trajectory.approval_flow.outcome 且该值可发送时,
+ * 按声明应答(external-payment/budget-overrun→rejected 验证拒绝留痕与不执行;
+ * vendor-deposit→allowed-once 验证获批路径);其余(未声明或值为 unavailable)缺省
+ * allowed-once —— 无声挂起的审批会拖到超时,应答器必须始终在场。
+ */
+export function approvalResponseOf(caseData: { trajectory?: { approval_flow?: { outcome?: string } } }): string {
+  const expected = caseData.trajectory?.approval_flow?.outcome
+  return expected !== undefined && SENDABLE_APPROVAL_OUTCOMES.includes(expected) ? expected : 'allowed-once'
+}
 
 interface DriverLine {
   readonly kind: string
@@ -137,6 +164,8 @@ export class AcpAdapter implements AgentAdapter {
       reasoning_effort: acp?.reasoning_effort,
       max_tokens: acp?.max_tokens,
       timeout_seconds: timeoutSeconds,
+      approval_response: approvalResponseOf(input.caseData),
+      skill_dir: path.join(input.packDir, 'skills'),
     }
     return await new Promise<AgentRunResult>((resolve, reject) => {
       const child = spawn(pythonBin, [driverPath], { stdio: ['pipe', 'pipe', 'pipe'] })

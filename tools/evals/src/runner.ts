@@ -1,7 +1,8 @@
 /**
  * 运行器:loadPackCases → 过滤(subset=tag / 单 case)→ 逐 case 起适配器 →
  * answer/trajectory/budget/final_state 四组断言 → CaseResult 汇总 → 落盘
- * report.md + sessions.jsonl。单 case 的 harness 失败被捕获为该 case 的
+ * report.md + sessions.jsonl + events/<case-id>.jsonl(原始事件流完整另存,
+ * 供 ai-evo 转换等下游消费)。单 case 的 harness 失败被捕获为该 case 的
  * 失败明细(分类 harness),不拖垮整包(设计文档 14 §4 韧性规则)。
  */
 import * as path from 'node:path'
@@ -14,7 +15,7 @@ import { renderReport } from './report.ts'
 import { sessionsLines } from './sessions.ts'
 import { ensureBuiltinAdapters, getAdapter } from './adapters/registry.ts'
 import type { AcpAdapterOptions } from './adapters/acp.ts'
-import type { CaseResult, FailureDetail, GoldenCase, PackRunResult } from './types.ts'
+import type { CaseResult, FailureDetail, GoldenCase, PackRunResult, SessionEventLike } from './types.ts'
 
 export interface RunPackOptions {
   readonly packDir: string
@@ -66,12 +67,14 @@ async function runCase(caseData: GoldenCase, options: RunPackOptions): Promise<C
   let notes: readonly string[] = []
   let failures: FailureDetail[] = []
   let metrics = { turns: 0, steps: 0, toolCalls: [] as string[], totalTokens: 0, approvalAsks: 0, eventCount: 0 }
+  let events: readonly SessionEventLike[] = []
   try {
     const adapter = getAdapter(adapterId)
     const run = await adapter.run({ caseData, packDir: options.packDir, workspaceDir })
     sessionRef = run.sessionRef
     finalAnswerText = run.finalAnswerText
     notes = run.notes ?? []
+    events = run.events
     const summary = summarize(run.events)
     metrics = {
       turns: summary.turns,
@@ -97,6 +100,7 @@ async function runCase(caseData: GoldenCase, options: RunPackOptions): Promise<C
     failures,
     sessionRef,
     metrics,
+    events,
     finalAnswerText,
     durationMs: Date.now() - startMs,
     notes,
@@ -114,4 +118,12 @@ async function writeArtifacts(result: PackRunResult, outDir: string): Promise<vo
   await mkdir(outDir, { recursive: true })
   await writeFile(path.join(outDir, 'report.md'), renderReport(result), 'utf8')
   await writeFile(path.join(outDir, 'sessions.jsonl'), `${sessionsLines(result).join('\n')}\n`, 'utf8')
+  // 原始事件流完整另存(一行一事件,与 driver NDJSON 的 event 包同形):T4 转换与
+  // 失败复盘的直接对象,harness 失败(无事件)的 case 也落空文件以保齐全集。
+  const eventsDir = path.join(outDir, 'events')
+  await mkdir(eventsDir, { recursive: true })
+  for (const item of result.results) {
+    const body = item.events.map(event => JSON.stringify(event)).join('\n')
+    await writeFile(path.join(eventsDir, `${item.caseData.id}.jsonl`), `${body}\n`, 'utf8')
+  }
 }

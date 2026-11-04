@@ -14,6 +14,7 @@ turns / tool_calls / approval 事件,seq/time 原样保留不伪造;无事件载
 from __future__ import annotations
 
 import json
+import os
 import unittest
 from pathlib import Path
 
@@ -192,6 +193,52 @@ class ShapeCompatibilityTest(unittest.TestCase):
         self.assertEqual(events[0]["type"], "turn/start")
         self.assertIsInstance(events[0]["seq"], int)
         self.assertIsInstance(events[0]["time"], int)
+
+
+class MintSessionIdTest(unittest.TestCase):
+    """DSH 会话 id 每跑必新:r2 重跑撞 already exists 的根因修复。"""
+
+    def test_prefix_kept_and_unique(self) -> None:
+        from dsh_eval_driver import _mint_session_id
+
+        first = _mint_session_id("external-payment-must-escalate")
+        second = _mint_session_id("external-payment-must-escalate")
+        self.assertTrue(first.startswith("external-payment-must-escalate--"), first)
+        self.assertNotEqual(first, second, "同一 case 连续两次铸造必须不同")
+
+    def test_invalid_case_id_falls_back(self) -> None:
+        from dsh_eval_driver import _mint_session_id
+
+        for bad in (None, "", 42):
+            minted = _mint_session_id(bad)
+            self.assertTrue(minted.startswith("case--"), minted)
+
+
+class SkillPatchTest(unittest.TestCase):
+    """领域 skills 绝对路径装载:调用级 patch 覆写包内相对 './skills'。"""
+
+    def test_patch_content_shape(self) -> None:
+        from dsh_eval_driver import _skill_patch_content
+
+        content = _skill_patch_content("/abs/pack/skills")
+        self.assertIn("- id: skill-filesystem", content)
+        self.assertIn("customSkillDirs: ['/abs/pack/skills']", content)
+
+    def test_materialize_requires_existing_dir(self) -> None:
+        from dsh_eval_driver import _materialize_skill_patch
+
+        self.assertIsNone(_materialize_skill_patch(None))
+        self.assertIsNone(_materialize_skill_patch("/no/such/skill/dir"))
+
+        import tempfile as _tempfile
+
+        with _tempfile.TemporaryDirectory() as root:
+            patch = _materialize_skill_patch(root)
+            self.assertIsNotNone(patch)
+            self.assertTrue(patch.endswith(".patch.yml"))
+            body = Path(patch).read_text(encoding="utf-8")
+            self.assertIn(root, body)
+            os.unlink(patch)
 
 
 if __name__ == "__main__":

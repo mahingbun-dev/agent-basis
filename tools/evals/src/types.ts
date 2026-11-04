@@ -226,6 +226,8 @@ export interface CaseResult {
   readonly failures: readonly FailureDetail[]
   readonly sessionRef: string
   readonly metrics: CaseMetrics
+  /** 原始会话事件流(完整落盘 <out>/events/<case-id>.jsonl,供下游转换/复盘;harness 失败时为空)。 */
+  readonly events: readonly SessionEventLike[]
   readonly finalAnswerText: string
   readonly durationMs: number
   readonly notes: readonly string[]

@@ -33,11 +33,14 @@ python/sdk/src/deepseek_harness/client.py:473),不是 dict —— 旧版按 dict
 
 from __future__ import annotations
 
+import atexit
 import json
 import os
 import sys
+import tempfile
 import threading
 import time
+import uuid
 
 
 def emit(payload: dict) -> None:
@@ -145,6 +148,49 @@ def _now_ms() -> int:
     return int(time.time() * 1000)
 
 
+def _mint_session_id(case_id: object) -> str:
+    """每跑必新的 DSH 会话 id:runtime 启动时把 DSH_HOME/sessions 下持久化的全部
+    会话 id 恢复进 store,复用 case id 会撞 session "… already exists
+    (session-persistence-jsonl/src/index.ts:1166 create 的同名检查)。
+    前缀保留 case id 便于在 sessions 目录里对账,时间戳+随机后缀保证唯一。"""
+    prefix = case_id if isinstance(case_id, str) and case_id else "case"
+    return f"{prefix}--{_now_ms()}-{uuid.uuid4().hex[:8]}"
+
+
+def _skill_patch_content(skill_dir: str) -> str:
+    """skill-filesystem 的调用级 patch:领域包 skills/ 以绝对路径装载。
+
+    包内 cordis.patch.yml 写的是 './skills'(相对 runtime 进程 cwd 解析,不指向包根;
+    skill-filesystem/src/index.ts:168 resolve(root)),领域 skill 进不了会话目录,
+    模型无从得知 out/ 交付约定(r2 联调实证)。driver 知道包根,按 SDK 官方
+    patches 通道覆写为绝对路径;行只重述自己拥有的键,与包内行同形。"""
+    return (
+        "# dsh-evals driver 生成:领域包 skills 绝对路径装载(覆写包内相对 './skills')\n"
+        f"- id: skill-filesystem\n"
+        f"  config:\n"
+        f"    customSkillDirs: ['{skill_dir}']\n"
+    )
+
+
+def _unlink_quiet(path: str) -> None:
+    try:
+        os.unlink(path)
+    except OSError:
+        pass
+
+
+def _materialize_skill_patch(skill_dir: object) -> str | None:
+    """skill_dir 存在(目录)则落盘 patch 文件并返回路径;进程退出时清理。"""
+    if not isinstance(skill_dir, str) or not os.path.isdir(skill_dir):
+        return None
+    absolute = os.path.abspath(skill_dir)
+    fd, patch_path = tempfile.mkstemp(prefix="dsh-evals-skill-", suffix=".patch.yml")
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        handle.write(_skill_patch_content(absolute))
+    atexit.register(_unlink_quiet, patch_path)
+    return patch_path
+
+
 def _pick_default_dsh() -> str | None:
     """选 npm 安装的 dsh CLI:跳过 pip 包的 python 包装脚本(同名的 runtime 启动器)。"""
     import shutil
@@ -217,6 +263,11 @@ def main() -> int:
         kwargs["dsh_bin"] = dsh_bin
     if isinstance(config.get("env"), dict):
         kwargs["env"] = config["env"]
+    # 领域 skills 绝对路径装载(见 _materialize_skill_patch):调用级 patch 排在
+    # profile/home patch 之后生效,覆写包内 './skills' 相对路径。
+    skill_patch = _materialize_skill_patch(config.get("skill_dir"))
+    if skill_patch is not None:
+        kwargs["patches"] = (skill_patch,)
 
     approval_response = config.get("approval_response")
     responder: threading.Thread | None = None
@@ -242,7 +293,9 @@ def main() -> int:
             )
             responder.start()
 
-        result = harness.start_session(config.get("session_id") or None).run(
+        # DSH 会话 id 每跑必新(见 _mint_session_id):复用 case id 会与
+        # DSH_HOME 里已持久化的上一轮会话撞 "already exists"。
+        result = harness.start_session(_mint_session_id(config.get("session_id"))).run(
             config["user_input"], on_notification=on_notification
         )
         emit({"kind": "session", "session_id": getattr(result, "session_id", "") or ""})

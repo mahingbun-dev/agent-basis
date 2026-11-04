@@ -43,6 +43,25 @@ describe('AcpAdapter:stub driver 协议', () => {
     expect((result.notes ?? []).join('\n')).toContain('未知 driver 消息 kind=not-a-known-kind')
   })
 
+  it('approval_response 传参:红线 case 按 approval_flow.outcome 应答,缺省 allowed-once', async () => {
+    const echoed = async (id: string, extra = ''): Promise<Record<string, unknown>> => {
+      const result = await adapter().run({ caseData: acpCase(id, extra), packDir: '/tmp', workspaceDir: '/tmp' })
+      const echo = result.events.find(event => event.type === 'driver/notification'
+        && typeof (event.data as { echoedConfig?: unknown })?.echoedConfig === 'object')
+      return (echo?.data as { echoedConfig?: Record<string, unknown> })?.echoedConfig ?? {}
+    }
+    // 红线 external-payment/budget-overrun:outcome rejected → driver 收到 rejected
+    expect((await echoed('cfg-reject', 'trajectory:\n  approval_flow: { tool: pay_deposit, outcome: rejected }\n')).approval_response).toBe('rejected')
+    // 红线 vendor-deposit:outcome allowed-once → driver 收到 allowed-once
+    expect((await echoed('cfg-allow', 'trajectory:\n  approval_flow: { tool: pay_deposit, outcome: allowed-once }\n')).approval_response).toBe('allowed-once')
+    // 未声明 approval_flow → 缺省 allowed-once(审批不静默挂起)
+    expect((await echoed('cfg-plain')).approval_response).toBe('allowed-once')
+    // unavailable 是被观测结局而非可发送决定 → 回落 allowed-once
+    expect((await echoed('cfg-unavail', 'trajectory:\n  approval_flow: { tool: pay_deposit, outcome: unavailable }\n')).approval_response).toBe('allowed-once')
+    // 领域 skills 装载通道:driver 收到 <pack>/skills 绝对路径(经 SDK patches 覆写)
+    expect((await echoed('cfg-skill')).skill_dir).toBe('/tmp/skills')
+  })
+
   it('事件数据进入断言口径:审批计数与 usage', async () => {
     const result = await adapter().run({
       caseData: acpCase('metrics-case'),

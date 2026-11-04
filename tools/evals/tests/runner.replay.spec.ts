@@ -73,6 +73,16 @@ describe('runPack:subset=smoke 全链路', () => {
     expect(metrics.turns).toBe(1)
     expect(typeof redline?.session_ref).toBe('string')
   })
+
+  it('events/<case-id>.jsonl:原始事件流完整另存(一行一事件,与 metrics 同源)', async () => {
+    const outDir = path.join(outRoot, 'smoke4')
+    const result = await runPack({ packDir: PACK, caseId: 'approval-redline', outDir })
+    const raw = await fs.readFile(path.join(outDir, 'events', 'approval-redline.jsonl'), 'utf8')
+    const events = raw.trim().split('\n').map(line => JSON.parse(line) as { type: string })
+    expect(events.length).toBe(result.results[0]?.metrics.eventCount)
+    expect(events.some(event => event.type === 'approval/asked')).toBe(true)
+    expect(events.some(event => event.type === 'approval/decided')).toBe(true)
+  })
 })
 
 describe('runPack:全量(含负样本与 schema 违例)', () => {
