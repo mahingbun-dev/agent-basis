@@ -19,9 +19,9 @@
   },
   "scripts": {
     "build:client": "node scripts/build-client.mjs",
-    "verify": "pnpm run build:client && oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
-    "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "verify": "node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run",
+    "test": "./node_modules/.bin/vitest run",
+    "typecheck": "./node_modules/.bin/tsc --noEmit"
   },
   "dependencies": {
     "@basis/governance": "workspace:*",
