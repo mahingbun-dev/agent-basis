@@ -1,0 +1,8 @@
+{
+  "name": "@event/pack-tools-testdir",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "tools/ 目录的 node --test 目录参数入口(main 指向 run-tests.mjs 聚合垫片);不是可安装包,仅让 `node --test <本目录>` 在 Node 24 递归发现缺位时真实跑全部 *.test.mjs。",
+  "main": "run-tests.mjs"
+}
