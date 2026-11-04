@@ -11,6 +11,11 @@ import type { KnowledgePluginConfig } from '../types.ts'
 
 export const BASIS_KNOWLEDGE_PLUGIN_NAME = 'basis-knowledge'
 
+/** governance 服务在 glue 侧的最小结构子集(inject 可选,governance 缺席为常态)。 */
+interface GovernanceLike {
+  readonly rules?: { evaluate(tool: string, args?: unknown): { decision: string } }
+}
+
 export function defineKnowledgePlugin(config: KnowledgePluginConfig = {}) {
   return {
     name: BASIS_KNOWLEDGE_PLUGIN_NAME,
@@ -18,7 +23,7 @@ export function defineKnowledgePlugin(config: KnowledgePluginConfig = {}) {
     apply(ctx: Context): () => void {
       const cwd = process.cwd()
       const wikiDir = config.wikiDir ?? join(cwd, 'knowledge.wiki')
-      const govRules = (ctx as unknown as { governance?: { rules?: { evaluate(tool: string, args?: unknown): { decision: string } } } }).governance?.rules
+      const govRules = (ctx as unknown as { governance?: GovernanceLike }).governance?.rules
       const backend = new WikiLocalBackend({
         wikiDir,
         dbPath: config.dbPath ?? join(cwd, '.basis/knowledge.sqlite3'),
