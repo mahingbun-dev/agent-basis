@@ -37,3 +37,6 @@ qa-work/
 
 # python unittest 产物(tools/evals verify 链)
 __pycache__/
+
+# 旧版 pnpm 单包 scope install 生成的局部 lockfile(workspace 权威 lockfile 在根)
+tools/evals/pnpm-lock.yaml
