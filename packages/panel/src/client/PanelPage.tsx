@@ -62,7 +62,6 @@ function MemoryEntityRow({ entity }: { readonly entity: BasisPanelSnapshot['memo
   return (
     <div data-basis-panel="mem-entity" data-basis-panel-mem-entity={entity.subject + '/' + entity.key}>
       <div data-basis-panel="mem-entity-head">
-        <span data-basis-panel="mem-entity-subject">{entity.subject}</span>
         <span data-basis-panel="mem-entity-key">{entity.key}</span>
         <span data-basis-panel="mem-entity-time">{time}</span>
       </div>
@@ -72,26 +71,46 @@ function MemoryEntityRow({ entity }: { readonly entity: BasisPanelSnapshot['memo
 }
 
 /** 「记忆」独立区块:当前工作区全部有效记忆,按主体分组,美观渲染。 */
+/** 主体(subject)→ 人话分类:标签 + 一句说明 + 排序权(小在前)。 */
+const SUBJECT_KINDS: readonly { match: (s: string) => boolean, label: string, desc: string, order: number, tone: 'normal' | 'test' }[] = [
+  { match: s => s.startsWith('user:'), label: '你的偏好与习惯', desc: 'Agent 从对话中沉淀的、关于你个人的记忆', order: 1, tone: 'normal' },
+  { match: s => s.startsWith('project:'), label: '项目记忆', desc: '当前项目/工作区的事实、决定与结论', order: 2, tone: 'normal' },
+  { match: s => s.startsWith('org:'), label: '团队约定', desc: '组织层面的约定与口径', order: 3, tone: 'normal' },
+  { match: s => /^e2e:|^test:|^qa:/i.test(s), label: '测试数据', desc: '验收测试写入的记忆(可安全清理)', order: 99, tone: 'test' },
+]
+
+function subjectKind(subject: string): { label: string, desc: string, order: number, tone: 'normal' | 'test' } {
+  const hit = SUBJECT_KINDS.find(k => k.match(subject))
+  return hit ?? { label: subject, desc: '', order: 50, tone: 'normal' as const }
+}
+
 function MemorySection({ snapshot, t }: { readonly snapshot: BasisPanelSnapshot, readonly t: (key: string) => string }): ReactElement {
   const memory = snapshot.memory
   const entities = [...(memory.entities ?? [])]
-  // 按 subject 分组,组内按 updatedAt 降序(快照端点已排序)
   type Entity = BasisPanelSnapshot['memory']['entities'][number]
-  const groups = new Map<string, Entity[]>()
+  // 按人话分类分组(不再是裸 subject 编码),组内按 updatedAt 降序
+  type MemGroup = { label: string, desc: string, order: number, tone: 'normal' | 'test', items: Entity[] }
+  const groups = new Map<string, MemGroup>()
   for (const e of entities) {
-    const list = groups.get(e.subject) ?? []
-    list.push(e)
-    groups.set(e.subject, list)
+    const kind = subjectKind(e.subject)
+    const g = groups.get(kind.label) ?? { label: kind.label, desc: kind.desc, order: kind.order, tone: kind.tone, items: [] as Entity[] }
+    g.items.push(e)
+    groups.set(kind.label, g)
   }
+  const ordered = [...groups.values()].sort((a, b) => a.order - b.order)
   return (
     <section data-basis-panel="section" data-basis-panel-section="memory" aria-label={t('memory')}>
       <h2 data-basis-panel="section-title">{t('memory')}</h2>
       <p data-basis-panel="section-note">{t('memory.hint')}</p>
       {entities.length === 0 && <span data-basis-panel="placeholder">{t('state.empty')}</span>}
-      {[...groups.entries()].map(([subject, items]) => (
-        <div key={subject} data-basis-panel="mem-group" data-basis-panel-mem-subject={subject}>
-          <div data-basis-panel="mem-subject">{subject}</div>
-          {items.map(e => <MemoryEntityRow key={e.subject + '/' + e.key} entity={e} />)}
+      {ordered.map(g => (
+        <div key={g.label} data-basis-panel="mem-group" data-basis-panel-mem-subject={g.label} data-basis-panel-mem-tone={g.tone}>
+          <div data-basis-panel="mem-subject">
+            {g.label}
+            <span data-basis-panel="mem-count">{g.items.length} 条</span>
+          </div>
+          <p data-basis-panel="mem-group-desc">{g.desc}</p>
+          {g.items.map(e => <MemoryEntityRow key={e.subject + '/' + e.key} entity={e} />)}
         </div>
       ))}
     </section>
