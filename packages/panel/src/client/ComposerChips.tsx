@@ -28,14 +28,16 @@ export interface ComposerDockProps {
 /** chips 条(轻 React 实现,与 PanelPage 同构建)。 */
 export function ComposerChips(props: ComposerDockProps): unknown {
   const { inputActions, locked } = props
-  const run = (prompt: string): void => {
+  // 点击语义(用户 2026-11-05 拍板):启动流程而非发送固定内容——
+  // 提交该能力的「流程启动语」,Agent 先向用户确认所需信息,再执行。
+  const start = (kickoff: string): void => {
     if (inputActions === undefined || locked === true) return
-    inputActions.setDraft(prompt)
+    inputActions.setDraft(kickoff)
     inputActions.submit()
   }
   const el = (
-    <div data-basis-panel="chips" data-basis-panel-chips="true" role="toolbar" aria-label="一键触发基座能力">
-      <span data-basis-panel="chips-label">一键试试:</span>
+    <div data-basis-panel="chips" data-basis-panel-chips="true" role="toolbar" aria-label="一键启动基座能力流程">
+      <span data-basis-panel="chips-label">流程启动(Agent 会先向你确认所需信息):</span>
       {GUIDE_PROMPTS.map(entry => (
         <button
           key={entry.id}
@@ -43,8 +45,8 @@ export function ComposerChips(props: ComposerDockProps): unknown {
           data-basis-panel="chip"
           data-basis-panel-chip={entry.id}
           disabled={inputActions === undefined || locked === true}
-          title={entry.prompt}
-          onClick={() => run(entry.prompt)}
+          title={entry.kickoff ?? entry.prompt}
+          onClick={() => start(entry.kickoff ?? entry.prompt)}
         >
           {entry.title}
         </button>
