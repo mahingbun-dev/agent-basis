@@ -72,18 +72,26 @@ const CSS = `
   background: var(--dsw-alias-bg-layer-1, transparent);
   border: 0.5px solid var(--dsw-alias-border-l2);
 }
-[data-basis-panel='mem-group'] + [data-basis-panel='mem-group'] { margin-top: 12px; }
+[data-basis-panel='mem-group'] + [data-basis-panel='mem-group'] { margin-top: 24px; }
 [data-basis-panel='mem-subject'] {
   padding: 12px 0 8px; font-size: 13px; font-weight: 600;
   color: var(--dsw-alias-label-secondary);
   border-bottom: 0.5px solid var(--dsw-alias-border-l3);
 }
-[data-basis-panel='mem-entity'] { padding: 12px 0; border-bottom: 0.5px solid var(--dsw-alias-border-l3); }
-[data-basis-panel='mem-entity']:last-child { border-bottom: 0; }
-[data-basis-panel='mem-entity-head'] { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+[data-basis-panel='mem-entity'] { padding: 14px 0; border-bottom: 0.5px solid var(--dsw-alias-border-l3); }
+[data-basis-panel='mem-entity']:last-child { border-bottom: 0; padding-bottom: 4px; }
+[data-basis-panel='mem-entity-head'] { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
 [data-basis-panel='mem-entity-key'] { font-size: 12px; font-weight: 600; color: var(--dsw-alias-label-secondary); }
 [data-basis-panel='mem-entity-time'] { margin-left: auto; font-size: 11px; color: var(--dsw-alias-label-tertiary); }
-[data-basis-panel='mem-entity-content'] { font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-primary); white-space: pre-wrap; }
+[data-basis-panel='mem-entity-content'] { font-size: 13px; line-height: 21px; color: var(--dsw-alias-label-primary); white-space: pre-wrap; }
+[data-basis-panel='mem-entity-content'][data-basis-panel-clamped='true'] {
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+[data-basis-panel='mem-expand'] {
+  margin-top: 6px; padding: 0; font: inherit; font-size: 12px; cursor: pointer;
+  color: var(--dsw-alias-state-business-primary); background: none; border: 0;
+}
+[data-basis-panel='mem-expand']:hover { text-decoration: underline; }
 
 /* —— 工具清单:Apple 列表行(hairline 分隔,主次两级文字) —— */
 [data-basis-panel='card'][data-basis-panel-card='event-tools'] { grid-column: 1 / -1; }

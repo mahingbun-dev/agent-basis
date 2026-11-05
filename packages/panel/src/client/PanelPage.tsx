@@ -55,17 +55,33 @@ function GovernanceCard({ snapshot, t }: { readonly snapshot: BasisPanelSnapshot
   )
 }
 
-/** 单条记忆渲染(subject/key 头 + 全文内容 + 时间)。 */
+/** 单条记忆渲染:key/时间 meta 行 + 内容(超 3 行截断,点击展开)。 */
 function MemoryEntityRow({ entity }: { readonly entity: BasisPanelSnapshot['memory']['entities'][number] }): ReactElement {
+  const [expanded, setExpanded] = useState(false)
   const date = new Date(entity.updatedAt)
   const time = Number.isNaN(date.getTime()) ? '' : date.toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  const long = entity.content.length > 120 || entity.content.includes('\n')
   return (
     <div data-basis-panel="mem-entity" data-basis-panel-mem-entity={entity.subject + '/' + entity.key}>
       <div data-basis-panel="mem-entity-head">
         <span data-basis-panel="mem-entity-key">{entity.key}</span>
         <span data-basis-panel="mem-entity-time">{time}</span>
       </div>
-      <div data-basis-panel="mem-entity-content">{entity.content}</div>
+      <div
+        data-basis-panel="mem-entity-content"
+        data-basis-panel-clamped={(!expanded && long) ? 'true' : undefined}
+      >
+        {entity.content}
+      </div>
+      {long && (
+        <button
+          type="button"
+          data-basis-panel="mem-expand"
+          onClick={() => setExpanded(v => !v)}
+        >
+          {expanded ? '收起' : '显示全文'}
+        </button>
+      )}
     </div>
   )
 }
