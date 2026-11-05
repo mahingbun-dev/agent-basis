@@ -68,6 +68,7 @@ node tools/aievo-run.mjs run task_e7cedc05e36c --wait --timeout 1800 --json
 | 文档 | 内容 |
 |---|---|
 | [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | **用户指南(装完即会用)**:全部功能触发示例、评测/门禁怎么跑、插件怎么从索引安装;与用户级 skill `~/.agents/skills/agent-basis-guide/SKILL.md` 同源;自家插件长期索引源 `https://raw.githubusercontent.com/mahingbun-dev/agent-basis/main/market/index.json`(发现页填此 URL 即装;本地 8765 仅离线演示) |
+- [docs/PLUGIN-AUTHORING.md](docs/PLUGIN-AUTHORING.md) — 插件开发指南(创造模式/本地开发 → 入库,含硬性规范与装载配方)
 | [docs/design/](docs/design/) | 设计文档 15 篇:业界调研、架构、RSI 自进化、知识插件、功能点清单 |
 | [docs/ai-evo-integration.md](docs/ai-evo-integration.md) | 评测平台(ai-evo)对接:门禁任务 / 数据集 / 阈值 |
 | [packs/event-planning/evals/](packs/event-planning/evals/) | 金集格式与终态/轨迹断言写法 |
