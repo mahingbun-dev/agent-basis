@@ -122,10 +122,10 @@ function ToolRow({ tool, lang }: { readonly tool: ToolCard, readonly lang: 'zh' 
     <li data-basis-panel="tool" data-basis-panel-tool={tool.name} data-basis-panel-risk={risk}>
       <span data-basis-panel="tool-head">
         <span data-basis-panel="tool-label">{loc.label}</span>
-        {risk !== 'R0' && <span data-basis-panel="risk" data-basis-panel-risk={risk}>{risk}</span>}
         <span data-basis-panel="tool-id">{tool.name}</span>
       </span>
       <span data-basis-panel="tool-desc">{loc.desc}</span>
+      {risk !== 'R0' && <span data-basis-panel="risk" data-basis-panel-risk={risk}>{risk}</span>}
     </li>
   )
 }
@@ -233,10 +233,9 @@ export function PanelPage({ useSnapshot, refresh, t, lang }: Omit<PanelPageProps
       <p data-basis-panel="sub">{t('subtitle')}</p>
 
       <div data-basis-panel="steps" data-basis-panel-steps="true">
-        <span data-basis-panel="steps-title">{t('steps.title')}</span>
-        <span>{t('steps.one')}</span>
-        <span>{t('steps.two')}</span>
-        <span>{t('steps.three')}</span>
+        <div data-basis-panel="step"><span data-basis-panel="step-no">1</span><span data-basis-panel="step-text">{t('steps.one')}</span></div>
+        <div data-basis-panel="step"><span data-basis-panel="step-no">2</span><span data-basis-panel="step-text">{t('steps.two')}</span></div>
+        <div data-basis-panel="step"><span data-basis-panel="step-no">3</span><span data-basis-panel="step-text">{t('steps.three')}</span></div>
       </div>
 
       <section data-basis-panel="section" data-basis-panel-section="services" aria-label={t('services')}>
