@@ -33,6 +33,16 @@ export interface MemoryIndexResult {
 }
 
 const MAX_LINES = 64
+
+/** 记忆自主行为指令(随索引注入 systemPrompt;21 号铁律:记忆由 Agent 自主管理,仅用户明确说「记住/记一下」时显式写入)。 */
+const MEMORY_BEHAVIOR_HEADER = [
+  '## 长期记忆(后台机制——由你自主管理,无需用户指示)',
+  '- **检索时机**:会话开始处理任务前、或遇到可能与此相关的历史上下文时,先用 memory_search 检索;检索是静默的后台动作,无需告知用户。',
+  '- **写入时机**:出现稳定的用户偏好、项目事实、组织约定或可复用结论时,自主用 memory_write 保存(写入前照常过 PII 过滤)。',
+  '- **显式关键词**:用户明确说「记住…」「记一下…」时,立即 memory_write。',
+  '- **遗忘**:仅在用户明确要求删除某条记忆时用 memory_forget;禁止自主遗忘。',
+  '- **静默纪律**:记忆读写不向用户播报过程;除非用户问起或写入需要确认,否则不打断对话。',
+].join('\n')
 const DEFAULT_MAX_SUMMARY_CHARS = 40
 
 /** 构建记忆索引文本:装不下从低优先级端截断,footer 汇报 omitted。 */
@@ -41,7 +51,7 @@ export function buildEntityIndex(records: readonly EntityRecord[], options: Memo
   const maxSummaryChars = options.maxSummaryChars ?? DEFAULT_MAX_SUMMARY_CHARS
   const total = records.length
   if (total === 0) {
-    const emptyText = '## 记忆索引\n(暂无长期记忆)'
+    const emptyText = MEMORY_BEHAVIOR_HEADER + '\n## 记忆索引\n(暂无长期记忆)'
     return { text: emptyText, total: 0, included: 0, omitted: 0, estimatedTokens: estimateTokens(emptyText) }
   }
 
@@ -50,13 +60,14 @@ export function buildEntityIndex(records: readonly EntityRecord[], options: Memo
   const lines = capped.map(record => indexLine(record, maxSummaryChars))
   const omittedBeyondCap = total - capped.length
 
+  const HEADER_TOKENS = estimateTokens(MEMORY_BEHAVIOR_HEADER)
   let included = lines.length
   let omitted = omittedBeyondCap
-  let text = renderIndex(lines, omitted)
+  let text = MEMORY_BEHAVIOR_HEADER + '\n' + renderIndex(lines, omitted)
   while (estimateTokens(text) > budget && included > 0) {
     included -= 1
     omitted = total - included
-    text = renderIndex(lines.slice(0, included), omitted)
+    text = MEMORY_BEHAVIOR_HEADER + '\n' + renderIndex(lines.slice(0, included), omitted)
   }
   return { text, total, included, omitted, estimatedTokens: estimateTokens(text) }
 }

@@ -30,6 +30,19 @@ export interface MemorySnapshot {
   readonly totalRows: number
   /** 最近更新的 5 条 key(updated_at 降序)。 */
   readonly recentKeys: readonly MemoryRecentKey[]
+  /** 有效实体全量(按 updated_at 降序;「记忆」区块渲染用)。 */
+  readonly entities: readonly MemoryEntityView[]
+}
+
+/** 单条有效实体(「记忆」区块渲染用)。 */
+export interface MemoryEntityView {
+  readonly subject: string
+  readonly key: string
+  /** 记忆内容全文(面板完整渲染)。 */
+  readonly content: string
+  /** 一句话摘要(空串=无)。 */
+  readonly summary: string
+  readonly updatedAt: number
 }
 
 /** memory 最近一条实体的投影。 */

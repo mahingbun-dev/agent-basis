@@ -21,6 +21,8 @@ export type BasisPanelLocaleKey =
   | 'services.proposals'
   | 'services.weknora'
   | 'services.weknora.off'
+  | 'memory'
+  | 'memory.hint'
   | 'guide'
   | 'guide.hint'
   | 'guide.copy'
@@ -87,6 +89,8 @@ export const zh: Record<BasisPanelLocaleKey, string> = {
   'services.proposals': '待你确认的提案',
   'services.weknora': '企业知识库接入',
   'services.weknora.off': '未启用(可在配置中开启)',
+  memory: '工作区记忆',
+  'memory.hint': 'Agent 在会话中自主维护(相关历史自动检索、偏好与结论自动沉淀;只在你明确说「记住…」时显式写入)',
   guide: '怎么用(点「复制」→ 粘到对话框 → 发送)',
   'guide.hint': '不需要懂任何技术:复制一句示例,粘贴到对话框发送,Agent 会调用对应能力并展示结果',
   'guide.copy': '复制',
@@ -126,6 +130,8 @@ export const en: Record<BasisPanelLocaleKey, string> = {
   'services.wikiDocs': 'Wiki documents',
   'services.proposals': 'Proposals awaiting you',
   'services.weknora': 'Enterprise KB (WeKnora)',
+  memory: 'Workspace memory',
+  'memory.hint': 'Maintained autonomously by the agent during sessions',
   'services.weknora.off': 'Not enabled (configurable)',
   guide: 'How to use (Copy → paste into the chat box → send)',
   'guide.hint': 'No expertise needed: copy an example, paste it into the chat box, and the agent calls the right capability',

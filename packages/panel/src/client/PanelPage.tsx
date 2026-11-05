@@ -55,26 +55,45 @@ function GovernanceCard({ snapshot, t }: { readonly snapshot: BasisPanelSnapshot
   )
 }
 
-function MemoryCard({ snapshot, t }: { readonly snapshot: BasisPanelSnapshot, readonly t: (key: string) => string }): ReactElement {
-  const memory = snapshot.memory
+/** 单条记忆渲染(subject/key 头 + 全文内容 + 时间)。 */
+function MemoryEntityRow({ entity }: { readonly entity: BasisPanelSnapshot['memory']['entities'][number] }): ReactElement {
+  const date = new Date(entity.updatedAt)
+  const time = Number.isNaN(date.getTime()) ? '' : date.toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
   return (
-    <section data-basis-panel="card" data-basis-panel-card="memory" aria-label={t('services.memory')}>
-      <div data-basis-panel="card-kicker">{t('services.memory')}</div>
-      <div data-basis-panel="tile-row">
-        <Metric label={t('services.entities')} value={<span data-basis-panel="entity-count">{memory.entityCount}</span>} />
+    <div data-basis-panel="mem-entity" data-basis-panel-mem-entity={entity.subject + '/' + entity.key}>
+      <div data-basis-panel="mem-entity-head">
+        <span data-basis-panel="mem-entity-subject">{entity.subject}</span>
+        <span data-basis-panel="mem-entity-key">{entity.key}</span>
+        <span data-basis-panel="mem-entity-time">{time}</span>
       </div>
-      <div data-basis-panel="kv">
-        <span data-basis-panel="kv-key">{t('services.recentKeys')}</span>
-        <span data-basis-panel="kv-value" data-basis-panel-detail="memory-keys">
-          {memory.recentKeys.length === 0
-            ? <span data-basis-panel="placeholder">{t('state.empty')}</span>
-            : memory.recentKeys.map(key => (
-              <span key={`${key.subject}/${key.key}`} data-basis-panel="memory-key">
-                {key.subject}/{key.key}
-              </span>
-            ))}
-        </span>
-      </div>
+      <div data-basis-panel="mem-entity-content">{entity.content}</div>
+    </div>
+  )
+}
+
+/** 「记忆」独立区块:当前工作区全部有效记忆,按主体分组,美观渲染。 */
+function MemorySection({ snapshot, t }: { readonly snapshot: BasisPanelSnapshot, readonly t: (key: string) => string }): ReactElement {
+  const memory = snapshot.memory
+  const entities = [...(memory.entities ?? [])]
+  // 按 subject 分组,组内按 updatedAt 降序(快照端点已排序)
+  type Entity = BasisPanelSnapshot['memory']['entities'][number]
+  const groups = new Map<string, Entity[]>()
+  for (const e of entities) {
+    const list = groups.get(e.subject) ?? []
+    list.push(e)
+    groups.set(e.subject, list)
+  }
+  return (
+    <section data-basis-panel="section" data-basis-panel-section="memory" aria-label={t('memory')}>
+      <h2 data-basis-panel="section-title">{t('memory')}</h2>
+      <p data-basis-panel="section-note">{t('memory.hint')}</p>
+      {entities.length === 0 && <span data-basis-panel="placeholder">{t('state.empty')}</span>}
+      {[...groups.entries()].map(([subject, items]) => (
+        <div key={subject} data-basis-panel="mem-group" data-basis-panel-mem-subject={subject}>
+          <div data-basis-panel="mem-subject">{subject}</div>
+          {items.map(e => <MemoryEntityRow key={e.subject + '/' + e.key} entity={e} />)}
+        </div>
+      ))}
     </section>
   )
 }
@@ -227,7 +246,6 @@ export function PanelPage({ useSnapshot, refresh, t, lang }: Omit<PanelPageProps
         {state.status === 'ready' && (
           <div data-basis-panel="cards">
             <GovernanceCard snapshot={state.snapshot} t={t} />
-            <MemoryCard snapshot={state.snapshot} t={t} />
             <KnowledgeCard snapshot={state.snapshot} t={t} />
             <ToolsCard snapshot={state.snapshot} t={t} lang={uiLang} />
           </div>
@@ -243,6 +261,13 @@ export function PanelPage({ useSnapshot, refresh, t, lang }: Omit<PanelPageProps
           ))}
         </div>
       </section>
+
+      {state.status === 'ready' && <MemorySection snapshot={state.snapshot} t={t} />}
+      {state.status !== 'ready' && (
+        <section data-basis-panel="section" data-basis-panel-section="memory" aria-label={t('memory')}>
+          <span data-basis-panel="placeholder">{t('state.loading')}</span>
+        </section>
+      )}
 
       <section data-basis-panel="section" data-basis-panel-section="observability" aria-label={t('observability')}>
         <h2 data-basis-panel="section-title">{t('observability')}</h2>

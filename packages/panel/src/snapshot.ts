@@ -14,7 +14,8 @@ import { DatabaseSync } from 'node:sqlite'
 import { RuleEngine } from '@basis/governance'
 import type { Context } from '@deepseek-ai/cordis'
 import type {
-  BasisPanelSnapshot, GovernanceSnapshot, KnowledgeSnapshot, MemoryRecentKey, MemorySnapshot, ObservabilitySnapshot, ToolCard,
+  BasisPanelSnapshot, GovernanceSnapshot, KnowledgeSnapshot, MemoryEntityView,
+  MemoryRecentKey, MemorySnapshot, ObservabilitySnapshot, ToolCard,
 } from './types.ts'
 import { readRecentSessionUsage } from './session-logs.ts'
 
@@ -85,17 +86,18 @@ function queryCount(db: DatabaseSync, sql: string): number | undefined {
 
 function readMemory(dbPath: string): MemorySnapshot {
   const available = existsSync(dbPath)
-  if (!available) return { available, dbPath, entityCount: 0, totalRows: 0, recentKeys: [] }
+  if (!available) return { available, dbPath, entityCount: 0, totalRows: 0, recentKeys: [], entities: [] }
   let db: DatabaseSync
   try {
     db = new DatabaseSync(dbPath, { readOnly: true })
   } catch {
-    return { available, dbPath, entityCount: 0, totalRows: 0, recentKeys: [] }
+    return { available, dbPath, entityCount: 0, totalRows: 0, recentKeys: [], entities: [] }
   }
   try {
     const entityCount = queryCount(db, 'SELECT COUNT(*) AS c FROM memory_entity WHERE invalid_at IS NULL') ?? 0
     const totalRows = queryCount(db, 'SELECT COUNT(*) AS c FROM memory_entity') ?? 0
     const recentKeys: MemoryRecentKey[] = []
+    const entities: MemoryEntityView[] = []
     try {
       const rows = db.prepare(
         'SELECT subject, key, updated_at FROM memory_entity ORDER BY updated_at DESC LIMIT 5',
@@ -109,7 +111,25 @@ function readMemory(dbPath: string): MemorySnapshot {
     } catch {
       // 表缺失(旧库结构):recentKeys 留空
     }
-    return { available, dbPath, entityCount, totalRows, recentKeys }
+    // 「记忆」区块全量(有效实体;content 全文渲染用)
+    const ENTITY_SQL = 'SELECT subject, key, content, summary, updated_at' +
+      ' FROM memory_entity WHERE invalid_at IS NULL ORDER BY updated_at DESC'
+    try {
+      const rows = db.prepare(ENTITY_SQL).all() as unknown[]
+      for (const row of rows) {
+        const record = row as { subject?: unknown; key?: unknown; content?: unknown; summary?: unknown; updated_at?: unknown }
+        if (typeof record.subject === 'string' && typeof record.key === 'string' && typeof record.content === 'string' && typeof record.updated_at === 'number') {
+          entities.push({
+            subject: record.subject, key: record.key, content: record.content,
+            summary: typeof record.summary === 'string' ? record.summary : '',
+            updatedAt: record.updated_at,
+          })
+        }
+      }
+    } catch {
+      // 列缺失(旧 schema):entities 留空
+    }
+    return { available, dbPath, entityCount, totalRows, recentKeys, entities }
   } finally {
     db.close()
   }
