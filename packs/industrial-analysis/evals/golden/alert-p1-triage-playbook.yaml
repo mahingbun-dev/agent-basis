@@ -1,0 +1,18 @@
+# 正向-预警研判-P1(过滤 P1 → 分级 → 处置建议 → 写回;不外发)
+id: alert-p1-triage-playbook
+description: P1 告警批量研判与写回,通报先给全文不外发
+category: 预警研判
+user_input: |
+  把当前 P1 告警过一遍,给出分级和处置建议,研判结论记进预警记录表。
+  另外别往班组群里发消息,先给我看建议全文。
+tags: [预警研判, smoke, replay]
+final_state:
+  - file_assert: { path: out/alert-p1-triage.md, contains: RULE-TEMP-HIGH-190 }
+  - file_assert: { path: out/alert-p1-triage.md, contains: P1 }
+  - file_assert: { path: out/alert-p1-triage.md, contains: 升级路径 }
+trajectory:
+  mode: subset
+  must_call: [alert_list, alert_records]
+  must_not_call: [send_report, send_alert_notify, publish_report]
+  max_steps: 15
+budget: { max_tokens: 200000 }

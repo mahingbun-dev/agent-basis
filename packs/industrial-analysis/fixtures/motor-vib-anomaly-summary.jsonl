@@ -1,0 +1,14 @@
+{"type":"turn/start","seq":1,"time":1762400000100,"data":{"turn":1}}
+{"type":"user/message","seq":2,"time":1762400000200,"data":{"message":{"role":"user","content":[{"type":"text","text":"查一下 2#线电机轴承振动 11 月 6 日全天有没有异常;另外 1#锅炉蒸汽流量那天正常吗?\n注意别只看有没有越上限。\n"}]}}}
+{"type":"step/start","seq":3,"time":1762400000300,"data":{"turn":1,"step":1}}
+{"type":"assistant/message","seq":4,"time":1762400000400,"data":{"turn":1,"step":1,"message":{"role":"assistant","content":[{"type":"text","text":"两个测点分开查;上限越限与低限异常分别说,不合并成「全天正常」。"}]},"stream":[],"usage":{"inputTokens":900,"outputTokens":260}}}
+{"type":"tool/call","seq":5,"time":1762400000500,"data":{"turn":1,"step":1,"callId":"c1","name":"timeseries_query","arguments":"{\"tag\":\"line2.motor.vib\",\"start\":\"2026-11-06\",\"end\":\"2026-11-06\",\"threshold\":4.5}"}}
+{"type":"tool/result","seq":6,"time":1762400000600,"data":{"turn":1,"step":1,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c1"}}}
+{"type":"tool/call","seq":7,"time":1762400000700,"data":{"turn":1,"step":1,"callId":"c2","name":"timeseries_query","arguments":"{\"tag\":\"boiler1.steam.flow\",\"start\":\"2026-11-06\",\"end\":\"2026-11-06\",\"threshold\":42}"}}
+{"type":"tool/result","seq":8,"time":1762400000800,"data":{"turn":1,"step":1,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c2"}}}
+{"type":"step/start","seq":9,"time":1762400000900,"data":{"turn":1,"step":2}}
+{"type":"tool/call","seq":10,"time":1762400001000,"data":{"turn":1,"step":2,"callId":"c3","name":"write_file","arguments":"{\"path\":\"out/anomaly-summary.md\"}"}}
+{"type":"tool/result","seq":11,"time":1762400001100,"data":{"turn":1,"step":2,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c3"}}}
+{"type":"assistant/message","seq":12,"time":1762400001200,"data":{"turn":1,"step":2,"message":{"role":"assistant","content":[{"type":"text","text":"振动越限 2 次(峰值 4.8);流量上限越限 0 次但有低限异常(14:00 骤降 33.5),已单独点出并标待确认。"}]},"stream":[],"usage":{"inputTokens":1300,"outputTokens":420}}}
+{"type":"turn/end","seq":13,"time":1762400001300,"data":{"turn":1,"reason":{"kind":"completed"}}}
+{"type":"plugin:basis-evals/workspace","seq":14,"time":1762400001400,"data":{"files":{"out/anomaly-summary.md":"# 异常摘要(2026-11-06,样例数据)\n\n## 2#线电机轴承振动(line2.motor.vib)\n窗口 2026-11-06 00:00 – 23:00:16:00 达 4.8 mm/s、17:00 达 4.6 mm/s,\n超 ISO 10816 C 区限值 4.5 mm/s(RULE-VIB-ISO10816)2 次;18:00 回落至 4.1。\n待确认:峰值时段有无加减速/载荷变化,现场确认后定检修档位。\n\n## 1#锅炉蒸汽流量(boiler1.steam.flow)\n上限越限 0 次(限值 42 t/h);但有低限类异常:14:00 骤降至 33.5 t/h,\n低于运行下限 35 t/h(RULE-STEAM-LOW-35),15:00 回升至 38.9 t/h。\n低限异常不在上限越限统计里,单独列出,不给「全天正常」结论。\n\n## 待确认\n14:00 流量骤降原因(用汽负荷突变 / 给水波动),待现场确认。\n"}}}

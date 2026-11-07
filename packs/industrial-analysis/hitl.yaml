@@ -1,0 +1,25 @@
+# hitl.yaml —— 风险分档与升级触发器(08 号文档 §6.1;@basis/interact 消费、governance 执行)。
+# 档位:R0 只读静默 / R1 可逆写静默+事后变更卡片 / R2 需确认审批 / R3 高危升级+冷静期。
+# 本包红线(§11.7 自建清单):达梦业务库只读(写权限仅限预警记录表)、数据与知识层只经 MCP、
+# 对外发送需确认(R2)、deny 优先 fail-closed;本包无资金/合同类工具 —— 不设 R3 资金/法务档,
+# R3 仅覆盖「预警记录表之外的达梦写」(guard-rules.yml 侧直接 deny,执行面双保险)。
+industry: industrial-analysis
+escalation_contact: '' # R3 升级到指定人;留空 = 升级给当前用户
+on_no_answer: suspend # 无人值守 ask 不可达:挂起而非失败(approval 事件已持久,replay 即恢复)
+rules:
+  # R0 只读静默:时序查询 / 预警列表 / 知识检索(全部经 MCP)。
+  - id: hl-readonly-query
+    risk: R0
+    match: { tools: ['timeseries_query', 'alert_list', '*_query', '*_list', '*_search', 'read_*', 'list_*'] }
+  # R1 可逆写静默+事后变更卡片:草稿类交付物;以及预警记录表写入(唯一放行的达梦写路径)。
+  - id: hl-reversible-write
+    risk: R1
+    match: { tools: ['write_*', 'draft_*', 'alert_records'] }
+  # R2 对外发送需确认:通报/报告下发/短信/邮件 —— 起草全文后确认再发,不做裸发射。
+  - id: hl-external-send
+    risk: R2
+    match: { tools: ['send_*', 'publish_*', 'submit_*'] }
+  # R3 高危:预警记录表之外的任何达梦写(guard-rules deny 兜底;命中即升级,不得静默执行)。
+  - id: hl-dm-write-beyond-alert-table
+    risk: R3
+    match: { tools: ['dm_insert_*', 'dm_update_*', 'dm_delete_*', 'db_write_*', 'db_update_*', 'db_delete_*', 'insert_*', 'update_*', 'delete_*', 'drop_*', 'truncate_*', 'alter_*'] }

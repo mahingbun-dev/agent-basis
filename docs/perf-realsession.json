@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-11-07T00:06:09.349Z",
+  "gateway": "http://192.168.31.165:4000/v1",
+  "model": "deepseek-flash",
+  "prefixChars": 461,
+  "runs": [
+    {
+      "id": "run1-cold",
+      "kind": "non-stream",
+      "latencyMs": 2358,
+      "promptTokens": 335,
+      "completionTokens": 206,
+      "cacheRead": 128,
+      "cacheWrite": null,
+      "totalTokens": 541
+    },
+    {
+      "id": "run2-prefix-hit",
+      "kind": "non-stream",
+      "latencyMs": 4217,
+      "promptTokens": 361,
+      "completionTokens": 400,
+      "cacheRead": 128,
+      "cacheWrite": null,
+      "totalTokens": 761
+    },
+    {
+      "id": "run3-replay",
+      "kind": "non-stream",
+      "latencyMs": 4164,
+      "promptTokens": 361,
+      "completionTokens": 400,
+      "cacheRead": 128,
+      "cacheWrite": null,
+      "totalTokens": 761
+    },
+    {
+      "id": "ttft-stream",
+      "kind": "stream",
+      "ttftMs": 2039,
+      "latencyMs": 2585,
+      "promptTokens": 335,
+      "completionTokens": 253,
+      "cacheRead": 128,
+      "cacheWrite": null,
+      "totalTokens": 588
+    }
+  ],
+  "cache": {
+    "run2HitRate": 0.3545706371191136,
+    "run3HitRate": 0.3545706371191136,
+    "note": "run2/run3 与 run1 共享前缀 P；命中率 = cacheRead / promptTokens"
+  },
+  "ttftMs": 2039
+}

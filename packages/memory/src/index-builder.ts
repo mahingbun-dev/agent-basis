@@ -60,7 +60,6 @@ export function buildEntityIndex(records: readonly EntityRecord[], options: Memo
   const lines = capped.map(record => indexLine(record, maxSummaryChars))
   const omittedBeyondCap = total - capped.length
 
-  const HEADER_TOKENS = estimateTokens(MEMORY_BEHAVIOR_HEADER)
   let included = lines.length
   let omitted = omittedBeyondCap
   let text = MEMORY_BEHAVIOR_HEADER + '\n' + renderIndex(lines, omitted)

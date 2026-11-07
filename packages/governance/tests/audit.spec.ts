@@ -119,6 +119,23 @@ describe('审计投影:双 sink', () => {
     })
   })
 
+  it('reportGovernance 把 detail.actor 提升为记录级 actor(⑧插件粒度归属;detail 不再重复)', async () => {
+    const memory = new MemoryAuditSink()
+    const projector = new AuditProjector({ sinks: [memory] })
+    projector.reportGovernance({
+      source: 'token-verifier',
+      event: 'token-denied',
+      actor: { pluginId: '@vendor/third-party', source: 'decision' },
+    })
+    await projector.flush()
+    expect(memory.records[0]).toMatchObject({
+      kind: 'governance',
+      actor: { pluginId: '@vendor/third-party', source: 'decision' },
+      detail: { source: 'token-verifier', event: 'token-denied' },
+    })
+    expect(memory.records[0]).not.toHaveProperty('detail.actor')
+  })
+
   it('sink 写失败不静默:flush() 上抛首个错误', async () => {
     const failing: AuditSink = {
       label: 'failing',

@@ -15,7 +15,7 @@
 import { isRecord } from './errors.ts'
 import type { PiiFilter } from './pii.ts'
 import { serializeArgs } from './rules.ts'
-import type { AuditRecord, AuditSink } from './sink.ts'
+import type { AuditActor, AuditRecord, AuditSink } from './sink.ts'
 
 export type { AuditRecord, AuditSink } from './sink.ts'
 export { FileAuditSink, MemoryAuditSink } from './sink.ts'
@@ -149,9 +149,18 @@ export class AuditProjector {
     }
   }
 
-  /** 直接投递一条治理侧记录(预算违规/PII 拦截等)。 */
-  reportGovernance(detail: Readonly<Record<string, unknown>>): readonly AuditRecord[] {
-    const record: AuditRecord = { kind: 'governance', at: new Date().toISOString(), detail }
+  /**
+   * 直接投递一条治理侧记录(预算违规/令牌拒绝等)。detail.actor(如有)被提升为记录级
+   * actor 字段(企业插件设计 §3.1:⑧插件粒度归属),不再重复出现在 detail 里。
+   */
+  reportGovernance(detail: Readonly<Record<string, unknown>> & { readonly actor?: AuditActor }): readonly AuditRecord[] {
+    const { actor, ...rest } = detail
+    const record: AuditRecord = {
+      kind: 'governance',
+      at: new Date().toISOString(),
+      detail: rest,
+      ...(actor !== undefined && { actor }),
+    }
     this.#enqueue(record)
     return [record]
   }

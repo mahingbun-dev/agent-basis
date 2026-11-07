@@ -1,0 +1,12 @@
+{"type":"turn/start","seq":1,"time":1762000000100,"data":{"turn":1}}
+{"type":"user/message","seq":2,"time":1762000000200,"data":{"message":{"role":"user","content":[{"type":"text","text":"婚礼当日仪式段 10:00-12:00(分钟数 600-720)拆 6 个环节:迎宾、入场、证婚、交换戒指、致辞、合影。\n交付 out/wedding-timeline.csv,列:环节,开始,结束,负责人;不得重叠、不超时段。\n"}]}}}
+{"type":"step/start","seq":3,"time":1762000000300,"data":{"turn":1,"step":1}}
+{"type":"assistant/message","seq":4,"time":1762000000400,"data":{"turn":1,"step":1,"message":{"role":"assistant","content":[{"type":"text","text":"婚礼仪式段 600-720 拆 6 环节:先做排期冲突检查,再成分钟级无重叠时间线。"}]},"stream":[],"usage":{"inputTokens":900,"outputTokens":260}}}
+{"type":"tool/call","seq":5,"time":1762000000500,"data":{"turn":1,"step":1,"callId":"c1","name":"schedule_conflict_check","arguments":"{\"window\":[600,720]}"}}
+{"type":"tool/result","seq":6,"time":1762000000600,"data":{"turn":1,"step":1,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c1"}}}
+{"type":"step/start","seq":7,"time":1762000000700,"data":{"turn":1,"step":2}}
+{"type":"tool/call","seq":8,"time":1762000000800,"data":{"turn":1,"step":2,"callId":"c2","name":"write_file","arguments":"{\"path\":\"out/wedding-timeline.csv\"}"}}
+{"type":"tool/result","seq":9,"time":1762000000900,"data":{"turn":1,"step":2,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c2"}}}
+{"type":"assistant/message","seq":10,"time":1762000001000,"data":{"turn":1,"step":2,"message":{"role":"assistant","content":[{"type":"text","text":"婚礼仪式段时间线已交付 out/wedding-timeline.csv:6 环节、分钟级无重叠、均在 600-720 时段内。"}]},"stream":[],"usage":{"inputTokens":1300,"outputTokens":420}}}
+{"type":"turn/end","seq":11,"time":1762000001100,"data":{"turn":1,"reason":{"kind":"completed"}}}
+{"type":"plugin:basis-evals/workspace","seq":12,"time":1762000001200,"data":{"files":{"out/wedding-timeline.csv":"环节,开始,结束,负责人\n迎宾签到,600,630,礼宾组\n新人入场,630,645,策划师\n证婚仪式,645,675,证婚人\n交换戒指,675,690,策划师\n双方致辞,690,705,主持人\n集体合影,705,720,摄影组\n"}}}

@@ -105,6 +105,22 @@ describe('buildSnapshot', () => {
     expect(snapshot.governance.auditSource).toBe(join(workspace, '.basis', 'audit.jsonl'))
   })
 
+  it('审计读数含按日轮转文件:@basis/audit 的 audit-YYYYMMDD.jsonl 与旧版单文件合计', () => {
+    const rotated = mkdtempSync(join(tmpdir(), 'basis-panel-audit-daily-'))
+    try {
+      mkdirSync(join(rotated, '.basis'), { recursive: true })
+      writeFileSync(join(rotated, '.basis', 'audit-20261106.jsonl'), '{"kind":"tool-call"}\n{"kind":"tool-call"}\n', 'utf8')
+      writeFileSync(join(rotated, '.basis', 'audit-20261107.jsonl'), '{"kind":"tool-call"}\n', 'utf8')
+      writeFileSync(join(rotated, '.basis', 'audit.jsonl'), '{"kind":"governance"}\n', 'utf8')
+      writeFileSync(join(rotated, '.basis', 'unrelated.txt'), 'not audit\n', 'utf8')
+      const snapshot = buildSnapshot(fakeContext() as never, rotated, join(dshHome, 'sessions'))
+      expect(snapshot.governance.auditEntries).toBe(4)
+      expect(snapshot.governance.auditSource).toBe(join(rotated, '.basis'))
+    } finally {
+      rmSync(rotated, { recursive: true, force: true })
+    }
+  })
+
   it('memory 只计有效实体并按 updated_at 取最近 key', () => {
     const snapshot = buildSnapshot(fakeContext() as never, workspace, join(dshHome, 'sessions'))
     expect(snapshot.memory.available).toBe(true)

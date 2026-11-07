@@ -1,0 +1,28 @@
+# @industrial-analysis/pack 工业数智分析领域包 bundle patch(06 号 SOP §2 模板,event-planning 同款配方)。
+# dsh-base 先插入;本层按 id 覆写 base 行的 config(patch 替换整份 config,每个覆写行
+# 重述自己拥有的全部键),并 insert 领域自有行;profile 的 cordis.patch.yml 最后生效。
+
+# 领域 skills 单根收敛:dsh-skill-filesystem 只发现根级 <name>/SKILL.md(不嵌套),
+# customSkillDirs 指向本包 skills/(相对路径,pack check 校验其存在)。
+- id: skill-filesystem
+  config:
+    customSkillDirs: ['./skills']
+
+# 领域 persona:全文见 persona.md,由组合层注入;prefix 钉一句领域身份与四条红线。
+- id: system-prompt
+  config:
+    personaPrefix: >-
+      You are a senior industrial data-intelligence analysis specialist: rigorous about
+      data provenance, time windows and units, and honest about uncertainty. Never
+      fabricate telemetry values or alert records. The DM business database is read-only
+      except the alert-records table; data and knowledge layers are accessed only via
+      MCP; every external send requires confirmation (R2). Deny-first, fail-closed.
+
+# 领域工具插件(注册表 + 唯一 ID 形态,packctl lint 强制;plugin.ts 的 apply 配逆闭包 disposer)。
+# 装载配方同 @event/pack(18 号文档 §5):宿主 profile bundles 加 @industrial-analysis/pack
+# + file: 包安装(pnpm)+ node_modules/@industrial-analysis 改 symlink(realpath 在
+# node_modules 外,Node 24 type-stripping 合法)——无需打包步骤,.ts 插件即装载产物。
+# 装卸无残留冒烟需要 DSH 运行时,列入 blockers(14 号文档 §4)。
+- insert:
+    - id: industrial-tools
+      name: '@industrial-analysis/pack/plugin'

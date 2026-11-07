@@ -26,7 +26,7 @@ import type { GovernancePreDecision, ToolCallLike } from './types.ts'
 export { AuditProjector } from './audit.ts'
 export type { AuditProjectorOptions, AuditEventInput } from './audit.ts'
 export { FileAuditSink, MemoryAuditSink } from './sink.ts'
-export type { AuditRecord, AuditSink } from './sink.ts'
+export type { AuditActor, AuditRecord, AuditSink } from './sink.ts'
 export { BudgetGuard } from './budget.ts'
 export type {
   BudgetConfig, BudgetDimension, BudgetHooks, BudgetUsage, BudgetViolation, TurnStopDirective,

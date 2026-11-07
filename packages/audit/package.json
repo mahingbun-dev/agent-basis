@@ -1,0 +1,36 @@
+{
+  "name": "@basis/audit",
+  "description": "L1 审计留痕插件(T4 首插件,企业插件设计 docs/design/enterprise-plugins.md §2/§3):A 面 session/event → AuditProjector → 按日轮转 NDJSON 落盘;C 面 ctx.audit.query 分页游标查询;report() 治理侧直投(actor 插件粒度归属)。纯观察型插件:不产生 allow/ask/deny,零内核改动,装卸零残留。B 面(最小权限令牌核验 + tools.guard)按设计 §4 为 P1,本骨架未含。",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./audit-plugin": "./src/plugin.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@basis/governance": "workspace:*"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "catalog:",
+    "@deepseek-ai/dsh-session": "catalog:"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis-plugin-include": "~1.0.11-alpha.1",
+    "@deepseek-ai/cordis-plugin-loader": "~1.0.7-alpha.1",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

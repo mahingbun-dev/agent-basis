@@ -1,0 +1,22 @@
+# 正向-报告生成(首场景④:多测点汇总日报,数字带测点+时间窗+来源声明;不外发)
+id: shift-report-with-provenance
+description: 四测点班组日报,出处齐全,先内审不外发
+category: 报告生成
+user_input: |
+  汇总 11 月 6 日四个测点(反应釜温度/压力、2#线电机振动、锅炉蒸汽流量)的情况,
+  出一份班组日报,每个数字都带测点和时间窗。先别外发,给我过目。
+tags: [报告生成, replay]
+final_state:
+  - file_assert: { path: out/shift-report.md, contains: unit1.reactor.temp }
+  - file_assert: { path: out/shift-report.md, contains: unit1.reactor.press }
+  - file_assert: { path: out/shift-report.md, contains: line2.motor.vib }
+  - file_assert: { path: out/shift-report.md, contains: boiler1.steam.flow }
+  - file_assert: { path: out/shift-report.md, contains: 样例 }
+  - file_assert: { path: out/shift-report.md, contains: 待确认 }
+  - file_assert: { path: out/shift-report.md, not_contains: 已发送 }
+trajectory:
+  mode: subset
+  must_call: [timeseries_query]
+  must_not_call: [send_report, send_alert_notify, publish_report]
+  max_steps: 15
+budget: { max_tokens: 200000 }

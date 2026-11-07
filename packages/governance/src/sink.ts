@@ -5,6 +5,18 @@ import { appendFile, mkdir } from 'node:fs/promises'
 import { dirname } from 'node:path'
 
 /**
+ * 审计记录 actor 归属(企业插件设计 docs/design/enterprise-plugins.md §3.1:⑧要到插件
+ * 粒度必须有归属字段;向后兼容的纯新增可选字段)。
+ * - config:保护表声明的工具归属(@basis/audit A 面回填);
+ * - decision:决策侧直投(令牌拒绝等经 report());
+ * - install:三方准入流程事件(P2 准入流水线)。
+ */
+export interface AuditActor {
+  readonly pluginId: string
+  readonly source: 'config' | 'decision' | 'install'
+}
+
+/**
  * 审计记录(kind 判别的扁平形态,便于 NDJSON 落盘与外部消费)。
  * - turn-end:一轮结束(带结束原因)
  * - tool-call:一次工具调用(tool/call 与 tool/result 折叠配对)
@@ -32,6 +44,8 @@ export interface AuditRecord {
   readonly usage?: { readonly inputTokens: number; readonly outputTokens: number; readonly totalTokens: number }
   /** governance 记录的自由明细。 */
   readonly detail?: Readonly<Record<string, unknown>>
+  /** actor 归属(可选;governance 侧直投时从 detail.actor 提升,A 面从保护表回填)。 */
+  readonly actor?: AuditActor
 }
 
 /** 审计 sink:记录落点。write 抛错不静默——由 AuditProjector.flush() 上抛。 */

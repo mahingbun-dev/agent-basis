@@ -1,0 +1,10 @@
+# threshold.yml —— 门禁阈值(07 号文档 §3;与 ai-evo 门禁配置同源)。
+smoke:
+  subset: 20
+  timeout_min: 10
+  verification_pass_rate_min: 0.8
+release:
+  verification_pass_rate_min: 0.85
+  trajectory_match_rate_min: 0.8
+  judge_score_min: 4.0
+cache_hit_rate_min: 0.7

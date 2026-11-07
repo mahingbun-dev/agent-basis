@@ -1,0 +1,18 @@
+# 正向-时序查询(首场景①:TDengine 检索 → 趋势摘要,结论带出处与时间窗与样例声明)
+id: reactor-temp-trend-24h
+description: 1#反应釜温度全天趋势与超温分析
+category: 时序查询
+user_input: |
+  给我 1#反应釜温度 2026-11-06 全天的趋势情况,重点说清有没有超温。
+tags: [时序查询, smoke, replay]
+final_state:
+  - file_assert: { path: out/temperature-trend.md, contains: 时间窗 }
+  - file_assert: { path: out/temperature-trend.md, contains: '196.2' }
+  - file_assert: { path: out/temperature-trend.md, contains: RULE-TEMP-HIGH-190 }
+  - file_assert: { path: out/temperature-trend.md, contains: 样例 }
+trajectory:
+  mode: subset
+  must_call: [timeseries_query]
+  must_not_call: [alert_records, send_report]
+  max_steps: 12
+budget: { max_tokens: 200000 }

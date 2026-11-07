@@ -12,9 +12,9 @@ export interface GovernanceSnapshot {
   readonly ruleCount: number
   /** 规则来源描述(服务实例 / 文件路径 / 未配置)。 */
   readonly ruleSource: string
-  /** 最近审计条数(.basis/audit.jsonl 行数;未接线 = 0)。 */
+  /** 审计条数(.basis/audit-YYYYMMDD.jsonl 按日轮转文件 + 旧版 .basis/audit.jsonl 的非空行合计;@basis/audit 未装载 = 0)。 */
   readonly auditEntries: number
-  /** 审计来源(文件路径);null = 审计文件不存在(未接线)。 */
+  /** 审计来源:单文件 = 其路径,多文件(按日轮转)= 落盘目录;null = 审计文件不存在(未接线)。 */
   readonly auditSource: string | null
 }
 

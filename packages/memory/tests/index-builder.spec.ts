@@ -18,11 +18,12 @@ function record(overrides: Partial<EntityRecord> & { key: string }): EntityRecor
 }
 
 describe('buildEntityIndex(systemPrompt 注入载荷)', () => {
-  it('无记录:占位文本且极小', () => {
+  it('无记录:占位文本(行为指令头常驻 + 占位索引,整体有上界)', () => {
     const result = buildEntityIndex([])
-    expect(result.text).toContain('暂无长期记忆')
+    expect(result.text).toContain('## 长期记忆') // 行为指令头常驻(后台自主语义,c7428ee 起 6 行 ≈ 240 token)
+    expect(result.text).toContain('暂无长期记忆') // 占位索引
     expect(result.included).toBe(0)
-    expect(result.estimatedTokens).toBeLessThan(20)
+    expect(result.estimatedTokens).toBeLessThan(300)
   })
 
   it('少量记录:全量收录,含 key 与一句话摘要', () => {
@@ -77,11 +78,11 @@ describe('buildEntityIndex(systemPrompt 注入载荷)', () => {
     expect(result.text).toContain('摘要编号79')
   })
 
-  it('自定义更小预算同样守恒且不超', () => {
+  it('自定义更小预算同样守恒且不超(预算约束索引段;行为指令头常驻不计入预算)', () => {
     const records = Array.from({ length: 30 }, (_, index) =>
       record({ id: index + 1, key: `k-${index}`, summary: `摘要${index}`, confidence: 0.5 }))
-    const result = buildEntityIndex(records, { budgetTokens: 80 })
-    expect(result.estimatedTokens).toBeLessThanOrEqual(80)
+    const result = buildEntityIndex(records, { budgetTokens: 400 }) // 小于默认 500,大于常驻头部 ≈240
+    expect(result.estimatedTokens).toBeLessThanOrEqual(400)
     expect(result.included + result.omitted).toBe(30)
   })
 })

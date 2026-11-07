@@ -29,3 +29,34 @@ jobs:
 
       - name: 评测 replay 冒烟(dsh-evals,t14-replay 子集)
         run: node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --subset t14-replay --adapter replay
+
+  # 升级门禁(SOP 见 docs/upgrade-gate.md):上游 @deepseek-ai/dsh-* 升版时,
+  # 本地先跑同款四步(docs/upgrade-gate.md §本地门禁),CI 复跑互证后才裁决放行/回滚。
+  # dsh-evals 退出码:0=放行(全过) / 1=质量不达标(存在失败) / 2=基础设施错误(用法错误或无 case 可跑)。
+  upgrade-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install(frozen-lockfile,锁文件与清单必须一致)
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify(oxlint + tsc strict + vitest,12 包)
+        run: pnpm -w run verify
+
+      - name: Lint 所有领域包(packs/*)
+        run: |
+          for d in packs/*/; do
+            echo "== packctl lint $d"
+            node tools/packctl/bin/packctl.mjs lint "$d"
+          done
+
+      - name: 评测 replay 全量(dsh-evals,与本地命令一致,CI/本地互证)
+        run: node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --adapter replay

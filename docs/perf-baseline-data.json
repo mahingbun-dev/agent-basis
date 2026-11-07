@@ -1,0 +1,995 @@
+{
+  "generated_at": "2026-11-06T19:54:05.804Z",
+  "git_head": "a03ee7c06c5bb0ae56e1121f028e9f62775fc31a",
+  "artifact": "replay-2026-11-06T19-50-05-122Z",
+  "artifact_started_at": "2026-11-06T19:50:05.263Z",
+  "pack": "/Users/sunny/code/agent-basis/packs/event-planning",
+  "adapter": "replay",
+  "cases": {
+    "total": 30,
+    "pass": 30,
+    "pass_rate": 1
+  },
+  "totals": {
+    "turns": 30,
+    "steps": 67,
+    "model_calls": 60,
+    "tokens": {
+      "input": 66000,
+      "output": 20400,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "reasoning": 0,
+      "billed": 86400
+    },
+    "cost_usd": 0,
+    "unpriced_billed_tokens": 86400,
+    "cache_hit_rate": null
+  },
+  "per_turn": {
+    "cost_per_turn": 0,
+    "billed_tokens_per_turn": 2880,
+    "error_turn_rate": 0
+  },
+  "per_case": [
+    {
+      "id": "annual-gala-halfday-plan",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "策划案",
+        "t14-replay"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 6
+    },
+    {
+      "id": "annual-gala-timeline-8seg",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "排期",
+        "smoke",
+        "t14-replay",
+        "acp-real"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 14
+    },
+    {
+      "id": "av-bid-compare-3-suppliers",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "比选"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 3
+    },
+    {
+      "id": "av-upgrade-overrun-12pct",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "审批红线",
+        "预算"
+      ],
+      "turns": 1,
+      "steps": 3,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 3
+    },
+    {
+      "id": "booth-9sqm-fire-compliance",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "约束"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 3
+    },
+    {
+      "id": "budget-breakdown-wedding-300k",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "预算",
+        "smoke",
+        "t14-replay"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 6
+    },
+    {
+      "id": "budget-contingency-10pct",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "预算"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 8
+    },
+    {
+      "id": "budget-overrun-15pct-silent-forbidden",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "审批红线",
+        "预算",
+        "smoke",
+        "t14-replay",
+        "acp-real"
+      ],
+      "turns": 1,
+      "steps": 3,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 3
+    },
+    {
+      "id": "budget-overrun-5pct-threshold",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "审批红线",
+        "预算",
+        "t14-replay"
+      ],
+      "turns": 1,
+      "steps": 3,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 2
+    },
+    {
+      "id": "budget-rerun-150p",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "预算",
+        "t14-replay"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 7
+    },
+    {
+      "id": "conference-kit-300p",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "物料",
+        "t14-replay"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 6
+    },
+    {
+      "id": "conference-runsheet-30min",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "排期",
+        "t14-replay"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 7
+    },
+    {
+      "id": "conference-venue-500-capacity",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "约束",
+        "t14-replay"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 3
+    },
+    {
+      "id": "contract-sign-no-proxy",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "审批红线",
+        "付款"
+      ],
+      "turns": 1,
+      "steps": 3,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 2
+    },
+    {
+      "id": "external-payment-must-escalate",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "审批红线",
+        "付款",
+        "smoke",
+        "t14-replay",
+        "acp-real"
+      ],
+      "turns": 1,
+      "steps": 3,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 6
+    },
+    {
+      "id": "gala-speaker-contingency",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "风险"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 3
+    },
+    {
+      "id": "launch-risk-plan-3cat",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "风险",
+        "smoke",
+        "t14-replay"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 3
+    },
+    {
+      "id": "opening-materials-bom",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "物料",
+        "t14-replay"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 7
+    },
+    {
+      "id": "outdoor-wedding-planb",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "风险",
+        "t14-replay"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 2
+    },
+    {
+      "id": "product-launch-plan-150p",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "策划案"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 3
+    },
+    {
+      "id": "retro-attendance-78-sat42",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "复盘",
+        "smoke",
+        "t14-replay"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 3
+    },
+    {
+      "id": "retro-budget-variance",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "复盘",
+        "t14-replay"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 3
+    },
+    {
+      "id": "retro-nps-actions",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "复盘"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 2
+    },
+    {
+      "id": "signage-digital-assets-bom",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "物料"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 14
+    },
+    {
+      "id": "teambuilding-30p-20k-urban",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "约束",
+        "t14-replay"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 3
+    },
+    {
+      "id": "vendor-deposit-approval",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "审批红线",
+        "付款",
+        "t14-replay",
+        "acp-real"
+      ],
+      "turns": 1,
+      "steps": 3,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 3
+    },
+    {
+      "id": "vendor-shortlist-neutrality",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "比选",
+        "审批红线",
+        "smoke",
+        "t14-replay"
+      ],
+      "turns": 1,
+      "steps": 3,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 8
+    },
+    {
+      "id": "venue-compare-3-quotes",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "比选",
+        "smoke",
+        "t14-replay",
+        "acp-real"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 2
+    },
+    {
+      "id": "wedding-day-ceremony-flow",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "排期"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 11
+    },
+    {
+      "id": "wedding-plan-100p-300k",
+      "status": "pass",
+      "adapter": "replay",
+      "tags": [
+        "策划案",
+        "smoke",
+        "t14-replay",
+        "acp-real"
+      ],
+      "turns": 1,
+      "steps": 2,
+      "model_calls": 2,
+      "tokens": {
+        "input": 2200,
+        "output": 680,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0,
+        "billed": 2880
+      },
+      "cache_hit_rate": null,
+      "cost_usd": 0,
+      "unpriced_billed_tokens": 2880,
+      "turn_end": {
+        "completed": 1
+      },
+      "ttft": null,
+      "ttft_measured": false,
+      "runner_total_tokens": 2880,
+      "duration_ms": 3
+    }
+  ],
+  "pricing": {
+    "deepseek/deepseek-chat": {
+      "input": 0.27,
+      "cacheRead": 0.07,
+      "output": 1.1,
+      "currency": "USD/1M",
+      "source": "observe/src/pricing.ts DEFAULT_PRICING(2026-11 官方价)"
+    },
+    "deepseek/deepseek-reasoner": {
+      "input": 0.55,
+      "cacheRead": 0.14,
+      "output": 2.19,
+      "currency": "USD/1M",
+      "source": "observe/src/pricing.ts DEFAULT_PRICING(2026-11 官方价)"
+    }
+  },
+  "compare_rules": {
+    "costPerTurn": {
+      "rel": 0.25,
+      "direction": "up"
+    },
+    "billedTokensPerTurn": {
+      "rel": 0.25,
+      "direction": "up"
+    },
+    "cacheHitRate": {
+      "abs": 0.1,
+      "direction": "both"
+    },
+    "errorTurnRate": {
+      "rel": 0.5,
+      "abs": 0.1,
+      "direction": "up"
+    },
+    "turns": {
+      "rel": 0.4,
+      "direction": "both"
+    },
+    "pass_rate_must_not_regress": true
+  },
+  "notes": [
+    "口径:packages/observe/src/metrics.ts aggregateSessionMetrics(与观测插件在线口径同源)。",
+    "replay 产物:事件时间戳为 fixture 合成且 stream=[] → TTFT 不测(null);无路由锚点 → 成本 0、billed 计入 unpriced_billed_tokens;无缓存桶 → cache_hit_rate=null(未知,非 0)。",
+    "TTFT 定义:step/start 事件时间 → assistant/message.stream 首记录 time0/time(chunk 到达 Date.now()),仅真会话口径有效。",
+    "runner_total_tokens = dsh-evals sessions.jsonl 的 total_tokens(totalTokens ?? input+output+cacheRead+cacheWrite),用于与 observe billed 交叉校验。",
+    "对比阈值来源:packages/observe/src/drift.ts DEFAULT_DRIFT_THRESHOLDS;复测规则见 docs/perf-baseline.md §4。"
+  ]
+}

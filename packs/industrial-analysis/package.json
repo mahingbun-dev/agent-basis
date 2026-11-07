@@ -1,0 +1,25 @@
+{
+  "name": "@industrial-analysis/pack",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "工业数智分析领域包(L2,首场景=§11.7 自建清单:时序查询/知识问答/预警研判/报告生成):persona + skills(时序查询/预警研判)+ 确定性工具桩(timeseries_query/alert_list/alert_records)+ policies/hitl 红线 + golden set。红线:达梦业务库只读(写权限仅限预警记录表)、数据与知识层只经 MCP 访问、对外发送需确认(R2)、deny 优先 fail-closed、本包无资金/合同类工具。",
+  "exports": {
+    ".": "./tools/index.ts",
+    "./plugin": "./plugin.ts",
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.6-alpha.1",
+    "@deepseek-ai/dsh-tools": "0.2.2-alpha.2"
+  },
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "verify": "node ../../tools/packctl/bin/packctl.mjs lint . && node --test tools/*.test.mjs"
+  }
+}

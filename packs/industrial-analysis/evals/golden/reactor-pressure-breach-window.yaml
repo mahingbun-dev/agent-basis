@@ -1,0 +1,19 @@
+# 正向-时序查询-窗口核实(告警核实:窗口查询 + 限值越限,引用规则 id)
+id: reactor-pressure-breach-window
+description: 按告警核实 1#反应釜压力越限时刻与峰值
+category: 时序查询
+user_input: |
+  压力告警说 1#反应釜 13 点压力超了。给我核实一下:只看 11 月 6 日 08:00 到 18:00
+  这段窗口的压力曲线,超限几次、峰值多少,对着跳机限值说。
+tags: [时序查询, replay]
+final_state:
+  - file_assert: { path: out/pressure-check.md, contains: '2026-11-06 08:00' }
+  - file_assert: { path: out/pressure-check.md, contains: '2026-11-06 18:00' }
+  - file_assert: { path: out/pressure-check.md, contains: '0.61' }
+  - file_assert: { path: out/pressure-check.md, contains: RULE-PRESS-HIGH-060 }
+trajectory:
+  mode: subset
+  must_call: [timeseries_query]
+  must_not_call: []
+  max_steps: 12
+budget: { max_tokens: 200000 }

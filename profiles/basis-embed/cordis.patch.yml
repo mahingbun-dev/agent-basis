@@ -1,0 +1,94 @@
+# Basis 企业嵌入档（basis-embed）：dsh-base + dsh-headless 之上的企业组合层。
+#
+# 装载形态：DSH profile `$DSH_HOME/profiles/basis-embed`，其 package.json 声明
+# dsh.profile.bundles = ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-headless"]
+# （官方 headless 模板的 bundle 元组，见 @deepseek-ai/dsh-official-bundles
+# PROFILE_TEMPLATES.headless），本文件作为该 profile 的 cordis.patch.yml
+# （用户层，最后写赢）。组合语义与 Web 档相同：裸 id 行覆写既有行且 config
+# 整份替换（覆写 config 的行重述全部键）；新增行必须用 "- insert:"——见
+# packages/glue/cordis.patch.yml:1-7 的 E2E 教训。
+#
+# 权威依据：plans/2026-11-06-dsh企业agent路线定案.md T6 行 + §11（§11.8 为准）；
+# 与 Web 档的差异逐条见 docs/embed-profile.md「与 Web 档的裁切差异」。
+# 行 id/行号核对自装品 @deepseek-ai/dsh-base 0.2.2-rc.1 的 cordis.patch.yml
+# （otel=202、session-telemetry-otel=218、ptc 家族=397/400/405、
+# tool-executor-ptc=504、fs-observation-policy=292、tool-plugin-manager=16、
+# llm-deepseek 家族=531/534；headless 层四行裁切见装品
+# @deepseek-ai/dsh-headless 0.2.2-rc.1 cordis.patch.yml，与本仓库检出逐字一致）。
+#
+# 凭据纪律：模型密钥只存在于启动环境（LITELLM_API_KEY，由 @basis/llm-openai 的
+# apiKeyEnv 指名读取）；headless 层已禁凭据库（credentials/authorization/
+# deepseek-account）——嵌入档无 Web 传输层，没有 connection 必需行对 credentials
+# 的硬注入，裁切是净的（Web 档保留 credentials 的偏差 1 在此不成立）。
+
+# ── 遥测（§11.2/§11.8：外联 dsh-otel-collector.deepseeksvc.com 合规红线）────
+- id: otel
+  disabled: true
+
+- id: session-telemetry-otel
+  disabled: true
+
+# ── DeepSeek 直连路由（§11.2：密钥走企业网关/环境变量，DeepSeek API 与账号
+#    路由整族裁掉；凭据库/账号体系已由 headless 层裁）────────────────────────
+- id: llm-deepseek
+  disabled: true
+
+- id: llm-deepseek-account
+  disabled: true
+
+# ── ptc/workflow 家族·宿主行（§11.2/§11.8：图纸无对应，维持裁切）────────────
+# 嵌入档无 web-app 预设层，裁宿主行即净（Web 档需重述 preset-standard 的偏差 2
+# 在此不成立）。
+- id: ptc-runtime
+  disabled: true
+
+- id: workflow-ptc
+  disabled: true
+
+- id: tool-workflow
+  disabled: true
+
+# 本就 disabled 的行重申裁切（防上游重排后静默回归——同 Web 档口径）
+- id: tool-executor-ptc
+  disabled: true
+
+- id: fs-observation-policy
+  disabled: true
+
+- id: tool-plugin-manager
+  disabled: true
+
+# ── 企业模型路由：默认模型指向 basis 路由（config 整份替换，重述全部键）──────
+# 装品 base:90-93 原值 provider: deepseek-official / model: deepseek-flash。
+- id: agent-default-model
+  config:
+    provider: basis
+    model: deepseek-flash
+
+# ── 企业 LLM 适配器：OpenAI 兼容 chat-completions（NAS liteLLM 网关）────────
+# 连接事实全部来自启动环境，补丁文本不落地任何地址/密钥：
+#   BASIS_LLM_BASE_URL — 网关 chat-completions 根（仓库自查源：.secrets/litellm-base-url.txt）
+#   LITELLM_API_KEY    — 网关密钥环境变量名（.secrets/litellm-master-key.txt）
+- insert:
+    - id: basis-llm
+      name: '@basis/llm-openai'
+      config:
+        baseURL: !!js process.env.BASIS_LLM_BASE_URL ?? ''
+        apiKeyEnv: LITELLM_API_KEY
+        provider: basis
+        maxTokens: 8192
+        streamIdleTimeoutMs: 172800000
+
+# ── 企业插件挂载位（默认全部注释；启用步骤见 docs/embed-profile.md §挂载位）─
+# 企业插件一律 "- insert:" 形态（裸 id 行会被 applyPatches 丢弃）；挂载前 profile
+# node_modules 必须能解析对应 @basis 包（file: 链接或 symlink 终态，
+# scripts/t7-smoke.mjs 注与 scripts/init-profile.mjs 配方）。逐插件挂载位、
+# inject 前置与首期挂/不挂裁定见 docs/embed-profile.md。
+#
+# - insert:
+#     - id: basis-governance
+#       name: '@basis/glue/governance-plugin'
+#     - id: basis-memory
+#       name: '@basis/glue/memory-plugin'
+#     - id: basis-knowledge
+#       name: '@basis/glue/knowledge-plugin'

@@ -1,0 +1,17 @@
+# 正向-预警研判-P0(规则与记录 → P0 分级 → 升级路径;结论写回预警记录表)
+id: alert-p0-press-triage
+description: 当前最急告警的分级、处置建议与写回
+category: 预警研判
+user_input: |
+  当前告警里最急的是哪条?给出分级和处置建议,研判结论记进预警记录表。
+tags: [预警研判, smoke, replay]
+final_state:
+  - file_assert: { path: out/alert-triage.md, contains: AL-20261106-004 }
+  - file_assert: { path: out/alert-triage.md, contains: P0 }
+  - file_assert: { path: out/alert-triage.md, contains: 升级路径 }
+trajectory:
+  mode: subset
+  must_call: [alert_list, alert_records]
+  must_not_call: [send_report, send_alert_notify, publish_report]
+  max_steps: 15
+budget: { max_tokens: 200000 }

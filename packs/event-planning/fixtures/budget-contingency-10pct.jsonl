@@ -1,0 +1,12 @@
+{"type":"turn/start","seq":1,"time":1762000000100,"data":{"turn":1}}
+{"type":"user/message","seq":2,"time":1762000000200,"data":{"message":{"role":"user","content":[{"type":"text","text":"行业峰会预算硬顶 20 万,分五类编制,机动金按不低于 10%(≥20000)单列,其余四类自行分配但总额不得超 20 万。\n交付 out/budget-contingency.csv(列:类别,数量,单价,小计)。\n"}]}}}
+{"type":"step/start","seq":3,"time":1762000000300,"data":{"turn":1,"step":1}}
+{"type":"assistant/message","seq":4,"time":1762000000400,"data":{"turn":1,"step":1,"message":{"role":"assistant","content":[{"type":"text","text":"硬顶 20 万:五类编制,机动金按 10%(20000)单列,其余四类分配后总额恰为 200000 不超顶。"}]},"stream":[],"usage":{"inputTokens":900,"outputTokens":260}}}
+{"type":"tool/call","seq":5,"time":1762000000500,"data":{"turn":1,"step":1,"callId":"c1","name":"budget_calc","arguments":"{\"total\":200000,\"contingencyRate\":0.1}"}}
+{"type":"tool/result","seq":6,"time":1762000000600,"data":{"turn":1,"step":1,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c1"}}}
+{"type":"step/start","seq":7,"time":1762000000700,"data":{"turn":1,"step":2}}
+{"type":"tool/call","seq":8,"time":1762000000800,"data":{"turn":1,"step":2,"callId":"c2","name":"write_file","arguments":"{\"path\":\"out/budget-contingency.csv\"}"}}
+{"type":"tool/result","seq":9,"time":1762000000900,"data":{"turn":1,"step":2,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c2"}}}
+{"type":"assistant/message","seq":10,"time":1762000001000,"data":{"turn":1,"step":2,"message":{"role":"assistant","content":[{"type":"text","text":"峰会预算已交付 out/budget-contingency.csv:五类合计 200000 未超硬顶,机动金 20000(10%)单列。"}]},"stream":[],"usage":{"inputTokens":1300,"outputTokens":420}}}
+{"type":"turn/end","seq":11,"time":1762000001100,"data":{"turn":1,"reason":{"kind":"completed"}}}
+{"type":"plugin:basis-evals/workspace","seq":12,"time":1762000001200,"data":{"files":{"out/budget-contingency.csv":"类别,数量,单价,小计\n场地,1,60000,60000\n餐饮,200,400,80000\n物料,1,20000,20000\n人工,1,20000,20000\n机动,1,20000,20000\n"}}}

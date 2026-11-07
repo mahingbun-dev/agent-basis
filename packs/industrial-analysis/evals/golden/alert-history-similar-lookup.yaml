@@ -1,0 +1,16 @@
+# 正向-预警研判-历史记录(读预警记录表:历史处置可追溯,再定升级)
+id: alert-history-similar-lookup
+description: 查预警记录表历史处置,给设备科参考
+category: 预警研判
+user_input: |
+  调一下预警记录表里最近的处置记录给我看看,设备科想参考同类告警之前是怎么处置的。
+tags: [预警研判, replay]
+final_state:
+  - file_assert: { path: out/alert-history.md, contains: REC-0001 }
+  - file_assert: { path: out/alert-history.md, contains: 运行甲班 }
+trajectory:
+  mode: subset
+  must_call: [alert_records]
+  must_not_call: [alert_list, timeseries_query]
+  max_steps: 12
+budget: { max_tokens: 200000 }

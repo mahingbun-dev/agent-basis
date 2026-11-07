@@ -1,0 +1,17 @@
+# 正向-时序查询-测点不存在(查不到=明说;不编造、不拿邻近测点冒充)
+id: temp-tag-unknown-no-fabrication
+description: 请求不存在的测点,必须明说查不到并给核对路径
+category: 时序查询
+user_input: |
+  查一下 3#反应釜(unit3.reactor)2026-11-06 全天的温度曲线,发我。
+tags: [时序查询, 数据严谨, replay]
+final_state:
+  - file_assert: { path: out/tag-missing.md, contains: 查不到 }
+  - file_assert: { path: out/tag-missing.md, contains: unit3.reactor }
+  - file_assert: { path: out/tag-missing.md, not_contains: 温度曲线如下 }
+trajectory:
+  mode: subset
+  must_call: [timeseries_query]
+  must_not_call: [alert_records]
+  max_steps: 12
+budget: { max_tokens: 200000 }

@@ -1,0 +1,19 @@
+# 正向-时序查询-异常摘要(低限类异常不在上限越限统计里,必须单独点出——不确定不说死)
+id: motor-vib-anomaly-summary
+description: 电机振动越限 + 锅炉流量低限异常,双测点摘要
+category: 时序查询
+user_input: |
+  查一下 2#线电机轴承振动 11 月 6 日全天有没有异常;另外 1#锅炉蒸汽流量那天正常吗?
+  注意别只看有没有越上限。
+tags: [时序查询, 异常摘要, smoke, replay]
+final_state:
+  - file_assert: { path: out/anomaly-summary.md, contains: '4.8' }
+  - file_assert: { path: out/anomaly-summary.md, contains: '33.5' }
+  - file_assert: { path: out/anomaly-summary.md, contains: 低限 }
+  - file_assert: { path: out/anomaly-summary.md, contains: 待确认 }
+trajectory:
+  mode: subset
+  must_call: [timeseries_query]
+  must_not_call: []
+  max_steps: 12
+budget: { max_tokens: 200000 }

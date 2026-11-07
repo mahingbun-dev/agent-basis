@@ -1,0 +1,40 @@
+# guard-rules.yml —— 合规红线(@basis/governance 规则引擎消费;deny 优先、fail-closed)。
+# 格式对齐 @basis/governance PolicyDocument:{ rules: [{ id, effect, tools, argsContains?, reason? }], default }。
+# 本包四条红线(plans/2026-11-06-dsh企业agent路线定案.md §11.7 自建清单,T3-1 落地):
+#   ① 达梦业务库只读,写权限仅限预警记录表(alert_records 单点白名单)——静默写库=失败,golden 钉住;
+#   ② 数据与知识层只经 MCP 访问(工具面只放行经 MCP 的查询类工具,不出现直连库凭据类工具);
+#   ③ 对外发送(通报/报告/短信/邮件)必须确认(R2,withhold-或-补偿);
+#   ④ deny 优先、fail-closed:deny 命中优先于 allow/ask;default: ask 兜底,规则未放行即拦。
+#   本包无资金/合同类工具:pay_*/sign_* 等出现在规则面即为越界,直接 deny。
+rules:
+  # 红线①:预警记录表之外的任何达梦/库表写动作,deny(不给 ask 机会,升级也不放行执行)。
+  - id: industrial-deny-dm-write-beyond-alert-table
+    effect: deny
+    tools: ['dm_insert_*', 'dm_update_*', 'dm_delete_*', 'db_write_*', 'db_update_*', 'db_delete_*', 'insert_*', 'update_*', 'delete_*', 'drop_*', 'truncate_*', 'alter_*']
+    reason: 达梦业务库只读,写权限仅限预警记录表(alert_records 单点白名单);静默写库=失败
+  # 红线④:资金/合同类工具本包不存在,出现即越界(deny 优先于一切)。
+  - id: industrial-deny-finance-and-contract
+    effect: deny
+    tools: ['pay_*', 'sign_*', 'transfer_*', 'contract_*', 'approve_*']
+    reason: 本包无资金/合同类工具;出现即越界,deny 优先
+  # 红线②:只读查询/检索(R0 档)——TDengine 时序、预警列表、知识检索都经 MCP。
+  - id: industrial-allow-readonly-via-mcp
+    effect: allow
+    tools: ['timeseries_query', 'alert_list', '*_query', '*_list', '*_search', 'read_*', 'list_*']
+    reason: 只读检索与确定性查询(R0 档;数据与知识层只经 MCP 访问)
+  # 红线①白名单单点:预警记录表写入是唯一放行的达梦写路径(R1 档,静默+事后变更卡片)。
+  - id: industrial-allow-alert-record-write
+    effect: allow
+    tools: ['alert_records']
+    reason: 预警记录表写入(唯一放行的达梦写路径,R1 档,事后变更卡片)
+  # 草稿/写文件类交付物(可逆写,R1 档,静默+事后 diff 卡片)。
+  - id: industrial-allow-draft-write
+    effect: allow
+    tools: ['write_*', 'draft_*']
+    reason: 可逆草稿类交付物(R1 档,静默+事后变更卡片)
+  # 红线③:对外发射类动作必须确认(R2 档)。
+  - id: industrial-ask-external-send
+    effect: ask
+    tools: ['send_*', 'publish_*', 'submit_*']
+    reason: 对外发送(通报/报告/短信/邮件)必须确认(R2 档,withhold-或-补偿)
+default: ask

@@ -1,13 +1,14 @@
 /**
  * 快照组装:从宿主侧活状态读只读投影。
  * - governance:优先 ctx.governance 服务(glue governance-plugin),缺席时解析同一规则文件;
- *   审计读 .basis/audit.jsonl(FileAuditSink 约定路径;glue 未接审计投影时文件不存在 = 0 条)。
+ *   审计读 .basis/audit-YYYYMMDD.jsonl 按日轮转文件 + 旧版单文件 .basis/audit.jsonl
+ *   (@basis/audit 未装载且 glue 未接审计投影时文件不存在 = 0 条)。
  * - memory / knowledge:node:sqlite 只读打开 glue 约定库路径(表结构是 @basis/memory
  *   entity-store 与 @basis/knowledge wiki 的存储契约)。
  * - @event 工具:CTX tools 注册表活过滤 + hitl.yaml 风险档(packs/event-planning/hitl.yaml)。
  * - 可观测:~/.dsh/sessions 的 session.v4.jsonl.zstd usage 折叠(session-logs.ts)。
  */
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -61,16 +62,26 @@ function readGovernance(ctx: Context, cwd: string, rulesPath: string): Governanc
       ruleSource = `${rulesPath}(解析失败,按 0 计)`
     }
   }
-  const auditPath = join(cwd, '.basis', 'audit.jsonl')
+  // 审计读数:@basis/audit 按日轮转 .basis/audit-YYYYMMDD.jsonl(DailyFileAuditSink 约定)
+  // + 旧版单文件 .basis/audit.jsonl(FileAuditSink/glue 旧约定),全部非空行合计。
+  // audit 插件未装载且 glue 未接审计投影时这些文件不存在 = 0 条(panel 既有口径)。
+  const auditDir = join(cwd, '.basis')
   let auditEntries = 0
   let auditSource: string | null = null
-  if (existsSync(auditPath)) {
-    auditSource = auditPath
+  const auditFiles = existsSync(auditDir)
+    ? readdirSync(auditDir).filter(name => /^audit-\d{8}\.jsonl$/.test(name) || name === 'audit.jsonl').sort()
+    : []
+  for (const name of auditFiles) {
     try {
-      auditEntries = readFileSync(auditPath, 'utf8').split('\n').filter(line => line.trim().length > 0).length
+      auditEntries += readFileSync(join(auditDir, name), 'utf8').split('\n').filter(line => line.trim().length > 0).length
     } catch {
-      auditEntries = 0
+      // 单文件读不了(权限/并发重写)按 0 计,不影响其余文件
     }
+  }
+  if (auditFiles.length === 1) {
+    auditSource = join(auditDir, auditFiles[0] ?? '')
+  } else if (auditFiles.length > 1) {
+    auditSource = auditDir
   }
   return { mounted: world?.rules !== undefined, ruleCount, ruleSource, auditEntries, auditSource }
 }
