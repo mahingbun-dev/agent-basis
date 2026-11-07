@@ -199,3 +199,21 @@ node scripts/perf-baseline.mjs --fresh  # 先现场跑 event-planning replay 生
 `totals`（observe 聚合的会话级合计）、`per_case`（逐 case 明细，含 `ttft` 字段）、
 `per_turn`、`pricing`（当次使用的单价表）、`notes`（口径注记）。复测脚本读它做对比，
 重生成即更新基线。
+
+### 4.4 真会话实测（2026-11-07，网关直连补充）
+
+`scripts/perf-realsession.mjs`（数据:`docs/perf-realsession.json`）——直连 NAS
+LiteLLM 网关的 OpenAI 兼容 `/chat/completions`（deepseek-flash）。口径说明:
+KV-cache 命中率/首 token 延迟是**模型与网关侧指标**，与宿主 profile 组合无关;
+宿主侧 token/成本计量由 observe 与会话日志承担。稳定前缀 P ≈ 335 tokens（远超
+DeepSeek 缓存 64-token 块粒度）:
+
+| 项 | 实测 | 说明 |
+| --- | --- | --- |
+| 前缀缓存功能 | ✅ `cacheRead=128` tokens，三次调用一致 | 命中率 35.5%;小前缀下 64-token 块部分对齐属预期，**非** threshold.yml `cache_hit_rate_min: 0.7` 的口径（该阈值适用于金集会话的长稳定前缀） |
+| 缓存跨请求存续 | ✅ | 首次执行的 run1 `cacheRead=0`（写），隔数分钟后第二次执行的 run1 即命中——前缀缓存跨进程/请求在网关侧存续 |
+| 首 token 延迟（TTFT） | 2039ms（流式） | **实测教训**:`max_tokens=120` 时额度被推理 token 耗尽、无 content 增量，TTFT 不可测;≥400 才能测到 |
+| 端到端时延 | 冷 2.4s / 命中后 ~4.2s | 非流式含全部生成（max_tokens=400） |
+
+复测:`node scripts/perf-realsession.mjs`（凭据读环境变量，兜底 `.secrets/`，
+key 不落盘不进日志;退出码 0=完成并更新 `docs/perf-realsession.json`）。
