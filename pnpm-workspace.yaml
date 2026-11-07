@@ -1,11 +1,16 @@
 packages:
-  # L1 基座插件(governance / memory / interact / evals / knowledge / observe / evolve / channels / cache-guard / extra)
+  # L1 基座插件(governance / memory / interact / evals / knowledge / observe / evolve / channels / cache-guard / extra / prompt-studio / audit)
   - packages/*
   # 跨行业工具与 CLI(packctl / evals CLI 等)及约定载体包
   - tools/*
 
 allowBuilds:
+  '@google/genai': true
+  protobufjs: true
+  '@deepseek-ai/dsh-subprocess-local': true
   esbuild: true
+  koffi: true
+  node-pty: true
 
 # 依赖版本单一事实源:所有包用 "catalog:" 引用,升级只改这里。
 # @deepseek-ai/dsh-* 钉在与 ../dsh-repo 相同的 0.2.2-alpha.2(seam 类型即取自该版本)。
@@ -47,3 +52,10 @@ catalog:
   typescript: ^6.0.3
   vitest: ^4.1.11
   yaml: ^2.9.1
+
+# pnpm 经典字段(与 allowBuilds 双保险):允许原生模块构建脚本
+onlyBuiltDependencies:
+  - esbuild
+  - '@deepseek-ai/dsh-subprocess-local'
+  - koffi
+  - node-pty

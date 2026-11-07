@@ -40,3 +40,10 @@ __pycache__/
 
 # 旧版 pnpm 单包 scope install 生成的局部 lockfile(workspace 权威 lockfile 在根)
 tools/evals/pnpm-lock.yaml
+
+# 本地运行态与不入库目录(basis 启动器实验包、T1/T7 隔离宿主 home、ZCode 工作流草稿;内含内网端点等本机信息)
+/basis/
+/.basis-home*/
+/.zcode/
+/scripts/init-profile.mjs
+/scripts/smoke.mjs
