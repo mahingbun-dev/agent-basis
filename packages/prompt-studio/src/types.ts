@@ -1,0 +1,373 @@
+/**
+ * @basis/prompt-studio 线类型契约(T7.1 Host 半边;T7.2 浏览器半边照此消费)。
+ *
+ * 全部端点经官方 Typert 网关 SRC 模式暴露(namespace = loopPrompt),载荷为纯 JSON
+ * (SRC result mode = src-json,见 dsh-api-gateway resolveSrcDescriptor)。
+ * 写链路(save/rollback/import)一律两段式:
+ *   第一段(无 approvalId)→ 校验 + R3 审批卡,返回 status='approval-required';
+ *   第二段(带 approvalId + approved)→ 执行写入,返回 status='committed'。
+ * 审批卡载荷由 @basis/interact buildApprovalCard/cardToQuestionItems 构造
+ * (R3 grade + doubleConfirm 二次确认,计划书 §3「写操作全走 interact R3 审批卡」)。
+ */
+import type { ApprovalCard } from '@basis/interact'
+import type { AskUserQuestionItem } from '@basis/interact'
+
+/** 写操作种类(三类全走 R3:保存/回滚/导入,计划书 §3)。 */
+export type WriteKind = 'save' | 'rollback' | 'import'
+
+/** 版本来源(initial=装载时种子的当前 persona 基线)。 */
+export type VersionSource = 'initial' | 'save' | 'rollback' | 'import'
+
+/**
+ * 版本记录(版本库唯一行形态;storage 单元 basis_prompt_studio/versions 的记录值)。
+ * 版本只增不删:本包对版本库不暴露任何删除原语,回滚=追加新记录(parentId 指向被
+ * 回滚版本),对齐计划书 §6 T7.3「回滚产生新版本而非删旧版本」。
+ */
+export interface PromptVersionRecord {
+  /** 版本 id(存储层记录键;path-safe,匹配 ^[A-Za-z0-9_-]+$)。 */
+  readonly id: string
+  /** 单调递增序号(从 1 起)。 */
+  readonly seq: number
+  /** 创建时刻 ISO 串。 */
+  readonly createdAt: string
+  /** 操作者(客户端传入;缺省 'web')。 */
+  readonly author: string
+  /** 来源。 */
+  readonly source: VersionSource
+  /** 父版本 id(回滚=被回滚版本;保存/导入=写前最新版本;首版 null)。 */
+  readonly parentId: string | null
+  /** persona 文本 UTF-8 字节数。 */
+  readonly bytes: number
+  /** 内容 checksum(sha256 hex,UTF-8 口径;导出包复用同口径)。 */
+  readonly checksum: string
+  /** 操作摘要(客户端可读)。 */
+  readonly summary: string
+  /** persona 全文(版本库自含内容,回滚不依赖 patch 现值)。 */
+  readonly content: string
+}
+
+/** 版本库概览(snapshot/prompt-get 复用)。 */
+export interface VersionOverview {
+  /** storage 栈是否已挂载(dsh-base storage/storage-json 行存在且单元打开)。 */
+  readonly ready: boolean
+  /** 版本总数(只增不删,单调)。 */
+  readonly count: number
+  /** 最新版本 id(无版本时 null)。 */
+  readonly latestId: string | null
+  /** 最新版本时刻 ISO(无版本时 null)。 */
+  readonly latestAt: string | null
+}
+
+/** persona 当前态(从 profile patch 层 preset-standard 行读出)。 */
+export interface PersonaState {
+  /** patch 层找到 persona prefix 且可读。 */
+  readonly available: boolean
+  /** persona 全文(不可用时空串)。 */
+  readonly text: string
+  /** UTF-8 字节数。 */
+  readonly bytes: number
+  /** profile patch 层文件绝对路径(profileContext.patchPath)。 */
+  readonly patchPath: string | null
+  /** patch 文件 mtime ISO(不可用时 null)。 */
+  readonly updatedAt: string | null
+  /** 读取失败原因(available=false 时给人话说明)。 */
+  readonly error: string | null
+}
+
+// ---------- loopPrompt/snapshot ----------
+
+/** 生效通道说明(T7.0 spike 通道 A 结论;docs/dev/t7-spike.md §1)。 */
+export interface ChannelInfo {
+  readonly kind: 'A-patch-hmr'
+  readonly note: string
+}
+
+/** 待审批写入(snapshot 提示客户端有在途 R3 卡)。 */
+export interface PendingApprovalView {
+  readonly approvalId: string
+  readonly kind: WriteKind
+  readonly createdAt: string
+}
+
+/** 端点 loopPrompt/snapshot 的返回(无参)。 */
+export interface LoopPromptSnapshot {
+  readonly generatedAt: string
+  readonly persona: PersonaState
+  readonly versions: VersionOverview
+  readonly pendingApproval: PendingApprovalView | null
+  /**
+   * 轨迹概览。`sessions`=最近会话数(客户端 Stat 瓦片消费);
+   * `recent`=最近 20 条会话清单(id/标题/时间/轮次/usage;T7.4 新增,
+   * 与 loopPrompt/trace 列表模式同一投影)。
+   */
+  readonly trace: {
+    readonly sessions: number
+    readonly pipeline: string
+    readonly recent: readonly TraceSessionCard[]
+  }
+  readonly channel: ChannelInfo
+}
+
+// ---------- loopPrompt/trace ----------
+
+/** 端点 loopPrompt/trace 的入参。 */
+export interface TraceInput {
+  /** 指定会话 id:返回该会话轮次树;缺省:返回最近会话列表。 */
+  readonly sessionId?: string
+  /** 列表模式下的最近会话数(默认 20,计划书 §4「最近 20 条会话」)。 */
+  readonly limit?: number
+}
+
+/** 单条会话列表卡(usage 折叠口径对齐 panel session-logs;T7.4 增标题)。 */
+export interface TraceSessionCard {
+  readonly sessionId: string
+  readonly area: string
+  /**
+   * 会话标题(最后一条 `session/title` 事件的 data.title;读取窗口内缺失时空串)。
+   * 真实日志里 fallback 标题(首条用户消息派生)在前、provider 精修标题在后,
+   * 「最后一条胜出」自然取到精修标题(T7.4 口径,vitest fixture 钉死)。
+   */
+  readonly title: string
+  readonly turns: number
+  readonly inputTokens: number
+  readonly outputTokens: number
+  readonly cacheReadTokens: number
+  readonly lastAt: string
+}
+
+/** 单次工具调用卡。 */
+export interface TraceToolCall {
+  readonly callId: string
+  readonly name: string
+  readonly at: string | null
+  /** 参数预览(截断;v0 不做 PII 脱敏,T7.4 接 governance PiiFilter)。 */
+  readonly argsPreview: string
+  readonly isError: boolean
+  readonly errorName: string | null
+  /** 调用耗时(call→result 配对;未配对 null)。 */
+  readonly durationMs: number | null
+}
+
+/**
+ * 审批触发点(T7.4 口径:官方 `approval/asked` 审计事件,见
+ * @deepseek-ai/dsh-user-approval types.d.ts;ask_user_question 是普通工具调用,
+ * 只出现在 tools 里,不再充当审批点)。`outcome`/`decidedAt` 来自配对的
+ * `approval/decided`(同 id;未决/未配对为 null)。
+ */
+export interface TraceApprovalPoint {
+  /** 关联工具调用 id(approval/asked 未携带时空串)。 */
+  readonly callId: string
+  /** 被审批的工具名(approval/asked.toolName)。 */
+  readonly name: string
+  readonly at: string | null
+  /** 审批结果:allowed-once | rejected | cancelled | unavailable(未决 null)。 */
+  readonly outcome: string | null
+  /** 决定时刻 ISO(未决 null)。 */
+  readonly decidedAt: string | null
+}
+
+/** 单轮投影(字段缺失容错降级:缺失侧为 null/空,不抛错;T7.4 增推理摘要)。 */
+export interface TraceTurn {
+  readonly turn: number
+  readonly startedAt: string | null
+  readonly endedAt: string | null
+  readonly durationMs: number | null
+  readonly endReason: string | null
+  readonly usage: {
+    readonly inputTokens: number
+    readonly outputTokens: number
+    readonly totalTokens: number
+  } | null
+  /**
+   * 本轮推理摘要:最后一条携带 reasoning 块的 assistant 消息
+   * (ContentBlockMap type='reasoning',dsh-llm types)中 reasoning 块按序拼接后
+   * 截断;无 reasoning 块为 null。
+   */
+  readonly reasoningPreview: string | null
+  readonly tools: readonly TraceToolCall[]
+  readonly approvalPoints: readonly TraceApprovalPoint[]
+}
+
+/** 指定会话的轮次树(容错:字段缺失降级,skipped 记坏行数,T7.4 口径)。 */
+export interface SessionTrace {
+  readonly sessionId: string
+  readonly turns: readonly TraceTurn[]
+  readonly events: { readonly total: number; readonly projected: number; readonly skipped: number }
+}
+
+/** 端点 loopPrompt/trace 的返回。 */
+export interface TraceReport {
+  readonly generatedAt: string
+  readonly sessionsRoot: string
+  readonly pipeline: string
+  readonly sessions: readonly TraceSessionCard[]
+  readonly selected: SessionTrace | null
+}
+
+// ---------- loopPrompt/prompt-get ----------
+
+/** 端点 loopPrompt/prompt-get 的返回(无参)。 */
+export interface PromptGetResult {
+  readonly persona: PersonaState
+  readonly versions: VersionOverview
+  /** 生效说明:编辑器顶部「影响:新会话前缀将变化」提示文案(计划书 §7 KV-cache 风险项)。 */
+  readonly effectiveNote: string
+  /** 组合视图说明(T7.2 起提供只读组合视图;本期只读 persona 段)。 */
+  readonly composedNote: string
+}
+
+// ---------- 校验与写结果 ----------
+
+/** 端点 loopPrompt/prompt-save 的入参。 */
+export interface PromptSaveInput {
+  /** persona 新文本。 */
+  readonly content: string
+  /** 乐观锁:与写前最新版本 id 不符则拒绝(可省)。 */
+  readonly baseVersionId?: string
+  /** 操作摘要。 */
+  readonly summary?: string
+  /** 操作者(T7.2 传登录用户;缺省 'web')。 */
+  readonly author?: string
+  /** 审批确认回路:第一段省略;第二段带第一段返回的 approvalId。 */
+  readonly approvalId?: string
+  /** 审批应答(第二段必带)。 */
+  readonly approved?: boolean
+}
+
+/** 写链路统一状态机(三端点共用)。 */
+export type WriteStatus =
+  | 'approval-required'
+  | 'committed'
+  | 'rejected'
+  | 'approval-declined'
+  | 'approval-mismatch'
+  | 'storage-unavailable'
+
+/** 审批载荷(第一段返回;T7.2 渲染审批卡)。 */
+export interface WriteApprovalView {
+  readonly approvalId: string
+  readonly kind: WriteKind
+  readonly card: ApprovalCard
+  readonly questionItems: readonly AskUserQuestionItem[]
+}
+
+/** 端点 loopPrompt/prompt-save 的返回。 */
+export interface PromptSaveResult {
+  readonly status: WriteStatus
+  /** status=rejected:校验器明细(人话)。 */
+  readonly issues?: readonly string[]
+  /** status=approval-required:R3 审批卡与官方 user-questions 载荷。 */
+  readonly approval?: WriteApprovalView
+  /** status=committed:新版本记录。 */
+  readonly version?: PromptVersionRecord
+  /** 生效说明(通道 A:新会话生效无需重启;UI 按 8s 级等待/轮询后提示)。 */
+  readonly effectiveNote: string
+}
+
+/** 端点 loopPrompt/prompt-versions 的入参。 */
+export interface VersionsInput {
+  /** 最多返回条数(默认 50;新→旧)。 */
+  readonly limit?: number
+}
+
+/** 端点 loopPrompt/prompt-versions 的返回。 */
+export interface VersionsResult {
+  readonly total: number
+  readonly ready: boolean
+  readonly versions: readonly PromptVersionRecord[]
+}
+
+/** 端点 loopPrompt/prompt-rollback 的入参。 */
+export interface PromptRollbackInput {
+  /** 目标版本(内容整体写回;版本记录本身不动)。必填,缺失/未知即 rejected。 */
+  readonly versionId: string
+  /** 乐观锁:与当前最新版本 id 不符则拒绝(可省)。 */
+  readonly baseVersionId?: string
+  readonly summary?: string
+  readonly author?: string
+  readonly approvalId?: string
+  readonly approved?: boolean
+}
+
+/** 端点 loopPrompt/prompt-rollback 的返回。 */
+export interface PromptRollbackResult {
+  readonly status: WriteStatus
+  readonly issues?: readonly string[]
+  readonly approval?: WriteApprovalView
+  readonly version?: PromptVersionRecord
+  readonly effectiveNote: string
+}
+
+/** 导出包(计划书 §6 T7.3:JSON 包 schemaVersion/persona/checksum/导出者)。 */
+export interface PromptExportPack {
+  readonly schemaVersion: 1
+  readonly exportedAt: string
+  readonly exportedBy: string
+  /** 导出所依据的版本 id。 */
+  readonly sourceVersionId: string
+  readonly persona: string
+  /** sha256 hex(UTF-8 口径;导入时强校验)。 */
+  readonly checksum: string
+}
+
+/** 端点 loopPrompt/prompt-export 的入参。 */
+export interface PromptExportInput {
+  /** 缺省导出最新版本。 */
+  readonly versionId?: string
+  readonly exportedBy?: string
+}
+
+/** 端点 loopPrompt/prompt-export 的返回(只读,不走审批)。 */
+export interface PromptExportResult {
+  readonly pack: PromptExportPack
+  readonly version: PromptVersionRecord
+}
+
+/** 端点 loopPrompt/prompt-import 的入参。 */
+export interface PromptImportInput {
+  /** 导出包(prompt-export 的 pack 原样回传)。 */
+  readonly pack: PromptExportPack
+  /** 导入时所见最新版本 id(乐观锁;与服务端当前最新不符则拒绝,防并发覆盖)。 */
+  readonly baseVersionId?: string
+  readonly summary?: string
+  readonly author?: string
+  readonly approvalId?: string
+  readonly approved?: boolean
+}
+
+/** 端点 loopPrompt/prompt-import 的返回。 */
+export interface PromptImportResult {
+  readonly status: WriteStatus
+  readonly issues?: readonly string[]
+  readonly approval?: WriteApprovalView
+  readonly version?: PromptVersionRecord
+  readonly effectiveNote: string
+}
+
+/** 宿主 profileContext 的最小结构面(dsh CLI profile-boot 提供)。 */
+export interface ProfileContextLike {
+  readonly name: string
+  readonly dir: string
+  /** profile patch 层文件路径(persona 写回落点所在文件)。 */
+  readonly patchPath: string
+  /** DSH home(会话/审计落点的基准目录)。 */
+  readonly home: string
+}
+
+/**
+ * 本包消费的宿主上下文最小结构面(cordis Context 的鸭子类型)。
+ *
+ * 为什么不直接 import cordis 的 Context 类型:仓库内 @deepseek-ai/cordis 以多份
+ * peer 副本并存(lockfile 钉的 include 变体 vs dsh-typert-protocol 依赖的
+ * include+loader 变体),两份声明的 symbol 键([symbols.isolate] 等)互不结构兼容
+ * (同款分裂在 packages/panel 亦存在)。本包只消费 get/inject/effect 三个面,
+ * 以结构面类型 + Service 边界单点断言收口;宿主运行时传入的是同一真实 Context。
+ */
+export interface StudioContextLike {
+  /** 读宿主服务/上下文(profileContext、governance、storage.backend.json)。 */
+  get(key: string): unknown
+  /** 官方 inject seam(等待 storage.backend.json 等生命周期服务)。 */
+  inject(deps: readonly string[], callback: (ctx: StudioContextLike) => void): unknown
+  /** effect 配逆闭包(插件硬性规范第 5 条)。 */
+  effect(fn: () => (() => void) | void): unknown
+}

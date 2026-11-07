@@ -1,0 +1,48 @@
+{
+  "name": "@basis/prompt-studio",
+  "description": "提示词工坊+循环轨迹(T7):DSH Web 双面插件——Host 半边经官方 Typert 网关 SRC 端点 loopPrompt/{snapshot,trace,prompt-get,prompt-save,prompt-versions,prompt-rollback,prompt-export,prompt-import} 暴露 persona 查看与受治理的写链路(校验器全集:非空/UTF-8 合法/≤64KB/三条红线锚点必须存在[预算不超支·不代付·比选中立,对齐 event-planning persona]/diff 非空;导出包 schemaVersion+checksum 强校验拒收;写操作走 @basis/interact R3 审批卡二次确认;审计经 @basis/governance reportGovernance,缺席时本地 FileAuditSink 兜底);版本库落 DSH storage 栈(json backend kv 单元,单写者串行+只增不删,无任何删除原语,回滚=追加新版本);persona 写回落点是 profile patch 层 preset-standard 行 plugins[id=persona].config.prefix(纯文本变换+写前 YAML 自检+tmp/rename 原子写+dry-run 验证失败自动还原,通道 A:保存后新会话生效无需重启,见 docs/dev/t7-spike.md);前端含版本对比 diff 视图与导出/导入 JSON 包。装载走 @basis/panel 同款 bundle 配方(cordis.patch.yml insert + dsh.client 声明)。",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-api-gateway",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-primitives"
+      ],
+      "platform": "web"
+    }
+  },
+  "scripts": {
+    "build:client": "node scripts/build-client.mjs",
+    "verify": "node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run",
+    "test": "./node_modules/.bin/vitest run",
+    "typecheck": "./node_modules/.bin/tsc --noEmit"
+  },
+  "dependencies": {
+    "@basis/governance": "workspace:*",
+    "@basis/interact": "workspace:*",
+    "@deepseek-ai/cordis": "catalog:",
+    "@deepseek-ai/dsh-storage": "catalog:",
+    "@deepseek-ai/dsh-typert-protocol": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "esbuild": "catalog:",
+    "react": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

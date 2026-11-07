@@ -18,7 +18,7 @@
 
 1. **模块 default 导出插件实例**(`export default defineXxxPlugin()`)——DSH bundle loader 取的是实例,不是工厂。漏写 = 静默不装载(E2E 实测教训)。
 2. **list 槽注册必须带 `options.id`**(`list slot "..." requires options.id`)。
-3. **dsh 包声明为 peerDependencies**(不进 dependencies)——避免与宿主内置副本单例分裂。
+3. **dsh 包声明为 peerDependencies**(不进 dependencies)——避免与宿主内置副本单例分裂。例外:peer 声明写 `catalog:` 会被宿主兼容门按 semver range 校验判为 incompatible 强制 disabled(2026-11-07 T7 实测,证据见 docs/dev/t7-prompt-studio.md §2),此时与 packages/panel 同款放 `dependencies` + `catalog:`。
 4. **客户端插件必须声明 `dsh.client.inject`**(消费的客户端包清单)+ `dsh.bundle`;**任何包被 plugin-manager 管理也必须有 `dsh.bundle`**("未声明组合包"→ 插件页显示异常)。
 5. **Cordis 三纪律**:effect 配逆闭包 / coeffect 全声明 / provide 可交换接口(注册表+唯一 ID,命名空间 `@basis/*`、`@<行业>/*`)。
 6. `apply(ctx)` 返回的 disposer 收全全部逆(定时器/连接/注册),卸载零残留。
