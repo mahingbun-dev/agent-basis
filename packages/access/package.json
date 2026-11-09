@@ -1,0 +1,29 @@
+{
+  "name": "@eterna/access",
+  "description": "账号门禁插件:登录/登出+管理员用户管理(env 播种 admin,不开放注册;D11 重名自动后缀)+用户自助配置(昵称/头像/密码)+'/' 登录桥接 dsh 会话(authenticatedUrl)+tapIndex 账号角标(未登录跳 /login)+审计归因(含失败登录)+双层限速。seam 用结构类型钉住(WebServer.register/tapIndex/authenticatedUrl,形态取 dsh 0.2.2-alpha.3 发布面,升级门禁复核)。",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@eterna/audit": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

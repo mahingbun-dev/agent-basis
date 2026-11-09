@@ -443,6 +443,8 @@
       name: '@eterna/llm-doctor'
     - id: eterna-brand
       name: '@eterna/brand'
+    - id: eterna-access
+      name: '@eterna/access'
 
 # LLM 承载（根级覆写 base 休眠行，非 insert——原因见上）：pi-ai 多协议适配器
 - id: llm-pi-ai

@@ -7,14 +7,15 @@
 ## 快速开始
 
 ```sh
-cp .env.example .env          # 填 LITELLM_API_KEY（本机: cat .secrets/litellm-master-key.txt）
+cp .env.example .env          # 填 LITELLM_API_KEY + 管理员账号（见下表）
 docker compose up -d --build
-docker compose logs eterna-agent | grep -o 'token=[A-Za-z0-9_-]*'   # 登录 token（一次性）
-# 内网访问: http://<本机局域网IP>:3210/?token=<token>
+# 访问 http://<本机局域网IP>:3210/login —— 用管理员账号登录（无需 token）
 ```
 
-- 首次浏览器连接消费 bootstrap token；BrowserAuth 会话签名落卷，重启不掉线。
-- 换新浏览器/新设备 = `docker compose restart` 取新 token。
+- 首次启动用户表为空时，`ETERNA_ACCESS_ADMIN_USER/PASSWORD` 自动播种为管理员。
+- 登录后 dsh 会话自动铸发（`authenticatedUrl` 桥接），启动 token 不再是入口；
+  容器日志里的 token 仅作运维兜底，日志视为敏感物。
+- 换新浏览器/新设备 = 直接再登录；修改密码会使该账号全部旧会话下线。
 
 ## 配置即环境变量
 
@@ -24,9 +25,25 @@ docker compose logs eterna-agent | grep -o 'token=[A-Za-z0-9_-]*'   # 登录 tok
 | `ETERNA_LLM_BASE_URL` | 网关 openai-completions 根（带 /v1） | `http://192.168.31.165:4000/v1` |
 | `ETERNA_PUBLIC_URL` | 反代场景对外根 URL（DSH `--public-url`） | 空（直连模式） |
 | `ETERNA_TRUSTED_HOST` | `/api` 浏览器信任栏接受的 authority | 空 |
+| `ETERNA_ACCESS_ADMIN_USER` | 管理员账号（首启播种，之后改密走 UI） | 空（不播种） |
+| `ETERNA_ACCESS_ADMIN_PASSWORD` | 管理员初始密码（≥8 位；真值只放 .env，不入库） | 空 |
+| `ETERNA_ACCESS_SECRET` | 会话签名密钥；留空自动生成落卷 `secret.key` | 空 |
+| `ETERNA_ACCESS_SECURE` | 反代终结 TLS 时设 `1`（Secure cookie + 同源按 https） | 空 |
 
 改 env 后 `docker compose up -d` 重启即热生效（entrypoint 每次启动重渲染
-patch 到卷上；会话/存储/审计全在 `eterna-home` 卷，升级镜像不丢数据）。
+patch 到卷上；会话/存储/审计/用户库全在 `eterna-home` 卷，升级镜像不丢数据）。
+
+## 账号门禁（eterna-access 插件）
+
+- **不开放注册**：用户由管理员在 `/admin/users` 添加（重名自动追加数字后缀，
+  如 `zhangsan` → `zhangsan01`；默认昵称=账号、头像=昵称首字母）。
+- 用户自助 `/account`：改昵称、换/重置头像（png/jpeg/webp/gif ≤256KB）、改密码。
+- 门禁语义：页面右上角角标在 `eterna_session` 失效时自动跳 `/login`；
+  管理员删除用户 = 该用户会话即刻失效。登录限速：每 IP+账号 5 次/分钟，
+  每 IP 变更类请求 30 次/分钟。
+- 审计：登录（含失败）/登出/建删用户/资料与密码修改全部进审计 jsonl。
+- 残余风险（R7/R3，计划书 §9）：插件挂载失败=门禁失效（启动日志会有 FAILED
+  fiber，须关注）；bootstrap token 仍在容器日志，日志须按敏感物对待。
 
 ## 外网入口（NAS 反代，用户自行配置）
 
@@ -37,11 +54,14 @@ DSM 反代规则建议（Control Panel → Login Portal → Advanced → Reverse
 
 - Source: HTTPS，hostname `eternity-electricity.cn`，端口 `<自选>`
 - Destination: HTTP，`<Mac 局域网 IP>`，端口 `3210`，WebSocket ✓
-- 然后在 `.env` 填 `ETERNA_PUBLIC_URL=https://eternity-electricity.cn:<端口>`
-  与 `ETERNA_TRUSTED_HOST=eternity-electricity.cn:<端口>`，`docker compose up -d`。
+- **保留 Host 头**（DSM 反代默认保留；`--trusted-host` 放行的是请求 Host
+  authority，Origin fence 按 Host 判同源——本日 curl 矩阵实测）
+- 然后在 `.env` 填 `ETERNA_PUBLIC_URL=https://eternity-electricity.cn:<端口>`、
+  `ETERNA_TRUSTED_HOST=eternity-electricity.cn:<端口>`、`ETERNA_ACCESS_SECURE=1`，
+  `docker compose up -d`。
 
-安全基线：DSH token + 建议反代层再加一道 basic auth；审计留痕在卷
-`/data/workspaces/**/.eterna/`。
+安全基线：账号门禁（access）+ 建议反代层再加一道 basic auth 双保险；审计留痕
+在卷 `/data/access/`（账号事件）与 `/data/workspaces/**/.eterna/`（会话事件）。
 
 ## 镜像内布局
 
