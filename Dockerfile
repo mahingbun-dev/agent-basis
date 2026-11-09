@@ -26,5 +26,5 @@ ENV DSH_HOME=/data
 # ETERNA_PUBLIC_URL / ETERNA_TRUSTED_HOST(反代场景)
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD curl -s -o /dev/null http://127.0.0.1:8080/ || exit 1
+  CMD curl -s -o /dev/null "http://$(hostname -i | awk '{print $1}'):8080/" || exit 1
 ENTRYPOINT ["/app/entrypoint.sh"]
