@@ -1,0 +1,33 @@
+# 构建上下文瘦身:运行态/密钥/大体积证据目录不入镜像
+.git
+.gitignore
+node_modules
+**/node_modules
+lib
+**/lib
+dist
+coverage
+*.tsbuildinfo
+
+# 本地运行态与密钥(绝不入镜像)
+.env
+.env.*
+.basis
+.basis/
+.eterna/
+.basis-home*
+.eterna-home*
+.secrets
+basis/
+qa-work
+tmp
+.zcode
+*.log
+
+# 大体积证据目录(镜像不需要)
+dsh-evals-out
+docs/acp-real-6
+docs/acp-real-6-r2
+docs/release-gate-v2
+docs/t14-replay-20
+docs/dev

@@ -1,0 +1,539 @@
+# ── Eterna Agent 容器部署 patch 模板 ──────────────────────────────────────
+# 来源:验收实例 proven 配置(.eterna-home-accept profile)收编入库(2026-11-09)。
+# 渲染:docker/entrypoint.sh 将 __ETERNA_LLM_BASE_URL__ 替换为 $ETERNA_LLM_BASE_URL
+# 后落卷 $DSH_HOME/profiles/eterna-web/cordis.patch.yml(每次启动重渲染,env 即配)。
+# 漂移守卫:改本模板或 profiles/eterna-web/cordis.patch.yml(企业裁切基座)后,
+# 重跑本同步(sed 比对)或在 PR 中显式重放挂载块——两文件职责见各自头注。
+# 密钥纪律:模板无任何密钥;key 经 LITELLM_API_KEY env(apiKeyEnv 指名读取)。
+# Basis enterprise Web 档（eterna-web）：dsh-base + dsh-web-app 之上的企业裁切层。
+#
+# 装载形态：DSH profile `$DSH_HOME/profiles/eterna-web`，其 package.json 声明
+# dsh.profile.bundles = ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app"]，
+# 本文件作为该 profile 的 cordis.patch.yml（用户层，最后写赢）。裁切=按 id 覆写
+# 既有行并置 disabled: true（补丁语义：裸 id 行只覆写既有行且整份替换 config，
+# 覆写 config 的行重述全部键；新增行必须用 "- insert:"——见
+# packages/glue/cordis.patch.yml 的 E2E 教训）。本层不含任何 "- insert:" 行，
+# 全部为覆写。
+#
+# 权威依据：plans/2026-11-06-dsh企业agent路线定案.md §11（§11.7 图纸复核、
+# §11.8 二次裁定为准）。行 id 核对自 deepseek-harness 两个 bundle patch 的
+# 装品版本（@deepseek-ai/dsh-base 0.2.2-rc.1、@deepseek-ai/dsh-web-app 0.2.2-rc.1，
+# 即实际 boot 的补丁文本；仓库检出略超前，差异见 docs/eterna-web-profile.md）。
+#
+# 两条已知偏差（对 §11.2/§11.8 的字面清单）：
+# 1. `credentials` 行保留不裁：client-connection（web 传输层，必需行
+#    requiredStartupEntryIds 成员）插件级 inject = ["credentials"]
+#    （dsh-client-connection lib/index.js:1013；BrowserAuth 用它持久化浏览器
+#    会话签名密钥 lib/index.js:391-401）。实测裁掉即启动失败 "connection
+#    (required) missing credentials"。该文档仅承载浏览器会话签名 record，
+#    无模型密钥写入路径（账号/凭据解析行均已裁）。
+# 2. agent 平面行在预设（preset）内装载，仅裁宿主行不够：shipped
+#    standard 预设的 delegation 组原样启用 workflow-ptc/tool-workflow，
+#    ptc 预设启用 tool-executor-ptc（真 boot 的 pluginInventory 已实测）。
+#    故本层按官方机制重述 preset-standard 的整份 config（Web 编辑器同款：
+#    "Edits saved from the Web editor override this row's config.plugins by id
+#    from the profile patch"），并整体禁用 preset-ptc；preset-cordis（创造模式）
+#    于 2026-11-09 用户裁定回加（重要：Agent 可编写插件/创建模式），整份重述见下。
+#
+# 回加方式：删除对应行的覆写块（或把 disabled 改回），见
+# docs/eterna-web-profile.md「如何回加」。
+
+# ── 遥测（§11.8：裁后无隐式外联；§11.2：外联 dsh-otel-collector 合规红线）─────
+- id: otel
+  disabled: true
+
+- id: session-telemetry-otel
+  disabled: true
+
+- id: desktop-product-telemetry
+  disabled: true
+
+- id: product-analytics
+  disabled: true
+
+# ── 凭据解析与账号体系（§11.2/§11.8：密钥走环境变量/自建路由层，不落地 DSH）──
+# credentials 保留，见文件头「已知偏差 1」。
+- id: authorization
+  disabled: true
+
+- id: deepseek-account
+  disabled: true
+
+- id: llm-deepseek
+  disabled: true
+
+- id: llm-deepseek-account
+  disabled: true
+
+# 账号 API：硬注入 deepseekAccount（dsh-api-account-controller lib/index.js:199
+# static inject = ["deepseekAccount", "agents"]），底层行裁掉后不裁必 failed。
+- id: account-controller
+  disabled: true
+
+- id: ui-settings-account
+  disabled: true
+
+# ── ptc/workflow 家族·宿主行（2026-11-09 修订：创造模式（preset-cordis）回加后，
+# workflow-ptc 硬依赖 ptcRuntime 服务（static inject 含 ptcRuntime，且强制
+# TypeScript 运行时）——ptc-runtime/workflow-ptc/tool-workflow 三行宿主回加；
+# 默认标准会话仍经 preset-standard 内 disabled 不可见，仅创造模式启用。
+# tool-executor-ptc 维持裁切（仅 ptc 会话使用，创造模式不声明）。
+# ptc-runtime 包名 @deepseek-ai/dsh-ptc-runtime-node=Node TS 运行时。──────────
+- id: ptc-runtime
+  disabled: false
+
+- id: workflow-ptc
+  disabled: false
+
+- id: tool-workflow
+  disabled: false
+
+- id: tool-executor-ptc
+  disabled: true
+
+- id: fs-observation-policy
+  disabled: true
+
+- id: tool-plugin-manager
+  disabled: true
+
+- id: ui-workflow-run
+  disabled: true
+
+# ── Session Log 上传（2026-11-09 用户裁定：去掉通用设置里的该开关；宿主行+
+#    客户端行成对裁,上传能力与设置开关一并消失——契合「数据不出内网」红线）─────
+- id: session-log-deepseek
+  disabled: true
+
+- id: ui-settings-session-log
+  disabled: true
+
+# ── 场景裁切（§11.3/§11.8 确认维持）─────────────────────────────────────────
+- id: office-to-pdf
+  disabled: true
+
+- id: open-in-app
+  disabled: true
+
+- id: ui-open-in-app
+  disabled: true
+
+# shortcuts（@deepseek-ai/dsh-client-shortcuts）不裁:它是 client 服务根——快捷键
+# 服务,浏览器端 26 个 client-ui 插件(layout/contextMenus/sidebar 系/chat/workspace
+# 等)的等待链全部级联到它,裁掉即 web boot 全家 pending(2026-11-09 浏览器 E2E 实测
+# 教训:宿主 pluginInventory 断言照绿,client 侧只在真浏览器暴露)。ui-shortcuts
+# (快捷键设置页)维持裁切,无人等待其服务。
+- id: ui-shortcuts
+  disabled: true
+
+- id: ui-brand-official
+  disabled: true
+
+- id: ui-message-feedback
+  disabled: true
+
+# ── 预设层（agent 平面；见文件头「已知偏差 2」）─────────────────────────────
+# ptc 预设：存在意义即 ptc/workflow 会话（tool-executor-ptc 等），整体禁用。
+- id: preset-ptc
+  disabled: true
+
+# cordis 预设（创造模式）：2026-11-09 用户裁定回加（很重要）——Agent 可编写
+# 插件、组合工具与提示词创建模式，workflow 创建能力为其本体。整份 config 重述
+# 装品 presets/cordis.patch.yml，仅两处变化：tool-plugin-manager/tool-plugin-market
+# → disabled: true（企业红线：三方准入不开放）。
+# ⚠️ 硬依赖：skill-filesystem 的 customSkillDirs 表达式以 createRequire(baseUrl)
+# 解析 @eterna/creation-skills（=packages/brand，profile node_modules 需 symlink；
+# 品牌化技能 fork 见 packages/brand/skills/），否则 boot 即 MODULE_NOT_FOUND。
+# 链接步骤见 docs/eterna-web-profile.md「如何回加」。
+- id: preset-cordis
+  config:
+    id: cordis
+    order: 4
+    plugins:
+      - id: persona
+        name: '@deepseek-ai/dsh-persona'
+        config:
+          prefix: >-
+            You are a coding agent powered by the {{model}} model.
+      - id: agent-instructions
+        name: '@deepseek-ai/dsh-agent-instructions'
+        config:
+          maxBytes: 65536
+      - id: time-context
+        name: '@deepseek-ai/dsh-time-context'
+      - id: tool-bash
+        name: '@deepseek-ai/dsh-tool-bash'
+        disabled: !!js process.platform === 'win32'
+      - id: tool-pwsh
+        name: '@deepseek-ai/dsh-tool-pwsh'
+        disabled: !!js process.platform !== 'win32'
+      - id: tool-fs
+        name: '@deepseek-ai/dsh-tool-fs'
+        config:
+          applyPatch: false
+      - id: tool-fs-search
+        name: '@deepseek-ai/dsh-tool-fs-search'
+        config:
+          sampleOverCapGlobResults: false
+      - id: tool-jobs
+        name: '@deepseek-ai/dsh-tool-jobs'
+      - id: tool-schedule
+        name: '@deepseek-ai/dsh-tool-schedule'
+      - id: command-goal
+        name: '@deepseek-ai/dsh-command-goal'
+      - id: tool-goal
+        name: '@deepseek-ai/dsh-tool-goal'
+      - id: planning
+        name: cordis:group
+        group: true
+        isolate:
+          planMode: true
+        config:
+          - id: plan-mode
+            name: '@deepseek-ai/dsh-plan-mode'
+            config:
+              section: |
+                You are in plan mode. Stay in plan mode until the user approves your plan through exit_plan_mode or switches the session mode. Imperative language to implement changes means plan the implementation, not execute it. A user's conversational agreement — including an answer confirming something you asked — approves nothing and does not end plan mode; fold the confirmed decision into the plan and submit it through exit_plan_mode.
+
+                Explore first. Use non-mutating reads, searches, static analysis, and checks to ground the plan in the actual repository. Do not edit or write files, change configuration, run formatters or code generation that rewrites tracked files, commit, or otherwise carry out the plan. Prefer existing functions and patterns over new machinery.
+
+                The tool catalog stays the same across modes for request-cache stability. These plan-mode rules override any later tool description or guidance that suggests using mutation tools; those tools remain listed to keep the tool catalog unchanged. Do not use todo_write to track this planning phase: it tracks implementation after an approved plan, while the plan itself belongs in exit_plan_mode.
+
+                Resolve discoverable facts by inspection. Use ask_user_question only for user-owned choices or material ambiguity that inspection cannot answer. Do not ask the user where code lives or how current behavior works when you can find out.
+
+                Make the plan decision-complete: state the goal and success criteria; group implementation changes by subsystem; identify public API, schema, and data-flow changes; cover edge cases, failure modes, tests, acceptance criteria, and explicit assumptions. Keep it concise enough to review but detailed enough that another engineer can implement it without making design decisions.
+
+                When ready, call exit_plan_mode with the complete plan markdown, starting with a # title. Make exit_plan_mode the only and final tool call in that assistant response: it presents the plan for approval, and implementation begins only in a later step after approval. If review rejects it, incorporate the feedback and present again. If the review channel is unavailable or aborted, stay in plan mode and ask the user to switch modes manually; do not proceed with implementation.
+      - id: compaction
+        name: cordis:group
+        group: true
+        isolate:
+          compaction: true
+          toolResultPruner: true
+        config:
+          - id: compaction-basic
+            name: '@deepseek-ai/dsh-compaction-basic'
+          - id: command-compact
+            name: '@deepseek-ai/dsh-command-compact'
+          - id: tool-result-pruner
+            name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+            config:
+              thresholdChars: 8192
+              headChars: 4096
+              tailChars: 1024
+      - id: delegation
+        name: cordis:group
+        group: true
+        isolate:
+          workflowEngine: true
+        config:
+          - id: tool-subagent-control
+            name: '@deepseek-ai/dsh-tool-subagent-control'
+          - id: tool-subagent
+            name: '@deepseek-ai/dsh-tool-subagent'
+            config:
+              provider: spawn
+              toolName: subagent
+              modelSelection: true
+              modelDiscovery: true
+          - id: tool-subagent-fork
+            name: '@deepseek-ai/dsh-tool-subagent'
+            config:
+              provider: fork
+              toolName: subagent_fork
+          - id: workflow-ptc
+            name: '@deepseek-ai/dsh-workflow-ptc'
+            config:
+              provider: spawn
+          - id: tool-workflow
+            name: '@deepseek-ai/dsh-tool-workflow'
+      - id: tool-ask-user
+        name: '@deepseek-ai/dsh-tool-ask-user'
+      - id: tool-todo
+        name: '@deepseek-ai/dsh-tool-todo'
+        config:
+          allowParallelInProgress: true
+      - id: tool-web
+        name: '@deepseek-ai/dsh-tool-web'
+        config:
+          fetch: true
+          searchTimeoutMs: 60000
+      - id: tool-cordis
+        name: '@deepseek-ai/dsh-tool-cordis'
+      - id: skill-filesystem
+        name: '@deepseek-ai/dsh-skill-filesystem'
+        config:
+          # 技能目录=品牌化 fork（packages/brand/skills）：2026-11-09 品牌化改造——
+          # 上游技能散文含 DeepSeek Harness/DSH 共 94 处，fork 至 @eterna/creation-skills
+          # （symlink→packages/brand）并全线替换为 EternaAgent；包名 @deepseek-ai/*
+          # 为真实依赖，保留。升级姿势：与上游 skills/ re-diff 后重放本替换。
+          customSkillDirs:
+            - !!js process.getBuiltinModule('node:path').join(process.getBuiltinModule('node:path').dirname(process.getBuiltinModule('node:module').createRequire(baseUrl).resolve('@eterna/creation-skills/package.json')), 'skills')
+      - id: tool-skill
+        name: '@deepseek-ai/dsh-tool-skill'
+      - id: present
+        name: '@deepseek-ai/dsh-tool-present'
+      - id: tool-plugin-manager
+        name: '@deepseek-ai/dsh-plugin-manager/tools'
+        disabled: true
+      - id: tool-plugin-market
+        name: '@deepseek-ai/dsh-plugin-market/tools'
+        disabled: true
+
+# standard 预设（默认预设）：整份 config 重述（补丁语义：config 整份替换），
+# 与装品 presets/standard.patch.yml 逐行一致，仅三处变化：
+#   - delegation 组内 workflow-ptc / tool-workflow → disabled: true（§11.2/§11.8）；
+#   - tool-plugin-manager → disabled: true（§11.8「本就 disabled」维持裁定）。
+- id: preset-standard
+  config:
+    id: standard
+    order: 1
+    plugins:
+      - id: persona
+        name: '@deepseek-ai/dsh-persona'
+        config:
+          prefix: You are a coding agent powered by the {{model}} model.
+      - id: agent-instructions
+        name: '@deepseek-ai/dsh-agent-instructions'
+        config:
+          maxBytes: 65536
+      - id: time-context
+        name: '@deepseek-ai/dsh-time-context'
+      - id: tool-bash
+        name: '@deepseek-ai/dsh-tool-bash'
+        disabled: !!js process.platform === 'win32'
+      - id: tool-pwsh
+        name: '@deepseek-ai/dsh-tool-pwsh'
+        disabled: !!js process.platform !== 'win32'
+      - id: tool-fs
+        name: '@deepseek-ai/dsh-tool-fs'
+        config:
+          # Set false to drop the apply_patch tool beside edit.
+          applyPatch: false
+      - id: tool-fs-search
+        name: '@deepseek-ai/dsh-tool-fs-search'
+        config:
+          sampleOverCapGlobResults: false
+      - id: tool-jobs
+        name: '@deepseek-ai/dsh-tool-jobs'
+      - id: tool-schedule
+        name: '@deepseek-ai/dsh-tool-schedule'
+      - id: skill-filesystem
+        name: '@deepseek-ai/dsh-skill-filesystem'
+      - id: tool-skill
+        name: '@deepseek-ai/dsh-tool-skill'
+      - id: command-goal
+        name: '@deepseek-ai/dsh-command-goal'
+      - id: tool-goal
+        name: '@deepseek-ai/dsh-tool-goal'
+      - id: planning
+        name: cordis:group
+        group: true
+        isolate:
+          planMode: true
+        config:
+          - id: plan-mode
+            name: '@deepseek-ai/dsh-plan-mode'
+            config:
+              section: |
+                You are in plan mode. Stay in plan mode until the user approves your plan through exit_plan_mode or switches the session mode. Imperative language to implement changes means plan the implementation, not execute it. A user's conversational agreement — including an answer confirming something you asked — approves nothing and does not end plan mode; fold the confirmed decision into the plan and submit it through exit_plan_mode.
+
+                Explore first. Use non-mutating reads, searches, static analysis, and checks to ground the plan in the actual repository. Do not edit or write files, change configuration, run formatters or code generation that rewrites tracked files, commit, or otherwise carry out the plan. Prefer existing functions and patterns over new machinery.
+
+                The tool catalog stays the same across modes for request-cache stability. These plan-mode rules override any later tool description or guidance that suggests using mutation tools; those tools remain listed only to keep the request shape stable. Do not use todo_write to track this planning phase: it tracks implementation after an approved plan, while the plan itself belongs in exit_plan_mode.
+
+                Resolve discoverable facts by inspection. Use ask_user_question only for user-owned choices or material ambiguity that inspection cannot answer. Do not ask the user where code lives or how current behavior works when you can find out.
+
+                Make the plan decision-complete: state the goal and success criteria; group implementation changes by subsystem; identify public API, schema, and data-flow changes; cover edge cases, failure modes, tests, acceptance criteria, and explicit assumptions. Keep it concise enough to review but detailed enough that another engineer can implement it without making design decisions.
+
+                When ready, call exit_plan_mode with the complete plan markdown, starting with a # title. Make exit_plan_mode the only and final tool call in that assistant response: it presents the plan for approval, and implementation begins only in a later step after approval. Do not paste the final plan as a plain reply or ask "should I proceed?" through prose or ask_user_question. If the review channel is unavailable or aborted, stay in plan mode and ask the user to switch modes manually; do not proceed with implementation.
+      - id: compaction
+        name: cordis:group
+        group: true
+        isolate:
+          compaction: true
+          toolResultPruner: true
+        config:
+          - id: compaction-basic
+            name: '@deepseek-ai/dsh-compaction-basic'
+          - id: command-compact
+            name: '@deepseek-ai/dsh-command-compact'
+          - id: tool-result-pruner
+            name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+            config:
+              thresholdChars: 8192
+              headChars: 4096
+              tailChars: 1024
+      - id: delegation
+        name: cordis:group
+        group: true
+        isolate:
+          workflowEngine: true
+        config:
+          - id: tool-subagent-control
+            name: '@deepseek-ai/dsh-tool-subagent-control'
+          - id: tool-subagent
+            name: '@deepseek-ai/dsh-tool-subagent'
+            config:
+              provider: spawn
+              toolName: subagent
+              modelSelection: true
+              modelDiscovery: true
+          - id: tool-subagent-fork
+            name: '@deepseek-ai/dsh-tool-subagent'
+            config:
+              provider: fork
+              toolName: subagent_fork
+          - id: workflow-ptc
+            name: '@deepseek-ai/dsh-workflow-ptc'
+            disabled: true
+            config:
+              provider: spawn
+          - id: tool-workflow
+            name: '@deepseek-ai/dsh-tool-workflow'
+            disabled: true
+      - id: tool-ask-user
+        name: '@deepseek-ai/dsh-tool-ask-user'
+      - id: tool-todo
+        name: '@deepseek-ai/dsh-tool-todo'
+        config:
+          allowParallelInProgress: true
+      - id: tool-web
+        name: '@deepseek-ai/dsh-tool-web'
+        config:
+          fetch: true
+          searchTimeoutMs: 60000
+      - id: present
+        name: '@deepseek-ai/dsh-tool-present'
+      - id: tool-plugin-manager
+        name: '@deepseek-ai/dsh-plugin-manager/tools'
+        disabled: true
+      - id: tool-plugin-market
+        name: '@deepseek-ai/dsh-plugin-market/tools'
+        disabled: true
+
+# ── 回加（§11.8：内嵌浏览器为 web 档 opt-in，web-app 层默认 disabled）────────
+- id: ui-sidebar-browser
+  disabled: false
+
+# ── 验收挂载（2026-11-09 v2）：治理三插件 + 官方 pi-ai LLM 承载 ─────────────
+# 治理面三插件=T9 E2E 同款（行序=apply 序=pre-execute 瀑布序）。
+# LLM 承载行改官方 @deepseek-ai/dsh-llm-pi-ai：ns 必须逐字 llm-pi-ai（客户端
+# ui-settings-models layoutOf 按 entry id 精确匹配，命中官方完整编辑器——
+# Base URL/API 格式/API Key/模型列表(上下文窗口/视觉模态/推理档)/连接测试）。
+# 密钥口径：apiKeyEnv=LITELLM_API_KEY env 优先；UI 填写则落 .credentials.yaml(0600)。
+# 关键机制：llm-pi-ai 行必须是【根级覆写】（base 树自带休眠 llm-pi-ai 行，dsh-base
+# cordis.patch.yml:135）而非 insert——configEditor 只定位根级非 insert 行
+#（dsh-config-editor lib/index.js:97,100 明确跳过 insert 块），行在 insert 内则
+# 设置页保存静默不落盘（2026-11-09 浏览器 E2E 实测）。base 行休眠零路由，覆写
+# 供给 route 即活注册；UI 增删改 provider 经 settings 写回本行 config，热生效。
+# contextWindow 为声明值非探测值，可在 UI 逐行修改；volatile 字段热生效不重启。
+# 注意（2026-11-09 实测定论）：本行 config 欲被设置页编辑就必须用【字面值】——
+# 含 !!js 表达式的行，configEditor 写入验证必然失配（表达式节点 vs 运行态求值
+# 字符串），保存静默失败且编辑器状态回退；env 语义由 apiKeyEnv 承担（key 走
+# env），baseURL 字面值仅本机内网地址，无密钥落地风险。
+- insert:
+    - id: eterna-governance
+      name: '@eterna/glue/governance-plugin'
+    - id: eterna-audit
+      name: '@eterna/glue/audit-plugin'
+    - id: eterna-egress
+      name: '@eterna/glue/egress-plugin'
+    - id: eterna-llm-doctor
+      name: '@eterna/llm-doctor'
+    - id: eterna-brand
+      name: '@eterna/brand'
+
+# LLM 承载（根级覆写 base 休眠行，非 insert——原因见上）：pi-ai 多协议适配器
+- id: llm-pi-ai
+  config:
+    providers:
+      litellm:
+        displayName: 企业模型网关（LiteLLM）
+        apiKeyEnv: LITELLM_API_KEY
+        api: openai-completions
+        baseURL: __ETERNA_LLM_BASE_URL__
+        models:
+          - id: deepseek-flash
+            name: DeepSeek Flash
+            contextWindow: 300000
+            maxTokens: 8192
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: high
+          - id: mimo-v2.6-flash
+            name: mimo-v2.6-flash
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: high
+            contextWindow: 300000
+          - id: mimo-v2.6-pro
+            name: mimo-v2.6-pro
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: high
+            contextWindow: 300000
+          - id: mimo-v2.6-pro-ultraspeed
+            name: mimo-v2.6-pro-ultraspeed
+            contextWindow: 300000
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: high
+          - id: glm-5.3
+            name: glm-5.3
+            contextWindow: 300000
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: high
+          - id: glm-5.3-flash
+            name: glm-5.3-flash
+            contextWindow: 300000
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: high
+
+# 企业默认模型（base 既有行覆写，config 整份替换）：provider=pi-ai 路由 key
+- id: agent-default-model
+  config:
+    provider: litellm
+    model: mimo-v2.6-pro
+- id: ui-settings-general
+  name: "@deepseek-ai/dsh-client-ui-settings-general"
+  config:
+    welcomeNoticeVersion: 2026-09-28.1
+- id: session-log-deepseek
+  name: "@deepseek-ai/dsh-session-log-deepseek"
+  config:
+    enabled: false
+- id: agent-preset-registry
+  name: "@deepseek-ai/dsh-agent-preset-registry"
+  config:
+    default: standard
+    selectedDefault: cordis

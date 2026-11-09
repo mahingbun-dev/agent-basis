@@ -1,0 +1,35 @@
+# Eterna Agent 本机容器部署(云端 agent:NAS 反代 → 本容器)。
+#
+# 首次启动:
+#   1. cp .env.example .env  并填 LITELLM_API_KEY(cat .secrets/litellm-master-key.txt)
+#   2. docker compose up -d --build
+#   3. 取登录 token:docker compose logs eterna-agent | grep -o 'token=[A-Za-z0-9_-]*'
+#   4. 内网访问 http://<本机局域网IP>:3210/?token=<token>
+#
+# 外网(用户自行配置 NAS 反代后):在 .env 设
+#   ETERNA_PUBLIC_URL=https://eternity-electricity.cn:<端口>
+#   ETERNA_TRUSTED_HOST=eternity-electricity.cn:<端口>
+# 再 `docker compose up -d`(重渲染 profile,热生效)。
+#
+# 会话/存储/审计全部落 named volume eterna-home,升级镜像不丢数据。
+
+services:
+  eterna-agent:
+    build: .
+    image: eterna-agent:0.1.0
+    container_name: eterna-agent
+    # cwd=卷根:审计/治理规则/记忆库默认落 $cwd/.eterna → 持久化在 eterna-home 卷
+    working_dir: /data
+    ports:
+      - "3210:8080"
+    environment:
+      LITELLM_API_KEY: ${LITELLM_API_KEY:?在 .env 填 LITELLM_API_KEY}
+      ETERNA_LLM_BASE_URL: ${ETERNA_LLM_BASE_URL:-http://192.168.31.165:4000/v1}
+      ETERNA_PUBLIC_URL: ${ETERNA_PUBLIC_URL:-}
+      ETERNA_TRUSTED_HOST: ${ETERNA_TRUSTED_HOST:-}
+    volumes:
+      - eterna-home:/data
+    restart: unless-stopped
+
+volumes:
+  eterna-home:
