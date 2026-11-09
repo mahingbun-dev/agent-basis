@@ -1,6 +1,6 @@
 # 企业能力插件设计（T4）：@basis/audit 首插件与三方准入路线
 
-> 生成：2026-11-07 ｜ 修订：2026-11-07 r2（评审修订：服务名语义 / inject 可选性 / deny 理由可达性 / waterfall 透传 / 令牌 v1 口径，见 §5 修订记录）｜ 状态：设计定稿待复审 ｜ 仓库：agent-basis（dev）
+> 生成：2026-11-07 ｜ 修订：2026-11-09 r3（T8 落地收口：缺口表三行翻绿，见 §5 修订记录；r2=2026-11-07 评审修订：服务名语义 / inject 可选性 / deny 理由可达性 / waterfall 透传 / 令牌 v1 口径）｜ 状态：设计定稿；P0 审计接线与 P1 宿主执行点已落地（T8/T9），B 面令牌 / P2 / P3 未动 ｜ 仓库：agent-basis（dev）
 > 权威依据：`plans/2026-11-06-dsh企业agent路线定案.md` §11.7（图纸《智能体平台分层架构》复核，2026-11-07）与 T4 任务行（§6）；图纸②=写权限管控（达梦只读/「写入仅限预警记录表」），图纸⑧=三方准入（签名校验/工具白名单/最小权限令牌/调用审计）。
 > 本文是 T4 产出物「权限/审计/知识挂载点设计文档 + 首个插件骨架」中的**权限/审计**部分；知识挂载点以 11 号设计文档与 `@basis/knowledge` 提案制为准，不在此重复。
 
@@ -12,11 +12,11 @@
 
 | 包 | 已有能力（代码锚点） | 挂载形态 | 与②⑧的关系 |
 | --- | --- | --- | --- |
-| `@basis/governance` | 规则引擎 `RuleEngine`：YAML → `evaluate(tool,args)` → allow/ask/deny，**deny 优先、fail-closed**（解析期拒绝 `default: allow`，`packages/governance/src/rules.ts:1-9`）；预算守卫 `BudgetGuard`（`agent/turn-stopping` seam 硬截断）；PII 过滤 `PiiFilter`；**审计投影 `AuditProjector`**（session 事件流 → 审计记录，内存/文件双 sink，`src/audit.ts`、`src/sink.ts:14-42`）；egress-lite（出网工具白名单判定，自认「防护等级=引导非强制」，`src/egress.ts:1-11`） | **未挂载为宿主行为**：glue 的 governance-plugin 只 `ctx.provide('governance', { rules, pii })`，既没接审计、也没挂 pre-execute（`packages/glue/src/plugins/governance-plugin.ts:11,31-48`） | ②的主判定引擎；⑧的调用审计库本体 |
+| `@basis/governance` | 规则引擎 `RuleEngine`：YAML → `evaluate(tool,args)` → allow/ask/deny，**deny 优先、fail-closed**（解析期拒绝 `default: allow`，`packages/governance/src/rules.ts:1-9`）；预算守卫 `BudgetGuard`（`agent/turn-stopping` seam 硬截断）；PII 过滤 `PiiFilter`；**审计投影 `AuditProjector`**（session 事件流 → 审计记录，内存/文件双 sink，`src/audit.ts`、`src/sink.ts:14-42`）；egress-lite（出网工具白名单判定，自认「防护等级=引导非强制」，`src/egress.ts:1-11`） | **已挂载为宿主行为（T8）**：glue governance-plugin 装配 `createGovernance({ rules, pii }).preExecute` 并挂上宿主 `tools/pre-execute` 瀑布——deny 短路、ask 透传后回填、allow 一律透传（`packages/glue/src/plugins/governance-plugin.ts:79,87-114`）；deny/ask 终局经组合层桥接直投审计（`packages/glue/src/audit-bridge.ts:28-31`） | ②的主判定引擎；⑧的调用审计库本体 |
 | `@basis/interact` | `hitl.yaml` 风险分档 R0-R3（fail-closed：`default_grade` 只允许 R2/R3，`packages/interact/src/hitl.ts:104-106`）；R0-R3 → DSH `permission-presets` 配置产物（**已知边界：PresetSpec 只捆绑 sandbox/approval 两旋钮**，`src/presets.ts:18-20` 头注）；富审批卡片；审批负信号**库**（`src/negative.ts` recordOutcome，repo 内暂无组合层调用方，见 §3.4 不变量 3） | 库形态（产物生成器）；领域包侧的 ask 门实装在 `packs/event-planning/plugin.ts:355-357` | ②的「写入需确认」档位来源 |
 | `@basis/knowledge` | wiki-local + WeKnora 双后端、RRF 融合、**提案制写入**（agent_drafted 未过审永不进检索）；glue 侧提案门禁 fail-closed（governance 规则显式 allow 才放行，`packages/glue/src/plugins/knowledge-plugin.ts:26-35`） | glue bundle `- insert:` 装载（`packages/glue/cordis.patch.yml`） | 非②⑧主体；提案门禁复用 governance |
-| `@basis/observe` | evolve_signal sqlite 信号存储，kind ∈ `feedback_low \| approval_modified \| approval_rejected \| eval_fail \| drift \| audit_scan`（**audit_scan 已预留**，`packages/observe/src/signals.ts:11-13`）；指标聚合器（session 事件纯函数折叠，`src/metrics.ts:1-13`） | 库形态 | ⑧审计的下游消费者（audit_scan） |
-| `@basis/extra` | egress 完整版三层（工具级→域名级→代理强注，结构化拒绝不中断 turn，`packages/extra/src/egress-wrapper.ts:1-21`）；reviewer preset（只读审查 subagent，工具白名单 read/grep/glob）；tenant realm（行业→客户两级 isolate，**已裁定 audit 跨租户共享**——`ISOLATED_TENANT_SERVICES` 不含 audit，`src/tenant-realm.ts:25,40`） | 库形态（§11.4：egress 首期挂，realm 不挂） | ⑧工具白名单的出网向先例 |
+| `@basis/observe` | evolve_signal sqlite 信号存储，kind ∈ `feedback_low \| approval_modified \| approval_rejected \| eval_fail \| drift \| audit_scan`（**audit_scan 已预留**，枚举注释 `packages/observe/src/signals.ts:6`、SIGNAL_KINDS_SQL 字面量 `:47`）；指标聚合器（session 事件纯函数折叠，`src/metrics.ts:1-13`） | 库形态 | ⑧审计的下游消费者（audit_scan） |
+| `@basis/extra` | egress 完整版三层（工具级→域名级→代理强注，结构化拒绝不中断 turn，`packages/extra/src/egress-wrapper.ts:1-21`）；内网默认域名白名单（T8 交付：仅 `192.168.31.*`/`localhost`/`manas`，`packages/extra/src/egress-defaults.ts:19-23`，配套资产模板 `packages/extra/assets/egress-whitelist.template.yml`）；reviewer preset（只读审查 subagent，工具白名单 read/grep/glob）；tenant realm（行业→客户两级 isolate，**已裁定 audit 跨租户共享**——`ISOLATED_TENANT_SERVICES` 不含 audit，`src/tenant-realm.ts:25,40`） | **egress 已挂载为宿主行为（T8）**：glue egress-plugin 把三层 wrapper 挂上 `tools/pre-execute`（`packages/glue/src/plugins/egress-plugin.ts:105-137`），行序钉 basis-egress 最下游（`packages/glue/cordis.patch.yml:8-11`）；reviewer/realm 仍为库形态（§11.4：realm 不挂） | ⑧工具白名单的出网向先例 |
 
 ### 1.2 市场与安装面（三方准入的既有基础）
 
@@ -31,14 +31,14 @@
 | 图纸项 | 现状 | 缺口 | 判定 |
 | --- | --- | --- | --- |
 | ② 写权限判定引擎 | RuleEngine deny 优先 fail-closed，MCP 工具名（`mcp__*`）可直接进规则 | — | ✅ 已有 |
-| ② 宿主执行点 | **glue governance-plugin 未挂 `tools/pre-execute`**；目前唯一挂了 pre-execute 的是 @event/pack 的 ask 门（`packs/event-planning/plugin.ts:355-357`） | 企业档卸掉领域包后 deny 判定无处执行 | ⚠️ 接线缺口（P1 修） |
+| ② 宿主执行点 | **T8 已挂载**：glue governance-plugin 挂宿主 `tools/pre-execute`（deny 短路+审计直投、ask 透传后回填、allow 一律透传，`packages/glue/src/plugins/governance-plugin.ts:87-114`）；bundle 行序钉 basis-governance 最外层、basis-egress 最下游（`packages/glue/cordis.patch.yml:8-11`） | —（原缺口「企业档卸掉领域包后 deny 判定无处执行」已消除：企业档仍挂 glue bundle） | ✅ 已落地（T8） |
 | ② 参数级写权限 | `argsContains` 子串匹配（`rules.ts:19-26`），表达不了「表名参数必须=预警记录表」的路径级判定 | argsPath 匹配或依赖 MCP 工具白名单收敛 | ⚠️ P3 增强 |
 | ⑧ 签名校验 | plugin-manager 无验签；market 索引固定 commit | 自建验签（bundle 外侧，不进宿主） | ❌ P2 |
-| ⑧ 工具白名单 | egress-lite/reviewer 是出网/审查向；无「三方插件可注册哪些工具」的准入向白名单 | 准入令牌的 tools[] 载荷承载 | ⚠️ P1 |
-| ⑧ 最小权限令牌 | 无任何载体；且 **DSH ToolExecution 无注册方身份字段**（`contracts.ts:170-197`：callId/rootCallId/name/schema/arguments/agent/toolSet/parent/signal/token），`tools/change` 事件无载荷（`events.ts:56-59`）——「调用↔插件」关联无内核事实可用 | 令牌 v1 只能凭配置声明落保护表（§3.5），注册事实级关联待上游 | ❌ P1（口径已收窄） |
-| ⑧ 调用审计 | `AuditProjector` 库已就绪（本期实测 74/74 测试过）；**但 glue 未接线**——panel 明证：「审计读 `.basis/audit.jsonl`（glue 未接审计投影时文件不存在 = 0 条）」（`packages/panel/src/snapshot.ts:4`）；且 `AuditRecord` 无 actor/pluginId 字段（`sink.ts:14-35`） | 接线 + 查询面 + actor 字段扩展 | ⚠️ 库✅ / 插件❌ |
+| ⑧ 工具白名单 | 出网向已挂载（T8）：egress 三层（工具级→域名级→代理强注）经 glue egress-plugin 上瀑布，拒绝在 pre-execute 物化、底层 execute 不触达（`packages/glue/src/plugins/egress-plugin.ts:116-130`）；reviewer 仍是审查向库形态；「三方插件可注册哪些工具」的准入向白名单仍无 | 准入令牌的 tools[] 载荷承载 | ⚠️ 准入向 P1（出网向 ✅ T8） |
+| ⑧ 最小权限令牌 | 无任何载体（B 面未含于 audit P0 骨架，`packages/audit/src/service.ts:14-16` 头注明示）；且 **DSH ToolExecution 无注册方身份字段**（`contracts.ts:170-197`：callId/rootCallId/name/schema/arguments/agent/toolSet/parent/signal/token），`tools/change` 事件无载荷（`events.ts:56-59`）——「调用↔插件」关联无内核事实可用 | 令牌 v1 只能凭配置声明落保护表（§3.5），注册事实级关联待上游 | ❌ P1（口径已收窄；T8 未动） |
+| ⑧ 调用审计 | **T8 已接线**：`@basis/audit` 插件——A 面 session/event 增量投影 → `DailyFileAuditSink` 按日轮转 `.basis/audit-YYYYMMDD.jsonl`（`packages/audit/src/plugin.ts:44-48,62-64`、`packages/audit/src/daily-sink.ts:25-33`），C 面分页游标查询 + 治理侧 `report()` 直投（`packages/audit/src/service.ts:53-61`）；glue governance/egress 决策经组合层桥接 `ctx.audit.report()` 直投（`packages/glue/src/audit-bridge.ts:28-31`）；`AuditRecord.actor` 扩展随 governance 库落地（`governance/src/sink.ts:14,47-48`） | —（原缺口「接线 + 查询面 + actor 字段扩展」三项全落） | ✅ 已落地（T8） |
 
-**盘点小结**：②⑧的判定与投影逻辑大部分已作为纯函数层存在，真正缺的是四件事——**宿主接线**（pre-execute + session/event）、**准入令牌**（全新，v1 凭配置声明）、**签名校验**（bundle 外侧）、**审计 schema 的 actor 扩展**（⑧要到插件粒度必须加字段）。这决定了首插件选型（§2）。
+**盘点小结**：②⑧的判定与投影逻辑大部分已作为纯函数层存在，真正缺的是四件事——**宿主接线**（pre-execute + session/event）、**准入令牌**（全新，v1 凭配置声明）、**签名校验**（bundle 外侧）、**审计 schema 的 actor 扩展**（⑧要到插件粒度必须加字段）。这决定了首插件选型（§2）。〔T8（2026-11-09）收口：四缺中「宿主接线」「actor 扩展」两项已落地（§1.3 表 ②宿主执行点 / ⑧调用审计两行翻绿）；「准入令牌」「签名校验」仍开，判定不变。〕
 
 ### 1.4 盘点期实测记录（本会话真实执行）
 
@@ -161,9 +161,9 @@ apply(ctx: Context): () => void {
 
 | seam | 谁挂 | 职责 | 单调性 |
 | --- | --- | --- | --- |
-| `tools/pre-execute` waterfall（`core/tools/src/events.ts:18`） | **governance**（P1 由 glue governance-plugin 挂载，装配 `createGovernance().preExecute`） | allow/ask/deny 决策：预算→egress→规则引擎，deny 优先（`governance/src/index.ts:86-93`） | 可扩展（waterfall veto），deny 一经产生由内核保证不可回翻 |
-| `ctx.tools.guard()`（`core/tools/src/index.ts:384-386`，类型 `contracts.ts:384-391`） | **audit**（B 面令牌核验） | deny-only 红线：命中保护表的调用无有效令牌 → 返回拒绝理由 | **单调**：checkGuards 只在 pre-execute waterfall 与 approval 均通过后运行（`pipeline.ts:199-213`），guards 无 allow 语义、监听顺序不可能把 deny 翻回 allow（`core/tools/README.md:92`） |
-| `session/event`（`core/session/src/index.ts:76`；插件级消费先例 `context/agent-instructions/src/index.ts:322`，该插件 inject 未含 session，佐证监听无需依赖注入） | **audit**（A 面） | 纯观察留痕，不参与裁决 | 无裁决权 |
+| `tools/pre-execute` waterfall（`core/tools/src/events.ts:18`） | **governance**（T8 已挂载：glue governance-plugin 装配 `createGovernance({ rules, pii }).preExecute`，`packages/glue/src/plugins/governance-plugin.ts:79,87-114`） | allow/ask/deny 决策：预算→egress→规则引擎，deny 优先（`governance/src/index.ts:86-93`） | 可扩展（waterfall veto），deny 一经产生由内核保证不可回翻 |
+| `ctx.tools.guard()`（`core/tools/src/index.ts:384-386`，类型 `contracts.ts:384-391`） | **audit**（B 面令牌核验；**未落地**——P0 骨架不含 B 面，`packages/audit/src/service.ts:14-16`） | deny-only 红线：命中保护表的调用无有效令牌 → 返回拒绝理由 | **单调**：checkGuards 只在 pre-execute waterfall 与 approval 均通过后运行（`pipeline.ts:199-213`），guards 无 allow 语义、监听顺序不可能把 deny 翻回 allow（`core/tools/README.md:92`） |
+| `session/event`（`core/session/src/index.ts:76`；插件级消费先例 `context/agent-instructions/src/index.ts:322`，该插件 inject 未含 session，佐证监听无需依赖注入） | **audit**（A 面；T8 已挂载，`packages/audit/src/plugin.ts:62-64`） | 纯观察留痕，不参与裁决 | 无裁决权 |
 
 **协作不变量**（四条，前两条写进验收断言）：
 
@@ -172,9 +172,9 @@ apply(ctx: Context): () => void {
 3. **审批负信号链路现状 = 待接线，不是既有链路**：`ApprovalSignalBus.recordOutcome` 是库函数，头注自认「由组合层在 waterfall 应答处调」（`interact/src/negative.ts:7-9`），repo 内 grep 无任何生产调用方（仅 interact 包内测试引用）；observe 只预留 `approval_rejected` kind。在组合层接线落地前，audit 的 tool/result 事实面不依赖它；接线列为 P1 工作项，届时 audit「不重复记审批决策」的分工才成立；
 4. **双投影器禁令**：全宿主唯一 `AuditProjector` 归 audit 插件。governance 库的 `Governance.audit` 字段与 `createGovernanceFromYaml` 的 audit 装配路径（`governance/src/index.ts:58,73,111`）在 glue 装配时**不得**再建实例（glue 现状未建，无存量冲突）；governance 侧的治理事件（预算违规/令牌拒绝）经 `ctx.audit.report()` 直投（`AuditProjector.reportGovernance` 已有，`audit.ts:153-157`）。
 
-**两处已核实的衔接缺口（P0/P1 工作项）**：
+**两处已核实的衔接缺口（P0/P1 工作项）**〔T8 状态：缺口 1 已按钉死规则落地（`packages/glue/src/plugins/governance-plugin.ts:100-113`：ask 透传后回填、allow 透传）；缺口 2 未动，现状仍采不到 deny 结构化理由〕：
 
-1. **pre-execute 接线的透传规则（allow 不得短路 ask 门）**：waterfall 是 veto 语义（§3.0-3），governance 监听器若对 allow 直接返回 `{kind:'allow'}`，会跳过后续所有监听者——包括 @event/pack 的 ask 门（`packs/event-planning/plugin.ts:355-357`），把「该走人」的 R2/R3 动作静默放行。**组合规则钉死：governance 监听器仅 deny/ask 短路返回；allow 一律 `await next()` 透传**（deny 短路=被拒调用不进 ask 门，留痕由事件流兜底，不变量 2）。装载顺序仍要求 governance 先于领域包（deny 先判），由 bundle 层次天然保证；若未来顺序敏感，在 profile 层显式钉 `dsh.profile.bundles` 顺序，不在插件内猜。
+1. **pre-execute 接线的透传规则（allow 不得短路 ask 门）**：waterfall 是 veto 语义（§3.0-3），governance 监听器若对 allow 直接返回 `{kind:'allow'}`，会跳过后续所有监听者——包括 @event/pack 的 ask 门（`packs/event-planning/plugin.ts:355-357`），把「该走人」的 R2/R3 动作静默放行。**组合规则钉死：governance 监听器仅 deny/ask 短路返回；allow 一律 `await next()` 透传**（deny 短路=被拒调用不进 ask 门，留痕由事件流兜底，不变量 2）。装载顺序仍要求 governance 先于领域包（deny 先判），由 bundle 层次天然保证；若未来顺序敏感，在 profile 层显式钉 `dsh.profile.bundles` 顺序，不在插件内猜。〔T8 补强：basis-egress 加入瀑布后，ask 短路还会让人审绕过域名白名单——governance 的 ask 实现为「透传后回填」，downstream 非 allow 原样上抛、downstream allow 时本 ask 才生效，egress deny 恒先于人审（论述见 `governance-plugin.ts:15-19` 头注，实现见 `:100-112` ask 分支）。〕
 2. **deny 理由进审计记录（两层改动，缺一采不到）**：session 事件的 `error` 字段 = `result.error.info`（`batch.ts:252-266`），pre-execute deny 的 error 只有 `message` 无 `info`（`pipeline.ts:213-224`，且 `GovernancePreDecision` 无 info 字段，`governance/src/types.ts:32-36`）→ **事件层根本没有 error 字段，拒绝理由只存在于 message.content 文本 `Error: ${reason}`**。修法两层： ① 治理层——`GovernancePreDecision` 的 deny 分支增可选 `info?: Record<string, unknown>`（结构化理由载体，`pipeline.ts:220` 会把 `decision.info` 带进 `error.info`，链路已通）；② 事件层——audit 携带的 governance 库版本在 tool/result 分支把 `error` 对象整体记入新字段 `errorInfo`（而非只读 `error.name`——现状 `errorName` 读取点在 `audit.ts:79`，deny 路径恒 undefined）+ 无 info 时以 `Error: ` 前缀从 content 文本兜底解析。两层都属向后兼容新增。
 
 ### 3.5 最小权限令牌 v1（⑧，口径收窄版）
@@ -204,6 +204,7 @@ apply(ctx: Context): () => void {
 
 ## 5. 修订记录
 
+- **r3（2026-11-09，T8 落地收口）**：① §1.1 矩阵与 §1.3 缺口表按实际落地翻绿——②宿主执行点（glue governance-plugin 挂 `tools/pre-execute`，allow 透传 / ask 透传后回填 / deny 短路，`glue/src/plugins/governance-plugin.ts:87-114`）、⑧出网向工具白名单（glue egress-plugin 三层上瀑布，`glue/src/plugins/egress-plugin.ts:105-137`；内网默认白名单 `extra/src/egress-defaults.ts:19-23`）、⑧调用审计（`@basis/audit` 插件 + 组合层桥接 `glue/src/audit-bridge.ts:28-31`；按日轮转 `audit/src/daily-sink.ts:25-33`）；② 装卸无残留验收以 T9 真 boot E2E 兑现（`scripts/verify-governance-e2e.mjs:22-29`：web 档卸载 boot 断言无 `basis-*` 条目 + embed 档卸载跑同任务行为对比——独立会话天然避开 §3.3 担心的在途窗口，替代「无新增 tool-call」行数口径）；③ 逐项核实仍开、判定不变：B 面令牌核验（`audit/src/service.ts:14-16`）、deny 理由结构化（缺口 2，`governance/src/types.ts` 的 `GovernancePreDecision` 仍无 info 字段）、负信号组合层接线（不变量 3，repo 内 `recordOutcome` 仍无生产调用方）；④ 附表两条 T4 期「现状型」事实同步为 T8 后状态；⑤ 复核勘误：§1.1 observe 行 kind 枚举锚改 `signals.ts:6,47`（原引 11-13 实为去重契约注释，行号错位）；§3.4 缺口 1 T8 补强句头注/实现分锚 `governance-plugin.ts:15-19` / `:100-112`（原混引为一处）。
 - **r2（2026-11-07，评审修订）**：① 服务名改 `'audit'`、对象标签 `'@basis/audit'` 双常量分名——cordis provide 的 name 即 ctx 属性名（`reflect.ts:291-306`），原稿两常量混用使 `ctx.audit` 永不存在；② 删除 `inject: { governance: false }` 设计——cordis inject 是硬依赖表（`registry.ts:84,106-108`、`fiber.ts:619-625`），false 非可选开关，改结构子集机会读取，并记录 glue 既有同款潜伏问题；③ deny 理由可达性改两层口径——session 事件 error 字段只携带 `result.error.info`（`batch.ts:252-266`），deny 无 info，理由只在 content 文本；原稿「errorMessage 采集」单层修法采不到东西，改为 GovernancePreDecision.info + errorInfo 采集 + 文本兜底；④ pre-execute 接线补 allow 透传规则（waterfall veto 语义，`events.ts:76-85`），防 allow 短路 ask 门；⑤ 令牌 v1 收窄为配置声明保护表（ToolExecution 无注册方身份、tools/change 无载荷，注册事实级关联列为上游观察项）；⑥ AuditRecord 增 actor 扩展、query 改分页游标 + 轮转策略、卸载验收改「无新增 tool-call」口径并规避在途窗口、provide disposer async 注记；⑦ 负信号链路改「待接线」；⑧ audit-bundle 依赖声明点破 glue 源包 peerDeps 偏差；⑨ 行号勘误（patch.ts:93-94、contracts.ts:384-391、errorName 读取点 audit.ts:79）。
 - **r1（2026-11-07）**：初稿。
 
@@ -213,12 +214,12 @@ apply(ctx: Context): () => void {
 | --- | --- |
 | 图纸⑧准入四项与「复用 governance + market 安装确认；默认关闭按需开启」 | `plans/2026-11-06-dsh企业agent路线定案.md:169` |
 | 图纸②写权限与 governance 直接对应 | 同上 `:167`；T4 行 `:64` |
-| glue governance-plugin 只 provide 未接线；服务名为 `'governance'` | `packages/glue/src/plugins/governance-plugin.ts:11,31-48` |
+| glue governance-plugin 已挂 pre-execute（T8 落地；服务名仍为 `'governance'`） | `packages/glue/src/plugins/governance-plugin.ts:48,79,87-114` |
 | cordis provide name = ctx 属性名；disposer async | `deepseek-harness/vendor/cordis/src/reflect.ts:291-321` |
 | inject 硬依赖语义（false 非可选；缺服务即 INACTIVE） | `vendor/cordis/src/registry.ts:84,106-108`、`vendor/cordis/src/fiber.ts:242-249,619-625` |
 | waterfall veto 语义 | `vendor/cordis/src/events.ts:76-85` |
-| panel 审计路径约定与「未接=0 条」 | `packages/panel/src/snapshot.ts:4` |
-| @event/pack 唯一 pre-execute 实装 | `packs/event-planning/plugin.ts:355-357` |
+| panel 审计读数路径：`.basis/audit-YYYYMMDD.jsonl` 按日轮转 + 旧版单文件（T4 期「未接=0 条」明证；T8 后为接好状态） | `packages/panel/src/snapshot.ts:4`、`packages/audit/src/daily-sink.ts:25-29` |
+| @event/pack ask 门（repo 首例 pre-execute）；宿主级现另有 glue governance/egress 两监听（T8） | `packs/event-planning/plugin.ts:355-357`、`packages/glue/src/plugins/governance-plugin.ts:87`、`packages/glue/src/plugins/egress-plugin.ts:116` |
 | 裸 id 行覆写丢弃 / insert 根层追加 | `deepseek-harness/vendor/include/src/patch.ts:79-81,93-94` |
 | tool/call 先于 pre-execute 落账（deny 亦留痕） | `deepseek-harness/packages/core/tools/src/batch.ts:157-159`（start 先于 prepare）、`:247,256`（tool/call、tool/result 落账） |
 | session 事件 error 字段只带 info；deny 路径无 info | `batch.ts:252-266`；`pipeline.ts:213-224` |
