@@ -29,13 +29,16 @@ describe('pages 页面与角标', () => {
     expect(login).toContain('go.disabled=true')
   })
 
-  it('账号页转义用户数据(XSS 防护)且含三块配置', () => {
+  it('账号页:XSS 转义 + 资料合并保存(脏检查) + 密码独立卡(确认输入/显示切换)', () => {
     const html = renderAccountPage({ ...admin, nickname: '<script>alert(1)</script>' })
     expect(html).not.toContain('<script>alert(1)</script>')
     expect(html).toContain('&lt;script&gt;')
-    expect(html).toContain('saveNick')
+    expect(html).toContain('saveProfile')
     expect(html).toContain('savePw')
+    expect(html).toContain('newPw2')
     expect(html).toContain('resetAv')
+    expect(html).toContain('pendingAvatar')
+    expect(html).toContain('两次输入的新密码不一致')
   })
 
   it('管理页含表格/后缀说明/删除按钮;他人可删、自己禁删', () => {
@@ -48,6 +51,7 @@ describe('pages 页面与角标', () => {
     expect(html).toContain('数字后缀')
     expect(html).toContain('data-id="2"')
     expect(html).not.toContain('data-id="1"')
+    expect(html).toContain('data-armed')
     expect(html).not.toContain('with<b>')
     expect(html).toContain('with&lt;b&gt;')
   })
