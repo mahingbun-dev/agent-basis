@@ -8,6 +8,7 @@
  * 升级门禁按行号复核):不 import 发布类型——其类型面拖入 cordis/typert-protocol/
  * credentials/brand 四个 peer 依赖,只为两三个方法签名,不值得。
  */
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { reportAccessAudit, type AccessAuditEvent, type AuditReflect } from './audit.ts'
@@ -16,6 +17,7 @@ import { handleAccessRequest, type AccessDeps } from './routes.ts'
 import { loadOrCreateSecret, SessionService } from './session.ts'
 import { SlidingWindow } from './ratelimit.ts'
 import { UserStore } from './store.ts'
+import { registerTenantGuards } from './tenant.ts'
 import { BADGE_SCRIPT } from './pages.ts'
 
 export const ACCESS_PLUGIN_NAME = 'eterna-access'
@@ -35,9 +37,10 @@ export interface AccessWebServer {
   tapIndex(transform: (html: string) => string): () => void
 }
 
-/** 本插件消费的 Connection seam(authenticatedUrl 桥接铸 dsh 浏览器会话)。 */
+/** 本插件消费的 Connection seam(authenticatedUrl 桥接 + fetch 路由注册面)。 */
 export interface AccessConnection {
   authenticatedUrl(baseUrl: string): string
+  fetch: import('./tenant.ts').TenantFetchRegistry
 }
 
 /** 最小宿主上下文(结构类型,不依赖 cordis 类型面)。 */
@@ -155,6 +158,15 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         ctx.webServer.register({ kind: 'prefix', path: '/access/api', handler }),
         ctx.webServer.tapIndex(html => injectBadge(html)),
       ]
+      // Phase 2 租户面(T2.2/T2.5):存量 workspace 划归首个 admin + unary 守卫集注册
+      adoptLegacyWorkspaces(store)
+      disposers.push(registerTenantGuards({
+        store,
+        session,
+        reflect: ctx.reflect,
+        tenantRoot: process.env.ETERNA_TENANT_ROOT ?? join(process.env.DSH_HOME ?? process.cwd(), 'workspaces'),
+        audit,
+      }, ctx.connection) )
       return () => {
         for (const dispose of disposers) dispose()
         store.close()
@@ -168,4 +180,21 @@ export function injectBadge(html: string): string {
   const tag = `<script>${BADGE_SCRIPT}</script>`
   if (/<\/body>/i.test(html)) return html.replace(/<\/body>/i, () => `${tag}</body>`)
   return html + tag
+}
+
+/** T2.5:存量 workspace(dsh storages/workspace.json)一次性划归首个 admin。 */
+function adoptLegacyWorkspaces(store: UserStore): void {
+  try {
+    const admin = store.listUsers().find(user => user.role === 'admin')
+    if (admin === undefined) return
+    const file = join(process.env.DSH_HOME ?? process.cwd(), 'storages', 'workspace.json')
+    const parsed: unknown = JSON.parse(readFileSync(file, 'utf8'))
+    const tables = (parsed as { tables?: { workspaces?: Record<string, { path?: string }> } }).tables
+    const rows = Object.entries(tables?.workspaces ?? {})
+      .filter(([, row]) => typeof row.path === 'string')
+      .map(([workspaceId, row]) => ({ workspaceId, path: row.path as string }))
+    if (rows.length > 0) store.adoptOrphanWorkspaces(admin.id, rows)
+  } catch {
+    // workspace.json 不存在/不可读=无存量,静默
+  }
 }

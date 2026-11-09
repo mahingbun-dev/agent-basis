@@ -85,6 +85,16 @@ export class UserStore {
       avatar_mime TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`)
+    this.db.exec(`CREATE TABLE IF NOT EXISTS workspaces (
+      workspace_id TEXT PRIMARY KEY,
+      owner_id INTEGER NOT NULL REFERENCES users(id),
+      path TEXT NOT NULL
+    )`)
+    this.db.exec(`CREATE TABLE IF NOT EXISTS sessions (
+      session_id TEXT PRIMARY KEY,
+      owner_id INTEGER NOT NULL REFERENCES users(id),
+      workspace_id TEXT
+    )`)
   }
 
   close(): void {
@@ -233,5 +243,68 @@ export class UserStore {
   private requireRow(id: number): void {
     const row = this.db.prepare('SELECT id FROM users WHERE id = ?').get(id)
     if (row === undefined) throw new UserNotFoundError(`用户 ${id} 不存在`)
+  }
+
+  // ── Phase 2 租户归属表(T2.2):workspace/session 归属,守卫路由的判定源 ──
+
+  recordWorkspace(workspaceId: string, ownerId: number, path: string): void {
+    this.db.prepare(
+      'INSERT INTO workspaces (workspace_id, owner_id, path) VALUES (?, ?, ?) ' +
+      'ON CONFLICT(workspace_id) DO UPDATE SET owner_id = excluded.owner_id, path = excluded.path',
+    ).run(workspaceId, ownerId, path)
+  }
+
+  forgetWorkspace(workspaceId: string): void {
+    this.db.prepare('DELETE FROM workspaces WHERE workspace_id = ?').run(workspaceId)
+    this.db.prepare('DELETE FROM sessions WHERE workspace_id = ?').run(workspaceId)
+  }
+
+  workspaceOwner(workspaceId: string): number | undefined {
+    const row = this.db.prepare('SELECT owner_id FROM workspaces WHERE workspace_id = ?').get(workspaceId) as
+      | { owner_id: number }
+      | undefined
+    return row === undefined ? undefined : row.owner_id
+  }
+
+  /** 按路径查归属(默认工作区幂等判定用)。 */
+  workspaceOwnerByPath(ownerId: number, path: string): number | undefined {
+    const row = this.db.prepare('SELECT owner_id FROM workspaces WHERE owner_id = ? AND path = ?').get(ownerId, path) as
+      | { owner_id: number }
+      | undefined
+    return row === undefined ? undefined : row.owner_id
+  }
+
+  workspacePath(workspaceId: string): string | undefined {
+    const row = this.db.prepare('SELECT path FROM workspaces WHERE workspace_id = ?').get(workspaceId) as
+      | { path: string }
+      | undefined
+    return row === undefined ? undefined : row.path
+  }
+
+  recordSession(sessionId: string, ownerId: number, workspaceId: string | null): void {
+    this.db.prepare(
+      'INSERT INTO sessions (session_id, owner_id, workspace_id) VALUES (?, ?, ?) ' +
+      'ON CONFLICT(session_id) DO UPDATE SET owner_id = excluded.owner_id, workspace_id = excluded.workspace_id',
+    ).run(sessionId, ownerId, workspaceId)
+  }
+
+  sessionOwner(sessionId: string): number | undefined {
+    const row = this.db.prepare('SELECT owner_id FROM sessions WHERE session_id = ?').get(sessionId) as
+      | { owner_id: number }
+      | undefined
+    return row === undefined ? undefined : row.owner_id
+  }
+
+  /** T2.5:存量 workspace 划归 bootstrap admin(空表时一次性导入)。 */
+  adoptOrphanWorkspaces(adminId: number, rows: ReadonlyArray<{ workspaceId: string; path: string }>): number {
+    let adopted = 0
+    for (const row of rows) {
+      const existing = this.workspaceOwner(row.workspaceId)
+      if (existing === undefined) {
+        this.recordWorkspace(row.workspaceId, adminId, row.path)
+        adopted += 1
+      }
+    }
+    return adopted
   }
 }
