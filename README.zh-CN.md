@@ -7,7 +7,7 @@
 [![CI](https://github.com/mahingbun-dev/agent-basis/actions/workflows/ci.yml/badge.svg)](https://github.com/mahingbun-dev/agent-basis/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/mahingbun-dev/agent-basis)](https://github.com/mahingbun-dev/agent-basis/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-![tests](https://img.shields.io/badge/tests-1062%20passing-success)
+![tests](https://img.shields.io/badge/tests-1075%20passing-success)
 
 ![EternaAgent Web 首屏——闪电标与标语「方寸灵台,运筹万里」](docs/assets/screenshots/eterna-hero.png)
 
@@ -38,7 +38,7 @@ L1 基座插件(跨行业复用)
   prompt-studio system prompt 工作室(版本库 + 运行态轨迹)
   brand         产品品牌层(logo/标题/favicon/locale 替换面)
   llm-openai    OpenAI 兼容适配器(embed 档无头宿主)
-  access        账号门禁:管理员管用户、登录桥接、用户自助资料页
+  access        账号门禁:管理员管用户、登录桥接、用户自助资料页、租户守卫工作区隔离
 
 CLI: packctl(领域包脚手架/体检) · dsh-evals(评测 runner:replay / acp 双适配) · eterna-smoke
 ```
@@ -51,7 +51,7 @@ CLI: packctl(领域包脚手架/体检) · dsh-evals(评测 runner:replay / acp 
 
 ```bash
 pnpm install
-pnpm run verify        # 20 包:oxlint + tsc strict + vitest → 全绿(1062 测试)
+pnpm run verify        # 20 包:oxlint + tsc strict + vitest → 全绿(1075 测试)
 
 # 生成一个新行业的领域包骨架,并体检
 node tools/packctl/bin/packctl.mjs init <行业名> --root packs
@@ -70,7 +70,7 @@ docker compose up -d --build
 # → 打开 http://localhost:3210/login 用管理员账号登录——无需 token
 ```
 
-得到账号门禁后的完整 Web Agent:管理员管用户(不开放注册,重名自动加数字后缀),每个用户有自助资料页(昵称/头像/密码),登录自动桥接 dsh 会话。满血模型设置页(Base URL/协议/模型目录/逐模型连通测试)、诊断面板、策略治理、审计留痕(named volume 持久化)。反代参数(`ETERNA_PUBLIC_URL` / `ETERNA_TRUSTED_HOST` / `ETERNA_ACCESS_SECURE`)纯 env——见 [docs/docker-deploy.md](docs/docker-deploy.md)。
+得到账号门禁后的完整 Web Agent:管理员管用户(不开放注册,重名自动加数字后缀),每个用户有自助资料页(昵称/头像/密码),登录自动桥接 dsh 会话;工作区按账号租户隔离(采纳/浏览/建会话钳制在各自家目录),admin 可实例级停启 L1 插件(红线锁定)。满血模型设置页(Base URL/协议/模型目录/逐模型连通测试)、诊断面板、策略治理、审计留痕(named volume 持久化)。反代参数(`ETERNA_PUBLIC_URL` / `ETERNA_TRUSTED_HOST` / `ETERNA_ACCESS_SECURE`)纯 env——见 [docs/docker-deploy.md](docs/docker-deploy.md)。
 
 ![模型设置页:网关卡+连通性诊断+逐模型真测](docs/assets/screenshots/eterna-model-doctor.png)
 

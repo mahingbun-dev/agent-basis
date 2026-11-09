@@ -45,6 +45,28 @@ patch 到卷上；会话/存储/审计/用户库全在 `eterna-home` 卷，升�
 - 残余风险（R7/R3，计划书 §9）：插件挂载失败=门禁失效（启动日志会有 FAILED
   fiber，须关注）；bootstrap token 仍在容器日志，日志须按敏感物对待。
 
+## 工作区隔离与插件启停（2026-11-10 起）
+
+**工作区隔离（租户守卫）**：每个账号一个家目录 `$DSH_HOME/workspaces/<账号>/`——
+工作区采纳（`workspace/create`）、目录浏览与创建（`directoryPicker/*`）、会话创建
+（`session/create`）等 unary `/api` 端点由守卫按登录归属判定：路径钳制在家目录内、
+他人工作区/会话一律拒绝（`tenant/denied`），全部进审计（`access.tenant` 事件）。
+存量工作区启动时自动划归首个 admin。归属账本在 `/data/access/users.db`
+（workspaces/sessions 表）。
+
+已知限制（R12）：上游流端点（`workspace/follow` 走 WS mux `/api/remote.mux`）不经
+守卫——工作区**列表元数据**（标题/路径名）对登录用户全局可见；数据读写/终端入口已
+全部隔离。per-connection identity 列为上游需求项。
+
+**插件启停（实例级）**：管理员在 `/admin/users` 页「插件启停」卡停用/启用 L1 插件
+（记忆/知识/诊断/品牌/面板/提示词工作室）；红线（治理/审计/出网/门禁）不可停。
+停用写 `/data/access/disabled-plugins.json`，**重启容器后** entrypoint 渲染管线裁剪
+对应 patch 行（不装载）——复用标准启动管线，零内核改动。多账号场景下插件语义为
+实例级（共享 owner 会话模型的约束，同 R12 根因）。
+
+**插件开发铁律**：见 [docs/PLUGIN-AUTHORING.md](PLUGIN-AUTHORING.md) §1.1
+（`packctl tenant-scan` CI 强制：持久化基路径/路由面独占/登记册独占写）。
+
 ## 外网入口（NAS 反代，用户自行配置）
 
 实测拓扑：`eternity-electricity.cn` AAAA → 家宽 IPv6 → NAS nginx :443

@@ -7,7 +7,7 @@
 [![CI](https://github.com/mahingbun-dev/agent-basis/actions/workflows/ci.yml/badge.svg)](https://github.com/mahingbun-dev/agent-basis/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/mahingbun-dev/agent-basis)](https://github.com/mahingbun-dev/agent-basis/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-![tests](https://img.shields.io/badge/tests-1062%20passing-success)
+![tests](https://img.shields.io/badge/tests-1075%20passing-success)
 
 ![EternaAgent web UI — brand hero with the bolt mark and the tagline](docs/assets/screenshots/eterna-hero.png)
 
@@ -38,7 +38,7 @@ L1 base plugins (cross-industry)
   prompt-studio system-prompt workspace with version store and run-state traces
   brand         product branding layer (logo/title/favicon/locale overrides)
   llm-openai    OpenAI-compatible adapter for embed-grade headless hosts
-  access        account gate: admin-managed users, login bridging, per-user self-service profile
+  access        account gate: admin-managed users, login bridging, per-user profile, tenant-guarded workspaces
 
 CLI: packctl (industry-pack scaffold & lint) · dsh-evals (eval runner: replay / acp adapters) · eterna-smoke
 ```
@@ -51,7 +51,7 @@ Prerequisites: Node ≥ 22 and pnpm ≥ 10 (`corepack enable`). No model credent
 
 ```bash
 pnpm install
-pnpm run verify        # 20 packages: oxlint + tsc strict + vitest → all green (1062 tests)
+pnpm run verify        # 20 packages: oxlint + tsc strict + vitest → all green (1075 tests)
 
 # Scaffold a new industry pack, then lint it
 node tools/packctl/bin/packctl.mjs init <industry> --root packs
@@ -70,7 +70,7 @@ docker compose up -d --build
 # → open http://localhost:3210/login and sign in — no token needed
 ```
 
-What you get is the full web agent behind an account gate: the admin manages users (no open registration; duplicate names get an auto numeric suffix), every user gets a self-service profile page (nickname / avatar / password), and login bridges into the DSH session automatically. The model settings page (base URL / protocol / model catalog / per-model connectivity tests), the diagnostics panel, policy governance, and audit trails all persist in a named volume. Reverse-proxy parameters (`ETERNA_PUBLIC_URL` / `ETERNA_TRUSTED_HOST` / `ETERNA_ACCESS_SECURE`) are env-only — see [docs/docker-deploy.md](docs/docker-deploy.md).
+What you get is the full web agent behind an account gate: the admin manages users (no open registration; duplicate names get an auto numeric suffix), every user gets a self-service profile page (nickname / avatar / password), login bridges into the DSH session automatically, and workspaces are tenant-guarded — each account is clamped to its own home directory for workspace adoption, directory browsing, and session creation (the admin can also disable/enable L1 plugins, red lines locked). The model settings page (base URL / protocol / model catalog / per-model connectivity tests), the diagnostics panel, policy governance, and audit trails all persist in a named volume. Reverse-proxy parameters (`ETERNA_PUBLIC_URL` / `ETERNA_TRUSTED_HOST` / `ETERNA_ACCESS_SECURE`) are env-only — see [docs/docker-deploy.md](docs/docker-deploy.md).
 
 ![Model settings: gateway card with connectivity doctor and per-model tests](docs/assets/screenshots/eterna-model-doctor.png)
 

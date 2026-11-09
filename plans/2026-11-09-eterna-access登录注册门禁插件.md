@@ -197,6 +197,20 @@
 
 **Phase 1 交付记录**：commit 75b0041 → **PR #1**（github.com/mahingbun-dev/agent-basis/pull/1，base dev，CI verify 绿）→ 容器部署运行（门禁 1-4 全过：48 包内 tests/全仓 1062 tests/零 warning/十项浏览器 E2E）。新增教训：容器 node strip-only 拒 TS 参数属性（ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX）；`authenticatedUrl` 需绝对 URL（请求侧 Host+secure scheme 合成）。
 
+## 8-d. Phase 2/3 交付记录（2026-11-10）
+
+| 任务 | 交付 | 门禁 |
+| --- | --- | --- |
+| T2.2 租户守卫 | `packages/access/src/tenant.ts`：fetch 路由守卫拥有 unary `/api` 端点（workspace 写路径 8 + create 路径钳制 + initializeDefault + picker list/createDirectory 钳制 + session/create + session 载荷校验 14）；ownership 表（workspaces/sessions）入 users.db；`{args:{}}` 信封解包+直调+自框 | 包内 8 守卫测试；容器隔离 E2E：根外建区/越权浏览/跨租户改名/跨租户建会话全拒、根内全流程+记账+admin 正向全过 |
+| T2.5 存量迁移 | 启动时 workspace.json 幂等划归首个 admin（ownership dump 实证 demo→owner 1） | adoptOrphanWorkspaces 单测 |
+| T2.3 插件启停 | 实例级语义（架构注记：per-user 与 R12 同根因，列上游需求项）：/admin 页启停卡 + `POST /access/api/plugins/:id/{disable,enable}`（红线 4 锁定）+ disabled-plugins.json + entrypoint 步骤 2.5 渲染裁剪 | 57 包内 tests；容器实测 brand 行裁剪/治理行保留/零 warning/enable 还原 |
+| T3.3 铁律 | PLUGIN-AUTHORING §1.1 五条（持久化基路径/路由面独占/登记册独占写/启停登记/R12 知悉） | 文档 |
+| T3.4 扫描器 | `packctl tenant-scan`（T1/T2/T3 三规则静态检查）+ 4 spec + CI 接入 | packctl verify 全绿 |
+| T3.5 合规扫描 | 全 20 包 tenant-scan **0 findings** | CI 常驻 |
+| Phase 4 | docs（deploy/USER-GUIDE/README 双语 1075 tests）+ 全仓 verify + 本 PR | 见 PR CI |
+
+**架构定案补记**：上游 remoteAccess ACL 面完整但仅服务 non-owner Peer，而浏览器凭据链（/connect→publishPeer）硬编码铸 owner（client-connection index.js:783）→ 原生租户面不可达，守卫路由方案为唯一零内核路径；WS mux 流（R12）留上游需求项。
+
 ## 9. 风险登记册
 
 | # | 风险 | 影响 | 对策 |

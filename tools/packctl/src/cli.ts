@@ -9,6 +9,7 @@ import { initPack } from './init.ts'
 import { anyLintErrors, lintPacks } from './lint.ts'
 import { checkPack } from './check.ts'
 import { discoverPackRoots, isPackDir } from './pack.ts'
+import { tenantScan } from './tenant.ts'
 import { hasErrors } from './types.ts'
 import type { Finding } from './types.ts'
 
@@ -23,6 +24,7 @@ const USAGE = [
   '  packctl init <industry> [--root <dir>]   生成 packs/<industry>/ 骨架(不覆盖已有)',
   '  packctl lint [<path>] [--json]           结构 + Cordis 纪律 + 条目锚点 + golden 完整性',
   '  packctl check [<path>]                   静态冒烟:bundle 声明引用的文件都存在',
+  '  packctl tenant-scan                      packages/* 隔离铁律静态检查(路由面/登记册/持久化)',
   '<path> 缺省为 cwd:是 pack 根则 lint 它;含 packs/ 则 lint 全部领域包;否则向上查找。',
 ].join('\n')
 
@@ -67,6 +69,8 @@ export function runPack(argv: readonly string[], io: CliIo): number {
       return cmdLint(positional, flags, io)
     case 'check':
       return cmdCheck(positional, io)
+    case 'tenant-scan':
+      return cmdTenantScan(io)
     case 'help':
       io.writeLine(USAGE)
       return 0
@@ -74,6 +78,16 @@ export function runPack(argv: readonly string[], io: CliIo): number {
       io.writeLine(`未知命令: ${command || '(空)'}\n${USAGE}`)
       return 2
   }
+}
+
+/** tenant-scan(T3.4):packages/* 隔离铁律静态检查;违规 error → 退出码 1。 */
+function cmdTenantScan(io: CliIo): number {
+  const findings = tenantScan(io.cwd)
+  for (const finding of findings) {
+    io.writeLine(`${finding.severity.toUpperCase()} ${finding.code} ${finding.path}: ${finding.message}`)
+  }
+  io.writeLine(`tenant-scan: ${findings.length} finding(s)`)
+  return findings.length > 0 ? 1 : 0
 }
 
 function cmdInit(positional: readonly string[], flags: Readonly<Record<string, string | boolean>>, io: CliIo): number {
