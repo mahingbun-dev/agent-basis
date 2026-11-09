@@ -6,7 +6,7 @@
  * pwv:password_version 随改密递增,会话载荷比对实现改密即全端下线。
  */
 import { DatabaseSync } from 'node:sqlite'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { hashPassword, validateAccount, validatePassword, verifyPassword } from './password.ts'
 
@@ -306,5 +306,44 @@ export class UserStore {
       }
     }
     return adopted
+  }
+
+  // ── T2.3 插件启停(实例级,admin 专属;红线在 routes 层锁定,这里只管存取) ──
+
+  private readonly disabledPlugins = new Set<string>()
+
+  /** 启动时装载停用清单(与 users.db 同目录 disabled-plugins.json)。 */
+  loadDisabledPlugins(file: string): void {
+    this.disabledPlugins.clear()
+    try {
+      const parsed: unknown = JSON.parse(readFileSync(file, 'utf8'))
+      if (Array.isArray(parsed)) {
+        for (const id of parsed) {
+          if (typeof id === 'string') this.disabledPlugins.add(id)
+        }
+      }
+    } catch {
+      // 缺文件=全启用
+    }
+  }
+
+  disabledPluginIds(): string[] {
+    return [...this.disabledPlugins].sort()
+  }
+
+  disablePlugin(id: string): void {
+    this.disabledPlugins.add(id)
+  }
+
+  enablePlugin(id: string): boolean {
+    return this.disabledPlugins.delete(id)
+  }
+
+  isPluginDisabled(id: string): boolean {
+    return this.disabledPlugins.has(id)
+  }
+
+  saveDisabledPlugins(file: string): void {
+    writeFileSync(file, JSON.stringify(this.disabledPluginIds(), null, 2) + '\n', 'utf8')
   }
 }

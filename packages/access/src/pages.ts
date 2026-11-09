@@ -126,7 +126,25 @@ document.getElementById('resetAv').addEventListener('click',function(){
   return shell('账号设置', body, script)
 }
 
-export function renderAdminPage(viewer: UserRow, users: UserSummary[]): string {
+export interface AdminPluginRow {
+  readonly id: string
+  readonly label: string
+  readonly redLine: boolean
+  readonly disabled: boolean
+}
+
+export function renderAdminPage(viewer: UserRow, users: UserSummary[], plugins: ReadonlyArray<AdminPluginRow> = []): string {
+  const pluginRows = plugins.map((plugin) => {
+    if (plugin.redLine) {
+      return `<div class="row" style="justify-content:space-between;padding:6px 0"><span><span class="tag">红线</span> ${escapeHtml(plugin.label)} <span class="muted">${escapeHtml(plugin.id)}</span></span><span class="muted">不可停用</span></div>`
+    }
+    const state = plugin.disabled ? '已停用(重启后生效)' : '启用中'
+    const action = plugin.disabled ? 'enable' : 'disable'
+    const label = plugin.disabled ? '启用' : '停用'
+    return `<div class="row" style="justify-content:space-between;padding:6px 0" data-plugin="${escapeHtml(plugin.id)}">
+<span>${escapeHtml(plugin.label)} <span class="muted">${escapeHtml(plugin.id)}</span></span>
+<span class="row"><span class="muted" data-state>${state}</span><button class="ghost" data-toggle="${action}" style="margin-left:8px">${label}</button></span></div>`
+  }).join('')
   const rows = users.map((user) => {
     const self = user.id === viewer.id
     const del = self ? '<span class="muted">当前登录</span>'
@@ -143,7 +161,11 @@ export function renderAdminPage(viewer: UserRow, users: UserSummary[]): string {
 <button class="ghost" id="add">添加用户</button></div>
 <p class="muted">重名账号自动追加数字后缀（如 zhangsan → zhangsan01）；新用户默认昵称=账号、头像=昵称首字母。</p>
 <table><thead><tr><th></th><th>账号</th><th>昵称</th><th>角色</th><th>创建时间</th><th></th></tr></thead>
-<tbody>${rows}</tbody></table><p class="err" id="err"></p></div>`
+<tbody>${rows}</tbody></table>
+<h3 style="font-size:15px;margin:18px 0 6px">插件启停</h3>
+<p class="muted">停用后重启容器生效;红线插件(治理/审计/出网/门禁)不可停。</p>
+<div id="plugins">${pluginRows}</div>
+<p class="err" id="err"></p></div>`
   const script = `
 var errEl=document.getElementById('err')
 function api(path,opts){return fetch(path,Object.assign({credentials:'same-origin'},opts)).then(function(r){
@@ -165,6 +187,15 @@ document.querySelectorAll('button.danger').forEach(function(btn){
     if(!confirm('确定删除用户 '+btn.getAttribute('data-account')+'？其登录将立即失效。'))return
     api('/access/api/users/'+btn.getAttribute('data-id'),{method:'DELETE'})
     .then(function(res){if(res.status===200)location.reload();else errEl.textContent=res.data.error||'删除失败'})
+    .catch(function(e){if(e.message!=='unauthorized')errEl.textContent='网络错误'})})})
+document.querySelectorAll('#plugins button[data-toggle]').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    var row=btn.closest('[data-plugin]'),id=row.getAttribute('data-plugin'),action=btn.getAttribute('data-toggle')
+    errEl.textContent=''
+    api('/access/api/plugins/'+id+'/'+action,{method:'POST'})
+    .then(function(res){
+      if(res.status===200){btn.textContent=action==='disable'?'启用':'停用';btn.setAttribute('data-toggle',action==='disable'?'enable':'disable');row.querySelector('[data-state]').textContent=action==='disable'?'已停用(重启后生效)':'启用中'}
+      else errEl.textContent=res.data.error||'操作失败'})
     .catch(function(e){if(e.message!=='unauthorized')errEl.textContent='网络错误'})})})
 `
   return shell('用户管理', body, script)

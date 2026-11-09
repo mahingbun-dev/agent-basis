@@ -133,6 +133,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
           ? process.env.ETERNA_ACCESS_DIR
           : join(process.env.DSH_HOME ?? process.cwd(), 'access'))
       const store = new UserStore(join(dir, 'users.db'))
+      store.loadDisabledPlugins(join(dir, 'disabled-plugins.json'))
       const audit = (event: AccessAuditEvent): void => { reportAccessAudit(ctx, event) }
       const seededAccount = process.env.ETERNA_ACCESS_ADMIN_USER
       if (store.seedAdmin(seededAccount, process.env.ETERNA_ACCESS_ADMIN_PASSWORD) && seededAccount !== undefined) {
@@ -148,6 +149,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         globalWindow: new SlidingWindow(30, 60_000),
         audit,
         bridgeHome: (origin: string) => ctx.connection.authenticatedUrl(origin),
+        dataDir: dir,
       }
       const handler = createNodeHandler(deps)
       const disposers = [

@@ -26,6 +26,26 @@ cp /repo/docker/profile/package.json "$PROFILE_DIR/package.json"
 sed "s|__ETERNA_LLM_BASE_URL__|$ETERNA_LLM_BASE_URL|g" \
   /repo/docker/profile/cordis.patch.yml.template > "$PROFILE_DIR/cordis.patch.yml"
 
+# ── 2.5 插件启停清单(T2.3):admin 停用的可停插件 → 渲染时裁剪对应 insert 行 ──
+DISABLED_FILE="$DSH_HOME/access/disabled-plugins.json"
+if [ -f "$DISABLED_FILE" ]; then
+  node -e '
+    const fs = require("fs")
+    const disabled = JSON.parse(fs.readFileSync(process.argv[1], "utf8"))
+    const redLine = new Set(["eterna-governance", "eterna-audit", "eterna-egress", "eterna-access"])
+    const file = process.argv[2]
+    const lines = fs.readFileSync(file, "utf8").split("\n")
+    const out = []
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(/^\s*- id: (\S+)\s*$/)
+      if (m && disabled.includes(m[1]) && !redLine.has(m[1]) && /^\s*name:/.test(lines[i + 1] ?? "")) { i++; continue }
+      out.push(lines[i])
+    }
+    fs.writeFileSync(file, out.join("\n"))
+    console.log("[entrypoint] disabled plugins applied:", disabled.filter((id) => !redLine.has(id)).join(", ") || "(none)")
+  ' "$DISABLED_FILE" "$PROFILE_DIR/cordis.patch.yml"
+fi
+
 # ── 3. 插件 symlink(本仓 @eterna/*) ────────────────────────────────────
 for pkg in glue llm-doctor brand panel prompt-studio llm-openai access; do
   ln -sfn "$REPO/packages/$pkg" "$PROFILE_DIR/node_modules/@eterna/$pkg"

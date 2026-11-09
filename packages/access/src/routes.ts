@@ -3,6 +3,7 @@
  * 门禁顺序:变更类请求先过同源闸(CSRF)与全局限速;登录额外过 ip+账号 窗;
  * 会话校验含 pwv 比对(改密即全端下线);敏感操作全部出审计事件(含失败登录)。
  */
+import { join } from 'node:path'
 import type { AccessAuditEvent } from './audit.ts'
 import {
   clientIp, errorReply, htmlResponse, isSameOrigin, jsonResponse, parseAvatarDataUrl, parseJsonBody,
@@ -27,7 +28,23 @@ export interface AccessDeps {
   audit(event: AccessAuditEvent): void
   /** 登录成功桥接目标(请求侧 origin 经 dsh authenticatedUrl 附 launch token)。 */
   bridgeHome(origin: string): string
+  /** 数据目录(users.db/secret.key/disabled-plugins.json 所在;T2.3 启停清单落此)。 */
+  readonly dataDir: string
 }
+
+/** T2.3 插件启停清单:红线(治理/审计/出网/门禁本体)不可停,其余 L1 可由 admin 停用。 */
+export const RED_LINE_PLUGINS: ReadonlySet<string> = new Set([
+  'eterna-governance', 'eterna-audit', 'eterna-egress', 'eterna-access',
+])
+
+export const TOGGLEABLE_PLUGINS: ReadonlyArray<{ id: string; label: string }> = [
+  { id: 'eterna-memory', label: '记忆' },
+  { id: 'eterna-knowledge', label: '知识底座' },
+  { id: 'eterna-llm-doctor', label: '模型诊断' },
+  { id: 'eterna-brand', label: '品牌层' },
+  { id: 'eterna-panel', label: '基座面板' },
+  { id: 'eterna-prompt-studio', label: '提示词工作室' },
+]
 
 export function handleAccessRequest(deps: AccessDeps, req: AccessRequest): AccessReply {
   const method = req.method.toUpperCase()
@@ -60,7 +77,41 @@ export function handleAccessRequest(deps: AccessDeps, req: AccessRequest): Acces
   if (req.pathname === '/access/api/users' && method === 'GET') return handleUserList(deps, req)
   if (req.pathname === '/access/api/users' && method === 'POST') return handleUserCreate(deps, req, ip)
   if (req.pathname.startsWith('/access/api/users/') && method === 'DELETE') return handleUserDelete(deps, req, ip)
+  if (req.pathname === '/access/api/plugins' && method === 'GET') return handlePluginList(deps, req)
+  if (req.pathname.startsWith('/access/api/plugins/') && method === 'POST') return handlePluginToggle(deps, req, ip)
   return errorReply(404, 'not found')
+}
+
+/** 插件启停清单(admin):含红线标记;停用重启后生效(entrypoint 渲染管线裁剪 patch 行)。 */
+function handlePluginList(deps: AccessDeps, req: AccessRequest): AccessReply {
+  const admin = requireUser(deps, req)
+  if (admin === undefined) return errorReply(401, '未登录')
+  if (admin.role !== 'admin') return errorReply(403, '需要管理员权限')
+  const plugins = [
+    ...[...RED_LINE_PLUGINS].map(id => ({ id, label: id, redLine: true, disabled: false })),
+    ...TOGGLEABLE_PLUGINS.map(p => ({ ...p, redLine: false, disabled: deps.store.isPluginDisabled(p.id) })),
+  ]
+  return jsonResponse(200, { plugins })
+}
+
+function handlePluginToggle(deps: AccessDeps, req: AccessRequest, ip: string): AccessReply {
+  const admin = requireUser(deps, req)
+  if (admin === undefined) return errorReply(401, '未登录')
+  if (admin.role !== 'admin') return errorReply(403, '需要管理员权限')
+  const path = req.pathname.slice('/access/api/plugins/'.length)
+  const slash = path.lastIndexOf('/')
+  if (slash <= 0) return errorReply(404, 'not found')
+  const id = path.slice(0, slash)
+  const action = path.slice(slash + 1)
+  if (action !== 'disable' && action !== 'enable') return errorReply(404, 'not found')
+  if (!TOGGLEABLE_PLUGINS.some(p => p.id === id) || RED_LINE_PLUGINS.has(id)) {
+    return errorReply(400, '该插件不可停用(红线或未收录)')
+  }
+  if (action === 'disable') deps.store.disablePlugin(id)
+  else deps.store.enablePlugin(id)
+  deps.store.saveDisabledPlugins(join(deps.dataDir, 'disabled-plugins.json'))
+  deps.audit({ kind: 'access.plugin.toggle', account: admin.account, ip, detail: { plugin: id, action } })
+  return jsonResponse(200, { ok: true, plugin: id, disabled: action === 'disable', effectiveAfterRestart: true })
 }
 
 function currentUser(deps: AccessDeps, req: AccessRequest): UserRow | undefined {
@@ -148,7 +199,11 @@ function handleAdmin(deps: AccessDeps, req: AccessRequest, method: string): Acce
   const user = requireUser(deps, req)
   if (user === undefined) return redirectReply('/login')
   if (user.role !== 'admin') return htmlResponse(403, renderForbiddenPage())
-  return htmlResponse(200, renderAdminPage(user, deps.store.listUsers()))
+  const plugins = [
+    ...[...RED_LINE_PLUGINS].map(id => ({ id, label: id, redLine: true, disabled: false })),
+    ...TOGGLEABLE_PLUGINS.map(p => ({ ...p, redLine: false, disabled: deps.store.isPluginDisabled(p.id) })),
+  ]
+  return htmlResponse(200, renderAdminPage(user, deps.store.listUsers(), plugins))
 }
 
 function handleNickname(deps: AccessDeps, req: AccessRequest, ip: string): AccessReply {

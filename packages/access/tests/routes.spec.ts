@@ -42,6 +42,7 @@ describe('access 路由核心', () => {
       globalWindow: new SlidingWindow(30, 60_000, () => now),
       audit: event => auditEvents.push(event),
       bridgeHome: () => 'http://app.local/?token=bridge-token',
+      dataDir: dir,
     }
     const admin = store.createUserWithSuffix({ account: 'Mr.Ma', password: 'MqbSunny0702', role: 'admin' })
     adminId = admin.user.id
@@ -281,6 +282,23 @@ describe('access 路由核心', () => {
     expect(handleAccessRequest(deps, req({ method: 'PUT', pathname: '/login' })).status).toBe(405)
     expect(handleAccessRequest(deps, req({ pathname: '/nope' })).status).toBe(404)
     expect(handleAccessRequest(deps, req({ pathname: '/access/api/unknown' })).status).toBe(404)
+  })
+
+  it('T2.3 插件启停:非 admin 403;红线拒停;停用持久化到 disabled-plugins.json', () => {
+    const toggle = (id: string, action: string): AccessReply => handleAccessRequest(deps, req({
+      method: 'POST', pathname: `/access/api/plugins/${id}/${action}`, cookie: adminCookie,
+    }))
+    store.createUserWithSuffix({ account: 'frank', password: 'password8' })
+    const frankCookie = login('frank', 'password8')
+    expect(handleAccessRequest(deps, req({ method: 'POST', pathname: '/access/api/plugins/eterna-memory/disable', cookie: frankCookie })).status).toBe(403)
+    expect(toggle('eterna-governance', 'disable').status).toBe(400)
+    expect(toggle('eterna-memory', 'disable').status).toBe(200)
+    expect(store.isPluginDisabled('eterna-memory')).toBe(true)
+    expect(toggle('eterna-memory', 'enable').status).toBe(200)
+    expect(store.isPluginDisabled('eterna-memory')).toBe(false)
+    const list = bodyOf(handleAccessRequest(deps, req({ pathname: '/access/api/plugins', cookie: adminCookie }))) as { plugins: Array<{ id: string; redLine: boolean }> }
+    expect(list.plugins.find(p => p.id === 'eterna-audit')?.redLine).toBe(true)
+    expect(list.plugins.find(p => p.id === 'eterna-memory')?.redLine).toBe(false)
   })
 
   it('clientIp:XFF 首值优先;数组形态;缺省 local', () => {
