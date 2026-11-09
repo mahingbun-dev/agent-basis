@@ -1,6 +1,6 @@
-# Basis enterprise Web 档（basis-web）：dsh-base + dsh-web-app 之上的企业裁切层。
+# Eterna enterprise Web 档（eterna-web）：dsh-base + dsh-web-app 之上的企业裁切层。
 #
-# 装载形态：DSH profile `$DSH_HOME/profiles/basis-web`，其 package.json 声明
+# 装载形态：DSH profile `$DSH_HOME/profiles/eterna-web`，其 package.json 声明
 # dsh.profile.bundles = ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app"]，
 # 本文件作为该 profile 的 cordis.patch.yml（用户层，最后写赢）。裁切=按 id 覆写
 # 既有行并置 disabled: true（补丁语义：裸 id 行只覆写既有行且整份替换 config，
@@ -11,7 +11,7 @@
 # 权威依据：plans/2026-11-06-dsh企业agent路线定案.md §11（§11.7 图纸复核、
 # §11.8 二次裁定为准）。行 id 核对自 deepseek-harness 两个 bundle patch 的
 # 装品版本（@deepseek-ai/dsh-base 0.2.2-rc.1、@deepseek-ai/dsh-web-app 0.2.2-rc.1，
-# 即实际 boot 的补丁文本；仓库检出略超前，差异见 docs/basis-web-profile.md）。
+# 即实际 boot 的补丁文本；仓库检出略超前，差异见 docs/eterna-web-profile.md）。
 #
 # 两条已知偏差（对 §11.2/§11.8 的字面清单）：
 # 1. `credentials` 行保留不裁：client-connection（web 传输层，必需行
@@ -29,7 +29,7 @@
 #    于 2026-11-09 用户裁定回加（重要：Agent 可编写插件/创建模式），整份重述见下。
 #
 # 回加方式：删除对应行的覆写块（或把 disabled 改回），见
-# docs/basis-web-profile.md「如何回加」。
+# docs/eterna-web-profile.md「如何回加」。
 
 # ── 遥测（§11.8：裁后无隐式外联；§11.2：外联 dsh-otel-collector 合规红线）─────
 - id: otel
@@ -135,9 +135,9 @@
 # 装品 presets/cordis.patch.yml，仅两处变化：tool-plugin-manager/tool-plugin-market
 # → disabled: true（企业红线：三方准入不开放）。
 # ⚠️ 硬依赖：skill-filesystem 的 customSkillDirs 表达式以 createRequire(baseUrl)
-# 解析 @basis/creation-skills（=packages/brand，profile node_modules 需 symlink；
+# 解析 @eterna/creation-skills（=packages/brand，profile node_modules 需 symlink；
 # 品牌化技能 fork 见 packages/brand/skills/），否则 boot 即 MODULE_NOT_FOUND。
-# 链接步骤见 docs/basis-web-profile.md「如何回加」。
+# 链接步骤见 docs/eterna-web-profile.md「如何回加」。
 - id: preset-cordis
   config:
     id: cordis
@@ -257,11 +257,11 @@
         name: '@deepseek-ai/dsh-skill-filesystem'
         config:
           # 技能目录=品牌化 fork（packages/brand/skills）：2026-11-09 品牌化改造——
-          # 上游技能散文含 DeepSeek Harness/DSH 共 94 处，fork 至 @basis/creation-skills
+          # 上游技能散文含 DeepSeek Harness/DSH 共 94 处，fork 至 @eterna/creation-skills
           # （symlink→packages/brand）并全线替换为 EternaAgent；包名 @deepseek-ai/*
           # 为真实依赖，保留。升级姿势：与上游 skills/ re-diff 后重放本替换。
           customSkillDirs:
-            - !!js process.getBuiltinModule('node:path').join(process.getBuiltinModule('node:path').dirname(process.getBuiltinModule('node:module').createRequire(baseUrl).resolve('@basis/creation-skills/package.json')), 'skills')
+            - !!js process.getBuiltinModule('node:path').join(process.getBuiltinModule('node:path').dirname(process.getBuiltinModule('node:module').createRequire(baseUrl).resolve('@eterna/creation-skills/package.json')), 'skills')
       - id: tool-skill
         name: '@deepseek-ai/dsh-tool-skill'
       - id: present

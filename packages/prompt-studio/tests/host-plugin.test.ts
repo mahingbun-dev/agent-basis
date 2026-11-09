@@ -24,7 +24,7 @@ import { VERSIONS_TABLE } from '../src/version-store.ts'
 import { sha256Hex } from '../src/checksum.ts'
 
 /** 基线 persona(单行;T7.3 起内含三条红线锚点,对齐 packs/event-planning persona 全局硬约束)。 */
-const PERSONA_V1 = 'You are the Basis enterprise assistant. T7-STUDIO-V1 红线:预算超支>5%必须触发审批;对外付款不得代付;比选必须中立。'
+const PERSONA_V1 = 'You are the Eterna enterprise assistant. T7-STUDIO-V1 红线:预算超支>5%必须触发审批;对外付款不得代付;比选必须中立。'
 /** 三条红线锚点文本(拼接新内容用)。 */
 const RED_LINES = '红线:预算超支>5%必须触发审批;对外付款不得代付;比选必须中立。'
 
@@ -92,10 +92,10 @@ describe('SRC 端点声明(手工 @Remote marker)', () => {
 
 describe('default export 插件形态(DSH bundle loader 契约)', () => {
   it('name 与 apply(返回 disposer);工厂与 default 实例同构', () => {
-    expect(plugin.name).toBe('basis-prompt-studio')
+    expect(plugin.name).toBe('eterna-prompt-studio')
     expect(typeof plugin.apply).toBe('function')
     const built = definePromptStudioPlugin()
-    expect(built.name).toBe('basis-prompt-studio')
+    expect(built.name).toBe('eterna-prompt-studio')
     expect(typeof built.apply).toBe('function')
     const ctx = new Context()
     const disposer = plugin.apply(asStudio(ctx))
@@ -113,7 +113,7 @@ describe('LoopPromptGateway 全链路(真实 cordis 根 Context)', () => {
   let gateway: LoopPromptGateway
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'basis-prompt-studio-host-'))
+    dir = mkdtempSync(join(tmpdir(), 'eterna-prompt-studio-host-'))
     patchPath = join(dir, 'cordis.patch.yml')
     auditPath = join(dir, 'audit.jsonl')
     sessionsRoot = join(dir, 'sessions')

@@ -1,5 +1,5 @@
 {
-  "name": "@basis/channels",
+  "name": "@eterna/channels",
   "description": "L1 通道插件:渠道绑定存储(channel_user_id↔session_id↔渠道类型,sqlite,多渠道收敛同一会话)、webhook 入站网关(HMAC 验签→投递绑定 session)、一次性审批令牌(签发绑定 approval 请求 ID+过期,校验单次有效防重放——邮件审批防伪造核心)、邮箱适配器接口(IMAP 收/SMTP 发,nodemailer 类型钉住不真连)、微信三路径适配器接口(腾讯官方插件/企微智能机器人/微信客服)+飞书/钉钉卡片 schema 与发送接口,所有出站审批卡片统一携带审批按钮动作载荷。",
   "version": "0.0.0",
   "private": true,

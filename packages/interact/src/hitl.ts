@@ -5,7 +5,7 @@
  * R3 条目可配升级对象(escalate_to)、冷静期(cooling_period_sec)、二次确认(double_confirm);
  * 全局或逐条可配 on_no_answer 挂起策略(ask 不可达时:挂起非失败 / 升级 channels / 失败)。
  *
- * fail-closed 纪律(对齐 @basis/governance 规则引擎的"解析期拒绝 default: allow"):
+ * fail-closed 纪律(对齐 @eterna/governance 规则引擎的"解析期拒绝 default: allow"):
  * - default_grade 只允许 R2|R3——未命中任何规则的动作必须走人,静默缺省即是放行漏洞;
  * - 未知键、非法枚举、R0-R2 条目携带 R3 专属字段,均在校验期拒绝;
  * - 分档裁决取命中规则的**最高档**(风险优先,对应 governance 的 deny 优先),未命中回落 default_grade。

@@ -4,7 +4,7 @@ name: event-planning
 extends:
   - dsh-base
 bundles:
-  - '@basis/governance'
-  - '@basis/interact'
-  - '@basis/knowledge'
+  - '@eterna/governance'
+  - '@eterna/interact'
+  - '@eterna/knowledge'
   - '@event/pack'

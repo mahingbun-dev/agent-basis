@@ -110,7 +110,7 @@ describe('createInteract 组合面(负信号 + 提问 + 分档联动)', () => {
     disposeInteract(interact)
     expect(interact.signals.count).toBe(0)
     expect(interact.ask.pendingTurnId).toBeUndefined()
-    expect(interact.presetArtifact.config.defaultPreset).toBe('basis-r2-confirm')
+    expect(interact.presetArtifact.config.defaultPreset).toBe('eterna-r2-confirm')
   })
 
   it('hitlYaml/hitl 均缺 → InteractConfigError', async () => {

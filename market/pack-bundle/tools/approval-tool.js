@@ -22,7 +22,7 @@ function createApprovalTool() {
         amountCny: amount,
         currency: "CNY",
         payee: input.payee.trim(),
-        basis: input.basis?.trim() || "\u5408\u540C\u7EA6\u5B9A\u5B9A\u91D1",
+        basis: input.eterna?.trim() || "\u5408\u540C\u7EA6\u5B9A\u5B9A\u91D1",
         contractCny: input.contractCny,
         depositRatio: ratio,
         riskLevel: "R3",

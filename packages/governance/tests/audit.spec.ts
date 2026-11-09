@@ -31,7 +31,7 @@ afterEach(async () => {
 })
 
 async function tempFile(name: string): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), 'basis-governance-audit-'))
+  const dir = await mkdtemp(join(tmpdir(), 'eterna-governance-audit-'))
   tempDirs.push(dir)
   return join(dir, name)
 }

@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import { initPack } from '@basis/packctl'
+import { initPack } from '@eterna/packctl'
 import { diceSimilarity, promptAudit, referencedFiles } from '../src/index.ts'
 
 let root = ''
@@ -54,7 +54,7 @@ metadata:
 `
 
 beforeAll(async () => {
-  root = await fs.mkdtemp(path.join(os.tmpdir(), 'basis-evolve-audit-'))
+  root = await fs.mkdtemp(path.join(os.tmpdir(), 'eterna-evolve-audit-'))
   const init = initPack('evodemo', { rootDir: root })
   if (init.result === undefined) throw new Error('init 失败')
   packDir = init.result.packDir

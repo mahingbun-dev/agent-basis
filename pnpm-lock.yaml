@@ -128,15 +128,15 @@ importers:
 
   packages/audit:
     dependencies:
-      '@basis/governance':
-        specifier: workspace:*
-        version: link:../governance
       '@deepseek-ai/cordis':
         specifier: 'catalog:'
         version: 4.0.6-alpha.1(@deepseek-ai/cordis-plugin-include@1.0.11-alpha.1)(@deepseek-ai/cordis-plugin-loader@1.0.7-alpha.1)
       '@deepseek-ai/dsh-session':
         specifier: 'catalog:'
         version: 0.2.2-alpha.2(@deepseek-ai/cordis@4.0.6-alpha.1)(@deepseek-ai/dsh-scope@0.2.2-alpha.2(@deepseek-ai/cordis@4.0.6-alpha.1))
+      '@eterna/governance':
+        specifier: workspace:*
+        version: link:../governance
     devDependencies:
       '@deepseek-ai/cordis-plugin-include':
         specifier: ~1.0.11-alpha.1
@@ -178,15 +178,15 @@ importers:
 
   packages/cache-guard:
     dependencies:
-      '@basis/observe':
-        specifier: workspace:*
-        version: link:../observe
       '@deepseek-ai/dsh-llm':
         specifier: 'catalog:'
         version: 0.2.2-alpha.2(@deepseek-ai/cordis@4.1.0)
       '@deepseek-ai/dsh-session':
         specifier: 'catalog:'
         version: 0.2.2-alpha.2(@deepseek-ai/cordis@4.1.0)(@deepseek-ai/dsh-scope@0.2.2-alpha.2(@deepseek-ai/cordis@4.1.0))
+      '@eterna/observe':
+        specifier: workspace:*
+        version: link:../observe
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -219,18 +219,18 @@ importers:
 
   packages/evolve:
     dependencies:
-      '@basis/evals':
-        specifier: workspace:*
-        version: link:../../tools/evals
-      '@basis/observe':
-        specifier: workspace:*
-        version: link:../observe
-      '@basis/packctl':
-        specifier: workspace:*
-        version: link:../../tools/packctl
       '@deepseek-ai/dsh-llm':
         specifier: 'catalog:'
         version: 0.2.2-alpha.2(@deepseek-ai/cordis@4.1.0)
+      '@eterna/evals':
+        specifier: workspace:*
+        version: link:../../tools/evals
+      '@eterna/observe':
+        specifier: workspace:*
+        version: link:../observe
+      '@eterna/packctl':
+        specifier: workspace:*
+        version: link:../../tools/packctl
       yaml:
         specifier: 'catalog:'
         version: 2.9.1
@@ -247,9 +247,6 @@ importers:
 
   packages/extra:
     dependencies:
-      '@basis/governance':
-        specifier: workspace:*
-        version: link:../governance
       '@deepseek-ai/cordis':
         specifier: 'catalog:'
         version: 4.0.6-alpha.1(@deepseek-ai/cordis-plugin-include@1.0.11-alpha.1)(@deepseek-ai/cordis-plugin-loader@1.0.7-alpha.1)
@@ -268,6 +265,9 @@ importers:
       '@deepseek-ai/dsh-tools':
         specifier: 'catalog:'
         version: 0.2.2-alpha.2(cc29c74f9a82c71c798d6fabd5e88936)
+      '@eterna/governance':
+        specifier: workspace:*
+        version: link:../governance
       yaml:
         specifier: 'catalog:'
         version: 2.9.1
@@ -290,27 +290,27 @@ importers:
 
   packages/glue:
     dependencies:
-      '@basis/audit':
-        specifier: workspace:*
-        version: link:../audit
-      '@basis/extra':
-        specifier: workspace:*
-        version: link:../extra
-      '@basis/governance':
-        specifier: workspace:*
-        version: link:../governance
-      '@basis/knowledge':
-        specifier: workspace:*
-        version: link:../knowledge
-      '@basis/memory':
-        specifier: workspace:*
-        version: link:../memory
       '@deepseek-ai/cordis':
         specifier: 'catalog:'
         version: 4.0.6-alpha.1(@deepseek-ai/cordis-plugin-include@1.0.11-alpha.1)(@deepseek-ai/cordis-plugin-loader@1.0.7-alpha.1)
       '@deepseek-ai/dsh-tools':
         specifier: 'catalog:'
         version: 0.2.2-alpha.2(cc29c74f9a82c71c798d6fabd5e88936)
+      '@eterna/audit':
+        specifier: workspace:*
+        version: link:../audit
+      '@eterna/extra':
+        specifier: workspace:*
+        version: link:../extra
+      '@eterna/governance':
+        specifier: workspace:*
+        version: link:../governance
+      '@eterna/knowledge':
+        specifier: workspace:*
+        version: link:../knowledge
+      '@eterna/memory':
+        specifier: workspace:*
+        version: link:../memory
       yaml:
         specifier: 'catalog:'
         version: 2.9.1
@@ -440,11 +440,39 @@ importers:
         specifier: 'catalog:'
         version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
 
+  packages/llm-openai:
+    dependencies:
+      '@deepseek-ai/cordis':
+        specifier: ~4.1.0
+        version: 4.1.0(@deepseek-ai/cordis-plugin-include@1.1.0)(@deepseek-ai/cordis-plugin-loader@1.1.0)
+      '@deepseek-ai/cordis-plugin-loader':
+        specifier: ~1.1.0
+        version: 1.1.0(@deepseek-ai/cordis@4.1.0)(node-addon-require-builtin@0.1.9)
+      '@deepseek-ai/cosmokit':
+        specifier: ~1.9.0
+        version: 1.9.0
+      '@deepseek-ai/dsh-llm':
+        specifier: 0.2.2-rc.1
+        version: 0.2.2-rc.1(@deepseek-ai/cordis@4.1.0)
+      '@deepseek-ai/dsh-timeout':
+        specifier: 0.2.2-rc.1
+        version: 0.2.2-rc.1(@deepseek-ai/cordis@4.1.0)
+      '@deepseek-ai/schemastery':
+        specifier: ~3.19.0
+        version: 3.19.0
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
+
   packages/memory:
     dependencies:
-      '@basis/governance':
-        specifier: workspace:*
-        version: link:../governance
       '@deepseek-ai/cordis':
         specifier: 'catalog:'
         version: 4.0.6-alpha.1(@deepseek-ai/cordis-plugin-include@1.0.11-alpha.1)(@deepseek-ai/cordis-plugin-loader@1.0.7-alpha.1)
@@ -454,6 +482,9 @@ importers:
       '@deepseek-ai/dsh-tools':
         specifier: 'catalog:'
         version: 0.2.2-alpha.2(cc29c74f9a82c71c798d6fabd5e88936)
+      '@eterna/governance':
+        specifier: workspace:*
+        version: link:../governance
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -489,15 +520,15 @@ importers:
 
   packages/panel:
     dependencies:
-      '@basis/governance':
-        specifier: workspace:*
-        version: link:../governance
       '@deepseek-ai/cordis':
         specifier: 'catalog:'
         version: 4.0.6-alpha.1(@deepseek-ai/cordis-plugin-include@1.0.11-alpha.1)(@deepseek-ai/cordis-plugin-loader@1.0.7-alpha.1)
       '@deepseek-ai/dsh-typert-protocol':
         specifier: 'catalog:'
         version: 0.2.2-alpha.2(@deepseek-ai/cordis@4.0.6-alpha.1)
+      '@eterna/governance':
+        specifier: workspace:*
+        version: link:../governance
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -520,12 +551,6 @@ importers:
 
   packages/prompt-studio:
     dependencies:
-      '@basis/governance':
-        specifier: workspace:*
-        version: link:../governance
-      '@basis/interact':
-        specifier: workspace:*
-        version: link:../interact
       '@deepseek-ai/cordis':
         specifier: 'catalog:'
         version: 4.0.6-alpha.1(@deepseek-ai/cordis-plugin-include@1.0.11-alpha.1)(@deepseek-ai/cordis-plugin-loader@1.0.7-alpha.1)
@@ -535,6 +560,12 @@ importers:
       '@deepseek-ai/dsh-typert-protocol':
         specifier: 'catalog:'
         version: 0.2.2-alpha.2(@deepseek-ai/cordis@4.0.6-alpha.1)
+      '@eterna/governance':
+        specifier: workspace:*
+        version: link:../governance
+      '@eterna/interact':
+        specifier: workspace:*
+        version: link:../interact
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -555,7 +586,7 @@ importers:
         specifier: 'catalog:'
         version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
 
-  tools/basis-smoke:
+  tools/eterna-smoke:
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

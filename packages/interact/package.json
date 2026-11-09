@@ -1,5 +1,5 @@
 {
-  "name": "@basis/interact",
+  "name": "@eterna/interact",
   "description": "L1 人机交互质量插件(设计文档 08 §6、12 §3、14 号 T3):hitl.yaml 风险分档(R0 只读/R1 可逆写/R2 需确认/R3 高危)加载与校验、R0-R3→DSH permission-presets 配置产物生成器、富上下文审批卡片 payload 构造器(将发生什么/为什么/影响面/回滚性/命中规则)、同 turn 提问合并包装器(一卡≤3问)、审批负信号事件(被拒/被修改)发布接口(供 observe 消费)。seam 类型取自已发布 @deepseek-ai/dsh-user-questions / dsh-user-approval / dsh-permission-presets / dsh-sandbox 0.2.2-alpha.2。",
   "version": "0.0.0",
   "private": true,

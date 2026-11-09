@@ -1,4 +1,4 @@
-# @basis/memory
+# @eterna/memory
 
 L1 记忆插件(T2):M1 项目记忆 + M2 实体记忆 + 四个模型面工具 + systemPrompt 索引注入。
 设计依据:设计文档 08 §5(旗舰设计 ①:dsh-memory)、12 §2(功能点承载)、14 号 T2。
@@ -39,7 +39,7 @@ L1 记忆插件(T2):M1 项目记忆 + M2 实体记忆 + 四个模型面工具 + 
 
 一切写入路径(`writeEntity` / `writeNote` / `appendNote`,工具面与服务面同源)先过 PII:
 
-- 首选注入 `@basis/governance` 的 `PiiFilter`(组合层取 `ctx.governance?.pii`),`PiiFilter` 结构满足 `PiiGuard`,直接注入无适配层;
+- 首选注入 `@eterna/governance` 的 `PiiFilter`(组合层取 `ctx.governance?.pii`),`PiiFilter` 结构满足 `PiiGuard`,直接注入无适配层;
 - governance 服务未 provide 时降级 `BuiltinPiiGuard`(四类通用模式同源镜像;不支持领域包插拔行业模式)——**降级事实记入 blockers,不得静默**;
 - 命中抛 `PiiBlockedError`(governance 版与内置版同名,按 `name` 判别);工具面转结构化 `{ ok: false, blocked: 'pii' }` 载荷,不中断 turn。
 
@@ -47,14 +47,14 @@ L1 记忆插件(T2):M1 项目记忆 + M2 实体记忆 + 四个模型面工具 + 
 
 1. **effect 配逆闭包**:`writeEntity().undo()`(顶替场景精确恢复 pre-write 状态)、`writeNote().undo()`(恢复原内容/删除新建文件并清空目录)、`forget` 真删(DELETE 全部行)、`attachMemory()` 返回宿主级总 disposer(卸载四工具+索引 section,幂等);
 2. **coeffect 全声明**:目录/库路径/PII 守卫/时钟全部构造注入,不碰旁路全局;
-3. **provide 可交换**:`MEMORY_SERVICE_ID = '@basis/memory'` 注册表+唯一 ID;`PiiGuard` 为 governance 服务的可交换结构接口。
+3. **provide 可交换**:`MEMORY_SERVICE_ID = '@eterna/memory'` 注册表+唯一 ID;`PiiGuard` 为 governance 服务的可交换结构接口。
 
 ## 组合层用法(真实 DSH 宿主)
 
 ```ts
 import { Context } from '@deepseek-ai/cordis'
-import { attachMemory, createMemory, dshHost } from '@basis/memory'
-import { PiiFilter } from '@basis/governance'
+import { attachMemory, createMemory, dshHost } from '@eterna/memory'
+import { PiiFilter } from '@eterna/governance'
 
 declare const ctx: Context
 const memory = createMemory({
@@ -71,7 +71,7 @@ T2 指定 M2 用 `node:sqlite`(Node ≥22 内建,免原生编译)六列表形态
 
 ## 验收门
 
-`pnpm --filter @basis/memory run verify` = oxlint + `tsc --noEmit`(含 `tests/types.seam-pin.ts` 编译期钉住:ToolDefinition→`ToolRuntime['register']`、PromptSection→`SystemPrompt['section']`、`dshHost(liveCtx)` 依赖两个 Context augmentation、governance `PiiFilter`→`PiiGuard`)+ vitest(80 测试)。
+`pnpm --filter @eterna/memory run verify` = oxlint + `tsc --noEmit`(含 `tests/types.seam-pin.ts` 编译期钉住:ToolDefinition→`ToolRuntime['register']`、PromptSection→`SystemPrompt['section']`、`dshHost(liveCtx)` 依赖两个 Context augmentation、governance `PiiFilter`→`PiiGuard`)+ vitest(80 测试)。
 
 关键用例:跨会话召回(M1+M2,dispose 后新实例)、遗忘后检索不到(read/search/索引全链路)、索引预算 ≤500 token(120 条压力)、PII 注入与降级双路径、undo 精确配逆。
 

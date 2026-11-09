@@ -44,7 +44,7 @@ await build({
   sourcemap: false,
   logLevel: 'info',
   banner: {
-    js: 'window.__ModuleLoader__.load({\n  id: "@basis/panel",\n  factory: (require) => {\n    var module = { exports: {} };\n    var exports = module.exports;\n',
+    js: 'window.__ModuleLoader__.load({\n  id: "@eterna/panel",\n  factory: (require) => {\n    var module = { exports: {} };\n    var exports = module.exports;\n',
   },
   footer: {
     js: '\n    return module.exports;\n  },\n});\n',

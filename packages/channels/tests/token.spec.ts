@@ -5,7 +5,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { afterAll, describe, expect, it } from 'vitest'
 import { ApprovalTokenService, hashApprovalToken } from '../src/index.ts'
 
-const dir = mkdtempSync(join(tmpdir(), 'basis-channels-token-'))
+const dir = mkdtempSync(join(tmpdir(), 'eterna-channels-token-'))
 const dbPath = join(dir, 'tokens.db')
 
 afterAll(() => {

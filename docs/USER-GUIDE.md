@@ -1,5 +1,5 @@
 <!--
-  同源文档:本文件与用户级 skill ~/.agents/skills/agent-basis-guide/SKILL.md 同源
+  同源文档:本文件与用户级 skill ~/.agents/skills/agent-eterna-guide/SKILL.md 同源
   (正文逐字节一致,仅头部来源说明不同)。修改任一处后必须重新同步另一处:
   由 SKILL.md 去掉 YAML frontmatter 生成本文件。
 -->
@@ -17,19 +17,19 @@
 ## 快速定位
 
 - 仓库:`/Users/sunny/.zcode/workspace/draft-50d92869-2a8d-4d02-8c95-cccdab6eafca/agent-basis`(下文相对路径均以此为根)
-- Web 入口:`http://127.0.0.1:3080/?token=<token>`(token 从 `/tmp/basis-web-app.log` 里 `grep 'token='` 取);若 127.0.0.1 源页面挂死,换 `http://localhost:3080/?token=…` 即恢复
+- Web 入口:`http://127.0.0.1:3080/?token=<token>`(token 从 `/tmp/eterna-web-app.log` 里 `grep 'token='` 取);若 127.0.0.1 源页面挂死,换 `http://localhost:3080/?token=…` 即恢复
 - 启动/重启(改了 glue/panel 代码后必须重启再测):
   ```bash
-  pkill -f 'profile basis-web'; sleep 2
-  cd /tmp/basis-ws && LITELLM_API_KEY=$(cat <仓库>/.secrets/litellm-master-key.txt) \
-    nohup /opt/homebrew/bin/dsh --profile basis-web > /tmp/basis-web-app.log 2>&1 &
+  pkill -f 'profile eterna-web'; sleep 2
+  cd /tmp/eterna-ws && LITELLM_API_KEY=$(cat <仓库>/.secrets/litellm-master-key.txt) \
+    nohup /opt/homebrew/bin/dsh --profile eterna-web > /tmp/eterna-web-app.log 2>&1 &
   ```
 - 凭据只放 `<仓库>/.secrets/`(gitignored),绝不写进提交文件
 - 面板三区块:①服务清单(governance / memory / knowledge / @event 工具清单+R3 标记)②操作指引(每能力一条示例 prompt,点「复制」粘到输入框)③可观测样例(最近会话 token / 缓存命中率)
 
 ## 功能触发示例(逐条对应面板指引)
 
-> 第 1–7 条与面板「操作指引」逐条同源(`packages/panel/src/prompts.ts`,括号内为面板条目 id,面板 DOM 锚点 `data-basis-panel-prompt="<id>"`);第 8–12 条覆盖面板「服务清单」卡片上的其余工具;第 13 条是实测过的组合触发。把示例粘进会话输入框即可。
+> 第 1–7 条与面板「操作指引」逐条同源(`packages/panel/src/prompts.ts`,括号内为面板条目 id,面板 DOM 锚点 `data-eterna-panel-prompt="<id>"`);第 8–12 条覆盖面板「服务清单」卡片上的其余工具;第 13 条是实测过的组合触发。把示例粘进会话输入框即可。
 
 ### 1. 记忆写入(面板 memory-write)
 
@@ -37,7 +37,7 @@
 请用 memory_write 记住:用户偏好周五下午开会(实体 user:me / key meeting-preference)。
 ```
 
-- 落库:`.basis/memory.sqlite3`(宿主 cwd 下);写入前过 PII 过滤
+- 落库:`.eterna/memory.sqlite3`(宿主 cwd 下);写入前过 PII 过滤
 - 写入后该实体进入后续会话的系统提示记忆索引(≤500 token),无需重复交代
 - 验收锚点:memory_write 输出含实体/键确认;面板「记忆 memory」卡片实体数 +1、最近 key 列表出现 `user:me/meeting-preference`
 
@@ -193,10 +193,10 @@ node tools/packctl/bin/packctl.mjs lint packs/<行业名>          # 结构/Cord
 
 1. 打开 Web → 侧栏「**插件**」页 → 切到「**发现**」标签
 2. 首次使用点「**添加索引源**」(或工具栏「插件索引」菜单 →「管理索引源…」),填入插件索引的 http(s) URL——索引是一份 JSON 清单,列出可安装的组合包。
-   本仓库自家插件(@basis/glue、@event/pack)的长期索引源:**`https://raw.githubusercontent.com/mahingbun-dev/agent-basis/main/market/index.json`**
+   本仓库自家插件(@eterna/glue、@event/pack)的长期索引源:**`https://raw.githubusercontent.com/mahingbun-dev/agent-basis/main/market/index.json`**
    (离线演示备用:仓库根 `python3 -m http.server 8765 -d market/` 后填 `http://127.0.0.1:8765/index.json`)
 3. 搜索/按标签筛选 → 卡片上点「**安装**」→ 确认对话框(显示版本、来源 spec、registry)→ 确认后进入安装检查界面
-4. 装完到「已安装」标签启用/停用;装新组合包默认启用,basis-web profile 无 HMR 时按提示重启生效
+4. 装完到「已安装」标签启用/停用;装新组合包默认启用,eterna-web profile 无 HMR 时按提示重启生效
 
 ### 会话内让代理装(工具链)
 
@@ -214,16 +214,16 @@ node tools/packctl/bin/packctl.mjs lint packs/<行业名>          # 结构/Cord
 /opt/homebrew/bin/dsh plugin --profile <name> remove <package>
 ```
 
-### agent-basis 自家插件(basis-web profile)
+### agent-basis 自家插件(eterna-web profile)
 
 **推荐:走上面的「发现」标签 + 本仓库长期索引源安装,不再手工拷文件。**以下 file: 依赖方式仅作开发态联调保留(源码改动即时生效):
 
 ```bash
-pnpm --filter @basis/panel run verify            # 先构建验证(含 lib/client.js)
-cp -R packages/panel ~/.dsh/profiles/basis-web/packages/panel
-# profile 侧 package.json:dependencies 加 "@basis/panel": "file:packages/panel";
-# dsh.profile.bundles 追加 "@basis/panel";glue 同款做法
-cd ~/.dsh/profiles/basis-web && pnpm install
+pnpm --filter @eterna/panel run verify            # 先构建验证(含 lib/client.js)
+cp -R packages/panel ~/.dsh/profiles/eterna-web/packages/panel
+# profile 侧 package.json:dependencies 加 "@eterna/panel": "file:packages/panel";
+# dsh.profile.bundles 追加 "@eterna/panel";glue 同款做法
+cd ~/.dsh/profiles/eterna-web && pnpm install
 # 然后按「快速定位」里的命令重启宿主再测
 ```
 

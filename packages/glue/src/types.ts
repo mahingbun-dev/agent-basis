@@ -1,12 +1,12 @@
 /** glue 包共享常量与类型。 */
 
-export const BASIS_GLUE_PLUGIN_NAME = 'basis-glue'
+export const ETERNA_GLUE_PLUGIN_NAME = 'eterna-glue'
 
-/** memory 插件配置(对齐 @basis/memory MemoryOptions 的宿主面子集)。 */
+/** memory 插件配置(对齐 @eterna/memory MemoryOptions 的宿主面子集)。 */
 export interface MemoryPluginConfig {
   /** M1 工作区根(缺省 = agent cwd 下的 NOTES/)。 */
   readonly notesDir?: string
-  /** M2 sqlite 库路径(缺省 = agent cwd 下的 .basis/memory.sqlite3)。 */
+  /** M2 sqlite 库路径(缺省 = agent cwd 下的 .eterna/memory.sqlite3)。 */
   readonly dbPath?: string
   /** 记忆索引 section 的 token 预算(缺省 500,08 号设计)。 */
   readonly indexBudgetTokens?: number
@@ -16,21 +16,21 @@ export interface MemoryPluginConfig {
 export interface KnowledgePluginConfig {
   /** wiki 根目录(缺省 = agent cwd 下的 knowledge.wiki/)。 */
   readonly wikiDir?: string
-  /** 索引 sqlite 路径(缺省 = agent cwd 下的 .basis/knowledge.sqlite3)。 */
+  /** 索引 sqlite 路径(缺省 = agent cwd 下的 .eterna/knowledge.sqlite3)。 */
   readonly dbPath?: string
 }
 
 /** governance 插件配置。 */
 export interface GovernancePluginConfig {
-  /** 规则文件路径(YAML;缺省 = agent cwd 下的 .basis/governance.rules.yml,不存在则空规则集)。 */
+  /** 规则文件路径(YAML;缺省 = agent cwd 下的 .eterna/governance.rules.yml,不存在则空规则集)。 */
   readonly rulesPath?: string
-  /** 组合治理门的插件归属(audit 记录 actor.pluginId;缺省插件名 basis-governance)。 */
+  /** 组合治理门的插件归属(audit 记录 actor.pluginId;缺省插件名 eterna-governance)。 */
   readonly actorId?: string
 }
 
 /** egress 插件配置(T8;三层判定与缺省口径见 plugins/egress-plugin.ts 头注)。 */
 export interface EgressPluginConfig {
-  /** 域名白名单 YAML 路径(缺省 = agent cwd 下 .basis/egress-whitelist.yml;不存在 = 内网默认白名单)。 */
+  /** 域名白名单 YAML 路径(缺省 = agent cwd 下 .eterna/egress-whitelist.yml;不存在 = 内网默认白名单)。 */
   readonly whitelistPath?: string
   /** 识别出网型工具的 glob(缺省 = governance DEFAULT_OUTBOUND_TOOL_GLOBS)。 */
   readonly outboundToolGlobs?: readonly string[]

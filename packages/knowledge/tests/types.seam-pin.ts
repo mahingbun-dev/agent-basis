@@ -2,14 +2,14 @@
  * DSH seam 编译期钉住(只被 tsc --noEmit 消费;vitest include 只收 *.spec.ts,不运行本文件)。
  *
  * 目的(设计文档 08 §8 风险 1,与 governance 同款做法):DSH pre-stable,适配面用已发布类型钉住。
- * 依据(dsh-repo,只读):
+ * 依据(deepseek-harness,只读):
  * - packages/tools(发布名 @deepseek-ai/dsh-tools)lib/types/contracts.ts:ToolDefinition(name/description/
  *   parameters/output{schema,render}/execute(args, exec))、ToolRunContext(signal 取消);
  * - packages/tools lib/types/json-schema.ts:JsonSchemaNode(强制 JSON Schema 子集);
  * - packages/tools lib/types/index.ts:ToolsService.register(definition, options?) => () => void(Cordis
  *   disposer 形态——本包知识工具的注册即拿即配逆)。
  *
- * 若 DSH 升级破坏这些形态,`pnpm --filter @basis/knowledge run verify` 的 tsc 阶段即失败。
+ * 若 DSH 升级破坏这些形态,`pnpm --filter @eterna/knowledge run verify` 的 tsc 阶段即失败。
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { ToolDefinition } from '@deepseek-ai/dsh-tools'

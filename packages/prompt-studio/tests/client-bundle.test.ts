@@ -30,10 +30,10 @@ const BASELINE_EXTERNALS = [
 ] as const
 
 describe('lib/client.js 工件形态', () => {
-  it('闭包工厂包装:window.__ModuleLoader__.load({ id: "@basis/prompt-studio", factory })', () => {
+  it('闭包工厂包装:window.__ModuleLoader__.load({ id: "@eterna/prompt-studio", factory })', () => {
     const code = readFileSync(bundlePath, 'utf8')
     expect(code).toMatch(/^window\.__ModuleLoader__\.load\(\{/u)
-    expect(code).toContain('id: "@basis/prompt-studio"')
+    expect(code).toContain('id: "@eterna/prompt-studio"')
     expect(code).toContain('factory: (require) =>')
     expect(code.trimEnd().endsWith('});')).toBe(true)
   })
@@ -112,7 +112,7 @@ describe('模块装载冒烟(vm)', () => {
       require: makeRequire(seen),
     })
     expect(registrations).toHaveLength(1)
-    expect(registrations[0]?.id).toBe('@basis/prompt-studio')
+    expect(registrations[0]?.id).toBe('@eterna/prompt-studio')
     return registrations[0]!.factory(makeRequire(seen))
   }
 
@@ -184,8 +184,8 @@ describe('模块装载冒烟(vm)', () => {
     expect(injected.filter(name => name === 'sidebar.panellist')).toHaveLength(2)
     const mains = registered.filter(entry => entry.name === 'main')
     const panels = registered.filter(entry => entry.name === 'sidebar.panellist')
-    expect(mains.map(entry => entry.key).sort()).toEqual(['basis-loop-trace', 'basis-prompt-studio'])
-    expect(panels.map(entry => entry.id).sort()).toEqual(['basis-loop-trace', 'basis-prompt-studio'])
+    expect(mains.map(entry => entry.key).sort()).toEqual(['eterna-loop-trace', 'eterna-prompt-studio'])
+    expect(panels.map(entry => entry.id).sort()).toEqual(['eterna-loop-trace', 'eterna-prompt-studio'])
     // 初始拉数(刷新函数立即执行):connection rpc 已被调用(loopPrompt/*)
     expect(seen.every(specifier => BASELINE_EXTERNALS.includes(specifier as (typeof BASELINE_EXTERNALS)[number]))).toBe(true)
   })

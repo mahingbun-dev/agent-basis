@@ -1,6 +1,6 @@
 /**
  * T6 验收用例:真实领域包 packs/event-planning 的 30 条 golden 必须能被本包 loader 完整加载。
- * (14 号文档 §2 T6 验收门:packctl lint 通过 + @basis/evals loader 能加载全部 30 条。)
+ * (14 号文档 §2 T6 验收门:packctl lint 通过 + @eterna/evals loader 能加载全部 30 条。)
  *
  * 跨包路径说明:pack 是数据目录(pnpm workspace 不含 packs/*),这里直接相对定位
  * ../../packs/event-planning(从包根 tools/evals 起),vitest 运行期只读文件,无构建依赖。

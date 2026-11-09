@@ -9,7 +9,7 @@
  *    (packages/preset/agent-preset/README.md「Use this package」);
  * 2. `@deepseek-ai/dsh-persona` 行(preset 内):persona prefix/suffix 模板,
  *    scope-only 行,给该 subagent 独立身份(挂全局会与 prompt registry 冲突);
- * 3. 工具门行(`@basis/extra` 模块 reviewer-tool-gate):preset 内挂载后调用
+ * 3. 工具门行(`@eterna/extra` 模块 reviewer-tool-gate):preset 内挂载后调用
  *    `ctx.tools.restrict({ allow })`(packages/core/tools/README.md「Restrict
  *    tools per agent」)——allow 名单即 Read/Grep/Glob 的 DSH 工具名映射;
  * 4. `@deepseek-ai/dsh-tool-subagent` 委派行:provider=spawn + agentPreset
@@ -76,13 +76,13 @@ export interface ReviewerPresetArtifact {
   /** persona 行(preset.plugins 成员的规范形态快照,校验基准)。 */
   readonly persona: { readonly plugin: '@deepseek-ai/dsh-persona'; readonly config: PersonaConfig }
   /** 工具门行(preset.plugins 成员的规范形态快照,allow 即 restrict 名单)。 */
-  readonly toolGate: { readonly plugin: '@basis/extra'; readonly config: { readonly module: 'reviewer-tool-gate'; readonly allow: readonly string[] } }
+  readonly toolGate: { readonly plugin: '@eterna/extra'; readonly config: { readonly module: 'reviewer-tool-gate'; readonly allow: readonly string[] } }
   /** subagent 委派行(宿主 profile 侧挂载,不在 preset.plugins 内)。 */
   readonly subagent: { readonly plugin: '@deepseek-ai/dsh-tool-subagent'; readonly config: ToolSubagentRowConfig }
 }
 
 export interface BuildReviewerPresetOptions {
-  /** preset 身份 id(会话快照保存该 id);默认 'basis-reviewer'。 */
+  /** preset 身份 id(会话快照保存该 id);默认 'eterna-reviewer'。 */
   readonly presetId?: string
   /** 委派工具名;默认 'reviewer'。 */
   readonly toolName?: string
@@ -111,7 +111,7 @@ export function reviewerPersonaPrefix(focus?: string): string {
 
 /** 生成 reviewer preset 产物(构造期校验选项,fail-closed 抛 ExtraConfigError)。 */
 export function buildReviewerPreset(options: BuildReviewerPresetOptions = {}): ReviewerPresetArtifact {
-  const presetId = options.presetId ?? 'basis-reviewer'
+  const presetId = options.presetId ?? 'eterna-reviewer'
   if (!/^[a-z][a-z0-9-]*$/u.test(presetId)) {
     throw new ExtraConfigError(`presetId 必须是小写 kebab-case(会话快照保存该 id):${presetId}`)
   }
@@ -126,18 +126,18 @@ export function buildReviewerPreset(options: BuildReviewerPresetOptions = {}): R
   const toolGateConfig = { module: 'reviewer-tool-gate' as const, allow }
   const preset: AgentPresetRowConfig = {
     id: presetId,
-    name: 'Basis 只读审查员',
+    name: 'Eterna 只读审查员',
     description: '只读审查 subagent:read/grep/glob 白名单 + 独立 persona,供领域包 verify work 步委派。',
     plugins: [
       { id: 'reviewer-persona', name: '@deepseek-ai/dsh-persona', config: personaConfig },
-      { id: 'reviewer-tool-gate', name: '@basis/extra', config: toolGateConfig },
+      { id: 'reviewer-tool-gate', name: '@eterna/extra', config: toolGateConfig },
     ],
   }
   return {
     schemaVersion: 1,
     preset,
     persona: { plugin: '@deepseek-ai/dsh-persona', config: personaConfig },
-    toolGate: { plugin: '@basis/extra', config: toolGateConfig },
+    toolGate: { plugin: '@eterna/extra', config: toolGateConfig },
     subagent: {
       plugin: '@deepseek-ai/dsh-tool-subagent',
       config: { provider: 'spawn', toolName, agentPreset: presetId },
@@ -198,7 +198,7 @@ export function validateReviewerPresetArtifact(artifact: unknown): ReviewerPrese
   if (!isRecord(toolGate)) {
     errors.push('toolGate 必须是对象')
   } else {
-    if (toolGate['plugin'] !== '@basis/extra') errors.push(`toolGate.plugin 必须是 @basis/extra,得到:${JSON.stringify(toolGate['plugin'])}`)
+    if (toolGate['plugin'] !== '@eterna/extra') errors.push(`toolGate.plugin 必须是 @eterna/extra,得到:${JSON.stringify(toolGate['plugin'])}`)
     const gateConfig = toolGate['config']
     if (!isRecord(gateConfig)) {
       errors.push('toolGate.config 必须是对象')
@@ -242,7 +242,7 @@ function checkAllowSemantics(allow: string[]): string[] {
   return errors
 }
 
-/** 极简 glob:`*` 任意串,整串锚定(与 @basis/governance glob 语义同源)。 */
+/** 极简 glob:`*` 任意串,整串锚定(与 @eterna/governance glob 语义同源)。 */
 function matchGlobSimple(name: string, glob: string): boolean {
   const source = glob.split('*').map(segment => segment.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')).join('.*')
   return new RegExp(`^${source}$`, 'u').test(name)

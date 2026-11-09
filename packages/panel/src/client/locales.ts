@@ -3,9 +3,9 @@
  * 工具名/说明随系统语言切换(用户反馈:工具清单不得裸露英文)。
  */
 
-export const NS = 'basisPanel'
+export const NS = 'eternaPanel'
 
-export type BasisPanelLocaleKey =
+export type EternaPanelLocaleKey =
   | 'panel'
   | 'subtitle'
   | 'services'
@@ -55,7 +55,7 @@ export interface ToolLocale {
   readonly desc: string
 }
 
-/** 工具字典(PanelPage 按 data-basis-panel-tool 名取用;en/zh 双语)。 */
+/** 工具字典(PanelPage 按 data-eterna-panel-tool 名取用;en/zh 双语)。 */
 export const TOOL_LOCALES: Record<string, ToolLocale> = {
   budget_calc: { label: '预算计算', desc: '按明细行算预算与小计,自动判断是否超支' },
   schedule_conflict_check: { label: '排期冲突检查', desc: '检查多个环节的时间安排是否撞车' },
@@ -69,11 +69,11 @@ export const TOOL_LOCALES: Record<string, ToolLocale> = {
   vendor_award: { label: '供应商定标(需审批)', desc: '定标决定必须经人审批,保持中立' },
 }
 
-function toolKey(name: string): BasisPanelLocaleKey {
+function toolKey(name: string): EternaPanelLocaleKey {
   return `tools.${name}`
 }
 
-export const zh: Record<BasisPanelLocaleKey, string> = {
+export const zh: Record<EternaPanelLocaleKey, string> = {
   panel: '基座面板',
   subtitle: '这里能看到基座的全部能力:左边看状态,下面照着示例发一句话就能用',
   services: '能力状态',
@@ -115,9 +115,9 @@ export const zh: Record<BasisPanelLocaleKey, string> = {
   'units.entities': '条',
 }
 
-export const en: Record<BasisPanelLocaleKey, string> = {
-  panel: 'Basis Panel',
-  subtitle: 'Everything the basis can do — check status above, copy an example below to try it',
+export const en: Record<EternaPanelLocaleKey, string> = {
+  panel: 'EternaAgent Panel',
+  subtitle: 'Everything the agent can do — check status above, copy an example below to try it',
   services: 'Capability status',
   'services.governance': 'Governance & safety',
   'services.memory': 'Long-term memory',

@@ -4,7 +4,7 @@
  * 接入前的桩):真实接入只换数据源、不动接口;输出恒带 source: 'stub-sample' 声明。
  * 纪律:结论必须带出处与版本(命中带 kb/docId/标题/版本与现成 citation,逐字引用);
  * 无命中是正常检索结局(count=0 + outcome='no-hit'),明说「知识库无命中」,绝不抛错兜底成编造。
- * 与基座 @basis/knowledge 的 knowledge_search(wiki-local/weknora 通用检索)分工:
+ * 与基座 @eterna/knowledge 的 knowledge_search(wiki-local/weknora 通用检索)分工:
  * 本工具只覆盖工业域语料;两者都经 Knowledge MCP(pgvector+图谱),不经公网。
  *
  * Cordis 纪律形态:

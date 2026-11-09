@@ -9,4 +9,4 @@
 {"type":"tool/result","seq":9,"time":1762000000900,"data":{"turn":1,"step":2,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c2"}}}
 {"type":"assistant/message","seq":10,"time":1762000001000,"data":{"turn":1,"step":2,"message":{"role":"assistant","content":[{"type":"text","text":"重算完成 out/budget-150p.csv:餐饮 225000,分项合计 405000。"}]},"stream":[],"usage":{"inputTokens":1300,"outputTokens":420}}}
 {"type":"turn/end","seq":11,"time":1762000001100,"data":{"turn":1,"reason":{"kind":"completed"}}}
-{"type":"plugin:basis-evals/workspace","seq":12,"time":1762000001200,"data":{"files":{"out/budget-150p.csv":"类别,数量,单价,小计\n场地,1,132000,132000\n餐饮,150,1500,225000\n物料,1,24000,24000\n人工,1,14400,14400\n机动,1,9600,9600\n"}}}
+{"type":"plugin:eterna-evals/workspace","seq":12,"time":1762000001200,"data":{"files":{"out/budget-150p.csv":"类别,数量,单价,小计\n场地,1,132000,132000\n餐饮,150,1500,225000\n物料,1,24000,24000\n人工,1,14400,14400\n机动,1,9600,9600\n"}}}

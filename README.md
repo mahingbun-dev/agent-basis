@@ -1,6 +1,6 @@
 <div align="center">
 
-# agent-basis
+# 恒灵·EternaAgent（仓库代号 agent-basis）
 
 **领域 Agent 基座** —— 在 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 之上,把治理、记忆、人机交互、评测门禁、双向通道与受控自进化做成可复用插件;接入一个新行业,只需交付一份"领域包"。
 
@@ -67,7 +67,7 @@ node tools/aievo-run.mjs run task_e7cedc05e36c --wait --timeout 1800 --json
 
 | 文档 | 内容 |
 |---|---|
-| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | **用户指南(装完即会用)**:全部功能触发示例、评测/门禁怎么跑、插件怎么从索引安装;与用户级 skill `~/.agents/skills/agent-basis-guide/SKILL.md` 同源;自家插件长期索引源 `https://raw.githubusercontent.com/mahingbun-dev/agent-basis/main/market/index.json`(发现页填此 URL 即装;本地 8765 仅离线演示) |
+| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | **用户指南(装完即会用)**:全部功能触发示例、评测/门禁怎么跑、插件怎么从索引安装;与用户级 skill `~/.agents/skills/agent-eterna-guide/SKILL.md` 同源;自家插件长期索引源 `https://raw.githubusercontent.com/mahingbun-dev/agent-basis/main/market/index.json`(发现页填此 URL 即装;本地 8765 仅离线演示) |
 - [docs/PLUGIN-AUTHORING.md](docs/PLUGIN-AUTHORING.md) — 插件开发指南(创造模式/本地开发 → 入库,含硬性规范与装载配方)
 | [docs/design/](docs/design/) | 设计文档 15 篇:业界调研、架构、RSI 自进化、知识插件、功能点清单 |
 | [docs/ai-evo-integration.md](docs/ai-evo-integration.md) | 评测平台(ai-evo)对接:门禁任务 / 数据集 / 阈值 |

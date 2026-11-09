@@ -2,10 +2,10 @@
  * DSH seam 编译期钉住(只被 tsc --noEmit 消费;vitest include 只收 *.spec.ts,不运行本文件)。
  *
  * 目的(设计 08 §8 风险 1):DSH pre-stable,适配面在 CI 用接口冒烟钉住。
- * 本文件用已发布 @deepseek-ai/dsh-llm(0.2.2-alpha.2,与 ../dsh-repo 同版)类型断言:
+ * 本文件用已发布 @deepseek-ai/dsh-llm(0.2.2-alpha.2,与 deepseek-harness 同版)类型断言:
  * evolve 的模型调用面(ModelCaller + dshLlmModelCaller)与官方 ctx.llm seam 双向兼容。
  *
- * 依据(dsh-repo,只读):
+ * 依据(deepseek-harness,只读):
  * - packages/llm/llm/src/types.ts:564-600(GenerateOptions:provider/model/messages/system/temperature/maxTokens)
  * - packages/llm/llm/src/types.ts:496-512(StreamChunk:text-delta{index,text}/usage/finish{reason})
  * - packages/llm/llm/src/index.ts:189('llm/stream' 瀑布后的 chunk 流)

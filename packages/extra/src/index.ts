@@ -1,11 +1,11 @@
 /**
- * @basis/extra —— L1 收尾插件(T13;设计文档 08 §3 表 #10/#12/#13、12 §4.4、
+ * @eterna/extra —— L1 收尾插件(T13;设计文档 08 §3 表 #10/#12/#13、12 §4.4、
  * 12 §10.3、14 排期 T13)。
  *
  * 三个模块(本包是策略纯函数层 + 配置产物层,不触碰 ctx 全局):
  * 1. egress 完整版(domain-whitelist.ts + egress-wrapper.ts + egress-defaults.ts):
  *    域名白名单判定器(通配域名+端口,fail-closed)+ 出网工具包装器——
- *    在 @basis/governance egress-lite(工具级)之上叠加域名级判定与
+ *    在 @eterna/governance egress-lite(工具级)之上叠加域名级判定与
  *    proxy 强注,包装 dsh ToolDefinition,未列名域名在底层执行前拒掉;
  *    内网默认白名单(egress-defaults.ts,T8:数据不出内网红线的缺省口径)+ 资产
  *    模板 assets/egress-whitelist.template.yml;

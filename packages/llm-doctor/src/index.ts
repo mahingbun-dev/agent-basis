@@ -1,5 +1,5 @@
 /**
- * @basis/llm-doctor Host 半边:LLM 承载行(llm-pi-ai)的体检哨兵——
+ * @eterna/llm-doctor Host 半边:LLM 承载行(llm-pi-ai)的体检哨兵——
  * ①协议↔baseURL 自动适配:监听 `loader/volatile-update`,对每条 provider 路由
  *   做端点路径探测(GET,404=不存在/其余=存在,零凭据零模型调用,src/doctor.ts),
  *   当前路径 404 且候选路径存在时经官方 configEditor 改写 baseURL 并写回 patch
@@ -11,9 +11,9 @@
  * 触发的后续 volatile-update 复检时当前路径已存在 → 无动作,天然幂等(另有
  * in-flight 守卫)。
  *
- * 装载形态:@basis/panel 同款——package.json 声明 dsh.client(platform: web),
+ * 装载形态:@eterna/panel 同款——package.json 声明 dsh.client(platform: web),
  * 同一 Loader 行两面(Host 半边 exports '.',浏览器半边 './client');挂载行
- * `- id: basis-llm-doctor, name: '@basis/llm-doctor'`(insert 语义)。
+ * `- id: eterna-llm-doctor, name: '@eterna/llm-doctor'`(insert 语义)。
  *
  * 网关纪律(对齐 packages/prompt-studio/src/index.ts 文件头):TypertRemoteService
  * 基类构造即向 ctx 注册服务(SRC 扫描 reflect.props 里带 typertRemote 绑定的服务,
@@ -280,7 +280,7 @@ export interface LlmDoctorPluginConfig {
  */
 export function defineLlmDoctorPlugin(config: LlmDoctorPluginConfig = {}) {
   return {
-    name: 'basis-llm-doctor',
+    name: 'eterna-llm-doctor',
     apply(ctx: DoctorContextLike): () => void {
       const gateway = new LlmDoctorGateway(ctx)
       // global 监听:volatile-update 由 loader 定向 emit 在「被改条目自己的 fiber

@@ -1,7 +1,7 @@
 /**
  * session 日志只读投影:读 DSH 宿主的 session.v4.jsonl.zstd(多帧 zstd 容器),
  * 折叠 usage(token/缓存命中)与轮次。容器格式与帧扫描算法对齐
- * dsh-repo packages/session/persistence-jsonl 的 zstd.ts(公开解码路径:
+ * deepseek-harness packages/session/persistence-jsonl 的 zstd.ts(公开解码路径:
  * 每个完整帧独立 zstdDecompressSync);本模块只读、容错(坏文件跳过)。
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs'

@@ -1,6 +1,6 @@
 {
-  "name": "@basis/llm-doctor",
-  "description": "LLM 承载行体检哨兵:协议↔baseURL 自动适配(volatile-update 监听 + 端点路径 GET 探测[404=不存在/其余=存在,零凭据零模型调用],候选修正经官方 configEditor 写回 patch 热生效) + 逐模型连通性测试(按协议真发极小补全,与 agent 会话同 wire 路径)。浏览器半边经官方 settings.models.provider-card keyed slot(slot-contract.ts 两席位之一)在 ns=llm-pi-ai 的 provider 卡片内渲染诊断区块。装载:@basis/panel 同款双面配方(insert 行 + dsh.client 声明,同一 Loader 行两面)。",
+  "name": "@eterna/llm-doctor",
+  "description": "LLM 承载行体检哨兵:协议↔baseURL 自动适配(volatile-update 监听 + 端点路径 GET 探测[404=不存在/其余=存在,零凭据零模型调用],候选修正经官方 configEditor 写回 patch 热生效) + 逐模型连通性测试(按协议真发极小补全,与 agent 会话同 wire 路径)。浏览器半边经官方 settings.models.provider-card keyed slot(slot-contract.ts 两席位之一)在 ns=llm-pi-ai 的 provider 卡片内渲染诊断区块。装载:@eterna/panel 同款双面配方(insert 行 + dsh.client 声明,同一 Loader 行两面)。",
   "version": "0.0.1",
   "private": true,
   "type": "module",

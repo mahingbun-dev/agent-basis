@@ -1,5 +1,5 @@
 /**
- * @basis/governance —— L1 治理插件核心(策略纯函数层 + DSH seam 适配形态)。
+ * @eterna/governance —— L1 治理插件核心(策略纯函数层 + DSH seam 适配形态)。
  *
  * 五个模块:
  * 1. 规则引擎(rules.ts):YAML 策略 → evaluate(tool, args) → allow|ask|deny;deny 优先、fail-closed 默认 ask。
@@ -46,7 +46,7 @@ export type {
 export { stableStringify } from './types.ts'
 
 /** 组合层注册 ctx.governance 服务时的唯一 ID(注册表 + 唯一 ID 形态,provide 可交换)。 */
-export const GOVERNANCE_SERVICE_ID = '@basis/governance'
+export const GOVERNANCE_SERVICE_ID = '@eterna/governance'
 
 /** 组合治理门:预算截断 → egress 白名单 → 规则引擎,任一 deny 即 deny。 */
 export interface Governance {

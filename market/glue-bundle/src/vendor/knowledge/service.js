@@ -1,7 +1,7 @@
 import { isVisibleInSearch } from "./visibility.js";
 import { fuseByRRF } from "./rrf.js";
 import { KnowledgeError } from "./errors.js";
-const KNOWLEDGE_SERVICE_ID = "@basis/knowledge";
+const KNOWLEDGE_SERVICE_ID = "@eterna/knowledge";
 const BACKEND_PRIORITY = ["weknora", "wiki-local"];
 function backendPriority(id) {
   const index = BACKEND_PRIORITY.indexOf(id);

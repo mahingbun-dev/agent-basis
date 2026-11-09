@@ -1,10 +1,10 @@
 /**
- * @basis/prompt-studio Host 半边(T7.1):一个薄插件,把「提示词工坊 + 循环轨迹」
+ * @eterna/prompt-studio Host 半边(T7.1):一个薄插件,把「提示词工坊 + 循环轨迹」
  * 经官方 Typert 网关 SRC 端点暴露(namespace = loopPrompt;浏览器半边 T7.2 经
  * ctx.connection.rpc 调用)。
  *
- * 装载形态:profile bundle 的 cordis.patch.yml 插入行 `- id: basis-prompt-studio,
- * name: '@basis/prompt-studio'`(与 @basis/panel 同款 insert 语义);本包 package.json
+ * 装载形态:profile bundle 的 cordis.patch.yml 插入行 `- id: eterna-prompt-studio,
+ * name: '@eterna/prompt-studio'`(与 @eterna/panel 同款 insert 语义);本包 package.json
  * 声明 dsh.client(platform: web),宿主 client-modules 扫描把 lib/client.js 组进
  * window.__DSH_BOOT__ 浏览器花名册——同一行,两面。
  *
@@ -84,7 +84,7 @@ export interface PromptStudioPluginConfig {
   readonly patchPath?: string
   /** 会话日志根(默认 <DSH_HOME>/sessions)。 */
   readonly sessionsRoot?: string
-  /** 兜底审计文件(默认 <DSH_HOME>/basis-prompt-studio/audit.jsonl)。 */
+  /** 兜底审计文件(默认 <DSH_HOME>/eterna-prompt-studio/audit.jsonl)。 */
   readonly auditFilePath?: string
   /** 保存写盘后跑 `dsh --dump-config` 干跑自检(默认 true;失败自动还原)。 */
   readonly dryRunVerify?: boolean
@@ -142,7 +142,7 @@ export class LoopPromptGateway extends TypertRemoteService {
     const home = this.profileContext?.home ?? process.env.DSH_HOME ?? ''
     this.sessionsRoot = config.sessionsRoot ?? (home !== '' ? join(home, 'sessions') : '')
     this.audit = new StudioAudit({
-      fallbackFilePath: config.auditFilePath ?? (home !== '' ? defaultAuditFilePath(home) : join(process.cwd(), '.basis', 'prompt-studio.audit.jsonl')),
+      fallbackFilePath: config.auditFilePath ?? (home !== '' ? defaultAuditFilePath(home) : join(process.cwd(), '.eterna', 'prompt-studio.audit.jsonl')),
       resolveGovernance: () => ctx.get('governance') as GovernanceAuditLike | undefined,
     })
     this.gate = new ApprovalGate()
@@ -560,7 +560,7 @@ export { CHANNEL_A, EFFECTIVE_NOTE, COMPOSED_NOTE } from './snapshot.ts'
  */
 export function definePromptStudioPlugin(config: PromptStudioPluginConfig = {}) {
   return {
-    name: 'basis-prompt-studio',
+    name: 'eterna-prompt-studio',
     apply(ctx: StudioContextLike): () => void {
       const gateway = new LoopPromptGateway(ctx, config)
       // storage 挂载经官方 inject seam:版本库单元在 storage.backend.json 可用后打开,

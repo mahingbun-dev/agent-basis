@@ -1,6 +1,6 @@
 {
-  "name": "@basis/cache-guard",
-  "description": "L1 缓存守护插件:KV-cache 前缀稳定性检查器(连续多轮 prompt 组装序列 → 分段对齐,检测动态时间戳/随机 ID/前缀变动/结构变动 → 告警列表 + 稳定性评分,评分=Σ共同前缀字符/Σ上轮字符,对失稳严格单调递减)+ 命中率指标输出接口(事件字段提取器注册表 cache-usage/request-route + 与 @basis/observe aggregateSessionMetrics 同口径 cacheRead/(input+cacheRead+cacheWrite))。seam 对齐 dsh-repo request/header|request/context|assistant/message 事件与 llm TokenUsage(已发布 0.2.2-alpha.2)。",
+  "name": "@eterna/cache-guard",
+  "description": "L1 缓存守护插件:KV-cache 前缀稳定性检查器(连续多轮 prompt 组装序列 → 分段对齐,检测动态时间戳/随机 ID/前缀变动/结构变动 → 告警列表 + 稳定性评分,评分=Σ共同前缀字符/Σ上轮字符,对失稳严格单调递减)+ 命中率指标输出接口(事件字段提取器注册表 cache-usage/request-route + 与 @eterna/observe aggregateSessionMetrics 同口径 cacheRead/(input+cacheRead+cacheWrite))。seam 对齐 deepseek-harness request/header|request/context|assistant/message 事件与 llm TokenUsage(已发布 0.2.2-alpha.2)。",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@basis/observe": "workspace:*",
+    "@eterna/observe": "workspace:*",
     "@deepseek-ai/dsh-llm": "catalog:",
     "@deepseek-ai/dsh-session": "catalog:"
   },

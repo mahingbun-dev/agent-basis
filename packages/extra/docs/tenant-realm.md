@@ -1,6 +1,6 @@
 # tenant realm 规范:行业→客户两级 Cordis isolate realm 约定
 
-> @basis/extra(T13)。对齐设计文档 12 §10.3「多租户隔离 | Cordis isolate realm 原生 | A+规范 | 粒度待定(行业/客户)」——本规范把「粒度待定」钉成**两级:行业级 → 客户级**。承载方式 = **A(原生机制)+ S(本规范)**,零内核改动。
+> @eterna/extra(T13)。对齐设计文档 12 §10.3「多租户隔离 | Cordis isolate realm 原生 | A+规范 | 粒度待定(行业/客户)」——本规范把「粒度待定」钉成**两级:行业级 → 客户级**。承载方式 = **A(原生机制)+ S(本规范)**,零内核改动。
 
 ## 1. 模型
 
@@ -25,7 +25,7 @@ root(host,全局:audit / governance 规则装载)
 
 ## 3. Cordis 承载面(原生机制,不改内核)
 
-1. **服务隔离**:`ctx.isolate(serviceName, label)`(@deepseek-ai/cordis)。同 label 相连、异 label 隔离。label 一律取 `tenantRealmLabel(realm)` = `Symbol.for('basis:tenant-realm:<key>')`——用 `Symbol.for` 保证跨插件实例/跨 fiber 同 key 相连,异租户天然隔离。
+1. **服务隔离**:`ctx.isolate(serviceName, label)`(@deepseek-ai/cordis)。同 label 相连、异 label 隔离。label 一律取 `tenantRealmLabel(realm)` = `Symbol.for('eterna:tenant-realm:<key>')`——用 `Symbol.for` 保证跨插件实例/跨 fiber 同 key 相连,异租户天然隔离。
 2. **配置结构**:`cordis:group` 装载器行(vendor/group/README.md)嵌套:行业组行 → 客户组行,嵌套 id 以 `:` 连接(如 `ind-event-planning:cust-acme`)。租户作用域插件行放在客户组 config 内。
 3. **纪律先例**:dsh agent-preset-registry 已强制「provider 与 consumer 必须同 isolate realm」(packages/preset/agent-preset-registry/src/mount.ts:213)——本规范沿用同一纪律:**租户作用域服务的 provide 与 inject 必须发生在同一客户 realm 内**。
 
@@ -39,7 +39,7 @@ root(host,全局:audit / governance 规则装载)
 | `audit` | **全局共享(不隔离)** | 全租户统一可审计——审计必须能看见一切租户的行为 |
 | `governance` 规则 | 全局 + L2 领域包声明 | 治理规则跨租户一致,不按租户分叉 |
 
-默认隔离服务词汇表:`ISOLATED_TENANT_SERVICES = ['memory', 'knowledge', 'storage']`(@basis/extra 导出,加载器按表校验,表外服务进租户配置即报错)。
+默认隔离服务词汇表:`ISOLATED_TENANT_SERVICES = ['memory', 'knowledge', 'storage']`(@eterna/extra 导出,加载器按表校验,表外服务进租户配置即报错)。
 
 ## 5. 配置模板与加载
 

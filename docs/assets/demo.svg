@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="880" height="490" viewBox="0 0 880 490" role="img" aria-labelledby="dTitle dDesc">
-  <title id="dTitle">agent-basis 一次真实会话骨架</title>
+  <title id="dTitle">EternaAgent 一次真实会话骨架</title>
   <desc id="dDesc">终端风格:用户要求把偏好写入记忆,agent 调 memory_write,sqlite memory_entity 落库一行,memory_search 命中;下方为 L2 领域包 / L1 基座插件 / DSH 宿主的架构条,并标注 12 包、776 tests、ai-evo 门禁 PASSED。</desc>
   <defs>
     <linearGradient id="segG1" x1="0" y1="0" x2="1" y2="0">
@@ -23,7 +23,7 @@
   <circle cx="52" cy="46" r="5.5" fill="#ff5f57"/>
   <circle cx="72" cy="46" r="5.5" fill="#febc2e"/>
   <circle cx="92" cy="46" r="5.5" fill="#28c840"/>
-  <text x="440" y="50" text-anchor="middle" fill="#8b949e" font-size="12" font-family="'SF Mono',ui-monospace,Menlo,Consolas,'Liberation Mono','Courier New',monospace">agent-basis · 一次真实会话(骨架)· dsh headless</text>
+  <text x="440" y="50" text-anchor="middle" fill="#8b949e" font-size="12" font-family="'SF Mono',ui-monospace,Menlo,Consolas,'Liberation Mono','Courier New',monospace">EternaAgent · 一次真实会话(骨架)· dsh headless</text>
   <line x1="28" y1="64" x2="852" y2="64" stroke="#30363d"/>
 
   <!-- ① 用户 -->
@@ -67,7 +67,7 @@
   <text x="290" y="385" font-size="16" fill="#8b949e" text-anchor="middle" font-family="'SF Mono',ui-monospace,Menlo,Consolas,'Liberation Mono','Courier New',monospace">→</text>
 
   <rect x="314" y="354" width="300" height="48" rx="8" fill="url(#segG2)" stroke="#ab7df8" stroke-opacity="0.6"/>
-  <text x="330" y="375" font-size="13" font-weight="700" fill="#d2a8ff" font-family="'SF Mono',ui-monospace,Menlo,Consolas,'Liberation Mono','Courier New',monospace">L1 基座插件 @basis/*</text>
+  <text x="330" y="375" font-size="13" font-weight="700" fill="#d2a8ff" font-family="'SF Mono',ui-monospace,Menlo,Consolas,'Liberation Mono','Courier New',monospace">L1 基座插件 @eterna/*</text>
   <text x="330" y="392" font-size="11" fill="#8b949e" font-family="'SF Mono',ui-monospace,Menlo,Consolas,'Liberation Mono','Courier New',monospace">治理·记忆·交互·知识·观测·进化·通道·缓存</text>
 
   <text x="626" y="385" font-size="16" fill="#8b949e" text-anchor="middle" font-family="'SF Mono',ui-monospace,Menlo,Consolas,'Liberation Mono','Courier New',monospace">→</text>

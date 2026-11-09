@@ -1,7 +1,7 @@
 /**
  * DSH seam 编译期钉住(只被 tsc --noEmit 消费;vitest include 只收 *.spec.ts,不运行本文件)。
  *
- * 目的(设计文档 08 §8 风险 1,与 @basis/governance types.seam-pin 同款纪律):
+ * 目的(设计文档 08 §8 风险 1,与 @eterna/governance types.seam-pin 同款纪律):
  * DSH pre-stable,本包的三个适配面要在 verify 的 tsc 阶段钉死——
  * ① egress 包装器包装的 ToolDefinition / 输出契约(ToolOutputDefinition.render
  *    返回 ContentBlock[])与已发布 0.2.2-alpha.2 类型双向兼容;
@@ -10,7 +10,7 @@
  * ④ subagent 独立 preset 选项(SubagentStartRequest.agentPreset,spawn 专属);
  * ⑤ tenant realm 承载面 = cordis Context.isolate(name, label)。
  *
- * 依据(dsh-repo,只读):
+ * 依据(deepseek-harness,只读):
  * - packages/core/tools/src/contracts.ts:23-58(ToolDefinition/execute/render)、376-381(ToolRestriction)
  * - packages/core/tools/README.md「Restrict tools per agent」(restrict 需 agent 作用域)
  * - packages/preset/persona/src/index.ts(Config: prefix/suffix/complete/includeRuntimeContext)
@@ -22,7 +22,7 @@ import type { ContentBlock, TextBlock } from '@deepseek-ai/dsh-llm'
 import type { Config as PersonaConfig } from '@deepseek-ai/dsh-persona'
 import type { SubagentStartRequest } from '@deepseek-ai/dsh-subagent'
 import type { ToolDefinition, ToolOutputDefinition, ToolRestriction, ToolRunContext } from '@deepseek-ai/dsh-tools'
-import { EgressLite } from '@basis/governance'
+import { EgressLite } from '@eterna/governance'
 import { buildReviewerPreset } from '../src/reviewer-preset.ts'
 import { EgressToolWrapper } from '../src/egress-wrapper.ts'
 import type { ToolLevelEgress } from '../src/egress-wrapper.ts'

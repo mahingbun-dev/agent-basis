@@ -38,7 +38,7 @@ const OUTPUT = {
  * ask 门:对外发送类(R2)工具 → 宿主原生审批。本包未注册这三类工具 —— 门挂在宿主
  * pre-execute 通道上,任何 bundle 提供的对外发送动作统一先确认再发(guard-rules.yml
  * 的 industrial-ask-external-send 同口径);非命中一律 next() 放行,不影响宿主与其它
- * bundle 的工具。deny 优先 fail-closed 的执行在 @basis/governance(规则引擎)。
+ * bundle 的工具。deny 优先 fail-closed 的执行在 @eterna/governance(规则引擎)。
  */
 const ASK_REASONS: Readonly<Record<string, string>> = {
   send_report: 'R2 对外发送:报告下发必须先确认收件人与口径,withhold-或-补偿,不做裸发射。',

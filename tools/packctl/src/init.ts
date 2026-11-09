@@ -95,12 +95,12 @@ function buildTemplates(industry: string): Readonly<Record<string, string>> {
 `,
 
     'profile.yml': `# profile.yml —— 领域包 profile 叠加声明(06 号模板:继承 dsh-base,叠加 L1 基座 bundles 与本包)。
-# L1 基座包随排期落地后在此追加:@basis/memory / @basis/interact / @basis/evals / @basis/knowledge …
+# L1 基座包随排期落地后在此追加:@eterna/memory / @eterna/interact / @eterna/evals / @eterna/knowledge …
 name: ${industry}
 extends:
   - dsh-base
 bundles:
-  - '@basis/governance'
+  - '@eterna/governance'
   - '${packName}'
 `,
 
@@ -194,17 +194,17 @@ export function createSampleTool(): SampleTool {
 
     'knowledge/README.md': `# knowledge/ —— 领域语料元数据(06 号模板)
 
-权威知识(制度/手册/案例库)不落本地:检索走 @basis/knowledge 插件
+权威知识(制度/手册/案例库)不落本地:检索走 @eterna/knowledge 插件
 (WeKnora / wiki-local 后端,08 号文档 §5.1 边界)。本目录只放:
 
 - 语料清单与版本(哪个知识库、哪个版本、负责人);
 - 检索配置片段(后端选择、KB id、权限范围)。
 
-经验性记忆(用户偏好、项目事实)归 @basis/memory,两者不互写。
+经验性记忆(用户偏好、项目事实)归 @eterna/memory,两者不互写。
 `,
 
-    'policies/guard-rules.yml': `# guard-rules.yml —— 合规红线(@basis/governance 规则引擎消费;deny 优先、fail-closed)。
-# 格式对齐 @basis/governance PolicyDocument:{ rules: [{ id, effect, tools, argsContains?, reason? }], default }。
+    'policies/guard-rules.yml': `# guard-rules.yml —— 合规红线(@eterna/governance 规则引擎消费;deny 优先、fail-closed)。
+# 格式对齐 @eterna/governance PolicyDocument:{ rules: [{ id, effect, tools, argsContains?, reason? }], default }。
 rules:
   - id: ${industry}-allow-readonly
     effect: allow
@@ -221,7 +221,7 @@ rules:
 default: ask
 `,
 
-    'hitl.yaml': `# hitl.yaml —— 风险分档与升级触发器(08 号文档 §6.1;@basis/interact 消费、governance 执行)。
+    'hitl.yaml': `# hitl.yaml —— 风险分档与升级触发器(08 号文档 §6.1;@eterna/interact 消费、governance 执行)。
 # 档位:R0 只读静默 / R1 可逆写静默+事后变更卡片 / R2 需确认审批 / R3 高危升级+冷静期。
 industry: ${industry}
 escalation_contact: '' # R3 升级到指定人;留空 = 升级给当前用户

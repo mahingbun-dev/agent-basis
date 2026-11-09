@@ -91,12 +91,12 @@ function checkedSlug(value: string, field: string): string {
 }
 
 /**
- * realm 的 Cordis isolate label:`Symbol.for('basis:tenant-realm:<key>')`。
+ * realm 的 Cordis isolate label:`Symbol.for('eterna:tenant-realm:<key>')`。
  * 用 Symbol.for(而非局部 symbol)保证跨插件实例/跨 fiber 同 key 相连——
  * 即同租户 provider 与 consumer 天然共享作用域,异租户天然隔离。
  */
 export function tenantRealmLabel(realm: TenantRealm): symbol {
-  return Symbol.for(`basis:tenant-realm:${formatRealm(realm)}`)
+  return Symbol.for(`eterna:tenant-realm:${formatRealm(realm)}`)
 }
 
 /** tenant 配置文档(YAML 加载后的结构面)。 */
@@ -156,7 +156,7 @@ export function loadTenantRealmConfig(text: string): TenantRealmDocument {
 /**
  * 由配置生成 `cordis:group` 行树:行业组 → 客户组(嵌套 id 以 `:` 连接,
  * 对齐装载器约定);customerPluginRows 为每个客户组注入的插件行(如租户
- * 隔离的 @basis/memory 行,带 realm key config)。产出可直接 stringify 进
+ * 隔离的 @eterna/memory 行,带 realm key config)。产出可直接 stringify 进
  * profile patch。
  */
 export function buildTenantGroupRows(

@@ -13,25 +13,25 @@ let workspace = ''
 let dshHome = ''
 
 beforeAll(() => {
-  workspace = mkdtempSync(join(tmpdir(), 'basis-panel-snapshot-'))
-  dshHome = mkdtempSync(join(tmpdir(), 'basis-panel-home-'))
-  mkdirSync(join(workspace, '.basis'), { recursive: true })
+  workspace = mkdtempSync(join(tmpdir(), 'eterna-panel-snapshot-'))
+  dshHome = mkdtempSync(join(tmpdir(), 'eterna-panel-home-'))
+  mkdirSync(join(workspace, '.eterna'), { recursive: true })
 
   // governance:规则文件(服务未挂载时走文件解析)
   writeFileSync(
-    join(workspace, '.basis', 'governance.rules.yml'),
+    join(workspace, '.eterna', 'governance.rules.yml'),
     ['rules:', '  - id: allow-read', '    effect: allow', '    tools: ["*_search"]', '  - id: deny-transfer', '    effect: deny', '    tools: ["transfer_money"]'].join('\n'),
     'utf8',
   )
   // 审计:两行 JSONL
   writeFileSync(
-    join(workspace, '.basis', 'audit.jsonl'),
+    join(workspace, '.eterna', 'audit.jsonl'),
     '{"kind":"governance","at":"2026-11-04T00:00:00Z"}\n{"kind":"governance","at":"2026-11-04T00:01:00Z"}\n',
     'utf8',
   )
 
   // memory:memory_entity 两行(一行已失效)
-  const memory = new DatabaseSync(join(workspace, '.basis', 'memory.sqlite3'))
+  const memory = new DatabaseSync(join(workspace, '.eterna', 'memory.sqlite3'))
   memory.exec(`CREATE TABLE memory_entity (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     subject TEXT NOT NULL, key TEXT NOT NULL, content TEXT NOT NULL, summary TEXT,
@@ -44,7 +44,7 @@ beforeAll(() => {
   memory.close()
 
   // knowledge:pages 一行 + proposals 两行
-  const knowledge = new DatabaseSync(join(workspace, '.basis', 'knowledge.sqlite3'))
+  const knowledge = new DatabaseSync(join(workspace, '.eterna', 'knowledge.sqlite3'))
   knowledge.exec('CREATE TABLE pages (doc_id TEXT PRIMARY KEY)')
   knowledge.exec('CREATE TABLE proposals (id TEXT PRIMARY KEY)')
   knowledge.prepare('INSERT INTO pages VALUES (?)').run('doc-1')
@@ -102,20 +102,20 @@ describe('buildSnapshot', () => {
     expect(snapshot.governance.mounted).toBe(false)
     expect(snapshot.governance.ruleCount).toBe(2)
     expect(snapshot.governance.auditEntries).toBe(2)
-    expect(snapshot.governance.auditSource).toBe(join(workspace, '.basis', 'audit.jsonl'))
+    expect(snapshot.governance.auditSource).toBe(join(workspace, '.eterna', 'audit.jsonl'))
   })
 
-  it('审计读数含按日轮转文件:@basis/audit 的 audit-YYYYMMDD.jsonl 与旧版单文件合计', () => {
-    const rotated = mkdtempSync(join(tmpdir(), 'basis-panel-audit-daily-'))
+  it('审计读数含按日轮转文件:@eterna/audit 的 audit-YYYYMMDD.jsonl 与旧版单文件合计', () => {
+    const rotated = mkdtempSync(join(tmpdir(), 'eterna-panel-audit-daily-'))
     try {
-      mkdirSync(join(rotated, '.basis'), { recursive: true })
-      writeFileSync(join(rotated, '.basis', 'audit-20261106.jsonl'), '{"kind":"tool-call"}\n{"kind":"tool-call"}\n', 'utf8')
-      writeFileSync(join(rotated, '.basis', 'audit-20261107.jsonl'), '{"kind":"tool-call"}\n', 'utf8')
-      writeFileSync(join(rotated, '.basis', 'audit.jsonl'), '{"kind":"governance"}\n', 'utf8')
-      writeFileSync(join(rotated, '.basis', 'unrelated.txt'), 'not audit\n', 'utf8')
+      mkdirSync(join(rotated, '.eterna'), { recursive: true })
+      writeFileSync(join(rotated, '.eterna', 'audit-20261106.jsonl'), '{"kind":"tool-call"}\n{"kind":"tool-call"}\n', 'utf8')
+      writeFileSync(join(rotated, '.eterna', 'audit-20261107.jsonl'), '{"kind":"tool-call"}\n', 'utf8')
+      writeFileSync(join(rotated, '.eterna', 'audit.jsonl'), '{"kind":"governance"}\n', 'utf8')
+      writeFileSync(join(rotated, '.eterna', 'unrelated.txt'), 'not audit\n', 'utf8')
       const snapshot = buildSnapshot(fakeContext() as never, rotated, join(dshHome, 'sessions'))
       expect(snapshot.governance.auditEntries).toBe(4)
-      expect(snapshot.governance.auditSource).toBe(join(rotated, '.basis'))
+      expect(snapshot.governance.auditSource).toBe(join(rotated, '.eterna'))
     } finally {
       rmSync(rotated, { recursive: true, force: true })
     }
@@ -155,7 +155,7 @@ describe('buildSnapshot', () => {
   })
 
   it('库文件不存在时各区块 available=false 不抛', () => {
-    const empty = mkdtempSync(join(tmpdir(), 'basis-panel-empty-'))
+    const empty = mkdtempSync(join(tmpdir(), 'eterna-panel-empty-'))
     try {
       const snapshot = buildSnapshot({ get: () => undefined } as never, empty, join(dshHome, 'sessions'))
       expect(snapshot.memory.available).toBe(false)

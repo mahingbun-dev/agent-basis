@@ -35,7 +35,7 @@ describe('createChannelsService:组合根端到端(唯一 ID 服务形态)', () 
     closers.push((): void => {
       service.close()
     })
-    expect(service.id).toBe('@basis/channels')
+    expect(service.id).toBe('@eterna/channels')
     expect(service.adapters.get('feishu/card')?.channelType).toBe('feishu')
 
     // 三渠道收敛同一会话(12 号 §7.8)

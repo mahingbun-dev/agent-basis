@@ -4,7 +4,7 @@
  * 字段命名对齐 ai-evo(设计文档 12 §8.3「golden case/终态/轨迹断言规范 = S 文件约定,
  * 字段对齐 ai-evo」):user_input / answer / tags / final_state / trajectory / budget。
  *
- * 会话事件形态对齐 DSH(../dsh-repo,0.2.2-alpha.2,只读):
+ * 会话事件形态对齐 DSH(deepseek-harness,0.2.2-alpha.2,只读):
  * - SessionEvent 事件包 `{ type, seq, time, data }`:packages/core/session/src/types.ts:504-518;
  * - 事件词汇 64 种:packages/core/session/src/known-event-types.ts(turn/step/tool/approval…);
  * - approval/asked|decided 载荷:packages/interaction/user-approval/src/types.ts:44-58
@@ -26,7 +26,7 @@ export interface SessionEventLike {
 
 /**
  * DSH 实验插件记录(`plugin:` 前缀,packages/core/session/src/types.ts:546-566)。
- * replay fixture 用 `plugin:basis-evals/workspace` 携带终态工作区文件快照,
+ * replay fixture 用 `plugin:eterna-evals/workspace` 携带终态工作区文件快照,
  * 让 file_assert / script 断言在回放模式下有真实对象可查。
  */
 export interface PluginRecordLike {
@@ -36,7 +36,7 @@ export interface PluginRecordLike {
   readonly data: unknown
 }
 
-/** `plugin:basis-evals/workspace` 记录的 data 形态:`{ files: { <相对路径>: <内容> } }`。 */
+/** `plugin:eterna-evals/workspace` 记录的 data 形态:`{ files: { <相对路径>: <内容> } }`。 */
 export interface WorkspaceRecordData {
   readonly files: Readonly<Record<string, string>>
 }

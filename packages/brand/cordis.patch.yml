@@ -1,5 +1,5 @@
-# @basis/brand bundle patch:一行两面(Host 半边纯装配,浏览器半边做品牌替换)。
+# @eterna/brand bundle patch:一行两面(Host 半边纯装配,浏览器半边做品牌替换)。
 # insert 语义——基础树无本行时裸 id 行被 applyPatches 丢弃(glue E2E 教训)。
 - insert:
-    - id: basis-brand
-      name: '@basis/brand'
+    - id: eterna-brand
+      name: '@eterna/brand'

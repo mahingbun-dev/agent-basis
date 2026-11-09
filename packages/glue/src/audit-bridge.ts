@@ -1,7 +1,7 @@
 /**
  * 组合层审计桥(T8):governance/egress 的宿主决策 → ctx.audit 直投。
  *
- * 包边界(@basis/governance 不 import @basis/audit,设计 §3.4 不变量 4):
+ * 包边界(@eterna/governance 不 import @eterna/audit,设计 §3.4 不变量 4):
  * 治理事件经 ctx.audit.report() 直投(唯一 AuditProjector 归 audit 插件);
  * 桥在组合层(glue)以结构子集读取 ctx.audit——audit 插件缺席时静默跳过,
  * 决策 veto 本身不受影响。读取是逐调用惰性的:glue 装载行序里 governance 先于
@@ -16,8 +16,8 @@
  * 先例 liveshare share-host.ts:134,238),strict=false = 值在 store 即用(机会语义)。
  */
 import type { Context } from '@deepseek-ai/cordis'
-import { AUDIT_SERVICE_ID } from '@basis/audit'
-import type { AuditActor } from '@basis/governance'
+import { AUDIT_SERVICE_ID } from '@eterna/audit'
+import type { AuditActor } from '@eterna/governance'
 
 /** ctx.audit 的最小结构子集(report 直投;AuditWorld.report 的超集兼容面)。 */
 export interface AuditReportSink {

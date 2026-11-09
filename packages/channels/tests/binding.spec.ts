@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { ChannelBindingStore, bindingKey } from '../src/index.ts'
 
-const dir = mkdtempSync(join(tmpdir(), 'basis-channels-binding-'))
+const dir = mkdtempSync(join(tmpdir(), 'eterna-channels-binding-'))
 const dbPath = join(dir, 'bindings.db')
 
 afterAll(() => {

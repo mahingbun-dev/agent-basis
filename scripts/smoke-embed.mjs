@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 /**
  * T6 嵌入档冒烟（plans/2026-11-06-dsh企业agent路线定案.md T6 行）：一次性任务经
- * headless 真会话（profiles/basis-embed = @deepseek-ai/dsh-base +
+ * headless 真会话（profiles/eterna-embed = @deepseek-ai/dsh-base +
  * @deepseek-ai/dsh-headless + 企业层）跑通，经 NAS liteLLM 网关。
  *
  * 断言（退出码 0/1，可重复执行）：
- *  1. profile 物化：$EMBED_PROFILE_HOME/profiles/basis-embed（默认
- *     .basis-home-embed/），bundle 元组 = 官方 headless 模板
+ *  1. profile 物化：$EMBED_PROFILE_HOME/profiles/eterna-embed（默认
+ *     .eterna-home-embed/），bundle 元组 = 官方 headless 模板
  *     （@deepseek-ai/dsh-official-bundles PROFILE_TEMPLATES.headless），补丁层与
- *     profiles/basis-embed/cordis.patch.yml 逐字一致；@basis/llm-openai 以
+ *     profiles/eterna-embed/cordis.patch.yml 逐字一致；@eterna/llm-openai 以
  *     symlink 终态入 profile node_modules（t7-spike 实证：Loader 只按
  *     node_modules 解析，symlink 即终态）。
- *  2. headless 真会话：`dsh --profile basis-embed --json "<task>"` 以工作目录=
+ *  2. headless 真会话：`dsh --profile eterna-embed --json "<task>"` 以工作目录=
  *     冒烟工作区启动，任务强制一次文件写入（tool_calls 完整一轮）。
  *  3. --json NDJSON 流：开事件 session(sessionId)；≥1 条 tool_call 且每条
  *     callId 都有 tool_result 且 status=completed（一轮闭合）；无 error 事件；
@@ -24,7 +24,7 @@
  *
  * 凭据纪律：LITELLM_API_KEY 从启动环境读（缺省兜底 .secrets/litellm-master-key.txt，
  * 只进子进程环境，不进任何被跟踪文件/日志/argv）；网关 BASE_URL 从
- * BASIS_LLM_BASE_URL 环境读（缺省兜底 .secrets/litellm-base-url.txt 自查）。
+ * ETERNA_LLM_BASE_URL 环境读（缺省兜底 .secrets/litellm-base-url.txt 自查）。
  *
  * 用法：
  *   LITELLM_API_KEY=$(cat .secrets/litellm-master-key.txt) node scripts/smoke-embed.mjs
@@ -48,16 +48,16 @@ import { tmpdir } from 'node:os'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const dshBin = join(repoRoot, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
-const sourcePatch = join(repoRoot, 'profiles', 'basis-embed', 'cordis.patch.yml')
-const basisLlm = join(repoRoot, 'basis', 'llm-openai')
-const home = resolve(process.env.EMBED_PROFILE_HOME ?? join(repoRoot, '.basis-home-embed'))
-const profileName = 'basis-embed'
+const sourcePatch = join(repoRoot, 'profiles', 'eterna-embed', 'cordis.patch.yml')
+const eternaLlmDir = join(repoRoot, 'packages', 'llm-openai')
+const home = resolve(process.env.EMBED_PROFILE_HOME ?? join(repoRoot, '.eterna-home-embed'))
+const profileName = 'eterna-embed'
 const profileDir = join(home, 'profiles', profileName)
 
 const RUN_TIMEOUT_MS = 240_000
-const TASK = '在当前工作目录创建文件 embed-smoke.txt，内容恰好为一行：basis-embed-smoke-ok。创建成功后只回复一行：ok embed-smoke.txt'
+const TASK = '在当前工作目录创建文件 embed-smoke.txt，内容恰好为一行：eterna-embed-smoke-ok。创建成功后只回复一行：ok embed-smoke.txt'
 const EXPECTED_FILE = 'embed-smoke.txt'
-const EXPECTED_CONTENT = 'basis-embed-smoke-ok'
+const EXPECTED_CONTENT = 'eterna-embed-smoke-ok'
 /** 清洁收尾的 finishReason 取值：DSH turn reason kind 'completed'（wire finish_reason=stop 的投影）；'stop' 兼容直接暴露 wire 语义的未来面。 */
 const CLEAN_STOP_KINDS = new Set(['completed', 'stop'])
 
@@ -68,7 +68,7 @@ const pass = (name, ok, detail = '') => {
 }
 
 // ---------------------------------------------------------------------------
-// 0. 前置检查（bin、源补丁、@basis/llm-openai 构建产物）。
+// 0. 前置检查（bin、源补丁、@eterna/llm-openai 构建产物）。
 
 if (!existsSync(dshBin)) {
   console.error(`smoke-embed: dsh CLI not found at ${dshBin}; run pnpm install first`)
@@ -78,8 +78,8 @@ if (!existsSync(sourcePatch)) {
   console.error(`smoke-embed: missing ${sourcePatch}`)
   process.exit(1)
 }
-if (!existsSync(join(basisLlm, 'lib', 'index.js'))) {
-  console.error(`smoke-embed: @basis/llm-openai is not built (${join(basisLlm, 'lib', 'index.js')} missing); run pnpm build in basis/llm-openai`)
+if (!existsSync(join(eternaLlmDir, 'lib', 'index.js'))) {
+  console.error(`smoke-embed: @eterna/llm-openai is not built (${join(eternaLlmDir, 'lib', 'index.js')} missing); run pnpm build in packages/llm-openai`)
   process.exit(1)
 }
 
@@ -87,14 +87,14 @@ if (!existsSync(join(basisLlm, 'lib', 'index.js'))) {
 const secretsDir = join(repoRoot, '.secrets')
 const apiKey = process.env.LITELLM_API_KEY
   ?? readIfExists(join(secretsDir, 'litellm-master-key.txt'))?.trim()
-const baseURL = process.env.BASIS_LLM_BASE_URL
+const baseURL = process.env.ETERNA_LLM_BASE_URL
   ?? readIfExists(join(secretsDir, 'litellm-base-url.txt'))?.trim()
 if (!apiKey) {
   console.error('smoke-embed: LITELLM_API_KEY missing — export it (e.g. LITELLM_API_KEY=$(cat .secrets/litellm-master-key.txt)) or provide the secrets file')
   process.exit(1)
 }
 if (!baseURL) {
-  console.error('smoke-embed: gateway BASE_URL missing — set BASIS_LLM_BASE_URL or provide .secrets/litellm-base-url.txt')
+  console.error('smoke-embed: gateway BASE_URL missing — set ETERNA_LLM_BASE_URL or provide .secrets/litellm-base-url.txt')
   process.exit(1)
 }
 console.log(`smoke-embed: gateway ${baseURL} (key source: ${process.env.LITELLM_API_KEY ? 'env LITELLM_API_KEY' : '.secrets/litellm-master-key.txt'})`)
@@ -117,25 +117,25 @@ writeFileSync(join(profileDir, 'package.json'), `${JSON.stringify({
 writeFileSync(join(profileDir, 'cordis.yml'), '[]\n')
 copyFileSync(sourcePatch, join(profileDir, 'cordis.patch.yml'))
 const copied = readFileSync(join(profileDir, 'cordis.patch.yml'), 'utf8')
-pass('profile patch copy is byte-identical to profiles/basis-embed/cordis.patch.yml', copied === readFileSync(sourcePatch, 'utf8'))
+pass('profile patch copy is byte-identical to profiles/eterna-embed/cordis.patch.yml', copied === readFileSync(sourcePatch, 'utf8'))
 
-// @basis/llm-openai symlink 终态（row-name 解析只看 profile 根 node_modules）。
-const nmBasis = join(profileDir, 'node_modules', '@basis')
-mkdirSync(nmBasis, { recursive: true })
-const linkPath = join(nmBasis, 'llm-openai')
+// @eterna/llm-openai symlink 终态（row-name 解析只看 profile 根 node_modules）。
+const nmEterna = join(profileDir, 'node_modules', '@eterna')
+mkdirSync(nmEterna, { recursive: true })
+const linkPath = join(nmEterna, 'llm-openai')
 try { rmSync(linkPath, { recursive: true, force: true }) } catch { /* not a symlink */ }
-symlinkSync(basisLlm, linkPath, 'dir')
-pass('@basis/llm-openai symlinked into profile node_modules', existsSync(join(linkPath, 'lib', 'index.js')), `${linkPath} -> ${basisLlm}`)
+symlinkSync(eternaLlmDir, linkPath, 'dir')
+pass('@eterna/llm-openai symlinked into profile node_modules', existsSync(join(linkPath, 'lib', 'index.js')), `${linkPath} -> ${eternaLlmDir}`)
 
 // 冒烟工作区（任务落盘面，与 home 分离）。
-const ws = mkdtempSync(join(tmpdir(), 'basis-embed-smoke-'))
+const ws = mkdtempSync(join(tmpdir(), 'eterna-embed-smoke-'))
 
 // ---------------------------------------------------------------------------
 // 2. headless 真会话：一次性任务 + --json NDJSON。
 
 const child = spawn(process.execPath, [dshBin, '--profile', profileName, '--json', TASK], {
   cwd: ws,
-  env: { ...process.env, DSH_HOME: home, LITELLM_API_KEY: apiKey, BASIS_LLM_BASE_URL: baseURL },
+  env: { ...process.env, DSH_HOME: home, LITELLM_API_KEY: apiKey, ETERNA_LLM_BASE_URL: baseURL },
   stdio: ['ignore', 'pipe', 'pipe'],
 })
 

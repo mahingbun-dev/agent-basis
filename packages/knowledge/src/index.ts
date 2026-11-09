@@ -1,5 +1,5 @@
 /**
- * @basis/knowledge —— L1 知识插件(设计文档 11:一个出口,两个后端)。
+ * @eterna/knowledge —— L1 知识插件(设计文档 11:一个出口,两个后端)。
  *
  * 模块地图:
  * 1. types.ts        —— KnowledgeHit 统一 schema + provenance 全量规范(两后端同形);

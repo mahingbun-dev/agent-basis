@@ -1,4 +1,4 @@
-# tenant realm 配置模板:@basis/extra(T13)
+# tenant realm 配置模板:@eterna/extra(T13)
 # 规范见同包 docs/tenant-realm.md;本文件可被 loadTenantRealmConfig() 原样加载校验。
 #
 # 结构:{ industries: [ { slug: 行业, customers: [客户...] } ] }
@@ -28,7 +28,7 @@ industries:
 #   group: true
 #   config:
 #     - id: knowledge-industry         # 行业知识库(同行业客户共享,只读挂载)
-#       name: '@basis/knowledge'
+#       name: '@eterna/knowledge'
 #       config:
 #         backend: wiki-local
 #         wikiRoot: packs/event-planning/wiki
@@ -37,7 +37,7 @@ industries:
 #       group: true
 #       config:
 #         - id: memory                 # 客户私有实体记忆
-#           name: '@basis/memory'
+#           name: '@eterna/memory'
 #           config:
 #             realm: 'ind:event-planning:cust:acme'   # = formatRealm(...) 的 key
 #             sqlitePath: tenants/ind-event-planning/cust-acme/memory.db
@@ -50,7 +50,7 @@ industries:
 #       group: true
 #       config:
 #         - id: memory
-#           name: '@basis/memory'
+#           name: '@eterna/memory'
 #           config:
 #             realm: 'ind:event-planning:cust:beta-corp'
 #             sqlitePath: tenants/ind-event-planning/cust-beta-corp/memory.db

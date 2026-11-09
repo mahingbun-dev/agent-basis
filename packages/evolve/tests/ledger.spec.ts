@@ -20,7 +20,7 @@ const verification: VerificationReport = {
 }
 
 beforeAll(async () => {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'basis-evolve-ledger-'))
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'eterna-evolve-ledger-'))
   dbPath = path.join(dir, 'ledger.db')
   store = new LedgerStore(dbPath, { now: () => clock })
 })

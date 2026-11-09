@@ -104,6 +104,6 @@
 ## 六、仓库事实速览
 
 - 结构:`packages/`(governance、memory、interact、knowledge、observe、evolve、channels、cache-guard、extra)+ `tools/`(evals、packctl、basis-smoke)+ `packs/event-planning`(L2 领域包,不在 pnpm workspace 内,verify 独立)
-- 依赖:全部 catalog 单源;DSH 官方 seam 钉在 `@deepseek-ai/dsh-* 0.2.2-alpha.2`(与 ../dsh-repo 同版);Cordis `@deepseek-ai/cordis 4.0.6-alpha.1`
+- 依赖:全部 catalog 单源;DSH 官方 seam 钉在 `@deepseek-ai/dsh-* 0.2.2-alpha.2`(与 deepseek-harness 同版);Cordis `@deepseek-ai/cordis 4.0.6-alpha.1`
 - 版本策略:TS strict + exactOptionalPropertyTypes;vitest run(非 watch);oxlint+oxlint-tsgolint 桥
 - 运行产物:`dsh-evals-out/` 已 gitignore;证据归档 `docs/t14-replay-20/`

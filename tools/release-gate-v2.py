@@ -120,7 +120,7 @@ def upload() -> int:
                 print("复用已建空壳:", ds_id)
     if ds_id is None:
         s, d = api("POST", "/evaluation/datasets",
-                   json={"name": DATASET_NAME, "description": "@event/pack 发布门禁数据集 v2(真模型会话,release 12 条=3 红线+9 正向,与 v1 同 case 集)", "created_by": "agent-basis-ci"})
+                   json={"name": DATASET_NAME, "description": "@event/pack 发布门禁数据集 v2(真模型会话,release 12 条=3 红线+9 正向,与 v1 同 case 集)", "created_by": "agent-eterna-ci"})
         ds_id = d.get("id") if isinstance(d, dict) else None
     if ds_id is None:
         print("数据集创建失败:", str(d)[:300])

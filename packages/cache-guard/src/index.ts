@@ -1,5 +1,5 @@
 /**
- * @basis/cache-guard —— L1 缓存守护插件(KV-cache 前缀稳定守护 + 命中率指标输出)。
+ * @eterna/cache-guard —— L1 缓存守护插件(KV-cache 前缀稳定守护 + 命中率指标输出)。
  *
  * 承载依据:设计文档 12 §1.5「KV-cache 前缀稳定守护 → B 插件(cache-guard)」与
  * §6.4「缓存命中率报表(与 1.5 合并实现)」;设计 08 §3 插件 9
@@ -14,7 +14,7 @@
  * 3. 稳定性检查(stability.ts):连续多轮序列 → 告警列表 + 稳定性评分
  *    (score = Σ共同前缀字符/Σ上轮字符,对失稳严格单调递减);
  * 4. 命中率输出(hitrate.ts):事件字段提取器注册表(cache-usage/request-route 唯一 ID)
- *    + 与 @basis/observe aggregateSessionMetrics 同口径的 cacheRead/(input+cacheRead+cacheWrite)
+ *    + 与 @eterna/observe aggregateSessionMetrics 同口径的 cacheRead/(input+cacheRead+cacheWrite)
  *    报表与桥接;
  * 5. 组合门(本文件):CACHE_GUARD_SERVICE_ID 唯一 ID 服务面 + 增量追踪(track/reset 配逆)。
  *
@@ -23,7 +23,7 @@
  * 可交换、可配逆(track 累积 ↔ reset 清空,dispose 后 track 拒用)。
  * seam 形态的编译期钉住见 tests/types.seam-pin.ts。
  */
-import type { SessionMetrics } from '@basis/observe'
+import type { SessionMetrics } from '@eterna/observe'
 import { hitRateFromSessionMetrics } from './hitrate.ts'
 import { cacheHitRateFromEvents, cacheHitRateReport, EVENT_FIELD_EXTRACTORS, extractCacheUsage, extractRequestRoute } from './hitrate.ts'
 import type { UsageEventFields } from './hitrate.ts'
@@ -49,7 +49,7 @@ export type {
 } from './types.ts'
 
 /** 组合层注册 ctx.cacheGuard 服务时的唯一 ID(注册表 + 唯一 ID 形态,provide 可交换)。 */
-export const CACHE_GUARD_SERVICE_ID = '@basis/cache-guard'
+export const CACHE_GUARD_SERVICE_ID = '@eterna/cache-guard'
 
 /** 追踪窗口默认上限(防无界累积;滑窗丢弃最旧)。 */
 export const DEFAULT_MAX_TRACKED = 1024

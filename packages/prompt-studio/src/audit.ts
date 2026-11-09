@@ -3,16 +3,16 @@
  *
  * 落点优先级:
  * 1. `ctx.governance` 服务(glue governance-plugin)挂了 AuditProjector 时,
- *    经其 reportGovernance 走既有 sink 链(含 FileAuditSink 的 .basis/audit.jsonl);
+ *    经其 reportGovernance 走既有 sink 链(含 FileAuditSink 的 .eterna/audit.jsonl);
  * 2. 缺席时(如 t7 冒烟 profile 未装 glue)退回本包自有 AuditProjector +
- *    FileAuditSink,写 `<DSH_HOME>/basis-prompt-studio/audit.jsonl`(NDJSON,
+ *    FileAuditSink,写 `<DSH_HOME>/eterna-prompt-studio/audit.jsonl`(NDJSON,
  *    记录形态与 governance sink 契约一致:kind='governance' + detail)。
  *
  * 记录形:{ kind:'governance', at, detail:{ system, action, operator, versionId, ... } }。
  */
 import { join } from 'node:path'
-import { AuditProjector, FileAuditSink, MemoryAuditSink } from '@basis/governance'
-import type { AuditRecord } from '@basis/governance'
+import { AuditProjector, FileAuditSink, MemoryAuditSink } from '@eterna/governance'
+import type { AuditRecord } from '@eterna/governance'
 
 /** governance 服务的最小结构面( glue GovernanceWorld.audit 可缺席)。 */
 export interface GovernanceAuditLike {
@@ -22,7 +22,7 @@ export interface GovernanceAuditLike {
 export interface StudioAuditOptions {
   /** 惰性解析 governance 服务(每次写时解析,容忍 glue 后挂载)。 */
   readonly resolveGovernance?: () => GovernanceAuditLike | undefined
-  /** 兜底 NDJSON 文件路径(<DSH_HOME>/basis-prompt-studio/audit.jsonl)。 */
+  /** 兜底 NDJSON 文件路径(<DSH_HOME>/eterna-prompt-studio/audit.jsonl)。 */
   readonly fallbackFilePath: string
   /** 记录里的 system 常量。 */
   readonly system?: string
@@ -46,7 +46,7 @@ export class StudioAudit {
       ],
     })
     this.#resolveGovernance = options.resolveGovernance ?? (() => undefined)
-    this.#system = options.system ?? 'basis-prompt-studio'
+    this.#system = options.system ?? 'eterna-prompt-studio'
   }
 
   /**
@@ -80,7 +80,7 @@ export class StudioAudit {
   }
 }
 
-/** 兜底审计文件默认路径:<home>/basis-prompt-studio/audit.jsonl。 */
+/** 兜底审计文件默认路径:<home>/eterna-prompt-studio/audit.jsonl。 */
 export function defaultAuditFilePath(home: string): string {
-  return join(home, 'basis-prompt-studio', 'audit.jsonl')
+  return join(home, 'eterna-prompt-studio', 'audit.jsonl')
 }

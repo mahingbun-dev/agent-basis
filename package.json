@@ -1,5 +1,5 @@
 {
-  "name": "@basis/root",
+  "name": "@eterna/root",
   "description": "领域 Agent 基座 monorepo:L1 基座插件 + L2 领域包,构建于 DeepSeek Harness (DSH) 之上。设计文档见 README.md。",
   "version": "0.0.0",
   "private": true,

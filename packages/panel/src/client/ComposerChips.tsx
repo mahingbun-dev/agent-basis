@@ -60,14 +60,14 @@ export function ComposerChips(props: ComposerDockProps): unknown {
   }
 
   const el = (
-    <div data-basis-panel="chips" data-basis-panel-chips="true" role="toolbar" aria-label="一键启动基座能力流程">
-      <span data-basis-panel="chips-label">流程启动(Agent 会先向你确认所需信息):</span>
+    <div data-eterna-panel="chips" data-eterna-panel-chips="true" role="toolbar" aria-label="一键启动基座能力流程">
+      <span data-eterna-panel="chips-label">流程启动(Agent 会先向你确认所需信息):</span>
       {GUIDE_PROMPTS.filter(entry => entry.capability !== 'memory').map(entry => (
         <button
           key={entry.id}
           type="button"
-          data-basis-panel="chip"
-          data-basis-panel-chip={entry.id}
+          data-eterna-panel="chip"
+          data-eterna-panel-chip={entry.id}
           disabled={inputActions === undefined || locked === true}
           title={entry.kickoff ?? entry.prompt}
           onClick={() => start(entry.kickoff ?? entry.prompt)}

@@ -15,7 +15,7 @@ import {
 
 /** 带三条红线锚点的最小合法 persona(锚点措辞与 event-planning persona 同款)。 */
 const RED_LINES = '红线:预算超支>5%必须触发审批;对外付款不得代付;比选必须中立。'
-const BASE_OK = `You are the Basis enterprise assistant.\n${RED_LINES}`
+const BASE_OK = `You are the Eterna enterprise assistant.\n${RED_LINES}`
 
 describe('validatePersonaText(骨架规则)', () => {
   it('合法文本通过', () => {

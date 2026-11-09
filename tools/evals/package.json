@@ -1,5 +1,5 @@
 {
-  "name": "@basis/evals",
+  "name": "@eterna/evals",
   "description": "L1 评测 runner(独立 CLI,不进 agent 进程,设计文档 08 §3 / 12 §8.1):golden case YAML 加载与 schema 校验(字段对齐 ai-evo:user_input/answer/tags/final_state[file_assert|http_assert|script]/trajectory[四模式 strict/unordered/subset/superset + must_call/must_not_call/max_steps/approval_flow]/budget)、AgentAdapter 双实现(replay 读 fixture session jsonl 回放 + acp 经 DSH Python SDK 驱动真实 session,真连联调后置)、终态+轨迹+预算断言、report.md(通过率/分 tags/失败原因分类)+ sessions.jsonl(可导 ai-evo)、CLI `dsh-evals run --pack <目录> --subset smoke`。",
   "version": "0.0.0",
   "private": true,

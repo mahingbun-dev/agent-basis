@@ -9,4 +9,4 @@
 {"type":"tool/result","seq":9,"time":1762000000900,"data":{"turn":1,"step":2,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c2"}}}
 {"type":"assistant/message","seq":10,"time":1762000001000,"data":{"turn":1,"step":2,"message":{"role":"assistant","content":[{"type":"text","text":"时间线已交付 out/timeline.csv:8 环节、分钟级无重叠、均在 840-1080 时段内。"}]},"stream":[],"usage":{"inputTokens":1300,"outputTokens":420}}}
 {"type":"turn/end","seq":11,"time":1762000001100,"data":{"turn":1,"reason":{"kind":"completed"}}}
-{"type":"plugin:basis-evals/workspace","seq":12,"time":1762000001200,"data":{"files":{"out/timeline.csv":"环节,开始,结束,负责人\n迎宾签到,840,900,前台组\n开场致辞,900,930,主持人\n五周年回顾视频,930,950,AV组\n颁奖典礼,950,1020,人事组\n团队节目表演,1020,1050,各组\n茶歇与自由交流,1050,1065,后勤组\n幸运抽奖,1065,1075,主持人\n闭幕合影,1075,1080,全体\n"}}}
+{"type":"plugin:eterna-evals/workspace","seq":12,"time":1762000001200,"data":{"files":{"out/timeline.csv":"环节,开始,结束,负责人\n迎宾签到,840,900,前台组\n开场致辞,900,930,主持人\n五周年回顾视频,930,950,AV组\n颁奖典礼,950,1020,人事组\n团队节目表演,1020,1050,各组\n茶歇与自由交流,1050,1065,后勤组\n幸运抽奖,1065,1075,主持人\n闭幕合影,1075,1080,全体\n"}}}

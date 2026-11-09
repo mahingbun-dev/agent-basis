@@ -2,7 +2,7 @@ import { EntityMemoryStore } from "./entity-store.js";
 import { buildEntityIndex } from "./index-builder.js";
 import { NotesStore } from "./notes.js";
 import { BuiltinPiiGuard } from "./pii.js";
-const MEMORY_SERVICE_ID = "@basis/memory";
+const MEMORY_SERVICE_ID = "@eterna/memory";
 function createMemory(options) {
   const piiGuard = options.pii ?? new BuiltinPiiGuard();
   const entities = new EntityMemoryStore(options.dbPath, ...options.now !== void 0 ? [{ now: options.now }] : []);

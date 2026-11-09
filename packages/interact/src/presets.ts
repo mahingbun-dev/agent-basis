@@ -68,7 +68,7 @@ export interface PermissionPresetArtifact {
 }
 
 export interface GeneratePresetOptions {
-  /** 预设名前缀;默认 'basis'。不得产出保留名 custom/auto。 */
+  /** 预设名前缀;默认 'eterna'。不得产出保留名 custom/auto。 */
   readonly namePrefix?: string
 }
 
@@ -77,7 +77,7 @@ export interface GeneratePresetOptions {
  * defaultPreset 取 default_grade 对应档(文档 08 §6.1:未命中规则的动作必须走人,新会话缺省即安全档)。
  */
 export function generatePresetArtifact(hitl: HitlDocument, options: GeneratePresetOptions = {}): PermissionPresetArtifact {
-  const prefix = options.namePrefix ?? 'basis'
+  const prefix = options.namePrefix ?? 'eterna'
   if (prefix === '') throw new InteractConfigError('namePrefix 不能为空')
   const gradeToPreset: Record<RiskGrade, string> = {} as Record<RiskGrade, string>
   const presets: Record<string, PresetSpec> = {}

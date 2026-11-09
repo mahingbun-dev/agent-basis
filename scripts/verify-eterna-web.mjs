@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Real-boot verification for the Basis enterprise Web 档 (profiles/basis-web).
+ * Real-boot verification for the Eterna enterprise Web 档 (profiles/eterna-web).
  *
  * Boots the actual composition — @deepseek-ai/dsh-base + @deepseek-ai/dsh-web-app
- * + profiles/basis-web/cordis.patch.yml — with the repo-local dsh CLI (no model
+ * + profiles/eterna-web/cordis.patch.yml — with the repo-local dsh CLI (no model
  * calls, no credentials, OS-assigned port via --port 0), then asserts against the
  * LIVE pluginInventory/list Remote (read-only projection of the settled Loader
  * tree) that:
@@ -21,8 +21,8 @@
  * and the required-entry startup audit passed (dsh-web-app src/index.ts:244-254).
  *
  * Environment:
- *   BASIS_PROFILE_HOME — DSH home to materialize the profile in
- *                        (default: <repo>/.basis-home)
+ *   ETERNA_PROFILE_HOME — DSH home to materialize the profile in
+ *                        (default: <repo>/.eterna-home)
  *
  * Exit 0 = all assertions passed; exit 1 = boot or assertion failure.
  */
@@ -35,9 +35,9 @@ import { fileURLToPath } from 'node:url'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const dshBin = join(repoRoot, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
-const sourcePatch = join(repoRoot, 'profiles', 'basis-web', 'cordis.patch.yml')
-const home = resolve(process.env.BASIS_PROFILE_HOME ?? join(repoRoot, '.basis-home'))
-const profileName = 'basis-web'
+const sourcePatch = join(repoRoot, 'profiles', 'eterna-web', 'cordis.patch.yml')
+const home = resolve(process.env.ETERNA_PROFILE_HOME ?? join(repoRoot, '.eterna-home'))
+const profileName = 'eterna-web'
 const profileDir = join(home, 'profiles', profileName)
 
 const BOOT_TIMEOUT_MS = 120_000
@@ -115,16 +115,16 @@ const PRESET_KEPT_ROWS = [
 // 1. Materialize the profile under the DSH home.
 
 if (!existsSync(dshBin)) {
-  console.error(`verify-basis-web: dsh CLI not found at ${dshBin}; run pnpm install first`)
+  console.error(`verify-eterna-web: dsh CLI not found at ${dshBin}; run pnpm install first`)
   process.exit(1)
 }
 if (!existsSync(sourcePatch)) {
-  console.error(`verify-basis-web: missing ${sourcePatch}`)
+  console.error(`verify-eterna-web: missing ${sourcePatch}`)
   process.exit(1)
 }
 const homePatch = join(home, 'cordis.patch.yml')
 if (existsSync(homePatch)) {
-  console.error(`verify-basis-web: ${homePatch} exists; a home-level user patch would compose over the profile layer and break determinism — remove it or point BASIS_PROFILE_HOME at a clean home`)
+  console.error(`verify-eterna-web: ${homePatch} exists; a home-level user patch would compose over the profile layer and break determinism — remove it or point ETERNA_PROFILE_HOME at a clean home`)
   process.exit(1)
 }
 
@@ -139,7 +139,7 @@ const presetCandidates = existsSync(pnpmDir)
   ? readdirSync(pnpmDir).filter((dir) => dir.startsWith('@deepseek-ai+dsh-agent-preset@0.2.2-rc.1'))
   : []
 if (presetCandidates.length === 0) {
-  console.error('verify-basis-web: @deepseek-ai/dsh-agent-preset@0.2.2-rc.1 未安装——创造模式 skill 目录无法解析')
+  console.error('verify-eterna-web: @deepseek-ai/dsh-agent-preset@0.2.2-rc.1 未安装——创造模式 skill 目录无法解析')
   process.exit(1)
 }
 const agentPresetDir = join(pnpmDir, presetCandidates[0], 'node_modules', '@deepseek-ai', 'dsh-agent-preset')
@@ -155,7 +155,7 @@ writeFileSync(join(profileDir, 'cordis.yml'), '[]\n')
 copyFileSync(sourcePatch, join(profileDir, 'cordis.patch.yml'))
 const copied = readFileSync(join(profileDir, 'cordis.patch.yml'), 'utf8')
 if (copied !== readFileSync(sourcePatch, 'utf8')) {
-  console.error('verify-basis-web: profile patch copy drifted from the source file')
+  console.error('verify-eterna-web: profile patch copy drifted from the source file')
   process.exit(1)
 }
 
@@ -199,7 +199,7 @@ try {
   })
 } catch (error) {
   await stop(child)
-  console.error(`verify-basis-web: boot failed: ${error.message}`)
+  console.error(`verify-eterna-web: boot failed: ${error.message}`)
   console.error('--- dsh output ---')
   console.error(output.join(''))
   process.exit(1)
@@ -212,7 +212,7 @@ const result = await probe(urlLine)
 await stop(child)
 
 if (!result.ok) {
-  console.error(`verify-basis-web: pluginInventory/list failed: ${JSON.stringify(result.error)}`)
+  console.error(`verify-eterna-web: pluginInventory/list failed: ${JSON.stringify(result.error)}`)
   process.exit(1)
 }
 const snapshot = result.value
@@ -272,10 +272,10 @@ if (standard !== undefined) {
 // ---------------------------------------------------------------------------
 // 4. Verdict.
 
-console.log(`verify-basis-web: boot ${urlLine}`)
+console.log(`verify-eterna-web: boot ${urlLine}`)
 console.log(failures.length === 0
-  ? `verify-basis-web: OK — ${snapshot.entries.length} host entries, ${presetByName.size} presets, cut rows inactive, kept rows active`
-  : `verify-basis-web: FAILED — ${failures.join('; ')}`)
+  ? `verify-eterna-web: OK — ${snapshot.entries.length} host entries, ${presetByName.size} presets, cut rows inactive, kept rows active`
+  : `verify-eterna-web: FAILED — ${failures.join('; ')}`)
 process.exitCode = failures.length === 0 ? 0 : 1
 
 // ---------------------------------------------------------------------------
@@ -295,7 +295,7 @@ async function probe(url) {
   const response = await fetch(new URL('/api/pluginInventory/list', index.origin), {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}) },
-    body: JSON.stringify({ type: 'client-request', rpcId: 'verify-basis-web', method: 'pluginInventory/list', payload: { args: {} } }),
+    body: JSON.stringify({ type: 'client-request', rpcId: 'verify-eterna-web', method: 'pluginInventory/list', payload: { args: {} } }),
     signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
   })
   const body = await response.json().catch((error) => ({ parseError: String(error) }))

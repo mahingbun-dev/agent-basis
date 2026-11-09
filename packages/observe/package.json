@@ -1,6 +1,6 @@
 {
-  "name": "@basis/observe",
-  "description": "L1 观测插件:evolve_signal 信号存储(sqlite,kind/ref/payload/tags/trajectory_hash,(kind,ref) 去重)、session 事件流→指标聚合器(tokens/成本估算/缓存命中率/轮数,request/header 锚定路由)、feedback 低分→信号入队、漂移快照对比(超阈值项→drift 信号)。seam 形态对齐 dsh-repo packages/core(session 事件)与 packages/feedback,依赖已发布 @deepseek-ai/dsh-* 0.2.2-alpha.2 类型。",
+  "name": "@eterna/observe",
+  "description": "L1 观测插件:evolve_signal 信号存储(sqlite,kind/ref/payload/tags/trajectory_hash,(kind,ref) 去重)、session 事件流→指标聚合器(tokens/成本估算/缓存命中率/轮数,request/header 锚定路由)、feedback 低分→信号入队、漂移快照对比(超阈值项→drift 信号)。seam 形态对齐 deepseek-harness packages/core(session 事件)与 packages/feedback,依赖已发布 @deepseek-ai/dsh-* 0.2.2-alpha.2 类型。",
   "version": "0.0.0",
   "private": true,
   "type": "module",

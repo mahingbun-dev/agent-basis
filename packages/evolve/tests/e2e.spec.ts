@@ -7,7 +7,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
-import { SignalStore } from '@basis/observe'
+import { SignalStore } from '@eterna/observe'
 import {
   activeEntries, applyDeltas, approveAndRelease, archivedEntries, createEvolution, effectOf,
   EVOLVE_SERVICE_ID, parseSkillDoc, renderSkillDoc, runEvolutionCycle, runGate0,
@@ -22,7 +22,7 @@ let ledgerPath = ''
 
 beforeAll(async () => {
   demo = await makeDemoPack()
-  workRoot = await fs.mkdtemp(path.join(path.dirname(demo.rootDir), 'basis-evolve-e2e-'))
+  workRoot = await fs.mkdtemp(path.join(path.dirname(demo.rootDir), 'eterna-evolve-e2e-'))
   ledgerPath = path.join(workRoot, 'ledger.db')
 })
 

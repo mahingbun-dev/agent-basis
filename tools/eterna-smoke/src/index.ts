@@ -1,5 +1,5 @@
 /**
- * @basis/smoke —— 工程地基约定载体包的源码。
+ * @eterna/smoke —— 工程地基约定载体包的源码。
  *
  * 它的唯一职责:用最小、无依赖的纯函数证明根 toolchain 在子包内完整可用——
  * strict tsconfig 编译通过、oxlint(含 typeAware 桥接)通过、vitest 真实断言通过。

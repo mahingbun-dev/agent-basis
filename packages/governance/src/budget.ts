@@ -1,7 +1,7 @@
 /**
  * 预算守卫:maxTurns / maxTokens / maxCost 配置 + turn-stopping 事件处理器。
  *
- * seam 依据(dsh-repo packages/core/agent-loop/README.md:220,Known Limitations):
+ * seam 依据(deepseek-harness packages/core/agent-loop/README.md:220,Known Limitations):
  * "No built-in turn budget —— a policy that bounds runaway turns must cancel from an
  * existing lifecycle extension point such as `agent/turn-stopping`."
  * 事件签名(packages/core/agent/src/runtime-types.ts:417):

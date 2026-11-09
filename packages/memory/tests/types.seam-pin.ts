@@ -2,11 +2,11 @@
  * DSH seam 编译期钉住(只被 tsc --noEmit 消费;vitest include 只收 *.spec.ts,不运行本文件)。
  *
  * 目的(设计文档 08 §8 风险 1):DSH 处于 pre-stable,所有 L1 插件的适配面要在
- * CI 里用接口冒烟钉住。本文件用**已发布的 @deepseek-ai/dsh-*(与 ../dsh-repo
+ * CI 里用接口冒烟钉住。本文件用**已发布的 @deepseek-ai/dsh-*(与 deepseek-harness
  * 同为 0.2.2-alpha.2)类型**断言:记忆包的工具/注入接口与官方 seam 双向兼容——
- * DSH 升级破坏 seam 形态时,`pnpm --filter @basis/memory run verify` 的 tsc 阶段即失败。
+ * DSH 升级破坏 seam 形态时,`pnpm --filter @eterna/memory run verify` 的 tsc 阶段即失败。
  *
- * 依据(dsh-repo,只读):
+ * 依据(deepseek-harness,只读):
  * - packages/core/tools/src/index.ts:ToolsService.register(definition, options?)
  *   → the exact disposer that unregisters the tool;
  * - packages/core/system-prompt/src/index.ts:SystemPrompt.section(section)
@@ -16,7 +16,7 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { ToolRuntime } from '@deepseek-ai/dsh-tools'
-import type { PiiFilter } from '@basis/governance'
+import type { PiiFilter } from '@eterna/governance'
 import { attachMemory, defineMemoryTools, dshHost } from '../src/index.ts'
 import type { Memory, MemoryHost, PiiGuard } from '../src/index.ts'
 
@@ -48,7 +48,7 @@ export const pinDshHost: MemoryHost = dshHost(liveCtx)
 export const pinAttachDisposer: () => void = attachMemory(dshHost(liveCtx), liveMemory)
 
 /**
- * 钉住 ④:@basis/governance 的 PiiFilter 结构满足 memory 的 PiiGuard
+ * 钉住 ④:@eterna/governance 的 PiiFilter 结构满足 memory 的 PiiGuard
  * (assertClean(value, label?) 同签名)——注入无需适配层(provide 可交换)。
  */
 export const pinGovernancePiiInjectable: PiiGuard = livePiiFilter

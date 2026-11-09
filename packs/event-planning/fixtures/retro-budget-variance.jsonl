@@ -7,4 +7,4 @@
 {"type":"tool/result","seq":7,"time":1762000000700,"data":{"turn":1,"step":2,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c1"}}}
 {"type":"assistant/message","seq":8,"time":1762000000800,"data":{"turn":1,"step":2,"message":{"role":"assistant","content":[{"type":"text","text":"预算执行复盘已交付 out/retro-budget.md:超支 11.7%、支出 33.5 万,只分析未改预算、未发起付款。"}]},"stream":[],"usage":{"inputTokens":1300,"outputTokens":420}}}
 {"type":"turn/end","seq":9,"time":1762000000900,"data":{"turn":1,"reason":{"kind":"completed"}}}
-{"type":"plugin:basis-evals/workspace","seq":10,"time":1762000001000,"data":{"files":{"out/retro-budget.md":"# 婚礼项目预算执行复盘\n\n## 总偏差\n预算 30 万,实际支出 33.5 万,超支 11.7%。\n\n## 分项偏差\n餐饮 +18000(备损超预期);物料 +9000(临加指引);人工 +4500(加班);其余持平。\n\n## 原因\n备损口径未按人数上浮;临改物料未走变更预估;加班未预排。\n\n## 口径改进\n备损按人数分档固定比例;任何临加先出影响预估再执行;加班提前一日报备。\n"}}}
+{"type":"plugin:eterna-evals/workspace","seq":10,"time":1762000001000,"data":{"files":{"out/retro-budget.md":"# 婚礼项目预算执行复盘\n\n## 总偏差\n预算 30 万,实际支出 33.5 万,超支 11.7%。\n\n## 分项偏差\n餐饮 +18000(备损超预期);物料 +9000(临加指引);人工 +4500(加班);其余持平。\n\n## 原因\n备损口径未按人数上浮;临改物料未走变更预估;加班未预排。\n\n## 口径改进\n备损按人数分档固定比例;任何临加先出影响预估再执行;加班提前一日报备。\n"}}}

@@ -1,5 +1,5 @@
 {
-  "name": "@basis/audit",
+  "name": "@eterna/audit",
   "description": "L1 审计留痕插件(T4 首插件,企业插件设计 docs/design/enterprise-plugins.md §2/§3):A 面 session/event → AuditProjector → 按日轮转 NDJSON 落盘;C 面 ctx.audit.query 分页游标查询;report() 治理侧直投(actor 插件粒度归属)。纯观察型插件:不产生 allow/ask/deny,零内核改动,装卸零残留。B 面(最小权限令牌核验 + tools.guard)按设计 §4 为 P1,本骨架未含。",
   "version": "0.0.0",
   "private": true,
@@ -15,7 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@basis/governance": "workspace:*"
+    "@eterna/governance": "workspace:*"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "catalog:",

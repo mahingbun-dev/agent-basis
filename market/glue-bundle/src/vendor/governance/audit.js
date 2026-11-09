@@ -113,9 +113,18 @@ class AuditProjector {
       throw this.#writeError instanceof Error ? this.#writeError : new Error(JSON.stringify(this.#writeError));
     }
   }
-  /** 直接投递一条治理侧记录(预算违规/PII 拦截等)。 */
+  /**
+   * 直接投递一条治理侧记录(预算违规/令牌拒绝等)。detail.actor(如有)被提升为记录级
+   * actor 字段(企业插件设计 §3.1:⑧插件粒度归属),不再重复出现在 detail 里。
+   */
   reportGovernance(detail) {
-    const record = { kind: "governance", at: (/* @__PURE__ */ new Date()).toISOString(), detail };
+    const { actor, ...rest } = detail;
+    const record = {
+      kind: "governance",
+      at: (/* @__PURE__ */ new Date()).toISOString(),
+      detail: rest,
+      ...actor !== void 0 && { actor }
+    };
     this.#enqueue(record);
     return [record];
   }

@@ -5,11 +5,11 @@
 import * as nodeFs from 'node:fs'
 import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
-import { WikiLocalBackend, createKnowledgeService, createNodeFsAdapter, toDshTools } from '@basis/knowledge'
-import type { KnowledgeProposal } from '@basis/knowledge'
+import { WikiLocalBackend, createKnowledgeService, createNodeFsAdapter, toDshTools } from '@eterna/knowledge'
+import type { KnowledgeProposal } from '@eterna/knowledge'
 import type { KnowledgePluginConfig } from '../types.ts'
 
-export const BASIS_KNOWLEDGE_PLUGIN_NAME = 'basis-knowledge'
+export const ETERNA_KNOWLEDGE_PLUGIN_NAME = 'eterna-knowledge'
 
 /** governance 服务在 glue 侧的最小结构子集(inject 可选,governance 缺席为常态)。 */
 interface GovernanceLike {
@@ -18,7 +18,7 @@ interface GovernanceLike {
 
 export function defineKnowledgePlugin(config: KnowledgePluginConfig = {}) {
   return {
-    name: BASIS_KNOWLEDGE_PLUGIN_NAME,
+    name: ETERNA_KNOWLEDGE_PLUGIN_NAME,
     inject: { tools: true, governance: false } as never,
     apply(ctx: Context): () => void {
       const cwd = process.cwd()
@@ -26,7 +26,7 @@ export function defineKnowledgePlugin(config: KnowledgePluginConfig = {}) {
       const govRules = (ctx as unknown as { governance?: GovernanceLike }).governance?.rules
       const backend = new WikiLocalBackend({
         wikiDir,
-        dbPath: config.dbPath ?? join(cwd, '.basis/knowledge.sqlite3'),
+        dbPath: config.dbPath ?? join(cwd, '.eterna/knowledge.sqlite3'),
         fs: createNodeFsAdapter(nodeFs),
         // 提案门禁(fail-closed):governance 规则显式 allow 才放行;否则 reject 待人工评审
         gate: (proposal: KnowledgeProposal) => {

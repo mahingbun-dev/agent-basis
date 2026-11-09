@@ -1,7 +1,7 @@
-# egress 域名白名单配置模板:@basis/extra(T8;§11.6 裁定 egress 白名单首期挂载)。
+# egress 域名白名单配置模板:@eterna/extra(T8;§11.6 裁定 egress 白名单首期挂载)。
 # 加载:parseDomainWhitelistYaml()(同包 domain-whitelist.ts;语法/结构错误即抛 =
-# 装载失败,fail-closed);组合层(@basis/glue egress-plugin)缺省读 agent cwd 下
-# .basis/egress-whitelist.yml,文件不存在 = 内网默认白名单(DEFAULT_EGRESS_DOMAIN_RULES,
+# 装载失败,fail-closed);组合层(@eterna/glue egress-plugin)缺省读 agent cwd 下
+# .eterna/egress-whitelist.yml,文件不存在 = 内网默认白名单(DEFAULT_EGRESS_DOMAIN_RULES,
 # 即本模板列表的生效子集)。
 #
 # fail-closed 口径(「数据不出内网」红线,§11.8):

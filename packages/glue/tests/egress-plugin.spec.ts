@@ -4,7 +4,7 @@
  * 覆盖:内网默认白名单(缺省 = DEFAULT_EGRESS_DOMAIN_RULES:192.168.31.*、localhost、
  * manas)下的域名级 deny/allow、工具级 deny、无目的地参数的工具级兜底(unknownDestination
  * 缺省 allow)、资产配置文件扩域与端口、配置文件语法非法 fail-closed、local 工具直通、
- * 审计直投(结构化 denied 明细)。判定面 = @basis/extra EgressToolWrapper.preflight
+ * 审计直投(结构化 denied 明细)。判定面 = @eterna/extra EgressToolWrapper.preflight
  * (packages/extra/src/egress-wrapper.ts:66-87),挂载形态见 src/plugins/egress-plugin.ts 头注。
  */
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
-import { BASIS_EGRESS_PLUGIN_NAME, DEFAULT_ALLOWED_OUTBOUND_TOOLS, defineEgressPlugin } from '../src/plugins/egress-plugin.ts'
+import { ETERNA_EGRESS_PLUGIN_NAME, DEFAULT_ALLOWED_OUTBOUND_TOOLS, defineEgressPlugin } from '../src/plugins/egress-plugin.ts'
 import { makeFakeContext } from './fake-context.ts'
 import type { PreToolDecisionLike, ToolExecutionLike } from './fake-context.ts'
 
@@ -58,7 +58,7 @@ describe('egress 插件:内网默认白名单(缺省 fail-closed,数据不出内
       tool: 'web_fetch',
       decision: 'deny',
       denied: { egress: 'denied', tool: 'web_fetch', layer: 'domain' },
-      actor: { pluginId: BASIS_EGRESS_PLUGIN_NAME, source: 'decision' },
+      actor: { pluginId: ETERNA_EGRESS_PLUGIN_NAME, source: 'decision' },
     })
   })
 
@@ -118,7 +118,7 @@ describe('egress 插件:内网 MCP 家族与域名级兜底', () => {
 
 describe('egress 插件:资产配置文件(whitelistPath)', () => {
   it('扩域 + 端口限定:命中规则放行,端口不符拒', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'basis-glue-egress-'))
+    const dir = await mkdtemp(join(tmpdir(), 'eterna-glue-egress-'))
     tempDirs.push(dir)
     const whitelistPath = join(dir, 'egress-whitelist.yml')
     await writeFile(whitelistPath, [
@@ -138,7 +138,7 @@ describe('egress 插件:资产配置文件(whitelistPath)', () => {
   })
 
   it('配置文件语法非法 = 装载抛错(fail-closed,同 governance 规则文件口径)', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'basis-glue-egress-'))
+    const dir = await mkdtemp(join(tmpdir(), 'eterna-glue-egress-'))
     tempDirs.push(dir)
     const whitelistPath = join(dir, 'egress-whitelist.yml')
     await writeFile(whitelistPath, 'whitelist: [未闭合\n  - {host', 'utf8')

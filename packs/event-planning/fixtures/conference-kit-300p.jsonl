@@ -11,4 +11,4 @@
 {"type":"tool/result","seq":11,"time":1762000001100,"data":{"turn":1,"step":2,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c3"}}}
 {"type":"assistant/message","seq":12,"time":1762000001200,"data":{"turn":1,"step":2,"message":{"role":"assistant","content":[{"type":"text","text":"kit 清单已交付 out/kit.csv:备损口径计入,合计 11660。"}]},"stream":[],"usage":{"inputTokens":1300,"outputTokens":420}}}
 {"type":"turn/end","seq":13,"time":1762000001300,"data":{"turn":1,"reason":{"kind":"completed"}}}
-{"type":"plugin:basis-evals/workspace","seq":14,"time":1762000001400,"data":{"files":{"out/kit.csv":"物料,数量,单价,小计\n帆布袋,300,22,6600\n会议手册,300,8,2400\n胸牌,320,3.5,1120\n瓶装水,600,1.5,900\n签字笔,320,2,640\n合计,,,11660\n"}}}
+{"type":"plugin:eterna-evals/workspace","seq":14,"time":1762000001400,"data":{"files":{"out/kit.csv":"物料,数量,单价,小计\n帆布袋,300,22,6600\n会议手册,300,8,2400\n胸牌,320,3.5,1120\n瓶装水,600,1.5,900\n签字笔,320,2,640\n合计,,,11660\n"}}}

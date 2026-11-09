@@ -267,7 +267,7 @@ describe('会话列表与指定会话投影', () => {
   let root: string
 
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), 'basis-prompt-studio-trace-'))
+    root = mkdtempSync(join(tmpdir(), 'eterna-prompt-studio-trace-'))
   })
 
   afterEach(() => {

@@ -10,8 +10,8 @@ import { createReadStream } from 'node:fs'
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
-import { isRecord, matchAnyGlob } from '@basis/governance'
-import type { AuditRecord } from '@basis/governance'
+import { isRecord, matchAnyGlob } from '@eterna/governance'
+import type { AuditRecord } from '@eterna/governance'
 import type { AuditQuery, AuditQueryPage } from './service.ts'
 
 /** 本仓库写入的 kind 全集(§3.1 AuditRecord;用于行级合法性校验,坏行跳过)。 */
@@ -38,16 +38,16 @@ function decodeCursor(raw: string, filePrefix: string): Cursor {
   try {
     parsed = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'))
   } catch {
-    throw new RangeError('[basis/audit] 无效游标:不是合法的 base64url JSON')
+    throw new RangeError('[eterna/audit] 无效游标:不是合法的 base64url JSON')
   }
-  if (!isRecord(parsed)) throw new RangeError('[basis/audit] 无效游标:载荷不是对象')
+  if (!isRecord(parsed)) throw new RangeError('[eterna/audit] 无效游标:载荷不是对象')
   const f = parsed['f']
   const l = parsed['l']
   if (typeof f !== 'string' || !isAuditFileName(f, filePrefix)) {
-    throw new RangeError(`[basis/audit] 无效游标:文件名不在 ${filePrefix}YYYYMMDD.jsonl 形态内`)
+    throw new RangeError(`[eterna/audit] 无效游标:文件名不在 ${filePrefix}YYYYMMDD.jsonl 形态内`)
   }
   if (typeof l !== 'number' || !Number.isInteger(l) || l < 0) {
-    throw new RangeError('[basis/audit] 无效游标:行号必须是 ≥0 的整数')
+    throw new RangeError('[eterna/audit] 无效游标:行号必须是 ≥0 的整数')
   }
   return { f, l }
 }
@@ -79,7 +79,7 @@ export interface QueryAuditRecordsOptions {
 export async function queryAuditRecords(options: QueryAuditRecordsOptions): Promise<AuditQueryPage> {
   const { dir, filePrefix, filter } = options
   const limit = filter.limit
-  if (!Number.isInteger(limit) || limit < 1) throw new RangeError('[basis/audit] limit 必须是 ≥1 的整数')
+  if (!Number.isInteger(limit) || limit < 1) throw new RangeError('[eterna/audit] limit 必须是 ≥1 的整数')
   const start = filter.cursor !== undefined ? decodeCursor(filter.cursor, filePrefix) : undefined
 
   const dirEntries = await readdir(dir).catch(() => [] as const)

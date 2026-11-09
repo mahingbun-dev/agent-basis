@@ -2,7 +2,7 @@
  * 模型面工具(memory_write / memory_read / memory_search / memory_forget)
  * + systemPrompt 记忆索引 section + 宿主装配 seam。
  *
- * seam 依据(dsh-repo,只读;类型取自已发布 0.2.2-alpha.2):
+ * seam 依据(deepseek-harness,只读;类型取自已发布 0.2.2-alpha.2):
  * - packages/core/tools/README.md「Register a tool」:`defineTool({ name,
  *   description, parameters, output, execute })` → `ctx.tools.register(def)`
  *   返回 the exact disposer(effect-owned);

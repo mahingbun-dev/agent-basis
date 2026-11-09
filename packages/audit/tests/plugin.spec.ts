@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
-import { PiiFilter } from '@basis/governance'
+import { PiiFilter } from '@eterna/governance'
 import auditPlugin, { defaultAuditDir, defineAuditPlugin } from '../src/plugin.ts'
 import { AUDIT_ID, AUDIT_SERVICE_ID } from '../src/service.ts'
 import type { AuditWorld } from '../src/service.ts'
@@ -19,7 +19,7 @@ afterEach(async () => {
 })
 
 async function tempDir(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), 'basis-audit-plugin-'))
+  const dir = await mkdtemp(join(tmpdir(), 'eterna-audit-plugin-'))
   tempDirs.push(dir)
   return dir
 }
@@ -102,9 +102,9 @@ function mount(dir: string, harness: ReturnType<typeof makeFakeContext>): () => 
 
 describe('audit 插件:装载 / 投影 / 卸载', () => {
   it('default export 是插件实例(硬性规范 1:loader 取实例,漏写 = 静默不装载)', () => {
-    expect(auditPlugin.name).toBe('basis-audit')
+    expect(auditPlugin.name).toBe('eterna-audit')
     expect(typeof auditPlugin.apply).toBe('function')
-    expect(defaultAuditDir()).toBe(join(process.cwd(), '.basis'))
+    expect(defaultAuditDir()).toBe(join(process.cwd(), '.eterna'))
   })
 
   it('装载即 provide("audit") → ctx.audit;session/event 增量投影落盘 tool-call 记录', async () => {

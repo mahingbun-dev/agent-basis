@@ -6,7 +6,7 @@
  *    否则卸载残留,SOP S2 的 Cordis 回收验证过不了)。行级扫描、跳过注释。
  * 2. CORD002/003 provide 可交换接口形态:tools/ 下每个非 barrel 的 .ts 模块必须导出
  *    `<NAME>_SERVICE_ID` 唯一 ID 常量 + 含 `readonly id: typeof <NAME>_SERVICE_ID`
- *    的导出接口(注册表 + 唯一 ID,@basis/governance 同款约定:GOVERNANCE_SERVICE_ID)。
+ *    的导出接口(注册表 + 唯一 ID,@eterna/governance 同款约定:GOVERNANCE_SERVICE_ID)。
  * 3. CORD004 命名空间:SERVICE_ID 值必须在包名 scope 下(`@<industry>/*`,08 号文档 §1.3)。
  * 4. CORD005 注册表唯一:SERVICE_ID 值跨模块不得重复。
  *

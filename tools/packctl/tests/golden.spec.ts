@@ -1,6 +1,6 @@
 /**
  * golden 加载器单测(07 号文档 §3.2 字段口径):loadGoldenCaseText 形态校验
- * 与 loadGoldenDir 目录级完整性(非空/重复 id),供 pack lint 与 @basis/evals 共用。
+ * 与 loadGoldenDir 目录级完整性(非空/重复 id),供 pack lint 与 @eterna/evals 共用。
  */
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -73,7 +73,7 @@ describe('loadGoldenCaseText', () => {
   })
 })
 
-describe('loadGoldenCaseText:条目形态(@basis/evals / ai-evo 可执行口径,T6 对齐)', () => {
+describe('loadGoldenCaseText:条目形态(@eterna/evals / ai-evo 可执行口径,T6 对齐)', () => {
   const ENTRY_FORM = [
     'id: budget-overrun-approval',
     'user_input: |',

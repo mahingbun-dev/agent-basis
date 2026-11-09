@@ -15,7 +15,7 @@
 import { parseJsonLoose, resolveRoutes } from './models.ts'
 import type { ModelCaller, ModelRoute, ModelRoutes } from './models.ts'
 
-/** observe evolve_signal 的消费子集(结构兼容 @basis/observe 的 EvolveSignal)。 */
+/** observe evolve_signal 的消费子集(结构兼容 @eterna/observe 的 EvolveSignal)。 */
 export interface SignalLike {
   readonly id: number | string
   readonly ts: number

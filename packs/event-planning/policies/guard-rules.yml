@@ -1,5 +1,5 @@
-# guard-rules.yml —— 合规红线(@basis/governance 规则引擎消费;deny 优先、fail-closed)。
-# 格式对齐 @basis/governance PolicyDocument:{ rules: [{ id, effect, tools, argsContains?, reason? }], default }。
+# guard-rules.yml —— 合规红线(@eterna/governance 规则引擎消费;deny 优先、fail-closed)。
+# 格式对齐 @eterna/governance PolicyDocument:{ rules: [{ id, effect, tools, argsContains?, reason? }], default }。
 # 三条审批红线(13 号文档 §2 注)在这里表达,不靠 prompt:
 #   ① 预算超支>5% 的变更必须 R3 审批(静默通过=失败,golden 钉住);
 #   ② 对外付款/合同签署必须升级给人,不得代付代签;

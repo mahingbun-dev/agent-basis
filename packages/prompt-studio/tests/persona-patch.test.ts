@@ -14,19 +14,19 @@ import {
   unquoteYamlScalar, yamlDoubleQuoted,
 } from '../src/persona-patch.ts'
 
-const MARKER = 'T7_SPIKE_PERSONA_MARKER_B basis spike persona beta'
+const MARKER = 'T7_SPIKE_PERSONA_MARKER_B eterna spike persona beta'
 
 /** 模拟 spike 生成的 profile patch 层结构(含 !!js 行与 preset-standard 行)。 */
 function fixturePatch(persona: string): string {
   return [
     '# T7.0 spike patch layer — persona 前缀为被测值(由 scripts/t7-spike-verify.mjs 生成)。',
     '- insert:',
-    '    - id: basis-llm',
-    "      name: '@basis/llm-openai'",
+    '    - id: eterna-llm',
+    "      name: '@eterna/llm-openai'",
     '      config:',
     "        baseURL: 'http://litellm.example/v1'",
     '        apiKeyEnv: LITELLM_API_KEY',
-    "        provider: 'basis'",
+    "        provider: 'eterna'",
     '        models:',
     '          - id: deepseek-flash',
     '',
@@ -102,7 +102,7 @@ describe('PersonaPatchFile(真实 fs 临时目录)', () => {
   let patchPath: string
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'basis-prompt-studio-'))
+    dir = mkdtempSync(join(tmpdir(), 'eterna-prompt-studio-'))
     patchPath = join(dir, 'cordis.patch.yml')
     writeFileSync(patchPath, fixturePatch(MARKER), 'utf8')
   })
@@ -242,7 +242,7 @@ describe('selfCheckNextPatchText(保存前 YAML 解析自检,T7.3 ⑦)', () => {
   })
 
   it('writeNext 的落盘纪律:先备份后原子写(自检在两者之前,失败即零磁盘改动)', async () => {
-    const tmp = mkdtempSync(join(tmpdir(), 'basis-prompt-studio-order-'))
+    const tmp = mkdtempSync(join(tmpdir(), 'eterna-prompt-studio-order-'))
     const filePath = join(tmp, 'cordis.patch.yml')
     writeFileSync(filePath, fixturePatch(MARKER), 'utf8')
     const before = readFileSync(filePath, 'utf8')

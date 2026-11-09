@@ -53,7 +53,7 @@ function sh(command, args) {
 
 /** zstd 日志 → 原始通知行(只取带 seq/time 的事件行;日志首行 session 头与 lock 等非事件跳过)。 */
 async function notificationsOf(caseId) {
-  const dirPrefix = path.join(dshSessionsDir, `--Users-sunny-.zcode-workspace-draft-50d92869-2a8d-4d02-8c95-cccdab6eafca-agent-basis-docs-acp-real-6-workspaces-${caseId}--`)
+  const dirPrefix = path.join(dshSessionsDir, `--Users-sunny-.zcode-workspace-draft-50d92869-2a8d-4d02-8c95-cccdab6eafca-agent-eterna-docs-acp-real-6-workspaces-${caseId}--`)
   const logFile = path.join(dirPrefix, caseId, 'session.v4.jsonl.zstd')
   if (!existsSync(logFile)) return undefined
   const { code, stdout } = await sh('zstdcat', [logFile])

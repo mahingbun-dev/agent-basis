@@ -78,13 +78,13 @@ describe('profile.yml 叠加声明', () => {
     writeFileSync(join(packDir, 'profile.yml'), 'name: struct-profile\nextends: [dsh-web]\nbundles: ["@struct-profile/pack"]\n', 'utf8')
     expect(lintProfile(packDir, manifest!).map(f => f.code)).toContain('PACK010')
 
-    writeFileSync(join(packDir, 'profile.yml'), 'name: struct-profile\nextends: [dsh-base]\nbundles: ["@basis/governance"]\n', 'utf8')
+    writeFileSync(join(packDir, 'profile.yml'), 'name: struct-profile\nextends: [dsh-base]\nbundles: ["@eterna/governance"]\n', 'utf8')
     expect(lintProfile(packDir, manifest!).map(f => f.code)).toContain('PACK010')
 
     writeFileSync(join(packDir, 'profile.yml'), 'extends: [dsh-base]\nbundles: ["@struct-profile/pack"]\n', 'utf8')
     expect(lintProfile(packDir, manifest!).map(f => f.code)).toContain('PACK010')
 
-    writeFileSync(join(packDir, 'profile.yml'), 'name: struct-profile\nextends: [dsh-base]\nbundles: ["@basis/governance", "@struct-profile/pack"]\n', 'utf8')
+    writeFileSync(join(packDir, 'profile.yml'), 'name: struct-profile\nextends: [dsh-base]\nbundles: ["@eterna/governance", "@struct-profile/pack"]\n', 'utf8')
     expect(lintProfile(packDir, manifest!)).toEqual([])
   })
 })

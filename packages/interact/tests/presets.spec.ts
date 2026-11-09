@@ -1,6 +1,6 @@
 /**
  * R0-R3 → DSH permission-presets 配置产物生成器测试(分档映射)。
- * 断言依据:dsh-repo packages/interaction/permission-presets/README.md:34-52
+ * 断言依据:deepseek-harness packages/interaction/permission-presets/README.md:34-52
  * (presets 表 + defaultPreset + 保留名 custom/auto)与 docs/subsystems/permission-presets.md。
  */
 import { describe, expect, it } from 'vitest'
@@ -45,10 +45,10 @@ describe('generatePresetArtifact 产物', () => {
 
   it('每档各一个预设,共 4 项,档→预设名映射完整', () => {
     expect(Object.keys(artifact.config.presets)).toHaveLength(4)
-    expect(artifact.gradeToPreset.R0).toBe('basis-r0-readonly')
-    expect(artifact.gradeToPreset.R1).toBe('basis-r1-reversible')
-    expect(artifact.gradeToPreset.R2).toBe('basis-r2-confirm')
-    expect(artifact.gradeToPreset.R3).toBe('basis-r3-highrisk')
+    expect(artifact.gradeToPreset.R0).toBe('eterna-r0-readonly')
+    expect(artifact.gradeToPreset.R1).toBe('eterna-r1-reversible')
+    expect(artifact.gradeToPreset.R2).toBe('eterna-r2-confirm')
+    expect(artifact.gradeToPreset.R3).toBe('eterna-r3-highrisk')
   })
 
   it('每个预设条目都落在其档的旋钮 bundle 上(名实一致)', () => {
@@ -61,9 +61,9 @@ describe('generatePresetArtifact 产物', () => {
   })
 
   it('defaultPreset 取 default_grade 对应档(R3 文档 → r3-highrisk)', () => {
-    expect(artifact.config.defaultPreset).toBe('basis-r3-highrisk')
+    expect(artifact.config.defaultPreset).toBe('eterna-r3-highrisk')
     const r2Artifact = generatePresetArtifact(HitlPolicy.parse('default_grade: R2\nrules: []').document)
-    expect(r2Artifact.config.defaultPreset).toBe('basis-r2-confirm')
+    expect(r2Artifact.config.defaultPreset).toBe('eterna-r2-confirm')
   })
 
   it('不产出 DSH 保留名 custom/auto', () => {
@@ -85,8 +85,8 @@ describe('generatePresetArtifact 产物', () => {
     const rows = parse(yamlText) as PresetRow[]
     expect(rows).toHaveLength(1)
     expect(rows[0]?.name).toBe('@deepseek-ai/dsh-permission-presets')
-    expect(rows[0]?.config.defaultPreset).toBe('basis-r3-highrisk')
-    expect(rows[0]?.config.presets['basis-r0-readonly']).toMatchObject({ sandbox: 'read-only', approval: 'never' })
-    expect(rows[0]?.config.presets['basis-r2-confirm']).toMatchObject({ sandbox: 'workspace-write', approval: 'ask' })
+    expect(rows[0]?.config.defaultPreset).toBe('eterna-r3-highrisk')
+    expect(rows[0]?.config.presets['eterna-r0-readonly']).toMatchObject({ sandbox: 'read-only', approval: 'never' })
+    expect(rows[0]?.config.presets['eterna-r2-confirm']).toMatchObject({ sandbox: 'workspace-write', approval: 'ask' })
   })
 })

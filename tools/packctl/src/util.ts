@@ -1,6 +1,6 @@
 /**
  * 纯工具层:YAML 读取、SKILL.md frontmatter 拆分、TS 源码注释剥离、目录遍历。
- * 全部为无副作用纯函数(node:fs 只出现在调用方),便于单测与 @basis/evals 复用。
+ * 全部为无副作用纯函数(node:fs 只出现在调用方),便于单测与 @eterna/evals 复用。
  */
 import { parseDocument } from 'yaml'
 

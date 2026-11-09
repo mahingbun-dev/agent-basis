@@ -2,11 +2,11 @@
  * DSH seam 编译期钉住(只被 tsc --noEmit 消费;vitest include 只收 *.spec.ts,不运行本文件)。
  *
  * 目的(设计文档 08 §8 风险 1):DSH 处于 pre-stable,所有 L1 插件的适配面要在 CI 里
- * 用接口冒烟测试钉住。本文件用**已发布的 @deepseek-ai/dsh-*(与 ../dsh-repo 同为
+ * 用接口冒烟测试钉住。本文件用**已发布的 @deepseek-ai/dsh-*(与 deepseek-harness 同为
  * 0.2.2-alpha.2)类型**断言:观测包的最小接口与官方 seam 双向兼容——DSH 升级破坏
- * seam 形态时,`pnpm --filter @basis/observe run verify` 的 tsc 阶段即失败。
+ * seam 形态时,`pnpm --filter @eterna/observe run verify` 的 tsc 阶段即失败。
  *
- * 依据(dsh-repo,只读):
+ * 依据(deepseek-harness,只读):
  * - packages/core/session/src/types.ts:497-518(SessionEvent 事件包)、258-436(SessionEventMap:
  *   turn/start|end、step/start|end、request/header、request/context、assistant/message)
  * - packages/llm/llm/src/types.ts:167-196(TokenUsage,互斥桶)
@@ -67,6 +67,6 @@ export const pinDriftReport = evaluateDrift(pinDriftSnapshot, pinDriftSnapshot)
 
 /** 钉住 ⑥:组合门(createObservatory)提供 OBSERVE_SERVICE_ID 形态的 ctx.observe 服务面。 */
 const observatory = createObservatory({ store: ':memory:', packId: '@event/pack' })
-export const pinObservatoryId: '@basis/observe' = observatory.id
+export const pinObservatoryId: '@eterna/observe' = observatory.id
 export const pinObservatoryAggregate = observatory.aggregate(sessionEvents)
 observatory.dispose()

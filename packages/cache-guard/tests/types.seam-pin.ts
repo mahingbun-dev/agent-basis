@@ -2,11 +2,11 @@
  * DSH seam 编译期钉住(只被 tsc --noEmit 消费;vitest include 只收 *.spec.ts,不运行本文件)。
  *
  * 目的(设计文档 08 §8 风险 1):DSH 处于 pre-stable,所有 L1 插件的适配面要在 CI 里
- * 用接口冒烟测试钉住。本文件用**已发布的 @deepseek-ai/dsh-*(与 ../dsh-repo 同为
+ * 用接口冒烟测试钉住。本文件用**已发布的 @deepseek-ai/dsh-*(与 deepseek-harness 同为
  * 0.2.2-alpha.2)类型**断言:缓存守护的最小接口与官方 seam 双向兼容——DSH 升级破坏
- * seam 形态时,`pnpm --filter @basis/cache-guard run verify` 的 tsc 阶段即失败。
+ * seam 形态时,`pnpm --filter @eterna/cache-guard run verify` 的 tsc 阶段即失败。
  *
- * 依据(dsh-repo,只读):
+ * 依据(deepseek-harness,只读):
  * - packages/core/session/src/types.ts:497-518(SessionEvent 事件包)、258-436(SessionEventMap:
  *   request/header|context、assistant/message 携带 usage)
  * - packages/llm/llm/src/types.ts:182-196(TokenUsage,互斥桶)
@@ -15,8 +15,8 @@
 import type { LlmCallConfig } from '@deepseek-ai/dsh-llm'
 import type { TokenUsage } from '@deepseek-ai/dsh-llm/types'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
-import type { SessionMetrics } from '@basis/observe'
-import { aggregateSessionMetrics } from '@basis/observe'
+import type { SessionMetrics } from '@eterna/observe'
+import { aggregateSessionMetrics } from '@eterna/observe'
 import {
   cacheHitRateFromEvents, collectCacheUsage, createCacheGuard, extractCacheUsage, extractRequestRoute,
 } from '../src/index.ts'

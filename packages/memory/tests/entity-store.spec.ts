@@ -9,7 +9,7 @@ let store: EntityMemoryStore
 let clock = 0
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'basis-memory-entity-'))
+  dir = await mkdtemp(join(tmpdir(), 'eterna-memory-entity-'))
   clock = 1_000
   store = new EntityMemoryStore(':memory:', { now: () => clock })
 })

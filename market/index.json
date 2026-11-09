@@ -1,8 +1,8 @@
 {
   "format": 1,
   "title": {
-    "en": "Agent Basis Plugins",
-    "zh": "Agent Basis 基座插件"
+    "en": "Eterna Plugins",
+    "zh": "Eterna 基座插件"
   },
   "description": {
     "en": "Custom plugin index of the agent-basis repository: the glue composition bundle and the event-planning domain pack.",
@@ -26,14 +26,14 @@
   },
   "plugins": [
     {
-      "name": "@basis/glue",
+      "name": "@eterna/glue",
       "title": {
-        "en": "Basis Glue Bundle",
+        "en": "Eterna Glue Bundle",
         "zh": "基座组合层 Glue"
       },
       "description": {
-        "en": "Composition bundle that mounts the @basis memory, knowledge, and governance services as real DSH host plugins.",
-        "zh": "组合层 bundle:把 @basis 的 memory/knowledge/governance 服务装配为真实 DSH 宿主可挂载的插件。"
+        "en": "Composition bundle that mounts the @eterna memory, knowledge, and governance services as real DSH host plugins.",
+        "zh": "组合层 bundle:把 @eterna 的 memory/knowledge/governance 服务装配为真实 DSH 宿主可挂载的插件。"
       },
       "homepage": "https://github.com/mahingbun-dev/agent-basis",
       "repository": {
@@ -43,7 +43,7 @@
       "metadata": {
         "category": "foundation",
         "keywords": [
-          "basis",
+          "eterna",
           "glue",
           "memory",
           "knowledge",
@@ -83,7 +83,7 @@
         "keywords": [
           "event",
           "planning",
-          "basis",
+          "eterna",
           "domain-pack"
         ]
       },

@@ -5,7 +5,7 @@
  * - 每行一个 JSON:DSH SessionEvent 形态 `{ type, seq, time, data }`
  *   (packages/core/session/src/types.ts:504-518),或
  *   `plugin:` 前缀的实验插件记录(types.ts:546-566);
- * - `plugin:basis-evals/workspace` 记录携带终态文件快照
+ * - `plugin:eterna-evals/workspace` 记录携带终态文件快照
  *   `{ files: { <相对路径>: <内容> } }`,回放时物化进 case 工作区,
  *   供 file_assert / script 断言查验——回放模式因此有真实终态可评。
  */
@@ -13,7 +13,7 @@ import * as path from 'node:path'
 import type { AgentAdapter, AgentRunInput, AgentRunResult, PluginRecordLike, SessionEventLike } from '../types.ts'
 import { summarize } from '../events.ts'
 
-export const WORKSPACE_RECORD_TYPE = 'plugin:basis-evals/workspace'
+export const WORKSPACE_RECORD_TYPE = 'plugin:eterna-evals/workspace'
 
 function parseLine(line: string, file: string, lineNo: number): SessionEventLike | PluginRecordLike {
   let parsed: unknown

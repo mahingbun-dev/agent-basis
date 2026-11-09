@@ -46,7 +46,7 @@ await build({
   sourcemap: false,
   logLevel: 'info',
   banner: {
-    js: 'window.__ModuleLoader__.load({\n  id: "@basis/prompt-studio",\n  factory: (require) => {\n    var module = { exports: {} };\n    var exports = module.exports;\n',
+    js: 'window.__ModuleLoader__.load({\n  id: "@eterna/prompt-studio",\n  factory: (require) => {\n    var module = { exports: {} };\n    var exports = module.exports;\n',
   },
   footer: {
     js: '\n    return module.exports;\n  },\n});\n',

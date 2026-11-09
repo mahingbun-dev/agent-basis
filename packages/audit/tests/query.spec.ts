@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { DailyFileAuditSink } from '../src/daily-sink.ts'
 import { queryAuditRecords } from '../src/query.ts'
 import type { AuditQuery, AuditQueryPage } from '../src/service.ts'
-import type { AuditRecord } from '@basis/governance'
+import type { AuditRecord } from '@eterna/governance'
 
 const DAY_A = '2025-10-09T06:00:00.000Z'
 const DAY_B = '2025-10-10T09:00:00.000Z'
@@ -18,7 +18,7 @@ afterEach(async () => {
 })
 
 async function tempDir(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), 'basis-audit-query-'))
+  const dir = await mkdtemp(join(tmpdir(), 'eterna-audit-query-'))
   tempDirs.push(dir)
   return dir
 }

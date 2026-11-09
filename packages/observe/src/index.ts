@@ -1,5 +1,5 @@
 /**
- * @basis/observe —— L1 观测插件核心(策略纯函数层 + sqlite 信号存储 + 组合门)。
+ * @eterna/observe —— L1 观测插件核心(策略纯函数层 + sqlite 信号存储 + 组合门)。
  *
  * 五个模块:
  * 1. 信号存储(signals.ts):evolve_signal sqlite 表(kind/ref/payload/tags/trajectory_hash),
@@ -42,7 +42,7 @@ export type {
 } from './types.ts'
 
 /** 组合层注册 ctx.observe 服务时的唯一 ID(注册表 + 唯一 ID 形态,provide 可交换)。 */
-export const OBSERVE_SERVICE_ID = '@basis/observe'
+export const OBSERVE_SERVICE_ID = '@eterna/observe'
 
 /** 观测组合门:信号存储 + 反馈桥 + 聚合/漂移的默认装配。 */
 export interface Observe {

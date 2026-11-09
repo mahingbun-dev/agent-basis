@@ -7,10 +7,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { remoteMethods } from '@deepseek-ai/dsh-typert-protocol'
-import plugin, { BASIS_PANEL_SERVICE_ID, BasisPanelGateway, SNAPSHOT_ENDPOINT } from '../src/index.ts'
+import plugin, { ETERNA_PANEL_SERVICE_ID, EternaPanelGateway, SNAPSHOT_ENDPOINT } from '../src/index.ts'
 
 // 隔离可观测读取:指向空临时 DSH_HOME,不读真实 ~/.dsh/sessions。
-const isolatedHome = mkdtempSync(join(tmpdir(), 'basis-panel-host-'))
+const isolatedHome = mkdtempSync(join(tmpdir(), 'eterna-panel-host-'))
 const previousHome = process.env.DSH_HOME
 beforeAll(() => {
   process.env.DSH_HOME = isolatedHome
@@ -21,14 +21,14 @@ afterAll(() => {
   rmSync(isolatedHome, { recursive: true, force: true })
 })
 
-describe('BasisPanelGateway(Typert SRC 端点)', () => {
+describe('EternaPanelGateway(Typert SRC 端点)', () => {
   it('服务名与端点字符串', () => {
-    expect(BASIS_PANEL_SERVICE_ID).toBe('basisPanel')
-    expect(SNAPSHOT_ENDPOINT).toBe('basisPanel/snapshot')
+    expect(ETERNA_PANEL_SERVICE_ID).toBe('eternaPanel')
+    expect(SNAPSHOT_ENDPOINT).toBe('eternaPanel/snapshot')
   })
 
   it('原型携带 @Remote("snapshot") marker(手工施加等价于装饰器糖)', () => {
-    const markers = remoteMethods(Object.create(BasisPanelGateway.prototype) as object)
+    const markers = remoteMethods(Object.create(EternaPanelGateway.prototype) as object)
     expect(markers).toHaveLength(1)
     expect(markers[0]?.method).toBe('snapshot')
     // typert mark() 规则:exportName 与方法同名时省略,网关按 exportName ?? method 解析
@@ -36,7 +36,7 @@ describe('BasisPanelGateway(Typert SRC 端点)', () => {
   })
 
   it('snapshot() 方法存在且返回 Promise', async () => {
-    const gateway = Object.create(BasisPanelGateway.prototype) as BasisPanelGateway & { ctx: never }
+    const gateway = Object.create(EternaPanelGateway.prototype) as EternaPanelGateway & { ctx: never }
     // 不经构造器(避免注册服务);直接验证方法体可调用——给伪 ctx 返回空状态。
     const fakeCtx = { get: (): undefined => undefined } as never
     Object.defineProperty(gateway, 'ctx', { value: fakeCtx })
@@ -50,6 +50,6 @@ describe('BasisPanelGateway(Typert SRC 端点)', () => {
 describe('default export 插件形态(DSH bundle loader 契约)', () => {
   it('是 { name, apply } 插件对象,apply 返回 disposer', () => {
     expect(typeof plugin.apply).toBe('function')
-    expect(plugin.name).toBe('basis-panel')
+    expect(plugin.name).toBe('eterna-panel')
   })
 })

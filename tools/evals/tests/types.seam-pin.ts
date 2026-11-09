@@ -2,11 +2,11 @@
  * DSH seam 编译期钉住(只被 tsc --noEmit 消费;vitest include 只收 *.spec.ts)。
  *
  * 目的(设计文档 08 §8 风险 1):DSH pre-stable,所有适配面要在验证门里用接口
- * 冒烟钉住。本文件用**已发布的 @deepseek-ai/dsh-*(与 ../dsh-repo 同为
+ * 冒烟钉住。本文件用**已发布的 @deepseek-ai/dsh-*(与 deepseek-harness 同为
  * 0.2.2-alpha.2)类型**断言评测包消费的事件形态与官方 seam 兼容——DSH 升级
- * 破坏形态时,`pnpm --filter @basis/evals run verify` 的 tsc 阶段即失败。
+ * 破坏形态时,`pnpm --filter @eterna/evals run verify` 的 tsc 阶段即失败。
  *
- * 依据(dsh-repo,只读):
+ * 依据(deepseek-harness,只读):
  * - SessionEvent 事件包:packages/core/session/src/types.ts:504-518
  * - PluginRecord(plugin: 前缀实验记录):packages/core/session/src/types.ts:546-566
  * - tool/call 载荷:packages/core/session/src/types.ts:373-377

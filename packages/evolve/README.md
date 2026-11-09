@@ -1,4 +1,4 @@
-# @basis/evolve
+# @eterna/evolve
 
 L1 受控自进化引擎(T10;设计文档 09《RSI 自进化机制设计》/ 10《dsh-evolve 详细设计》)。
 **RSI 不是"让 agent 运行时自由改自己",而是"把进化做成一条有门禁的发布流水线"**:
@@ -47,7 +47,7 @@ L1 受控自进化引擎(T10;设计文档 09《RSI 自进化机制设计》/ 10�
 ## 验收
 
 ```bash
-pnpm --filter @basis/evolve run verify   # oxlint + tsc --noEmit + vitest run
+pnpm --filter @eterna/evolve run verify   # oxlint + tsc --noEmit + vitest run
 ```
 
 64 断言 / 8 文件,含 fixture skill 端到端:制造失败信号(observe SignalStore,(kind,ref)

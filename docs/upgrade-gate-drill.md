@@ -41,7 +41,7 @@ SOP §5 的回滚手段是 `git checkout` 还原版本文件,但本环境工作�
 | ① 首跑 | `pnpm install --frozen-lockfile` | **1** | `[ERR_PNPM_LOCKFILE_CONFIG_MISMATCH] The current "catalogs" configuration doesn't match the value found in the lockfile`——**门禁拦截证据**:catalog 变更未刷锁,frozen 安装拒绝继续 |
 | §2.2 刷锁 | `pnpm install --no-frozen-lockfile` | 0 | `Packages: +54 -46`,全部本地缓存复用(0 下载);catalogs 快照更新为 rc.1;WARN: 1 deprecated subdependency(node-domexception@1.0.0)+ peer dependency issues |
 | ① 复跑 | `pnpm install --frozen-lockfile` | **0** | `Already up to date` |
-| ② 全仓 verify | `pnpm -w run verify` | **1** | `@basis/audit` verify 第一个失败:oxlint `@stylistic(arrow-parens)` → `packages/audit/tests/plugin.spec.ts:63:22` → `[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL]`;后续包 fail-fast 未完成评估 |
+| ② 全仓 verify | `pnpm -w run verify` | **1** | `@eterna/audit` verify 第一个失败:oxlint `@stylistic(arrow-parens)` → `packages/audit/tests/plugin.spec.ts:63:22` → `[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL]`;后续包 fail-fast 未完成评估 |
 | ③ packctl lint packs/* | 未跑 | — | SOP §3「任何一步非 0 退出即停」 |
 | ④ dsh-evals replay 全量 | 未跑 | — | 同上 |
 

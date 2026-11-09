@@ -1,6 +1,6 @@
-# @basis/prompt-studio bundle:提示词工坊+循环轨迹双面插件(一行两面,T7)。
+# @eterna/prompt-studio bundle:提示词工坊+循环轨迹双面插件(一行两面,T7)。
 # 装载形态:insert 语义插入组合树(裸 id 行只覆写既有行;本行是新 id,经 - insert:
-# 壳新增——与 @basis/panel 同款配方;@event/pack 的 event-tools 行同形态实证可装载)。
+# 壳新增——与 @eterna/panel 同款配方;@event/pack 的 event-tools 行同形态实证可装载)。
 # - Host 半边:name 解析到本包 exports "."(src/index.ts)→ LoopPromptGateway
 #   (Typert SRC 端点 loopPrompt/snapshot、loopPrompt/trace、loopPrompt/prompt-get、
 #   loopPrompt/prompt-save、loopPrompt/prompt-versions、loopPrompt/prompt-rollback、
@@ -9,5 +9,5 @@
 #   ./client(lib/client.js),宿主 client-modules 扫描把该行组进
 #   window.__DSH_BOOT__ 浏览器花名册(同一行,两面)。
 - insert:
-    - id: basis-prompt-studio
-      name: '@basis/prompt-studio'
+    - id: eterna-prompt-studio
+      name: '@eterna/prompt-studio'

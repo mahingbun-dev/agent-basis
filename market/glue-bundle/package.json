@@ -1,9 +1,9 @@
 {
-  "name": "@basis/glue",
+  "name": "@eterna/glue",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "组合层 glue bundle(市场自包含构建,由 scripts/build-market.mjs 生成,vendor + esbuild 编译):把 @basis 的 memory/knowledge/governance 服务装配为真实 DSH 宿主可挂载的插件。源码见 packages/{glue,governance,memory,knowledge}。",
+  "description": "组合层 glue bundle(市场自包含构建,由 scripts/build-market.mjs 生成,vendor + esbuild 编译):把 @eterna 的 memory/knowledge/governance 服务装配为真实 DSH 宿主可挂载的插件。源码见 packages/{glue,governance,memory,knowledge}。",
   "exports": {
     ".": "./src/index.js",
     "./memory-plugin": "./src/plugins/memory-plugin.js",
@@ -16,8 +16,8 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.6-alpha.1",
-    "@deepseek-ai/dsh-system-prompt": "0.2.2-alpha.2",
-    "@deepseek-ai/dsh-tools": "0.2.2-alpha.2"
+    "@deepseek-ai/dsh-system-prompt": ">=0.2.2-alpha.2",
+    "@deepseek-ai/dsh-tools": ">=0.2.2-alpha.2"
   },
   "dsh": {
     "manifestVersion": 1,

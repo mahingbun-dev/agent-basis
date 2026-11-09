@@ -8,4 +8,4 @@
 {"type":"tool/call","seq":8,"time":1762000000700,"data":{"turn":1,"step":1,"callId":"c2","name":"write_file","arguments":"{\"path\":\"plan.md\"}"}}
 {"type":"tool/result","seq":9,"time":1762000000800,"data":{"turn":1,"step":1,"message":{"role":"tool","content":[{"type":"text","text":"written 3 lines"}],"toolCallId":"c2"}}}
 {"type":"turn/end","seq":10,"time":1762000000900,"data":{"turn":1,"reason":{"kind":"completed"}}}
-{"type":"plugin:basis-evals/workspace","seq":11,"time":1762000000900,"data":{"files":{"plan.md":"# 年会策划方案\n预算:50万\n含备用场地清单\n"}}}
+{"type":"plugin:eterna-evals/workspace","seq":11,"time":1762000000900,"data":{"files":{"plan.md":"# 年会策划方案\n预算:50万\n含备用场地清单\n"}}}

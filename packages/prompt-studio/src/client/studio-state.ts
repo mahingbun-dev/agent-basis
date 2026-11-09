@@ -8,7 +8,7 @@ import type {
   VersionsResult, WriteApprovalView, WriteKind,
 } from '../types.ts'
 
-/** 卡片载荷类型从线上封套派生(客户端不直接依赖 @basis/interact)。 */
+/** 卡片载荷类型从线上封套派生(客户端不直接依赖 @eterna/interact)。 */
 export type ApprovalCard = WriteApprovalView['card']
 export type AskUserQuestionItem = WriteApprovalView['questionItems'][number]
 

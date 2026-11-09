@@ -2,13 +2,13 @@
 
 > T5 交付物。基线数据文件 `docs/perf-baseline-data.json` 由 `scripts/perf-baseline.mjs`
 > 从最新 `dsh-evals-out/` 产物汇总生成（无产物则现场跑 event-planning replay 再汇总）。
-> 口径全部对齐 `@basis/observe` L1 观测插件，不在文档层另造指标。
+> 口径全部对齐 `@eterna/observe` L1 观测插件，不在文档层另造指标。
 
 ## 1. 指标定义
 
 ### 1.1 Token 用量（互斥四桶）
 
-来源口径:`TokenUsage` 计数互斥（dsh-repo `packages/llm/src/types.ts:182-196`），聚合实现
+来源口径:`TokenUsage` 计数互斥（deepseek-harness `packages/llm/src/types.ts:182-196`），聚合实现
 `packages/observe/src/metrics.ts:26-34`:
 
 | 桶 | 含义 |
@@ -65,7 +65,7 @@ cacheHitRate = cacheRead / (input + cacheRead + cacheWrite)
 测量锚点（真会话事件流）:
 - 起点 = 该 step 的 `step/start` 事件 `time`；
 - 终点 = 该 step 对应 `assistant/message.data.stream[]` 首条记录的 `time`
-  （DSH 在 chunk 到达时以 `Date.now()` 落时间戳，dsh-repo
+  （DSH 在 chunk 到达时以 `Date.now()` 落时间戳，deepseek-harness
   `packages/core/agent-loop/src/assistant-stream.ts:61`
   `this.accumulator.push({ time: Date.now(), chunk })`）；
 - 逐 step 计算后取会话中位数与最大值入基线。
@@ -141,7 +141,7 @@ TTFT = 时间到首个 delta chunk；usage 取响应尾帧 `usage`
 缓存命中率按 §1.3 公式由 `cached_tokens / prompt_tokens` 折算。仅作单点抽查，
 不入门禁基线（样本量 1，无统计意义）。
 
-**实测样例（2026-11-06，basis-minimal profile 经 DSH harness 跑一轮真实会话，
+**实测样例（2026-11-06，eterna-minimal profile 经 DSH harness 跑一轮真实会话，
 事件流喂 `aggregateSessionMetrics`，凭据只读自 `.secrets/`）:**
 
 | 项 | 值 |

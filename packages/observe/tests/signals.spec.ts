@@ -21,7 +21,7 @@ function memoryStore(): SignalStore {
 }
 
 function fileStore(): { store: SignalStore; dir: string; path: string } {
-  const dir = mkdtempSync(join(tmpdir(), 'basis-observe-'))
+  const dir = mkdtempSync(join(tmpdir(), 'eterna-observe-'))
   const path = join(dir, 'signals.sqlite')
   const store = new SignalStore(path)
   CLEANUP.push(() => {

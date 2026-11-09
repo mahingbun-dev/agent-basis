@@ -1,7 +1,7 @@
 /**
  * DSH 宿主 seam 适配:把真实 dsh/cordis Context 适配为本包各模块的宿主面。
  *
- * 与 @basis/memory dshHost 同款纪律:适配是组合层唯一需要的宿主形态;
+ * 与 @eterna/memory dshHost 同款纪律:适配是组合层唯一需要的宿主形态;
  * 本包策略层只认结构面(ToolGateHost),不 import 运行时服务。
  */
 import type { Context } from '@deepseek-ai/cordis'

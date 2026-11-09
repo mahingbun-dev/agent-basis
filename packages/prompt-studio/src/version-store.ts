@@ -2,7 +2,7 @@
  * 版本库(T7.1):落 DSH storage 栈——storage hub 的 json backend kv 单元
  * (dsh-base 行 storage + storage-json(root=dshHomePath('storages'))挂载)。
  *
- * 单元形态:per-record 布局(每个版本一份独立文档 <root>/basis_prompt_studio/
+ * 单元形态:per-record 布局(每个版本一份独立文档 <root>/eterna_prompt_studio/
  * versions/<id>.json,写一版只动一份文档;backend 侧 writeAtomic = 同目录临时文件
  * + fsync + rename 原子替换,见 dsh-storage-json lib/types/atomic.js)。
  *
@@ -17,7 +17,7 @@ import { byteLength, sha256Hex } from './checksum.ts'
 import type { PromptVersionRecord, VersionSource } from './types.ts'
 
 /** 版本库单元名(UNIT_NAME_RE 口径:小写+下划线;也是 storages/ 下的目录名)。 */
-export const VERSION_UNIT_NAME = 'basis_prompt_studio'
+export const VERSION_UNIT_NAME = 'eterna_prompt_studio'
 /** 版本表名。 */
 export const VERSIONS_TABLE = 'versions'
 

@@ -11,4 +11,4 @@
 {"type":"tool/result","seq":11,"time":1762000001100,"data":{"turn":1,"step":2,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c3"}}}
 {"type":"assistant/message","seq":12,"time":1762000001200,"data":{"turn":1,"step":2,"message":{"role":"assistant","content":[{"type":"text","text":"雨备 B 计划已交付 out/plan-b.md:降水 >40% 触发,备用场地与切换时点、分工齐备。"}]},"stream":[],"usage":{"inputTokens":1300,"outputTokens":420}}}
 {"type":"turn/end","seq":13,"time":1762000001300,"data":{"turn":1,"reason":{"kind":"completed"}}}
-{"type":"plugin:basis-evals/workspace","seq":14,"time":1762000001400,"data":{"files":{"out/plan-b.md":"# 户外草坪婚礼雨备 B 计划\n\n## 触发口径\n活动日降水概率 >40% 即启动雨备,切换备用场地(酒店宴会厅 B 厅,已锁档)。\n\n## 切换时点与动作\nD-1 18:00 看最新预报决策 → D-1 20:00 通知供应商改布置动线 → 当日 08:00 场地组完成室内布场核验。\n\n## 分工\n决策:策划总控;布置: florist+AV;通知:客服岗逐一致电宾客。\n"}}}
+{"type":"plugin:eterna-evals/workspace","seq":14,"time":1762000001400,"data":{"files":{"out/plan-b.md":"# 户外草坪婚礼雨备 B 计划\n\n## 触发口径\n活动日降水概率 >40% 即启动雨备,切换备用场地(酒店宴会厅 B 厅,已锁档)。\n\n## 切换时点与动作\nD-1 18:00 看最新预报决策 → D-1 20:00 通知供应商改布置动线 → 当日 08:00 场地组完成室内布场核验。\n\n## 分工\n决策:策划总控;布置: florist+AV;通知:客服岗逐一致电宾客。\n"}}}

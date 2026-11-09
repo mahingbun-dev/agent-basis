@@ -1,4 +1,4 @@
-# @basis/observe
+# @eterna/observe
 
 L1 观测插件核心(设计文档 08 §3-7、09 §1/§4、10 §2;任务 T9):evolve_signal 信号存储、
 session 事件流→指标聚合、feedback 低分→信号入队、漂移快照对比。策略纯函数层 +
@@ -14,7 +14,7 @@ session 事件流→指标聚合、feedback 低分→信号入队、漂移快照
 | `pricing.ts` | 可覆写单价表(默认 DeepSeek 官方价,USD/1M tokens;估算口径);未命中路由不猜价(计 `unpricedBilledTokens`) | `DEFAULT_PRICING` `lookupPrice` `estimateCostUsd` |
 | `feedback.ts` | `feedback/message-put` 低分(rating=negative)→ `feedback_low` 信号;ref=`feedback:<sessionId>:<messageId>`(版本 churn 不重复);同会话共享 trajectory_hash 簇 | `FeedbackWatcher` `screenFeedbackItem` `trajectoryHashOf` |
 | `drift.ts` | 两份指标快照 diff 超阈值项(默认:成本/每轮 token +25%(up)、命中率 ±0.1(both)、错误率 +50% 或 +0.1(up)、轮数 ±40%(both));baseline=0 不猜除零(仅 abs);超阈值 → `drift` 信号 | `evaluateDrift` `driftSignal` `DEFAULT_DRIFT_THRESHOLDS` |
-| `index.ts` | 组合门 `createObservatory`(signals+feedback+aggregate+drift+reportDrift+dispose);`OBSERVE_SERVICE_ID = '@basis/observe'` | `createObservatory` |
+| `index.ts` | 组合门 `createObservatory`(signals+feedback+aggregate+drift+reportDrift+dispose);`OBSERVE_SERVICE_ID = '@eterna/observe'` | `createObservatory` |
 
 ## 口径说明
 
@@ -27,13 +27,13 @@ session 事件流→指标聚合、feedback 低分→信号入队、漂移快照
 ## seam 钉住
 
 `tests/types.seam-pin.ts` 用已发布 `@deepseek-ai/dsh-session` / `dsh-llm` / `dsh-message-feedback`
-(0.2.2-alpha.2,与 ../dsh-repo 同版)断言官方 `SessionEvent`/`TokenUsage`/`LlmCallConfig`/
+(0.2.2-alpha.2,与 deepseek-harness 同版)断言官方 `SessionEvent`/`TokenUsage`/`LlmCallConfig`/
 `feedback/message-put` 可直接喂给本包——DSH 升级破坏 seam 时 `tsc --noEmit` 即失败。
 
 ## 验收
 
 ```
-pnpm --filter @basis/observe run verify   # oxlint + tsc --noEmit + vitest run(60 测试)
+pnpm --filter @eterna/observe run verify   # oxlint + tsc --noEmit + vitest run(60 测试)
 ```
 
 覆盖:信号去重(重放/版本 churn/跨实例重开)、指标计算(手算对账/路由锚定/坏数据防御)、

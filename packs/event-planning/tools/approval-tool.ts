@@ -102,7 +102,7 @@ export function createApprovalTool(): EventApprovalTool {
         amountCny: amount,
         currency: 'CNY',
         payee: input.payee.trim(),
-        basis: input.basis?.trim() || '合同约定定金',
+        basis: input.eterna?.trim() || '合同约定定金',
         contractCny: input.contractCny,
         depositRatio: ratio,
         riskLevel: 'R3',

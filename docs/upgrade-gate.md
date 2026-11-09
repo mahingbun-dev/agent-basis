@@ -7,7 +7,7 @@
 
 - 全仓对 `@deepseek-ai/dsh*` 的依赖 specifier **必须是精确版本**(如 `0.2.2-rc.1`),禁止 `^` / `~` / `>=` 等范围符,也禁止 `*` / `x` 通配。
 - `catalog:` 是合法形态:它由 `pnpm-workspace.yaml` 的 `catalog:` 段解析为精确版本,升版只改 catalog 一处。
-- root `package.json` 里的 `file:` 链接(`@basis/basis-minimal`、`@basis/llm-openai`)是本地捆绑包链接,不参与版本钉版,**不要动**。
+- root `package.json` 里的 `file:` 链接(`@eterna/eterna-minimal`、`@eterna/llm-openai`)是本地捆绑包链接,不参与版本钉版,**不要动**。
 - 只出现包名、不带版本号的数组(如 `packages/panel` 的 `dsh.client.inject`、profile 的 `dsh.profile.bundles`)是装载清单,不是依赖 specifier,不适用本纪律。
 
 钉版自查命令(输出应为空,有输出即违规):
@@ -23,8 +23,8 @@ grep -rn --include=package.json '"@deepseek-ai/dsh' . | grep -v node_modules \
 |---|---|---|
 | `pnpm-workspace.yaml` `catalog:` 段 | catalog(L1 插件 packages/* 与 tools/* 全部经 `catalog:` 引用) | `0.2.2-alpha.2` |
 | `package.json`(root)devDependencies | 精确版 | `0.2.2-rc.1` |
-| `basis/basis-minimal`、`basis/llm-openai` | 精确版 | `0.2.2-rc.1` |
-| `.basis-home/profiles/*`、`.basis-home-t7/profiles/*` | 精确版 | `0.2.2-rc.1` |
+| `basis/basis-minimal`(本地实验包)、`packages/llm-openai` | 精确版 | `0.2.2-rc.1` |
+| `.eterna-home/profiles/*`、`.eterna-home-t7/profiles/*` | 精确版 | `0.2.2-rc.1` |
 | `tools/evals` | 精确版 | `0.2.2-alpha.2` |
 | `packs/event-planning`、`market/glue-bundle`、`market/pack-bundle` peerDependencies | 精确版(不进 workspace,锁文件不涉及) | `0.2.2-alpha.2` |
 
@@ -83,4 +83,4 @@ node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --adapter rep
 ## 7. rc 红线
 
 - `-rc.*` / `-alpha.*` 等预发布版本**不上生产**:只允许进入本仓库的开发分支做演练与 seam 对齐验证。
-- 生产/发布产物(basis profile 装载、market bundle 构建)使用的版本必须是正式版;若当前仓库各钉版位含预发布版,升级演练的目标之一就是收敛到正式版后再放行。
+- 生产/发布产物(eterna profile 装载、market bundle 构建)使用的版本必须是正式版;若当前仓库各钉版位含预发布版,升级演练的目标之一就是收敛到正式版后再放行。

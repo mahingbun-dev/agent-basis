@@ -1,8 +1,8 @@
-# @basis/evals —— dsh-evals 评测 runner(独立 CLI)
+# @eterna/evals —— dsh-evals 评测 runner(独立 CLI)
 
 > T4 交付物(设计文档 08 §3-4 / 12 §8.1:承载方式 **B'** 独立 CLI,不进 agent 进程,避免污染被测会话)。
 > golden case 规范对齐 ai-evo(12 §8.3:S 文件约定,字段对齐 ai-evo);会话事件形态对齐 DSH
-> `SessionEvent`(dsh-repo packages/core/session/src/types.ts:504-518),seam 由
+> `SessionEvent`(deepseek-harness packages/core/session/src/types.ts:504-518),seam 由
 > `tests/types.seam-pin.ts` 用已发布 `@deepseek-ai/dsh-* 0.2.2-alpha.2` 类型编译期钉住。
 
 ## 目录约定(pack)
@@ -52,7 +52,7 @@ trajectory:
 
 ### 终态断言
 
-- `file_assert: {path, exists?, contains?, not_contains?}`——查 case 工作区文件(replay 模式下由 fixture 的 `plugin:basis-evals/workspace` 记录物化);
+- `file_assert: {path, exists?, contains?, not_contains?}`——查 case 工作区文件(replay 模式下由 fixture 的 `plugin:eterna-evals/workspace` 记录物化);
 - `http_assert: {request, respond, assert}`——**http 用 mock**:先从会话 `tool/call` 证据确认 agent 发过该请求(method/path/body),再把请求重定向到本地 mock(127.0.0.1 随机端口)真实往返(node:http),断言响应 status/body。全程不出外网;
 - `script: {command, stdout_contains?}`——在 case 工作区 `/bin/sh -c` 执行,exit 0 即过。
 
@@ -60,13 +60,13 @@ trajectory:
 
 | id | 实现 | 说明 |
 |---|---|---|
-| `replay` | `src/adapters/replay.ts` | 读 fixture jsonl 回放:事件 → 断言;`plugin:basis-evals/workspace` 记录物化终态文件 |
-| `acp` | `src/adapters/acp.ts` + `python/dsh_eval_driver.py` | 经 DSH Python SDK(`deepseek-harness-sdk`)驱动真实 session;NDJSON 协议回传事件。2026-11-04 真跑打通(docs/acp-real-6/):pip -e dsh-repo/python/sdk + DSH_HOME 隔离宿主(~/.dsh-evals,sdk profile 走 litellm)+ LITELLM_API_KEY。通知→事件映射双侧同口径容忍真实包裹层级(SDK `Notification` dataclass 的 `session.event`→`payload.event`;`params.sessionEvents` 批;无事件载荷 method 落 ignorable),由**真实样本回放**单测钉住:`python/test_event_mapper.py`(unittest)+ `tests/acp-real-notification.spec.ts`(vitest),样本 `docs/acp-real-6/notifications-sample.jsonl` 由 `scripts/sample-notifications.mjs` 采集;6 条真实会话日志的重放验证:`scripts/replay-acp-real-notifications.mjs`(turns=0 清零) |
+| `replay` | `src/adapters/replay.ts` | 读 fixture jsonl 回放:事件 → 断言;`plugin:eterna-evals/workspace` 记录物化终态文件 |
+| `acp` | `src/adapters/acp.ts` + `python/dsh_eval_driver.py` | 经 DSH Python SDK(`deepseek-harness-sdk`)驱动真实 session;NDJSON 协议回传事件。2026-11-04 真跑打通(docs/acp-real-6/):pip -e deepseek-harness/python/sdk + DSH_HOME 隔离宿主(~/.dsh-evals,sdk profile 走 litellm)+ LITELLM_API_KEY。通知→事件映射双侧同口径容忍真实包裹层级(SDK `Notification` dataclass 的 `session.event`→`payload.event`;`params.sessionEvents` 批;无事件载荷 method 落 ignorable),由**真实样本回放**单测钉住:`python/test_event_mapper.py`(unittest)+ `tests/acp-real-notification.spec.ts`(vitest),样本 `docs/acp-real-6/notifications-sample.jsonl` 由 `scripts/sample-notifications.mjs` 采集;6 条真实会话日志的重放验证:`scripts/replay-acp-real-notifications.mjs`(turns=0 清零) |
 
 ## CLI
 
 ```sh
-pnpm --filter @basis/evals exec node bin/dsh-evals.mjs run --pack <目录> --subset smoke
+pnpm --filter @eterna/evals exec node bin/dsh-evals.mjs run --pack <目录> --subset smoke
 ```
 
 ```
@@ -85,5 +85,5 @@ dsh-evals run --pack <目录> [--subset smoke] [--case <id>] [--adapter replay|a
 
 - 独立 CLI(B'),不注册任何 Cordis ctx seam;可交换接口 = `AgentAdapter` 注册表(唯一 id);
 - 断言器全部纯函数/显式 IO;fixture 与真实会话的 JSON 一律运行期校验(events.ts),schema 违例不抛给进程而是记 `loadErrors`(分类 schema);
-- 验证门:`pnpm --filter @basis/evals run verify` = oxlint + tsc --noEmit(strict)+ vitest run + `python3 -m unittest discover -s python`(driver 侧 EventMapper 单测,含真实样本回放)。
+- 验证门:`pnpm --filter @eterna/evals run verify` = oxlint + tsc --noEmit(strict)+ vitest run + `python3 -m unittest discover -s python`(driver 侧 EventMapper 单测,含真实样本回放)。
   调用形态:依赖用钉版本(非 catalog:)、bin 用包内/仓根显式相对路径 —— 单包 scope 的 install-before-run 与 PATH 注入缺失场景(验收环境实证)均不依赖 workspace catalogs 与注入 PATH;升级版本时同步改 pnpm-workspace.yaml catalog。

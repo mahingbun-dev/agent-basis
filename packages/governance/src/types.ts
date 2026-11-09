@@ -1,7 +1,7 @@
 /**
  * DSH seam 的本地最小形态(结构兼容层)。
  *
- * 来源与依据(../dsh-repo,0.2.2-alpha.2,只读):
+ * 来源与依据(deepseek-harness,0.2.2-alpha.2,只读):
  * - tools/pre-execute waterfall:packages/core/tools/src/events.ts:18
  *   `(exec: ToolExecution, next) => Promise<PreToolDecision>`,其中 ToolExecution 暴露
  *   `name: string` / `arguments: unknown`(packages/core/tools/src/contracts.ts:180-219)。

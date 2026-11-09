@@ -1,5 +1,5 @@
 /**
- * @basis/prompt-studio 浏览器半边(T7.2):侧栏「提示词工坊」与「循环轨迹」两视图。
+ * @eterna/prompt-studio 浏览器半边(T7.2):侧栏「提示词工坊」与「循环轨迹」两视图。
  *
  * 结构面(panel 同款配方):两个 main keyed 槽占位(key=面板 id)+ 两个
  * sidebar.panellist 条目(id=key,点击 layout.selectPanel(id) 切换)。数据经官方
@@ -24,9 +24,9 @@ import type { PromptStudioClientContext } from './client-types.ts'
 import type { StudioState } from './studio-state.ts'
 
 /** 「提示词工坊」面板 id(main keyed 槽 key 与 sidebar.panellist 条目 id 共用)。 */
-export const STUDIO_PANEL_ID = 'basis-prompt-studio'
+export const STUDIO_PANEL_ID = 'eterna-prompt-studio'
 /** 「循环轨迹」面板 id。 */
-export const TRACE_PANEL_ID = 'basis-loop-trace'
+export const TRACE_PANEL_ID = 'eterna-loop-trace'
 
 /** 依赖服务:槽位注册表、语言、连接(宿主 RPC 通道)。 */
 export const inject: readonly string[] = ['slots', 'locale', 'connection']

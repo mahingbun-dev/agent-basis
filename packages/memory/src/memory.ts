@@ -6,12 +6,12 @@
  *   forget = 应用逆**真删**(物理 DELETE,非打标);
  * - **coeffect 全声明**:不碰旁路全局——workspace 目录、sqlite 路径、PII 守卫、
  *   时钟全部构造注入;
- * - **provide 可交换**:以注册表 + 唯一 ID(MEMORY_SERVICE_ID = '@basis/memory')
+ * - **provide 可交换**:以注册表 + 唯一 ID(MEMORY_SERVICE_ID = '@eterna/memory')
  *   形态对外;同 ID 重复注册先配逆旧的(由宿主的 effect 树负责,本层提供 dispose)。
  *
  * PII 纪律(设计文档 08 §5.2):一切写入先过 PII——writeEntity/writeNote/
  * appendNote 内部强制 assertClean(fail-closed:命中抛 PiiBlockedError,不落盘)。
- * 守卫首选注入 @basis/governance 的 PiiFilter(结构满足 PiiGuard);未注入时
+ * 守卫首选注入 @eterna/governance 的 PiiFilter(结构满足 PiiGuard);未注入时
  * 降级 BuiltinPiiGuard(降级事实记入 blockers,见 README)。
  */
 import { EntityMemoryStore } from './entity-store.ts'
@@ -24,7 +24,7 @@ import type { NoteWriteResult } from './notes.ts'
 import type { PiiGuard } from './pii.ts'
 
 /** 注册 ctx.memory 服务时的唯一 ID(注册表 + 唯一 ID 形态,provide 可交换)。 */
-export const MEMORY_SERVICE_ID = '@basis/memory'
+export const MEMORY_SERVICE_ID = '@eterna/memory'
 
 /** M1+M2 联合检索命中(带出处)。 */
 export interface MemorySearchHit {
@@ -77,7 +77,7 @@ export interface MemoryOptions {
   /** M2 sqlite 库文件路径(跨会话持久;':memory:' 仅单进程)。 */
   readonly dbPath: string
   /**
-   * PII 守卫:首选注入 @basis/governance 的 PiiFilter(组合层取 ctx.governance?.pii);
+   * PII 守卫:首选注入 @eterna/governance 的 PiiFilter(组合层取 ctx.governance?.pii);
    * 缺省降级 BuiltinPiiGuard(四类通用模式镜像,降级事实须记 blockers)。
    */
   readonly pii?: PiiGuard

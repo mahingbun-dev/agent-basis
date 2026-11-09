@@ -51,7 +51,7 @@ const PROMPTS = [
 ]
 
 // 采样器本体:python 内联脚本。on_notification 收到的 Notification 是 dataclass
-// (method/payload,dsh-repo python/sdk/src/deepseek_harness/client.py:473),
+// (method/payload,deepseek-harness python/sdk/src/deepseek_harness/client.py:473),
 // 原样序列化为 {method, payload} 一行一条,不做任何加工(样本要「原始」)。
 const SAMPLER = `
 import json, os, threading

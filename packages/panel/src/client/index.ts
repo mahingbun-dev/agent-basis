@@ -1,7 +1,7 @@
 /**
- * @basis/panel 浏览器半边:侧栏「基座面板」入口(sidebar.panellist)+ main keyed
+ * @eterna/panel 浏览器半边:侧栏「基座面板」入口(sidebar.panellist)+ main keyed
  * slot 上的面板页(三区块)。快照数据经官方 Connection RPC 通道拉取宿主
- * basisPanel/snapshot 端点(Typert 网关 SRC 模式,由本包 Host 半边提供)。
+ * eternaPanel/snapshot 端点(Typert 网关 SRC 模式,由本包 Host 半边提供)。
  *
  * 面板是全局面板(root scope),不属于任何会话:注册经 ctx.slots.inject 等待
  * ui-sidebar / ui-layout 的既有 slot 声明,声明坍塌即随链路撤销(dsh 客户端
@@ -17,14 +17,14 @@ import { PanelPage, type PanelSnapshotState } from './PanelPage.tsx'
 import { ComposerChips } from './ComposerChips.tsx'
 import { NS, en, zh } from './locales.ts'
 import { injectPanelStyles } from './styles.ts'
-import type { BasisPanelSnapshot } from '../types.ts'
+import type { EternaPanelSnapshot } from '../types.ts'
 import type { PanelClientContext } from './client-types.ts'
 
 /** 侧栏入口与 main 面板共享的 id(MainPanelId 为品牌化字符串,自定值合法)。 */
-export const PANEL_ID = 'basis-panel'
+export const PANEL_ID = 'eterna-panel'
 
-/** 宿主只读快照端点(basisPanel 命名空间,Host 半边 BasisPanelGateway)。 */
-export const SNAPSHOT_ENDPOINT = 'basisPanel/snapshot'
+/** 宿主只读快照端点(eternaPanel 命名空间,Host 半边 EternaPanelGateway)。 */
+export const SNAPSHOT_ENDPOINT = 'eternaPanel/snapshot'
 
 /** 依赖服务:slot 注册表、语言、布局(main 面板选择)、连接(宿主 RPC 通道)。 */
 export const inject = ['slots', 'locale', 'layout', 'connection']
@@ -57,7 +57,7 @@ export function apply(ctx: PanelClientContext): () => void {
     // gateway/internal 拒绝——"exactly one plain-object args field")。
     ctx.connection.rpc.call('/api', SNAPSHOT_ENDPOINT, { args: {} }).then((result) => {
       if (result.ok && typeof result.value === 'object' && result.value !== null) {
-        publish({ status: 'ready', snapshot: result.value as BasisPanelSnapshot })
+        publish({ status: 'ready', snapshot: result.value as EternaPanelSnapshot })
       } else {
         const message = result.error?.message ?? result.error?.code ?? 'unknown'
         publish({ status: 'error', message })
@@ -84,7 +84,7 @@ export function apply(ctx: PanelClientContext): () => void {
   // 两个官方席位都试(composer.dock 未渲染,改用 input.right 紧凑位):
   ctx.slots.inject('conversation.input.right', () => ctx.slots.register({
     name: 'conversation.input.right',
-    id: 'basis-panel-trigger',
+    id: 'eterna-panel-trigger',
     locale: NS,
     inject: () => ({}),
   }, ComposerChips))

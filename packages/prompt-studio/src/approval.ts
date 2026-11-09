@@ -1,9 +1,9 @@
 /**
- * R3 审批门(T7.1):保存/回滚/导入三类写操作全走 @basis/interact 富审批卡
+ * R3 审批门(T7.1):保存/回滚/导入三类写操作全走 @eterna/interact 富审批卡
  * (计划书 §3「二次确认即审批留痕」)。
  *
  * 两段式协议:
- *  - request():校验通过后构造 R3 卡(ruleId basis.prompt-studio.persona-write,
+ *  - request():校验通过后构造 R3 卡(ruleId eterna.prompt-studio.persona-write,
  *    doubleConfirm 产生同卡第二问),登记唯一在途审批并返回 approvalId;
  *  - confirm(approvalId, approved, echo):应答与在途请求不匹配(approvalId 未知、
  *    内容/乐观锁与请求时不一致)一律拒执行(TOCTOU 防线:第二段必须复述同一 content)。
@@ -11,14 +11,14 @@
  * 卡片载荷经 buildApprovalCard(fail-closed 校验)+ cardToQuestionItems(官方
  * user-questions intent-approval 载荷,T7.2 客户端直接渲染)。
  */
-import { buildApprovalCard, cardToQuestionItems } from '@basis/interact'
-import type { ApprovalCard, AskUserQuestionItem } from '@basis/interact'
+import { buildApprovalCard, cardToQuestionItems } from '@eterna/interact'
+import type { ApprovalCard, AskUserQuestionItem } from '@eterna/interact'
 import { randomUUID } from 'node:crypto'
 import { byteLength } from './checksum.ts'
 import type { WriteKind } from './types.ts'
 
 /** R3 命中规则 id(hitl 规则外的基座自带高危面:改 system prompt 影响所有新会话)。 */
-export const PERSONA_WRITE_RULE_ID = 'basis.prompt-studio.persona-write'
+export const PERSONA_WRITE_RULE_ID = 'eterna.prompt-studio.persona-write'
 
 /** 在途审批载荷(第二段必须复述这些值,confirm 校验一致)。 */
 export interface PendingWritePayload {

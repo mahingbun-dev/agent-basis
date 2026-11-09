@@ -57,7 +57,7 @@ describe('tenantRealmLabel(Cordis isolate label 相连性)', () => {
 
   it('label 即 Symbol.for 稳定 key(重启/跨模块解析一致)', () => {
     expect(tenantRealmLabel({ level: 'customer', industry: 'a', customer: 'b' }))
-      .toBe(Symbol.for('basis:tenant-realm:ind:a:cust:b'))
+      .toBe(Symbol.for('eterna:tenant-realm:ind:a:cust:b'))
   })
 })
 
@@ -102,7 +102,7 @@ describe('buildTenantGroupRows(cordis:group 行树)', () => {
 
   it('行业组 → 客户组两层嵌套;客户组内注入租户作用域插件行', () => {
     const rows = buildTenantGroupRows(doc, realm => [
-      { id: 'memory', name: '@basis/memory', config: { realm: formatRealm(realm) } },
+      { id: 'memory', name: '@eterna/memory', config: { realm: formatRealm(realm) } },
     ])
     expect(rows).toHaveLength(1)
     const industryRow = rows[0]!
@@ -112,7 +112,7 @@ describe('buildTenantGroupRows(cordis:group 行树)', () => {
     const customerRows = industryRow.config as { id: string; name: string; config: unknown }[]
     expect(customerRows.map(row => row.id)).toEqual(['cust-acme', 'cust-beta-corp'])
     const acmeRows = customerRows[0]!.config as { name: string; config: { realm: string } }[]
-    expect(acmeRows[0]!.name).toBe('@basis/memory')
+    expect(acmeRows[0]!.name).toBe('@eterna/memory')
     expect(acmeRows[0]!.config.realm).toBe('ind:event-planning:cust:acme')
     expect(((customerRows[1]!.config as { config: { realm: string } }[])[0]!.config.realm)).toBe('ind:event-planning:cust:beta-corp')
   })

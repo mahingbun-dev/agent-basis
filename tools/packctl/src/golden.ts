@@ -3,14 +3,14 @@
  *
  * 双重身份:
  * 1. pack lint 用 validateGoldenCase 校验 `evals/golden/` 非空且可加载(GOLD0xx);
- * 2. 直接导出 loadGoldenCase/loadGoldenDir 供 @basis/evals(T4)消费 —— 「可被 evals 加载」
+ * 2. 直接导出 loadGoldenCase/loadGoldenDir 供 @eterna/evals(T4)消费 —— 「可被 evals 加载」
  *    的判定即本模块本身,避免两套解析器漂移。
  *
- * 双形态口径(T6 落地时与 @basis/evals schema.ts 对齐钉住,两类文件都合法):
+ * 双形态口径(T6 落地时与 @eterna/evals schema.ts 对齐钉住,两类文件都合法):
  * - 模板形态(pack init):final_state 单断言映射 / approval_flow 字符串数组 / answer 字符串;
- * - 条目形态(@basis/evals 可执行,字段对齐 ai-evo):final_state 单键条目数组 /
+ * - 条目形态(@eterna/evals 可执行,字段对齐 ai-evo):final_state 单键条目数组 /
  *   approval_flow {tool,outcome,not_executed,min_count}(审批红线断言) /
- *   answer {contains|match}。评测执行走 @basis/evals runner,消费条目形态。
+ *   answer {contains|match}。评测执行走 @eterna/evals runner,消费条目形态。
  */
 import { basename, join } from 'node:path'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
@@ -93,7 +93,7 @@ export function loadGoldenCaseText(text: string, relPath: string): { case?: Gold
   return { case: golden, issues }
 }
 
-/** answer 双形态:字符串(模板形态)或 {contains|match}(条目形态,@basis/evals AnswerAssert)。 */
+/** answer 双形态:字符串(模板形态)或 {contains|match}(条目形态,@eterna/evals AnswerAssert)。 */
 function validateAnswer(value: unknown, relPath: string, issues: Finding[]): void {
   if (value === undefined) return
   if (typeof value === 'string') return
@@ -114,7 +114,7 @@ function validateAnswer(value: unknown, relPath: string, issues: Finding[]): voi
 /**
  * final_state 双形态:
  * - 映射形态(模板):{ file_assert | http_assert | db_assert | script } 至少一项;
- * - 条目形态(@basis/evals / ai-evo 可执行口径):单键条目数组,顺序执行。
+ * - 条目形态(@eterna/evals / ai-evo 可执行口径):单键条目数组,顺序执行。
  */
 function validateFinalState(
   value: unknown,
@@ -191,7 +191,7 @@ function validateFileAssert(value: unknown, at: string, issues: Finding[]): void
   }
 }
 
-/** http_assert:url(模板形态)或 request/respond/assert(@basis/evals HttpAssert)任一形态。 */
+/** http_assert:url(模板形态)或 request/respond/assert(@eterna/evals HttpAssert)任一形态。 */
 function validateHttpAssert(value: unknown, at: string, issues: Finding[]): void {
   if (!isRecord(value)) {
     issues.push(error('GOLD005', at, 'http_assert 必须是映射'))
@@ -200,7 +200,7 @@ function validateHttpAssert(value: unknown, at: string, issues: Finding[]): void
   const hasUrl = typeof value.url === 'string'
   const hasT4Shape = ['request', 'respond', 'assert'].some(k => value[k] !== undefined)
   if (!hasUrl && !hasT4Shape) {
-    issues.push(error('GOLD005', at, 'http_assert 必须是 { url, ... }(模板形态)或 { request|respond|assert }(@basis/evals 形态)'))
+    issues.push(error('GOLD005', at, 'http_assert 必须是 { url, ... }(模板形态)或 { request|respond|assert }(@eterna/evals 形态)'))
   }
   for (const key of ['request', 'respond', 'assert'] as const) {
     if (value[key] !== undefined && !isRecord(value[key])) {
@@ -230,7 +230,7 @@ const APPROVAL_OUTCOMES = ['allowed-once', 'rejected', 'cancelled', 'unavailable
 /**
  * trajectory 双形态:
  * - approval_flow:字符串数组(模板形态)或 { tool, outcome, not_executed, min_count }
- *   (@basis/evals ApprovalFlowAssert,审批红线案例的可执行形态);
+ *   (@eterna/evals ApprovalFlowAssert,审批红线案例的可执行形态);
  * - calls/must_call/must_not_call:字符串数组;mode 四模式;max_steps 正数。
  */
 function validateTrajectory(value: unknown, relPath: string, issues: Finding[]): GoldenTrajectory | undefined {

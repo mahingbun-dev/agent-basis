@@ -1,4 +1,4 @@
-# @basis/knowledge —— L1 知识插件(wiki-local 默认后端 + WeKnora 高级后端)
+# @eterna/knowledge —— L1 知识插件(wiki-local 默认后端 + WeKnora 高级后端)
 
 设计依据:《11-知识插件-dsh-knowledge可插拔设计》(一个出口,两个后端)、《08-基座插件体系》§3-6、《12-功能点清单》§5。
 **一个出口**:模型面只看 `KnowledgeHit` 统一 schema(provenance 全量);**两个后端**:wiki-local(默认,零外部依赖、断网可用、agent 可写、git 版本化)+ weknora(手动启用,NAS 企业 RAG)。
@@ -38,7 +38,7 @@ knowledge_propose(doc) ──▶ 提案(pending,不落 pages/fts,检索不可见
 ## 使用
 
 ```ts
-import { WikiLocalBackend, WeKnoraBackend, createKnowledgeService, createNodeFsAdapter, toDshTools } from '@basis/knowledge'
+import { WikiLocalBackend, WeKnoraBackend, createKnowledgeService, createNodeFsAdapter, toDshTools } from '@eterna/knowledge'
 import * as nodeFs from 'node:fs'
 
 const wiki = new WikiLocalBackend({
@@ -60,7 +60,7 @@ const disposers = toDshTools(service).map((def) => ctx.tools.register(def))
 ## verify
 
 ```bash
-pnpm --filter @basis/knowledge run verify   # oxlint + tsc --noEmit + vitest run
+pnpm --filter @eterna/knowledge run verify   # oxlint + tsc --noEmit + vitest run
 ```
 
 单测覆盖:frontmatter 解析/往返;样例 wiki 建索引检索命中(FTS ≥3 字符 + 短词 LIKE 回退 + 混合);过期页(deprecated/superseded)不出现;未过审(agent_drafted pending)不出现、已过审可见;propose 流转(propose→pending 不可见→approve 发布可见→undo 真删;reject/fail-closed 永不出现);向量位注入融合与出口复滤;WeKnora 未启用 not-configured/HTTP 形态/映射/fail-soft;RRF 融合与同源去重;四工具出口;DSH seam 钉住。

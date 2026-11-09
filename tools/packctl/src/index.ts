@@ -1,5 +1,5 @@
 /**
- * @basis/packctl —— L2 领域包脚手架 CLI(T5;承载方式 B',12 号文档 §10.1)。
+ * @eterna/packctl —— L2 领域包脚手架 CLI(T5;承载方式 B',12 号文档 §10.1)。
  *
  * 公共 API:
  * - initPack:按 06 号 SOP §2 模板生成领域包骨架(package.json 的 dsh.bundle 指向
@@ -8,7 +8,7 @@
  * - lintPack / lintPacks:结构完整 + Cordis 纪律静态检查(无旁路全局、可交换接口形态)
  *   + SKILL.md 条目锚点配对(ACE,10 号文档 §4.1)+ golden 完整性;
  * - checkPack:静态冒烟(bundle 声明引用的文件都存在);
- * - loadGoldenCaseText / loadGoldenDir:golden 加载器,供 @basis/evals 复用。
+ * - loadGoldenCaseText / loadGoldenDir:golden 加载器,供 @eterna/evals 复用。
  * - runPack:CLI 入口(bin/packctl.mjs)。
  */
 export { runPack } from './cli.ts'

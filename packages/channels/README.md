@@ -1,4 +1,4 @@
-# @basis/channels
+# @eterna/channels
 
 L1 通道插件:渠道绑定存储、webhook 入站网关、一次性审批令牌、邮箱/微信三路径/
 飞书/钉钉适配器接口与出站卡片 schema。承载方式对齐 12 号文档 §7(7.4/7.5/
@@ -17,7 +17,7 @@ L1 通道插件:渠道绑定存储、webhook 入站网关、一次性审批令�
 
 ## 组合(Cordis 纪律)
 
-- 服务形态:`ctx.channels`(`CHANNELS_SERVICE_ID = '@basis/channels'`,注册表 +
+- 服务形态:`ctx.channels`(`CHANNELS_SERVICE_ID = '@eterna/channels'`,注册表 +
   唯一 ID,provide 可交换)。
 - 配逆:`WebhookGateway.start()` 返回句柄,`close()` 为其逆闭包;
   `createChannelsService().close()` 收口 sqlite。
@@ -31,11 +31,11 @@ L1 通道插件:渠道绑定存储、webhook 入站网关、一次性审批令�
   `KvTable<string, ChannelBindingRecord>`(0.2.2-alpha.2)。
 - 会话接口 `SessionPort`(deliverInbound/answerApproval)对齐 acp
   `session/prompt` 与 `client.session.requestPermission` 的编程形态
-  (../dsh-repo packages/acp/acp/src/index.ts:171,361);真实桥接**需运行时联调**。
+  (deepseek-harness packages/acp/acp/src/index.ts:171,361);真实桥接**需运行时联调**。
 
 ## 验收门
 
-`pnpm --filter @basis/channels run verify` = oxlint + `tsc --noEmit` + `vitest run`。
+`pnpm --filter @eterna/channels run verify` = oxlint + `tsc --noEmit` + `vitest run`。
 单测覆盖:绑定收敛(多渠道→同一会话)、令牌单次有效与过期、webhook 验签失败
 拒绝(401)+ 未知绑定 404 + 令牌重放 410、卡片统一携带审批载荷、邮箱正文
 "同意"不产生审批、微信三路径注册表。

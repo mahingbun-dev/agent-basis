@@ -14,7 +14,7 @@ const bundle = readFileSync(join(root, 'lib', 'client.js'), 'utf8')
 describe('bundle 工件形态', () => {
   it('闭包工厂形态 + id 对齐', () => {
     expect(bundle.startsWith('window.__ModuleLoader__.load({')).toBe(true)
-    expect(bundle).toContain('id: "@basis/llm-doctor"')
+    expect(bundle).toContain('id: "@eterna/llm-doctor"')
     expect(bundle.trimEnd().endsWith('});')).toBe(true)
     expect(bundle).toContain('return module.exports;')
   })
@@ -39,7 +39,7 @@ describe('vm 冒烟装载', () => {
     }
     vm.createContext(sandbox)
     vm.runInContext(bundle, sandbox)
-    const exports = sandbox.window.__ModuleLoader__.loaded['@basis/llm-doctor'] as { apply?: unknown; inject?: string[] }
+    const exports = sandbox.window.__ModuleLoader__.loaded['@eterna/llm-doctor'] as { apply?: unknown; inject?: string[] }
     expect(exports).toBeTypeOf('object')
     expect(typeof exports.apply).toBe('function')
     expect(Array.isArray(exports.inject)).toBe(true)

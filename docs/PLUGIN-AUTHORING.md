@@ -7,7 +7,7 @@
 
 | 你要做的东西 | 放哪 | 形态 |
 |---|---|---|
-| 基座能力(治理/记忆/知识…) | `packages/<name>`(`@basis/<name>`) | 服务库 + glue 插件 |
+| 基座能力(治理/记忆/知识…) | `packages/<name>`(`@eterna/<name>`) | 服务库 + glue 插件 |
 | 模型面工具(单工具或小工具集) | `packages/<name>/src` 或领域包内 | `defineTool` + 插件包装 |
 | 行业领域包(persona/skills/工具/金集) | `packs/<行业名>`(`@<行业>/pack`) | `packctl init` 骨架 |
 | 可执行 CLI(评测/脚手架) | `tools/<name>` | 独立 Node 程序 |
@@ -20,7 +20,7 @@
 2. **list 槽注册必须带 `options.id`**(`list slot "..." requires options.id`)。
 3. **dsh 包声明为 peerDependencies**(不进 dependencies)——避免与宿主内置副本单例分裂。例外:peer 声明写 `catalog:` 会被宿主兼容门按 semver range 校验判为 incompatible 强制 disabled(2026-11-07 T7 实测,证据见 docs/dev/t7-prompt-studio.md §2),此时与 packages/panel 同款放 `dependencies` + `catalog:`。
 4. **客户端插件必须声明 `dsh.client.inject`**(消费的客户端包清单)+ `dsh.bundle`;**任何包被 plugin-manager 管理也必须有 `dsh.bundle`**("未声明组合包"→ 插件页显示异常)。
-5. **Cordis 三纪律**:effect 配逆闭包 / coeffect 全声明 / provide 可交换接口(注册表+唯一 ID,命名空间 `@basis/*`、`@<行业>/*`)。
+5. **Cordis 三纪律**:effect 配逆闭包 / coeffect 全声明 / provide 可交换接口(注册表+唯一 ID,命名空间 `@eterna/*`、`@<行业>/*`)。
 6. `apply(ctx)` 返回的 disposer 收全全部逆(定时器/连接/注册),卸载零残留。
 7. UI 只用官方语义令牌(`--dsw-alias-*` / `--dsw-radius-*`),不发明令牌。
 
@@ -46,14 +46,14 @@ cd agent-basis
 pnpm install                       # workspace 自动纳管 packages/* 与 tools/*
 # 建包:packages/<name>/(package.json + tsconfig.json + src/ + tests/ + vitest.config.ts)
 # 照抄 packages/governance 的四件套;dependencies 里 dsh 包写 peerDependencies
-pnpm --filter @basis/<name> run verify
+pnpm --filter @eterna/<name> run verify
 ```
 
 包 `package.json` 最小模板:
 
 ```jsonc
 {
-  "name": "@basis/<name>",
+  "name": "@eterna/<name>",
   "type": "module",
   "exports": { ".": "./src/index.ts" },
   "scripts": { "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run" },
@@ -66,7 +66,7 @@ pnpm --filter @basis/<name> run verify
 插件模块骨架(注意最后一行):
 
 ```ts
-export const XXX_PLUGIN_NAME = 'basis-xxx'
+export const XXX_PLUGIN_NAME = 'eterna-xxx'
 export function defineXxxPlugin(config: XxxConfig = {}) {
   return {
     name: XXX_PLUGIN_NAME,
@@ -82,14 +82,14 @@ export default defineXxxPlugin()   // ← loader 取 default export 实例,必�
 ## 4. 装载验证(file: + symlink 配方)
 
 ```bash
-# 独立验证宿主(已有 ~/.dsh/profiles/basis-web 或自建)
-cd ~/.dsh/profiles/basis-web
+# 独立验证宿主(已有 ~/.dsh/profiles/eterna-web 或自建)
+cd ~/.dsh/profiles/eterna-web
 pnpm add file:/abs/path/to/agent-basis/packages/<name>
 # file: 依赖若被复制进 node_modules,改 symlink(Node 24 type-stripping 不允许 node_modules 下 .ts)
-for p in <name>; do rm -rf node_modules/@basis/$p; ln -s "$PWD/packages/$p" node_modules/@basis/$p; done
-pkill -f "profile basis-web"; sleep 2
-(LITELLM_API_KEY=<key> nohup dsh --profile basis-web > /tmp/basis-web-app.log 2>&1 &)
-sleep 15; grep -icE "skipping|incompatible" /tmp/basis-web-app.log   # 0 = 装载干净
+for p in <name>; do rm -rf node_modules/@eterna/$p; ln -s "$PWD/packages/$p" node_modules/@eterna/$p; done
+pkill -f "profile eterna-web"; sleep 2
+(LITELLM_API_KEY=<key> nohup dsh --profile eterna-web > /tmp/eterna-web-app.log 2>&1 &)
+sleep 15; grep -icE "skipping|incompatible" /tmp/eterna-web-app.log   # 0 = 装载干净
 ```
 
 ## 5. 入库提交

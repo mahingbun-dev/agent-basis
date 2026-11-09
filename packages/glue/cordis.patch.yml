@@ -1,22 +1,22 @@
-# @basis/glue bundle:五个基座插件(governance/memory/knowledge/audit/egress)
+# @eterna/glue bundle:五个基座插件(governance/memory/knowledge/audit/egress)
 # 装载形态:insert 语义插入基础树——cordis patch 的裸 id 行只按 id 覆写既有行,
-# 基础树无 basis-* 行时会被 applyPatches 丢弃(dsh-app-boot/lib/index.js applyPatches:
+# 基础树无 eterna-* 行时会被 applyPatches 丢弃(dsh-app-boot/lib/index.js applyPatches:
 # "patch: entry %C not found" → continue),插件永远不进解析树(2026-11-04 E2E 实测:
-# pluginInventory/list 221 条无 @basis/glue 任何条目,budget_calc 所在 @event/pack
+# pluginInventory/list 221 条无 @eterna/glue 任何条目,budget_calc 所在 @event/pack
 # 以 - insert: 形态正常装载)。参照 packs/event-planning/cordis.patch.yml 同款 insert。
 #
 # 行序 = 插件 apply 序 = pre-execute 监听器注册序(waterfall 从外到内):
-# basis-governance 最先(最外层,其 ask 透传后回填让下游 egress deny 先于人审生效);
-# basis-egress 最后(下游,域名级 deny 短路在 @event/pack 等领域包 ask 门之前)。
+# eterna-governance 最先(最外层,其 ask 透传后回填让下游 egress deny 先于人审生效);
+# eterna-egress 最后(下游,域名级 deny 短路在 @event/pack 等领域包 ask 门之前)。
 # audit 纯观察不参与瀑布;memory/knowledge 依赖经 cordis inject 解析,与行序无关。
 - insert:
-    - id: basis-governance
-      name: '@basis/glue/governance-plugin'
-    - id: basis-memory
-      name: '@basis/glue/memory-plugin'
-    - id: basis-knowledge
-      name: '@basis/glue/knowledge-plugin'
-    - id: basis-audit
-      name: '@basis/glue/audit-plugin'
-    - id: basis-egress
-      name: '@basis/glue/egress-plugin'
+    - id: eterna-governance
+      name: '@eterna/glue/governance-plugin'
+    - id: eterna-memory
+      name: '@eterna/glue/memory-plugin'
+    - id: eterna-knowledge
+      name: '@eterna/glue/knowledge-plugin'
+    - id: eterna-audit
+      name: '@eterna/glue/audit-plugin'
+    - id: eterna-egress
+      name: '@eterna/glue/egress-plugin'

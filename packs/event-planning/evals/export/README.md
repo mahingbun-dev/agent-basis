@@ -3,8 +3,8 @@
 ## 产物
 
 - `ai-evo-goldenset-v1.csv` —— 30 条 golden 的上传用导出(Excel 兼容:UTF-8 BOM + CRLF + RFC4180 引号转义);
-- `generate-csv.mjs` —— 生成器:读 `../golden/*.yaml`(复用 @basis/packctl 的 loadGoldenDir,
-  与 packctl lint / @basis/evals loader 同一份解析器),answer 列由终态/轨迹断言确定性派生。
+- `generate-csv.mjs` —— 生成器:读 `../golden/*.yaml`(复用 @eterna/packctl 的 loadGoldenDir,
+  与 packctl lint / @eterna/evals loader 同一份解析器),answer 列由终态/轨迹断言确定性派生。
 
 ## 列口径(user_input / answer / 扩展列)
 

@@ -1,5 +1,5 @@
-# guard-rules.yml —— 合规红线(@basis/governance 规则引擎消费;deny 优先、fail-closed)。
-# 格式对齐 @basis/governance PolicyDocument:{ rules: [{ id, effect, tools, argsContains?, reason? }], default }。
+# guard-rules.yml —— 合规红线(@eterna/governance 规则引擎消费;deny 优先、fail-closed)。
+# 格式对齐 @eterna/governance PolicyDocument:{ rules: [{ id, effect, tools, argsContains?, reason? }], default }。
 # 本包四条红线(plans/2026-11-06-dsh企业agent路线定案.md §11.7 自建清单,T3-1 落地):
 #   ① 达梦业务库只读,写权限仅限预警记录表(alert_records 单点白名单)——静默写库=失败,golden 钉住;
 #   ② 数据与知识层只经 MCP 访问(工具面只放行经 MCP 的查询类工具,不出现直连库凭据类工具);

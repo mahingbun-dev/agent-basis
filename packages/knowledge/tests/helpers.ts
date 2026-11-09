@@ -151,7 +151,7 @@ deprecated 但缺 superseded_by,解析必须失败。
 }
 
 export function makeSampleWiki(): SampleWiki {
-  const wikiDir = mkdtempSync(join(tmpdir(), 'basis-knowledge-wiki-'))
+  const wikiDir = mkdtempSync(join(tmpdir(), 'eterna-knowledge-wiki-'))
   for (const [rel, content] of Object.entries(PAGES)) {
     mkdirSync(dirname(join(wikiDir, rel)), { recursive: true })
     writeFileSync(join(wikiDir, rel), content, 'utf8')

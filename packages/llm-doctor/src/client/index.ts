@@ -1,5 +1,5 @@
 /**
- * @basis/llm-doctor 浏览器半边装配:官方 `settings.models.provider-card` keyed
+ * @eterna/llm-doctor 浏览器半边装配:官方 `settings.models.provider-card` keyed
  * slot(slot-contract.ts:23-42——本仓之外插件向 Models 设置区加 UI 的两个正式席位
  * 之一,按 settingsNs 领取本家族每张卡片)。在 ns=llm-pi-ai 的 provider 卡片内
  * 渲染诊断区块(组件见 DoctorStrip.tsx)。

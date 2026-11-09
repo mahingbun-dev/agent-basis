@@ -1,7 +1,7 @@
 /**
  * G0/G1/G2 门禁编排器单测:
- * - G0 真调 @basis/packctl lintPack 库函数(demo pack 过 / 弄坏 SKILL.md 挂);
- * - G1 真调 @basis/evals runPack replay 库函数(smoke case 过 / 坏 fixture 挂 /
+ * - G0 真调 @eterna/packctl lintPack 库函数(demo pack 过 / 弄坏 SKILL.md 挂);
+ * - G1 真调 @eterna/evals runPack replay 库函数(smoke case 过 / 坏 fixture 挂 /
  *   threshold.yml 模板缝隙显式豁免);
  * - G2 mock runner 注入;G0 短路;verification 报告落账形态。
  */
@@ -10,7 +10,7 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { runGate0, runGate1, runGates } from '../src/index.ts'
 import type { AievoGateConfig } from '../src/index.ts'
-import { lintPack } from '@basis/packctl'
+import { lintPack } from '@eterna/packctl'
 import { makeDemoPack, rmPack, SKILL_REL } from './helpers.ts'
 import type { DemoPack } from './helpers.ts'
 
@@ -25,7 +25,7 @@ const aievoPass: AievoGateConfig = {
 
 beforeAll(async () => {
   demo = await makeDemoPack()
-  outRoot = await fs.mkdtemp(path.join(path.dirname(demo.rootDir), 'basis-evolve-gates-'))
+  outRoot = await fs.mkdtemp(path.join(path.dirname(demo.rootDir), 'eterna-evolve-gates-'))
   // mkdtemp 与 demo.rootDir 同 tmp 根但不同目录;此处 dirname(demo.rootDir) 是 tmp 根。
 })
 
@@ -38,7 +38,7 @@ describe('G0:packctl lint 库函数', () => {
   it('demo pack(init 产物 + 双条目 SKILL.md)零 error', () => {
     const g0 = runGate0(demo.packDir)
     expect(g0.pass, g0.detail).toBe(true)
-    // 与 @basis/packctl 直接调用一致性
+    // 与 @eterna/packctl 直接调用一致性
     const direct = lintPack(demo.packDir)
     expect(direct.findings.filter(f => f.severity === 'error')).toHaveLength(0)
   })

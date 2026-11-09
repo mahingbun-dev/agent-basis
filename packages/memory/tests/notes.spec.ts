@@ -9,7 +9,7 @@ let root = ''
 let store: NotesStore
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), 'basis-memory-notes-'))
+  root = await mkdtemp(join(tmpdir(), 'eterna-memory-notes-'))
   store = new NotesStore(root, new BuiltinPiiGuard())
 })
 

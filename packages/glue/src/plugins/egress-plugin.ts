@@ -1,6 +1,6 @@
 /**
- * egress 插件(T8,§11.6 裁定:@basis/extra 的 egress 白名单首期挂载):
- * 把 @basis/extra 的 EgressToolWrapper(工具级 → 域名级 → 代理强注三层)挂上宿主
+ * egress 插件(T8,§11.6 裁定:@eterna/extra 的 egress 白名单首期挂载):
+ * 把 @eterna/extra 的 EgressToolWrapper(工具级 → 域名级 → 代理强注三层)挂上宿主
  * tools/pre-execute 瀑布,对出网型工具(web_search / web_fetch 等 web 检索五件套的
  * 模型面工具,governance DEFAULT_OUTBOUND_TOOL_GLOBS 识别)逐调用判定。
  *
@@ -25,8 +25,8 @@
  *
  * fail-closed 口径(「数据不出内网」红线):
  * - 域名白名单缺省仅内网(192.168.31.0/24、localhost、MaNas/NAS 主机名,
- *   @basis/extra DEFAULT_EGRESS_DOMAIN_RULES);配置文件缺省 agent cwd 下
- *   .basis/egress-whitelist.yml(模板 packages/extra/assets/egress-whitelist.template.yml,
+ *   @eterna/extra DEFAULT_EGRESS_DOMAIN_RULES);配置文件缺省 agent cwd 下
+ *   .eterna/egress-whitelist.yml(模板 packages/extra/assets/egress-whitelist.template.yml,
  *   留公网域扩展注释),文件存在但语法非法 = 抛错(fail-closed,同 governance 规则
  *   文件口径);文件不存在 = 内网默认,不抛;
  * - unknownDestination 缺省 'allow'(工具级白名单兜底,egress-wrapper.ts:53-57 的
@@ -43,18 +43,18 @@ import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 // 空类型导入 = dsh-tools 对 cordis Events('tools/pre-execute')增广触发器(governance-plugin.ts 同款)。
 import type {} from '@deepseek-ai/dsh-tools'
-import { DEFAULT_OUTBOUND_TOOL_GLOBS, EgressLite, matchAnyGlob } from '@basis/governance'
-import type { EgressClassification } from '@basis/governance'
+import { DEFAULT_OUTBOUND_TOOL_GLOBS, EgressLite, matchAnyGlob } from '@eterna/governance'
+import type { EgressClassification } from '@eterna/governance'
 import {
   createEgressWrapper,
   defaultEgressWhitelist,
   parseDomainWhitelistYaml,
-} from '@basis/extra'
-import type { DomainWhitelist, ToolLevelEgress } from '@basis/extra'
+} from '@eterna/extra'
+import type { DomainWhitelist, ToolLevelEgress } from '@eterna/extra'
 import { reportToAudit } from '../audit-bridge.ts'
 import type { EgressPluginConfig } from '../types.ts'
 
-export const BASIS_EGRESS_PLUGIN_NAME = 'basis-egress'
+export const ETERNA_EGRESS_PLUGIN_NAME = 'eterna-egress'
 
 /**
  * 工具级白名单缺省(唯一显式出站 + 内网 MCP 家族;理由见头注 fail-closed 段)。
@@ -89,7 +89,7 @@ function buildToolLevelEgress(config: EgressPluginConfig): ToolLevelEgress {
 }
 
 function loadDomainWhitelist(config: EgressPluginConfig): DomainWhitelist {
-  const whitelistPath = config.whitelistPath ?? join(process.cwd(), '.basis/egress-whitelist.yml')
+  const whitelistPath = config.whitelistPath ?? join(process.cwd(), '.eterna/egress-whitelist.yml')
   if (!existsSync(whitelistPath)) return defaultEgressWhitelist()
   // 语法/结构错误即抛(装载失败 = fail-closed),与 governance 规则文件同口径。
   return parseDomainWhitelistYaml(readFileSync(whitelistPath, 'utf8'))
@@ -104,14 +104,14 @@ function asArgsRecord(arguments_: unknown): Record<string, unknown> {
 
 export function defineEgressPlugin(config: EgressPluginConfig = {}) {
   return {
-    name: BASIS_EGRESS_PLUGIN_NAME,
+    name: ETERNA_EGRESS_PLUGIN_NAME,
     apply(ctx: Context): () => void {
       const wrapper = createEgressWrapper(buildToolLevelEgress(config), loadDomainWhitelist(config), {
         injectProxyEnv: config.proxyUrl !== undefined,
         // 插件层缺省 'allow'(头注 fail-closed 段;wrapper 自身缺省是 'deny',必须显式覆盖)。
         unknownDestination: config.unknownDestination ?? 'allow',
       })
-      const actor = { pluginId: BASIS_EGRESS_PLUGIN_NAME, source: 'decision' } as const
+      const actor = { pluginId: ETERNA_EGRESS_PLUGIN_NAME, source: 'decision' } as const
 
       const offGate = ctx.on('tools/pre-execute', async (exec, next) => {
         const pre = wrapper.preflight(exec.name, asArgsRecord(exec.arguments))

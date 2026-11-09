@@ -6,7 +6,7 @@
  * (turn/end、tool/call+tool/result 配对、assistant/message 的 usage)折叠为
  * 审计记录,推入全部 sink。工具参数预览强制过 PII 脱敏,超长截断。
  *
- * 事件 data 形态依据(dsh-repo packages/core/session/src/types.ts:287-436 SessionEventMap):
+ * 事件 data 形态依据(deepseek-harness packages/core/session/src/types.ts:287-436 SessionEventMap):
  * - 'turn/end'         → { turn, reason: { kind, ... } }
  * - 'tool/call'        → { turn, step, callId, name, arguments(模型原始 JSON 字符串) }
  * - 'tool/result'      → { turn, step, message: { toolCallId, isError? }, error?: { name, code } }

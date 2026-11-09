@@ -9,4 +9,4 @@
 {"type":"tool/result","seq":9,"time":1762000000900,"data":{"turn":1,"step":2,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c2"}}}
 {"type":"assistant/message","seq":10,"time":1762000001000,"data":{"turn":1,"step":2,"message":{"role":"assistant","content":[{"type":"text","text":"导视与数字物料 BOM 已交付 out/signage-bom.csv:逐行小计与合计 18080 核验通过,地毯标注可回收。"}]},"stream":[],"usage":{"inputTokens":1300,"outputTokens":420}}}
 {"type":"turn/end","seq":11,"time":1762000001100,"data":{"turn":1,"reason":{"kind":"completed"}}}
-{"type":"plugin:basis-evals/workspace","seq":12,"time":1762000001200,"data":{"files":{"out/signage-bom.csv":"物料,数量,单价,小计\nKT 板导视,12,140,1680\nLED 指示屏租赁,3,1800,5400\n电子屏素材设计,5,800,4000\n可回收地毯,200,35,7000\n合计,,,18080\n"}}}
+{"type":"plugin:eterna-evals/workspace","seq":12,"time":1762000001200,"data":{"files":{"out/signage-bom.csv":"物料,数量,单价,小计\nKT 板导视,12,140,1680\nLED 指示屏租赁,3,1800,5400\n电子屏素材设计,5,800,4000\n可回收地毯,200,35,7000\n合计,,,18080\n"}}}

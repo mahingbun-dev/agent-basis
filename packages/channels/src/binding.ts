@@ -2,9 +2,9 @@
  * 渠道绑定存储(channel_user_id ↔ session_id ↔ 渠道类型)。
  *
  * 12 号文档 §7.8:渠道会话绑定与续接由 storage-domain 承载;本模块是该数据面的
- * sqlite 直连实现(node:sqlite DatabaseSync,与 dsh-repo storage-sqlite 同驱动),
+ * sqlite 直连实现(node:sqlite DatabaseSync,与 deepseek-harness storage-sqlite 同驱动),
  * 并提供 asDomainKvTable() 视图 —— 结构上即 dsh `KvTable<string, ChannelBindingRecord>`
- * (../dsh-repo packages/storage/storage-domain/src/domain.ts:43),可原样挂进
+ * (deepseek-harness packages/storage/storage-domain/src/domain.ts:43),可原样挂进
  * storage-domain(seam 钉住见 tests/types.seam-pin.ts)。
  *
  * 收敛语义:绑定主键是 (channel_type, channel_user_id);多个渠道身份可指向同一

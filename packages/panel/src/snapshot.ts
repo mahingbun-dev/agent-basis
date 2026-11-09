@@ -1,10 +1,10 @@
 /**
  * 快照组装:从宿主侧活状态读只读投影。
  * - governance:优先 ctx.governance 服务(glue governance-plugin),缺席时解析同一规则文件;
- *   审计读 .basis/audit-YYYYMMDD.jsonl 按日轮转文件 + 旧版单文件 .basis/audit.jsonl
- *   (@basis/audit 未装载且 glue 未接审计投影时文件不存在 = 0 条)。
- * - memory / knowledge:node:sqlite 只读打开 glue 约定库路径(表结构是 @basis/memory
- *   entity-store 与 @basis/knowledge wiki 的存储契约)。
+ *   审计读 .eterna/audit-YYYYMMDD.jsonl 按日轮转文件 + 旧版单文件 .eterna/audit.jsonl
+ *   (@eterna/audit 未装载且 glue 未接审计投影时文件不存在 = 0 条)。
+ * - memory / knowledge:node:sqlite 只读打开 glue 约定库路径(表结构是 @eterna/memory
+ *   entity-store 与 @eterna/knowledge wiki 的存储契约)。
  * - @event 工具:CTX tools 注册表活过滤 + hitl.yaml 风险档(packs/event-planning/hitl.yaml)。
  * - 可观测:~/.dsh/sessions 的 session.v4.jsonl.zstd usage 折叠(session-logs.ts)。
  */
@@ -12,10 +12,10 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { RuleEngine } from '@basis/governance'
+import { RuleEngine } from '@eterna/governance'
 import type { Context } from '@deepseek-ai/cordis'
 import type {
-  BasisPanelSnapshot, GovernanceSnapshot, KnowledgeSnapshot, MemoryEntityView,
+  EternaPanelSnapshot, GovernanceSnapshot, KnowledgeSnapshot, MemoryEntityView,
   MemoryRecentKey, MemorySnapshot, ObservabilitySnapshot, ToolCard,
 } from './types.ts'
 import { readRecentSessionUsage } from './session-logs.ts'
@@ -50,7 +50,7 @@ interface GovernanceWorldLike {
 function readGovernance(ctx: Context, cwd: string, rulesPath: string): GovernanceSnapshot {
   const world = ctx.get('governance') as GovernanceWorldLike | undefined
   let ruleCount = 0
-  let ruleSource = '未配置(.basis/governance.rules.yml 不存在且 governance 服务未挂载)'
+  let ruleSource = '未配置(.eterna/governance.rules.yml 不存在且 governance 服务未挂载)'
   if (world?.rules?.policy?.rules !== undefined) {
     ruleCount = world.rules.policy.rules.length
     ruleSource = 'ctx.governance 服务(glue governance-plugin 活实例)'
@@ -62,10 +62,10 @@ function readGovernance(ctx: Context, cwd: string, rulesPath: string): Governanc
       ruleSource = `${rulesPath}(解析失败,按 0 计)`
     }
   }
-  // 审计读数:@basis/audit 按日轮转 .basis/audit-YYYYMMDD.jsonl(DailyFileAuditSink 约定)
-  // + 旧版单文件 .basis/audit.jsonl(FileAuditSink/glue 旧约定),全部非空行合计。
+  // 审计读数:@eterna/audit 按日轮转 .eterna/audit-YYYYMMDD.jsonl(DailyFileAuditSink 约定)
+  // + 旧版单文件 .eterna/audit.jsonl(FileAuditSink/glue 旧约定),全部非空行合计。
   // audit 插件未装载且 glue 未接审计投影时这些文件不存在 = 0 条(panel 既有口径)。
-  const auditDir = join(cwd, '.basis')
+  const auditDir = join(cwd, '.eterna')
   let auditEntries = 0
   let auditSource: string | null = null
   const auditFiles = existsSync(auditDir)
@@ -168,7 +168,7 @@ function readKnowledge(dbPath: string): KnowledgeSnapshot {
     const proposalCount = queryCount(db, 'SELECT COUNT(*) AS c FROM proposals') ?? 0
     return {
       available, dbPath, wikiDocCount, proposalCount,
-      weknora: { status: 'not-mounted', detail: 'glue knowledge-plugin 仅装配 wiki-local 后端(WeKnora 需 enabled+baseUrl+token,见 @basis/knowledge weknora.ts)' },
+      weknora: { status: 'not-mounted', detail: 'glue knowledge-plugin 仅装配 wiki-local 后端(WeKnora 需 enabled+baseUrl+token,见 @eterna/knowledge weknora.ts)' },
     }
   } finally {
     db.close()
@@ -214,15 +214,15 @@ function readObservability(sessionsRoot?: string): ObservabilitySnapshot {
   return { sessions }
 }
 
-/** 组装完整快照(Host 侧 basisPanel/snapshot 的方法体)。 */
-export function buildSnapshot(ctx: Context, cwd = process.cwd(), sessionsRoot?: string): BasisPanelSnapshot {
-  const rulesPath = join(cwd, '.basis', 'governance.rules.yml')
+/** 组装完整快照(Host 侧 eternaPanel/snapshot 的方法体)。 */
+export function buildSnapshot(ctx: Context, cwd = process.cwd(), sessionsRoot?: string): EternaPanelSnapshot {
+  const rulesPath = join(cwd, '.eterna', 'governance.rules.yml')
   return {
     generatedAt: new Date().toISOString(),
     workspace: cwd,
     governance: readGovernance(ctx, cwd, rulesPath),
-    memory: readMemory(join(cwd, '.basis', 'memory.sqlite3')),
-    knowledge: readKnowledge(join(cwd, '.basis', 'knowledge.sqlite3')),
+    memory: readMemory(join(cwd, '.eterna', 'memory.sqlite3')),
+    knowledge: readKnowledge(join(cwd, '.eterna', 'knowledge.sqlite3')),
     tools: readEventTools(ctx),
     observability: readObservability(sessionsRoot),
   }

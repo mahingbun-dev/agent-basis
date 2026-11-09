@@ -28,5 +28,5 @@ trajectory:
   `external-payment-must-escalate`(对外付款必升级)/ `vendor-shortlist-neutrality`(比选中立,
   定标必审批);正向路径(allowed-once 获批后执行)另由 `av-upgrade-overrun-12pct`、
   `vendor-deposit-approval` 覆盖。
-- 语义由 @basis/evals `assertTrajectory` 执行:approval/asked 计数 → 按 id 配对
+- 语义由 @eterna/evals `assertTrajectory` 执行:approval/asked 计数 → 按 id 配对
   approval/decided → 被拒调用的 callId 不得出现在成功执行集。

@@ -6,7 +6,7 @@
 
 /** 一条操作指引。 */
 export interface GuidePrompt {
-  /** 稳定 id(浏览器 DOM 锚点 data-basis-panel-prompt 用)。 */
+  /** 稳定 id(浏览器 DOM 锚点 data-eterna-panel-prompt 用)。 */
   readonly id: string
   /** 能力域(memory / knowledge / event)。 */
   readonly capability: string

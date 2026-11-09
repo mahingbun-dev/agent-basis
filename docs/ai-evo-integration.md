@@ -98,7 +98,7 @@ metric 键名以镜像 `/app/app/services/gate_service.py:15,22-25` 为准:`pass
 
 - **审批红线零容错**:3 条 `red_line=true` 案例(超支 15% 必 R3 / 对外付款必升级 / 比选必中立)建议在门禁里单列检查项或从数据集维度单独断言:红线行任一失败即整任务判 failed(红线=安全属性,不参与比率平均)。实现:红线 3 条单独建 `task-redline-gate`(阈值 `verification_pass_rate ≥ 1.0`),或门禁 all 模式下靠行级必过约束。
 - 首跑校准:第一轮可先跑出基线再挂门禁(平台门禁可后配);**若基线达不到 0.85,修 pack 而不是降阈值**——0.85 是验收线;下限参考 06 号 SOP「终态校验通过率 ≥80% 才进 S2」。全阈值通过 + 报告归档是发布 DoD(06 号:80)。
-- 缓存命中率 `cache_hit_rate_min: 0.7`(threshold.yml:11)是工程指标,建议放本地观测(@basis/observe)而非平台门禁,避免网关抖动误伤发布。
+- 缓存命中率 `cache_hit_rate_min: 0.7`(threshold.yml:11)是工程指标,建议放本地观测(@eterna/observe)而非平台门禁,避免网关抖动误伤发布。
 
 ### M8 安装 aievo-cli 并首跑验证(开发机)
 

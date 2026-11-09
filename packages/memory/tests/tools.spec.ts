@@ -13,7 +13,7 @@ let dir = ''
 let memory: Memory
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'basis-memory-tools-'))
+  dir = await mkdtemp(join(tmpdir(), 'eterna-memory-tools-'))
   memory = createMemory({ workspaceDir: dir, dbPath: join(dir, 'memory.db') })
 })
 

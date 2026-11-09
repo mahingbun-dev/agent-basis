@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { DailyFileAuditSink } from '../src/daily-sink.ts'
-import type { AuditRecord } from '@basis/governance'
+import type { AuditRecord } from '@eterna/governance'
 
 const tempDirs: string[] = []
 
@@ -13,7 +13,7 @@ afterEach(async () => {
 })
 
 async function tempDir(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), 'basis-audit-sink-'))
+  const dir = await mkdtemp(join(tmpdir(), 'eterna-audit-sink-'))
   tempDirs.push(dir)
   return dir
 }
@@ -48,7 +48,7 @@ describe('DailyFileAuditSink:按日轮转 NDJSON', () => {
   })
 
   it('父目录按需创建(目录不存在时不抛)', async () => {
-    const dir = join(await tempDir(), 'nested/.basis')
+    const dir = join(await tempDir(), 'nested/.eterna')
     const sink = new DailyFileAuditSink(dir)
     await sink.write(rec('2026-11-06T12:00:00.000Z'))
     await expect(readFile(join(dir, 'audit-20261106.jsonl'), 'utf8')).resolves.toContain('"kind":"usage"')

@@ -1,8 +1,8 @@
 /**
- * @basis/channels 公共类型:通道标识、入站消息、会话接口、审批动作载荷、出站卡片。
+ * @eterna/channels 公共类型:通道标识、入站消息、会话接口、审批动作载荷、出站卡片。
  *
  * 会话接口(SessionPort)是本地最小形态,组合层桥接到 DSH 的 acp seam
- * (../dsh-repo packages/acp/acp/src/index.ts:361 `session/prompt`、:171
+ * (deepseek-harness packages/acp/acp/src/index.ts:361 `session/prompt`、:171
  * `client.session.requestPermission`):deliverInbound 对应 session/prompt 追加
  * 一条用户消息;answerApproval 对应远程应答 permission prompt(one-shot)。
  * seam 钉住见 tests/types.seam-pin.ts。

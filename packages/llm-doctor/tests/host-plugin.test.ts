@@ -68,7 +68,7 @@ describe('端点与插件形态', () => {
   it('端点字符串与默认导出形态', () => {
     expect(ENDPOINTS.health).toBe('llmDoctor/health')
     expect(ENDPOINTS.probe).toBe('llmDoctor/probe')
-    expect(plugin.name).toBe('basis-llm-doctor')
+    expect(plugin.name).toBe('eterna-llm-doctor')
     expect(typeof plugin.apply).toBe('function')
     expect(PI_AI_ENTRY_ID).toBe('llm-pi-ai')
     expect(LLM_DOCTOR_SERVICE_ID).toBe('llmDoctor')

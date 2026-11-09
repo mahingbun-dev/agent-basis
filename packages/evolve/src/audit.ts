@@ -13,7 +13,7 @@
  */
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { scanSkills } from '@basis/packctl'
+import { scanSkills } from '@eterna/packctl'
 import { parseSkillDoc } from './entry.ts'
 import type { SkillDoc, SkillEntry } from './entry.ts'
 import type { SkillDelta } from './deltas.ts'

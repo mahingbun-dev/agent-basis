@@ -2,11 +2,11 @@
  * DSH seam 编译期钉住(只被 tsc --noEmit 消费;vitest include 只收 *.spec.ts,不运行本文件)。
  *
  * 目的(设计文档 08 §8 风险 1):DSH 处于 pre-stable,所有 L1 插件的适配面要在 CI 里
- * 用接口冒烟测试钉住。本文件用**已发布的 @deepseek-ai/dsh-*(与 ../dsh-repo 同为
+ * 用接口冒烟测试钉住。本文件用**已发布的 @deepseek-ai/dsh-*(与 deepseek-harness 同为
  * 0.2.2-alpha.2)类型**断言:治理包的最小接口与官方 seam 双向兼容——DSH 升级破坏
- * seam 形态时,`pnpm --filter @basis/governance run verify` 的 tsc 阶段即失败。
+ * seam 形态时,`pnpm --filter @eterna/governance run verify` 的 tsc 阶段即失败。
  *
- * 依据(dsh-repo,只读):
+ * 依据(deepseek-harness,只读):
  * - packages/core/tools/src/events.ts:18(tools/pre-execute waterfall 签名)
  * - packages/core/tools/src/contracts.ts:357-363(PreToolDecision)、180-219(ToolExecution)
  * - packages/core/agent/src/runtime-types.ts:417(agent/turn-stopping)、206-208(live Agent.cancel)

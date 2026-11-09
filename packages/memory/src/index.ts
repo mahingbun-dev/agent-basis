@@ -1,5 +1,5 @@
 /**
- * @basis/memory —— L1 记忆插件(M1 项目记忆 + M2 实体记忆)。
+ * @eterna/memory —— L1 记忆插件(M1 项目记忆 + M2 实体记忆)。
  *
  * 模块地图:
  * 1. tokens.ts:token 保守估算(注入预算度量衡,CJK 1/字 + 其他 4 字符/token);

@@ -1,4 +1,4 @@
-# @basis/interact
+# @eterna/interact
 
 L1 人机交互质量插件(设计文档 08 §6、12 §3、14 号 T3):hitl.yaml 风险分档、R0-R3→DSH
 permission-presets 配置产物、富上下文审批卡片、同 turn 提问合并(≤3 问/卡)、审批负信号事件。
@@ -64,7 +64,7 @@ const interact = createInteract({ hitlYaml, ask: { onFlush: r => sendAsk(r) } })
 ## seam 钉住(防 DSH pre-stable 破坏)
 
 - 依赖**已发布的** `@deepseek-ai/dsh-{user-questions,user-approval,permission-presets,sandbox}`
-  + `@deepseek-ai/cordis`(全部与 ../dsh-repo 同为 0.2.2-alpha.2,catalog 钉死),仅 `import type`
+  + `@deepseek-ai/cordis`(全部与 deepseek-harness 同为 0.2.2-alpha.2,catalog 钉死),仅 `import type`
   (除 `yaml`)。提问载荷、卡片渲染项、预设条目、结局词汇**直接采用官方类型**——DSH 升级破坏
   任一形态,`tsc --noEmit` 即失败。
 - `tests/types.seam-pin.ts`(tsc 消费,vitest 不运行)钉住:① 合并器 flush 产物可直接作
@@ -91,5 +91,5 @@ const interact = createInteract({ hitlYaml, ask: { onFlush: r => sendAsk(r) } })
 ## verify
 
 ```bash
-pnpm --filter @basis/interact run verify   # oxlint + tsc --noEmit + vitest run(55 用例)
+pnpm --filter @eterna/interact run verify   # oxlint + tsc --noEmit + vitest run(55 用例)
 ```

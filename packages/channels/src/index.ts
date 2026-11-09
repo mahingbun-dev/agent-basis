@@ -1,5 +1,5 @@
 /**
- * @basis/channels —— L1 通道插件(策略与接口层)。
+ * @eterna/channels —— L1 通道插件(策略与接口层)。
  *
  * 六个模块:
  * 1. binding.ts:渠道绑定存储(channel_user_id↔session_id↔渠道类型,sqlite;
@@ -68,7 +68,7 @@ export type {
 } from './types.ts'
 
 /** 组合层注册 ctx.channels 服务时的唯一 ID(注册表 + 唯一 ID,provide 可交换)。 */
-export const CHANNELS_SERVICE_ID = '@basis/channels'
+export const CHANNELS_SERVICE_ID = '@eterna/channels'
 
 export interface ChannelsService {
   readonly id: typeof CHANNELS_SERVICE_ID

@@ -1,7 +1,7 @@
 /**
  * 交互配置错误:hitl.yaml 结构非法、字段类型不符、含 fail-closed 不允许的取值,
  * 或审批卡片/提问草稿载荷不满足结构约束时抛出。
- * fail-closed 语义与 @basis/governance 的 GovernanceConfigError 一致:
+ * fail-closed 语义与 @eterna/governance 的 GovernanceConfigError 一致:
  * 配置加载失败即抛错,宿主不得以降级配置继续放行。
  */
 export class InteractConfigError extends Error {

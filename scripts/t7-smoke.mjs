@@ -3,15 +3,15 @@
  * T7.1 装载冒烟脚本(此后归脚本门禁专用,后续阶段不得破坏)。
  *
  * 断言(退出码 0/1,可重复执行——每次运行先清本包运行态:版本库单元目录与兜底审计):
- *  1. profile(.basis-home-t7/profiles/t7-studio)以 PLUGIN-AUTHORING §4 的 symlink
- *     终态装载 packages/prompt-studio(node_modules/@basis/prompt-studio → repo 源树;
+ *  1. profile(.eterna-home-t7/profiles/t7-studio)以 PLUGIN-AUTHORING §4 的 symlink
+ *     终态装载 packages/prompt-studio(node_modules/@eterna/prompt-studio → repo 源树;
  *     为什么不跑 §4 第一步的 pnpm add file::本包 workspace:/catalog: 协议在隔离
  *     profile 被 pnpm v11 拒载(见 ensurePluginInstalled 注),Loader+client-modules
  *     两个消费方都只按 node_modules 解析,不读 profile 依赖表,故 symlink 即终态);
  *  2. dump-config 组合预检:退出码 0、无 skipping/incompatible、persona 冒烟标记与
- *     @basis/prompt-studio 行进树;
+ *     @eterna/prompt-studio 行进树;
  *  3. 3108 启动 Web 宿主,启动日志无 skipping/incompatible;
- *  4. pluginInventory/list(官方 dsh-host-plugin-inventory)含 @basis/prompt-studio
+ *  4. pluginInventory/list(官方 dsh-host-plugin-inventory)含 @eterna/prompt-studio
  *     行:enabled=true 且 fiberPhase=active——插件页「已安装」的机器证据;
  *  5. Host 半边端点活:loopPrompt/snapshot(通道 A 说明 + 版本库 ready=storage 栈
  *     挂载)、loopPrompt/prompt-get、loopPrompt/prompt-versions(initial 种子 +
@@ -20,10 +20,10 @@
  *     patch 未落盘;二段=patch 原子写 + 版本 +1 + 宿主内 dump-config 干跑自检通过);
  *  7. 回滚链路:prompt-rollback 两段式 → 新版本(source=rollback,parentId=被回滚
  *     版本),版本只增不删(total=3),patch 层回到目标内容;
- *  8. 磁盘证据:版本库单元落在 DSH storage 栈根(<home>/storages/basis_prompt_studio/,
+ *  8. 磁盘证据:版本库单元落在 DSH storage 栈根(<home>/storages/eterna_prompt_studio/,
  *     per-record 一文档一记录);兜底审计 NDJSON 含 operator/versionId(G5)。
  *
- * 隔离纪律:运行态全在 .basis-home-t7(DSH_HOME);Web 宿主一律 3108;进程清理只用
+ * 隔离纪律:运行态全在 .eterna-home-t7(DSH_HOME);Web 宿主一律 3108;进程清理只用
  * SIGTERM + pkill -f 'profile t7-studio' 精确模式(绝不 pkill 其他 dsh 实例);
  * LITELLM_API_KEY 只从 .secrets/litellm-master-key.txt 读进宿主进程环境,不写入
  * 任何被跟踪文件/日志/输出。
@@ -38,15 +38,15 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const home = resolve(repoRoot, '.basis-home-t7')
+const home = resolve(repoRoot, '.eterna-home-t7')
 const profile = resolve(home, 'profiles', 't7-studio')
 const profileName = 't7-studio'
 const logsDir = resolve(home, 'logs')
 const hostLog = resolve(logsDir, 't7-smoke-host.log')
 const port = 3108
 const pkgDir = resolve(repoRoot, 'packages', 'prompt-studio')
-const pkgName = '@basis/prompt-studio'
-const rowId = 'basis-prompt-studio'
+const pkgName = '@eterna/prompt-studio'
+const rowId = 'eterna-prompt-studio'
 
 const MARKER = 'T7_SMOKE_PERSONA_MARKER base prompt studio smoke alpha'
 // T7.3 校验器全集要求保存内容带三条红线锚点(预算不超支/不代付/比选中立,
@@ -81,7 +81,7 @@ function ensureProfile() {
     name: 'dsh-profile-t7-studio',
     private: true,
     dependencies: {
-      '@basis/llm-openai': `file:${resolve(repoRoot, 'basis/llm-openai')}`,
+      '@eterna/llm-openai': `file:${resolve(repoRoot, 'packages/llm-openai')}`,
       '@deepseek-ai/dsh': '0.2.2-rc.1',
       '@deepseek-ai/dsh-base': '0.2.2-rc.1',
       '@deepseek-ai/dsh-web-app': '0.2.2-rc.1',
@@ -105,17 +105,17 @@ function ensureProfile() {
 
 /* ---------- 插件装载(PLUGIN-AUTHORING §4 的 symlink 终态,幂等) ----------
  * 为什么不是先 pnpm add file: 再换 symlink(§4 原文两步):本包 dependencies 携带
- * @basis/governance|interact 的 workspace: 协议、peerDependencies 携带 catalog: 协议,
+ * @eterna/governance|interact 的 workspace: 协议、peerDependencies 携带 catalog: 协议,
  * pnpm v11 在隔离 profile(自带 pnpm-workspace.yaml,即自己的 workspace 根)拒绝装载
  * 外部包的这两类协议——实测 ERR_PNPM_WORKSPACE_PKG_NOT_FOUND / "external package
  * outside of the pnpm workspace declared a dependency using the catalog protocol"。
  * 而把 repo 包声明为 profile workspace 成员会让 pnpm 反向接管 packages/ 下其他包的
  * node_modules(纪律 2 禁止)。装载消费方只有两个,都不读 profile 依赖表:
- * Loader 按组合行名 '@basis/prompt-studio' 经 node_modules 解析 + realpath 落 repo
+ * Loader 按组合行名 '@eterna/prompt-studio' 经 node_modules 解析 + realpath 落 repo
  * 源树(运行时依赖走 repo 工作区);dsh-client-modules 扫 Loader 条目的包清单。
  * 故直接落 §4 的 symlink 终态,等价且零 pnpm 副作用。 */
 function ensurePluginInstalled() {
-  const linkPath = resolve(profile, 'node_modules', '@basis', 'prompt-studio')
+  const linkPath = resolve(profile, 'node_modules', '@eterna', 'prompt-studio')
   const { lstatSync, realpathSync, mkdirSync: mkDir, symlinkSync } = require_('node:fs')
   if (existsSync(linkPath) && lstatSync(linkPath).isSymbolicLink()) {
     try {
@@ -123,12 +123,12 @@ function ensurePluginInstalled() {
     } catch { /* 悬空链接,重建 */ }
   }
   rmSync(linkPath, { recursive: true, force: true })
-  mkDir(resolve(profile, 'node_modules', '@basis'), { recursive: true })
+  mkDir(resolve(profile, 'node_modules', '@eterna'), { recursive: true })
   symlinkSync(pkgDir, linkPath, 'dir')
   return 'linked'
 }
 
-/* ---------- patch 层生成:spike 同款纯文本变换 + basis-prompt-studio insert 行 ---------- */
+/* ---------- patch 层生成:spike 同款纯文本变换 + eterna-prompt-studio insert 行 ---------- */
 function buildPatch(marker) {
   const presetFile = resolve(profile, 'node_modules/@deepseek-ai/dsh-web-app/presets/standard.patch.yml')
   const lines = readFileSync(presetFile, 'utf8').split('\n')
@@ -145,14 +145,14 @@ function buildPatch(marker) {
   }
   if (prefixSeen !== 1) throw new Error(`expected exactly one prefix: line, got ${prefixSeen}`)
   const head = [
-    '# T7.1 smoke patch layer(LLM 路由 + persona 冒烟标记 + basis-prompt-studio 行;由 scripts/t7-smoke.mjs 生成)。',
+    '# T7.1 smoke patch layer(LLM 路由 + persona 冒烟标记 + eterna-prompt-studio 行;由 scripts/t7-smoke.mjs 生成)。',
     '- insert:',
-    '    - id: basis-llm',
-    "      name: '@basis/llm-openai'",
+    '    - id: eterna-llm',
+    "      name: '@eterna/llm-openai'",
     '      config:',
     `        baseURL: '${litellmBaseUrl()}'`,
     '        apiKeyEnv: LITELLM_API_KEY',
-    "        provider: 'basis'",
+    "        provider: 'eterna'",
     '        models:',
     '          - id: deepseek-flash',
     '',
@@ -162,10 +162,10 @@ function buildPatch(marker) {
     '  disabled: true',
     '- id: agent-default-model',
     '  config:',
-    "    provider: 'basis'",
+    "    provider: 'eterna'",
     "    model: 'deepseek-flash'",
     '',
-    '# 提示词工坊+循环轨迹(T7.1;@basis/prompt-studio 的 insert 行,与 @basis/panel 同款)。',
+    '# 提示词工坊+循环轨迹(T7.1;@eterna/prompt-studio 的 insert 行,与 @eterna/panel 同款)。',
     '- insert:',
     `    - id: ${rowId}`,
     `      name: '${pkgName}'`,
@@ -256,8 +256,8 @@ try {
   ensureProfile()
 
   // 0) 幂等:清本包运行态(版本库单元 + 兜底审计),使断言可从零复现。
-  rmSync(resolve(home, 'storages', 'basis_prompt_studio'), { recursive: true, force: true })
-  rmSync(resolve(home, 'basis-prompt-studio'), { recursive: true, force: true })
+  rmSync(resolve(home, 'storages', 'eterna_prompt_studio'), { recursive: true, force: true })
+  rmSync(resolve(home, 'eterna-prompt-studio'), { recursive: true, force: true })
 
   // 1) 浏览器半边 bundle 先构建(client-modules 扫 exports["./client"] 要求存在)。
   const build = spawnSync(process.execPath, [resolve(pkgDir, 'scripts/build-client.mjs')], { encoding: 'utf8' })
@@ -278,7 +278,7 @@ try {
     const out = r.stdout ?? ''
     check('preflight: dump-config 退出码 0', r.status === 0, `status=${r.status}`)
     check('preflight: 组合树 persona 前缀=冒烟标记', out.includes(MARKER))
-    check('preflight: 组合树含 basis-prompt-studio 行', out.includes(pkgName))
+    check('preflight: 组合树含 eterna-prompt-studio 行', out.includes(pkgName))
     check('preflight: 无 skipping/incompatible', r.status === 0 && !/skipping|incompatible/i.test(out))
     if (r.status !== 0 || !out.includes(pkgName)) throw new Error('组合预检失败,中止(见上方输出)')
   }
@@ -294,7 +294,7 @@ try {
   {
     const inventory = await dsh.call('pluginInventory/list')
     const entry = (inventory.entries ?? []).find((e) => e.moduleName === pkgName)
-    check('pluginInventory: 含 @basis/prompt-studio 行', entry !== undefined,
+    check('pluginInventory: 含 @eterna/prompt-studio 行', entry !== undefined,
       entry === undefined ? `entries=${(inventory.entries ?? []).length}` : `entryId=${entry.entryId}`)
     check('pluginInventory: 行 enabled=true', entry?.enabled === true)
     check('pluginInventory: 行 fiberPhase=active', entry?.fiberPhase === 'active')
@@ -370,10 +370,10 @@ try {
 
   // 8) 磁盘证据:storage 栈单元目录 + 兜底审计 NDJSON(G5:operator/versionId)
   {
-    const unitDir = resolve(home, 'storages', 'basis_prompt_studio', 'versions')
+    const unitDir = resolve(home, 'storages', 'eterna_prompt_studio', 'versions')
     const docs = existsSync(unitDir) ? readdirSync(unitDir).filter((f) => f.endsWith('.json')) : []
-    check('版本库单元落在 DSH storage 栈(storages/basis_prompt_studio/versions/ 一文档一记录)', docs.length === 3, `docs=${docs.length}`)
-    const auditFile = resolve(home, 'basis-prompt-studio', 'audit.jsonl')
+    check('版本库单元落在 DSH storage 栈(storages/eterna_prompt_studio/versions/ 一文档一记录)', docs.length === 3, `docs=${docs.length}`)
+    const auditFile = resolve(home, 'eterna-prompt-studio', 'audit.jsonl')
     if (check('兜底审计 NDJSON 存在(无 glue governance 场景)', existsSync(auditFile))) {
       const lines = readFileSync(auditFile, 'utf8').split('\n').filter(Boolean)
       // FileAuditSink 包络形态 {kind:'governance', at, detail:{system/action/…}};detail 即本包载荷。
@@ -382,7 +382,7 @@ try {
         .filter((r) => r.action === 'prompt-save.committed' || r.action === 'prompt-rollback.committed')
       check('审计记录含 action/system/at/operator/versionId(G5)', lines.length >= 4
         && committed.length >= 2
-        && committed.every((r) => r.system === 'basis-prompt-studio' && r.operator === 't7-smoke'
+        && committed.every((r) => r.system === 'eterna-prompt-studio' && r.operator === 't7-smoke'
           && typeof r.versionId === 'string' && typeof r.at === 'string'), `lines=${lines.length} committed=${committed.length}`)
     }
   }

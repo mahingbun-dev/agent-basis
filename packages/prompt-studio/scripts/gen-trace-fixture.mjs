@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * T7.4 投影快照测试 fixture 生成器:从 T7.0 spike 的真实会话日志
- * (.basis-home-t7/sessions/…,只读)解码 → 脱敏 → 落为 JSONL fixture。
+ * (.eterna-home-t7/sessions/…,只读)解码 → 脱敏 → 落为 JSONL fixture。
  *
  * 脱敏规则(其余字段——type/seq/time/usage/stream/结构——逐字保留,钉死投影口径):
  *  1. system/message 与 title-llm-request 的宿主组合系统提示长文本:保留头部两段
@@ -11,7 +11,7 @@
  *  4. 任何绝对路径中的 /Users/sunny → /Users/[user](兜底扫尾)。
  *
  * 用法:node scripts/gen-trace-fixture.mjs [源日志路径]
- * 源缺省 = .basis-home-t7/sessions/--tmp-t7-spike-ws-48637--/session-fa97514a-b440-
+ * 源缺省 = .eterna-home-t7/sessions/--tmp-t7-spike-ws-48637--/session-fa97514a-b440-
  * 4e70-ac92-b2542283ca26/session.v4.jsonl.zstd(29 行:两轮「在线」会话,含
  * session/title 双标题、usage、无工具调用的真实形态)。
  */
@@ -25,7 +25,7 @@ const require_ = createRequire(import.meta.url)
 const pkgRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const repoRoot = resolve(pkgRoot, '..', '..')
 const SOURCE = process.argv[2]
-  ?? resolve(repoRoot, '.basis-home-t7/sessions/--tmp-t7-spike-ws-48637--/session-fa97514a-b440-4e70-ac92-b2542283ca26/session.v4.jsonl.zstd')
+  ?? resolve(repoRoot, '.eterna-home-t7/sessions/--tmp-t7-spike-ws-48637--/session-fa97514a-b440-4e70-ac92-b2542283ca26/session.v4.jsonl.zstd')
 const TARGET = resolve(pkgRoot, 'tests/fixtures/t7-session-fa97514a-sanitized.jsonl')
 
 const CENSOR = '…[脱敏]'

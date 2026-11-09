@@ -2,12 +2,12 @@
  * PII 过滤注入接口 + 内置降级实现。
  *
  * 设计依据(设计文档 08 §5.2 / 12 §4.3):memory 一切写入路径在**写入前**强制
- * 过 PII 过滤。首选注入 @basis/governance 的 PiiFilter(组合层从 ctx.governance
+ * 过 PII 过滤。首选注入 @eterna/governance 的 PiiFilter(组合层从 ctx.governance
  * 服务取 `pii` 字段);governance 服务未就绪(未 provide)时,降级到本文件的
  * BuiltinPiiGuard——四类通用模式的同源镜像(行为等价,但不支持领域包插拔
  * 行业模式)。降级这一事实必须记入 blockers/审计,不得静默。
  *
- * 注入形态(provide 可交换):PiiGuard 是 @basis/governance PiiFilter 的结构子集
+ * 注入形态(provide 可交换):PiiGuard 是 @eterna/governance PiiFilter 的结构子集
  * (`assertClean(value, label?)`),governance 实例可直接注入,无需适配层;
  * 编译期钉住见 tests/types.seam-pin.ts。
  */
@@ -29,7 +29,7 @@ export interface PiiFinding {
   readonly end: number
 }
 
-/** PII 拦截异常:与 @basis/governance 的同名异常同 name(『PiiBlockedError』),消费方按 name 判别。 */
+/** PII 拦截异常:与 @eterna/governance 的同名异常同 name(『PiiBlockedError』),消费方按 name 判别。 */
 export class PiiBlockedError extends Error {
   readonly findings: readonly PiiFinding[]
 
@@ -43,7 +43,7 @@ export class PiiBlockedError extends Error {
   }
 }
 
-/** 内置降级模式集:与 @basis/governance defaultPiiPatterns 同源的四类通用模式(中国大陆场景)。 */
+/** 内置降级模式集:与 @eterna/governance defaultPiiPatterns 同源的四类通用模式(中国大陆场景)。 */
 export const BUILTIN_PII_PATTERNS: readonly { readonly id: string; readonly pattern: RegExp }[] = [
   { id: 'cn-mobile', pattern: /(?<!\d)1[3-9]\d{9}(?!\d)/u },
   { id: 'cn-id-card', pattern: /(?<!\d)\d{17}[\dXx](?!\d)/u },

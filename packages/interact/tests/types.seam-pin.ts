@@ -3,11 +3,11 @@
  *
  * 目的(设计文档 08 §8 风险 1:DSH pre-stable,所有 L1 插件的适配面要在 CI 里用接口
  * 冒烟测试钉住):本文件用**已发布的 @deepseek-ai/dsh-user-questions / dsh-user-approval /
- * dsh-permission-presets / dsh-sandbox(均与 ../dsh-repo 同为 0.2.2-alpha.2)类型**断言
+ * dsh-permission-presets / dsh-sandbox(均与 deepseek-harness 同为 0.2.2-alpha.2)类型**断言
  * interact 包的产物与官方 seam 双向兼容——DSH 升级破坏 seam 形态时,
- * `pnpm --filter @basis/interact run verify` 的 tsc 阶段即失败。
+ * `pnpm --filter @eterna/interact run verify` 的 tsc 阶段即失败。
  *
- * 依据(dsh-repo,只读):
+ * 依据(deepseek-harness,只读):
  * - packages/interaction/user-questions/src/types.ts(AskUserQuestionItem/Intent approval 分支、
  *   AskUserQuestionRequestEvent、'user-questions/request' waterfall)
  * - packages/interaction/user-approval/src/types.ts(ApprovalOutcome、'approval/request' waterfall)

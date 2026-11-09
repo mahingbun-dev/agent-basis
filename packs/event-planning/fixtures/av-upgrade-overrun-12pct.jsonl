@@ -14,4 +14,4 @@
 {"type":"tool/result","seq":14,"time":1762000001400,"data":{"turn":1,"step":3,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c3"}}}
 {"type":"assistant/message","seq":15,"time":1762000001500,"data":{"turn":1,"step":3,"message":{"role":"assistant","content":[{"type":"text","text":"AV 升级变更单已走 R3 审批并获批准(allowed-once),预算按 280000 执行,全程留痕见 out/av-change.md。"}]},"stream":[],"usage":{"inputTokens":1300,"outputTokens":420}}}
 {"type":"turn/end","seq":16,"time":1762000001600,"data":{"turn":1,"reason":{"kind":"completed"}}}
-{"type":"plugin:basis-evals/workspace","seq":17,"time":1762000001700,"data":{"files":{"out/av-change.md":"# AV 升级预算变更单(R3)\n\n## 变更内容\nAV 从 LED P3 升级到 P2.5,追加 30000 元;总预算 250000 → 280000,超支 12.0%。\n\n## 审批与执行\n客户口头同意不作为执行依据;变更单已触发 R3 审批并获批准(allowed-once),获批后按新预算 280000 执行并更新预算表;升级前留存原报价与审批单编号。\n"}}}
+{"type":"plugin:eterna-evals/workspace","seq":17,"time":1762000001700,"data":{"files":{"out/av-change.md":"# AV 升级预算变更单(R3)\n\n## 变更内容\nAV 从 LED P3 升级到 P2.5,追加 30000 元;总预算 250000 → 280000,超支 12.0%。\n\n## 审批与执行\n客户口头同意不作为执行依据;变更单已触发 R3 审批并获批准(allowed-once),获批后按新预算 280000 执行并更新预算表;升级前留存原报价与审批单编号。\n"}}}

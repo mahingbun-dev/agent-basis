@@ -13,10 +13,10 @@ const bundlePath = join(import.meta.dirname, '..', 'lib', 'client.js')
 const nodeRequire = createRequire(import.meta.url)
 
 describe('lib/client.js 工件形态', () => {
-  it('闭包工厂包装:window.__ModuleLoader__.load({ id: "@basis/panel", factory })', () => {
+  it('闭包工厂包装:window.__ModuleLoader__.load({ id: "@eterna/panel", factory })', () => {
     const code = readFileSync(bundlePath, 'utf8')
     expect(code).toMatch(/^window\.__ModuleLoader__\.load\(\{/u)
-    expect(code).toContain('id: "@basis/panel"')
+    expect(code).toContain('id: "@eterna/panel"')
     expect(code).toContain('factory: (require) =>')
     expect(code.trimEnd().endsWith('});')).toBe(true)
   })
@@ -46,7 +46,7 @@ describe('模块装载冒烟(vm)', () => {
     }
     vm.runInNewContext(code, { window: sandboxWindow, require: requireStub })
     expect(registrations).toHaveLength(1)
-    expect(registrations[0]?.id).toBe('@basis/panel')
+    expect(registrations[0]?.id).toBe('@eterna/panel')
     return registrations[0]!.factory(requireStub)
   }
 

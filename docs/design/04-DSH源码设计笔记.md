@@ -1,6 +1,6 @@
 # 04 - DSH(DeepSeek Harness)源码设计笔记
 
-> 研读时间:2026-11-03。对象:官方仓库浅克隆 `master@ce7073d5`(版本 `0.2.2-alpha.2`,20,233 个文件)。本地路径:`~/.zcode/workspace/draft-50d92869-2a8d-4d02-8c95-cccdab6eafca/dsh-repo`。所有结论附仓库内文件路径证据。关联:[[05-Cordis论文研读笔记]] [[03-DSH评估]]
+> 研读时间:2026-11-03。对象:官方仓库浅克隆 `master@ce7073d5`(版本 `0.2.2-alpha.2`,20,233 个文件)。本地路径:`~/.zcode/workspace/draft-50d92869-2a8d-4d02-8c95-cccdab6eafca/deepseek-harness`。所有结论附仓库内文件路径证据。关联:[[05-Cordis论文研读笔记]] [[03-DSH评估]]
 
 ## 1. Monorepo 结构
 

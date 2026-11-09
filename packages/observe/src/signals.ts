@@ -301,7 +301,7 @@ function asString(value: unknown): string {
 
 /**
  * approval 负信号桥(内核事件 → 信号)。
- * 事件形态(dsh-repo packages/interaction/user-approval/src/types.ts:46-61,经模块增强进 SessionEventMap):
+ * 事件形态(deepseek-harness packages/interaction/user-approval/src/types.ts:46-61,经模块增强进 SessionEventMap):
  * - 'approval/asked'   { id, toolName, callId?, reason? }
  * - 'approval/decided' { id, outcome: 'allowed-once' | 'rejected' | 'cancelled' | 'unavailable' }
  * 内核只有显式拒绝;approval_modified(用户改产出=隐含差评)由 interact 插件比对 deliverables 后

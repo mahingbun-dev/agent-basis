@@ -1,7 +1,7 @@
 /**
  * DSH seam 的本地最小形态(结构兼容层)+ observe 包共享词汇。
  *
- * 来源与依据(../dsh-repo,0.2.2-alpha.2,只读):
+ * 来源与依据(deepseek-harness,0.2.2-alpha.2,只读):
  * - session 事件包:packages/core/session/src/types.ts:497-518
  *   `{ type, seq, time, data }`;data 形态见 SessionEventMap(types.ts:258-436):
  *   - 'turn/start' { turn } / 'turn/end' { turn, reason: { kind, ... } }
@@ -137,7 +137,7 @@ export interface TrajectoryCluster {
   readonly lastTs: number
 }
 
-/** 任意 JSON record 的窄判别(与 @basis/governance errors.isRecord 同型,本包零依赖自持)。 */
+/** 任意 JSON record 的窄判别(与 @eterna/governance errors.isRecord 同型,本包零依赖自持)。 */
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

@@ -16,8 +16,8 @@ function frame(lines: string[]): Buffer {
 }
 
 beforeAll(() => {
-  home = mkdtempSync(join(tmpdir(), 'basis-panel-logs-'))
-  const area = join(home, 'sessions', '--tmp-basis-ws--')
+  home = mkdtempSync(join(tmpdir(), 'eterna-panel-logs-'))
+  const area = join(home, 'sessions', '--tmp-eterna-ws--')
   mkdirSync(join(area, 'session-alpha'), { recursive: true })
   mkdirSync(join(area, 'session-beta'), { recursive: true })
   mkdirSync(join(area, 'session-locked-only'), { recursive: true })
@@ -113,7 +113,7 @@ describe('readRecentSessionUsage', () => {
     expect(alpha?.outputTokens).toBe(500)
     expect(alpha?.cacheReadTokens).toBe(6320)
     expect(alpha?.cacheHitRate).toBeCloseTo(6320 / (1500 + 6320), 4)
-    expect(alpha?.area).toBe('--tmp-basis-ws--')
+    expect(alpha?.area).toBe('--tmp-eterna-ws--')
     const beta = cards.find(card => card.id === 'session-beta')
     expect(beta?.cacheHitRate).toBe(0) // input>0 且 cacheRead=0 → 命中率 0(仅零输入才是 null)
   })

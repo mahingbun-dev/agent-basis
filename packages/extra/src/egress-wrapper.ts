@@ -1,5 +1,5 @@
 /**
- * egress 完整版 ②:出网工具包装器(在 @basis/governance egress-lite 之上)。
+ * egress 完整版 ②:出网工具包装器(在 @eterna/governance egress-lite 之上)。
  *
  * 分层(设计文档 12 §4.4 决策 D-A「pre-execute 代理强注 + 仅放行受控出网
  * 工具」的完整版收口):
@@ -23,7 +23,7 @@ import { DomainWhitelist } from './domain-whitelist.ts'
 import type { DomainDecision } from './domain-whitelist.ts'
 import type { JsonSchemaNode, ToolDefinition } from '@deepseek-ai/dsh-tools'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import type { EgressClassification, EgressLite } from '@basis/governance'
+import type { EgressClassification, EgressLite } from '@eterna/governance'
 
 /** 默认从工具参数里找目的地的键(参数键小写化后比对;baseURL→baseurl 亦命中)。 */
 export const DEFAULT_URL_ARG_KEYS: readonly string[] = ['url', 'endpoint', 'base_url', 'baseurl', 'host']

@@ -14,7 +14,7 @@
  * 前缀 P 为确定性文本（约 1.6KB / 数百 token，远超 DeepSeek 缓存 64-token 块粒度）。
  *
  * 凭据纪律：LITELLM_API_KEY 从启动环境读（缺省兜底 .secrets/litellm-master-key.txt），
- * 网关 BASE_URL 从 BASIS_LLM_BASE_URL 读（缺省兜底 .secrets/litellm-base-url.txt）；
+ * 网关 BASE_URL 从 ETERNA_LLM_BASE_URL 读（缺省兜底 .secrets/litellm-base-url.txt）；
  * key 只进请求头，不进日志/落盘文件/argv。
  *
  * 退出码：0 = 测量完成并写入 docs/perf-realsession.json；1 = 网关调用失败。
@@ -35,9 +35,9 @@ const readSecret = (file) => {
 }
 
 const apiKey = process.env.LITELLM_API_KEY || readSecret('litellm-master-key.txt')
-const baseUrl = (process.env.BASIS_LLM_BASE_URL || readSecret('litellm-base-url.txt')).replace(/\/$/, '')
+const baseUrl = (process.env.ETERNA_LLM_BASE_URL || readSecret('litellm-base-url.txt')).replace(/\/$/, '')
 if (!apiKey || !baseUrl) {
-  console.error('perf-realsession: 缺少 LITELLM_API_KEY 或 BASIS_LLM_BASE_URL（且 .secrets 兜底不可读）——如实失败，不伪造')
+  console.error('perf-realsession: 缺少 LITELLM_API_KEY 或 ETERNA_LLM_BASE_URL（且 .secrets 兜底不可读）——如实失败，不伪造')
   process.exit(1)
 }
 const MODEL = 'deepseek-flash'

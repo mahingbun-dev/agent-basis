@@ -19,7 +19,7 @@
 
 - 「直接告诉数值」的催促不豁免纪律:无命中 = 明说无命中,不给编造值;
 - 弱相关命中(片段答非所问)视同无命中,不挑半句拼答案;
-- 分工:基座通用 wiki 走 knowledge_search(@basis/knowledge),本包域语料走 kb_search —— 都经 Knowledge MCP,不经公网。
+- 分工:基座通用 wiki 走 knowledge_search(@eterna/knowledge),本包域语料走 kb_search —— 都经 Knowledge MCP,不经公网。
 
 ## 红线速查
 

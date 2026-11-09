@@ -2,9 +2,9 @@
 /**
  * T7.2 客户端半边轻量自检(非门禁——完整门禁由编排脚本跑 t7-smoke.mjs)。
  *
- * 复用 t7-studio profile(隔离纪律:运行态全在 .basis-home-t7,宿主 3108):
+ * 复用 t7-studio profile(隔离纪律:运行态全在 .eterna-home-t7,宿主 3108):
  *  1. 3108 启动 Web 宿主,启动日志无 skipping/incompatible;
- *  2. pluginInventory 含 @basis/prompt-studio 行(enabled+active);
+ *  2. pluginInventory 含 @eterna/prompt-studio 行(enabled+active);
  *  3. 只读端点活:loopPrompt/snapshot、prompt-versions、trace(不写运行态);
  *  4. 浏览器半边装进花名册:index.html 的 __DSH_BOOT__ 含本包 client 条目,
  *     combo 脚本字节含视图锚点(data-t7-editor / data-t7-save-btn /
@@ -20,13 +20,13 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const home = resolve(repoRoot, '.basis-home-t7')
+const home = resolve(repoRoot, '.eterna-home-t7')
 const profileName = 't7-studio'
 const profile = resolve(home, 'profiles', profileName)
 const logsDir = resolve(home, 'logs')
 const hostLog = resolve(logsDir, 't7-ui-check-host.log')
 const port = 3108
-const pkgName = '@basis/prompt-studio'
+const pkgName = '@eterna/prompt-studio'
 
 const failures = []
 function check(name, ok, detail = '') {
@@ -129,7 +129,7 @@ try {
   // 2) pluginInventory
   const inventory = await call('pluginInventory/list')
   const entry = (inventory.entries ?? []).find((e) => e.moduleName === pkgName)
-  check('pluginInventory: 含 @basis/prompt-studio 行', entry !== undefined)
+  check('pluginInventory: 含 @eterna/prompt-studio 行', entry !== undefined)
   check('pluginInventory: enabled=true 且 fiberPhase=active', entry?.enabled === true && entry?.fiberPhase === 'active')
 
   // 3) 只读端点(不写运行态)
@@ -155,19 +155,19 @@ try {
     .map(m => m[1].replaceAll('&amp;', '&'))
   check('index.html 引用 /plugins combo 脚本', comboUrls.length > 0, `urls=${comboUrls.length}`)
   const ours = comboUrls.find((url) => url.includes(`${pkgName}/client.js`))
-  check('花名册 combo 含本包条目(@basis/prompt-studio/client.js)', ours !== undefined)
+  check('花名册 combo 含本包条目(@eterna/prompt-studio/client.js)', ours !== undefined)
   let comboBody = ''
   if (ours !== undefined) {
     const r = await fetch(`http://127.0.0.1:${port}/${ours.replace(/^\/+/, '')}`, { headers: { cookie } })
     check('本包 combo 脚本可取(200)', r.ok, `status=${r.status}`)
     if (r.ok) comboBody = await r.text()
   }
-  check('combo 脚本含本包 factory 注册(id=@basis/prompt-studio)', comboBody.includes('id: "@basis/prompt-studio"'))
+  check('combo 脚本含本包 factory 注册(id=@eterna/prompt-studio)', comboBody.includes('id: "@eterna/prompt-studio"'))
   for (const anchor of ['data-t7-editor', 'data-t7-save-btn', 'data-t7-version-item', 'data-t7-trace-node', 'data-t7-session-item', 'data-t7-approve-btn']) {
     check(`combo 脚本含视图锚点 ${anchor}`, comboBody.includes(anchor))
   }
   check('combo 脚本含两个面板 id(main keyed + sidebar.panellist)',
-    comboBody.includes('basis-prompt-studio') && comboBody.includes('basis-loop-trace'))
+    comboBody.includes('eterna-prompt-studio') && comboBody.includes('eterna-loop-trace'))
   check('combo 脚本只经官方语义令牌(color/background 无字面 #hex)',
     !/color:\s*#[0-9a-f]{3,8}/i.test(comboBody) && !/background:\s*#[0-9a-f]{3,8}/i.test(comboBody))
   console.log('\n[cleanup] SIGTERM 宿主…')

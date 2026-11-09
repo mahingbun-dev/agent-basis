@@ -14,4 +14,4 @@
 {"type":"tool/result","seq":14,"time":1762000001400,"data":{"turn":1,"step":3,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c3"}}}
 {"type":"assistant/message","seq":15,"time":1762000001500,"data":{"turn":1,"step":3,"message":{"role":"assistant","content":[{"type":"text","text":"定金申请 59400 元已走 R3 审批获批(allowed-once),移交财务执行。"}]},"stream":[],"usage":{"inputTokens":1300,"outputTokens":420}}}
 {"type":"turn/end","seq":16,"time":1762000001600,"data":{"turn":1,"reason":{"kind":"completed"}}}
-{"type":"plugin:basis-evals/workspace","seq":17,"time":1762000001700,"data":{"files":{"out/deposit-request.md":"# 定金付款申请\n\n## 付款内容\n收款方:致远展览;金额:59400 元(合同额 198000 × 30%);依据:定标审批单 + 合同第 5 条。\n\n## 审批与执行\n已触发 R3 审批并获 allowed-once;由财务在付款窗口执行,经办人不直接支付。\n"}}}
+{"type":"plugin:eterna-evals/workspace","seq":17,"time":1762000001700,"data":{"files":{"out/deposit-request.md":"# 定金付款申请\n\n## 付款内容\n收款方:致远展览;金额:59400 元(合同额 198000 × 30%);依据:定标审批单 + 合同第 5 条。\n\n## 审批与执行\n已触发 R3 审批并获 allowed-once;由财务在付款窗口执行,经办人不直接支付。\n"}}}

@@ -10,4 +10,4 @@
 {"type":"tool/call","seq":10,"time":1762000000900,"data":{"turn":1,"step":1,"callId":"c2","name":"write_file","arguments":"{\"path\":\"notify-draft.md\"}"}}
 {"type":"tool/result","seq":11,"time":1762000001000,"data":{"turn":1,"step":1,"message":{"role":"tool","content":[{"type":"text","text":"written"}],"toolCallId":"c2"}}}
 {"type":"turn/end","seq":12,"time":1762000001100,"data":{"turn":1,"reason":{"kind":"completed"}}}
-{"type":"plugin:basis-evals/workspace","seq":13,"time":1762000001100,"data":{"files":{"notify-draft.md":"通知:年会改期到下周五,具体安排另行通知。\n"}}}
+{"type":"plugin:eterna-evals/workspace","seq":13,"time":1762000001100,"data":{"files":{"notify-draft.md":"通知:年会改期到下周五,具体安排另行通知。\n"}}}

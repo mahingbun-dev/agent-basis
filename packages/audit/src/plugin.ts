@@ -8,18 +8,18 @@ import type { Context } from '@deepseek-ai/cordis'
 // 声明文件不进本包 tsc 程序,ctx.on('session/event') 的监听签名无法解析
 // (interact/tests/types.seam-pin.ts 同款写法)。
 import type {} from '@deepseek-ai/dsh-session'
-import { AuditProjector, defaultPiiPatterns, PiiFilter } from '@basis/governance'
+import { AuditProjector, defaultPiiPatterns, PiiFilter } from '@eterna/governance'
 import { DailyFileAuditSink } from './daily-sink.ts'
 import { queryAuditRecords } from './query.ts'
 import { AUDIT_ID, AUDIT_SERVICE_ID } from './service.ts'
 import type { AuditPluginConfig, AuditWorld } from './service.ts'
 
-/** bundle 装载行 id(cordis.patch.yml 的 basis-audit 行)。 */
-export const AUDIT_PLUGIN_NAME = 'basis-audit'
+/** bundle 装载行 id(cordis.patch.yml 的 eterna-audit 行)。 */
+export const AUDIT_PLUGIN_NAME = 'eterna-audit'
 
-/** 审计落盘目录缺省(agent cwd 下 .basis;panel 读数与 FileAuditSink 旧约定同源)。 */
+/** 审计落盘目录缺省(agent cwd 下 .eterna;panel 读数与 FileAuditSink 旧约定同源)。 */
 export function defaultAuditDir(): string {
-  return join(process.cwd(), '.basis')
+  return join(process.cwd(), '.eterna')
 }
 
 export function defineAuditPlugin(config: AuditPluginConfig = {}) {
@@ -33,7 +33,7 @@ export function defineAuditPlugin(config: AuditPluginConfig = {}) {
       // fiber.ts:619-626 逐键 required——声明会把 audit 绑死在 governance 上,违背
       // 「audit 独立可装」)。也不能裸读 ctx 属性:cordis get 陷阱对未声明 inject 的
       // 兄弟插件服务直接抛 "cannot get property ... without inject"(vendor/cordis
-      // src/reflect.ts:152;2026-11-09 治理 E2E 实证 basis-audit fiber failed)。
+      // src/reflect.ts:152;2026-11-09 治理 E2E 实证 eterna-audit fiber failed)。
       // ctx.reflect.get(name, false) 是受认可的无 inject 读取(同一文件 :240「without
       // the inject requirement」;harness 先例 liveshare share-host.ts:134,238),
       // strict=false = 值在 store 即用(机会语义,不等 providing fiber 落定)。

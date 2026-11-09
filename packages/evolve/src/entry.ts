@@ -1,7 +1,7 @@
 /**
  * SKILL.md 条目解析器(ACE 条目化,设计 10 §4.1 / D2 决议)。
  *
- * 条目化约定(与 @basis/packctl 的 SKILL0xx lint 同一套口径,双向配对):
+ * 条目化约定(与 @eterna/packctl 的 SKILL0xx lint 同一套口径,双向配对):
  * - frontmatter `metadata.evo.entries[]`:每条 { id, helpful, harmful, updated, origin?, … };
  * - 正文条目锚点:`<!-- E: S-xxx-001 -->` … `<!-- /E -->`(HTML 注释对人无扰,对工具可解析);
  * - deprecate 后的条目移入文末「已废弃」归档节,frontmatter 中保留

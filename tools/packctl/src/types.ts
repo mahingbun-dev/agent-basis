@@ -31,24 +31,24 @@ export function hasErrors(findings: readonly Finding[]): boolean {
 }
 
 // ── golden case(07 号文档 §3.2;字段与 ai-evo Excel/终态校验器/轨迹断言同口径)──
-// 双形态口径(T6 与 @basis/evals(T4)对齐后钉住):
+// 双形态口径(T6 与 @eterna/evals(T4)对齐后钉住):
 // - 映射形态(packctl init 模板):final_state 是单断言映射;approval_flow 是字符串数组;
 //   answer 是字符串;
-// - 条目形态(@basis/evals / ai-evo 可执行口径):final_state 是单键条目数组
+// - 条目形态(@eterna/evals / ai-evo 可执行口径):final_state 是单键条目数组
 //   [{file_assert|http_assert|script}, …];approval_flow 是 {tool,outcome,not_executed,min_count};
 //   answer 是 {contains|match,ignore_case}。
-// 两种形态都合法;评测执行(@basis/evals runner)消费条目形态,pack lint 对两者都只做结构校验。
+// 两种形态都合法;评测执行(@eterna/evals runner)消费条目形态,pack lint 对两者都只做结构校验。
 
 export interface GoldenFileAssert {
   readonly path: string
-  /** 映射形态:字符串数组;条目形态(@basis/evals FileAssert):单个字符串。 */
+  /** 映射形态:字符串数组;条目形态(@eterna/evals FileAssert):单个字符串。 */
   readonly contains?: readonly string[] | string
   readonly not_contains?: string
   readonly exists?: boolean
 }
 
 export interface GoldenHttpAssert {
-  /** 映射形态必填;条目形态(@basis/evals HttpAssert)用 request/respond/assert,无 url。 */
+  /** 映射形态必填;条目形态(@eterna/evals HttpAssert)用 request/respond/assert,无 url。 */
   readonly url?: string
   readonly expect_status?: number
   readonly contains?: readonly string[]
@@ -70,13 +70,13 @@ export interface GoldenFinalState {
   readonly script?: GoldenScriptAssert
 }
 
-/** 条目形态的 final_state 单键条目(对齐 @basis/evals FinalStateAssert 联合)。 */
+/** 条目形态的 final_state 单键条目(对齐 @eterna/evals FinalStateAssert 联合)。 */
 export type GoldenFinalStateEntry =
   | { readonly file_assert: GoldenFileAssert }
   | { readonly http_assert: GoldenHttpAssert }
   | { readonly script: GoldenScriptAssert }
 
-/** 审批红线断言(条目形态;对齐 @basis/evals ApprovalFlowAssert,语义由其 runner 执行)。 */
+/** 审批红线断言(条目形态;对齐 @eterna/evals ApprovalFlowAssert,语义由其 runner 执行)。 */
 export interface GoldenApprovalFlow {
   readonly tool?: string
   readonly outcome?: 'allowed-once' | 'rejected' | 'cancelled' | 'unavailable'

@@ -1,5 +1,5 @@
 /**
- * @basis/evals —— DSH 评测 runner(独立 CLI,不进 agent 进程)。
+ * @eterna/evals —— DSH 评测 runner(独立 CLI,不进 agent 进程)。
  * 公开面:类型、schema 加载、断言器、适配器与注册表、runner、report/sessions 渲染。
  */
 export type {

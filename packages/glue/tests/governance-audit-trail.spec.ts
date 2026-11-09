@@ -7,15 +7,15 @@
  * - 被拒调用同时由 session 事件流覆盖(tool/call+tool/result 配对,设计 §2.2-4:
  *   tool/call 先于 pre-execute 落账);
  * - ctx.audit.query 为宿主可查询面。
- * 包边界:@basis/governance 不 import @basis/audit —— 桥只在 glue(本包)。
+ * 包边界:@eterna/governance 不 import @eterna/audit —— 桥只在 glue(本包)。
  */
 import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
-import type { AuditWorld } from '@basis/audit'
-import { AUDIT_SERVICE_ID } from '@basis/audit'
+import type { AuditWorld } from '@eterna/audit'
+import { AUDIT_SERVICE_ID } from '@eterna/audit'
 import { defineAuditPlugin } from '../src/plugins/audit-plugin.ts'
 import { defineEgressPlugin } from '../src/plugins/egress-plugin.ts'
 import { GOVERNANCE_SERVICE_ID, defineGovernancePlugin } from '../src/plugins/governance-plugin.ts'
@@ -41,7 +41,7 @@ default: ask
 
 /** 全链挂载(行序对齐 cordis.patch.yml:governance → audit → egress;规则文件先于 apply 落盘)。 */
 async function mountAll() {
-  const dir = await mkdtemp(join(tmpdir(), 'basis-glue-audit-trail-'))
+  const dir = await mkdtemp(join(tmpdir(), 'eterna-glue-audit-trail-'))
   tempDirs.push(dir)
   const rulesPath = join(dir, 'governance.rules.yml')
   await writeFile(rulesPath, RULES_YAML, 'utf8')
@@ -84,7 +84,7 @@ describe('审计接线:governance/egress 决策落 DailyFileAuditSink', () => {
         tool: 'shell',
         decision: 'deny',
       },
-      actor: { pluginId: 'basis-governance', source: 'decision' },
+      actor: { pluginId: 'eterna-governance', source: 'decision' },
     })
     const detail = records[0]?.detail as Record<string, unknown> | undefined
     expect(String(detail?.reason)).toContain('deny-rm')
@@ -106,7 +106,7 @@ describe('审计接线:governance/egress 决策落 DailyFileAuditSink', () => {
         decision: 'deny',
         denied: { egress: 'denied', tool: 'web_fetch', layer: 'domain' },
       },
-      actor: { pluginId: 'basis-egress', source: 'decision' },
+      actor: { pluginId: 'eterna-egress', source: 'decision' },
     })
   })
 

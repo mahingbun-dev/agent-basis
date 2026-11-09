@@ -1,6 +1,6 @@
 /**
  * 金集结构自检(package.json scripts.verify 的第二步;packctl lint 是第一步)。
- * 复用 @basis/packctl 的 loadGoldenDir —— 与 lint/evals 同一份解析器。
+ * 复用 @eterna/packctl 的 loadGoldenDir —— 与 lint/evals 同一份解析器。
  *
  * 钉住(T6 验收口径,14 号文档 §2):
  * 1. 恰 30 条、id 唯一;

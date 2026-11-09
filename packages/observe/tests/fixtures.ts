@@ -1,6 +1,6 @@
 /**
  * fixture 事件流工厂:自造结构兼容 dsh SessionEvent 的事件数组(单测共用)。
- * 事件形态依据 dsh-repo packages/core/session/src/types.ts:258-436(SessionEventMap):
+ * 事件形态依据 deepseek-harness packages/core/session/src/types.ts:258-436(SessionEventMap):
  * turn/start { turn } / turn/end { turn, reason: { kind } } / step/start { turn, step } /
  * request/header { header: { config: { provider, model } }, reason } /
  * request/context { provider, model } / assistant/message { turn, step, usage?: TokenUsage }。

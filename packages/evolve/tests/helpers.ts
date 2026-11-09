@@ -1,5 +1,5 @@
 /**
- * 测试 fixture:用 @basis/packctl 的 initPack 生成合法 demo pack(T5 模板),
+ * 测试 fixture:用 @eterna/packctl 的 initPack 生成合法 demo pack(T5 模板),
  * 再覆写 skills/core-workflow/SKILL.md(双条目 + 既有引用)并添加 G1 的
  * replay smoke case(evals/ 顶层 + fixtures/<case>.jsonl 终态快照)。
  * 产物原样通过 packctl lint(G0)与 evals replay(G1)—— e2e 与 gates 共用。
@@ -7,7 +7,7 @@
 import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import * as path from 'node:path'
-import { initPack } from '@basis/packctl'
+import { initPack } from '@eterna/packctl'
 
 export const PACK_NAME = '@evodemo/pack'
 export const SKILL_REL = 'skills/core-workflow/SKILL.md'
@@ -53,8 +53,8 @@ budget: { max_tokens: 100000 }
 `
 
 /**
- * 覆写 init 模板的 evals/golden/case-001.yaml:@basis/packctl 的 GOLD 检查接受
- * 模板原样,但 @basis/evals 的严格 schema 要求 answer 为对象形态 —— 这里替换为
+ * 覆写 init 模板的 evals/golden/case-001.yaml:@eterna/packctl 的 GOLD 检查接受
+ * 模板原样,但 @eterna/evals 的严格 schema 要求 answer 为对象形态 —— 这里替换为
  * 两个 loader 都接受的形态(tags 非 smoke,G1 不执行,仅保证加载零错误)。
  */
 export const GOLDEN_CASE_YAML = `id: case-001
@@ -81,7 +81,7 @@ export const SMOKE_FIXTURE_JSONL = [
     },
   },
   {
-    type: 'plugin:basis-evals/workspace', seq: 4, time: 4, data: {
+    type: 'plugin:eterna-evals/workspace', seq: 4, time: 4, data: {
       files: { 'out/result.md': 'ok: deliverable drafted\n' },
     },
   },
@@ -94,7 +94,7 @@ export interface DemoPack {
 
 /** 生成 demo pack(tmp 目录);用例结束由调用方 rm。 */
 export async function makeDemoPack(): Promise<DemoPack> {
-  const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), 'basis-evolve-'))
+  const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), 'eterna-evolve-'))
   const init = initPack('evodemo', { rootDir })
   if (init.result === undefined) {
     throw new Error(`demo pack init 失败:${JSON.stringify(init.findings)}`)

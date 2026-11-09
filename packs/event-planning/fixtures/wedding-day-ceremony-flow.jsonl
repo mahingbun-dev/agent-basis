@@ -9,4 +9,4 @@
 {"type":"tool/result","seq":9,"time":1762000000900,"data":{"turn":1,"step":2,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c2"}}}
 {"type":"assistant/message","seq":10,"time":1762000001000,"data":{"turn":1,"step":2,"message":{"role":"assistant","content":[{"type":"text","text":"婚礼仪式段时间线已交付 out/wedding-timeline.csv:6 环节、分钟级无重叠、均在 600-720 时段内。"}]},"stream":[],"usage":{"inputTokens":1300,"outputTokens":420}}}
 {"type":"turn/end","seq":11,"time":1762000001100,"data":{"turn":1,"reason":{"kind":"completed"}}}
-{"type":"plugin:basis-evals/workspace","seq":12,"time":1762000001200,"data":{"files":{"out/wedding-timeline.csv":"环节,开始,结束,负责人\n迎宾签到,600,630,礼宾组\n新人入场,630,645,策划师\n证婚仪式,645,675,证婚人\n交换戒指,675,690,策划师\n双方致辞,690,705,主持人\n集体合影,705,720,摄影组\n"}}}
+{"type":"plugin:eterna-evals/workspace","seq":12,"time":1762000001200,"data":{"files":{"out/wedding-timeline.csv":"环节,开始,结束,负责人\n迎宾签到,600,630,礼宾组\n新人入场,630,645,策划师\n证婚仪式,645,675,证婚人\n交换戒指,675,690,策划师\n双方致辞,690,705,主持人\n集体合影,705,720,摄影组\n"}}}

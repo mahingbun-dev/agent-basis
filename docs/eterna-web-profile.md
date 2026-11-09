@@ -1,7 +1,7 @@
-# Basis 企业 Web 档（basis-web profile）
+# Eterna 企业 Web 档（eterna-web profile）
 
-状态：已落地并真 boot 验证通过（`node scripts/verify-basis-web.mjs`，exit 0）。
-日期：2026-11-07；2026-11-09 补「@basis 治理面挂载集」一节（T8 落地 / T9 E2E）。
+状态：已落地并真 boot 验证通过（`node scripts/verify-eterna-web.mjs`，exit 0）。
+日期：2026-11-07；2026-11-09 补「@eterna 治理面挂载集」一节（T8 落地 / T9 E2E）。
 权威依据：`plans/2026-11-06-dsh企业agent路线定案.md` §11，以
 §11.7（图纸复核）与 §11.8（二次裁定）为准。行 id 权威来源：deepseek-harness
 `packages/bundle/base/cordis.patch.yml` 与 `packages/bundle/web-app/cordis.patch.yml`
@@ -13,50 +13,50 @@
 ```
 @deepseek-ai/dsh-base        0.2.2-rc.1   bundle 层（基础树 insert）
 @deepseek-ai/dsh-web-app     0.2.2-rc.1   bundle 层 + 其 presets/*.patch.yml（4 个预设）
-profiles/basis-web/cordis.patch.yml       profile 用户层（最后写赢，本文档所述裁切层）
+profiles/eterna-web/cordis.patch.yml       profile 用户层（最后写赢，本文档所述裁切层）
 ```
 
-- 组合定义：`profiles/basis-web/cordis.patch.yml`（覆写层，无 `- insert:` 行）+
-  `profiles/basis-web/README.md`。
-- 物化与 boot：`scripts/verify-basis-web.mjs` 把组合层拷贝为
-  `$DSH_HOME/profiles/basis-web/cordis.patch.yml`（默认 home
-  `.basis-home/`，可用 `BASIS_PROFILE_HOME` 改指），用仓库本地
+- 组合定义：`profiles/eterna-web/cordis.patch.yml`（覆写层，无 `- insert:` 行）+
+  `profiles/eterna-web/README.md`。
+- 物化与 boot：`scripts/verify-eterna-web.mjs` 把组合层拷贝为
+  `$DSH_HOME/profiles/eterna-web/cordis.patch.yml`（默认 home
+  `.eterna-home/`，可用 `ETERNA_PROFILE_HOME` 改指），用仓库本地
   `node_modules/@deepseek-ai/dsh` 的 CLI 以
-  `dsh --profile basis-web --no-open --port 0` 真启动。bundle 包从 dsh 安装锚
+  `dsh --profile eterna-web --no-open --port 0` 真启动。bundle 包从 dsh 安装锚
   解析（`resolveBundleDir`：安装锚优先、profile 目录兜底，
   dsh-app-boot `lib/index.js`），因此该 profile **无需 pnpm install**。
 - 端口：`--port 0` 由 OS 分配，避开被常驻实例占用的 3080/3081；`--no-open`
   不拉浏览器。
 - 不调模型、不需要任何凭据：boot 只装配 Cordis 树，不发 LLM 请求。
 
-## @basis 治理面挂载集（T8/T9：audit + egress，2026-11-09 补）
+## @eterna 治理面挂载集（T8/T9：audit + egress，2026-11-09 补）
 
-§11.6/§11.7 裁定的 @basis 侧挂载（plans/2026-11-06-dsh企业agent路线定案.md），治理面三插件的
+§11.6/§11.7 裁定的 @eterna 侧挂载（plans/2026-11-06-dsh企业agent路线定案.md），治理面三插件的
 装载形态与验证结论（T8 落地、T9 真 boot E2E 兑现）：
 
-- **装载行**：`packages/glue/cordis.patch.yml:12-22` 五行 `- insert:`（basis-governance /
-  basis-memory / basis-knowledge / basis-audit / basis-egress，name 全部指向
-  `@basis/glue/*-plugin`）。insert 语义是硬性要求——裸 id 行只覆写既有行，基础树无同名行
+- **装载行**：`packages/glue/cordis.patch.yml:12-22` 五行 `- insert:`（eterna-governance /
+  eterna-memory / eterna-knowledge / eterna-audit / eterna-egress，name 全部指向
+  `@eterna/glue/*-plugin`）。insert 语义是硬性要求——裸 id 行只覆写既有行，基础树无同名行
   时整行被丢弃（2026-11-04 E2E 教训，见 `packages/glue/cordis.patch.yml:1-6` 头注）。
-- **本档源 patch 不携带治理面行**：`profiles/basis-web/cordis.patch.yml` 至今只做宿主行
-  裁切与回加，无任何 `basis-*` insert 行；治理面挂载行由装载方按需追加。T9 验证即是在
-  **物化副本**（`$DSH_HOME/profiles/basis-web/cordis.patch.yml`）追加三行
-  （basis-governance / basis-audit / basis-egress，`scripts/verify-governance-e2e.mjs:66-70`
+- **本档源 patch 不携带治理面行**：`profiles/eterna-web/cordis.patch.yml` 至今只做宿主行
+  裁切与回加，无任何 `eterna-*` insert 行；治理面挂载行由装载方按需追加。T9 验证即是在
+  **物化副本**（`$DSH_HOME/profiles/eterna-web/cordis.patch.yml`）追加三行
+  （eterna-governance / eterna-audit / eterna-egress，`scripts/verify-governance-e2e.mjs:66-70`
   MOUNT_ROWS）→ boot → 还原原始字节（逐字一致断言，`:186`）；工作区源目录全程不被触碰
   （`:31-36` patch 文件纪律）。
-- **行序即瀑布序**：basis-governance 最外层（其 ask 透传后回填，让下游 egress 的域名级
-  deny 先于人审生效）、basis-egress 最下游；basis-audit 纯观察不参与瀑布
+- **行序即瀑布序**：eterna-governance 最外层（其 ask 透传后回填，让下游 egress 的域名级
+  deny 先于人审生效）、eterna-egress 最下游；eterna-audit 纯观察不参与瀑布
   （`packages/glue/cordis.patch.yml:8-11` 行序注、`packages/glue/src/plugins/governance-plugin.ts:100-113`）。
-- **运行时行为**：audit 落盘 agent cwd 下 `.basis/audit-YYYYMMDD.jsonl`（按日轮转，
+- **运行时行为**：audit 落盘 agent cwd 下 `.eterna/audit-YYYYMMDD.jsonl`（按日轮转，
   `packages/audit/src/daily-sink.ts:25-33`）；egress 域名白名单缺省读
-  `.basis/egress-whitelist.yml`，文件缺席 = 内网默认白名单（`192.168.31.*` / `localhost`
+  `.eterna/egress-whitelist.yml`，文件缺席 = 内网默认白名单（`192.168.31.*` / `localhost`
   / `manas`，`packages/extra/src/egress-defaults.ts:19-23`），公网域扩展走资产模板
   `packages/extra/assets/egress-whitelist.template.yml`（启用前过企业合规评审）。
 - **装卸无残留验证结论（T9 真 boot E2E，`node scripts/verify-governance-e2e.mjs`，
   T4 验收「effect 逆闭包卸载无残留」的宿主级兑现）**：
   - web 档挂载 boot：三行 present+enabled+**active** 且 0 个 failed 条目
     （`scripts/verify-governance-e2e.mjs:445-456`，pluginInventory/list 断言）；
-  - 还原 patch 后卸载 boot：**无任何 `basis-*` 条目**、0 failed
+  - 还原 patch 后卸载 boot：**无任何 `eterna-*` 条目**、0 failed
     （`:478-483`——挂载面零残留，宿主树回到本档裁切态）；
   - embed 档行为对比：挂载跑 deny/allow/审计三路断言（拒绝文本 + 见证服务器
     `/deny-me` 命中 0 + 审计三类记录），卸载跑同任务则 egress 标记消失、`/deny-me`
@@ -71,7 +71,7 @@ profiles/basis-web/cordis.patch.yml       profile 用户层（最后写赢，本
 base 树根级行 `llm-pi-ai` 休眠零路由，dsh-base `cordis.patch.yml:128-136`）。客户端
 `ui-settings-models` 对 ns `llm-pi-ai` 渲染**完整编辑器**（`ProviderEditor.tsx:154-158`
 layoutOf 精确匹配；第三方 ns 一律 unknown 只渲染「其余字段在 cordis.patch.yml 中」提示，
-dsh 包只读不可改——这是本档弃 `@basis/llm-openai` Web 承载的根因）：Base URL、API 协议
+dsh 包只读不可改——这是本档弃 `@eterna/llm-openai` Web 承载的根因）：Base URL、API 协议
 下拉（OpenAI Chat Completions / Responses / Anthropic Messages）、API Key（掩码，
 env 探测提示）、模型目录（逐行 ID/名称/上下文窗口/最大输出/输入类型〔视觉〕/推理等级）、
 **获取可用模型**连接测试（`registerModelDiscovery` 拉网关 `/models`）。
@@ -112,10 +112,10 @@ env 探测提示）、模型目录（逐行 ID/名称/上下文窗口/最大输�
 4. **模型发现即连接测试**：「获取可用模型」经 `llm/discoverModels` 对 baseURL 发
    `/models`（一次性凭据不落库）；目录保存后模型选择器按 displayName 分组展示全量。
 
-**企业挂载集第 6 行（@basis/llm-doctor 体检哨兵，2026-11-09 补）**：协议↔baseURL
+**企业挂载集第 6 行（@eterna/llm-doctor 体检哨兵，2026-11-09 补）**：协议↔baseURL
 自动适配 + 逐模型连通性测试。装载 = 挂载集 insert 块加一行
-`- id: basis-llm-doctor, name: '@basis/llm-doctor'`（profile node_modules symlink
-`@basis/llm-doctor → packages/llm-doctor`）。行为：
+`- id: eterna-llm-doctor, name: '@eterna/llm-doctor'`（profile node_modules symlink
+`@eterna/llm-doctor → packages/llm-doctor`）。行为：
 - **自动适配**：global 监听 `loader/volatile-update`（定向 emit 在被改条目自己的
   fiber ctx 上，兄弟插件必须 `{global:true}` 才收得到——非 global 注册静默失聪，
   实测教训）+ boot 延迟 2s 首检；按协议对端点路径发 GET（404=不存在/其余=存在，
@@ -138,7 +138,7 @@ env 探测提示）、模型目录（逐行 ID/名称/上下文窗口/最大输�
 - **不变式**：探测只判路径存在性，网络不可达（非 404 失败）一律不改写；
   修正前后 base 只在原值±/v1 之间选择，不做其它猜测。
 
-**企业挂载集第 7 行（@basis/brand 品牌替换，2026-11-09 补）**：UI 品牌面
+**企业挂载集第 7 行（@eterna/brand 品牌替换，2026-11-09 补）**：UI 品牌面
 「DeepSeek Harness」→「**恒灵·EternaAgent**」（中英文名由用户 2026-11-09 从第三轮候选定名；恒=企业永恒基因、灵=Agent 智能体灵性；左上角显示「中文·英文」组合名(恒灵·EternaAgent),本地构建字样与版本号去除——brand.name slot 只渲染组合名；
 命名经两轮侵权检索（EternaGrid 全网零冲突；EverVolt=松下注册商标、
 恒擎/恒辉=同行业重叠/第 9 类在先商标、智枢=AI 赛道多家撞名均已排除；
@@ -160,10 +160,10 @@ settings（ns `ui-settings-general`）但跨重启仍重现——品牌插件检
 样式块——按类名注入 `display:none!important` 样式表规则（React 重渲染不可
 复活）；隐藏触发器必须计入扫描命中判定（scanText 只按 TEXT_MAP 过滤会漏掉
 非 map 触发器，v5 首版实测漏检）（v3-v5 实测）。装载 = 挂载集 insert 块加
-`- id: basis-brand, name: '@basis/brand'` + profile node_modules symlink。
+`- id: eterna-brand, name: '@eterna/brand'` + profile node_modules symlink。
 
 **两档分工**：Web 档模型经 pi-ai（UI 可配、人工可运维）；embed 档维持
-`@basis/llm-openai`（无头环境变量形态，无 UI 面）——`docs/embed-profile.md` 同步注。
+`@eterna/llm-openai`（无头环境变量形态，无 UI 面）——`docs/embed-profile.md` 同步注。
 
 ## 创造模式回加（preset-cordis，2026-11-09 用户裁定「很重要」）
 
@@ -172,14 +172,14 @@ settings（ns `ui-settings-general`）但跨重启仍重现——品牌插件检
 表达式以 `createRequire(baseUrl)` 解析 `@deepseek-ai/dsh-agent-preset`
 （baseUrl=profile 目录）——profile node_modules 必须链接该包：
 `ln -s <node_modules/.pnpm/@deepseek-ai+dsh-agent-preset@0.2.2-rc.1_*/node_modules/@deepseek-ai/dsh-agent-preset>
-$DSH_HOME/profiles/basis-web/node_modules/@deepseek-ai/dsh-agent-preset`
-（verify-basis-web 物化时自动创建）。重述差异共两处：tool-plugin-manager/
+$DSH_HOME/profiles/eterna-web/node_modules/@deepseek-ai/dsh-agent-preset`
+（verify-eterna-web 物化时自动创建）。重述差异共两处：tool-plugin-manager/
 tool-plugin-market → disabled（企业红线：三方准入不开放）。
-**技能品牌化**：skill-filesystem 的 customSkillDirs 指向 `@basis/creation-skills`
+**技能品牌化**：skill-filesystem 的 customSkillDirs 指向 `@eterna/creation-skills`
 （symlink→packages/brand，其 `skills/` 为上游 `@deepseek-ai/dsh-agent-preset/skills`
 四技能的品牌化 fork——散文层 DeepSeek Harness/DSH 共 94 处→EternaAgent，
 包名 @deepseek-ai/* 为真实依赖保留；升级姿势=与上游 re-diff 后重放替换脚本）。
-profile node_modules 需 symlink `@basis/creation-skills`。**连带回加**：
+profile node_modules 需 symlink `@eterna/creation-skills`。**连带回加**：
 workflow-ptc 硬依赖 ptcRuntime 服务（static inject + 强制 TypeScript 运行时），
 ptc-runtime/workflow-ptc/tool-workflow 三宿主行随之回加（默认标准会话经
 preset-standard 内 disabled 不可见，仅创造模式启用）；tool-executor-ptc 维持
@@ -256,13 +256,13 @@ from the profile patch"）：
    是 client 服务根——浏览器端 26 个 client-ui 插件（layout/contextMenus/
    sidebar 系/chat/workspace/conversation 等）的启动等待链全部级联到
    `shortcuts` 服务，裁掉即 `web boot: 26 entries did not activate` 全家
-   pending。教训：宿主 `pluginInventory` 断言照绿（`verify-basis-web` 曾
+   pending。教训：宿主 `pluginInventory` 断言照绿（`verify-eterna-web` 曾
    exit 0），client 侧失败只在真浏览器暴露——**裁切验证必须含浏览器端
    E2E**。同族 `ui-shortcuts`（快捷键设置页）维持裁切，无插件等待其服务。
 
 ## 保留清单（验证断言口径）
 
-`scripts/verify-basis-web.mjs` 对真 boot 后的 `pluginInventory/list`（Loader
+`scripts/verify-eterna-web.mjs` 对真 boot 后的 `pluginInventory/list`（Loader
 当前条目的只读投影，`packages/host/plugin-inventory/src/index.ts:70-121`）断言：
 
 - **101 个宿主行** present + enabled + **active**：基础骨架（llm/llm-retry/
@@ -297,10 +297,10 @@ from the profile patch"）：
 ## 如何一行回加
 
 裁切是可逆的（§11.1 原则 2）：每处裁切都是覆写块，删除该块（或把 `disabled`
-翻回）即回加，然后重跑 `node scripts/verify-basis-web.mjs`。示例：
+翻回）即回加，然后重跑 `node scripts/verify-eterna-web.mjs`。示例：
 
 ```yaml
-# 回加 office-to-pdf：从 profiles/basis-web/cordis.patch.yml 删除这三行
+# 回加 office-to-pdf：从 profiles/eterna-web/cordis.patch.yml 删除这三行
 - id: office-to-pdf
   disabled: true
 
@@ -308,7 +308,7 @@ from the profile patch"）：
 # 1) 删除宿主三行 ptc-runtime / workflow-ptc / tool-workflow 的覆写块；
 # 2) preset-standard 重述块 delegation 组内把两行 disabled: true 删掉；
 # 3) 如需 ptc 预设，删除 preset-ptc / preset-cordis 的禁用块
-#    （preset-cordis 见上文 baseUrl 限制，需随 @basis 侧处理）。
+#    （preset-cordis 见上文 baseUrl 限制，需随 @eterna 侧处理）。
 
 # ui-sidebar-browser 是反向示范：disabled: false 即为回加。
 ```
@@ -332,13 +332,13 @@ boot 的包）**新**，以下行只存在于仓库检出、装品中没有，�
   检索密钥经环境变量解析）。
 
 上游刷新后的动作：重读两份 cordis.patch.yml diff → 核对裁切清单 → 重跑
-`node scripts/verify-basis-web.mjs`（其 0-failed 断言会抓出新引入的硬注入断链，
+`node scripts/verify-eterna-web.mjs`（其 0-failed 断言会抓出新引入的硬注入断链，
 如上游给 mcp-manager 装上 `inject: [credentials]` 时不需动作，credentials 保留）。
 
 ## 验证方式
 
 ```bash
-node scripts/verify-basis-web.mjs   # exit 0 = 通过
+node scripts/verify-eterna-web.mjs   # exit 0 = 通过
 ```
 
 为什么不是 `dsh --dump-config`：dump-config 只证明补丁文本合成正确，不证明行

@@ -1,6 +1,6 @@
 /**
  * 供应商/场地库查询(13 号文档 §3 工具候选:供应商库查询 + 场地库查询)。
- * v0 内存样例库;真实库接 @basis/knowledge(WeKnora/wiki-local),接口不变整体替换。
+ * v0 内存样例库;真实库接 @eterna/knowledge(WeKnora/wiki-local),接口不变整体替换。
  *
  * 比选中立(审批红线③)在工具层的表达:recordQuote 只登记、neutralTable 只按
  * 统一口径折算排序,不提供任何"指定供应商优先"的入口 —— 偏袒只能来自调用方,
@@ -94,7 +94,7 @@ export interface VenueHit {
   readonly comparableTotalCny: number
 }
 
-/** 内置场地库样例(v0 内存库;真实库接 @basis/knowledge 后由种子迁移)。 */
+/** 内置场地库样例(v0 内存库;真实库接 @eterna/knowledge 后由种子迁移)。 */
 export const VENUE_CATALOG: readonly VenueRecord[] = [
   { name: '开元厅', district: '市中心', metro: '地铁2号线 开元站', capacity: 520, quoteCny: 88000, includesAv: true, source: '开元酒店 2026 报价单 #A-1041' },
   { name: '洲际厅', district: '市中心', metro: '地铁1号线 洲际站', capacity: 480, quoteCny: 102000, includesAv: false, avExtraCny: 12000, source: '洲际酒店 2026 报价单 #B-2210' },

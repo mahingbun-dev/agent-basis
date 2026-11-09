@@ -7,7 +7,7 @@ import { dirname } from 'node:path'
 /**
  * 审计记录 actor 归属(企业插件设计 docs/design/enterprise-plugins.md §3.1:⑧要到插件
  * 粒度必须有归属字段;向后兼容的纯新增可选字段)。
- * - config:保护表声明的工具归属(@basis/audit A 面回填);
+ * - config:保护表声明的工具归属(@eterna/audit A 面回填);
  * - decision:决策侧直投(令牌拒绝等经 report());
  * - install:三方准入流程事件(P2 准入流水线)。
  */

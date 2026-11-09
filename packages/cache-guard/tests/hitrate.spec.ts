@@ -3,15 +3,15 @@
  * - 事件字段提取器(cache-usage / request-route)逐事件行为;
  * - 路由锚定(request/header → request/context → unknown);
  * - 报表口径手算(互斥四桶、null=未知不伪报 0、byRoute);
- * - **对接 @basis/observe 指标聚合器(验收门)**:相同事件流上,
+ * - **对接 @eterna/observe 指标聚合器(验收门)**:相同事件流上,
  *   cacheHitRateFromEvents().hitRate === aggregateSessionMetrics().cacheHitRate 逐位相等,
  *   hitRateFromSessionMetrics(observe 产物) 与本包提取器管线结果字段级一致。
  *
- * 事件形态依据 dsh-repo packages/core/session/src/types.ts:258-436
+ * 事件形态依据 deepseek-harness packages/core/session/src/types.ts:258-436
  * (request/header { header: { config } } / request/context { provider, model } /
  * assistant/message { turn, step, usage })。
  */
-import { aggregateSessionMetrics } from '@basis/observe'
+import { aggregateSessionMetrics } from '@eterna/observe'
 import { describe, expect, it } from 'vitest'
 import {
   cacheHitRateFromEvents, cacheHitRateReport, collectCacheUsage, EVENT_FIELD_EXTRACTOR_IDS,
@@ -145,7 +145,7 @@ describe('命中率报表口径(手算)', () => {
   })
 })
 
-describe('对接 @basis/observe 指标聚合器(验收门)', () => {
+describe('对接 @eterna/observe 指标聚合器(验收门)', () => {
   const mixedStream: SessionEventLike[] = [
     headerEvent('deepseek', 'deepseek-chat'),
     usageEvent(1, 1, { inputTokens: 100, outputTokens: 200, cacheReadTokens: 50 }),

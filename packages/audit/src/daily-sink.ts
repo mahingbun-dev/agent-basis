@@ -1,13 +1,13 @@
 /**
  * 按日轮转文件 sink:NDJSON 追加写,文件名 = <prefix>YYYYMMDD.jsonl(at 的 UTC 日)。
  *
- * 设计依据(企业插件设计 §3.1 查询面):append-only 无轮转的单一 .basis/audit.jsonl 在
+ * 设计依据(企业插件设计 §3.1 查询面):append-only 无轮转的单一 .eterna/audit.jsonl 在
  * 长期宿主下不可接受,v1 二选一定死「按日分文件」;日期取记录自带 at(ISO,投影器恒以
  * toISOString 产出)的 UTC 日——确定、可测、不依赖写进程时区。
  */
 import { appendFile, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { AuditRecord, AuditSink } from '@basis/governance'
+import type { AuditRecord, AuditSink } from '@eterna/governance'
 
 export class DailyFileAuditSink implements AuditSink {
   readonly label: string

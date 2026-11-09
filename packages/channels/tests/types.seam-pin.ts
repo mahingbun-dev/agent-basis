@@ -2,7 +2,7 @@
  * DSH / 外部生态 seam 编译期钉住(只被 tsc --noEmit 消费;vitest include 只收
  * *.spec.ts,不运行本文件)。
  *
- * 依据(dsh-repo / npm,只读):
+ * 依据(deepseek-harness / npm,只读):
  * - SMTP transport:nodemailer 10.x `Transporter` = `Mail<SentMessageInfo>`,
  *   `sendMail(data: SendMailOptions): Promise<SentMessageInfo>`
  *   (dist/cjs/mailer/index.d.ts:164,198;SentMessageInfo.messageId: string)。

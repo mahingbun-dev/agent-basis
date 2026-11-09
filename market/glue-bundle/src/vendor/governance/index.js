@@ -11,7 +11,7 @@ import { RuleEngine as RuleEngine2, serializeArgs } from "./rules.js";
 import { GovernanceConfigError, isRecord } from "./errors.js";
 import { globToRegExp, matchAnyGlob, matchGlob } from "./glob.js";
 import { stableStringify } from "./types.js";
-const GOVERNANCE_SERVICE_ID = "@basis/governance";
+const GOVERNANCE_SERVICE_ID = "@eterna/governance";
 function createGovernance(options) {
   const id = GOVERNANCE_SERVICE_ID;
   return {

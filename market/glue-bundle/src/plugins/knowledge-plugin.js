@@ -1,10 +1,10 @@
 import * as nodeFs from "node:fs";
 import { join } from "node:path";
 import { WikiLocalBackend, createKnowledgeService, createNodeFsAdapter, toDshTools } from "../vendor/knowledge/index.js";
-const BASIS_KNOWLEDGE_PLUGIN_NAME = "basis-knowledge";
+const ETERNA_KNOWLEDGE_PLUGIN_NAME = "eterna-knowledge";
 function defineKnowledgePlugin(config = {}) {
   return {
-    name: BASIS_KNOWLEDGE_PLUGIN_NAME,
+    name: ETERNA_KNOWLEDGE_PLUGIN_NAME,
     inject: { tools: true, governance: false },
     apply(ctx) {
       const cwd = process.cwd();
@@ -12,7 +12,7 @@ function defineKnowledgePlugin(config = {}) {
       const govRules = ctx.governance?.rules;
       const backend = new WikiLocalBackend({
         wikiDir,
-        dbPath: config.dbPath ?? join(cwd, ".basis/knowledge.sqlite3"),
+        dbPath: config.dbPath ?? join(cwd, ".eterna/knowledge.sqlite3"),
         fs: createNodeFsAdapter(nodeFs),
         // 提案门禁(fail-closed):governance 规则显式 allow 才放行;否则 reject 待人工评审
         gate: (proposal) => {
@@ -35,7 +35,7 @@ function defineKnowledgePlugin(config = {}) {
 }
 var knowledge_plugin_default = defineKnowledgePlugin();
 export {
-  BASIS_KNOWLEDGE_PLUGIN_NAME,
+  ETERNA_KNOWLEDGE_PLUGIN_NAME,
   knowledge_plugin_default as default,
   defineKnowledgePlugin
 };

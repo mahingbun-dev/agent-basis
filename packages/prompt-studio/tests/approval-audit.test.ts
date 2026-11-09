@@ -1,6 +1,6 @@
 /**
  * R3 审批门与审计单测:
- * - 审批卡经 @basis/interact buildApprovalCard(R3 grade + doubleConfirm 第二问);
+ * - 审批卡经 @eterna/interact buildApprovalCard(R3 grade + doubleConfirm 第二问);
  * - confirm 匹配/拒绝/未知/复述不一致(mismatch);TTL 过期;新请求顶替旧请求;
  * - 审计:governance 服务在场走它;缺席走兜底 FileAuditSink(NDJSON,含
  *   operator/versionId/at——G5 口径)。
@@ -9,7 +9,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { MemoryAuditSink } from '@basis/governance'
+import { MemoryAuditSink } from '@eterna/governance'
 import { ApprovalGate, PERSONA_WRITE_RULE_ID } from '../src/approval.ts'
 import { StudioAudit } from '../src/audit.ts'
 import type { GovernanceAuditLike } from '../src/audit.ts'
@@ -96,7 +96,7 @@ describe('StudioAudit(审计留痕)', () => {
   let dir: string
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'basis-prompt-studio-audit-'))
+    dir = mkdtempSync(join(tmpdir(), 'eterna-prompt-studio-audit-'))
   })
 
   afterEach(() => {
@@ -116,7 +116,7 @@ describe('StudioAudit(审计留痕)', () => {
     expect(first['kind']).toBe('governance')
     expect(first['at']).toMatch(/^\d{4}-\d{2}-\d{2}T/u)
     const detail = first['detail'] as Record<string, unknown>
-    expect(detail['system']).toBe('basis-prompt-studio')
+    expect(detail['system']).toBe('eterna-prompt-studio')
     expect(detail['action']).toBe('prompt-save.committed')
     expect(detail['operator']).toBe('alice')
     expect(detail['versionId']).toBe('v-000001-abc')

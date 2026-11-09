@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// dsh2cc-jsonl.mjs — 把 @basis/evals 的事件流(replay fixture 或 acp 真会话 runner 另存的
+// dsh2cc-jsonl.mjs — 把 @eterna/evals 的事件流(replay fixture 或 acp 真会话 runner 另存的
 // events/<case>.jsonl,同为 DSH SessionEvent 每行一个)转换为 ai-evo 会话导入可解析的
 // Claude Code .jsonl 格式(一个会话一个文件)。
 // 用法: node tools/dsh2cc-jsonl.mjs <events-dir> <out-dir>

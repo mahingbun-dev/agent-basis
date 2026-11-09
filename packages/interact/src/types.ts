@@ -5,7 +5,7 @@
  * - R0 只读 / R1 可逆写 / R2 需确认 / R3 高危。
  *
  * 官方类型(user-questions / user-approval / permission-presets / sandbox)直接以
- * `import type` 从已发布 0.2.2-alpha.2 依赖引入(与 ../dsh-repo 同版),不在本文件重复;
+ * `import type` 从已发布 0.2.2-alpha.2 依赖引入(与 deepseek-harness 同版),不在本文件重复;
  * 本文件只放官方包没有、而本包需要的最小结构(ToolCallLike)与纯助手。
  * 编译期钉住见 tests/types.seam-pin.ts。
  */
@@ -21,7 +21,7 @@ export type NoAnswerStrategy = 'suspend' | 'escalate' | 'fail'
 
 /**
  * 工具调用最小形态(结构兼容 dsh `ToolExecution` 的 name/arguments 面;
- * 参照 ../dsh-repo packages/core/tools/src/contracts.ts:180-219,与 @basis/governance 的
+ * 参照 deepseek-harness packages/core/tools/src/contracts.ts:180-219,与 @eterna/governance 的
  * ToolCallLike 同构——hitl 分档只消费这两个字段,官方类型其余字段对本包透明)。
  */
 export interface ToolCallLike {
@@ -31,7 +31,7 @@ export interface ToolCallLike {
 
 /**
  * 最小 glob 匹配:hitl 规则的 tool 名匹配用。
- * 语义与 @basis/governance src/glob.ts 一致:`*` 任意长度、`?` 单字符、其余字面量、整串锚定;
+ * 语义与 @eterna/governance src/glob.ts 一致:`*` 任意长度、`?` 单字符、其余字面量、整串锚定;
  * DSH 工具名(mcp__server__tool、web_fetch 等)不含需要 `**` 跨段的场景。
  */
 export function globToRegExp(glob: string): RegExp {

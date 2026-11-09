@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""DSH eval driver —— @basis/evals acp 适配器的子进程驱动。
+"""DSH eval driver —— @eterna/evals acp 适配器的子进程驱动。
 
-经 DSH 官方 Python SDK(`deepseek-harness-sdk`,../dsh-repo/python/sdk/README.md)
+经 DSH 官方 Python SDK(`deepseek-harness-sdk`,deepseek-harness/python/sdk/README.md)
 驱动一次真实 DSH session 跑 golden case,按 NDJSON 协议向 stdout 输出:
 
     {"kind": "session", "session_id": "..."}
@@ -12,7 +12,7 @@
 协议消费方:tools/evals/src/adapters/acp.ts(AcpAdapter)。
 
 运行前提(2026-11-04 真跑打通,docs/acp-real-6/):pip 安装 deepseek-harness-sdk
-(pip -e dsh-repo/python/sdk)+ DSH_HOME 隔离目录(~/.dsh-evals,sdk profile 经
+(pip -e deepseek-harness/python/sdk)+ DSH_HOME 隔离目录(~/.dsh-evals,sdk profile 经
 litellm 路由)+ LITELLM_API_KEY 环境变量;dsh_bin 指向 npm 全局 dsh
 (/opt/homebrew/bin/dsh,避开同名 pip 包装脚本)。
 真实通知样本的采集与回放:scripts/sample-notifications.mjs +

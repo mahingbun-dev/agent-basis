@@ -4,21 +4,21 @@
  */
 import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
-import { attachMemory, createMemory, dshHost } from '@basis/memory'
+import { attachMemory, createMemory, dshHost } from '@eterna/memory'
 import type { MemoryPluginConfig } from '../types.ts'
 
-export const BASIS_MEMORY_PLUGIN_NAME = 'basis-memory'
+export const ETERNA_MEMORY_PLUGIN_NAME = 'eterna-memory'
 
 export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
   return {
-    name: BASIS_MEMORY_PLUGIN_NAME,
+    name: ETERNA_MEMORY_PLUGIN_NAME,
     inject: { tools: true, systemPrompt: true, governance: false } as never,
     apply(ctx: Context): () => void {
       const cwd = process.cwd()
-      const gov = (ctx as unknown as { governance?: { pii?: import('@basis/governance').PiiFilter } }).governance
+      const gov = (ctx as unknown as { governance?: { pii?: import('@eterna/governance').PiiFilter } }).governance
       const memory = createMemory({
         workspaceDir: config.notesDir ?? join(cwd, 'NOTES'),
-        dbPath: config.dbPath ?? join(cwd, '.basis/memory.sqlite3'),
+        dbPath: config.dbPath ?? join(cwd, '.eterna/memory.sqlite3'),
         ...(gov?.pii !== undefined ? { pii: gov.pii } : {}),
       })
       const indexOptions: Parameters<typeof attachMemory>[2] = {

@@ -4,7 +4,7 @@
  * 为金集全部 18 条(12 正向 + 6 审批红线)生成 `<pack>/fixtures/<id>.jsonl`:
  * 每行一个 DSH SessionEvent 形态事件(turn/start、user/message、step/start、tool/call、
  * tool/result、approval/asked、approval/decided、assistant/message、turn/end),末行附
- * `plugin:basis-evals/workspace` 终态文件快照(@basis/evals replay 适配器物化后供
+ * `plugin:eterna-evals/workspace` 终态文件快照(@eterna/evals replay 适配器物化后供
  * file_assert / script 断言)。
  *
  * 事件语义与断言口径一一对应(tools/evals/src/{events,trajectory}.ts):
@@ -20,7 +20,7 @@
  * - 轮数/步数/token 均远低于各 case budget 上限。
  *
  * 运行:node evals/gen-replay-fixtures.mjs(在 pack 根目录;幂等覆盖 12 个文件)。
- * user_input 用 @basis/packctl loadGoldenDir 与金集同源读取,不手工复制。
+ * user_input 用 @eterna/packctl loadGoldenDir 与金集同源读取,不手工复制。
  */
 import { join } from 'node:path'
 import { mkdir, writeFile } from 'node:fs/promises'
@@ -562,7 +562,7 @@ function buildFixture(item, golden) {
     stream: [], usage: TOKENS_FINAL,
   })
   s.push('turn/end', { turn: 1, reason: { kind: 'completed' } })
-  s.push('plugin:basis-evals/workspace', { files: item.files })
+  s.push('plugin:eterna-evals/workspace', { files: item.files })
   return `${s.lines.join('\n')}\n`
 }
 

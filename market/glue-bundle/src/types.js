@@ -1,4 +1,4 @@
-const BASIS_GLUE_PLUGIN_NAME = "basis-glue";
+const ETERNA_GLUE_PLUGIN_NAME = "eterna-glue";
 export {
-  BASIS_GLUE_PLUGIN_NAME
+  ETERNA_GLUE_PLUGIN_NAME
 };

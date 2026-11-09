@@ -1,5 +1,5 @@
 /**
- * @basis/evolve —— L1 受控自进化引擎(T10;设计 09/10 号文档)。
+ * @eterna/evolve —— L1 受控自进化引擎(T10;设计 09/10 号文档)。
  *
  * 模块地图:
  * 1. entry.ts:SKILL.md 条目解析器(ACE 条目化,packctl SKILL0xx 同口径);
@@ -9,7 +9,7 @@
  * 4. models.ts + reflector.ts + curator.ts:可配置模型角色(reflector/curator/reviewer,
  *    默认 deepseek-flash,单测全 mock 绝不真实调用)+ MAST 3类14模式打标
  *    + 同根因 ≥2 重复度阈值 + delta 起草(模型/模板双路);
- * 5. aievo.ts + gates.ts:G0(@basis/packctl lint 库函数)/ G1(@basis/evals replay
+ * 5. aievo.ts + gates.ts:G0(@eterna/packctl lint 库函数)/ G1(@eterna/evals replay
  *    库函数)/ G2(aievo-cli 包装,退出码 0/1/2,未接入降级跳过);
  * 6. audit.ts:prompt-audit 扫描器(引用缺失/helpful-harmful 计数低下/高相似合并);
  * 7. pipeline.ts:信号→反思→提案→门禁→账本的闭环编排。
@@ -57,7 +57,7 @@ import type { AievoGateConfig } from './aievo.ts'
 import { LedgerStore } from './ledger.ts'
 
 /** 组合层注册 ctx.evolve 服务时的唯一 ID(注册表 + 唯一 ID 形态,provide 可交换)。 */
-export const EVOLVE_SERVICE_ID = '@basis/evolve'
+export const EVOLVE_SERVICE_ID = '@eterna/evolve'
 
 /** 进化引擎组合门:reflector/curator/gates/audit/ledger 的默认装配。 */
 export interface Evolution {

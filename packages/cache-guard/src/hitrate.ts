@@ -1,11 +1,11 @@
 /**
  * 命中率指标输出接口:事件字段提取器注册表(唯一 ID → 提取器)+ 命中率报表
- * + @basis/observe 指标聚合器桥接。
+ * + @eterna/observe 指标聚合器桥接。
  *
- * 口径(与 @basis/observe metrics.ts 完全同源同式,可互证):
+ * 口径(与 @eterna/observe metrics.ts 完全同源同式,可互证):
  * - 缓存命中率 = cacheReadTokens / (inputTokens + cacheReadTokens + cacheWriteTokens)
  *   (observe metrics.ts:206-207;分母 = 全部 prompt token,互斥四桶口径见
- *   dsh-repo llm/src/types.ts:182-196);
+ *   deepseek-harness llm/src/types.ts:182-196);
  * - usage 骑在 assistant/message 事件上(session/src/types.ts:338-350;assistant/attempt 不带不计);
  * - 路由归属锚点:request/header(header.config,types.ts:395-403)→ request/context
  *   (types.ts:405-413),两者皆未出现时归 unknown/unknown(observe 同约定);
@@ -14,7 +14,7 @@
  * tests/hitrate.spec.ts 在相同事件流上断言:本包报表与 observe
  * aggregateSessionMetrics().cacheHitRate 逐位相等(对接验收门)。
  */
-import type { SessionMetrics } from '@basis/observe'
+import type { SessionMetrics } from '@eterna/observe'
 import type {
   CacheHitRateReport, CacheUsageSample, EventFieldExtractor, EventFieldExtractorId,
   RouteCacheHitRate, RouteRefLike, SessionEventLike, TokenUsageLike,
@@ -208,7 +208,7 @@ export function cacheHitRateFromEvents(events: readonly SessionEventLike[]): Cac
 }
 
 /**
- * 桥接 @basis/observe 指标聚合器:aggregateSessionMetrics 产物 → 本包报表形态。
+ * 桥接 @eterna/observe 指标聚合器:aggregateSessionMetrics 产物 → 本包报表形态。
  * hitRate 直接取 observe 口径值(同公式,互证由测试钉住);byRoute 由路由明细重组。
  */
 export function hitRateFromSessionMetrics(metrics: SessionMetrics): CacheHitRateReport {

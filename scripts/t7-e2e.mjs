@@ -7,7 +7,7 @@
  *   A. 前端发起 persona 修改(经宿主 HTTP /api 通道,与 T7.2 浏览器半边
  *      ctx.connection.rpc 同一 wire 形态 payload.args={input:{…}})→
  *      loopPrompt/prompt-save 一段返回 R3 审批卡(matchedRule.grade='R3'、
- *      ruleId=basis.prompt-studio.persona-write、doubleConfirm→2 个 questionItems、
+ *      ruleId=eterna.prompt-studio.persona-write、doubleConfirm→2 个 questionItems、
  *      patch 未落盘、snapshot.pendingApproval 出现);
  *   B. 允许一次(二段回显同 content+baseVersionId+approvalId+approved)→
  *      committed、版本 +1、checksum 变化(==sha256(新文本)、≠写前);
@@ -21,9 +21,9 @@
  *      删除包内一行再导入→schemaVersion/checksum 强校验拒绝(未入库、有审计);
  *      原样重导→两段式 committed 成新版本(source=import,checksum 与原包一致);
  *   G. governance 审计事件含以上每次写操作(approval-requested/committed/rejected,
- *      operator/versionId/at 齐全;无 glue 场景落 <home>/basis-prompt-studio/audit.jsonl)。
+ *      operator/versionId/at 齐全;无 glue 场景落 <home>/eterna-prompt-studio/audit.jsonl)。
  *
- * 隔离纪律:运行态全在 .basis-home-t7(DSH_HOME);Web 宿主一律 3108;进程清理只用
+ * 隔离纪律:运行态全在 .eterna-home-t7(DSH_HOME);Web 宿主一律 3108;进程清理只用
  * SIGTERM + pkill -f 'profile t7-studio' 精确模式(绝不 pkill 其他 dsh 实例);
  * LITELLM_API_KEY 只从 .secrets/litellm-master-key.txt 读进宿主进程环境,不写入
  * 任何被跟踪文件/日志/输出。
@@ -47,15 +47,15 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const home = resolve(repoRoot, '.basis-home-t7')
+const home = resolve(repoRoot, '.eterna-home-t7')
 const profile = resolve(home, 'profiles', 't7-studio')
 const profileName = 't7-studio'
 const logsDir = resolve(home, 'logs')
 const hostLog = resolve(logsDir, 't7-e2e-host.log')
 const port = 3108
 const pkgDir = resolve(repoRoot, 'packages', 'prompt-studio')
-const pkgName = '@basis/prompt-studio'
-const rowId = 'basis-prompt-studio'
+const pkgName = '@eterna/prompt-studio'
+const rowId = 'eterna-prompt-studio'
 const author = 't7-e2e'
 
 /* persona 文本(基线=patch 层单引号标量;新文本=基线+红线行,唯一子串作断言锚点) */
@@ -98,7 +98,7 @@ function ensureProfile() {
     name: 'dsh-profile-t7-studio',
     private: true,
     dependencies: {
-      '@basis/llm-openai': `file:${resolve(repoRoot, 'basis/llm-openai')}`,
+      '@eterna/llm-openai': `file:${resolve(repoRoot, 'packages/llm-openai')}`,
       '@deepseek-ai/dsh': '0.2.2-rc.1',
       '@deepseek-ai/dsh-base': '0.2.2-rc.1',
       '@deepseek-ai/dsh-web-app': '0.2.2-rc.1',
@@ -122,7 +122,7 @@ function ensureProfile() {
 
 /* ---------- 插件装载(PLUGIN-AUTHORING §4 symlink 终态,幂等;t7-smoke 同款) ---------- */
 function ensurePluginInstalled() {
-  const linkPath = resolve(profile, 'node_modules', '@basis', 'prompt-studio')
+  const linkPath = resolve(profile, 'node_modules', '@eterna', 'prompt-studio')
   const { lstatSync, realpathSync, mkdirSync: mkDir, symlinkSync } = require_('node:fs')
   if (existsSync(linkPath) && lstatSync(linkPath).isSymbolicLink()) {
     try {
@@ -130,7 +130,7 @@ function ensurePluginInstalled() {
     } catch { /* 悬空链接,重建 */ }
   }
   rmSync(linkPath, { recursive: true, force: true })
-  mkDir(resolve(profile, 'node_modules', '@basis'), { recursive: true })
+  mkDir(resolve(profile, 'node_modules', '@eterna'), { recursive: true })
   symlinkSync(pkgDir, linkPath, 'dir')
   return 'linked'
 }
@@ -152,14 +152,14 @@ function buildPatch(marker) {
   }
   if (prefixSeen !== 1) throw new Error(`expected exactly one prefix: line, got ${prefixSeen}`)
   const head = [
-    '# T7.5 e2e patch layer(LLM 路由 + persona 基线标记 + basis-prompt-studio 行;由 scripts/t7-e2e.mjs 生成)。',
+    '# T7.5 e2e patch layer(LLM 路由 + persona 基线标记 + eterna-prompt-studio 行;由 scripts/t7-e2e.mjs 生成)。',
     '- insert:',
-    '    - id: basis-llm',
-    "      name: '@basis/llm-openai'",
+    '    - id: eterna-llm',
+    "      name: '@eterna/llm-openai'",
     '      config:',
     `        baseURL: '${litellmBaseUrl()}'`,
     '        apiKeyEnv: LITELLM_API_KEY',
-    "        provider: 'basis'",
+    "        provider: 'eterna'",
     '        models:',
     '          - id: deepseek-flash',
     '',
@@ -169,10 +169,10 @@ function buildPatch(marker) {
     '  disabled: true',
     '- id: agent-default-model',
     '  config:',
-    "    provider: 'basis'",
+    "    provider: 'eterna'",
     "    model: 'deepseek-flash'",
     '',
-    '# 提示词工坊+循环轨迹(T7.5 e2e;@basis/prompt-studio 的 insert 行)。',
+    '# 提示词工坊+循环轨迹(T7.5 e2e;@eterna/prompt-studio 的 insert 行)。',
     '- insert:',
     `    - id: ${rowId}`,
     `      name: '${pkgName}'`,
@@ -391,7 +391,7 @@ class RemoteEventsClient {
 
 /* ---------- 审计轮询读(写链路审计为异步落账,轮询到齐或超时) ---------- */
 function readAuditRecords() {
-  const file = resolve(home, 'basis-prompt-studio', 'audit.jsonl')
+  const file = resolve(home, 'eterna-prompt-studio', 'audit.jsonl')
   if (!existsSync(file)) return []
   return readFileSync(file, 'utf8').split('\n').filter(Boolean)
     .map((line) => { try { return JSON.parse(line) } catch { return undefined } })
@@ -428,8 +428,8 @@ try {
   ensureProfile()
 
   // 0) 幂等:清本包运行态(版本库单元 + 兜底审计 + 会话日志),断言从零复现。
-  rmSync(resolve(home, 'storages', 'basis_prompt_studio'), { recursive: true, force: true })
-  rmSync(resolve(home, 'basis-prompt-studio'), { recursive: true, force: true })
+  rmSync(resolve(home, 'storages', 'eterna_prompt_studio'), { recursive: true, force: true })
+  rmSync(resolve(home, 'eterna-prompt-studio'), { recursive: true, force: true })
   rmSync(resolve(home, 'sessions'), { recursive: true, force: true })
   rmSync(tmpWs, { recursive: true, force: true })
 
@@ -452,7 +452,7 @@ try {
     const out = r.stdout ?? ''
     check('0.2 preflight: dump-config 退出码 0', r.status === 0, `status=${r.status}`)
     check('0.3 preflight: 组合树 persona 前缀=基线标记', out.includes(MARKER_BASE))
-    check('0.4 preflight: 组合树含 basis-prompt-studio 行', out.includes(pkgName))
+    check('0.4 preflight: 组合树含 eterna-prompt-studio 行', out.includes(pkgName))
     check('0.5 preflight: 无 skipping/incompatible', r.status === 0 && !/skipping|incompatible/i.test(out))
     if (r.status !== 0 || !out.includes(pkgName)) throw new Error('组合预检失败,中止(见上方输出)')
   }
@@ -469,7 +469,7 @@ try {
   {
     const inventory = await dsh.call('pluginInventory/list')
     const entry = (inventory.entries ?? []).find((e) => e.moduleName === pkgName)
-    check('1.2 pluginInventory: 含 @basis/prompt-studio 行', entry !== undefined,
+    check('1.2 pluginInventory: 含 @eterna/prompt-studio 行', entry !== undefined,
       entry === undefined ? `entries=${(inventory.entries ?? []).length}` : `entryId=${entry.entryId}`)
     check('1.3 pluginInventory: 行 enabled=true', entry?.enabled === true)
     check('1.4 pluginInventory: 行 fiberPhase=active', entry?.fiberPhase === 'active')
@@ -516,7 +516,7 @@ try {
   })
   check('4.2 prompt-save(一段): status=approval-required', phase1.status === 'approval-required')
   check('4.3 prompt-save(一段): R3 审批卡(grade=R3 + ruleId)',
-    phase1.approval?.card?.matchedRule?.grade === 'R3' && phase1.approval?.card?.matchedRule?.ruleId === 'basis.prompt-studio.persona-write',
+    phase1.approval?.card?.matchedRule?.grade === 'R3' && phase1.approval?.card?.matchedRule?.ruleId === 'eterna.prompt-studio.persona-write',
     `ruleId=${phase1.approval?.card?.matchedRule?.ruleId}`)
   check('4.4 prompt-save(一段): doubleConfirm→2 个 questionItems', (phase1.approval?.questionItems?.length ?? 0) === 2,
     `items=${phase1.approval?.questionItems?.length}`)
@@ -698,7 +698,7 @@ try {
     ]
     const all = await waitForAuditActions(expectedActions)
     const byAction = (action) => all.filter((r) => r.action === action)
-    const auditFile = resolve(home, 'basis-prompt-studio', 'audit.jsonl')
+    const auditFile = resolve(home, 'eterna-prompt-studio', 'audit.jsonl')
     check('11.1 兜底审计 NDJSON 存在(无 glue governance 场景)', existsSync(auditFile), auditFile)
     const rawRecords = readFileSync(auditFile, 'utf8').split('\n').filter(Boolean)
       .map((line) => { try { return JSON.parse(line) } catch { return undefined } }).filter(Boolean)
@@ -714,7 +714,7 @@ try {
       && byAction('prompt-import.committed').length >= 1)
     const committed = [...byAction('prompt-save.committed'), ...byAction('prompt-rollback.committed'), ...byAction('prompt-import.committed')]
     check('11.6 committed 事件含 G5 字段(system/operator/versionId/at/checksum)',
-      committed.length >= 3 && committed.every((r) => r.system === 'basis-prompt-studio' && r.operator === author
+      committed.length >= 3 && committed.every((r) => r.system === 'eterna-prompt-studio' && r.operator === author
         && typeof r.versionId === 'string' && typeof r.at === 'string' && typeof r.checksum === 'string'),
       `committed=${committed.length} operators=${[...new Set(committed.map((r) => r.operator))].join(',')}`)
     const requested = [...byAction('prompt-save.approval-requested'), ...byAction('prompt-rollback.approval-requested'), ...byAction('prompt-import.approval-requested')]
@@ -727,7 +727,7 @@ try {
 
   // 12) 磁盘证据:版本库单元一文档一记录
   {
-    const unitDir = resolve(home, 'storages', 'basis_prompt_studio', 'versions')
+    const unitDir = resolve(home, 'storages', 'eterna_prompt_studio', 'versions')
     const versionsFinal = await dsh.call('loopPrompt/prompt-versions', { input: {} })
     const docs = existsSync(unitDir) ? readdirSync(unitDir).filter((f) => f.endsWith('.json')) : []
     check('12.1 版本库单元落 DSH storage 栈(一文档一记录,数=total)',

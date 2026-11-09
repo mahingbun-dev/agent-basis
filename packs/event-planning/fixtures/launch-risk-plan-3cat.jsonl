@@ -9,4 +9,4 @@
 {"type":"tool/result","seq":9,"time":1762000000900,"data":{"turn":1,"step":2,"message":{"role":"tool","content":[{"type":"text","text":"ok"}],"toolCallId":"c2"}}}
 {"type":"assistant/message","seq":10,"time":1762000001000,"data":{"turn":1,"step":2,"message":{"role":"assistant","content":[{"type":"text","text":"风险预案已覆盖天气/设备/嘉宾三类,每类含概率影响评估、应对与责任人,见 out/risk-plan.md。"}]},"stream":[],"usage":{"inputTokens":1300,"outputTokens":420}}}
 {"type":"turn/end","seq":11,"time":1762000001100,"data":{"turn":1,"reason":{"kind":"completed"}}}
-{"type":"plugin:basis-evals/workspace","seq":12,"time":1762000001200,"data":{"files":{"out/risk-plan.md":"# 户外新品发布会风险预案\n\n## 1. 天气风险(概率 中 / 影响 高)\n应对:降水概率 >40% 启用雨备动线;责任人:场地组·王敏。\n\n## 2. 设备风险(概率 低 / 影响 高)\n应对:AV 双机互备+备用电源;演示设备离线备演;责任人:AV组·李铮。\n\n## 3. 嘉宾风险(概率 中 / 影响 中)\n应对:主嘉宾迟到备暖场片,缺席由产品总监代讲;责任人:内容组·陈曦。\n"}}}
+{"type":"plugin:eterna-evals/workspace","seq":12,"time":1762000001200,"data":{"files":{"out/risk-plan.md":"# 户外新品发布会风险预案\n\n## 1. 天气风险(概率 中 / 影响 高)\n应对:降水概率 >40% 启用雨备动线;责任人:场地组·王敏。\n\n## 2. 设备风险(概率 低 / 影响 高)\n应对:AV 双机互备+备用电源;演示设备离线备演;责任人:AV组·李铮。\n\n## 3. 嘉宾风险(概率 中 / 影响 中)\n应对:主嘉宾迟到备暖场片,缺席由产品总监代讲;责任人:内容组·陈曦。\n"}}}

@@ -1,7 +1,7 @@
 /**
  * cache-guard 共享词汇 + DSH seam 的本地最小形态(结构兼容层)。
  *
- * 来源与依据(../dsh-repo,0.2.2-alpha.2,只读):
+ * 来源与依据(deepseek-harness,0.2.2-alpha.2,只读):
  * - session 事件包:packages/core/session/src/types.ts:497-518 `{ type, seq, time, data }`;
  *   data 形态见 SessionEventMap(types.ts:258-436):
  *   - 'request/header' { header: { config: { provider, model, … } }, reason, startsSeries? }(types.ts:395-403)
@@ -15,7 +15,7 @@
  *
  * 本文件只声明缓存守护实际消费的字段(比官方类型更窄),由 tests/types.seam-pin.ts
  * 在编译期断言官方类型可赋值进来 —— DSH 升级破坏 seam 时 tsc --noEmit 即失败。
- * 事件/usage/RouteRef 形态与 @basis/observe types.ts 保持结构一致(同源同据),
+ * 事件/usage/RouteRef 形态与 @eterna/observe types.ts 保持结构一致(同源同据),
  * 供命中率口径互证(tests/hitrate.spec.ts 断言两包在相同事件流上得出相同 cacheHitRate)。
  */
 
@@ -152,7 +152,7 @@ export interface CacheHitRateReport {
   readonly promptTokens: number
   readonly cacheReadTokens: number
   /**
-   * 缓存命中率 = cacheRead / (input+cacheRead+cacheWrite)——与 @basis/observe
+   * 缓存命中率 = cacheRead / (input+cacheRead+cacheWrite)——与 @eterna/observe
    * aggregateSessionMetrics 的 cacheHitRate 完全同口径(metrics.ts:206-207);
    * 从未上报缓存桶或分母为 0 时为 null。
    */

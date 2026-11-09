@@ -1,9 +1,9 @@
 /**
  * G0/G1/G2 验证流水线编排器(设计 10 §5:生成器/评估器异构的门禁链)。
  *
- * - G0 lint(@basis/packctl lintPack 库函数调用):Cordis 纪律 / SKILL.md 结构 /
+ * - G0 lint(@eterna/packctl lintPack 库函数调用):Cordis 纪律 / SKILL.md 结构 /
  *   条目锚点完整 —— delta 应用后的 pack 必须零 error 才过;
- * - G1 本地 replay(@basis/evals runPack 库函数调用,adapterId=replay):
+ * - G1 本地 replay(@eterna/evals runPack 库函数调用,adapterId=replay):
  *   golden smoke 子集回放,全部 case pass 且零加载错误才过;
  * - G2 ai-evo 三层门禁(aievo-cli 包装):release/admission/heldout 逐任务
  *   exit 0 才过;未接入(baseUrl 空)→ 整体降级跳过(degraded),不阻塞本地闭环
@@ -13,8 +13,8 @@
  * - pass:G0+G1 过且 G2 pass 或 degraded(G2 skipped 在账本 verification 里明示);
  * - fail:任一硬门失败。
  */
-import { lintPack } from '@basis/packctl'
-import { runPack } from '@basis/evals'
+import { lintPack } from '@eterna/packctl'
+import { runPack } from '@eterna/evals'
 import { runAievoGates } from './aievo.ts'
 import type { AievoGateConfig, AievoGateResult } from './aievo.ts'
 import type { VerificationReport } from './ledger.ts'
@@ -98,7 +98,7 @@ export function runGate0(packDir: string): Gate0Result {
 
 /**
  * packctl 06 模板要求 `evals/threshold.yml` 必须存在(PACK004),但它不是 golden
- * case;@basis/evals 的 loader 会把 evals/ 顶层全部 *.yml 当 case 加载并产生
+ * case;@eterna/evals 的 loader 会把 evals/ 顶层全部 *.yml 当 case 加载并产生
  * loadError(T4 loader 与 T5 模板的目录约定缝隙)。G1 显式豁免这一个模板必需文件,
  * 其余 loadError 全阻断(不静默吞错)。
  */

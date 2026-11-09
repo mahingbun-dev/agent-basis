@@ -44,7 +44,7 @@ export interface TurnFlushResult {
   readonly droppedDuplicateIds: readonly string[]
 }
 
-/** ask_user_question 工具调用参数形态(dsh-repo packages/interaction/tool-ask-user/README.md:46-60)。 */
+/** ask_user_question 工具调用参数形态(deepseek-harness packages/interaction/tool-ask-user/README.md:46-60)。 */
 export interface AskUserQuestionPayload {
   readonly questions: readonly AskUserQuestionItem[]
 }

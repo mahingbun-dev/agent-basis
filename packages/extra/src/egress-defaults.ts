@@ -1,6 +1,6 @@
 /**
  * egress 默认域名白名单(「数据不出内网」红线的缺省口径;T8,§11.6 裁定
- * @basis/extra egress 白名单首期挂载)。
+ * @eterna/extra egress 白名单首期挂载)。
  *
  * 缺省 fail-closed:白名单只含内网 —— 192.168.31.0/24、localhost、MaNas/NAS
  * 主机名;公网域必须显式写进资产配置文件(模板 assets/egress-whitelist.template.yml,

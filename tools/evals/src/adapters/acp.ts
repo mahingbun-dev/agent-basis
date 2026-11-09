@@ -1,6 +1,6 @@
 /**
  * acp 适配器:经 DSH Python SDK(deepseek-harness-sdk,JSON-RPC over stdio,
- * ../dsh-repo/python/sdk/README.md)驱动真实 session 跑 golden case。
+ * deepseek-harness/python/sdk/README.md)驱动真实 session 跑 golden case。
  *
  * 形态:spawn `<python> python/dsh_eval_driver.py`;stdin 喂一行 JSON 配置;
  * stdout 按 NDJSON 协议收:
@@ -48,7 +48,7 @@ export interface AcpAdapterOptions {
 const DEFAULT_TIMEOUT_SECONDS = 600
 
 /**
- * 应答器可发送的 approval decision outcome(dsh-repo python/sdk
+ * 应答器可发送的 approval decision outcome(deepseek-harness python/sdk
  * models.py:86 Literal["allowed-once","rejected","cancelled"];unavailable 只是
  * 被观测的 fail-closed 结局,不是客户端可发送的决定)。
  */

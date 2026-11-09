@@ -23,7 +23,7 @@ describe('buildReviewerPreset 产物生成', () => {
   it('preset.plugins 含 persona 行与工具门行;subagent 行 agentPreset 指向 preset.id', () => {
     const artifact = buildReviewerPreset({ presetId: 'event-reviewer' })
     expect(artifact.preset.id).toBe('event-reviewer')
-    expect(artifact.preset.plugins.map(row => row.name)).toEqual(['@deepseek-ai/dsh-persona', '@basis/extra'])
+    expect(artifact.preset.plugins.map(row => row.name)).toEqual(['@deepseek-ai/dsh-persona', '@eterna/extra'])
     expect(artifact.subagent.config.agentPreset).toBe('event-reviewer')
     expect(artifact.subagent.config.provider).toBe('spawn')
     expect(artifact.subagent.config.toolName).toBe('reviewer')
@@ -76,7 +76,7 @@ describe('validateReviewerPresetArtifact schema 校验(坏形态必须整包拒�
       ((d['persona'] as Record<string, unknown>)['config'] as Record<string, unknown>)['includeRuntimeContext'] = true
     }],
     ['toolGate.plugin 冒名', (d: Record<string, unknown>) => {
-      (d['toolGate'] as Record<string, unknown>)['plugin'] = '@basis/evil'
+      (d['toolGate'] as Record<string, unknown>)['plugin'] = '@eterna/evil'
     }],
     ['toolGate.config.module 错', (d: Record<string, unknown>) => {
       ((d['toolGate'] as Record<string, unknown>)['config'] as Record<string, unknown>)['module'] = 'other-gate'
@@ -133,7 +133,7 @@ describe('renderReviewerPresetYaml(产物 → profile 行)', () => {
     expect(presetRow.id).toBe('preset-event-reviewer')
     const presetConfig = presetRow.config as { id: string; plugins: { name: string }[] }
     expect(presetConfig.id).toBe('event-reviewer')
-    expect(presetConfig.plugins.map(row => row.name)).toEqual(['@deepseek-ai/dsh-persona', '@basis/extra'])
+    expect(presetConfig.plugins.map(row => row.name)).toEqual(['@deepseek-ai/dsh-persona', '@eterna/extra'])
     const personaRow = presetConfig.plugins[0]! as unknown as { config: { prefix: string; includeRuntimeContext: boolean } }
     expect(personaRow.config.includeRuntimeContext).toBe(false)
     expect(personaRow.config.prefix).toContain('只读审查员')

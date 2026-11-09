@@ -34,7 +34,7 @@ import type { ScheduleSegment } from './tools/index.ts'
 /** 插件名(bundle 内唯一;cordis.patch.yml 以 id: event-tools 引用本行)。 */
 export const EVENT_TOOLS_PLUGIN_NAME = 'event-tools'
 
-/** 工具输出契约:开放 JSON 对象,render 成缩进 JSON 文本块(同 @basis/memory 形态)。 */
+/** 工具输出契约:开放 JSON 对象,render 成缩进 JSON 文本块(同 @eterna/memory 形态)。 */
 const OUTPUT = {
   schema: { type: 'object' as const, additionalProperties: true },
   render: (_args: unknown, value: unknown) => [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }],
@@ -250,7 +250,7 @@ export function defineEventTools(): ToolDefinition[] {
           contractCny: args.contractCny as number,
           ...(Number.isFinite(args.depositRatio) ? { depositRatio: args.depositRatio as number } : {}),
           payee: args.payee,
-          ...(typeof args.basis === 'string' ? { basis: args.basis } : {}),
+          ...(typeof args.eterna === 'string' ? { basis: args.eterna } : {}),
         })
         return { ...draft, approvalOutcome: 'allowed-once', paymentExecutedBy: 'finance-officer(审批通过后)' }
       },

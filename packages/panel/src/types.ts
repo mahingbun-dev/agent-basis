@@ -1,5 +1,5 @@
 /**
- * @basis/panel 快照类型:Host 侧 basisPanel/snapshot 的返回值形状,
+ * @eterna/panel 快照类型:Host 侧 eternaPanel/snapshot 的返回值形状,
  * 与浏览器面板(src/client)共享的单一事实(客户端仅做 type-only 导入)。
  * 全部字段必须 lossless JSON(Typert 网关对结果做 JSON 校验)。
  */
@@ -12,7 +12,7 @@ export interface GovernanceSnapshot {
   readonly ruleCount: number
   /** 规则来源描述(服务实例 / 文件路径 / 未配置)。 */
   readonly ruleSource: string
-  /** 审计条数(.basis/audit-YYYYMMDD.jsonl 按日轮转文件 + 旧版 .basis/audit.jsonl 的非空行合计;@basis/audit 未装载 = 0)。 */
+  /** 审计条数(.eterna/audit-YYYYMMDD.jsonl 按日轮转文件 + 旧版 .eterna/audit.jsonl 的非空行合计;@eterna/audit 未装载 = 0)。 */
   readonly auditEntries: number
   /** 审计来源:单文件 = 其路径,多文件(按日轮转)= 落盘目录;null = 审计文件不存在(未接线)。 */
   readonly auditSource: string | null
@@ -20,7 +20,7 @@ export interface GovernanceSnapshot {
 
 /** memory 卡片:实体数 + 最近 5 条 key。 */
 export interface MemorySnapshot {
-  /** sqlite 库文件是否存在(glue memory-plugin 缺省 cwd/.basis/memory.sqlite3)。 */
+  /** sqlite 库文件是否存在(glue memory-plugin 缺省 cwd/.eterna/memory.sqlite3)。 */
   readonly available: boolean
   /** 库文件路径(缺省约定路径)。 */
   readonly dbPath: string
@@ -106,10 +106,10 @@ export interface ObservabilitySnapshot {
   readonly note?: string
 }
 
-/** Host 侧只读快照(basisPanel/snapshot 返回值)。 */
-export interface BasisPanelSnapshot {
+/** Host 侧只读快照(eternaPanel/snapshot 返回值)。 */
+export interface EternaPanelSnapshot {
   readonly generatedAt: string
-  /** 快照读取的工作目录(宿主 cwd,决定 .basis 相对路径)。 */
+  /** 快照读取的工作目录(宿主 cwd,决定 .eterna 相对路径)。 */
   readonly workspace: string
   readonly governance: GovernanceSnapshot
   readonly memory: MemorySnapshot

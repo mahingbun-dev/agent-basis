@@ -1,16 +1,16 @@
 /**
- * @basis/prompt-studio 线类型契约(T7.1 Host 半边;T7.2 浏览器半边照此消费)。
+ * @eterna/prompt-studio 线类型契约(T7.1 Host 半边;T7.2 浏览器半边照此消费)。
  *
  * 全部端点经官方 Typert 网关 SRC 模式暴露(namespace = loopPrompt),载荷为纯 JSON
  * (SRC result mode = src-json,见 dsh-api-gateway resolveSrcDescriptor)。
  * 写链路(save/rollback/import)一律两段式:
  *   第一段(无 approvalId)→ 校验 + R3 审批卡,返回 status='approval-required';
  *   第二段(带 approvalId + approved)→ 执行写入,返回 status='committed'。
- * 审批卡载荷由 @basis/interact buildApprovalCard/cardToQuestionItems 构造
+ * 审批卡载荷由 @eterna/interact buildApprovalCard/cardToQuestionItems 构造
  * (R3 grade + doubleConfirm 二次确认,计划书 §3「写操作全走 interact R3 审批卡」)。
  */
-import type { ApprovalCard } from '@basis/interact'
-import type { AskUserQuestionItem } from '@basis/interact'
+import type { ApprovalCard } from '@eterna/interact'
+import type { AskUserQuestionItem } from '@eterna/interact'
 
 /** 写操作种类(三类全走 R3:保存/回滚/导入,计划书 §3)。 */
 export type WriteKind = 'save' | 'rollback' | 'import'
@@ -19,7 +19,7 @@ export type WriteKind = 'save' | 'rollback' | 'import'
 export type VersionSource = 'initial' | 'save' | 'rollback' | 'import'
 
 /**
- * 版本记录(版本库唯一行形态;storage 单元 basis_prompt_studio/versions 的记录值)。
+ * 版本记录(版本库唯一行形态;storage 单元 eterna_prompt_studio/versions 的记录值)。
  * 版本只增不删:本包对版本库不暴露任何删除原语,回滚=追加新记录(parentId 指向被
  * 回滚版本),对齐计划书 §6 T7.3「回滚产生新版本而非删旧版本」。
  */

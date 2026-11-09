@@ -1,6 +1,6 @@
 /**
  * 客户端 bundle 构建:src/client/index.ts → lib/client.js。
- * 产物形态 = dsh 闭包工厂工件(banner id 必须与 Loader 行 name 一致:@basis/brand)。
+ * 产物形态 = dsh 闭包工厂工件(banner id 必须与 Loader 行 name 一致:@eterna/brand)。
  */
 import { build } from 'esbuild'
 import { mkdirSync } from 'node:fs'
@@ -39,7 +39,7 @@ await build({
   sourcemap: false,
   logLevel: 'info',
   banner: {
-    js: 'window.__ModuleLoader__.load({\n  id: "@basis/brand",\n  factory: (require) => {\n    var module = { exports: {} };\n    var exports = module.exports;\n',
+    js: 'window.__ModuleLoader__.load({\n  id: "@eterna/brand",\n  factory: (require) => {\n    var module = { exports: {} };\n    var exports = module.exports;\n',
   },
   footer: {
     js: '\n    return module.exports;\n  },\n});\n',

@@ -1,5 +1,5 @@
 /**
- * @basis/interact —— L1 人机交互质量插件(策略纯函数层 + DSH seam 适配形态)。
+ * @eterna/interact —— L1 人机交互质量插件(策略纯函数层 + DSH seam 适配形态)。
  *
  * 五个模块(设计文档 08 §6、12 §3、14 号 T3):
  * 1. hitl.ts:hitl.yaml 加载与校验(R0-R3 分档、on_no_answer 挂起策略、R3 专属控制),fail-closed;
@@ -55,7 +55,7 @@ export type { NoAnswerStrategy, RiskGrade, ToolCallLike } from './types.ts'
 export type { AskUserQuestionItem, AskUserQuestionOption } from '@deepseek-ai/dsh-user-questions'
 
 /** 组合层注册 ctx.interact 服务时的唯一 ID(注册表 + 唯一 ID 形态,provide 可交换)。 */
-export const INTERACT_SERVICE_ID = '@basis/interact'
+export const INTERACT_SERVICE_ID = '@eterna/interact'
 
 /** 组合后的交互服务面:hitl 分档 + 预设产物 + 富卡片 + 提问合并 + 负信号。 */
 export interface Interact {
@@ -85,7 +85,7 @@ export interface InteractOptions {
   readonly ask?: TurnQuestionMergerOptions
   /** 负信号总线选项(时钟注入/缓冲上限)。 */
   readonly signals?: ApprovalSignalBusOptions
-  /** 预设名前缀;默认 'basis'。 */
+  /** 预设名前缀;默认 'eterna'。 */
   readonly presetNamePrefix?: string
 }
 

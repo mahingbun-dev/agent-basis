@@ -1,5 +1,5 @@
 /**
- * governance 插件(T8 接线版):把 @basis/governance 规则引擎与 PII 过滤装配为
+ * governance 插件(T8 接线版):把 @eterna/governance 规则引擎与 PII 过滤装配为
  * ctx.governance 服务,并把 governance.preExecute 的 allow/ask/deny 组合决策挂上
  * 宿主 tools/pre-execute 瀑布 —— 缺口表 P1 项「宿主执行点」的落地
  * (docs/design/enterprise-plugins.md §1.3:glue 只 provide 未挂 pre-execute,
@@ -15,7 +15,7 @@
  * - ask 先 `await next()` 让后续监听者过一遍再定:downstream 非 allow(deny/cancel/ask)
  *   原样上抛(deny 优先,不让一次注定被拒的调用浪费人审);downstream allow 时本 ask
  *   生效。T8 之前「ask 短路」成立的前提是下游只有领域包 ask 门;egress 域名级判定
- *   (basis-egress 行,下游)加入后 ask 短路会让人审绕过域名白名单 —— 故 ask 改为
+ *   (eterna-egress 行,下游)加入后 ask 短路会让人审绕过域名白名单 —— 故 ask 改为
  *   「透传后回填」,egress deny 因此恒先于人审生效。
  *
  * ask 档语义的实现依据(governance/interact 现有语义,不新造口径):
@@ -40,8 +40,8 @@ import type { Context } from '@deepseek-ai/cordis'
 // 该声明文件不进本包 tsc 程序,ctx.on('tools/pre-execute') 的监听签名无法解析
 // (packages/audit/src/plugin.ts:7-10 同款写法)。
 import type {} from '@deepseek-ai/dsh-tools'
-import { PiiFilter, RuleEngine, createGovernance } from '@basis/governance'
-import type { Governance, RuleEvaluation } from '@basis/governance'
+import { PiiFilter, RuleEngine, createGovernance } from '@eterna/governance'
+import type { Governance, RuleEvaluation } from '@eterna/governance'
 import { reportToAudit } from '../audit-bridge.ts'
 import type { GovernancePluginConfig } from '../types.ts'
 
@@ -69,9 +69,9 @@ export function emptyRules(): RuleEngine {
 
 export function defineGovernancePlugin(config: GovernancePluginConfig = {}) {
   return {
-    name: 'basis-governance',
+    name: 'eterna-governance',
     apply(ctx: Context): () => void {
-      const rulesPath = config.rulesPath ?? join(process.cwd(), '.basis/governance.rules.yml')
+      const rulesPath = config.rulesPath ?? join(process.cwd(), '.eterna/governance.rules.yml')
       const rules = existsSync(rulesPath)
         ? RuleEngine.parse(readFileSync(rulesPath, 'utf8'), rulesPath)
         : emptyRules()
@@ -82,7 +82,7 @@ export function defineGovernancePlugin(config: GovernancePluginConfig = {}) {
       // "cannot set property \"governance\" without provide"(cordis Context set 陷阱),
       // 且不 provide 则 memory/knowledge 的 inject(governance) 永远 pending。
       const dispose = ctx.provide(GOVERNANCE_SERVICE_ID, world)
-      const actor = { pluginId: config.actorId ?? 'basis-governance', source: 'decision' } as const
+      const actor = { pluginId: config.actorId ?? 'eterna-governance', source: 'decision' } as const
 
       const offGate = ctx.on('tools/pre-execute', async (exec, next) => {
         const decision = gate.preExecute(exec)

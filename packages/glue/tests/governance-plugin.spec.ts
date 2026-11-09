@@ -34,7 +34,7 @@ afterEach(async () => {
 })
 
 async function mountGovernance(config: Parameters<typeof defineGovernancePlugin>[0] = {}, yaml: string = RULES_YAML) {
-  const dir = await mkdtemp(join(tmpdir(), 'basis-glue-governance-'))
+  const dir = await mkdtemp(join(tmpdir(), 'eterna-glue-governance-'))
   tempDirs.push(dir)
   const rulesPath = join(dir, 'governance.rules.yml')
   await writeFile(rulesPath, yaml, 'utf8')
@@ -109,7 +109,7 @@ describe('governance 插件:tools/pre-execute 瀑布 veto', () => {
 
   it('空规则集 fail-closed:未命中走 default ask(规则文件不存在 = 空规则集)', async () => {
     const harness = makeFakeContext()
-    disposers.push(defineGovernancePlugin({ rulesPath: join(tmpdir(), 'basis-glue-nonexistent', 'rules.yml') }).apply(harness.fake as unknown as Context))
+    disposers.push(defineGovernancePlugin({ rulesPath: join(tmpdir(), 'eterna-glue-nonexistent', 'rules.yml') }).apply(harness.fake as unknown as Context))
     addDownstream(harness)
     expect((await harness.dispatchPreExecute({ name: 'anything' })).kind).toBe('ask')
   })
@@ -129,7 +129,7 @@ describe('governance 插件:决策审计直投(组合层桥接)', () => {
       event: 'tools/pre-execute',
       tool: 'shell',
       decision: 'deny',
-      actor: { pluginId: 'basis-governance', source: 'decision' },
+      actor: { pluginId: 'eterna-governance', source: 'decision' },
     })
 
     await harness.dispatchPreExecute({ name: 'read_file' })
@@ -150,7 +150,7 @@ describe('governance 插件:决策审计直投(组合层桥接)', () => {
 
 describe('governance 插件:卸载逆闭包', () => {
   it('卸载摘除 pre-execute 监听并撤销服务', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'basis-glue-governance-'))
+    const dir = await mkdtemp(join(tmpdir(), 'eterna-glue-governance-'))
     tempDirs.push(dir)
     await writeFile(join(dir, 'governance.rules.yml'), RULES_YAML, 'utf8')
     const harness = makeFakeContext()

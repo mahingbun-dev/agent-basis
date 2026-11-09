@@ -3,7 +3,7 @@
  * 产物形态对齐 dsh 客户端包的闭包工厂工件(tsdown clientBundle 预设的输出形状):
  * 外层 window.__ModuleLoader__.load({id, factory}),factory(require) 内是 CJS 模块体、
  * 返回 module.exports;基线外部模块(浏览器壳 PLATFORM_MODULES 种子表)以 require()
- * 引用,由模块表在运行时注入。banner id 必须与 Loader 行 name 一致(@basis/llm-doctor)。
+ * 引用,由模块表在运行时注入。banner id 必须与 Loader 行 name 一致(@eterna/llm-doctor)。
  */
 import { build } from 'esbuild'
 import { mkdirSync } from 'node:fs'
@@ -44,7 +44,7 @@ await build({
   sourcemap: false,
   logLevel: 'info',
   banner: {
-    js: 'window.__ModuleLoader__.load({\n  id: "@basis/llm-doctor",\n  factory: (require) => {\n    var module = { exports: {} };\n    var exports = module.exports;\n',
+    js: 'window.__ModuleLoader__.load({\n  id: "@eterna/llm-doctor",\n  factory: (require) => {\n    var module = { exports: {} };\n    var exports = module.exports;\n',
   },
   footer: {
     js: '\n    return module.exports;\n  },\n});\n',

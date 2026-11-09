@@ -16,7 +16,7 @@ metadata:
    kb 清单),超范围先确认是否接入,不硬查;
 2. kb_search 只经 Knowledge MCP 检索(pgvector+图谱,内网不经公网):不直连向量库/图库、
    不要求贴库凭据;命中带出处字段(知识库/条目 id/标题/版本)与现成 citation 串,
-   引用逐字不改写;基座通用 wiki 知识走 knowledge_search(@basis/knowledge),
+   引用逐字不改写;基座通用 wiki 知识走 knowledge_search(@eterna/knowledge),
    本包域语料问答走 kb_search,两者都是经 MCP 的只读检索;
 3. 弱相关命中不硬凑:分数低、片段答非所问 = 等于无命中,不得挑半句拼答案。
 <!-- /E -->

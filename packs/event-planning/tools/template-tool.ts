@@ -4,7 +4,7 @@
  *
  * 内置行业模板骨架(章节名与 golden 终态断言同口径,如婚礼策划案四章:
  * 当日流程 / 分项预算 / 分工 / 预案),按关键词命中计分排序,纯函数零模型调用。
- * 真实模板库接 @basis/knowledge(WeKnora)时接口不变整体替换。
+ * 真实模板库接 @eterna/knowledge(WeKnora)时接口不变整体替换。
  *
  * Cordis 纪律:注册表 + 唯一 ID(@event/template-tool),纯函数,无旁路全局。
  */

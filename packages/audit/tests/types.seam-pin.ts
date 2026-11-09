@@ -10,8 +10,8 @@ import type { AuditPluginConfig, AuditWorld } from '../src/index.ts'
  * 名字漂移 = ctx.audit 永不存在(r2 评审点)。 */
 export const pinServiceId: 'audit' = AUDIT_SERVICE_ID
 
-/** 钉住 ②(设计 §3.0-4):库内对象 id 标签恰为 '@basis/audit'(注册表命名空间,与服务名分名)。 */
-export const pinObjectId: '@basis/audit' = AUDIT_ID
+/** 钉住 ②(设计 §3.0-4):库内对象 id 标签恰为 '@eterna/audit'(注册表命名空间,与服务名分名)。 */
+export const pinObjectId: '@eterna/audit' = AUDIT_ID
 
 /** 钉住 ③:本包 service.ts 的 Context 增广使 ctx.audit 类型面可达,且形态 = AuditWorld。 */
 declare const ctx: Context

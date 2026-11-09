@@ -1,10 +1,10 @@
 /**
- * @basis/audit —— 审计留痕服务契约(企业插件设计 docs/design/enterprise-plugins.md §3.1)。
+ * @eterna/audit —— 审计留痕服务契约(企业插件设计 docs/design/enterprise-plugins.md §3.1)。
  *
  * Cordis 命名双常量显式分名(§3.0-4,杜绝 governance 库的同名不同义分叉):
  * - AUDIT_SERVICE_ID = 'audit' 是 cordis provide 的服务名 = ctx 属性名(provide('audit') → ctx.audit,
  *   reflect.ts:291-306 的 props[name] 语义);
- * - AUDIT_ID = '@basis/audit' 是库内对象 id 标签(注册表命名空间,非 cordis 服务名)。
+ * - AUDIT_ID = '@eterna/audit' 是库内对象 id 标签(注册表命名空间,非 cordis 服务名)。
  *
  * 三能力面(§2.1):
  * - A trail:AuditProjector(governance 库实例),事件流增量投影到 sink 集;
@@ -15,7 +15,7 @@
  * 属 P1,本 P0 骨架不含——audit 必须在无 governance/无 tools 服务的宿主上可装载(§3.0-2:
  * inject 是硬依赖表,声明即永续 PENDING),故本包不声明任何 inject。
  */
-import type { AuditActor, AuditProjector, AuditRecord, AuditSink, PiiPattern } from '@basis/governance'
+import type { AuditActor, AuditProjector, AuditRecord, AuditSink, PiiPattern } from '@eterna/governance'
 // 空类型导入 = 增广触发器:没有对 '@deepseek-ai/cordis' 的任何导入时,下面的 declare module
 // 会被当成「环境模块声明」遮蔽真实模块(Context 变成无 provide/on 的空接口,ctx.audit 反而
 // 不可达)。导入后才是真正的 declaration merging(interact/tests/types.seam-pin.ts 同款写法)。
@@ -25,7 +25,7 @@ import type {} from '@deepseek-ai/cordis'
 export const AUDIT_SERVICE_ID = 'audit'
 
 /** 库内对象 id 标签(注册表命名空间,非 cordis 服务名)。 */
-export const AUDIT_ID = '@basis/audit'
+export const AUDIT_ID = '@eterna/audit'
 
 /** C 面查询过滤器(全部条件可选;同一条件内取 OR,条件之间取 AND)。 */
 export interface AuditQuery {
@@ -68,9 +68,9 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
-/** defineAuditPlugin 配置(全部可选;缺省即按日轮转落 agent cwd 下 .basis)。 */
+/** defineAuditPlugin 配置(全部可选;缺省即按日轮转落 agent cwd 下 .eterna)。 */
 export interface AuditPluginConfig {
-  /** 审计落盘目录(默认 process.cwd() 下 .basis;panel 读数同源)。 */
+  /** 审计落盘目录(默认 process.cwd() 下 .eterna;panel 读数同源)。 */
   readonly dir?: string
   /** 每日文件前缀(默认 'audit-',文件名 = <prefix>YYYYMMDD.jsonl)。 */
   readonly filePrefix?: string

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="sTitle sDesc">
-  <title id="sTitle">agent-basis · 领域 Agent 基座</title>
-  <desc id="sDesc">项目名 agent-basis。定位:领域 Agent 基座,DeepSeek Harness 之上的治理/记忆/评测/受控自进化插件体系。三个关键词徽块:零内核改动、评测即门禁、受控自进化。右下角版本 v0.1.0。</desc>
+  <title id="sTitle">EternaAgent · 领域 Agent 基座</title>
+  <desc id="sDesc">产品名 EternaAgent(仓库代号 agent-basis)。定位:领域 Agent 基座,DeepSeek Harness 之上的治理/记忆/评测/受控自进化插件体系。三个关键词徽块:零内核改动、评测即门禁、受控自进化。右下角版本 v0.1.0。</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#0b0f16"/>

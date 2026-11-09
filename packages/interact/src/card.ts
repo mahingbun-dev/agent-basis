@@ -11,7 +11,7 @@
  *
  * DSH 呈现形态:`cardToQuestionItems()` 把卡片渲染为官方 user-questions 载荷
  * (AskUserQuestionItem + intent 'approval' 分支:固定 reject/approve 动作、无自由文本、
- * 单选;见 dsh-repo docs/subsystems/user-questions.md:25-64)。二次确认作为同卡第二问,
+ * 单选;见 deepseek-harness docs/subsystems/user-questions.md:25-64)。二次确认作为同卡第二问,
  * 与 ask.ts 的 ≤3 问上限天然组合。审批应答仍走内核 approval waterfall,本包不改协议。
  */
 import { InteractConfigError } from './errors.ts'

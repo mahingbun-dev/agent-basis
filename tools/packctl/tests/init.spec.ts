@@ -59,7 +59,7 @@ describe('pack init <industry>', () => {
     const result = checkPack(packDir)
     expect(result.findings.filter(f => f.severity === 'error')).toEqual([])
     expect(result.findings.map(f => f.code)).toEqual(['CHK900'])
-    // profile.yml 里两个包名式 bundle 引用(@basis/governance + 本包)需要安装环境,静态跳过。
+    // profile.yml 里两个包名式 bundle 引用(@eterna/governance + 本包)需要安装环境,静态跳过。
     expect(result.skippedSpecifiers).toBe(2)
   })
 

@@ -5,7 +5,7 @@
  * 数据集上传的列口径对齐;answer 由终态/轨迹断言确定性派生(本地无裁判模型,
  * 创意类 rubric 留 ai-evo 平台侧 judge)。
  *
- * 依赖:直接复用 @basis/packctl 的 golden 加载器(loadGoldenDir)——与 packctl lint
+ * 依赖:直接复用 @eterna/packctl 的 golden 加载器(loadGoldenDir)——与 packctl lint
  * 同一份解析器,不另造轮子。Node >= 22.18(原生 TS strip-types,与 packctl bin 同口径)。
  *
  * 用法(仓库根):node packs/event-planning/evals/export/generate-csv.mjs [--out <csv路径>]

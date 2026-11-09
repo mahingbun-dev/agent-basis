@@ -16,7 +16,7 @@ import type {
 } from './types.ts'
 
 /** 组合层注册 ctx.knowledge 服务时的唯一 ID(注册表 + 唯一 ID 形态,provide 可交换)。 */
-export const KNOWLEDGE_SERVICE_ID = '@basis/knowledge'
+export const KNOWLEDGE_SERVICE_ID = '@eterna/knowledge'
 
 export interface ServiceSearchResult {
   readonly hits: readonly KnowledgeHit[]

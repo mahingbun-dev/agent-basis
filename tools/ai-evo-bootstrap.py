@@ -72,7 +72,7 @@ def m5_datasets():
     out = {}
     for name, cases in split_cases().items():
         s, d = req("POST", "/evaluation/datasets", headers=H(),
-                   json={"name": f"event-goldenset-{name}-v1", "description": f"@event/pack 门禁数据集({name},含会话)", "created_by": "agent-basis-ci"})
+                   json={"name": f"event-goldenset-{name}-v1", "description": f"@event/pack 门禁数据集({name},含会话)", "created_by": "agent-eterna-ci"})
         ds_id = d.get("id") if isinstance(d, dict) else None
         if not ds_id:
             print("  dataset create failed:", str(d)[:200]); continue

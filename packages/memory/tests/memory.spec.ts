@@ -2,14 +2,14 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { PiiFilter } from '@basis/governance'
+import { PiiFilter } from '@eterna/governance'
 import { createMemory, estimateTokens, isPiiBlockedError } from '../src/index.ts'
 
 let dir = ''
 let dbPath = ''
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'basis-memory-svc-'))
+  dir = await mkdtemp(join(tmpdir(), 'eterna-memory-svc-'))
   dbPath = join(dir, 'memory.db')
 })
 
@@ -126,7 +126,7 @@ describe('验收 ③:索引预算不超(≤500 token,渐进披露)', () => {
 })
 
 describe('验收 ④:一切写入先过 PII(fail-closed)', () => {
-  it('注入 @basis/governance PiiFilter:M2 写入命中即抛,库无残留', () => {
+  it('注入 @eterna/governance PiiFilter:M2 写入命中即抛,库无残留', () => {
     const session = openSession(new PiiFilter())
     let caught: unknown
     try {

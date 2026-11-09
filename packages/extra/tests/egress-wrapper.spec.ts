@@ -4,7 +4,7 @@
  * 无目的地 fail-closed/渲染面。
  */
 import { describe, expect, it, vi } from 'vitest'
-import { EgressLite } from '@basis/governance'
+import { EgressLite } from '@eterna/governance'
 import { DomainWhitelist } from '../src/domain-whitelist.ts'
 import { EgressToolWrapper, createEgressWrapper, isEgressDeniedValue } from '../src/egress-wrapper.ts'
 import type { ToolDefinition, ToolRunContext } from '@deepseek-ai/dsh-tools'

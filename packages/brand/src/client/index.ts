@@ -1,7 +1,7 @@
 /**
- * @basis/brand 浏览器半边 v2:把「DeepSeek Harness」品牌面全面替换为「恒枢 EternaGrid」。
+ * @eterna/brand 浏览器半边 v2:把「DeepSeek Harness」品牌面全面替换为「恒枢 EternaGrid」。
  *
- * 五个替换面(零上游改动;实测依据见 docs/basis-web-profile.md):
+ * 五个替换面(零上游改动;实测依据见 docs/eterna-web-profile.md):
  * 1. 侧栏 logo:官方 slot `sidebar.brand.mark`(ui-sidebar children 声明,上游
  *    fallback=FishLogo 深海鲸)——slot 注入恒枢标(正式席位,非 DOM hack)。
  * 2. 残余鲸鱼置换:FishLogo 另有渲染点(版本拷贝按钮等)——DOM 观察器按 viewBox
@@ -137,7 +137,7 @@ function hideClass(className: string): void {
     hiddenClasses.add(cls)
     if (hideStyleEl === undefined) {
       hideStyleEl = document.createElement('style')
-      hideStyleEl.id = 'basis-brand-hide'
+      hideStyleEl.id = 'eterna-brand-hide'
       document.head.append(hideStyleEl)
     }
     hideStyleEl.append(`.${CSS.escape(cls)}{display:none!important}\n`)

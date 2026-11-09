@@ -1,17 +1,17 @@
 /**
  * 基座面板主页面(main keyed slot 的 occupant):三区块——服务清单 / 操作指南 /
  * 可观测样例。数据经 inject 面到达(props.useSnapshot / props.refresh),不触 ctx。
- * DOM 全部带 data-basis-panel* 结构化锚点,供 E2E 严断言定位(非全文匹配)。
+ * DOM 全部带 data-eterna-panel* 结构化锚点,供 E2E 严断言定位(非全文匹配)。
  */
 import { useCallback, useState, type ReactElement, type ReactNode } from 'react'
-import type { BasisPanelSnapshot, ToolCard } from '../types.ts'
+import type { EternaPanelSnapshot, ToolCard } from '../types.ts'
 import { GUIDE_PROMPTS } from '../prompts.ts'
 import { toolLocale } from './locales.ts'
 
 /** 快照加载状态(inject hooks 份额的快照值)。 */
 export type PanelSnapshotState =
   | { readonly status: 'loading' }
-  | { readonly status: 'ready', readonly snapshot: BasisPanelSnapshot }
+  | { readonly status: 'ready', readonly snapshot: EternaPanelSnapshot }
   | { readonly status: 'error', readonly message: string }
 
 /** 面板组件 props(inject 面注入:hooks.snapshot → useSnapshot 选择器钩子,加 refresh 回调)。 */
@@ -31,52 +31,52 @@ export interface PanelPageProps {
 
 function Metric({ label, value }: { readonly label: string, readonly value: ReactNode }): ReactElement {
   return (
-    <span data-basis-panel="metric">
-      <span data-basis-panel="metric-value">{value}</span>
-      <span data-basis-panel="metric-label">{label}</span>
+    <span data-eterna-panel="metric">
+      <span data-eterna-panel="metric-value">{value}</span>
+      <span data-eterna-panel="metric-label">{label}</span>
     </span>
   )
 }
 
-function GovernanceCard({ snapshot, t }: { readonly snapshot: BasisPanelSnapshot, readonly t: (key: string) => string }): ReactElement {
+function GovernanceCard({ snapshot, t }: { readonly snapshot: EternaPanelSnapshot, readonly t: (key: string) => string }): ReactElement {
   const governance = snapshot.governance
   return (
-    <section data-basis-panel="card" data-basis-panel-card="governance" aria-label={t('services.governance')}>
-      <div data-basis-panel="card-kicker">{t('services.governance')}</div>
-      <div data-basis-panel="tile-row">
-        <Metric label={t('services.rules')} value={<span data-basis-panel="rule-count">{governance.ruleCount}</span>} />
-        <Metric label={t('services.audit')} value={<span data-basis-panel="audit-count">{governance.auditEntries}</span>} />
+    <section data-eterna-panel="card" data-eterna-panel-card="governance" aria-label={t('services.governance')}>
+      <div data-eterna-panel="card-kicker">{t('services.governance')}</div>
+      <div data-eterna-panel="tile-row">
+        <Metric label={t('services.rules')} value={<span data-eterna-panel="rule-count">{governance.ruleCount}</span>} />
+        <Metric label={t('services.audit')} value={<span data-eterna-panel="audit-count">{governance.auditEntries}</span>} />
       </div>
-      <div data-basis-panel="kv">
-        <span data-basis-panel="kv-key">规则源</span>
-        <span data-basis-panel="kv-value" data-basis-panel-detail="rule-source">{governance.ruleSource}</span>
+      <div data-eterna-panel="kv">
+        <span data-eterna-panel="kv-key">规则源</span>
+        <span data-eterna-panel="kv-value" data-eterna-panel-detail="rule-source">{governance.ruleSource}</span>
       </div>
     </section>
   )
 }
 
 /** 单条记忆渲染:key/时间 meta 行 + 内容(超 3 行截断,点击展开)。 */
-function MemoryEntityRow({ entity }: { readonly entity: BasisPanelSnapshot['memory']['entities'][number] }): ReactElement {
+function MemoryEntityRow({ entity }: { readonly entity: EternaPanelSnapshot['memory']['entities'][number] }): ReactElement {
   const [expanded, setExpanded] = useState(false)
   const date = new Date(entity.updatedAt)
   const time = Number.isNaN(date.getTime()) ? '' : date.toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
   const long = entity.content.length > 120 || entity.content.includes('\n')
   return (
-    <div data-basis-panel="mem-entity" data-basis-panel-mem-entity={entity.subject + '/' + entity.key}>
-      <div data-basis-panel="mem-entity-head">
-        <span data-basis-panel="mem-entity-key">{entity.key}</span>
-        <span data-basis-panel="mem-entity-time">{time}</span>
+    <div data-eterna-panel="mem-entity" data-eterna-panel-mem-entity={entity.subject + '/' + entity.key}>
+      <div data-eterna-panel="mem-entity-head">
+        <span data-eterna-panel="mem-entity-key">{entity.key}</span>
+        <span data-eterna-panel="mem-entity-time">{time}</span>
       </div>
       <div
-        data-basis-panel="mem-entity-content"
-        data-basis-panel-clamped={(!expanded && long) ? 'true' : undefined}
+        data-eterna-panel="mem-entity-content"
+        data-eterna-panel-clamped={(!expanded && long) ? 'true' : undefined}
       >
         {entity.content}
       </div>
       {long && (
         <button
           type="button"
-          data-basis-panel="mem-expand"
+          data-eterna-panel="mem-expand"
           onClick={() => setExpanded(v => !v)}
         >
           {expanded ? '收起' : '显示全文'}
@@ -100,10 +100,10 @@ function subjectKind(subject: string): { label: string, desc: string, order: num
   return hit ?? { label: subject, desc: '', order: 50, tone: 'normal' as const }
 }
 
-function MemorySection({ snapshot, t }: { readonly snapshot: BasisPanelSnapshot, readonly t: (key: string) => string }): ReactElement {
+function MemorySection({ snapshot, t }: { readonly snapshot: EternaPanelSnapshot, readonly t: (key: string) => string }): ReactElement {
   const memory = snapshot.memory
   const entities = [...(memory.entities ?? [])]
-  type Entity = BasisPanelSnapshot['memory']['entities'][number]
+  type Entity = EternaPanelSnapshot['memory']['entities'][number]
   // 按人话分类分组(不再是裸 subject 编码),组内按 updatedAt 降序
   type MemGroup = { label: string, desc: string, order: number, tone: 'normal' | 'test', items: Entity[] }
   const groups = new Map<string, MemGroup>()
@@ -115,17 +115,17 @@ function MemorySection({ snapshot, t }: { readonly snapshot: BasisPanelSnapshot,
   }
   const ordered = [...groups.values()].sort((a, b) => a.order - b.order)
   return (
-    <section data-basis-panel="section" data-basis-panel-section="memory" aria-label={t('memory')}>
-      <h2 data-basis-panel="section-title">{t('memory')}</h2>
-      <p data-basis-panel="section-note">{t('memory.hint')}</p>
-      {entities.length === 0 && <span data-basis-panel="placeholder">{t('state.empty')}</span>}
+    <section data-eterna-panel="section" data-eterna-panel-section="memory" aria-label={t('memory')}>
+      <h2 data-eterna-panel="section-title">{t('memory')}</h2>
+      <p data-eterna-panel="section-note">{t('memory.hint')}</p>
+      {entities.length === 0 && <span data-eterna-panel="placeholder">{t('state.empty')}</span>}
       {ordered.map(g => (
-        <div key={g.label} data-basis-panel="mem-group" data-basis-panel-mem-subject={g.label} data-basis-panel-mem-tone={g.tone}>
-          <div data-basis-panel="mem-subject">
+        <div key={g.label} data-eterna-panel="mem-group" data-eterna-panel-mem-subject={g.label} data-eterna-panel-mem-tone={g.tone}>
+          <div data-eterna-panel="mem-subject">
             {g.label}
-            <span data-basis-panel="mem-count">{g.items.length} 条</span>
+            <span data-eterna-panel="mem-count">{g.items.length} 条</span>
           </div>
-          <p data-basis-panel="mem-group-desc">{g.desc}</p>
+          <p data-eterna-panel="mem-group-desc">{g.desc}</p>
           {g.items.map(e => <MemoryEntityRow key={e.subject + '/' + e.key} entity={e} />)}
         </div>
       ))}
@@ -133,18 +133,18 @@ function MemorySection({ snapshot, t }: { readonly snapshot: BasisPanelSnapshot,
   )
 }
 
-function KnowledgeCard({ snapshot, t }: { readonly snapshot: BasisPanelSnapshot, readonly t: (key: string) => string }): ReactElement {
+function KnowledgeCard({ snapshot, t }: { readonly snapshot: EternaPanelSnapshot, readonly t: (key: string) => string }): ReactElement {
   const knowledge = snapshot.knowledge
   return (
-    <section data-basis-panel="card" data-basis-panel-card="knowledge" aria-label={t('services.knowledge')}>
-      <div data-basis-panel="card-kicker">{t('services.knowledge')}</div>
-      <div data-basis-panel="tile-row">
-        <Metric label={t('services.wikiDocs')} value={<span data-basis-panel="wiki-doc-count">{knowledge.wikiDocCount}</span>} />
-        <Metric label={t('services.proposals')} value={<span data-basis-panel="proposal-count">{knowledge.proposalCount}</span>} />
+    <section data-eterna-panel="card" data-eterna-panel-card="knowledge" aria-label={t('services.knowledge')}>
+      <div data-eterna-panel="card-kicker">{t('services.knowledge')}</div>
+      <div data-eterna-panel="tile-row">
+        <Metric label={t('services.wikiDocs')} value={<span data-eterna-panel="wiki-doc-count">{knowledge.wikiDocCount}</span>} />
+        <Metric label={t('services.proposals')} value={<span data-eterna-panel="proposal-count">{knowledge.proposalCount}</span>} />
       </div>
-      <div data-basis-panel="kv">
-        <span data-basis-panel="kv-key">{t('services.weknora')}</span>
-        <span data-basis-panel="kv-value" data-basis-panel-detail="weknora-status">{knowledge.weknora.status}</span>
+      <div data-eterna-panel="kv">
+        <span data-eterna-panel="kv-key">{t('services.weknora')}</span>
+        <span data-eterna-panel="kv-value" data-eterna-panel-detail="weknora-status">{knowledge.weknora.status}</span>
       </div>
     </section>
   )
@@ -154,26 +154,26 @@ function ToolRow({ tool, lang }: { readonly tool: ToolCard, readonly lang: 'zh' 
   const loc = toolLocale(lang, tool.name)
   const risk = tool.r3 ? 'R3' : tool.risk
   return (
-    <li data-basis-panel="tool" data-basis-panel-tool={tool.name} data-basis-panel-risk={risk}>
-      <span data-basis-panel="tool-head">
-        <span data-basis-panel="tool-label">{loc.label}</span>
-        <span data-basis-panel="tool-id">{tool.name}</span>
+    <li data-eterna-panel="tool" data-eterna-panel-tool={tool.name} data-eterna-panel-risk={risk}>
+      <span data-eterna-panel="tool-head">
+        <span data-eterna-panel="tool-label">{loc.label}</span>
+        <span data-eterna-panel="tool-id">{tool.name}</span>
       </span>
-      <span data-basis-panel="tool-desc">{loc.desc}</span>
-      {risk !== 'R0' && <span data-basis-panel="risk" data-basis-panel-risk={risk}>{risk}</span>}
+      <span data-eterna-panel="tool-desc">{loc.desc}</span>
+      {risk !== 'R0' && <span data-eterna-panel="risk" data-eterna-panel-risk={risk}>{risk}</span>}
     </li>
   )
 }
 
-function ToolsCard({ snapshot, t, lang }: { readonly snapshot: BasisPanelSnapshot, readonly t: (key: string) => string, readonly lang: 'zh' | 'en' }): ReactElement {
+function ToolsCard({ snapshot, t, lang }: { readonly snapshot: EternaPanelSnapshot, readonly t: (key: string) => string, readonly lang: 'zh' | 'en' }): ReactElement {
   const tools = snapshot.tools
   return (
-    <section data-basis-panel="card" data-basis-panel-card="event-tools" aria-label={t('services.tools')}>
-      <div data-basis-panel="card-kicker">{t('services.tools')} <span data-basis-panel="card-count">· {tools.length}</span></div>
+    <section data-eterna-panel="card" data-eterna-panel-card="event-tools" aria-label={t('services.tools')}>
+      <div data-eterna-panel="card-kicker">{t('services.tools')} <span data-eterna-panel="card-count">· {tools.length}</span></div>
       {tools.length === 0
-        ? <span data-basis-panel="placeholder">{t('state.empty')}</span>
+        ? <span data-eterna-panel="placeholder">{t('state.empty')}</span>
         : (
-          <ul data-basis-panel="tool-list">
+          <ul data-eterna-panel="tool-list">
             {tools.map(tool => <ToolRow key={tool.name} tool={tool} lang={lang} />)}
           </ul>
         )}
@@ -219,37 +219,37 @@ function PromptRow({ id, capability, title, prompt, note, t }: {
     }
   }, [prompt])
   return (
-    <div data-basis-panel="prompt" data-basis-panel-prompt={id}>
-      <div data-basis-panel="prompt-head">
-        <span data-basis-panel="prompt-title">{title}</span>
-        <span data-basis-panel="prompt-capability">{capability}</span>
-        <button type="button" data-basis-panel="prompt-copy" data-basis-panel-copy={id} onClick={onCopy}>
+    <div data-eterna-panel="prompt" data-eterna-panel-prompt={id}>
+      <div data-eterna-panel="prompt-head">
+        <span data-eterna-panel="prompt-title">{title}</span>
+        <span data-eterna-panel="prompt-capability">{capability}</span>
+        <button type="button" data-eterna-panel="prompt-copy" data-eterna-panel-copy={id} onClick={onCopy}>
           {copied ? t('guide.copied') : t('guide.copy')}
         </button>
       </div>
-      <p data-basis-panel="prompt-text">{prompt}</p>
-      {note !== undefined && <p data-basis-panel="prompt-note">{note}</p>}
+      <p data-eterna-panel="prompt-text">{prompt}</p>
+      {note !== undefined && <p data-eterna-panel="prompt-note">{note}</p>}
     </div>
   )
 }
 
 function SessionRow({ session, t }: {
-  readonly session: BasisPanelSnapshot['observability']['sessions'][number]
+  readonly session: EternaPanelSnapshot['observability']['sessions'][number]
   readonly t: (key: string) => string
 }): ReactElement {
   return (
-    <div data-basis-panel="session" data-basis-panel-session={session.id}>
-      <span data-basis-panel="session-id">{session.id}</span>
-      <span data-basis-panel="session-metrics">
+    <div data-eterna-panel="session" data-eterna-panel-session={session.id}>
+      <span data-eterna-panel="session-id">{session.id}</span>
+      <span data-eterna-panel="session-metrics">
         <span>{t('observability.turns')} {session.turns}</span>
         <span>{t('observability.input')} {session.inputTokens}</span>
         <span>{t('observability.output')} {session.outputTokens}</span>
         <span>{t('observability.cacheRead')} {session.cacheReadTokens}</span>
-        <span data-basis-panel="cache-hit-rate">
+        <span data-eterna-panel="cache-hit-rate">
           {t('observability.cacheHit')} {session.cacheHitRate === null ? '—' : `${(session.cacheHitRate * 100).toFixed(1)}%`}
         </span>
       </span>
-      <span data-basis-panel="session-last">{session.lastAt}</span>
+      <span data-eterna-panel="session-last">{session.lastAt}</span>
     </div>
   )
 }
@@ -260,25 +260,25 @@ export function PanelPage({ useSnapshot, refresh, t, lang }: Omit<PanelPageProps
   // 语言跟随 DSH 系统(官方把当前语言写在 <html lang>;切换即时生效,字典更新触发重渲染)
   const uiLang: 'zh' | 'en' = lang ?? ((document.documentElement.lang || '').toLowerCase().startsWith('zh') ? 'zh' : 'en')
   return (
-    <div data-basis-panel="root" aria-label={t('panel')}>
-      <div data-basis-panel="toolbar">
-        <h1 data-basis-panel="heading">{t('panel')}</h1>
-        <button type="button" data-basis-panel="refresh" onClick={refresh}>{t('refresh')}</button>
+    <div data-eterna-panel="root" aria-label={t('panel')}>
+      <div data-eterna-panel="toolbar">
+        <h1 data-eterna-panel="heading">{t('panel')}</h1>
+        <button type="button" data-eterna-panel="refresh" onClick={refresh}>{t('refresh')}</button>
       </div>
-      <p data-basis-panel="sub">{t('subtitle')}</p>
+      <p data-eterna-panel="sub">{t('subtitle')}</p>
 
-      <div data-basis-panel="steps" data-basis-panel-steps="true">
-        <div data-basis-panel="step"><span data-basis-panel="step-no">1</span><span data-basis-panel="step-text">{t('steps.one')}</span></div>
-        <div data-basis-panel="step"><span data-basis-panel="step-no">2</span><span data-basis-panel="step-text">{t('steps.two')}</span></div>
-        <div data-basis-panel="step"><span data-basis-panel="step-no">3</span><span data-basis-panel="step-text">{t('steps.three')}</span></div>
+      <div data-eterna-panel="steps" data-eterna-panel-steps="true">
+        <div data-eterna-panel="step"><span data-eterna-panel="step-no">1</span><span data-eterna-panel="step-text">{t('steps.one')}</span></div>
+        <div data-eterna-panel="step"><span data-eterna-panel="step-no">2</span><span data-eterna-panel="step-text">{t('steps.two')}</span></div>
+        <div data-eterna-panel="step"><span data-eterna-panel="step-no">3</span><span data-eterna-panel="step-text">{t('steps.three')}</span></div>
       </div>
 
-      <section data-basis-panel="section" data-basis-panel-section="services" aria-label={t('services')}>
-        <h2 data-basis-panel="section-title">{t('services')}</h2>
-        {state.status === 'loading' && <span data-basis-panel="placeholder">{t('state.loading')}</span>}
-        {state.status === 'error' && <span data-basis-panel="placeholder" data-basis-panel-error="true">{t('state.error')}: {state.message}</span>}
+      <section data-eterna-panel="section" data-eterna-panel-section="services" aria-label={t('services')}>
+        <h2 data-eterna-panel="section-title">{t('services')}</h2>
+        {state.status === 'loading' && <span data-eterna-panel="placeholder">{t('state.loading')}</span>}
+        {state.status === 'error' && <span data-eterna-panel="placeholder" data-eterna-panel-error="true">{t('state.error')}: {state.message}</span>}
         {state.status === 'ready' && (
-          <div data-basis-panel="cards">
+          <div data-eterna-panel="cards">
             <GovernanceCard snapshot={state.snapshot} t={t} />
             <KnowledgeCard snapshot={state.snapshot} t={t} />
             <ToolsCard snapshot={state.snapshot} t={t} lang={uiLang} />
@@ -286,10 +286,10 @@ export function PanelPage({ useSnapshot, refresh, t, lang }: Omit<PanelPageProps
         )}
       </section>
 
-      <section data-basis-panel="section" data-basis-panel-section="guide" aria-label={t('guide')}>
-        <h2 data-basis-panel="section-title">{t('guide')}</h2>
-        <p data-basis-panel="section-note">{t('guide.hint')}</p>
-        <div data-basis-panel="cards">
+      <section data-eterna-panel="section" data-eterna-panel-section="guide" aria-label={t('guide')}>
+        <h2 data-eterna-panel="section-title">{t('guide')}</h2>
+        <p data-eterna-panel="section-note">{t('guide.hint')}</p>
+        <div data-eterna-panel="cards">
           {GUIDE_PROMPTS.map(entry => (
             <PromptRow key={entry.id} id={entry.id} capability={entry.capability} title={entry.title} prompt={entry.prompt} note={entry.note} t={t} />
           ))}
@@ -298,22 +298,22 @@ export function PanelPage({ useSnapshot, refresh, t, lang }: Omit<PanelPageProps
 
       {state.status === 'ready' && <MemorySection snapshot={state.snapshot} t={t} />}
       {state.status !== 'ready' && (
-        <section data-basis-panel="section" data-basis-panel-section="memory" aria-label={t('memory')}>
-          <span data-basis-panel="placeholder">{t('state.loading')}</span>
+        <section data-eterna-panel="section" data-eterna-panel-section="memory" aria-label={t('memory')}>
+          <span data-eterna-panel="placeholder">{t('state.loading')}</span>
         </section>
       )}
 
-      <section data-basis-panel="section" data-basis-panel-section="observability" aria-label={t('observability')}>
-        <h2 data-basis-panel="section-title">{t('observability')}</h2>
+      <section data-eterna-panel="section" data-eterna-panel-section="observability" aria-label={t('observability')}>
+        <h2 data-eterna-panel="section-title">{t('observability')}</h2>
         {state.status === 'ready' && state.snapshot.observability.note !== undefined && (
-          <p data-basis-panel="section-note" data-basis-panel-observability-note="true">{state.snapshot.observability.note}</p>
+          <p data-eterna-panel="section-note" data-eterna-panel-observability-note="true">{state.snapshot.observability.note}</p>
         )}
         {state.status === 'ready' && state.snapshot.observability.sessions.length > 0 && (
-          <div data-basis-panel="cards">
+          <div data-eterna-panel="cards">
             {state.snapshot.observability.sessions.map(session => <SessionRow key={session.id} session={session} t={t} />)}
           </div>
         )}
-        {state.status !== 'ready' && <span data-basis-panel="placeholder">{t('state.loading')}</span>}
+        {state.status !== 'ready' && <span data-eterna-panel="placeholder">{t('state.loading')}</span>}
       </section>
     </div>
   )

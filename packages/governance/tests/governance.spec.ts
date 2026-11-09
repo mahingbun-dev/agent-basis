@@ -11,9 +11,9 @@ rules:
 `)
 
 describe('组合治理门:createGovernance', () => {
-  it('id 为注册表唯一 ID(@basis/governance)', () => {
+  it('id 为注册表唯一 ID(@eterna/governance)', () => {
     const gov = createGovernance({ rules: RULES })
-    expect(gov.id).toBe('@basis/governance')
+    expect(gov.id).toBe('@eterna/governance')
   })
 
   it('未配预算/egress 时行为退化为纯规则引擎', () => {

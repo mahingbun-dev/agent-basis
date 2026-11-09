@@ -1,5 +1,5 @@
 {
-  "//": "所有 packages/* 与 tools/* 的 tsconfig.json 均 extends 本文件。strict 全开,与 dsh-repo 的 tsconfig.base.json 严格度对齐(noUncheckedIndexedAccess / exactOptionalPropertyTypes / noImplicitOverride)。本文件永不加 include/files,由各包自己圈定 src 与 tests。",
+  "//": "所有 packages/* 与 tools/* 的 tsconfig.json 均 extends 本文件。strict 全开,与 deepseek-harness 的 tsconfig.base.json 严格度对齐(noUncheckedIndexedAccess / exactOptionalPropertyTypes / noImplicitOverride)。本文件永不加 include/files,由各包自己圈定 src 与 tests。",
   "compilerOptions": {
     "target": "es2024",
     "lib": ["es2024"],

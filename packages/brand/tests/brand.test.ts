@@ -1,5 +1,5 @@
 /**
- * @basis/brand 测试:
+ * @eterna/brand 测试:
  * - title 改写纯函数(会话前缀形态/无前缀形态/多次出现);
  * - 默认导出插件形态;
  * - client bundle 工件形态 + vm 冒烟(伪 window 装载断言 apply/inject,
@@ -15,8 +15,8 @@ const root = join(import.meta.dirname, '..')
 const bundle = readFileSync(join(root, 'lib', 'client.js'), 'utf8')
 
 describe('插件形态', () => {
-  it('default export:name=basis-brand,apply 返回 disposer', () => {
-    expect(plugin.name).toBe('basis-brand')
+  it('default export:name=eterna-brand,apply 返回 disposer', () => {
+    expect(plugin.name).toBe('eterna-brand')
     expect(typeof plugin.apply).toBe('function')
     const dispose = plugin.apply()
     expect(typeof dispose).toBe('function')
@@ -27,7 +27,7 @@ describe('插件形态', () => {
 describe('title 改写语义(经 bundle vm 驱动伪 DOM 验证)', () => {
   it('bundle 工件形态:闭包工厂 + id 对齐', () => {
     expect(bundle.startsWith('window.__ModuleLoader__.load({')).toBe(true)
-    expect(bundle).toContain('id: "@basis/brand"')
+    expect(bundle).toContain('id: "@eterna/brand"')
     expect(bundle.trimEnd().endsWith('});')).toBe(true)
   })
 
@@ -101,7 +101,7 @@ describe('title 改写语义(经 bundle vm 驱动伪 DOM 验证)', () => {
     }
     vm.createContext(sandbox)
     vm.runInContext(bundle, sandbox)
-    const exports = loaded['@basis/brand'] as { apply: (ctx: unknown) => () => void; inject?: string[] }
+    const exports = loaded['@eterna/brand'] as { apply: (ctx: unknown) => () => void; inject?: string[] }
     expect(exports.inject).toEqual(['slots', 'locale'])
 
     const fakeLocale = {

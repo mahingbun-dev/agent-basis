@@ -1,8 +1,8 @@
-# @basis/audit bundle:审计留痕插件(docs/design/enterprise-plugins.md §2 首插件)。
+# @eterna/audit bundle:审计留痕插件(docs/design/enterprise-plugins.md §2 首插件)。
 # 装载形态:insert 语义根层追加——cordis patch 的裸 id 行只按 id 覆写既有行,基础树无
-# basis-* 行时会被 applyPatches 丢弃(dsh-app-boot "patch: entry %C not found" → continue),
+# eterna-* 行时会被 applyPatches 丢弃(dsh-app-boot "patch: entry %C not found" → continue),
 # 插件永远不进解析树。参照 packages/glue/cordis.patch.yml 与 packs/event-planning 同款 insert
 # (2026-11-04 E2E 实测教训,设计文档 §3.2)。
 - insert:
-    - id: basis-audit
-      name: '@basis/audit/audit-plugin'
+    - id: eterna-audit
+      name: '@eterna/audit/audit-plugin'

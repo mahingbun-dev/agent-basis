@@ -1,6 +1,6 @@
 {
-  "name": "@basis/governance",
-  "description": "L1 治理插件核心:规则引擎(allow/ask/deny,deny 优先 fail-closed)、预算守卫(maxTurns/maxTokens/maxCost,agent/turn-stopping seam)、PII 过滤服务(供 memory/knowledge 调用)、审计投影(session 事件流→审计记录,内存/文件双 sink)、egress-lite(出网工具白名单+proxy 环境变量注入载荷)。seam 形态对齐 dsh-repo packages/core(agent-loop/agent/session/tools),依赖已发布 @deepseek-ai/dsh-* 0.2.2-alpha.2 类型。",
+  "name": "@eterna/governance",
+  "description": "L1 治理插件核心:规则引擎(allow/ask/deny,deny 优先 fail-closed)、预算守卫(maxTurns/maxTokens/maxCost,agent/turn-stopping seam)、PII 过滤服务(供 memory/knowledge 调用)、审计投影(session 事件流→审计记录,内存/文件双 sink)、egress-lite(出网工具白名单+proxy 环境变量注入载荷)。seam 形态对齐 deepseek-harness packages/core(agent-loop/agent/session/tools),依赖已发布 @deepseek-ai/dsh-* 0.2.2-alpha.2 类型。",
   "version": "0.0.0",
   "private": true,
   "type": "module",

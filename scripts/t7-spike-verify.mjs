@@ -12,7 +12,7 @@
  * 全流程：确保 profile → 写入标记 A → 组合预检(dump-config) → 启动宿主(3108)
  *   → 驱动会话 A（经 LiteLLM）→ 断言系统提示含 A → 不重启改写标记 B
  *   → 驱动会话 B → 断言系统提示含 B 且宿主 pid 未变 → 旧会话 A 补一轮断言无 B
- *   → 优雅停宿主 → 从 .basis-home-t7 会话 JSONL(zstd) 复断言 → 清理释放 3108。
+ *   → 优雅停宿主 → 从 .eterna-home-t7 会话 JSONL(zstd) 复断言 → 清理释放 3108。
  *
  * 已知时序事实（脚本为此设计）：
  *   - session/wait 的 reason:'idle' 在回合尚未开跑时也可能返回（不可作完成信号）；
@@ -37,15 +37,15 @@ import { fileURLToPath } from 'node:url'
 import { zstdDecompressSync } from 'node:zlib'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const home = resolve(repoRoot, '.basis-home-t7')
+const home = resolve(repoRoot, '.eterna-home-t7')
 const profile = resolve(home, 'profiles', 't7-studio')
 const logsDir = resolve(home, 'logs')
 const hostLog = resolve(logsDir, 't7-spike-host.log')
 const port = 3108
 const profileName = 't7-studio'
 
-const MARKER_A = 'T7_SPIKE_PERSONA_MARKER_A basis spike persona alpha'
-const MARKER_B = 'T7_SPIKE_PERSONA_MARKER_B basis spike persona beta'
+const MARKER_A = 'T7_SPIKE_PERSONA_MARKER_A eterna spike persona alpha'
+const MARKER_B = 'T7_SPIKE_PERSONA_MARKER_B eterna spike persona beta'
 const PROMPT_TEXT = '请只回复两个字：在线'
 
 const failures = []
@@ -140,7 +140,7 @@ function ensureProfile() {
     name: 'dsh-profile-t7-studio',
     private: true,
     dependencies: {
-      '@basis/llm-openai': `file:${resolve(repoRoot, 'basis/llm-openai')}`,
+      '@eterna/llm-openai': `file:${resolve(repoRoot, 'packages/llm-openai')}`,
       '@deepseek-ai/dsh': '0.2.2-rc.1',
       '@deepseek-ai/dsh-base': '0.2.2-rc.1',
       '@deepseek-ai/dsh-web-app': '0.2.2-rc.1',
@@ -190,12 +190,12 @@ function buildPatch(marker) {
   if (prefixSeen !== 1) throw new Error(`expected exactly one prefix: line, got ${prefixSeen}`)
   const llmBlock = [
     '- insert:',
-    '    - id: basis-llm',
-    "      name: '@basis/llm-openai'",
+    '    - id: eterna-llm',
+    "      name: '@eterna/llm-openai'",
     '      config:',
     `        baseURL: '${litellmBaseUrl()}'`,
     '        apiKeyEnv: LITELLM_API_KEY',
-    "        provider: 'basis'",
+    "        provider: 'eterna'",
     '        models:',
     '          - id: deepseek-flash',
     '',
@@ -205,7 +205,7 @@ function buildPatch(marker) {
     '  disabled: true',
     '- id: agent-default-model',
     '  config:',
-    "    provider: 'basis'",
+    "    provider: 'eterna'",
     "    model: 'deepseek-flash'",
     '',
   ].join('\n')
@@ -378,7 +378,7 @@ try {
   {
     const log = readFileSync(hostLog, 'utf8')
     check('宿主日志只有一次 dsh web: 启动行（无二次 boot）', (log.match(/dsh web: /g) ?? []).length === 1)
-    check('宿主日志含 basis-llm-openai → LiteLLM 调用证据', log.includes('[basis-llm-openai] POST'))
+    check('宿主日志含 eterna-llm-openai → LiteLLM 调用证据', log.includes('[eterna-llm-openai] POST'))
   }
 
   // 6) 旧会话不受影响：patch=B 后给会话 A 再补一轮，运行中日志不出现标记 B

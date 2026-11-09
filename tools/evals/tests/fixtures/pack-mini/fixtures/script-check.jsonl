@@ -6,4 +6,4 @@
 {"type":"tool/result","seq":6,"time":1762000000500,"data":{"turn":1,"step":1,"message":{"role":"tool","content":[{"type":"text","text":"1 2 3"}],"toolCallId":"c1"}}}
 {"type":"assistant/message","seq":7,"time":1762000000600,"data":{"turn":1,"step":1,"message":{"role":"assistant","content":[{"type":"text","text":"合计 6 人"}]},"stream":[],"usage":{"inputTokens":70,"outputTokens":20}}}
 {"type":"turn/end","seq":8,"time":1762000000700,"data":{"turn":1,"reason":{"kind":"completed"}}}
-{"type":"plugin:basis-evals/workspace","seq":9,"time":1762000000700,"data":{"files":{"numbers.txt":"1\n2\n3\n"}}}
+{"type":"plugin:eterna-evals/workspace","seq":9,"time":1762000000700,"data":{"files":{"numbers.txt":"1\n2\n3\n"}}}

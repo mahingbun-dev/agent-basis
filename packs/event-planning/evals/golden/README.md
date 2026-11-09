@@ -1,6 +1,6 @@
 # evals/golden/ —— 金集 v1(30 条,S0 状态:待 SME 评审,14 号文档 §5)
 
-13 号文档 §2 十类候选 ×3;字段为 @basis/evals(T4)/ai-evo 可执行条目形态
+13 号文档 §2 十类候选 ×3;字段为 @eterna/evals(T4)/ai-evo 可执行条目形态
 (final_state 单键条目数组 / trajectory 含 approval_flow 对象 / budget max_turns+max_tokens),
 packctl(T5)lint 双形态兼容后两侧校验都过。
 

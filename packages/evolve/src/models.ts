@@ -60,7 +60,7 @@ export interface ModelCaller {
 
 /**
  * DSH llm seam 适配器:消费 ctx.llm.catalog 路由 + stream 的最小面。
- * 形态对齐 dsh-repo packages/llm/llm(src/index.ts LlmRuntime.stream +
+ * 形态对齐 deepseek-harness packages/llm/llm(src/index.ts LlmRuntime.stream +
  * src/types.ts GenerateOptions/StreamChunk,0.2.2-alpha.2):
  * - 请求:{ provider, model, messages, system?, temperature?, maxTokens? };
  * - 流:聚合 text-delta.text 直到 finish;error/aborted finish → reject。

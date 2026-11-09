@@ -1,4 +1,4 @@
-# @basis/governance
+# @eterna/governance
 
 L1 治理插件核心(设计文档 08 §3、12 §4、14 号 T1):规则引擎、预算守卫、PII 过滤、审计投影、egress-lite。
 本包是**策略纯函数层**——不触碰 Cordis ctx 全局(coeffect 全声明由组合层负责);组合层用
@@ -46,7 +46,7 @@ lifecycle extension point 上 cancel)。
 ## seam 钉住(防 DSH pre-stable 破坏)
 
 - 依赖**已发布的** `@deepseek-ai/dsh-{agent,session,tools}` + `@deepseek-ai/cordis`
-  (0.2.2-alpha.2,与 ../dsh-repo 完全同版,catalog 钉死),仅 `import type`。
+  (0.2.2-alpha.2,与 deepseek-harness 完全同版,catalog 钉死),仅 `import type`。
 - `tests/types.seam-pin.ts`(tsc 消费,vitest 不运行)断言:
   ① `BudgetGuard.onTurnStopping` 可直接赋给 `Events['agent/turn-stopping']`;
   ② `RuleEngine.preExecuteDecision` 的返回可作 pre-execute 决策(`GovernancePreDecision` → 官方 `PreToolDecision`);
@@ -67,5 +67,5 @@ lifecycle extension point 上 cancel)。
 ## verify
 
 ```bash
-pnpm --filter @basis/governance run verify   # oxlint + tsc --noEmit + vitest run
+pnpm --filter @eterna/governance run verify   # oxlint + tsc --noEmit + vitest run
 ```

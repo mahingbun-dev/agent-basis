@@ -19,8 +19,8 @@ const STABLE_SYS = 'SYS You are an event planner. Current time: 10:00'
 describe('createCacheGuard 组合门', () => {
   it('id 即注册键(CACHE_GUARD_SERVICE_ID 字面量类型)', () => {
     const guard = createCacheGuard()
-    expect(guard.id).toBe('@basis/cache-guard')
-    const id: '@basis/cache-guard' = guard.id
+    expect(guard.id).toBe('@eterna/cache-guard')
+    const id: '@eterna/cache-guard' = guard.id
     expect(id).toBeTruthy()
     guard.dispose()
   })

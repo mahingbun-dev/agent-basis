@@ -217,7 +217,7 @@ function defineEventTools() {
           contractCny: args.contractCny,
           ...Number.isFinite(args.depositRatio) ? { depositRatio: args.depositRatio } : {},
           payee: args.payee,
-          ...typeof args.basis === "string" ? { basis: args.basis } : {}
+          ...typeof args.eterna === "string" ? { basis: args.eterna } : {}
         });
         return { ...draft, approvalOutcome: "allowed-once", paymentExecutedBy: "finance-officer(\u5BA1\u6279\u901A\u8FC7\u540E)" };
       }
