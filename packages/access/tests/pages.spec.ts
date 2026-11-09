@@ -17,6 +17,18 @@ describe('pages 页面与角标', () => {
     expect(html).toContain('id="password"')
   })
 
+  it('导航壳:身份页含返回应用/退出/账号设置;登录页无退出', () => {
+    const html = renderAccountPage({ ...admin, nickname: '马先生' })
+    expect(html).toContain('href="/"')
+    expect(html).toContain('data-logout')
+    expect(html).toContain('账号设置')
+    expect(html).not.toContain('data-logout" title="退出登录"></button>')
+    const login = renderLoginPage()
+    expect(login).not.toContain('data-logout')
+    expect(login).toContain('pwEye')
+    expect(login).toContain('go.disabled=true')
+  })
+
   it('账号页转义用户数据(XSS 防护)且含三块配置', () => {
     const html = renderAccountPage({ ...admin, nickname: '<script>alert(1)</script>' })
     expect(html).not.toContain('<script>alert(1)</script>')
@@ -41,7 +53,10 @@ describe('pages 页面与角标', () => {
   })
 
   it('无权访问页', () => {
-    expect(renderForbiddenPage()).toContain('仅管理员')
+    expect(renderForbiddenPage({ nickname: '马先生', avatarUrl: null, account: 'Mr.Ma' })).toContain('仅管理员')
+    const withNav = renderForbiddenPage({ nickname: '马先生', avatarUrl: null, account: 'Mr.Ma' })
+    expect(withNav).toContain('href="/"')
+    expect(withNav).toContain('退出')
   })
 
   it('角标脚本含 401 跳转分支与管理员入口;404 静默分支', () => {

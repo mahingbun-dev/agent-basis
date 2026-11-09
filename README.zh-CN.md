@@ -7,7 +7,7 @@
 [![CI](https://github.com/mahingbun-dev/agent-basis/actions/workflows/ci.yml/badge.svg)](https://github.com/mahingbun-dev/agent-basis/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/mahingbun-dev/agent-basis)](https://github.com/mahingbun-dev/agent-basis/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-![tests](https://img.shields.io/badge/tests-1075%20passing-success)
+![tests](https://img.shields.io/badge/tests-1076%20passing-success)
 
 ![EternaAgent Web 首屏——闪电标与标语「方寸灵台,运筹万里」](docs/assets/screenshots/eterna-hero.png)
 
@@ -51,7 +51,7 @@ CLI: packctl(领域包脚手架/体检) · dsh-evals(评测 runner:replay / acp 
 
 ```bash
 pnpm install
-pnpm run verify        # 20 包:oxlint + tsc strict + vitest → 全绿(1075 测试)
+pnpm run verify        # 20 包:oxlint + tsc strict + vitest → 全绿(1076 测试)
 
 # 生成一个新行业的领域包骨架,并体检
 node tools/packctl/bin/packctl.mjs init <行业名> --root packs

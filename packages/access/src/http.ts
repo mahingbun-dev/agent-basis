@@ -25,7 +25,8 @@ export function jsonResponse(status: number, value: unknown, extraHeaders: Reado
 }
 
 export function htmlResponse(status: number, html: string, extraHeaders: ReadonlyArray<readonly [string, string]> = []): AccessReply {
-  return { status, headers: [['content-type', 'text/html; charset=utf-8'], ...extraHeaders], body: html }
+  // 页面禁缓存:发版后浏览器不得滞留旧壳(2026-11-10 走查实测:启发式缓存致新交互缺失)
+  return { status, headers: [['content-type', 'text/html; charset=utf-8'], ['cache-control', 'no-store'], ...extraHeaders], body: html }
 }
 
 export function redirectReply(location: string, extraHeaders: ReadonlyArray<readonly [string, string]> = []): AccessReply {

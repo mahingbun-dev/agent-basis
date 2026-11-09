@@ -198,7 +198,9 @@ function handleAdmin(deps: AccessDeps, req: AccessRequest, method: string): Acce
   if (method !== 'GET') return methodNotAllowed()
   const user = requireUser(deps, req)
   if (user === undefined) return redirectReply('/login')
-  if (user.role !== 'admin') return htmlResponse(403, renderForbiddenPage())
+  if (user.role !== 'admin') {
+    return htmlResponse(403, renderForbiddenPage({ nickname: user.nickname, avatarUrl: `/access/api/avatar/${user.id}`, account: user.account }))
+  }
   const plugins = [
     ...[...RED_LINE_PLUGINS].map(id => ({ id, label: id, redLine: true, disabled: false })),
     ...TOGGLEABLE_PLUGINS.map(p => ({ ...p, redLine: false, disabled: deps.store.isPluginDisabled(p.id) })),
