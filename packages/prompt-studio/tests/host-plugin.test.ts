@@ -125,7 +125,17 @@ describe('LoopPromptGateway 全链路(真实 cordis 根 Context)', () => {
 
   afterEach(async () => {
     await gateway.dispose()
-    rmSync(dir, { recursive: true, force: true })
+    // dispose 后可能仍有审计/存储异步写落盘(Linux CI 实测 ENOTEMPTY 竞态)——
+    // 退避重试清理,只对 ENOTEMPTY 重试,其余错误照抛。
+    for (let attempt = 0; ; attempt++) {
+      try {
+        rmSync(dir, { recursive: true, force: true })
+        break
+      } catch (error) {
+        if (attempt >= 4 || (error as NodeJS.ErrnoException)?.code !== 'ENOTEMPTY') throw error
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
   })
 
   function attach(): Promise<void> {
