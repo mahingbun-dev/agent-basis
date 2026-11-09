@@ -1,0 +1,39 @@
+name: Bug report / 缺陷报告
+description: Report something that breaks / 报告功能或文档问题
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time — please fill in the details below. 感谢反馈,请填写以下信息。
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened? / 发生了什么
+      description: Expected vs actual behavior. Include the exact command or click path. 期望 vs 实际,附确切命令或点击路径。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce / 复现步骤
+      placeholder: |
+        1. docker compose up -d --build
+        2. open http://localhost:3210
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / 版本
+      description: Release tag, commit sha, or `docker compose images` output
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / 相关日志
+      description: `docker compose logs eterna-agent` output or verify console tail (redact tokens/keys!)
+      placeholder: Redact any token=... or API keys before pasting / 粘贴前务必脱敏 token 与密钥
+    validations:
+      required: false

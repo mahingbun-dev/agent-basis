@@ -1,0 +1,30 @@
+name: Feature request / 功能建议
+description: Suggest an improvement / 建议新能力或改进
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve / 要解决的问题
+      description: What are you trying to achieve? What work-around do you use today? 你想达成什么?现在用什么办法绕?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution / 期望方案
+    validations:
+      required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area / 领域
+      options:
+        - base plugin (governance/memory/interact/knowledge/...) / 基座插件
+        - industry pack / 领域包
+        - deploy & docker / 部署与容器
+        - evals & gates / 评测与门禁
+        - docs / 文档
+        - other / 其他
+    validations:
+      required: true

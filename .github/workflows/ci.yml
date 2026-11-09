@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Verify(oxlint + tsc strict + vitest,12 包)
+      - name: Verify(oxlint + tsc strict + vitest,19 包)
         run: pnpm -w run verify
 
       - name: Lint 领域包(packs/*)
@@ -48,7 +48,7 @@ jobs:
       - name: Install(frozen-lockfile,锁文件与清单必须一致)
         run: pnpm install --frozen-lockfile
 
-      - name: Verify(oxlint + tsc strict + vitest,12 包)
+      - name: Verify(oxlint + tsc strict + vitest,19 包)
         run: pnpm -w run verify
 
       - name: Lint 所有领域包(packs/*)

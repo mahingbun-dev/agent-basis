@@ -1,77 +1,112 @@
 <div align="center">
 
-# 恒灵·EternaAgent（仓库代号 agent-basis）
+# EternaAgent
 
-**领域 Agent 基座** —— 在 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 之上,把治理、记忆、人机交互、评测门禁、双向通道与受控自进化做成可复用插件;接入一个新行业,只需交付一份"领域包"。
+**An enterprise agent platform built on [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness): policy governance, HITL approvals, memory, knowledge, eval-gated self-evolution, and one-command Docker deploy — all as reversible plugins, zero kernel changes.**
 
 [![CI](https://github.com/mahingbun-dev/agent-basis/actions/workflows/ci.yml/badge.svg)](https://github.com/mahingbun-dev/agent-basis/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/mahingbun-dev/agent-basis)](https://github.com/mahingbun-dev/agent-basis/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-![Node](https://img.shields.io/badge/node-%E2%89%A524-brightgreen)
-![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)
-![tests](https://img.shields.io/badge/tests-776%20passing-success)
+![tests](https://img.shields.io/badge/tests-1000%20passing-success)
 
-![demo](docs/assets/demo.svg)
+![EternaAgent web UI — brand hero with the bolt mark and the tagline](docs/assets/screenshots/eterna-hero.png)
+
+[中文文档](README.zh-CN.md)
 
 </div>
 
-**零内核改动。** 全部能力以 Cordis 插件承载(12 个包、2 个 CLI,776 个测试),seam 用 DSH 官方发布类型编译期钉住;官方内核升级不受牵连。
+Repo codename: `agent-basis` (historical). Product name: **EternaAgent** (恒灵). Everything below is what ships in this repo today.
+
+## What you get
 
 ```text
-L2 领域包(每行业一份)    packs/event-planning(@event/pack:30 条金集,含 3 条审批红线)
-L1 基座插件(跨行业复用)
-  governance   规则引擎(deny 优先 fail-closed)· 预算守卫 · PII · 审计 · egress
-  memory       三层记忆;forget = 逆闭包真删,非打标
-  interact     HITL 风险分档 R0-R3 · 富审批卡片 · 提问合并 · 审批负信号
-  knowledge    本地 LLM wiki(FTS5 混检)↔ WeKnora 双后端 · 提案制写入 · 三层过期过滤
-  observe      失败信号表 · token/成本/缓存命中率 · 漂移检测
-  evolve       受控自进化:SKILL 条目化 delta · 进化账本 · G0/G1/G2 门禁 · prompt-audit
-  channels     微信(三路径)/飞书/钉钉/邮箱 双向 · 一次性审批令牌(防重放)
-  cache-guard  KV-cache 前缀稳定性守护(DeepSeek 缓存价差 ~50×)
-  extra        egress 域名白名单 · reviewer preset · 多租户 realm
-CLI: packctl(领域包脚手架/体检) · dsh-evals(评测 runner:replay / acp 双适配)
+L2 industry packs (one per industry)   packs/event-planning (@event: 30 golden tasks, 3 approval red lines)
+                                       packs/industrial-analysis (@industrial: motor-vibration QA, shift reports)
+L1 base plugins (cross-industry)
+  governance    rule engine (deny wins, fail-closed) · budget guard · PII · egress control
+  audit         append-only audit trail (daily jsonl sink) + query API
+  memory        three-layer memory; forget = true reverse-closure delete, not a flag
+  interact      HITL risk tiers R0–R3 · rich approval cards · question merging · negative signals
+  knowledge     local LLM wiki (FTS5 hybrid search) ↔ WeKnora dual backend · proposal-based writes
+  observe       failure-signal table · token/cost/cache-hit metrics · drift detection
+  evolve        gated self-evolution: SKILL-ified deltas · evolution ledger · G0/G1/G2 gates
+  channels      WeChat (three routes) / Feishu / DingTalk / email, bidirectional · one-time approval tokens
+  cache-guard   KV-cache prefix stability guard (DeepSeek cache price gap ~50×)
+  extra         egress domain whitelist · reviewer preset · multi-tenant realm isolation
+  llm-doctor    LLM connectivity doctor: protocol-aware path probes + per-model real tests
+  panel         web console for memory / governance / audit state
+  prompt-studio system-prompt workspace with version store and run-state traces
+  brand         product branding layer (logo/title/favicon/locale overrides)
+  llm-openai    OpenAI-compatible adapter for embed-grade headless hosts
+
+CLI: packctl (industry-pack scaffold & lint) · dsh-evals (eval runner: replay / acp adapters) · eterna-smoke
 ```
 
-## 30 秒上手
+**Zero kernel changes.** Everything is a Cordis plugin on the stock DSH runtime; seams are pinned at compile time against officially published DSH types, so kernel upgrades don't drag your code along.
+
+## Quick start
+
+Prerequisites: Node ≥ 22 and pnpm ≥ 10 (`corepack enable`). No model credentials needed for the test suite.
 
 ```bash
-pnpm install && pnpm run verify          # 12 包全绿(oxlint + tsc strict + vitest)
+pnpm install
+pnpm run verify        # 19 packages: oxlint + tsc strict + vitest → all green (1000 tests)
 
-# 生成一个新行业的领域包骨架,并体检
-node tools/packctl/bin/packctl.mjs init <行业名> --root packs
-node tools/packctl/bin/packctl.mjs lint packs/<行业名>
+# Scaffold a new industry pack, then lint it
+node tools/packctl/bin/packctl.mjs init <industry> --root packs
+node tools/packctl/bin/packctl.mjs lint packs/<industry>
 
-# 回放适配器跑活动策划金集(无需模型凭据)
+# Replay the event-planning golden set offline (no model credentials required)
 node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --adapter replay
-# → 20/20 通过,3 条审批红线全部正确拦截(预算超支必须触发审批/付款必须升级/比选必须中立)
-
-# CI 里触发 ai-evo 平台门禁并等结果(官方 aievo-cli 的零依赖等价封装,退出码 0=passed/1=failed/2=error)
-node tools/aievo-run.mjs run task_e7cedc05e36c --wait --timeout 1800 --json
+# → total=30 pass=30 fail=0 (100%) — all 3 approval red lines intercepted correctly
 ```
 
-## 为什么是它
+## Deploy with Docker
 
-| | 常见做法 | agent-basis |
+```bash
+cp .env.example .env    # set LITELLM_API_KEY (any OpenAI-compatible gateway; LiteLLM works out of the box)
+docker compose up -d --build
+docker compose logs eterna-agent | grep token   # one-time bootstrap token
+# → open http://localhost:3210/?token=<token>
+```
+
+What you get is the full web agent: the model settings page with a full editor (base URL / protocol / model catalog / per-model connectivity tests), the diagnostics panel, policy governance, and audit trails persisted in a named volume. Reverse-proxy parameters (`ETERNA_PUBLIC_URL` / `ETERNA_TRUSTED_HOST`) are env-only — see [docs/docker-deploy.md](docs/docker-deploy.md).
+
+![Model settings: gateway card with connectivity doctor and per-model tests](docs/assets/screenshots/eterna-model-doctor.png)
+
+## Why EternaAgent
+
+| | Typical approach | EternaAgent |
 |---|---|---|
-| 内核 | 直接在框架里写业务,升级即重构 | **零内核改动**,插件装卸可逆(effect 配逆闭包) |
-| 质量保障 | 上线前人工看几眼 | **评测即门禁**:终态断言 + 轨迹匹配 + 阈值卡发布 |
-| 行业接入 | 重写一遍 prompt 与流程 | **领域包**:persona + skills + 工具 + policies + evals,验收 = 该包评测通过率 |
-| 持续改进 | 手工调提示词 | **受控自进化**:无外部信号不进化、只许增量 delta、晋升必过防作弊门禁 |
+| Kernel coupling | build on the framework, refactor on every upgrade | **zero kernel changes**; plugins attach/detach reversibly (effects unwind via inverse closures) |
+| Quality assurance | eyeball it before release | **evals as a gate**: terminal-state assertions + trajectory matching + thresholds block the release |
+| New industry | rewrite prompts and flows | **industry pack**: persona + skills + tools + policies + evals; acceptance = that pack's eval pass rate |
+| Continuous improvement | hand-tune prompts | **gated self-evolution**: no external signal, no evolution; deltas only; promotion must pass anti-cheating gates |
 
-自进化机制有论文锚点:ACE([arXiv:2510.04618](https://arxiv.org/abs/2510.04618))、LLMs Cannot Self-Correct Yet([arXiv:2310.01798](https://arxiv.org/abs/2310.01798))、Darwin Gödel Machine([arXiv:2505.22954](https://arxiv.org/abs/2505.22954))。
+The self-evolution design has academic anchors: ACE ([arXiv:2510.04618](https://arxiv.org/abs/2510.04618)), LLMs Cannot Self-Correct Yet ([arXiv:2310.01798](https://arxiv.org/abs/2310.01798)), Darwin Gödel Machine ([arXiv:2505.22954](https://arxiv.org/abs/2505.22954)).
 
-## 第一个领域包:@event(活动策划)
+## First industry pack: @event
 
-[packs/event-planning](packs/event-planning) 是完整的参考实现:30 条黄金任务(策划案/预算/比选/排期/风险/复盘 × 审批红线)、条目化 SKILL.md、hitl.yaml 风险分档、ai-evo 平台导出。**复制这个目录,就是接入下一个行业的起点。**
+[packs/event-planning](packs/event-planning) is the complete reference implementation: 30 golden tasks (plans / budgets / vendor comparisons / schedules / risks / retrospectives × approval red lines), itemized SKILL.md, hitl.yaml risk tiers, ai-evo platform export. **Copy this directory to onboard the next industry.**
 
-## 文档
+## Scope & limitations
 
-| 文档 | 内容 |
+- Runs on the stock DeepSeek Harness runtime (npm `@deepseek-ai/dsh`, version-pinned); upstream upgrades go through [docs/upgrade-gate.md](docs/upgrade-gate.md) before adoption.
+- Model routing targets OpenAI-compatible gateways (LiteLLM recommended); DeepSeek direct/account routes are disabled by default (compliance: keys stay in your env/gateway, never in the harness).
+- The governance/red-line packs are reference implementations for two industries; a new industry means authoring a new pack (scaffold provided).
+- Public exposure over home broadband is IPv6-only unless you add a relay — see the reverse-proxy notes in [docs/docker-deploy.md](docs/docker-deploy.md).
+
+## Documentation
+
+| Document | Contents |
 |---|---|
-| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | **用户指南(装完即会用)**:全部功能触发示例、评测/门禁怎么跑、插件怎么从索引安装;与用户级 skill `~/.agents/skills/agent-eterna-guide/SKILL.md` 同源;自家插件长期索引源 `https://raw.githubusercontent.com/mahingbun-dev/agent-basis/main/market/index.json`(发现页填此 URL 即装;本地 8765 仅离线演示) |
-- [docs/PLUGIN-AUTHORING.md](docs/PLUGIN-AUTHORING.md) — 插件开发指南(创造模式/本地开发 → 入库,含硬性规范与装载配方)
-| [docs/design/](docs/design/) | 设计文档 15 篇:业界调研、架构、RSI 自进化、知识插件、功能点清单 |
-| [docs/ai-evo-integration.md](docs/ai-evo-integration.md) | 评测平台(ai-evo)对接:门禁任务 / 数据集 / 阈值 |
-| [packs/event-planning/evals/](packs/event-planning/evals/) | 金集格式与终态/轨迹断言写法 |
+| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | **User guide**: every feature's trigger example, how to run evals/gates, how to install plugins from the index (index URL: `https://raw.githubusercontent.com/mahingbun-dev/agent-basis/main/market/index.json`) |
+| [docs/PLUGIN-AUTHORING.md](docs/PLUGIN-AUTHORING.md) | Plugin authoring guide (creation mode, local dev → in-repo, hard rules & mounting recipes) |
+| [docs/eterna-plugin-mapping.md](docs/eterna-plugin-mapping.md) | Plugin naming map: eterna ids ↔ upstream DSH source paths, merge playbook, non-renamable official ids |
+| [docs/docker-deploy.md](docs/docker-deploy.md) | Container deploy: env matrix, reverse-proxy handoff, volume layout |
+| [docs/design/](docs/design/) | Design docs: research, architecture, RSI self-evolution, knowledge plugin |
+| [docs/upgrade-gate.md](docs/upgrade-gate.md) | Upstream version upgrade gate (four-step local + CI cross-check) |
+| [packs/event-planning/evals/](packs/event-planning/evals/) | Golden-set format: terminal-state & trajectory assertion cookbook |
 
 ## License
 

@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation / 文档
+    url: https://github.com/mahingbun-dev/agent-basis#documentation
+    about: Start here — user guide, plugin authoring, deploy docs / 先看这里——用户指南、插件开发、部署文档
