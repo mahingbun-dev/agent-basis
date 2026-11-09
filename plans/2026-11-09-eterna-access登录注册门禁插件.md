@@ -184,6 +184,19 @@
 | host 验收实例兼容 | 同一插件/挂载配方；宿主 `.eterna-home-accept` 需手工补 symlink+patch 行（T1.9 附操作说明） |
 | 用户停用插件后自身 UI 残留（panel 卡片仍显示） | T2.4 tenant 化改造覆盖 UI 面；上游插件 UI 残留登记为已知限制 |
 
+## 8-c. T2.1 spike 裁决（2026-11-10 容器实测，模型 A 成立）
+
+| # | 验证点 | 结论 |
+| --- | --- | --- |
+| S1 | 守卫路由命中 | ✅ `connection.fetch.register({path:'/api/workspace/create'})` 对**控制台直连**同样命中（fetchRoutes 按完整 pathname verbatim 键控，index.js:849/823）；Request 头可读（eterna_session=true）；直连洞按构造关闭 |
+| S2 | 转交=方案 a 直调 | ✅ `ctx.reflect.get('workspaceController', false)` 返回服务对象，`wc.create({path})` 直调成功返回真 WorkspaceValue；RPC 帧 `{type:'server-response',rpcId,result:{ok,value}}` 自框即可被客户端接受——**无需摘牌重入** |
+| S3 | follow 流 | ✅ POST /api/workspace/follow 同走守卫路由（requestBody:'streaming'），可返回流式帧——tenant 逐帧过滤机制可行 |
+| S4 | 端点闭包 | ✅ 13 命名空间全盘点：account/job/fileReferences/skills/session/credentials/settings/terminal/directoryPicker/workspace/toolResults/speech/cotTranslation；**租户面=workspace、directoryPicker、session、terminal、fileReferences、skills、toolResults、job**；公共面(D6)=account、settings、credentials、speech、cotTranslation |
+| S6 | 客户端 shim | 已废弃（守卫路由无需客户端改道） |
+| S5 | pre-execute 归属链 | 非 A 模型阻塞项：数据隔离全在端点层；工具级启停归 Phase 3 tenant enabled-set |
+
+**Phase 1 交付记录**：commit 75b0041 → **PR #1**（github.com/mahingbun-dev/agent-basis/pull/1，base dev，CI verify 绿）→ 容器部署运行（门禁 1-4 全过：48 包内 tests/全仓 1062 tests/零 warning/十项浏览器 E2E）。新增教训：容器 node strip-only 拒 TS 参数属性（ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX）；`authenticatedUrl` 需绝对 URL（请求侧 Host+secure scheme 合成）。
+
 ## 9. 风险登记册
 
 | # | 风险 | 影响 | 对策 |
