@@ -28,7 +28,7 @@
  */
 
 import { spawn } from 'node:child_process'
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -50,12 +50,17 @@ const CUT_ROWS = [
   // 凭据库 + 账号体系（credentials 保留：connection 必需行硬依赖，见 docs）
   'authorization', 'deepseek-account', 'llm-deepseek', 'llm-deepseek-account',
   'account-controller', 'ui-settings-account',
-  // ptc/workflow 家族 + 本就 disabled 的三行
-  'ptc-runtime', 'workflow-ptc', 'tool-workflow', 'tool-executor-ptc',
-  'fs-observation-policy', 'tool-plugin-manager', 'ui-workflow-run',
-  // 场景裁切
-  'office-to-pdf', 'open-in-app', 'ui-open-in-app', 'shortcuts', 'ui-shortcuts',
+  // ptc 家族修订（2026-11-09）：创造模式（preset-cordis）回加后 ptc-runtime/
+  // workflow-ptc/tool-workflow 三行宿主回加（workflow-ptc 硬依赖 ptcRuntime
+  // 服务）；仅 tool-executor-ptc 维持裁切。标准会话经 preset-standard 内
+  // disabled 不可见。另本就 disabled 的两行
+  'tool-executor-ptc', 'fs-observation-policy', 'tool-plugin-manager', 'ui-workflow-run',
+  // 场景裁切（shortcuts 不在此列：client 服务根，2026-11-09 浏览器 E2E 教训——
+  // 裁掉即 26 个 client-ui 插件 web boot 全家 pending，宿主侧断言照绿）
+  'office-to-pdf', 'open-in-app', 'ui-open-in-app', 'ui-shortcuts',
   'ui-brand-official', 'ui-message-feedback',
+  // Session Log 上传（2026-11-09 用户裁定：通用设置去掉该开关，上传能力一并裁——数据不出内网）
+  'session-log-deepseek', 'ui-settings-session-log',
 ]
 
 /** Kept rows that live in the HOST plane: present + enabled + active. */
@@ -71,8 +76,10 @@ const HOST_KEPT_ROWS = [
   // 回加家族（host 半）
   'goal', 'goal-round-driver', 'subagent', 'subagent-spawn-in-process', 'subagent-fork-in-process',
   'schedule', 'web', 'web-search-deepseek', 'web-deepseek-api', 'web-fetch-http',
+  // 创造模式宿主行（2026-11-09 回加：workflow-ptc 硬依赖 ptcRuntime）
+  'ptc-runtime', 'workflow-ptc', 'tool-workflow',
   // skill / title / query
-  'skill', 'session-title', 'session-title-llm', 'session-query-sqlite', 'session-log-deepseek',
+  'skill', 'session-title', 'session-title-llm', 'session-query-sqlite',
   // Web 网关与传输
   'typert', 'typert-loader', 'typert-gateway', 'remote-access', 'timer',
   'webserver', 'web-runtime', 'web-startup', 'connection', 'modules', 'plugin-inventory',
@@ -89,6 +96,8 @@ const HOST_KEPT_ROWS = [
   // workspace 与预设
   'workspace', 'workspace-controller', 'workspace-files', 'file-upload', 'file-reference-local',
   'locale', 'ui-theme', 'agent-preset-registry',
+  // client 服务根（§11.3 修订：浏览器 E2E 实测 26 插件等待链的根，必留）
+  'shortcuts',
   // 计划书偏差说明的实证行：必须保持启用
   'credentials',
 ]
@@ -121,6 +130,22 @@ if (existsSync(homePatch)) {
 
 rmSync(profileDir, { recursive: true, force: true })
 mkdirSync(profileDir, { recursive: true })
+// 创造模式（preset-cordis）硬依赖：skill-filesystem 的 customSkillDirs 表达式
+// 以 createRequire(baseUrl) 解析 @deepseek-ai/dsh-agent-preset（baseUrl=profile
+// 目录）——必须把该包链接进 profile node_modules，否则 skill-filesystem 条目
+// failed（2026-11-09 实测 MODULE_NOT_FOUND）。rc.1 已钉版，取 .pnpm 内唯一实装。
+const pnpmDir = join(repoRoot, 'node_modules', '.pnpm')
+const presetCandidates = existsSync(pnpmDir)
+  ? readdirSync(pnpmDir).filter((dir) => dir.startsWith('@deepseek-ai+dsh-agent-preset@0.2.2-rc.1'))
+  : []
+if (presetCandidates.length === 0) {
+  console.error('verify-basis-web: @deepseek-ai/dsh-agent-preset@0.2.2-rc.1 未安装——创造模式 skill 目录无法解析')
+  process.exit(1)
+}
+const agentPresetDir = join(pnpmDir, presetCandidates[0], 'node_modules', '@deepseek-ai', 'dsh-agent-preset')
+const profileNodeModules = join(profileDir, 'node_modules', '@deepseek-ai')
+mkdirSync(profileNodeModules, { recursive: true })
+symlinkSync(agentPresetDir, join(profileNodeModules, 'dsh-agent-preset'), 'dir')
 writeFileSync(join(profileDir, 'package.json'), `${JSON.stringify({
   name: `dsh-profile-${profileName}`,
   private: true,
