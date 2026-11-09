@@ -1,6 +1,7 @@
 # profile.yml —— 领域包 profile 叠加声明(06 号模板:继承 dsh-base,叠加 L1 基座 bundles 与本包)。
 # 首场景(plans/2026-11-06-dsh企业agent路线定案.md §11.7 自建清单):工业数智分析
-# —— 时序查询 / 知识问答 / 预警研判 / 报告生成。
+# —— 时序查询① / 知识问答② / 预警研判③ / 报告生成④
+# (①③ T3 已交付,② T10a 已交付,④ T10b 已交付 skill+报告任务桩+金集 —— 主链路四件齐)。
 # 基座挂载理由:数据与知识层只经 MCP 访问 → governance(红线执行,deny 优先 fail-closed)
 # + interact(R2 对外发送确认)+ knowledge(Knowledge MCP:pgvector+图谱检索)必挂。
 name: industrial-analysis

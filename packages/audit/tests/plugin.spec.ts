@@ -24,11 +24,16 @@ async function tempDir(): Promise<string> {
   return dir
 }
 
-/** 结构性假 ctx:只声明 apply 用到的 provide/on/governance 三面(不依赖 cordis 运行时)。 */
+/**
+ * 结构性假 ctx:只声明 apply 用到的 provide/on/reflect 三面(不依赖 cordis 运行时)。
+ * reflect.get 模拟 cordis 的无 inject 读取面(plugin.ts:34 机会读 governance 用
+ * ctx.reflect.get——真 cordis 对裸属性读取抛 "cannot get property ... without inject",
+ * vendor/cordis src/reflect.ts:152),从 services 表取值,缺席返回 undefined。
+ */
 interface FakeContext {
   provide(name: string, value: unknown): () => Promise<void>
   on(event: string, listener: (session: unknown, event: unknown) => void): () => void
-  governance?: { pii?: PiiFilter }
+  reflect: { get(name: string, strict?: boolean): unknown }
 }
 
 type SessionListener = (session: unknown, event: unknown) => void
@@ -36,6 +41,7 @@ type SessionListener = (session: unknown, event: unknown) => void
 function makeFakeContext(options: { governance?: { pii?: PiiFilter } } = {}) {
   const listeners = new Map<string, Set<SessionListener>>()
   const services = new Map<string, unknown>()
+  if (options.governance !== undefined) services.set('governance', options.governance)
   const fake: FakeContext = {
     provide: (name, value) => {
       services.set(name, value)
@@ -54,7 +60,7 @@ function makeFakeContext(options: { governance?: { pii?: PiiFilter } } = {}) {
         set.delete(listener)
       }
     },
-    ...(options.governance !== undefined ? { governance: options.governance } : {}),
+    reflect: { get: name => services.get(name) },
   }
   return {
     fake,

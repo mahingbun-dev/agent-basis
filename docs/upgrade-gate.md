@@ -67,7 +67,7 @@ node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --adapter rep
 
 ## 5. 裁决:放行 / 回滚
 
-- **放行**:四步全绿,且 report.md 无回归(对比升级前一次全量 replay 的通过率;当前基线 20/20)。合入 PR,版本号进入主干。
+- **放行**:四步全绿,且 report.md 无回归(对比升级前一次全量 replay 的通过率;当前基线 30/30)。合入 PR,版本号进入主干。
 - **回滚**:任何一步红(退出码 1),或绿但有降级信号(通过率下降、新增 warning 聚集)。回滚方式:`git checkout` 还原 §1 各文件版本号 + 还原 `pnpm-lock.yaml`,重跑本地门禁确认回绿;升级尝试留档(报告 + 失败分类)供下次演练。
 
 ## 6. 退出码语义(dsh-evals)

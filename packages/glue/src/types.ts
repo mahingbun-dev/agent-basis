@@ -24,4 +24,22 @@ export interface KnowledgePluginConfig {
 export interface GovernancePluginConfig {
   /** 规则文件路径(YAML;缺省 = agent cwd 下的 .basis/governance.rules.yml,不存在则空规则集)。 */
   readonly rulesPath?: string
+  /** 组合治理门的插件归属(audit 记录 actor.pluginId;缺省插件名 basis-governance)。 */
+  readonly actorId?: string
+}
+
+/** egress 插件配置(T8;三层判定与缺省口径见 plugins/egress-plugin.ts 头注)。 */
+export interface EgressPluginConfig {
+  /** 域名白名单 YAML 路径(缺省 = agent cwd 下 .basis/egress-whitelist.yml;不存在 = 内网默认白名单)。 */
+  readonly whitelistPath?: string
+  /** 识别出网型工具的 glob(缺省 = governance DEFAULT_OUTBOUND_TOOL_GLOBS)。 */
+  readonly outboundToolGlobs?: readonly string[]
+  /** 工具级放行(缺省 DEFAULT_ALLOWED_OUTBOUND_TOOLS = web 检索 + 内网 MCP 家族)。 */
+  readonly allowedOutboundTools?: readonly string[]
+  /** 受控代理地址(第 3 层代理强注;内网部署缺省无代理 = 整层关闭)。 */
+  readonly proxyUrl?: string
+  /** NO_PROXY 直连例外(仅 proxyUrl 在场时生效)。 */
+  readonly noProxy?: readonly string[]
+  /** 出网工具参数中无目的地时的策略(缺省 'allow' = 工具级白名单兜底;可显式收窄 'deny')。 */
+  readonly unknownDestination?: 'deny' | 'allow'
 }

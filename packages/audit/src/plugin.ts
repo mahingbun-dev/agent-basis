@@ -29,9 +29,16 @@ export function defineAuditPlugin(config: AuditPluginConfig = {}) {
       const dir = config.dir ?? defaultAuditDir()
       const filePrefix = config.filePrefix ?? 'audit-'
 
-      // governance 机会读取(不 inject,§3.0-2:inject 是硬依赖表,false 非可选开关)。
+      // governance 机会读取(不 inject,§3.0-2:inject 是硬依赖表,false 非可选开关,
+      // fiber.ts:619-626 逐键 required——声明会把 audit 绑死在 governance 上,违背
+      // 「audit 独立可装」)。也不能裸读 ctx 属性:cordis get 陷阱对未声明 inject 的
+      // 兄弟插件服务直接抛 "cannot get property ... without inject"(vendor/cordis
+      // src/reflect.ts:152;2026-11-09 治理 E2E 实证 basis-audit fiber failed)。
+      // ctx.reflect.get(name, false) 是受认可的无 inject 读取(同一文件 :240「without
+      // the inject requirement」;harness 先例 liveshare share-host.ts:134,238),
+      // strict=false = 值在 store 即用(机会语义,不等 providing fiber 落定)。
       // 在场复用其 PiiFilter,缺席用自带 defaultPiiPatterns 兜底——审计是合规资产,脱敏不可缺位。
-      const gov = (ctx as unknown as { governance?: { pii?: PiiFilter } }).governance
+      const gov = ctx.reflect.get('governance', false) as { pii?: PiiFilter } | undefined
       const pii = gov?.pii ?? new PiiFilter(config.piiPatterns ?? defaultPiiPatterns())
 
       const trail = new AuditProjector({

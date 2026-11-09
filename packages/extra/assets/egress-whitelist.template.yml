@@ -1,0 +1,30 @@
+# egress 域名白名单配置模板:@basis/extra(T8;§11.6 裁定 egress 白名单首期挂载)。
+# 加载:parseDomainWhitelistYaml()(同包 domain-whitelist.ts;语法/结构错误即抛 =
+# 装载失败,fail-closed);组合层(@basis/glue egress-plugin)缺省读 agent cwd 下
+# .basis/egress-whitelist.yml,文件不存在 = 内网默认白名单(DEFAULT_EGRESS_DOMAIN_RULES,
+# 即本模板列表的生效子集)。
+#
+# fail-closed 口径(「数据不出内网」红线,§11.8):
+# - 不在本列表的域名/端口一律拒绝;URL 无法解析或协议非 http/https 一律拒绝
+#   (domain-whitelist.ts fail-closed 约定段);
+# - web 检索是唯一显式出站:出站工具级白名单(glue egress-plugin 的
+#   allowedOutboundTools)+ 本域名级白名单双口径管控;
+# - 公网域扩展示例仅作语法示范,注释态;启用前必须过企业合规评审(§11.2 遥测同源红线)。
+#
+# 规则语法(domain-whitelist.ts 头注):
+# - 'example.com'            精确 host(仅该 host);
+# - '*.example.com'          前导通配:任意深度子域,不含 apex;
+# - 'api-*.example.com'      标签内通配(不跨点);IPv6 用 '[::1]' 字面量,禁止通配;
+# - { host: ..., ports: [443] }  限定端口列表;缺省 = 任意端口。
+
+whitelist:
+  - '192.168.31.*' # 内网网段 192.168.31.0/24(尾标签通配枚举第四八位组;DomainRule 不支持 CIDR)
+  - localhost # 本机回环名
+  - manas # NAS 主机名(http://MaNas:PORT;判定大小写不敏感)
+  # ── 内网扩展(按部署实际增删)────────────────────────────────────────────
+  # - manas.local        # NAS mDNS 别名
+  # - 127.0.0.1          # 本机回环 IP(缺省不含;需要本地代理/本地服务时显式加)
+  # - '192.168.0.*'      # 其它内网网段(同款尾标签通配编码)
+  # ── 公网域扩展(注释态;启用前过合规评审)────────────────────────────────
+  # - { host: '*.deepseek.com', ports: [443] }
+  # - { host: 'api.example-vendor.com', ports: [443] }

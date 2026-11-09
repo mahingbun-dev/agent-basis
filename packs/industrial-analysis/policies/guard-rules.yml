@@ -17,6 +17,15 @@ rules:
     effect: deny
     tools: ['pay_*', 'sign_*', 'transfer_*', 'contract_*', 'approve_*']
     reason: 本包无资金/合同类工具;出现即越界,deny 优先
+  # 红线②知识侧(T10a):知识层只经 Knowledge MCP(pgvector+图谱,不经公网)访问——
+  # 向量库/图库直连客户端类工具出现即越界;deny 优先于下方 allow 的 *_query/*_search,
+  # 堵住绕 MCP 的直连口。「知识结论无出处」属内容面,规则引擎(工具名+参数子串)不可判定:
+  # 由 knowledge-qa skill 纪律 + 金集(motor-vib-maintenance-qa / kb-no-hit-no-fabrication)
+  # 的 file_assert(出处/版本/无命中话术)钉住。
+  - id: industrial-deny-knowledge-store-direct-access
+    effect: deny
+    tools: ['pgvector_*', 'neo4j_*', 'vector_db_*', 'graph_db_*', 'knowledge_graph_*', 'kb_direct_*', 'kb_write_*', 'kb_delete_*']
+    reason: 知识层只经 Knowledge MCP(pgvector+图谱)访问,向量库/图库直连即越界;知识结论必须带出处与版本,检索无命中明说,禁止编造条文
   # 红线②:只读查询/检索(R0 档)——TDengine 时序、预警列表、知识检索都经 MCP。
   - id: industrial-allow-readonly-via-mcp
     effect: allow
@@ -27,6 +36,13 @@ rules:
     effect: allow
     tools: ['alert_records']
     reason: 预警记录表写入(唯一放行的达梦写路径,R1 档,事后变更卡片)
+  # 报告异步任务(T10b,图纸⑦):提交/进度/产物引用是 R1 档可逆写(产物落对象存储桩,
+  # 可删);submit 处由桩 fail-closed 校验出处与时间窗(报告缺出处=不通过,内容面红线
+  # 由 report-gen skill + golden 钉住)。对外下发仍走 send_* 的 R2 ask 行——产物≠已发送。
+  - id: industrial-allow-report-job
+    effect: allow
+    tools: ['report_jobs']
+    reason: 异步报告任务(提交/进度/产物引用,R1 档可逆写,产物落对象存储桩);对外下发仍走 send_* 确认(R2)
   # 草稿/写文件类交付物(可逆写,R1 档,静默+事后 diff 卡片)。
   - id: industrial-allow-draft-write
     effect: allow

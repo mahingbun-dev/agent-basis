@@ -20,6 +20,28 @@ L1 收尾插件(T13;设计文档 08 §3 表 #10/#12/#13、12 §4.4、12 §10.3�
 - fail-closed:URL 不可解析 / 非 http(s) 协议 / 出网工具参数找不到目的地(缺省 `unknownDestination: 'deny'`)一律拒。
 - 拒绝以结构化值返回(`{ egress: 'denied', tool, reason, layer }`,output schema 扩为 `oneOf(原值 ∪ 拒绝值)`),不中断 turn;渲染为用户可见文本。
 
+## 挂载行为(T8):三层经 glue egress-plugin 上了宿主 pre-execute 瀑布
+
+2026-11-09 起(§11.6 裁定 egress 白名单首期挂载),本包 egress 不再只是「包装自有
+ToolDefinition」的库形态:`@basis/glue` 的 egress-plugin 把三层判定挂上宿主
+`tools/pre-execute` 瀑布(`packages/glue/src/plugins/egress-plugin.ts:105-137`),
+宿主持有的出网工具(web_search / web_fetch 等 web 检索五件套模型面工具)同样被拦——
+tools 注册表对同名重复注册 fail-loud,组合层无法以 wrap() 产物重注册宿主工具,瀑布是
+宿主工具唯一可插的执行前判定点(`packages/glue/src/plugins/egress-plugin.ts:7-10` 头注)。
+
+- **瀑布上的形态**:①工具级 + ②域名级以 `wrapper.preflight` 逐调用判定,denied →
+  `{ kind: 'deny', reason: '[egress] …' }` 交内核物化为 isError 工具结果(turn 不中断,
+  `egress-plugin.ts:116-130`),结构化明细(layer=tool/domain/no-destination)经组合层
+  桥接直投 `ctx.audit`;③代理强注不能在 pre-execute 改写已记录参数,仅在配置 `proxyUrl`
+  时保留 `EgressLite.withProxyEnv` 载荷能力、未配置整层关闭(头注「诚实边界」段);
+- **缺省口径**:域名白名单缺省仅内网(`192.168.31.*` / `localhost` / `manas`,
+  `src/egress-defaults.ts:19-23`);配置文件缺省 agent cwd 下 `.basis/egress-whitelist.yml`,
+  文件不存在 = 内网默认、存在但语法非法 = 装载失败(fail-closed);公网域扩展走模板
+  `assets/egress-whitelist.template.yml`(启用前必须过企业合规评审);
+- **装卸**:bundle 行 `basis-egress`(`packages/glue/cordis.patch.yml:21-22`),行序钉
+  最下游(域名级 deny 短路先于领域包 ask 门与人审,`同文件:8-11`);卸载 = 移除该行,
+  T9 真 boot E2E 实证卸载跑 egress 标记消失、无残留(`scripts/verify-governance-e2e.mjs:410-418,478-483`)。
+
 ## reviewer preset:产物形态
 
 `buildReviewerPreset()` → `ReviewerPresetArtifact`(schema v1)→ `renderReviewerPresetYaml()` 渲染为可直接粘进 profile 的两行:`@deepseek-ai/dsh-agent-preset`(preset 声明,内含 persona 行 + `@basis/extra` 工具门行)与 `@deepseek-ai/dsh-tool-subagent`(委派行,`provider: spawn` + `agentPreset` 指向 preset——独立 preset 仅 in-process spawn 支持,见 dsh subagent README「Child presets」)。`validateReviewerPresetArtifact()` 全量校验(词汇表白名单 + 变更/出网 glob 黑名单双保险,preset 脱钩/档位错整包拒收);`applyReviewerToolGate(host, allow)` 在 agent 作用域挂 `ctx.tools.restrict({ allow })`,返回原生 disposer(effect 配逆)。

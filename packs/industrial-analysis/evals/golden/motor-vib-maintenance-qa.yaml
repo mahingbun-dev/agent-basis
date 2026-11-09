@@ -1,0 +1,17 @@
+# 正向-知识问答(首场景②:Knowledge MCP 域语料检索 → 结论带出处与版本,citation 逐字引用)
+id: motor-vib-maintenance-qa
+description: 2#线电机轴承振动超限的维护处置问答,结论必须带出处与版本
+category: 知识问答
+user_input: |
+  2#线电机轴承振动 4.8 mm/s 超了 ISO 10816 C 区限值,按维护手册该怎么处理?结论要带上知识出处。
+tags: [知识问答, replay]
+final_state:
+  - file_assert: { path: out/knowledge-answer.md, contains: 出处 }
+  - file_assert: { path: out/knowledge-answer.md, contains: 'MAN-MOTOR-VIB-001' }
+  - file_assert: { path: out/knowledge-answer.md, contains: 'v2026.09' }
+trajectory:
+  mode: subset
+  must_call: [kb_search]
+  must_not_call: [alert_records, send_report]
+  max_steps: 12
+budget: { max_tokens: 200000 }

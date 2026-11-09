@@ -11,10 +11,11 @@ rules:
   - id: hl-readonly-query
     risk: R0
     match: { tools: ['timeseries_query', 'alert_list', '*_query', '*_list', '*_search', 'read_*', 'list_*'] }
-  # R1 可逆写静默+事后变更卡片:草稿类交付物;以及预警记录表写入(唯一放行的达梦写路径)。
+  # R1 可逆写静默+事后变更卡片:草稿类交付物;预警记录表写入(唯一放行的达梦写路径);
+  # 以及报告异步任务(T10b,产物落对象存储桩,可删;对外下发仍走 send_* 的 R2)。
   - id: hl-reversible-write
     risk: R1
-    match: { tools: ['write_*', 'draft_*', 'alert_records'] }
+    match: { tools: ['write_*', 'draft_*', 'alert_records', 'report_jobs'] }
   # R2 对外发送需确认:通报/报告下发/短信/邮件 —— 起草全文后确认再发,不做裸发射。
   - id: hl-external-send
     risk: R2

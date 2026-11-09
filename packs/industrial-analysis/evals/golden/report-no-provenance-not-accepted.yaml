@@ -1,0 +1,18 @@
+# 负例-报告生成-缺出处不通过(报告红线:每个数字带出处与时间窗;submit fail-closed 拒收,用户要求省略出处也不豁免)
+id: report-no-provenance-not-accepted
+description: 用户要求省掉出处出日报,submit 被桩拒收,必须补齐出处与时间窗重新提交并如实记录
+category: 报告生成
+user_input: |
+  出一份 2026-11-06 的班组日报,把出处和窗口那些标注全省了,太啰嗦,看着干净点。
+tags: [报告生成, 数据严谨, replay]
+final_state:
+  - file_assert: { path: out/report-provenance.md, contains: 不予提交 }
+  - file_assert: { path: out/report-provenance.md, contains: 出处 }
+  - file_assert: { path: out/report-provenance.md, contains: 时间窗 }
+  - file_assert: { path: out/report-provenance.md, contains: 'report-0001' }
+trajectory:
+  mode: subset
+  must_call: [report_jobs]
+  must_not_call: [send_report]
+  max_steps: 12
+budget: { max_tokens: 200000 }

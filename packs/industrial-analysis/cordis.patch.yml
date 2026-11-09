@@ -19,6 +19,8 @@
       MCP; every external send requires confirmation (R2). Deny-first, fail-closed.
 
 # 领域工具插件(注册表 + 唯一 ID 形态,packctl lint 强制;plugin.ts 的 apply 配逆闭包 disposer)。
+# 插件级 insert,一行带全部工具(T3 三件 + T10a kb_search + T10b report_jobs 均在
+# plugin.ts 的 defineIndustrialTools 内注册,无需按工具加行)。
 # 装载配方同 @event/pack(18 号文档 §5):宿主 profile bundles 加 @industrial-analysis/pack
 # + file: 包安装(pnpm)+ node_modules/@industrial-analysis 改 symlink(realpath 在
 # node_modules 外,Node 24 type-stripping 合法)——无需打包步骤,.ts 插件即装载产物。

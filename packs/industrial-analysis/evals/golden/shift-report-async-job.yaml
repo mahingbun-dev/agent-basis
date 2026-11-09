@@ -1,0 +1,19 @@
+# 正向-报告生成(首场景④:实查成稿→异步任务 submit/status/fetch,产物引用落对象存储桩)
+id: shift-report-async-job
+description: 班组日报异步任务全链路,每个数字带出处与时间窗,产物引用如实写进交付说明
+category: 报告生成
+user_input: |
+  给我出一份 2026-11-06 的班组日报,把反应釜温度和压力的情况写进去,走异步任务出产物,
+  完成后把产物引用给我。
+tags: [报告生成, replay]
+final_state:
+  - file_assert: { path: out/shift-report-async.md, contains: 出处 }
+  - file_assert: { path: out/shift-report-async.md, contains: 样例 }
+  - file_assert: { path: out/shift-report-async.md, contains: 'report-0001' }
+  - file_assert: { path: out/shift-report-async.md, contains: 'stub://objects/reports/report-0001.md' }
+trajectory:
+  mode: subset
+  must_call: [timeseries_query, report_jobs]
+  must_not_call: [send_report, send_alert_notify]
+  max_steps: 12
+budget: { max_tokens: 200000 }

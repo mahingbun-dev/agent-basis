@@ -5,10 +5,15 @@
  *
  * 工具名与金集(packs/industrial-analysis/evals/golden/)严格对齐:
  * - must_call:timeseries_query(reactor-temp-trend-24h / motor-vib-anomaly-summary /
- *   temp-fabrication-forbidden)、alert_list + alert_records(alert-p1-triage-playbook);
+ *   temp-fabrication-forbidden)、alert_list + alert_records(alert-p1-triage-playbook)、
+ *   kb_search(motor-vib-maintenance-qa / kb-no-hit-no-fabrication:T10a 知识问答)、
+ *   report_jobs(shift-report-async-job / report-no-provenance-not-accepted /
+ *   report-external-send-must-confirm:T10b 报告任务);
  * - must_not_call:send_report / send_alert_notify / publish_report
- *   (alert-notify-send-must-confirm:对外发送必须确认,不做裸发射)、
- *   dm_update / db_update(dm-write-beyond-alert-table-denied:达梦只读红线)。
+ *   (alert-notify-send-must-confirm / report-external-send-must-confirm:对外发送必须确认,
+ *   不做裸发射)、dm_update / db_update(dm-write-beyond-alert-table-denied:达梦只读红线)、
+ *   pgvector_* / neo4j_* / graph_* / vector_db_* / knowledge_graph_* / kb_import
+ *   (kb-direct-access-denied:知识库直连红线)。
  *
  * Cordis 纪律(05 号笔记 §9):插件 apply 里 ctx.tools.register 返回的 disposer
  * 与事件监听 disposer 全部收集,卸载时逆序配全(无残留);工具执行体是纯函数核心的
@@ -17,7 +22,8 @@
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { ToolDefinition, PreToolDecision, ToolExecution } from '@deepseek-ai/dsh-tools'
 import type { Context } from '@deepseek-ai/cordis'
-import { createTimeseriesTool, createAlertListTool, createAlertRecordsTool } from './tools/index.ts'
+import { createTimeseriesTool, createAlertListTool, createAlertRecordsTool, createKbSearchTool, createReportJobsTool } from './tools/index.ts'
+import type { ReportSourceRef } from './tools/index.ts'
 
 /** 插件名(bundle 内唯一;cordis.patch.yml 以 id: industrial-tools 引用本行)。 */
 export const INDUSTRIAL_TOOLS_PLUGIN_NAME = 'industrial-tools'
@@ -40,11 +46,13 @@ const ASK_REASONS: Readonly<Record<string, string>> = {
   publish_report: 'R2 对外发布:报告/通报对外发布必须先确认范围与口径,不做裸发射。',
 }
 
-/** 构建三个模型面工具定义(注册进 ctx.tools 即对模型可见;确定性桩,样例数据在 tools/ 内)。 */
+/** 构建五个模型面工具定义(注册进 ctx.tools 即对模型可见;确定性桩,样例数据在 tools/ 内)。 */
 export function defineIndustrialTools(): ToolDefinition[] {
   const timeseries = createTimeseriesTool()
   const alertList = createAlertListTool()
   const alertRecords = createAlertRecordsTool()
+  const kbSearch = createKbSearchTool()
+  const reportJobs = createReportJobsTool()
 
   return [
     defineTool({
@@ -123,6 +131,70 @@ export function defineIndustrialTools(): ToolDefinition[] {
           return { ok: true as const, ...record, writeScope: 'alert-records-table-only' as const, hint: '写回仅限预警记录表(达梦唯一放行写路径,R1);其余写动作 deny。' }
         }
         return { ok: true as const, ...alertRecords.list() }
+      },
+    }),
+    defineTool({
+      name: 'kb_search',
+      description: '工业知识库检索(确定性,R0 只读,经 Knowledge MCP:pgvector+图谱,内网不经公网):检索设备手册/工艺卡/预警规则库/处置案例域语料,返回结构化命中(出处=知识库/条目 id/标题/版本)与现成 citation 串。知识问答前必用——结论必须带出处与版本,引用逐字不改写;count=0 即「知识库无命中」,必须明说无命中,禁止编造条文、禁止虚构手册条款与版本号;语料修订走知识提案评审,不直改。',
+      parameters: {
+        query: { type: 'string', required: true, description: '检索词(空格分词;设备/部位/主题词优先,如「电机 轴承 振动 维护」)' },
+        topK: { type: 'number', description: '返回条数上限(选填,正整数,默认 5)' },
+        kb: { type: 'string', description: '限定知识库 id(选填;可用值见报错提示或语料清单,不猜)' },
+      },
+      output: OUTPUT,
+      isConcurrencySafe: () => true,
+      async execute(argsRaw) {
+        const args = argsRaw as { query?: unknown; topK?: unknown; kb?: unknown }
+        if (typeof args.query !== 'string' || args.query.trim().length === 0) throw new Error('kb_search: query 必填(非空字符串)')
+        if (args.topK !== undefined && !Number.isInteger(args.topK)) throw new Error('kb_search: topK 必须是正整数')
+        if (args.kb !== undefined && typeof args.kb !== 'string') throw new Error('kb_search: kb 必须是字符串')
+        return kbSearch.search(args.query, {
+          ...(typeof args.topK === 'number' ? { topK: args.topK } : {}),
+          ...(typeof args.kb === 'string' && args.kb.length > 0 ? { kb: args.kb } : {}),
+        })
+      },
+    }),
+    defineTool({
+      name: 'report_jobs',
+      description: '异步报告任务(确定性,R1 档;图纸⑦ 任务队列+进度回报+产物落对象存储+前端下载,产物落本地对象存储桩):op=submit 提交渲染任务(标题+报告时间窗+出处清单 sources 必填——缺出处与时间窗 fail-closed 拒收,报告红线,用户要求省略出处也不豁免)→ 返回 job id;op=status 查进度(完成有回报,不 busy-poll);op=fetch 取产物引用(需 completed;未完成会拒,先查进度);op=list 列任务。产物只是内部渲染件,fetch 成功≠已发送——对外下发报告仍是 R2(send_* 确认通道)。',
+      parameters: {
+        op: { type: 'string', required: true, description: '操作:submit(提交渲染任务)| status(查进度)| fetch(产物引用,需 completed)| list(任务列表)' },
+        title: { type: 'string', description: 'op=submit 必填:报告标题' },
+        window: { type: 'string', description: 'op=submit 必填:报告时间窗(如 2026-11-06 00:00–23:00);缺窗不予提交' },
+        sources: { type: 'array', description: 'op=submit 必填非空:出处清单([{kind: timeseries|alert|knowledge|rule, ref: 测点+窗口/告警 id/知识 citation/RULE-*}]);缺出处不予提交,渲染时写进产物页脚' },
+        draftPath: { type: 'string', description: 'op=submit 选填:工作区草稿路径(交付文件面板可见,产物引用随带)' },
+        jobId: { type: 'string', description: 'op=status|fetch 必填:任务 id(只来自 submit 返回,如 report-0001)' },
+      },
+      output: OUTPUT,
+      isConcurrencySafe: () => false,
+      async execute(argsRaw) {
+        const args = argsRaw as { op?: unknown; title?: unknown; window?: unknown; sources?: unknown; draftPath?: unknown; jobId?: unknown }
+        if (args.op !== 'submit' && args.op !== 'status' && args.op !== 'fetch' && args.op !== 'list') {
+          throw new Error('report_jobs: op 必须是 submit|status|fetch|list')
+        }
+        if (args.op === 'submit') {
+          const snapshot = reportJobs.submit({
+            ...(typeof args.title === 'string' ? { title: args.title } : {}),
+            ...(typeof args.window === 'string' ? { window: args.window } : {}),
+            ...(Array.isArray(args.sources) ? { sources: args.sources as readonly ReportSourceRef[] } : {}),
+            ...(typeof args.draftPath === 'string' && args.draftPath.length > 0 ? { draftPath: args.draftPath } : {}),
+          })
+          return {
+            ok: true as const,
+            ...snapshot,
+            hint: '进度用 op=status 查询(完成有回报,不 busy-poll);completed 后 op=fetch 取产物引用;产物≠已发送,对外下发仍须确认(R2)。',
+          }
+        }
+        if (args.op === 'status') {
+          if (typeof args.jobId !== 'string' || args.jobId.trim().length === 0) throw new Error('report_jobs: op=status 需要 jobId(非空字符串,来自 submit 返回)')
+          return { ok: true as const, ...reportJobs.status(args.jobId) }
+        }
+        if (args.op === 'fetch') {
+          if (typeof args.jobId !== 'string' || args.jobId.trim().length === 0) throw new Error('report_jobs: op=fetch 需要 jobId(非空字符串,来自 submit 返回)')
+          const { job, artifact } = reportJobs.fetch(args.jobId)
+          return { ok: true as const, job, artifact, hint: '产物引用如实写进交付说明(job id + storagePath);对外下发报告须确认(R2),fetch 成功≠已发送。' }
+        }
+        return { ok: true as const, ...reportJobs.list() }
       },
     }),
   ]
