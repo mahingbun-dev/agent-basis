@@ -155,8 +155,6 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       const disposers = [
         ctx.webServer.register({ kind: 'exact', path: '/login', handler }),
         ctx.webServer.register({ kind: 'exact', path: '/logout', handler }),
-        ctx.webServer.register({ kind: 'exact', path: '/account', handler }),
-        ctx.webServer.register({ kind: 'exact', path: '/admin/users', handler }),
         ctx.webServer.register({ kind: 'prefix', path: '/access/api', handler }),
         ctx.webServer.tapIndex(html => injectBadge(html)),
       ]

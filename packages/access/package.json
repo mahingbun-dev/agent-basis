@@ -1,20 +1,30 @@
 {
   "name": "@eterna/access",
-  "description": "账号门禁插件:登录/登出+管理员用户管理(env 播种 admin,不开放注册;D11 重名自动后缀)+用户自助配置(昵称/头像/密码)+'/' 登录桥接 dsh 会话(authenticatedUrl)+tapIndex 账号角标(未登录跳 /login)+审计归因(含失败登录)+双层限速。seam 用结构类型钉住(WebServer.register/tapIndex/authenticatedUrl,形态取 dsh 0.2.2-alpha.3 发布面,升级门禁复核)。",
+  "description": "账号门禁插件(双半边):Host——登录/登出+/access/api 数据端点(资料合并保存/密码/用户 CRUD/插件启停)+tapIndex 门禁角标+审计+限速+租户守卫;Client——注册设置弹窗分区(settings.section slot):账号(资料+密码,所有人)、用户管理、插件启停(仅 admin),DSH 官方语义令牌渲染,与产品风格天然统一。功能入口=产品设置弹窗,不自建独立页面。",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./client": "./lib/client.js",
     "./package.json": "./package.json"
   },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-primitives"
+      ],
+      "platform": "web"
     }
   },
   "scripts": {
-    "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
+    "build:client": "node scripts/build-client.mjs",
+    "verify": "node scripts/build-client.mjs && oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -23,7 +33,10 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "react": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "esbuild": "catalog:"
   }
 }

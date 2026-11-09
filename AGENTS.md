@@ -2,17 +2,17 @@
 
 > 本文件对所有在本仓库工作的 AI 助手与人类开发者生效。违反 = 审查打回。
 
-## 前端风格铁律（2026-11-10 起，用户强制要求）
+## 前端与产品形态铁律（2026-11-10 起，用户强制要求）
 
-**所有面向用户的页面（access 服务端页 / panel / prompt-studio 浏览器半边 / 任何插件 UI）
-必须遵循 [docs/design/frontend-style.md](docs/design/frontend-style.md)（eterna 前端风格规范 v1）**：
+**产品内功能一律做成 dsh 原生扩展点插件，禁止自建独立页面入口**（登录门禁页 /login 是唯一例外）：
 
-1. 颜色只用规范令牌表（深色默认匹配 dsh 应用 `#151517`，浅色经 `prefers-color-scheme` 适配）——禁止硬编码色值；
-2. 独立页面复用 access `shell()` 同构骨架（sticky 毛玻璃 topbar：品牌=返回应用 + 身份 + 退出；main 居中卡）——禁止再造导航；
-3. 交互纪律：资料类字段合并保存（脏检查+单一「保存更改」），密码等安全操作独立成卡，变更请求防重复点击，破坏性操作两击确认（禁用原生 `confirm()/alert()`），服务端页 `no-store`；
-4. 可访问性与响应式按规范 §1.5/§1.6（640px 断点、reduced-motion、focus-visible）。
+1. **设置类功能 = 设置弹窗分区**：注册 `settings.section` slot（`packages/access/src/client/index.tsx` 为参考实现——账号/用户管理/插件启停三分区）。上游设计宣言：adding a setting never means editing the shell（dsh-client-ui-settings contract/slots.d.ts）。
+2. **UI 渲染用 DSH 官方语义令牌 `--dsw-alias-*`**：深浅主题自动跟随产品，禁止字面色值（品牌渐变头像唯一豁免）。参考 `packages/access/src/client/styles.ts`。
+3. **交互纪律**：资料类字段合并保存（脏检查+单按钮）；密码等安全操作独立成卡；变更请求防重复点击；破坏性操作两击确认（禁用原生 `confirm()/alert()`）；HTML 响应 `no-store`。
+4. **可访问性与响应式**：语义标题、focus 光圈、`prefers-reduced-motion`、640/760px 断点。
+5. **客户端半边配方**：`dsh.client` 声明 + `build:client`（esbuild→`window.__ModuleLoader__` 工件）+ `ctx.slots.inject('settings.section', () => ctx.slots.register(...))`，panel 先例同构。
 
-参考实现与令牌表：`packages/access/src/pages.ts`（STYLE + shell()）。新增页面/改版 PR 必须附深浅两主题截图，按规范 §4 清单自查。
+完整规范：[docs/design/frontend-style.md](docs/design/frontend-style.md)。新增 UI 的 PR 必须附深浅两主题截图，按其 §4 清单自查。
 
 ## 多租户隔离铁律
 

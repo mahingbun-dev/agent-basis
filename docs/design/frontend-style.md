@@ -1,14 +1,17 @@
-# Eterna 前端风格规范（frontend-style v1）
+# Eterna 前端风格规范（frontend-style v2）
 
-> 2026-11-10 起为**仓库强制规范**（见 AGENTS.md「前端风格铁律」）：所有面向用户的页面——
-> access 服务端页、panel/prompt-studio 等浏览器半边、未来插件 UI——一律遵守。
-> 参考实现：`packages/access/src/pages.ts`（STYLE 令牌表 + shell() 骨架）。
+> 2026-11-10 起为**仓库强制规范**（见 AGENTS.md「前端与产品形态铁律」）。
+> v2 定案（用户拍板）：**产品内功能一律做成设置弹窗分区插件（`settings.section` slot）**，
+> 不自建独立页面；UI 用 DSH 官方语义令牌 `--dsw-alias-*`（深浅自动跟随产品）。
+> 参考实现：`packages/access/src/client/`（三分区）+ `packages/panel/src/client/`（面板先例）。
+> v1 的自建页令牌表仍适用于 /login 登录门禁页（唯一例外，`packages/access/src/pages.ts`）。
 
 ## 0. 为什么有这条规范
 
-用户原话（2026-11-10）：「这个页面的设计跟整个产品的样式风格都不统一」「检查所有页面，
-整个产品的前端风格要统一，美观」。dsh 应用默认深色（底色 #151517）；任何自建页面若
-自造浅色风格，即与产品割裂。本规范把风格收敛为一套令牌与骨架，页面只做内容组装。
+用户原话（2026-11-10）：「这些功能，都应该是插件。这些开发的规则，都应该写在仓库」。
+dsh 的设置弹窗就是为插件分区设计的（上游原话：adding a setting never means editing
+the shell）——自建独立页面（v1 形态）既割裂风格又重复导航。v2 定案：功能进弹窗分区，
+UI 走官方令牌，风格统一由产品壳保证。
 
 ## 1. 铁律（违反 = 审查打回）
 

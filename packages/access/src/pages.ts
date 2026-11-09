@@ -5,8 +5,7 @@
  * - 账号页结构:个人资料卡(头像+昵称合并保存,脏检查)+安全卡(密码修改独立)
  * - 角标:注入 dsh index 页;401 → 跳 /login(门禁);404/网络错误静默降级
  */
-import { escapeHtml, jsonForScript } from './http.ts'
-import type { UserRow, UserSummary } from './store.ts'
+import { escapeHtml } from './http.ts'
 
 const STYLE = `
 :root{
@@ -45,7 +44,15 @@ body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:ce
 .topbar button{width:auto;margin:0;padding:6px 10px;font-size:13px;background:none;color:var(--danger);border-radius:8px}
 .topbar button:hover{background:color-mix(in srgb,var(--danger) 14%,transparent)}
 main{flex:1;display:flex;align-items:center;justify-content:center;width:100%;padding:28px 16px}
-.stack{display:flex;flex-direction:column;gap:16px;width:min(560px,94vw)}
+.stack{display:flex;flex-direction:column;gap:16px;width:min(1100px,94vw)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.grid2.ratio{grid-template-columns:1.6fr 1fr}
+.plug{display:flex;flex-direction:column;gap:2px;padding:9px 0;border-bottom:1px solid var(--border)}
+.plug:last-child{border-bottom:0}
+.plug b{font-weight:600;font-size:13.5px}
+.pagehead{display:flex;align-items:baseline;gap:12px;width:100%}
+.pagehead h2{margin:0}
+.pagehead .muted{font-size:13px}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:26px;width:min(420px,94vw)}
 .card.wide{width:100%}
 h2{margin:0 0 6px;font-size:19px;letter-spacing:.2px}
@@ -56,13 +63,14 @@ input,select{width:100%;padding:9px 12px;border:1px solid var(--border);border-r
 input::placeholder{color:color-mix(in srgb,var(--dim) 70%,transparent)}
 input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 input[type=file]{padding:7px;color:var(--dim)}
-button{margin-top:16px;width:100%;padding:10px;border:0;border-radius:8px;
+button{margin-top:16px;width:auto;min-width:120px;padding:10px 22px;border:0;border-radius:8px;
   background:linear-gradient(135deg,var(--accent-strong),var(--accent));color:#fff;font-size:14px;font-weight:500;
   cursor:pointer;transition:filter .15s,transform .05s,opacity .15s}
 button:hover{filter:brightness(1.1)}
 button:active{transform:translateY(1px)}
 button:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
 button:disabled{opacity:.5;cursor:not-allowed;filter:none}
+.card.narrow button{width:100%}
 button.ghost{background:transparent;color:var(--text);border:1px solid var(--border);width:auto;margin:0;padding:8px 14px;font-weight:400;white-space:nowrap}
 button.ghost:hover{background:var(--surface-2)}
 .err{color:var(--danger);font-size:13px;min-height:18px;margin:10px 0 0;white-space:pre-wrap}
@@ -84,6 +92,22 @@ tbody tr:hover{background:var(--surface-2)}
 .pw-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:auto;margin:0;padding:4px 8px;
   font-size:12px;background:none;color:var(--dim);border-radius:6px}
 .pw-toggle:hover{background:var(--surface-2);color:var(--text)}
+.shell{display:flex;flex:1;width:min(1200px,96vw);margin:0 auto;gap:20px;padding:22px 16px;align-items:flex-start}
+.menu{width:190px;flex:none;display:flex;flex-direction:column;gap:4px;position:sticky;top:76px}
+.menuitem{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;color:var(--dim);text-decoration:none;font-size:14px;transition:background .12s,color .12s}
+.menuitem:hover{background:var(--surface-2);color:var(--text)}
+.menuitem.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.menuitem .ic{width:18px;text-align:center}
+.content{flex:1;min-width:0}
+.panel{display:none}
+.panel.active{display:block;animation:fadein .16s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (max-width:900px){
+  .grid2,.grid2.ratio{grid-template-columns:1fr}
+  .shell{flex-direction:column}
+  .menu{flex-direction:row;width:100%;position:static;overflow-x:auto}
+  .menuitem{flex:none}
+}
 @media (max-width:640px){
   .topbar{padding:8px 12px}
   .topbar .who .nick{display:none}
@@ -126,7 +150,7 @@ function avatarHtml(avatarUrl: string | null, nickname: string, size = 26): stri
 
 /** 登录页(viewer 缺省=无导航身份)。 */
 export function renderLoginPage(): string {
-  const body = `<div class="card"><h2>登录</h2>
+  const body = `<div class="card narrow"><h2>登录</h2>
 <label>账号</label><input id="account" autocomplete="username">
 <label>密码</label><div class="field"><input id="password" type="password" autocomplete="current-password"><button type="button" class="pw-toggle" id="pwEye" title="显示/隐藏密码">显示</button></div>
 <button id="go">登录</button><p class="err" id="msg"></p></div>`
@@ -156,188 +180,6 @@ eye.addEventListener('click',function(){
   return shell('登录', body, script)
 }
 
-export function renderForbiddenPage(viewer: { nickname: string; avatarUrl: string | null; account: string }): string {
-  const body = `<div class="card"><h2>无权访问</h2><p class="muted">此页面仅管理员可用。</p>
-<a href="/account" style="color:var(--accent);font-size:14px">返回账号设置</a></div>`
-  return shell('无权访问', body, '', viewer)
-}
-
-export interface AdminPluginRow {
-  readonly id: string
-  readonly label: string
-  readonly redLine: boolean
-  readonly disabled: boolean
-}
-
-function initial(user: UserRow): string {
-  return jsonForScript({ account: user.account, nickname: user.nickname, role: user.role })
-}
-
-/** 账号设置页:资料卡(合并保存,脏检查)+安全卡(密码独立,含确认输入与显示切换)。 */
-export function renderAccountPage(user: UserRow): string {
-  const viewer = { nickname: user.nickname, avatarUrl: `/access/api/avatar/${user.id}`, account: user.account }
-  const body = `<div class="stack">
-<div class="card wide"><h2>账号设置</h2><p class="muted">账号：${escapeHtml(user.account)}（角色：${user.role === 'admin' ? '管理员' : '普通用户'}）</p></div>
-<div class="card wide"><h3>个人资料</h3>
-<div class="row" style="margin:10px 0 14px">
-  <span id="avw">${avatarHtml(`/access/api/avatar/${user.id}`, user.nickname, 40)}</span>
-  <input type="file" id="file" accept="image/png,image/jpeg,image/webp,image/gif" style="flex:1">
-  <button type="button" class="ghost" id="resetAv">重置为字母头像</button>
-</div>
-<label>昵称</label><input id="nick" value="${escapeHtml(user.nickname)}" maxlength="32">
-<div class="row" style="margin-top:16px"><button id="saveProfile" disabled style="flex:1">保存更改</button><span class="muted" id="profileHint">资料未改动</span></div>
-<p class="ok" id="okProfile"></p><p class="err" id="errProfile"></p></div>
-<div class="card wide"><h3>修改密码</h3>
-<p class="muted">修改成功后本机保持登录，其他设备需重新登录。</p>
-<label>旧密码</label><div class="field"><input id="oldPw" type="password" autocomplete="current-password"><button type="button" class="pw-toggle" data-eye="oldPw">显示</button></div>
-<label>新密码</label><div class="field"><input id="newPw" type="password" autocomplete="new-password" placeholder="至少 8 位"><button type="button" class="pw-toggle" data-eye="newPw">显示</button></div>
-<label>确认新密码</label><div class="field"><input id="newPw2" type="password" autocomplete="new-password" placeholder="再次输入新密码"><button type="button" class="pw-toggle" data-eye="newPw2">显示</button></div>
-<button id="savePw">修改密码</button>
-<p class="ok" id="okPw"></p><p class="err" id="errPw"></p></div>
-</div>`
-  const script = `
-var me=${initial(user)}
-function api(path,opts){return fetch(path,Object.assign({credentials:'same-origin'},opts)).then(function(r){
-  if(r.status===401){location.href='/login';throw new Error('unauthorized')}
-  return r.json().then(function(d){return {status:r.status,data:d}})})}
-// ── 资料卡:合并保存(脏检查:昵称或头像任一改动即可保存;一次提交全部变更) ──
-var savedNick=me.nickname, pendingAvatar=null
-var saveBtn=document.getElementById('saveProfile'),hint=document.getElementById('profileHint')
-var okP=document.getElementById('okProfile'),errP=document.getElementById('errProfile')
-function refreshProfileState(){
-  var nick=document.getElementById('nick').value
-  var dirty=(nick!==savedNick&&nick.trim()!=='')||pendingAvatar!==null
-  saveBtn.disabled=!dirty
-  hint.textContent=dirty?(pendingAvatar!==null&&nick!==savedNick?'将更新昵称与头像':pendingAvatar!==null?'将更新头像':'将更新昵称'):'资料未改动'}
-function show(msg,isErr){errP.textContent=isErr?msg:'';okP.textContent=isErr?'':msg}
-document.getElementById('nick').addEventListener('input',refreshProfileState)
-document.getElementById('resetAv').addEventListener('click',function(){
-  pendingAvatar='RESET';refreshProfileState()
-  document.getElementById('avw').innerHTML='<span class="avatar" style="width:40px;height:40px;font-size:20px">'+(document.getElementById('nick').value||me.account||'?').slice(0,1)+'</span>'})
-document.getElementById('file').addEventListener('change',function(ev){
-  var file=ev.target.files&&ev.target.files[0];if(!file)return
-  var img=new Image()
-  img.onload=function(){
-    var c=document.createElement('canvas'),s=Math.min(256/img.width,256/img.height,1)
-    c.width=Math.max(1,Math.round(img.width*s));c.height=Math.max(1,Math.round(img.height*s))
-    c.getContext('2d').drawImage(img,0,0,c.width,c.height)
-    pendingAvatar=c.toDataURL('image/png');refreshProfileState()
-    document.getElementById('avw').innerHTML='<span class="avatar" style="width:40px;height:40px"><img src="'+pendingAvatar+'"></span>'}
-  img.onerror=function(){show('图片读取失败',true)}
-  img.src=URL.createObjectURL(file)})
-saveBtn.addEventListener('click',function(){
-  errP.textContent='';okP.textContent='';saveBtn.disabled=true
-  var nick=document.getElementById('nick').value
-  var jobs=[]
-  if(nick!==savedNick&&nick.trim()!=='')jobs.push(api('/access/api/nickname',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({nickname:nick})}))
-  if(pendingAvatar==='RESET')jobs.push(api('/access/api/avatar',{method:'DELETE'}))
-  else if(pendingAvatar!==null)jobs.push(api('/access/api/avatar',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({dataUrl:pendingAvatar})}))
-  Promise.all(jobs).then(function(results){
-    var failed=results.find(function(r){return r.status!==200})
-    if(failed){saveBtn.disabled=false;show((failed.data&&failed.data.error)||'保存失败',true);return}
-    savedNick=nick;pendingAvatar=null
-    me.nickname=nick;refreshProfileState()
-    show('已保存')})
-  .catch(function(e){saveBtn.disabled=false;if(e.message!=='unauthorized')show('网络错误',true)})})
-// ── 安全卡:密码独立修改(两次输入一致性前端校验;与资料保存互不影响) ──
-var savePw=document.getElementById('savePw'),okPw=document.getElementById('okPw'),errPw=document.getElementById('errPw')
-savePw.addEventListener('click',function(){
-  errPw.textContent='';okPw.textContent=''
-  var oldV=document.getElementById('oldPw').value,newV=document.getElementById('newPw').value,newV2=document.getElementById('newPw2').value
-  if(!oldV||!newV){errPw.textContent='请输入旧密码与新密码';return}
-  if(newV!==newV2){errPw.textContent='两次输入的新密码不一致';return}
-  savePw.disabled=true
-  api('/access/api/password',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({oldPassword:oldV,newPassword:newV})})
-  .then(function(res){
-    if(res.status===200){okPw.textContent='密码已修改，其他设备需重新登录';document.getElementById('oldPw').value='';document.getElementById('newPw').value='';document.getElementById('newPw2').value=''}
-    else errPw.textContent=(res.data&&res.data.error)||'修改失败'
-    savePw.disabled=false})
-  .catch(function(e){savePw.disabled=false;if(e.message!=='unauthorized')errPw.textContent='网络错误'})})
-document.querySelectorAll('.pw-toggle').forEach(function(btn){
-  btn.addEventListener('click',function(){
-    var input=document.getElementById(btn.getAttribute('data-eye'))
-    var showPw=input.type==='password'
-    input.type=showPw?'text':'password'
-    btn.textContent=showPw?'隐藏':'显示'
-    input.focus()})})
-`
-  return shell('账号设置', body, script, viewer)
-}
-
-export function renderAdminPage(viewer0: UserRow, users: UserSummary[], plugins: ReadonlyArray<AdminPluginRow> = []): string {
-  const pluginRows = plugins.map((plugin) => {
-    if (plugin.redLine) {
-      return `<div class="row" style="justify-content:space-between;padding:6px 0"><span><span class="tag red">红线</span> ${escapeHtml(plugin.label)} <span class="muted">${escapeHtml(plugin.id)}</span></span><span class="muted">不可停用</span></div>`
-    }
-    const state = plugin.disabled ? '已停用(重启后生效)' : '启用中'
-    const action = plugin.disabled ? 'enable' : 'disable'
-    const label = plugin.disabled ? '启用' : '停用'
-    return `<div class="row" style="justify-content:space-between;padding:6px 0" data-plugin="${escapeHtml(plugin.id)}">
-<span>${escapeHtml(plugin.label)} <span class="muted">${escapeHtml(plugin.id)}</span></span>
-<span class="row"><span class="muted" data-state>${state}</span><button type="button" class="ghost" data-toggle="${action}" style="margin-left:8px">${label}</button></span></div>`
-  }).join('')
-  const rows = users.map((user) => {
-    const self = user.id === viewer0.id
-    const del = self ? '<span class="muted">当前登录</span>'
-      : `<button class="danger" data-id="${user.id}" data-account="${escapeHtml(user.account)}">删除</button>`
-    return `<tr>
-<td>${avatarHtml(user.hasAvatar ? `/access/api/avatar/${user.id}` : null, user.nickname)}</td>
-<td>${escapeHtml(user.account)}</td><td>${escapeHtml(user.nickname)}</td>
-<td>${user.role === 'admin' ? '<span class="tag">管理员</span>' : '<span class="muted">用户</span>'}</td>
-<td class="muted">${escapeHtml(user.createdAt)}</td><td>${del}</td></tr>`
-  }).join('')
-  const viewer = { nickname: viewer0.nickname, avatarUrl: `/access/api/avatar/${viewer0.id}`, account: viewer0.account }
-  const body = `<div class="stack">
-<div class="card wide"><h2>用户管理</h2>
-<div class="row"><input id="na" placeholder="账号"><input id="np" type="password" placeholder="密码（至少 8 位）">
-<select id="nr" style="width:130px"><option value="user">普通用户</option><option value="admin">管理员</option></select>
-<button type="button" class="ghost" id="add">添加用户</button></div>
-<p class="muted">重名账号自动追加数字后缀（如 zhangsan → zhangsan01）；新用户默认昵称=账号、头像=昵称首字母。</p>
-<table><thead><tr><th></th><th>账号</th><th>昵称</th><th>角色</th><th>创建时间</th><th></th></tr></thead>
-<tbody>${rows}</tbody></table></div>
-<div class="card wide"><h3>插件启停</h3>
-<p class="muted">停用后重启容器生效；红线插件（治理/审计/出网/门禁）不可停。</p>
-<div id="plugins">${pluginRows}</div></div>
-<p class="err" id="err"></p></div>`
-  const script = `
-var errEl=document.getElementById('err')
-function api(path,opts){return fetch(path,Object.assign({credentials:'same-origin'},opts)).then(function(r){
-  if(r.status===401){location.href='/login';throw new Error('unauthorized')}
-  return r.json().then(function(d){return {status:r.status,data:d}})})}
-document.getElementById('add').addEventListener('click',function(){
-  var account=document.getElementById('na').value,password=document.getElementById('np').value,role=document.getElementById('nr').value
-  errEl.textContent=''
-  api('/access/api/users',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({account:account,password:password,role:role})})
-  .then(function(res){
-    if(res.status===201){
-      var name=res.data.finalAccount
-      alert(name===account?('用户 '+name+' 已创建'):('用户已创建，账号为 '+name+'（重名自动后缀）'))
-      location.reload()}
-    else errEl.textContent=res.data.error||'创建失败'})
-  .catch(function(e){if(e.message!=='unauthorized')errEl.textContent='网络错误'})})
-document.querySelectorAll('button.danger').forEach(function(btn){
-  btn.addEventListener('click',function(){
-    if(btn.getAttribute('data-armed')!=='1'){
-      btn.setAttribute('data-armed','1');btn.textContent='确认删除?'
-      setTimeout(function(){if(btn.getAttribute('data-armed')==='1'){btn.removeAttribute('data-armed');btn.textContent='删除'}},4000)
-      return}
-    btn.disabled=true
-    api('/access/api/users/'+btn.getAttribute('data-id'),{method:'DELETE'})
-    .then(function(res){if(res.status===200)location.reload();else{btn.disabled=false;btn.removeAttribute('data-armed');btn.textContent='删除';errEl.textContent=res.data.error||'删除失败'}})
-    .catch(function(e){if(e.message!=='unauthorized'){btn.disabled=false;btn.removeAttribute('data-armed');btn.textContent='删除';errEl.textContent='网络错误'}})})})
-document.querySelectorAll('#plugins button[data-toggle]').forEach(function(btn){
-  btn.addEventListener('click',function(){
-    var row=btn.closest('[data-plugin]'),id=row.getAttribute('data-plugin'),action=btn.getAttribute('data-toggle')
-    errEl.textContent=''
-    api('/access/api/plugins/'+id+'/'+action,{method:'POST'})
-    .then(function(res){
-      if(res.status===200){btn.textContent=action==='disable'?'启用':'停用';btn.setAttribute('data-toggle',action==='disable'?'enable':'disable');row.querySelector('[data-state]').textContent=action==='disable'?'已停用(重启后生效)':'启用中'}
-      else errEl.textContent=res.data.error||'操作失败'})
-    .catch(function(e){if(e.message!=='unauthorized')errEl.textContent='网络错误'})})})
-`
-  return shell('用户管理', body, script, viewer)
-}
-
 /** 账号角标:注入每个 dsh index 页。401 → 跳登录(门禁);404/异常静默(access 缺席降级)。 */
 export const BADGE_SCRIPT = `
 (function(){
@@ -353,10 +195,7 @@ export const BADGE_SCRIPT = `
     else{av=document.createElement('span');av.textContent=(u.nickname||u.account||'?').slice(0,1);av.style.cssText='width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px'}
     b.appendChild(av)
     var name=document.createElement('span');name.textContent=u.nickname||u.account;b.appendChild(name)
-    function link(href,text,color){var a=document.createElement('a');a.href=href;a.textContent=text;a.style.cssText='color:'+color+';text-decoration:none';b.appendChild(a);return a}
-    link('/account','账号','#a5b4fc')
-    if(u.role==='admin')link('/admin/users','用户管理','#a5b4fc')
-    var out=link('#','退出','#fca5a5')
+    var out=document.createElement('a');out.href='#';out.textContent='退出';out.style.cssText='color:#fca5a5;text-decoration:none';b.appendChild(out)
     out.addEventListener('click',function(e){
       e.preventDefault()
       fetch('/logout',{method:'POST',credentials:'same-origin'}).then(function(){location.href='/login'})})

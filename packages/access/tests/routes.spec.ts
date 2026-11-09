@@ -263,19 +263,13 @@ describe('access 路由核心', () => {
     expect(auditEvents.some(e => e.kind === 'access.logout')).toBe(true)
   })
 
-  it('页面门禁:/account 匿名跳登录、登录出配置页;/admin/users 非管理员 403 页', () => {
-    store.createUserWithSuffix({ account: 'alice', password: 'password8' })
-    const userCookie = login('alice', 'password8')
-    expect(handleAccessRequest(deps, req({ pathname: '/account' })).status).toBe(302)
-    const account = handleAccessRequest(deps, req({ pathname: '/account', cookie: userCookie }))
-    expect(account.status).toBe(200)
-    expect(account.body).toContain('账号设置')
-    const forbidden = handleAccessRequest(deps, req({ pathname: '/admin/users', cookie: userCookie }))
-    expect(forbidden.status).toBe(403)
-    expect(forbidden.body).toContain('仅管理员')
-    const admin = handleAccessRequest(deps, req({ pathname: '/admin/users', cookie: adminCookie }))
-    expect(admin.status).toBe(200)
-    expect(admin.body).toContain('用户管理')
+  it('页面门禁:匿名 /login 出登录页(no-store 响应头);独立页路由已移除(404)', () => {
+    const login = handleAccessRequest(deps, req({ pathname: '/login' }))
+    expect(login.status).toBe(200)
+    expect(login.headers.find(([n]) => n === 'cache-control')?.[1]).toBe('no-store')
+    expect(handleAccessRequest(deps, req({ pathname: '/account' })).status).toBe(404)
+    expect(handleAccessRequest(deps, req({ pathname: '/admin/users' })).status).toBe(404)
+    expect(handleAccessRequest(deps, req({ pathname: '/manage' })).status).toBe(404)
   })
 
   it('未知路径 405/404', () => {

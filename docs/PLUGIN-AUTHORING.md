@@ -23,7 +23,7 @@
 5. **Cordis 三纪律**:effect 配逆闭包 / coeffect 全声明 / provide 可交换接口(注册表+唯一 ID,命名空间 `@eterna/*`、`@<行业>/*`)。
 6. `apply(ctx)` 返回的 disposer 收全全部逆(定时器/连接/注册),卸载零残留。
 7. UI 只用官方语义令牌(`--dsw-alias-*` / `--dsw-radius-*`),不发明令牌。
-8. **前端风格遵循 [docs/design/frontend-style.md](design/frontend-style.md)(eterna 风格系统 v1,AGENTS.md 强制)**——颜色只用规范令牌、独立页复用 access `shell()` 骨架、资料合并保存/密码独立、两击确认替代原生对话框、深浅双主题。
+8. **产品内功能=设置弹窗分区插件**(`settings.section` slot,参考 `packages/access/src/client/`;AGENTS.md 强制)——禁止自建独立页面;UI 用 DSH 官方语义令牌(`--dsw-alias-*`),资料合并保存/密码独立、两击确认替代原生对话框,深浅主题自动跟随。
 
 ### 1.1 多租户与隔离铁律(2026-11-10 起,`packctl tenant-scan` 强制)
 

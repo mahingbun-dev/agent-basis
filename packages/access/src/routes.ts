@@ -10,7 +10,7 @@ import {
   redirectReply, requestOrigin, type AccessReply, type AccessRequest,
 } from './http.ts'
 import { PasswordPolicyError } from './password.ts'
-import { renderAccountPage, renderAdminPage, renderForbiddenPage, renderLoginPage } from './pages.ts'
+import { renderLoginPage } from './pages.ts'
 import { SlidingWindow } from './ratelimit.ts'
 import { SessionService } from './session.ts'
 import {
@@ -58,10 +58,6 @@ export function handleAccessRequest(deps: AccessDeps, req: AccessRequest): Acces
       return handleLogin(deps, req, method, ip)
     case '/logout':
       return handleLogout(deps, req, method, ip)
-    case '/account':
-      return handleAccount(deps, req, method)
-    case '/admin/users':
-      return handleAdmin(deps, req, method)
     default:
       break
   }
@@ -125,6 +121,7 @@ function currentUser(deps: AccessDeps, req: AccessRequest): UserRow | undefined 
 function meView(deps: AccessDeps, user: UserRow): Record<string, unknown> {
   const hasAvatar = deps.store.getAvatar(user.id) !== undefined
   return {
+    id: user.id,
     account: user.account,
     nickname: user.nickname,
     role: user.role,
@@ -185,27 +182,6 @@ function handleLogout(deps: AccessDeps, req: AccessRequest, method: string, ip: 
   const user = requireUser(deps, req)
   if (user !== undefined) deps.audit({ kind: 'access.logout', account: user.account, ip })
   return redirectReply('/login', [['set-cookie', deps.session.clearCookieHeader()]])
-}
-
-function handleAccount(deps: AccessDeps, req: AccessRequest, method: string): AccessReply {
-  if (method !== 'GET') return methodNotAllowed()
-  const user = requireUser(deps, req)
-  if (user === undefined) return redirectReply('/login')
-  return htmlResponse(200, renderAccountPage(user))
-}
-
-function handleAdmin(deps: AccessDeps, req: AccessRequest, method: string): AccessReply {
-  if (method !== 'GET') return methodNotAllowed()
-  const user = requireUser(deps, req)
-  if (user === undefined) return redirectReply('/login')
-  if (user.role !== 'admin') {
-    return htmlResponse(403, renderForbiddenPage({ nickname: user.nickname, avatarUrl: `/access/api/avatar/${user.id}`, account: user.account }))
-  }
-  const plugins = [
-    ...[...RED_LINE_PLUGINS].map(id => ({ id, label: id, redLine: true, disabled: false })),
-    ...TOGGLEABLE_PLUGINS.map(p => ({ ...p, redLine: false, disabled: deps.store.isPluginDisabled(p.id) })),
-  ]
-  return htmlResponse(200, renderAdminPage(user, deps.store.listUsers(), plugins))
 }
 
 function handleNickname(deps: AccessDeps, req: AccessRequest, ip: string): AccessReply {

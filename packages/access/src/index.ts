@@ -17,7 +17,7 @@ export {
 export { SlidingWindow } from './ratelimit.ts'
 export { registerTenantGuards } from './tenant.ts'
 export type { TenantDeps, TenantFetchRegistry } from './tenant.ts'
-export { BADGE_SCRIPT, renderAccountPage, renderAdminPage, renderForbiddenPage, renderLoginPage } from './pages.ts'
+export { BADGE_SCRIPT, renderLoginPage } from './pages.ts'
 export { reportAccessAudit } from './audit.ts'
 export type { AccessAuditEvent } from './audit.ts'
 export { isSameOrigin, parseAvatarDataUrl, clientIp } from './http.ts'
