@@ -109,6 +109,26 @@ describe('UserStore 用户存储', () => {
     expect(store.getUserById(admin.id)).toBeUndefined()
   })
 
+  it('deleteUser 级联清理名下 sessions/workspaces(owner_id 外键引用 users,不清则 FK 炸 500)', () => {
+    const admin = store.createUserWithSuffix({ account: 'root', password: 'password8', role: 'admin' }).user
+    const user = store.createUserWithSuffix({ account: 'zhangsan', password: 'password8' }).user
+    // 复现生产路径:用户用过产品 → 守卫登记 session 与 workspace 归属
+    store.recordSession('sess-1', user.id, 'ws-1')
+    store.recordSession('sess-2', user.id, null)
+    store.recordWorkspace('ws-1', user.id, '/home/zhangsan')
+    expect(() => { store.deleteUser(user.id, admin.id) }).not.toThrow()
+    expect(store.getUserById(user.id)).toBeUndefined()
+    // 登记行随人走:session 注销、workspace 归属注销
+    expect(store.sessionOwner('sess-1')).toBeUndefined()
+    expect(store.sessionOwner('sess-2')).toBeUndefined()
+    expect(store.workspaceOwner('ws-1')).toBeUndefined()
+    // 仅挂 session(无 workspace)的用户同样可删
+    const other = store.createUserWithSuffix({ account: 'alice', password: 'password8' }).user
+    store.recordSession('sess-alice', other.id, null)
+    expect(() => { store.deleteUser(other.id, admin.id) }).not.toThrow()
+    expect(store.sessionOwner('sess-alice')).toBeUndefined()
+  })
+
   it('头像 BLOB 往返与重置;昵称策略', () => {
     const { user } = store.createUserWithSuffix({ account: 'dave', password: 'password8' })
     const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3])

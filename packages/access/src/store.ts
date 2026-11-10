@@ -228,7 +228,9 @@ export class UserStore {
     return { data: row.avatar, mime: row.avatar_mime ?? 'image/png' }
   }
 
-  /** 删除护栏:不能删自己;最后一个 admin 不可删。 */
+  /** 删除护栏:不能删自己;最后一个 admin 不可删。sessions/workspaces 的 owner_id
+   * 外键引用 users(node:sqlite 默认开 FK 强制),须先级联清理登记行再删人,否则
+   * FOREIGN KEY constraint failed → 500。 */
   deleteUser(id: number, actorId: number): void {
     if (id === actorId) throw new SelfDeleteError('不能删除自己的账号')
     const row = this.db.prepare('SELECT role FROM users WHERE id = ?').get(id) as { role: string } | undefined
@@ -237,6 +239,8 @@ export class UserStore {
       const admins = this.db.prepare("SELECT COUNT(*) AS n FROM users WHERE role = 'admin'").get() as { n: number }
       if (admins.n <= 1) throw new LastAdminError('最后一个管理员不可删除')
     }
+    this.db.prepare('DELETE FROM sessions WHERE owner_id = ?').run(id)
+    this.db.prepare('DELETE FROM workspaces WHERE owner_id = ?').run(id)
     this.db.prepare('DELETE FROM users WHERE id = ?').run(id)
   }
 

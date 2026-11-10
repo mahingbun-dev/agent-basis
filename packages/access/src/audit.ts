@@ -18,15 +18,19 @@ export interface AccessAuditEvent {
 
 /** 直投一条 access 事件到 ctx.audit(缺席时无操作);不抛——审计不改变决策路径。 */
 export function reportAccessAudit(ctx: { reflect: AuditReflect }, event: AccessAuditEvent): void {
-  const audit = ctx.reflect.get('audit', false) as
-    | { report(detail: Readonly<Record<string, unknown>> & { readonly actor?: unknown }): readonly unknown[] }
-    | undefined
-  audit?.report({
-    kind: event.kind,
-    ...(event.account !== undefined ? { account: event.account } : {}),
-    ...(event.ip !== undefined ? { ip: event.ip } : {}),
-    ...(event.ok !== undefined ? { ok: event.ok } : {}),
-    ...(event.detail !== undefined ? { detail: event.detail } : {}),
-    actor: { pluginId: 'eterna-access', source: 'decision' },
-  })
+  try {
+    const audit = ctx.reflect.get('audit', false) as
+      | { report(detail: Readonly<Record<string, unknown>> & { readonly actor?: unknown }): readonly unknown[] }
+      | undefined
+    audit?.report({
+      kind: event.kind,
+      ...(event.account !== undefined ? { account: event.account } : {}),
+      ...(event.ip !== undefined ? { ip: event.ip } : {}),
+      ...(event.ok !== undefined ? { ok: event.ok } : {}),
+      ...(event.detail !== undefined ? { detail: event.detail } : {}),
+      actor: { pluginId: 'eterna-access', source: 'decision' },
+    })
+  } catch {
+    // 审计故障吞掉:决策已落,不能反咬 HTTP 面(否则删人成功却报 internal error)
+  }
 }

@@ -100,6 +100,7 @@ function createNodeHandler(deps: AccessDeps): (req: IncomingMessage, res: Server
       origin: req.headers.origin,
       host: req.headers.host,
       xff: req.headers['x-forwarded-for'],
+      contentType: req.headers['content-type'],
       body: collected.data,
     }
     try {

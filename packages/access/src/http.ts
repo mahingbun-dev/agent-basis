@@ -11,6 +11,7 @@ export interface AccessRequest {
   readonly origin: string | undefined
   readonly host: string | undefined
   readonly xff: string | string[] | undefined
+  readonly contentType: string | undefined
   readonly body: Uint8Array | undefined
 }
 

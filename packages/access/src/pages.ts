@@ -165,10 +165,12 @@ function submit(){
   var account=document.getElementById('account').value,password=document.getElementById('password').value
   fetch('/login',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},
     body:JSON.stringify({account:account,password:password})}).then(function(r){
-    if(r.ok){location.href='/';return null}
-    go.disabled=false
-    return r.json().catch(function(){return null}).then(function(d){
-      msg.textContent=(d&&d.error)||('登录失败('+r.status+')')})
+    if(!r.ok){go.disabled=false
+      return r.json().catch(function(){return null}).then(function(d){
+        msg.textContent=(d&&d.error)||('登录失败('+r.status+')')})}
+    return r.json().catch(function(){return {redirect:'/'}}).then(function(d){
+      // 顶层导航:浏览器原生连接处理 token 桥接(不走 fetch 重定向链)
+      location.href=(d&&d.redirect)||'/'})
   }).catch(function(){go.disabled=false;msg.textContent='网络错误，请重试'})
 }
 go.addEventListener('click',submit)

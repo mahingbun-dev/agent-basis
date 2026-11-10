@@ -175,7 +175,7 @@ function handleLogin(deps: AccessDeps, req: AccessRequest, method: string, ip: s
   if (method === 'GET') {
     const user = requireUser(deps, req)
     if (user === undefined) return htmlResponse(200, renderLoginPage())
-    return redirectReply(deps.bridgeHome(requestOrigin(req.host, deps.session.secure)))
+    return redirectReply(deps.bridgeHome(deps.publicOrigin ?? requestOrigin(req.host, deps.session.secure)))
   }
   if (method !== 'POST') return methodNotAllowed()
   const parsed = parseLoginBody(req.body)
@@ -190,8 +190,16 @@ function handleLogin(deps: AccessDeps, req: AccessRequest, method: string, ip: s
   }
   const token = deps.session.issue({ userId: user.id, passwordVersion: user.passwordVersion })
   deps.audit({ kind: 'access.login', account: user.account, ip, ok: true })
-  const origin = requestOrigin(req.host, deps.session.secure)
-  return redirectReply(deps.bridgeHome(origin), [['set-cookie', deps.session.setCookieHeader(token)]])
+  // 桥接目标规范根:PUBLIC_URL 声明优先(浏览器入口唯一权威),无声明回退请求侧 origin
+  const origin = deps.publicOrigin ?? requestOrigin(req.host, deps.session.secure)
+  const redirect = deps.bridgeHome(origin)
+  const cookie = deps.session.setCookieHeader(token)
+  // JSON 提交(页面 fetch)→200+redirect,由页面做顶层导航:不让 fetch 追 302 重定向链
+  // (反代/h2 环境下重定向链是「网络错误」的高发面);表单提交保持传统 302。
+  if (req.contentType?.includes('application/json') === true) {
+    return jsonResponse(200, { ok: true, redirect }, [['set-cookie', cookie]])
+  }
+  return redirectReply(redirect, [['set-cookie', cookie]])
 }
 
 /** 兼容 JSON 与表单两种登录编码(页面走 JSON,脚本/表单客户端两者皆可)。 */

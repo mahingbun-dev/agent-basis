@@ -57,16 +57,18 @@ describe('access 路由核心', () => {
     const reply = handleAccessRequest(deps, req({
       method: 'POST',
       pathname: '/login',
+      contentType: 'application/json',
       body: Buffer.from(JSON.stringify({ account, password })),
     }))
-    expect(reply.status).toBe(302)
+    expect(reply.status).toBe(200)
+    expect((reply.body as string)).toContain('redirect')
     return cookieOf(reply) ?? ''
   }
 
   function req(overrides: Partial<AccessRequest>): AccessRequest {
     return {
       method: 'GET', pathname: '/', cookie: undefined, origin: undefined,
-      host: 'localhost:3210', xff: undefined, body: undefined, ...overrides,
+      host: 'localhost:3210', xff: undefined, contentType: undefined, body: undefined, ...overrides,
     }
   }
 
@@ -91,38 +93,39 @@ describe('access 路由核心', () => {
   it('登录成功:302 桥接+set-cookie+审计 ok;密码错:401 统一话术+审计 fail(不泄漏存在性)', () => {
     auditEvents.length = 0
     const bad = handleAccessRequest(deps, req({
-      method: 'POST', pathname: '/login', body: Buffer.from(JSON.stringify({ account: 'ghost', password: 'whatever1' })),
+      method: 'POST', pathname: '/login', contentType: 'application/json', body: Buffer.from(JSON.stringify({ account: 'ghost', password: 'whatever1' })),
     }))
     expect(bad.status).toBe(401)
     expect(bodyOf(bad).error).toBe('账号或密码不正确')
     const failEvent = auditEvents.find(e => e.kind === 'access.login' && e.ok === false)
     expect(failEvent?.account).toBe('ghost')
     const good = handleAccessRequest(deps, req({
-      method: 'POST', pathname: '/login', body: Buffer.from(JSON.stringify({ account: 'Mr.Ma', password: 'MqbSunny0702' })),
+      method: 'POST', pathname: '/login', contentType: 'application/json', body: Buffer.from(JSON.stringify({ account: 'Mr.Ma', password: 'MqbSunny0702' })),
     }))
-    expect(good.status).toBe(302)
+    expect(good.status).toBe(200)
+    expect(JSON.parse(good.body as string)).toHaveProperty('redirect')
     expect(cookieOf(good)).toContain('HttpOnly')
     expect(auditEvents.some(e => e.kind === 'access.login' && e.ok === true && e.account === 'Mr.Ma')).toBe(true)
   })
 
   it('登录限速:同 ip+账号第 6 次 429;时钟滑动后恢复;换账号不受影响', () => {
     const attempt = (): AccessReply => handleAccessRequest(deps, req({
-      method: 'POST', pathname: '/login', body: Buffer.from(JSON.stringify({ account: 'bruteforce', password: 'wrong-pass' })),
+      method: 'POST', pathname: '/login', contentType: 'application/json', body: Buffer.from(JSON.stringify({ account: 'bruteforce', password: 'wrong-pass' })),
     }))
     for (let i = 0; i < 5; i++) expect(attempt().status).toBe(401)
     expect(attempt().status).toBe(429)
     expect(handleAccessRequest(deps, req({
-      method: 'POST', pathname: '/login', body: Buffer.from(JSON.stringify({ account: 'other', password: 'wrong-pass' })),
+      method: 'POST', pathname: '/login', contentType: 'application/json', body: Buffer.from(JSON.stringify({ account: 'other', password: 'wrong-pass' })),
     })).status).toBe(401)
     now += 60_001
     expect(attempt().status).toBe(401)
   })
 
   it('变更类同源闸:外来 Origin 与 Origin: null 一律 403;缺省放行', () => {
-    const base = { method: 'POST', pathname: '/login', body: Buffer.from('{"account":"Mr.Ma","password":"MqbSunny0702"}') }
+    const base = { method: 'POST', pathname: '/login', body: Buffer.from('{"account":"Mr.Ma","password":"MqbSunny0702"}'), contentType: 'application/json' }
     expect(handleAccessRequest(deps, req({ ...base, origin: 'http://evil.example' })).status).toBe(403)
     expect(handleAccessRequest(deps, req({ ...base, origin: 'null' })).status).toBe(403)
-    expect(handleAccessRequest(deps, req({ ...base, origin: 'http://localhost:3210' })).status).toBe(302)
+    expect(handleAccessRequest(deps, req({ ...base, origin: 'http://localhost:3210', contentType: 'application/json' })).status).toBe(200)
     expect(handleAccessRequest(deps, req({ ...base, origin: 'https://localhost:3210' })).status).toBe(403)
   })
 
@@ -132,9 +135,9 @@ describe('access 路由核心', () => {
       session: new SessionService(Buffer.from('test-secret-test-secret-test-s'), { secure: true }),
       publicOrigin: 'https://eternity-electricity.cn',
     }
-    const base = { method: 'POST', pathname: '/login', body: Buffer.from(JSON.stringify({ account: 'Mr.Ma', password: 'MqbSunny0702' })), host: 'eternity-electricity.cn' }
+    const base = { method: 'POST', pathname: '/login', contentType: 'application/json', body: Buffer.from(JSON.stringify({ account: 'Mr.Ma', password: 'MqbSunny0702' })), host: 'eternity-electricity.cn' }
     const attempt = (origin: string): AccessReply => handleAccessRequest(deps, req({ ...base, origin }))
-    expect(attempt('https://eternity-electricity.cn').status).toBe(302)
+    expect(attempt('https://eternity-electricity.cn').status).toBe(200)
     expect(attempt('http://eternity-electricity.cn').status).toBe(403)
     expect(attempt('https://other.example').status).toBe(403)
     expect(attempt('https://eternity-electricity.cn:8443').status).toBe(403)
