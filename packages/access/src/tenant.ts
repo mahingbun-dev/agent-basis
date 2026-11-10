@@ -34,6 +34,8 @@ export interface TenantDeps {
   /** 租户根基目录(默认 $ETERNA_TENANT_ROOT,再退 $DSH_HOME/workspaces);每用户根=其下账号目录。 */
   readonly tenantRoot: string
   audit(event: AccessAuditEvent): void
+  /** P1-T2:mux 隔离惰性安装钩子(服务在插件 apply 后才挂载,首个守卫请求时落地)。 */
+  readonly ensureMux?: () => void
 }
 
 type ServiceHandle = Record<string, (...args: never[]) => unknown>
@@ -226,6 +228,7 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
       methods: ['POST'],
       requestBody: 'buffered',
       fetch: async (request) => {
+        deps.ensureMux?.()
         const body = await readJson(request)
         const unpacked = unpack(body)
         if (unpacked === undefined) return new Response('invalid client-request message', { status: 400 })

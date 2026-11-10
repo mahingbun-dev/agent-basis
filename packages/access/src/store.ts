@@ -305,6 +305,20 @@ export class UserStore {
     return row === undefined ? undefined : row.owner_id
   }
 
+  /** 归属账本读取:mux 租户策略 bindings 用(T2,2026-11-11)。 */
+  sessionsOfOwner(ownerId: number): string[] {
+    const rows = this.db.prepare('SELECT session_id FROM sessions WHERE owner_id = ?').all(ownerId) as
+      Array<{ session_id: string }>
+    return rows.map(row => row.session_id)
+  }
+
+  /** 归属账本读取:mux 租户策略 bindings 用(T2,2026-11-11)。 */
+  workspacesOfOwner(ownerId: number): string[] {
+    const rows = this.db.prepare('SELECT workspace_id FROM workspaces WHERE owner_id = ?').all(ownerId) as
+      Array<{ workspace_id: string }>
+    return rows.map(row => row.workspace_id)
+  }
+
   /** T2.5:存量 workspace 划归 bootstrap admin(空表时一次性导入)。 */
   adoptOrphanWorkspaces(adminId: number, rows: ReadonlyArray<{ workspaceId: string; path: string }>): number {
     let adopted = 0

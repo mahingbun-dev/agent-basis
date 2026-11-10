@@ -18,6 +18,7 @@ import { loadOrCreateSecret, SessionService } from './session.ts'
 import { SlidingWindow } from './ratelimit.ts'
 import { UserStore } from './store.ts'
 import { ensureFirstSession, ensureTenantWorkspace, registerTenantGuards } from './tenant.ts'
+import { installMuxIsolation, type MuxIsolationInstall } from './mux.ts'
 import { BADGE_SCRIPT } from './pages.ts'
 
 export const ACCESS_PLUGIN_NAME = 'eterna-access'
@@ -163,15 +164,48 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         ctx.webServer.register({ kind: 'prefix', path: '/access/api', handler }),
         ctx.webServer.tapIndex(html => injectBadge(html)),
       ]
-      // Phase 2 租户面(T2.2/T2.5):存量 workspace 划归首个 admin + unary 守卫集注册
+      // Phase 2 租户面(T2.2/T2.5):存量 workspace 划归首个 admin
       adoptLegacyWorkspaces(store)
+      // P1-T2(2026-11-11):mux 流租户隔离——principal 换血 + registerPolicy。
+      // 服务(client-connection/remoteAccess)在插件 apply 时点尚未挂载,故惰性安装:
+      // 首个守卫请求时落地(届时 webServer 已工作,上游服务必已就绪),并审计安装结果。
+      let muxInstall: MuxIsolationInstall | undefined
+      let muxAuditDone = false
+      const ensureMux = (): void => {
+        if (muxInstall !== undefined) return
+        // 连接服务经 ctx.connection 属性直取(cordis provide 面;reflect 键 'client-connection'
+        // 实测不可得——2026-11-11 容器探针);remoteAccess 经 reflect 可得(探针实证)。
+        const connService = ctx.connection as unknown
+        const accessService = ctx.reflect.get('remoteAccess', false)
+        muxInstall = installMuxIsolation(
+          { store, session },
+          connService as never,
+          accessService as never,
+        )
+        if (muxInstall !== undefined) disposers.push(muxInstall.dispose)
+        if (!muxAuditDone) {
+          muxAuditDone = true
+          audit({
+            kind: 'access.mux.install',
+            detail: {
+              installed: muxInstall !== undefined,
+              probe: {
+                connection: typeof connService,
+                remoteAccess: typeof accessService,
+                workspaceController: typeof ctx.reflect.get('workspaceController', false),
+              },
+            },
+          })
+        }
+      }
       disposers.push(registerTenantGuards({
         store,
         session,
         reflect: ctx.reflect,
         tenantRoot,
         audit,
-      }, ctx.connection) )
+        ensureMux,
+      }, ctx.connection))
       return () => {
         for (const dispose of disposers) dispose()
         store.close()
