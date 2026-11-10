@@ -189,6 +189,19 @@ describe('T1.3 ①对账——运行时注入型(memory/glue 的 section 元数�
       expect(() => { ensureEntryWritable(entry(id)) }, id).toThrow('运行时注入型')
     }
   })
+
+  it('T2.6 交叉钉住:消费侧源码含本注册表的条目 id 与服务名,双侧字符串漂移即红(不引包,读源码文本)', () => {
+    // memory 侧:条目 id 常量 + promptRegistry 服务名常量(登记制读取面的取值坐标)。
+    const toolsSource = readRepoFile('packages/memory/src/tools.ts')
+    expect(toolsSource, 'memory 源码缺条目 id 常量(注册表条目 id 漂移?)').toContain("'runtime.memory.index-section'")
+    expect(toolsSource, 'memory 源码缺服务名常量(promptRegistry 漂移?)').toContain("'promptRegistry'")
+    // glue 侧:装载点经同一服务名接读取面(livePromptSource)。
+    const pluginSource = readRepoFile('packages/glue/src/plugins/memory-plugin.ts')
+    expect(pluginSource, 'glue memory 插件未接 promptRegistry 读取面').toContain('resolvePromptRegistry')
+    // 本包侧:提供的服务名与 memory 常量一致(src/index.ts PROMPT_REGISTRY_SERVICE_ID)。
+    const studioSource = readRepoFile('packages/prompt-studio/src/index.ts')
+    expect(studioSource).toContain("PROMPT_REGISTRY_SERVICE_ID = 'promptRegistry'")
+  })
 })
 
 describe('T1.3 ②条目模型完整性(每条 {id,层,来源,定位,当前值,型别,风险},枚举闭合)', () => {

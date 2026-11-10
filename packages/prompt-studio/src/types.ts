@@ -448,12 +448,14 @@ export interface ProfileContextLike {
  * 为什么不直接 import cordis 的 Context 类型:仓库内 @deepseek-ai/cordis 以多份
  * peer 副本并存(lockfile 钉的 include 变体 vs dsh-typert-protocol 依赖的
  * include+loader 变体),两份声明的 symbol 键([symbols.isolate] 等)互不结构兼容
- * (同款分裂在 packages/panel 亦存在)。本包只消费 get/inject/effect 三个面,
+ * (同款分裂在 packages/panel 亦存在)。本包只消费 get/provide/inject/effect 四个面,
  * 以结构面类型 + Service 边界单点断言收口;宿主运行时传入的是同一真实 Context。
  */
 export interface StudioContextLike {
   /** 读宿主服务/上下文(profileContext、governance、storage.backend.json)。 */
   get(key: string): unknown
+  /** 官方 provide seam(注册本插件提供的服务,返回 disposer;T2.6:promptRegistry 读取面)。 */
+  provide(name: string, value: unknown): () => void
   /** 官方 inject seam(等待 storage.backend.json 等生命周期服务)。 */
   inject(deps: readonly string[], callback: (ctx: StudioContextLike) => void): unknown
   /** effect 配逆闭包(插件硬性规范第 5 条)。 */

@@ -17,7 +17,8 @@ import { remoteMethods, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import type { KvUnit } from '@deepseek-ai/dsh-storage'
 import plugin, {
   DEFAULT_ENTRY_ID, ENDPOINTS, LOOP_PROMPT_SERVICE_ID, LoopPromptGateway, PROMPT_REGISTRY_ENTRIES,
-  STORAGE_JSON_BACKEND_KEY, WILDCARD_WRITE_RULE_ID, definePromptStudioPlugin, entryWriteRuleId, validateEntryText,
+  PROMPT_REGISTRY_SERVICE_ID, STORAGE_JSON_BACKEND_KEY, WILDCARD_WRITE_RULE_ID, definePromptStudioPlugin,
+  entryWriteRuleId, validateEntryText,
 } from '../src/index.ts'
 import type { EntryNotFoundResult, PromptExportPack, PromptGetEntryResult, StudioContextLike, VersionsResult } from '../src/types.ts'
 import { PersonaPatchFile } from '../src/persona-patch.ts'
@@ -1234,5 +1235,56 @@ describe('T1.6 写链路按条目泛化(R3 按条目授权 + 校验器逐条目 
     const chain = await gateway.promptVersions({ entryId: mdId }) as VersionsResult
     await rollbackTwoPhase(chain.versions.at(-1)?.id ?? '')
     expect(await currentText(mdId)).toBe(original)
+  })
+})
+
+describe('T2.6 promptRegistry 读取面(运行时注入条目自管,缺席降级不炸宿主)', () => {
+  it('服务名常量=promptRegistry(与 @eterna/memory 导出面互为真值,registry.test.ts 源码交叉钉住)', () => {
+    expect(PROMPT_REGISTRY_SERVICE_ID).toBe('promptRegistry')
+  })
+
+  it('插件 apply 即 provide;无版本条目返回 undefined 不抛;总 disposer 注销服务', () => {
+    const ctx = new Context()
+    const disposer = plugin.apply(asStudio(ctx))
+    const face = ctx.get(PROMPT_REGISTRY_SERVICE_ID) as { resolveRuntimePromptText(entryId: string): string | undefined } | undefined
+    expect(face).toBeDefined()
+    expect(typeof face?.resolveRuntimePromptText).toBe('function')
+    // 版本链未挂/链空 → undefined(消费侧 memory/glue 回落内置兜底文本,不炸装配)。
+    expect(face?.resolveRuntimePromptText('runtime.memory.index-section')).toBeUndefined()
+    expect(face?.resolveRuntimePromptText('runtime.glue.memory-plugin')).toBeUndefined()
+    expect(face?.resolveRuntimePromptText('no.such.entry')).toBeUndefined()
+    disposer()
+    expect(ctx.get(PROMPT_REGISTRY_SERVICE_ID)).toBeUndefined()
+  })
+
+  it('缓存随版本链变化:runtime 条目入版本库 → refresh → 读取面返回新文;detach 清空', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'eterna-prompt-studio-registry-'))
+    const patchPath = join(dir, 'cordis.patch.yml')
+    writeFileSync(patchPath, fixturePatch(), 'utf8')
+    const unit = new MemoryUnit()
+    const ctx = new Context()
+    const gateway = new LoopPromptGateway(asStudio(ctx), { patchPath, sessionsRoot: join(dir, 'sessions'), auditFilePath: join(dir, 'audit.jsonl'), dryRunVerify: false })
+    try {
+      const backend = { kv: { open: async () => unit as unknown as KvUnit }, close: async () => undefined }
+      await gateway.attachBackend(backend)
+      expect(gateway.promptRegistryFace.resolveRuntimePromptText('runtime.memory.index-section')).toBeUndefined()
+      const store = gateway.store
+      expect(store).toBeDefined()
+      const appendRuntime = (content: string) => (store as NonNullable<typeof store>).append({
+        content, author: 'test', source: 'save', parentId: null, summary: 'T2.6', entryId: 'runtime.memory.index-section',
+      })
+      await appendRuntime('## 长期记忆(注册表版 V1)')
+      await gateway.refreshRuntimePromptCache()
+      expect(gateway.promptRegistryFace.resolveRuntimePromptText('runtime.memory.index-section')).toBe('## 长期记忆(注册表版 V1)')
+      await appendRuntime('## 长期记忆(注册表版 V2)')
+      await gateway.refreshRuntimePromptCache()
+      expect(gateway.promptRegistryFace.resolveRuntimePromptText('runtime.memory.index-section')).toBe('## 长期记忆(注册表版 V2)')
+      // detach(版本库释放)→ 缓存清空,读取面如实返回 undefined(消费侧回落兜底)。
+      await gateway.detachStore()
+      expect(gateway.promptRegistryFace.resolveRuntimePromptText('runtime.memory.index-section')).toBeUndefined()
+    } finally {
+      await gateway.dispose()
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })

@@ -81,6 +81,14 @@ import { PromptVersionStore, VERSION_UNIT_DESCRIPTOR } from './version-store.ts'
 /** Typert 服务名(RPC namespace;DSH 端点段文法 `[A-Za-z0-9_$.-]+`)。 */
 export const LOOP_PROMPT_SERVICE_ID = 'loopPrompt'
 
+/**
+ * 提示词注册表运行时读取面服务名(T2.6 登记制):本插件 apply 时 provide,消费侧
+ * (memory/glue 的运行时 section)经 ctx.get 机会读取——本插件缺席时消费侧回落
+ * 各自内置文本,不炸宿主。与 @eterna/memory 导出的 PROMPT_REGISTRY_SERVICE_ID
+ * 互为真值,交叉钉住在 tests/registry.test.ts(读 tools.ts 源码文本比对)。
+ */
+export const PROMPT_REGISTRY_SERVICE_ID = 'promptRegistry'
+
 /** 全部端点字符串(T7.2 客户端照此调用)。 */
 export const ENDPOINTS = {
   snapshot: `${LOOP_PROMPT_SERVICE_ID}/snapshot`,
@@ -210,6 +218,19 @@ export class LoopPromptGateway extends TypertRemoteService {
   storeError: string | undefined
   /** 按条目种子的一次性记忆(ensureEntrySeeds;detach 时重置。公开字段=网关 shadow 约束)。 */
   entrySeedPromise: Promise<void> | undefined
+  /**
+   * 运行时注入条目的生效文本缓存(T2.6,公开字段=网关 shadow 约束):条目 id →
+   * 版本链最新文本。refreshRuntimePromptCache 装载/推进;promptRegistryFace 同步消费。
+   */
+  readonly runtimePromptCache = new Map<string, string>()
+  /**
+   * 注册表读取面本体(T2.6):provide 为 promptRegistry 服务,memory/glue 的
+   * section 装配时同步读(条目当前生效文本随缓存=版本链最新变化);
+   * 无版本/未知条目 → undefined(消费侧回落内置文本)。
+   */
+  readonly promptRegistryFace = {
+    resolveRuntimePromptText: (entryId: string): string | undefined => this.runtimePromptCache.get(entryId),
+  }
 
   constructor(ctx: StudioContextLike, config: PromptStudioPluginConfig = {}) {
     // Service 边界单点断言(基类构造器 protected,无法提取其参数类型):运行时传入的
@@ -332,6 +353,9 @@ export class LoopPromptGateway extends TypertRemoteService {
       // 其余条目种子(T1.4)异步进行;按条目读侧端点先 await ensureEntrySeeds()
       // 拿确定性链视图(见其注)。
       void this.ensureEntrySeeds()
+      // 运行时注入条目的生效文本缓存装载(T2.6):memory/glue 的 section 经
+      // promptRegistry 服务读;链空条目不入缓存=消费侧回落内置文本(如实呈现)。
+      void this.refreshRuntimePromptCache()
     } catch (error) {
       this.storeError = `版本库单元打开失败:${error instanceof Error ? error.message : String(error)}`
     }
@@ -372,11 +396,36 @@ export class LoopPromptGateway extends TypertRemoteService {
     }
   }
 
+  /**
+   * 刷新运行时注入条目的生效文本缓存(T2.6):注册表全部 runtime-injection 条目
+   * 取版本链最新文本入缓存(链空 → 清除该条目,消费侧回落内置文本)。
+   * attachBackend 后装载;任何 committed 写后重刷;detachStore 清空。
+   * 读失败静默保持旧缓存——读取面被 section 装配同步消费,刷新永不抛。
+   */
+  async refreshRuntimePromptCache(): Promise<void> {
+    const store = this.store
+    if (store === undefined) {
+      this.runtimePromptCache.clear()
+      return
+    }
+    try {
+      for (const entry of PROMPT_REGISTRY_ENTRIES) {
+        if (entry.kind !== 'runtime-injection') continue
+        const latest = (await store.list(1, entry.id))[0]
+        if (latest === undefined) this.runtimePromptCache.delete(entry.id)
+        else this.runtimePromptCache.set(entry.id, latest.content)
+      }
+    } catch {
+      // 版本库读取失败:保持旧缓存(读取面同步消费,不因刷新失败炸装配)。
+    }
+  }
+
   /** 释放版本库单元(幂等;apply 逆闭包调用)。 */
   async detachStore(): Promise<void> {
     const store = this.store
     this.store = undefined
     this.entrySeedPromise = undefined
+    this.runtimePromptCache.clear()
     await store?.close()
   }
 
@@ -753,6 +802,9 @@ export class LoopPromptGateway extends TypertRemoteService {
         patchPath: writePath,
         approvalId: pending.approvalId,
       })
+      // T2.6:committed 后重刷运行时条目缓存(当前写链路对 runtime 条目 fail-closed,
+      // 该刷新面向未来开放 store 写回落点时即刻生效;幂等且便宜,只扫 2 条 runtime 条目)。
+      void this.refreshRuntimePromptCache()
       return { status: 'committed', version: record, effectiveNote: EFFECTIVE_NOTE }
     }
     // 第一段:条目/守卫/授权/校验 + R3 审批请求。
@@ -955,6 +1007,9 @@ export function definePromptStudioPlugin(config: PromptStudioPluginConfig = {}) 
     name: 'eterna-prompt-studio',
     apply(ctx: StudioContextLike): () => void {
       const gateway = new LoopPromptGateway(ctx, config)
+      // T2.6 登记制读取面:provide promptRegistry 服务(memory/glue 的运行时 section
+      // 经 ctx.get 机会读取;本插件未挂载/服务缺席时消费侧回落各自内置文本,不炸宿主)。
+      const disposeProvide = ctx.provide(PROMPT_REGISTRY_SERVICE_ID, gateway.promptRegistryFace)
       // storage 挂载经官方 inject seam:版本库单元在 storage.backend.json 可用后打开,
       // 缺席/失败不炸宿主(端点以 RemoteError 明示未就绪;snapshot 降级 ready=false)。
       ctx.inject([STORAGE_JSON_BACKEND_KEY], (storageCtx: StudioContextLike) => {
@@ -967,7 +1022,8 @@ export function definePromptStudioPlugin(config: PromptStudioPluginConfig = {}) 
         })
       })
       return () => {
-        // 总 disposer:在途审批取消 + 版本库单元关闭(Service 随 owning fiber 注销)。
+        // 总 disposer:读取面注销 + 在途审批取消 + 版本库单元关闭(Service 随 owning fiber 注销)。
+        disposeProvide()
         void gateway.dispose()
       }
     },

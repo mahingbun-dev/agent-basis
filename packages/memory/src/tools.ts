@@ -65,6 +65,61 @@ export function dshHost(ctx: Context): MemoryHost {
   }
 }
 
+// ---------- 提示词注册表读取面(T2.6 登记制落地样板) ----------
+//
+// 索引 section 的行为指令头(memory:index 的静态提示词半边)不再只来自本文件内联
+// 常量:经宿主上的 `promptRegistry` 服务(提示词工作室插件提供)读注册表条目
+// runtime.memory.index-section 的当前生效文本,注册表缺席/无版本/读取失败一律
+// 回落内置 MEMORY_BEHAVIOR_HEADER——不炸宿主,行为与改造前一致。索引半边
+// (key+摘要)始终来自 M2 记忆库,不进注册表(运行时数据不是提示词)。
+// 手法对齐 packages/llm-doctor 的 ConfigEditorFace/resolveConfigEditor:消费面
+// 只声明结构子集 + try/catch 防御解析,不依赖(也不引入)工作室包。
+
+/** 注册表读取服务名(与 @eterna/prompt-studio 的 provide 名互为真值;锚点交叉钉住见 prompt-studio tests/registry.test.ts)。 */
+export const PROMPT_REGISTRY_SERVICE_ID = 'promptRegistry'
+
+/** 本 section 在提示词注册表(T1.3)登记的条目 id(运行时注入型)。 */
+export const MEMORY_SECTION_REGISTRY_ENTRY_ID = 'runtime.memory.index-section'
+
+/**
+ * 提示词注册表运行时读取面(结构子集;由提示词工作室插件提供)。
+ * resolveRuntimePromptText 返回条目当前生效文本(随注册表版本变化);
+ * 无版本/未知条目 → undefined(调用方回落内置兜底,不抛)。
+ */
+export interface PromptRegistryFace {
+  resolveRuntimePromptText(entryId: string): string | undefined
+}
+
+/** 注册表读取面的宿主消费面(结构子集;真实 cordis Context 的 reflect mixin `get` 满足之)。 */
+export interface PromptRegistryHost {
+  get(name: string): unknown
+}
+
+/**
+ * 防御解析 promptRegistry 服务(照抄 llm-doctor resolveConfigEditor 防御模式):
+ * 服务缺席/未就绪/形状不符/读取抛异常 → undefined,绝不炸宿主。
+ * 每次调用现取(live),插件装载顺序不影响后续装配轮次拿取。
+ */
+export function resolvePromptRegistry(host: PromptRegistryHost): PromptRegistryFace | undefined {
+  try {
+    const service = host.get(PROMPT_REGISTRY_SERVICE_ID) as PromptRegistryFace | undefined
+    if (service !== undefined && typeof service.resolveRuntimePromptText === 'function') return service
+    return undefined
+  } catch {
+    return undefined
+  }
+}
+
+/** 经读取面取条目文本;任何失败(服务缺席/方法抛)→ undefined(回落内置兜底,装配永不因读取面失败)。 */
+function registryTextOf(source: PromptRegistryFace | undefined, entryId: string): string | undefined {
+  if (source === undefined) return undefined
+  try {
+    return source.resolveRuntimePromptText(entryId)
+  } catch {
+    return undefined
+  }
+}
+
 /** 构建四个模型面工具定义(注册进 ctx.tools 即对模型可见)。 */
 export function defineMemoryTools(memory: Memory): ToolDefinition[] {
   return [
@@ -209,12 +264,23 @@ export function defineMemoryTools(memory: Memory): ToolDefinition[] {
  * 构建记忆索引 section(systemPrompt 注入载荷):
  * text provider 每次装配时同步重建(M2 sqlite 同步取数),预算内只放
  * key + 一句话摘要;`interpolate: false` 保真记忆文本里的 `{{…}}` 字面。
+ *
+ * T2.6 登记制:行为指令头优先经 promptSource(注册表读取面)取条目
+ * MEMORY_SECTION_REGISTRY_ENTRY_ID 的当前生效文本,每次装配现取(版本变化
+ * 即新文);缺席/无版本/读取失败回落内置 MEMORY_BEHAVIOR_HEADER。
  */
-export function createMemoryIndexSection(memory: Memory, options: MemoryIndexOptions = {}): PromptSection {
+export function createMemoryIndexSection(
+  memory: Memory,
+  options: MemoryIndexOptions = {},
+  promptSource?: PromptRegistryFace,
+): PromptSection {
   return {
     name: MEMORY_INDEX_SECTION_NAME,
     order: MEMORY_INDEX_SECTION_ORDER,
-    text: (): string => memory.buildIndex(options).text,
+    text: (): string => {
+      const behaviorHeader = registryTextOf(promptSource, MEMORY_SECTION_REGISTRY_ENTRY_ID)
+      return memory.buildIndex(behaviorHeader === undefined ? options : { ...options, behaviorHeader }).text
+    },
     interpolate: false,
   }
 }
@@ -225,11 +291,14 @@ export interface AttachMemoryOptions {
   readonly index?: MemoryIndexOptions
   /** 是否注册索引 section(默认 true;纯工具场景可关)。 */
   readonly includeIndexSection?: boolean
+  /** 提示词注册表读取面(T2.6;缺席→内置兜底文本,装配不受影响)。 */
+  readonly promptSource?: PromptRegistryFace
 }
 
 /**
  * 装配:注册四工具 + 索引 section;返回总 disposer(应用全部逆,幂等)。
  * 这是本插件的宿主级 effect,配逆即卸载干净(Cordis 纪律 1)。
+ * promptSource 只读不注册,不引入新的 effect 面——disposer 语义与改造前一致。
  */
 export function attachMemory(host: MemoryHost, memory: Memory, options: AttachMemoryOptions = {}): () => void {
   const disposers: (() => void)[] = []
@@ -237,7 +306,7 @@ export function attachMemory(host: MemoryHost, memory: Memory, options: AttachMe
     disposers.push(host.registerTool(definition))
   }
   if (options.includeIndexSection !== false) {
-    disposers.push(host.registerPromptSection(createMemoryIndexSection(memory, options.index)))
+    disposers.push(host.registerPromptSection(createMemoryIndexSection(memory, options.index, options.promptSource)))
   }
   let detached = false
   return (): void => {
