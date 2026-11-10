@@ -43,7 +43,61 @@ const CSS = `
 [data-eterna-access-root] .ea-plug:last-child { border-bottom: 0; }
 [data-eterna-access-root] .ea-plug .name { font-weight: 600; font-size: 13.5px; }
 [data-eterna-access-root] .ea-plug .pid { color: var(--dsw-alias-label-tertiary); font-size: 12px; }
-@media (max-width: 760px) { [data-eterna-access-root] .ea-grid { grid-template-columns: 1fr; } }
+
+/* —— 「恒灵插件」页签:与原生插件页(dsh-client-ui-plugin-manager)同构的卡片形态 ——
+   分组头/行卡/48px 图标块/开关/胶囊徽标,全部走令牌;插画渐变在 plugin-meta.tsx(品牌插画豁免)。 */
+[data-eterna-access-root] .ea-group { display: flex; flex-direction: column; gap: 8px; }
+[data-eterna-access-root] .ea-group + .ea-group { margin-top: 32px; }
+[data-eterna-access-root] .ea-group-head { display: flex; align-items: center; gap: 8px; }
+[data-eterna-access-root] .ea-group-title { flex: 1; margin: 0; font-size: 14px; font-weight: 500; line-height: 22px; }
+[data-eterna-access-root] .ea-group-hint { flex: none; font-size: 12px; color: var(--dsw-alias-label-tertiary); }
+[data-eterna-access-root] .ea-cards { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+[data-eterna-access-root] .ea-pcard { border-radius: var(--dsw-radius-xl, 20px); margin: 0 -8px; min-width: 0; }
+@media (hover: hover) {
+  [data-eterna-access-root] .ea-pcard.ea-act:hover { background: var(--dsw-alias-interactive-bg-hover); }
+  [data-eterna-access-root] .ea-pcard.ea-act:active { background: var(--dsw-alias-interactive-bg-active); }
+}
+[data-eterna-access-root] .ea-phead { display: flex; align-items: center; gap: 14px; padding: 8px; }
+[data-eterna-access-root] .ea-picon { display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 48px; height: 48px; border: .5px solid var(--dsw-alias-border-l3, transparent); border-radius: var(--dsw-radius-lg, 16px);
+  color: var(--dsw-alias-label-secondary); }
+[data-eterna-access-root] .ea-pmain { display: flex; flex-direction: column; flex: 1; gap: 4px; min-width: 0; }
+[data-eterna-access-root] .ea-ptitle-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+[data-eterna-access-root] .ea-ptitle { font-size: 14px; font-weight: 500; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+[data-eterna-access-root] .ea-pdesc { color: var(--dsw-alias-label-tertiary); font-size: 13px; line-height: 18px;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+[data-eterna-access-root] .ea-pend { display: inline-flex; align-items: center; gap: 8px; flex: none; position: relative; z-index: 1; }
+[data-eterna-access-root] .ea-switch { box-sizing: border-box; position: relative; flex: 0 0 auto; width: 36px; height: 20px; padding: 2px;
+  border: 0; border-radius: 999px; background: var(--dsw-alias-border-l3); cursor: pointer; }
+[data-eterna-access-root] .ea-switch[aria-checked="true"] { background: var(--dsw-alias-brand-primary); }
+[data-eterna-access-root] .ea-switch:disabled { cursor: default; opacity: .5; }
+[data-eterna-access-root] .ea-switch::after { content: ""; position: absolute; inset: -8px; }
+[data-eterna-access-root] .ea-switch .ea-thumb { display: block; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--dsw-alias-switch-thumb, var(--dsw-alias-label-primary-foreground)); transition: transform .12s ease; }
+[data-eterna-access-root] .ea-switch[aria-checked="true"] .ea-thumb { transform: translate(16px); }
+[data-eterna-access-root] .ea-switch:focus-visible, [data-eterna-access-root] .ea-del:focus-visible {
+  outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary)); outline-offset: 2px; }
+[data-eterna-access-root] .ea-del { min-height: 36px; padding: 0 10px; border: 0; border-radius: var(--dsw-radius-md, 12px);
+  background: none; color: var(--dsw-alias-state-error-primary); font-size: 13px; cursor: pointer; }
+[data-eterna-access-root] .ea-del:hover { background: var(--dsw-alias-interactive-bg-hover-danger, var(--dsw-alias-interactive-bg-hover)); }
+[data-eterna-access-root] .ea-del.ea-armed { background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 12%, transparent); font-weight: 500; }
+[data-eterna-access-root] .ea-pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 1px 8px;
+  font-size: 11px; line-height: 17px; font-weight: 500; white-space: nowrap; }
+[data-eterna-access-root] .ea-pill.danger { background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent);
+  color: var(--dsw-alias-state-error-primary); }
+[data-eterna-access-root] .ea-pill.warn { background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 10%, transparent);
+  color: var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary)); }
+[data-eterna-access-root] .ea-pill.neutral { background: var(--dsw-alias-bg-module-platform, color-mix(in srgb, var(--dsw-alias-label-primary) 8%, transparent));
+  color: var(--dsw-alias-label-secondary); }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-eterna-access-root] .ea-switch .ea-thumb { transition: none; }
+}
+@media (max-width: 760px) {
+  [data-eterna-access-root] .ea-grid { grid-template-columns: 1fr; }
+  [data-eterna-access-root] .ea-phead { gap: 10px; }
+  [data-eterna-access-root] .ea-pcard { margin: 0 -4px; }
+}
 `
 
 export function injectAccessStyles(): void {

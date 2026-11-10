@@ -408,3 +408,23 @@
 # ── 回加（§11.8：内嵌浏览器为 web 档 opt-in，web-app 层默认 disabled）────────
 - id: ui-sidebar-browser
   disabled: false
+
+# ── Companion 浏览器执行面挂载（E1；plans/2026-11-10-companion扩展开发计划与测试门禁.md）──
+# dsh-mcp-client 把本仓 browser-relay 的 MCP stdio server 工具注册为 mcp__browser__*。
+# 前置：① relay 先行运行（node packages/browser-relay/dist/cli.mjs start，默认 127.0.0.1:9310）；
+#      ② @deepseek-ai/dsh-mcp-client 需 symlink 进 profile node_modules（verify-eterna-web.mjs
+#        与 docs/eterna-web-profile.md 物化流程同款）；③ 用户浏览器已加载 Eterna Companion 扩展。
+# args 相对路径以 harness 进程 cwd=仓库根为基准（verify 脚本 spawn cwd=repoRoot 实测）；
+# 部署形态用 ETNA_BROWSER_MCP_ENTRY 指向绝对路径。移除=删本段。
+- insert:
+    - id: mcp-browser
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: browser
+        transport: stdio
+        command: node
+        args:
+          - packages/browser-relay/dist/mcp.mjs
+        env:
+          ETNA_RELAY_BASE: http://127.0.0.1:9310
+        toolCallTimeoutMs: 120000

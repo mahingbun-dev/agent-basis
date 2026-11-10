@@ -146,6 +146,16 @@ const agentPresetDir = join(pnpmDir, presetCandidates[0], 'node_modules', '@deep
 const profileNodeModules = join(profileDir, 'node_modules', '@deepseek-ai')
 mkdirSync(profileNodeModules, { recursive: true })
 symlinkSync(agentPresetDir, join(profileNodeModules, 'dsh-agent-preset'), 'dir')
+// companion 浏览器执行面（E1）：dsh-mcp-client 插件（mcp-browser 条目的 name 引用）
+const mcpClientCandidates = existsSync(pnpmDir)
+  ? readdirSync(pnpmDir).filter((dir) => dir.startsWith('@deepseek-ai+dsh-mcp-client@0.2.2-rc.1'))
+  : []
+if (mcpClientCandidates.length === 0) {
+  console.error('verify-eterna-web: @deepseek-ai/dsh-mcp-client@0.2.2-rc.1 未安装——mcp-browser 条目无法解析')
+  process.exit(1)
+}
+const mcpClientDir = join(pnpmDir, mcpClientCandidates[0], 'node_modules', '@deepseek-ai', 'dsh-mcp-client')
+symlinkSync(mcpClientDir, join(profileNodeModules, 'dsh-mcp-client'), 'dir')
 writeFileSync(join(profileDir, 'package.json'), `${JSON.stringify({
   name: `dsh-profile-${profileName}`,
   private: true,
@@ -252,6 +262,12 @@ const hostInactive = HOST_KEPT_ROWS.filter((id) => {
 pass(`all ${HOST_KEPT_ROWS.length} kept host rows enabled+active`,
   hostMissing.length === 0 && hostInactive.length === 0,
   [...hostMissing.map((id) => `${id}: absent`), ...hostInactive.map((id) => `${id}: ${describe(hostByEntry.get(id))}`)].join('; ') || 'active in the settled Loader tree')
+
+// 3c-companion. mcp-browser（companion 浏览器执行面挂载，E1）：present + enabled + active。
+const browserMcpEntry = hostByEntry.get('mcp-browser')
+pass('mcp-browser (companion browser execution plane) enabled+active',
+  browserMcpEntry !== undefined && browserMcpEntry.enabled && browserMcpEntry.fiberPhase === 'active',
+  browserMcpEntry === undefined ? 'mcp-browser absent — dsh-mcp-client symlink 或 patch insert 缺失' : describe(browserMcpEntry))
 
 // 3d. Preset kept rows: present, enabled, active in the default preset.
 const standard = presetByName.get('standard')
