@@ -4,6 +4,7 @@
  */
 const CSS = `
 [data-eterna-access-root] { font-family: var(--dsw-font-family, inherit); font-size: 14px; line-height: 22px; color: var(--dsw-alias-label-primary); max-width: 720px; }
+[data-eterna-access-root], [data-eterna-access-root] *, [data-eterna-access-root] *::before, [data-eterna-access-root] *::after { box-sizing: border-box; }
 [data-eterna-access-root] * { min-width: 0; overflow-wrap: anywhere; }
 [data-eterna-access-root] .ea-lead { margin: 0 0 18px; color: var(--dsw-alias-label-tertiary); font-size: 13px; }
 [data-eterna-access-root] .ea-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }

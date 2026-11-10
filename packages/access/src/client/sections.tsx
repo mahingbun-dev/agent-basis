@@ -22,8 +22,8 @@ function PasswordInput(props: {
   readonly onChange: (value: string) => void
 }): React.JSX.Element {
   const [visible, setVisible] = useState(false)
-  return <div style={{ position: 'relative' }}>
-    <input id={props.id} className="ea-input" type={visible ? 'text' : 'password'}
+  return <div style={{ position: 'relative', display: 'block' }}>
+    <input id={props.id} className='ea-input' type={visible ? 'text' : 'password'}
       autoComplete={props.autoComplete} placeholder={props.placeholder} value={props.value}
       onChange={event => { props.onChange(event.target.value) }} style={{ paddingRight: 42 }} />
     <button type="button" aria-label="切换密码可见性" title="显示/隐藏密码"
