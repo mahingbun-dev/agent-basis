@@ -60,8 +60,8 @@ check "错密码登录拒绝" 401 "$code"
 #    插件读 process.cwd()/.eterna/governance.rules.yml；容器 working_dir=/data=$DSH_HOME。
 #    检查目标路径文件存在、非空、含 default: ask 与 allow-fs（空规则×never=静默全拒的根因即"文件不在插件读取路径"）。
 CONTAINER="${ETERNA_CONTAINER:-eterna-agent}"
-gov=$(docker exec "$CONTAINER" sh -c 'test -s /data/.eterna/governance.rules.yml && grep -c "default: ask" /data/.eterna/governance.rules.yml && grep -c "allow-fs" /data/.eterna/governance.rules.yml' 2>/dev/null | tr '\n' ' ')
-if echo "$gov" | grep -q '^1 1 '; then
+gov=$(docker exec "$CONTAINER" sh -c 'test -s /data/.eterna/governance.rules.yml && grep -c "^default: ask" /data/.eterna/governance.rules.yml && grep -c "^  - id: allow-fs" /data/.eterna/governance.rules.yml' 2>/dev/null | tr '\n' ' ')
+if [ "$gov" = "1 1 " ]; then
   ok "治理规则活性（/data/.eterna 存在+default:ask+allow-fs）"
 else
   bad "治理规则活性探针失败（实得: ${gov:-不可达}）——空规则×完全权限=静默全拒事故模式"

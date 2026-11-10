@@ -1,0 +1,33 @@
+{
+  "phase": "p0",
+  "gateScript": "scripts/team-platform-gates/p0-gate.mjs",
+  "git": {
+    "commit": "e5901b4983a76904e1fa12fca22cafee650ed5ee",
+    "branch": "feat/team-platform",
+    "dirty": true
+  },
+  "startedAt": "2026-11-10T15:29:57.852Z",
+  "finishedAt": "2026-11-10T15:29:57.884Z",
+  "cases": [
+    {
+      "id": "G-P0-10",
+      "criterion": "计划回填:p0/evidence/baseline-note.md 存在(R1 基线注记:main/dev 已同步 e5901b4)",
+      "command": "fs 检查",
+      "expect": "(per criterion)",
+      "actual": "present",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p0/evidence/baseline-note.md"
+      ],
+      "durationMs": 0
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "pass": 1,
+    "fail": 0,
+    "exempt": 0
+  },
+  "verdict": "go"
+}

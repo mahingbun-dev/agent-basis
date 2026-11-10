@@ -1,0 +1,34 @@
+{
+  "case": "eye-shift",
+  "base": "http://127.0.0.1:3211",
+  "loginHeaders": {
+    "connection": "keep-alive",
+    "content-encoding": "gzip",
+    "date": "Tue, 10 Nov 2026 15:50:40 GMT",
+    "keep-alive": "timeout=5",
+    "transfer-encoding": "chunked",
+    "vary": "Accept-Encoding",
+    "content-type": "text/html; charset=utf-8"
+  },
+  "at": "2026-11-10T15:50:45.862Z",
+  "freshCacheControl": "no-store",
+  "eyeShift": {
+    "input": {
+      "dx": 0,
+      "dy": 0
+    },
+    "field": {
+      "dx": 0,
+      "dy": 0
+    },
+    "body": {
+      "w": 0,
+      "h": 0
+    }
+  },
+  "eyeVisibleAfter": "text",
+  "screenshots": [
+    "gui-test-screenshots/team-platform/ph/login-eye-dark.png",
+    "gui-test-screenshots/team-platform/ph/login-eye-light.png"
+  ]
+}
