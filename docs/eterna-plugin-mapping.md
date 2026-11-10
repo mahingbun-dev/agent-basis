@@ -34,6 +34,7 @@
 | `eterna-brand` | `@eterna/brand` | `basis-brand` | 品牌替换面（五面）+ creation-skills fork | packages/skill/skill-filesystem（customSkillDirs seam） |
 | `eterna-panel` | `@eterna/panel` | `basis-panel` | 记忆/治理面板 UI | packages/client/ui-*（双面配方参照） |
 | `eterna-prompt-studio` | `@eterna/prompt-studio` | `basis-prompt-studio` | system prompt 工作室 | packages/core/system-prompt（section seam） |
+| `eterna-access` | `@eterna/access` | —（新增，2026-11-09） | 账号门禁：登录/用户管理/自助资料页/登录桥接 authenticatedUrl/tapIndex 角标 | packages/client/connection（BrowserAuth/authenticatedUrl seam + WebServer.register 路由面） |
 | `eterna-*`（其余自研包） | `@eterna/{audit,cache-guard,channels,evolve,extra,governance,interact,knowledge,memory,observe}` | `@basis/*` 同名 | 见各包 README | 无直接上游（自研） |
 | `eterna-smoke`（工具） | `@eterna/smoke` | `@basis/smoke`（tools/basis-smoke） | 冒烟 CLI | — |
 | `eterna-evals`（工具） | `@eterna/evals` | `@basis/evals`（tools/evals） | 评测 CLI/ACP 驱动 | python/sdk（上游评估驱动参照） |

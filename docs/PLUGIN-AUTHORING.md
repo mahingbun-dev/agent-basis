@@ -23,6 +23,17 @@
 5. **Cordis 三纪律**:effect 配逆闭包 / coeffect 全声明 / provide 可交换接口(注册表+唯一 ID,命名空间 `@eterna/*`、`@<行业>/*`)。
 6. `apply(ctx)` 返回的 disposer 收全全部逆(定时器/连接/注册),卸载零残留。
 7. UI 只用官方语义令牌(`--dsw-alias-*` / `--dsw-radius-*`),不发明令牌。
+8. **产品内功能=设置弹窗分区插件**(`settings.section` slot,参考 `packages/access/src/client/`;AGENTS.md 强制)——禁止自建独立页面;UI 用 DSH 官方语义令牌(`--dsw-alias-*`),资料合并保存/密码独立、两击确认替代原生对话框,深浅主题自动跟随。
+
+### 1.1 多租户与隔离铁律(2026-11-10 起,`packctl tenant-scan` 强制)
+
+EternaAgent 部署为多账号门禁形态(eterna-access):unary `/api` 端点由租户守卫按登录归属判定,`/api` 之外的 Web 面(登录/配置/管理页)由 access 独占。新插件违反以下任一条 = `packctl tenant-scan` 拦截(CI 已接入):
+
+1. **T1 持久化必须在 DSH_HOME 语义之下**。部署契约 `working_dir=$DSH_HOME`(容器),持久化一律 cwd/env 相对基路径(audit 先例 `join(process.cwd(), '.eterna')`);**禁止硬编码容器绝对路径**(`/data/...`、`/root/...`)与 `os.tmpdir()` 持久化。每用户工作区目录由守卫分配在 `$DSH_HOME/workspaces/<账号>/`,插件的用户态数据派生自 workspace 路径。
+2. **T2 路由面独占**:插件不得自行调用 `webServer.register*` / `registerFallback` / `registerUpgrade` / `connection.fetch.register` / `connection.rpc.handle|intercept`——绕过租户守卫的路由 = 隔离失效。新增数据端点的唯一正路:在 `packages/access/src/tenant.ts` 的守卫清单登记(归属校验+直调+记账),纯展示页走 access 的 `/access/*` 面。上游自有路由面(WS mux `/api/remote.mux` 等)不在插件控制内,勿仿写。
+3. **T3 workspace 登记册独占写**:workspace 增删必须经 `workspaceController`(守卫层才有归属记账点),禁止直读写 `storages/workspace.json`。
+4. **启停语义**:L1 插件必须登记进 `packages/access/src/routes.ts` 的 `TOGGLEABLE_PLUGINS`(或红线清单);admin 停用 = 重启后 patch 行被 entrypoint 渲染管线裁剪——插件必须可缺席(audit 缺席降级纪律同样适用于启停)。红线默认:治理/审计/出网/门禁。
+5. **已知限制(R12)知悉**:上游流端点(`workspace/follow` 等走 WS mux)不经守卫,工作区**列表元数据**(标题/路径名)对登录用户全局可见;数据读写/终端入口已被守卫隔离。新端点设计时避免把敏感数据放进列表元数据,并评估上游 per-connection identity 进展。
 
 ## 2. 环 A:DSH 创造模式(agent 帮你写,你审查)
 

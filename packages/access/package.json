@@ -1,0 +1,42 @@
+{
+  "name": "@eterna/access",
+  "description": "账号门禁插件(双半边):Host——登录/登出+/access/api 数据端点(资料合并保存/密码/用户 CRUD/插件启停)+tapIndex 门禁角标+审计+限速+租户守卫;Client——注册设置弹窗分区(settings.section slot):账号(资料+密码,所有人)、用户管理、插件启停(仅 admin),DSH 官方语义令牌渲染,与产品风格天然统一。功能入口=产品设置弹窗,不自建独立页面。",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-primitives"
+      ],
+      "platform": "web"
+    }
+  },
+  "scripts": {
+    "build:client": "node scripts/build-client.mjs",
+    "verify": "node scripts/build-client.mjs && oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@eterna/audit": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "react": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "esbuild": "catalog:"
+  }
+}

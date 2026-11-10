@@ -21,11 +21,14 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Verify(oxlint + tsc strict + vitest,19 包)
+      - name: Verify(oxlint + tsc strict + vitest,20 包)
         run: pnpm -w run verify
 
       - name: Lint 领域包(packs/*)
         run: node tools/packctl/bin/packctl.mjs lint packs/event-planning
+
+      - name: 隔离铁律扫描(packages/*,tenant-scan)
+        run: node tools/packctl/bin/packctl.mjs tenant-scan
 
       - name: 评测 replay 冒烟(dsh-evals,t14-replay 子集)
         run: node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --subset t14-replay --adapter replay
@@ -48,7 +51,7 @@ jobs:
       - name: Install(frozen-lockfile,锁文件与清单必须一致)
         run: pnpm install --frozen-lockfile
 
-      - name: Verify(oxlint + tsc strict + vitest,19 包)
+      - name: Verify(oxlint + tsc strict + vitest,20 包)
         run: pnpm -w run verify
 
       - name: Lint 所有领域包(packs/*)

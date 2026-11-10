@@ -1,0 +1,6 @@
+# @eterna/access 装载行:insert 语义(基础树无 eterna-access 行,裸 id 行会被
+# applyPatches 丢弃——见 packages/glue/cordis.patch.yml 头注)。Host-only 插件,
+# 无 dsh.client 声明(登录/配置页为服务端渲染 HTML,不进浏览器花名册)。
+- insert:
+    - id: eterna-access
+      name: '@eterna/access'
