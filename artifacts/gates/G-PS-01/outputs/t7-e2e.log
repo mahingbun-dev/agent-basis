@@ -1,0 +1,85 @@
+[boot] repo=/Users/sunny/code/agent-basis-prompt-studio-v2
+[boot] home=/Users/sunny/code/agent-basis-prompt-studio-v2/.eterna-home-t7
+[PASS] 0.1 浏览器半边 bundle 构建(lib/client.js)
+[boot] plugin @eterna/prompt-studio: linked
+[PASS] 0.2 preflight: dump-config 退出码 0 — status=0
+[PASS] 0.3 preflight: 组合树 persona 前缀=基线标记
+[PASS] 0.4 preflight: 组合树含 eterna-prompt-studio 行
+[PASS] 0.5 preflight: 无 skipping/incompatible
+[host] ready pid=4370 log=/Users/sunny/code/agent-basis-prompt-studio-v2/.eterna-home-t7/logs/t7-e2e-host.log
+[PASS] 1.1 宿主就绪(dsh web token) — pid=4370
+[PASS] 1.2 pluginInventory: 含 @eterna/prompt-studio 行 — entryId=include:eterna-prompt-studio
+[PASS] 1.3 pluginInventory: 行 enabled=true
+[PASS] 1.4 pluginInventory: 行 fiberPhase=active
+[PASS] 1.5 宿主启动日志无 skipping/incompatible
+[PASS] 2.1 会话 A(旧)回合完成且系统提示含基线标记 — session=session-6d566298-81da-4f09-816d-771c5e54dedd
+[PASS] 2.2 会话 A 系统提示不含 V2 新文本(尚未保存)
+[PASS] 3.1 snapshot: channel.kind=A-patch-hmr(通道 A)
+[PASS] 3.2 snapshot: persona.available 且含基线标记 — bytes=25
+[PASS] 3.3 snapshot: versions.ready=true(DSH storage 栈挂载) — count=1
+[PASS] 3.4 snapshot: 无在途审批
+[PASS] 3.5 snapshot: trace.pipeline=v0-disk-log
+[PASS] 3.6 prompt-get: effectiveNote 提示新会话生效
+[PASS] 3.7 prompt-versions: initial 种子(seq=1,source=initial,parentId=null) — id=v-000001-18995b8e
+[PASS] 3.8 prompt-versions: initial checksum=sha256(content) 且内容=基线 — total=1
+[PASS] 4.1 乐观锁取最新版本作 baseVersionId(versions[0]=seq 最大) — baseVersionId=v-000001-18995b8e seq=1
+[PASS] 4.2 prompt-save(一段): status=approval-required
+[PASS] 4.3 prompt-save(一段): R3 审批卡(grade=R3 + ruleId) — ruleId=eterna.prompt-studio.persona-write
+[PASS] 4.4 prompt-save(一段): doubleConfirm→2 个 questionItems — items=2
+[PASS] 4.5 prompt-save(一段): patch 未落盘(V2 未写,等审批)
+[PASS] 4.6 snapshot: pendingApproval 出现且 id 一致(R3 卡在途) — approvalId=ap-275dd233-c499-463f-a0b7-bda3fc07f28e
+[PASS] 5.1 prompt-save(二段): status=committed
+[PASS] 5.2 prompt-save(二段): 版本 +1(source=save, seq=写前+1) — seq=2 prevTotal=1
+[PASS] 5.3 版本 checksum 变化(=sha256(新文本),≠写前基线)
+[PASS] 5.4 prompt-save(二段): patch 层已原子更新(含 V2 文本)
+[PASS] 5.5 prompt-save(二段): 在途审批已清
+[PASS] 5.6 保存后宿主日志无 skipping/incompatible(HMR 洁净)
+[PASS] 5.7 宿主进程 pid 未变(未重启) — pid=4370
+[events] $events stream ready clientId=7475feab-d8ec-498b-961b-5f60df35d527
+[PASS] 6.1 官方 $events 流就绪(owner client,interactions=answer) — clientId=7475feab-d8ec-498b-961b-5f60df35d527
+[events] waterfall approval/request eventId=313dd8a6-284f-4599-8a63-314f75a266e4 request={"toolName":"bash","callId":"call_00_ET_cwlflsqV7tQUBekZwQ2F2312","reason":"escalate sandbox to danger-full-access: T7.5 e2e 审批点留痕","displayReason":{"en":"Allow this operation with danger-full-access 
+[events] approval answered allowed-once (#1 eventId=313dd8a6-284f-4599-8a63-314f75a266e4)
+[PASS] 6.2 会话 B(新)系统提示含新文本 V2(通道 A:保存即对新会话生效) — session=session-28532ea7-793b-4867-a982-dade73dde0d6
+[PASS] 6.3 会话 B 宿主审批点已应答 allowed-once(approval 瀑布走官方 $events) — answered=1
+[PASS] 7.1 trace(sessionId=B): 返回该会话轮次树(selected 非空,sessions 空) — turns=1
+[PASS] 7.2 trace(B): 轮次树含工具调用(callId/name/argsPreview/durationMs) — tools=bash
+[PASS] 7.3 trace(B): 轮次树含审批点(outcome=allowed-once,decidedAt 回填) — points=[{"name":"bash","outcome":"allowed-once"}]
+[PASS] 7.4 trace(B): 真模型 usage 计入轮次(inputTokens/outputTokens/totalTokens) — usageTurns=1
+[PASS] 7.5 trace(B): 事件投影计数(total>=projected,skipped 记坏行) — total=30 projected=8 skipped=0
+[PASS] 7.6 trace 列表模式: 最近会话清单含会话 B(标题/轮次/usage 折叠) — sessions=session-28532ea7-793b-4867-a982-dade73dde0d6,session-6d566298-81da-4f09-816d-771c5e54dedd
+[PASS] 7.7 snapshot.trace.recent 同步含会话 B — recent=2
+[PASS] 8.1 旧会话 A 补轮后系统提示仍不含新文本 V2(进行中会话不受影响) — session=session-6d566298-81da-4f09-816d-771c5e54dedd
+[PASS] 9.1 prompt-rollback(一段): status=approval-required
+[PASS] 9.2 prompt-rollback(二段): committed 且 source=rollback — seq=3
+[PASS] 9.3 prompt-rollback(二段): parentId=被回滚版本 — parentId=v-000001-18995b8e
+[PASS] 9.4 prompt-rollback(二段): 新版本内容=被回滚内容(checksum 一致)
+[PASS] 9.5 版本只增不删:total=写前+1 且 initial 版本仍在 — total=3 prev=2
+[PASS] 9.6 回滚后 patch 层回到被回滚内容(无 V2 文本)
+[PASS] 10.1 prompt-export: pack.checksum=sha256(persona)(UTF-8 口径) — checksum=01e4bd353996…
+[PASS] 10.2 prompt-export: 包字段(schemaVersion=1/sourceVersionId/exportedBy/exportedAt)
+[PASS] 10.3 prompt-export: 缺省=最新版本 — latest=v-000003-34443041
+[PASS] 10.4 prompt-export: 只读不走审批(版本数不变、无在途卡) — total=3 pending=null
+[PASS] 10.5 prompt-import(删一行篡改): status=rejected(checksum 强校验拒收) — issues=["导入包校验和不符:期望 01e4bd353996bce93beadc472d21c0991c3369a73594cd9621ea7ae3dc2f4d59,实际 ab5dab88fcf21b35618426abcfd0401a640b0122acda8f646bd57256854de0e4(persona 与 checksum 不配套,拒收)"]
+[PASS] 10.6 rejected issues 明示校验和不符 — issues=["导入包校验和不符:期望 01e4bd353996bce93beadc472d21c0991c3369a73594cd9621ea7ae3dc2f4d59,实际 ab5dab88fcf21b35618426abcfd0401a640b0122acda8f646bd57256854de0e4(persona 与 checksum 不配套,拒收)"]
+[PASS] 10.7 拒收未入库(版本数不变) — total=3
+[PASS] 10.8 prompt-import(原样,一段): status=approval-required
+[PASS] 10.9 prompt-import(一段): R3 审批卡(与保存同门)
+[PASS] 10.10 prompt-import(二段): committed 且 source=import — seq=4
+[PASS] 10.11 导入新版本 checksum=原包 checksum(与 save 版本同内容)
+[PASS] 10.12 版本链完整:total=拒收前+1,initial 仍在,新→旧有序 — total=4 latest=v-000004-30abff6a
+[PASS] 11.1 兜底审计 NDJSON 存在(无 glue governance 场景) — /Users/sunny/code/agent-basis-prompt-studio-v2/.eterna-home-t7/eterna-prompt-studio/audit.jsonl
+[PASS] 11.2 审计记录为包络形态({kind:governance,at,detail:{action,…}}) — records=7 sample={"kind":"governance","at":"2026-11-10T19:57:14.284Z","detail":{"system":"eterna-prompt-studio","action":"prompt-save.approval-requested","at":"2026-11-10T19:57:
+[PASS] 11.3 save 写链路留痕:approval-requested + committed
+[PASS] 11.4 rollback 写链路留痕:approval-requested + committed
+[PASS] 11.5 import 写链路留痕:rejected(篡改)+ approval-requested + committed(原样)
+[PASS] 11.6 committed 事件含 G5 字段(system/operator/versionId/at/checksum) — committed=3 operators=t7-e2e
+[PASS] 11.7 approval-requested 事件含操作者与在途审批 id — requested=3
+[PASS] 11.8 rejected 事件含校验失败明细(issues) — issues=["导入包校验和不符:期望 01e4bd353996bce93beadc472d21c0991c3369a73594cd9621ea7ae3dc2f4d59,实际 ab5dab88fcf21b35618426abcfd0401a640b0122acda8f646bd57256854de0e4(persona 与 che
+[PASS] 12.1 版本库单元落 DSH storage 栈(一文档一记录,数=persona total+6 条目链首) — docs=10 total=4
+[cleanup] SIGTERM 宿主(持久化层停机冲刷)…
+[events] answer loop ended: events socket closed while waiting for waterfall
+[PASS] 13.1 清理:宿主进程已停止、端口 3108 已释放
+
+结论:T7.5 集成验收全部通过(exit 0)
+断言台账:PASS=72 FAIL=0
+EXIT=0
