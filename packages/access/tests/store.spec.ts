@@ -129,6 +129,20 @@ describe('UserStore 用户存储', () => {
     expect(store.sessionOwner('sess-alice')).toBeUndefined()
   })
 
+  it('workspaceIdByOwnerPath/ownsAnyWorkspace:登录开通与改判的幂等判定', () => {
+    const user = store.createUserWithSuffix({ account: 'zhangsan', password: 'password8' }).user
+    const other = store.createUserWithSuffix({ account: 'lisi', password: 'password8' }).user
+    expect(store.ownsAnyWorkspace(user.id)).toBe(false)
+    expect(store.workspaceIdByOwnerPath(user.id, '/home/zhangsan')).toBeUndefined()
+    store.recordWorkspace('ws-1', user.id, '/home/zhangsan')
+    expect(store.ownsAnyWorkspace(user.id)).toBe(true)
+    expect(store.workspaceIdByOwnerPath(user.id, '/home/zhangsan')).toBe('ws-1')
+    // 路径相同属主不同 → 不串号(改判只认自己的记账)
+    store.recordWorkspace('ws-2', other.id, '/home/zhangsan')
+    expect(store.workspaceIdByOwnerPath(user.id, '/home/zhangsan')).toBe('ws-1')
+    expect(store.workspaceIdByOwnerPath(other.id, '/home/zhangsan')).toBe('ws-2')
+  })
+
   it('头像 BLOB 往返与重置;昵称策略', () => {
     const { user } = store.createUserWithSuffix({ account: 'dave', password: 'password8' })
     const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3])

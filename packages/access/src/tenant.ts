@@ -39,7 +39,7 @@ export interface TenantDeps {
 type ServiceHandle = Record<string, (...args: never[]) => unknown>
 
 /** 反射取宿主控制器(audit-bridge 模式:strict=false 机会语义,缺席返回 undefined)。 */
-function serviceOf(deps: TenantDeps, key: string): ServiceHandle | undefined {
+function serviceOf(deps: Pick<TenantDeps, 'reflect'>, key: string): ServiceHandle | undefined {
   return deps.reflect.get(key, false) as ServiceHandle | undefined
 }
 
@@ -50,9 +50,59 @@ interface GuardContext {
 }
 
 function userRoot(ctx: GuardContext): string {
-  const root = resolve(ctx.deps.tenantRoot, ctx.account)
+  return userRootFor(ctx.deps.tenantRoot, ctx.account)
+}
+
+/** 用户根目录:<tenantRoot>/<account>;缺目录则建(登录开通与守卫共用)。 */
+export function userRootFor(tenantRoot: string, account: string): string {
+  const root = resolve(tenantRoot, account)
   mkdirSync(root, { recursive: true })
   return root
+}
+
+/**
+ * 确保用户根工作区存在并记账:先查属主+路径记账,缺则直调控制器 create
+ * (上游按 canonical path 幂等)再补记账。控制器未就绪返回 undefined。
+ * 登录开通用;created=本次新建(区别于已记账复用),首开空会话以此为触发。
+ */
+export async function ensureTenantWorkspace(
+  deps: Pick<TenantDeps, 'store' | 'reflect' | 'tenantRoot'>,
+  userId: number,
+  account: string,
+): Promise<{ readonly workspaceId: string; readonly path: string; readonly created: boolean } | undefined> {
+  const root = userRootFor(deps.tenantRoot, account)
+  const recorded = deps.store.workspaceIdByOwnerPath(userId, root)
+  if (recorded !== undefined) return { workspaceId: recorded, path: root, created: false }
+  const wc = serviceOf(deps, 'workspaceController')
+  if (wc === undefined) return undefined
+  const value = await callService(wc, 'create', { path: root }) as
+    { workspace?: { workspaceId?: string; path?: string } } | undefined
+  const id = value?.workspace?.workspaceId
+  if (typeof id !== 'string') return undefined
+  deps.store.recordWorkspace(id, userId, value?.workspace?.path ?? root)
+  return { workspaceId: id, path: value?.workspace?.path ?? root, created: true }
+}
+
+/**
+ * 首开引导:新工作区建好后立刻建一个空会话——客户端引导(recentWorkspace)按
+ * 「工作区内最近会话的 updatedAt」挑自动落座目标,没有会话的工作区会输给其他
+ * 用户的活跃工作区;带上这个空会话,新用户首屏(除秒级竞态窗口)自动落座自己的
+ * 工作区。空会话会被客户端复用(connectWorkspace 优先复用可复用空成员)。
+ */
+export async function ensureFirstSession(
+  deps: Pick<TenantDeps, 'store' | 'reflect'>,
+  userId: number,
+  workspaceId: string,
+): Promise<string | undefined> {
+  const sc = serviceOf(deps, 'sessionController')
+  if (sc === undefined) return undefined
+  const value = await callService(sc, 'create', { workspaceId }) as
+    { sessionId?: string; id?: string } | undefined
+  const sessionId = typeof value?.sessionId === 'string' ? value.sessionId
+    : typeof value?.id === 'string' ? value.id : undefined
+  if (sessionId === undefined) return undefined
+  deps.store.recordSession(sessionId, userId, workspaceId)
+  return sessionId
 }
 
 function withinRoot(path: string, root: string): boolean {
@@ -82,18 +132,21 @@ function okFrame(rpcId: string, value: unknown): Response {
   return frame(rpcId, { ok: true, value })
 }
 
+// 失败帧必须带 details:record——客户端连接层(client/connection rpc.ts)按
+// rpcErrorSchema 校验 {code,message,details},缺 details 会整包解析失败,
+// 用户只能看到 "invalid server-response failure (gateway/internal)" 而非真实原因。
 function deniedFrame(rpcId: string, message: string): Response {
-  return frame(rpcId, { ok: false, error: { code: 'tenant/denied', message } })
+  return frame(rpcId, { ok: false, error: { code: 'tenant/denied', message, details: {} } })
 }
 
 function unauthenticatedFrame(rpcId: string): Response {
-  return frame(rpcId, { ok: false, error: { code: 'tenant/unauthenticated', message: '未登录' } })
+  return frame(rpcId, { ok: false, error: { code: 'tenant/unauthenticated', message: '未登录', details: {} } })
 }
 
 function failureFrame(rpcId: string, error: unknown): Response {
   return frame(rpcId, {
     ok: false,
-    error: { code: 'gateway/internal', message: error instanceof Error ? error.message : String(error) },
+    error: { code: 'gateway/internal', message: error instanceof Error ? error.message : String(error), details: {} },
   })
 }
 
@@ -132,10 +185,18 @@ function tenantAudit(deps: TenantDeps, action: string, account: string, detail: 
 
 /**
  * 注册全部租户守卫;返回组合 disposer。
- * slice-1 覆盖:workspace 写路径/picker 钳制/session 建与归属校验。
+ * slice-1 覆盖:workspace 写路径/picker 钳制/session 建与归属校验;
+ * session/create 对他人 workspaceId 明确拒绝(文案含引导)——自动落座自己的
+ * 工作区由登录开通保障(开通根工作区+首开空会话赢得 recentWorkspace 竞争);
+ * 自动引导仍挑中他人工作区的极端竞态由门禁角标拒绝监听补可见提示。
  * follow(WS mux)不注册——见 R12。
  */
-type GuardHandler = (rpcId: string, args: Record<string, unknown>, ctx: GuardContext) => Promise<Response>
+// signal 透传:session 控制器多个 Remote 方法(prompt/page/search/openWorkspacePath)
+// 以 (request, signal) 签名消费 AbortSignal,prompt 首行即 signal.throwIfAborted();
+// 直调漏传会让每次调用抛 TypeError,再被 failureFrame 包成协议外信封(发送会话即挂)。
+type GuardHandler = (
+  rpcId: string, args: Record<string, unknown>, ctx: GuardContext, signal: AbortSignal,
+) => Promise<Response>
 
 export function registerTenantGuards(deps: TenantDeps, connection: { fetch: TenantFetchRegistry }): () => void {
   const disposers: Array<() => void> = []
@@ -151,7 +212,7 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
         const ctx = currentUser({ deps }, request)
         if (ctx === undefined) return unauthenticatedFrame(unpacked.rpcId)
         try {
-          return await handler(unpacked.rpcId, unpacked.args, ctx)
+          return await handler(unpacked.rpcId, unpacked.args, ctx, request.signal)
         } catch (error) {
           return failureFrame(unpacked.rpcId, error)
         }
@@ -237,20 +298,30 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     return okFrame(rpcId, value)
   })
 
-  // ── session/create:workspaceId 归属或 cwd 钳制 + 会话记账 ──
+  // ── session/create:归属校验(明确报错+引导)+ 会话记账 ──
+  // 他人 workspaceId 明确拒绝,文案即引导(客户端手动路径的 toast 会透出 message;
+  // 自动引导路径的静默失败由门禁角标监听拒绝帧补提示,见 pages.ts BADGE_SCRIPT)。
+  // 自动落座由登录开通保障:开通过的工作区 + 首开空会话让 recentWorkspace 首屏
+  // 选中用户自己的工作区(拒绝仅发生在点他人工作区/极端竞态,属预期反馈)。
   register('/api/session/create', async (rpcId, args, ctx) => {
     const request = args.request as { workspaceId?: string; cwd?: string; sessionId?: string } | undefined
     const root = userRoot(ctx)
     const workspaceId = typeof request?.workspaceId === 'string' ? request.workspaceId : undefined
     const cwd = typeof request?.cwd === 'string' ? resolve(request.cwd) : undefined
-    if (workspaceId !== undefined) {
-      if (deps.store.workspaceOwner(workspaceId) !== ctx.userId) return deniedFrame(rpcId, '工作区不存在或不属于你')
-    } else if (cwd !== undefined) {
-      if (!withinRoot(cwd, root)) return deniedFrame(rpcId, `会话目录必须在你的目录 ${root} 之内`)
+    if (workspaceId !== undefined && deps.store.workspaceOwner(workspaceId) !== ctx.userId) {
+      return deniedFrame(rpcId, '该工作区不属于你：请在左侧点击你自己的工作区（家目录）新建会话')
     }
+    if (workspaceId === undefined && cwd !== undefined && !withinRoot(cwd, root)) {
+      return deniedFrame(rpcId, `会话目录必须在你的目录 ${root} 之内`)
+    }
+    // 复用会话 id 只认自己的(客户端选择残留他人 id 时剥掉,按全新会话建)
+    const reuseId = typeof request?.sessionId === 'string' && deps.store.sessionOwner(request.sessionId) === ctx.userId
+      ? request.sessionId
+      : undefined
     const sc = serviceOf(deps, 'sessionController')
     if (sc === undefined) return failureFrame(rpcId, new Error('sessionController not ready'))
-    const value = await callService(sc, 'create', request) as { sessionId?: string; id?: string } | undefined
+    const payload = request === undefined ? request : { ...request, sessionId: reuseId }
+    const value = await callService(sc, 'create', payload) as { sessionId?: string; id?: string } | undefined
     const sessionId = typeof value?.sessionId === 'string' ? value.sessionId : typeof value?.id === 'string' ? value.id : undefined
     if (sessionId !== undefined) deps.store.recordSession(sessionId, ctx.userId, workspaceId ?? null)
     tenantAudit(deps, 'session.create', ctx.account, { workspaceId: workspaceId ?? null, cwd: cwd ?? null })
@@ -265,7 +336,7 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     'openWorkspacePath', 'canOpenWorkspacePath', 'initializeDefaultModel', 'modelCatalog',
   ]
   for (const name of sessionValidated) {
-    register(`/api/session/${name}`, async (rpcId, args, ctx) => {
+    register(`/api/session/${name}`, async (rpcId, args, ctx, signal) => {
       const request0 = args.request as Record<string, unknown> | undefined
       const sessionId = firstString(request0, 'sessionId') ?? firstString(args, 'sessionId')
       const workspaceId = firstString(request0, 'workspaceId') ?? firstString(args, 'workspaceId')
@@ -282,7 +353,7 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
       }
       const sc = serviceOf(deps, 'sessionController')
       if (sc === undefined) return failureFrame(rpcId, new Error('sessionController not ready'))
-      const value = await callService(sc, name, request0 ?? args)
+      const value = await callService(sc, name, request0 ?? args, signal)
       return okFrame(rpcId, value)
     })
   }

@@ -208,5 +208,40 @@ export const BADGE_SCRIPT = `
       fetch('/logout',{method:'POST',credentials:'same-origin'}).then(function(){location.href='/login'})})
     document.body.appendChild(b)
   }).catch(function(){})
+
+  // 租户引导:session/create 的拒绝帧默认只有手动点击路径会弹 toast(客户端自带),
+  // 自动引导(首屏连他人工作区被拒)是静默重试——这里补一条可见的引导条,30s 去重。
+  var lastGuide=0
+  function guideToast(text){
+    var t=document.createElement('div')
+    t.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:2147483647;max-width:86vw;background:rgba(17,24,39,.94);color:#f9fafb;border:1px solid rgba(129,140,248,.55);border-radius:12px;padding:10px 16px;font:13px/1.6 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.4);backdrop-filter:blur(6px)'
+    t.textContent=text
+    document.body.appendChild(t)
+    var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    setTimeout(function(){
+      if(!reduce){t.style.transition='opacity .4s';t.style.opacity='0'}
+      setTimeout(function(){t.remove()},reduce?0:450)
+    },6000)
+  }
+  var origFetch=window.fetch
+  window.fetch=function(input,init){
+    var p=origFetch.apply(this,arguments)
+    try{
+      var url=typeof input==='string'?input:(input&&input.url)||''
+      if(url.indexOf('/api/session/create')!==-1){
+        p.then(function(r){
+          if(!r.ok)return
+          r.clone().json().then(function(d){
+            var err=d&&d.result&&d.result.ok===false&&d.result.error
+            if(err&&err.code==='tenant/denied'&&Date.now()-lastGuide>30000){
+              lastGuide=Date.now()
+              guideToast(err.message||'该工作区不属于你，请在左侧点击你自己的工作区（家目录）新建会话')
+            }
+          }).catch(function(){})
+        }).catch(function(){})
+      }
+    }catch(e){}
+    return p
+  }
 })()
 `

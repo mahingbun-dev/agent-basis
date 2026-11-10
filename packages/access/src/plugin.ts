@@ -17,7 +17,7 @@ import { handleAccessRequest, type AccessDeps } from './routes.ts'
 import { loadOrCreateSecret, SessionService } from './session.ts'
 import { SlidingWindow } from './ratelimit.ts'
 import { UserStore } from './store.ts'
-import { registerTenantGuards } from './tenant.ts'
+import { ensureFirstSession, ensureTenantWorkspace, registerTenantGuards } from './tenant.ts'
 import { BADGE_SCRIPT } from './pages.ts'
 
 export const ACCESS_PLUGIN_NAME = 'eterna-access'
@@ -144,6 +144,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       const session = new SessionService(loadOrCreateSecret(process.env.ETERNA_ACCESS_SECRET, dir), {
         secure: process.env.ETERNA_ACCESS_SECURE === '1',
       })
+      const tenantRoot = process.env.ETERNA_TENANT_ROOT ?? join(process.env.DSH_HOME ?? process.cwd(), 'workspaces')
       const deps: AccessDeps = {
         store,
         session,
@@ -153,6 +154,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         bridgeHome: (origin: string) => ctx.connection.authenticatedUrl(origin),
         publicOrigin: process.env.ETERNA_PUBLIC_URL !== undefined && process.env.ETERNA_PUBLIC_URL !== '' ? process.env.ETERNA_PUBLIC_URL : undefined,
         dataDir: dir,
+        provisionWorkspace: user => provisionTenantWorkspace({ store, reflect: ctx.reflect, tenantRoot, audit }, user),
       }
       const handler = createNodeHandler(deps)
       const disposers = [
@@ -167,7 +169,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         store,
         session,
         reflect: ctx.reflect,
-        tenantRoot: process.env.ETERNA_TENANT_ROOT ?? join(process.env.DSH_HOME ?? process.cwd(), 'workspaces'),
+        tenantRoot,
         audit,
       }, ctx.connection) )
       return () => {
@@ -183,6 +185,38 @@ export function injectBadge(html: string): string {
   const tag = `<script>${BADGE_SCRIPT}</script>`
   if (/<\/body>/i.test(html)) return html.replace(/<\/body>/i, () => `${tag}</body>`)
   return html + tag
+}
+
+/**
+ * 登录开通(问题4):用户名下零工作区时,在 workspaces/<account> 建根工作区并记账;
+ * 首开再补一个空会话,让客户端首屏自动落座自己的工作区(否则自动引导会挑中
+ * 其他用户的活跃工作区,点开即被守卫拒绝)。失败只落容器日志+审计,不阻断登录。
+ */
+export async function provisionTenantWorkspace(
+  deps: {
+    readonly store: UserStore
+    readonly reflect: AuditReflect
+    readonly tenantRoot: string
+    audit(event: AccessAuditEvent): void
+  },
+  user: { readonly id: number; readonly account: string },
+): Promise<void> {
+  try {
+    if (deps.store.ownsAnyWorkspace(user.id)) return
+    const ensured = await ensureTenantWorkspace(deps, user.id, user.account)
+    if (ensured === undefined) return
+    const firstSessionId = ensured.created
+      ? await ensureFirstSession(deps, user.id, ensured.workspaceId)
+      : undefined
+    deps.audit({
+      kind: 'access.tenant',
+      account: user.account,
+      detail: { action: 'workspace.provision', ...ensured, firstSessionId },
+    })
+  } catch (error) {
+    console.error('[eterna-access] provision workspace failed:', error)
+    deps.audit({ kind: 'access.tenant', account: user.account, detail: { action: 'workspace.provision', error: error instanceof Error ? error.message : String(error) } })
+  }
 }
 
 /** T2.5:存量 workspace(dsh storages/workspace.json)一次性划归首个 admin。 */
