@@ -39,8 +39,15 @@ docker compose build && docker compose up -d
 bash deploy/verify.sh                   # 部署验证清单（§7）
 ```
 
-首次启动自动完成：profile 渲染（patch 模板 + 插件裁剪）→ `@eterna/*` symlink →
+首次启动自动完成：profile 渲染（patch 模板 + 插件裁剪 + 治理规则渲染）→ `@eterna/*` symlink →
 管理员播种（用户表为空时）→ `dsh web` 监听。
+
+治理规则：entrypoint 每次启动把 `docker/profile/governance.rules.yml` 渲染到容器
+`/repo/.eterna/governance.rules.yml`（governance-plugin 的读取点，缺文件=空规则集=
+fail-closed 默认 ask；在 approval=never 的「完全权限」档即静默全拒——2026-11-10 事故，
+规则集内工具名逐字对账见该文件头注）。免重建改规则：在卷上放
+`access/governance.rules.yml`（存在即优先），重启容器生效；改后需跑
+`packages/glue` 的 `governance-rules-fixture` 单测口径自行对账工具名。
 
 ## 4. 服务迁移（换机/换盘）
 
@@ -105,6 +112,7 @@ bash deploy/verify.sh
 | 登录后立刻被踢回登录页 | `ETERNA_ACCESS_SECRET` 被改动（轮换语义，全体会话下线） |
 | 容器日志 `FAILED fiber` / eterna-access 未激活 | 门禁失效=裸奔窗口（R7）：查 users.db 可读性，重启容器 |
 | 登录 429 | 限速窗口（每 IP+账号 5/min）未滑过 |
+| 工具调用全部被拒 `the user rejected tool "…"`（毫秒级失败，无人点过拒绝） | 治理规则集未渲染/被清空：governance 空规则 fail-closed ask × 当前档 approval=never 即全拒。查容器内 `/repo/.eterna/governance.rules.yml` 是否存在、entrypoint 日志 `governance rules:` 行；修复见 §3 治理规则段 |
 
 安全基线：`.env` 视为密钥（泄露即改管理员密码+换 `ETERNA_ACCESS_SECRET`）；容器日志中的
 bootstrap token 视为敏感；公网入口建议反代层再加 basic auth 双保险。

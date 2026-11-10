@@ -1,0 +1,54 @@
+# ── Eterna Agent 默认治理规则集(容器启动时渲染到 /repo/.eterna/governance.rules.yml)──
+# 来源:2026-11-10「完全权限全拒」事故修复(方案 A)。根因:镜像内无规则文件 → glue
+# governance-plugin 回落空规则集 → fail-closed 默认 ask 打在每个工具调用上;而「完全权限」
+# 预设 = approval never,ApprovalService 对 ask 在征求任何人之前确定性 rejected —— 空规则
+# × never = 静默全拒(pwd 也被 9ms 自动拒)。本文件让核心工具族显式 allow,未列名工具仍
+# 走 default: ask(fail-closed 底线不动:沙箱/egress/审批三层防线全部保持)。
+#
+# 工具名对账(逐字核对,不得凭记忆增删;2026-11-10 自 deepseek-harness 源码):
+#   bash ← shell/tool-bash;read/write/edit/read_image ← fs/tool-fs;glob/grep ←
+#   fs/tool-fs-search;todo_write ← todo/tool-todo;exit_plan_mode ← plan/plan-mode
+#   (EXIT_PLAN_MODE);ask_user_question ← interaction/tool-ask-user;present ←
+#   deliverables/tool-present;web_fetch/web_search ← web/tool-web;job_* ←
+#   jobs/tool-jobs;schedule_* ← schedule/tool-schedule;skill ← skill/tool-skill;
+#   create/get/update_goal ← goal/tool-goal;subagent/subagent_fork/list_subagent_models ←
+#   subagent/tool-subagent(eterna patch 显式 toolName);workflow ← workflow/tool-workflow
+#   (toolName 缺省);cordis_inspect_* ← cordis/tool-cordis。
+# apply_patch 刻意不列:eterna-web 两预设均 applyPatch:false,列名即放行违反对账纪律;
+#   回加该工具时须同步回加本文件(默认 ask 会先兜住)。
+# 运维杠杆:$DSH_HOME/access/governance.rules.yml 存在时优先生效(免重建改规则),
+#   见 docker/entrypoint.sh 步骤 2.6。
+default: ask
+rules:
+  - id: allow-shell
+    effect: allow
+    tools: ['bash']
+    reason: shell 静默放行;文件面越界由沙箱兜底,出网由 egress 域名白名单兜底
+  - id: allow-fs
+    effect: allow
+    tools: ['read', 'write', 'edit', 'read_image', 'glob', 'grep']
+    reason: 工作区读写检索静默放行,越界写由沙箱 workspace 边界兜底
+  - id: allow-planning
+    effect: allow
+    tools: ['todo_write', 'exit_plan_mode']
+    reason: 任务清单与计划提交不涉及不可逆副作用
+  - id: allow-interact
+    effect: allow
+    tools: ['ask_user_question', 'present']
+    reason: 向人提问与产出交付物属产品本体交互
+  - id: allow-web
+    effect: allow
+    tools: ['web_fetch', 'web_search']
+    reason: 出网目的地由 eterna-egress 域名白名单单独裁决,治理层不重复设门
+  - id: allow-jobs-schedule
+    effect: allow
+    tools: ['job_list', 'job_output', 'job_kill', 'schedule_create', 'schedule_list', 'schedule_view', 'schedule_edit']
+    reason: 后台作业观测与定时任务属常规操作面
+  - id: allow-skill-goal
+    effect: allow
+    tools: ['skill', 'create_goal', 'get_goal', 'update_goal']
+    reason: 技能调用与目标管理不触碰治理红线
+  - id: allow-delegation
+    effect: allow
+    tools: ['subagent', 'subagent_fork', 'list_subagent_models', 'workflow', 'cordis_inspect_list', 'cordis_inspect_query']
+    reason: 委派/编排面(standard 预设下 workflow 系已 disabled,glob 落空无害)
