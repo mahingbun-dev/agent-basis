@@ -24,8 +24,13 @@
  *     版本链(初始种子)与 persona 缺省链旧口径互证;
  *  6. 保存链路端到端:prompt-save 两段式(一段=R3 审批卡 + doubleConfirm 第二问 +
  *     patch 未落盘;二段=patch 原子写 + 版本 +1 + 宿主内 dump-config 干跑自检通过);
+ *  6.5 T1.6 写链路按条目:块标量条目(plan-mode section:|)save+rollback 两段式
+ *     (ruleId=entry-write.<entryId>、写后读回==新文、宿主内 dump-config 干跑)、
+ *     行锚点只读型(time-context)拒写明示、领域层形态 A(event-planning
+ *     personaPrefix:>-)save+rollback(真 pack 文件,字节快照保护性还原);
  *  7. 回滚链路:prompt-rollback 两段式 → 新版本(source=rollback,parentId=被回滚
- *     版本),版本只增不删(total=3),patch 层回到目标内容;
+ *     版本),版本只增不删(total=3),patch 层回到目标内容;条目错配(entryId 与
+ *     版本归属不符)fail-closed 拒回滚;
  *  8. 磁盘证据:版本库单元落在 DSH storage 栈根(<home>/storages/eterna_prompt_studio/,
  *     per-record 一文档一记录;T1.4 起按条目种子,文档记录带 entryId,链长与端点一致);
  *     兜底审计 NDJSON 含 operator/versionId(G5)。
@@ -253,6 +258,32 @@ function api(token) {
   }
 }
 
+/* ---------- dump-config 干跑取文本(T1.6 按条目写后组合树断言用;无副作用) ---------- */
+async function dumpConfigText() {
+  const r = spawnSync(process.execPath, [
+    resolve(profile, 'node_modules/@deepseek-ai/dsh/lib/bin.js'),
+    '--profile', profileName, '--dump-config',
+  ], { cwd: profile, encoding: 'utf8', env: { ...process.env, DSH_HOME: home }, timeout: 180000 })
+  if ((r.status ?? 1) !== 0) throw new Error(`dump-config failed: status=${r.status}`)
+  return r.stdout ?? ''
+}
+
+/* ---------- T1.6 领域 pack 文件字节快照(写链路动真 worktree 文件的保护性还原) ---------- */
+const packPatchPath = resolve(repoRoot, 'packs/event-planning/cordis.patch.yml')
+let packBytesBefore = null
+function restorePackFile() {
+  if (packBytesBefore === null) return 'skipped'
+  try {
+    if (readFileSync(packPatchPath, 'utf8') !== packBytesBefore) {
+      writeFileSync(packPatchPath, packBytesBefore, 'utf8')
+      return 'restored'
+    }
+    return 'unchanged'
+  } catch {
+    return 'restore-failed'
+  }
+}
+
 /* ---------- 主流程 ---------- */
 let exitCode = 0
 try {
@@ -444,6 +475,81 @@ try {
     check('保存后宿主日志无 skipping/incompatible(HMR 重组合洁净)', !/skipping|incompatible/i.test(readFileSync(hostLog, 'utf8')))
   }
 
+  // 6.5) T1.6 写链路按条目(测试计划 §3 T1.6:一/二段式 + dump-config 干跑;
+  //      块标量条目采样 + 只读型拒写 + 领域层形态 A)
+  packBytesBefore = readFileSync(packPatchPath, 'utf8')
+  {
+    // a) 块标量条目(plan-mode section:|,live patch 在场):save 两段式 + 回滚。
+    const planBefore = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'preset.standard.plan-mode.section' } })
+    const planText = planBefore.value?.text
+    check('T1.6 prompt-get{plan-mode}: 前置读回非空', typeof planText === 'string' && planText.length > 0, `bytes=${planBefore.value?.bytes}`)
+    const planV2 = `${planText}T7_SMOKE_PLANMODE_MARKER appended line.\n`
+    const p1 = await dsh.call('loopPrompt/prompt-save', { input: { entryId: 'preset.standard.plan-mode.section', content: planV2, author: 't7-smoke', summary: 'T1.6:plan-mode 块标量写回' } })
+    check('T1.6 prompt-save{plan-mode}(一段): approval-required + ruleId=entry-write.<entryId>',
+      p1.status === 'approval-required'
+        && p1.approval?.card?.matchedRule?.ruleId === 'eterna.prompt-studio.entry-write.preset.standard.plan-mode.section'
+        && p1.approval?.card?.matchedRule?.grade === 'R3',
+      `ruleId=${p1.approval?.card?.matchedRule?.ruleId}`)
+    const p2 = await dsh.call('loopPrompt/prompt-save', {
+      input: { entryId: 'preset.standard.plan-mode.section', content: planV2, author: 't7-smoke', approvalId: p1.approval?.approvalId, approved: true },
+    })
+    check('T1.6 prompt-save{plan-mode}(二段): committed(entryId/seq 链内)', p2.status === 'committed'
+      && p2.version?.entryId === 'preset.standard.plan-mode.section' && p2.version?.seq === 2,
+      `seq=${p2.version?.seq}`)
+    const afterSave = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'preset.standard.plan-mode.section' } })
+    check('T1.6 plan-mode 写后读回==新文(字面块整段写回,dump-config 干跑已过)', afterSave.value?.text === planV2)
+    check('T1.6 plan-mode 写后 dump-config 组合树含新文(HMR 重组合采纳)', await dumpConfigText().then(out => out.includes('T7_SMOKE_PLANMODE_MARKER appended line.')))
+    const planChain = await dsh.call('loopPrompt/prompt-versions', { input: { entryId: 'preset.standard.plan-mode.section' } })
+    const planInitial = planChain.versions?.at(-1)
+    const r1 = await dsh.call('loopPrompt/prompt-rollback', { input: { versionId: planInitial.id, author: 't7-smoke' } })
+    check('T1.6 prompt-rollback{plan-mode}(一段): approval-required(按条目回滚)', r1.status === 'approval-required')
+    const r2 = await dsh.call('loopPrompt/prompt-rollback', {
+      input: { versionId: planInitial.id, author: 't7-smoke', approvalId: r1.approval?.approvalId, approved: true },
+    })
+    check('T1.6 prompt-rollback{plan-mode}(二段): committed 且 patch 层反引==被回滚文本',
+      r2.status === 'committed' && r2.version?.source === 'rollback' && r2.version?.parentId === planInitial.id
+        && (await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'preset.standard.plan-mode.section' } })).value?.text === planText,
+      `total=${(await dsh.call('loopPrompt/prompt-versions', { input: { entryId: 'preset.standard.plan-mode.section' } })).total}`)
+
+    // b) 行锚点只读型(time-context):写链路 fail-closed 拒写明示。
+    const tc = await dsh.call('loopPrompt/prompt-save', { input: { entryId: 'preset.standard.time-context', content: 'x', author: 't7-smoke' } })
+    check('T1.6 prompt-save{time-context}: 只读型拒写明示(无 patch 写回落点)',
+      tc.status === 'rejected' && String(tc.issues?.[0]).includes('该条目由上游插件生成,无 patch 写回落点'))
+
+    // c) 领域层形态 A(event-planning personaPrefix:>- ,真 pack 文件,字节快照保护)。
+    const domBefore = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'domain.event-planning.persona-prefix' } })
+    const domText = domBefore.value?.text
+    check('T1.6 prompt-get{event.personaPrefix}: 前置读回非空', typeof domText === 'string' && domText.length > 0)
+    const domV2 = `${domText} T7_SMOKE_DOMAIN_MARKER appended.`
+    const d1 = await dsh.call('loopPrompt/prompt-save', { input: { entryId: 'domain.event-planning.persona-prefix', content: domV2, author: 't7-smoke', summary: 'T1.6:领域 >- 块写回' } })
+    check('T1.6 prompt-save{event.personaPrefix}(一段): approval-required(标准红线双语锚点过)',
+      d1.status === 'approval-required', `status=${d1.status} issues=${JSON.stringify(d1.issues)?.slice(0, 160)}`)
+    const d2 = await dsh.call('loopPrompt/prompt-save', {
+      input: { entryId: 'domain.event-planning.persona-prefix', content: domV2, author: 't7-smoke', approvalId: d1.approval?.approvalId, approved: true },
+    })
+    check('T1.6 prompt-save{event.personaPrefix}(二段): committed 且 pack 文件写后读回==新文',
+      d2.status === 'committed'
+        && (await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'domain.event-planning.persona-prefix' } })).value?.text === domV2)
+    const domChain = await dsh.call('loopPrompt/prompt-versions', { input: { entryId: 'domain.event-planning.persona-prefix' } })
+    const domInitial = domChain.versions?.at(-1)
+    const dr1 = await dsh.call('loopPrompt/prompt-rollback', { input: { versionId: domInitial.id, author: 't7-smoke' } })
+    const dr2 = await dsh.call('loopPrompt/prompt-rollback', {
+      input: { versionId: domInitial.id, author: 't7-smoke', approvalId: dr1.approval?.approvalId, approved: true },
+    })
+    check('T1.6 prompt-rollback{event.personaPrefix}: 值恢复==原文(形态 A 回滚)',
+      dr2.status === 'committed'
+        && (await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'domain.event-planning.persona-prefix' } })).value?.text === domText)
+    // 审计:按条目写链路事件带 entryId(既有 operator/versionId/at 之外只增字段)。
+    {
+      const auditFile = resolve(home, 'eterna-prompt-studio', 'audit.jsonl')
+      const lines = readFileSync(auditFile, 'utf8').split('\n').filter(Boolean)
+      const details = lines.map((l) => JSON.parse(l)).map((r) => (r.detail ?? r))
+      const committed = details.filter((r) => r.action === 'prompt-save.committed' && r.entryId === 'domain.event-planning.persona-prefix')
+      check('T1.6 审计:prompt-save.committed 带 entryId=domain.event-planning.persona-prefix',
+        committed.length >= 1 && typeof committed[0]?.versionId === 'string' && committed[0]?.operator === 't7-smoke')
+    }
+  }
+
   // 7) 回滚链路:产生新版本而非删旧版本
   {
     const versions = await dsh.call('loopPrompt/prompt-versions', { input: {} })
@@ -458,36 +564,42 @@ try {
     const after = await dsh.call('loopPrompt/prompt-versions', { input: {} })
     check('版本只增不删:total=3 且 initial 版本仍在', after.total === 3 && after.versions.some((v) => v.id === v1.id), `total=${after.total}`)
     check('回滚后 patch 层回到目标内容(无 v2 文本)', !readFileSync(patchPath, 'utf8').includes(SAVE_TAIL))
-    // T1.4 过渡守卫(评审 2026-11-11):跨条目回滚 fail-closed——外链条目(plan-mode)
-    // 的版本 id 不可作为 persona 回滚目标(否则领域/plan 文本会绕过校验落进 persona 前缀)。
+    // T1.6 泛化后守卫(原 T1.4「仅支持默认条目」过渡守卫的收编):按条目回滚已放行
+    // (见 6.5 节 plan-mode/领域条目),守卫语义收窄为「条目错配」——entryId 与版本
+    // 归属不符 fail-closed 拒回滚,persona 落点零污染。
     const planChain = await dsh.call('loopPrompt/prompt-versions', { input: { entryId: 'preset.standard.plan-mode.section' } })
-    const crossEntry = await dsh.call('loopPrompt/prompt-rollback', { input: { versionId: planChain.versions?.[0]?.id, author: 't7-smoke' } })
+    const crossEntry = await dsh.call('loopPrompt/prompt-rollback', {
+      input: { versionId: planChain.versions?.[0]?.id, entryId: 'preset.standard.persona', author: 't7-smoke' },
+    })
     const prefixLine = readFileSync(patchPath, 'utf8').split('\n').find((l) => /^(\s*)prefix: /.test(l)) ?? ''
-    check('prompt-rollback{跨条目目标}: fail-closed rejected(仅支持默认条目链;T1.6 泛化前过渡守卫)',
-      crossEntry.status === 'rejected' && String(crossEntry.issues?.[0]).includes('仅支持默认条目')
+    check('prompt-rollback{条目错配}: fail-closed rejected(版本归属与请求条目不符;T1.6 守卫)',
+      crossEntry.status === 'rejected' && String(crossEntry.issues?.[0]).includes('属于条目 preset.standard.plan-mode.section')
+        && String(crossEntry.issues?.[0]).includes('preset.standard.persona')
         && prefixLine.includes(MARKER)
         && (await dsh.call('loopPrompt/prompt-versions', { input: {} })).total === 3)
   }
 
   // 8) 磁盘证据:storage 栈单元目录 + 兜底审计 NDJSON(G5:operator/versionId)
-  //    T1.4 起装载种子按条目:persona 链 3(initial+save+rollback)+ 其余 patch 值型
-  //    条目链首各 1(agent-instructions/plan-mode/领域×4;live patch 无 preset-cordis
-  //    行,该预设的 3 条 patch 值型条目 persona/agent-instructions/plan-mode.section
-  //    定位失败不种子)= 9 文档。
+  //    T1.4 装载种子按条目 + T1.6 按条目写链路:persona 链 3(initial+save+rollback)
+  //    + plan-mode 链 3 + event.personaPrefix 链 3(T1.6 写回/回滚各 +1)+ 其余四条
+  //    patch 值型条目链首各 1(agent-instructions/两包 persona.md/industrial 前缀;
+  //    live patch 无 preset-cordis 行,该预设条目定位失败不种子)= 3+3+3+4=13 文档。
   {
     const unitDir = resolve(home, 'storages', 'eterna_prompt_studio', 'versions')
     const docs = existsSync(unitDir) ? readdirSync(unitDir).filter((f) => f.endsWith('.json')) : []
-    check('版本库单元落在 DSH storage 栈(storages/eterna_prompt_studio/versions/ 一文档一记录;T1.4 按条目种子:persona 链 3+6 条目链首)',
-      docs.length === 9, `docs=${docs.length}`)
+    check('版本库单元落在 DSH storage 栈(storages/eterna_prompt_studio/versions/ 一文档一记录;T1.6 后 persona/plan-mode/领域前缀各 3 + 四条目链首)',
+      docs.length === 13, `docs=${docs.length}`)
     {
       const records = docs.map((f) => JSON.parse(readFileSync(resolve(unitDir, f), 'utf8')).record)
       const byEntry = new Map()
       for (const record of records) byEntry.set(record.entryId, (byEntry.get(record.entryId) ?? 0) + 1)
-      check('磁盘证据(T1.4): 每文档记录带 entryId;persona 链 3 文档、六条目链首各 1(与端点链长一致)',
+      check('磁盘证据(T1.6): 每文档记录带 entryId;persona/plan-mode/领域前缀链各 3、四条目链首各 1(与端点链长一致)',
         records.every((r) => typeof r.entryId === 'string' && r.entryId !== '')
           && byEntry.get('preset.standard.persona') === 3
-          && ['preset.standard.agent-instructions', 'preset.standard.plan-mode.section',
-            'domain.event-planning.persona-prefix', 'domain.event-planning.persona-md',
+          && byEntry.get('preset.standard.plan-mode.section') === 3
+          && byEntry.get('domain.event-planning.persona-prefix') === 3
+          && ['preset.standard.agent-instructions',
+            'domain.event-planning.persona-md',
             'domain.industrial-analysis.persona-prefix', 'domain.industrial-analysis.persona-md']
             .every((id) => byEntry.get(id) === 1),
         [...byEntry.entries()].map(([id, n]) => `${id}:${n}`).join(' '))
@@ -503,6 +615,9 @@ try {
         && committed.length >= 2
         && committed.every((r) => r.system === 'eterna-prompt-studio' && r.operator === 't7-smoke'
           && typeof r.versionId === 'string' && typeof r.at === 'string'), `lines=${lines.length} committed=${committed.length}`)
+      check('审计记录(T1.6): 写链路 committed 事件带 entryId',
+        committed.length >= 4 && committed.every((r) => typeof r.entryId === 'string' && r.entryId !== ''),
+        `entryIds=${[...new Set(committed.map((r) => r.entryId))].join(',')}`)
     }
   }
 
@@ -511,6 +626,8 @@ try {
   failures.push(String(error?.message ?? error))
   console.error(`[FATAL] ${String(error?.message ?? error)}`)
 } finally {
+  // T1.6 形态 A 写的是真 worktree 的 pack 文件:无论断言成败,字节级还原后再收场。
+  console.log(`[cleanup] 领域 pack 文件字节还原:${restorePackFile()}`)
   await stopHost()
   const freed = !(await portBusy())
   check('清理:宿主进程已停止、端口 3108 已释放', freed)

@@ -8,7 +8,7 @@
  * 真实 cordis Context(裸根):profileContext 缺席 → patchPath/审计/会话根全部走
  * 插件 config 覆写(与宿主 profileContext 提供时的缺省路径同构)。
  */
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -17,12 +17,13 @@ import { remoteMethods, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import type { KvUnit } from '@deepseek-ai/dsh-storage'
 import plugin, {
   DEFAULT_ENTRY_ID, ENDPOINTS, LOOP_PROMPT_SERVICE_ID, LoopPromptGateway, PROMPT_REGISTRY_ENTRIES,
-  STORAGE_JSON_BACKEND_KEY, definePromptStudioPlugin,
+  STORAGE_JSON_BACKEND_KEY, WILDCARD_WRITE_RULE_ID, definePromptStudioPlugin, entryWriteRuleId, validateEntryText,
 } from '../src/index.ts'
 import type { EntryNotFoundResult, PromptExportPack, PromptGetEntryResult, StudioContextLike, VersionsResult } from '../src/types.ts'
 import { PersonaPatchFile } from '../src/persona-patch.ts'
 import { VERSIONS_TABLE } from '../src/version-store.ts'
 import { sha256Hex } from '../src/checksum.ts'
+import { byteLength } from '../src/checksum.ts'
 
 /** 基线 persona(单行;T7.3 起内含三条红线锚点,对齐 packs/event-planning persona 全局硬约束)。 */
 const PERSONA_V1 = 'You are the Eterna enterprise assistant. T7-STUDIO-V1 红线:预算超支>5%必须触发审批;对外付款不得代付;比选必须中立。'
@@ -681,36 +682,66 @@ describe('T1.4 读侧 API 按条目泛化(snapshot entries[] / prompt-get {entry
     expect((await gateway.promptVersions({ entryId: 'domain.event-planning.persona-md' }) as VersionsResult).total).toBe(1)
   })
 
-  it('守卫(评审 2026-11-11):跨条目回滚 fail-closed——外链版本不得作为 persona 回滚目标', async () => {
+  it('T1.6 按条目回滚(原 T1.4 过渡守卫的泛化收编):plan-mode 块标量条目回滚写回自身落点,persona 落点零污染', async () => {
     await attach()
-    // plan-mode 链首(领域/plan 文本)作为回滚目标:必须 rejected,不进两段式审批。
-    const planChain = await gateway.promptVersions({ entryId: 'preset.standard.plan-mode.section' }) as VersionsResult
-    const crossId = planChain.versions[0]?.id ?? ''
-    expect(crossId).not.toBe('')
-    const result = await gateway.promptRollback({ versionId: crossId, author: 'mallory' })
-    expect(result.status).toBe('rejected')
-    expect(result.issues?.[0]).toContain('目标版本属于条目 preset.standard.plan-mode.section')
-    expect(result.issues?.[0]).toContain('仅支持默认条目')
-    // 写通道零污染:persona 前缀行未变、persona 链长度未变、无在途审批。
-    expect((await new PersonaPatchFile(join(dir, 'cordis.patch.yml')).read()).text).toBe(PERSONA_V1)
+    const patchFile = join(dir, 'cordis.patch.yml')
+    const planChainBefore = await gateway.promptVersions({ entryId: 'preset.standard.plan-mode.section' }) as VersionsResult
+    const initialId = planChainBefore.versions?.[0]?.id ?? ''
+    expect(initialId).not.toBe('')
+    // 先保存 plan-mode 新文(形态 C | 字面块;内容过按条目校验:exempt 红线 + 字节上限)。
+    const planV2 = `${PLAN_MODE_TEXT}T1.6-GUARD append line.\n`
+    const savePhase1 = await gateway.promptSave({ entryId: 'preset.standard.plan-mode.section', content: planV2, author: 'alice' })
+    expect(savePhase1.status).toBe('approval-required')
+    const savePhase2 = await gateway.promptSave({
+      entryId: 'preset.standard.plan-mode.section', content: planV2, author: 'alice',
+      approvalId: savePhase1.approval?.approvalId ?? '', approved: true,
+    })
+    expect(savePhase2.status).toBe('committed')
+    expect(savePhase2.version?.entryId).toBe('preset.standard.plan-mode.section')
+    // 写回落在 plan-mode 块(prompt-get 反引==新文),persona 前缀行未动。
+    const afterSave = await gateway.promptGet({ entryId: 'preset.standard.plan-mode.section' }) as PromptGetEntryResult
+    expect(afterSave.value.text).toBe(planV2)
+    expect((await new PersonaPatchFile(patchFile).read()).text).toBe(PERSONA_V1)
+    // 回滚两段式 → 新版本(source=rollback,parentId=被回滚版本),patch 层反引恢复旧文。
+    const rbPhase1 = await gateway.promptRollback({ versionId: initialId, author: 'bob' })
+    expect(rbPhase1.status).toBe('approval-required')
+    const rbPhase2 = await gateway.promptRollback({
+      versionId: initialId, author: 'bob', approvalId: rbPhase1.approval?.approvalId ?? '', approved: true,
+    })
+    expect(rbPhase2.status).toBe('committed')
+    expect(rbPhase2.version?.source).toBe('rollback')
+    expect(rbPhase2.version?.parentId).toBe(initialId)
+    expect(rbPhase2.version?.entryId).toBe('preset.standard.plan-mode.section')
+    const afterRollback = await gateway.promptGet({ entryId: 'preset.standard.plan-mode.section' }) as PromptGetEntryResult
+    expect(afterRollback.value.text).toBe(PLAN_MODE_TEXT)
+    // 版本只增不删:plan-mode 链 3(initial+save+rollback);persona 链仍 1;无在途审批。
+    const planChainAfter = await gateway.promptVersions({ entryId: 'preset.standard.plan-mode.section' }) as VersionsResult
+    expect(planChainAfter.total).toBe(3)
     expect((await gateway.promptVersions({})).total).toBe(1)
+    expect((await new PersonaPatchFile(patchFile).read()).text).toBe(PERSONA_V1)
     expect((await gateway.snapshot()).pendingApproval).toBeNull()
-    // 同链(默认条目)回滚不受守卫影响:回滚到 persona 链首(内容=现值,diff 空合理拒绝,
-    // 但已越过守卫分支——用「diff 为空」文案证明进了正常回滚流程而非守卫拒绝)。
-    const personaChain = await gateway.promptVersions({})
-    const sameChain = await gateway.promptRollback({ versionId: personaChain.versions[0]?.id ?? '' })
-    expect(sameChain.issues?.[0]).toContain('diff 为空')
+    // entryId 与版本归属不符 → fail-closed 拒回滚(泛化后的错配守卫)。
+    const mismatch = await gateway.promptRollback({ versionId: initialId, entryId: DEFAULT_ENTRY_ID, author: 'mallory' })
+    expect(mismatch.status).toBe('rejected')
+    expect(mismatch.issues?.[0]).toContain('属于条目 preset.standard.plan-mode.section')
   })
 
-  it('守卫(评审 2026-11-11):跨条目导出 fail-closed——外链版本不得打包成 persona 导出包', async () => {
+  it('守卫(评审 2026-11-11→T1.6 泛化):跨条目导出需 entryId 指名;错配仍 fail-closed', async () => {
     await attach()
     const domainChain = await gateway.promptVersions({ entryId: 'domain.event-planning.persona-prefix' }) as VersionsResult
+    // 不带 entryId 的跨条目导出(persona 口径)仍 fail-closed。
     const error = await gateway.promptExport({ versionId: domainChain.versions[0]?.id ?? '' }).catch((cause: unknown) => cause)
     expect(remoteErrorOf(error)?.code).toBe('gateway/bad-request')
     expect(String(remoteErrorOf(error)?.message)).toContain('domain.event-planning.persona-prefix')
-    // 默认条目导出不受守卫影响。
+    // T1.6:显式 entryId 的按条目导出放行,包带 entryId 字段。
+    const pack = await gateway.promptExport({ entryId: 'domain.event-planning.persona-prefix', versionId: domainChain.versions[0]?.id ?? '' })
+    expect(pack.pack.entryId).toBe('domain.event-planning.persona-prefix')
+    expect(pack.pack.persona).toBe(domainChain.versions[0]?.content)
+    expect(pack.pack.checksum).toBe(sha256Hex(pack.pack.persona))
+    // 默认条目导出不受影响,包形状零差异(无 entryId 字段)。
     const normal = await gateway.promptExport({})
     expect(normal.pack.persona).toBe(PERSONA_V1)
+    expect('entryId' in normal.pack).toBe(false)
   })
 
   it('分型生效说明(评审 2026-11-11):只读型/运行时注入型不透传「保存生效」语义', async () => {
@@ -745,5 +776,463 @@ describe('T1.4 读侧 API 按条目泛化(snapshot entries[] / prompt-get {entry
     // per-entry prompt-versions:与旧口径一致,RemoteError(bad-request)明示未就绪。
     const error = await gateway.promptVersions({ entryId: 'domain.event-planning.persona-prefix' }).catch((cause: unknown) => cause)
     expect(remoteErrorOf(error)?.code).toBe('gateway/bad-request')
+  })
+})
+
+/**
+ * T1.6 写链路按条目泛化(测试计划 §3 T1.6(b) ①–⑥ + §6 横切 1/2/3/6):
+ * - ① R3 按条目授权:受限规则集未覆盖条目一段直接 rejected;② 通配规则覆盖新条目;
+ * - ③ 字节上限逐条目(65536 过/65537 拒,按注册表条目参数化);
+ * - ④ 红线锚点逐条目:persona 类缺红线拒收且 issues 指明;非 persona 豁免;
+ *   工业规则集(达梦只读/只经 MCP/R2/deny-first)与标准集双语锚点;
+ * - ⑤ 回滚逐条目:块标量形态 A/B/C 各 ≥1 例(回滚后 patch 层反引==被回滚文本),
+ *   只读型条目回滚 fail-closed 明示;
+ * - ⑥ 导入通道逐条目:超限/缺红线/stale 锁拒收未入库 + 审计 prompt-import.rejected;
+ *   块标量形态 A/B/C 导入后 patch 反引一致;
+ * - TOCTOU:审批后文件被外部改写 → 二段拒写零落盘、外部状态保持;
+ * - 审计事件带 entryId 字段;审批卡 ruleId 按条目解析。
+ *
+ * 领域层条目写入 fixture 仓库根(repoRoot 临时目录,pack 文件同构真仓形态),
+ * 绝不写真仓文件;preset 层写入 live patch(patchPath 临时目录)。
+ */
+describe('T1.6 写链路按条目泛化(R3 按条目授权 + 校验器逐条目 + 回滚/导入同门禁)', () => {
+  /** 标准三条红线的英文转述(event-planning personaPrefix 同款,验证双语锚点)。 */
+  const RED_LINES_EN = 'Never silently exceed budgets, never make or promise external payments, stay neutral in vendor selection.'
+  /** 工业四条红线英文句(industrial-analysis personaPrefix 同款)。 */
+  const RED_LINES_INDUSTRIAL = 'The DM business database is read-only; data and knowledge layers are accessed only via MCP; every external send requires confirmation (R2). Deny-first, fail-closed.'
+  const EVENT_PREFIX_V1 = 'You are a senior event planning specialist: creative, execution-strong. ' + RED_LINES_EN
+  const INDUSTRIAL_PREFIX_V1 = 'You are a senior industrial data-intelligence analysis specialist. ' + RED_LINES_INDUSTRIAL
+
+  let dir: string
+  let repoRoot: string
+  let patchPath: string
+  let auditPath: string
+  let gateway: LoopPromptGateway
+
+  /** live patch:两预设 persona(裸标量 + >- 折叠块)+ planning→plan-mode `|` 字面块。 */
+  function t16FixturePatch(): string {
+    return [
+      '# T1.6 fixture:preset-standard(裸标量+plan-mode |)+ preset-cordis(>- 折叠块)',
+      '- id: preset-standard',
+      '  config:',
+      '    plugins:',
+      '      - id: persona',
+      "        name: '@deepseek-ai/dsh-persona'",
+      '        config:',
+      `          prefix: '${PERSONA_V1}'`,
+      '      - id: planning',
+      '        name: cordis:group',
+      '        group: true',
+      '        config:',
+      '          - id: plan-mode',
+      "            name: '@deepseek-ai/dsh-plan-mode'",
+      '            config:',
+      '              section: |',
+      '                You are in plan mode. Stay in plan mode.',
+      '                ',
+      '                Explore first. Use non-mutating reads.',
+      '- id: preset-cordis',
+      '  config:',
+      '    plugins:',
+      '      - id: persona',
+      "        name: '@deepseek-ai/dsh-persona'",
+      '        config:',
+      '          prefix: >-',
+      '            You are a coding agent powered by the {{model}} model.',
+      '',
+    ].join('\n')
+  }
+
+  /** fixture 仓库根:两 pack 的 patch(形态 A >- 块)与 persona.md(整文件条目)。 */
+  function seedFixtureRepo(): void {
+    mkdirSync(join(repoRoot, 'packs/event-planning'), { recursive: true })
+    mkdirSync(join(repoRoot, 'packs/industrial-analysis'), { recursive: true })
+    writeFileSync(join(repoRoot, 'packs/event-planning/cordis.patch.yml'), [
+      '# fixture event pack patch',
+      '- id: system-prompt',
+      '  config:',
+      '    personaPrefix: >-',
+      ...EVENT_PREFIX_V1.split(' ').reduce<string[][]>((rows, word, i) => {
+        if (i % 8 === 0) rows.push([])
+        rows[rows.length - 1]?.push(word)
+        return rows
+      }, []).map(row => `      ${row.join(' ')}`),
+      '',
+    ].join('\n'), 'utf8')
+    writeFileSync(join(repoRoot, 'packs/event-planning/persona.md'), `# persona\n\n${EVENT_PREFIX_V1}\n`, 'utf8')
+    writeFileSync(join(repoRoot, 'packs/industrial-analysis/cordis.patch.yml'), [
+      '# fixture industrial pack patch',
+      '- id: system-prompt',
+      '  config:',
+      '    personaPrefix: >-',
+      ...INDUSTRIAL_PREFIX_V1.split(' ').reduce<string[][]>((rows, word, i) => {
+        if (i % 8 === 0) rows.push([])
+        rows[rows.length - 1]?.push(word)
+        return rows
+      }, []).map(row => `      ${row.join(' ')}`),
+      '',
+    ].join('\n'), 'utf8')
+    writeFileSync(join(repoRoot, 'packs/industrial-analysis/persona.md'), `# persona\n\n${INDUSTRIAL_PREFIX_V1}\n`, 'utf8')
+  }
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'eterna-prompt-studio-t16-'))
+    repoRoot = join(dir, 'repo')
+    patchPath = join(dir, 'cordis.patch.yml')
+    auditPath = join(dir, 'audit.jsonl')
+    seedFixtureRepo()
+    writeFileSync(patchPath, t16FixturePatch(), 'utf8')
+    const ctx = new Context()
+    gateway = new LoopPromptGateway(asStudio(ctx), {
+      patchPath, auditFilePath: auditPath, dryRunVerify: false, repoRoot,
+    })
+  })
+
+  afterEach(async () => {
+    await gateway.dispose()
+    for (let attempt = 0; ; attempt++) {
+      try {
+        rmSync(dir, { recursive: true, force: true })
+        break
+      } catch (error) {
+        if (attempt >= 4 || (error as NodeJS.ErrnoException)?.code !== 'ENOTEMPTY') throw error
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
+  })
+
+  function attach(unit: MemoryUnit = new MemoryUnit()): Promise<MemoryUnit> {
+    const backend = { kv: { open: async () => unit as unknown as KvUnit }, close: async () => undefined }
+    return gateway.attachBackend(backend).then(() => unit)
+  }
+
+  /** 两段式保存并断言 committed(便捷封装;不命中 committed 即抛)。 */
+  async function saveTwoPhase(entryId: string, content: string, author = 'alice') {
+    const phase1 = await gateway.promptSave({ entryId, content, author })
+    expect(phase1.status, `save(${entryId}) 一段应为 approval-required:${JSON.stringify(phase1.issues ?? phase1.approval?.approvalId)}`).toBe('approval-required')
+    const phase2 = await gateway.promptSave({ entryId, content, author, approvalId: phase1.approval?.approvalId ?? '', approved: true })
+    expect(phase2.status, `save(${entryId}) 二段应为 committed:${JSON.stringify(phase2.issues)}`).toBe('committed')
+    return { phase1, phase2 }
+  }
+
+  /** 两段式回滚并断言 committed。 */
+  async function rollbackTwoPhase(versionId: string, author = 'bob') {
+    const phase1 = await gateway.promptRollback({ versionId, author })
+    expect(phase1.status, `rollback 一段应为 approval-required:${JSON.stringify(phase1.issues)}`).toBe('approval-required')
+    const phase2 = await gateway.promptRollback({ versionId, author, approvalId: phase1.approval?.approvalId ?? '', approved: true })
+    expect(phase2.status, `rollback 二段应为 committed:${JSON.stringify(phase2.issues)}`).toBe('committed')
+    return { phase1, phase2 }
+  }
+
+  /** 当前值(prompt-get 反引;断言非空)。 */
+  async function currentText(entryId: string): Promise<string> {
+    const got = await gateway.promptGet({ entryId }) as PromptGetEntryResult
+    expect(got.value.text, `${entryId} 当前值应可读`).not.toBeNull()
+    return got.value.text ?? ''
+  }
+
+  /** 审计文件里的 detail 行(解析 NDJSON)。 */
+  function auditDetails(): Array<Record<string, unknown>> {
+    if (!existsSyncSafe(auditPath)) return []
+    return readFileSync(auditPath, 'utf8').split('\n').filter(line => line.trim().length > 0)
+      .map(line => (JSON.parse(line) as { detail?: Record<string, unknown> }).detail ?? {})
+  }
+
+  function existsSyncSafe(path: string): boolean {
+    try {
+      readFileSync(path, 'utf8')
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  /** 等待审计记录落地(FileAuditSink 异步 append;轮询至谓词命中或超时)。 */
+  async function waitForAudit(
+    predicate: (details: Array<Record<string, unknown>>) => boolean,
+    timeoutMs = 2000,
+  ): Promise<Array<Record<string, unknown>>> {
+    for (let waited = 0; waited < timeoutMs; waited += 10) {
+      const details = auditDetails()
+      if (predicate(details)) return details
+      await new Promise(resolve => setTimeout(resolve, 10))
+    }
+    return auditDetails()
+  }
+
+  // ---------- ①② R3 按条目授权 ----------
+
+  it('① 受限规则集(模拟非 admin):未覆盖条目一段直接 rejected;审批卡 ruleId 按条目解析', async () => {
+    await attach()
+    const ctx = new Context()
+    const restricted = new LoopPromptGateway(asStudio(ctx), {
+      patchPath, auditFilePath: auditPath, dryRunVerify: false, repoRoot,
+      writeRules: ['eterna.prompt-studio.persona-write'], // 只授权默认 persona 条目
+    })
+    const backend = { kv: { open: async () => new MemoryUnit() as unknown as KvUnit }, close: async () => undefined }
+    await restricted.attachBackend(backend)
+    // 未覆盖条目(plan-mode):一段直接 rejected,不进审批。
+    const denied = await restricted.promptSave({ entryId: 'preset.standard.plan-mode.section', content: 'x' })
+    expect(denied.status).toBe('rejected')
+    expect(denied.issues?.[0]).toContain('写授权未覆盖条目 preset.standard.plan-mode.section')
+    expect(denied.issues?.[0]).toContain(entryWriteRuleId('preset.standard.plan-mode.section'))
+    expect((await restricted.snapshot()).pendingApproval).toBeNull()
+    // 覆盖条目(默认 persona)不受影响,且审批卡 ruleId=persona-write(T7 兼容)。
+    const allowed = await restricted.promptSave({ content: `${PERSONA_V1} v2` })
+    expect(allowed.status).toBe('approval-required')
+    expect(allowed.approval?.card.matchedRule.ruleId).toBe('eterna.prompt-studio.persona-write')
+    await restricted.dispose()
+  })
+
+  it('② 通配规则覆盖新条目:默认授权面下任意条目可写,审批卡 ruleId=entry-write.<entryId>', async () => {
+    await attach()
+    expect(gateway.writeRules).toEqual([WILDCARD_WRITE_RULE_ID])
+    const phase1 = await gateway.promptSave({ entryId: 'preset.cordis.persona', content: `Cordis v2. ${RED_LINES}` })
+    expect(phase1.status).toBe('approval-required')
+    expect(phase1.approval?.card.matchedRule.ruleId).toBe('eterna.prompt-studio.entry-write.preset.cordis.persona')
+    expect(phase1.approval?.card.matchedRule.grade).toBe('R3')
+    expect(phase1.approval?.questionItems).toHaveLength(2)
+    expect(phase1.approval?.card.why.entry).toContain('R3 · eterna.prompt-studio.entry-write.preset.cordis.persona')
+  })
+
+  // ---------- ③ 字节上限逐条目 ----------
+
+  it('③ 字节上限按注册表条目参数化:恰限通过、+1 字节拒收(UTF-8 字节口径,CJK 按字节计)', () => {
+    const patchValueEntries = PROMPT_REGISTRY_ENTRIES.filter(entry => entry.kind === 'patch-value')
+    expect(patchValueEntries.length).toBeGreaterThan(0)
+    for (const entry of patchValueEntries) {
+      const anchors = entry.redLineRuleSet === 'eterna.red-lines.industrial-analysis'
+        ? RED_LINES_INDUSTRIAL
+        : entry.redLineRuleSet === 'eterna.red-lines.standard' ? RED_LINES : ''
+      const atLimit = anchors + 'a'.repeat(entry.maxBytes - byteLength(anchors))
+      expect(byteLength(atLimit), entry.id).toBe(entry.maxBytes)
+      expect(validateEntryText(entry, atLimit).ok, `${entry.id}:恰限应通过`).toBe(true)
+      const over = `${atLimit}a`
+      const result = validateEntryText(entry, over)
+      expect(result.ok, `${entry.id}:+1 字节应拒收`).toBe(false)
+      expect(result.issues.join('\n'), entry.id).toContain(`${entry.maxBytes + 1} 字节 > ${entry.maxBytes}`)
+    }
+    // CJK 按字节计:红线锚点 + 65500 个三字节汉字 → 超限唯一 issue 是字节。
+    const cjkAnchors = RED_LINES
+    const cjkOver = cjkAnchors + '你'.repeat(Math.ceil((65536 + 1 - byteLength(cjkAnchors)) / 3))
+    const cjkResult = validateEntryText({ redLine: 'required', redLineRuleSet: 'eterna.red-lines.standard' }, cjkOver)
+    expect(cjkResult.ok).toBe(false)
+    expect(cjkResult.issues.some(issue => issue.includes('字节 > 65536'))).toBe(true)
+  })
+
+  it('③ 网关层:超限内容在一段即拒收(issues 明示上限),版本零增长', async () => {
+    await attach()
+    const before = await gateway.promptVersions({ entryId: 'preset.standard.plan-mode.section' }) as VersionsResult
+    const oversized = 'a'.repeat(65537)
+    const result = await gateway.promptSave({ entryId: 'preset.standard.plan-mode.section', content: oversized })
+    expect(result.status).toBe('rejected')
+    expect(result.issues?.join('\n')).toContain('65537 字节 > 65536')
+    const after = await gateway.promptVersions({ entryId: 'preset.standard.plan-mode.section' }) as VersionsResult
+    expect(after.total).toBe(before.total)
+  })
+
+  // ---------- ④ 红线锚点逐条目 ----------
+
+  it('④ persona 类条目缺红线拒收且 issues 指明缺哪条;非 persona 条目豁免(T1.3 标记生效)', async () => {
+    await attach()
+    // 标准集(默认 persona):缺三条 → 三条 issue 按序指明。
+    const noRedLine = '干净的文本,没有红线。'
+    const std = await gateway.promptSave({ content: noRedLine })
+    expect(std.status).toBe('rejected')
+    expect(std.issues?.join('\n')).toContain('「预算不超支」')
+    expect(std.issues?.join('\n')).toContain('「不代付」')
+    expect(std.issues?.join('\n')).toContain('「比选中立」')
+    // 英文转述同样过标准集(双语锚点):event prefix 追加句。
+    const en = await gateway.promptSave({ entryId: 'domain.event-planning.persona-prefix', content: `${EVENT_PREFIX_V1} Appended.` })
+    expect(en.status).toBe('approval-required')
+    await gateway.promptSave({ entryId: 'domain.event-planning.persona', content: `${PERSONA_V1} dup`, approvalId: 'ap-none', approved: true }).catch(() => undefined)
+    // 非 persona 条目(plan-mode,exempt):无红线文本可保存。
+    const exempt = await gateway.promptSave({ entryId: 'preset.standard.plan-mode.section', content: 'No red lines needed here.\n' })
+    expect(exempt.status).toBe('approval-required')
+  })
+
+  it('④ 工业规则集逐条目:缺达梦只读锚点拒收且指明;四锚点齐备通过', async () => {
+    await attach()
+    const missingDm = INDUSTRIAL_PREFIX_V1.replace('The DM business database is read-only;', '').replace('达梦业务库只读', '')
+    const denied = await gateway.promptSave({ entryId: 'domain.industrial-analysis.persona-prefix', content: missingDm })
+    expect(denied.status).toBe('rejected')
+    expect(denied.issues?.join('\n')).toContain('「达梦业务库只读」')
+    expect(denied.issues?.join('\n')).not.toContain('「deny 优先 fail-closed」')
+    const ok = await gateway.promptSave({ entryId: 'domain.industrial-analysis.persona-prefix', content: `${INDUSTRIAL_PREFIX_V1} Appended.` })
+    expect(ok.status).toBe('approval-required')
+  })
+
+  // ---------- ⑤ 回滚逐条目(形态 A/B/C 各 ≥1 例) ----------
+
+  it('⑤ 回滚形态 A(领域 >- 块):回滚后 patch 层反引==被回滚文本,版本链只增不删', async () => {
+    await attach()
+    const entryId = 'domain.event-planning.persona-prefix'
+    const original = await currentText(entryId)
+    const { phase2 } = await saveTwoPhase(entryId, `${EVENT_PREFIX_V1} T1.6-A v2.`)
+    expect(phase2.version?.entryId).toBe(entryId)
+    expect(await currentText(entryId)).toBe(`${EVENT_PREFIX_V1} T1.6-A v2.`)
+    const chain = await gateway.promptVersions({ entryId }) as VersionsResult
+    const initial = chain.versions.at(-1)
+    const rb = await rollbackTwoPhase(initial?.id ?? '')
+    expect(rb.phase2.version?.source).toBe('rollback')
+    expect(rb.phase2.version?.parentId).toBe(initial?.id)
+    // 块标量条目回滚后 patch 层反引==被回滚文本(形态 A 专项判据)。
+    expect(await currentText(entryId)).toBe(original)
+    const after = await gateway.promptVersions({ entryId }) as VersionsResult
+    expect(after.total).toBe(3)
+    expect(after.versions.map(record => record.source)).toEqual(['rollback', 'save', 'initial'])
+  })
+
+  it('⑤ 回滚形态 B(preset-cordis >- 块)与形态 C(plan-mode | 多段块):同门', async () => {
+    await attach()
+    // 形态 B。
+    const cordisId = 'preset.cordis.persona'
+    const cordisOriginal = await currentText(cordisId)
+    await saveTwoPhase(cordisId, `Cordis v2. ${RED_LINES}`)
+    let chain = await gateway.promptVersions({ entryId: cordisId }) as VersionsResult
+    await rollbackTwoPhase(chain.versions.at(-1)?.id ?? '')
+    expect(await currentText(cordisId)).toBe(cordisOriginal)
+    // 形态 C。
+    const planId = 'preset.standard.plan-mode.section'
+    const planOriginal = await currentText(planId)
+    await saveTwoPhase(planId, `${planOriginal}T1.6-C appended.\n`)
+    chain = await gateway.promptVersions({ entryId: planId }) as VersionsResult
+    const rb = await rollbackTwoPhase(chain.versions.at(-1)?.id ?? '')
+    expect(rb.phase2.version?.source).toBe('rollback')
+    expect(await currentText(planId)).toBe(planOriginal)
+    // 两条目链各自只增不删(3+3),persona 缺省链不受影响。
+    expect((await gateway.promptVersions({ entryId: cordisId }) as VersionsResult).total).toBe(3)
+    expect((await gateway.promptVersions({ entryId: planId }) as VersionsResult).total).toBe(3)
+  })
+
+  it('⑤ 只读型条目回滚 fail-closed 明示不支持(行锚点只读型无写回落点)', async () => {
+    await attach()
+    const result = await gateway.promptRollback({ versionId: 'v-none', entryId: 'preset.standard.time-context' })
+    expect(result.status).toBe('rejected')
+    expect(result.issues?.[0]).toContain('该条目由上游插件生成,无 patch 写回落点')
+    expect((await gateway.snapshot()).pendingApproval).toBeNull()
+  })
+
+  // ---------- ⑥ 导入通道逐条目(与保存同门禁) ----------
+
+  it('⑥ 导入超限/缺红线/stale 锁拒收未入库 + 审计 prompt-import.rejected 带 entryId;块标量导入反引一致(形态 A/B/C)', async () => {
+    await attach()
+    // 先造各形态的新版本并导出带 entryId 的包。
+    const targets = [
+      { entryId: 'domain.event-planning.persona-prefix', content: `${EVENT_PREFIX_V1} imported.` },
+      { entryId: 'preset.cordis.persona', content: `Cordis import. ${RED_LINES}` },
+      { entryId: 'preset.standard.plan-mode.section', content: 'Imported plan section.\n' },
+    ] as const
+    const packs: PromptExportPack[] = []
+    for (const target of targets) {
+      const { phase2 } = await saveTwoPhase(target.entryId, target.content)
+      const versionId = phase2.version?.id
+      expect(versionId).toBeDefined()
+      const exported = await gateway.promptExport({ entryId: target.entryId, versionId: versionId as string })
+      expect(exported.pack.entryId).toBe(target.entryId)
+      packs.push(exported.pack)
+    }
+    // (a) 超限包拒收(checksum 造好,内容超限)。
+    const oversizedContent = 'a'.repeat(65537)
+    const oversizedPack: PromptExportPack = {
+      ...packs[2] as PromptExportPack, persona: oversizedContent, checksum: sha256Hex(oversizedContent),
+    }
+    const oversizedResult = await gateway.promptImport({ pack: oversizedPack })
+    expect(oversizedResult.status).toBe('rejected')
+    expect(oversizedResult.issues?.join('\n')).toContain('65537 字节 > 65536')
+    // (b) 缺红线包拒收(persona 类条目,issues 指明缺哪条)。
+    const noRedLine = 'no red lines here'
+    const noRedPack: PromptExportPack = { ...(packs[1] as PromptExportPack), persona: noRedLine, checksum: sha256Hex(noRedLine) }
+    const noRedResult = await gateway.promptImport({ pack: noRedPack })
+    expect(noRedResult.status).toBe('rejected')
+    expect(noRedResult.issues?.join('\n')).toContain('「比选中立」')
+    // (c) stale 锁拒收(内容须与现值不同,否则先命中 diff-empty 分支)。
+    const staleContent = `${EVENT_PREFIX_V1} stale lock variant.`
+    const stalePack: PromptExportPack = { ...(packs[0] as PromptExportPack), persona: staleContent, checksum: sha256Hex(staleContent) }
+    const staleResult = await gateway.promptImport({ pack: stalePack, baseVersionId: 'v-bogus' })
+    expect(staleResult.status).toBe('rejected')
+    expect(staleResult.issues?.[0]).toContain('baseVersionId')
+    // 拒收全部未入库:plan-mode 链仍 2(initial+save)。
+    expect((await gateway.promptVersions({ entryId: 'preset.standard.plan-mode.section' }) as VersionsResult).total).toBe(2)
+    // 审计:prompt-import.rejected 至少三条(超限/缺红线/stale 锁),均带 entryId。
+    const rejectedAudits = (await waitForAudit(details =>
+      details.filter(detail => detail['action'] === 'prompt-import.rejected').length >= 3))
+      .filter(detail => detail['action'] === 'prompt-import.rejected')
+    expect(rejectedAudits.length).toBeGreaterThanOrEqual(3)
+    for (const detail of rejectedAudits.slice(-3)) {
+      expect(typeof detail['entryId'], JSON.stringify(detail)).toBe('string')
+    }
+    // (d) 合法包导入(形态 A/B/C 各 1 例):内容取「与现值不同的终版变体」
+    // (同校验类别:A 英文红线/B 标准红线/C 豁免),两段式 → committed → patch 层反引一致。
+    const importVariants = [
+      `${EVENT_PREFIX_V1} imported-final.`,
+      `Cordis import final. ${RED_LINES}`,
+      'Imported plan section final.\n',
+    ] as const
+    for (let i = 0; i < packs.length; i += 1) {
+      const base = packs[i] as PromptExportPack
+      const persona = importVariants[i] as string
+      const pack: PromptExportPack = { ...base, persona, checksum: sha256Hex(persona) }
+      const phase1 = await gateway.promptImport({ pack, author: 'carol' })
+      expect(phase1.status, `pack(${base.entryId}) 应进审批:${JSON.stringify(phase1.issues)}`).toBe('approval-required')
+      const phase2 = await gateway.promptImport({ pack, author: 'carol', approvalId: phase1.approval?.approvalId ?? '', approved: true })
+      expect(phase2.status).toBe('committed')
+      expect(phase2.version?.entryId).toBe(pack.entryId)
+      expect(phase2.version?.source).toBe('import')
+      // 导入后 patch 层反引一致(形态 A/B/C 专项判据)。
+      expect(await currentText(pack.entryId ?? '')).toBe(persona)
+    }
+  })
+
+  // ---------- 横切:TOCTOU / 审计 entryId ----------
+
+  it('横切 1(TOCTOU):审批后 live patch 被外部改写 → 二段拒写零落盘,外部状态保持,版本零增长', async () => {
+    await attach()
+    const next = `${PERSONA_V1} v2`
+    const phase1 = await gateway.promptSave({ content: next, author: 'alice' })
+    expect(phase1.status).toBe('approval-required')
+    // 外部改写(模拟 profile 升级合并):persona 行外任意合法改动即可(基线是全文)。
+    const external = t16FixturePatch().replace('# T1.6 fixture:', '# T1.6 fixture(外部升级合并后):')
+    writeFileSync(patchPath, external, 'utf8')
+    const phase2 = await gateway.promptSave({ content: next, author: 'alice', approvalId: phase1.approval?.approvalId ?? '', approved: true })
+    expect(phase2.status).toBe('rejected')
+    expect(phase2.issues?.join('\n')).toContain('TOCTOU 拒写')
+    expect(phase2.issues?.join('\n')).toContain('外部改写')
+    // 文件保持外部改写后的状态(未覆盖他人改动);版本零增长。
+    expect(readFileSync(patchPath, 'utf8')).toBe(external)
+    expect((await gateway.promptVersions({})).total).toBe(1)
+    // 刷新后重新发起(新基线)可正常完成。
+    const retry1 = await gateway.promptSave({ content: next, author: 'alice' })
+    const retry2 = await gateway.promptSave({ content: next, author: 'alice', approvalId: retry1.approval?.approvalId ?? '', approved: true })
+    expect(retry2.status).toBe('committed')
+  })
+
+  it('横切:写链路审计事件带 entryId(既有 system/operator/versionId/at 之外只增字段)', async () => {
+    await attach()
+    const { phase2 } = await saveTwoPhase('domain.event-planning.persona-prefix', `${EVENT_PREFIX_V1} audited.`)
+    const details = await waitForAudit(records =>
+      records.some(detail => detail['action'] === 'prompt-save.committed' && detail['versionId'] === phase2.version?.id))
+    const committed = details.find(detail => detail['action'] === 'prompt-save.committed' && detail['versionId'] === phase2.version?.id)
+    expect(committed?.['entryId'], JSON.stringify(details)).toBe('domain.event-planning.persona-prefix')
+    expect(committed?.['operator']).toBe('alice')
+    expect(committed?.['system']).toBe('eterna-prompt-studio')
+    const requested = details.find(detail => detail['action'] === 'prompt-save.approval-requested' && detail['entryId'] === 'domain.event-planning.persona-prefix')
+    expect(requested?.['entryId']).toBe('domain.event-planning.persona-prefix')
+    expect(typeof requested?.['approvalId']).toBe('string')
+  })
+
+  it('横切:未知 entryId 保存 rejected 明示;领域 pack 文件写后可再写(round-trip 稳定)', async () => {
+    await attach()
+    const unknown = await gateway.promptSave({ entryId: 'no.such.entry', content: 'x' })
+    expect(unknown.status).toBe('rejected')
+    expect(unknown.issues?.[0]).toContain('未知条目 id:no.such.entry')
+    // 整文件条目(persona.md)写回=全文替换,读回一致。
+    const mdId = 'domain.event-planning.persona-md'
+    const original = await currentText(mdId)
+    await saveTwoPhase(mdId, `# persona\n\n${EVENT_PREFIX_V1} T1.6 whole-file.\n`)
+    expect(await currentText(mdId)).toBe(`# persona\n\n${EVENT_PREFIX_V1} T1.6 whole-file.\n`)
+    const chain = await gateway.promptVersions({ entryId: mdId }) as VersionsResult
+    await rollbackTwoPhase(chain.versions.at(-1)?.id ?? '')
+    expect(await currentText(mdId)).toBe(original)
   })
 })

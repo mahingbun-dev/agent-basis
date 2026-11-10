@@ -295,6 +295,8 @@ export interface EntryNotFoundResult {
 export interface PromptSaveInput {
   /** persona 新文本。 */
   readonly content: string
+  /** 目标条目 id(T1.6;缺省/空=默认条目 persona,与 T7 调用形态零改动兼容)。 */
+  readonly entryId?: string
   /** 乐观锁:与写前最新版本 id 不符则拒绝(可省)。 */
   readonly baseVersionId?: string
   /** 操作摘要。 */
@@ -358,6 +360,8 @@ export interface VersionsResult {
 export interface PromptRollbackInput {
   /** 目标版本(内容整体写回;版本记录本身不动)。必填,缺失/未知即 rejected。 */
   readonly versionId: string
+  /** 目标条目 id(T1.6;可省——版本归属条目即写回落点;给出时须与版本归属一致,且只读型条目 fail-closed 拒回滚)。 */
+  readonly entryId?: string
   /** 乐观锁:与当前最新版本 id 不符则拒绝(可省)。 */
   readonly baseVersionId?: string
   readonly summary?: string
@@ -375,13 +379,18 @@ export interface PromptRollbackResult {
   readonly effectiveNote: string
 }
 
-/** 导出包(计划书 §6 T7.3:JSON 包 schemaVersion/persona/checksum/导出者)。 */
+/** 导出包(计划书 §6 T7.3:JSON 包 schemaVersion/persona/checksum/导出者;T1.6 起可带 entryId)。 */
 export interface PromptExportPack {
   readonly schemaVersion: 1
   readonly exportedAt: string
   readonly exportedBy: string
   /** 导出所依据的版本 id。 */
   readonly sourceVersionId: string
+  /**
+   * 目标条目 id(T1.6):默认条目缺省(与 T7 包形状零差异);其余条目必带。
+   * persona 字段承载条目内容(历史字段名,读侧按 entryId 归位)。
+   */
+  readonly entryId?: string
   readonly persona: string
   /** sha256 hex(UTF-8 口径;导入时强校验)。 */
   readonly checksum: string
@@ -391,6 +400,8 @@ export interface PromptExportPack {
 export interface PromptExportInput {
   /** 缺省导出最新版本。 */
   readonly versionId?: string
+  /** 目标条目 id(T1.6;缺省=默认条目链;与 versionId 归属不一致即 bad-request)。 */
+  readonly entryId?: string
   readonly exportedBy?: string
 }
 

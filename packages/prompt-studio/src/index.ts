@@ -18,12 +18,18 @@
  * - loopPrompt/prompt-get        当前 persona + 版本库概览;T1.4 起 input.entryId
  *                                非空 → 按注册表条目返回(元数据+当前值+链概览;
  *                                未知 id → status='not-found' 明示,不抛裸异常)
- * - loopPrompt/prompt-save       保存(两段式:R3 审批卡 → 确认执行)
+ * - loopPrompt/prompt-save       保存(两段式:R3 审批卡 → 确认执行)。T1.6 起
+ *                                input.entryId 非空 → 该条目按条目 patch 定位重述写回
+ *                                (块标量三形态/标量/整文件全形态;校验器与 R3 规则
+ *                                逐条目生效);缺省=默认条目 persona(T7 形态兼容)
  * - loopPrompt/prompt-versions   版本列表(只增不删);T1.4 起 input.entryId 非空 →
  *                                该条目版本链;缺省=默认条目(persona)链,旧形态兼容
- * - loopPrompt/prompt-rollback   回滚(两段式;产生新版本而非删旧版本)
- * - loopPrompt/prompt-export     导出 JSON 包(只读,不走审批)
- * - loopPrompt/prompt-import     导入 JSON 包(校验 checksum;两段式)
+ * - loopPrompt/prompt-rollback   回滚(两段式;产生新版本而非删旧版本)。T1.6 起按
+ *                                条目:版本归属条目即写回落点;只读型条目 fail-closed
+ * - loopPrompt/prompt-export     导出 JSON 包(只读,不走审批)。T1.6 起任意条目链可
+ *                                导出,包带 entryId(默认条目缺省,T7 包形状不变)
+ * - loopPrompt/prompt-import     导入 JSON 包(schemaVersion+checksum 强校验 + 与保存
+ *                                同一套按条目校验器;两段式;pack.entryId 指名条目)
  *
  * Node 24 type-stripping 不解析标准 decorator 语法,故经 Remote() 公开函数面
  * 手工施加装饰器(等价于 @Remote('snapshot') 糖,对齐 packages/panel/src/index.ts)。
@@ -47,14 +53,16 @@ import type { StorageBackend } from '@deepseek-ai/dsh-storage'
 import { storageBackendServiceKey } from '@deepseek-ai/dsh-storage'
 import { ApprovalGate } from './approval.ts'
 import type { CardFacts, PendingWritePayload } from './approval.ts'
+import { WILDCARD_WRITE_RULE_ID, entryWriteRuleId } from './approval.ts'
 import { StudioAudit, defaultAuditFilePath } from './audit.ts'
 import type { GovernanceAuditLike } from './audit.ts'
 import { byteLength, sha256Hex } from './checksum.ts'
 import { diffLines } from './diff.ts'
+import { EntryPatchFile, EntryToctouError, buildNextEntryFileText, selfCheckEntryWrite } from './entry-patch.ts'
 import { validateExportPack } from './export-pack.ts'
 import { PersonaPatchFile } from './persona-patch.ts'
 import {
-  DEFAULT_ENTRY_ID, PROMPT_REGISTRY_ENTRIES, WEB_PATCH, getPromptRegistryEntry, readEntryText,
+  DEFAULT_ENTRY_ID, PROMPT_REGISTRY_ENTRIES, WEB_PATCH, ensureEntryWritable, getPromptRegistryEntry, readEntryText,
 } from './registry.ts'
 import type { PromptRegistryEntry, RegistryFileReader } from './registry.ts'
 import { COMPOSED_NOTE, EFFECTIVE_NOTE, READONLY_ENTRY_NOTE, RUNTIME_ENTRY_NOTE, buildSnapshot, cardDiffSummary } from './snapshot.ts'
@@ -67,7 +75,7 @@ import type {
   VersionsInput, VersionsResult, WriteApprovalView, WriteKind, WriteStatus,
 } from './types.ts'
 import type { PromptVersionRecord, VersionOverview } from './types.ts'
-import { validatePersonaText } from './validator.ts'
+import { validateEntryText } from './validator.ts'
 import { PromptVersionStore, VERSION_UNIT_DESCRIPTOR } from './version-store.ts'
 
 /** Typert 服务名(RPC namespace;DSH 端点段文法 `[A-Za-z0-9_$.-]+`)。 */
@@ -103,6 +111,14 @@ export interface PromptStudioPluginConfig {
    * 是仓库根相对路径,默认取本包源码位置上三级(生产档=本仓库根);测试可覆写。
    */
   readonly repoRoot?: string
+  /**
+   * 写授权规则集(T1.6,R3 按条目授权面):条目写回前须命中其一——
+   * WILDCARD_WRITE_RULE_ID(eterna.prompt-studio.entry-write,通配全部条目)或
+   * 该条目专属规则(eterna.prompt-studio.entry-write.<entryId>;默认 persona 条目
+   * =T7 既有 eterna.prompt-studio.persona-write)。缺省=[通配](部署层 admin 门禁
+   * 之外的条目粒度收窄面,模拟受限规则集时一段即 rejected)。
+   */
+  readonly writeRules?: readonly string[]
 }
 
 /** 写流程统一产物(三写端点的内部共享面)。 */
@@ -180,6 +196,10 @@ export class LoopPromptGateway extends TypertRemoteService {
   readonly audit: StudioAudit
   readonly gate: ApprovalGate
   readonly patch: PersonaPatchFile
+  /** 按条目受治理写回器(T1.6:任意 patch 值型条目 → 定位重述写回,单写者+TOCTOU)。 */
+  readonly entryWriter: EntryPatchFile
+  /** 写授权规则集(T1.6;缺省=通配全部条目)。 */
+  readonly writeRules: readonly string[]
   readonly profileContext: ProfileContextLike | undefined
   readonly sessionsRoot: string
   /** 注册表文件解析根(领域/运行时层条目的仓库根;preset 层 patch 映射到 live patch)。 */
@@ -205,6 +225,8 @@ export class LoopPromptGateway extends TypertRemoteService {
       resolveGovernance: () => ctx.get('governance') as GovernanceAuditLike | undefined,
     })
     this.gate = new ApprovalGate()
+    this.entryWriter = new EntryPatchFile()
+    this.writeRules = config.writeRules ?? [WILDCARD_WRITE_RULE_ID]
     const patchPath = config.patchPath ?? this.profileContext?.patchPath
     this.patch = new PersonaPatchFile(patchPath ?? join(process.cwd(), 'cordis.patch.yml'))
   }
@@ -222,6 +244,65 @@ export class LoopPromptGateway extends TypertRemoteService {
     const livePatch = this.patch.path
     const repoRoot = this.repoRoot
     return file => readFileSync(file === WEB_PATCH ? livePatch : join(repoRoot, file), 'utf8')
+  }
+
+  // ---------- T1.6 写链路按条目泛化的共享构件 ----------
+
+  /** 条目写回落点文件(preset 层 patch=live patch;领域包/整文件=仓库根相对)。 */
+  entryWritePath(entry: PromptRegistryEntry): string {
+    const file = entry.yaml?.file ?? entry.anchors[0]?.file
+    if (file === undefined) {
+      throw badRequest(`条目 ${entry.id} 无写回落点文件(注册表缺 yaml 定位与锚点文件)`)
+    }
+    return file === WEB_PATCH ? this.patch.path : join(this.repoRoot, file)
+  }
+
+  /**
+   * 条目落点文件当前全文(TOCTOU 基线与写回共用同一路径解析,杜绝「读 A 写 B」)。
+   */
+  entryFileText(entry: PromptRegistryEntry): string {
+    const file = entry.yaml?.file ?? entry.anchors[0]?.file
+    if (file === undefined) {
+      throw badRequest(`条目 ${entry.id} 无写回落点文件`)
+    }
+    return this.registryReadFile()(file)
+  }
+
+  /**
+   * R3 按条目授权(T1.6):通配规则(eterna.prompt-studio.entry-write)或条目专属
+   * 规则命中即可写;默认 persona 条目专属规则=T7 的 persona-write。受限规则集
+   * (config.writeRules)未覆盖的条目一段即 rejected(测试计划 §3 T1.6(b)①②)。
+   */
+  isEntryWriteAuthorized(entry: PromptRegistryEntry): boolean {
+    return this.writeRules.includes(WILDCARD_WRITE_RULE_ID)
+      || this.writeRules.includes(entryWriteRuleId(entry.id))
+  }
+
+  /**
+   * 写入口统一前置:条目解析(未知 id 明示)+ 型别写守卫(只读型/运行时注入型
+   * fail-closed 拒写)。返回 rejected 结果或条目本体。
+   */
+  resolveWritableEntry(kind: WriteKind, entryId: string, author: string):
+    { readonly entry: PromptRegistryEntry } | { readonly rejected: WriteOutcome } {
+    const entry = getPromptRegistryEntry(entryId)
+    if (entry === undefined) {
+      this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, entryId, reason: 'unknown-entry', stage: 'entry' })
+      return {
+        rejected: {
+          status: 'rejected',
+          issues: [`未知条目 id:${entryId}(注册表共 ${PROMPT_REGISTRY_ENTRIES.length} 条,可用 id 见 loopPrompt/snapshot 的 entries[])`],
+          effectiveNote: EFFECTIVE_NOTE,
+        },
+      }
+    }
+    try {
+      ensureEntryWritable(entry)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, entryId, reason: 'entry-not-writable', stage: 'guard', issues: [message] })
+      return { rejected: { status: 'rejected', issues: [message], effectiveNote: EFFECTIVE_NOTE } }
+    }
+    return { entry }
   }
 
   /** storage 栈挂载(apply 的 inject 回调里调用;打开单元并按条目种子初始版本)。 */
@@ -395,9 +476,14 @@ export class LoopPromptGateway extends TypertRemoteService {
     }
   }
 
-  /** 保存 persona(端点 loopPrompt/prompt-save;两段式 R3 审批)。 */
+  /**
+   * 保存(端点 loopPrompt/prompt-save;两段式 R3 审批)。T1.6 起按条目:
+   * input.entryId 非空 → 该条目的 patch 定位重述写回(块标量三形态全覆盖);
+   * 缺省/空 → 默认条目 persona(T7 调用形态零改动)。
+   */
   async promptSave(input: PromptSaveInput): Promise<PromptSaveResult> {
     return this.handleWrite('save', {
+      entryId: input.entryId,
       content: input.content,
       baseVersionId: input.baseVersionId,
       summary: input.summary,
@@ -432,8 +518,22 @@ export class LoopPromptGateway extends TypertRemoteService {
     return { total: chain.length, ready: true, versions: chain.slice(0, limit) }
   }
 
-  /** 回滚(端点 loopPrompt/prompt-rollback;两段式;产生新版本)。 */
+  /**
+   * 回滚(端点 loopPrompt/prompt-rollback;两段式;产生新版本)。T1.6 起按条目:
+   * 版本归属条目即写回落点(领域/plan-mode/块标量条目回滚到各自落点,写前校验
+   * 与审批同门);input.entryId 给出时须与版本归属一致,只读型条目 fail-closed
+   * 明示不支持回滚。
+   */
   async promptRollback(input: PromptRollbackInput): Promise<PromptRollbackResult> {
+    const author = input.author?.trim() !== '' && input.author !== undefined ? input.author.trim() : 'web'
+    // 显式 entryId 先过条目守卫:未知 id/只读型条目 fail-closed 明示(测试计划
+    // §3 T1.6(b)⑤:time-context 等只读型回滚请求 → 「上游插件生成,无写回落点」)。
+    let preResolved: { entry: PromptRegistryEntry } | undefined
+    if (input.entryId !== undefined && input.entryId !== '') {
+      const resolved = this.resolveWritableEntry('rollback', input.entryId, author)
+      if ('rejected' in resolved) return resolved.rejected
+      preResolved = resolved
+    }
     const store = this.requireStore()
     // 线上载荷是运行时数据:versionId 以 unknown 收窄(typeof 检查即校验)。
     const requestedId: unknown = input.versionId
@@ -445,22 +545,17 @@ export class LoopPromptGateway extends TypertRemoteService {
         effectiveNote: EFFECTIVE_NOTE,
       }
     }
-    // T1.4 过渡守卫(评审 2026-11-11):回滚写通道仍是 persona 单落点(persona patch
-    // 行),且回滚按设计跳过内容校验——若放行他链条目(领域/plan-mode 等链的版本 id
-    // 已可经按条目 prompt-versions 枚举),其内容会绕过红线校验落进 persona 前缀行
-    // 并记入 persona 链,污染全部标准会话的系统提示。fail-closed:只接受默认条目链
-    // 的版本;按条目回滚随 T1.6 写链路泛化落地(届时按条目定位写回落点+按条目校验)。
-    if (target.entryId !== DEFAULT_ENTRY_ID) {
+    if (input.entryId !== undefined && input.entryId !== '' && input.entryId !== target.entryId) {
       return {
         status: 'rejected',
-        issues: [
-          `目标版本属于条目 ${target.entryId} 的版本链,当前回滚通道仅支持默认条目 ${DEFAULT_ENTRY_ID}`
-          + '(按条目回滚随 T1.6 写链路泛化落地;跨条目回滚会把其他条目文本写进 persona 前缀,fail-closed 拒绝)',
-        ],
+        issues: [`目标版本属于条目 ${target.entryId} 的版本链,与请求条目 ${input.entryId} 不符(fail-closed 拒回滚)`],
         effectiveNote: EFFECTIVE_NOTE,
       }
     }
+    const resolved = preResolved ?? this.resolveWritableEntry('rollback', target.entryId, author)
+    if ('rejected' in resolved) return resolved.rejected
     const outcome = await this.handleWrite('rollback', {
+      entryId: target.entryId,
       content: target.content,
       baseVersionId: input.baseVersionId,
       summary: input.summary,
@@ -472,44 +567,64 @@ export class LoopPromptGateway extends TypertRemoteService {
     return outcome
   }
 
-  /** 导出(端点 loopPrompt/prompt-export;只读,不走审批)。 */
+  /**
+   * 导出(端点 loopPrompt/prompt-export;只读,不走审批)。T1.6 起按条目:任意
+   * patch 值型条目链可导出,包带 entryId(默认条目缺省该字段,T7 包形状零差异);
+   * input.entryId 与 versionId 归属不一致即 bad-request。
+   */
   async promptExport(input: PromptExportInput): Promise<PromptExportResult> {
     const store = this.requireStore()
+    const entryId = input.entryId !== undefined && input.entryId !== '' ? input.entryId : DEFAULT_ENTRY_ID
+    const entry = getPromptRegistryEntry(entryId)
+    if (entry === undefined) {
+      throw badRequest(`未知条目 id:${entryId}(注册表共 ${PROMPT_REGISTRY_ENTRIES.length} 条,可用 id 见 loopPrompt/snapshot 的 entries[])`)
+    }
     const version = input.versionId === undefined || input.versionId === ''
-      ? (await store.list(1, DEFAULT_ENTRY_ID))[0]
+      ? (await store.list(1, entryId))[0]
       : await store.get(input.versionId)
     if (version === undefined) {
       throw badRequest(input.versionId === undefined
-        ? '版本库为空,无可导出版本'
+        ? `条目 ${entryId} 版本链为空,无可导出版本`
         : `导出目标版本不存在:${input.versionId}`)
     }
-    // T1.4 过渡守卫(与 prompt-rollback 同口径):导出包 schemaVersion=1 是 persona
-    // 口径(pack.persona 字段),跨条目版本打包成「persona 包」会被 prompt-import
-    // 当 persona 内容导入——只读影响小但语义错配,fail-closed 拒绝(T1.6 泛化)。
-    if (version.entryId !== DEFAULT_ENTRY_ID) {
-      throw badRequest(`导出目标版本属于条目 ${version.entryId} 的版本链;导出包(schemaVersion=1)是 persona 口径,跨条目导出随 T1.6 写链路泛化落地`)
+    if (version.entryId !== entryId) {
+      throw badRequest(`导出目标版本属于条目 ${version.entryId} 的版本链,与请求条目 ${entryId} 不符`)
     }
     const pack: PromptExportPack = {
       schemaVersion: 1,
       exportedAt: new Date().toISOString(),
       exportedBy: input.exportedBy ?? 'web',
       sourceVersionId: version.id,
+      ...(entryId !== DEFAULT_ENTRY_ID && { entryId }),
       persona: version.content,
       checksum: sha256Hex(version.content),
     }
     return { pack, version }
   }
 
-  /** 导入(端点 loopPrompt/prompt-import;导出包 schemaVersion+checksum 强校验 + 同一套内容校验 + 两段式 R3 审批)。 */
+  /**
+   * 导入(端点 loopPrompt/prompt-import;导出包 schemaVersion+checksum 强校验 +
+   * 同一套按条目校验器 + 两段式 R3 审批)。T1.6 起按条目:pack.entryId 指名目标
+   * 条目(缺省=默认 persona),超限/缺红线/坏块标量/stale 锁经导入闯入者与保存
+   * 同门禁拒收(测试计划 §3 T1.6(b)⑥:导入是写操作,不得绕过按条目校验)。
+   */
   async promptImport(input: PromptImportInput): Promise<PromptImportResult> {
     // 线上载荷是运行时数据:pack 按 unknown 收窄校验(导出包校验器,T7.3 ①⑤)。
     const validated = validateExportPack(input.pack)
+    const author = input.author?.trim() !== '' && input.author !== undefined ? input.author.trim() : 'web'
+    const packEntryId = typeof (input.pack as { entryId?: unknown } | null | undefined)?.['entryId'] === 'string'
+      ? (input.pack as { entryId?: string }).entryId
+      : undefined
     if (!validated.ok) {
-      this.audit.write('prompt-import.rejected', { kind: 'import', operator: input.author ?? 'web', issues: validated.issues, stage: 'pack' })
+      this.audit.write('prompt-import.rejected', { kind: 'import', operator: author, ...(packEntryId !== undefined && { entryId: packEntryId }), issues: validated.issues, stage: 'pack' })
       return { status: 'rejected', issues: validated.issues, effectiveNote: EFFECTIVE_NOTE }
     }
     const pack = validated.pack
+    const entryId = pack.entryId !== undefined && pack.entryId !== '' ? pack.entryId : DEFAULT_ENTRY_ID
+    const resolved = this.resolveWritableEntry('import', entryId, author)
+    if ('rejected' in resolved) return resolved.rejected
     const outcome = await this.handleWrite('import', {
+      entryId,
       content: pack.persona,
       baseVersionId: input.baseVersionId,
       summary: input.summary,
@@ -523,8 +638,14 @@ export class LoopPromptGateway extends TypertRemoteService {
 
   // ---------- 写链路共享 ----------
 
-  /** 三写端点共用的两段式流程(审批门 + 校验器 + patch 原子写 + 版本库 + 审计)。 */
+  /**
+   * 三写端点共用的两段式流程(T1.6 起按条目):审批门(按条目 ruleId + entryId
+   * 回显复验)+ 按条目校验器(非空/UTF-8/条目字节上限/条目红线规则集)+ 按条目
+   * patch 定位重述写回(块标量三形态整块替换 + TOCTOU 写前基线 + 写后 dry-run
+   * 验证失败自动还原)+ 按条目版本链(乐观锁/回滚/审计 entryId)。
+   */
   async handleWrite(kind: WriteKind, input: {
+    entryId?: string | undefined
     content: string
     baseVersionId?: string | undefined
     summary?: string | undefined
@@ -534,10 +655,11 @@ export class LoopPromptGateway extends TypertRemoteService {
     versionId?: string | undefined
   }): Promise<WriteOutcome> {
     const author = input.author?.trim() !== '' && input.author !== undefined ? input.author.trim() : 'web'
+    const entryId = input.entryId !== undefined && input.entryId !== '' ? input.entryId : DEFAULT_ENTRY_ID
     const defaultSummary: Record<WriteKind, string> = {
-      save: '编辑 persona 并保存',
-      rollback: '回滚到历史版本',
-      import: '导入导出包',
+      save: entryId === DEFAULT_ENTRY_ID ? '编辑 persona 并保存' : `编辑条目 ${entryId} 并保存`,
+      rollback: entryId === DEFAULT_ENTRY_ID ? '回滚到历史版本' : `回滚条目 ${entryId} 到历史版本`,
+      import: entryId === DEFAULT_ENTRY_ID ? '导入导出包' : `导入条目 ${entryId} 导出包`,
     }
     const summary = input.summary?.trim() !== '' && input.summary !== undefined ? input.summary.trim() : defaultSummary[kind]
     // 第二段:审批确认
@@ -546,43 +668,69 @@ export class LoopPromptGateway extends TypertRemoteService {
         content: input.content,
         baseVersionId: input.baseVersionId ?? null,
         versionId: input.versionId ?? null,
+        entryId,
       })
       if (outcome.outcome === 'declined') {
-        this.audit.write(`prompt-${kind}.approval-declined`, { kind, approvalId: outcome.approvalId, operator: author })
+        this.audit.write(`prompt-${kind}.approval-declined`, { kind, approvalId: outcome.approvalId, operator: author, entryId })
         return { status: 'approval-declined', effectiveNote: EFFECTIVE_NOTE }
       }
       if (outcome.outcome === 'unknown') {
-        this.audit.write(`prompt-${kind}.approval-unknown`, { kind, approvalId: outcome.approvalId, operator: author })
+        this.audit.write(`prompt-${kind}.approval-unknown`, { kind, approvalId: outcome.approvalId, operator: author, entryId })
         return { status: 'approval-mismatch', issues: [`审批 ${outcome.approvalId} 不存在或已过期,请重新发起`], effectiveNote: EFFECTIVE_NOTE }
       }
       if (outcome.outcome === 'mismatch') {
-        this.audit.write(`prompt-${kind}.approval-mismatch`, { kind, approvalId: outcome.approvalId, reason: outcome.reason, operator: author })
+        this.audit.write(`prompt-${kind}.approval-mismatch`, { kind, approvalId: outcome.approvalId, reason: outcome.reason, operator: author, entryId })
         return { status: 'approval-mismatch', issues: [outcome.reason], effectiveNote: EFFECTIVE_NOTE }
       }
       const pending = outcome.pending
+      const confirmedEntryId = pending.payload.entryId ?? DEFAULT_ENTRY_ID
+      const entry = getPromptRegistryEntry(confirmedEntryId)
+      if (entry === undefined) {
+        this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, entryId: confirmedEntryId, reason: 'unknown-entry', stage: 'entry' })
+        return { status: 'rejected', issues: [`未知条目 id:${confirmedEntryId}`], effectiveNote: EFFECTIVE_NOTE }
+      }
       // 复验(确认回路的 TOCTOU 防线)。回滚例外:content 是版本库逐字恢复的存量
       // 记录(写入时已过校验;initial 基线来自装载时的现值),不再过内容校验——
       // 否则「回滚到无红线的历史基线」被永久锁死,违背「初始版本永久保留」的逃生门语义。
       if (kind !== 'rollback') {
-        const validation = validatePersonaText(input.content)
+        const validation = validateEntryText(entry, input.content)
         if (!validation.ok) {
-          this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, issues: validation.issues })
+          this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, entryId, issues: validation.issues, stage: 'validate' })
           return { status: 'rejected', issues: validation.issues, effectiveNote: EFFECTIVE_NOTE }
         }
       }
       const store = this.requireStore()
-      const latest = (await store.list(1, DEFAULT_ENTRY_ID))[0]
+      const latest = (await store.list(1, confirmedEntryId))[0]
       if (pending.payload.baseVersionId !== null && pending.payload.baseVersionId !== (latest?.id ?? null)) {
-        this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, reason: 'baseVersionId 过期(并发修改)' })
+        this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, entryId, reason: 'baseVersionId 过期(并发修改)' })
         return { status: 'rejected', issues: ['baseVersionId 与当前最新版本不符(并发修改),请刷新后重试'], effectiveNote: EFFECTIVE_NOTE }
       }
-      // 执行:patch 原子写(写前 YAML 自检 + 写后 dry-run 验证失败自动还原;异常上抛为 RemoteError)
+      // 执行:按条目定位重述写回(TOCTOU 基线校验 + 写前自检 + 原子写 + 写后
+      // dry-run 验证失败自动还原;任何失败零落盘或已还原,异常上抛为 RemoteError)。
+      const writePath = this.entryWritePath(entry)
       try {
-        await this.patch.writeNext(input.content, { verify: () => this.dryRunVerify() })
+        await this.entryWriter.writeNext({
+          path: writePath,
+          baseline: pending.payload.baseline !== undefined && pending.payload.baseline.path === writePath
+            ? pending.payload.baseline.text
+            : undefined,
+          build: (original) => {
+            const next = buildNextEntryFileText(entry, original, input.content)
+            selfCheckEntryWrite(entry, original, next, input.content)
+            return next
+          },
+          verify: () => this.dryRunVerify(),
+        })
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        this.audit.write(`prompt-${kind}.write-failed`, { kind, operator: author, error: message, approvalId: pending.approvalId })
-        throw badRequest(`patch 层写入失败(现值未变:写前自检拦截或已自动还原):${message}`)
+        // TOCTOU 拒写:文件在审批后被外部改写——零落盘、外部状态保持,按「可刷新
+        // 重试的 rejected」返回(与 baseVersionId 过期同语义),不按 I/O 失败上抛。
+        if (error instanceof EntryToctouError) {
+          this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, entryId, reason: 'toctou-baseline-mismatch', stage: 'write', issues: [message], approvalId: pending.approvalId, patchPath: writePath })
+          return { status: 'rejected', issues: [message], effectiveNote: EFFECTIVE_NOTE }
+        }
+        this.audit.write(`prompt-${kind}.write-failed`, { kind, operator: author, entryId, error: message, approvalId: pending.approvalId, patchPath: writePath })
+        throw badRequest(`写回失败(条目 ${entryId};现值未变:写前自检拦截或已自动还原):${message}`)
       }
       const record = await store.append({
         content: input.content,
@@ -591,49 +739,78 @@ export class LoopPromptGateway extends TypertRemoteService {
         // 父版本语义(见 types.ts):回滚指向被回滚版本;保存/导入指向写前最新版本。
         parentId: input.versionId ?? latest?.id ?? null,
         summary,
+        entryId: confirmedEntryId,
       })
       this.audit.write(`prompt-${kind}.committed`, {
         kind,
         operator: author,
+        entryId,
         versionId: record.id,
         versionSeq: record.seq,
         parentId: record.parentId,
         bytes: record.bytes,
         checksum: record.checksum,
-        patchPath: this.patch.path,
+        patchPath: writePath,
         approvalId: pending.approvalId,
       })
       return { status: 'committed', version: record, effectiveNote: EFFECTIVE_NOTE }
     }
-    // 第一段:校验 + R3 审批请求。回滚例外:content 是版本库存量记录逐字恢复
-    // (语义见第二段注);其余两类(save/import)过 T7.3 校验全集——红线段只把守
-    // 「新文本进入」,历史基线随时可回(初始版本永久保留的逃生门)。
+    // 第一段:条目/守卫/授权/校验 + R3 审批请求。
+    const resolved = this.resolveWritableEntry(kind, entryId, author)
+    if ('rejected' in resolved) return resolved.rejected
+    const entry = resolved.entry
+    if (!this.isEntryWriteAuthorized(entry)) {
+      const ruleId = entryWriteRuleId(entry.id)
+      this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, entryId, reason: 'rule-unauthorized', stage: 'authorize', issues: [`写授权规则集未覆盖条目 ${entryId}(需 ${ruleId} 或通配规则)`] })
+      return {
+        status: 'rejected',
+        issues: [`写授权未覆盖条目 ${entryId}:本实例授权规则为 [${this.writeRules.join(', ')}],需命中通配规则(${WILDCARD_WRITE_RULE_ID})或条目专属规则(${ruleId})`],
+        effectiveNote: EFFECTIVE_NOTE,
+      }
+    }
+    // 回滚例外:content 是版本库存量记录逐字恢复(语义见第二段注);其余两类
+    // (save/import)过按条目校验全集(非空/UTF-8/条目上限/条目红线)——红线段
+    // 只把守「新文本进入」,历史基线随时可回(初始版本永久保留的逃生门)。
     if (kind !== 'rollback') {
-      const validation = validatePersonaText(input.content)
+      const validation = validateEntryText(entry, input.content)
       if (!validation.ok) {
-        this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, issues: validation.issues, stage: 'validate' })
+        this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, entryId, issues: validation.issues, stage: 'validate' })
         return { status: 'rejected', issues: validation.issues, effectiveNote: EFFECTIVE_NOTE }
       }
     }
     const store = this.requireStore()
-    const persona = await this.patch.read()
-    if (!persona.available) {
-      return { status: 'rejected', issues: [persona.error ?? 'persona 落点不可用'], effectiveNote: EFFECTIVE_NOTE }
+    const readFile = this.registryReadFile()
+    const current = readEntryText(entry, readFile)
+    if (current.text === undefined || current.text === '') {
+      const problems = current.problems.length > 0 ? current.problems.join(';') : '反引值为空'
+      this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, entryId, reason: 'entry-locate-failed', stage: 'locate', issues: [problems] })
+      return { status: 'rejected', issues: [`条目 ${entryId} 当前落点不可读:${problems}`], effectiveNote: EFFECTIVE_NOTE }
     }
-    const diff = diffLines(persona.text, input.content)
+    // TOCTOU 写前基线:审批发起时刻的落点文件全文(确认写回前现值须仍等于它)。
+    const writePath = this.entryWritePath(entry)
+    const baselineText = this.entryFileText(entry)
+    const diff = diffLines(current.text, input.content)
     if (diff.isEmpty) {
-      this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, reason: 'diff-empty', stage: 'diff' })
-      return { status: 'rejected', issues: ['diff 为空:新内容与当前 persona 完全一致,无可保存变更'], effectiveNote: EFFECTIVE_NOTE }
+      this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, entryId, reason: 'diff-empty', stage: 'diff' })
+      return { status: 'rejected', issues: [`diff 为空:新内容与条目 ${entryId} 当前值完全一致,无可保存变更`], effectiveNote: EFFECTIVE_NOTE }
     }
-    const latest = (await store.list(1, DEFAULT_ENTRY_ID))[0]
+    const latest = (await store.list(1, entryId))[0]
     if (input.baseVersionId !== undefined && input.baseVersionId !== (latest?.id ?? null)) {
-      this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, reason: 'base-version-mismatch', stage: 'lock' })
+      this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, entryId, reason: 'base-version-mismatch', stage: 'lock' })
       return { status: 'rejected', issues: ['baseVersionId 与当前最新版本不符(并发修改),请刷新后重试'], effectiveNote: EFFECTIVE_NOTE }
     }
+    const actionLabel = kind === 'rollback' ? `回滚到 ${input.versionId ?? '?'}` : '编辑'
     const facts: CardFacts = {
-      patchPath: persona.patchPath ?? this.patch.path,
+      patchPath: writePath,
       diffSummary: cardDiffSummary(diff),
-      subjectName: `system prompt persona 段(${kind === 'rollback' ? `回滚到 ${input.versionId ?? '?'}` : '编辑'})`,
+      subjectName: entryId === DEFAULT_ENTRY_ID
+        ? `system prompt persona 段(${actionLabel})`
+        : `提示词条目 ${entryId}(${actionLabel})`,
+      ruleId: entryWriteRuleId(entry.id),
+      ruleReason: entryId === DEFAULT_ENTRY_ID
+        ? 'system prompt persona 段影响所有新会话的前缀与 KV-cache 命中'
+        : `提示词注册表条目 ${entryId}(层 ${entry.layer}/${entry.kind})影响相应会话的系统提示`,
+      whyEntry: `R3 · ${entryWriteRuleId(entry.id)}(提示词注册表条目 ${entryId} 写回)`,
     }
     const payload: PendingWritePayload = {
       content: input.content,
@@ -641,11 +818,14 @@ export class LoopPromptGateway extends TypertRemoteService {
       versionId: input.versionId ?? null,
       summary,
       author,
+      entryId,
+      baseline: { path: writePath, text: baselineText },
     }
     const pending = this.gate.request(kind, payload, facts)
     this.audit.write(`prompt-${kind}.approval-requested`, {
       kind,
       operator: author,
+      entryId,
       approvalId: pending.approvalId,
       bytes: byteLength(input.content),
       diffAdded: diff.added,
@@ -743,6 +923,8 @@ applyRemoteMarker(LoopPromptGateway.prototype, 'promptImport', 'prompt-import')
 export type { PromptVersionRecord } from './types.ts'
 export { PromptVersionStore, VERSION_UNIT_DESCRIPTOR, VERSION_UNIT_NAME } from './version-store.ts'
 export { PersonaPatchFile, selfCheckNextPatchText } from './persona-patch.ts'
+export { EntryPatchFile, EntryToctouError, buildNextEntryFileText, entrySpanOf, selfCheckEntryWrite } from './entry-patch.ts'
+export type { EntrySpan, EntryWriteRequest, EntryWriteResult } from './entry-patch.ts'
 export {
   DEFAULT_ENTRY_ID, ENTRY_KIND_LABELS, LAYER_LABELS, PROMPT_REGISTRY_ENTRIES, WEB_PATCH, checkEntryAnchors,
   ensureEntryWritable, getPromptRegistryEntry, listPromptRegistryEntries, locateYamlConfigKey, readBlockScalarValue,
@@ -751,11 +933,14 @@ export {
 export type {
   CodeAnchor, EntryValueRead, PromptEntryKind, PromptLayer, PromptRegistryEntry, RedLinePolicy, RegistryFileReader, YamlLocator,
 } from './registry.ts'
-export { validatePersonaText, checkRedLines, checkUtf8WellFormed, RED_LINE_RULES, MAX_PERSONA_BYTES } from './validator.ts'
+export {
+  INDUSTRIAL_RED_LINE_RULES, MAX_PERSONA_BYTES, RED_LINE_RULES, RED_LINE_RULE_SETS, checkRedLines, checkRedLinesOfRuleSet,
+  checkUtf8WellFormed, validateEntryText, validatePersonaText,
+} from './validator.ts'
 export { validateExportPack } from './export-pack.ts'
 export { diffLines, diffSummaryText, lineDiffOps } from './diff.ts'
 export { sha256Hex } from './checksum.ts'
-export { ApprovalGate, PERSONA_WRITE_RULE_ID } from './approval.ts'
+export { ApprovalGate, ENTRY_WRITE_RULE_PREFIX, PERSONA_WRITE_RULE_ID, WILDCARD_WRITE_RULE_ID, entryWriteRuleId } from './approval.ts'
 export { StudioAudit, defaultAuditFilePath } from './audit.ts'
 export { CHANNEL_A, EFFECTIVE_NOTE, COMPOSED_NOTE } from './snapshot.ts'
 

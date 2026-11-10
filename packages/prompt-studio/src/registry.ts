@@ -20,9 +20,10 @@
  * 条目(time-context/plan-mode/agent-instructions/运行时 section)标记 exempt——
  * 防止 T1.6 把 RED_LINE_RULES 错配到全部条目。required 条目另带规则集 id:
  * 'eterna.red-lines.standard' = validator.ts RED_LINE_RULES(预算不超支/不代付/
- * 比选中立,锚点与 packs/event-planning/persona.md 对齐);industrial-analysis
- * persona 自有四条红线(达梦只读/只经 MCP/R2 确认/deny 优先),不含标准三条
- * CJK 锚点(2026-11-11 实测),规则本体由 T1.6 落地,注册表先钉条目↔规则集绑定。
+ * 比选中立,锚点与 packs/event-planning/persona.md 对齐;T1.6 起双语——同集条目
+ * 既有中文全文也有英文转述前缀);industrial-analysis persona 自有四条红线(达梦
+ * 只读/只经 MCP/R2 确认/deny 优先),不含标准三条 CJK 锚点(2026-11-11 实测),
+ * 规则本体=validator.ts INDUSTRIAL_RED_LINE_RULES(T1.6 落地,双语)。
  */
 import { byteLength } from './checksum.ts'
 import { unquoteYamlScalar } from './persona-patch.ts'
@@ -524,8 +525,8 @@ export function readEntryText(
 
 // ---------- YAML 结构定位与块标量反引(T1.4 读侧/T1.6 写侧的地基) ----------
 
-/** 顶层行(列 0 的 `- id: <rowId>`)span;找不到 → undefined。 */
-function findTopLevelRow(lines: readonly string[], rowId: string): { start: number; end: number } | undefined {
+/** 顶层行(列 0 的 `- id: <rowId>`)span;找不到 → undefined。(T1.6 起导出:写侧定位共用) */
+export function findTopLevelRow(lines: readonly string[], rowId: string): { start: number; end: number } | undefined {
   const start = lines.findIndex(line => new RegExp(`^- id: ${rowId}\\s*$`).test(line))
   if (start < 0) return undefined
   let end = lines.length
@@ -538,13 +539,16 @@ function findTopLevelRow(lines: readonly string[], rowId: string): { start: numb
   return { start, end }
 }
 
-/** 行前导空白宽度(空行/缺行 → Infinity 之外的显式分支由调用方处理)。 */
-function indentOf(line: string): number {
+/** 行前导空白宽度(空行/缺行 → Infinity 之外的显式分支由调用方处理)。(T1.6 导出) */
+export function indentOf(line: string): number {
   return /^(\s*)/.exec(line)?.[1]?.length ?? 0
 }
 
-/** 列表项(`- id: <id>`,缩进 > minIndent)span:到下一处缩进 ≤ 项缩进的非空行。 */
-function findListItemSpan(
+/**
+ * 列表项(`- id: <id>`,缩进 > minIndent)span:到下一处缩进 ≤ 项缩进的非空行。
+ * (T1.6 导出:写侧定位共用。)
+ */
+export function findListItemSpan(
   lines: readonly string[],
   span: { start: number; end: number },
   id: string,
@@ -612,15 +616,34 @@ export function readYamlValueAtLine(lines: readonly string[], keyIndex: number):
   return unquoteYamlScalar(raw)
 }
 
-/** 块标量头部形态(|/> + chomping/显式缩进指示符,两种顺序都合法)。 */
-const BLOCK_INDICATOR_RE = /^[|>](?:[-+]?[0-9]{0,2}|[0-9]{0,2}[-+]?)$/
+/** 块标量头部形态(|/> + chomping/显式缩进指示符,两种顺序都合法)。(T1.6 导出) */
+export const BLOCK_INDICATOR_RE = /^[|>](?:[-+]?[0-9]{0,2}|[0-9]{0,2}[-+]?)$/
 
 /** 块标量指示符解析:样式(|字面/>折叠)+ chomping(clip 默认/strip-/keep+)+ 显式缩进。 */
-interface BlockHeader {
+export interface BlockHeader {
   readonly style: '|' | '>'
   readonly chomp: 'clip' | 'strip' | 'keep'
   readonly explicitIndent: number | null
   readonly keyIndent: number
+}
+
+/**
+ * 解析键行的块标量头(`key: |`/`key: >-` 等;T1.6 写侧与 readBlockScalarValue 共用)。
+ * 非块标量键行(标量值/嵌套映射)→ undefined。
+ */
+export function parseBlockHeader(lines: readonly string[], keyIndex: number): BlockHeader | undefined {
+  const line = lines[keyIndex]
+  if (line === undefined) return undefined
+  const headerMatch = /^(\s*)[\w.-]+: ([|>](?:[-+]?[0-9]{0,2}|[0-9]{0,2}[-+]?))\s*$/.exec(line)
+  if (headerMatch === null) return undefined
+  const indicator = headerMatch[2] ?? ''
+  const digits = /\d+/.exec(indicator)?.[0] ?? null
+  return {
+    style: indicator.startsWith('>') ? '>' : '|',
+    chomp: indicator.includes('-') ? 'strip' : indicator.includes('+') ? 'keep' : 'clip',
+    explicitIndent: digits !== null ? Number.parseInt(digits, 10) : null,
+    keyIndent: (headerMatch[1] ?? '').length,
+  }
 }
 
 /**
@@ -632,18 +655,8 @@ interface BlockHeader {
  * - chomping:strip(-)去尾换行、clip(默认)保留单个尾换行、keep(+)全保留。
  */
 export function readBlockScalarValue(lines: readonly string[], keyIndex: number): string | undefined {
-  const line = lines[keyIndex]
-  if (line === undefined) return undefined
-  const headerMatch = /^(\s*)[\w.-]+: ([|>](?:[-+]?[0-9]{0,2}|[0-9]{0,2}[-+]?))\s*$/.exec(line)
-  if (headerMatch === null) return undefined
-  const indicator = headerMatch[2] ?? ''
-  const digits = /\d+/.exec(indicator)?.[0] ?? null
-  const header: BlockHeader = {
-    style: indicator.startsWith('>') ? '>' : '|',
-    chomp: indicator.includes('-') ? 'strip' : indicator.includes('+') ? 'keep' : 'clip',
-    explicitIndent: digits !== null ? Number.parseInt(digits, 10) : null,
-    keyIndent: (headerMatch[1] ?? '').length,
-  }
+  const header = parseBlockHeader(lines, keyIndex)
+  if (header === undefined) return undefined
   // 收集内容行:空行暂收,遇缩进 ≤ 键缩进的非空行即止(其后空行不属本块)。
   const collected: string[] = []
   for (let i = keyIndex + 1; i < lines.length; i += 1) {

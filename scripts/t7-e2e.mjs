@@ -730,8 +730,11 @@ try {
     const unitDir = resolve(home, 'storages', 'eterna_prompt_studio', 'versions')
     const versionsFinal = await dsh.call('loopPrompt/prompt-versions', { input: {} })
     const docs = existsSync(unitDir) ? readdirSync(unitDir).filter((f) => f.endsWith('.json')) : []
-    check('12.1 版本库单元落 DSH storage 栈(一文档一记录,数=total)',
-      docs.length === versionsFinal.total, `docs=${docs.length} total=${versionsFinal.total}`)
+    // T1.4 起装载种子按条目:除 persona 链(total)外,另有 6 条 patch 值型条目链首
+    // 各 1 文档(live patch 的 agent-instructions/plan-mode + 领域层 4 条;live patch
+    // 无 preset-cordis 行,该预设条目定位失败不种子)——磁盘口径=persona total+6。
+    check('12.1 版本库单元落 DSH storage 栈(一文档一记录,数=persona total+6 条目链首)',
+      docs.length === versionsFinal.total + 6, `docs=${docs.length} total=${versionsFinal.total}`)
   }
 
   console.log('[cleanup] SIGTERM 宿主(持久化层停机冲刷)…')
