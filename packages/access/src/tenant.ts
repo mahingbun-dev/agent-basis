@@ -11,8 +11,8 @@
  * - 直连线格式 payload={args:{...}}(REMOTE_EVENT_STREAM_PAYLOAD 同源解谜);
  *   守卫层在 gateway 校验之前,读原始 body 自行解包
  */
-import { mkdirSync } from 'node:fs'
-import { join, resolve, sep } from 'node:path'
+import { mkdirSync, realpathSync } from 'node:fs'
+import { join, basename, dirname, resolve, sep } from 'node:path'
 import type { AccessAuditEvent, AuditReflect } from './audit.ts'
 import type { SessionService } from './session.ts'
 import type { UserStore } from './store.ts'
@@ -106,8 +106,28 @@ export async function ensureFirstSession(
 }
 
 function withinRoot(path: string, root: string): boolean {
-  const p = resolve(path)
-  return p === root || p.startsWith(root + sep)
+  // G4 修复(2026-11-11):双侧 realpath 实解析——根内 symlink 指向根外(逃逸)被解析为根外路径而拒绝;
+  // 外部 symlink 指回本用户根内则解析为根内路径放行(无害);指入他人根则解析后不匹配本用户根而拒绝。
+  // 不存在的路径:向上取最近存在祖先实解析后拼回尾段(修正 macOS /var→/private/var 等
+  // 祖先符号链接导致的「存在侧被解析、不存在侧未解析」前缀错配误判)。
+  const realish = (p: string): string => {
+    let cur = resolve(p)
+    const tail: string[] = []
+    for (;;) {
+      try {
+        const real = realpathSync(cur)
+        return tail.length === 0 ? real : join(real, ...tail.reverse())
+      } catch {
+        tail.push(basename(cur))
+        const parent = dirname(cur)
+        if (parent === cur) return resolve(p)
+        cur = parent
+      }
+    }
+  }
+  const rp = realish(path)
+  const rr = realish(root)
+  return rp === rr || rp.startsWith(rr + sep)
 }
 
 /** 解包客户端信封:{type,rpcId,method,payload:{args:{...}}} → {rpcId, args}。 */
@@ -314,26 +334,33 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     if (workspaceId === undefined && cwd !== undefined && !withinRoot(cwd, root)) {
       return deniedFrame(rpcId, `会话目录必须在你的目录 ${root} 之内`)
     }
+    // G5 修复(2026-11-11):不带 workspaceId 且不带 cwd 的缺省分支——上游落宿主 defaultCwd
+    // (session-controller lib/index.js:673 附近),多用户下即落共享宿主目录;钳制为强制 cwd=用户根。
+    const defaultCwdPatched = workspaceId === undefined && cwd === undefined
+    const payload0 = request === undefined ? request : { ...request, ...(defaultCwdPatched ? { cwd: root } : {}) }
     // 复用会话 id 只认自己的(客户端选择残留他人 id 时剥掉,按全新会话建)
     const reuseId = typeof request?.sessionId === 'string' && deps.store.sessionOwner(request.sessionId) === ctx.userId
       ? request.sessionId
       : undefined
     const sc = serviceOf(deps, 'sessionController')
     if (sc === undefined) return failureFrame(rpcId, new Error('sessionController not ready'))
-    const payload = request === undefined ? request : { ...request, sessionId: reuseId }
+    const payload = payload0 === undefined ? payload0 : { ...payload0, sessionId: reuseId }
     const value = await callService(sc, 'create', payload) as { sessionId?: string; id?: string } | undefined
     const sessionId = typeof value?.sessionId === 'string' ? value.sessionId : typeof value?.id === 'string' ? value.id : undefined
     if (sessionId !== undefined) deps.store.recordSession(sessionId, ctx.userId, workspaceId ?? null)
-    tenantAudit(deps, 'session.create', ctx.account, { workspaceId: workspaceId ?? null, cwd: cwd ?? null })
+    tenantAudit(deps, 'session.create', ctx.account, { workspaceId: workspaceId ?? null, cwd: cwd ?? (defaultCwdPatched ? root : null) })
     return okFrame(rpcId, value)
   })
 
   // ── session 其余端点(载荷带 sessionId/workspaceId 时校验归属;否则放行直调;
-  //    流类端点(events/follow)走 WS mux 不在此列) ──
+  //    流类端点(follow/observeState 流形态)走 WS mux 由 T2 policy 过滤,unary 形态在此列) ──
+  // T1 补全(2026-11-11,G1/G2):state/projections/selectModel/updateQueue/wait 为 unary 且
+  // 载荷带 sessionId——通用归属校验即覆盖。
   const sessionValidated = [
     'rename', 'cancel', 'fork', 'page', 'search', 'observeState',
     'observeProjections', 'prompt', 'control', 'attachment',
     'openWorkspacePath', 'canOpenWorkspacePath', 'initializeDefaultModel', 'modelCatalog',
+    'state', 'projections', 'selectModel', 'updateQueue', 'wait',
   ]
   for (const name of sessionValidated) {
     register(`/api/session/${name}`, async (rpcId, args, ctx, signal) => {
@@ -357,6 +384,56 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
       return okFrame(rpcId, value)
     })
   }
+
+  // ── T1 补全(G1):session/events——读任意会话完整历史,之前完全不在守卫清单 ──
+  // 请求形态 SessionPageRequest:{address:{kind:'session',sessionId}} 或
+  // {address:{kind:'subagent',parentSessionId,childSessionId}}(子代理历史按父归属判定)。
+  register('/api/session/events', async (rpcId, args, ctx, signal) => {
+    interface EventsRequest { address?: { kind?: string; sessionId?: string; parentSessionId?: string; childSessionId?: string } }
+    const request0 = args.request as EventsRequest | undefined
+    const address = request0?.address
+    const primaryId = address?.kind === 'subagent' ? address.parentSessionId : address?.sessionId
+    if (typeof primaryId !== 'string' || primaryId === '' || deps.store.sessionOwner(primaryId) !== ctx.userId) {
+      tenantAudit(deps, 'session.events.denied', ctx.account, { addressKind: address?.kind ?? null })
+      return deniedFrame(rpcId, '会话不存在或不属于你')
+    }
+    const sc = serviceOf(deps, 'sessionController')
+    if (sc === undefined) return failureFrame(rpcId, new Error('sessionController not ready'))
+    const value = await callService(sc, 'events', request0 ?? args, signal)
+    return okFrame(rpcId, value)
+  })
+
+  // ── T1 补全(G2):session/list——结果集按归属过滤(非全拒;清单语义) ──
+  // 上游 SessionListValue={items:[{sessionId,parentSessionId?,origin?,cwd?,…}]}。
+  // 过滤规则:sessionId 属于本人,或 parentSessionId 属于本人(subagent 子会话随父可见);
+  // 未归属且无父的条目剔除(存量已由启动迁移划归 admin)。
+  register('/api/session/list', async (rpcId, args, ctx, signal) => {
+    const sc = serviceOf(deps, 'sessionController')
+    if (sc === undefined) return failureFrame(rpcId, new Error('sessionController not ready'))
+    const value = await callService(sc, 'list', args.request, signal) as { items?: Array<Record<string, unknown>> } | undefined
+    const items = Array.isArray(value?.items) ? value.items : []
+    const filtered = items.filter((item) => {
+      const id = typeof item.sessionId === 'string' ? item.sessionId : undefined
+      const parentId = typeof item.parentSessionId === 'string' ? item.parentSessionId : undefined
+      if (id !== undefined && deps.store.sessionOwner(id) === ctx.userId) return true
+      if (parentId !== undefined && deps.store.sessionOwner(parentId) === ctx.userId) return true
+      return false
+    })
+    return okFrame(rpcId, { ...(value ?? {}), items: filtered })
+  })
+
+  // ── T1 补全(G2):session/workspacePathApplications——载荷按 path 寻址,钳制用户根 ──
+  register('/api/session/workspacePathApplications', async (rpcId, args, ctx, signal) => {
+    const request0 = args.request as { path?: string } | undefined
+    const path = typeof request0?.path === 'string' ? request0.path : firstString(args, 'path')
+    if (path !== undefined && !withinRoot(path, userRoot(ctx))) {
+      return deniedFrame(rpcId, `路径必须在你的目录 ${userRoot(ctx)} 之内`)
+    }
+    const sc = serviceOf(deps, 'sessionController')
+    if (sc === undefined) return failureFrame(rpcId, new Error('sessionController not ready'))
+    const value = await callService(sc, 'workspacePathApplications', request0 ?? args, signal)
+    return okFrame(rpcId, value)
+  })
 
   return () => {
     for (const dispose of disposers) {
