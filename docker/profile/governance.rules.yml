@@ -13,7 +13,8 @@
 #   jobs/tool-jobs;schedule_* ← schedule/tool-schedule;skill ← skill/tool-skill;
 #   create/get/update_goal ← goal/tool-goal;subagent/subagent_fork/list_subagent_models ←
 #   subagent/tool-subagent(eterna patch 显式 toolName);workflow ← workflow/tool-workflow
-#   (toolName 缺省);cordis_inspect_* ← cordis/tool-cordis。
+#   (toolName 缺省);cordis_inspect_* ← cordis/tool-cordis;list_agents ←
+#   subagent/tool-subagent-control/src/list-agents.ts(2026-11-10 补遗)。
 # apply_patch 刻意不列:eterna-web 两预设均 applyPatch:false,列名即放行违反对账纪律;
 #   回加该工具时须同步回加本文件(默认 ask 会先兜住)。
 # 运维杠杆:$DSH_HOME/access/governance.rules.yml 存在时优先生效(免重建改规则),
@@ -52,3 +53,10 @@ rules:
     effect: allow
     tools: ['subagent', 'subagent_fork', 'list_subagent_models', 'workflow', 'cordis_inspect_list', 'cordis_inspect_query']
     reason: 委派/编排面(standard 预设下 workflow 系已 disabled,glob 落空无害)
+  - id: allow-readonly-meta
+    effect: allow
+    tools: ['list_agents']
+    reason: 只读列举子代理清单,无副作用(2026-11-10 I2 事故补遗:cherry 会话实测该工具被空规则全拒)
+  # working_directory 刻意不列:cwd 即沙箱写边界,运行期改 cwd 属边界相关操作,维持 default: ask
+  # (fail-closed);待 P1-T3「沙箱写边界钉死=账号目录+pre-execute 钳制」落地后再评估放行。
+  # ——2026-11-10 I2 事故(cherry 会话)中该工具被全拒属空规则副作用,非刻意收紧。

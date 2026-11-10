@@ -50,18 +50,20 @@ if [ -f "$DISABLED_FILE" ] || [ -f "$REMOVED_FILE" ]; then
 fi
 
 # ── 2.6 治理规则渲染(2026-11-10「完全权限全拒」事故修复,方案 A)──────────
-# governance-plugin 读 process.cwd()/.eterna/governance.rules.yml(WORKDIR=/repo);
-# 缺文件即空规则集 → fail-closed 默认 ask 打在每个工具调用上,而「完全权限」预设
-# approval=never 对 ask 确定性 rejected → 静默全拒。规则集随镜像入仓
+# governance-plugin 读 process.cwd()/.eterna/governance.rules.yml(governance-plugin.ts:74)。
+# 容器 working_dir=/data(compose:23)= $DSH_HOME——渲染目标必须是 $DSH_HOME/.eterna/。
+# 【2026-11-10 I2 事故修正】原实现按「WORKDIR=/repo」的错误假设渲染到 /repo/.eterna/,
+# 插件读不到 → 空规则集 → fail-closed 默认 ask × 完全权限预设 approval=never = 同毫秒全拒
+# (cherry 会话 session-6b03c31d 实证)。规则集随镜像入仓
 # (docker/profile/governance.rules.yml,工具名逐字对账见其头注);卷上
 # $DSH_HOME/access/governance.rules.yml 存在时优先(运维免重建改规则)。
 GOV_SRC="$DSH_HOME/access/governance.rules.yml"
 if [ ! -f "$GOV_SRC" ]; then
   GOV_SRC=/repo/docker/profile/governance.rules.yml
 fi
-mkdir -p /repo/.eterna
-cp "$GOV_SRC" /repo/.eterna/governance.rules.yml
-echo "[entrypoint] governance rules: $GOV_SRC"
+mkdir -p "$DSH_HOME/.eterna"
+cp "$GOV_SRC" "$DSH_HOME/.eterna/governance.rules.yml"
+echo "[entrypoint] governance rules: $GOV_SRC -> $DSH_HOME/.eterna/governance.rules.yml (cwd=$(pwd))"
 
 # ── 3. 插件 symlink(本仓 @eterna/*) ────────────────────────────────────
 for pkg in glue llm-doctor brand panel prompt-studio llm-openai access; do
