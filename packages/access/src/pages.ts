@@ -88,10 +88,6 @@ tbody tr:hover{background:var(--surface-2)}
 .danger:hover{text-decoration:underline}
 .muted{color:var(--dim);font-size:12px}
 .row{display:flex;gap:8px;align-items:center}
-.field{position:relative}
-.pw-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:auto;margin:0;padding:4px 8px;
-  font-size:12px;background:none;color:var(--dim);border-radius:6px}
-.pw-toggle:hover{background:var(--surface-2);color:var(--text)}
 .shell{display:flex;flex:1;width:min(1200px,96vw);margin:0 auto;gap:20px;padding:22px 16px;align-items:flex-start}
 .menu{width:190px;flex:none;display:flex;flex-direction:column;gap:4px;position:sticky;top:76px}
 .menuitem{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;color:var(--dim);text-decoration:none;font-size:14px;transition:background .12s,color .12s}
@@ -152,7 +148,7 @@ function avatarHtml(avatarUrl: string | null, nickname: string, size = 26): stri
 export function renderLoginPage(): string {
   const body = `<div class="card narrow"><h2>登录</h2>
 <label>账号</label><input id="account" autocomplete="username">
-<label>密码</label><div class="field"><input id="password" type="password" autocomplete="current-password"><button type="button" class="pw-toggle" id="pwEye" title="显示/隐藏密码">显示</button></div>
+<label>密码</label><input id="password" type="password" autocomplete="current-password">
 <button id="go">登录</button><p class="err" id="msg"></p></div>`
   const script = `
 var go=document.getElementById('go'),msg=document.getElementById('msg')
@@ -170,12 +166,6 @@ function submit(){
 }
 go.addEventListener('click',submit)
 document.getElementById('password').addEventListener('keydown',function(e){if(e.key==='Enter')submit()})
-var eye=document.getElementById('pwEye'),pw=document.getElementById('password')
-eye.addEventListener('click',function(){
-  var show=pw.type==='password'
-  pw.type=show?'text':'password'
-  eye.textContent=show?'隐藏':'显示'
-  pw.focus()})
 `
   return shell('登录', body, script)
 }

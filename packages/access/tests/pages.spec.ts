@@ -3,12 +3,12 @@ import { BADGE_SCRIPT, renderLoginPage } from '../src/pages.ts'
 import { injectBadge } from '../src/plugin.ts'
 
 describe('登录页与门禁角标', () => {
-  it('登录页:表单/品牌/密码切换/防重复', () => {
+  it('登录页:表单/品牌/原生密码输入/防重复', () => {
     const html = renderLoginPage()
     expect(html).toContain('登录')
     expect(html).toContain('恒灵')
     expect(html).toContain('id="password"')
-    expect(html).toContain('pwEye')
+    expect(html).not.toContain('pw-toggle')
     expect(html).toContain('go.disabled=true')
   })
 
