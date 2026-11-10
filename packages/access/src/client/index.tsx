@@ -1,14 +1,15 @@
 /**
- * access 客户端半边:注册设置弹窗分区(settings.section slot)。
- * - 「账号」分区(所有人):资料合并保存+密码独立修改
- * - 「用户管理」「插件启停」分区(仅 admin):按 /access/api/me 的 role 条件注册
+ * access 客户端半边:产品内功能走原生扩展点。
+ * - 设置弹窗分区(settings.section):「账号」(所有人:资料合并保存+密码独立)、
+ *   「用户管理」(仅 admin)
+ * - 右侧「插件」页(plugins.tab slot,仅 admin):「恒灵插件」页签——@eterna
+ *   插件的停用/删除管理(不与上游 Installed/内置插件配置重合)
  * - 上游设计宣言:adding a setting never means editing the shell
- *   (dsh-client-ui-settings contract/slots.d.ts)——本插件即该机制的第一个
- *   第三方实践;功能入口=产品设置弹窗,禁止自建独立页面(AGENTS.md 前端铁律)
- * - API 走同源 /access/api/*(Host 半边提供,eterna_session cookie 自动携带)
- * - 依赖 slot 注册表与语言服务;排序在通用分区之后
+ *   (dsh-client-ui-settings contract/slots.d.ts);AGENTS.md 前端与产品形态铁律
+ * - 数据走同源 /access/api/*(Host 半边提供,eterna_session cookie 自动携带)
  */
-import { AccountSection, PluginsSection, UsersSection } from './sections.tsx'
+import { AccountSection, UsersSection } from './sections.tsx'
+import { ManageTab } from './plugins-manager.tsx'
 import { injectAccessStyles } from './styles.ts'
 
 export const inject = ['slots', 'locale']
@@ -18,12 +19,12 @@ const LOCALES: Record<string, Record<string, string>> = {
   zh: {
     'section.account': '账号',
     'section.users': '用户管理',
-    'section.plugins': '插件启停',
+    'tab.manage': '恒灵插件',
   },
   en: {
     'section.account': 'Account',
     'section.users': 'Users',
-    'section.plugins': 'Plugins',
+    'tab.manage': 'Eterna Plugins',
   },
 }
 
@@ -59,17 +60,18 @@ export function apply(ctx: AccessClientContext): () => void {
         locale: NS,
         label: () => t('section.users'),
       }, UsersSection))
-      ctx.slots.inject('settings.section', () => ctx.slots.register({
-        name: 'settings.section',
-        id: `${NS}.plugins`,
-        order: 42,
+      // 右侧插件页:「恒灵插件」管理页签
+      ctx.slots.inject('plugins.tab', () => ctx.slots.register({
+        name: 'plugins.tab',
+        id: `${NS}.manage`,
+        order: 20,
         locale: NS,
-        label: () => t('section.plugins'),
-      }, PluginsSection))
+        label: () => t('tab.manage'),
+      }, ManageTab))
     }
   }
 
-  // 角色判定:未登录(401)不注册分区(登录页场景 client 不在应用壳内);admin 追加管理分区
+  // 角色判定:未登录(401)不注册分区(登录页场景 client 不在应用壳内);admin 追加管理面
   void fetch('/access/api/me', { credentials: 'same-origin' }).then(res => {
     if (!res.ok) return
     return res.json().then((me: { role?: string }) => {

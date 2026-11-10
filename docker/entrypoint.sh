@@ -28,22 +28,25 @@ sed "s|__ETERNA_LLM_BASE_URL__|$ETERNA_LLM_BASE_URL|g" \
 
 # ── 2.5 插件启停清单(T2.3):admin 停用的可停插件 → 渲染时裁剪对应 insert 行 ──
 DISABLED_FILE="$DSH_HOME/access/disabled-plugins.json"
-if [ -f "$DISABLED_FILE" ]; then
+REMOVED_FILE="$DSH_HOME/access/removed-plugins.json"
+if [ -f "$DISABLED_FILE" ] || [ -f "$REMOVED_FILE" ]; then
   node -e '
     const fs = require("fs")
-    const disabled = JSON.parse(fs.readFileSync(process.argv[1], "utf8"))
+    const read = (f) => { try { return JSON.parse(fs.readFileSync(f, "utf8")) } catch { return [] } }
+    const disabled = new Set([...read(process.argv[1]), ...read(process.argv[2])])
+    const removed = new Set(read(process.argv[2]))
     const redLine = new Set(["eterna-governance", "eterna-audit", "eterna-egress", "eterna-access"])
-    const file = process.argv[2]
+    const file = process.argv[3]
     const lines = fs.readFileSync(file, "utf8").split("\n")
     const out = []
     for (let i = 0; i < lines.length; i++) {
       const m = lines[i].match(/^\s*- id: (\S+)\s*$/)
-      if (m && disabled.includes(m[1]) && !redLine.has(m[1]) && /^\s*name:/.test(lines[i + 1] ?? "")) { i++; continue }
+      if (m && disabled.has(m[1]) && !redLine.has(m[1]) && /^\s*name:/.test(lines[i + 1] ?? "")) { i++; continue }
       out.push(lines[i])
     }
     fs.writeFileSync(file, out.join("\n"))
-    console.log("[entrypoint] disabled plugins applied:", disabled.filter((id) => !redLine.has(id)).join(", ") || "(none)")
-  ' "$DISABLED_FILE" "$PROFILE_DIR/cordis.patch.yml"
+    console.log("[entrypoint] plugin strip applied:", [...disabled].filter((id) => !redLine.has(id)).join(", ") || "(none)", "| removed:", [...removed].join(", ") || "(none)")
+  ' "$DISABLED_FILE" "$REMOVED_FILE" "$PROFILE_DIR/cordis.patch.yml"
 fi
 
 # ── 3. 插件 symlink(本仓 @eterna/*) ────────────────────────────────────

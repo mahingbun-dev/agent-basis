@@ -25,6 +25,7 @@ export interface PluginRowView {
   readonly label: string
   readonly redLine: boolean
   readonly disabled: boolean
+  readonly removed?: boolean
 }
 
 export class ApiError extends Error {
@@ -61,6 +62,8 @@ export const api = {
   plugins: (): Promise<{ plugins: PluginRowView[] }> => call('/access/api/plugins'),
   togglePlugin: (id: string, action: 'disable' | 'enable'): Promise<{ ok: true; disabled: boolean; effectiveAfterRestart: boolean }> =>
     call(`/access/api/plugins/${id}/${action}`, { method: 'POST' }),
+  removePlugin: (id: string): Promise<{ ok: true }> =>
+    call(`/access/api/plugins/${id}/remove`, { method: 'POST' }),
   logout: (): Promise<void> =>
     fetch('/logout', { method: 'POST', credentials: 'same-origin' }).then(() => undefined),
 }

@@ -335,8 +335,11 @@ export class UserStore {
     this.disabledPlugins.add(id)
   }
 
+  /** 启用=撤销停用并撤销删除(恢复挂载)。返回是否原本处于停用。 */
   enablePlugin(id: string): boolean {
-    return this.disabledPlugins.delete(id)
+    const wasDisabled = this.disabledPlugins.delete(id)
+    this.removedPlugins.delete(id)
+    return wasDisabled
   }
 
   isPluginDisabled(id: string): boolean {
@@ -345,5 +348,44 @@ export class UserStore {
 
   saveDisabledPlugins(file: string): void {
     writeFileSync(file, JSON.stringify(this.disabledPluginIds(), null, 2) + '\n', 'utf8')
+  }
+
+  // ── T2.3 扩展:插件删除(admin,永久卸载语义;removed ⊇ disabled) ──
+
+  private readonly removedPlugins = new Set<string>()
+
+  loadRemovedPlugins(file: string): void {
+    this.removedPlugins.clear()
+    try {
+      const parsed: unknown = JSON.parse(readFileSync(file, 'utf8'))
+      if (Array.isArray(parsed)) {
+        for (const id of parsed) {
+          if (typeof id === 'string') this.removedPlugins.add(id)
+        }
+      }
+    } catch {
+      // 缺文件=无删除
+    }
+  }
+
+  removedPluginIds(): string[] {
+    return [...this.removedPlugins].sort()
+  }
+
+  /** 删除=标记永久卸载并同步停用;返回 false 表示原本已删除。 */
+  removePlugin(id: string): boolean {
+    if (this.removedPlugins.has(id)) return false
+    this.removedPlugins.add(id)
+    this.disabledPlugins.add(id)
+    return true
+  }
+
+  /** 启用=撤销停用并撤销删除(恢复挂载)。 */
+  isPluginRemoved(id: string): boolean {
+    return this.removedPlugins.has(id)
+  }
+
+  saveRemovedPlugins(file: string): void {
+    writeFileSync(file, JSON.stringify(this.removedPluginIds(), null, 2) + '\n', 'utf8')
   }
 }

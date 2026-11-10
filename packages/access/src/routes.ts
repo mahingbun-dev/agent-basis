@@ -74,6 +74,9 @@ export function handleAccessRequest(deps: AccessDeps, req: AccessRequest): Acces
   if (req.pathname === '/access/api/users' && method === 'POST') return handleUserCreate(deps, req, ip)
   if (req.pathname.startsWith('/access/api/users/') && method === 'DELETE') return handleUserDelete(deps, req, ip)
   if (req.pathname === '/access/api/plugins' && method === 'GET') return handlePluginList(deps, req)
+  if (req.pathname.startsWith('/access/api/plugins/') && req.pathname.endsWith('/remove') && method === 'POST') {
+    return handlePluginRemove(deps, req, ip)
+  }
   if (req.pathname.startsWith('/access/api/plugins/') && method === 'POST') return handlePluginToggle(deps, req, ip)
   return errorReply(404, 'not found')
 }
@@ -84,8 +87,11 @@ function handlePluginList(deps: AccessDeps, req: AccessRequest): AccessReply {
   if (admin === undefined) return errorReply(401, '未登录')
   if (admin.role !== 'admin') return errorReply(403, '需要管理员权限')
   const plugins = [
-    ...[...RED_LINE_PLUGINS].map(id => ({ id, label: id, redLine: true, disabled: false })),
-    ...TOGGLEABLE_PLUGINS.map(p => ({ ...p, redLine: false, disabled: deps.store.isPluginDisabled(p.id) })),
+    ...[...RED_LINE_PLUGINS].map(id => ({ id, label: id, redLine: true, disabled: false, removed: false })),
+    ...TOGGLEABLE_PLUGINS.map((p) => {
+      const removed = deps.store.isPluginRemoved(p.id)
+      return { ...p, redLine: false, disabled: deps.store.isPluginDisabled(p.id) || removed, removed }
+    }),
   ]
   return jsonResponse(200, { plugins })
 }
@@ -104,10 +110,32 @@ function handlePluginToggle(deps: AccessDeps, req: AccessRequest, ip: string): A
     return errorReply(400, '该插件不可停用(红线或未收录)')
   }
   if (action === 'disable') deps.store.disablePlugin(id)
-  else deps.store.enablePlugin(id)
+  else {
+    if (deps.store.isPluginRemoved(id)) {
+      deps.store.enablePlugin(id)
+      deps.store.saveRemovedPlugins(join(deps.dataDir, 'removed-plugins.json'))
+    }
+    deps.store.enablePlugin(id)
+  }
   deps.store.saveDisabledPlugins(join(deps.dataDir, 'disabled-plugins.json'))
   deps.audit({ kind: 'access.plugin.toggle', account: admin.account, ip, detail: { plugin: id, action } })
   return jsonResponse(200, { ok: true, plugin: id, disabled: action === 'disable', effectiveAfterRestart: true })
+}
+
+/** 删除(admin,永久卸载语义):写 removed 清单;重启后 entrypoint 裁剪 patch 行。 */
+function handlePluginRemove(deps: AccessDeps, req: AccessRequest, ip: string): AccessReply {
+  const admin = requireUser(deps, req)
+  if (admin === undefined) return errorReply(401, '未登录')
+  if (admin.role !== 'admin') return errorReply(403, '需要管理员权限')
+  const id = req.pathname.slice('/access/api/plugins/'.length).replace(/\/remove$/, '')
+  if (!TOGGLEABLE_PLUGINS.some(p => p.id === id) || RED_LINE_PLUGINS.has(id)) {
+    return errorReply(400, '该插件不可删除(红线或未收录)')
+  }
+  const removed = deps.store.removePlugin(id)
+  deps.store.saveDisabledPlugins(join(deps.dataDir, 'disabled-plugins.json'))
+  deps.store.saveRemovedPlugins(join(deps.dataDir, 'removed-plugins.json'))
+  deps.audit({ kind: 'access.plugin.remove', account: admin.account, ip, detail: { plugin: id, removed } })
+  return jsonResponse(200, { ok: true, plugin: id, removed: true, effectiveAfterRestart: true })
 }
 
 function currentUser(deps: AccessDeps, req: AccessRequest): UserRow | undefined {

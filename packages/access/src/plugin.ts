@@ -134,6 +134,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
           : join(process.env.DSH_HOME ?? process.cwd(), 'access'))
       const store = new UserStore(join(dir, 'users.db'))
       store.loadDisabledPlugins(join(dir, 'disabled-plugins.json'))
+      store.loadRemovedPlugins(join(dir, 'removed-plugins.json'))
       const audit = (event: AccessAuditEvent): void => { reportAccessAudit(ctx, event) }
       const seededAccount = process.env.ETERNA_ACCESS_ADMIN_USER
       if (store.seedAdmin(seededAccount, process.env.ETERNA_ACCESS_ADMIN_PASSWORD) && seededAccount !== undefined) {

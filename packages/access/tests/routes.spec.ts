@@ -278,6 +278,22 @@ describe('access 路由核心', () => {
     expect(handleAccessRequest(deps, req({ pathname: '/access/api/unknown' })).status).toBe(404)
   })
 
+  it('T2.3 删除:红线拒删;删除=移除标记+停用;enable 撤销删除恢复挂载', () => {
+    const remove = (id: string): AccessReply => handleAccessRequest(deps, req({
+      method: 'POST', pathname: `/access/api/plugins/${id}/remove`, cookie: adminCookie,
+    }))
+    expect(remove('eterna-governance').status).toBe(400)
+    expect(remove('eterna-memory').status).toBe(200)
+    expect(store.isPluginRemoved('eterna-memory')).toBe(true)
+    expect(store.isPluginDisabled('eterna-memory')).toBe(true)
+    const list = bodyOf(handleAccessRequest(deps, req({ pathname: '/access/api/plugins', cookie: adminCookie }))) as { plugins: Array<{ id: string; removed: boolean; disabled: boolean }> }
+    expect(list.plugins.find(p => p.id === 'eterna-memory')).toMatchObject({ removed: true, disabled: true })
+    // enable 撤销删除
+    expect(handleAccessRequest(deps, req({ method: 'POST', pathname: '/access/api/plugins/eterna-memory/enable', cookie: adminCookie })).status).toBe(200)
+    expect(store.isPluginRemoved('eterna-memory')).toBe(false)
+    expect(store.isPluginDisabled('eterna-memory')).toBe(false)
+  })
+
   it('T2.3 插件启停:非 admin 403;红线拒停;停用持久化到 disabled-plugins.json', () => {
     const toggle = (id: string, action: string): AccessReply => handleAccessRequest(deps, req({
       method: 'POST', pathname: `/access/api/plugins/${id}/${action}`, cookie: adminCookie,

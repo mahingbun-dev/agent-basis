@@ -3,7 +3,7 @@
  * 官方语义令牌渲染,弹窗内与产品风格天然统一。
  */
 import { useCallback, useEffect, useState } from 'react'
-import { api, fileToAvatarDataUrl, type Me, type PluginRowView, type UserRowView } from './api.ts'
+import { api, fileToAvatarDataUrl, type Me, type UserRowView } from './api.ts'
 
 function Avatar(props: { url: string | null; nickname: string; size?: number }): React.JSX.Element {
   const size = props.size ?? 40
@@ -205,44 +205,4 @@ function DeleteButton(props: { onConfirm: () => void }): React.JSX.Element {
       onMouseLeave={() => { setArmed(false) }}>删除</button>
   }
   return <button className="ea-dangerclick" onClick={() => { props.onConfirm() }}>确认删除?</button>
-}
-
-/** 插件启停分区(admin):红线锁定,停用重启生效。 */
-export function PluginsSection(): React.JSX.Element {
-  const [plugins, setPlugins] = useState<PluginRowView[]>([])
-  const [msg, setMsg] = useState({ text: '' })
-
-  useEffect(() => {
-    api.plugins().then(value => { setPlugins(value.plugins) }).catch(() => {})
-  }, [])
-
-  const toggle = useCallback((id: string, action: 'disable' | 'enable') => {
-    api.togglePlugin(id, action).then((result) => {
-      setPlugins(previous => previous.map(plugin => plugin.id === id ? { ...plugin, disabled: result.disabled } : plugin))
-      setMsg({ text: result.effectiveAfterRestart ? `${id} ${action === 'disable' ? '停用' : '启用'}，重启容器后生效` : `${id} 已${action === 'disable' ? '停用' : '启用'}` })
-    }).catch((error: unknown) => {
-      setMsg({ text: error instanceof Error ? error.message : '操作失败' })
-    })
-  }, [])
-
-  return <div data-eterna-access-root>
-    <p className="ea-lead">停用后重启容器生效；红线插件（治理/审计/出网/门禁）不可停。</p>
-    <div>
-      {plugins.map(plugin => {
-        if (plugin.redLine) {
-          return <div className="ea-plug" key={plugin.id}>
-            <div className="ea-row between"><span><span className="ea-tag red">红线</span> <span className="name">{plugin.label}</span></span><span className="ea-hint">不可停用</span></div>
-            <span className="pid">{plugin.id}</span>
-          </div>
-        }
-        return <div className="ea-plug" key={plugin.id}>
-          <div className="ea-row between"><span className="name">{plugin.label}</span><span className="ea-hint">{plugin.disabled ? '已停用(重启生效)' : '启用中'}</span></div>
-          <div className="ea-row between"><span className="pid">{plugin.id}</span>
-            <button className="ea-btn ghost" style={{ padding: '4px 14px' }} onClick={() => { toggle(plugin.id, plugin.disabled ? 'enable' : 'disable') }}>{plugin.disabled ? '启用' : '停用'}</button>
-          </div>
-        </div>
-      })}
-    </div>
-    <p className="ea-hint">{msg.text}</p>
-  </div>
 }
