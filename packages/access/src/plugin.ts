@@ -20,6 +20,7 @@ import { UserStore } from './store.ts'
 import { ensureFirstSession, ensureTenantWorkspace, registerTenantGuards } from './tenant.ts'
 import { installMuxIsolation, type MuxIsolationInstall } from './mux.ts'
 import { installToolClamp, installSandboxBoundary } from './sandbox.ts'
+import { installTerminalTenant, installTerminalSandbox } from './terminal.ts'
 import { BADGE_SCRIPT } from './pages.ts'
 
 export const ACCESS_PLUGIN_NAME = 'eterna-access'
@@ -199,17 +200,11 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
           })
         }
       }
-      disposers.push(registerTenantGuards({
-        store,
-        session,
-        reflect: ctx.reflect,
-        tenantRoot,
-        audit,
-        ensureMux,
-      }, ctx.connection))
       // P1-T3(2026-11-11):沙箱写边界钉死=账号目录 + 工具参数逃逸钳制。
       // pre-execute 监听可即时挂(ctx.on 全局事件总线,沿 glue governance-plugin 挂法);
       // sandboxPolicy.resolve wrap 惰性(服务挂载时点,同 ensureMux)。
+      // 【单一注册纪律】registerTenantGuards 只允许一次调用(重复注册路由抛错,
+      // 曾致 apply 中断、惰性安装永不生效——2026-11-11 容器实抓,已合并)。
       const sandboxDeps = {
         sessionOwner: (id: string) => store.sessionOwner(id),
         accountOf: (id: number) => store.getUserById(id)?.account,
@@ -218,11 +213,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       const tenantAudit = (detail: Record<string, unknown>): void => { audit({ kind: 'access.sandbox.clamp', detail }) }
       if (typeof (ctx as unknown as { on?: unknown }).on === 'function') {
         const onFn = (ctx as unknown as { on: (event: string, listener: unknown) => () => void }).on
-        disposers.push(installToolClamp(
-          sandboxDeps,
-          onFn,
-          tenantAudit,
-        ))
+        disposers.push(installToolClamp(sandboxDeps, onFn, tenantAudit))
         audit({ kind: 'access.sandbox.install', detail: { toolClamp: true } })
       }
       let sandboxBoundaryDone = false
@@ -234,13 +225,34 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         if (dispose !== undefined) disposers.push(dispose)
         audit({ kind: 'access.sandbox.install', detail: { boundaryWrap: dispose !== undefined } })
       }
+      // P1-T4(2026-11-11):终端租户隔离(入口校验+PTY 沙箱包装,实例级 wrap)。
+      let terminalDone = false
+      const ensureTerminal = (): void => {
+        if (terminalDone) return
+        terminalDone = true
+        const terminalSvc = ctx.reflect.get('terminalController', false) as never
+        const tenantDispose = installTerminalTenant(sandboxDeps, terminalSvc)
+        if (tenantDispose !== undefined) disposers.push(tenantDispose)
+        const subprocess = ctx.reflect.get('subprocess', false) as never
+        const sandbox = ctx.reflect.get('sandbox', false) as never
+        const policy = ctx.reflect.get('sandboxPolicy', false) as never
+        const sandboxDispose = installTerminalSandbox(sandbox, policy, subprocess)
+        if (sandboxDispose !== undefined) disposers.push(sandboxDispose)
+        audit({
+          kind: 'access.terminal.install',
+          detail: {
+            tenant: tenantDispose !== undefined,
+            ptySandbox: sandboxDispose !== undefined,
+          },
+        })
+      }
       disposers.push(registerTenantGuards({
         store,
         session,
         reflect: ctx.reflect,
         tenantRoot,
         audit,
-        ensureMux: () => { ensureMux(); ensureSandbox() },
+        ensureMux: () => { ensureMux(); ensureSandbox(); ensureTerminal() },
       }, ctx.connection))
       return () => {
         for (const dispose of disposers) dispose()
