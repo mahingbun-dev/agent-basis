@@ -25,6 +25,14 @@
  *      原样重导→两段式 committed 成新版本(source=import,checksum 与原包一致);
  *   G. governance 审计事件含以上每次写操作(approval-requested/committed/rejected,
  *      operator/versionId/at 齐全;无 glue 场景落 <home>/eterna-prompt-studio/audit.jsonl)。
+ *   T2.2 逐条目热生效实测矩阵(断言链 15,测试计划 §4 T2.2——判据唯一通道):
+ *   夹具=patch 层 preset-cordis 同构行(生产档形状;文本与 standard 互异防回放身份
+ *   歧义)+ tmpWs git 项目根 AGENTS.md 指令链夹具;对矩阵内每条目执行
+ *   「改→同进程生效验证→回滚」,黄金判据=同进程(pid 不变)新会话立即用新文;
+ *   进行中会话第二面(快照回放/durable 指令消息)一并实测;只读型/运行时注入型
+ *   =fail-closed 拒写+回放按型跳过审计;领域层=写回/回滚闭环+写后 dump-config
+ *   组合树不含新文(本档未装载领域包);registry effect 声明与实测对账(15.40);
+ *   矩阵落 docs/dev/ps-v2-hot-effect-matrix.md(逐格引用本链断言编号)。
  *
  * 隔离纪律:运行态全在 .eterna-home-t7(DSH_HOME);Web 宿主一律 3108;进程清理只用
  * SIGTERM + pkill -f 'profile t7-studio' 精确模式(绝不 pkill 其他 dsh 实例);
@@ -68,6 +76,28 @@ const SAVE_TAIL = 'T7_E2E_STUDIO_V2 红线:预算超支>5%必须触发审批;对
 const NEW_TEXT = `${MARKER_BASE}\n${SAVE_TAIL}`
 const PROMPT_TEXT = '请只回复两个字:在线'
 const TOOL_PROMPT = '请用 bash 工具运行命令 echo T7_E2E_TRACE_OK,并且这次调用必须带上 sandbox_permissions 参数(取值 danger-full-access)与 justification 参数(内容: T7.5 e2e 审批点留痕)。然后把命令输出原样告诉我。不要做其他任何事。'
+
+/* T2.2 逐条目热生效实测矩阵标记(断言链 15;docs/dev/ps-v2-hot-effect-matrix.md):
+ * - cordis 同构预设行(preset-cordis)四个子插件与生产档同构(persona/agent-instructions/
+ *   time-context/planning→plan-mode),文本刻意与 standard 档互异——防回放身份判定歧义
+ *   (assembly-replay SKIP_GOVERNING_AMBIGUOUS 语义);
+ * - 指令链夹具:tmpWs git init + AGENTS.md(标记行置于文件后段,>64B)——
+ *   agent-instructions 的 maxBytes 改动半径以「标记是否被新上限截掉」观测。 */
+const CORDIS_PERSONA_BASE = 'T7_E2E_CORDIS_PERSONA_BASE creative mode persona alpha'
+const CORDIS_PERSONA_TAIL = 'T7_E2E_CORDIS_PERSONA_V2 rewritten creative persona gamma. 红线:预算超支>5%必须触发审批;对外付款不得代付;比选必须中立。'
+const CORDIS_PERSONA_NEW = CORDIS_PERSONA_TAIL
+const CORDIS_PERSONA_V2 = 'T7_E2E_CORDIS_PERSONA_V2'
+const CORDIS_PLAN_SECTION = [
+  'You are in plan mode (cordis preset). Stay in plan mode until the user approves',
+  'your plan through exit_plan_mode or switches the session mode. T7_E2E_CORDIS_PLAN_BASE anchor sentence.',
+  '',
+  'Explore first with non-mutating reads and ground the plan in the actual repository.',
+]
+const CORDIS_PLAN_BASE = 'T7_E2E_CORDIS_PLAN_BASE'
+const CORDIS_PLAN_V2 = 'T7_E2E_CORDIS_PLAN_V2'
+const CORDIS_PLAN_NEW = `You are in plan mode (cordis preset). ${CORDIS_PLAN_V2}: the cordis plan section was rewritten by the T2.2 hot-effect matrix chain. Explore first with non-mutating reads.`
+const AGENT_INSTR_MARKER = 'T7_E2E_AGENT_INSTR_MARKER'
+const SMALL_MAXBYTES = '64'
 
 const sha256 = (text) => createHash('sha256').update(text, 'utf8').digest('hex')
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -180,6 +210,37 @@ function buildPatch(marker) {
     `    - id: ${rowId}`,
     `      name: '${pkgName}'`,
     '',
+    // T2.2 热生效矩阵夹具:preset-cordis 同构行(生产档形状,四个子插件;文本与
+    // standard 档互异防回放身份歧义)。cordis 预设四条注册表条目由此在本宿主可定位。
+    '- id: preset-cordis',
+    "  name: '@deepseek-ai/dsh-agent-preset'",
+    '  config:',
+    "    id: cordis",
+    '    order: 4',
+    '    plugins:',
+    '      - id: persona',
+    "        name: '@deepseek-ai/dsh-persona'",
+    '        config:',
+    '          prefix: >-',
+    `            ${CORDIS_PERSONA_BASE}`,
+    '      - id: agent-instructions',
+    "        name: '@deepseek-ai/dsh-agent-instructions'",
+    '        config:',
+    '          maxBytes: 65536',
+    '      - id: time-context',
+    "        name: '@deepseek-ai/dsh-time-context'",
+    '      - id: planning',
+    '        name: cordis:group',
+    '        group: true',
+    '        isolate:',
+    '          planMode: true',
+    '        config:',
+    '          - id: plan-mode',
+    "            name: '@deepseek-ai/dsh-plan-mode'",
+    '            config:',
+    '              section: |',
+    ...CORDIS_PLAN_SECTION.map(line => (line === '' ? '' : `                ${line}`)),
+    '',
   ].join('\n')
   return `${head}${out.join('\n')}\n`
 }
@@ -284,6 +345,20 @@ function api(token) {
         .map((r) => r.event)
         .filter((e) => e?.type === 'system/message' && e.data?.message?.source?.kind === 'system-prompt')
         .map((e) => e.data.message.content.map((c) => c.text ?? '').join('\n'))
+        .join('\n')
+    },
+    /**
+     * T2.2 全消息面(system/message + user/message):agent-instructions 的指令链
+     * 以 user/message 的 <system-reminder> 载荷注入(首轮 request 内,run2 实测:
+     * 事件类型=user/message,非 system-prompt source)——截断判定按标记是否出现
+     * 在任何消息内容里。
+     */
+    allMessageTexts: async (sessionId) => {
+      const page = await call('session/events', { request: { address: { kind: 'session', sessionId }, maxMessages: 500 } })
+      return page.records
+        .map((r) => r.event)
+        .filter((e) => e?.type === 'system/message' || e?.type === 'user/message')
+        .map((e) => (e.data?.message?.content ?? e.data?.content ?? []).map((c) => c.text ?? '').join('\n'))
         .join('\n')
     },
   }
@@ -418,6 +493,15 @@ let sessionAId
 let sessionBId
 let events
 const tmpWs = `/tmp/t7-e2e-ws-${process.pid}`
+/* T2.2 领域层写回落点的仓库文件原文(断言链 15 写→回滚的零残留复核 +
+ * finally 兜底还原:链中途崩溃时不把临时标记留在被跟踪文件里)。 */
+const domainMatrixFiles = [
+  'packs/event-planning/cordis.patch.yml',
+  'packs/event-planning/persona.md',
+  'packs/industrial-analysis/cordis.patch.yml',
+  'packs/industrial-analysis/persona.md',
+]
+const domainOriginals = new Map(domainMatrixFiles.map((file) => [file, readFileSync(resolve(repoRoot, file), 'utf8')]))
 try {
   if (await portBusy()) {
     console.error(`端口 ${port} 已被占用(绝不 pkill 其他实例)——请先释放或检查遗留 t7 宿主`)
@@ -435,6 +519,15 @@ try {
   rmSync(resolve(home, 'eterna-prompt-studio'), { recursive: true, force: true })
   rmSync(resolve(home, 'sessions'), { recursive: true, force: true })
   rmSync(tmpWs, { recursive: true, force: true })
+  // T2.2 指令链夹具:项目根标记(.git)+ AGENTS.md(标记行在文件后段,全文件
+  // ≈130B>64B)——agent-instructions 的 maxBytes 半径以标记是否被截掉观测。
+  mkdirSync(tmpWs, { recursive: true })
+  spawnSync('git', ['init', '-q'], { cwd: tmpWs, stdio: 'ignore' })
+  writeFileSync(resolve(tmpWs, 'AGENTS.md'), [
+    '# T7.5 e2e instruction-chain fixture(project root marker file).',
+    `This workspace carries one instruction payload line for the matrix. ${AGENT_INSTR_MARKER} gamma delta epsilon zeta eta theta.`,
+    '',
+  ].join('\n'))
 
   // 1) 浏览器半边 bundle(client-modules 扫 exports["./client"] 要求存在)。
   const build = spawnSync(process.execPath, [resolve(pkgDir, 'scripts/build-client.mjs')], { encoding: 'utf8' })
@@ -764,11 +857,12 @@ try {
     const unitDir = resolve(home, 'storages', 'eterna_prompt_studio', 'versions')
     const versionsFinal = await dsh.call('loopPrompt/prompt-versions', { input: {} })
     const docs = existsSync(unitDir) ? readdirSync(unitDir).filter((f) => f.endsWith('.json')) : []
-    // T1.4 起装载种子按条目:除 persona 链(total)外,另有 6 条 patch 值型条目链首
-    // 各 1 文档(live patch 的 agent-instructions/plan-mode + 领域层 4 条;live patch
-    // 无 preset-cordis 行,该预设条目定位失败不种子)——磁盘口径=persona total+6。
-    check('12.1 版本库单元落 DSH storage 栈(一文档一记录,数=persona total+6 条目链首)',
-      docs.length === versionsFinal.total + 6, `docs=${docs.length} total=${versionsFinal.total}`)
+    // T1.4 起装载种子按条目:除 persona 链(total)外,另有 9 条 patch 值型条目链首
+    // 各 1 文档(live patch 的 agent-instructions/plan-mode + T2.2 夹具 cordis 行的
+    // persona/agent-instructions/plan-mode + 领域层 4 条;time-context×2 只读型与
+    // runtime×2 运行时注入型无静态值不种子)——磁盘口径=persona total+9。
+    check('12.1 版本库单元落 DSH storage 栈(一文档一记录,数=persona total+9 条目链首)',
+      docs.length === versionsFinal.total + 9, `docs=${docs.length} total=${versionsFinal.total}`)
   }
 
   // 14) 断言链 T2.4:历史会话严格回放(system-prompt/assemble waterfall 按会话快照
@@ -876,11 +970,380 @@ try {
     }
   }
 
+  // 15) 断言链 T2.2:逐条目热生效实测矩阵(测试计划 §4 T2.2——判据唯一通道):
+  //     对矩阵内每条目执行「改→同进程生效验证→回滚」,逐条输出 PASS/FAIL;矩阵文档
+  //     docs/dev/ps-v2-hot-effect-matrix.md 逐格引用本链断言编号(无编号格子判未实测)。
+  //     预设条目半径以「同进程(pid 不变)新会话是否立即用新文」为黄金判据;进行中
+  //     会话沿用开启时快照(T2.4 严格回放)或 durable 首条指令消息,作为半径第二面
+  //     一并实测;只读型/运行时注入型以「写链路 fail-closed 拒写 + 回放按型跳过」
+  //     实测;领域层条目以「写回/回滚闭环 + 写后组合树不含新文(本档未装载领域包)」
+  //     实测。宿主全程不重启(host.pid 断言逐段在场)。
+  {
+    /** 两段式保存(非默认条目;返回两段结果)。 */
+    const saveTwoPhase = async (entryId, content, summary) => {
+      const input = { entryId, content, author, summary }
+      const phase1 = await dsh.call('loopPrompt/prompt-save', { input })
+      const phase2 = await dsh.call('loopPrompt/prompt-save', {
+        input: { ...input, approvalId: phase1.approval?.approvalId, approved: true },
+      })
+      return { phase1, phase2 }
+    }
+    /** 两段式回滚(按版本归属条目落点)。 */
+    const rollbackTwoPhase = async (versionId, summary) => {
+      const input = { versionId, author, summary }
+      const phase1 = await dsh.call('loopPrompt/prompt-rollback', { input })
+      const phase2 = await dsh.call('loopPrompt/prompt-rollback', {
+        input: { ...input, approvalId: phase1.approval?.approvalId, approved: true },
+      })
+      return { phase1, phase2 }
+    }
+    /** 条目链最新版本 id(回滚目标)。 */
+    const latestVersionOf = async (entryId) =>
+      (await dsh.call('loopPrompt/prompt-versions', { input: { entryId } })).versions?.[0]
+    /** 干跑 dump-config(同进程组合证据;不写状态)。 */
+    const dumpConfigText = () => new Promise((resolveDump, rejectDump) => {
+      const r = spawnSync(process.execPath, [
+        resolve(profile, 'node_modules/@deepseek-ai/dsh/lib/bin.js'),
+        '--profile', profileName, '--dump-config',
+      ], { cwd: profile, encoding: 'utf8', env: { ...process.env, DSH_HOME: home }, timeout: 180000 })
+      if (r.status === 0) resolveDump(r.stdout ?? '')
+      else rejectDump(new Error(`dump-config status=${r.status}`))
+    })
+    /** 选预设(上游 agentPresets/select:会话首回合前选 preset;wire 字段=agentId)。 */
+    const selectPreset = (sessionId, agentPreset) =>
+      dsh.call('agentPresets/select', { agentId: sessionId, agentPreset })
+
+    // —— 15.1 声明面:snapshot entries[] 全部带 effect.radius(枚举内) ——
+    {
+      const snap = await dsh.call('loopPrompt/snapshot')
+      const radii = new Set(['immediate-new-session', 'not-composed-anywhere', 'readonly-upstream', 'runtime-rebuilt'])
+      const entries = snap.entries ?? []
+      check('15.1 矩阵声明面:entries[] 14 条全部带 effect.radius(T2.2 registry effect 字段透传)',
+        entries.length === 14 && entries.every((e) => typeof e.effect?.radius === 'string' && radii.has(e.effect.radius))
+        && entries.every((e) => typeof e.effect?.note === 'string' && e.effect.note.length > 0),
+        `radius=${entries.map((e) => e.effect?.radius).join(',') ?? '(缺)'}`)
+    }
+
+    // —— A|preset.standard.agent-instructions(maxBytes 数值配置的生效半径) ——
+    {
+      const entryId = 'preset.standard.agent-instructions'
+      const before = await dsh.call('loopPrompt/prompt-get', { input: { entryId } })
+      check('15.2 A|前置: prompt-get{agent-instructions} 值=65536(数值配置反引)',
+        before.value?.text === '65536', `value=${before.value?.text}`)
+
+      const sessionI1 = (await dsh.createSession()).sessionId
+      await dsh.prompt(sessionI1, PROMPT_TEXT)
+      await dsh.awaitTurnEnd(sessionI1, 1)
+      const textsI1 = await dsh.allMessageTexts(sessionI1)
+      check('15.3 A|会话 I1 基线: 指令链注入(AGENTS.md 标记在消息面,项目根=cwd)',
+        textsI1.includes(AGENT_INSTR_MARKER), `session=${sessionI1}`)
+
+      const { phase1: ai1, phase2: ai2 } = await saveTwoPhase(entryId, SMALL_MAXBYTES, 'T2.2 矩阵:指令链上限降至 64B')
+      check('15.4 A|两段式保存 maxBytes=64: committed', ai1.status === 'approval-required' && ai2.status === 'committed'
+        && ai2.version?.entryId === entryId, `status=${ai2.status}`)
+
+      const sessionI2 = (await dsh.createSession()).sessionId
+      await dsh.prompt(sessionI2, PROMPT_TEXT)
+      await dsh.awaitTurnEnd(sessionI2, 1)
+      const textsI2 = await dsh.allMessageTexts(sessionI2)
+      check('15.5 A|同进程新会话 I2: 指令链按 64B 上限截断(标记不在消息面;pid 不变)→即时(新会话)',
+        !textsI2.includes(AGENT_INSTR_MARKER) && host.exitCode === null && host.pid === hostPid,
+        `session=${sessionI2}`)
+
+      await dsh.prompt(sessionI1, PROMPT_TEXT)
+      await dsh.awaitTurnEnd(sessionI1, 2)
+      const textsI1b = await dsh.allMessageTexts(sessionI1)
+      check('15.6 A|进行中会话 I1 补轮: 指令消息仍在消息面(durable 首条不改写)→旧会话沿用',
+        textsI1b.includes(AGENT_INSTR_MARKER), `session=${sessionI1}`)
+
+      const latestAi = await latestVersionOf(entryId)
+      const seedAi = (await dsh.call('loopPrompt/prompt-versions', { input: { entryId } }))
+        .versions?.find((v) => v.source === 'initial')
+      const { phase2: aiRb2 } = await rollbackTwoPhase(seedAi?.id ?? latestAi?.id, 'T2.2 矩阵:指令链上限回滚到 initial')
+      check('15.7 A|回滚(两段式): committed(source=rollback,版本链只增)',
+        aiRb2.status === 'committed' && aiRb2.version?.source === 'rollback', `seq=${aiRb2.version?.seq}`)
+      const afterAi = await dsh.call('loopPrompt/prompt-get', { input: { entryId } })
+      check('15.8 A|回滚后值回 65536(数值 round-trip 闭环)',
+        afterAi.value?.text === '65536', `value=${afterAi.value?.text}`)
+    }
+
+    // —— B|preset.cordis.persona + preset.cordis.agent-instructions(cordis 同构行) ——
+    {
+      const dumpCordis = await dumpConfigText()
+      check('15.9 B|前置: dump-config 组合树含 cordis 同构行基线(夹具行已入组合)',
+        dumpCordis.includes(CORDIS_PERSONA_BASE) && !/skipping|incompatible/i.test(dumpCordis))
+      const cordisPersona = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'preset.cordis.persona' } })
+      check('15.10 B|前置: prompt-get{cordis.persona} 折叠块(>-)反引=基线',
+        cordisPersona.value?.text === CORDIS_PERSONA_BASE, `bytes=${cordisPersona.value?.bytes}`)
+
+      const sessionC1 = (await dsh.createSession()).sessionId
+      const selected = await selectPreset(sessionC1, 'cordis')
+      check('15.11 B|agentPresets/select(cordis) 返回 preset 身份(会话选定创造模式)',
+        typeof selected === 'string' && selected === 'cordis', `selected=${JSON.stringify(selected)}`)
+      await dsh.prompt(sessionC1, PROMPT_TEXT)
+      await dsh.awaitTurnEnd(sessionC1, 1)
+      const textsC1 = await dsh.liveSystemPromptTexts(sessionC1)
+      check('15.12 B|会话 C1(cordis): 系统提示含 cordis 基线且不含 standard 标记(预设隔离)',
+        textsC1.includes(CORDIS_PERSONA_BASE) && !textsC1.includes(MARKER_BASE), `session=${sessionC1}`)
+      const messagesC1 = await dsh.allMessageTexts(sessionC1)
+      check('15.13 B|会话 C1(cordis): 指令链注入(AGENTS.md 标记在消息面;cordis 档 agent-instructions 同构)',
+        messagesC1.includes(AGENT_INSTR_MARKER), `session=${sessionC1}`)
+
+      const { phase2: cp2 } = await saveTwoPhase('preset.cordis.persona', CORDIS_PERSONA_NEW, 'T2.2 矩阵:cordis persona 改新文')
+      const { phase2: ca2 } = await saveTwoPhase('preset.cordis.agent-instructions', SMALL_MAXBYTES, 'T2.2 矩阵:cordis 指令链上限降至 64B')
+      check('15.14 B|两段式保存(cordis persona+agent-instructions 双写): 均 committed',
+        cp2.status === 'committed' && ca2.status === 'committed', `persona=${cp2.status} instr=${ca2.status}`)
+
+      const sessionC2 = (await dsh.createSession()).sessionId
+      await selectPreset(sessionC2, 'cordis')
+      await dsh.prompt(sessionC2, PROMPT_TEXT)
+      await dsh.awaitTurnEnd(sessionC2, 1)
+      const textsC2 = await dsh.liveSystemPromptTexts(sessionC2)
+      const messagesC2 = await dsh.allMessageTexts(sessionC2)
+      check('15.15 B|同进程新会话 C2: persona 即时换新文(含 V2 不含基线;pid 不变)→即时(新会话)',
+        textsC2.includes(CORDIS_PERSONA_V2) && !textsC2.includes(CORDIS_PERSONA_BASE)
+        && host.exitCode === null && host.pid === hostPid, `session=${sessionC2}`)
+      check('15.16 B|同进程新会话 C2: 指令链按 64B 截断(标记不在消息面)→即时(新会话)',
+        !messagesC2.includes(AGENT_INSTR_MARKER), `session=${sessionC2}`)
+
+      const cordisSeedPersona = (await dsh.call('loopPrompt/prompt-versions', { input: { entryId: 'preset.cordis.persona' } }))
+        .versions?.find((v) => v.source === 'initial')
+      const { phase2: cpRb2 } = await rollbackTwoPhase(cordisSeedPersona?.id, 'T2.2 矩阵:cordis persona 回滚到 initial')
+      const cordisSeedInstr = (await dsh.call('loopPrompt/prompt-versions', { input: { entryId: 'preset.cordis.agent-instructions' } }))
+        .versions?.find((v) => v.source === 'initial')
+      const { phase2: caRb2 } = await rollbackTwoPhase(cordisSeedInstr?.id, 'T2.2 矩阵:cordis 指令链上限回滚')
+      const afterCp = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'preset.cordis.persona' } })
+      const afterCa = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'preset.cordis.agent-instructions' } })
+      check('15.17 B|双回滚闭环: persona 折叠块反引回基线 + agent-instructions 值回 65536',
+        cpRb2.status === 'committed' && caRb2.status === 'committed'
+        && afterCp.value?.text === CORDIS_PERSONA_BASE && afterCa.value?.text === '65536',
+        `persona=${afterCp.value?.text?.slice(0, 30)}… instr=${afterCa.value?.text}`)
+    }
+
+    // —— C|preset.cordis.plan-mode.section(cordis 档 plan 段) ——
+    {
+      const entryId = 'preset.cordis.plan-mode.section'
+      const before = await dsh.call('loopPrompt/prompt-get', { input: { entryId } })
+      check('15.18 C|前置: prompt-get{cordis.plan-mode} 字面块(|)反引含基线锚',
+        (before.value?.text ?? '').includes(CORDIS_PLAN_BASE), `bytes=${before.value?.bytes}`)
+      const enterPlanMode = (sessionId) => dsh.call('commands/execute', { agentId: sessionId, line: '/plan', submittedAttachments: [] })
+
+      const sessionC3 = (await dsh.createSession()).sessionId
+      await selectPreset(sessionC3, 'cordis')
+      const planOnC3 = await enterPlanMode(sessionC3)
+      check('15.19 C|会话 C3(cordis)进入 plan 模式(/plan success)', planOnC3?.result?.kind === 'success',
+        `kind=${planOnC3?.result?.kind}`)
+      await dsh.prompt(sessionC3, PROMPT_TEXT)
+      await dsh.awaitTurnEnd(sessionC3, 1)
+      const textsC3 = await dsh.liveSystemPromptTexts(sessionC3)
+      check('15.20 C|会话 C3 基线: 系统提示含 cordis plan 基线锚(plan 模式激活时注入)',
+        textsC3.includes(CORDIS_PLAN_BASE), `session=${sessionC3}`)
+
+      const { phase2: cpl2 } = await saveTwoPhase(entryId, CORDIS_PLAN_NEW, 'T2.2 矩阵:cordis plan 段改新文')
+      check('15.21 C|两段式保存新段: committed', cpl2.status === 'committed' && cpl2.version?.entryId === entryId,
+        `status=${cpl2.status}`)
+
+      const sessionC4 = (await dsh.createSession()).sessionId
+      await selectPreset(sessionC4, 'cordis')
+      await enterPlanMode(sessionC4)
+      await dsh.prompt(sessionC4, PROMPT_TEXT)
+      await dsh.awaitTurnEnd(sessionC4, 1)
+      const textsC4 = await dsh.liveSystemPromptTexts(sessionC4)
+      check('15.22 C|同进程新会话 C4(cordis+/plan): plan 段即时换新文(含 V2 不含基线锚;pid 不变)→即时(新会话)',
+        textsC4.includes(CORDIS_PLAN_V2) && !textsC4.includes(CORDIS_PLAN_BASE)
+        && host.exitCode === null && host.pid === hostPid, `session=${sessionC4}`)
+
+      const cordisSeedPlan = (await dsh.call('loopPrompt/prompt-versions', { input: { entryId } }))
+        .versions?.find((v) => v.source === 'initial')
+      const { phase2: cplRb2 } = await rollbackTwoPhase(cordisSeedPlan?.id, 'T2.2 矩阵:cordis plan 段回滚')
+      const afterCpl = await dsh.call('loopPrompt/prompt-get', { input: { entryId } })
+      check('15.23 C|回滚闭环: committed 且字面块反引回基线锚',
+        cplRb2.status === 'committed' && (afterCpl.value?.text ?? '').includes(CORDIS_PLAN_BASE)
+        && !afterCpl.value?.text.includes(CORDIS_PLAN_V2), `status=${cplRb2.status}`)
+    }
+
+    // —— D|只读型拒写(time-context×2:改后生效半径不存在,写链路 fail-closed) ——
+    {
+      const tcStd = await dsh.call('loopPrompt/prompt-save', {
+        input: { entryId: 'preset.standard.time-context', content: '不可能被接受的写入', author, summary: 'T2.2 矩阵:只读型拒写探针' },
+      })
+      check('15.24 D|prompt-save{standard.time-context}: rejected 且明示无 patch 写回落点',
+        tcStd.status === 'rejected' && (tcStd.issues ?? []).some((s) => s.includes('无 patch 写回落点')),
+        `status=${tcStd.status} issues=${JSON.stringify(tcStd.issues)?.slice(0, 120)}`)
+      const tcCordis = await dsh.call('loopPrompt/prompt-save', {
+        input: { entryId: 'preset.cordis.time-context', content: '不可能被接受的写入', author, summary: 'T2.2 矩阵:只读型拒写探针' },
+      })
+      check('15.25 D|prompt-save{cordis.time-context}: rejected 且同明示',
+        tcCordis.status === 'rejected' && (tcCordis.issues ?? []).some((s) => s.includes('无 patch 写回落点')),
+        `status=${tcCordis.status}`)
+    }
+
+    // —— E|运行时注入型(memory/glue section:拒写 + 回放按型跳过 + 快照分型标注) ——
+    {
+      const rtMemory = await dsh.call('loopPrompt/prompt-save', {
+        input: { entryId: 'runtime.memory.index-section', content: '不可能被接受的写入', author, summary: 'T2.2 矩阵:运行时注入型拒写探针' },
+      })
+      check('15.26 E|prompt-save{runtime.memory.index-section}: rejected 且明示运行时注入型',
+        rtMemory.status === 'rejected' && (rtMemory.issues ?? []).some((s) => s.includes('运行时注入型')),
+        `status=${rtMemory.status} issues=${JSON.stringify(rtMemory.issues)?.slice(0, 120)}`)
+      const rtGlue = await dsh.call('loopPrompt/prompt-save', {
+        input: { entryId: 'runtime.glue.memory-plugin', content: '不可能被接受的写入', author, summary: 'T2.2 矩阵:运行时注入型拒写探针' },
+      })
+      check('15.27 E|prompt-save{runtime.glue.memory-plugin}: rejected 且同明示',
+        rtGlue.status === 'rejected' && (rtGlue.issues ?? []).some((s) => s.includes('运行时注入型')),
+        `status=${rtGlue.status}`)
+      // 回放按型跳过(审计证据):任何 applied 回放事件的 skippedEntries 应含两条 runtime
+      // 条目且 reason=runtime-injection(文本每次装配重建,不受快照回放冻结)。
+      {
+        const auditFile3 = resolve(home, 'eterna-prompt-studio', 'audit.jsonl')
+        const appliedEvents = existsSync(auditFile3)
+          ? readFileSync(auditFile3, 'utf8').split('\n').filter(Boolean)
+            .map((line) => { try { return JSON.parse(line) } catch { return undefined } }).filter(Boolean)
+            .map((r) => r.detail ?? {})
+            .filter((d) => d.action === 'assembly-replay.applied' || d.action === 'assembly-replay.governed')
+          : []
+        const skips = appliedEvents.flatMap((d) => d.skippedEntries ?? [])
+        check('15.28 E|审计: 回放事件(applied|governed)的 skippedEntries 含两条 runtime 条目(reason=runtime-injection,按型跳过实测)',
+          skips.some((s) => s.entryId === 'runtime.memory.index-section' && String(s.reason).includes('runtime-injection'))
+          && skips.some((s) => s.entryId === 'runtime.glue.memory-plugin' && String(s.reason).includes('runtime-injection')),
+          `applied=${appliedEvents.length} runtimeSkips=${skips.filter((s) => String(s.reason).includes('runtime-injection')).length}`)
+      }
+      // 快照分型标注:任一矩阵会话的快照里 runtime 条目为在场标注(不伪造 versionId)。
+      {
+        const snapList = await dsh.call('loopPrompt/session-snapshot', { input: {} })
+        const firstSessionId = snapList.snapshots?.[0]?.sessionId
+        const snap = firstSessionId !== undefined
+          ? await dsh.call('loopPrompt/session-snapshot', { input: { sessionId: firstSessionId } })
+          : undefined
+        const rtEntry = snap?.snapshot?.entries?.find((e) => e.entryId === 'runtime.memory.index-section')
+        check('15.29 E|快照分型: runtime 条目=在场标注(annotation 含「运行时注入」,versionId=null 不伪造)',
+          snap?.status === 'ok' && rtEntry !== undefined && rtEntry.versionId === null
+          && String(rtEntry.annotation ?? '').includes('运行时注入'),
+          `annotation=${String(rtEntry?.annotation ?? '(缺)').slice(0, 40)}`)
+      }
+    }
+
+    // —— F/G|领域层 personaPrefix×2(直写兜底通道 + 本档未装载领域包的组合证据) ——
+    for (const [seq, entryId, file, marker, anchor] of [
+      ['F', 'domain.event-planning.persona-prefix', 'packs/event-planning/cordis.patch.yml', 'T7_E2E_EVENT_PREFIX_V2', 'senior event planning specialist'],
+      ['G', 'domain.industrial-analysis.persona-prefix', 'packs/industrial-analysis/cordis.patch.yml', 'T7_E2E_IND_PREFIX_V2', 'senior industrial data-intelligence analysis specialist'],
+    ]) {
+      const filePath = resolve(repoRoot, file)
+      const original = domainOriginals.get(file) ?? ''
+      const before = await dsh.call('loopPrompt/prompt-get', { input: { entryId } })
+      check(`15.30${seq}|前置: prompt-get 反引含领域身份句(>- 折叠块)`,
+        String(before.value?.text ?? '').includes(anchor), `bytes=${before.value?.bytes}`)
+      const newText = `${String(before.value?.text)} ${marker} appended by T2.2 matrix.`
+      const { phase2 } = await saveTwoPhase(entryId, newText, `T2.2 矩阵:${entryId} 追加标记句`)
+      check(`15.31${seq}|两段式保存(原文+标记句): committed`, phase2.status === 'committed'
+        && phase2.version?.entryId === entryId, `status=${phase2.status}`)
+      {
+        const auditFile4 = resolve(home, 'eterna-prompt-studio', 'audit.jsonl')
+        const commits = existsSync(auditFile4)
+          ? readFileSync(auditFile4, 'utf8').split('\n').filter(Boolean)
+            .map((line) => { try { return JSON.parse(line) } catch { return undefined } }).filter(Boolean)
+            .map((r) => r.detail ?? {})
+            .filter((d) => d.action === 'prompt-save.committed' && d.entryId === entryId)
+          : []
+        check(`15.32${seq}|审计: committed channel=entry-patch(领域条目走直写兜底通道明示)`,
+          commits.some((d) => d.channel === 'entry-patch'), `channels=${commits.map((d) => d.channel).join(',') || '(未读到)'}`)
+      }
+      const after = await dsh.call('loopPrompt/prompt-get', { input: { entryId } })
+      check(`15.33${seq}|写回落盘 + 同进程读回: pack 文件含标记且 prompt-get 反引含标记`,
+        readFileSync(filePath, 'utf8').includes(marker) && String(after.value?.text).includes(marker),
+        `fileHas=${readFileSync(filePath, 'utf8').includes(marker)}`)
+      const dumpAfter = await dumpConfigText()
+      check(`15.34${seq}|组合半径: dump-config 组合树不含标记(t7 档未装载领域包,改动不进入组合)`,
+        !dumpAfter.includes(marker) && !/skipping|incompatible/i.test(dumpAfter))
+      const seed = (await dsh.call('loopPrompt/prompt-versions', { input: { entryId } }))
+        .versions?.find((v) => v.source === 'initial')
+      const { phase2: rb2 } = await rollbackTwoPhase(seed?.id, `T2.2 矩阵:${entryId} 回滚到 initial`)
+      const afterRb = await dsh.call('loopPrompt/prompt-get', { input: { entryId } })
+      check(`15.35${seq}|回滚(两段式): committed 且反引值=写前基线(>- 块语义等价重述;标记不残留)`,
+        rb2.status === 'committed' && String(afterRb.value?.text) === String(before.value?.text)
+        && !readFileSync(filePath, 'utf8').includes(marker),
+        `status=${rb2.status} valueRestored=${String(afterRb.value?.text) === String(before.value?.text)}`)
+    }
+
+    // —— H/I|领域层 persona-md ×2(整文件条目;当前无运行时注入点→不参与任何组装) ——
+    for (const [seq, entryId, file, marker] of [
+      ['H', 'domain.event-planning.persona-md', 'packs/event-planning/persona.md', 'T7_E2E_EVENT_MD_V2'],
+      ['I', 'domain.industrial-analysis.persona-md', 'packs/industrial-analysis/persona.md', 'T7_E2E_IND_MD_V2'],
+    ]) {
+      const filePath = resolve(repoRoot, file)
+      const original = domainOriginals.get(file) ?? ''
+      const before = await dsh.call('loopPrompt/prompt-get', { input: { entryId } })
+      check(`15.36${seq}|前置: prompt-get 反引=persona.md 全文(整文件条目)`,
+        before.value?.text === original, `bytes=${before.value?.bytes}/${Buffer.byteLength(original, 'utf8')}`)
+      const newText = `${original}\n\nT2.2 matrix marker line: ${marker} (temporary, rolled back in the same chain).\n`
+      const { phase2 } = await saveTwoPhase(entryId, newText, `T2.2 矩阵:${entryId} 追加标记行`)
+      check(`15.37${seq}|两段式保存(全文+标记行): committed`, phase2.status === 'committed'
+        && phase2.version?.entryId === entryId, `status=${phase2.status}`)
+      const dumpAfter = await dumpConfigText()
+      check(`15.38${seq}|写后组合面: 文件含标记而 dump-config 组合树不含(该文件不参与任何宿主组装)`,
+        readFileSync(filePath, 'utf8').includes(marker) && !dumpAfter.includes(marker)
+        && !/skipping|incompatible/i.test(dumpAfter))
+      const seed = (await dsh.call('loopPrompt/prompt-versions', { input: { entryId } }))
+        .versions?.find((v) => v.source === 'initial')
+      const { phase2: rb2 } = await rollbackTwoPhase(seed?.id, `T2.2 矩阵:${entryId} 回滚到 initial`)
+      check(`15.39${seq}|回滚(两段式): committed 且文件字节=原文`,
+        rb2.status === 'committed' && readFileSync(filePath, 'utf8') === original,
+        `status=${rb2.status} restored=${readFileSync(filePath, 'utf8') === original}`)
+    }
+
+    // —— J|矩阵声明对账(registry effect 声明 ↔ 实测结论;矩阵文档互锁) ——
+    {
+      const snap = await dsh.call('loopPrompt/snapshot')
+      const radiusOf = new Map((snap.entries ?? []).map((e) => [e.id, e.effect?.radius]))
+      const expectRadius = (id, radius) => radiusOf.get(id) === radius
+      check('15.40 J|声明对账: preset patch 值型 6 条=即时(新会话);time-context×2=readonly-upstream;domain×4=not-composed;runtime×2=runtime-rebuilt(与 15.2-15.39 实测逐面一致)',
+        ['preset.standard.persona', 'preset.standard.agent-instructions', 'preset.standard.plan-mode.section',
+          'preset.cordis.persona', 'preset.cordis.agent-instructions', 'preset.cordis.plan-mode.section']
+          .every((id) => expectRadius(id, 'immediate-new-session'))
+        && expectRadius('preset.standard.time-context', 'readonly-upstream')
+        && expectRadius('preset.cordis.time-context', 'readonly-upstream')
+        && ['domain.event-planning.persona-prefix', 'domain.event-planning.persona-md',
+          'domain.industrial-analysis.persona-prefix', 'domain.industrial-analysis.persona-md']
+          .every((id) => expectRadius(id, 'not-composed-anywhere'))
+        && expectRadius('runtime.memory.index-section', 'runtime-rebuilt')
+        && expectRadius('runtime.glue.memory-plugin', 'runtime-rebuilt'),
+        `radius=${[...radiusOf.entries()].map(([id, r]) => `${id.split('.').at(-1)}:${r}`).join(' ') ?? '(缺)'}`)
+      check('15.41 J|矩阵收尾: 宿主 pid 未变(矩阵全程同一服务,无重启)',
+        host.exitCode === null && host.pid === hostPid, `pid=${host.pid}`)
+      // 领域层收尾:标记零残留(四份文件)+ 前缀条目反引值回基线(语义等价;>-
+      // 折叠块回滚是按值重述,块字节可被规范化——字节级还原由 finally 兜底统一执行)。
+      const markerFree = domainMatrixFiles.every((file) => !readFileSync(resolve(repoRoot, file), 'utf8')
+        .includes('T7_E2E_'))
+      const eventPrefixAfter = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'domain.event-planning.persona-prefix' } })
+      const indPrefixAfter = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'domain.industrial-analysis.persona-prefix' } })
+      check('15.42 J|领域层收尾: 四份仓库 pack 文件无矩阵标记残留 + 两条前缀条目反引值已回滚',
+        markerFree && String(eventPrefixAfter.value?.text).includes('senior event planning specialist')
+        && !String(eventPrefixAfter.value?.text).includes('T7_E2E_')
+        && String(indPrefixAfter.value?.text).includes('senior industrial data-intelligence analysis specialist')
+        && !String(indPrefixAfter.value?.text).includes('T7_E2E_'),
+        `markerFree=${markerFree}`)
+    }
+  }
+
   console.log('[cleanup] SIGTERM 宿主(持久化层停机冲刷)…')
 } catch (error) {
   failures.push(String(error?.message ?? error))
   console.error(`[FATAL] ${String(error?.message ?? error)}`)
 } finally {
+  // T2.2 领域层安全网:断言链 15 中途崩溃时不把临时标记留在被跟踪的 pack 文件里
+  // (正常路径回滚已字节还原,此处应为 no-op;还原动作不入版本链——版本库在
+  // .eterna-home-t7 运行态内,下轮整体清场)。
+  for (const [file, original] of domainOriginals) {
+    const filePath = resolve(repoRoot, file)
+    try {
+      if (existsSync(filePath) && readFileSync(filePath, 'utf8') !== original) {
+        writeFileSync(filePath, original)
+        console.log(`[matrix-guard] ${file} 字节与运行前原文不同(>- 折叠块回滚按值重述的规范化差异,或链中途崩溃),已按运行前原文还原`)
+      }
+    } catch (error) {
+      console.error(`[matrix-guard] ${file} 兜底还原失败:${String(error?.message ?? error)}`)
+    }
+  }
   try { events?.close() } catch { /* 已关 */ }
   await stopHost()
   const freed = !(await portBusy())

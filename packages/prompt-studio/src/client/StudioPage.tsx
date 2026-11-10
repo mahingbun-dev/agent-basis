@@ -5,10 +5,13 @@
  *   同构形态)——条目 id + 型别/可编辑性胶囊 + 「升级可能覆盖」风险胶囊 + 版本数/
  *   字节;点击切换条目详情;
  * - 条目详情 [data-ps-entry-detail]:元数据卡(层/型别/来源/红线策略/字节上限/
- *   版本概览)+ 风险标注警示区(升级覆盖等,registry risks 全文展示)+ 分型值区:
- *   patch 值型 → 编辑器(保存两段式 R3;[data-t7-editor]/[data-t7-save-btn]/
- *   [data-ps-entry-save]);行锚点只读型/运行时注入型 → 只读说明面板(「上游
- *   运行时生成,无 patch 写回落点」明示,不造可编辑假象);
+ *   版本概览)+ 生效条件区 [data-ps-entry-effect](T2.2 实测矩阵:radius 胶囊 +
+ *   逐条目生效条件注记,registry effect 字段单一来源;不热生效/不可写条目在此
+ *   明示,不造「保存即全面生效」假象)+ 风险标注警示区(升级覆盖等,registry
+ *   risks 全文展示)+ 分型值区:patch 值型 → 编辑器(保存两段式 R3;
+ *   [data-t7-editor]/[data-t7-save-btn]/[data-ps-entry-save]);行锚点只读型/
+ *   运行时注入型 → 只读说明面板(「上游运行时生成,无 patch 写回落点」明示,
+ *   不造可编辑假象);
  * - 版本/diff 复用(T7.3 组件按条目渲染):VersionItem(载入/对比/导出/回滚,
  *   无任何删除入口——版本只增不删)+ DiffView([data-ps-diff-view] 锚点叠加);
  * - 会话快照查看(T2.3)[data-ps-session-snapshot]:会话行卡 → 该会话开启时刻
@@ -800,6 +803,17 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
               : <span data-ps-pill data-ps-tone="neutral">{t('studio.entry.redline.exempt')}</span>}
           </div>
           <p data-ps-entry-note>{selected.note}</p>
+          <div data-ps-entry-effect data-ps-effect-radius={selected.effect.radius}>
+            <span data-ps-entry-effect-title>{t('studio.entry.effect')}</span>
+            <span
+              data-ps-pill
+              data-ps-tone={selected.effect.radius === 'immediate-new-session' ? 'business' : selected.effect.radius === 'not-composed-anywhere' ? 'warn' : 'neutral'}
+              data-ps-effect-badge
+            >
+              {t(`studio.effect.${selected.effect.radius}`)}
+            </span>
+            <p data-ps-entry-effect-note>{selected.effect.note}</p>
+          </div>
           <div data-ps-entry-risks>
             <span data-ps-entry-risks-title>{t('studio.entry.risks')}</span>
             <ul>

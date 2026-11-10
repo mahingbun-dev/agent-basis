@@ -18,22 +18,22 @@
 
 ## 对账清单(14 条:preset 层 8 / 领域层 4 / 运行时层 2)
 
-| id | 层 | 型别 | 来源插件/包 | 定位(文件:行号) | 红线 |
-| --- | --- | --- | --- | --- | --- |
-| preset.standard.persona | preset 层 | patch 值型 | @deepseek-ai/dsh-persona | profiles/eterna-web/cordis.patch.yml:288 | required(eterna.red-lines.standard) |
-| preset.standard.agent-instructions | preset 层 | patch 值型 | @deepseek-ai/dsh-agent-instructions | profiles/eterna-web/cordis.patch.yml:292 | exempt |
-| preset.standard.plan-mode.section | preset 层 | patch 值型 | @deepseek-ai/dsh-plan-mode | profiles/eterna-web/cordis.patch.yml:331-342 | exempt |
-| preset.standard.time-context | preset 层 | 行锚点只读型 | @deepseek-ai/dsh-time-context | profiles/eterna-web/cordis.patch.yml:293-294 | exempt |
-| preset.cordis.persona | preset 层 | patch 值型 | @deepseek-ai/dsh-persona | profiles/eterna-web/cordis.patch.yml:149-150 | required(eterna.red-lines.standard) |
-| preset.cordis.agent-instructions | preset 层 | patch 值型 | @deepseek-ai/dsh-agent-instructions | profiles/eterna-web/cordis.patch.yml:154 | exempt |
-| preset.cordis.plan-mode.section | preset 层 | patch 值型 | @deepseek-ai/dsh-plan-mode | profiles/eterna-web/cordis.patch.yml:188-199 | exempt |
-| preset.cordis.time-context | preset 层 | 行锚点只读型 | @deepseek-ai/dsh-time-context | profiles/eterna-web/cordis.patch.yml:155-156 | exempt |
-| domain.event-planning.persona-prefix | 领域层 | patch 值型 | @event/pack | packs/event-planning/cordis.patch.yml:12-17 | required(eterna.red-lines.standard) |
-| domain.event-planning.persona-md | 领域层 | patch 值型 | @event/pack | packs/event-planning/persona.md:1-31 | required(eterna.red-lines.standard) |
-| domain.industrial-analysis.persona-prefix | 领域层 | patch 值型 | @industrial-analysis/pack | packs/industrial-analysis/cordis.patch.yml:12-19 | required(eterna.red-lines.industrial-analysis) |
-| domain.industrial-analysis.persona-md | 领域层 | patch 值型 | @industrial-analysis/pack | packs/industrial-analysis/persona.md:1-34 | required(eterna.red-lines.industrial-analysis) |
-| runtime.memory.index-section | 运行时层 | 运行时注入型 | @eterna/memory | packages/memory/src/tools.ts:41,47,64 | exempt |
-| runtime.glue.memory-plugin | 运行时层 | 运行时注入型 | @eterna/glue | packages/glue/src/plugins/memory-plugin.ts:15,27 | exempt |
+| id | 层 | 型别 | 来源插件/包 | 定位(文件:行号) | 红线 | 生效半径(T2.2) |
+| --- | --- | --- | --- | --- | --- | --- |
+| preset.standard.persona | preset 层 | patch 值型 | @deepseek-ai/dsh-persona | profiles/eterna-web/cordis.patch.yml:288 | required(eterna.red-lines.standard) | immediate-new-session |
+| preset.standard.agent-instructions | preset 层 | patch 值型 | @deepseek-ai/dsh-agent-instructions | profiles/eterna-web/cordis.patch.yml:292 | exempt | immediate-new-session |
+| preset.standard.plan-mode.section | preset 层 | patch 值型 | @deepseek-ai/dsh-plan-mode | profiles/eterna-web/cordis.patch.yml:331-342 | exempt | immediate-new-session |
+| preset.standard.time-context | preset 层 | 行锚点只读型 | @deepseek-ai/dsh-time-context | profiles/eterna-web/cordis.patch.yml:293-294 | exempt | readonly-upstream |
+| preset.cordis.persona | preset 层 | patch 值型 | @deepseek-ai/dsh-persona | profiles/eterna-web/cordis.patch.yml:149-150 | required(eterna.red-lines.standard) | immediate-new-session |
+| preset.cordis.agent-instructions | preset 层 | patch 值型 | @deepseek-ai/dsh-agent-instructions | profiles/eterna-web/cordis.patch.yml:154 | exempt | immediate-new-session |
+| preset.cordis.plan-mode.section | preset 层 | patch 值型 | @deepseek-ai/dsh-plan-mode | profiles/eterna-web/cordis.patch.yml:188-199 | exempt | immediate-new-session |
+| preset.cordis.time-context | preset 层 | 行锚点只读型 | @deepseek-ai/dsh-time-context | profiles/eterna-web/cordis.patch.yml:155-156 | exempt | readonly-upstream |
+| domain.event-planning.persona-prefix | 领域层 | patch 值型 | @event/pack | packs/event-planning/cordis.patch.yml:12-17 | required(eterna.red-lines.standard) | not-composed-anywhere |
+| domain.event-planning.persona-md | 领域层 | patch 值型 | @event/pack | packs/event-planning/persona.md:1-31 | required(eterna.red-lines.standard) | not-composed-anywhere |
+| domain.industrial-analysis.persona-prefix | 领域层 | patch 值型 | @industrial-analysis/pack | packs/industrial-analysis/cordis.patch.yml:12-19 | required(eterna.red-lines.industrial-analysis) | not-composed-anywhere |
+| domain.industrial-analysis.persona-md | 领域层 | patch 值型 | @industrial-analysis/pack | packs/industrial-analysis/persona.md:1-34 | required(eterna.red-lines.industrial-analysis) | not-composed-anywhere |
+| runtime.memory.index-section | 运行时层 | 运行时注入型 | @eterna/memory | packages/memory/src/tools.ts:41,47,64 | exempt | runtime-rebuilt |
+| runtime.glue.memory-plugin | 运行时层 | 运行时注入型 | @eterna/glue | packages/glue/src/plugins/memory-plugin.ts:15,27 | exempt | runtime-rebuilt |
 
 ## 逐条注记
 

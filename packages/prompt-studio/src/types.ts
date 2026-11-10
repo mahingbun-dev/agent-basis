@@ -11,7 +11,7 @@
  */
 import type { ApprovalCard } from '@eterna/interact'
 import type { AskUserQuestionItem } from '@eterna/interact'
-import type { PromptEntryKind, PromptLayer, RedLinePolicy } from './registry.ts'
+import type { PromptEffectRadius, PromptEntryKind, PromptLayer, RedLinePolicy } from './registry.ts'
 
 /** 写操作种类(三类全走 R3:保存/回滚/导入,计划书 §3)。 */
 export type WriteKind = 'save' | 'rollback' | 'import'
@@ -251,6 +251,8 @@ export interface PromptEntryView {
   readonly maxBytes: number
   /** patch 值型=true(有版本链);行锚点只读型/运行时注入型=false(无版本链概念)。 */
   readonly versioned: boolean
+  /** 生效半径标注(T2.2 实测矩阵;UI「生效条件」明示与矩阵文档共用单一来源)。 */
+  readonly effect: { readonly radius: PromptEffectRadius; readonly note: string }
 }
 
 /** 条目当前值视图(T1.4 运行时读;分型语义)。 */

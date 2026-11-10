@@ -36,6 +36,11 @@ export type StudioLocaleKey =
   | 'studio.entry.ruleSet'
   | 'studio.entry.redline.required'
   | 'studio.entry.redline.exempt'
+  | 'studio.entry.effect'
+  | 'studio.effect.immediate-new-session'
+  | 'studio.effect.not-composed-anywhere'
+  | 'studio.effect.readonly-upstream'
+  | 'studio.effect.runtime-rebuilt'
   | 'studio.entry.versionsCount'
   | 'studio.entry.storeUnavailable'
   | 'studio.entry.noVersions'
@@ -162,6 +167,11 @@ export const zh: Record<StudioLocaleKey, string> = {
   'studio.entry.ruleSet': '红线规则集',
   'studio.entry.redline.required': '红线必检',
   'studio.entry.redline.exempt': '红线豁免',
+  'studio.entry.effect': '生效条件',
+  'studio.effect.immediate-new-session': '即时生效(新会话;进行中会话沿用开启时快照)',
+  'studio.effect.not-composed-anywhere': '不进入任何会话(当前无宿主装载该来源;写回落点=仓库文件)',
+  'studio.effect.readonly-upstream': '不可编辑(上游每次组装生成)',
+  'studio.effect.runtime-rebuilt': '不可编辑(每次装配动态构建)',
   'studio.entry.versionsCount': '版本数',
   'studio.entry.storeUnavailable': '版本库未挂载',
   'studio.entry.noVersions': '无版本链',
@@ -289,6 +299,11 @@ export const en: Record<StudioLocaleKey, string> = {
   'studio.entry.ruleSet': 'Red-line rule set',
   'studio.entry.redline.required': 'Red lines required',
   'studio.entry.redline.exempt': 'Red lines exempt',
+  'studio.entry.effect': 'Effective when',
+  'studio.effect.immediate-new-session': 'Immediate for new sessions (in-flight sessions keep their opening snapshot)',
+  'studio.effect.not-composed-anywhere': 'Enters no session (no host currently loads this source; write-back target = repo file)',
+  'studio.effect.readonly-upstream': 'Not editable (regenerated upstream on every assembly)',
+  'studio.effect.runtime-rebuilt': 'Not editable (rebuilt dynamically on every assembly)',
   'studio.entry.versionsCount': 'Versions',
   'studio.entry.storeUnavailable': 'version store not mounted',
   'studio.entry.noVersions': 'No version chain',

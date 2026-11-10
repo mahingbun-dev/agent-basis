@@ -127,6 +127,27 @@ describe('T1.5 全景改版工件', () => {
     }
   })
 
+  it('T2.2 工件:生效条件区锚点在 bundle 中;radius 四枚举标签文案在场(不热生效条目 UI 明示)', () => {
+    const code = readFileSync(bundlePath, 'utf8')
+    // 测试计划 §4 T2.2(b):不热生效条目在 UI 明示生效条件——combo 文案锚点。
+    for (const anchor of ['data-ps-entry-effect', 'data-ps-effect-radius', 'data-ps-effect-badge', 'data-ps-entry-effect-note']) {
+      expect(code, `缺少 T2.2 生效条件锚点 ${anchor}`).toContain(anchor)
+    }
+    // bundle 经 esbuild ASCII 转义(大写 hex \uXXXX),中文文案按转义形态断言:
+    // 「生效条件」标题 + 四枚举标签文案(即时/不进入任何会话/不可编辑两类)。
+    const escaped = (text: string): string => text.split('')
+      .map(ch => (ch.charCodeAt(0) <= 0x7e ? ch : `\\u${ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`))
+      .join('')
+    expect(code, '「生效条件」标题文案应在 bundle').toContain(escaped('生效条件'))
+    expect(code, '即时生效标签文案应在 bundle').toContain(escaped('即时生效'))
+    expect(code, '不进入任何会话标签文案应在 bundle').toContain(escaped('不进入任何会话'))
+    expect(code, '不可编辑标签文案应在 bundle').toContain(escaped('不可编辑'))
+    // radius 字典键全部接线(StudioPage 经 t(`studio.effect.${radius}`) 消费)。
+    for (const radius of ['immediate-new-session', 'not-composed-anywhere', 'readonly-upstream', 'runtime-rebuilt']) {
+      expect(code, `radius 字典键 studio.effect.${radius} 应在 bundle`).toContain(`studio.effect.${radius}`)
+    }
+  })
+
   it('T1.5 按条目读侧接线:StudioPage 经 prompt-versions {entryId} 拉取条目链', () => {
     const source = readFileSync(join(clientSrcDir, 'StudioPage.tsx'), 'utf8')
     expect(source).toContain('ENDPOINTS.promptVersions, { input: { entryId } }')

@@ -171,13 +171,19 @@ try {
     // T2.3 会话快照查看视图锚点(ps-v2-test-plan §4 T2.3(b):快照查看视图 +
     // 只读型/运行时注入型「不可回放/上游生成」降级文案,combo 级断言唯一采集载体)。
     'data-ps-session-snapshot', 'data-ps-snapshot-session-row', 'data-ps-snapshot-detail',
-    'data-ps-snapshot-entry', 'data-ps-snapshot-entry-text']) {
+    'data-ps-snapshot-entry', 'data-ps-snapshot-entry-text',
+    // T2.2 生效条件区锚点(ps-v2-test-plan §4 T2.2(b):不热生效条目 UI 明示,
+    // combo 级断言唯一采集载体;radius 四枚举标签文案另见下方文案锚点)。
+    'data-ps-entry-effect', 'data-ps-effect-radius', 'data-ps-effect-badge']) {
     check(`combo 脚本含视图锚点 ${anchor}`, comboBody.includes(anchor))
   }
   // combo 脚本经 esbuild ASCII 转义(大写 hex \uXXXX),中文文案按转义形态断言。
   const escapedZh = (text) => [...text]
     .map(ch => (ch.charCodeAt(0) <= 0x7e ? ch : `\\u${ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`))
     .join('')
+  check('combo 脚本含生效条件文案锚点(生效条件/即时生效/不可编辑;T2.2 不热生效条目 UI 明示)',
+    comboBody.includes(escapedZh('生效条件')) && comboBody.includes(escapedZh('即时生效'))
+    && comboBody.includes(escapedZh('不可编辑')))
   check('combo 脚本含快照降级文案锚点(不可回放/上游生成;两型无版本链条目明示)',
     comboBody.includes(escapedZh('不可回放')) && comboBody.includes(escapedZh('上游生成')))
   check('combo 脚本含快照查询端点接线(loopPrompt/session-snapshot)', comboBody.includes('loopPrompt/session-snapshot'))

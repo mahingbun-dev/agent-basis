@@ -260,6 +260,7 @@ function entryViewOf(entry: PromptRegistryEntry): PromptEntryView {
     ...(entry.redLineRuleSet !== undefined ? { redLineRuleSet: entry.redLineRuleSet } : {}),
     maxBytes: entry.maxBytes,
     versioned: entry.kind === 'patch-value',
+    effect: entry.effect,
   }
 }
 
@@ -847,6 +848,10 @@ export class LoopPromptGateway extends TypertRemoteService {
           sessionId,
           snapshotId,
           governed: governed.map(section => ({ sectionName: section.sectionName, entryId: section.entryId })),
+          // T2.2 补:未映射条目的按型跳过记录随 governed 事件一并落审计(此前只在
+          // applied 事件携带——scoped 持旧实例的会话走 governed 路径时,运行时注入/
+          // 只读型条目「跳过并记录原因」(T2.4 承诺)在审计面缺席)。字段只增不改。
+          skippedEntries: result.skippedEntries,
         })
       }
     }

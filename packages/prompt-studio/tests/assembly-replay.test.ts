@@ -574,6 +574,11 @@ describe('网关 + 真 cordis waterfall 集成(未打标监听,替换权威)', (
     const governed = (await auditDetails()).filter(record => record.action === 'assembly-replay.governed')
     expect(governed).toHaveLength(1)
     expect((governed[0]?.governed as Array<{ entryId: string }>)[0]?.entryId).toBe('preset.standard.persona')
+    // T2.2 补:governed 事件也携带 skippedEntries(scoped 持旧实例会话走 governed 路径,
+    // 按型跳过记录不得在审计面缺席)——运行时注入型/只读型跳过原因逐条在场。
+    const governedSkips = governed[0]?.skippedEntries as Array<{ entryId: string; reason: string }>
+    expect(governedSkips.some(item => item.entryId === 'runtime.memory.index-section' && item.reason.includes('runtime-injection'))).toBe(true)
+    expect(governedSkips.some(item => item.entryId === 'preset.standard.time-context' && item.reason.includes('line-anchor-readonly'))).toBe(true)
   })
 
   it('④ 快照缺席 → 降级用当前值 + 审计 degraded(每会话一次),零替换不炸', async () => {

@@ -323,6 +323,15 @@ const CSS = `
 [data-ps-entry-title] { overflow-wrap: anywhere; }
 [data-ps-entry-badges] { display: inline-flex; gap: 6px; flex-wrap: wrap; margin-top: -6px; }
 [data-ps-entry-note] { margin: 0; font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-secondary); }
+/* T2.2 生效条件区(radius 胶囊 + 实测注记;matrix=docs/dev/ps-v2-hot-effect-matrix.md)。 */
+[data-ps-entry-effect] {
+  display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; border-radius: 12px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 5%, transparent);
+}
+[data-ps-entry-effect-title] { font-size: 12px; font-weight: 600; color: var(--dsw-alias-label-primary); }
+[data-ps-entry-effect] [data-ps-pill] { align-self: flex-start; }
+[data-ps-entry-effect-note] { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
 [data-ps-entry-risks] {
   display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; border-radius: 12px;
   border: 0.5px solid var(--dsw-alias-state-warn-primary);

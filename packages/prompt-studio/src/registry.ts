@@ -53,6 +53,30 @@ export const ENTRY_KIND_LABELS: Readonly<Record<PromptEntryKind, string>> = {
 }
 
 /**
+ * 生效半径枚举(T2.2 逐条目热生效实测矩阵的结论口径;对账真值 =
+ * docs/dev/ps-v2-hot-effect-matrix.md,每格引用 scripts/t7-e2e.mjs 断言编号——
+ * 矩阵文档与 registry.effect 字段互相锁住,改半径先改实测):
+ * - immediate-new-session:即时——同进程写回(经审批)后,新会话立即用新文
+ *   (configEditor 同步重组合;宿主 pid 不变);进行中会话沿用开启时快照(T2.4);
+ * - not-composed-anywhere:无组合面——写回落点=仓库 pack 文件,但当前无任何宿主
+ *   (生产 eterna-web 与 t7 隔离档的 dsh.profile.bundles 均不含领域包)装载该来源,
+ *   改动不进入任何运行中组合(实测:写后同进程 dump-config 组合树不含新文);
+ * - readonly-upstream:不可写——行锚点只读型,上游插件每次组装生成,写链路
+ *   fail-closed 拒写,无「改后生效」语义;
+ * - runtime-rebuilt:不可写——运行时注入型,文本由代码每次装配动态构建,
+ *   写链路 fail-closed 拒写,不受快照回放冻结(回放按型跳过)。
+ */
+export type PromptEffectRadius = 'immediate-new-session' | 'not-composed-anywhere' | 'readonly-upstream' | 'runtime-rebuilt'
+
+/** 生效半径的 ledger/UI 中文标签(标签文案随 locale 字典二次本地化,本表供文档对账)。 */
+export const EFFECT_RADIUS_LABELS: Readonly<Record<PromptEffectRadius, string>> = {
+  'immediate-new-session': '即时(新会话;进行中会话沿用快照)',
+  'not-composed-anywhere': '无组合面(不进入任何会话)',
+  'readonly-upstream': '不可写(上游每次组装生成)',
+  'runtime-rebuilt': '不可写(每次装配动态构建)',
+}
+
+/**
  * 文件行锚点(对账真值):file 为仓库根相对 POSIX 路径,line 为 1-based 行号,
  * contains 为该行必须包含的文本片段——行号漂移或内容被改即对账失败(交叉钉住,
  * 手法对齐 tests/validator-diff.test.ts:101-107 的真文件钉住)。
@@ -106,6 +130,12 @@ export interface PromptRegistryEntry {
   readonly redLineRuleSet?: string
   /** 写链路字节上限(逐条目校验口径,默认 MAX_PERSONA_BYTES)。 */
   readonly maxBytes: number
+  /**
+   * 生效半径标注(T2.2 实测矩阵结论;UI「生效条件」明示与矩阵文档共用单一来源)。
+   * radius=枚举(见 PromptEffectRadius);note=逐条目生效条件中文说明(实测口径,
+   * 引用断言编号见 docs/dev/ps-v2-hot-effect-matrix.md)。
+   */
+  readonly effect: { readonly radius: PromptEffectRadius; readonly note: string }
 }
 
 // ---------- 三层存量登记(对账基准=计划书 §2 现状清单,行号 2026-11-11 实测) ----------
@@ -151,6 +181,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     redLine: 'required',
     redLineRuleSet: 'eterna.red-lines.standard',
     maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'immediate-new-session',
+      note: '保存经 R3 审批写回(configEditor 同步重组合)后即时生效:新会话立即用新文,宿主不重启;进行中会话沿用开启时快照(t7-e2e 5.11/6.2/8.1 实测)。',
+    },
   },
   {
     id: 'preset.standard.agent-instructions',
@@ -165,6 +199,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     risks: [UPGRADE_OVERWRITE_RISK, '值是数值不是提示词文本;调小会截断指令链渲染,与 MAX_PERSONA_BYTES=65536 口径交叉钉住。'],
     redLine: 'exempt',
     maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'immediate-new-session',
+      note: '调小/调大容量上限经 R3 审批写回后即时生效:新会话的指令链按新上限渲染(AGENTS.md 标记实测);进行中会话沿用首条指令消息(t7-e2e 15.2-15.8 实测)。',
+    },
   },
   {
     id: 'preset.standard.plan-mode.section',
@@ -180,6 +218,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     risks: [UPGRADE_OVERWRITE_RISK, '上游 @deepseek-ai/dsh-plan-mode 升级改写该段时,本地编辑需与新版重新对齐(计划书 §3 风险标注)。'],
     redLine: 'exempt',
     maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'immediate-new-session',
+      note: '保存经 R3 审批写回后即时生效:改后新开的 plan 模式会话立即用新段;旧会话补轮沿用快照旧段(t7-e2e 14.7-14.10 实测;plan 模式激活时才注入)。',
+    },
   },
   {
     id: 'preset.standard.time-context',
@@ -194,6 +236,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     risks: ['无 patch 值亦无写回落点——写链路 fail-closed 拒写并明示,不造写回假象(测试计划 §9.7 口径)。'],
     redLine: 'exempt',
     maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'readonly-upstream',
+      note: '不可经工作室修改:保存对其 fail-closed 拒写(t7-e2e 15.24 实测);时间文本由上游每次组装重新生成,不存在「改后生效半径」。',
+    },
   },
   // ── preset 层:preset-cordis(创造模式,2026-11-09 用户裁定回加)────────────
   {
@@ -211,6 +257,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     redLine: 'required',
     redLineRuleSet: 'eterna.red-lines.standard',
     maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'immediate-new-session',
+      note: '保存经 R3 审批写回(块标量整块替换)后即时生效:改后新开的创造模式会话立即用新文;进行中会话沿用开启时快照(t7-e2e 15.9-15.17 实测,同构 cordis 预设行)。',
+    },
   },
   {
     id: 'preset.cordis.agent-instructions',
@@ -225,6 +275,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     risks: [UPGRADE_OVERWRITE_RISK, '值是数值不是提示词文本;调小会截断指令链渲染。'],
     redLine: 'exempt',
     maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'immediate-new-session',
+      note: '与 standard 档同机制:写回后新会话的指令链按新上限渲染(AGENTS.md 标记实测于同构 cordis 预设行;进行中会话沿用首条指令消息)(t7-e2e 15.12-15.16)。',
+    },
   },
   {
     id: 'preset.cordis.plan-mode.section',
@@ -240,6 +294,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     risks: [UPGRADE_OVERWRITE_RISK, '上游 @deepseek-ai/dsh-plan-mode 升级改写该段时,本地编辑需与新版重新对齐。'],
     redLine: 'exempt',
     maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'immediate-new-session',
+      note: '与 standard 档同机制:写回后改后新开的 plan 模式会话立即用新段(t7-e2e 15.18-15.23 实测于同构 cordis 预设行;plan 模式激活时才注入)。',
+    },
   },
   {
     id: 'preset.cordis.time-context',
@@ -254,6 +312,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     risks: ['无 patch 值亦无写回落点——写链路 fail-closed 拒写并明示,不造写回假象。'],
     redLine: 'exempt',
     maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'readonly-upstream',
+      note: '不可经工作室修改:保存对其 fail-closed 拒写(t7-e2e 15.25 实测);时间文本由上游每次组装重新生成。',
+    },
   },
   // ── 领域层:两 pack 的 system-prompt.personaPrefix(>- 块标量)+ persona.md 全文 ──
   {
@@ -271,6 +333,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     redLine: 'required',
     redLineRuleSet: 'eterna.red-lines.standard',
     maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'not-composed-anywhere',
+      note: '写回落点=仓库 pack 文件(直写兜底通道,写回/回滚闭环实测 t7-e2e 15.30F-15.35F);当前生产 eterna-web 档与 t7 隔离档的 profile bundles 均不含领域包——改动不进入任何运行中组合(写后 dump-config 实测),装载该包的宿主另行组合。',
+    },
   },
   {
     id: 'domain.event-planning.persona-md',
@@ -285,6 +351,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     redLine: 'required',
     redLineRuleSet: 'eterna.red-lines.standard',
     maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'not-composed-anywhere',
+      note: '整文件基准:仓库内未见运行时注入代码,该文件当前不参与任何宿主组装(写后 dump-config 实测不含新文);写回/回滚闭环实测 t7-e2e 15.36H-15.39H。',
+    },
   },
   {
     id: 'domain.industrial-analysis.persona-prefix',
@@ -301,6 +371,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     redLine: 'required',
     redLineRuleSet: 'eterna.red-lines.industrial-analysis',
     maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'not-composed-anywhere',
+      note: '写回落点=仓库 pack 文件(直写兜底通道,写回/回滚闭环实测 t7-e2e 15.30G-15.35G);当前生产 eterna-web 档与 t7 隔离档的 profile bundles 均不含领域包——改动不进入任何运行中组合(写后 dump-config 实测)。',
+    },
   },
   {
     id: 'domain.industrial-analysis.persona-md',
@@ -315,6 +389,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     redLine: 'required',
     redLineRuleSet: 'eterna.red-lines.industrial-analysis',
     maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'not-composed-anywhere',
+      note: '整文件基准:仓库内未见运行时注入代码,该文件当前不参与任何宿主组装(写后 dump-config 实测不含新文);写回/回滚闭环实测 t7-e2e 15.36I-15.39I。',
+    },
   },
   // ── 运行时层:ctx.systemPrompt.section 动态注入(现存使用者 memory/glue)────
   {
@@ -331,6 +409,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     risks: ['section 文本随运行时状态(记忆库内容)动态变化;T2.6 改造为从注册表读的样板对象(登记制落地)。'],
     redLine: 'exempt',
     maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'runtime-rebuilt',
+      note: '不可经工作室修改:保存对其 fail-closed 拒写(t7-e2e 15.26 实测);section 文本每次装配由宿主动态重建,不受会话快照回放冻结(回放按型跳过并审计,t7-e2e 15.28)。',
+    },
   },
   {
     id: 'runtime.glue.memory-plugin',
@@ -345,6 +427,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     risks: ['与 runtime.memory.index-section 同一 section 的组合层挂载点;T2.6 与 memory 条目一并自管改造。'],
     redLine: 'exempt',
     maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'runtime-rebuilt',
+      note: '不可经工作室修改:保存对其 fail-closed 拒写(t7-e2e 15.27 实测);同一 section 的装载层,文本每次装配重建,不受快照回放冻结(回放按型跳过并审计,t7-e2e 15.28)。',
+    },
   },
 ]
 
@@ -362,15 +448,18 @@ export function getPromptRegistryEntry(id: string): PromptRegistryEntry | undefi
 
 /**
  * 登记数据不变量(T1.3(b)2 条目模型完整性,测试与 packctl prompt-scan 复用):
- * id 全局唯一、层/型别/红线枚举闭合、每条锚点≥1/风险≥1/注记非空、
+ * id 全局唯一、层/型别/红线/生效半径枚举闭合、每条锚点≥1/风险≥1/注记非空、
  * required⇒规则集在场、exempt⇒规则集缺席、maxBytes>0、运行时注入型不带
- * YAML 结构定位。
+ * YAML 结构定位、生效半径与型别绑定(kind↔radius 一致性,T2.2 矩阵口径:
+ * patch 值型∈{immediate-new-session,not-composed-anywhere}、行锚点只读型=
+ * readonly-upstream、运行时注入型=runtime-rebuilt)。
  */
 export function registryInvariants(): { ok: boolean; problems: readonly string[] } {
   const problems: string[] = []
   const seen = new Set<string>()
   const layers: readonly string[] = ['preset', 'domain', 'runtime']
   const kinds: readonly string[] = ['patch-value', 'line-anchor-readonly', 'runtime-injection']
+  const radii: readonly string[] = ['immediate-new-session', 'not-composed-anywhere', 'readonly-upstream', 'runtime-rebuilt']
   for (const entry of PROMPT_REGISTRY_ENTRIES) {
     if (seen.has(entry.id)) problems.push(`id 重复:${entry.id}`)
     seen.add(entry.id)
@@ -388,6 +477,18 @@ export function registryInvariants(): { ok: boolean; problems: readonly string[]
     if (entry.maxBytes <= 0) problems.push(`${entry.id}:maxBytes 非正`)
     if (entry.kind === 'runtime-injection' && entry.yaml !== undefined) {
       problems.push(`${entry.id}:运行时注入型不应带 YAML 定位`)
+    }
+    // T2.2 生效半径(矩阵口径):枚举闭合 + 型别绑定 + 注记非空。
+    if (!radii.includes(entry.effect.radius)) problems.push(`${entry.id}:生效半径枚举外 ${entry.effect.radius}`)
+    if (entry.effect.note.trim() === '') problems.push(`${entry.id}:生效条件注记为空`)
+    if (entry.kind === 'line-anchor-readonly' && entry.effect.radius !== 'readonly-upstream') {
+      problems.push(`${entry.id}:行锚点只读型的生效半径应为 readonly-upstream`)
+    }
+    if (entry.kind === 'runtime-injection' && entry.effect.radius !== 'runtime-rebuilt') {
+      problems.push(`${entry.id}:运行时注入型的生效半径应为 runtime-rebuilt`)
+    }
+    if (entry.kind === 'patch-value' && !['immediate-new-session', 'not-composed-anywhere'].includes(entry.effect.radius)) {
+      problems.push(`${entry.id}:patch 值型的生效半径应为 immediate-new-session 或 not-composed-anywhere`)
     }
   }
   return { ok: problems.length === 0, problems }
