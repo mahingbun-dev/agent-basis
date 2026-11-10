@@ -416,6 +416,24 @@
 - id: ui-sidebar-browser
   disabled: false
 
+# ── P1-T3（2026-11-11）：沙箱权限档裁剪——多用户共享单容器，写边界=账号目录 ──
+# ① 覆写基础档 `permission` 行(dsh-base cordis.patch.yml:264)：只留两档,危险档
+#    danger-full-access 从目录中消失（approval=never×空规则全拒事故模式一并消除）。
+#    覆写语义：重述全部键。
+# ② ui-permission 客户端行禁用：用户不可自助换档（档位固定 workspace-write+ask）。
+- id: permission
+  config:
+    presets:
+      read-only:
+        sandbox: read-only
+        approval: ask
+      workspace-write:
+        sandbox: workspace-write
+        approval: ask
+- id: ui-permission
+  disabled: true
+
+
 # ── 验收挂载（2026-11-09 v2）：治理三插件 + 官方 pi-ai LLM 承载 ─────────────
 # 治理面三插件=T9 E2E 同款（行序=apply 序=pre-execute 瀑布序）。
 # LLM 承载行改官方 @deepseek-ai/dsh-llm-pi-ai：ns 必须逐字 llm-pi-ai（客户端

@@ -19,6 +19,7 @@ import { SlidingWindow } from './ratelimit.ts'
 import { UserStore } from './store.ts'
 import { ensureFirstSession, ensureTenantWorkspace, registerTenantGuards } from './tenant.ts'
 import { installMuxIsolation, type MuxIsolationInstall } from './mux.ts'
+import { installToolClamp, installSandboxBoundary } from './sandbox.ts'
 import { BADGE_SCRIPT } from './pages.ts'
 
 export const ACCESS_PLUGIN_NAME = 'eterna-access'
@@ -205,6 +206,41 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         tenantRoot,
         audit,
         ensureMux,
+      }, ctx.connection))
+      // P1-T3(2026-11-11):沙箱写边界钉死=账号目录 + 工具参数逃逸钳制。
+      // pre-execute 监听可即时挂(ctx.on 全局事件总线,沿 glue governance-plugin 挂法);
+      // sandboxPolicy.resolve wrap 惰性(服务挂载时点,同 ensureMux)。
+      const sandboxDeps = {
+        sessionOwner: (id: string) => store.sessionOwner(id),
+        accountOf: (id: number) => store.getUserById(id)?.account,
+        tenantRoot,
+      }
+      const tenantAudit = (detail: Record<string, unknown>): void => { audit({ kind: 'access.sandbox.clamp', detail }) }
+      if (typeof (ctx as unknown as { on?: unknown }).on === 'function') {
+        const onFn = (ctx as unknown as { on: (event: string, listener: unknown) => () => void }).on
+        disposers.push(installToolClamp(
+          sandboxDeps,
+          onFn,
+          tenantAudit,
+        ))
+        audit({ kind: 'access.sandbox.install', detail: { toolClamp: true } })
+      }
+      let sandboxBoundaryDone = false
+      const ensureSandbox = (): void => {
+        if (sandboxBoundaryDone) return
+        sandboxBoundaryDone = true
+        const policy = ctx.reflect.get('sandboxPolicy', false) as never
+        const dispose = installSandboxBoundary(sandboxDeps, policy)
+        if (dispose !== undefined) disposers.push(dispose)
+        audit({ kind: 'access.sandbox.install', detail: { boundaryWrap: dispose !== undefined } })
+      }
+      disposers.push(registerTenantGuards({
+        store,
+        session,
+        reflect: ctx.reflect,
+        tenantRoot,
+        audit,
+        ensureMux: () => { ensureMux(); ensureSandbox() },
       }, ctx.connection))
       return () => {
         for (const dispose of disposers) dispose()

@@ -90,4 +90,20 @@ if [ -n "${ETERNA_TRUSTED_HOST:-}" ]; then
 fi
 
 echo "[entrypoint] container IP: $IP  LLM: $ETERNA_LLM_BASE_URL"
+
+# ── 沙箱 runner 预检(P1-T3):landlock probe 非 full → 告警(沙箱 fail-closed 由上游保证,
+#    预检只做可见性;实测基镜像 probe=full,见隔离计划 T0.1)。
+# 沙箱 runner 预检(P1-T3):直调 landlock-run --probe(等价 probe() 语义:exit 0 且无
+# partial 标记=full)。包不入顶层 node_modules(可选依赖),按 .pnpm 实际路径定位。
+LAUNCHER="$(find /repo/node_modules/.pnpm -path '*node-addon-system-*/bin/landlock-run' -type f 2>/dev/null | head -1)"
+SANDBOX_PROBE="unusable"
+if [ -n "$LAUNCHER" ] && [ -x "$LAUNCHER" ] && OUT="$("$LAUNCHER" --probe 2>/dev/null)" && [ "$?" = "0" ]; then
+  case "$OUT" in *partially\ enforced*) SANDBOX_PROBE="partial" ;; *) SANDBOX_PROBE="full" ;; esac
+fi
+if [ "$SANDBOX_PROBE" = "full" ]; then
+  echo "[entrypoint] sandbox runner: landlock full"
+else
+  echo "[entrypoint] WARNING sandbox runner probe: $SANDBOX_PROBE — 沙箱可能 fail-closed(全拒)或降级,请检查内核"
+fi
+
 exec dsh "$@"

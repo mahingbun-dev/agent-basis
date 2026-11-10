@@ -11,8 +11,9 @@
  * - 直连线格式 payload={args:{...}}(REMOTE_EVENT_STREAM_PAYLOAD 同源解谜);
  *   守卫层在 gateway 校验之前,读原始 body 自行解包
  */
-import { mkdirSync, realpathSync } from 'node:fs'
-import { join, basename, dirname, resolve, sep } from 'node:path'
+import { mkdirSync } from 'node:fs'
+import { join, resolve } from 'node:path'
+import { withinRoot } from './within-root.ts'
 import type { AccessAuditEvent, AuditReflect } from './audit.ts'
 import type { SessionService } from './session.ts'
 import type { UserStore } from './store.ts'
@@ -107,30 +108,8 @@ export async function ensureFirstSession(
   return sessionId
 }
 
-function withinRoot(path: string, root: string): boolean {
-  // G4 修复(2026-11-11):双侧 realpath 实解析——根内 symlink 指向根外(逃逸)被解析为根外路径而拒绝;
-  // 外部 symlink 指回本用户根内则解析为根内路径放行(无害);指入他人根则解析后不匹配本用户根而拒绝。
-  // 不存在的路径:向上取最近存在祖先实解析后拼回尾段(修正 macOS /var→/private/var 等
-  // 祖先符号链接导致的「存在侧被解析、不存在侧未解析」前缀错配误判)。
-  const realish = (p: string): string => {
-    let cur = resolve(p)
-    const tail: string[] = []
-    for (;;) {
-      try {
-        const real = realpathSync(cur)
-        return tail.length === 0 ? real : join(real, ...tail.reverse())
-      } catch {
-        tail.push(basename(cur))
-        const parent = dirname(cur)
-        if (parent === cur) return resolve(p)
-        cur = parent
-      }
-    }
-  }
-  const rp = realish(path)
-  const rr = realish(root)
-  return rp === rr || rp.startsWith(rr + sep)
-}
+// withinRoot 已抽至 ./within-root.ts(T1 G4 修复;T3 sandbox 钳制共用)。
+// 见该文件:双侧 realpath 实解析 + 不存在路径向上取最近存在祖先实解析拼尾段。
 
 /** 解包客户端信封:{type,rpcId,method,payload:{args:{...}}} → {rpcId, args}。 */
 function unpack(body: unknown): { rpcId: string; args: Record<string, unknown> } | undefined {
