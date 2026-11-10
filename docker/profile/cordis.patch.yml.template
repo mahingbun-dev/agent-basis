@@ -445,6 +445,10 @@
       name: '@eterna/brand'
     - id: eterna-access
       name: '@eterna/access'
+    # 提示词工作室（T1.2；packages/prompt-studio 同款行，entrypoint 第 3 步已统一
+    # symlink）。admin 停用→entrypoint 第 2.5 步按 disabled-plugins.json 裁剪本行。
+    - id: eterna-prompt-studio
+      name: '@eterna/prompt-studio'
 
 # LLM 承载（根级覆写 base 休眠行，非 insert——原因见上）：pi-ai 多协议适配器
 - id: llm-pi-ai

@@ -9,7 +9,9 @@
  *  4. 浏览器半边装进花名册:index.html 的 __DSH_BOOT__ 含本包 client 条目,
  *     combo 脚本字节含视图锚点(data-t7-editor / data-t7-save-btn /
  *     data-t7-version-item / data-t7-trace-node)与两端面板 id;
- *  5. SIGTERM 收尾,3108 释放。
+ *  5. T1.2 花名册 id 交叉钉住(静态文件断言):TOGGLEABLE_PLUGINS 登记 ≡ 生产档
+ *     patch insert 行 ≡ docker 部署模板行;embed 档维持无该行;
+ *  6. SIGTERM 收尾,3108 释放。
  *
  * 用法:node scripts/t7-ui-check.mjs
  */
@@ -166,6 +168,22 @@ try {
   for (const anchor of ['data-t7-editor', 'data-t7-save-btn', 'data-t7-version-item', 'data-t7-trace-node', 'data-t7-session-item', 'data-t7-approve-btn']) {
     check(`combo 脚本含视图锚点 ${anchor}`, comboBody.includes(anchor))
   }
+
+  // 5) T1.2 花名册 id 交叉钉住（ps-v2-test-plan §3 T1.2(b)）：同一插件 id 三处
+  //    同源——TOGGLEABLE_PLUGINS 登记(access routes.ts)≡ 生产档 patch insert 行
+  //    (profiles/eterna-web)≡ 本包 factory 注册 id（上面 combo 断言的源）——
+  //    任一处改动即红，防「登记 id 错」。静态文件断言，不依赖宿主。
+  const routesSrc = readFileSync(resolve(repoRoot, 'packages', 'access', 'src', 'routes.ts'), 'utf8')
+  check('交叉钉住:access TOGGLEABLE_PLUGINS 登记行 id=eterna-prompt-studio',
+    routesSrc.includes("id: 'eterna-prompt-studio'"))
+  const prodPatch = readFileSync(resolve(repoRoot, 'profiles', 'eterna-web', 'cordis.patch.yml'), 'utf8')
+  check('交叉钉住:生产档 patch 含 eterna-prompt-studio insert 行(id+name 同源)',
+    /- id: eterna-prompt-studio\s*\n\s+name: '@eterna\/prompt-studio'/.test(prodPatch))
+  check('交叉钉住:docker 部署模板 insert 块含 eterna-prompt-studio 行(生产容器挂载面)',
+    /- id: eterna-prompt-studio\s*\n\s+name: '@eterna\/prompt-studio'/.test(
+      readFileSync(resolve(repoRoot, 'docker', 'profile', 'cordis.patch.yml.template'), 'utf8')))
+  check('交叉钉住:embed 档 patch 无 eterna-prompt-studio 行(维持不挂,docs/embed-profile.md)',
+    !readFileSync(resolve(repoRoot, 'profiles', 'eterna-embed', 'cordis.patch.yml'), 'utf8').includes('eterna-prompt-studio'))
   check('combo 脚本含两个面板 id(main keyed + sidebar.panellist)',
     comboBody.includes('eterna-prompt-studio') && comboBody.includes('eterna-loop-trace'))
   check('combo 脚本只经官方语义令牌(color/background 无字面 #hex)',

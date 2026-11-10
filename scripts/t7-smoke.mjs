@@ -95,6 +95,11 @@ function ensureProfile() {
     '  esbuild: true',
     '  koffi: true',
     '  node-pty: true',
+    // 2026-11-11 实测:pnpm 11.7 对带构建脚本的依赖严格化,传递依赖 @google/genai
+    // 与 protobufjs 未显式裁定即 ERR_PNPM_IGNORED_BUILDS 致 install 非零。两者的
+    // postinstall 均为可选产物生成,运行时不需要——显式 false(拒绝执行构建脚本)。
+    "  '@google/genai': false",
+    '  protobufjs: false',
     '',
   ].join('\n'))
   writeFileSync(resolve(profile, 'cordis.yml'), '[]\n')
