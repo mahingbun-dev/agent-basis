@@ -59,6 +59,8 @@ import type { GovernanceAuditLike } from './audit.ts'
 import { byteLength, sha256Hex } from './checksum.ts'
 import { diffLines } from './diff.ts'
 import { EntryPatchFile, EntryToctouError, buildNextEntryFileText, selfCheckEntryWrite } from './entry-patch.ts'
+import { applyEntryToRowConfig, readConfigEditorRows, resolveConfigEditor } from './config-editor-write.ts'
+import type { ConfigEditorFace } from './config-editor-write.ts'
 import { validateExportPack } from './export-pack.ts'
 import { PersonaPatchFile } from './persona-patch.ts'
 import {
@@ -138,6 +140,21 @@ interface WriteOutcome {
   readonly effectiveNote: string
 }
 
+/**
+ * configEditor 通道解析产物(T2.1):写链路优先经官方 seam 写回热生效(edit 返回时
+ * Loader 重组合已完成);行不可得/服务缺席时调用方降级 entry-patch 直写兜底。
+ */
+export interface ConfigEditorChannel {
+  readonly editor: ConfigEditorFace
+  /** 目标顶层行 id(注册表条目 yaml.rowId,如 preset-standard)。 */
+  readonly rowId: string
+  /** 写前行 config(verify 失败时经同一 seam 还原的基准;configuration() 分离快照)。 */
+  readonly beforeRowConfig: Record<string, unknown>
+}
+
+/** 通道解析结果:命中官方通道,或给出直写兜底原因(审计 channelNote)。 */
+export type ConfigEditorChannelResolution = { readonly channel: ConfigEditorChannel } | { readonly fallback: string }
+
 /** 手工施加 @Remote 装饰器:以公开函数面调用(初始化器在接收者原型上落 marker)。 */
 function applyRemoteMarker(prototype: object, method: string, name: string): void {
   const initializers: Array<() => void> = []
@@ -200,6 +217,8 @@ function overviewOf(records: readonly PromptVersionRecord[], ready: boolean): Ve
 
 /** LoopPrompt 网关(SRC 端点宿主;SRC 端点 loopPrompt/*)。状态全公开:见文件头网关调用约束。 */
 export class LoopPromptGateway extends TypertRemoteService {
+  /** 宿主上下文(T2.1:configEditor 服务经 cordis get 机会解析,公开字段=网关 shadow 约束)。 */
+  readonly studioCtx: StudioContextLike
   readonly config: PromptStudioPluginConfig
   readonly audit: StudioAudit
   readonly gate: ApprovalGate
@@ -208,6 +227,11 @@ export class LoopPromptGateway extends TypertRemoteService {
   readonly entryWriter: EntryPatchFile
   /** 写授权规则集(T1.6;缺省=通配全部条目)。 */
   readonly writeRules: readonly string[]
+  /**
+   * configEditor 通道瞬态错误退避间隔毫秒(llm-doctor 实测口径 600;公开字段=
+   * 网关 shadow 约束,测试可注入 1ms 加速重试用例)。
+   */
+  configEditorRetryBackoffMs = 600
   readonly profileContext: ProfileContextLike | undefined
   readonly sessionsRoot: string
   /** 注册表文件解析根(领域/运行时层条目的仓库根;preset 层 patch 映射到 live patch)。 */
@@ -236,6 +260,7 @@ export class LoopPromptGateway extends TypertRemoteService {
     // Service 边界单点断言(基类构造器 protected,无法提取其参数类型):运行时传入的
     // 就是宿主真实 Context,本包业务面只消费 StudioContextLike 结构面(types.ts 注)。
     super(ctx as never, LOOP_PROMPT_SERVICE_ID)
+    this.studioCtx = ctx
     this.config = config
     this.profileContext = ctx.get('profileContext') as ProfileContextLike | undefined
     const home = this.profileContext?.home ?? process.env.DSH_HOME ?? ''
@@ -297,6 +322,93 @@ export class LoopPromptGateway extends TypertRemoteService {
   isEntryWriteAuthorized(entry: PromptRegistryEntry): boolean {
     return this.writeRules.includes(WILDCARD_WRITE_RULE_ID)
       || this.writeRules.includes(entryWriteRuleId(entry.id))
+  }
+
+  // ---------- T2.1 写穿 configEditor(官方 seam 热生效通道) ----------
+
+  /**
+   * 解析条目的 configEditor 通道(T2.1):仅 preset 层(live patch 内的顶层行)可经
+   * 官方 seam 写回——edit 会把整行 config 持久化到其 documentPath 并同步重组合;
+   * 领域包文件/整文件条目(persona.md)不在 profile patch 内,seam 不可达,天然走直写
+   * 兜底。**落点一致性双守卫**(seam documentPath、TOCTOU 基线、字节级还原、审计
+   * patchPath 必须指向同一文件):①宿主 profileContext 在场且其 patchPath ≠ 本网关
+   * patch 落点(插件 config.patchPath 显式覆盖时)→ 兜底;②seam 暴露的 documentPath
+   * ≠ 本网关 patch 落点 → 兜底。任何一步不可得都返回 fallback 原因(不抛、不炸宿主):
+   * 服务缺席 / 行不在活跃条目 / configuration() 行不可得(还原基准缺失)/ 落点错位 /
+   * 解析异常。
+   */
+  resolveConfigEditorChannel(entry: PromptRegistryEntry, writePath: string): ConfigEditorChannelResolution {
+    const yaml = entry.yaml
+    if (yaml === undefined) {
+      return { fallback: '条目为整文件条目(persona.md 等),不在 profile patch,configEditor 不可达' }
+    }
+    if (yaml.file !== WEB_PATCH || writePath !== this.patch.path) {
+      return { fallback: '条目写回落点不在本宿主 live patch(领域包/仓库文件条目),configEditor 不可达' }
+    }
+    const profile = this.profileContext
+    if (profile !== undefined && profile.patchPath !== this.patch.path) {
+      return { fallback: `插件 config.patchPath 覆盖使本地落点(${this.patch.path})偏离宿主 profile patch(${profile.patchPath}),seam 持久化落点将错位,不走 configEditor 通道` }
+    }
+    const editor = resolveConfigEditor(this.studioCtx)
+    if (editor === undefined) return { fallback: 'configEditor 服务缺席(宿主未装载 dsh-config-editor 或未就绪)' }
+    try {
+      const documentPath = editor.documentPath
+      if (typeof documentPath === 'string' && documentPath !== this.patch.path) {
+        return { fallback: `configEditor 持久化落点(documentPath=${documentPath})与本地 patch 落点(${this.patch.path})不一致,不走 configEditor 通道` }
+      }
+      const liveEntry = this.liveConfigEditorRowEntry(editor, yaml.rowId)
+      if (liveEntry === undefined) return { fallback: `行 ${yaml.rowId} 不在 configEditor 活跃条目中(live 组合内无该顶层行)` }
+      const row = readConfigEditorRows(editor).find(candidate => candidate.entry.options.id === yaml.rowId)
+      if (row === undefined) return { fallback: `行 ${yaml.rowId} 的 configuration() 行不可得(还原基准缺失)` }
+      return { channel: { editor, rowId: yaml.rowId, beforeRowConfig: row.override } }
+    } catch (error) {
+      return { fallback: `configEditor 通道解析失败:${error instanceof Error ? error.message : String(error)}` }
+    }
+  }
+
+  /** 重取行活引用(edit 每次尝试前重取:Loader 重组合会替换条目对象,链外缓存的引用会失效)。 */
+  liveConfigEditorRowEntry(editor: ConfigEditorFace, rowId: string): { options: { id: string } } | undefined {
+    try {
+      return editor.entries().find(candidate => candidate.options.id === rowId)
+    } catch {
+      return undefined
+    }
+  }
+
+  /**
+   * 经 configEditor seam 编辑一行(T2.1,llm-doctor 先例 packages/llm-doctor/src/
+   * index.ts:186-202 的瞬态错误防御同款+强化):**每次尝试前重取 entries() 活引用**
+   * (本通道的 run 闭包在单写者链上排队,轮到执行时前序写的 Loader 重组合可能已替换
+   * 条目对象——链外缓存引用必然过期);对瞬态错误(settings 保存事务未关时
+   * "HMR transactions cannot be nested"、引用失效 "no longer available")按
+   * configEditorRetryBackoffMs 退避重试至多 3 次;非瞬态错误立抛(fail-closed,
+   * 由 runGoverned/write 链路处置,不降级直写——防直写与 Loader 内存组合漂移)。
+   * change 必须幂等(重试会重放;applyEntryToRowConfig/restore 基准均纯函数)。
+   */
+  async editViaConfigEditor(
+    editor: ConfigEditorFace,
+    rowId: string,
+    change: (current: Record<string, unknown>, inherited: Record<string, unknown>) => Record<string, unknown>,
+  ): Promise<void> {
+    let lastError: Error | undefined
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const liveEntry = this.liveConfigEditorRowEntry(editor, rowId)
+      if (liveEntry === undefined) {
+        lastError = new Error(`行 ${rowId} 不在 configEditor 活跃条目中(重组合瞬态或行已裁撤)`)
+      } else {
+        try {
+          await editor.edit(liveEntry, change)
+          return
+        } catch (error) {
+          if (!(error instanceof Error)) throw error
+          lastError = error
+          const transient = error.message.includes('nested') || error.message.includes('no longer available')
+          if (!transient) throw error
+        }
+      }
+      await new Promise(resolve => setTimeout(resolve, this.configEditorRetryBackoffMs))
+    }
+    throw lastError ?? new Error(`configEditor 编辑失败(行 ${rowId})`)
   }
 
   /**
@@ -754,31 +866,59 @@ export class LoopPromptGateway extends TypertRemoteService {
         this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, entryId, reason: 'baseVersionId 过期(并发修改)' })
         return { status: 'rejected', issues: ['baseVersionId 与当前最新版本不符(并发修改),请刷新后重试'], effectiveNote: EFFECTIVE_NOTE }
       }
-      // 执行:按条目定位重述写回(TOCTOU 基线校验 + 写前自检 + 原子写 + 写后
-      // dry-run 验证失败自动还原;任何失败零落盘或已还原,异常上抛为 RemoteError)。
+      // 执行(T2.1 起双通道,同文件同链单写者互斥串行):
+      // - configEditor 通道(优先):官方 seam 整行 config 写回 + 同步 Loader 重组合
+      //   (edit 返回即热生效),TOCTOU 基线与 verify-fail 还原纪律与直写同款;
+      // - entry-patch 直写(兜底):configEditor 缺席/条目不可达(领域包/整文件/行缺失)
+      //   时按条目定位重述写回,降级不炸、审计记通道与原因。
+      // 任何失败零落盘或已还原,异常上抛为 RemoteError。
       const writePath = this.entryWritePath(entry)
+      const baselineText = pending.payload.baseline !== undefined && pending.payload.baseline.path === writePath
+        ? pending.payload.baseline.text
+        : undefined
+      const channelResolution = this.resolveConfigEditorChannel(entry, writePath)
+      const writeChannel = 'channel' in channelResolution ? 'config-editor' : 'entry-patch'
       try {
-        await this.entryWriter.writeNext({
-          path: writePath,
-          baseline: pending.payload.baseline !== undefined && pending.payload.baseline.path === writePath
-            ? pending.payload.baseline.text
-            : undefined,
-          build: (original) => {
-            const next = buildNextEntryFileText(entry, original, input.content)
-            selfCheckEntryWrite(entry, original, next, input.content)
-            return next
-          },
-          verify: () => this.dryRunVerify(),
-        })
+        if ('channel' in channelResolution) {
+          const channel = channelResolution.channel
+          await this.entryWriter.runGoverned({
+            path: writePath,
+            baseline: baselineText,
+            run: async () => {
+              // 每次尝试前重取活引用+瞬态退避重试(见 editViaConfigEditor):本闭包在
+              // 单写者链上排队,轮到执行时前序写的重组合可能已替换条目对象。
+              await this.editViaConfigEditor(channel.editor, channel.rowId, current =>
+                applyEntryToRowConfig(entry, current, input.content))
+            },
+            verify: () => this.dryRunVerify(),
+            restore: async () => {
+              // verify 失败:经同一 seam 写回审批前行 config(同步重组合;活引用重取与
+              // 瞬态退避同款)。restore 最终抛错由 runGoverned 退字节级还原。
+              await this.editViaConfigEditor(channel.editor, channel.rowId,
+                () => structuredClone(channel.beforeRowConfig))
+            },
+          })
+        } else {
+          await this.entryWriter.writeNext({
+            path: writePath,
+            baseline: baselineText,
+            build: (original) => {
+              const next = buildNextEntryFileText(entry, original, input.content)
+              selfCheckEntryWrite(entry, original, next, input.content)
+              return next
+            },
+            verify: () => this.dryRunVerify(),
+          })
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         // TOCTOU 拒写:文件在审批后被外部改写——零落盘、外部状态保持,按「可刷新
         // 重试的 rejected」返回(与 baseVersionId 过期同语义),不按 I/O 失败上抛。
         if (error instanceof EntryToctouError) {
-          this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, entryId, reason: 'toctou-baseline-mismatch', stage: 'write', issues: [message], approvalId: pending.approvalId, patchPath: writePath })
+          this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, entryId, reason: 'toctou-baseline-mismatch', stage: 'write', issues: [message], approvalId: pending.approvalId, patchPath: writePath, channel: writeChannel })
           return { status: 'rejected', issues: [message], effectiveNote: EFFECTIVE_NOTE }
         }
-        this.audit.write(`prompt-${kind}.write-failed`, { kind, operator: author, entryId, error: message, approvalId: pending.approvalId, patchPath: writePath })
+        this.audit.write(`prompt-${kind}.write-failed`, { kind, operator: author, entryId, error: message, approvalId: pending.approvalId, patchPath: writePath, channel: writeChannel })
         throw badRequest(`写回失败(条目 ${entryId};现值未变:写前自检拦截或已自动还原):${message}`)
       }
       const record = await store.append({
@@ -801,6 +941,10 @@ export class LoopPromptGateway extends TypertRemoteService {
         checksum: record.checksum,
         patchPath: writePath,
         approvalId: pending.approvalId,
+        // 写回通道(T2.1):config-editor=官方 seam 热生效;entry-patch=直写兜底
+        // (channelNote 记降级原因——configEditor 缺席/条目不可达)。
+        channel: writeChannel,
+        ...('channel' in channelResolution ? {} : { channelNote: channelResolution.fallback }),
       })
       // T2.6:committed 后重刷运行时条目缓存(当前写链路对 runtime 条目 fail-closed,
       // 该刷新面向未来开放 store 写回落点时即刻生效;幂等且便宜,只扫 2 条 runtime 条目)。
@@ -976,7 +1120,9 @@ export type { PromptVersionRecord } from './types.ts'
 export { PromptVersionStore, VERSION_UNIT_DESCRIPTOR, VERSION_UNIT_NAME } from './version-store.ts'
 export { PersonaPatchFile, selfCheckNextPatchText } from './persona-patch.ts'
 export { EntryPatchFile, EntryToctouError, buildNextEntryFileText, entrySpanOf, selfCheckEntryWrite } from './entry-patch.ts'
-export type { EntrySpan, EntryWriteRequest, EntryWriteResult } from './entry-patch.ts'
+export type { EntrySpan, EntryWriteRequest, EntryWriteResult, GovernedRunRequest } from './entry-patch.ts'
+export { applyEntryToRowConfig, readConfigEditorRows, resolveConfigEditor } from './config-editor-write.ts'
+export type { ConfigEditorFace, ConfigEditorRow } from './config-editor-write.ts'
 export {
   DEFAULT_ENTRY_ID, ENTRY_KIND_LABELS, LAYER_LABELS, PROMPT_REGISTRY_ENTRIES, WEB_PATCH, checkEntryAnchors,
   ensureEntryWritable, getPromptRegistryEntry, listPromptRegistryEntries, locateYamlConfigKey, readBlockScalarValue,

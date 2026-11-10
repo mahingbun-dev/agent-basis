@@ -13,6 +13,9 @@
  *      committed、版本 +1、checksum 变化(==sha256(新文本)、≠写前);
  *   C. 新会话系统提示含新文本(LITELLM 真模型回合,通道 A 无需重启、宿主 pid 不变);
  *      旧会话(保存前已开)补轮后系统提示不含新文本;
+ *      T2.1 起保存优先经官方 configEditor seam 写回热生效——5.8 审计通道字段=
+ *      config-editor、5.9 整行写回后 !!js 表达式保真、5.10 写后 dump-config 干跑
+ *      通过、5.11 不等 8s 文件监视 HMR 的新会话立即用新文(edit 返回即重组合完成);
  *   D. loopPrompt/trace 返回新会话轮次树(含工具调用与审批点:回合内驱动
  *      bash 工具,宿主 approval/asked 审批瀑布经官方 $events 流转发给本脚本,
  *      以 $events/result 应答 allowed-once——与浏览器 owner client 同一协议);
@@ -541,6 +544,37 @@ try {
   {
     const snapAfter = await dsh.call('loopPrompt/snapshot')
     check('5.5 prompt-save(二段): 在途审批已清', snapAfter.pendingApproval === null)
+  }
+  // T2.1 写穿 configEditor 断言(测试计划 §4 T2.1:官方 seam 写回 + 不重启热生效):
+  // persona 落点在 live patch 顶层 preset-standard 行 → 优先走 configEditor.edit 通道
+  // (edit 返回时 Loader 重组合已完成),entry-patch 直写降为兜底。
+  {
+    const committedRecs = (await waitForAuditActions(['prompt-save.committed']))
+      .filter((r) => r.action === 'prompt-save.committed')
+    check('5.8 T2.1: 保存经 configEditor 通道(审计 committed 带 channel=config-editor)',
+      committedRecs.some((r) => r.channel === 'config-editor'),
+      `channels=${committedRecs.map((r) => r.channel).join(',') || '(未读到)'}`)
+    const patchNow = readFileSync(patchPath, 'utf8')
+    const jsLines = patchNow.split('\n').filter((l) => l.includes('!!js') && l.includes('process.platform'))
+    check('5.9 T2.1: configEditor 整行写回后 !!js 表达式保真(未被求值 bake)',
+      jsLines.some((l) => l.includes("=== 'win32'")) && jsLines.some((l) => l.includes("!== 'win32'")),
+      `jsExpr 行数=${jsLines.length}`)
+    const dump = spawnSync(process.execPath, [
+      resolve(profile, 'node_modules/@deepseek-ai/dsh/lib/bin.js'),
+      '--profile', profileName, '--dump-config',
+    ], { cwd: profile, encoding: 'utf8', env: { ...process.env, DSH_HOME: home }, timeout: 180000 })
+    check('5.10 T2.1: configEditor 写回后 dump-config 干跑通过且组合树含新文(V2)',
+      dump.status === 0 && (dump.stdout ?? '').includes(MARKER_V2) && !/skipping|incompatible/i.test(dump.stdout ?? ''),
+      `status=${dump.status}`)
+    // 即时热生效:不等 8s 文件监视 HMR(configEditor.edit 返回即重组合完成),
+    // 立即开新会话即用新文——「写回后不重启,新会话即用新文」的通道级证据。
+    const sessionCId = (await dsh.createSession()).sessionId
+    await dsh.prompt(sessionCId, PROMPT_TEXT)
+    await dsh.awaitTurnEnd(sessionCId, 1)
+    const textsC = await dsh.liveSystemPromptTexts(sessionCId)
+    check('5.11 T2.1: 新会话 C 不等 HMR 即用新文(configEditor 同步重组合;同进程 pid 不变)',
+      textsC.includes(MARKER_V2) && host.exitCode === null && host.pid === hostPid,
+      `session=${sessionCId}`)
   }
   await sleep(8000) // HMR 重组合时序(awaitWriteFinish≈2s;UI 按 8s 级等待)
   check('5.6 保存后宿主日志无 skipping/incompatible(HMR 洁净)', !/skipping|incompatible/i.test(readFileSync(hostLog, 'utf8')))

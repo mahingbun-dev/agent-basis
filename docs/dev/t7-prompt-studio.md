@@ -40,9 +40,27 @@ SRC 参数绑定按运行时形参名:所有带参端点参数名一律 `input`,
 2. 第二段(带 `approvalId` + `approved: true`):
    - **必须回显同内容**(TOCTOU 防线):save 回显 `content`;rollback 回显
      `versionId`;import 回显同一 `pack`。不符 → `approval-mismatch`。
-   - 通过 → patch 原子写(写前 YAML 解析自检 `selfCheckNextPatchText` + 写后宿主内
-     `dsh --dump-config` 干跑自检,失败自动还原/零磁盘改动,见 §4)
-     → 版本追加 → 审计 committed → `status='committed'` + 新版本记录。
+   - 通过 → **双通道写回(T2.1,同文件同链单写者互斥串行)**:
+     - **configEditor 通道(优先)**:条目落点在本宿主 live patch 顶层行(preset 层
+       persona/plan-mode 等)→ 经官方 configEditor seam `edit(entry, change)` 整行
+       config 写回(src/config-editor-write.ts)——edit 返回时 Loader 重组合已完成,
+       **不重启、不等文件监视 HMR,新会话即用新文**(t7-e2e 5.8–5.11 断言);
+       `!!js` 表达式经官方 yaml 往返保真(loader 契约「raw node stays in the
+       options, so write-back keeps the form」)。edit 经 `editViaConfigEditor`
+       执行:每次尝试前重取 entries() 活引用(单写者链排队期间前序写的重组合会
+       替换条目对象)+ 瞬态错误(「HMR transactions cannot be nested」/
+       「no longer available」)退避重试至多 3 次(llm-doctor:186-202 先例);
+       通道解析有**落点一致性双守卫**(宿主 profileContext.patchPath、seam
+       documentPath 任一 ≠ 本网关 patch 落点 → 兜底直写,防 seam 持久化/TOCTOU
+       基线/审计 patchPath 三处落点错位)。TOCTOU 基线门与 verify-fail
+       还原纪律(seam 写回基线行 config;seam 不可用退字节级还原)由
+       `EntryPatchFile.runGoverned` 补齐(与直写同款);
+     - **entry-patch 直写(兜底)**:configEditor 服务缺席/条目不可达(领域 pack
+       文件、persona.md 整文件、行不在活跃条目)→ 按条目定位重述写回,降级不炸、
+       审计记原因。
+     写后均跑宿主内 `dsh --dump-config` 干跑自检(失败自动还原/零磁盘改动,见 §4)
+     → 版本追加 → 审计 committed(**带 `channel` 字段**:`config-editor` /
+     `entry-patch`+`channelNote` 降级原因)→ `status='committed'` + 新版本记录。
    - `approved: false` → `approval-declined`,无副作用。
 3. `rejected` 携带 `issues[]`(人话校验明细);在途审批未决时再次第一段会替换旧卡。
 
@@ -82,15 +100,22 @@ AuditProjector+FileAuditSink 写 `<DSH_HOME>/basis-prompt-studio/audit.jsonl`
   node_modules 解析 + realpath 落 repo 工作区;dsh-client-modules 扫 Loader 条目的
   包清单——两个消费方都不读 profile 依赖表。
 - 版本库幂等清场 = 删 `<home>/storages/basis_prompt_studio/`(smoke 每轮先清)。
-- smoke 断言(38 项 → **54 项**,exit 0 可重复;2026-11-11 T1.4 读侧按条目泛化
-  扩 16 项,基线只增不减):pluginInventory 行 enabled+active、启动与
+- smoke 断言(38 项 → **68 项**,exit 0 可重复;T1.4 读侧按条目泛化扩至 54,
+  T1.6 写链路按条目再扩至 68,基线只增不减;`grep -c "check('"
+  scripts/t7-smoke.mjs` 机械核对):pluginInventory 行 enabled+active、启动与
   HMR 后日志无 skipping/incompatible、snapshot/prompt-get/versions/trace、
   save/rollback 两段式全链、盘面单元目录、审计 G5 字段;T1.4 新增——snapshot
   entries[] 注册表全景、prompt-get/prompt-versions {entryId} 三型采样(块标量
   plan-mode `|` 值与 dump-config 组合树一致 / 领域 personaPrefix `>-` 与 pack
   文件逐字一致 / time-context 只读型「上游运行时生成」标注)、未知 entryId
   not-found 明示、persona per-entry 与旧口径互证、跨条目回滚 fail-closed、
-  磁盘文档 entryId 分链对账(persona 链 3 + 六条目链首各 1 = 9 文档)。
+  磁盘文档 entryId 分链对账;T1.6 新增——按条目写回(plan-mode 块标量/领域
+  `>-` 形态 A)save+rollback、time-context 只读型拒写、审计 entryId。
+- **写回通道(T2.1,2026-11-11 实测)**:preset 层条目经官方 configEditor seam
+  写回(audit `channel=config-editor`),领域层 pack 文件走 entry-patch 直写
+  兜底(`channel=entry-patch` + channelNote「写回落点不在本宿主 live patch」);
+  t7-e2e 断言 72 → **76 项**(5.8–5.11:通道字段/!!js 保真/dump-config 干跑/
+  不等 HMR 的新会话即用新文,pid 不变),全部 PASS / exit 0。
 - **已知过渡限制(T1.4 评审 2026-11-11)**:写通道(回滚/导出包)仍是 persona
   单口径——`prompt-rollback {versionId}` 与 `prompt-export {versionId}` 对
   `entryId !== preset.standard.persona` 的版本 fail-closed 拒绝(回滚拒绝/

@@ -256,6 +256,24 @@ export interface EntryWriteResult {
 }
 
 /**
+ * 受治理通道执行请求(T2.1 configEditor 通道):与 writeNext 同文件同链单写者,但
+ * 写动作由 `run` 自带(官方 seam 内部自管原子写与 Loader 重组合);本壳补齐直写通道
+ * 同款的 TOCTOU 基线门与写后 verify 失败还原纪律(persona-patch.test.ts:159-167 口径)。
+ */
+export interface GovernedRunRequest {
+  /** 目标文件绝对路径(同路径共用单写者链,与直写通道互斥串行)。 */
+  readonly path: string
+  /** TOCTOU 写前基线(审批时的文件全文);与写前现值不一致即拒写(零写入)。 */
+  readonly baseline?: string | undefined
+  /** 通道执行体(如 configEditor.edit);抛错=通道失败,上抛调用方。 */
+  readonly run: () => Promise<void>
+  /** 写后验证(同 writeNext.verify;抛错触发还原后上抛)。 */
+  readonly verify?: () => Promise<void>
+  /** verify 失败的通道级还原(如经同一 configEditor seam 写回审批前行 config,同步重组合)。 */
+  readonly restore?: () => Promise<void>
+}
+
+/**
  * TOCTOU 拒写错误(写前基线不符):文件在审批后被外部改写。零磁盘操作——文件
  * 保持外部改写后的状态。写链路网关以「可刷新重试的 rejected」语义回给调用方
  * (区别于 I/O 型写失败的上抛),本类型即两者的判别面。
@@ -272,7 +290,8 @@ export class EntryToctouError extends Error {
  * 并发写自然串行),每次写 = TOCTOU 基线校验 → build(定位+重述+自检)→ 备份 →
  * 原子写 → verify(失败自动还原)。与 PersonaPatchFile 的差异:面向任意条目/任意
  * 文件(领域包文件各自成链),新增 baseline TOCTOU 门;写盘纪律(原子写/备份/还原/
- * 无残留)与 persona-patch 同款。
+ * 无残留)与 persona-patch 同款。T2.1 起 runGoverned 把 configEditor 官方 seam 写回
+ * 纳入同一条单写者链(与直写通道互斥串行)。
  */
 export class EntryPatchFile {
   readonly #io: PersonaPatchIo
@@ -313,6 +332,44 @@ export class EntryPatchFile {
         return { replaced: true as const, changed: true }
       } finally {
         await this.#io.rm(backupPath).catch(() => undefined)
+      }
+    })
+    this.#chains.set(path, run.catch(() => undefined))
+    return run
+  }
+
+  /**
+   * 受治理通道执行(T2.1 configEditor 通道):TOCTOU 基线校验 → run(官方 seam 写回)
+   * → verify(失败还原)。还原优先级:通道级 restore(同一 seam 写回基线行 config,
+   * 同步重组合)→ 其后兜底字节级还原(基线全文原子写回,对齐直写通道的 verify-fail
+   * 还原纪律);restore 成功后复核文件字节,未回基线同样强制字节还原——保证
+   * 「verify 失败 ⇒ 已写状态被回滚」在两条通道上都字节级成立。
+   */
+  runGoverned(request: GovernedRunRequest): Promise<void> {
+    const path = request.path
+    const run = (this.#chains.get(path) ?? Promise.resolve()).then(async () => {
+      const original = await this.#io.readFile(path)
+      if (request.baseline !== undefined && request.baseline !== original) {
+        throw new EntryToctouError(path)
+      }
+      await request.run()
+      try {
+        await request.verify?.()
+      } catch (error) {
+        let restored = false
+        try {
+          await request.restore?.()
+          restored = true
+        } catch (restoreError) {
+          console.error(`prompt-studio: 写后验证失败且通道还原失败(退字节级还原):${restoreError instanceof Error ? restoreError.message : String(restoreError)}`)
+        }
+        if (request.baseline !== undefined) {
+          const afterRestore = await this.#io.readFile(path)
+          if (!restored || afterRestore !== request.baseline) {
+            await this.#io.atomicWrite(path, request.baseline)
+          }
+        }
+        throw error
       }
     })
     this.#chains.set(path, run.catch(() => undefined))
