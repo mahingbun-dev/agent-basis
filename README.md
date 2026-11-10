@@ -7,7 +7,7 @@
 [![CI](https://github.com/mahingbun-dev/agent-basis/actions/workflows/ci.yml/badge.svg)](https://github.com/mahingbun-dev/agent-basis/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/mahingbun-dev/agent-basis)](https://github.com/mahingbun-dev/agent-basis/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-![tests](https://img.shields.io/badge/tests-1076%20passing-success)
+![tests](https://img.shields.io/badge/tests-1073%20passing-success)
 
 ![EternaAgent web UI — brand hero with the bolt mark and the tagline](docs/assets/screenshots/eterna-hero.png)
 
@@ -51,7 +51,7 @@ Prerequisites: Node ≥ 22 and pnpm ≥ 10 (`corepack enable`). No model credent
 
 ```bash
 pnpm install
-pnpm run verify        # 20 packages: oxlint + tsc strict + vitest → all green (1076 tests)
+pnpm run verify        # 20 packages: oxlint + tsc strict + vitest → all green (1073 tests)
 
 # Scaffold a new industry pack, then lint it
 node tools/packctl/bin/packctl.mjs init <industry> --root packs
