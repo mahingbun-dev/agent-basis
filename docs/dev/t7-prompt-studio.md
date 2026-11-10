@@ -89,6 +89,39 @@ SRC 参数绑定按运行时形参名:所有带参端点参数名一律 `input`,
   保存/回滚/导入等全部写操作对既有快照零影响;指针与文本由同一 checksum 绑定
   (写入并发开会话不出现「指针 v1/文本 v2」混合)。
 
+### 历史会话严格回放(T2.4,src/assembly-replay.ts)
+
+- 监听:插件 apply 注册全局未打标 `system-prompt/assemble` waterfall 监听
+  (spike §四.4:未打标=收到全部会话的组装);监听器先完成异步快照解析再放行
+  `next()`,替换对下游监听器与渲染即时可见;**绝不上抛**(回放失败只审计,
+  不炸模型步骤)。
+- 替换面(只动文本面):段名映射——persona×4(preset×2 + 领域 personaPrefix×2,
+  同段名互为 shadow)→ `deployment:persona-prefix`;plan-mode×2 → `plan:policy`。
+  身份判定(两路都要求**唯一**命中):段文本与候选条目 **live 值** 比对(唯一
+  命中→替换为该条目**快照值**;多候选同文→`governing-entry-ambiguous` 跳过,
+  防两预设同段被改成同文时把旧会话替换成错误条目的快照旧文);live 无命中再与
+  候选**快照值** 比对(唯一命中→governed:旧会话 scoped 层持久持有旧实例,段
+  文本本就等于快照旧值;多候选同文→同样跳过);两路都不命中→`governing-entry-
+  unknown` 跳过(未登记源/子代理自有 persona,盲替有张冠李戴风险)。比对按
+  规范化(行尾/首尾空白归一)判等,替换值用快照原文逐字。
+- 分型跳过(语义同 T2.3):行锚点只读型/运行时注入型跳过并记原因(不因无
+  versionId 失败);无段落映射的 patch 值型(agent-instructions 数值配置、
+  persona-md 文件基准)明示 `no-section-mapping`;plan 模式未激活(空段)明示
+  `section-empty`。
+- 降级矩阵(全部审计):快照库未挂载/组装上下文无 `context.agent.id`(上游
+  未声明字段,spike §四.1,防御式访问)/会话无快照(装载前创建/捕获失败)→
+  跳过替换用当前值;`complete: true` 段在场(dsh-persona 行 config 可检测面,
+  spike §四.2;检测只认条目 configKey 同缩进的**兄弟键行**,块标量正文字面
+  `complete: true` 不误判)→ 整段跳过并按(会话|段)一次审计
+  `assembly-replay.skipped`(代码注册来源不可检测,替换被上游丢弃亦无害)。
+- 审计动作:`assembly-replay.applied`(有替换,带 replaced/governed/skipped
+  全量细节)、`assembly-replay.governed`(零替换但身份经快照解析;均按
+  (会话|段|结局) 去键防每步组装刷屏)、`assembly-replay.degraded`(按会话
+  去键)、`assembly-replay.skipped`(complete-owner 按(会话|段)去键;bad-shape
+  按消息去键)、`assembly-replay.failed`(异常,按消息去键)。
+- 快照查缓:会话级缓存(快照不可变,缓存永不过期;上限 256 逐出最旧);未命中
+  且会话仍在待捕队列(创建→首轮组装竞态)→ 等捕获排空再查一次后落缓。
+
 ### 审计(G5)
 
 `ctx.governance.audit.reportGovernance` 存在则上报 glue;否则兜底
@@ -131,6 +164,22 @@ AuditProjector+FileAuditSink 写 `<DSH_HOME>/basis-prompt-studio/audit.jsonl`
   兜底(`channel=entry-patch` + channelNote「写回落点不在本宿主 live patch」);
   t7-e2e 断言 72 → **76 项**(5.8–5.11:通道字段/!!js 保真/dump-config 干跑/
   不等 HMR 的新会话即用新文,pid 不变),全部 PASS / exit 0。
+- **历史会话严格回放(T2.4,2026-11-11 实测)**:插件 apply 注册全局未打标
+  `system-prompt/assemble` waterfall 监听(`src/assembly-replay.ts`),按 T2.3
+  会话快照逐段替换 patch 值型条目文本(段名映射:persona×4 →
+  `deployment:persona-prefix`、plan-mode×2 → `plan:policy`;身份判定两路都要求
+  **唯一**命中——live 值命中→替换为快照值,仅快照命中→governed(旧会话
+  scoped 层持久持有旧实例),多候选同文或两路皆不命中即 fail-safe 跳过不盲替);
+  行锚点只读型/运行时注入型跳过并记原因(分型语义同 T2.3);
+  快照缺席/会话身份缺席(`context.agent.id` 为上游未声明字段,spike §四.1)/
+  快照库未挂载全部降级用当前值;dsh-persona 行 `complete: true` 在场检测
+  (只认 configKey 同缩进兄弟键行;在场跳过并按(会话|段)一次审计,spike
+  §四.2;代码注册的 complete 段不可检测,替换被上游丢弃亦无害)。t7-e2e 断言
+  76 → **88 项**(14.1–14.12:非 persona 条目 plan-mode section 改后旧会话补轮
+  仍旧文/新会话用新文/pid 不变/审计 `assembly-replay.governed` 含 plan-mode
+  条目——治理身份从会话快照解析),全部 PASS / exit 0;单测
+  `tests/assembly-replay.test.ts`(纯函数身份判定含 live/快照双路歧义/分型
+  跳过/complete 检测含正文行负例/降级 + 真 cordis waterfall 集成)。
 - **已知过渡限制(T1.4 评审 2026-11-11)**:写通道(回滚/导出包)仍是 persona
   单口径——`prompt-rollback {versionId}` 与 `prompt-export {versionId}` 对
   `entryId !== preset.standard.persona` 的版本 fail-closed 拒绝(回滚拒绝/

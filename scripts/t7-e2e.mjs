@@ -771,6 +771,111 @@ try {
       docs.length === versionsFinal.total + 6, `docs=${docs.length} total=${versionsFinal.total}`)
   }
 
+  // 14) 断言链 T2.4:历史会话严格回放(system-prompt/assemble waterfall 按会话快照
+  //     替换条目文本;计划书 §6 T2.4/测试计划 §4 T2.4)。非 persona 条目采样=
+  //     preset.standard.plan-mode.section(改前旧会话已开 → 改后旧会话补轮仍旧文、
+  //     新会话用新文;同一服务不重启 pid 不变;审计含回放事件 applied|governed——
+  //     两条通道都证明治理条目身份是从**会话快照**解析的)。
+  {
+    // 基线锚点=standard 预设 plan 段第二句(新文刻意不保留,作新旧判别);
+    // 新文=原首句 + T2.4 标记(保持 plan 语义,防模型行为漂移)。
+    const PLAN_BASE_ANCHOR = 'Imperative language to implement changes means plan the implementation, not execute it'
+    const PLAN_V2_MARKER = 'T7_E2E_PLAN_V2'
+    const PLAN_NEW = `You are in plan mode. Stay in plan mode until the user approves your plan through exit_plan_mode. ${PLAN_V2_MARKER}: plan-mode 段已由 T2.4 回放断言链改写(新会话应见此段)。`
+    // commands/execute 形参须与 descriptor 全量匹配(submittedAttachments 不可缺省)。
+    const enterPlanMode = (sessionId) => dsh.call('commands/execute', { agentId: sessionId, line: '/plan', submittedAttachments: [] })
+
+    // 旧会话 P(改前开启,快照=基线 plan 段)+ 激活 plan 模式 + 首轮(基线可见)
+    const sessionPId = (await dsh.createSession()).sessionId
+    const planOnP = await enterPlanMode(sessionPId)
+    check('14.1 /plan 命令进入 plan 模式(command/execute 返回 success)', planOnP?.result?.kind === 'success',
+      `kind=${planOnP?.result?.kind} text=${String(planOnP?.result?.text ?? '').slice(0, 60)}`)
+    await dsh.prompt(sessionPId, PROMPT_TEXT)
+    await dsh.awaitTurnEnd(sessionPId, 1)
+    {
+      const texts = await dsh.liveSystemPromptTexts(sessionPId)
+      check('14.2 会话 P(旧)首轮系统提示含基线 plan 段(plan 模式激活,回放前提)',
+        texts.includes(PLAN_BASE_ANCHOR), `session=${sessionPId}`)
+      check('14.3 会话 P(旧)首轮系统提示不含 plan 新文标记(尚未保存)', !texts.includes(PLAN_V2_MARKER))
+    }
+    // 快照侧证:T2.3 快照里该条目文本=基线(旧会话回放的数据源)
+    {
+      const snap = await dsh.call('loopPrompt/session-snapshot', { input: { sessionId: sessionPId } })
+      const planEntry = (snap.snapshot?.entries ?? []).find((e) => e.entryId === 'preset.standard.plan-mode.section')
+      check('14.4 会话 P 快照:plan-mode 条目文本=基线(严格回放数据源在位)',
+        snap.status === 'ok' && planEntry?.text !== null && String(planEntry?.text).includes(PLAN_BASE_ANCHOR),
+        `status=${snap.status} entryText=${String(planEntry?.text ?? null).slice(0, 50)}`)
+    }
+
+    // 改非 persona 条目:plan-mode section 两段式保存(configEditor 通道热生效)
+    const planSave1 = await dsh.call('loopPrompt/prompt-save', {
+      input: { entryId: 'preset.standard.plan-mode.section', content: PLAN_NEW, author, summary: 'T2.4 回放:plan-mode 段改新文' },
+    })
+    check('14.5 prompt-save(plan-mode,一段): status=approval-required', planSave1.status === 'approval-required',
+      `status=${planSave1.status}`)
+    const planSave2 = await dsh.call('loopPrompt/prompt-save', {
+      input: {
+        entryId: 'preset.standard.plan-mode.section', content: PLAN_NEW, author,
+        approvalId: planSave1.approval?.approvalId, approved: true, summary: 'T2.4 回放:plan-mode 段改新文',
+      },
+    })
+    check('14.6 prompt-save(plan-mode,二段): committed(非 persona 条目写回)',
+      planSave2.status === 'committed' && planSave2.version?.entryId === 'preset.standard.plan-mode.section',
+      `status=${planSave2.status}`)
+
+    // 新会话 Q(改后开启):plan 模式激活后首轮即用新文(新会话读最新)
+    const sessionQId = (await dsh.createSession()).sessionId
+    await enterPlanMode(sessionQId)
+    await dsh.prompt(sessionQId, PROMPT_TEXT)
+    await dsh.awaitTurnEnd(sessionQId, 1)
+    {
+      const texts = await dsh.liveSystemPromptTexts(sessionQId)
+      check('14.7 会话 Q(新)系统提示含 plan 新文标记(新会话读最新)', texts.includes(PLAN_V2_MARKER),
+        `session=${sessionQId}`)
+      check('14.8 会话 Q(新)系统提示不含基线 plan 段首句(新文已替换)', !texts.includes(PLAN_BASE_ANCHOR))
+    }
+
+    // 旧会话 P 补轮:严格回放核心——仍基线旧文、不含新文标记(同服务不重启)
+    await dsh.prompt(sessionPId, PROMPT_TEXT)
+    await dsh.awaitTurnEnd(sessionPId, 2)
+    {
+      const texts = await dsh.liveSystemPromptTexts(sessionPId)
+      check('14.9 会话 P(旧)补轮后仍含基线 plan 段(旧会话全程沿用快照)',
+        texts.includes(PLAN_BASE_ANCHOR), `session=${sessionPId}`)
+      check('14.10 会话 P(旧)补轮后不含 plan 新文标记(严格回放不吸收新文)',
+        !texts.includes(PLAN_V2_MARKER))
+      check('14.11 宿主 pid 未变(严格回放全程同一服务)', host.exitCode === null && host.pid === hostPid,
+        `pid=${host.pid}`)
+    }
+
+    // 审计证据:回放监听按会话快照替换/身份解析(applied=已替换回旧文;governed=
+    // 段文本本就等于快照旧值[旧会话 scoped 层持久持有旧实例],身份经快照解析)——
+    // 两条通道都以 snapshotId+entryId 证明「回放由会话快照治理」。
+    {
+      const auditFile2 = resolve(home, 'eterna-prompt-studio', 'audit.jsonl')
+      const replayScan = await (async () => {
+        const t0 = Date.now()
+        for (;;) {
+          const records = existsSync(auditFile2)
+            ? readFileSync(auditFile2, 'utf8').split('\n').filter(Boolean)
+              .map((line) => { try { return JSON.parse(line) } catch { return undefined } }).filter(Boolean)
+              .map((r) => r.detail ?? {})
+              .filter((d) => typeof d.action === 'string' && d.action.startsWith('assembly-replay.'))
+            : []
+          const hit = records.filter((d) => d.sessionId === sessionPId
+            && (d.action === 'assembly-replay.applied' || d.action === 'assembly-replay.governed')
+            && [...(d.replaced ?? []), ...(d.governed ?? [])].some((item) => item.entryId === 'preset.standard.plan-mode.section'))
+          if (hit.length >= 1) return { records, hit }
+          if (Date.now() - t0 > 15000) return { records, hit }
+          await sleep(500)
+        }
+      })()
+      check('14.12 审计:会话 P 有回放事件(applied|governed)且治理条目=plan-mode(身份从会话快照解析)',
+        replayScan.hit.length >= 1,
+        `events=${replayScan.hit.map((d) => d.action).join(',') || '(未读到)'} replayEvents=${replayScan.records.length}`)
+    }
+  }
+
   console.log('[cleanup] SIGTERM 宿主(持久化层停机冲刷)…')
 } catch (error) {
   failures.push(String(error?.message ?? error))

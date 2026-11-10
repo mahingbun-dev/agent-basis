@@ -35,6 +35,11 @@
  *                                分型标注;无快照 not-found、快照库未挂载 unavailable
  *                                分态明示不抛);缺省 → 最近快照列表(未挂载 ready=false)
  *
+ * 非端点扩展(T2.4):apply 时注册全局未打标 `system-prompt/assemble` waterfall 监听
+ * (registerAssembleReplay),按 T2.3 会话快照逐段替换 patch 值型条目文本——历史会话
+ * 严格回放(新会话读最新、旧会话全程沿用快照、快照/身份缺席降级用当前值;实现与
+ * 分型跳过语义见 assembly-replay.ts,机制依据 docs/dev/ps-v2-spike.md)。
+ *
  * Node 24 type-stripping 不解析标准 decorator 语法,故经 Remote() 公开函数面
  * 手工施加装饰器(等价于 @Remote('snapshot') 糖,对齐 packages/panel/src/index.ts)。
  * SRC 参数绑定按运行时方法形参名(网关 methodParameterNames):参数一律用单个
@@ -55,6 +60,10 @@ import { join } from 'node:path'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type { StorageBackend } from '@deepseek-ai/dsh-storage'
 import { storageBackendServiceKey } from '@deepseek-ai/dsh-storage'
+import {
+  ASSEMBLE_EVENT, type AssemblyReplayResult, type ReplayAssembledSection, SKIP_COMPLETE_OWNER,
+  agentIdOfAssembleContext, pluginSpanOwnsCompleteFlag, resolveAssemblyReplay,
+} from './assembly-replay.ts'
 import { ApprovalGate } from './approval.ts'
 import type { CardFacts, PendingWritePayload } from './approval.ts'
 import { WILDCARD_WRITE_RULE_ID, entryWriteRuleId } from './approval.ts'
@@ -205,6 +214,39 @@ function sessionIdOf(session: unknown): string | undefined {
   return typeof id === 'string' && id.trim() !== '' ? id : undefined
 }
 
+/** 回放快照查缓上限(会话级;超限逐出最旧,防长寿命进程无界增长)。 */
+const REPLAY_SNAPSHOT_CACHE_LIMIT = 256
+
+/** 回放审计去键上限(超限整体清空——代价只是可能重复审计行,无正确性影响)。 */
+const REPLAY_AUDIT_KEY_LIMIT = 4096
+
+/**
+ * complete 标志缓存 TTL:标志几乎不随组装变化,每步重扫 live patch 无谓;本插件
+ * 写链路 committed 即主动失效,外部改写(升级合并)由 TTL 兜底——两向失效代价
+ * 均无害(stale true→多跳一次替换,上游本会丢弃;stale false→照常尝试替换)。
+ */
+const REPLAY_COMPLETE_FLAG_TTL_MS = 30_000
+
+/**
+ * 防御式提取组装段列表(上游 PromptPresentation.sections 的结构面子集):
+ * 非对象/sections 非数组/段非 {name,text} 字符串 → undefined(bad-shape 降级,
+ * 绝不炸组装)。
+ */
+function replaySectionsOf(assembly: unknown): ReplayAssembledSection[] | undefined {
+  if (typeof assembly !== 'object' || assembly === null) return undefined
+  const sections = (assembly as { readonly sections?: unknown }).sections
+  if (!Array.isArray(sections)) return undefined
+  const out: ReplayAssembledSection[] = []
+  for (const section of sections) {
+    if (typeof section !== 'object' || section === null) return undefined
+    const name = (section as { readonly name?: unknown }).name
+    const text = (section as { readonly text?: unknown }).text
+    if (typeof name !== 'string' || typeof text !== 'string') return undefined
+    out.push(section as ReplayAssembledSection)
+  }
+  return out
+}
+
 /** 注册表条目 → 线上元数据视图(快照 entries[] 与 per-entry prompt-get 共用)。 */
 function entryViewOf(entry: PromptRegistryEntry): PromptEntryView {
   return {
@@ -285,6 +327,23 @@ export class LoopPromptGateway extends TypertRemoteService {
   readonly pendingCaptureSessions: string[] = []
   /** 捕获串行链尾(与版本库同款单写者纪律;公开字段=网关 shadow 约束)。 */
   captureChain: Promise<unknown> = Promise.resolve()
+  /**
+   * 回放快照查缓(T2.4;sessionId → 快照记录/缺席标记 undefined):快照只增
+   * 不可变(T2.3 铁律),缓存记录永不过期;缺席值在捕获排空后落缓(见
+   * snapshotForReplay)。公开字段=网关 shadow 约束。
+   */
+  readonly replaySnapshotCache = new Map<string, SessionSnapshotRecord | undefined>()
+  /** 回放审计去键((sessionId|段名|结局) → 已审计;防每步组装重复刷审计)。 */
+  readonly replayAuditKeys = new Set<string>()
+  /**
+   * complete 标志 TTL 缓存(entryId → {at,value}):每步组装不重扫 live patch;
+   * committed 写后与 detachStore 时清空,外部改写由 TTL 兜底。公开字段=网关
+   * shadow 约束。
+   */
+  readonly replayCompleteFlagCache = new Map<string, { at: number; value: boolean }>()
+  /** 进程级一次性备注(no-agent-id / 快照库未挂载;公开字段=网关 shadow 约束)。 */
+  replayNotedNoAgentId = false
+  replayNotedStoreUnavailable = false
   /** 按条目种子的一次性记忆(ensureEntrySeeds;detach 时重置。公开字段=网关 shadow 约束)。 */
   entrySeedPromise: Promise<void> | undefined
   /**
@@ -630,6 +689,191 @@ export class LoopPromptGateway extends TypertRemoteService {
     return store.append({ sessionId, trigger: SESSION_CREATED_TRIGGER, entries })
   }
 
+  // ---------- T2.4 历史会话严格回放(system-prompt/assemble waterfall) ----------
+
+  /**
+   * 注册 assemble waterfall 回放监听(T2.4):全局未打标 `system-prompt/assemble`
+   * 监听(收到全部会话的组装,dsh-scope scopeTarget 语义——spike §四.4);返回
+   * disposer。监听器先完成(异步)替换解析再放行 next()——waterfall 串行组合,
+   * 下游监听器与渲染读到的即替换后的 sections。本监听器绝不让回放失败炸组装
+   * (handleAssembleReplay 全量吞错并审计)。
+   */
+  registerAssembleReplay(ctx: StudioContextLike): () => void {
+    return ctx.on(ASSEMBLE_EVENT, async (assembly: unknown, context: unknown, next: () => Promise<unknown>) => {
+      await this.handleAssembleReplay(assembly, context)
+      return next()
+    })
+  }
+
+  /**
+   * 回放监听执行体(公开方法=网关 shadow 约束;**绝不上抛**——上游 assemble
+   * 的失败会直接失败模型步骤)。降级矩阵(全部审计留痕):
+   * - 快照库未挂载 / 组装上下文无会话身份(context.agent.id 缺席,spike §四.1
+   *   未声明字段) / 会话无快照 → 跳过替换,用当前值;
+   * - 解析命中 → 逐段替换(结果经 assembly-replay.resolveAssemblyReplay 纯函数,
+   *   分型跳过原因一并带出);替换/身份经快照解析的段按 (会话|段|结局) 去键审计。
+   */
+  async handleAssembleReplay(assembly: unknown, context: unknown): Promise<void> {
+    try {
+      const sections = replaySectionsOf(assembly)
+      if (sections === undefined) {
+        this.noteReplayOnce('assembly-replay.bad-shape', { reason: '组装载荷 sections 非法(防御式跳过)' })
+        return
+      }
+      if (this.snapshotStore === undefined) {
+        if (!this.replayNotedStoreUnavailable) {
+          this.replayNotedStoreUnavailable = true
+          this.audit.write('assembly-replay.degraded', { reason: `snapshot-store-unavailable:${this.snapshotStoreError ?? 'storage 栈仍在挂载中'}` })
+        }
+        return
+      }
+      const sessionId = agentIdOfAssembleContext(context)
+      if (sessionId === undefined) {
+        if (!this.replayNotedNoAgentId) {
+          this.replayNotedNoAgentId = true
+          this.audit.write('assembly-replay.degraded', { reason: 'no-agent-id(组装上下文无会话身份——上游未声明字段缺席,spike §四.1;跳过替换用当前值)' })
+        }
+        return
+      }
+      const snapshot = await this.snapshotForReplay(sessionId)
+      if (snapshot === undefined) {
+        this.auditReplayOnce(`${sessionId}|degraded`, 'assembly-replay.degraded', { sessionId, reason: 'snapshot-absent(会话无快照:插件装载前创建或捕获失败;降级用当前值)' })
+        return
+      }
+      // 读面 memoize:本次组装内同一文件只读一次(live 值 + complete 检测共享);
+      // complete 标志另走 TTL 缓存(replayCompleteFlags),几乎不变的它不逐段重扫。
+      const fileCache = new Map<string, string>()
+      const readFile: RegistryFileReader = (file) => {
+        const cached = fileCache.get(file)
+        if (cached !== undefined) return cached
+        const text = this.registryReadFile()(file)
+        fileCache.set(file, text)
+        return text
+      }
+      const result = resolveAssemblyReplay({
+        sections,
+        context,
+        snapshot,
+        readFile,
+        completeFlags: this.replayCompleteFlags(),
+      })
+      this.auditReplayResult(sessionId, snapshot.id, result)
+    } catch (error) {
+      this.noteReplayOnce(`assembly-replay.failed:${error instanceof Error ? error.message : String(error)}`,
+        { error: error instanceof Error ? error.message : String(error) }, 'assembly-replay.failed')
+    }
+  }
+
+  /**
+   * 回放快照查询(带缓存 + 在途捕获等待):缓存命中零 I/O;未命中查快照库,
+   * 该会话捕获仍在队列(创建→首轮组装竞态)则等捕获排空再查一次;结果(含
+   * 缺席标记)落缓存。公开方法=网关 shadow 约束。
+   */
+  async snapshotForReplay(sessionId: string): Promise<SessionSnapshotRecord | undefined> {
+    if (this.replaySnapshotCache.has(sessionId)) return this.replaySnapshotCache.get(sessionId)
+    const store = this.snapshotStore
+    if (store === undefined) return undefined
+    let record = await store.getBySessionId(sessionId)
+    if (record === undefined && this.pendingCaptureSessions.includes(sessionId)) {
+      await this.drainSessionCaptures()
+      record = await store.getBySessionId(sessionId)
+    }
+    if (this.replaySnapshotCache.size >= REPLAY_SNAPSHOT_CACHE_LIMIT) {
+      const oldest = this.replaySnapshotCache.keys().next().value
+      if (oldest !== undefined) this.replaySnapshotCache.delete(oldest)
+    }
+    this.replaySnapshotCache.set(sessionId, record)
+    return record
+  }
+
+  /**
+   * 注册表条目的 complete 标志面(TTL 缓存;公开方法=网关 shadow 约束):
+   * 命中直接给值;过期/缺席时扫描落缓。committed 写后与 detachStore 清空,
+   * 外部改写(patch 升级合并)由 TTL 兜底——两向失效代价均无害(见常量注)。
+   */
+  replayCompleteFlags(): Map<string, boolean> {
+    const now = Date.now()
+    const flags = new Map<string, boolean>()
+    for (const entry of PROMPT_REGISTRY_ENTRIES) {
+      const cached = this.replayCompleteFlagCache.get(entry.id)
+      if (cached !== undefined && now - cached.at < REPLAY_COMPLETE_FLAG_TTL_MS) {
+        flags.set(entry.id, cached.value)
+        continue
+      }
+      const value = pluginSpanOwnsCompleteFlag(entry, this.registryReadFile())
+      this.replayCompleteFlagCache.set(entry.id, { at: now, value })
+      flags.set(entry.id, value)
+    }
+    return flags
+  }
+
+  /** 回放解析结果审计(replaced 全量细节;governed/degraded/complete-owner 按 (会话|段) 去键防刷屏)。 */
+  auditReplayResult(sessionId: string, snapshotId: string, result: AssemblyReplayResult): void {
+    const replaced = result.sections.filter(section => section.outcome === 'replaced')
+    const governed = result.sections.filter(section => section.outcome === 'governed')
+    // complete-owner 是部署配置信号(该段严格回放对 complete 部署失效,spike §四.2)
+    // 且罕见:即使本次无替换也按 (会话|段) 一次审计留痕,不埋在 applied 细节里。
+    for (const section of result.sections) {
+      if (section.outcome === 'skipped' && section.reason === SKIP_COMPLETE_OWNER) {
+        this.auditReplayOnce(`${sessionId}|${section.sectionName}|complete-owner`, 'assembly-replay.skipped', {
+          sessionId,
+          snapshotId,
+          sectionName: section.sectionName,
+          reason: SKIP_COMPLETE_OWNER,
+        })
+      }
+    }
+    if (replaced.length > 0) {
+      const freshKeys = replaced.map(section => `${sessionId}|${section.sectionName}|replaced`)
+      if (freshKeys.some(key => !this.replayAuditKeys.has(key))) {
+        this.writeReplayAuditKeys(freshKeys)
+        this.audit.write('assembly-replay.applied', {
+          sessionId,
+          snapshotId,
+          replaced: replaced.map(section => ({ sectionName: section.sectionName, entryId: section.entryId })),
+          governed: governed.map(section => ({ sectionName: section.sectionName, entryId: section.entryId })),
+          skippedSections: result.sections.filter(section => section.outcome === 'skipped')
+            .map(section => ({ sectionName: section.sectionName, entryId: section.entryId, reason: section.reason })),
+          skippedEntries: result.skippedEntries,
+        })
+      }
+      return
+    }
+    if (governed.length > 0) {
+      const freshKeys = governed.map(section => `${sessionId}|${section.sectionName}|governed`)
+      if (freshKeys.some(key => !this.replayAuditKeys.has(key))) {
+        this.writeReplayAuditKeys(freshKeys)
+        this.audit.write('assembly-replay.governed', {
+          sessionId,
+          snapshotId,
+          governed: governed.map(section => ({ sectionName: section.sectionName, entryId: section.entryId })),
+        })
+      }
+    }
+  }
+
+  /** 回放审计去键写入(容量守卫:超限整体清空——代价只是可能重复审计行)。 */
+  writeReplayAuditKeys(keys: readonly string[]): void {
+    if (this.replayAuditKeys.size + keys.length > REPLAY_AUDIT_KEY_LIMIT) this.replayAuditKeys.clear()
+    for (const key of keys) this.replayAuditKeys.add(key)
+  }
+
+  /** 去键审计包装。 */
+  auditReplayOnce(key: string, action: string, detail: Record<string, unknown>): void {
+    if (this.replayAuditKeys.has(key)) return
+    this.writeReplayAuditKeys([key])
+    this.audit.write(action, detail)
+  }
+
+  /** 进程级一次性审计(bad-shape/failed 按消息去重)。 */
+  noteReplayOnce(message: string, detail: Record<string, unknown>, action = 'assembly-replay.skipped'): void {
+    try {
+      this.auditReplayOnce(message, action, detail)
+    } catch {
+      // 审计本身失败:静默(监听器不得让审计故障炸组装)。
+    }
+  }
+
   /**
    * 会话快照查询(端点 loopPrompt/session-snapshot;T2.3 读取 API):
    * - input.sessionId 非空 → 该会话快照全文(条目版本指针+文本/标注);sessionId
@@ -749,6 +993,10 @@ export class LoopPromptGateway extends TypertRemoteService {
     this.snapshotStore = undefined
     this.snapshottedSessions.clear()
     this.pendingCaptureSessions.length = 0
+    // T2.4 回放缓存/去键/complete 标志缓存一并清空(快照库重开前不持旧引用)。
+    this.replaySnapshotCache.clear()
+    this.replayAuditKeys.clear()
+    this.replayCompleteFlagCache.clear()
     await Promise.all([store?.close() ?? Promise.resolve(), snapshotStore?.close() ?? Promise.resolve()])
   }
 
@@ -1160,6 +1408,8 @@ export class LoopPromptGateway extends TypertRemoteService {
       // T2.6:committed 后重刷运行时条目缓存(当前写链路对 runtime 条目 fail-closed,
       // 该刷新面向未来开放 store 写回落点时即刻生效;幂等且便宜,只扫 2 条 runtime 条目)。
       void this.refreshRuntimePromptCache()
+      // T2.4:写回改变了 live patch,complete 标志缓存主动失效(TTL 只兜外部改写)。
+      this.replayCompleteFlagCache.clear()
       return { status: 'committed', version: record, effectiveNote: EFFECTIVE_NOTE }
     }
     // 第一段:条目/守卫/授权/校验 + R3 审批请求。
@@ -1358,6 +1608,17 @@ export {
   SESSION_CREATED_TRIGGER, SNAPSHOT_UNIT_DESCRIPTOR, SNAPSHOT_UNIT_NAME, SNAPSHOTS_TABLE,
   SessionSnapshotStore, captureSessionSnapshotEntries, sessionSnapshotChecksum,
 } from './session-snapshot.ts'
+export {
+  ASSEMBLE_EVENT, PLAN_POLICY_SECTION_NAME, PERSONA_PREFIX_SECTION_NAME, REPLAY_SECTION_MAPPINGS,
+  SKIP_COMPLETE_OWNER, SKIP_GOVERNING_AMBIGUOUS, SKIP_GOVERNING_UNKNOWN, SKIP_NO_AGENT_ID,
+  SKIP_NO_SECTION_MAPPING, SKIP_READONLY_KIND, SKIP_RUNTIME_KIND, SKIP_SECTION_ABSENT, SKIP_SECTION_EMPTY,
+  SKIP_SNAPSHOT_ABSENT, SKIP_SNAPSHOT_TEXT_NULL, agentIdOfAssembleContext, pluginSpanOwnsCompleteFlag,
+  replayMappedEntryIds, resolveAssemblyReplay,
+} from './assembly-replay.ts'
+export type {
+  AssemblyReplayInput, AssemblyReplayResult, ReplayAssembledSection, ReplaySectionMapping,
+  ReplaySectionOutcome, ReplaySkippedEntry,
+} from './assembly-replay.ts'
 
 /**
  * 插件工厂(bundle loader 取 default export 实例;apply 返回总 disposer)。
@@ -1376,6 +1637,10 @@ export function definePromptStudioPlugin(config: PromptStudioPluginConfig = {}) 
       // T2.3 会话快照:全局未打标 session/created 监听(会话开启事件;未打标=
       // 收到全部会话,dsh-scope 语义);插件卸载随 disposer 撤销。
       const disposeSessionCreated = gateway.registerSessionCreated(ctx)
+      // T2.4 历史会话严格回放:全局未打标 system-prompt/assemble waterfall 监听
+      // (未打标=收到全部会话的组装;快照缺席/身份缺席/库未挂载全部降级用当前值,
+      // 绝不炸组装);插件卸载随 disposer 撤销。
+      const disposeAssembleReplay = gateway.registerAssembleReplay(ctx)
       // storage 挂载经官方 inject seam:版本库单元在 storage.backend.json 可用后打开,
       // 缺席/失败不炸宿主(端点以 RemoteError 明示未就绪;snapshot 降级 ready=false)。
       ctx.inject([STORAGE_JSON_BACKEND_KEY], (storageCtx: StudioContextLike) => {
@@ -1388,10 +1653,11 @@ export function definePromptStudioPlugin(config: PromptStudioPluginConfig = {}) 
         })
       })
       return () => {
-        // 总 disposer:读取面注销 + 会话开启监听撤销 + 在途审批取消 + 版本库/快照库单元关闭
-        // (Service 随 owning fiber 注销)。
-        disposeProvide()
+        // 总 disposer(逆序:后注册者先卸):assemble 回放监听 → 会话开启监听 →
+        // 读取面 → 在途审批取消 + 版本库/快照库单元关闭(Service 随 owning fiber 注销)。
+        disposeAssembleReplay()
         disposeSessionCreated()
+        disposeProvide()
         void gateway.dispose()
       }
     },
