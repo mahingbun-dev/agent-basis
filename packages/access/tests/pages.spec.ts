@@ -25,6 +25,14 @@ describe('登录页与门禁角标', () => {
     expect(BADGE_SCRIPT).toContain('退出')
   })
 
+  it('角标:租户引导条+首屏落座兜底在位(拒绝监听/惰性输入框检测/点自己工作区行)', () => {
+    expect(BADGE_SCRIPT).toContain('tenant/denied')
+    expect(BADGE_SCRIPT).toContain('composerInert')
+    expect(BADGE_SCRIPT).toContain('[aria-label="选择工作区"]')
+    expect(BADGE_SCRIPT).toContain('recoverSeat')
+    expect(BADGE_SCRIPT).toContain('scheduleRecover')
+  })
+
   it('injectBadge:注入 </body> 前;无 </body> 追加尾部', () => {
     const withBody = injectBadge('<html><body>app</body></html>')
     expect(withBody).toContain('<script>')
