@@ -28,6 +28,8 @@ export interface AccessDeps {
   audit(event: AccessAuditEvent): void
   /** 登录成功桥接目标(请求侧 origin 经 dsh authenticatedUrl 附 launch token)。 */
   bridgeHome(origin: string): string
+  /** 声明的公网根(ETERNA_PUBLIC_URL)——反代形态的同源信任候选;空=仅 Host 形态。 */
+  readonly publicOrigin?: string | undefined
   /** 数据目录(users.db/secret.key/disabled-plugins.json 所在;T2.3 启停清单落此)。 */
   readonly dataDir: string
 }
@@ -50,7 +52,7 @@ export function handleAccessRequest(deps: AccessDeps, req: AccessRequest): Acces
   const method = req.method.toUpperCase()
   const ip = clientIp(req.xff)
   const mutating = method === 'POST' || method === 'DELETE'
-  if (mutating && !isSameOrigin(req.origin, req.host, deps.session.secure)) return errorReply(403, '跨源请求被拒绝')
+  if (mutating && !isSameOrigin(req.origin, req.host, deps.session.secure, deps.publicOrigin)) return errorReply(403, '跨源请求被拒绝')
   if (mutating && !deps.globalWindow.hit(ip)) return errorReply(429, '请求过于频繁，请稍后再试')
 
   switch (req.pathname) {

@@ -38,28 +38,56 @@ export function errorReply(status: number, message: string, extraHeaders: Readon
 }
 
 /**
- * 同源校验:Origin 缺省放行(非浏览器客户端,鉴权仍在);`null`(内嵌 webview)一律拒;
- * 其余与 Host authority 规范化比对——scheme 按部署声明(secure=https);端口仅当双方
- * 显式时强制,Host 隐式端口视同 scheme 默认(反代 443 场景 Host 常不带端口)。
+ * 同源校验:Origin 缺省放行(非浏览器客户端,鉴权仍在);`null`(内嵌 webview)一律拒。
+ * 信任候选:①请求 Host authority(scheme 按部署声明 secure)——直连形态;
+ * ②ETERNA_PUBLIC_URL 声明的公网根(scheme/host/port 自带)——反代形态,操作者
+ * 声明一次即全站免配(对齐 dsh --public-url/--trusted-host 成对哲学)。
+ * 端口规则:候选带显式端口则精确比对;候选隐式端口接受 Origin 缺省或 scheme 默认端口。
  */
-export function isSameOrigin(origin: string | undefined, host: string | undefined, secure = false): boolean {
+export function isSameOrigin(
+  origin: string | undefined,
+  host: string | undefined,
+  secure = false,
+  publicOrigin?: string,
+): boolean {
   if (origin === undefined) return true
   if (origin === 'null') return false
-  if (host === undefined) return false
   let originUrl: URL
   try {
     originUrl = new URL(origin)
   } catch {
     return false
   }
-  const expectedScheme = secure ? 'https:' : 'http:'
-  if (originUrl.protocol !== expectedScheme) return false
-  const authority = splitAuthority(host)
-  if (authority === undefined) return false
-  if (authority.name !== originUrl.hostname) return false
-  if (authority.port !== '') return originUrl.port === authority.port
-  // Host 隐式端口:接受 origin 缺省端口或 scheme 默认端口
-  return originUrl.port === '' || originUrl.port === (originUrl.protocol === 'https:' ? '443' : '80')
+  interface Candidate {
+    readonly scheme: string
+    readonly name: string
+    readonly port: string
+  }
+  const candidates: Candidate[] = []
+  if (host !== undefined && host !== '') {
+    const authority = splitAuthority(host)
+    if (authority !== undefined) {
+      candidates.push({ scheme: secure ? 'https:' : 'http:', name: authority.name, port: authority.port })
+    }
+  }
+  if (publicOrigin !== undefined && publicOrigin !== '') {
+    try {
+      const pub = new URL(publicOrigin)
+      candidates.push({ scheme: pub.protocol, name: pub.hostname, port: pub.port })
+    } catch {
+      // 非法 PUBLIC_URL 配置忽略该候选(不影响 Host 候选)
+    }
+  }
+  const originDefaultPort = originUrl.protocol === 'https:' ? '443' : '80'
+  for (const candidate of candidates) {
+    if (originUrl.protocol !== candidate.scheme || originUrl.hostname !== candidate.name) continue
+    if (candidate.port !== '') {
+      if (originUrl.port === candidate.port) return true
+      continue
+    }
+    if (originUrl.port === '' || originUrl.port === originDefaultPort) return true
+  }
+  return false
 }
 
 function splitAuthority(host: string): { name: string; port: string } | undefined {

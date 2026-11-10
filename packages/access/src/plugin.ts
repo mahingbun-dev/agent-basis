@@ -150,6 +150,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         globalWindow: new SlidingWindow(30, 60_000),
         audit,
         bridgeHome: (origin: string) => ctx.connection.authenticatedUrl(origin),
+        publicOrigin: process.env.ETERNA_PUBLIC_URL !== undefined && process.env.ETERNA_PUBLIC_URL !== '' ? process.env.ETERNA_PUBLIC_URL : undefined,
         dataDir: dir,
       }
       const handler = createNodeHandler(deps)

@@ -126,6 +126,20 @@ describe('access 路由核心', () => {
     expect(handleAccessRequest(deps, req({ ...base, origin: 'https://localhost:3210' })).status).toBe(403)
   })
 
+  it('同源闸反代形态:PUBLIC_URL 声明的 https 公网根放行(声明域+默认端口);http 交叉拒', () => {
+    deps = {
+      ...deps,
+      session: new SessionService(Buffer.from('test-secret-test-secret-test-s'), { secure: true }),
+      publicOrigin: 'https://eternity-electricity.cn',
+    }
+    const base = { method: 'POST', pathname: '/login', body: Buffer.from(JSON.stringify({ account: 'Mr.Ma', password: 'MqbSunny0702' })), host: 'eternity-electricity.cn' }
+    const attempt = (origin: string): AccessReply => handleAccessRequest(deps, req({ ...base, origin }))
+    expect(attempt('https://eternity-electricity.cn').status).toBe(302)
+    expect(attempt('http://eternity-electricity.cn').status).toBe(403)
+    expect(attempt('https://other.example').status).toBe(403)
+    expect(attempt('https://eternity-electricity.cn:8443').status).toBe(403)
+  })
+
   it('全局变更限速:第 31 次变更类请求 429(GET 不计)', () => {
     for (let i = 0; i < 30; i++) {
       handleAccessRequest(deps, req({ method: 'POST', pathname: '/access/api/nickname', cookie: adminCookie, body: Buffer.from('{"nickname":"x"}') }))
