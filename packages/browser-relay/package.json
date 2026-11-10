@@ -1,0 +1,30 @@
+{
+  "name": "@eterna/browser-relay",
+  "description": "浏览器中继服务（E1）：扩展腿(/extension) ↔ CDP 腿(/cdp) 最小会话管理 + snapshot/click/fill 工具层（playwright-core connectOverCDP，服务端一次实现两种传输复用）。协议契约见 docs/CDP-FRAME-PROTOCOL.md。",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "eterna-browser-relay": "./dist/cli.mjs"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && pnpm run build && vitest run",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/cli.mjs start",
+    "smoke:e1": "node smoke/e1-smoke.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "1.65.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@puppeteer/browsers": "3.2.6",
+    "@types/node": "catalog:",
+    "@types/ws": "^8.18.1",
+    "esbuild": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

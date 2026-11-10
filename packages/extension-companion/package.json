@@ -1,0 +1,19 @@
+{
+  "name": "@eterna/extension-companion",
+  "description": "Companion 浏览器扩展（E1）：把用户浏览器作为 eterna agent 执行面——chrome.debugger 逐 tab attach + CDP 帧双向转发薄翻译层 + 设置页（relay URL）。红线清单见 docs/design/companion-security-redlines.md。",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && pnpm run build && vitest run",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "esbuild": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
