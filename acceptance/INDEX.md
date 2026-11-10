@@ -12,6 +12,7 @@
 | T7 存量补登（T7.5 集成验收等） | T7（ps-v2 前史） | T7.5 集成验收官（动态 workflow subagent） | 2026-11-07 | ✅ 实测通过（72 项断言全 PASS / 0 FAIL，exit 0，连续三次；**补录性质**） | [docs/dev/t7-acceptance.md](../docs/dev/t7-acceptance.md)、[docs/dev/t7-prompt-studio.md](../docs/dev/t7-prompt-studio.md) | 计划书 §8 现状缺口（T7 无 INDEX 条目）按 ps-v2 测试计划 §1「INDEX 台账」行于 G-PS-01 一并补登；数字出处 t7-acceptance.md 逐断言台账（当时插件名尚为 @basis/prompt-studio，改名前史） |
 | G-PS-01 | P1（ps-v2：挂载+全景+写链路） | 独立验收代理（验收-G-PS-01，用户经工作流书面指定） | 2026-11-11 | ✅ 通过（§7.1 强断言 1–7 全过，第一手实测；真模型链 t7-e2e 72/72 已跑） | [artifacts/gates/G-PS-01/EVIDENCE.md](../artifacts/gates/G-PS-01/EVIDENCE.md) | 见下「G-PS-01 验收记录」；人工条款缺口（键盘全量走查、admin 停用裁剪[可缺席]）已如实标注未执行/部分执行 |
 | T2.5 CI 接入（prompt-scan + verify job lint 循环化） | P2 实现（ps-v2） | 实现者（本会话，非门禁判定） | 2026-11-11 | 实现完成 + 本地自测（worktree 内）：`packctl prompt-scan` 全仓 0 findings、tenant-scan 0 findings 不回归、`@eterna/packctl` verify 78/78；`git grep -n "prompt-scan" -- .github/workflows/ci.yml` 命中、`git grep -c "for d in packs" -- .github/workflows/ci.yml` = 2 | .github/workflows/ci.yml、tools/packctl/ | 线上 CI 只能合并后验证——**待合并后首跑确认**（测试计划 §4 T2.5(b)4③，不得提前写「CI 绿」）；G-PS-02 gate 时按 §7.2 复核 |
+| G-PS-02 | P2（ps-v2：热生效+快照+门禁） | 独立验收代理（验收-G-PS-02，用户经工作流书面指定） | 2026-11-11 | ⛔ **暂不通过（阻断 1 项）**：§7.2 强断言 1/2/3/4/6 共 5 条第一手实测全过（t7-e2e 热生效主链 140/140 exit 0 含 pid 不变/旧会话旧文；快照三型分语义+不可变 smoke 82/82+单测 17/17；矩阵 14 格断言编号对账 15.40；memory 90/90+glue 35/35；prompt-scan/tenant-scan 0 findings；CI 机械可查双命中）；**强断言 5 判据命令 `pnpm --filter @eterna/packctl run verify` exit 2**——T2.2（df28013）给 `PromptRegistryEntry` 新增必填 `effect` 未同步 packctl 测试夹具（prompt.spec.ts:70-99 六处 TS2741），vitest 因 && 链未执行（诊断性单跑 78/78 过、prompt.spec 6/6，扫描行为无恙）。待补夹具字段复跑后终判 | [artifacts/gates/G-PS-02/EVIDENCE.md](../artifacts/gates/G-PS-02/EVIDENCE.md) | 见下「G-PS-02 验收记录」；全仓 `pnpm -w run verify` 由外层 harness 另行运行判定（本代理未跑；packctl 类型回归预期同样红） |
 
 ## 实现者自测证据（2026-11-10，E1 冒烟——非门禁判定）
 
@@ -51,6 +52,15 @@
 - **截图**：深浅两主题 × 全景列表/条目编辑/版本 diff 三页 + 640px 断点 × 双主题共 8 张（playwright-core+系统 Chrome，脚本随证据目录可复现）；AI 视觉复核：浅色三层 14 条全景完整、深色主题正确无样式错乱。
 - **人工条款如实标注**：键盘可达全量走查未执行（静态 focus-visible/断点规则在场已给替代证据）；admin 停用→重启裁剪未执行（计划书 T1.2 标注可缺席；机器层 id 三处交叉钉住 + access verify 已覆盖）。
 - **环境发现（转实现者，非门禁阻断）**：① `scripts/t7-e2e.mjs` 冷自举 pnpm-workspace 模板缺 `@google/genai`/`protobufjs` allowBuilds 裁定（t7-smoke 已修，t7-e2e 未同步）——全新 profile 下 install 失败，本次验收以 scratch 侧手工补齐绕过（未改任务代码）；② 新 worktree 需先 `pnpm --filter @eterna/llm-openai run build`，否则 t7 宿主 eterna-llm 装载失败且 t7-e2e 四断言以远离根因形态变红（建议加 eterna-llm active 启动断言）；失败链 4 次运行日志完整保留于证据目录。
+
+## G-PS-02 验收记录（ps-v2 P2，2026-11-11，独立验收代理实测）
+
+- **判定文本**：`docs/dev/ps-v2-test-plan.md` §7.2 强断言 1–6；证据目录 `artifacts/gates/G-PS-02/`（逐任务断言映射 + 命令台账 + 截图 + DOM 机器核验 + 全部原始输出誊录，含失败命令完整日志）。
+- **无头命令实测**（exit）：verify-prompt-studio **0**（288/288，新增 config-editor-write 20/session-snapshot 17/assembly-replay 33）、verify-packctl **⛔ 2**（tsc 六处 TS2741——见下阻断项；诊断性 vitest 单跑 78/78）、verify-memory **0**（90/90）、verify-glue **0**（35/35）、verify-eterna-web **0**（11/11 生产档 boot 洁净+studio 行 active+花名册）、t7-smoke **0**（82/82，T2.3 快照端点 20 条）、t7-ui-check **0**（42/42，快照视图六锚点+`data-ps-entry-effect`）、t7-e2e **0**（**140/140** 真模型：5.8-5.11 configEditor 通道热生效 pid 不变、8.1/14.2-14.12 严格回放旧会话旧文、15 链矩阵 52 条含 15.40 声明对账与 15.41 全程 pid=21243）、prompt-scan **0**（0 findings）、tenant-scan **0**（0 findings）、lint 两包各 **0**（0/0）、dsh-evals replay **0**（20 用例全过）。
+- **机械计数**：t7-e2e 120 静态（≥72）/smoke 82（≥38）/ui-check 24+1 循环（≥17+1）；誊录台账 PASS 数与 grep 数一致（82/42/140=120+20 循环）。CI 机械可查：`git grep -n "prompt-scan" -- .github/workflows/ci.yml` 命中 :37-38；`git grep -c "for d in packs"` = 2。
+- **截图**：快照查看视图深浅 ×2 + 条目「生效条件」卡深浅 ×2（playwright-core+系统 Chrome；G-PS-01 配方沿用）；DOM 机器核验 9/9（会话行卡 12 张/详情含冻结时刻·捕获事件·校验和/14 条目分型徽章/不可回放标注/冻结文本展开/生效条件卡 readonly-upstream）；AI 视觉复核浅深两主题正确无样式错乱。「会话头提示词已更新」横幅条款条件不成立（spike=能，回放路径在场，客户端无该文案——locales 全文 grep 零命中），如实标注未截。
+- **⛔ 阻断项（转实现者）**：`pnpm --filter @eterna/packctl run verify` exit 2——T2.2（df28013）给 `packages/prompt-studio/src/registry.ts:138` 的 `PromptRegistryEntry` 新增必填 `effect` 字段，packctl 经 workspace 类型引用（src/prompt.ts:38）而 T2.5 先落地的 tests/prompt.spec.ts 夹具（:70/:76/:82/:88/:94/:99 六条目）未补字段 → tsc 红、vitest 未执行。修复面小（夹具补字段），修复后复跑该命令+外层 harness 全仓 verify 即闭环；**全仓 verify 绿之前本 gate 不记通过**（合并前必须修，否则 CI verify job 必红）。
+- **环境正面记录**：G-PS-01 两条环境发现（llm-openai lib 构建、t7-e2e 冷自举 allowBuilds）本轮不复发；t7-e2e 一次通过无失败链；验收后 `git status packs/` 干净、3108 端口释放。
 
 ## 失败-修复-重跑链
 

@@ -1,0 +1,17 @@
+$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run --passWithNoTests
+Found 0 warnings and 0 errors.
+Finished in 538ms on 14 files with 87 rules using 10 threads.
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-prompt-studio-v2/packages/glue
+
+ ✓ tests/governance-rules-fixture.spec.ts (5 tests) 3ms
+ ✓ tests/memory-plugin.spec.ts (5 tests) 15ms
+ ✓ tests/governance-plugin.spec.ts (10 tests) 21ms
+ ✓ tests/egress-plugin.spec.ts (11 tests) 11ms
+ ✓ tests/governance-audit-trail.spec.ts (4 tests) 18ms
+
+ Test Files  5 passed (5)
+      Tests  35 passed (35)
+   Start at  07:13:08
+   Duration  225ms (transform 243ms, setup 0ms, import 397ms, tests 67ms, environment 0ms)
+

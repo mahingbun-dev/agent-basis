@@ -1,0 +1,90 @@
+[boot] repo=/Users/sunny/code/agent-basis-prompt-studio-v2
+[boot] home=/Users/sunny/code/agent-basis-prompt-studio-v2/.eterna-home-t7
+[PASS] 浏览器半边 bundle 构建(lib/client.js)
+[boot] plugin @eterna/prompt-studio: already-linked
+[PASS] preflight: dump-config 退出码 0 — status=0
+[PASS] preflight: 组合树 persona 前缀=冒烟标记
+[PASS] preflight: 组合树含 eterna-prompt-studio 行
+[PASS] preflight: 无 skipping/incompatible
+[host] ready pid=21117 log=/Users/sunny/code/agent-basis-prompt-studio-v2/.eterna-home-t7/logs/t7-smoke-host.log
+[PASS] pluginInventory: 含 @eterna/prompt-studio 行 — entryId=include:eterna-prompt-studio
+[PASS] pluginInventory: 行 enabled=true
+[PASS] pluginInventory: 行 fiberPhase=active
+[PASS] 宿主启动日志无 skipping/incompatible
+[PASS] snapshot: channel.kind=A-patch-hmr(通道 A 结论)
+[PASS] snapshot: persona.available 且含冒烟标记
+[PASS] snapshot: versions.ready=true(DSH storage 栈挂载)
+[PASS] snapshot: 无在途审批
+[PASS] prompt-get: persona 文本含标记
+[PASS] prompt-get: effectiveNote 提示新会话生效
+[PASS] prompt-versions: initial 种子存在(total>=1) — total=1
+[PASS] prompt-versions: checksum=sha256(content)
+[PASS] prompt-versions: 记录字段齐全(id/seq/author/createdAt/source/parentId/bytes)
+[PASS] trace: 列表模式返回 sessions 数组 — sessions=12
+[PASS] trace: 指定会话返回轮次树(selected 非空)
+[PASS] snapshot(T1.4): entries[] 注册表全景 14 条(三层全量) — entries=14
+[PASS] snapshot(T1.4): entries[] 含三型采样条目(块标量 plan-mode/领域 personaPrefix/只读型 time-context)
+[PASS] prompt-get{plan-mode.section}: 字面块(|)整段反引(首段/末段/段落空行/clip 尾换行) — bytes=2362
+[PASS] prompt-get{plan-mode.section}: 值与 dump-config 组合树一致(section 首段在场于组合树)
+[PASS] prompt-versions{plan-mode.section}: 条目链已种子(initial)且 entryId 回显
+[PASS] prompt-get{event-planning.personaPrefix}: 折叠块(>-)反引与 pack 文件逐字一致 — bytes=212
+[PASS] prompt-get{event-planning.personaPrefix}: 领域身份句+三条红线句在场
+[PASS] prompt-versions{event-planning.personaPrefix}: 条目链已种子(initial)
+[PASS] prompt-get{time-context}: 只读型 text=null +「上游插件运行时生成」标注(不伪造文本)
+[PASS] prompt-versions{time-context}: 无版本链(total=0,未种子不造假)
+[PASS] prompt-get{preset.standard.persona}: per-entry 当前值=live patch 标记,与旧形态同值
+[PASS] prompt-versions{preset.standard.persona}: per-entry 链与旧口径同长同链首(缺省=persona 链) — total=1
+[PASS] prompt-get{未知 entryId}: status=not-found 明示
+[PASS] prompt-versions{未知 entryId}: status=not-found 明示
+[PASS] prompt-save(一段): status=approval-required
+[PASS] prompt-save(一段): R3 审批卡
+[PASS] prompt-save(一段): doubleConfirm 第二问
+[PASS] prompt-save(一段): patch 未写(v2 未落盘,等审批)
+[PASS] prompt-save(二段): status=committed
+[PASS] prompt-save(二段): 版本 +1(source=save, seq=2) — seq=2
+[PASS] prompt-save(二段): patch 层已原子更新(含 v2 文本)
+[PASS] prompt-save(二段): 在途审批已清(pendingApproval=null)
+[PASS] 保存后宿主日志无 skipping/incompatible(HMR 重组合洁净)
+[PASS] T1.6 prompt-get{plan-mode}: 前置读回非空 — bytes=2362
+[PASS] T1.6 prompt-save{plan-mode}(一段): approval-required + ruleId=entry-write.<entryId> — ruleId=eterna.prompt-studio.entry-write.preset.standard.plan-mode.section
+[PASS] T1.6 prompt-save{plan-mode}(二段): committed(entryId/seq 链内) — seq=2
+[PASS] T1.6 plan-mode 写后读回==新文(字面块整段写回,dump-config 干跑已过)
+[PASS] T1.6 plan-mode 写后 dump-config 组合树含新文(HMR 重组合采纳)
+[PASS] T1.6 prompt-rollback{plan-mode}(一段): approval-required(按条目回滚)
+[PASS] T1.6 prompt-rollback{plan-mode}(二段): committed 且 patch 层反引==被回滚文本 — total=3
+[PASS] T1.6 prompt-save{time-context}: 只读型拒写明示(无 patch 写回落点)
+[PASS] T1.6 prompt-get{event.personaPrefix}: 前置读回非空
+[PASS] T1.6 prompt-save{event.personaPrefix}(一段): approval-required(标准红线双语锚点过) — status=approval-required issues=undefined
+[PASS] T1.6 prompt-save{event.personaPrefix}(二段): committed 且 pack 文件写后读回==新文
+[PASS] T1.6 prompt-rollback{event.personaPrefix}: 值恢复==原文(形态 A 回滚)
+[PASS] T1.6 审计:prompt-save.committed 带 entryId=domain.event-planning.persona-prefix
+[PASS] prompt-rollback(一段): status=approval-required
+[PASS] prompt-rollback(二段): committed 且 source=rollback
+[PASS] prompt-rollback(二段): parentId 指向被回滚版本
+[PASS] 版本只增不删:total=3 且 initial 版本仍在 — total=3
+[PASS] 回滚后 patch 层回到目标内容(无 v2 文本)
+[PASS] prompt-rollback{条目错配}: fail-closed rejected(版本归属与请求条目不符;T1.6 守卫)
+[PASS] 版本库单元落在 DSH storage 栈(storages/eterna_prompt_studio/versions/ 一文档一记录;T1.6 后 persona/plan-mode/领域前缀各 3 + 四条目链首) — docs=13
+[PASS] 磁盘证据(T1.6): 每文档记录带 entryId;persona/plan-mode/领域前缀链各 3、四条目链首各 1(与端点链长一致) — preset.standard.agent-instructions:1 preset.standard.plan-mode.section:3 domain.event-planning.persona-prefix:3 domain.industrial-analysis.persona-md:1 domain.event-planning.persona-md:1 preset.standard.persona:3 domain.industrial-analysis.persona-prefix:1
+[PASS] 兜底审计 NDJSON 存在(无 glue governance 场景)
+[PASS] 审计记录含 action/system/at/operator/versionId(G5) — lines=13 committed=6
+[PASS] 审计记录(T1.6): 写链路 committed 事件带 entryId — entryIds=preset.standard.persona,preset.standard.plan-mode.section,domain.event-planning.persona-prefix
+[PASS] T2.3 session/create: 新会话开启(sessionId=session-<uuid>) — sessionId=session-0af65eb8-5def-4c83-bc4b-05e7b425e72a
+[PASS] T2.3 session-snapshot{sessionId}: 新会话开启即有快照(轮询≤10s 在场)
+[PASS] T2.3 快照全景: entries=注册表 14 条(三层全量,含三型) — entries=14
+[PASS] T2.3 快照指针: persona 当时文本在文 + versionId=当时链最新版本 — versionId=v-000003-29f42c57
+[PASS] T2.3 快照分型: 行锚点只读型=在场标记+「上游运行时生成」标注(不伪造 versionId)
+[PASS] T2.3 快照分型: 运行时注入型=在场标记标注(不炸不空段)
+[PASS] T2.3 快照 checksum: 与规范化载荷 sha256 复核一致 — checksum=6f3565e00270…
+[PASS] T2.3 session-snapshot(列表): ready 且含本会话 — total=1
+[PASS] T2.3 前置: 保存新文 committed(快照不可变的对照写操作)
+[PASS] T2.3 快照不可变: 改提示词后已存快照逐字节不变(仍=开启时 persona 文)
+[PASS] T2.3 收场: persona 回滚到单行基线 MARKER(保持 ui-check 首态假设)
+[PASS] T2.3 session-snapshot{未知 sessionId}: status=not-found 明示不炸
+[PASS] T2.3 磁盘证据: 快照单元落在 storage 栈根(storages/eterna_prompt_snapshots/snapshots/ 一文档一快照) — docs=1
+[PASS] T2.3 磁盘证据: 文档记录带 sessionId/checksum/entries(与端点同源)
+[cleanup] SIGTERM 宿主(持久化层停机冲刷)…
+[cleanup] 领域 pack 文件字节还原:restored
+[PASS] 清理:宿主进程已停止、端口 3108 已释放
+
+结论:T7.1 装载冒烟全部通过(exit 0)
