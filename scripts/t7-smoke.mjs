@@ -34,6 +34,10 @@
  *  8. 磁盘证据:版本库单元落在 DSH storage 栈根(<home>/storages/eterna_prompt_studio/,
  *     per-record 一文档一记录;T1.4 起按条目种子,文档记录带 entryId,链长与端点一致);
  *     兜底审计 NDJSON 含 operator/versionId(G5)。
+ *  9. T2.3 会话快照:session/create 开新会话(HTTP 面真实 session/created 事件)→
+ *     新会话开启即有快照(loopPrompt/session-snapshot 按会话可查,全景条目+
+ *     版本指针+三型分语义);未知 sessionId not-found 明示;改提示词(保存)后
+ *     已存快照逐字节不变(checksum 复核);快照单元目录落在 storage 栈根。
  *
  * 隔离纪律:运行态全在 .eterna-home-t7(DSH_HOME);Web 宿主一律 3108;进程清理只用
  * SIGTERM + pkill -f 'profile t7-studio' 精确模式(绝不 pkill 其他 dsh 实例);
@@ -298,8 +302,9 @@ try {
   console.log(`[boot] home=${home}`)
   ensureProfile()
 
-  // 0) 幂等:清本包运行态(版本库单元 + 兜底审计),使断言可从零复现。
+  // 0) 幂等:清本包运行态(版本库单元 + 快照单元 + 兜底审计),使断言可从零复现。
   rmSync(resolve(home, 'storages', 'eterna_prompt_studio'), { recursive: true, force: true })
+  rmSync(resolve(home, 'storages', 'eterna_prompt_snapshots'), { recursive: true, force: true })
   rmSync(resolve(home, 'eterna-prompt-studio'), { recursive: true, force: true })
 
   // 1) 浏览器半边 bundle 先构建(client-modules 扫 exports["./client"] 要求存在)。
@@ -619,6 +624,102 @@ try {
         committed.length >= 4 && committed.every((r) => typeof r.entryId === 'string' && r.entryId !== ''),
         `entryIds=${[...new Set(committed.map((r) => r.entryId))].join(',')}`)
     }
+  }
+
+  // 9) T2.3 会话快照:session/create 真开会话(HTTP 面 session/created 事件)→
+  //    新会话开启即有快照;按会话可查;改提示词后已存快照不变(不可变核心断言)。
+  {
+    const { createHash } = await import('node:crypto')
+    // 9a) 开新会话(真实 session/created;spike 同款重试,agents 服务起复竞态容错)。
+    const wsDir = `/tmp/t7-smoke-ws-${process.pid}`
+    mkdirSync(wsDir, { recursive: true })
+    let sessionId = ''
+    for (let i = 0; i < 20; i++) {
+      try {
+        const created = await dsh.call('session/create', { request: { cwd: wsDir } })
+        sessionId = created.sessionId ?? ''
+        if (sessionId !== '') break
+      } catch (error) {
+        if (i === 19) throw error
+        await sleep(1000)
+      }
+    }
+    check('T2.3 session/create: 新会话开启(sessionId=session-<uuid>)', /^session-[A-Za-z0-9-]+$/.test(sessionId), `sessionId=${sessionId}`)
+
+    // 9b) 新会话开启即有快照:按会话查询(捕获异步,轮询至在场;10s 上限)。
+    let snapshot = null
+    for (let i = 0; i < 50; i++) {
+      const result = await dsh.call('loopPrompt/session-snapshot', { input: { sessionId } })
+      if (result.status === 'ok') { snapshot = result.snapshot; break }
+      await sleep(200)
+    }
+    check('T2.3 session-snapshot{sessionId}: 新会话开启即有快照(轮询≤10s 在场)', snapshot !== null)
+    if (snapshot !== null) {
+      const byId = new Map((snapshot.entries ?? []).map((e) => [e.entryId, e]))
+      check('T2.3 快照全景: entries=注册表 14 条(三层全量,含三型)',
+        snapshot.entries.length === 14 && byId.has('preset.standard.persona')
+          && byId.has('preset.standard.time-context') && byId.has('runtime.memory.index-section'),
+        `entries=${snapshot.entries.length}`)
+      // patch 值型:当时文本 + 版本指针(=当时 persona 链最新版本)。
+      const persona = byId.get('preset.standard.persona')
+      const versionsThen = await dsh.call('loopPrompt/prompt-versions', { input: {} })
+      check('T2.3 快照指针: persona 当时文本在文 + versionId=当时链最新版本',
+        persona?.text === MARKER && persona?.versionId === versionsThen.versions?.[0]?.id
+          && persona?.checksum === createHash('sha256').update(persona?.text ?? '', 'utf8').digest('hex'),
+        `versionId=${persona?.versionId}`)
+      // 三型条目结构化结果:只读型/运行时注入型标注在场,不炸不空段冒充。
+      check('T2.3 快照分型: 行锚点只读型=在场标记+「上游运行时生成」标注(不伪造 versionId)',
+        byId.get('preset.standard.time-context')?.versionId == null
+          && String(byId.get('preset.standard.time-context')?.annotation).includes('上游运行时生成'))
+      check('T2.3 快照分型: 运行时注入型=在场标记标注(不炸不空段)',
+        String(byId.get('runtime.memory.index-section')?.annotation).includes('在场标记'))
+      // 快照整体 checksum 复核(规范化载荷 {entries,sessionId,trigger} 逐字节重算)。
+      const recomputed = createHash('sha256')
+        .update(JSON.stringify({ entries: snapshot.entries, sessionId: snapshot.sessionId, trigger: snapshot.trigger }), 'utf8')
+        .digest('hex')
+      check('T2.3 快照 checksum: 与规范化载荷 sha256 复核一致', snapshot.checksum === recomputed, `checksum=${snapshot.checksum.slice(0, 12)}…`)
+      // 列表模式含该会话。
+      const list = await dsh.call('loopPrompt/session-snapshot', { input: {} })
+      check('T2.3 session-snapshot(列表): ready 且含本会话',
+        list.ready === true && (list.snapshots ?? []).some((s) => s.sessionId === sessionId), `total=${list.total}`)
+      // 不可变核心断言:改提示词(保存两段式)后,已存快照逐字节不变。
+      const beforeJson = JSON.stringify(snapshot)
+      const personaV2 = `${MARKER}\n${SAVE_TAIL}`
+      const p1 = await dsh.call('loopPrompt/prompt-save', { input: { content: personaV2, author: 't7-smoke', summary: 'T2.3:改提示词验证快照不可变' } })
+      const p2 = await dsh.call('loopPrompt/prompt-save', { input: { content: personaV2, author: 't7-smoke', approvalId: p1.approval?.approvalId, approved: true } })
+      check('T2.3 前置: 保存新文 committed(快照不可变的对照写操作)', p2.status === 'committed')
+      const after = await dsh.call('loopPrompt/session-snapshot', { input: { sessionId } })
+      check('T2.3 快照不可变: 改提示词后已存快照逐字节不变(仍=开启时 persona 文)',
+        after.status === 'ok' && JSON.stringify(after.snapshot) === beforeJson
+          && after.snapshot.entries.find((e) => e.entryId === 'preset.standard.persona')?.text === MARKER)
+      // 9c) 收场还原:多行 persona 会让 T7 旧口径单行 reader unavailable——回滚到
+      //     initial 单行基线,保持后续 t7-ui-check 的首态假设(断言数只增,既有
+      //     检查零改动)。
+      const allVersions = await dsh.call('loopPrompt/prompt-versions', { input: {} })
+      const initialVersion = allVersions.versions?.at(-1)
+      const rb1 = await dsh.call('loopPrompt/prompt-rollback', { input: { versionId: initialVersion?.id, author: 't7-smoke' } })
+      const rb2 = await dsh.call('loopPrompt/prompt-rollback', {
+        input: { versionId: initialVersion?.id, author: 't7-smoke', approvalId: rb1.approval?.approvalId, approved: true },
+      })
+      check('T2.3 收场: persona 回滚到单行基线 MARKER(保持 ui-check 首态假设)',
+        rb2.status === 'committed' && (await dsh.call('loopPrompt/prompt-get')).persona?.text === MARKER)
+    }
+    // 未知 sessionId → not-found 明示(不炸)。
+    const missing = await dsh.call('loopPrompt/session-snapshot', { input: { sessionId: 'session-nonexistent-0000' } })
+    check('T2.3 session-snapshot{未知 sessionId}: status=not-found 明示不炸',
+      missing.status === 'not-found' && String(missing.issues?.[0]).includes('无快照'))
+    // 磁盘证据:快照单元落在 storage 栈根(per-record 一文档一记录)。
+    const snapDir = resolve(home, 'storages', 'eterna_prompt_snapshots', 'snapshots')
+    const snapDocs = existsSync(snapDir) ? readdirSync(snapDir).filter((f) => f.endsWith('.json')) : []
+    check('T2.3 磁盘证据: 快照单元落在 storage 栈根(storages/eterna_prompt_snapshots/snapshots/ 一文档一快照)',
+      snapDocs.length >= 1, `docs=${snapDocs.length}`)
+    if (snapDocs.length >= 1) {
+      const doc = JSON.parse(readFileSync(resolve(snapDir, snapDocs[0]), 'utf8'))
+      check('T2.3 磁盘证据: 文档记录带 sessionId/checksum/entries(与端点同源)',
+        typeof doc.record?.sessionId === 'string' && typeof doc.record?.checksum === 'string'
+          && Array.isArray(doc.record?.entries) && doc.record.entries.length === 14)
+    }
+    rmSync(wsDir, { recursive: true, force: true })
   }
 
   console.log('[cleanup] SIGTERM 宿主(持久化层停机冲刷)…')

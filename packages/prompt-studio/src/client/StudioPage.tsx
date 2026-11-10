@@ -11,6 +11,9 @@
  *   运行时生成,无 patch 写回落点」明示,不造可编辑假象);
  * - 版本/diff 复用(T7.3 组件按条目渲染):VersionItem(载入/对比/导出/回滚,
  *   无任何删除入口——版本只增不删)+ DiffView([data-ps-diff-view] 锚点叠加);
+ * - 会话快照查看(T2.3)[data-ps-session-snapshot]:会话行卡 → 该会话开启时刻
+ *   effective prompt 全文(条目版本指针+可展开文本);只读型/运行时注入型条目
+ *   「不可回放(上游生成)」降级标注明示,不造可回放假象;
  * - 导入(JSON 包;包内 entryId 指名落点条目)+ R3 审批卡 + 写结果就地展示。
  *
  * 数据经 inject 面到达(props.useStudio / props.refresh / props.call),不触 ctx。
@@ -23,9 +26,14 @@ import { useEffect, useState, type ReactElement } from 'react'
 import { lineDiffOps } from '../diff.ts'
 import type { LineDiffOp } from '../diff.ts'
 import type {
-  EntrySummaryView, PromptExportResult, PromptSaveResult, PromptVersionRecord, VersionsResult,
+  EntrySummaryView, PromptExportResult, PromptSaveResult, PromptVersionRecord,
+  SessionSnapshotGetResult, SessionSnapshotListResult, SessionSnapshotNotFoundResult,
+  SessionSnapshotUnavailableResult, VersionsResult,
   WriteApprovalView,
 } from '../types.ts'
+
+/** 指定会话查询的三态线形状(ok/not-found/unavailable;列表态另用 ListResult)。 */
+type SnapshotGetEnvelope = SessionSnapshotGetResult | SessionSnapshotNotFoundResult | SessionSnapshotUnavailableResult
 import { ENDPOINTS, type RpcEnvelope } from './rpc.ts'
 import { formatTime, formatTokens, utf8Bytes } from './format.ts'
 import {
@@ -309,10 +317,158 @@ function downloadJson(filename: string, data: unknown): void {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
-  anchor.href = url
   anchor.download = filename
+  anchor.href = url
   anchor.click()
   window.setTimeout(() => { URL.revokeObjectURL(url) }, 1000)
+}
+
+/**
+ * 会话快照查看视图(T2.3):会话行卡列表(点击查全文)→ 快照详情(冻结时刻/
+ * checksum/捕获事件 + 逐条目指针或分型标注 + 可展开的当时文本)。只读视图——
+ * 快照不可变,无任何写操作;只读型/运行时注入型条目明示「不可回放(上游生成)」
+ * 降级标注(服务端 note/annotation 透传 + 本地分型徽标双保险,t7-ui-check 文案锚点)。
+ */
+function SessionSnapshotsView({ call, t, ready, generatedAt }: {
+  readonly call: <T>(endpoint: string, args?: Record<string, unknown>) => Promise<RpcEnvelope<T>>
+  readonly t: (key: string) => string
+  readonly ready: boolean
+  /** 快照生成的递增时刻(宿主 refresh 换值 → 重拉列表,与版本链 effect 同款)。 */
+  readonly generatedAt: string
+}): ReactElement {
+  type ListState =
+    | { readonly status: 'loading' }
+    | { readonly status: 'error'; readonly message: string }
+    | { readonly status: 'loaded'; readonly list: SessionSnapshotListResult }
+  const [listState, setListState] = useState<ListState>({ status: 'loading' })
+  const [detail, setDetail] = useState<SessionSnapshotGetResult | null>(null)
+  const [detailIssues, setDetailIssues] = useState<string | null>(null)
+  const [selectedSession, setSelectedSession] = useState<string | null>(null)
+  const [detailBusy, setDetailBusy] = useState(false)
+
+  useEffect(() => {
+    if (!ready) return
+    let cancelled = false
+    setListState(previous => (previous.status === 'loaded' ? previous : { status: 'loading' }))
+    void (async (): Promise<void> => {
+      const result = await call<SessionSnapshotListResult>(ENDPOINTS.sessionSnapshot, { input: {} })
+      if (cancelled) return
+      if (result.ok) setListState({ status: 'loaded', list: result.value })
+      else setListState({ status: 'error', message: result.message })
+    })()
+    return () => { cancelled = true }
+  }, [ready, generatedAt, call])
+
+  /** 点击会话行 → 拉该会话快照全文。 */
+  const openSnapshot = (sessionId: string): void => {
+    if (detailBusy) return
+    setDetailBusy(true)
+    setSelectedSession(sessionId)
+    setDetailIssues(null)
+    void (async (): Promise<void> => {
+      const result = await call<SnapshotGetEnvelope>(ENDPOINTS.sessionSnapshot, { input: { sessionId } })
+      if (result.ok) {
+        if (result.value.status === 'ok') {
+          setDetail(result.value)
+        } else {
+          // not-found/unavailable 分态明示(不冒充空详情)。
+          setDetail(null)
+          setDetailIssues(result.value.issues.join(';'))
+        }
+      } else {
+        setDetail(null)
+        setDetailIssues(result.message)
+      }
+    })().finally(() => { setDetailBusy(false) })
+  }
+
+  return (
+    <section data-t7-section="snapshots" data-ps-session-snapshot aria-label={t('studio.snapshots')}>
+      <h2 data-t7-section-title>{t('studio.snapshots')}</h2>
+      <p data-t7-section-note>{t('studio.snapshots.note')}</p>
+      {listState.status === 'loading' && <p data-t7-placeholder data-ps-snapshot-loading="true">{t('studio.snapshots.loading')}</p>}
+      {listState.status === 'error' && (
+        <p data-ps-snapshot-error>{t('studio.snapshots.loadFailed')}{listState.message === '' ? '' : `:${listState.message}`}</p>
+      )}
+      {listState.status === 'loaded' && !listState.list.ready && (
+        <p data-t7-placeholder data-ps-snapshot-unavailable="true">{t('studio.snapshots.storeUnavailable')}</p>
+      )}
+      {listState.status === 'loaded' && listState.list.ready && listState.list.snapshots.length === 0 && (
+        <p data-t7-placeholder>{t('studio.snapshots.empty')}</p>
+      )}
+      {listState.status === 'loaded' && listState.list.ready && listState.list.snapshots.length > 0 && (
+        <div>
+          <p data-ps-snapshot-select-hint>{t('studio.snapshots.selectSession')}</p>
+          <ul data-ps-snapshot-session-list>
+            {listState.list.snapshots.map(item => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  data-ps-snapshot-session-row={item.sessionId}
+                  data-ps-selected={selectedSession === item.sessionId ? 'true' : 'false'}
+                  aria-current={selectedSession === item.sessionId ? 'true' : undefined}
+                  onClick={() => { openSnapshot(item.sessionId) }}
+                >
+                  <span data-ps-snapshot-row-id>{item.sessionId}</span>
+                  <span data-ps-snapshot-row-meta>
+                    {formatTime(item.createdAt)} · {item.entries} {t('studio.snapshots.entriesCount')} · {item.checksum.slice(0, 12)}…
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {detailIssues !== null && <p data-ps-snapshot-error>{detailIssues}</p>}
+      {detail !== null && (
+        <div data-ps-snapshot-detail>
+          <h3 data-t7-section-title>{t('studio.snapshots.detail')}</h3>
+          <p data-ps-snapshot-note>{detail.note}</p>
+          <div data-ps-snapshot-meta>
+            <span data-ps-meta-item>{t('studio.snapshots.createdAt')}: {formatTime(detail.snapshot.createdAt)}</span>
+            <span data-ps-meta-item>{t('studio.snapshots.trigger')}: {detail.snapshot.trigger}</span>
+            <span data-ps-meta-item>{t('studio.snapshots.entriesCount')}: {detail.snapshot.entries.length}</span>
+            <span data-ps-meta-item data-ps-snapshot-checksum>
+              {t('studio.snapshots.checksum')}: {detail.snapshot.checksum.slice(0, 16)}…
+            </span>
+          </div>
+          <ul data-ps-snapshot-entry-list>
+            {detail.snapshot.entries.map(entry => (
+              <li key={entry.entryId} data-ps-snapshot-entry={entry.entryId} data-ps-snapshot-kind={entry.kind}>
+                <div data-ps-snapshot-entry-head>
+                  <span data-ps-snapshot-entry-id>{entry.entryId}</span>
+                  <span data-ps-pill data-ps-tone="neutral">{t(`studio.kind.${entry.kind}`)}</span>
+                  {entry.kind !== 'patch-value' && (
+                    <span data-ps-pill data-ps-tone="neutral" data-ps-snapshot-unreplayable="true">
+                      {t('studio.snapshots.entry.unreplayable')}
+                    </span>
+                  )}
+                  {entry.versionId !== null && (
+                    <span data-ps-snapshot-pointer>{t('studio.snapshots.versionPointer')}: {entry.versionId}</span>
+                  )}
+                  {entry.versionId === null && entry.kind === 'patch-value' && (
+                    <span data-ps-snapshot-pointer data-ps-snapshot-no-pointer="true">{t('studio.snapshots.noPointer')}</span>
+                  )}
+                </div>
+                {entry.annotation !== null && <p data-ps-snapshot-entry-note>{entry.annotation}</p>}
+                {entry.problems.length > 0 && (
+                  <ul>
+                    {entry.problems.map((problem, index) => <li key={index} data-ps-snapshot-entry-problem>{problem}</li>)}
+                  </ul>
+                )}
+                {entry.text !== null && (
+                  <details>
+                    <summary>{t('studio.snapshots.entry.text')}({entry.bytes ?? 0} {t('studio.editor.bytes')})</summary>
+                    <pre data-ps-snapshot-entry-text>{entry.text}</pre>
+                  </details>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  )
 }
 
 /** 提示词工坊根组件(注册表全景)。 */
@@ -627,6 +783,10 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
 
       {ready && (
         <GroupNav entries={entries} selectedId={selectedId} onSelect={selectEntry} t={t} />
+      )}
+
+      {ready && (
+        <SessionSnapshotsView call={call} t={t} ready={ready} generatedAt={generatedAt} />
       )}
 
       {ready && selected !== undefined && (

@@ -27,6 +27,7 @@ export const ENDPOINTS = {
   promptRollback: 'loopPrompt/prompt-rollback',
   promptExport: 'loopPrompt/prompt-export',
   promptImport: 'loopPrompt/prompt-import',
+  sessionSnapshot: 'loopPrompt/session-snapshot',
 } as const
 
 /**

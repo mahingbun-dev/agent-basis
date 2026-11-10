@@ -364,15 +364,70 @@ const CSS = `
 [data-ps-entry-detail] [data-t7-section] { margin: 0; }
 [data-ps-entry-detail] h3[data-t7-section-title] { font-size: 15px; line-height: 22px; }
 
+/* —— T2.3 会话快照查看(只读:会话行卡列表 + 冻结详情;条目行卡同构形态) —— */
+[data-ps-session-snapshot] { display: flex; flex-direction: column; gap: 12px; margin: 0 0 48px; }
+[data-ps-snapshot-select-hint] { margin: 0; font-size: 12px; color: var(--dsw-alias-label-tertiary); }
+[data-ps-snapshot-session-list] { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+[data-ps-snapshot-session-row] {
+  width: 100%; display: flex; flex-direction: column; gap: 4px; text-align: left;
+  padding: 10px 12px; margin: 0 -12px; font: inherit; cursor: pointer; background: none;
+  border: 0; border-bottom: 0.5px solid var(--dsw-alias-border-l3); border-radius: 12px;
+}
+[data-ps-snapshot-session-list] > li:last-child [data-ps-snapshot-session-row] { border-bottom: 0; }
+[data-ps-snapshot-session-row][data-ps-selected='true'] { background: var(--dsw-alias-interactive-bg-hover); }
+[data-ps-snapshot-row-id] { font-size: 13px; font-weight: 600; color: var(--dsw-alias-label-primary); overflow-wrap: anywhere; }
+[data-ps-snapshot-row-meta] {
+  font-size: 11px; color: var(--dsw-alias-label-tertiary);
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+[data-ps-snapshot-detail] {
+  display: flex; flex-direction: column; gap: 10px; padding: 16px 20px; border-radius: 18px;
+  background: var(--dsw-alias-bg-layer-1, transparent);
+  border: 0.5px solid var(--dsw-alias-border-l2);
+}
+[data-ps-snapshot-detail] h3[data-t7-section-title] { margin: 0; font-size: 15px; line-height: 22px; }
+[data-ps-snapshot-note] { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
+[data-ps-snapshot-meta] {
+  display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px;
+  color: var(--dsw-alias-label-tertiary); font-variant-numeric: tabular-nums;
+}
+[data-ps-snapshot-checksum] { overflow-wrap: anywhere; }
+[data-ps-snapshot-entry-list] { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+[data-ps-snapshot-entry] {
+  display: flex; flex-direction: column; gap: 6px; padding: 10px 0;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l3);
+}
+[data-ps-snapshot-entry-list] > li:last-child { border-bottom: 0; }
+[data-ps-snapshot-entry-head] { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+[data-ps-snapshot-entry-id] { font-size: 13px; font-weight: 600; color: var(--dsw-alias-label-primary); overflow-wrap: anywhere; }
+[data-ps-snapshot-pointer] {
+  font-size: 11px; color: var(--dsw-alias-label-secondary);
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+[data-ps-snapshot-entry-note] { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
+[data-ps-snapshot-entry-problem] { font-size: 12px; line-height: 18px; color: var(--dsw-alias-state-error-primary); }
+[data-ps-snapshot-entry] details { font-size: 12px; color: var(--dsw-alias-label-secondary); }
+[data-ps-snapshot-entry] summary { cursor: pointer; }
+[data-ps-snapshot-entry-text] {
+  margin: 8px 0 0; padding: 12px 14px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere;
+  font-size: 12px; line-height: 18px; border-radius: 12px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  border: 0.5px solid var(--dsw-alias-border-l3);
+}
+[data-ps-snapshot-error] {
+  margin: 0; font-size: 13px; line-height: 20px;
+  color: var(--dsw-alias-state-error-primary); overflow-wrap: anywhere;
+}
+
 /* —— 键盘可达与触控目标(AGENTS.md 前端铁律 4) —— */
 [data-t7-studio-root] button:focus-visible {
   outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 1px;
 }
 /* 紧凑胶囊按钮的视觉节奏保持不变,经 ::after 外扩命中区到 ≥36px 级(access 开关同款手法)。 */
 [data-t7-version-actions] button, [data-t7-export-latest], [data-t7-import-btn],
-[data-t7-diff-close], [data-t7-refresh], [data-ps-entry-row] { position: relative; }
+[data-t7-diff-close], [data-t7-refresh], [data-ps-entry-row], [data-ps-snapshot-session-row] { position: relative; }
 [data-t7-version-actions] button::after, [data-t7-export-latest]::after, [data-t7-import-btn]::after,
-[data-t7-diff-close]::after, [data-t7-refresh]::after, [data-ps-entry-row]::after {
+[data-t7-diff-close]::after, [data-t7-refresh]::after, [data-ps-entry-row]::after, [data-ps-snapshot-session-row]::after {
   content: ""; position: absolute; inset: -6px;
 }
 

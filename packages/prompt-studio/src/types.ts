@@ -289,6 +289,104 @@ export interface EntryNotFoundResult {
   readonly issues: readonly string[]
 }
 
+// ---------- loopPrompt/session-snapshot(T2.3 会话快照) ----------
+
+/**
+ * 快照内单条目的生效提示词记录(指针按条目型别分语义,对齐 T1.3 分型——
+ * 未定义语义的型别不得静默空段,测试计划 §4 T2.3(b)①):
+ * - patch 值型:text=开启时生效文本全文,versionId=内容 checksum 与之一致的
+ *   版本链记录 id(指针);无一致版本(外部改写/写入在途)→ versionId=null +
+ *   annotation 明示,**不伪造 versionId**;
+ * - 行锚点只读型(time-context):text/versionId=null + 在场标记 annotation
+ *   (「上游运行时生成」),不伪造;
+ * - 运行时注入型(memory/glue):开启时可解析的 section 文本(注册表自管文本)
+ *   或元数据在场标记 annotation。
+ */
+export interface SessionSnapshotEntry {
+  readonly entryId: string
+  readonly layer: PromptLayer
+  readonly kind: PromptEntryKind
+  /** 开启时生效文本全文(patch 值型必填;运行时注入型可解析时有;其余 null)。 */
+  readonly text: string | null
+  /** text 的 UTF-8 字节数(无文本时 null)。 */
+  readonly bytes: number | null
+  /** sha256(text),口径同 version-store checksum(无文本时 null)。 */
+  readonly checksum: string | null
+  /** 条目版本指针(patch 值型:指向内容一致版本的 id;无一致版本/无版本链型 null)。 */
+  readonly versionId: string | null
+  /** 型别语义标注(只读型/运行时型/无一致版本的明示;可据型别缺席)。 */
+  readonly annotation: string | null
+  /** 读值问题明细(读失败时非空,不抛错)。 */
+  readonly problems: readonly string[]
+}
+
+/** 会话快照记录(只增不改:一经写入不可变,无任何删除/改写原语)。 */
+export interface SessionSnapshotRecord {
+  /** 快照记录 id(path-safe,^[A-Za-z0-9_-]+$;per-record 布局键)。 */
+  readonly id: string
+  readonly sessionId: string
+  readonly createdAt: string
+  /** 捕获触发事件(当前唯一:'session/created')。 */
+  readonly trigger: string
+  /** 全部注册表条目的快照条目(全景,含三型分语义)。 */
+  readonly entries: readonly SessionSnapshotEntry[]
+  /** 内容整体 checksum(sha256 of 规范化 {sessionId,trigger,entries};不可变复核口径)。 */
+  readonly checksum: string
+}
+
+/** 端点 loopPrompt/session-snapshot 的入参(无 sessionId → 列表模式)。 */
+export interface SessionSnapshotInput {
+  /** 指定会话:返回该会话快照全文;缺省 → 最近快照列表。 */
+  readonly sessionId?: string
+  /** 列表模式最多返回条数(默认 20,新→旧)。 */
+  readonly limit?: number
+}
+
+/** 列表模式单项(轻量卡;全文按 sessionId 再查)。 */
+export interface SessionSnapshotListItem {
+  readonly id: string
+  readonly sessionId: string
+  readonly createdAt: string
+  readonly entries: number
+  readonly checksum: string
+}
+
+/** 列表模式返回(快照存储未挂载 → ready=false 明示,不 5xx;测试计划 §6.5③)。 */
+export interface SessionSnapshotListResult {
+  readonly status: 'ok'
+  readonly ready: boolean
+  readonly total: number
+  readonly snapshots: readonly SessionSnapshotListItem[]
+}
+
+/** 指定会话查询的返回(找到 → 快照全文 + 回放语义说明)。 */
+export interface SessionSnapshotGetResult {
+  readonly status: 'ok'
+  readonly snapshot: SessionSnapshotRecord
+  /** 查看语义说明(快照冻结/不可回放型明示;UI 透传)。 */
+  readonly note: string
+}
+
+/** 指定会话查询:会话无快照(未开启过/事件缺席)→ 明示 not-found,不抛。 */
+export interface SessionSnapshotNotFoundResult {
+  readonly status: 'not-found'
+  readonly sessionId: string
+  readonly issues: readonly string[]
+}
+
+/** 指定会话查询:快照存储未挂载 → 明示不可用,不 5xx(与 not-found 分态)。 */
+export interface SessionSnapshotUnavailableResult {
+  readonly status: 'unavailable'
+  readonly sessionId: string
+  readonly issues: readonly string[]
+}
+
+export type SessionSnapshotResult =
+  | SessionSnapshotListResult
+  | SessionSnapshotGetResult
+  | SessionSnapshotNotFoundResult
+  | SessionSnapshotUnavailableResult
+
 // ---------- 校验与写结果 ----------
 
 /** 端点 loopPrompt/prompt-save 的入参。 */
@@ -460,4 +558,9 @@ export interface StudioContextLike {
   inject(deps: readonly string[], callback: (ctx: StudioContextLike) => void): unknown
   /** effect 配逆闭包(插件硬性规范第 5 条)。 */
   effect(fn: () => (() => void) | void): unknown
+  /**
+   * 官方事件 seam(T2.3:注册 `session/created` 全局未打标监听——会话开启事件,
+   * dsh-session Events 契约;监听器绝不同步抛错,否则上游 announce 会否决会话创建)。
+   */
+  on(name: string, listener: (...args: never[]) => unknown): () => void
 }

@@ -19,6 +19,7 @@ SRC 参数绑定按运行时形参名:所有带参端点参数名一律 `input`,
 | `loopPrompt/prompt-rollback` | `{ versionId(必填), baseVersionId?, summary?, author?, approvalId?, approved? }` | `PromptRollbackResult`(同 save 形态) |
 | `loopPrompt/prompt-export` | `{ versionId?, exportedBy? }`(缺省=最新) | `PromptExportResult { pack{schemaVersion:1,exportedAt,exportedBy,sourceVersionId,persona,checksum}, version }`(只读,不走审批) |
 | `loopPrompt/prompt-import` | `{ pack, summary?, author?, approvalId?, approved? }` | `PromptImportResult`(同 save 形态) |
+| `loopPrompt/session-snapshot`(T2.3) | `{ sessionId?, limit? }` | `SessionSnapshotResult`:带 sessionId → `{status:'ok', snapshot, note}` / `{status:'not-found',sessionId,issues[]}` / `{status:'unavailable',…}`(快照库未挂载,不 5xx);缺省 → `{status:'ok', ready, total, snapshots[]}` 列表(新→旧)。`snapshot` = 会话开启事件时冻结的 effective prompt 全景:`{id, sessionId, createdAt, trigger:'session/created', entries[], checksum}`;逐条目 `{entryId, layer, kind, text?, bytes?, checksum?, versionId?, annotation?, problems[]}` 指针按型别分语义(patch 值型=内容一致版本的 id;行锚点只读型/运行时注入型=在场标记标注,不伪造 versionId) |
 
 关键共享类型:
 
@@ -73,6 +74,20 @@ SRC 参数绑定按运行时形参名:所有带参端点参数名一律 `input`,
   (`storage.backend.json` 服务键),未挂载时 snapshot 降级 `versions.ready=false`、
   写端点抛 `gateway/bad-request`。
 - 首次挂载种子 `source='initial'` v1(内容=patch 层当前 persona,空则不种)。
+
+### 会话快照库(T2.3,只增不改)
+
+- 存储:同栈独立 json 单元 `eterna_prompt_snapshots`(per-record,表 `snapshots`),
+  盘面 `<DSH_HOME>/storages/eterna_prompt_snapshots/snapshots/<id>.json`;方法面
+  只有 append/list/get/getBySessionId/close(无删除/改写原语,单测钉死);同
+  sessionId 二次 append fail-closed。
+- 捕获:插件 apply 注册全局未打标 `session/created` 监听(dsh-session Events
+  契约;同步边界安全——监听器绝不同步抛错,否则否决会话创建),开启事件 →
+  全景条目快照入库;快照库未就绪时队列保底,attach 后补捕;审计
+  `session-snapshot.captured/failed/rejected/dropped`。
+- 不可变:快照一经写入逐字节不变(整体 checksum=规范化载荷 sha256,读回复核);
+  保存/回滚/导入等全部写操作对既有快照零影响;指针与文本由同一 checksum 绑定
+  (写入并发开会话不出现「指针 v1/文本 v2」混合)。
 
 ### 审计(G5)
 

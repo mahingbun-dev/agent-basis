@@ -1,9 +1,12 @@
 /**
  * Host 半边插件测试(T7.1):
- * - 8 个 SRC 端点的 @Remote marker(手工施加路径)与端点字符串;
+ * - 9 个 SRC 端点的 @Remote marker(手工施加路径)与端点字符串(T2.3 起
+ *   含 loopPrompt/session-snapshot);
  * - default export 插件形态(name/apply/总 disposer);
  * - 全写链路在进程内打通:approval-required → confirm → committed(patch 原子写 +
- *   版本库追加 + 审计留痕),回滚/导入/乐观锁/校验拒绝/storage 未就绪分支。
+ *   版本库追加 + 审计留痕),回滚/导入/乐观锁/校验拒绝/storage 未就绪分支;
+ * - T2.3 快照查询端点契约:按 sessionId 返回当时 effective prompt;未知
+ *   sessionId → not-found 明示不炸(深度语义/不可变性见 tests/session-snapshot.test.ts)。
  *
  * 真实 cordis Context(裸根):profileContext 缺席 → patchPath/审计/会话根全部走
  * 插件 config 覆写(与宿主 profileContext 提供时的缺省路径同构)。
@@ -20,8 +23,12 @@ import plugin, {
   PROMPT_REGISTRY_SERVICE_ID, STORAGE_JSON_BACKEND_KEY, WILDCARD_WRITE_RULE_ID, definePromptStudioPlugin,
   entryWriteRuleId, validateEntryText,
 } from '../src/index.ts'
-import type { EntryNotFoundResult, PromptExportPack, PromptGetEntryResult, StudioContextLike, VersionsResult } from '../src/types.ts'
+import type {
+  EntryNotFoundResult, PromptExportPack, PromptGetEntryResult, SessionSnapshotEntry,
+  SessionSnapshotGetResult, SessionSnapshotNotFoundResult, StudioContextLike, VersionsResult,
+} from '../src/types.ts'
 import { PersonaPatchFile } from '../src/persona-patch.ts'
+import { SNAPSHOTS_TABLE } from '../src/session-snapshot.ts'
 import { VERSIONS_TABLE } from '../src/version-store.ts'
 import { sha256Hex } from '../src/checksum.ts'
 import { byteLength } from '../src/checksum.ts'
@@ -31,9 +38,9 @@ const PERSONA_V1 = 'You are the Eterna enterprise assistant. T7-STUDIO-V1 红线
 /** 三条红线锚点文本(拼接新内容用)。 */
 const RED_LINES = '红线:预算超支>5%必须触发审批;对外付款不得代付;比选必须中立。'
 
-/** 内存 KvUnit(与 version-store.test 同款最小面)。 */
+/** 内存 KvUnit(与 version-store.test 同款最小面;T2.3 起双表:versions + snapshots)。 */
 class MemoryUnit {
-  readonly tables = new Map<string, Map<string, unknown>>([[VERSIONS_TABLE, new Map()]])
+  readonly tables = new Map<string, Map<string, unknown>>([[VERSIONS_TABLE, new Map()], [SNAPSHOTS_TABLE, new Map()]])
   async loadAll() {
     const tables: Record<string, Record<string, unknown>> = {}
     for (const [name, records] of this.tables) tables[name] = Object.fromEntries(records)
@@ -68,11 +75,12 @@ function asStudio(ctx: Context): StudioContextLike {
 describe('SRC 端点声明(手工 @Remote marker)', () => {
   const markers = remoteMethods(Object.create(LoopPromptGateway.prototype) as object)
 
-  it('8 个端点,exportName 与请求路径一一对应', () => {
-    expect(markers).toHaveLength(8)
+  it('9 个端点,exportName 与请求路径一一对应', () => {
+    expect(markers).toHaveLength(9)
     const names = markers.map(marker => marker.exportName ?? marker.method).sort()
     expect(names).toEqual([
-      'prompt-export', 'prompt-get', 'prompt-import', 'prompt-rollback', 'prompt-save', 'prompt-versions', 'snapshot', 'trace',
+      'prompt-export', 'prompt-get', 'prompt-import', 'prompt-rollback', 'prompt-save', 'prompt-versions',
+      'session-snapshot', 'snapshot', 'trace',
     ])
   })
 
@@ -86,6 +94,7 @@ describe('SRC 端点声明(手工 @Remote marker)', () => {
     expect(ENDPOINTS.promptRollback).toBe('loopPrompt/prompt-rollback')
     expect(ENDPOINTS.promptExport).toBe('loopPrompt/prompt-export')
     expect(ENDPOINTS.promptImport).toBe('loopPrompt/prompt-import')
+    expect(ENDPOINTS.sessionSnapshot).toBe('loopPrompt/session-snapshot')
   })
 
   it('json backend 服务键来自官方 storageBackendServiceKey', () => {
@@ -403,6 +412,22 @@ describe('LoopPromptGateway 全链路(真实 cordis 根 Context)', () => {
     expect(reported.length).toBeGreaterThan(0)
     expect(reported[0]?.['action']).toBe('prompt-save.rejected')
     await governed.dispose()
+  })
+
+  it('T2.3 快照查询端点:按 sessionId 返回当时 effective prompt;未知 sessionId → not-found 明示不炸', async () => {
+    await attach()
+    // 会话开启 → 快照入库(等待捕获排空)。
+    gateway.handleSessionCreated({ id: 'session-hp-1' })
+    await gateway.drainSessionCaptures()
+    const got = await gateway.sessionSnapshot({ sessionId: 'session-hp-1' }) as SessionSnapshotGetResult
+    expect(got.status).toBe('ok')
+    const persona = got.snapshot.entries.find(item => item.entryId === DEFAULT_ENTRY_ID) as SessionSnapshotEntry
+    expect(persona.text).toBe(PERSONA_V1)
+    expect(persona.versionId).toBe((await gateway.promptVersions({})).versions[0]?.id)
+    expect(got.snapshot.entries).toHaveLength(PROMPT_REGISTRY_ENTRIES.length)
+    const missing = await gateway.sessionSnapshot({ sessionId: 'session-unknown' }) as SessionSnapshotNotFoundResult
+    expect(missing.status).toBe('not-found')
+    expect(missing.issues[0]).toContain('无快照')
   })
 })
 

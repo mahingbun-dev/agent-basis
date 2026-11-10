@@ -167,9 +167,20 @@ try {
   check('combo 脚本含本包 factory 注册(id=@eterna/prompt-studio)', comboBody.includes('id: "@eterna/prompt-studio"'))
   for (const anchor of ['data-t7-editor', 'data-t7-save-btn', 'data-t7-version-item', 'data-t7-trace-node', 'data-t7-session-item', 'data-t7-approve-btn',
     // T1.5 全景改版锚点(ps-v2-test-plan §3 T1.5(b)②:分组导航/条目详情/diff/保存)。
-    'data-ps-group-nav', 'data-ps-entry-detail', 'data-ps-diff-view', 'data-ps-entry-save']) {
+    'data-ps-group-nav', 'data-ps-entry-detail', 'data-ps-diff-view', 'data-ps-entry-save',
+    // T2.3 会话快照查看视图锚点(ps-v2-test-plan §4 T2.3(b):快照查看视图 +
+    // 只读型/运行时注入型「不可回放/上游生成」降级文案,combo 级断言唯一采集载体)。
+    'data-ps-session-snapshot', 'data-ps-snapshot-session-row', 'data-ps-snapshot-detail',
+    'data-ps-snapshot-entry', 'data-ps-snapshot-entry-text']) {
     check(`combo 脚本含视图锚点 ${anchor}`, comboBody.includes(anchor))
   }
+  // combo 脚本经 esbuild ASCII 转义(大写 hex \uXXXX),中文文案按转义形态断言。
+  const escapedZh = (text) => [...text]
+    .map(ch => (ch.charCodeAt(0) <= 0x7e ? ch : `\\u${ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`))
+    .join('')
+  check('combo 脚本含快照降级文案锚点(不可回放/上游生成;两型无版本链条目明示)',
+    comboBody.includes(escapedZh('不可回放')) && comboBody.includes(escapedZh('上游生成')))
+  check('combo 脚本含快照查询端点接线(loopPrompt/session-snapshot)', comboBody.includes('loopPrompt/session-snapshot'))
 
   // 5) T1.2 花名册 id 交叉钉住（ps-v2-test-plan §3 T1.2(b)）：同一插件 id 三处
   //    同源——TOGGLEABLE_PLUGINS 登记(access routes.ts)≡ 生产档 patch insert 行

@@ -10,6 +10,8 @@
  * ②styles.ts 令牌数量只增不减(基线 136 处 --dsw-alias-*);③新视图锚点
  * data-ps-group-nav / data-ps-entry-detail / data-ps-diff-view / data-ps-entry-save
  * 在 bundle 中。
+ * T2.3 扩展:会话快照查看视图锚点(data-ps-snapshot-*)与「不可回放/上游生成」
+ * 降级文案锚点在 bundle 中(测试计划 §4 T2.3(b) 前端断言,同 T1.5 模式)。
  */
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -131,6 +133,27 @@ describe('T1.5 全景改版工件', () => {
     // 写链路两段式载荷复述面含 entryId(宿主 ApprovalGate confirm 校验一致)。
     expect(source).toContain('entryId: selected.id')
     expect(source).toContain('entryId: version.entryId')
+  })
+
+  it('T2.3 工件:会话快照查看视图锚点在 bundle 中;只读型/运行时注入型「不可回放/上游生成」降级文案在场', () => {
+    const code = readFileSync(bundlePath, 'utf8')
+    // 测试计划 §4 T2.3(b):快照查看视图锚点(随 T1.5 模式)。
+    for (const anchor of [
+      'data-ps-session-snapshot', 'data-ps-snapshot-session-row', 'data-ps-snapshot-detail',
+      'data-ps-snapshot-entry', 'data-ps-snapshot-entry-text', 'data-ps-snapshot-pointer',
+    ]) {
+      expect(code, `缺少 T2.3 快照视图锚点 ${anchor}`).toContain(anchor)
+    }
+    // 降级标注文案锚点(两型无版本链条目明示,不造可回放假象)。bundle 经 esbuild
+    // ASCII 转义(大写 hex \uXXXX),中文文案按转义形态断言。
+    const escaped = (text: string): string => text.split('')
+      .map(ch => (ch.charCodeAt(0) <= 0x7e ? ch : `\\u${ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`))
+      .join('')
+    expect(code, '「不可回放」降级文案应在 bundle').toContain(escaped('不可回放'))
+    expect(code, '「上游生成」降级文案应在 bundle').toContain(escaped('上游生成'))
+    expect(code, '「会话快照」区段标题文案应在 bundle').toContain(escaped('会话快照'))
+    // 快照端点接线(session-snapshot 列表/详情两形态)。
+    expect(code).toContain('loopPrompt/session-snapshot')
   })
 
   it('T1.5 DEFAULT_ENTRY_ID 交叉钉住:客户端本地常量 ≡ 服务端 registry 导出(同值)', () => {

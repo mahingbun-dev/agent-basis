@@ -97,6 +97,22 @@ export type StudioLocaleKey =
   | 'studio.approval.reject'
   | 'studio.approval.working'
   | 'studio.write.status'
+  | 'studio.snapshots'
+  | 'studio.snapshots.note'
+  | 'studio.snapshots.loading'
+  | 'studio.snapshots.loadFailed'
+  | 'studio.snapshots.empty'
+  | 'studio.snapshots.storeUnavailable'
+  | 'studio.snapshots.selectSession'
+  | 'studio.snapshots.detail'
+  | 'studio.snapshots.createdAt'
+  | 'studio.snapshots.checksum'
+  | 'studio.snapshots.trigger'
+  | 'studio.snapshots.entriesCount'
+  | 'studio.snapshots.versionPointer'
+  | 'studio.snapshots.noPointer'
+  | 'studio.snapshots.entry.unreplayable'
+  | 'studio.snapshots.entry.text'
   | 'studio.stats.entries'
   | 'studio.stats.sessions'
   | 'studio.stats.channel'
@@ -207,6 +223,22 @@ export const zh: Record<StudioLocaleKey, string> = {
   'studio.approval.reject': '拒绝',
   'studio.approval.working': '审批提交中…',
   'studio.write.status': '写入结果',
+  'studio.snapshots': '会话快照(开启时冻结)',
+  'studio.snapshots.note': '每个会话在开启事件时冻结当时的生效提示词,只读不可变——改动提示词只影响之后新开启的会话。点击会话查看当时提示词;行锚点只读型与运行时注入型条目不可回放(上游生成/装配时构建),仅记在场标记。',
+  'studio.snapshots.loading': '正在拉取会话快照列表…',
+  'studio.snapshots.loadFailed': '会话快照拉取失败(点刷新重试)',
+  'studio.snapshots.empty': '尚无会话快照(新会话开启后自动生成)',
+  'studio.snapshots.storeUnavailable': '快照存储未挂载(版本库与快照库共用 storage 栈)',
+  'studio.snapshots.selectSession': '选择会话查看快照',
+  'studio.snapshots.detail': '快照详情',
+  'studio.snapshots.createdAt': '冻结时刻',
+  'studio.snapshots.checksum': '内容校验和',
+  'studio.snapshots.trigger': '捕获事件',
+  'studio.snapshots.entriesCount': '条目数',
+  'studio.snapshots.versionPointer': '版本指针',
+  'studio.snapshots.noPointer': '无版本指针(不伪造)',
+  'studio.snapshots.entry.unreplayable': '不可回放(上游生成)',
+  'studio.snapshots.entry.text': '当时生效文本',
   'studio.stats.entries': '提示词条目',
   'studio.stats.sessions': '最近会话',
   'studio.stats.channel': '生效通道',
@@ -318,6 +350,22 @@ export const en: Record<StudioLocaleKey, string> = {
   'studio.approval.reject': 'Reject',
   'studio.approval.working': 'Submitting approval…',
   'studio.write.status': 'Write result',
+  'studio.snapshots': 'Session snapshots (frozen at open)',
+  'studio.snapshots.note': 'Each session freezes its effective prompt at the open event, read-only and immutable — later prompt edits only affect sessions opened afterwards. Pick a session to inspect its prompt at that time; line-anchor (read-only) and runtime-injected entries are not replayable (generated upstream / assembled at runtime) and only carry a presence marker.',
+  'studio.snapshots.loading': 'Fetching session snapshots…',
+  'studio.snapshots.loadFailed': 'Failed to fetch session snapshots (refresh to retry)',
+  'studio.snapshots.empty': 'No session snapshots yet (created automatically when a session opens)',
+  'studio.snapshots.storeUnavailable': 'snapshot store not mounted (shares the storage stack with the version store)',
+  'studio.snapshots.selectSession': 'Pick a session to view its snapshot',
+  'studio.snapshots.detail': 'Snapshot detail',
+  'studio.snapshots.createdAt': 'Frozen at',
+  'studio.snapshots.checksum': 'Content checksum',
+  'studio.snapshots.trigger': 'Capture event',
+  'studio.snapshots.entriesCount': 'Entries',
+  'studio.snapshots.versionPointer': 'Version pointer',
+  'studio.snapshots.noPointer': 'No version pointer (never fabricated)',
+  'studio.snapshots.entry.unreplayable': 'Not replayable (generated upstream)',
+  'studio.snapshots.entry.text': 'Effective text at open',
   'studio.stats.entries': 'Entries',
   'studio.stats.sessions': 'Recent sessions',
   'studio.stats.channel': 'Channel',

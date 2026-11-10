@@ -30,6 +30,10 @@
  *                                导出,包带 entryId(默认条目缺省,T7 包形状不变)
  * - loopPrompt/prompt-import     导入 JSON 包(schemaVersion+checksum 强校验 + 与保存
  *                                同一套按条目校验器;两段式;pack.entryId 指名条目)
+ * - loopPrompt/session-snapshot  会话快照查询(T2.3):input.sessionId 非空 → 该会话
+ *                                开启时刻的 effective prompt 全文(条目版本指针+文本/
+ *                                分型标注;无快照 not-found、快照库未挂载 unavailable
+ *                                分态明示不抛);缺省 → 最近快照列表(未挂载 ready=false)
  *
  * Node 24 type-stripping 不解析标准 decorator 语法,故经 Remote() 公开函数面
  * 手工施加装饰器(等价于 @Remote('snapshot') 糖,对齐 packages/panel/src/index.ts)。
@@ -67,13 +71,17 @@ import {
   DEFAULT_ENTRY_ID, PROMPT_REGISTRY_ENTRIES, WEB_PATCH, ensureEntryWritable, getPromptRegistryEntry, readEntryText,
 } from './registry.ts'
 import type { PromptRegistryEntry, RegistryFileReader } from './registry.ts'
-import { COMPOSED_NOTE, EFFECTIVE_NOTE, READONLY_ENTRY_NOTE, RUNTIME_ENTRY_NOTE, buildSnapshot, cardDiffSummary } from './snapshot.ts'
+import { COMPOSED_NOTE, EFFECTIVE_NOTE, READONLY_ENTRY_NOTE, RUNTIME_ENTRY_NOTE, SNAPSHOT_VIEW_NOTE, buildSnapshot, cardDiffSummary } from './snapshot.ts'
+import {
+  SESSION_CREATED_TRIGGER, SessionSnapshotStore, SNAPSHOT_UNIT_DESCRIPTOR, captureSessionSnapshotEntries,
+} from './session-snapshot.ts'
 import { TRACE_SESSION_LIMIT_DEFAULT, listTraceSessions, readSessionTrace } from './trace.ts'
 import type {
   EntryNotFoundResult, EntrySummaryView, EntryValueView, LoopPromptSnapshot, PromptEntryView,
   PromptExportInput, PromptExportPack, PromptExportResult, PromptGetEntryResult, PromptGetInput,
   PromptGetResult, PromptImportInput, PromptImportResult, PromptRollbackInput, PromptRollbackResult,
-  PromptSaveInput, PromptSaveResult, ProfileContextLike, StudioContextLike, TraceInput, TraceReport,
+  PromptSaveInput, PromptSaveResult, ProfileContextLike, SessionSnapshotInput, SessionSnapshotRecord,
+  SessionSnapshotResult, StudioContextLike, TraceInput, TraceReport,
   VersionsInput, VersionsResult, WriteApprovalView, WriteKind, WriteStatus,
 } from './types.ts'
 import type { PromptVersionRecord, VersionOverview } from './types.ts'
@@ -91,6 +99,13 @@ export const LOOP_PROMPT_SERVICE_ID = 'loopPrompt'
  */
 export const PROMPT_REGISTRY_SERVICE_ID = 'promptRegistry'
 
+/**
+ * 会话开启事件名(T2.3,dsh-session Events 契约 'session/created'):全局未打标
+ * 监听收到全部会话(dsh-scope scopeTarget 语义);监听器绝不同步抛错——上游
+ * announce 的同步边界里同步抛错会否决会话创建(回滚刚 enter 的会话)。
+ */
+export const SESSION_CREATED_EVENT = 'session/created'
+
 /** 全部端点字符串(T7.2 客户端照此调用)。 */
 export const ENDPOINTS = {
   snapshot: `${LOOP_PROMPT_SERVICE_ID}/snapshot`,
@@ -101,6 +116,7 @@ export const ENDPOINTS = {
   promptRollback: `${LOOP_PROMPT_SERVICE_ID}/prompt-rollback`,
   promptExport: `${LOOP_PROMPT_SERVICE_ID}/prompt-export`,
   promptImport: `${LOOP_PROMPT_SERVICE_ID}/prompt-import`,
+  sessionSnapshot: `${LOOP_PROMPT_SERVICE_ID}/session-snapshot`,
 } as const
 
 /** json backend 在 storage hub 上的生命周期服务键(官方 storageBackendServiceKey)。 */
@@ -176,6 +192,19 @@ function badRequest(message: string): RemoteError {
   return new RemoteError('gateway/bad-request', message, { issues: [{ message }] })
 }
 
+/** 待捕获队列上限(防快照库长期缺席时无界增长;溢出丢最旧并审计)。 */
+const SNAPSHOT_CAPTURE_QUEUE_LIMIT = 100
+
+/** 快照列表模式默认条数(与 trace 最近会话清单同量级)。 */
+const SNAPSHOT_LIST_LIMIT_DEFAULT = 20
+
+/** 防御式提取会话 id(session/created 载荷的 Session.id;缺席 → undefined)。 */
+function sessionIdOf(session: unknown): string | undefined {
+  if (typeof session !== 'object' || session === null) return undefined
+  const id = (session as { readonly id?: unknown }).id
+  return typeof id === 'string' && id.trim() !== '' ? id : undefined
+}
+
 /** 注册表条目 → 线上元数据视图(快照 entries[] 与 per-entry prompt-get 共用)。 */
 function entryViewOf(entry: PromptRegistryEntry): PromptEntryView {
   return {
@@ -240,6 +269,22 @@ export class LoopPromptGateway extends TypertRemoteService {
   store: PromptVersionStore | undefined
   /** 版本库未就绪的原因(snapshot 降级面/requireStore 明示用)。 */
   storeError: string | undefined
+  /**
+   * 会话快照库(T2.3;与版本库同 backend 的独立 json 单元,未挂载 undefined)。
+   * 公开字段=网关 shadow 约束(见文件头)。
+   */
+  snapshotStore: SessionSnapshotStore | undefined
+  /** 快照库未就绪的原因(session-snapshot 端点降级面明示用)。 */
+  snapshotStoreError: string | undefined
+  /** 已捕获快照的会话 id 幂等集(内存;重挂后由快照库 getBySessionId 兜底去重)。 */
+  readonly snapshottedSessions = new Set<string>()
+  /**
+   * 待捕获队列(快照库未就绪的会话开启事件保底;有界,溢出丢最旧并审计)。
+   * 公开字段=网关 shadow 约束。
+   */
+  readonly pendingCaptureSessions: string[] = []
+  /** 捕获串行链尾(与版本库同款单写者纪律;公开字段=网关 shadow 约束)。 */
+  captureChain: Promise<unknown> = Promise.resolve()
   /** 按条目种子的一次性记忆(ensureEntrySeeds;detach 时重置。公开字段=网关 shadow 约束)。 */
   entrySeedPromise: Promise<void> | undefined
   /**
@@ -471,6 +516,167 @@ export class LoopPromptGateway extends TypertRemoteService {
     } catch (error) {
       this.storeError = `版本库单元打开失败:${error instanceof Error ? error.message : String(error)}`
     }
+    // T2.3 会话快照库:同 backend 的独立 json 单元(打开失败不连坐版本库;
+    // 缺席时 session-snapshot 端点 ready=false/unavailable 降级,不炸宿主)。
+    try {
+      const snapshotUnit = await facet.open(SNAPSHOT_UNIT_DESCRIPTOR)
+      this.snapshotStore = new SessionSnapshotStore(snapshotUnit)
+      this.snapshotStoreError = undefined
+      // 装载前入队的会话开启事件(快照库未就绪窗口)此时补捕。
+      void this.drainSessionCaptures().catch(() => undefined)
+    } catch (error) {
+      this.snapshotStoreError = `快照库单元打开失败:${error instanceof Error ? error.message : String(error)}`
+    }
+  }
+
+  // ---------- T2.3 会话快照(开启事件 → 快照入 DSH_HOME 存储) ----------
+
+  /**
+   * 注册会话开启监听(T2.3):全局未打标 `session/created` 监听(收到全部会话,
+   * 含子代理会话);返回 disposer。监听器本体 handleSessionCreated 绝不同步抛错
+   * (上游同步边界,见 SESSION_CREATED_EVENT 注)。
+   */
+  registerSessionCreated(ctx: StudioContextLike): () => void {
+    return ctx.on(SESSION_CREATED_EVENT, (session: unknown) => {
+      this.handleSessionCreated(session)
+    })
+  }
+
+  /**
+   * 会话开启事件入口(同步边界安全:全部异常就地吞掉并审计,绝不向上抛——
+   * 同步抛错会否决上游会话创建)。入队后异步捕获;快照库未就绪时队列保底,
+   * attachBackend 完成后补捕。重复事件幂等(内存集 + 快照库 getBySessionId 双守卫)。
+   */
+  handleSessionCreated(session: unknown): void {
+    try {
+      const id = sessionIdOf(session)
+      if (id === undefined) {
+        this.audit.write('session-snapshot.rejected', { reason: 'unknown-session-id', issues: ['session/created 载荷无字符串 id(防御式访问缺席,跳过捕获)'] })
+        return
+      }
+      if (this.snapshottedSessions.has(id) || this.pendingCaptureSessions.includes(id)) return
+      if (this.pendingCaptureSessions.length >= SNAPSHOT_CAPTURE_QUEUE_LIMIT) {
+        const dropped = this.pendingCaptureSessions.shift()
+        this.audit.write('session-snapshot.dropped', { sessionId: dropped, reason: 'queue-overflow' })
+      }
+      this.pendingCaptureSessions.push(id)
+      void this.drainSessionCaptures().catch(() => undefined)
+    } catch (error) {
+      try {
+        this.audit.write('session-snapshot.failed', { reason: 'listener-error', error: error instanceof Error ? error.message : String(error) })
+      } catch {
+        // 审计本身失败:静默(监听器同步边界不得抛)。
+      }
+    }
+  }
+
+  /**
+   * 捕获排空(串行链):每次调用在链尾排队一次排空循环——store 未就绪即返回
+   * (队列保底,attach 后再排);逐会话「已存在跳过 / 捕获入库」;失败审计后
+   * 放弃该会话(开启事件只发一次,不无限重试),队列继续推进。
+   */
+  drainSessionCaptures(): Promise<void> {
+    const run = this.captureChain.then(() => this.runCaptureDrain())
+    this.captureChain = run.catch(() => undefined)
+    return run
+  }
+
+  /** 排空执行体(公开方法=网关 shadow 约束,见文件头)。 */
+  async runCaptureDrain(): Promise<void> {
+    for (;;) {
+      const store = this.snapshotStore
+      if (store === undefined) return
+      const sessionId = this.pendingCaptureSessions[0]
+      if (sessionId === undefined) return
+      try {
+        const existing = await store.getBySessionId(sessionId)
+        if (existing === undefined) {
+          const record = await this.captureAndAppend(store, sessionId)
+          this.audit.write('session-snapshot.captured', {
+            sessionId,
+            snapshotId: record.id,
+            entries: record.entries.length,
+            checksum: record.checksum,
+            trigger: record.trigger,
+          })
+        }
+        this.snapshottedSessions.add(sessionId)
+      } catch (error) {
+        this.audit.write('session-snapshot.failed', {
+          sessionId,
+          error: error instanceof Error ? error.message : String(error),
+        })
+      }
+      this.pendingCaptureSessions.shift()
+    }
+  }
+
+  /**
+   * 捕获一次会话开启时刻的 effective prompt 并入库:种子与运行时缓存先就位
+   * (确定性链视图),版本库单次一致读作指针面(见 captureSessionSnapshotEntries
+   * 的原子性注);读值容错(单条目失败记 problems,不炸整体)。
+   */
+  async captureAndAppend(store: SessionSnapshotStore, sessionId: string): Promise<SessionSnapshotRecord> {
+    await this.ensureEntrySeeds()
+    await this.refreshRuntimePromptCache()
+    const versionStore = this.store
+    const versionRecords = versionStore === undefined ? [] : await versionStore.list()
+    const entries = captureSessionSnapshotEntries({
+      entries: PROMPT_REGISTRY_ENTRIES,
+      readFile: this.registryReadFile(),
+      versionRecords,
+      runtimeTexts: new Map(this.runtimePromptCache),
+    })
+    return store.append({ sessionId, trigger: SESSION_CREATED_TRIGGER, entries })
+  }
+
+  /**
+   * 会话快照查询(端点 loopPrompt/session-snapshot;T2.3 读取 API):
+   * - input.sessionId 非空 → 该会话快照全文(条目版本指针+文本/标注);sessionId
+   *   兼容 `session-<id>` 目录名形态(trace 先例);无快照 → status='not-found'
+   *   明示,不抛裸异常;快照库未挂载 → status='unavailable' 分态明示(不 5xx);
+   * - 缺省 → 列表模式(最近快照,新→旧;未挂载 → ready=false 降级)。
+   */
+  async sessionSnapshot(input?: SessionSnapshotInput): Promise<SessionSnapshotResult> {
+    const sessionId = input?.sessionId
+    if (sessionId !== undefined && sessionId !== '') {
+      const store = this.snapshotStore
+      if (store === undefined) {
+        return {
+          status: 'unavailable',
+          sessionId,
+          issues: [`会话快照存储未挂载:${this.snapshotStoreError ?? 'storage 栈仍在挂载中,请稍后重试'}`],
+        }
+      }
+      const record = await store.getBySessionId(sessionId)
+        ?? (sessionId.startsWith('session-') ? undefined : await store.getBySessionId(`session-${sessionId}`))
+      if (record === undefined) {
+        return {
+          status: 'not-found',
+          sessionId,
+          issues: [`会话 ${sessionId} 无快照(快照在会话开启事件时捕获;该会话可能在插件装载前创建,或捕获失败——见审计 session-snapshot.*)`],
+        }
+      }
+      return { status: 'ok', snapshot: record, note: SNAPSHOT_VIEW_NOTE }
+    }
+    const store = this.snapshotStore
+    if (store === undefined) {
+      return { status: 'ok', ready: false, total: 0, snapshots: [] }
+    }
+    const limit = input?.limit ?? SNAPSHOT_LIST_LIMIT_DEFAULT
+    const all = await store.list()
+    return {
+      status: 'ok',
+      ready: true,
+      total: all.length,
+      snapshots: all.slice(0, limit).map(record => ({
+        id: record.id,
+        sessionId: record.sessionId,
+        createdAt: record.createdAt,
+        entries: record.entries.length,
+        checksum: record.checksum,
+      })),
+    }
   }
 
   /**
@@ -532,13 +738,18 @@ export class LoopPromptGateway extends TypertRemoteService {
     }
   }
 
-  /** 释放版本库单元(幂等;apply 逆闭包调用)。 */
+  /** 释放版本库与快照库单元(幂等;apply 逆闭包调用;在途写先排空)。 */
   async detachStore(): Promise<void> {
     const store = this.store
     this.store = undefined
     this.entrySeedPromise = undefined
     this.runtimePromptCache.clear()
-    await store?.close()
+    // T2.3 快照库一并释放;捕获队列与幂等集清空(重挂后由快照库 getBySessionId 兜底去重)。
+    const snapshotStore = this.snapshotStore
+    this.snapshotStore = undefined
+    this.snapshottedSessions.clear()
+    this.pendingCaptureSessions.length = 0
+    await Promise.all([store?.close() ?? Promise.resolve(), snapshotStore?.close() ?? Promise.resolve()])
   }
 
   /** 卸载收尾(取消在途审批 + 关版本库)。 */
@@ -1115,6 +1326,7 @@ applyRemoteMarker(LoopPromptGateway.prototype, 'promptVersions', 'prompt-version
 applyRemoteMarker(LoopPromptGateway.prototype, 'promptRollback', 'prompt-rollback')
 applyRemoteMarker(LoopPromptGateway.prototype, 'promptExport', 'prompt-export')
 applyRemoteMarker(LoopPromptGateway.prototype, 'promptImport', 'prompt-import')
+applyRemoteMarker(LoopPromptGateway.prototype, 'sessionSnapshot', 'session-snapshot')
 
 export type { PromptVersionRecord } from './types.ts'
 export { PromptVersionStore, VERSION_UNIT_DESCRIPTOR, VERSION_UNIT_NAME } from './version-store.ts'
@@ -1140,7 +1352,12 @@ export { diffLines, diffSummaryText, lineDiffOps } from './diff.ts'
 export { sha256Hex } from './checksum.ts'
 export { ApprovalGate, ENTRY_WRITE_RULE_PREFIX, PERSONA_WRITE_RULE_ID, WILDCARD_WRITE_RULE_ID, entryWriteRuleId } from './approval.ts'
 export { StudioAudit, defaultAuditFilePath } from './audit.ts'
-export { CHANNEL_A, EFFECTIVE_NOTE, COMPOSED_NOTE } from './snapshot.ts'
+export { CHANNEL_A, EFFECTIVE_NOTE, COMPOSED_NOTE, SNAPSHOT_VIEW_NOTE } from './snapshot.ts'
+export {
+  READONLY_SNAPSHOT_ANNOTATION, RUNTIME_NO_TEXT_ANNOTATION, RUNTIME_TEXT_ANNOTATION,
+  SESSION_CREATED_TRIGGER, SNAPSHOT_UNIT_DESCRIPTOR, SNAPSHOT_UNIT_NAME, SNAPSHOTS_TABLE,
+  SessionSnapshotStore, captureSessionSnapshotEntries, sessionSnapshotChecksum,
+} from './session-snapshot.ts'
 
 /**
  * 插件工厂(bundle loader 取 default export 实例;apply 返回总 disposer)。
@@ -1156,6 +1373,9 @@ export function definePromptStudioPlugin(config: PromptStudioPluginConfig = {}) 
       // T2.6 登记制读取面:provide promptRegistry 服务(memory/glue 的运行时 section
       // 经 ctx.get 机会读取;本插件未挂载/服务缺席时消费侧回落各自内置文本,不炸宿主)。
       const disposeProvide = ctx.provide(PROMPT_REGISTRY_SERVICE_ID, gateway.promptRegistryFace)
+      // T2.3 会话快照:全局未打标 session/created 监听(会话开启事件;未打标=
+      // 收到全部会话,dsh-scope 语义);插件卸载随 disposer 撤销。
+      const disposeSessionCreated = gateway.registerSessionCreated(ctx)
       // storage 挂载经官方 inject seam:版本库单元在 storage.backend.json 可用后打开,
       // 缺席/失败不炸宿主(端点以 RemoteError 明示未就绪;snapshot 降级 ready=false)。
       ctx.inject([STORAGE_JSON_BACKEND_KEY], (storageCtx: StudioContextLike) => {
@@ -1168,8 +1388,10 @@ export function definePromptStudioPlugin(config: PromptStudioPluginConfig = {}) 
         })
       })
       return () => {
-        // 总 disposer:读取面注销 + 在途审批取消 + 版本库单元关闭(Service 随 owning fiber 注销)。
+        // 总 disposer:读取面注销 + 会话开启监听撤销 + 在途审批取消 + 版本库/快照库单元关闭
+        // (Service 随 owning fiber 注销)。
         disposeProvide()
+        disposeSessionCreated()
         void gateway.dispose()
       }
     },
