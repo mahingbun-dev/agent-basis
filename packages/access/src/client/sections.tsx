@@ -91,7 +91,7 @@ export function AccountSection(): React.JSX.Element {
         <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>个人资料</h3>
         <div className="ea-row" style={{ margin: '0 0 12px' }}>
           <Avatar url={avatarUrl} nickname={nick || me.account} />
-          <input className="ea-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" style={{ flex: 1 }}
+          <input id="ea-file" className="ea-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" style={{ flex: 1 }}
             onChange={(event) => {
               const file = event.target.files?.[0]
               if (file === undefined) return
@@ -102,8 +102,8 @@ export function AccountSection(): React.JSX.Element {
               })
             }} />
         </div>
-        <label className="ea-label">昵称</label>
-        <input className="ea-input" value={nick} maxLength={32} onChange={event => { setNick(event.target.value) }} />
+        <label className="ea-label" htmlFor="ea-nick">昵称</label>
+        <input id="ea-nick" className="ea-input" value={nick} maxLength={32} onChange={event => { setNick(event.target.value) }} />
         <div className="ea-row between" style={{ marginTop: 16 }}>
           <button className="ea-btn" disabled={!dirty || busy} onClick={saveProfile}>保存更改</button>
           <span className="ea-hint">{busy ? '保存中…' : hint}</span>
@@ -113,12 +113,12 @@ export function AccountSection(): React.JSX.Element {
       <div className="ea-card">
         <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>修改密码</h3>
         <p className="ea-hint" style={{ margin: '0 0 8px' }}>修改后本机保持登录，其他设备需重新登录。</p>
-        <label className="ea-label">旧密码</label>
-        <input className="ea-input" type="password" autoComplete="current-password" value={oldPw} onChange={event => { setOldPw(event.target.value) }} />
-        <label className="ea-label">新密码</label>
-        <input className="ea-input" type="password" autoComplete="new-password" placeholder="至少 8 位" value={newPw} onChange={event => { setNewPw(event.target.value) }} />
-        <label className="ea-label">确认新密码</label>
-        <input className="ea-input" type="password" autoComplete="new-password" placeholder="再次输入新密码" value={newPw2} onChange={event => { setNewPw2(event.target.value) }} />
+        <label className="ea-label" htmlFor="ea-oldPw">旧密码</label>
+        <input id="ea-oldPw" className="ea-input" type="password" autoComplete="current-password" value={oldPw} onChange={event => { setOldPw(event.target.value) }} />
+        <label className="ea-label" htmlFor="ea-newPw">新密码</label>
+        <input id="ea-newPw" className="ea-input" type="password" autoComplete="new-password" placeholder="至少 8 位" value={newPw} onChange={event => { setNewPw(event.target.value) }} />
+        <label className="ea-label" htmlFor="ea-newPw2">确认新密码</label>
+        <input id="ea-newPw2" className="ea-input" type="password" autoComplete="new-password" placeholder="再次输入新密码" value={newPw2} onChange={event => { setNewPw2(event.target.value) }} />
         <div className="ea-row" style={{ marginTop: 14 }}>
           <button className="ea-btn" disabled={busy || oldPw === '' || newPw === ''} onClick={savePassword}>修改密码</button>
         </div>
