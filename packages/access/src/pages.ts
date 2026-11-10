@@ -58,6 +58,13 @@ main{flex:1;display:flex;align-items:center;justify-content:center;width:100%;pa
 h2{margin:0 0 6px;font-size:19px;letter-spacing:.2px}
 h3{font-size:14px;margin:0 0 8px;color:var(--text);font-weight:600}
 label{display:block;font-size:13px;color:var(--dim);margin:12px 0 4px}
+.field{position:relative}
+.field input{padding-right:42px}
+.eye-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:30px;height:30px;min-width:0;margin:0;padding:0;
+  display:inline-flex;align-items:center;justify-content:center;background:none;border:0;border-radius:7px;
+  color:var(--dim);cursor:pointer}
+.eye-btn:hover{color:var(--text);background:var(--surface-2)}
+.eye-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 input,select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;
   background:var(--surface-2);color:var(--text);transition:border-color .15s,box-shadow .15s}
 input::placeholder{color:color-mix(in srgb,var(--dim) 70%,transparent)}
@@ -70,7 +77,7 @@ button:hover{filter:brightness(1.1)}
 button:active{transform:translateY(1px)}
 button:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
 button:disabled{opacity:.5;cursor:not-allowed;filter:none}
-.card.narrow button{width:100%}
+.card.narrow button:not(.eye-btn){width:100%}
 button.ghost{background:transparent;color:var(--text);border:1px solid var(--border);width:auto;margin:0;padding:8px 14px;font-weight:400;white-space:nowrap}
 button.ghost:hover{background:var(--surface-2)}
 .err{color:var(--danger);font-size:13px;min-height:18px;margin:10px 0 0;white-space:pre-wrap}
@@ -148,7 +155,7 @@ function avatarHtml(avatarUrl: string | null, nickname: string, size = 26): stri
 export function renderLoginPage(): string {
   const body = `<div class="card narrow"><h2>登录</h2>
 <label>账号</label><input id="account" autocomplete="username">
-<label>密码</label><input id="password" type="password" autocomplete="current-password">
+<label>密码</label><div class="field"><input id="password" type="password" autocomplete="current-password"><button type="button" class="eye-btn" id="pwEye" aria-label="切换密码可见性" title="显示/隐藏密码"><svg viewBox="0 0 24 24" class="ic-eye"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg><svg viewBox="0 0 24 24" class="ic-eye-off" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></button></div>
 <button id="go">登录</button><p class="err" id="msg"></p></div>`
   const script = `
 var go=document.getElementById('go'),msg=document.getElementById('msg')
@@ -165,6 +172,14 @@ function submit(){
   }).catch(function(){go.disabled=false;msg.textContent='网络错误，请重试'})
 }
 go.addEventListener('click',submit)
+var eye=document.getElementById('pwEye'),pw=document.getElementById('password')
+eye.addEventListener('click',function(){
+  var show=pw.type==='password'
+  pw.type=show?'text':'password'
+  eye.querySelector('.ic-eye').style.display=show?'none':''
+  eye.querySelector('.ic-eye-off').style.display=show?'':'none'
+  pw.focus()})
+pw.addEventListener('keydown',function(e){if(e.key==='Enter')submit()})
 document.getElementById('password').addEventListener('keydown',function(e){if(e.key==='Enter')submit()})
 `
   return shell('登录', body, script)

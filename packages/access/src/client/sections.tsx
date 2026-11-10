@@ -13,6 +13,33 @@ function Avatar(props: { url: string | null; nickname: string; size?: number }):
   return <span className="ea-avatar" style={{ width: size, height: size }}>{props.nickname.slice(0, 1) || '?'}</span>
 }
 
+/** 密码输入(右缘可见性切换,与登录页同交互)。 */
+function PasswordInput(props: {
+  readonly id: string
+  readonly value: string
+  readonly placeholder?: string
+  readonly autoComplete?: string
+  readonly onChange: (value: string) => void
+}): React.JSX.Element {
+  const [visible, setVisible] = useState(false)
+  return <div style={{ position: 'relative' }}>
+    <input id={props.id} className="ea-input" type={visible ? 'text' : 'password'}
+      autoComplete={props.autoComplete} placeholder={props.placeholder} value={props.value}
+      onChange={event => { props.onChange(event.target.value) }} style={{ paddingRight: 42 }} />
+    <button type="button" aria-label="切换密码可见性" title="显示/隐藏密码"
+      onClick={() => { setVisible(v => !v) }}
+      style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', width: 30, height: 30,
+        margin: 0, minWidth: 0, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        background: 'none', border: 0, borderRadius: 7, color: 'var(--dsw-alias-label-tertiary, currentColor)', cursor: 'pointer' }}>
+      <svg viewBox="0 0 24 24" style={{ width: 18, height: 18, stroke: 'currentColor', fill: 'none', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }}>
+        {visible
+          ? <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></>
+          : <><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" /><circle cx="12" cy="12" r="3" /></>}
+      </svg>
+    </button>
+  </div>
+}
+
 /** 账号分区:资料卡(合并保存,脏检查)+密码卡(独立,确认输入)。 */
 export function AccountSection(): React.JSX.Element {
   const [me, setMe] = useState<Me | null>(null)
@@ -114,11 +141,11 @@ export function AccountSection(): React.JSX.Element {
         <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>修改密码</h3>
         <p className="ea-hint" style={{ margin: '0 0 8px' }}>修改后本机保持登录，其他设备需重新登录。</p>
         <label className="ea-label" htmlFor="ea-oldPw">旧密码</label>
-        <input id="ea-oldPw" className="ea-input" type="password" autoComplete="current-password" value={oldPw} onChange={event => { setOldPw(event.target.value) }} />
+        <PasswordInput id="ea-oldPw" autoComplete="current-password" value={oldPw} onChange={setOldPw} />
         <label className="ea-label" htmlFor="ea-newPw">新密码</label>
-        <input id="ea-newPw" className="ea-input" type="password" autoComplete="new-password" placeholder="至少 8 位" value={newPw} onChange={event => { setNewPw(event.target.value) }} />
+        <PasswordInput id="ea-newPw" autoComplete="new-password" placeholder="至少 8 位" value={newPw} onChange={setNewPw} />
         <label className="ea-label" htmlFor="ea-newPw2">确认新密码</label>
-        <input id="ea-newPw2" className="ea-input" type="password" autoComplete="new-password" placeholder="再次输入新密码" value={newPw2} onChange={event => { setNewPw2(event.target.value) }} />
+        <PasswordInput id="ea-newPw2" autoComplete="new-password" placeholder="再次输入新密码" value={newPw2} onChange={setNewPw2} />
         <div className="ea-row" style={{ marginTop: 14 }}>
           <button className="ea-btn" disabled={busy || oldPw === '' || newPw === ''} onClick={savePassword}>修改密码</button>
         </div>
