@@ -49,6 +49,20 @@ if [ -f "$DISABLED_FILE" ] || [ -f "$REMOVED_FILE" ]; then
   ' "$DISABLED_FILE" "$REMOVED_FILE" "$PROFILE_DIR/cordis.patch.yml"
 fi
 
+# ── 2.6 治理规则渲染(2026-11-10「完全权限全拒」事故修复,方案 A)──────────
+# governance-plugin 读 process.cwd()/.eterna/governance.rules.yml(WORKDIR=/repo);
+# 缺文件即空规则集 → fail-closed 默认 ask 打在每个工具调用上,而「完全权限」预设
+# approval=never 对 ask 确定性 rejected → 静默全拒。规则集随镜像入仓
+# (docker/profile/governance.rules.yml,工具名逐字对账见其头注);卷上
+# $DSH_HOME/access/governance.rules.yml 存在时优先(运维免重建改规则)。
+GOV_SRC="$DSH_HOME/access/governance.rules.yml"
+if [ ! -f "$GOV_SRC" ]; then
+  GOV_SRC=/repo/docker/profile/governance.rules.yml
+fi
+mkdir -p /repo/.eterna
+cp "$GOV_SRC" /repo/.eterna/governance.rules.yml
+echo "[entrypoint] governance rules: $GOV_SRC"
+
 # ── 3. 插件 symlink(本仓 @eterna/*) ────────────────────────────────────
 for pkg in glue llm-doctor brand panel prompt-studio llm-openai access; do
   ln -sfn "$REPO/packages/$pkg" "$PROFILE_DIR/node_modules/@eterna/$pkg"
