@@ -35,12 +35,14 @@ const cases = [
     run: () => {
       const head = sh('git -C ../agent-basis-team rev-parse HEAD')
       const main = sh('git rev-parse origin/main')
+      const base = sh('git -C ../agent-basis-team merge-base origin/main HEAD')
       const list = sh('git worktree list')
       const teamCount = (list.stdout.match(/agent-basis-team/g) ?? []).length
-      const ok = head.code === 0 && head.stdout === main.stdout && teamCount === 1
+      const onBase = base.code === 0 && base.stdout === main.stdout
+      const ok = head.code === 0 && onBase && teamCount === 1
       const evidence = saveEvidence('p0', 'G-P0-01', 'baseline.txt',
-        `origin/main=${main.stdout}\nworktree HEAD=${head.stdout}\nmatch=${head.stdout === main.stdout}\nworktrees:\n${list.stdout}\n${new Date().toISOString()}`)
-      return { actual: `HEAD==origin/main:${head.stdout === main.stdout} teamWorktrees:${teamCount}`, pass: ok, evidence: [evidence] }
+        `origin/main=${main.stdout}\nworktree HEAD=${head.stdout}\nmerge-base=${base.stdout}\nonBase=${onBase}(分支可领先,分叉即红)\nworktrees:\n${list.stdout}\n${new Date().toISOString()}`)
+      return { actual: `mergeBase==origin/main:${onBase} teamWorktrees:${teamCount}`, pass: ok, evidence: [evidence] }
     },
   },
   {

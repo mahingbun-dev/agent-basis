@@ -1,17 +1,14 @@
 {
   "deepseek": {
     "status": 200,
-    "latencyMs": 186,
-    "modelCount": 2
+    "latencyMs": 235
   },
   "mimo": {
     "status": 200,
-    "latencyMs": 176,
-    "modelCount": 7
+    "latencyMs": 170
   },
   "glm": {
     "status": 200,
-    "latencyMs": 150,
-    "modelCount": 12
+    "latencyMs": 134
   }
 }

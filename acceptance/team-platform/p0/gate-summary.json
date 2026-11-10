@@ -2,25 +2,25 @@
   "phase": "p0",
   "gateScript": "scripts/team-platform-gates/p0-gate.mjs",
   "git": {
-    "commit": "e5901b4983a76904e1fa12fca22cafee650ed5ee",
+    "commit": "caf0f628948b033d39cfb2940ad83e2695196e8f",
     "branch": "feat/team-platform",
     "dirty": true
   },
-  "startedAt": "2026-11-10T15:29:57.852Z",
-  "finishedAt": "2026-11-10T15:29:57.884Z",
+  "startedAt": "2026-11-10T15:58:24.974Z",
+  "finishedAt": "2026-11-10T15:58:45.215Z",
   "cases": [
     {
-      "id": "G-P0-10",
-      "criterion": "计划回填:p0/evidence/baseline-note.md 存在(R1 基线注记:main/dev 已同步 e5901b4)",
-      "command": "fs 检查",
+      "id": "G-P0-06",
+      "criterion": "根工程门:pnpm -w run verify exit 0",
+      "command": "pnpm -w run verify",
       "expect": "(per criterion)",
-      "actual": "present",
+      "actual": "exit=0",
       "verdict": "pass",
       "exemption": null,
       "evidence": [
-        "acceptance/team-platform/p0/evidence/baseline-note.md"
+        "acceptance/team-platform/p0/evidence/G-P0-06/verify.log"
       ],
-      "durationMs": 0
+      "durationMs": 20205
     }
   ],
   "summary": {
