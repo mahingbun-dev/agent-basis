@@ -10,9 +10,10 @@
  */
 import { AccountSection, UsersSection } from './sections.tsx'
 import { ManageTab } from './plugins-manager.tsx'
+import { DirectoryTreeFlow } from './directory-tree.tsx'
 import { injectAccessStyles } from './styles.ts'
 
-export const inject = ['slots', 'locale']
+export const inject = ['slots', 'locale', 'uiWorkspace']
 
 const NS = 'eterna-access'
 const LOCALES: Record<string, Record<string, string>> = {
@@ -36,6 +37,11 @@ interface AccessClientContext {
   readonly locale: {
     register(ns: string, dictionaries: Record<string, Record<string, string>>): () => void
     bind(ns: string): (key: string) => string
+  }
+  /** P1-T5:目录数据面(listDirectory/createDirectory → /api/directoryPicker/*,守卫钳根)。 */
+  readonly uiWorkspace?: {
+    listDirectory(path: string | undefined, signal?: AbortSignal): Promise<unknown>
+    createDirectory(path: string, name: string): Promise<string>
   }
 }
 
@@ -78,6 +84,27 @@ export function apply(ctx: AccessClientContext): () => void {
       registerSections(me.role === 'admin' ? 'admin' : 'user')
     }).catch(() => {})
   }).catch(() => {})
+
+  // P1-T5(2026-11-11):目录树工作区选择器——双洞 directoryFlow slot 同构注册
+  // (沿上游 browse 注册形态:nested inject + generator;单洞无竞争——上游 browse
+  // 客户端已由 patch 裁掉:禁 directory-picker auto 行 + insert host-browse 仅路由)。
+  if (ctx.uiWorkspace !== undefined) {
+    const uiWorkspace = ctx.uiWorkspace
+    const injected = () => ({
+      listDirectory: (path: string | undefined, signal?: AbortSignal) => uiWorkspace.listDirectory(path, signal),
+      createDirectory: (path: string, name: string) => uiWorkspace.createDirectory(path, name),
+    })
+    ctx.slots.inject('conversation.hero.workspace.directoryFlow', () => ctx.slots.inject('sidebar.workspaces.directoryFlow', function* () {
+      yield ctx.slots.register({
+        name: 'conversation.hero.workspace.directoryFlow',
+        inject: injected,
+      }, DirectoryTreeFlow)
+      yield ctx.slots.register({
+        name: 'sidebar.workspaces.directoryFlow',
+        inject: injected,
+      }, DirectoryTreeFlow)
+    }))
+  }
 
   return disposeLocale
 }

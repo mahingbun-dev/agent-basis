@@ -434,6 +434,17 @@
   disabled: true
 
 
+# ── P1-T5（2026-11-11）：目录树工作区选择器——裁 browse 客户端、保 directoryPicker 路由 ──
+# ① 禁 directory-picker auto 行（其运行时 insert 的 browse 对 = host 路由 + browse 客户端
+#    ——客户端含可键入路径编辑区，多用户下即路径越界面；slot 单洞必须唯一占用者）。
+# ② insert host-browse 行：恢复 /api/directoryPicker/* 路由（该包无客户端面，lib 仅 index.js）。
+# ③ 目录树 UI 由 access 客户端注册双洞 directoryFlow slot（@eterna/access client）。
+- id: directory-picker
+  disabled: true
+- insert:
+    - id: directory-picker-host
+      name: '@deepseek-ai/dsh-host-directory-picker-browse'
+
 # ── 验收挂载（2026-11-09 v2）：治理三插件 + 官方 pi-ai LLM 承载 ─────────────
 # 治理面三插件=T9 E2E 同款（行序=apply 序=pre-execute 瀑布序）。
 # LLM 承载行改官方 @deepseek-ai/dsh-llm-pi-ai：ns 必须逐字 llm-pi-ai（客户端
