@@ -11,6 +11,7 @@
  */
 import type { ApprovalCard } from '@eterna/interact'
 import type { AskUserQuestionItem } from '@eterna/interact'
+import type { PromptEntryKind, PromptLayer, RedLinePolicy } from './registry.ts'
 
 /** 写操作种类(三类全走 R3:保存/回滚/导入,计划书 §3)。 */
 export type WriteKind = 'save' | 'rollback' | 'import'
@@ -24,10 +25,12 @@ export type VersionSource = 'initial' | 'save' | 'rollback' | 'import'
  * 回滚版本),对齐计划书 §6 T7.3「回滚产生新版本而非删旧版本」。
  */
 export interface PromptVersionRecord {
-  /** 版本 id(存储层记录键;path-safe,匹配 ^[A-Za-z0-9_-]+$)。 */
+  /** 版本 id(存储层记录键;path-safe,匹配 ^[A-Za-z0-9_-]+$;全局唯一)。 */
   readonly id: string
-  /** 单调递增序号(从 1 起)。 */
+  /** 该条目版本链内单调递增序号(从 1 起;T1.4 起按 entryId 分链编号)。 */
   readonly seq: number
+  /** 归属注册表条目 id(T1.4;v1 存量记录无此字段,读取时默认归 persona 条目)。 */
+  readonly entryId: string
   /** 创建时刻 ISO 串。 */
   readonly createdAt: string
   /** 操作者(客户端传入;缺省 'web')。 */
@@ -46,7 +49,7 @@ export interface PromptVersionRecord {
   readonly content: string
 }
 
-/** 版本库概览(snapshot/prompt-get 复用)。 */
+/** 版本库概览(snapshot/prompt-get 复用;T1.4 起可按 entryId 分链)。 */
 export interface VersionOverview {
   /** storage 栈是否已挂载(dsh-base storage/storage-json 行存在且单元打开)。 */
   readonly ready: boolean
@@ -95,6 +98,11 @@ export interface LoopPromptSnapshot {
   readonly persona: PersonaState
   readonly versions: VersionOverview
   readonly pendingApproval: PendingApprovalView | null
+  /**
+   * 提示词注册表全景(T1.4):每条目 = 元数据 + 当前值(运行时读,分型语义)+
+   * 版本链概览。T1.5 前端分组导航的数据源;只增字段,旧消费方不受影响。
+   */
+  readonly entries: readonly EntrySummaryView[]
   /**
    * 轨迹概览。`sessions`=最近会话数(客户端 Stat 瓦片消费);
    * `recent`=最近 20 条会话清单(id/标题/时间/轮次/usage;T7.4 新增,
@@ -206,7 +214,13 @@ export interface TraceReport {
 
 // ---------- loopPrompt/prompt-get ----------
 
-/** 端点 loopPrompt/prompt-get 的返回(无参)。 */
+/** 端点 loopPrompt/prompt-get 的入参(T1.4 起支持按条目;缺省=旧 persona 形态)。 */
+export interface PromptGetInput {
+  /** 注册表条目 id(见 snapshot.entries[]);缺省/空 = 旧形态(persona)。 */
+  readonly entryId?: string
+}
+
+/** 端点 loopPrompt/prompt-get 的返回(旧形态:不带 entryId;字段与 T7 完全一致)。 */
 export interface PromptGetResult {
   readonly persona: PersonaState
   readonly versions: VersionOverview
@@ -214,6 +228,65 @@ export interface PromptGetResult {
   readonly effectiveNote: string
   /** 组合视图说明(T7.2 起提供只读组合视图;本期只读 persona 段)。 */
   readonly composedNote: string
+}
+
+/** 注册表条目元数据视图(snapshot.entries[] 与 per-entry prompt-get 共用;T1.4)。 */
+export interface PromptEntryView {
+  readonly id: string
+  /** 层(preset/domain/runtime)。 */
+  readonly layer: PromptLayer
+  /** 型别(patch-value/line-anchor-readonly/runtime-injection)。 */
+  readonly kind: PromptEntryKind
+  /** 来源插件/包。 */
+  readonly source: string
+  /** 型别注记(只读型/运行时型的「上游运行时生成」标注来源)。 */
+  readonly note: string
+  /** 风险标注(UI 直接展示)。 */
+  readonly risks: readonly string[]
+  /** 红线策略(persona 类=required;其余 exempt,T1.6 写链路按此豁免)。 */
+  readonly redLine: RedLinePolicy
+  /** redLine=required 时的规则集 id。 */
+  readonly redLineRuleSet?: string
+  /** 写链路字节上限(逐条目校验口径)。 */
+  readonly maxBytes: number
+  /** patch 值型=true(有版本链);行锚点只读型/运行时注入型=false(无版本链概念)。 */
+  readonly versioned: boolean
+}
+
+/** 条目当前值视图(T1.4 运行时读;分型语义)。 */
+export interface EntryValueView {
+  readonly entryId: string
+  readonly kind: PromptEntryKind
+  /** 当前值:patch 值型=结构定位反引文本;行锚点只读型/运行时注入型=null(无静态值)。 */
+  readonly text: string | null
+  /** text 的 UTF-8 字节数(无静态值时 null)。 */
+  readonly bytes: number | null
+  /** 读值问题明细(text=null 且非只读型时非空;不抛错)。 */
+  readonly problems: readonly string[]
+  /** 型别注记(只读型/运行时型的「上游运行时生成」标注)。 */
+  readonly note: string
+}
+
+/** snapshot.entries[] 单项(T1.4):条目元数据 + 当前值 + 版本链概览。 */
+export interface EntrySummaryView extends PromptEntryView {
+  readonly value: EntryValueView
+  readonly versions: VersionOverview
+}
+
+/** 端点 loopPrompt/prompt-get 的返回(T1.4 按条目形态:input.entryId 非空)。 */
+export interface PromptGetEntryResult {
+  readonly entry: PromptEntryView
+  readonly value: EntryValueView
+  /** 该条目版本链概览(store 未挂载 → ready=false;无版本链条目 → count=0)。 */
+  readonly versions: VersionOverview
+  readonly effectiveNote: string
+}
+
+/** 读端点未知条目 id 的明示错误(T1.4;返回结构化结果,不抛裸异常)。 */
+export interface EntryNotFoundResult {
+  readonly status: 'not-found'
+  readonly entryId: string
+  readonly issues: readonly string[]
 }
 
 // ---------- 校验与写结果 ----------
@@ -266,7 +339,9 @@ export interface PromptSaveResult {
 
 /** 端点 loopPrompt/prompt-versions 的入参。 */
 export interface VersionsInput {
-  /** 最多返回条数(默认 50;新→旧)。 */
+  /** 注册表条目 id(T1.4;缺省/空=旧形态,即默认条目 persona 的版本链)。 */
+  readonly entryId?: string
+  /** 最多返回条数(默认 50;链内新→旧)。 */
   readonly limit?: number
 }
 
@@ -274,6 +349,8 @@ export interface VersionsInput {
 export interface VersionsResult {
   readonly total: number
   readonly ready: boolean
+  /** 按条目查询时回显条目 id(旧形态缺省)。 */
+  readonly entryId?: string
   readonly versions: readonly PromptVersionRecord[]
 }
 

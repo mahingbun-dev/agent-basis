@@ -82,9 +82,22 @@ AuditProjector+FileAuditSink 写 `<DSH_HOME>/basis-prompt-studio/audit.jsonl`
   node_modules 解析 + realpath 落 repo 工作区;dsh-client-modules 扫 Loader 条目的
   包清单——两个消费方都不读 profile 依赖表。
 - 版本库幂等清场 = 删 `<home>/storages/basis_prompt_studio/`(smoke 每轮先清)。
-- smoke 断言(38 项,exit 0 可重复):pluginInventory 行 enabled+active、启动与
+- smoke 断言(38 项 → **54 项**,exit 0 可重复;2026-11-11 T1.4 读侧按条目泛化
+  扩 16 项,基线只增不减):pluginInventory 行 enabled+active、启动与
   HMR 后日志无 skipping/incompatible、snapshot/prompt-get/versions/trace、
-  save/rollback 两段式全链、盘面单元目录、审计 G5 字段。
+  save/rollback 两段式全链、盘面单元目录、审计 G5 字段;T1.4 新增——snapshot
+  entries[] 注册表全景、prompt-get/prompt-versions {entryId} 三型采样(块标量
+  plan-mode `|` 值与 dump-config 组合树一致 / 领域 personaPrefix `>-` 与 pack
+  文件逐字一致 / time-context 只读型「上游运行时生成」标注)、未知 entryId
+  not-found 明示、persona per-entry 与旧口径互证、跨条目回滚 fail-closed、
+  磁盘文档 entryId 分链对账(persona 链 3 + 六条目链首各 1 = 9 文档)。
+- **已知过渡限制(T1.4 评审 2026-11-11)**:写通道(回滚/导出包)仍是 persona
+  单口径——`prompt-rollback {versionId}` 与 `prompt-export {versionId}` 对
+  `entryId !== preset.standard.persona` 的版本 fail-closed 拒绝(回滚拒绝/
+  导出 badRequest)。原因:回滚按设计跳过内容校验,跨条目目标会把领域/plan 文本
+  绕过红线校验写进 persona 前缀行(污染全部标准会话);导出包 schemaVersion=1
+  是 persona 口径。按条目写链路(回滚/导出/保存)随 **T1.6** 泛化落地;T1.5
+  前端接按条目版本列表时,对非默认条目的回滚入口应隐藏或提示「待 T1.6 支持」。
 
 ## 3. T7.2 接入要点
 

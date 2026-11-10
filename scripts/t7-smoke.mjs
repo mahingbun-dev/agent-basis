@@ -14,14 +14,21 @@
  *  4. pluginInventory/list(官方 dsh-host-plugin-inventory)含 @eterna/prompt-studio
  *     行:enabled=true 且 fiberPhase=active——插件页「已安装」的机器证据;
  *  5. Host 半边端点活:loopPrompt/snapshot(通道 A 说明 + 版本库 ready=storage 栈
- *     挂载)、loopPrompt/prompt-get、loopPrompt/prompt-versions(initial 种子 +
- *     checksum 口径)、loopPrompt/trace(列表 + 指定会话轮次树);
+ *     挂载 + T1.4 起的注册表全景 entries[])、loopPrompt/prompt-get、
+ *     loopPrompt/prompt-versions(initial 种子 + checksum 口径)、loopPrompt/trace
+ *     (列表 + 指定会话轮次树);
+ *  5.5 T1.4 读侧按条目:prompt-get/prompt-versions {entryId} 三型采样——块标量
+ *     条目(plan-mode section:|,值与 dump-config 组合树一致)、领域 personaPrefix
+ *     (>- 折叠反引,值与仓库 pack 文件逐字一致)、行锚点只读型(time-context:
+ *     text=null+「上游运行时生成」标注);未知 entryId → not-found 明示;每条目
+ *     版本链(初始种子)与 persona 缺省链旧口径互证;
  *  6. 保存链路端到端:prompt-save 两段式(一段=R3 审批卡 + doubleConfirm 第二问 +
  *     patch 未落盘;二段=patch 原子写 + 版本 +1 + 宿主内 dump-config 干跑自检通过);
  *  7. 回滚链路:prompt-rollback 两段式 → 新版本(source=rollback,parentId=被回滚
  *     版本),版本只增不删(total=3),patch 层回到目标内容;
  *  8. 磁盘证据:版本库单元落在 DSH storage 栈根(<home>/storages/eterna_prompt_studio/,
- *     per-record 一文档一记录);兜底审计 NDJSON 含 operator/versionId(G5)。
+ *     per-record 一文档一记录;T1.4 起按条目种子,文档记录带 entryId,链长与端点一致);
+ *     兜底审计 NDJSON 含 operator/versionId(G5)。
  *
  * 隔离纪律:运行态全在 .eterna-home-t7(DSH_HOME);Web 宿主一律 3108;进程清理只用
  * SIGTERM + pkill -f 'profile t7-studio' 精确模式(绝不 pkill 其他 dsh 实例);
@@ -275,12 +282,14 @@ try {
   // 2) 写 patch 层(标记 + studio 行)+ dump-config 组合预检
   const patchPath = resolve(profile, 'cordis.patch.yml')
   writeFileSync(patchPath, buildPatch(MARKER))
+  let dumpOut = ''
   {
     const r = spawnSync(process.execPath, [
       resolve(profile, 'node_modules/@deepseek-ai/dsh/lib/bin.js'),
       '--profile', profileName, '--dump-config',
     ], { cwd: profile, encoding: 'utf8', env: { ...process.env, DSH_HOME: home }, timeout: 180000 })
     const out = r.stdout ?? ''
+    dumpOut = out
     check('preflight: dump-config 退出码 0', r.status === 0, `status=${r.status}`)
     check('preflight: 组合树 persona 前缀=冒烟标记', out.includes(MARKER))
     check('preflight: 组合树含 eterna-prompt-studio 行', out.includes(pkgName))
@@ -336,6 +345,84 @@ try {
     }
   }
 
+  // 5.5) T1.4 读侧按条目:三型采样(prompt-get/prompt-versions {entryId})+ not-found + 旧口径互证
+  {
+    const snap = await dsh.call('loopPrompt/snapshot')
+    check('snapshot(T1.4): entries[] 注册表全景 14 条(三层全量)', Array.isArray(snap.entries) && snap.entries.length === 14, `entries=${snap.entries?.length}`)
+    const ids = new Set((snap.entries ?? []).map((e) => e.id))
+    check('snapshot(T1.4): entries[] 含三型采样条目(块标量 plan-mode/领域 personaPrefix/只读型 time-context)',
+      ids.has('preset.standard.plan-mode.section') && ids.has('domain.event-planning.persona-prefix') && ids.has('preset.standard.time-context'))
+
+    // a) 块标量条目(最难写形态 | 多段字面块):当前值反引正确 + 与 dump-config 组合树一致
+    const planMode = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'preset.standard.plan-mode.section' } })
+    const planText = planMode.value?.text
+    check('prompt-get{plan-mode.section}: 字面块(|)整段反引(首段/末段/段落空行/clip 尾换行)',
+      planMode.entry?.id === 'preset.standard.plan-mode.section' && planMode.entry?.kind === 'patch-value'
+        && typeof planText === 'string' && planText.startsWith('You are in plan mode. Stay in plan mode until the user approves your plan')
+        && planText.includes('Make the plan decision-complete') && planText.includes('do not proceed with implementation.')
+        && planText.includes('\n\n') && planText.endsWith('\n'),
+      `bytes=${planMode.value?.bytes}`)
+    check('prompt-get{plan-mode.section}: 值与 dump-config 组合树一致(section 首段在场于组合树)',
+      dumpOut.includes('You are in plan mode. Stay in plan mode until the user approves your plan'))
+    const planVersions = await dsh.call('loopPrompt/prompt-versions', { input: { entryId: 'preset.standard.plan-mode.section' } })
+    check('prompt-versions{plan-mode.section}: 条目链已种子(initial)且 entryId 回显',
+      planVersions.entryId === 'preset.standard.plan-mode.section' && planVersions.total === 1
+        && planVersions.versions?.[0]?.source === 'initial' && planVersions.versions?.[0]?.content === planText)
+
+    // b) 领域层条目(>- 折叠块标量):值与仓库 pack 文件逐字一致(脚本内独立折叠实现互证)
+    const packPath = resolve(repoRoot, 'packs', 'event-planning', 'cordis.patch.yml')
+    const packLines = readFileSync(packPath, 'utf8').split('\n')
+    const headerIndex = packLines.findIndex((l) => /^(\s*)personaPrefix: >-\s*$/.test(l))
+    const headerIndent = /^(\s*)/.exec(packLines[headerIndex] ?? '')?.[1]?.length ?? 0
+    const rawBlock = []
+    for (let i = headerIndex + 1; i < packLines.length; i += 1) {
+      const line = packLines[i]
+      if (line.trim() === '') { rawBlock.push(''); continue }
+      if ((/^(\s*)/.exec(line)?.[1]?.length ?? 0) <= headerIndent) break
+      rawBlock.push(line)
+    }
+    while (rawBlock.length > 0 && rawBlock.at(-1).trim() === '') rawBlock.pop()
+    const contentIndent = /^(\s*)/.exec(rawBlock[0] ?? '')?.[1]?.length ?? 0
+    const folded = rawBlock.map((line) => (line.trim() === '' ? '' : line.slice(contentIndent)))
+    const domain = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'domain.event-planning.persona-prefix' } })
+    check('prompt-get{event-planning.personaPrefix}: 折叠块(>-)反引与 pack 文件逐字一致',
+      domain.entry?.layer === 'domain' && domain.value?.text === folded.join(' '),
+      `bytes=${domain.value?.bytes}`)
+    check('prompt-get{event-planning.personaPrefix}: 领域身份句+三条红线句在场',
+      typeof domain.value?.text === 'string' && domain.value.text.startsWith('You are a senior event planning specialist')
+        && domain.value.text.includes('stay neutral in vendor selection.'))
+    const domainVersions = await dsh.call('loopPrompt/prompt-versions', { input: { entryId: 'domain.event-planning.persona-prefix' } })
+    check('prompt-versions{event-planning.personaPrefix}: 条目链已种子(initial)',
+      domainVersions.total === 1 && domainVersions.versions?.[0]?.source === 'initial'
+        && domainVersions.versions?.[0]?.content === domain.value?.text)
+
+    // c) 行锚点只读型:返回「上游运行时生成」标注而非文本;无版本链不种子
+    const tc = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'preset.standard.time-context' } })
+    check('prompt-get{time-context}: 只读型 text=null +「上游插件运行时生成」标注(不伪造文本)',
+      tc.entry?.kind === 'line-anchor-readonly' && tc.entry?.versioned === false
+        && tc.value?.text == null && typeof tc.value?.note === 'string' && tc.value.note.includes('上游插件运行时生成'))
+    const tcVersions = await dsh.call('loopPrompt/prompt-versions', { input: { entryId: 'preset.standard.time-context' } })
+    check('prompt-versions{time-context}: 无版本链(total=0,未种子不造假)',
+      tcVersions.entryId === 'preset.standard.time-context' && tcVersions.total === 0 && (tcVersions.versions ?? []).length === 0)
+
+    // d) persona 条目:per-entry 与旧口径互证(同刻同值同链长)
+    const personaEntry = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'preset.standard.persona' } })
+    const legacyGet = await dsh.call('loopPrompt/prompt-get')
+    const personaPerEntry = await dsh.call('loopPrompt/prompt-versions', { input: { entryId: 'preset.standard.persona' } })
+    const legacyVersions = await dsh.call('loopPrompt/prompt-versions', { input: {} })
+    check('prompt-get{preset.standard.persona}: per-entry 当前值=live patch 标记,与旧形态同值',
+      personaEntry.value?.text === MARKER && personaEntry.value?.text === legacyGet.persona?.text)
+    check('prompt-versions{preset.standard.persona}: per-entry 链与旧口径同长同链首(缺省=persona 链)',
+      personaPerEntry.entryId === 'preset.standard.persona' && personaPerEntry.total === legacyVersions.total
+        && personaPerEntry.versions?.[0]?.id === legacyVersions.versions?.[0]?.id, `total=${personaPerEntry.total}`)
+
+    // e) 未知 entryId:not-found 明示(不抛裸异常,RPC 正常返回)
+    const nfGet = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'no.such.entry' } })
+    check('prompt-get{未知 entryId}: status=not-found 明示', nfGet.status === 'not-found' && String(nfGet.issues?.[0]).includes('未知条目'))
+    const nfVersions = await dsh.call('loopPrompt/prompt-versions', { input: { entryId: 'no.such.entry' } })
+    check('prompt-versions{未知 entryId}: status=not-found 明示', nfVersions.status === 'not-found' && String(nfVersions.issues?.[0]).includes('未知条目'))
+  }
+
   // 6) 保存链路端到端:R3 审批卡 → 确认 → patch 原子写 + 版本 +1 + 宿主内干跑自检
   const v2 = `${MARKER}\n${SAVE_TAIL}`
   {
@@ -371,13 +458,40 @@ try {
     const after = await dsh.call('loopPrompt/prompt-versions', { input: {} })
     check('版本只增不删:total=3 且 initial 版本仍在', after.total === 3 && after.versions.some((v) => v.id === v1.id), `total=${after.total}`)
     check('回滚后 patch 层回到目标内容(无 v2 文本)', !readFileSync(patchPath, 'utf8').includes(SAVE_TAIL))
+    // T1.4 过渡守卫(评审 2026-11-11):跨条目回滚 fail-closed——外链条目(plan-mode)
+    // 的版本 id 不可作为 persona 回滚目标(否则领域/plan 文本会绕过校验落进 persona 前缀)。
+    const planChain = await dsh.call('loopPrompt/prompt-versions', { input: { entryId: 'preset.standard.plan-mode.section' } })
+    const crossEntry = await dsh.call('loopPrompt/prompt-rollback', { input: { versionId: planChain.versions?.[0]?.id, author: 't7-smoke' } })
+    const prefixLine = readFileSync(patchPath, 'utf8').split('\n').find((l) => /^(\s*)prefix: /.test(l)) ?? ''
+    check('prompt-rollback{跨条目目标}: fail-closed rejected(仅支持默认条目链;T1.6 泛化前过渡守卫)',
+      crossEntry.status === 'rejected' && String(crossEntry.issues?.[0]).includes('仅支持默认条目')
+        && prefixLine.includes(MARKER)
+        && (await dsh.call('loopPrompt/prompt-versions', { input: {} })).total === 3)
   }
 
   // 8) 磁盘证据:storage 栈单元目录 + 兜底审计 NDJSON(G5:operator/versionId)
+  //    T1.4 起装载种子按条目:persona 链 3(initial+save+rollback)+ 其余 patch 值型
+  //    条目链首各 1(agent-instructions/plan-mode/领域×4;live patch 无 preset-cordis
+  //    行,该预设的 3 条 patch 值型条目 persona/agent-instructions/plan-mode.section
+  //    定位失败不种子)= 9 文档。
   {
     const unitDir = resolve(home, 'storages', 'eterna_prompt_studio', 'versions')
     const docs = existsSync(unitDir) ? readdirSync(unitDir).filter((f) => f.endsWith('.json')) : []
-    check('版本库单元落在 DSH storage 栈(storages/eterna_prompt_studio/versions/ 一文档一记录)', docs.length === 3, `docs=${docs.length}`)
+    check('版本库单元落在 DSH storage 栈(storages/eterna_prompt_studio/versions/ 一文档一记录;T1.4 按条目种子:persona 链 3+6 条目链首)',
+      docs.length === 9, `docs=${docs.length}`)
+    {
+      const records = docs.map((f) => JSON.parse(readFileSync(resolve(unitDir, f), 'utf8')).record)
+      const byEntry = new Map()
+      for (const record of records) byEntry.set(record.entryId, (byEntry.get(record.entryId) ?? 0) + 1)
+      check('磁盘证据(T1.4): 每文档记录带 entryId;persona 链 3 文档、六条目链首各 1(与端点链长一致)',
+        records.every((r) => typeof r.entryId === 'string' && r.entryId !== '')
+          && byEntry.get('preset.standard.persona') === 3
+          && ['preset.standard.agent-instructions', 'preset.standard.plan-mode.section',
+            'domain.event-planning.persona-prefix', 'domain.event-planning.persona-md',
+            'domain.industrial-analysis.persona-prefix', 'domain.industrial-analysis.persona-md']
+            .every((id) => byEntry.get(id) === 1),
+        [...byEntry.entries()].map(([id, n]) => `${id}:${n}`).join(' '))
+    }
     const auditFile = resolve(home, 'eterna-prompt-studio', 'audit.jsonl')
     if (check('兜底审计 NDJSON 存在(无 glue governance 场景)', existsSync(auditFile))) {
       const lines = readFileSync(auditFile, 'utf8').split('\n').filter(Boolean)

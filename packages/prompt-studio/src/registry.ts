@@ -109,8 +109,19 @@ export interface PromptRegistryEntry {
 
 // ---------- 三层存量登记(对账基准=计划书 §2 现状清单,行号 2026-11-11 实测) ----------
 
-/** preset 层 patch 文件(仓库根相对)。 */
-const WEB_PATCH = 'profiles/eterna-web/cordis.patch.yml'
+/**
+ * preset 层 patch 文件(仓库根相对)。运行时(T1.4 读侧)由网关映射到本宿主的
+ * live patch 层(profileContext.patchPath)——生产 eterna-web 档两者是同一文件。
+ */
+export const WEB_PATCH = 'profiles/eterna-web/cordis.patch.yml'
+
+/**
+ * 缺省条目 id(T1.4):不带 entryId 的旧调用形态(prompt-get/prompt-versions/
+ * snapshot.versions)一律指 preset.standard.persona——T7 时代唯一管理对象,
+ * 旧断言与旧客户端零改动保持兼容;亦是版本库 v1 存量记录(无 entryId 字段)的
+ * 归属条目(见 version-store recordOf)。
+ */
+export const DEFAULT_ENTRY_ID = 'preset.standard.persona'
 
 /** profile/pack 升级合并的通用风险(计划书 §3「升级可能覆盖」+ §7 风险表)。 */
 const UPGRADE_OVERWRITE_RISK = 'profile/pack 升级合并可能覆盖本地编辑(版本库可回滚兜底)'
@@ -446,7 +457,7 @@ export interface EntryValueRead {
  * 读条目当前值(分型):patch 值型→结构定位+反引(裸/引号标量经 unquoteYamlScalar,
  * 块标量经 readBlockScalarValue;整文件条目→全文);行锚点只读型/运行时注入型→
  * text=null + note 明示。读失败不抛:problems 记明细(对齐 PersonaPatchFile.read
- * 的容错降级纪律)。
+ * 的容错降级纪律)。值读取本体在 readEntryText(运行时读侧 T1.4 复用)。
  */
 export function readEntryValue(entry: PromptRegistryEntry, readFile: RegistryFileReader): EntryValueRead {
   const anchorCheck = checkEntryAnchors(entry, readFile)
@@ -457,30 +468,58 @@ export function readEntryValue(entry: PromptRegistryEntry, readFile: RegistryFil
   if (entry.kind !== 'patch-value') {
     return { entryId: entry.id, kind: entry.kind, anchorsPresent: true, problems, text: null, bytes: null, note: entry.note }
   }
-  let text: string | undefined
+  const read = readEntryText(entry, readFile)
+  problems.push(...read.problems)
+  if (read.text === undefined || read.text === '') {
+    problems.push(`${entry.id}:反引值为空(锚点在场但值不可读)`)
+    return { entryId: entry.id, kind: entry.kind, anchorsPresent: true, problems, text: null, bytes: null, note: entry.note }
+  }
+  return {
+    entryId: entry.id,
+    kind: entry.kind,
+    anchorsPresent: true,
+    problems,
+    text: read.text,
+    bytes: byteLength(read.text),
+    note: entry.note,
+  }
+}
+
+/**
+ * patch 值型的值读取本体(T1.4 运行时读侧专用;不带对账锚点门):
+ * 结构定位 + 标量/块标量反引。行号锚点是「注册表 ↔ 仓库事实源」的对账判据
+ * (tests/registry.test.ts 钉住),与运行时「从 live 文件取当前值」是两件事——
+ * 运行时读 live patch(t7 隔离档与 eterna-web 档文件布局不同,行号必然错位),
+ * 按行号锚校验只会误报,故运行时走本函数(结构定位,不查行号)。
+ * 读失败不抛:problems 记明细。
+ */
+export function readEntryText(
+  entry: PromptRegistryEntry,
+  readFile: RegistryFileReader,
+): { text: string | undefined; problems: readonly string[] } {
+  const problems: string[] = []
+  if (entry.kind !== 'patch-value') {
+    problems.push(`${entry.id}:非 patch 值型,无静态值可读(当前值=null+note 明示)`)
+    return { text: undefined, problems }
+  }
   try {
     if (entry.yaml === undefined) {
       // 整文件条目(persona.md):值=全文。
       const anchorFile = entry.anchors[0]?.file
-      text = anchorFile !== undefined ? readFile(anchorFile) : undefined
-    } else {
-      const located = locateYamlConfigKey(entry.yaml, readFile(entry.yaml.file).split('\n'))
-      if (located === undefined) {
-        problems.push(`${entry.yaml.file}:结构定位失败(rowId=${entry.yaml.rowId},key=${entry.yaml.configKey})`)
-        text = undefined
-      } else {
-        text = readYamlValueAtLine(located.lines, located.keyIndex)
-      }
+      const whole = anchorFile !== undefined ? readFile(anchorFile) : undefined
+      if (whole === undefined) problems.push(`${entry.id}:整文件条目无锚点文件`)
+      return { text: whole, problems }
     }
+    const located = locateYamlConfigKey(entry.yaml, readFile(entry.yaml.file).split('\n'))
+    if (located === undefined) {
+      problems.push(`${entry.yaml.file}:结构定位失败(rowId=${entry.yaml.rowId},key=${entry.yaml.configKey};live 组合内无该行/插件/键)`)
+      return { text: undefined, problems }
+    }
+    return { text: readYamlValueAtLine(located.lines, located.keyIndex), problems }
   } catch (error) {
     problems.push(`${entry.id}:读值失败(${error instanceof Error ? error.message : String(error)})`)
-    text = undefined
+    return { text: undefined, problems }
   }
-  if (text === undefined || text === '') {
-    problems.push(`${entry.id}:反引值为空(锚点在场但值不可读)`)
-    return { entryId: entry.id, kind: entry.kind, anchorsPresent: true, problems, text: null, bytes: null, note: entry.note }
-  }
-  return { entryId: entry.id, kind: entry.kind, anchorsPresent: true, problems, text, bytes: byteLength(text), note: entry.note }
 }
 
 // ---------- YAML 结构定位与块标量反引(T1.4 读侧/T1.6 写侧的地基) ----------
