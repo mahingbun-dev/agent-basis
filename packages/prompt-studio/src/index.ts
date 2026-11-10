@@ -544,6 +544,14 @@ applyRemoteMarker(LoopPromptGateway.prototype, 'promptImport', 'prompt-import')
 export type { PromptVersionRecord } from './types.ts'
 export { PromptVersionStore, VERSION_UNIT_DESCRIPTOR, VERSION_UNIT_NAME } from './version-store.ts'
 export { PersonaPatchFile, selfCheckNextPatchText } from './persona-patch.ts'
+export {
+  ENTRY_KIND_LABELS, LAYER_LABELS, PROMPT_REGISTRY_ENTRIES, checkEntryAnchors, ensureEntryWritable,
+  getPromptRegistryEntry, listPromptRegistryEntries, locateYamlConfigKey, readBlockScalarValue, readEntryValue,
+  readYamlValueAtLine, registryInvariants,
+} from './registry.ts'
+export type {
+  CodeAnchor, EntryValueRead, PromptEntryKind, PromptLayer, PromptRegistryEntry, RedLinePolicy, RegistryFileReader, YamlLocator,
+} from './registry.ts'
 export { validatePersonaText, checkRedLines, checkUtf8WellFormed, RED_LINE_RULES, MAX_PERSONA_BYTES } from './validator.ts'
 export { validateExportPack } from './export-pack.ts'
 export { diffLines, diffSummaryText, lineDiffOps } from './diff.ts'
