@@ -1,0 +1,29 @@
+{
+  "at": "2026-11-10T18:18:52.813Z",
+  "base": "http://127.0.0.1:3211",
+  "container": "eterna-tp-ph",
+  "cases": {
+    "E1": {
+      "called": true,
+      "denied": true,
+      "baselineTurnEnds": 0
+    },
+    "E2": {
+      "denied": true,
+      "witness": "absent"
+    },
+    "E3": {
+      "denied": true,
+      "witness": "absent"
+    },
+    "E4a": {
+      "witness": "absent"
+    },
+    "E4b": {
+      "witness": "absent"
+    },
+    "P1": {
+      "witness": "exists"
+    }
+  }
+}

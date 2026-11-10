@@ -100,7 +100,7 @@ if (CASE === 'fullaccess-turn') {
   // ── G-PH-02:完全权限模式下 bash 回合零审批(轨迹级断言) ──
   // 等 composer
   let composer = null
-  for (const sel of ['textarea', '[contenteditable="true"]']) {
+  for (const sel of ['textarea', '[data-composer-input="true"][contenteditable="true"]', '[contenteditable="true"]', '[contenteditable="plaintext-only"]']) {
     const all = page.locator(sel)
     const n = await all.count()
     for (let i = n - 1; i >= 0; i--) {
