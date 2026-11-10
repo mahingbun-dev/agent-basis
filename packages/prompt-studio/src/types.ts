@@ -532,6 +532,96 @@ export interface PromptImportResult {
   readonly effectiveNote: string
 }
 
+// ---------- AI 链路(T3.1:进程内 LLM 调用封装,llm-doctor 同 wire 先例) ----------
+
+/** API key 在场来源(可用性自检只判在场性,绝不回显密钥值)。 */
+export type AiKeySource = 'env' | 'dotenv' | 'keyless'
+
+/** 解析出的默认模型路由(与 agent 会话同 wire:agent-default-model → provider 行)。 */
+export interface AiRouteView {
+  readonly provider: string
+  readonly model: string
+  readonly api: string
+}
+
+/** 端点 loopPrompt/ai-status 的返回(可用性自检,零模型调用)。 */
+export interface AiStatusResult {
+  readonly status: 'ok' | 'unavailable'
+  readonly available: boolean
+  readonly route?: AiRouteView
+  readonly keySource?: AiKeySource
+  /** 不可用原因(在场性判定的明示;含环境变量名,永不含密钥值)。 */
+  readonly reason?: string
+  readonly note: string
+}
+
+/** AI 调用元信息(润色/审核结果共用;密钥值绝不入内)。 */
+export interface AiCallMeta {
+  readonly provider: string
+  readonly model: string
+  readonly latencyMs: number
+  /** 本次调用使用的元提示词注册表条目 id(吃狗粮:现读当前值)。 */
+  readonly metaPromptEntryId: string
+  /** 模型输出是否按元提示词契约的围栏块形态(false=整文兜底解析,如实标注)。 */
+  readonly framed: boolean
+}
+
+/** 端点 loopPrompt/ai-polish 的入参。 */
+export interface AiPolishInput {
+  /** 目标条目 id(缺省/空=默认条目 persona;与读写端点口径一致)。 */
+  readonly entryId?: string
+  /** 润色底稿(T3.2 编辑器内草稿再润色用;缺省=条目当前值)。 */
+  readonly content?: string
+  /** 润色侧重点(可选,透传给元提示词)。 */
+  readonly instruction?: string
+}
+
+/** AI 润色统一状态机(产出永不直接生效,仅作建议稿)。 */
+export type AiCallStatus = 'ok' | 'unavailable' | 'failed' | 'rejected'
+
+/** 端点 loopPrompt/ai-polish 的返回。 */
+export interface AiPolishResult {
+  readonly status: AiCallStatus | 'not-found'
+  readonly entryId: string
+  /** AI 建议稿全文(status=ok 时;非直接生效,走 diff 预览与 R3 提案由 T3.2 接续)。 */
+  readonly draft?: string
+  /** 底稿与建议稿字节数(UTF-8 口径;diff 概览由 T3.2 前端基于二者渲染)。 */
+  readonly baseBytes?: number
+  readonly draftBytes?: number
+  readonly meta?: AiCallMeta
+  readonly issues?: readonly string[]
+  readonly note: string
+}
+
+/** AI 审核单条问题(模型清单项;与本地校验器结果同源互补)。 */
+export interface AiFinding {
+  readonly severity: 'error' | 'warning' | 'info'
+  readonly rule?: string
+  readonly message: string
+  readonly suggestion?: string
+}
+
+/** 端点 loopPrompt/ai-review 的入参。 */
+export interface AiReviewInput {
+  /** 目标条目 id(缺省/空=默认条目 persona)。 */
+  readonly entryId?: string
+  /** 受审文本(缺省=条目当前值;编辑器内草稿审核用)。 */
+  readonly content?: string
+}
+
+/** 端点 loopPrompt/ai-review 的返回(仅展示,零写动作)。 */
+export interface AiReviewResult {
+  readonly status: AiCallStatus | 'not-found'
+  readonly entryId: string
+  /** 本地校验器(validator.ts 同一模块导出)按条目规则得出的确定性问题。 */
+  readonly ruleFindings: readonly string[]
+  /** 模型按元提示词五维产出的问题清单(解析失败时空数组+issues 明示)。 */
+  readonly aiFindings: readonly AiFinding[]
+  readonly meta?: AiCallMeta
+  readonly issues?: readonly string[]
+  readonly note: string
+}
+
 /** 宿主 profileContext 的最小结构面(dsh CLI profile-boot 提供)。 */
 export interface ProfileContextLike {
   readonly name: string

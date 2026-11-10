@@ -52,8 +52,8 @@ import {
  */
 const DEFAULT_ENTRY_ID = 'preset.standard.persona'
 
-/** 分组导航的层次序(注册表层枚举序;preset → 领域 → 运行时)。 */
-const LAYERS = ['preset', 'domain', 'runtime'] as const
+/** 分组导航的层次序(注册表层枚举序;preset → 领域 → 运行时 → 元提示词)。 */
+const LAYERS = ['preset', 'domain', 'runtime', 'meta'] as const
 
 /**
  * 按条目版本链的拉取状态(与数据面 chains 分离):「拉取中 / 拉取失败(RPC 通道错、

@@ -23,6 +23,8 @@ export type StudioLocaleKey =
   | 'studio.layer.domain.hint'
   | 'studio.layer.runtime'
   | 'studio.layer.runtime.hint'
+  | 'studio.layer.meta'
+  | 'studio.layer.meta.hint'
   | 'studio.kind.patch-value'
   | 'studio.kind.line-anchor-readonly'
   | 'studio.kind.runtime-injection'
@@ -139,7 +141,7 @@ export type StudioLocaleKey =
 export const zh: Record<StudioLocaleKey, string> = {
   studio: '提示词工坊',
   trace: '循环轨迹',
-  'studio.subtitle': '三层提示词全景:preset 预设 / 领域包 / 运行时注入。条目可查可改(保存走 R3 审批,对新会话生效、无需重启),版本可回滚。',
+  'studio.subtitle': '提示词全景:preset 预设 / 领域包 / 运行时注入 / 元提示词。条目可查可改(保存走 R3 审批,对新会话生效、无需重启),版本可回滚。',
   'trace.subtitle': '最近会话的 agent loop 运行轨迹:轮次、工具调用、耗时与 token',
   refresh: '刷新',
   back: '返回会话列表',
@@ -154,6 +156,8 @@ export const zh: Record<StudioLocaleKey, string> = {
   'studio.layer.domain.hint': '领域包(personaPrefix / persona.md)',
   'studio.layer.runtime': '运行时层',
   'studio.layer.runtime.hint': 'ctx.systemPrompt.section 动态注入',
+  'studio.layer.meta': '元提示词层',
+  'studio.layer.meta.hint': '工作室 AI 润色/审核自管的元提示词',
   'studio.kind.patch-value': 'patch 值型',
   'studio.kind.line-anchor-readonly': '行锚点只读型',
   'studio.kind.runtime-injection': '运行时注入型',
@@ -271,7 +275,7 @@ export const zh: Record<StudioLocaleKey, string> = {
 export const en: Record<StudioLocaleKey, string> = {
   studio: 'Prompt Studio',
   trace: 'Loop Trace',
-  'studio.subtitle': 'Full registry panorama across three layers: presets / domain packs / runtime injection. Entries are inspectable and editable (saves go through R3 approval, effective for new sessions without restart); versions roll back.',
+  'studio.subtitle': 'Full registry panorama: presets / domain packs / runtime injection / meta-prompts. Entries are inspectable and editable (saves go through R3 approval, effective for new sessions without restart); versions roll back.',
   'trace.subtitle': 'Recent session traces: turns, tool calls, durations and tokens',
   refresh: 'Refresh',
   back: 'Back to sessions',
@@ -286,6 +290,8 @@ export const en: Record<StudioLocaleKey, string> = {
   'studio.layer.domain.hint': 'Domain packs (personaPrefix / persona.md)',
   'studio.layer.runtime': 'Runtime layer',
   'studio.layer.runtime.hint': 'ctx.systemPrompt.section dynamic injection',
+  'studio.layer.meta': 'Meta-prompt layer',
+  'studio.layer.meta.hint': 'Studio AI polish/review meta-prompts (self-managed)',
   'studio.kind.patch-value': 'Patch value',
   'studio.kind.line-anchor-readonly': 'Line-anchor (read-only)',
   'studio.kind.runtime-injection': 'Runtime injection',

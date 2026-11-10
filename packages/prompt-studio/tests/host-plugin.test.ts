@@ -1,7 +1,7 @@
 /**
  * Host 半边插件测试(T7.1):
- * - 9 个 SRC 端点的 @Remote marker(手工施加路径)与端点字符串(T2.3 起
- *   含 loopPrompt/session-snapshot);
+ * - 12 个 SRC 端点的 @Remote marker(手工施加路径)与端点字符串(T2.3 起
+ *   含 loopPrompt/session-snapshot,T3.1 起含 ai-status/ai-polish/ai-review;
  * - default export 插件形态(name/apply/总 disposer);
  * - 全写链路在进程内打通:approval-required → confirm → committed(patch 原子写 +
  *   版本库追加 + 审计留痕),回滚/导入/乐观锁/校验拒绝/storage 未就绪分支;
@@ -75,10 +75,11 @@ function asStudio(ctx: Context): StudioContextLike {
 describe('SRC 端点声明(手工 @Remote marker)', () => {
   const markers = remoteMethods(Object.create(LoopPromptGateway.prototype) as object)
 
-  it('9 个端点,exportName 与请求路径一一对应', () => {
-    expect(markers).toHaveLength(9)
+  it('12 个端点(T3.1 起 +ai-status/ai-polish/ai-review),exportName 与请求路径一一对应', () => {
+    expect(markers).toHaveLength(12)
     const names = markers.map(marker => marker.exportName ?? marker.method).sort()
     expect(names).toEqual([
+      'ai-polish', 'ai-review', 'ai-status',
       'prompt-export', 'prompt-get', 'prompt-import', 'prompt-rollback', 'prompt-save', 'prompt-versions',
       'session-snapshot', 'snapshot', 'trace',
     ])
@@ -95,6 +96,9 @@ describe('SRC 端点声明(手工 @Remote marker)', () => {
     expect(ENDPOINTS.promptExport).toBe('loopPrompt/prompt-export')
     expect(ENDPOINTS.promptImport).toBe('loopPrompt/prompt-import')
     expect(ENDPOINTS.sessionSnapshot).toBe('loopPrompt/session-snapshot')
+    expect(ENDPOINTS.aiStatus).toBe('loopPrompt/ai-status')
+    expect(ENDPOINTS.aiPolish).toBe('loopPrompt/ai-polish')
+    expect(ENDPOINTS.aiReview).toBe('loopPrompt/ai-review')
   })
 
   it('json backend 服务键来自官方 storageBackendServiceKey', () => {
@@ -527,7 +531,7 @@ describe('T1.4 读侧 API 按条目泛化(snapshot entries[] / prompt-get {entry
     return gateway.attachBackend(backend).then(() => unit)
   }
 
-  it('①+② snapshot.entries[]:14 条全景,逐条目当前值与链概览(块标量/裸标量/只读型/领域/运行时分型语义)', async () => {
+  it('①+② snapshot.entries[]:16 条全景(T3.1 起含元提示词层×2),逐条目当前值与链概览(块标量/裸标量/只读型/领域/运行时分型语义)', async () => {
     await attach()
     const snapshot = await gateway.snapshot()
     expect(snapshot.entries).toHaveLength(PROMPT_REGISTRY_ENTRIES.length)

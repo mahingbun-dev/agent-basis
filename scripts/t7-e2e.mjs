@@ -1018,8 +1018,8 @@ try {
       const snap = await dsh.call('loopPrompt/snapshot')
       const radii = new Set(['immediate-new-session', 'not-composed-anywhere', 'readonly-upstream', 'runtime-rebuilt'])
       const entries = snap.entries ?? []
-      check('15.1 矩阵声明面:entries[] 14 条全部带 effect.radius(T2.2 registry effect 字段透传)',
-        entries.length === 14 && entries.every((e) => typeof e.effect?.radius === 'string' && radii.has(e.effect.radius))
+      check('15.1 矩阵声明面:entries[] 16 条全部带 effect.radius(T2.2 registry effect 字段透传;T3.1 起 16 条含元提示词层)',
+        entries.length === 16 && entries.every((e) => typeof e.effect?.radius === 'string' && radii.has(e.effect.radius))
         && entries.every((e) => typeof e.effect?.note === 'string' && e.effect.note.length > 0),
         `radius=${entries.map((e) => e.effect?.radius).join(',') ?? '(缺)'}`)
     }

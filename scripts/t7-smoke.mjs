@@ -384,7 +384,7 @@ try {
   // 5.5) T1.4 读侧按条目:三型采样(prompt-get/prompt-versions {entryId})+ not-found + 旧口径互证
   {
     const snap = await dsh.call('loopPrompt/snapshot')
-    check('snapshot(T1.4): entries[] 注册表全景 14 条(三层全量)', Array.isArray(snap.entries) && snap.entries.length === 14, `entries=${snap.entries?.length}`)
+    check('snapshot(T1.4): entries[] 注册表全景 16 条(四层全量,T3.1 起含元提示词层)', Array.isArray(snap.entries) && snap.entries.length === 16, `entries=${snap.entries?.length}`)
     const ids = new Set((snap.entries ?? []).map((e) => e.id))
     check('snapshot(T1.4): entries[] 含三型采样条目(块标量 plan-mode/领域 personaPrefix/只读型 time-context)',
       ids.has('preset.standard.plan-mode.section') && ids.has('domain.event-planning.persona-prefix') && ids.has('preset.standard.time-context'))
@@ -586,26 +586,28 @@ try {
 
   // 8) 磁盘证据:storage 栈单元目录 + 兜底审计 NDJSON(G5:operator/versionId)
   //    T1.4 装载种子按条目 + T1.6 按条目写链路:persona 链 3(initial+save+rollback)
-  //    + plan-mode 链 3 + event.personaPrefix 链 3(T1.6 写回/回滚各 +1)+ 其余四条
-  //    patch 值型条目链首各 1(agent-instructions/两包 persona.md/industrial 前缀;
-  //    live patch 无 preset-cordis 行,该预设条目定位失败不种子)= 3+3+3+4=13 文档。
+  //    + plan-mode 链 3 + event.personaPrefix 链 3(T1.6 写回/回滚各 +1)+ 其余六条
+  //    patch 值型条目链首各 1(agent-instructions/两包 persona.md/industrial 前缀 +
+  //    T3.1 元提示词×2;live patch 无 preset-cordis 行,该预设条目定位失败不种子)
+  //    = 3+3+3+6=15 文档。
   {
     const unitDir = resolve(home, 'storages', 'eterna_prompt_studio', 'versions')
     const docs = existsSync(unitDir) ? readdirSync(unitDir).filter((f) => f.endsWith('.json')) : []
-    check('版本库单元落在 DSH storage 栈(storages/eterna_prompt_studio/versions/ 一文档一记录;T1.6 后 persona/plan-mode/领域前缀各 3 + 四条目链首)',
-      docs.length === 13, `docs=${docs.length}`)
+    check('版本库单元落在 DSH storage 栈(storages/eterna_prompt_studio/versions/ 一文档一记录;T1.6 后 persona/plan-mode/领域前缀各 3 + 六条目链首(T3.1 起含元提示词×2))',
+      docs.length === 15, `docs=${docs.length}`)
     {
       const records = docs.map((f) => JSON.parse(readFileSync(resolve(unitDir, f), 'utf8')).record)
       const byEntry = new Map()
       for (const record of records) byEntry.set(record.entryId, (byEntry.get(record.entryId) ?? 0) + 1)
-      check('磁盘证据(T1.6): 每文档记录带 entryId;persona/plan-mode/领域前缀链各 3、四条目链首各 1(与端点链长一致)',
+      check('磁盘证据(T1.6): 每文档记录带 entryId;persona/plan-mode/领域前缀链各 3、六条目链首各 1(与端点链长一致)',
         records.every((r) => typeof r.entryId === 'string' && r.entryId !== '')
           && byEntry.get('preset.standard.persona') === 3
           && byEntry.get('preset.standard.plan-mode.section') === 3
           && byEntry.get('domain.event-planning.persona-prefix') === 3
           && ['preset.standard.agent-instructions',
             'domain.event-planning.persona-md',
-            'domain.industrial-analysis.persona-prefix', 'domain.industrial-analysis.persona-md']
+            'domain.industrial-analysis.persona-prefix', 'domain.industrial-analysis.persona-md',
+            'meta.studio.ai-polish', 'meta.studio.ai-review']
             .every((id) => byEntry.get(id) === 1),
         [...byEntry.entries()].map(([id, n]) => `${id}:${n}`).join(' '))
     }
@@ -656,8 +658,8 @@ try {
     check('T2.3 session-snapshot{sessionId}: 新会话开启即有快照(轮询≤10s 在场)', snapshot !== null)
     if (snapshot !== null) {
       const byId = new Map((snapshot.entries ?? []).map((e) => [e.entryId, e]))
-      check('T2.3 快照全景: entries=注册表 14 条(三层全量,含三型)',
-        snapshot.entries.length === 14 && byId.has('preset.standard.persona')
+      check('T2.3 快照全景: entries=注册表 16 条(四层全量,含三型;T3.1 起含元提示词层)',
+        snapshot.entries.length === 16 && byId.has('preset.standard.persona')
           && byId.has('preset.standard.time-context') && byId.has('runtime.memory.index-section'),
         `entries=${snapshot.entries.length}`)
       // patch 值型:当时文本 + 版本指针(=当时 persona 链最新版本)。
@@ -715,9 +717,9 @@ try {
       snapDocs.length >= 1, `docs=${snapDocs.length}`)
     if (snapDocs.length >= 1) {
       const doc = JSON.parse(readFileSync(resolve(snapDir, snapDocs[0]), 'utf8'))
-      check('T2.3 磁盘证据: 文档记录带 sessionId/checksum/entries(与端点同源)',
+      check('T2.3 磁盘证据: 文档记录带 sessionId/checksum/entries(与端点同源;T3.1 起 16 条)',
         typeof doc.record?.sessionId === 'string' && typeof doc.record?.checksum === 'string'
-          && Array.isArray(doc.record?.entries) && doc.record.entries.length === 14)
+          && Array.isArray(doc.record?.entries) && doc.record.entries.length === 16)
     }
     rmSync(wsDir, { recursive: true, force: true })
   }

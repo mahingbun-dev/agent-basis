@@ -211,12 +211,12 @@ describe('T1.3 ②条目模型完整性(每条 {id,层,来源,定位,当前值,�
     expect(result.ok).toBe(true)
   })
 
-  it('存量规模与分布:preset×8 / 领域×4 / 运行时×2;patch 值型×10 / 行锚点只读型×2 / 运行时注入型×2', () => {
-    expect(PROMPT_REGISTRY_ENTRIES).toHaveLength(14)
+  it('存量规模与分布:preset×8 / 领域×4 / 运行时×2 / 元提示词×2(T3.1);patch 值型×12 / 行锚点只读型×2 / 运行时注入型×2', () => {
+    expect(PROMPT_REGISTRY_ENTRIES).toHaveLength(16)
     const byLayer = countBy(PROMPT_REGISTRY_ENTRIES, e => LAYER_LABELS[e.layer])
-    expect(byLayer).toEqual({ 'preset 层': 8, '领域层': 4, '运行时层': 2 })
+    expect(byLayer).toEqual({ 'preset 层': 8, '领域层': 4, '运行时层': 2, '元提示词层': 2 })
     const byKind = countBy(PROMPT_REGISTRY_ENTRIES, e => ENTRY_KIND_LABELS[e.kind])
-    expect(byKind).toEqual({ 'patch 值型': 10, '行锚点只读型': 2, '运行时注入型': 2 })
+    expect(byKind).toEqual({ 'patch 值型': 12, '行锚点只读型': 2, '运行时注入型': 2 })
   })
 
   it('每型至少 1 条被真文件钉住:全部条目锚点对真文件核对通过(分型不缺判据)', () => {
@@ -259,7 +259,7 @@ describe('T1.3 ③无遗漏对账清单(docs/dev/ps-v2-registry-ledger.md 互锁
   /** 解析 ledger 主表行:| id | 层 | 型别 | 来源 | 定位 | 红线 |。 */
   function parseLedger(): LedgerRow[] {
     const ledgerPath = join(REPO_ROOT, 'docs', 'dev', 'ps-v2-registry-ledger.md')
-    const pattern = /^\|\s*([a-z0-9.-]+)\s*\|\s*(preset 层|领域层|运行时层)\s*\|\s*(patch 值型|行锚点只读型|运行时注入型)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|/
+    const pattern = /^\|\s*([a-z0-9.-]+)\s*\|\s*(preset 层|领域层|运行时层|元提示词层)\s*\|\s*(patch 值型|行锚点只读型|运行时注入型)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|/
     const rows: LedgerRow[] = []
     for (const line of readFileSync(ledgerPath, 'utf8').split('\n')) {
       const match = pattern.exec(line)

@@ -34,6 +34,12 @@
  *                                开启时刻的 effective prompt 全文(条目版本指针+文本/
  *                                分型标注;无快照 not-found、快照库未挂载 unavailable
  *                                分态明示不抛);缺省 → 最近快照列表(未挂载 ready=false)
+ * - loopPrompt/ai-status         AI 可用性自检(T3.1):configEditor 路由解析 + key 的
+ *                                env/.env 在场性(零模型调用;绝不回显密钥值)
+ * - loopPrompt/ai-polish         AI 润色(T3.1):选中条目底稿 → 建议稿(**永不直接
+ *                                生效**;元提示词=注册表 meta 层条目现读,吃自己的狗粮)
+ * - loopPrompt/ai-review         AI 审核(T3.1):当前稿 → 问题清单(本地校验器同源
+ *                                ruleFindings + 模型五维 aiFindings;仅展示,零写动作)
  *
  * 非端点扩展(T2.4):apply 时注册全局未打标 `system-prompt/assemble` waterfall 监听
  * (registerAssembleReplay),按 T2.3 会话快照逐段替换 patch 值型条目文本——历史会话
@@ -61,6 +67,12 @@ import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typer
 import type { StorageBackend } from '@deepseek-ai/dsh-storage'
 import { storageBackendServiceKey } from '@deepseek-ai/dsh-storage'
 import {
+  AI_CALL_TIMEOUT_MS, AI_META_POLISH_ENTRY_ID, AI_META_REVIEW_ENTRY_ID,
+  aiChatCompletion, buildAiEntryUserPayload, checkAiAvailability, createKeyPresenceResolver,
+  extractDraftText, parseAiFindings,
+} from './ai-service.ts'
+import type { AiFetchLike, AiRoute } from './ai-service.ts'
+import {
   ASSEMBLE_EVENT, type AssemblyReplayResult, type ReplayAssembledSection, SKIP_COMPLETE_OWNER,
   agentIdOfAssembleContext, pluginSpanOwnsCompleteFlag, resolveAssemblyReplay,
 } from './assembly-replay.ts'
@@ -77,7 +89,8 @@ import type { ConfigEditorFace } from './config-editor-write.ts'
 import { validateExportPack } from './export-pack.ts'
 import { PersonaPatchFile } from './persona-patch.ts'
 import {
-  DEFAULT_ENTRY_ID, PROMPT_REGISTRY_ENTRIES, WEB_PATCH, ensureEntryWritable, getPromptRegistryEntry, readEntryText,
+  DEFAULT_ENTRY_ID, ENTRY_KIND_LABELS, LAYER_LABELS, PROMPT_REGISTRY_ENTRIES, WEB_PATCH,
+  ensureEntryWritable, getPromptRegistryEntry, readEntryText,
 } from './registry.ts'
 import type { PromptRegistryEntry, RegistryFileReader } from './registry.ts'
 import { COMPOSED_NOTE, EFFECTIVE_NOTE, READONLY_ENTRY_NOTE, RUNTIME_ENTRY_NOTE, SNAPSHOT_VIEW_NOTE, buildSnapshot, cardDiffSummary } from './snapshot.ts'
@@ -86,6 +99,7 @@ import {
 } from './session-snapshot.ts'
 import { TRACE_SESSION_LIMIT_DEFAULT, listTraceSessions, readSessionTrace } from './trace.ts'
 import type {
+  AiKeySource, AiPolishInput, AiPolishResult, AiReviewInput, AiReviewResult, AiStatusResult,
   EntryNotFoundResult, EntrySummaryView, EntryValueView, LoopPromptSnapshot, PromptEntryView,
   PromptExportInput, PromptExportPack, PromptExportResult, PromptGetEntryResult, PromptGetInput,
   PromptGetResult, PromptImportInput, PromptImportResult, PromptRollbackInput, PromptRollbackResult,
@@ -126,6 +140,9 @@ export const ENDPOINTS = {
   promptExport: `${LOOP_PROMPT_SERVICE_ID}/prompt-export`,
   promptImport: `${LOOP_PROMPT_SERVICE_ID}/prompt-import`,
   sessionSnapshot: `${LOOP_PROMPT_SERVICE_ID}/session-snapshot`,
+  aiStatus: `${LOOP_PROMPT_SERVICE_ID}/ai-status`,
+  aiPolish: `${LOOP_PROMPT_SERVICE_ID}/ai-polish`,
+  aiReview: `${LOOP_PROMPT_SERVICE_ID}/ai-review`,
 } as const
 
 /** json backend 在 storage hub 上的生命周期服务键(官方 storageBackendServiceKey)。 */
@@ -206,6 +223,12 @@ const SNAPSHOT_CAPTURE_QUEUE_LIMIT = 100
 
 /** 快照列表模式默认条数(与 trace 最近会话清单同量级)。 */
 const SNAPSHOT_LIST_LIMIT_DEFAULT = 20
+
+/** AI 产出纪律说明(ok/failed/rejected 结果共用;计划书 §5「不做 AI 自动生效」)。 */
+const AI_NOTE = 'AI 产出仅作建议:润色建议稿与审核问题清单均不直接生效,生效需经 R3 审批写回。'
+
+/** AI 不可用降级说明(含 UI 文案锚点「AI 能力不可用」;非 5xx、不炸宿主)。 */
+const AI_UNAVAILABLE_NOTE = 'AI 能力不可用(本结果为降级响应,未发起模型调用);修复后在设置页确认模型路由与凭据环境变量即可恢复。'
 
 /** 防御式提取会话 id(session/created 载荷的 Session.id;缺席 → undefined)。 */
 function sessionIdOf(session: unknown): string | undefined {
@@ -360,6 +383,27 @@ export class LoopPromptGateway extends TypertRemoteService {
   readonly promptRegistryFace = {
     resolveRuntimePromptText: (entryId: string): string | undefined => this.runtimePromptCache.get(entryId),
   }
+
+  // ---------- T3.1 AI 调用面(公开字段=网关 shadow 约束;测试注入同构假体) ----------
+
+  /** AI 真发面:生产全局 fetch;测试注入按协议应答的同构假体(llm-doctor fetchImpl 先例)。 */
+  aiFetch: AiFetchLike = globalThis.fetch
+  /**
+   * key 在场性解析(生产=process.env 优先,次查 DSH_HOME 与工作目录的 .env 文件;
+   * 只返回来源枚举,绝无值出口)。缺省根:profileContext.home(缺席回退 cwd)。
+   */
+  aiKeyPresence: (envName: string) => AiKeySource | undefined = createKeyPresenceResolver(
+    () => [this.profileContext?.home ?? '', process.cwd()],
+  )
+  /** key 值解析(生产=process.env,与 agent 会话同取值面;仅进请求头,绝不入日志/审计)。 */
+  aiResolveApiKey: (envName: string) => string | undefined = envName =>
+    (envName === '' ? undefined : process.env[envName])
+  /** 单次 AI 调用超时毫秒(默认 AI_CALL_TIMEOUT_MS;测试注 1ms 强制超时分支)。 */
+  aiTimeoutMs = AI_CALL_TIMEOUT_MS
+  /** 润色建议稿输出 token 上限。 */
+  aiPolishMaxOutputTokens = 4096
+  /** 审核清单输出 token 上限。 */
+  aiReviewMaxOutputTokens = 2048
 
   constructor(ctx: StudioContextLike, config: PromptStudioPluginConfig = {}) {
     // Service 边界单点断言(基类构造器 protected,无法提取其参数类型):运行时传入的
@@ -926,6 +970,269 @@ export class LoopPromptGateway extends TypertRemoteService {
         checksum: record.checksum,
       })),
     }
+  }
+
+  // ---------- T3.1 AI 端点(润色/审核走进程内调用,llm-doctor 同 wire 先例) ----------
+
+  /**
+   * 元提示词现读(吃狗粮):注册表 meta 层条目当前值作 system 消息。读不到 → issues
+   * 明示拒绝(不静默换内置兜底文本——元提示词失效必须可见,注册表自管的诚实面)。
+   */
+  readMetaPromptText(entryId: string): { text: string | undefined; issues: readonly string[] } {
+    const entry = getPromptRegistryEntry(entryId)
+    if (entry === undefined) {
+      return { text: undefined, issues: [`元提示词条目未登记:${entryId}(注册表自管失效,检查 registry meta 层)`] }
+    }
+    const read = readEntryText(entry, this.registryReadFile())
+    if (read.text === undefined || read.text.trim() === '') {
+      return { text: undefined, issues: [`元提示词条目 ${entryId} 当前值不可读:${read.problems.length > 0 ? read.problems.join(';') : '反引值为空'}`] }
+    }
+    return { text: read.text, issues: [] }
+  }
+
+  /** live patch 文本(路由解析的兜底面;读失败 → undefined,configEditor 面单独判定)。 */
+  readLivePatchText(): string | undefined {
+    try {
+      return this.registryReadFile()(WEB_PATCH)
+    } catch {
+      return undefined
+    }
+  }
+
+  /** AI 可用性自检的统一解析(三端点共用;零模型调用)。 */
+  aiAvailability(): ReturnType<typeof checkAiAvailability> {
+    return checkAiAvailability(resolveConfigEditor(this.studioCtx), this.readLivePatchText(), this.aiKeyPresence)
+  }
+
+  /**
+   * SRC 端点:loopPrompt/ai-status——AI 可用性自检(T3.1):configEditor 路由解析 +
+   * key 的 env/.env 在场性(绝不回显密钥值);零模型调用,不写任何状态。
+   */
+  aiStatus(): AiStatusResult {
+    const availability = this.aiAvailability()
+    return {
+      status: availability.available ? 'ok' : 'unavailable',
+      available: availability.available,
+      ...(availability.route !== undefined && {
+        route: { provider: availability.route.provider, model: availability.route.model, api: availability.route.api },
+      }),
+      ...(availability.keySource !== undefined && { keySource: availability.keySource }),
+      ...(availability.reason !== undefined && { reason: availability.reason }),
+      note: availability.available ? AI_NOTE : AI_UNAVAILABLE_NOTE,
+    }
+  }
+
+  /**
+   * SRC 端点:loopPrompt/ai-polish——AI 润色(T3.1):选中条目底稿(input.content 缺省
+   * =条目当前值)→ 建议稿。**永不直接生效**(不写版本库/不写 patch/不产生在途审批);
+   * 元提示词=注册表条目 meta.studio.ai-polish 现读。降级矩阵(全部非 5xx):
+   * 未知条目 not-found / 无底稿 rejected / 元提示词不可读 rejected / 路由或 key 缺席
+   * unavailable / 调用失败或输出为空 failed——后三类逐事件审计(reason 永不含密钥值)。
+   */
+  async aiPolish(input?: AiPolishInput): Promise<AiPolishResult> {
+    const entryId = input?.entryId !== undefined && input.entryId !== '' ? input.entryId : DEFAULT_ENTRY_ID
+    const entry = getPromptRegistryEntry(entryId)
+    if (entry === undefined) {
+      return {
+        status: 'not-found', entryId, note: AI_NOTE,
+        issues: [`未知条目 id:${entryId}(注册表共 ${PROMPT_REGISTRY_ENTRIES.length} 条,可用 id 见 loopPrompt/snapshot 的 entries[])`],
+      }
+    }
+    const base = input?.content !== undefined && input.content !== '' ? input.content : this.buildEntryValueView(entry).text
+    if (base === null || base.trim() === '') {
+      return {
+        status: 'rejected', entryId, note: AI_NOTE,
+        issues: [`条目 ${entryId} 无可润色底稿(只读型/运行时注入型无静态值,或当前值不可读);可用 input.content 显式传入草稿`],
+      }
+    }
+    const metaPrompt = this.readMetaPromptText(AI_META_POLISH_ENTRY_ID)
+    if (metaPrompt.text === undefined) {
+      this.audit.write('ai-polish.rejected', { entryId, reason: 'meta-prompt-unreadable', issues: metaPrompt.issues })
+      return { status: 'rejected', entryId, issues: metaPrompt.issues, note: AI_NOTE }
+    }
+    const call = await this.runAiCall('ai-polish', entryId, metaPrompt.text, () => buildAiEntryUserPayload(
+      {
+        id: entry.id,
+        layer: LAYER_LABELS[entry.layer],
+        kind: ENTRY_KIND_LABELS[entry.kind],
+        source: entry.source,
+        maxBytes: entry.maxBytes,
+        redLine: entry.redLine,
+        ...(entry.redLineRuleSet !== undefined && { redLineRuleSet: entry.redLineRuleSet }),
+      },
+      base,
+      { instruction: input?.instruction, textBytes: byteLength(base) },
+    ))
+    if (call.status !== 'ok') {
+      return { status: call.status, entryId, issues: call.issues, note: call.status === 'unavailable' ? AI_UNAVAILABLE_NOTE : AI_NOTE }
+    }
+    const draft = extractDraftText(call.text)
+    if (draft.text === '') {
+      const reason = '模型输出为空,无建议稿'
+      this.audit.write('ai-polish.failed', { entryId, reason })
+      return { status: 'failed', entryId, issues: [reason], note: AI_NOTE }
+    }
+    this.audit.write('ai-polish.completed', {
+      entryId,
+      provider: call.route.provider,
+      model: call.route.model,
+      latencyMs: call.latencyMs,
+      baseBytes: byteLength(base),
+      draftBytes: byteLength(draft.text),
+      framed: draft.framed,
+    })
+    return {
+      status: 'ok',
+      entryId,
+      draft: draft.text,
+      baseBytes: byteLength(base),
+      draftBytes: byteLength(draft.text),
+      meta: {
+        provider: call.route.provider,
+        model: call.route.model,
+        latencyMs: call.latencyMs,
+        metaPromptEntryId: AI_META_POLISH_ENTRY_ID,
+        framed: draft.framed,
+      },
+      note: AI_NOTE,
+    }
+  }
+
+  /**
+   * SRC 端点:loopPrompt/ai-review——AI 审核(T3.1):当前稿(input.content 缺省=条目
+   * 当前值)→ 问题清单。ruleFindings 与 T1.6 校验器**同一模块导出**(validateEntryText,
+   * 红线冲突/长度/UTF-8 同源;T3.3 同源断言的落点);aiFindings=模型按元提示词五维
+   * (红线冲突/长度预算/变量引用/一致性/清晰度)产出的清单。仅展示,零写动作。
+   */
+  async aiReview(input?: AiReviewInput): Promise<AiReviewResult> {
+    const entryId = input?.entryId !== undefined && input.entryId !== '' ? input.entryId : DEFAULT_ENTRY_ID
+    const entry = getPromptRegistryEntry(entryId)
+    if (entry === undefined) {
+      return {
+        status: 'not-found', entryId, ruleFindings: [], aiFindings: [], note: AI_NOTE,
+        issues: [`未知条目 id:${entryId}(注册表共 ${PROMPT_REGISTRY_ENTRIES.length} 条,可用 id 见 loopPrompt/snapshot 的 entries[])`],
+      }
+    }
+    const content = input?.content !== undefined && input.content !== '' ? input.content : this.buildEntryValueView(entry).text
+    if (content === null || content.trim() === '') {
+      return {
+        status: 'rejected', entryId, ruleFindings: [], aiFindings: [], note: AI_NOTE,
+        issues: [`条目 ${entryId} 无可审核文本(只读型/运行时注入型无静态值,或当前值不可读);可用 input.content 显式传入草稿`],
+      }
+    }
+    // 本地确定性校验(T1.6 同一模块导出;非 persona 条目红线豁免语义沿用)。
+    const ruleFindings = validateEntryText(entry, content).issues
+    const metaPrompt = this.readMetaPromptText(AI_META_REVIEW_ENTRY_ID)
+    if (metaPrompt.text === undefined) {
+      this.audit.write('ai-review.rejected', { entryId, reason: 'meta-prompt-unreadable', issues: metaPrompt.issues })
+      return { status: 'rejected', entryId, ruleFindings, aiFindings: [], issues: metaPrompt.issues, note: AI_NOTE }
+    }
+    const call = await this.runAiCall('ai-review', entryId, metaPrompt.text, () => buildAiEntryUserPayload(
+      {
+        id: entry.id,
+        layer: LAYER_LABELS[entry.layer],
+        kind: ENTRY_KIND_LABELS[entry.kind],
+        source: entry.source,
+        maxBytes: entry.maxBytes,
+        redLine: entry.redLine,
+        ...(entry.redLineRuleSet !== undefined && { redLineRuleSet: entry.redLineRuleSet }),
+      },
+      content,
+      { textBytes: byteLength(content) },
+    ))
+    if (call.status !== 'ok') {
+      return {
+        status: call.status, entryId, ruleFindings, aiFindings: [], issues: call.issues,
+        note: call.status === 'unavailable' ? AI_UNAVAILABLE_NOTE : AI_NOTE,
+      }
+    }
+    const parsed = parseAiFindings(call.text)
+    const reviewMeta = {
+      provider: call.route.provider,
+      model: call.route.model,
+      latencyMs: call.latencyMs,
+      metaPromptEntryId: AI_META_REVIEW_ENTRY_ID,
+      framed: parsed?.framed ?? false,
+    }
+    if (parsed === undefined) {
+      const reason = `模型输出未按元提示词 JSON 契约解析(原始输出前 200 字:${call.text.slice(0, 200)})`
+      this.audit.write('ai-review.degraded', { entryId, provider: call.route.provider, model: call.route.model, latencyMs: call.latencyMs, reason })
+      return {
+        status: 'ok',
+        entryId,
+        ruleFindings,
+        aiFindings: [],
+        issues: [reason],
+        meta: reviewMeta,
+        note: AI_NOTE,
+      }
+    }
+    this.audit.write('ai-review.completed', {
+      entryId,
+      provider: call.route.provider,
+      model: call.route.model,
+      latencyMs: call.latencyMs,
+      ruleFindings: ruleFindings.length,
+      aiFindings: parsed.findings.length,
+      framed: parsed.framed,
+    })
+    return {
+      status: 'ok',
+      entryId,
+      ruleFindings,
+      aiFindings: parsed.findings,
+      meta: reviewMeta,
+      note: AI_NOTE,
+    }
+  }
+
+  /**
+   * AI 调用共用执行体(润色/审核共享;公开方法=网关 shadow 约束):
+   * 可用性自检 → key 值解析(仅进请求头)→ 同 wire 真发 → 失败/不可用逐事件审计。
+   * **零写动作**:本方法不触碰版本库/patch/审批门,任何结局都不留半写状态。
+   */
+  async runAiCall(
+    kind: 'ai-polish' | 'ai-review',
+    entryId: string,
+    system: string,
+    buildUser: () => string,
+  ): Promise<
+    | { readonly status: 'ok'; readonly text: string; readonly route: AiRoute; readonly latencyMs: number }
+    | { readonly status: 'unavailable' | 'failed'; readonly issues: readonly string[] }
+  > {
+    const availability = this.aiAvailability()
+    if (!availability.available || availability.route === undefined) {
+      const reason = availability.reason ?? 'AI 能力不可用(路由不可解析)'
+      this.audit.write(`${kind}.unavailable`, { entryId, reason })
+      return { status: 'unavailable', issues: [reason] }
+    }
+    const route = availability.route
+    const apiKey = route.apiKeyEnv === '' ? undefined : this.aiResolveApiKey(route.apiKeyEnv)
+    if (route.apiKeyEnv !== '' && (apiKey === undefined || apiKey === '')) {
+      // 在场性判定经 .env 文件但进程环境未导出:agent 会话与 AI 调用同取 process.env,
+      // 同样取不到——如实降级并给出修复方向,不猜值、不读 .env 值(ai-service 头注纪律)。
+      const reason = `API key 在 .env 文件在场但未导出到宿主进程环境(${route.apiKeyEnv});模型调用与 agent 会话同取 process.env,请在启动环境 export 后重试`
+      this.audit.write(`${kind}.unavailable`, { entryId, reason: 'dotenv-not-exported' })
+      return { status: 'unavailable', issues: [reason] }
+    }
+    const result = await aiChatCompletion({
+      api: route.api,
+      baseURL: route.baseURL,
+      model: route.model,
+      apiKey,
+      system,
+      user: buildUser(),
+      maxOutputTokens: kind === 'ai-polish' ? this.aiPolishMaxOutputTokens : this.aiReviewMaxOutputTokens,
+      fetchImpl: this.aiFetch,
+      timeoutMs: this.aiTimeoutMs,
+    })
+    if (!result.ok) {
+      this.audit.write(`${kind}.failed`, {
+        entryId, provider: route.provider, model: route.model, latencyMs: result.latencyMs, reason: result.error,
+      })
+      return { status: 'failed', issues: [result.error ?? 'AI 调用失败'] }
+    }
+    return { status: 'ok', text: result.text, route, latencyMs: result.latencyMs }
   }
 
   /**
@@ -1582,8 +1889,18 @@ applyRemoteMarker(LoopPromptGateway.prototype, 'promptRollback', 'prompt-rollbac
 applyRemoteMarker(LoopPromptGateway.prototype, 'promptExport', 'prompt-export')
 applyRemoteMarker(LoopPromptGateway.prototype, 'promptImport', 'prompt-import')
 applyRemoteMarker(LoopPromptGateway.prototype, 'sessionSnapshot', 'session-snapshot')
+applyRemoteMarker(LoopPromptGateway.prototype, 'aiStatus', 'ai-status')
+applyRemoteMarker(LoopPromptGateway.prototype, 'aiPolish', 'ai-polish')
+applyRemoteMarker(LoopPromptGateway.prototype, 'aiReview', 'ai-review')
 
 export type { PromptVersionRecord } from './types.ts'
+export {
+  AGENT_DEFAULT_MODEL_ROW_ID, AI_CALL_TIMEOUT_MS, AI_ENDPOINT_PATHS, AI_META_POLISH_ENTRY_ID,
+  AI_META_REVIEW_ENTRY_ID, aiChatCompletion, buildAiEntryUserPayload, checkAiAvailability,
+  createKeyPresenceResolver, extractDraftText, extractFencedBlock, findCarrierInPatch, parseAiFindings,
+  readDefaultModelFromPatch, resolveAiRoute, resolveDefaultModelRoute,
+} from './ai-service.ts'
+export type { AiAvailability, AiChatRequest, AiChatResult, AiFetchLike, AiFindingsParse, AiRoute, AiRouteSources } from './ai-service.ts'
 export { PromptVersionStore, VERSION_UNIT_DESCRIPTOR, VERSION_UNIT_NAME } from './version-store.ts'
 export { PersonaPatchFile, selfCheckNextPatchText } from './persona-patch.ts'
 export { EntryPatchFile, EntryToctouError, buildNextEntryFileText, entrySpanOf, selfCheckEntryWrite } from './entry-patch.ts'

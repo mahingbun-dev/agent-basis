@@ -16,7 +16,7 @@
 | 行锚点只读型 | 行在场但提示词文本由上游插件运行时生成 | 裸行在场 + 条目型别=只读 + 写链路 fail-closed 拒写明示 |
 | 运行时注入型 | `ctx.systemPrompt.section` 动态注入,无静态全文 | 来源代码锚点在场 + section 元数据(name/order) |
 
-## 对账清单(14 条:preset 层 8 / 领域层 4 / 运行时层 2)
+## 对账清单(16 条:preset 层 8 / 领域层 4 / 运行时层 2 / 元提示词层 2)
 
 | id | 层 | 型别 | 来源插件/包 | 定位(文件:行号) | 红线 | 生效半径(T2.2) |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -34,6 +34,8 @@
 | domain.industrial-analysis.persona-md | 领域层 | patch 值型 | @industrial-analysis/pack | packs/industrial-analysis/persona.md:1-34 | required(eterna.red-lines.industrial-analysis) | not-composed-anywhere |
 | runtime.memory.index-section | 运行时层 | 运行时注入型 | @eterna/memory | packages/memory/src/tools.ts:41,47,64 | exempt | runtime-rebuilt |
 | runtime.glue.memory-plugin | 运行时层 | 运行时注入型 | @eterna/glue | packages/glue/src/plugins/memory-plugin.ts:15,27 | exempt | runtime-rebuilt |
+| meta.studio.ai-polish | 元提示词层 | patch 值型 | @eterna/prompt-studio | packages/prompt-studio/ai/polish.md:1-24 | exempt | not-composed-anywhere |
+| meta.studio.ai-review | 元提示词层 | patch 值型 | @eterna/prompt-studio | packages/prompt-studio/ai/review.md:1-34 | exempt | not-composed-anywhere |
 
 ## 逐条注记
 
@@ -81,13 +83,23 @@
   `attachMemory(dshHost(ctx), …)`(:27)把 memory:index section 挂进宿主,
   是同一 section 的组合层装载点。
 
+### 元提示词层(T3.1 新增:工作室 AI 能力自管,计划书 §4「吃自己的狗粮」裁定)
+
+- **meta.studio.ai-polish / meta.studio.ai-review**:AI 润色/审核的元提示词
+  本体(整文件值:`ai/polish.md`、`ai/review.md`)——AI 调用时经注册表读取面
+  现读当前值作 system 消息(取值坐标 = `src/ai-service.ts`
+  `AI_META_POLISH_ENTRY_ID`/`AI_META_REVIEW_ENTRY_ID`);改后经 R3 审批写回,
+  下次 AI 调用即用新文。**不进入任何会话的系统提示组装**(会话快照回放按
+  「无对应段落」跳过并记录)。AI 产出(建议稿/问题清单)永不直接生效
+  (计划书 §5「不做 AI 自动生效」),生效走 T3.2 的「作为提案提交」R3 链路。
+
 ## 红线豁免语义(T1.3(b)4)
 
 - **required(6 条)**:全部 persona 类条目(两预设 persona、两包 personaPrefix
   与 persona.md)——写链路必检红线锚点,防「编辑把 safety rails 删掉」。
-- **exempt(8 条)**:time-context×2、plan-mode.section×2、agent-instructions×2、
-  运行时 section×2——非 persona 条目不做红线检查,防止 T1.6 把 `RED_LINE_RULES`
-  错配到全部条目。
+- **exempt(10 条)**:time-context×2、plan-mode.section×2、agent-instructions×2、
+  运行时 section×2、元提示词×2——非 persona 条目不做红线检查,防止 T1.6 把
+  `RED_LINE_RULES` 错配到全部条目。
 - required 条目带规则集 id:`eterna.red-lines.standard` = `validator.ts`
   `RED_LINE_RULES`(锚点对齐 event-planning persona.md);industrial-analysis
   两条目绑定 `eterna.red-lines.industrial-analysis`(T1.6 落地规则本体)。

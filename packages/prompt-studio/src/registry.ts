@@ -3,7 +3,9 @@
  *
  * 全产品提示词的唯一登记面——preset 层(profiles/eterna-web/cordis.patch.yml 两预设)、
  * 领域层(packs/{event-planning,industrial-analysis} 的 personaPrefix + persona.md)、运行时层
- * (ctx.systemPrompt.section 动态注入,现存使用者 memory/glue)。对账真值 =
+ * (ctx.systemPrompt.section 动态注入,现存使用者 memory/glue)、meta 层(工作室 AI 能力
+ * 自管的元提示词,T3.1:计划书 §4「元提示词本身也进工作室注册表自管——吃自己的狗粮」)。
+ * 对账真值 =
  * docs/dev/ps-v2-registry-ledger.md(文件:行号 逐条,型别一并入 ledger),
  * tests/registry.test.ts 维持「ledger ↔ 注册表条目 (id,型别) 集合」双向相等——
  * 删条目/改型别/漏登记都会打破相等,清单与代码互相锁住。
@@ -29,8 +31,11 @@ import { byteLength } from './checksum.ts'
 import { unquoteYamlScalar } from './persona-patch.ts'
 import { MAX_PERSONA_BYTES } from './validator.ts'
 
-/** 层枚举(闭合;preset=profile patch 层,domain=领域包,runtime=运行时注入)。 */
-export type PromptLayer = 'preset' | 'domain' | 'runtime'
+/**
+ * 层枚举(闭合;preset=profile patch 层,domain=领域包,runtime=运行时注入,
+ * meta=工作室 AI 能力自管的元提示词,T3.1 吃自己狗粮)。
+ */
+export type PromptLayer = 'preset' | 'domain' | 'runtime' | 'meta'
 
 /**
  * 条目型别枚举(闭合;与对账判据一一对应,每型至少 1 条被真文件钉住——
@@ -43,6 +48,7 @@ export const LAYER_LABELS: Readonly<Record<PromptLayer, string>> = {
   preset: 'preset 层',
   domain: '领域层',
   runtime: '运行时层',
+  meta: '元提示词层',
 }
 
 /** 型别的 ledger/UI 中文标签(测试计划 §3 T1.3 的分型判据用语)。 */
@@ -158,8 +164,8 @@ export const DEFAULT_ENTRY_ID = 'preset.standard.persona'
 const UPGRADE_OVERWRITE_RISK = 'profile/pack 升级合并可能覆盖本地编辑(版本库可回滚兜底)'
 
 /**
- * 全部存量条目(14 条:preset×8、domain×4、runtime×2)。
- * 行号锚 2026-11-11 实测自本 worktree(T1.2 合入后):
+ * 全部存量条目(16 条:preset×8、domain×4、runtime×2、meta×2——meta 层为
+ * T3.1 新增的元提示词登记)。行号锚 2026-11-11 实测自本 worktree(T1.2 合入后):
  * persona×2 = :288(standard 裸标量)/:149-150(cordis 块标量 >-);
  * agent-instructions = :154/:292(maxBytes: 65536);
  * time-context = :155-156/:293-294(无 config 裸行);
@@ -432,6 +438,49 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
       note: '不可经工作室修改:保存对其 fail-closed 拒写(t7-e2e 15.27 实测);同一 section 的装载层,文本每次装配重建,不受快照回放冻结(回放按型跳过并审计,t7-e2e 15.28)。',
     },
   },
+  // ── meta 层:工作室 AI 能力自管的元提示词(T3.1,计划书 §4「吃自己的狗粮」)────
+  // AI 润色/审核调用时现读本层条目当前值作 system 消息——元提示词改后经 R3 审批
+  // 写回,下次 AI 调用即用新文;永不进入任何会话的系统提示组装(回放按无映射段跳过)。
+  {
+    id: 'meta.studio.ai-polish',
+    layer: 'meta',
+    kind: 'patch-value',
+    source: '@eterna/prompt-studio',
+    anchors: [
+      { file: 'packages/prompt-studio/ai/polish.md', line: 1, contains: '# AI 润色元提示词' },
+    ],
+    note: '元提示词层(整文件值):AI 润色的元提示词本体——吃自己的狗粮,工作室 AI 能力的提示词也经注册表登记/版本化/R3 审批管理;润色调用现读当前值作 system 消息。',
+    risks: [
+      '元提示词改动直接改变 AI 润色行为(输出契约围栏被改坏时润色链路按失败降级,不静默)',
+      'AI 建议稿永不直接生效:仅作 diff 预览与 R3 提案素材(计划书 §5「不做 AI 自动生效」)。',
+    ],
+    redLine: 'exempt',
+    maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'not-composed-anywhere',
+      note: '不进入任何会话的系统提示组装;AI 润色调用时现读注册表当前值,改后经 R3 审批写回,下次润色调用即用新文。',
+    },
+  },
+  {
+    id: 'meta.studio.ai-review',
+    layer: 'meta',
+    kind: 'patch-value',
+    source: '@eterna/prompt-studio',
+    anchors: [
+      { file: 'packages/prompt-studio/ai/review.md', line: 1, contains: '# AI 审核元提示词' },
+    ],
+    note: '元提示词层(整文件值):AI 审核的元提示词本体(问题清单契约:红线冲突/长度预算/变量引用/一致性/清晰度五维);审核调用现读当前值作 system 消息,清单与本地校验器同源互补。',
+    risks: [
+      '元提示词改动直接改变 AI 审核行为(JSON 契约被改坏时审核按失败降级并明示,不静默)',
+      'AI 审核清单永不直接生效:仅作报告展示(计划书 §5「不做 AI 自动生效」)。',
+    ],
+    redLine: 'exempt',
+    maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'not-composed-anywhere',
+      note: '不进入任何会话的系统提示组装;AI 审核调用时现读注册表当前值,改后经 R3 审批写回,下次审核调用即用新文。',
+    },
+  },
 ]
 
 // ---------- 查询面 ----------
@@ -457,7 +506,7 @@ export function getPromptRegistryEntry(id: string): PromptRegistryEntry | undefi
 export function registryInvariants(): { ok: boolean; problems: readonly string[] } {
   const problems: string[] = []
   const seen = new Set<string>()
-  const layers: readonly string[] = ['preset', 'domain', 'runtime']
+  const layers: readonly string[] = ['preset', 'domain', 'runtime', 'meta']
   const kinds: readonly string[] = ['patch-value', 'line-anchor-readonly', 'runtime-injection']
   const radii: readonly string[] = ['immediate-new-session', 'not-composed-anywhere', 'readonly-upstream', 'runtime-rebuilt']
   for (const entry of PROMPT_REGISTRY_ENTRIES) {
