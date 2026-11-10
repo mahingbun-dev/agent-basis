@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // G-CORE 验收环境准备（实现者一次性准备，环境保持运行供独立验收代理使用）。
 // 复刻 docker/entrypoint.sh 的本地等价物：
-//   1. 物化 profile（docker/profile/cordis.patch.yml.template 渲染 litellm baseURL）
+//   1. 物化 profile（docker/profile/cordis.patch.yml.template 渲染三家直连 baseURL）
 //   2. 追加 mcp-browser insert 块 + symlinks（@eterna/* + dsh-agent-preset + dsh-mcp-client）
 //   3. 模型列表收敛为 mimo-v2.6-flash（用户指定的验收模型，置于首位=默认会话模型）
 //   4. 启动 relay(9310) + dsh web(--host 127.0.0.1 --port 0)，admin 账号经 env seed
@@ -26,8 +26,8 @@ const log = (line) => console.log(`[gate-setup] ${line}`)
 const appendBoot = (chunk) => appendFileSync(join(tmpdir(), 'gate-boot.log'), chunk)
 
 // ── 0. key 与 relay base ──────────────────────────────────────────────
-const LITELLM_API_KEY = process.env.LITELLM_API_KEY ?? SECRET('litellm-master-key.txt')
-const LLM_BASE = process.env.ETERNA_LLM_BASE_URL ?? 'http://192.168.31.165:4000/v1'
+const MIMO_API_KEY = process.env.MIMO_API_KEY ?? SECRET('mimo-api-key.txt')
+const LLM_BASE = process.env.MIMO_BASE_URL(可空,默认固化直连) ?? 'https://api.xiaomimimo.com/v1'
 const ADMIN_USER = process.env.ETERNA_ACCESS_ADMIN_USER ?? 'gate-admin'
 const ADMIN_PASSWORD = process.env.ETERNA_ACCESS_ADMIN_PASSWORD ?? `gate-${Math.random().toString(36).slice(2, 12)}`
 const ADMIN_SECRET = process.env.ETERNA_ACCESS_SECRET ?? `sec-${Math.random().toString(36).slice(2, 18)}`
@@ -38,7 +38,7 @@ mkdirSync(join(PROFILE, 'node_modules/@eterna'), { recursive: true })
 mkdirSync(join(PROFILE, 'node_modules/@deepseek-ai'), { recursive: true })
 
 const rendered = readFileSync(TEMPLATE, 'utf8')
-  .replaceAll('__ETERNA_LLM_BASE_URL__', LLM_BASE)
+  .replaceAll('__MIMO_BASE_URL(可空,默认固化直连)__', LLM_BASE)
 // 模型收敛：验收用 mimo-v2.6-flash（渲染后从 models 列表删除 deepseek-flash 块）
 const noDeepseek = rendered.replace(
   /\n          - id: deepseek-flash\n(?:            .*\n)*/,
@@ -103,7 +103,7 @@ const child = spawn(process.execPath, [dshBin, '--profile', 'eterna-web', '--hos
   env: {
     ...process.env,
     DSH_HOME: HOME,
-    LITELLM_API_KEY,
+    MIMO_API_KEY,
     ETERNA_PUBLIC_URL: 'http://127.0.0.1:50454',
     ETERNA_ACCESS_ADMIN_USER: ADMIN_USER,
     ETERNA_ACCESS_ADMIN_PASSWORD: ADMIN_PASSWORD,

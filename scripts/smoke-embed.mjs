@@ -2,7 +2,7 @@
 /**
  * T6 嵌入档冒烟（plans/2026-11-06-dsh企业agent路线定案.md T6 行）：一次性任务经
  * headless 真会话（profiles/eterna-embed = @deepseek-ai/dsh-base +
- * @deepseek-ai/dsh-headless + 企业层）跑通，经 NAS liteLLM 网关。
+ * @deepseek-ai/dsh-headless + 企业层）跑通，经 NAS MiMo 直连 网关。
  *
  * 断言（退出码 0/1，可重复执行）：
  *  1. profile 物化：$EMBED_PROFILE_HOME/profiles/eterna-embed（默认
@@ -22,12 +22,12 @@
  *     「finishReason 口径」）。
  *  4. 落盘证据：工作区内任务文件存在且内容逐字等于预期（工具真执行）。
  *
- * 凭据纪律：LITELLM_API_KEY 从启动环境读（缺省兜底 .secrets/litellm-master-key.txt，
+ * 凭据纪律：MIMO_API_KEY 从启动环境读（缺省兜底 .secrets/mimo-api-key.txt，
  * 只进子进程环境，不进任何被跟踪文件/日志/argv）；网关 BASE_URL 从
- * ETERNA_LLM_BASE_URL 环境读（缺省兜底 .secrets/litellm-base-url.txt 自查）。
+ * MIMO_BASE_URL(可空,默认固化直连) 环境读（缺省兜底 .secrets/mimo 直连 baseURL(固化).txt 自查）。
  *
  * 用法：
- *   LITELLM_API_KEY=$(cat .secrets/litellm-master-key.txt) node scripts/smoke-embed.mjs
+ *   MIMO_API_KEY=$(cat .secrets/mimo-api-key.txt) node scripts/smoke-embed.mjs
  */
 
 import { spawn } from 'node:child_process'
@@ -85,19 +85,19 @@ if (!existsSync(join(eternaLlmDir, 'lib', 'index.js'))) {
 
 // 凭据与网关地址：env 优先，.secrets 兜底自查（值永不打印）。
 const secretsDir = join(repoRoot, '.secrets')
-const apiKey = process.env.LITELLM_API_KEY
-  ?? readIfExists(join(secretsDir, 'litellm-master-key.txt'))?.trim()
-const baseURL = process.env.ETERNA_LLM_BASE_URL
-  ?? readIfExists(join(secretsDir, 'litellm-base-url.txt'))?.trim()
+const apiKey = process.env.MIMO_API_KEY
+  ?? readIfExists(join(secretsDir, 'mimo-api-key.txt'))?.trim()
+const baseURL = process.env.MIMO_BASE_URL(可空,默认固化直连)
+  ?? readIfExists(join(secretsDir, 'mimo 直连 baseURL(固化).txt'))?.trim()
 if (!apiKey) {
-  console.error('smoke-embed: LITELLM_API_KEY missing — export it (e.g. LITELLM_API_KEY=$(cat .secrets/litellm-master-key.txt)) or provide the secrets file')
+  console.error('smoke-embed: MIMO_API_KEY missing — export it (e.g. MIMO_API_KEY=$(cat .secrets/mimo-api-key.txt)) or provide the secrets file')
   process.exit(1)
 }
 if (!baseURL) {
-  console.error('smoke-embed: gateway BASE_URL missing — set ETERNA_LLM_BASE_URL or provide .secrets/litellm-base-url.txt')
+  console.error('smoke-embed: gateway BASE_URL missing — set MIMO_BASE_URL(可空,默认固化直连) or provide .secrets/mimo 直连 baseURL(固化).txt')
   process.exit(1)
 }
-console.log(`smoke-embed: gateway ${baseURL} (key source: ${process.env.LITELLM_API_KEY ? 'env LITELLM_API_KEY' : '.secrets/litellm-master-key.txt'})`)
+console.log(`smoke-embed: gateway ${baseURL} (key source: ${process.env.MIMO_API_KEY ? 'env MIMO_API_KEY' : '.secrets/mimo-api-key.txt'})`)
 
 // ---------------------------------------------------------------------------
 // 1. 物化 profile（可重复执行：每次重建）。
@@ -135,7 +135,7 @@ const ws = mkdtempSync(join(tmpdir(), 'eterna-embed-smoke-'))
 
 const child = spawn(process.execPath, [dshBin, '--profile', profileName, '--json', TASK], {
   cwd: ws,
-  env: { ...process.env, DSH_HOME: home, LITELLM_API_KEY: apiKey, ETERNA_LLM_BASE_URL: baseURL },
+  env: { ...process.env, DSH_HOME: home, MIMO_API_KEY: apiKey, MIMO_BASE_URL(可空,默认固化直连): baseURL },
   stdio: ['ignore', 'pipe', 'pipe'],
 })
 

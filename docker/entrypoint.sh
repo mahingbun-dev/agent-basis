@@ -12,7 +12,7 @@
 #   BrowserAuth 会话签名落卷 credentials(重启不掉线)。
 set -eu
 
-: "${LITELLM_API_KEY:?LITELLM_API_KEY required (env / compose .env)}"
+: "${MIMO_API_KEY:?MIMO_API_KEY required (env / compose .env——默认模型走 MiMo 直连)}"
 DSH_HOME="${DSH_HOME:-/data}"
 PROFILE_DIR="$DSH_HOME/profiles/eterna-web"
 REPO=/repo
@@ -21,10 +21,8 @@ REPO=/repo
 mkdir -p "$PROFILE_DIR/node_modules/@eterna" "$PROFILE_DIR/node_modules/@deepseek-ai"
 cp /repo/docker/profile/package.json "$PROFILE_DIR/package.json"
 
-# ── 2. patch 渲染(env 即配置) ──────────────────────────────────────────
-: "${ETERNA_LLM_BASE_URL:?ETERNA_LLM_BASE_URL required (e.g. http://192.168.31.165:4000/v1)}"
-sed "s|__ETERNA_LLM_BASE_URL__|$ETERNA_LLM_BASE_URL|g" \
-  /repo/docker/profile/cordis.patch.yml.template > "$PROFILE_DIR/cordis.patch.yml"
+# ── 2. patch 渲染(env 即配置;P2 网关后模板无占位符,直拷) ────────────────
+cp /repo/docker/profile/cordis.patch.yml.template "$PROFILE_DIR/cordis.patch.yml"
 
 # ── 2.5 插件启停清单(T2.3):admin 停用的可停插件 → 渲染时裁剪对应 insert 行 ──
 DISABLED_FILE="$DSH_HOME/access/disabled-plugins.json"
@@ -89,7 +87,7 @@ if [ -n "${ETERNA_TRUSTED_HOST:-}" ]; then
   done
 fi
 
-echo "[entrypoint] container IP: $IP  LLM: $ETERNA_LLM_BASE_URL"
+echo "[entrypoint] container IP: $IP  LLM: 三家直连(deepseek/mimo/glm,P2 网关)"
 
 # ── 沙箱 runner 预检(P1-T3):landlock probe 非 full → 告警(沙箱 fail-closed 由上游保证,
 #    预检只做可见性;实测基镜像 probe=full,见隔离计划 T0.1)。

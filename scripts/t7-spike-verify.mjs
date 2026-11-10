@@ -10,7 +10,7 @@
  * 是 preset-standard 行；SDK/无 HMR 组合不适用本结论。）
  *
  * 全流程：确保 profile → 写入标记 A → 组合预检(dump-config) → 启动宿主(3108)
- *   → 驱动会话 A（经 LiteLLM）→ 断言系统提示含 A → 不重启改写标记 B
+ *   → 驱动会话 A（经 MiMo 直连）→ 断言系统提示含 A → 不重启改写标记 B
  *   → 驱动会话 B → 断言系统提示含 B 且宿主 pid 未变 → 旧会话 A 补一轮断言无 B
  *   → 优雅停宿主 → 从 .eterna-home-t7 会话 JSONL(zstd) 复断言 → 清理释放 3108。
  *
@@ -21,8 +21,8 @@
  *     SIGTERM 优雅停机时冲刷；磁盘断言放在停机后做，运行中断言走官方
  *     session/events（attached 会话读内存日志，无落盘依赖）。
  *
- * 环境前提：仓库内运行；LiteLLM 网关可达；master key 只从
- * .secrets/litellm-master-key.txt 读取；端口 3108 空闲（占用即失败，绝不 pkill 其他实例）。
+ * 环境前提：仓库内运行；MiMo 直连 网关可达；master key 只从
+ * .secrets/mimo-api-key.txt 读取；端口 3108 空闲（占用即失败，绝不 pkill 其他实例）。
  *
  * 用法：node scripts/t7-spike-verify.mjs
  */
@@ -166,12 +166,12 @@ function ensureProfile() {
 function personaPrefixLine(marker) {
   return `          prefix: '${marker}'`
 }
-function litellmBaseUrl() {
-  return readFileSync(resolve(repoRoot, '.secrets/litellm-base-url.txt'), 'utf8').trim()
+function mimoBaseUrl() {
+  return readFileSync(resolve(repoRoot, '.secrets/mimo 直连 baseURL(固化).txt'), 'utf8').trim()
 }
-function litellmKey() {
+function mimoKey() {
   // 纪律 4：key 只在这里读进宿主环境变量，绝不写入被跟踪文件/日志/输出。
-  return readFileSync(resolve(repoRoot, '.secrets/litellm-master-key.txt'), 'utf8').trim()
+  return readFileSync(resolve(repoRoot, '.secrets/mimo-api-key.txt'), 'utf8').trim()
 }
 function buildPatch(marker) {
   const presetFile = resolve(profile, 'node_modules/@deepseek-ai/dsh-web-app/presets/standard.patch.yml')
@@ -193,8 +193,8 @@ function buildPatch(marker) {
     '    - id: eterna-llm',
     "      name: '@eterna/llm-openai'",
     '      config:',
-    `        baseURL: '${litellmBaseUrl()}'`,
-    '        apiKeyEnv: LITELLM_API_KEY',
+    `        baseURL: '${mimoBaseUrl()}'`,
+    '        apiKeyEnv: MIMO_API_KEY',
     "        provider: 'eterna'",
     '        models:',
     '          - id: deepseek-flash',
@@ -222,7 +222,7 @@ function startHost() {
     '--profile', profileName, '--host', '127.0.0.1', '--port', String(port), '--no-open',
   ], {
     cwd: profile,
-    env: { ...process.env, DSH_HOME: home, LITELLM_API_KEY: litellmKey() },
+    env: { ...process.env, DSH_HOME: home, MIMO_API_KEY: mimoKey() },
     stdio: ['ignore', out, out],
   })
   host.on('exit', (code) => { if (!stopping) console.log(`[host] exit code=${code}`) })
@@ -378,7 +378,7 @@ try {
   {
     const log = readFileSync(hostLog, 'utf8')
     check('宿主日志只有一次 dsh web: 启动行（无二次 boot）', (log.match(/dsh web: /g) ?? []).length === 1)
-    check('宿主日志含 eterna-llm-openai → LiteLLM 调用证据', log.includes('[eterna-llm-openai] POST'))
+    check('宿主日志含 eterna-llm-openai → MiMo 直连 调用证据', log.includes('[eterna-llm-openai] POST'))
   }
 
   // 6) 旧会话不受影响：patch=B 后给会话 A 再补一轮，运行中日志不出现标记 B

@@ -1,0 +1,206 @@
+{
+  "at": "2026-11-10T19:01:49.327Z",
+  "base": "http://127.0.0.1:3211",
+  "models": {
+    "deepseek/deepseek-flash": {
+      "selectStatus": 200,
+      "turnEndReason": "completed",
+      "hasErrorTurn": false,
+      "usagePresent": true,
+      "assistantReply": true,
+      "events": [
+        {
+          "t": "agent/inbox/spliced"
+        },
+        {
+          "t": "turn/start"
+        },
+        {
+          "t": "agent/inbox/spliced"
+        },
+        {
+          "t": "step/start"
+        },
+        {
+          "t": "system/message"
+        },
+        {
+          "t": "user/message"
+        },
+        {
+          "t": "user/message"
+        },
+        {
+          "t": "user/message"
+        },
+        {
+          "t": "user/message"
+        },
+        {
+          "t": "request/header"
+        },
+        {
+          "t": "request/context"
+        },
+        {
+          "t": "session/title"
+        },
+        {
+          "t": "session/title-llm-request"
+        },
+        {
+          "t": "assistant/message"
+        },
+        {
+          "t": "step/end"
+        },
+        {
+          "t": "turn/end",
+          "reason": "completed"
+        },
+        {
+          "t": "session/title"
+        },
+        {
+          "t": "agent/inbox/spliced"
+        },
+        {
+          "t": "turn/start"
+        },
+        {
+          "t": "agent/inbox/spliced"
+        },
+        {
+          "t": "step/start"
+        },
+        {
+          "t": "user/message"
+        },
+        {
+          "t": "assistant/message"
+        },
+        {
+          "t": "step/end"
+        },
+        {
+          "t": "turn/end",
+          "reason": "completed"
+        },
+        {
+          "t": "agent/inbox/spliced"
+        },
+        {
+          "t": "turn/start"
+        },
+        {
+          "t": "agent/inbox/spliced"
+        },
+        {
+          "t": "step/start"
+        },
+        {
+          "t": "user/message"
+        },
+        {
+          "t": "assistant/message"
+        },
+        {
+          "t": "step/end"
+        },
+        {
+          "t": "turn/end",
+          "reason": "completed"
+        },
+        {
+          "t": "agent/inbox/spliced"
+        },
+        {
+          "t": "turn/start"
+        },
+        {
+          "t": "agent/inbox/spliced"
+        },
+        {
+          "t": "step/start"
+        },
+        {
+          "t": "user/message"
+        },
+        {
+          "t": "assistant/message"
+        },
+        {
+          "t": "step/end"
+        }
+      ]
+    },
+    "mimo/mimo-v2.6-pro": {
+      "selectStatus": 200,
+      "turnEndReason": "completed",
+      "hasErrorTurn": false,
+      "usagePresent": true,
+      "assistantReply": true,
+      "events": [
+        {
+          "t": "agent/inbox/spliced"
+        },
+        {
+          "t": "turn/start"
+        },
+        {
+          "t": "agent/inbox/spliced"
+        },
+        {
+          "t": "step/start"
+        },
+        {
+          "t": "user/message"
+        },
+        {
+          "t": "assistant/message"
+        },
+        {
+          "t": "step/end"
+        },
+        {
+          "t": "turn/end",
+          "reason": "completed"
+        }
+      ]
+    },
+    "glm/glm-5.3-flash": {
+      "selectStatus": 200,
+      "turnEndReason": "completed",
+      "hasErrorTurn": false,
+      "usagePresent": true,
+      "assistantReply": true,
+      "events": [
+        {
+          "t": "agent/inbox/spliced"
+        },
+        {
+          "t": "turn/start"
+        },
+        {
+          "t": "agent/inbox/spliced"
+        },
+        {
+          "t": "step/start"
+        },
+        {
+          "t": "user/message"
+        },
+        {
+          "t": "assistant/message"
+        },
+        {
+          "t": "step/end"
+        },
+        {
+          "t": "turn/end",
+          "reason": "completed"
+        }
+      ]
+    }
+  }
+}
