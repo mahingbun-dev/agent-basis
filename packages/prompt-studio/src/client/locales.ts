@@ -15,10 +15,39 @@ export type StudioLocaleKey =
   | 'state.loading'
   | 'state.error'
   | 'state.empty'
-  | 'studio.composed'
-  | 'studio.composed.note'
   | 'studio.persona.meta'
-  | 'studio.persona.unavailable'
+  | 'studio.panorama'
+  | 'studio.layer.preset'
+  | 'studio.layer.preset.hint'
+  | 'studio.layer.domain'
+  | 'studio.layer.domain.hint'
+  | 'studio.layer.runtime'
+  | 'studio.layer.runtime.hint'
+  | 'studio.kind.patch-value'
+  | 'studio.kind.line-anchor-readonly'
+  | 'studio.kind.runtime-injection'
+  | 'studio.entry.detail'
+  | 'studio.entry.editable'
+  | 'studio.entry.readonly'
+  | 'studio.entry.upgradeRisk'
+  | 'studio.entry.risks'
+  | 'studio.entry.source'
+  | 'studio.entry.maxBytes'
+  | 'studio.entry.ruleSet'
+  | 'studio.entry.redline.required'
+  | 'studio.entry.redline.exempt'
+  | 'studio.entry.versionsCount'
+  | 'studio.entry.storeUnavailable'
+  | 'studio.entry.noVersions'
+  | 'studio.entry.readonly.title'
+  | 'studio.entry.readonly.note'
+  | 'studio.entry.readonly.value'
+  | 'studio.entry.runtime.title'
+  | 'studio.entry.runtime.note'
+  | 'studio.entry.runtime.value'
+  | 'studio.entry.valueUnreadable.title'
+  | 'studio.entry.valueUnreadable.note'
+  | 'studio.entry.valueUnreadable.fallback'
   | 'studio.editor'
   | 'studio.editor.note'
   | 'studio.editor.dirty'
@@ -30,6 +59,9 @@ export type StudioLocaleKey =
   | 'studio.editor.bytes'
   | 'studio.versions'
   | 'studio.versions.note'
+  | 'studio.versions.countLabel'
+  | 'studio.versions.loading'
+  | 'studio.versions.loadFailed'
   | 'studio.version.seq'
   | 'studio.version.source'
   | 'studio.version.author'
@@ -65,7 +97,7 @@ export type StudioLocaleKey =
   | 'studio.approval.reject'
   | 'studio.approval.working'
   | 'studio.write.status'
-  | 'studio.stats.versions'
+  | 'studio.stats.entries'
   | 'studio.stats.sessions'
   | 'studio.stats.channel'
   | 'studio.stats.pending'
@@ -86,19 +118,48 @@ export type StudioLocaleKey =
 export const zh: Record<StudioLocaleKey, string> = {
   studio: '提示词工坊',
   trace: '循环轨迹',
-  'studio.subtitle': '查看最终生效的系统提示词组合,编辑 persona 段(保存走 R3 审批,新会话生效)',
+  'studio.subtitle': '三层提示词全景:preset 预设 / 领域包 / 运行时注入。条目可查可改(保存走 R3 审批,对新会话生效、无需重启),版本可回滚。',
   'trace.subtitle': '最近会话的 agent loop 运行轨迹:轮次、工具调用、耗时与 token',
   refresh: '刷新',
   back: '返回会话列表',
   'state.loading': '正在加载…',
   'state.error': '加载失败',
   'state.empty': '暂无数据',
-  'studio.composed': '最终生效组合(只读)',
-  'studio.composed.note': '本视图展示当前生效的 persona 段全文;plan-mode/skill/agent-instructions 等其余段落本期只读不可编辑。',
   'studio.persona.meta': '落点',
-  'studio.persona.unavailable': 'persona 段当前不可读',
-  'studio.editor': 'personaPrefix 编辑器',
-  'studio.editor.note': '保存将走 R3 高危审批(二次确认);确认后写入 profile patch 层,对新会话生效、无需重启。',
+  'studio.panorama': '提示词全景(注册表)',
+  'studio.layer.preset': 'preset 层',
+  'studio.layer.preset.hint': '产品预设(profile patch 层)',
+  'studio.layer.domain': '领域层',
+  'studio.layer.domain.hint': '领域包(personaPrefix / persona.md)',
+  'studio.layer.runtime': '运行时层',
+  'studio.layer.runtime.hint': 'ctx.systemPrompt.section 动态注入',
+  'studio.kind.patch-value': 'patch 值型',
+  'studio.kind.line-anchor-readonly': '行锚点只读型',
+  'studio.kind.runtime-injection': '运行时注入型',
+  'studio.entry.detail': '条目详情',
+  'studio.entry.editable': '可编辑',
+  'studio.entry.readonly': '只读',
+  'studio.entry.upgradeRisk': '升级可能覆盖',
+  'studio.entry.risks': '风险标注',
+  'studio.entry.source': '来源',
+  'studio.entry.maxBytes': '字节上限',
+  'studio.entry.ruleSet': '红线规则集',
+  'studio.entry.redline.required': '红线必检',
+  'studio.entry.redline.exempt': '红线豁免',
+  'studio.entry.versionsCount': '版本数',
+  'studio.entry.storeUnavailable': '版本库未挂载',
+  'studio.entry.noVersions': '无版本链',
+  'studio.entry.readonly.title': '只读条目(上游运行时生成)',
+  'studio.entry.readonly.note': '该条目由上游插件运行时生成,无 patch 写回落点——保存通道对其 fail-closed 拒写,不存在「保存生效」语义。',
+  'studio.entry.readonly.value': '当前值:每次注入时由上游插件生成(无静态文本可展示)。',
+  'studio.entry.runtime.title': '运行时注入条目(装配时构建)',
+  'studio.entry.runtime.note': '该条目由代码在装配时注入(运行时构建,无静态全文)——本视图只读;保存通道对其 fail-closed 拒写。',
+  'studio.entry.runtime.value': '当前值:装配时动态构建,随运行时状态变化(无静态全文)。',
+  'studio.entry.valueUnreadable.title': '条目当前值不可读',
+  'studio.entry.valueUnreadable.note': '结构定位或反引失败(常见于 profile/pack 升级后的锚点漂移)。编辑器已收起——空内容不是合法基线;保存通道对不可读条目同样 fail-closed 拒写,可回滚到历史版本恢复。明细:',
+  'studio.entry.valueUnreadable.fallback': '(服务端未返回读值问题明细)',
+  'studio.editor': '条目编辑器',
+  'studio.editor.note': '保存将走 R3 高危审批(二次确认);确认后按条目写回 patch 层,对新会话生效、无需重启。',
   'studio.editor.dirty': '有未保存修改',
   'studio.editor.pristine': '与当前生效内容一致',
   'studio.editor.summary': '变更摘要(可省)',
@@ -108,6 +169,9 @@ export const zh: Record<StudioLocaleKey, string> = {
   'studio.editor.bytes': '字节',
   'studio.versions': '版本列表(只增不删)',
   'studio.versions.note': '回滚=追加新版本指向目标内容,不删除历史;回滚同样走 R3 审批。',
+  'studio.versions.countLabel': '个版本',
+  'studio.versions.loading': '正在拉取该条目版本链…',
+  'studio.versions.loadFailed': '版本链拉取失败(切换条目或点刷新重试)',
   'studio.version.seq': '版本',
   'studio.version.source': '来源',
   'studio.version.author': '操作者',
@@ -126,8 +190,8 @@ export const zh: Record<StudioLocaleKey, string> = {
   'studio.diff.removed': '移除行',
   'studio.diff.identical': '两版本内容完全一致',
   'studio.diff.truncated': '差异行数过多,仅渲染前一部分(内容仍完整参与计算)',
-  'studio.transfer': '导出 / 导入(JSON 包)',
-  'studio.transfer.note': '导出=只读 JSON 包(schemaVersion/persona/checksum/exportedAt/exportedBy),不走审批;导入=同一套校验(非空/≤64KB/UTF-8/红线段)+ R3 审批,通过后成为新增本。',
+  'studio.transfer': '导入(JSON 包)',
+  'studio.transfer.note': '导入=同一套按条目校验(非空/≤64KB/UTF-8/红线规则集)+ R3 审批,通过后成为包内 entryId 指名条目的新增本(默认条目缺省该字段);导出请在条目详情的版本区操作。',
   'studio.export.latest': '导出最新版本',
   'studio.export.done': '已导出',
   'studio.export.failed': '导出失败',
@@ -137,13 +201,13 @@ export const zh: Record<StudioLocaleKey, string> = {
   'studio.import.invalid': '所选文件不是合法的导出包(需 JSON 对象:schemaVersion=1、persona、checksum)',
   'studio.rollbackTo': '回滚到',
   'studio.approval': 'R3 高危审批(二次确认)',
-  'studio.approval.note': '此操作修改 system prompt persona 段,影响所有新会话的前缀与 KV-cache 命中。',
+  'studio.approval.note': '此操作修改提示词注册表条目,影响相应会话的系统提示(默认 persona 条目影响所有新会话的前缀与 KV-cache 命中)。',
   'studio.approval.detail': '审批卡详情',
   'studio.approval.approve': '确认执行(允许一次)',
   'studio.approval.reject': '拒绝',
   'studio.approval.working': '审批提交中…',
   'studio.write.status': '写入结果',
-  'studio.stats.versions': '版本',
+  'studio.stats.entries': '提示词条目',
   'studio.stats.sessions': '最近会话',
   'studio.stats.channel': '生效通道',
   'studio.stats.pending': '在途审批',
@@ -165,19 +229,48 @@ export const zh: Record<StudioLocaleKey, string> = {
 export const en: Record<StudioLocaleKey, string> = {
   studio: 'Prompt Studio',
   trace: 'Loop Trace',
-  'studio.subtitle': 'Inspect the effective system prompt, edit the persona segment (saves go through R3 approval)',
+  'studio.subtitle': 'Full registry panorama across three layers: presets / domain packs / runtime injection. Entries are inspectable and editable (saves go through R3 approval, effective for new sessions without restart); versions roll back.',
   'trace.subtitle': 'Recent session traces: turns, tool calls, durations and tokens',
   refresh: 'Refresh',
   back: 'Back to sessions',
   'state.loading': 'Loading…',
   'state.error': 'Failed to load',
   'state.empty': 'No data',
-  'studio.composed': 'Effective composition (read-only)',
-  'studio.composed.note': 'Shows the effective persona segment; other segments (plan-mode/skill/agent-instructions) are read-only this phase.',
   'studio.persona.meta': 'Patch layer',
-  'studio.persona.unavailable': 'Persona segment is currently unreadable',
-  'studio.editor': 'personaPrefix editor',
-  'studio.editor.note': 'Saving goes through R3 approval (double confirm); writes the profile patch layer and takes effect for new sessions, no restart.',
+  'studio.panorama': 'Prompt panorama (registry)',
+  'studio.layer.preset': 'Preset layer',
+  'studio.layer.preset.hint': 'Product presets (profile patch layer)',
+  'studio.layer.domain': 'Domain layer',
+  'studio.layer.domain.hint': 'Domain packs (personaPrefix / persona.md)',
+  'studio.layer.runtime': 'Runtime layer',
+  'studio.layer.runtime.hint': 'ctx.systemPrompt.section dynamic injection',
+  'studio.kind.patch-value': 'Patch value',
+  'studio.kind.line-anchor-readonly': 'Line-anchor (read-only)',
+  'studio.kind.runtime-injection': 'Runtime injection',
+  'studio.entry.detail': 'Entry detail',
+  'studio.entry.editable': 'Editable',
+  'studio.entry.readonly': 'Read-only',
+  'studio.entry.upgradeRisk': 'Upgrade may overwrite',
+  'studio.entry.risks': 'Risk notes',
+  'studio.entry.source': 'Source',
+  'studio.entry.maxBytes': 'Byte cap',
+  'studio.entry.ruleSet': 'Red-line rule set',
+  'studio.entry.redline.required': 'Red lines required',
+  'studio.entry.redline.exempt': 'Red lines exempt',
+  'studio.entry.versionsCount': 'Versions',
+  'studio.entry.storeUnavailable': 'version store not mounted',
+  'studio.entry.noVersions': 'No version chain',
+  'studio.entry.readonly.title': 'Read-only entry (generated upstream at runtime)',
+  'studio.entry.readonly.note': 'This entry is generated at runtime by the upstream plugin and has no patch write-back point — the save path fail-closed rejects writes to it; there is no "save to take effect" semantics.',
+  'studio.entry.readonly.value': 'Current value: generated by the upstream plugin on each injection (no static text to show).',
+  'studio.entry.runtime.title': 'Runtime-injected entry (assembled at runtime)',
+  'studio.entry.runtime.note': 'This entry is injected by code at assembly time (built at runtime, no static full text) — read-only here; the save path fail-closed rejects writes to it.',
+  'studio.entry.runtime.value': 'Current value: built dynamically at assembly time, varying with runtime state (no static full text).',
+  'studio.entry.valueUnreadable.title': 'Entry value unreadable',
+  'studio.entry.valueUnreadable.note': 'Structural location or unquoting failed (typically anchor drift after a profile/pack upgrade). The editor is collapsed — an empty value is not a legal baseline; the save path also fail-closed rejects writes to unreadable entries. Roll back to a history version to recover. Details:',
+  'studio.entry.valueUnreadable.fallback': '(server returned no read-problem details)',
+  'studio.editor': 'Entry editor',
+  'studio.editor.note': 'Saving goes through R3 approval (double confirm); writes back to the patch layer per entry and takes effect for new sessions, no restart.',
   'studio.editor.dirty': 'Unsaved changes',
   'studio.editor.pristine': 'Same as effective content',
   'studio.editor.summary': 'Summary (optional)',
@@ -187,6 +280,9 @@ export const en: Record<StudioLocaleKey, string> = {
   'studio.editor.bytes': 'bytes',
   'studio.versions': 'Versions (append-only)',
   'studio.versions.note': 'Rollback appends a new version pointing at the target content; history is never deleted. Rollback also goes through R3 approval.',
+  'studio.versions.countLabel': 'versions',
+  'studio.versions.loading': 'Fetching the version chain for this entry…',
+  'studio.versions.loadFailed': 'Failed to fetch the version chain (switch entries or refresh to retry)',
   'studio.version.seq': 'Version',
   'studio.version.source': 'Source',
   'studio.version.author': 'Author',
@@ -205,8 +301,8 @@ export const en: Record<StudioLocaleKey, string> = {
   'studio.diff.removed': 'removed',
   'studio.diff.identical': 'Identical content',
   'studio.diff.truncated': 'Too many changed lines; only the first part is rendered (all lines still counted)',
-  'studio.transfer': 'Export / Import (JSON pack)',
-  'studio.transfer.note': 'Export is a read-only JSON pack (schemaVersion/persona/checksum/exportedAt/exportedBy), no approval. Import runs the same validation (non-empty/≤64KB/UTF-8/red lines) plus R3 approval and becomes a new version.',
+  'studio.transfer': 'Import (JSON pack)',
+  'studio.transfer.note': 'Import runs the same per-entry validation (non-empty/≤64KB/UTF-8/red-line rule set) plus R3 approval and becomes a new version of the entry named by the pack entryId (omitted for the default entry); export lives in the entry detail version area.',
   'studio.export.latest': 'Export latest',
   'studio.export.done': 'Exported',
   'studio.export.failed': 'Export failed',
@@ -216,13 +312,13 @@ export const en: Record<StudioLocaleKey, string> = {
   'studio.import.invalid': 'Not a valid export pack (expected a JSON object with schemaVersion=1, persona, checksum)',
   'studio.rollbackTo': 'Roll back to',
   'studio.approval': 'R3 approval (double confirm)',
-  'studio.approval.note': 'This rewrites the system prompt persona segment and affects every new session prefix and KV-cache hits.',
+  'studio.approval.note': 'This modifies a prompt-registry entry and affects the system prompt of corresponding sessions (the default persona entry affects every new session prefix and KV-cache hits).',
   'studio.approval.detail': 'Approval card detail',
   'studio.approval.approve': 'Confirm (allow once)',
   'studio.approval.reject': 'Reject',
   'studio.approval.working': 'Submitting approval…',
   'studio.write.status': 'Write result',
-  'studio.stats.versions': 'Versions',
+  'studio.stats.entries': 'Entries',
   'studio.stats.sessions': 'Recent sessions',
   'studio.stats.channel': 'Channel',
   'studio.stats.pending': 'Pending approval',

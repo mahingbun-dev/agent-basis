@@ -165,7 +165,9 @@ try {
     if (r.ok) comboBody = await r.text()
   }
   check('combo 脚本含本包 factory 注册(id=@eterna/prompt-studio)', comboBody.includes('id: "@eterna/prompt-studio"'))
-  for (const anchor of ['data-t7-editor', 'data-t7-save-btn', 'data-t7-version-item', 'data-t7-trace-node', 'data-t7-session-item', 'data-t7-approve-btn']) {
+  for (const anchor of ['data-t7-editor', 'data-t7-save-btn', 'data-t7-version-item', 'data-t7-trace-node', 'data-t7-session-item', 'data-t7-approve-btn',
+    // T1.5 全景改版锚点(ps-v2-test-plan §3 T1.5(b)②:分组导航/条目详情/diff/保存)。
+    'data-ps-group-nav', 'data-ps-entry-detail', 'data-ps-diff-view', 'data-ps-entry-save']) {
     check(`combo 脚本含视图锚点 ${anchor}`, comboBody.includes(anchor))
   }
 

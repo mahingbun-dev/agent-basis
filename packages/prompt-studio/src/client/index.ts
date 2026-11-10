@@ -19,7 +19,7 @@ import { TracePage, type TraceState } from './TracePage.tsx'
 import { NS, en, zh } from './locales.ts'
 import { injectStudioStyles } from './styles.ts'
 import { callRpc, type RpcEnvelope } from './rpc.ts'
-import type { LoopPromptSnapshot, PromptGetResult, TraceReport, VersionsResult } from '../types.ts'
+import type { LoopPromptSnapshot, TraceReport, VersionsResult } from '../types.ts'
 import type { PromptStudioClientContext } from './client-types.ts'
 import type { StudioState } from './studio-state.ts'
 
@@ -57,15 +57,12 @@ export function apply(ctx: PromptStudioClientContext): () => void {
   }
   const refreshStudio = (): void => {
     void (async (): Promise<void> => {
-      // 三个只读端点顺序拉取(失败即短路;类型面自然收窄)。
+      // 两个只读端点顺序拉取(失败即短路;类型面自然收窄)。T1.5 全景改版:
+      // 条目元数据与当前值全部来自 snapshot.entries[];默认条目链用 versions;
+      // 其余条目链由 StudioPage 按选择惰性拉取(prompt-versions {entryId})。
       const snapshot = await callRpc<LoopPromptSnapshot>(ctx.connection, 'loopPrompt/snapshot')
       if (!snapshot.ok) {
         publishStudio({ status: 'error', message: snapshot.message })
-        return
-      }
-      const promptGet = await callRpc<PromptGetResult>(ctx.connection, 'loopPrompt/prompt-get')
-      if (!promptGet.ok) {
-        publishStudio({ status: 'error', message: promptGet.message })
         return
       }
       const versions = await callRpc<VersionsResult>(ctx.connection, 'loopPrompt/prompt-versions', { input: {} })
@@ -73,7 +70,7 @@ export function apply(ctx: PromptStudioClientContext): () => void {
         publishStudio({ status: 'error', message: versions.message })
         return
       }
-      publishStudio({ status: 'ready', snapshot: snapshot.value, promptGet: promptGet.value, versions: versions.value })
+      publishStudio({ status: 'ready', snapshot: snapshot.value, versions: versions.value })
     })().catch((error: unknown) => {
       publishStudio({ status: 'error', message: error instanceof Error ? error.message : String(error) })
     })

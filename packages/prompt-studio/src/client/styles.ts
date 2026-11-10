@@ -1,7 +1,9 @@
 /**
  * 提示词工坊/循环轨迹样式——对齐 panel v3 的 apple.com 设计语言(大标题/大留白/
- * hairline 分隔/胶囊按钮)。色彩只经 DSH 官方语义令牌(--dsw-alias-*),深/浅主题
- * 自动跟随,不写字面色值(硬性规范第 6 条)。滚动职责:root 自身 overflow-y:auto。
+ * hairline 分隔/胶囊按钮)。T1.5 全景改版新增 data-ps-* 面(分组导航/条目详情/
+ * 胶囊徽标/风险警示区),组件形态对照 packages/access 插件页分组行卡先例。
+ * 色彩只经 DSH 官方语义令牌(--dsw-alias-*),深/浅主题自动跟随,不写字面色值
+ * (硬性规范第 6 条)。滚动职责:root 自身 overflow-y:auto;640px 断点收边距。
  */
 const CSS = `
 [data-t7-studio-root], [data-t7-trace-root] {
@@ -267,6 +269,122 @@ const CSS = `
   color: var(--dsw-alias-label-tertiary); overflow-wrap: anywhere;
 }
 [data-t7-import-input] { font: inherit; font-size: 12px; color: var(--dsw-alias-label-secondary); max-width: 100%; }
+
+/* —— T1.5 全景分组导航(preset/领域/运行时;access 插件页分组行卡同构形态) —— */
+[data-ps-group-nav] { display: flex; flex-direction: column; gap: 20px; margin: 0 0 48px; }
+[data-ps-layer-group] {
+  border-radius: 18px; padding: 4px 20px 8px;
+  background: var(--dsw-alias-bg-layer-1, transparent);
+  border: 0.5px solid var(--dsw-alias-border-l2);
+}
+[data-ps-layer-group-head] { display: flex; align-items: baseline; gap: 12px; padding: 12px 0 2px; }
+[data-ps-layer-group-title] {
+  margin: 0; font-size: 13px; line-height: 20px; font-weight: 600;
+  color: var(--dsw-alias-label-secondary);
+}
+[data-ps-layer-group-hint] { margin-left: auto; font-size: 11px; color: var(--dsw-alias-label-tertiary); }
+[data-ps-entry-list] { margin: 0; padding: 0; list-style: none; }
+[data-ps-entry-row] {
+  width: 100%; display: flex; flex-direction: column; gap: 4px; text-align: left;
+  padding: 12px 12px; margin: 0 -12px; font: inherit; cursor: pointer; background: none;
+  border: 0; border-bottom: 0.5px solid var(--dsw-alias-border-l3); border-radius: 12px;
+}
+[data-ps-entry-list] > li:last-child [data-ps-entry-row] { border-bottom: 0; }
+[data-ps-entry-row][data-ps-selected='true'] { background: var(--dsw-alias-interactive-bg-hover); }
+[data-ps-entry-row]:hover [data-ps-entry-row-id],
+[data-ps-entry-row][data-ps-selected='true'] [data-ps-entry-row-id] {
+  color: var(--dsw-alias-state-business-primary);
+}
+[data-ps-entry-row-id] {
+  font-size: 13px; font-weight: 600; color: var(--dsw-alias-label-primary); overflow-wrap: anywhere;
+}
+[data-ps-entry-row-pills] { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+[data-ps-entry-row-meta] {
+  font-size: 11px; color: var(--dsw-alias-label-tertiary); font-variant-numeric: tabular-nums;
+}
+[data-ps-pill] {
+  display: inline-flex; align-items: center; padding: 1px 10px; border-radius: 980px;
+  font-size: 11px; line-height: 17px; font-weight: 500; white-space: nowrap;
+}
+[data-ps-pill][data-ps-tone='neutral'] {
+  color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-interactive-bg-hover);
+}
+[data-ps-pill][data-ps-tone='business'] {
+  color: var(--dsw-alias-state-business-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 8%, transparent);
+}
+[data-ps-pill][data-ps-tone='warn'] {
+  color: var(--dsw-alias-state-warn-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 10%, transparent);
+}
+
+/* —— T1.5 条目详情(元数据卡 + 风险标注警示区 + 分型值区) —— */
+[data-ps-entry-detail] { margin: 0 0 48px; display: flex; flex-direction: column; gap: 12px; }
+[data-ps-entry-title] { overflow-wrap: anywhere; }
+[data-ps-entry-badges] { display: inline-flex; gap: 6px; flex-wrap: wrap; margin-top: -6px; }
+[data-ps-entry-note] { margin: 0; font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-secondary); }
+[data-ps-entry-risks] {
+  display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; border-radius: 12px;
+  border: 0.5px solid var(--dsw-alias-state-warn-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 6%, transparent);
+}
+[data-ps-entry-risks-title] { font-size: 12px; font-weight: 600; color: var(--dsw-alias-state-warn-primary); }
+[data-ps-entry-risks] ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+[data-ps-risk-item] { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
+[data-ps-entry-meta] {
+  display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px;
+  color: var(--dsw-alias-label-tertiary);
+}
+[data-ps-entry-readonly], [data-ps-entry-runtime] {
+  display: flex; flex-direction: column; gap: 8px; padding: 16px 20px; border-radius: 18px;
+  background: var(--dsw-alias-bg-layer-1, transparent);
+  border: 0.5px solid var(--dsw-alias-border-l2);
+}
+[data-ps-entry-readonly-note], [data-ps-entry-runtime-note] {
+  margin: 0; font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-secondary);
+}
+[data-ps-entry-value-note] { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); }
+/* 读值失败警示区(patch 值型 value.text=null:不冒充空内容,problems 就地明示)。 */
+[data-ps-entry-value-error] {
+  display: flex; flex-direction: column; gap: 6px; padding: 14px 18px; border-radius: 12px;
+  border: 0.5px solid var(--dsw-alias-state-error-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 6%, transparent);
+}
+[data-ps-entry-value-error-note] { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
+[data-ps-entry-problem-item] {
+  margin: 0; font-size: 12px; line-height: 18px;
+  color: var(--dsw-alias-state-error-primary); overflow-wrap: anywhere;
+}
+/* 版本链拉取失败(RPC 通道错/超时):与「storage 未挂载」分态展示,不冒充缺席。 */
+[data-ps-chain-error] {
+  margin: 0; font-size: 13px; line-height: 20px;
+  color: var(--dsw-alias-state-error-primary); overflow-wrap: anywhere;
+}
+/* 详情内子区(editor/versions/只读说明)不吃顶层 section 的 48px 节奏,标题降一级(32/21/15 字号阶梯)。 */
+[data-ps-entry-detail] [data-t7-section] { margin: 0; }
+[data-ps-entry-detail] h3[data-t7-section-title] { font-size: 15px; line-height: 22px; }
+
+/* —— 键盘可达与触控目标(AGENTS.md 前端铁律 4) —— */
+[data-t7-studio-root] button:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 1px;
+}
+/* 紧凑胶囊按钮的视觉节奏保持不变,经 ::after 外扩命中区到 ≥36px 级(access 开关同款手法)。 */
+[data-t7-version-actions] button, [data-t7-export-latest], [data-t7-import-btn],
+[data-t7-diff-close], [data-t7-refresh], [data-ps-entry-row] { position: relative; }
+[data-t7-version-actions] button::after, [data-t7-export-latest]::after, [data-t7-import-btn]::after,
+[data-t7-diff-close]::after, [data-t7-refresh]::after, [data-ps-entry-row]::after {
+  content: ""; position: absolute; inset: -6px;
+}
+
+/* —— 响应式(640px 断点单列自适应;布局本就单列,收边距与字号) —— */
+@media (max-width: 640px) {
+  [data-t7-studio-root], [data-t7-trace-root] { padding: 32px 16px 64px; }
+  [data-t7-heading] { font-size: 26px; line-height: 32px; }
+  [data-t7-stat-row] { gap: 20px; }
+  [data-ps-layer-group] { padding: 4px 14px 8px; }
+  [data-ps-entry-row] { margin: 0 -6px; padding: 10px 6px; }
+  [data-ps-layer-group-hint] { display: none; }
+}
 
 /* —— 循环轨迹:会话列表 —— */
 [data-t7-trace-pipeline] { margin: 0 0 16px; font-size: 12px; color: var(--dsw-alias-label-tertiary); }

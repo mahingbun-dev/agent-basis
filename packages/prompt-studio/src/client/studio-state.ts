@@ -1,10 +1,12 @@
 /**
  * 提示词工坊视图的注入状态与两段式写链路类型(T7.2 UI 义务,见
  * docs/dev/t7-prompt-studio.md §3):渲染 R3 卡 + questionItems → 回显重发 →
- * committed 后按 effectiveNote 提示。
+ * committed 后按 effectiveNote 提示。T1.5 全景改版:快照只余 snapshot(persona/
+ * 注册表全景 entries[]/在途审批/轨迹概览)+ versions(默认条目初始链);按条目
+ * 版本链由 StudioPage 经 prompt-versions {entryId} 惰性拉取,不再驻留共享源。
  */
 import type {
-  LoopPromptSnapshot, PromptGetResult, PromptSaveResult, PromptVersionRecord,
+  LoopPromptSnapshot, PromptSaveResult, PromptVersionRecord,
   VersionsResult, WriteApprovalView, WriteKind,
 } from '../types.ts'
 
@@ -19,7 +21,7 @@ export type StudioState =
   | {
     readonly status: 'ready'
     readonly snapshot: LoopPromptSnapshot
-    readonly promptGet: PromptGetResult
+    /** 默认条目(persona)版本链(T1.5:作为初始选中条目的链,其余条目按需拉取)。 */
     readonly versions: VersionsResult
   }
 
@@ -27,6 +29,8 @@ export type StudioState =
 export interface WriteEcho {
   /** prompt-save:同一 content;prompt-rollback:目标 versionId;prompt-import:同一 pack。 */
   readonly content?: string
+  /** 目标条目 id(T1.5 起按条目写;两段必须复述同一条目,宿主 confirm 校验一致)。 */
+  readonly entryId?: string
   readonly versionId?: string
   readonly baseVersionId?: string | null
   readonly summary?: string

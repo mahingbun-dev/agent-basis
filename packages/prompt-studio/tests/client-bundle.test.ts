@@ -4,13 +4,26 @@
  * (web 壳 PLATFORM_MODULES 种子表子集,scripts/build-client.mjs 的 external 清单);
  * 出现清单外 require 即失败——dsh.client.inject 声明与实际消费漂移的机器证据。
  * 依赖 verify 链先跑 build:client(pnpm run verify 顺序保证)。
+ *
+ * T1.5 全景改版扩展(ps-v2-test-plan §3 T1.5(b)):①令牌铁律逐文件扩展到全部
+ * 客户端源文件(分组导航/条目详情/diff 等新组件文件自动纳入,枚举目录而非点名);
+ * ②styles.ts 令牌数量只增不减(基线 136 处 --dsw-alias-*);③新视图锚点
+ * data-ps-group-nav / data-ps-entry-detail / data-ps-diff-view / data-ps-entry-save
+ * 在 bundle 中。
  */
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import vm from 'node:vm'
 import { describe, expect, it } from 'vitest'
 
 const bundlePath = join(import.meta.dirname, '..', 'lib', 'client.js')
+const clientSrcDir = join(import.meta.dirname, '..', 'src', 'client')
+
+/** 颜色声明抽取(与既有 styles.ts 断言同一正则口径,复用 :41 既有形态)。 */
+function colorDeclarationsOf(code: string): string[] {
+  return [...code.matchAll(/(?:color|background(?:-color)?|border(?:-left)?-color):\s*([^;]+);/gu)]
+    .map(match => match[1]?.trim() ?? '')
+}
 
 /** 与 scripts/build-client.mjs 的 BASELINE_EXTERNALS 同源(漂移即测试失败)。 */
 const BASELINE_EXTERNALS = [
@@ -69,6 +82,78 @@ describe('lib/client.js 工件形态', () => {
     expect(code).not.toMatch(/data-t7-delete|data-t7-remove/u)
     expect(code).not.toMatch(/deleteVersion|removeVersion|dropVersion|purgeVersion/u)
     expect(code).not.toContain('删除版本')
+  })
+})
+
+describe('T1.5 全景改版工件', () => {
+  it('令牌铁律(逐文件):全部客户端源文件的颜色声明只经 --dsw-alias-*/color-mix/transparent', () => {
+    // 逐文件断言(测试计划 §3 T1.5(b)①):枚举 src/client 全部源文件——新增/改版
+    // 组件(分组导航、条目详情、diff 视图等)自动纳入,无需点名清单。
+    const files = readdirSync(clientSrcDir).filter(file => /\.(ts|tsx)$/u.test(file)).sort()
+    expect(files.length).toBeGreaterThanOrEqual(8)
+    const aliasVar = /^var\(--dsw-alias-[a-z0-9-]+(?:\s*,\s*[^)]+)?\)$/u
+    const aliasMix = /^color-mix\(in srgb, var\(--dsw-alias-[a-z0-9-]+\)(?:\s+[\d.]+%)?(\s*,\s*transparent)?\)$/u
+    let filesWithDecls = 0
+    for (const file of files) {
+      const code = readFileSync(join(clientSrcDir, file), 'utf8')
+      const declarations = colorDeclarationsOf(code)
+      if (declarations.length > 0) filesWithDecls += 1
+      for (const decl of declarations) {
+        const ok = aliasVar.test(decl) || aliasMix.test(decl) || decl === 'transparent' || decl === 'none'
+        expect(ok, `${file} 内非官方语义令牌的颜色声明: ${decl}`).toBe(true)
+      }
+    }
+    // 有颜色声明的文件应≥1(styles.ts 承载全部 CSS;组件文件为 0 也被逐文件覆盖)。
+    expect(filesWithDecls).toBeGreaterThanOrEqual(1)
+  })
+
+  it('令牌数量只增:styles.ts 的 --dsw-alias-* 出现次数 ≥ 基线 136(§6.4 只增不减)', () => {
+    const code = readFileSync(join(clientSrcDir, 'styles.ts'), 'utf8')
+    const count = [...code.matchAll(/--dsw-alias-[a-z0-9-]+/gu)].length
+    expect(count).toBeGreaterThanOrEqual(136)
+  })
+
+  it('T1.5 工件:全景分组导航/条目详情/diff/保存锚点在 bundle 中', () => {
+    const code = readFileSync(bundlePath, 'utf8')
+    // 测试计划 §3 T1.5(b)② 的四个锚点 + 改版新增的结构面锚点。
+    for (const anchor of [
+      'data-ps-group-nav', 'data-ps-entry-detail', 'data-ps-diff-view', 'data-ps-entry-save',
+      'data-ps-entry-row', 'data-ps-layer-group', 'data-ps-entry-risks', 'data-ps-entry-readonly',
+      'data-ps-entry-runtime',
+    ]) {
+      expect(code, `缺少 T1.5 锚点 ${anchor}`).toContain(anchor)
+    }
+  })
+
+  it('T1.5 按条目读侧接线:StudioPage 经 prompt-versions {entryId} 拉取条目链', () => {
+    const source = readFileSync(join(clientSrcDir, 'StudioPage.tsx'), 'utf8')
+    expect(source).toContain('ENDPOINTS.promptVersions, { input: { entryId } }')
+    // 写链路两段式载荷复述面含 entryId(宿主 ApprovalGate confirm 校验一致)。
+    expect(source).toContain('entryId: selected.id')
+    expect(source).toContain('entryId: version.entryId')
+  })
+
+  it('T1.5 DEFAULT_ENTRY_ID 交叉钉住:客户端本地常量 ≡ 服务端 registry 导出(同值)', () => {
+    // 客户端不 import 服务端 registry(node:fs 传递依赖不可入 bundle),字面量复刻
+    // 必须被钉住:两处任一改名即红,否则初始选中条目 find 不到、详情区静默空白。
+    const client = readFileSync(join(clientSrcDir, 'StudioPage.tsx'), 'utf8')
+    const server = readFileSync(join(import.meta.dirname, '..', 'src', 'registry.ts'), 'utf8')
+    const clientId = /DEFAULT_ENTRY_ID = '([^']+)'/.exec(client)?.[1]
+    const serverId = /export const DEFAULT_ENTRY_ID = '([^']+)'/.exec(server)?.[1]
+    expect(clientId).toBe(serverId)
+    expect(clientId).toBe('preset.standard.persona')
+  })
+
+  it('T1.5 零硬编码色补口:全部客户端源文件无任何字面 hex 色(覆盖 outline/box-shadow/fill 等正则盲区)', () => {
+    // 既有按属性名(declaration 值白名单)的断言只覆盖 color/background/border-color,
+    // 不含 outline/box-shadow/fill 等复合值属性;本条按「无字面 hex」补口——任何属性
+    // 上出现 #rgb/#rrggbb/#rrggbbaa 即红(令牌铁律的属性无关表达)。
+    const files = readdirSync(clientSrcDir).filter(file => /\.(ts|tsx)$/u.test(file)).sort()
+    for (const file of files) {
+      const code = readFileSync(join(clientSrcDir, file), 'utf8')
+      const hex = /#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/.exec(code)
+      expect(hex === null, `${file} 内出现字面 hex 色: ${hex?.[0] ?? ''}`).toBe(true)
+    }
   })
 })
 
