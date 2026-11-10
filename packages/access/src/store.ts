@@ -270,12 +270,18 @@ export class UserStore {
     return row === undefined ? undefined : row.owner_id
   }
 
-  /** 按路径查归属(默认工作区幂等判定用)。 */
-  workspaceOwnerByPath(ownerId: number, path: string): number | undefined {
-    const row = this.db.prepare('SELECT owner_id FROM workspaces WHERE owner_id = ? AND path = ?').get(ownerId, path) as
-      | { owner_id: number }
+  /** 属主+路径查工作区 id(根工作区幂等判定用)。 */
+  workspaceIdByOwnerPath(ownerId: number, path: string): string | undefined {
+    const row = this.db.prepare('SELECT workspace_id FROM workspaces WHERE owner_id = ? AND path = ?').get(ownerId, path) as
+      | { workspace_id: string }
       | undefined
-    return row === undefined ? undefined : row.owner_id
+    return row === undefined ? undefined : row.workspace_id
+  }
+
+  /** 该用户名下是否已有任何工作区(登录开通判定用)。 */
+  ownsAnyWorkspace(ownerId: number): boolean {
+    const row = this.db.prepare('SELECT 1 FROM workspaces WHERE owner_id = ? LIMIT 1').get(ownerId)
+    return row !== undefined
   }
 
   workspacePath(workspaceId: string): string | undefined {

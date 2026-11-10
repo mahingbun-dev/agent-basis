@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>Eterna Companion 设置</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, "PingFang SC", sans-serif;
+      }
+      body {
+        max-width: 560px;
+        margin: 32px auto;
+        padding: 0 16px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      h1 {
+        font-size: 18px;
+      }
+      label {
+        display: block;
+        margin-top: 16px;
+        font-weight: 600;
+      }
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 4px;
+        padding: 8px 10px;
+        border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+        border-radius: 8px;
+        font: inherit;
+      }
+      button {
+        margin-top: 20px;
+        padding: 8px 20px;
+        border: none;
+        border-radius: 8px;
+        background: #2563eb;
+        color: #fff;
+        font: inherit;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .status {
+        margin-top: 16px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: color-mix(in srgb, currentColor 8%, transparent);
+      }
+      .hint {
+        margin-top: 8px;
+        color: color-mix(in srgb, currentColor 65%, transparent);
+        font-size: 12px;
+      }
+      .saved {
+        color: #16a34a;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Eterna Companion 设置</h1>
+    <p>把你的浏览器作为 eterna agent 的执行面。填写中继服务地址后，agent 即可在<strong>你的浏览器</strong>里打开页面、复用你的登录态。</p>
+
+    <label for="relay-url">中继地址</label>
+    <input id="relay-url" type="text" spellcheck="false" placeholder="ws://127.0.0.1:9310/extension" />
+    <p class="hint">开发模式默认连接本机回环地址；远端地址由服务端部署后提供。</p>
+
+    <label for="relay-token">访问令牌（可选）</label>
+    <input id="relay-token" type="password" spellcheck="false" placeholder="服务端设置 RELAY_TOKEN 时填写" />
+
+    <button id="save" type="button">保存</button>
+    <span id="saved" class="saved" role="status"></span>
+
+    <div class="status" id="status" aria-live="polite">读取连接状态中…</div>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

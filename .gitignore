@@ -50,3 +50,6 @@ tools/evals/pnpm-lock.yaml
 /.zcode/
 /scripts/init-profile.mjs
 /scripts/smoke.mjs
+/.eterna-gate-home*/
+packages/browser-relay/smoke/.browsers/
+packages/browser-relay/smoke/.gate-relay-port

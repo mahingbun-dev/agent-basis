@@ -1,0 +1,44 @@
+{
+  "at": "2026-11-10T04:14:02.173Z",
+  "steps": [
+    {
+      "name": "relay 启动",
+      "ok": true,
+      "detail": "port 9310"
+    },
+    {
+      "name": "扩展连接 relay",
+      "ok": true,
+      "detail": "ext=0.1.0 chrome=159.0.0.0"
+    },
+    {
+      "name": "browser_snapshot 打开本地 fixture",
+      "ok": true,
+      "detail": "url=http://127.0.0.1:9310/fixture"
+    },
+    {
+      "name": "browser_fill",
+      "ok": true,
+      "detail": "selector=#kw"
+    },
+    {
+      "name": "browser_click（提交→结果页）",
+      "ok": true,
+      "detail": "url=http://127.0.0.1:9310/fixture/result?text=playwright"
+    },
+    {
+      "name": "动作后快照含预期内容",
+      "ok": true,
+      "detail": "url=http://127.0.0.1:9310/fixture/result?text=playwright"
+    },
+    {
+      "name": "example.com 真实快照（R-02 场景）",
+      "ok": true,
+      "detail": "title=Example Domain"
+    }
+  ],
+  "examplecom": "pass",
+  "refMode": "selector-fallback",
+  "chromePath": "/Users/sunny/code/agent-basis/packages/browser-relay/smoke/.browsers/chromium/mac_arm-1739929/chrome-mac/Chromium.app/Contents/MacOS/Chromium",
+  "headless": true
+}

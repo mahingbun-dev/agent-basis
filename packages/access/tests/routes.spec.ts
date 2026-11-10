@@ -28,11 +28,13 @@ describe('access 路由核心', () => {
   let now: number
   let adminCookie: string
   let adminId: number
+  let provisioned: Array<{ readonly id: number; readonly account: string }>
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'eterna-access-routes-'))
     store = new UserStore(join(dir, 'users.db'))
     auditEvents = []
+    provisioned = []
     now = 1_000_000
     const session = new SessionService(Buffer.from('test-secret-test-secret-test-s'))
     deps = {
@@ -43,6 +45,7 @@ describe('access 路由核心', () => {
       audit: event => auditEvents.push(event),
       bridgeHome: () => 'http://app.local/?token=bridge-token',
       dataDir: dir,
+      provisionWorkspace: async (user) => { provisioned.push(user) },
     }
     const admin = store.createUserWithSuffix({ account: 'Mr.Ma', password: 'MqbSunny0702', role: 'admin' })
     adminId = admin.user.id
@@ -106,6 +109,24 @@ describe('access 路由核心', () => {
     expect(JSON.parse(good.body as string)).toHaveProperty('redirect')
     expect(cookieOf(good)).toContain('HttpOnly')
     expect(auditEvents.some(e => e.kind === 'access.login' && e.ok === true && e.account === 'Mr.Ma')).toBe(true)
+  })
+
+  it('登录即开通:成功登录触发 provisionWorkspace(带用户 id+账号);失败登录不触发', async () => {
+    provisioned = [] // beforeEach 里 admin 桥接登录已触发过一次开通
+    const user = store.createUserWithSuffix({ account: 'newbie', password: 'password8' }).user
+    const reply = handleAccessRequest(deps, req({
+      method: 'POST', pathname: '/login', contentType: 'application/json', body: Buffer.from(JSON.stringify({ account: 'newbie', password: 'password8' })),
+    }))
+    expect(reply.status).toBe(200)
+    // 异步开通:让微队列排空后断言(开通失败不阻断登录应答)
+    await Promise.resolve()
+    expect(provisioned).toEqual([expect.objectContaining({ id: user.id, account: user.account })])
+    provisioned = []
+    handleAccessRequest(deps, req({
+      method: 'POST', pathname: '/login', contentType: 'application/json', body: Buffer.from(JSON.stringify({ account: 'ghost', password: 'whatever1' })),
+    }))
+    await Promise.resolve()
+    expect(provisioned).toEqual([])
   })
 
   it('登录限速:同 ip+账号第 6 次 429;时钟滑动后恢复;换账号不受影响', () => {

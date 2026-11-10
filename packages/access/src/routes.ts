@@ -32,6 +32,11 @@ export interface AccessDeps {
   readonly publicOrigin?: string | undefined
   /** 数据目录(users.db/secret.key/disabled-plugins.json 所在;T2.3 启停清单落此)。 */
   readonly dataDir: string
+  /**
+   * 登录成功后的租户开通(问题4:新用户自动在 workspaces/<account> 建根工作区)。
+   * 实现方自吞异常(开通失败不阻断登录;客户端引导还有 session/create 改判兜底)。
+   */
+  readonly provisionWorkspace: (user: { readonly id: number; readonly account: string }) => Promise<void>
 }
 
 /** T2.3 插件启停清单:红线(治理/审计/出网/门禁本体)不可停,其余 L1 可由 admin 停用。 */
@@ -190,6 +195,9 @@ function handleLogin(deps: AccessDeps, req: AccessRequest, method: string, ip: s
   }
   const token = deps.session.issue({ userId: user.id, passwordVersion: user.passwordVersion })
   deps.audit({ kind: 'access.login', account: user.account, ip, ok: true })
+  // 登录即开通(问题4):零工作区用户自动建根工作区;异步不阻断登录应答
+  // (契约:实现方自吞异常;此处再兜一层防 unhandled rejection)
+  deps.provisionWorkspace(user).catch(() => {})
   // 桥接目标规范根:PUBLIC_URL 声明优先(浏览器入口唯一权威),无声明回退请求侧 origin
   const origin = deps.publicOrigin ?? requestOrigin(req.host, deps.session.secure)
   const redirect = deps.bridgeHome(origin)

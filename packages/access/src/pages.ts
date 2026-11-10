@@ -190,11 +190,13 @@ document.getElementById('password').addEventListener('keydown',function(e){if(e.
 /** 账号角标:注入每个 dsh index 页。401 → 跳登录(门禁);404/异常静默(access 缺席降级)。 */
 export const BADGE_SCRIPT = `
 (function(){
+  var meAccount=null
   fetch('/access/api/me',{credentials:'same-origin'}).then(function(r){
     if(r.status===401){location.replace('/login');return null}
     return r.ok?r.json():null
   }).then(function(u){
     if(!u||!u.account)return
+    meAccount=u.account
     var b=document.createElement('div')
     b.style.cssText='position:fixed;top:8px;right:10px;z-index:2147483647;display:flex;align-items:center;gap:8px;background:rgba(17,24,39,.92);color:#f9fafb;border:1px solid rgba(255,255,255,.14);border-radius:9999px;padding:4px 14px 4px 4px;font:13px/1.6 system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.35);backdrop-filter:blur(6px)'
     var av
@@ -208,5 +210,61 @@ export const BADGE_SCRIPT = `
       fetch('/logout',{method:'POST',credentials:'same-origin'}).then(function(){location.href='/login'})})
     document.body.appendChild(b)
   }).catch(function(){})
+
+  // 租户引导:session/create 的拒绝帧默认只有手动点击路径会弹 toast(客户端自带),
+  // 自动引导(首屏连他人工作区被拒)是静默重试——这里补一条可见的引导条(30s 去重),
+  // 并做落座兜底:检测到被拒且输入框仍未落座时,自动点击自己的工作区行(标题=账号,
+  // 根工作区标题即账号),1.2s/3.5s/7s 三次为限,落座即停(输入框变为发消息框)。
+  var lastGuide=0
+  var seatTries=0
+  function composerInert(){
+    return !!document.querySelector('[aria-label="选择工作区"]')
+  }
+  function recoverSeat(){
+    if(seatTries>=3||!meAccount||!composerInert())return
+    seatTries++
+    var rows=document.querySelectorAll('[role="treeitem"]')
+    for(var i=0;i<rows.length;i++){
+      var label=((rows[i].getAttribute('aria-label'))||rows[i].textContent||'').trim()
+      if(label===meAccount){rows[i].click();break}
+    }
+  }
+  function scheduleRecover(){
+    setTimeout(recoverSeat,1200)
+    setTimeout(recoverSeat,3500)
+    setTimeout(recoverSeat,7000)
+  }
+  function guideToast(text){
+    var t=document.createElement('div')
+    t.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:2147483647;max-width:86vw;background:rgba(17,24,39,.94);color:#f9fafb;border:1px solid rgba(129,140,248,.55);border-radius:12px;padding:10px 16px;font:13px/1.6 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.4);backdrop-filter:blur(6px)'
+    t.textContent=text
+    document.body.appendChild(t)
+    var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    setTimeout(function(){
+      if(!reduce){t.style.transition='opacity .4s';t.style.opacity='0'}
+      setTimeout(function(){t.remove()},reduce?0:450)
+    },6000)
+  }
+  var origFetch=window.fetch
+  window.fetch=function(input,init){
+    var p=origFetch.apply(this,arguments)
+    try{
+      var url=typeof input==='string'?input:(input&&input.url)||''
+      if(url.indexOf('/api/session/create')!==-1){
+        p.then(function(r){
+          if(!r.ok)return
+          r.clone().json().then(function(d){
+            var err=d&&d.result&&d.result.ok===false&&d.result.error
+            if(err&&err.code==='tenant/denied'&&Date.now()-lastGuide>30000){
+              lastGuide=Date.now()
+              guideToast(err.message||'该工作区不属于你，请在左侧点击你自己的工作区（家目录）新建会话')
+              scheduleRecover()
+            }
+          }).catch(function(){})
+        }).catch(function(){})
+      }
+    }catch(e){}
+    return p
+  }
 })()
 `

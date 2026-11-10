@@ -349,3 +349,21 @@ web-app `src/index.ts:244-254`），用 URL 内的 launch token 换浏览器会�
 cookie，POST `/api/pluginInventory/list` 读**激活态**，逐行断言。脚本自身
 物化 profile、
 选定 OS 端口、有界关闭子进程，可重复执行。
+
+
+## Companion 浏览器执行面挂载（E1，2026-11-10）
+
+`cordis.patch.yml` 末尾的 `mcp-browser` 条目（`- insert:` + `@deepseek-ai/dsh-mcp-client`）把本仓
+`packages/browser-relay` 的 MCP stdio server（`dist/mcp.mjs`）挂进会话工具面，工具名 `mcp__browser__browser_snapshot / browser_click / browser_fill`。
+
+物化注意（在「如何回加」的 symlink 流程上追加一条）：
+
+1. `@deepseek-ai/dsh-mcp-client@0.2.2-rc.1` 需 symlink 进
+   `$DSH_HOME/profiles/eterna-web/node_modules/@deepseek-ai/dsh-mcp-client`（verify-eterna-web.mjs 已自动化）。
+2. relay 须先行运行：`node packages/browser-relay/dist/cli.mjs start`（默认 127.0.0.1:9310；
+   relay 未运行时工具仍出现，调用返回明确错误）。用户浏览器加载 Eterna Companion 扩展（开发者模式，
+   `packages/extension-companion/dist`）。
+3. MCP stdio server 响应帧必须带 `jsonrpc: '2.0'` 字段——MCP SDK 2.2.0 zod schema 严格校验，
+   缺失时客户端静默超时（E1 实测根因，勿删 mcp.ts 内注释）。
+4. SDK 2.2.0 connect 的 era 探针发 `server/discover`（2026-07-28 协议）；legacy-only server 按
+   SDK 语义回 `-32022` + `data.supported` 可毫秒级回落 legacy 握手（mcp.ts 已实现）。
