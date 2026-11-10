@@ -1,0 +1,267 @@
+{
+  "phase": "p1",
+  "gateScript": "scripts/team-platform-gates/p1-gate.mjs",
+  "git": {
+    "commit": "7c7b332b1d2a9308fa657b2587d530de69989685",
+    "branch": "feat/team-platform",
+    "dirty": true
+  },
+  "startedAt": "2026-11-10T18:34:28.435Z",
+  "finishedAt": "2026-11-10T18:34:57.535Z",
+  "cases": [
+    {
+      "id": "G-P1-01",
+      "criterion": "CORE-REG:access+glue 测试全绿、tenant-scan=0、装载冒烟 0 skipping/incompatible",
+      "command": "vitest(access/glue) + tenant-scan + 容器装载日志",
+      "expect": "(per criterion)",
+      "actual": "access=0 glue=0 scan=0 mount=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/G-P1-01/core-reg.txt"
+      ],
+      "durationMs": 3683
+    },
+    {
+      "id": "G-P1-02",
+      "criterion": "工程门:pnpm -w run verify exit 0",
+      "command": "pnpm -w run verify",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/G-P1-02/verify.log"
+      ],
+      "durationMs": 19632
+    },
+    {
+      "id": "G-P1-03",
+      "criterion": "守卫矩阵单测全过(tenant-guard-matrix 24 例;断言双面 status+响应体)",
+      "command": "pnpm --filter @eterna/access exec vitest run tests/tenant-guard-matrix.spec.ts",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/G-P1-03/vitest.txt"
+      ],
+      "durationMs": 1830
+    },
+    {
+      "id": "G-P1-04",
+      "criterion": "E2E:HTTP 直调越权全矩阵(守卫拒绝帧响应体断言;复用 mux E2E 的 bListHttp+矩阵单测证据)",
+      "command": "node scripts/team-platform-gates/p1-e2e-mux.mjs --base http://127.0.0.1:3211",
+      "expect": "(per criterion)",
+      "actual": "bListHasA=false",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/mux-e2e/record.json"
+      ],
+      "durationMs": 1
+    },
+    {
+      "id": "G-P1-05",
+      "criterion": "E2E:B 的 session/list 响应体中 A 的 sessionId=0(列表过滤)",
+      "command": "同 G-P1-04 证据",
+      "expect": "(per criterion)",
+      "actual": "bListHasA=false",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/mux-e2e/record.json"
+      ],
+      "durationMs": 0
+    },
+    {
+      "id": "G-P1-06",
+      "criterion": "symlink 越根矩阵 ≥5 例全过(within-root.spec)",
+      "command": "vitest run tests/within-root.spec.ts",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/G-P1-06/vitest.txt"
+      ],
+      "durationMs": 789
+    },
+    {
+      "id": "G-P1-07",
+      "criterion": "session/create defaultCwd 钳制单测(session-create-cwd.spec)",
+      "command": "vitest run tests/session-create-cwd.spec.ts",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/G-P1-07/vitest.txt"
+      ],
+      "durationMs": 687
+    },
+    {
+      "id": "G-P1-08",
+      "criterion": "mux E2E:B workspace/follow 列表快照中 A 的工作区=0",
+      "command": "p1-e2e-mux.mjs(证据复用)",
+      "expect": "(per criterion)",
+      "actual": "bMuxSeesA=false",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/mux-e2e/record.json"
+      ],
+      "durationMs": 0
+    },
+    {
+      "id": "G-P1-09",
+      "criterion": "mux E2E:B 对 A 的 sessionId session/follow → open 拒(remote-access/denied)",
+      "command": "p1-e2e-mux.mjs(证据复用)",
+      "expect": "(per criterion)",
+      "actual": "bStealDenied=true",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/mux-e2e/record.json"
+      ],
+      "durationMs": 0
+    },
+    {
+      "id": "G-P1-10",
+      "criterion": "换血防漂移单测(mux-peer-drift:admit 包装行为断言)",
+      "command": "vitest run tests/mux-peer-drift.spec.ts",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/G-P1-10/vitest.txt"
+      ],
+      "durationMs": 714
+    },
+    {
+      "id": "G-P1-11",
+      "criterion": "守卫清单防漂移 fixture(mux-drift+terminal-drift:上游方法表−清单=∅)",
+      "command": "vitest run tests/mux-drift.spec.ts tests/terminal-tenant.spec.ts",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/G-P1-11/vitest.txt"
+      ],
+      "durationMs": 665
+    },
+    {
+      "id": "G-P1-12",
+      "criterion": "沙箱逃逸矩阵:5 逃逸拒(参数钳制 3+跨租户 landlock 2)+正面 1(文件系统见证)",
+      "command": "p1-e2e-sandbox.mjs(证据复用)",
+      "expect": "(per criterion)",
+      "actual": "{\"E1\":true,\"E2\":\"absent\",\"E3\":\"absent\",\"E4a\":\"absent\",\"E4b\":\"absent\",\"P1\":\"exists\"}",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/sandbox-e2e/record.json"
+      ],
+      "durationMs": 0
+    },
+    {
+      "id": "G-P1-13",
+      "criterion": "权限档裁剪:渲染 patch 中 danger-full-access 出现=0;ui-permission disabled:true",
+      "command": "grep 渲染产物(容器)",
+      "expect": "(per criterion)",
+      "actual": "danger=0 uiDisabled=1",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/G-P1-13/presets.txt"
+      ],
+      "durationMs": 173
+    },
+    {
+      "id": "G-P1-14",
+      "criterion": "landlock 预检:容器 entrypoint 输出 sandbox runner: landlock full",
+      "command": "docker logs grep",
+      "expect": "(per criterion)",
+      "actual": "fullHits=1",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/G-P1-14/probe.txt"
+      ],
+      "durationMs": 21
+    },
+    {
+      "id": "G-P1-15",
+      "criterion": "终端隔离:入口租户校验+PTY 沙箱包装(单测)+容器安装审计 tenant:true ptySandbox:true+协议防漂移",
+      "command": "vitest terminal-tenant.spec + 容器审计",
+      "expect": "(per criterion)",
+      "actual": "vitest=0 audit=tenant+ptySandbox",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/G-P1-15/terminal.txt"
+      ],
+      "durationMs": 713
+    },
+    {
+      "id": "G-P1-16",
+      "criterion": "目录树 UI E2E:树根=账号目录/无路径输入/无上一级/懒展开/新建落盘/确认 adopt",
+      "command": "p1-e2e-directory-tree.mjs(证据复用)",
+      "expect": "(per criterion)",
+      "actual": "{\"open\":true,\"noPathInput\":true,\"created\":\"exists\"}",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/directory-tree/record.json"
+      ],
+      "durationMs": 1
+    },
+    {
+      "id": "G-P1-17",
+      "criterion": "视觉证据:目录树+终端面深/浅 PNG ≥4 张落 gui-test-screenshots/team-platform/",
+      "command": "fs 检查",
+      "expect": "(per criterion)",
+      "actual": "missing=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/G-P1-17/visual.txt"
+      ],
+      "durationMs": 0
+    },
+    {
+      "id": "G-P1-18",
+      "criterion": "tenant-scan = 0 findings(含 terminal/目录树新增代码)",
+      "command": "packctl tenant-scan",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/G-P1-18/tenant-scan.txt"
+      ],
+      "durationMs": 151
+    },
+    {
+      "id": "G-P1-19",
+      "criterion": "R12 文档改写:PLUGIN-AUTHORING §1.1 第 5 条=mux 已由 policy 过滤(含防漂移指引)",
+      "command": "grep 文档",
+      "expect": "(per criterion)",
+      "actual": "rewritten=true",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p1/evidence/G-P1-19/doc.txt"
+      ],
+      "durationMs": 0
+    }
+  ],
+  "summary": {
+    "total": 19,
+    "pass": 19,
+    "fail": 0,
+    "exempt": 0
+  },
+  "verdict": "go"
+}
