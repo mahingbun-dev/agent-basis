@@ -17,6 +17,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@eterna/prompt-studio": "workspace:*",
     "yaml": "catalog:"
   },
   "devDependencies": {

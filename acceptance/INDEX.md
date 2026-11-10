@@ -11,6 +11,7 @@
 | E0-T2 / E1-T1 / E1-T2 / E1-T5 | E0+E1 实现 | 实现者（本会话） | 2026-11-10 | ✅ 实现完成 + 自测证据（**非门禁判定**） | packages/extension-companion、packages/browser-relay、`pnpm -w run verify` 退出码 0（125 测试全过）、packctl tenant-scan 0 findings | 见下「实现者自测证据」 |
 | T7 存量补登（T7.5 集成验收等） | T7（ps-v2 前史） | T7.5 集成验收官（动态 workflow subagent） | 2026-11-07 | ✅ 实测通过（72 项断言全 PASS / 0 FAIL，exit 0，连续三次；**补录性质**） | [docs/dev/t7-acceptance.md](../docs/dev/t7-acceptance.md)、[docs/dev/t7-prompt-studio.md](../docs/dev/t7-prompt-studio.md) | 计划书 §8 现状缺口（T7 无 INDEX 条目）按 ps-v2 测试计划 §1「INDEX 台账」行于 G-PS-01 一并补登；数字出处 t7-acceptance.md 逐断言台账（当时插件名尚为 @basis/prompt-studio，改名前史） |
 | G-PS-01 | P1（ps-v2：挂载+全景+写链路） | 独立验收代理（验收-G-PS-01，用户经工作流书面指定） | 2026-11-11 | ✅ 通过（§7.1 强断言 1–7 全过，第一手实测；真模型链 t7-e2e 72/72 已跑） | [artifacts/gates/G-PS-01/EVIDENCE.md](../artifacts/gates/G-PS-01/EVIDENCE.md) | 见下「G-PS-01 验收记录」；人工条款缺口（键盘全量走查、admin 停用裁剪[可缺席]）已如实标注未执行/部分执行 |
+| T2.5 CI 接入（prompt-scan + verify job lint 循环化） | P2 实现（ps-v2） | 实现者（本会话，非门禁判定） | 2026-11-11 | 实现完成 + 本地自测（worktree 内）：`packctl prompt-scan` 全仓 0 findings、tenant-scan 0 findings 不回归、`@eterna/packctl` verify 78/78；`git grep -n "prompt-scan" -- .github/workflows/ci.yml` 命中、`git grep -c "for d in packs" -- .github/workflows/ci.yml` = 2 | .github/workflows/ci.yml、tools/packctl/ | 线上 CI 只能合并后验证——**待合并后首跑确认**（测试计划 §4 T2.5(b)4③，不得提前写「CI 绿」）；G-PS-02 gate 时按 §7.2 复核 |
 
 ## 实现者自测证据（2026-11-10，E1 冒烟——非门禁判定）
 

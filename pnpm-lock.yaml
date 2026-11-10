@@ -690,6 +690,9 @@ importers:
 
   tools/packctl:
     dependencies:
+      '@eterna/prompt-studio':
+        specifier: workspace:*
+        version: link:../../packages/prompt-studio
       yaml:
         specifier: 'catalog:'
         version: 2.9.1

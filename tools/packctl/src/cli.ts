@@ -9,6 +9,7 @@ import { initPack } from './init.ts'
 import { anyLintErrors, lintPacks } from './lint.ts'
 import { checkPack } from './check.ts'
 import { discoverPackRoots, isPackDir } from './pack.ts'
+import { promptScan } from './prompt.ts'
 import { tenantScan } from './tenant.ts'
 import { hasErrors } from './types.ts'
 import type { Finding } from './types.ts'
@@ -25,6 +26,7 @@ const USAGE = [
   '  packctl lint [<path>] [--json]           结构 + Cordis 纪律 + 条目锚点 + golden 完整性',
   '  packctl check [<path>]                   静态冒烟:bundle 声明引用的文件都存在',
   '  packctl tenant-scan                      packages/* 隔离铁律静态检查(路由面/登记册/持久化)',
+  '  packctl prompt-scan                      提示词登记铁律静态检查(patch 键/section 使用/packs persona)',
   '<path> 缺省为 cwd:是 pack 根则 lint 它;含 packs/ 则 lint 全部领域包;否则向上查找。',
 ].join('\n')
 
@@ -71,6 +73,8 @@ export function runPack(argv: readonly string[], io: CliIo): number {
       return cmdCheck(positional, io)
     case 'tenant-scan':
       return cmdTenantScan(io)
+    case 'prompt-scan':
+      return cmdPromptScan(io)
     case 'help':
       io.writeLine(USAGE)
       return 0
@@ -87,6 +91,16 @@ function cmdTenantScan(io: CliIo): number {
     io.writeLine(`${finding.severity.toUpperCase()} ${finding.code} ${finding.path}: ${finding.message}`)
   }
   io.writeLine(`tenant-scan: ${findings.length} finding(s)`)
+  return findings.length > 0 ? 1 : 0
+}
+
+/** prompt-scan(T2.5):提示词登记铁律静态检查;任何 finding(含缺豁免标注 warning)→ 退出码 1。 */
+function cmdPromptScan(io: CliIo): number {
+  const findings = promptScan(io.cwd)
+  for (const finding of findings) {
+    io.writeLine(`${finding.severity.toUpperCase()} ${finding.code} ${finding.path}: ${finding.message}`)
+  }
+  io.writeLine(`prompt-scan: ${findings.length} finding(s)`)
   return findings.length > 0 ? 1 : 0
 }
 

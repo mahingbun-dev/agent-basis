@@ -35,6 +35,16 @@ EternaAgent 部署为多账号门禁形态(eterna-access):unary `/api` 端点由
 4. **启停语义**:L1 插件必须登记进 `packages/access/src/routes.ts` 的 `TOGGLEABLE_PLUGINS`(或红线清单);admin 停用 = 重启后 patch 行被 entrypoint 渲染管线裁剪——插件必须可缺席(audit 缺席降级纪律同样适用于启停)。红线默认:治理/审计/出网/门禁。
 5. **已知限制(R12)知悉**:上游流端点(`workspace/follow` 等走 WS mux)不经守卫,工作区**列表元数据**(标题/路径名)对登录用户全局可见;数据读写/终端入口已被守卫隔离。新端点设计时避免把敏感数据放进列表元数据,并评估上游 per-connection identity 进展。
 
+### 1.2 提示词登记铁律(2026-11-11 起,`packctl prompt-scan` 强制)
+
+提示词工作室(ps-v2)是**全产品提示词唯一管理面**:三层全景可查可改、版本化、审批生效。反面强制 = 涉及提示词工程而未登记的插件/包被 CI 拦截(计划书成功标准 4)。**登记真值 = `packages/prompt-studio/src/registry.ts` 的 `PROMPT_REGISTRY_ENTRIES`**(对账文档 `docs/dev/ps-v2-registry-ledger.md`,条目型别/锚点/风险标注见 T1.3)。新插件/包触碰以下任一面 = 先登记再提交:
+
+1. **patch 层 prompt 型 config 键**:cordis.patch.yml 里 `system-prompt` 的 `personaPrefix`、persona 插件的 `prefix`、plan-mode 插件的 `section`(profiles/packs/packages/market 四处都在扫描面)——注册表按 yaml 定位(file+rowId+pluginPath+configKey)精确匹配才算已登记。
+2. **packs persona**:领域包根的 `persona.md`(06 号 SOP S1 分诊:角色/语气/全局硬约束)必须有对应领域层条目。
+3. **运行时注入**:源码用 `ctx.systemPrompt.section(...)`(memory 形态)或 `inject: { systemPrompt: true }` 声明(glue 形态)必须有运行时注入型条目;T2.6 起改造为 section 文本从注册表读(登记制落地,缺席降级不炸宿主)。
+
+**白名单与豁免标注**:确属豁免面(如注册表管理面本体、生成产物)在 `tools/packctl/src/prompt.ts` 的 `PROMPT_SCAN_WHITELIST` 登记,每条必须写 `reason`——缺标注的条目本身产出 warning 且退出码 1(豁免决定必须可审查)。已知边界:块标量正文里形似 `key: value` 的行可能误报(走白名单)、`systemPrompt` 别名调用静态不可见。
+
 ## 2. 环 A:DSH 创造模式(agent 帮你写,你审查)
 
 ```bash

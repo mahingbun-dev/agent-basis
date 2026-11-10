@@ -7,6 +7,8 @@
 packctl init <industry> [--root <dir>]   # 生成 packs/<industry>/ 骨架(06 号模板)
 packctl lint [<path>] [--json]           # 结构 + Cordis 纪律 + 条目锚点 + golden 完整性
 packctl check [<path>]                   # 静态冒烟:bundle 声明引用的文件都存在
+packctl tenant-scan                      # packages/* 隔离铁律静态检查(路由面/登记册/持久化)
+packctl prompt-scan                      # 提示词登记铁律静态检查(patch 键/section 使用/packs persona)
 ```
 
 `<path>` 缺省为 cwd:是 pack 根(package.json 带 `dsh.bundle`)则检查它;含 `packs/`
@@ -58,11 +60,38 @@ packs/<industry>/
 | check | CHK001-004 | `dsh.bundle.patch` 声明的文件存在;patch 内全部 `./`/`../` 引用存在;profile bundles 路径式引用存在;SKILL.md 正文相对链接存在 |
 | check | CHK900(warning) | 真实安装/卸载冒烟未执行(需 DSH 运行时)——blockers,不伪造 |
 
+## prompt-scan 检查项(T2.5,ps-v2 计划书 §6)
+
+提示词登记铁律:「全产品提示词唯一管理面」的反面强制——涉及提示词工程而未登记的
+插件/包被 CI 拦截。**登记真值 = `@eterna/prompt-studio/registry` 的
+`PROMPT_REGISTRY_ENTRIES`**(T1.3 三层存量登记,workspace 依赖直接 import,
+不维护第二份清单;对账文档 docs/dev/ps-v2-registry-ledger.md)。三个扫描面:
+
+| 面 | 扫描对象 | 登记判定 | finding code |
+|---|---|---|---|
+| patch 层 prompt 型 config 键 | profiles/ packs/ packages/ market/ 下全部 cordis.patch.yml 的 `personaPrefix`(任意上下文)、persona 插件 `prefix`、plan-mode 插件 `section`(按最近包围项/行 id 判归属) | 注册表条目 yaml 定位(file+rowId+pluginPath+configKey)精确匹配 | `prompt/unregistered-prompt-key` |
+| packs persona | packs 下各领域包根的 persona.md | 任一条目 anchors 引用该文件 | `prompt/unregistered-pack-persona` |
+| 运行时 section 使用 | packages/* 源码(.ts/.mjs/.js,剥注释,tests/ 豁免):`systemPrompt.section(`(memory 形态)与 `systemPrompt: true`(glue inject 声明) | 任一条目 anchors 引用该源文件 | `prompt/unregistered-section-usage` |
+
+**白名单与豁免标注**:`PROMPT_SCAN_WHITELIST`(src/prompt.ts)按路径前缀豁免,
+每条必须带 `reason`——缺标注的条目本身产出 warning `prompt/whitelist-without-reason`
+(退出码同样 1):豁免决定必须可审查,不允许无声放行。仓内既知豁免两处:
+packages/prompt-studio(注册表与管理面本体,anchors 含注入样例字面量)、
+market/pack-bundle(build-market.mjs 生成的市场构建产物,镜像 packs/event-planning)。
+
+已知边界(如实):行级扫描对块标量正文里恰好像 `key: value` 的行会误报(走白名单);
+`const sp = ctx.systemPrompt; sp.section()` 别名形态静态不可见;运行时 home
+(.eterna-home*,gitignored)不在扫描面。测试形态照抄 tenant.spec.ts
+(tests/prompt.spec.ts:未登记→拦截、登记后→通过双向 + 误报防护 + 白名单/豁免标注单测)。
+
 ## 与兄弟任务的接口
 
 - **@eterna/evals(T4)**:直接 import 本包 `loadGoldenCaseText` / `loadGoldenDir`
   (「golden 可被 evals 加载」的判定即同一份代码,不会两套解析器漂移);
   `GoldenCase` 类型导出自 `src/types.ts`。
+- **@eterna/prompt-studio(T7/ps-v2)**:prompt-scan 以 workspace 依赖 import
+  其 `./registry` 子路径的 `PROMPT_REGISTRY_ENTRIES` 作登记真值(注册表单一事实源,
+  扫描器不留第二份清单);该子路径只依赖 node 内建,不拖插件本体导入图。
 - **@eterna/interact(T3)**:hitl.yaml 的语义校验(风险档映射、on_no_answer 策略)
   属 T3;packctl 只钉存在性与 YAML 映射形态。
 - **packs/event-planning(T6)**:`packctl init event-planning` 起步,替换样例内容。
