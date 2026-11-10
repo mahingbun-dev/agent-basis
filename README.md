@@ -70,7 +70,7 @@ docker compose up -d --build
 # → open http://localhost:3210/login and sign in — no token needed
 ```
 
-What you get is the full web agent behind an account gate: the admin manages users (no open registration; duplicate names get an auto numeric suffix), every user gets a self-service profile page (nickname / avatar / password), login bridges into the DSH session automatically, and workspaces are tenant-guarded — each account is clamped to its own home directory for workspace adoption, directory browsing, and session creation (the admin can also disable/enable L1 plugins, red lines locked). The model settings page (base URL / protocol / model catalog / per-model connectivity tests), the diagnostics panel, policy governance, and audit trails all persist in a named volume. Reverse-proxy parameters (`ETERNA_PUBLIC_URL` / `ETERNA_TRUSTED_HOST` / `ETERNA_ACCESS_SECURE`) are env-only — see [docs/docker-deploy.md](docs/docker-deploy.md).
+What you get is the full web agent behind an account gate: the admin manages users (no open registration; duplicate names get an auto numeric suffix), every user gets a self-service profile page (nickname / avatar / password), login bridges into the DSH session automatically, and workspaces are tenant-guarded — each account is clamped to its own home directory for workspace adoption, directory browsing, and session creation (the admin can also disable/enable L1 plugins, red lines locked). The model settings page (base URL / protocol / model catalog / per-model connectivity tests), the diagnostics panel, policy governance, and audit trails all persist in a named volume. Reverse-proxy parameters (`ETERNA_PUBLIC_URL` / `ETERNA_TRUSTED_HOST` / `ETERNA_ACCESS_SECURE`) are env-only — see [deploy/README.md](deploy/README.md).
 
 ![Model settings: gateway card with connectivity doctor and per-model tests](docs/assets/screenshots/eterna-model-doctor.png)
 
@@ -94,7 +94,7 @@ The self-evolution design has academic anchors: ACE ([arXiv:2510.04618](https://
 - Runs on the stock DeepSeek Harness runtime (npm `@deepseek-ai/dsh`, version-pinned); upstream upgrades go through [docs/upgrade-gate.md](docs/upgrade-gate.md) before adoption.
 - Model routing targets OpenAI-compatible gateways (LiteLLM recommended); DeepSeek direct/account routes are disabled by default (compliance: keys stay in your env/gateway, never in the harness).
 - The governance/red-line packs are reference implementations for two industries; a new industry means authoring a new pack (scaffold provided).
-- Public exposure over home broadband is IPv6-only unless you add a relay — see the reverse-proxy notes in [docs/docker-deploy.md](docs/docker-deploy.md).
+- Public exposure over home broadband is IPv6-only unless you add a relay — see the reverse-proxy notes in [deploy/README.md](deploy/README.md).
 
 ## Documentation
 
@@ -103,7 +103,7 @@ The self-evolution design has academic anchors: ACE ([arXiv:2510.04618](https://
 | [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | **User guide**: every feature's trigger example, how to run evals/gates, how to install plugins from the index (index URL: `https://raw.githubusercontent.com/mahingbun-dev/agent-basis/main/market/index.json`) |
 | [docs/PLUGIN-AUTHORING.md](docs/PLUGIN-AUTHORING.md) | Plugin authoring guide (creation mode, local dev → in-repo, hard rules & mounting recipes) |
 | [docs/eterna-plugin-mapping.md](docs/eterna-plugin-mapping.md) | Plugin naming map: eterna ids ↔ upstream DSH source paths, merge playbook, non-renamable official ids |
-| [docs/docker-deploy.md](docs/docker-deploy.md) | Container deploy: env matrix, reverse-proxy handoff, volume layout |
+| [deploy/README.md](deploy/README.md) | Container deploy: env matrix, reverse-proxy handoff, volume layout |
 | [docs/design/](docs/design/) | Design docs: research, architecture, RSI self-evolution, knowledge plugin |
 | [docs/upgrade-gate.md](docs/upgrade-gate.md) | Upstream version upgrade gate (four-step local + CI cross-check) |
 | [packs/event-planning/evals/](packs/event-planning/evals/) | Golden-set format: terminal-state & trajectory assertion cookbook |

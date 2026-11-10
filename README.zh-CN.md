@@ -70,7 +70,7 @@ docker compose up -d --build
 # → 打开 http://localhost:3210/login 用管理员账号登录——无需 token
 ```
 
-得到账号门禁后的完整 Web Agent:管理员管用户(不开放注册,重名自动加数字后缀),每个用户有自助资料页(昵称/头像/密码),登录自动桥接 dsh 会话;工作区按账号租户隔离(采纳/浏览/建会话钳制在各自家目录),admin 可实例级停启 L1 插件(红线锁定)。满血模型设置页(Base URL/协议/模型目录/逐模型连通测试)、诊断面板、策略治理、审计留痕(named volume 持久化)。反代参数(`ETERNA_PUBLIC_URL` / `ETERNA_TRUSTED_HOST` / `ETERNA_ACCESS_SECURE`)纯 env——见 [docs/docker-deploy.md](docs/docker-deploy.md)。
+得到账号门禁后的完整 Web Agent:管理员管用户(不开放注册,重名自动加数字后缀),每个用户有自助资料页(昵称/头像/密码),登录自动桥接 dsh 会话;工作区按账号租户隔离(采纳/浏览/建会话钳制在各自家目录),admin 可实例级停启 L1 插件(红线锁定)。满血模型设置页(Base URL/协议/模型目录/逐模型连通测试)、诊断面板、策略治理、审计留痕(named volume 持久化)。反代参数(`ETERNA_PUBLIC_URL` / `ETERNA_TRUSTED_HOST` / `ETERNA_ACCESS_SECURE`)纯 env——见 [deploy/README.md](deploy/README.md)。
 
 ![模型设置页:网关卡+连通性诊断+逐模型真测](docs/assets/screenshots/eterna-model-doctor.png)
 
@@ -94,7 +94,7 @@ docker compose up -d --build
 - 运行于原版 DeepSeek Harness 内核(npm `@deepseek-ai/dsh`,钉版);上游升版须经 [docs/upgrade-gate.md](docs/upgrade-gate.md) 门禁裁决后才采纳。
 - 模型路由面向 OpenAI 兼容网关(推荐 LiteLLM);DeepSeek 直连/账号路由默认裁切(合规红线:密钥只在你自己的 env/网关,不落 harness)。
 - 治理红线包是两个行业的参考实现;新行业 = 编写新领域包(脚手架已提供)。
-- 家宽环境公网暴露仅 IPv6 可达(除非加中继)——见 [docs/docker-deploy.md](docs/docker-deploy.md) 反代说明。
+- 家宽环境公网暴露仅 IPv6 可达(除非加中继)——见 [deploy/README.md](deploy/README.md) 反代说明。
 
 ## 文档
 
@@ -103,7 +103,7 @@ docker compose up -d --build
 | [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | **用户指南(装完即会用)**:全部功能触发示例、评测/门禁怎么跑、插件怎么从索引安装(索引 URL:`https://raw.githubusercontent.com/mahingbun-dev/agent-basis/main/market/index.json`) |
 | [docs/PLUGIN-AUTHORING.md](docs/PLUGIN-AUTHORING.md) | 插件开发指南(创造模式/本地开发 → 入库,含硬性规范与装载配方) |
 | [docs/eterna-plugin-mapping.md](docs/eterna-plugin-mapping.md) | 插件命名映射:eterna id ↔ 上游 DSH 源仓路径、合并姿势、不可改名官方 id 清单 |
-| [docs/docker-deploy.md](docs/docker-deploy.md) | 容器部署:env 矩阵、反代衔接、卷布局 |
+| [deploy/README.md](deploy/README.md) | 容器部署:env 矩阵、反代衔接、卷布局 |
 | [docs/design/](docs/design/) | 设计文档:业界调研、架构、RSI 自进化、知识插件 |
 | [docs/upgrade-gate.md](docs/upgrade-gate.md) | 上游版本升级门禁(本地四步 + CI 互证) |
 | [packs/event-planning/evals/](packs/event-planning/evals/) | 金集格式:终态/轨迹断言写法 |
