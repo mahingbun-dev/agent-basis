@@ -301,11 +301,13 @@ describe('access 路由核心', () => {
     expect(auditEvents.some(e => e.kind === 'access.logout')).toBe(true)
   })
 
-  it('页面门禁:匿名 /login 出登录页(no-store 响应头);独立页路由已移除(404)', () => {
+  it('页面门禁:匿名 /login 出登录页(no-store 响应头);/account 302 回应用;其余独立页 404', () => {
     const login = handleAccessRequest(deps, req({ pathname: '/login' }))
     expect(login.status).toBe(200)
     expect(login.headers.find(([n]) => n === 'cache-control')?.[1]).toBe('no-store')
-    expect(handleAccessRequest(deps, req({ pathname: '/account' })).status).toBe(404)
+    const account = handleAccessRequest(deps, req({ pathname: '/account' }))
+    expect(account.status).toBe(302)
+    expect(account.headers.find(([n]) => n === 'location')?.[1]).toBe('/')
     expect(handleAccessRequest(deps, req({ pathname: '/admin/users' })).status).toBe(404)
     expect(handleAccessRequest(deps, req({ pathname: '/manage' })).status).toBe(404)
   })
