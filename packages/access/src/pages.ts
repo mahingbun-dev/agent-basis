@@ -64,9 +64,9 @@ input:hover,select:hover{border-color:var(--et-fg-2)}
 input:focus-visible,select:focus-visible{outline:none;border-color:var(--accent);box-shadow:var(--et-focus-ring)}
 input[type=file]{padding:8px;color:var(--dim)}
 button{margin-top:16px;width:auto;min-width:120px;padding:12px 18px;border:0;border-radius:var(--et-radius-sm);
-  background:var(--accent);color:var(--et-accent-on);font-size:16px;font-weight:600;
+  background:var(--et-accent-fill);color:var(--et-accent-on);font-size:16px;font-weight:600;
   cursor:pointer;transition:background-color var(--et-motion-fast) var(--et-ease),opacity var(--et-motion-fast) var(--et-ease)}
-button:hover{background:var(--et-accent-hover)}
+button:hover{background:var(--et-accent-fill-hover)}
 button:focus-visible{outline:none;box-shadow:var(--et-focus-ring)}
 button:disabled{opacity:.5;cursor:not-allowed}
 .card.narrow button:not(.eye-btn){width:100%}
@@ -78,7 +78,7 @@ table{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}
 th,td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle}
 th{color:var(--dim);font-weight:600;background:var(--surface-2);white-space:nowrap}
 tbody tr:hover{background:var(--surface-2)}
-.avatar{width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--et-accent-on);
+.avatar{width:26px;height:26px;border-radius:50%;background:var(--et-accent-fill);color:var(--et-accent-on);
   display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;overflow:hidden;flex:none}
 .avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover}
 .tag{font-size:12px;padding:2px 8px;border-radius:var(--et-radius-sm);background:var(--accent-soft);color:var(--accent)}
@@ -196,7 +196,7 @@ export const BADGE_SCRIPT = `
     var b=document.createElement('div')
     // 位置铁律:头部下方(top:52px)——固定右上(top:8px)会压住上游头部右侧的
     // 「更多操作/打开右侧边栏」等按钮(2026-11-11 E2E:全宽度遮挡=插件页/设置入口全灭)。
-    b.style.cssText='position:fixed;top:52px;right:10px;z-index:2147483647;display:flex;align-items:center;gap:8px;max-width:60vw;background:var(--dsw-alias-toast-bg);color:var(--dsw-alias-toast-label);border:1px solid var(--dsw-alias-border-l2);border-radius:4px;padding:4px 12px 4px 4px;font-size:13px;line-height:1.5;font-family:var(--dsw-font-family, system-ui, sans-serif);box-shadow:0 8px 24px rgba(0,0,0,.24)'
+    b.style.cssText='position:fixed;top:52px;right:10px;z-index:2147483647;display:flex;align-items:center;gap:8px;max-width:60vw;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);border-radius:4px;padding:4px 12px 4px 4px;font-size:13px;line-height:1.5;font-family:var(--dsw-font-family, system-ui, sans-serif);box-shadow:0 4px 12px rgba(0,0,0,.12)'
     var av
     if(u.avatarUrl){av=document.createElement('img');av.src=u.avatarUrl;av.style.cssText='width:26px;height:26px;border-radius:50%;object-fit:cover'}
     else{av=document.createElement('span');av.textContent=(u.nickname||u.account||'?').slice(0,1);av.style.cssText='width:26px;height:26px;border-radius:50%;background:var(--dsw-alias-state-business-primary);color:var(--dsw-alias-label-primary-foreground);display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:600'}

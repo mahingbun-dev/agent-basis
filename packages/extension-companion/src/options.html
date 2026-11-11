@@ -15,6 +15,8 @@
         --border: #d8d8d8;
         --accent: #146ef5;
         --accent-hover: #0055d4;
+        --accent-fill: #146ef5;
+        --accent-fill-hover: #0055d4;
         --accent-on: #ffffff;
         --success: #00a81a;
         --radius: 4px;
@@ -33,6 +35,8 @@
           --border: #2a2a2a;
           --accent: #3b89ff;
           --accent-hover: #6aa6ff;
+          --accent-fill: #2a6fd0;
+          --accent-fill-hover: #1f5bb0;
           --accent-on: #ffffff;
           --success: #35e35f;
         }
@@ -84,7 +88,7 @@
         padding: 12px 18px;
         border: none;
         border-radius: var(--radius);
-        background: var(--accent);
+        background: var(--accent-fill);
         color: var(--accent-on);
         font: inherit;
         font-weight: 600;
@@ -92,7 +96,7 @@
         transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1);
       }
       button:hover:not(:disabled) {
-        background: var(--accent-hover);
+        background: var(--accent-fill-hover);
       }
       button:focus-visible {
         outline: none;

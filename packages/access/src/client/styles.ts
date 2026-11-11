@@ -5,13 +5,14 @@
 import { injectDesignTokens } from '@eterna/ui'
 
 const CSS = `
-[data-eterna-access-root] { font-family: var(--et-font-body); font-size: var(--et-text-caption); font-weight: var(--et-weight-body); line-height: var(--et-leading-body); color: var(--et-fg); max-width: var(--et-container-settings); }
+[data-eterna-access-root] { width: 100%; font-family: var(--et-font-body); font-size: var(--et-text-caption); font-weight: var(--et-weight-body); line-height: var(--et-leading-body); color: var(--et-fg); max-width: var(--et-container-settings); }
 [data-eterna-access-root], [data-eterna-access-root] *, [data-eterna-access-root] *::before, [data-eterna-access-root] *::after { box-sizing: border-box; }
 [data-eterna-access-root] * { min-width: 0; overflow-wrap: anywhere; }
 [data-eterna-access-root] .ea-lead { margin: 0 0 20px; color: var(--et-muted); font-size: var(--et-text-caption); }
 [data-eterna-access-root] .ea-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--et-space-6); }
 [data-eterna-access-root] .ea-card { border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); padding: var(--et-space-5);
   background: var(--et-surface); }
+[data-eterna-access-root] .ea-card.ea-card-wide { grid-column: 1 / -1; }
 [data-eterna-access-root] .ea-card h3 { margin: 0 0 var(--et-space-3); font-size: var(--et-text-body); font-weight: var(--et-weight-display); letter-spacing: 0; }
 [data-eterna-access-root] label.ea-label { display: block; font-size: var(--et-text-micro); color: var(--et-muted); margin: 12px 0 4px; }
 [data-eterna-access-root] input.ea-input, [data-eterna-access-root] select.ea-input {
@@ -24,12 +25,17 @@ const CSS = `
 [data-eterna-access-root] input.ea-input:focus-visible, [data-eterna-access-root] select.ea-input:focus-visible {
   outline: none; border-color: var(--et-accent); box-shadow: var(--et-focus-ring);
 }
-[data-eterna-access-root] input[type=file].ea-input { color: var(--et-muted); }
+[data-eterna-access-root] input[type=file].ea-input { color: var(--et-muted); padding: 6px; }
+[data-eterna-access-root] input[type=file].ea-input::file-selector-button {
+  margin-right: 10px; padding: 6px 10px; border: 1px solid var(--et-border); border-radius: var(--et-radius-sm);
+  background: var(--et-surface-2); color: var(--et-fg); font: inherit; font-size: var(--et-text-micro); cursor: pointer;
+}
+[data-eterna-access-root] input[type=file].ea-input::file-selector-button:hover { border-color: var(--et-fg-2); }
 [data-eterna-access-root] .ea-btn { margin: 0; padding: 10px 16px; border: 1px solid transparent; border-radius: var(--et-radius-sm); font: inherit; font-size: var(--et-text-caption); font-weight: var(--et-weight-display); cursor: pointer;
-  background: var(--et-accent); color: var(--et-accent-on);
+  background: var(--et-accent-fill); color: var(--et-accent-on);
   transition: background-color var(--et-motion-fast) var(--et-ease), border-color var(--et-motion-fast) var(--et-ease), color var(--et-motion-fast) var(--et-ease);
 }
-[data-eterna-access-root] .ea-btn:hover:not(:disabled) { background: var(--et-accent-hover); }
+[data-eterna-access-root] .ea-btn:hover:not(:disabled) { background: var(--et-accent-fill-hover); }
 [data-eterna-access-root] .ea-btn:focus-visible { outline: none; box-shadow: var(--et-focus-ring); }
 [data-eterna-access-root] .ea-btn:disabled { opacity: .5; cursor: not-allowed; }
 [data-eterna-access-root] .ea-btn.ghost { background: transparent; color: var(--et-fg); border: 1px solid var(--et-border); }
@@ -39,10 +45,11 @@ const CSS = `
 [data-eterna-access-root] .ea-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 [data-eterna-access-root] .ea-row.between { justify-content: space-between; }
 [data-eterna-access-root] .ea-row .ea-input { flex: 1 1 160px; }
+[data-eterna-access-root] .ea-row select.ea-input { flex: 0 0 110px; width: 110px; }
 [data-eterna-access-root] .ea-ok { color: var(--et-success); font-size: var(--et-text-micro); min-height: 18px; margin: 8px 0 0; }
 [data-eterna-access-root] .ea-err, [data-eterna-access-root] .ea-error { color: var(--et-danger); font-size: var(--et-text-micro); min-height: 18px; margin: 8px 0 0; white-space: pre-wrap; }
 [data-eterna-access-root] .ea-hint { color: var(--et-muted); font-size: var(--et-text-micro); line-height: 1.5; }
-[data-eterna-access-root] .ea-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--et-accent); color: var(--et-accent-on);
+[data-eterna-access-root] .ea-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--et-accent-fill); color: var(--et-accent-on);
   display: inline-flex; align-items: center; justify-content: center; font-size: 18px; font-weight: var(--et-weight-display); overflow: hidden; flex: none; }
 [data-eterna-access-root] .ea-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 [data-eterna-access-root] .ea-table-wrap { width: 100%; overflow-x: auto; }
@@ -91,7 +98,7 @@ const CSS = `
 [data-eterna-access-root] .ea-pend { display: inline-flex; align-items: center; gap: 12px; flex: none; position: relative; z-index: 1; }
 [data-eterna-access-root] .ea-switch { box-sizing: border-box; position: relative; flex: 0 0 auto; width: 36px; height: 20px; padding: 2px;
   border: 0; border-radius: var(--et-radius-pill); background: var(--et-border); cursor: pointer; }
-[data-eterna-access-root] .ea-switch[aria-checked="true"] { background: var(--et-accent); }
+[data-eterna-access-root] .ea-switch[aria-checked="true"] { background: var(--et-accent-fill); }
 [data-eterna-access-root] .ea-switch:disabled { cursor: default; opacity: .5; }
 [data-eterna-access-root] .ea-switch::after { content: ""; position: absolute; inset: -8px; }
 [data-eterna-access-root] .ea-switch .ea-thumb { display: block; width: 16px; height: 16px; border-radius: 50%;

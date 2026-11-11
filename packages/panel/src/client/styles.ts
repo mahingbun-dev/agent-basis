@@ -7,6 +7,7 @@ import { injectDesignTokens } from '@eterna/ui'
 
 const CSS = `
 [data-eterna-panel='root'] {
+  width: 100%;
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;

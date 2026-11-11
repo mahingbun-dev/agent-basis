@@ -16,8 +16,10 @@
 | `--et-meta` | `#ababab` | `#737373` | 占位/极弱 |
 | `--et-border` | `#d8d8d8` | `#2a2a2a` | 结构边框 |
 | `--et-border-soft` | `#ebebeb` | `#1e1e1e` | 行分隔 |
-| `--et-accent` | `#146ef5` | `#3b89ff` | 主操作/链接/焦点 |
-| `--et-accent-hover` | `#0055d4` | `#6aa6ff` | 悬停 |
+| `--et-accent` | `#146ef5` | `#3b89ff` | 链接/焦点/强调文字 |
+| `--et-accent-hover` | `#0055d4` | `#6aa6ff` | 文字悬停 |
+| `--et-accent-fill` | `#146ef5` | `#2a6fd0` | 实心按钮/头像底色 |
+| `--et-accent-fill-hover` | `#0055d4` | `#1f5bb0` | 实心按钮悬停 |
 | `--et-success` | `#00a81a` | `#35e35f` | 成功 |
 | `--et-warn` | `#b87300` | `#ffb020` | 警告 |
 | `--et-danger` | `#d3122b` | `#ff4d5f` | 错误/破坏性 |
@@ -39,6 +41,9 @@
 | `--et-success` | `--dsw-alias-state-success-primary` |
 | `--et-warn` | `--dsw-alias-state-warn-primary` |
 | `--et-danger` | `--dsw-alias-state-error-primary` |
+
+桥接声明必须落在 `body`（或 `[data-eterna-ui]`）：DSH 把 `--dsw-alias-*` 定义在
+`body` 而非 `:root`，写在 `:root` 会在深色主题下取不到值、退回 Webflow 浅色兜底。
 
 新增桥接前必须先在上游 `dsh-web-frontend` 样式中确认令牌存在；禁止猜测名称。
 

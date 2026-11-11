@@ -21,6 +21,7 @@ const en = { panel: 'Usage Stats' }
 const CSS = `
 [data-eterna-usage-stats] {
   box-sizing: border-box;
+  width: 100%;
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
@@ -41,14 +42,14 @@ const CSS = `
 [data-eterna-usage-stats] .us-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--et-space-4); margin-bottom: var(--et-space-8); }
 [data-eterna-usage-stats] .us-card { padding: var(--et-space-4); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); background: var(--et-surface); }
 [data-eterna-usage-stats] .us-kicker { font-size: var(--et-text-micro); line-height: 1.3; color: var(--et-muted); margin-bottom: 6px; }
-[data-eterna-usage-stats] .us-value { font-size: var(--et-text-h2); line-height: 1.15; font-weight: var(--et-weight-display); font-variant-numeric: tabular-nums; color: var(--et-fg); }
+[data-eterna-usage-stats] .us-value { font-size: var(--et-text-h3); line-height: 1.15; font-weight: var(--et-weight-display); font-variant-numeric: tabular-nums; color: var(--et-fg); white-space: nowrap; }
 [data-eterna-usage-stats] .us-section { margin-top: var(--et-space-8); }
 [data-eterna-usage-stats] .us-section-title { margin: 0 0 var(--et-space-3); font-size: var(--et-text-lead); line-height: 1.3; font-weight: var(--et-weight-display); color: var(--et-fg); }
 [data-eterna-usage-stats] .us-chart { display: flex; align-items: flex-end; gap: 4px; height: 136px; padding: 12px 12px 0; border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); background: var(--et-surface); }
 [data-eterna-usage-stats] .us-day { flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; min-width: 0; }
 [data-eterna-usage-stats] .us-bar { width: 100%; background: var(--et-accent); border-radius: var(--et-radius-sm) var(--et-radius-sm) 0 0; min-height: 2px; }
 [data-eterna-usage-stats] .us-bar[data-empty='true'] { background: var(--et-border); }
-[data-eterna-usage-stats] .us-chart-label { margin-top: 6px; font-size: 10px; line-height: 1.3; color: var(--et-meta); text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
+[data-eterna-usage-stats] .us-chart-label { margin-top: 6px; font-size: var(--et-text-micro); line-height: 1.3; color: var(--et-meta); text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
 [data-eterna-usage-stats] .us-table-wrap { width: 100%; overflow-x: auto; border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); background: var(--et-surface); }
 [data-eterna-usage-stats] table { width: 100%; border-collapse: collapse; font-size: var(--et-text-caption); }
 [data-eterna-usage-stats] th { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--et-border); color: var(--et-muted); font-size: var(--et-text-micro); font-weight: var(--et-weight-display); white-space: nowrap; }

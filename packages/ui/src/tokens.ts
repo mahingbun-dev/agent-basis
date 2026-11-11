@@ -24,6 +24,8 @@ const LIGHT = `
   --et-accent: #146ef5;
   --et-accent-hover: #0055d4;
   --et-accent-active: #0b4fc0;
+  --et-accent-fill: #146ef5;
+  --et-accent-fill-hover: #0055d4;
   --et-accent-on: #ffffff;
   --et-accent-soft: color-mix(in oklab, var(--et-accent), transparent 90%);
   --et-success: #00a81a;
@@ -55,6 +57,8 @@ const DARK = `
   --et-accent: #3b89ff;
   --et-accent-hover: #6aa6ff;
   --et-accent-active: #146ef5;
+  --et-accent-fill: #2a6fd0;
+  --et-accent-fill-hover: #1f5bb0;
   --et-accent-on: #ffffff;
   --et-accent-soft: color-mix(in oklab, var(--et-accent), transparent 88%);
   --et-success: #35e35f;
@@ -123,7 +127,9 @@ export const WEBFLOW_TOKENS_CSS = `
 
 /** 应用内插件面:把品牌令牌桥接到 DSH 官方语义令牌,主题完全跟随产品壳。 */
 export const DSH_BRIDGE_CSS = `
-:root {
+/* DSH 把 --dsw-alias-* 定义在 body 上(而非 :root);桥接必须同层声明,
+   否则 var() 在 :root 处取不到深色值、退回 Webflow 浅色兜底。 */
+body, [data-eterna-ui] {
   --et-bg: var(--dsw-alias-bg-base, #ffffff);
   --et-surface: var(--dsw-alias-bg-layer-1, #ffffff);
   --et-surface-2: var(--dsw-alias-bg-layer-2, #f7f7f7);
@@ -136,6 +142,10 @@ export const DSH_BRIDGE_CSS = `
   --et-accent: var(--dsw-alias-state-business-primary, #146ef5);
   --et-accent-hover: color-mix(in oklab, var(--et-accent), black 14%);
   --et-accent-active: color-mix(in oklab, var(--et-accent), black 24%);
+  /* 实心按钮用更深的填充色:DSH business-primary 是浅色强调字色,直接当白字
+     按钮底会低于 4.5:1;混黑 35% 后白字对比度约 5:1。 */
+  --et-accent-fill: color-mix(in oklab, var(--et-accent), black 35%);
+  --et-accent-fill-hover: color-mix(in oklab, var(--et-accent), black 45%);
   --et-accent-on: #ffffff;
   --et-accent-soft: color-mix(in oklab, var(--et-accent), transparent 90%);
   --et-success: var(--dsw-alias-state-success-primary, #00a81a);
