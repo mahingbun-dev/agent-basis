@@ -1,0 +1,44 @@
+G-CORE-02 终判轮（2026-11-11，第六轮）独立验收证据
+验收代理：独立验收代理（终判轮，用户书面指定派发代理执行）
+证据批次：2026-11-10T18:41:35–18:42:45Z（本地 2026-11-11 02:41:35–02:42:45 CST）
+注：派发单所述「01:4x–01:5x CST 采集」与证据实际时间不符——本批为 INDEX.md「环境中断登记（01:5x litellm 网关不可达）」恢复后的重采批次，判定按证据实际时间为准。
+
+§1 会话导出实序（session-77f02503-c6b9-438b-8833-0973322b2fd8，57 行 JSONL，/tmp 解压核验）
+turn 1 共 5 次工具调用，全部 isError=false（ok=true）：
+| step | 工具 | arguments | 回执要点 |
+| 1 | browser_snapshot | {"url":"https://hn.algolia.com/"} | 首页快照；textbox [ref=e2] 在快照中 |
+| 2 | browser_fill | {"ref":"e2","value":"playwright"} | ok；filled=10；回执 URL 已跳结果页（站点输入即自动提交，?…query=playwright&sort=byPopularity…）；openedTabs=[] |
+| 3 | browser_snapshot | {} | 无参落同 tab（tabId=775512322），结果页快照；首条 - link（标题，指纹 43ch:a22118cf）[ref=e811]；"787 results" |
+| 4 | browser_click | {"ref":"e811"} | ok；回执 url=https://news.ycombinator.com/item?id=41173335（同 tab 导航，openedTabs=[]）；title 指纹与基准一致 |
+| 5 | browser_snapshot | {} | 同 tab（tabId=775512322）落 HN 讨论页快照 |
+- turn/end reason=completed；user/message kind=user 仅 1 条（话术逐字一致）；approval asked/decided 5 对即时处置；无 bash/web_fetch 调用
+- 纪律第 7 条验证要点：fill 自动提交致旧 ref 失效后，模型先重新 snapshot（step3）取新 ref（e811）再 click——第五轮遗留的「click 失败后未重试」行为已修正
+
+§2 判据 1 核验（顺序+成功计数，独立于 digest）
+- 成功计数：snapshot 3（step1/3/5）、fill 1（step2）、click 1（step4）——三类各 ≥1 次成功（结果无 error）首次全部成立（前五轮 click 成功均为 0）
+- 顺序：snapshot(step1) → fill(step2) → click(step4) 为调用序列子序列，先 snapshot 后 fill 后 click 成立；fill 与 click 之间的 step3 snapshot 为站点自动提交后按纪律重新定位的必要再观察，不影响顺序要件
+- egress 审计日志双源：seq 19/26/33/40/47（18:41:49–18:42:24Z）5 条 tool-call 与会话导出逐项一致，全部 isError=false；turn-end 18:42:33.088Z
+
+§3 判据 2 独立复核（hn.algolia API 基准，本验收代理实抓）
+- GET https://hn.algolia.com/api/v1/search?query=playwright（默认相关度）→ HTTP 200，nbHits=4439（HN 索引实时波动，前几轮 4346/4377/4350，首条结果不变）
+- hits[0]：标题指纹 43ch:a22118cf（43 字符）、url 指纹 70ch:d6f3515c（70 字符）、points=467、num_comments=210、author 与 objectID=41173335
+- agent 回答逐字符比对：标题串 == 基准（true）；原文链接串 == 基准（true）；HN 讨论页链接 == 由 objectID 构造的 item URL（true）；467 points、210 条评论、发布日期均一致
+- 附注：agent 按 fill 自动提交的站点默认热度序搜索；API 默认相关度首条与热度序首条（tabs 截图 byPopularity 视图）为同一条目，基准无分歧
+- 结果页截图 tabs/tab-42864654.png：点击落点 HN 讨论页，页首条目标题+域名+分值+评论数可见
+
+§4 判据 3 核验（最后一次点击后的快照）
+- 最后一次 click（step4）之后存在 snapshot（step5）✓（digest lastClickFollowedBySnapshot=true 与会话导出一致）
+- step5 快照内容抽验（tabId=775512322，url=item?id=41173335）：含结果条目标题链接文本（- link，指纹 43ch:a22118cf）[ref=e64]、域名链接 sakisv.net [ref=e67]、文本 "467 points"、"210 comments"——结果条目链接文本在案
+- 完整原文 URL 串（70 字符）出现在 step3 结果页快照（[ref=e811]/[ref=e814] 邻域）与 agent 最终回答中，均已核验
+
+§5 判据 4 核验
+- record.json：prompt-sent 1 次；approval-clicked 5 次（允许一次，harness 自动批准）；turn-converged ms=68053；tabs-after 含 HN 讨论页 tab（url=item?id=41173335）
+- 会话导出：user/message kind=user 仅 1 条（余为系统注入 agent-instructions/runtime-context/skill-catalog/time-context）；5 对审批 asked/decided 全部即时处置、无悬置、无请求用户介入停顿
+
+§6 digest 交叉核验（gate-digest.mjs 2026-11-11 重写版，第五轮整改项闭合验证）
+- digest.json session=77f02503（本用例真实会话，数据源归属正确）；sequence 5 项与 §1 实序逐项一致；snapshotCount=3/fillCount=1/clickCount=1、clickNoError=true、orderSubsequence=true、lastClickFollowedBySnapshot=true、allNoError=true——全部与本验收代理独立复算一致
+- 第五轮遗留 2（digest 缺陷：单一最新会话数据源/共用 calls/副本重复计数/isError 失真）已由重写修复；digest-session-calls.json 不再产出
+
+§7 原始复核输出位置
+- /tmp/gate-r6-sessions/indep-hn-relevance.json（API 基准响应）；会话导出解压件 /tmp/gate-r6-sessions/session-77f02503-*.jsonl（判定后留存于 .eterna-gate-home/sessions/）
+- egress-whitelist.yml 实读 14 条规则，hn.algolia.com/news.ycombinator.com 在列（前置条件成立）

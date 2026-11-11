@@ -446,6 +446,24 @@
     - id: eterna-access
       name: '@eterna/access'
 
+# ── Companion 浏览器执行面（E4 生产挂载，2026-11-11）：用户浏览器=执行面 ────
+# dsh-mcp-client stdio 挂 browser-relay 的 MCP server（三工具 mcp__browser__*）；
+# relay 同容器 127.0.0.1:9310（entrypoint 后台拉起，扩展 ws 连入）。
+# 扩展未连接时工具报错附指引页 URL（模型转告用户，guide 页含下载与安装步骤）。
+# 非 dsh 红线插件：admin 可在插件管理停用（entrypoint strip 按 id 裁剪）。
+- insert:
+    - id: mcp-browser
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: browser
+        transport: stdio
+        command: node
+        args:
+          - /repo/packages/browser-relay/dist/mcp.mjs
+        env:
+          ETNA_RELAY_BASE: http://127.0.0.1:9310
+        toolCallTimeoutMs: 120000
+
 # LLM 承载（根级覆写 base 休眠行，非 insert——原因见上）：pi-ai 多协议适配器
 - id: llm-pi-ai
   config:

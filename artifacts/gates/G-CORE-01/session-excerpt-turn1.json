@@ -1,0 +1,29 @@
+[
+  {
+    "turn": 1,
+    "step": 1,
+    "callId": "call_b0774adc4d0a44f3976a4e8f",
+    "name": "mcp__browser__browser_snapshot",
+    "arguments": "{\"url\":\"https://example.com\"}"
+  },
+  {
+    "turn": 1,
+    "step": 1,
+    "message": {
+      "role": "tool",
+      "source": {
+        "kind": "tool",
+        "callId": "call_b0774adc4d0a44f3976a4e8f"
+      },
+      "toolCallId": "call_b0774adc4d0a44f3976a4e8f",
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"ok\":true,\"tool\":\"browser_snapshot\",\"result\":{\"tabId\":1733744318,\"url\":\"https://example.com/\",\"title\":\"Example Domain\",\"snapshot\":\"- text \\\"Example Domain\\\"\\n- paragraph \\\"该域名仅用于文档示例，无需获得许可。这并非一项服务，请勿将其用于测试和监控目的。\\\"\\n- paragraph \\\"This domain is for use in documentation examples without needing permission. This is not a service; avoid relying on it \\\"\\n- paragraph \\\"هذا النطاق مُخصص للاستخدام في أمثلة التوثيق دون الحاجة إلى إذن. هذه ليست خدمة، يُرجى تجنب الاعتماد عليها لأغراض الاختبار\\\"\\n- paragraph \\\"L’usage de ce domaine est réservé à des exemples de documentation, sans autorisation préalable. Il ne s’agit pas d’un se\\\"\\n- paragraph \\\"Данный домен предназначен для использования в примерах документации без необходимости получения предварительного разреше\\\"\\n- paragraph \\\"Este dominio está destinado al uso en ejemplos de documentación sin necesidad de permiso. Esto no es un servicio; evitar\\\"\\n- link \\\"Learn more\\\" [ref=e15]\\n- text \\\"html{color-scheme:light dark;background:light-dark(#eee,#222)}body{font:16px/1.6 system-ui,sans-serif;max-width:26em;margin:auto;padding:25vh 2em 2em;text-align:center}\\\"\\n- text \\\"svg{display:block;margin:-2.75em auto 0;opacity:.55}p+p{font-size:.875em;opacity:.6}\\\"\"}}"
+        }
+      ],
+      "isError": false,
+      "id": "b0a4e997-30d1-48ae-8ce4-aec9a911beba"
+    }
+  }
+]

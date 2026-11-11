@@ -1,0 +1,28 @@
+G-CORE-03 独立复核
+agent 回答正文首段: len=89 sha=9f3f458331f94fc6
+独立基准正文首段: len=89 sha=9f3f458331f94fc6
+逐字符一致（仅首尾空白容差）: true
+空白折叠后一致: true
+基准原文:
+  近期，习近平总书记就建设更高水平平安中国作出重要指示强调：“在国家更加安全、社会更加有序、治理更加有效、人民更加满意上持续用力，以更高水平平安中国建设保障中国式现代化行稳致远。”
+agent 回答原文:
+  近期，习近平总书记就建设更高水平平安中国作出重要指示强调：“在国家更加安全、社会更加有序、治理更加有效、人民更加满意上持续用力，以更高水平平安中国建设保障中国式现代化行稳致远。”
+
+G-CORE-03 判据1 裁决口径核验
+click(step2,seq=28) ok=? openedTabs 数=1 详情 tab url=https://www.peopleapp.com/column/30053528333-500007778998
+openedTabs 详情 title: len=41 sha=bed4be4332042a84
+step3(seq=35) 快照 url 与 openedTabs 一致=true；title 与 openedTabs 一致=true（len=41）
+锚文本（点击前快照 e219 link 名称，len=36 sha=b6418767868022af）⊆ 详情页 title: false
+openedTabs title 原文: 总书记的人民情怀｜建设更高水平平安中国是中国式现代化的重要目标和重要保障_人民日报
+锚文本原文: 总书记的人民情怀丨建设更高水平平安中国是中国式现代化的重要目标和重要保障
+
+G-CORE-03 判据3 ref 比对: step1 快照长度=12590 含[ref=e219]=true
+
+G-CORE-03 会话内数据源核验: step3 完整快照（spill，52145 字节）含 agent 回答首段文本=true；含独立基准首段文本=true；step1 首页快照含锚文本=true
+
+G-CORE-03 判据1 锚文本/标题一致性补充核验
+锚文本 len=36 详情title len=41（去「_人民日报」后缀后 36）
+归一化分隔符（丨/｜/| 互认）后 锚文本 ⊆ 详情title: true
+逐码点差异位置（title主体 vs 锚文本）:
+  pos8: 锚="丨"(U+4e28) title="｜"(U+ff5c)
+结论: 除分隔符字形（U+4E28 vs U+FF5C）外逐字符一致: true

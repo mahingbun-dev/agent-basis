@@ -1,0 +1,5 @@
+=== 独立复核：抓取 example.com 页面标题（2026-11-10，独立验收代理）===
+<title>Example Domain</title>
+
+比对对象：G-CORE-01 会话回答「Example Domain」
+结论：逐字符一致

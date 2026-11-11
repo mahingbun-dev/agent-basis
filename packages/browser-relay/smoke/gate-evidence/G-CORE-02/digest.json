@@ -1,0 +1,17 @@
+{
+  "session": "session-77f02503-c6b9-438b-8833-0973322b2fd8",
+  "sequence": [
+    "browser_snapshot(1/1)",
+    "browser_fill(1/2)",
+    "browser_snapshot(1/3)",
+    "browser_click(1/4)",
+    "browser_snapshot(1/5)"
+  ],
+  "snapshotCount": 3,
+  "fillCount": 1,
+  "clickCount": 1,
+  "clickNoError": true,
+  "orderSubsequence": true,
+  "lastClickFollowedBySnapshot": true,
+  "allNoError": true
+}

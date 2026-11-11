@@ -70,10 +70,49 @@ done
 # creation-skills 别名(preset-cordis skill-filesystem 解析名)
 ln -sfn "$REPO/packages/brand" "$PROFILE_DIR/node_modules/@eterna/creation-skills"
 
-# ── 4. @deepseek-ai 家族 → 全局 dsh 同版本拷贝 ─────────────────────────
+# ── 4. @deepseek-ai 家族 → 全局拷贝 ─────────────────────────────────────
+# preset 必须指 dsh 包内拷贝（版本与运行内核严格一致——指向别处会静默 disable）；
+# mcp-client 指独立全局安装包（Dockerfile 显式 npm i -g，0.2.2-rc.1）。
 DSH_PKG="$(dirname "$(dirname "$(readlink -f "$(command -v dsh)")")")"
 ln -sfn "$DSH_PKG/node_modules/@deepseek-ai/dsh-agent-preset" \
   "$PROFILE_DIR/node_modules/@deepseek-ai/dsh-agent-preset"
+MCP_CLI="$(npm root -g)/@deepseek-ai/dsh-mcp-client"
+if [ -d "$MCP_CLI" ]; then
+  ln -sfn "$MCP_CLI" "$PROFILE_DIR/node_modules/@deepseek-ai/dsh-mcp-client"
+else
+  echo "[entrypoint] 警告：全局 @deepseek-ai/dsh-mcp-client 不存在（$MCP_CLI）——mcp-browser 挂载将失效"
+fi
+
+# ── 4.5 companion 中继（浏览器执行面）：后台监督循环拉起 ──────────────────
+# relay=用户浏览器扩展的 ws 接入腿 + mcp-browser 工具的 HTTP 后端。
+# token：ETERNA_RELAY_TOKEN env 优先；缺省生成随机 token 落卷（重启不变），
+# docker logs 提示路径。红线 9（中继鉴权）：生产必带 token。
+RELAY_TOKEN="${ETERNA_RELAY_TOKEN:-}"
+if [ -z "$RELAY_TOKEN" ]; then
+  TOKEN_FILE="$DSH_HOME/relay-token"
+  if [ -f "$TOKEN_FILE" ]; then
+    RELAY_TOKEN="$(cat "$TOKEN_FILE")"
+  else
+    RELAY_TOKEN="rl-$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+    printf '%s' "$RELAY_TOKEN" > "$TOKEN_FILE"
+    chmod 600 "$TOKEN_FILE"
+  fi
+fi
+RELAY_ARGS="start --host 0.0.0.0 --port 9310 --token $RELAY_TOKEN --zip /repo/packages/extension-companion/eterna-companion.zip"
+if [ -n "${ETERNA_RELAY_PUBLIC_URL:-}" ]; then
+  RELAY_ARGS="$RELAY_ARGS --public-ws-url $ETERNA_RELAY_PUBLIC_URL"
+fi
+(
+  while true; do
+    node /repo/packages/browser-relay/dist/cli.mjs $RELAY_ARGS || true
+    sleep 2
+  done
+) &
+if [ -n "${ETERNA_RELAY_TOKEN:-}" ]; then
+  echo "[entrypoint] companion relay 后台启动 :9310（token=env 注入；publicWsUrl=${ETERNA_RELAY_PUBLIC_URL:-未设（guide 按本机默认展示）}）"
+else
+  echo "[entrypoint] companion relay 后台启动 :9310（token 已生成落卷 $DSH_HOME/relay-token；publicWsUrl=${ETERNA_RELAY_PUBLIC_URL:-未设（guide 按本机默认展示）}）"
+fi
 
 # ── 5. 启动(--host 拒通配:解析容器具体地址) ────────────────────────────
 IP="$(hostname -i | awk '{print $1}')"

@@ -1,0 +1,49 @@
+G-CORE-01 第四轮验收证据摘录（2026-11-10 23:11–23:13 CST fresh boot，第四轮验收代理提取）
+==============================================================================
+
+【证据源】
+- smoke/gate-evidence/G-CORE-01/record.json（prompt、observations）
+- 会话导出 session-6db4e9be-b652-4ddc-87e3-87b5baec6670/session.v4.jsonl.zstd
+  （解压后 jq 提取，方法同前三轮）
+- egress 审计日志 /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/gate-cwd/.eterna/audit-20261110.jsonl
+- 第四轮独立复核：curl https://example.com/（本轮验收代理自行执行）
+
+【1. record.json 关键观察】
+- prompt: 「打开 example.com 并读出页面标题」（与门禁话术逐字一致）
+- startedAt: 2026-11-10T15:11:31.569Z；turn-converged ms=21639
+- prompt-sent 1 次；approval-clicked 1 次（label「允许一次」，harness 自动批准）
+- tabs-after: {url:"https://example.com/", title:"Example Domain"}（新增 tab）
+- session-full-text 答：「已打开 https://example.com/，页面标题是：\n\nExample Domain」
+- browser-tool-calls-observed-in-ui: []（空，同前三轮，以会话导出为准）
+
+【2. 会话导出工具调用序列（jq 提取，session-6db4e9be）】
+- tool/call seq=18 turn=1 step=1 name=mcp__browser__browser_snapshot
+  arguments={"url":"https://example.com"}
+- tool/result seq=22 data.message.isError=false
+  content 解析：{"tabId":929199081,"url":"https://example.com/","title":"Example Domain",
+  "snapshot":"- text \"Example Domain\"\n- paragraph \"该域名仅用于文档示例…\"…"}
+  → a11y 结构化树（角色+名称层级），快照全文 1356 字节
+- HTML 源码特征检索：`</?[a-zA-Z][^>]*>` 在快照全文命中 0 处
+- turn/end: {"turn":1,"reason":{"kind":"completed"}}
+- approval: asked(seq19)→decided(seq21, allowed-once) 1 对，即时处置
+- user/message kind=user 仅 1 条真实指令（seq8「打开 example.com 并读出页面标题」），余为系统注入
+- 会话全文 error/fail/attach 检索：命中均为系统提示词文本（工具描述），无真实错误
+
+【3. egress 审计日志（第四轮窗口 15:11:31–15:13:48Z）】
+- G-CORE-01 段：{"kind":"tool-call","at":"2026-11-10T15:11:40.903Z","tool":"mcp__browser__browser_snapshot","step":1,"isError":false}
+  {"kind":"turn-end","at":"2026-11-10T15:11:42.658Z","reason":"completed"}
+- 窗口内 "isError":true 计数 = 0；attach/denied/refused/egress 字样 = 0
+
+【4. 第四轮独立复核（本轮验收代理执行）】
+$ curl -s --max-time 25 https://example.com/ → HTTP 200，577 字节
+$ grep -o '<title>[^<]*</title>' → <title>Example Domain</title>
+
+【5. 三方逐字符比对（判据 1）】
+- agent 回答：Example Domain
+- 独立抓取 <title>：Example Domain
+- tabs-after tab 标题：Example Domain
+→ 三者逐字符一致
+
+【6. 渲染截图目视核验（第四轮）】
+- tabs/tab-1856498399.png：example.com 正常渲染（多语言正文 + Learn more 链接）；
+  CDP 截图不含浏览器地址栏（形态缺口延续，定性同前三轮）

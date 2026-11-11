@@ -1,0 +1,27 @@
+=== relay/服务端日志检索输出留痕（2026-11-10，独立验收代理）===
+日志来源 1：gate-setup 进程输出（relay stderr 继承，覆盖本次验收环境生命周期 19:05 起）
+--- grep -niE "attach|error|fail|disconnect" 该日志结果 ---
+（无匹配行——无 attach 失败记录）
+
+--- 日志全文 ---
+[gate-setup] egress 验收白名单已写 /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/gate-cwd/.eterna
+[gate-setup] profile 物化完成（LLM=http://192.168.31.165:4000/v1，模型=mimo-v2.6-flash）
+[gate-setup] symlinks 完成（@eterna 七项 + dsh-agent-preset + dsh-mcp-client）
+[gate-setup] relay 已启动 pid=40668
+[gate-setup] eterna web 就绪：http://127.0.0.1:50454/?token=cthbnBCbKs0XCTJXbbt70In_GBXmCLnhdAA8jc4jW4A
+[gate-setup] 环境就绪，凭据与进程已写 /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/gate-env.json（本脚本可退出，进程 detached 存活）
+[relay] relay 监听 http://127.0.0.1:9310（/extension /cdp /api/tools /fixture）
+[relay] 扩展已连接
+[relay] EXT event ← Inspector.detached tab=1733744322
+[relay] EXT event ← Inspector.detached tab=1733744321
+[relay] EXT event ← Inspector.detached tab=1733744320
+[relay] EXT event ← Inspector.detached tab=1733744319
+[relay] EXT event ← Inspector.detached tab=1733744318
+[relay] 扩展断开
+
+日志来源 2：会话导出 session.v4.jsonl 中 attach 字样检索：0 条（无 attach 相关记录）
+日志来源 3：egress 审计日志 audit-20261110.jsonl，按本次验收运行时间窗（>=2026-11-10T11:18）过滤 tool-call：
+  合计 14 条；其中 G-CORE-01（turn 1）1 条：11:18:41 mcp__browser__browser_snapshot isError=false；turn 1 中 isError=true 共 0 条。
+  （注：审计日志同日还含实现者自测运行 10:45–11:00 的记录，已按时间窗排除；未过滤的全量 grep 会命中自测期 turn 1 的 1 条 error，与本次验收运行无关。）
+
+结论：G-CORE-01 该轮所有工具调用无 error 返回；扩展与服务端日志无 attach 失败记录。

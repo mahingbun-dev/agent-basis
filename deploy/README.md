@@ -122,3 +122,46 @@ bootstrap token 视为敏感；公网入口建议反代层再加 basic auth 双�
 - **R12**：上游流端点（WS mux）不经守卫——工作区列表元数据对登录用户全局可见；数据面已隔离
 - **失败开放**（R7）：access 插件挂载失败时 web 仍起（无门禁）——监控启动日志 FAILED fiber
 - 插件启停/删除为**实例级**语义（共享 owner 会话模型约束）；per-user 插件可见性列上游需求项
+
+## 10. Companion 浏览器执行面（扩展分发 + 中继）
+
+「用户的浏览器 = Agent 执行面」：用户在自己浏览器装 Eterna Companion 扩展（MV3，
+chrome.debugger），Agent 经中继（relay）驱动用户真实浏览器页签，登录态天然复用。
+
+**组件与端口**（容器内 entrypoint 自动拉起，无需手工起进程）：
+
+| 组件 | 位置 | 说明 |
+| --- | --- | --- |
+| relay | 容器内 `0.0.0.0:9310`（宿主映射 `9310`） | `/extension`=扩展 ws 腿（token 鉴权）；`/api/tools`=mcp-browser 后端（仅容器内 127.0.0.1 用）；`/companion/download.zip`+`/companion/guide`=用户引导 |
+| mcp-browser | 生产 profile 模板 insert 块 | dsh-mcp-client stdio → `dist/mcp.mjs`；会话工具面出现 `mcp__browser__*` 三工具 |
+| 扩展 zip | 镜像内 `/repo/packages/extension-companion/eterna-companion.zip` | 镜像构建期产出（Dockerfile build 阶段） |
+
+**relay token（红线 9）**：`ETERNA_RELAY_TOKEN` env 优先；缺省首次启动自动生成
+随机 token 落卷 `/data/relay-token`（重启不变）。取值：
+
+```bash
+docker exec eterna-agent cat /data/relay-token
+```
+
+**用户侧安装（本机/局域网直连形态）**：
+
+1. 浏览器开 `http://<本机IP>:9310/companion/guide` → 下载 zip 并解压；
+2. `chrome://extensions` 开发者模式 → 加载已解压的扩展程序；
+3. 扩展 options 里中继地址填 `ws://<本机IP>:9310/extension`、token 填上述值；
+4. Eterna 会话说「打开 example.com」验证（扩展未连接时工具会报错并附指引页链接）。
+
+**生产反代形态（外网用户）**：DSM 反代加一条规则——来源
+`https://<域名>:<端口>/relay`（WebSocket 开启）→ 目标 `http://<本机IP>:9310`，
+并在 `.env` 设：
+
+```bash
+ETERNA_RELAY_PUBLIC_URL=wss://<域名>:<端口>/relay/extension
+```
+
+guide 页与工具报错文案即按该地址展示；用户扩展 options 填同地址。
+
+**已知边界**：relay 当前**单扩展连接位**（第二连接 409）——一个部署实例同一时刻
+只服务一个用户浏览器；多人并发属 E4 后续（会话级 relay 编排）。`/api/tools`
+仅容器内消费，反代不要转发除 `/relay`（→`/`）之外的路径。
+
+**验证**：`deploy/verify.sh` 第 8-10 项（status/zip/guide 三端点）。

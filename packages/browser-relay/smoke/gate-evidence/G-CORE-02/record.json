@@ -1,0 +1,114 @@
+{
+  "id": "G-CORE-02",
+  "prompt": "在 Hacker News 搜索 playwright，告诉我第一条结果的标题和链接",
+  "startedAt": "2026-11-10T18:41:35.276Z",
+  "observations": [
+    {
+      "at": "2026-11-10T18:41:37.788Z",
+      "kind": "new-session",
+      "data": {}
+    },
+    {
+      "at": "2026-11-10T18:41:37.792Z",
+      "kind": "tabs-before",
+      "data": {
+        "capturedAt": "2026-11-10T18:41:37.788Z",
+        "pages": [
+          {
+            "url": "http://127.0.0.1:50454/",
+            "title": "EternaAgent"
+          },
+          {
+            "url": "https://example.com/",
+            "title": "Example Domain"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-11-10T18:41:37.853Z",
+      "kind": "prompt-sent",
+      "data": {
+        "usedEnter": true
+      }
+    },
+    {
+      "at": "2026-11-10T18:41:47.940Z",
+      "kind": "approval-clicked",
+      "data": {
+        "label": "允许一次"
+      }
+    },
+    {
+      "at": "2026-11-10T18:42:04.536Z",
+      "kind": "approval-clicked",
+      "data": {
+        "label": "允许一次"
+      }
+    },
+    {
+      "at": "2026-11-10T18:42:11.129Z",
+      "kind": "approval-clicked",
+      "data": {
+        "label": "允许一次"
+      }
+    },
+    {
+      "at": "2026-11-10T18:42:17.737Z",
+      "kind": "approval-clicked",
+      "data": {
+        "label": "允许一次"
+      }
+    },
+    {
+      "at": "2026-11-10T18:42:24.332Z",
+      "kind": "approval-clicked",
+      "data": {
+        "label": "允许一次"
+      }
+    },
+    {
+      "at": "2026-11-10T18:42:45.906Z",
+      "kind": "turn-converged",
+      "data": {
+        "ms": 68053
+      }
+    },
+    {
+      "at": "2026-11-10T18:42:45.906Z",
+      "kind": "session-full-text",
+      "data": "恒灵·EternaAgent\n新会话\n⌥\n⌘\nN\n插件\n自动化任务\n更多\n工作区\ngate-admin\nHN搜索Playwright首条结果\n刚刚\n打开网页并读取标题\n1分钟\n设置\nHN搜索Playwright首条结果\n创造模式\n对话\n轨迹\n在 Hacker News 搜索 playwright，告诉我第一条结果的标题和链接\n02:41\n已完成\n已完成，用时 55秒\n\n已在 Hacker News（Algolia 官方搜索，按热度排序，全时段）搜索 playwright，第一条结果：\n\n标题：Tracking supermarket prices with Playwright\n原文链接：https://www.sakisv.net/2024/08/tracking-supermarket-prices-playwright/\nHN 讨论页：https://news.ycombinator.com/item?id=41173335（467 points，210 条评论，2024-08-06 发布）\n\n补充：搜索共 787 条结果；点击标题落到的是 HN 讨论页，讨论页顶部的标题链接才指向 sakisv.net 原文，已通过快照核实。\n\n用量 95.6K tok\n02:42\n发消息或创建任务, / 调用指令, @ 文件或对话\n工作区内修改\nmimo-v2.6-flash\nDefault\n1 轮 6 步·37 tok/s\n95.6K tok·缓存命中 86%\n8%\ng\ngate-admin\n退出"
+    },
+    {
+      "at": "2026-11-10T18:42:45.906Z",
+      "kind": "session-tail-text",
+      "data": "恒灵·EternaAgent\n新会话\n⌥\n⌘\nN\n插件\n自动化任务\n更多\n工作区\ngate-admin\nHN搜索Playwright首条结果\n刚刚\n打开网页并读取标题\n1分钟\n设置\nHN搜索Playwright首条结果\n创造模式\n对话\n轨迹\n在 Hacker News 搜索 playwright，告诉我第一条结果的标题和链接\n02:41\n已完成\n已完成，用时 55秒\n\n已在 Hacker News（Algolia 官方搜索，按热度排序，全时段）搜索 playwright，第一条结果：\n\n标题：Tracking supermarket prices with Playwright\n原文链接：https://www.sakisv.net/2024/08/tracking-supermarket-prices-playwright/\nHN 讨论页：https://news.ycombinator.com/item?id=41173335（467 points，210 条评论，2024-08-06 发布）\n\n补充：搜索共 787 条结果；点击标题落到的是 HN 讨论页，讨论页顶部的标题链接才指向 sakisv.net 原文，已通过快照核实。\n\n用量 95.6K tok\n02:42\n发消息或创建任务, / 调用指令, @ 文件或对话\n工作区内修改\nmimo-v2.6-flash\nDefault\n1 轮 6 步·37 tok/s\n95.6K tok·缓存命中 86%\n8%\ng\ngate-admin\n退出"
+    },
+    {
+      "at": "2026-11-10T18:42:45.906Z",
+      "kind": "browser-tool-calls-observed-in-ui",
+      "data": []
+    },
+    {
+      "at": "2026-11-10T18:42:45.911Z",
+      "kind": "tabs-after",
+      "data": {
+        "capturedAt": "2026-11-10T18:42:45.907Z",
+        "pages": [
+          {
+            "url": "http://127.0.0.1:50454/",
+            "title": "HN搜索Playwright首条结果 — EternaAgent"
+          },
+          {
+            "url": "https://example.com/",
+            "title": "Example Domain"
+          },
+          {
+            "url": "https://news.ycombinator.com/item?id=41173335",
+            "title": "Tracking supermarket prices with Playwright | Hacker News"
+          }
+        ]
+      }
+    }
+  ]
+}

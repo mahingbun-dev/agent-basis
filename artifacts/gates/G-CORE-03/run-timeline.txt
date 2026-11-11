@@ -1,0 +1,14 @@
+=== G-CORE-03 本次运行时间线（独立验收代理提取）===
+来源：smoke/gate-evidence/G-CORE-03/record.json + 会话导出 session.v4.jsonl + egress 审计日志
+
+2026-11-10T11:21:04.838Z  gate-run 发送 G-CORE-03 话术（record.json prompt-sent）
+2026-11-10T11:21:04.602Z  此刻 G-CORE-02（turn 2）仍在执行（session-full-text 显示「深度求索中，用时 2分3秒」）
+2026-11-10T11:21:04.948Z  session.v4.jsonl seq#88 agent/inbox/spliced target=next-turn —— G-CORE-03 话术被排入下一轮队列，未立即执行
+2026-11-10T11:21:20/11:21:41/11:22:08  3 次 approval-clicked（自动批准，均属 turn 2 步骤）
+2026-11-10T11:23:09.886Z  gate-run 采集 G-CORE-03 session-full-text：界面显示 turn 2 仍「深度求索中，用时 4分8秒」，G-CORE-03 话术仅出现在输入区/排队提示（「Cmd/Ctrl+Enter 插话发送全部排队消息」）
+2026-11-10T11:23:09.897Z  tabs-after：6 个 tab，无任何 people.com.cn tab
+2026-11-10T11:23:10.160Z  gate-run 结束并退出（gate-run-summary.json finishedAt）
+2026-11-10T11:23:23.544Z  session.v4.jsonl 最后写入：turn 2 step 14 job_output 的 approval/asked 悬置未决——harness 退出后无人批准，会话停滞
+
+结论：本运行中 G-CORE-03 任务（turn 3）从未开始执行——会话导出中无该轮工具调用、无浏览器导航、无最终回答；截至会话最后写入（11:23:23）仍停在 turn 2 的未决审批卡。
+（对照：实现者自测运行 10:55–10:58 的 turn 3 曾执行 snapshot→click ref=e1095→snapshot 流程，但那不是本次验收运行的证据，不作为判定依据。）
