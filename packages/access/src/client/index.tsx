@@ -95,11 +95,14 @@ export function apply(ctx: AccessClientContext): () => void {
         locale: NS,
         label: () => t('section.approvalQueue'),
       }, ApprovalQueueSection))
-      // 右侧插件页:「恒灵插件」管理页签
-      // slot 名=upstream ui-settings contract 的 settings.plugins.tab(2026-11-11 E2E 修复:
-      // 旧名 plugins.tab 与上游消费方不匹配→页签永不渲染)
-      ctx.slots.inject('settings.plugins.tab', () => ctx.slots.register({
-        name: 'settings.plugins.tab',
+      // 侧栏「插件」页:「恒灵插件」管理页签(统一入口——与发现/已安装同层,
+      // 用户在插件页管理插件;设置弹窗「内置插件」只留上游清单视图)。
+      // plugins.tab=upstream ui-plugin-manager 主面板声明的 list slot
+      // (index.ts:140)。2026-11-11 第一轮曾误判 slot 名不匹配改注 settings.plugins.tab
+      // ——实际当时整页被 pluginManager/listBundles 门控隐藏;mux 补授权后页面可达,
+      // 本名即正确挂载。
+      ctx.slots.inject('plugins.tab', () => ctx.slots.register({
+        name: 'plugins.tab',
         id: `${NS}.manage`,
         order: 20,
         locale: NS,
