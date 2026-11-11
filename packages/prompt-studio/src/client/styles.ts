@@ -10,6 +10,7 @@ import { injectDesignTokens } from '@eterna/ui'
 
 const CSS = `
 [data-t7-studio-root], [data-t7-trace-root] {
+  width: 100%;
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
@@ -101,9 +102,9 @@ const CSS = `
 [data-t7-save-btn] {
   padding: 10px 18px; font: inherit; font-size: var(--et-text-caption); font-weight: var(--et-weight-display); cursor: pointer;
   color: var(--et-accent-on);
-  background: var(--et-accent); border: 0; border-radius: var(--et-radius-sm);
+  background: var(--et-accent-fill); border: 0; border-radius: var(--et-radius-sm);
 }
-[data-t7-save-btn]:hover:not(:disabled) { background: var(--et-accent-hover); }
+[data-t7-save-btn]:hover:not(:disabled) { background: var(--et-accent-fill-hover); }
 [data-t7-save-btn]:disabled { opacity: 0.45; cursor: default; }
 
 /* —— 写结果(就地展示) —— */
@@ -161,9 +162,9 @@ const CSS = `
 [data-t7-approve-btn] {
   padding: 10px 18px; font: inherit; font-size: var(--et-text-caption); font-weight: var(--et-weight-display); cursor: pointer;
   color: var(--et-accent-on);
-  background: var(--et-accent); border: 0; border-radius: var(--et-radius-sm);
+  background: var(--et-accent-fill); border: 0; border-radius: var(--et-radius-sm);
 }
-[data-t7-approve-btn]:hover:not(:disabled) { background: var(--et-accent-hover); }
+[data-t7-approve-btn]:hover:not(:disabled) { background: var(--et-accent-fill-hover); }
 [data-t7-approve-btn]:disabled, [data-t7-reject-btn]:disabled { opacity: 0.45; cursor: default; }
 [data-t7-reject-btn] {
   padding: 8px 20px; font: inherit; font-size: var(--et-text-caption); cursor: pointer;
@@ -489,9 +490,9 @@ const CSS = `
 [data-ps-ai-propose-btn] {
   padding: 8px 20px; font: inherit; font-size: var(--et-text-caption); font-weight: 600; cursor: pointer;
   color: var(--et-accent-on);
-  background: var(--et-accent); border: 0; border-radius: var(--et-radius-sm);
+  background: var(--et-accent-fill); border: 0; border-radius: var(--et-radius-sm);
 }
-[data-ps-ai-propose-btn]:hover:not(:disabled) { filter: brightness(1.08); }
+[data-ps-ai-propose-btn]:hover:not(:disabled) { background: var(--et-accent-fill-hover); }
 [data-ps-ai-propose-btn]:disabled { opacity: 0.45; cursor: default; }
 [data-ps-ai-discard-btn] {
   padding: 8px 20px; font: inherit; font-size: var(--et-text-caption); cursor: pointer;

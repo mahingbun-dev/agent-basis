@@ -65,7 +65,7 @@ export function MyPluginsSection(): React.JSX.Element {
     } finally { setBusy(false) }
   }
 
-  return <section className="ea-section" data-eterna-my-plugins>
+  return <section className="ea-section" data-eterna-access-root data-eterna-my-plugins>
     <h3>我的插件</h3>
     <p className="ea-hint">个人插件仅本人可见可用;好用的插件可发起「转内置」给全团队使用。</p>
     {message !== '' && <p className="ea-error" role="alert">{message}</p>}
@@ -122,7 +122,7 @@ export function NotificationsSection(): React.JSX.Element {
   }, [])
   useEffect(() => { void refresh() }, [refresh])
 
-  return <section className="ea-section" data-eterna-notifications>
+  return <section className="ea-section" data-eterna-access-root data-eterna-notifications>
     <h3>消息与审批{unread > 0 ? `(${unread} 未读)` : ''}</h3>
     <div className="ea-list">
       {notifications.length === 0 && <p className="ea-hint">暂无消息</p>}
@@ -165,7 +165,7 @@ export function ApprovalQueueSection(): React.JSX.Element {
     } finally { setBusy(false) }
   }
 
-  return <section className="ea-section" data-eterna-approval-queue>
+  return <section className="ea-section" data-eterna-access-root data-eterna-approval-queue>
     <h3>审批队列</h3>
     {items.length === 0 && <p className="ea-hint">暂无待审批请求</p>}
     <div className="ea-list">

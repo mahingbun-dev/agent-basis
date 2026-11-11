@@ -42,7 +42,7 @@
 | 画布 | `--et-bg` / `--et-surface` / `--et-surface-2` | 白 / 白 / 浅灰；深色派生 |
 | 文字 | `--et-fg` / `--et-fg-2` / `--et-muted` / `--et-meta` | 近黑 / 正文 / 辅助 / 占位 |
 | 边框 | `--et-border` / `--et-border-soft` | 卡片 / 行分隔 |
-| 强调 | `--et-accent` / `--et-accent-hover` / `--et-accent-soft` | 单一 Webflow Blue |
+| 强调 | `--et-accent` / `--et-accent-fill` / `--et-accent-soft` | 链接与焦点 / 实心按钮 / 浅底；实心按钮白字须过 4.5:1 |
 | 语义 | `--et-success` / `--et-warn` / `--et-danger` | 状态与破坏性操作 |
 | 字号 | 12 / 14 / 16 / 20 / 24 / 32 / 56 | 辅助 / 紧凑 / 正文 / 引导 / 分区 / 页面 / 独立页主标题 |
 | 字重 | 500 / 600 | 正文 / 标题；中文标题字距 0 |

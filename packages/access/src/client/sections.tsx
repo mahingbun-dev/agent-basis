@@ -99,7 +99,7 @@ export function CompanionCard(): React.JSX.Element {
     window.setTimeout(() => { setCopied(false) }, 2000)
   }
 
-  return <div className="ea-card">
+  return <div className="ea-card ea-card-wide">
     <h3 style={{ margin: '0 0 12px' }}>浏览器执行面</h3>
     <p className="ea-hint" style={{ margin: '0 0 8px' }}>让你的浏览器成为 Agent 的执行面：安装扩展后，Agent 可在你登录过的页面上代你操作（数据与登录态都不离开你的浏览器）。每台浏览器用独立令牌接入。</p>
     {view === null

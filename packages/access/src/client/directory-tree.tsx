@@ -89,7 +89,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'transparent', color: 'inherit',
   },
   primary: {
-    background: 'var(--et-accent)',
+    background: 'var(--et-accent-fill)',
     borderColor: 'transparent', color: 'var(--et-accent-on)',
   },
   error: { color: 'var(--et-danger)', fontSize: 13, lineHeight: 1.5 },
