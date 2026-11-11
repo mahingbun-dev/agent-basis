@@ -1,0 +1,81 @@
+{
+  "startedAt": "2026-11-11T02:08:01.498Z",
+  "chrome": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "pages": [
+    {
+      "name": "light AI 润色建议稿卡+diff 预览(真模型建议稿;缺红线底稿→diff 见补线增行;提案按钮走 R3)",
+      "file": "ai-diff-light.png",
+      "bytes": 66620,
+      "md5": "b439817e44c547c25cc84b8e63103040",
+      "state": "uncapped(root h=5064/scroll=5064)"
+    },
+    {
+      "name": "light AI 审核报告卡(本地校验器 ruleFindings+模型问题清单+建议列表;仅展示不拦截)",
+      "file": "ai-review-light.png",
+      "bytes": 221651,
+      "md5": "da79f54a3011b85c2b2ee5d6c2125da1",
+      "state": "uncapped(root h=5896/scroll=5896)"
+    },
+    {
+      "name": "dark AI 润色建议稿卡+diff 预览(真模型建议稿;缺红线底稿→diff 见补线增行;提案按钮走 R3)",
+      "file": "ai-diff-dark.png",
+      "bytes": 67216,
+      "md5": "1107413cdbabc46caf9a972660b50daf",
+      "state": "uncapped(root h=5064/scroll=5064)"
+    },
+    {
+      "name": "dark AI 审核报告卡(本地校验器 ruleFindings+模型问题清单+建议列表;仅展示不拦截)",
+      "file": "ai-review-dark.png",
+      "bytes": 247814,
+      "md5": "cd977bd896fe5b36b08ffc1209eea05a",
+      "state": "uncapped(root h=5995/scroll=5995)"
+    }
+  ],
+  "dom": {
+    "light.aiStatusPill": {
+      "state": "error",
+      "available": false,
+      "unavailable": false,
+      "title": "typert gateway: loopPrompt/ai-status: args fields do not match the descriptor: unexpected \"input\""
+    },
+    "light.diff": {
+      "diffEmpty": "false",
+      "draftBytes": 160,
+      "draftMeta": "生成信息: eterna · deepseek-flash · 4507ms",
+      "proposeBtnDisabled": false
+    },
+    "light.review": {
+      "status": "ok",
+      "ruleCount": 3,
+      "aiCount": 5,
+      "ruleFindingsShown": 3,
+      "aiFindingsShown": 5,
+      "suggestionsShown": 5,
+      "noteShown": "AI 产出仅作建议:润色建议稿与审核问题清单均不直接生效,生效需经 R3 审批写回。"
+    },
+    "dark.aiStatusPill": {
+      "state": "error",
+      "available": false,
+      "unavailable": false,
+      "title": "typert gateway: loopPrompt/ai-status: args fields do not match the descriptor: unexpected \"input\""
+    },
+    "dark.diff": {
+      "diffEmpty": "false",
+      "draftBytes": 160,
+      "draftMeta": "生成信息: eterna · deepseek-flash · 6319ms",
+      "proposeBtnDisabled": false
+    },
+    "dark.review": {
+      "status": "ok",
+      "ruleCount": 3,
+      "aiCount": 6,
+      "ruleFindingsShown": 3,
+      "aiFindingsShown": 6,
+      "suggestionsShown": 6,
+      "noteShown": "AI 产出仅作建议:润色建议稿与审核问题清单均不直接生效,生效需经 R3 审批写回。"
+    },
+    "patchUnchanged": true
+  },
+  "fatal": null,
+  "finishedAt": "2026-11-11T02:09:20.464Z"
+}
