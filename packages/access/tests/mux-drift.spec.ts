@@ -6,7 +6,7 @@
 import { readdirSync, readFileSync, existsSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { join } from 'node:path'
-import { GLOBAL_STREAM_ACTIONS, SESSION_STREAM_ACTIONS, WORKSPACE_STREAM_ACTIONS } from '../src/mux.ts'
+import { GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_STREAM_ACTIONS, WORKSPACE_STREAM_ACTIONS } from '../src/mux.ts'
 
 function findPnpmRoot(): string {
   let dir = new URL('..', import.meta.url).pathname
@@ -60,5 +60,16 @@ describe('T2 防漂移:上游流方法表全覆盖', () => {
     const upstreamSet = new Set(upstream)
     const zombie = [...COVERED].filter(a => !upstreamSet.has(a))
     expect(zombie).toEqual([])
+  })
+
+  it('一元读面清单与流方法表互斥(交集=∅——防动作同时在两清单重复放宽)', () => {
+    const upstreamSet = new Set(upstream)
+    const overlap = GLOBAL_UNARY_ACTIONS.filter(a => upstreamSet.has(a))
+    expect(overlap).toEqual([])
+  })
+
+  it('一元读面清单为空时测试失去意义(至少含 settings/describe)', () => {
+    expect(GLOBAL_UNARY_ACTIONS.length).toBeGreaterThan(0)
+    expect(GLOBAL_UNARY_ACTIONS).toContain('settings/describe')
   })
 })

@@ -47,6 +47,17 @@ export const GLOBAL_STREAM_ACTIONS: readonly string[] = [
   'job/follow',
 ]
 
+/** 宿主级一元(非流)读面动作:浏览器 peer 换血为 eterna-user 后,客户端 whenAccess
+ *  门控的授权快照按本策略判定——缺项即对应 UI 永不注册(2026-11-11 E2E:
+ *  settings/describe 缺席=设置弹窗入口消失;pluginManager/listBundles 缺席=
+ *  插件发现页不渲染)。实际一元 HTTP 走 owner peer 不受影响,此处只开 UI 门。
+ *  只读动作;写面(settings/mutate 等)由 fetch 路由角色门另行管控。
+ *  防漂移:mux-drift 断言本清单与流方法表交集=∅(一元/流互斥,防重复放宽)。 */
+export const GLOBAL_UNARY_ACTIONS: readonly string[] = [
+  'settings/describe',
+  'pluginManager/listBundles',
+]
+
 /** 会话级流动作(策略 session 绑定)。 */
 export const SESSION_STREAM_ACTIONS: readonly string[] = [
   'session/follow',
@@ -98,8 +109,13 @@ function eternaUserOf(deps: MuxPolicyDeps, request: unknown): number | undefined
 
 /** 一个用户的资源绑定(账本为唯一事实源;子代理子会话经 parentSessionId 由上游随父判定)。 */
 export function bindingsFor(deps: MuxPolicyDeps, userId: number): readonly TenantBinding[] {
-  const globalRole = { name: 'eterna:member-global', resource: 'global' as const, actions: GLOBAL_STREAM_ACTIONS }
-  const sessionRole = { name: 'eterna:session-member', resource: 'session' as const, actions: SESSION_STREAM_ACTIONS }
+  const globalRole = { name: 'eterna:member-global', resource: 'global' as const, actions: [...GLOBAL_STREAM_ACTIONS, ...GLOBAL_UNARY_ACTIONS] }
+  // 会话资源还须授予 workspace/follow:上游 workspace-controller 的 follow 流对
+  // workspace.sessionIds 逐项 allows({kind:'session',id}) 判定,action 取当前
+  // 调用面(=workspace/follow)——会话绑定不含此动作时,连用户自己的会话也会被从
+  // workspace 视图的 sessionIds 里过滤掉(侧栏落「未分组」),blank 会话的
+  // sessionWorkspace/chipTitle 断链 = 新用户首屏死锁根因(2026-11-11 E2E)。
+  const sessionRole = { name: 'eterna:session-member', resource: 'session' as const, actions: [...SESSION_STREAM_ACTIONS, ...WORKSPACE_STREAM_ACTIONS] }
   const workspaceRole = { name: 'eterna:workspace-member', resource: 'workspace' as const, actions: WORKSPACE_STREAM_ACTIONS }
   const bindings: TenantBinding[] = [{ resource: { kind: 'global' }, role: globalRole }]
   for (const sessionId of deps.store.sessionsOfOwner(userId)) {
