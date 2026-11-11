@@ -161,13 +161,22 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
       })
   }
 
-  // —— 锚定:主面板 above 优先 ——
+  // —— 锚定:主面板 above/below 自适应 ——
+  // 先按空间预估,渲染后实测高度越界即翻转(2026-11-12 用户实测:固定阈值 460
+  // 在按钮 y≈443 的 composer 下误判 below,面板朝下盖输入框)。
+  const [place, setPlace] = useState<'above' | 'below'>(anchor.top > 400 ? 'above' : 'below')
+  useLayoutEffect(() => {
+    if (subOpen) return // 子面板开着时锁位,避免收起时跳动
+    if (mainRef.current === null) return
+    const r = mainRef.current.getBoundingClientRect()
+    if (place === 'below' && r.bottom > window.innerHeight - 8) setPlace('above')
+    else if (place === 'above' && r.top < 8) setPlace('below')
+  })
   const mainStyle: React.CSSProperties = (() => {
-    const above = anchor.top > 460
     const left = Math.max(8, Math.min(anchor.x - 40, window.innerWidth - 272))
     return {
       ...S.panel, left,
-      ...(above ? { bottom: window.innerHeight - anchor.top + 8 } : { top: anchor.top + 44 }),
+      ...(place === 'above' ? { bottom: window.innerHeight - anchor.top + 8 } : { top: anchor.top + 44 }),
     }
   })()
   // —— 子面板:顶对齐主面板、右侧飞出(溢出翻左);高度自适应 ——
