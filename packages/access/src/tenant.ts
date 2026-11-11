@@ -417,6 +417,40 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     return okFrame(rpcId, value)
   })
 
+  // ── P2-T1.7a(2026-11-11,D1 拍板):网关配置角色门——admin 可写,普通用户只读 ──
+  // llm-pi-ai 承载行的设置命名空间=settingsNs=行 id('llm-pi-ai');供应商 key 与
+  // baseURL 是组织资产,普通用户可写=可把全组织模型流量劫到任意端点。
+  // 读(describe/openSettingsDocument)全员可用(D1:普通用户只读视图);
+  // 写(mutate/update/replace)仅 admin;其余命名空间(用户个人设置)不受影响。
+  const GATEWAY_SETTINGS_NS = 'llm-pi-ai'
+  const settingsWriteGuard = (path: string) => {
+    register(path, async (rpcId, args, ctx) => {
+      const request0 = args.request as { ns?: string } | undefined
+      const ns = firstString(request0, 'ns') ?? firstString(args, 'ns')
+      if (ns !== GATEWAY_SETTINGS_NS) {
+        // 非网关命名空间(用户个人设置)原样代理,不做角色判断
+        const scAll = serviceOf(deps, 'settingsController')
+        if (scAll === undefined) return failureFrame(rpcId, new Error('settingsController not ready'))
+        const methodAll = path.split('/').pop() ?? ''
+        const valueAll = await callService(scAll, methodAll, request0 ?? args)
+        return okFrame(rpcId, valueAll)
+      }
+      const user = deps.store.getUserById(ctx.userId)
+      if (user?.role !== 'admin') {
+        tenantAudit(deps, 'gateway.settings.denied', ctx.account, { ns, path })
+        return deniedFrame(rpcId, '模型网关配置仅管理员可修改（普通用户只读）')
+      }
+      const sc = serviceOf(deps, 'settingsController')
+      if (sc === undefined) return failureFrame(rpcId, new Error('settingsController not ready'))
+      const method = path.split('/').pop() ?? ''
+      const value = await callService(sc, method, request0 ?? args)
+      return okFrame(rpcId, value)
+    })
+  }
+  settingsWriteGuard('/api/settings/mutate')
+  settingsWriteGuard('/api/settings/update')
+  settingsWriteGuard('/api/settings/replace')
+
   return () => {
     for (const dispose of disposers) {
       try {
