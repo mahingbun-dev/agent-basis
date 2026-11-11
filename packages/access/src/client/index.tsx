@@ -220,6 +220,8 @@ interface AccessClientContext {
   readonly slots: {
     inject(slot: string, contribute: () => (() => void) | Generator<() => void>): () => void
     register(options: Record<string, unknown>, component: unknown): () => void
+    /** 已注册条目读面(slot registry 公开 API;用于取设置壳 store 座位)。 */
+    entries?(slot: string): readonly { readonly store?: unknown }[]
   }
   readonly locale: {
     register(ns: string, dictionaries: Record<string, Record<string, string>>): () => void
@@ -348,6 +350,32 @@ function registerModelDrawer(ctx: AccessClientContext): void {
   // 类型侧 react-dom/client 不在包 devDeps,局部面声明。
   const requireShim = require as unknown as (id: 'react-dom/client') => { createRoot(container: Element): { render(node: React.ReactElement): void; unmount(): void } }
   const { createRoot } = requireShim('react-dom/client')
+
+  /**
+   * 打开设置弹窗「模型」分区(2026-11-12:「管理模型」点击此前只 dismiss=空按钮)。
+   *
+   * 原生扩展点通路,不改壳:ui-settings-general 注册 `sidebar.settings` 时把设置壳
+   * 的 store 座位钉成单例(index.ts:210-212 `create: () => shellInstance`),其
+   * actions.openSection(id) 语义=「切换分区 + 打开面板」——正是上游给 onboarding
+   * 协调器用的同一个动作(SettingsOnboardingOwnerProps.openSection)。
+   * 分区 id='models' 由 ui-settings-models 注册(index.ts:138 settings.section)。
+   * 返回 false=设置壳尚未注册(极早期或授权未到),调用方据此提示而非静默。
+   */
+  const openModelsSettings = (): boolean => {
+    try {
+      const seated = ctx.slots.entries?.('sidebar.settings') ?? []
+      for (const entry of seated) {
+        const handle = entry.store as { create?(): { actions?: { openSection?(id: string): void } } } | undefined
+        const actions = handle?.create?.().actions
+        if (typeof actions?.openSection === 'function') {
+          actions.openSection('models')
+          return true
+        }
+      }
+    } catch { /* 座位结构变化:降级为 false,由调用方提示 */ }
+    return false
+  }
+
   let menuHost: HTMLDivElement | null = null
   const closeMenu = (reason = 'unknown'): void => {
     // 取证(2026-11-12 用户报「点面板任意位置即消失」):记录关闭原因与调用栈。
@@ -370,6 +398,7 @@ function registerModelDrawer(ctx: AccessClientContext): void {
       sessionId={sessionId}
       anchor={anchor}
       dismiss={closeMenu}
+      openModelsSettings={openModelsSettings}
       applySelection={(sid, selected) => {
         try {
           const store = ctx.sessions?.projectionStore?.(sid)
