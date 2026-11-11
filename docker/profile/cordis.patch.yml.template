@@ -493,6 +493,7 @@
           - /repo/packages/browser-relay/dist/mcp.mjs
         env:
           ETNA_RELAY_BASE: http://127.0.0.1:9310
+          ETNA_RELAY_TOKEN: __ETERNA_RELAY_TOKEN__
         toolCallTimeoutMs: 120000
 
 # LLM 承载（根级覆写 base 休眠行，非 insert——原因见上）：pi-ai 多协议适配器

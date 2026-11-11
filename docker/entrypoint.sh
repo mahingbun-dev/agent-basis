@@ -98,10 +98,17 @@ if [ -z "$RELAY_TOKEN" ]; then
     chmod 600 "$TOKEN_FILE"
   fi
 fi
-RELAY_ARGS="start --host 0.0.0.0 --port 9310 --token $RELAY_TOKEN --zip /repo/packages/extension-companion/eterna-companion.zip"
+# 用户令牌清单（access /access/api/companion 按用户生成，relay 直读校验；
+# 文件缺省不存在=仅主 token 有效）。mcp-browser 的容器内凭据同源渲染进 patch。
+TOKENS_FILE="$DSH_HOME/access/companion-tokens.json"
+RELAY_ARGS="start --host 0.0.0.0 --port 9310 --token $RELAY_TOKEN --tokens-file $TOKENS_FILE --zip /repo/packages/extension-companion/eterna-companion.zip"
 if [ -n "${ETERNA_RELAY_PUBLIC_URL:-}" ]; then
   RELAY_ARGS="$RELAY_ARGS --public-ws-url $ETERNA_RELAY_PUBLIC_URL"
 fi
+
+# patch 渲染期 mcp-browser env 的容器内凭据（LLM base 渲染在步骤 2，token 生成在其后的
+# 4.5 段——故此处对已落卷的 patch 做第二遍 sed 替换占位）
+sed -i "s|__ETERNA_RELAY_TOKEN__|$RELAY_TOKEN|g" "$PROFILE_DIR/cordis.patch.yml"
 (
   while true; do
     node /repo/packages/browser-relay/dist/cli.mjs $RELAY_ARGS || true

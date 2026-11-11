@@ -2,7 +2,7 @@
 // 开发模式默认仅绑定 127.0.0.1；RELAY_TOKEN 设置后双腿均要求 ?token= 匹配（E4-T1 起换 eterna-access 会话令牌）。
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
-import { createReadStream, existsSync as fsExistsSync } from 'node:fs'
+import { createReadStream, existsSync as fsExistsSync, readFileSync } from 'node:fs'
 import type { Duplex } from 'node:stream'
 import { WebSocket, WebSocketServer } from 'ws'
 import { PROTO_VERSION, type ExtToRelay, type RelayToExt } from './protocol.ts'
@@ -114,6 +114,13 @@ export interface RelayServerOptions {
   /** 监听地址：缺省 127.0.0.1（本机开发/验收）；容器生产绑 0.0.0.0（经反代暴露 /extension） */
   host?: string
   token?: string
+  /**
+   * 用户 token 清单文件（access 端 /access/api/companion 按用户生成，JSON
+   * `{ "<userId>": { token, createdAt } }`；文件缺失/损坏=仅主 token 有效）。
+   * ws 与 /api/tools 均校验「主 token OR 清单任一 token」——清单未命中时每次重读
+   * （连接频率低，免 watch；access 侧重置 token 后旧值即刻失效）。
+   */
+  tokensFile?: string
   /** companion 扩展 zip 包路径（/companion/download.zip 下发；缺省 404） */
   companionZipPath?: string
   /** 生产扩展连接地址（如 wss://域名/relay/extension）：guide 页与报错文案按它展示；缺省按本机端口 */
@@ -122,10 +129,9 @@ export interface RelayServerOptions {
 }
 
 export class RelayServer {
-  readonly core = new RelayCore()
+  readonly core: RelayCore
   private tools: BrowserTools | null = null
   private wss: WebSocketServer | null = null
-  private extSocket: WebSocket | null = null
   private cdpSocket: WebSocket | null = null
   private httpServer = createServer((req, res) => {
     this.handleHttp(req, res)
@@ -137,6 +143,8 @@ export class RelayServer {
       // 服务端日志走 stderr（stdout 可能被管道消费方忽略）
       console.error(`[relay] ${line}`)
     })
+    // 主命名空间=主 token（无 token 开发形态 '__local__'）；/cdp 腿与无凭据工具调用落这里
+    this.core = new RelayCore(opts.token !== undefined && opts.token !== '' ? opts.token : '__local__')
     this.core.onEventLog = this.log
     this.tools = new BrowserTools(this.core, guideUrlOf(opts))
   }
@@ -152,7 +160,6 @@ export class RelayServer {
   }
 
   async stop(): Promise<void> {
-    this.extSocket?.close()
     this.cdpSocket?.close()
     this.wss?.close()
     await new Promise<void>((resolve) => {
@@ -163,9 +170,53 @@ export class RelayServer {
   }
 
   private tokenOk(url: string): boolean {
-    if (this.opts.token === undefined || this.opts.token === '') return true
     const q = new URL(url, 'http://x').searchParams.get('token')
-    return q === this.opts.token
+    return this.credentialOk(q)
+  }
+
+  /** /api/tools 等 HTTP 端点的凭据校验：header 优先，query 兜底（ws 用 query，HTTP 用 header）。 */
+  private httpTokenOk(req: IncomingMessage, url: string): boolean {
+    const header = req.headers['x-relay-token']
+    const presented = typeof header === 'string' && header !== '' ? header : new URL(url, 'http://x').searchParams.get('token')
+    return this.credentialOk(presented)
+  }
+
+  /**
+   * 凭据判定：主 token 匹配，或命中用户清单文件中的任一 token。
+   * 完全未配置（无主 token 且清单文件缺失/空）= 放行（本机开发形态；
+   * 生产 entrypoint 必带 token，见红线 9）。
+   */
+  private credentialOk(presented: string | null): boolean {
+    const primary = this.opts.token
+    const hasPrimary = primary !== undefined && primary !== ''
+    if (hasPrimary && presented === primary) return true
+    const list = this.readUserTokens()
+    if (list.size === 0) return !hasPrimary && presented === null
+    if (presented === null) return false
+    for (const entry of list.values()) {
+      if (entry.token === presented) return true
+    }
+    return false
+  }
+
+  /** 读用户 token 清单（每次重读：access 侧重置后旧 token 即刻失效；文件频率低可容忍）。 */
+  private readUserTokens(): Map<string, { token: string; createdAt?: string }> {
+    const path = this.opts.tokensFile
+    if (path === undefined || path === '') return new Map()
+    try {
+      const raw = JSON.parse(readFileSync(path, 'utf8')) as Record<string, { token?: unknown; createdAt?: unknown }>
+      const out = new Map<string, { token: string; createdAt?: string }>()
+      for (const [userId, entry] of Object.entries(raw)) {
+        if (typeof entry.token === 'string' && entry.token !== '') {
+          const entry2: { token: string; createdAt?: string } = { token: entry.token }
+          if (typeof entry.createdAt === 'string') entry2.createdAt = entry.createdAt
+          out.set(userId, entry2)
+        }
+      }
+      return out
+    } catch {
+      return new Map()
+    }
   }
 
   private handleUpgrade(req: IncomingMessage, socket: Duplex, head: Buffer): void {
@@ -176,24 +227,23 @@ export class RelayServer {
       return
     }
     if (url.startsWith('/extension')) {
-      if (this.extSocket !== null) {
+      // 命名空间=凭据原串（tokenOk 已验）；无 token 开发形态落主域
+      const presented = new URL(url.startsWith('/') ? `ws://x${url}` : url, 'http://x').searchParams.get('token')
+      const ns = presented ?? '__local__'
+      if (this.core.nsConnected(ns)) {
         socket.write('HTTP/1.1 409 Conflict\r\n\r\n')
         socket.destroy()
         return
       }
       this.wss?.handleUpgrade(req, socket, head, (ws) => {
-        this.extSocket = ws
         ws.on('message', (data) => {
-          this.onExtMessage(rawText(data))
+          this.onExtMessage(rawText(data), ns, ws)
         })
         ws.on('close', () => {
-          if (this.extSocket === ws) {
-            this.extSocket = null
-            this.core.setExt(null)
-            this.log('扩展断开')
-          }
+          this.core.setExt(ns, null)
+          this.log(`扩展断开（${ns === '__local__' ? 'primary' : 'user'} 域）`)
         })
-        this.log('扩展已连接')
+        this.log(`扩展已连接（${ns === '__local__' ? 'primary' : 'user'} 域，当前 ${String(this.core.connectedCount)} 台浏览器在线）`)
       })
       return
     }
@@ -227,7 +277,7 @@ export class RelayServer {
     socket.destroy()
   }
 
-  private onExtMessage(text: string): void {
+  private onExtMessage(text: string, ns: string, ws: WebSocket): void {
     let frame: ExtToRelay
     try {
       frame = JSON.parse(text) as ExtToRelay
@@ -238,22 +288,21 @@ export class RelayServer {
     if (frame.t === 'hello') {
       const link: ExtLink = {
         send: (f: RelayToExt) => {
-          if (this.extSocket !== null && this.extSocket.readyState === WebSocket.OPEN) this.extSocket.send(JSON.stringify(f))
+          if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(f))
         },
         extVersion: frame.extVersion,
         chromeVersion: frame.chromeVersion,
       }
       this.core
-        .onExtHello(link, frame)
+        .onExtHello(link, frame, ns)
         .catch((err: unknown) => {
           this.log(`握手被拒：${err instanceof Error ? err.message : String(err)}`)
-          this.extSocket?.close(4002, 'proto-mismatch')
-          this.extSocket = null
+          ws.close(4002, 'proto-mismatch')
         })
       return
     }
     if (frame.t === 'event') this.log(`EXT event ← ${frame.method} tab=${String(frame.tabId)}`)
-    this.core.onExtFrame(frame).catch((err: unknown) => {
+    this.core.onExtFrame(frame, ns).catch((err: unknown) => {
       this.log(`扩展帧处理异常：${err instanceof Error ? err.message : String(err)}`)
     })
   }
@@ -280,20 +329,28 @@ export class RelayServer {
       return
     }
     if (url === '/api/status') {
-      const ext = this.core.extension
       res.setHeader('access-control-allow-origin', '*')
       res.setHeader('access-control-allow-headers', 'content-type')
       sendJson(res, 200, {
+        // 向后兼容：extensionConnected=任一域有连接；多用户视图见 browsers/connectedBrowsers
         extensionConnected: this.core.extensionConnected,
-        extVersion: ext?.extVersion ?? null,
-        chromeVersion: ext?.chromeVersion ?? null,
-        tabCount: this.core.tabCount,
+        extVersion: this.core.connections()[0]?.extVersion ?? null,
+        chromeVersion: this.core.connections()[0]?.chromeVersion ?? null,
+        tabCount: this.core.listTabs(this.core.defaultNs).length,
         cdpConnected: this.cdpSocket !== null,
+        connectedBrowsers: this.core.connectedCount,
+        browsers: this.core.connections(),
         proto: PROTO_VERSION,
       })
       return
     }
     if (url === '/api/tools' && req.method === 'POST') {
+      // 工具执行面凭据校验（公网反代透传形态下 /api/tools 与扩展腿同端口暴露——
+      // 无鉴权=任意访问者可驱动已连接浏览器；本机开发形态（无主 token 且无清单）放行）
+      if (!this.httpTokenOk(req, rawUrl)) {
+        sendJson(res, 401, { ok: false, error: { code: 'UNAUTHORIZED', message: '缺少或无效的访问令牌（x-relay-token 头或 ?token=）' } })
+        return
+      }
       let body = ''
       req.on('data', (chunk: Buffer) => {
         body += chunk.toString('utf8')

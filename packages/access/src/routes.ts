@@ -9,6 +9,7 @@ import {
   clientIp, errorReply, htmlResponse, isSameOrigin, jsonResponse, parseAvatarDataUrl, parseJsonBody,
   redirectReply, requestOrigin, type AccessReply, type AccessRequest,
 } from './http.ts'
+import { companionGuideUrl, companionTokenOf, resetCompanionToken } from './companion.ts'
 import { PasswordPolicyError } from './password.ts'
 import { renderLoginPage } from './pages.ts'
 import { SlidingWindow } from './ratelimit.ts'
@@ -37,6 +38,8 @@ export interface AccessDeps {
    * 实现方自吞异常(开通失败不阻断登录;客户端引导还有 session/create 改判兜底)。
    */
   readonly provisionWorkspace: (user: { readonly id: number; readonly account: string }) => Promise<void>
+  /** companion 中继公网 ws 地址(ETERNA_RELAY_PUBLIC_URL;缺省=指引页按本机端口展示)。 */
+  readonly relayPublicWsUrl?: string | undefined
 }
 
 /** T2.3 插件启停清单:红线(治理/审计/出网/门禁本体)不可停,其余 L1 可由 admin 停用。 */
@@ -81,12 +84,35 @@ export function handleAccessRequest(deps: AccessDeps, req: AccessRequest): Acces
   if (req.pathname === '/access/api/users' && method === 'GET') return handleUserList(deps, req)
   if (req.pathname === '/access/api/users' && method === 'POST') return handleUserCreate(deps, req, ip)
   if (req.pathname.startsWith('/access/api/users/') && method === 'DELETE') return handleUserDelete(deps, req, ip)
+  if (req.pathname === '/access/api/companion' && method === 'GET') return handleCompanionView(deps, req)
+  if (req.pathname === '/access/api/companion/reset' && method === 'POST') return handleCompanionReset(deps, req, ip)
   if (req.pathname === '/access/api/plugins' && method === 'GET') return handlePluginList(deps, req)
   if (req.pathname.startsWith('/access/api/plugins/') && req.pathname.endsWith('/remove') && method === 'POST') {
     return handlePluginRemove(deps, req, ip)
   }
   if (req.pathname.startsWith('/access/api/plugins/') && method === 'POST') return handlePluginToggle(deps, req, ip)
   return errorReply(404, 'not found')
+}
+
+/** companion 浏览器执行面:当前用户的令牌视图(未生成=null;不含他人令牌)。 */
+function handleCompanionView(deps: AccessDeps, req: AccessRequest): AccessReply {
+  const user = requireUser(deps, req)
+  if (user === undefined) return errorReply(401, '未登录')
+  const entry = companionTokenOf(deps.dataDir, user.id)
+  return jsonResponse(200, {
+    token: entry?.token ?? null,
+    createdAt: entry?.createdAt ?? null,
+    guideUrl: companionGuideUrl(deps.relayPublicWsUrl),
+  })
+}
+
+/** companion 令牌生成/重置(覆盖旧值即刻失效);审计只记动作不记令牌值。 */
+function handleCompanionReset(deps: AccessDeps, req: AccessRequest, ip: string): AccessReply {
+  const user = requireUser(deps, req)
+  if (user === undefined) return errorReply(401, '未登录')
+  const entry = resetCompanionToken(deps.dataDir, user.id)
+  deps.audit({ kind: 'access.companion.token', account: user.account, ip, detail: { action: 'reset' } })
+  return jsonResponse(200, { ok: true, token: entry.token, createdAt: entry.createdAt, guideUrl: companionGuideUrl(deps.relayPublicWsUrl) })
 }
 
 /** 插件启停清单(admin):含红线标记;停用重启后生效(entrypoint 渲染管线裁剪 patch 行)。 */

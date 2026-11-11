@@ -12,7 +12,12 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { reportAccessAudit, type AccessAuditEvent, type AuditReflect } from './audit.ts'
+import { companionTokenOf } from './companion.ts'
 import { type AccessRequest } from './http.ts'
+import type { Context } from '@deepseek-ai/cordis'
+// 空类型导入 = dsh-tools 对 cordis Events('tools/pre-execute')增广的触发器（governance-plugin 同款）：
+// 下方 companion 身份注入钩子的监听签名依赖该声明文件进入本包 tsc 程序。
+import type {} from '@deepseek-ai/dsh-tools'
 import { handleAccessRequest, type AccessDeps } from './routes.ts'
 import { loadOrCreateSecret, SessionService } from './session.ts'
 import { SlidingWindow } from './ratelimit.ts'
@@ -131,7 +136,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
   return {
     name: ACCESS_PLUGIN_NAME,
     inject: ['webServer', 'connection'],
-    apply(ctx: AccessContext): () => void {
+    apply(ctx: AccessContext & Context): () => void {
       const dir = config.dir
         ?? (process.env.ETERNA_ACCESS_DIR !== undefined && process.env.ETERNA_ACCESS_DIR !== ''
           ? process.env.ETERNA_ACCESS_DIR
@@ -158,10 +163,38 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         publicOrigin: process.env.ETERNA_PUBLIC_URL !== undefined && process.env.ETERNA_PUBLIC_URL !== '' ? process.env.ETERNA_PUBLIC_URL : undefined,
         dataDir: dir,
         provisionWorkspace: user => provisionTenantWorkspace({ store, reflect: ctx.reflect, tenantRoot, audit }, user),
+        relayPublicWsUrl: process.env.ETERNA_RELAY_PUBLIC_URL !== undefined && process.env.ETERNA_RELAY_PUBLIC_URL !== ''
+          ? process.env.ETERNA_RELAY_PUBLIC_URL
+          : undefined,
       }
       // P3(2026-11-11):把归属账本 provide 出去(usage-stats 聚合的归属唯一事实源;
       // reflect 键 eternaAccessStore)。账本只读面,不含凭据。
       const storeProvide = (ctx as unknown as { provide?: (id: string, value: unknown) => () => void }).provide
+      // ── companion 身份注入（E4 多用户浏览器执行面）────────────────────────
+      // pre-execute 瀑布末段（access 的 insert 行在模板尾部=apply 序最后）：
+      // mcp__browser__* 调用按 exec.agent.session.id → sessions 表 owner → 用户令牌，
+      // 无条件覆盖 arguments._eternaToken（服务端值赢：模型不可伪造；注入晚于
+      // audit/egress/governance——审计与治理面均不接触令牌值）。
+      // 语义：已知会话归属但用户未生成令牌 → deny（fail-closed，防跨用户路由到
+      // 主浏览器）；未知会话（系统任务等）→ 不注入（主域，同历史行为）。
+      const offCompanionIdentity = ctx.on('tools/pre-execute', async (exec, next) => {
+        if (!exec.name.startsWith('mcp__browser__')) return next()
+        const sessionId = exec.agent?.session.id
+        if (typeof sessionId !== 'string' || sessionId === '') return next()
+        const ownerId = store.sessionOwner(sessionId)
+        if (ownerId === undefined) return next()
+        const entry = companionTokenOf(dir, ownerId)
+        if (entry === undefined) {
+          return {
+            kind: 'deny',
+            reason: '[companion] 浏览器执行面令牌未生成：请在 设置 → 账号 → 浏览器执行面 生成令牌并安装扩展（安装指引见令牌卡片链接）',
+          }
+        }
+        const args = exec.arguments as Record<string, unknown>
+        args['_eternaToken'] = entry.token
+        return await next()
+      })
+
       const handler = createNodeHandler(deps)
       const disposers = [
         ctx.webServer.register({ kind: 'exact', path: '/login', handler }),
@@ -169,6 +202,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         ctx.webServer.register({ kind: 'prefix', path: '/access/api', handler }),
         ctx.webServer.tapIndex(html => injectBadge(html)),
       ]
+      disposers.push(offCompanionIdentity)
       // Phase 2 租户面(T2.2/T2.5):存量 workspace 划归首个 admin
       adoptLegacyWorkspaces(store)
       // P1-T2(2026-11-11):mux 流租户隔离——principal 换血 + registerPolicy。
