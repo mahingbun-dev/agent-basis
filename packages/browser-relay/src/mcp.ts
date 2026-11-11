@@ -24,6 +24,9 @@ process.stderr.on('error', () => {})
 process.stdout.on('error', () => {})
 
 const RELAY_BASE = process.env.ETNA_RELAY_BASE ?? 'http://127.0.0.1:9310'
+// 中继凭据（红线 9）：生产 relay /api/tools 校验 x-relay-token（entrypoint 渲染进挂载 env）；
+// 本机开发（relay 无 token）缺省空=放行语义不受影响。
+const RELAY_TOKEN = process.env.ETNA_RELAY_TOKEN ?? ''
 
 interface RpcMessage {
   id?: number | string
@@ -87,7 +90,7 @@ const TOOLS = [
 async function callRelayTool(name: string, args: Record<string, unknown>): Promise<unknown> {
   const response = await fetch(`${RELAY_BASE}/api/tools`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...(RELAY_TOKEN !== '' ? { 'x-relay-token': RELAY_TOKEN } : {}) },
     body: JSON.stringify({ name, args }),
     signal: AbortSignal.timeout(120_000),
   })
