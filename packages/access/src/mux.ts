@@ -62,11 +62,17 @@ export const GLOBAL_UNARY_ACTIONS: readonly string[] = [
 ]
 
 /** 会话资源级一元动作(只授在用户自己的会话绑定上——上游右键菜单项
- *  session/rename/session/fork 逐项 remoteAccess.source 判定,缺席=菜单空)。
- *  实际调用走守卫 fetch 路由归属校验,双保险。 */
+ *  session/rename/session/fork 逐项 remoteAccess.source 判定,缺席=菜单空;
+ *  置顶/归档菜单项以 session 资源判 workspace 动作(Rows.tsx/context-menus.tsx
+ *  remoteAccess.source('session', id, 'workspace/archiveSession')),故
+ *  workspace 系会话动作也在此列)。实际调用走守卫 fetch 路由归属校验,双保险。 */
 export const SESSION_UNARY_ACTIONS: readonly string[] = [
   'session/rename',
   'session/fork',
+  'workspace/pinSession',
+  'workspace/unpinSession',
+  'workspace/archiveSession',
+  'workspace/unarchiveSession',
 ]
 
 /** 工作区资源级一元动作(只授在用户自己的工作区绑定上——上游右键菜单
