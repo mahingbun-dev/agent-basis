@@ -349,10 +349,20 @@ function registerModelDrawer(ctx: AccessClientContext): void {
   const requireShim = require as unknown as (id: 'react-dom/client') => { createRoot(container: Element): { render(node: React.ReactElement): void; unmount(): void } }
   const { createRoot } = requireShim('react-dom/client')
   let menuHost: HTMLDivElement | null = null
-  const closeMenu = (): void => { menuHost?.remove(); menuHost = null }
+  const closeMenu = (reason = 'unknown'): void => {
+    // 取证(2026-11-12 用户报「点面板任意位置即消失」):记录关闭原因与调用栈。
+    try {
+      const w = window as unknown as { __menuCloseLog?: Array<{ reason: string; stack: string }> }
+      w.__menuCloseLog = [...(w.__menuCloseLog ?? []), {
+        reason,
+        stack: (new Error().stack ?? '').split('\n').slice(1, 5).join(' | ').slice(0, 500),
+      }]
+    } catch { /* ignore */ }
+    menuHost?.remove(); menuHost = null
+  }
 
   const openMenu = (sessionId: string, anchor: { x: number; y: number; width: number; top: number }): void => {
-    closeMenu()
+    closeMenu('reopen')
     menuHost = document.createElement('div')
     menuHost.setAttribute('data-eterna-model-menu-root', '')
     document.body.appendChild(menuHost)

@@ -37,10 +37,10 @@ interface Selected { readonly provider: string; readonly model: string; readonly
 const S = {
   panel: {
     position: 'fixed', zIndex: 1300, width: 264,
-    background: 'var(--dsw-alias-bg-layer-1, #1e1e23)',
-    color: 'var(--dsw-alias-label-primary, #f3f4f6)',
-    border: '1px solid var(--dsw-alias-border-l2, #333338)',
-    borderRadius: 12, boxShadow: '0 12px 40px rgba(0,0,0,.45)',
+    background: 'var(--et-surface)',
+    color: 'var(--et-fg)',
+    border: '1px solid var(--et-border)',
+    borderRadius: 12, boxShadow: 'var(--et-shadow-raised)',
     padding: '6px 0', fontFamily: 'var(--et-font-body, system-ui, sans-serif)',
     boxSizing: 'border-box',
   } as React.CSSProperties,
@@ -52,16 +52,16 @@ const S = {
   } as React.CSSProperties,
   section: {
     padding: '8px 14px 4px', fontSize: 11.5,
-    color: 'var(--dsw-alias-label-tertiary, #9ca3af)',
+    color: 'var(--et-muted)',
   } as React.CSSProperties,
-  divider: { height: 1, background: 'var(--dsw-alias-border-l1, #2a2a2e)', margin: '5px 0' } as React.CSSProperties,
+  divider: { height: 1, background: 'var(--et-border-soft)', margin: '5px 0' } as React.CSSProperties,
   logo: {
     width: 18, height: 18, borderRadius: 5, flexShrink: 0,
-    background: 'var(--et-accent-soft, rgba(99,102,241,.2))',
+    background: 'var(--et-accent-soft)',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 10, fontWeight: 600,
   } as React.CSSProperties,
-  check: { color: 'var(--dsw-alias-state-success-primary, #34d399)', marginLeft: 'auto' } as React.CSSProperties,
+  check: { color: 'var(--et-success)', marginLeft: 'auto' } as React.CSSProperties,
 }
 
 export interface ModelMenuOwner {
@@ -143,7 +143,7 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
   const curEffortName = curEffortId === undefined ? '默认'
     : (curEfforts[curEffortIdx >= 0 ? curEffortIdx : 0]?.name ?? curEffortId)
 
-  const submit = (selected: Selected): void => {
+  const submit = (selected: Selected, options: { readonly closeAfter: boolean }): void => {
     if (busy) return
     setBusy(true); setError(null)
     rpc<{ selected?: Selected }>('selectModel', { request: { sessionId: props.sessionId, ...selected } })
@@ -153,7 +153,9 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
         props.applySelection?.(props.sessionId, confirmed)
         setBusy(false)
         setSubOpen(false)
-        props.dismiss()
+        // 关闭语义(2026-11-12 用户裁定):切供应商面板保留(继续选模型/调档);
+        // 选模型/调档完成即收。
+        if (options.closeAfter) props.dismiss()
       })
       .catch((e: unknown) => {
         setBusy(false)
@@ -165,13 +167,15 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
   // 先按空间预估,渲染后实测高度越界即翻转(2026-11-12 用户实测:固定阈值 460
   // 在按钮 y≈443 的 composer 下误判 below,面板朝下盖输入框)。
   const [place, setPlace] = useState<'above' | 'below'>(anchor.top > 400 ? 'above' : 'below')
+  // 挂载时一次定位(2026-11-12:每渲染跑的翻转会在 catalog 回来重渲染时挪位——
+  // 用户点击瞬间面板移走=点到空处 onDown 关闭且无操作,即「点任意位置消失」根因)
   useLayoutEffect(() => {
-    if (subOpen) return // 子面板开着时锁位,避免收起时跳动
     if (mainRef.current === null) return
     const r = mainRef.current.getBoundingClientRect()
     if (place === 'below' && r.bottom > window.innerHeight - 8) setPlace('above')
     else if (place === 'above' && r.top < 8) setPlace('below')
-  })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅挂载时定一次位
+  }, [])
   const mainStyle: React.CSSProperties = (() => {
     const left = Math.max(8, Math.min(anchor.x - 40, window.innerWidth - 272))
     return {
@@ -216,7 +220,7 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
           const active = m.id === current?.model
           return <button key={m.id} type="button" role="menuitemradio" aria-checked={active} disabled={busy}
             style={{ ...S.row, justifyContent: 'space-between' }}
-            onClick={() => { if (current !== null) submit({ provider: current.provider, model: m.id }) }}>
+            onClick={() => { if (current !== null) submit({ provider: current.provider, model: m.id }, { closeAfter: true }) }}>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
             {active && <span aria-hidden="true" style={S.check}>✓</span>}
           </button>
@@ -237,16 +241,16 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
               const idx = Number(e.target.value)
               const effort = curEfforts[idx]
               if (effort === undefined || current === null || busy) return
-              submit({ provider: current.provider, model: current.model, reasoningEffort: effort.id })
+              submit({ provider: current.provider, model: current.model, reasoningEffort: effort.id }, { closeAfter: true })
             }}
             style={{
-              width: '100%', accentColor: 'var(--et-accent, #818cf8)',
-              background: 'linear-gradient(90deg,#34d399,#60a5fa,#818cf8)',
+              width: '100%', accentColor: 'var(--et-accent)',
+              background: 'linear-gradient(90deg, var(--et-success), var(--et-accent))',
               height: 6, borderRadius: 3, appearance: 'none', cursor: 'pointer',
             }} />
         </div>
       </>}
-      {error !== null && <div role="alert" style={{ padding: '6px 14px', color: 'var(--et-danger, #f56a6a)', fontSize: 12.5 }}>{error}</div>}
+      {error !== null && <div role="alert" style={{ padding: '6px 14px', color: 'var(--et-danger)', fontSize: 12.5 }}>{error}</div>}
       <div style={S.divider} />
       <button type="button" role="menuitem" style={{ ...S.row, fontWeight: 500 }}
         onClick={() => { props.dismiss() }}>
@@ -266,7 +270,7 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
             // ProviderMenu「供应商页只负责导航」+ 上游 onSelect 立即落选择语义。
             if (current === null || g.id !== current.provider) {
               const model = g.models?.[0]
-              if (model !== undefined) submit({ provider: g.id, model: model.id })
+              if (model !== undefined) submit({ provider: g.id, model: model.id }, { closeAfter: false })
               else { setSubOpen(false) }
             } else { setSubOpen(false) }
           }}>
