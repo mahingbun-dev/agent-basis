@@ -12,7 +12,7 @@ import { AccountSection, UsersSection } from './sections.tsx'
 import { MyPluginsTab, NotificationsSection, ApprovalQueueSection } from './my-plugins-section.tsx'
 import { ManageTab } from './plugins-manager.tsx'
 import { DirectoryTreeFlow } from './directory-tree.tsx'
-import { ModelDrawer } from './model-drawer.tsx'
+import { ModelMenu } from './model-menu.tsx'
 import { injectAccessStyles } from './styles.ts'
 
 // 'sessions'=api-session-controller 的 ClientSessions(reflect.provide('sessions')):
@@ -342,23 +342,24 @@ export function apply(ctx: AccessClientContext): () => void {
   return disposeLocale
 }
 
-/** 模型抽屉装配。React 渲染走壳注入的 react-dom/client(CJS external)。 */
+/** 模型双面板菜单装配。React 渲染走壳注入的 react-dom/client(CJS external)。 */
 function registerModelDrawer(ctx: AccessClientContext): void {
   // CJS 闭包 require(esbuild external 运行时由浏览器壳 PLATFORM_MODULES 供给);
   // 类型侧 react-dom/client 不在包 devDeps,局部面声明。
   const requireShim = require as unknown as (id: 'react-dom/client') => { createRoot(container: Element): { render(node: React.ReactElement): void; unmount(): void } }
   const { createRoot } = requireShim('react-dom/client')
-  let drawerHost: HTMLDivElement | null = null
-  const closeDrawer = (): void => { drawerHost?.remove(); drawerHost = null }
+  let menuHost: HTMLDivElement | null = null
+  const closeMenu = (): void => { menuHost?.remove(); menuHost = null }
 
-  const openDrawer = (sessionId: string): void => {
-    closeDrawer()
-    drawerHost = document.createElement('div')
-    drawerHost.setAttribute('data-eterna-model-drawer-root', '')
-    document.body.appendChild(drawerHost)
-    createRoot(drawerHost).render(<ModelDrawer
+  const openMenu = (sessionId: string, anchor: { x: number; y: number; width: number; top: number }): void => {
+    closeMenu()
+    menuHost = document.createElement('div')
+    menuHost.setAttribute('data-eterna-model-menu-root', '')
+    document.body.appendChild(menuHost)
+    createRoot(menuHost).render(<ModelMenu
       sessionId={sessionId}
-      dismiss={closeDrawer}
+      anchor={anchor}
+      dismiss={closeMenu}
       applySelection={(sid, selected) => {
         try {
           const store = ctx.sessions?.projectionStore?.(sid)
@@ -381,12 +382,13 @@ function registerModelDrawer(ctx: AccessClientContext): void {
     if (btn === undefined || btn.getAttribute('data-eterna-drawer-bound') === '1') return
     btn.setAttribute('data-eterna-drawer-bound', '1')
     btn.addEventListener('click', (e: MouseEvent) => {
-      if (e.shiftKey) return // shift+click 保留上游菜单(推理等级等)
+      if (e.shiftKey) return // shift+click 保留上游菜单
       const sessionId = readCurrentSession()
       if (sessionId === null) return
       e.stopImmediatePropagation()
       e.preventDefault()
-      openDrawer(sessionId)
+      const r = btn.getBoundingClientRect()
+      openMenu(sessionId, { x: r.x, y: r.y, width: r.width, top: r.y })
     }, true) // capture:先于上游 menu-open 处理器
   }
   attach()
