@@ -23,12 +23,20 @@ services:
     working_dir: /data
     ports:
       - "3210:8080"
+      # companion 中继（浏览器执行面）：扩展 ws 连入腿。生产经 NAS 反代把
+      # wss://域名/<前缀>/extension 转发到 本机:9310/extension（见 deploy/README.md）。
+      - "9310:9310"
     environment:
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       MIMO_API_KEY: ${MIMO_API_KEY:-}
       BIGMODEL_API_KEY: ${BIGMODEL_API_KEY:-}
       ETERNA_PUBLIC_URL: ${ETERNA_PUBLIC_URL:-}
       ETERNA_TRUSTED_HOST: ${ETERNA_TRUSTED_HOST:-}
+      # companion 中继鉴权与公网展示地址（红线 9）：TOKEN 缺省自动生成落卷
+      # /data/relay-token；PUBLIC_URL=扩展实际连接地址（如
+      # wss://eternity-electricity.cn/relay/extension），guide 页/报错文案按它展示
+      ETERNA_RELAY_TOKEN: ${ETERNA_RELAY_TOKEN:-}
+      ETERNA_RELAY_PUBLIC_URL: ${ETERNA_RELAY_PUBLIC_URL:-}
       # 账号门禁(eterna-access):admin 首启播种(表空时);SECRET 缺省自动生成落卷
       ETERNA_ACCESS_ADMIN_USER: ${ETERNA_ACCESS_ADMIN_USER:-}
       ETERNA_ACCESS_ADMIN_PASSWORD: ${ETERNA_ACCESS_ADMIN_PASSWORD:-}

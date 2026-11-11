@@ -477,6 +477,24 @@
     - id: eterna-usage-stats
       name: '@eterna/usage-stats'
 
+# ── Companion 浏览器执行面（E4 生产挂载，2026-11-11）：用户浏览器=执行面 ────
+# dsh-mcp-client stdio 挂 browser-relay 的 MCP server（三工具 mcp__browser__*）；
+# relay 同容器 127.0.0.1:9310（entrypoint 后台拉起，扩展 ws 连入）。
+# 扩展未连接时工具报错附指引页 URL（模型转告用户，guide 页含下载与安装步骤）。
+# 非 dsh 红线插件：admin 可在插件管理停用（entrypoint strip 按 id 裁剪）。
+- insert:
+    - id: mcp-browser
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: browser
+        transport: stdio
+        command: node
+        args:
+          - /repo/packages/browser-relay/dist/mcp.mjs
+        env:
+          ETNA_RELAY_BASE: http://127.0.0.1:9310
+        toolCallTimeoutMs: 120000
+
 # LLM 承载（根级覆写 base 休眠行，非 insert——原因见上）：pi-ai 多协议适配器
 # ── P2 网关（2026-11-11）：外部网关退场，三家直连（网关=pi-ai carriers 配置级实现）──
 # 异常锚 A1（生产事故 §2.5 I1）实证的方言三点，由 provider 级 compat 显式钉死：

@@ -1,0 +1,28 @@
+=== G-CORE-02（turn 2）工具调用序列——源：会话导出 session.v4.jsonl（独立验收代理提取）===
+step 1: mcp__browser__browser_snapshot {"url":"https://hn.algolia.com/?q=playwright"}
+  -> result isError=True [{"type": "text", "text": "Error: [egress] 参数 url 的目的地被拒:目标 hn.algolia.com:443 不在出网域名白名单(9 条规则)"}]
+step 2: mcp__browser__browser_snapshot {"url":"https://news.ycombinator.com/search?q=playwright"}
+  -> result isError=False [{"type": "text", "text": "{\"ok\":true,\"tool\":\"browser_snapshot\",\"result\":{\"tabId\":1733744319,\"url\":\"https://news.ycombinator.com/search?q
+step 3: mcp__browser__browser_snapshot {"tabId":1733744319}
+  -> result isError=False [{"type": "text", "text": "{\"ok\":true,\"tool\":\"browser_snapshot\",\"result\":{\"tabId\":1733744319,\"url\":\"https://news.ycombinator.com/search?q
+step 4: web_fetch {"url":"https://news.ycombinator.com/search?q=playwright"}
+  -> result isError=True [{"type": "text", "text": "Error: web fetch failed: TypeError: fetch failed"}]
+step 5: mcp__browser__browser_snapshot {"url":"https://news.ycombinator.com/search?q=playwright&sort=date&date=all"}
+  -> result isError=False [{"type": "text", "text": "{\"ok\":true,\"tool\":\"browser_snapshot\",\"result\":{\"tabId\":1733744320,\"url\":\"https://news.ycombinator.com/search?q
+step 6: mcp__browser__browser_snapshot {"url":"https://news.ycombinator.com/search?q=playwright&sort=relevance&date=all"}
+  -> result isError=False [{"type": "text", "text": "{\"ok\":true,\"tool\":\"browser_snapshot\",\"result\":{\"tabId\":1733744321,\"url\":\"https://news.ycombinator.com/search?q
+step 7: web_fetch {"url":"https://hn.algolia.com/api/v1/search?query=playwright"}
+  -> result isError=True [{"type": "text", "text": "Error: [egress] 参数 url 的目的地被拒:目标 hn.algolia.com:443 不在出网域名白名单(9 条规则)"}]
+step 8: mcp__browser__browser_snapshot {"url":"https://www.bing.com/search?q=site%3Anews.ycombinator.com+playwright"}
+  -> result isError=True [{"type": "text", "text": "Error: [egress] 参数 url 的目的地被拒:目标 www.bing.com:443 不在出网域名白名单(9 条规则)"}]
+step 9: mcp__browser__browser_snapshot {"url":"https://www.google.com/search?q=site%3Anews.ycombinator.com+playwright"}
+  -> result isError=True [{"type": "text", "text": "Error: [egress] 参数 url 的目的地被拒:目标 www.google.com:443 不在出网域名白名单(9 条规则)"}]
+step 10: mcp__browser__browser_snapshot {"url":"https://duckduckgo.com/html/?q=site%3Anews.ycombinator.com+playwright"}
+  -> result isError=True [{"type": "text", "text": "Error: [egress] 参数 url 的目的地被拒:目标 duckduckgo.com:443 不在出网域名白名单(9 条规则)"}]
+step 11: web_fetch {"url":"https://news.ycombinator.com/search?q=playwright"}
+  -> result isError=True [{"type": "text", "text": "Error: web fetch failed: TypeError: fetch failed"}]
+step 12: mcp__browser__browser_snapshot {"url":"https://news.ycombinator.com/"}
+  -> result isError=False [{"type": "text", "text": "{\"ok\":true,\"tool\":\"browser_snapshot\",\"result\":{\"tabId\":1733744322,\"url\":\"https://news.ycombinator.com/\",\"tit
+step 13: bash {"command":"curl -sS -o /tmp/hnsearch.html -w '%{http_code} %{url_effective}\\n' -A 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36' 'https://news.ycombinator.com/search?q=playwright' && head -c 800 /tmp/hnsearch.html","description":"Fetch HN search page with curl to inspect response"}
+  -> result isError=False [{"type": "text", "text": "[still running after 60000ms; moved to background job bash-75d72cbf77f1456f]"}]
+step 14: job_output {"job_id":"bash-75d72cbf77f1456f","wait":true,"timeout_ms":30000}

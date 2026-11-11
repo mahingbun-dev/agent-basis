@@ -1,0 +1,78 @@
+{
+  "id": "G-CORE-01",
+  "prompt": "打开 example.com 并读出页面标题",
+  "startedAt": "2026-11-10T18:41:10.938Z",
+  "observations": [
+    {
+      "at": "2026-11-10T18:41:13.468Z",
+      "kind": "new-session",
+      "data": {}
+    },
+    {
+      "at": "2026-11-10T18:41:13.472Z",
+      "kind": "tabs-before",
+      "data": {
+        "capturedAt": "2026-11-10T18:41:13.469Z",
+        "pages": [
+          {
+            "url": "http://127.0.0.1:50454/",
+            "title": "EternaAgent"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-11-10T18:41:13.552Z",
+      "kind": "prompt-sent",
+      "data": {
+        "usedEnter": true
+      }
+    },
+    {
+      "at": "2026-11-10T18:41:18.634Z",
+      "kind": "approval-clicked",
+      "data": {
+        "label": "允许一次"
+      }
+    },
+    {
+      "at": "2026-11-10T18:41:35.188Z",
+      "kind": "turn-converged",
+      "data": {
+        "ms": 21636
+      }
+    },
+    {
+      "at": "2026-11-10T18:41:35.190Z",
+      "kind": "session-full-text",
+      "data": "恒灵·EternaAgent\n新会话\n⌥\n⌘\nN\n插件\n自动化任务\n更多\n工作区\ngate-admin\n打开网页并读取标题\n刚刚\n设置\n打开网页并读取标题\n创造模式\n对话\n轨迹\n打开 example.com 并读出页面标题\n02:41\n已完成\n已完成，用时 9秒\n\n已打开 https://example.com/，页面标题是：Example Domain\n\n用量 22.5K tok\n02:41\n发消息或创建任务, / 调用指令, @ 文件或对话\n工作区内修改\nmimo-v2.6-flash\nDefault\n1 轮 2 步·40 tok/s\n22.5K tok·缓存命中 95%\n4%\ng\ngate-admin\n退出"
+    },
+    {
+      "at": "2026-11-10T18:41:35.190Z",
+      "kind": "session-tail-text",
+      "data": "恒灵·EternaAgent\n新会话\n⌥\n⌘\nN\n插件\n自动化任务\n更多\n工作区\ngate-admin\n打开网页并读取标题\n刚刚\n设置\n打开网页并读取标题\n创造模式\n对话\n轨迹\n打开 example.com 并读出页面标题\n02:41\n已完成\n已完成，用时 9秒\n\n已打开 https://example.com/，页面标题是：Example Domain\n\n用量 22.5K tok\n02:41\n发消息或创建任务, / 调用指令, @ 文件或对话\n工作区内修改\nmimo-v2.6-flash\nDefault\n1 轮 2 步·40 tok/s\n22.5K tok·缓存命中 95%\n4%\ng\ngate-admin\n退出"
+    },
+    {
+      "at": "2026-11-10T18:41:35.190Z",
+      "kind": "browser-tool-calls-observed-in-ui",
+      "data": []
+    },
+    {
+      "at": "2026-11-10T18:41:35.200Z",
+      "kind": "tabs-after",
+      "data": {
+        "capturedAt": "2026-11-10T18:41:35.193Z",
+        "pages": [
+          {
+            "url": "http://127.0.0.1:50454/",
+            "title": "打开网页并读取标题 — EternaAgent"
+          },
+          {
+            "url": "https://example.com/",
+            "title": "Example Domain"
+          }
+        ]
+      }
+    }
+  ]
+}

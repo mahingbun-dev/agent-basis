@@ -57,6 +57,15 @@ import type { EgressPluginConfig } from '../types.ts'
 export const ETERNA_EGRESS_PLUGIN_NAME = 'eterna-egress'
 
 /**
+ * egress 审计豁免(缺省):companion 浏览器执行面。mcp__browser__* 的 url 参数语义=
+ * 「用户浏览器导航目的地」,出站发生在用户机器、不经服务端——按服务端域名白名单
+ * 审计属语义错位(2026-11-11 生产实测:mimo-pro 调 browser_snapshot(url=example.com)
+ * 被 3 条内网规则白名单拒,任务无法执行)。豁免 ≠ 放行服务端出站:命中工具的网络
+ * 行为由其执行面(用户浏览器)自担;其余 mcp__* 内网工具仍走原三层判定。
+ */
+export const DEFAULT_EGRESS_EXEMPT_TOOL_GLOBS: readonly string[] = ['mcp__browser__*']
+
+/**
  * 工具级白名单缺省(唯一显式出站 + 内网 MCP 家族;理由见头注 fail-closed 段)。
  * web 检索五件套的模型面工具 = web_search / web_fetch(deepseek-harness
  * packages/web/tool-web 注册,provider 见 web-search-deepseek)。
@@ -110,6 +119,8 @@ export function defineEgressPlugin(config: EgressPluginConfig = {}) {
         injectProxyEnv: config.proxyUrl !== undefined,
         // 插件层缺省 'allow'(头注 fail-closed 段;wrapper 自身缺省是 'deny',必须显式覆盖)。
         unknownDestination: config.unknownDestination ?? 'allow',
+        // companion 浏览器执行面豁免(语义见 DEFAULT_EGRESS_EXEMPT_TOOL_GLOBS 段)。
+        exemptToolGlobs: config.exemptToolGlobs ?? DEFAULT_EGRESS_EXEMPT_TOOL_GLOBS,
       })
       const actor = { pluginId: ETERNA_EGRESS_PLUGIN_NAME, source: 'decision' } as const
 
