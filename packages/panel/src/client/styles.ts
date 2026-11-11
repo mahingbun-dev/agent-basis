@@ -13,8 +13,8 @@ const CSS = `
   overflow-x: hidden;
   scrollbar-gutter: stable;
   display: block;
-  padding: 48px 32px 96px;
-  max-width: var(--et-container-panel);
+  padding: 48px 48px 96px;
+  max-width: none;
   margin: 0 auto;
   font-family: var(--et-font-body);
   font-size: var(--et-text-caption);
@@ -63,7 +63,7 @@ const CSS = `
 [data-eterna-panel='step-text'] { font-size: var(--et-text-caption); line-height: var(--et-leading-body); color: var(--et-fg-2); }
 
 /* —— 服务状态 —— */
-[data-eterna-panel='cards'] { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--et-space-6); }
+[data-eterna-panel='cards'] { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--et-space-6); }
 [data-eterna-panel='card'] {
   display: flex; flex-direction: column; gap: var(--et-space-2); min-width: 0;
   padding: var(--et-space-5); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md);

@@ -16,8 +16,8 @@ const CSS = `
   overflow-x: hidden;
   scrollbar-gutter: stable;
   display: block;
-  padding: 48px 32px 96px;
-  max-width: var(--et-container-panel);
+  padding: 48px 48px 96px;
+  max-width: none;
   margin: 0 auto;
   font-family: var(--et-font-body);
   font-size: var(--et-text-caption);
@@ -275,7 +275,7 @@ const CSS = `
 [data-t7-import-input] { font: inherit; font-size: 12px; color: var(--et-fg-2); max-width: 100%; }
 
 /* —— T1.5 全景分组导航(preset/领域/运行时;access 插件页分组行卡同构形态) —— */
-[data-ps-group-nav] { display: flex; flex-direction: column; gap: 20px; margin: 0 0 48px; }
+[data-ps-group-nav] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; margin: 0 0 48px; }
 [data-ps-layer-group] {
   border-radius: var(--et-radius-md); padding: 4px 20px 8px;
   background: var(--et-surface);
@@ -622,16 +622,17 @@ const CSS = `
 [data-t7-trace-pipeline] { margin: 0 0 16px; font-size: 12px; color: var(--et-muted); }
 [data-t7-trace-pipeline-name] { font-weight: 600; }
 [data-t7-session-list] {
-  border-radius: var(--et-radius-md); padding: 4px 20px;
-  background: var(--et-surface);
-  border: 1px solid var(--et-border);
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px;
+  border: 0; padding: 0; background: none;
 }
 [data-t7-session-item] {
-  width: 100%; display: flex; flex-direction: column; gap: 4px; text-align: left;
-  padding: 14px 0; font: inherit; cursor: pointer; background: none; border: 0;
-  border-bottom: 1px solid var(--et-border-soft);
+  width: 100%; display: flex; flex-direction: column; gap: 6px; text-align: left;
+  padding: 16px; font: inherit; cursor: pointer; background: var(--et-surface); border: 1px solid var(--et-border-soft);
+  border-radius: var(--et-radius-md);
+  transition: border-color var(--et-motion-fast) var(--et-ease), background var(--et-motion-fast) var(--et-ease);
 }
-[data-t7-session-item]:last-child { border-bottom: 0; padding-bottom: 4px; }
+[data-t7-session-item]:last-child { border-bottom: 1px solid var(--et-border-soft); padding-bottom: 16px; }
+[data-t7-session-item]:hover { border-color: var(--et-border); background: var(--et-surface-2); }
 [data-t7-session-item]:hover [data-t7-session-id] { color: var(--et-accent); }
 [data-t7-session-id] { font-size: var(--et-text-caption); font-weight: 600; color: var(--et-fg); overflow-wrap: anywhere; }
 [data-t7-session-metrics] {
@@ -650,7 +651,7 @@ const CSS = `
 [data-t7-trace-back]:hover { background: var(--et-surface-2); color: var(--et-fg); }
 [data-t7-trace-session-id] { font-size: var(--et-text-caption); font-weight: 600; color: var(--et-fg); overflow-wrap: anywhere; }
 [data-t7-trace-events] { font-size: 12px; color: var(--et-muted); }
-[data-t7-trace-turns] { display: flex; flex-direction: column; gap: 16px; }
+[data-t7-trace-turns] { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 16px; align-items: start; }
 [data-t7-trace-node] {
   border-radius: var(--et-radius-md); padding: 16px 18px;
   background: var(--et-surface);
@@ -706,6 +707,16 @@ const CSS = `
   [data-t7-studio-root] input,
   [data-t7-studio-root] textarea,
   [data-t7-studio-root] select { transition: none; }
+}
+@media (max-width: 1100px) {
+  [data-t7-studio-root], [data-t7-trace-root] { padding: 32px 24px 64px; }
+  [data-ps-group-nav] { grid-template-columns: 1fr; }
+  [data-t7-session-list] { grid-template-columns: 1fr; }
+  [data-t7-trace-turns] { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  [data-t7-studio-root], [data-t7-trace-root] { padding: 24px 16px 48px; }
+  [data-t7-heading] { font-size: 28px; line-height: 1.15; }
 }
 `
 

@@ -35,6 +35,34 @@ body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:ce
 .topbar button{width:auto;margin:0;padding:8px 10px;font-size:14px;background:none;color:var(--danger);border-radius:var(--et-radius-sm)}
 .topbar button:hover{background:var(--et-danger-soft)}
 main{flex:1;display:flex;align-items:center;justify-content:center;width:100%;padding:32px 16px}
+.login-body .topbar{display:none}
+main.login-main{padding:0;align-items:stretch;justify-content:flex-start}
+.login-shell{flex:1;width:100%;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}
+.login-brand{display:flex;align-items:center;padding:clamp(32px,6vw,96px);background:var(--et-surface);border-right:1px solid var(--et-border)}
+.login-brand-inner{max-width:680px}
+.login-eyebrow{display:flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--et-accent);font-weight:600;margin-bottom:20px}
+.login-eyebrow svg{color:var(--et-accent);flex:none}
+.login-brand h1{margin:0 0 24px;font-size:clamp(40px,4vw,64px);line-height:1.08;letter-spacing:0;font-weight:600}
+.login-lead{margin:0 0 32px;max-width:46ch;font-size:18px;line-height:1.7;color:var(--et-fg-2)}
+.login-points{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;color:var(--et-muted);font-size:15px}
+.login-points li{display:flex;gap:10px}
+.login-points li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--et-accent);margin-top:8px;flex:none}
+.login-panel{display:flex;align-items:center;justify-content:center;padding:clamp(24px,4vw,64px);background:var(--et-surface-2)}
+.login-body .login-card{width:100%;max-width:460px;box-shadow:none;padding:40px}
+.login-body .login-card h2{font-size:32px}
+@media (max-width:900px){
+  .login-shell{grid-template-columns:1fr}
+  .login-brand{padding:32px 24px;border-right:0;border-bottom:1px solid var(--et-border)}
+  .login-brand h1{font-size:36px}
+  .login-lead{font-size:16px}
+  .login-panel{padding:24px 16px 48px}
+  .login-body .login-card{padding:28px 20px}
+}
+@media (max-width:640px){
+  .login-brand{padding:24px 16px}
+  .login-brand h1{font-size:32px}
+  .login-points{font-size:14px}
+}
 .stack{display:flex;flex-direction:column;gap:16px;width:min(1100px,94vw)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
 .grid2.ratio{grid-template-columns:1.6fr 1fr}
@@ -137,7 +165,9 @@ ${avatarHtml(viewer.avatarUrl, viewer.nickname, 24)}
     btn.disabled=true
     fetch('/logout',{method:'POST',credentials:'same-origin'}).then(function(){location.href='/login'})})
 })()</script>`
-  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · 恒灵·EternaAgent</title><style>${STYLE}</style></head><body>${bar}<main>${body}</main>${logoutScript}${script === '' ? '' : `<script>${script}</script>`}</body></html>`
+  const bodyClass = viewer === undefined ? ' class="login-body"' : ''
+  const mainClass = viewer === undefined ? ' class="login-main"' : ''
+  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · 恒灵·EternaAgent</title><style>${STYLE}</style></head><body${bodyClass}>${bar}<main${mainClass}>${body}</main>${logoutScript}${script === '' ? '' : `<script>${script}</script>`}</body></html>`
 }
 
 function avatarHtml(avatarUrl: string | null, nickname: string, size = 26): string {
@@ -148,12 +178,28 @@ function avatarHtml(avatarUrl: string | null, nickname: string, size = 26): stri
   return `<span class="avatar" style="${style}">${escapeHtml(nickname.slice(0, 1) || '?')}</span>`
 }
 
-/** 登录页(viewer 缺省=无导航身份)。 */
+/** 登录页(viewer 缺省=无导航身份):全页双栏,左侧产品叙事、右侧登录表单。 */
 export function renderLoginPage(): string {
-  const body = `<div class="card narrow"><h2>登录</h2>
+  const body = `<div class="login-shell">
+  <section class="login-brand" aria-label="产品介绍">
+    <div class="login-brand-inner">
+      <div class="login-eyebrow">${brandMark(14)}<span>恒灵 · EternaAgent</span></div>
+      <h1>方寸灵台，<br>运筹万里。</h1>
+      <p class="login-lead">企业 Agent 基座：把模型、工具、知识与审批收进一个可控的工作台。</p>
+      <ul class="login-points">
+        <li>统一接入模型与工具</li>
+        <li>提示词、记忆与知识可治理</li>
+        <li>高风险动作走审批与审计</li>
+      </ul>
+    </div>
+  </section>
+  <section class="login-panel">
+    <div class="card narrow login-card"><h2>登录</h2>
 <label>账号</label><input id="account" autocomplete="username">
 <label>密码</label><div class="field"><input id="password" type="password" autocomplete="current-password"><button type="button" class="eye-btn" id="pwEye" aria-label="切换密码可见性" title="显示/隐藏密码"><svg viewBox="0 0 24 24" class="ic-eye"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg><svg viewBox="0 0 24 24" class="ic-eye-off" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></button></div>
-<button id="go">登录</button><p class="err" id="msg" role="alert" aria-live="polite"></p></div>`
+<button id="go">登录</button><p class="err" id="msg" role="alert" aria-live="polite"></p></div>
+  </section>
+</div>`
   const script = `
 var go=document.getElementById('go'),msg=document.getElementById('msg')
 function submit(){
@@ -194,6 +240,7 @@ export const BADGE_SCRIPT = `
     if(!u||!u.account)return
     meAccount=u.account
     var b=document.createElement('div')
+    b.className='eterna-identity-badge'
     // 位置铁律:头部下方(top:52px)——固定右上(top:8px)会压住上游头部右侧的
     // 「更多操作/打开右侧边栏」等按钮(2026-11-11 E2E:全宽度遮挡=插件页/设置入口全灭)。
     b.style.cssText='position:fixed;top:52px;right:10px;z-index:2147483647;display:flex;align-items:center;gap:8px;max-width:60vw;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);border-radius:4px;padding:4px 12px 4px 4px;font-size:13px;line-height:1.5;font-family:var(--dsw-font-family, system-ui, sans-serif);box-shadow:0 4px 12px rgba(0,0,0,.12)'
