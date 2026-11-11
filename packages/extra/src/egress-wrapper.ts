@@ -23,6 +23,7 @@ import { DomainWhitelist } from './domain-whitelist.ts'
 import type { DomainDecision } from './domain-whitelist.ts'
 import type { JsonSchemaNode, ToolDefinition } from '@deepseek-ai/dsh-tools'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
+import { matchAnyGlob } from '@eterna/governance'
 import type { EgressClassification, EgressLite } from '@eterna/governance'
 
 /** 默认从工具参数里找目的地的键(参数键小写化后比对;baseURL→baseurl 亦命中)。 */
@@ -61,6 +62,14 @@ export interface EgressWrapperOptions {
    * 缺省 true;对自带代理配置的工具可关。
    */
   readonly injectProxyEnv?: boolean
+  /**
+   * 完全豁免 preflight 的工具 glob(companion 浏览器执行面,2026-11-11):
+   * mcp__browser__* 的 url 参数语义=「用户浏览器导航目的地」——出站发生在用户机器,
+   * 不经服务端,按服务端出站域名白名单审计属语义错位(生产实测:mimo-pro 调
+   * browser_snapshot(url=example.com) 被 3 条内网规则白名单拒)。豁免≠放行服务端
+   * 出站:命中工具的网络行为由其执行面(用户浏览器)自担。
+   */
+  readonly exemptToolGlobs?: readonly string[]
 }
 
 /** 判定结果(供测试与组合层 preflight 复用;不执行底层工具)。 */
@@ -71,8 +80,9 @@ export type EgressPreflight =
 
 /** 出网工具包装器。不可变配置;一个实例可包装多个工具。 */
 export class EgressToolWrapper {
-  readonly #options: Omit<EgressWrapperOptions, 'urlArgKeys' | 'unknownDestination' | 'injectProxyEnv'>
+  readonly #options: Omit<EgressWrapperOptions, 'urlArgKeys' | 'unknownDestination' | 'injectProxyEnv' | 'exemptToolGlobs'>
     & Required<Pick<EgressWrapperOptions, 'urlArgKeys' | 'unknownDestination' | 'injectProxyEnv'>>
+    & Pick<EgressWrapperOptions, 'exemptToolGlobs'>
 
   constructor(options: EgressWrapperOptions) {
     this.#options = {
@@ -83,8 +93,11 @@ export class EgressToolWrapper {
     }
   }
 
-  /** 执行前预检:local 工具原样放行;出网工具逐 URL 判域名。不触碰底层工具。 */
+  /** 执行前预检:豁免工具/ local 工具原样放行;出网工具逐 URL 判域名。不触碰底层工具。 */
   preflight(toolName: string, args: Record<string, unknown>): EgressPreflight {
+    if (this.#options.exemptToolGlobs !== undefined && matchAnyGlob(toolName, this.#options.exemptToolGlobs)) {
+      return { kind: 'local' }
+    }
     const classification = this.#options.egress.classify(toolName)
     if (classification === 'local') return { kind: 'local' }
     if (classification === 'outbound-denied') {
