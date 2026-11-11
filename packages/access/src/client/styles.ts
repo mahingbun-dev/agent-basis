@@ -5,7 +5,7 @@
 import { injectDesignTokens } from '@eterna/ui'
 
 const CSS = `
-[data-eterna-access-root] { width: 100%; font-family: var(--et-font-body); font-size: var(--et-text-caption); font-weight: var(--et-weight-body); line-height: var(--et-leading-body); color: var(--et-fg); max-width: var(--et-container-settings); }
+[data-eterna-access-root] { width: 100%; font-family: var(--et-font-body); font-size: var(--et-text-caption); font-weight: var(--et-weight-body); line-height: var(--et-leading-body); color: var(--et-fg); max-width: none; }
 [data-eterna-access-root], [data-eterna-access-root] *, [data-eterna-access-root] *::before, [data-eterna-access-root] *::after { box-sizing: border-box; }
 [data-eterna-access-root] * { min-width: 0; overflow-wrap: anywhere; }
 [data-eterna-access-root] .ea-lead { margin: 0 0 20px; color: var(--et-muted); font-size: var(--et-text-caption); }
@@ -13,6 +13,19 @@ const CSS = `
 [data-eterna-access-root] .ea-card { border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); padding: var(--et-space-5);
   background: var(--et-surface); }
 [data-eterna-access-root] .ea-card.ea-card-wide { grid-column: 1 / -1; }
+
+/* 设置/弹窗打开时隐藏右上身份胶囊,避免覆盖全屏设置面板。 */
+body:has([role="dialog"]) .eterna-identity-badge { display: none !important; }
+
+/* 设置弹窗不再使用 800px 小窗:桌面近全屏,内容区随面板铺开。 */
+@media (min-width: 900px) {
+  [data-shortcut-modal="settings"] {
+    width: calc(100vw - 48px) !important;
+    max-width: calc(100vw - 48px) !important;
+    height: calc(100vh - 48px) !important;
+    grid-template-columns: 220px minmax(0, 1fr) !important;
+  }
+}
 [data-eterna-access-root] .ea-card h3 { margin: 0 0 var(--et-space-3); font-size: var(--et-text-body); font-weight: var(--et-weight-display); letter-spacing: 0; }
 [data-eterna-access-root] label.ea-label { display: block; font-size: var(--et-text-micro); color: var(--et-muted); margin: 12px 0 4px; }
 [data-eterna-access-root] input.ea-input, [data-eterna-access-root] select.ea-input {

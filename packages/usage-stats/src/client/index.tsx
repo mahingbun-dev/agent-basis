@@ -26,9 +26,9 @@ const CSS = `
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-gutter: stable;
-  max-width: var(--et-container-panel);
+  max-width: none;
   margin: 0 auto;
-  padding: 48px 32px 96px;
+  padding: 48px 48px 96px;
   color: var(--et-fg);
   font-family: var(--et-font-body);
   font-size: var(--et-text-caption);
@@ -39,13 +39,14 @@ const CSS = `
 [data-eterna-usage-stats] .us-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 24px; }
 [data-eterna-usage-stats] .us-title { margin: 0; font-size: var(--et-text-h2); line-height: 1.15; font-weight: var(--et-weight-display); letter-spacing: 0; }
 [data-eterna-usage-stats] .us-scope { font-size: var(--et-text-caption); color: var(--et-muted); }
-[data-eterna-usage-stats] .us-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--et-space-4); margin-bottom: var(--et-space-8); }
-[data-eterna-usage-stats] .us-card { padding: var(--et-space-4); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); background: var(--et-surface); }
+[data-eterna-usage-stats] .us-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--et-space-4); margin-bottom: var(--et-space-8); }
+[data-eterna-usage-stats] .us-card { padding: var(--et-space-5); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); background: var(--et-surface); }
 [data-eterna-usage-stats] .us-kicker { font-size: var(--et-text-micro); line-height: 1.3; color: var(--et-muted); margin-bottom: 6px; }
-[data-eterna-usage-stats] .us-value { font-size: var(--et-text-h3); line-height: 1.15; font-weight: var(--et-weight-display); font-variant-numeric: tabular-nums; color: var(--et-fg); white-space: nowrap; }
-[data-eterna-usage-stats] .us-section { margin-top: var(--et-space-8); }
+[data-eterna-usage-stats] .us-value { font-size: clamp(24px, 1.6vw, 36px); line-height: 1.15; font-weight: var(--et-weight-display); font-variant-numeric: tabular-nums; color: var(--et-fg); white-space: nowrap; }
+[data-eterna-usage-stats] .us-grid { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: var(--et-space-6); align-items: start; }
+[data-eterna-usage-stats] .us-section { margin-top: 0; }
 [data-eterna-usage-stats] .us-section-title { margin: 0 0 var(--et-space-3); font-size: var(--et-text-lead); line-height: 1.3; font-weight: var(--et-weight-display); color: var(--et-fg); }
-[data-eterna-usage-stats] .us-chart { display: flex; align-items: flex-end; gap: 4px; height: 136px; padding: 12px 12px 0; border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); background: var(--et-surface); }
+[data-eterna-usage-stats] .us-chart { display: flex; align-items: flex-end; gap: 6px; height: 220px; padding: 16px 16px 0; border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); background: var(--et-surface); }
 [data-eterna-usage-stats] .us-day { flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; min-width: 0; }
 [data-eterna-usage-stats] .us-bar { width: 100%; background: var(--et-accent); border-radius: var(--et-radius-sm) var(--et-radius-sm) 0 0; min-height: 2px; }
 [data-eterna-usage-stats] .us-bar[data-empty='true'] { background: var(--et-border); }
@@ -57,12 +58,18 @@ const CSS = `
 [data-eterna-usage-stats] tr:last-child td { border-bottom: 0; }
 [data-eterna-usage-stats] .us-empty { padding: 64px 24px; text-align: center; color: var(--et-muted); }
 [data-eterna-usage-stats] .us-error { padding: 24px 0; color: var(--et-danger); }
+@media (max-width: 1100px) {
+  [data-eterna-usage-stats] { padding: 32px 24px 64px; }
+  [data-eterna-usage-stats] .us-cards { grid-template-columns: 1fr 1fr; }
+  [data-eterna-usage-stats] .us-grid { grid-template-columns: 1fr; }
+  [data-eterna-usage-stats] .us-chart { height: 180px; }
+}
 @media (max-width: 640px) {
   [data-eterna-usage-stats] { padding: 24px 16px 48px; }
   [data-eterna-usage-stats] .us-title { font-size: 28px; }
   [data-eterna-usage-stats] .us-cards { grid-template-columns: 1fr 1fr; gap: var(--et-space-3); }
   [data-eterna-usage-stats] .us-card { padding: 12px; }
-  [data-eterna-usage-stats] .us-value { font-size: var(--et-text-h3); }
+  [data-eterna-usage-stats] .us-value { font-size: var(--et-text-lead); }
   [data-eterna-usage-stats] .us-chart { height: 112px; padding: 8px 8px 0; }
   [data-eterna-usage-stats] .us-day:not(:nth-child(3n+1)) .us-chart-label { visibility: hidden; }
 }
@@ -154,40 +161,42 @@ export function UsageStatsPage(props: UsageStatsPageProps): React.JSX.Element {
           <div className="us-value">{a.total.sessions} / {a.total.turns}</div>
         </div>
       </div>
-      <section className="us-section" aria-label="近 14 天趋势">
-        <h2 className="us-section-title">近 14 天趋势(输入+输出)</h2>
-        <div className="us-chart" data-eterna-trend>
-          {days.map(day => (
-            <div key={day.day} className="us-day" title={`${day.day}: ${day.value}`}>
-              <div
-                className="us-bar"
-                data-empty={day.value === 0 ? 'true' : undefined}
-                style={{ height: day.value === 0 ? 2 : `${Math.max(4, (day.value / maxDay) * 100)}%` }}
-              />
-              <div className="us-chart-label">{day.day.slice(5)}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-      <section className="us-section" aria-label="按模型">
-        <h2 className="us-section-title">按模型</h2>
-        <div className="us-table-wrap">
-          <table data-eterna-model-table>
-            <thead><tr><th>模型</th><th>输入</th><th>输出</th><th>缓存读</th><th>轮次</th></tr></thead>
-            <tbody>
-              {models.map(([model, v]) => (
-                <tr key={model}>
-                  <td>{model}</td>
-                  <td>{fmt(v.inputTokens)}</td>
-                  <td>{fmt(v.outputTokens)}</td>
-                  <td>{fmt(v.cacheReadTokens)}</td>
-                  <td>{v.turns}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <div className="us-grid">
+        <section className="us-section" aria-label="近 14 天趋势">
+          <h2 className="us-section-title">近 14 天趋势(输入+输出)</h2>
+          <div className="us-chart" data-eterna-trend>
+            {days.map(day => (
+              <div key={day.day} className="us-day" title={`${day.day}: ${day.value}`}>
+                <div
+                  className="us-bar"
+                  data-empty={day.value === 0 ? 'true' : undefined}
+                  style={{ height: day.value === 0 ? 2 : `${Math.max(4, (day.value / maxDay) * 100)}%` }}
+                />
+                <div className="us-chart-label">{day.day.slice(5)}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className="us-section" aria-label="按模型">
+          <h2 className="us-section-title">按模型</h2>
+          <div className="us-table-wrap">
+            <table data-eterna-model-table>
+              <thead><tr><th>模型</th><th>输入</th><th>输出</th><th>缓存读</th><th>轮次</th></tr></thead>
+              <tbody>
+                {models.map(([model, v]) => (
+                  <tr key={model}>
+                    <td>{model}</td>
+                    <td>{fmt(v.inputTokens)}</td>
+                    <td>{fmt(v.outputTokens)}</td>
+                    <td>{fmt(v.cacheReadTokens)}</td>
+                    <td>{v.turns}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
     </div>
   )
 }

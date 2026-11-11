@@ -110,9 +110,8 @@ const SHARED = `
   --et-ease: cubic-bezier(0.2, 0, 0, 1);
 
   --et-container: 1200px;
-  --et-container-panel: 960px;
-  --et-container-settings: 720px;
-  --et-container-form: 440px;
+  /* 主面板与设置弹窗默认全宽；保留一个可选阅读上限，避免未来页面重新缩回窄列。 */
+  --et-container-panel: 1600px;
   --et-gutter: 24px;
 `
 
