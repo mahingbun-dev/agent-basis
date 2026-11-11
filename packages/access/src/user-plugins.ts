@@ -21,7 +21,7 @@ import { userRootFor } from './tenant.ts'
 import type { ApprovalFlow } from './approvals.ts'
 
 /** 个人插件登记端点前缀(access 守卫路由,cookie 判归属)。 */
-export const USER_PLUGINS_PREFIX = '/access/api/my-plugins'
+export const USER_PLUGINS_PREFIX = '/api/my-plugins'
 
 interface GuardContextLike {
   readonly deps: TenantDeps
@@ -211,19 +211,19 @@ export function registerUserPluginRoutes(
   })
 
   // ── T7A:审批队列(admin)/我的请求/站内通知(全员)──
-  register('/access/api/approvals/pending', (rpcId, _args, ctx) => {
+  register('/api/approvals/pending', (rpcId, _args, ctx) => {
     if (approvalDeps === undefined || !approvalDeps.isAdmin(ctx.userId)) return okFrame(rpcId, { items: [] })
     return okFrame(rpcId, { items: approvalDeps.flow.listPending() })
   })
-  register('/access/api/approvals/mine', (rpcId, _args, ctx) => {
+  register('/api/approvals/mine', (rpcId, _args, ctx) => {
     if (approvalDeps === undefined) return okFrame(rpcId, { items: [] })
     return okFrame(rpcId, { items: approvalDeps.flow.listMine(ctx.userId) })
   })
-  register('/access/api/notifications', (rpcId, _args, ctx) => {
+  register('/api/notifications', (rpcId, _args, ctx) => {
     if (approvalDeps === undefined) return okFrame(rpcId, { items: [], unread: 0 })
     return okFrame(rpcId, { items: approvalDeps.flow.notifications(ctx.userId), unread: approvalDeps.flow.unreadCount(ctx.userId) })
   })
-  register('/access/api/notifications/read-all', (rpcId, _args, ctx) => {
+  register('/api/notifications/read-all', (rpcId, _args, ctx) => {
     if (approvalDeps !== undefined) approvalDeps.flow.markAllRead(ctx.userId)
     return okFrame(rpcId, { ok: true })
   })

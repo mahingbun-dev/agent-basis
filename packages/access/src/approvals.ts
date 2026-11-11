@@ -25,7 +25,11 @@ function rowToApproval(r: Record<string, unknown>): ApprovalRow {
 
 /** 应用层审批流(消费 UserStore 数据面方法)。 */
 export class ApprovalFlow {
-  constructor(private readonly deps: TenantDeps) {}
+  private readonly deps: TenantDeps
+
+  constructor(deps: TenantDeps) {
+    this.deps = deps
+  }
 
   /** 发起审批(个人;同插件同请求者 pending 去重)。返回请求 id;重复=undefined。 */
   register(type: string, payload: unknown, requesterId: number): number | undefined {
