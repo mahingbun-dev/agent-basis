@@ -117,7 +117,17 @@ function TreeRow(props: {
       onClick={() => { onSelect(entry); if (!expanded) onToggle(entry) }}
       data-eterna-tree-row={entry.path}
     >
-      <span style={styles.caret}><Icon name={expanded ? 'chevron-down' : 'chevron-right'} size={14} /></span>
+      {/* caret 独立接管展开/收起(VSCode 树语义):点箭头=切换;点名称=选择(2026-11-12
+          用户反馈:已展开的目录点不回去——旧 onClick 有 if(!expanded) 守卫=只能展开) */}
+      <span
+        style={{ ...styles.caret, cursor: 'pointer' }}
+        role="button"
+        aria-label={(expanded ? '收起 ' : '展开 ') + entry.name}
+        aria-expanded={expanded}
+        onClick={(e) => { e.stopPropagation(); onToggle(entry) }}
+      >
+        <Icon name={expanded ? 'chevron-down' : 'chevron-right'} size={14} />
+      </span>
       <span style={styles.folderIcon}><Icon name="folder" size={14} /></span>
       <span>{entry.name}</span>
     </button>
