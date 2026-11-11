@@ -166,6 +166,69 @@ body:has([role="dialog"]) .eterna-identity-badge { display: none !important; }
   visibility: visible !important;
   pointer-events: auto !important;
 }
+
+/* 思考强度滑杆(2026-11-12,ZCode composer-thought-slider 同构):
+   原生 range 透明叠加在可视轨道上——track/thumb 全透,确保首尾档位与
+   点击/拖动坐标对齐;交互事件由组件层 stopPropagation。 */
+.et-thought-slider {
+  position: relative;
+  height: 32px;
+}
+.et-thought-slider[data-disabled="true"] {
+  opacity: 0.5;
+}
+.et-thought-slider:has(input:focus-visible) {
+  outline: 2px solid var(--et-accent-soft);
+  outline-offset: 2px;
+}
+.et-thought-range {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  width: 100%;
+  height: 32px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  outline: none;
+}
+.et-thought-range[aria-disabled="true"] {
+  cursor: default;
+}
+.et-thought-range::-webkit-slider-runnable-track {
+  height: 32px;
+  background: transparent;
+}
+.et-thought-range::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 28px;
+  height: 28px;
+  margin-top: 2px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+.et-thought-range::-moz-range-track {
+  height: 32px;
+  background: transparent;
+}
+.et-thought-range::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+.et-thought-range::-moz-range-progress {
+  background: transparent;
+}
+@media (prefers-reduced-motion: reduce) {
+  .et-thought-slider * {
+    transition: none !important;
+  }
+}
 `
 
 export function injectAccessStyles(doc: Document = document): void {
