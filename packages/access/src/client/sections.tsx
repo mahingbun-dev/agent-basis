@@ -3,7 +3,7 @@
  * 官方语义令牌渲染,弹窗内与产品风格天然统一。
  */
 import { useCallback, useEffect, useState } from 'react'
-import { api, fileToAvatarDataUrl, type Me, type UserRowView } from './api.ts'
+import { api, fileToAvatarDataUrl, type CompanionView, type Me, type UserRowView } from './api.ts'
 
 function Avatar(props: { url: string | null; nickname: string; size?: number }): React.JSX.Element {
   const size = props.size ?? 40
@@ -40,7 +40,95 @@ function PasswordInput(props: {
   </div>
 }
 
-/** 账号分区:资料卡(合并保存,脏检查)+密码卡(独立,确认输入)。 */
+/** 一键复制文本（clipboard API 优先，execCommand 兜底）；返回复制动作与是否成功反馈。 */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.position = 'fixed'
+    ta.style.opacity = '0'
+    document.body.appendChild(ta)
+    ta.select()
+    const ok = document.execCommand('copy')
+    ta.remove()
+    return ok
+  }
+}
+
+/** 浏览器执行面卡:令牌(等宽展示+一键复制)+生成/重置(两击确认)+指引页跳转。 */
+export function CompanionCard(): React.JSX.Element {
+  const [view, setView] = useState<CompanionView | null>(null)
+  const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string }>({ ok: true, text: '' })
+
+  useEffect(() => {
+    api.companion().then(setView).catch((error: unknown) => {
+      setMsg({ ok: false, text: error instanceof Error ? error.message : '读取失败' })
+    })
+  }, [])
+
+  const generate = async (): Promise<void> => {
+    // 两击确认(破坏性:重置使旧令牌即刻失效);首枚生成同样双击防误触
+    if (!confirming) {
+      setConfirming(true)
+      window.setTimeout(() => { setConfirming(false) }, 4000)
+      return
+    }
+    setConfirming(false)
+    setBusy(true)
+    try {
+      const next = await api.resetCompanionToken()
+      setView({ token: next.token, createdAt: next.createdAt, guideUrl: next.guideUrl })
+      setMsg({ ok: true, text: '令牌已生成' })
+    } catch (error) {
+      setMsg({ ok: false, text: error instanceof Error ? error.message : '生成失败' })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const copy = async (): Promise<void> => {
+    if (view?.token === null || view?.token === undefined) return
+    const ok = await copyText(view.token)
+    setCopied(ok)
+    window.setTimeout(() => { setCopied(false) }, 2000)
+  }
+
+  return <div className="ea-card">
+    <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>浏览器执行面</h3>
+    <p className="ea-hint" style={{ margin: '0 0 8px' }}>让你的浏览器成为 Agent 的执行面：安装扩展后，Agent 可在你登录过的页面上代你操作（数据与登录态都不离开你的浏览器）。每台浏览器用独立令牌接入。</p>
+    {view === null
+      ? <p className="ea-hint">读取中…</p>
+      : view.token === null
+        ? <p className="ea-hint">尚未生成接入令牌。</p>
+        : <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <code style={{
+              flex: 1, minWidth: 220, fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontSize: 12,
+              padding: '7px 10px', borderRadius: 7,
+              border: '1px solid var(--dsw-alias-border-primary, #d4d4d8)',
+              background: 'var(--dsw-alias-bg-secondary, transparent)',
+              wordBreak: 'break-all',
+            }}>{view.token}</code>
+            <button type="button" className="ea-btn" style={{ margin: 0 }} onClick={() => { void copy() }}>{copied ? '已复制' : '一键复制'}</button>
+          </div>}
+    <div className="ea-row between" style={{ marginTop: 14 }}>
+      <button type="button" className="ea-btn" disabled={busy} onClick={() => { void generate() }}>
+        {confirming ? '再点一次确认重置' : (view?.token !== null && view?.token !== undefined ? '重置令牌' : '生成令牌')}
+      </button>
+      {view !== null && <a href={view.guideUrl} target="_blank" rel="noopener noreferrer" style={{
+        fontSize: 13, color: 'var(--dsw-alias-text-link, #2563eb)', textDecoration: 'none',
+      }}>安装指引 ↗</a>}
+    </div>
+    <p className={msg.ok ? 'ea-ok' : 'ea-err'}>{msg.text}</p>
+  </div>
+}
+
+/** 账号分区:资料卡(合并保存,脏检查)+密码卡(独立,确认输入)+浏览器执行面卡。 */
 export function AccountSection(): React.JSX.Element {
   const [me, setMe] = useState<Me | null>(null)
   const [nick, setNick] = useState('')
@@ -151,6 +239,7 @@ export function AccountSection(): React.JSX.Element {
         </div>
         <p className={pwMsg.ok ? 'ea-ok' : 'ea-err'}>{pwMsg.text}</p>
       </div>
+      <CompanionCard />
     </div>
   </div>
 }
