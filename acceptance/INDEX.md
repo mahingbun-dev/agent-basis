@@ -68,3 +68,15 @@
 - 探测形态裁定：**不**给扩展加全页 content-script DOM 标记（红线 8 最小权限）；引导页自检走同源 /api/status 已闭环。会话内 settings.section 插件分区（三态横幅完整版）归 E2.5-T4。
 
 **回归轮（终判后环境重建首采，回归一致性——非门禁判定）**：G-CORE-01/02/03 三用例全链真跑：G-CORE-02 序列 snapshot→fill→snapshot→click 全零错误（fill 触发站点自动提交→模型按纪律分支①重新 snapshot 取新 ref 再 click 成功，orderSubsequence=true；click 为本会话终点、落点验证走 click 回执 url/title——与终判轮「click 后快照」形态差异，登记不阻断）；G-CORE-03 纯 snapshot→click→snapshot 三步零错误、ref e230 点击前快照在案、openedTabs 上报详情页（ithome.com/1/024/864.htm）、判据 2 基准首段 77 字符逐字符包含一致（指纹 77ch:9ef6b2a6）、无 content_filter、turnFailed=false。digest 证据：smoke/gate-evidence/regression-2026-11-11/（2026-11-11 上午批次；终判轮原始工件未被覆盖——回归批次独立目录，tracked 终判工件经 git checkout 恢复）。
+
+## 生产落地（2026-11-11 上午，用户指令：功能完整生产部署）
+
+链路：PR #9/#10（引导链路+生产落地）→ PR #11/#12（dsh-mcp-client 钉同族 alpha.3）→ PR #13/#14（egress companion 豁免）→ main=ec91ae9 → 干净 worktree 构建镜像 → 容器重部署 healthy。
+
+**生产实测抓到并修复的两个阻断**（均为验收环境覆盖不到的生产实跑发现）：
+1. **dsh-mcp-client 版本族**：rc.1 被 dsh@0.2.2-alpha.3 内核静默 disable（requirements 整组 rc.1 包不匹配）——「@deepseek-ai 须同版本」老坑的版本族变体；改装同族 0.2.2-alpha.3 后零拒装、容器内 MCP initialize+tools/list 三工具全通。
+2. **egress 语义错位**：mimo-pro 调 browser_snapshot(url=example.com) 被域名白名单（3 条内网规则）拒——mcp__browser__* 的 url 参数=用户浏览器导航目的地（出站在用户机器），被当服务端出站审计。修复=egress 加 exemptToolGlobs（缺省豁免 mcp__browser__*，配置可收窄；extra 17+glue 25 测试）。
+
+**生产端到端终验（公网入口真实会话）**：模型按纪律调 mcp__browser__browser_snapshot → relay 回 NO_EXTENSION+指引页 URL → 模型完整转告用户（原因+三步安装操作+「告诉我已连接我会重试」）——工具面挂载与引导报错链路在生产同时坐实。verify.sh 10/10（9310 三项真·生产容器——第一轮 verify 曾误打本机残留验收 relay（127.0.0.1 优先命中），清场后复验）。
+
+**运维待办（公网形态两步，用户操作）**：① .env 设 `ETERNA_RELAY_PUBLIC_URL=wss://eternity-electricity.cn:3210/relay/extension`；② DSM 反代加 `/relay` → `本机IP:9310`（WebSocket 开）——guide 页/报错文案即按公网地址展示（当前展示 127.0.0.1:9310，仅本机/局域网形态可用）。token：`docker exec eterna-agent cat /data/relay-token`（或 .env 设 ETERNA_RELAY_TOKEN）。
