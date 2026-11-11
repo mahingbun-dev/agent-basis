@@ -23,7 +23,8 @@
  * 纯函数面用真实注册表条目(定位元数据=登记事实)+ 同构 fixture 文本;
  * EntryPatchFile 走真实 fs 临时目录。
  */
-import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { rmRetry } from './rm-retry.ts'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -202,7 +203,7 @@ describe('T1.6 形态 A|领域层折叠块 >-(personaPrefix)——packs patch �
       expect(readFileSync(path, 'utf8')).toBe(externallyRewritten)
       expect(readdirSync(dir).filter(name => name.startsWith('.prompt-studio.'))).toEqual([])
     } finally {
-      rmSync(dir, { recursive: true, force: true })
+      await rmRetry(dir)
     }
   })
 })
@@ -255,7 +256,7 @@ describe('T1.6 形态 B|preset-cordis 折叠块 >-(persona prefix)——块头+�
       })).rejects.toThrow(/TOCTOU 拒写/)
       expect(readFileSync(path, 'utf8')).toBe(external)
     } finally {
-      rmSync(dir, { recursive: true, force: true })
+      await rmRetry(dir)
     }
   })
 })
@@ -326,7 +327,7 @@ describe('T1.6 形态 C|plan-mode 字面块 |(多段整段写回,三类最难)�
       expect(readFileSync(path, 'utf8')).toBe(WEB_PATCH)
       expect(readdirSync(dir).filter(name => name.startsWith('.prompt-studio.'))).toEqual([])
     } finally {
-      rmSync(dir, { recursive: true, force: true })
+      await rmRetry(dir)
     }
   })
 })
@@ -538,8 +539,8 @@ describe('T1.6 EntryPatchFile 写纪律(同文件多条目单写者/语义等价
     writeFileSync(path, WEB_PATCH, 'utf8')
   })
 
-  afterEach(() => {
-    rmSync(dir, { recursive: true, force: true })
+  afterEach(async () => {
+    await rmRetry(dir)
   })
 
   it('同一 patch 文件的两个条目并发写(preset persona + plan-mode)→ 单写者串行,双双生效互不覆盖', async () => {

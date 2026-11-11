@@ -14,7 +14,8 @@
  * 网关基类是 cordis Service(构造内 ctx.provide 注册)——测试用真实 cordis
  * Context,configEditor 以 provide 桩注入(llm-doctor/tests/host-plugin.test.ts 同款)。
  */
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { rmRetry } from './rm-retry.ts'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -248,8 +249,8 @@ describe('写链路 configEditor 通道(真实 cordis 根 Context + 桩注入)',
     unit = new MemoryUnit()
   })
 
-  afterEach(() => {
-    rmSync(dir, { recursive: true, force: true })
+  afterEach(async () => {
+    await rmRetry(dir)
   })
 
   async function makeGateway(ctx: StudioContextLike): Promise<LoopPromptGateway> {
@@ -488,8 +489,8 @@ describe('EntryPatchFile.runGoverned(通道壳:TOCTOU + verify-fail 还原)', ()
     writeFileSync(path, fixturePatch(PERSONA_V1), 'utf8')
   })
 
-  afterEach(() => {
-    rmSync(dir, { recursive: true, force: true })
+  afterEach(async () => {
+    await rmRetry(dir)
   })
 
   it('TOCTOU 基线不符 → EntryToctouError,run 零调用,文件保持外部改写后状态', async () => {

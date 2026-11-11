@@ -5,7 +5,8 @@
  * - 审计:governance 服务在场走它;缺席走兜底 FileAuditSink(NDJSON,含
  *   operator/versionId/at——G5 口径)。
  */
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync } from 'node:fs'
+import { rmRetry } from './rm-retry.ts'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -99,8 +100,8 @@ describe('StudioAudit(审计留痕)', () => {
     dir = mkdtempSync(join(tmpdir(), 'eterna-prompt-studio-audit-'))
   })
 
-  afterEach(() => {
-    rmSync(dir, { recursive: true, force: true })
+  afterEach(async () => {
+    await rmRetry(dir)
   })
 
   it('governance 服务缺席 → 兜底 FileAuditSink NDJSON(含 action/operator/versionId/at)', async () => {

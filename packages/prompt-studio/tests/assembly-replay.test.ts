@@ -14,7 +14,8 @@
  * ctx.waterfall 派发,spike Tier1 已对真实包验证)。
  */
 import { createHash } from 'node:crypto'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { rmRetry } from './rm-retry.ts'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -467,7 +468,7 @@ describe('网关 + 真 cordis waterfall 集成(未打标监听,替换权威)', (
   afterEach(async () => {
     disposeReplay()
     await gateway.dispose()
-    rmSync(dir, { recursive: true, force: true })
+    await rmRetry(dir)
   })
 
   let disposeReplay = (): void => {}

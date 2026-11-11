@@ -11,7 +11,8 @@
  * 真实 cordis Context(裸根):profileContext 缺席 → patchPath/审计/会话根全部走
  * 插件 config 覆写(与宿主 profileContext 提供时的缺省路径同构)。
  */
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { rmRetry } from './rm-retry.ts'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -146,7 +147,7 @@ describe('LoopPromptGateway 全链路(真实 cordis 根 Context)', () => {
     // 退避重试清理,只对 ENOTEMPTY 重试,其余错误照抛。
     for (let attempt = 0; ; attempt++) {
       try {
-        rmSync(dir, { recursive: true, force: true })
+        await rmRetry(dir)
         break
       } catch (error) {
         if (attempt >= 4 || (error as NodeJS.ErrnoException)?.code !== 'ENOTEMPTY') throw error
@@ -520,7 +521,7 @@ describe('T1.4 读侧 API 按条目泛化(snapshot entries[] / prompt-get {entry
     await gateway.dispose()
     for (let attempt = 0; ; attempt++) {
       try {
-        rmSync(dir, { recursive: true, force: true })
+        await rmRetry(dir)
         break
       } catch (error) {
         if (attempt >= 4 || (error as NodeJS.ErrnoException)?.code !== 'ENOTEMPTY') throw error
@@ -909,7 +910,7 @@ describe('T1.6 写链路按条目泛化(R3 按条目授权 + 校验器逐条目 
     await gateway.dispose()
     for (let attempt = 0; ; attempt++) {
       try {
-        rmSync(dir, { recursive: true, force: true })
+        await rmRetry(dir)
         break
       } catch (error) {
         if (attempt >= 4 || (error as NodeJS.ErrnoException)?.code !== 'ENOTEMPTY') throw error
@@ -1301,7 +1302,7 @@ describe('T2.6 promptRegistry 读取面(运行时注入条目自管,缺席降级
       expect(gateway.promptRegistryFace.resolveRuntimePromptText('runtime.memory.index-section')).toBeUndefined()
     } finally {
       await gateway.dispose()
-      rmSync(dir, { recursive: true, force: true })
+      await rmRetry(dir)
     }
   })
 })

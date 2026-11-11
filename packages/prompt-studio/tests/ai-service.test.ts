@@ -12,7 +12,8 @@
  * 与 llm-doctor pingModel 同源口径;真实 cordis 根 Context + configEditor provide 桩
  * (config-editor-write.test.ts 同款)。
  */
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { rmRetry } from './rm-retry.ts'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -244,7 +245,7 @@ describe('路由解析与可用性自检(纯函数)', () => {
       // .env 缺席的根目录:静默 undefined。
       expect(createKeyPresenceResolver(() => [join(dir, 'no-such-root')])('DOTENV_AI_KEY_TEST')).toBeUndefined()
     } finally {
-      rmSync(dir, { recursive: true, force: true })
+      await rmRetry(dir)
     }
   })
 })
@@ -326,7 +327,7 @@ describe('AI 端点全链(真实 cordis 根 Context + configEditor 桩 + 同构�
 
   afterEach(async () => {
     await (ctx as unknown as { dispose?: () => void }).dispose?.()
-    rmSync(dir, { recursive: true, force: true })
+    await rmRetry(dir)
   })
 
   /** 装配网关:同构假体注入(fetch/key 在场/key 值;默认 happy-path 配置)。 */

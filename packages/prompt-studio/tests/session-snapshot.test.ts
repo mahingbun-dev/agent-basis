@@ -14,7 +14,8 @@
  * - 事件接线:registerSessionCreated(真实 cordis Context,ctx.emit 投递)+
  *   插件源码接线钉住(definePromptStudioPlugin 内调用,源码文本断言)。
  */
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { rmRetry } from './rm-retry.ts'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -34,22 +35,6 @@ import { createHash } from 'node:crypto'
 
 const sha256 = (text: string): string => createHash('sha256').update(text, 'utf8').digest('hex')
 
-/**
- * 有界重试删除:Linux CI 实测(2026-11-11,PR #21 首跑)dispose() 返回后仍有
- * in-flight 异步落盘(审计/快照写)与 rmSync 递归删除赛跑 → ENOTEMPTY(errno 39)。
- * macOS 时序下未暴露。20 次×25ms 足以让尾写落地;仍失败则如实抛出。
- */
-async function rmRetry(target: string): Promise<void> {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      rmSync(target, { recursive: true, force: true })
-      return
-    } catch (error) {
-      if (attempt >= 20) throw error
-      await new Promise((resolve) => { setTimeout(resolve, 25) })
-    }
-  }
-}
 
 /** 内存 KvUnit(双表:versions + snapshots;putRecord 带 1ms 交错窗口,并发写竞争可见)。 */
 class MemoryUnit {
