@@ -18,6 +18,11 @@
  *   ([data-ps-ai-diff],复用 lineDiffOps 与 DiffView 行渲染形态)→「作为提案提交」
  *   经 loopPrompt/ai-proposal 进与手工保存完全相同的 R3 两段式——**AI 产出永不
  *   直接生效**;不可用降级明示([data-ps-ai-unavailable] 文案锚点);
+ * - AI 审核报告卡(T3.3)[data-ps-ai-review]:当前稿(编辑器草稿)→ 问题清单
+ *   (ruleFindings=与保存门禁同一套本地校验器;aiFindings=模型按元提示词五维:
+ *   红线冲突/长度/变量引用/一致性/清晰度)+ 建议列表([data-ps-ai-review-suggestion])。
+ *   **报告仅展示、不拦截保存**([data-ps-ai-review-note] 纪律文案);AI 不可用时
+ *   ruleFindings 仍可看(本地校验器不依赖模型),降级明示随结果 issues 呈现;
  * - 会话快照查看(T2.3)[data-ps-session-snapshot]:会话行卡 → 该会话开启时刻
  *   effective prompt 全文(条目版本指针+可展开文本);只读型/运行时注入型条目
  *   「不可回放(上游生成)」降级标注明示,不造可回放假象;
@@ -29,12 +34,12 @@
  * 拉取)。DOM 全部带 data-t7- 与 data-ps- 结构化锚点,供 E2E 严断言定位;样式只经
  * 官方语义令牌(--dsw-alias-*,styles.ts)。
  */
-import { useEffect, useState, type ReactElement } from 'react'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { diffLines, lineDiffOps } from '../diff.ts'
 import type { LineDiffOp } from '../diff.ts'
 import type {
-  AiCallMeta, AiPolishResult, AiStatusResult, EntrySummaryView, PromptExportResult, PromptSaveResult,
-  PromptVersionRecord,
+  AiCallMeta, AiPolishResult, AiReviewResult, AiStatusResult, EntrySummaryView, PromptExportResult,
+  PromptSaveResult, PromptVersionRecord,
   SessionSnapshotGetResult, SessionSnapshotListResult, SessionSnapshotNotFoundResult,
   SessionSnapshotUnavailableResult, VersionsResult,
   WriteApprovalView,
@@ -84,12 +89,31 @@ type AiStatusState =
  * ok(base=润色底稿,draft=建议稿,meta=生成信息)或 error(unavailable/failed/
  * rejected 的 issues 就地明示)。**建议稿永不直接生效**:ok 态只渲染预览,生效唯一
  * 通道是「作为提案提交」→ R3 两段式(与手工保存同门禁)。
+ * ok 态携带 entryId(建议稿归属条目):渲染面与选中条目不符即按 idle 处理、提案
+ * 提交按归属条目组载荷——防「在途响应跨条目落位」与「旧建议稿贴新条目」竞态
+ * (评审 2026-11-11:done 态无条目标识会让旧稿结论冒充新条目,写路径同类)。
  */
 type AiPolishState =
   | { readonly status: 'idle' }
   | { readonly status: 'loading' }
   | { readonly status: 'error'; readonly message: string }
-  | { readonly status: 'ok'; readonly base: string; readonly draft: string; readonly meta?: AiCallMeta }
+  | { readonly status: 'ok'; readonly entryId: string; readonly base: string; readonly draft: string; readonly meta?: AiCallMeta }
+
+/**
+ * AI 审核流状态(T3.3;选中条目归属,切条目/关闭报告即重置):idle → loading →
+ * done(端点返回整体入卡——ok/unavailable 均属「有报告」:unavailable 时
+ * ruleFindings 仍在,本地校验器不依赖模型)或 error(RPC 通道错/rejected/failed
+ * 的 issues 就地明示)。**报告仅展示不拦截**:done 态不触任何写通道,也不禁用
+ * 保存按钮——审核结论与保存门禁解耦(本地规则同源,拦截发生在保存端点自身)。
+ * done 态携带 entryId(受审条目)与 content(受审稿全文):前者作跨条目失配防护
+ * (渲染面不匹配即不显示),后者作过期标识(当前草稿 ≠ 受审稿时卡片明示
+ * 「结论对应审核时刻的稿」,不冒充当前稿结论——评审 2026-11-11 low)。
+ */
+type AiReviewState =
+  | { readonly status: 'idle' }
+  | { readonly status: 'loading' }
+  | { readonly status: 'error'; readonly message: string }
+  | { readonly status: 'done'; readonly entryId: string; readonly content: string; readonly result: AiReviewResult }
 
 /** 工坊组件 props(hooks.studio 绑成 useStudio;其余为普通注入值)。 */
 export interface StudioPageProps {
@@ -633,6 +657,116 @@ function AiPolishSection({ status, polish, instruction, aiBusy, busy, canPolish,
   )
 }
 
+/**
+ * AI 审核报告卡(T3.3):当前稿 → 问题清单 + 建议列表,对照润色建议稿卡
+ * ([data-ps-ai-draft-card])同构形态(卡层级/字号阶梯/间距节奏),不发明孤立样式。
+ * 报告分两栏来源:**本地校验器问题**(ruleFindings,与保存门禁同一套规则——展示
+ * 层不另造实现)+ **模型问题清单**(aiFindings,元提示词五维:红线冲突/长度/
+ * 变量引用/一致性/清晰度,逐条带 severity 徽标与建议)。**仅展示、不拦截**:
+ * done 态不触任何写通道、不禁用保存;AI 不可用时本地校验器结果照常可看
+ * (故按钮不因 AI 不可用而禁用,与润色按钮的可用性前置不同——降级随结果明示)。
+ * 受审稿 ≠ 当前草稿时 [data-ps-ai-review-stale] 明示过期(结论对应审核时刻的稿,
+ * 不冒充当前稿);报告归属条目由 AiReviewState.done.entryId 携带,渲染面
+ * (visibleReview)与选中条目失配即整体不显示。
+ */
+function AiReviewSection({ review, stale, aiBusy, reviewing, busy, canReview, onReview, onClose, t }: {
+  readonly review: AiReviewState
+  /** 受审稿已改(报告对应审核时刻的稿,非当前草稿)——卡片明示,不冒充当前稿结论。 */
+  readonly stale: boolean
+  /** 任一 AI 调用在途(润色/审核共用 wire,互斥防并发)。 */
+  readonly aiBusy: boolean
+  /** 本区审核调用在途(按钮文案用;与 aiBusy 分开,防润色在途时误显「审核中」)。 */
+  readonly reviewing: boolean
+  readonly busy: boolean
+  /** 可审核(选中条目为 patch 值型且编辑器草稿就绪)。 */
+  readonly canReview: boolean
+  readonly onReview: () => void
+  readonly onClose: () => void
+  readonly t: (key: string) => string
+}): ReactElement {
+  const blockReview = !canReview || aiBusy || busy
+  const report = review.status === 'done' ? review.result : null
+  const severityCounts = { error: 0, warning: 0, info: 0 }
+  if (report !== null) {
+    for (const finding of report.aiFindings) severityCounts[finding.severity] += 1
+  }
+  return (
+    <section data-ps-ai-review data-t7-section="ai-review" aria-label={t('studio.ai.review')}>
+      <h3 data-t7-section-title>{t('studio.ai.review')}</h3>
+      <p data-t7-section-note>{t('studio.ai.review.note')}</p>
+      <div data-ps-ai-review-input-row>
+        <button type="button" data-ps-ai-review-btn disabled={blockReview} onClick={onReview}>
+          {reviewing ? t('studio.ai.review.running') : t('studio.ai.review.run')}
+        </button>
+      </div>
+      {review.status === 'loading' && <p data-t7-placeholder data-ps-ai-review-loading="true">{t('studio.ai.review.running')}</p>}
+      {review.status === 'error' && <p data-ps-ai-review-error>{t('studio.ai.review.error')}:{review.message}</p>}
+      {report !== null && (
+        <div data-ps-ai-review-card
+          data-ps-ai-review-status={report.status}
+          data-ps-ai-review-rule-count={String(report.ruleFindings.length)}
+          data-ps-ai-review-ai-count={String(report.aiFindings.length)}
+        >
+          <div data-ps-ai-review-head>
+            <span data-ps-ai-review-title>{t('studio.ai.review.card')}</span>
+            {report.meta !== undefined && (
+              <span data-ps-ai-review-meta>
+                {t('studio.ai.review.meta')}: {report.meta.provider} · {report.meta.model} · {report.meta.latencyMs}ms
+              </span>
+            )}
+            <button type="button" data-ps-ai-review-close-btn disabled={aiBusy} onClick={onClose}>
+              {t('studio.ai.review.close')}
+            </button>
+          </div>
+          <span data-ps-ai-review-summary>
+            {t('studio.ai.review.ruleFindings')} {report.ruleFindings.length} · {t('studio.ai.review.aiFindings')} {report.aiFindings.length}
+            {report.aiFindings.length > 0
+              && ` · ${t('studio.ai.review.severity.error')} ${severityCounts.error} · ${t('studio.ai.review.severity.warning')} ${severityCounts.warning} · ${t('studio.ai.review.severity.info')} ${severityCounts.info}`}
+          </span>
+          {report.issues !== undefined && report.issues.length > 0 && (
+            <ul data-ps-ai-review-issues>
+              {report.issues.map((issue, index) => <li key={index} data-ps-ai-review-issue>{issue}</li>)}
+            </ul>
+          )}
+          {stale && <p data-ps-ai-review-stale="true">{t('studio.ai.review.stale')}</p>}
+          <div data-ps-ai-review-rule-block>
+            <span data-ps-ai-review-block-title>{t('studio.ai.review.ruleFindings')}</span>
+            {report.ruleFindings.length === 0
+              ? <p data-ps-ai-review-empty>{t('studio.ai.review.empty')}</p>
+              : (
+                <ul>
+                  {report.ruleFindings.map((finding, index) => (
+                    <li key={index} data-ps-ai-review-rulefinding>{finding}</li>
+                  ))}
+                </ul>
+              )}
+          </div>
+          <div data-ps-ai-review-ai-block>
+            <span data-ps-ai-review-block-title>{t('studio.ai.review.aiFindings')}</span>
+            {report.aiFindings.length === 0
+              ? <p data-ps-ai-review-empty>{t('studio.ai.review.empty.ai')}</p>
+              : (
+                <ul>
+                  {report.aiFindings.map((finding, index) => (
+                    <li key={index} data-ps-ai-review-finding>
+                      <span data-ps-ai-review-severity={finding.severity}>{t(`studio.ai.review.severity.${finding.severity}`)}</span>
+                      {finding.rule !== undefined && <span data-ps-ai-review-rule>{finding.rule}</span>}
+                      <p data-ps-ai-review-message>{finding.message}</p>
+                      {finding.suggestion !== undefined && (
+                        <p data-ps-ai-review-suggestion>{t('studio.ai.review.suggestion')}: {finding.suggestion}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+          </div>
+          <p data-ps-ai-review-note data-ps-ai-review-note-text={report.note}>{report.note}</p>
+        </div>
+      )}
+    </section>
+  )
+}
+
 /** 提示词工坊根组件(注册表全景)。 */
 export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): ReactElement {
   const state = useStudio(s => s)
@@ -640,6 +774,12 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
   const entries: readonly EntrySummaryView[] = ready ? state.snapshot.entries : []
   const [selectedId, setSelectedId] = useState<string>(DEFAULT_ENTRY_ID)
   const selected = entries.find(entry => entry.id === selectedId)
+  /**
+   * 选中条目的最新引用(切条目即时更新;异步延续读最新值):AI 润色/审核的在途
+   * 响应返回时若条目已切换,按它丢弃响应——防「旧条目状态写入新选中条目」竞态
+   * (评审 2026-11-11 medium:setState 无条件落位会覆盖 selectEntry 的 idle 重置)。
+   */
+  const selectedIdRef = useRef<string>(selectedId)
 
   // 编辑器草稿(view-local,按条目归属):draftEntry 记草稿归属条目,切条目即重置
   // (防上一条目的脏草稿串进下一条目);baseline=草稿所据的生效文本,用户未分叉
@@ -664,7 +804,12 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
   const [aiStatus, setAiStatus] = useState<AiStatusState>({ status: 'loading' })
   const [aiPolish, setAiPolish] = useState<AiPolishState>({ status: 'idle' })
   const [aiInstruction, setAiInstruction] = useState('')
-  const [aiBusy, setAiBusy] = useState(false)
+  // 在途 AI 操作(润色/审核共用 wire,互斥防并发单飞;null=空闲)。T3.3 起从单一
+  // 布尔改为操作标记:两区按钮互斥禁用但各自显示自己的在途文案。
+  const [aiBusyOp, setAiBusyOp] = useState<'polish' | 'review' | null>(null)
+  // T3.3 AI 审核报告状态(选中条目归属;报告仅展示不拦截)。
+  const [aiReview, setAiReview] = useState<AiReviewState>({ status: 'idle' })
+  const aiBusy = aiBusyOp !== null
 
   /** 选中条目的当前文本(patch 值型=反引文本;只读型/运行时型=空串,无编辑器)。 */
   const selectedText = selected !== undefined && selected.kind === 'patch-value' ? selected.value.text ?? '' : ''
@@ -754,17 +899,21 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
    */
   const runAiPolish = async (): Promise<void> => {
     if (!ready || selected === undefined || selected.kind !== 'patch-value' || valueUnreadable || aiBusy || busy) return
+    const entryIdAtStart = selected.id
     const base = draft ?? selectedText
-    setAiBusy(true)
+    setAiBusyOp('polish')
     setAiPolish({ status: 'loading' })
     try {
       const result = await call<AiPolishResult>(ENDPOINTS.aiPolish, {
         input: {
-          entryId: selected.id,
+          entryId: entryIdAtStart,
           content: base,
           ...(aiInstruction.trim() !== '' && { instruction: aiInstruction.trim() }),
         },
       })
+      // 竞态守卫:在途期间已切换条目 → 丢弃响应(不得把旧条目状态写入新选中条目;
+      // busy 仍照常在 finally 清除——单飞互斥是全局的,不随条目切换滞留)。
+      if (selectedIdRef.current !== entryIdAtStart) return
       if (!result.ok) {
         setAiPolish({ status: 'error', message: result.message })
         return
@@ -772,6 +921,7 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
       if (result.value.status === 'ok' && result.value.draft !== undefined) {
         setAiPolish({
           status: 'ok',
+          entryId: entryIdAtStart,
           base,
           draft: result.value.draft,
           ...(result.value.meta !== undefined && { meta: result.value.meta }),
@@ -783,7 +933,44 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
         : result.value.note
       setAiPolish({ status: 'error', message: `${result.value.status} — ${detail}` })
     } finally {
-      setAiBusy(false)
+      setAiBusyOp(null)
+    }
+  }
+
+  /**
+   * 审核当前稿(T3.3):以编辑器当前草稿为受审文本(与润色同底稿口径);
+   * ok/unavailable 均入报告卡——unavailable 时本地校验器结果(ruleFindings)
+   * 仍在,不依赖模型;其余分态(rejected/failed)按错误就地明示。**零写动作**:
+   * 报告仅展示,不触任何写通道、不产生在途审批。done 态记录受审条目与受审稿全文
+   * (entryId/content):在途切条目即丢弃响应;受审稿 ≠ 当前草稿时卡片明示过期
+   * (不冒充当前稿结论)。
+   */
+  const runAiReview = async (): Promise<void> => {
+    if (!ready || selected === undefined || selected.kind !== 'patch-value' || valueUnreadable || aiBusy || busy) return
+    const entryIdAtStart = selected.id
+    const content = draft ?? selectedText
+    setAiBusyOp('review')
+    setAiReview({ status: 'loading' })
+    try {
+      const result = await call<AiReviewResult>(ENDPOINTS.aiReview, {
+        input: { entryId: entryIdAtStart, content },
+      })
+      // 竞态守卫:同 runAiReview 头注/评审 2026-11-11 medium。
+      if (selectedIdRef.current !== entryIdAtStart) return
+      if (!result.ok) {
+        setAiReview({ status: 'error', message: result.message })
+        return
+      }
+      if (result.value.status === 'ok' || result.value.status === 'unavailable') {
+        setAiReview({ status: 'done', entryId: entryIdAtStart, content, result: result.value })
+        return
+      }
+      const detail = result.value.issues !== undefined && result.value.issues.length > 0
+        ? result.value.issues.join(';')
+        : result.value.note
+      setAiReview({ status: 'error', message: `${result.value.status} — ${detail}` })
+    } finally {
+      setAiBusyOp(null)
     }
   }
 
@@ -791,14 +978,19 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
    * 作为提案提交(T3.2):建议稿经 loopPrompt/ai-proposal 进与手工保存完全相同的
    * R3 两段式(第一段 approval-required → 共享 ApprovalSection;第二段 answerApproval
    * 回显同载荷)。携带润色结果的生成信息作 AI 来源标注(宿主进审计 aiSource)。
+   * 竞态守卫(评审 2026-11-11 medium):载荷 entryId/乐观锁取**建议稿归属条目**
+   * (aiPolish.entryId)且须与当前选中条目一致——旧条目建议稿贴新选中条目发起
+   * 写请求的路径在此 fail-closed(渲染面 visiblePolish 已按条目失配隐藏卡片,此处
+   * 是同一纪律的载荷级双保险)。
    */
   const submitAiProposal = async (): Promise<void> => {
-    if (busy || aiBusy || selected === undefined || selected.kind !== 'patch-value' || aiPolish.status !== 'ok') return
+    if (busy || aiBusy || selected === undefined || selected.kind !== 'patch-value' || aiPolish.status !== 'ok'
+      || aiPolish.entryId !== selected.id) return
     setBusy(true)
     setOutcome(null)
     const echo: WriteEcho = {
       content: aiPolish.draft,
-      entryId: selected.id,
+      entryId: aiPolish.entryId,
       ...(baseVersionId !== undefined && { baseVersionId }),
       author: 'web',
       ...(aiPolish.meta !== undefined && {
@@ -1022,10 +1214,12 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
     }
   }
 
-  /** 切换选中条目(编辑上下文整体重置:对比/导出回执/变更摘要/写入结果/AI 建议稿;
-   * 草稿由 render 期派生逻辑按新条目重置)。摘要会进保存载荷、结果无条目标识,
-   * 均不得从上一条目串入下一条目;建议稿同理(底稿与条目强绑定)。 */
+  /** 切换选中条目(编辑上下文整体重置:对比/导出回执/变更摘要/写入结果/AI 建议稿/
+   * AI 审核报告;草稿由 render 期派生逻辑按新条目重置)。摘要会进保存载荷、结果无
+   * 条目标识,均不得从上一条目串入下一条目;建议稿与审核报告同理(受审文本与条目
+   * 强绑定)。 */
   const selectEntry = (entryId: string): void => {
+    selectedIdRef.current = entryId
     setSelectedId(entryId)
     setDiffPair(null)
     setExportNote(null)
@@ -1033,7 +1227,21 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
     setOutcome(null)
     setAiPolish({ status: 'idle' })
     setAiInstruction('')
+    setAiReview({ status: 'idle' })
   }
+
+  // AI 区条目归属过滤(评审 2026-11-11 medium 的渲染面防线):ok/done 态携带的
+  // entryId 与选中条目不符即按 idle 处理——旧条目的建议稿/审核报告绝不贴在新选中
+  // 条目下方(在途响应丢弃见 runAiPolish/runAiReview 的 selectedIdRef 守卫)。
+  const visiblePolish: AiPolishState = aiPolish.status === 'ok' && aiPolish.entryId !== selected?.id
+    ? { status: 'idle' }
+    : aiPolish
+  const visibleReview: AiReviewState = aiReview.status === 'done' && aiReview.entryId !== selected?.id
+    ? { status: 'idle' }
+    : aiReview
+  // 受审稿过期标识:done 态记录的受审全文 ≠ 当前编辑器草稿时,卡片明示「结论对应
+  // 审核时刻的稿」(评审 2026-11-11 low:无版本线索的旧报告会冒充当前稿结论)。
+  const reviewStale = visibleReview.status === 'done' && draft !== null && draft !== visibleReview.content
 
   return (
     <div data-t7-studio-root aria-label={t('studio')}>
@@ -1153,16 +1361,29 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
           {selected.kind === 'patch-value' && !valueUnreadable && (
             <AiPolishSection
               status={aiStatus}
-              polish={aiPolish}
+              polish={visiblePolish}
               instruction={aiInstruction}
               aiBusy={aiBusy}
               busy={busy}
               canPolish={ready && draft !== null}
-              diffEmpty={aiPolish.status !== 'ok' || diffLines(aiPolish.base, aiPolish.draft).isEmpty}
+              diffEmpty={visiblePolish.status !== 'ok' || diffLines(visiblePolish.base, visiblePolish.draft).isEmpty}
               onInstructionChange={setAiInstruction}
               onPolish={() => { void runAiPolish() }}
               onDiscard={() => { setAiPolish({ status: 'idle' }) }}
               onPropose={() => { void submitAiProposal() }}
+              t={t}
+            />
+          )}
+          {selected.kind === 'patch-value' && !valueUnreadable && (
+            <AiReviewSection
+              review={visibleReview}
+              stale={reviewStale}
+              aiBusy={aiBusy}
+              reviewing={aiBusyOp === 'review'}
+              busy={busy}
+              canReview={ready && draft !== null}
+              onReview={() => { void runAiReview() }}
+              onClose={() => { setAiReview({ status: 'idle' }) }}
               t={t}
             />
           )}

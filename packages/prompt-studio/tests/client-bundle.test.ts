@@ -192,6 +192,57 @@ describe('T1.5 全景改版工件', () => {
     expect(source).toContain('endpoint: ENDPOINTS.aiProposal')
   })
 
+  it('T3.3 工件:AI 审核报告卡锚点在 bundle 中(问题清单两来源+建议列表+关闭报告)', () => {
+    const code = readFileSync(bundlePath, 'utf8')
+    // 测试计划 §5 T3.3(b)③:报告卡前端锚点——本地区块([data-ps-ai-review-rulefinding])
+    // 与模型区块([data-ps-ai-review-finding] + severity 徽标 + [data-ps-ai-review-suggestion])
+    // 双来源呈现,建议列表即 suggestion 字段。
+    for (const anchor of [
+      'data-ps-ai-review', 'data-ps-ai-review-btn', 'data-ps-ai-review-card',
+      'data-ps-ai-review-rulefinding', 'data-ps-ai-review-finding', 'data-ps-ai-review-suggestion',
+      'data-ps-ai-review-severity', 'data-ps-ai-review-loading', 'data-ps-ai-review-error',
+    ]) {
+      expect(code, `缺少 T3.3 审核报告卡锚点 ${anchor}`).toContain(anchor)
+    }
+  })
+
+  it('T3.3 接线与纪律文案:ai-review 端点进 bundle;「仅展示/不拦截」文案在场(中文按转义形态断言)', () => {
+    const code = readFileSync(bundlePath, 'utf8')
+    expect(code).toContain('loopPrompt/ai-review')
+    // bundle 经 esbuild ASCII 转义(大写 hex \uXXXX),中文文案按转义形态断言。
+    const escaped = (text: string): string => text.split('')
+      .map(ch => (ch.charCodeAt(0) <= 0x7e ? ch : `\\u${ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`))
+      .join('')
+    expect(code, '「问题清单」标题文案应在 bundle').toContain(escaped('问题清单'))
+    expect(code, '「仅展示」纪律文案应在 bundle').toContain(escaped('仅展示'))
+    expect(code, '「不拦截」纪律文案应在 bundle').toContain(escaped('不拦截'))
+    // 本地校验器区块的规则同源提示在场(报告仅展示;规则与保存门禁同源的 UI 表达)。
+    expect(code, '「与保存同一套规则」同源提示文案应在 bundle').toContain(escaped('与保存同一套规则'))
+  })
+
+  it('T3.3 竞态守卫与过期标识(评审 2026-11-11):done/ok 态携带 entryId,在途响应跨条目丢弃,受审稿过期明示', () => {
+    const source = readFileSync(join(clientSrcDir, 'StudioPage.tsx'), 'utf8')
+    // 选中条目最新引用:切条目即时更新,异步延续读最新值(防 setState 无条件落位
+    // 覆盖 selectEntry 的 idle 重置——旧条目报告贴新条目的竞态)。
+    expect(source).toContain('selectedIdRef.current')
+    expect(source).toContain('selectedIdRef.current = entryId')
+    // 在途响应守卫:润色/审核 await 返回后条目已切换即丢弃(两处同款)。
+    expect(source.match(/if \(selectedIdRef\.current !== entryIdAtStart\) return/gu)?.length).toBe(2)
+    // 渲染面条目归属过滤:ok/done 态 entryId 与选中条目失配即按 idle 处理。
+    expect(source).toContain('aiPolish.entryId !== selected?.id')
+    expect(source).toContain('aiReview.entryId !== selected?.id')
+    // 提案提交载荷级双保险:entryId 取建议稿归属条目,且与选中条目不符即不发起。
+    expect(source).toContain('aiPolish.entryId !== selected.id')
+    expect(source).toContain('entryId: aiPolish.entryId')
+    // 受审稿过期标识:done 态记录受审全文,与当前草稿失配即明示(锚点+文案进 bundle)。
+    const code = readFileSync(bundlePath, 'utf8')
+    expect(code, '受审稿过期标识锚点应在 bundle').toContain('data-ps-ai-review-stale')
+    const escaped = (text: string): string => text.split('')
+      .map(ch => (ch.charCodeAt(0) <= 0x7e ? ch : `\\u${ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`))
+      .join('')
+    expect(code, '「受审文本」过期文案应在 bundle').toContain(escaped('受审文本'))
+  })
+
   it('T2.3 工件:会话快照查看视图锚点在 bundle 中;只读型/运行时注入型「不可回放/上游生成」降级文案在场', () => {
     const code = readFileSync(bundlePath, 'utf8')
     // 测试计划 §4 T2.3(b):快照查看视图锚点(随 T1.5 模式)。

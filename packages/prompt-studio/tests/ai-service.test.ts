@@ -28,7 +28,7 @@ import type { AiFetchLike } from '../src/ai-service.ts'
 import type { ConfigEditorFace, ConfigEditorRow } from '../src/config-editor-write.ts'
 import { getPromptRegistryEntry, readEntryText } from '../src/registry.ts'
 import type { RegistryFileReader } from '../src/registry.ts'
-import { validateEntryText } from '../src/validator.ts'
+import { MAX_PERSONA_BYTES, validateEntryText } from '../src/validator.ts'
 import { diffLines, diffSummaryText, lineDiffOps } from '../src/diff.ts'
 import type { AiPolishResult, AiProposalResult, AiReviewResult, AiStatusResult, StudioContextLike, VersionsResult } from '../src/types.ts'
 
@@ -749,6 +749,66 @@ describe('AI 端点全链(真实 cordis 根 Context + configEditor 桩 + 同构�
     expect(fetchImpl.calls).toHaveLength(1)
     // 真仓文件未被触碰(镜像隔离纪律)。
     expect(readFileSync(join(REPO_ROOT, 'packages', 'prompt-studio', 'ai', 'polish.md'), 'utf8')).toBe(polishMd)
+    await gateway.dispose()
+  })
+
+  // ── T3.3 AI 审核(问题清单+建议列表;报告仅展示;测试计划 §5 T3.3(b)①-③) ──
+
+  it('T3.3 ① 同源复用:ruleFindings 由 validator.ts 同一模块导出计算(静态源断言 + 红线/长度两维行为交叉验证)', async () => {
+    // 静态源断言(「import 同一常量/函数」而非复制粘贴的第二实现,测试计划 §5
+    // T3.3(b)①):aiReview 的本地规则面 = src/index.ts 调 validateEntryText
+    // (validator.ts 导出——T1.6 写链路逐条目校验的同一函数)。
+    const hostSource = readFileSync(join(import.meta.dirname, '..', 'src', 'index.ts'), 'utf8')
+    expect(hostSource).toContain("import { validateEntryText } from './validator.ts'")
+    expect(hostSource).toContain('const ruleFindings = validateEntryText(entry, content).issues')
+    // 元提示词五维在场(红线冲突/长度/变量引用/一致性/清晰度——模型侧维度的单一
+    // 事实源;本地规则面覆盖红线+长度,变量引用/一致性由模型清单承载)。
+    const metaPrompt = readRepoFile('packages/prompt-studio/ai/review.md')
+    for (const dimension of ['红线冲突', '长度', '变量引用', '一致性', '清晰度']) {
+      expect(metaPrompt, `审核元提示词应含维度「${dimension}」`).toContain(dimension)
+    }
+    const gateway = await makeGateway()
+    const entry = getPromptRegistryEntry('preset.standard.persona')
+    // 行为交叉验证·红线维:缺红线稿的 ruleFindings ≡ validateEntryText 同一模块输出。
+    const noRedLines: AiReviewResult = await gateway.aiReview({ entryId: 'preset.standard.persona', content: CONTENT_NO_RED_LINES })
+    expect(noRedLines.ruleFindings).toEqual(validateEntryText(entry as never, CONTENT_NO_RED_LINES).issues)
+    expect(noRedLines.ruleFindings.join(';')).toContain('红线')
+    // 行为交叉验证·长度维:CJK 超限稿(UTF-8 字节口径)的 ruleFindings 与同一模块
+    // 输出逐字一致,上限数字 ≡ MAX_PERSONA_BYTES(T1.6 同一常量导出)。
+    const overLimit = `预算超支必须审批;不得代付;比选中立。\n${'很长'.repeat(40000)}`
+    expect(byteLength(overLimit)).toBeGreaterThan(MAX_PERSONA_BYTES)
+    const overLength: AiReviewResult = await gateway.aiReview({ entryId: 'preset.standard.persona', content: overLimit })
+    expect(overLength.ruleFindings).toEqual(validateEntryText(entry as never, overLimit).issues)
+    expect(overLength.ruleFindings.join(';')).toContain(`> ${MAX_PERSONA_BYTES} 字节`)
+    await gateway.dispose()
+  })
+
+  it('T3.3 ② 报告仅展示:审核命中问题清单后版本数/patch 字节/在途审批三不变;审计仅 ai-review.* 事件(无任何写事件)', async () => {
+    const findings = [
+      { severity: 'error', rule: 'red-line-anchor', message: '缺「预算超支>5%必须触发审批」红线锚点句', suggestion: '在全局硬约束节补回该句' },
+      { severity: 'info', rule: 'clarity', message: '指令含糊,缺少可执行判定标准', suggestion: '给出明确的判定条件与优先级' },
+    ]
+    const fetchImpl = jsonResponseFetchWith(['```json', JSON.stringify(findings), '```'].join('\n'))
+    const gateway = await makeGateway({ fetchImpl })
+    const patchBefore = readFileSync(patchPath, 'utf8')
+    const totalBefore = (await gateway.promptVersions({})).total
+    const result: AiReviewResult = await gateway.aiReview({ entryId: 'preset.standard.persona', content: CONTENT_NO_RED_LINES })
+    expect(result.status).toBe('ok')
+    expect(result.ruleFindings.length).toBeGreaterThan(0) // 本地校验器问题与模型清单同报
+    expect(result.aiFindings).toHaveLength(2)
+    // 建议列表:suggestion 字段逐条在场(报告卡建议列表的数据面)。
+    expect(result.aiFindings.map(item => item.suggestion)).toEqual(['在全局硬约束节补回该句', '给出明确的判定条件与优先级'])
+    // 三不变(口径同 T3.2 ① 只读证明手法):版本数 / patch 文件字节 / 无在途审批。
+    expect((await gateway.promptVersions({})).total).toBe(totalBefore)
+    expect(readFileSync(patchPath, 'utf8')).toBe(patchBefore)
+    expect(gateway.gate.peek()).toBeNull()
+    const snapshot = await gateway.snapshot()
+    expect(snapshot.pendingApproval).toBeNull()
+    // 审计面:只有 ai-review.* 事件——审核不产生任何 prompt-* 写事件(报告仅展示)。
+    await gateway.audit.flush()
+    const actions = (await auditDetails(auditPath)).map(record => String(record.action))
+    expect(actions).toContain('ai-review.completed')
+    expect(actions.every(action => action.startsWith('ai-review.'))).toBe(true)
     await gateway.dispose()
   })
 })

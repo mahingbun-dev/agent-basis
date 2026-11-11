@@ -178,7 +178,11 @@ try {
     // T3.2 AI 润色流锚点(ps-v2-test-plan §5 T3.2(b)/§7.3 断言 4:AI 区/建议稿卡/
     // diff 预览/提案提交/降级文案,combo 级断言唯一采集载体)。
     'data-ps-ai-polish', 'data-ps-ai-status', 'data-ps-ai-polish-btn', 'data-ps-ai-draft-card',
-    'data-ps-ai-draft', 'data-ps-ai-diff', 'data-ps-ai-propose-btn', 'data-ps-ai-unavailable']) {
+    'data-ps-ai-draft', 'data-ps-ai-diff', 'data-ps-ai-propose-btn', 'data-ps-ai-unavailable',
+    // T3.3 AI 审核报告卡锚点(ps-v2-test-plan §5 T3.3(b)③/§7.3 断言 4:报告卡 +
+    // 问题清单两来源(本地校验器/模型)+ 建议列表,combo 级断言唯一采集载体)。
+    'data-ps-ai-review', 'data-ps-ai-review-btn', 'data-ps-ai-review-card',
+    'data-ps-ai-review-rulefinding', 'data-ps-ai-review-finding', 'data-ps-ai-review-suggestion']) {
     check(`combo 脚本含视图锚点 ${anchor}`, comboBody.includes(anchor))
   }
   // combo 脚本经 esbuild ASCII 转义(大写 hex \uXXXX),中文文案按转义形态断言。
@@ -199,6 +203,12 @@ try {
   check('combo 脚本含 AI 端点接线(loopPrompt/ai-status|ai-polish|ai-proposal)',
     comboBody.includes('loopPrompt/ai-status') && comboBody.includes('loopPrompt/ai-polish')
     && comboBody.includes('loopPrompt/ai-proposal'))
+  // T3.3 AI 审核报告卡文案与接线(ps-v2-test-plan §5 T3.3(b)③/§7.3 G-PS-03:
+  // 「报告仅展示不拦截」纪律文案 + ai-review 端点接线,combo 级断言唯一采集载体)。
+  check('combo 脚本含 AI 审核报告卡文案锚点(问题清单/仅展示/不拦截)',
+    comboBody.includes(escapedZh('问题清单')) && comboBody.includes(escapedZh('仅展示'))
+    && comboBody.includes(escapedZh('不拦截')))
+  check('combo 脚本含 AI 审核端点接线(loopPrompt/ai-review)', comboBody.includes('loopPrompt/ai-review'))
 
   // 5) T1.2 花名册 id 交叉钉住（ps-v2-test-plan §3 T1.2(b)）：同一插件 id 三处
   //    同源——TOGGLEABLE_PLUGINS 登记(access routes.ts)≡ 生产档 patch insert 行

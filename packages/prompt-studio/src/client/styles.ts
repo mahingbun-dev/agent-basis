@@ -498,6 +498,80 @@ const CSS = `
 [data-ps-ai-discard-btn]:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
 [data-ps-ai-discard-btn]:disabled { opacity: 0.45; cursor: default; }
 
+/* —— AI 审核报告卡(T3.3:问题清单+建议列表;仅展示不拦截,对照润色建议稿卡形态) —— */
+[data-ps-ai-review-input-row] { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+[data-ps-ai-review-btn] {
+  padding: 8px 20px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  color: var(--dsw-alias-label-primary);
+  background: transparent; border: 1px solid var(--dsw-alias-border-l2); border-radius: 980px;
+}
+[data-ps-ai-review-btn]:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
+[data-ps-ai-review-btn]:disabled { opacity: 0.45; cursor: default; }
+[data-ps-ai-review-error] {
+  margin: 0; font-size: 13px; line-height: 20px;
+  color: var(--dsw-alias-state-error-primary); overflow-wrap: anywhere;
+}
+[data-ps-ai-review-card] {
+  display: flex; flex-direction: column; gap: 12px; padding: 16px 20px; border-radius: 18px;
+  background: var(--dsw-alias-bg-layer-1, transparent);
+  border: 0.5px solid var(--dsw-alias-border-l2);
+}
+[data-ps-ai-review-head] { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+[data-ps-ai-review-title] { font-size: 13px; font-weight: 700; color: var(--dsw-alias-label-primary); }
+[data-ps-ai-review-meta] {
+  font-size: 11px; color: var(--dsw-alias-label-tertiary);
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+[data-ps-ai-review-close-btn] {
+  margin-left: auto; padding: 4px 14px; font: inherit; font-size: 12px; cursor: pointer;
+  color: var(--dsw-alias-label-secondary); background: transparent;
+  border: 1px solid var(--dsw-alias-border-l2); border-radius: 980px;
+}
+[data-ps-ai-review-close-btn]:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+[data-ps-ai-review-close-btn]:disabled { opacity: 0.45; cursor: default; }
+[data-ps-ai-review-summary] {
+  font-size: 12px; color: var(--dsw-alias-label-secondary);
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+[data-ps-ai-review-issues] { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+[data-ps-ai-review-issue] { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
+/* 受审稿过期标识(T3.3 评审 low):结论对应审核时刻的稿,不冒充当前草稿结论。 */
+[data-ps-ai-review-stale] {
+  margin: 0; padding: 8px 14px; border-radius: 12px; font-size: 12px; line-height: 18px;
+  color: var(--dsw-alias-state-warn-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 8%, transparent);
+}
+[data-ps-ai-review-rule-block], [data-ps-ai-review-ai-block] { display: flex; flex-direction: column; gap: 6px; }
+[data-ps-ai-review-block-title] { font-size: 12px; font-weight: 600; color: var(--dsw-alias-label-secondary); }
+[data-ps-ai-review-rule-block] ul, [data-ps-ai-review-ai-block] ul {
+  margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px;
+}
+[data-ps-ai-review-rulefinding] { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
+[data-ps-ai-review-finding] { display: flex; flex-direction: column; gap: 4px; }
+[data-ps-ai-review-severity] {
+  display: inline-flex; align-self: flex-start; padding: 1px 10px; border-radius: 980px;
+  font-size: 11px; line-height: 17px; font-weight: 500; white-space: nowrap;
+}
+[data-ps-ai-review-severity='error'] {
+  color: var(--dsw-alias-state-error-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent);
+}
+[data-ps-ai-review-severity='warning'] {
+  color: var(--dsw-alias-state-warn-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 10%, transparent);
+}
+[data-ps-ai-review-severity='info'] {
+  color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-interactive-bg-hover);
+}
+[data-ps-ai-review-rule] {
+  font-size: 11px; color: var(--dsw-alias-label-tertiary);
+  font-family: ui-monospace, SFMono-Regular, monospace; overflow-wrap: anywhere;
+}
+[data-ps-ai-review-message] { margin: 0; font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-primary); overflow-wrap: anywhere; }
+[data-ps-ai-review-suggestion] { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
+[data-ps-ai-review-empty] { margin: 0; font-size: 12px; color: var(--dsw-alias-label-tertiary); }
+[data-ps-ai-review-note] { margin: 0; font-size: 11px; line-height: 17px; color: var(--dsw-alias-label-tertiary); overflow-wrap: anywhere; }
+
 /* —— 键盘可达与触控目标(AGENTS.md 前端铁律 4) —— */
 [data-t7-studio-root] button:focus-visible {
   outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 1px;
@@ -505,10 +579,12 @@ const CSS = `
 /* 紧凑胶囊按钮的视觉节奏保持不变,经 ::after 外扩命中区到 ≥36px 级(access 开关同款手法)。 */
 [data-t7-version-actions] button, [data-t7-export-latest], [data-t7-import-btn],
 [data-t7-diff-close], [data-t7-refresh], [data-ps-entry-row], [data-ps-snapshot-session-row],
-[data-ps-ai-polish-btn], [data-ps-ai-propose-btn], [data-ps-ai-discard-btn] { position: relative; }
+[data-ps-ai-polish-btn], [data-ps-ai-propose-btn], [data-ps-ai-discard-btn],
+[data-ps-ai-review-btn], [data-ps-ai-review-close-btn] { position: relative; }
 [data-t7-version-actions] button::after, [data-t7-export-latest]::after, [data-t7-import-btn]::after,
 [data-t7-diff-close]::after, [data-t7-refresh]::after, [data-ps-entry-row]::after, [data-ps-snapshot-session-row]::after,
-[data-ps-ai-polish-btn]::after, [data-ps-ai-propose-btn]::after, [data-ps-ai-discard-btn]::after {
+[data-ps-ai-polish-btn]::after, [data-ps-ai-propose-btn]::after, [data-ps-ai-discard-btn]::after,
+[data-ps-ai-review-btn]::after, [data-ps-ai-review-close-btn]::after {
   content: ""; position: absolute; inset: -6px;
 }
 

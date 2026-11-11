@@ -185,6 +185,31 @@ AuditProjector+FileAuditSink 写 `<DSH_HOME>/basis-prompt-studio/audit.jsonl`
   条目——治理身份从会话快照解析),全部 PASS / exit 0;单测
   `tests/assembly-replay.test.ts`(纯函数身份判定含 live/快照双路歧义/分型
   跳过/complete 检测含正文行负例/降级 + 真 cordis waterfall 集成)。
+- **AI 审核报告卡(T3.3,2026-11-11)**:前端 `src/client/StudioPage.tsx` 的
+  `AiReviewSection`——编辑器当前稿(与润色同底稿口径)→ `loopPrompt/ai-review`
+  → 报告卡 `[data-ps-ai-review-card]`:**本地校验器问题**(`ruleFindings`,与
+  保存门禁同一 `validateEntryText` 导出——同源断言钉在 tests/ai-service.test.ts
+  T3.3 ①:静态源断言 import 同一函数 + 红线/长度两维行为交叉验证)与**模型五维
+  清单**(`aiFindings`,元提示词条目 meta.studio.ai-review:红线冲突/长度/变量
+  引用/一致性/清晰度,逐条 severity 徽标 + `suggestion` 建议)双来源呈现;
+  **报告仅展示、不拦截**——done 态零写动作(版本数/patch 字节/在途审批三不变,
+  审计仅 `ai-review.*` 事件,tests/ai-service.test.ts T3.3 ②)、不禁用保存按钮;
+  AI 不可用时本地校验器结果照常可看(审核按钮不因 AI 不可用禁用,与润色按钮的
+  可用性前置不同——降级随结果 issues/note 明示)。**竞态守卫(评审 2026-11-11
+  medium,润色流同构缺陷一并修)**:润色 ok 态与审核 done 态均携带归属 entryId,
+  渲染面与选中条目失配即按 idle 处理(旧条目建议稿/报告不贴新条目);在途响应经
+  selectedIdRef 守卫——await 返回时条目已切换即丢弃;提案提交载荷 entryId 取建议稿
+  归属条目且与选中条目不符即不发起(渲染面隐藏之外的载荷级双保险)。**受审稿
+  过期标识(评审 low)**:done 态记录受审全文,当前草稿 ≠ 受审稿时卡片
+  [data-ps-ai-review-stale] 明示「结论对应审核时刻的稿」,不冒充当前稿结论。
+  工件断言:tests/client-bundle.test.ts(T3.3 三例:报告卡锚点 + 端点接线/
+  「问题清单/仅展示/不拦截」文案 + 竞态守卫与过期标识静态源断言)+ t7-ui-check.mjs
+  扩循环锚点 6 枚与静态断言 2 条(现 28 静态 + 1 循环生成断言,基线 17 只增不减
+  ——`grep -c "check('" scripts/t7-ui-check.mjs` 机械核对)。t7-ui-check 不在包
+  verify 链内(package.json verify=build:client+oxlint+tsc+vitest):2026-11-11
+  本机实跑 `node scripts/t7-ui-check.mjs` exit 0 全 PASS(共 60 检查项,0 FAIL);gate
+  判定以 G-PS-03 采集时的原始输出誊录为准(artifacts/gates/G-PS-03/,测试计划
+  §7.3),本句不作为门禁证据。深浅两主题截图留待 G-PS-03 gate(测试计划 §7.3)。
 - **已知过渡限制(T1.4 评审 2026-11-11)**:写通道(回滚/导出包)仍是 persona
   单口径——`prompt-rollback {versionId}` 与 `prompt-export {versionId}` 对
   `entryId !== preset.standard.persona` 的版本 fail-closed 拒绝(回滚拒绝/

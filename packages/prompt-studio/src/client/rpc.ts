@@ -28,10 +28,11 @@ export const ENDPOINTS = {
   promptExport: 'loopPrompt/prompt-export',
   promptImport: 'loopPrompt/prompt-import',
   sessionSnapshot: 'loopPrompt/session-snapshot',
-  // AI 链路(T3.1 可用性/润色;T3.2 提案提交)。
+  // AI 链路(T3.1 可用性/润色;T3.2 提案提交;T3.3 审核报告,仅展示零写)。
   aiStatus: 'loopPrompt/ai-status',
   aiPolish: 'loopPrompt/ai-polish',
   aiProposal: 'loopPrompt/ai-proposal',
+  aiReview: 'loopPrompt/ai-review',
 } as const
 
 /**
