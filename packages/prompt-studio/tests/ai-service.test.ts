@@ -12,7 +12,7 @@
  * 与 llm-doctor pingModel 同源口径;真实 cordis 根 Context + configEditor provide 桩
  * (config-editor-write.test.ts 同款)。
  */
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -29,7 +29,8 @@ import type { ConfigEditorFace, ConfigEditorRow } from '../src/config-editor-wri
 import { getPromptRegistryEntry, readEntryText } from '../src/registry.ts'
 import type { RegistryFileReader } from '../src/registry.ts'
 import { validateEntryText } from '../src/validator.ts'
-import type { AiPolishResult, AiReviewResult, AiStatusResult, StudioContextLike, VersionsResult } from '../src/types.ts'
+import { diffLines, diffSummaryText, lineDiffOps } from '../src/diff.ts'
+import type { AiPolishResult, AiProposalResult, AiReviewResult, AiStatusResult, StudioContextLike, VersionsResult } from '../src/types.ts'
 
 /** 仓库根(packages/prompt-studio/tests → 上三级):注册表真文件读取面。 */
 const REPO_ROOT = join(import.meta.dirname, '..', '..', '..')
@@ -336,6 +337,8 @@ describe('AI 端点全链(真实 cordis 根 Context + configEditor 桩 + 同构�
     withEditor?: boolean
     /** 独立 cordis 根(同一根上二次 new LoopPromptGateway 会撞服务注册)。 */
     freshContext?: boolean
+    /** 注册表文件解析根覆写(T3.2④:元提示词整文件写入须落临时仓库,绝不动真仓文件)。 */
+    repoRoot?: string
   } = {}): Promise<LoopPromptGateway> {
     const host = overrides.freshContext === true ? new Context() : ctx
     if (overrides.freshContext === true && overrides.withEditor !== false) {
@@ -343,6 +346,7 @@ describe('AI 端点全链(真实 cordis 根 Context + configEditor 桩 + 同构�
     }
     const gateway = new LoopPromptGateway(asStudio(overrides.withEditor === false ? new Context() : host), {
       patchPath, sessionsRoot: join(dir, 'sessions'), auditFilePath: auditPath, dryRunVerify: false,
+      ...(overrides.repoRoot !== undefined && { repoRoot: overrides.repoRoot }),
     })
     gateway.aiFetch = overrides.fetchImpl ?? jsonResponseFetchWith()
     gateway.aiKeyPresence = overrides.keyPresence ?? (() => 'env')
@@ -610,6 +614,141 @@ describe('AI 端点全链(真实 cordis 根 Context + configEditor 桩 + 同构�
     expect(status.route).toEqual({ provider: 'litellm', model: 'deepseek-flash', api: 'openai-completions' })
     expect(status.keySource).toBe('env')
     expect(fetchImpl.calls).toHaveLength(0) // 可用性自检零模型调用
+    await gateway.dispose()
+  })
+
+  // ── T3.2 润色流(建议稿 → diff 预览 → 「作为提案提交」;测试计划 §5 T3.2(b)①-④) ──
+
+  /** T3.2 建议稿样例(含 persona 三条红线锚点——AI 产出不豁免按条目校验器)。 */
+  const AI_DRAFT_V2 = 'AI 建议稿(T3.2):更紧凑的 persona 重述。红线:预算超支>5%必须触发审批;对外付款不得代付;比选必须中立。'
+
+  it('T3.2 ① AI 稿永不直接生效:润色产出建议稿后,版本数/patch 字节/在途审批三不变(建议稿仅存在于响应)', async () => {
+    const fetchImpl = jsonResponseFetchWith(`\`\`\`prompt\n${AI_DRAFT_V2}\n\`\`\``)
+    const gateway = await makeGateway({ fetchImpl })
+    const patchBefore = readFileSync(patchPath, 'utf8')
+    const totalBefore = (await gateway.promptVersions({})).total
+    const polish: AiPolishResult = await gateway.aiPolish({ entryId: 'preset.standard.persona' })
+    expect(polish.status).toBe('ok')
+    expect(polish.draft).toBe(AI_DRAFT_V2)
+    // 三重断言(口径照抄 t7-e2e 只读证明手法):版本数不变 / patch 文件字节不变 / 无在途审批。
+    expect((await gateway.promptVersions({})).total).toBe(totalBefore)
+    expect(readFileSync(patchPath, 'utf8')).toBe(patchBefore)
+    expect(gateway.gate.peek()).toBeNull()
+    // 端点视图复核:snapshot.pendingApproval 仍无在途(与 gate 内部态双保险)。
+    const snapshot = await gateway.snapshot()
+    expect(snapshot.pendingApproval).toBeNull()
+    await gateway.dispose()
+  })
+
+  it('T3.2 ② 建议稿→「作为提案提交」→ R3 两段式:一段 approval-required(kind/ruleId/动作名/diff 摘要同源),二段 committed(source=ai-proposal、parentId=写前最新),审计含 aiSource 来源字段', async () => {
+    const fetchImpl = jsonResponseFetchWith(`\`\`\`prompt\n${AI_DRAFT_V2}\n\`\`\``)
+    const gateway = await makeGateway({ fetchImpl })
+    const polish = await gateway.aiPolish({ entryId: 'preset.standard.persona' })
+    expect(polish.status).toBe('ok')
+    const draft = polish.draft ?? ''
+    const latestBefore = ((await gateway.promptVersions({})).versions[0])?.id
+    const meta = polish.meta
+    const aiMeta = meta === undefined
+      ? {}
+      : { provider: meta.provider, model: meta.model, metaPromptEntryId: meta.metaPromptEntryId }
+    // 一段:R3 审批卡(kind=ai-proposal;ruleId 按 T1.6 泛化解析=persona 条目专属规则)。
+    const stage1: AiProposalResult = await gateway.aiProposal({ entryId: 'preset.standard.persona', content: draft, author: 't7-ai', aiMeta })
+    expect(stage1.status).toBe('approval-required')
+    expect(stage1.approval?.kind).toBe('ai-proposal')
+    expect(stage1.approval?.card.matchedRule.ruleId).toBe('eterna.prompt-studio.persona-write')
+    expect(stage1.approval?.card.matchedRule.grade).toBe('R3')
+    // 卡片动作名=真实端点(不造 loopPrompt/prompt-ai-proposal 假端点名)。
+    expect(stage1.approval?.card.whatWillHappen.name).toBe('loopPrompt/ai-proposal')
+    // diff 摘要与 diff.ts 同一模块导出(审批卡 diffSummary ≡ diffSummaryText(diffLines(底稿,建议稿)))。
+    expect(stage1.approval?.card.impact.files[0]?.diffSummary)
+      .toBe(diffSummaryText(diffLines(PERSONA_V1, draft)))
+    // 一段后仍零落盘(patch 未含建议稿;在途审批此时才存在)。
+    expect(readFileSync(patchPath, 'utf8')).not.toContain('AI 建议稿(T3.2)')
+    // 二段:确认执行 → patch 原子写 + 新版本(source=ai-proposal、parentId=写前最新)。
+    const stage2: AiProposalResult = await gateway.aiProposal({
+      entryId: 'preset.standard.persona', content: draft, author: 't7-ai',
+      approvalId: stage1.approval?.approvalId ?? '', approved: true, aiMeta,
+    })
+    expect(stage2.status).toBe('committed')
+    expect(stage2.version?.source).toBe('ai-proposal')
+    expect(stage2.version?.entryId).toBe('preset.standard.persona')
+    expect(stage2.version?.parentId).toBe(latestBefore)
+    expect((await gateway.patch.read()).text).toBe(draft)
+    // 审计:approval-requested/committed 均含 aiSource 来源字段(provider/model/元提示词条目 id)。
+    await gateway.audit.flush()
+    const details = await auditDetails(auditPath)
+    const requested = details.find(record => record.action === 'prompt-ai-proposal.approval-requested')
+    expect(requested?.aiSource).toEqual({ provider: 'litellm', model: 'deepseek-flash', metaPromptEntryId: AI_META_POLISH_ENTRY_ID })
+    const committed = details.find(record => record.action === 'prompt-ai-proposal.committed')
+    expect(committed?.aiSource).toEqual({ provider: 'litellm', model: 'deepseek-flash', metaPromptEntryId: AI_META_POLISH_ENTRY_ID })
+    expect(committed?.versionId).toBe(stage2.version?.id)
+    await gateway.dispose()
+  })
+
+  it('T3.2 ② AI 产出不豁免门禁:缺红线建议稿一段即拒收(issues 指明),版本/patch 零变化;来源标注缺失时审计如实记「(未标注)」不拒收', async () => {
+    const gateway = await makeGateway()
+    const totalBefore = (await gateway.promptVersions({})).total
+    const patchBefore = readFileSync(patchPath, 'utf8')
+    // 缺红线的建议稿:与保存/导入同一套按条目校验器拒收(AI 产出无任何豁免)。
+    const rejected: AiProposalResult = await gateway.aiProposal({
+      entryId: 'preset.standard.persona', content: 'AI 建议稿但缺红线锚点。', author: 't7-ai',
+    })
+    expect(rejected.status).toBe('rejected')
+    expect(rejected.issues?.join(';')).toContain('红线')
+    expect((await gateway.promptVersions({})).total).toBe(totalBefore)
+    expect(readFileSync(patchPath, 'utf8')).toBe(patchBefore)
+    // 来源标注缺失:不拒收(溯源元数据非安全边界),走通两段后审计如实记「(未标注)」。
+    const stage1: AiProposalResult = await gateway.aiProposal({ entryId: 'preset.standard.persona', content: AI_DRAFT_V2, author: 't7-ai' })
+    expect(stage1.status).toBe('approval-required')
+    const stage2: AiProposalResult = await gateway.aiProposal({
+      entryId: 'preset.standard.persona', content: AI_DRAFT_V2, author: 't7-ai',
+      approvalId: stage1.approval?.approvalId ?? '', approved: true,
+    })
+    expect(stage2.status).toBe('committed')
+    await gateway.audit.flush()
+    const committed = (await auditDetails(auditPath)).find(record => record.action === 'prompt-ai-proposal.committed')
+    expect(committed?.aiSource).toEqual({ provider: '(未标注)', model: '(未标注)', metaPromptEntryId: '(未标注)' })
+    await gateway.dispose()
+  })
+
+  it('T3.2 ③ diff 预览复用 diff.ts:lineDiffOps(底稿,建议稿) 与 diffLines 统计口径一致(前端 AiDraftDiff 的同一数据面;既有 diff 单测零改动)', async () => {
+    // 纯函数面:前端 diff 预览(AiDraftDiff)与审批卡摘要消费同一模块的同一投影。
+    const ops = lineDiffOps(PERSONA_V1, AI_DRAFT_V2)
+    expect(ops.filter(op => op.type === 'add').length).toBe(diffLines(PERSONA_V1, AI_DRAFT_V2).added)
+    expect(ops.filter(op => op.type === 'del').length).toBe(diffLines(PERSONA_V1, AI_DRAFT_V2).removed)
+    expect(ops.some(op => op.type === 'add' && op.text.includes('AI 建议稿(T3.2)'))).toBe(true)
+    expect(diffLines(AI_DRAFT_V2, AI_DRAFT_V2).isEmpty).toBe(true)
+  })
+
+  it('T3.2 ④ 元提示词自管递归保护:润色元提示词自身单层收敛(恰一次模型调用),其建议稿作为提案落盘 source=ai-proposal 且写临时仓库(绝不动真仓文件)', async () => {
+    // 临时仓库根镜像元提示词文件(整文件条目写回落点=repoRoot 相对;真仓文件只读)。
+    const repoRoot = join(dir, 'repo')
+    mkdirSync(join(repoRoot, 'packages', 'prompt-studio', 'ai'), { recursive: true })
+    const polishMd = readFileSync(join(REPO_ROOT, 'packages', 'prompt-studio', 'ai', 'polish.md'), 'utf8')
+    const metaDraft = `${polishMd}\nT3.2 追加段:建议稿标记(递归保护单测;元提示词自身也走润色流提案)。\n`
+    writeFileSync(join(repoRoot, 'packages', 'prompt-studio', 'ai', 'polish.md'), polishMd, 'utf8')
+    const fetchImpl = jsonResponseFetchWith(`\`\`\`prompt\n${metaDraft}\n\`\`\``)
+    const gateway = await makeGateway({ fetchImpl, repoRoot, freshContext: true })
+    // 润色目标=元提示词自身:system 消息即其当前值(吃狗粮),user=条目元数据+全文——
+    // 单层调用收敛(mocked llm 恰一次,无自嵌套递归)。
+    const polish: AiPolishResult = await gateway.aiPolish({ entryId: AI_META_POLISH_ENTRY_ID })
+    expect(polish.status).toBe('ok')
+    expect(fetchImpl.calls).toHaveLength(1)
+    // 其建议稿作为提案:两段式落盘 source=ai-proposal,写临时仓库的镜像文件。
+    const stage1: AiProposalResult = await gateway.aiProposal({ entryId: AI_META_POLISH_ENTRY_ID, content: polish.draft ?? metaDraft, author: 't7-ai' })
+    expect(stage1.status).toBe('approval-required')
+    expect(stage1.approval?.card.matchedRule.ruleId).toBe(`eterna.prompt-studio.entry-write.${AI_META_POLISH_ENTRY_ID}`)
+    const stage2: AiProposalResult = await gateway.aiProposal({
+      entryId: AI_META_POLISH_ENTRY_ID, content: polish.draft ?? metaDraft, author: 't7-ai',
+      approvalId: stage1.approval?.approvalId ?? '', approved: true,
+    })
+    expect(stage2.status).toBe('committed')
+    expect(stage2.version?.source).toBe('ai-proposal')
+    expect(readFileSync(join(repoRoot, 'packages', 'prompt-studio', 'ai', 'polish.md'), 'utf8')).toBe(polish.draft ?? metaDraft)
+    // 全程恰一次模型调用(提案提交不再触发 AI——生效通道是 R3 写链路,不是模型)。
+    expect(fetchImpl.calls).toHaveLength(1)
+    // 真仓文件未被触碰(镜像隔离纪律)。
+    expect(readFileSync(join(REPO_ROOT, 'packages', 'prompt-studio', 'ai', 'polish.md'), 'utf8')).toBe(polishMd)
     await gateway.dispose()
   })
 })

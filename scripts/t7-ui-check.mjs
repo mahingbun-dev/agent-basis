@@ -174,7 +174,11 @@ try {
     'data-ps-snapshot-entry', 'data-ps-snapshot-entry-text',
     // T2.2 生效条件区锚点(ps-v2-test-plan §4 T2.2(b):不热生效条目 UI 明示,
     // combo 级断言唯一采集载体;radius 四枚举标签文案另见下方文案锚点)。
-    'data-ps-entry-effect', 'data-ps-effect-radius', 'data-ps-effect-badge']) {
+    'data-ps-entry-effect', 'data-ps-effect-radius', 'data-ps-effect-badge',
+    // T3.2 AI 润色流锚点(ps-v2-test-plan §5 T3.2(b)/§7.3 断言 4:AI 区/建议稿卡/
+    // diff 预览/提案提交/降级文案,combo 级断言唯一采集载体)。
+    'data-ps-ai-polish', 'data-ps-ai-status', 'data-ps-ai-polish-btn', 'data-ps-ai-draft-card',
+    'data-ps-ai-draft', 'data-ps-ai-diff', 'data-ps-ai-propose-btn', 'data-ps-ai-unavailable']) {
     check(`combo 脚本含视图锚点 ${anchor}`, comboBody.includes(anchor))
   }
   // combo 脚本经 esbuild ASCII 转义(大写 hex \uXXXX),中文文案按转义形态断言。
@@ -187,6 +191,14 @@ try {
   check('combo 脚本含快照降级文案锚点(不可回放/上游生成;两型无版本链条目明示)',
     comboBody.includes(escapedZh('不可回放')) && comboBody.includes(escapedZh('上游生成')))
   check('combo 脚本含快照查询端点接线(loopPrompt/session-snapshot)', comboBody.includes('loopPrompt/session-snapshot'))
+  // T3.2 AI 润色流文案锚点(ps-v2-test-plan §7.3 G-PS-03 断言 4:无 key/llm 缺席
+  // 优雅降级的 UI 文案;「作为提案提交」=生效唯一通道的纪律文案)。
+  check('combo 脚本含 AI 降级/提案文案锚点(AI 能力不可用/作为提案提交/不直接生效)',
+    comboBody.includes(escapedZh('AI 能力不可用')) && comboBody.includes(escapedZh('作为提案提交'))
+    && comboBody.includes(escapedZh('不直接生效')))
+  check('combo 脚本含 AI 端点接线(loopPrompt/ai-status|ai-polish|ai-proposal)',
+    comboBody.includes('loopPrompt/ai-status') && comboBody.includes('loopPrompt/ai-polish')
+    && comboBody.includes('loopPrompt/ai-proposal'))
 
   // 5) T1.2 花名册 id 交叉钉住（ps-v2-test-plan §3 T1.2(b)）：同一插件 id 三处
   //    同源——TOGGLEABLE_PLUGINS 登记(access routes.ts)≡ 生产档 patch insert 行

@@ -5,6 +5,8 @@
  * - 形态 B|preset-cordis 折叠块 `>-`:persona prefix(单行替换残留续行=脏 YAML,
  *   必须整块替换——本测试钉住「续行零残留」);
  * - 形态 C|plan-mode 字面块 `|` 多段整段写回(三类最难,专项断言);
+ * - 形态 D|多行 plain 折叠标量(T3.2:官方 configEditor 长值序列化形态)——读侧
+ *   折叠反引 + 写侧整段替换(续行零残留);
  * - 单行标量形态(裸标量双引号化/纯整数保持裸标量)与整文件形态(persona.md)。
  *
  * 每形态断言:①定位 0/≥2 命中 fail-closed;②写后 round-trip(读侧反引==目标)
@@ -358,6 +360,70 @@ describe('T1.6 标量与整文件形态', () => {
       '          prefix:  \n            nested: true',
     )
     expect(() => { entrySpanOf(entry('preset.standard.persona'), nested.split('\n')) }).toThrow(/值在后续行/)
+  })
+})
+
+describe('T3.2 形态 D|多行 plain 折叠标量(configEditor 长值序列化形态)——读侧折叠反引 + 整段替换', () => {
+  const ID = 'preset.standard.persona'
+  /**
+   * 2026-11-11 t7 隔离档实测形态(t32-repro):官方 configEditor edit() 把长单行值
+   * 序列化为「键行首段 + 更深缩进续行」的 plain 折叠标量(dump-config 语义正确);
+   * 读侧只取键行会截断(69/157 字节),写侧单行替换会残留续行成脏 YAML。
+   */
+  const FOLDED_PATCH = [
+    '# fixture web patch(形态 D:configEditor 折叠输出同构)',
+    '- id: preset-standard',
+    '  config:',
+    '    plugins:',
+    '      - id: persona',
+    "        name: '@deepseek-ai/dsh-persona'",
+    '        config:',
+    '          prefix: T7_SMOKE_PERSONA_MARKER base prompt studio smoke alpha AI_PROPOSAL_V2',
+    '            红线:预算超支>5%必须触发审批;对外付款不得代付;比选必须中立。',
+    '      - id: agent-instructions',
+    "        name: '@deepseek-ai/dsh-agent-instructions'",
+    '        config:',
+    '          maxBytes: 65536',
+    '',
+  ].join('\n')
+  const FOLDED_TEXT = 'T7_SMOKE_PERSONA_MARKER base prompt studio smoke alpha AI_PROPOSAL_V2 红线:预算超支>5%必须触发审批;对外付款不得代付;比选必须中立。'
+
+  it('读侧:续行按 plain 折叠语义反引(相邻行并空格)——键行+续行==全文,不截断', () => {
+    const lines = FOLDED_PATCH.split('\n')
+    const keyIndex = lines.findIndex(line => line.includes('prefix: T7_SMOKE'))
+    expect(keyIndex).toBeGreaterThanOrEqual(0)
+    expect(readYamlValueAtLine(lines, keyIndex)).toBe(FOLDED_TEXT)
+    // 中间空行折叠语义:k 个连续空行 → k 个换行(与块折叠同口径)。
+    const withBlank = [
+      '          prefix: alpha',
+      '            beta',
+      '',
+      '',
+      '            gamma',
+      '      - next',
+    ]
+    expect(readYamlValueAtLine(withBlank, 0)).toBe('alpha beta\n\ngamma')
+  })
+
+  it('读侧:单行引号标量语义不变;多行引号标量 → fail-closed undefined(本面不解析不猜)', () => {
+    expect(readYamlValueAtLine(['          prefix: "plain single"', '      - next'], 0)).toBe('plain single')
+    expect(readYamlValueAtLine(["          prefix: 'x'", '            continued'], 0)).toBeUndefined()
+  })
+
+  it('写侧:span 覆盖键行+全部续行,标量整段替换(续行零残留),round-trip 一致', () => {
+    const nextText = 'AI 建议稿(T3.2):更紧凑的 persona 重述。红线:预算超支>5%必须触发审批;对外付款不得代付;比选必须中立。'
+    const { next } = writeAndVerify(ID, FOLDED_PATCH, nextText)
+    // 新文本单行双引号;原续行(红线句)不残留。
+    expect(next).toContain('prefix: "AI 建议稿(T3.2):更紧凑的 persona 重述。红线:预算超支>5%必须触发审批;对外付款不得代付;比选必须中立。"')
+    expect(next).not.toContain('\n            红线:预算超支')
+    // 后续插件项逐字节保真。
+    expect(next).toContain('maxBytes: 65536')
+  })
+
+  it('写侧:折叠形态上再写回同文(语义等价)→ 读回==目标,span 收敛为单行', () => {
+    const { next } = writeAndVerify(ID, FOLDED_PATCH, FOLDED_TEXT)
+    const again = buildNextEntryFileText(entry(ID), next, FOLDED_TEXT)
+    expect(() => { selfCheckEntryWrite(entry(ID), next, again, FOLDED_TEXT) }).not.toThrow()
   })
 })
 

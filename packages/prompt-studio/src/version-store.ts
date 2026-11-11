@@ -79,7 +79,8 @@ function recordOf(raw: unknown): PromptVersionRecord | undefined {
     createdAt: typeof value['createdAt'] === 'string' ? value['createdAt'] : '',
     author: typeof value['author'] === 'string' ? value['author'] : '',
     source: (value['source'] === 'initial' || value['source'] === 'save'
-      || value['source'] === 'rollback' || value['source'] === 'import')
+      || value['source'] === 'rollback' || value['source'] === 'import'
+      || value['source'] === 'ai-proposal')
       ? value['source']
       : 'save',
     parentId: value['parentId'] === null || typeof value['parentId'] === 'string' ? value['parentId'] : null,

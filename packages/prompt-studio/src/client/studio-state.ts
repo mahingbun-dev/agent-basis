@@ -37,11 +37,13 @@ export interface WriteEcho {
   readonly author?: string
   /** prompt-import 两段式:第二段原样回传同一导出包(宿主按 checksum 复验)。 */
   readonly pack?: unknown
+  /** ai-proposal 两段式(T3.2):AI 来源标注随第二段原样回传(宿主进审计 aiSource)。 */
+  readonly aiMeta?: unknown
 }
 
 /** 在途审批(第一段 approval-required 的返回;组件渲染卡与双问后回发)。 */
 export interface PendingApproval {
-  readonly endpoint: 'loopPrompt/prompt-save' | 'loopPrompt/prompt-rollback' | 'loopPrompt/prompt-import'
+  readonly endpoint: 'loopPrompt/prompt-save' | 'loopPrompt/prompt-rollback' | 'loopPrompt/prompt-import' | 'loopPrompt/ai-proposal'
   readonly approvalId: string
   readonly kind: WriteKind
   readonly card: ApprovalCard

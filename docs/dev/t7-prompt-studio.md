@@ -148,9 +148,10 @@ AuditProjector+FileAuditSink 写 `<DSH_HOME>/basis-prompt-studio/audit.jsonl`
   node_modules 解析 + realpath 落 repo 工作区;dsh-client-modules 扫 Loader 条目的
   包清单——两个消费方都不读 profile 依赖表。
 - 版本库幂等清场 = 删 `<home>/storages/basis_prompt_studio/`(smoke 每轮先清)。
-- smoke 断言(38 项 → **68 项**,exit 0 可重复;T1.4 读侧按条目泛化扩至 54,
-  T1.6 写链路按条目再扩至 68,基线只增不减;`grep -c "check('"
-  scripts/t7-smoke.mjs` 机械核对):pluginInventory 行 enabled+active、启动与
+- smoke 断言(38 项 → **93 项**,exit 0 可重复;T1.4 读侧按条目泛化扩至 54,
+  T1.6 写链路按条目再扩至 68,T2.3 会话快照扩至 82,T3.2 AI 端点再扩至 93,
+  基线只增不减;`grep -c "check('"` scripts/t7-smoke.mjs` 机械核对):
+  pluginInventory 行 enabled+active、启动与
   HMR 后日志无 skipping/incompatible、snapshot/prompt-get/versions/trace、
   save/rollback 两段式全链、盘面单元目录、审计 G5 字段;T1.4 新增——snapshot
   entries[] 注册表全景、prompt-get/prompt-versions {entryId} 三型采样(块标量
@@ -158,7 +159,11 @@ AuditProjector+FileAuditSink 写 `<DSH_HOME>/basis-prompt-studio/audit.jsonl`
   文件逐字一致 / time-context 只读型「上游运行时生成」标注)、未知 entryId
   not-found 明示、persona per-entry 与旧口径互证、跨条目回滚 fail-closed、
   磁盘文档 entryId 分链对账;T1.6 新增——按条目写回(plan-mode 块标量/领域
-  `>-` 形态 A)save+rollback、time-context 只读型拒写、审计 entryId。
+  `>-` 形态 A)save+rollback、time-context 只读型拒写、审计 entryId;T3.2 新增
+  ——宿主进程不注入 LITELLM_API_KEY(本 smoke 零模型调用,降级断言确定性成立,
+  无 .secrets key 环境同样全绿)下 ai-status/ai-polish/ai-review unavailable
+  明示、润色零写三不变、ai-proposal 两段式(source='ai-proposal'/审计
+  aiSource/按条目读侧反引==建议稿)、磁盘与审计证据、收场回滚恢复基线。
 - **写回通道(T2.1,2026-11-11 实测)**:preset 层条目经官方 configEditor seam
   写回(audit `channel=config-editor`),领域层 pack 文件走 entry-patch 直写
   兜底(`channel=entry-patch` + channelNote「写回落点不在本宿主 live patch」);

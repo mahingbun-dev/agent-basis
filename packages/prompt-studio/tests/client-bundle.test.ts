@@ -156,6 +156,42 @@ describe('T1.5 全景改版工件', () => {
     expect(source).toContain('entryId: version.entryId')
   })
 
+  it('T3.2 工件:AI 润色区/diff 预览/提案提交/降级锚点在 bundle 中', () => {
+    const code = readFileSync(bundlePath, 'utf8')
+    // 测试计划 §5 T3.2(b):diff 视图按 §5.1 对照既有组件形态——锚点随 T1.5 模式。
+    for (const anchor of [
+      'data-ps-ai-polish', 'data-ps-ai-status', 'data-ps-ai-instruction', 'data-ps-ai-polish-btn',
+      'data-ps-ai-draft-card', 'data-ps-ai-draft', 'data-ps-ai-diff', 'data-ps-ai-propose-btn',
+      'data-ps-ai-discard-btn', 'data-ps-ai-unavailable',
+    ]) {
+      expect(code, `缺少 T3.2 AI 润色流锚点 ${anchor}`).toContain(anchor)
+    }
+  })
+
+  it('T3.2 接线:AI 三端点(可用性/润色/提案)进 bundle;降级与提案文案在场(中文按转义形态断言)', () => {
+    const code = readFileSync(bundlePath, 'utf8')
+    expect(code).toContain('loopPrompt/ai-status')
+    expect(code).toContain('loopPrompt/ai-polish')
+    expect(code).toContain('loopPrompt/ai-proposal')
+    // bundle 经 esbuild ASCII 转义(大写 hex \uXXXX),中文文案按转义形态断言。
+    const escaped = (text: string): string => text.split('')
+      .map(ch => (ch.charCodeAt(0) <= 0x7e ? ch : `\\u${ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`))
+      .join('')
+    expect(code, '「AI 能力不可用」降级文案应在 bundle').toContain(escaped('AI 能力不可用'))
+    expect(code, '「作为提案提交」主操作文案应在 bundle').toContain(escaped('作为提案提交'))
+    expect(code, '「永不直接生效」纪律文案应在 bundle').toContain(escaped('不直接生效'))
+  })
+
+  it('T3.2 diff 预览复用 diff.ts:AiDraftDiff 与 DiffView 消费同一 lineDiffOps 导出(同源不另造实现)', () => {
+    const source = readFileSync(join(clientSrcDir, 'StudioPage.tsx'), 'utf8')
+    expect(source).toContain("import { diffLines, lineDiffOps } from '../diff.ts'")
+    expect(source).toContain('const ops: readonly LineDiffOp[] = lineDiffOps(base, draft)')
+    expect(source).toContain('const ops: readonly LineDiffOp[] = lineDiffOps(pair.a.content, pair.b.content)')
+    // 提案两段式载荷复述面含 aiMeta(第二段审计 aiSource 同源)。
+    expect(source).toContain('aiMeta: {')
+    expect(source).toContain('endpoint: ENDPOINTS.aiProposal')
+  })
+
   it('T2.3 工件:会话快照查看视图锚点在 bundle 中;只读型/运行时注入型「不可回放/上游生成」降级文案在场', () => {
     const code = readFileSync(bundlePath, 'utf8')
     // 测试计划 §4 T2.3(b):快照查看视图锚点(随 T1.5 模式)。

@@ -13,11 +13,11 @@ import type { ApprovalCard } from '@eterna/interact'
 import type { AskUserQuestionItem } from '@eterna/interact'
 import type { PromptEffectRadius, PromptEntryKind, PromptLayer, RedLinePolicy } from './registry.ts'
 
-/** 写操作种类(三类全走 R3:保存/回滚/导入,计划书 §3)。 */
-export type WriteKind = 'save' | 'rollback' | 'import'
+/** 写操作种类(全走 R3:保存/回滚/导入/AI 提案,计划书 §3 + §6 T3.2)。 */
+export type WriteKind = 'save' | 'rollback' | 'import' | 'ai-proposal'
 
-/** 版本来源(initial=装载时种子的当前 persona 基线)。 */
-export type VersionSource = 'initial' | 'save' | 'rollback' | 'import'
+/** 版本来源(initial=装载时种子的当前 persona 基线;ai-proposal=T3.2 AI 建议稿提案)。 */
+export type VersionSource = 'initial' | 'save' | 'rollback' | 'import' | 'ai-proposal'
 
 /**
  * 版本记录(版本库唯一行形态;storage 单元 eterna_prompt_studio/versions 的记录值)。
@@ -532,7 +532,7 @@ export interface PromptImportResult {
   readonly effectiveNote: string
 }
 
-// ---------- AI 链路(T3.1:进程内 LLM 调用封装,llm-doctor 同 wire 先例) ----------
+// ---------- AI 链路(T3.1:进程内 LLM 调用封装;T3.2:润色流提案提交) ----------
 
 /** API key 在场来源(可用性自检只判在场性,绝不回显密钥值)。 */
 export type AiKeySource = 'env' | 'dotenv' | 'keyless'
@@ -592,6 +592,40 @@ export interface AiPolishResult {
   readonly issues?: readonly string[]
   readonly note: string
 }
+
+/**
+ * AI 提案的来源标注(T3.2「作为提案提交」回传;润色结果的 meta 子集)。
+ * 纯溯源元数据(进审计 aiSource 与版本摘要),非安全边界——提案内容与普通写
+ * 同门禁(按条目校验器 + R3 两段式 + TOCTOU/乐观锁),端点不因标注缺失拒收。
+ */
+export interface AiProposalOrigin {
+  readonly provider?: string
+  readonly model?: string
+  readonly metaPromptEntryId?: string
+}
+
+/** 端点 loopPrompt/ai-proposal 的入参(T3.2:「作为提案提交」进 R3 两段式)。 */
+export interface AiProposalInput {
+  /** AI 建议稿全文(客户端从 loopPrompt/ai-polish 的结果回传;作为写内容整体落盘)。 */
+  readonly content: string
+  /** 目标条目 id(缺省/空=默认条目 persona,与其余写端点口径一致)。 */
+  readonly entryId?: string
+  /** 乐观锁:与写前最新版本 id 不符则拒绝(可省)。 */
+  readonly baseVersionId?: string
+  readonly summary?: string
+  readonly author?: string
+  /** 审批确认回路:第一段省略;第二段带第一段返回的 approvalId。 */
+  readonly approvalId?: string
+  readonly approved?: boolean
+  /** AI 来源标注(缺省=未标注;审计如实记「(未标注)」,不拒收)。 */
+  readonly aiMeta?: AiProposalOrigin
+}
+
+/**
+ * 端点 loopPrompt/ai-proposal 的返回(与 prompt-save 同一写状态机:第一段
+ * approval-required + R3 卡,第二段 committed + source='ai-proposal' 版本记录)。
+ */
+export type AiProposalResult = PromptSaveResult
 
 /** AI 审核单条问题(模型清单项;与本地校验器结果同源互补)。 */
 export interface AiFinding {

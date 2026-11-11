@@ -752,8 +752,11 @@ export function locateYamlConfigKey(
 
 /**
  * 读 YAML 键行的值:裸/单引号/双引号标量经 unquoteYamlScalar(既有语义不动);
- * 块标量(|/> 及 chomping/显式缩进指示符)经 readBlockScalarValue。键值在后续行
- * (嵌套映射)或不可解析 → undefined(fail-closed,不猜)。
+ * 块标量(|/> 及 chomping/显式缩进指示符)经 readBlockScalarValue;**多行 plain
+ * 折叠标量**(T3.2:官方 configEditor 会把长单行值序列化为「键行 + 更深缩进续行」
+ * 的 plain 折叠形态,2026-11-11 t7 隔离档实测)按 YAML 折叠语义(相邻非空行并空格、
+ * k 个空行 → k 个换行)拼接。键值在后续行(嵌套映射)或不可解析(含多行引号标量
+ * ——本面不解析)→ undefined(fail-closed,不猜)。
  */
 export function readYamlValueAtLine(lines: readonly string[], keyIndex: number): string | undefined {
   const line = lines[keyIndex]
@@ -763,7 +766,50 @@ export function readYamlValueAtLine(lines: readonly string[], keyIndex: number):
   const raw = (match[2] ?? '').trim()
   if (raw === '') return undefined // 值在后续行(映射/序列),本注册表面不消费
   if (BLOCK_INDICATOR_RE.test(raw)) return readBlockScalarValue(lines, keyIndex)
-  return unquoteYamlScalar(raw)
+  const quoted = raw.startsWith('"') || raw.startsWith("'")
+  const continuation = collectPlainContinuation(lines, keyIndex, (match[1] ?? '').length)
+  if (quoted) {
+    // 多行引号标量:本面不解析 → fail-closed 不猜(单行引号维持既有 unquote 语义)。
+    if (continuation.length > 0) return undefined
+    return unquoteYamlScalar(raw)
+  }
+  if (continuation.length === 0) return unquoteYamlScalar(raw)
+  return foldPlainLines([raw, ...continuation])
+}
+
+/**
+ * plain 标量续行收集(T3.2):键行之后缩进 > 键缩进的行(空行以 '' 参与——中间
+ * 空行按折叠语义换行);遇缩进 ≤ 键缩进的非空行即止,尾部空行不收(分隔符不属值)。
+ * 返回去缩进后的行内容(空数组=单行标量)。
+ */
+function collectPlainContinuation(lines: readonly string[], keyIndex: number, keyIndent: number): string[] {
+  const collected: string[] = []
+  for (let i = keyIndex + 1; i < lines.length; i += 1) {
+    const current = lines[i] as string
+    if (/^\s*$/.test(current)) {
+      collected.push('')
+      continue
+    }
+    if (indentOf(current) <= keyIndent) break
+    collected.push(current.trim())
+  }
+  while (collected.length > 0 && collected[collected.length - 1] === '') collected.pop()
+  return collected
+}
+
+/** plain 折叠语义:相邻非空行并一个空格;k 个连续空行 → k 个换行(与块折叠 foldBlockLines 同口径)。 */
+function foldPlainLines(parts: readonly string[]): string {
+  let out = ''
+  let blanks = 0
+  for (const part of parts) {
+    if (part === '') {
+      blanks += 1
+      continue
+    }
+    out += out === '' ? part : (blanks === 0 ? ' ' : '\n'.repeat(blanks)) + part
+    blanks = 0
+  }
+  return out
 }
 
 /** 块标量头部形态(|/> + chomping/显式缩进指示符,两种顺序都合法)。(T1.6 导出) */

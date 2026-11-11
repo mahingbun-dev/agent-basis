@@ -14,6 +14,10 @@
  *   不造可编辑假象);
  * - 版本/diff 复用(T7.3 组件按条目渲染):VersionItem(载入/对比/导出/回滚,
  *   无任何删除入口——版本只增不删)+ DiffView([data-ps-diff-view] 锚点叠加);
+ * - AI 润色区(T3.2)[data-ps-ai-polish]:patch 值型条目 → 生成建议稿 → diff 预览
+ *   ([data-ps-ai-diff],复用 lineDiffOps 与 DiffView 行渲染形态)→「作为提案提交」
+ *   经 loopPrompt/ai-proposal 进与手工保存完全相同的 R3 两段式——**AI 产出永不
+ *   直接生效**;不可用降级明示([data-ps-ai-unavailable] 文案锚点);
  * - 会话快照查看(T2.3)[data-ps-session-snapshot]:会话行卡 → 该会话开启时刻
  *   effective prompt 全文(条目版本指针+可展开文本);只读型/运行时注入型条目
  *   「不可回放(上游生成)」降级标注明示,不造可回放假象;
@@ -26,10 +30,11 @@
  * 官方语义令牌(--dsw-alias-*,styles.ts)。
  */
 import { useEffect, useState, type ReactElement } from 'react'
-import { lineDiffOps } from '../diff.ts'
+import { diffLines, lineDiffOps } from '../diff.ts'
 import type { LineDiffOp } from '../diff.ts'
 import type {
-  EntrySummaryView, PromptExportResult, PromptSaveResult, PromptVersionRecord,
+  AiCallMeta, AiPolishResult, AiStatusResult, EntrySummaryView, PromptExportResult, PromptSaveResult,
+  PromptVersionRecord,
   SessionSnapshotGetResult, SessionSnapshotListResult, SessionSnapshotNotFoundResult,
   SessionSnapshotUnavailableResult, VersionsResult,
   WriteApprovalView,
@@ -64,6 +69,27 @@ type ChainFetchState =
   | { readonly status: 'loading' }
   | { readonly status: 'error'; readonly message: string }
   | { readonly status: 'loaded' }
+
+/**
+ * AI 可用性状态(T3.2;宿主全局、零模型调用,快照刷新时重检一次):loading /
+ * loaded(含结论与不可用原因)/ error(RPC 通道错——不得冒充「AI 不可用」结论)。
+ */
+type AiStatusState =
+  | { readonly status: 'loading' }
+  | { readonly status: 'loaded'; readonly result: AiStatusResult }
+  | { readonly status: 'error'; readonly message: string }
+
+/**
+ * AI 润色流状态(T3.2;选中条目归属,切条目/放弃/提交生效即重置):idle → loading →
+ * ok(base=润色底稿,draft=建议稿,meta=生成信息)或 error(unavailable/failed/
+ * rejected 的 issues 就地明示)。**建议稿永不直接生效**:ok 态只渲染预览,生效唯一
+ * 通道是「作为提案提交」→ R3 两段式(与手工保存同门禁)。
+ */
+type AiPolishState =
+  | { readonly status: 'idle' }
+  | { readonly status: 'loading' }
+  | { readonly status: 'error'; readonly message: string }
+  | { readonly status: 'ok'; readonly base: string; readonly draft: string; readonly meta?: AiCallMeta }
 
 /** 工坊组件 props(hooks.studio 绑成 useStudio;其余为普通注入值)。 */
 export interface StudioPageProps {
@@ -315,6 +341,46 @@ function DiffView({ pair, onClose, t }: {
   )
 }
 
+/**
+ * AI 建议稿 diff 预览(T3.2):当前稿(润色底稿)→ AI 建议稿的逐行对比。复用
+ * diff.ts lineDiffOps 与 DiffView 的行渲染形态(data-t7-diff-* 子结构,样式同源),
+ * 只换头部文案与容器锚点(data-ps-ai-diff)——对照既有组件形态,不发明孤立样式。
+ */
+function AiDraftDiff({ base, draft, t }: {
+  readonly base: string
+  readonly draft: string
+  readonly t: (key: string) => string
+}): ReactElement {
+  const ops: readonly LineDiffOp[] = lineDiffOps(base, draft)
+  const added = ops.filter(op => op.type === 'add').length
+  const removed = ops.filter(op => op.type === 'del').length
+  const visible = ops.slice(0, DIFF_RENDER_CAP)
+  const unchanged = added === 0 && removed === 0
+  return (
+    <div data-ps-ai-diff data-t7-diff-empty={unchanged ? 'true' : 'false'}>
+      <div data-t7-diff-head>
+        <span data-t7-diff-title>{t('studio.ai.diff')}</span>
+        <span data-t7-diff-stats>
+          +{added} {t('studio.ai.diff.added')} · −{removed} {t('studio.ai.diff.removed')}
+        </span>
+      </div>
+      <p data-t7-diff-note>{t('studio.ai.diff.note')}</p>
+      {unchanged && <p data-t7-diff-identical>{t('studio.ai.diff.identical')}</p>}
+      {!unchanged && (
+        <div data-t7-diff-body>
+          {visible.map((op, index) => (
+            <div key={index} data-t7-diff-op={op.type}>
+              <span data-t7-diff-sign>{op.type === 'add' ? '+' : op.type === 'del' ? '−' : ' '}</span>
+              <span data-t7-diff-text>{op.text}</span>
+            </div>
+          ))}
+          {ops.length > visible.length && <p data-t7-diff-truncated>{t('studio.ai.diff.truncated')}</p>}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /** 触发浏览器下载(导出 JSON 包;Blob + 临时 <a download>)。 */
 function downloadJson(filename: string, data: unknown): void {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
@@ -474,6 +540,99 @@ function SessionSnapshotsView({ call, t, ready, generatedAt }: {
   )
 }
 
+/**
+ * AI 润色区(T3.2):可用性胶囊(零模型调用)→ 润色侧重点 + 生成按钮 → 建议稿卡
+ * (生成信息 + 建议稿全文(折叠)+ diff 预览 + 「作为提案提交」/「放弃建议稿」)。
+ * 建议稿仅预览(永不直接生效);「作为提案提交」经 loopPrompt/ai-proposal 进与
+ * 手工保存完全相同的 R3 两段式。只读型/运行时注入型条目不渲染本区(无写回落点,
+ * 提案必然 fail-closed,不造可提交假象)。
+ */
+function AiPolishSection({ status, polish, instruction, aiBusy, busy, canPolish, diffEmpty, onInstructionChange, onPolish, onDiscard, onPropose, t }: {
+  readonly status: AiStatusState
+  readonly polish: AiPolishState
+  readonly instruction: string
+  /** 润色调用在途(与提案提交的 busy 分开,防交叉禁用)。 */
+  readonly aiBusy: boolean
+  /** 提案提交/审批应答在途。 */
+  readonly busy: boolean
+  /** 可润色(选中条目为 patch 值型且当前值可读、编辑器就绪)。 */
+  readonly canPolish: boolean
+  /** 建议稿与底稿无差异(提交必被拒,就地禁用 + 预览明示)。 */
+  readonly diffEmpty: boolean
+  readonly onInstructionChange: (value: string) => void
+  readonly onPolish: () => void
+  readonly onDiscard: () => void
+  readonly onPropose: () => void
+  readonly t: (key: string) => string
+}): ReactElement {
+  const available = status.status === 'loaded' && status.result.available
+  // 可用性未知(检测中/RPC 失败)不禁用按钮——润色端点自身还有一道可用性自检,
+  // 结论以端点返回为准;此处胶囊只是前置提示,失败不冒充结论。
+  const blockPolish = !canPolish || aiBusy || busy || (status.status === 'loaded' && !available)
+  return (
+    <section data-ps-ai-polish data-t7-section="ai" aria-label={t('studio.ai')}>
+      <h3 data-t7-section-title>{t('studio.ai')}</h3>
+      <p data-t7-section-note>{t('studio.ai.note')}</p>
+      <div data-ps-ai-status>
+        <span data-ps-ai-status-label>{t('studio.ai.status')}</span>
+        {status.status === 'loading' && <span data-ps-ai-status-value data-ps-ai-status-state="checking">{t('studio.ai.status.checking')}</span>}
+        {status.status === 'error' && (
+          <span data-ps-ai-status-value data-ps-ai-status-state="error" title={status.message}>{t('studio.ai.status.checking')}</span>
+        )}
+        {status.status === 'loaded' && (available
+          ? <span data-ps-pill data-ps-tone="business" data-ps-ai-status-value data-ps-ai-available="true">{t('studio.ai.status.available')}</span>
+          : <span data-ps-pill data-ps-tone="warn" data-ps-ai-status-value data-ps-ai-unavailable="true">{t('studio.ai.status.unavailable')}</span>)}
+      </div>
+      {status.status === 'loaded' && !available && (
+        <p data-ps-ai-unavailable-note data-ps-ai-unavailable="true">
+          {t('studio.ai.unavailable.note')}{status.result.reason === undefined ? '' : `(${status.result.reason})`}
+        </p>
+      )}
+      <div data-ps-ai-input-row>
+        <input
+          data-ps-ai-instruction
+          type="text"
+          value={instruction}
+          placeholder={t('studio.ai.instructionPlaceholder')}
+          aria-label={t('studio.ai.instruction')}
+          disabled={aiBusy}
+          onChange={event => { onInstructionChange(event.target.value) }}
+        />
+        <button type="button" data-ps-ai-polish-btn disabled={blockPolish} onClick={onPolish}>
+          {aiBusy ? t('studio.ai.polishing') : t('studio.ai.polish')}
+        </button>
+      </div>
+      {polish.status === 'loading' && <p data-t7-placeholder data-ps-ai-loading="true">{t('studio.ai.polishing')}</p>}
+      {polish.status === 'error' && <p data-ps-ai-error>{t('studio.ai.error')}:{polish.message}</p>}
+      {polish.status === 'ok' && (
+        <div data-ps-ai-draft-card>
+          <div data-ps-ai-draft-head>
+            <span data-ps-ai-draft-title>{t('studio.ai.draft.title')}</span>
+            {polish.meta !== undefined && (
+              <span data-ps-ai-draft-meta>
+                {t('studio.ai.draft.meta')}: {polish.meta.provider} · {polish.meta.model} · {polish.meta.latencyMs}ms
+              </span>
+            )}
+          </div>
+          <details>
+            <summary>{t('studio.ai.draft.text')}</summary>
+            <pre data-ps-ai-draft>{polish.draft}</pre>
+          </details>
+          <AiDraftDiff base={polish.base} draft={polish.draft} t={t} />
+          <div data-ps-ai-draft-actions>
+            <button type="button" data-ps-ai-propose-btn disabled={busy || aiBusy || diffEmpty} onClick={onPropose}>
+              {busy ? t('studio.ai.proposing') : t('studio.ai.propose')}
+            </button>
+            <button type="button" data-ps-ai-discard-btn disabled={busy || aiBusy} onClick={onDiscard}>
+              {t('studio.ai.discard')}
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
 /** 提示词工坊根组件(注册表全景)。 */
 export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): ReactElement {
   const state = useStudio(s => s)
@@ -501,6 +660,11 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
   const [chains, setChains] = useState<Record<string, VersionsResult>>({})
   // 拉取状态分面(见 ChainFetchState):失败明示、可重试,不冒充 storage 缺席。
   const [chainFetches, setChainFetches] = useState<Record<string, ChainFetchState>>({})
+  // T3.2 AI 润色流状态(选中条目归属;AI 可用性为宿主全局,快照刷新重检一次)。
+  const [aiStatus, setAiStatus] = useState<AiStatusState>({ status: 'loading' })
+  const [aiPolish, setAiPolish] = useState<AiPolishState>({ status: 'idle' })
+  const [aiInstruction, setAiInstruction] = useState('')
+  const [aiBusy, setAiBusy] = useState(false)
 
   /** 选中条目的当前文本(patch 值型=反引文本;只读型/运行时型=空串,无编辑器)。 */
   const selectedText = selected !== undefined && selected.kind === 'patch-value' ? selected.value.text ?? '' : ''
@@ -568,6 +732,111 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
     })()
     return () => { cancelled = true }
   }, [ready, selected, generatedAt, call])
+
+  // AI 可用性(宿主全局;零模型调用):就绪后拉一次,快照刷新(写后 refresh)重检;
+  // RPC 通道失败与「AI 不可用」结论分态(AiStatusState 注),不互相冒充。
+  useEffect(() => {
+    if (!ready) return
+    let cancelled = false
+    setAiStatus(previous => (previous.status === 'loaded' ? previous : { status: 'loading' }))
+    void (async (): Promise<void> => {
+      const result = await call<AiStatusResult>(ENDPOINTS.aiStatus, { input: {} })
+      if (cancelled) return
+      if (result.ok) setAiStatus({ status: 'loaded', result: result.value })
+      else setAiStatus({ status: 'error', message: result.message })
+    })()
+    return () => { cancelled = true }
+  }, [ready, generatedAt, call])
+
+  /**
+   * 生成建议稿(T3.2):以编辑器当前草稿为底稿(用户先手改再润色的诉求自然覆盖);
+   * 端点零写动作,失败/不可用 issues 就地明示。ok 态只入预览,不触任何写通道。
+   */
+  const runAiPolish = async (): Promise<void> => {
+    if (!ready || selected === undefined || selected.kind !== 'patch-value' || valueUnreadable || aiBusy || busy) return
+    const base = draft ?? selectedText
+    setAiBusy(true)
+    setAiPolish({ status: 'loading' })
+    try {
+      const result = await call<AiPolishResult>(ENDPOINTS.aiPolish, {
+        input: {
+          entryId: selected.id,
+          content: base,
+          ...(aiInstruction.trim() !== '' && { instruction: aiInstruction.trim() }),
+        },
+      })
+      if (!result.ok) {
+        setAiPolish({ status: 'error', message: result.message })
+        return
+      }
+      if (result.value.status === 'ok' && result.value.draft !== undefined) {
+        setAiPolish({
+          status: 'ok',
+          base,
+          draft: result.value.draft,
+          ...(result.value.meta !== undefined && { meta: result.value.meta }),
+        })
+        return
+      }
+      const detail = result.value.issues !== undefined && result.value.issues.length > 0
+        ? result.value.issues.join(';')
+        : result.value.note
+      setAiPolish({ status: 'error', message: `${result.value.status} — ${detail}` })
+    } finally {
+      setAiBusy(false)
+    }
+  }
+
+  /**
+   * 作为提案提交(T3.2):建议稿经 loopPrompt/ai-proposal 进与手工保存完全相同的
+   * R3 两段式(第一段 approval-required → 共享 ApprovalSection;第二段 answerApproval
+   * 回显同载荷)。携带润色结果的生成信息作 AI 来源标注(宿主进审计 aiSource)。
+   */
+  const submitAiProposal = async (): Promise<void> => {
+    if (busy || aiBusy || selected === undefined || selected.kind !== 'patch-value' || aiPolish.status !== 'ok') return
+    setBusy(true)
+    setOutcome(null)
+    const echo: WriteEcho = {
+      content: aiPolish.draft,
+      entryId: selected.id,
+      ...(baseVersionId !== undefined && { baseVersionId }),
+      author: 'web',
+      ...(aiPolish.meta !== undefined && {
+        aiMeta: {
+          provider: aiPolish.meta.provider,
+          model: aiPolish.meta.model,
+          metaPromptEntryId: aiPolish.meta.metaPromptEntryId,
+        },
+      }),
+    }
+    try {
+      const result = await call<PromptSaveResult>(ENDPOINTS.aiProposal, { input: echo })
+      if (!result.ok) {
+        setOutcome({ kind: 'ai-proposal', status: 'error', message: result.message })
+        return
+      }
+      if (result.value.status === 'approval-required' && result.value.approval !== undefined) {
+        const approval: WriteApprovalView = result.value.approval
+        setPending({
+          endpoint: ENDPOINTS.aiProposal,
+          approvalId: approval.approvalId,
+          kind: approval.kind,
+          card: approval.card,
+          questionItems: approval.questionItems,
+          echo,
+        })
+        return
+      }
+      setOutcome(writeOutcomeFrom('ai-proposal', result.value))
+      if (result.value.status === 'committed') {
+        // 建议稿已生效为当前值,预览使命结束(残留只会显示「无差异」)。
+        setAiPolish({ status: 'idle' })
+        window.setTimeout(refresh, 8000)
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
 
   /** 保存(第一段):校验/乐观锁在宿主;拒绝 issues 就地展示,批准则弹卡。 */
   const startSave = async (): Promise<void> => {
@@ -753,15 +1022,17 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
     }
   }
 
-  /** 切换选中条目(编辑上下文整体重置:对比/导出回执/变更摘要/写入结果;草稿由
-   * render 期派生逻辑按新条目重置)。摘要会进保存载荷、结果无条目标识,均不得
-   * 从上一条目串入下一条目。 */
+  /** 切换选中条目(编辑上下文整体重置:对比/导出回执/变更摘要/写入结果/AI 建议稿;
+   * 草稿由 render 期派生逻辑按新条目重置)。摘要会进保存载荷、结果无条目标识,
+   * 均不得从上一条目串入下一条目;建议稿同理(底稿与条目强绑定)。 */
   const selectEntry = (entryId: string): void => {
     setSelectedId(entryId)
     setDiffPair(null)
     setExportNote(null)
     setSummary('')
     setOutcome(null)
+    setAiPolish({ status: 'idle' })
+    setAiInstruction('')
   }
 
   return (
@@ -878,6 +1149,22 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
                 </button>
               </div>
             </section>
+          )}
+          {selected.kind === 'patch-value' && !valueUnreadable && (
+            <AiPolishSection
+              status={aiStatus}
+              polish={aiPolish}
+              instruction={aiInstruction}
+              aiBusy={aiBusy}
+              busy={busy}
+              canPolish={ready && draft !== null}
+              diffEmpty={aiPolish.status !== 'ok' || diffLines(aiPolish.base, aiPolish.draft).isEmpty}
+              onInstructionChange={setAiInstruction}
+              onPolish={() => { void runAiPolish() }}
+              onDiscard={() => { setAiPolish({ status: 'idle' }) }}
+              onPropose={() => { void submitAiProposal() }}
+              t={t}
+            />
           )}
           {valueUnreadable && (
             <div data-ps-entry-value-error data-t7-section="unreadable" aria-label={t('studio.entry.valueUnreadable.title')}>

@@ -428,15 +428,87 @@ const CSS = `
   color: var(--dsw-alias-state-error-primary); overflow-wrap: anywhere;
 }
 
+/* —— AI 润色区(T3.2:建议稿卡/diff 预览/提案提交;对照快照详情卡与版本对比形态) —— */
+[data-ps-ai-status] { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+[data-ps-ai-status-label] { font-size: 12px; color: var(--dsw-alias-label-tertiary); }
+[data-ps-ai-status-value] { font-size: 12px; color: var(--dsw-alias-label-secondary); }
+[data-ps-ai-unavailable-note] {
+  margin: 0; font-size: 12px; line-height: 18px;
+  color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere;
+}
+[data-ps-ai-input-row] { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+[data-ps-ai-instruction] {
+  flex: 1 1 240px; padding: 8px 12px; font: inherit; font-size: 13px;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-1, transparent);
+  border: 1px solid var(--dsw-alias-border-l2); border-radius: 980px;
+}
+[data-ps-ai-instruction]:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 1px; }
+[data-ps-ai-instruction]:disabled { opacity: 0.6; }
+[data-ps-ai-polish-btn] {
+  padding: 8px 20px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  color: var(--dsw-alias-label-primary);
+  background: transparent; border: 1px solid var(--dsw-alias-border-l2); border-radius: 980px;
+}
+[data-ps-ai-polish-btn]:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
+[data-ps-ai-polish-btn]:disabled { opacity: 0.45; cursor: default; }
+[data-ps-ai-error] {
+  margin: 0; font-size: 13px; line-height: 20px;
+  color: var(--dsw-alias-state-error-primary); overflow-wrap: anywhere;
+}
+[data-ps-ai-draft-card] {
+  display: flex; flex-direction: column; gap: 12px; padding: 16px 20px; border-radius: 18px;
+  background: var(--dsw-alias-bg-layer-1, transparent);
+  border: 0.5px solid var(--dsw-alias-border-l2);
+}
+[data-ps-ai-draft-head] { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+[data-ps-ai-draft-title] { font-size: 13px; font-weight: 700; color: var(--dsw-alias-label-primary); }
+[data-ps-ai-draft-meta] {
+  font-size: 11px; color: var(--dsw-alias-label-tertiary);
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+[data-ps-ai-draft-card] details { font-size: 12px; color: var(--dsw-alias-label-secondary); }
+[data-ps-ai-draft-card] summary { cursor: pointer; }
+[data-ps-ai-draft] {
+  margin: 8px 0 0; padding: 12px 14px; max-height: 260px; overflow-y: auto;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px; line-height: 18px; white-space: pre-wrap; overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-interactive-bg-hover);
+  border: 0.5px solid var(--dsw-alias-border-l3); border-radius: 12px;
+}
+[data-ps-ai-diff] {
+  padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; border-radius: 18px;
+  background: var(--dsw-alias-bg-layer-1, transparent);
+  border: 0.5px solid var(--dsw-alias-border-l2);
+}
+[data-ps-ai-draft-actions] { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+[data-ps-ai-propose-btn] {
+  padding: 8px 20px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  color: var(--dsw-alias-label-primary-foreground);
+  background: var(--dsw-alias-state-business-primary); border: 0; border-radius: 980px;
+}
+[data-ps-ai-propose-btn]:hover:not(:disabled) { filter: brightness(1.08); }
+[data-ps-ai-propose-btn]:disabled { opacity: 0.45; cursor: default; }
+[data-ps-ai-discard-btn] {
+  padding: 8px 20px; font: inherit; font-size: 13px; cursor: pointer;
+  color: var(--dsw-alias-label-secondary); background: transparent;
+  border: 1px solid var(--dsw-alias-border-l2); border-radius: 980px;
+}
+[data-ps-ai-discard-btn]:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+[data-ps-ai-discard-btn]:disabled { opacity: 0.45; cursor: default; }
+
 /* —— 键盘可达与触控目标(AGENTS.md 前端铁律 4) —— */
 [data-t7-studio-root] button:focus-visible {
   outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 1px;
 }
 /* 紧凑胶囊按钮的视觉节奏保持不变,经 ::after 外扩命中区到 ≥36px 级(access 开关同款手法)。 */
 [data-t7-version-actions] button, [data-t7-export-latest], [data-t7-import-btn],
-[data-t7-diff-close], [data-t7-refresh], [data-ps-entry-row], [data-ps-snapshot-session-row] { position: relative; }
+[data-t7-diff-close], [data-t7-refresh], [data-ps-entry-row], [data-ps-snapshot-session-row],
+[data-ps-ai-polish-btn], [data-ps-ai-propose-btn], [data-ps-ai-discard-btn] { position: relative; }
 [data-t7-version-actions] button::after, [data-t7-export-latest]::after, [data-t7-import-btn]::after,
-[data-t7-diff-close]::after, [data-t7-refresh]::after, [data-ps-entry-row]::after, [data-ps-snapshot-session-row]::after {
+[data-t7-diff-close]::after, [data-t7-refresh]::after, [data-ps-entry-row]::after, [data-ps-snapshot-session-row]::after,
+[data-ps-ai-polish-btn]::after, [data-ps-ai-propose-btn]::after, [data-ps-ai-discard-btn]::after {
   content: ""; position: absolute; inset: -6px;
 }
 

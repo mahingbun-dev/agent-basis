@@ -7,7 +7,10 @@
  * - 形态 A|领域层折叠块 `>-`:packs/{event-planning,industrial-analysis} 的 personaPrefix;
  * - 形态 B|preset-cordis 折叠块 `>-`:profiles/eterna-web/cordis.patch.yml:149-150 的
  *   persona prefix——块头+续行必须整块替换,单行替换会残留续行产生脏 YAML;
- * - 形态 C|plan-mode 字面块 `|` 多段整段:两预设 planning→plan-mode 的 config.section。
+ * - 形态 C|plan-mode 字面块 `|` 多段整段:两预设 planning→plan-mode 的 config.section;
+ * - 形态 D|多行 plain 折叠标量(T3.2):官方 configEditor 把长单行值序列化为「键行+
+ *   更深缩进续行」的折叠形态(t7 隔离档实测)——span 覆盖续行整段替换,读侧按
+ *   plain 折叠语义反引(registry.readYamlValueAtLine)。
  * 另含:单行标量形态(preset-standard persona 裸标量/agent-instructions 数值,T7 既有
  * 配方等价)与整文件形态(persona.md 全文=值)。
  *
@@ -97,7 +100,18 @@ export function entrySpanOf(entry: PromptRegistryEntry, lines: readonly string[]
   }
   const keyIndent = located.indent.length
   if (!BLOCK_INDICATOR_RE.test(rawValue)) {
-    return { keyIndex: located.index, end: located.index + 1, isBlock: false, keyIndent, contentIndent: keyIndent + 2, rawValue }
+    // T3.2:官方 configEditor 会把长单行值序列化为多行 plain 折叠标量(键行 + 更深
+    // 缩进续行;2026-11-11 t7 隔离档实测)——span 必须覆盖到最后一行续行,标量替换
+    // 时整段换为单行(残留续行=脏 YAML,T1.6「整块替换」纪律对新增形态同样成立)。
+    // 空行不推进 end(尾部空行是分隔符),其后仍是更深缩进的续行则继续收集(中间空行)。
+    let scalarEnd = located.index + 1
+    for (let i = located.index + 1; i < lines.length; i += 1) {
+      const line = lines[i] as string
+      if (/^\s*$/.test(line)) continue
+      if (indentOf(line) <= keyIndent) break
+      scalarEnd = i + 1
+    }
+    return { keyIndex: located.index, end: scalarEnd, isBlock: false, keyIndent, contentIndent: keyIndent + 2, rawValue }
   }
   // 块标量:块头行 + 全部续行(空行与缩进 > 键缩进的行);尾部空行是分隔符不属块,不替换。
   const header = parseBlockHeader(lines, located.index)
@@ -183,8 +197,12 @@ export function buildNextEntryFileText(entry: PromptRegistryEntry, original: str
   const indent = ' '.repeat(span.keyIndent)
   if (!span.isBlock) {
     const wasPlain = !(span.rawValue.startsWith('"') || span.rawValue.startsWith("'"))
-    const next = [...lines]
-    next[span.keyIndex] = `${indent}${entry.yaml.configKey}: ${nextScalarValue(nextText, wasPlain)}`
+    // 整段替换(span 可能覆盖多行 plain 折叠续行——T3.2 形态,残留续行=脏 YAML)。
+    const next = [
+      ...lines.slice(0, span.keyIndex),
+      `${indent}${entry.yaml.configKey}: ${nextScalarValue(nextText, wasPlain)}`,
+      ...lines.slice(span.end),
+    ]
     return next.join('\n')
   }
   const header = parseBlockHeader(lines, span.keyIndex)

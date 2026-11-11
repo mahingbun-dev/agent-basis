@@ -147,15 +147,23 @@ describe('StudioAudit(审计留痕)', () => {
   })
 })
 
-describe('WriteKind 全集(三类写操作全走 R3)', () => {
-  it('save/rollback/import 都能出卡且 kind 回填', () => {
-    const kinds: WriteKind[] = ['save', 'rollback', 'import']
+describe('WriteKind 全集(四类写操作全走 R3;T3.2 起 +ai-proposal)', () => {
+  it('save/rollback/import/ai-proposal 都能出卡且 kind 回填', () => {
+    const kinds: WriteKind[] = ['save', 'rollback', 'import', 'ai-proposal']
     for (const kind of kinds) {
       const gate = new ApprovalGate()
       const pending = gate.request(kind, payload(), FACTS)
       expect(pending.kind).toBe(kind)
       expect(pending.card.matchedRule.grade).toBe('R3')
     }
+  })
+
+  it('T3.2 actionName:缺省 loopPrompt/prompt-<kind>(既有三类形状不变);ai-proposal 传真实端点名', () => {
+    const gate = new ApprovalGate()
+    const save = gate.request('save', payload(), FACTS)
+    expect(save.card.whatWillHappen.name).toBe('loopPrompt/prompt-save')
+    const proposal = gate.request('ai-proposal', payload(), { ...FACTS, actionName: 'loopPrompt/ai-proposal' })
+    expect(proposal.card.whatWillHappen.name).toBe('loopPrompt/ai-proposal')
   })
 })
 

@@ -1,6 +1,6 @@
 /**
- * R3 审批门(T7.1;T1.6 起按条目泛化):保存/回滚/导入三类写操作全走 @eterna/interact
- * 富审批卡(计划书 §3「二次确认即审批留痕」)。
+ * R3 审批门(T7.1;T1.6 起按条目泛化):保存/回滚/导入/AI 提案(T3.2)四类写操作
+ * 全走 @eterna/interact 富审批卡(计划书 §3「二次确认即审批留痕」)。
  *
  * 两段式协议:
  *  - request():校验通过后构造 R3 卡(ruleId 按条目解析——默认 persona 条目维持
@@ -82,6 +82,12 @@ export interface CardFacts {
   readonly ruleReason?: string
   /** why.entry 文案(缺省=T7 既有「修改 system prompt persona 段」)。 */
   readonly whyEntry?: string
+  /**
+   * 卡片 action.name(T3.2;缺省=`loopPrompt/prompt-<kind>`——既有三类写卡形状
+   * 不变)。ai-proposal 传 `loopPrompt/ai-proposal`(端点名与动作名一致,不造
+   * 「loopPrompt/prompt-ai-proposal」这种不存在的端点假名)。
+   */
+  readonly actionName?: string
 }
 
 export type ConfirmOutcome =
@@ -120,7 +126,7 @@ export class ApprovalGate {
     const card = buildApprovalCard({
       action: {
         kind: 'api',
-        name: `loopPrompt/prompt-${kind}`,
+        name: facts.actionName ?? `loopPrompt/prompt-${kind}`,
         params: {
           bytes: byteLength(payload.content),
           summary: payload.summary,

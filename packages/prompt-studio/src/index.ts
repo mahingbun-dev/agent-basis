@@ -40,6 +40,9 @@
  *                                生效**;元提示词=注册表 meta 层条目现读,吃自己的狗粮)
  * - loopPrompt/ai-review         AI 审核(T3.1):当前稿 → 问题清单(本地校验器同源
  *                                ruleFindings + 模型五维 aiFindings;仅展示,零写动作)
+ * - loopPrompt/ai-proposal       「作为提案提交」(T3.2 润色流收口):AI 建议稿回传 →
+ *                                与保存同一 R3 两段式(逐条目校验不豁免);落盘版本
+ *                                source='ai-proposal',审计叠加 aiSource 来源字段
  *
  * 非端点扩展(T2.4):apply 时注册全局未打标 `system-prompt/assemble` waterfall 监听
  * (registerAssembleReplay),按 T2.3 会话快照逐段替换 patch 值型条目文本——历史会话
@@ -99,7 +102,8 @@ import {
 } from './session-snapshot.ts'
 import { TRACE_SESSION_LIMIT_DEFAULT, listTraceSessions, readSessionTrace } from './trace.ts'
 import type {
-  AiKeySource, AiPolishInput, AiPolishResult, AiReviewInput, AiReviewResult, AiStatusResult,
+  AiKeySource, AiPolishInput, AiPolishResult, AiProposalInput, AiProposalOrigin, AiProposalResult,
+  AiReviewInput, AiReviewResult, AiStatusResult,
   EntryNotFoundResult, EntrySummaryView, EntryValueView, LoopPromptSnapshot, PromptEntryView,
   PromptExportInput, PromptExportPack, PromptExportResult, PromptGetEntryResult, PromptGetInput,
   PromptGetResult, PromptImportInput, PromptImportResult, PromptRollbackInput, PromptRollbackResult,
@@ -143,6 +147,7 @@ export const ENDPOINTS = {
   aiStatus: `${LOOP_PROMPT_SERVICE_ID}/ai-status`,
   aiPolish: `${LOOP_PROMPT_SERVICE_ID}/ai-polish`,
   aiReview: `${LOOP_PROMPT_SERVICE_ID}/ai-review`,
+  aiProposal: `${LOOP_PROMPT_SERVICE_ID}/ai-proposal`,
 } as const
 
 /** json backend 在 storage hub 上的生命周期服务键(官方 storageBackendServiceKey)。 */
@@ -293,6 +298,19 @@ function entryNotFound(entryId: string): EntryNotFoundResult {
     status: 'not-found',
     entryId,
     issues: [`未知条目 id:${entryId}(注册表共 ${PROMPT_REGISTRY_ENTRIES.length} 条,可用 id 见 loopPrompt/snapshot 的 entries[])`],
+  }
+}
+
+/**
+ * AI 来源审计字段(T3.2 测试计划 §5(b)②「审计含 AI 来源字段」):provider/model/
+ * 元提示词条目 id,任一缺席如实记「(未标注)」——来源标注是客户端回传的溯源元
+ * 数据,缺失不是拒收理由,但审计不造值。密钥值永不在场(调用面只传 meta 三元组)。
+ */
+function aiSourceAuditFields(origin: AiProposalOrigin | undefined): Record<string, string> {
+  return {
+    provider: origin?.provider ?? '(未标注)',
+    model: origin?.model ?? '(未标注)',
+    metaPromptEntryId: origin?.metaPromptEntryId ?? '(未标注)',
   }
 }
 
@@ -601,13 +619,15 @@ export class LoopPromptGateway extends TypertRemoteService {
     try {
       const unit = await facet.open(VERSION_UNIT_DESCRIPTOR)
       const store = new PromptVersionStore(unit)
-      // 默认条目(persona):T7 既有种子路径(patch.read,经 locatePrefixLine 的
-      // 既有落点语义),兼容性优先——registry 结构读若与此不一致,以 patch.read 为准。
-      // store 在 persona 种子完成后立即就位(旧时序保证:store 就绪 ⇒ persona 链首
-      // 已种子),不被其余条目的种子工作拖慢(首屏 snapshot/versions 不等它)。
-      const persona = await this.patch.read()
-      if (persona.available && persona.text.trim().length > 0) {
-        await store.ensureInitial(persona.text)
+      // 默认条目(persona):T1.4 注册表结构读(readEntryText;T3.2 起含形态 D
+      // 折叠续行反引——官方 configEditor 写回后长值是「键行+续行」的 plain 折叠
+      // 形态,T7 旧口径 PersonaPatchFile.read 只读键行首段会截断,不再作种子来源;
+      // 读不到/空值不种,不造假基线)。store 在 persona 种子完成后立即就位(旧时序
+      // 保证:store 就绪 ⇒ persona 链首已种子),不被其余条目的种子工作拖慢。
+      const personaEntry = getPromptRegistryEntry(DEFAULT_ENTRY_ID)
+      const personaText = personaEntry === undefined ? undefined : readEntryText(personaEntry, this.registryReadFile()).text
+      if (personaText !== undefined && personaText.trim().length > 0) {
+        await store.ensureInitial(personaText)
       }
       this.store = store
       this.storeError = undefined
@@ -1187,6 +1207,30 @@ export class LoopPromptGateway extends TypertRemoteService {
   }
 
   /**
+   * SRC 端点:loopPrompt/ai-proposal——「作为提案提交」(T3.2 润色流收口):AI 建议
+   * 稿从客户端回传,进**与普通保存完全同一**的 R3 两段式写链路(handleWrite):
+   * 按条目授权(ruleId 按 T1.6 泛化解析)+ 按条目校验器(红线/字节/UTF-8;AI 产出
+   * 不豁免任何门禁)+ diff 非空 + 乐观锁 + TOCTOU 基线 + configEditor/直写双通道。
+   * 落盘版本 source='ai-proposal'(T3.2 新版本来源标记);审计在写链路既有事件上
+   * 叠加 aiSource(provider/model/元提示词条目 id,缺省如实记「(未标注)」)。
+   * **AI 产出永不直接生效**:ai-polish 本身零写;本端点是唯一的生效通道,且生效
+   * 前提是 R3 审批两段式全部通过——「AI 建议」到「生效文本」之间必经人工确认。
+   */
+  async aiProposal(input: AiProposalInput): Promise<AiProposalResult> {
+    return this.handleWrite('ai-proposal', {
+      entryId: input.entryId,
+      content: input.content,
+      baseVersionId: input.baseVersionId,
+      summary: input.summary,
+      author: input.author,
+      approvalId: input.approvalId,
+      approved: input.approved,
+      versionId: undefined,
+      aiOrigin: input.aiMeta,
+    })
+  }
+
+  /**
    * AI 调用共用执行体(润色/审核共享;公开方法=网关 shadow 约束):
    * 可用性自检 → key 值解析(仅进请求头)→ 同 wire 真发 → 失败/不可用逐事件审计。
    * **零写动作**:本方法不触碰版本库/patch/审批门,任何结局都不留半写状态。
@@ -1585,6 +1629,8 @@ export class LoopPromptGateway extends TypertRemoteService {
     approvalId?: string | undefined
     approved?: boolean | undefined
     versionId?: string | undefined
+    /** AI 来源标注(T3.2,仅 kind='ai-proposal'):provider/model/元提示词条目 id。 */
+    aiOrigin?: AiProposalOrigin | undefined
   }): Promise<WriteOutcome> {
     const author = input.author?.trim() !== '' && input.author !== undefined ? input.author.trim() : 'web'
     const entryId = input.entryId !== undefined && input.entryId !== '' ? input.entryId : DEFAULT_ENTRY_ID
@@ -1592,6 +1638,7 @@ export class LoopPromptGateway extends TypertRemoteService {
       save: entryId === DEFAULT_ENTRY_ID ? '编辑 persona 并保存' : `编辑条目 ${entryId} 并保存`,
       rollback: entryId === DEFAULT_ENTRY_ID ? '回滚到历史版本' : `回滚条目 ${entryId} 到历史版本`,
       import: entryId === DEFAULT_ENTRY_ID ? '导入导出包' : `导入条目 ${entryId} 导出包`,
+      'ai-proposal': entryId === DEFAULT_ENTRY_ID ? '提交 AI 润色建议稿' : `提交条目 ${entryId} 的 AI 润色建议稿`,
     }
     const summary = input.summary?.trim() !== '' && input.summary !== undefined ? input.summary.trim() : defaultSummary[kind]
     // 第二段:审批确认
@@ -1716,6 +1763,8 @@ export class LoopPromptGateway extends TypertRemoteService {
         // (channelNote 记降级原因——configEditor 缺席/条目不可达)。
         channel: writeChannel,
         ...('channel' in channelResolution ? {} : { channelNote: channelResolution.fallback }),
+        // AI 来源字段(T3.2:审计含 AI 来源;仅 ai-proposal 类写)。
+        ...(kind === 'ai-proposal' && { aiSource: aiSourceAuditFields(input.aiOrigin) }),
       })
       // T2.6:committed 后重刷运行时条目缓存(当前写链路对 runtime 条目 fail-closed,
       // 该刷新面向未来开放 store 写回落点时即刻生效;幂等且便宜,只扫 2 条 runtime 条目)。
@@ -1768,7 +1817,9 @@ export class LoopPromptGateway extends TypertRemoteService {
       this.audit.write(`prompt-${kind}.rejected`, { kind, operator: author, entryId, reason: 'base-version-mismatch', stage: 'lock' })
       return { status: 'rejected', issues: ['baseVersionId 与当前最新版本不符(并发修改),请刷新后重试'], effectiveNote: EFFECTIVE_NOTE }
     }
-    const actionLabel = kind === 'rollback' ? `回滚到 ${input.versionId ?? '?'}` : '编辑'
+    const actionLabel = kind === 'rollback'
+      ? `回滚到 ${input.versionId ?? '?'}`
+      : kind === 'ai-proposal' ? 'AI 润色提案' : '编辑'
     const facts: CardFacts = {
       patchPath: writePath,
       diffSummary: cardDiffSummary(diff),
@@ -1780,6 +1831,9 @@ export class LoopPromptGateway extends TypertRemoteService {
         ? 'system prompt persona 段影响所有新会话的前缀与 KV-cache 命中'
         : `提示词注册表条目 ${entryId}(层 ${entry.layer}/${entry.kind})影响相应会话的系统提示`,
       whyEntry: `R3 · ${entryWriteRuleId(entry.id)}(提示词注册表条目 ${entryId} 写回)`,
+      // T3.2:AI 提案卡的动作名指向真实端点 ai-proposal(缺省 prompt-<kind> 形态
+      // 对 ai-proposal 会拼出不存在的端点名)。
+      ...(kind === 'ai-proposal' && { actionName: ENDPOINTS.aiProposal }),
     }
     const payload: PendingWritePayload = {
       content: input.content,
@@ -1801,6 +1855,8 @@ export class LoopPromptGateway extends TypertRemoteService {
       diffRemoved: diff.removed,
       baseVersionId: payload.baseVersionId,
       ...(input.versionId !== undefined && { targetVersionId: input.versionId }),
+      // AI 来源字段(T3.2:审计含 AI 来源;仅 ai-proposal 类写)。
+      ...(kind === 'ai-proposal' && { aiSource: aiSourceAuditFields(input.aiOrigin) }),
     })
     return {
       status: 'approval-required',
@@ -1892,6 +1948,7 @@ applyRemoteMarker(LoopPromptGateway.prototype, 'sessionSnapshot', 'session-snaps
 applyRemoteMarker(LoopPromptGateway.prototype, 'aiStatus', 'ai-status')
 applyRemoteMarker(LoopPromptGateway.prototype, 'aiPolish', 'ai-polish')
 applyRemoteMarker(LoopPromptGateway.prototype, 'aiReview', 'ai-review')
+applyRemoteMarker(LoopPromptGateway.prototype, 'aiProposal', 'ai-proposal')
 
 export type { PromptVersionRecord } from './types.ts'
 export {

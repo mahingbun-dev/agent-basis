@@ -75,11 +75,11 @@ function asStudio(ctx: Context): StudioContextLike {
 describe('SRC 端点声明(手工 @Remote marker)', () => {
   const markers = remoteMethods(Object.create(LoopPromptGateway.prototype) as object)
 
-  it('12 个端点(T3.1 起 +ai-status/ai-polish/ai-review),exportName 与请求路径一一对应', () => {
-    expect(markers).toHaveLength(12)
+  it('13 个端点(T3.2 起 +ai-proposal),exportName 与请求路径一一对应', () => {
+    expect(markers).toHaveLength(13)
     const names = markers.map(marker => marker.exportName ?? marker.method).sort()
     expect(names).toEqual([
-      'ai-polish', 'ai-review', 'ai-status',
+      'ai-polish', 'ai-proposal', 'ai-review', 'ai-status',
       'prompt-export', 'prompt-get', 'prompt-import', 'prompt-rollback', 'prompt-save', 'prompt-versions',
       'session-snapshot', 'snapshot', 'trace',
     ])
@@ -99,6 +99,7 @@ describe('SRC 端点声明(手工 @Remote marker)', () => {
     expect(ENDPOINTS.aiStatus).toBe('loopPrompt/ai-status')
     expect(ENDPOINTS.aiPolish).toBe('loopPrompt/ai-polish')
     expect(ENDPOINTS.aiReview).toBe('loopPrompt/ai-review')
+    expect(ENDPOINTS.aiProposal).toBe('loopPrompt/ai-proposal')
   })
 
   it('json backend 服务键来自官方 storageBackendServiceKey', () => {

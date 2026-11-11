@@ -38,11 +38,19 @@
  *     新会话开启即有快照(loopPrompt/session-snapshot 按会话可查,全景条目+
  *     版本指针+三型分语义);未知 sessionId not-found 明示;改提示词(保存)后
  *     已存快照逐字节不变(checksum 复核);快照单元目录落在 storage 栈根。
+ * 10. T3.2 AI 端点缺席降级 + AI 提案写链路:宿主进程**不注入** LITELLM_API_KEY
+ *     (本 smoke 全程零模型调用;key 缺席使降级断言确定性成立,无 .secrets key 的
+ *     环境同样全绿)——ai-status/ai-polish/ai-review unavailable 明示 + 润色零写
+ *     (版本数/patch 字节/在途审批三不变);ai-proposal 两段式(建议稿文本本地
+ *     构造——端点无法亦不应验证内容是否真由模型产出,本断言验证的是提案写链路:
+ *     R3 卡 kind/ruleId/动作名、committed source='ai-proposal'、审计 aiSource、
+ *     patch 层反引==建议稿),收场回滚恢复单行基线(保持 ui-check 首态假设)。
  *
  * 隔离纪律:运行态全在 .eterna-home-t7(DSH_HOME);Web 宿主一律 3108;进程清理只用
  * SIGTERM + pkill -f 'profile t7-studio' 精确模式(绝不 pkill 其他 dsh 实例);
- * LITELLM_API_KEY 只从 .secrets/litellm-master-key.txt 读进宿主进程环境,不写入
- * 任何被跟踪文件/日志/输出。
+ * LITELLM_BASE_URL 只从 .secrets/litellm-base-url.txt 读进 patch fixture(行配置,
+ * 非凭据);LITELLM_API_KEY **不进宿主进程环境**(T3.2 起:AI 缺席降级是断言对象,
+ * 真模型链路由 scripts/ps-v2-ai-smoke.mjs 承载,凭据只在该脚本内从 .secrets 读取)。
  *
  * 用法:node scripts/t7-smoke.mjs
  */
@@ -80,10 +88,7 @@ function check(name, ok, detail = '') {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const require_ = createRequire(import.meta.url)
 
-/* ---------- 秘钥(纪律 4:只读进宿主进程环境,不落盘/不进日志) ---------- */
-function litellmKey() {
-  return readFileSync(resolve(repoRoot, '.secrets/litellm-master-key.txt'), 'utf8').trim()
-}
+/* ---------- 秘钥(纪律 4:baseUrl 只读进 patch fixture;API key 不进宿主环境,见头注 10) ---------- */
 function litellmBaseUrl() {
   return readFileSync(resolve(repoRoot, '.secrets/litellm-base-url.txt'), 'utf8').trim()
 }
@@ -205,7 +210,10 @@ function startHost() {
     '--profile', profileName, '--host', '127.0.0.1', '--port', String(port), '--no-open',
   ], {
     cwd: profile,
-    env: { ...process.env, DSH_HOME: home, LITELLM_API_KEY: litellmKey() },
+    // T3.2 起 LITELLM_API_KEY 不注入(见头注 10):本 smoke 零模型调用,AI 端点的
+    // 缺席降级是断言对象;宿主内 eterna-llm 行对 boot 无 key 要求(懒取)。父进程
+    // 环境若已导出该 key,显式剔除——降级断言的确定性不依赖运行环境。
+    env: (() => { const env = { ...process.env, DSH_HOME: home }; delete env.LITELLM_API_KEY; return env })(),
     stdio: ['ignore', out, out],
   })
   host.on('exit', (code) => { if (!stopping) console.log(`[host] exit code=${code}`) })
@@ -722,6 +730,106 @@ try {
           && Array.isArray(doc.record?.entries) && doc.record.entries.length === 16)
     }
     rmSync(wsDir, { recursive: true, force: true })
+  }
+
+  // 10) T3.2 AI 端点缺席降级 + AI 提案写链路(宿主进程未注入 LITELLM_API_KEY,
+  //     见头注 10:无 key 环境本节确定性全绿;真模型链路归 ps-v2-ai-smoke.mjs)。
+  {
+    // 10a) ai-status:路由可解析(patch 兜底面:eterna-llm insert 块承载行)但 key
+    //      缺席 → unavailable 明示(env 名在场、密钥值绝不出现在响应/日志)。
+    const status = await dsh.call('loopPrompt/ai-status')
+    check('T3.2 ai-status: 无 key 环境 unavailable 明示(reason 含 LITELLM_API_KEY,文案锚点「AI 能力不可用」)',
+      status.status === 'unavailable' && status.available === false
+        && String(status.reason).includes('LITELLM_API_KEY') && status.note.includes('AI 能力不可用'),
+      `reason=${String(status.reason).slice(0, 60)}…`)
+
+    // 10b) 润色/审核降级:unavailable(非 5xx、不炸宿主);润色零写(版本数/patch
+    //      字节/在途审批三不变——「AI 产出永不直接生效」的运行时口径);审核的
+    //      ruleFindings 来自本地校验器(与 T1.6 同源),不依赖模型在场。
+    const patchBytesBefore = readFileSync(patchPath, 'utf8')
+    const totalBefore = (await dsh.call('loopPrompt/prompt-versions', { input: {} })).total
+    const polish = await dsh.call('loopPrompt/ai-polish', {
+      input: { entryId: 'preset.standard.persona', content: `${MARKER} 底稿`, instruction: '更紧凑' },
+    })
+    check('T3.2 ai-polish: 无 key 环境 unavailable + 无建议稿 + 明示 env 名',
+      polish.status === 'unavailable' && polish.draft === undefined
+        && String(polish.issues?.[0]).includes('LITELLM_API_KEY') && polish.note.includes('AI 能力不可用'))
+    const review = await dsh.call('loopPrompt/ai-review', {
+      input: { entryId: 'preset.standard.persona', content: '缺红线的底稿文本' },
+    })
+    check('T3.2 ai-review: 无 key 环境 unavailable 但 ruleFindings 仍在(本地校验器同源,不依赖模型)',
+      review.status === 'unavailable' && review.aiFindings !== undefined
+        && review.ruleFindings.length > 0 && String(review.ruleFindings[0]).includes('红线'))
+    check('T3.2 AI 永不直接生效(运行时): 润色/审核调用后版本数/patch 字节/在途审批三不变',
+      (await dsh.call('loopPrompt/prompt-versions', { input: {} })).total === totalBefore
+        && readFileSync(patchPath, 'utf8') === patchBytesBefore
+        && (await dsh.call('loopPrompt/snapshot')).pendingApproval === null,
+      `total=${totalBefore}`)
+
+    // 10c) ai-proposal 两段式(建议稿文本本地构造——端点无法亦不应验证内容是否真由
+    //      模型产出;本断言验证提案写链路:R3 卡 + source 标记 + 审计 aiSource + 落盘)。
+    const aiDraft = `${MARKER} AI_PROPOSAL_V2 红线:预算超支>5%必须触发审批;对外付款不得代付;比选必须中立。`
+    const p1 = await dsh.call('loopPrompt/ai-proposal', {
+      input: { entryId: 'preset.standard.persona', content: aiDraft, author: 't7-smoke', aiMeta: { provider: 'smoke-declared', model: 'smoke-draft', metaPromptEntryId: 'meta.studio.ai-polish' } },
+    })
+    check('T3.2 ai-proposal(一段): R3 审批卡 kind=ai-proposal + ruleId 按条目解析 + 动作名=真实端点',
+      p1.status === 'approval-required' && p1.approval?.kind === 'ai-proposal'
+        && p1.approval?.card?.matchedRule?.ruleId === 'eterna.prompt-studio.persona-write'
+        && p1.approval?.card?.matchedRule?.grade === 'R3',
+      `ruleId=${p1.approval?.card?.matchedRule?.ruleId}`)
+    check('T3.2 ai-proposal(一段): patch 未写(建议稿未落盘,等审批)',
+      !readFileSync(patchPath, 'utf8').includes('AI_PROPOSAL_V2'))
+    const p2 = await dsh.call('loopPrompt/ai-proposal', {
+      input: {
+        entryId: 'preset.standard.persona', content: aiDraft, author: 't7-smoke',
+        approvalId: p1.approval?.approvalId, approved: true,
+        aiMeta: { provider: 'smoke-declared', model: 'smoke-draft', metaPromptEntryId: 'meta.studio.ai-polish' },
+      },
+    })
+    // patch 反引==建议稿:走按条目读侧(T1.4 泛化读,块标量反引支持)——configEditor
+    // 通道会把长文本序列化为 >- 块标量,T7 旧口径单行 persona reader 对其 unavailable
+    // 是既有已知形态(9c 注),不作为本断言判据。
+    const reread = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'preset.standard.persona' } })
+    check('T3.2 ai-proposal(二段): committed + 新版本 source=ai-proposal + patch 反引==建议稿(按条目读侧)',
+      p2.status === 'committed' && p2.version?.source === 'ai-proposal' && reread.value?.text === aiDraft,
+      `version=${p2.version?.id} source=${p2.version?.source} bytes=${reread.value?.bytes}`)
+    check('T3.2 ai-proposal: 审批完成在途清空 + 版本链只增(源=ai-proposal 在链顶)',
+      (await dsh.call('loopPrompt/snapshot')).pendingApproval === null
+        && (await dsh.call('loopPrompt/prompt-versions', { input: {} })).versions?.[0]?.source === 'ai-proposal')
+
+    // 10d) 磁盘与审计证据:storages 版本文档 record.source='ai-proposal';审计
+    //      committed 事件带 aiSource 来源字段(兜底 sink 为异步 appendFile,轮询≤5s)。
+    {
+      const unitDir = resolve(home, 'storages', 'eterna_prompt_studio', 'versions')
+      const docs = readdirSync(unitDir).filter((f) => f.endsWith('.json'))
+      const aiDoc = docs.map((f) => JSON.parse(readFileSync(resolve(unitDir, f), 'utf8')).record)
+        .find((r) => r.source === 'ai-proposal' && r.entryId === 'preset.standard.persona')
+      check('T3.2 磁盘证据: 版本库文档含 source=ai-proposal 的 persona 记录(端点视图与磁盘同源)',
+        aiDoc !== undefined && aiDoc.content === aiDraft)
+      const auditFile = resolve(home, 'eterna-prompt-studio', 'audit.jsonl')
+      let aiCommitted = null
+      for (let i = 0; i < 25; i++) {
+        const found = readFileSync(auditFile, 'utf8').split('\n').filter(Boolean)
+          .map((l) => JSON.parse(l)).map((r) => (r.detail ?? r))
+          .find((r) => r.action === 'prompt-ai-proposal.committed')
+        if (found !== undefined) { aiCommitted = found; break }
+        await sleep(200)
+      }
+      check('T3.2 审计证据: prompt-ai-proposal.committed 在场且带 aiSource 来源字段',
+        aiCommitted !== undefined && aiCommitted.entryId === 'preset.standard.persona'
+          && aiCommitted.aiSource?.provider === 'smoke-declared'
+          && aiCommitted.aiSource?.metaPromptEntryId === 'meta.studio.ai-polish')
+    }
+
+    // 10e) 收场还原:回滚到 initial 单行基线(与 9c 同款,保持 t7-ui-check 首态假设)。
+    const allVersions = await dsh.call('loopPrompt/prompt-versions', { input: {} })
+    const initialVersion = allVersions.versions?.at(-1)
+    const rb1 = await dsh.call('loopPrompt/prompt-rollback', { input: { versionId: initialVersion?.id, author: 't7-smoke' } })
+    const rb2 = await dsh.call('loopPrompt/prompt-rollback', {
+      input: { versionId: initialVersion?.id, author: 't7-smoke', approvalId: rb1.approval?.approvalId, approved: true },
+    })
+    check('T3.2 收场: persona 回滚到单行基线 MARKER(保持 ui-check 首态假设)',
+      rb2.status === 'committed' && (await dsh.call('loopPrompt/prompt-get')).persona?.text === MARKER)
   }
 
   console.log('[cleanup] SIGTERM 宿主(持久化层停机冲刷)…')
