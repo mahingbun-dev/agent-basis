@@ -95,6 +95,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   error: { color: 'var(--et-danger)', fontSize: 12, lineHeight: 1.5 },
   empty: { padding: '24px 16px', textAlign: 'center', opacity: 0.6, fontSize: 14 },
+  hint: { fontSize: 12, color: 'var(--et-muted)', fontWeight: 400 },
 }
 
 /** 单层目录行(懒展开:展开时拉取子层)。 */
@@ -147,6 +148,16 @@ export function DirectoryTreeFlow(props: DirectoryTreeProps): React.JSX.Element 
       onError?.(message)
     })
   }, [open, state.listing, state.creating])
+  // 根节点显示名(2026-11-12 用户反馈:顶层应显示用户目录如 Mr.Ma,否则用户不知所措):
+  // 拉当前账号名做根行;失败降级「我的目录」。
+  const [rootName, setRootName] = useState<string | null>(null)
+  useEffect(() => {
+    if (!open || rootName !== null) return
+    fetch('/access/api/me', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then((me: { account?: string; nickname?: string } | null) => {
+      if (me !== null) setRootName(me.nickname || me.account || '我的目录')
+    }).catch(() => { setRootName('我的目录') })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open 触发一次
+  }, [open])
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const cancelRef = useRef(onCancel)
   cancelRef.current = onCancel
@@ -189,6 +200,7 @@ export function DirectoryTreeFlow(props: DirectoryTreeProps): React.JSX.Element 
   }, [open])
   if (!open) return null
   const rootEntries = state.listing?.entries ?? []
+  const rootPath = state.listing?.path ?? null
   const toggle = (entry: DirectoryEntry): void => {
     setState(s => {
       if (s.expanded.has(entry.path)) {
@@ -237,12 +249,28 @@ export function DirectoryTreeFlow(props: DirectoryTreeProps): React.JSX.Element 
       <div ref={dialogRef} style={styles.dialog} tabIndex={-1} aria-labelledby="eterna-directory-title">
         <div id="eterna-directory-title" style={styles.header}>选择工作区目录</div>
         <div style={styles.body} data-eterna-directory-tree>
-          {rootEntries.length === 0 && state.creating === false
-            ? <div style={styles.empty}>你的目录还是空的</div>
-            : rootEntries.map(entry => (
-              <TreeRow key={entry.path} entry={entry} depth={0} state={state} onToggle={toggle}
-                onSelect={(e) => setState(s => ({ ...s, selected: e.path }))} />
-            ))}
+          {/* 根节点行(用户家目录):顶层定位——用户知道自己在哪层(2026-11-12 反馈)。
+              常显+点击选中家目录;子目录列表缩进挂其下。 */}
+          {rootPath !== null && rootName !== null && (
+            <button
+              type="button"
+              style={{ ...styles.row, ...(state.selected === rootPath ? styles.rowSelected : {}), fontWeight: 600 }}
+              onClick={() => setState(s => ({ ...s, selected: rootPath }))}
+              data-eterna-tree-root-row
+            >
+              <span style={{ ...styles.caret, visibility: 'hidden' }}><Icon name="chevron-right" size={14} /></span>
+              <span style={styles.folderIcon}><Icon name="folder" size={14} /></span>
+              <span>{rootName}</span>
+              <span style={{ ...styles.hint, marginLeft: 6 }}>(家目录)</span>
+            </button>
+          )}
+          {rootEntries.map(entry => (
+            <TreeRow key={entry.path} entry={entry} depth={1} state={state} onToggle={toggle}
+              onSelect={(e) => setState(s => ({ ...s, selected: e.path }))} />
+          ))}
+          {rootEntries.length === 0 && state.creating === false && rootPath !== null
+            ? <div style={styles.empty}>家目录下还没有子目录——可选中上方家目录，或新建文件夹</div>
+            : null}
         </div>
         <div style={styles.footer}>
           {state.error !== null && <div style={styles.error} role="alert">{state.error}</div>}
