@@ -51,11 +51,34 @@ export const GLOBAL_STREAM_ACTIONS: readonly string[] = [
  *  门控的授权快照按本策略判定——缺项即对应 UI 永不注册(2026-11-11 E2E:
  *  settings/describe 缺席=设置弹窗入口消失;pluginManager/listBundles 缺席=
  *  插件发现页不渲染)。实际一元 HTTP 走 owner peer 不受影响,此处只开 UI 门。
- *  只读动作;写面(settings/mutate 等)由 fetch 路由角色门另行管控。
+ *  session/create(2026-11-11 第二轮):上游三处新建会话入口(工作区行「+」/
+ *  侧栏头/侧栏根)全部 useRemoteAccess('session/create') 门控,缺席=按钮不渲染。
+ *  实际创建由守卫 fetch 路由校验工作区归属+钳制 cwd,此处只开按钮门。
  *  防漂移:mux-drift 断言本清单与流方法表交集=∅(一元/流互斥,防重复放宽)。 */
 export const GLOBAL_UNARY_ACTIONS: readonly string[] = [
   'settings/describe',
   'pluginManager/listBundles',
+  'session/create',
+]
+
+/** 会话资源级一元动作(只授在用户自己的会话绑定上——上游右键菜单项
+ *  session/rename/session/fork 逐项 remoteAccess.source 判定,缺席=菜单空)。
+ *  实际调用走守卫 fetch 路由归属校验,双保险。 */
+export const SESSION_UNARY_ACTIONS: readonly string[] = [
+  'session/rename',
+  'session/fork',
+]
+
+/** 工作区资源级一元动作(只授在用户自己的工作区绑定上——上游右键菜单
+ *  重命名/删除与会话置顶/归档逐项 remoteAccess.source 判定,缺席=菜单空)。
+ *  实际调用走守卫 fetch 路由 workspaceOwned 归属校验,双保险。 */
+export const WORKSPACE_UNARY_ACTIONS: readonly string[] = [
+  'workspace/rename',
+  'workspace/delete',
+  'workspace/pinSession',
+  'workspace/unpinSession',
+  'workspace/archiveSession',
+  'workspace/unarchiveSession',
 ]
 
 /** 会话级流动作(策略 session 绑定)。 */
@@ -115,8 +138,8 @@ export function bindingsFor(deps: MuxPolicyDeps, userId: number): readonly Tenan
   // 调用面(=workspace/follow)——会话绑定不含此动作时,连用户自己的会话也会被从
   // workspace 视图的 sessionIds 里过滤掉(侧栏落「未分组」),blank 会话的
   // sessionWorkspace/chipTitle 断链 = 新用户首屏死锁根因(2026-11-11 E2E)。
-  const sessionRole = { name: 'eterna:session-member', resource: 'session' as const, actions: [...SESSION_STREAM_ACTIONS, ...WORKSPACE_STREAM_ACTIONS] }
-  const workspaceRole = { name: 'eterna:workspace-member', resource: 'workspace' as const, actions: WORKSPACE_STREAM_ACTIONS }
+  const sessionRole = { name: 'eterna:session-member', resource: 'session' as const, actions: [...SESSION_STREAM_ACTIONS, ...WORKSPACE_STREAM_ACTIONS, ...SESSION_UNARY_ACTIONS] }
+  const workspaceRole = { name: 'eterna:workspace-member', resource: 'workspace' as const, actions: [...WORKSPACE_STREAM_ACTIONS, ...WORKSPACE_UNARY_ACTIONS] }
   const bindings: TenantBinding[] = [{ resource: { kind: 'global' }, role: globalRole }]
   for (const sessionId of deps.store.sessionsOfOwner(userId)) {
     bindings.push({ resource: { kind: 'session', id: sessionId }, role: sessionRole })
