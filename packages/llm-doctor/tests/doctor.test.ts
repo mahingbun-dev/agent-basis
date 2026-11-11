@@ -88,22 +88,22 @@ describe('probeEndpoint', () => {
 
 describe('checkRoute', () => {
   it('配对正确 → ok', async () => {
-    const result = await checkRoute('litellm', { api: 'openai-completions', baseURL: `${baseUrl}/v1` }, fetchLocal)
+    const result = await checkRoute('mimo', { api: 'openai-completions', baseURL: `${baseUrl}/v1` }, fetchLocal)
     expect(result.verdict).toBe('ok')
     expect(result.ok).toBe(true)
   })
   it('配对错误(anthropic + /v1 后缀)→ path-missing + 建议去 /v1', async () => {
-    const result = await checkRoute('litellm', { api: 'anthropic-messages', baseURL: `${baseUrl}/v1` }, fetchLocal)
+    const result = await checkRoute('mimo', { api: 'anthropic-messages', baseURL: `${baseUrl}/v1` }, fetchLocal)
     expect(result.verdict).toBe('path-missing')
     expect(result.suggestedBaseURL).toBe(baseUrl)
   })
   it('网络不可达 → unreachable,不给建议', async () => {
-    const result = await checkRoute('litellm', { api: 'openai-completions', baseURL: 'http://127.0.0.1:1/v1' }, fetchLocal)
+    const result = await checkRoute('mimo', { api: 'openai-completions', baseURL: 'http://127.0.0.1:1/v1' }, fetchLocal)
     expect(result.verdict).toBe('unreachable')
     expect(result.suggestedBaseURL).toBeUndefined()
   })
   it('未知协议 → unsupported-api', async () => {
-    const result = await checkRoute('litellm', { api: 'acme', baseURL: baseUrl }, fetchLocal)
+    const result = await checkRoute('mimo', { api: 'acme', baseURL: baseUrl }, fetchLocal)
     expect(result.verdict).toBe('unsupported-api')
   })
 })

@@ -1,0 +1,9 @@
+RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/access
+
+ ✓ tests/mux-drift.spec.ts (3 tests) 2ms
+ ✓ tests/terminal-tenant.spec.ts (4 tests) 84ms
+
+ Test Files  2 passed (2)
+      Tests  7 passed (7)
+   Start at  02:34:56
+   Duration  218ms (transform 38ms, setup 0ms, import 59ms, tests 86ms, environment 0ms)

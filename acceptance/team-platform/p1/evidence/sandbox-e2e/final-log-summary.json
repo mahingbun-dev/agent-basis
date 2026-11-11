@@ -1,0 +1,153 @@
+{
+  "askedCount": 0,
+  "autoRejectCount": 0,
+  "toolCalls": [
+    {
+      "name": "working_directory",
+      "callId": "call_9b15bd63e34e4691ae2f9800",
+      "turn": 1
+    },
+    {
+      "name": "bash",
+      "callId": "call_761f577887634e79a42078e9",
+      "turn": 2
+    },
+    {
+      "name": "write",
+      "callId": "call_0bcb44c81dcb4222a4fdea89",
+      "turn": 3
+    },
+    {
+      "name": "bash",
+      "callId": "call_a976330c8b824f57833aa859",
+      "turn": 4
+    },
+    {
+      "name": "bash",
+      "callId": "call_cb9c8ecd20fd437dbdeb2e14",
+      "turn": 5
+    },
+    {
+      "name": "working_directory",
+      "callId": "call_013ef783220c4415a763c319",
+      "turn": 6
+    },
+    {
+      "name": "bash",
+      "callId": "call_dc31100fd64a453a820ec765",
+      "turn": 7
+    },
+    {
+      "name": "write",
+      "callId": "call_bb9e4f7783cb469f8634c7d2",
+      "turn": 8
+    },
+    {
+      "name": "bash",
+      "callId": "call_32f13eaecf79483195173579",
+      "turn": 9
+    },
+    {
+      "name": "bash",
+      "callId": "call_99776c1f97954b26994919ad",
+      "turn": 10
+    },
+    {
+      "name": "bash",
+      "callId": "call_e039cc2a19ed43cc9c7a1ccb",
+      "turn": 11
+    }
+  ],
+  "toolResults": [
+    {
+      "isError": false
+    },
+    {
+      "isError": false
+    },
+    {
+      "isError": false
+    },
+    {
+      "isError": false
+    },
+    {
+      "isError": false
+    },
+    {
+      "isError": false
+    },
+    {
+      "isError": false
+    },
+    {
+      "isError": false
+    },
+    {
+      "isError": false
+    },
+    {
+      "isError": false
+    },
+    {
+      "isError": false
+    }
+  ],
+  "turnEnds": [
+    {
+      "reason": {
+        "kind": "completed"
+      }
+    },
+    {
+      "reason": {
+        "kind": "completed"
+      }
+    },
+    {
+      "reason": {
+        "kind": "completed"
+      }
+    },
+    {
+      "reason": {
+        "kind": "completed"
+      }
+    },
+    {
+      "reason": {
+        "kind": "completed"
+      }
+    },
+    {
+      "reason": {
+        "kind": "completed"
+      }
+    },
+    {
+      "reason": {
+        "kind": "completed"
+      }
+    },
+    {
+      "reason": {
+        "kind": "completed"
+      }
+    },
+    {
+      "reason": {
+        "kind": "completed"
+      }
+    },
+    {
+      "reason": {
+        "kind": "completed"
+      }
+    },
+    {
+      "reason": {
+        "kind": "completed"
+      }
+    }
+  ]
+}

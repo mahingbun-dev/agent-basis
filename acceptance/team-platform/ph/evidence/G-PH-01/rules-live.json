@@ -1,0 +1,6 @@
+{
+  "fileExists": true,
+  "entrypointLogHit": 1,
+  "vitestExit": 0,
+  "vitestTail": "RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/governance\n\n ✓ tests/ph-rules-live.spec.ts (3 tests) 2ms\n\n Test Files  1 passed (1)\n      Tests  3 passed (3)\n   Start at  23:54:58\n   Duration  164ms (transform 24ms, setup 0ms, import 51ms, tests 2ms, environment 0ms)\n"
+}

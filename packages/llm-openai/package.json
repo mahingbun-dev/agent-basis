@@ -1,6 +1,6 @@
 {
   "name": "@eterna/llm-openai",
-  "description": "Basis enterprise LLM adapter: OpenAI-compatible chat-completions transport (liteLLM gateway and friends) over the dsh llm seam",
+  "description": "Basis enterprise LLM adapter: OpenAI-compatible chat-completions transport (OpenAI-compatible providers) over the dsh llm seam",
   "version": "0.1.0",
   "private": true,
   "type": "module",

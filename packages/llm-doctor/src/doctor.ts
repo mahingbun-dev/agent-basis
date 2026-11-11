@@ -5,7 +5,7 @@
  * openai-completions 追加 `chat/completions`(baseURL 惯例带 /v1)、
  * openai-responses 追加 `responses`、anthropic-messages 追加 `v1/messages`
  * (baseURL 惯例不带 /v1)。用户在设置页切协议时 baseURL 不会自动跟随,配对
- * 错误即 404 {"detail":"Not Found"}(LiteLLM/FastAPI 缺省 404 体),且难以定位。
+ * 错误即 404 {"detail":"Not Found"}(FastAPI 系缺省 404 体),且难以定位。
  *
  * 探测原理(零凭据、零模型调用):对端点路径发 GET——存在的路径返回任意
  * 非 404 状态(405 Method Not Allowed / 401 Unauthorized / 200 均算存在),

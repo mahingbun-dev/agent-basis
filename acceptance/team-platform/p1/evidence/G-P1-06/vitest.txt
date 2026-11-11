@@ -1,0 +1,8 @@
+RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/access
+
+ ✓ tests/within-root.spec.ts (6 tests) 186ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  02:34:54
+   Duration  320ms (transform 26ms, setup 0ms, import 39ms, tests 186ms, environment 0ms)

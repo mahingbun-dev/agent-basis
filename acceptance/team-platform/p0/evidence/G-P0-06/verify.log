@@ -1,0 +1,391 @@
+Scope: 22 of 23 workspace projects
+packages/brand verify$ node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run
+packages/browser-relay verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && pnpm run build && vitest run
+packages/channels verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/extension-companion verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && pnpm run build && vitest run
+packages/brand verify:   lib/client.js  8.7kb
+packages/brand verify: ⚡ Done in 14ms
+packages/brand verify: Found 0 warnings and 0 errors.
+packages/brand verify: Finished in 852ms on 4 files with 87 rules using 10 threads.
+packages/extension-companion verify: Found 0 warnings and 0 errors.
+packages/extension-companion verify: Finished in 971ms on 8 files with 87 rules using 10 threads.
+packages/browser-relay verify: Found 0 warnings and 0 errors.
+packages/browser-relay verify: Finished in 1.0s on 10 files with 87 rules using 10 threads.
+packages/channels verify: Found 0 warnings and 0 errors.
+packages/channels verify: Finished in 1.1s on 16 files with 87 rules using 10 threads.
+packages/extension-companion verify: $ node build.mjs
+packages/brand verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/brand
+packages/extension-companion verify:   dist/background.js  10.5kb
+packages/extension-companion verify:   dist/options.js      2.6kb
+packages/extension-companion verify: ⚡ Done in 3ms
+packages/extension-companion verify: extension dist 已生成
+packages/channels verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/channels
+packages/browser-relay verify: $ node build.mjs
+packages/brand verify:  ✓ tests/brand.test.ts (3 tests) 3ms
+packages/brand verify:  Test Files  1 passed (1)
+packages/brand verify:       Tests  3 passed (3)
+packages/brand verify:    Start at  23:58:27
+packages/brand verify:    Duration  203ms (transform 36ms, setup 0ms, import 47ms, tests 3ms, environment 0ms)
+packages/brand verify: Done
+packages/governance verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/browser-relay verify:   dist/cli.mjs  40.8kb
+packages/browser-relay verify:   dist/mcp.mjs   5.1kb
+packages/browser-relay verify: ⚡ Done in 8ms
+packages/browser-relay verify: relay dist 已生成
+packages/extension-companion verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/extension-companion
+packages/channels verify:  ✓ tests/wechat.spec.ts (7 tests) 4ms
+packages/channels verify:  ✓ tests/cards.spec.ts (9 tests) 4ms
+packages/channels verify:  ✓ tests/token.spec.ts (8 tests) 9ms
+packages/channels verify:  ✓ tests/email.spec.ts (7 tests) 11ms
+packages/channels verify:  ✓ tests/binding.spec.ts (6 tests) 12ms
+packages/channels verify:  ✓ tests/service.spec.ts (2 tests) 32ms
+packages/channels verify:  ✓ tests/webhook.spec.ts (10 tests) 69ms
+packages/channels verify:  Test Files  7 passed (7)
+packages/channels verify:       Tests  49 passed (49)
+packages/channels verify:    Start at  23:58:27
+packages/channels verify:    Duration  364ms (transform 271ms, setup 0ms, import 692ms, tests 140ms, environment 0ms)
+packages/channels verify: Done
+packages/interact verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/extension-companion verify:  ✓ tests/protocol.spec.ts (5 tests) 2ms
+packages/extension-companion verify:  Test Files  1 passed (1)
+packages/extension-companion verify:       Tests  5 passed (5)
+packages/extension-companion verify:    Start at  23:58:28
+packages/extension-companion verify:    Duration  152ms (transform 14ms, setup 0ms, import 21ms, tests 2ms, environment 0ms)
+packages/browser-relay verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/browser-relay
+packages/extension-companion verify: Done
+packages/knowledge verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/browser-relay verify:  ✓ tests/ax-snapshot.spec.ts (7 tests) 4ms
+packages/browser-relay verify:  ✓ tests/relay-core.spec.ts (10 tests) 18ms
+packages/browser-relay verify:  Test Files  2 passed (2)
+packages/browser-relay verify:       Tests  17 passed (17)
+packages/browser-relay verify:    Start at  23:58:28
+packages/browser-relay verify:    Duration  172ms (transform 50ms, setup 0ms, import 67ms, tests 21ms, environment 0ms)
+packages/browser-relay verify: Done
+packages/llm-doctor verify$ node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run
+packages/llm-doctor verify:   lib/client.js  11.7kb
+packages/llm-doctor verify: ⚡ Done in 3ms
+packages/governance verify: Found 0 warnings and 0 errors.
+packages/governance verify: Finished in 744ms on 18 files with 87 rules using 10 threads.
+packages/interact verify: Found 0 warnings and 0 errors.
+packages/interact verify: Finished in 780ms on 14 files with 87 rules using 10 threads.
+packages/knowledge verify: Found 0 warnings and 0 errors.
+packages/knowledge verify: Finished in 840ms on 20 files with 87 rules using 10 threads.
+packages/llm-doctor verify: Found 0 warnings and 0 errors.
+packages/llm-doctor verify: Finished in 840ms on 10 files with 87 rules using 10 threads.
+packages/governance verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/governance
+packages/governance verify:  ↓ tests/ph-rules-live.spec.ts (3 tests | 3 skipped)
+packages/governance verify:  ✓ tests/pii.spec.ts (12 tests) 4ms
+packages/governance verify:  ✓ tests/egress.spec.ts (11 tests) 6ms
+packages/governance verify:  ✓ tests/budget.spec.ts (13 tests) 10ms
+packages/governance verify:  ✓ tests/rules.spec.ts (19 tests) 10ms
+packages/governance verify:  ✓ tests/governance.spec.ts (10 tests) 10ms
+packages/interact verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/interact
+packages/governance verify:  ✓ tests/audit.spec.ts (10 tests) 22ms
+packages/governance verify:  Test Files  6 passed | 1 skipped (7)
+packages/governance verify:       Tests  75 passed | 3 skipped (78)
+packages/governance verify:    Start at  23:58:29
+packages/governance verify:    Duration  404ms (transform 658ms, setup 0ms, import 1.13s, tests 62ms, environment 1ms)
+packages/governance verify: Done
+packages/observe verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/knowledge verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/knowledge
+packages/interact verify:  ✓ tests/card.spec.ts (9 tests) 5ms
+packages/interact verify:  ✓ tests/ask.spec.ts (12 tests) 8ms
+packages/interact verify:  ✓ tests/presets.spec.ts (9 tests) 11ms
+packages/interact verify:  ✓ tests/negative.spec.ts (9 tests) 22ms
+packages/interact verify:  ✓ tests/hitl.spec.ts (16 tests) 12ms
+packages/interact verify:  Test Files  5 passed (5)
+packages/interact verify:       Tests  55 passed (55)
+packages/interact verify:    Start at  23:58:30
+packages/interact verify:    Duration  299ms (transform 262ms, setup 0ms, import 498ms, tests 57ms, environment 0ms)
+packages/interact verify: Done
+tools/eterna-smoke verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/knowledge verify:  ✓ tests/weknora.spec.ts (12 tests) 5ms
+packages/knowledge verify:  ✓ tests/rrf.spec.ts (5 tests) 9ms
+packages/knowledge verify:  ✓ tests/frontmatter.spec.ts (11 tests) 19ms
+packages/knowledge verify:  ✓ tests/service.spec.ts (7 tests) 84ms
+packages/knowledge verify:  ✓ tests/tools.spec.ts (10 tests) 133ms
+packages/knowledge verify:  ✓ tests/propose.spec.ts (14 tests) 157ms
+packages/knowledge verify:  ✓ tests/wiki-search.spec.ts (17 tests) 188ms
+packages/knowledge verify:  Test Files  7 passed (7)
+packages/knowledge verify:       Tests  76 passed (76)
+packages/knowledge verify:    Start at  23:58:30
+packages/knowledge verify:    Duration  488ms (transform 403ms, setup 0ms, import 734ms, tests 595ms, environment 1ms)
+packages/knowledge verify: Done
+tools/evals verify$ ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run && python3 -m unittest discover -s python -p 'test_*.py'
+packages/llm-doctor verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/llm-doctor
+packages/observe verify: Found 0 warnings and 0 errors.
+packages/observe verify: Finished in 920ms on 14 files with 87 rules using 10 threads.
+packages/llm-doctor verify:  ✓ tests/client-bundle.test.ts (2 tests) 5ms
+packages/llm-doctor verify: stdout | tests/host-plugin.test.ts > checkNow 自动适配流程 > path-missing + 候选存在 → edit 写回 baseURL,health 记录 verdict
+packages/llm-doctor verify: llm-doctor: 自动适配 litellm(anthropic-messages)baseURL http://gw.test/v1 → http://gw.test
+packages/llm-doctor verify:  ✓ tests/doctor.test.ts (16 tests) 39ms
+tools/eterna-smoke verify: Found 0 warnings and 0 errors.
+tools/eterna-smoke verify: Finished in 691ms on 2 files with 87 rules using 10 threads.
+tools/evals verify: Found 0 warnings and 0 errors.
+tools/evals verify: Finished in 776ms on 25 files with 87 rules using 10 threads.
+packages/llm-doctor verify:  ✓ tests/host-plugin.test.ts (9 tests) 734ms
+packages/llm-doctor verify:      ✓ apply 注册 volatile-update 监听并返回 disposer  703ms
+packages/llm-doctor verify:  Test Files  3 passed (3)
+packages/llm-doctor verify:       Tests  27 passed (27)
+packages/llm-doctor verify:    Start at  23:58:31
+packages/llm-doctor verify:    Duration  940ms (transform 75ms, setup 0ms, import 157ms, tests 778ms, environment 0ms)
+packages/llm-doctor verify: Done
+tools/packctl verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+tools/eterna-smoke verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/tools/eterna-smoke
+packages/observe verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/observe
+tools/eterna-smoke verify:  ✓ tests/smoke.spec.ts (5 tests) 4ms
+tools/eterna-smoke verify:  Test Files  1 passed (1)
+tools/eterna-smoke verify:       Tests  5 passed (5)
+tools/eterna-smoke verify:    Start at  23:58:32
+tools/eterna-smoke verify:    Duration  180ms (transform 28ms, setup 0ms, import 44ms, tests 4ms, environment 0ms)
+tools/eterna-smoke verify: Done
+packages/observe verify:  ✓ tests/feedback.spec.ts (9 tests) 5ms
+packages/observe verify:  ✓ tests/drift.spec.ts (11 tests) 7ms
+packages/observe verify:  ✓ tests/observatory.spec.ts (6 tests) 7ms
+packages/observe verify:  ✓ tests/signals.spec.ts (17 tests) 14ms
+packages/observe verify:  ✓ tests/metrics.spec.ts (17 tests) 7ms
+packages/observe verify:  Test Files  5 passed (5)
+packages/observe verify:       Tests  60 passed (60)
+packages/observe verify:    Start at  23:58:32
+packages/observe verify:    Duration  269ms (transform 214ms, setup 0ms, import 393ms, tests 40ms, environment 0ms)
+packages/observe verify: Done
+tools/packctl verify: Found 0 warnings and 0 errors.
+tools/packctl verify: Finished in 791ms on 22 files with 87 rules using 10 threads.
+tools/evals verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/tools/evals
+tools/evals verify:  ✓ tests/trajectory.spec.ts (14 tests) 9ms
+tools/evals verify:  ✓ tests/replay.spec.ts (6 tests) 24ms
+tools/evals verify:  ✓ tests/schema.spec.ts (23 tests) 55ms
+tools/evals verify:  ✓ tests/acp-real-notification.spec.ts (5 tests) 99ms
+tools/evals verify:  ✓ tests/budgetAnswer.spec.ts (7 tests) 6ms
+tools/evals verify:  ✓ tests/finalState.spec.ts (12 tests) 122ms
+tools/evals verify:  ✓ tests/goldenset-event-planning.spec.ts (5 tests) 187ms
+tools/evals verify: pack=/Users/sunny/code/agent-basis-team/tools/evals/tests/fixtures/pack-mini adapter=auto total=4 pass=4 fail=0
+tools/evals verify:   [PASS] approval-redline 
+tools/evals verify:   [PASS] script-check 
+tools/evals verify:   [PASS] smoke-file-plan 
+tools/evals verify:   [PASS] smoke-http-submit 
+tools/evals verify:   [SCHEMA-FAIL] /Users/sunny/code/agent-basis-team/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml: /Users/sunny/code/agent-basis-team/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml.final_state 应为 数组,实际: {"file_assert":{"path":"whatever.md"}}
+tools/evals verify: report: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-oz08gL/smoke/report.md
+tools/evals verify: sessions: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-oz08gL/smoke/sessions.jsonl
+tools/evals verify: pack=/Users/sunny/code/agent-basis-team/tools/evals/tests/fixtures/pack-mini adapter=auto total=6 pass=5 fail=1
+tools/evals verify:   [FAIL] answer-budget-fail — answer: 最终回答未包含 "这句话在最终回答里一定不存在",实际: 继续整理
+tools/evals verify:   [PASS] approval-redline 
+tools/evals verify:   [PASS] script-check 
+tools/evals verify:   [PASS] smoke-file-plan 
+tools/evals verify:   [PASS] smoke-http-submit 
+tools/evals verify:   [PASS] strict-trajectory 
+tools/evals verify:   [SCHEMA-FAIL] /Users/sunny/code/agent-basis-team/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml: /Users/sunny/code/agent-basis-team/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml.final_state 应为 数组,实际: {"file_assert":{"path":"whatever.md"}}
+tools/evals verify: report: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-oz08gL/all/report.md
+tools/evals verify: sessions: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-oz08gL/all/sessions.jsonl
+tools/evals verify: --pack 为必填
+tools/evals verify: 用法: dsh-evals run --pack <目录> [选项]
+tools/evals verify: 选项:
+tools/evals verify:   --pack <目录>       golden pack 目录(含 evals/*.yaml;fixtures/<id>.jsonl 为回放会话)
+tools/evals verify:   --subset <tag>      只跑带该 tag 的 case(如 smoke)
+tools/evals verify:   --case <id>         只跑指定 id 的 case
+tools/evals verify:   --adapter <id>      强制适配器 replay|acp(缺省逐 case:golden 的 adapter 字段)
+tools/evals verify:   --out <目录>        产物目录(缺省 ./dsh-evals-out/<时间戳>)
+tools/evals verify:   --provider/--model/--dsh-home   acp 适配器透传 DSH Python SDK 配置
+tools/evals verify:   --python <解释器>   acp driver 的解释器(缺省 python3,或 env DSH_EVALS_PYTHON)
+tools/evals verify:   --driver <脚本>     acp driver 路径(缺省包内 python/dsh_eval_driver.py)
+tools/evals verify: 退出码: 0 全部通过;1 存在失败;2 用法错误或无 case 可跑(schema 坏文件仅打印 SCHEMA-FAIL)
+tools/evals verify: --adapter 应为 replay|acp
+tools/evals verify: 未知命令: dance
+tools/evals verify: 用法: dsh-evals run --pack <目录> [选项]
+tools/evals verify: 选项:
+tools/evals verify:   --pack <目录>       golden pack 目录(含 evals/*.yaml;fixtures/<id>.jsonl 为回放会话)
+tools/evals verify:   --subset <tag>      只跑带该 tag 的 case(如 smoke)
+tools/evals verify:   --case <id>         只跑指定 id 的 case
+tools/evals verify:   --adapter <id>      强制适配器 replay|acp(缺省逐 case:golden 的 adapter 字段)
+tools/evals verify:   --out <目录>        产物目录(缺省 ./dsh-evals-out/<时间戳>)
+tools/evals verify:   --provider/--model/--dsh-home   acp 适配器透传 DSH Python SDK 配置
+tools/evals verify:   --python <解释器>   acp driver 的解释器(缺省 python3,或 env DSH_EVALS_PYTHON)
+tools/evals verify:   --driver <脚本>     acp driver 路径(缺省包内 python/dsh_eval_driver.py)
+tools/evals verify: 退出码: 0 全部通过;1 存在失败;2 用法错误或无 case 可跑(schema 坏文件仅打印 SCHEMA-FAIL)
+tools/evals verify: 用法: dsh-evals run --pack <目录> [选项]
+tools/evals verify: 选项:
+tools/evals verify:   --pack <目录>       golden pack 目录(含 evals/*.yaml;fixtures/<id>.jsonl 为回放会话)
+tools/evals verify:   --subset <tag>      只跑带该 tag 的 case(如 smoke)
+tools/evals verify:   --case <id>         只跑指定 id 的 case
+tools/evals verify:   --adapter <id>      强制适配器 replay|acp(缺省逐 case:golden 的 adapter 字段)
+tools/evals verify:   --out <目录>        产物目录(缺省 ./dsh-evals-out/<时间戳>)
+tools/evals verify:   --provider/--model/--dsh-home   acp 适配器透传 DSH Python SDK 配置
+tools/evals verify:   --python <解释器>   acp driver 的解释器(缺省 python3,或 env DSH_EVALS_PYTHON)
+tools/evals verify:   --driver <脚本>     acp driver 路径(缺省包内 python/dsh_eval_driver.py)
+tools/evals verify: 退出码: 0 全部通过;1 存在失败;2 用法错误或无 case 可跑(schema 坏文件仅打印 SCHEMA-FAIL)
+tools/evals verify: pack=/Users/sunny/code/agent-basis-team/tools/evals/tests/fixtures/pack-mini adapter=auto total=0 pass=0 fail=0
+tools/evals verify:   [SCHEMA-FAIL] /Users/sunny/code/agent-basis-team/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml: /Users/sunny/code/agent-basis-team/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml.final_state 应为 数组,实际: {"file_assert":{"path":"whatever.md"}}
+tools/evals verify: report: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-oz08gL/none/report.md
+tools/evals verify: sessions: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-oz08gL/none/sessions.jsonl
+tools/evals verify: pack=/Users/sunny/code/agent-basis-team/tools/evals/tests/fixtures/pack-mini adapter=auto total=1 pass=1 fail=0
+tools/evals verify:   [PASS] approval-redline 
+tools/evals verify:   [SCHEMA-FAIL] /Users/sunny/code/agent-basis-team/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml: /Users/sunny/code/agent-basis-team/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml.final_state 应为 数组,实际: {"file_assert":{"path":"whatever.md"}}
+tools/evals verify: report: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-oz08gL/case/report.md
+tools/evals verify: sessions: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-oz08gL/case/sessions.jsonl
+tools/evals verify:  ✓ tests/runner.replay.spec.ts (11 tests) 219ms
+tools/evals verify:  ✓ tests/cli.spec.ts (7 tests) 518ms
+tools/packctl verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/tools/packctl
+tools/packctl verify:  ✓ tests/tenant.spec.ts (4 tests) 16ms
+tools/packctl verify:  ✓ tests/cordis.spec.ts (15 tests) 4ms
+tools/packctl verify:  ✓ tests/golden.spec.ts (12 tests) 20ms
+tools/packctl verify:  ✓ tests/skills.spec.ts (8 tests) 28ms
+tools/packctl verify:  ✓ tests/structure.spec.ts (7 tests) 60ms
+tools/packctl verify:  ✓ tests/cli.spec.ts (8 tests) 62ms
+tools/packctl verify:  ✓ tests/init.spec.ts (9 tests) 78ms
+tools/packctl verify:  ✓ tests/badpacks.spec.ts (9 tests) 97ms
+tools/packctl verify:  Test Files  8 passed (8)
+tools/packctl verify:       Tests  72 passed (72)
+tools/packctl verify:    Start at  23:58:34
+tools/packctl verify:    Duration  324ms (transform 282ms, setup 0ms, import 543ms, tests 364ms, environment 1ms)
+tools/packctl verify: Done
+tools/evals verify:  ✓ tests/acp.adapter.spec.ts (7 tests) 1663ms
+tools/evals verify:      ✓ approval_response 传参:红线 case 按 approval_flow.outcome 应答,缺省 allowed-once  311ms
+tools/evals verify:      ✓ 超时 → SIGKILL + 拒绝(case 配 timeout_seconds: 1 对 5s 沉睡 stub)  1004ms
+tools/evals verify:  Test Files  10 passed (10)
+tools/evals verify:       Tests  97 passed (97)
+tools/evals verify:    Start at  23:58:33
+tools/evals verify:    Duration  1.99s (transform 580ms, setup 0ms, import 1.03s, tests 2.90s, environment 1ms)
+tools/evals verify: ...................
+tools/evals verify: ----------------------------------------------------------------------
+tools/evals verify: Ran 19 tests in 0.002s
+tools/evals verify: OK
+tools/evals verify: Done
+packages/cache-guard verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/audit verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/evolve verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/extra verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/audit verify: Found 0 warnings and 0 errors.
+packages/audit verify: Finished in 735ms on 9 files with 87 rules using 10 threads.
+packages/cache-guard verify: Found 0 warnings and 0 errors.
+packages/cache-guard verify: Finished in 764ms on 10 files with 87 rules using 10 threads.
+packages/extra verify: Found 0 warnings and 0 errors.
+packages/extra verify: Finished in 803ms on 13 files with 87 rules using 10 threads.
+packages/evolve verify: Found 0 warnings and 0 errors.
+packages/evolve verify: Finished in 855ms on 21 files with 87 rules using 10 threads.
+packages/audit verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/audit
+packages/cache-guard verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/cache-guard
+packages/extra verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/extra
+packages/audit verify:  ✓ tests/daily-sink.spec.ts (3 tests) 21ms
+packages/cache-guard verify:  ✓ tests/guard.spec.ts (8 tests) 5ms
+packages/cache-guard verify:  ✓ tests/stability.spec.ts (25 tests) 7ms
+packages/audit verify:  ✓ tests/plugin.spec.ts (6 tests) 22ms
+packages/cache-guard verify:  ✓ tests/hitrate.spec.ts (13 tests) 5ms
+packages/audit verify:  ✓ tests/query.spec.ts (8 tests) 53ms
+packages/cache-guard verify:  Test Files  3 passed (3)
+packages/cache-guard verify:       Tests  46 passed (46)
+packages/cache-guard verify:    Start at  23:58:37
+packages/cache-guard verify:    Duration  291ms (transform 261ms, setup 0ms, import 342ms, tests 16ms, environment 0ms)
+packages/audit verify:  Test Files  3 passed (3)
+packages/audit verify:       Tests  17 passed (17)
+packages/audit verify:    Start at  23:58:37
+packages/audit verify:    Duration  315ms (transform 188ms, setup 0ms, import 282ms, tests 97ms, environment 0ms)
+packages/audit verify: Done
+packages/memory verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/cache-guard verify: Done
+packages/panel verify$ node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run
+packages/evolve verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/evolve
+packages/extra verify:  ✓ tests/reviewer-preset.spec.ts (29 tests) 13ms
+packages/extra verify:  ✓ tests/tenant-realm.spec.ts (27 tests) 11ms
+packages/extra verify:  ✓ tests/domain-whitelist.spec.ts (39 tests) 13ms
+packages/panel verify:   lib/client.js  45.5kb
+packages/panel verify: ⚡ Done in 5ms
+packages/extra verify:  ✓ tests/egress-wrapper.spec.ts (16 tests) 7ms
+packages/extra verify:  Test Files  4 passed (4)
+packages/extra verify:       Tests  111 passed (111)
+packages/extra verify:    Start at  23:58:37
+packages/extra verify:    Duration  379ms (transform 177ms, setup 0ms, import 371ms, tests 45ms, environment 0ms)
+packages/extra verify: Done
+packages/prompt-studio verify$ node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run
+packages/prompt-studio verify:   lib/client.js  75.6kb
+packages/prompt-studio verify: ⚡ Done in 6ms
+packages/evolve verify:  ✓ tests/models.spec.ts (4 tests) 4ms
+packages/evolve verify:  ✓ tests/aievo.spec.ts (6 tests) 3ms
+packages/evolve verify:  ✓ tests/reflector.spec.ts (10 tests) 16ms
+packages/evolve verify:  ✓ tests/ledger.spec.ts (6 tests) 34ms
+packages/evolve verify:  ✓ tests/entry.spec.ts (15 tests) 31ms
+packages/evolve verify:  ✓ tests/audit.spec.ts (8 tests) 52ms
+packages/evolve verify:  ✓ tests/e2e.spec.ts (6 tests) 70ms
+packages/evolve verify:  ✓ tests/gates.spec.ts (9 tests) 104ms
+packages/evolve verify:  Test Files  8 passed (8)
+packages/evolve verify:       Tests  64 passed (64)
+packages/evolve verify:    Start at  23:58:37
+packages/evolve verify:    Duration  614ms (transform 1.35s, setup 0ms, import 2.40s, tests 314ms, environment 3ms)
+packages/evolve verify: Done
+packages/memory verify: Found 0 warnings and 0 errors.
+packages/memory verify: Finished in 923ms on 16 files with 87 rules using 10 threads.
+packages/panel verify: Found 0 warnings and 0 errors.
+packages/panel verify: Finished in 786ms on 18 files with 87 rules using 10 threads.
+packages/prompt-studio verify: Found 0 warnings and 0 errors.
+packages/prompt-studio verify: Finished in 825ms on 31 files with 87 rules using 10 threads.
+packages/memory verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/memory
+packages/panel verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/panel
+packages/memory verify:  ✓ tests/tokens.spec.ts (5 tests) 2ms
+packages/memory verify:  ✓ tests/pii.spec.ts (6 tests) 6ms
+packages/memory verify:  ✓ tests/index-builder.spec.ts (6 tests) 19ms
+packages/memory verify:  ✓ tests/entity-store.spec.ts (17 tests) 42ms
+packages/memory verify:  ✓ tests/tools.spec.ts (15 tests) 69ms
+packages/memory verify:  ✓ tests/notes.spec.ts (17 tests) 85ms
+packages/panel verify:  ✓ tests/client-bundle.test.ts (3 tests) 8ms
+packages/panel verify:  ✓ tests/prompts.test.ts (3 tests) 4ms
+packages/panel verify:  ✓ tests/session-logs.test.ts (7 tests) 10ms
+packages/memory verify:  ✓ tests/memory.spec.ts (14 tests) 72ms
+packages/memory verify:  Test Files  7 passed (7)
+packages/memory verify:       Tests  80 passed (80)
+packages/memory verify:    Start at  23:58:39
+packages/memory verify:    Duration  480ms (transform 670ms, setup 0ms, import 1.17s, tests 295ms, environment 1ms)
+packages/memory verify: Done
+packages/panel verify:  ✓ tests/host-plugin.test.ts (4 tests) 3ms
+packages/panel verify:  ✓ tests/snapshot.test.ts (9 tests) 15ms
+packages/panel verify:  Test Files  5 passed (5)
+packages/panel verify:       Tests  26 passed (26)
+packages/panel verify:    Start at  23:58:40
+packages/panel verify:    Duration  309ms (transform 175ms, setup 0ms, import 300ms, tests 42ms, environment 1ms)
+packages/panel verify: Done
+packages/prompt-studio verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/prompt-studio
+packages/prompt-studio verify:  ✓ tests/client-bundle.test.ts (6 tests) 7ms
+packages/prompt-studio verify:  ✓ tests/version-governance.test.ts (8 tests) 8ms
+packages/prompt-studio verify:  ✓ tests/validator-diff.test.ts (23 tests) 16ms
+packages/prompt-studio verify:  ✓ tests/version-store.test.ts (10 tests) 60ms
+packages/prompt-studio verify:  ✓ tests/persona-patch.test.ts (20 tests) 69ms
+packages/prompt-studio verify:  ✓ tests/trace.test.ts (19 tests) 68ms
+packages/prompt-studio verify:  ✓ tests/approval-audit.test.ts (11 tests) 10ms
+packages/prompt-studio verify:  ✓ tests/host-plugin.test.ts (19 tests) 50ms
+packages/prompt-studio verify:  Test Files  8 passed (8)
+packages/prompt-studio verify:       Tests  116 passed (116)
+packages/prompt-studio verify:    Start at  23:58:40
+packages/prompt-studio verify:    Duration  347ms (transform 396ms, setup 0ms, import 612ms, tests 287ms, environment 1ms)
+packages/prompt-studio verify: Done
+packages/access verify$ node scripts/build-client.mjs && oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/glue verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run --passWithNoTests
+packages/access verify:   lib/client.js  55.0kb
+packages/access verify: ⚡ Done in 3ms
+packages/glue verify: Found 0 warnings and 0 errors.
+packages/glue verify: Finished in 588ms on 13 files with 87 rules using 10 threads.
+packages/access verify: Found 0 warnings and 0 errors.
+packages/access verify: Finished in 647ms on 25 files with 87 rules using 10 threads.
+packages/glue verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/glue
+packages/glue verify:  ✓ tests/governance-rules-fixture.spec.ts (5 tests) 4ms
+packages/glue verify:  ✓ tests/governance-plugin.spec.ts (10 tests) 19ms
+packages/glue verify:  ✓ tests/egress-plugin.spec.ts (11 tests) 11ms
+packages/glue verify:  ✓ tests/governance-audit-trail.spec.ts (4 tests) 18ms
+packages/glue verify:  Test Files  4 passed (4)
+packages/glue verify:       Tests  30 passed (30)
+packages/glue verify:    Start at  23:58:42
+packages/glue verify:    Duration  217ms (transform 174ms, setup 0ms, import 297ms, tests 51ms, environment 0ms)
+packages/glue verify: Done
+packages/access verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/access
+packages/access verify:  ✓ tests/ratelimit.spec.ts (3 tests) 2ms
+packages/access verify:  ✓ tests/session.spec.ts (6 tests) 3ms
+packages/access verify:  ✓ tests/pages.spec.ts (5 tests) 3ms
+packages/access verify:  ✓ tests/password.spec.ts (5 tests) 144ms
+packages/access verify:  ✓ tests/plugin.spec.ts (4 tests) 135ms
+packages/access verify:  ✓ tests/tenant.spec.ts (9 tests) 571ms
+packages/access verify:  ✓ tests/store.spec.ts (13 tests) 1022ms
+packages/access verify:  ✓ tests/routes.spec.ts (21 tests) 1547ms
+packages/access verify:  Test Files  8 passed (8)
+packages/access verify:       Tests  66 passed (66)
+packages/access verify:    Start at  23:58:43
+packages/access verify:    Duration  1.78s (transform 289ms, setup 0ms, import 480ms, tests 3.43s, environment 1ms)
+packages/access verify: Done
+---stderr---
+$ pnpm -r --if-present run verify

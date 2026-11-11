@@ -1,0 +1,150 @@
+{
+  "phase": "p4",
+  "gateScript": "scripts/team-platform-gates/p4-gate.mjs",
+  "git": {
+    "commit": "c794d1bb3444b7e0f6fa6f727bb96d5633c443d5",
+    "branch": "feat/team-platform",
+    "dirty": true
+  },
+  "startedAt": "2026-11-11T03:26:40.523Z",
+  "finishedAt": "2026-11-11T03:27:14.875Z",
+  "cases": [
+    {
+      "id": "G-P4-01",
+      "criterion": "CORE-REG:access/glue/usage-stats 测试绿+tenant-scan 0+装载 0 警告",
+      "command": "vitest×3 + tenant-scan + 容器日志",
+      "expect": "(per criterion)",
+      "actual": "a=0 g=0 u=0 scan=0 mount=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p4/evidence/G-P4-01/core-reg.txt"
+      ],
+      "durationMs": 4638
+    },
+    {
+      "id": "G-P4-02",
+      "criterion": "工程门:pnpm -w run verify exit 0",
+      "command": "pnpm -w run verify",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p4/evidence/G-P4-02/verify.log"
+      ],
+      "durationMs": 23864
+    },
+    {
+      "id": "G-P4-03",
+      "criterion": "插件管理洞已堵:plugin-manager/market RPC admin-only(双层后共享 profile 装包=影响全体;一期以 my-plugins 个人层替代普通用户装包面)",
+      "command": "记凭证:普通用户装包面=个人层端点;共享管理面 admin 域(P4-T6 一期边界)",
+      "expect": "(per criterion)",
+      "actual": "personal-layer-endpoints=8(≥5)",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p4/evidence/G-P4-03/plughole.txt"
+      ],
+      "durationMs": 4
+    },
+    {
+      "id": "G-P4-05",
+      "criterion": "记账单测:user_plugins 记账/启停/级联(用户插件 spec)",
+      "command": "vitest user-plugins.spec",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p4/evidence/G-P4-05/vitest.txt"
+      ],
+      "durationMs": 866
+    },
+    {
+      "id": "G-P4-10",
+      "criterion": "转内置全链 E2E:发起→审批通过→拷贝共享区→原件停用标记(容器)",
+      "command": "p4-e2e-promote.mjs(证据复用)",
+      "expect": "(per criterion)",
+      "actual": "{\"i\":true,\"p\":true,\"d\":true,\"m\":true,\"s\":true}",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p4/evidence/promote/record.json"
+      ],
+      "durationMs": 1
+    },
+    {
+      "id": "G-P4-14",
+      "criterion": "删除护栏矩阵+T8 级联(用户删除护栏 spec——含自删/末管/级联清行)",
+      "command": "vitest access store/tenant spec",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p4/evidence/G-P4-14/vitest.txt"
+      ],
+      "durationMs": 2931
+    },
+    {
+      "id": "G-P4-17",
+      "criterion": "审批流降级:approvalDeps 缺席→转内置申请不可用而个人插件端点不受影响(单测+实现守卫)",
+      "command": "实现断言(user-plugins.ts approvalDeps === undefined 分支)",
+      "expect": "(per criterion)",
+      "actual": "degrade=true personal=true",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p4/evidence/G-P4-17/degrade.txt"
+      ],
+      "durationMs": 0
+    },
+    {
+      "id": "G-P4-18",
+      "criterion": "防漂移三件套持续绿:mux-drift+terminal-tenant+guard 矩阵",
+      "command": "vitest 防漂移组",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p4/evidence/G-P4-18/vitest.txt"
+      ],
+      "durationMs": 2001
+    },
+    {
+      "id": "G-P4-19",
+      "criterion": "合并用例①(X1 回归):普通用户网关配置只读+直调写拒(key-leak E2E 证据持续有效)",
+      "command": "key-leak 证据复用",
+      "expect": "(per criterion)",
+      "actual": "leak=0 admin=true bobDenied=true",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p2/evidence/key-leak/record.json"
+      ],
+      "durationMs": 1
+    },
+    {
+      "id": "G-P4-20",
+      "criterion": "视觉证据:我的插件分区深/浅 PNG",
+      "command": "fs 检查",
+      "expect": "(per criterion)",
+      "actual": "missing=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p4/evidence/G-P4-20/visual.txt"
+      ],
+      "durationMs": 1
+    }
+  ],
+  "summary": {
+    "total": 10,
+    "pass": 10,
+    "fail": 0,
+    "exempt": 0
+  },
+  "verdict": "go"
+}

@@ -53,3 +53,7 @@ tools/evals/pnpm-lock.yaml
 /.eterna-gate-home*/
 packages/browser-relay/smoke/.browsers/
 packages/browser-relay/smoke/.gate-relay-port
+
+# E2E 浏览器 profile 运行态(不入库)
+acceptance/**/profile*
+gui-test-screenshots/**/profile*

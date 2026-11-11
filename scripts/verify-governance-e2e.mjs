@@ -35,7 +35,7 @@
  * packages/glue/cordis.patch.yml 同款行;裸 id 行会被 applyPatches 丢弃——2026-11-04
  * E2E 教训,故一律 insert)。
  *
- * 凭据纪律(参照 scripts/perf-realsession.mjs):LITELLM_API_KEY / ETERNA_LLM_BASE_URL
+ * 凭据纪律(参照 scripts/perf-realsession.mjs):MIMO_API_KEY / MIMO_BASE_URL(可空,默认固化直连)
  * env 优先,.secrets 兜底自查;只进子进程环境,不进被跟踪文件/日志/argv。
  * 确定性纪律:见证服务器(本机回环)让 deny/allow 两路径不经外网、不经内网依赖;
  * 出网代理变量在 spawn 前剥除,防本机代理把 localhost 抓取导走。
@@ -89,13 +89,13 @@ if (!existsSync(join(gluePkg, 'src', 'plugins', 'governance-plugin.ts'))) {
 const readSecret = (file) => {
   try { return readFileSync(join(repoRoot, '.secrets', file), 'utf8').trim() } catch { return '' }
 }
-const apiKey = process.env.LITELLM_API_KEY || readSecret('litellm-master-key.txt')
-const baseURL = (process.env.ETERNA_LLM_BASE_URL || readSecret('litellm-base-url.txt')).replace(/\/$/, '')
+const apiKey = process.env.MIMO_API_KEY || readSecret('mimo-api-key.txt')
+const baseURL = (process.env.MIMO_BASE_URL(可空,默认固化直连) || 'https://api.xiaomimimo.com/v1').replace(/\/$/, '')
 if (!apiKey || !baseURL) {
-  console.error('verify-governance-e2e: 缺少 LITELLM_API_KEY / ETERNA_LLM_BASE_URL(且 .secrets 兜底不可读)——embed 真会话无法执行,如实失败,不伪造')
+  console.error('verify-governance-e2e: 缺少 MIMO_API_KEY / MIMO_BASE_URL(可空,默认固化直连)(且 .secrets 兜底不可读)——embed 真会话无法执行,如实失败,不伪造')
   process.exit(1)
 }
-console.log(`verify-governance-e2e: gateway ${baseURL} (key source: ${process.env.LITELLM_API_KEY ? 'env LITELLM_API_KEY' : '.secrets/litellm-master-key.txt'})`)
+console.log(`verify-governance-e2e: gateway ${baseURL} (key source: ${process.env.MIMO_API_KEY ? 'env MIMO_API_KEY' : '.secrets/mimo-api-key.txt'})`)
 
 // ---------------------------------------------------------------------------
 // 1. 本地见证服务器:OS 随机端口;按路径计数,是 a/b/d 的「底层是否真执行」证据。
@@ -199,7 +199,7 @@ function runHeadless(task, ws) {
   return new Promise((resolveRun) => {
     const child = spawn(process.execPath, [dshBin, '--profile', 'eterna-embed', '--json', '--approval-policy', 'never', task], {
       cwd: ws,
-      env: { ...directEnv, DSH_HOME: home, LITELLM_API_KEY: apiKey, ETERNA_LLM_BASE_URL: baseURL },
+      env: { ...directEnv, DSH_HOME: home, MIMO_API_KEY: apiKey, MIMO_BASE_URL(可空,默认固化直连): baseURL },
       stdio: ['ignore', 'pipe', 'pipe'],
     })
     const lines = []

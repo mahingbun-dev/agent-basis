@@ -1,0 +1,178 @@
+{
+  "at": "2026-11-10T16:58:00.138Z",
+  "base": "http://127.0.0.1:3211",
+  "checks": {
+    "aCreate": {
+      "status": 200,
+      "body": {
+        "type": "server-response",
+        "rpcId": "e2e-9dlepliv65a",
+        "result": {
+          "ok": true,
+          "value": {
+            "sessionId": "session-5e7b3956-f044-4d40-adbb-4eca05ecf92c",
+            "agentPreset": "cordis"
+          }
+        }
+      }
+    },
+    "bobCreate": {
+      "status": 201,
+      "body": {
+        "user": {
+          "id": 2,
+          "account": "tp-bob",
+          "nickname": "tp-bob",
+          "role": "user"
+        },
+        "finalAccount": "tp-bob"
+      }
+    },
+    "bobCreateOk": false,
+    "bListHttp": {
+      "status": 200,
+      "body": {
+        "type": "server-response",
+        "rpcId": "e2e-1hczc08mwpd",
+        "result": {
+          "ok": true,
+          "value": {
+            "items": [
+              {
+                "sessionId": "session-0c3c841f-887b-4b09-a32a-e22c62e92d4f",
+                "updatedAt": 1794329892735,
+                "agentAvailable": true,
+                "formatStatus": "current",
+                "running": false,
+                "blank": true,
+                "cwd": "/data/workspaces/tp-bob",
+                "projections": {
+                  "kind": "sequenced",
+                  "asOfSeq": 2,
+                  "values": {
+                    "userQuestions": {
+                      "active": [],
+                      "settled": []
+                    },
+                    "tokenUsage": {
+                      "uncachedInputTokens": 0,
+                      "outputTokens": 0,
+                      "cacheReadTokens": 0,
+                      "cacheWriteTokens": 0
+                    },
+                    "title": null,
+                    "agentPreset": "cordis",
+                    "goal": null,
+                    "modelSelection": {
+                      "lastUsed": null,
+                      "next": null
+                    },
+                    "workingDirectory": "/data/workspaces/tp-bob",
+                    "inbox": {
+                      "next-turn": [],
+                      "next-step": []
+                    },
+                    "permissions": {
+                      "currentValue": "workspace-write"
+                    },
+                    "subagentCatalog": [],
+                    "subagentTiming": {
+                      "settledMs": 0
+                    },
+                    "subagent": null,
+                    "plan": {
+                      "active": false,
+                      "pending": false
+                    },
+                    "sessionListMetadata": {
+                      "blank": true,
+                      "lastPromptAt": null
+                    }
+                  }
+                }
+              },
+              {
+                "sessionId": "session-a1ef73e6-b4d7-4066-8132-7720c41e7e16",
+                "updatedAt": 1794329892089,
+                "agentAvailable": true,
+                "formatStatus": "current",
+                "running": false,
+                "blank": true,
+                "cwd": "/data/workspaces/tp-bob",
+                "projections": {
+                  "kind": "sequenced",
+                  "asOfSeq": 2,
+                  "values": {
+                    "userQuestions": {
+                      "active": [],
+                      "settled": []
+                    },
+                    "tokenUsage": {
+                      "uncachedInputTokens": 0,
+                      "outputTokens": 0,
+                      "cacheReadTokens": 0,
+                      "cacheWriteTokens": 0
+                    },
+                    "title": null,
+                    "agentPreset": "cordis",
+                    "goal": null,
+                    "modelSelection": {
+                      "lastUsed": null,
+                      "next": null
+                    },
+                    "workingDirectory": "/data/workspaces/tp-bob",
+                    "inbox": {
+                      "next-turn": [],
+                      "next-step": []
+                    },
+                    "permissions": {
+                      "currentValue": "workspace-write"
+                    },
+                    "subagentCatalog": [],
+                    "subagentTiming": {
+                      "settledMs": 0
+                    },
+                    "subagent": null,
+                    "plan": {
+                      "active": false,
+                      "pending": false
+                    },
+                    "sessionListMetadata": {
+                      "blank": true,
+                      "lastPromptAt": null
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "bListHasA": false,
+    "aMuxWorkspaces": [
+      "8adb0fcf-e668-41ef-8865-725a41160ae0"
+    ],
+    "aMuxDenied": false,
+    "bMuxWorkspaces": [
+      "93cb243c-d550-4bf9-b4d1-6a758655a56e"
+    ],
+    "bMuxSeesA": false,
+    "bStealErrors": [
+      {
+        "type": "error",
+        "streamId": "st-a1kru2z6mxv",
+        "error": {
+          "code": "remote-access/denied",
+          "message": "remote access: session/follow: access denied (no-allow)",
+          "details": {
+            "action": "session/follow",
+            "reason": "no-allow"
+          }
+        }
+      }
+    ],
+    "bStealDenied": true,
+    "aSelfFollowWorks": true
+  }
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ai-evo 平台引导脚本(M4-M8):模型配置 → 会话数据集×3 → 三门禁任务 → 首跑。
 用法: python3 tools/ai-evo-bootstrap.py [--run-only <task_name>]
-凭据: .secrets/ai-evo-account.txt / .secrets/ai-evo-apikey.txt(litellm master key 内嵌为常量,勿提交真实值)
+凭据: .secrets/ai-evo-account.txt / .secrets/ai-evo-apikey.txt(mimo key 内嵌为常量,勿提交真实值)
 """
 import json, sys, time
 from pathlib import Path
@@ -10,8 +10,8 @@ import requests
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = "http://MaNas:8201/api/v1"
-LITELLM = "http://MaNas:4000/v1"
-LITELLM_KEY = (ROOT / ".secrets" / "litellm-master-key.txt").read_text().strip()
+MIMO_BASE = "https://api.xiaomimimo.com/v1"
+MIMO_KEY = (ROOT / ".secrets" / "mimo-api-key.txt").read_text().strip()
 API_KEY = (ROOT / ".secrets" / "ai-evo-apikey.txt").read_text().strip()
 SESSIONS = Path("/tmp/cc-sessions")  # dsh2cc-jsonl.mjs 产物
 
@@ -44,10 +44,10 @@ def req(method, path, **kw):
 def m4_models():
     _, ev = req("POST", "/models", headers=H(), json={
         "name": "mimo-v2.6-flash(网关)", "provider": "openai", "model_type": "mimo-v2.6-flash",
-        "model_role": "evaluation", "endpoint": LITELLM, "api_key": LITELLM_KEY, "auth_type": "api_key"})
+        "model_role": "evaluation", "endpoint": MIMO_BASE, "api_key": MIMO_KEY, "auth_type": "api_key"})
     _, jv = req("POST", "/judge-models", headers=H(), json={
         "name": "mimo-v2.6-pro(网关)", "provider": "openai", "model_type": "mimo-v2.6-pro",
-        "model_role": "judge", "endpoint": LITELLM, "api_key": LITELLM_KEY, "auth_type": "api_key"})
+        "model_role": "judge", "endpoint": MIMO_BASE, "api_key": MIMO_KEY, "auth_type": "api_key"})
     ids = {"eval_model_id": (ev or {}).get("id") if isinstance(ev, dict) else None,
            "judge_model_id": (jv or {}).get("id") if isinstance(jv, dict) else None}
     for mid in filter(None, ids.values()):

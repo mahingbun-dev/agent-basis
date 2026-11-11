@@ -1,0 +1,33 @@
+{
+  "phase": "ph",
+  "gateScript": "scripts/team-platform-gates/ph-gate.mjs",
+  "git": {
+    "commit": "7a3d0c3b56ae0d96cc6541b5cbe4e356c7e8e29f",
+    "branch": "feat/team-platform",
+    "dirty": true
+  },
+  "startedAt": "2026-11-10T15:54:57.657Z",
+  "finishedAt": "2026-11-10T15:54:58.547Z",
+  "cases": [
+    {
+      "id": "G-PH-01",
+      "criterion": "规则活性:容器内 /data/.eterna/governance.rules.yml 存在非空;entrypoint 日志含新渲染路径;渲染产物经 RuleEngine 解析且 allow-fs 命中 read/bash/list_agents",
+      "command": "docker exec + pnpm --filter @eterna/governance run test(ph-rules-live.spec)",
+      "expect": "(per criterion)",
+      "actual": "file=true log=1 vitest=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/ph/evidence/G-PH-01/rules-live.json"
+      ],
+      "durationMs": 851
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "pass": 1,
+    "fail": 0,
+    "exempt": 0
+  },
+  "verdict": "go"
+}

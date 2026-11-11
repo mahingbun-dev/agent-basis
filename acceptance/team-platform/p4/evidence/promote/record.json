@@ -1,0 +1,58 @@
+{
+  "install": {
+    "status": 200,
+    "ok": true,
+    "value": {
+      "pluginId": "user:Mr.Ma:hello",
+      "dir": "/data/workspaces/Mr.Ma/plugins/hello",
+      "enabled": true
+    },
+    "error": null
+  },
+  "installOk": true,
+  "list": {
+    "status": 200,
+    "ok": true,
+    "value": {
+      "items": [
+        {
+          "pluginId": "user:Mr.Ma:hello",
+          "dir": "/data/workspaces/Mr.Ma/plugins/hello",
+          "dirExists": true,
+          "enabled": true,
+          "promoted": true,
+          "withinRoot": true
+        }
+      ]
+    },
+    "error": null
+  },
+  "listOk": true,
+  "promoteReq": {
+    "status": 200,
+    "ok": true,
+    "value": {
+      "requestId": 2,
+      "pluginId": "user:Mr.Ma:hello"
+    },
+    "error": null
+  },
+  "promoteReqOk": true,
+  "decide": {
+    "status": 200,
+    "ok": true,
+    "value": {
+      "pluginId": "user:Mr.Ma:hello",
+      "promoted": true,
+      "sharedDir": "/data/plugins-promoted/user_Mr.Ma_hello"
+    },
+    "error": null
+  },
+  "decideOk": true,
+  "promotedMarked": true,
+  "sharedDirExists": true,
+  "shots": [
+    "gui-test-screenshots/team-platform/p4/my-plugins-dark.png",
+    "gui-test-screenshots/team-platform/p4/my-plugins-light.png"
+  ]
+}

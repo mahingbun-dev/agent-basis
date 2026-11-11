@@ -2,7 +2,7 @@
 // 采真实 SDK 通知样本(T17,设计文档 18 §6-2:SDK 通知→事件映射校准)。
 //
 // 用 DSH 官方 Python SDK(deepseek-harness-sdk)在评测宿主
-// (DSH_HOME=~/.dsh-evals,profile=sdk,litellm 路由 deepseek-official→deepseek-flash)
+// (DSH_HOME=~/.dsh-evals,profile=sdk,mimo 路由→mimo-v2.6-pro)
 // 起 2 条真会话:
 //   1. sample-tools     —— 简单预算计算(budget_calc 工具路径);
 //   2. sample-approval  —— 定金支付(pay_deposit 审批路径,SDK approval_requests=True,
@@ -12,7 +12,7 @@
 //
 // 用法:node scripts/sample-notifications.mjs [输出jsonl](缺省 docs/acp-real-6/notifications-sample.jsonl)
 //
-// 凭据纪律:LITELLM_API_KEY 运行时从 .secrets/litellm-master-key.txt 读入子进程环境,
+// 凭据纪律:MIMO_API_KEY 运行时从 .secrets/mimo-api-key.txt 读入子进程环境,
 // 不写入任何仓库文件;dsh CLI 一律 /opt/homebrew/bin/dsh(避开 pip 包装脚本)。
 import { spawn } from 'node:child_process'
 import { readFileSync, mkdirSync, mkdtempSync } from 'node:fs'
@@ -22,17 +22,17 @@ import { fileURLToPath } from 'node:url'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const outFile = path.resolve(process.argv[2] ?? path.join(repoRoot, 'docs/acp-real-6/notifications-sample.jsonl'))
-const keyFile = path.join(repoRoot, '.secrets/litellm-master-key.txt')
+const keyFile = path.join(repoRoot, '.secrets/mimo-api-key.txt')
 
 let apiKey = ''
 try {
   apiKey = readFileSync(keyFile, 'utf8').trim()
 } catch (cause) {
-  console.error(`读不到 litellm key(${keyFile}):${String(cause)}`)
+  console.error(`读不到 mimo key(${keyFile}):${String(cause)}`)
   process.exit(2)
 }
 if (apiKey === '') {
-  console.error('litellm key 为空,无法起真会话')
+  console.error('mimo key 为空,无法起真会话')
   process.exit(2)
 }
 
@@ -120,7 +120,7 @@ const child = spawn('python3', ['-c', SAMPLER], {
     DSH_BIN: '/opt/homebrew/bin/dsh',
     DSH_PROVIDER: 'deepseek-official',
     DSH_MODEL: 'deepseek-flash',
-    LITELLM_API_KEY: apiKey,
+    MIMO_API_KEY: apiKey,
     SAMPLE_OUT: outFile,
     SAMPLE_CWD: workspaceDir,
     SAMPLE_PROMPTS: JSON.stringify(PROMPTS),

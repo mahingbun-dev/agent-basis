@@ -1,0 +1,8 @@
+RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/usage-stats
+
+ ✓ tests/aggregate.test.ts (4 tests) 8ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  10:43:19
+   Duration  128ms (transform 15ms, setup 0ms, import 22ms, tests 8ms, environment 0ms)

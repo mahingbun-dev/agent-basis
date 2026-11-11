@@ -78,7 +78,7 @@ export interface DoctorHealthReport {
 
 /** probe 端点入参。 */
 export interface ProbeInput {
-  /** provider 路由 key(config.providers 的键,如 litellm)。 */
+  /** provider 路由 key(config.providers 的键,如 deepseek/mimo/glm)。 */
   readonly provider?: string
   /** 模型 id(wire model id)。 */
   readonly model?: string

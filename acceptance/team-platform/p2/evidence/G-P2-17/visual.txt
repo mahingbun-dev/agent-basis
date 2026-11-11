@@ -1,0 +1,1 @@
+p1Required=[gui-test-screenshots/team-platform/p1/directory-tree-dark.png,gui-test-screenshots/team-platform/p1/directory-tree-light.png] missing=0; p2-config-shots=deferred-to-REL

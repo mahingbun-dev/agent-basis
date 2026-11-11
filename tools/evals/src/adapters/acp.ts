@@ -11,7 +11,7 @@
  * 非零退出 / 无 done / 超时 → harness 失败(不伪造结果)。
  *
  * 真实运行前提(2026-11-04 打通,docs/acp-real-6/):pip deepseek-harness-sdk +
- * DSH_HOME 隔离宿主 + litellm 路由凭据。coerceEvents 与 python 侧 EventMapper
+ * DSH_HOME 隔离宿主 + mimo 路由凭据。coerceEvents 与 python 侧 EventMapper
  * 对同一套真实通知形态(docs/acp-real-6/notifications-sample.jsonl)保持双侧容忍,
  * 由 tests/acp-real-notification.spec.ts 用真实样本回放钉住。
  *

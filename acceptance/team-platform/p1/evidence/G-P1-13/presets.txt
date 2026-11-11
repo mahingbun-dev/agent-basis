@@ -1,0 +1,1 @@
+dangerFullAccess=0 uiPermissionDisabled=1

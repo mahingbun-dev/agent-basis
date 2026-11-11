@@ -1,0 +1,18 @@
+{
+  "ourDialogOpen": true,
+  "browseMiller": 0,
+  "pathInputCount": 0,
+  "folderNameInput": true,
+  "hasAlpha": true,
+  "hasBeta": true,
+  "parentUpItem": 0,
+  "deepVisible": true,
+  "dialogClosed": true,
+  "composerLabel": "描述你想要构建的内容, / 调用指令, @ 文件或对话",
+  "createdVisible": true,
+  "createdOnFs": "exists",
+  "shots": [
+    "gui-test-screenshots/team-platform/p1/directory-tree-dark.png",
+    "gui-test-screenshots/team-platform/p1/directory-tree-light.png"
+  ]
+}

@@ -49,10 +49,10 @@ function ctxWithEditor(face: ConfigEditorFace | undefined): Context {
 
 const GATEWAY_CONFIG = {
   providers: {
-    litellm: {
+    mimo: {
       api: 'anthropic-messages',
       baseURL: 'http://gw.test/v1',
-      apiKeyEnv: 'LITELLM_API_KEY',
+      apiKeyEnv: 'MIMO_API_KEY',
       models: [{ id: 'deepseek-flash' }],
     },
   },
@@ -89,7 +89,7 @@ describe('checkNow 自动适配流程', () => {
     expect(edits).toHaveLength(1)
     expect(edits[0]?.id).toBe(PI_AI_ENTRY_ID)
     const providers = edits[0]?.next['providers'] as Record<string, { baseURL: string }>
-    expect(providers['litellm']?.baseURL).toBe('http://gw.test')
+    expect(providers['mimo']?.baseURL).toBe('http://gw.test')
     expect(report.lastAutoFix).toHaveLength(1)
     expect(report.lastAutoFix[0]?.from).toBe('http://gw.test/v1')
     expect(report.lastAutoFix[0]?.to).toBe('http://gw.test')
@@ -126,7 +126,7 @@ describe('probeModel 端点', () => {
     const noRoute = await gateway.probeModel({ provider: 'nope', model: 'deepseek-flash' })
     expect(noRoute.ok).toBe(false)
     expect(noRoute.error).toContain('未找到路由')
-    const noModel = await gateway.probeModel({ provider: 'litellm', model: 'not-in-catalog' })
+    const noModel = await gateway.probeModel({ provider: 'mimo', model: 'not-in-catalog' })
     expect(noModel.ok).toBe(false)
     expect(noModel.error).toContain('不在路由')
   })
@@ -136,8 +136,8 @@ describe('probeModel 端点', () => {
     const { face } = fakeEditor([{ id: PI_AI_ENTRY_ID, override: structuredClone(GATEWAY_CONFIG) }])
     const gateway = new LlmDoctorGateway(ctxWithEditor(face))
     gateway.fetchImpl = fakeFetch
-    gateway.resolveApiKey = env => (env === 'LITELLM_API_KEY' ? 'sk-env-key' : undefined)
-    const result = await gateway.probeModel({ provider: 'litellm', model: 'deepseek-flash' })
+    gateway.resolveApiKey = env => (env === 'MIMO_API_KEY' ? 'sk-env-key' : undefined)
+    const result = await gateway.probeModel({ provider: 'mimo', model: 'deepseek-flash' })
     expect(result.ok).toBe(true)
     expect(result.preview).toBe('pong')
     const init = (fakeFetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit

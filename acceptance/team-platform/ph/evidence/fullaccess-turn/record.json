@@ -1,0 +1,45 @@
+{
+  "case": "fullaccess-turn",
+  "base": "http://127.0.0.1:3211",
+  "loginHeaders": {
+    "connection": "keep-alive",
+    "content-encoding": "gzip",
+    "date": "Tue, 10 Nov 2026 15:54:26 GMT",
+    "keep-alive": "timeout=5",
+    "transfer-encoding": "chunked",
+    "vary": "Accept-Encoding",
+    "cache-control": "no-store",
+    "content-type": "text/html; charset=utf-8"
+  },
+  "at": "2026-11-10T15:54:31.760Z",
+  "modeSwitch": "clicked",
+  "turn": {
+    "askedCount": 0,
+    "autoRejectCount": 0,
+    "toolCalls": [
+      {
+        "name": "bash",
+        "callId": "call_4448cf3797de4595bed0305b",
+        "turn": 1
+      }
+    ],
+    "toolResults": [
+      {
+        "isError": false
+      }
+    ],
+    "turnEnds": [
+      {
+        "reason": {
+          "kind": "completed"
+        }
+      }
+    ]
+  },
+  "verdictFacts": {
+    "zeroApprovalAsked": true,
+    "noAutoReject": true,
+    "bashRan": true,
+    "bashOk": true
+  }
+}
