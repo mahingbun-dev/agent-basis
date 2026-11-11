@@ -224,9 +224,24 @@ body:has([role="dialog"]) .eterna-identity-badge { display: none !important; }
 .et-thought-range::-moz-range-progress {
   background: transparent;
 }
+
+/* max 档气泡流动(ZCode composer-thought-bubbles 同构,白色小圆自右向左漂) */
+.et-thought-bubble {
+  opacity: 0;
+  animation: et-thought-bubble-flow linear infinite;
+}
+@keyframes et-thought-bubble-flow {
+  0% { transform: translateX(104%); opacity: 0; }
+  15%, 80% { opacity: 0.4; }
+  100% { transform: translateX(-4%); opacity: 0; }
+}
 @media (prefers-reduced-motion: reduce) {
   .et-thought-slider * {
     transition: none !important;
+  }
+  .et-thought-bubble {
+    animation: none !important;
+    opacity: 0 !important;
   }
 }
 `
