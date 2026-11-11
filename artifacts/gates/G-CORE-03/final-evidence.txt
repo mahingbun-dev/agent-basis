@@ -1,0 +1,41 @@
+G-CORE-03 终判轮（2026-11-11，第四轮）独立验收证据
+验收代理：独立验收代理（终判轮，用户书面指定派发代理执行）
+证据批次：2026-11-10T18:42:46–18:44:28Z（本地 2026-11-11 02:42:46–02:44:28 CST）
+注：派发单所述「01:4x–01:5x CST 采集」与证据实际时间不符——本批为 INDEX.md「环境中断登记（01:5x litellm 网关不可达）」恢复后的重采批次，判定按证据实际时间为准。
+裁决口径：判据 1 按 artifacts/gates/G-CORE-03/ruling.md 裁决①（openedTabs 回执坐实点击→详情页因果链，新标签导航视同达成）；场景按裁决②换站机制 + 用户进一步澄清（科技门户 IT之家、话术「点开快照中第一条新闻链接」、「不一定非要时政」，以派发单记录为准——ruling.md 文本未含此细化，出处如实登记）。
+
+§1 会话导出实序（session-f1fef4af-cb8b-4366-88ec-cd0c58b9e5ff，43 行 JSONL，/tmp 解压核验）
+turn 1 共 3 次工具调用，全部 isError=false（ok=true）：
+| step | 工具 | arguments | 回执要点 |
+| 1 | browser_snapshot | {"url":"https://www.ithome.com"} | 首页快照（tabId=775512323，title 指纹同 tabs-after 首页项）；热搜行关键词链接之后有两条热搜横幅标题式链接（[ref=e240]/[ref=e243]）、紧邻「✕ 广告」控件；热榜（日榜）首条 - link（锚文本指纹 42ch:d9fb5743）[ref=e340] |
+| 2 | browser_click | {"ref":"e340"} | ok；回执 url=https://www.ithome.com/（被点 tab 仍在首页）；openedTabs=[{tabId:775512324, url:"https://www.ithome.com/1/024/618.htm", title 指纹 49ch:a75434c6}]——点击→详情页因果链回执 |
+| 3 | browser_snapshot | {"tabId":775512324} | 详情页快照（tabId=775512324）；title 指纹 49ch:a75434c6、含锚文本（true）；快照含正文首段 paragraph 节点（基准段前 60 字符命中） |
+- turn/end reason=completed；user/message kind=user 仅 1 条（话术与派发单消歧话术逐字一致）；approval asked/decided 3 对即时处置；无 bash/web_fetch 调用（第二轮的 web_fetch 兜底未再现，纯浏览器链路）
+
+§2 判据 1 核验（裁决①口径）
+- 点击→详情页因果链：click(step2) 回执 openedTabs 显式上报新 tab（tabId=775512324、详情页 URL、标题指纹 49ch:a75434c6）；step3 快照对同一 tabId 取得详情页；record.json tabs-after 含该详情页 tab；截图 tabs/tab-1330393303.png 渲染详情页
+- 详情页标题/快照含点击前锚文本：tabs-after 标题（49ch:a75434c6）与 step3 快照标题均包含锚文本（42ch:d9fb5743，包含性 true）
+- 判据 1 成立（裁决①：新标签导航视同达成，因果链由回执坐实）
+- 「第一条新闻链接」落点核验：e340 为热榜（日榜）列表首条；其前两条标题式链接（e240/e243）经渲染截图核验为热搜横幅编号条目（①②徽标）、紧邻广告横幅，与 agent 消歧表述（其前为导航/热搜/广告）一致——a11y 快照无容器标签，落点判定依赖 agent 披露的消歧理由并以渲染证据佐证
+
+§3 判据 2 独立复核（详情页正文首段机械比对，本验收代理实抓）
+- curl https://www.ithome.com/1/024/618.htm（UA 伪装 Chrome）→ HTTP 200；<title> 指纹 49ch:a75434c6
+- 段落抽取（<p> 序列）：共 12 个 <p>；文档序首个非空 <p> 即正文首段（长度 75 字符，指纹 75ch:18ff80a0——与 digest.json criteria2.baselineFirstParaSha/baselineFirstParaLen 完全一致）；其后段落长度 0/27/95/0/0/0/41…，启发式「首个 ≥30 字符段落」无更早候选、无误取
+- 渲染佐证：tab-1330393303.png 中正文首段可见且与基准同文；agent 回答正文首段（session-full-text「3. 正文第一段」段）与基准 trim 后逐字符相等（两串均 75 字符、143 UTF-8 字节，sha 同为 75ch:18ff80a0）——仅允许首尾空白差异口径下成立
+- 会话数据源：agent 回答取自 step3 详情页 a11y 快照（paragraph 节点在案），全链路会话内完成
+
+§4 判据 3 核验（ref 前序存在性，独立于 digest）
+- click(step2) 引用 ref=e340；step1（点击前）快照中存在 `- link "…（锚文本 42ch:d9fb5743）" [ref=e340]`（日榜 listitem 首条）——digest refCheck {ref:"e340", present:true} 与会话导出一致
+- stale-ref 误拒 0 次（全局注册表修复持续生效）；工具面零 error
+
+§5 判据 4 核验
+- 3 次工具调用全部 isError=false（会话导出 + egress 审计日志双源：18:43:30.433Z snapshot / 18:43:56.357Z click / 18:44:02.118Z snapshot，窗口内 attach/denied/refused/egress 关键词 0 命中）
+- turn/end reason=completed（无 content_filter 中断——裁决②换站机制落地后第三轮的供应商内容过滤阻断未再现）；turn-converged ms=99994
+- record.json：prompt-sent 1 次；approval-clicked 3 次（允许一次，自动批准）；tabs-after 含首页与详情页 tab
+
+§6 digest 交叉核验（gate-digest.mjs 2026-11-11 重写版）
+- digest.json session=f1fef4af（本用例真实会话，数据源归属正确）；sequence snapshot→click→snapshot 与 §1 一致；clickNoError=true、refCheck present=true、openedTabsUrls=[详情页]、turnFailed=false、criteria2.answerContainsBaseline=true——全部与本验收代理独立复算一致
+
+§7 原始复核输出位置
+- /tmp/gate-r6-sessions/indep-ithome-detail.html（curl 抓取详情页）；会话导出解压件 /tmp/gate-r6-sessions/session-f1fef4af-*.jsonl（判定后留存于 .eterna-gate-home/sessions/）
+- egress-whitelist.yml 实读 14 条规则，ithome.com/*.ithome.com 在列（本轮新增，前置条件成立）

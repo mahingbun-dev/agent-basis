@@ -1,0 +1,69 @@
+G-CORE-02 第四轮验收证据摘录（2026-11-10 23:11–23:13 CST fresh boot，第四轮验收代理提取）
+==============================================================================
+
+【证据源】
+- smoke/gate-evidence/G-CORE-02/record.json
+- 会话导出 session-d3475d5c-3b74-4356-b44b-e6091f993c75/session.v4.jsonl.zstd
+  （解压后 jq 提取，方法同前三轮）
+- egress 审计日志 /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/gate-cwd/.eterna/audit-20261110.jsonl
+- 第四轮独立复核：curl 'https://hn.algolia.com/api/v1/search?query=playwright'（默认相关度，本轮验收代理自行执行）
+
+【1. record.json 关键观察】
+- prompt: 「在 Hacker News 搜索 playwright，告诉我第一条结果的标题和链接」（与门禁话术逐字一致）
+- startedAt: 2026-11-10T15:11:56.004Z；turn-converged ms=61383
+- prompt-sent 1 次；approval-clicked 4 次（均 label「允许一次」，harness 自动批准）
+- tabs-after: {url:"https://hn.algolia.com/?dateRange=all&page=0&prefix=true&query=playwright&sort=byPopularity&type=story",
+  title:"All | Search powered by Algolia"}
+- session-full-text 答：标题：Tracking supermarket prices with Playwright
+  链接：https://www.sakisv.net/2024/08/tracking-supermarket-prices-playwright/
+  （467 points、210 条评论、sakisv 提交、785 条结果、sort=byPopularity 结果页 URL）
+- browser-tool-calls-observed-in-ui: []（空，同前三轮，以会话导出为准）
+
+【2. 会话导出工具调用序列（jq 提取，session-d3475d5c）——判据 1 核心证据】
+step1 tool/call seq=18 browser_snapshot arguments={"url":"https://hn.algolia.com/"}
+      → isError=false（首页未加载完，快照仅含标题与脚本文本节点）
+step2 tool/call seq=26 browser_snapshot arguments={"url":"https://hn.algolia.com/"}
+      → isError=false（首页 UI 就绪：textbox [ref=e37] / button [ref=e771] / "Search" /
+        默认 Popular 故事列表 46,012,334 results——定位搜索框成功）
+step3 tool/call seq=33 browser_fill arguments={"ref":"e37","value":"playwright"}
+      → isError=false（fill 成功，无 stale-ref 误拒；回执：
+        {"url":"https://hn.algolia.com/?dateRange=all&page=0&prefix=true&query=playwright&sort=byPopularity&type=story",
+         "title":"All | Search powered by Algolia","openedTabs":[],"filled":10}
+        ——站点搜索框输入即自动提交，fill 动作本身触发跳转结果页）
+step4 tool/call seq=40 browser_snapshot arguments={"tabId":929199082}
+      → isError=false（结果页快照："785 results (0.007 seconds)"、
+        - link "Tracking supermarket prices with Playwright" [ref=e1214]
+        - link "(https://www.sakisv.net/2024/08/tracking-supermarket-prices-playwright/)" [ref=e1217]
+        - link "467 points" [ref=e1221] / link "sakisv" [ref=e1225] / link "210 comments" [ref=e1232]）
+★ browser_click：全程 0 次调用（会话导出 4 条 tool/call + 审计日志 4 条 tool-call 双源一致）
+★ URL 直拼搜索参数：0 处——step1/2 均为裸域名 https://hn.algolia.com/（纪律第 7 条前半遵守）；
+  含参数 URL 仅作为 fill 动作的站点自动提交回执出现，非模型主动导航
+- turn/end: {"turn":1,"reason":{"kind":"completed"}}
+- approval: 4 对 asked→decided 全部即时处置（allowed-once），无悬置
+- user/message kind=user 仅 1 条真实指令，余为系统注入
+- 快照全文 HTML 标签特征 `</?[a-zA-Z][^>]*>` 检索 0 处（脚本内容为 text 节点）
+
+【3. egress 审计日志（第四轮窗口 15:11:31–15:13:48Z，G-CORE-02 段）】
+{"kind":"tool-call","at":"2026-11-10T15:12:06.429Z","tool":"mcp__browser__browser_snapshot","step":1,"isError":false}
+{"kind":"tool-call","at":"2026-11-10T15:12:25.300Z","tool":"mcp__browser__browser_snapshot","step":2,"isError":false}
+{"kind":"tool-call","at":"2026-11-10T15:12:32.682Z","tool":"mcp__browser__browser_fill","step":3,"isError":false}
+{"kind":"tool-call","at":"2026-11-10T15:12:38.475Z","tool":"mcp__browser__browser_snapshot","step":4,"isError":false}
+{"kind":"turn-end","at":"2026-11-10T15:12:48.809Z","reason":"completed"}
+窗口内 "isError":true 计数 = 0；attach/denied/refused/egress 字样 = 0
+
+【4. 第四轮独立复核（本轮验收代理执行）】
+$ curl -s 'https://hn.algolia.com/api/v1/search?query=playwright'（默认相关度）
+→ nbHits=4377；hits[0]：
+  title: "Tracking supermarket prices with Playwright"
+  url:   "https://www.sakisv.net/2024/08/tracking-supermarket-prices-playwright/"
+  points: 467；num_comments: 210；author: sakisv；created_at: 2024-08-06T17:52:51Z
+（与 agent 回答逐字符一致；785 为 UI story 计数、4377 为 API 全量命中数含评论，口径不同非差异）
+
+【5. 三方逐字符比对（判据 2）】
+- agent 回答标题/链接：Tracking supermarket prices with Playwright / https://www.sakisv.net/2024/08/tracking-supermarket-prices-playwright/
+- API 默认相关度第 1 条：同上，逐字符一致
+- 结果页截图 tabs/tab-823256034.png：首条同上，且搜索框内可见已填入的 "playwright"（fill 证据）
+
+【6. 渲染截图目视核验（第四轮）】
+- tabs/tab-823256034.png：hn.algolia.com 结果页正常渲染（785 results、by Popularity）；
+  CDP 截图不含浏览器地址栏（形态缺口延续）

@@ -9,6 +9,9 @@
 | G-G0-01 | E0（决策门） | 用户本人 | 2026-11-10 | ✅ 通过（D9–D15 七项全部有明确结论） | [artifacts/gates/G-G0-01/decision.md](../artifacts/gates/G-G0-01/decision.md) | 用户会话回复「没问题」确认逐项推荐方案；本记录为后续全部门禁的前置输入 |
 | E0-T3 红线清单签核 | E0 | 用户本人 | 2026-11-10 | ✅ 签核（用户会话确认「继续执行」） | docs/design/companion-security-redlines.md | 十条红线作为后续协作与安全门禁组（G-UX-10/11/12/13）及总验收的判定基准 |
 | E0-T2 / E1-T1 / E1-T2 / E1-T5 | E0+E1 实现 | 实现者（本会话） | 2026-11-10 | ✅ 实现完成 + 自测证据（**非门禁判定**） | packages/extension-companion、packages/browser-relay、`pnpm -w run verify` 退出码 0（125 测试全过）、packctl tenant-scan 0 findings | 见下「实现者自测证据」 |
+| G-CORE-01 | E1（核心链路） | 独立验收代理（用户指定派发） | 2026-11-10～11 | 通过（第一至四轮均 4/4；**终判轮（2026-11-11，第五轮，环境中断恢复后重采）4/4——五轮结论稳定，终判：通过**） | [artifacts/gates/G-CORE-01/verdict.md](../artifacts/gates/G-CORE-01/verdict.md)（含第二/三/四轮及终判轮判定段）、smoke/gate-evidence/G-CORE-01/（终判轮批次）、artifacts/gates/G-CORE-01/round2-evidence.txt、round3-evidence.txt、round4-evidence.txt、final-evidence.txt | 用户书面指定派发代理执行验收（litellm mimo-v2.6-flash）；五轮独立复核标题均逐字符一致（三方指纹 14ch:7dd9587a）；判据 4 以会话导出+egress 审计日志双源核验（seq 18 isError=false，窗口内关键词检索 0 命中）。遗留（五轮未闭合，定性为证据留痕形态缺口，不阻断布尔结论）：地址栏截图、扩展设置页截图；relay/扩展侧日志未归档；UI 工具条目为空 |
+| G-CORE-02 | E1（核心链路） | 独立验收代理（用户指定派发） | 2026-11-10～11 | 通过（第一至五轮均不通过——判据 1/3 缺口逐轮收窄至「click 成功 0 次」；**终判轮（2026-11-11，第六轮，环境中断恢复后重采）4/4 首次全部通过——终判：通过，阻断解除**） | [artifacts/gates/G-CORE-02/verdict.md](../artifacts/gates/G-CORE-02/verdict.md)（含第二/三/四/五轮及终判轮判定段）、smoke/gate-evidence/G-CORE-02/（终判轮批次）、artifacts/gates/G-CORE-02/round2-evidence.txt、round3-evidence.txt、round4-evidence.txt、final-evidence.txt、digest.json | 失败-修复-重跑链：① egress 白名单补 hn.algolia.com（第二轮修复）→ 判据 2 转通过；② stale-ref 误拒根治（第三轮）；③ 纪律第 7 条消除 URL 直拼参数、fill 首次成功（第四轮）；④ 三步调用序列达成但 click 遭合理 STALE_REF 拒（第五轮）；⑤ **终判轮闭合**：模型在 fill 自动提交致 ref 失效后先重新 snapshot 取新 ref（e811）再 click——**六轮首次成功的 click**（isError=false，同 tab 导航至 HN 讨论页），判据 1（三类各 ≥1 成功+顺序子序列）/判据 3（最后一次点击后的快照含条目链接文本）成立，判据 2 与 hn.algolia API 基准逐字符一致（标题指纹 43ch:a22118cf、链接 70ch:d6f3515c）、判据 4 通过；第五轮判据 3 口径分歧随 click 成功消解。**digest 整改闭合**：gate-digest.mjs 重写版（按话术匹配会话/callId 配对/结构化 isError）输出与会话导出独立复算一致，恢复证明力（digest-session-calls.json 不再产出）。遗留：地址栏截图形态缺口、relay/扩展侧日志归档、UI 工具条目为空（均不阻断） |
+| G-CORE-03 | E1（核心链路） | 独立验收代理（用户指定派发） | 2026-11-10～11 | 不通过（第一轮：任务未执行、4 判据全部无法判定；第二轮：1/4 不通过、2/3 通过；第三轮：1/2/4 不通过、3 通过——content_filter 中断）；**终判轮（2026-11-11，第四轮，裁决①②生效+场景经用户澄清细化为科技门户 IT之家）4/4——终判：通过，阻断解除** | [artifacts/gates/G-CORE-03/verdict.md](../artifacts/gates/G-CORE-03/verdict.md)（含第二/三轮及终判轮判定段）、smoke/gate-evidence/G-CORE-03/（终判轮批次）、artifacts/gates/G-CORE-03/round2-evidence.txt、round3-evidence.txt、final-evidence.txt、digest.json、ruling.md | 失败-修复-重跑链：harness 时序/悬置（已修复）→ stale-ref 误拒（已根治）→ 点击导航语义 openedTabs 回执（裁决①落地：本轮 click 回执 openedTabs 上报详情页 tab、标题含点击前锚文本、同 tabId 快照与截图佐证，因果链坐实，判据 1 通过）；content_filter 不可抗力（裁决②换站机制落地：场景经用户澄清细化为科技门户 IT之家、话术消歧「点开快照中第一条新闻链接」——细化依据派发单记录，ruling.md 文本未含、出处如实登记，建议补录）→ 本轮回答完整产出、无内容过滤中断，判据 2/4 通过（正文首段 75 字符基准逐字符比对一致、指纹 75ch:18ff80a0 复核无误取；3 次工具调用全 isError=false、turn completed）；判据 3 通过（ref=e340 点击前快照在案）。纯 snapshot→click→snapshot 三步浏览器链路，web_fetch/URL 直导航兜底未再现。「第一条新闻链接」落点核验自洽（热搜横幅①②编号条目与广告横幅渲染佐证 agent 消歧；更严口径分歧如实登记）。遗留：地址栏截图形态缺口、relay/扩展侧日志归档、UI 工具条目为空（均不阻断） |
 
 ## 实现者自测证据（2026-11-10，E1 冒烟——非门禁判定）
 
@@ -43,3 +46,14 @@
 ## 失败-修复-重跑链
 
 - 2026-11-10 E1 自测期间（实现者内部迭代，非门禁运行）：chrome.debugger attach 竞态（Another debugger）→ 两端在途去重；AX 域整树 ignored → 感知通道切换 DOMSnapshot；backendNodeId 跨域编号 → DOM.resolveNode 桥接。修复过程细节见实现会话记录。
+
+
+## 升级裁决登记（2026-11-10）
+
+- G-CORE-03 两项升级裁决（判据 1 新标签口径 / content_filter 不可抗力换站重跑）：用户本人裁决，见 artifacts/gates/G-CORE-03/ruling.md；第四轮判定按裁决口径执行。
+
+## 环境中断登记（2026-11-11 01:5x）
+
+- litellm 网关（192.168.31.165:4000）不可达（Connection error，模型重试 5/5 失败）——第六轮采集被阻塞。
+- 中断前最后一轮完整采集（2026-11-11 00:13-00:14，纪律分支引导版）：G-CORE-02 实序 snapshot→fill→click!STALE_REF→snapshot（站点自动提交致 ref 失效，模型未用新 ref 重试 click——判定代理第五轮已定性）；G-CORE-03 机械 digest 全绿（snapshot→click→snapshot 三步零错误、ref e220 在点击前快照在案、openedTabs 上报详情页、判据 2 基准比对一致、无 content_filter 中断——裁决①②生效下四判据证据齐备）。
+- 待办：①网关恢复后重采一轮 → G-CORE-02 终判（click 重试验证）；②G-CORE-03 判定通道待用户指定（LLM 判定代理因被测页面时政内容触发 provider 输出过滤，无法出判定书；机械 digest 证据链已备齐——四判据布尔/哈希在案）。

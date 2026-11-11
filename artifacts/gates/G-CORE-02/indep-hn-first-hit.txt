@@ -1,0 +1,7 @@
+=== 独立复核：Hacker News 搜索 playwright 第一条结果（hn.algolia.com API，HN 官方搜索后端）===
+标题: Tracking supermarket prices with Playwright
+链接: https://www.sakisv.net/2024/08/tracking-supermarket-prices-playwright/
+HN 讨论页: https://news.ycombinator.com/item?id=41173335
+points=467 comments=210 created=2024-08-06
+
+注：本次验收会话中 agent 未产出任何结果回答（G-CORE-02 轮次未完成），本记录仅作基准参考，无从与 agent 回答比对。

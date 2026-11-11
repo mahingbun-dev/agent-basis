@@ -1,0 +1,31 @@
+=== 第二轮证据留痕（2026-11-10 第二轮复验，独立验收代理提取）===
+门禁：G-CORE-01
+会话导出：<解压副本> 原始 .eterna-gate-home/sessions/.../session.v4.jsonl.zstd 对应 session-e10f1de4-d6cf-496c-b05d-ce10d93eaf7c.jsonl
+采集窗口（CST）：12:27:06–12:27:46
+
+--- 一、会话导出工具调用序列（tool/call + tool/result，按时间序）---
+[1794313648628] call mcp__browser__browser_snapshot :: {"url":"https://example.com"}
+[1794313651279] result mcp__browser__browser_snapshot :: isError=False ok=True url=https://example.com/ title=Example Domain snaplen=1055
+
+--- 二、用户输入与审批事件 ---
+user/message: 打开 example.com 并读出页面标题
+user/message: <system-reminder>
+The following workspace instructions may be relevant to your w…
+user/message: Current runtime context. This snapshot supersedes earlier runtime-context snapsh…
+user/message: <system-reminder>
+A skill is a reusable set of task-specific instructions. The f…
+user/message: Time sampled while preparing turn 1, step 1: 2026-11-10T20:27:09+08:00[Asia/Shan…
+approval/decided: allowed-once（harness 自动批准）
+
+--- 三、服务端日志检索（egress 审计日志 audit-20261110.jsonl，时间窗 12:27:06–12:27:46 CST）---
+2026-11-10T12:27:31.279Z turn=1 step=1 mcp__browser__browser_snapshot isError=False
+时间窗内 tool-call 合计 1 条，isError=true 共 0 条。
+attach 字样检索（会话导出全文）：0 条。
+注：第二轮采集未归档 relay/gate-setup 控制台输出（第一轮留痕来源 1）；本文件以审计日志（服务端）+ 会话导出检索替代，relay/扩展侧 stderr 缺口如实登记。
+
+--- 四、独立复核（第二轮验收代理自行抓取，2026-11-10）---
+curl -s https://example.com/ （HTTP 200）→ <title>Example Domain</title>
+agent 会话回答：「页面标题：Example Domain」
+tab 实际标题（record.json tabs-after）：Example Domain
+三者逐字符比对：一致。
+a11y 快照形态核验：browser_snapshot 结果为 `- text "Example Domain" / - paragraph … / - link "Learn more" [ref=e15]` 角色/名称/层级/结构化树；`</?[a-zA-Z][^>]*>` HTML 源码特征检索 0 处（快照中含 CSS 文本节点，非标签）。

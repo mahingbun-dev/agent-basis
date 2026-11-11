@@ -1,0 +1,40 @@
+=== 第三轮证据留痕（2026-11-10 第三轮复验，独立验收代理提取）===
+门禁：G-CORE-02
+证据批次：21:00–21:03 CST（13:00–13:03Z）修复版重采（stale-ref 全局注册表 + openedTabs 回执）
+会话导出：.eterna-gate-home/sessions/…/session-aeca5a0d-93cf-4a4d-a07b-3f2e640802a6/session.v4.jsonl.zstd（逐用例新会话）
+采集窗口（UTC）：13:01:20–13:03:05
+
+--- 一、会话导出工具调用序列（tool/call + tool/result + turn/end）---
+call step=1 mcp__browser__browser_snapshot :: {"url":"https://hn.algolia.com/?dateRange=all&page=0&prefix=false&query=playwright&sort=byDate&sortBy=number"}
+result step=None mcp__browser__browser_snapshot :: isError=False ok=True url= title= snaplen=0 openedTabs=null
+call step=2 mcp__browser__browser_snapshot :: {}
+result step=None mcp__browser__browser_snapshot :: isError=False ok=True url=https://hn.algolia.com/?dateRange=all&page=0&prefix=false&query=playwright&sort=byDate&sortBy=number title=All | Search powered by Algolia snaplen=24586 openedTabs=null
+call step=3 mcp__browser__browser_snapshot :: {"url":"https://hn.algolia.com/?query=playwright"}
+result step=None mcp__browser__browser_snapshot :: isError=False ok=True url=https://hn.algolia.com/?query=playwright title=All | Search powered by Algolia snaplen=15091 openedTabs=null
+turn-end step=None None :: {"turn": 1, "reason": {"kind": "completed"}}
+
+--- 二、用户输入与审批事件 ---
+user/message: 在 Hacker News 搜索 playwright，告诉我第一条结果的标题和链接
+approval/decided: allowed-once（harness 自动批准）
+approval/decided: allowed-once（harness 自动批准）
+approval/decided: allowed-once（harness 自动批准）
+
+--- 三、服务端日志检索（egress 审计日志 audit-20261110.jsonl，时间窗 13:01:20–13:03:05Z）---
+2026-11-10T13:01:33.399Z turn=1 step=1 mcp__browser__browser_snapshot isError=False
+2026-11-10T13:02:02.341Z turn=1 step=2 mcp__browser__browser_snapshot isError=False
+2026-11-10T13:02:40.574Z turn=1 step=3 mcp__browser__browser_snapshot isError=False
+时间窗内 tool-call 合计 3 条，isError=true 共 0 条。
+turn-end: 2026-11-10T13:02:51.922Z reason=completed
+注：relay/扩展侧控制台输出第三轮仍未归档（同第二轮缺口），以审计日志（服务端）+ 会话导出交叉核验。
+
+--- 四、独立复核（第三轮验收代理自行抓取，2026-11-10 21:0x CST）---
+基准：https://hn.algolia.com/api/v1/search?query=playwright（默认相关度）
+第 1 条：Tracking supermarket prices with Playwright | https://www.sakisv.net/2024/08/tracking-supermarket-prices-playwright/ | 467 points, 210 comments
+agent 回答第 1 条：Tracking supermarket prices with Playwright | https://www.sakisv.net/2024/08/tracking-supermarket-prices-playwright/
+标题、链接逐字符比对：一致（467 points/210 comments 附加信息一致）。
+会话内 step3 结果页快照首条同上（link "Tracking supermarket prices with Playwright" [ref=e86]、link "(https://www.sakisv.net/…)" [ref=e89]，共 190 个 link，"784 results"）。
+调用序列核对（判据 1）：共 3 次工具调用，全部为 browser_snapshot——
+  step1 snapshot {url: hn.algolia.com/?…&query=playwright&sort=byDate…}（URL 直导航，返回空快照=页面加载中）
+  step2 snapshot {}（落到最近快照上下文 tab，取得 byDate 结果快照 24586 字符——"无参调用优先落最近一次快照上下文 tab"修复生效）
+  step3 snapshot {url: hn.algolia.com/?query=playwright}（URL 直导航默认视图，结果快照 15091 字符）
+fill 0 次、click 0 次——snapshot→fill→click 搜索流仍未发生（无 stale-ref 误拒=工具修复生效，但模型行为未走 fill/click）。
