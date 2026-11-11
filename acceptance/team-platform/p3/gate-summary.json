@@ -1,0 +1,137 @@
+{
+  "phase": "p3",
+  "gateScript": "scripts/team-platform-gates/p3-gate.mjs",
+  "git": {
+    "commit": "b06e7b7ce1fe3f4e868fd27abc7c87b25ae186ee",
+    "branch": "feat/team-platform",
+    "dirty": true
+  },
+  "startedAt": "2026-11-11T02:42:51.964Z",
+  "finishedAt": "2026-11-11T02:43:20.670Z",
+  "cases": [
+    {
+      "id": "G-P3-01",
+      "criterion": "CORE-REG:access/glue/usage-stats 测试绿+tenant-scan 0+装载 0 警告",
+      "command": "vitest×3 + tenant-scan + 容器日志",
+      "expect": "(per criterion)",
+      "actual": "a=0 g=0 u=0 scan=0 mount=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p3/evidence/G-P3-01/core-reg.txt"
+      ],
+      "durationMs": 4535
+    },
+    {
+      "id": "G-P3-02",
+      "criterion": "工程门:pnpm -w run verify exit 0",
+      "command": "pnpm -w run verify",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p3/evidence/G-P3-02/verify.log"
+      ],
+      "durationMs": 22551
+    },
+    {
+      "id": "G-P3-03",
+      "criterion": "聚合快照:固定样本五视图逐值对账(aggregate.test 4 例含账本优先/互斥)",
+      "command": "vitest run usage-stats",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p3/evidence/G-P3-03/vitest.txt"
+      ],
+      "durationMs": 648
+    },
+    {
+      "id": "G-P3-04",
+      "criterion": "归属互斥+账本唯一事实源(混合样本 A/B 互斥+orphan 只进全局——aggregate.test case1)",
+      "command": "同 G-P3-03 证据",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p3/evidence/G-P3-04/vitest.txt"
+      ],
+      "durationMs": 628
+    },
+    {
+      "id": "G-P3-05",
+      "criterion": "双视角 E2E:admin 全局视图渲染(scope=全局);普通用户本人视图;直调全局端点裁剪(Host 端按 principal 返回 self)",
+      "command": "p3-e2e-panel.mjs(证据复用)",
+      "expect": "(per criterion)",
+      "actual": "admin=true/global=true bob=true",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p3/evidence/panel/record.json"
+      ],
+      "durationMs": 0
+    },
+    {
+      "id": "G-P3-07",
+      "criterion": "空数据态:新账号面板渲染空态文案不破版",
+      "command": "p3-e2e-panel.mjs(证据复用)",
+      "expect": "(per criterion)",
+      "actual": "bobPanel=true",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p3/evidence/panel/record.json"
+      ],
+      "durationMs": 0
+    },
+    {
+      "id": "G-P3-08",
+      "criterion": "面板数据正确:总览卡渲染+真连回合 usage 落日志(经 live-matrix 后 admin 视图非空)",
+      "command": "p3-e2e-panel.mjs + live-matrix 顺序执行",
+      "expect": "(per criterion)",
+      "actual": "totalCard=true",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p3/evidence/panel/record.json"
+      ],
+      "durationMs": 0
+    },
+    {
+      "id": "G-P3-12",
+      "criterion": "登记:TOGGLEABLE_PLUGINS 含 eterna-usage-stats;装载行在渲染 profile;tenant-scan 0",
+      "command": "grep + 容器",
+      "expect": "(per criterion)",
+      "actual": "list=1 profile=1 scan=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p3/evidence/G-P3-12/registry.txt"
+      ],
+      "durationMs": 293
+    },
+    {
+      "id": "G-P3-13",
+      "criterion": "视觉证据:面板深/浅双主题 PNG 落 gui-test-screenshots/team-platform/p3/",
+      "command": "fs 检查",
+      "expect": "(per criterion)",
+      "actual": "missing=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p3/evidence/G-P3-13/visual.txt"
+      ],
+      "durationMs": 0
+    }
+  ],
+  "summary": {
+    "total": 9,
+    "pass": 9,
+    "fail": 0,
+    "exempt": 0
+  },
+  "verdict": "go"
+}

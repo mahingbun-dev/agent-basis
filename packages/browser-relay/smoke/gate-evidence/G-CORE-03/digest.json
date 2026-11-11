@@ -1,0 +1,27 @@
+{
+  "session": "session-f1fef4af-cb8b-4366-88ec-cd0c58b9e5ff",
+  "sequence": [
+    "browser_snapshot(1/1)",
+    "browser_click(1/2)",
+    "browser_snapshot(1/3)"
+  ],
+  "clickCount": 1,
+  "clickNoError": true,
+  "refCheck": [
+    {
+      "ref": "e340",
+      "present": true
+    }
+  ],
+  "openedTabsUrls": [
+    "https://www.ithome.com/1/024/618.htm"
+  ],
+  "turnFailed": false,
+  "criteria2": {
+    "attempted": true,
+    "detailUrl": "https://www.ithome.com/1/024/618.htm",
+    "baselineFirstParaLen": 75,
+    "baselineFirstParaSha": "75ch:18ff80a0",
+    "answerContainsBaseline": true
+  }
+}

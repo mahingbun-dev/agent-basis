@@ -1,0 +1,2 @@
+vitest=0
+{"kind":"governance","at":"2026-11-10T18:29:57.692Z","detail":{"kind":"access.terminal.install","detail":{"tenant":true,"ptySandbox":true}},"actor":{"pluginId":"eterna-access","source":"decision"}}

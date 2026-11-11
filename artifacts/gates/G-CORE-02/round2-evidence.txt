@@ -1,0 +1,45 @@
+=== 第二轮证据留痕（2026-11-10 第二轮复验，独立验收代理提取）===
+门禁：G-CORE-02
+会话导出：<解压副本> 原始 .eterna-gate-home/sessions/.../session.v4.jsonl.zstd 对应 session-b57aa231-68fd-41d3-9ecb-bd2659373b27.jsonl
+采集窗口（CST）：12:27:46–12:28:50
+
+--- 一、会话导出工具调用序列（tool/call + tool/result，按时间序）---
+[1794313674734] call mcp__browser__browser_snapshot :: {"url":"https://hn.algolia.com/?query=playwright&sortBy=Relevance"}
+[1794313680575] result mcp__browser__browser_snapshot :: isError=False ok=True url=https://hn.algolia.com/?query=playwright&sortBy=Relevance title=All | Search powered by Algolia snaplen=1448
+[1794313684631] call mcp__browser__browser_fill :: {"ref":"e2","value":"playwright"}
+[1794313685642] result mcp__browser__browser_fill :: isError=True Error: {"ok":false,"tool":"browser_fill","error":{"code":"TOOL_ERROR","message":"ref e2 不在最近一次快照中（页面已变化请重新 snapshot；stale ref 禁止重试）"}}
+[1794313693083] call mcp__browser__browser_snapshot :: {}
+[1794313697271] result mcp__browser__browser_snapshot :: isError=False ok=True url=https://example.com/ title=Example Domain snaplen=1055
+[1794313700502] call mcp__browser__browser_snapshot :: {"tabId":1828604469}
+[1794313703860] result mcp__browser__browser_snapshot :: isError=False ok=True url=https://hn.algolia.com/?query=playwright&sortBy=Relevance title=All | Search powered by Algolia snaplen=15097
+
+--- 二、用户输入与审批事件 ---
+user/message: 在 Hacker News 搜索 playwright，告诉我第一条结果的标题和链接
+user/message: <system-reminder>
+The following workspace instructions may be relevant to your w…
+user/message: Current runtime context. This snapshot supersedes earlier runtime-context snapsh…
+user/message: <system-reminder>
+A skill is a reusable set of task-specific instructions. The f…
+user/message: Time sampled while preparing turn 1, step 1: 2026-11-10T20:27:48+08:00[Asia/Shan…
+approval/decided: allowed-once（harness 自动批准）
+approval/decided: allowed-once（harness 自动批准）
+approval/decided: allowed-once（harness 自动批准）
+approval/decided: allowed-once（harness 自动批准）
+
+--- 三、服务端日志检索（egress 审计日志 audit-20261110.jsonl，时间窗 12:27:46–12:28:50 CST）---
+2026-11-10T12:28:00.575Z turn=1 step=1 mcp__browser__browser_snapshot isError=False
+2026-11-10T12:28:05.642Z turn=1 step=2 mcp__browser__browser_fill isError=True
+2026-11-10T12:28:17.271Z turn=1 step=3 mcp__browser__browser_snapshot isError=False
+2026-11-10T12:28:23.860Z turn=1 step=4 mcp__browser__browser_snapshot isError=False
+时间窗内 tool-call 合计 4 条，isError=true 共 1 条。
+attach 字样检索（会话导出全文）：0 条。
+注：第二轮采集未归档 relay/gate-setup 控制台输出（第一轮留痕来源 1）；本文件以审计日志（服务端）+ 会话导出检索替代，relay/扩展侧 stderr 缺口如实登记。
+
+--- 四、独立复核（第二轮验收代理自行抓取，2026-11-10）---
+基准：https://hn.algolia.com/api/v1/search?query=playwright（HN 官方搜索后端，默认相关度）
+第 1 条：Tracking supermarket prices with Playwright | https://www.sakisv.net/2024/08/tracking-supermarket-prices-playwright/ | 467 points, 210 comments | objectID 41173335
+（nbHits=4346；另抓页面 https://hn.algolia.com/?query=playwright 交叉核对，第 1 条同上）
+agent 回答第 1 条：Tracking supermarket prices with Playwright | https://www.sakisv.net/2024/08/tracking-supermarket-prices-playwright/
+标题、链接逐字符比对：一致（467 points/210 comments 补充信息亦一致）。
+附注：agent 转述「当前按热度（Popularity）排序」，结果页 UI 快照显示 "by Popularity" 而 URL 为 sortBy=Relevance——排序描述与 URL 参数口径不一，属补充信息瑕疵，不影响判据 2 的标题/链接比对。
+调用序列核对（判据 1）：snapshot(step1, url 导航至 hn.algolia.com/?query=playwright) → fill(step2, ref=e2, isError=TRUE「ref e2 不在最近一次快照中」) → snapshot(step3) → snapshot(step4, 结果页)。fill 成功 0 次、click 0 次。

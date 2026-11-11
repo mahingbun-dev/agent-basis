@@ -1,0 +1,6 @@
+# @eterna/usage-stats bundle:用量统计双面插件(一行两面,@eterna/panel 同款配方)。
+# - Host 半边:Typert SRC 端点 eternaUsageStats/stats(归属=access 账本)。
+# - 浏览器半边:main keyed 面板 + sidebar.panellist 入口(P3-T2.3)。
+- insert:
+    - id: eterna-usage-stats
+      name: '@eterna/usage-stats'

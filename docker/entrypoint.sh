@@ -12,7 +12,7 @@
 #   BrowserAuth 会话签名落卷 credentials(重启不掉线)。
 set -eu
 
-: "${LITELLM_API_KEY:?LITELLM_API_KEY required (env / compose .env)}"
+: "${MIMO_API_KEY:?MIMO_API_KEY required (env / compose .env——默认模型走 MiMo 直连)}"
 DSH_HOME="${DSH_HOME:-/data}"
 PROFILE_DIR="$DSH_HOME/profiles/eterna-web"
 REPO=/repo
@@ -21,10 +21,8 @@ REPO=/repo
 mkdir -p "$PROFILE_DIR/node_modules/@eterna" "$PROFILE_DIR/node_modules/@deepseek-ai"
 cp /repo/docker/profile/package.json "$PROFILE_DIR/package.json"
 
-# ── 2. patch 渲染(env 即配置) ──────────────────────────────────────────
-: "${ETERNA_LLM_BASE_URL:?ETERNA_LLM_BASE_URL required (e.g. http://192.168.31.165:4000/v1)}"
-sed "s|__ETERNA_LLM_BASE_URL__|$ETERNA_LLM_BASE_URL|g" \
-  /repo/docker/profile/cordis.patch.yml.template > "$PROFILE_DIR/cordis.patch.yml"
+# ── 2. patch 渲染(env 即配置;P2 网关后模板无占位符,直拷) ────────────────
+cp /repo/docker/profile/cordis.patch.yml.template "$PROFILE_DIR/cordis.patch.yml"
 
 # ── 2.5 插件启停清单(T2.3):admin 停用的可停插件 → 渲染时裁剪对应 insert 行 ──
 DISABLED_FILE="$DSH_HOME/access/disabled-plugins.json"
@@ -50,30 +48,78 @@ if [ -f "$DISABLED_FILE" ] || [ -f "$REMOVED_FILE" ]; then
 fi
 
 # ── 2.6 治理规则渲染(2026-11-10「完全权限全拒」事故修复,方案 A)──────────
-# governance-plugin 读 process.cwd()/.eterna/governance.rules.yml(WORKDIR=/repo);
-# 缺文件即空规则集 → fail-closed 默认 ask 打在每个工具调用上,而「完全权限」预设
-# approval=never 对 ask 确定性 rejected → 静默全拒。规则集随镜像入仓
+# governance-plugin 读 process.cwd()/.eterna/governance.rules.yml(governance-plugin.ts:74)。
+# 容器 working_dir=/data(compose:23)= $DSH_HOME——渲染目标必须是 $DSH_HOME/.eterna/。
+# 【2026-11-10 I2 事故修正】原实现按「WORKDIR=/repo」的错误假设渲染到 /repo/.eterna/,
+# 插件读不到 → 空规则集 → fail-closed 默认 ask × 完全权限预设 approval=never = 同毫秒全拒
+# (cherry 会话 session-6b03c31d 实证)。规则集随镜像入仓
 # (docker/profile/governance.rules.yml,工具名逐字对账见其头注);卷上
 # $DSH_HOME/access/governance.rules.yml 存在时优先(运维免重建改规则)。
 GOV_SRC="$DSH_HOME/access/governance.rules.yml"
 if [ ! -f "$GOV_SRC" ]; then
   GOV_SRC=/repo/docker/profile/governance.rules.yml
 fi
-mkdir -p /repo/.eterna
-cp "$GOV_SRC" /repo/.eterna/governance.rules.yml
-echo "[entrypoint] governance rules: $GOV_SRC"
+mkdir -p "$DSH_HOME/.eterna"
+cp "$GOV_SRC" "$DSH_HOME/.eterna/governance.rules.yml"
+echo "[entrypoint] governance rules: $GOV_SRC -> $DSH_HOME/.eterna/governance.rules.yml (cwd=$(pwd))"
 
 # ── 3. 插件 symlink(本仓 @eterna/*) ────────────────────────────────────
-for pkg in glue llm-doctor brand panel prompt-studio llm-openai access; do
+for pkg in glue llm-doctor brand panel prompt-studio llm-openai access usage-stats; do
   ln -sfn "$REPO/packages/$pkg" "$PROFILE_DIR/node_modules/@eterna/$pkg"
 done
 # creation-skills 别名(preset-cordis skill-filesystem 解析名)
 ln -sfn "$REPO/packages/brand" "$PROFILE_DIR/node_modules/@eterna/creation-skills"
 
-# ── 4. @deepseek-ai 家族 → 全局 dsh 同版本拷贝 ─────────────────────────
+# ── 4. @deepseek-ai 家族 → 全局拷贝 ─────────────────────────────────────
+# preset 必须指 dsh 包内拷贝（版本与运行内核严格一致——指向别处会静默 disable）；
+# mcp-client 指独立全局安装包（Dockerfile 显式 npm i -g，0.2.2-rc.1）。
 DSH_PKG="$(dirname "$(dirname "$(readlink -f "$(command -v dsh)")")")"
 ln -sfn "$DSH_PKG/node_modules/@deepseek-ai/dsh-agent-preset" \
   "$PROFILE_DIR/node_modules/@deepseek-ai/dsh-agent-preset"
+MCP_CLI="$(npm root -g)/@deepseek-ai/dsh-mcp-client"
+if [ -d "$MCP_CLI" ]; then
+  ln -sfn "$MCP_CLI" "$PROFILE_DIR/node_modules/@deepseek-ai/dsh-mcp-client"
+else
+  echo "[entrypoint] 警告：全局 @deepseek-ai/dsh-mcp-client 不存在（$MCP_CLI）——mcp-browser 挂载将失效"
+fi
+
+# ── 4.5 companion 中继（浏览器执行面）：后台监督循环拉起 ──────────────────
+# relay=用户浏览器扩展的 ws 接入腿 + mcp-browser 工具的 HTTP 后端。
+# token：ETERNA_RELAY_TOKEN env 优先；缺省生成随机 token 落卷（重启不变），
+# docker logs 提示路径。红线 9（中继鉴权）：生产必带 token。
+RELAY_TOKEN="${ETERNA_RELAY_TOKEN:-}"
+if [ -z "$RELAY_TOKEN" ]; then
+  TOKEN_FILE="$DSH_HOME/relay-token"
+  if [ -f "$TOKEN_FILE" ]; then
+    RELAY_TOKEN="$(cat "$TOKEN_FILE")"
+  else
+    RELAY_TOKEN="rl-$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+    printf '%s' "$RELAY_TOKEN" > "$TOKEN_FILE"
+    chmod 600 "$TOKEN_FILE"
+  fi
+fi
+# 用户令牌清单（access /access/api/companion 按用户生成，relay 直读校验；
+# 文件缺省不存在=仅主 token 有效）。mcp-browser 的容器内凭据同源渲染进 patch。
+TOKENS_FILE="$DSH_HOME/access/companion-tokens.json"
+RELAY_ARGS="start --host 0.0.0.0 --port 9310 --token $RELAY_TOKEN --tokens-file $TOKENS_FILE --zip /repo/packages/extension-companion/eterna-companion.zip"
+if [ -n "${ETERNA_RELAY_PUBLIC_URL:-}" ]; then
+  RELAY_ARGS="$RELAY_ARGS --public-ws-url $ETERNA_RELAY_PUBLIC_URL"
+fi
+
+# patch 渲染期 mcp-browser env 的容器内凭据（LLM base 渲染在步骤 2，token 生成在其后的
+# 4.5 段——故此处对已落卷的 patch 做第二遍 sed 替换占位）
+sed -i "s|__ETERNA_RELAY_TOKEN__|$RELAY_TOKEN|g" "$PROFILE_DIR/cordis.patch.yml"
+(
+  while true; do
+    node /repo/packages/browser-relay/dist/cli.mjs $RELAY_ARGS || true
+    sleep 2
+  done
+) &
+if [ -n "${ETERNA_RELAY_TOKEN:-}" ]; then
+  echo "[entrypoint] companion relay 后台启动 :9310（token=env 注入；publicWsUrl=${ETERNA_RELAY_PUBLIC_URL:-未设（guide 按本机默认展示）}）"
+else
+  echo "[entrypoint] companion relay 后台启动 :9310（token 已生成落卷 $DSH_HOME/relay-token；publicWsUrl=${ETERNA_RELAY_PUBLIC_URL:-未设（guide 按本机默认展示）}）"
+fi
 
 # ── 5. 启动(--host 拒通配:解析容器具体地址) ────────────────────────────
 IP="$(hostname -i | awk '{print $1}')"
@@ -87,5 +133,21 @@ if [ -n "${ETERNA_TRUSTED_HOST:-}" ]; then
   done
 fi
 
-echo "[entrypoint] container IP: $IP  LLM: $ETERNA_LLM_BASE_URL"
+echo "[entrypoint] container IP: $IP  LLM: 三家直连(deepseek/mimo/glm,P2 网关)"
+
+# ── 沙箱 runner 预检(P1-T3):landlock probe 非 full → 告警(沙箱 fail-closed 由上游保证,
+#    预检只做可见性;实测基镜像 probe=full,见隔离计划 T0.1)。
+# 沙箱 runner 预检(P1-T3):直调 landlock-run --probe(等价 probe() 语义:exit 0 且无
+# partial 标记=full)。包不入顶层 node_modules(可选依赖),按 .pnpm 实际路径定位。
+LAUNCHER="$(find /repo/node_modules/.pnpm -path '*node-addon-system-*/bin/landlock-run' -type f 2>/dev/null | head -1)"
+SANDBOX_PROBE="unusable"
+if [ -n "$LAUNCHER" ] && [ -x "$LAUNCHER" ] && OUT="$("$LAUNCHER" --probe 2>/dev/null)" && [ "$?" = "0" ]; then
+  case "$OUT" in *partially\ enforced*) SANDBOX_PROBE="partial" ;; *) SANDBOX_PROBE="full" ;; esac
+fi
+if [ "$SANDBOX_PROBE" = "full" ]; then
+  echo "[entrypoint] sandbox runner: landlock full"
+else
+  echo "[entrypoint] WARNING sandbox runner probe: $SANDBOX_PROBE — 沙箱可能 fail-closed(全拒)或降级,请检查内核"
+fi
+
 exec dsh "$@"

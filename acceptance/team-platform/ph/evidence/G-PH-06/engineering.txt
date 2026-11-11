@@ -1,0 +1,3 @@
+verifyExit=2
+tenantScanExit=0 tenant-scan: 0 finding(s)
+ci=[]

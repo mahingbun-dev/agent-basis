@@ -1,0 +1,11 @@
+录 verdict
+llm-doctor: 自动适配 mimo(anthropic-messages)baseURL http://gw.test/v1 → http://gw.test
+
+ ✓ tests/doctor.test.ts (16 tests) 33ms
+ ✓ tests/host-plugin.test.ts (9 tests) 734ms
+     ✓ apply 注册 volatile-update 监听并返回 disposer  705ms
+
+ Test Files  3 passed (3)
+      Tests  27 passed (27)
+   Start at  09:13:21
+   Duration  874ms (transform 46ms, setup 0ms, import 91ms, tests 769ms, environment 0ms)

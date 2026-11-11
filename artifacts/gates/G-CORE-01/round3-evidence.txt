@@ -1,0 +1,27 @@
+=== 第三轮证据留痕（2026-11-10 第三轮复验，独立验收代理提取）===
+门禁：G-CORE-01
+证据批次：21:00–21:03 CST（13:00–13:03Z）修复版重采（stale-ref 全局注册表 + openedTabs 回执）
+会话导出：.eterna-gate-home/sessions/…/session-66479065-f0f1-4559-88e1-330883d31a66/session.v4.jsonl.zstd（逐用例新会话）
+采集窗口（UTC）：13:00:46–13:01:17
+
+--- 一、会话导出工具调用序列（tool/call + tool/result + turn/end）---
+call step=1 mcp__browser__browser_snapshot :: {"url":"https://example.com"}
+result step=None mcp__browser__browser_snapshot :: isError=False ok=True url=https://example.com/ title=Example Domain snaplen=1055 openedTabs=null
+turn-end step=None None :: {"turn": 1, "reason": {"kind": "completed"}}
+
+--- 二、用户输入与审批事件 ---
+user/message: 打开 example.com 并读出页面标题
+approval/decided: allowed-once（harness 自动批准）
+
+--- 三、服务端日志检索（egress 审计日志 audit-20261110.jsonl，时间窗 13:00:46–13:01:17Z）---
+2026-11-10T13:00:57.875Z turn=1 step=1 mcp__browser__browser_snapshot isError=False
+时间窗内 tool-call 合计 1 条，isError=true 共 0 条。
+turn-end: 2026-11-10T13:01:05.857Z reason=completed
+注：relay/扩展侧控制台输出第三轮仍未归档（同第二轮缺口），以审计日志（服务端）+ 会话导出交叉核验。
+
+--- 四、独立复核（第三轮验收代理自行抓取，2026-11-10 21:0x CST）---
+curl -s https://example.com/ （HTTP 200）→ <title>Example Domain</title>
+agent 回答：「已打开 example.com，页面标题是：Example Domain」
+tab 实际标题（record.json tabs-after）：Example Domain
+三者逐字符比对：一致。
+a11y 快照形态：browser_snapshot 结果为结构化树（- text / - paragraph / - link [ref]），snaplen=1055，HTML 标签特征检索 0 处。

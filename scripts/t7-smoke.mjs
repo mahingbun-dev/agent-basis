@@ -38,7 +38,7 @@
  *     新会话开启即有快照(loopPrompt/session-snapshot 按会话可查,全景条目+
  *     版本指针+三型分语义);未知 sessionId not-found 明示;改提示词(保存)后
  *     已存快照逐字节不变(checksum 复核);快照单元目录落在 storage 栈根。
- * 10. T3.2 AI 端点缺席降级 + AI 提案写链路:宿主进程**不注入** LITELLM_API_KEY
+ * 10. T3.2 AI 端点缺席降级 + AI 提案写链路:宿主进程**不注入任何模型 key**(MIMO/LITELLM)
  *     (本 smoke 全程零模型调用;key 缺席使降级断言确定性成立,无 .secrets key 的
  *     环境同样全绿)——ai-status/ai-polish/ai-review unavailable 明示 + 润色零写
  *     (版本数/patch 字节/在途审批三不变);ai-proposal 两段式(建议稿文本本地
@@ -53,9 +53,11 @@
  *
  * 隔离纪律:运行态全在 .eterna-home-t7(DSH_HOME);Web 宿主一律 3108;进程清理只用
  * SIGTERM + pkill -f 'profile t7-studio' 精确模式(绝不 pkill 其他 dsh 实例);
- * LITELLM_BASE_URL 只从 .secrets/litellm-base-url.txt 读进 patch fixture(行配置,
- * 非凭据);LITELLM_API_KEY **不进宿主进程环境**(T3.2 起:AI 缺席降级是断言对象,
- * 真模型链路由 scripts/ps-v2-ai-smoke.mjs 承载,凭据只在该脚本内从 .secrets 读取)。
+ * 模型凭据(合并 origin/dev 后 MIMO 承载行时代):provider 行= MIMO 直连(baseURL
+ * 字面值,无密钥落地);本 smoke 全程零模型调用——宿主环境不注入任何模型 key
+ * (MIMO_API_KEY 与 LITELLM_API_KEY 均显式剔除,T3.2 起 AI 端点缺席降级是断言对象,
+ * 无任何 .secrets key 的环境同样全绿),真模型链路由 scripts/ps-v2-ai-smoke.mjs
+ * 承载(凭据只在该脚本内从 .secrets 读取,退出时还原 patch 原文)。
  *
  * 用法:node scripts/t7-smoke.mjs
  */
@@ -93,9 +95,9 @@ function check(name, ok, detail = '') {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const require_ = createRequire(import.meta.url)
 
-/* ---------- 秘钥(纪律 4:baseUrl 只读进 patch fixture;API key 不进宿主环境,见头注 10) ---------- */
-function litellmBaseUrl() {
-  return readFileSync(resolve(repoRoot, '.secrets/litellm-base-url.txt'), 'utf8').trim()
+/* ---------- 秘钥(纪律 4:provider 行 baseURL 用字面值;宿主零模型 key,见头注) ---------- */
+function mimoBaseUrl() {
+  return 'https://api.xiaomimimo.com/v1'
 }
 
 /* ---------- profile 自举(幂等;与 t7-spike-verify.mjs 同配方) ---------- */
@@ -181,8 +183,8 @@ function buildPatch(marker) {
     '    - id: eterna-llm',
     "      name: '@eterna/llm-openai'",
     '      config:',
-    `        baseURL: '${litellmBaseUrl()}'`,
-    '        apiKeyEnv: LITELLM_API_KEY',
+    `        baseURL: '${mimoBaseUrl()}'`,
+    '        apiKeyEnv: MIMO_API_KEY',
     "        provider: 'eterna'",
     '        models:',
     '          - id: deepseek-flash',
@@ -215,10 +217,16 @@ function startHost() {
     '--profile', profileName, '--host', '127.0.0.1', '--port', String(port), '--no-open',
   ], {
     cwd: profile,
-    // T3.2 起 LITELLM_API_KEY 不注入(见头注 10):本 smoke 零模型调用,AI 端点的
-    // 缺席降级是断言对象;宿主内 eterna-llm 行对 boot 无 key 要求(懒取)。父进程
-    // 环境若已导出该 key,显式剔除——降级断言的确定性不依赖运行环境。
-    env: (() => { const env = { ...process.env, DSH_HOME: home }; delete env.LITELLM_API_KEY; return env })(),
+    // T3.2 起宿主不注入任何模型 key(见头注):本 smoke 零模型调用,AI 端点的
+    // 缺席降级是断言对象;宿主内适配器行对 boot 无 key 要求(懒取)。父进程
+    // 环境若已导出任何模型 key(MIMO/LITELLM),显式剔除——降级断言的确定性
+    // 不依赖运行环境。
+    env: (() => {
+      const env = { ...process.env, DSH_HOME: home }
+      delete env.LITELLM_API_KEY
+      delete env.MIMO_API_KEY
+      return env
+    })(),
     stdio: ['ignore', out, out],
   })
   host.on('exit', (code) => { if (!stopping) console.log(`[host] exit code=${code}`) })
@@ -308,9 +316,8 @@ try {
     console.error(`端口 ${port} 已被占用(绝不 pkill 其他实例)——请先释放或检查遗留 t7 宿主`)
     process.exit(1)
   }
-  if (!existsSync(resolve(repoRoot, '.secrets/litellm-master-key.txt'))) {
-    throw new Error('凭据缺失:.secrets/litellm-master-key.txt 不存在(纪律 8:不伪造)')
-  }
+  // 合并裁定:本 smoke 零模型调用、宿主不注入任何 key(见头注)——不设任何凭据
+  // 存在性守卫,无 .secrets 模型凭据的环境同样全绿(真模型链路在 ps-v2-ai-smoke)。
   console.log(`[boot] repo=${repoRoot}`)
   console.log(`[boot] home=${home}`)
   ensureProfile()
@@ -730,15 +737,16 @@ try {
     rmSync(wsDir, { recursive: true, force: true })
   }
 
-  // 10) T3.2 AI 端点缺席降级 + AI 提案写链路(宿主进程未注入 LITELLM_API_KEY,
-  //     见头注 10:无 key 环境本节确定性全绿;真模型链路归 ps-v2-ai-smoke.mjs)。
+  // 10) T3.2 AI 端点缺席降级 + AI 提案写链路(宿主进程未注入任何模型 key,
+  //     见头注 10:无 key 环境本节确定性全绿;真模型链路归 ps-v2-ai-smoke.mjs;
+  //     合并 origin/dev 后承载行 apiKeyEnv=MIMO_API_KEY,降级 reason 锚定该名)。
   {
     // 10a) ai-status:路由可解析(patch 兜底面:eterna-llm insert 块承载行)但 key
     //      缺席 → unavailable 明示(env 名在场、密钥值绝不出现在响应/日志)。
     const status = await dsh.call('loopPrompt/ai-status')
-    check('T3.2 ai-status: 无 key 环境 unavailable 明示(reason 含 LITELLM_API_KEY,文案锚点「AI 能力不可用」)',
+    check('T3.2 ai-status: 无 key 环境 unavailable 明示(reason 含 MIMO_API_KEY,文案锚点「AI 能力不可用」)',
       status.status === 'unavailable' && status.available === false
-        && String(status.reason).includes('LITELLM_API_KEY') && status.note.includes('AI 能力不可用'),
+        && String(status.reason).includes('MIMO_API_KEY') && status.note.includes('AI 能力不可用'),
       `reason=${String(status.reason).slice(0, 60)}…`)
 
     // 10b) 润色/审核降级:unavailable(非 5xx、不炸宿主);润色零写(版本数/patch
@@ -751,7 +759,7 @@ try {
     })
     check('T3.2 ai-polish: 无 key 环境 unavailable + 无建议稿 + 明示 env 名',
       polish.status === 'unavailable' && polish.draft === undefined
-        && String(polish.issues?.[0]).includes('LITELLM_API_KEY') && polish.note.includes('AI 能力不可用'))
+        && String(polish.issues?.[0]).includes('MIMO_API_KEY') && polish.note.includes('AI 能力不可用'))
     const review = await dsh.call('loopPrompt/ai-review', {
       input: { entryId: 'preset.standard.persona', content: '缺红线的底稿文本' },
     })

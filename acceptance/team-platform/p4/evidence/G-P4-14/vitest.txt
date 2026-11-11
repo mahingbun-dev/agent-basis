@@ -1,0 +1,11 @@
+s
+ ✓ tests/sandbox-clamp.spec.ts (6 tests) 173ms
+ ✓ tests/ratelimit.spec.ts (3 tests) 2ms
+ ✓ tests/store.spec.ts (13 tests) 1532ms
+ ✓ tests/tenant-guard-matrix.spec.ts (24 tests) 1845ms
+ ✓ tests/routes.spec.ts (21 tests) 2136ms
+
+ Test Files  18 passed (18)
+      Tests  130 passed (130)
+   Start at  11:27:10
+   Duration  2.44s (transform 537ms, setup 0ms, import 1.12s, tests 9.18s, environment 1ms)

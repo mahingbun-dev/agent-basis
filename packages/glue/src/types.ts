@@ -42,4 +42,10 @@ export interface EgressPluginConfig {
   readonly noProxy?: readonly string[]
   /** 出网工具参数中无目的地时的策略(缺省 'allow' = 工具级白名单兜底;可显式收窄 'deny')。 */
   readonly unknownDestination?: 'deny' | 'allow'
+  /**
+   * 完全跳过 egress 审计的工具 glob(缺省 DEFAULT_EGRESS_EXEMPT_TOOL_GLOBS =
+   * mcp__browser__*:companion 浏览器执行面,url 参数=用户浏览器导航目的地,
+   * 出站在用户机器不经服务端——按服务端白名单审计属语义错位,2026-11-11 生产实测)。
+   */
+  readonly exemptToolGlobs?: readonly string[]
 }

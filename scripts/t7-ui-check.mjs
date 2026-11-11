@@ -38,7 +38,7 @@ function check(name, ok, detail = '') {
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const require_ = createRequire(import.meta.url)
-const litellmKey = () => readFileSync(resolve(repoRoot, '.secrets/litellm-master-key.txt'), 'utf8').trim()
+const mimoKey = () => readFileSync(resolve(repoRoot, '.secrets/mimo-api-key.txt'), 'utf8').trim()
 
 let host
 let stopping = false
@@ -49,7 +49,7 @@ function startHost() {
     '--profile', profileName, '--host', '127.0.0.1', '--port', String(port), '--no-open',
   ], {
     cwd: profile,
-    env: { ...process.env, DSH_HOME: home, LITELLM_API_KEY: litellmKey() },
+    env: { ...process.env, DSH_HOME: home, MIMO_API_KEY: mimoKey() },
     stdio: ['ignore', out, out],
   })
   host.on('exit', (code) => { if (!stopping) console.log(`[host] exit code=${code}`) })

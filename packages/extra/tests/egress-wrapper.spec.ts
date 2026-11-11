@@ -101,6 +101,26 @@ describe('EgressToolWrapper 工具级白名单(governance egress-lite 第 1 层)
     expect(calls).toHaveLength(0)
   })
 
+  it('exemptToolGlobs 命中 → 完全跳过审计(companion 浏览器执行面语义)', async () => {
+    // mcp__browser__* 的 url=用户浏览器导航目的地,出站在用户机器不经服务端——
+    // 即使域名不在白名单、也不在工具级白名单,豁免后原样放行(2026-11-11 生产实测回归)
+    const wrapper = new EgressToolWrapper({
+      egress: egressLite,
+      domains,
+      exemptToolGlobs: ['mcp__browser__*'],
+    })
+    const { tool, calls } = fakeTool('mcp__browser__browser_snapshot')
+    const result = await wrapper.wrap(tool).execute({ url: 'https://unlisted.example.org/x' }, fakeExec)
+    expect(result).toEqual({ ok: true, url: 'https://unlisted.example.org/x' })
+    expect(calls).toHaveLength(1)
+    const args = calls[0]!.args as Record<string, unknown>
+    expect(args['env']).toBeUndefined()
+    // 不匹配豁免的工具照旧被审计
+    const wrapper2 = new EgressToolWrapper({ egress: egressLite, domains, exemptToolGlobs: ['mcp__browser__*'] })
+    const pre = wrapper2.preflight('web_fetch', { url: 'https://evil.example.org/x' })
+    expect(pre.kind).toBe('denied')
+  })
+
   it('本地工具(非出网型)直通,不注代理', async () => {
     const wrapper = new EgressToolWrapper({ egress: egressLite, domains })
     const { tool, calls } = fakeTool('read')

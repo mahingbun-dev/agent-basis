@@ -33,7 +33,7 @@ EternaAgent 部署为多账号门禁形态(eterna-access):unary `/api` 端点由
 2. **T2 路由面独占**:插件不得自行调用 `webServer.register*` / `registerFallback` / `registerUpgrade` / `connection.fetch.register` / `connection.rpc.handle|intercept`——绕过租户守卫的路由 = 隔离失效。新增数据端点的唯一正路:在 `packages/access/src/tenant.ts` 的守卫清单登记(归属校验+直调+记账),纯展示页走 access 的 `/access/*` 面。上游自有路由面(WS mux `/api/remote.mux` 等)不在插件控制内,勿仿写。
 3. **T3 workspace 登记册独占写**:workspace 增删必须经 `workspaceController`(守卫层才有归属记账点),禁止直读写 `storages/workspace.json`。
 4. **启停语义**:L1 插件必须登记进 `packages/access/src/routes.ts` 的 `TOGGLEABLE_PLUGINS`(或红线清单);admin 停用 = 重启后 patch 行被 entrypoint 渲染管线裁剪——插件必须可缺席(audit 缺席降级纪律同样适用于启停)。红线默认:治理/审计/出网/门禁。
-5. **已知限制(R12)知悉**:上游流端点(`workspace/follow` 等走 WS mux)不经守卫,工作区**列表元数据**(标题/路径名)对登录用户全局可见;数据读写/终端入口已被守卫隔离。新端点设计时避免把敏感数据放进列表元数据,并评估上游 per-connection identity 进展。
+5. **mux 流隔离(原 R12,2026-11-11 已关闭)**:WS mux 流端点(`workspace/follow` 等)经 eterna-access 的 principal 换血+registerPolicy 过滤——mux 升级按 eterna_session 换血 per-user Peer(`packages/access/src/mux.ts`),策略绑定按归属账本动态返回,流 open 越权抛 `remote-access/denied`、列表按 `allows()` 逐项过滤(T2 E2E 容器实证:跨用户列表 0 命中、盗开会话流被拒)。防漂移:`packages/access/tests/mux-drift.spec.ts` 断言上游全部流方法∈策略动作清单。**新上游流端点落地时必须同步加入动作清单(测试即红)。** 新端点设计时仍避免把敏感数据放进列表元数据(过滤按资源归属,非字段级)。
 
 ### 1.2 提示词登记铁律(2026-11-11 起,`packctl prompt-scan` 强制)
 

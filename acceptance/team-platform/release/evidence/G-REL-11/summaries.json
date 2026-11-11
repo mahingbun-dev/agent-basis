@@ -1,0 +1,32 @@
+[
+  {
+    "phase": "ph",
+    "verdict": "go",
+    "exempt": 0
+  },
+  {
+    "phase": "p0",
+    "verdict": "go",
+    "exempt": 0
+  },
+  {
+    "phase": "p1",
+    "verdict": "go",
+    "exempt": 0
+  },
+  {
+    "phase": "p2",
+    "verdict": "go",
+    "exempt": 0
+  },
+  {
+    "phase": "p3",
+    "verdict": "go",
+    "exempt": 0
+  },
+  {
+    "phase": "p4",
+    "verdict": "go",
+    "exempt": 0
+  }
+]

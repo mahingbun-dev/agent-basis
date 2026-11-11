@@ -1,7 +1,7 @@
 # Eterna Agent 本机容器部署(云端 agent:NAS 反代 → 本容器)。
 #
 # 首次启动:
-#   1. cp .env.example .env 并填 LITELLM_API_KEY 与管理员账号
+#   1. cp .env.example .env 并填 DEEPSEEK_API_KEY/MIMO_API_KEY/BIGMODEL_API_KEY 与管理员账号
 #      (ETERNA_ACCESS_ADMIN_USER / ETERNA_ACCESS_ADMIN_PASSWORD,首启自动播种)
 #   2. docker compose up -d --build
 #   3. 访问 http://<本机局域网IP>:3210/login 用管理员账号登录(无需 token)
@@ -23,11 +23,20 @@ services:
     working_dir: /data
     ports:
       - "3210:8080"
+      # companion 中继（浏览器执行面）：扩展 ws 连入腿。生产经 NAS 反代把
+      # wss://域名/<前缀>/extension 转发到 本机:9310/extension（见 deploy/README.md）。
+      - "9310:9310"
     environment:
-      LITELLM_API_KEY: ${LITELLM_API_KEY:?在 .env 填 LITELLM_API_KEY}
-      ETERNA_LLM_BASE_URL: ${ETERNA_LLM_BASE_URL:-http://192.168.31.165:4000/v1}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      MIMO_API_KEY: ${MIMO_API_KEY:-}
+      BIGMODEL_API_KEY: ${BIGMODEL_API_KEY:-}
       ETERNA_PUBLIC_URL: ${ETERNA_PUBLIC_URL:-}
       ETERNA_TRUSTED_HOST: ${ETERNA_TRUSTED_HOST:-}
+      # companion 中继鉴权与公网展示地址（红线 9）：TOKEN 缺省自动生成落卷
+      # /data/relay-token；PUBLIC_URL=扩展实际连接地址（如
+      # wss://eternity-electricity.cn/relay/extension），guide 页/报错文案按它展示
+      ETERNA_RELAY_TOKEN: ${ETERNA_RELAY_TOKEN:-}
+      ETERNA_RELAY_PUBLIC_URL: ${ETERNA_RELAY_PUBLIC_URL:-}
       # 账号门禁(eterna-access):admin 首启播种(表空时);SECRET 缺省自动生成落卷
       ETERNA_ACCESS_ADMIN_USER: ${ETERNA_ACCESS_ADMIN_USER:-}
       ETERNA_ACCESS_ADMIN_PASSWORD: ${ETERNA_ACCESS_ADMIN_PASSWORD:-}

@@ -1,0 +1,137 @@
+{
+  "phase": "release",
+  "gateScript": "scripts/team-platform-gates/release-gate.mjs",
+  "git": {
+    "commit": "de33bc5d8c436bf2022fe743836d7fb1776964fb",
+    "branch": "feat/team-platform",
+    "dirty": true
+  },
+  "startedAt": "2026-11-11T03:48:20.956Z",
+  "finishedAt": "2026-11-11T03:48:45.354Z",
+  "cases": [
+    {
+      "id": "G-REL-01",
+      "criterion": "全量 verify exit 0",
+      "command": "pnpm -w run verify",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/release/evidence/G-REL-01/verify.log"
+      ],
+      "durationMs": 22666
+    },
+    {
+      "id": "G-REL-02",
+      "criterion": "tenant-scan 0 findings + packctl lint 过",
+      "command": "packctl tenant-scan + lint",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/release/evidence/G-REL-02/tenant-scan.txt"
+      ],
+      "durationMs": 155
+    },
+    {
+      "id": "G-REL-03",
+      "criterion": "CI 绿(feat/team-platform 最近 runs 全 success)",
+      "command": "gh run list",
+      "expect": "(per criterion)",
+      "actual": "[{\"w\":\"CI\",\"c\":\"success\"},{\"w\":\"CI\",\"c\":\"success\"},{\"w\":\"CI\",\"c\":\"success\"}]",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/release/evidence/G-REL-03/ci.json"
+      ],
+      "durationMs": 1328
+    },
+    {
+      "id": "G-REL-04",
+      "criterion": "装载冒烟:容器 0 skipping/incompatible + providers 三家",
+      "command": "docker logs + grep",
+      "expect": "(per criterion)",
+      "actual": "mount=0 providers=[1,1,1]",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/release/evidence/G-REL-04/mount.txt"
+      ],
+      "durationMs": 175
+    },
+    {
+      "id": "G-REL-05",
+      "criterion": "embed 档等价:模板三家直连无残留(rg litellm=0)",
+      "command": "rg 内嵌",
+      "expect": "(per criterion)",
+      "actual": "files=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/release/evidence/G-REL-05/litellm.txt"
+      ],
+      "durationMs": 17
+    },
+    {
+      "id": "G-REL-07",
+      "criterion": "全量安全回归(本地可判子集):沙箱逃逸+守卫矩阵+角色门+key 不回转+转内置——五阶段 gate-summary 全 go",
+      "command": "fs+JSON: ph/p0/p1/p2/p3/p4 summary",
+      "expect": "(per criterion)",
+      "actual": "[{\"phase\":\"ph\",\"verdict\":\"go\"},{\"phase\":\"p0\",\"verdict\":\"go\"},{\"phase\":\"p1\",\"verdict\":\"go\"},{\"phase\":\"p2\",\"verdict\":\"go\"},{\"phase\":\"p3\",\"verdict\":\"go\"},{\"phase\":\"p4\",\"verdict\":\"go\"}]",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/release/evidence/G-REL-07/phases.json"
+      ],
+      "durationMs": 1
+    },
+    {
+      "id": "G-REL-08",
+      "criterion": "视觉证据齐全:8 PNG(眼睛/目录树/用量面板/我的插件 × 深/浅)",
+      "command": "fs 检查",
+      "expect": "(per criterion)",
+      "actual": "missing=0 tiny=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/release/evidence/G-REL-08/visual.txt"
+      ],
+      "durationMs": 0
+    },
+    {
+      "id": "G-REL-10",
+      "criterion": "文档数字可追溯:USER-GUIDE 新功能段引用 acceptance 路径存在",
+      "command": "grep + fs",
+      "expect": "(per criterion)",
+      "actual": "guideRef=true dir=true",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/release/evidence/G-REL-10/doc-trace.txt"
+      ],
+      "durationMs": 1
+    },
+    {
+      "id": "G-REL-11",
+      "criterion": "五阶段 gate-summary 齐全且 verdict=go;豁免台账完整",
+      "command": "fs+JSON(同 G-REL-07 证据)",
+      "expect": "(per criterion)",
+      "actual": "[{\"phase\":\"ph\",\"verdict\":\"go\",\"exempt\":0},{\"phase\":\"p0\",\"verdict\":\"go\",\"exempt\":0},{\"phase\":\"p1\",\"verdict\":\"go\",\"exempt\":0},{\"phase\":\"p2\",\"verdict\":\"go\",\"exempt\":0},{\"phase\":\"p3\",\"verdict\":\"go\",\"exempt\":0},{\"phase\":\"p4\",\"verdict\":\"go\",\"exempt\":0}]",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/release/evidence/G-REL-11/summaries.json"
+      ],
+      "durationMs": 0
+    }
+  ],
+  "summary": {
+    "total": 9,
+    "pass": 9,
+    "fail": 0,
+    "exempt": 0
+  },
+  "verdict": "go"
+}

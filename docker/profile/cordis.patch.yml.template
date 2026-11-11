@@ -1,10 +1,10 @@
 # ── Eterna Agent 容器部署 patch 模板 ──────────────────────────────────────
 # 来源:验收实例 proven 配置(.eterna-home-accept profile)收编入库(2026-11-09)。
-# 渲染:docker/entrypoint.sh 将 __ETERNA_LLM_BASE_URL__ 替换为 $ETERNA_LLM_BASE_URL
+# 渲染:docker/entrypoint.sh 直拷模板(P2 网关后无占位符;三家 baseURL 固化于本文件)
 # 后落卷 $DSH_HOME/profiles/eterna-web/cordis.patch.yml(每次启动重渲染,env 即配)。
 # 漂移守卫:改本模板或 profiles/eterna-web/cordis.patch.yml(企业裁切基座)后,
 # 重跑本同步(sed 比对)或在 PR 中显式重放挂载块——两文件职责见各自头注。
-# 密钥纪律:模板无任何密钥;key 经 LITELLM_API_KEY env(apiKeyEnv 指名读取)。
+# 密钥纪律:模板无任何密钥;key 经 DEEPSEEK_API_KEY/MIMO_API_KEY/BIGMODEL_API_KEY env(apiKeyEnv 指名读取)。
 # Basis enterprise Web 档（eterna-web）：dsh-base + dsh-web-app 之上的企业裁切层。
 #
 # 装载形态：DSH profile `$DSH_HOME/profiles/eterna-web`，其 package.json 声明
@@ -416,12 +416,41 @@
 - id: ui-sidebar-browser
   disabled: false
 
+# ── P1-T3（2026-11-11）：沙箱权限档裁剪——多用户共享单容器，写边界=账号目录 ──
+# ① 覆写基础档 `permission` 行(dsh-base cordis.patch.yml:264)：只留两档,危险档
+#    danger-full-access 从目录中消失（approval=never×空规则全拒事故模式一并消除）。
+#    覆写语义：重述全部键。
+# ② ui-permission 客户端行禁用：用户不可自助换档（档位固定 workspace-write+ask）。
+- id: permission
+  config:
+    presets:
+      read-only:
+        sandbox: read-only
+        approval: ask
+      workspace-write:
+        sandbox: workspace-write
+        approval: ask
+- id: ui-permission
+  disabled: true
+
+
+# ── P1-T5（2026-11-11）：目录树工作区选择器——裁 browse 客户端、保 directoryPicker 路由 ──
+# ① 禁 directory-picker auto 行（其运行时 insert 的 browse 对 = host 路由 + browse 客户端
+#    ——客户端含可键入路径编辑区，多用户下即路径越界面；slot 单洞必须唯一占用者）。
+# ② insert host-browse 行：恢复 /api/directoryPicker/* 路由（该包无客户端面，lib 仅 index.js）。
+# ③ 目录树 UI 由 access 客户端注册双洞 directoryFlow slot（@eterna/access client）。
+- id: directory-picker
+  disabled: true
+- insert:
+    - id: directory-picker-host
+      name: '@deepseek-ai/dsh-host-directory-picker-browse'
+
 # ── 验收挂载（2026-11-09 v2）：治理三插件 + 官方 pi-ai LLM 承载 ─────────────
 # 治理面三插件=T9 E2E 同款（行序=apply 序=pre-execute 瀑布序）。
 # LLM 承载行改官方 @deepseek-ai/dsh-llm-pi-ai：ns 必须逐字 llm-pi-ai（客户端
 # ui-settings-models layoutOf 按 entry id 精确匹配，命中官方完整编辑器——
 # Base URL/API 格式/API Key/模型列表(上下文窗口/视觉模态/推理档)/连接测试）。
-# 密钥口径：apiKeyEnv=LITELLM_API_KEY env 优先；UI 填写则落 .credentials.yaml(0600)。
+# 密钥口径：apiKeyEnv=DEEPSEEK_API_KEY/MIMO_API_KEY/BIGMODEL_API_KEY env；UI 填写则落 .credentials.yaml(0600)。
 # 关键机制：llm-pi-ai 行必须是【根级覆写】（base 树自带休眠 llm-pi-ai 行，dsh-base
 # cordis.patch.yml:135）而非 insert——configEditor 只定位根级非 insert 行
 #（dsh-config-editor lib/index.js:97,100 明确跳过 insert 块），行在 insert 内则
@@ -449,16 +478,50 @@
     # symlink）。admin 停用→entrypoint 第 2.5 步按 disabled-plugins.json 裁剪本行。
     - id: eterna-prompt-studio
       name: '@eterna/prompt-studio'
+    - id: eterna-usage-stats
+      name: '@eterna/usage-stats'
+
+# ── Companion 浏览器执行面（E4 生产挂载，2026-11-11）：用户浏览器=执行面 ────
+# dsh-mcp-client stdio 挂 browser-relay 的 MCP server（三工具 mcp__browser__*）；
+# relay 同容器 127.0.0.1:9310（entrypoint 后台拉起，扩展 ws 连入）。
+# 扩展未连接时工具报错附指引页 URL（模型转告用户，guide 页含下载与安装步骤）。
+# 非 dsh 红线插件：admin 可在插件管理停用（entrypoint strip 按 id 裁剪）。
+- insert:
+    - id: mcp-browser
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: browser
+        transport: stdio
+        command: node
+        args:
+          - /repo/packages/browser-relay/dist/mcp.mjs
+        env:
+          ETNA_RELAY_BASE: http://127.0.0.1:9310
+          ETNA_RELAY_TOKEN: __ETERNA_RELAY_TOKEN__
+        toolCallTimeoutMs: 120000
 
 # LLM 承载（根级覆写 base 休眠行，非 insert——原因见上）：pi-ai 多协议适配器
+# ── P2 网关（2026-11-11）：外部网关退场，三家直连（网关=pi-ai carriers 配置级实现）──
+# 异常锚 A1（生产事故 §2.5 I1）实证的方言三点，由 provider 级 compat 显式钉死：
+#   ① supportsDeveloperRole:false——chat 协议系统提示词一律 system（pi-ai 对
+#      reasoning 模型默认发 developer 角色-openai-completions.js:905；经网关中转时
+#      baseUrl 识别失效即误发，直连下显式钉死不依赖 baseUrl 字符串门控）
+#   ② maxTokensField:max_tokens——DeepSeek 系字段名（:1278 isDeepSeek 门控同理显式化）
+#   ③ requiresReasoningContentOnAssistantMessages:true——多轮带 tools 回传
+#      reasoning_content（官方硬性要求，不回传 400）
+# 联网：provider 原生 web_search 一期不启用（默认关，现有 tool-web 兜底，见 P2-T1.6）。
 - id: llm-pi-ai
   config:
     providers:
-      litellm:
-        displayName: 企业模型网关（LiteLLM）
-        apiKeyEnv: LITELLM_API_KEY
+      deepseek:
+        displayName: DeepSeek（官方直连）
+        apiKeyEnv: DEEPSEEK_API_KEY
         api: openai-completions
-        baseURL: __ETERNA_LLM_BASE_URL__
+        baseURL: https://api.deepseek.com
+        compat:
+          supportsDeveloperRole: false
+          maxTokensField: max_tokens
+          requiresReasoningContentOnAssistantMessages: true
         models:
           - id: deepseek-flash
             name: DeepSeek Flash
@@ -472,8 +535,27 @@
               low: low
               medium: medium
               high: high
+          - id: deepseek-v4-pro
+            name: DeepSeek V4 Pro
+            contextWindow: 300000
+            maxTokens: 8192
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: high
+      mimo:
+        displayName: MiMo（小米官方直连）
+        apiKeyEnv: MIMO_API_KEY
+        api: openai-completions
+        baseURL: https://api.xiaomimimo.com/v1
+        compat:
+          supportsDeveloperRole: false
+          requiresReasoningContentOnAssistantMessages: true
+        models:
           - id: mimo-v2.6-flash
-            name: mimo-v2.6-flash
+            name: MiMo V2.6 Flash
+            contextWindow: 300000
             input:
               - text
               - image
@@ -482,9 +564,9 @@
               low: low
               medium: medium
               high: high
-            contextWindow: 300000
           - id: mimo-v2.6-pro
-            name: mimo-v2.6-pro
+            name: MiMo V2.6 Pro
+            contextWindow: 300000
             input:
               - text
               - image
@@ -493,28 +575,31 @@
               low: low
               medium: medium
               high: high
-            contextWindow: 300000
           - id: mimo-v2.6-pro-ultraspeed
-            name: mimo-v2.6-pro-ultraspeed
+            name: MiMo V2.6 Pro 极速
             contextWindow: 300000
-            input:
-              - text
-              - image
             reasoningEfforts:
               off: null
               low: low
               medium: medium
               high: high
+      glm:
+        displayName: GLM（智谱官方直连）
+        apiKeyEnv: BIGMODEL_API_KEY
+        api: openai-completions
+        baseURL: https://open.bigmodel.cn/api/paas/v4
+        compat:
+          supportsDeveloperRole: false
+        models:
           - id: glm-5.3
-            name: glm-5.3
+            name: GLM 5.3
             contextWindow: 300000
             reasoningEfforts:
-              off: null
               low: low
               medium: medium
               high: high
           - id: glm-5.3-flash
-            name: glm-5.3-flash
+            name: GLM 5.3 Flash
             contextWindow: 300000
             input:
               - text
@@ -528,7 +613,7 @@
 # 企业默认模型（base 既有行覆写，config 整份替换）：provider=pi-ai 路由 key
 - id: agent-default-model
   config:
-    provider: litellm
+    provider: mimo
     model: mimo-v2.6-pro
 - id: ui-settings-general
   name: "@deepseek-ai/dsh-client-ui-settings-general"

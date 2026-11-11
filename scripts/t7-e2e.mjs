@@ -11,7 +11,7 @@
  *      patch 未落盘、snapshot.pendingApproval 出现);
  *   B. 允许一次(二段回显同 content+baseVersionId+approvalId+approved)→
  *      committed、版本 +1、checksum 变化(==sha256(新文本)、≠写前);
- *   C. 新会话系统提示含新文本(LITELLM 真模型回合,通道 A 无需重启、宿主 pid 不变);
+ *   C. 新会话系统提示含新文本(真模型回合,通道 A 无需重启、宿主 pid 不变);
  *      旧会话(保存前已开)补轮后系统提示不含新文本;
  *      T2.1 起保存优先经官方 configEditor seam 写回热生效——5.8 审计通道字段=
  *      config-editor、5.9 整行写回后 !!js 表达式保真、5.10 写后 dump-config 干跑
@@ -40,7 +40,7 @@
  *
  * 隔离纪律:运行态全在 .eterna-home-t7(DSH_HOME);Web 宿主一律 3108;进程清理只用
  * SIGTERM + pkill -f 'profile t7-studio' 精确模式(绝不 pkill 其他 dsh 实例);
- * LITELLM_API_KEY 只从 .secrets/litellm-master-key.txt 读进宿主进程环境,不写入
+ * MIMO_API_KEY 只从 .secrets/mimo-api-key.txt 读进宿主进程环境,不写入
  * 任何被跟踪文件/日志/输出。
  *
  * 已知时序事实(docs/dev/t7-spike.md §6):回合完成以 session/events 出现 turn/end
@@ -119,11 +119,11 @@ function check(name, ok, detail = '') {
 }
 
 /* ---------- 秘钥(纪律 4:只读进宿主进程环境,不落盘/不进日志) ---------- */
-function litellmKey() {
-  return readFileSync(resolve(repoRoot, '.secrets/litellm-master-key.txt'), 'utf8').trim()
+function mimoKey() {
+  return readFileSync(resolve(repoRoot, '.secrets/mimo-api-key.txt'), 'utf8').trim()
 }
-function litellmBaseUrl() {
-  return readFileSync(resolve(repoRoot, '.secrets/litellm-base-url.txt'), 'utf8').trim()
+function mimoBaseUrl() {
+  return 'https://api.xiaomimimo.com/v1'
 }
 
 /* ---------- profile 自举(幂等;与 t7-smoke.mjs 同配方) ---------- */
@@ -194,8 +194,8 @@ function buildPatch(marker) {
     '    - id: eterna-llm',
     "      name: '@eterna/llm-openai'",
     '      config:',
-    `        baseURL: '${litellmBaseUrl()}'`,
-    '        apiKeyEnv: LITELLM_API_KEY',
+    `        baseURL: '${mimoBaseUrl()}'`,
+    '        apiKeyEnv: MIMO_API_KEY',
     "        provider: 'eterna'",
     '        models:',
     '          - id: deepseek-flash',
@@ -259,7 +259,7 @@ function startHost() {
     '--profile', profileName, '--host', '127.0.0.1', '--port', String(port), '--no-open',
   ], {
     cwd: profile,
-    env: { ...process.env, DSH_HOME: home, LITELLM_API_KEY: litellmKey() },
+    env: { ...process.env, DSH_HOME: home, MIMO_API_KEY: mimoKey() },
     stdio: ['ignore', out, out],
   })
   host.on('exit', (code) => { if (!stopping) console.log(`[host] exit code=${code}`) })
@@ -511,8 +511,8 @@ try {
     console.error(`端口 ${port} 已被占用(绝不 pkill 其他实例)——请先释放或检查遗留 t7 宿主`)
     process.exit(1)
   }
-  if (!existsSync(resolve(repoRoot, '.secrets/litellm-master-key.txt'))) {
-    throw new Error('凭据缺失:.secrets/litellm-master-key.txt 不存在(纪律 8:不伪造)')
+  if (!existsSync(resolve(repoRoot, '.secrets/mimo-api-key.txt'))) {
+    throw new Error('凭据缺失:.secrets/mimo-api-key.txt 不存在(纪律 8:不伪造)')
   }
   console.log(`[boot] repo=${repoRoot}`)
   console.log(`[boot] home=${home}`)
@@ -576,7 +576,7 @@ try {
     check('1.5 宿主启动日志无 skipping/incompatible', !/skipping|incompatible/i.test(readFileSync(hostLog, 'utf8')))
   }
 
-  // 4) 旧会话 A:保存前开回合(LITELLM 真模型),作为「不受新文本影响」的对照
+  // 4) 旧会话 A:保存前开回合(真模型),作为「不受新文本影响」的对照
   sessionAId = (await dsh.createSession()).sessionId
   await dsh.prompt(sessionAId, PROMPT_TEXT)
   await dsh.awaitTurnEnd(sessionAId, 1)

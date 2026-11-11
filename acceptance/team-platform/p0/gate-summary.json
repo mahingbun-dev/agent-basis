@@ -1,0 +1,33 @@
+{
+  "phase": "p0",
+  "gateScript": "scripts/team-platform-gates/p0-gate.mjs",
+  "git": {
+    "commit": "caf0f628948b033d39cfb2940ad83e2695196e8f",
+    "branch": "feat/team-platform",
+    "dirty": true
+  },
+  "startedAt": "2026-11-10T15:58:24.974Z",
+  "finishedAt": "2026-11-10T15:58:45.215Z",
+  "cases": [
+    {
+      "id": "G-P0-06",
+      "criterion": "根工程门:pnpm -w run verify exit 0",
+      "command": "pnpm -w run verify",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p0/evidence/G-P0-06/verify.log"
+      ],
+      "durationMs": 20205
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "pass": 1,
+    "fail": 0,
+    "exempt": 0
+  },
+  "verdict": "go"
+}

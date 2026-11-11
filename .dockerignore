@@ -31,3 +31,7 @@ docs/acp-real-6-r2
 docs/release-gate-v2
 docs/t14-replay-20
 docs/dev
+
+# 门禁证据与截图(镜像不需要)
+acceptance/
+gui-test-screenshots/
