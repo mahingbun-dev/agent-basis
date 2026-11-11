@@ -10,7 +10,7 @@
  * (T1 守卫钳根)。上游 browse 客户端由 patch 禁 auto 行+insert host-browse(仅路由)
  * 裁掉,slot 单洞无竞争。
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export interface DirectoryEntry {
   readonly name: string
@@ -132,8 +132,10 @@ export function DirectoryTreeFlow(props: DirectoryTreeProps): React.JSX.Element 
     listing: null, expanded: new Set(), children: {}, selected: null,
     creating: false, newFolderName: '', error: null,
   })
-  // open 置位时拉根层(守卫钳制的用户根)
-  if (open && state.listing === null && !state.creating) {
+  // open 置位时拉根层(守卫钳制的用户根)。副作用入 useEffect——render-phase setState
+  // 在 StrictMode 双渲染下会双拉,且属 React 反模式(2026-11-11 E2E 卫生项)。
+  useEffect(() => {
+    if (!open || state.listing !== null || state.creating) return
     setState(s => ({ ...s, creating: true }))
     listDirectory(undefined).then(listing => {
       setState(s => ({ ...s, listing, creating: false, error: null }))
@@ -142,7 +144,8 @@ export function DirectoryTreeFlow(props: DirectoryTreeProps): React.JSX.Element 
       setState(s => ({ ...s, creating: false, error: message }))
       onError?.(message)
     })
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- listing/creating 变化由守卫条件短路
+  }, [open, state.listing, state.creating])
   if (!open) return null
   const rootEntries = state.listing?.entries ?? []
   const toggle = (entry: DirectoryEntry): void => {

@@ -2,8 +2,9 @@
  * 服务端渲染页面(eterna 风格系统 v1,令牌化双主题):
  * - 风格规范见 docs/design/frontend-style.md——本文件即参考实现,后续页面必须复用 shell() 与令牌
  * - 深色为默认基调(匹配 dsh 应用底色 #151517),浅色经 prefers-color-scheme 自适应
- * - 账号页结构:个人资料卡(头像+昵称合并保存,脏检查)+安全卡(密码修改独立)
- * - 角标:注入 dsh index 页;401 → 跳 /login(门禁);404/网络错误静默降级
+ * - 账号自助(昵称/头像/密码)=应用内设置弹窗账号分区(铁律:不建独立页面);/account 仅 302 回应用
+ * - 角标:注入 dsh index 页;401 → 跳 /login(门禁);404/网络错误静默降级;
+ *   位置=头部下方悬浮(不得压头部右侧按钮——2026-11-11 E2E 遮挡事故),兼落座兜底
  */
 import { escapeHtml } from './http.ts'
 
@@ -60,12 +61,12 @@ h3{font-size:14px;margin:0 0 8px;color:var(--text);font-weight:600}
 label{display:block;font-size:13px;color:var(--dim);margin:12px 0 4px}
 .field{position:relative}
 .field input{padding-right:42px}
-.eye-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:30px;height:30px;min-width:0;margin:0;padding:0;
+.eye-btn{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:34px;height:34px;min-width:0;margin:0;padding:0;
   display:inline-flex;align-items:center;justify-content:center;background:none;border:0;border-radius:7px;
   color:var(--dim);cursor:pointer}
 .eye-btn:hover{color:var(--text);background:var(--surface-2)}
 .eye-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-input,select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;
+input,select{width:100%;padding:9px 12px;border:1px solid color-mix(in srgb,var(--text) 16%,transparent);border-radius:8px;font-size:14px;
   background:var(--surface-2);color:var(--text);transition:border-color .15s,box-shadow .15s}
 input::placeholder{color:color-mix(in srgb,var(--dim) 70%,transparent)}
 input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
@@ -198,41 +199,62 @@ export const BADGE_SCRIPT = `
     if(!u||!u.account)return
     meAccount=u.account
     var b=document.createElement('div')
-    b.style.cssText='position:fixed;top:8px;right:10px;z-index:2147483647;display:flex;align-items:center;gap:8px;background:rgba(17,24,39,.92);color:#f9fafb;border:1px solid rgba(255,255,255,.14);border-radius:9999px;padding:4px 14px 4px 4px;font:13px/1.6 system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.35);backdrop-filter:blur(6px)'
+    // 位置铁律:头部下方(top:52px)——固定右上(top:8px)会压住上游头部右侧的
+    // 「更多操作/打开右侧边栏」等按钮(2026-11-11 E2E:全宽度遮挡=插件页/设置入口全灭)。
+    b.style.cssText='position:fixed;top:52px;right:10px;z-index:2147483647;display:flex;align-items:center;gap:8px;max-width:60vw;background:rgba(17,24,39,.92);color:#f9fafb;border:1px solid rgba(255,255,255,.14);border-radius:9999px;padding:4px 14px 4px 4px;font:13px/1.6 system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.35);backdrop-filter:blur(6px)'
     var av
     if(u.avatarUrl){av=document.createElement('img');av.src=u.avatarUrl;av.style.cssText='width:26px;height:26px;border-radius:50%;object-fit:cover'}
     else{av=document.createElement('span');av.textContent=(u.nickname||u.account||'?').slice(0,1);av.style.cssText='width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px'}
     b.appendChild(av)
-    var name=document.createElement('span');name.textContent=u.nickname||u.account;b.appendChild(name)
+    var name=document.createElement('span');name.textContent=u.nickname||u.account
+    name.style.cssText='overflow:hidden;text-overflow:ellipsis;white-space:nowrap'
+    b.appendChild(name)
     var out=document.createElement('a');out.href='#';out.textContent='退出';out.style.cssText='color:#fca5a5;text-decoration:none';b.appendChild(out)
     out.addEventListener('click',function(e){
       e.preventDefault()
       fetch('/logout',{method:'POST',credentials:'same-origin'}).then(function(){location.href='/login'})})
     document.body.appendChild(b)
+    scheduleRecover()
   }).catch(function(){})
 
   // 租户引导:session/create 的拒绝帧默认只有手动点击路径会弹 toast(客户端自带),
-  // 自动引导(首屏连他人工作区被拒)是静默重试——这里补一条可见的引导条(30s 去重),
-  // 并做落座兜底:检测到被拒且输入框仍未落座时,自动点击自己的工作区行(标题=账号,
-  // 根工作区标题即账号),1.2s/3.5s/7s 三次为限,落座即停(输入框变为发消息框)。
+  // 自动引导(首屏连他人工作区被拒)是静默重试——这里补一条可见的引导条(30s 去重)。
+  // 落座兜底(2026-11-11 E2E 重写):空会话输入框([aria-label="选择工作区"])在场即调度,
+  // 1.2s/3.5s/7s 三次点击自己工作区头行的「+ 新建会话」按钮(上游 Rows.tsx aria=
+  // 在“{name}”中新建会话——走 startSession→openWorkspace,上游复用已开通 blank 会话;
+  // 旧实现点 treeitem 工作区行=仅折叠/展开,永不落座)。9s 仍空转 → 一次性 reload:
+  // 上游 navigation connectBlank 的僵尸 inflight attempt 会静默吞掉后续一切点击,
+  // 客户端无解,重载后 restoreSelection 沿已建会话(dsh.sessions.current)直接落座;
+  // sessionStorage 旗标防循环,落座成功即清。
   var lastGuide=0
   var seatTries=0
+  var RELOAD_FLAG='eternaSeatReload'
   function composerInert(){
     return !!document.querySelector('[aria-label="选择工作区"]')
   }
   function recoverSeat(){
     if(seatTries>=3||!meAccount||!composerInert())return
     seatTries++
-    var rows=document.querySelectorAll('[role="treeitem"]')
-    for(var i=0;i<rows.length;i++){
-      var label=((rows[i].getAttribute('aria-label'))||rows[i].textContent||'').trim()
-      if(label===meAccount){rows[i].click();break}
+    var btns=document.querySelectorAll('button[aria-label]')
+    for(var i=0;i<btns.length;i++){
+      var al=btns[i].getAttribute('aria-label')||''
+      if(al.indexOf(meAccount)!==-1&&al.indexOf('新建会话')!==-1){btns[i].click();break}
     }
   }
   function scheduleRecover(){
     setTimeout(recoverSeat,1200)
     setTimeout(recoverSeat,3500)
     setTimeout(recoverSeat,7000)
+    setTimeout(function(){
+      if(!meAccount)return
+      if(!composerInert()){try{sessionStorage.removeItem(RELOAD_FLAG)}catch(e){}return}
+      var reloaded=false
+      try{reloaded=!!sessionStorage.getItem(RELOAD_FLAG)}catch(e){}
+      if(!reloaded){
+        try{sessionStorage.setItem(RELOAD_FLAG,'1')}catch(e){}
+        location.reload()
+      }
+    },9000)
   }
   function guideToast(text){
     var t=document.createElement('div')
