@@ -90,6 +90,16 @@ export class UserStore {
       owner_id INTEGER NOT NULL REFERENCES users(id),
       path TEXT NOT NULL
     )`)
+    this.db.exec(`CREATE TABLE IF NOT EXISTS user_plugins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      plugin_id TEXT NOT NULL UNIQUE,
+      dir TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 0,
+      promoted INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(user_id, dir)
+    )`)
     this.db.exec(`CREATE TABLE IF NOT EXISTS sessions (
       session_id TEXT PRIMARY KEY,
       owner_id INTEGER NOT NULL REFERENCES users(id),
@@ -241,6 +251,7 @@ export class UserStore {
     }
     this.db.prepare('DELETE FROM sessions WHERE owner_id = ?').run(id)
     this.db.prepare('DELETE FROM workspaces WHERE owner_id = ?').run(id)
+    this.db.prepare('DELETE FROM user_plugins WHERE user_id = ?').run(id)
     this.db.prepare('DELETE FROM users WHERE id = ?').run(id)
   }
 
@@ -303,6 +314,54 @@ export class UserStore {
       | { owner_id: number }
       | undefined
     return row === undefined ? undefined : row.owner_id
+  }
+
+  // ── P4-T6(2026-11-11):双层插件记账(个人层激活清单;装载=进程内按行启用) ──
+
+  /** 个人插件记账行。 */
+  recordUserPlugin(userId: number, pluginId: string, dir: string, enabled: boolean): void {
+    this.db.prepare(
+      'INSERT INTO user_plugins (user_id, plugin_id, dir, enabled) VALUES (?, ?, ?, ?) ' +
+      'ON CONFLICT(plugin_id) DO UPDATE SET dir = excluded.dir, enabled = excluded.enabled',
+    ).run(userId, pluginId, dir, enabled ? 1 : 0)
+  }
+
+  /** 启停(仅本人行;返回是否命中)。 */
+  setUserPluginEnabled(userId: number, pluginId: string, enabled: boolean): boolean {
+    const r = this.db.prepare('UPDATE user_plugins SET enabled = ? WHERE user_id = ? AND plugin_id = ?')
+      .run(enabled ? 1 : 0, userId, pluginId)
+    return Number(r.changes) > 0
+  }
+
+  /** 标记已转内置(拷贝制:原件停用,公共层接管)。 */
+  markUserPluginPromoted(userId: number, pluginId: string): boolean {
+    const r = this.db.prepare('UPDATE user_plugins SET promoted = 1, enabled = 0 WHERE user_id = ? AND plugin_id = ?')
+      .run(userId, pluginId)
+    return Number(r.changes) > 0
+  }
+
+  userPluginsOfOwner(ownerId: number): Array<{ pluginId: string; dir: string; enabled: boolean; promoted: boolean }> {
+    const rows = this.db.prepare('SELECT plugin_id, dir, enabled, promoted FROM user_plugins WHERE user_id = ?').all(ownerId) as
+      Array<{ plugin_id: string; dir: string; enabled: number; promoted: number }>
+    return rows.map(row => ({ pluginId: row.plugin_id, dir: row.dir, enabled: row.enabled === 1, promoted: row.promoted === 1 }))
+  }
+
+  userPluginOwner(pluginId: string): number | undefined {
+    const row = this.db.prepare('SELECT user_id FROM user_plugins WHERE plugin_id = ?').get(pluginId) as
+      | { user_id: number }
+      | undefined
+    return row === undefined ? undefined : row.user_id
+  }
+
+  /** 级联销毁(T8):删用户时清其插件登记行。 */
+  forgetUserPlugins(ownerId: number): void {
+    this.db.prepare('DELETE FROM user_plugins WHERE user_id = ?').run(ownerId)
+  }
+
+  /** 单行移除(个人插件 remove)。 */
+  forgetUserPlugin(pluginId: string): boolean {
+    const r = this.db.prepare('DELETE FROM user_plugins WHERE plugin_id = ?').run(pluginId)
+    return Number(r.changes) > 0
   }
 
   /** 归属账本读取:mux 租户策略 bindings 用(T2,2026-11-11)。 */

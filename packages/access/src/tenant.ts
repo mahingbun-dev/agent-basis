@@ -14,6 +14,7 @@
 import { mkdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { withinRoot } from './within-root.ts'
+import { registerUserPluginRoutes } from './user-plugins.ts'
 import type { AccessAuditEvent, AuditReflect } from './audit.ts'
 import type { SessionService } from './session.ts'
 import type { UserStore } from './store.ts'
@@ -416,6 +417,9 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     const value = await callService(sc, 'workspacePathApplications', request0 ?? args, signal)
     return okFrame(rpcId, value)
   })
+
+  // ── P4-T6(2026-11-11):双层插件个人层端点(复用守卫 register=cookie 认证+审计) ──
+  registerUserPluginRoutes(deps, register)
 
   // ── P2-T1.7a(2026-11-11,D1 拍板):网关配置角色门——admin 可写,普通用户只读 ──
   // llm-pi-ai 承载行的设置命名空间=settingsNs=行 id('llm-pi-ai');供应商 key 与
