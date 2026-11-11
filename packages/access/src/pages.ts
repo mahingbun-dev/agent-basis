@@ -1,50 +1,40 @@
 /**
  * 服务端渲染页面(eterna 风格系统 v1,令牌化双主题):
  * - 风格规范见 docs/design/frontend-style.md——本文件即参考实现,后续页面必须复用 shell() 与令牌
- * - 深色为默认基调(匹配 dsh 应用底色 #151517),浅色经 prefers-color-scheme 自适应
+ * - 令牌来自 @eterna/ui(Webflow 浅色 + 系统深色),登录页唯一例外
  * - 账号自助(昵称/头像/密码)=应用内设置弹窗账号分区(铁律:不建独立页面);/account 仅 302 回应用
  * - 角标:注入 dsh index 页;401 → 跳 /login(门禁);404/网络错误静默降级;
  *   位置=头部下方悬浮(不得压头部右侧按钮——2026-11-11 E2E 遮挡事故),兼落座兜底
  */
+import { WEBFLOW_TOKENS_CSS } from '@eterna/ui'
 import { escapeHtml } from './http.ts'
 
 const STYLE = `
+${WEBFLOW_TOKENS_CSS}
 :root{
-  color-scheme:dark;
-  --bg:#151517;--bg-a:#1b1b20;--bg-b:#151517;
-  --surface:#1e1e23;--surface-2:#26262c;
-  --text:#f3f4f6;--dim:#9ca3af;
-  --border:rgba(255,255,255,.09);
-  --accent:#818cf8;--accent-strong:#6366f1;--accent-soft:rgba(99,102,241,.18);
-  --danger:#f87171;--ok:#34d399;
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 16px 48px rgba(0,0,0,.45);
-}
-@media (prefers-color-scheme:light){
-  :root{
-    color-scheme:light;
-    --bg:#eef0f6;--bg-a:#eef2ff;--bg-b:#f8fafc;
-    --surface:#ffffff;--surface-2:#f3f4f6;
-    --text:#111827;--dim:#6b7280;
-    --border:rgba(17,24,39,.10);
-    --accent:#4f46e5;--accent-strong:#4338ca;--accent-soft:rgba(79,70,229,.12);
-    --danger:#dc2626;--ok:#059669;
-    --shadow:0 1px 2px rgba(31,41,55,.06),0 12px 40px rgba(31,41,55,.10);
-  }
+  --bg:var(--et-bg);--bg-a:var(--et-surface);--bg-b:var(--et-bg);
+  --surface:var(--et-surface);--surface-2:var(--et-surface-2);
+  --text:var(--et-fg);--dim:var(--et-muted);
+  --border:var(--et-border);
+  --accent:var(--et-accent);--accent-strong:var(--et-accent);--accent-soft:var(--et-accent-soft);
+  --danger:var(--et-danger);--ok:var(--et-success);
+  --shadow:var(--et-shadow-raised);
 }
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;
-  background:radial-gradient(1200px 600px at 50% -10%,var(--bg-a),var(--bg-b));color:var(--text);
-  font-family:system-ui,-apple-system,'PingFang SC','Microsoft YaHei',sans-serif}
+  background:var(--et-bg);color:var(--text);
+  font-family:var(--et-font-body);font-size:16px;line-height:1.6;font-weight:500}
 .topbar{position:sticky;top:0;z-index:10;width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:10px 20px;background:color-mix(in srgb,var(--surface) 82%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
-.topbar .brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:var(--accent);text-decoration:none;margin:0}
-.topbar .who{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text)}
-.topbar a.navlink{color:var(--accent);text-decoration:none;font-size:13px;padding:6px 10px;border-radius:8px}
-.topbar a.navlink:hover{background:var(--accent-soft)}
-.topbar button{width:auto;margin:0;padding:6px 10px;font-size:13px;background:none;color:var(--danger);border-radius:8px}
-.topbar button:hover{background:color-mix(in srgb,var(--danger) 14%,transparent)}
-main{flex:1;display:flex;align-items:center;justify-content:center;width:100%;padding:28px 16px}
+  padding:12px 24px;background:var(--et-surface);border-bottom:1px solid var(--et-border)}
+.topbar .brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px;color:var(--text);text-decoration:none;margin:0}
+.topbar .brand svg{width:20px;height:20px;color:var(--accent);flex:none}
+.topbar .who{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text)}
+.topbar a.navlink{color:var(--accent);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:var(--et-radius-sm)}
+.topbar a.navlink:hover{background:var(--et-accent-soft)}
+.topbar button{width:auto;margin:0;padding:8px 10px;font-size:14px;background:none;color:var(--danger);border-radius:var(--et-radius-sm)}
+.topbar button:hover{background:var(--et-danger-soft)}
+main{flex:1;display:flex;align-items:center;justify-content:center;width:100%;padding:32px 16px}
 .stack{display:flex;flex-direction:column;gap:16px;width:min(1100px,94vw)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
 .grid2.ratio{grid-template-columns:1.6fr 1fr}
@@ -54,51 +44,52 @@ main{flex:1;display:flex;align-items:center;justify-content:center;width:100%;pa
 .pagehead{display:flex;align-items:baseline;gap:12px;width:100%}
 .pagehead h2{margin:0}
 .pagehead .muted{font-size:13px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:26px;width:min(420px,94vw)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--et-radius-md);box-shadow:var(--shadow);padding:32px;width:min(440px,94vw)}
 .card.wide{width:100%}
-h2{margin:0 0 6px;font-size:19px;letter-spacing:.2px}
-h3{font-size:14px;margin:0 0 8px;color:var(--text);font-weight:600}
-label{display:block;font-size:13px;color:var(--dim);margin:12px 0 4px}
+h2{margin:0 0 8px;font-size:32px;line-height:1.15;font-weight:600;letter-spacing:0}
+h3{font-size:16px;margin:0 0 8px;color:var(--text);font-weight:600}
+label{display:block;font-size:14px;color:var(--dim);margin:14px 0 6px}
 .field{position:relative}
-.field input{padding-right:42px}
-.eye-btn{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:34px;height:34px;min-width:0;margin:0;padding:0;
-  display:inline-flex;align-items:center;justify-content:center;background:none;border:0;border-radius:7px;
+.field input{padding-right:46px}
+.eye-btn{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:36px;height:36px;min-width:0;margin:0;padding:0;
+  display:inline-flex;align-items:center;justify-content:center;background:none;border:0;border-radius:var(--et-radius-sm);
   color:var(--dim);cursor:pointer}
 .eye-btn:hover{color:var(--text);background:var(--surface-2)}
-.eye-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-input,select{width:100%;padding:9px 12px;border:1px solid color-mix(in srgb,var(--text) 16%,transparent);border-radius:8px;font-size:14px;
-  background:var(--surface-2);color:var(--text);transition:border-color .15s,box-shadow .15s}
-input::placeholder{color:color-mix(in srgb,var(--dim) 70%,transparent)}
-input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-input[type=file]{padding:7px;color:var(--dim)}
-button{margin-top:16px;width:auto;min-width:120px;padding:10px 22px;border:0;border-radius:8px;
-  background:linear-gradient(135deg,var(--accent-strong),var(--accent));color:#fff;font-size:14px;font-weight:500;
-  cursor:pointer;transition:filter .15s,transform .05s,opacity .15s}
-button:hover{filter:brightness(1.1)}
-button:active{transform:translateY(1px)}
-button:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
-button:disabled{opacity:.5;cursor:not-allowed;filter:none}
+.eye-btn:focus-visible{outline:none;box-shadow:var(--et-focus-ring)}
+.eye-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+input,select{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:var(--et-radius-sm);font-size:16px;
+  background:var(--bg);color:var(--text);transition:border-color var(--et-motion-fast) var(--et-ease),box-shadow var(--et-motion-fast) var(--et-ease)}
+input::placeholder{color:var(--et-meta)}
+input:hover,select:hover{border-color:var(--et-fg-2)}
+input:focus-visible,select:focus-visible{outline:none;border-color:var(--accent);box-shadow:var(--et-focus-ring)}
+input[type=file]{padding:8px;color:var(--dim)}
+button{margin-top:16px;width:auto;min-width:120px;padding:12px 18px;border:0;border-radius:var(--et-radius-sm);
+  background:var(--accent);color:var(--et-accent-on);font-size:16px;font-weight:600;
+  cursor:pointer;transition:background-color var(--et-motion-fast) var(--et-ease),opacity var(--et-motion-fast) var(--et-ease)}
+button:hover{background:var(--et-accent-hover)}
+button:focus-visible{outline:none;box-shadow:var(--et-focus-ring)}
+button:disabled{opacity:.5;cursor:not-allowed}
 .card.narrow button:not(.eye-btn){width:100%}
-button.ghost{background:transparent;color:var(--text);border:1px solid var(--border);width:auto;margin:0;padding:8px 14px;font-weight:400;white-space:nowrap}
-button.ghost:hover{background:var(--surface-2)}
-.err{color:var(--danger);font-size:13px;min-height:18px;margin:10px 0 0;white-space:pre-wrap}
-.ok{color:var(--ok);font-size:13px;min-height:18px;margin:4px 0 0}
-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
-th,td{padding:8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle}
-th{color:var(--dim);font-weight:600;background:var(--surface-2)}
+button.ghost{background:transparent;color:var(--text);border:1px solid var(--border);width:auto;margin:0;padding:10px 14px;font-weight:500;white-space:nowrap}
+button.ghost:hover{background:var(--surface-2);border-color:var(--et-fg-2)}
+.err{color:var(--danger);font-size:14px;min-height:20px;margin:12px 0 0;white-space:pre-wrap}
+.ok{color:var(--ok);font-size:14px;min-height:20px;margin:4px 0 0}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle}
+th{color:var(--dim);font-weight:600;background:var(--surface-2);white-space:nowrap}
 tbody tr:hover{background:var(--surface-2)}
-.avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;
-  display:inline-flex;align-items:center;justify-content:center;font-size:13px;overflow:hidden;flex:none}
+.avatar{width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--et-accent-on);
+  display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;overflow:hidden;flex:none}
 .avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover}
-.tag{font-size:11px;padding:2px 6px;border-radius:6px;background:var(--accent-soft);color:var(--accent)}
-.tag.red{background:color-mix(in srgb,var(--danger) 16%,transparent);color:var(--danger)}
-.danger{color:var(--danger);cursor:pointer;background:none;border:0;padding:0;width:auto;margin:0;font-size:13px}
+.tag{font-size:12px;padding:2px 8px;border-radius:var(--et-radius-sm);background:var(--accent-soft);color:var(--accent)}
+.tag.red{background:var(--et-danger-soft);color:var(--danger)}
+.danger{color:var(--danger);cursor:pointer;background:none;border:0;padding:0;width:auto;margin:0;font-size:14px;min-height:36px}
 .danger:hover{text-decoration:underline}
-.muted{color:var(--dim);font-size:12px}
+.muted{color:var(--dim);font-size:13px}
 .row{display:flex;gap:8px;align-items:center}
 .shell{display:flex;flex:1;width:min(1200px,96vw);margin:0 auto;gap:20px;padding:22px 16px;align-items:flex-start}
 .menu{width:190px;flex:none;display:flex;flex-direction:column;gap:4px;position:sticky;top:76px}
-.menuitem{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;color:var(--dim);text-decoration:none;font-size:14px;transition:background .12s,color .12s}
+.menuitem{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:var(--et-radius-sm);color:var(--dim);text-decoration:none;font-size:14px;transition:background var(--et-motion-fast) var(--et-ease),color var(--et-motion-fast) var(--et-ease)}
 .menuitem:hover{background:var(--surface-2);color:var(--text)}
 .menuitem.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
 .menuitem .ic{width:18px;text-align:center}
@@ -124,10 +115,15 @@ tbody tr:hover{background:var(--surface-2)}
 }
 `
 
+/** 品牌闪电标(单色,随主题;登录页/页面骨架统一使用)。 */
+function brandMark(size = 20): string {
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="currentColor" aria-hidden="true"><path d="M13 2 4.5 13.5H11L9.5 22 19 10.5h-6.5L13 2Z"/></svg>`
+}
+
 /** 页面骨架:topbar(viewer 在场=身份+返回+退出)+main。登录页 viewer 缺省。 */
 function shell(title: string, body: string, script = '', viewer?: { nickname: string; avatarUrl: string | null; account: string }): string {
   const bar = `<header class="topbar">
-<a class="brand" href="/" title="返回应用">⚡ 恒灵 · EternaAgent</a>
+<a class="brand" href="/" title="返回应用">${brandMark(20)}<span>恒灵·EternaAgent</span></a>
 ${viewer === undefined ? '' : `<nav class="who">
 ${avatarHtml(viewer.avatarUrl, viewer.nickname, 24)}
 <span class="nick">${escapeHtml(viewer.nickname)}</span>
@@ -141,7 +137,7 @@ ${avatarHtml(viewer.avatarUrl, viewer.nickname, 24)}
     btn.disabled=true
     fetch('/logout',{method:'POST',credentials:'same-origin'}).then(function(){location.href='/login'})})
 })()</script>`
-  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · 恒灵 EternaAgent</title><style>${STYLE}</style></head><body>${bar}<main>${body}</main>${logoutScript}${script === '' ? '' : `<script>${script}</script>`}</body></html>`
+  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} · 恒灵·EternaAgent</title><style>${STYLE}</style></head><body>${bar}<main>${body}</main>${logoutScript}${script === '' ? '' : `<script>${script}</script>`}</body></html>`
 }
 
 function avatarHtml(avatarUrl: string | null, nickname: string, size = 26): string {
@@ -157,7 +153,7 @@ export function renderLoginPage(): string {
   const body = `<div class="card narrow"><h2>登录</h2>
 <label>账号</label><input id="account" autocomplete="username">
 <label>密码</label><div class="field"><input id="password" type="password" autocomplete="current-password"><button type="button" class="eye-btn" id="pwEye" aria-label="切换密码可见性" title="显示/隐藏密码"><svg viewBox="0 0 24 24" class="ic-eye"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg><svg viewBox="0 0 24 24" class="ic-eye-off" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></button></div>
-<button id="go">登录</button><p class="err" id="msg"></p></div>`
+<button id="go">登录</button><p class="err" id="msg" role="alert" aria-live="polite"></p></div>`
   const script = `
 var go=document.getElementById('go'),msg=document.getElementById('msg')
 function submit(){
@@ -183,7 +179,6 @@ eye.addEventListener('click',function(){
   eye.querySelector('.ic-eye-off').style.display=show?'':'none'
   pw.focus()})
 pw.addEventListener('keydown',function(e){if(e.key==='Enter')submit()})
-document.getElementById('password').addEventListener('keydown',function(e){if(e.key==='Enter')submit()})
 `
   return shell('登录', body, script)
 }
@@ -201,15 +196,15 @@ export const BADGE_SCRIPT = `
     var b=document.createElement('div')
     // 位置铁律:头部下方(top:52px)——固定右上(top:8px)会压住上游头部右侧的
     // 「更多操作/打开右侧边栏」等按钮(2026-11-11 E2E:全宽度遮挡=插件页/设置入口全灭)。
-    b.style.cssText='position:fixed;top:52px;right:10px;z-index:2147483647;display:flex;align-items:center;gap:8px;max-width:60vw;background:rgba(17,24,39,.92);color:#f9fafb;border:1px solid rgba(255,255,255,.14);border-radius:9999px;padding:4px 14px 4px 4px;font:13px/1.6 system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.35);backdrop-filter:blur(6px)'
+    b.style.cssText='position:fixed;top:52px;right:10px;z-index:2147483647;display:flex;align-items:center;gap:8px;max-width:60vw;background:var(--dsw-alias-toast-bg);color:var(--dsw-alias-toast-label);border:1px solid var(--dsw-alias-border-l2);border-radius:4px;padding:4px 12px 4px 4px;font-size:13px;line-height:1.5;font-family:var(--dsw-font-family, system-ui, sans-serif);box-shadow:0 8px 24px rgba(0,0,0,.24)'
     var av
     if(u.avatarUrl){av=document.createElement('img');av.src=u.avatarUrl;av.style.cssText='width:26px;height:26px;border-radius:50%;object-fit:cover'}
-    else{av=document.createElement('span');av.textContent=(u.nickname||u.account||'?').slice(0,1);av.style.cssText='width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px'}
+    else{av=document.createElement('span');av.textContent=(u.nickname||u.account||'?').slice(0,1);av.style.cssText='width:26px;height:26px;border-radius:50%;background:var(--dsw-alias-state-business-primary);color:var(--dsw-alias-label-primary-foreground);display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:600'}
     b.appendChild(av)
     var name=document.createElement('span');name.textContent=u.nickname||u.account
     name.style.cssText='overflow:hidden;text-overflow:ellipsis;white-space:nowrap'
     b.appendChild(name)
-    var out=document.createElement('a');out.href='#';out.textContent='退出';out.style.cssText='color:#fca5a5;text-decoration:none';b.appendChild(out)
+    var out=document.createElement('a');out.href='#';out.textContent='退出';out.style.cssText='color:var(--dsw-alias-state-error-primary);text-decoration:none';b.appendChild(out)
     out.addEventListener('click',function(e){
       e.preventDefault()
       fetch('/logout',{method:'POST',credentials:'same-origin'}).then(function(){location.href='/login'})})
@@ -258,7 +253,8 @@ export const BADGE_SCRIPT = `
   }
   function guideToast(text){
     var t=document.createElement('div')
-    t.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:2147483647;max-width:86vw;background:rgba(17,24,39,.94);color:#f9fafb;border:1px solid rgba(129,140,248,.55);border-radius:12px;padding:10px 16px;font:13px/1.6 system-ui,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.4);backdrop-filter:blur(6px)'
+    t.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:2147483647;max-width:86vw;background:var(--dsw-alias-toast-bg);color:var(--dsw-alias-toast-label);border:1px solid var(--dsw-alias-state-business-primary);border-radius:4px;padding:10px 16px;font-size:13px;line-height:1.5;font-family:var(--dsw-font-family, system-ui, sans-serif);box-shadow:0 8px 24px rgba(0,0,0,.28)'
+    t.setAttribute('role','status')
     t.textContent=text
     document.body.appendChild(t)
     var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches

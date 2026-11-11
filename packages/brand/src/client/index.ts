@@ -24,7 +24,7 @@ export const inject = ['slots', 'locale']
 const BOLT_PATH = 'M368 28 L106 300 L262 300 L146 484 L406 170 L250 170 Z'
 
 /** favicon(data-URI SVG;单色粗闪电,16px 可辨)。 */
-const FAVICON_SVG = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='#0b1220'/><path d='M368 56 L126 296 L264 296 L152 456 L398 180 L256 180 Z' fill='#fbbf24' stroke='#0b1220' stroke-width='22' stroke-linejoin='round'/></svg>"
+const FAVICON_SVG = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='96' fill='#146ef5'/><path d='M368 56 L126 296 L264 296 L152 456 L398 180 L256 180 Z' fill='#ffffff'/></svg>"
 const FAVICON_URI = `data:image/svg+xml,${encodeURIComponent(FAVICON_SVG)}`
 
 /** FishLogo 唯一 viewBox(上游 FISH_LOGO_VIEWBOX 23.16×17.04)——svg 身份签名。 */
@@ -45,7 +45,7 @@ const TEXT_MAP: readonly (readonly [string, string])[] = [
 
 /** 恒灵标内观(currentColor,主题自适配;纯粗壮闪电,v2 修复 24px 圆+点退化)。 */
 function markInner(): string {
-  return `<path d="${BOLT_PATH}" fill="currentColor" stroke="#0b1220" stroke-width="14" stroke-linejoin="round"/>`
+  return `<path d="${BOLT_PATH}" fill="currentColor"/>`
 }
 
 /** 恒枢标组件(sidebar.brand.mark slot;属主传 size)。必须返回 React 元素——
@@ -58,9 +58,6 @@ function BrandMark(props: { size?: number } = {}): ReturnType<typeof createEleme
     createElement('path', {
       d: BOLT_PATH,
       fill: 'currentColor',
-      stroke: 'rgba(11,18,32,.9)',
-      strokeWidth: 14,
-      strokeLinejoin: 'round',
     }),
   )
 }

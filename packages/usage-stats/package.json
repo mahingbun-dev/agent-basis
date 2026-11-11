@@ -30,7 +30,8 @@
   },
   "dependencies": {
     "@deepseek-ai/cordis": "catalog:",
-    "@deepseek-ai/dsh-typert-protocol": "catalog:"
+    "@deepseek-ai/dsh-typert-protocol": "catalog:",
+    "@eterna/ui": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

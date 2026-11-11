@@ -75,16 +75,16 @@ export function MyPluginsSection(): React.JSX.Element {
         <span className="ea-row-title">{item.pluginId}</span>
         <span className="ea-row-meta">{item.enabled ? '已启用' : '已停用'}{item.promoted ? ' · 已转内置' : ''}</span>
         <span className="ea-row-actions">
-          <button type="button" className="ea-btn" disabled={busy}
+          <button type="button" className="ea-btn ghost" disabled={busy}
             onClick={() => { void action(item.enabled ? '/api/my-plugins/disable' : '/api/my-plugins/enable', { pluginId: item.pluginId }) }}>
             {item.enabled ? '停用' : '启用'}
           </button>
           {confirming !== item.pluginId
-            ? <button type="button" className="ea-btn" disabled={busy} onClick={() => { setConfirming(item.pluginId) }}>删除</button>
+            ? <button type="button" className="ea-btn ghost" disabled={busy} onClick={() => { setConfirming(item.pluginId) }}>删除</button>
             : <button type="button" className="ea-btn ea-btn-danger" disabled={busy}
               onClick={() => { void action('/api/my-plugins/remove', { pluginId: item.pluginId }).then(() => { setConfirming(null) }) }}>
               确认删除?</button>}
-          {!item.promoted && <button type="button" className="ea-btn" disabled={busy}
+          {!item.promoted && <button type="button" className="ea-btn ghost" disabled={busy}
             onClick={() => { void action('/api/my-plugins/promote-request', { pluginId: item.pluginId }) }}>
             转内置</button>}
         </span>
@@ -139,7 +139,7 @@ export function NotificationsSection(): React.JSX.Element {
         </div>)}
       </div>
     </>}
-    {unread > 0 && <button type="button" className="ea-btn" onClick={() => { void postJson('/api/notifications/read-all').then(() => refresh()) }}>
+    {unread > 0 && <button type="button" className="ea-btn ghost" onClick={() => { void postJson('/api/notifications/read-all').then(() => refresh()) }}>
       全部标为已读</button>}
   </section>
 }
@@ -147,7 +147,7 @@ export function NotificationsSection(): React.JSX.Element {
 export function ApprovalQueueSection(): React.JSX.Element {
   const [items, setItems] = useState<ApprovalItem[]>([])
   const [busy, setBusy] = useState(false)
-  const [note, setNote] = useState('')
+  const [notes, setNotes] = useState<Record<number, string>>({})
 
   const refresh = useCallback(async (): Promise<void> => {
     const r = await postJson('/api/approvals/pending')
@@ -157,7 +157,7 @@ export function ApprovalQueueSection(): React.JSX.Element {
   }, [])
   useEffect(() => { void refresh() }, [refresh])
 
-  const decide = async (id: number, approve: boolean): Promise<void> => {
+  const decide = async (id: number, approve: boolean, note: string): Promise<void> => {
     setBusy(true)
     try {
       await postJson('/api/my-plugins/promote-decide', { request: { requestId: id, approve, note } })
@@ -172,10 +172,10 @@ export function ApprovalQueueSection(): React.JSX.Element {
       {items.map(a => <div key={a.id} className="ea-row" data-eterna-approval-queue={a.id}>
         <span>#{a.id} {a.type} · {a.payload.pluginId ?? ''}(申请人 {a.payload.requesterAccount ?? '?'})</span>
         <span className="ea-row-actions">
-          <input className="ea-input" placeholder="意见(可选)" aria-label="审批意见" value={note}
-            onChange={e => { setNote(e.target.value) }} />
-          <button type="button" className="ea-btn" disabled={busy} onClick={() => { void decide(a.id, true) }}>通过</button>
-          <button type="button" className="ea-btn ea-btn-danger" disabled={busy} onClick={() => { void decide(a.id, false) }}>驳回</button>
+          <input className="ea-input" placeholder="意见(可选)" aria-label="审批意见" value={notes[a.id] ?? ''}
+            onChange={e => { setNotes(prev => ({ ...prev, [a.id]: e.target.value })) }} />
+          <button type="button" className="ea-btn" disabled={busy} onClick={() => { void decide(a.id, true, notes[a.id] ?? '') }}>通过</button>
+          <button type="button" className="ea-btn ea-btn-danger" disabled={busy} onClick={() => { void decide(a.id, false, notes[a.id] ?? '') }}>驳回</button>
         </span>
       </div>)}
     </div>

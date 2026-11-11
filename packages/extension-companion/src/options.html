@@ -5,60 +5,124 @@
     <title>Eterna Companion 设置</title>
     <style>
       :root {
-        color-scheme: light dark;
-        font-family: system-ui, -apple-system, "PingFang SC", sans-serif;
+        color-scheme: light;
+        --bg: #ffffff;
+        --surface: #ffffff;
+        --surface-2: #f7f7f7;
+        --fg: #080808;
+        --fg-2: #363636;
+        --muted: #5a5a5a;
+        --border: #d8d8d8;
+        --accent: #146ef5;
+        --accent-hover: #0055d4;
+        --accent-on: #ffffff;
+        --success: #00a81a;
+        --radius: 4px;
+        --focus-ring: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 70%);
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --bg: #080808;
+          --surface: #101010;
+          --surface-2: #161616;
+          --fg: #f5f5f5;
+          --fg-2: #d4d4d4;
+          --muted: #a3a3a3;
+          --border: #2a2a2a;
+          --accent: #3b89ff;
+          --accent-hover: #6aa6ff;
+          --accent-on: #ffffff;
+          --success: #35e35f;
+        }
       }
       body {
         max-width: 560px;
-        margin: 32px auto;
-        padding: 0 16px;
-        font-size: 14px;
+        margin: 48px auto;
+        padding: 0 20px;
+        background: var(--bg);
+        color: var(--fg);
+        font-size: 16px;
         line-height: 1.6;
+        font-weight: 500;
       }
       h1 {
-        font-size: 18px;
+        margin: 0 0 12px;
+        font-size: 32px;
+        line-height: 1.15;
+        font-weight: 600;
+        letter-spacing: 0;
+      }
+      p {
+        color: var(--fg-2);
       }
       label {
         display: block;
-        margin-top: 16px;
+        margin-top: 20px;
+        font-size: 14px;
         font-weight: 600;
       }
       input {
         width: 100%;
         box-sizing: border-box;
-        margin-top: 4px;
-        padding: 8px 10px;
-        border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
-        border-radius: 8px;
+        margin-top: 6px;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg);
+        color: var(--fg);
         font: inherit;
+      }
+      input:focus-visible {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: var(--focus-ring);
       }
       button {
-        margin-top: 20px;
-        padding: 8px 20px;
+        margin-top: 24px;
+        padding: 12px 18px;
         border: none;
-        border-radius: 8px;
-        background: #2563eb;
-        color: #fff;
+        border-radius: var(--radius);
+        background: var(--accent);
+        color: var(--accent-on);
         font: inherit;
+        font-weight: 600;
         cursor: pointer;
+        transition: background-color 150ms cubic-bezier(0.2, 0, 0, 1);
+      }
+      button:hover:not(:disabled) {
+        background: var(--accent-hover);
+      }
+      button:focus-visible {
+        outline: none;
+        box-shadow: var(--focus-ring);
       }
       button:disabled {
-        opacity: 0.6;
+        opacity: 0.55;
         cursor: not-allowed;
       }
       .status {
-        margin-top: 16px;
-        padding: 10px 12px;
-        border-radius: 8px;
-        background: color-mix(in srgb, currentColor 8%, transparent);
+        margin-top: 20px;
+        padding: 12px 14px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface-2);
+        color: var(--fg-2);
+        font-size: 14px;
       }
       .hint {
         margin-top: 8px;
-        color: color-mix(in srgb, currentColor 65%, transparent);
-        font-size: 12px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
       }
       .saved {
-        color: #16a34a;
+        color: var(--success);
+        font-size: 14px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        button { transition: none; }
       }
     </style>
   </head>

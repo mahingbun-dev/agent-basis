@@ -25,12 +25,12 @@ function PasswordInput(props: {
   return <div style={{ position: 'relative', display: 'block' }}>
     <input id={props.id} className='ea-input' type={visible ? 'text' : 'password'}
       autoComplete={props.autoComplete} placeholder={props.placeholder} value={props.value}
-      onChange={event => { props.onChange(event.target.value) }} style={{ paddingRight: 42 }} />
+      onChange={event => { props.onChange(event.target.value) }} style={{ paddingRight: 46 }} />
     <button type="button" aria-label="切换密码可见性" title="显示/隐藏密码"
       onClick={() => { setVisible(v => !v) }}
-      style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', width: 30, height: 30,
+      style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', width: 36, height: 36,
         margin: 0, minWidth: 0, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        background: 'none', border: 0, borderRadius: 7, color: 'var(--dsw-alias-label-tertiary, currentColor)', cursor: 'pointer' }}>
+        background: 'none', border: 0, borderRadius: 4, color: 'var(--et-muted, currentColor)', cursor: 'pointer' }}>
       <svg viewBox="0 0 24 24" style={{ width: 18, height: 18, stroke: 'currentColor', fill: 'none', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }}>
         {visible
           ? <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></>
@@ -100,7 +100,7 @@ export function CompanionCard(): React.JSX.Element {
   }
 
   return <div className="ea-card">
-    <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>浏览器执行面</h3>
+    <h3 style={{ margin: '0 0 12px' }}>浏览器执行面</h3>
     <p className="ea-hint" style={{ margin: '0 0 8px' }}>让你的浏览器成为 Agent 的执行面：安装扩展后，Agent 可在你登录过的页面上代你操作（数据与登录态都不离开你的浏览器）。每台浏览器用独立令牌接入。</p>
     {view === null
       ? <p className="ea-hint">读取中…</p>
@@ -108,10 +108,10 @@ export function CompanionCard(): React.JSX.Element {
         ? <p className="ea-hint">尚未生成接入令牌。</p>
         : <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <code style={{
-              flex: 1, minWidth: 220, fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontSize: 12,
-              padding: '7px 10px', borderRadius: 7,
-              border: '1px solid var(--dsw-alias-border-primary, #d4d4d8)',
-              background: 'var(--dsw-alias-bg-secondary, transparent)',
+              flex: 1, minWidth: 220, fontFamily: 'var(--et-font-mono)', fontSize: 12,
+              padding: '7px 10px', borderRadius: 4,
+              border: '1px solid var(--et-border)',
+              background: 'var(--et-surface-2)',
               wordBreak: 'break-all',
             }}>{view.token}</code>
             <button type="button" className="ea-btn" style={{ margin: 0 }} onClick={() => { void copy() }}>{copied ? '已复制' : '一键复制'}</button>
@@ -121,7 +121,7 @@ export function CompanionCard(): React.JSX.Element {
         {confirming ? '再点一次确认重置' : (view?.token !== null && view?.token !== undefined ? '重置令牌' : '生成令牌')}
       </button>
       {view !== null && <a href={view.guideUrl} target="_blank" rel="noopener noreferrer" style={{
-        fontSize: 13, color: 'var(--dsw-alias-text-link, #2563eb)', textDecoration: 'none',
+        fontSize: 'var(--et-text-caption)', color: 'var(--et-accent)', textDecoration: 'none',
       }}>安装指引 ↗</a>}
     </div>
     <p className={msg.ok ? 'ea-ok' : 'ea-err'}>{msg.text}</p>
@@ -203,7 +203,7 @@ export function AccountSection(): React.JSX.Element {
   return <div data-eterna-access-root>
     <div className="ea-grid">
       <div className="ea-card">
-        <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>个人资料</h3>
+        <h3 style={{ margin: '0 0 12px' }}>个人资料</h3>
         <div className="ea-row" style={{ margin: '0 0 12px' }}>
           <Avatar url={avatarUrl} nickname={nick || me.account} />
           <input id="ea-file" className="ea-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" style={{ flex: 1 }}
@@ -226,7 +226,7 @@ export function AccountSection(): React.JSX.Element {
         <p className={profileMsg.ok ? 'ea-ok' : 'ea-err'}>{profileMsg.text}</p>
       </div>
       <div className="ea-card">
-        <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>修改密码</h3>
+        <h3 style={{ margin: '0 0 12px' }}>修改密码</h3>
         <p className="ea-hint" style={{ margin: '0 0 8px' }}>修改后本机保持登录，其他设备需重新登录。</p>
         <label className="ea-label" htmlFor="ea-oldPw">旧密码</label>
         <PasswordInput id="ea-oldPw" autoComplete="current-password" value={oldPw} onChange={setOldPw} />
@@ -294,21 +294,23 @@ export function UsersSection(): React.JSX.Element {
       </select>
       <button className="ea-btn" disabled={busy || account === '' || password === ''} onClick={create}>添加</button>
     </div>
-    <table className="ea-table">
-      <thead><tr><th></th><th>账号</th><th>昵称</th><th>角色</th><th>创建时间</th><th></th></tr></thead>
-      <tbody>
-        {users.map(user => <tr key={user.id}>
-          <td><Avatar url={user.hasAvatar ? `/access/api/avatar/${user.id}` : null} nickname={user.nickname} size={24} /></td>
-          <td>{user.account}</td>
-          <td>{user.nickname}</td>
-          <td>{user.role === 'admin' ? <span className="ea-tag brand">管理员</span> : <span className="ea-tag">用户</span>}</td>
-          <td className="ea-hint">{user.createdAt}</td>
-          <td>{user.id === selfId
-            ? <span className="ea-hint">当前登录</span>
-            : <DeleteButton onConfirm={() => { remove(user.id) }} />}</td>
-        </tr>)}
-      </tbody>
-    </table>
+    <div className="ea-table-wrap">
+      <table className="ea-table">
+        <thead><tr><th></th><th>账号</th><th>昵称</th><th>角色</th><th>创建时间</th><th></th></tr></thead>
+        <tbody>
+          {users.map(user => <tr key={user.id}>
+            <td><Avatar url={user.hasAvatar ? `/access/api/avatar/${user.id}` : null} nickname={user.nickname} size={24} /></td>
+            <td>{user.account}</td>
+            <td>{user.nickname}</td>
+            <td>{user.role === 'admin' ? <span className="ea-tag brand">管理员</span> : <span className="ea-tag">用户</span>}</td>
+            <td className="ea-hint">{user.createdAt}</td>
+            <td>{user.id === selfId
+              ? <span className="ea-hint">当前登录</span>
+              : <DeleteButton onConfirm={() => { remove(user.id) }} />}</td>
+          </tr>)}
+        </tbody>
+      </table>
+    </div>
     <p className={msg.ok ? 'ea-ok' : 'ea-err'}>{msg.text}</p>
   </div>
 }
