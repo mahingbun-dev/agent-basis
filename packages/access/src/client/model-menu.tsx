@@ -40,23 +40,23 @@ const S = {
     background: 'var(--et-surface)',
     color: 'var(--et-fg)',
     border: '1px solid var(--et-border)',
-    borderRadius: 12, boxShadow: 'var(--et-shadow-raised)',
+    borderRadius: 'var(--et-radius-lg)', boxShadow: 'var(--et-shadow-raised)',
     padding: '6px 0', fontFamily: 'var(--et-font-body, system-ui, sans-serif)',
     boxSizing: 'border-box',
   } as React.CSSProperties,
   row: {
     width: '100%', display: 'flex', alignItems: 'center', gap: 8,
     padding: '8px 14px', border: 'none', background: 'transparent',
-    color: 'inherit', cursor: 'pointer', fontSize: 13.5, textAlign: 'left',
+    color: 'inherit', cursor: 'pointer', fontSize: 14, textAlign: 'left',
     boxSizing: 'border-box', minHeight: 36,
   } as React.CSSProperties,
   section: {
-    padding: '8px 14px 4px', fontSize: 11.5,
+    padding: '8px 14px 4px', fontSize: 12,
     color: 'var(--et-muted)',
   } as React.CSSProperties,
   divider: { height: 1, background: 'var(--et-border-soft)', margin: '5px 0' } as React.CSSProperties,
   logo: {
-    width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+    width: 18, height: 18, borderRadius: 'var(--et-radius-sm)', flexShrink: 0,
     background: 'var(--et-accent-soft)',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 10, fontWeight: 600,
@@ -142,6 +142,21 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
   const curEffortIdx = curEffortId === undefined ? -1 : curEfforts.findIndex(e => e.id === curEffortId)
   const curEffortName = curEffortId === undefined ? '默认'
     : (curEfforts[curEffortIdx >= 0 ? curEffortIdx : 0]?.name ?? curEffortId)
+
+  // 滑杆(ZCode ComposerModelMenu 同构):拖动只更新视觉 draft,手势完成
+  // (onPointerUp/onKeyUp)才提交;提交后清 draft 回归投影值。
+  const sliderRef = useRef<HTMLInputElement | null>(null)
+  const [draftIdx, setDraftIdx] = useState<number | null>(null)
+  const visualIdx = draftIdx ?? (curEffortIdx >= 0 ? curEffortIdx : 0)
+  const visualProgress = curEfforts.length > 1 ? (visualIdx / (curEfforts.length - 1)) * 100 : 0
+  const visualEffortName = (curEfforts[visualIdx]?.name ?? curEffortName)
+  const commitSlider = (index: number): void => {
+    setDraftIdx(null)
+    const effort = curEfforts[index]
+    if (effort === undefined || current === null || busy) return
+    if (effort.id === curEffortId) return
+    submit({ provider: current.provider, model: current.model, reasoningEffort: effort.id }, { closeAfter: false })
+  }
 
   const submit = (selected: Selected, options: { readonly closeAfter: boolean }): void => {
     if (busy) return
@@ -230,27 +245,61 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
       {curEfforts.length > 0 && <>
         <div style={S.divider} />
         <div style={S.section}>思考强度</div>
-        <div style={{ ...S.row, cursor: 'default', display: 'block' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-            <span>{curEffortName}</span>
+        {/* 滑杆=ZCode ComposerModelMenu 同构(2026-11-12):
+            可视轨道(填充+档位圆点+白 thumb)+透明原生 range 叠加;
+            提交只在手势完成时(onPointerUp/onKeyUp),onChange 仅视觉——
+            拖动不提交、不关面板;事件全部 stopPropagation 防冒泡关闭链。 */}
+        <div style={{ padding: '4px 14px 12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 4 }}>
+            <span>{visualEffortName}</span>
           </div>
-          <input type="range" min={0} max={Math.max(0, curEfforts.length - 1)} step={1}
-            value={curEffortIdx >= 0 ? curEffortIdx : 0}
-            aria-label="思考强度"
-            onChange={e => {
-              const idx = Number(e.target.value)
-              const effort = curEfforts[idx]
-              if (effort === undefined || current === null || busy) return
-              submit({ provider: current.provider, model: current.model, reasoningEffort: effort.id }, { closeAfter: true })
-            }}
-            style={{
-              width: '100%', accentColor: 'var(--et-accent)',
-              background: 'linear-gradient(90deg, var(--et-success), var(--et-accent))',
-              height: 6, borderRadius: 3, appearance: 'none', cursor: 'pointer',
-            }} />
+          <div className="et-thought-slider" data-disabled={busy}>
+            {/* 可视轨道 */}
+            <div aria-hidden="true" style={{ position: 'absolute', inset: 0 }}>
+              <div style={{ position: 'absolute', left: 0, right: 0, top: 4, height: 24, borderRadius: 'var(--et-radius-pill)',
+                background: 'var(--et-surface-2)',
+                border: '1px solid var(--et-border)', overflow: 'hidden' }}>
+                {/* 绿色填充(thumb 半径 14px 补偿,ZCode 同公式) */}
+                <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0,
+                  width: `calc(14px + (100% - 28px) * ${visualProgress / 100})`,
+                  background: 'var(--et-success)',
+                  transition: 'width var(--et-motion-fast) var(--et-ease)' }} />
+                {/* 档位圆点(均布;已过档白色半透) */}
+                <div style={{ position: 'absolute', left: 14, right: 14, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  {curEfforts.map((level, index) => (
+                    <span key={level.id} className="et-thought-stop"
+                      data-filled={index <= visualIdx}
+                      style={{ width: 4, height: 4, borderRadius: '50%', flexShrink: 0,
+                        background: index <= visualIdx ? 'color-mix(in oklab, var(--et-accent-on), transparent 45%)' : 'var(--et-muted)',
+                        transition: 'scale var(--et-motion-fast) var(--et-ease), opacity var(--et-motion-fast) var(--et-ease)' }} />
+                  ))}
+                </div>
+              </div>
+              {/* 白色 thumb */}
+              <div aria-hidden="true" style={{ position: 'absolute', top: 2, width: 28, height: 28, borderRadius: '50%',
+                left: `calc((100% - 28px) * ${visualProgress / 100})`,
+                background: 'var(--et-accent-on)', border: '1px solid var(--et-border)',
+                boxShadow: '0 1px 2px var(--et-border)',
+                transition: 'left var(--et-motion-fast) var(--et-ease)' }} />
+            </div>
+            {/* 透明原生 range(交互层) */}
+            <input ref={sliderRef} type="range" min={0} max={Math.max(0, curEfforts.length - 1)} step={1}
+              value={visualIdx}
+              aria-label="思考强度" aria-valuetext={visualEffortName} aria-disabled={busy || undefined}
+              className="et-thought-range"
+              onClick={e => { e.stopPropagation() }}
+              onKeyDown={e => { if (e.key !== 'Escape') e.stopPropagation() }}
+              onChange={e => { e.stopPropagation(); setDraftIdx(Number(e.target.value)) }}
+              onPointerUp={e => { commitSlider(Number(e.currentTarget.value)) }}
+              onKeyUp={e => {
+                if (['Home', 'End', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown'].includes(e.key)) {
+                  commitSlider(Number(e.currentTarget.value))
+                }
+              }} />
+          </div>
         </div>
       </>}
-      {error !== null && <div role="alert" style={{ padding: '6px 14px', color: 'var(--et-danger)', fontSize: 12.5 }}>{error}</div>}
+      {error !== null && <div role="alert" style={{ padding: '6px 14px', color: 'var(--et-danger)', fontSize: 12 }}>{error}</div>}
       <div style={S.divider} />
       <button type="button" role="menuitem" style={{ ...S.row, fontWeight: 500 }}
         onClick={() => { props.dismiss() }}>
@@ -278,7 +327,7 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
             <span aria-hidden="true" style={S.logo}>{(g.name ?? g.id).slice(0, 1)}</span>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.name ?? g.id}</span>
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, opacity: 0.7, flexShrink: 0 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, opacity: 0.7, flexShrink: 0 }}>
             {modelCount > 0 ? `${modelCount} 模型` : ''}
             {active && <span aria-hidden="true" style={S.check}>✓</span>}
           </span>
