@@ -13,7 +13,8 @@
  * 5. index-builder.ts:记忆索引(≤500 token,key+一句话摘要,装不下低优先截断);
  * 6. memory.ts:Memory 服务组合层(注册表+唯一 ID 形态,coeffect 全声明);
  * 7. tools.ts:四个模型面工具(defineTool)+ systemPrompt 索引 section +
- *    MemoryHost seam(dshHost 适配真实 ctx.tools/ctx.systemPrompt)。
+ *    MemoryHost seam(dshHost 适配真实 ctx.tools/ctx.systemPrompt)+
+ *    提示词注册表读取面(T2.6 登记制:promptRegistry 服务,缺席回落内置头)。
  *
  * Cordis 纪律:effect 配逆(write.undo / forget 真删 / attachMemory 总 disposer);
  * coeffect 全声明(workspaceDir/dbPath/pii/now 构造注入,不碰全局);provide 可交换
@@ -29,13 +30,14 @@ export { EntityMemoryStore } from './entity-store.ts'
 export type {
   EntityRecord, EntitySearchHit, EntitySearchOptions, EntityWriteInput, EntityWriteResult,
 } from './entity-store.ts'
-export { buildEntityIndex } from './index-builder.ts'
+export { buildEntityIndex, MEMORY_BEHAVIOR_HEADER } from './index-builder.ts'
 export type { MemoryIndexOptions, MemoryIndexResult } from './index-builder.ts'
 export { MEMORY_INDEX_BUDGET_TOKENS, estimateTokens } from './tokens.ts'
 export { createMemory, MEMORY_SERVICE_ID } from './memory.ts'
 export type { Memory, MemoryOptions, MemorySearchHit, MemorySearchOptions } from './memory.ts'
 export {
   attachMemory, createMemoryIndexSection, defineMemoryTools, dshHost,
-  MEMORY_INDEX_SECTION_NAME, MEMORY_INDEX_SECTION_ORDER, MEMORY_TOOL_NAMES,
+  MEMORY_INDEX_SECTION_NAME, MEMORY_INDEX_SECTION_ORDER, MEMORY_SECTION_REGISTRY_ENTRY_ID, MEMORY_TOOL_NAMES,
+  PROMPT_REGISTRY_SERVICE_ID, resolvePromptRegistry,
 } from './tools.ts'
-export type { AttachMemoryOptions, MemoryHost } from './tools.ts'
+export type { AttachMemoryOptions, MemoryHost, PromptRegistryFace, PromptRegistryHost } from './tools.ts'

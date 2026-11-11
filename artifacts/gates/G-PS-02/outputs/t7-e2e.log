@@ -1,0 +1,154 @@
+[boot] repo=/Users/sunny/code/agent-basis-prompt-studio-v2
+[boot] home=/Users/sunny/code/agent-basis-prompt-studio-v2/.eterna-home-t7
+[PASS] 0.1 浏览器半边 bundle 构建(lib/client.js)
+[boot] plugin @eterna/prompt-studio: already-linked
+[PASS] 0.2 preflight: dump-config 退出码 0 — status=0
+[PASS] 0.3 preflight: 组合树 persona 前缀=基线标记
+[PASS] 0.4 preflight: 组合树含 eterna-prompt-studio 行
+[PASS] 0.5 preflight: 无 skipping/incompatible
+[host] ready pid=21243 log=/Users/sunny/code/agent-basis-prompt-studio-v2/.eterna-home-t7/logs/t7-e2e-host.log
+[PASS] 1.1 宿主就绪(dsh web token) — pid=21243
+[PASS] 1.2 pluginInventory: 含 @eterna/prompt-studio 行 — entryId=include:eterna-prompt-studio
+[PASS] 1.3 pluginInventory: 行 enabled=true
+[PASS] 1.4 pluginInventory: 行 fiberPhase=active
+[PASS] 1.5 宿主启动日志无 skipping/incompatible
+[PASS] 2.1 会话 A(旧)回合完成且系统提示含基线标记 — session=session-279a9b99-664e-442d-acaf-0023b164c991
+[PASS] 2.2 会话 A 系统提示不含 V2 新文本(尚未保存)
+[PASS] 3.1 snapshot: channel.kind=A-patch-hmr(通道 A)
+[PASS] 3.2 snapshot: persona.available 且含基线标记 — bytes=25
+[PASS] 3.3 snapshot: versions.ready=true(DSH storage 栈挂载) — count=1
+[PASS] 3.4 snapshot: 无在途审批
+[PASS] 3.5 snapshot: trace.pipeline=v0-disk-log
+[PASS] 3.6 prompt-get: effectiveNote 提示新会话生效
+[PASS] 3.7 prompt-versions: initial 种子(seq=1,source=initial,parentId=null) — id=v-000001-3a116239
+[PASS] 3.8 prompt-versions: initial checksum=sha256(content) 且内容=基线 — total=1
+[PASS] 4.1 乐观锁取最新版本作 baseVersionId(versions[0]=seq 最大) — baseVersionId=v-000001-3a116239 seq=1
+[PASS] 4.2 prompt-save(一段): status=approval-required
+[PASS] 4.3 prompt-save(一段): R3 审批卡(grade=R3 + ruleId) — ruleId=eterna.prompt-studio.persona-write
+[PASS] 4.4 prompt-save(一段): doubleConfirm→2 个 questionItems — items=2
+[PASS] 4.5 prompt-save(一段): patch 未落盘(V2 未写,等审批)
+[PASS] 4.6 snapshot: pendingApproval 出现且 id 一致(R3 卡在途) — approvalId=ap-12d30584-a3bd-4f17-bf59-8a8670e54bd6
+[PASS] 5.1 prompt-save(二段): status=committed
+[PASS] 5.2 prompt-save(二段): 版本 +1(source=save, seq=写前+1) — seq=2 prevTotal=1
+[PASS] 5.3 版本 checksum 变化(=sha256(新文本),≠写前基线)
+[PASS] 5.4 prompt-save(二段): patch 层已原子更新(含 V2 文本)
+[PASS] 5.5 prompt-save(二段): 在途审批已清
+[PASS] 5.8 T2.1: 保存经 configEditor 通道(审计 committed 带 channel=config-editor) — channels=config-editor
+[PASS] 5.9 T2.1: configEditor 整行写回后 !!js 表达式保真(未被求值 bake) — jsExpr 行数=2
+[PASS] 5.10 T2.1: configEditor 写回后 dump-config 干跑通过且组合树含新文(V2) — status=0
+[PASS] 5.11 T2.1: 新会话 C 不等 HMR 即用新文(configEditor 同步重组合;同进程 pid 不变) — session=session-87b2fbe6-b2ce-4473-8433-287e2d2b6e30
+[PASS] 5.6 保存后宿主日志无 skipping/incompatible(HMR 洁净)
+[PASS] 5.7 宿主进程 pid 未变(未重启) — pid=21243
+[events] $events stream ready clientId=ebd14302-4275-47e9-8084-db6061115952
+[PASS] 6.1 官方 $events 流就绪(owner client,interactions=answer) — clientId=ebd14302-4275-47e9-8084-db6061115952
+[events] waterfall approval/request eventId=93c224ec-0e3a-4435-b4b9-fd9a83ad780c request={"toolName":"bash","callId":"call_00_QrIQkGG9QGE566sWEsAK1170","reason":"escalate sandbox to danger-full-access: T7.5 e2e 审批点留痕","displayReason":{"en":"Allow this operation with danger-full-access per
+[events] approval answered allowed-once (#1 eventId=93c224ec-0e3a-4435-b4b9-fd9a83ad780c)
+[PASS] 6.2 会话 B(新)系统提示含新文本 V2(通道 A:保存即对新会话生效) — session=session-bf2ffda4-f5a6-42a2-825c-ae64f8fe4489
+[PASS] 6.3 会话 B 宿主审批点已应答 allowed-once(approval 瀑布走官方 $events) — answered=1
+[PASS] 7.1 trace(sessionId=B): 返回该会话轮次树(selected 非空,sessions 空) — turns=1
+[PASS] 7.2 trace(B): 轮次树含工具调用(callId/name/argsPreview/durationMs) — tools=bash
+[PASS] 7.3 trace(B): 轮次树含审批点(outcome=allowed-once,decidedAt 回填) — points=[{"name":"bash","outcome":"allowed-once"}]
+[PASS] 7.4 trace(B): 真模型 usage 计入轮次(inputTokens/outputTokens/totalTokens) — usageTurns=1
+[PASS] 7.5 trace(B): 事件投影计数(total>=projected,skipped 记坏行) — total=31 projected=8 skipped=0
+[PASS] 7.6 trace 列表模式: 最近会话清单含会话 B(标题/轮次/usage 折叠) — sessions=session-bf2ffda4-f5a6-42a2-825c-ae64f8fe4489,session-87b2fbe6-b2ce-4473-8433-287e2d2b6e30,session-279a9b99-664e-442d-acaf-0023b164c991
+[PASS] 7.7 snapshot.trace.recent 同步含会话 B — recent=3
+[PASS] 8.1 旧会话 A 补轮后系统提示仍不含新文本 V2(进行中会话不受影响) — session=session-279a9b99-664e-442d-acaf-0023b164c991
+[PASS] 9.1 prompt-rollback(一段): status=approval-required
+[PASS] 9.2 prompt-rollback(二段): committed 且 source=rollback — seq=3
+[PASS] 9.3 prompt-rollback(二段): parentId=被回滚版本 — parentId=v-000001-3a116239
+[PASS] 9.4 prompt-rollback(二段): 新版本内容=被回滚内容(checksum 一致)
+[PASS] 9.5 版本只增不删:total=写前+1 且 initial 版本仍在 — total=3 prev=2
+[PASS] 9.6 回滚后 patch 层回到被回滚内容(无 V2 文本)
+[PASS] 10.1 prompt-export: pack.checksum=sha256(persona)(UTF-8 口径) — checksum=01e4bd353996…
+[PASS] 10.2 prompt-export: 包字段(schemaVersion=1/sourceVersionId/exportedBy/exportedAt)
+[PASS] 10.3 prompt-export: 缺省=最新版本 — latest=v-000003-1336a11e
+[PASS] 10.4 prompt-export: 只读不走审批(版本数不变、无在途卡) — total=3 pending=null
+[PASS] 10.5 prompt-import(删一行篡改): status=rejected(checksum 强校验拒收) — issues=["导入包校验和不符:期望 01e4bd353996bce93beadc472d21c0991c3369a73594cd9621ea7ae3dc2f4d59,实际 ab5dab88fcf21b35618426abcfd0401a640b0122acda8f646bd57256854de0e4(persona 与 checksum 不配套,拒收)"]
+[PASS] 10.6 rejected issues 明示校验和不符 — issues=["导入包校验和不符:期望 01e4bd353996bce93beadc472d21c0991c3369a73594cd9621ea7ae3dc2f4d59,实际 ab5dab88fcf21b35618426abcfd0401a640b0122acda8f646bd57256854de0e4(persona 与 checksum 不配套,拒收)"]
+[PASS] 10.7 拒收未入库(版本数不变) — total=3
+[PASS] 10.8 prompt-import(原样,一段): status=approval-required
+[PASS] 10.9 prompt-import(一段): R3 审批卡(与保存同门)
+[PASS] 10.10 prompt-import(二段): committed 且 source=import — seq=4
+[PASS] 10.11 导入新版本 checksum=原包 checksum(与 save 版本同内容)
+[PASS] 10.12 版本链完整:total=拒收前+1,initial 仍在,新→旧有序 — total=4 latest=v-000004-853b948e
+[PASS] 11.1 兜底审计 NDJSON 存在(无 glue governance 场景) — /Users/sunny/code/agent-basis-prompt-studio-v2/.eterna-home-t7/eterna-prompt-studio/audit.jsonl
+[PASS] 11.2 审计记录为包络形态({kind:governance,at,detail:{action,…}}) — records=13 sample={"kind":"governance","at":"2026-11-10T23:13:55.647Z","detail":{"system":"eterna-prompt-studio","action":"session-snapshot.captured","at":"2026-11-10T23:13:55.64
+[PASS] 11.3 save 写链路留痕:approval-requested + committed
+[PASS] 11.4 rollback 写链路留痕:approval-requested + committed
+[PASS] 11.5 import 写链路留痕:rejected(篡改)+ approval-requested + committed(原样)
+[PASS] 11.6 committed 事件含 G5 字段(system/operator/versionId/at/checksum) — committed=3 operators=t7-e2e
+[PASS] 11.7 approval-requested 事件含操作者与在途审批 id — requested=3
+[PASS] 11.8 rejected 事件含校验失败明细(issues) — issues=["导入包校验和不符:期望 01e4bd353996bce93beadc472d21c0991c3369a73594cd9621ea7ae3dc2f4d59,实际 ab5dab88fcf21b35618426abcfd0401a640b0122acda8f646bd57256854de0e4(persona 与 che
+[PASS] 12.1 版本库单元落 DSH storage 栈(一文档一记录,数=persona total+9 条目链首) — docs=13 total=4
+[PASS] 14.1 /plan 命令进入 plan 模式(command/execute 返回 success) — kind=success text=Plan mode on. Use /plan off to leave.
+[PASS] 14.2 会话 P(旧)首轮系统提示含基线 plan 段(plan 模式激活,回放前提) — session=session-2f2b965f-7a7f-41b3-a490-45e331ce97b9
+[PASS] 14.3 会话 P(旧)首轮系统提示不含 plan 新文标记(尚未保存)
+[PASS] 14.4 会话 P 快照:plan-mode 条目文本=基线(严格回放数据源在位) — status=ok entryText=You are in plan mode. Stay in plan mode until the 
+[PASS] 14.5 prompt-save(plan-mode,一段): status=approval-required — status=approval-required
+[PASS] 14.6 prompt-save(plan-mode,二段): committed(非 persona 条目写回) — status=committed
+[PASS] 14.7 会话 Q(新)系统提示含 plan 新文标记(新会话读最新) — session=session-78bd6696-aa59-498f-beb4-ab82e33f73e2
+[PASS] 14.8 会话 Q(新)系统提示不含基线 plan 段首句(新文已替换)
+[PASS] 14.9 会话 P(旧)补轮后仍含基线 plan 段(旧会话全程沿用快照) — session=session-2f2b965f-7a7f-41b3-a490-45e331ce97b9
+[PASS] 14.10 会话 P(旧)补轮后不含 plan 新文标记(严格回放不吸收新文)
+[PASS] 14.11 宿主 pid 未变(严格回放全程同一服务) — pid=21243
+[PASS] 14.12 审计:会话 P 有回放事件(applied|governed)且治理条目=plan-mode(身份从会话快照解析) — events=assembly-replay.governed replayEvents=5
+[PASS] 15.1 矩阵声明面:entries[] 14 条全部带 effect.radius(T2.2 registry effect 字段透传) — radius=immediate-new-session,immediate-new-session,immediate-new-session,readonly-upstream,immediate-new-session,immediate-new-session,immediate-new-session,readonly-upstream,not-composed-anywhere,not-composed-anywhere,not-composed-anywhere,not-composed-anywhere,runtime-rebuilt,runtime-rebuilt
+[PASS] 15.2 A|前置: prompt-get{agent-instructions} 值=65536(数值配置反引) — value=65536
+[PASS] 15.3 A|会话 I1 基线: 指令链注入(AGENTS.md 标记在消息面,项目根=cwd) — session=session-4edba1fb-7cd4-46bd-a879-b2f33063940d
+[PASS] 15.4 A|两段式保存 maxBytes=64: committed — status=committed
+[PASS] 15.5 A|同进程新会话 I2: 指令链按 64B 上限截断(标记不在消息面;pid 不变)→即时(新会话) — session=session-e088ca9f-f225-4cac-8ae8-53cd09a34fe1
+[PASS] 15.6 A|进行中会话 I1 补轮: 指令消息仍在消息面(durable 首条不改写)→旧会话沿用 — session=session-4edba1fb-7cd4-46bd-a879-b2f33063940d
+[PASS] 15.7 A|回滚(两段式): committed(source=rollback,版本链只增) — seq=3
+[PASS] 15.8 A|回滚后值回 65536(数值 round-trip 闭环) — value=65536
+[PASS] 15.9 B|前置: dump-config 组合树含 cordis 同构行基线(夹具行已入组合)
+[PASS] 15.10 B|前置: prompt-get{cordis.persona} 折叠块(>-)反引=基线 — bytes=54
+[PASS] 15.11 B|agentPresets/select(cordis) 返回 preset 身份(会话选定创造模式) — selected="cordis"
+[PASS] 15.12 B|会话 C1(cordis): 系统提示含 cordis 基线且不含 standard 标记(预设隔离) — session=session-9368c430-9a26-4e61-8bdb-e4ca8b2f9054
+[PASS] 15.13 B|会话 C1(cordis): 指令链注入(AGENTS.md 标记在消息面;cordis 档 agent-instructions 同构) — session=session-9368c430-9a26-4e61-8bdb-e4ca8b2f9054
+[PASS] 15.14 B|两段式保存(cordis persona+agent-instructions 双写): 均 committed — persona=committed instr=committed
+[PASS] 15.15 B|同进程新会话 C2: persona 即时换新文(含 V2 不含基线;pid 不变)→即时(新会话) — session=session-c192bd2d-d593-484e-ae26-25ddbaaf4768
+[PASS] 15.16 B|同进程新会话 C2: 指令链按 64B 截断(标记不在消息面)→即时(新会话) — session=session-c192bd2d-d593-484e-ae26-25ddbaaf4768
+[PASS] 15.17 B|双回滚闭环: persona 折叠块反引回基线 + agent-instructions 值回 65536 — persona=T7_E2E_CORDIS_PERSONA_BASE cre… instr=65536
+[PASS] 15.18 C|前置: prompt-get{cordis.plan-mode} 字面块(|)反引含基线锚 — bytes=269
+[PASS] 15.19 C|会话 C3(cordis)进入 plan 模式(/plan success) — kind=success
+[PASS] 15.20 C|会话 C3 基线: 系统提示含 cordis plan 基线锚(plan 模式激活时注入) — session=session-965a1a0c-31b0-4903-be06-d7a6227d6397
+[PASS] 15.21 C|两段式保存新段: committed — status=committed
+[PASS] 15.22 C|同进程新会话 C4(cordis+/plan): plan 段即时换新文(含 V2 不含基线锚;pid 不变)→即时(新会话) — session=session-675f54dc-1278-45c4-aeb1-de1ca0a95726
+[PASS] 15.23 C|回滚闭环: committed 且字面块反引回基线锚 — status=committed
+[PASS] 15.24 D|prompt-save{standard.time-context}: rejected 且明示无 patch 写回落点 — status=rejected issues=["该条目由上游插件生成,无 patch 写回落点(条目 preset.standard.time-context;写链路 fail-closed 拒写)"]
+[PASS] 15.25 D|prompt-save{cordis.time-context}: rejected 且同明示 — status=rejected
+[PASS] 15.26 E|prompt-save{runtime.memory.index-section}: rejected 且明示运行时注入型 — status=rejected issues=["该条目为运行时注入型,内容由代码在装配时生成,无 patch 写回落点(条目 runtime.memory.index-section;自管改造见 T2.6)"]
+[PASS] 15.27 E|prompt-save{runtime.glue.memory-plugin}: rejected 且同明示 — status=rejected
+[PASS] 15.28 E|审计: 回放事件(applied|governed)的 skippedEntries 含两条 runtime 条目(reason=runtime-injection,按型跳过实测) — applied=10 runtimeSkips=20
+[PASS] 15.29 E|快照分型: runtime 条目=在场标注(annotation 含「运行时注入」,versionId=null 不伪造) — annotation=运行时注入:文本由代码在装配时构建,快照仅记在场标记(无注册表自管文本)。
+[PASS] 15.30F|前置: prompt-get 反引含领域身份句(>- 折叠块) — bytes=212
+[PASS] 15.31F|两段式保存(原文+标记句): committed — status=committed
+[PASS] 15.32F|审计: committed channel=entry-patch(领域条目走直写兜底通道明示) — channels=entry-patch
+[PASS] 15.33F|写回落盘 + 同进程读回: pack 文件含标记且 prompt-get 反引含标记 — fileHas=true
+[PASS] 15.34F|组合半径: dump-config 组合树不含标记(t7 档未装载领域包,改动不进入组合)
+[PASS] 15.35F|回滚(两段式): committed 且反引值=写前基线(>- 块语义等价重述;标记不残留) — status=committed valueRestored=true
+[PASS] 15.30G|前置: prompt-get 反引含领域身份句(>- 折叠块) — bytes=399
+[PASS] 15.31G|两段式保存(原文+标记句): committed — status=committed
+[PASS] 15.32G|审计: committed channel=entry-patch(领域条目走直写兜底通道明示) — channels=entry-patch
+[PASS] 15.33G|写回落盘 + 同进程读回: pack 文件含标记且 prompt-get 反引含标记 — fileHas=true
+[PASS] 15.34G|组合半径: dump-config 组合树不含标记(t7 档未装载领域包,改动不进入组合)
+[PASS] 15.35G|回滚(两段式): committed 且反引值=写前基线(>- 块语义等价重述;标记不残留) — status=committed valueRestored=true
+[PASS] 15.36H|前置: prompt-get 反引=persona.md 全文(整文件条目) — bytes=2048/2048
+[PASS] 15.37H|两段式保存(全文+标记行): committed — status=committed
+[PASS] 15.38H|写后组合面: 文件含标记而 dump-config 组合树不含(该文件不参与任何宿主组装)
+[PASS] 15.39H|回滚(两段式): committed 且文件字节=原文 — status=committed restored=true
+[PASS] 15.36I|前置: prompt-get 反引=persona.md 全文(整文件条目) — bytes=2316/2316
+[PASS] 15.37I|两段式保存(全文+标记行): committed — status=committed
+[PASS] 15.38I|写后组合面: 文件含标记而 dump-config 组合树不含(该文件不参与任何宿主组装)
+[PASS] 15.39I|回滚(两段式): committed 且文件字节=原文 — status=committed restored=true
+[PASS] 15.40 J|声明对账: preset patch 值型 6 条=即时(新会话);time-context×2=readonly-upstream;domain×4=not-composed;runtime×2=runtime-rebuilt(与 15.2-15.39 实测逐面一致) — radius=persona:immediate-new-session agent-instructions:immediate-new-session section:immediate-new-session time-context:readonly-upstream persona:immediate-new-session agent-instructions:immediate-new-session section:immediate-new-session time-context:readonly-upstream persona-prefix:not-composed-anywhere persona-md:not-composed-anywhere persona-prefix:not-composed-anywhere persona-md:not-composed-anywhere index-section:runtime-rebuilt memory-plugin:runtime-rebuilt
+[PASS] 15.41 J|矩阵收尾: 宿主 pid 未变(矩阵全程同一服务,无重启) — pid=21243
+[PASS] 15.42 J|领域层收尾: 四份仓库 pack 文件无矩阵标记残留 + 两条前缀条目反引值已回滚 — markerFree=true
+[cleanup] SIGTERM 宿主(持久化层停机冲刷)…
+[matrix-guard] packs/event-planning/cordis.patch.yml 字节与运行前原文不同(>- 折叠块回滚按值重述的规范化差异,或链中途崩溃),已按运行前原文还原
+[matrix-guard] packs/industrial-analysis/cordis.patch.yml 字节与运行前原文不同(>- 折叠块回滚按值重述的规范化差异,或链中途崩溃),已按运行前原文还原
+[events] answer loop ended: events socket closed while waiting for waterfall
+[PASS] 13.1 清理:宿主进程已停止、端口 3108 已释放
+
+结论:T7.5 集成验收全部通过(exit 0)
+断言台账:PASS=140 FAIL=0

@@ -1,5 +1,7 @@
 /**
- * 导出包校验器(T7.3 ①:导入侧 schemaVersion + checksum 强校验,不符即拒收)。
+ * 导出包校验器(T7.3 ①:导入侧 schemaVersion + checksum 强校验,不符即拒收;
+ * T1.6 起可选 entryId 字段形状校验——条目存在性/可写性/内容校验由 promptImport
+ * 端点按条目施加,与保存同门禁)。
  *
  * 从 promptImport 的内联校验抽出为纯函数面:vitest 逐条钉住(坏形状/schemaVersion
  * 不支持/checksum 篡改),宿主 prompt-import 端点与任何复用方共用同一套口径。
@@ -14,7 +16,7 @@ export type ExportPackValidation =
   | { readonly ok: true; readonly pack: PromptExportPack }
   | { readonly ok: false; readonly issues: readonly string[] }
 
-/** 校验导入包(不校验 persona 文本本身——内容规则由 validatePersonaText 统一把守)。 */
+/** 校验导入包(不校验 persona 文本本身——内容规则由按条目校验器统一把守)。 */
 export function validateExportPack(raw: unknown): ExportPackValidation {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
     return { ok: false, issues: ['导入包缺失或不是 JSON 对象(需含 schemaVersion/persona/checksum)'] }
@@ -30,6 +32,9 @@ export function validateExportPack(raw: unknown): ExportPackValidation {
   if (typeof pack['checksum'] !== 'string') {
     issues.push('导入包缺 checksum 字段(或非字符串)')
   }
+  if (pack['entryId'] !== undefined && typeof pack['entryId'] !== 'string') {
+    issues.push('导入包 entryId 字段非字符串(可选字段;给出时必须是注册表条目 id)')
+  }
   if (issues.length > 0) return { ok: false, issues }
   const persona = pack['persona'] as string
   const checksum = pack['checksum'] as string
@@ -37,6 +42,7 @@ export function validateExportPack(raw: unknown): ExportPackValidation {
   if (actual !== checksum) {
     return { ok: false, issues: [`导入包校验和不符:期望 ${checksum},实际 ${actual}(persona 与 checksum 不配套,拒收)`] }
   }
+  const entryId = pack['entryId']
   return {
     ok: true,
     pack: {
@@ -44,6 +50,7 @@ export function validateExportPack(raw: unknown): ExportPackValidation {
       exportedAt: typeof pack['exportedAt'] === 'string' ? pack['exportedAt'] : '',
       exportedBy: typeof pack['exportedBy'] === 'string' ? pack['exportedBy'] : '',
       sourceVersionId: typeof pack['sourceVersionId'] === 'string' ? pack['sourceVersionId'] : '',
+      ...(typeof entryId === 'string' && entryId !== '' && { entryId }),
       persona,
       checksum,
     },

@@ -1,0 +1,47 @@
+[
+  {
+    "version": 1,
+    "record": {
+      "id": "v-000001-92b3a385",
+      "seq": 1,
+      "createdAt": "2026-11-10T17:33:32.923Z",
+      "author": "system",
+      "source": "initial",
+      "parentId": null,
+      "bytes": 54,
+      "checksum": "67c8920bd35bd929850260cdc63a5477e9ed028b84cbfb9a53c2d26bbc5c18a4",
+      "summary": "装载时种子的 persona 基线(profile patch 层现值)",
+      "content": "T7_SMOKE_PERSONA_MARKER base prompt studio smoke alpha"
+    }
+  },
+  {
+    "version": 1,
+    "record": {
+      "id": "v-000002-15f07bfb",
+      "seq": 2,
+      "createdAt": "2026-11-10T17:33:34.253Z",
+      "author": "t7-smoke",
+      "source": "save",
+      "parentId": "v-000001-92b3a385",
+      "bytes": 161,
+      "checksum": "7e225f626edd764cbbfec01cf5c6de923a89b7076b140d24dd2eaec765a2afd2",
+      "summary": "编辑 persona 并保存",
+      "content": "T7_SMOKE_PERSONA_MARKER base prompt studio smoke alpha\nT7_SMOKE_STUDIO_V2 红线:预算超支>5%必须触发审批;对外付款不得代付;比选必须中立。"
+    }
+  },
+  {
+    "version": 1,
+    "record": {
+      "id": "v-000003-b84e2053",
+      "seq": 3,
+      "createdAt": "2026-11-10T17:33:42.436Z",
+      "author": "t7-smoke",
+      "source": "rollback",
+      "parentId": "v-000001-92b3a385",
+      "bytes": 54,
+      "checksum": "67c8920bd35bd929850260cdc63a5477e9ed028b84cbfb9a53c2d26bbc5c18a4",
+      "summary": "回滚到历史版本",
+      "content": "T7_SMOKE_PERSONA_MARKER base prompt studio smoke alpha"
+    }
+  }
+]

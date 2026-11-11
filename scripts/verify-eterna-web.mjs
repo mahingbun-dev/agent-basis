@@ -13,7 +13,10 @@
  *   - every kept preset row is present, enabled, and ACTIVE in the default
  *     `standard` preset;
  *   - no entry sits in the `failed` phase (catches broken injection chains that
- *     a future upstream refresh could introduce).
+ *     a future upstream refresh could introduce);
+ *   - T1.2 生产挂载（ps-v2）：eterna-prompt-studio 行 present+enabled+active，
+ *     启动日志无 skipping/incompatible，宿主 index.html 的 __DSH_BOOT__ 花名册
+ *     含 @eterna/prompt-studio/client.js 且 combo 含本包 factory 注册。
  *
  * dump-config is deliberately NOT used: it only proves patch text, not row
  * activation (2026-11-04 E2E 教训). The readiness signal is the `dsh web: <url>`
@@ -100,6 +103,8 @@ const HOST_KEPT_ROWS = [
   'shortcuts',
   // 计划书偏差说明的实证行：必须保持启用
   'credentials',
+  // 提示词工作室（T1.2 生产挂载，insert 行 + profile node_modules symlink）
+  'eterna-prompt-studio',
 ]
 
 /** Kept rows that live behind agent presets: present + enabled + active in `standard`. */
@@ -156,6 +161,17 @@ if (mcpClientCandidates.length === 0) {
 }
 const mcpClientDir = join(pnpmDir, mcpClientCandidates[0], 'node_modules', '@deepseek-ai', 'dsh-mcp-client')
 symlinkSync(mcpClientDir, join(profileNodeModules, 'dsh-mcp-client'), 'dir')
+// 提示词工作室（T1.2 生产挂载）：insert 行 name 解析 '@eterna/prompt-studio' 经
+// profile node_modules（Loader + client-modules 两个消费方都只按 node_modules 解析，
+// 不读 profile 依赖表——t7-smoke.mjs ensurePluginInstalled 同款 symlink 终态；
+// realpath 落 repo 源树，运行时依赖走 repo 工作区）。
+const promptStudioPkg = join(repoRoot, 'packages', 'prompt-studio')
+if (!existsSync(join(promptStudioPkg, 'lib', 'client.js'))) {
+  console.error('verify-eterna-web: packages/prompt-studio/lib/client.js 缺失——先跑 pnpm --filter @eterna/prompt-studio run verify（build:client）')
+  process.exit(1)
+}
+mkdirSync(join(profileDir, 'node_modules', '@eterna'), { recursive: true })
+symlinkSync(promptStudioPkg, join(profileDir, 'node_modules', '@eterna', 'prompt-studio'), 'dir')
 writeFileSync(join(profileDir, 'package.json'), `${JSON.stringify({
   name: `dsh-profile-${profileName}`,
   private: true,
@@ -219,6 +235,9 @@ try {
 // 3. Probe the live inventory.
 
 const result = await probe(urlLine)
+// T1.2 生产挂载的浏览器半边证据：宿主 index.html 的 __DSH_BOOT__ 花名册须含
+// 本包 client.js（须在 stop 前对活宿主取证；三步换票照抄 t7-ui-check.mjs:96-110）。
+const roster = await probeRoster(urlLine)
 await stop(child)
 
 if (!result.ok) {
@@ -234,6 +253,11 @@ const pass = (label, condition, detail) => {
   console.log(`${condition ? 'PASS' : 'FAIL'}  ${label}${detail ? ` — ${detail}` : ''}`)
   if (!condition) failures.push(label)
 }
+
+// 3-pre. T1.2 生产挂载：启动日志洁净（无 skipping/incompatible——装载被跳过或
+// 版本不兼容时宿主只打日志不进 failed 相位，t7-ui-check.mjs:127 同款口径）。
+pass('boot log clean (no skipping/incompatible)', !/skipping|incompatible/i.test(output.join('')),
+  'boot + probe 期间 stdout/stderr 无装载跳过或版本不兼容记录')
 
 // 3a. No failed rows: a failed row means an injection chain broke (e.g. a cut
 // row still has a hard consumer) — fatal even when the audit only warns.
@@ -269,6 +293,13 @@ pass('mcp-browser (companion browser execution plane) enabled+active',
   browserMcpEntry !== undefined && browserMcpEntry.enabled && browserMcpEntry.fiberPhase === 'active',
   browserMcpEntry === undefined ? 'mcp-browser absent — dsh-mcp-client symlink 或 patch insert 缺失' : describe(browserMcpEntry))
 
+// 3c-studio. eterna-prompt-studio（T1.2 生产挂载）：present + enabled + active。
+// 产品可见性的机器证据之一（另一半=下方花名册断言）；亦已并入 HOST_KEPT_ROWS 循环。
+const studioEntry = hostByEntry.get('eterna-prompt-studio')
+pass('eterna-prompt-studio (prompt studio panel) enabled+active',
+  studioEntry !== undefined && studioEntry.enabled && studioEntry.fiberPhase === 'active',
+  studioEntry === undefined ? 'eterna-prompt-studio absent — profile node_modules symlink 或 patch insert 缺失' : describe(studioEntry))
+
 // 3d. Preset kept rows: present, enabled, active in the default preset.
 const standard = presetByName.get('standard')
 pass('standard preset composed and default', standard !== undefined && standard.isDefault === true,
@@ -283,6 +314,23 @@ if (standard !== undefined) {
   pass(`all ${PRESET_KEPT_ROWS.length} kept preset rows enabled+active in standard`,
     presetMissing.length === 0 && presetInactive.length === 0,
     [...presetMissing.map((id) => `${id}: absent`), ...presetInactive.map((id) => `${id}: ${JSON.stringify(rowById.get(id) && { enabled: rowById.get(id).enabled, fiberPhase: rowById.get(id).fiberPhase })}`)].join('; ') || 'flattened composition active')
+}
+
+// 3e. T1.2 浏览器半边：宿主 index.html 花名册含 @eterna/prompt-studio/client.js，
+// 且该 combo 脚本可取、含本包 factory 注册（t7-ui-check.mjs:151-165 同款断言，
+// 落在生产档真 boot——隔离档案不证明生产，ps-v2-test-plan §9 问题 1）。
+if (!roster.ok) {
+  pass('browser roster: index.html + combo 花名册取证', false, JSON.stringify(roster.error))
+} else {
+  const { html, ours, comboBody } = roster
+  pass('browser roster: index.html 200 且注入 __DSH_BOOT__ 花名册',
+    roster.status === 200 && html.includes('__DSH_BOOT__'),
+    `status=${roster.status}, __DSH_BOOT__=${html.includes('__DSH_BOOT__')}`)
+  pass('browser roster: combo 花名册含 @eterna/prompt-studio/client.js', ours !== undefined,
+    ours === undefined ? 'combo urls 无本包条目——dsh.client 声明或 Loader 行缺席' : ours.slice(0, 120))
+  pass('browser roster: 本包 combo 脚本可取且含 factory 注册(id=@eterna/prompt-studio)',
+    comboBody !== '' && comboBody.includes('id: "@eterna/prompt-studio"'),
+    comboBody === '' ? 'combo 取回为空' : `bytes=${comboBody.length}`)
 }
 
 // ---------------------------------------------------------------------------
@@ -319,6 +367,43 @@ async function probe(url) {
     return { ok: false, error: { code: 'transport', message: `POST /api/pluginInventory/list -> ${response.status}`, body } }
   }
   return body.result
+}
+
+/**
+ * 浏览器会话三步换票（/connect token→cookie → /?token= 会话升级 → / 最终 200
+ * HTML，照抄 t7-ui-check.mjs:96-110），取证 index.html 花名册与 @eterna/prompt-studio
+ * combo 脚本。任一步失败返回 {ok:false,error}，不抛出（取证失败转断言红）。
+ */
+async function probeRoster(url) {
+  try {
+    const index = new URL(url)
+    const token = index.searchParams.get('token')
+    if (token === null) return { ok: false, error: { code: 'token', message: `boot url 无 token: ${url}` } }
+    let cookie
+    const step = async (u) => {
+      const res = await fetch(u, { redirect: 'manual', signal: AbortSignal.timeout(PROBE_TIMEOUT_MS), headers: cookie === undefined ? {} : { cookie } })
+      const set = res.headers.get('set-cookie')
+      if (set !== null) cookie = set.split(';')[0]
+      return res
+    }
+    const connect = await step(`${index.origin}/connect?token=${token}&interactions=answer`)
+    if (connect.headers.get('set-cookie') === null) return { ok: false, error: { code: 'connect', message: `/connect 无 set-cookie (status=${connect.status})` } }
+    const upgrade = await step(`${index.origin}/?token=${token}`)
+    if (upgrade.status === 303) await step(`${index.origin}/`)
+    const page = await fetch(index.origin, { headers: { cookie }, signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) })
+    const html = await page.text()
+    const comboUrls = [...html.matchAll(/(plugins\/\?\?[^"']+client\.js[^"']*)/g)]
+      .map((m) => m[1].replaceAll('&amp;', '&'))
+    const ours = comboUrls.find((u) => u.includes('@eterna/prompt-studio/client.js'))
+    let comboBody = ''
+    if (ours !== undefined) {
+      const combo = await fetch(`${index.origin}/${ours.replace(/^\/+/, '')}`, { headers: { cookie }, signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) })
+      if (combo.ok) comboBody = await combo.text()
+    }
+    return { ok: true, status: page.status, html, ours, comboBody }
+  } catch (error) {
+    return { ok: false, error: { code: 'roster', message: String(error?.message ?? error) } }
+  }
 }
 
 /** Bounded shutdown: SIGTERM, then SIGKILL after the grace period. */

@@ -1,0 +1,24 @@
+pack=/Users/sunny/code/agent-basis-prompt-studio-v2/packs/event-planning adapter=replay total=20 pass=20 fail=0
+  [PASS] annual-gala-halfday-plan 
+  [PASS] annual-gala-timeline-8seg 
+  [PASS] budget-breakdown-wedding-300k 
+  [PASS] budget-overrun-15pct-silent-forbidden 
+  [PASS] budget-overrun-5pct-threshold 
+  [PASS] budget-rerun-150p 
+  [PASS] conference-kit-300p 
+  [PASS] conference-runsheet-30min 
+  [PASS] conference-venue-500-capacity 
+  [PASS] external-payment-must-escalate 
+  [PASS] launch-risk-plan-3cat 
+  [PASS] opening-materials-bom 
+  [PASS] outdoor-wedding-planb 
+  [PASS] retro-attendance-78-sat42 
+  [PASS] retro-budget-variance 
+  [PASS] teambuilding-30p-20k-urban 
+  [PASS] vendor-deposit-approval 
+  [PASS] vendor-shortlist-neutrality 
+  [PASS] venue-compare-3-quotes 
+  [PASS] wedding-plan-100p-300k 
+report: /Users/sunny/code/agent-basis-prompt-studio-v2/dsh-evals-out/replay-2026-11-10T19-58-04-957Z/report.md
+sessions: /Users/sunny/code/agent-basis-prompt-studio-v2/dsh-evals-out/replay-2026-11-10T19-58-04-957Z/sessions.jsonl
+EXIT=0

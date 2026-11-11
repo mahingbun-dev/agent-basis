@@ -5,12 +5,13 @@
  * - 审计:governance 服务在场走它;缺席走兜底 FileAuditSink(NDJSON,含
  *   operator/versionId/at——G5 口径)。
  */
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync } from 'node:fs'
+import { rmRetry } from './rm-retry.ts'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { MemoryAuditSink } from '@eterna/governance'
-import { ApprovalGate, PERSONA_WRITE_RULE_ID } from '../src/approval.ts'
+import { ApprovalGate, PERSONA_WRITE_RULE_ID, entryWriteRuleId } from '../src/approval.ts'
 import { StudioAudit } from '../src/audit.ts'
 import type { GovernanceAuditLike } from '../src/audit.ts'
 import type { WriteKind } from '../src/types.ts'
@@ -99,8 +100,8 @@ describe('StudioAudit(审计留痕)', () => {
     dir = mkdtempSync(join(tmpdir(), 'eterna-prompt-studio-audit-'))
   })
 
-  afterEach(() => {
-    rmSync(dir, { recursive: true, force: true })
+  afterEach(async () => {
+    await rmRetry(dir)
   })
 
   it('governance 服务缺席 → 兜底 FileAuditSink NDJSON(含 action/operator/versionId/at)', async () => {
@@ -147,14 +148,68 @@ describe('StudioAudit(审计留痕)', () => {
   })
 })
 
-describe('WriteKind 全集(三类写操作全走 R3)', () => {
-  it('save/rollback/import 都能出卡且 kind 回填', () => {
-    const kinds: WriteKind[] = ['save', 'rollback', 'import']
+describe('WriteKind 全集(四类写操作全走 R3;T3.2 起 +ai-proposal)', () => {
+  it('save/rollback/import/ai-proposal 都能出卡且 kind 回填', () => {
+    const kinds: WriteKind[] = ['save', 'rollback', 'import', 'ai-proposal']
     for (const kind of kinds) {
       const gate = new ApprovalGate()
       const pending = gate.request(kind, payload(), FACTS)
       expect(pending.kind).toBe(kind)
       expect(pending.card.matchedRule.grade).toBe('R3')
     }
+  })
+
+  it('T3.2 actionName:缺省 loopPrompt/prompt-<kind>(既有三类形状不变);ai-proposal 传真实端点名', () => {
+    const gate = new ApprovalGate()
+    const save = gate.request('save', payload(), FACTS)
+    expect(save.card.whatWillHappen.name).toBe('loopPrompt/prompt-save')
+    const proposal = gate.request('ai-proposal', payload(), { ...FACTS, actionName: 'loopPrompt/ai-proposal' })
+    expect(proposal.card.whatWillHappen.name).toBe('loopPrompt/ai-proposal')
+  })
+})
+
+/**
+ * T1.6 R3 按条目授权面(ruleId 解析/按条目卡片/entryId 回显复验):
+ * - entryWriteRuleId:默认 persona 条目维持 persona-write(T7 兼容),其余条目
+ *   entry-write.<entryId>;
+ * - CardFacts.ruleId 进卡(matchedRule + doubleConfirm 第二问 id);
+ * - confirm 复述面含 entryId(按条目写回第二段必须指名同一条目)。
+ */
+describe('T1.6 R3 按条目授权(entryWriteRuleId + 按条目卡片 + entryId 回显)', () => {
+  it('entryWriteRuleId:默认条目=persona-write(T7 兼容);其余=entry-write.<entryId>', () => {
+    expect(entryWriteRuleId('preset.standard.persona')).toBe('eterna.prompt-studio.persona-write')
+    expect(entryWriteRuleId('preset.cordis.persona')).toBe('eterna.prompt-studio.entry-write.preset.cordis.persona')
+    expect(entryWriteRuleId('domain.event-planning.persona-prefix')).toBe('eterna.prompt-studio.entry-write.domain.event-planning.persona-prefix')
+  })
+
+  it('按条目卡片:CardFacts.ruleId 进 matchedRule 与 why.entry;载荷带 entryId', () => {
+    const gate = new ApprovalGate()
+    const pending = gate.request('save', { content: 'x', baseVersionId: null, versionId: null, summary: 's', author: 'a', entryId: 'preset.cordis.persona' }, {
+      ...FACTS,
+      ruleId: entryWriteRuleId('preset.cordis.persona'),
+      whyEntry: `R3 · ${entryWriteRuleId('preset.cordis.persona')}(提示词注册表条目 preset.cordis.persona 写回)`,
+      ruleReason: '提示词注册表条目 preset.cordis.persona(preset/patch-value)影响相应会话的系统提示',
+    })
+    expect(pending.card.matchedRule.ruleId).toBe('eterna.prompt-studio.entry-write.preset.cordis.persona')
+    expect(pending.card.why.entry).toContain('eterna.prompt-studio.entry-write.preset.cordis.persona')
+    expect(pending.payload.entryId).toBe('preset.cordis.persona')
+    expect(pending.questionItems).toHaveLength(2)
+  })
+
+  it('confirm 复述面含 entryId:条目不一致 → mismatch(在途保留可重试)', () => {
+    const gate = new ApprovalGate()
+    const pending = gate.request('save', { content: 'x', baseVersionId: null, versionId: null, summary: 's', author: 'a', entryId: 'preset.cordis.persona' }, FACTS)
+    const wrongEntry = gate.confirm(pending.approvalId, true, { content: 'x', baseVersionId: null, versionId: null, entryId: 'preset.standard.persona' })
+    expect(wrongEntry.outcome).toBe('mismatch')
+    expect('reason' in wrongEntry && wrongEntry.reason).toContain('entryId')
+    expect(gate.peek()?.approvalId).toBe(pending.approvalId)
+    const rightEntry = gate.confirm(pending.approvalId, true, { content: 'x', baseVersionId: null, versionId: null, entryId: 'preset.cordis.persona' })
+    expect(rightEntry.outcome).toBe('approved')
+  })
+
+  it('无 entryId 载荷与无 entryId 回显(T7 旧形态)仍匹配——兼容面', () => {
+    const gate = new ApprovalGate()
+    const pending = gate.request('save', payload(), FACTS)
+    expect(gate.confirm(pending.approvalId, true, { content: payload().content, baseVersionId: null, versionId: null }).outcome).toBe('approved')
   })
 })

@@ -1,0 +1,33 @@
+$ node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run
+
+  lib/client.js  153.9kb
+
+⚡ Done in 22ms
+Found 0 warnings and 0 errors.
+Finished in 1.2s on 43 files with 87 rules using 10 threads.
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-prompt-studio-v2/packages/prompt-studio
+
+ ✓ tests/trace.test.ts (19 tests) 83ms
+ ✓ tests/entry-patch.test.ts (26 tests) 68ms
+ ✓ tests/persona-patch.test.ts (20 tests) 94ms
+ ✓ tests/version-store.test.ts (14 tests) 81ms
+ ✓ tests/assembly-replay.test.ts (33 tests) 69ms
+ ✓ tests/client-bundle.test.ts (20 tests) 29ms
+stderr | tests/config-editor-write.test.ts > 写链路 configEditor 通道(真实 cordis 根 Context + 桩注入) > ③ seam 还原不可用(行被重组合移除)→ 退字节级还原,基线字节仍恢复
+prompt-studio: 写后验证失败且通道还原失败(退字节级还原):行 preset-standard 不在 configEditor 活跃条目中(重组合瞬态或行已裁撤)
+
+ ✓ tests/validator-diff.test.ts (33 tests) 25ms
+ ✓ tests/registry.test.ts (25 tests) 22ms
+ ✓ tests/config-editor-write.test.ts (20 tests) 160ms
+ ✓ tests/approval-audit.test.ts (16 tests) 16ms
+ ✓ tests/ai-service.test.ts (30 tests) 179ms
+ ✓ tests/version-governance.test.ts (8 tests) 4ms
+ ✓ tests/session-snapshot.test.ts (17 tests) 243ms
+ ✓ tests/host-plugin.test.ts (48 tests) 361ms
+
+ Test Files  14 passed (14)
+      Tests  329 passed (329)
+   Start at  09:59:24
+   Duration  840ms (transform 1.28s, setup 0ms, import 2.12s, tests 1.44s, environment 4ms)
+

@@ -1,0 +1,18 @@
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-prompt-studio-v2/tools/packctl
+
+ ✓ tests/tenant.spec.ts (4 tests) 10ms
+ ✓ tests/cordis.spec.ts (15 tests) 5ms
+ ✓ tests/golden.spec.ts (12 tests) 19ms
+ ✓ tests/skills.spec.ts (8 tests) 21ms
+ ✓ tests/structure.spec.ts (7 tests) 38ms
+ ✓ tests/init.spec.ts (9 tests) 57ms
+ ✓ tests/prompt.spec.ts (6 tests) 17ms
+ ✓ tests/cli.spec.ts (8 tests) 39ms
+ ✓ tests/badpacks.spec.ts (9 tests) 67ms
+
+ Test Files  9 passed (9)
+      Tests  78 passed (78)
+   Start at  07:13:18
+   Duration  343ms (transform 334ms, setup 0ms, import 698ms, tests 274ms, environment 0ms)
+

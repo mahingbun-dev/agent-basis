@@ -24,11 +24,18 @@ jobs:
       - name: Verify(oxlint + tsc strict + vitest,20 包)
         run: pnpm -w run verify
 
-      - name: Lint 领域包(packs/*)
-        run: node tools/packctl/bin/packctl.mjs lint packs/event-planning
+      - name: Lint 所有领域包(packs/*,逐包循环)
+        run: |
+          for d in packs/*/; do
+            echo "== packctl lint $d"
+            node tools/packctl/bin/packctl.mjs lint "$d"
+          done
 
       - name: 隔离铁律扫描(packages/*,tenant-scan)
         run: node tools/packctl/bin/packctl.mjs tenant-scan
+
+      - name: 提示词登记扫描(patch 键/section 使用/packs persona,prompt-scan)
+        run: node tools/packctl/bin/packctl.mjs prompt-scan
 
       - name: 评测 replay 冒烟(dsh-evals,t14-replay 子集)
         run: node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --subset t14-replay --adapter replay

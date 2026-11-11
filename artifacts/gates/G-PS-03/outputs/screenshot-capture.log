@@ -1,0 +1,10 @@
+[host] ready pid=55166 token=***
+[dom/light] aiStatusPill={"state":"error","available":false,"unavailable":false,"title":"typert gateway: loopPrompt/ai-status: args fields do not match the descriptor: unexpected \"input\""}
+[shot] light AI 润色建议稿卡+diff 预览(真模型建议稿;缺红线底稿→diff 见补线增行;提案按钮走 R3) -> screenshots/ai-diff-light.png (66620B md5=b439817e uncapped(root h=5064/scroll=5064))
+[shot] light AI 审核报告卡(本地校验器 ruleFindings+模型问题清单+建议列表;仅展示不拦截) -> screenshots/ai-review-light.png (221651B md5=da79f54a uncapped(root h=5896/scroll=5896))
+[dom/dark] aiStatusPill={"state":"error","available":false,"unavailable":false,"title":"typert gateway: loopPrompt/ai-status: args fields do not match the descriptor: unexpected \"input\""}
+[shot] dark AI 润色建议稿卡+diff 预览(真模型建议稿;缺红线底稿→diff 见补线增行;提案按钮走 R3) -> screenshots/ai-diff-dark.png (67216B md5=1107413c uncapped(root h=5064/scroll=5064))
+[shot] dark AI 审核报告卡(本地校验器 ruleFindings+模型问题清单+建议列表;仅展示不拦截) -> screenshots/ai-review-dark.png (247814B md5=cd977bd8 uncapped(root h=5995/scroll=5995))
+[readonly] patch 层全程未变=true
+[done] 全部截图完成
+[cleanup] 宿主已停

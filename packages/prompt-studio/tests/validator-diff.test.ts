@@ -10,7 +10,8 @@ import { describe, expect, it } from 'vitest'
 import { diffLines, diffSummaryText, lineDiffOps, splitLines } from '../src/diff.ts'
 import type { LineDiffOp } from '../src/diff.ts'
 import {
-  MAX_PERSONA_BYTES, RED_LINE_RULES, checkRedLines, checkUtf8WellFormed, validatePersonaText,
+  INDUSTRIAL_RED_LINE_RULES, MAX_PERSONA_BYTES, RED_LINE_RULES, RED_LINE_RULE_SETS, checkRedLines,
+  checkRedLinesOfRuleSet, checkUtf8WellFormed, validateEntryText, validatePersonaText,
 } from '../src/validator.ts'
 
 /** 带三条红线锚点的最小合法 persona(锚点措辞与 event-planning persona 同款)。 */
@@ -197,5 +198,124 @@ describe('lineDiffOps(逐行 diff 投影,T7.3 ②:版本对比视图)', () => {
     expect(removed).toBe(1200)
     expect(added).toBe(1200)
     expect(diffLines(before, after)).toEqual({ added: 1200, removed: 1200, isEmpty: false })
+  })
+})
+
+/**
+ * T1.6 按条目校验器与规则集(测试计划 §3 T1.6(b)③④ + §6 横切 3):
+ * - validateEntryText:骨架规则按条目参数化(maxBytes),红线按条目策略/规则集;
+ * - 规则集登记面(标准双语/工业四条/未知 fail-closed);
+ * - 交叉钉住:industrial-analysis persona.md 与 personaPrefix 真文件过工业规则集
+ *   (§6 横切 3 的「补 industrial-analysis/persona.md 钉住」);
+ *   event-planning personaPrefix 英文句过标准集(双语锚点与真事实源对齐)。
+ */
+describe('T1.6 validateEntryText(按条目校验器)', () => {
+  const STANDARD_REQUIRED = { redLine: 'required' as const, redLineRuleSet: 'eterna.red-lines.standard' }
+  const INDUSTRIAL_REQUIRED = { redLine: 'required' as const, redLineRuleSet: 'eterna.red-lines.industrial-analysis' }
+  const EXEMPT = { redLine: 'exempt' as const }
+
+  it('exempt 条目不做红线检查(T1.3 豁免标记生效)', () => {
+    const result = validateEntryText(EXEMPT, '没有任何红线的普通提示词')
+    expect(result.ok).toBe(true)
+    expect(result.issues).toEqual([])
+  })
+
+  it('required+标准集:与 validatePersonaText 同判(CJK 锚点)', () => {
+    expect(validateEntryText(STANDARD_REQUIRED, BASE_OK).ok).toBe(true)
+    const without = BASE_OK.replace(RED_LINE_RULES[0]?.pattern ?? /x/, '——')
+    expect(validateEntryText(STANDARD_REQUIRED, without).ok).toBe(false)
+    expect(validateEntryText(STANDARD_REQUIRED, without).issues.join('\n')).toContain('「预算不超支」')
+  })
+
+  it('maxBytes 逐条目参数化:条目自定义上限生效(默认 65536)', () => {
+    const small = { ...EXEMPT, maxBytes: 100 }
+    expect(validateEntryText(small, 'a'.repeat(100)).ok).toBe(true)
+    const over = validateEntryText(small, 'a'.repeat(101))
+    expect(over.ok).toBe(false)
+    expect(over.issues.join('\n')).toContain('101 字节 > 100')
+    // 缺省上限=MAX_PERSONA_BYTES。
+    expect(validateEntryText(EXEMPT, 'a'.repeat(MAX_PERSONA_BYTES)).ok).toBe(true)
+  })
+
+  it('required+工业集:缺任一锚点逐条指明;四锚点齐备通过', () => {
+    const full = '达梦业务库只读;数据与知识层只经 MCP 访问;对外发送必须确认(R2);deny 优先、fail-closed。'
+    expect(validateEntryText(INDUSTRIAL_REQUIRED, full).ok).toBe(true)
+    const missing = '达梦业务库只读;数据与知识层只经 MCP 访问;对外发送必须确认(R2)。'
+    const result = validateEntryText(INDUSTRIAL_REQUIRED, missing)
+    expect(result.ok).toBe(false)
+    expect(result.issues.join('\n')).toContain('「deny 优先 fail-closed」')
+    expect(result.issues).toHaveLength(1)
+  })
+
+  it('未知规则集 id → fail-closed 明示(不静默跳过)', () => {
+    const result = validateEntryText({ redLine: 'required', redLineRuleSet: 'eterna.red-lines.no-such' }, BASE_OK)
+    expect(result.ok).toBe(false)
+    expect(result.issues.join('\n')).toContain('未知红线规则集')
+  })
+})
+
+describe('T1.6 红线规则集登记面与真文件交叉钉住', () => {
+  const readRepoFile = (file: string) => readFileSync(join(import.meta.dirname, '..', '..', '..', file), 'utf8')
+
+  it('RED_LINE_RULE_SETS:两套规则集登记在场', () => {
+    expect(RED_LINE_RULE_SETS['eterna.red-lines.standard']).toBe(RED_LINE_RULES)
+    expect(RED_LINE_RULE_SETS['eterna.red-lines.industrial-analysis']).toBe(INDUSTRIAL_RED_LINE_RULES)
+  })
+
+  it('双语锚点:industrial persona.md 真文件过工业集(四条全中)', () => {
+    const persona = readRepoFile('packs/industrial-analysis/persona.md')
+    for (const rule of INDUSTRIAL_RED_LINE_RULES) {
+      expect(rule.pattern.test(persona), `industrial persona.md 缺锚点 ${rule.id}`).toBe(true)
+    }
+    expect(validateEntryText({ redLine: 'required', redLineRuleSet: 'eterna.red-lines.industrial-analysis' }, persona).ok).toBe(true)
+  })
+
+  it('双语锚点:industrial personaPrefix(>- 折叠读回的英文句)过工业集', () => {
+    // 折叠读回:>- 块行间以空格连接(与 registry.readEntryValue 同口径的独立实现)。
+    const lines = readRepoFile('packs/industrial-analysis/cordis.patch.yml').split('\n')
+    const header = lines.findIndex(line => /^(\s*)personaPrefix: >-\s*$/.test(line))
+    expect(header).toBeGreaterThan(-1)
+    const indent = (lines[header] ?? '').length - (lines[header] ?? '').trimStart().length
+    const rows: string[] = []
+    for (let i = header + 1; i < lines.length; i += 1) {
+      const line = lines[i] as string
+      if (line.trim() === '') continue
+      const lineIndent = line.length - line.trimStart().length
+      if (lineIndent <= indent) break
+      rows.push(line.trim())
+    }
+    const folded = rows.join(' ')
+    for (const rule of INDUSTRIAL_RED_LINE_RULES) {
+      expect(rule.pattern.test(folded), `industrial personaPrefix 缺英文锚点 ${rule.id}`).toBe(true)
+    }
+  })
+
+  it('双语锚点:event-planning personaPrefix 英文句过标准集(三条全中,锚点与真事实源对齐)', () => {
+    const lines = readRepoFile('packs/event-planning/cordis.patch.yml').split('\n')
+    const header = lines.findIndex(line => /^(\s*)personaPrefix: >-\s*$/.test(line))
+    expect(header).toBeGreaterThan(-1)
+    const indent = (lines[header] ?? '').length - (lines[header] ?? '').trimStart().length
+    const rows: string[] = []
+    for (let i = header + 1; i < lines.length; i += 1) {
+      const line = lines[i] as string
+      if (line.trim() === '') continue
+      const lineIndent = line.length - line.trimStart().length
+      if (lineIndent <= indent) break
+      rows.push(line.trim())
+    }
+    const folded = rows.join(' ')
+    expect(folded).toContain('Never silently exceed budgets')
+    expect(validateEntryText({ redLine: 'required', redLineRuleSet: 'eterna.red-lines.standard' }, folded).ok).toBe(true)
+    // 抽掉英文预算锚点 → 拒收且指明(双语锚点的负样本)。
+    const withoutBudget = folded.replace(/exceed budgets/, 'overspend budgets')
+    const result = validateEntryText({ redLine: 'required', redLineRuleSet: 'eterna.red-lines.standard' }, withoutBudget)
+    expect(result.ok).toBe(false)
+    expect(result.issues.join('\n')).toContain('「预算不超支」')
+  })
+
+  it('checkRedLinesOfRuleSet:按集逐条检查;未知集明示', () => {
+    expect(checkRedLinesOfRuleSet('eterna.red-lines.standard', RED_LINES)).toEqual([])
+    expect(checkRedLinesOfRuleSet('eterna.red-lines.industrial-analysis', '什么都没有').length).toBe(4)
+    expect(checkRedLinesOfRuleSet('eterna.red-lines.unknown', RED_LINES).length).toBe(1)
   })
 })

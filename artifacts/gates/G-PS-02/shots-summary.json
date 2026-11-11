@@ -1,0 +1,36 @@
+{
+  "startedAt": "2026-11-10T23:16:12.855Z",
+  "chrome": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "pages": [
+    {
+      "name": "light 会话快照查看(行卡列表+详情:分型徽章/不可回放标注/版本指针/冻结文本)",
+      "file": "studio-snapshot-light.png",
+      "bytes": 720330,
+      "md5": "5d971449096378b4b61735b8407dad43",
+      "state": "uncapped(root h=5822/scroll=5822)"
+    },
+    {
+      "name": "light 条目详情·生效条件卡(行锚点只读型:readonly-upstream 半径+拒写说明)",
+      "file": "studio-entry-effect-light.png",
+      "bytes": 619133,
+      "md5": "d92d09b9d47eef752d195b05c6bcec90",
+      "state": "uncapped(root h=4828/scroll=4828)"
+    },
+    {
+      "name": "dark 会话快照查看(行卡列表+详情:分型徽章/不可回放标注/版本指针/冻结文本)",
+      "file": "studio-snapshot-dark.png",
+      "bytes": 726378,
+      "md5": "83c666e6e16d3fb772b989aaf0daa495",
+      "state": "uncapped(root h=5822/scroll=5822)"
+    },
+    {
+      "name": "dark 条目详情·生效条件卡(行锚点只读型:readonly-upstream 半径+拒写说明)",
+      "file": "studio-entry-effect-dark.png",
+      "bytes": 621744,
+      "md5": "344625db3e14e5da20f19d0034e7fd1e",
+      "state": "uncapped(root h=4828/scroll=4828)"
+    }
+  ],
+  "fatal": null,
+  "finishedAt": "2026-11-10T23:17:01.405Z"
+}

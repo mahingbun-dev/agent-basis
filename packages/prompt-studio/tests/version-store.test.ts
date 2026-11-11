@@ -8,6 +8,7 @@
 import { describe, expect, it } from 'vitest'
 import type { KvUnit } from '@deepseek-ai/dsh-storage'
 import { PromptVersionStore, VERSION_UNIT_DESCRIPTOR, VERSIONS_TABLE, VERSION_UNIT_NAME } from '../src/version-store.ts'
+import type { VersionStoreOptions } from '../src/version-store.ts'
 
 /** 内存版 KvUnit(只实现本包用到的面;写计数用于串行化断言)。 */
 class MemoryUnit {
@@ -36,7 +37,7 @@ function asKvUnit(unit: MemoryUnit): KvUnit {
   return unit as unknown as KvUnit
 }
 
-function makeStore(unit = new MemoryUnit(), options = {}): { store: PromptVersionStore; unit: MemoryUnit } {
+function makeStore(unit = new MemoryUnit(), options: VersionStoreOptions = {}): { store: PromptVersionStore; unit: MemoryUnit } {
   return { store: new PromptVersionStore(asKvUnit(unit), options), unit }
 }
 
@@ -148,5 +149,62 @@ describe('PromptVersionStore(并发写串行化 + 只增不删)', () => {
     await store.close()
     await expect(store.append({ content: 'x', author: 'w', source: 'save' as const, parentId: null, summary: '' })).rejects.toThrow('版本库已关闭')
     await expect(store.list()).rejects.toThrow('版本库已关闭')
+  })
+
+  it('T1.4 按条目分链:各链 seq 各自从 1 连续;记录带 entryId(缺省=默认条目)', async () => {
+    const { store } = makeStore()
+    await store.append({ content: 'persona-1', author: 'web', source: 'initial' as const, parentId: null, summary: '' })
+    const domainA = await store.append({ content: 'domain-a', author: 'web', source: 'initial' as const, parentId: null, summary: '', entryId: 'domain.a' })
+    const domainB = await store.append({ content: 'domain-b', author: 'web', source: 'initial' as const, parentId: null, summary: '', entryId: 'domain.b' })
+    await store.append({ content: 'persona-2', author: 'web', source: 'save' as const, parentId: null, summary: '' })
+    // 各链 seq 各自从 1 起连续;缺省 entryId 归默认条目。
+    expect(domainA).toMatchObject({ seq: 1, entryId: 'domain.a' })
+    expect(domainB).toMatchObject({ seq: 1, entryId: 'domain.b' })
+    const personaChain = await store.list(Number.POSITIVE_INFINITY, 'preset.standard.persona')
+    expect(personaChain.map(record => record.seq)).toEqual([2, 1])
+    expect(personaChain.every(record => record.entryId === 'preset.standard.persona')).toBe(true)
+    const domainChain = await store.list(Number.POSITIVE_INFINITY, 'domain.a')
+    expect(domainChain.map(record => record.seq)).toEqual([1])
+    await store.close()
+  })
+
+  it('T1.4 无 entryId 的 list 顺序契约:按 entryId 字典序降序分组,组内新→旧', async () => {
+    const { store } = makeStore()
+    await store.append({ content: 'p1', author: 'web', source: 'save' as const, parentId: null, summary: '', entryId: 'a.first' })
+    await store.append({ content: 'p2', author: 'web', source: 'save' as const, parentId: null, summary: '', entryId: 'a.first' })
+    await store.append({ content: 'd1', author: 'web', source: 'save' as const, parentId: null, summary: '', entryId: 'b.second' })
+    const all = await store.list()
+    expect(all.map(record => [record.entryId, record.seq])).toEqual([
+      ['b.second', 1],
+      ['a.first', 2],
+      ['a.first', 1],
+    ])
+    await store.close()
+  })
+
+  it('T1.4 id 冲突 fail-closed:确定性工厂跨记录同 id → 第二次 append 抛错,不静默覆盖', async () => {
+    const { store, unit } = makeStore(new MemoryUnit(), { idFactory: () => 'fixed-id' })
+    await store.append({ content: 'first', author: 'web', source: 'save' as const, parentId: null, summary: '' })
+    await expect(store.append({ content: 'second', author: 'web', source: 'save' as const, parentId: null, summary: '' }))
+      .rejects.toThrow('版本 id 冲突:fixed-id 已存在')
+    // 首条未被覆盖(键=id 的 per-record 布局下静默覆盖=丢版本,必须显式抛错拦截)。
+    const records = unit.tables.get(VERSIONS_TABLE)
+    expect(records?.get('fixed-id')).toMatchObject({ content: 'first' })
+    expect((await store.list()).length).toBe(1)
+    await store.close()
+  })
+
+  it('T1.4 idFactory 收 (seq, entryId):链内编号+条目 id 同时可见(工厂可保证全局唯一)', async () => {
+    const calls: Array<[number, string]> = []
+    const { store } = makeStore(new MemoryUnit(), {
+      idFactory: (seq, entryId) => {
+        calls.push([seq, entryId])
+        return `v-${entryId.replace(/\./gu, '_')}-${seq}`
+      },
+    })
+    await store.append({ content: 'x', author: 'web', source: 'save' as const, parentId: null, summary: '', entryId: 'domain.a' })
+    await store.append({ content: 'y', author: 'web', source: 'save' as const, parentId: null, summary: '' })
+    expect(calls).toEqual([[1, 'domain.a'], [1, 'preset.standard.persona']])
+    await store.close()
   })
 })

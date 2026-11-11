@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildEntityIndex, estimateTokens } from '../src/index.ts'
+import { buildEntityIndex, estimateTokens, MEMORY_BEHAVIOR_HEADER } from '../src/index.ts'
 import type { EntityRecord } from '../src/index.ts'
 
 function record(overrides: Partial<EntityRecord> & { key: string }): EntityRecord {
@@ -84,5 +84,28 @@ describe('buildEntityIndex(systemPrompt 注入载荷)', () => {
     const result = buildEntityIndex(records, { budgetTokens: 400 }) // 小于默认 500,大于常驻头部 ≈240
     expect(result.estimatedTokens).toBeLessThanOrEqual(400)
     expect(result.included + result.omitted).toBe(30)
+  })
+})
+
+describe('behaviorHeader 选项(T2.6 登记制:注册表条目覆写行为指令头)', () => {
+  it('缺省=内置 MEMORY_BEHAVIOR_HEADER(注册表缺席时的原内联兜底,非空)', () => {
+    const fallback = buildEntityIndex([]).text
+    expect(fallback).toContain(MEMORY_BEHAVIOR_HEADER)
+    expect(MEMORY_BEHAVIOR_HEADER.trim().length).toBeGreaterThan(0)
+  })
+
+  it('显式覆写:头部换成给定文本,索引半边(key+摘要)不受影响', () => {
+    const header = '## 长期记忆(注册表版行为指令,T2.6)'
+    const withRecords = buildEntityIndex(
+      [record({ key: 'prefers-email-summary', summary: '偏好邮件摘要' })],
+      { behaviorHeader: header },
+    )
+    expect(withRecords.text).toContain(header)
+    expect(withRecords.text).not.toContain('后台机制——由你自主管理')
+    expect(withRecords.text).toContain('- [user:alice] prefers-email-summary — 偏好邮件摘要 (conf 0.80)')
+    // 空记录分支同样走覆写头(占位索引形态)。
+    const empty = buildEntityIndex([], { behaviorHeader: header })
+    expect(empty.text).toContain(header)
+    expect(empty.text).toContain('暂无长期记忆')
   })
 })

@@ -1,0 +1,66 @@
+[boot] home=/Users/sunny/code/agent-basis-prompt-studio-v2/.eterna-home-t7
+[host] ready pid=53179 log=/Users/sunny/code/agent-basis-prompt-studio-v2/.eterna-home-t7/logs/t7-ui-check-host.log
+[PASS] 启动日志无 skipping/incompatible
+[PASS] pluginInventory: 含 @eterna/prompt-studio 行
+[PASS] pluginInventory: enabled=true 且 fiberPhase=active
+[PASS] snapshot: persona.available + 冒烟标记在文
+[PASS] snapshot: channel.kind=A-patch-hmr
+[PASS] prompt-versions: ready 且 total>=1 — total=7
+[PASS] trace: 列表模式返回数组(带参端点须 args.input={}) — sessions=19
+[PASS] trace: 指定会话返回轮次树(详情形态 selected 非空) — turns=0
+[PASS] index.html 可取(三步换票后 200) — status=200
+[PASS] index.html 注入 __DSH_BOOT__ 花名册
+[PASS] index.html 引用 /plugins combo 脚本 — urls=80
+[PASS] 花名册 combo 含本包条目(@eterna/prompt-studio/client.js)
+[PASS] 本包 combo 脚本可取(200) — status=200
+[PASS] combo 脚本含本包 factory 注册(id=@eterna/prompt-studio)
+[PASS] combo 脚本含视图锚点 data-t7-editor
+[PASS] combo 脚本含视图锚点 data-t7-save-btn
+[PASS] combo 脚本含视图锚点 data-t7-version-item
+[PASS] combo 脚本含视图锚点 data-t7-trace-node
+[PASS] combo 脚本含视图锚点 data-t7-session-item
+[PASS] combo 脚本含视图锚点 data-t7-approve-btn
+[PASS] combo 脚本含视图锚点 data-ps-group-nav
+[PASS] combo 脚本含视图锚点 data-ps-entry-detail
+[PASS] combo 脚本含视图锚点 data-ps-diff-view
+[PASS] combo 脚本含视图锚点 data-ps-entry-save
+[PASS] combo 脚本含视图锚点 data-ps-session-snapshot
+[PASS] combo 脚本含视图锚点 data-ps-snapshot-session-row
+[PASS] combo 脚本含视图锚点 data-ps-snapshot-detail
+[PASS] combo 脚本含视图锚点 data-ps-snapshot-entry
+[PASS] combo 脚本含视图锚点 data-ps-snapshot-entry-text
+[PASS] combo 脚本含视图锚点 data-ps-entry-effect
+[PASS] combo 脚本含视图锚点 data-ps-effect-radius
+[PASS] combo 脚本含视图锚点 data-ps-effect-badge
+[PASS] combo 脚本含视图锚点 data-ps-ai-polish
+[PASS] combo 脚本含视图锚点 data-ps-ai-status
+[PASS] combo 脚本含视图锚点 data-ps-ai-polish-btn
+[PASS] combo 脚本含视图锚点 data-ps-ai-draft-card
+[PASS] combo 脚本含视图锚点 data-ps-ai-draft
+[PASS] combo 脚本含视图锚点 data-ps-ai-diff
+[PASS] combo 脚本含视图锚点 data-ps-ai-propose-btn
+[PASS] combo 脚本含视图锚点 data-ps-ai-unavailable
+[PASS] combo 脚本含视图锚点 data-ps-ai-review
+[PASS] combo 脚本含视图锚点 data-ps-ai-review-btn
+[PASS] combo 脚本含视图锚点 data-ps-ai-review-card
+[PASS] combo 脚本含视图锚点 data-ps-ai-review-rulefinding
+[PASS] combo 脚本含视图锚点 data-ps-ai-review-finding
+[PASS] combo 脚本含视图锚点 data-ps-ai-review-suggestion
+[PASS] combo 脚本含生效条件文案锚点(生效条件/即时生效/不可编辑;T2.2 不热生效条目 UI 明示)
+[PASS] combo 脚本含快照降级文案锚点(不可回放/上游生成;两型无版本链条目明示)
+[PASS] combo 脚本含快照查询端点接线(loopPrompt/session-snapshot)
+[PASS] combo 脚本含 AI 降级/提案文案锚点(AI 能力不可用/作为提案提交/不直接生效)
+[PASS] combo 脚本含 AI 端点接线(loopPrompt/ai-status|ai-polish|ai-proposal)
+[PASS] combo 脚本含 AI 审核报告卡文案锚点(问题清单/仅展示/不拦截)
+[PASS] combo 脚本含 AI 审核端点接线(loopPrompt/ai-review)
+[PASS] 交叉钉住:access TOGGLEABLE_PLUGINS 登记行 id=eterna-prompt-studio
+[PASS] 交叉钉住:生产档 patch 含 eterna-prompt-studio insert 行(id+name 同源)
+[PASS] 交叉钉住:docker 部署模板 insert 块含 eterna-prompt-studio 行(生产容器挂载面)
+[PASS] 交叉钉住:embed 档 patch 无 eterna-prompt-studio 行(维持不挂,docs/embed-profile.md)
+[PASS] combo 脚本含两个面板 id(main keyed + sidebar.panellist)
+[PASS] combo 脚本只经官方语义令牌(color/background 无字面 #hex)
+
+[cleanup] SIGTERM 宿主…
+[PASS] 清理:宿主已停、端口 3108 已释放
+
+结论:T7.2 客户端半边自检全部通过(exit 0)

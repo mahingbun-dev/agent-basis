@@ -1,0 +1,9 @@
+== 机械计数（ps-v2-test-plan §2.2 口径）——执行于 2026-11-10T19:53:19Z ==
+$ grep -c "check('" scripts/t7-e2e.mjs
+72
+$ grep -c "check('" scripts/t7-smoke.mjs
+68
+$ grep -c "check('" scripts/t7-ui-check.mjs
+21
+$ grep -c 'check(`' scripts/t7-ui-check.mjs
+1

@@ -1,0 +1,4 @@
+pack: /Users/sunny/code/agent-basis-prompt-studio-v2/packs/industrial-analysis
+  ✓ 无发现(lint 全绿)
+lint 通过: 0 error / 0 warning,共 1 个包
+EXIT=0

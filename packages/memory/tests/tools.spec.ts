@@ -5,9 +5,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { ToolDefinition, ToolRunContext } from '@deepseek-ai/dsh-tools'
 import {
   attachMemory, createMemory, createMemoryIndexSection, defineMemoryTools,
-  estimateTokens, MEMORY_TOOL_NAMES,
+  estimateTokens, MEMORY_BEHAVIOR_HEADER, MEMORY_SECTION_REGISTRY_ENTRY_ID, MEMORY_TOOL_NAMES,
+  PROMPT_REGISTRY_SERVICE_ID, resolvePromptRegistry,
 } from '../src/index.ts'
-import type { Memory, MemoryHost } from '../src/index.ts'
+import type { Memory, MemoryHost, PromptRegistryFace } from '../src/index.ts'
 
 let dir = ''
 let memory: Memory
@@ -201,5 +202,125 @@ describe('attachMemory(宿主级 effect,配逆即卸载干净)', () => {
     attachMemory(host, memory, { includeIndexSection: false })
     expect(tools).toHaveLength(4)
     expect(sections).toHaveLength(0)
+  })
+})
+
+describe('T2.6 登记制读取面(section 行为头从提示词注册表读,缺席降级不炸宿主)', () => {
+  /** 可变注册表假体:记录取值条目 id,文本可变(模拟注册表版本变化)。 */
+  function fakeRegistry(initial: string): { face: PromptRegistryFace; asked: string[]; setText(text: string): void } {
+    const state = { text: initial }
+    const asked: string[] = []
+    return {
+      asked,
+      setText: (text: string) => { state.text = text },
+      face: {
+        resolveRuntimePromptText: (entryId: string): string => {
+          asked.push(entryId)
+          return state.text
+        },
+      },
+    }
+  }
+
+  it('注册表在场:section 文本取注册条目文本,且以注册表条目 id 取值(runtime.memory.index-section)', () => {
+    const registry = fakeRegistry('## 长期记忆(注册表版 V1)')
+    const text = (createMemoryIndexSection(memory, {}, registry.face).text as () => string)()
+    expect(text).toContain('## 长期记忆(注册表版 V1)')
+    expect(text).not.toContain(MEMORY_BEHAVIOR_HEADER)
+    expect(registry.asked).toEqual([MEMORY_SECTION_REGISTRY_ENTRY_ID])
+  })
+
+  it('注册表值变化 → 重建 section 得新文(索引半边照常来自记忆库)', () => {
+    const registry = fakeRegistry('## 长期记忆(注册表版 V1)')
+    const v1 = (createMemoryIndexSection(memory, {}, registry.face).text as () => string)()
+    expect(v1).toContain('注册表版 V1')
+    registry.setText('## 长期记忆(注册表版 V2,经审批生效)')
+    const v2 = (createMemoryIndexSection(memory, {}, registry.face).text as () => string)()
+    expect(v2).toContain('注册表版 V2')
+    expect(v2).not.toContain('注册表版 V1')
+    expect(v2).toContain('暂无长期记忆') // 索引半边仍由 M2 记忆库构建,与注册表无关
+  })
+
+  it('注册表返回 undefined(条目无版本)→ 落内置兜底文本(原内联语义)', () => {
+    const face: PromptRegistryFace = { resolveRuntimePromptText: () => undefined }
+    const text = (createMemoryIndexSection(memory, {}, face).text as () => string)()
+    expect(text).toContain(MEMORY_BEHAVIOR_HEADER)
+  })
+
+  it('读取面方法抛异常 → 装配不炸,落内置兜底文本(不炸宿主纪律)', () => {
+    const face: PromptRegistryFace = {
+      resolveRuntimePromptText: () => { throw new Error('注册表读取面故障') },
+    }
+    const render = createMemoryIndexSection(memory, {}, face).text as () => string
+    expect(render).not.toThrow()
+    expect(render()).toContain(MEMORY_BEHAVIOR_HEADER)
+  })
+
+  it('注册表缺席(不传读取面)→ 内置兜底,兜底文本非空', () => {
+    const text = (createMemoryIndexSection(memory).text as () => string)()
+    expect(text).toContain(MEMORY_BEHAVIOR_HEADER)
+    expect(MEMORY_BEHAVIOR_HEADER.trim().length).toBeGreaterThan(0)
+  })
+
+  it('resolvePromptRegistry 防御解析:缺席/形状不符/读取抛异常 → undefined,绝不抛', () => {
+    // 服务缺席(真实 cordis reflect.get 语义:未提供 → undefined)
+    expect(resolvePromptRegistry({ get: () => undefined })).toBeUndefined()
+    // 服务在场但形状不符(缺 resolveRuntimePromptText)
+    expect(resolvePromptRegistry({ get: () => ({}) })).toBeUndefined()
+    // get 本体抛异常(真实 cordis 对 inactive fiber 的 strict 读取会抛)
+    expect(resolvePromptRegistry({
+      get: () => { throw new Error('cannot get property') },
+    })).toBeUndefined()
+    // 形状相符 → 原样返回(服务名按 PROMPT_REGISTRY_SERVICE_ID 取)
+    const face: PromptRegistryFace = { resolveRuntimePromptText: () => '文本' }
+    const seen: string[] = []
+    expect(resolvePromptRegistry({ get: (name: string) => { seen.push(name); return face } })).toBe(face)
+    expect(seen).toEqual([PROMPT_REGISTRY_SERVICE_ID])
+  })
+
+  it('attachMemory 穿线 promptSource;disposer 语义不变(注册/卸载/幂等与改造前一致)', () => {
+    const tools: string[] = []
+    const sections: string[] = []
+    const host: MemoryHost = {
+      registerTool: (definition) => {
+        tools.push(definition.name)
+        return () => {
+          const index = tools.indexOf(definition.name)
+          if (index >= 0) tools.splice(index, 1)
+        }
+      },
+      registerPromptSection: (section) => {
+        sections.push(section.name)
+        return () => {
+          const index = sections.indexOf(section.name)
+          if (index >= 0) sections.splice(index, 1)
+        }
+      },
+    }
+    const registry = fakeRegistry('## 长期记忆(经 attachMemory 注入读取面)')
+    const dispose = attachMemory(host, memory, { promptSource: registry.face })
+    expect(tools).toEqual([...MEMORY_TOOL_NAMES])
+    expect(sections).toEqual(['memory:index'])
+    dispose()
+    expect(tools).toHaveLength(0)
+    expect(sections).toHaveLength(0)
+    dispose() // 幂等
+  })
+
+  it('attachMemory 挂载的 section 经读取面取文本(promptSource 生效到挂载物)', () => {
+    const registry = fakeRegistry('## 长期记忆(挂载物读注册表 V1)')
+    const captured: { text: string | ((context: never) => string) }[] = []
+    const host: MemoryHost = {
+      registerTool: () => () => undefined,
+      registerPromptSection: (section) => {
+        captured.push({ text: section.text })
+        return () => undefined
+      },
+    }
+    attachMemory(host, memory, { promptSource: registry.face })
+    const render = captured[0]?.text as () => string
+    expect(render()).toContain('挂载物读注册表 V1')
+    registry.setText('## 长期记忆(挂载物读注册表 V2)')
+    expect(render()).toContain('挂载物读注册表 V2') // 同一挂载物每轮装配现取(随注册表版本变化)
   })
 })
