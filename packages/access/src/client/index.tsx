@@ -9,6 +9,7 @@
  * - 数据走同源 /access/api/*(Host 半边提供,eterna_session cookie 自动携带)
  */
 import { AccountSection, UsersSection } from './sections.tsx'
+import { MyPluginsSection, NotificationsSection, ApprovalQueueSection } from './my-plugins-section.tsx'
 import { ManageTab } from './plugins-manager.tsx'
 import { DirectoryTreeFlow } from './directory-tree.tsx'
 import { injectAccessStyles } from './styles.ts'
@@ -21,11 +22,17 @@ const LOCALES: Record<string, Record<string, string>> = {
     'section.account': '账号',
     'section.users': '用户管理',
     'tab.manage': '恒灵插件',
+    'section.myPlugins': '我的插件',
+    'section.notifications': '消息与审批',
+    'section.approvalQueue': '审批队列',
   },
   en: {
     'section.account': 'Account',
     'section.users': 'Users',
     'tab.manage': 'Eterna Plugins',
+    'section.myPlugins': 'My Plugins',
+    'section.notifications': 'Notifications',
+    'section.approvalQueue': 'Approvals',
   },
 }
 
@@ -58,6 +65,21 @@ export function apply(ctx: AccessClientContext): () => void {
       locale: NS,
       label: () => t('section.account'),
     }, AccountSection))
+    // P4-T6.4/T7A(2026-11-11):我的插件+消息与审批(全员);审批队列(admin)
+    ctx.slots.inject('settings.section', () => ctx.slots.register({
+      name: 'settings.section',
+      id: `${NS}.my-plugins`,
+      order: 42,
+      locale: NS,
+      label: () => t('section.myPlugins'),
+    }, MyPluginsSection))
+    ctx.slots.inject('settings.section', () => ctx.slots.register({
+      name: 'settings.section',
+      id: `${NS}.notifications`,
+      order: 43,
+      locale: NS,
+      label: () => t('section.notifications'),
+    }, NotificationsSection))
     if (role === 'admin') {
       ctx.slots.inject('settings.section', () => ctx.slots.register({
         name: 'settings.section',
@@ -66,6 +88,13 @@ export function apply(ctx: AccessClientContext): () => void {
         locale: NS,
         label: () => t('section.users'),
       }, UsersSection))
+      ctx.slots.inject('settings.section', () => ctx.slots.register({
+        name: 'settings.section',
+        id: `${NS}.approval-queue`,
+        order: 44,
+        locale: NS,
+        label: () => t('section.approvalQueue'),
+      }, ApprovalQueueSection))
       // 右侧插件页:「恒灵插件」管理页签
       ctx.slots.inject('plugins.tab', () => ctx.slots.register({
         name: 'plugins.tab',
