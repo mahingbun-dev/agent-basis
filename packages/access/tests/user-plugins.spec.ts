@@ -65,26 +65,26 @@ describe('P4-T6:插件端点权限矩阵', () => {
   }
 
   it('install:本人合法目录记账+id 前缀生成', async () => {
-    const r = await call('/access/api/my-plugins/install', 'alice', { request: { name: 'hello', dir: 'hello' } })
+    const r = await call('/api/my-plugins/install', 'alice', { request: { name: 'hello', dir: 'hello' } })
     expect((r.result as { value?: { pluginId: string } }).value?.pluginId).toBe('user:alice:hello')
     expect(store.userPluginOwner('user:alice:hello')).toBe(aliceId)
   })
 
   it('list:本人只见自己;enable/disable/remove 仅本人;跨用户操作拒', async () => {
-    await call('/access/api/my-plugins/install', 'alice', { request: { name: 'hello', dir: 'hello' } })
-    const list = await call('/access/api/my-plugins/list', 'alice', {})
+    await call('/api/my-plugins/install', 'alice', { request: { name: 'hello', dir: 'hello' } })
+    const list = await call('/api/my-plugins/list', 'alice', {})
     const items = (list.result as { value?: { items?: Array<{ pluginId: string }> } }).value?.items ?? []
     expect(items.map(i => i.pluginId)).toEqual(['user:alice:hello'])
     // bob 操作 alice 的插件 → 拒
     for (const op of ['enable', 'disable', 'remove']) {
-      const r = await call(`/access/api/my-plugins/${op}`, 'bob', { request: { pluginId: 'user:alice:hello' } })
+      const r = await call(`/api/my-plugins/${op}`, 'bob', { request: { pluginId: 'user:alice:hello' } })
       expect((r.result as { error?: { code?: string } }).error?.code).toBe('tenant/denied')
     }
     // alice 自己的 disable/enable/remove 正常
-    const dis = await call('/access/api/my-plugins/disable', 'alice', { request: { pluginId: 'user:alice:hello' } })
+    const dis = await call('/api/my-plugins/disable', 'alice', { request: { pluginId: 'user:alice:hello' } })
     expect((dis.result as { ok?: boolean }).ok).toBe(true)
     expect(store.userPluginsOfOwner(aliceId)[0]?.enabled).toBe(false)
-    const rm = await call('/access/api/my-plugins/remove', 'alice', { request: { pluginId: 'user:alice:hello' } })
+    const rm = await call('/api/my-plugins/remove', 'alice', { request: { pluginId: 'user:alice:hello' } })
     expect((rm.result as { ok?: boolean }).ok).toBe(true)
     expect(store.userPluginOwner('user:alice:hello')).toBeUndefined()
   })
