@@ -66,21 +66,28 @@ async function rpc(method, argsObj) {
   }, { method, argsObj })
 }
 
-// 进入已seat会话(取最新有标题的;无则点新会话+选工作区)
+// 进入会话(公网实测可靠形态=点已有标题会话行;composer contenteditable=true)。
+// 旧会话残留 litellm 选型由用例内 selectModel 覆盖(200 验证)。
 async function openComposer() {
   const list = await rpc('session/list', {})
   const items = list?.body?.result?.value?.items ?? []
   const titled = items.find(i => typeof i?.projections?.values?.title === 'string' && i.projections.values.title !== '')
-  if (titled !== undefined) {
-    await page.getByText(titled.projections.values.title, { exact: false }).first().click()
-    await page.waitForTimeout(4000)
-  } else {
-    await page.getByText('新会话', { exact: false }).first().click().catch(() => {})
-    await page.waitForTimeout(3000)
-    await page.locator('[aria-label="选择工作区"]').first().click().catch(() => {})
-    await page.waitForTimeout(1200)
-    await page.locator('[role="menuitem"]').first().click().catch(() => {})
-    await page.waitForTimeout(4000)
+  if (titled === undefined) throw new Error('无可用标题会话(先在 UI 建一轮)')
+  seatedSessionId = titled.sessionId
+  await page.getByText(titled.projections.values.title, { exact: false }).first().click()
+  await page.waitForTimeout(4000)
+  // 兜底:若未落座,点侧栏工作区行再点会话行(最多两轮)
+  for (let i = 0; i < 4; i++) {
+    const editable = await page.evaluate(() => document.querySelector('[data-composer-input="true"]')?.getAttribute('contenteditable'))
+    if (editable === 'true' || editable === '') break
+    await page.evaluate(() => {
+      const cands = [...document.querySelectorAll('button, [role="button"], li, div[tabindex]')].filter(el => {
+        const t = (el.textContent ?? '').trim()
+        return (t === 'Mr.Ma' || t.includes('新会话')) && el.offsetHeight > 0
+      })
+      cands[0]?.click()
+    }).catch(() => {})
+    await page.waitForTimeout(3500)
   }
   for (let i = 0; i < 6; i++) {
     const editable = await page.evaluate(() => document.querySelector('[data-composer-input="true"]')?.getAttribute('contenteditable'))
@@ -93,17 +100,21 @@ if (!await openComposer()) throw new Error('composer 未就绪')
 
 const composer = page.locator('[data-composer-input="true"][contenteditable="true"]').first()
 
+let pinnedLogPath = null
 function readLog() {
-  const path = execFileSync('docker', ['exec', CONTAINER, 'sh', '-c', 'ls -t /data/sessions/*/*/session.v4.jsonl.zstd | head -1'], { encoding: 'utf8' }).trim()
-  return parseEvents(decodeZstdLog(execFileSync('docker', ['exec', CONTAINER, 'cat', path], { encoding: null, maxBuffer: 64 * 1024 * 1024 })))
+  if (pinnedLogPath === null) {
+    pinnedLogPath = execFileSync('docker', ['exec', CONTAINER, 'sh', '-c', 'ls -t /data/sessions/*/*/session.v4.jsonl.zstd | head -1'], { encoding: 'utf8' }).trim()
+  }
+  return parseEvents(decodeZstdLog(execFileSync('docker', ['exec', CONTAINER, 'cat', pinnedLogPath], { encoding: null, maxBuffer: 64 * 1024 * 1024 })))
 }
 
-// 选模型(rpc selectModel)并发一轮;等回合完成
+// 选模型(rpc selectModel 带 sessionId——无 sessionId 的 select 不落在目标会话)并发一轮
+let seatedSessionId = null
 async function modelTurn(provider, model, prompt) {
-  const sel = await rpc('session/selectModel', { request: { provider, model } })
+  const sel = await rpc('session/selectModel', { request: { sessionId: seatedSessionId, provider, model } })
   const composer = page.locator('[data-composer-input="true"][contenteditable="true"]').first()
-  const baseline = readLog().filter(e => e.type === 'turn/end').length
   const before = readLog().length
+  const baselineSeq = Math.max(...readLog().map(e => e.seq ?? 0), 0)
   await composer.fill(prompt)
   await composer.press('Enter')
   const deadline = Date.now() + 180_000
@@ -111,9 +122,9 @@ async function modelTurn(provider, model, prompt) {
   while (Date.now() < deadline) {
     await page.waitForTimeout(4000)
     try {
-      events = readLog().slice(before)
+      events = readLog().filter(e => (e.seq ?? 0) > baselineSeq)
       const ends = events.filter(e => e.type === 'turn/end').length
-      if (ends > baseline) break
+      if (ends > 0) break
     } catch { /* 轮询 */ }
   }
   const turnEnd = events.find(e => e.type === 'turn/end')

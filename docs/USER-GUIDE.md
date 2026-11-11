@@ -268,3 +268,8 @@ cd ~/.dsh/profiles/eterna-web && pnpm install
 - **消息与审批**：设置弹窗新分区——审批结果与待办的站内提醒。
 - 已知问题：浏览器若缓存了旧版登录页，密码小眼睛可能出现位移——硬刷新（⌘⇧R）即可。
 - 全部功能验收证据：`acceptance/team-platform/`（分阶段门禁 gate-summary 与工件）。
+
+## 公网验收登记（2026-11-11，生产容器 eterna-agent:team-platform @ f0ddc2f）
+
+- 公网入口全链验收通过：登录 → 双 cookie → 三家直连真会话（deepseek/mimo/glm 各一轮 completed，usage 落轨迹）→ mux 流隔离（跨账号列表 0 命中/盗开会话拒绝）→ 完全权限回合零审批 → 密码小眼睛零位移（no-store）。
+- 证据：`acceptance/team-platform/p2/evidence/public-rpc/record.json`、`acceptance/team-platform/p1/evidence/mux-e2e/record.json`、`acceptance/team-platform/ph/evidence/`。

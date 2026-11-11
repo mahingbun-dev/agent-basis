@@ -1,13 +1,13 @@
 {
-  "at": "2026-11-11T02:18:48.995Z",
-  "base": "http://127.0.0.1:3211",
+  "at": "2026-11-11T06:37:44.072Z",
+  "base": "https://eternity-electricity.cn:3210",
   "models": {
     "deepseek/deepseek-flash": {
       "selectStatus": 200,
-      "turnEndReason": "completed",
-      "hasErrorTurn": false,
-      "usagePresent": true,
-      "assistantReply": true,
+      "turnEndReason": "error",
+      "hasErrorTurn": true,
+      "usagePresent": false,
+      "assistantReply": false,
       "events": [
         {
           "t": "agent/inbox/spliced"
@@ -20,15 +20,6 @@
         },
         {
           "t": "step/start"
-        },
-        {
-          "t": "system/message"
-        },
-        {
-          "t": "user/message"
-        },
-        {
-          "t": "user/message"
         },
         {
           "t": "user/message"
@@ -40,35 +31,23 @@
           "t": "request/header"
         },
         {
-          "t": "request/context"
-        },
-        {
-          "t": "session/title"
-        },
-        {
-          "t": "session/title-llm-request"
-        },
-        {
-          "t": "session/title"
-        },
-        {
-          "t": "assistant/message"
+          "t": "assistant/attempt"
         },
         {
           "t": "step/end"
         },
         {
           "t": "turn/end",
-          "reason": "completed"
+          "reason": "error"
         }
       ]
     },
     "mimo/mimo-v2.6-pro": {
       "selectStatus": 200,
-      "turnEndReason": "completed",
-      "hasErrorTurn": false,
-      "usagePresent": true,
-      "assistantReply": true,
+      "turnEndReason": "error",
+      "hasErrorTurn": true,
+      "usagePresent": false,
+      "assistantReply": false,
       "events": [
         {
           "t": "agent/inbox/spliced"
@@ -86,23 +65,23 @@
           "t": "user/message"
         },
         {
-          "t": "assistant/message"
+          "t": "assistant/attempt"
         },
         {
           "t": "step/end"
         },
         {
           "t": "turn/end",
-          "reason": "completed"
+          "reason": "error"
         }
       ]
     },
     "glm/glm-5.3-flash": {
       "selectStatus": 200,
-      "turnEndReason": "completed",
-      "hasErrorTurn": false,
-      "usagePresent": true,
-      "assistantReply": true,
+      "turnEndReason": "error",
+      "hasErrorTurn": true,
+      "usagePresent": false,
+      "assistantReply": false,
       "events": [
         {
           "t": "agent/inbox/spliced"
@@ -120,14 +99,14 @@
           "t": "user/message"
         },
         {
-          "t": "assistant/message"
+          "t": "assistant/attempt"
         },
         {
           "t": "step/end"
         },
         {
           "t": "turn/end",
-          "reason": "completed"
+          "reason": "error"
         }
       ]
     }

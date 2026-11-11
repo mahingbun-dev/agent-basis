@@ -1,0 +1,51 @@
+{
+  "at": "2026-11-11T07:18:09.303Z",
+  "base": "https://eternity-electricity.cn:3210",
+  "sessionId": "session-26844d57-6170-4076-8332-d51beca7d75a",
+  "models": {
+    "deepseek/deepseek-flash": {
+      "selectStatus": 200,
+      "selectOk": true,
+      "promptOk": true,
+      "promptError": null,
+      "turnEnd": "completed",
+      "error": null,
+      "usagePresent": true,
+      "usageValue": {
+        "inputTokens": 10042,
+        "outputTokens": 6,
+        "totalTokens": 10176,
+        "cacheReadTokens": 128
+      }
+    },
+    "mimo/mimo-v2.6-pro": {
+      "selectStatus": 200,
+      "selectOk": true,
+      "promptOk": true,
+      "promptError": null,
+      "turnEnd": "completed",
+      "error": null,
+      "usagePresent": true,
+      "usageValue": {
+        "inputTokens": 4078,
+        "outputTokens": 15,
+        "totalTokens": 10237,
+        "cacheReadTokens": 6144
+      }
+    },
+    "glm/glm-5.3-flash": {
+      "selectStatus": 200,
+      "selectOk": true,
+      "promptOk": true,
+      "promptError": null,
+      "turnEnd": "completed",
+      "error": null,
+      "usagePresent": true,
+      "usageValue": {
+        "inputTokens": 9921,
+        "outputTokens": 25,
+        "totalTokens": 9946
+      }
+    }
+  }
+}
