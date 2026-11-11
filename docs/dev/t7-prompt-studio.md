@@ -19,6 +19,7 @@ SRC 参数绑定按运行时形参名:所有带参端点参数名一律 `input`,
 | `loopPrompt/prompt-rollback` | `{ versionId(必填), baseVersionId?, summary?, author?, approvalId?, approved? }` | `PromptRollbackResult`(同 save 形态) |
 | `loopPrompt/prompt-export` | `{ versionId?, exportedBy? }`(缺省=最新) | `PromptExportResult { pack{schemaVersion:1,exportedAt,exportedBy,sourceVersionId,persona,checksum}, version }`(只读,不走审批) |
 | `loopPrompt/prompt-import` | `{ pack, summary?, author?, approvalId?, approved? }` | `PromptImportResult`(同 save 形态) |
+| `loopPrompt/session-snapshot`(T2.3) | `{ sessionId?, limit? }` | `SessionSnapshotResult`:带 sessionId → `{status:'ok', snapshot, note}` / `{status:'not-found',sessionId,issues[]}` / `{status:'unavailable',…}`(快照库未挂载,不 5xx);缺省 → `{status:'ok', ready, total, snapshots[]}` 列表(新→旧)。`snapshot` = 会话开启事件时冻结的 effective prompt 全景:`{id, sessionId, createdAt, trigger:'session/created', entries[], checksum}`;逐条目 `{entryId, layer, kind, text?, bytes?, checksum?, versionId?, annotation?, problems[]}` 指针按型别分语义(patch 值型=内容一致版本的 id;行锚点只读型/运行时注入型=在场标记标注,不伪造 versionId) |
 
 关键共享类型:
 
@@ -40,9 +41,27 @@ SRC 参数绑定按运行时形参名:所有带参端点参数名一律 `input`,
 2. 第二段(带 `approvalId` + `approved: true`):
    - **必须回显同内容**(TOCTOU 防线):save 回显 `content`;rollback 回显
      `versionId`;import 回显同一 `pack`。不符 → `approval-mismatch`。
-   - 通过 → patch 原子写(写前 YAML 解析自检 `selfCheckNextPatchText` + 写后宿主内
-     `dsh --dump-config` 干跑自检,失败自动还原/零磁盘改动,见 §4)
-     → 版本追加 → 审计 committed → `status='committed'` + 新版本记录。
+   - 通过 → **双通道写回(T2.1,同文件同链单写者互斥串行)**:
+     - **configEditor 通道(优先)**:条目落点在本宿主 live patch 顶层行(preset 层
+       persona/plan-mode 等)→ 经官方 configEditor seam `edit(entry, change)` 整行
+       config 写回(src/config-editor-write.ts)——edit 返回时 Loader 重组合已完成,
+       **不重启、不等文件监视 HMR,新会话即用新文**(t7-e2e 5.8–5.11 断言);
+       `!!js` 表达式经官方 yaml 往返保真(loader 契约「raw node stays in the
+       options, so write-back keeps the form」)。edit 经 `editViaConfigEditor`
+       执行:每次尝试前重取 entries() 活引用(单写者链排队期间前序写的重组合会
+       替换条目对象)+ 瞬态错误(「HMR transactions cannot be nested」/
+       「no longer available」)退避重试至多 3 次(llm-doctor:186-202 先例);
+       通道解析有**落点一致性双守卫**(宿主 profileContext.patchPath、seam
+       documentPath 任一 ≠ 本网关 patch 落点 → 兜底直写,防 seam 持久化/TOCTOU
+       基线/审计 patchPath 三处落点错位)。TOCTOU 基线门与 verify-fail
+       还原纪律(seam 写回基线行 config;seam 不可用退字节级还原)由
+       `EntryPatchFile.runGoverned` 补齐(与直写同款);
+     - **entry-patch 直写(兜底)**:configEditor 服务缺席/条目不可达(领域 pack
+       文件、persona.md 整文件、行不在活跃条目)→ 按条目定位重述写回,降级不炸、
+       审计记原因。
+     写后均跑宿主内 `dsh --dump-config` 干跑自检(失败自动还原/零磁盘改动,见 §4)
+     → 版本追加 → 审计 committed(**带 `channel` 字段**:`config-editor` /
+     `entry-patch`+`channelNote` 降级原因)→ `status='committed'` + 新版本记录。
    - `approved: false` → `approval-declined`,无副作用。
 3. `rejected` 携带 `issues[]`(人话校验明细);在途审批未决时再次第一段会替换旧卡。
 
@@ -55,6 +74,53 @@ SRC 参数绑定按运行时形参名:所有带参端点参数名一律 `input`,
   (`storage.backend.json` 服务键),未挂载时 snapshot 降级 `versions.ready=false`、
   写端点抛 `gateway/bad-request`。
 - 首次挂载种子 `source='initial'` v1(内容=patch 层当前 persona,空则不种)。
+
+### 会话快照库(T2.3,只增不改)
+
+- 存储:同栈独立 json 单元 `eterna_prompt_snapshots`(per-record,表 `snapshots`),
+  盘面 `<DSH_HOME>/storages/eterna_prompt_snapshots/snapshots/<id>.json`;方法面
+  只有 append/list/get/getBySessionId/close(无删除/改写原语,单测钉死);同
+  sessionId 二次 append fail-closed。
+- 捕获:插件 apply 注册全局未打标 `session/created` 监听(dsh-session Events
+  契约;同步边界安全——监听器绝不同步抛错,否则否决会话创建),开启事件 →
+  全景条目快照入库;快照库未就绪时队列保底,attach 后补捕;审计
+  `session-snapshot.captured/failed/rejected/dropped`。
+- 不可变:快照一经写入逐字节不变(整体 checksum=规范化载荷 sha256,读回复核);
+  保存/回滚/导入等全部写操作对既有快照零影响;指针与文本由同一 checksum 绑定
+  (写入并发开会话不出现「指针 v1/文本 v2」混合)。
+
+### 历史会话严格回放(T2.4,src/assembly-replay.ts)
+
+- 监听:插件 apply 注册全局未打标 `system-prompt/assemble` waterfall 监听
+  (spike §四.4:未打标=收到全部会话的组装);监听器先完成异步快照解析再放行
+  `next()`,替换对下游监听器与渲染即时可见;**绝不上抛**(回放失败只审计,
+  不炸模型步骤)。
+- 替换面(只动文本面):段名映射——persona×4(preset×2 + 领域 personaPrefix×2,
+  同段名互为 shadow)→ `deployment:persona-prefix`;plan-mode×2 → `plan:policy`。
+  身份判定(两路都要求**唯一**命中):段文本与候选条目 **live 值** 比对(唯一
+  命中→替换为该条目**快照值**;多候选同文→`governing-entry-ambiguous` 跳过,
+  防两预设同段被改成同文时把旧会话替换成错误条目的快照旧文);live 无命中再与
+  候选**快照值** 比对(唯一命中→governed:旧会话 scoped 层持久持有旧实例,段
+  文本本就等于快照旧值;多候选同文→同样跳过);两路都不命中→`governing-entry-
+  unknown` 跳过(未登记源/子代理自有 persona,盲替有张冠李戴风险)。比对按
+  规范化(行尾/首尾空白归一)判等,替换值用快照原文逐字。
+- 分型跳过(语义同 T2.3):行锚点只读型/运行时注入型跳过并记原因(不因无
+  versionId 失败);无段落映射的 patch 值型(agent-instructions 数值配置、
+  persona-md 文件基准)明示 `no-section-mapping`;plan 模式未激活(空段)明示
+  `section-empty`。
+- 降级矩阵(全部审计):快照库未挂载/组装上下文无 `context.agent.id`(上游
+  未声明字段,spike §四.1,防御式访问)/会话无快照(装载前创建/捕获失败)→
+  跳过替换用当前值;`complete: true` 段在场(dsh-persona 行 config 可检测面,
+  spike §四.2;检测只认条目 configKey 同缩进的**兄弟键行**,块标量正文字面
+  `complete: true` 不误判)→ 整段跳过并按(会话|段)一次审计
+  `assembly-replay.skipped`(代码注册来源不可检测,替换被上游丢弃亦无害)。
+- 审计动作:`assembly-replay.applied`(有替换,带 replaced/governed/skipped
+  全量细节)、`assembly-replay.governed`(零替换但身份经快照解析;均按
+  (会话|段|结局) 去键防每步组装刷屏)、`assembly-replay.degraded`(按会话
+  去键)、`assembly-replay.skipped`(complete-owner 按(会话|段)去键;bad-shape
+  按消息去键)、`assembly-replay.failed`(异常,按消息去键)。
+- 快照查缓:会话级缓存(快照不可变,缓存永不过期;上限 256 逐出最旧);未命中
+  且会话仍在待捕队列(创建→首轮组装竞态)→ 等捕获排空再查一次后落缓。
 
 ### 审计(G5)
 
@@ -82,9 +148,75 @@ AuditProjector+FileAuditSink 写 `<DSH_HOME>/basis-prompt-studio/audit.jsonl`
   node_modules 解析 + realpath 落 repo 工作区;dsh-client-modules 扫 Loader 条目的
   包清单——两个消费方都不读 profile 依赖表。
 - 版本库幂等清场 = 删 `<home>/storages/basis_prompt_studio/`(smoke 每轮先清)。
-- smoke 断言(38 项,exit 0 可重复):pluginInventory 行 enabled+active、启动与
+- smoke 断言(38 项 → **93 项**,exit 0 可重复;T1.4 读侧按条目泛化扩至 54,
+  T1.6 写链路按条目再扩至 68,T2.3 会话快照扩至 82,T3.2 AI 端点再扩至 93,
+  基线只增不减;`grep -c "check('"` scripts/t7-smoke.mjs` 机械核对):
+  pluginInventory 行 enabled+active、启动与
   HMR 后日志无 skipping/incompatible、snapshot/prompt-get/versions/trace、
-  save/rollback 两段式全链、盘面单元目录、审计 G5 字段。
+  save/rollback 两段式全链、盘面单元目录、审计 G5 字段;T1.4 新增——snapshot
+  entries[] 注册表全景、prompt-get/prompt-versions {entryId} 三型采样(块标量
+  plan-mode `|` 值与 dump-config 组合树一致 / 领域 personaPrefix `>-` 与 pack
+  文件逐字一致 / time-context 只读型「上游运行时生成」标注)、未知 entryId
+  not-found 明示、persona per-entry 与旧口径互证、跨条目回滚 fail-closed、
+  磁盘文档 entryId 分链对账;T1.6 新增——按条目写回(plan-mode 块标量/领域
+  `>-` 形态 A)save+rollback、time-context 只读型拒写、审计 entryId;T3.2 新增
+  ——宿主进程不注入 LITELLM_API_KEY(本 smoke 零模型调用,降级断言确定性成立,
+  无 .secrets key 环境同样全绿)下 ai-status/ai-polish/ai-review unavailable
+  明示、润色零写三不变、ai-proposal 两段式(source='ai-proposal'/审计
+  aiSource/按条目读侧反引==建议稿)、磁盘与审计证据、收场回滚恢复基线。
+- **写回通道(T2.1,2026-11-11 实测)**:preset 层条目经官方 configEditor seam
+  写回(audit `channel=config-editor`),领域层 pack 文件走 entry-patch 直写
+  兜底(`channel=entry-patch` + channelNote「写回落点不在本宿主 live patch」);
+  t7-e2e 断言 72 → **76 项**(5.8–5.11:通道字段/!!js 保真/dump-config 干跑/
+  不等 HMR 的新会话即用新文,pid 不变),全部 PASS / exit 0。
+- **历史会话严格回放(T2.4,2026-11-11 实测)**:插件 apply 注册全局未打标
+  `system-prompt/assemble` waterfall 监听(`src/assembly-replay.ts`),按 T2.3
+  会话快照逐段替换 patch 值型条目文本(段名映射:persona×4 →
+  `deployment:persona-prefix`、plan-mode×2 → `plan:policy`;身份判定两路都要求
+  **唯一**命中——live 值命中→替换为快照值,仅快照命中→governed(旧会话
+  scoped 层持久持有旧实例),多候选同文或两路皆不命中即 fail-safe 跳过不盲替);
+  行锚点只读型/运行时注入型跳过并记原因(分型语义同 T2.3);
+  快照缺席/会话身份缺席(`context.agent.id` 为上游未声明字段,spike §四.1)/
+  快照库未挂载全部降级用当前值;dsh-persona 行 `complete: true` 在场检测
+  (只认 configKey 同缩进兄弟键行;在场跳过并按(会话|段)一次审计,spike
+  §四.2;代码注册的 complete 段不可检测,替换被上游丢弃亦无害)。t7-e2e 断言
+  76 → **88 项**(14.1–14.12:非 persona 条目 plan-mode section 改后旧会话补轮
+  仍旧文/新会话用新文/pid 不变/审计 `assembly-replay.governed` 含 plan-mode
+  条目——治理身份从会话快照解析),全部 PASS / exit 0;单测
+  `tests/assembly-replay.test.ts`(纯函数身份判定含 live/快照双路歧义/分型
+  跳过/complete 检测含正文行负例/降级 + 真 cordis waterfall 集成)。
+- **AI 审核报告卡(T3.3,2026-11-11)**:前端 `src/client/StudioPage.tsx` 的
+  `AiReviewSection`——编辑器当前稿(与润色同底稿口径)→ `loopPrompt/ai-review`
+  → 报告卡 `[data-ps-ai-review-card]`:**本地校验器问题**(`ruleFindings`,与
+  保存门禁同一 `validateEntryText` 导出——同源断言钉在 tests/ai-service.test.ts
+  T3.3 ①:静态源断言 import 同一函数 + 红线/长度两维行为交叉验证)与**模型五维
+  清单**(`aiFindings`,元提示词条目 meta.studio.ai-review:红线冲突/长度/变量
+  引用/一致性/清晰度,逐条 severity 徽标 + `suggestion` 建议)双来源呈现;
+  **报告仅展示、不拦截**——done 态零写动作(版本数/patch 字节/在途审批三不变,
+  审计仅 `ai-review.*` 事件,tests/ai-service.test.ts T3.3 ②)、不禁用保存按钮;
+  AI 不可用时本地校验器结果照常可看(审核按钮不因 AI 不可用禁用,与润色按钮的
+  可用性前置不同——降级随结果 issues/note 明示)。**竞态守卫(评审 2026-11-11
+  medium,润色流同构缺陷一并修)**:润色 ok 态与审核 done 态均携带归属 entryId,
+  渲染面与选中条目失配即按 idle 处理(旧条目建议稿/报告不贴新条目);在途响应经
+  selectedIdRef 守卫——await 返回时条目已切换即丢弃;提案提交载荷 entryId 取建议稿
+  归属条目且与选中条目不符即不发起(渲染面隐藏之外的载荷级双保险)。**受审稿
+  过期标识(评审 low)**:done 态记录受审全文,当前草稿 ≠ 受审稿时卡片
+  [data-ps-ai-review-stale] 明示「结论对应审核时刻的稿」,不冒充当前稿结论。
+  工件断言:tests/client-bundle.test.ts(T3.3 三例:报告卡锚点 + 端点接线/
+  「问题清单/仅展示/不拦截」文案 + 竞态守卫与过期标识静态源断言)+ t7-ui-check.mjs
+  扩循环锚点 6 枚与静态断言 2 条(现 28 静态 + 1 循环生成断言,基线 17 只增不减
+  ——`grep -c "check('" scripts/t7-ui-check.mjs` 机械核对)。t7-ui-check 不在包
+  verify 链内(package.json verify=build:client+oxlint+tsc+vitest):2026-11-11
+  本机实跑 `node scripts/t7-ui-check.mjs` exit 0 全 PASS(共 60 检查项,0 FAIL);gate
+  判定以 G-PS-03 采集时的原始输出誊录为准(artifacts/gates/G-PS-03/,测试计划
+  §7.3),本句不作为门禁证据。深浅两主题截图留待 G-PS-03 gate(测试计划 §7.3)。
+- **已知过渡限制(T1.4 评审 2026-11-11)**:写通道(回滚/导出包)仍是 persona
+  单口径——`prompt-rollback {versionId}` 与 `prompt-export {versionId}` 对
+  `entryId !== preset.standard.persona` 的版本 fail-closed 拒绝(回滚拒绝/
+  导出 badRequest)。原因:回滚按设计跳过内容校验,跨条目目标会把领域/plan 文本
+  绕过红线校验写进 persona 前缀行(污染全部标准会话);导出包 schemaVersion=1
+  是 persona 口径。按条目写链路(回滚/导出/保存)随 **T1.6** 泛化落地;T1.5
+  前端接按条目版本列表时,对非默认条目的回滚入口应隐藏或提示「待 T1.6 支持」。
 
 ## 3. T7.2 接入要点
 

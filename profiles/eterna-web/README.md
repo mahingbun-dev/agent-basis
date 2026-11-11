@@ -2,7 +2,8 @@
 
 `cordis.patch.yml`：叠在 `@deepseek-ai/dsh-base` + `@deepseek-ai/dsh-web-app`
 两个 bundle 层之上的企业裁切覆写层（裸 id 行覆写既有行，`disabled: true`=裁、
-`disabled: false`=回加；本层无 `- insert:` 新增行）。
+`disabled: false`=回加；文末另有两个 `- insert:` 新增块：mcp-browser（companion
+浏览器执行面）与 eterna-prompt-studio（提示词工作室，T1.2），见各自段注）。
 
 - 裁了什么/为什么/如何回加：见 [`docs/eterna-web-profile.md`](../../docs/eterna-web-profile.md)。
 - 权威依据：`plans/2026-11-06-dsh企业agent路线定案.md` §11（§11.7、§11.8 为准）。

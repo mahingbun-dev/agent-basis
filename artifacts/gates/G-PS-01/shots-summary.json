@@ -1,0 +1,64 @@
+{
+  "startedAt": "2026-11-10T20:18:59.072Z",
+  "chrome": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "pages": [
+    {
+      "name": "light 全景列表(分组导航+统计条)",
+      "file": "studio-panorama-light.png",
+      "bytes": 334616,
+      "md5": "8d427bfa34c197fe9d006c462b1eb3f2",
+      "state": "uncapped(root h=3362/scroll=3362)"
+    },
+    {
+      "name": "light 条目编辑(领域条目:元数据卡+编辑器+版本链)",
+      "file": "studio-entry-edit-light.png",
+      "bytes": 343508,
+      "md5": "d4890fe0d68a49906b6b83c4b9ac438e",
+      "state": "uncapped(root h=3324/scroll=3324)"
+    },
+    {
+      "name": "light 版本 diff(行级对比)",
+      "file": "studio-diff-light.png",
+      "bytes": 379737,
+      "md5": "a2d04e82754a234b280dac760ccde938",
+      "state": "uncapped(root h=3562/scroll=3562)"
+    },
+    {
+      "name": "light 全景列表@640px(单列断点辅证)",
+      "file": "studio-panorama-640-light.png",
+      "bytes": 363472,
+      "md5": "2d6aeef9091e4fb49d2f4a46581c15f7",
+      "state": "uncapped(root h=3518/scroll=3518)"
+    },
+    {
+      "name": "dark 全景列表(分组导航+统计条)",
+      "file": "studio-panorama-dark.png",
+      "bytes": 340045,
+      "md5": "efcbecf103903201640bce9148b337b9",
+      "state": "uncapped(root h=3362/scroll=3362)"
+    },
+    {
+      "name": "dark 条目编辑(领域条目:元数据卡+编辑器+版本链)",
+      "file": "studio-entry-edit-dark.png",
+      "bytes": 348037,
+      "md5": "1e54b83aa786b439fc598f8a647e7e96",
+      "state": "uncapped(root h=3324/scroll=3324)"
+    },
+    {
+      "name": "dark 版本 diff(行级对比)",
+      "file": "studio-diff-dark.png",
+      "bytes": 384374,
+      "md5": "a7f7acd32f7fd5ed312d7264055696a6",
+      "state": "uncapped(root h=3562/scroll=3562)"
+    },
+    {
+      "name": "dark 全景列表@640px(单列断点辅证)",
+      "file": "studio-panorama-640-dark.png",
+      "bytes": 367261,
+      "md5": "b1ec941542973264ff0a13826570f959",
+      "state": "uncapped(root h=3518/scroll=3518)"
+    }
+  ],
+  "fatal": null,
+  "finishedAt": "2026-11-10T20:19:44.208Z"
+}

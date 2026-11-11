@@ -5,7 +5,8 @@
  * - 纯文本变换:除 prefix 行外逐字节不变(!!js 行保真——spike §4.1 铁律);
  * - 原子写 + verify 失败自动还原 + 无 .tmp/.bak 残留;单写者串行。
  */
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { rmRetry } from './rm-retry.ts'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -107,8 +108,8 @@ describe('PersonaPatchFile(真实 fs 临时目录)', () => {
     writeFileSync(patchPath, fixturePatch(MARKER), 'utf8')
   })
 
-  afterEach(() => {
-    rmSync(dir, { recursive: true, force: true })
+  afterEach(async () => {
+    await rmRetry(dir)
   })
 
   it('read():available + persona 文本 + mtime ISO', async () => {
@@ -266,6 +267,6 @@ describe('selfCheckNextPatchText(保存前 YAML 解析自检,T7.3 ⑦)', () => {
     expect(calls[1]).toBe(`write:${filePath}`) // atomicWrite 收到目标路径;tmp 文件在其内部产生并清理
     expect(readFileSync(filePath, 'utf8')).not.toBe(before)
     expect((await new PersonaPatchFile(filePath).read()).text).toBe('正常新内容')
-    rmSync(tmp, { recursive: true, force: true })
+    await rmRetry(tmp)
   })
 })

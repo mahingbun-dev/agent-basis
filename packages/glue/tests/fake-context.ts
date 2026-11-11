@@ -50,6 +50,11 @@ export interface FakeContext {
   on(event: string, listener: (...args: unknown[]) => unknown): () => void
   /** cordis 无 inject 读取面(audit-bridge/audit 插件的机会读取走 ctx.reflect.get)。 */
   readonly reflect: { get(name: string, strict?: boolean): unknown }
+  /**
+   * reflect mixin 的 ctx.get 直读面(cordis ReflectService constructor mixin('reflect',
+   * ['get', ...]);memory-plugin 的注册表读取面经它机会读取 promptRegistry 服务)。
+   */
+  get(name: string): unknown
 }
 
 export function makeFakeContext(): FakeContextHarness {
@@ -71,7 +76,7 @@ export function makeFakeContext(): FakeContextHarness {
     on: (event, listener) => {
       let set = listeners.get(event)
       if (set === undefined) {
-        set = new Set()
+        set = new Set<AnyListener>()
         listeners.set(event, set)
       }
       set.add(listener)
@@ -80,6 +85,7 @@ export function makeFakeContext(): FakeContextHarness {
       }
     },
     reflect: { get: name => services.get(name) },
+    get: name => services.get(name),
   }
 
   return {

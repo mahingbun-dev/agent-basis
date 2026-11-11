@@ -5,8 +5,8 @@
 # 本文件作为该 profile 的 cordis.patch.yml（用户层，最后写赢）。裁切=按 id 覆写
 # 既有行并置 disabled: true（补丁语义：裸 id 行只覆写既有行且整份替换 config，
 # 覆写 config 的行重述全部键；新增行必须用 "- insert:"——见
-# packages/glue/cordis.patch.yml 的 E2E 教训）。本层不含任何 "- insert:" 行，
-# 全部为覆写。
+# packages/glue/cordis.patch.yml 的 E2E 教训）。裁切/回加全部为覆写行；文末另有两个
+# "- insert:" 新增块（mcp-browser / eterna-prompt-studio），见各自段注。
 #
 # 权威依据：plans/2026-11-06-dsh企业agent路线定案.md §11（§11.7 图纸复核、
 # §11.8 二次裁定为准）。行 id 核对自 deepseek-harness 两个 bundle patch 的
@@ -428,3 +428,17 @@
         env:
           ETNA_RELAY_BASE: http://127.0.0.1:9310
         toolCallTimeoutMs: 120000
+
+# ── 提示词工作室挂载（T1.2；plans/2026-11-11-提示词工作室全景化改造计划.md）────
+# @eterna/prompt-studio 双面插件（与 packages/prompt-studio/cordis.patch.yml 同款
+# insert 行——裸 id 行只覆写既有行，基础树无 eterna-* 行会被 applyPatches 丢弃）：
+# Host 半边 name 解析到本包 exports "."（loopPrompt/* Typert SRC 端点），浏览器
+# 半边 package.json 的 dsh.client(platform: web) 声明把 lib/client.js 组进
+# window.__DSH_BOOT__ 花名册（同一行，两面）。前置：profile node_modules 需 symlink
+# @eterna/prompt-studio → packages/prompt-studio（verify-eterna-web.mjs 物化时自动
+# 创建；容器部署由 docker/entrypoint.sh 第 3 步统一 symlink）。admin 停用→重启被
+# entrypoint 渲染裁剪（TOGGLEABLE_PLUGINS 登记：packages/access/src/routes.ts）。
+# 移除=删本段。
+- insert:
+    - id: eterna-prompt-studio
+      name: '@eterna/prompt-studio'

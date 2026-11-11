@@ -1,0 +1,27 @@
+$ node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run
+
+  lib/client.js  98.5kb
+
+⚡ Done in 3ms
+Found 0 warnings and 0 errors.
+Finished in 707ms on 35 files with 87 rules using 10 threads.
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-prompt-studio-v2/packages/prompt-studio
+
+ ✓ tests/client-bundle.test.ts (12 tests) 10ms
+ ✓ tests/validator-diff.test.ts (33 tests) 19ms
+ ✓ tests/registry.test.ts (24 tests) 19ms
+ ✓ tests/trace.test.ts (19 tests) 64ms
+ ✓ tests/entry-patch.test.ts (22 tests) 60ms
+ ✓ tests/version-store.test.ts (14 tests) 77ms
+ ✓ tests/persona-patch.test.ts (20 tests) 84ms
+ ✓ tests/approval-audit.test.ts (15 tests) 12ms
+ ✓ tests/version-governance.test.ts (8 tests) 4ms
+ ✓ tests/host-plugin.test.ts (44 tests) 220ms
+
+ Test Files  10 passed (10)
+      Tests  211 passed (211)
+   Start at  03:53:37
+   Duration  577ms (transform 592ms, setup 0ms, import 939ms, tests 568ms, environment 1ms)
+
+EXIT=0

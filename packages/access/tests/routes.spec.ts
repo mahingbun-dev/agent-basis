@@ -2,13 +2,13 @@
  * 路由核心门禁:计划书 §4.0 端点表全量——鉴权/角色/同源/限速/pwv 吊销/头像白名单/
  * D11 后缀/删除护栏/审计事件。真实 store+session+可注入时钟,无网络无内核依赖。
  */
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { AccessAuditEvent } from '../src/audit.ts'
 import { clientIp, parseAvatarDataUrl, type AccessReply, type AccessRequest } from '../src/http.ts'
-import { handleAccessRequest, type AccessDeps } from '../src/routes.ts'
+import { handleAccessRequest, TOGGLEABLE_PLUGINS, type AccessDeps } from '../src/routes.ts'
 import { SessionService } from '../src/session.ts'
 import { SlidingWindow } from '../src/ratelimit.ts'
 import { UserStore } from '../src/store.ts'
@@ -353,5 +353,21 @@ describe('access 路由核心', () => {
     expect(clientIp('203.0.113.9, 10.0.0.1')).toBe('203.0.113.9')
     expect(clientIp(['198.51.100.7'])).toBe('198.51.100.7')
     expect(clientIp(undefined)).toBe('local')
+  })
+})
+
+describe('T1.2 生产挂载 id 三处交叉钉住(ps-v2)', () => {
+  it('eterna-prompt-studio:启停登记 ≡ 生产档 patch insert 行 ≡ 客户端 factory 注册 id——任一改动即红', () => {
+    const rowId = 'eterna-prompt-studio'
+    const pkgName = '@eterna/prompt-studio'
+    // ① 启停登记(TOGGLEABLE_PLUGINS,本包源;admin 停用→entrypoint 渲染裁剪本行)
+    expect(TOGGLEABLE_PLUGINS.some(p => p.id === rowId)).toBe(true)
+    // ② 生产档 patch insert 行(profiles/eterna-web;真 boot 判据=scripts/verify-eterna-web.mjs)
+    const prodPatch = readFileSync(join(import.meta.dirname, '..', '..', '..', 'profiles', 'eterna-web', 'cordis.patch.yml'), 'utf8')
+    expect(prodPatch).toMatch(new RegExp(`- id: ${rowId}\\s*\\n\\s+name: '${pkgName}'`))
+    // ③ 客户端 factory 注册 id(build-client.mjs 的 wrapper id——t7-ui-check.mjs combo
+    //    断言 `id: "@eterna/prompt-studio"` 的源;读构建脚本而非产物,免 build 依赖)
+    const buildScript = readFileSync(join(import.meta.dirname, '..', '..', 'prompt-studio', 'scripts', 'build-client.mjs'), 'utf8')
+    expect(buildScript).toContain(`id: "${pkgName}"`)
   })
 })

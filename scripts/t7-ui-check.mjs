@@ -9,7 +9,9 @@
  *  4. 浏览器半边装进花名册:index.html 的 __DSH_BOOT__ 含本包 client 条目,
  *     combo 脚本字节含视图锚点(data-t7-editor / data-t7-save-btn /
  *     data-t7-version-item / data-t7-trace-node)与两端面板 id;
- *  5. SIGTERM 收尾,3108 释放。
+ *  5. T1.2 花名册 id 交叉钉住(静态文件断言):TOGGLEABLE_PLUGINS 登记 ≡ 生产档
+ *     patch insert 行 ≡ docker 部署模板行;embed 档维持无该行;
+ *  6. SIGTERM 收尾,3108 释放。
  *
  * 用法:node scripts/t7-ui-check.mjs
  */
@@ -163,9 +165,67 @@ try {
     if (r.ok) comboBody = await r.text()
   }
   check('combo 脚本含本包 factory 注册(id=@eterna/prompt-studio)', comboBody.includes('id: "@eterna/prompt-studio"'))
-  for (const anchor of ['data-t7-editor', 'data-t7-save-btn', 'data-t7-version-item', 'data-t7-trace-node', 'data-t7-session-item', 'data-t7-approve-btn']) {
+  for (const anchor of ['data-t7-editor', 'data-t7-save-btn', 'data-t7-version-item', 'data-t7-trace-node', 'data-t7-session-item', 'data-t7-approve-btn',
+    // T1.5 全景改版锚点(ps-v2-test-plan §3 T1.5(b)②:分组导航/条目详情/diff/保存)。
+    'data-ps-group-nav', 'data-ps-entry-detail', 'data-ps-diff-view', 'data-ps-entry-save',
+    // T2.3 会话快照查看视图锚点(ps-v2-test-plan §4 T2.3(b):快照查看视图 +
+    // 运行时注入型「不可回放/运行时构建」降级文案,combo 级断言唯一采集载体;
+    // 2026-11-11 用户裁定后「上游生成」文案随行锚点只读型移除)。
+    'data-ps-session-snapshot', 'data-ps-snapshot-session-row', 'data-ps-snapshot-detail',
+    'data-ps-snapshot-entry', 'data-ps-snapshot-entry-text',
+    // T2.2 生效条件区锚点(ps-v2-test-plan §4 T2.2(b):不热生效条目 UI 明示,
+    // combo 级断言唯一采集载体;radius 四枚举标签文案另见下方文案锚点)。
+    'data-ps-entry-effect', 'data-ps-effect-radius', 'data-ps-effect-badge',
+    // T3.2 AI 润色流锚点(ps-v2-test-plan §5 T3.2(b)/§7.3 断言 4:AI 区/建议稿卡/
+    // diff 预览/提案提交/降级文案,combo 级断言唯一采集载体)。
+    'data-ps-ai-polish', 'data-ps-ai-status', 'data-ps-ai-polish-btn', 'data-ps-ai-draft-card',
+    'data-ps-ai-draft', 'data-ps-ai-diff', 'data-ps-ai-propose-btn', 'data-ps-ai-unavailable',
+    // T3.3 AI 审核报告卡锚点(ps-v2-test-plan §5 T3.3(b)③/§7.3 断言 4:报告卡 +
+    // 问题清单两来源(本地校验器/模型)+ 建议列表,combo 级断言唯一采集载体)。
+    'data-ps-ai-review', 'data-ps-ai-review-btn', 'data-ps-ai-review-card',
+    'data-ps-ai-review-rulefinding', 'data-ps-ai-review-finding', 'data-ps-ai-review-suggestion']) {
     check(`combo 脚本含视图锚点 ${anchor}`, comboBody.includes(anchor))
   }
+  // combo 脚本经 esbuild ASCII 转义(大写 hex \uXXXX),中文文案按转义形态断言。
+  const escapedZh = (text) => [...text]
+    .map(ch => (ch.charCodeAt(0) <= 0x7e ? ch : `\\u${ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`))
+    .join('')
+  check('combo 脚本含生效条件文案锚点(生效条件/即时生效/不可编辑;T2.2 不热生效条目 UI 明示)',
+    comboBody.includes(escapedZh('生效条件')) && comboBody.includes(escapedZh('即时生效'))
+    && comboBody.includes(escapedZh('不可编辑')))
+  check('combo 脚本含快照降级文案锚点(不可回放/运行时构建;无版本链条目明示)',
+    comboBody.includes(escapedZh('不可回放')) && comboBody.includes(escapedZh('运行时构建')))
+  check('combo 脚本含快照查询端点接线(loopPrompt/session-snapshot)', comboBody.includes('loopPrompt/session-snapshot'))
+  // T3.2 AI 润色流文案锚点(ps-v2-test-plan §7.3 G-PS-03 断言 4:无 key/llm 缺席
+  // 优雅降级的 UI 文案;「作为提案提交」=生效唯一通道的纪律文案)。
+  check('combo 脚本含 AI 降级/提案文案锚点(AI 能力不可用/作为提案提交/不直接生效)',
+    comboBody.includes(escapedZh('AI 能力不可用')) && comboBody.includes(escapedZh('作为提案提交'))
+    && comboBody.includes(escapedZh('不直接生效')))
+  check('combo 脚本含 AI 端点接线(loopPrompt/ai-status|ai-polish|ai-proposal)',
+    comboBody.includes('loopPrompt/ai-status') && comboBody.includes('loopPrompt/ai-polish')
+    && comboBody.includes('loopPrompt/ai-proposal'))
+  // T3.3 AI 审核报告卡文案与接线(ps-v2-test-plan §5 T3.3(b)③/§7.3 G-PS-03:
+  // 「报告仅展示不拦截」纪律文案 + ai-review 端点接线,combo 级断言唯一采集载体)。
+  check('combo 脚本含 AI 审核报告卡文案锚点(问题清单/仅展示/不拦截)',
+    comboBody.includes(escapedZh('问题清单')) && comboBody.includes(escapedZh('仅展示'))
+    && comboBody.includes(escapedZh('不拦截')))
+  check('combo 脚本含 AI 审核端点接线(loopPrompt/ai-review)', comboBody.includes('loopPrompt/ai-review'))
+
+  // 5) T1.2 花名册 id 交叉钉住（ps-v2-test-plan §3 T1.2(b)）：同一插件 id 三处
+  //    同源——TOGGLEABLE_PLUGINS 登记(access routes.ts)≡ 生产档 patch insert 行
+  //    (profiles/eterna-web)≡ 本包 factory 注册 id（上面 combo 断言的源）——
+  //    任一处改动即红，防「登记 id 错」。静态文件断言，不依赖宿主。
+  const routesSrc = readFileSync(resolve(repoRoot, 'packages', 'access', 'src', 'routes.ts'), 'utf8')
+  check('交叉钉住:access TOGGLEABLE_PLUGINS 登记行 id=eterna-prompt-studio',
+    routesSrc.includes("id: 'eterna-prompt-studio'"))
+  const prodPatch = readFileSync(resolve(repoRoot, 'profiles', 'eterna-web', 'cordis.patch.yml'), 'utf8')
+  check('交叉钉住:生产档 patch 含 eterna-prompt-studio insert 行(id+name 同源)',
+    /- id: eterna-prompt-studio\s*\n\s+name: '@eterna\/prompt-studio'/.test(prodPatch))
+  check('交叉钉住:docker 部署模板 insert 块含 eterna-prompt-studio 行(生产容器挂载面)',
+    /- id: eterna-prompt-studio\s*\n\s+name: '@eterna\/prompt-studio'/.test(
+      readFileSync(resolve(repoRoot, 'docker', 'profile', 'cordis.patch.yml.template'), 'utf8')))
+  check('交叉钉住:embed 档 patch 无 eterna-prompt-studio 行(维持不挂,docs/embed-profile.md)',
+    !readFileSync(resolve(repoRoot, 'profiles', 'eterna-embed', 'cordis.patch.yml'), 'utf8').includes('eterna-prompt-studio'))
   check('combo 脚本含两个面板 id(main keyed + sidebar.panellist)',
     comboBody.includes('eterna-prompt-studio') && comboBody.includes('eterna-loop-trace'))
   check('combo 脚本只经官方语义令牌(color/background 无字面 #hex)',

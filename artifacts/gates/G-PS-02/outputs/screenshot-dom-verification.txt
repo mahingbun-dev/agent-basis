@@ -1,0 +1,12 @@
+[PASS] 快照分区标题在场 — "会话快照(开启时冻结)"
+[PASS] 会话行卡 12 张 — 首行=session-675f54dc-1278-45c4-aeb1-de1ca0a95726 meta=11/11 07:14 · 14 条目数 · e13d5893d1a6…
+[PASS] 「选择会话查看快照」提示可见
+[PASS] 快照详情卡在场 — 冻结时刻: 11/11 07:14捕获事件: session/created条目数: 14内容校验和: e13d5893d1a6e251…
+[PASS] 快照条目 14 条（分型徽章） — 采样=[{"id":"preset.standard.persona","kind":"patch-value","unreplayable":false,"pointer":"版本指针: v-000004-853b948e","annotation":null},{"id":"preset.standard.agent-instructions","kind":"patch-value","unreplayable":false,"pointer":"版本指针: v-000003-04c70d4e","annotation":null},{"id":"preset.standard.plan-mode.section","kind":"patch-value","unreplayable":false,"pointer":"无版本指针(不伪造)","annotation":"现值与版本链无内容一致版本(外部改写或写入在途),不伪造版本指针。"}]
+[PASS] 不可回放标注在场（只读型/运行时注入型条目）
+[PASS] 冻结提示词文本已展开可见 — 首段=T7_E2E_PERSONA_BASE alpha
+T7_E2E_STUDIO_V2 红线:预算超支>5%必须触发审批;
+[PASS] 生效条件卡半径=readonly-upstream — {"radius":"readonly-upstream","badge":"不可编辑(上游每次组装生成)","note":"不可经工作室修改:保存对其 fail-closed 拒写(t7-e2e 15.24 实测);时间文本由上游每次组装重新生成,不存在「改后生效半径」。","readonlyCard":true}
+[PASS] 只读条目卡在场（写链路拒写明示）
+[done] DOM 核验完成
+[cleanup] 宿主已停

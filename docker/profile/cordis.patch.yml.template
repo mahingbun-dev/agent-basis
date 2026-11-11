@@ -474,6 +474,10 @@
       name: '@eterna/brand'
     - id: eterna-access
       name: '@eterna/access'
+    # 提示词工作室（T1.2；packages/prompt-studio 同款行，entrypoint 第 3 步已统一
+    # symlink）。admin 停用→entrypoint 第 2.5 步按 disabled-plugins.json 裁剪本行。
+    - id: eterna-prompt-studio
+      name: '@eterna/prompt-studio'
     - id: eterna-usage-stats
       name: '@eterna/usage-stats'
 

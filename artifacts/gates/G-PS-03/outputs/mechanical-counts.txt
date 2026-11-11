@@ -1,0 +1,14 @@
+# §2.2 机械计数（G-PS-03 验收代理 2026-11-11 本会话实测）
+$ grep -c "check('" scripts/t7-e2e.mjs
+120
+$ grep -c "check('" scripts/t7-smoke.mjs
+93
+$ grep -c "check('" scripts/t7-ui-check.mjs
+28
+$ grep -c 'check(`' scripts/t7-ui-check.mjs
+1
+
+# 运行时誊录 PASS 计数（grep 自 outputs/，与台账对账）
+t7-smoke [PASS]: 93
+t7-ui-check [PASS]: 60
+ps-v2-ai-smoke [PASS]: 6

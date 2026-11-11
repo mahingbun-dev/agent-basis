@@ -1,0 +1,19 @@
+$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+Found 0 warnings and 0 errors.
+Finished in 553ms on 16 files with 87 rules using 10 threads.
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-prompt-studio-v2/packages/memory
+
+ ✓ tests/tokens.spec.ts (5 tests) 2ms
+ ✓ tests/pii.spec.ts (6 tests) 4ms
+ ✓ tests/index-builder.spec.ts (8 tests) 11ms
+ ✓ tests/entity-store.spec.ts (17 tests) 19ms
+ ✓ tests/notes.spec.ts (17 tests) 30ms
+ ✓ tests/tools.spec.ts (23 tests) 52ms
+ ✓ tests/memory.spec.ts (14 tests) 43ms
+
+ Test Files  7 passed (7)
+      Tests  90 passed (90)
+   Start at  07:13:07
+   Duration  275ms (transform 274ms, setup 0ms, import 497ms, tests 162ms, environment 0ms)
+

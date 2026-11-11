@@ -1,0 +1,12 @@
+== 机械计数（ps-v2-test-plan §2.2 口径）==
+-- grep -c "check(''" --
+scripts/t7-e2e.mjs: 120
+scripts/t7-smoke.mjs: 82
+scripts/t7-ui-check.mjs: 24
+-- grep -c 'check(`' scripts/t7-ui-check.mjs --
+1
+-- git grep -n prompt-scan -- .github/workflows/ci.yml --
+.github/workflows/ci.yml:37:      - name: 提示词登记扫描(patch 键/section 使用/packs persona,prompt-scan)
+.github/workflows/ci.yml:38:        run: node tools/packctl/bin/packctl.mjs prompt-scan
+-- git grep -c 'for d in packs' -- .github/workflows/ci.yml --
+.github/workflows/ci.yml:2

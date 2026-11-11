@@ -1,0 +1,187 @@
+{
+  "meta": {
+    "basisRepo": "/Users/sunny/code/agent-basis",
+    "home": "/Users/sunny/code/agent-basis/.basis-home-ps-spike",
+    "port": 3109,
+    "startedAt": "2026-11-10T17:35:00.898Z",
+    "unitTier": {
+      "A": "FROZEN_FOR_A",
+      "A2": "FROZEN_FOR_A",
+      "B": "CURRENT_GLOBAL_TEXT",
+      "G": "CURRENT_GLOBAL_TEXT",
+      "listenerCalls": 4,
+      "seen": [
+        {
+          "keys": [
+            "agent",
+            "scope"
+          ],
+          "agentId": "unit-session-AAAA",
+          "scopeIsAgent": true
+        },
+        {
+          "keys": [
+            "agent",
+            "scope"
+          ],
+          "agentId": "unit-session-AAAA",
+          "scopeIsAgent": true
+        },
+        {
+          "keys": [
+            "agent",
+            "scope"
+          ],
+          "agentId": "unit-session-BBBB",
+          "scopeIsAgent": false
+        },
+        {
+          "keys": [],
+          "agentId": null,
+          "scopeIsAgent": false
+        }
+      ],
+      "spVersion": "0.2.2-rc.1"
+    },
+    "finishedAt": "2026-11-10T17:35:11.485Z",
+    "totalObservations": 3
+  },
+  "checks": [
+    {
+      "name": "T1·监听器收到调用方 context 原对象（含未声明字段 agent）",
+      "ok": true,
+      "detail": "keys=[\"agent\",\"scope\"] agentId=unit-session-AAAA"
+    },
+    {
+      "name": "T1·scope===agent（assembleContextFor 形态）时 scopeIsAgent=true",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "T1·waterfall 按会话替换段落文本权威（A 冻结/B 现值/全局现值）",
+      "ok": true,
+      "detail": "A=FROZEN_FOR_A A2=FROZEN_FOR_A B=CURRENT_GLOBAL_TEXT G=CURRENT_GLOBAL_TEXT"
+    },
+    {
+      "name": "T1·未打标监听器收到全部组装（4/4 次显式调用）",
+      "ok": true,
+      "detail": "calls=4"
+    },
+    {
+      "name": "T1·实测包版本=0.2.2-rc.1（生产 profile 同版本）",
+      "ok": true,
+      "detail": "v=0.2.2-rc.1"
+    },
+    {
+      "name": "T2·preflight dump-config 退出码 0",
+      "ok": true,
+      "detail": "status=0"
+    },
+    {
+      "name": "T2·组合树含 ps-spike-observer 行",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "T2·无 skipping/incompatible",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "T2·会话A 系统提示含 α",
+      "ok": true,
+      "detail": "session=session-d03e6b5c-c909-4525-b1ef-90b5f3f11b0a"
+    },
+    {
+      "name": "T2·会话A 系统提示不含 β",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "T2·观测到会话A 的组装事件（agent.id=sessionId）",
+      "ok": true,
+      "detail": "n=1"
+    },
+    {
+      "name": "T2·真回合 context 含 agent/scope/modelSelection/toolSet",
+      "ok": true,
+      "detail": "keys=[\"agent\",\"modelSelection\",\"scope\",\"signal\",\"toolSet\"]"
+    },
+    {
+      "name": "T2·agent.id 即会话 id（字符串）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "T2·scope===agent（身份路由键=会话 Agent）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "T2·会话B 系统提示含 β（新会话即用新文）",
+      "ok": true,
+      "detail": "session=session-0746de1a-020c-4b09-8846-699115f983f2"
+    },
+    {
+      "name": "T2·会话B 系统提示不含 α",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "T2·宿主 pid 未变（全程未重启）",
+      "ok": true,
+      "detail": "pid=74741"
+    },
+    {
+      "name": "T2·核心：旧会话A 补轮后系统提示仍为 α（按会话替换生效）",
+      "ok": true,
+      "detail": "session=session-d03e6b5c-c909-4525-b1ef-90b5f3f11b0a"
+    },
+    {
+      "name": "T2·宿主 pid 仍未变",
+      "ok": true,
+      "detail": "pid=74741"
+    },
+    {
+      "name": "T2·两会话 agent.id 互不相同（会话可区分）",
+      "ok": true,
+      "detail": "A→2 次、B→1 次组装"
+    },
+    {
+      "name": "T2·会话A 跨轮 agent.id 稳定（≥2 次组装同一 id）",
+      "ok": true,
+      "detail": "n=2"
+    },
+    {
+      "name": "T2·会话A β 期组装被替换回 α（probeTextBefore=β→After=α）",
+      "ok": true,
+      "detail": "n=1"
+    },
+    {
+      "name": "T2·会话B 组装未替换、用全局 β",
+      "ok": true,
+      "detail": "n=1"
+    },
+    {
+      "name": "T2·无 unknown 会话（所有组装都带 agent.id）",
+      "ok": true,
+      "detail": "total=3"
+    },
+    {
+      "name": "T2·宿主日志只有一次 dsh web: 启动行",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "T2·宿主日志含 llm-openai → LiteLLM 调用证据",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "清理：宿主已停止、端口 3109 已释放",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "failures": []
+}

@@ -8,6 +8,7 @@
  * - lintPack / lintPacks:结构完整 + Cordis 纪律静态检查(无旁路全局、可交换接口形态)
  *   + SKILL.md 条目锚点配对(ACE,10 号文档 §4.1)+ golden 完整性;
  * - checkPack:静态冒烟(bundle 声明引用的文件都存在);
+ * - promptScan:提示词登记铁律静态检查(T2.5;登记真值=prompt-studio 注册表);
  * - loadGoldenCaseText / loadGoldenDir:golden 加载器,供 @eterna/evals 复用。
  * - runPack:CLI 入口(bin/packctl.mjs)。
  */
@@ -34,5 +35,7 @@ export type {
   DshBundleManifest, DshManifest, Finding, GoldenBudget, GoldenCase, GoldenFinalState, GoldenHttpAssert,
   GoldenFileAssert, GoldenJudge, GoldenScriptAssert, GoldenTrajectory, PackPackageJson,
 } from './types.ts'
+export { promptScan, PROMPT_SCAN_WHITELIST } from './prompt.ts'
+export type { PromptScanOptions, PromptWhitelistEntry } from './prompt.ts'
 export { parseEntryAnchors, splitFrontmatter, stripCommentsLineByLine, parseYaml } from './util.ts'
 export type { EntryAnchor, FrontmatterResult, StrippedLine, YamlResult } from './util.ts'

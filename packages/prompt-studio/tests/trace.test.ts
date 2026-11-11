@@ -9,7 +9,8 @@
  * - 会话列表(目录约定/标题/usage 折叠/mtime 排序/limit)。
  */
 import { randomBytes } from 'node:crypto'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { rmRetry } from './rm-retry.ts'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { zstdCompressSync } from 'node:zlib'
@@ -270,8 +271,8 @@ describe('会话列表与指定会话投影', () => {
     root = mkdtempSync(join(tmpdir(), 'eterna-prompt-studio-trace-'))
   })
 
-  afterEach(() => {
-    rmSync(root, { recursive: true, force: true })
+  afterEach(async () => {
+    await rmRetry(root)
   })
 
   function seedSession(area: string, sessionId: string, lines: readonly string[]): string {

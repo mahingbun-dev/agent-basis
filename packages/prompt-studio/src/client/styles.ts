@@ -1,7 +1,9 @@
 /**
  * 提示词工坊/循环轨迹样式——对齐 panel v3 的 apple.com 设计语言(大标题/大留白/
- * hairline 分隔/胶囊按钮)。色彩只经 DSH 官方语义令牌(--dsw-alias-*),深/浅主题
- * 自动跟随,不写字面色值(硬性规范第 6 条)。滚动职责:root 自身 overflow-y:auto。
+ * hairline 分隔/胶囊按钮)。T1.5 全景改版新增 data-ps-* 面(分组导航/条目详情/
+ * 胶囊徽标/风险警示区),组件形态对照 packages/access 插件页分组行卡先例。
+ * 色彩只经 DSH 官方语义令牌(--dsw-alias-*),深/浅主题自动跟随,不写字面色值
+ * (硬性规范第 6 条)。滚动职责:root 自身 overflow-y:auto;640px 断点收边距。
  */
 const CSS = `
 [data-t7-studio-root], [data-t7-trace-root] {
@@ -267,6 +269,334 @@ const CSS = `
   color: var(--dsw-alias-label-tertiary); overflow-wrap: anywhere;
 }
 [data-t7-import-input] { font: inherit; font-size: 12px; color: var(--dsw-alias-label-secondary); max-width: 100%; }
+
+/* —— T1.5 全景分组导航(preset/领域/运行时;access 插件页分组行卡同构形态) —— */
+[data-ps-group-nav] { display: flex; flex-direction: column; gap: 20px; margin: 0 0 48px; }
+[data-ps-layer-group] {
+  border-radius: 18px; padding: 4px 20px 8px;
+  background: var(--dsw-alias-bg-layer-1, transparent);
+  border: 0.5px solid var(--dsw-alias-border-l2);
+}
+[data-ps-layer-group-head] { display: flex; align-items: baseline; gap: 12px; padding: 12px 0 2px; }
+[data-ps-layer-group-title] {
+  margin: 0; font-size: 13px; line-height: 20px; font-weight: 600;
+  color: var(--dsw-alias-label-secondary);
+}
+[data-ps-layer-group-hint] { margin-left: auto; font-size: 11px; color: var(--dsw-alias-label-tertiary); }
+[data-ps-entry-list] { margin: 0; padding: 0; list-style: none; }
+[data-ps-entry-row] {
+  width: 100%; display: flex; flex-direction: column; gap: 4px; text-align: left;
+  padding: 12px 12px; margin: 0 -12px; font: inherit; cursor: pointer; background: none;
+  border: 0; border-bottom: 0.5px solid var(--dsw-alias-border-l3); border-radius: 12px;
+}
+[data-ps-entry-list] > li:last-child [data-ps-entry-row] { border-bottom: 0; }
+[data-ps-entry-row][data-ps-selected='true'] { background: var(--dsw-alias-interactive-bg-hover); }
+[data-ps-entry-row]:hover [data-ps-entry-row-id],
+[data-ps-entry-row][data-ps-selected='true'] [data-ps-entry-row-id] {
+  color: var(--dsw-alias-state-business-primary);
+}
+[data-ps-entry-row-id] {
+  font-size: 13px; font-weight: 600; color: var(--dsw-alias-label-primary); overflow-wrap: anywhere;
+}
+[data-ps-entry-row-pills] { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+[data-ps-entry-row-meta] {
+  font-size: 11px; color: var(--dsw-alias-label-tertiary); font-variant-numeric: tabular-nums;
+}
+[data-ps-pill] {
+  display: inline-flex; align-items: center; padding: 1px 10px; border-radius: 980px;
+  font-size: 11px; line-height: 17px; font-weight: 500; white-space: nowrap;
+}
+[data-ps-pill][data-ps-tone='neutral'] {
+  color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-interactive-bg-hover);
+}
+[data-ps-pill][data-ps-tone='business'] {
+  color: var(--dsw-alias-state-business-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 8%, transparent);
+}
+[data-ps-pill][data-ps-tone='warn'] {
+  color: var(--dsw-alias-state-warn-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 10%, transparent);
+}
+
+/* —— T1.5 条目详情(元数据卡 + 风险标注警示区 + 分型值区) —— */
+[data-ps-entry-detail] { margin: 0 0 48px; display: flex; flex-direction: column; gap: 12px; }
+[data-ps-entry-title] { overflow-wrap: anywhere; }
+[data-ps-entry-badges] { display: inline-flex; gap: 6px; flex-wrap: wrap; margin-top: -6px; }
+[data-ps-entry-note] { margin: 0; font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-secondary); }
+/* T2.2 生效条件区(radius 胶囊 + 实测注记;matrix=docs/dev/ps-v2-hot-effect-matrix.md)。 */
+[data-ps-entry-effect] {
+  display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; border-radius: 12px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 5%, transparent);
+}
+[data-ps-entry-effect-title] { font-size: 12px; font-weight: 600; color: var(--dsw-alias-label-primary); }
+[data-ps-entry-effect] [data-ps-pill] { align-self: flex-start; }
+[data-ps-entry-effect-note] { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
+[data-ps-entry-risks] {
+  display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; border-radius: 12px;
+  border: 0.5px solid var(--dsw-alias-state-warn-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 6%, transparent);
+}
+[data-ps-entry-risks-title] { font-size: 12px; font-weight: 600; color: var(--dsw-alias-state-warn-primary); }
+[data-ps-entry-risks] ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+[data-ps-risk-item] { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
+[data-ps-entry-meta] {
+  display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px;
+  color: var(--dsw-alias-label-tertiary);
+}
+[data-ps-entry-runtime] {
+  display: flex; flex-direction: column; gap: 8px; padding: 16px 20px; border-radius: 18px;
+  background: var(--dsw-alias-bg-layer-1, transparent);
+  border: 0.5px solid var(--dsw-alias-border-l2);
+}
+[data-ps-entry-runtime-note] {
+  margin: 0; font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-secondary);
+}
+[data-ps-entry-value-note] { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); }
+/* 读值失败警示区(patch 值型 value.text=null:不冒充空内容,problems 就地明示)。 */
+[data-ps-entry-value-error] {
+  display: flex; flex-direction: column; gap: 6px; padding: 14px 18px; border-radius: 12px;
+  border: 0.5px solid var(--dsw-alias-state-error-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 6%, transparent);
+}
+[data-ps-entry-value-error-note] { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
+[data-ps-entry-problem-item] {
+  margin: 0; font-size: 12px; line-height: 18px;
+  color: var(--dsw-alias-state-error-primary); overflow-wrap: anywhere;
+}
+/* 版本链拉取失败(RPC 通道错/超时):与「storage 未挂载」分态展示,不冒充缺席。 */
+[data-ps-chain-error] {
+  margin: 0; font-size: 13px; line-height: 20px;
+  color: var(--dsw-alias-state-error-primary); overflow-wrap: anywhere;
+}
+/* 详情内子区(editor/versions/只读说明)不吃顶层 section 的 48px 节奏,标题降一级(32/21/15 字号阶梯)。 */
+[data-ps-entry-detail] [data-t7-section] { margin: 0; }
+[data-ps-entry-detail] h3[data-t7-section-title] { font-size: 15px; line-height: 22px; }
+
+/* —— T2.3 会话快照查看(只读:会话行卡列表 + 冻结详情;条目行卡同构形态) —— */
+[data-ps-session-snapshot] { display: flex; flex-direction: column; gap: 12px; margin: 0 0 48px; }
+[data-ps-snapshot-select-hint] { margin: 0; font-size: 12px; color: var(--dsw-alias-label-tertiary); }
+[data-ps-snapshot-session-list] { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+[data-ps-snapshot-session-row] {
+  width: 100%; display: flex; flex-direction: column; gap: 4px; text-align: left;
+  padding: 10px 12px; margin: 0 -12px; font: inherit; cursor: pointer; background: none;
+  border: 0; border-bottom: 0.5px solid var(--dsw-alias-border-l3); border-radius: 12px;
+}
+[data-ps-snapshot-session-list] > li:last-child [data-ps-snapshot-session-row] { border-bottom: 0; }
+[data-ps-snapshot-session-row][data-ps-selected='true'] { background: var(--dsw-alias-interactive-bg-hover); }
+[data-ps-snapshot-row-id] { font-size: 13px; font-weight: 600; color: var(--dsw-alias-label-primary); overflow-wrap: anywhere; }
+[data-ps-snapshot-row-meta] {
+  font-size: 11px; color: var(--dsw-alias-label-tertiary);
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+[data-ps-snapshot-detail] {
+  display: flex; flex-direction: column; gap: 10px; padding: 16px 20px; border-radius: 18px;
+  background: var(--dsw-alias-bg-layer-1, transparent);
+  border: 0.5px solid var(--dsw-alias-border-l2);
+}
+[data-ps-snapshot-detail] h3[data-t7-section-title] { margin: 0; font-size: 15px; line-height: 22px; }
+[data-ps-snapshot-note] { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
+[data-ps-snapshot-meta] {
+  display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px;
+  color: var(--dsw-alias-label-tertiary); font-variant-numeric: tabular-nums;
+}
+[data-ps-snapshot-checksum] { overflow-wrap: anywhere; }
+[data-ps-snapshot-entry-list] { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+[data-ps-snapshot-entry] {
+  display: flex; flex-direction: column; gap: 6px; padding: 10px 0;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l3);
+}
+[data-ps-snapshot-entry-list] > li:last-child { border-bottom: 0; }
+[data-ps-snapshot-entry-head] { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+[data-ps-snapshot-entry-id] { font-size: 13px; font-weight: 600; color: var(--dsw-alias-label-primary); overflow-wrap: anywhere; }
+[data-ps-snapshot-pointer] {
+  font-size: 11px; color: var(--dsw-alias-label-secondary);
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+[data-ps-snapshot-entry-note] { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
+[data-ps-snapshot-entry-problem] { font-size: 12px; line-height: 18px; color: var(--dsw-alias-state-error-primary); }
+[data-ps-snapshot-entry] details { font-size: 12px; color: var(--dsw-alias-label-secondary); }
+[data-ps-snapshot-entry] summary { cursor: pointer; }
+[data-ps-snapshot-entry-text] {
+  margin: 8px 0 0; padding: 12px 14px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere;
+  font-size: 12px; line-height: 18px; border-radius: 12px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  border: 0.5px solid var(--dsw-alias-border-l3);
+}
+[data-ps-snapshot-error] {
+  margin: 0; font-size: 13px; line-height: 20px;
+  color: var(--dsw-alias-state-error-primary); overflow-wrap: anywhere;
+}
+
+/* —— AI 润色区(T3.2:建议稿卡/diff 预览/提案提交;对照快照详情卡与版本对比形态) —— */
+[data-ps-ai-status] { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+[data-ps-ai-status-label] { font-size: 12px; color: var(--dsw-alias-label-tertiary); }
+[data-ps-ai-status-value] { font-size: 12px; color: var(--dsw-alias-label-secondary); }
+[data-ps-ai-unavailable-note] {
+  margin: 0; font-size: 12px; line-height: 18px;
+  color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere;
+}
+[data-ps-ai-input-row] { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+[data-ps-ai-instruction] {
+  flex: 1 1 240px; padding: 8px 12px; font: inherit; font-size: 13px;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-1, transparent);
+  border: 1px solid var(--dsw-alias-border-l2); border-radius: 980px;
+}
+[data-ps-ai-instruction]:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 1px; }
+[data-ps-ai-instruction]:disabled { opacity: 0.6; }
+[data-ps-ai-polish-btn] {
+  padding: 8px 20px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  color: var(--dsw-alias-label-primary);
+  background: transparent; border: 1px solid var(--dsw-alias-border-l2); border-radius: 980px;
+}
+[data-ps-ai-polish-btn]:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
+[data-ps-ai-polish-btn]:disabled { opacity: 0.45; cursor: default; }
+[data-ps-ai-error] {
+  margin: 0; font-size: 13px; line-height: 20px;
+  color: var(--dsw-alias-state-error-primary); overflow-wrap: anywhere;
+}
+[data-ps-ai-draft-card] {
+  display: flex; flex-direction: column; gap: 12px; padding: 16px 20px; border-radius: 18px;
+  background: var(--dsw-alias-bg-layer-1, transparent);
+  border: 0.5px solid var(--dsw-alias-border-l2);
+}
+[data-ps-ai-draft-head] { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+[data-ps-ai-draft-title] { font-size: 13px; font-weight: 700; color: var(--dsw-alias-label-primary); }
+[data-ps-ai-draft-meta] {
+  font-size: 11px; color: var(--dsw-alias-label-tertiary);
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+[data-ps-ai-draft-card] details { font-size: 12px; color: var(--dsw-alias-label-secondary); }
+[data-ps-ai-draft-card] summary { cursor: pointer; }
+[data-ps-ai-draft] {
+  margin: 8px 0 0; padding: 12px 14px; max-height: 260px; overflow-y: auto;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px; line-height: 18px; white-space: pre-wrap; overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-interactive-bg-hover);
+  border: 0.5px solid var(--dsw-alias-border-l3); border-radius: 12px;
+}
+[data-ps-ai-diff] {
+  padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; border-radius: 18px;
+  background: var(--dsw-alias-bg-layer-1, transparent);
+  border: 0.5px solid var(--dsw-alias-border-l2);
+}
+[data-ps-ai-draft-actions] { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+[data-ps-ai-propose-btn] {
+  padding: 8px 20px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  color: var(--dsw-alias-label-primary-foreground);
+  background: var(--dsw-alias-state-business-primary); border: 0; border-radius: 980px;
+}
+[data-ps-ai-propose-btn]:hover:not(:disabled) { filter: brightness(1.08); }
+[data-ps-ai-propose-btn]:disabled { opacity: 0.45; cursor: default; }
+[data-ps-ai-discard-btn] {
+  padding: 8px 20px; font: inherit; font-size: 13px; cursor: pointer;
+  color: var(--dsw-alias-label-secondary); background: transparent;
+  border: 1px solid var(--dsw-alias-border-l2); border-radius: 980px;
+}
+[data-ps-ai-discard-btn]:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+[data-ps-ai-discard-btn]:disabled { opacity: 0.45; cursor: default; }
+
+/* —— AI 审核报告卡(T3.3:问题清单+建议列表;仅展示不拦截,对照润色建议稿卡形态) —— */
+[data-ps-ai-review-input-row] { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+[data-ps-ai-review-btn] {
+  padding: 8px 20px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  color: var(--dsw-alias-label-primary);
+  background: transparent; border: 1px solid var(--dsw-alias-border-l2); border-radius: 980px;
+}
+[data-ps-ai-review-btn]:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
+[data-ps-ai-review-btn]:disabled { opacity: 0.45; cursor: default; }
+[data-ps-ai-review-error] {
+  margin: 0; font-size: 13px; line-height: 20px;
+  color: var(--dsw-alias-state-error-primary); overflow-wrap: anywhere;
+}
+[data-ps-ai-review-card] {
+  display: flex; flex-direction: column; gap: 12px; padding: 16px 20px; border-radius: 18px;
+  background: var(--dsw-alias-bg-layer-1, transparent);
+  border: 0.5px solid var(--dsw-alias-border-l2);
+}
+[data-ps-ai-review-head] { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+[data-ps-ai-review-title] { font-size: 13px; font-weight: 700; color: var(--dsw-alias-label-primary); }
+[data-ps-ai-review-meta] {
+  font-size: 11px; color: var(--dsw-alias-label-tertiary);
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+[data-ps-ai-review-close-btn] {
+  margin-left: auto; padding: 4px 14px; font: inherit; font-size: 12px; cursor: pointer;
+  color: var(--dsw-alias-label-secondary); background: transparent;
+  border: 1px solid var(--dsw-alias-border-l2); border-radius: 980px;
+}
+[data-ps-ai-review-close-btn]:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
+[data-ps-ai-review-close-btn]:disabled { opacity: 0.45; cursor: default; }
+[data-ps-ai-review-summary] {
+  font-size: 12px; color: var(--dsw-alias-label-secondary);
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+[data-ps-ai-review-issues] { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+[data-ps-ai-review-issue] { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
+/* 受审稿过期标识(T3.3 评审 low):结论对应审核时刻的稿,不冒充当前草稿结论。 */
+[data-ps-ai-review-stale] {
+  margin: 0; padding: 8px 14px; border-radius: 12px; font-size: 12px; line-height: 18px;
+  color: var(--dsw-alias-state-warn-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 8%, transparent);
+}
+[data-ps-ai-review-rule-block], [data-ps-ai-review-ai-block] { display: flex; flex-direction: column; gap: 6px; }
+[data-ps-ai-review-block-title] { font-size: 12px; font-weight: 600; color: var(--dsw-alias-label-secondary); }
+[data-ps-ai-review-rule-block] ul, [data-ps-ai-review-ai-block] ul {
+  margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px;
+}
+[data-ps-ai-review-rulefinding] { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
+[data-ps-ai-review-finding] { display: flex; flex-direction: column; gap: 4px; }
+[data-ps-ai-review-severity] {
+  display: inline-flex; align-self: flex-start; padding: 1px 10px; border-radius: 980px;
+  font-size: 11px; line-height: 17px; font-weight: 500; white-space: nowrap;
+}
+[data-ps-ai-review-severity='error'] {
+  color: var(--dsw-alias-state-error-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent);
+}
+[data-ps-ai-review-severity='warning'] {
+  color: var(--dsw-alias-state-warn-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 10%, transparent);
+}
+[data-ps-ai-review-severity='info'] {
+  color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-interactive-bg-hover);
+}
+[data-ps-ai-review-rule] {
+  font-size: 11px; color: var(--dsw-alias-label-tertiary);
+  font-family: ui-monospace, SFMono-Regular, monospace; overflow-wrap: anywhere;
+}
+[data-ps-ai-review-message] { margin: 0; font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-primary); overflow-wrap: anywhere; }
+[data-ps-ai-review-suggestion] { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
+[data-ps-ai-review-empty] { margin: 0; font-size: 12px; color: var(--dsw-alias-label-tertiary); }
+[data-ps-ai-review-note] { margin: 0; font-size: 11px; line-height: 17px; color: var(--dsw-alias-label-tertiary); overflow-wrap: anywhere; }
+
+/* —— 键盘可达与触控目标(AGENTS.md 前端铁律 4) —— */
+[data-t7-studio-root] button:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 1px;
+}
+/* 紧凑胶囊按钮的视觉节奏保持不变,经 ::after 外扩命中区到 ≥36px 级(access 开关同款手法)。 */
+[data-t7-version-actions] button, [data-t7-export-latest], [data-t7-import-btn],
+[data-t7-diff-close], [data-t7-refresh], [data-ps-entry-row], [data-ps-snapshot-session-row],
+[data-ps-ai-polish-btn], [data-ps-ai-propose-btn], [data-ps-ai-discard-btn],
+[data-ps-ai-review-btn], [data-ps-ai-review-close-btn] { position: relative; }
+[data-t7-version-actions] button::after, [data-t7-export-latest]::after, [data-t7-import-btn]::after,
+[data-t7-diff-close]::after, [data-t7-refresh]::after, [data-ps-entry-row]::after, [data-ps-snapshot-session-row]::after,
+[data-ps-ai-polish-btn]::after, [data-ps-ai-propose-btn]::after, [data-ps-ai-discard-btn]::after,
+[data-ps-ai-review-btn]::after, [data-ps-ai-review-close-btn]::after {
+  content: ""; position: absolute; inset: -6px;
+}
+
+/* —— 响应式(640px 断点单列自适应;布局本就单列,收边距与字号) —— */
+@media (max-width: 640px) {
+  [data-t7-studio-root], [data-t7-trace-root] { padding: 32px 16px 64px; }
+  [data-t7-heading] { font-size: 26px; line-height: 32px; }
+  [data-t7-stat-row] { gap: 20px; }
+  [data-ps-layer-group] { padding: 4px 14px 8px; }
+  [data-ps-entry-row] { margin: 0 -6px; padding: 10px 6px; }
+  [data-ps-layer-group-hint] { display: none; }
+}
 
 /* —— 循环轨迹:会话列表 —— */
 [data-t7-trace-pipeline] { margin: 0 0 16px; font-size: 12px; color: var(--dsw-alias-label-tertiary); }
