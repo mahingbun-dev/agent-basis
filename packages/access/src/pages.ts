@@ -328,6 +328,40 @@ export const BADGE_SCRIPT = `
           }).catch(function(){})
         }).catch(function(){})
       }
+      // 模型切换即时回显(2026-11-12):上游 selectModel 成功后等 control 流回推
+      // modelSelection 投影——多用户 mux 环境下投影帧不达,模型按钮恒显旧模型
+      // (=用户观感「切换不生效」;轨迹实证服务端与回合真实生效)。视觉层修补:
+      // 成功响应后直接改按钮 aria-label 与内部文本;下次 React 重渲染(face
+      // 更新或重载)自会以正确值覆盖,无持久分叉。
+      if(url.indexOf('/api/session/selectModel')!==-1){
+        p.then(function(r){
+          if(!r.ok)return
+          r.clone().json().then(function(d){
+            var sel=d&&d.result&&d.result.ok===true&&d.result.value&&d.result.value.selected
+            if(!sel||!sel.provider||!sel.model)return
+            var effort=sel.reasoningEffort||'Default'
+            var display=sel.model
+            var btns=document.querySelectorAll('button[aria-label]')
+            for(var i=0;i<btns.length;i++){
+              var al=btns[i].getAttribute('aria-label')||''
+              if(al.indexOf('选择模型')===0){
+                btns[i].setAttribute('aria-label','选择模型，当前 '+display+'，推理等级 '+effort)
+                var seen=0
+                var kids=btns[i].children
+                for(var j=0;j<kids.length;j++){
+                  var t=(kids[j].textContent||'').trim()
+                  if(t==='')continue
+                  if(seen===0){kids[j].textContent=display}
+                  else if(seen===1){kids[j].textContent=effort}
+                  seen++
+                  if(seen>=2)break
+                }
+                break
+              }
+            }
+          }).catch(function(){})
+        }).catch(function(){})
+      }
     }catch(e){}
     return p
   }

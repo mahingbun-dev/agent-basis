@@ -603,12 +603,17 @@
         apiKeyEnv: BIGMODEL_API_KEY
         api: openai-completions
         baseURL: https://open.bigmodel.cn/api/paas/v4
-        compat:
-          supportsDeveloperRole: false
+        # compat 从 provider 级挪到模型级(2026-11-12):catalog 校验器对 provider 级
+        # compat 检查「route 上有协议接得住该字段的 serviceable 模型」,glm 模型解析
+        # 路径上被判不可服务时整条告警(llm-pi-ai: provider "glm" sets compat
+        # "supportsDeveloperRole"...);模型级恰是 pi-ai 语义(about one named model
+        # it can only be a mistake)且绕开 route 级聚合检查。
         models:
           - id: glm-5.3
             name: GLM 5.3
             contextWindow: 300000
+            compat:
+              supportsDeveloperRole: false
             reasoningEfforts:
               low: low
               medium: medium
@@ -619,6 +624,8 @@
             input:
               - text
               - image
+            compat:
+              supportsDeveloperRole: false
             reasoningEfforts:
               off: null
               low: low
