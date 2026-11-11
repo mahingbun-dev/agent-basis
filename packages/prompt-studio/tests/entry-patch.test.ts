@@ -7,6 +7,11 @@
  * - 形态 C|plan-mode 字面块 `|` 多段整段写回(三类最难,专项断言);
  * - 形态 D|多行 plain 折叠标量(T3.2:官方 configEditor 长值序列化形态)——读侧
  *   折叠反引 + 写侧整段替换(续行零残留);
+ * - 形态 E|多行双引号折叠标量(2026-11-11,t7-e2e 15.23 根因修复):官方
+ *   configEditor 对无法 plain 表达的长单行值(含 `": "` 等)序列化为「开引号在
+ *   键行 + 更深缩进续行 + 闭引号收尾」——读侧按 YAML 双引号折叠语义反引(折点
+ *   空格/转义换行续接/k 空行→k 换行/转义还原),写侧 span 覆盖续行整段替换
+ *   (T3.2 标量步进形态无关,无残留续行风险,配测试钉住);
  * - 单行标量形态(裸标量双引号化/纯整数保持裸标量)与整文件形态(persona.md)。
  *
  * 每形态断言:①定位 0/≥2 命中 fail-closed;②写后 round-trip(读侧反引==目标)
@@ -405,7 +410,7 @@ describe('T3.2 形态 D|多行 plain 折叠标量(configEditor 长值序列化�
     expect(readYamlValueAtLine(withBlank, 0)).toBe('alpha beta\n\ngamma')
   })
 
-  it('读侧:单行引号标量语义不变;多行引号标量 → fail-closed undefined(本面不解析不猜)', () => {
+  it('读侧:单行引号标量语义不变;多行**单**引号标量仍 fail-closed undefined(本面不解析不猜;多行双引号见形态 E)', () => {
     expect(readYamlValueAtLine(['          prefix: "plain single"', '      - next'], 0)).toBe('plain single')
     expect(readYamlValueAtLine(["          prefix: 'x'", '            continued'], 0)).toBeUndefined()
   })
@@ -424,6 +429,102 @@ describe('T3.2 形态 D|多行 plain 折叠标量(configEditor 长值序列化�
     const { next } = writeAndVerify(ID, FOLDED_PATCH, FOLDED_TEXT)
     const again = buildNextEntryFileText(entry(ID), next, FOLDED_TEXT)
     expect(() => { selfCheckEntryWrite(entry(ID), next, again, FOLDED_TEXT) }).not.toThrow()
+  })
+})
+
+describe('形态 E|多行双引号折叠标量(configEditor 长值序列化形态,15.23 根因)——读侧折叠反引 + 整段替换 + 回滚闭环', () => {
+  /**
+   * 2026-11-11 t7-e2e 实测形态:15.21 经官方 configEditor(yaml@2.9.1)保存长单段
+   * section 后,live patch 的 cordis plan-mode 值被序列化为「开引号在键行 + 更深
+   * 缩进续行 + 闭引号收尾」(值含 `": "` 无法 plain 表达→双引号;超 80 列→折行)。
+   * 原读面对多行引号标量 fail-closed → 回滚一段「当前落点可读」前置被拒(15.23)。
+   * 以下 fixture 按当时 live patch 原样誊录。
+   */
+  const ID = 'preset.cordis.plan-mode.section'
+  const FORM_E_PATCH = [
+    '# fixture web patch(形态 E:configEditor 双引号折叠输出同构)',
+    '- id: preset-cordis',
+    '  config:',
+    '    plugins:',
+    '      - id: planning',
+    '        name: cordis:group',
+    '        config:',
+    '          - id: plan-mode',
+    "            name: '@deepseek-ai/dsh-plan-mode'",
+    '            config:',
+    '              section: "You are in plan mode (cordis preset). T7_E2E_CORDIS_PLAN_V2: the',
+    '                cordis plan section was rewritten by the T2.2 hot-effect matrix',
+    '                chain. Explore first with non-mutating reads."',
+    '      - id: tool-plugin-manager',
+    "        name: '@deepseek-ai/dsh-plugin-manager/tools'",
+    "        disabled: !!js \"!ctx.get('profileContext')\"",
+    '',
+  ].join('\n')
+  const FORM_E_TEXT = 'You are in plan mode (cordis preset). T7_E2E_CORDIS_PLAN_V2: the cordis plan section was rewritten by the T2.2 hot-effect matrix chain. Explore first with non-mutating reads.'
+
+  it('读侧:t7 实测形态反引 == 原文(两处折点各还原一个空格,不截断不拼错)', () => {
+    const lines = FORM_E_PATCH.split('\n')
+    const span = entrySpanOf(entry(ID), lines)
+    expect(readYamlValueAtLine(lines, span.keyIndex)).toBe(FORM_E_TEXT)
+  })
+
+  it('读侧:双引号折叠语义全集(经 yaml@2.9.1 parse 实测钉死)——转义还原/续接/空行折叠/前导空格/尾空白剥除', () => {
+    // 行内转义(\t \" \\ 与续行内 \n)还原;折点空格补回。
+    expect(readYamlValueAtLine([
+      '  section: "tab\\there: and quote \\"q\\" plus back\\\\slash',
+      '    tail\\nend"',
+    ], 0)).toBe('tab\there: and quote "q" plus back\\slash tail\nend')
+    // 行尾奇数反斜杠=转义换行(续接):吃掉反斜杠直接拼接,不折叠空格。
+    expect(readYamlValueAtLine([
+      '  section: "has # hash',
+      '    bbbb\\',
+      '    bbbb"',
+    ], 0)).toBe('has # hash bbbbbbbb')
+    // k 个空行 → k 个换行(与 plain/块折叠同口径;换行经 \n 转义对表达后统一还原)。
+    expect(readYamlValueAtLine(['  section: "one', '', '    two"'], 0)).toBe('one\ntwo')
+    expect(readYamlValueAtLine(['  section: "one', '', '', '    two"'], 0)).toBe('one\n\ntwo')
+    // 开引号后紧跟换行(值前导空格的序列化形态)折为一个空格;换行前尾随空白剥除。
+    expect(readYamlValueAtLine(['  section: "', '    aaa bbb"'], 0)).toBe(' aaa bbb')
+    expect(readYamlValueAtLine(['  section: "aaa ', '    bbb"'], 0)).toBe('aaa bbb')
+  })
+
+  it('读侧 fail-closed:未闭合/闭引号后尾随内容/多行单引号/未知转义 → undefined(不猜)', () => {
+    // 闭引号不在末行行尾(未闭合或尾随注释)。
+    expect(readYamlValueAtLine(['  section: "abc', '    def', '  next: 1'], 0)).toBeUndefined()
+    expect(readYamlValueAtLine(['  section: "abc', '    def" # note'], 0)).toBeUndefined()
+    // 多行单引号:本面不解析(未在本仓数据面出现)。
+    expect(readYamlValueAtLine(["  section: 'abc", "    def'"], 0)).toBeUndefined()
+    // 转义表外形态(\q 不是 YAML 双引号转义)。
+    expect(readYamlValueAtLine(['  section: "abc\\q', '    def"'], 0)).toBeUndefined()
+  })
+
+  it('写侧:span 覆盖键行+全部续行(T3.2 标量步进形态无关),整段替换单行双引号,续行零残留', () => {
+    const lines = FORM_E_PATCH.split('\n')
+    const span = entrySpanOf(entry(ID), lines)
+    expect(span.isBlock).toBe(false)
+    // span 末行=闭引号续行(其后是 tool-plugin-manager 项,更深缩进已被收进 span)。
+    expect(lines[span.end - 1]).toBe('                chain. Explore first with non-mutating reads."')
+    expect(lines[span.end]).toContain('id: tool-plugin-manager')
+    const nextText = 'You are in plan mode (cordis preset). 回滚后的新段。红线:预算超支>5%必须触发审批;对外付款不得代付;比选必须中立。'
+    const { next } = writeAndVerify(ID, FORM_E_PATCH, nextText)
+    // 新文本单行双引号;原续行零残留;!!js 行保真。
+    expect(next).toContain('section: "You are in plan mode (cordis preset). 回滚后的新段。红线:预算超支>5%必须触发审批;对外付款不得代付;比选必须中立。"')
+    expect(next).not.toContain('\n                cordis plan section was rewritten')
+    expect(next).toContain("disabled: !!js \"!ctx.get('profileContext')\"")
+  })
+
+  it('回滚闭环(15.23 场景同构):形态 E 现值 → 回滚写回 → selfCheck 通过、读回==目标、链路不断路', () => {
+    const e = entry(ID)
+    // 形态 E 现值(=外部 configEditor 保存后的状态)→ 回滚目标=初始多段文本(形态 C)。
+    const initialText = 'You are in plan mode (cordis preset). Stay in plan mode until the user approves your plan.\n\nExplore first with non-mutating reads.\n'
+    const rollback = buildNextEntryFileText(e, FORM_E_PATCH, initialText)
+    expect(() => { selfCheckEntryWrite(e, FORM_E_PATCH, rollback, initialText) }).not.toThrow()
+    // 回滚落点为块标量(|)形态,读回==目标;再从该形态继续写(链路不断路)。
+    const rolledLines = rollback.split('\n')
+    const rolledSpan = entrySpanOf(e, rolledLines)
+    expect(readYamlValueAtLine(rolledLines, rolledSpan.keyIndex)).toBe(initialText)
+    const again = buildNextEntryFileText(e, rollback, FORM_E_TEXT)
+    expect(() => { selfCheckEntryWrite(e, rollback, again, FORM_E_TEXT) }).not.toThrow()
   })
 })
 

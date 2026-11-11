@@ -720,24 +720,33 @@ export function locateYamlConfigKey(
  * 块标量(|/> 及 chomping/显式缩进指示符)经 readBlockScalarValue;**多行 plain
  * 折叠标量**(T3.2:官方 configEditor 会把长单行值序列化为「键行 + 更深缩进续行」
  * 的 plain 折叠形态,2026-11-11 t7 隔离档实测)按 YAML 折叠语义(相邻非空行并空格、
- * k 个空行 → k 个换行)拼接。键值在后续行(嵌套映射)或不可解析(含多行引号标量
- * ——本面不解析)→ undefined(fail-closed,不猜)。
+ * k 个空行 → k 个换行)拼接;**多行双引号折叠标量**(形态 E,2026-11-11:官方
+ * configEditor 对含 `": "` 等无法 plain 表达的长单行值序列化为「开引号在键行 +
+ * 更深缩进续行 + 闭引号收尾」,t7-e2e 15.23 实测)按 YAML 双引号折叠语义重组后经
+ * unquoteYamlScalar 还原转义(见 foldDoubleQuotedScalar)。键值在后续行(嵌套映射)
+ * 或不可解析(多行**单**引号标量——本面不解析不猜)→ undefined(fail-closed)。
  */
 export function readYamlValueAtLine(lines: readonly string[], keyIndex: number): string | undefined {
   const line = lines[keyIndex]
   if (line === undefined) return undefined
   const match = /^(\s*)(?:[\w.-]+): (.*)$/.exec(line)
   if (match === null) return undefined
-  const raw = (match[2] ?? '').trim()
+  const keyValue = match[2] ?? ''
+  const raw = keyValue.trim()
   if (raw === '') return undefined // 值在后续行(映射/序列),本注册表面不消费
   if (BLOCK_INDICATOR_RE.test(raw)) return readBlockScalarValue(lines, keyIndex)
-  const quoted = raw.startsWith('"') || raw.startsWith("'")
-  const continuation = collectPlainContinuation(lines, keyIndex, (match[1] ?? '').length)
-  if (quoted) {
-    // 多行引号标量:本面不解析 → fail-closed 不猜(单行引号维持既有 unquote 语义)。
-    if (continuation.length > 0) return undefined
-    return unquoteYamlScalar(raw)
+  const keyIndent = (match[1] ?? '').length
+  if (raw.startsWith('"') || raw.startsWith("'")) {
+    const continuation = collectQuotedContinuation(lines, keyIndex, keyIndent)
+    // 单行引号标量维持既有 unquote 语义;多行单引号折叠标量仍 fail-closed
+    // (本面不解析,未在本仓数据面出现,不猜)。
+    if (continuation.length === 0) return unquoteYamlScalar(raw)
+    if (!raw.startsWith('"')) return undefined
+    // 形态 E:重组为单行双引号标量(折叠换行以 \n 转义对表达)再还原转义。
+    const folded = foldDoubleQuotedScalar([keyValue, ...continuation])
+    return folded === undefined ? undefined : unquoteYamlScalar(folded)
   }
+  const continuation = collectPlainContinuation(lines, keyIndex, keyIndent)
   if (continuation.length === 0) return unquoteYamlScalar(raw)
   return foldPlainLines([raw, ...continuation])
 }
@@ -775,6 +784,91 @@ function foldPlainLines(parts: readonly string[]): string {
     blanks = 0
   }
   return out
+}
+
+// ---------- 形态 E:多行双引号折叠标量(2026-11-11,t7-e2e 15.23 根因修复) ----------
+
+/**
+ * 引号折叠标量的续行收集:返回**原始行文**(不做 trim——续行首尾空白按 YAML 折叠
+ * 语义由 foldDoubleQuotedScalar 剥离,转义空白 `\ ` 须原样保留)。收集口径与
+ * collectPlainContinuation 同:缩进 > 键缩进的行,空行以 '' 参与,尾部空行不收。
+ */
+function collectQuotedContinuation(lines: readonly string[], keyIndex: number, keyIndent: number): string[] {
+  const collected: string[] = []
+  for (let i = keyIndex + 1; i < lines.length; i += 1) {
+    const current = lines[i] as string
+    if (/^\s*$/.test(current)) {
+      collected.push('')
+      continue
+    }
+    if (indentOf(current) <= keyIndent) break
+    collected.push(current)
+  }
+  while (collected.length > 0 && collected[collected.length - 1] === '') collected.pop()
+  return collected
+}
+
+/** 行尾连续反斜杠个数(奇数=末位反斜杠是转义符,如转义换行;偶数=字面反斜杠转义对)。 */
+function trailingBackslashesOf(text: string): number {
+  let count = 0
+  for (let i = text.length - 1; i >= 0 && text[i] === '\\'; i -= 1) count += 1
+  return count
+}
+
+/**
+ * 剥离行尾不显著空白(双引号折叠语义:换行前的尾随空白不计值):空白若被反斜杠
+ * 转义(其前的连续反斜杠为奇数个,如 `\ `)则是显著内容,停止剥离——转义表外的
+ * 形态交由 unquoteYamlScalar fail-closed,不在本函数误剥。
+ */
+function stripInsignificantTrailingSpaces(text: string): string {
+  let end = text.length
+  while (end > 0) {
+    const char = text[end - 1]
+    if (char !== ' ' && char !== '\t') break
+    if (trailingBackslashesOf(text.slice(0, end - 1)) % 2 === 1) break
+    end -= 1
+  }
+  return text.slice(0, end)
+}
+
+/**
+ * 形态 E:多行双引号折叠标量 → 单行双引号标量。语义 2026-11-11 经官方序列化器
+ * (yaml@2.9.1)实测钉死:
+ * - 每物理行剥首(续行缩进)/尾(换行前不显著)空白,纯空白行为空片;
+ * - 内容片之间:0 个空行 → 1 个空格;k(≥1)个空行 → k 个换行(以 `\n` 转义对
+ *   注入,由 unquoteYamlScalar 统一还原);开引号后紧跟换行同样折为空格(值的前
+ *   导空格保留);
+ * - 行尾奇数反斜杠 = 转义换行(续接):吃掉该反斜杠后直接拼接,不折叠;
+ * - 闭引号必须收在末片行尾——尾随注释/未闭合等形态不猜 → undefined。
+ * 返回恒为单行 `"…"`(折叠换行以 \n 转义对表达),转义还原与未知转义 fail-closed
+ * 均复用 unquoteYamlScalar。
+ */
+function foldDoubleQuotedScalar(rawPieces: readonly string[]): string | undefined {
+  // 本函数只处理多行形态(键行值 + ≥1 续行);单行引号标量走 unquoteYamlScalar 既有语义。
+  if (rawPieces.length < 2) return undefined
+  const stripped = rawPieces.map(piece => stripInsignificantTrailingSpaces(piece.replace(/^[ \t]*/u, '')))
+  const first = stripped[0]
+  const last = stripped[stripped.length - 1]
+  // 闭引号必须收在末片行尾(未闭合/尾随内容不猜);首片在场由调用方保证(键行值)。
+  if (first === undefined || last === undefined || !last.endsWith('"')) return undefined
+  let body = first.slice(1) // 开引号(调用方已对去空白值保证在场)
+  let blanks = 0
+  for (const piece of [...stripped.slice(1, -1), last.slice(0, -1)]) {
+    if (piece === '') {
+      blanks += 1
+      continue
+    }
+    if (trailingBackslashesOf(body) % 2 === 1) {
+      body = body.slice(0, -1) // 转义换行:吃掉反斜杠,续接不折叠
+    } else if (blanks === 0) {
+      body += ' '
+    } else {
+      body += '\\n'.repeat(blanks)
+    }
+    body += piece
+    blanks = 0
+  }
+  return `"${body}"`
 }
 
 /** 块标量头部形态(|/> + chomping/显式缩进指示符,两种顺序都合法)。(T1.6 导出) */
