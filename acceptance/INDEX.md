@@ -80,3 +80,8 @@
 **生产端到端终验（公网入口真实会话）**：模型按纪律调 mcp__browser__browser_snapshot → relay 回 NO_EXTENSION+指引页 URL → 模型完整转告用户（原因+三步安装操作+「告诉我已连接我会重试」）——工具面挂载与引导报错链路在生产同时坐实。verify.sh 10/10（9310 三项真·生产容器——第一轮 verify 曾误打本机残留验收 relay（127.0.0.1 优先命中），清场后复验）。
 
 **运维待办（公网形态两步，用户操作）**：① .env 设 `ETERNA_RELAY_PUBLIC_URL=wss://eternity-electricity.cn:3210/relay/extension`；② DSM 反代加 `/relay` → `本机IP:9310`（WebSocket 开）——guide 页/报错文案即按公网地址展示（当前展示 127.0.0.1:9310，仅本机/局域网形态可用）。token：`docker exec eterna-agent cat /data/relay-token`（或 .env 设 ETERNA_RELAY_TOKEN）。
+
+**外网形态打通（2026-11-11，用户配完 DSM 反代后全链验证通过）**：
+- 方案修正：DSM 反代规则来源只有 协议+主机名+端口（无路径字段），`/relay` 路径前缀方案在 DSM 上不可行（公网 404 来自 DSM nginx）→ 改为**独立端口规则**（来源 `HTTPS/*:9310` → 目的地 `HTTP/192.168.31.44:9310`，与既有 eternaAgent 3210 规则并存）+ 公网防火墙放行 9310；`.env` 改 `ETERNA_RELAY_PUBLIC_URL=wss://eternity-electricity.cn:9310/extension` 后 up -d 重渲染。
+- 公网四项全过：guide 200 / download.zip 200(application/zip 6298B) / wss 无 token 401 / wss 带 token 连接成功——token 鉴权在公网生效（红线 9）。
+- **验证工装坑**：node ws 客户端对 wss 未显式声明 ALPN 时可被 TLS 协商成 HTTP/2→upgrade 404（假阴性）；`ALPNProtocols:['http/1.1']` 或 `curl --http1.1` 才是真实验证姿势——浏览器扩展用原生 WebSocket（强制 http/1.1）不受影响。
