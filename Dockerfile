@@ -24,7 +24,12 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends python3 make g++ curl \
  && rm -rf /var/lib/apt/lists/* \
  && npm i -g @deepseek-ai/dsh@0.2.2-alpha.3 @deepseek-ai/dsh-mcp-client@0.2.2-alpha.3 \
- && npm cache clean --force
+ && npm cache clean --force \
+# pnpm 运行态可用：插件市场安装走 `pnpm add`（2026-11-11 E2E：镜像无 pnpm →
+# .plugin-manager 全部 spawn pnpm ENOENT，发现页安装必败）。钉 root packageManager
+# 同版，corepack prepare 烧进镜像避免首装拉取。
+ && corepack enable \
+ && corepack prepare pnpm@11.7.0 --activate
 
 COPY --from=build /repo /repo
 COPY docker/entrypoint.sh /app/entrypoint.sh
