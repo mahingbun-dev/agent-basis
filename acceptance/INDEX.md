@@ -57,3 +57,14 @@
 - litellm 网关（192.168.31.165:4000）不可达（Connection error，模型重试 5/5 失败）——第六轮采集被阻塞。
 - 中断前最后一轮完整采集（2026-11-11 00:13-00:14，纪律分支引导版）：G-CORE-02 实序 snapshot→fill→click!STALE_REF→snapshot（站点自动提交致 ref 失效，模型未用新 ref 重试 click——判定代理第五轮已定性）；G-CORE-03 机械 digest 全绿（snapshot→click→snapshot 三步零错误、ref e220 在点击前快照在案、openedTabs 上报详情页、判据 2 基准比对一致、无 content_filter 中断——裁决①②生效下四判据证据齐备）。
 - 待办：①网关恢复后重采一轮 → G-CORE-02 终判（click 重试验证）；②G-CORE-03 判定通道待用户指定（LLM 判定代理因被测页面时政内容触发 provider 输出过滤，无法出判定书；机械 digest 证据链已备齐——四判据布尔/哈希在案）。
+## 环境重建事故与回归轮（2026-11-11 上午，终判后）
+
+**事故（非门禁运行）**：上一代 dsh（02:40 世代）残留占 50454 端口 + `gate-boot.log` 为追加模式（旧 `dsh web:` 行留存）→ gate-setup boot 循环匹配旧行假就绪退出、新 dsh 因端口占用崩死 → gate-run 以新凭据登录旧 dsh 报「账号或密码不正确」。处置：杀残留进程、清 boot log 与 gate-env.json、完整重跑 gate-setup。教训已入 gate-setup 运维口径（boot 循环应校验行时间戳或启动前清 log）。
+
+**前端引导链路（用户确认实现，随 E1 交付）**：
+- relay 三端点实测：`GET /companion/download.zip`（200，application/zip，6298B，4 文件；`--zip` CLI 通道传入包路径，缺省 404 文本）、`GET /companion/guide`（200，三态自检页——同源轮询 /api/status 渲染 已连接/未连接/失败 + 安装步骤 + 企业策略分支文案）、`GET /api/status`（CORS `access-control-allow-origin: *`）。
+- 报错引导闭环：扩展未连接时 browser 工具报错文案附指引页 URL（模型转告用户）；`classify()` 保留业务 code（NO_EXTENSION/NO_TAB），不再被 TOOL_ERROR 兜底覆盖。
+- zip 打包修复：extension-companion build.mjs 曾因未导入 `rmSync`（ReferenceError 被 `catch {}` 静默吞）不出包；修复后 esbuild+zip 一体产出。zip 产物入 .gitignore。
+- 探测形态裁定：**不**给扩展加全页 content-script DOM 标记（红线 8 最小权限）；引导页自检走同源 /api/status 已闭环。会话内 settings.section 插件分区（三态横幅完整版）归 E2.5-T4。
+
+**回归轮（终判后环境重建首采，回归一致性——非门禁判定）**：G-CORE-01/02/03 三用例全链真跑：G-CORE-02 序列 snapshot→fill→snapshot→click 全零错误（fill 触发站点自动提交→模型按纪律分支①重新 snapshot 取新 ref 再 click 成功，orderSubsequence=true；click 为本会话终点、落点验证走 click 回执 url/title——与终判轮「click 后快照」形态差异，登记不阻断）；G-CORE-03 纯 snapshot→click→snapshot 三步零错误、ref e230 点击前快照在案、openedTabs 上报详情页（ithome.com/1/024/864.htm）、判据 2 基准首段 77 字符逐字符包含一致（指纹 77ch:9ef6b2a6）、无 content_filter、turnFailed=false。digest 证据：smoke/gate-evidence/regression-2026-11-11/（2026-11-11 上午批次；终判轮原始工件未被覆盖——回归批次独立目录，tracked 终判工件经 git checkout 恢复）。

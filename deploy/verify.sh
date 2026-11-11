@@ -57,5 +57,23 @@ code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 -X POST "$BASE/login"
 check "错密码登录拒绝" 401 "$code"
 
 rm -f "$JAR"
+
+# ── companion 中继（浏览器执行面，8-10）：直连宿主映射端口 9310 ─────────────
+# RELAY_BASE 可覆盖（反代形态传 https://域名/relay 前缀；带 token 时经 docker
+# logs 取落卷 token——此处仅验端点存活与分发物在位，ws+token 鉴权在浏览器侧联调）
+RELAY_BASE="${RELAY_BASE:-http://127.0.0.1:9310}"
+
+# 8) 中继状态端点
+code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 "$RELAY_BASE/api/status")
+check "companion 中继 /api/status 可达" 200 "$code"
+
+# 9) 扩展分发包（zip 头 PK 可下）
+body=$(curl -s --max-time 8 -r 0-1 "$RELAY_BASE/companion/download.zip" 2>/dev/null)
+if [ "$(printf '%s' "$body" | head -c 2)" = "PK" ]; then ok "扩展分发包 /companion/download.zip 可下（PK 头）"; else bad "扩展分发包不可下（非 zip 内容）"; FAIL=$((FAIL+1)); fi
+
+# 10) 指引页（含生产扩展连接地址占位不可判——只验 200 HTML）
+ctype=$(curl -s -o /dev/null -w '%{http_code} %{content_type}' --max-time 8 "$RELAY_BASE/companion/guide")
+case "$ctype" in "200 text/html"*) ok "指引页 /companion/guide 可达";; *) bad "指引页异常（$ctype）"; FAIL=$((FAIL+1));; esac
+
 echo "── 结果: $PASS 过 / $FAIL 败"
 [ "$FAIL" -eq 0 ]

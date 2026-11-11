@@ -1,0 +1,302 @@
+{
+  "finishedAt": "2026-11-11T02:07:34.953Z",
+  "records": [
+    {
+      "id": "G-CORE-01",
+      "prompt": "打开 example.com 并读出页面标题",
+      "startedAt": "2026-11-11T02:03:43.548Z",
+      "observations": [
+        {
+          "at": "2026-11-11T02:03:46.074Z",
+          "kind": "new-session",
+          "data": {}
+        },
+        {
+          "at": "2026-11-11T02:03:46.077Z",
+          "kind": "tabs-before",
+          "data": {
+            "capturedAt": "2026-11-11T02:03:46.075Z",
+            "pages": [
+              {
+                "url": "http://127.0.0.1:50454/",
+                "title": "EternaAgent"
+              }
+            ]
+          }
+        },
+        {
+          "at": "2026-11-11T02:03:46.157Z",
+          "kind": "prompt-sent",
+          "data": {
+            "usedEnter": true
+          }
+        },
+        {
+          "at": "2026-11-11T02:03:51.232Z",
+          "kind": "approval-clicked",
+          "data": {
+            "label": "允许一次"
+          }
+        },
+        {
+          "at": "2026-11-11T02:04:12.789Z",
+          "kind": "turn-converged",
+          "data": {
+            "ms": 26632
+          }
+        },
+        {
+          "at": "2026-11-11T02:04:12.791Z",
+          "kind": "session-full-text",
+          "data": "恒灵·EternaAgent\n新会话\n⌥\n⌘\nN\n插件\n自动化任务\n更多\n工作区\ngate-admin\n打开网页读取页面标题\n刚刚\n设置\n打开网页读取页面标题\n创造模式\n对话\n轨迹\n打开 example.com 并读出页面标题\n10:03\n已完成\n已完成，用时 12秒\n\n已打开 https://example.com/\n\n页面标题：Example Domain\n\n页面内容是一个多语言说明：该域名仅用于文档示例，无需许可，也并非一项服务，请勿用于测试和监控目的（附英/中/法/俄/西/阿拉伯等语言版本），并有一个 \"Learn more\" 链接。\n\n用量 22.6K tok\n10:03\n发消息或创建任务, / 调用指令, @ 文件或对话\n工作区内修改\nmimo-v2.6-flash\nDefault\n1 轮 2 步·35 tok/s\n22.6K tok·缓存命中 58%\n4%\ng\ngate-admin\n退出"
+        },
+        {
+          "at": "2026-11-11T02:04:12.791Z",
+          "kind": "session-tail-text",
+          "data": "恒灵·EternaAgent\n新会话\n⌥\n⌘\nN\n插件\n自动化任务\n更多\n工作区\ngate-admin\n打开网页读取页面标题\n刚刚\n设置\n打开网页读取页面标题\n创造模式\n对话\n轨迹\n打开 example.com 并读出页面标题\n10:03\n已完成\n已完成，用时 12秒\n\n已打开 https://example.com/\n\n页面标题：Example Domain\n\n页面内容是一个多语言说明：该域名仅用于文档示例，无需许可，也并非一项服务，请勿用于测试和监控目的（附英/中/法/俄/西/阿拉伯等语言版本），并有一个 \"Learn more\" 链接。\n\n用量 22.6K tok\n10:03\n发消息或创建任务, / 调用指令, @ 文件或对话\n工作区内修改\nmimo-v2.6-flash\nDefault\n1 轮 2 步·35 tok/s\n22.6K tok·缓存命中 58%\n4%\ng\ngate-admin\n退出"
+        },
+        {
+          "at": "2026-11-11T02:04:12.791Z",
+          "kind": "browser-tool-calls-observed-in-ui",
+          "data": []
+        },
+        {
+          "at": "2026-11-11T02:04:12.798Z",
+          "kind": "tabs-after",
+          "data": {
+            "capturedAt": "2026-11-11T02:04:12.793Z",
+            "pages": [
+              {
+                "url": "http://127.0.0.1:50454/",
+                "title": "打开网页读取页面标题 — EternaAgent"
+              },
+              {
+                "url": "https://example.com/",
+                "title": "Example Domain"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "G-CORE-02",
+      "prompt": "在 Hacker News 搜索 playwright，告诉我第一条结果的标题和链接",
+      "startedAt": "2026-11-11T02:04:12.888Z",
+      "observations": [
+        {
+          "at": "2026-11-11T02:04:15.431Z",
+          "kind": "new-session",
+          "data": {}
+        },
+        {
+          "at": "2026-11-11T02:04:15.434Z",
+          "kind": "tabs-before",
+          "data": {
+            "capturedAt": "2026-11-11T02:04:15.431Z",
+            "pages": [
+              {
+                "url": "http://127.0.0.1:50454/",
+                "title": "EternaAgent"
+              },
+              {
+                "url": "https://example.com/",
+                "title": "Example Domain"
+              }
+            ]
+          }
+        },
+        {
+          "at": "2026-11-11T02:04:15.507Z",
+          "kind": "prompt-sent",
+          "data": {
+            "usedEnter": true
+          }
+        },
+        {
+          "at": "2026-11-11T02:04:20.581Z",
+          "kind": "approval-clicked",
+          "data": {
+            "label": "允许一次"
+          }
+        },
+        {
+          "at": "2026-11-11T02:04:37.180Z",
+          "kind": "approval-clicked",
+          "data": {
+            "label": "允许一次"
+          }
+        },
+        {
+          "at": "2026-11-11T02:04:43.759Z",
+          "kind": "approval-clicked",
+          "data": {
+            "label": "允许一次"
+          }
+        },
+        {
+          "at": "2026-11-11T02:05:05.355Z",
+          "kind": "approval-clicked",
+          "data": {
+            "label": "允许一次"
+          }
+        },
+        {
+          "at": "2026-11-11T02:05:31.909Z",
+          "kind": "turn-converged",
+          "data": {
+            "ms": 76402
+          }
+        },
+        {
+          "at": "2026-11-11T02:05:31.910Z",
+          "kind": "session-full-text",
+          "data": "恒灵·EternaAgent\n新会话\n⌥\n⌘\nN\n插件\n自动化任务\n更多\n工作区\ngate-admin\n在HN搜索Playwright结果\n1分钟\n打开网页读取页面标题\n1分钟\n设置\n在HN搜索Playwright结果\n创造模式\n对话\n轨迹\n在 Hacker News 搜索 playwright，告诉我第一条结果的标题和链接\n10:04\n已完成\n已完成，用时 1分3秒\n\n搜索已提交并返回结果页。按流程点击第一条结果验证落点：\n\n已完成。在 Hacker News（Algolia 官方搜索）搜索 playwright，按热度排序共 787 条结果，第一条是：\n\n标题：Tracking supermarket prices with Playwright\n链接：https://www.sakisv.net/2024/08/tracking-supermarket-prices-playwright/\n补充：467 分 · 210 条评论 · 由 sakisv 提交（约 2 年前）；我点击标题后落定在 HN 讨论页 https://news.ycombinator.com/item?id=41173335\n\n搜索页：https://hn.algolia.com/?dateRange=all&page=0&prefix=true&query=playwright&sort=byPopularity&type=story\n\n用量 71.4K tok\n10:05\n发消息或创建任务, / 调用指令, @ 文件或对话\n工作区内修改\nmimo-v2.6-flash\nDefault\n1 轮 5 步·35 tok/s\n71.4K tok·缓存命中 86%\n6%\ng\ngate-admin\n退出"
+        },
+        {
+          "at": "2026-11-11T02:05:31.910Z",
+          "kind": "session-tail-text",
+          "data": "恒灵·EternaAgent\n新会话\n⌥\n⌘\nN\n插件\n自动化任务\n更多\n工作区\ngate-admin\n在HN搜索Playwright结果\n1分钟\n打开网页读取页面标题\n1分钟\n设置\n在HN搜索Playwright结果\n创造模式\n对话\n轨迹\n在 Hacker News 搜索 playwright，告诉我第一条结果的标题和链接\n10:04\n已完成\n已完成，用时 1分3秒\n\n搜索已提交并返回结果页。按流程点击第一条结果验证落点：\n\n已完成。在 Hacker News（Algolia 官方搜索）搜索 playwright，按热度排序共 787 条结果，第一条是：\n\n标题：Tracking supermarket prices with Playwright\n链接：https://www.sakisv.net/2024/08/tracking-supermarket-prices-playwright/\n补充：467 分 · 210 条评论 · 由 sakisv 提交（约 2 年前）；我点击标题后落定在 HN 讨论页 https://news.ycombinator.com/item?id=41173335\n\n搜索页：https://hn.algolia.com/?dateRange=all&page=0&prefix=true&query=playwright&sort=byPopularity&type=story\n\n用量 71.4K tok\n10:05\n发消息或创建任务, / 调用指令, @ 文件或对话\n工作区内修改\nmimo-v2.6-flash\nDefault\n1 轮 5 步·35 tok/s\n71.4K tok·缓存命中 86%\n6%\ng\ngate-admin\n退出"
+        },
+        {
+          "at": "2026-11-11T02:05:31.910Z",
+          "kind": "browser-tool-calls-observed-in-ui",
+          "data": []
+        },
+        {
+          "at": "2026-11-11T02:05:31.918Z",
+          "kind": "tabs-after",
+          "data": {
+            "capturedAt": "2026-11-11T02:05:31.912Z",
+            "pages": [
+              {
+                "url": "http://127.0.0.1:50454/",
+                "title": "在HN搜索Playwright结果 — EternaAgent"
+              },
+              {
+                "url": "https://example.com/",
+                "title": "Example Domain"
+              },
+              {
+                "url": "https://news.ycombinator.com/item?id=41173335",
+                "title": "Tracking supermarket prices with Playwright | Hacker News"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "G-CORE-03",
+      "prompt": "打开 IT之家首页（www.ithome.com），取快照后点开快照中第一条新闻链接，读出正文第一段",
+      "startedAt": "2026-11-11T02:05:32.083Z",
+      "observations": [
+        {
+          "at": "2026-11-11T02:05:34.610Z",
+          "kind": "new-session",
+          "data": {}
+        },
+        {
+          "at": "2026-11-11T02:05:34.615Z",
+          "kind": "tabs-before",
+          "data": {
+            "capturedAt": "2026-11-11T02:05:34.610Z",
+            "pages": [
+              {
+                "url": "http://127.0.0.1:50454/",
+                "title": "EternaAgent"
+              },
+              {
+                "url": "https://example.com/",
+                "title": "Example Domain"
+              },
+              {
+                "url": "https://news.ycombinator.com/item?id=41173335",
+                "title": "Tracking supermarket prices with Playwright | Hacker News"
+              }
+            ]
+          }
+        },
+        {
+          "at": "2026-11-11T02:05:34.691Z",
+          "kind": "prompt-sent",
+          "data": {
+            "usedEnter": true
+          }
+        },
+        {
+          "at": "2026-11-11T02:05:44.773Z",
+          "kind": "approval-clicked",
+          "data": {
+            "label": "允许一次"
+          }
+        },
+        {
+          "at": "2026-11-11T02:06:41.441Z",
+          "kind": "approval-clicked",
+          "data": {
+            "label": "允许一次"
+          }
+        },
+        {
+          "at": "2026-11-11T02:07:13.057Z",
+          "kind": "approval-clicked",
+          "data": {
+            "label": "允许一次"
+          }
+        },
+        {
+          "at": "2026-11-11T02:07:34.605Z",
+          "kind": "turn-converged",
+          "data": {
+            "ms": 119914
+          }
+        },
+        {
+          "at": "2026-11-11T02:07:34.606Z",
+          "kind": "session-full-text",
+          "data": "恒灵·EternaAgent\n新会话\n⌥\n⌘\nN\n插件\n自动化任务\n更多\n工作区\ngate-admin\n快照读取IT之家新闻首段\n1分钟\n在HN搜索Playwright结果\n3分钟\n打开网页读取页面标题\n3分钟\n设置\n快照读取IT之家新闻首段\n创造模式\n对话\n轨迹\n打开 IT之家首页（www.ithome.com），取快照后点开快照中第一条新闻链接，读出正文第一段\n10:05\n已完成\n已完成，用时 1分48秒\n\n我先打开 IT 之家首页并取结构化快照。\n\n快照已取得。按文档顺序，第一条新闻标题类链接是 e230「荣耀 700 系列再预热：首发背屏任意贴功能」，我点开它验证是否为文章页。\n\n已在新标签页打开文章（\nhttps://www.ithome.com/1/024/864.htm\n）。现在取该页快照读取正文。\n\n已完成。流程与结果如下：\n\n操作过程\n\n打开 IT之家首页 并取结构化快照。\n按快照文档顺序，第一条新闻标题类链接是 e230「荣耀 700 系列再预热：首发背屏任意贴功能」，点击后在新标签页打开文章页（ithome.com/1/024/864.htm，标题「荣耀 700 系列再预热：首发背屏任意贴功能，鞠婧祎确认担任代言人」）。\n对文章页取快照，读取正文。\n\n正文第一段\n\nIT之家 11 月 10 日消息，荣耀 700 系列再预热手机背屏新玩法，透露将行业独家支持背屏任意贴功能，表情包、GIF 图、静图一按一拖，即可上背屏。\n\n用量 97.4K tok\n10:07\n发消息或创建任务, / 调用指令, @ 文件或对话\n工作区内修改\nmimo-v2.6-flash\nDefault\n1 轮 4 步·36 tok/s\n97.4K tok·缓存命中 72%\n12%\ng\ngate-admin\n退出"
+        },
+        {
+          "at": "2026-11-11T02:07:34.606Z",
+          "kind": "session-tail-text",
+          "data": "恒灵·EternaAgent\n新会话\n⌥\n⌘\nN\n插件\n自动化任务\n更多\n工作区\ngate-admin\n快照读取IT之家新闻首段\n1分钟\n在HN搜索Playwright结果\n3分钟\n打开网页读取页面标题\n3分钟\n设置\n快照读取IT之家新闻首段\n创造模式\n对话\n轨迹\n打开 IT之家首页（www.ithome.com），取快照后点开快照中第一条新闻链接，读出正文第一段\n10:05\n已完成\n已完成，用时 1分48秒\n\n我先打开 IT 之家首页并取结构化快照。\n\n快照已取得。按文档顺序，第一条新闻标题类链接是 e230「荣耀 700 系列再预热：首发背屏任意贴功能」，我点开它验证是否为文章页。\n\n已在新标签页打开文章（\nhttps://www.ithome.com/1/024/864.htm\n）。现在取该页快照读取正文。\n\n已完成。流程与结果如下：\n\n操作过程\n\n打开 IT之家首页 并取结构化快照。\n按快照文档顺序，第一条新闻标题类链接是 e230「荣耀 700 系列再预热：首发背屏任意贴功能」，点击后在新标签页打开文章页（ithome.com/1/024/864.htm，标题「荣耀 700 系列再预热：首发背屏任意贴功能，鞠婧祎确认担任代言人」）。\n对文章页取快照，读取正文。\n\n正文第一段\n\nIT之家 11 月 10 日消息，荣耀 700 系列再预热手机背屏新玩法，透露将行业独家支持背屏任意贴功能，表情包、GIF 图、静图一按一拖，即可上背屏。\n\n用量 97.4K tok\n10:07\n发消息或创建任务, / 调用指令, @ 文件或对话\n工作区内修改\nmimo-v2.6-flash\nDefault\n1 轮 4 步·36 tok/s\n97.4K tok·缓存命中 72%\n12%\ng\ngate-admin\n退出"
+        },
+        {
+          "at": "2026-11-11T02:07:34.606Z",
+          "kind": "browser-tool-calls-observed-in-ui",
+          "data": []
+        },
+        {
+          "at": "2026-11-11T02:07:34.618Z",
+          "kind": "tabs-after",
+          "data": {
+            "capturedAt": "2026-11-11T02:07:34.608Z",
+            "pages": [
+              {
+                "url": "http://127.0.0.1:50454/",
+                "title": "快照读取IT之家新闻首段 — EternaAgent"
+              },
+              {
+                "url": "https://example.com/",
+                "title": "Example Domain"
+              },
+              {
+                "url": "https://news.ycombinator.com/item?id=41173335",
+                "title": "Tracking supermarket prices with Playwright | Hacker News"
+              },
+              {
+                "url": "https://www.ithome.com/",
+                "title": "IT之家"
+              },
+              {
+                "url": "https://www.ithome.com/1/024/864.htm",
+                "title": "荣耀 700 系列再预热：首发背屏任意贴功能，鞠婧祎确认担任代言人 - IT之家"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -32,6 +32,9 @@ function errMessage(err: unknown): string {
 }
 
 function classify(err: unknown): { code: string; message: string } {
+  // 业务抛错自带 code（NO_EXTENSION/NO_TAB 等）：优先保留——code 是诊断分类，不该被兜底覆盖
+  const code = (err as { code?: unknown }).code
+  if (typeof code === 'string' && code !== '') return { code, message: errMessage(err) }
   const message = errMessage(err)
   if (/No node with given id|backendNodeId/i.test(message)) return { code: 'STALE_REF', message: `${message}（ref 已失效：重新 snapshot）` }
   if (/TIMEOUT/i.test(message)) return { code: 'TIMEOUT', message }
@@ -52,12 +55,16 @@ export class BrowserTools {
   /** 上下文 tab：最近一次快照/动作所在 tab（无参调用的默认落点） */
   private contextTabId: number | null = null
 
-  constructor(private readonly core: RelayCore) {}
+  constructor(
+    private readonly core: RelayCore,
+    /** 安装指引页地址（扩展未连接时报错文案带给模型→转告用户） */
+    private readonly guideUrl?: string,
+  ) {}
 
   /** 选 tab：显式 tabId → 上下文 tab → 活跃可操作 tab → 第一个可操作 http(s) tab → 带 url 时新开 */
   private async pickTab(args: Record<string, unknown>): Promise<number> {
     if (!this.core.extensionConnected) {
-      throw Object.assign(new Error('扩展未连接：请在浏览器加载 Eterna Companion 扩展并保持运行'), { code: 'NO_EXTENSION' })
+      throw Object.assign(new Error(`扩展未连接：请在浏览器安装 Eterna Companion 扩展并保持运行${this.guideUrl !== undefined ? `（安装指引与下载：${this.guideUrl}）` : ''}`), { code: 'NO_EXTENSION' })
     }
     const tabIdArg = args['tabId']
     if (typeof tabIdArg === 'number') {
