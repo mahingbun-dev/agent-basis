@@ -15,6 +15,7 @@ import { mkdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { withinRoot } from './within-root.ts'
 import { registerUserPluginRoutes } from './user-plugins.ts'
+import { ApprovalFlow, ensureApprovalSchema } from './approvals.ts'
 import type { AccessAuditEvent, AuditReflect } from './audit.ts'
 import type { SessionService } from './session.ts'
 import type { UserStore } from './store.ts'
@@ -198,7 +199,7 @@ function tenantAudit(deps: TenantDeps, action: string, account: string, detail: 
 // 直调漏传会让每次调用抛 TypeError,再被 failureFrame 包成协议外信封(发送会话即挂)。
 type GuardHandler = (
   rpcId: string, args: Record<string, unknown>, ctx: GuardContext, signal: AbortSignal,
-) => Promise<Response>
+) => Response | Promise<Response>
 
 export function registerTenantGuards(deps: TenantDeps, connection: { fetch: TenantFetchRegistry }): () => void {
   const disposers: Array<() => void> = []
@@ -418,8 +419,13 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     return okFrame(rpcId, value)
   })
 
-  // ── P4-T6(2026-11-11):双层插件个人层端点(复用守卫 register=cookie 认证+审计) ──
-  registerUserPluginRoutes(deps, register)
+  // ── P4-T6/T7(2026-11-11):双层插件个人层端点+审批流(复用守卫 register=cookie 认证+审计) ──
+  ensureApprovalSchema(deps.store)
+  const approvalFlow = new ApprovalFlow(deps)
+  registerUserPluginRoutes(deps, register, {
+    flow: approvalFlow,
+    isAdmin: (userId: number) => deps.store.getUserById(userId)?.role === 'admin',
+  })
 
   // ── P2-T1.7a(2026-11-11,D1 拍板):网关配置角色门——admin 可写,普通用户只读 ──
   // llm-pi-ai 承载行的设置命名空间=settingsNs=行 id('llm-pi-ai');供应商 key 与

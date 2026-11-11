@@ -90,6 +90,25 @@ export class UserStore {
       owner_id INTEGER NOT NULL REFERENCES users(id),
       path TEXT NOT NULL
     )`)
+    this.db.exec(`CREATE TABLE IF NOT EXISTS approvals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      requester_id INTEGER NOT NULL REFERENCES users(id),
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),
+      decided_by INTEGER,
+      decided_at TEXT,
+      note TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`)
+    this.db.exec(`CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      kind TEXT NOT NULL,
+      message TEXT NOT NULL,
+      read INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`)
     this.db.exec(`CREATE TABLE IF NOT EXISTS user_plugins (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id),
@@ -252,6 +271,8 @@ export class UserStore {
     this.db.prepare('DELETE FROM sessions WHERE owner_id = ?').run(id)
     this.db.prepare('DELETE FROM workspaces WHERE owner_id = ?').run(id)
     this.db.prepare('DELETE FROM user_plugins WHERE user_id = ?').run(id)
+    this.db.prepare('DELETE FROM approvals WHERE requester_id = ?').run(id)
+    this.db.prepare('DELETE FROM notifications WHERE user_id = ?').run(id)
     this.db.prepare('DELETE FROM users WHERE id = ?').run(id)
   }
 
@@ -351,6 +372,101 @@ export class UserStore {
       | { user_id: number }
       | undefined
     return row === undefined ? undefined : row.user_id
+  }
+
+  // ── P4-T7(2026-11-11):审批流+站内通知数据面(users.db 同库新表,泛化模型) ──
+
+  ensureApprovalSchema(): void {
+    // 表在构造器统一建立;此方法保留接口幂等(approvals.ts 调用面)
+    this.db.exec(`CREATE TABLE IF NOT EXISTS approvals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      requester_id INTEGER NOT NULL REFERENCES users(id),
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),
+      decided_by INTEGER,
+      decided_at TEXT,
+      note TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`)
+    this.db.exec(`CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      kind TEXT NOT NULL,
+      message TEXT NOT NULL,
+      read INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`)
+  }
+
+  approvalRegister(type: string, payload: unknown, requesterId: number): number {
+    const r = this.db.prepare('INSERT INTO approvals (type, payload, requester_id) VALUES (?, ?, ?)')
+      .run(type, JSON.stringify(payload), requesterId)
+    return Number(r.lastInsertRowid)
+  }
+
+  approvalPendingId(type: string, requesterId: number): number | undefined {
+    const row = this.db.prepare(
+      "SELECT id FROM approvals WHERE type = ? AND requester_id = ? AND status = 'pending'",
+    ).get(type, requesterId) as { id: number } | undefined
+    return row?.id
+  }
+
+  approvalDecide(id: number, deciderId: number, approve: boolean, note: string): boolean {
+    const row = this.db.prepare('SELECT id, requester_id, status, type FROM approvals WHERE id = ?').get(id) as
+      | { id: number; requester_id: number; status: string; type: string }
+      | undefined
+    if (row === undefined || row.status !== 'pending') return false
+    this.db.prepare("UPDATE approvals SET status = ?, decided_by = ?, decided_at = datetime('now'), note = ? WHERE id = ?")
+      .run(approve ? 'approved' : 'rejected', deciderId, note, id)
+    this.notificationInsert(row.requester_id, approve ? 'approval.approved' : 'approval.rejected',
+      `你的「${row.type}」请求(#${id})已${approve ? '通过' : '驳回'}${note !== '' ? `:${note}` : ''}`)
+    return true
+  }
+
+  approvalRow(id: number): { type: string; payload: string } | undefined {
+    const row = this.db.prepare('SELECT type, payload FROM approvals WHERE id = ?').get(id) as
+      | { type: string; payload: string }
+      | undefined
+    return row
+  }
+
+  approvalsPending(): Array<Record<string, unknown>> {
+    return this.db.prepare("SELECT * FROM approvals WHERE status = 'pending' ORDER BY id DESC").all() as
+      Array<Record<string, unknown>>
+  }
+
+  approvalsMine(userId: number): Array<Record<string, unknown>> {
+    return this.db.prepare('SELECT * FROM approvals WHERE requester_id = ? ORDER BY id DESC').all(userId) as
+      Array<Record<string, unknown>>
+  }
+
+  notificationInsert(userId: number, kind: string, message: string): void {
+    this.db.prepare('INSERT INTO notifications (user_id, kind, message) VALUES (?, ?, ?)').run(userId, kind, message)
+  }
+
+  notifyAdmins(kind: string, message: string): void {
+    const admins = this.db.prepare("SELECT id FROM users WHERE role = 'admin'").all() as Array<{ id: number }>
+    for (const admin of admins) this.notificationInsert(admin.id, kind, message)
+  }
+
+  notificationsOf(userId: number): Array<Record<string, unknown>> {
+    return this.db.prepare('SELECT * FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 50').all(userId) as
+      Array<Record<string, unknown>>
+  }
+
+  notificationsUnread(userId: number): number {
+    const row = this.db.prepare('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND read = 0').get(userId) as { n: number }
+    return Number(row.n)
+  }
+
+  notificationsMarkAllRead(userId: number): void {
+    this.db.prepare('UPDATE notifications SET read = 1 WHERE user_id = ?').run(userId)
+  }
+
+  approvalsForget(userId: number): void {
+    this.db.prepare('DELETE FROM approvals WHERE requester_id = ?').run(userId)
+    this.db.prepare('DELETE FROM notifications WHERE user_id = ?').run(userId)
   }
 
   /** 级联销毁(T8):删用户时清其插件登记行。 */
