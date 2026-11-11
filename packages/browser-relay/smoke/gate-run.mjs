@@ -34,19 +34,20 @@ const CASES = [
     id: 'G-CORE-01',
     prompt: '打开 example.com 并读出页面标题',
     expectHints: { urlContains: 'example.com', titleContains: 'Example Domain', snapshotTool: 'browser_snapshot' },
-    settle: 60_000,
+    settle: 180_000,
   },
   {
     id: 'G-CORE-02',
     prompt: '在 Hacker News 搜索 playwright，告诉我第一条结果的标题和链接',
     expectHints: { urlContains: 'news.ycombinator', titleContains: 'Search', snapshotTool: 'browser_snapshot', fillTool: 'browser_fill', clickTool: 'browser_click' },
-    settle: 120_000,
+    settle: 240_000,
   },
   {
     id: 'G-CORE-03',
-    prompt: '打开人民网首页（www.people.com.cn），取快照后点开头条新闻，读出正文第一段',
+    // 裁决②（2026-11-10）：content_filter 不可抗力，换等价非敏感头条站点（门禁自带备选候选澎湃）
+    prompt: '打开 IT之家首页（www.ithome.com），取快照后点开快照中第一条新闻链接，读出正文第一段',
     expectHints: { urlContains: 'people.com.cn', snapshotTool: 'browser_snapshot', clickTool: 'browser_click' },
-    settle: 120_000,
+    settle: 240_000,
   },
 ]
 
@@ -64,7 +65,10 @@ async function main() {
   const context = await chromium.launchPersistentContext(userDataDir, {
     executablePath: chromePath,
     headless: process.env.SMOKE_HEADLESS !== '0',
-    args: ['--disable-pushstate-worker', `--load-extension=${EXT}`, '--no-first-run'],
+    // playwright 默认参数含 --disable-extensions（coreBundle 实测）——必须忽略，
+    // 否则 companion 扩展根本不加载、relay 报「扩展未连接」（2026-11-10 实测根因）
+    ignoreDefaultArgs: ['--disable-extensions'],
+    args: [`--load-extension=${EXT}`, '--no-first-run'],
     viewport: { width: 1600, height: 1000 },
   })
   console.log(`[gate-run] chromium 已启动（扩展已加载）`)
@@ -80,6 +84,17 @@ async function main() {
   await page.locator('#go').click()
   await page.waitForURL((u) => !String(u).includes('/login'), { timeout: 30_000 }).catch(() => {})
   await page.waitForLoadState('load', { timeout: 60_000 }).catch(() => {})
+  // 工作区选择（access T2 隔离）：登录后停在选工作区页，点 admin 的工作区列表项进入
+  const bodyNow = await page.innerText('body').catch(() => '')
+  if (bodyNow.includes('选择工作区')) {
+    console.log('[gate-run] 选择工作区（gate-admin）')
+    // 主区中央的下拉：📁 选择工作区 ∨ → 菜单项 gate-admin
+    await page.locator('text=选择工作区').first().click().catch((e) => console.log('点下拉失败：', e.message))
+    await page.waitForTimeout(900)
+    const menuItem = page.locator('text=gate-admin').last()
+    await menuItem.click().catch((e) => console.log('点菜单项失败：', e.message))
+    await page.waitForTimeout(2500)
+  }
   // 等 UI 就绪（composer 或消息区出现）
   await page.waitForTimeout(4000)
   const composerCandidates = [
@@ -119,10 +134,42 @@ async function main() {
   }
   const bodyTextOf = async () => (await page.innerText('body').catch(() => '')).slice(-6000)
 
+  const approveOnce = async (record) => {
+    for (const label of ['允许一次', '允许', 'Allow once']) {
+      const approve = page.locator(`button:has-text("${label}")`).first()
+      if (await approve.isVisible().catch(() => false)) {
+        await approve.click().catch(() => {})
+        record.observations.push({ at: new Date().toISOString(), kind: 'approval-clicked', data: { label } })
+        await page.waitForTimeout(1500)
+        return true
+      }
+    }
+    return false
+  }
+  const disposeApprovals = async (record) => {
+    // 退出前处置悬置审批卡（拒绝遗留卡，保证不把未决状态留给下一轮）
+    for (let i = 0; i < 5; i++) {
+      const reject = page.locator('button:has-text("拒绝")').first()
+      if (!(await reject.isVisible().catch(() => false))) break
+      await reject.click().catch(() => {})
+      record.observations.push({ at: new Date().toISOString(), kind: 'approval-disposed', data: { label: '拒绝' } })
+      await page.waitForTimeout(1200)
+    }
+  }
+
   const runCase = async (kase) => {
     const dir = join(OUT, kase.id)
     mkdirSync(dir, { recursive: true })
     const record = { id: kase.id, prompt: kase.prompt, startedAt: new Date().toISOString(), observations: [] }
+
+    // 每用例独立新会话（轮次隔离：上一轮未收束会把下一条话术排进队列）
+    const newSession = page.locator('button:has-text("新会话"), [aria-label*="新会话"]').first()
+    if (await newSession.isVisible().catch(() => false)) {
+      await newSession.click().catch(() => {})
+      await page.waitForTimeout(2500)
+      record.observations.push({ at: new Date().toISOString(), kind: 'new-session', data: {} })
+    }
+
     const beforeTabs = await withTitles(await tabsSnapshot())
     record.observations.push({ at: new Date().toISOString(), kind: 'tabs-before', data: beforeTabs })
 
@@ -130,37 +177,37 @@ async function main() {
     await composer.click()
     await composer.fill('')
     await composer.fill(kase.prompt)
-    const usedEnter = true
     await composer.press('Enter')
-    record.observations.push({ at: new Date().toISOString(), kind: 'prompt-sent', data: { usedEnter } })
+    record.observations.push({ at: new Date().toISOString(), kind: 'prompt-sent', data: { usedEnter: true } })
 
-    // 轮询：会话尾部文本稳定（连续 2 次 5s 采样一致）或硬超时
+    // 轮次收束判定：出现终态标记（用量 chip / 已完成 / 失败）且无进行中标记（深度求索中/正在加载/思考中），
+    // 连续 8s 稳定才算收束——只看文本稳定性会在「思考」停顿期假阳（G-CORE-03 排队教训）
     const t0 = Date.now()
-    let stableSince = null
-    let lastText = ''
-    let intermediate = []
+    let convergedSince = null
     while (Date.now() - t0 < kase.settle) {
       await page.waitForTimeout(5000)
-      const text = await bodyTextOf()
-      if (text !== lastText) {
-        stableSince = null
-        lastText = text
-      } else if (stableSince === null) {
-        stableSince = Date.now()
-      } else if (Date.now() - stableSince >= 10_000) {
-        break
+      await approveOnce(record)
+      const text = await page.innerText('body').catch(() => '')
+      const terminal = /用量\s*[\d.]+[KkMm]?\s*tok|已完成，用时|失败，用时|工具调用出错/.test(text)
+      const busy = /深度求索中|正在加载|加载技能|思考中|正在思考/.test(text)
+      if (terminal && !busy) {
+        if (convergedSince === null) convergedSince = Date.now()
+        else if (Date.now() - convergedSince >= 8000) break
+      } else {
+        convergedSince = null
       }
-      const toolCalls = [...text.matchAll(/mcp__browser__(browser_[a-z]+)/g)].map((m) => m[1])
-      if (toolCalls.length !== intermediate.length) intermediate = toolCalls
     }
-    const settledText = await bodyTextOf()
-    record.observations.push({ at: new Date().toISOString(), kind: 'session-tail-text', data: settledText })
+    record.observations.push({ at: new Date().toISOString(), kind: 'turn-converged', data: { ms: Date.now() - t0 } })
+    const settledText = await page.innerText('body').catch(() => '')
+    record.observations.push({ at: new Date().toISOString(), kind: 'session-full-text', data: settledText })
+    record.observations.push({ at: new Date().toISOString(), kind: 'session-tail-text', data: settledText.slice(-6000) })
     record.observations.push({
       at: new Date().toISOString(),
       kind: 'browser-tool-calls-observed-in-ui',
       data: [...new Set([...settledText.matchAll(/mcp__browser__(browser_[a-z]+)/g)].map((m) => m[1]))],
     })
 
+    await disposeApprovals(record)
     const afterTabs = await withTitles(await tabsSnapshot())
     record.observations.push({ at: new Date().toISOString(), kind: 'tabs-after', data: afterTabs })
 

@@ -1,0 +1,35 @@
+=== 第三轮证据留痕（2026-11-10 第三轮复验，独立验收代理提取）===
+门禁：G-CORE-03
+证据批次：21:00–21:03 CST（13:00–13:03Z）修复版重采（stale-ref 全局注册表 + openedTabs 回执）
+会话导出：.eterna-gate-home/sessions/…/session-c219d401-beb9-4ff4-86d9-c3f66781698d/session.v4.jsonl.zstd（逐用例新会话）
+采集窗口（UTC）：13:03:08–13:03:43
+
+--- 一、会话导出工具调用序列（tool/call + tool/result + turn/end）---
+call step=1 mcp__browser__browser_snapshot :: {"url":"http://www.people.com.cn/"}
+result step=None mcp__browser__browser_snapshot :: isError=False ok=True url=http://www.people.com.cn/ title=人民网_网上的人民日报 snaplen=10466 openedTabs=null
+call step=2 mcp__browser__browser_click :: {"ref":"e1096"}
+result step=None mcp__browser__browser_click :: isError=False ok=True res={"url": "http://www.people.com.cn/", "title": "人民网_网上的人民日报", "openedTabs": [{"tabId": 1114565295, "url": "http://politics.people.com.cn/n1/2026/1110/c1024-40831402.html", "title": "习近平同志《论减贫脱贫》出版发行--时政--人民网"}], "ref": "e1096"}
+call step=3 mcp__browser__browser_snapshot :: {"tabId":1114565295}
+result step=None mcp__browser__browser_snapshot :: isError=False ok=True url=http://politics.people.com.cn/n1/2026/1110/c1024-40831402.html title=习近平同志《论减贫脱贫》出版发行--时政--人民网 snaplen=10454 openedTabs=null
+turn-end step=None None :: {"turn": 1, "reason": {"kind": "error", "error": {"message": "Provider finish_reason: content_filter", "code": "PI_AI_ERROR"}}}
+
+--- 二、用户输入与审批事件 ---
+user/message: 打开人民网首页（www.people.com.cn），取快照后点开头条新闻，读出正文第一段
+approval/decided: allowed-once（harness 自动批准）
+approval/decided: allowed-once（harness 自动批准）
+approval/decided: allowed-once（harness 自动批准）
+
+--- 三、服务端日志检索（egress 审计日志 audit-20261110.jsonl，时间窗 13:03:08–13:03:43Z）---
+2026-11-10T13:03:15.096Z turn=1 step=1 mcp__browser__browser_snapshot isError=False
+2026-11-10T13:03:25.958Z turn=1 step=2 mcp__browser__browser_click isError=False
+2026-11-10T13:03:31.717Z turn=1 step=3 mcp__browser__browser_snapshot isError=False
+时间窗内 tool-call 合计 3 条，isError=true 共 0 条。
+turn-end: 2026-11-10T13:03:32.483Z reason=error
+注：relay/扩展侧控制台输出第三轮仍未归档（同第二轮缺口），以审计日志（服务端）+ 会话导出交叉核验。
+
+--- 四、独立复核与关键事实（第三轮验收代理自行抓取/提取，2026-11-10 21:0x CST）---
+1) 点击 ref 核对（判据 3）：click step2 ref=e1096；点击前快照 step1 含 `- link "习近平同志《论减贫脱贫》出版发行" [ref=e1096]`——ref 在点击前快照结果中存在，且即头条锚文本。4→1 通过。
+2) 点击导航事实（判据 1）：click 回执 ok=true，res={"url":"http://www.people.com.cn/","title":"人民网_网上的人民日报","openedTabs":[{"tabId":1114565295,"url":"http://politics.people.com.cn/n1/2026/1110/c1024-40831402.html","title":"习近平同志《论减贫脱贫》出版发行--时政--人民网"}],"ref":"e1096"}——点击→详情页因果链由 openedTabs 回执显式证实（第二轮"点击导航语义"差距的证据面已闭合）；但被点/主回执 tab（当前 tab）URL 仍为首页，详情页在新标签页打开。
+3) 详情页核对：step3 snapshot {tabId:1114565295} → url=详情页、title=「习近平同志《论减贫脱贫》出版发行--时政--人民网」含点击前锚文本（后半句成立）。快照含正文首段行：- paragraph "新华社北京11月10日电 中共中央党史和文献研究院编辑的习近平同志《论减贫脱贫》，近日由中央文献出版社出版，在全国发行。"
+4) 独立复核（curl）：http://politics.people.com.cn/n1/2026/1110/c1024-40831402.html （HTTP 200）正文第一段逐字符同上；首页头条锚文本同上。
+5) 中断事实（判据 2/4）：step4 assistant/attempt 生成回答时模型流返回 "The request was rejected because it was considered high risk"，turn/end reason={"kind":"error","error":{"message":"Provider finish_reason: content_filter","code":"PI_AI_ERROR"}}——litellm 模型供应商内容过滤器拦截（政治新闻文本），非工具/产品错误；agent 未返回正文第一段（UI："处理失败/本轮运行失败"）。3 次工具调用 isError 全 false、无 error/timeout 字段；任务级存在上述错误返回。
