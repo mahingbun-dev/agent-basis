@@ -108,6 +108,14 @@
 - id: ui-settings-session-log
   disabled: true
 
+# ── 插件管理统一入口（2026-11-11 用户裁定）：设置弹窗「内置插件」分区移除────
+#    插件管理全部收口侧栏「插件」页（已安装/恒灵插件/我的插件页签；内置插件
+#    的配置面=插件页「内置插件配置」区，同能面不损失）。ui-settings-plugins
+#    仅承载设置分区壳（settings.section 'plugins' + settings.plugins.tab 洞），
+#    禁用不影响 ui-plugin-manager（插件页）与 pluginInventory remote。
+- id: ui-settings-plugins
+  disabled: true
+
 # ── 场景裁切（§11.3/§11.8 确认维持）─────────────────────────────────────────
 - id: office-to-pdf
   disabled: true

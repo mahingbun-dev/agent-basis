@@ -39,6 +39,12 @@ interface NotificationItem {
   read: number
 }
 
+/** 侧栏插件页页签形态(plugins.tab):PluginTabProps 提供页面级 install/openPackage,
+ *  本页自有安装/转内置链路不依赖它们——自绘内容即 MyPluginsSection 全量功能。 */
+export function MyPluginsTab(_props: { readonly install: (target: unknown) => void; readonly openPackage: (name: string) => void }): React.JSX.Element {
+  return <MyPluginsSection />
+}
+
 export function MyPluginsSection(): React.JSX.Element {
   const [items, setItems] = useState<MyPlugin[]>([])
   const [name, setName] = useState('')
