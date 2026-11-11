@@ -17,17 +17,17 @@
  *     挂载 + T1.4 起的注册表全景 entries[])、loopPrompt/prompt-get、
  *     loopPrompt/prompt-versions(initial 种子 + checksum 口径)、loopPrompt/trace
  *     (列表 + 指定会话轮次树);
- *  5.5 T1.4 读侧按条目:prompt-get/prompt-versions {entryId} 三型采样——块标量
+ *  5.5 T1.4 读侧按条目:prompt-get/prompt-versions {entryId} 分型采样——块标量
  *     条目(plan-mode section:|,值与 dump-config 组合树一致)、领域 personaPrefix
- *     (>- 折叠反引,值与仓库 pack 文件逐字一致)、行锚点只读型(time-context:
- *     text=null+「上游运行时生成」标注);未知 entryId → not-found 明示;每条目
+ *     (>- 折叠反引,值与仓库 pack 文件逐字一致)、运行时注入型(memory section:
+ *     text=null+装配时构建标注);未知 entryId → not-found 明示;每条目
  *     版本链(初始种子)与 persona 缺省链旧口径互证;
  *  6. 保存链路端到端:prompt-save 两段式(一段=R3 审批卡 + doubleConfirm 第二问 +
  *     patch 未落盘;二段=patch 原子写 + 版本 +1 + 宿主内 dump-config 干跑自检通过);
  *  6.5 T1.6 写链路按条目:块标量条目(plan-mode section:|)save+rollback 两段式
  *     (ruleId=entry-write.<entryId>、写后读回==新文、宿主内 dump-config 干跑)、
- *     行锚点只读型(time-context)拒写明示、领域层形态 A(event-planning
- *     personaPrefix:>-)save+rollback(真 pack 文件,字节快照保护性还原);
+ *     领域层形态 A(event-planning personaPrefix:>-)save+rollback(真 pack 文件,
+ *     字节快照保护性还原);
  *  7. 回滚链路:prompt-rollback 两段式 → 新版本(source=rollback,parentId=被回滚
  *     版本),版本只增不删(total=3),patch 层回到目标内容;条目错配(entryId 与
  *     版本归属不符)fail-closed 拒回滚;
@@ -45,6 +45,11 @@
  *     构造——端点无法亦不应验证内容是否真由模型产出,本断言验证的是提案写链路:
  *     R3 卡 kind/ruleId/动作名、committed source='ai-proposal'、审计 aiSource、
  *     patch 层反引==建议稿),收场回滚恢复单行基线(保持 ui-check 首态假设)。
+ *
+ * 2026-11-11 用户裁定(工作室只展示拥有提示词文本的插件):time-context 纯运行时
+ * 时钟注入器从注册表整体移除登记——本脚本 time-context 只读相关 check 与 16→14
+ * 计数同步更新;check() 机械计数净减 3 条(94→92:删 time-context 只读 4 条、
+ * 分型采样改用运行时注入型补 1 条)系裁定正当净减,逐条见 diff。
  *
  * 隔离纪律:运行态全在 .eterna-home-t7(DSH_HOME);Web 宿主一律 3108;进程清理只用
  * SIGTERM + pkill -f 'profile t7-studio' 精确模式(绝不 pkill 其他 dsh 实例);
@@ -392,10 +397,10 @@ try {
   // 5.5) T1.4 读侧按条目:三型采样(prompt-get/prompt-versions {entryId})+ not-found + 旧口径互证
   {
     const snap = await dsh.call('loopPrompt/snapshot')
-    check('snapshot(T1.4): entries[] 注册表全景 16 条(四层全量,T3.1 起含元提示词层)', Array.isArray(snap.entries) && snap.entries.length === 16, `entries=${snap.entries?.length}`)
+    check('snapshot(T1.4): entries[] 注册表全景 14 条(四层全量,T3.1 起含元提示词层;2026-11-11 裁定后无 time-context)', Array.isArray(snap.entries) && snap.entries.length === 14, `entries=${snap.entries?.length}`)
     const ids = new Set((snap.entries ?? []).map((e) => e.id))
-    check('snapshot(T1.4): entries[] 含三型采样条目(块标量 plan-mode/领域 personaPrefix/只读型 time-context)',
-      ids.has('preset.standard.plan-mode.section') && ids.has('domain.event-planning.persona-prefix') && ids.has('preset.standard.time-context'))
+    check('snapshot(T1.4): entries[] 含分型采样条目(块标量 plan-mode/领域 personaPrefix/运行时注入型 memory)',
+      ids.has('preset.standard.plan-mode.section') && ids.has('domain.event-planning.persona-prefix') && ids.has('runtime.memory.index-section'))
 
     // a) 块标量条目(最难写形态 | 多段字面块):当前值反引正确 + 与 dump-config 组合树一致
     const planMode = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'preset.standard.plan-mode.section' } })
@@ -440,14 +445,13 @@ try {
       domainVersions.total === 1 && domainVersions.versions?.[0]?.source === 'initial'
         && domainVersions.versions?.[0]?.content === domain.value?.text)
 
-    // c) 行锚点只读型:返回「上游运行时生成」标注而非文本;无版本链不种子
-    const tc = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'preset.standard.time-context' } })
-    check('prompt-get{time-context}: 只读型 text=null +「上游插件运行时生成」标注(不伪造文本)',
-      tc.entry?.kind === 'line-anchor-readonly' && tc.entry?.versioned === false
-        && tc.value?.text == null && typeof tc.value?.note === 'string' && tc.value.note.includes('上游插件运行时生成'))
-    const tcVersions = await dsh.call('loopPrompt/prompt-versions', { input: { entryId: 'preset.standard.time-context' } })
-    check('prompt-versions{time-context}: 无版本链(total=0,未种子不造假)',
-      tcVersions.entryId === 'preset.standard.time-context' && tcVersions.total === 0 && (tcVersions.versions ?? []).length === 0)
+    // c) 运行时注入型:返回「装配时构建」标注而非文本;无版本链不种子
+    //    (原 c) time-context 只读型两 check 随 2026-11-11 不登记裁定删除,采样改用
+    //    runtime 注入型条目保持分型覆盖——live patch 里 time-context 裸行仍在,但
+    //    已不是注册表条目。)
+    const rt = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'runtime.memory.index-section' } })
+    check('prompt-get{runtime.memory.index-section}: 运行时注入型 text=null + versioned=false(不伪造文本)',
+      rt.entry?.kind === 'runtime-injection' && rt.entry?.versioned === false && rt.value?.text == null)
 
     // d) persona 条目:per-entry 与旧口径互证(同刻同值同链长)
     const personaEntry = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'preset.standard.persona' } })
@@ -489,7 +493,7 @@ try {
   }
 
   // 6.5) T1.6 写链路按条目(测试计划 §3 T1.6:一/二段式 + dump-config 干跑;
-  //      块标量条目采样 + 只读型拒写 + 领域层形态 A)
+  //      块标量条目采样 + 领域层形态 A)
   packBytesBefore = readFileSync(packPatchPath, 'utf8')
   {
     // a) 块标量条目(plan-mode section:|,live patch 在场):save 两段式 + 回滚。
@@ -524,12 +528,8 @@ try {
         && (await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'preset.standard.plan-mode.section' } })).value?.text === planText,
       `total=${(await dsh.call('loopPrompt/prompt-versions', { input: { entryId: 'preset.standard.plan-mode.section' } })).total}`)
 
-    // b) 行锚点只读型(time-context):写链路 fail-closed 拒写明示。
-    const tc = await dsh.call('loopPrompt/prompt-save', { input: { entryId: 'preset.standard.time-context', content: 'x', author: 't7-smoke' } })
-    check('T1.6 prompt-save{time-context}: 只读型拒写明示(无 patch 写回落点)',
-      tc.status === 'rejected' && String(tc.issues?.[0]).includes('该条目由上游插件生成,无 patch 写回落点'))
-
-    // c) 领域层形态 A(event-planning personaPrefix:>- ,真 pack 文件,字节快照保护)。
+    // b) 领域层形态 A(event-planning personaPrefix:>- ,真 pack 文件,字节快照保护)。
+    //    (原 b) time-context 只读型拒写 check 随 2026-11-11 不登记裁定删除。)
     const domBefore = await dsh.call('loopPrompt/prompt-get', { input: { entryId: 'domain.event-planning.persona-prefix' } })
     const domText = domBefore.value?.text
     check('T1.6 prompt-get{event.personaPrefix}: 前置读回非空', typeof domText === 'string' && domText.length > 0)
@@ -666,9 +666,9 @@ try {
     check('T2.3 session-snapshot{sessionId}: 新会话开启即有快照(轮询≤10s 在场)', snapshot !== null)
     if (snapshot !== null) {
       const byId = new Map((snapshot.entries ?? []).map((e) => [e.entryId, e]))
-      check('T2.3 快照全景: entries=注册表 16 条(四层全量,含三型;T3.1 起含元提示词层)',
-        snapshot.entries.length === 16 && byId.has('preset.standard.persona')
-          && byId.has('preset.standard.time-context') && byId.has('runtime.memory.index-section'),
+      check('T2.3 快照全景: entries=注册表 14 条(四层全量,含分型;T3.1 起含元提示词层;2026-11-11 裁定后无 time-context)',
+        snapshot.entries.length === 14 && byId.has('preset.standard.persona')
+          && byId.has('runtime.memory.index-section'),
         `entries=${snapshot.entries.length}`)
       // patch 值型:当时文本 + 版本指针(=当时 persona 链最新版本)。
       const persona = byId.get('preset.standard.persona')
@@ -677,10 +677,8 @@ try {
         persona?.text === MARKER && persona?.versionId === versionsThen.versions?.[0]?.id
           && persona?.checksum === createHash('sha256').update(persona?.text ?? '', 'utf8').digest('hex'),
         `versionId=${persona?.versionId}`)
-      // 三型条目结构化结果:只读型/运行时注入型标注在场,不炸不空段冒充。
-      check('T2.3 快照分型: 行锚点只读型=在场标记+「上游运行时生成」标注(不伪造 versionId)',
-        byId.get('preset.standard.time-context')?.versionId == null
-          && String(byId.get('preset.standard.time-context')?.annotation).includes('上游运行时生成'))
+      // 无版本链条目结构化结果:运行时注入型标注在场,不炸不空段冒充。
+      // (原 time-context 只读型快照分型 check 随 2026-11-11 不登记裁定删除。)
       check('T2.3 快照分型: 运行时注入型=在场标记标注(不炸不空段)',
         String(byId.get('runtime.memory.index-section')?.annotation).includes('在场标记'))
       // 快照整体 checksum 复核(规范化载荷 {entries,sessionId,trigger} 逐字节重算)。
@@ -725,9 +723,9 @@ try {
       snapDocs.length >= 1, `docs=${snapDocs.length}`)
     if (snapDocs.length >= 1) {
       const doc = JSON.parse(readFileSync(resolve(snapDir, snapDocs[0]), 'utf8'))
-      check('T2.3 磁盘证据: 文档记录带 sessionId/checksum/entries(与端点同源;T3.1 起 16 条)',
+      check('T2.3 磁盘证据: 文档记录带 sessionId/checksum/entries(与端点同源;T3.1 起 2026-11-11 裁定后 14 条)',
         typeof doc.record?.sessionId === 'string' && typeof doc.record?.checksum === 'string'
-          && Array.isArray(doc.record?.entries) && doc.record.entries.length === 16)
+          && Array.isArray(doc.record?.entries) && doc.record.entries.length === 14)
     }
     rmSync(wsDir, { recursive: true, force: true })
   }

@@ -3,10 +3,11 @@
  * - 快照库(独立 json 单元,版本库先例):方法面钉死(无删除/改写原语)、
  *   append/list/get/getBySessionId、同 sessionId 二次 append fail-closed;
  * - 捕获纯函数:指针按条目型别分语义(patch 值型=entryId→versionId 且内容
- *   checksum 一致才指;行锚点只读型=在场标记+「上游运行时生成」标注不伪造;
- *   运行时注入型=可解析文本或在场标记);
+ *   checksum 一致才指;运行时注入型=可解析文本或在场标记;2026-11-11 用户裁定后
+ *   注册表无行锚点只读型条目,原 readonly 快照断言随 time-context 移除删除,
+ *   fixture 的 time-context 裸行保留——live patch 真实形状);
  * - 网关链路:session/created → 快照入 DSH_HOME 语义存储(内存 KvUnit)→
- *   session-snapshot 端点按会话查询(三型条目结构化结果,两型无版本链不炸不空段);
+ *   session-snapshot 端点按会话查询(分型条目结构化结果,无版本链条目不炸不空段);
  * - 不可变性(§6.7 核心):改提示词(保存/回滚/导入)后已存快照逐字节不变
  *   (checksum 复核);写入并发开会话 → 指针与文本由同一 checksum 绑定,
  *   不出现「指针指向 v1、文本是 v2」的混合版本;
@@ -188,7 +189,7 @@ describe('捕获纯函数 captureSessionSnapshotEntries(指针按条目型别分
 
   afterEach(() => { rmSync(dir, { recursive: true, force: true }) })
 
-  it('分型语义全集:patch 值型(指针/无指针)、行锚点只读型(在场标记)、运行时注入型(文本/在场标记)', () => {
+  it('分型语义全集:patch 值型(指针/无指针)、运行时注入型(文本/在场标记)', () => {
     const files = new Map<string, string>()
     const readFileFn = (file: string) => {
       const text = files.get(file)
@@ -201,7 +202,6 @@ describe('捕获纯函数 captureSessionSnapshotEntries(指针按条目型别分
     files.set('packs/event-planning/persona.md', readFileSync(join(repoRoot, 'packs/event-planning/persona.md'), 'utf8'))
     const personaEntry = PROMPT_REGISTRY_ENTRIES.find(candidate => candidate.id === 'preset.standard.persona')!
     const domainEntry = PROMPT_REGISTRY_ENTRIES.find(candidate => candidate.id === 'domain.event-planning.persona-prefix')!
-    const readonlyEntry = PROMPT_REGISTRY_ENTRIES.find(candidate => candidate.id === 'preset.standard.time-context')!
     const runtimeEntry = PROMPT_REGISTRY_ENTRIES.find(candidate => candidate.id === 'runtime.memory.index-section')!
     // 版本链:persona 现值已入库(v-p1);多版本时取内容 checksum 一致者(新→旧首个)。
     const versionRecords = [
@@ -210,7 +210,7 @@ describe('捕获纯函数 captureSessionSnapshotEntries(指针按条目型别分
     ] as never
 
     const captured = captureSessionSnapshotEntries({
-      entries: [personaEntry, domainEntry, readonlyEntry, runtimeEntry],
+      entries: [personaEntry, domainEntry, runtimeEntry],
       readFile: readFileFn,
       versionRecords,
       runtimeTexts: new Map([['runtime.memory.index-section', '## 记忆索引(注册表版)']]),
@@ -228,19 +228,13 @@ describe('捕获纯函数 captureSessionSnapshotEntries(指针按条目型别分
     expect(domain.text).toContain('senior event planning specialist')
     expect(domain.versionId).toBeNull()
     expect(domain.annotation).toContain('不伪造版本指针')
-    // ③ 行锚点只读型:在场标记 +「上游运行时生成」标注,不伪造 versionId。
-    const readonlyItem = byId.get('preset.standard.time-context')!
-    expect(readonlyItem.kind).toBe('line-anchor-readonly')
-    expect(readonlyItem.text).toBeNull()
-    expect(readonlyItem.versionId).toBeNull()
-    expect(readonlyItem.annotation).toContain('上游运行时生成')
-    // ④ 运行时注入型:开启时可解析的 section 文本(注册表自管)→ 文本+checksum。
+    // ③ 运行时注入型:开启时可解析的 section 文本(注册表自管)→ 文本+checksum。
     const runtime = byId.get('runtime.memory.index-section')!
     expect(runtime.text).toBe('## 记忆索引(注册表版)')
     expect(runtime.checksum).toBe(sha256('## 记忆索引(注册表版)'))
     expect(runtime.versionId).toBeNull()
     expect(runtime.annotation).toContain('运行时注入')
-    // ⑤ 运行时注入型无文本 → 元数据在场标记(空段冒充禁止:text=null+标注在场)。
+    // ④ 运行时注入型无文本 → 元数据在场标记(空段冒充禁止:text=null+标注在场)。
     const runtimeEmpty = captureSessionSnapshotEntries({
       entries: [runtimeEntry], readFile: readFileFn, versionRecords: [], runtimeTexts: new Map(),
     })[0]!
@@ -325,7 +319,7 @@ describe('T2.3 网关链路:会话开启事件 → 快照存储 → 查询端点
     return phase2
   }
 
-  it('会话开启 → 快照入库(全景条目,三型分语义)→ 端点按会话返回当时 effective prompt', async () => {
+  it('会话开启 → 快照入库(全景条目,分型语义)→ 端点按会话返回当时 effective prompt', async () => {
     await attach()
     const personaInitial = (await gateway.promptVersions({})).versions[0]
     gateway.handleSessionCreated({ id: 'session-t23-a' })
@@ -342,8 +336,7 @@ describe('T2.3 网关链路:会话开启事件 → 快照存储 → 查询端点
     expect(persona.text).toBe(PERSONA_V1)
     expect(persona.versionId).toBe(personaInitial?.id)
     expect(persona.checksum).toBe(sha256(PERSONA_V1))
-    // 行锚点只读型/运行时注入型:结构化结果(在场标记),不炸不空段冒充。
-    expect((byId.get('preset.standard.time-context') as SessionSnapshotEntry).annotation).toContain('上游运行时生成')
+    // 运行时注入型:结构化结果(在场标记),不炸不空段冒充。
     expect((byId.get('runtime.memory.index-section') as SessionSnapshotEntry).annotation).toContain('在场标记')
     expect([...byId.values()].every(item => item.kind !== 'patch-value' || item.text !== null || item.problems.length > 0)).toBe(true)
     // 查看语义说明在场(不可回放条目明示)。

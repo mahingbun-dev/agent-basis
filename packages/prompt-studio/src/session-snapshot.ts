@@ -9,8 +9,8 @@
  * append fail-closed 抛错(per-record 键=id,静默覆盖即丢快照)。
  *
  * 捕获:纯函数 captureSessionSnapshotEntries——注册表全部条目按型别分语义快照
- * (patch 值型=开启时生效文本+内容一致版本指针;行锚点只读型=在场标记+「上游
- * 运行时生成」标注;运行时注入型=开启时可解析的 section 文本或在场标记)。
+ * (patch 值型=开启时生效文本+内容一致版本指针;运行时注入型=开启时可解析的
+ * section 文本或在场标记。2026-11-11 用户裁定后注册表不含行锚点只读型条目)。
  * 指针按 checksum 对链内版本逐条匹配(新→旧取首个一致者):text 与 versionId
  * 由同一 checksum 约束绑定,写入并发下不出现「指针指向 v1、文本是 v2」的混合
  * 版本(原子性,§6.7④;无一致版本 → versionId=null+annotation 明示,不伪造)。
@@ -41,9 +41,6 @@ const SAFE_ID_RE = /^[A-Za-z0-9_-]+$/
 
 /** 捕获触发事件(当前唯一来源:dsh-session 的 session/created 全局监听)。 */
 export const SESSION_CREATED_TRIGGER = 'session/created'
-
-/** 行锚点只读型条目的快照标注(在场标记;不伪造 versionId,§4 T2.3(b)①)。 */
-export const READONLY_SNAPSHOT_ANNOTATION = '上游运行时生成:该条目无版本链,快照仅记在场标记(不伪造 versionId)。'
 
 /** 运行时注入型条目无文本可解析时的在场标记标注。 */
 export const RUNTIME_NO_TEXT_ANNOTATION = '运行时注入:文本由代码在装配时构建,快照仅记在场标记(无注册表自管文本)。'
@@ -229,14 +226,6 @@ export function captureSessionSnapshotEntries(input: CaptureSnapshotInputs): rea
   const captured: SessionSnapshotEntry[] = []
   for (const entry of input.entries) {
     const base = { entryId: entry.id, layer: entry.layer, kind: entry.kind }
-    if (entry.kind === 'line-anchor-readonly') {
-      captured.push({
-        ...base,
-        text: null, bytes: null, checksum: null, versionId: null,
-        annotation: READONLY_SNAPSHOT_ANNOTATION, problems: [],
-      })
-      continue
-    }
     if (entry.kind === 'runtime-injection') {
       const text = input.runtimeTexts.get(entry.id)
       captured.push(text === undefined

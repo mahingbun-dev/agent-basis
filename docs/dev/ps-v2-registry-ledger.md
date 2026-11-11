@@ -13,21 +13,28 @@
 | 型别 | 判据 | 对账方式 |
 | --- | --- | --- |
 | patch 值型 | 值在 patch/包文件里,结构定位可反引读回 | 锚点在场 + 反引值非空(块标量经独立反引函数) |
-| 行锚点只读型 | 行在场但提示词文本由上游插件运行时生成 | 裸行在场 + 条目型别=只读 + 写链路 fail-closed 拒写明示 |
 | 运行时注入型 | `ctx.systemPrompt.section` 动态注入,无静态全文 | 来源代码锚点在场 + section 元数据(name/order) |
 
-## 对账清单(16 条:preset 层 8 / 领域层 4 / 运行时层 2 / 元提示词层 2)
+> **2026-11-11 用户裁定**:「工作室只展示拥有提示词文本的插件」。注册表只登记拥有
+> 提示词文本/提示词参数的条目;纯运行时数据注入器(如 time-context 时钟读数,两
+> 预设的无 config 裸行)不登记。原第三型「行锚点只读型」随 time-context 整体
+> 移除登记而清除(型别/生效半径枚举与全部只读分支一并移除);下表 time-context
+> 两行保留为「不登记」注记行,不计入对账(审计可追溯)。边界:agent-instructions
+> (maxBytes 数值参数,但该插件本体是提示词注入器)与 T3.1 meta 元提示词条目保留
+> ——它们拥有提示词语义。
+
+## 对账清单(14 条:preset 层 6 / 领域层 4 / 运行时层 2 / 元提示词层 2;2026-11-11 裁定后)
 
 | id | 层 | 型别 | 来源插件/包 | 定位(文件:行号) | 红线 | 生效半径(T2.2) |
 | --- | --- | --- | --- | --- | --- | --- |
 | preset.standard.persona | preset 层 | patch 值型 | @deepseek-ai/dsh-persona | profiles/eterna-web/cordis.patch.yml:288 | required(eterna.red-lines.standard) | immediate-new-session |
 | preset.standard.agent-instructions | preset 层 | patch 值型 | @deepseek-ai/dsh-agent-instructions | profiles/eterna-web/cordis.patch.yml:292 | exempt | immediate-new-session |
 | preset.standard.plan-mode.section | preset 层 | patch 值型 | @deepseek-ai/dsh-plan-mode | profiles/eterna-web/cordis.patch.yml:331-342 | exempt | immediate-new-session |
-| preset.standard.time-context | preset 层 | 行锚点只读型 | @deepseek-ai/dsh-time-context | profiles/eterna-web/cordis.patch.yml:293-294 | exempt | readonly-upstream |
+| preset.standard.time-context | preset 层 | **不登记**(2026-11-11 用户裁定:工作室只展示拥有提示词文本的插件;原行锚点只读型行保留注记) | @deepseek-ai/dsh-time-context | profiles/eterna-web/cordis.patch.yml:293-294 | — | — |
 | preset.cordis.persona | preset 层 | patch 值型 | @deepseek-ai/dsh-persona | profiles/eterna-web/cordis.patch.yml:149-150 | required(eterna.red-lines.standard) | immediate-new-session |
 | preset.cordis.agent-instructions | preset 层 | patch 值型 | @deepseek-ai/dsh-agent-instructions | profiles/eterna-web/cordis.patch.yml:154 | exempt | immediate-new-session |
 | preset.cordis.plan-mode.section | preset 层 | patch 值型 | @deepseek-ai/dsh-plan-mode | profiles/eterna-web/cordis.patch.yml:188-199 | exempt | immediate-new-session |
-| preset.cordis.time-context | preset 层 | 行锚点只读型 | @deepseek-ai/dsh-time-context | profiles/eterna-web/cordis.patch.yml:155-156 | exempt | readonly-upstream |
+| preset.cordis.time-context | preset 层 | **不登记**(2026-11-11 用户裁定:工作室只展示拥有提示词文本的插件;原行锚点只读型行保留注记) | @deepseek-ai/dsh-time-context | profiles/eterna-web/cordis.patch.yml:155-156 | — | — |
 | domain.event-planning.persona-prefix | 领域层 | patch 值型 | @event/pack | packs/event-planning/cordis.patch.yml:12-17 | required(eterna.red-lines.standard) | not-composed-anywhere |
 | domain.event-planning.persona-md | 领域层 | patch 值型 | @event/pack | packs/event-planning/persona.md:1-31 | required(eterna.red-lines.standard) | not-composed-anywhere |
 | domain.industrial-analysis.persona-prefix | 领域层 | patch 值型 | @industrial-analysis/pack | packs/industrial-analysis/cordis.patch.yml:12-19 | required(eterna.red-lines.industrial-analysis) | not-composed-anywhere |
@@ -52,10 +59,11 @@
   系统提示;编辑时标注「上游升级可能覆盖」风险(计划书 §3)。
 - **time-context×2**:两预设均为**无 config 裸行**(:155-156/:293-294)——上游
   `@deepseek-ai/dsh-time-context` 的 config 面只有调度项 `refreshIntervalMs`/
-  `timeZone`,提示词文本每次注入时运行时生成,**无 patch 值亦无写回落点**。
-  按测试计划 §9.7 口径登记为行锚点只读型:写链路 fail-closed 拒写并明示
-  「该条目由上游插件生成,无 patch 写回落点」,不造写回假象(与计划书
-  「全景查看+全部可编辑」表述存在事实出入,只读口径以测试计划为准)。
+  `timeZone`,提示词文本每次注入时运行时生成,无 patch 值亦无写回落点。
+  **2026-11-11 用户裁定后不登记**(工作室只展示拥有提示词文本的插件;time-context
+  是纯运行时时钟数据注入器):两条目已从注册表整体移除登记(不是隐藏,是不登记),
+  上表对应行保留「不登记」注记供审计追溯;原「行锚点只读型」型别与
+  `readonly-upstream` 生效半径随之清除,live patch 里的裸行本身不动。
 
 ### 领域层(packs/{event-planning,industrial-analysis})
 
@@ -97,9 +105,9 @@
 
 - **required(6 条)**:全部 persona 类条目(两预设 persona、两包 personaPrefix
   与 persona.md)——写链路必检红线锚点,防「编辑把 safety rails 删掉」。
-- **exempt(10 条)**:time-context×2、plan-mode.section×2、agent-instructions×2、
-  运行时 section×2、元提示词×2——非 persona 条目不做红线检查,防止 T1.6 把
-  `RED_LINE_RULES` 错配到全部条目。
+- **exempt(8 条)**:plan-mode.section×2、agent-instructions×2、运行时 section×2、
+  元提示词×2——非 persona 条目不做红线检查,防止 T1.6 把 `RED_LINE_RULES` 错配到
+  全部条目。(原 time-context×2 随 2026-11-11 不登记裁定移出本清单。)
 - required 条目带规则集 id:`eterna.red-lines.standard` = `validator.ts`
   `RED_LINE_RULES`(锚点对齐 event-planning persona.md);industrial-analysis
   两条目绑定 `eterna.red-lines.industrial-analysis`(T1.6 落地规则本体)。
@@ -111,7 +119,7 @@
 1. 解析本文件上表 → (id, 层, 型别) 集合,与 `PROMPT_REGISTRY_ENTRIES` **双向相等**
    (标签映射取 `LAYER_LABELS`/`ENTRY_KIND_LABELS` 单一来源);
 2. 逐条目对**仓库真文件**核对锚点(行在场 + 行内容含锚点片段)并按型别分判据
-   (patch 值型反引值非空/行锚点只读型裸行在场 + 拒写明示/运行时注入型代码锚点在场);
+   (patch 值型反引值非空/运行时注入型代码锚点在场);
 3. `registryInvariants()` 钉条目模型完整性(id 唯一、枚举闭合、字段齐备、红线
    required⇔规则集绑定)。
 

@@ -2,11 +2,13 @@
  * T1.3 提示词注册表单测(测试计划 §3 T1.3,四组判据):
  * 1. 对账断言(真值基准,真文件交叉钉住——手法对齐 validator-diff.test.ts:101-107):
  *    条目先分型,判据按型执行——patch 值型(锚点在场+反引值非空,块标量走独立反引)、
- *    行锚点只读型(裸行在场+写链路 fail-closed 拒写明示)、运行时注入型(代码锚点在场);
+ *    运行时注入型(代码锚点在场)(2026-11-11 用户裁定:工作室只展示拥有提示词文本
+ *    的插件,time-context 纯运行时时钟注入器不登记,原「行锚点只读型」describe 块
+ *    与红线豁免清单中的 time-context 引用随之删除——断言净减系裁定正当结果);
  * 2. 条目模型完整性(id 唯一/层与型别枚举闭合/字段齐备/每型至少 1 条真文件钉住);
  * 3. 无遗漏对账清单:docs/dev/ps-v2-registry-ledger.md ↔ 注册表 (id,层,型别,红线)
  *    集合双向相等——删条目/改型别/漏登记都打破相等,清单与代码互相锁住;
- * 4. 红线豁免语义:persona 类=required,非 persona(time-context 等)=exempt,
+ * 4. 红线豁免语义:persona 类=required,非 persona(plan-mode 等)=exempt,
  *    required⇒规则集绑定;event-planning persona.md 真文件过标准红线(交叉钉住)。
  */
 import { readFileSync } from 'node:fs'
@@ -126,46 +128,6 @@ describe('T1.3 ①对账——patch 值型(领域层,packs/{event-planning,indus
   })
 })
 
-describe('T1.3 ①对账——行锚点只读型(time-context,两预设无 config 裸行)', () => {
-  it('裸行锚点在场:standard :293-294 / cordis :155-156', () => {
-    for (const id of ['preset.standard.time-context', 'preset.cordis.time-context']) {
-      const e = entry(id)
-      expect(e.kind, id).toBe('line-anchor-readonly')
-      const check = checkEntryAnchors(e, readRepoFile)
-      expect(check.ok, `${id}:${check.problems.join(';')}`).toBe(true)
-    }
-  })
-
-  it('结构事实:两预设 time-context 行内均无 config 键(上游 config 面只有调度项,patch 里连 config 都没有)', () => {
-    const lines = readRepoFile(WEB_PATCH).split('\n')
-    for (const rowId of ['preset-standard', 'preset-cordis']) {
-      const located = locateYamlConfigKey(
-        { file: WEB_PATCH, rowId, pluginPath: ['time-context'], configKey: 'config' },
-        lines,
-      )
-      expect(located, rowId).toBeUndefined()
-    }
-  })
-
-  it('读值:text=null + note 明示「上游插件运行时生成」,不伪造静态值', () => {
-    for (const id of ['preset.standard.time-context', 'preset.cordis.time-context']) {
-      const read = readEntryValue(entry(id), readRepoFile)
-      expect(read.text, id).toBeNull()
-      expect(read.bytes, id).toBeNull()
-      expect(read.anchorsPresent, id).toBe(true)
-      expect(read.note, id).toContain('上游插件运行时生成')
-      expect(read.note, id).toContain('无 patch 写回落点')
-    }
-  })
-
-  it('写链路 fail-closed:拒写并明示「该条目由上游插件生成,无 patch 写回落点」,不造写回假象', () => {
-    for (const id of ['preset.standard.time-context', 'preset.cordis.time-context']) {
-      expect(() => { ensureEntryWritable(entry(id)) }, id)
-        .toThrow('该条目由上游插件生成,无 patch 写回落点')
-    }
-  })
-})
-
 describe('T1.3 ①对账——运行时注入型(memory/glue 的 section 元数据)', () => {
   it('memory:代码锚点在场(section 名/排序/挂载点:tools.ts:41,47,64)', () => {
     const e = entry('runtime.memory.index-section')
@@ -211,12 +173,12 @@ describe('T1.3 ②条目模型完整性(每条 {id,层,来源,定位,当前值,�
     expect(result.ok).toBe(true)
   })
 
-  it('存量规模与分布:preset×8 / 领域×4 / 运行时×2 / 元提示词×2(T3.1);patch 值型×12 / 行锚点只读型×2 / 运行时注入型×2', () => {
-    expect(PROMPT_REGISTRY_ENTRIES).toHaveLength(16)
+  it('存量规模与分布:preset×6 / 领域×4 / 运行时×2 / 元提示词×2(T3.1);patch 值型×12 / 运行时注入型×2(2026-11-11 裁定后 14 条)', () => {
+    expect(PROMPT_REGISTRY_ENTRIES).toHaveLength(14)
     const byLayer = countBy(PROMPT_REGISTRY_ENTRIES, e => LAYER_LABELS[e.layer])
-    expect(byLayer).toEqual({ 'preset 层': 8, '领域层': 4, '运行时层': 2, '元提示词层': 2 })
+    expect(byLayer).toEqual({ 'preset 层': 6, '领域层': 4, '运行时层': 2, '元提示词层': 2 })
     const byKind = countBy(PROMPT_REGISTRY_ENTRIES, e => ENTRY_KIND_LABELS[e.kind])
-    expect(byKind).toEqual({ 'patch 值型': 12, '行锚点只读型': 2, '运行时注入型': 2 })
+    expect(byKind).toEqual({ 'patch 值型': 12, '运行时注入型': 2 })
   })
 
   it('每型至少 1 条被真文件钉住:全部条目锚点对真文件核对通过(分型不缺判据)', () => {
@@ -259,7 +221,9 @@ describe('T1.3 ③无遗漏对账清单(docs/dev/ps-v2-registry-ledger.md 互锁
   /** 解析 ledger 主表行:| id | 层 | 型别 | 来源 | 定位 | 红线 |。 */
   function parseLedger(): LedgerRow[] {
     const ledgerPath = join(REPO_ROOT, 'docs', 'dev', 'ps-v2-registry-ledger.md')
-    const pattern = /^\|\s*([a-z0-9.-]+)\s*\|\s*(preset 层|领域层|运行时层|元提示词层)\s*\|\s*(patch 值型|行锚点只读型|运行时注入型)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|/
+    // 型别枚举 2026-11-11 裁定后闭合为二分:ledger 中 time-context 两行的型别列
+    // 已改为「不登记(…)」保留注记,不再命中本行模式(不计入对账行,审计可追溯)。
+    const pattern = /^\|\s*([a-z0-9.-]+)\s*\|\s*(preset 层|领域层|运行时层|元提示词层)\s*\|\s*(patch 值型|运行时注入型)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|/
     const rows: LedgerRow[] = []
     for (const line of readFileSync(ledgerPath, 'utf8').split('\n')) {
       const match = pattern.exec(line)
@@ -336,8 +300,9 @@ describe('T1.3 ④红线豁免语义(persona 类必检,非 persona 豁免)', () 
     expect(required).toEqual([...PERSONA_IDS].sort())
     const exempt = PROMPT_REGISTRY_ENTRIES.filter(e => e.redLine === 'exempt').map(e => e.id)
     expect(exempt).toHaveLength(PROMPT_REGISTRY_ENTRIES.length - PERSONA_IDS.length)
-    // 非 persona 条目确实不含 persona 类 id(时间上下文/plan 模式/指令上限/运行时 section)。
-    for (const id of ['preset.standard.time-context', 'preset.cordis.plan-mode.section', 'preset.standard.agent-instructions', 'runtime.memory.index-section']) {
+    // 非 persona 条目确实不含 persona 类 id(plan 模式/指令上限/运行时 section)。
+    // (原清单含 preset.standard.time-context,随 2026-11-11 不登记裁定移除引用。)
+    for (const id of ['preset.cordis.plan-mode.section', 'preset.standard.agent-instructions', 'runtime.memory.index-section']) {
       expect(entry(id).redLine, id).toBe('exempt')
     }
   })

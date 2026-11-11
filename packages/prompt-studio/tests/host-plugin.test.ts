@@ -440,14 +440,16 @@ describe('LoopPromptGateway 全链路(真实 cordis 根 Context)', () => {
  * T1.4 读侧 API 按条目泛化(测试计划 §3 T1.4,①–⑤):
  * - snapshot 的 entries[]:注册表全景(每条目元数据+当前值+链概览);
  * - prompt-get/prompt-versions 按条目:块标量(| 与 >-)反引、领域包真文件、
- *   行锚点只读型(text=null+note 明示)、未知 id not-found 明示;
+ *   运行时注入型(text=null+note 明示)、未知 id not-found 明示;
  * - 旧调用形态(persona 缺省链)零改动兼容;链间隔离(persona 写不影响他链);
  * - 存量 v1 版本文档(无 entryId)fixture 注入:可读、归 persona 条目、不丢不重种。
  *
  * fixture patch 覆盖 preset-standard 全行(persona 裸标量/agent-instructions/
  * time-context 裸行/planning→plan-mode `section: |` 字面块)+ preset-cordis persona
- * `prefix: >-` 折叠块——与隔离档(t7-studio)live patch 同构;领域/运行时层条目经
- * repoRoot=真实仓库根读取(真文件钉住,手法对齐 registry.test.ts)。
+ * `prefix: >-` 折叠块——与隔离档(t7-studio)live patch 同构(time-context 裸行是
+ * live patch 真实形状,保留 fixture 本身;该插件 2026-11-11 用户裁定不登记,条目
+ * 已从注册表移除);领域/运行时层条目经 repoRoot=真实仓库根读取(真文件钉住,
+ * 手法对齐 registry.test.ts)。
  */
 describe('T1.4 读侧 API 按条目泛化(snapshot entries[] / prompt-get {entryId} / prompt-versions {entryId})', () => {
   const REPO_ROOT = join(import.meta.dirname, '..', '..', '..')
@@ -532,7 +534,7 @@ describe('T1.4 读侧 API 按条目泛化(snapshot entries[] / prompt-get {entry
     return gateway.attachBackend(backend).then(() => unit)
   }
 
-  it('①+② snapshot.entries[]:16 条全景(T3.1 起含元提示词层×2),逐条目当前值与链概览(块标量/裸标量/只读型/领域/运行时分型语义)', async () => {
+  it('①+② snapshot.entries[]:14 条全景(T3.1 起含元提示词层×2;2026-11-11 裁定后无 time-context),逐条目当前值与链概览(块标量/裸标量/领域/运行时分型语义)', async () => {
     await attach()
     const snapshot = await gateway.snapshot()
     expect(snapshot.entries).toHaveLength(PROMPT_REGISTRY_ENTRIES.length)
@@ -554,12 +556,6 @@ describe('T1.4 读侧 API 按条目泛化(snapshot entries[] / prompt-get {entry
     expect(planMode?.versions.count).toBe(1)
     // 数值配置条目:反引值与 MAX 交叉钉住。
     expect(byId.get('preset.standard.agent-instructions')?.value.text).toBe('65536')
-    // 行锚点只读型:text=null+note 明示「上游插件运行时生成」,无版本链不种子。
-    const timeContext = byId.get('preset.standard.time-context')
-    expect(timeContext?.value.text).toBeNull()
-    expect(timeContext?.value.note).toContain('上游插件运行时生成')
-    expect(timeContext?.versioned).toBe(false)
-    expect(timeContext?.versions.count).toBe(0)
     // 领域层:真 pack 文件反引(>- 多行折叠为空格连接)。
     const domain = byId.get('domain.event-planning.persona-prefix')
     expect(domain?.value.text).toContain('You are a senior event planning specialist: creative, execution-strong, budget-aware')
@@ -595,14 +591,8 @@ describe('T1.4 读侧 API 按条目泛化(snapshot entries[] / prompt-get {entry
     expect(legacy.persona.text).toBe(personaEntry.value.text)
   })
 
-  it('② 行锚点只读型与运行时注入型:text=null + note 明示,不伪造静态值', async () => {
+  it('② 运行时注入型:text=null + note 明示,不伪造静态值', async () => {
     await attach()
-    const timeContext = await gateway.promptGet({ entryId: 'preset.cordis.time-context' }) as PromptGetEntryResult
-    expect(timeContext.entry.kind).toBe('line-anchor-readonly')
-    expect(timeContext.value.text).toBeNull()
-    expect(timeContext.value.bytes).toBeNull()
-    expect(timeContext.value.problems).toEqual([])
-    expect(timeContext.value.note).toContain('上游插件运行时生成')
     const runtime = await gateway.promptGet({ entryId: 'runtime.glue.memory-plugin' }) as PromptGetEntryResult
     expect(runtime.entry.kind).toBe('runtime-injection')
     expect(runtime.value.text).toBeNull()
@@ -775,12 +765,8 @@ describe('T1.4 读侧 API 按条目泛化(snapshot entries[] / prompt-get {entry
     expect('entryId' in normal.pack).toBe(false)
   })
 
-  it('分型生效说明(评审 2026-11-11):只读型/运行时注入型不透传「保存生效」语义', async () => {
+  it('分型生效说明(评审 2026-11-11):运行时注入型不透传「保存生效」语义', async () => {
     await attach()
-    const readonly = await gateway.promptGet({ entryId: 'preset.cordis.time-context' }) as PromptGetEntryResult
-    expect(readonly.effectiveNote).not.toContain('保存对新会话生效')
-    expect(readonly.effectiveNote).toContain('只读')
-    expect(readonly.effectiveNote).toContain('fail-closed 拒写')
     const runtime = await gateway.promptGet({ entryId: 'runtime.memory.index-section' }) as PromptGetEntryResult
     expect(runtime.effectiveNote).not.toContain('保存对新会话生效')
     expect(runtime.effectiveNote).toContain('只读')
@@ -817,7 +803,7 @@ describe('T1.4 读侧 API 按条目泛化(snapshot entries[] / prompt-get {entry
  * - ④ 红线锚点逐条目:persona 类缺红线拒收且 issues 指明;非 persona 豁免;
  *   工业规则集(达梦只读/只经 MCP/R2/deny-first)与标准集双语锚点;
  * - ⑤ 回滚逐条目:块标量形态 A/B/C 各 ≥1 例(回滚后 patch 层反引==被回滚文本),
- *   只读型条目回滚 fail-closed 明示;
+ *   运行时注入型条目回滚 fail-closed 明示;
  * - ⑥ 导入通道逐条目:超限/缺红线/stale 锁拒收未入库 + 审计 prompt-import.rejected;
  *   块标量形态 A/B/C 导入后 patch 反引一致;
  * - TOCTOU:审批后文件被外部改写 → 二段拒写零落盘、外部状态保持;
@@ -1136,11 +1122,12 @@ describe('T1.6 写链路按条目泛化(R3 按条目授权 + 校验器逐条目 
     expect((await gateway.promptVersions({ entryId: planId }) as VersionsResult).total).toBe(3)
   })
 
-  it('⑤ 只读型条目回滚 fail-closed 明示不支持(行锚点只读型无写回落点)', async () => {
+  it('⑤ 运行时注入型条目回滚 fail-closed 明示不支持(无写回落点;原 time-context 只读型断言随 2026-11-11 裁定改写)', async () => {
     await attach()
-    const result = await gateway.promptRollback({ versionId: 'v-none', entryId: 'preset.standard.time-context' })
+    const result = await gateway.promptRollback({ versionId: 'v-none', entryId: 'runtime.memory.index-section' })
     expect(result.status).toBe('rejected')
-    expect(result.issues?.[0]).toContain('该条目由上游插件生成,无 patch 写回落点')
+    expect(result.issues?.[0]).toContain('运行时注入型')
+    expect(result.issues?.[0]).toContain('无 patch 写回落点')
     expect((await gateway.snapshot()).pendingApproval).toBeNull()
   })
 

@@ -23,7 +23,7 @@ import type { KvUnit } from '@deepseek-ai/dsh-storage'
 import {
   ASSEMBLE_EVENT, PLAN_POLICY_SECTION_NAME, PERSONA_PREFIX_SECTION_NAME, PROMPT_REGISTRY_ENTRIES,
   REPLAY_SECTION_MAPPINGS, SKIP_COMPLETE_OWNER, SKIP_GOVERNING_AMBIGUOUS, SKIP_GOVERNING_UNKNOWN,
-  SKIP_NO_AGENT_ID, SKIP_NO_SECTION_MAPPING, SKIP_READONLY_KIND, SKIP_RUNTIME_KIND, SKIP_SECTION_EMPTY,
+  SKIP_NO_AGENT_ID, SKIP_NO_SECTION_MAPPING, SKIP_RUNTIME_KIND, SKIP_SECTION_EMPTY,
   SKIP_SNAPSHOT_ABSENT, SKIP_SNAPSHOT_TEXT_NULL, LoopPromptGateway, agentIdOfAssembleContext,
   pluginSpanOwnsCompleteFlag, resolveAssemblyReplay, replayMappedEntryIds,
 } from '../src/index.ts'
@@ -394,11 +394,11 @@ describe('resolveAssemblyReplay(纯函数:身份判定与替换)', () => {
     expect(result.sections.every(section => section.outcome === 'skipped')).toBe(true)
   })
 
-  it('未映射条目按型别记跳过原因:只读型/运行时注入型不因无 versionId 失败,数值配置与文件基准明示无段落', () => {
+  it('未映射条目按型别记跳过原因:运行时注入型不因无 versionId 失败,数值配置与文件基准明示无段落', () => {
     const result = resolve({ sections: [], snapshot: snapshotOf('session-x', {}) })
     const reasons = new Map(result.skippedEntries.map(item => [item.entryId, item.reason]))
-    expect(reasons.get('preset.standard.time-context')).toBe(SKIP_READONLY_KIND)
-    expect(reasons.get('preset.cordis.time-context')).toBe(SKIP_READONLY_KIND)
+    // (原 time-context×2 的 SKIP_READONLY_KIND 断言随 2026-11-11 用户裁定移除:
+    // 该型别不再登记,reason 常量已一并清除——断言净减系裁定正当结果。)
     expect(reasons.get('runtime.memory.index-section')).toBe(SKIP_RUNTIME_KIND)
     expect(reasons.get('runtime.glue.memory-plugin')).toBe(SKIP_RUNTIME_KIND)
     expect(reasons.get('preset.standard.agent-instructions')).toBe(SKIP_NO_SECTION_MAPPING)
@@ -575,10 +575,10 @@ describe('网关 + 真 cordis waterfall 集成(未打标监听,替换权威)', (
     expect(governed).toHaveLength(1)
     expect((governed[0]?.governed as Array<{ entryId: string }>)[0]?.entryId).toBe('preset.standard.persona')
     // T2.2 补:governed 事件也携带 skippedEntries(scoped 持旧实例会话走 governed 路径,
-    // 按型跳过记录不得在审计面缺席)——运行时注入型/只读型跳过原因逐条在场。
+    // 按型跳过记录不得在审计面缺席)——运行时注入型跳过原因逐条在场。
+    // (原 time-context 的 line-anchor-readonly 跳过断言随 2026-11-11 用户裁定移除。)
     const governedSkips = governed[0]?.skippedEntries as Array<{ entryId: string; reason: string }>
     expect(governedSkips.some(item => item.entryId === 'runtime.memory.index-section' && item.reason.includes('runtime-injection'))).toBe(true)
-    expect(governedSkips.some(item => item.entryId === 'preset.standard.time-context' && item.reason.includes('line-anchor-readonly'))).toBe(true)
   })
 
   it('④ 快照缺席 → 降级用当前值 + 审计 degraded(每会话一次),零替换不炸', async () => {

@@ -29,10 +29,14 @@
  *   夹具=patch 层 preset-cordis 同构行(生产档形状;文本与 standard 互异防回放身份
  *   歧义)+ tmpWs git 项目根 AGENTS.md 指令链夹具;对矩阵内每条目执行
  *   「改→同进程生效验证→回滚」,黄金判据=同进程(pid 不变)新会话立即用新文;
- *   进行中会话第二面(快照回放/durable 指令消息)一并实测;只读型/运行时注入型
+ *   进行中会话第二面(快照回放/durable 指令消息)一并实测;运行时注入型
  *   =fail-closed 拒写+回放按型跳过审计;领域层=写回/回滚闭环+写后 dump-config
  *   组合树不含新文(本档未装载领域包);registry effect 声明与实测对账(15.40);
  *   矩阵落 docs/dev/ps-v2-hot-effect-matrix.md(逐格引用本链断言编号)。
+ *   2026-11-11 用户裁定(工作室只展示拥有提示词文本的插件):time-context 纯运行时
+ *   时钟注入器从注册表整体移除登记——15.24/15.25(time-context 只读拒写探针)删除、
+ *   15.1/15.40 的 16→14 与枚举收窄同步;check() 机械计数净减 2 条(120→118)系
+ *   裁定正当净减,逐条见 diff。
  *
  * 隔离纪律:运行态全在 .eterna-home-t7(DSH_HOME);Web 宿主一律 3108;进程清理只用
  * SIGTERM + pkill -f 'profile t7-studio' 精确模式(绝不 pkill 其他 dsh 实例);
@@ -857,12 +861,15 @@ try {
     const unitDir = resolve(home, 'storages', 'eterna_prompt_studio', 'versions')
     const versionsFinal = await dsh.call('loopPrompt/prompt-versions', { input: {} })
     const docs = existsSync(unitDir) ? readdirSync(unitDir).filter((f) => f.endsWith('.json')) : []
-    // T1.4 起装载种子按条目:除 persona 链(total)外,另有 9 条 patch 值型条目链首
+    // T1.4 起装载种子按条目:除 persona 链(total)外,另有 11 条 patch 值型条目链首
     // 各 1 文档(live patch 的 agent-instructions/plan-mode + T2.2 夹具 cordis 行的
-    // persona/agent-instructions/plan-mode + 领域层 4 条;time-context×2 只读型与
-    // runtime×2 运行时注入型无静态值不种子)——磁盘口径=persona total+9。
-    check('12.1 版本库单元落 DSH storage 栈(一文档一记录,数=persona total+9 条目链首)',
-      docs.length === versionsFinal.total + 9, `docs=${docs.length} total=${versionsFinal.total}`)
+    // persona/agent-instructions/plan-mode + 领域层 4 条 + T3.1 元提示词×2;
+    // runtime×2 运行时注入型无静态值不种子——time-context 已按 2026-11-11 裁定
+    // 不登记,无条目不种子)——磁盘口径=persona total+11。
+    // (原 +9 是 T2.2 时代常量,T3.1 增加元提示词×2 后未同步;2026-11-11 重跑实测
+    // docs=total+11,本次随裁定重跑一并纠正——非 time-context 裁定的净减项。)
+    check('12.1 版本库单元落 DSH storage 栈(一文档一记录,数=persona total+11 条目链首,T3.1 起含元提示词×2)',
+      docs.length === versionsFinal.total + 11, `docs=${docs.length} total=${versionsFinal.total}`)
   }
 
   // 14) 断言链 T2.4:历史会话严格回放(system-prompt/assemble waterfall 按会话快照
@@ -975,7 +982,7 @@ try {
   //     docs/dev/ps-v2-hot-effect-matrix.md 逐格引用本链断言编号(无编号格子判未实测)。
   //     预设条目半径以「同进程(pid 不变)新会话是否立即用新文」为黄金判据;进行中
   //     会话沿用开启时快照(T2.4 严格回放)或 durable 首条指令消息,作为半径第二面
-  //     一并实测;只读型/运行时注入型以「写链路 fail-closed 拒写 + 回放按型跳过」
+  //     一并实测;运行时注入型以「写链路 fail-closed 拒写 + 回放按型跳过」
   //     实测;领域层条目以「写回/回滚闭环 + 写后组合树不含新文(本档未装载领域包)」
   //     实测。宿主全程不重启(host.pid 断言逐段在场)。
   {
@@ -1016,10 +1023,10 @@ try {
     // —— 15.1 声明面:snapshot entries[] 全部带 effect.radius(枚举内) ——
     {
       const snap = await dsh.call('loopPrompt/snapshot')
-      const radii = new Set(['immediate-new-session', 'not-composed-anywhere', 'readonly-upstream', 'runtime-rebuilt'])
+      const radii = new Set(['immediate-new-session', 'not-composed-anywhere', 'runtime-rebuilt'])
       const entries = snap.entries ?? []
-      check('15.1 矩阵声明面:entries[] 16 条全部带 effect.radius(T2.2 registry effect 字段透传;T3.1 起 16 条含元提示词层)',
-        entries.length === 16 && entries.every((e) => typeof e.effect?.radius === 'string' && radii.has(e.effect.radius))
+      check('15.1 矩阵声明面:entries[] 14 条全部带 effect.radius(T2.2 registry effect 字段透传;T3.1 起含元提示词层;2026-11-11 裁定后无 time-context)',
+        entries.length === 14 && entries.every((e) => typeof e.effect?.radius === 'string' && radii.has(e.effect.radius))
         && entries.every((e) => typeof e.effect?.note === 'string' && e.effect.note.length > 0),
         `radius=${entries.map((e) => e.effect?.radius).join(',') ?? '(缺)'}`)
     }
@@ -1162,21 +1169,9 @@ try {
         && !afterCpl.value?.text.includes(CORDIS_PLAN_V2), `status=${cplRb2.status}`)
     }
 
-    // —— D|只读型拒写(time-context×2:改后生效半径不存在,写链路 fail-closed) ——
-    {
-      const tcStd = await dsh.call('loopPrompt/prompt-save', {
-        input: { entryId: 'preset.standard.time-context', content: '不可能被接受的写入', author, summary: 'T2.2 矩阵:只读型拒写探针' },
-      })
-      check('15.24 D|prompt-save{standard.time-context}: rejected 且明示无 patch 写回落点',
-        tcStd.status === 'rejected' && (tcStd.issues ?? []).some((s) => s.includes('无 patch 写回落点')),
-        `status=${tcStd.status} issues=${JSON.stringify(tcStd.issues)?.slice(0, 120)}`)
-      const tcCordis = await dsh.call('loopPrompt/prompt-save', {
-        input: { entryId: 'preset.cordis.time-context', content: '不可能被接受的写入', author, summary: 'T2.2 矩阵:只读型拒写探针' },
-      })
-      check('15.25 D|prompt-save{cordis.time-context}: rejected 且同明示',
-        tcCordis.status === 'rejected' && (tcCordis.issues ?? []).some((s) => s.includes('无 patch 写回落点')),
-        `status=${tcCordis.status}`)
-    }
+    // —— D|只读型拒写:原 time-context×2 探针(15.24/15.25)随 2026-11-11 用户裁定
+    //    整体移除(time-context 纯运行时时钟注入器不登记,无条目可探);E 组的
+    //    运行时注入型拒写探针(15.26/15.27)保留同语义覆盖。 ——
 
     // —— E|运行时注入型(memory/glue section:拒写 + 回放按型跳过 + 快照分型标注) ——
     {
@@ -1296,12 +1291,10 @@ try {
       const snap = await dsh.call('loopPrompt/snapshot')
       const radiusOf = new Map((snap.entries ?? []).map((e) => [e.id, e.effect?.radius]))
       const expectRadius = (id, radius) => radiusOf.get(id) === radius
-      check('15.40 J|声明对账: preset patch 值型 6 条=即时(新会话);time-context×2=readonly-upstream;domain×4=not-composed;runtime×2=runtime-rebuilt(与 15.2-15.39 实测逐面一致)',
+      check('15.40 J|声明对账: preset patch 值型 6 条=即时(新会话);domain×4=not-composed;runtime×2=runtime-rebuilt(与 15.2-15.39 实测逐面一致;2026-11-11 裁定后无 time-context 行)',
         ['preset.standard.persona', 'preset.standard.agent-instructions', 'preset.standard.plan-mode.section',
           'preset.cordis.persona', 'preset.cordis.agent-instructions', 'preset.cordis.plan-mode.section']
           .every((id) => expectRadius(id, 'immediate-new-session'))
-        && expectRadius('preset.standard.time-context', 'readonly-upstream')
-        && expectRadius('preset.cordis.time-context', 'readonly-upstream')
         && ['domain.event-planning.persona-prefix', 'domain.event-planning.persona-md',
           'domain.industrial-analysis.persona-prefix', 'domain.industrial-analysis.persona-md']
           .every((id) => expectRadius(id, 'not-composed-anywhere'))

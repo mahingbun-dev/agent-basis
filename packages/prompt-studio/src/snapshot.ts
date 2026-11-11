@@ -14,18 +14,16 @@ export const CHANNEL_A: ChannelInfo = {
 
 export const EFFECTIVE_NOTE = '保存对新会话生效(无需重启);进行中会话与 KV-cache 前缀不受影响。影响:新会话前缀将变化。'
 
-/** 行锚点只读型条目的生效说明(T1.4 分型:对不可保存条目透传 EFFECTIVE_NOTE 会误导)。 */
-export const READONLY_ENTRY_NOTE = '该条目由上游插件运行时生成,无 patch 写回落点——本视图只读;保存通道对其 fail-closed 拒写,不存在「保存生效」语义。'
-
-/** 运行时注入型条目的生效说明(同上;自管改造见 T2.6)。 */
+/** 运行时注入型条目的生效说明(T1.4 分型:对不可保存条目透传 EFFECTIVE_NOTE 会误导;自管改造见 T2.6)。 */
 export const RUNTIME_ENTRY_NOTE = '该条目由代码在装配时注入(运行时构建,无静态全文)——本视图只读;保存通道对其 fail-closed 拒写(自管改造见 T2.6)。'
 
 /**
- * 会话快照查看语义说明(T2.3 查询端点透传,UI 顶部展示):快照冻结 + 两型
- * 不可回放条目的降级标注口径(测试计划 §4 T2.3(b)⑤)。文案含「不可回放」与
- * 「上游生成」锚点字样(t7-ui-check combo 级文案断言)。
+ * 会话快照查看语义说明(T2.3 查询端点透传,UI 顶部展示):快照冻结 + 不可
+ * 回放条目(运行时注入型)的降级标注口径(测试计划 §4 T2.3(b)⑤)。文案含
+ * 「不可回放」与「装配时」锚点字样(t7-ui-check combo 级文案断言)。
+ * (2026-11-11 用户裁定:纯运行时数据注入器不登记,行锚点只读型表述随之移除。)
  */
-export const SNAPSHOT_VIEW_NOTE = '快照在会话开启事件时冻结,只读不可变——改动提示词只影响之后新开启的会话,本会话全程沿用快照。行锚点只读型与运行时注入型条目不可回放(上游生成/装配时构建),仅记在场标记。'
+export const SNAPSHOT_VIEW_NOTE = '快照在会话开启事件时冻结,只读不可变——改动提示词只影响之后新开启的会话,本会话全程沿用快照。运行时注入型条目不可回放(文本装配时动态构建),仅记在场标记。'
 
 export const COMPOSED_NOTE = '编辑范围仅 persona 段(preset-standard 行 plugins[id=persona].config.prefix);最终组合提示(plan-mode/skill/agent-instructions 等段)的只读组合视图在 T7.2 提供。'
 

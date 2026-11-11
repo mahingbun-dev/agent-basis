@@ -9,9 +9,9 @@
  *   逐条目生效条件注记,registry effect 字段单一来源;不热生效/不可写条目在此
  *   明示,不造「保存即全面生效」假象)+ 风险标注警示区(升级覆盖等,registry
  *   risks 全文展示)+ 分型值区:patch 值型 → 编辑器(保存两段式 R3;
- *   [data-t7-editor]/[data-t7-save-btn]/[data-ps-entry-save]);行锚点只读型/
- *   运行时注入型 → 只读说明面板(「上游运行时生成,无 patch 写回落点」明示,
- *   不造可编辑假象);
+ *   [data-t7-editor]/[data-t7-save-btn]/[data-ps-entry-save]);运行时注入型 →
+ *   只读说明面板(「装配时构建,无 patch 写回落点」明示,不造可编辑假象)
+ *   (2026-11-11 用户裁定后注册表无行锚点只读型,其面板与文案已移除);
  * - 版本/diff 复用(T7.3 组件按条目渲染):VersionItem(载入/对比/导出/回滚,
  *   无任何删除入口——版本只增不删)+ DiffView([data-ps-diff-view] 锚点叠加);
  * - AI 润色区(T3.2)[data-ps-ai-polish]:patch 值型条目 → 生成建议稿 → diff 预览
@@ -24,8 +24,8 @@
  *   **报告仅展示、不拦截保存**([data-ps-ai-review-note] 纪律文案);AI 不可用时
  *   ruleFindings 仍可看(本地校验器不依赖模型),降级明示随结果 issues 呈现;
  * - 会话快照查看(T2.3)[data-ps-session-snapshot]:会话行卡 → 该会话开启时刻
- *   effective prompt 全文(条目版本指针+可展开文本);只读型/运行时注入型条目
- *   「不可回放(上游生成)」降级标注明示,不造可回放假象;
+ *   effective prompt 全文(条目版本指针+可展开文本);运行时注入型条目
+ *   「不可回放(运行时构建)」降级标注明示,不造可回放假象;
  * - 导入(JSON 包;包内 entryId 指名落点条目)+ R3 审批卡 + 写结果就地展示。
  *
  * 数据经 inject 面到达(props.useStudio / props.refresh / props.call),不触 ctx。
@@ -419,7 +419,7 @@ function downloadJson(filename: string, data: unknown): void {
 /**
  * 会话快照查看视图(T2.3):会话行卡列表(点击查全文)→ 快照详情(冻结时刻/
  * checksum/捕获事件 + 逐条目指针或分型标注 + 可展开的当时文本)。只读视图——
- * 快照不可变,无任何写操作;只读型/运行时注入型条目明示「不可回放(上游生成)」
+ * 快照不可变,无任何写操作;运行时注入型条目明示「不可回放(运行时构建)」
  * 降级标注(服务端 note/annotation 透传 + 本地分型徽标双保险,t7-ui-check 文案锚点)。
  */
 function SessionSnapshotsView({ call, t, ready, generatedAt }: {
@@ -568,7 +568,7 @@ function SessionSnapshotsView({ call, t, ready, generatedAt }: {
  * AI 润色区(T3.2):可用性胶囊(零模型调用)→ 润色侧重点 + 生成按钮 → 建议稿卡
  * (生成信息 + 建议稿全文(折叠)+ diff 预览 + 「作为提案提交」/「放弃建议稿」)。
  * 建议稿仅预览(永不直接生效);「作为提案提交」经 loopPrompt/ai-proposal 进与
- * 手工保存完全相同的 R3 两段式。只读型/运行时注入型条目不渲染本区(无写回落点,
+ * 手工保存完全相同的 R3 两段式。运行时注入型条目不渲染本区(无写回落点,
  * 提案必然 fail-closed,不造可提交假象)。
  */
 function AiPolishSection({ status, polish, instruction, aiBusy, busy, canPolish, diffEmpty, onInstructionChange, onPolish, onDiscard, onPropose, t }: {
@@ -811,7 +811,7 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
   const [aiReview, setAiReview] = useState<AiReviewState>({ status: 'idle' })
   const aiBusy = aiBusyOp !== null
 
-  /** 选中条目的当前文本(patch 值型=反引文本;只读型/运行时型=空串,无编辑器)。 */
+  /** 选中条目的当前文本(patch 值型=反引文本;运行时注入型=空串,无编辑器)。 */
   const selectedText = selected !== undefined && selected.kind === 'patch-value' ? selected.value.text ?? '' : ''
   /**
    * patch 值型条目读值失败(value.text=null、problems 非空;如 profile 升级后锚点
@@ -849,7 +849,7 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
   const baseVersionId = chain !== undefined && chain.versions.length > 0 ? chain.versions[0]?.id : undefined
 
   // 按条目版本链惰性拉取:选中条目变化 / 快照刷新(写后 refresh 会换 generatedAt)时
-  // 重拉;只读型/运行时注入型无版本链概念(versioned=false),不拉。失败不静默:
+  // 重拉;运行时注入型无版本链概念(versioned=false),不拉。失败不静默:
   // 状态面记 error 就地展示,换条目或刷新即重试;已有可展示链(默认条目初始链/
   // 上次缓存)时静默后台刷新,不闪「拉取中」。
   const generatedAt = state.status === 'ready' ? state.snapshot.generatedAt : ''
@@ -1393,13 +1393,6 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
               <p data-ps-entry-value-error-note>{t('studio.entry.valueUnreadable.note')}</p>
               {(selected.value.problems.length > 0 ? selected.value.problems : [t('studio.entry.valueUnreadable.fallback')])
                 .map((problem, index) => <p key={index} data-ps-entry-problem-item>{problem}</p>)}
-            </div>
-          )}
-          {selected.kind === 'line-anchor-readonly' && (
-            <div data-ps-entry-readonly data-t7-section="readonly" aria-label={t('studio.entry.readonly.title')}>
-              <h3 data-t7-section-title>{t('studio.entry.readonly.title')}</h3>
-              <p data-ps-entry-readonly-note>{t('studio.entry.readonly.note')}</p>
-              <p data-ps-entry-value-note>{t('studio.entry.readonly.value')}</p>
             </div>
           )}
           {selected.kind === 'runtime-injection' && (

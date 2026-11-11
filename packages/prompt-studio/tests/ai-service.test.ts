@@ -553,16 +553,18 @@ describe('AI 端点全链(真实 cordis 根 Context + configEditor 桩 + 同构�
     await gateway2.dispose()
   })
 
-  it('端点分态:未知条目 not-found;只读型无底稿 rejected 明示(input.content 可显式传入)', async () => {
+  it('端点分态:未知条目 not-found;运行时注入型无底稿 rejected 明示(input.content 可显式传入)', async () => {
     const gateway = await makeGateway()
     const notFound = await gateway.aiPolish({ entryId: 'no.such.entry' })
     expect(notFound.status).toBe('not-found')
     expect(notFound.issues?.[0]).toContain('未知条目 id:no.such.entry')
-    const readonly = await gateway.aiPolish({ entryId: 'preset.standard.time-context' })
-    expect(readonly.status).toBe('rejected')
-    expect(readonly.issues?.[0]).toContain('无可润色底稿')
-    // 显式传 content:只读型条目也可对草稿做润色/审核(底稿面与写回落点解耦)。
-    const withContent = await gateway.aiPolish({ entryId: 'preset.standard.time-context', content: '当前时间上下文草稿' })
+    // (原 readonly 两断言用 preset.standard.time-context,随 2026-11-11 用户裁定
+    // 不登记改写为 runtime 注入型条目——同一「无静态值⇒无底稿」分型语义。)
+    const noDraft = await gateway.aiPolish({ entryId: 'runtime.memory.index-section' })
+    expect(noDraft.status).toBe('rejected')
+    expect(noDraft.issues?.[0]).toContain('无可润色底稿')
+    // 显式传 content:无静态值条目也可对草稿做润色/审核(底稿面与写回落点解耦)。
+    const withContent = await gateway.aiPolish({ entryId: 'runtime.memory.index-section', content: '记忆索引草稿' })
     expect(withContent.status).toBe('ok')
     await gateway.dispose()
   })

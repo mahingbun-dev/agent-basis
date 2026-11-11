@@ -10,16 +10,21 @@
  * tests/registry.test.ts 维持「ledger ↔ 注册表条目 (id,型别) 集合」双向相等——
  * 删条目/改型别/漏登记都会打破相等,清单与代码互相锁住。
  *
- * 条目型别三分(与对账判据一一对应,测试计划 §3 T1.3):
+ * 条目型别二分(与对账判据一一对应,测试计划 §3 T1.3;2026-11-11 用户裁定后,
+ * 原三分中的「行锚点只读型」随 time-context 整体移除而清除):
  * - patch 值型:值在 patch/包文件里,可结构定位并反引读回(persona 前缀、
  *   agent-instructions maxBytes、plan-mode section、领域 personaPrefix/persona.md);
- * - 行锚点只读型:行在场但提示词文本由上游插件运行时生成(time-context 两预设均
- *   无 config 裸行;上游 config 面只有 refreshIntervalMs/timeZone 调度项)——
- *   写链路 fail-closed 拒写,不造写回假象;
  * - 运行时注入型:section 元数据 + 来源代码锚点(memory/glue),无静态全文。
  *
+ * 注册表不变量(2026-11-11 用户裁定,原样落注):注册表只登记拥有提示词文本/
+ * 提示词参数的条目;纯运行时数据注入器(如 time-context 时钟读数,两预设的无
+ * config 裸行)不登记——time-context 已按裁定从注册表整体移除登记(不是隐藏,
+ * 是不登记),保留注记见 docs/dev/ps-v2-registry-ledger.md。边界:agent-instructions
+ * (maxBytes 数值参数,但该插件本体是提示词注入器)与 meta 元提示词条目保留——
+ * 它们拥有提示词语义。
+ *
  * 红线豁免语义(T1.3(b)4):persona 类条目标记 required(红线必检),非 persona
- * 条目(time-context/plan-mode/agent-instructions/运行时 section)标记 exempt——
+ * 条目(plan-mode/agent-instructions/运行时 section)标记 exempt——
  * 防止 T1.6 把 RED_LINE_RULES 错配到全部条目。required 条目另带规则集 id:
  * 'eterna.red-lines.standard' = validator.ts RED_LINE_RULES(预算不超支/不代付/
  * 比选中立,锚点与 packs/event-planning/persona.md 对齐;T1.6 起双语——同集条目
@@ -39,9 +44,11 @@ export type PromptLayer = 'preset' | 'domain' | 'runtime' | 'meta'
 
 /**
  * 条目型别枚举(闭合;与对账判据一一对应,每型至少 1 条被真文件钉住——
- * tests/registry.test.ts 分型断言)。
+ * tests/registry.test.ts 分型断言)。2026-11-11 用户裁定后闭合为二分:
+ * 纯运行时数据注入器不登记(见文件头「注册表不变量」),原「line-anchor-readonly」
+ * 型随 time-context 移除而清除。
  */
-export type PromptEntryKind = 'patch-value' | 'line-anchor-readonly' | 'runtime-injection'
+export type PromptEntryKind = 'patch-value' | 'runtime-injection'
 
 /** 层的 ledger/UI 中文标签(docs/dev/ps-v2-registry-ledger.md 与测试共用单一来源)。 */
 export const LAYER_LABELS: Readonly<Record<PromptLayer, string>> = {
@@ -54,7 +61,6 @@ export const LAYER_LABELS: Readonly<Record<PromptLayer, string>> = {
 /** 型别的 ledger/UI 中文标签(测试计划 §3 T1.3 的分型判据用语)。 */
 export const ENTRY_KIND_LABELS: Readonly<Record<PromptEntryKind, string>> = {
   'patch-value': 'patch 值型',
-  'line-anchor-readonly': '行锚点只读型',
   'runtime-injection': '运行时注入型',
 }
 
@@ -67,18 +73,17 @@ export const ENTRY_KIND_LABELS: Readonly<Record<PromptEntryKind, string>> = {
  * - not-composed-anywhere:无组合面——写回落点=仓库 pack 文件,但当前无任何宿主
  *   (生产 eterna-web 与 t7 隔离档的 dsh.profile.bundles 均不含领域包)装载该来源,
  *   改动不进入任何运行中组合(实测:写后同进程 dump-config 组合树不含新文);
- * - readonly-upstream:不可写——行锚点只读型,上游插件每次组装生成,写链路
- *   fail-closed 拒写,无「改后生效」语义;
  * - runtime-rebuilt:不可写——运行时注入型,文本由代码每次装配动态构建,
  *   写链路 fail-closed 拒写,不受快照回放冻结(回放按型跳过)。
+ * (2026-11-11 用户裁定后闭合为三枚举:原「readonly-upstream」与行锚点只读型
+ * 一一绑定,随 time-context 整体移除登记而清除——纯运行时数据注入器不登记。)
  */
-export type PromptEffectRadius = 'immediate-new-session' | 'not-composed-anywhere' | 'readonly-upstream' | 'runtime-rebuilt'
+export type PromptEffectRadius = 'immediate-new-session' | 'not-composed-anywhere' | 'runtime-rebuilt'
 
 /** 生效半径的 ledger/UI 中文标签(标签文案随 locale 字典二次本地化,本表供文档对账)。 */
 export const EFFECT_RADIUS_LABELS: Readonly<Record<PromptEffectRadius, string>> = {
   'immediate-new-session': '即时(新会话;进行中会话沿用快照)',
   'not-composed-anywhere': '无组合面(不进入任何会话)',
-  'readonly-upstream': '不可写(上游每次组装生成)',
   'runtime-rebuilt': '不可写(每次装配动态构建)',
 }
 
@@ -164,12 +169,13 @@ export const DEFAULT_ENTRY_ID = 'preset.standard.persona'
 const UPGRADE_OVERWRITE_RISK = 'profile/pack 升级合并可能覆盖本地编辑(版本库可回滚兜底)'
 
 /**
- * 全部存量条目(16 条:preset×8、domain×4、runtime×2、meta×2——meta 层为
+ * 全部存量条目(14 条:preset×6、domain×4、runtime×2、meta×2——meta 层为
  * T3.1 新增的元提示词登记)。行号锚 2026-11-11 实测自本 worktree(T1.2 合入后):
  * persona×2 = :288(standard 裸标量)/:149-150(cordis 块标量 >-);
  * agent-instructions = :154/:292(maxBytes: 65536);
- * time-context = :155-156/:293-294(无 config 裸行);
  * plan-mode section = :188-199/:331 起(| 多段字面块)。
+ * time-context 两行(:155-156/:293-294)仍在 live patch 里,但按 2026-11-11
+ * 用户裁定不登记(见文件头「注册表不变量」),不再是注册表条目。
  */
 export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
   // ── preset 层:preset-standard(默认预设,T7 persona-patch 既有写回落点)──────
@@ -229,24 +235,6 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
       note: '保存经 R3 审批写回后即时生效:改后新开的 plan 模式会话立即用新段;旧会话补轮沿用快照旧段(t7-e2e 14.7-14.10 实测;plan 模式激活时才注入)。',
     },
   },
-  {
-    id: 'preset.standard.time-context',
-    layer: 'preset',
-    kind: 'line-anchor-readonly',
-    source: '@deepseek-ai/dsh-time-context',
-    anchors: [
-      { file: WEB_PATCH, line: 293, contains: '- id: time-context' },
-      { file: WEB_PATCH, line: 294, contains: "'@deepseek-ai/dsh-time-context'" },
-    ],
-    note: '行锚点只读型:该条目由上游插件运行时生成,无 patch 写回落点(上游 config 面只有 refreshIntervalMs/timeZone 调度项,提示词文本每次注入时生成)。',
-    risks: ['无 patch 值亦无写回落点——写链路 fail-closed 拒写并明示,不造写回假象(测试计划 §9.7 口径)。'],
-    redLine: 'exempt',
-    maxBytes: MAX_PERSONA_BYTES,
-    effect: {
-      radius: 'readonly-upstream',
-      note: '不可经工作室修改:保存对其 fail-closed 拒写(t7-e2e 15.24 实测);时间文本由上游每次组装重新生成,不存在「改后生效半径」。',
-    },
-  },
   // ── preset 层:preset-cordis(创造模式,2026-11-09 用户裁定回加)────────────
   {
     id: 'preset.cordis.persona',
@@ -303,24 +291,6 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     effect: {
       radius: 'immediate-new-session',
       note: '与 standard 档同机制:写回后改后新开的 plan 模式会话立即用新段(t7-e2e 15.18-15.23 实测于同构 cordis 预设行;plan 模式激活时才注入)。',
-    },
-  },
-  {
-    id: 'preset.cordis.time-context',
-    layer: 'preset',
-    kind: 'line-anchor-readonly',
-    source: '@deepseek-ai/dsh-time-context',
-    anchors: [
-      { file: WEB_PATCH, line: 155, contains: '- id: time-context' },
-      { file: WEB_PATCH, line: 156, contains: "'@deepseek-ai/dsh-time-context'" },
-    ],
-    note: '行锚点只读型:该条目由上游插件运行时生成,无 patch 写回落点(preset-cordis 行内同样是无 config 裸行)。',
-    risks: ['无 patch 值亦无写回落点——写链路 fail-closed 拒写并明示,不造写回假象。'],
-    redLine: 'exempt',
-    maxBytes: MAX_PERSONA_BYTES,
-    effect: {
-      radius: 'readonly-upstream',
-      note: '不可经工作室修改:保存对其 fail-closed 拒写(t7-e2e 15.25 实测);时间文本由上游每次组装重新生成。',
     },
   },
   // ── 领域层:两 pack 的 system-prompt.personaPrefix(>- 块标量)+ persona.md 全文 ──
@@ -500,15 +470,15 @@ export function getPromptRegistryEntry(id: string): PromptRegistryEntry | undefi
  * id 全局唯一、层/型别/红线/生效半径枚举闭合、每条锚点≥1/风险≥1/注记非空、
  * required⇒规则集在场、exempt⇒规则集缺席、maxBytes>0、运行时注入型不带
  * YAML 结构定位、生效半径与型别绑定(kind↔radius 一致性,T2.2 矩阵口径:
- * patch 值型∈{immediate-new-session,not-composed-anywhere}、行锚点只读型=
- * readonly-upstream、运行时注入型=runtime-rebuilt)。
+ * patch 值型∈{immediate-new-session,not-composed-anywhere}、运行时注入型=
+ * runtime-rebuilt)。
  */
 export function registryInvariants(): { ok: boolean; problems: readonly string[] } {
   const problems: string[] = []
   const seen = new Set<string>()
   const layers: readonly string[] = ['preset', 'domain', 'runtime', 'meta']
-  const kinds: readonly string[] = ['patch-value', 'line-anchor-readonly', 'runtime-injection']
-  const radii: readonly string[] = ['immediate-new-session', 'not-composed-anywhere', 'readonly-upstream', 'runtime-rebuilt']
+  const kinds: readonly string[] = ['patch-value', 'runtime-injection']
+  const radii: readonly string[] = ['immediate-new-session', 'not-composed-anywhere', 'runtime-rebuilt']
   for (const entry of PROMPT_REGISTRY_ENTRIES) {
     if (seen.has(entry.id)) problems.push(`id 重复:${entry.id}`)
     seen.add(entry.id)
@@ -530,9 +500,6 @@ export function registryInvariants(): { ok: boolean; problems: readonly string[]
     // T2.2 生效半径(矩阵口径):枚举闭合 + 型别绑定 + 注记非空。
     if (!radii.includes(entry.effect.radius)) problems.push(`${entry.id}:生效半径枚举外 ${entry.effect.radius}`)
     if (entry.effect.note.trim() === '') problems.push(`${entry.id}:生效条件注记为空`)
-    if (entry.kind === 'line-anchor-readonly' && entry.effect.radius !== 'readonly-upstream') {
-      problems.push(`${entry.id}:行锚点只读型的生效半径应为 readonly-upstream`)
-    }
     if (entry.kind === 'runtime-injection' && entry.effect.radius !== 'runtime-rebuilt') {
       problems.push(`${entry.id}:运行时注入型的生效半径应为 runtime-rebuilt`)
     }
@@ -546,14 +513,12 @@ export function registryInvariants(): { ok: boolean; problems: readonly string[]
 // ---------- 写守卫(T1.6 写链路逐条目调用;T1.3 先落型别语义) ----------
 
 /**
- * 写前置检查(fail-closed):行锚点只读型/运行时注入型无 patch 写回落点,拒写并
- * 明示原因——不造写回假象(测试计划 §3 T1.3(b)1)。patch 值型可经「按条目 patch
- * 定位重述写回」(T1.6)。
+ * 写前置检查(fail-closed):运行时注入型无 patch 写回落点,拒写并明示原因——
+ * 不造写回假象(测试计划 §3 T1.3(b)1)。patch 值型可经「按条目 patch 定位重述
+ * 写回」(T1.6)。(原「行锚点只读型」分支随 time-context 不登记裁定移除,
+ * 2026-11-11。)
  */
 export function ensureEntryWritable(entry: PromptRegistryEntry): void {
-  if (entry.kind === 'line-anchor-readonly') {
-    throw new Error(`该条目由上游插件生成,无 patch 写回落点(条目 ${entry.id};写链路 fail-closed 拒写)`)
-  }
   if (entry.kind === 'runtime-injection') {
     throw new Error(`该条目为运行时注入型,内容由代码在装配时生成,无 patch 写回落点(条目 ${entry.id};自管改造见 T2.6)`)
   }
@@ -596,17 +561,17 @@ export interface EntryValueRead {
   readonly anchorsPresent: boolean
   /** 锚点/读值问题明细(anchorsPresent=false 或 text=null 时非空)。 */
   readonly problems: readonly string[]
-  /** 当前值:patch 值型=反引文本(非空);行锚点只读型/运行时注入型=null(无静态值)。 */
+  /** 当前值:patch 值型=反引文本(非空);运行时注入型=null(无静态值)。 */
   readonly text: string | null
   /** text 的 UTF-8 字节数(无静态值时 null)。 */
   readonly bytes: number | null
-  /** 型别注记(只读型/运行时型的「上游运行时生成」标注来源)。 */
+  /** 型别注记(运行时型的「装配时构建」标注来源)。 */
   readonly note: string
 }
 
 /**
  * 读条目当前值(分型):patch 值型→结构定位+反引(裸/引号标量经 unquoteYamlScalar,
- * 块标量经 readBlockScalarValue;整文件条目→全文);行锚点只读型/运行时注入型→
+ * 块标量经 readBlockScalarValue;整文件条目→全文);运行时注入型→
  * text=null + note 明示。读失败不抛:problems 记明细(对齐 PersonaPatchFile.read
  * 的容错降级纪律)。值读取本体在 readEntryText(运行时读侧 T1.4 复用)。
  */

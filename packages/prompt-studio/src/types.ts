@@ -235,11 +235,11 @@ export interface PromptEntryView {
   readonly id: string
   /** 层(preset/domain/runtime)。 */
   readonly layer: PromptLayer
-  /** 型别(patch-value/line-anchor-readonly/runtime-injection)。 */
+  /** 型别(patch-value/runtime-injection;2026-11-11 裁定后二分)。 */
   readonly kind: PromptEntryKind
   /** 来源插件/包。 */
   readonly source: string
-  /** 型别注记(只读型/运行时型的「上游运行时生成」标注来源)。 */
+  /** 型别注记(运行时型的「装配时构建」标注来源)。 */
   readonly note: string
   /** 风险标注(UI 直接展示)。 */
   readonly risks: readonly string[]
@@ -249,7 +249,7 @@ export interface PromptEntryView {
   readonly redLineRuleSet?: string
   /** 写链路字节上限(逐条目校验口径)。 */
   readonly maxBytes: number
-  /** patch 值型=true(有版本链);行锚点只读型/运行时注入型=false(无版本链概念)。 */
+  /** patch 值型=true(有版本链);运行时注入型=false(无版本链概念)。 */
   readonly versioned: boolean
   /** 生效半径标注(T2.2 实测矩阵;UI「生效条件」明示与矩阵文档共用单一来源)。 */
   readonly effect: { readonly radius: PromptEffectRadius; readonly note: string }
@@ -259,13 +259,13 @@ export interface PromptEntryView {
 export interface EntryValueView {
   readonly entryId: string
   readonly kind: PromptEntryKind
-  /** 当前值:patch 值型=结构定位反引文本;行锚点只读型/运行时注入型=null(无静态值)。 */
+  /** 当前值:patch 值型=结构定位反引文本;运行时注入型=null(无静态值)。 */
   readonly text: string | null
   /** text 的 UTF-8 字节数(无静态值时 null)。 */
   readonly bytes: number | null
-  /** 读值问题明细(text=null 且非只读型时非空;不抛错)。 */
+  /** 读值问题明细(text=null 且非运行时注入型时非空;不抛错)。 */
   readonly problems: readonly string[]
-  /** 型别注记(只读型/运行时型的「上游运行时生成」标注)。 */
+  /** 型别注记(运行时型的「装配时构建」标注)。 */
   readonly note: string
 }
 
@@ -295,12 +295,11 @@ export interface EntryNotFoundResult {
 
 /**
  * 快照内单条目的生效提示词记录(指针按条目型别分语义,对齐 T1.3 分型——
- * 未定义语义的型别不得静默空段,测试计划 §4 T2.3(b)①):
+ * 未定义语义的型别不得静默空段,测试计划 §4 T2.3(b)①;2026-11-11 用户裁定后
+ * 二分:time-context 等纯运行时数据注入器不登记,原「行锚点只读型」语义随之移除):
  * - patch 值型:text=开启时生效文本全文,versionId=内容 checksum 与之一致的
  *   版本链记录 id(指针);无一致版本(外部改写/写入在途)→ versionId=null +
  *   annotation 明示,**不伪造 versionId**;
- * - 行锚点只读型(time-context):text/versionId=null + 在场标记 annotation
- *   (「上游运行时生成」),不伪造;
  * - 运行时注入型(memory/glue):开启时可解析的 section 文本(注册表自管文本)
  *   或元数据在场标记 annotation。
  */
@@ -316,7 +315,7 @@ export interface SessionSnapshotEntry {
   readonly checksum: string | null
   /** 条目版本指针(patch 值型:指向内容一致版本的 id;无一致版本/无版本链型 null)。 */
   readonly versionId: string | null
-  /** 型别语义标注(只读型/运行时型/无一致版本的明示;可据型别缺席)。 */
+  /** 型别语义标注(运行时型/无一致版本的明示;可据型别缺席)。 */
   readonly annotation: string | null
   /** 读值问题明细(读失败时非空,不抛错)。 */
   readonly problems: readonly string[]
@@ -330,7 +329,7 @@ export interface SessionSnapshotRecord {
   readonly createdAt: string
   /** 捕获触发事件(当前唯一:'session/created')。 */
   readonly trigger: string
-  /** 全部注册表条目的快照条目(全景,含三型分语义)。 */
+  /** 全部注册表条目的快照条目(全景,分型语义)。 */
   readonly entries: readonly SessionSnapshotEntry[]
   /** 内容整体 checksum(sha256 of 规范化 {sessionId,trigger,entries};不可变复核口径)。 */
   readonly checksum: string
@@ -460,7 +459,7 @@ export interface VersionsResult {
 export interface PromptRollbackInput {
   /** 目标版本(内容整体写回;版本记录本身不动)。必填,缺失/未知即 rejected。 */
   readonly versionId: string
-  /** 目标条目 id(T1.6;可省——版本归属条目即写回落点;给出时须与版本归属一致,且只读型条目 fail-closed 拒回滚)。 */
+  /** 目标条目 id(T1.6;可省——版本归属条目即写回落点;给出时须与版本归属一致,且运行时注入型条目 fail-closed 拒回滚)。 */
   readonly entryId?: string
   /** 乐观锁:与当前最新版本 id 不符则拒绝(可省)。 */
   readonly baseVersionId?: string

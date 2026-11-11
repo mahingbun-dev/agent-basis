@@ -73,10 +73,9 @@ export const SKIP_COMPLETE_OWNER = 'complete-section-owner(治理条目所属插
 /** 段文本为空(如 plan 模式未激活):该条目本次未参与组装,无文本可回放。 */
 export const SKIP_SECTION_EMPTY = 'section-empty(段文本为空——如 plan 模式未激活,该条目本次未参与组装,无文本可回放)'
 
-/** 行锚点只读型:上游运行时生成,无版本链,跳过回放(T2.3 分型语义)。 */
-export const SKIP_READONLY_KIND = 'line-anchor-readonly(上游运行时生成,无版本链,跳过回放)'
-
-/** 运行时注入型:装配时动态构建,跳过回放(T2.3 分型语义)。 */
+/** 运行时注入型:装配时动态构建,跳过回放(T2.3 分型语义)。
+ * (原 SKIP_READONLY_KIND(line-anchor-readonly)随 2026-11-11 用户裁定移除:
+ * time-context 等纯运行时数据注入器不再登记,该型别无使用者,分支一并清除。) */
 export const SKIP_RUNTIME_KIND = 'runtime-injection(文本装配时动态构建,跳过回放)'
 
 /** patch 值型但无段落映射(数值配置条目/无运行时注入点的文件基准条目)。 */
@@ -131,7 +130,7 @@ export interface ReplaySectionOutcome {
   readonly reason?: string
 }
 
-/** 未映射条目的跳过记录(只读型/运行时型/无段落 patch 值型;T2.4「跳过并记录原因」)。 */
+/** 未映射条目的跳过记录(运行时型/无段落 patch 值型;T2.4「跳过并记录原因」)。 */
 export interface ReplaySkippedEntry {
   readonly entryId: string
   readonly reason: string
@@ -309,13 +308,13 @@ export function resolveAssemblyReplay(input: AssemblyReplayInput): AssemblyRepla
     }
     sections.push({ sectionName: mapping.sectionName, outcome: 'skipped', reason: SKIP_GOVERNING_UNKNOWN })
   }
-  // 未映射条目按型别记跳过原因(T2.4:只读型/运行时型跳过并记录原因)。
+  // 未映射条目按型别记跳过原因(T2.4:运行时型跳过并记录原因;2026-11-11 裁定后
+  // 注册表无行锚点只读型,该分支已清除)。
   const mapped = replayMappedEntryIds()
   const skippedEntries: ReplaySkippedEntry[] = []
   for (const entry of entries) {
     if (mapped.has(entry.id)) continue
-    if (entry.kind === 'line-anchor-readonly') skippedEntries.push({ entryId: entry.id, reason: SKIP_READONLY_KIND })
-    else if (entry.kind === 'runtime-injection') skippedEntries.push({ entryId: entry.id, reason: SKIP_RUNTIME_KIND })
+    if (entry.kind === 'runtime-injection') skippedEntries.push({ entryId: entry.id, reason: SKIP_RUNTIME_KIND })
     else skippedEntries.push({ entryId: entry.id, reason: SKIP_NO_SECTION_MAPPING })
   }
   return { sessionId, degraded: null, sections, skippedEntries }

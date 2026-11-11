@@ -169,7 +169,8 @@ try {
     // T1.5 全景改版锚点(ps-v2-test-plan §3 T1.5(b)②:分组导航/条目详情/diff/保存)。
     'data-ps-group-nav', 'data-ps-entry-detail', 'data-ps-diff-view', 'data-ps-entry-save',
     // T2.3 会话快照查看视图锚点(ps-v2-test-plan §4 T2.3(b):快照查看视图 +
-    // 只读型/运行时注入型「不可回放/上游生成」降级文案,combo 级断言唯一采集载体)。
+    // 运行时注入型「不可回放/运行时构建」降级文案,combo 级断言唯一采集载体;
+    // 2026-11-11 用户裁定后「上游生成」文案随行锚点只读型移除)。
     'data-ps-session-snapshot', 'data-ps-snapshot-session-row', 'data-ps-snapshot-detail',
     'data-ps-snapshot-entry', 'data-ps-snapshot-entry-text',
     // T2.2 生效条件区锚点(ps-v2-test-plan §4 T2.2(b):不热生效条目 UI 明示,
@@ -192,8 +193,8 @@ try {
   check('combo 脚本含生效条件文案锚点(生效条件/即时生效/不可编辑;T2.2 不热生效条目 UI 明示)',
     comboBody.includes(escapedZh('生效条件')) && comboBody.includes(escapedZh('即时生效'))
     && comboBody.includes(escapedZh('不可编辑')))
-  check('combo 脚本含快照降级文案锚点(不可回放/上游生成;两型无版本链条目明示)',
-    comboBody.includes(escapedZh('不可回放')) && comboBody.includes(escapedZh('上游生成')))
+  check('combo 脚本含快照降级文案锚点(不可回放/运行时构建;无版本链条目明示)',
+    comboBody.includes(escapedZh('不可回放')) && comboBody.includes(escapedZh('运行时构建')))
   check('combo 脚本含快照查询端点接线(loopPrompt/session-snapshot)', comboBody.includes('loopPrompt/session-snapshot'))
   // T3.2 AI 润色流文案锚点(ps-v2-test-plan §7.3 G-PS-03 断言 4:无 key/llm 缺席
   // 优雅降级的 UI 文案;「作为提案提交」=生效唯一通道的纪律文案)。

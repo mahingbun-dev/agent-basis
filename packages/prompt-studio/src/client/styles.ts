@@ -344,12 +344,12 @@ const CSS = `
   display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px;
   color: var(--dsw-alias-label-tertiary);
 }
-[data-ps-entry-readonly], [data-ps-entry-runtime] {
+[data-ps-entry-runtime] {
   display: flex; flex-direction: column; gap: 8px; padding: 16px 20px; border-radius: 18px;
   background: var(--dsw-alias-bg-layer-1, transparent);
   border: 0.5px solid var(--dsw-alias-border-l2);
 }
-[data-ps-entry-readonly-note], [data-ps-entry-runtime-note] {
+[data-ps-entry-runtime-note] {
   margin: 0; font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-secondary);
 }
 [data-ps-entry-value-note] { margin: 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-tertiary); }

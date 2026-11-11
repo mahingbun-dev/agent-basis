@@ -10,8 +10,9 @@
  * ②styles.ts 令牌数量只增不减(基线 136 处 --dsw-alias-*);③新视图锚点
  * data-ps-group-nav / data-ps-entry-detail / data-ps-diff-view / data-ps-entry-save
  * 在 bundle 中。
- * T2.3 扩展:会话快照查看视图锚点(data-ps-snapshot-*)与「不可回放/上游生成」
- * 降级文案锚点在 bundle 中(测试计划 §4 T2.3(b) 前端断言,同 T1.5 模式)。
+ * T2.3 扩展:会话快照查看视图锚点(data-ps-snapshot-*)与「不可回放/运行时构建」
+ * 降级文案锚点在 bundle 中(测试计划 §4 T2.3(b) 前端断言,同 T1.5 模式;
+ * 2026-11-11 用户裁定后「上游生成」文案随行锚点只读型移除)。
  */
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -120,21 +121,23 @@ describe('T1.5 全景改版工件', () => {
     // 测试计划 §3 T1.5(b)② 的四个锚点 + 改版新增的结构面锚点。
     for (const anchor of [
       'data-ps-group-nav', 'data-ps-entry-detail', 'data-ps-diff-view', 'data-ps-entry-save',
-      'data-ps-entry-row', 'data-ps-layer-group', 'data-ps-entry-risks', 'data-ps-entry-readonly',
+      'data-ps-entry-row', 'data-ps-layer-group', 'data-ps-entry-risks',
       'data-ps-entry-runtime',
     ]) {
       expect(code, `缺少 T1.5 锚点 ${anchor}`).toContain(anchor)
     }
   })
 
-  it('T2.2 工件:生效条件区锚点在 bundle 中;radius 四枚举标签文案在场(不热生效条目 UI 明示)', () => {
+  it('T2.2 工件:生效条件区锚点在 bundle 中;radius 三枚举标签文案在场(不热生效条目 UI 明示)', () => {
     const code = readFileSync(bundlePath, 'utf8')
-    // 测试计划 §4 T2.2(b):不热生效条目在 UI 明示生效条件——combo 文案锚点。
+    // 测试计划 §3 T1.5(b)② 的四个锚点 + 改版新增的结构面锚点。
     for (const anchor of ['data-ps-entry-effect', 'data-ps-effect-radius', 'data-ps-effect-badge', 'data-ps-entry-effect-note']) {
       expect(code, `缺少 T2.2 生效条件锚点 ${anchor}`).toContain(anchor)
     }
     // bundle 经 esbuild ASCII 转义(大写 hex \uXXXX),中文文案按转义形态断言:
-    // 「生效条件」标题 + 四枚举标签文案(即时/不进入任何会话/不可编辑两类)。
+    // 「生效条件」标题 + 三枚举标签文案(即时/不进入任何会话/不可编辑)。
+    // (2026-11-11 用户裁定后 radius 闭合为三枚举:readonly-upstream 随 time-context
+    // 不登记移除。)
     const escaped = (text: string): string => text.split('')
       .map(ch => (ch.charCodeAt(0) <= 0x7e ? ch : `\\u${ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`))
       .join('')
@@ -143,7 +146,7 @@ describe('T1.5 全景改版工件', () => {
     expect(code, '不进入任何会话标签文案应在 bundle').toContain(escaped('不进入任何会话'))
     expect(code, '不可编辑标签文案应在 bundle').toContain(escaped('不可编辑'))
     // radius 字典键全部接线(StudioPage 经 t(`studio.effect.${radius}`) 消费)。
-    for (const radius of ['immediate-new-session', 'not-composed-anywhere', 'readonly-upstream', 'runtime-rebuilt']) {
+    for (const radius of ['immediate-new-session', 'not-composed-anywhere', 'runtime-rebuilt']) {
       expect(code, `radius 字典键 studio.effect.${radius} 应在 bundle`).toContain(`studio.effect.${radius}`)
     }
   })
@@ -243,7 +246,7 @@ describe('T1.5 全景改版工件', () => {
     expect(code, '「受审文本」过期文案应在 bundle').toContain(escaped('受审文本'))
   })
 
-  it('T2.3 工件:会话快照查看视图锚点在 bundle 中;只读型/运行时注入型「不可回放/上游生成」降级文案在场', () => {
+  it('T2.3 工件:会话快照查看视图锚点在 bundle 中;运行时注入型「不可回放」降级文案在场', () => {
     const code = readFileSync(bundlePath, 'utf8')
     // 测试计划 §4 T2.3(b):快照查看视图锚点(随 T1.5 模式)。
     for (const anchor of [
@@ -252,13 +255,15 @@ describe('T1.5 全景改版工件', () => {
     ]) {
       expect(code, `缺少 T2.3 快照视图锚点 ${anchor}`).toContain(anchor)
     }
-    // 降级标注文案锚点(两型无版本链条目明示,不造可回放假象)。bundle 经 esbuild
+    // 降级标注文案锚点(无版本链条目明示,不造可回放假象)。bundle 经 esbuild
     // ASCII 转义(大写 hex \uXXXX),中文文案按转义形态断言。
+    // (2026-11-11 用户裁定后「上游生成」文案随行锚点只读型移除,改为断言
+    // 运行时注入型的「运行时构建」降级文案。)
     const escaped = (text: string): string => text.split('')
       .map(ch => (ch.charCodeAt(0) <= 0x7e ? ch : `\\u${ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`))
       .join('')
     expect(code, '「不可回放」降级文案应在 bundle').toContain(escaped('不可回放'))
-    expect(code, '「上游生成」降级文案应在 bundle').toContain(escaped('上游生成'))
+    expect(code, '「运行时构建」降级文案应在 bundle').toContain(escaped('运行时构建'))
     expect(code, '「会话快照」区段标题文案应在 bundle').toContain(escaped('会话快照'))
     // 快照端点接线(session-snapshot 列表/详情两形态)。
     expect(code).toContain('loopPrompt/session-snapshot')

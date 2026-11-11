@@ -25,7 +25,7 @@
  * - loopPrompt/prompt-versions   版本列表(只增不删);T1.4 起 input.entryId 非空 →
  *                                该条目版本链;缺省=默认条目(persona)链,旧形态兼容
  * - loopPrompt/prompt-rollback   回滚(两段式;产生新版本而非删旧版本)。T1.6 起按
- *                                条目:版本归属条目即写回落点;只读型条目 fail-closed
+ *                                条目:版本归属条目即写回落点;运行时注入型条目 fail-closed
  * - loopPrompt/prompt-export     导出 JSON 包(只读,不走审批)。T1.6 起任意条目链可
  *                                导出,包带 entryId(默认条目缺省,T7 包形状不变)
  * - loopPrompt/prompt-import     导入 JSON 包(schemaVersion+checksum 强校验 + 与保存
@@ -96,7 +96,7 @@ import {
   ensureEntryWritable, getPromptRegistryEntry, readEntryText,
 } from './registry.ts'
 import type { PromptRegistryEntry, RegistryFileReader } from './registry.ts'
-import { COMPOSED_NOTE, EFFECTIVE_NOTE, READONLY_ENTRY_NOTE, RUNTIME_ENTRY_NOTE, SNAPSHOT_VIEW_NOTE, buildSnapshot, cardDiffSummary } from './snapshot.ts'
+import { COMPOSED_NOTE, EFFECTIVE_NOTE, RUNTIME_ENTRY_NOTE, SNAPSHOT_VIEW_NOTE, buildSnapshot, cardDiffSummary } from './snapshot.ts'
 import {
   SESSION_CREATED_TRIGGER, SessionSnapshotStore, SNAPSHOT_UNIT_DESCRIPTOR, captureSessionSnapshotEntries,
 } from './session-snapshot.ts'
@@ -579,7 +579,7 @@ export class LoopPromptGateway extends TypertRemoteService {
   }
 
   /**
-   * 写入口统一前置:条目解析(未知 id 明示)+ 型别写守卫(只读型/运行时注入型
+   * 写入口统一前置:条目解析(未知 id 明示)+ 型别写守卫(运行时注入型
    * fail-closed 拒写)。返回 rejected 结果或条目本体。
    */
   resolveWritableEntry(kind: WriteKind, entryId: string, author: string):
@@ -913,8 +913,8 @@ export class LoopPromptGateway extends TypertRemoteService {
           snapshotId,
           governed: governed.map(section => ({ sectionName: section.sectionName, entryId: section.entryId })),
           // T2.2 补:未映射条目的按型跳过记录随 governed 事件一并落审计(此前只在
-          // applied 事件携带——scoped 持旧实例的会话走 governed 路径时,运行时注入/
-          // 只读型条目「跳过并记录原因」(T2.4 承诺)在审计面缺席)。字段只增不改。
+          // applied 事件携带——scoped 持旧实例的会话走 governed 路径时,运行时注入
+          // 条目「跳过并记录原因」(T2.4 承诺)在审计面缺席)。字段只增不改。
           skippedEntries: result.skippedEntries,
         })
       }
@@ -1062,7 +1062,7 @@ export class LoopPromptGateway extends TypertRemoteService {
     if (base === null || base.trim() === '') {
       return {
         status: 'rejected', entryId, note: AI_NOTE,
-        issues: [`条目 ${entryId} 无可润色底稿(只读型/运行时注入型无静态值,或当前值不可读);可用 input.content 显式传入草稿`],
+        issues: [`条目 ${entryId} 无可润色底稿(运行时注入型无静态值,或当前值不可读);可用 input.content 显式传入草稿`],
       }
     }
     const metaPrompt = this.readMetaPromptText(AI_META_POLISH_ENTRY_ID)
@@ -1137,7 +1137,7 @@ export class LoopPromptGateway extends TypertRemoteService {
     if (content === null || content.trim() === '') {
       return {
         status: 'rejected', entryId, ruleFindings: [], aiFindings: [], note: AI_NOTE,
-        issues: [`条目 ${entryId} 无可审核文本(只读型/运行时注入型无静态值,或当前值不可读);可用 input.content 显式传入草稿`],
+        issues: [`条目 ${entryId} 无可审核文本(运行时注入型无静态值,或当前值不可读);可用 input.content 显式传入草稿`],
       }
     }
     // 本地确定性校验(T1.6 同一模块导出;非 persona 条目红线豁免语义沿用)。
@@ -1282,7 +1282,7 @@ export class LoopPromptGateway extends TypertRemoteService {
   /**
    * 其余 patch 值型条目的链首种子(T1.4,幂等一次):当前值经注册表运行时读取面
    * 反引,非空即种子各自链首(ensureInitial 语义:链空才种;读不到/空值不种,
-   * 不造假基线);只读型/运行时注入型无静态值,不种(版本链 count=0 即其无版本链
+   * 不造假基线);运行时注入型无静态值,不种(版本链 count=0 即其无版本链
    * 的如实呈现)。attach 后台启动;按条目读侧(prompt-get/prompt-versions/snapshot
    * entries[])先 await 本方法,保证链视图确定性(种子写入与读取同上版本库串行链,
    * 先排队者先可见)。单条种子失败只影响该条目链留空(容错,不炸宿主),整体失败
@@ -1437,10 +1437,9 @@ export class LoopPromptGateway extends TypertRemoteService {
         entry: entryViewOf(entry),
         value: this.buildEntryValueView(entry),
         versions: await this.versionOverview(entry.id),
-        // 分型生效说明:只读型/运行时注入型无「保存生效」语义,给只读文案防误导(T1.5 前端透传)。
-        effectiveNote: entry.kind === 'line-anchor-readonly'
-          ? READONLY_ENTRY_NOTE
-          : entry.kind === 'runtime-injection' ? RUNTIME_ENTRY_NOTE : EFFECTIVE_NOTE,
+        // 分型生效说明:运行时注入型无「保存生效」语义,给只读文案防误导(T1.5 前端透传;
+        // 原行锚点只读型分支随 time-context 不登记裁定移除,2026-11-11)。
+        effectiveNote: entry.kind === 'runtime-injection' ? RUNTIME_ENTRY_NOTE : EFFECTIVE_NOTE,
       }
     }
     const persona = await this.patch.read()
@@ -1497,13 +1496,13 @@ export class LoopPromptGateway extends TypertRemoteService {
   /**
    * 回滚(端点 loopPrompt/prompt-rollback;两段式;产生新版本)。T1.6 起按条目:
    * 版本归属条目即写回落点(领域/plan-mode/块标量条目回滚到各自落点,写前校验
-   * 与审批同门);input.entryId 给出时须与版本归属一致,只读型条目 fail-closed
-   * 明示不支持回滚。
+   * 与审批同门);input.entryId 给出时须与版本归属一致,运行时注入型条目
+   * fail-closed 明示不支持回滚。
    */
   async promptRollback(input: PromptRollbackInput): Promise<PromptRollbackResult> {
     const author = input.author?.trim() !== '' && input.author !== undefined ? input.author.trim() : 'web'
-    // 显式 entryId 先过条目守卫:未知 id/只读型条目 fail-closed 明示(测试计划
-    // §3 T1.6(b)⑤:time-context 等只读型回滚请求 → 「上游插件生成,无写回落点」)。
+    // 显式 entryId 先过条目守卫:未知 id/运行时注入型条目 fail-closed 明示(测试计划
+    // §3 T1.6(b)⑤;原 time-context 只读型拒回滚断言随 2026-11-11 不登记裁定移除)。
     let preResolved: { entry: PromptRegistryEntry } | undefined
     if (input.entryId !== undefined && input.entryId !== '') {
       const resolved = this.resolveWritableEntry('rollback', input.entryId, author)
@@ -1983,14 +1982,14 @@ export { ApprovalGate, ENTRY_WRITE_RULE_PREFIX, PERSONA_WRITE_RULE_ID, WILDCARD_
 export { StudioAudit, defaultAuditFilePath } from './audit.ts'
 export { CHANNEL_A, EFFECTIVE_NOTE, COMPOSED_NOTE, SNAPSHOT_VIEW_NOTE } from './snapshot.ts'
 export {
-  READONLY_SNAPSHOT_ANNOTATION, RUNTIME_NO_TEXT_ANNOTATION, RUNTIME_TEXT_ANNOTATION,
+  RUNTIME_NO_TEXT_ANNOTATION, RUNTIME_TEXT_ANNOTATION,
   SESSION_CREATED_TRIGGER, SNAPSHOT_UNIT_DESCRIPTOR, SNAPSHOT_UNIT_NAME, SNAPSHOTS_TABLE,
   SessionSnapshotStore, captureSessionSnapshotEntries, sessionSnapshotChecksum,
 } from './session-snapshot.ts'
 export {
   ASSEMBLE_EVENT, PLAN_POLICY_SECTION_NAME, PERSONA_PREFIX_SECTION_NAME, REPLAY_SECTION_MAPPINGS,
   SKIP_COMPLETE_OWNER, SKIP_GOVERNING_AMBIGUOUS, SKIP_GOVERNING_UNKNOWN, SKIP_NO_AGENT_ID,
-  SKIP_NO_SECTION_MAPPING, SKIP_READONLY_KIND, SKIP_RUNTIME_KIND, SKIP_SECTION_ABSENT, SKIP_SECTION_EMPTY,
+  SKIP_NO_SECTION_MAPPING, SKIP_RUNTIME_KIND, SKIP_SECTION_ABSENT, SKIP_SECTION_EMPTY,
   SKIP_SNAPSHOT_ABSENT, SKIP_SNAPSHOT_TEXT_NULL, agentIdOfAssembleContext, pluginSpanOwnsCompleteFlag,
   replayMappedEntryIds, resolveAssemblyReplay,
 } from './assembly-replay.ts'
