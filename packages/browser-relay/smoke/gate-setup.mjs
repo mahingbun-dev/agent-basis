@@ -126,7 +126,9 @@ symlinkSync(mcpTarget, join(PROFILE, 'node_modules/@deepseek-ai/dsh-mcp-client')
 log('symlinks 完成（@eterna 七项 + dsh-agent-preset + dsh-mcp-client）')
 
 // ── 4. relay（先起；mcp 工具调用依赖它）─────────────────────────────
-const relay = spawn('node', [join(PKG, 'dist/cli.mjs'), 'start', '--port', '9310'], {
+// --zip：/companion/download.zip 下发的扩展包（前端引导下载链）
+const COMPANION_ZIP = join(REPO, 'packages/extension-companion/eterna-companion.zip')
+const relay = spawn('node', [join(PKG, 'dist/cli.mjs'), 'start', '--port', '9310', '--zip', COMPANION_ZIP], {
   cwd: PKG,
   stdio: ['ignore', 'ignore', 'inherit'],
   detached: true,
