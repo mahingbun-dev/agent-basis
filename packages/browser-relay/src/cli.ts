@@ -1,5 +1,5 @@
 // CLI：start / status / call 三个子命令（开发与冒烟用）。
-//   node src/cli.ts start [--port 9310] [--host 127.0.0.1] [--token T] [--zip P] [--public-ws-url W]
+//   node src/cli.ts start [--port 9310] [--host 127.0.0.1] [--token T] [--zip P] [--public-ws-url W] [--tokens-file F]
 //   node src/cli.ts status [--port 9310]
 //   node src/cli.ts call <tool> [--args '{"...":...}'] [--port 9310]
 
@@ -20,12 +20,14 @@ async function main(): Promise<void> {
       const zip = argValue(rest, '--zip')
       const host = argValue(rest, '--host')
       const publicWsUrl = argValue(rest, '--public-ws-url')
+      const tokensFile = argValue(rest, '--tokens-file')
       const server = new RelayServer({
         port,
         ...(token !== undefined ? { token } : {}),
         ...(zip !== undefined ? { companionZipPath: zip } : {}),
         ...(host !== undefined ? { host } : {}),
         ...(publicWsUrl !== undefined ? { publicWsUrl } : {}),
+        ...(tokensFile !== undefined ? { tokensFile } : {}),
       })
       await server.start()
       // 进程驻留
