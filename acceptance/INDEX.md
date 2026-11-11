@@ -119,3 +119,22 @@
 - 方案修正：DSM 反代规则来源只有 协议+主机名+端口（无路径字段），`/relay` 路径前缀方案在 DSM 上不可行（公网 404 来自 DSM nginx）→ 改为**独立端口规则**（来源 `HTTPS/*:9310` → 目的地 `HTTP/192.168.31.44:9310`，与既有 eternaAgent 3210 规则并存）+ 公网防火墙放行 9310；`.env` 改 `ETERNA_RELAY_PUBLIC_URL=wss://eternity-electricity.cn:9310/extension` 后 up -d 重渲染。
 - 公网四项全过：guide 200 / download.zip 200(application/zip 6298B) / wss 无 token 401 / wss 带 token 连接成功——token 鉴权在公网生效（红线 9）。
 - **验证工装坑**：node ws 客户端对 wss 未显式声明 ALPN 时可被 TLS 协商成 HTTP/2→upgrade 404（假阴性）；`ALPNProtocols:['http/1.1']` 或 `curl --http1.1` 才是真实验证姿势——浏览器扩展用原生 WebSocket（强制 http/1.1）不受影响。
+
+## 多用户并发 + 前端令牌卡（2026-11-11 下午，产品要求"必须支持多并发"）
+
+链路：PR #19/#20（relay 多用户+access 令牌基建+UI 卡）→ PR #22/#23（cli --tokens-file 生产实测修复）→ main=ce32131 → 干净 worktree 重建部署 healthy（镜像 4a52ef9f5b8b）。
+
+**多用户架构**（产品硬性要求落地）：
+- relay 扩展腿按「凭据串=命名空间」多路复用：每 token 一台浏览器，tabs/sessions/ref 注册表全隔离；同令牌二接入 409（token=浏览器实例身份），不同用户完全并行
+- 身份路由链：dsh 会话（exec.agent.session.id）→ sessions 表 owner（access 既有）→ companion-tokens.json 用户令牌 → 对应扩展连接；注入点=access 的 tools/pre-execute 瀑布末段（服务端覆盖 _eternaToken，模型不可伪造；晚于治理/审计=治理面不接触令牌）；已知归属未生成令牌 → deny（fail-closed）
+- /api/tools 凭据校验（x-relay-token）——回闭公网反代透传暴露的上一轮缺口
+
+**前端令牌卡**（设置→账号→浏览器执行面，全用户可见）：令牌等宽展示+一键复制+生成/重置两击确认+安装指引新窗跳转（guideUrl 由 ETERNA_RELAY_PUBLIC_URL 推导）。
+
+**生产 API 层全链验证**（公网入口 admin 会话）：初始 token=null → reset 生成 ec- 令牌 → view 命中 → 清单文件 /data/access/companion-tokens.json 落盘（0600）→ relay 直读认证（用户令牌 ws 接入+/api/tools 200）→ guideUrl 公网推导正确；verify.sh 10/10。
+
+**生产实测修复**：cli.ts 未接 --tokens-file（server 选项已备 CLI 漏接→清单恒空全 401）——集成测试直构 RelayServer 未盖 CLI 解析面的盲区。
+
+**阻塞登记（并行会话迁移中间态，非本工作范围）**：
+1. 新镜像含用量统计插件改造（侧栏重排：用量统计/更多/工作区）——**「⚙ 设置」入口在侧栏消失**（DOM 扫描 60+ 交互元素无设置项；头像/⌘,/右侧栏/更多浮层均无）→ UI 卡生产可见性阻塞（深浅主题截图挂账）。卡本身已交付（bundle 含 CompanionCard），等设置入口恢复即可见。
+2. **历史会话全部报 `no adapter registered for provider "litellm"`**（P2 多供应商直连迁移摘除 litellm 后既有会话模型路由失效）——本会话早前 MCP 探针（14:40 之前）的会话正常，之后全失败。
