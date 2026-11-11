@@ -17,7 +17,6 @@ const BASELINE_EXTERNALS = [
   'react-dom/client',
   '@deepseek-ai/cordis',
   '@deepseek-ai/dsh-client-ui-slots',
-  '@deepseek-ai/dsh-client-ui-primitives',
 ]
 
 mkdirSync(resolve(root, 'lib'), { recursive: true })

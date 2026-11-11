@@ -28,16 +28,30 @@ function companionGuideHtml(displayWsUrl: string): string {
   return `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><title>Eterna 浏览器执行面 · 安装指引</title>
 <style>
-:root{color-scheme:light;font-family:system-ui,-apple-system,"PingFang SC",sans-serif}
-body{max-width:720px;margin:32px auto;padding:0 16px;font-size:14px;line-height:1.7}
-h2{font-size:18px}
-.card{border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin:12px 0}
-.state{font-weight:700;padding:10px 12px;border-radius:8px}
-.ok{background:#dcfce7;color:#166534}.warn{background:#fef9c3;color:#854d0e}.err{background:#fee2e2;color:#991b1b}
-ol{padding-left:22px}code{background:#f1f5f9;padding:2px 6px;border-radius:4px}
-button{padding:6px 14px;border:none;border-radius:6px;background:#2563eb;color:#fff;cursor:pointer}
+:root{color-scheme:light dark;--bg:#ffffff;--surface:#ffffff;--surface-2:#f7f7f7;--fg:#080808;--fg-2:#363636;--muted:#5a5a5a;--border:#d8d8d8;--border-soft:#e8e8e8;--accent:#146ef5;--accent-fill:#146ef5;--accent-on:#ffffff;--success:#067a1c;--warn:#8a5a00;--danger:#d3122b;--focus:0 0 0 3px color-mix(in oklab,var(--accent),transparent 70%);font-family:system-ui,-apple-system,"PingFang SC",sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#080808;--surface:#101010;--surface-2:#161616;--fg:#f5f5f5;--fg-2:#d4d4d4;--muted:#a3a3a3;--border:#2a2a2a;--border-soft:#222222;--accent:#3b89ff;--accent-fill:#2a6fd0;--success:#35e35f;--warn:#ffb020;--danger:#ff5c68}}
+*{box-sizing:border-box}
+body{max-width:720px;margin:48px auto;padding:0 20px;background:var(--bg);color:var(--fg);font-size:16px;line-height:1.7}
+h1{font-size:32px;line-height:1.15;font-weight:600;margin:0 0 8px;letter-spacing:0}
+h3{font-size:20px;line-height:1.3;font-weight:600;margin:28px 0 8px}
+a{color:var(--accent);text-underline-offset:3px}
+.card{border:1px solid var(--border-soft);border-radius:4px;padding:16px 20px;margin:16px 0;background:var(--surface)}
+.state{display:flex;align-items:center;gap:8px;font-weight:600;padding:10px 12px;border:1px solid var(--border-soft);border-radius:4px;background:var(--surface-2)}
+.state::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.ok{color:var(--success);background:color-mix(in oklab,var(--success),transparent 92%)}
+.ok::before{background:var(--success)}
+.warn{color:var(--warn);background:color-mix(in oklab,var(--warn),transparent 92%)}
+.warn::before{background:var(--warn)}
+.err{color:var(--danger);background:color-mix(in oklab,var(--danger),transparent 92%)}
+.err::before{background:var(--danger)}
+ol{padding-left:22px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;background:var(--surface-2);padding:2px 6px;border-radius:4px}
+button{min-height:36px;padding:8px 16px;border:1px solid transparent;border-radius:4px;background:var(--accent-fill);color:var(--accent-on);font:inherit;font-weight:600;cursor:pointer}
+button:hover{background:color-mix(in oklab,var(--accent-fill),#000 8%)}
+button:focus-visible{outline:none;box-shadow:var(--focus)}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 </style></head><body>
-<h2>Eterna 浏览器执行面 · 安装指引</h2>
+<h1>Eterna 浏览器执行面 · 安装指引</h1>
 <div class="state" id="state">检测中…</div>
 <h3>安装步骤</h3>
 <ol>
@@ -55,7 +69,8 @@ button{padding:6px 14px;border:none;border-radius:6px;background:#2563eb;color:#
 function render(s){
   var el=document.getElementById('state'),lv=document.getElementById('live')
   var ok=s.extensionConnected===true
-  el.textContent=ok?'🟢 已连接 · 版本 '+String(s.extVersion||'?')+' · Chrome '+String(s.chromeVersion||'?'):'🔴 未连接（扩展未安装或未启动）'
+  el.className='state '+(ok?'ok':'err')
+  el.textContent=ok?'已连接 · 版本 '+String(s.extVersion||'?')+' · Chrome '+String(s.chromeVersion||'?'):'未连接（扩展未安装或未启动）'
   lv.textContent=JSON.stringify(s)
 }
 fetch('/api/status').then(r=>r.json()).then(render).catch(function(){document.getElementById('state').textContent='状态获取失败'})

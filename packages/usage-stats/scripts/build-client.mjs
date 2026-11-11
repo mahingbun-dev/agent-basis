@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 /** dsh web 壳的平台基线模块(packages/client/web/src/platform.ts PLATFORM_MODULES),
- * 面板客户端实际引用的子集:react 家族与 ui-primitives。 */
+ * 面板客户端实际引用的子集:react 家族(图标已自绘,不再引用 ui-primitives)。 */
 const BASELINE_EXTERNALS = [
   'react',
   'react/jsx-runtime',
@@ -23,7 +23,6 @@ const BASELINE_EXTERNALS = [
   'zod',
   '@deepseek-ai/dsh-client-store',
   '@deepseek-ai/dsh-client-ui-slots',
-  '@deepseek-ai/dsh-client-ui-primitives',
   '@deepseek-ai/dsh-client-ui-dockkit',
   '@tanstack/react-virtual',
 ]

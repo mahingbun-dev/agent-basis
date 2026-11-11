@@ -7,6 +7,7 @@ import { injectDesignTokens } from '@eterna/ui'
 
 const CSS = `
 [data-eterna-panel='root'] {
+  animation: et-fade-in var(--et-motion-base) var(--et-ease) both;
   width: 100%;
   height: 100%;
   overflow-y: auto;
@@ -17,7 +18,7 @@ const CSS = `
   max-width: none;
   margin: 0 auto;
   font-family: var(--et-font-body);
-  font-size: var(--et-text-caption);
+  font-size: var(--et-text-body);
   font-weight: var(--et-weight-body);
   line-height: var(--et-leading-body);
   color: var(--et-fg);
@@ -33,7 +34,7 @@ const CSS = `
 [data-eterna-panel='sub'] { margin: 8px 0 0; font-size: var(--et-text-body); line-height: var(--et-leading-body); color: var(--et-muted); }
 [data-eterna-panel='toolbar'] { display: flex; align-items: center; justify-content: space-between; gap: var(--et-space-3); margin-bottom: var(--et-space-2); }
 [data-eterna-panel='refresh'] {
-  padding: 8px 14px; font: inherit; font-size: var(--et-text-caption); cursor: pointer;
+  padding: 10px 16px; min-height: 36px; font: inherit; font-size: var(--et-text-caption); cursor: pointer;
   color: var(--et-fg); background: var(--et-bg);
   border: 1px solid var(--et-border); border-radius: var(--et-radius-sm);
   transition: border-color var(--et-motion-fast) var(--et-ease), background var(--et-motion-fast) var(--et-ease);
@@ -63,7 +64,7 @@ const CSS = `
 [data-eterna-panel='step-text'] { font-size: var(--et-text-caption); line-height: var(--et-leading-body); color: var(--et-fg-2); }
 
 /* —— 服务状态 —— */
-[data-eterna-panel='cards'] { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--et-space-6); }
+[data-eterna-panel='cards'] { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--et-space-6); }
 [data-eterna-panel='card'] {
   display: flex; flex-direction: column; gap: var(--et-space-2); min-width: 0;
   padding: var(--et-space-5); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md);
@@ -104,9 +105,10 @@ const CSS = `
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
 [data-eterna-panel='mem-expand'] {
-  margin-top: 6px; padding: 0; font: inherit; font-size: var(--et-text-micro); cursor: pointer;
+  position: relative; margin-top: 6px; padding: 0; font: inherit; font-size: var(--et-text-micro); cursor: pointer;
   color: var(--et-accent); background: none; border: 0;
 }
+[data-eterna-panel='mem-expand']::after { content: ""; position: absolute; inset: -10px -8px; }
 [data-eterna-panel='mem-expand']:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 /* —— 工具清单 —— */
@@ -141,9 +143,10 @@ const CSS = `
 [data-eterna-panel='prompt-title'] { font-size: var(--et-text-caption); font-weight: var(--et-weight-display); color: var(--et-fg); }
 [data-eterna-panel='prompt-capability'] { font-size: var(--et-text-micro); color: var(--et-muted); }
 [data-eterna-panel='prompt-copy'] {
-  margin-left: auto; padding: 4px 1px; font: inherit; font-size: var(--et-text-micro); cursor: pointer;
+  position: relative; margin-left: auto; padding: 4px 1px; font: inherit; font-size: var(--et-text-micro); cursor: pointer;
   color: var(--et-accent); background: transparent; border: 0;
 }
+[data-eterna-panel='prompt-copy']::after { content: ""; position: absolute; inset: -10px -8px; }
 [data-eterna-panel='prompt-copy']:hover { text-decoration: underline; text-underline-offset: 3px; }
 [data-eterna-panel='prompt-text'] { margin: 0; font-size: var(--et-text-caption); line-height: 1.6; color: var(--et-fg-2); }
 [data-eterna-panel='prompt-note'] { margin: 0; font-size: var(--et-text-micro); line-height: 1.5; color: var(--et-danger); }
@@ -161,16 +164,19 @@ const CSS = `
 [data-eterna-panel='chips'] { display: flex; flex-wrap: wrap; align-items: center; gap: var(--et-space-2); padding: 2px 4px 8px; }
 [data-eterna-panel='chips-label'] { font-size: var(--et-text-micro); color: var(--et-muted); }
 [data-eterna-panel='chip'] {
-  padding: 5px 12px; font: inherit; font-size: var(--et-text-micro); line-height: 1.4; cursor: pointer;
+  position: relative; padding: 5px 12px; font: inherit; font-size: var(--et-text-micro); line-height: 1.4; cursor: pointer;
   color: var(--et-accent);
   background: var(--et-accent-soft);
   border: 0; border-radius: var(--et-radius-sm);
   transition: background var(--et-motion-fast) var(--et-ease);
 }
+[data-eterna-panel='chip']::after { content: ""; position: absolute; inset: -5px -4px; }
 [data-eterna-panel='chip']:hover:not(:disabled) { background: color-mix(in oklab, var(--et-accent), transparent 82%); }
 [data-eterna-panel='chip']:disabled { opacity: 0.45; cursor: default; }
 
-@media (max-width: 900px) {
+@media (max-width: 760px) {
+  [data-eterna-panel='root'] { padding: 32px 20px 64px; }
+  [data-eterna-panel='steps'] { grid-template-columns: 1fr; gap: var(--et-space-4); }
   [data-eterna-panel='root'] { padding: 32px 20px 64px; }
   [data-eterna-panel='tool'] { flex-direction: column; gap: 6px; }
   [data-eterna-panel='tool-head'] { width: auto; }
@@ -178,7 +184,7 @@ const CSS = `
 }
 @media (max-width: 640px) {
   [data-eterna-panel='root'] { padding: 24px 16px 48px; }
-  [data-eterna-panel='heading'] { font-size: 28px; }
+  [data-eterna-panel='heading'] { font-size: var(--et-text-h3); }
   [data-eterna-panel='steps'] { grid-template-columns: 1fr; gap: var(--et-space-4); }
   [data-eterna-panel='cards'] { grid-template-columns: 1fr; }
   [data-eterna-panel='card'] { padding: var(--et-space-4); }
@@ -187,6 +193,9 @@ const CSS = `
 @media (prefers-reduced-motion: reduce) {
   [data-eterna-panel='refresh'], [data-eterna-panel='chip'] { transition: none; }
 }
+@keyframes et-fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { [data-eterna-panel='root'], [data-eterna-usage-stats], [data-t7-studio-root], [data-t7-trace-root] { animation: none; } }
+
 `
 
 /** 幂等注入面板样式表(同文档重复装载时复用既有节点)。 */

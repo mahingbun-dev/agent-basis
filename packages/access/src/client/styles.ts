@@ -5,31 +5,46 @@
 import { injectDesignTokens } from '@eterna/ui'
 
 const CSS = `
-[data-eterna-access-root] { width: 100%; font-family: var(--et-font-body); font-size: var(--et-text-caption); font-weight: var(--et-weight-body); line-height: var(--et-leading-body); color: var(--et-fg); max-width: none; }
+[data-eterna-access-root] { width: 100%; font-family: var(--et-font-body); font-size: var(--et-text-body); font-weight: var(--et-weight-body); line-height: var(--et-leading-body); color: var(--et-fg); max-width: none; }
 [data-eterna-access-root], [data-eterna-access-root] *, [data-eterna-access-root] *::before, [data-eterna-access-root] *::after { box-sizing: border-box; }
 [data-eterna-access-root] * { min-width: 0; overflow-wrap: anywhere; }
-[data-eterna-access-root] .ea-lead { margin: 0 0 20px; color: var(--et-muted); font-size: var(--et-text-caption); }
-[data-eterna-access-root] .ea-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--et-space-6); }
-[data-eterna-access-root] .ea-card { border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); padding: var(--et-space-5);
+[data-eterna-access-root] .ea-lead { margin: 0 0 16px; color: var(--et-muted); font-size: var(--et-text-caption); }
+[data-eterna-access-root] .ea-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--et-space-4); }
+[data-eterna-access-root] .ea-card { border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); padding: var(--et-space-4);
   background: var(--et-surface); }
 [data-eterna-access-root] .ea-card.ea-card-wide { grid-column: 1 / -1; }
 
 /* 设置/弹窗打开时隐藏右上身份胶囊,避免覆盖全屏设置面板。 */
 body:has([role="dialog"]) .eterna-identity-badge { display: none !important; }
 
-/* 设置弹窗不再使用 800px 小窗:桌面近全屏,内容区随面板铺开。 */
-@media (min-width: 900px) {
+/* 设置弹窗:导航固定 200,内容按分区定宽;高度随内容,超长才封顶滚动。 */
+@media (min-width: 761px) {
   [data-shortcut-modal="settings"] {
-    width: calc(100vw - 48px) !important;
-    max-width: calc(100vw - 48px) !important;
-    height: calc(100vh - 48px) !important;
-    grid-template-columns: 220px minmax(0, 1fr) !important;
+    height: auto !important;
+    max-height: min(720px, calc(100vh - 48px)) !important;
+    grid-template-columns: 200px minmax(0, 1fr) !important;
+  }
+  body:has([data-eterna-settings-section="account"]) [data-shortcut-modal="settings"] {
+    width: min(744px, calc(100vw - 48px)) !important;
+    max-width: min(744px, calc(100vw - 48px)) !important;
+  }
+  body:has([data-eterna-settings-section="users"]) [data-shortcut-modal="settings"] {
+    width: min(840px, calc(100vw - 48px)) !important;
+    max-width: min(840px, calc(100vw - 48px)) !important;
+  }
+  body:has([data-eterna-settings-section="notifications"]) [data-shortcut-modal="settings"] {
+    width: min(700px, calc(100vw - 48px)) !important;
+    max-width: min(700px, calc(100vw - 48px)) !important;
+  }
+  body:has([data-eterna-settings-section="approval-queue"]) [data-shortcut-modal="settings"] {
+    width: min(880px, calc(100vw - 48px)) !important;
+    max-width: min(880px, calc(100vw - 48px)) !important;
   }
 }
-[data-eterna-access-root] .ea-card h3 { margin: 0 0 var(--et-space-3); font-size: var(--et-text-body); font-weight: var(--et-weight-display); letter-spacing: 0; }
+[data-eterna-access-root] .ea-card h3 { margin: 0 0 var(--et-space-2); font-size: var(--et-text-body); font-weight: var(--et-weight-display); letter-spacing: 0; }
 [data-eterna-access-root] label.ea-label { display: block; font-size: var(--et-text-micro); color: var(--et-muted); margin: 12px 0 4px; }
 [data-eterna-access-root] input.ea-input, [data-eterna-access-root] select.ea-input {
-  width: 100%; padding: 10px 12px; border-radius: var(--et-radius-sm); font-size: var(--et-text-caption);
+  width: 100%; min-height: 36px; padding: 10px 12px; border-radius: var(--et-radius-sm); font-size: var(--et-text-caption);
   border: 1px solid var(--et-border);
   background: var(--et-bg); color: var(--et-fg);
   transition: border-color var(--et-motion-fast) var(--et-ease), box-shadow var(--et-motion-fast) var(--et-ease);
@@ -44,7 +59,7 @@ body:has([role="dialog"]) .eterna-identity-badge { display: none !important; }
   background: var(--et-surface-2); color: var(--et-fg); font: inherit; font-size: var(--et-text-micro); cursor: pointer;
 }
 [data-eterna-access-root] input[type=file].ea-input::file-selector-button:hover { border-color: var(--et-fg-2); }
-[data-eterna-access-root] .ea-btn { margin: 0; padding: 10px 16px; border: 1px solid transparent; border-radius: var(--et-radius-sm); font: inherit; font-size: var(--et-text-caption); font-weight: var(--et-weight-display); cursor: pointer;
+[data-eterna-access-root] .ea-btn { margin: 0; padding: 10px 16px; min-height: 36px; border: 1px solid transparent; border-radius: var(--et-radius-sm); font: inherit; font-size: var(--et-text-caption); font-weight: var(--et-weight-display); cursor: pointer;
   background: var(--et-accent-fill); color: var(--et-accent-on);
   transition: background-color var(--et-motion-fast) var(--et-ease), border-color var(--et-motion-fast) var(--et-ease), color var(--et-motion-fast) var(--et-ease);
 }
@@ -63,7 +78,7 @@ body:has([role="dialog"]) .eterna-identity-badge { display: none !important; }
 [data-eterna-access-root] .ea-err, [data-eterna-access-root] .ea-error { color: var(--et-danger); font-size: var(--et-text-micro); min-height: 18px; margin: 8px 0 0; white-space: pre-wrap; }
 [data-eterna-access-root] .ea-hint { color: var(--et-muted); font-size: var(--et-text-micro); line-height: 1.5; }
 [data-eterna-access-root] .ea-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--et-accent-fill); color: var(--et-accent-on);
-  display: inline-flex; align-items: center; justify-content: center; font-size: 18px; font-weight: var(--et-weight-display); overflow: hidden; flex: none; }
+  display: inline-flex; align-items: center; justify-content: center; font-size: var(--et-text-body); font-weight: var(--et-weight-display); overflow: hidden; flex: none; }
 [data-eterna-access-root] .ea-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 [data-eterna-access-root] .ea-table-wrap { width: 100%; overflow-x: auto; }
 [data-eterna-access-root] table.ea-table { width: 100%; border-collapse: collapse; font-size: var(--et-text-micro); margin-top: 8px; }
@@ -72,7 +87,7 @@ body:has([role="dialog"]) .eterna-identity-badge { display: none !important; }
 [data-eterna-access-root] .ea-tag { font-size: var(--et-text-micro); padding: 2px 8px; border-radius: var(--et-radius-sm); background: var(--et-surface-2); color: var(--et-muted); }
 [data-eterna-access-root] .ea-tag.brand { color: var(--et-accent); background: var(--et-accent-soft); }
 [data-eterna-access-root] .ea-tag.red { color: var(--et-danger); background: var(--et-danger-soft); }
-[data-eterna-access-root] .ea-dangerclick { color: var(--et-danger); cursor: pointer; background: none; border: 0; padding: 4px 0; font-size: var(--et-text-micro); min-height: 36px; }
+[data-eterna-access-root] .ea-dangerclick { color: var(--et-danger); cursor: pointer; background: none; border: 0; padding: 4px 8px; margin-left: -8px; font-size: var(--et-text-micro); min-height: 36px; }
 [data-eterna-access-root] .ea-dangerclick:hover { text-decoration: underline; text-underline-offset: 3px; }
 [data-eterna-access-root] .ea-dangerclick:focus-visible { outline: none; box-shadow: var(--et-focus-ring); }
 
@@ -103,6 +118,7 @@ body:has([role="dialog"]) .eterna-identity-badge { display: none !important; }
 [data-eterna-access-root] .ea-picon { display: inline-flex; align-items: center; justify-content: center; flex: none;
   width: 48px; height: 48px; border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md);
   color: var(--et-fg-2); background: var(--et-bg); }
+[data-eterna-access-root] .ea-picon > span { display: inline-flex; line-height: 0; }
 [data-eterna-access-root] .ea-pmain { display: flex; flex-direction: column; flex: 1; gap: 3px; min-width: 0; }
 [data-eterna-access-root] .ea-ptitle-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
 [data-eterna-access-root] .ea-ptitle { font-size: var(--et-text-caption); font-weight: var(--et-weight-display); line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

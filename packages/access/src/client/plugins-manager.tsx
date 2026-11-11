@@ -9,6 +9,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { api, type PluginRowView } from './api.ts'
+import { ArmedDelete } from './confirm-button.tsx'
 import { PLUGIN_META } from './plugin-meta.tsx'
 
 /** 开关(原生 Switch 同构):button[role=switch]+圆点,形态由 CSS 承担。 */
@@ -24,20 +25,6 @@ function Switch(props: {
     onClick={() => { props.onToggle() }}>
     <span className="ea-thumb" />
   </button>
-}
-
-/** 行内两击删除按钮(禁用原生对话框——内嵌 webview 卡死实测)。 */
-function ArmedDelete(props: { busy: boolean; onConfirm: () => void }): React.JSX.Element {
-  const [armed, setArmed] = useState(false)
-  const disarm = (): void => { setArmed(false) }
-  if (!armed) {
-    return <button className="ea-del" disabled={props.busy}
-      onClick={() => { setArmed(true) }}
-      onMouseLeave={disarm} onBlur={disarm}>删除</button>
-  }
-  return <button className="ea-del ea-armed" disabled={props.busy}
-    onClick={() => { props.onConfirm() }}
-    onMouseLeave={disarm} onBlur={disarm}>确认删除?</button>
 }
 
 /** 恒灵插件管理页签(Plugins 页 tabs,原生插件页卡片形态)。 */

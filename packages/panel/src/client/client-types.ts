@@ -1,7 +1,7 @@
 /**
  * 浏览器半边的本地结构类型:仅声明本插件消费的服务面(slots / locale /
  * connection),与 dsh 客户端壳的运行时形状鸭子一致。不导入跨包类型,
- * 客户端 bundle 因此零运行时依赖(基线外部模块除外:react、ui-primitives)。
+ * 客户端 bundle 因此零运行时依赖(基线外部模块除外:react)。
  */
 
 /** 槽位注册选项(list / keyed 两用的运行时字段)。 */

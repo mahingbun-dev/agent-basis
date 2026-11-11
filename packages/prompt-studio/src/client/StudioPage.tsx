@@ -787,6 +787,16 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
   const [draft, setDraft] = useState<string | null>(null)
   const [baseline, setBaseline] = useState<string | null>(null)
   const [draftEntry, setDraftEntry] = useState<string | null>(null)
+  const draftKeyOf = (entryId: string): string => `eterna.prompt-studio.draft.${entryId}`
+  const readDraft = (entryId: string): string | null => {
+    try { return sessionStorage.getItem(draftKeyOf(entryId)) } catch { return null }
+  }
+  const persistDraft = (entryId: string, value: string, pristine: string): void => {
+    try {
+      if (value === pristine) sessionStorage.removeItem(draftKeyOf(entryId))
+      else sessionStorage.setItem(draftKeyOf(entryId), value)
+    } catch { /* 隐私模式/配额不足时退化为仅内存草稿 */ }
+  }
   const [summary, setSummary] = useState('')
   const [pending, setPending] = useState<PendingApproval | null>(null)
   const [outcome, setOutcome] = useState<WriteOutcomeView | null>(null)
@@ -822,7 +832,7 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
   if (ready && selected !== undefined && (draftEntry !== selected.id || selectedText !== baseline)) {
     if (draftEntry !== selected.id || draft === null || draft === baseline) {
       setDraftEntry(selected.id)
-      setDraft(selectedText)
+      setDraft(readDraft(selected.id) ?? selectedText)
       setBaseline(selectedText)
     } else {
       // 用户已分叉:只推进基线记忆,草稿保持不动。
@@ -1061,7 +1071,10 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
         return
       }
       setOutcome(writeOutcomeFrom('save', result.value))
-      if (result.value.status === 'committed') refresh()
+      if (result.value.status === 'committed') {
+        try { sessionStorage.removeItem(draftKeyOf(selected.id)) } catch { /* 忽略 */ }
+        refresh()
+      }
     } finally {
       setBusy(false)
     }
@@ -1080,6 +1093,9 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
       } else {
         setOutcome(writeOutcomeFrom(pending.kind, result.value))
         if (result.value.status === 'committed') {
+          if (pending.echo.entryId !== undefined) {
+            try { sessionStorage.removeItem(draftKeyOf(pending.echo.entryId)) } catch { /* 忽略 */ }
+          }
           setPending(null)
           // 通道 A:写盘触发 HMR 重组合(awaitWriteFinish≈2s);按 8s 级轮询刷新生效态。
           window.setTimeout(refresh, 8000)
@@ -1326,7 +1342,11 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
                 data-t7-editor
                 value={draft ?? ''}
                 disabled={!ready}
-                onChange={event => { setDraft(event.target.value) }}
+                onChange={event => {
+                  const value = event.target.value
+                  setDraft(value)
+                  persistDraft(selected.id, value, selectedText)
+                }}
                 rows={12}
                 spellCheck={false}
               />
@@ -1426,7 +1446,10 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
                       version={version}
                       previous={chain.versions[index + 1] ?? null}
                       busy={busy}
-                      onLoad={content => { setDraft(content) }}
+                      onLoad={content => {
+                        setDraft(content)
+                        if (selected !== undefined) persistDraft(selected.id, content, selectedText)
+                      }}
                       onCompare={(target, previous) => {
                         if (previous !== null) setDiffPair({ a: previous, b: target })
                       }}

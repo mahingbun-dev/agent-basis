@@ -18,7 +18,7 @@ const LIGHT = `
   --et-fg: #080808;
   --et-fg-2: #363636;
   --et-muted: #5a5a5a;
-  --et-meta: #ababab;
+  --et-meta: #6b6b6b;
   --et-border: #d8d8d8;
   --et-border-soft: #ebebeb;
   --et-accent: #146ef5;
@@ -28,8 +28,8 @@ const LIGHT = `
   --et-accent-fill-hover: #0055d4;
   --et-accent-on: #ffffff;
   --et-accent-soft: color-mix(in oklab, var(--et-accent), transparent 90%);
-  --et-success: #00a81a;
-  --et-warn: #b87300;
+  --et-success: #067a1c;
+  --et-warn: #8a5a00;
   --et-danger: #d3122b;
   --et-danger-soft: color-mix(in oklab, var(--et-danger), transparent 90%);
   --et-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 24px 64px rgba(0, 0, 0, 0.08);
@@ -41,6 +41,7 @@ const LIGHT = `
     0px 3px 7px rgba(0, 0, 0, 0.09);
   --et-focus-ring: 0 0 0 3px color-mix(in oklab, var(--et-accent), transparent 70%);
   --et-selection: color-mix(in oklab, var(--et-accent), transparent 78%);
+  --et-overlay: rgba(0, 0, 0, 0.5);
 `
 
 const DARK = `
@@ -51,7 +52,7 @@ const DARK = `
   --et-fg: #f5f5f5;
   --et-fg-2: #d4d4d4;
   --et-muted: #a3a3a3;
-  --et-meta: #737373;
+  --et-meta: #8a8a8a;
   --et-border: #2a2a2a;
   --et-border-soft: #1e1e1e;
   --et-accent: #3b89ff;
@@ -69,6 +70,7 @@ const DARK = `
   --et-shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.6), 0 24px 64px rgba(0, 0, 0, 0.45);
   --et-focus-ring: 0 0 0 3px color-mix(in oklab, var(--et-accent), transparent 65%);
   --et-selection: color-mix(in oklab, var(--et-accent), transparent 70%);
+  --et-overlay: rgba(0, 0, 0, 0.72);
 `
 
 const SHARED = `
@@ -135,7 +137,7 @@ body, [data-eterna-ui] {
   --et-fg: var(--dsw-alias-label-primary, #080808);
   --et-fg-2: var(--dsw-alias-label-secondary, #363636);
   --et-muted: var(--dsw-alias-label-tertiary, #5a5a5a);
-  --et-meta: var(--dsw-alias-label-dimmed, #ababab);
+  --et-meta: var(--dsw-alias-label-dimmed, #6b6b6b);
   --et-border: var(--dsw-alias-border-l2, #d8d8d8);
   --et-border-soft: var(--dsw-alias-border-l1, #ebebeb);
   --et-accent: var(--dsw-alias-state-business-primary, #146ef5);
@@ -147,12 +149,13 @@ body, [data-eterna-ui] {
   --et-accent-fill-hover: color-mix(in oklab, var(--et-accent), black 45%);
   --et-accent-on: #ffffff;
   --et-accent-soft: color-mix(in oklab, var(--et-accent), transparent 90%);
-  --et-success: var(--dsw-alias-state-success-primary, #00a81a);
-  --et-warn: var(--dsw-alias-state-warn-primary, #b87300);
+  --et-success: var(--dsw-alias-state-success-primary, #067a1c);
+  --et-warn: var(--dsw-alias-state-warn-primary, #8a5a00);
   --et-danger: var(--dsw-alias-state-error-primary, #d3122b);
   --et-danger-soft: color-mix(in oklab, var(--et-danger), transparent 90%);
   --et-focus-ring: 0 0 0 3px color-mix(in oklab, var(--et-accent), transparent 70%);
   --et-selection: color-mix(in oklab, var(--et-accent), transparent 78%);
+  --et-overlay: rgba(0, 0, 0, 0.5);
 }
 `
 

@@ -78,8 +78,9 @@ export function DoctorStrip(props: CardOwnerProps & { slotCtx?: DoctorClientCont
       let el: HTMLElement | null = hostRef.current
       for (let depth = 0; depth < 8 && el !== null; depth++) {
         const container = el
-        const editButton = Array.from(container.querySelectorAll('button'))
-          .find(button => (button.textContent ?? '').trim() === '编辑')
+        const editButton = container.querySelector<HTMLButtonElement>('button[class*="secondaryButton"]')
+          ?? Array.from(container.querySelectorAll('button'))
+            .find(button => (button.textContent ?? '').trim() === '编辑')
         if (editButton !== undefined && editButton.parentElement !== null) {
           const parent = editButton.parentElement
           if (parent.querySelector('[data-bdoc-toggle]') === null) {

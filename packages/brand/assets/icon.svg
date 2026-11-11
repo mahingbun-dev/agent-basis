@@ -1,28 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="恒灵 EternaAgent">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="恒灵·EternaAgent">
   <!--
-    恒灵 EternaAgent 品牌图标 v3
-    语义:全幅粗壮闪电贯穿加粗恒环——灵(智能体之力)破环而出,恒(永恒回路)为基座。
-    设计要点:v3 修复「闪电只占画布宽 34%,16-24px 仍退化成圆+点」——闪电放大到
-    全幅(x 126-398=53% 宽,y 56-456=78% 高,上下仍出头破环),环加粗,深色描边
-    分离。单色/小尺寸变体:icon-mono.svg(纯闪电)。
+    恒灵·EternaAgent 品牌图标 v4
+    语义:恒环为基座,闪电(灵)破环而出。
+    规范:24 网格放大 21.333 倍;Webflow Blue 底 + 白闪电 + 28% 白恒环;
+    16px 使用纯闪电变体(favicon),32px 以上使用完整标。
   -->
-  <defs>
-    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#22d3ee"/>
-      <stop offset="1" stop-color="#1d4ed8"/>
-    </linearGradient>
-    <linearGradient id="bolt" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffd54a"/>
-      <stop offset="1" stop-color="#ff9f1a"/>
-    </linearGradient>
-  </defs>
-
-  <rect width="512" height="512" rx="112" fill="#0b1220"/>
-
-  <!-- 恒:加粗恒环 -->
-  <circle cx="256" cy="256" r="176" fill="none" stroke="url(#ring)" stroke-width="40"/>
-
-  <!-- 灵:粗壮闪电贯穿上下(超出环缘),深色描边与环分离 -->
-  <path d="M368 56 L126 296 L264 296 L152 456 L398 180 L256 180 Z"
-        fill="url(#bolt)" stroke="#0b1220" stroke-width="22" stroke-linejoin="round"/>
+  <rect width="512" height="512" rx="112" fill="#146ef5"/>
+  <circle cx="256" cy="256" r="176" fill="none" stroke="#ffffff" stroke-opacity=".28" stroke-width="32"/>
+  <path d="M277 43L96 288h139l-32 181 202-245H267l10-181Z" fill="#ffffff"/>
 </svg>

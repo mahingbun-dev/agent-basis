@@ -19,7 +19,6 @@
         "@deepseek-ai/dsh-api-session-controller",
         "@deepseek-ai/dsh-client-locale",
         "@deepseek-ai/dsh-client-ui-conversation",
-        "@deepseek-ai/dsh-client-ui-primitives",
         "@deepseek-ai/dsh-api-gateway",
         "@deepseek-ai/dsh-client-ui-plugin-manager"
       ],

@@ -10,7 +10,8 @@
  * (T1 守卫钳根)。上游 browse 客户端由 patch 禁 auto 行+insert host-browse(仅路由)
  * 裁掉,slot 单洞无竞争。
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Icon } from '@eterna/ui/icons'
 
 export interface DirectoryEntry {
   readonly name: string
@@ -48,7 +49,7 @@ interface TreeState {
 const styles: Record<string, React.CSSProperties> = {
   overlay: {
     position: 'fixed', inset: 0, zIndex: 1000,
-    background: 'var(--dsw-alias-bg-mask-1, rgba(0,0,0,0.5))',
+    background: 'var(--dsw-alias-bg-mask-1, var(--et-overlay))',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   dialog: {
@@ -72,8 +73,8 @@ const styles: Record<string, React.CSSProperties> = {
   rowSelected: {
     background: 'var(--et-surface-2)',
   },
-  caret: { width: 14, flexShrink: 0, opacity: 0.55 },
-  folderIcon: { flexShrink: 0, opacity: 0.8, display: 'inline-flex' },
+  caret: { width: 14, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--et-muted)' },
+  folderIcon: { flexShrink: 0, display: 'inline-flex', color: 'var(--et-muted)' },
   footer: { padding: '12px 20px 20px', display: 'flex', flexDirection: 'column', gap: 12 },
   newFolderRow: { display: 'flex', gap: 8 },
   input: {
@@ -92,17 +93,8 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--et-accent-fill)',
     borderColor: 'transparent', color: 'var(--et-accent-on)',
   },
-  error: { color: 'var(--et-danger)', fontSize: 13, lineHeight: 1.5 },
+  error: { color: 'var(--et-danger)', fontSize: 12, lineHeight: 1.5 },
   empty: { padding: '24px 16px', textAlign: 'center', opacity: 0.6, fontSize: 14 },
-}
-
-/** 文件夹线性图标(不使用 emoji 作为功能图标)。 */
-function FolderIcon(): React.JSX.Element {
-  return (
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
-    </svg>
-  )
 }
 
 /** 单层目录行(懒展开:展开时拉取子层)。 */
@@ -124,8 +116,8 @@ function TreeRow(props: {
       onClick={() => { onSelect(entry); if (!expanded) onToggle(entry) }}
       data-eterna-tree-row={entry.path}
     >
-      <span style={styles.caret}>{expanded ? '▾' : '▸'}</span>
-      <span style={styles.folderIcon}><FolderIcon /></span>
+      <span style={styles.caret}><Icon name={expanded ? 'chevron-down' : 'chevron-right'} size={14} /></span>
+      <span style={styles.folderIcon}><Icon name="folder" size={14} /></span>
       <span>{entry.name}</span>
     </button>
     {expanded && (childList !== undefined
@@ -154,8 +146,47 @@ export function DirectoryTreeFlow(props: DirectoryTreeProps): React.JSX.Element 
       setState(s => ({ ...s, creating: false, error: message }))
       onError?.(message)
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- listing/creating 变化由守卫条件短路
   }, [open, state.listing, state.creating])
+  const dialogRef = useRef<HTMLDivElement | null>(null)
+  const cancelRef = useRef(onCancel)
+  cancelRef.current = onCancel
+  useEffect(() => {
+    if (!open) return
+    const previous = document.activeElement as HTMLElement | null
+    const timer = window.setTimeout(() => {
+      const dialog = dialogRef.current
+      if (dialog === null) return
+      const first = dialog.querySelector<HTMLElement>('button:not(:disabled), input:not(:disabled)')
+      ;(first ?? dialog).focus()
+    }, 0)
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        cancelRef.current()
+        return
+      }
+      if (event.key !== 'Tab') return
+      const dialog = dialogRef.current
+      if (dialog === null) return
+      const focusables = Array.from(dialog.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), input:not(:disabled), [href], [tabindex]:not([tabindex="-1"])',
+      )).filter(element => element.offsetParent !== null)
+      if (focusables.length === 0) return
+      const first = focusables[0] as HTMLElement
+      const last = focusables[focusables.length - 1] as HTMLElement
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault(); last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.clearTimeout(timer)
+      document.removeEventListener('keydown', onKeyDown)
+      previous?.focus()
+    }
+  }, [open])
   if (!open) return null
   const rootEntries = state.listing?.entries ?? []
   const toggle = (entry: DirectoryEntry): void => {
@@ -203,8 +234,8 @@ export function DirectoryTreeFlow(props: DirectoryTreeProps): React.JSX.Element 
   }
   return (
     <div style={styles.overlay} role="dialog" aria-modal="true" aria-label="选择工作区目录">
-      <div style={styles.dialog}>
-        <div style={styles.header}>选择工作区目录</div>
+      <div ref={dialogRef} style={styles.dialog} tabIndex={-1} aria-labelledby="eterna-directory-title">
+        <div id="eterna-directory-title" style={styles.header}>选择工作区目录</div>
         <div style={styles.body} data-eterna-directory-tree>
           {rootEntries.length === 0 && state.creating === false
             ? <div style={styles.empty}>你的目录还是空的</div>
