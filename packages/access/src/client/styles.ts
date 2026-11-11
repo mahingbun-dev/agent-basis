@@ -158,6 +158,14 @@ body:has([role="dialog"]) .eterna-identity-badge { display: none !important; }
   [data-eterna-access-root] .ea-row-actions { width: 100%; margin-left: 0; }
   [data-eterna-access-root] .ea-table { min-width: 560px; }
 }
+
+/* 工作区行「+ 新建会话」常驻(2026-11-12 用户反馈:hover-only 发现性差=「不见了」;
+   上游 Rows.tsx 的 rowActions 由 CSS hover 显隐,access 全局样式强制可见) */
+[data-row-key^="workspace:"] button[aria-label*="新建会话"] {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
 `
 
 export function injectAccessStyles(doc: Document = document): void {

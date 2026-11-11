@@ -12,9 +12,14 @@ import { AccountSection, UsersSection } from './sections.tsx'
 import { MyPluginsTab, NotificationsSection, ApprovalQueueSection } from './my-plugins-section.tsx'
 import { ManageTab } from './plugins-manager.tsx'
 import { DirectoryTreeFlow } from './directory-tree.tsx'
+import { ModelDrawer } from './model-drawer.tsx'
 import { injectAccessStyles } from './styles.ts'
 
-export const inject = ['slots', 'locale', 'uiWorkspace']
+// 'sessions'=api-session-controller 的 ClientSessions(reflect.provide('sessions')):
+// 模型抽屉回显的投影写面(projectionStore(sessionId).apply)。2026-11-11 曾连同
+// 'remote' 一起加导致 entry 静默不激活——根因在 'remote' 键(未定位),单独 'sessions'
+// 由本轮构建验证;若激活回归失败先撤此项。
+export const inject = ['slots', 'locale', 'uiWorkspace', 'sessions']
 
 const NS = 'eterna-access'
 const LOCALES: Record<string, Record<string, string>> = {
@@ -225,6 +230,12 @@ interface AccessClientContext {
     listDirectory(path: string | undefined, signal?: AbortSignal): Promise<unknown>
     createDirectory(path: string, name: string): Promise<string>
   }
+  /** 模型抽屉回显写面(ClientSessions 结构子集;服务端投影 store 单键 apply)。 */
+  readonly sessions?: {
+    projectionStore?(sessionId: string): {
+      apply?(key: string, value: unknown, seq: number): void
+    } | undefined
+  }
 }
 
 export function apply(ctx: AccessClientContext): () => void {
@@ -321,5 +332,63 @@ export function apply(ctx: AccessClientContext): () => void {
     }))
   }
 
+  // 模型选择抽屉(2026-11-12 用户裁定:抽屉二级展开):
+  // - 拦截模型触发按钮 click → 开自绘抽屉(供应商→模型二级;shift+click 保留上游菜单)
+  // - 提交走同窗 RPC(信封同构上游 typert);回显=ctx.sessions 投影单键本地写
+  //   (rename 先例;control 流投影帧在多用户 mux 环境不达=上游实时回显缺口根因)
+  // - 「+ 新建会话」常驻可见(上游 hover-only CSS;access 全局样式强制)
+  registerModelDrawer(ctx)
+
   return disposeLocale
+}
+
+/** 模型抽屉装配。React 渲染走壳注入的 react-dom/client(CJS external)。 */
+function registerModelDrawer(ctx: AccessClientContext): void {
+  // CJS 闭包 require(esbuild external 运行时由浏览器壳 PLATFORM_MODULES 供给);
+  // 类型侧 react-dom/client 不在包 devDeps,局部面声明。
+  const requireShim = require as unknown as (id: 'react-dom/client') => { createRoot(container: Element): { render(node: React.ReactElement): void; unmount(): void } }
+  const { createRoot } = requireShim('react-dom/client')
+  let drawerHost: HTMLDivElement | null = null
+  const closeDrawer = (): void => { drawerHost?.remove(); drawerHost = null }
+
+  const openDrawer = (sessionId: string): void => {
+    closeDrawer()
+    drawerHost = document.createElement('div')
+    drawerHost.setAttribute('data-eterna-model-drawer-root', '')
+    document.body.appendChild(drawerHost)
+    createRoot(drawerHost).render(<ModelDrawer
+      sessionId={sessionId}
+      dismiss={closeDrawer}
+      applySelection={(sid, selected) => {
+        try {
+          const store = ctx.sessions?.projectionStore?.(sid)
+          store?.apply?.('modelSelection', { lastUsed: selected, next: selected }, 2 ** 40)
+        } catch { /* 回显尽力而为:服务端切换本身不受影响 */ }
+      }}
+    />)
+  }
+
+  const readCurrentSession = (): string | null => {
+    try {
+      const raw = localStorage.getItem('dsh.sessions.current')
+      const parsed = raw === null ? null : JSON.parse(raw) as { sessionId?: string }
+      return typeof parsed?.sessionId === 'string' ? parsed.sessionId : null
+    } catch { return null }
+  }
+
+  const attach = (): void => {
+    const btn = [...document.querySelectorAll('button')].find(b => (b.getAttribute('aria-label') || '').startsWith('选择模型'))
+    if (btn === undefined || btn.getAttribute('data-eterna-drawer-bound') === '1') return
+    btn.setAttribute('data-eterna-drawer-bound', '1')
+    btn.addEventListener('click', (e: MouseEvent) => {
+      if (e.shiftKey) return // shift+click 保留上游菜单(推理等级等)
+      const sessionId = readCurrentSession()
+      if (sessionId === null) return
+      e.stopImmediatePropagation()
+      e.preventDefault()
+      openDrawer(sessionId)
+    }, true) // capture:先于上游 menu-open 处理器
+  }
+  attach()
+  new MutationObserver(() => { attach() }).observe(document.body, { childList: true, subtree: true })
 }

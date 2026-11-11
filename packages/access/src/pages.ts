@@ -335,7 +335,7 @@ export const BADGE_SCRIPT = `
       // (=用户观感「切换不生效」;轨迹实证服务端与回合真实生效)。视觉层修补:
       // 成功响应后直接改按钮 aria-label 与内部文本;下次 React 重渲染(face
       // 更新或重载)自会以正确值覆盖,无持久分叉。
-      if(url.indexOf('/api/session/selectModel')!==-1){
+      if(url.indexOf('api/session/selectModel')!==-1){
         p.then(function(r){
           if(!r.ok)return
           r.clone().json().then(function(d){
