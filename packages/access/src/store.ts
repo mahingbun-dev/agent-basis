@@ -432,13 +432,11 @@ export class UserStore {
   }
 
   approvalsPending(): Array<Record<string, unknown>> {
-    return this.db.prepare("SELECT * FROM approvals WHERE status = 'pending' ORDER BY id DESC").all() as
-      Array<Record<string, unknown>>
+    return this.db.prepare("SELECT * FROM approvals WHERE status = 'pending' ORDER BY id DESC").all()
   }
 
   approvalsMine(userId: number): Array<Record<string, unknown>> {
-    return this.db.prepare('SELECT * FROM approvals WHERE requester_id = ? ORDER BY id DESC').all(userId) as
-      Array<Record<string, unknown>>
+    return this.db.prepare('SELECT * FROM approvals WHERE requester_id = ? ORDER BY id DESC').all(userId)
   }
 
   notificationInsert(userId: number, kind: string, message: string): void {
@@ -451,13 +449,12 @@ export class UserStore {
   }
 
   notificationsOf(userId: number): Array<Record<string, unknown>> {
-    return this.db.prepare('SELECT * FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 50').all(userId) as
-      Array<Record<string, unknown>>
+    return this.db.prepare('SELECT * FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 50').all(userId)
   }
 
   notificationsUnread(userId: number): number {
     const row = this.db.prepare('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND read = 0').get(userId) as { n: number }
-    return Number(row.n)
+    return row.n
   }
 
   notificationsMarkAllRead(userId: number): void {

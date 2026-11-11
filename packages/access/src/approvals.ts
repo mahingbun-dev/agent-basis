@@ -19,7 +19,7 @@ function rowToApproval(r: Record<string, unknown>): ApprovalRow {
   return {
     id: Number(r.id), type: String(r.type), payload: JSON.parse(String(r.payload)),
     requesterId: Number(r.requester_id), status: String(r.status) as ApprovalRow['status'],
-    note: r.note === null || r.note === undefined ? null : String(r.note),
+    note: typeof r.note === 'string' ? r.note : null,
   }
 }
 
