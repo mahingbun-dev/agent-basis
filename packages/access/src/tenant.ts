@@ -432,7 +432,7 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
   const settingsMethodOf = (path: string): string => path.split('/').pop() ?? ''
   for (const path of settingsWritePaths) {
     register(path, async (rpcId, args, ctx) => {
-      const request0 = args.request as { ns?: string } | undefined
+      const request0 = args.request as { ns?: string; ops?: unknown } | undefined
       const ns = firstString(request0, 'ns') ?? firstString(args, 'ns')
       const method = settingsMethodOf(path)
       const sc = serviceOf(deps, 'settingsController')
