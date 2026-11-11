@@ -9,7 +9,7 @@
  * - 数据走同源 /access/api/*(Host 半边提供,eterna_session cookie 自动携带)
  */
 import { AccountSection, UsersSection } from './sections.tsx'
-import { MyPluginsSection, NotificationsSection, ApprovalQueueSection } from './my-plugins-section.tsx'
+import { MyPluginsTab, NotificationsSection, ApprovalQueueSection } from './my-plugins-section.tsx'
 import { ManageTab } from './plugins-manager.tsx'
 import { DirectoryTreeFlow } from './directory-tree.tsx'
 import { injectAccessStyles } from './styles.ts'
@@ -65,14 +65,8 @@ export function apply(ctx: AccessClientContext): () => void {
       locale: NS,
       label: () => t('section.account'),
     }, AccountSection))
-    // P4-T6.4/T7A(2026-11-11):我的插件+消息与审批(全员);审批队列(admin)
-    ctx.slots.inject('settings.section', () => ctx.slots.register({
-      name: 'settings.section',
-      id: `${NS}.my-plugins`,
-      order: 42,
-      locale: NS,
-      label: () => t('section.myPlugins'),
-    }, MyPluginsSection))
+    // P4-T6.4/T7A(2026-11-11):消息与审批(全员);审批队列(admin)。
+    // 「我的插件」(2026-11-11 第三轮)移入侧栏插件页 plugins.tab——插件管理统一入口。
     ctx.slots.inject('settings.section', () => ctx.slots.register({
       name: 'settings.section',
       id: `${NS}.notifications`,
@@ -80,6 +74,14 @@ export function apply(ctx: AccessClientContext): () => void {
       locale: NS,
       label: () => t('section.notifications'),
     }, NotificationsSection))
+    // 侧栏「插件」页:「我的插件」页签(全员——个人层发现/启停/安装/转内置)
+    ctx.slots.inject('plugins.tab', () => ctx.slots.register({
+      name: 'plugins.tab',
+      id: `${NS}.my-plugins`,
+      order: 30,
+      locale: NS,
+      label: () => t('section.myPlugins'),
+    }, MyPluginsTab))
     if (role === 'admin') {
       ctx.slots.inject('settings.section', () => ctx.slots.register({
         name: 'settings.section',
@@ -95,8 +97,7 @@ export function apply(ctx: AccessClientContext): () => void {
         locale: NS,
         label: () => t('section.approvalQueue'),
       }, ApprovalQueueSection))
-      // 侧栏「插件」页:「恒灵插件」管理页签(统一入口——与发现/已安装同层,
-      // 用户在插件页管理插件;设置弹窗「内置插件」只留上游清单视图)。
+      // 侧栏「插件」页:「恒灵插件」管理页签(admin;与已安装/我的插件同层)。
       // plugins.tab=upstream ui-plugin-manager 主面板声明的 list slot
       // (index.ts:140)。2026-11-11 第一轮曾误判 slot 名不匹配改注 settings.plugins.tab
       // ——实际当时整页被 pluginManager/listBundles 门控隐藏;mux 补授权后页面可达,
