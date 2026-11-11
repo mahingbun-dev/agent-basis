@@ -73,6 +73,9 @@ export interface ModelMenuOwner {
   readonly dismiss: () => void
   /** 回显写面(投影 store 单键 apply;缺席=仅切换不回显)。 */
   readonly applySelection?: (sessionId: string, selected: Selected) => void
+  /** 「管理模型」:打开设置弹窗「模型」分区(settings.section id='models')。
+   *  返回 false=设置壳未就绪——不静默吞,面板留驻并提示。 */
+  readonly openModelsSettings?: () => boolean
 }
 
 /** max 档气泡种子(ZCode EFFORT_BUBBLES 同构):固定种子避免重渲染错峰跳动。 */
@@ -329,7 +332,14 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
       {error !== null && <div role="alert" style={{ padding: '6px 14px', color: 'var(--et-danger)', fontSize: 12 }}>{error}</div>}
       <div style={S.divider} />
       <button type="button" role="menuitem" style={{ ...S.row, fontWeight: 500 }}
-        onClick={() => { props.dismiss() }}>
+        onClick={() => {
+          // 2026-11-12 用户反馈:该按钮此前只 dismiss(),点下去面板消失而无任何操作
+          // =空按钮。ZCode 同一入口切设置页「模型」分区(SettingsPage.tsx:704
+          // handleOpenModelProviderSettings),此处同构走 settings.section id='models'。
+          const opened = props.openModelsSettings?.() ?? false
+          if (opened) props.dismiss()
+          else setError('设置弹窗尚未就绪，请稍后重试')
+        }}>
         管理模型
       </button>
     </div>
