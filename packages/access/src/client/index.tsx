@@ -96,8 +96,10 @@ export function apply(ctx: AccessClientContext): () => void {
         label: () => t('section.approvalQueue'),
       }, ApprovalQueueSection))
       // 右侧插件页:「恒灵插件」管理页签
-      ctx.slots.inject('plugins.tab', () => ctx.slots.register({
-        name: 'plugins.tab',
+      // slot 名=upstream ui-settings contract 的 settings.plugins.tab(2026-11-11 E2E 修复:
+      // 旧名 plugins.tab 与上游消费方不匹配→页签永不渲染)
+      ctx.slots.inject('settings.plugins.tab', () => ctx.slots.register({
+        name: 'settings.plugins.tab',
         id: `${NS}.manage`,
         order: 20,
         locale: NS,
