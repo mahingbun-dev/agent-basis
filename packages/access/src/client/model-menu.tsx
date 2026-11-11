@@ -75,6 +75,22 @@ export interface ModelMenuOwner {
   readonly applySelection?: (sessionId: string, selected: Selected) => void
 }
 
+/** max 档气泡种子(ZCode EFFORT_BUBBLES 同构):固定种子避免重渲染错峰跳动。 */
+const EFFORT_BUBBLES = [
+  { top: 4, size: 2, duration: 2.6, delay: -0.4 },
+  { top: 14, size: 3, duration: 3.2, delay: -2.1 },
+  { top: 8, size: 4, duration: 2.8, delay: -1.1 },
+  { top: 18, size: 2, duration: 3.6, delay: -0.8 },
+  { top: 3, size: 3, duration: 3, delay: -2.5 },
+  { top: 12, size: 2, duration: 3.4, delay: -1.7 },
+  { top: 6, size: 3, duration: 3.1, delay: -0.9 },
+  { top: 17, size: 4, duration: 2.9, delay: -2.3 },
+  { top: 10, size: 2, duration: 3.5, delay: -0.2 },
+  { top: 2, size: 2, duration: 2.7, delay: -1.8 },
+  { top: 15, size: 3, duration: 3.3, delay: -1.2 },
+  { top: 7, size: 4, duration: 3.6, delay: -3.1 },
+]
+
 export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
   const { anchor, dismiss } = props
   const [groups, setGroups] = useState<readonly CatalogProvider[] | null>(null)
@@ -259,11 +275,22 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
               <div style={{ position: 'absolute', left: 0, right: 0, top: 4, height: 24, borderRadius: 'var(--et-radius-pill)',
                 background: 'var(--et-surface-2)',
                 border: '1px solid var(--et-border)', overflow: 'hidden' }}>
-                {/* 绿色填充(thumb 半径 14px 补偿,ZCode 同公式) */}
+                {/* 填充(低档绿→高档蓝渐变,贴 ZCode 参考图;thumb 半径 14px 补偿公式) */}
                 <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0,
                   width: `calc(14px + (100% - 28px) * ${visualProgress / 100})`,
-                  background: 'var(--et-success)',
+                  background: 'linear-gradient(90deg, var(--et-success), var(--et-accent))',
                   transition: 'width var(--et-motion-fast) var(--et-ease)' }} />
+                {/* max 档气泡流动(ZCode composer-thought-bubbles 质感) */}
+                {visualIdx >= curEfforts.length - 1 && curEfforts.length > 1 && (
+                  <div aria-hidden="true" className="et-thought-bubbles" style={{ position: 'absolute', inset: 0 }}>
+                    {EFFORT_BUBBLES.map((bubble, index) => (
+                      <span key={index} className="et-thought-bubble"
+                        style={{ top: bubble.top, animationDuration: `${bubble.duration}s`, animationDelay: `${bubble.delay}s`, position: 'absolute', left: 0, right: 0, pointerEvents: 'none' }}>
+                        <span style={{ display: 'block', width: bubble.size, height: bubble.size, borderRadius: '50%', background: 'var(--et-accent-on)' }} />
+                      </span>
+                    ))}
+                  </div>
+                )}
                 {/* 档位圆点(均布;已过档白色半透) */}
                 <div style={{ position: 'absolute', left: 14, right: 14, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   {curEfforts.map((level, index) => (
