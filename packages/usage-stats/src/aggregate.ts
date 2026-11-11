@@ -82,7 +82,7 @@ export function foldSession(sessionId: string, mtimeMs: number, text: string): S
     if (event.type === 'turn/end') usage.turns += 1
     if (event.type === 'assistant/message' && typeof event.time === 'number' && event.time > usage.lastAt) usage.lastAt = event.time
     if (event.type !== 'assistant/message') continue
-    const data = event.data as { usage?: Record<string, unknown>; model?: string } | undefined
+    const data = event.data as { usage?: Record<string, unknown>; model?: string; message?: { source?: { model?: unknown } } } | undefined
     const u: Record<string, unknown> | undefined = data?.usage
     if (u === undefined) continue
     const num = (v: unknown): number => typeof v === 'number' && Number.isFinite(v) ? v : 0
@@ -91,7 +91,11 @@ export function foldSession(sessionId: string, mtimeMs: number, text: string): S
     usage.cacheReadTokens += num(u.cacheReadTokens)
     usage.cacheWriteTokens += num(u.cacheWriteTokens)
     usage.reasoningTokens += num(u.reasoningTokens)
-    const model = typeof data?.model === 'string' && data.model !== '' ? data.model : 'unknown'
+    // 模型归因(2026-11-11 E2E 修复):真实 assistant/message 事件的模型在
+    // data.message.source.model(实测 deepseek-flash);顶层 data.model 从未出现——
+    // 旧读法使按模型表恒为 unknown。顶层字段保留为兜底。
+    const sourceModel = typeof data?.message?.source?.model === 'string' ? data.message.source.model : ''
+    const model = sourceModel !== '' ? sourceModel : (typeof data?.model === 'string' && data.model !== '' ? data.model : 'unknown')
     const existingModelBucket = usage.byModel[model]
     const bucket = existingModelBucket ?? (usage.byModel[model] = { input: 0, output: 0, cacheRead: 0, turns: 0 })
     bucket.input += num(u.inputTokens)

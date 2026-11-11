@@ -54,14 +54,14 @@ describe('lib/client.js 工件形态', () => {
     expect(code.trimEnd().endsWith('});')).toBe(true)
   })
 
-  it('官方语义令牌:样式只经 --dsw-alias-* 变量,无字面色值(硬性规范第 6 条)', () => {
+  it('设计令牌:样式只经 --et-*/--dsw-alias-* 变量,无字面色值(硬性规范第 6 条)', () => {
     const code = readFileSync(join(import.meta.dirname, '..', 'src', 'client', 'styles.ts'), 'utf8')
-    // 拼接进 CSS 模板串的颜色声明必须全部引用 var(--dsw-alias-…)/transparent。
+    // 拼接进 CSS 模板串的颜色声明必须全部引用 var(--et-…)/var(--dsw-alias-…)/transparent。
     const colorDecls = [...code.matchAll(/(?:color|background(?:-color)?|border(?:-left)?-color):\s*([^;]+);/gu)]
       .map(match => match[1]?.trim() ?? '')
     expect(colorDecls.length).toBeGreaterThan(10)
-    const aliasVar = /^var\(--dsw-alias-[a-z0-9-]+(?:\s*,\s*[^)]+)?\)$/u
-    const aliasMix = /^color-mix\(in srgb, var\(--dsw-alias-[a-z0-9-]+\)(?:\s+[\d.]+%)?(\s*,\s*transparent)?\)$/u
+    const aliasVar = /^var\(--(?:et|dsw-alias)-[a-z0-9-]+(?:\s*,\s*[^)]+)?\)$/u
+    const aliasMix = /^color-mix\(in (?:srgb|oklab), var\(--(?:et|dsw-alias)-[a-z0-9-]+\)(?:\s+[\d.]+%)?(\s*,\s*transparent(?:\s+[\d.]+%)?)?\)$/u
     for (const decl of colorDecls) {
       const ok = aliasVar.test(decl) || aliasMix.test(decl) || decl === 'transparent' || decl === 'none'
       expect(ok, `非官方语义令牌的颜色声明: ${decl}`).toBe(true)
@@ -89,13 +89,13 @@ describe('lib/client.js 工件形态', () => {
 })
 
 describe('T1.5 全景改版工件', () => {
-  it('令牌铁律(逐文件):全部客户端源文件的颜色声明只经 --dsw-alias-*/color-mix/transparent', () => {
+  it('令牌铁律(逐文件):全部客户端源文件的颜色声明只经 --et-*/--dsw-alias-*/color-mix/transparent', () => {
     // 逐文件断言(测试计划 §3 T1.5(b)①):枚举 src/client 全部源文件——新增/改版
     // 组件(分组导航、条目详情、diff 视图等)自动纳入,无需点名清单。
     const files = readdirSync(clientSrcDir).filter(file => /\.(ts|tsx)$/u.test(file)).sort()
     expect(files.length).toBeGreaterThanOrEqual(8)
-    const aliasVar = /^var\(--dsw-alias-[a-z0-9-]+(?:\s*,\s*[^)]+)?\)$/u
-    const aliasMix = /^color-mix\(in srgb, var\(--dsw-alias-[a-z0-9-]+\)(?:\s+[\d.]+%)?(\s*,\s*transparent)?\)$/u
+    const aliasVar = /^var\(--(?:et|dsw-alias)-[a-z0-9-]+(?:\s*,\s*[^)]+)?\)$/u
+    const aliasMix = /^color-mix\(in (?:srgb|oklab), var\(--(?:et|dsw-alias)-[a-z0-9-]+\)(?:\s+[\d.]+%)?(\s*,\s*transparent(?:\s+[\d.]+%)?)?\)$/u
     let filesWithDecls = 0
     for (const file of files) {
       const code = readFileSync(join(clientSrcDir, file), 'utf8')
@@ -110,9 +110,9 @@ describe('T1.5 全景改版工件', () => {
     expect(filesWithDecls).toBeGreaterThanOrEqual(1)
   })
 
-  it('令牌数量只增:styles.ts 的 --dsw-alias-* 出现次数 ≥ 基线 136(§6.4 只增不减)', () => {
+  it('令牌数量只增:styles.ts 的 --et-*/--dsw-alias-* 出现次数 ≥ 基线 136(§6.4 只增不减)', () => {
     const code = readFileSync(join(clientSrcDir, 'styles.ts'), 'utf8')
-    const count = [...code.matchAll(/--dsw-alias-[a-z0-9-]+/gu)].length
+    const count = [...code.matchAll(/--(?:et|dsw-alias)-[a-z0-9-]+/gu)].length
     expect(count).toBeGreaterThanOrEqual(136)
   })
 

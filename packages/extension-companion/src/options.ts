@@ -34,13 +34,13 @@ saveBtn.addEventListener('click', (ev) => {
   const invalid = validateRelayUrl(raw)
   if (invalid !== null) {
     savedHint.textContent = invalid
-    savedHint.style.color = '#dc2626'
+    savedHint.style.color = 'var(--danger)'
     return
   }
   void (async () => {
     await saveSettings({ relayUrl: raw, token: tokenInput.value })
     savedHint.textContent = '已保存'
-    savedHint.style.color = '#16a34a'
+    savedHint.style.color = 'var(--success)'
     window.setTimeout(() => {
       savedHint.textContent = ''
     }, 2000)

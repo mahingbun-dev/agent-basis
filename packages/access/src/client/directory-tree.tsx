@@ -10,7 +10,7 @@
  * (T1 守卫钳根)。上游 browse 客户端由 patch 禁 auto 行+insert host-browse(仅路由)
  * 裁掉,slot 单洞无竞争。
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export interface DirectoryEntry {
   readonly name: string
@@ -48,51 +48,61 @@ interface TreeState {
 const styles: Record<string, React.CSSProperties> = {
   overlay: {
     position: 'fixed', inset: 0, zIndex: 1000,
-    background: 'var(--dsw-alias-scrim, rgba(0,0,0,0.5))',
+    background: 'var(--dsw-alias-bg-mask-1, rgba(0,0,0,0.5))',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   dialog: {
     width: 'min(480px, calc(100vw - 32px))', maxHeight: 'min(560px, calc(100vh - 64px))',
     display: 'flex', flexDirection: 'column',
-    background: 'var(--dsw-alias-surface-primary, var(--dsw-alias-background-primary, #1c1c1f))',
-    color: 'var(--dsw-alias-foreground-primary)',
-    borderRadius: 12, border: '1px solid var(--dsw-alias-border-primary)',
-    boxShadow: 'var(--dsw-alias-shadow-overlay, 0 16px 48px rgba(0,0,0,0.4))',
+    background: 'var(--et-surface)',
+    color: 'var(--et-fg)',
+    fontFamily: 'var(--et-font-body)',
+    borderRadius: 'var(--et-radius-lg)', border: '1px solid var(--et-border)',
+    boxShadow: 'var(--et-shadow-raised)',
     overflow: 'hidden',
   },
-  header: { padding: '16px 16px 8px', fontSize: 15, fontWeight: 600 },
-  body: { flex: 1, overflowY: 'auto', padding: '4px 8px', minHeight: 200 },
+  header: { padding: '18px 20px 8px', fontSize: 16, fontWeight: 600, lineHeight: 1.4 },
+  body: { flex: 1, overflowY: 'auto', padding: '4px 10px', minHeight: 200 },
   row: {
     display: 'flex', alignItems: 'center', gap: 6, width: '100%',
-    padding: '6px 8px', border: 'none', background: 'transparent',
-    color: 'inherit', textAlign: 'left', cursor: 'pointer', borderRadius: 8,
-    fontSize: 13, lineHeight: 1.4,
+    padding: '8px 8px', border: 'none', background: 'transparent',
+    color: 'inherit', textAlign: 'left', cursor: 'pointer', borderRadius: 'var(--et-radius-sm)',
+    fontSize: 14, lineHeight: 1.5,
   },
   rowSelected: {
-    background: 'var(--dsw-alias-fill-control-selected, var(--dsw-alias-state-fill-hover, rgba(127,127,127,0.2)))',
+    background: 'var(--et-surface-2)',
   },
-  caret: { width: 14, flexShrink: 0, opacity: 0.6 },
-  folderIcon: { flexShrink: 0, opacity: 0.8 },
-  footer: { padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 },
+  caret: { width: 14, flexShrink: 0, opacity: 0.55 },
+  folderIcon: { flexShrink: 0, opacity: 0.8, display: 'inline-flex' },
+  footer: { padding: '12px 20px 20px', display: 'flex', flexDirection: 'column', gap: 12 },
   newFolderRow: { display: 'flex', gap: 8 },
   input: {
-    flex: 1, padding: '7px 10px', fontSize: 13,
-    background: 'var(--dsw-alias-fill-control-primary, transparent)',
-    border: '1px solid var(--dsw-alias-border-primary)', borderRadius: 8, color: 'inherit',
+    flex: 1, padding: '10px 12px', fontSize: 14,
+    background: 'var(--et-bg)',
+    border: '1px solid var(--et-border)', borderRadius: 'var(--et-radius-sm)', color: 'inherit',
     outline: 'none',
   },
   buttonRow: { display: 'flex', justifyContent: 'flex-end', gap: 8 },
   button: {
-    padding: '8px 16px', fontSize: 13, borderRadius: 8, cursor: 'pointer',
-    border: '1px solid var(--dsw-alias-border-primary)',
+    padding: '10px 14px', fontSize: 14, borderRadius: 'var(--et-radius-sm)', cursor: 'pointer',
+    border: '1px solid var(--et-border)',
     background: 'transparent', color: 'inherit',
   },
   primary: {
-    background: 'var(--dsw-alias-button-primary-fill, var(--dsw-alias-state-business-primary, #4c6ef5))',
-    borderColor: 'transparent', color: 'var(--dsw-alias-button-primary-foreground, #fff)',
+    background: 'var(--et-accent)',
+    borderColor: 'transparent', color: 'var(--et-accent-on)',
   },
-  error: { color: 'var(--dsw-alias-state-error-foreground, #f56a6a)', fontSize: 12 },
-  empty: { padding: '24px 16px', textAlign: 'center', opacity: 0.6, fontSize: 13 },
+  error: { color: 'var(--et-danger)', fontSize: 13, lineHeight: 1.5 },
+  empty: { padding: '24px 16px', textAlign: 'center', opacity: 0.6, fontSize: 14 },
+}
+
+/** 文件夹线性图标(不使用 emoji 作为功能图标)。 */
+function FolderIcon(): React.JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
+    </svg>
+  )
 }
 
 /** 单层目录行(懒展开:展开时拉取子层)。 */
@@ -115,7 +125,7 @@ function TreeRow(props: {
       data-eterna-tree-row={entry.path}
     >
       <span style={styles.caret}>{expanded ? '▾' : '▸'}</span>
-      <span style={styles.folderIcon}>📁</span>
+      <span style={styles.folderIcon}><FolderIcon /></span>
       <span>{entry.name}</span>
     </button>
     {expanded && (childList !== undefined
@@ -132,8 +142,10 @@ export function DirectoryTreeFlow(props: DirectoryTreeProps): React.JSX.Element 
     listing: null, expanded: new Set(), children: {}, selected: null,
     creating: false, newFolderName: '', error: null,
   })
-  // open 置位时拉根层(守卫钳制的用户根)
-  if (open && state.listing === null && !state.creating) {
+  // open 置位时拉根层(守卫钳制的用户根)。副作用入 useEffect——render-phase setState
+  // 在 StrictMode 双渲染下会双拉,且属 React 反模式(2026-11-11 E2E 卫生项)。
+  useEffect(() => {
+    if (!open || state.listing !== null || state.creating) return
     setState(s => ({ ...s, creating: true }))
     listDirectory(undefined).then(listing => {
       setState(s => ({ ...s, listing, creating: false, error: null }))
@@ -142,7 +154,8 @@ export function DirectoryTreeFlow(props: DirectoryTreeProps): React.JSX.Element 
       setState(s => ({ ...s, creating: false, error: message }))
       onError?.(message)
     })
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- listing/creating 变化由守卫条件短路
+  }, [open, state.listing, state.creating])
   if (!open) return null
   const rootEntries = state.listing?.entries ?? []
   const toggle = (entry: DirectoryEntry): void => {

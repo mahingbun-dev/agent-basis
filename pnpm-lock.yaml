@@ -137,6 +137,9 @@ importers:
       '@eterna/audit':
         specifier: workspace:*
         version: link:../audit
+      '@eterna/ui':
+        specifier: workspace:*
+        version: link:../ui
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -494,6 +497,9 @@ importers:
       '@deepseek-ai/dsh-typert-protocol':
         specifier: 'catalog:'
         version: 0.2.2-alpha.2(@deepseek-ai/cordis@4.0.6-alpha.1)
+      '@eterna/ui':
+        specifier: workspace:*
+        version: link:../ui
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -603,6 +609,9 @@ importers:
       '@eterna/governance':
         specifier: workspace:*
         version: link:../governance
+      '@eterna/ui':
+        specifier: workspace:*
+        version: link:../ui
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -640,6 +649,9 @@ importers:
       '@eterna/interact':
         specifier: workspace:*
         version: link:../interact
+      '@eterna/ui':
+        specifier: workspace:*
+        version: link:../ui
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -668,6 +680,9 @@ importers:
       '@deepseek-ai/dsh-typert-protocol':
         specifier: 'catalog:'
         version: 0.2.2-alpha.2(@deepseek-ai/cordis@4.0.6-alpha.1)
+      '@eterna/ui':
+        specifier: workspace:*
+        version: link:../ui
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -687,6 +702,8 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
+
+  packages/ui: {}
 
   tools/eterna-smoke:
     devDependencies:

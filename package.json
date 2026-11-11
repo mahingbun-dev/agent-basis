@@ -10,8 +10,9 @@
     "pnpm": ">=10"
   },
   "scripts": {
-    "verify": "pnpm -r --if-present run verify",
+    "verify": "node scripts/lint-ui-tokens.mjs && pnpm -r --if-present run verify",
     "lint": "oxlint .",
+    "lint:ui": "node scripts/lint-ui-tokens.mjs",
     "test": "pnpm -r --if-present run test"
   },
   "devDependencies": {

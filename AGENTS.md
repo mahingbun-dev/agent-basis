@@ -7,7 +7,7 @@
 **产品内功能一律做成 dsh 原生扩展点插件，禁止自建独立页面入口**（登录门禁页 /login 是唯一例外）：
 
 1. **设置类功能 = 设置弹窗分区**：注册 `settings.section` slot（`packages/access/src/client/index.tsx` 为参考实现——账号/用户管理/插件启停三分区）。上游设计宣言：adding a setting never means editing the shell（dsh-client-ui-settings contract/slots.d.ts）。
-2. **UI 渲染用 DSH 官方语义令牌 `--dsw-alias-*`**：深浅主题自动跟随产品，禁止字面色值（品牌渐变头像唯一豁免）。参考 `packages/access/src/client/styles.ts`。
+2. **UI 渲染统一走 `@eterna/ui` 设计令牌 `--et-*`**：应用内插件面经 DSH 桥接层（`--dsw-alias-*`）跟随产品深浅主题；独立页用 Webflow 浅色 + 系统深色。禁止字面色值（仅 `packages/ui/src/tokens.ts`、品牌插画/图标资产、扩展设置页令牌块豁免）。参考 `packages/access/src/client/styles.ts` 与 `docs/design/design-tokens.md`。
 3. **交互纪律**：资料类字段合并保存（脏检查+单按钮）；密码等安全操作独立成卡；变更请求防重复点击；破坏性操作两击确认（禁用原生 `confirm()/alert()`）；HTML 响应 `no-store`。
 4. **可访问性与响应式**：语义标题、focus 光圈、`prefers-reduced-motion`、640/760px 断点。
 5. **客户端半边配方**：`dsh.client` 声明 + `build:client`（esbuild→`window.__ModuleLoader__` 工件）+ `ctx.slots.inject('settings.section', () => ctx.slots.register(...))`，panel 先例同构。

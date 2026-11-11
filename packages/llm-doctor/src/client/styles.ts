@@ -1,48 +1,51 @@
 /**
- * 诊断区块样式——对齐产品设计纪律(对齐 prompt-studio styles.ts):色彩只经
- * DSH 官方语义令牌(--dsw-alias-*),深/浅主题自动跟随,不写字面色值。
+ * 诊断区块样式 —— 对齐 @eterna/ui(Webflow 令牌 + DSH 主题桥接)。
  * 注入一次(style#llm-doctor-styles),选择器全部挂 [data-bdoc] 命名空间。
  */
+import { injectDesignTokens } from '@eterna/ui'
+
 const CSS = `
 [data-bdoc-root] {
   margin-top: 12px;
-  padding: 10px 14px 8px;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 12px;
-  background: var(--dsw-alias-bg-layer-1, transparent);
-  font-size: 13px;
-  line-height: 20px;
-  color: var(--dsw-alias-label-primary);
+  padding: 12px 14px 10px;
+  border: 1px solid var(--et-border-soft);
+  border-radius: var(--et-radius-md);
+  background: var(--et-surface);
+  font-family: var(--et-font-body);
+  font-size: var(--et-text-caption);
+  font-weight: var(--et-weight-body);
+  line-height: var(--et-leading-body);
+  color: var(--et-fg);
 }
 [data-bdoc-head] {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 10px; margin-bottom: 6px;
+  gap: 10px; margin-bottom: 8px;
 }
 [data-bdoc-title] {
-  font-weight: 600; font-size: 12px; line-height: 18px;
-  color: var(--dsw-alias-label-secondary); letter-spacing: 0.02em;
+  font-weight: var(--et-weight-display); font-size: var(--et-text-micro); line-height: 1.4;
+  color: var(--et-fg-2); letter-spacing: 0;
 }
 [data-bdoc-health] {
-  font-size: 12px; line-height: 18px; padding: 0 8px; border-radius: 980px;
+  font-size: var(--et-text-micro); line-height: 1.4; padding: 2px 8px; border-radius: var(--et-radius-sm);
   white-space: nowrap;
 }
 [data-bdoc-health="ok"] {
-  color: var(--dsw-alias-state-success-primary);
-  background: var(--dsw-alias-state-success-tertiary);
+  color: var(--et-success);
+  background: color-mix(in oklab, var(--et-success), transparent 88%);
 }
 [data-bdoc-health="missing"] {
-  color: var(--dsw-alias-state-warn-label);
-  background: var(--dsw-alias-state-warn-primary);
+  color: var(--et-warn);
+  background: color-mix(in oklab, var(--et-warn), transparent 88%);
 }
 [data-bdoc-health="unreachable"], [data-bdoc-health="unsupported"] {
-  color: var(--dsw-alias-state-error-primary);
-  background: var(--dsw-alias-state-error-secondary);
+  color: var(--et-danger);
+  background: var(--et-danger-soft);
 }
 [data-bdoc-autofix] {
-  margin: 0 0 6px; padding: 4px 8px; border-radius: 8px;
-  font-size: 12px; line-height: 18px;
-  color: var(--dsw-alias-state-success-primary);
-  background: var(--dsw-alias-state-success-tertiary);
+  margin: 0 0 8px; padding: 6px 10px; border-radius: var(--et-radius-sm);
+  font-size: var(--et-text-micro); line-height: 1.5;
+  color: var(--et-success);
+  background: color-mix(in oklab, var(--et-success), transparent 90%);
   overflow-wrap: anywhere;
 }
 [data-bdoc-rows] {
@@ -52,32 +55,33 @@ const CSS = `
 }
 [data-bdoc-row] {
   display: flex; align-items: center; gap: 10px;
-  padding: 4px 0; min-height: 28px;
+  padding: 6px 0; min-height: 32px;
 }
 [data-bdoc-row] + [data-bdoc-row] {
-  border-top: 1px solid var(--dsw-alias-border-l1, var(--dsw-alias-border-l2));
+  border-top: 1px solid var(--et-border-soft);
 }
 [data-bdoc-name] {
   flex: 0 0 auto; min-width: 150px; max-width: 260px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-weight: 500; color: var(--dsw-alias-label-primary);
+  font-weight: var(--et-weight-display); color: var(--et-fg);
 }
 [data-bdoc-result] {
   flex: 1 1 auto; min-width: 0;
-  font-size: 12px; line-height: 18px;
+  font-size: var(--et-text-micro); line-height: 1.5;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-[data-bdoc-result="idle"] { color: var(--dsw-alias-label-tertiary); }
-[data-bdoc-result="ok"] { color: var(--dsw-alias-state-success-primary); }
-[data-bdoc-result="fail"] { color: var(--dsw-alias-state-error-primary); }
+[data-bdoc-result="idle"] { color: var(--et-muted); }
+[data-bdoc-result="ok"] { color: var(--et-success); }
+[data-bdoc-result="fail"] { color: var(--et-danger); }
 [data-bdoc-btn] { flex: 0 0 auto; margin-left: auto; }
 [data-bdoc-empty] {
-  font-size: 12px; color: var(--dsw-alias-label-tertiary); margin-top: 4px;
+  font-size: var(--et-text-micro); color: var(--et-muted); margin-top: 4px;
 }
 `
 
 /** 注入诊断区块样式(幂等;颜色全部走语义令牌,深浅主题自动跟随)。 */
 export function installDoctorStyles(): void {
+  injectDesignTokens({ bridge: true })
   if (document.getElementById('llm-doctor-styles') !== null) return
   const style = document.createElement('style')
   style.id = 'llm-doctor-styles'

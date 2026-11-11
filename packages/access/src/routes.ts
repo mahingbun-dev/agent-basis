@@ -69,6 +69,9 @@ export function handleAccessRequest(deps: AccessDeps, req: AccessRequest): Acces
       return handleLogin(deps, req, method, ip)
     case '/logout':
       return handleLogout(deps, req, method, ip)
+    case '/account':
+      // 账号自助=应用内设置弹窗账号分区(铁律:不建独立页面;/account 曾是 404 白屏)。
+      return redirectReply('/')
     default:
       break
   }

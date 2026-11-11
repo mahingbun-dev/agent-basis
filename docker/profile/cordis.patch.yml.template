@@ -468,6 +468,13 @@
       name: '@eterna/glue/audit-plugin'
     - id: eterna-egress
       name: '@eterna/glue/egress-plugin'
+    # 记忆/知识底座（2026-11-11 E2E 回归补挂）：@eterna/glue 的双导出（symlink 已就位），
+    # 插件登记册（access routes.ts + plugin-meta）自始列此二项而 profile 从未挂载——
+    # UI 宣称已启用、会话内却无 memory_*/knowledge_* 工具（会话工具集缺失事故根因）。
+    - id: eterna-memory
+      name: '@eterna/glue/memory-plugin'
+    - id: eterna-knowledge
+      name: '@eterna/glue/knowledge-plugin'
     - id: eterna-llm-doctor
       name: '@eterna/llm-doctor'
     - id: eterna-brand

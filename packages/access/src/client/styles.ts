@@ -1,109 +1,134 @@
 /**
- * 设置分区样式:DSH 官方语义令牌(--dsw-alias-*),深浅主题自动跟随产品,
- * 零字面色(品牌渐变头像唯一豁免)。注入一次,三个分区共用。
+ * 设置分区样式 —— Webflow 设计语言(近黑/单蓝、4px 锐角、hairline 分隔)。
+ * 令牌经 @eterna/ui 注入并桥接 DSH 语义主题;三个分区共用。
  */
+import { injectDesignTokens } from '@eterna/ui'
+
 const CSS = `
-[data-eterna-access-root] { font-family: var(--dsw-font-family, inherit); font-size: 14px; line-height: 22px; color: var(--dsw-alias-label-primary); max-width: 720px; }
+[data-eterna-access-root] { font-family: var(--et-font-body); font-size: var(--et-text-caption); font-weight: var(--et-weight-body); line-height: var(--et-leading-body); color: var(--et-fg); max-width: var(--et-container-settings); }
 [data-eterna-access-root], [data-eterna-access-root] *, [data-eterna-access-root] *::before, [data-eterna-access-root] *::after { box-sizing: border-box; }
 [data-eterna-access-root] * { min-width: 0; overflow-wrap: anywhere; }
-[data-eterna-access-root] .ea-lead { margin: 0 0 18px; color: var(--dsw-alias-label-tertiary); font-size: 13px; }
-[data-eterna-access-root] .ea-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-[data-eterna-access-root] .ea-card { border: 1px solid color-mix(in srgb, var(--dsw-alias-label-primary) 10%, transparent); border-radius: 14px; padding: 18px;
-  background: var(--dsw-alias-settings-card-fill, transparent); }
-[data-eterna-access-root] .ea-card h3 { margin: 0 0 12px; font-size: 14px; font-weight: 600; }
-[data-eterna-access-root] label.ea-label { display: block; font-size: 12px; color: var(--dsw-alias-label-tertiary); margin: 10px 0 4px; }
+[data-eterna-access-root] .ea-lead { margin: 0 0 20px; color: var(--et-muted); font-size: var(--et-text-caption); }
+[data-eterna-access-root] .ea-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--et-space-6); }
+[data-eterna-access-root] .ea-card { border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); padding: var(--et-space-5);
+  background: var(--et-surface); }
+[data-eterna-access-root] .ea-card h3 { margin: 0 0 var(--et-space-3); font-size: var(--et-text-body); font-weight: var(--et-weight-display); letter-spacing: 0; }
+[data-eterna-access-root] label.ea-label { display: block; font-size: var(--et-text-micro); color: var(--et-muted); margin: 12px 0 4px; }
 [data-eterna-access-root] input.ea-input, [data-eterna-access-root] select.ea-input {
-  width: 100%; padding: 8px 10px; border-radius: 8px; font-size: 13.5px;
-  border: 1px solid color-mix(in srgb, var(--dsw-alias-label-primary) 12%, transparent);
-  background: color-mix(in srgb, var(--dsw-alias-label-primary) 5%, transparent); color: var(--dsw-alias-label-primary); }
-[data-eterna-access-root] input.ea-input:focus { outline: none; border-color: var(--dsw-alias-state-business-primary, currentColor); box-shadow: 0 0 0 3px color-mix(in srgb, var(--dsw-alias-state-business-primary, currentColor) 22%, transparent); }
-[data-eterna-access-root] input[type=file].ea-input { color: var(--dsw-alias-label-tertiary); }
-[data-eterna-access-root] .ea-btn { margin: 0; padding: 8px 18px; border: 0; border-radius: 8px; font-size: 13.5px; font-weight: 500; cursor: pointer;
-  background: var(--dsw-alias-button-primary-fill, currentColor); color: var(--dsw-alias-label-primary-foreground, #0f1115); }
-[data-eterna-access-root] .ea-btn:hover { background: var(--dsw-alias-button-primary-hover, inherit); filter: none; }
-[data-eterna-access-root] .ea-btn:disabled { opacity: .5; cursor: not-allowed; }
-[data-eterna-access-root] .ea-btn.ghost { background: transparent; color: var(--dsw-alias-label-primary); border: 1px solid color-mix(in srgb, var(--dsw-alias-label-primary) 14%, transparent); }
-[data-eterna-access-root] .ea-row { display: flex; gap: 10px; align-items: center; }
-[data-eterna-access-root] .ea-row.between { justify-content: space-between; }
-[data-eterna-access-root] .ea-ok { color: var(--dsw-alias-state-success-primary, #22c55e); font-size: 12.5px; min-height: 16px; margin: 8px 0 0; }
-[data-eterna-access-root] .ea-err { color: var(--dsw-alias-state-error-primary, #f25a5a); font-size: 12.5px; min-height: 16px; margin: 8px 0 0; white-space: pre-wrap; }
-[data-eterna-access-root] .ea-hint { color: var(--dsw-alias-label-tertiary); font-size: 12px; }
-[data-eterna-access-root] .ea-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff;
-  display: inline-flex; align-items: center; justify-content: center; font-size: 19px; overflow: hidden; flex: none; }
-[data-eterna-access-root] .ea-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-[data-eterna-access-root] table.ea-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
-[data-eterna-access-root] .ea-table th, [data-eterna-access-root] .ea-table td { padding: 7px 8px; text-align: left; border-bottom: 1px solid color-mix(in srgb, var(--dsw-alias-label-primary) 8%, transparent); }
-[data-eterna-access-root] .ea-table th { color: var(--dsw-alias-label-tertiary); font-weight: 600; }
-[data-eterna-access-root] .ea-tag { font-size: 11px; padding: 2px 7px; border-radius: 6px; background: var(--dsw-alias-fill-primary, transparent); color: var(--dsw-alias-label-tertiary); }
-[data-eterna-access-root] .ea-tag.brand { color: var(--dsw-alias-state-business-primary, currentColor); }
-[data-eterna-access-root] .ea-tag.red { color: var(--dsw-alias-state-error-primary, #f25a5a); }
-[data-eterna-access-root] .ea-dangerclick { color: var(--dsw-alias-state-error-primary, #f25a5a); cursor: pointer; background: none; border: 0; padding: 0; font-size: 13px; }
-[data-eterna-access-root] .ea-dangerclick:hover { text-decoration: underline; }
-[data-eterna-access-root] .ea-plug { padding: 10px 0; border-bottom: 1px solid color-mix(in srgb, var(--dsw-alias-label-primary) 8%, transparent); display: flex; flex-direction: column; gap: 3px; }
-[data-eterna-access-root] .ea-plug:last-child { border-bottom: 0; }
-[data-eterna-access-root] .ea-plug .name { font-weight: 600; font-size: 13.5px; }
-[data-eterna-access-root] .ea-plug .pid { color: var(--dsw-alias-label-tertiary); font-size: 12px; }
-
-/* —— 「恒灵插件」页签:与原生插件页(dsh-client-ui-plugin-manager)同构的卡片形态 ——
-   分组头/行卡/48px 图标块/开关/胶囊徽标,全部走令牌;插画渐变在 plugin-meta.tsx(品牌插画豁免)。 */
-[data-eterna-access-root] .ea-group { display: flex; flex-direction: column; gap: 8px; }
-[data-eterna-access-root] .ea-group + .ea-group { margin-top: 32px; }
-[data-eterna-access-root] .ea-group-head { display: flex; align-items: center; gap: 8px; }
-[data-eterna-access-root] .ea-group-title { flex: 1; margin: 0; font-size: 14px; font-weight: 500; line-height: 22px; }
-[data-eterna-access-root] .ea-group-hint { flex: none; font-size: 12px; color: var(--dsw-alias-label-tertiary); }
-[data-eterna-access-root] .ea-cards { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
-[data-eterna-access-root] .ea-pcard { border-radius: var(--dsw-radius-xl, 20px); margin: 0 -8px; min-width: 0; }
-@media (hover: hover) {
-  [data-eterna-access-root] .ea-pcard.ea-act:hover { background: var(--dsw-alias-interactive-bg-hover); }
-  [data-eterna-access-root] .ea-pcard.ea-act:active { background: var(--dsw-alias-interactive-bg-active); }
+  width: 100%; padding: 10px 12px; border-radius: var(--et-radius-sm); font-size: var(--et-text-caption);
+  border: 1px solid var(--et-border);
+  background: var(--et-bg); color: var(--et-fg);
+  transition: border-color var(--et-motion-fast) var(--et-ease), box-shadow var(--et-motion-fast) var(--et-ease);
 }
-[data-eterna-access-root] .ea-phead { display: flex; align-items: center; gap: 14px; padding: 8px; }
+[data-eterna-access-root] input.ea-input:hover, [data-eterna-access-root] select.ea-input:hover { border-color: var(--et-fg-2); }
+[data-eterna-access-root] input.ea-input:focus-visible, [data-eterna-access-root] select.ea-input:focus-visible {
+  outline: none; border-color: var(--et-accent); box-shadow: var(--et-focus-ring);
+}
+[data-eterna-access-root] input[type=file].ea-input { color: var(--et-muted); }
+[data-eterna-access-root] .ea-btn { margin: 0; padding: 10px 16px; border: 1px solid transparent; border-radius: var(--et-radius-sm); font: inherit; font-size: var(--et-text-caption); font-weight: var(--et-weight-display); cursor: pointer;
+  background: var(--et-accent); color: var(--et-accent-on);
+  transition: background-color var(--et-motion-fast) var(--et-ease), border-color var(--et-motion-fast) var(--et-ease), color var(--et-motion-fast) var(--et-ease);
+}
+[data-eterna-access-root] .ea-btn:hover:not(:disabled) { background: var(--et-accent-hover); }
+[data-eterna-access-root] .ea-btn:focus-visible { outline: none; box-shadow: var(--et-focus-ring); }
+[data-eterna-access-root] .ea-btn:disabled { opacity: .5; cursor: not-allowed; }
+[data-eterna-access-root] .ea-btn.ghost { background: transparent; color: var(--et-fg); border: 1px solid var(--et-border); }
+[data-eterna-access-root] .ea-btn.ghost:hover:not(:disabled) { background: var(--et-surface-2); border-color: var(--et-fg-2); }
+[data-eterna-access-root] .ea-btn-danger { background: transparent; color: var(--et-danger); border-color: color-mix(in oklab, var(--et-danger), transparent 70%); }
+[data-eterna-access-root] .ea-btn-danger:hover:not(:disabled) { background: var(--et-danger-soft); }
+[data-eterna-access-root] .ea-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+[data-eterna-access-root] .ea-row.between { justify-content: space-between; }
+[data-eterna-access-root] .ea-row .ea-input { flex: 1 1 160px; }
+[data-eterna-access-root] .ea-ok { color: var(--et-success); font-size: var(--et-text-micro); min-height: 18px; margin: 8px 0 0; }
+[data-eterna-access-root] .ea-err, [data-eterna-access-root] .ea-error { color: var(--et-danger); font-size: var(--et-text-micro); min-height: 18px; margin: 8px 0 0; white-space: pre-wrap; }
+[data-eterna-access-root] .ea-hint { color: var(--et-muted); font-size: var(--et-text-micro); line-height: 1.5; }
+[data-eterna-access-root] .ea-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--et-accent); color: var(--et-accent-on);
+  display: inline-flex; align-items: center; justify-content: center; font-size: 18px; font-weight: var(--et-weight-display); overflow: hidden; flex: none; }
+[data-eterna-access-root] .ea-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+[data-eterna-access-root] .ea-table-wrap { width: 100%; overflow-x: auto; }
+[data-eterna-access-root] table.ea-table { width: 100%; border-collapse: collapse; font-size: var(--et-text-micro); margin-top: 8px; }
+[data-eterna-access-root] .ea-table th, [data-eterna-access-root] .ea-table td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--et-border-soft); vertical-align: middle; }
+[data-eterna-access-root] .ea-table th { color: var(--et-muted); font-weight: var(--et-weight-display); white-space: nowrap; }
+[data-eterna-access-root] .ea-tag { font-size: var(--et-text-micro); padding: 2px 8px; border-radius: var(--et-radius-sm); background: var(--et-surface-2); color: var(--et-muted); }
+[data-eterna-access-root] .ea-tag.brand { color: var(--et-accent); background: var(--et-accent-soft); }
+[data-eterna-access-root] .ea-tag.red { color: var(--et-danger); background: var(--et-danger-soft); }
+[data-eterna-access-root] .ea-dangerclick { color: var(--et-danger); cursor: pointer; background: none; border: 0; padding: 4px 0; font-size: var(--et-text-micro); min-height: 36px; }
+[data-eterna-access-root] .ea-dangerclick:hover { text-decoration: underline; text-underline-offset: 3px; }
+[data-eterna-access-root] .ea-dangerclick:focus-visible { outline: none; box-shadow: var(--et-focus-ring); }
+
+/* —— 设置分区列表(我的插件/消息与审批/审批队列) —— */
+[data-eterna-access-root] .ea-section { display: flex; flex-direction: column; gap: 12px; }
+[data-eterna-access-root] .ea-section h3 { margin: 0; font-size: var(--et-text-body); font-weight: var(--et-weight-display); }
+[data-eterna-access-root] .ea-section h4 { margin: 8px 0 4px; font-size: var(--et-text-caption); font-weight: var(--et-weight-display); color: var(--et-fg-2); }
+[data-eterna-access-root] .ea-list { display: flex; flex-direction: column; border-top: 1px solid var(--et-border-soft); }
+[data-eterna-access-root] .ea-list .ea-row { padding: 12px 0; border-bottom: 1px solid var(--et-border-soft); align-items: center; }
+[data-eterna-access-root] .ea-row-title { flex: 1 1 180px; font-size: var(--et-text-caption); font-weight: var(--et-weight-display); color: var(--et-fg); }
+[data-eterna-access-root] .ea-row-meta { font-size: var(--et-text-micro); color: var(--et-muted); }
+[data-eterna-access-root] .ea-row-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-left: auto; }
+
+/* —— 插件页签(与原生插件页同构的卡片形态) —— */
+[data-eterna-access-root] .ea-group { display: flex; flex-direction: column; gap: 8px; }
+[data-eterna-access-root] .ea-group + .ea-group { margin-top: var(--et-space-8); }
+[data-eterna-access-root] .ea-group-head { display: flex; align-items: center; gap: 8px; }
+[data-eterna-access-root] .ea-group-title { flex: 1; margin: 0; font-size: var(--et-text-body); font-weight: var(--et-weight-display); line-height: 1.4; }
+[data-eterna-access-root] .ea-group-hint { flex: none; font-size: var(--et-text-micro); color: var(--et-muted); }
+[data-eterna-access-root] .ea-cards { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--et-border-soft); }
+[data-eterna-access-root] .ea-pcard { border-radius: var(--et-radius-md); margin: 0; min-width: 0; border-bottom: 1px solid var(--et-border-soft); }
+[data-eterna-access-root] .ea-pcard:last-child { border-bottom: 0; }
+@media (hover: hover) {
+  [data-eterna-access-root] .ea-pcard.ea-act:hover { background: var(--et-surface-2); }
+  [data-eterna-access-root] .ea-pcard.ea-act:active { background: color-mix(in oklab, var(--et-surface-2), var(--et-fg) 4%); }
+}
+[data-eterna-access-root] .ea-phead { display: flex; align-items: center; gap: 14px; padding: 12px 4px; }
 [data-eterna-access-root] .ea-picon { display: inline-flex; align-items: center; justify-content: center; flex: none;
-  width: 48px; height: 48px; border: .5px solid var(--dsw-alias-border-l3, transparent); border-radius: var(--dsw-radius-lg, 16px);
-  color: var(--dsw-alias-label-secondary); }
-[data-eterna-access-root] .ea-pmain { display: flex; flex-direction: column; flex: 1; gap: 4px; min-width: 0; }
+  width: 48px; height: 48px; border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md);
+  color: var(--et-fg-2); background: var(--et-bg); }
+[data-eterna-access-root] .ea-pmain { display: flex; flex-direction: column; flex: 1; gap: 3px; min-width: 0; }
 [data-eterna-access-root] .ea-ptitle-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
-[data-eterna-access-root] .ea-ptitle { font-size: 14px; font-weight: 500; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-[data-eterna-access-root] .ea-pdesc { color: var(--dsw-alias-label-tertiary); font-size: 13px; line-height: 18px;
+[data-eterna-access-root] .ea-ptitle { font-size: var(--et-text-caption); font-weight: var(--et-weight-display); line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+[data-eterna-access-root] .ea-pdesc { color: var(--et-muted); font-size: var(--et-text-micro); line-height: 1.5;
   display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
-[data-eterna-access-root] .ea-pend { display: inline-flex; align-items: center; gap: 8px; flex: none; position: relative; z-index: 1; }
+[data-eterna-access-root] .ea-pend { display: inline-flex; align-items: center; gap: 12px; flex: none; position: relative; z-index: 1; }
 [data-eterna-access-root] .ea-switch { box-sizing: border-box; position: relative; flex: 0 0 auto; width: 36px; height: 20px; padding: 2px;
-  border: 0; border-radius: 999px; background: var(--dsw-alias-border-l3); cursor: pointer; }
-[data-eterna-access-root] .ea-switch[aria-checked="true"] { background: var(--dsw-alias-brand-primary); }
+  border: 0; border-radius: var(--et-radius-pill); background: var(--et-border); cursor: pointer; }
+[data-eterna-access-root] .ea-switch[aria-checked="true"] { background: var(--et-accent); }
 [data-eterna-access-root] .ea-switch:disabled { cursor: default; opacity: .5; }
 [data-eterna-access-root] .ea-switch::after { content: ""; position: absolute; inset: -8px; }
 [data-eterna-access-root] .ea-switch .ea-thumb { display: block; width: 16px; height: 16px; border-radius: 50%;
-  background: var(--dsw-alias-switch-thumb, var(--dsw-alias-label-primary-foreground)); transition: transform .12s ease; }
+  background: var(--et-accent-on); transition: transform var(--et-motion-fast) var(--et-ease); }
 [data-eterna-access-root] .ea-switch[aria-checked="true"] .ea-thumb { transform: translate(16px); }
 [data-eterna-access-root] .ea-switch:focus-visible, [data-eterna-access-root] .ea-del:focus-visible {
-  outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary)); outline-offset: 2px; }
-[data-eterna-access-root] .ea-del { min-height: 36px; padding: 0 10px; border: 0; border-radius: var(--dsw-radius-md, 12px);
-  background: none; color: var(--dsw-alias-state-error-primary); font-size: 13px; cursor: pointer; }
-[data-eterna-access-root] .ea-del:hover { background: var(--dsw-alias-interactive-bg-hover-danger, var(--dsw-alias-interactive-bg-hover)); }
-[data-eterna-access-root] .ea-del.ea-armed { background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 12%, transparent); font-weight: 500; }
-[data-eterna-access-root] .ea-pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 1px 8px;
-  font-size: 11px; line-height: 17px; font-weight: 500; white-space: nowrap; }
-[data-eterna-access-root] .ea-pill.danger { background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent);
-  color: var(--dsw-alias-state-error-primary); }
-[data-eterna-access-root] .ea-pill.warn { background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 10%, transparent);
-  color: var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary)); }
-[data-eterna-access-root] .ea-pill.neutral { background: var(--dsw-alias-bg-module-platform, color-mix(in srgb, var(--dsw-alias-label-primary) 8%, transparent));
-  color: var(--dsw-alias-label-secondary); }
+  outline: none; box-shadow: var(--et-focus-ring); border-radius: var(--et-radius-sm); }
+[data-eterna-access-root] .ea-del { min-height: 36px; padding: 0 10px; border: 0; border-radius: var(--et-radius-sm);
+  background: none; color: var(--et-muted); font-size: var(--et-text-micro); cursor: pointer; }
+[data-eterna-access-root] .ea-del:hover { color: var(--et-danger); background: var(--et-danger-soft); }
+[data-eterna-access-root] .ea-del.ea-armed { background: var(--et-danger-soft); color: var(--et-danger); font-weight: var(--et-weight-display); }
+[data-eterna-access-root] .ea-pill { display: inline-flex; align-items: center; border-radius: var(--et-radius-sm); padding: 2px 8px;
+  font-size: var(--et-text-micro); line-height: 1.4; font-weight: var(--et-weight-display); white-space: nowrap; }
+[data-eterna-access-root] .ea-pill.danger { background: var(--et-danger-soft); color: var(--et-danger); }
+[data-eterna-access-root] .ea-pill.warn { background: color-mix(in oklab, var(--et-warn), transparent 88%); color: var(--et-warn); }
+[data-eterna-access-root] .ea-pill.neutral { background: var(--et-surface-2); color: var(--et-muted); }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-eterna-access-root] .ea-switch .ea-thumb { transition: none; }
+  [data-eterna-access-root] .ea-switch .ea-thumb,
+  [data-eterna-access-root] .ea-btn,
+  [data-eterna-access-root] input.ea-input,
+  [data-eterna-access-root] select.ea-input { transition: none; }
 }
 @media (max-width: 760px) {
   [data-eterna-access-root] .ea-grid { grid-template-columns: 1fr; }
-  [data-eterna-access-root] .ea-phead { gap: 10px; }
-  [data-eterna-access-root] .ea-pcard { margin: 0 -4px; }
+  [data-eterna-access-root] .ea-phead { gap: 10px; padding: 12px 0; }
+  [data-eterna-access-root] .ea-ptitle { white-space: normal; }
+  [data-eterna-access-root] .ea-row-actions { width: 100%; margin-left: 0; }
+  [data-eterna-access-root] .ea-table { min-width: 560px; }
 }
 `
 
-export function injectAccessStyles(): void {
-  if (document.getElementById('eterna-access-styles') !== null) return
-  const style = document.createElement('style')
+export function injectAccessStyles(doc: Document = document): void {
+  injectDesignTokens({ bridge: true, doc })
+  if (doc.getElementById('eterna-access-styles') !== null) return
+  const style = doc.createElement('style')
   style.id = 'eterna-access-styles'
   style.textContent = CSS
-  document.head.appendChild(style)
+  doc.head.appendChild(style)
 }

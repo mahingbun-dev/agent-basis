@@ -31,7 +31,8 @@
   "dependencies": {
     "@deepseek-ai/cordis": "catalog:",
     "@deepseek-ai/dsh-tools": "catalog:",
-    "@eterna/audit": "workspace:*"
+    "@eterna/audit": "workspace:*",
+    "@eterna/ui": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",
