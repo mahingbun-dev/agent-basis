@@ -159,6 +159,9 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         dataDir: dir,
         provisionWorkspace: user => provisionTenantWorkspace({ store, reflect: ctx.reflect, tenantRoot, audit }, user),
       }
+      // P3(2026-11-11):把归属账本 provide 出去(usage-stats 聚合的归属唯一事实源;
+      // reflect 键 eternaAccessStore)。账本只读面,不含凭据。
+      const storeProvide = (ctx as unknown as { provide?: (id: string, value: unknown) => () => void }).provide
       const handler = createNodeHandler(deps)
       const disposers = [
         ctx.webServer.register({ kind: 'exact', path: '/login', handler }),
@@ -245,6 +248,15 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
             ptySandbox: sandboxDispose !== undefined,
           },
         })
+      }
+      if (typeof storeProvide === 'function') {
+        disposers.push(storeProvide.call(ctx, 'eternaAccessStore', {
+          sessionOwner: (id: string) => store.sessionOwner(id),
+          sessionsOfOwner: (id: number) => store.sessionsOfOwner(id),
+          workspaceOwner: (id: string) => store.workspaceOwner(id),
+          workspacesOfOwner: (id: number) => store.workspacesOfOwner(id),
+          getUserById: (id: number) => store.getUserById(id),
+        }))
       }
       disposers.push(registerTenantGuards({
         store,

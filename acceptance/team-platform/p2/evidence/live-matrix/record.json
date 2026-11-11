@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-10T19:01:49.327Z",
+  "at": "2026-11-11T02:18:48.995Z",
   "base": "http://127.0.0.1:3211",
   "models": {
     "deepseek/deepseek-flash": {
@@ -49,34 +49,9 @@
           "t": "session/title-llm-request"
         },
         {
-          "t": "assistant/message"
-        },
-        {
-          "t": "step/end"
-        },
-        {
-          "t": "turn/end",
-          "reason": "completed"
-        },
-        {
           "t": "session/title"
         },
         {
-          "t": "agent/inbox/spliced"
-        },
-        {
-          "t": "turn/start"
-        },
-        {
-          "t": "agent/inbox/spliced"
-        },
-        {
-          "t": "step/start"
-        },
-        {
-          "t": "user/message"
-        },
-        {
           "t": "assistant/message"
         },
         {
@@ -85,52 +60,6 @@
         {
           "t": "turn/end",
           "reason": "completed"
-        },
-        {
-          "t": "agent/inbox/spliced"
-        },
-        {
-          "t": "turn/start"
-        },
-        {
-          "t": "agent/inbox/spliced"
-        },
-        {
-          "t": "step/start"
-        },
-        {
-          "t": "user/message"
-        },
-        {
-          "t": "assistant/message"
-        },
-        {
-          "t": "step/end"
-        },
-        {
-          "t": "turn/end",
-          "reason": "completed"
-        },
-        {
-          "t": "agent/inbox/spliced"
-        },
-        {
-          "t": "turn/start"
-        },
-        {
-          "t": "agent/inbox/spliced"
-        },
-        {
-          "t": "step/start"
-        },
-        {
-          "t": "user/message"
-        },
-        {
-          "t": "assistant/message"
-        },
-        {
-          "t": "step/end"
         }
       ]
     },

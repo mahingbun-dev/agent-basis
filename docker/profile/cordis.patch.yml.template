@@ -474,6 +474,8 @@
       name: '@eterna/brand'
     - id: eterna-access
       name: '@eterna/access'
+    - id: eterna-usage-stats
+      name: '@eterna/usage-stats'
 
 # LLM 承载（根级覆写 base 休眠行，非 insert——原因见上）：pi-ai 多协议适配器
 # ── P2 网关（2026-11-11）：外部网关退场，三家直连（网关=pi-ai carriers 配置级实现）──

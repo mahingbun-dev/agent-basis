@@ -64,7 +64,7 @@ cp "$GOV_SRC" "$DSH_HOME/.eterna/governance.rules.yml"
 echo "[entrypoint] governance rules: $GOV_SRC -> $DSH_HOME/.eterna/governance.rules.yml (cwd=$(pwd))"
 
 # ── 3. 插件 symlink(本仓 @eterna/*) ────────────────────────────────────
-for pkg in glue llm-doctor brand panel prompt-studio llm-openai access; do
+for pkg in glue llm-doctor brand panel prompt-studio llm-openai access usage-stats; do
   ln -sfn "$REPO/packages/$pkg" "$PROFILE_DIR/node_modules/@eterna/$pkg"
 done
 # creation-skills 别名(preset-cordis skill-filesystem 解析名)

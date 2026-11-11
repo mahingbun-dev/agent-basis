@@ -51,6 +51,7 @@ export const TOGGLEABLE_PLUGINS: ReadonlyArray<{ id: string; label: string }> = 
   { id: 'eterna-brand', label: '品牌层' },
   { id: 'eterna-panel', label: '基座面板' },
   { id: 'eterna-prompt-studio', label: '提示词工作室' },
+  { id: 'eterna-usage-stats', label: '用量统计' },
 ]
 
 export function handleAccessRequest(deps: AccessDeps, req: AccessRequest): AccessReply {
