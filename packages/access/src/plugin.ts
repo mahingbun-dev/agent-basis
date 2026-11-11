@@ -1,7 +1,7 @@
 /**
  * @eterna/access 装配位:DSH 宿主插件(default export 实例,DSH 硬性规范 1)。
  * inject ['webServer','connection'](frontend-static 同款,frontend-static lib/index.js:26 实证);
- * register 五条路由(/login /logout /account /admin/users 精确 + /access/api 前缀)+
+ * register 四条路由(/login /logout /account 精确 + /access/api 前缀)+
  * tapIndex 注入账号角标;返回 handle 为 apply 的配逆闭包(路由 disposer + store close)。
  * seam 用结构类型钉住(形态取 @deepseek-ai/dsh-host-webserver 0.2.2-alpha.3
  * index.d.ts:193 register/tapIndex、dsh-client-connection rpc.d.ts:223 authenticatedUrl,
@@ -199,6 +199,9 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       const disposers = [
         ctx.webServer.register({ kind: 'exact', path: '/login', handler }),
         ctx.webServer.register({ kind: 'exact', path: '/logout', handler }),
+        // /account:旧独立页已废(账号自助=设置弹窗账号分区),此处仅接住残留链接
+        // 302 回应用(routes.ts)——不注册则 webServer 直接 404 空体=浏览器黑屏。
+        ctx.webServer.register({ kind: 'exact', path: '/account', handler }),
         ctx.webServer.register({ kind: 'prefix', path: '/access/api', handler }),
         ctx.webServer.tapIndex(html => injectBadge(html)),
       ]
