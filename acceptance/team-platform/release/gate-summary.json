@@ -1,0 +1,33 @@
+{
+  "phase": "release",
+  "gateScript": "scripts/team-platform-gates/release-gate.mjs",
+  "git": {
+    "commit": "7bb2ccbdb68c4788d88dc9916bbde62ca809d67e",
+    "branch": "feat/team-platform",
+    "dirty": true
+  },
+  "startedAt": "2026-11-11T03:33:45.198Z",
+  "finishedAt": "2026-11-11T03:33:45.343Z",
+  "cases": [
+    {
+      "id": "G-REL-04",
+      "criterion": "装载冒烟:容器 0 skipping/incompatible + providers 三家",
+      "command": "docker logs + grep",
+      "expect": "(per criterion)",
+      "actual": "mount=0 providers=[1,1,1]",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/release/evidence/G-REL-04/mount.txt"
+      ],
+      "durationMs": 96
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "pass": 1,
+    "fail": 0,
+    "exempt": 0
+  },
+  "verdict": "go"
+}
