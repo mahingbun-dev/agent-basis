@@ -1,8 +1,9 @@
 /**
  * UI 令牌卫生检查(CI/本地可跑):
- * 1. 除令牌/品牌资产文件外,禁止硬编码十六进制色值;
- * 2. 禁止引用未在 packages/ui/src/tokens.ts 定义的 --et-* 令牌;
- * 3. 禁止引用上游 dsh-web-frontend 不存在的 --dsw-alias-* 令牌。
+ * 1. 除令牌/品牌资产文件外,禁止硬编码十六进制色值与 rgb()/hsl() 色值;
+ * 2. 禁止使用 13/13.5/15/18/28px 等规范外字号,以及 900/960px 等规范外断点;
+ * 3. 禁止引用未在 packages/ui/src/tokens.ts 定义的 --et-* 令牌;
+ * 4. 禁止引用上游 dsh-web-frontend 不存在的 --dsw-alias-* 令牌。
  *
  * 用法:node scripts/lint-ui-tokens.mjs
  */
@@ -27,7 +28,6 @@ const SCAN_DIRS = [
 const HEX_ALLOWED = new Set([
   'packages/ui/src/tokens.ts',
   'packages/brand/src/client/index.ts',
-  'packages/access/src/client/plugin-meta.tsx',
   'packages/extension-companion/src/options.html',
 ])
 
@@ -97,6 +97,15 @@ for (const dir of SCAN_DIRS) {
       for (const match of code.matchAll(/#[0-9a-fA-F]{3,8}\b/gu)) {
         issues.push(`${rel}: 硬编码色值 ${match[0]}(请改用 --et-* 令牌)`)
       }
+      for (const match of code.matchAll(/\b(?:rgba?|hsla?)\(/gu)) {
+        issues.push(`${rel}: 硬编码色值 ${match[0]}(请改用 --et-* 令牌)`)
+      }
+    }
+    for (const match of code.matchAll(/font-size:\s*(?:13|13\.5|15|18|28)px/gu)) {
+      issues.push(`${rel}: 规范外字号 ${match[0]}(请改用 12/14/16/20/24/32 阶梯)`)
+    }
+    for (const match of code.matchAll(/@media[^{}]*?(?:max|min)-width:\s*(?:900|960)px/gu)) {
+      issues.push(`${rel}: 规范外断点 ${match[0]}(请改用 1100/760/640)`)
     }
     for (const match of code.matchAll(/--et-[a-z0-9-]+/gu)) {
       if (!definedTokens.has(match[0])) issues.push(`${rel}: 未定义的令牌 ${match[0]}`)

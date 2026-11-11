@@ -23,7 +23,6 @@ const BASELINE_EXTERNALS = [
   'zod',
   '@deepseek-ai/dsh-client-store',
   '@deepseek-ai/dsh-client-ui-slots',
-  '@deepseek-ai/dsh-client-ui-primitives',
   '@deepseek-ai/dsh-client-ui-dockkit',
   '@deepseek-ai/dsh-client-locale',
   '@deepseek-ai/dsh-api-gateway',

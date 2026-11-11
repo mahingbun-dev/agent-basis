@@ -27,7 +27,7 @@ body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:ce
   font-family:var(--et-font-body);font-size:16px;line-height:1.6;font-weight:500}
 .topbar{position:sticky;top:0;z-index:10;width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:12px 24px;background:var(--et-surface);border-bottom:1px solid var(--et-border)}
-.topbar .brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px;color:var(--text);text-decoration:none;margin:0}
+.topbar .brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:16px;color:var(--text);text-decoration:none;margin:0}
 .topbar .brand svg{width:20px;height:20px;color:var(--accent);flex:none}
 .topbar .who{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--text)}
 .topbar a.navlink{color:var(--accent);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:var(--et-radius-sm)}
@@ -43,14 +43,15 @@ main.login-main{padding:0;align-items:stretch;justify-content:flex-start}
 .login-eyebrow{display:flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--et-accent);font-weight:600;margin-bottom:20px}
 .login-eyebrow svg{color:var(--et-accent);flex:none}
 .login-brand h1{margin:0 0 24px;font-size:clamp(40px,4vw,64px);line-height:1.08;letter-spacing:0;font-weight:600}
-.login-lead{margin:0 0 32px;max-width:46ch;font-size:18px;line-height:1.7;color:var(--et-fg-2)}
-.login-points{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;color:var(--et-muted);font-size:15px}
+.login-lead{margin:0 0 32px;max-width:46ch;font-size:20px;line-height:1.7;color:var(--et-fg-2)}
+.login-points{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;color:var(--et-muted);font-size:16px}
 .login-points li{display:flex;gap:10px}
+.login-foot{margin:28px 0 0;font-size:12px;color:var(--et-meta)}
 .login-points li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--et-accent);margin-top:8px;flex:none}
 .login-panel{display:flex;align-items:center;justify-content:center;padding:clamp(24px,4vw,64px);background:var(--et-surface-2)}
 .login-body .login-card{width:100%;max-width:460px;box-shadow:none;padding:40px}
 .login-body .login-card h2{font-size:32px}
-@media (max-width:900px){
+@media (max-width:760px){
   .login-shell{grid-template-columns:1fr}
   .login-brand{padding:32px 24px;border-right:0;border-bottom:1px solid var(--et-border)}
   .login-brand h1{font-size:36px}
@@ -68,11 +69,11 @@ main.login-main{padding:0;align-items:stretch;justify-content:flex-start}
 .grid2.ratio{grid-template-columns:1.6fr 1fr}
 .plug{display:flex;flex-direction:column;gap:2px;padding:9px 0;border-bottom:1px solid var(--border)}
 .plug:last-child{border-bottom:0}
-.plug b{font-weight:600;font-size:13.5px}
+.plug b{font-weight:600;font-size:14px}
 .pagehead{display:flex;align-items:baseline;gap:12px;width:100%}
 .pagehead h2{margin:0}
-.pagehead .muted{font-size:13px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--et-radius-md);box-shadow:var(--shadow);padding:32px;width:min(440px,94vw)}
+.pagehead .muted{font-size:12px}
+.card{background:var(--surface);border:1px solid var(--et-border-soft);border-radius:var(--et-radius-md);box-shadow:var(--shadow);padding:32px;width:min(440px,94vw)}
 .card.wide{width:100%}
 h2{margin:0 0 8px;font-size:32px;line-height:1.15;font-weight:600;letter-spacing:0}
 h3{font-size:16px;margin:0 0 8px;color:var(--text);font-weight:600}
@@ -103,17 +104,17 @@ button.ghost:hover{background:var(--surface-2);border-color:var(--et-fg-2)}
 .err{color:var(--danger);font-size:14px;min-height:20px;margin:12px 0 0;white-space:pre-wrap}
 .ok{color:var(--ok);font-size:14px;min-height:20px;margin:4px 0 0}
 table{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}
-th,td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle}
+th,td{padding:9px 10px;border-bottom:1px solid var(--et-border-soft);text-align:left;vertical-align:middle}
 th{color:var(--dim);font-weight:600;background:var(--surface-2);white-space:nowrap}
 tbody tr:hover{background:var(--surface-2)}
 .avatar{width:26px;height:26px;border-radius:50%;background:var(--et-accent-fill);color:var(--et-accent-on);
-  display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;overflow:hidden;flex:none}
+  display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;overflow:hidden;flex:none}
 .avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover}
 .tag{font-size:12px;padding:2px 8px;border-radius:var(--et-radius-sm);background:var(--accent-soft);color:var(--accent)}
 .tag.red{background:var(--et-danger-soft);color:var(--danger)}
 .danger{color:var(--danger);cursor:pointer;background:none;border:0;padding:0;width:auto;margin:0;font-size:14px;min-height:36px}
 .danger:hover{text-decoration:underline}
-.muted{color:var(--dim);font-size:13px}
+.muted{color:var(--dim);font-size:12px}
 .row{display:flex;gap:8px;align-items:center}
 .shell{display:flex;flex:1;width:min(1200px,96vw);margin:0 auto;gap:20px;padding:22px 16px;align-items:flex-start}
 .menu{width:190px;flex:none;display:flex;flex-direction:column;gap:4px;position:sticky;top:76px}
@@ -125,7 +126,7 @@ tbody tr:hover{background:var(--surface-2)}
 .panel{display:none}
 .panel.active{display:block;animation:fadein .16s ease}
 @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-@media (max-width:900px){
+@media (max-width:760px){
   .grid2,.grid2.ratio{grid-template-columns:1fr}
   .shell{flex-direction:column}
   .menu{flex-direction:row;width:100%;position:static;overflow-x:auto}
@@ -191,6 +192,7 @@ export function renderLoginPage(): string {
         <li>提示词、记忆与知识可治理</li>
         <li>高风险动作走审批与审计</li>
       </ul>
+      <p class="login-foot">恒灵 · EternaAgent · 企业内部部署</p>
     </div>
   </section>
   <section class="login-panel">
@@ -243,10 +245,10 @@ export const BADGE_SCRIPT = `
     b.className='eterna-identity-badge'
     // 位置铁律:头部下方(top:52px)——固定右上(top:8px)会压住上游头部右侧的
     // 「更多操作/打开右侧边栏」等按钮(2026-11-11 E2E:全宽度遮挡=插件页/设置入口全灭)。
-    b.style.cssText='position:fixed;top:52px;right:10px;z-index:2147483647;display:flex;align-items:center;gap:8px;max-width:60vw;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);border-radius:4px;padding:4px 12px 4px 4px;font-size:13px;line-height:1.5;font-family:var(--dsw-font-family, system-ui, sans-serif);box-shadow:0 4px 12px rgba(0,0,0,.12)'
+    b.style.cssText='position:fixed;top:52px;right:10px;z-index:2147483647;display:flex;align-items:center;gap:8px;max-width:60vw;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);border-radius:4px;padding:4px 12px 4px 4px;font-size:14px;line-height:1.5;font-family:var(--dsw-font-family, system-ui, sans-serif);box-shadow:var(--et-shadow)'
     var av
     if(u.avatarUrl){av=document.createElement('img');av.src=u.avatarUrl;av.style.cssText='width:26px;height:26px;border-radius:50%;object-fit:cover'}
-    else{av=document.createElement('span');av.textContent=(u.nickname||u.account||'?').slice(0,1);av.style.cssText='width:26px;height:26px;border-radius:50%;background:var(--dsw-alias-state-business-primary);color:var(--dsw-alias-label-primary-foreground);display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:600'}
+    else{av=document.createElement('span');av.textContent=(u.nickname||u.account||'?').slice(0,1);av.style.cssText='width:26px;height:26px;border-radius:50%;background:var(--dsw-alias-state-business-primary);color:var(--dsw-alias-label-primary-foreground);display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:600'}
     b.appendChild(av)
     var name=document.createElement('span');name.textContent=u.nickname||u.account
     name.style.cssText='overflow:hidden;text-overflow:ellipsis;white-space:nowrap'
@@ -300,7 +302,7 @@ export const BADGE_SCRIPT = `
   }
   function guideToast(text){
     var t=document.createElement('div')
-    t.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:2147483647;max-width:86vw;background:var(--dsw-alias-toast-bg);color:var(--dsw-alias-toast-label);border:1px solid var(--dsw-alias-state-business-primary);border-radius:4px;padding:10px 16px;font-size:13px;line-height:1.5;font-family:var(--dsw-font-family, system-ui, sans-serif);box-shadow:0 8px 24px rgba(0,0,0,.28)'
+    t.style.cssText='position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:2147483647;max-width:86vw;background:var(--dsw-alias-toast-bg);color:var(--dsw-alias-toast-label);border:1px solid var(--dsw-alias-state-business-primary);border-radius:4px;padding:10px 16px;font-size:14px;line-height:1.5;font-family:var(--dsw-font-family, system-ui, sans-serif);box-shadow:var(--et-shadow-raised)'
     t.setAttribute('role','status')
     t.textContent=text
     document.body.appendChild(t)
@@ -333,7 +335,7 @@ export const BADGE_SCRIPT = `
       // (=用户观感「切换不生效」;轨迹实证服务端与回合真实生效)。视觉层修补:
       // 成功响应后直接改按钮 aria-label 与内部文本;下次 React 重渲染(face
       // 更新或重载)自会以正确值覆盖,无持久分叉。
-      if(url.indexOf('/api/session/selectModel')!==-1){
+      if(url.indexOf('api/session/selectModel')!==-1){
         p.then(function(r){
           if(!r.ok)return
           r.clone().json().then(function(d){

@@ -39,9 +39,6 @@ describe('模块装载冒烟(vm)', () => {
       if (specifier === 'react' || specifier === 'react/jsx-runtime') {
         return nodeRequire(specifier)
       }
-      if (specifier === '@deepseek-ai/dsh-client-ui-primitives') {
-        return { IconGaugeOutlineRegular: () => null }
-      }
       throw new Error(`unexpected require: ${specifier}`)
     }
     vm.runInNewContext(code, { window: sandboxWindow, require: requireStub })

@@ -1,19 +1,16 @@
 /**
- * 侧栏入口图标:渲染侧栏请求的尺寸(ui-sidebar 的 panellist 图标份额,panel
- * 同款)。图标组件来自官方 ui-primitives(运行时由 web 壳模块表注入,构建期
- * external;类型面见 primitives-shim.d.ts)。
+ * 侧栏入口图标:渲染侧栏请求的尺寸(panel 同款份额)。
+ * 使用恒灵自绘图标集:工坊=列表+笔尖,轨迹=闭环+节点。
  */
 import type { ReactElement } from 'react'
-import { IconListPenOutlineRegular, IconWorkspaceTreeOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Icon } from '@eterna/ui/icons'
 
 /** 「提示词工坊」入口图标。 */
 export function StudioIcon({ size }: { readonly size?: number }): ReactElement {
-  const edge = size as number | undefined
-  return <IconListPenOutlineRegular size={edge} />
+  return <Icon name="prompt" size={size ?? 20} />
 }
 
 /** 「循环轨迹」入口图标。 */
 export function TraceIcon({ size }: { readonly size?: number }): ReactElement {
-  const edge = size as number | undefined
-  return <IconWorkspaceTreeOutlineRegular size={edge} />
+  return <Icon name="trace" size={size ?? 20} />
 }

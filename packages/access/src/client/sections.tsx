@@ -3,7 +3,10 @@
  * 官方语义令牌渲染,弹窗内与产品风格天然统一。
  */
 import { useCallback, useEffect, useState } from 'react'
+import { Icon } from '@eterna/ui/icons'
 import { api, fileToAvatarDataUrl, type CompanionView, type Me, type UserRowView } from './api.ts'
+import { DeleteButton, TwoClickButton } from './confirm-button.tsx'
+import type { Translate } from './i18n.ts'
 
 function Avatar(props: { url: string | null; nickname: string; size?: number }): React.JSX.Element {
   const size = props.size ?? 40
@@ -20,22 +23,19 @@ function PasswordInput(props: {
   readonly placeholder?: string
   readonly autoComplete?: string
   readonly onChange: (value: string) => void
+  readonly t: Translate
 }): React.JSX.Element {
   const [visible, setVisible] = useState(false)
   return <div style={{ position: 'relative', display: 'block' }}>
     <input id={props.id} className='ea-input' type={visible ? 'text' : 'password'}
       autoComplete={props.autoComplete} placeholder={props.placeholder} value={props.value}
       onChange={event => { props.onChange(event.target.value) }} style={{ paddingRight: 46 }} />
-    <button type="button" aria-label="切换密码可见性" title="显示/隐藏密码"
+    <button type="button" aria-label={props.t('account.passwordToggle')} title={props.t('account.passwordToggleTitle')}
       onClick={() => { setVisible(v => !v) }}
       style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', width: 36, height: 36,
         margin: 0, minWidth: 0, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         background: 'none', border: 0, borderRadius: 4, color: 'var(--et-muted, currentColor)', cursor: 'pointer' }}>
-      <svg viewBox="0 0 24 24" style={{ width: 18, height: 18, stroke: 'currentColor', fill: 'none', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }}>
-        {visible
-          ? <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></>
-          : <><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" /><circle cx="12" cy="12" r="3" /></>}
-      </svg>
+      <Icon name={visible ? 'eye-off' : 'eye'} size={18} />
     </button>
   </div>
 }
@@ -59,34 +59,27 @@ async function copyText(text: string): Promise<boolean> {
 }
 
 /** 浏览器执行面卡:令牌(等宽展示+一键复制)+生成/重置(两击确认)+指引页跳转。 */
-export function CompanionCard(): React.JSX.Element {
+export function CompanionCard(props: { readonly t: Translate }): React.JSX.Element {
+  const { t } = props
   const [view, setView] = useState<CompanionView | null>(null)
-  const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [copied, setCopied] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; text: string }>({ ok: true, text: '' })
 
   useEffect(() => {
     api.companion().then(setView).catch((error: unknown) => {
-      setMsg({ ok: false, text: error instanceof Error ? error.message : '读取失败' })
+      setMsg({ ok: false, text: error instanceof Error ? error.message : t('companion.readFailed') })
     })
   }, [])
 
   const generate = async (): Promise<void> => {
-    // 两击确认(破坏性:重置使旧令牌即刻失效);首枚生成同样双击防误触
-    if (!confirming) {
-      setConfirming(true)
-      window.setTimeout(() => { setConfirming(false) }, 4000)
-      return
-    }
-    setConfirming(false)
     setBusy(true)
     try {
       const next = await api.resetCompanionToken()
       setView({ token: next.token, createdAt: next.createdAt, guideUrl: next.guideUrl })
-      setMsg({ ok: true, text: '令牌已生成' })
+      setMsg({ ok: true, text: t('companion.generated') })
     } catch (error) {
-      setMsg({ ok: false, text: error instanceof Error ? error.message : '生成失败' })
+      setMsg({ ok: false, text: error instanceof Error ? error.message : t('companion.generateFailed') })
     } finally {
       setBusy(false)
     }
@@ -100,12 +93,12 @@ export function CompanionCard(): React.JSX.Element {
   }
 
   return <div className="ea-card ea-card-wide">
-    <h3 style={{ margin: '0 0 12px' }}>浏览器执行面</h3>
-    <p className="ea-hint" style={{ margin: '0 0 8px' }}>让你的浏览器成为 Agent 的执行面：安装扩展后，Agent 可在你登录过的页面上代你操作（数据与登录态都不离开你的浏览器）。每台浏览器用独立令牌接入。</p>
+    <h3 style={{ margin: '0 0 12px' }}>{t('companion.title')}</h3>
+    <p className="ea-hint" style={{ margin: '0 0 8px' }}>{t('companion.desc')}</p>
     {view === null
-      ? <p className="ea-hint">读取中…</p>
+      ? <p className="ea-hint">{t('companion.loading')}</p>
       : view.token === null
-        ? <p className="ea-hint">尚未生成接入令牌。</p>
+        ? <p className="ea-hint">{t('companion.empty')}</p>
         : <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <code style={{
               flex: 1, minWidth: 220, fontFamily: 'var(--et-font-mono)', fontSize: 12,
@@ -114,22 +107,30 @@ export function CompanionCard(): React.JSX.Element {
               background: 'var(--et-surface-2)',
               wordBreak: 'break-all',
             }}>{view.token}</code>
-            <button type="button" className="ea-btn" style={{ margin: 0 }} onClick={() => { void copy() }}>{copied ? '已复制' : '一键复制'}</button>
+            <button type="button" className="ea-btn" style={{ margin: 0 }} onClick={() => { void copy() }}>{copied ? t('companion.copied') : t('companion.copy')}</button>
           </div>}
     <div className="ea-row between" style={{ marginTop: 14 }}>
-      <button type="button" className="ea-btn" disabled={busy} onClick={() => { void generate() }}>
-        {confirming ? '再点一次确认重置' : (view?.token !== null && view?.token !== undefined ? '重置令牌' : '生成令牌')}
-      </button>
+      {view?.token !== null && view?.token !== undefined
+        ? <TwoClickButton
+            label={t('companion.reset')}
+            confirmLabel={t('companion.resetConfirm')}
+            className="ea-btn ghost"
+            armedClassName="ea-btn ea-btn-danger"
+            disabled={busy}
+            onConfirm={() => { void generate() }}
+          />
+        : <button type="button" className="ea-btn" disabled={busy} onClick={() => { void generate() }}>{t('companion.generate')}</button>}
       {view !== null && <a href={view.guideUrl} target="_blank" rel="noopener noreferrer" style={{
         fontSize: 'var(--et-text-caption)', color: 'var(--et-accent)', textDecoration: 'none',
-      }}>安装指引 ↗</a>}
+      }}>{t('companion.guide')}</a>}
     </div>
     <p className={msg.ok ? 'ea-ok' : 'ea-err'}>{msg.text}</p>
   </div>
 }
 
 /** 账号分区:资料卡(合并保存,脏检查)+密码卡(独立,确认输入)+浏览器执行面卡。 */
-export function AccountSection(): React.JSX.Element {
+export function AccountSection(props: { readonly t: Translate }): React.JSX.Element {
+  const { t } = props
   const [me, setMe] = useState<Me | null>(null)
   const [nick, setNick] = useState('')
   const [savedNick, setSavedNick] = useState('')
@@ -145,15 +146,16 @@ export function AccountSection(): React.JSX.Element {
   useEffect(() => {
     api.me().then((value) => {
       setMe(value)
-      setNick(value.nickname)
+      const stored = sessionStorage.getItem(`eterna.account.nick.${value.id}`)
+      setNick(stored ?? value.nickname)
       setSavedNick(value.nickname)
     }).catch(() => {})
   }, [])
 
   const dirty = (nick !== savedNick && nick.trim() !== '') || pendingAvatar !== null
   const hint = !dirty
-    ? '资料未改动'
-    : pendingAvatar !== null && nick !== savedNick ? '将更新昵称与头像' : pendingAvatar !== null ? '将更新头像' : '将更新昵称'
+    ? t('account.unchanged')
+    : pendingAvatar !== null && nick !== savedNick ? t('account.willUpdateBoth') : pendingAvatar !== null ? t('account.willUpdateAvatar') : t('account.willUpdateNick')
   const avatarUrl = pendingAvatar !== null && pendingAvatar !== 'RESET'
     ? pendingAvatar
     : me?.avatarUrl !== undefined && me.avatarUrl !== null ? `${me.avatarUrl}?v=${avatarBust}` : null
@@ -168,42 +170,43 @@ export function AccountSection(): React.JSX.Element {
     Promise.all(jobs).then((results) => {
       setBusy(false)
       setSavedNick(nick)
+      if (me !== null) sessionStorage.removeItem(`eterna.account.nick.${me.id}`)
       setPendingAvatar(null)
       setAvatarBust(value => value + 1)
       setMe(previous => previous === null ? previous : { ...previous, nickname: nick })
       void results
-      setProfileMsg({ ok: true, text: '已保存' })
+      setProfileMsg({ ok: true, text: t('account.saved') })
     }).catch((error: unknown) => {
       setBusy(false)
-      setProfileMsg({ ok: false, text: error instanceof Error ? error.message : '保存失败' })
+      setProfileMsg({ ok: false, text: error instanceof Error ? error.message : t('account.saveFailed') })
     })
-  }, [nick, pendingAvatar, savedNick])
+  }, [me, nick, pendingAvatar, savedNick, t])
 
   const savePassword = useCallback(() => {
     if (newPw !== newPw2) {
-      setPwMsg({ ok: false, text: '两次输入的新密码不一致' })
+      setPwMsg({ ok: false, text: t('account.passwordMismatch') })
       return
     }
     setBusy(true)
     setPwMsg({ ok: true, text: '' })
     api.setPassword(oldPw, newPw).then(() => {
       setBusy(false)
-      setPwMsg({ ok: true, text: '密码已修改，其他设备需重新登录' })
+      setPwMsg({ ok: true, text: t('account.passwordChanged') })
       setOldPw('')
       setNewPw('')
       setNewPw2('')
     }).catch((error: unknown) => {
       setBusy(false)
-      setPwMsg({ ok: false, text: error instanceof Error ? error.message : '修改失败' })
+      setPwMsg({ ok: false, text: error instanceof Error ? error.message : t('account.passwordChangeFailed') })
     })
-  }, [oldPw, newPw, newPw2])
+  }, [oldPw, newPw, newPw2, t])
 
-  if (me === null) return <div data-eterna-access-root><p className="ea-lead">加载中…</p></div>
+  if (me === null) return <div data-eterna-access-root><p className="ea-lead">{t('account.loading')}</p></div>
 
-  return <div data-eterna-access-root>
+  return <div data-eterna-access-root data-eterna-settings-section="account">
     <div className="ea-grid">
       <div className="ea-card">
-        <h3 style={{ margin: '0 0 12px' }}>个人资料</h3>
+        <h3 style={{ margin: '0 0 12px' }}>{t('account.profile')}</h3>
         <div className="ea-row" style={{ margin: '0 0 12px' }}>
           <Avatar url={avatarUrl} nickname={nick || me.account} />
           <input id="ea-file" className="ea-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" style={{ flex: 1 }}
@@ -213,39 +216,47 @@ export function AccountSection(): React.JSX.Element {
               fileToAvatarDataUrl(file).then((dataUrl) => {
                 setPendingAvatar(dataUrl)
               }).catch((error: unknown) => {
-                setProfileMsg({ ok: false, text: error instanceof Error ? error.message : '图片读取失败' })
+                setProfileMsg({ ok: false, text: error instanceof Error ? error.message : t('account.avatarReadFailed') })
               })
             }} />
         </div>
-        <label className="ea-label" htmlFor="ea-nick">昵称</label>
-        <input id="ea-nick" className="ea-input" value={nick} maxLength={32} onChange={event => { setNick(event.target.value) }} />
+        <label className="ea-label" htmlFor="ea-nick">{t('account.nickname')}</label>
+        <input id="ea-nick" className="ea-input" value={nick} maxLength={32} onChange={event => {
+          const value = event.target.value
+          setNick(value)
+          if (me !== null) {
+            if (value === savedNick) sessionStorage.removeItem(`eterna.account.nick.${me.id}`)
+            else sessionStorage.setItem(`eterna.account.nick.${me.id}`, value)
+          }
+        }} />
         <div className="ea-row between" style={{ marginTop: 16 }}>
-          <button className="ea-btn" disabled={!dirty || busy} onClick={saveProfile}>保存更改</button>
-          <span className="ea-hint">{busy ? '保存中…' : hint}</span>
+          <button className="ea-btn" disabled={!dirty || busy} onClick={saveProfile}>{t('account.save')}</button>
+          <span className="ea-hint">{busy ? t('account.saving') : hint}</span>
         </div>
         <p className={profileMsg.ok ? 'ea-ok' : 'ea-err'}>{profileMsg.text}</p>
       </div>
       <div className="ea-card">
-        <h3 style={{ margin: '0 0 12px' }}>修改密码</h3>
-        <p className="ea-hint" style={{ margin: '0 0 8px' }}>修改后本机保持登录，其他设备需重新登录。</p>
-        <label className="ea-label" htmlFor="ea-oldPw">旧密码</label>
-        <PasswordInput id="ea-oldPw" autoComplete="current-password" value={oldPw} onChange={setOldPw} />
-        <label className="ea-label" htmlFor="ea-newPw">新密码</label>
-        <PasswordInput id="ea-newPw" autoComplete="new-password" placeholder="至少 8 位" value={newPw} onChange={setNewPw} />
-        <label className="ea-label" htmlFor="ea-newPw2">确认新密码</label>
-        <PasswordInput id="ea-newPw2" autoComplete="new-password" placeholder="再次输入新密码" value={newPw2} onChange={setNewPw2} />
+        <h3 style={{ margin: '0 0 12px' }}>{t('account.passwordCard')}</h3>
+        <p className="ea-hint" style={{ margin: '0 0 8px' }}>{t('account.passwordNote')}</p>
+        <label className="ea-label" htmlFor="ea-oldPw">{t('account.oldPassword')}</label>
+        <PasswordInput id="ea-oldPw" autoComplete="current-password" value={oldPw} onChange={setOldPw} t={t} />
+        <label className="ea-label" htmlFor="ea-newPw">{t('account.newPassword')}</label>
+        <PasswordInput id="ea-newPw" autoComplete="new-password" placeholder={t('account.newPasswordPlaceholder')} value={newPw} onChange={setNewPw} t={t} />
+        <label className="ea-label" htmlFor="ea-newPw2">{t('account.confirmPassword')}</label>
+        <PasswordInput id="ea-newPw2" autoComplete="new-password" placeholder={t('account.confirmPlaceholder')} value={newPw2} onChange={setNewPw2} t={t} />
         <div className="ea-row" style={{ marginTop: 14 }}>
-          <button className="ea-btn" disabled={busy || oldPw === '' || newPw === ''} onClick={savePassword}>修改密码</button>
+          <button className="ea-btn" disabled={busy || oldPw === '' || newPw === ''} onClick={savePassword}>{t('account.changePassword')}</button>
         </div>
         <p className={pwMsg.ok ? 'ea-ok' : 'ea-err'}>{pwMsg.text}</p>
       </div>
-      <CompanionCard />
+      <CompanionCard t={t} />
     </div>
   </div>
 }
 
 /** 用户管理分区(admin):添加(重名自动后缀)+两击删除。 */
-export function UsersSection(): React.JSX.Element {
+export function UsersSection(props: { readonly t: Translate }): React.JSX.Element {
+  const { t } = props
   const [users, setUsers] = useState<UserRowView[]>([])
   const [selfId, setSelfId] = useState<number | null>(null)
   const [account, setAccount] = useState('')
@@ -264,63 +275,53 @@ export function UsersSection(): React.JSX.Element {
     setMsg({ ok: true, text: '' })
     api.createUser(account, password, role).then((result) => {
       setBusy(false)
-      setMsg({ ok: true, text: result.finalAccount === account ? `用户 ${result.finalAccount} 已创建` : `用户已创建，账号为 ${result.finalAccount}（重名自动后缀）` })
+      setMsg({ ok: true, text: (result.finalAccount === account ? t('users.created') : t('users.createdSuffix')).replace('{account}', result.finalAccount) })
       setAccount('')
       setPassword('')
       return api.users().then(value => { setUsers(value.users) })
     }).catch((error: unknown) => {
       setBusy(false)
-      setMsg({ ok: false, text: error instanceof Error ? error.message : '创建失败' })
+      setMsg({ ok: false, text: error instanceof Error ? error.message : t('users.createFailed') })
     })
-  }, [account, password, role])
+  }, [account, password, role, t])
 
   const remove = useCallback((id: number) => {
     api.deleteUser(id).then(() => {
       setUsers(previous => previous.filter(user => user.id !== id))
-      setMsg({ ok: true, text: '用户已删除，其会话已失效' })
+      setMsg({ ok: true, text: t('users.deleted') })
     }).catch((error: unknown) => {
-      setMsg({ ok: false, text: error instanceof Error ? error.message : '删除失败' })
+      setMsg({ ok: false, text: error instanceof Error ? error.message : t('users.deleteFailed') })
     })
-  }, [])
+  }, [t])
 
-  return <div data-eterna-access-root>
-    <p className="ea-lead">添加用户（重名自动追加数字后缀；默认昵称=账号、头像=昵称首字母）。</p>
+  return <div data-eterna-access-root data-eterna-settings-section="users">
+    <p className="ea-lead">{t('users.lead')}</p>
     <div className="ea-row" style={{ margin: '0 0 6px' }}>
-      <input className="ea-input" placeholder="账号" value={account} onChange={event => { setAccount(event.target.value) }} style={{ flex: 1 }} />
-      <input className="ea-input" type="password" placeholder="密码（至少 8 位）" value={password} onChange={event => { setPassword(event.target.value) }} style={{ flex: 1 }} />
+      <input className="ea-input" placeholder={t('users.account')} value={account} onChange={event => { setAccount(event.target.value) }} style={{ flex: 1 }} />
+      <input className="ea-input" type="password" placeholder={t('users.password')} value={password} onChange={event => { setPassword(event.target.value) }} style={{ flex: 1 }} />
       <select className="ea-input" value={role} onChange={event => { setRole(event.target.value as 'admin' | 'user') }} style={{ width: 110 }}>
-        <option value="user">普通用户</option>
-        <option value="admin">管理员</option>
+        <option value="user">{t('users.roleUser')}</option>
+        <option value="admin">{t('users.roleAdmin')}</option>
       </select>
-      <button className="ea-btn" disabled={busy || account === '' || password === ''} onClick={create}>添加</button>
+      <button className="ea-btn" disabled={busy || account === '' || password === ''} onClick={create}>{t('users.add')}</button>
     </div>
     <div className="ea-table-wrap">
       <table className="ea-table">
-        <thead><tr><th></th><th>账号</th><th>昵称</th><th>角色</th><th>创建时间</th><th></th></tr></thead>
+        <thead><tr><th></th><th>{t('users.account')}</th><th>{t('users.nickname')}</th><th>{t('users.role')}</th><th>{t('users.createdAt')}</th><th></th></tr></thead>
         <tbody>
           {users.map(user => <tr key={user.id}>
             <td><Avatar url={user.hasAvatar ? `/access/api/avatar/${user.id}` : null} nickname={user.nickname} size={24} /></td>
             <td>{user.account}</td>
             <td>{user.nickname}</td>
-            <td>{user.role === 'admin' ? <span className="ea-tag brand">管理员</span> : <span className="ea-tag">用户</span>}</td>
+            <td>{user.role === 'admin' ? <span className="ea-tag brand">{t('users.roleAdmin')}</span> : <span className="ea-tag">{t('users.roleUser')}</span>}</td>
             <td className="ea-hint">{user.createdAt}</td>
             <td>{user.id === selfId
-              ? <span className="ea-hint">当前登录</span>
-              : <DeleteButton onConfirm={() => { remove(user.id) }} />}</td>
+              ? <span className="ea-hint">{t('users.current')}</span>
+              : <DeleteButton onConfirm={() => { remove(user.id) }} label={t('users.delete')} confirmLabel={t('users.deleteConfirm')} />}</td>
           </tr>)}
         </tbody>
       </table>
     </div>
     <p className={msg.ok ? 'ea-ok' : 'ea-err'}>{msg.text}</p>
   </div>
-}
-
-/** 两击删除确认(禁用原生对话框——内嵌 webview 卡死实测)。 */
-function DeleteButton(props: { onConfirm: () => void }): React.JSX.Element {
-  const [armed, setArmed] = useState(false)
-  if (!armed) {
-    return <button className="ea-dangerclick" onClick={() => { setArmed(true) }}
-      onMouseLeave={() => { setArmed(false) }}>删除</button>
-  }
-  return <button className="ea-dangerclick" onClick={() => { props.onConfirm() }}>确认删除?</button>
 }

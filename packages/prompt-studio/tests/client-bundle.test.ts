@@ -38,7 +38,6 @@ const BASELINE_EXTERNALS = [
   'zod',
   '@deepseek-ai/dsh-client-store',
   '@deepseek-ai/dsh-client-ui-slots',
-  '@deepseek-ai/dsh-client-ui-primitives',
   '@deepseek-ai/dsh-client-ui-dockkit',
   '@deepseek-ai/dsh-client-locale',
   '@deepseek-ai/dsh-api-gateway',
@@ -299,10 +298,6 @@ describe('模块装载冒烟(vm)', () => {
     const stubs: Record<string, unknown> = {
       'react': { useState: () => [undefined, () => undefined], useMemo: () => undefined, useCallback: () => undefined },
       'react/jsx-runtime': { jsx: () => null, jsxs: () => null, Fragment: 'fragment' },
-      '@deepseek-ai/dsh-client-ui-primitives': {
-        IconListPenOutlineRegular: () => null,
-        IconWorkspaceTreeOutlineRegular: () => null,
-      },
     }
     return (specifier: string) => {
       seen.push(specifier)

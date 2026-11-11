@@ -6,7 +6,7 @@
  * 2026-11-11 统一设计语言:Webflow 令牌(@eterna/ui)、960 容器、32px 页面标题、
  * 4px 卡片、连续 14 天时间轴、表格滚动兜底;不再使用不存在的 DSH 令牌。
  */
-import { IconDataOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Icon } from '@eterna/ui/icons'
 import { injectDesignTokens } from '@eterna/ui'
 
 export const PANEL_ID = 'eterna-usage-stats'
@@ -20,6 +20,7 @@ const en = { panel: 'Usage Stats' }
 
 const CSS = `
 [data-eterna-usage-stats] {
+  animation: et-fade-in var(--et-motion-base) var(--et-ease) both;
   box-sizing: border-box;
   width: 100%;
   height: 100%;
@@ -31,7 +32,7 @@ const CSS = `
   padding: 48px 48px 96px;
   color: var(--et-fg);
   font-family: var(--et-font-body);
-  font-size: var(--et-text-caption);
+  font-size: var(--et-text-body);
   font-weight: var(--et-weight-body);
   line-height: var(--et-leading-body);
 }
@@ -46,6 +47,7 @@ const CSS = `
 [data-eterna-usage-stats] .us-grid { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: var(--et-space-6); align-items: start; }
 [data-eterna-usage-stats] .us-section { margin-top: 0; }
 [data-eterna-usage-stats] .us-section-title { margin: 0 0 var(--et-space-3); font-size: var(--et-text-lead); line-height: 1.3; font-weight: var(--et-weight-display); color: var(--et-fg); }
+[data-eterna-usage-stats] .us-summary { margin: -6px 0 12px; font-size: var(--et-text-caption); color: var(--et-muted); }
 [data-eterna-usage-stats] .us-chart { display: flex; align-items: flex-end; gap: 6px; height: 220px; padding: 16px 16px 0; border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); background: var(--et-surface); }
 [data-eterna-usage-stats] .us-day { flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; min-width: 0; }
 [data-eterna-usage-stats] .us-bar { width: 100%; background: var(--et-accent); border-radius: var(--et-radius-sm) var(--et-radius-sm) 0 0; min-height: 2px; }
@@ -66,13 +68,16 @@ const CSS = `
 }
 @media (max-width: 640px) {
   [data-eterna-usage-stats] { padding: 24px 16px 48px; }
-  [data-eterna-usage-stats] .us-title { font-size: 28px; }
+  [data-eterna-usage-stats] .us-title { font-size: var(--et-text-h3); }
   [data-eterna-usage-stats] .us-cards { grid-template-columns: 1fr 1fr; gap: var(--et-space-3); }
   [data-eterna-usage-stats] .us-card { padding: 12px; }
   [data-eterna-usage-stats] .us-value { font-size: var(--et-text-lead); }
   [data-eterna-usage-stats] .us-chart { height: 112px; padding: 8px 8px 0; }
   [data-eterna-usage-stats] .us-day:not(:nth-child(3n+1)) .us-chart-label { visibility: hidden; }
 }
+@keyframes et-fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { [data-eterna-panel='root'], [data-eterna-usage-stats], [data-t7-studio-root], [data-t7-trace-root] { animation: none; } }
+
 `
 
 interface Aggregates {
@@ -87,6 +92,13 @@ interface StatsState {
   scope?: 'global' | 'self'
   aggregates?: Aggregates
   message?: string
+}
+
+function errorText(message: string): string {
+  const code = message.toLowerCase()
+  if (code === 'forbidden' || code === '403') return '没有权限查看该范围的数据，请联系管理员'
+  if (code === 'unauthorized' || code === '401') return '登录已过期，请重新登录'
+  return message
 }
 
 function fmt(n: number): string {
@@ -121,7 +133,7 @@ export interface UsageStatsPageProps {
 export function UsageStatsPage(props: UsageStatsPageProps): React.JSX.Element {
   const stats = props.useStats(s => s)
   if (stats.status === 'loading') return <div data-eterna-usage-stats><div className="us-empty">加载中…</div></div>
-  if (stats.status === 'error') return <div data-eterna-usage-stats><div className="us-error">加载失败:{stats.message}</div></div>
+  if (stats.status === 'error') return <div data-eterna-usage-stats><div className="us-error">加载失败：{errorText(stats.message ?? '未知错误')}</div></div>
   const a = stats.aggregates
   if (a === undefined || a.total.sessions === 0) {
     return (
@@ -136,6 +148,8 @@ export function UsageStatsPage(props: UsageStatsPageProps): React.JSX.Element {
     ? `${((a.total.cacheReadTokens / (a.total.cacheReadTokens + a.total.inputTokens)) * 100).toFixed(1)}%` : '—'
   const days = lastDays(a.byDay)
   const maxDay = Math.max(1, ...days.map(day => day.value))
+  const totalDays = days.reduce((sum, day) => sum + day.value, 0)
+  const peakDay = days.reduce((peak, day) => day.value > peak.value ? day : peak, days[0] ?? { day: '', value: 0 })
   const models = Object.entries(a.byModel).sort(([, b1], [, b2]) => (b2.inputTokens + b2.outputTokens) - (b1.inputTokens + b1.outputTokens))
   return (
     <div data-eterna-usage-stats>
@@ -164,7 +178,8 @@ export function UsageStatsPage(props: UsageStatsPageProps): React.JSX.Element {
       <div className="us-grid">
         <section className="us-section" aria-label="近 14 天趋势">
           <h2 className="us-section-title">近 14 天趋势(输入+输出)</h2>
-          <div className="us-chart" data-eterna-trend>
+          <p className="us-summary">14 天合计 {fmt(totalDays)}，峰值 {fmt(peakDay.value)}{peakDay.day === '' ? '' : `(${peakDay.day.slice(5)})`}</p>
+          <div className="us-chart" data-eterna-trend role="img" aria-label={`近 14 天趋势，合计 ${fmt(totalDays)}，峰值 ${fmt(peakDay.value)}`}>
             {days.map(day => (
               <div key={day.day} className="us-day" title={`${day.day}: ${day.value}`}>
                 <div
@@ -248,7 +263,7 @@ export function apply(ctx: ClientContext): () => void {
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
     name: 'sidebar.panellist', id: PANEL_ID, order: 23, locale: NS, label: () => t('panel'),
   }, function PanelIcon() {
-    return <IconDataOutlineRegular size={16} />
+    return <Icon name="chart" size={16} />
   }))
   return disposeLocale
 }

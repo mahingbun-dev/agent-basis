@@ -4,6 +4,8 @@
  * UI 纪律:ea-* 令牌类(styles.ts)/合并保存思路/两击确认/防重复点击。
  */
 import { useCallback, useEffect, useState } from 'react'
+import { ArmedDelete } from './confirm-button.tsx'
+import type { Translate } from './i18n.ts'
 
 async function postJson(path: string, body?: unknown): Promise<{ ok: boolean; value?: unknown; error?: { message?: string } | undefined }> {
   const r = await fetch(path, {
@@ -41,17 +43,21 @@ interface NotificationItem {
 
 /** 侧栏插件页页签形态(plugins.tab):PluginTabProps 提供页面级 install/openPackage,
  *  本页自有安装/转内置链路不依赖它们——自绘内容即 MyPluginsSection 全量功能。 */
-export function MyPluginsTab(_props: { readonly install: (target: unknown) => void; readonly openPackage: (name: string) => void }): React.JSX.Element {
-  return <MyPluginsSection />
+export function MyPluginsTab(props: {
+  readonly install: (target: unknown) => void
+  readonly openPackage: (name: string) => void
+  readonly t: Translate
+}): React.JSX.Element {
+  return <MyPluginsSection t={props.t} />
 }
 
-export function MyPluginsSection(): React.JSX.Element {
+export function MyPluginsSection(props: { readonly t: Translate }): React.JSX.Element {
+  const { t } = props
   const [items, setItems] = useState<MyPlugin[]>([])
   const [name, setName] = useState('')
   const [dirName, setDirName] = useState('')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
-  const [confirming, setConfirming] = useState<string | null>(null)
 
   const refresh = useCallback(async (): Promise<void> => {
     const r = await postJson('/api/my-plugins/list')
@@ -66,49 +72,46 @@ export function MyPluginsSection(): React.JSX.Element {
     setMessage('')
     try {
       const r = await postJson(path, { request: body })
-      if (!r.ok) setMessage(r.error?.message ?? '操作失败')
+      if (!r.ok) setMessage(r.error?.message ?? t('plugins.actionFailed'))
       else await refresh()
     } finally { setBusy(false) }
   }
 
   return <section className="ea-section" data-eterna-access-root data-eterna-my-plugins>
-    <h3>我的插件</h3>
-    <p className="ea-hint">个人插件仅本人可见可用;好用的插件可发起「转内置」给全团队使用。</p>
+    <h3>{t('plugins.title')}</h3>
+    <p className="ea-hint">{t('plugins.hint')}</p>
     {message !== '' && <p className="ea-error" role="alert">{message}</p>}
     <div className="ea-list">
-      {items.length === 0 && <p className="ea-hint">还没有安装个人插件</p>}
+      {items.length === 0 && <p className="ea-hint">{t('plugins.empty')}</p>}
       {items.map(item => <div key={item.pluginId} className="ea-row" data-eterna-plugin-row={item.pluginId}>
         <span className="ea-row-title">{item.pluginId}</span>
-        <span className="ea-row-meta">{item.enabled ? '已启用' : '已停用'}{item.promoted ? ' · 已转内置' : ''}</span>
+        <span className="ea-row-meta">{item.enabled ? t('plugins.enabled') : t('plugins.disabled')}{item.promoted ? ` · ${t('plugins.promoted')}` : ''}</span>
         <span className="ea-row-actions">
           <button type="button" className="ea-btn ghost" disabled={busy}
             onClick={() => { void action(item.enabled ? '/api/my-plugins/disable' : '/api/my-plugins/enable', { pluginId: item.pluginId }) }}>
-            {item.enabled ? '停用' : '启用'}
+            {item.enabled ? t('plugins.disable') : t('plugins.enable')}
           </button>
-          {confirming !== item.pluginId
-            ? <button type="button" className="ea-btn ghost" disabled={busy} onClick={() => { setConfirming(item.pluginId) }}>删除</button>
-            : <button type="button" className="ea-btn ea-btn-danger" disabled={busy}
-              onClick={() => { void action('/api/my-plugins/remove', { pluginId: item.pluginId }).then(() => { setConfirming(null) }) }}>
-              确认删除?</button>}
+          <ArmedDelete busy={busy} label={t('plugins.delete')} confirmLabel={t('plugins.deleteConfirm')} onConfirm={() => { void action('/api/my-plugins/remove', { pluginId: item.pluginId }) }} />
           {!item.promoted && <button type="button" className="ea-btn ghost" disabled={busy}
             onClick={() => { void action('/api/my-plugins/promote-request', { pluginId: item.pluginId }) }}>
-            转内置</button>}
+            {t('plugins.promote')}</button>}
         </span>
       </div>)}
     </div>
     <div className="ea-row" style={{ marginTop: 10 }}>
-      <input className="ea-input" placeholder="插件名(如 hello)" aria-label="插件名"
+      <input className="ea-input" placeholder={t('plugins.namePlaceholder')} aria-label={t('plugins.nameLabel')}
         value={name} onChange={e => { setName(e.target.value) }} />
-      <input className="ea-input" placeholder="plugins 下的目录名" aria-label="插件目录名"
+      <input className="ea-input" placeholder={t('plugins.dirPlaceholder')} aria-label={t('plugins.dirLabel')}
         value={dirName} onChange={e => { setDirName(e.target.value) }} />
       <button type="button" className="ea-btn" disabled={busy || name === '' || dirName === ''}
         onClick={() => { void action('/api/my-plugins/install', { name, dir: dirName }).then(() => { setName(''); setDirName('') }) }}>
-        安装</button>
+        {t('plugins.install')}</button>
     </div>
   </section>
 }
 
-export function NotificationsSection(): React.JSX.Element {
+export function NotificationsSection(props: { readonly t: Translate }): React.JSX.Element {
+  const { t } = props
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [unread, setUnread] = useState(0)
   const [mine, setMine] = useState<ApprovalItem[]>([])
@@ -128,29 +131,30 @@ export function NotificationsSection(): React.JSX.Element {
   }, [])
   useEffect(() => { void refresh() }, [refresh])
 
-  return <section className="ea-section" data-eterna-access-root data-eterna-notifications>
-    <h3>消息与审批{unread > 0 ? `(${unread} 未读)` : ''}</h3>
+  return <section className="ea-section" data-eterna-access-root data-eterna-notifications data-eterna-settings-section="notifications">
+    <h3>{t('notifications.title')}{unread > 0 ? t('notifications.unread').replace('{count}', String(unread)) : ''}</h3>
     <div className="ea-list">
-      {notifications.length === 0 && <p className="ea-hint">暂无消息</p>}
+      {notifications.length === 0 && <p className="ea-hint">{t('notifications.empty')}</p>}
       {notifications.map(n => <div key={n.id} className="ea-row" style={n.read === 0 ? { fontWeight: 600 } : undefined}>
         <span>{n.message}</span>
       </div>)}
     </div>
     {mine.length > 0 && <>
-      <h4 style={{ margin: '8px 0 4px' }}>我的申请</h4>
+      <h4 style={{ margin: '8px 0 4px' }}>{t('notifications.mine')}</h4>
       <div className="ea-list">
         {mine.map(a => <div key={a.id} className="ea-row" data-eterna-approval-mine={a.id}>
           <span>#{a.id} {a.type}({a.payload.pluginId ?? ''})</span>
-          <span className="ea-row-meta">{a.status === 'pending' ? '待审批' : a.status === 'approved' ? '已通过' : '已驳回'}</span>
+          <span className="ea-row-meta">{a.status === 'pending' ? t('notifications.pending') : a.status === 'approved' ? t('notifications.approved') : t('notifications.rejected')}</span>
         </div>)}
       </div>
     </>}
     {unread > 0 && <button type="button" className="ea-btn ghost" onClick={() => { void postJson('/api/notifications/read-all').then(() => refresh()) }}>
-      全部标为已读</button>}
+      {t('notifications.readAll')}</button>}
   </section>
 }
 
-export function ApprovalQueueSection(): React.JSX.Element {
+export function ApprovalQueueSection(props: { readonly t: Translate }): React.JSX.Element {
+  const { t } = props
   const [items, setItems] = useState<ApprovalItem[]>([])
   const [busy, setBusy] = useState(false)
   const [notes, setNotes] = useState<Record<number, string>>({})
@@ -171,17 +175,17 @@ export function ApprovalQueueSection(): React.JSX.Element {
     } finally { setBusy(false) }
   }
 
-  return <section className="ea-section" data-eterna-access-root data-eterna-approval-queue>
-    <h3>审批队列</h3>
-    {items.length === 0 && <p className="ea-hint">暂无待审批请求</p>}
+  return <section className="ea-section" data-eterna-access-root data-eterna-approval-queue data-eterna-settings-section="approval-queue">
+    <h3>{t('approval.title')}</h3>
+    {items.length === 0 && <p className="ea-hint">{t('approval.empty')}</p>}
     <div className="ea-list">
       {items.map(a => <div key={a.id} className="ea-row" data-eterna-approval-queue={a.id}>
-        <span>#{a.id} {a.type} · {a.payload.pluginId ?? ''}(申请人 {a.payload.requesterAccount ?? '?'})</span>
+        <span>#{a.id} {a.type} · {a.payload.pluginId ?? ''}({t('approval.applicant')} {a.payload.requesterAccount ?? '?'})</span>
         <span className="ea-row-actions">
-          <input className="ea-input" placeholder="意见(可选)" aria-label="审批意见" value={notes[a.id] ?? ''}
+          <input className="ea-input" placeholder={t('approval.notePlaceholder')} aria-label={t('approval.noteLabel')} value={notes[a.id] ?? ''}
             onChange={e => { setNotes(prev => ({ ...prev, [a.id]: e.target.value })) }} />
-          <button type="button" className="ea-btn" disabled={busy} onClick={() => { void decide(a.id, true, notes[a.id] ?? '') }}>通过</button>
-          <button type="button" className="ea-btn ea-btn-danger" disabled={busy} onClick={() => { void decide(a.id, false, notes[a.id] ?? '') }}>驳回</button>
+          <button type="button" className="ea-btn" disabled={busy} onClick={() => { void decide(a.id, true, notes[a.id] ?? '') }}>{t('approval.approve')}</button>
+          <button type="button" className="ea-btn ea-btn-danger" disabled={busy} onClick={() => { void decide(a.id, false, notes[a.id] ?? '') }}>{t('approval.reject')}</button>
         </span>
       </div>)}
     </div>

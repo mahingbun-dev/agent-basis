@@ -2,7 +2,7 @@
  * 浏览器半边的本地结构类型:仅声明本插件消费的服务面(slots / locale /
  * connection),与 dsh 客户端壳的运行时形状鸭子一致(对齐 packages/panel 的
  * client-types.ts 配方)。不导入跨包运行时模块,客户端 bundle 因此零运行时依赖
- * (基线外部模块除外:react、ui-primitives);线载荷类型从 ../types.ts 以
+ * (基线外部模块除外:react);线载荷类型从 ../types.ts 以
  * `import type` 引入(纯类型,esbuild 全部擦除,Host/Client 单一事实源)。
  */
 

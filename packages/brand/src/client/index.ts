@@ -1,30 +1,28 @@
 /**
- * @eterna/brand 浏览器半边 v2:把「DeepSeek Harness」品牌面全面替换为「恒枢 EternaGrid」。
+ * @eterna/brand 浏览器半边 v2:把「DeepSeek Harness」品牌面全面替换为「恒灵·EternaAgent」。
  *
  * 五个替换面(零上游改动;实测依据见 docs/eterna-web-profile.md):
  * 1. 侧栏 logo:官方 slot `sidebar.brand.mark`(ui-sidebar children 声明,上游
- *    fallback=FishLogo 深海鲸)——slot 注入恒枢标(正式席位,非 DOM hack)。
+ *    fallback=FishLogo 深海鲸)——slot 注入恒灵标(正式席位,非 DOM hack)。
  * 2. 残余鲸鱼置换:FishLogo 另有渲染点(版本拷贝按钮等)——DOM 观察器按 viewBox
  *    签名 "0 0 23.16 17.04"(FISH_LOGO_VIEWBOX,唯一)识别鲸鱼 svg,原位置换为
- *    恒枢单色标(currentColor,随主题深浅自适配)。
+ *    恒灵单色标(currentColor,随主题深浅自适配)。
  * 3. 文案地图(文本节点观察器,防回环):
- *    DeepSeek Harness→恒枢 EternaGrid;DSH 本地构建→恒枢 · 本地构建;
- *    DSH Local Build→EternaGrid · Local Build;探索未至之境→方寸灵台，运筹万里(文化向标语,用户 2026-11-09 定:灵台出自《庄子》=心之神明,台=工作台双关,灵=品牌呼应)。
+ *    DeepSeek Harness→恒灵·EternaAgent;DSH 本地构建→恒灵·EternaAgent · 本地构建;
+ *    DSH Local Build→EternaAgent · Local Build;探索未至之境→方寸灵台，运筹万里(文化向标语,用户 2026-11-09 定:灵台出自《庄子》=心之神明,台=工作台双关,灵=品牌呼应)。
  * 4. tab 标题:ui-layout productTitle 硬编码,观察器拦截(含会话前缀形态)。
  * 5. favicon:SVG data-URI 换装。
  * 另:locale.register('common') 覆写 brand.localBuild 键(DOM 观察器兜底)。
  */
 import { createElement } from 'react'
+import { BRAND_BOLT_PATH } from '@eterna/ui/icon-data'
 import { BRAND } from './state.ts'
 import type { BrandClientContext } from './state.ts'
 
 export const inject = ['slots', 'locale']
 
-/** 粗壮闪电路径(v2 主视觉;贯穿上下,小尺寸可辨)。 */
-const BOLT_PATH = 'M368 28 L106 300 L262 300 L146 484 L406 170 L250 170 Z'
-
-/** favicon(data-URI SVG;单色粗闪电,16px 可辨)。 */
-const FAVICON_SVG = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='96' fill='#146ef5'/><path d='M368 56 L126 296 L264 296 L152 456 L398 180 L256 180 Z' fill='#ffffff'/></svg>"
+/** favicon(data-URI SVG;Webflow Blue 圆角底 + 白色闪电,16px 可辨)。 */
+const FAVICON_SVG = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='5.25' fill='#146ef5'/><path d='M13 2L4.5 13.5H11L9.5 22 19 10.5h-6.5L13 2Z' fill='#ffffff'/></svg>"
 const FAVICON_URI = `data:image/svg+xml,${encodeURIComponent(FAVICON_SVG)}`
 
 /** FishLogo 唯一 viewBox(上游 FISH_LOGO_VIEWBOX 23.16×17.04)——svg 身份签名。 */
@@ -45,18 +43,18 @@ const TEXT_MAP: readonly (readonly [string, string])[] = [
 
 /** 恒灵标内观(currentColor,主题自适配;纯粗壮闪电,v2 修复 24px 圆+点退化)。 */
 function markInner(): string {
-  return `<path d="${BOLT_PATH}" fill="currentColor"/>`
+  return `<path d="${BRAND_BOLT_PATH}" fill="currentColor"/>`
 }
 
-/** 恒枢标组件(sidebar.brand.mark slot;属主传 size)。必须返回 React 元素——
+/** 恒灵标组件(sidebar.brand.mark slot;属主传 size)。必须返回 React 元素——
  * 返回 SVG 字符串会被 React 当纯文本渲染,页面直接显示标签源码(v2 实测教训)。 */
 function BrandMark(props: { size?: number } = {}): ReturnType<typeof createElement> {
   const size = props.size ?? 24
   return createElement(
     'svg',
-    { width: size, height: size, viewBox: '0 0 512 512', fill: 'none', 'aria-hidden': true },
+    { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', 'aria-hidden': true },
     createElement('path', {
-      d: BOLT_PATH,
+      d: BRAND_BOLT_PATH,
       fill: 'currentColor',
     }),
   )
@@ -73,7 +71,7 @@ function BrandName(): ReturnType<typeof createElement> {
 function swapFish(svg: Element): void {
   const width = svg.getAttribute('width') ?? '24'
   const height = svg.getAttribute('height') ?? width
-  svg.setAttribute('viewBox', '0 0 512 512')
+  svg.setAttribute('viewBox', '0 0 24 24')
   svg.setAttribute('width', width)
   svg.setAttribute('height', height)
   svg.innerHTML = markInner()
