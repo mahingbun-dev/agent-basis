@@ -120,8 +120,13 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
   const curProvider = useMemo(() => groups?.find(g => g.id === current?.provider) ?? null, [groups, current])
   const curModel = useMemo(() => curProvider?.models?.find(m => m.id === current?.model) ?? null, [curProvider, current])
   const curEfforts = curModel?.reasoning?.efforts ?? []
-  const curEffortId = current?.reasoningEffort ?? curModel?.reasoning?.defaultEffort ?? (curEfforts[0]?.id)
-  const curEffortIdx = curEfforts.findIndex(e => e.id === curEffortId)
+  // 档位语义:未显式选档(display 无 reasoningEffort)=跟随 defaultEffort;
+  // defaultEffort 也未声明时显示「默认」而非误标第一档(2026-11-12 观感修正)。
+  const explicitEffort = current?.reasoningEffort
+  const curEffortId = explicitEffort ?? curModel?.reasoning?.defaultEffort
+  const curEffortIdx = curEffortId === undefined ? -1 : curEfforts.findIndex(e => e.id === curEffortId)
+  const curEffortName = curEffortId === undefined ? '默认'
+    : (curEfforts[curEffortIdx >= 0 ? curEffortIdx : 0]?.name ?? curEffortId)
 
   const submit = (selected: Selected): void => {
     if (busy) return
@@ -188,7 +193,7 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
         <div style={PANEL_STYLES.section}>思考强度</div>
         <div style={{ ...PANEL_STYLES.row, cursor: 'default', display: 'block' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-            <span>{curEfforts[curEffortIdx >= 0 ? curEffortIdx : 0]?.name ?? '默认'}</span>
+            <span>{curEffortName}</span>
           </div>
           <input type="range" min={0} max={Math.max(0, curEfforts.length - 1)} step={1}
             value={curEffortIdx >= 0 ? curEffortIdx : 0}
