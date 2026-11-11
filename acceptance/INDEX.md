@@ -138,3 +138,13 @@
 **阻塞登记（并行会话迁移中间态，非本工作范围）**：
 1. 新镜像含用量统计插件改造（侧栏重排：用量统计/更多/工作区）——**「⚙ 设置」入口在侧栏消失**（DOM 扫描 60+ 交互元素无设置项；头像/⌘,/右侧栏/更多浮层均无）→ UI 卡生产可见性阻塞（深浅主题截图挂账）。卡本身已交付（bundle 含 CompanionCard），等设置入口恢复即可见。
 2. **历史会话全部报 `no adapter registered for provider "litellm"`**（P2 多供应商直连迁移摘除 litellm 后既有会话模型路由失效）——本会话早前 MCP 探针（14:40 之前）的会话正常，之后全失败。
+
+## team-platform 合并后验收（2026-11-11 下午，用户指令验收）
+
+背景：另一会话 feat/team-platform 整体合入 main（d1d0be6，P2 多供应商直连+用量统计+提示词工坊），本会话按指令对 companion 交付做合并后验收。
+
+**companion 交付验收结论：通过（API 层+relay 全链）**：干净 worktree 重建部署 healthy（镜像 314078ac6dcb）；verify.sh 10/10；relay 带公网 publicWsUrl 与多连接字段（connectedBrowsers/browsers）；令牌 API/清单/relay 认证链不受合并影响。
+
+**模型路由验收**：P2 直连正常——历史 litellm 会话内切 DeepSeek Flash 后发话术 1 秒完整回答（瑞利散射）；「no adapter」仅影响**迁移前创建的 litellm 路由历史会话**（用户在会话内重选直连模型即恢复，非生产故障）。
+
+**遗留阻塞（升级上报，team-platform 回归）**：新版侧栏（提示词工坊/循环轨迹/用量统计/更多/工作区）**无「设置」入口**——全 DOM 扫描（含 hidden）、更多浮层（仅「创建你的插件」一项）、头像菜单、⌘, 快捷键、右侧边栏均无。设置弹窗承载的 access 令牌卡/账号管理/通用设置全部不可达。需 team-platform 侧恢复设置入口；恢复后本会话令牌卡（已交付在 bundle 中）即刻可见，深浅主题截图补验。
