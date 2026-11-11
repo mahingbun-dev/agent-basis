@@ -1,0 +1,8 @@
+RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/access
+
+ ✓ tests/user-plugins.spec.ts (4 tests) 189ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  11:27:09
+   Duration  347ms (transform 35ms, setup 0ms, import 51ms, tests 189ms, environment 0ms)

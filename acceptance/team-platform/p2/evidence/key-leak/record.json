@@ -1,0 +1,1472 @@
+{
+  "at": "2026-11-11T01:08:37.542Z",
+  "base": "http://127.0.0.1:3211",
+  "leakScan": [
+    {
+      "path": "/api/settings/describe",
+      "keyHits": 0,
+      "bodySize": 9
+    },
+    {
+      "path": "/access/api/me",
+      "keyHits": 0,
+      "bodySize": 77
+    },
+    {
+      "path": "/access/api/plugins",
+      "keyHits": 0,
+      "bodySize": 932
+    },
+    {
+      "path": "/api/session/modelCatalog",
+      "keyHits": 0,
+      "bodySize": 9
+    },
+    {
+      "path": "/api/settings/describe(llm-pi-ai)",
+      "keyHits": 0,
+      "bodySize": 256
+    },
+    {
+      "path": "DOM(admin 视图)",
+      "keyHits": 0
+    }
+  ],
+  "roleGate": {
+    "adminWriteRaw": {
+      "status": 200,
+      "body": {
+        "type": "server-response",
+        "rpcId": "km1",
+        "result": {
+          "ok": true,
+          "value": {
+            "ns": "llm-pi-ai",
+            "autoGenerate": false,
+            "schema": {
+              "uid": 4840,
+              "refs": {
+                "4695": {
+                  "type": "number",
+                  "meta": {
+                    "max": 2147483647,
+                    "default": 500
+                  }
+                },
+                "4696": {
+                  "type": "number",
+                  "meta": {
+                    "max": 2147483647,
+                    "default": 10000
+                  }
+                },
+                "4697": {
+                  "type": "number",
+                  "meta": {
+                    "min": 0,
+                    "max": 1,
+                    "default": 0.1
+                  }
+                },
+                "4698": {
+                  "type": "object",
+                  "meta": {
+                    "default": {}
+                  },
+                  "dict": {
+                    "initialDelayMs": 4695,
+                    "maxDelayMs": 4696,
+                    "jitterRatio": 4697
+                  }
+                },
+                "4699": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "normal"
+                },
+                "4700": {
+                  "type": "number",
+                  "meta": {
+                    "step": 1,
+                    "min": 0,
+                    "max": 9007199254740991,
+                    "default": 5
+                  }
+                },
+                "4701": {
+                  "type": "string",
+                  "meta": {}
+                },
+                "4702": {
+                  "type": "array",
+                  "meta": {
+                    "default": [
+                      "EMPTY_RESPONSE",
+                      "RATE_LIMIT",
+                      "SERVER",
+                      "TIMEOUT",
+                      "TRANSPORT"
+                    ]
+                  },
+                  "inner": 4701
+                },
+                "4703": {
+                  "type": "object",
+                  "meta": {
+                    "default": {}
+                  },
+                  "dict": {
+                    "mode": 4699,
+                    "maxRetries": 4700,
+                    "retryableCodes": 4702,
+                    "backoff": 4698
+                  }
+                },
+                "4704": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "always"
+                },
+                "4705": {
+                  "type": "object",
+                  "meta": {
+                    "default": {}
+                  },
+                  "dict": {
+                    "mode": 4704,
+                    "backoff": 4698
+                  }
+                },
+                "4706": {
+                  "type": "union",
+                  "meta": {},
+                  "list": [
+                    4703,
+                    4705
+                  ]
+                },
+                "4707": {
+                  "type": "number",
+                  "meta": {}
+                },
+                "4708": {
+                  "type": "number",
+                  "meta": {}
+                },
+                "4709": {
+                  "type": "number",
+                  "meta": {}
+                },
+                "4710": {
+                  "type": "number",
+                  "meta": {}
+                },
+                "4711": {
+                  "type": "object",
+                  "meta": {
+                    "default": {}
+                  },
+                  "dict": {
+                    "minimal": 4707,
+                    "low": 4708,
+                    "medium": 4709,
+                    "high": 4710
+                  }
+                },
+                "4712": {
+                  "type": "string",
+                  "meta": {}
+                },
+                "4713": {
+                  "type": "number",
+                  "meta": {}
+                },
+                "4714": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4715": {
+                  "type": "const",
+                  "meta": {},
+                  "value": null
+                },
+                "4716": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "thinking.enabled"
+                },
+                "4717": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "thinking.effort"
+                },
+                "4718": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "thinking.budget"
+                },
+                "4719": {
+                  "type": "union",
+                  "meta": {
+                    "required": true
+                  },
+                  "list": [
+                    4716,
+                    4717,
+                    4718
+                  ]
+                },
+                "4720": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4721": {
+                  "type": "object",
+                  "meta": {
+                    "default": {}
+                  },
+                  "dict": {
+                    "$var": 4719,
+                    "omitWhenOff": 4720
+                  }
+                },
+                "4722": {
+                  "type": "union",
+                  "meta": {},
+                  "list": [
+                    4712,
+                    4713,
+                    4714,
+                    4715,
+                    4721
+                  ]
+                },
+                "4723": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4724": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4725": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4726": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4727": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4728": {
+                  "type": "union",
+                  "meta": {},
+                  "list": [
+                    4729,
+                    4730
+                  ]
+                },
+                "4729": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "max_completion_tokens"
+                },
+                "4730": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "max_tokens"
+                },
+                "4731": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4732": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4733": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4734": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4735": {
+                  "type": "union",
+                  "meta": {},
+                  "list": [
+                    4736,
+                    4737,
+                    4738,
+                    4739,
+                    4740,
+                    4741,
+                    4742,
+                    4743,
+                    4744,
+                    4745,
+                    4746
+                  ]
+                },
+                "4736": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "openai"
+                },
+                "4737": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "deepseek"
+                },
+                "4738": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "openrouter"
+                },
+                "4739": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "together"
+                },
+                "4740": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "baseten"
+                },
+                "4741": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "zai"
+                },
+                "4742": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "qwen"
+                },
+                "4743": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "chat-template"
+                },
+                "4744": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "qwen-chat-template"
+                },
+                "4745": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "string-thinking"
+                },
+                "4746": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "ant-ling"
+                },
+                "4747": {
+                  "type": "dict",
+                  "meta": {
+                    "default": {}
+                  },
+                  "inner": 4722,
+                  "sKey": 4748
+                },
+                "4748": {
+                  "type": "string",
+                  "meta": {}
+                },
+                "4749": {
+                  "type": "dict",
+                  "meta": {
+                    "default": {}
+                  },
+                  "inner": 4722,
+                  "sKey": 4750
+                },
+                "4750": {
+                  "type": "string",
+                  "meta": {}
+                },
+                "4751": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4752": {
+                  "type": "union",
+                  "meta": {},
+                  "list": [
+                    4753,
+                    4754,
+                    4755
+                  ]
+                },
+                "4753": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "thinking_token_budget"
+                },
+                "4754": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "thinking_budget"
+                },
+                "4755": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "thinking_budget_tokens"
+                },
+                "4756": {
+                  "type": "number",
+                  "meta": {
+                    "step": 1
+                  }
+                },
+                "4757": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4758": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4759": {
+                  "type": "union",
+                  "meta": {},
+                  "list": [
+                    4760
+                  ]
+                },
+                "4760": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "anthropic"
+                },
+                "4761": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4762": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4763": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4764": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4765": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4766": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4767": {
+                  "type": "boolean",
+                  "meta": {}
+                },
+                "4768": {
+                  "type": "object",
+                  "meta": {
+                    "default": {}
+                  },
+                  "dict": {
+                    "supportsStore": 4723,
+                    "supportsDeveloperRole": 4724,
+                    "supportsReasoningEffort": 4725,
+                    "supportsUsageInStreaming": 4726,
+                    "supportsFinishReason": 4727,
+                    "maxTokensField": 4728,
+                    "requiresToolResultName": 4731,
+                    "requiresAssistantAfterToolResult": 4732,
+                    "requiresThinkingAsText": 4733,
+                    "requiresReasoningContentOnAssistantMessages": 4734,
+                    "thinkingFormat": 4735,
+                    "chatTemplateKwargs": 4747,
+                    "chatTemplateArgs": 4749,
+                    "supportsThinkingTokenBudget": 4751,
+                    "thinkingTokenBudgetField": 4752,
+                    "vllmPriority": 4756,
+                    "supportsMaxOutputTokens": 4757,
+                    "supportsStrictMode": 4758,
+                    "cacheControlFormat": 4759,
+                    "supportsLongCacheRetention": 4761,
+                    "supportsEagerToolInputStreaming": 4762,
+                    "supportsCacheControlOnTools": 4763,
+                    "supportsTemperature": 4764,
+                    "forceAdaptiveThinking": 4765,
+                    "allowEmptySignature": 4766,
+                    "supportsStrictTools": 4767
+                  }
+                },
+                "4769": {
+                  "type": "string",
+                  "meta": {}
+                },
+                "4770": {
+                  "type": "const",
+                  "meta": {},
+                  "value": null
+                },
+                "4771": {
+                  "type": "union",
+                  "meta": {},
+                  "list": [
+                    4769,
+                    4770
+                  ]
+                },
+                "4772": {
+                  "type": "union",
+                  "meta": {},
+                  "list": [
+                    4773,
+                    4774,
+                    4775,
+                    4776,
+                    4777,
+                    4778,
+                    4779
+                  ]
+                },
+                "4773": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "off"
+                },
+                "4774": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "minimal"
+                },
+                "4775": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "low"
+                },
+                "4776": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "medium"
+                },
+                "4777": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "high"
+                },
+                "4778": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "xhigh"
+                },
+                "4779": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "max"
+                },
+                "4780": {
+                  "type": "dict",
+                  "meta": {
+                    "default": {}
+                  },
+                  "inner": 4771,
+                  "sKey": 4772
+                },
+                "4781": {
+                  "type": "string",
+                  "meta": {}
+                },
+                "4782": {
+                  "type": "number",
+                  "meta": {
+                    "step": 1,
+                    "min": 1
+                  }
+                },
+                "4783": {
+                  "type": "number",
+                  "meta": {
+                    "step": 1,
+                    "min": 1
+                  }
+                },
+                "4784": {
+                  "type": "union",
+                  "meta": {},
+                  "list": [
+                    4785,
+                    4786
+                  ]
+                },
+                "4785": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "text"
+                },
+                "4786": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "image"
+                },
+                "4787": {
+                  "type": "array",
+                  "meta": {
+                    "default": []
+                  },
+                  "inner": 4784
+                },
+                "4788": {
+                  "type": "const",
+                  "meta": {},
+                  "value": false
+                },
+                "4789": {
+                  "type": "union",
+                  "meta": {},
+                  "list": [
+                    4788,
+                    4780
+                  ]
+                },
+                "4790": {
+                  "type": "string",
+                  "meta": {
+                    "required": true
+                  }
+                },
+                "4791": {
+                  "type": "object",
+                  "meta": {
+                    "default": {}
+                  },
+                  "dict": {
+                    "id": 4790,
+                    "name": 4781,
+                    "contextWindow": 4782,
+                    "maxTokens": 4783,
+                    "input": 4787,
+                    "reasoningEfforts": 4789,
+                    "compat": 4768
+                  }
+                },
+                "4792": {
+                  "type": "object",
+                  "meta": {
+                    "default": {}
+                  },
+                  "dict": {
+                    "name": 4781,
+                    "contextWindow": 4782,
+                    "maxTokens": 4783,
+                    "input": 4787,
+                    "reasoningEfforts": 4789,
+                    "compat": 4768
+                  }
+                },
+                "4793": {
+                  "type": "string",
+                  "meta": {
+                    "role": "credential-ref"
+                  }
+                },
+                "4794": {
+                  "type": "string",
+                  "meta": {}
+                },
+                "4795": {
+                  "type": "union",
+                  "meta": {},
+                  "list": [
+                    4796,
+                    4797,
+                    4798
+                  ]
+                },
+                "4796": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "openai-completions"
+                },
+                "4797": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "openai-responses"
+                },
+                "4798": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "anthropic-messages"
+                },
+                "4799": {
+                  "type": "string",
+                  "meta": {}
+                },
+                "4800": {
+                  "type": "array",
+                  "meta": {
+                    "default": []
+                  },
+                  "inner": 4791
+                },
+                "4801": {
+                  "type": "dict",
+                  "meta": {
+                    "default": {}
+                  },
+                  "inner": 4792,
+                  "sKey": 4802
+                },
+                "4802": {
+                  "type": "string",
+                  "meta": {}
+                },
+                "4803": {
+                  "type": "number",
+                  "meta": {
+                    "step": 1,
+                    "min": 1,
+                    "default": 1000000
+                  }
+                },
+                "4804": {
+                  "type": "number",
+                  "meta": {
+                    "step": 1,
+                    "min": 1,
+                    "default": 128000
+                  }
+                },
+                "4805": {
+                  "type": "union",
+                  "meta": {},
+                  "list": [
+                    4806,
+                    4807
+                  ]
+                },
+                "4806": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "text"
+                },
+                "4807": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "image"
+                },
+                "4808": {
+                  "type": "array",
+                  "meta": {
+                    "default": [
+                      "text"
+                    ]
+                  },
+                  "inner": 4805
+                },
+                "4809": {
+                  "type": "string",
+                  "meta": {}
+                },
+                "4810": {
+                  "type": "dict",
+                  "meta": {
+                    "default": {}
+                  },
+                  "inner": 4809,
+                  "sKey": 4811
+                },
+                "4811": {
+                  "type": "string",
+                  "meta": {}
+                },
+                "4812": {
+                  "type": "union",
+                  "meta": {},
+                  "list": [
+                    4813,
+                    4814,
+                    4815,
+                    4816,
+                    4817,
+                    4818,
+                    4819
+                  ]
+                },
+                "4813": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "off"
+                },
+                "4814": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "minimal"
+                },
+                "4815": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "low"
+                },
+                "4816": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "medium"
+                },
+                "4817": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "high"
+                },
+                "4818": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "xhigh"
+                },
+                "4819": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "max"
+                },
+                "4820": {
+                  "type": "union",
+                  "meta": {},
+                  "list": [
+                    4821,
+                    4822,
+                    4823
+                  ]
+                },
+                "4821": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "none"
+                },
+                "4822": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "short"
+                },
+                "4823": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "long"
+                },
+                "4824": {
+                  "type": "union",
+                  "meta": {},
+                  "list": [
+                    4825,
+                    4826,
+                    4827,
+                    4828
+                  ]
+                },
+                "4825": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "sse"
+                },
+                "4826": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "websocket"
+                },
+                "4827": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "websocket-cached"
+                },
+                "4828": {
+                  "type": "const",
+                  "meta": {
+                    "required": true
+                  },
+                  "value": "auto"
+                },
+                "4829": {
+                  "type": "number",
+                  "meta": {
+                    "step": 1,
+                    "min": 0
+                  }
+                },
+                "4830": {
+                  "type": "number",
+                  "meta": {
+                    "step": 1,
+                    "min": 0
+                  }
+                },
+                "4831": {
+                  "type": "number",
+                  "meta": {
+                    "min": 5e-324,
+                    "max": 2147483647,
+                    "default": 300000
+                  }
+                },
+                "4832": {
+                  "type": "number",
+                  "meta": {
+                    "step": 1,
+                    "min": 1,
+                    "default": 20971520
+                  }
+                },
+                "4833": {
+                  "type": "number",
+                  "meta": {
+                    "step": 1,
+                    "min": 1,
+                    "default": 50
+                  }
+                },
+                "4834": {
+                  "type": "number",
+                  "meta": {
+                    "step": 1,
+                    "min": 1
+                  }
+                },
+                "4835": {
+                  "type": "number",
+                  "meta": {
+                    "step": 1,
+                    "min": 1,
+                    "default": 4194304
+                  }
+                },
+                "4836": {
+                  "type": "number",
+                  "meta": {
+                    "step": 1,
+                    "min": 1,
+                    "default": 1048576
+                  }
+                },
+                "4837": {
+                  "type": "object",
+                  "meta": {
+                    "default": {}
+                  },
+                  "dict": {
+                    "apiKeyEnv": 4793,
+                    "displayName": 4794,
+                    "api": 4795,
+                    "baseURL": 4799,
+                    "models": 4800,
+                    "modelOverrides": 4801,
+                    "compat": 4768,
+                    "defaultContextWindow": 4803,
+                    "defaultMaxTokens": 4804,
+                    "defaultInput": 4808,
+                    "headers": 4810,
+                    "reasoning": 4812,
+                    "thinkingBudgets": 4711,
+                    "cacheRetention": 4820,
+                    "transport": 4824,
+                    "timeoutMs": 4829,
+                    "websocketConnectTimeoutMs": 4830,
+                    "streamIdleTimeoutMs": 4831,
+                    "maxRequestImageBytes": 4832,
+                    "maxRequestImages": 4833,
+                    "imageOffloadCountQuantum": 4834,
+                    "requestImagePixelBudget": 4835,
+                    "requestImageMaxBytes": 4836,
+                    "retryPolicy": 4706
+                  }
+                },
+                "4838": {
+                  "type": "string",
+                  "meta": {}
+                },
+                "4839": {
+                  "type": "dict",
+                  "meta": {
+                    "default": {}
+                  },
+                  "inner": 4837,
+                  "sKey": 4838
+                },
+                "4840": {
+                  "type": "object",
+                  "meta": {
+                    "default": {}
+                  },
+                  "dict": {
+                    "providers": 4839
+                  }
+                }
+              }
+            },
+            "value": {
+              "providers": {
+                "deepseek": {
+                  "apiKeyEnv": "DEEPSEEK_API_KEY",
+                  "displayName": "DeepSeek（官方直连）",
+                  "api": "openai-completions",
+                  "baseURL": "https://api.deepseek.com",
+                  "models": [
+                    {
+                      "id": "deepseek-flash",
+                      "name": "DeepSeek Flash",
+                      "contextWindow": 300000,
+                      "maxTokens": 8192,
+                      "input": [
+                        "text",
+                        "image"
+                      ],
+                      "reasoningEfforts": {
+                        "off": null,
+                        "low": "low",
+                        "medium": "medium",
+                        "high": "high"
+                      },
+                      "compat": {
+                        "chatTemplateKwargs": {},
+                        "chatTemplateArgs": {}
+                      }
+                    },
+                    {
+                      "id": "deepseek-v4-pro",
+                      "name": "DeepSeek V4 Pro",
+                      "contextWindow": 300000,
+                      "maxTokens": 8192,
+                      "input": [],
+                      "reasoningEfforts": {
+                        "off": null,
+                        "low": "low",
+                        "medium": "medium",
+                        "high": "high"
+                      },
+                      "compat": {
+                        "chatTemplateKwargs": {},
+                        "chatTemplateArgs": {}
+                      }
+                    }
+                  ],
+                  "modelOverrides": {},
+                  "compat": {
+                    "supportsDeveloperRole": false,
+                    "maxTokensField": "max_tokens",
+                    "requiresReasoningContentOnAssistantMessages": true,
+                    "chatTemplateKwargs": {},
+                    "chatTemplateArgs": {}
+                  },
+                  "defaultContextWindow": 1000000,
+                  "defaultMaxTokens": 128000,
+                  "defaultInput": [
+                    "text"
+                  ],
+                  "headers": {},
+                  "thinkingBudgets": {},
+                  "streamIdleTimeoutMs": 300000,
+                  "maxRequestImageBytes": 20971520,
+                  "maxRequestImages": 50,
+                  "requestImagePixelBudget": 4194304,
+                  "requestImageMaxBytes": 1048576
+                },
+                "mimo": {
+                  "apiKeyEnv": "MIMO_API_KEY",
+                  "displayName": "MiMo（小米官方直连）",
+                  "api": "openai-completions",
+                  "baseURL": "https://api.xiaomimimo.com/v1",
+                  "models": [
+                    {
+                      "id": "mimo-v2.6-flash",
+                      "name": "MiMo V2.6 Flash",
+                      "contextWindow": 300000,
+                      "input": [
+                        "text",
+                        "image"
+                      ],
+                      "reasoningEfforts": {
+                        "off": null,
+                        "low": "low",
+                        "medium": "medium",
+                        "high": "high"
+                      },
+                      "compat": {
+                        "chatTemplateKwargs": {},
+                        "chatTemplateArgs": {}
+                      }
+                    },
+                    {
+                      "id": "mimo-v2.6-pro",
+                      "name": "MiMo V2.6 Pro",
+                      "contextWindow": 300000,
+                      "input": [
+                        "text",
+                        "image"
+                      ],
+                      "reasoningEfforts": {
+                        "off": null,
+                        "low": "low",
+                        "medium": "medium",
+                        "high": "high"
+                      },
+                      "compat": {
+                        "chatTemplateKwargs": {},
+                        "chatTemplateArgs": {}
+                      }
+                    },
+                    {
+                      "id": "mimo-v2.6-pro-ultraspeed",
+                      "name": "MiMo V2.6 Pro 极速",
+                      "contextWindow": 300000,
+                      "input": [],
+                      "reasoningEfforts": {
+                        "off": null,
+                        "low": "low",
+                        "medium": "medium",
+                        "high": "high"
+                      },
+                      "compat": {
+                        "chatTemplateKwargs": {},
+                        "chatTemplateArgs": {}
+                      }
+                    }
+                  ],
+                  "modelOverrides": {},
+                  "compat": {
+                    "supportsDeveloperRole": false,
+                    "requiresReasoningContentOnAssistantMessages": true,
+                    "chatTemplateKwargs": {},
+                    "chatTemplateArgs": {}
+                  },
+                  "defaultContextWindow": 1000000,
+                  "defaultMaxTokens": 128000,
+                  "defaultInput": [
+                    "text"
+                  ],
+                  "headers": {},
+                  "thinkingBudgets": {},
+                  "streamIdleTimeoutMs": 300000,
+                  "maxRequestImageBytes": 20971520,
+                  "maxRequestImages": 50,
+                  "requestImagePixelBudget": 4194304,
+                  "requestImageMaxBytes": 1048576
+                },
+                "glm": {
+                  "apiKeyEnv": "BIGMODEL_API_KEY",
+                  "displayName": "GLM（智谱官方直连）",
+                  "api": "openai-completions",
+                  "baseURL": "https://open.bigmodel.cn/api/paas/v4",
+                  "models": [
+                    {
+                      "id": "glm-5.3",
+                      "name": "GLM 5.3",
+                      "contextWindow": 300000,
+                      "input": [],
+                      "reasoningEfforts": {
+                        "low": "low",
+                        "medium": "medium",
+                        "high": "high"
+                      },
+                      "compat": {
+                        "chatTemplateKwargs": {},
+                        "chatTemplateArgs": {}
+                      }
+                    },
+                    {
+                      "id": "glm-5.3-flash",
+                      "name": "GLM 5.3 Flash",
+                      "contextWindow": 300000,
+                      "input": [
+                        "text",
+                        "image"
+                      ],
+                      "reasoningEfforts": {
+                        "off": null,
+                        "low": "low",
+                        "medium": "medium",
+                        "high": "high"
+                      },
+                      "compat": {
+                        "chatTemplateKwargs": {},
+                        "chatTemplateArgs": {}
+                      }
+                    }
+                  ],
+                  "modelOverrides": {},
+                  "compat": {
+                    "supportsDeveloperRole": false,
+                    "chatTemplateKwargs": {},
+                    "chatTemplateArgs": {}
+                  },
+                  "defaultContextWindow": 1000000,
+                  "defaultMaxTokens": 128000,
+                  "defaultInput": [
+                    "text"
+                  ],
+                  "headers": {},
+                  "thinkingBudgets": {},
+                  "streamIdleTimeoutMs": 300000,
+                  "maxRequestImageBytes": 20971520,
+                  "maxRequestImages": 50,
+                  "requestImagePixelBudget": 4194304,
+                  "requestImageMaxBytes": 1048576
+                }
+              }
+            },
+            "base": {
+              "providers": {}
+            },
+            "user": {
+              "providers": {
+                "deepseek": {
+                  "apiKeyEnv": "DEEPSEEK_API_KEY",
+                  "displayName": "DeepSeek（官方直连）",
+                  "api": "openai-completions",
+                  "baseURL": "https://api.deepseek.com",
+                  "models": [
+                    {
+                      "id": "deepseek-flash",
+                      "name": "DeepSeek Flash",
+                      "contextWindow": 300000,
+                      "maxTokens": 8192,
+                      "input": [
+                        "text",
+                        "image"
+                      ],
+                      "reasoningEfforts": {
+                        "off": null,
+                        "low": "low",
+                        "medium": "medium",
+                        "high": "high"
+                      }
+                    },
+                    {
+                      "id": "deepseek-v4-pro",
+                      "name": "DeepSeek V4 Pro",
+                      "contextWindow": 300000,
+                      "maxTokens": 8192,
+                      "reasoningEfforts": {
+                        "off": null,
+                        "low": "low",
+                        "medium": "medium",
+                        "high": "high"
+                      }
+                    }
+                  ],
+                  "compat": {
+                    "supportsDeveloperRole": false,
+                    "maxTokensField": "max_tokens",
+                    "requiresReasoningContentOnAssistantMessages": true
+                  }
+                },
+                "mimo": {
+                  "apiKeyEnv": "MIMO_API_KEY",
+                  "displayName": "MiMo（小米官方直连）",
+                  "api": "openai-completions",
+                  "baseURL": "https://api.xiaomimimo.com/v1",
+                  "models": [
+                    {
+                      "id": "mimo-v2.6-flash",
+                      "name": "MiMo V2.6 Flash",
+                      "contextWindow": 300000,
+                      "input": [
+                        "text",
+                        "image"
+                      ],
+                      "reasoningEfforts": {
+                        "off": null,
+                        "low": "low",
+                        "medium": "medium",
+                        "high": "high"
+                      }
+                    },
+                    {
+                      "id": "mimo-v2.6-pro",
+                      "name": "MiMo V2.6 Pro",
+                      "contextWindow": 300000,
+                      "input": [
+                        "text",
+                        "image"
+                      ],
+                      "reasoningEfforts": {
+                        "off": null,
+                        "low": "low",
+                        "medium": "medium",
+                        "high": "high"
+                      }
+                    },
+                    {
+                      "id": "mimo-v2.6-pro-ultraspeed",
+                      "name": "MiMo V2.6 Pro 极速",
+                      "contextWindow": 300000,
+                      "reasoningEfforts": {
+                        "off": null,
+                        "low": "low",
+                        "medium": "medium",
+                        "high": "high"
+                      }
+                    }
+                  ],
+                  "compat": {
+                    "supportsDeveloperRole": false,
+                    "requiresReasoningContentOnAssistantMessages": true
+                  }
+                },
+                "glm": {
+                  "apiKeyEnv": "BIGMODEL_API_KEY",
+                  "displayName": "GLM（智谱官方直连）",
+                  "api": "openai-completions",
+                  "baseURL": "https://open.bigmodel.cn/api/paas/v4",
+                  "models": [
+                    {
+                      "id": "glm-5.3",
+                      "name": "GLM 5.3",
+                      "contextWindow": 300000,
+                      "reasoningEfforts": {
+                        "low": "low",
+                        "medium": "medium",
+                        "high": "high"
+                      }
+                    },
+                    {
+                      "id": "glm-5.3-flash",
+                      "name": "GLM 5.3 Flash",
+                      "contextWindow": 300000,
+                      "input": [
+                        "text",
+                        "image"
+                      ],
+                      "reasoningEfforts": {
+                        "off": null,
+                        "low": "low",
+                        "medium": "medium",
+                        "high": "high"
+                      }
+                    }
+                  ],
+                  "compat": {
+                    "supportsDeveloperRole": false
+                  }
+                }
+              }
+            },
+            "applies": "live",
+            "secrets": [],
+            "revision": 0
+          }
+        }
+      }
+    },
+    "adminWriteStatus": 200,
+    "adminWriteOk": true,
+    "bobWriteRaw": {
+      "status": 200,
+      "text": "{\"type\":\"server-response\",\"rpcId\":\"km2\",\"result\":{\"ok\":false,\"error\":{\"code\":\"tenant/denied\",\"message\":\"模型网关配置仅管理员可修改（普通用户只读）\",\"details\":{}}}}"
+    },
+    "bobWriteDenied": true,
+    "bobMachines": "write-gate-verified"
+  },
+  "leakTotal": 0
+}

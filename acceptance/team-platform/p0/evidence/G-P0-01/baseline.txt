@@ -1,0 +1,8 @@
+origin/main=e5901b4983a76904e1fa12fca22cafee650ed5ee
+worktree HEAD=caf0f628948b033d39cfb2940ad83e2695196e8f
+merge-base=e5901b4983a76904e1fa12fca22cafee650ed5ee
+onBase=true(分支可领先,分叉即红)
+worktrees:
+/Users/sunny/code/agent-basis      70a10b0 [fix/access-tenant-bootstrap]
+/Users/sunny/code/agent-basis-team caf0f62 [feat/team-platform]
+2026-11-10T15:56:55.400Z

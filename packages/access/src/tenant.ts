@@ -12,7 +12,10 @@
  *   守卫层在 gateway 校验之前,读原始 body 自行解包
  */
 import { mkdirSync } from 'node:fs'
-import { join, resolve, sep } from 'node:path'
+import { join, resolve } from 'node:path'
+import { withinRoot } from './within-root.ts'
+import { registerUserPluginRoutes } from './user-plugins.ts'
+import { ApprovalFlow, ensureApprovalSchema } from './approvals.ts'
 import type { AccessAuditEvent, AuditReflect } from './audit.ts'
 import type { SessionService } from './session.ts'
 import type { UserStore } from './store.ts'
@@ -34,6 +37,8 @@ export interface TenantDeps {
   /** 租户根基目录(默认 $ETERNA_TENANT_ROOT,再退 $DSH_HOME/workspaces);每用户根=其下账号目录。 */
   readonly tenantRoot: string
   audit(event: AccessAuditEvent): void
+  /** P1-T2:mux 隔离惰性安装钩子(服务在插件 apply 后才挂载,首个守卫请求时落地)。 */
+  readonly ensureMux?: () => void
 }
 
 type ServiceHandle = Record<string, (...args: never[]) => unknown>
@@ -105,10 +110,8 @@ export async function ensureFirstSession(
   return sessionId
 }
 
-function withinRoot(path: string, root: string): boolean {
-  const p = resolve(path)
-  return p === root || p.startsWith(root + sep)
-}
+// withinRoot 已抽至 ./within-root.ts(T1 G4 修复;T3 sandbox 钳制共用)。
+// 见该文件:双侧 realpath 实解析 + 不存在路径向上取最近存在祖先实解析拼尾段。
 
 /** 解包客户端信封:{type,rpcId,method,payload:{args:{...}}} → {rpcId, args}。 */
 function unpack(body: unknown): { rpcId: string; args: Record<string, unknown> } | undefined {
@@ -196,7 +199,7 @@ function tenantAudit(deps: TenantDeps, action: string, account: string, detail: 
 // 直调漏传会让每次调用抛 TypeError,再被 failureFrame 包成协议外信封(发送会话即挂)。
 type GuardHandler = (
   rpcId: string, args: Record<string, unknown>, ctx: GuardContext, signal: AbortSignal,
-) => Promise<Response>
+) => Response | Promise<Response>
 
 export function registerTenantGuards(deps: TenantDeps, connection: { fetch: TenantFetchRegistry }): () => void {
   const disposers: Array<() => void> = []
@@ -206,6 +209,7 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
       methods: ['POST'],
       requestBody: 'buffered',
       fetch: async (request) => {
+        deps.ensureMux?.()
         const body = await readJson(request)
         const unpacked = unpack(body)
         if (unpacked === undefined) return new Response('invalid client-request message', { status: 400 })
@@ -314,26 +318,33 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     if (workspaceId === undefined && cwd !== undefined && !withinRoot(cwd, root)) {
       return deniedFrame(rpcId, `会话目录必须在你的目录 ${root} 之内`)
     }
+    // G5 修复(2026-11-11):不带 workspaceId 且不带 cwd 的缺省分支——上游落宿主 defaultCwd
+    // (session-controller lib/index.js:673 附近),多用户下即落共享宿主目录;钳制为强制 cwd=用户根。
+    const defaultCwdPatched = workspaceId === undefined && cwd === undefined
+    const payload0 = request === undefined ? request : { ...request, ...(defaultCwdPatched ? { cwd: root } : {}) }
     // 复用会话 id 只认自己的(客户端选择残留他人 id 时剥掉,按全新会话建)
     const reuseId = typeof request?.sessionId === 'string' && deps.store.sessionOwner(request.sessionId) === ctx.userId
       ? request.sessionId
       : undefined
     const sc = serviceOf(deps, 'sessionController')
     if (sc === undefined) return failureFrame(rpcId, new Error('sessionController not ready'))
-    const payload = request === undefined ? request : { ...request, sessionId: reuseId }
+    const payload = payload0 === undefined ? payload0 : { ...payload0, sessionId: reuseId }
     const value = await callService(sc, 'create', payload) as { sessionId?: string; id?: string } | undefined
     const sessionId = typeof value?.sessionId === 'string' ? value.sessionId : typeof value?.id === 'string' ? value.id : undefined
     if (sessionId !== undefined) deps.store.recordSession(sessionId, ctx.userId, workspaceId ?? null)
-    tenantAudit(deps, 'session.create', ctx.account, { workspaceId: workspaceId ?? null, cwd: cwd ?? null })
+    tenantAudit(deps, 'session.create', ctx.account, { workspaceId: workspaceId ?? null, cwd: cwd ?? (defaultCwdPatched ? root : null) })
     return okFrame(rpcId, value)
   })
 
   // ── session 其余端点(载荷带 sessionId/workspaceId 时校验归属;否则放行直调;
-  //    流类端点(events/follow)走 WS mux 不在此列) ──
+  //    流类端点(follow/observeState 流形态)走 WS mux 由 T2 policy 过滤,unary 形态在此列) ──
+  // T1 补全(2026-11-11,G1/G2):state/projections/selectModel/updateQueue/wait 为 unary 且
+  // 载荷带 sessionId——通用归属校验即覆盖。
   const sessionValidated = [
     'rename', 'cancel', 'fork', 'page', 'search', 'observeState',
     'observeProjections', 'prompt', 'control', 'attachment',
     'openWorkspacePath', 'canOpenWorkspacePath', 'initializeDefaultModel', 'modelCatalog',
+    'state', 'projections', 'selectModel', 'updateQueue', 'wait',
   ]
   for (const name of sessionValidated) {
     register(`/api/session/${name}`, async (rpcId, args, ctx, signal) => {
@@ -356,6 +367,131 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
       const value = await callService(sc, name, request0 ?? args, signal)
       return okFrame(rpcId, value)
     })
+  }
+
+  // ── T1 补全(G1):session/events——读任意会话完整历史,之前完全不在守卫清单 ──
+  // 请求形态 SessionPageRequest:{address:{kind:'session',sessionId}} 或
+  // {address:{kind:'subagent',parentSessionId,childSessionId}}(子代理历史按父归属判定)。
+  register('/api/session/events', async (rpcId, args, ctx, signal) => {
+    interface EventsRequest { address?: { kind?: string; sessionId?: string; parentSessionId?: string; childSessionId?: string } }
+    const request0 = args.request as EventsRequest | undefined
+    const address = request0?.address
+    const primaryId = address?.kind === 'subagent' ? address.parentSessionId : address?.sessionId
+    if (typeof primaryId !== 'string' || primaryId === '' || deps.store.sessionOwner(primaryId) !== ctx.userId) {
+      tenantAudit(deps, 'session.events.denied', ctx.account, { addressKind: address?.kind ?? null })
+      return deniedFrame(rpcId, '会话不存在或不属于你')
+    }
+    const sc = serviceOf(deps, 'sessionController')
+    if (sc === undefined) return failureFrame(rpcId, new Error('sessionController not ready'))
+    const value = await callService(sc, 'events', request0 ?? args, signal)
+    return okFrame(rpcId, value)
+  })
+
+  // ── T1 补全(G2):session/list——结果集按归属过滤(非全拒;清单语义) ──
+  // 上游 SessionListValue={items:[{sessionId,parentSessionId?,origin?,cwd?,…}]}。
+  // 过滤规则:sessionId 属于本人,或 parentSessionId 属于本人(subagent 子会话随父可见);
+  // 未归属且无父的条目剔除(存量已由启动迁移划归 admin)。
+  register('/api/session/list', async (rpcId, args, ctx, signal) => {
+    const sc = serviceOf(deps, 'sessionController')
+    if (sc === undefined) return failureFrame(rpcId, new Error('sessionController not ready'))
+    const value = await callService(sc, 'list', args.request, signal) as { items?: Array<Record<string, unknown>> } | undefined
+    const items = Array.isArray(value?.items) ? value.items : []
+    const filtered = items.filter((item) => {
+      const id = typeof item.sessionId === 'string' ? item.sessionId : undefined
+      const parentId = typeof item.parentSessionId === 'string' ? item.parentSessionId : undefined
+      if (id !== undefined && deps.store.sessionOwner(id) === ctx.userId) return true
+      if (parentId !== undefined && deps.store.sessionOwner(parentId) === ctx.userId) return true
+      return false
+    })
+    return okFrame(rpcId, { ...(value ?? {}), items: filtered })
+  })
+
+  // ── T1 补全(G2):session/workspacePathApplications——载荷按 path 寻址,钳制用户根 ──
+  register('/api/session/workspacePathApplications', async (rpcId, args, ctx, signal) => {
+    const request0 = args.request as { path?: string } | undefined
+    const path = typeof request0?.path === 'string' ? request0.path : firstString(args, 'path')
+    if (path !== undefined && !withinRoot(path, userRoot(ctx))) {
+      return deniedFrame(rpcId, `路径必须在你的目录 ${userRoot(ctx)} 之内`)
+    }
+    const sc = serviceOf(deps, 'sessionController')
+    if (sc === undefined) return failureFrame(rpcId, new Error('sessionController not ready'))
+    const value = await callService(sc, 'workspacePathApplications', request0 ?? args, signal)
+    return okFrame(rpcId, value)
+  })
+
+  // ── P4-T6/T7(2026-11-11):双层插件个人层端点+审批流(复用守卫 register=cookie 认证+审计) ──
+  ensureApprovalSchema(deps.store)
+  const approvalFlow = new ApprovalFlow(deps)
+  registerUserPluginRoutes(deps, register, {
+    flow: approvalFlow,
+    isAdmin: (userId: number) => deps.store.getUserById(userId)?.role === 'admin',
+  })
+
+  // ── P2-T1.7a(2026-11-11,D1 拍板):网关配置角色门——admin 可写,普通用户只读 ──
+  // llm-pi-ai 承载行的设置命名空间=settingsNs=行 id('llm-pi-ai');供应商 key 与
+  // baseURL 是组织资产,普通用户可写=可把全组织模型流量劫到任意端点。
+  // 读(describe/openSettingsDocument)全员可用(D1:普通用户只读视图;响应含 redacted
+  // views,apiKeyEnv 槽永不回传值——上游 settings describe 实证)。
+  // 写(mutate/update/replace)仅 admin;其余命名空间(用户个人设置)不受影响。
+  // 【双层拦截】HTTP unary 通道 peer 恒 owner(T2 换血只作用 mux)——实例 wrap 对
+  // HTTP 免疫,故第一层=守卫 fetch 路由(cookie 判角色,fetchRoutes 精确匹配优先于
+  // gateway interceptor,同 session/list 生效通路);第二层=实例 wrap(invocation
+  // principal 判角色,覆盖 mux/进程内调用面)。两层同语义,漏一层即红(key-leak E2E)。
+  const GATEWAY_SETTINGS_NS = 'llm-pi-ai'
+  const settingsWritePaths = ['/api/settings/mutate', '/api/settings/update', '/api/settings/replace']
+  const settingsMethodOf = (path: string): string => path.split('/').pop() ?? ''
+  for (const path of settingsWritePaths) {
+    register(path, async (rpcId, args, ctx) => {
+      const request0 = args.request as { ns?: string; ops?: unknown } | undefined
+      const ns = firstString(request0, 'ns') ?? firstString(args, 'ns')
+      const method = settingsMethodOf(path)
+      const sc = serviceOf(deps, 'settingsController')
+      if (sc === undefined) return failureFrame(rpcId, new Error('settingsController not ready'))
+      // wire 参数在 args 顶层 {ns, ops, expectedRevision}——直调展开为位置参数
+      // (settingsController.mutate(ns, ops, expectedRevision),typert.host 签名)
+      const callArgs: unknown[] = request0 !== undefined
+        ? [request0.ns, request0.ops, undefined]
+        : [args.ns, args.ops, undefined]
+      if (ns !== GATEWAY_SETTINGS_NS) {
+        // 非网关命名空间(用户个人设置)原样代理,不做角色判断
+        const value = await callService(sc, method, ...callArgs)
+        return okFrame(rpcId, value)
+      }
+      const user = deps.store.getUserById(ctx.userId)
+      if (user?.role !== 'admin') {
+        tenantAudit(deps, 'gateway.settings.denied', ctx.account, { ns, method })
+        return deniedFrame(rpcId, '模型网关配置仅管理员可修改（普通用户只读）')
+      }
+      const value = await callService(sc, method, ...callArgs)
+      return okFrame(rpcId, value)
+    })
+  }
+  const settingsController = serviceOf(deps, 'settingsController') as Record<string, unknown> | undefined
+  if (settingsController !== undefined) {
+    const invocationOf = (): { principal?: { kind?: string; userId?: number } } => {
+      const raw = (settingsController as { ctx?: { invocation?: { principal?: { kind?: string; userId?: number } } } }).ctx
+      return raw?.invocation ?? {}
+    }
+    for (const method of ['mutate', 'update', 'replace'] as const) {
+      const original = settingsController[method]
+      if (typeof original !== 'function') continue
+      const bound = (original as (...args: unknown[]) => unknown).bind(settingsController)
+      settingsController[method] = (...callArgs: unknown[]): unknown => {
+        const ns0 = (callArgs[0] as { ns?: string } | undefined)?.ns
+        if (ns0 !== GATEWAY_SETTINGS_NS) return bound(...callArgs)
+        // 角色门只管 eterna-user principal(mux 换血用户);owner/本地流放行
+        const principal = invocationOf().principal
+        if (principal?.kind !== 'eterna-user' || typeof principal.userId !== 'number') return bound(...callArgs)
+        const user = deps.store.getUserById(principal.userId)
+        if (user?.role !== 'admin') {
+          tenantAudit(deps, 'gateway.settings.denied', user?.account ?? String(principal.userId), { ns: ns0, method })
+          const error = new Error('模型网关配置仅管理员可修改（普通用户只读）') as Error & { code?: string }
+          error.code = 'tenant/denied'
+          throw error
+        }
+        return bound(...callArgs)
+      }
+    }
   }
 
   return () => {

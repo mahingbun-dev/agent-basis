@@ -1,0 +1,13 @@
+ ✓ tests/pages.spec.ts (5 tests) 2ms
+packages/access verify:  ✓ tests/mux-drift.spec.ts (3 tests) 2ms
+packages/access verify:  ✓ tests/session.spec.ts (6 tests) 6ms
+packages/access verify:  ✓ tests/ratelimit.spec.ts (3 tests) 2ms
+packages/access verify:  ✓ tests/tenant.spec.ts (9 tests) 752ms
+packages/access verify:  ✓ tests/store.spec.ts (13 tests) 1286ms
+packages/access verify:  ✓ tests/tenant-guard-matrix.spec.ts (24 tests) 1508ms
+packages/access verify:  ✓ tests/routes.spec.ts (21 tests) 1799ms
+packages/access verify:  Test Files  17 passed (17)
+packages/access verify:       Tests  126 passed (126)
+packages/access verify:    Start at  09:13:19
+packages/access verify:    Duration  2.04s (transform 371ms, setup 0ms, import 774ms, tests 7.34s, environment 1ms)
+packages/access verify: Done

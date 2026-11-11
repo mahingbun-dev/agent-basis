@@ -23,6 +23,9 @@ import { loadOrCreateSecret, SessionService } from './session.ts'
 import { SlidingWindow } from './ratelimit.ts'
 import { UserStore } from './store.ts'
 import { ensureFirstSession, ensureTenantWorkspace, registerTenantGuards } from './tenant.ts'
+import { installMuxIsolation, type MuxIsolationInstall } from './mux.ts'
+import { installToolClamp, installSandboxBoundary } from './sandbox.ts'
+import { installTerminalTenant, installTerminalSandbox } from './terminal.ts'
 import { BADGE_SCRIPT } from './pages.ts'
 
 export const ACCESS_PLUGIN_NAME = 'eterna-access'
@@ -164,9 +167,12 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
           ? process.env.ETERNA_RELAY_PUBLIC_URL
           : undefined,
       }
+      // P3(2026-11-11):把归属账本 provide 出去(usage-stats 聚合的归属唯一事实源;
+      // reflect 键 eternaAccessStore)。账本只读面,不含凭据。
+      const storeProvide = (ctx as unknown as { provide?: (id: string, value: unknown) => () => void }).provide
       // ── companion 身份注入（E4 多用户浏览器执行面）────────────────────────
       // pre-execute 瀑布末段（access 的 insert 行在模板尾部=apply 序最后）：
-      // mcp__browser__* 调用按 exec.agent.sessionId → sessions 表 owner → 用户令牌，
+      // mcp__browser__* 调用按 exec.agent.session.id → sessions 表 owner → 用户令牌，
       // 无条件覆盖 arguments._eternaToken（服务端值赢：模型不可伪造；注入晚于
       // audit/egress/governance——审计与治理面均不接触令牌值）。
       // 语义：已知会话归属但用户未生成令牌 → deny（fail-closed，防跨用户路由到
@@ -197,15 +203,103 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         ctx.webServer.tapIndex(html => injectBadge(html)),
       ]
       disposers.push(offCompanionIdentity)
-      // Phase 2 租户面(T2.2/T2.5):存量 workspace 划归首个 admin + unary 守卫集注册
+      // Phase 2 租户面(T2.2/T2.5):存量 workspace 划归首个 admin
       adoptLegacyWorkspaces(store)
+      // P1-T2(2026-11-11):mux 流租户隔离——principal 换血 + registerPolicy。
+      // 服务(client-connection/remoteAccess)在插件 apply 时点尚未挂载,故惰性安装:
+      // 首个守卫请求时落地(届时 webServer 已工作,上游服务必已就绪),并审计安装结果。
+      let muxInstall: MuxIsolationInstall | undefined
+      let muxAuditDone = false
+      const ensureMux = (): void => {
+        if (muxInstall !== undefined) return
+        // 连接服务经 ctx.connection 属性直取(cordis provide 面;reflect 键 'client-connection'
+        // 实测不可得——2026-11-11 容器探针);remoteAccess 经 reflect 可得(探针实证)。
+        const connService = ctx.connection as unknown
+        const accessService = ctx.reflect.get('remoteAccess', false)
+        muxInstall = installMuxIsolation(
+          { store, session },
+          connService as never,
+          accessService as never,
+        )
+        if (muxInstall !== undefined) disposers.push(muxInstall.dispose)
+        if (!muxAuditDone) {
+          muxAuditDone = true
+          audit({
+            kind: 'access.mux.install',
+            detail: {
+              installed: muxInstall !== undefined,
+              probe: {
+                connection: typeof connService,
+                remoteAccess: typeof accessService,
+                workspaceController: typeof ctx.reflect.get('workspaceController', false),
+              },
+            },
+          })
+        }
+      }
+      // P1-T3(2026-11-11):沙箱写边界钉死=账号目录 + 工具参数逃逸钳制。
+      // pre-execute 监听可即时挂(ctx.on 全局事件总线,沿 glue governance-plugin 挂法);
+      // sandboxPolicy.resolve wrap 惰性(服务挂载时点,同 ensureMux)。
+      // 【单一注册纪律】registerTenantGuards 只允许一次调用(重复注册路由抛错,
+      // 曾致 apply 中断、惰性安装永不生效——2026-11-11 容器实抓,已合并)。
+      const sandboxDeps = {
+        sessionOwner: (id: string) => store.sessionOwner(id),
+        accountOf: (id: number) => store.getUserById(id)?.account,
+        tenantRoot,
+      }
+      const tenantAudit = (detail: Record<string, unknown>): void => { audit({ kind: 'access.sandbox.clamp', detail }) }
+      if (typeof (ctx as unknown as { on?: unknown }).on === 'function') {
+        const onFn = (ctx as unknown as { on: (event: string, listener: unknown) => () => void }).on
+        disposers.push(installToolClamp(sandboxDeps, onFn, tenantAudit))
+        audit({ kind: 'access.sandbox.install', detail: { toolClamp: true } })
+      }
+      let sandboxBoundaryDone = false
+      const ensureSandbox = (): void => {
+        if (sandboxBoundaryDone) return
+        sandboxBoundaryDone = true
+        const policy = ctx.reflect.get('sandboxPolicy', false) as never
+        const dispose = installSandboxBoundary(sandboxDeps, policy)
+        if (dispose !== undefined) disposers.push(dispose)
+        audit({ kind: 'access.sandbox.install', detail: { boundaryWrap: dispose !== undefined } })
+      }
+      // P1-T4(2026-11-11):终端租户隔离(入口校验+PTY 沙箱包装,实例级 wrap)。
+      let terminalDone = false
+      const ensureTerminal = (): void => {
+        if (terminalDone) return
+        terminalDone = true
+        const terminalSvc = ctx.reflect.get('terminalController', false) as never
+        const tenantDispose = installTerminalTenant(sandboxDeps, terminalSvc)
+        if (tenantDispose !== undefined) disposers.push(tenantDispose)
+        const subprocess = ctx.reflect.get('subprocess', false) as never
+        const sandbox = ctx.reflect.get('sandbox', false) as never
+        const policy = ctx.reflect.get('sandboxPolicy', false) as never
+        const sandboxDispose = installTerminalSandbox(sandbox, policy, subprocess)
+        if (sandboxDispose !== undefined) disposers.push(sandboxDispose)
+        audit({
+          kind: 'access.terminal.install',
+          detail: {
+            tenant: tenantDispose !== undefined,
+            ptySandbox: sandboxDispose !== undefined,
+          },
+        })
+      }
+      if (typeof storeProvide === 'function') {
+        disposers.push(storeProvide.call(ctx, 'eternaAccessStore', {
+          sessionOwner: (id: string) => store.sessionOwner(id),
+          sessionsOfOwner: (id: number) => store.sessionsOfOwner(id),
+          workspaceOwner: (id: string) => store.workspaceOwner(id),
+          workspacesOfOwner: (id: number) => store.workspacesOfOwner(id),
+          getUserById: (id: number) => store.getUserById(id),
+        }))
+      }
       disposers.push(registerTenantGuards({
         store,
         session,
         reflect: ctx.reflect,
         tenantRoot,
         audit,
-      }, ctx.connection) )
+        ensureMux: () => { ensureMux(); ensureSandbox(); ensureTerminal() },
+      }, ctx.connection))
       return () => {
         for (const dispose of disposers) dispose()
         store.close()

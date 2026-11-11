@@ -1,0 +1,26 @@
+[
+  {
+    "phase": "ph",
+    "verdict": "go"
+  },
+  {
+    "phase": "p0",
+    "verdict": "go"
+  },
+  {
+    "phase": "p1",
+    "verdict": "go"
+  },
+  {
+    "phase": "p2",
+    "verdict": "go"
+  },
+  {
+    "phase": "p3",
+    "verdict": "go"
+  },
+  {
+    "phase": "p4",
+    "verdict": "go"
+  }
+]

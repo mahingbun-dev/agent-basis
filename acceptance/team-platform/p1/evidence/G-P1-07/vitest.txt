@@ -1,0 +1,8 @@
+RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/access
+
+ ✓ tests/session-create-cwd.spec.ts (3 tests) 101ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  02:34:54
+   Duration  234ms (transform 25ms, setup 0ms, import 38ms, tests 101ms, environment 0ms)

@@ -13,7 +13,7 @@
 
 运行前提(2026-11-04 真跑打通,docs/acp-real-6/):pip 安装 deepseek-harness-sdk
 (pip -e deepseek-harness/python/sdk)+ DSH_HOME 隔离目录(~/.dsh-evals,sdk profile 经
-litellm 路由)+ LITELLM_API_KEY 环境变量;dsh_bin 指向 npm 全局 dsh
+mimo 路由)+ MIMO_API_KEY 环境变量;dsh_bin 指向 npm 全局 dsh
 (/opt/homebrew/bin/dsh,避开同名 pip 包装脚本)。
 真实通知样本的采集与回放:scripts/sample-notifications.mjs +
 tools/evals/python/test_event_mapper.py(样本 fixture 断言)。
@@ -257,7 +257,7 @@ def main() -> int:
     if "model" not in kwargs:
         kwargs["model"] = "deepseek-flash"
     # 2026-11-04 联调补充:dsh_bin(本地无打包 runtime 闭包时指向全局 dsh CLI)与 env 注入。
-    # 子进程默认继承父环境——dsh-evals 启动时带上 LITELLM_API_KEY 即可;env 字段用于显式覆盖。
+    # 子进程默认继承父环境——dsh-evals 启动时带上 MIMO_API_KEY 即可;env 字段用于显式覆盖。
     dsh_bin = config.get("dsh_bin") or os.environ.get("DSH_EVALS_DSH_BIN") or _pick_default_dsh()
     if dsh_bin:
         kwargs["dsh_bin"] = dsh_bin

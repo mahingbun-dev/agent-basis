@@ -1,0 +1,25 @@
+{
+  "sidebarEntry": true,
+  "panelRendered": true,
+  "totalCard": true,
+  "scopeGlobal": true,
+  "bobCreate": {
+    "status": 201,
+    "body": {
+      "user": {
+        "id": 4,
+        "account": "tp-bob02",
+        "nickname": "tp-bob02",
+        "role": "user"
+      },
+      "finalAccount": "tp-bob02"
+    }
+  },
+  "bobPanelVisible": true,
+  "bobEmptyOrZero": false,
+  "bobSelfScope": false,
+  "shots": [
+    "gui-test-screenshots/team-platform/p3/usage-panel-dark.png",
+    "gui-test-screenshots/team-platform/p3/usage-panel-light.png"
+  ]
+}

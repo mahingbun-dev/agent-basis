@@ -257,3 +257,14 @@ cd ~/.dsh/profiles/eterna-web && pnpm install
 - **面板 WeKnora 显示 not-mounted?** glue 只装配了 wiki-local 后端;WeKnora 需配 enabled+baseUrl+token 三要素才会挂载
 - **改了 glue/panel 代码不生效?** 必须重启宿主(命令见「快速定位」)再测
 - **怎么判断一个功能真的触发了?** 看工具调用的**输出 JSON 特征字段**(memory_search 的 `entity:` 锚点、budget_calc 的 `budget-breakdown`、pay_deposit 的 `payment-request`),或面板卡片计数变化;不要拿页面全文做子串匹配
+
+
+## 团队平台化新功能（2026-11-11，feat/team-platform）
+
+- **三家模型直连**：模型选择器新增 DeepSeek / MiMo / GLM（智谱）官方直连分组，无需外部网关。供应商配置在设置弹窗「模型」分区——管理员可编辑，普通成员只读；API Key 任何界面与接口都不回传。
+- **会话与工作区隔离**：成员只能看到自己的工作区与会话（含侧栏列表与搜索）；「添加工作区」走目录树，只能在本人目录内选择与新建文件夹。
+- **用量统计**：侧栏「用量统计」面板查看 Token 总量、缓存命中率、近 14 天趋势与按模型分布。普通成员看本人，管理员看全局。
+- **我的插件**：设置弹窗新分区——把插件放进本人 `plugins/` 目录即可安装，仅本人可见；「转内置」提交申请，管理员在「审批队列」通过后全员可用。
+- **消息与审批**：设置弹窗新分区——审批结果与待办的站内提醒。
+- 已知问题：浏览器若缓存了旧版登录页，密码小眼睛可能出现位移——硬刷新（⌘⇧R）即可。
+- 全部功能验收证据：`acceptance/team-platform/`（分阶段门禁 gate-summary 与工件）。

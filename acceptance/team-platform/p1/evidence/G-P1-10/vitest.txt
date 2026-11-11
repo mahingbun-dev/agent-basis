@@ -1,0 +1,8 @@
+RUN  v4.1.12 /Users/sunny/code/agent-basis-team/packages/access
+
+ ✓ tests/mux-peer-drift.spec.ts (5 tests) 134ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  02:34:55
+   Duration  265ms (transform 21ms, setup 0ms, import 33ms, tests 134ms, environment 0ms)

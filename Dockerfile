@@ -31,7 +31,7 @@ COPY docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh && mkdir -p /data
 
 ENV DSH_HOME=/data
-# 载体 env(compose 注入):ETERNA_LLM_BASE_URL / LITELLM_API_KEY /
+# 载体 env(compose 注入):DEEPSEEK_API_KEY / MIMO_API_KEY / BIGMODEL_API_KEY /
 # ETERNA_PUBLIC_URL / ETERNA_TRUSTED_HOST(反代场景)
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \

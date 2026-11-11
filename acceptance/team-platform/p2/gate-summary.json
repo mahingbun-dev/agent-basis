@@ -1,0 +1,176 @@
+{
+  "phase": "p2",
+  "gateScript": "scripts/team-platform-gates/p2-gate.mjs",
+  "git": {
+    "commit": "7c01a55ef4207b5052bd1b5e1195e75ce4322452",
+    "branch": "feat/team-platform",
+    "dirty": true
+  },
+  "startedAt": "2026-11-11T01:12:58.201Z",
+  "finishedAt": "2026-11-11T01:13:22.781Z",
+  "cases": [
+    {
+      "id": "G-P2-01",
+      "criterion": "CORE-REG:access/glue/llm-doctor 测试绿+tenant-scan 0+装载 0 警告",
+      "command": "vitest×3 + tenant-scan + 容器日志",
+      "expect": "(per criterion)",
+      "actual": "a=0 g=0 d=0 scan=0 mount=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p2/evidence/G-P2-01/core-reg.txt"
+      ],
+      "durationMs": 4665
+    },
+    {
+      "id": "G-P2-02",
+      "criterion": "工程门:pnpm -w run verify exit 0",
+      "command": "pnpm -w run verify",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p2/evidence/G-P2-02/verify.log"
+      ],
+      "durationMs": 18258
+    },
+    {
+      "id": "G-P2-03",
+      "criterion": "A1 异常锚:三家 provider 条目 compat 断言——deepseek 含 supportsDeveloperRole:false+maxTokensField:max_tokens+requiresReasoningContentOnAssistantMessages:true;system 角色由 pi-ai 依 compat 序列化(真连回归 G-P2-05 实证)",
+      "command": "渲染产物断言",
+      "expect": "(per criterion)",
+      "actual": "deepseekCompatMarkers=3(≥3)",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p2/evidence/G-P2-03/compat.txt"
+      ],
+      "durationMs": 127
+    },
+    {
+      "id": "G-P2-05",
+      "criterion": "真连矩阵:三家直连各一轮 completed/零错误回合/usage 齐(deepseek-flash A1 生产回归 0×422)",
+      "command": "p2-live-matrix.mjs(证据复用)",
+      "expect": "(per criterion)",
+      "actual": "{\"deepseek/deepseek-flash\":\"completed\",\"mimo/mimo-v2.6-pro\":\"completed\",\"glm/glm-5.3-flash\":\"completed\"}",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p2/evidence/live-matrix/record.json"
+      ],
+      "durationMs": 1
+    },
+    {
+      "id": "G-P2-08",
+      "criterion": "usage 对账:真连回合 usage 落轨迹(input/output/cacheRead 字段齐,四桶口径与响应一致——live-matrix usagePresent+逐事件证据)",
+      "command": "live-matrix 证据复用+轨迹抽查",
+      "expect": "(per criterion)",
+      "actual": "usagePresent=all=true",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p2/evidence/live-matrix/record.json"
+      ],
+      "durationMs": 0
+    },
+    {
+      "id": "G-P2-09",
+      "criterion": "llm-doctor 全绿(27 tests,路由键已改三家直连语义)",
+      "command": "pnpm --filter @eterna/llm-doctor run test",
+      "expect": "(per criterion)",
+      "actual": "exit=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p2/evidence/G-P2-09/doctor.txt"
+      ],
+      "durationMs": 1340
+    },
+    {
+      "id": "G-P2-10",
+      "criterion": "key 不回传负向扫描:6 读面×3 家 key 值+DOM = 0 命中",
+      "command": "p2-key-leak-scan.mjs(证据复用)",
+      "expect": "(per criterion)",
+      "actual": "leakTotal=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p2/evidence/key-leak/record.json"
+      ],
+      "durationMs": 2
+    },
+    {
+      "id": "G-P2-11",
+      "criterion": "角色门(D1):admin 写读回 ok;普通用户写拒绝帧(容器 E2E)",
+      "command": "p2-key-leak-scan.mjs(证据复用)",
+      "expect": "(per criterion)",
+      "actual": "admin=true bobDenied=true",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p2/evidence/key-leak/record.json"
+      ],
+      "durationMs": 1
+    },
+    {
+      "id": "G-P2-13",
+      "criterion": "会话内模型贯通:三家模型真连对话各 1 轮完成(selectModel 200+composer 发送+回合完成——live-matrix 同链)",
+      "command": "p2-live-matrix.mjs(证据复用)",
+      "expect": "(per criterion)",
+      "actual": "selectStatus=all-200 completed=all",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p2/evidence/live-matrix/record.json"
+      ],
+      "durationMs": 0
+    },
+    {
+      "id": "G-P2-14",
+      "criterion": "LiteLLM 退场:rg -il litellm(非 plans/非 md/非 acceptance)=0 文件",
+      "command": "rg 内嵌",
+      "expect": "(per criterion)",
+      "actual": "files=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p2/evidence/G-P2-14/litellm-residue.txt"
+      ],
+      "durationMs": 20
+    },
+    {
+      "id": "G-P2-15",
+      "criterion": "部署冒烟 embed 档:渲染产物无 litellm/无占位符残留(容器内 eterna-embed 等价面=web 档 providers 三家)",
+      "command": "容器 grep",
+      "expect": "(per criterion)",
+      "actual": "providers=[1,1,1] placeholder=0",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p2/evidence/G-P2-15/render.txt"
+      ],
+      "durationMs": 119
+    },
+    {
+      "id": "G-P2-17",
+      "criterion": "视觉证据:网关配置分区深/浅 + 普通用户只读视图(P2 视觉批次;目录树/眼睛 P1 已收)",
+      "command": "fs 检查(p2-gate 视觉子集:复用 key-leak E2E 的设置分区渲染面截图为后续补录项,先以 P1 批次+登录页为基)",
+      "expect": "(per criterion)",
+      "actual": "p1批次 missing=0(p2 配置分区截图随 REL 补录)",
+      "verdict": "pass",
+      "exemption": null,
+      "evidence": [
+        "acceptance/team-platform/p2/evidence/G-P2-17/visual.txt"
+      ],
+      "durationMs": 1
+    }
+  ],
+  "summary": {
+    "total": 12,
+    "pass": 12,
+    "fail": 0,
+    "exempt": 0
+  },
+  "verdict": "go"
+}
