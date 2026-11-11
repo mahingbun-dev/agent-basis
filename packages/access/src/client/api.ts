@@ -20,6 +20,12 @@ export interface UserRowView {
   readonly hasAvatar: boolean
 }
 
+export interface CompanionView {
+  readonly token: string | null
+  readonly createdAt: string | null
+  readonly guideUrl: string
+}
+
 export interface PluginRowView {
   readonly id: string
   readonly label: string
@@ -59,6 +65,9 @@ export const api = {
   createUser: (account: string, password: string, role: 'admin' | 'user'): Promise<{ user: UserRowView; finalAccount: string }> =>
     call('/access/api/users', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ account, password, role }) }),
   deleteUser: (id: number): Promise<{ ok: true }> => call(`/access/api/users/${id}`, { method: 'DELETE' }),
+  companion: (): Promise<CompanionView> => call('/access/api/companion'),
+  resetCompanionToken: (): Promise<{ ok: true; token: string; createdAt: string; guideUrl: string }> =>
+    call('/access/api/companion/reset', { method: 'POST' }),
   plugins: (): Promise<{ plugins: PluginRowView[] }> => call('/access/api/plugins'),
   togglePlugin: (id: string, action: 'disable' | 'enable'): Promise<{ ok: true; disabled: boolean; effectiveAfterRestart: boolean }> =>
     call(`/access/api/plugins/${id}/${action}`, { method: 'POST' }),

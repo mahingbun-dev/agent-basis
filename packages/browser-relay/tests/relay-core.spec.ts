@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { RelayToExt } from '../src/protocol.ts'
 import { RelayCore, type ExtLink } from '../src/relay-core'
 
 /** 测试桩：模拟扩展腿（响应可编程），捕获全部下行帧 */
-function makeMockExt(opts?: { chromeVersion?: string }) {
+function makeMockExt(opts?: { chromeVersion?: string; ns?: string; core?: RelayCore }) {
+  const ns = opts?.ns ?? '__local__'
   const sent: RelayToExt[] = []
   let responder: (frame: RelayToExt) => { ok: true; result: unknown } | { ok: false; error: { code: string; message: string } } | null =
     (frame) => {
@@ -25,14 +26,14 @@ function makeMockExt(opts?: { chromeVersion?: string }) {
       const reply = responder(frame)
       if (reply !== null) {
         const id = (frame as { id: number }).id
-        const result = reply.ok ? core.onExtFrame({ t: 'result', id, ok: true, result: reply.result }) : core.onExtFrame({ t: 'result', id, ok: false, error: reply.error })
+        const result = reply.ok ? core.onExtFrame({ t: 'result', id, ok: true, result: reply.result }, ns) : core.onExtFrame({ t: 'result', id, ok: false, error: reply.error }, ns)
         void result
       }
     },
     extVersion: '0.1.0',
     chromeVersion: opts?.chromeVersion ?? '157.0.0.0',
   }
-  const core = new RelayCore()
+  const core = opts?.core ?? new RelayCore()
   return { core, link, sent, setResponder: (r: typeof responder) => (responder = r) }
 }
 
@@ -74,12 +75,12 @@ function makeMockCdp(core: RelayCore) {
 describe('RelayCore（E1-T2 中继核心）', () => {
   it('握手拒绝协议不匹配', async () => {
     const { core, link } = makeMockExt()
-    await expect(core.onExtHello(link, { t: 'hello', proto: 99, ext: 'x', extVersion: '1' })).rejects.toThrow(/PROTO_MISMATCH/)
+    await expect(core.onExtHello(link, { t: 'hello', proto: 99, ext: 'x', extVersion: '1' }, '__local__')).rejects.toThrow(/PROTO_MISMATCH/)
   })
 
   it('setAutoAttach 只自动挂载可操作目标并发出 attachedToTarget', async () => {
     const mock = makeMockExt()
-    await mock.core.onExtHello(mock.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' })
+    await mock.core.onExtHello(mock.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' }, '__local__')
     const cdp = makeMockCdp(mock.core)
     const r = await cdp.request('Target.setAutoAttach', { autoAttach: true, flatten: true })
     expect(r['result']).toEqual({})
@@ -93,7 +94,7 @@ describe('RelayCore（E1-T2 中继核心）', () => {
 
   it('session 命令转发到对应 tab，结果带回原 id', async () => {
     const mock = makeMockExt()
-    await mock.core.onExtHello(mock.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' })
+    await mock.core.onExtHello(mock.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' }, '__local__')
     const cdp = makeMockCdp(mock.core)
     const att = await cdp.request('Target.attachToTarget', { targetId: '11', flatten: true })
     const sessionId = (att['result'] as { sessionId: string }).sessionId
@@ -113,20 +114,20 @@ describe('RelayCore（E1-T2 中继核心）', () => {
 
   it('debugger 事件按 session 回传给 CDP 客户端', async () => {
     const mock = makeMockExt()
-    await mock.core.onExtHello(mock.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' })
+    await mock.core.onExtHello(mock.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' }, '__local__')
     const cdp = makeMockCdp(mock.core)
     await cdp.request('Target.attachToTarget', { targetId: '11', flatten: true })
-    await mock.core.onExtFrame({ t: 'event', tabId: 11, method: 'Page.loadEventFired', params: {} })
+    await mock.core.onExtFrame({ t: 'event', tabId: 11, method: 'Page.loadEventFired', params: {} }, '__local__')
     const evt = await cdp.untilEvent('Page.loadEventFired')
     expect(evt['sessionId']).toBeTypeOf('string')
   })
 
   it('扩展端 detached → Inspector.detached 且会话清理', async () => {
     const mock = makeMockExt()
-    await mock.core.onExtHello(mock.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' })
+    await mock.core.onExtHello(mock.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' }, '__local__')
     const cdp = makeMockCdp(mock.core)
     await cdp.request('Target.attachToTarget', { targetId: '11', flatten: true })
-    await mock.core.onExtFrame({ t: 'detached', tabId: 11, reason: '用户点黄条 Cancel' })
+    await mock.core.onExtFrame({ t: 'detached', tabId: 11, reason: '用户点黄条 Cancel' }, '__local__')
     const evt = await cdp.untilEvent('Inspector.detached')
     expect((evt['params'] as { reason: string }).reason).toBe('canceled_by_user')
     // 之后该 session 命令应报未知 session
@@ -136,16 +137,16 @@ describe('RelayCore（E1-T2 中继核心）', () => {
 
   it('tab.removed → Target.targetDestroyed', async () => {
     const mock = makeMockExt()
-    await mock.core.onExtHello(mock.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' })
+    await mock.core.onExtHello(mock.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' }, '__local__')
     const cdp = makeMockCdp(mock.core)
-    await mock.core.onExtFrame({ t: 'tab.removed', tabId: 11 })
+    await mock.core.onExtFrame({ t: 'tab.removed', tabId: 11 }, '__local__')
     const evt = await cdp.untilEvent('Target.targetDestroyed')
     expect((evt['params'] as { targetId: string }).targetId).toBe('11')
   })
 
   it('不可操作目标 attach 被拒（INELIGIBLE_TARGET）', async () => {
     const mock = makeMockExt()
-    await mock.core.onExtHello(mock.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' })
+    await mock.core.onExtHello(mock.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' }, '__local__')
     const cdp = makeMockCdp(mock.core)
     mock.setResponder((frame) => {
       if (frame.t === 'attach') return { ok: false, error: { code: 'INELIGIBLE_TARGET', message: 'chrome:// 属不可操作目标' } }
@@ -158,7 +159,7 @@ describe('RelayCore（E1-T2 中继核心）', () => {
 
   it('未知浏览器级方法返回 -32601', async () => {
     const mock = makeMockExt()
-    await mock.core.onExtHello(mock.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' })
+    await mock.core.onExtHello(mock.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' }, '__local__')
     const cdp = makeMockCdp(mock.core)
     const r = await cdp.request('Browser.someUnknownMethod', {})
     expect((r['error'] as { code: number }).code).toBe(-32601)
@@ -166,10 +167,10 @@ describe('RelayCore（E1-T2 中继核心）', () => {
 
   it('扩展断开 → 会话全部 Inspector.detached', async () => {
     const mock = makeMockExt()
-    await mock.core.onExtHello(mock.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' })
+    await mock.core.onExtHello(mock.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' }, '__local__')
     const cdp = makeMockCdp(mock.core)
     await cdp.request('Target.attachToTarget', { targetId: '11', flatten: true })
-    mock.core.setExt(null)
+    mock.core.setExt('__local__', null)
     const evt = await cdp.untilEvent('Inspector.detached')
     expect((evt['params'] as { reason: string }).reason).toBe('target_closed')
     expect(mock.core.extensionConnected).toBe(false)
@@ -177,16 +178,96 @@ describe('RelayCore（E1-T2 中继核心）', () => {
 
   it('Target.createTarget 建新 tab 并返回 targetId', async () => {
     const mock = makeMockExt()
-    await mock.core.onExtHello(mock.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' })
+    await mock.core.onExtHello(mock.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' }, '__local__')
     const cdp = makeMockCdp(mock.core)
     mock.setResponder((frame) => {
       if (frame.t === 'tab.new') {
-        void mock.core.onExtFrame({ t: 'tab.created', tab: { tabId: 21, title: '', url: 'http://127.0.0.1:9319/fixture', active: true, eligible: true } })
+        void mock.core.onExtFrame({ t: 'tab.created', tab: { tabId: 21, title: '', url: 'http://127.0.0.1:9319/fixture', active: true, eligible: true } }, '__local__')
         return { ok: true, result: { tabId: 21 } }
       }
       return { ok: true, result: {} }
     })
     const r = await cdp.request('Target.createTarget', { url: 'http://127.0.0.1:9319/fixture' })
     expect((r['result'] as { targetId: string }).targetId).toBe('21')
+  })
+})
+
+describe('RelayCore（E4 多用户命名空间隔离）', () => {
+  it('凭据路由：nsFor 缺省落主域，带凭据落用户域', () => {
+    const core = new RelayCore('tok-primary')
+    expect(core.nsFor(undefined)).toBe('tok-primary')
+    expect(core.nsFor('')).toBe('tok-primary')
+    expect(core.nsFor('tok-user-a')).toBe('tok-user-a')
+  })
+
+  it('两个令牌的浏览器并行：tabs/cmd/生命周期互不可见', async () => {
+    const core = new RelayCore('tok-primary')
+    const a = makeMockExt({ ns: 'tok-user-a', core })
+    const b = makeMockExt({ ns: 'tok-user-b', core })
+    await core.onExtHello(a.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' }, 'tok-user-a')
+    await core.onExtHello(b.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' }, 'tok-user-b')
+    expect(core.connectedCount).toBe(2)
+    expect(core.listTabs('tok-user-a')).toHaveLength(2)
+    expect(core.listTabs('tok-user-b')).toHaveLength(2)
+    // 命令只发给本人连接
+    await core.sendTabCommand('tok-user-a', 11, 'DOM.getDocument')
+    expect(a.sent.some(f => f.t === 'cmd')).toBe(true)
+    expect(b.sent.some(f => f.t === 'cmd')).toBe(false)
+    // A 域的 tab 生命周期不影响 B 域
+    await core.onExtFrame({ t: 'tab.removed', tabId: 11 }, 'tok-user-a')
+    expect(core.listTabs('tok-user-a')).toHaveLength(1)
+    expect(core.listTabs('tok-user-b')).toHaveLength(2)
+    // 断开 A 只清 A 域
+    core.setExt('tok-user-a', null)
+    expect(core.nsConnected('tok-user-a')).toBe(false)
+    expect(core.nsConnected('tok-user-b')).toBe(true)
+    expect(core.connectedCount).toBe(1)
+  })
+
+  it('同令牌第二接入被拒（token=浏览器实例身份）', async () => {
+    const core = new RelayCore('tok-primary')
+    const first = makeMockExt({ ns: 'tok-user-a', core })
+    await core.onExtHello(first.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' }, 'tok-user-a')
+    const second = makeMockExt({ ns: 'tok-user-a', core })
+    await expect(core.onExtHello(second.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' }, 'tok-user-a')).rejects.toThrow(/同令牌/)
+  })
+
+  it('ref 注册表按命名空间隔离（同 ref 串互不串扰）', async () => {
+    // 经 BrowserTools 层验证：两 ns 各自 snapshot 后各自 ref 互不可见
+    const { BrowserTools } = await import('../src/tools.ts')
+    const core = new RelayCore('tok-primary')
+    const domSnap = vi.spyOn(await import('../src/dom-snapshot.ts'), 'renderDomSnapshot')
+    domSnap.mockReturnValue({
+      text: '[ref=e1] button',
+      lines: [{ depth: 0, role: 'button', name: 'button', ref: 'e1' }],
+      refs: new Map([['e1', 77]]),
+    })
+    const tools = new BrowserTools(core)
+    const a = makeMockExt({ ns: 'tok-user-a', core })
+    const b = makeMockExt({ ns: 'tok-user-b', core })
+    await core.onExtHello(a.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' }, 'tok-user-a')
+    await core.onExtHello(b.link, { t: 'hello', proto: 1, ext: 'eterna-companion', extVersion: '0.1.0' }, 'tok-user-b')
+    const ra = await tools.execute('browser_snapshot', { _eternaToken: 'tok-user-a' })
+    expect(ra.ok).toBe(true)
+    // B 域同 ref 串不存在（各自注册表）
+    const rb = await tools.execute('browser_click', { _eternaToken: 'tok-user-b', ref: 'e1' })
+    expect(rb.ok).toBe(false)
+    if (!rb.ok) expect(rb.error.code).toBe('INVALID_REF')
+    // A 域同 ref 命中并走完点击全链（resolveNode/callFunctionOn 可编程回）
+    a.setResponder((frame) => {
+      if (frame.t === 'cmd' && frame.method === 'DOM.resolveNode') {
+        return { ok: true, result: { object: { objectId: 'obj-1' } } }
+      }
+      if (frame.t === 'cmd' && frame.method === 'Runtime.callFunctionOn') {
+        return { ok: true, result: { result: { value: { x: 10, y: 10, w: 5, h: 5 } } } }
+      }
+      return { ok: true, result: {} }
+    })
+    const ra2 = await tools.execute('browser_click', { _eternaToken: 'tok-user-a', ref: 'e1' })
+    expect(ra2.ok).toBe(true)
+    // cmd 只发给 A 的连接
+    expect(a.sent.filter(f => f.t === 'cmd' && f.method === 'Input.dispatchMouseEvent').length).toBe(3)
+    expect(b.sent.filter(f => f.t === 'cmd' && f.method === 'Input.dispatchMouseEvent').length).toBe(0)
+    domSnap.mockRestore()
   })
 })
