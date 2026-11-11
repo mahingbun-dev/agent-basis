@@ -167,13 +167,15 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
   // 先按空间预估,渲染后实测高度越界即翻转(2026-11-12 用户实测:固定阈值 460
   // 在按钮 y≈443 的 composer 下误判 below,面板朝下盖输入框)。
   const [place, setPlace] = useState<'above' | 'below'>(anchor.top > 400 ? 'above' : 'below')
+  // 挂载时一次定位(2026-11-12:每渲染跑的翻转会在 catalog 回来重渲染时挪位——
+  // 用户点击瞬间面板移走=点到空处 onDown 关闭且无操作,即「点任意位置消失」根因)
   useLayoutEffect(() => {
-    if (subOpen) return // 子面板开着时锁位,避免收起时跳动
     if (mainRef.current === null) return
     const r = mainRef.current.getBoundingClientRect()
     if (place === 'below' && r.bottom > window.innerHeight - 8) setPlace('above')
     else if (place === 'above' && r.top < 8) setPlace('below')
-  })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅挂载时定一次位
+  }, [])
   const mainStyle: React.CSSProperties = (() => {
     const left = Math.max(8, Math.min(anchor.x - 40, window.innerWidth - 272))
     return {
