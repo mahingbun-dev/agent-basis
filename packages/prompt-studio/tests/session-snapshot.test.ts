@@ -34,6 +34,23 @@ import { createHash } from 'node:crypto'
 
 const sha256 = (text: string): string => createHash('sha256').update(text, 'utf8').digest('hex')
 
+/**
+ * 有界重试删除:Linux CI 实测(2026-11-11,PR #21 首跑)dispose() 返回后仍有
+ * in-flight 异步落盘(审计/快照写)与 rmSync 递归删除赛跑 → ENOTEMPTY(errno 39)。
+ * macOS 时序下未暴露。20 次×25ms 足以让尾写落地;仍失败则如实抛出。
+ */
+async function rmRetry(target: string): Promise<void> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      rmSync(target, { recursive: true, force: true })
+      return
+    } catch (error) {
+      if (attempt >= 20) throw error
+      await new Promise((resolve) => { setTimeout(resolve, 25) })
+    }
+  }
+}
+
 /** 内存 KvUnit(双表:versions + snapshots;putRecord 带 1ms 交错窗口,并发写竞争可见)。 */
 class MemoryUnit {
   readonly tables = new Map<string, Map<string, unknown>>([
@@ -187,7 +204,7 @@ describe('捕获纯函数 captureSessionSnapshotEntries(指针按条目型别分
     seedFixtureRepo(repoRoot)
   })
 
-  afterEach(() => { rmSync(dir, { recursive: true, force: true }) })
+  afterEach(async () => { await rmRetry(dir) })
 
   it('分型语义全集:patch 值型(指针/无指针)、运行时注入型(文本/在场标记)', () => {
     const files = new Map<string, string>()
@@ -286,7 +303,7 @@ describe('T2.3 网关链路:会话开启事件 → 快照存储 → 查询端点
 
   afterEach(async () => {
     await gateway.dispose()
-    rmSync(dir, { recursive: true, force: true })
+    await rmRetry(dir)
   })
 
   async function attach(): Promise<void> {
