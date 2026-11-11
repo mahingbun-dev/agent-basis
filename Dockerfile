@@ -17,11 +17,13 @@ RUN apt-get update \
 
 FROM node:24-bookworm-slim
 # python3/make/g++:npm 全局装 dsh 时 koffi/node-pty 等原生依赖 node-gyp 需要
-# dsh-mcp-client：companion 浏览器执行面挂载用（独立全局包，0.2.2-rc.1=验收同版）
+# dsh-mcp-client：companion 浏览器执行面挂载用。必须与内核版本族严格一致
+# （rc.1 在 alpha.3 内核上被静默 disable——requirements 整组 rc.1 包不匹配，
+# 2026-11-11 生产实测；「@deepseek-ai symlink 须指全局同版本」老坑的版本族变体）
 RUN apt-get update \
  && apt-get install -y --no-install-recommends python3 make g++ curl \
  && rm -rf /var/lib/apt/lists/* \
- && npm i -g @deepseek-ai/dsh@0.2.2-alpha.3 @deepseek-ai/dsh-mcp-client@0.2.2-rc.1 \
+ && npm i -g @deepseek-ai/dsh@0.2.2-alpha.3 @deepseek-ai/dsh-mcp-client@0.2.2-alpha.3 \
  && npm cache clean --force
 
 COPY --from=build /repo /repo
