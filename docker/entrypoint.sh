@@ -6,7 +6,11 @@
 # - profile node_modules 只放本仓 @eterna 插件 symlink;@deepseek-ai 家族一律
 #   指向全局 dsh 自带拷贝(版本与运行时严格一致——指向工作区/registry 另装拷贝
 #   会因版本错配被 dsh 静默 disable preset 行,宿主验收实例 2026-11-09 实测)。
-# - patch 模板渲染到卷上(每次启动重渲染):配置变更只改 env,不动卷内容;
+# - patch/manifest 模板渲染走哈希门控(2026-11-12 重构):模板(+relay token 盐)
+#   未变则保留卷上用户文件——插件页启停(cordis.patch.yml disabled: 标记)、包级
+#   启停与模型设置(package.json dsh.profile / patch llm-pi-ai 行)跨重启持久;
+#   模板变更(镜像升级)才重渲染,并把旧文件的启停标记/追加覆写行/bundles 选择
+#   窄移植到新渲染(模型行 config 不移植——升级重置,重启场景已由门控根治)。
 #   会话/存储/审计全在卷,升级镜像不丢数据。
 # - bootstrap token 打印在 stdout(docker logs 取);首次浏览器连接消费后,
 #   BrowserAuth 会话签名落卷 credentials(重启不掉线)。
@@ -19,10 +23,102 @@ REPO=/repo
 
 # ── 1. profile 骨架(不覆盖既有会话数据) ─────────────────────────────────
 mkdir -p "$PROFILE_DIR/node_modules/@eterna" "$PROFILE_DIR/node_modules/@deepseek-ai"
-cp /repo/docker/profile/package.json "$PROFILE_DIR/package.json"
 
-# ── 2. patch 渲染(env 即配置;P2 网关后模板无占位符,直拷) ────────────────
-cp /repo/docker/profile/cordis.patch.yml.template "$PROFILE_DIR/cordis.patch.yml"
+# ── 2. 模板哈希门控渲染(2026-11-12 重构,修复「插件启停/模型设置重启即丢」)──
+# 过去每启裸 cp 模板覆盖卷上 cordis.patch.yml 与 package.json——dsh 插件页启停
+# 写 patch 的 disabled: 标记(boot/plugin-manager patch.ts:25-78)、包级启停与
+# 设置弹窗「模型」分区(dsh-config-editor 写 llm-pi-ai 行)全部重启即丢。
+# 现按 sha256(模板内容 + ETERNA_RELAY_TOKEN 盐) 门控:未变→保留用户文件;
+# 首启/模板变更→重渲染,且把旧文件的显式 disabled 标记、仅存于旧文件的用户
+# 覆写行、manifest 的 dsh.profile 块移植到新渲染(2026-11-12 用户拍板)。
+# 治理红线行不参与移植(其装载由本文件第 2.5 步 admin 清单独立管理)。
+RENDER_SALT="${ETERNA_RELAY_TOKEN:-}"
+
+ensure_rendered() {
+  tpl="$1"; dst="$2"; hashfile="$3"; mode="$4"
+  want="$( { cat "$tpl"; printf '%s' "$RENDER_SALT"; } | sha256sum | cut -d' ' -f1 )"
+  if [ -f "$dst" ] && [ -f "$hashfile" ] && [ "$(cat "$hashfile")" = "$want" ]; then
+    echo "[entrypoint] profile 渲染:模板未变,保留用户文件 $(basename "$dst")(启停/模型设置跨重启持久)"
+    return 0
+  fi
+  if [ -f "$dst" ]; then
+    echo "[entrypoint] profile 渲染:模板变更/首启接管,移植用户标记后重渲染 $(basename "$dst")"
+    node - "$tpl" "$dst" "$mode" <<'TRANSPLANT_EOF' || cp "$tpl" "$dst"
+const fs = require('fs')
+const [tplPath, dstPath, mode] = process.argv.slice(2)
+if (mode === 'manifest') {
+  let tpl = null, old = null
+  try { tpl = JSON.parse(fs.readFileSync(tplPath, 'utf8')) } catch { /* 模板坏:走直拷 */ }
+  try { old = JSON.parse(fs.readFileSync(dstPath, 'utf8')) } catch { /* 旧文件坏:弃移植 */ }
+  if (tpl === null) { process.exit(1) }
+  if (old !== null && old.dsh && typeof old.dsh === 'object') tpl.dsh = old.dsh
+  fs.writeFileSync(dstPath, JSON.stringify(tpl, null, 2) + '\n')
+  process.exit(0)
+}
+// patch 模式:文本级顶层块移植(顶层=col0 的 `- ` 行;preset 组内嵌行有缩进不参与)
+const tplText = fs.readFileSync(tplPath, 'utf8')
+const oldText = fs.readFileSync(dstPath, 'utf8')
+function splitBlocks(text) {
+  const lines = text.split('\n')
+  const out = []
+  let start = -1
+  for (let i = 0; i <= lines.length; i++) {
+    const line = i < lines.length ? lines[i] : '- '
+    if (/^- /.test(line) && start >= 0) { out.push({ lines: lines.slice(start, i), start }); start = -1 }
+    if (i < lines.length && /^- /.test(line)) start = i
+  }
+  return { lines, out }
+}
+const blockId = (b) => { const m = /^- id: (\S+)\s*$/.exec(b[0]); return m ? m[1] : null }
+const explicitDisabled = (b) => {
+  for (const l of b.slice(1)) { const m = /^  disabled: (true|false)\s*$/.exec(l); if (m) return m[1] }
+  return null
+}
+const tpl = splitBlocks(tplText)
+const old = splitBlocks(oldText)
+const tplById = new Map()
+for (const b of tpl.out) { const id = blockId(b.lines); if (id !== null && !tplById.has(id)) tplById.set(id, b) }
+const edits = []
+for (const b of old.out) {
+  const id = blockId(b.lines)
+  const oldDis = explicitDisabled(b.lines)
+  if (id === null || oldDis === null) continue
+  const tb = tplById.get(id)
+  if (tb !== undefined) {
+    if (explicitDisabled(tb.lines) === oldDis) continue
+    let replaced = false
+    for (let k = 1; k < tb.lines.length; k++) {
+      if (/^  disabled: /.test(tb.lines[k])) { edits.push({ at: tb.start + k, kind: 'replace', text: '  disabled: ' + oldDis }); replaced = true; break }
+    }
+    if (!replaced) edits.push({ at: tb.start + 1, kind: 'insertBefore', text: '  disabled: ' + oldDis })
+  } else {
+    const appendLines = [...b.lines]
+    while (appendLines.length > 0 && appendLines[appendLines.length - 1].trim() === '') appendLines.pop()
+    if (appendLines.every((l, k) => k === 0 || l.trim() === '' || /^#/.test(l) || /^  [A-Za-z][\w-]*: (?!!!)\S/.test(l))) {
+      edits.push({ at: -1, kind: 'append', text: appendLines.join('\n') })
+    }
+  }
+}
+const lines = tplText.split('\n')
+while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop()
+for (const e of edits.sort((a, b) => b.at - a.at)) {
+  if (e.kind === 'replace') lines[e.at] = e.text
+  else if (e.kind === 'insertBefore') lines.splice(e.at, 0, e.text)
+  else { lines.push(''); for (const l of e.text.split('\n')) lines.push(l) }
+}
+lines.push('')
+fs.writeFileSync(dstPath, lines.join('\n'))
+console.log('[entrypoint] 移植标记:', edits.length, '处')
+TRANSPLANT_EOF
+  else
+    echo "[entrypoint] profile 渲染:全新卷,直拷模板 $(basename "$dst")"
+    cp "$tpl" "$dst"
+  fi
+  printf '%s' "$want" > "$hashfile"
+}
+
+ensure_rendered /repo/docker/profile/package.json "$PROFILE_DIR/package.json" "$PROFILE_DIR/.rendered.package.json.sha256" manifest
+ensure_rendered /repo/docker/profile/cordis.patch.yml.template "$PROFILE_DIR/cordis.patch.yml" "$PROFILE_DIR/.rendered.cordis.patch.yml.sha256" patch
 
 # ── 2.5 插件启停清单(T2.3):admin 停用的可停插件 → 渲染时裁剪对应 insert 行 ──
 DISABLED_FILE="$DSH_HOME/access/disabled-plugins.json"
