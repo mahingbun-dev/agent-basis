@@ -38,7 +38,7 @@ function entry(id: string): PromptRegistryEntry {
 }
 
 describe('T1.3 ①对账——patch 值型(preset 层,profiles/eterna-web/cordis.patch.yml)', () => {
-  it('preset.standard.persona:裸标量锚点 :297 在场,反引值与既有 persona-patch 读数一致', () => {
+  it('preset.standard.persona:裸标量锚点 :292 在场,反引值与既有 persona-patch 读数一致', () => {
     const e = entry('preset.standard.persona')
     const read = readEntryValue(e, readRepoFile)
     expect(read.anchorsPresent).toBe(true)
@@ -56,7 +56,7 @@ describe('T1.3 ①对账——patch 值型(preset 层,profiles/eterna-web/cordis
     expect(cordis.text).toBe(standard.text)
   })
 
-  it('agent-instructions×2:锚点 :154/:301 在场,反引值 65536 与 MAX_PERSONA_BYTES 交叉钉住', () => {
+  it('agent-instructions×2:锚点 :154/:296 在场,反引值 65536 与 MAX_PERSONA_BYTES 交叉钉住', () => {
     for (const id of ['preset.standard.agent-instructions', 'preset.cordis.agent-instructions']) {
       const read = readEntryValue(entry(id), readRepoFile)
       expect(read.anchorsPresent, id).toBe(true)
@@ -66,7 +66,7 @@ describe('T1.3 ①对账——patch 值型(preset 层,profiles/eterna-web/cordis
       .toBe(String(MAX_PERSONA_BYTES))
   })
 
-  it('plan-mode.section×2:| 多段字面块锚点(:188-189 与 :340-341)在场,整段反引读回(clip 尾换行)', () => {
+  it('plan-mode.section×2:| 多段字面块锚点(:188-189 与 :335-336)在场,整段反引读回(clip 尾换行)', () => {
     for (const id of ['preset.standard.plan-mode.section', 'preset.cordis.plan-mode.section']) {
       const e = entry(id)
       const read = readEntryValue(e, readRepoFile)
@@ -89,7 +89,7 @@ describe('T1.3 ①对账——patch 值型(preset 层,profiles/eterna-web/cordis
 
   it('结构定位:preset 行内经 pluginPath 嵌套(planning 组 → plan-mode)命中唯一键行', () => {
     const lines = readRepoFile(WEB_PATCH).split('\n')
-    for (const [rowId, expectedLine] of [['preset-standard', 340], ['preset-cordis', 188]] as const) {
+    for (const [rowId, expectedLine] of [['preset-standard', 335], ['preset-cordis', 188]] as const) {
       const located = locateYamlConfigKey(
         { file: WEB_PATCH, rowId, pluginPath: ['planning', 'plan-mode'], configKey: 'section' },
         lines,
