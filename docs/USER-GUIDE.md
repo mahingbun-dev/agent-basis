@@ -262,6 +262,7 @@ cd ~/.dsh/profiles/eterna-web && pnpm install
 ## 团队平台化新功能（2026-11-11，feat/team-platform）
 
 - **三家模型直连**：模型选择器新增 DeepSeek / MiMo / GLM（智谱）官方直连分组，无需外部网关。供应商配置在设置弹窗「模型」分区——管理员可编辑，普通成员只读；API Key 任何界面与接口都不回传。
+- **OpenDesign（Go 套餐）分组**（2026-11-12）：模型选择器新增 OpenDesign 分组（anthropic-messages 协议直连 `amr-link.open-design.ai`），14 个模型（Claude Haiku 5.5 / DeepSeek V4 与 V4.1 系 / GLM 5.3 Flash 系 / GPT-6 Luna / Kimi K2.7 Code / MiMo V2.6 系 / MiniMax M3.1 等）。key 经 `OPENDESIGN_API_KEY` env 注入；上下文声明统一 300K（Kimi K2.7 Code 按官方元数据 262K）。
 - **会话与工作区隔离**：成员只能看到自己的工作区与会话（含侧栏列表与搜索）；「添加工作区」走目录树，只能在本人目录内选择与新建文件夹。
 - **用量统计**：侧栏「用量统计」面板查看 Token 总量、缓存命中率、近 14 天趋势与按模型分布。普通成员看本人，管理员看全局。
 - **我的插件**：设置弹窗新分区——把插件放进本人 `plugins/` 目录即可安装，仅本人可见；「转内置」提交申请，管理员在「审批队列」通过后全员可用。
