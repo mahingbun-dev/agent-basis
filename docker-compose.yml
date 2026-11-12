@@ -30,6 +30,8 @@ services:
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       MIMO_API_KEY: ${MIMO_API_KEY:-}
       BIGMODEL_API_KEY: ${BIGMODEL_API_KEY:-}
+      # OpenDesign(Go 套餐)直连(2026-11-12):llm-pi-ai opendesign 路由 apiKeyEnv
+      OPENDESIGN_API_KEY: ${OPENDESIGN_API_KEY:-}
       ETERNA_PUBLIC_URL: ${ETERNA_PUBLIC_URL:-}
       ETERNA_TRUSTED_HOST: ${ETERNA_TRUSTED_HOST:-}
       # companion 中继鉴权与公网展示地址（红线 9）：TOKEN 缺省自动生成落卷
@@ -44,6 +46,10 @@ services:
       ETERNA_ACCESS_SECURE: ${ETERNA_ACCESS_SECURE:-}
     volumes:
       - eterna-home:/data
+      # 模板免重建挂载(2026-11-12):entrypoint 每次启动 cp 本文件渲染卷内 profile,
+      # 镜像内烘焙的是构建时副本;挂载后模板改动 up -d 即生效,镜像重建(COPY . .)
+      # 后内容一致,挂载可撤。
+      - ./docker/profile/cordis.patch.yml.template:/repo/docker/profile/cordis.patch.yml.template:ro
     restart: unless-stopped
 
 volumes:

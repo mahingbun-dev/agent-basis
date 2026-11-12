@@ -4,7 +4,7 @@
 # 后落卷 $DSH_HOME/profiles/eterna-web/cordis.patch.yml(每次启动重渲染,env 即配)。
 # 漂移守卫:改本模板或 profiles/eterna-web/cordis.patch.yml(企业裁切基座)后,
 # 重跑本同步(sed 比对)或在 PR 中显式重放挂载块——两文件职责见各自头注。
-# 密钥纪律:模板无任何密钥;key 经 DEEPSEEK_API_KEY/MIMO_API_KEY/BIGMODEL_API_KEY env(apiKeyEnv 指名读取)。
+# 密钥纪律:模板无任何密钥;key 经 DEEPSEEK_API_KEY/MIMO_API_KEY/BIGMODEL_API_KEY/OPENDESIGN_API_KEY env(apiKeyEnv 指名读取)。
 # Basis enterprise Web 档（eterna-web）：dsh-base + dsh-web-app 之上的企业裁切层。
 #
 # 装载形态：DSH profile `$DSH_HOME/profiles/eterna-web`，其 package.json 声明
@@ -659,6 +659,116 @@
               low: low
               medium: medium
               high: high
+
+      # ── OpenDesign（Go 套餐，2026-11-12 从 ZCode 供应商配置收编，用户指令；同日晚重落地）──
+      # anthropic-messages 协议：baseURL 不带 /v1（pi-ai 追加 v1/messages，
+      # llm-doctor API_ENDPOINT_PATHS 标定；上游实测 GET /v1/messages=405 存在）。
+      # 14 模型=ZCode 侧 Go 套餐全量目录（GET /v1/models 实测），contextWindow
+      # 统一声明 300000（用户此前在 ZCode 侧同一裁定）——唯一例外 kimi-k2.7-code
+      # 官方元数据 context_limit 硬顶 262000，按实值声明（声明超实值=超长会话
+      # 中途 400）。maxTokens 按目录 output_budget 实值声明；input 按目录
+      # input_modalities（pi-ai 模态枚举仅 text/image，file/video 类上游宣称
+      # 不在此声明）。reasoningEfforts 不声明：网关未标定各模型推理档，宁缺勿错
+      # （需要时设置页「模型」分区逐模型加，volatile 热生效）。
+      opendesign:
+        displayName: OpenDesign（Go 套餐）
+        apiKeyEnv: OPENDESIGN_API_KEY
+        api: anthropic-messages
+        baseURL: https://amr-link.open-design.ai
+        models:
+          - id: claude-haiku-5.5
+            name: Claude Haiku 5.5
+            contextWindow: 300000
+            maxTokens: 128000
+            input:
+              - text
+              - image
+          - id: deepseek-v4-flash
+            name: DeepSeek V4 Flash
+            contextWindow: 300000
+            maxTokens: 32000
+            input:
+              - text
+          - id: deepseek-v4-flash-vision-exp
+            name: DeepSeek V4 Flash 视觉实验
+            contextWindow: 300000
+            maxTokens: 32000
+            input:
+              - text
+              - image
+          - id: deepseek-v4-pro
+            name: DeepSeek V4 Pro
+            contextWindow: 300000
+            maxTokens: 128000
+            input:
+              - text
+          - id: deepseek-v4.1-flash
+            name: DeepSeek V4.1 Flash
+            contextWindow: 300000
+            maxTokens: 128000
+            input:
+              - text
+              - image
+          - id: deepseek-v4.1-flash-eco
+            name: DeepSeek V4.1 Flash Eco
+            contextWindow: 300000
+            maxTokens: 128000
+            input:
+              - text
+          - id: glm-5.3-flash
+            name: GLM 5.3 Flash
+            contextWindow: 300000
+            maxTokens: 32000
+            input:
+              - text
+              - image
+          - id: glm-5.3-flashx
+            name: GLM 5.3 FlashX
+            contextWindow: 300000
+            maxTokens: 32000
+            input:
+              - text
+              - image
+          - id: gpt-6-luna
+            name: GPT-6 Luna
+            contextWindow: 300000
+            maxTokens: 128000
+            input:
+              - text
+              - image
+          - id: hy4-preview
+            name: Hy4 Preview
+            contextWindow: 300000
+            maxTokens: 32000
+            input:
+              - text
+          - id: kimi-k2.7-code
+            name: Kimi K2.7 Code
+            contextWindow: 262000
+            maxTokens: 32000
+            input:
+              - text
+              - image
+          - id: mimo-v2.6-flash
+            name: MiMo V2.6 Flash
+            contextWindow: 300000
+            maxTokens: 32000
+            input:
+              - text
+              - image
+          - id: mimo-v2.6-pro
+            name: MiMo V2.6 Pro
+            contextWindow: 300000
+            maxTokens: 32000
+            input:
+              - text
+              - image
+          - id: minimax-m3.1-flash
+            name: MiniMax M3.1 Flash
+            contextWindow: 300000
+            input:
+              - text
+              - image
 
 # 企业默认模型（base 既有行覆写，config 整份替换）：provider=pi-ai 路由 key
 - id: agent-default-model
