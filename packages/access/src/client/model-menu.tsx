@@ -130,12 +130,20 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
   }, [])
 
   // 全局点击/ESC 关闭(子面板点行不关——面板内导航)
+  // isConnected 守卫(2026-11-12 防御):宿主若被外部 remove 而未 unmount,监听器
+  // 会带着脱离文档的 rootRef 存活——对任何真实目标 contains 恒 false,把下一次
+  // 打开的面板在 mousedown 阶段误关(「一点就消失」泄漏链的组件侧断路器)。
   useEffect(() => {
     const onDown = (e: MouseEvent): void => {
-      if (rootRef.current !== null && e.target instanceof Node && rootRef.current.contains(e.target)) return
+      if (rootRef.current === null || !rootRef.current.isConnected) return
+      if (e.target instanceof Node && rootRef.current.contains(e.target)) return
       dismiss()
     }
-    const onKey = (e: KeyboardEvent): void => { if (e.key === 'Escape') { e.preventDefault(); dismiss() } }
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key !== 'Escape') return
+      if (rootRef.current === null || !rootRef.current.isConnected) return
+      e.preventDefault(); dismiss()
+    }
     document.addEventListener('mousedown', onDown, true)
     document.addEventListener('keydown', onKey)
     return () => {
