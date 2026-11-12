@@ -255,10 +255,13 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
   })
 
   // ── workspace 写路径(归属校验后直调) ──
-  const workspaceOwned = [
-    'delete', 'rename', 'insertBefore', 'insertSessionBefore',
-    'pinSession', 'unpinSession', 'archiveSession', 'unarchiveSession',
-  ] as const
+  // 两族载荷不同(2026-11-12 修复「归档会话必被拒」):workspace 系上游 wire 带
+  // workspaceId(archive/pin 系只带 sessionId,无 workspaceId——workspace-controller
+  // index.ts WorkspaceArchiveSessionRequest),统一取 workspaceId 会把空串判成非本人,
+  // 会话悬停归档/置顶按钮与右键菜单项点击后全部「工作区不存在或不属于你」。
+  // 故按族分检:workspace 系校验 workspaceId 归属;session 系校验 sessionId 归属
+  // (账本 sessionOwner,与 mux 策略同一事实源)。
+  const workspaceOwned = ['delete', 'rename', 'insertBefore', 'insertSessionBefore'] as const
   for (const name of workspaceOwned) {
     register(`/api/workspace/${name}`, async (rpcId, args, ctx) => {
       const request = args.request as { workspaceId?: string; sessionId?: string } | undefined
@@ -274,6 +277,23 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
         deps.store.recordSession(request.sessionId, ctx.userId, workspaceId)
       }
       tenantAudit(deps, `workspace.${name}`, ctx.account, { workspaceId })
+      return okFrame(rpcId, value)
+    })
+  }
+
+  // session 系 workspace 动作(UI 归档/置顶;上游 wire 载荷只带 sessionId)。
+  const sessionOwned = ['pinSession', 'unpinSession', 'archiveSession', 'unarchiveSession'] as const
+  for (const name of sessionOwned) {
+    register(`/api/workspace/${name}`, async (rpcId, args, ctx) => {
+      const request = args.request as { sessionId?: string } | undefined
+      const sessionId = typeof request?.sessionId === 'string' ? request.sessionId : ''
+      if (sessionId === '' || deps.store.sessionOwner(sessionId) !== ctx.userId) {
+        return deniedFrame(rpcId, '会话不存在或不属于你')
+      }
+      const wc = serviceOf(deps, 'workspaceController')
+      if (wc === undefined) return failureFrame(rpcId, new Error('workspaceController not ready'))
+      const value = await callService(wc, name, request)
+      tenantAudit(deps, `workspace.${name}`, ctx.account, { sessionId })
       return okFrame(rpcId, value)
     })
   }
