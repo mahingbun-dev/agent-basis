@@ -451,6 +451,7 @@ function registerModelDrawer(ctx: AccessClientContext): void {
   }
 
   let menuHost: HTMLDivElement | null = null
+  let menuRoot: { render(node: React.ReactElement): void; unmount(): void } | null = null
   const closeMenu = (reason = 'unknown'): void => {
     // 取证(2026-11-12 用户报「点面板任意位置即消失」):记录关闭原因与调用栈。
     try {
@@ -460,6 +461,13 @@ function registerModelDrawer(ctx: AccessClientContext): void {
         stack: (new Error().stack ?? '').split('\n').slice(1, 5).join(' | ').slice(0, 500),
       }]
     } catch { /* ignore */ }
+    // 必须先 unmount(2026-11-12「一点面板就消失」根因):只 remove 宿主节点不卸载
+    // React 树,组件 useEffect 清理永不执行→document 级 mousedown/keydown 监听器
+    // 泄漏;残留监听器 rootRef 指向脱离文档的旧节点,contains 恒 false→下次面板
+    // 一打开就被它在 mousedown 捕获阶段误判「点在外部」关掉(刷新后第一次正常、
+    // 之后全坏=页面级累积泄漏的指纹)。
+    try { menuRoot?.unmount() } catch { /* 宿主已移除等场景:尽力而为 */ }
+    menuRoot = null
     menuHost?.remove(); menuHost = null
   }
 
@@ -468,7 +476,8 @@ function registerModelDrawer(ctx: AccessClientContext): void {
     menuHost = document.createElement('div')
     menuHost.setAttribute('data-eterna-model-menu-root', '')
     document.body.appendChild(menuHost)
-    createRoot(menuHost).render(<ModelMenu
+    menuRoot = createRoot(menuHost)
+    menuRoot.render(<ModelMenu
       sessionId={sessionId}
       anchor={anchor}
       dismiss={closeMenu}
