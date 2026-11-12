@@ -6,7 +6,7 @@
 import { readdirSync, readFileSync, existsSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { join } from 'node:path'
-import { GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_STREAM_ACTIONS, SESSION_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS } from '../src/mux.ts'
+import { GLOBAL_EVENT_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_STREAM_ACTIONS, SESSION_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS } from '../src/mux.ts'
 
 function findPnpmRoot(): string {
   let dir = new URL('..', import.meta.url).pathname
@@ -35,6 +35,23 @@ function upstreamStreamMethods(): string[] {
     for (const match of text.matchAll(pattern)) methods.add(match[1] ?? '')
   }
   return [...methods].sort()
+}
+
+/** 上游全部 mode:'emit' 的宿主广播事件('ns/method';typert.host.js 的声明 JSON)。 */
+function upstreamEmitEvents(): Set<string> {
+  const root = findPnpmRoot()
+  const events = new Set<string>()
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    const nameMatch = /^@deepseek-ai\+([a-z-]+)@/.exec(entry.name)
+    const pkgName = nameMatch?.[1]
+    if (pkgName === undefined || !pkgName.startsWith('dsh-api-')) continue
+    const file = join(root, entry.name, 'node_modules', '@deepseek-ai', pkgName, 'lib', 'typert.host.js')
+    if (!existsSync(file)) continue
+    const text = readFileSync(file, 'utf8')
+    const pattern = /"name": "([\w-]+\/[\w-]+)",\s*"mode": "emit"/g
+    for (const match of text.matchAll(pattern)) events.add(match[1] ?? '')
+  }
+  return events
 }
 
 const COVERED = new Set([...GLOBAL_STREAM_ACTIONS, ...SESSION_STREAM_ACTIONS, ...WORKSPACE_STREAM_ACTIONS])
@@ -83,5 +100,28 @@ describe('T2 防漂移:上游流方法表全覆盖', () => {
   it('宿主级 control 快照流 GLOBAL/会话绑定双在位(2026-11-12 回归锚:无载荷 open 按 global 资源判定,只授会话绑定恒 no-allow;内容过滤仍按会话绑定)', () => {
     expect(GLOBAL_STREAM_ACTIONS).toContain('session/control')
     expect(SESSION_STREAM_ACTIONS).toContain('session/control')
+  })
+
+  it('上游全部 mode:\'emit\' 事件表可解析且含已知核心集(空表=解析失效,测试本身失去意义)', () => {
+    const upstream = upstreamEmitEvents()
+    for (const event of ['api-session/status', 'api-session/added', 'api-session/error']) {
+      expect(upstream).toContain(event)
+    }
+  })
+
+  it('事件授权清单均在上游 emit 事件表内(差集=∅,防清单含未声明事件静默放宽)', () => {
+    const upstream = upstreamEmitEvents()
+    const missing = [...GLOBAL_EVENT_ACTIONS].map(a => a.replace(/^event:/, '')).filter(e => !upstream.has(e))
+    expect(missing).toEqual([])
+  })
+
+  it('R12 负向锚:added/error/activity 等全宿主载荷事件不授(标题/报错文本不可广播给全体用户)', () => {
+    for (const banned of ['event:api-session/added', 'event:api-session/error', 'event:api-session/activity', 'event:api-session/removed']) {
+      expect(GLOBAL_EVENT_ACTIONS).not.toContain(banned)
+    }
+  })
+
+  it('停止按钮生命线事件在位(2026-11-13 回归锚:running 旗标唯此一路,缺席=回合中无停止按钮)', () => {
+    expect(GLOBAL_EVENT_ACTIONS).toContain('event:api-session/status')
   })
 })

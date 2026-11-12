@@ -8,7 +8,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { SessionService } from '../src/session.ts'
 import { UserStore } from '../src/store.ts'
-import { bindingsFor, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_STREAM_ACTIONS, SESSION_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS } from '../src/mux.ts'
+import { bindingsFor, GLOBAL_EVENT_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_STREAM_ACTIONS, SESSION_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS } from '../src/mux.ts'
 
 describe('T2:mux 策略绑定', () => {
   let dir: string
@@ -40,7 +40,7 @@ describe('T2:mux 策略绑定', () => {
     expect(bindings).toHaveLength(4)
     const global = bindings.filter(b => b.resource.kind === 'global')
     expect(global).toHaveLength(1)
-    expect(global[0]?.role.actions).toEqual([...GLOBAL_STREAM_ACTIONS, ...GLOBAL_UNARY_ACTIONS])
+    expect(global[0]?.role.actions).toEqual([...GLOBAL_STREAM_ACTIONS, ...GLOBAL_UNARY_ACTIONS, ...GLOBAL_EVENT_ACTIONS])
     const sessions = bindings.filter(b => b.resource.kind === 'session')
     expect(sessions.map(b => (b.resource as { id: string }).id).sort()).toEqual(['s-a1', 's-a2'])
     // 会话角色含 workspace/follow(workspace 视图 sessionIds 逐项 allows 用,见 mux.ts 注释)
