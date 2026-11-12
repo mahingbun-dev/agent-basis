@@ -171,9 +171,9 @@ const UPGRADE_OVERWRITE_RISK = 'profile/pack 升级合并可能覆盖本地编�
 /**
  * 全部存量条目(14 条:preset×6、domain×4、runtime×2、meta×2——meta 层为
  * T3.1 新增的元提示词登记)。行号锚 2026-11-11 实测自本 worktree(T1.2 合入后):
- * persona×2 = :297(standard 裸标量)/:149-150(cordis 块标量 >-);
- * agent-instructions = :154/:301(maxBytes: 65536);
- * plan-mode section = :188-199/:340 起(| 多段字面块)。
+ * persona×2 = :292(standard 裸标量)/:149-150(cordis 块标量 >-);
+ * agent-instructions = :154/:296(maxBytes: 65536);
+ * plan-mode section = :188-199/:335 起(| 多段字面块)。
  * time-context 两行(:155-156/:293-294)仍在 live patch 里,但按 2026-11-11
  * 用户裁定不登记(见文件头「注册表不变量」),不再是注册表条目。
  */
@@ -186,7 +186,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-persona',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['persona'], configKey: 'prefix' },
     anchors: [
-      { file: WEB_PATCH, line: 297, contains: 'prefix: You are a coding agent powered by the {{model}} model.' },
+      { file: WEB_PATCH, line: 292, contains: 'prefix: You are a coding agent powered by the {{model}} model.' },
     ],
     note: '默认预设 persona 前缀(裸标量):T7 persona-patch 既有管理对象,preset-standard 行 plugins[id=persona].config.prefix。',
     risks: [UPGRADE_OVERWRITE_RISK, 'persona 红线锚点必检(标准三条),改动影响全部标准会话的系统提示开头。'],
@@ -205,7 +205,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-agent-instructions',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['agent-instructions'], configKey: 'maxBytes' },
     anchors: [
-      { file: WEB_PATCH, line: 301, contains: 'maxBytes: 65536' },
+      { file: WEB_PATCH, line: 296, contains: 'maxBytes: 65536' },
     ],
     note: '指令段容量上限(数值配置,非提示词文本):每条指令链(用户级/项目级 AGENTS.md)的渲染字节上限。',
     risks: [UPGRADE_OVERWRITE_RISK, '值是数值不是提示词文本;调小会截断指令链渲染,与 MAX_PERSONA_BYTES=65536 口径交叉钉住。'],
@@ -223,8 +223,8 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-plan-mode',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['planning', 'plan-mode'], configKey: 'section' },
     anchors: [
-      { file: WEB_PATCH, line: 340, contains: 'section: |' },
-      { file: WEB_PATCH, line: 341, contains: 'You are in plan mode.' },
+      { file: WEB_PATCH, line: 335, contains: 'section: |' },
+      { file: WEB_PATCH, line: 336, contains: 'You are in plan mode.' },
     ],
     note: 'plan 模式整段系统提示(| 多段字面块,行 331 起):planning 组内 plan-mode 插件的 config.section。',
     risks: [UPGRADE_OVERWRITE_RISK, '上游 @deepseek-ai/dsh-plan-mode 升级改写该段时,本地编辑需与新版重新对齐(计划书 §3 风险标注)。'],

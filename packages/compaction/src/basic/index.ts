@@ -6,6 +6,8 @@
 
 import { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { CompactionEngine, ManualCompactionError } from '@deepseek-ai/dsh-compaction'
 import type { CompactionResult, CompactionTrigger } from '@deepseek-ai/dsh-compaction'
 import type { EpochHeader, Session, SessionSeq } from '@deepseek-ai/dsh-session'
@@ -131,11 +133,14 @@ export class BasicCompactionEngine extends CompactionEngine {
   /** Resolved and validated compaction configuration. */
   config: ResolvedConfig
 
-  /** 2026-11-12 fork: patch 层原始配置,运行时 updateConfig 以此为合并基线。 */
-  private rawConfig: BasicCompactionConfig
+  /**
+   * 2026-11-12 fork: patch 层原始配置(不可变基线)。运行时覆盖键(settings 分区
+   * 写 $DSH_HOME/.eterna/compaction.config.json)在其上合并重解析。
+   */
+  private readonly baselineConfig: BasicCompactionConfig
 
-  /** auto 监听器的注销器;auto 关闭或重开时成组释放/重建。 */
-  private autoDisposers: Array<() => void> = []
+  /** 已套用过的覆盖文件 mtime;变化才重读解析(每次压力评估一次 stat,代价可忽略)。 */
+  private appliedOverridesMtimeMs = -1
 
   private readonly warnedPressureConfigTargets = new Set<string>()
   private readonly overflowRetries = new WeakMap<Agent, number>()
@@ -143,33 +148,89 @@ export class BasicCompactionEngine extends CompactionEngine {
 
   constructor(ctx: Context, config: BasicCompactionConfig = {}) {
     super(ctx)
-    this.rawConfig = config
+    this.baselineConfig = config
     this.config = resolveConfig(config)
-    if (this.config.auto) this._registerAutomaticCompaction()
+    // 2026-11-12 fork: 覆盖键文件桥——宿主层 admin 端点写 overrides 文件,引擎在
+    // 压力评估前按 mtime 热应用(SRC 端点只能宿主层发布,而预设服务不达宿主树,
+    // 引擎实例跨不过 realm;详见 admin-plugin.ts 头注)。
+    this._applyOverridesFromFile(true)
+    // 监听器常驻:调度点内按 this.config.auto 判旗,auto 双向热切换不再依赖
+    // 监听器重建(旧实现的成组释放/重建随之废弃)。
+    this._registerAutomaticCompaction()
+    this._persistStateFile()
+  }
+
+  /** 覆盖键文件路径(与宿主 admin 端点共享,DSH_HOME 语义)。 */
+  private static overridesPath(): string {
+    return join(process.env.DSH_HOME ?? process.cwd(), '.eterna', 'compaction.config.json')
+  }
+
+  private static statePath(): string {
+    return join(process.env.DSH_HOME ?? process.cwd(), '.eterna', 'compaction.state.json')
   }
 
   /**
-   * 2026-11-12 fork: 运行时热更新配置(设置分区「上下文压缩」的写面)。
-   * 以 patch 原始配置为基线合并后整体重解析——非法组合(如 retainRatio ≥
-   * thresholdRatio)由此处抛错,调用方映射为 400,绝不落半生效状态。
-   * auto 翻转时成组释放/重建自动压缩监听器;其余键即时生效(下次压力评估读取)。
-   * @param partial - 覆盖键(auto/thresholdRatio/retainRatio/headroomTokens 等)。
+   * 读取并热应用覆盖键文件。mtime 未变直接返回;变化则合并基线重解析,
+   * 非法组合回退基线并告警(绝不落半生效状态),并刷新状态文件。
+   * @param force - true 时忽略 mtime 缓存(构造期)。
+   */
+  private _applyOverridesFromFile(force = false): void {
+    const path = BasicCompactionEngine.overridesPath()
+    let mtimeMs = -1
+    try {
+      mtimeMs = statSync(path).mtimeMs
+    } catch {
+      if (!force) return
+    }
+    if (!force && mtimeMs === this.appliedOverridesMtimeMs) return
+    this.appliedOverridesMtimeMs = mtimeMs
+    let overrides: Partial<BasicCompactionConfig> = {}
+    if (existsSync(path)) {
+      try {
+        const parsed = JSON.parse(readFileSync(path, 'utf8')) as Partial<BasicCompactionConfig>
+        if (typeof parsed.auto === 'boolean') overrides.auto = parsed.auto
+        if (typeof parsed.thresholdRatio === 'number' && Number.isFinite(parsed.thresholdRatio)) overrides.thresholdRatio = parsed.thresholdRatio
+        if (typeof parsed.retainRatio === 'number' && Number.isFinite(parsed.retainRatio)) overrides.retainRatio = parsed.retainRatio
+      } catch {
+        overrides = {}
+      }
+    }
+    if (Object.keys(overrides).length === 0 && !force) return
+    try {
+      this.config = resolveConfig({ ...this.baselineConfig, ...overrides })
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      this.ctx.logger.warn(`compaction overrides invalid, keeping baseline config: ${message}`)
+      this.config = resolveConfig(this.baselineConfig)
+    }
+    this._persistStateFile()
+  }
+
+  /** 把当前生效配置写状态文件(宿主 admin 端点的 state() 读这里)。 */
+  private _persistStateFile(): void {
+    try {
+      const dir = join(process.env.DSH_HOME ?? process.cwd(), '.eterna')
+      mkdirSync(dir, { recursive: true })
+      const { thresholdRatio, retainRatio, headroomTokens, maxTokens, compactionRetries, maxOverflowRetries, auto } = this.config
+      writeFileSync(
+        BasicCompactionEngine.statePath(),
+        JSON.stringify({ thresholdRatio, retainRatio, headroomTokens, maxTokens, compactionRetries, maxOverflowRetries, auto }),
+      )
+    } catch { /* 状态文件失败不影响压缩本身 */ }
+  }
+
+  /**
+   * 2026-11-12 fork: 进程内热更新(保留给同 realm 消费方;设置分区的跨 realm
+   * 写面走 overrides 文件 + _applyOverridesFromFile,见构造器注)。
+   * @param partial - 覆盖键。
    * @returns 重解析后的完整生效配置。
    */
   updateConfig(partial: Partial<BasicCompactionConfig>): ResolvedConfig {
-    const merged: BasicCompactionConfig = { ...this.rawConfig, ...partial }
-    const previousAuto = this.config.auto
+    const merged: BasicCompactionConfig = { ...this.baselineConfig, ...partial }
     const next = resolveConfig(merged)
-    this.rawConfig = merged
     this.config = next
-    if (!next.auto && previousAuto) this._disposeAutomaticCompaction()
-    if (next.auto && !previousAuto) this._registerAutomaticCompaction()
+    this._persistStateFile()
     return next
-  }
-
-  private _disposeAutomaticCompaction(): void {
-    for (const dispose of this.autoDisposers) dispose()
-    this.autoDisposers = []
   }
 
   /**
@@ -179,7 +240,6 @@ export class BasicCompactionEngine extends CompactionEngine {
    */
   private _registerAutomaticCompaction(): void {
     const { ctx } = this
-    // 2026-11-12 fork: 收集各监听器注销器,供 updateConfig 在 auto 翻转时成组释放。
     const logResult = (result: CompactionResult, trigger: string): void => {
       ctx.logger.info(
         `compaction (${trigger}): shadowed ${result.shadowedSeqs.length} surface nodes `
@@ -188,11 +248,12 @@ export class BasicCompactionEngine extends CompactionEngine {
       )
     }
 
-    const disposePreStep = ctx.on('agent/pre-step', async (
+    ctx.on('agent/pre-step', async (
       { agent, signal },
       next,
     ): Promise<PreStepDecision> => {
-      if (!signal.aborted) {
+      this._applyOverridesFromFile()
+      if (!signal.aborted && this.config.auto) {
         try {
           const result = await this.compactIfNeeded(agent, 'pressure', signal)
           if (result !== null) logResult(result, 'step pressure')
@@ -208,17 +269,18 @@ export class BasicCompactionEngine extends CompactionEngine {
       return next()
     })
 
-    const disposeStatus = ctx.on('agent/status', ({ agent, status }) => {
+    ctx.on('agent/status', ({ agent, status }) => {
       if (status === 'idle') this.overflowRetries.delete(agent)
     })
 
     // Prepend wraps routing listeners: await their final selection while the
     // committed header still identifies the model that can summarize the history.
-    const disposeRequest = ctx.on('agent/request', async ({ agent, signal }, next) => {
+    ctx.on('agent/request', async ({ agent, signal }, next) => {
       const config = await next()
       const previous = agent.session.requestHeader()
       if (signal.aborted || previous === undefined || config.provider === '' || config.model === ''
         || (previous.config.provider === config.provider && previous.config.model === config.model)) return config
+      if (!this.config.auto) return config
       try {
         const header = { ...previous, config }
         const result = await this.compactPressure(agent, header, signal, true)
@@ -238,17 +300,17 @@ export class BasicCompactionEngine extends CompactionEngine {
 
     // A successful response starts a fresh overflow-recovery sequence even
     // when tool calls continue the same turn into another request.
-    const disposeSessionEvent = ctx.on('session/event', (session, event) => {
+    ctx.on('session/event', (session, event) => {
       if (event.type !== 'assistant/message') return
       const agent = this.overflowAgents.get(session)
       if (agent !== undefined) this.overflowRetries.delete(agent)
     })
 
-    const disposeRequestError = ctx.on('agent/request-error', async (
+    ctx.on('agent/request-error', async (
       { agent, failure, signal },
       next,
     ) => {
-      if (failure.code !== CONTEXT_WINDOW_EXCEEDED_CODE || signal.aborted) return next()
+      if (failure.code !== CONTEXT_WINDOW_EXCEEDED_CODE || signal.aborted || !this.config.auto) return next()
       this.overflowAgents.set(agent.session, agent)
       const target = routedTarget(agent.session)
       if (target === undefined) return next()
@@ -289,7 +351,6 @@ export class BasicCompactionEngine extends CompactionEngine {
       this.overflowRetries.set(agent, retries + 1)
       return { kind: 'retry' }
     })
-    this.autoDisposers = [disposePreStep, disposeStatus, disposeRequest, disposeSessionEvent, disposeRequestError]
   }
 
   /**
