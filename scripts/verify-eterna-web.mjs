@@ -172,6 +172,11 @@ if (!existsSync(join(promptStudioPkg, 'lib', 'client.js'))) {
 }
 mkdirSync(join(profileDir, 'node_modules', '@eterna'), { recursive: true })
 symlinkSync(promptStudioPkg, join(profileDir, 'node_modules', '@eterna', 'prompt-studio'), 'dir')
+// 上下文压缩家族（2026-11-12 fork 本地化）：compaction group 三行 name 解析
+// '@eterna/compaction/*-plugin' 同样只经 profile node_modules。缺此行时三行解析失败，
+// 整组 standard 预设行静默不激活（fiberPhase=null）——与 entrypoint 记载的
+// @deepseek-ai 版本错配同一种「静默 disable」表现。
+symlinkSync(join(repoRoot, 'packages', 'compaction'), join(profileDir, 'node_modules', '@eterna', 'compaction'), 'dir')
 writeFileSync(join(profileDir, 'package.json'), `${JSON.stringify({
   name: `dsh-profile-${profileName}`,
   private: true,
@@ -331,6 +336,13 @@ if (!roster.ok) {
   pass('browser roster: 本包 combo 脚本可取且含 factory 注册(id=@eterna/prompt-studio)',
     comboBody !== '' && comboBody.includes('id: "@eterna/prompt-studio"'),
     comboBody === '' ? 'combo 取回为空' : `bytes=${comboBody.length}`)
+  // 上下文压缩(2026-11-12 fork):设置分区 client 半边同款口径——花名册含
+  // @eterna/compaction/client.js 且 factory 注册,否则设置弹窗分区不渲染。
+  pass('browser roster: combo 花名册含 @eterna/compaction/client.js', roster.compactionCombo !== '',
+    roster.compactionCombo === '' ? 'combo urls 无压缩包条目——dsh.client 声明或 lib/client.js 缺失' : roster.compactionCombo.slice(0, 120))
+  pass('browser roster: 压缩包 combo 可取且含 factory 注册(id=@eterna/compaction)',
+    roster.compactionBody !== '' && roster.compactionBody.includes('id: "@eterna/compaction"'),
+    roster.compactionBody === '' ? 'combo 取回为空' : `bytes=${roster.compactionBody.length}`)
 }
 
 // ---------------------------------------------------------------------------
@@ -400,7 +412,14 @@ async function probeRoster(url) {
       const combo = await fetch(`${index.origin}/${ours.replace(/^\/+/, '')}`, { headers: { cookie }, signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) })
       if (combo.ok) comboBody = await combo.text()
     }
-    return { ok: true, status: page.status, html, ours, comboBody }
+    // 上下文压缩(2026-11-12 fork):设置分区 client 半边的花名册取证,同款口径。
+    const compactionCombo = comboUrls.find((u) => u.includes('@eterna/compaction/client.js')) ?? ''
+    let compactionBody = ''
+    if (compactionCombo !== '') {
+      const combo = await fetch(`${index.origin}/${compactionCombo.replace(/^\/+/, '')}`, { headers: { cookie }, signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) })
+      if (combo.ok) compactionBody = await combo.text()
+    }
+    return { ok: true, status: page.status, html, ours, comboBody, compactionCombo, compactionBody }
   } catch (error) {
     return { ok: false, error: { code: 'roster', message: String(error?.message ?? error) } }
   }

@@ -18,6 +18,7 @@ const SCAN_DIRS = [
   'packages/prompt-studio/src/client',
   'packages/access/src',
   'packages/usage-stats/src',
+  'packages/compaction/src',
   'packages/llm-doctor/src',
   'packages/ui/src',
   'packages/brand/src',
