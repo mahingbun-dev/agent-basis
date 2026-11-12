@@ -203,9 +203,6 @@
         isolate:
           compaction: true
           toolResultPruner: true
-          # compaction-admin(设置分区数据面)在此组内以 TypertRemoteService 发布
-          # eternaCompaction;组内发布服务必须逐键申报,否则整组静默不激活。
-          eternaCompaction: true
         config:
           - id: compaction-basic
             name: '@eterna/compaction/basic-plugin'
@@ -221,8 +218,6 @@
               thresholdChars: 8192
               headChars: 4096
               tailChars: 1024
-          - id: compaction-admin
-            name: '@eterna/compaction/admin-plugin'
       - id: delegation
         name: cordis:group
         group: true
@@ -355,9 +350,6 @@
         isolate:
           compaction: true
           toolResultPruner: true
-          # compaction-admin(设置分区数据面)在此组内以 TypertRemoteService 发布
-          # eternaCompaction;组内发布服务必须逐键申报,否则整组静默不激活。
-          eternaCompaction: true
         config:
           - id: compaction-basic
             name: '@eterna/compaction/basic-plugin'
@@ -373,8 +365,6 @@
               thresholdChars: 8192
               headChars: 4096
               tailChars: 1024
-          - id: compaction-admin
-            name: '@eterna/compaction/admin-plugin'
       - id: delegation
         name: cordis:group
         group: true
@@ -465,3 +455,8 @@
     # 仅为设置分区 client 半边提供宿主条目(数据面=preset 组内 compaction-admin)。
     - id: eterna-compaction-client
       name: '@eterna/compaction'
+    # 设置分区「上下文压缩」的数据面:SRC 端点必须宿主层挂载(api-gateway 的
+    # SRC 发现只解析宿主 reflect,组内发布的服务端点 404——2026-11-12 生产
+    # 走查实证);compaction 引擎由展平的 standard 预设提供到宿主树,宿主注入可达。
+    - id: eterna-compaction-admin
+      name: '@eterna/compaction/admin-plugin'
