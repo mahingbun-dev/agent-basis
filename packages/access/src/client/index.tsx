@@ -13,13 +13,17 @@ import { MyPluginsTab, NotificationsSection, ApprovalQueueSection } from './my-p
 import { ManageTab } from './plugins-manager.tsx'
 import { DirectoryTreeFlow } from './directory-tree.tsx'
 import { ModelMenu } from './model-menu.tsx'
+import { AccountLauncher, type AccountLauncherInjected } from './account-menu.tsx'
 import { injectAccessStyles } from './styles.ts'
+
+/** 「使用统计」面板 id(与 @eterna/usage-stats 的 main/sidebar key 一致)。 */
+const USAGE_PANEL_ID = 'eterna-usage-stats'
 
 // 'sessions'=api-session-controller 的 ClientSessions(reflect.provide('sessions')):
 // 模型抽屉回显的投影写面(projectionStore(sessionId).apply)。2026-11-11 曾连同
 // 'remote' 一起加导致 entry 静默不激活——根因在 'remote' 键(未定位),单独 'sessions'
 // 由本轮构建验证;若激活回归失败先撤此项。
-export const inject = ['slots', 'locale', 'uiWorkspace', 'sessions']
+export const inject = ['slots', 'locale', 'theme', 'layout', 'uiWorkspace', 'sessions']
 
 const NS = 'eterna-access'
 const LOCALES: Record<string, Record<string, string>> = {
@@ -117,6 +121,24 @@ const LOCALES: Record<string, Record<string, string>> = {
     'approval.applicant': '申请人',
     'approval.approve': '通过',
     'approval.reject': '驳回',
+    'menu.open': '账户菜单',
+    'menu.label': '账户菜单',
+    'menu.account': '账户',
+    'menu.settings': '偏好设置',
+    'menu.language': '界面语言',
+    'menu.theme': '界面主题',
+    'menu.theme.dark': '深色',
+    'menu.theme.light': '浅色',
+    'menu.theme.system': '跟随系统',
+    'menu.usage': '使用统计',
+    'menu.signOut': '断开连接',
+    'menu.signingOut': '正在断开…',
+    'menu.confirmTitle': '断开当前连接？',
+    'menu.confirmText': '断开后需要重新登录才能继续使用工作区，本地文件不会被删除。',
+    'menu.cancel': '取消',
+    'menu.copyId': '复制账户 ID',
+    'menu.copied': '已复制',
+    'menu.admin': '管理员',
   },
   en: {
     'section.account': 'Account',
@@ -212,6 +234,24 @@ const LOCALES: Record<string, Record<string, string>> = {
     'approval.applicant': 'Requester',
     'approval.approve': 'Approve',
     'approval.reject': 'Reject',
+    'menu.open': 'Account menu',
+    'menu.label': 'Account menu',
+    'menu.account': 'Account',
+    'menu.settings': 'Preferences',
+    'menu.language': 'Language',
+    'menu.theme': 'Appearance',
+    'menu.theme.dark': 'Dark',
+    'menu.theme.light': 'Light',
+    'menu.theme.system': 'System',
+    'menu.usage': 'Usage',
+    'menu.signOut': 'Disconnect',
+    'menu.signingOut': 'Disconnecting…',
+    'menu.confirmTitle': 'Disconnect this session?',
+    'menu.confirmText': 'You will need to sign in again to use this workspace. Local files are not deleted.',
+    'menu.cancel': 'Cancel',
+    'menu.copyId': 'Copy account ID',
+    'menu.copied': 'Copied',
+    'menu.admin': 'Admin',
   },
 }
 
@@ -226,6 +266,17 @@ interface AccessClientContext {
   readonly locale: {
     register(ns: string, dictionaries: Record<string, Record<string, string>>): () => void
     bind(ns: string): (key: string) => string
+    getLocale(): { readonly active: string; readonly locales: readonly { readonly id: string; readonly label: string }[] }
+    setLocale(id: string): void
+  }
+  /** 官方主题服务(浅/深/跟随系统;设置行同一写面)。 */
+  readonly theme: {
+    getTheme(): { readonly preference: string }
+    setTheme(id: string): void
+  }
+  /** 主面板切换(「使用统计」跳转既有用量面板)。 */
+  readonly layout: {
+    selectMainPanel(key: string): void
   }
   /** P1-T5:目录数据面(listDirectory/createDirectory → /api/directoryPicker/*,守卫钳根)。 */
   readonly uiWorkspace?: {
@@ -244,6 +295,29 @@ export function apply(ctx: AccessClientContext): () => void {
   injectAccessStyles()
   const disposeLocale = ctx.locale.register(NS, LOCALES)
   const t = ctx.locale.bind(NS)
+
+  // 账户区(原型):右上角身份胶囊迁到侧栏底部设置席位,头像+昵称入口向上展开
+  // 账户菜单。settings.launcher 由 ui-settings-general 的 sidebar.settings 声明
+  // (上游 ui-settings-account 在本仓库 profile 裁切,席位空置);注册后替代回落
+  // 设置按钮,组件自带齿轮。语言/主题走官方服务,使用统计切既有主面板。
+  const registerAccountLauncher = (): void => {
+    ctx.slots.inject('settings.launcher', () => ctx.slots.register({
+      name: 'settings.launcher',
+      locale: NS,
+      inject: (): AccountLauncherInjected => ({
+        t,
+        getLocale: () => ctx.locale.getLocale(),
+        setLocale: (id: string) => { ctx.locale.setLocale(id) },
+        getTheme: () => ctx.theme.getTheme(),
+        setTheme: (id: string) => { ctx.theme.setTheme(id) },
+        openUsage: () => {
+          ctx.layout.selectMainPanel(USAGE_PANEL_ID)
+          return true
+        },
+      }),
+    }, AccountLauncher))
+  }
+  registerAccountLauncher()
 
   const registerSections = (role: 'admin' | 'user'): void => {
     ctx.slots.inject('settings.section', () => ctx.slots.register({

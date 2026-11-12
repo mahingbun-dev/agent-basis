@@ -18,14 +18,15 @@ describe('登录页与门禁角标', () => {
     expect(html).not.toContain('/account')
   })
 
-  it('角标:401 门禁跳转;分区链接已移除(入口=设置弹窗);退出在位', () => {
+  it('门禁脚本:401 跳转在位;右上角身份角标已移除(账户入口=侧栏底部账户菜单)', () => {
     expect(BADGE_SCRIPT).toContain("location.replace('/login')")
     expect(BADGE_SCRIPT).not.toContain('/account')
     expect(BADGE_SCRIPT).not.toContain('/admin/users')
-    expect(BADGE_SCRIPT).toContain('退出')
+    expect(BADGE_SCRIPT).not.toContain('eterna-identity-badge')
+    expect(BADGE_SCRIPT).not.toContain('退出')
   })
 
-  it('角标:租户引导条+首屏落座兜底在位(拒绝监听/惰性输入框检测/点自己工作区行)', () => {
+  it('门禁脚本:租户引导条+首屏落座兜底在位(拒绝监听/惰性输入框检测/点自己工作区行)', () => {
     expect(BADGE_SCRIPT).toContain('tenant/denied')
     expect(BADGE_SCRIPT).toContain('composerInert')
     expect(BADGE_SCRIPT).toContain('[aria-label="选择工作区"]')
