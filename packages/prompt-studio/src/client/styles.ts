@@ -328,6 +328,39 @@ const CSS = `
 [data-ps-entry-title] { overflow-wrap: anywhere; }
 [data-ps-entry-badges] { display: inline-flex; gap: 6px; flex-wrap: wrap; margin-top: -6px; }
 [data-ps-entry-note] { margin: 0; font-size: var(--et-text-caption); line-height: 20px; color: var(--et-fg-2); }
+/* 2026-11-12 作用说明区(registry description,用户要求每个提示词有中文说明)。 */
+[data-ps-entry-description] {
+  display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; border-radius: var(--et-radius-md);
+  border: 1px solid var(--et-border);
+  background: var(--et-surface-2);
+}
+[data-ps-entry-description-title] { font-size: var(--et-text-micro); font-weight: 600; color: var(--et-fg); }
+[data-ps-entry-description-text] { margin: 0; font-size: var(--et-text-caption); line-height: 20px; color: var(--et-fg-2); overflow-wrap: anywhere; }
+/* 2026-11-12 红线锚点预检查(编辑器内;missing=警示态,ok=业务态胶囊)。 */
+[data-ps-redline] {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 16px; border-radius: var(--et-radius-md); margin-top: 8px;
+  border: 1px solid var(--et-border);
+}
+[data-ps-redline][data-ps-redline-state='missing'] {
+  border-color: var(--et-warn);
+  background: color-mix(in srgb, var(--et-warn) 8%, transparent);
+}
+[data-ps-redline][data-ps-redline-state='ok'] {
+  background: color-mix(in srgb, var(--et-accent) 5%, transparent);
+}
+[data-ps-redline-title] { font-size: var(--et-text-caption); font-weight: 600; color: var(--et-warn); }
+[data-ps-redline-list] { margin: 0; padding: 0; display: flex; gap: 6px; flex-wrap: wrap; list-style: none; }
+[data-ps-redline-missing-item] {
+  font-size: var(--et-text-micro); color: var(--et-warn);
+  border: 1px solid color-mix(in srgb, var(--et-warn) 45%, transparent);
+  border-radius: var(--et-radius-sm); padding: 1px 8px;
+}
+[data-ps-redline-insert] {
+  align-self: center; padding: 4px 12px; border-radius: var(--et-radius-sm);
+  border: 1px solid var(--et-border); background: var(--et-surface);
+  color: var(--et-fg); font-size: var(--et-text-caption); cursor: pointer;
+}
 /* T2.2 生效条件区(radius 胶囊 + 实测注记;matrix=docs/dev/ps-v2-hot-effect-matrix.md)。 */
 [data-ps-entry-effect] {
   display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; border-radius: var(--et-radius-md);

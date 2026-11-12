@@ -283,6 +283,7 @@ function entryViewOf(entry: PromptRegistryEntry): PromptEntryView {
     kind: entry.kind,
     source: entry.source,
     note: entry.note,
+    description: entry.description,
     risks: entry.risks,
     redLine: entry.redLine,
     ...(entry.redLineRuleSet !== undefined ? { redLineRuleSet: entry.redLineRuleSet } : {}),

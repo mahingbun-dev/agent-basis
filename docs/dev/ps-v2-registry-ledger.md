@@ -6,7 +6,8 @@
 > `packages/prompt-studio/src/registry.ts` 的 `PROMPT_REGISTRY_ENTRIES` 互相锁住——
 > `tests/registry.test.ts` 维持「本清单 ↔ 注册表条目 (id, 层, 型别) 集合」双向相等断言,
 > **删条目/改型别/漏登记都会打破相等**。行号锚 2026-11-11 实测自本 worktree
-> (分支 `feat/prompt-studio-v2`,T1.2 合入后)。
+> (分支 `feat/prompt-studio-v2`,T1.2 合入后);2026-11-12 随 persona 基线补
+> 三红线锚点(两预设 persona 块标量化+红线段)重测行号。
 
 ## 分型判据(型别枚举闭合,与测试分型断言一一对应)
 
@@ -27,14 +28,14 @@
 
 | id | 层 | 型别 | 来源插件/包 | 定位(文件:行号) | 红线 | 生效半径(T2.2) |
 | --- | --- | --- | --- | --- | --- | --- |
-| preset.standard.persona | preset 层 | patch 值型 | @deepseek-ai/dsh-persona | profiles/eterna-web/cordis.patch.yml:288 | required(eterna.red-lines.standard) | immediate-new-session |
-| preset.standard.agent-instructions | preset 层 | patch 值型 | @deepseek-ai/dsh-agent-instructions | profiles/eterna-web/cordis.patch.yml:292 | exempt | immediate-new-session |
-| preset.standard.plan-mode.section | preset 层 | patch 值型 | @deepseek-ai/dsh-plan-mode | profiles/eterna-web/cordis.patch.yml:331-342 | exempt | immediate-new-session |
-| preset.standard.time-context | preset 层 | **不登记**(2026-11-11 用户裁定:工作室只展示拥有提示词文本的插件;原行锚点只读型行保留注记) | @deepseek-ai/dsh-time-context | profiles/eterna-web/cordis.patch.yml:293-294 | — | — |
-| preset.cordis.persona | preset 层 | patch 值型 | @deepseek-ai/dsh-persona | profiles/eterna-web/cordis.patch.yml:149-150 | required(eterna.red-lines.standard) | immediate-new-session |
-| preset.cordis.agent-instructions | preset 层 | patch 值型 | @deepseek-ai/dsh-agent-instructions | profiles/eterna-web/cordis.patch.yml:154 | exempt | immediate-new-session |
-| preset.cordis.plan-mode.section | preset 层 | patch 值型 | @deepseek-ai/dsh-plan-mode | profiles/eterna-web/cordis.patch.yml:188-199 | exempt | immediate-new-session |
-| preset.cordis.time-context | preset 层 | **不登记**(2026-11-11 用户裁定:工作室只展示拥有提示词文本的插件;原行锚点只读型行保留注记) | @deepseek-ai/dsh-time-context | profiles/eterna-web/cordis.patch.yml:155-156 | — | — |
+| preset.standard.persona | preset 层 | patch 值型 | @deepseek-ai/dsh-persona | profiles/eterna-web/cordis.patch.yml:300-312 | required(eterna.red-lines.standard) | immediate-new-session |
+| preset.standard.agent-instructions | preset 层 | patch 值型 | @deepseek-ai/dsh-agent-instructions | profiles/eterna-web/cordis.patch.yml:313 | exempt | immediate-new-session |
+| preset.standard.plan-mode.section | preset 层 | patch 值型 | @deepseek-ai/dsh-plan-mode | profiles/eterna-web/cordis.patch.yml:352-363 | exempt | immediate-new-session |
+| preset.standard.time-context | preset 层 | **不登记**(2026-11-11 用户裁定:工作室只展示拥有提示词文本的插件;原行锚点只读型行保留注记) | @deepseek-ai/dsh-time-context | profiles/eterna-web/cordis.patch.yml:314-315 | — | — |
+| preset.cordis.persona | preset 层 | patch 值型 | @deepseek-ai/dsh-persona | profiles/eterna-web/cordis.patch.yml:149-164 | required(eterna.red-lines.standard) | immediate-new-session |
+| preset.cordis.agent-instructions | preset 层 | patch 值型 | @deepseek-ai/dsh-agent-instructions | profiles/eterna-web/cordis.patch.yml:162 | exempt | immediate-new-session |
+| preset.cordis.plan-mode.section | preset 层 | patch 值型 | @deepseek-ai/dsh-plan-mode | profiles/eterna-web/cordis.patch.yml:196-207 | exempt | immediate-new-session |
+| preset.cordis.time-context | preset 层 | **不登记**(2026-11-11 用户裁定:工作室只展示拥有提示词文本的插件;原行锚点只读型行保留注记) | @deepseek-ai/dsh-time-context | profiles/eterna-web/cordis.patch.yml:163-164 | — | — |
 | domain.event-planning.persona-prefix | 领域层 | patch 值型 | @event/pack | packs/event-planning/cordis.patch.yml:12-17 | required(eterna.red-lines.standard) | not-composed-anywhere |
 | domain.event-planning.persona-md | 领域层 | patch 值型 | @event/pack | packs/event-planning/persona.md:1-31 | required(eterna.red-lines.standard) | not-composed-anywhere |
 | domain.industrial-analysis.persona-prefix | 领域层 | patch 值型 | @industrial-analysis/pack | packs/industrial-analysis/cordis.patch.yml:12-19 | required(eterna.red-lines.industrial-analysis) | not-composed-anywhere |
@@ -46,18 +47,19 @@
 
 ## 逐条注记
 
-### preset 层(profiles/eterna-web/cordis.patch.yml,430 行)
+### preset 层(profiles/eterna-web/cordis.patch.yml,479 行)
 
-- **persona×2**:`preset-standard` 行 `plugins[id=persona].config.prefix` 是**裸标量**
-  (:288,T7 persona-patch 既有写回落点);`preset-cordis` 行是 **`>-` 折叠块标量**
-  (:149-150)。两处当前同文(`You are a coding agent powered by the {{model}} model.`,
-  反引 54 字节)——测试互证裸标量与块标量反引一致。
-- **agent-instructions×2**:两预设均为 `maxBytes: 65536` 数值配置(:154/:292)——
+- **persona×2**:两预设 `plugins[id=persona].config.prefix` 均为 **`>-` 折叠块标量**
+  (`preset-cordis` :149-164 / `preset-standard` :300-312,T7 persona-patch 既有写回落点)。
+  2026-11-12 起两处基线同文且**自含三条红线锚点**(首句 + 全局红线段:预算不超支/
+  不代付/比选中立,反引 466 字节)——写链路红线校验要求新文本带锚点,基线先行示范,
+  用户在基线上小改即可通过;测试互证两块标量反引一致。
+- **agent-instructions×2**:两预设均为 `maxBytes: 65536` 数值配置(:162/:313)——
   指令链(AGENTS.md 等)渲染字节上限,非提示词文本;与 `MAX_PERSONA_BYTES=65536`
   口径交叉钉住。
-- **plan-mode.section×2**:`|` 多段字面块(:188-199 / :331-342),六段 plan 模式
+- **plan-mode.section×2**:`|` 多段字面块(:196-207 / :352-363),六段 plan 模式
   系统提示;编辑时标注「上游升级可能覆盖」风险(计划书 §3)。
-- **time-context×2**:两预设均为**无 config 裸行**(:155-156/:293-294)——上游
+- **time-context×2**:两预设均为**无 config 裸行**(:163-164/:314-315)——上游
   `@deepseek-ai/dsh-time-context` 的 config 面只有调度项 `refreshIntervalMs`/
   `timeZone`,提示词文本每次注入时运行时生成,无 patch 值亦无写回落点。
   **2026-11-11 用户裁定后不登记**(工作室只展示拥有提示词文本的插件;time-context

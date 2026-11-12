@@ -133,6 +133,12 @@ export interface PromptRegistryEntry {
   readonly anchors: readonly CodeAnchor[]
   /** 型别注记(只读/运行时生成等 UI 文案与拒写明示来源)。 */
   readonly note: string
+  /**
+   * 中文说明(2026-11-12 用户要求:每个提示词要有中文说明其作用)——该提示词/
+   * 参数在系统提示装配里「干什么、影响什么」的一段话,UI 条目详情与导航行悬浮
+   * 提示展示;区别于 note 的登记口径注记(怎么管理)。
+   */
+  readonly description: string
   /** 风险标注(≥1 条,UI 直接展示;如「profile 升级合并可能覆盖」)。 */
   readonly risks: readonly string[]
   /** 红线策略(T1.3(b)4 豁免语义)。 */
@@ -170,11 +176,12 @@ const UPGRADE_OVERWRITE_RISK = 'profile/pack 升级合并可能覆盖本地编�
 
 /**
  * 全部存量条目(14 条:preset×6、domain×4、runtime×2、meta×2——meta 层为
- * T3.1 新增的元提示词登记)。行号锚 2026-11-11 实测自本 worktree(T1.2 合入后):
- * persona×2 = :292(standard 裸标量)/:149-150(cordis 块标量 >-);
- * agent-instructions = :154/:296(maxBytes: 65536);
- * plan-mode section = :188-199/:335 起(| 多段字面块)。
- * time-context 两行(:155-156/:293-294)仍在 live patch 里,但按 2026-11-11
+ * T3.1 新增的元提示词登记)。行号锚 2026-11-12 实测自本 worktree(persona 基线
+ * 补三红线锚点后重测):
+ * persona×2 = :300-301(standard 块标量 >-)/:149-150(cordis 块标量 >-);
+ * agent-instructions = :162/:313(maxBytes: 65536);
+ * plan-mode section = :196-207/:352 起(| 多段字面块)。
+ * time-context 两行仍在 live patch 里,但按 2026-11-11
  * 用户裁定不登记(见文件头「注册表不变量」),不再是注册表条目。
  */
 export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
@@ -186,9 +193,11 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-persona',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['persona'], configKey: 'prefix' },
     anchors: [
-      { file: WEB_PATCH, line: 292, contains: 'prefix: You are a coding agent powered by the {{model}} model.' },
+      { file: WEB_PATCH, line: 300, contains: 'prefix: >-' },
+      { file: WEB_PATCH, line: 301, contains: 'You are a coding agent powered by the {{model}} model.' },
     ],
-    note: '默认预设 persona 前缀(裸标量):T7 persona-patch 既有管理对象,preset-standard 行 plugins[id=persona].config.prefix。',
+    note: '默认预设 persona 前缀(块标量 >-,2026-11-12 起基线自含三红线锚点):preset-standard 行 plugins[id=persona].config.prefix。',
+    description: '所有标准会话系统提示的第一段:告诉模型它是谁、用哪个模型,并钉住三条全局红线(预算不超支/不代付/比选中立)。改动会影响之后每一个新会话的开场人设。',
     risks: [UPGRADE_OVERWRITE_RISK, 'persona 红线锚点必检(标准三条),改动影响全部标准会话的系统提示开头。'],
     redLine: 'required',
     redLineRuleSet: 'eterna.red-lines.standard',
@@ -205,9 +214,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-agent-instructions',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['agent-instructions'], configKey: 'maxBytes' },
     anchors: [
-      { file: WEB_PATCH, line: 296, contains: 'maxBytes: 65536' },
+      { file: WEB_PATCH, line: 313, contains: 'maxBytes: 65536' },
     ],
     note: '指令段容量上限(数值配置,非提示词文本):每条指令链(用户级/项目级 AGENTS.md)的渲染字节上限。',
+    description: '指令链(用户级/项目级 AGENTS.md 等)渲染进系统提示时的字节容量上限(数值参数,非提示词文本):调小会截断长指令链,调大放宽。只影响 standard 预设会话。',
     risks: [UPGRADE_OVERWRITE_RISK, '值是数值不是提示词文本;调小会截断指令链渲染,与 MAX_PERSONA_BYTES=65536 口径交叉钉住。'],
     redLine: 'exempt',
     maxBytes: MAX_PERSONA_BYTES,
@@ -223,10 +233,11 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-plan-mode',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['planning', 'plan-mode'], configKey: 'section' },
     anchors: [
-      { file: WEB_PATCH, line: 335, contains: 'section: |' },
-      { file: WEB_PATCH, line: 336, contains: 'You are in plan mode.' },
+      { file: WEB_PATCH, line: 352, contains: 'section: |' },
+      { file: WEB_PATCH, line: 353, contains: 'You are in plan mode.' },
     ],
-    note: 'plan 模式整段系统提示(| 多段字面块,行 331 起):planning 组内 plan-mode 插件的 config.section。',
+    note: 'plan 模式整段系统提示(| 多段字面块,行 352 起):planning 组内 plan-mode 插件的 config.section。',
+    description: 'plan 模式激活时注入的整段系统提示:规定模型只做只读探索与计划制定,必须经 exit_plan_mode 提交计划并获用户明确批准才能进入实现;plan 会话开场即带上。',
     risks: [UPGRADE_OVERWRITE_RISK, '上游 @deepseek-ai/dsh-plan-mode 升级改写该段时,本地编辑需与新版重新对齐(计划书 §3 风险标注)。'],
     redLine: 'exempt',
     maxBytes: MAX_PERSONA_BYTES,
@@ -246,7 +257,8 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
       { file: WEB_PATCH, line: 149, contains: 'prefix: >-' },
       { file: WEB_PATCH, line: 150, contains: 'You are a coding agent powered by the {{model}} model.' },
     ],
-    note: '创造模式 persona 前缀(>- 折叠块标量,行 149-150):preset-cordis 行 plugins[id=persona].config.prefix。',
+    note: '创造模式 persona 前缀(>- 折叠块标量,行 149 起;2026-11-12 起基线自含三红线锚点):preset-cordis 行 plugins[id=persona].config.prefix。',
+    description: '创造模式(cordis 预设)会话系统提示的第一段:定位与默认 persona 同源,同样钉三条全局红线;只影响创造模式会话。',
     risks: [UPGRADE_OVERWRITE_RISK, '块标量写回必须整块替换(块头+续行),单行替换会残留续行产生脏 YAML(测试计划 §9.5)。'],
     redLine: 'required',
     redLineRuleSet: 'eterna.red-lines.standard',
@@ -263,9 +275,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-agent-instructions',
     yaml: { file: WEB_PATCH, rowId: 'preset-cordis', pluginPath: ['agent-instructions'], configKey: 'maxBytes' },
     anchors: [
-      { file: WEB_PATCH, line: 154, contains: 'maxBytes: 65536' },
+      { file: WEB_PATCH, line: 162, contains: 'maxBytes: 65536' },
     ],
     note: '指令段容量上限(数值配置,非提示词文本),preset-cordis 行内与 standard 同值 65536。',
+    description: '创造模式会话的指令链渲染字节上限(数值参数),作用同 standard 档;只影响 cordis 预设会话。',
     risks: [UPGRADE_OVERWRITE_RISK, '值是数值不是提示词文本;调小会截断指令链渲染。'],
     redLine: 'exempt',
     maxBytes: MAX_PERSONA_BYTES,
@@ -281,10 +294,11 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-plan-mode',
     yaml: { file: WEB_PATCH, rowId: 'preset-cordis', pluginPath: ['planning', 'plan-mode'], configKey: 'section' },
     anchors: [
-      { file: WEB_PATCH, line: 188, contains: 'section: |' },
-      { file: WEB_PATCH, line: 189, contains: 'You are in plan mode.' },
+      { file: WEB_PATCH, line: 196, contains: 'section: |' },
+      { file: WEB_PATCH, line: 197, contains: 'You are in plan mode.' },
     ],
-    note: 'plan 模式整段系统提示(| 多段字面块,行 188-199):preset-cordis 行内 planning 组的 plan-mode config.section。',
+    note: 'plan 模式整段系统提示(| 多段字面块,行 196-207):preset-cordis 行内 planning 组的 plan-mode config.section。',
+    description: '创造模式下的 plan 模式整段系统提示,作用同 standard 档;只影响 cordis 预设的 plan 会话。',
     risks: [UPGRADE_OVERWRITE_RISK, '上游 @deepseek-ai/dsh-plan-mode 升级改写该段时,本地编辑需与新版重新对齐。'],
     redLine: 'exempt',
     maxBytes: MAX_PERSONA_BYTES,
@@ -305,6 +319,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
       { file: 'packs/event-planning/cordis.patch.yml', line: 14, contains: 'personaPrefix: >-' },
     ],
     note: '活动策划领域 persona 前缀(>- 折叠块标量,行 14-17):system-prompt 行 config.personaPrefix,英文三红线句(预算/代付/比选中立的英文转述)。',
+    description: '活动策划领域包的 persona 前缀:领域身份句+三条红线英文转述;装载该领域包时拼进系统提示开头,把通用 agent 定位成活动策划专家。',
     risks: [UPGRADE_OVERWRITE_RISK, '块标量写回必须整块替换;pack 重装/升级可能覆盖。'],
     redLine: 'required',
     redLineRuleSet: 'eterna.red-lines.standard',
@@ -323,6 +338,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
       { file: 'packs/event-planning/persona.md', line: 1, contains: '# persona' },
     ],
     note: '活动策划领域 persona 全文基准(整文件值:角色/语气/全局硬约束;06 号 SOP S1 分诊):标准三条红线锚点在此文件内(交叉钉住)。',
+    description: '活动策划领域的 persona 全文基准(角色/语气/全局硬约束/SOP 分诊):领域的真值文件;运行时生效面是 personaPrefix 行,本文件供对账与红线交叉钉住。',
     risks: [UPGRADE_OVERWRITE_RISK, 'pack 文件,编辑随包版本走;当前未见运行时注入代码,登记为文件真值基准(运行时注入=personaPrefix 行)。'],
     redLine: 'required',
     redLineRuleSet: 'eterna.red-lines.standard',
@@ -343,6 +359,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
       { file: 'packs/industrial-analysis/cordis.patch.yml', line: 14, contains: 'personaPrefix: >-' },
     ],
     note: '工业数智分析领域 persona 前缀(>- 折叠块标量,行 14-19):system-prompt 行 config.personaPrefix,英文红线句(数据溯源/只读/MCP-only/R2/deny-first)。',
+    description: '工业数智分析领域包的 persona 前缀:领域身份句+四条行业红线(达梦只读/只经 MCP/对外发送须确认/deny 优先)英文转述;装载该领域包时生效。',
     risks: [UPGRADE_OVERWRITE_RISK, '块标量写回必须整块替换;pack 重装/升级可能覆盖。'],
     redLine: 'required',
     redLineRuleSet: 'eterna.red-lines.industrial-analysis',
@@ -361,6 +378,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
       { file: 'packs/industrial-analysis/persona.md', line: 1, contains: '# persona' },
     ],
     note: '工业数智分析领域 persona 全文基准(整文件值):自有四条红线(达梦只读/只经 MCP/R2 确认/deny 优先),不含标准三条 CJK 锚点(2026-11-11 实测),规则本体 T1.6 落地。',
+    description: '工业数智分析领域的 persona 全文基准(角色/全局硬约束),绑定行业专用四条红线规则集;运行时生效面是 personaPrefix 行。',
     risks: [UPGRADE_OVERWRITE_RISK, 'pack 文件,编辑随包版本走;标准红线规则集不适用于本条目(豁免错配,规则集另立)。'],
     redLine: 'required',
     redLineRuleSet: 'eterna.red-lines.industrial-analysis',
@@ -382,6 +400,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
       { file: 'packages/memory/src/tools.ts', line: 64, contains: 'ctx.systemPrompt.section(section)' },
     ],
     note: '运行时注入型:记忆索引 section(memory:index,order 9000),文本装配时从 M2 记忆动态构建(渐进披露,≤500 token 预算),无静态全文。',
+    description: '记忆索引段(运行时注入):每次会话装配系统提示时从记忆库动态构建 ≤500 token 的记忆索引,让模型知道已记住什么;无静态文本,不可编辑。',
     risks: ['section 文本随运行时状态(记忆库内容)动态变化;T2.6 改造为从注册表读的样板对象(登记制落地)。'],
     redLine: 'exempt',
     maxBytes: MAX_PERSONA_BYTES,
@@ -400,6 +419,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
       { file: 'packages/glue/src/plugins/memory-plugin.ts', line: 27, contains: 'attachMemory(dshHost(ctx)' },
     ],
     note: '运行时注入型:glue 的 eterna-memory 插件(inject systemPrompt)经 attachMemory/dshHost 把 memory:index section 挂进宿主——同一 section 的装载层。',
+    description: '记忆插件的 systemPrompt 挂载点(运行时注入):@eterna/glue 把记忆索引 section 挂进宿主的装配位声明;无静态文本,不可编辑。',
     risks: ['与 runtime.memory.index-section 同一 section 的组合层挂载点;T2.6 与 memory 条目一并自管改造。'],
     redLine: 'exempt',
     maxBytes: MAX_PERSONA_BYTES,
@@ -420,6 +440,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
       { file: 'packages/prompt-studio/ai/polish.md', line: 1, contains: '# AI 润色元提示词' },
     ],
     note: '元提示词层(整文件值):AI 润色的元提示词本体——吃自己的狗粮,工作室 AI 能力的提示词也经注册表登记/版本化/R3 审批管理;润色调用现读当前值作 system 消息。',
+    description: 'AI 润色的元提示词:工坊「AI 润色」调用模型时用它做 system 消息,规定润色纪律(只建议不生效、保留红线段等);改它即改润色行为,下次润色即用新文。',
     risks: [
       '元提示词改动直接改变 AI 润色行为(输出契约围栏被改坏时润色链路按失败降级,不静默)',
       'AI 建议稿永不直接生效:仅作 diff 预览与 R3 提案素材(计划书 §5「不做 AI 自动生效」)。',
@@ -440,6 +461,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
       { file: 'packages/prompt-studio/ai/review.md', line: 1, contains: '# AI 审核元提示词' },
     ],
     note: '元提示词层(整文件值):AI 审核的元提示词本体(问题清单契约:红线冲突/长度预算/变量引用/一致性/清晰度五维);审核调用现读当前值作 system 消息,清单与本地校验器同源互补。',
+    description: 'AI 审校的元提示词:工坊「AI 审校」生成问题清单时用它做 system 消息,规定审校维度与输出格式;改它即改审校行为,下次审校即用新文。',
     risks: [
       '元提示词改动直接改变 AI 审核行为(JSON 契约被改坏时审核按失败降级并明示,不静默)',
       'AI 审核清单永不直接生效:仅作报告展示(计划书 §5「不做 AI 自动生效」)。',
@@ -487,6 +509,7 @@ export function registryInvariants(): { ok: boolean; problems: readonly string[]
     if (entry.anchors.length === 0) problems.push(`${entry.id}:无文件行锚点(对账真值缺失)`)
     if (entry.risks.length === 0) problems.push(`${entry.id}:无风险标注`)
     if (entry.note.trim() === '') problems.push(`${entry.id}:型别注记为空`)
+    if (entry.description.trim() === '') problems.push(`${entry.id}:中文说明(description)为空`)
     if (entry.redLine === 'required' && entry.redLineRuleSet === undefined) {
       problems.push(`${entry.id}:redLine=required 但缺规则集 id`)
     }

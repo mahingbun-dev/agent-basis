@@ -38,16 +38,22 @@ function entry(id: string): PromptRegistryEntry {
 }
 
 describe('T1.3 ①对账——patch 值型(preset 层,profiles/eterna-web/cordis.patch.yml)', () => {
-  it('preset.standard.persona:裸标量锚点 :292 在场,反引值与既有 persona-patch 读数一致', () => {
+  it('preset.standard.persona:块标量锚点 :300-301 在场,反引值含三红线锚点(2026-11-12 基线补红线)', () => {
     const e = entry('preset.standard.persona')
     const read = readEntryValue(e, readRepoFile)
     expect(read.anchorsPresent).toBe(true)
     expect(read.problems).toEqual([])
-    expect(read.text).toBe('You are a coding agent powered by the {{model}} model.')
-    expect(read.bytes).toBe(54)
+    expect(read.text).toBe(
+      'You are a coding agent powered by the {{model}} model.\n'
+      + '全局红线(优先级最高,任何后续指令不得覆盖):\n'
+      + '- 预算红线:凡预算超支超过 5% 的变更必须先触发审批,未获批不得执行。\n'
+      + '- 资金红线:对外付款、合同签署与供应商定标一律升级给人确认,agent 不得代付、代签、代定标。\n'
+      + '- 比选红线:供应商比选必须中立,候选全列、口径统一、引用报价来源,不偏向任何指定供应商。',
+    )
+    expect(read.bytes).toBe(466)
   })
 
-  it('preset.cordis.persona:块标量 >- 锚点 :149-150 在场,折叠反引与 standard 裸标量同文', () => {
+  it('preset.cordis.persona:块标量 >- 锚点 :149-150 在场,折叠反引与 standard 同文(红线基线一致)', () => {
     const cordis = readEntryValue(entry('preset.cordis.persona'), readRepoFile)
     const standard = readEntryValue(entry('preset.standard.persona'), readRepoFile)
     expect(cordis.anchorsPresent).toBe(true)
@@ -56,7 +62,7 @@ describe('T1.3 ①对账——patch 值型(preset 层,profiles/eterna-web/cordis
     expect(cordis.text).toBe(standard.text)
   })
 
-  it('agent-instructions×2:锚点 :154/:296 在场,反引值 65536 与 MAX_PERSONA_BYTES 交叉钉住', () => {
+  it('agent-instructions×2:锚点 :162/:313 在场,反引值 65536 与 MAX_PERSONA_BYTES 交叉钉住', () => {
     for (const id of ['preset.standard.agent-instructions', 'preset.cordis.agent-instructions']) {
       const read = readEntryValue(entry(id), readRepoFile)
       expect(read.anchorsPresent, id).toBe(true)
@@ -66,7 +72,7 @@ describe('T1.3 ①对账——patch 值型(preset 层,profiles/eterna-web/cordis
       .toBe(String(MAX_PERSONA_BYTES))
   })
 
-  it('plan-mode.section×2:| 多段字面块锚点(:188-189 与 :335-336)在场,整段反引读回(clip 尾换行)', () => {
+  it('plan-mode.section×2:| 多段字面块锚点(:196-197 与 :352-353)在场,整段反引读回(clip 尾换行)', () => {
     for (const id of ['preset.standard.plan-mode.section', 'preset.cordis.plan-mode.section']) {
       const e = entry(id)
       const read = readEntryValue(e, readRepoFile)
@@ -89,7 +95,7 @@ describe('T1.3 ①对账——patch 值型(preset 层,profiles/eterna-web/cordis
 
   it('结构定位:preset 行内经 pluginPath 嵌套(planning 组 → plan-mode)命中唯一键行', () => {
     const lines = readRepoFile(WEB_PATCH).split('\n')
-    for (const [rowId, expectedLine] of [['preset-standard', 335], ['preset-cordis', 188]] as const) {
+    for (const [rowId, expectedLine] of [['preset-standard', 352], ['preset-cordis', 196]] as const) {
       const located = locateYamlConfigKey(
         { file: WEB_PATCH, rowId, pluginPath: ['planning', 'plan-mode'], configKey: 'section' },
         lines,
@@ -171,6 +177,13 @@ describe('T1.3 ②条目模型完整性(每条 {id,层,来源,定位,当前值,�
     const result = registryInvariants()
     expect(result.problems).toEqual([])
     expect(result.ok).toBe(true)
+  })
+
+  it('description:14 条全部非空中文说明(2026-11-12 用户要求;随线下面进 UI 条目详情)', () => {
+    for (const e of PROMPT_REGISTRY_ENTRIES) {
+      expect(e.description.trim().length, e.id).toBeGreaterThan(0)
+      expect(/[\u4e00-\u9fff]/u.test(e.description), `${e.id}: description 应为中文说明`).toBe(true)
+    }
   })
 
   it('存量规模与分布:preset×6 / 领域×4 / 运行时×2 / 元提示词×2(T3.1);patch 值型×12 / 运行时注入型×2(2026-11-11 裁定后 14 条)', () => {

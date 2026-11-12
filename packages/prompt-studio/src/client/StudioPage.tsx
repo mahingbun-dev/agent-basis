@@ -34,9 +34,10 @@
  * 拉取)。DOM 全部带 data-t7- 与 data-ps- 结构化锚点,供 E2E 严断言定位;样式只经
  * 官方语义令牌(--dsw-alias-*,styles.ts)。
  */
-import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import { diffLines, lineDiffOps } from '../diff.ts'
 import type { LineDiffOp } from '../diff.ts'
+import { missingRedLineRules, redLineInsertLinesOf } from '../red-lines.ts'
 import type {
   AiCallMeta, AiPolishResult, AiReviewResult, AiStatusResult, EntrySummaryView, PromptExportResult,
   PromptSaveResult, PromptVersionRecord,
@@ -166,6 +167,7 @@ function EntryNavRow({ entry, selected, onSelect, t }: {
         data-ps-entry-row={entry.id}
         data-ps-selected={selected ? 'true' : 'false'}
         aria-current={selected ? 'true' : undefined}
+        title={entry.description}
         onClick={() => { onSelect(entry.id) }}
       >
         <span data-ps-entry-row-id>{entry.id}</span>
@@ -565,6 +567,44 @@ function SessionSnapshotsView({ call, t, ready, generatedAt }: {
 }
 
 /**
+ * 红线锚点预检查(2026-11-12 修复「persona 编辑保存必被拒且无预提示」):required
+ * 条目编辑时对草稿实时跑与服务端校验同一套锚点正则(规则本体 red-lines.ts 单一
+ * 事实源),缺哪条就地亮出;「插入缺失红线段」把缺失项的规范措辞整行追加到草稿尾。
+ * 服务端 fail-closed 校验不变——本区只是把「保存必被拒」提前到敲字时可见。
+ */
+function RedLineCheck({ ruleSet, text, onInsert, t }: {
+  readonly ruleSet: string | undefined
+  readonly text: string
+  readonly onInsert: () => void
+  readonly t: (key: string) => string
+}) {
+  const missing = useMemo(() => missingRedLineRules(ruleSet, text), [ruleSet, text])
+  return (
+    <div
+      data-ps-redline
+      data-ps-redline-state={missing.length === 0 ? 'ok' : 'missing'}
+      aria-live="polite"
+    >
+      {missing.length === 0 ? (
+        <span data-ps-pill data-ps-tone="business" data-ps-redline-ok>{t('studio.redline.ok')}</span>
+      ) : (
+        <>
+          <span data-ps-redline-title>{t('studio.redline.missing')}</span>
+          <ul data-ps-redline-list>
+            {missing.map(rule => (
+              <li key={rule.id} data-ps-redline-missing-item>{rule.label}</li>
+            ))}
+          </ul>
+          <button type="button" data-ps-redline-insert onClick={onInsert}>
+            {t('studio.redline.insert')}
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
+/**
  * AI 润色区(T3.2):可用性胶囊(零模型调用)→ 润色侧重点 + 生成按钮 → 建议稿卡
  * (生成信息 + 建议稿全文(折叠)+ diff 预览 + 「作为提案提交」/「放弃建议稿」)。
  * 建议稿仅预览(永不直接生效);「作为提案提交」经 loopPrompt/ai-proposal 进与
@@ -895,7 +935,9 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
     let cancelled = false
     setAiStatus(previous => (previous.status === 'loaded' ? previous : { status: 'loading' }))
     void (async (): Promise<void> => {
-      const result = await call<AiStatusResult>(ENDPOINTS.aiStatus, { input: {} })
+      // ai-status 宿主签名无参(2026-11-12 修复:多传 {input:{}} 被 typert 网关按
+      // arguments-invalid 拒收,AI 可用性胶囊永远停在「检查中」)——无参端点传 {}。
+      const result = await call<AiStatusResult>(ENDPOINTS.aiStatus, {})
       if (cancelled) return
       if (result.ok) setAiStatus({ status: 'loaded', result: result.value })
       else setAiStatus({ status: 'error', message: result.message })
@@ -1298,6 +1340,10 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
               : <span data-ps-pill data-ps-tone="neutral">{t('studio.entry.redline.exempt')}</span>}
           </div>
           <p data-ps-entry-note>{selected.note}</p>
+          <div data-ps-entry-description>
+            <span data-ps-entry-description-title>{t('studio.entry.description')}</span>
+            <p data-ps-entry-description-text>{selected.description}</p>
+          </div>
           <div data-ps-entry-effect data-ps-effect-radius={selected.effect.radius}>
             <span data-ps-entry-effect-title>{t('studio.entry.effect')}</span>
             <span
@@ -1358,6 +1404,23 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
                   {dirty ? t('studio.editor.dirty') : t('studio.editor.pristine')}
                 </span>
               </div>
+              {selected.redLine === 'required' && (
+                <RedLineCheck
+                  ruleSet={selected.redLineRuleSet}
+                  text={draft ?? ''}
+                  t={t}
+                  onInsert={() => {
+                    const missing = missingRedLineRules(selected.redLineRuleSet, draft ?? '')
+                    const lines = redLineInsertLinesOf(missing)
+                    if (lines.length === 0) return
+                    const base = draft ?? ''
+                    const joined = lines.join('\n') + '\n'
+                    const next = base.length > 0 && !base.endsWith('\n') ? base + '\n' + joined : base + joined
+                    setDraft(next)
+                    persistDraft(selected.id, next, selectedText)
+                  }}
+                />
+              )}
               <input
                 data-t7-save-summary
                 type="text"

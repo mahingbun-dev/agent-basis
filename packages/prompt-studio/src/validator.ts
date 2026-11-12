@@ -23,8 +23,16 @@
  * - 规则集本体:'eterna.red-lines.standard'(RED_LINE_RULES,双语)与
  *   'eterna.red-lines.industrial-analysis'(INDUSTRIAL_RED_LINE_RULES,四条,
  *   对齐 packs/industrial-analysis/persona.md 全局硬约束与其 personaPrefix 英文句)。
+ *   2026-11-12 起规则本体拆到 red-lines.ts(纯模块零 node 依赖,客户端编辑器
+ *   预检查共用单一事实源);本模块从那里 import 并 re-export,既有 import 面零改动。
  */
 import { byteLength } from './checksum.ts'
+import {
+  INDUSTRIAL_RED_LINE_RULES, RED_LINE_RULES, RED_LINE_RULE_SETS, type RedLineRule,
+} from './red-lines.ts'
+
+export { INDUSTRIAL_RED_LINE_RULES, RED_LINE_RULES, RED_LINE_RULE_SETS }
+export type { RedLineRule }
 
 /** persona 字节上限(65536,对齐 agent-instructions maxBytes 口径)。 */
 export const MAX_PERSONA_BYTES = 65536
@@ -34,86 +42,6 @@ export const MAX_PERSONA_BYTES = 65536
  * 前面不是高位代理。含孤立代理项的字符串无法无损编码为 UTF-8。
  */
 const UNPAIRED_SURROGATE_RE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/
-
-/** 红线锚点(对齐 packs/event-planning/persona.md「全局硬约束」三条)。 */
-export interface RedLineRule {
-  /** 稳定 id(审计/测试引用;T1.6 起为开放串——各规则集自有 id 面)。 */
-  readonly id: string
-  /** 人话名(issues 与 UI 提示用)。 */
-  readonly label: string
-  /** 锚点正则(宽容匹配:措辞可改,语义锚点必须在;双语条目中英锚点任一命中即可)。 */
-  readonly pattern: RegExp
-  /** 人话修复提示(issues 明细)。 */
-  readonly hint: string
-}
-
-/**
- * 三条红线(顺序即 issues 顺序;锚点实例:
- * 「预算超支 >5% 的任何变更必须触发 R3 审批」「agent 不得代付、代签、代定标」
- * 「比选必须中立:三家全列、统一口径、引用报价来源」)。
- * T1.6 双语锚点:英文转述对齐 packs/event-planning/cordis.patch.yml personaPrefix
- * 的既有句("Never silently exceed budgets / never make or promise external payments /
- * stay neutral in vendor selection")——该条目绑标准规则集,锚点须认得它的真实文本。
- */
-export const RED_LINE_RULES: readonly RedLineRule[] = [
-  {
-    id: 'budget-overrun',
-    label: '预算不超支',
-    pattern: /预算.{0,6}超支|exceed budgets/u,
-    hint: 'persona 须声明预算红线(锚点示例:「预算超支 >5% 必须触发审批」/「预算不得超支」/「Never silently exceed budgets」)',
-  },
-  {
-    id: 'no-payment',
-    label: '不代付',
-    pattern: /不.{0,2}代付|external payments/u,
-    hint: 'persona 须声明付款红线(锚点示例:「对外付款/合同签署/定标一律升级给人,agent 不得代付」/「never make or promise external payments」)',
-  },
-  {
-    id: 'neutral-comparison',
-    label: '比选中立',
-    pattern: /比选.{0,6}中立|neutral in vendor selection/u,
-    hint: 'persona 须声明比选中立红线(锚点示例:「供应商比选必须中立,不偏向任何指定供应商」/「stay neutral in vendor selection」)',
-  },
-]
-
-/**
- * 工业数智分析四条红线(T1.6 落地;注册表 redLineRuleSet=
- * 'eterna.red-lines.industrial-analysis' 的条目专用):对齐
- * packs/industrial-analysis/persona.md「全局硬约束」与同包 personaPrefix 英文句
- * (达梦只读/只经 MCP/对外发送 R2 确认/deny 优先 fail-closed)。
- */
-export const INDUSTRIAL_RED_LINE_RULES: readonly RedLineRule[] = [
-  {
-    id: 'dm-readonly',
-    label: '达梦业务库只读',
-    pattern: /达梦业务库只读|DM business database is read-only/u,
-    hint: 'persona 须声明达梦只读红线(锚点示例:「达梦业务库只读,写权限仅限预警记录表」/「The DM business database is read-only」)',
-  },
-  {
-    id: 'mcp-only',
-    label: '数据知识层只经 MCP',
-    pattern: /只经\s*MCP|only\s+via\s+MCP/u,
-    hint: 'persona 须声明 MCP-only 红线(锚点示例:「数据与知识层只经 MCP 访问,不直连库」/「accessed only via MCP」)',
-  },
-  {
-    id: 'external-send-r2',
-    label: '对外发送须 R2 确认',
-    pattern: /对外发送.{0,24}确认|external send requires confirmation/u,
-    hint: 'persona 须声明对外发送红线(锚点示例:「对外发送(通报/报告/短信/邮件)必须确认(R2)」/「every external send requires confirmation (R2)」)',
-  },
-  {
-    id: 'deny-first',
-    label: 'deny 优先 fail-closed',
-    pattern: /deny\s*优先|[Dd]eny-first/u,
-    hint: 'persona 须声明 deny-first 红线(锚点示例:「deny 优先、fail-closed」/「Deny-first, fail-closed」)',
-  },
-]
-
-/** 红线规则集登记面(注册表 redLineRuleSet id → 规则本体;未知 id fail-closed)。 */
-export const RED_LINE_RULE_SETS: Readonly<Record<string, readonly RedLineRule[]>> = {
-  'eterna.red-lines.standard': RED_LINE_RULES,
-  'eterna.red-lines.industrial-analysis': INDUSTRIAL_RED_LINE_RULES,
-}
 
 /** 校验结果:ok=false 时 issues 为人话明细(直接进 PromptSaveResult.issues)。 */
 export interface PersonaValidation {

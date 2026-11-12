@@ -13,6 +13,7 @@ import {
   INDUSTRIAL_RED_LINE_RULES, MAX_PERSONA_BYTES, RED_LINE_RULES, RED_LINE_RULE_SETS, checkRedLines,
   checkRedLinesOfRuleSet, checkUtf8WellFormed, validateEntryText, validatePersonaText,
 } from '../src/validator.ts'
+import { missingRedLineRules, redLineInsertLinesOf, RED_LINE_INSERT_LINES } from '../src/red-lines.ts'
 
 /** 带三条红线锚点的最小合法 persona(锚点措辞与 event-planning persona 同款)。 */
 const RED_LINES = '红线:预算超支>5%必须触发审批;对外付款不得代付;比选必须中立。'
@@ -317,5 +318,34 @@ describe('T1.6 红线规则集登记面与真文件交叉钉住', () => {
     expect(checkRedLinesOfRuleSet('eterna.red-lines.standard', RED_LINES)).toEqual([])
     expect(checkRedLinesOfRuleSet('eterna.red-lines.industrial-analysis', '什么都没有').length).toBe(4)
     expect(checkRedLinesOfRuleSet('eterna.red-lines.unknown', RED_LINES).length).toBe(1)
+  })
+})
+
+describe('红线预检查纯面(red-lines.ts,2026-11-12 编辑器预提示共用)', () => {
+  it('missingRedLineRules:带锚文本零缺失;空文本全缺失(standard 3 条)', () => {
+    expect(missingRedLineRules('eterna.red-lines.standard', RED_LINES)).toEqual([])
+    expect(missingRedLineRules('eterna.red-lines.standard', '').map(r => r.id))
+      .toEqual(['budget-overrun', 'no-payment', 'neutral-comparison'])
+    expect(missingRedLineRules(undefined, '')).toEqual([])
+    expect(missingRedLineRules('eterna.red-lines.unknown', '')).toEqual([])
+  })
+  it('插入文案逐条命中对应锚点正则(按钮插入后预检查必转绿)', () => {
+    const missing = missingRedLineRules('eterna.red-lines.standard', 'You are a coding agent.')
+    const lines = redLineInsertLinesOf(missing)
+    expect(lines).toHaveLength(3)
+    const healed = 'You are a coding agent.\n' + lines.join('\n')
+    expect(missingRedLineRules('eterna.red-lines.standard', healed)).toEqual([])
+  })
+  it('插入文案映射覆盖全部规则 id(两个规则集;新增规则缺文案即红)', () => {
+    for (const set of Object.values(RED_LINE_RULE_SETS)) {
+      for (const rule of set) {
+        expect(RED_LINE_INSERT_LINES[rule.id], rule.id).toBeTruthy()
+      }
+    }
+  })
+  it('工业四条的插入文案同样自洽(插入后缺失清零)', () => {
+    const missing = missingRedLineRules('eterna.red-lines.industrial-analysis', '')
+    const healed = redLineInsertLinesOf(missing).join('\n')
+    expect(missingRedLineRules('eterna.red-lines.industrial-analysis', healed)).toEqual([])
   })
 })
