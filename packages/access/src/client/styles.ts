@@ -17,29 +17,46 @@ const CSS = `
 /* 设置/弹窗打开时隐藏右上身份胶囊,避免覆盖全屏设置面板。 */
 body:has([role="dialog"]) .eterna-identity-badge { display: none !important; }
 
-/* 设置弹窗:导航固定 200,内容按分区定宽;高度随内容,超长才封顶滚动。 */
-@media (min-width: 761px) {
+/* 设置弹窗:所有分区共用同一固定尺寸,切换页面不再伸缩;导航 200 固定,
+   内容区保留单一纵向滚动轴(滚动条常驻槽位,避免切换时宽度抖动)。 */
+@media (min-width: 768px) {
   [data-shortcut-modal="settings"] {
-    height: auto !important;
-    max-height: min(720px, calc(100vh - 48px)) !important;
+    --ea-settings-width: 880px;
+    --ea-settings-height: 720px;
+    --ea-settings-inset: 48px;
+    width: min(var(--ea-settings-width), calc(100vw - var(--ea-settings-inset))) !important;
+    max-width: min(var(--ea-settings-width), calc(100vw - var(--ea-settings-inset))) !important;
+    height: min(var(--ea-settings-height), calc(100vh - 2 * max(24px, var(--dsh-frame-overlay-top, 24px)))) !important;
+    height: min(var(--ea-settings-height), calc(100dvh - 2 * max(24px, var(--dsh-frame-overlay-top, 24px)))) !important;
+    max-height: min(var(--ea-settings-height), calc(100vh - 2 * max(24px, var(--dsh-frame-overlay-top, 24px)))) !important;
+    max-height: min(var(--ea-settings-height), calc(100dvh - 2 * max(24px, var(--dsh-frame-overlay-top, 24px)))) !important;
     grid-template-columns: 200px minmax(0, 1fr) !important;
   }
-  body:has([data-eterna-settings-section="account"]) [data-shortcut-modal="settings"] {
-    width: min(744px, calc(100vw - 48px)) !important;
-    max-width: min(744px, calc(100vw - 48px)) !important;
-  }
-  body:has([data-eterna-settings-section="users"]) [data-shortcut-modal="settings"] {
-    width: min(840px, calc(100vw - 48px)) !important;
-    max-width: min(840px, calc(100vw - 48px)) !important;
-  }
-  body:has([data-eterna-settings-section="notifications"]) [data-shortcut-modal="settings"] {
-    width: min(700px, calc(100vw - 48px)) !important;
-    max-width: min(700px, calc(100vw - 48px)) !important;
-  }
-  body:has([data-eterna-settings-section="approval-queue"]) [data-shortcut-modal="settings"] {
-    width: min(880px, calc(100vw - 48px)) !important;
-    max-width: min(880px, calc(100vw - 48px)) !important;
-  }
+}
+
+/* 内容区滚动条:细、圆角、随主题取 24% 前景色;轨道透明,稳定占位。 */
+[data-shortcut-modal="settings"] > [class$="_options"] {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--et-fg) 24%, transparent) transparent;
+  overscroll-behavior: contain;
+}
+[data-shortcut-modal="settings"] > [class$="_options"]::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+[data-shortcut-modal="settings"] > [class$="_options"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-shortcut-modal="settings"] > [class$="_options"]::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: var(--et-radius-pill);
+  background: color-mix(in oklab, var(--et-fg) 24%, transparent);
+  background-clip: content-box;
+}
+[data-shortcut-modal="settings"] > [class$="_options"]::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklab, var(--et-fg) 40%, transparent);
+  background-clip: content-box;
 }
 [data-eterna-access-root] .ea-card h3 { margin: 0 0 var(--et-space-2); font-size: var(--et-text-body); font-weight: var(--et-weight-display); letter-spacing: 0; }
 [data-eterna-access-root] label.ea-label { display: block; font-size: var(--et-text-micro); color: var(--et-muted); margin: 12px 0 4px; }
