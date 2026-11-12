@@ -535,7 +535,11 @@
 
 # LLM 承载（根级覆写 base 休眠行，非 insert——原因见上）：pi-ai 多协议适配器
 # ── P2 网关（2026-11-11）：外部网关退场，三家直连（网关=pi-ai carriers 配置级实现）──
-# 异常锚 A1（生产事故 §2.5 I1）实证的方言三点，由 provider 级 compat 显式钉死：
+# 异常锚 A1（生产事故 §2.5 I1）实证的方言三点，显式钉死（2026-11-12 起全部
+# 落【模型级】compat——provider 级 compat 会触发 catalog 校验器「route 上有协议
+# 接得住该字段的 serviceable 模型」聚合检查，模型解析路径被判不可服务时整条
+# provider 从会话模型选择器消失（2026-11-12 生产实锤：deepseek/mimo 全军覆没，
+# 仅 glm 因先改模型级幸存）；模型级恰是 pi-ai 语义且绕开 route 级聚合检查）：
 #   ① supportsDeveloperRole:false——chat 协议系统提示词一律 system（pi-ai 对
 #      reasoning 模型默认发 developer 角色-openai-completions.js:905；经网关中转时
 #      baseUrl 识别失效即误发，直连下显式钉死不依赖 baseUrl 字符串门控）
@@ -551,10 +555,6 @@
         apiKeyEnv: DEEPSEEK_API_KEY
         api: openai-completions
         baseURL: https://api.deepseek.com
-        compat:
-          supportsDeveloperRole: false
-          maxTokensField: max_tokens
-          requiresReasoningContentOnAssistantMessages: true
         models:
           - id: deepseek-flash
             name: DeepSeek Flash
@@ -563,6 +563,10 @@
             input:
               - text
               - image
+            compat:
+              supportsDeveloperRole: false
+              maxTokensField: max_tokens
+              requiresReasoningContentOnAssistantMessages: true
             reasoningEfforts:
               off: null
               low: low
@@ -572,6 +576,10 @@
             name: DeepSeek V4 Pro
             contextWindow: 300000
             maxTokens: 8192
+            compat:
+              supportsDeveloperRole: false
+              maxTokensField: max_tokens
+              requiresReasoningContentOnAssistantMessages: true
             reasoningEfforts:
               off: null
               low: low
@@ -582,9 +590,6 @@
         apiKeyEnv: MIMO_API_KEY
         api: openai-completions
         baseURL: https://api.xiaomimimo.com/v1
-        compat:
-          supportsDeveloperRole: false
-          requiresReasoningContentOnAssistantMessages: true
         models:
           - id: mimo-v2.6-flash
             name: MiMo V2.6 Flash
@@ -592,6 +597,9 @@
             input:
               - text
               - image
+            compat:
+              supportsDeveloperRole: false
+              requiresReasoningContentOnAssistantMessages: true
             reasoningEfforts:
               off: null
               low: low
@@ -603,6 +611,9 @@
             input:
               - text
               - image
+            compat:
+              supportsDeveloperRole: false
+              requiresReasoningContentOnAssistantMessages: true
             reasoningEfforts:
               off: null
               low: low
@@ -611,6 +622,9 @@
           - id: mimo-v2.6-pro-ultraspeed
             name: MiMo V2.6 Pro 极速
             contextWindow: 300000
+            compat:
+              supportsDeveloperRole: false
+              requiresReasoningContentOnAssistantMessages: true
             reasoningEfforts:
               off: null
               low: low
@@ -621,11 +635,7 @@
         apiKeyEnv: BIGMODEL_API_KEY
         api: openai-completions
         baseURL: https://open.bigmodel.cn/api/paas/v4
-        # compat 从 provider 级挪到模型级(2026-11-12):catalog 校验器对 provider 级
-        # compat 检查「route 上有协议接得住该字段的 serviceable 模型」,glm 模型解析
-        # 路径上被判不可服务时整条告警(llm-pi-ai: provider "glm" sets compat
-        # "supportsDeveloperRole"...);模型级恰是 pi-ai 语义(about one named model
-        # it can only be a mistake)且绕开 route 级聚合检查。
+        # compat 模型级口径见上方 A1 注释(2026-11-12 三家统一)。
         models:
           - id: glm-5.3
             name: GLM 5.3
