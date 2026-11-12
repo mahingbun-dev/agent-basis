@@ -231,46 +231,20 @@ pw.addEventListener('keydown',function(e){if(e.key==='Enter')submit()})
   return shell('登录', body, script)
 }
 
-/** 账号角标:注入每个 dsh index 页。401 → 跳登录(门禁);404/异常静默(access 缺席降级)。 */
+/**
+ * 账号门禁:注入每个 dsh index 页。401 → 跳登录;404/异常静默(access 缺席降级)。
+ * 身份展示已迁到侧栏底部账户菜单(客户端 settings.launcher 席位),这里只保留
+ * 门禁跳转、租户引导与首屏落座兜底,不再绘制右上角身份角标。
+ */
 export const BADGE_SCRIPT = `
 (function(){
   var meAccount=null
-  function ensureBadgeStyle(){
-    if(document.getElementById('eterna-identity-badge-style'))return
-    var style=document.createElement('style')
-    style.id='eterna-identity-badge-style'
-    style.textContent='.eterna-identity-badge{position:fixed;top:52px;right:12px;z-index:2147483647;display:flex;align-items:center;gap:8px;box-sizing:border-box;max-width:min(260px,60vw);height:36px;padding:0 4px 0 6px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);border-radius:4px;box-shadow:var(--dsw-elevation-soft,none);font-family:var(--dsw-font-family,system-ui,sans-serif);font-size:14px;font-weight:500;line-height:1.4}'
-      +'.eterna-identity-badge__avatar{display:inline-flex;align-items:center;justify-content:center;flex:none;width:24px;height:24px;border-radius:50%;object-fit:cover}'
-      +'.eterna-identity-badge__avatar--letter{background:var(--dsw-alias-state-business-primary);color:var(--dsw-alias-label-primary-foreground);font-size:12px;font-weight:600}'
-      +'.eterna-identity-badge__name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
-      +'.eterna-identity-badge__logout{appearance:none;flex:none;height:28px;margin:0 0 0 2px;padding:0 8px;border:0;border-left:1px solid var(--dsw-alias-border-l2);border-radius:4px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;font-weight:500;cursor:pointer;transition:color 150ms ease,background-color 150ms ease}'
-      +'.eterna-identity-badge__logout:hover{color:var(--dsw-alias-state-error-primary);background:var(--dsw-alias-bg-layer-3)}'
-      +'.eterna-identity-badge__logout:focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in oklab,var(--dsw-alias-state-business-primary),transparent 70%)}'
-      +'@media (prefers-reduced-motion:reduce){.eterna-identity-badge__logout{transition:none}}'
-    document.head.appendChild(style)
-  }
   fetch('/access/api/me',{credentials:'same-origin'}).then(function(r){
     if(r.status===401){location.replace('/login');return null}
     return r.ok?r.json():null
   }).then(function(u){
     if(!u||!u.account)return
     meAccount=u.account
-    ensureBadgeStyle()
-    var b=document.createElement('div')
-    b.className='eterna-identity-badge'
-    // 位置铁律:头部下方(top:52px)——固定右上(top:8px)会压住上游头部右侧的
-    // 「更多操作/打开右侧边栏」等按钮(2026-11-11 E2E:全宽度遮挡=插件页/设置入口全灭)。
-    var av
-    if(u.avatarUrl){av=document.createElement('img');av.className='eterna-identity-badge__avatar';av.src=u.avatarUrl;av.alt=''}
-    else{av=document.createElement('span');av.className='eterna-identity-badge__avatar eterna-identity-badge__avatar--letter';av.textContent=(u.nickname||u.account||'?').slice(0,1)}
-    b.appendChild(av)
-    var name=document.createElement('span');name.className='eterna-identity-badge__name';name.textContent=u.nickname||u.account
-    b.appendChild(name)
-    var out=document.createElement('button');out.type='button';out.className='eterna-identity-badge__logout';out.textContent='退出'
-    b.appendChild(out)
-    out.addEventListener('click',function(){
-      fetch('/logout',{method:'POST',credentials:'same-origin'}).then(function(){location.href='/login'})})
-    document.body.appendChild(b)
     scheduleRecover()
   }).catch(function(){})
 

@@ -27,6 +27,10 @@ export type IconName =
   | 'copy'
   | 'trash'
   | 'arrow-right'
+  | 'globe'
+  | 'palette'
+  | 'logout'
+  | 'settings'
 
 export const ICONS: Readonly<Record<IconName, readonly IconPrimitive[]>> = {
   /* 基座面板:半环仪表 + 指针,表达「观测/控制台」而非通用齿轮。 */
@@ -108,6 +112,34 @@ export const ICONS: Readonly<Record<IconName, readonly IconPrimitive[]>> = {
 
   'arrow-right': [
     { tag: 'path', attrs: { d: 'M4 12h15M13.5 6.5L19 12l-5.5 5.5' } },
+  ],
+
+  /* 账户菜单:界面语言。 */
+  globe: [
+    { tag: 'circle', attrs: { cx: 12, cy: 12, r: 8.5 } },
+    { tag: 'path', attrs: { d: 'M3.5 12h17' } },
+    { tag: 'path', attrs: { d: 'M12 3.5c2.3 2.4 3.5 5.3 3.5 8.5s-1.2 6.1-3.5 8.5c-2.3-2.4-3.5-5.3-3.5-8.5s1.2-6.1 3.5-8.5z' } },
+  ],
+
+  /* 账户菜单:界面主题。 */
+  palette: [
+    { tag: 'path', attrs: { d: 'M12 3.5a8.5 8.5 0 0 0 0 17c1.4 0 2.2-.9 2.2-2.1 0-1.4 1-2.4 2.4-2.4h1.3a2.6 2.6 0 0 0 2.6-2.6A8.5 8.5 0 0 0 12 3.5z' } },
+    { tag: 'circle', attrs: { cx: 8, cy: 9.2, r: 1.15, fill: 'currentColor', stroke: 'none' } },
+    { tag: 'circle', attrs: { cx: 7.2, cy: 13.6, r: 1.15, fill: 'currentColor', stroke: 'none' } },
+    { tag: 'circle', attrs: { cx: 10.8, cy: 16.8, r: 1.15, fill: 'currentColor', stroke: 'none' } },
+  ],
+
+  /* 账户菜单:断开连接。 */
+  logout: [
+    { tag: 'path', attrs: { d: 'M15.5 4.5H6.8a2.3 2.3 0 0 0-2.3 2.3v10.4a2.3 2.3 0 0 0 2.3 2.3h8.7' } },
+    { tag: 'path', attrs: { d: 'M12.5 12h8' } },
+    { tag: 'path', attrs: { d: 'M17.5 8.5L21 12l-3.5 3.5' } },
+  ],
+
+  /* 账户菜单:偏好设置(齿轮)。 */
+  settings: [
+    { tag: 'circle', attrs: { cx: 12, cy: 12, r: 3.1 } },
+    { tag: 'path', attrs: { d: 'M19.2 13.4l1.6 1.2-1.6 2.8-1.9-.6a7.6 7.6 0 0 1-2 1.2l-.3 2h-3.2l-.3-2a7.6 7.6 0 0 1-2-1.2l-1.9.6-1.6-2.8 1.5-1.2a7.7 7.7 0 0 1 0-2.4L4.1 9.2l1.6-2.8 1.9.6a7.6 7.6 0 0 1 2-1.2l.3-2h3.2l.3 2a7.6 7.6 0 0 1 2 1.2l1.9-.6 1.6 2.8-1.5 1.2a7.7 7.7 0 0 1 0 2.4z' } },
   ],
 }
 
