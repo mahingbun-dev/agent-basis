@@ -351,6 +351,25 @@ export const BADGE_SCRIPT = `
           }).catch(function(){})
         }).catch(function(){})
       }
+      // /permission 命令清单过滤(2026-11-12):权限选择器已随 P1-T3 禁用(cordis.patch.yml
+      // 模板 ui-permission disabled,档位固定 workspace-write+ask),但宿主 /permission
+      // 命令由 interaction/permission-presets 无条件注册(上游只读,无从关)——客户端
+      // 装饰弹窗已死,/ 菜单残留一条裸命令。此处重写 commands/list 响应滤除该描述符,
+      // 使菜单不渲染;直接键入 /permission 仍可执行,但目录仅剩只读/工作区写入两档
+      // 安全沙箱档,无提权面。若日后恢复选择器,须同步移除本过滤(与模板行成对)。
+      if(url.indexOf('commands/list')!==-1){
+        return p.then(function(r){
+          if(!r.ok||r.status===204)return r
+          return r.clone().json().then(function(d){
+            var v=d&&d.result&&d.result.ok===true?d.result.value:null
+            if(!Array.isArray(v))return r
+            var filtered=v.filter(function(c){return !(c&&c.name==='permission')})
+            if(filtered.length===v.length)return r
+            d.result.value=filtered
+            return new Response(JSON.stringify(d),{status:r.status,headers:{'content-type':'application/json'}})
+          }).catch(function(){return r})
+        })
+      }
     }catch(e){}
     return p
   }
