@@ -103,6 +103,7 @@ import {
 import { TRACE_SESSION_LIMIT_DEFAULT, listTraceSessions, readSessionTrace } from './trace.ts'
 import type {
   AiKeySource, AiPolishInput, AiPolishResult, AiProposalInput, AiProposalOrigin, AiProposalResult,
+  PersonaState,
   AiReviewInput, AiReviewResult, AiStatusResult,
   EntryNotFoundResult, EntrySummaryView, EntryValueView, LoopPromptSnapshot, PromptEntryView,
   PromptExportInput, PromptExportPack, PromptExportResult, PromptGetEntryResult, PromptGetInput,
@@ -1365,9 +1366,33 @@ export class LoopPromptGateway extends TypertRemoteService {
 
   // ---------- 端点 ----------
 
+  /**
+   * 默认条目 persona 当前态(snapshot 顶部卡片口径)。2026-11-12 起走注册表结构读
+   * (与 prompt-get 同源,块标量折叠反引已具备):persona 基线块标量化(红线入基线)
+   * 后,T7 旧口径 PersonaPatchFile.read 只认裸标量,会把「prefix: >-」误报成
+   * 「块标量不支持」→ available=false。updatedAt 字段结构读不承载(旧口径的文件
+   * mtime),置 null;UI 未消费该字段。
+   */
+  private readDefaultPersonaState(): PersonaState {
+    const entry = getPromptRegistryEntry(DEFAULT_ENTRY_ID)
+    if (entry === undefined) {
+      return { available: false, text: '', bytes: 0, patchPath: this.patch.path, updatedAt: null, error: `注册表缺默认条目 ${DEFAULT_ENTRY_ID}` }
+    }
+    const read = readEntryText(entry, this.registryReadFile())
+    const unreadable = read.text === undefined || read.problems.length > 0
+    return {
+      available: !unreadable,
+      text: unreadable ? '' : read.text ?? '',
+      bytes: unreadable ? 0 : byteLength(read.text ?? ''),
+      patchPath: this.patch.path,
+      updatedAt: null,
+      error: unreadable ? `条目当前落点不可读:${read.problems.length > 0 ? read.problems.join(';') : '反引值为空'}` : null,
+    }
+  }
+
   /** 面板快照(端点 loopPrompt/snapshot;纯 JSON,无参数)。 */
   async snapshot(): Promise<LoopPromptSnapshot> {
-    const persona = await this.patch.read()
+    const persona = this.readDefaultPersonaState()
     const pending = this.gate.peek()
     // 最近会话清单一次投影:sessions 数 = 清单长度,清单整体随 trace.recent 下发(T7.4)。
     const traceRecent = listTraceSessions(this.sessionsRoot, TRACE_SESSION_LIMIT_DEFAULT)
