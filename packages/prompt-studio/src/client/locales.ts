@@ -32,6 +32,10 @@ export type StudioLocaleKey =
   | 'studio.entry.readonly'
   | 'studio.entry.upgradeRisk'
   | 'studio.entry.risks'
+  | 'studio.entry.description'
+  | 'studio.redline.ok'
+  | 'studio.redline.missing'
+  | 'studio.redline.insert'
   | 'studio.entry.source'
   | 'studio.entry.maxBytes'
   | 'studio.entry.ruleSet'
@@ -201,6 +205,10 @@ export const zh: Record<StudioLocaleKey, string> = {
   'studio.entry.readonly': '只读',
   'studio.entry.upgradeRisk': '升级可能覆盖',
   'studio.entry.risks': '风险标注',
+  'studio.entry.description': '作用说明',
+  'studio.redline.ok': '红线锚点齐备',
+  'studio.redline.missing': '按当前草稿,保存将被拒绝——缺少红线段:',
+  'studio.redline.insert': '插入缺失红线段',
   'studio.entry.source': '来源',
   'studio.entry.maxBytes': '字节上限',
   'studio.entry.ruleSet': '红线规则集',
@@ -371,6 +379,10 @@ export const en: Record<StudioLocaleKey, string> = {
   'studio.entry.readonly': 'Read-only',
   'studio.entry.upgradeRisk': 'Upgrade may overwrite',
   'studio.entry.risks': 'Risk notes',
+  'studio.entry.description': 'What it does',
+  'studio.redline.ok': 'Red-line anchors present',
+  'studio.redline.missing': 'Save will be rejected — missing red-line sections:',
+  'studio.redline.insert': 'Insert missing red-line sections',
   'studio.entry.source': 'Source',
   'studio.entry.maxBytes': 'Byte cap',
   'studio.entry.ruleSet': 'Red-line rule set',

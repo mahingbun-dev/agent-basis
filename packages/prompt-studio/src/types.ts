@@ -241,6 +241,8 @@ export interface PromptEntryView {
   readonly source: string
   /** 型别注记(运行时型的「装配时构建」标注来源)。 */
   readonly note: string
+  /** 中文说明(该提示词在系统提示装配里干什么;2026-11-12 起 UI 条目详情展示)。 */
+  readonly description: string
   /** 风险标注(UI 直接展示)。 */
   readonly risks: readonly string[]
   /** 红线策略(persona 类=required;其余 exempt,T1.6 写链路按此豁免)。 */
