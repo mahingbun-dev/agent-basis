@@ -218,17 +218,26 @@
         isolate:
           compaction: true
           toolResultPruner: true
+          # compaction-admin(设置分区数据面)在此组内以 TypertRemoteService 发布
+          # eternaCompaction;组内发布服务必须逐键申报,否则整组静默不激活。
+          eternaCompaction: true
         config:
           - id: compaction-basic
-            name: '@deepseek-ai/dsh-compaction-basic'
+            name: '@eterna/compaction/basic-plugin'
+            # 压缩策略沿用上游默认(thresholdRatio 0.8 / retainRatio 0.16 / 重试 1),
+            # 不覆写即取 basic/config.ts 的 DEFAULT_*;此处留空 config 而非省略整行,
+            # 便于后续按部署调参时直接加键。
+            config: {}
           - id: command-compact
-            name: '@deepseek-ai/dsh-command-compact'
+            name: '@eterna/compaction/command-plugin'
           - id: tool-result-pruner
-            name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+            name: '@eterna/compaction/pruner-plugin'
             config:
               thresholdChars: 8192
               headChars: 4096
               tailChars: 1024
+          - id: compaction-admin
+            name: '@eterna/compaction/admin-plugin'
       - id: delegation
         name: cordis:group
         group: true
@@ -361,17 +370,26 @@
         isolate:
           compaction: true
           toolResultPruner: true
+          # compaction-admin(设置分区数据面)在此组内以 TypertRemoteService 发布
+          # eternaCompaction;组内发布服务必须逐键申报,否则整组静默不激活。
+          eternaCompaction: true
         config:
           - id: compaction-basic
-            name: '@deepseek-ai/dsh-compaction-basic'
+            name: '@eterna/compaction/basic-plugin'
+            # 压缩策略沿用上游默认(thresholdRatio 0.8 / retainRatio 0.16 / 重试 1),
+            # 不覆写即取 basic/config.ts 的 DEFAULT_*;此处留空 config 而非省略整行,
+            # 便于后续按部署调参时直接加键。
+            config: {}
           - id: command-compact
-            name: '@deepseek-ai/dsh-command-compact'
+            name: '@eterna/compaction/command-plugin'
           - id: tool-result-pruner
-            name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+            name: '@eterna/compaction/pruner-plugin'
             config:
               thresholdChars: 8192
               headChars: 4096
               tailChars: 1024
+          - id: compaction-admin
+            name: '@eterna/compaction/admin-plugin'
       - id: delegation
         name: cordis:group
         group: true
@@ -495,6 +513,11 @@
       name: '@eterna/prompt-studio'
     - id: eterna-usage-stats
       name: '@eterna/usage-stats'
+    # 上下文压缩宿主载具行(2026-11-12):client-modules 只收集宿主 Loader 条目的
+    # dsh.client 双面包,压缩三行全在 preset 组内进不了浏览器花名册;本行 idle 挂载
+    #仅为设置分区 client 半边提供宿主条目(数据面=preset 组内 compaction-admin)。
+    - id: eterna-compaction-client
+      name: '@eterna/compaction'
 
 # ── Companion 浏览器执行面（E4 生产挂载，2026-11-11）：用户浏览器=执行面 ────
 # dsh-mcp-client stdio 挂 browser-relay 的 MCP server（三工具 mcp__browser__*）；
