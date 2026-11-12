@@ -77,10 +77,18 @@ export const SESSION_UNARY_ACTIONS: readonly string[] = [
 
 /** 工作区资源级一元动作(只授在用户自己的工作区绑定上——上游右键菜单
  *  重命名/删除与会话置顶/归档逐项 remoteAccess.source 判定,缺席=菜单空)。
+ *  session/create(2026-11-12 第三轮):dsh 0.2.2-rc.1 的工作区行「+」不是全局门,
+ *  是 useWorkspaceAccess(workspaceId,'session/create') 资源级门(ui-workspace
+ *  Rows.tsx:273),而客户端 answer() 对资源答案严格查该资源自身绑定
+ *  (remote-access client/state.ts),global 绑定永不兜底——缺项=工作区行加号
+ *  不渲染(mux 隔离上线前 owner peer 恒真所以从未暴露)。未分组行/侧栏头/
+ *  侧栏根三处仍走全局门,不受影响。实际创建仍由守卫 fetch 路由校验工作区
+ *  归属+钳制 cwd,双保险不变。
  *  实际调用走守卫 fetch 路由 workspaceOwned 归属校验,双保险。 */
 export const WORKSPACE_UNARY_ACTIONS: readonly string[] = [
   'workspace/rename',
   'workspace/delete',
+  'session/create',
   'workspace/pinSession',
   'workspace/unpinSession',
   'workspace/archiveSession',

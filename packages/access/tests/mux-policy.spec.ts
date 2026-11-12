@@ -48,6 +48,10 @@ describe('T2:mux 策略绑定', () => {
     const workspaces = bindings.filter(b => b.resource.kind === 'workspace')
     expect(workspaces.map(b => (b.resource as { id: string }).id)).toEqual(['w-a1'])
     expect(workspaces[0]?.role.actions).toEqual([...WORKSPACE_STREAM_ACTIONS, ...WORKSPACE_UNARY_ACTIONS])
+    // 防漂移:工作区行「+」是资源级门 useWorkspaceAccess(workspaceId,'session/create'),
+    // 客户端 answer() 不落回 global 绑定——workspace 角色必须实名含 session/create,
+    // 缺项=加号不渲染(2026-11-12 第三轮回归根因)。
+    expect(workspaces[0]?.role.actions).toContain('session/create')
   })
 
   it('bob:零资源 → 仅 GLOBAL(其余资源默认 deny)', () => {
