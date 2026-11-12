@@ -13,10 +13,12 @@
  *   workspace/follow 列表按 allows() 逐项过滤(workspace-controller lib/index.js:965)全部
  *   由上游 decide 链自动生效。
  *
- * 绑定动作清单 = 上游全部 mode:'stream' 方法盘点(2026-11-11 typert.remote-client 全量扫描):
+ * 绑定动作清单 = 上游全部 mode:'stream' 方法盘点(2026-11-11 typert.remote-client 全量扫描;
+ *   2026-11-12 补 UI 门缺项——session/control 升 GLOBAL、会话级 unary 补 prompt/cancel/upload):
  *   GLOBAL: workspace/follow · terminal/attach · terminal/retain · workspaceFiles/changes ·
- *           account/watch · account/watchExpiry · job/list(宿主级共享面,owner 等价——
- *           terminal 与 workspaceFiles 无 per-user 资源注册,维持现状语义,T4/T6 收紧)
+ *           account/watch · account/watchExpiry · job/list · job/follow · session/control
+ *           (宿主级共享面,owner 等价——terminal 与 workspaceFiles 无 per-user 资源注册,
+ *           维持现状语义,T4/T6 收紧;control 见 GLOBAL_STREAM_ACTIONS 处注释)
  *   session 资源: session/follow · session/observeState · session/observeProjections ·
  *           session/observeEvent · session/control
  *   workspace 资源: workspace/follow(逐项可见性过滤用)
@@ -35,7 +37,13 @@ export interface EternaUserPrincipal {
 export const MUX_PATH = '/api/remote.mux'
 
 /** 宿主级共享面的流动作(策略 GLOBAL 绑定;新上游流方法在此缺失时 mux-drift 测试红)。
- *  remoteAccess/follow 为上游 FOLLOW_ACTION(decide 链恒 allow),不需绑定。 */
+ *  remoteAccess/follow 为上游 FOLLOW_ACTION(decide 链恒 allow),不需绑定。
+ *  session/control 亦在此列(2026-11-12 修复「发送按钮/控制流双失」):上游 control
+ *  快照流是无载荷宿主级流(session-controller client/transport.ts:121 open 不带
+ *  sessionId),网关资源解析为空时按 global 资源判定(api-gateway access.ts:35-37)
+ *  ——只授在会话绑定上时 open 恒 no-allow。租户安全:上游对流基线/增量逐会话
+ *  allows() 过滤(session-controller index.ts:636/641,action 取当前调用面
+ *  session/control,会话绑定已含),他人会话的投影不落本用户流。 */
 export const GLOBAL_STREAM_ACTIONS: readonly string[] = [
   'workspace/follow',
   'terminal/attach',
@@ -45,6 +53,7 @@ export const GLOBAL_STREAM_ACTIONS: readonly string[] = [
   'account/watchExpiry',
   'job/list',
   'job/follow',
+  'session/control',
 ]
 
 /** 宿主级一元(非流)读面动作:浏览器 peer 换血为 eterna-user 后,客户端 whenAccess
@@ -54,18 +63,25 @@ export const GLOBAL_STREAM_ACTIONS: readonly string[] = [
  *  session/create(2026-11-11 第二轮):上游三处新建会话入口(工作区行「+」/
  *  侧栏头/侧栏根)全部 useRemoteAccess('session/create') 门控,缺席=按钮不渲染。
  *  实际创建由守卫 fetch 路由校验工作区归属+钳制 cwd,此处只开按钮门。
+ *  schedule/list(2026-11-12 同批清扫):会话日程目录入口门(ui-schedule
+ *  ScheduleCatalogAction.tsx:41 useAccess('schedule/list'),缺席=入口不渲染)。
  *  防漂移:mux-drift 断言本清单与流方法表交集=∅(一元/流互斥,防重复放宽)。 */
 export const GLOBAL_UNARY_ACTIONS: readonly string[] = [
   'settings/describe',
   'pluginManager/listBundles',
   'session/create',
+  'schedule/list',
 ]
 
 /** 会话资源级一元动作(只授在用户自己的会话绑定上——上游右键菜单项
  *  session/rename/session/fork 逐项 remoteAccess.source 判定,缺席=菜单空;
  *  置顶/归档菜单项以 session 资源判 workspace 动作(Rows.tsx/context-menus.tsx
  *  remoteAccess.source('session', id, 'workspace/archiveSession')),故
- *  workspace 系会话动作也在此列)。实际调用走守卫 fetch 路由归属校验,双保险。 */
+ *  workspace 系会话动作也在此列)。实际调用走守卫 fetch 路由归属校验,双保险。
+ *  session/prompt·session/cancel·fileUploads/upload(2026-11-12 修复「发送按钮
+ *  消失」):InputBar.tsx:63-65 以 useAccess(...) === false 判定,缺席=发送/停止
+ *  按钮与文件上传门整体不渲染(T2 换血后线上三按钮实证)。三动作均为上游
+ *  unary(mux-drift 互斥断言保持绿),快照门在此,数据面仍由守卫路由把关。 */
 export const SESSION_UNARY_ACTIONS: readonly string[] = [
   'session/rename',
   'session/fork',
@@ -73,6 +89,14 @@ export const SESSION_UNARY_ACTIONS: readonly string[] = [
   'workspace/unpinSession',
   'workspace/archiveSession',
   'workspace/unarchiveSession',
+  'session/prompt',
+  'session/cancel',
+  'fileUploads/upload',
+  // schedule/list 双授(global+session):入口挂会话头部槽位(ui-schedule
+  // index.ts:271 conversation.session.header.utilities),上游资源级答案严格查
+  // 该资源自身绑定(PR#57 实证),global 绑定不兜底——按两处 useAccess 的
+  // 资源口径各自命中。
+  'schedule/list',
 ]
 
 /** 工作区资源级一元动作(只授在用户自己的工作区绑定上——上游右键菜单
@@ -84,7 +108,10 @@ export const SESSION_UNARY_ACTIONS: readonly string[] = [
  *  不渲染(mux 隔离上线前 owner peer 恒真所以从未暴露)。未分组行/侧栏头/
  *  侧栏根三处仍走全局门,不受影响。实际创建仍由守卫 fetch 路由校验工作区
  *  归属+钳制 cwd,双保险不变。
- *  实际调用走守卫 fetch 路由 workspaceOwned 归属校验,双保险。 */
+ *  实际调用走守卫 fetch 路由 workspaceOwned 归属校验,双保险。
+ *  workspace/insertBefore(2026-11-12 同批清扫):侧栏行拖拽排序门
+ *  (ui-workspace Rows.tsx:275 useWorkspaceAccess(id,'workspace/insertBefore'),
+ *  缺席=拖拽把手不渲染;守卫路由同名单租户校验)。 */
 export const WORKSPACE_UNARY_ACTIONS: readonly string[] = [
   'workspace/rename',
   'workspace/delete',
@@ -93,6 +120,7 @@ export const WORKSPACE_UNARY_ACTIONS: readonly string[] = [
   'workspace/unpinSession',
   'workspace/archiveSession',
   'workspace/unarchiveSession',
+  'workspace/insertBefore',
 ]
 
 /** 会话级流动作(策略 session 绑定)。 */

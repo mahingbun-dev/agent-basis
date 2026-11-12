@@ -73,4 +73,15 @@ describe('T2 防漂移:上游流方法表全覆盖', () => {
     expect(GLOBAL_UNARY_ACTIONS).toContain('settings/describe')
     expect(GLOBAL_UNARY_ACTIONS).toContain('session/create')
   })
+
+  it('发送/停止/上传的会话级 UI 门在位(2026-11-12「发送按钮消失」回归锚:InputBar.tsx:63-65 以 === false 判定,缺席=按钮不渲染)', () => {
+    for (const action of ['session/prompt', 'session/cancel', 'fileUploads/upload']) {
+      expect(SESSION_UNARY_ACTIONS).toContain(action)
+    }
+  })
+
+  it('宿主级 control 快照流 GLOBAL/会话绑定双在位(2026-11-12 回归锚:无载荷 open 按 global 资源判定,只授会话绑定恒 no-allow;内容过滤仍按会话绑定)', () => {
+    expect(GLOBAL_STREAM_ACTIONS).toContain('session/control')
+    expect(SESSION_STREAM_ACTIONS).toContain('session/control')
+  })
 })
