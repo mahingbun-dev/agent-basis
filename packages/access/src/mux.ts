@@ -22,8 +22,8 @@
  *   session 资源: session/follow · session/observeState · session/observeProjections ·
  *           session/observeEvent · session/control
  *   workspace 资源: workspace/follow(逐项可见性过滤用)
- *   GLOBAL 事件: event:api-session/status(2026-11-13 补,停止按钮生命线;R12 负向
- *           锚=added/error/activity 不授,见 GLOBAL_EVENT_ACTIONS 处注释)
+ *   session 事件: event:api-session/{status,added,removed,activity,error}(2026-11-13 补,
+ *           逐会话资源判定零泄漏,停止按钮生命线 status 见 SESSION_EVENT_ACTIONS 处注释)
  * 防漂移:tests/mux-drift.spec.ts 断言本清单与上游 typert 流方法表差集=∅。
  */
 import type { SessionService } from './session.ts'
@@ -75,21 +75,24 @@ export const GLOBAL_UNARY_ACTIONS: readonly string[] = [
   'schedule/list',
 ]
 
-/** 宿主广播事件动作(策略 GLOBAL 绑定)。gateway broadcastRemoteEvent 对非 owner
- *  peer 按 action=`event:<名>` decide(api-gateway index.ts:626-635),事件 typert
- *  声明无 resources 时按 GLOBAL 资源判定(gateway access.ts:98)——不授即全局 deny。
- *  api-session/status 是停止按钮的生命线(2026-11-13 修复「不能停止会话」):客户端
- *  running 旗标唯此一路(事件 → sessions/manager.ts handleSessionStatus → InputBar
- *  interruptible,InputBar.tsx:372/535),缺席=回合中按钮恒「发送消息」无从停止。
- *  残余暴露(诚实记录):载荷=(sessionId,running bool) 全宿主广播;外来会话不入
- *  summaries(applyMutation 仅 map 既有行,manager.ts:835-841)→ UI 不渲染外来
- *  会话,uuid+布尔仅客户端内存可见。api-session/added·error·activity 载荷含标题/
- *  报错文本等全宿主元数据(R12 红线)不授——侧栏新增行/报错面退化为周期
- *  session/list 拉取(守卫归属过滤版),属 T2 既有形态而非本名单可放宽项。
- *  防漂移:mux-drift 断言本清单动作均在上游 mode:'emit' 事件表内,且不含
- *  added/error/activity(R12 负向锚)。 */
-export const GLOBAL_EVENT_ACTIONS: readonly string[] = [
+/** 会话级广播事件动作(策略 session 绑定;2026-11-13 补「回合中无停止按钮」)。
+ *  gateway broadcastRemoteEvent 对非 owner peer 按 action=`event:<名>` decide
+ *  (api-gateway index.ts:626-635);api-session 五事件在转发清单逐会话声明资源
+ *  (api-remotes remote-events.ts:30-34 resources={session:(id)=>id},经 gateway
+ *  access.ts eventResources 解析)——decide 即逐会话租户判定:本人会话放行,
+ *  他人会话在 decide 丢弃,**零跨租户元数据暴露**(与 R12 修复同构)。五事件=
+ *  owner 体验全量:status=停止按钮生命线(客户端 running 旗标唯此一路:事件→
+ *  sessions/manager.ts handleSessionStatus→InputBar interruptible:372/535,
+ *  缺席=回合中按钮恒「发送消息」无从停止);added/removed=侧栏实时增删;
+ *  activity=侧栏时序;error=会话错误浮出。客户端 $on 订阅见 session-controller
+ *  client/index.ts:116-124。防漂移:mux-drift 断言均在上游转发清单(逐会话
+ *  resources)+emit 声明表内,且全局绑定不得含任何 event:* 动作(卫生锚)。 */
+export const SESSION_EVENT_ACTIONS: readonly string[] = [
   'event:api-session/status',
+  'event:api-session/added',
+  'event:api-session/removed',
+  'event:api-session/activity',
+  'event:api-session/error',
 ]
 
 /** 会话资源级一元动作(只授在用户自己的会话绑定上——上游右键菜单项
@@ -193,13 +196,13 @@ function eternaUserOf(deps: MuxPolicyDeps, request: unknown): number | undefined
 
 /** 一个用户的资源绑定(账本为唯一事实源;子代理子会话经 parentSessionId 由上游随父判定)。 */
 export function bindingsFor(deps: MuxPolicyDeps, userId: number): readonly TenantBinding[] {
-  const globalRole = { name: 'eterna:member-global', resource: 'global' as const, actions: [...GLOBAL_STREAM_ACTIONS, ...GLOBAL_UNARY_ACTIONS, ...GLOBAL_EVENT_ACTIONS] }
+  const globalRole = { name: 'eterna:member-global', resource: 'global' as const, actions: [...GLOBAL_STREAM_ACTIONS, ...GLOBAL_UNARY_ACTIONS] }
   // 会话资源还须授予 workspace/follow:上游 workspace-controller 的 follow 流对
   // workspace.sessionIds 逐项 allows({kind:'session',id}) 判定,action 取当前
   // 调用面(=workspace/follow)——会话绑定不含此动作时,连用户自己的会话也会被从
   // workspace 视图的 sessionIds 里过滤掉(侧栏落「未分组」),blank 会话的
   // sessionWorkspace/chipTitle 断链 = 新用户首屏死锁根因(2026-11-11 E2E)。
-  const sessionRole = { name: 'eterna:session-member', resource: 'session' as const, actions: [...SESSION_STREAM_ACTIONS, ...WORKSPACE_STREAM_ACTIONS, ...SESSION_UNARY_ACTIONS] }
+  const sessionRole = { name: 'eterna:session-member', resource: 'session' as const, actions: [...SESSION_STREAM_ACTIONS, ...WORKSPACE_STREAM_ACTIONS, ...SESSION_UNARY_ACTIONS, ...SESSION_EVENT_ACTIONS] }
   const workspaceRole = { name: 'eterna:workspace-member', resource: 'workspace' as const, actions: [...WORKSPACE_STREAM_ACTIONS, ...WORKSPACE_UNARY_ACTIONS] }
   const bindings: TenantBinding[] = [{ resource: { kind: 'global' }, role: globalRole }]
   for (const sessionId of deps.store.sessionsOfOwner(userId)) {

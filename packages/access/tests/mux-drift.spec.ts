@@ -6,7 +6,7 @@
 import { readdirSync, readFileSync, existsSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { join } from 'node:path'
-import { GLOBAL_EVENT_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_STREAM_ACTIONS, SESSION_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS } from '../src/mux.ts'
+import { SESSION_EVENT_ACTIONS, SESSION_STREAM_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS, bindingsFor } from '../src/mux.ts'
 
 function findPnpmRoot(): string {
   let dir = new URL('..', import.meta.url).pathname
@@ -52,6 +52,18 @@ function upstreamEmitEvents(): Set<string> {
     for (const match of text.matchAll(pattern)) events.add(match[1] ?? '')
   }
   return events
+}
+
+/** 上游转发清单(API_REMOTE_FORWARDED_EVENTS,构建时并入 dsh-api-remotes lib/index.js)。 */
+function forwardedEventsManifest(): string {
+  console.error('DEBUG regex source:', /^@deepseek-ai\+dsh-api-remotes@/.source, 'self-test:', /^@deepseek-ai\+dsh-api-remotes@/.test('@agentclientprotocol+sdk@1.4.0_zod@4.6.7'), 'good-test:', /^@deepseek-ai\+dsh-api-remotes@/.test('@deepseek-ai+dsh-api-remotes@0.2.2'))
+  const root = findPnpmRoot()
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    const nameMatch = /^@deepseek-ai\+dsh-api-remotes@/.exec(entry.name)
+    if (nameMatch === null) continue
+    return readFileSync(join(root, entry.name, 'node_modules', '@deepseek-ai', 'dsh-api-remotes', 'lib', 'index.js'), 'utf8')
+  }
+  throw new Error('找不到 dsh-api-remotes 转发清单')
 }
 
 const COVERED = new Set([...GLOBAL_STREAM_ACTIONS, ...SESSION_STREAM_ACTIONS, ...WORKSPACE_STREAM_ACTIONS])
@@ -109,19 +121,28 @@ describe('T2 防漂移:上游流方法表全覆盖', () => {
     }
   })
 
-  it('事件授权清单均在上游 emit 事件表内(差集=∅,防清单含未声明事件静默放宽)', () => {
-    const upstream = upstreamEmitEvents()
-    const missing = [...GLOBAL_EVENT_ACTIONS].map(a => a.replace(/^event:/, '')).filter(e => !upstream.has(e))
-    expect(missing).toEqual([])
-  })
-
-  it('R12 负向锚:added/error/activity 等全宿主载荷事件不授(标题/报错文本不可广播给全体用户)', () => {
-    for (const banned of ['event:api-session/added', 'event:api-session/error', 'event:api-session/activity', 'event:api-session/removed']) {
-      expect(GLOBAL_EVENT_ACTIONS).not.toContain(banned)
+  it('事件授权清单均在上游转发清单内且逐会话声明资源(差集=∅——api-remotes remote-events.ts resources={session:id},decide 即租户过滤)', () => {
+    const manifest = forwardedEventsManifest()
+    for (const action of SESSION_EVENT_ACTIONS) {
+      const event = action.replace(/^event:/, '')
+      expect(upstreamEmitEvents()).toContain(event)
+      // 转发清单里该事件必须带逐会话 resources(不带=按 GLOBAL 判定=跨租户广播,禁授)
+      const entryPattern = new RegExp(String.raw`\{\s*event: "${event}",\s*mode: "emit",\s*resources: \{ session: `)
+      const entry = entryPattern.exec(manifest)
+      expect(entry, `转发清单缺 ${event}`).not.toBeNull()
+      expect(entry?.[0]).toContain('resources')
+      expect(entry?.[0]).toContain('session:')
     }
   })
 
+  it('全局绑定零事件动作(卫生锚:事件只能授在会话绑定逐会话过滤,global 即全宿主广播)', () => {
+    // bindingsFor 依赖 store.session/session 仅为类型面;直接构造最小依赖
+    const bindings = bindingsFor({ store: { sessionsOfOwner: () => [], workspacesOfOwner: () => [] }, session: undefined } as never, 0)
+    const global = bindings.find(b => b.resource.kind === 'global')
+    expect(global?.role.actions.filter(a => a.startsWith('event:'))).toEqual([])
+  })
+
   it('停止按钮生命线事件在位(2026-11-13 回归锚:running 旗标唯此一路,缺席=回合中无停止按钮)', () => {
-    expect(GLOBAL_EVENT_ACTIONS).toContain('event:api-session/status')
+    expect(SESSION_EVENT_ACTIONS).toContain('event:api-session/status')
   })
 })
