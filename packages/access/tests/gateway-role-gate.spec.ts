@@ -104,7 +104,7 @@ describe('P2-T1.7a:守卫 fetch 路由层(HTTP cookie 判角色)', () => {
   let routes: Map<string, { fetch: (request: Request) => Promise<Response> }>
   let adminId: number
   let userId: number
-  let settingsCalls: Array<{ method: string }>
+  let settingsCalls: Array<{ method: string; args: unknown[] }>
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'eterna-gw-role-http-'))
@@ -119,9 +119,10 @@ describe('P2-T1.7a:守卫 fetch 路由层(HTTP cookie 判角色)', () => {
     const reflect = {
       get: (key: string): unknown => key === 'settingsController'
         ? {
-          mutate: (_request: unknown) => { settingsCalls.push({ method: 'mutate' }); return { revision: 2 } },
-          update: (_request: unknown) => { settingsCalls.push({ method: 'update' }); return { revision: 2 } },
-          replace: (_request: unknown) => { settingsCalls.push({ method: 'replace' }); return { revision: 2 } },
+          // 直调签名=位置参数(...args)(typert.host);全量捕获供转发形状断言。
+          mutate: (...callArgs: unknown[]) => { settingsCalls.push({ method: 'mutate', args: callArgs }); return { revision: 2 } },
+          update: (...callArgs: unknown[]) => { settingsCalls.push({ method: 'update', args: callArgs }); return { revision: 3 } },
+          replace: (...callArgs: unknown[]) => { settingsCalls.push({ method: 'replace', args: callArgs }); return { revision: 4 } },
         }
         : undefined,
     }
@@ -133,6 +134,16 @@ describe('P2-T1.7a:守卫 fetch 路由层(HTTP cookie 判角色)', () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
+  // wire 载荷形状照抄浏览器 typert 代理(参数名即 descriptor):mutate=ops /
+  // update=patch / replace=section;expectedRevision 数字或缺席。
+  const payloadOf = (path: string, ns: string): Record<string, unknown> => {
+    const method = path.split('/').pop() ?? ''
+    const revision = { expectedRevision: 7 }
+    if (method === 'update') return { ns, patch: { selectedDefault: 'cordis' }, ...revision }
+    if (method === 'replace') return { ns, section: { selectedDefault: 'cordis' }, ...revision }
+    return { ns, ops: [{ op: 'set', path: ['defaultPreset'], value: 'cordis' }], ...revision }
+  }
+
   async function settingsWrite(path: string, account: 'root' | 'alice' | undefined, ns: string) {
     const handler = routes.get(path)
     if (handler === undefined) throw new Error(`route missing: ${path}`)
@@ -143,7 +154,7 @@ describe('P2-T1.7a:守卫 fetch 路由层(HTTP cookie 判角色)', () => {
     }
     const response = await handler.fetch(new Request(`http://app.local${path}`, {
       method: 'POST', headers,
-      body: JSON.stringify({ type: 'client-request', rpcId: 't1', method: path.slice(5), payload: { args: { ns, ops: [] } } }),
+      body: JSON.stringify({ type: 'client-request', rpcId: 't1', method: path.slice(5), payload: { args: payloadOf(path, ns) } }),
     }))
     return JSON.parse(await response.text()) as Record<string, unknown>
   }
@@ -166,5 +177,20 @@ describe('P2-T1.7a:守卫 fetch 路由层(HTTP cookie 判角色)', () => {
     const other = await settingsWrite('/api/settings/mutate', 'alice', 'permission')
     expect((other.result as { ok?: boolean }).ok).toBe(true)
     expect(settingsCalls).toHaveLength(4)
+  })
+
+  it('2026-11-12 回归:update/replace 载荷键名随 descriptor 转发,不再丢成 undefined', async () => {
+    for (const path of ['/api/settings/mutate', '/api/settings/update', '/api/settings/replace']) {
+      const r = await settingsWrite(path, 'root', 'agent-preset-registry')
+      expect((r.result as { ok?: boolean }).ok).toBe(true)
+    }
+    // 三路转发形状(ns, 载荷, expectedRevision):update 收 patch、replace 收 section、
+    // mutate 收 ops;曾统一取 ops → settings.update(ns, undefined) 在 settings 侧
+    // cloneJsonShaped 抛「Config $ contains a non-plain root」(用户报障原文)。
+    expect(settingsCalls.map(c => c.method)).toEqual(['mutate', 'update', 'replace'])
+    const [mutate, update, replace] = settingsCalls
+    expect(mutate?.args).toEqual(['agent-preset-registry', [{ op: 'set', path: ['defaultPreset'], value: 'cordis' }], 7])
+    expect(update?.args).toEqual(['agent-preset-registry', { selectedDefault: 'cordis' }, 7])
+    expect(replace?.args).toEqual(['agent-preset-registry', { selectedDefault: 'cordis' }, 7])
   })
 })

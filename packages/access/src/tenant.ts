@@ -442,16 +442,25 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
   const settingsMethodOf = (path: string): string => path.split('/').pop() ?? ''
   for (const path of settingsWritePaths) {
     register(path, async (rpcId, args, ctx) => {
-      const request0 = args.request as { ns?: string; ops?: unknown } | undefined
-      const ns = firstString(request0, 'ns') ?? firstString(args, 'ns')
       const method = settingsMethodOf(path)
+      // wire 第二参数名随方法而异(typert descriptor:update=patch / replace=section /
+      // mutate=ops)。曾对三路统一取 ops,把 update/replace 的载荷丢成 undefined——
+      // settings.update(ns, undefined) 在 @deepseek/settings cloneJsonShaped 抛
+      // 「Config $ contains a non-plain root」,设置面所有 update/replace 写全灭
+      // (Agent 预设分区「设为默认」= settings.update 即用户所报)。
+      const payloadKey = method === 'update' ? 'patch' : method === 'replace' ? 'section' : 'ops'
+      const request0 = args.request as Record<string, unknown> | undefined
+      const ns = firstString(request0, 'ns') ?? firstString(args, 'ns')
       const sc = serviceOf(deps, 'settingsController')
       if (sc === undefined) return failureFrame(rpcId, new Error('settingsController not ready'))
-      // wire 参数在 args 顶层 {ns, ops, expectedRevision}——直调展开为位置参数
-      // (settingsController.mutate(ns, ops, expectedRevision),typert.host 签名)
+      // 直调展开为位置参数 settingsController.<method>(ns, payload, expectedRevision)
+      // (typert.host 签名);expectedRevision 原样透传,保住写冲突栅栏(此前硬编码
+      // undefined 等于无条件写,静默吞掉并发编辑检测)。
+      const revisionOf = (source: Record<string, unknown>): number | undefined =>
+        typeof source.expectedRevision === 'number' ? source.expectedRevision : undefined
       const callArgs: unknown[] = request0 !== undefined
-        ? [request0.ns, request0.ops, undefined]
-        : [args.ns, args.ops, undefined]
+        ? [request0.ns, request0[payloadKey], revisionOf(request0)]
+        : [args.ns, args[payloadKey], revisionOf(args)]
       if (ns !== GATEWAY_SETTINGS_NS) {
         // 非网关命名空间(用户个人设置)原样代理,不做角色判断
         const value = await callService(sc, method, ...callArgs)
