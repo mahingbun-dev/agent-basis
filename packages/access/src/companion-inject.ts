@@ -68,11 +68,18 @@ function sessionIdOf(exec: unknown): unknown {
  * shadow 定义：execute 展开冻结 args 为新对象后注入令牌（模型伪造的 `_eternaToken`
  * 被服务端值覆盖——服务端值赢，语义同原设计）；deny = throw（内核 toolErrorResult
  * 物化为 `Error: ${message}`，与 pre-execute deny 形态一致，turn 不中断）。
+ *
+ * 必须浅拷贝透传原定义的其余字段（`{ ...def, execute }`，2026-11-13 生产事故回归）：
+ * 内核对**成功**结果走 createSuccessResult → `tool.output.schema` 校验 + `output.render`
+ * 投影（dsh-tools pipeline.js:712）——只返回 `{ execute }` 时成功路径必炸
+ * `Cannot read properties of undefined (reading 'schema')`（副作用已发生、结果丢失；
+ * 错误路径反而不碰 output，这就是 tabId 探测类调用看着正常、带 url 调用必炸的
+ * 假象来源）。name/description/inputSchema/output/presentationMeta 等全部原样携带。
  */
 export function companionShadowDefinition(
   def: ToolDefinitionLike,
   deps: CompanionInjectDeps,
-): ToolDefinitionLike {
+): ToolDefinitionLike & Record<string, unknown> {
   const execute = async (args: unknown, exec: unknown): Promise<unknown> => {
     const route = routeCompanion(deps, sessionIdOf(exec))
     if (route.kind === 'deny') throw new Error(route.reason)
@@ -80,7 +87,7 @@ export function companionShadowDefinition(
     const base = args !== null && typeof args === 'object' ? args as Record<string, unknown> : {}
     return def.execute({ ...base, _eternaToken: route.token }, exec)
   }
-  return { execute }
+  return { ...def, execute }
 }
 
 /** ToolsService 的结构面（只声明 wrap 触达的 executable；避免拖入 cordis 类型面）。 */

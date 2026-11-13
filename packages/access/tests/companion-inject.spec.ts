@@ -27,13 +27,20 @@ function execOf(sessionId: string | undefined): unknown {
   return { agent: { session: { id: sessionId } } }
 }
 
-/** 假工具定义：记录实际收到的 args（dispatch 边界的真实入参）。 */
-function recordingDef(): { def: ToolDefinitionLike; seen: unknown[] } {
+/** 假工具定义：记录实际收到的 args（dispatch 边界的真实入参）。携带内核消费的
+ * name/output 面（createSuccessResult 读 output.schema/render——shadow 必须透传）。 */
+function recordingDef(): { def: ToolDefinitionLike & Record<string, unknown>; seen: unknown[] } {
   const seen: unknown[] = []
-  const def: ToolDefinitionLike = {
+  const def: ToolDefinitionLike & Record<string, unknown> = {
     execute: async (args) => {
       seen.push(args)
       return { ok: true }
+    },
+    name: 'mcp__browser__browser_snapshot',
+    description: 'snapshot',
+    output: {
+      schema: { type: 'object' },
+      render: () => [{ type: 'text', text: 'rendered' }],
     },
   }
   return { def, seen }
@@ -65,6 +72,20 @@ describe('companion:companionShadowDefinition', () => {
     // 原件仍是冻结的纯净对象：无 token 键、不可写
     expect(Object.isFrozen(frozenArgs)).toBe(true)
     expect(Object.keys(frozenArgs)).toEqual(['url'])
+  })
+
+  it('shadow 透传原定义其余字段——内核成功路径读 output.schema/render（2026-11-13 生产事故回归：只返回 {execute} 时成功调用必炸 reading \'schema\'）', async () => {
+    const { def, seen } = recordingDef()
+    const shadow = companionShadowDefinition(def, deps)
+    // 内核 createSuccessResult 的消费形态:成功结果按 output.schema 校验、output.render 投影
+    expect((shadow as Record<string, unknown>)['output']).toBe(def.output)
+    expect(((shadow as Record<string, unknown>)['output'] as { schema: unknown }).schema).toEqual({ type: 'object' })
+    expect((shadow as Record<string, unknown>)['name']).toBe('mcp__browser__browser_snapshot')
+    expect((shadow as Record<string, unknown>)['description']).toBe('snapshot')
+    await shadow.execute(Object.freeze({ url: 'https://x' }), execOf('s-known'))
+    expect(seen).toHaveLength(1)
+    // execute 是换面:shadow.execute !== def.execute
+    expect(shadow.execute).not.toBe(def.execute)
   })
 
   it('模型伪造的 _eternaToken 被服务端值覆盖（服务端值赢）', async () => {
