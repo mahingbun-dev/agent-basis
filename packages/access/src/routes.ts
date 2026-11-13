@@ -10,6 +10,7 @@ import {
   redirectReply, requestOrigin, type AccessReply, type AccessRequest,
 } from './http.ts'
 import { companionGuideUrl, companionTokenOf, resetCompanionToken } from './companion.ts'
+import type { ToolApprovalView } from './approval-bridge.ts'
 import { PasswordPolicyError } from './password.ts'
 import { renderLoginPage } from './pages.ts'
 import { SlidingWindow } from './ratelimit.ts'
@@ -40,6 +41,11 @@ export interface AccessDeps {
   readonly provisionWorkspace: (user: { readonly id: number; readonly account: string }) => Promise<void>
   /** companion 中继公网 ws 地址(ETERNA_RELAY_PUBLIC_URL;缺省=指引页按本机端口展示)。 */
   readonly relayPublicWsUrl?: string | undefined
+  /** 工具审批桥(2026-11-13):治理 ask 的 web 可见面;未装配=端点返回空表。 */
+  readonly approvalBridge?: {
+    listFor(ownerId: number): ToolApprovalView[]
+    decide(id: string, userId: number, allow: boolean): boolean
+  } | undefined
 }
 
 /** T2.3 插件启停清单:红线(治理/审计/出网/门禁本体)不可停,其余 L1 可由 admin 停用。 */
@@ -90,6 +96,8 @@ export function handleAccessRequest(deps: AccessDeps, req: AccessRequest): Acces
   if (req.pathname.startsWith('/access/api/users/') && method === 'DELETE') return handleUserDelete(deps, req, ip)
   if (req.pathname === '/access/api/companion' && method === 'GET') return handleCompanionView(deps, req)
   if (req.pathname === '/access/api/companion/reset' && method === 'POST') return handleCompanionReset(deps, req, ip)
+  if (req.pathname === '/access/api/approvals/tool-pending' && method === 'GET') return handleToolApprovalsPending(deps, req)
+  if (req.pathname === '/access/api/approvals/tool-decide' && method === 'POST') return handleToolApprovalDecide(deps, req)
   if (req.pathname === '/access/api/plugins' && method === 'GET') return handlePluginList(deps, req)
   if (req.pathname.startsWith('/access/api/plugins/') && req.pathname.endsWith('/remove') && method === 'POST') {
     return handlePluginRemove(deps, req, ip)
@@ -108,6 +116,27 @@ function handleCompanionView(deps: AccessDeps, req: AccessRequest): AccessReply 
     createdAt: entry?.createdAt ?? null,
     guideUrl: companionGuideUrl(deps.relayPublicWsUrl),
   })
+}
+
+// ── 工具审批桥(web 可见面,2026-11-13)────────────────────────────────
+// GET tool-pending:本人待决审批(web 前端轮询);POST tool-decide:本人裁决。
+// 归属校验在 bridge.decide/listFor 内(跨用户不可见不可决);审计在桥内出。
+
+function handleToolApprovalsPending(deps: AccessDeps, req: AccessRequest): AccessReply {
+  const user = requireUser(deps, req)
+  if (user === undefined) return errorReply(401, '未登录')
+  return jsonResponse(200, { items: deps.approvalBridge?.listFor(user.id) ?? [] })
+}
+
+function handleToolApprovalDecide(deps: AccessDeps, req: AccessRequest): AccessReply {
+  const user = requireUser(deps, req)
+  if (user === undefined) return errorReply(401, '未登录')
+  const body = parseJsonBody(req.body) as { id?: unknown; allow?: unknown } | undefined
+  const id = typeof body?.id === 'string' ? body.id : ''
+  if (id === '' || typeof body?.allow !== 'boolean') return errorReply(400, '参数不合法')
+  const decided = deps.approvalBridge?.decide(id, user.id, body.allow) ?? false
+  if (!decided) return errorReply(404, '审批不存在、已收场或不属于你')
+  return jsonResponse(200, { ok: true })
 }
 
 /** companion 令牌生成/重置(覆盖旧值即刻失效);审计只记动作不记令牌值。 */

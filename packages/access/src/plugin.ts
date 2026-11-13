@@ -16,6 +16,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { reportAccessAudit, type AccessAuditEvent, type AuditReflect } from './audit.ts'
 import { companionTokenOf } from './companion.ts'
 import { installCompanionExecutableWrap, readToolsService, routeCompanion } from './companion-inject.ts'
+import { ApprovalBridge, toolApprovalTimeoutMs } from './approval-bridge.ts'
 import { type AccessRequest } from './http.ts'
 import type { Context } from '@deepseek-ai/cordis'
 // 空类型导入 = dsh-tools 对 cordis Events('tools/pre-execute')增广的触发器（governance-plugin 同款）：
@@ -156,6 +157,14 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         secure: process.env.ETERNA_ACCESS_SECURE === '1',
       })
       const tenantRoot = process.env.ETERNA_TENANT_ROOT ?? join(process.env.DSH_HOME ?? process.cwd(), 'workspaces')
+      // ── 工具审批桥(2026-11-13):web 前端无审批面,治理 ask 挂死不可见(session-
+      // 7e15e6ab 事故)。宿主侧答者接内核 approval/request waterfall,按会话归属
+      // 暴露给本人浏览器(轮询/裁决;超时 unavailable)。未知会话 next() 透传。
+      const approvalBridge = new ApprovalBridge({
+        sessionOwner: (id: string) => store.sessionOwner(id),
+        audit,
+        timeoutMs: toolApprovalTimeoutMs(process.env),
+      })
       const deps: AccessDeps = {
         store,
         session,
@@ -169,7 +178,13 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         relayPublicWsUrl: process.env.ETERNA_RELAY_PUBLIC_URL !== undefined && process.env.ETERNA_RELAY_PUBLIC_URL !== ''
           ? process.env.ETERNA_RELAY_PUBLIC_URL
           : undefined,
+        approvalBridge,
       }
+      // 答者随插件卸载解除;disposers 数组在下方 createNodeHandler 后才初始化(TDZ),
+      // 故先留柄、落数组时统一收编。on 注册面走结构面 cast(cordis on 具体重载不进桥)。
+      const offApprovalAnswerer = approvalBridge.installAnswerer(
+        listener => (ctx as unknown as { on: (event: string, listener: (request: unknown, next: () => unknown) => unknown) => () => void }).on('approval/request', listener),
+      )
       // P3(2026-11-11):把归属账本 provide 出去(usage-stats 聚合的归属唯一事实源;
       // reflect 键 eternaAccessStore)。账本只读面,不含凭据。
       const storeProvide = (ctx as unknown as { provide?: (id: string, value: unknown) => () => void }).provide
@@ -224,6 +239,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         ctx.webServer.tapIndex(html => injectBadge(html)),
       ]
       disposers.push(offCompanionIdentity)
+      disposers.push(offApprovalAnswerer)
       // Phase 2 租户面(T2.2/T2.5):存量 workspace 划归首个 admin
       adoptLegacyWorkspaces(store)
       // P1-T2(2026-11-11):mux 流租户隔离——principal 换血 + registerPolicy。

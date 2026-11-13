@@ -15,6 +15,7 @@ import { DirectoryTreeFlow } from './directory-tree.tsx'
 import { ModelMenu } from './model-menu.tsx'
 import { AccountLauncher, type AccountLauncherInjected } from './account-menu.tsx'
 import { installLinkOpeningDefault } from './link-opening.ts'
+import { installApprovalCard } from './approval-card.tsx'
 import { injectAccessStyles } from './styles.ts'
 import { api } from './api.ts'
 
@@ -338,6 +339,12 @@ export function apply(ctx: AccessClientContext): () => void {
     chatSettings: ctx.configForms?.get<{ getSnapshot(): { value?: { linkOpening?: unknown } | undefined } | undefined; set(field: string, value: unknown): Promise<boolean> }>('ui-chat'),
   })
 
+  // 工具审批卡(2026-11-13):治理 ask 的 web 可见面——上游前端无审批 UI,ask 挂死
+  // 不可见(session-7e15e6ab 事故)。轮询本人待决审批,body 级横幅允/拒;宿主半边
+  // = approval-bridge.ts(approval/request 答者)。轮询/渲染任何失败静默。
+  const requireShimForCard = require as unknown as (id: 'react-dom/client') => { createRoot(container: Element): { render(node: React.ReactElement): void; unmount(): void } }
+  const approvalCard = installApprovalCard(requireShimForCard('react-dom/client').createRoot)
+
   const registerSections = (role: 'admin' | 'user'): void => {
     ctx.slots.inject('settings.section', () => ctx.slots.register({
       name: 'settings.section',
@@ -434,7 +441,11 @@ export function apply(ctx: AccessClientContext): () => void {
   // - 「+ 新建会话」常驻可见(上游 hover-only CSS;access 全局样式强制)
   registerModelDrawer(ctx)
 
-  return disposeLocale
+  const disposeLocaleOriginal = disposeLocale
+  return () => {
+    try { approvalCard?.dispose() } catch { /* 尽力而为 */ }
+    disposeLocaleOriginal()
+  }
 }
 
 /** 模型双面板菜单装配。React 渲染走壳注入的 react-dom/client(CJS external)。 */
