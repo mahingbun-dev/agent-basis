@@ -95,7 +95,11 @@ DNS：推荐 **v6-only**（AAAA）。实测记录：家宽 v4 入站被运营商
 
 ## 7. 升级
 
+**重建/重启前必查活动会话**（2026-11-13 事故：#68 重建时未查，正在运行的 turn 被
+`disposed` 杀死）：
+
 ```bash
+bash deploy/pre-restart-check.sh   # 近 120s 有会话写入则拒绝继续;确认可中断时 FORCE=1 放行
 git pull && docker compose build && docker compose up -d
 bash deploy/verify.sh
 ```
@@ -122,6 +126,14 @@ bootstrap token 视为敏感；公网入口建议反代层再加 basic auth 双�
 - **R12**：上游流端点（WS mux）不经守卫——工作区列表元数据对登录用户全局可见；数据面已隔离
 - **失败开放**（R7）：access 插件挂载失败时 web 仍起（无门禁）——监控启动日志 FAILED fiber
 - 插件启停/删除为**实例级**语义（共享 owner 会话模型约束）；per-user 插件可见性列上游需求项
+- **会话 shell 与宿主同信任域**（2026-11-13 session-7e15e6ab 事故定论）：bash job 在容器内
+  与 dsh 进程同权限运行，可读 companion-tokens.json（**全员**浏览器令牌）与 /data/relay-token
+  ——结构上无法在不破坏 companion 注入/mcp-browser 的前提下隔离（令牌本就活在同一进程的
+  配置与内存里）。现行约束=治理 deny 规则（`deny-credential-access`，bash/read/grep/glob/
+  edit/write 命中 `relay-token`/`companion-tokens.json`/`:9310` 即拒）+ 提示词凭据/内服红线；
+  这是**引导非强制**的边界，彻底隔离=沙箱容器化执行（P1-T3 之后路线）。令牌轮换入口：
+  主令牌=删卷上 `/data/relay-token` 后重启（扩展 options 同步换）；用户令牌=设置→账号→
+  浏览器执行面「重置」
 
 ## 10. Companion 浏览器执行面（扩展分发 + 中继）
 

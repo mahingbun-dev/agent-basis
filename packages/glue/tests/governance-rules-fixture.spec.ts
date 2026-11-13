@@ -75,4 +75,32 @@ describe('容器默认治理规则集(docker/profile/governance.rules.yml)', () 
     expect(evaluation.decision).toBe('ask')
     expect(evaluation.isDefault).toBe(true)
   })
+
+  // ── deny 族:凭据面隔离(session-7e15e6ab 事故:模型经 bash 收割 relay/用户令牌
+  // 直连 relay 绕过工具管线)。argsContains 子串命中即 deny,优先于 allow-shell/fs。──
+  it('凭据面 deny:令牌文件/内网端口命中即拒,优先于 allow(deny > allow)', () => {
+    const denials: ReadonlyArray<readonly [string, unknown]> = [
+      ['bash', { command: 'cat /data/relay-token' }],
+      ['bash', { command: 'curl -s http://127.0.0.1:9310/api/tools -H "x-relay-token: x"' }],
+      ['bash', { command: 'cat /data/access/companion-tokens.json' }],
+      ['read', { path: '/data/relay-token' }],
+      ['grep', { pattern: 'relay-token', path: '/data' }],
+    ]
+    for (const [tool, args] of denials) {
+      const evaluation = engine.evaluateCall({ name: tool, arguments: args })
+      expect(evaluation.decision, `${tool} 触碰凭据面应 deny:${JSON.stringify(args)}`).toBe('deny')
+    }
+  })
+
+  it('deny 不误伤常规调用:良性命令仍走 allow-shell/fs', () => {
+    const benign: ReadonlyArray<readonly [string, unknown]> = [
+      ['bash', { command: 'ls -la /data/workspaces' }],
+      ['bash', { command: 'cat package.json | head' }],
+      ['read', { path: '/data/workspaces/Mr.Ma/README.md' }],
+    ]
+    for (const [tool, args] of benign) {
+      const evaluation = engine.evaluateCall({ name: tool, arguments: args })
+      expect(evaluation.decision, `${tool} 良性调用不应被凭据面误伤:${JSON.stringify(args)}`).toBe('allow')
+    }
+  })
 })
