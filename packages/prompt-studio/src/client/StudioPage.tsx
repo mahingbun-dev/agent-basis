@@ -209,7 +209,7 @@ function Stat({ label, value, anchor }: {
   )
 }
 
-/** 库列表条目行(按钮;型别/可编辑性胶囊 + 版本数/字节概览 + 未保存草稿圆点)。 */
+/** 库列表条目行(两行紧凑:名称+未保存草稿圆点 / 型别胶囊+概览;原型 prompt-item 同构)。 */
 function EntryNavRow({ entry, selected, dirty, onSelect, t }: {
   readonly entry: EntrySummaryView
   readonly selected: boolean
@@ -235,18 +235,18 @@ function EntryNavRow({ entry, selected, dirty, onSelect, t }: {
           <span data-ps-entry-row-id>{entry.id}</span>
           <span data-ps-entry-dirty-dot title={t('studio.editor.dirty')} aria-hidden="true" />
         </span>
-        <span data-ps-entry-row-pills>
+        <span data-ps-entry-row-sub>
           <span data-ps-pill data-ps-tone="neutral">{t(`studio.kind.${entry.kind}`)}</span>
           {entry.kind === 'patch-value'
             ? <span data-ps-pill data-ps-tone="business">{t('studio.entry.editable')}</span>
             : <span data-ps-pill data-ps-tone="neutral">{t('studio.entry.readonly')}</span>}
           {upgradeOverwrite && <span data-ps-pill data-ps-tone="warn">{t('studio.entry.upgradeRisk')}</span>}
-        </span>
-        <span data-ps-entry-row-meta>
-          {entry.versioned
-            ? `${formatTokens(entry.versions.count)} ${t('studio.versions.countLabel')}`
-            : t('studio.entry.noVersions')}
-          {entry.value.bytes !== null && ` · ${formatTokens(entry.value.bytes)} ${t('studio.editor.bytes')}`}
+          <span data-ps-entry-row-meta>
+            {entry.versioned
+              ? `${formatTokens(entry.versions.count)} ${t('studio.versions.countLabel')}`
+              : t('studio.entry.noVersions')}
+            {entry.value.bytes !== null && ` · ${formatTokens(entry.value.bytes)} ${t('studio.editor.bytes')}`}
+          </span>
         </span>
       </button>
     </li>
@@ -1301,6 +1301,30 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
     }
   }
 
+  /** 重置草稿(原型「重置」;真实语义=丢弃未提交草稿,回到当前生效文本)。 */
+  const resetDraft = (): void => {
+    if (!ready || selected === undefined || selected.kind !== 'patch-value' || valueUnreadable) return
+    setDraft(selectedText)
+    setBaseline(selectedText)
+    try { sessionStorage.removeItem(draftKeyOf(selected.id)) } catch { /* 忽略 */ }
+    setSummary('')
+    setResetArmed(false)
+  }
+
+  /**
+   * 重置两击确认(AGENTS.md 交互纪律:破坏性操作两击确认,禁用原生 confirm):
+   * 第一击武装(按钮文案切换,3s 不击自动解除),第二击才真丢弃草稿。
+   */
+  const [resetArmed, setResetArmed] = useState(false)
+  const handleResetClick = (): void => {
+    if (!resetArmed) {
+      setResetArmed(true)
+      window.setTimeout(() => { setResetArmed(false) }, 3000)
+      return
+    }
+    resetDraft()
+  }
+
   /** 第二段:回显同载荷 + approvalId + approved(TOCTOU 由宿主复验)。 */
   const answerApproval = async (approved: boolean): Promise<void> => {
     if (pending === null || busy) return
@@ -1451,12 +1475,20 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
     }
   }
 
-  /** 编辑器面板滚入视口(窄视口点击库条目时可见地「打开」;宽布局无害)。 */
+  /**
+   * 编辑器面板滚入视口:仅当它(几乎)不在视口内时才滚,且用 block:'nearest'
+   * 最小滚动——block:'start' 会把面板顶边对齐视口顶,即使面板已可见也强行滚动
+   * (2026-11-13 用户反馈「点条目页面往上滚」的根因)。宽三栏布局下编辑器本就在
+   * 视口内,nearest=零滚动;窄单列布局下点击库条目仍能可见地滚到编辑器。
+   */
   const scrollDetailIntoView = (): void => {
     const panel = editorPanelRef.current
     if (panel === null) return
+    const rect = panel.getBoundingClientRect()
+    const inView = rect.top >= 0 && rect.bottom <= window.innerHeight
+    if (inView) return
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    panel.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
+    panel.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'nearest' })
   }
 
   /**
@@ -1474,6 +1506,7 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
     setAiPolish({ status: 'idle' })
     setAiInstruction('')
     setAiReview({ status: 'idle' })
+    setResetArmed(false)
     setTab('edit')
     window.requestAnimationFrame(scrollDetailIntoView)
   }
@@ -1856,6 +1889,9 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
 
             {ready && selected !== undefined && selected.kind === 'patch-value' && !valueUnreadable && tab === 'edit' && (
               <footer className="ps-editor-foot" data-ps-editor-foot>
+                <span className="ps-foot-dirty" data-ps-foot-dirty={dirty ? 'true' : 'false'} hidden={!dirty}>
+                  {t('studio.editor.dirty')}
+                </span>
                 <input
                   data-t7-save-summary
                   type="text"
@@ -1864,6 +1900,15 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
                   onChange={event => { setSummary(event.target.value) }}
                 />
                 <div data-t7-editor-actions>
+                  <button
+                    type="button"
+                    data-ps-editor-reset
+                    data-ps-reset-armed={resetArmed ? 'true' : 'false'}
+                    disabled={!dirty || busy}
+                    onClick={handleResetClick}
+                  >
+                    {resetArmed ? t('studio.editor.resetConfirm') : t('studio.editor.reset')}
+                  </button>
                   <button
                     type="button"
                     data-t7-save-btn

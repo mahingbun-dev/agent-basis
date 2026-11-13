@@ -13,11 +13,15 @@ const CSS = `
   animation: et-fade-in var(--et-motion-base) var(--et-ease) both;
   width: 100%;
   height: 100%;
+  /* border-box 必须落在根元素自身:width:100% + 横向 padding 48px×2 在 content-box
+     下渲染宽 = 100%+96px,整面板被推出宿主主区右缘(AI 助手栏被裁切,2026-11-13
+     用户实测);全局 box-sizing 规则只覆盖后代,不含根元素本身。 */
+  box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-gutter: stable;
   display: block;
-  padding: 48px 48px 96px;
+  padding: 40px 40px 80px;
   max-width: none;
   margin: 0 auto;
   font-family: var(--et-font-body);
@@ -30,7 +34,7 @@ const CSS = `
 
 /* —— 头部 —— */
 [data-t7-heading] {
-  margin: 0; font-size: var(--et-text-h2); line-height: 1.15; font-weight: var(--et-weight-display);
+  margin: 0; font-size: var(--et-text-h1); line-height: 1.15; font-weight: var(--et-weight-display);
   letter-spacing: 0; color: var(--et-fg);
 }
 [data-t7-sub] { margin: 8px 0 0; font-size: var(--et-text-body); line-height: var(--et-leading-body); color: var(--et-muted); }
@@ -290,8 +294,8 @@ const CSS = `
 [data-ps-layer-group-hint] { margin-left: auto; font-size: var(--et-text-micro); color: var(--et-muted); }
 [data-ps-entry-list] { margin: 0; padding: 0; list-style: none; }
 [data-ps-entry-row] {
-  width: 100%; display: flex; flex-direction: column; gap: 4px; text-align: left;
-  padding: 12px 12px; margin: 0 -12px; font: inherit; cursor: pointer; background: none;
+  width: 100%; display: flex; flex-direction: column; gap: 5px; text-align: left;
+  padding: 9px 10px; margin: 0 -10px; font: inherit; cursor: pointer; background: none;
   border: 0; border-bottom: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md);
 }
 [data-ps-entry-list] > li:last-child [data-ps-entry-row] { border-bottom: 0; }
@@ -304,8 +308,15 @@ const CSS = `
   font-size: var(--et-text-caption); font-weight: 600; color: var(--et-fg); overflow-wrap: anywhere;
 }
 [data-ps-entry-row-pills] { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+[data-ps-entry-row-sub] { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
 [data-ps-entry-row-meta] {
   font-size: var(--et-text-micro); color: var(--et-muted); font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+[data-ps-editor-reset][data-ps-reset-armed='true'] {
+  color: var(--et-danger);
+  border-color: color-mix(in srgb, var(--et-danger) 45%, transparent);
+  background: color-mix(in srgb, var(--et-danger) 8%, transparent);
 }
 [data-ps-pill] {
   display: inline-flex; align-items: center; padding: 1px 10px; border-radius: var(--et-radius-sm);
@@ -658,7 +669,7 @@ const CSS = `
 .ps-page-actions [data-t7-refresh]:hover { background: var(--et-surface-2); color: var(--et-fg); }
 
 [data-ps-workspace] {
-  display: grid; grid-template-columns: minmax(240px, 292px) minmax(0, 1fr) minmax(264px, 324px);
+  display: grid; grid-template-columns: 272px minmax(0, 1fr) 328px;
   gap: 12px; align-items: start;
 }
 .ps-panel {
@@ -774,6 +785,19 @@ const CSS = `
   border-top: 1px solid var(--et-border-soft);
   border-radius: 0 0 var(--et-radius-md) var(--et-radius-md);
 }
+.ps-foot-dirty {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  font-size: var(--et-text-micro); color: var(--et-warn); font-weight: var(--et-weight-display);
+}
+.ps-foot-dirty::before { content: ""; width: 6px; height: 6px; border-radius: var(--et-radius-pill); background: var(--et-warn); }
+.ps-foot-dirty[hidden] { display: none; }
+[data-ps-editor-reset] {
+  padding: 10px 14px; min-height: 36px; font: inherit; font-size: var(--et-text-caption); cursor: pointer;
+  color: var(--et-fg-2); background: transparent;
+  border: 1px solid var(--et-border); border-radius: var(--et-radius-sm);
+}
+[data-ps-editor-reset]:hover:not(:disabled) { background: var(--et-surface); color: var(--et-fg); }
+[data-ps-editor-reset]:disabled { opacity: 0.45; cursor: default; }
 .ps-editor-foot [data-t7-save-summary] { flex: 1 1 160px; min-width: 0; }
 
 /* 版本对比(原型 compare 形态:双下拉 + 交换/重置 + 左右版本卡 + 双栏行号 diff) */
@@ -1005,7 +1029,7 @@ const CSS = `
   [data-t7-session-list] { grid-template-columns: 1fr; }
   [data-t7-trace-turns] { grid-template-columns: 1fr; }
   /* 三栏 → 两栏:库 + 编辑器同排,AI 助手整宽落底 */
-  [data-ps-workspace] { grid-template-columns: minmax(220px, 264px) minmax(0, 1fr); }
+  [data-ps-workspace] { grid-template-columns: 264px minmax(0, 1fr); }
   [data-ps-ai-panel] { grid-column: 1 / -1; }
   .ps-library-list { max-height: 420px; }
 }
