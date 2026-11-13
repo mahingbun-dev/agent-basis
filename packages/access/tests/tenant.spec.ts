@@ -26,12 +26,26 @@ describe('tenant 守卫', () => {
   let aliceId: number
   let bobId: number
   let root: string
+  // modelCatalog 专路测试注入口:配置行清单(缺省 undefined=纯透传)与上游返回值
+  let configEditorConfiguration: unknown
+  let upstreamCatalog: Record<string, unknown>
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'eterna-tenant-'))
     store = new UserStore(join(dir, 'users.db'))
     calls = []
     routes = new Map()
+    configEditorConfiguration = undefined
+    upstreamCatalog = {
+      default: { provider: 'litellm', model: 'glm-flash' },
+      routableProviders: ['litellm'],
+      groups: [{ id: 'litellm', name: '企业模型网关（LiteLLM）', models: [
+        { id: 'glm-flash', name: 'GLM Flash' },
+        { id: 'glm-vision', name: 'GLM Vision' },
+        { id: 'glm-catalog-vision', name: 'GLM Catalog Vision' },
+      ] }],
+      failures: [{ id: 'ghost', name: '幽灵路由', message: 'no key' }],
+    }
     session = new SessionService(Buffer.from('tenant-secret-tenant-secret-000'))
     root = join(dir, 'workspaces')
     const alice = store.createUserWithSuffix({ account: 'alice', password: 'password8' })
@@ -80,8 +94,11 @@ describe('tenant 守卫', () => {
         },
         modelCatalog: (request: unknown) => {
           calls.push({ service: 'sessionController', method: 'modelCatalog', params: [request] })
-          return { models: [] }
+          return upstreamCatalog
         },
+      },
+      configEditor: {
+        configuration: () => configEditorConfiguration,
       },
     }
     const reflect = { get: (key: string): unknown => services[key] }
@@ -231,6 +248,34 @@ describe('tenant 守卫', () => {
     const catalog = await call('/api/session/modelCatalog', 'bob', {})
     expect(catalog.result?.result).toMatchObject({ ok: true })
     expect(calls.find(c => c.method === 'modelCatalog')).toBeDefined()
+  })
+
+  it('session/modelCatalog:pi-ai 声明 image 的模型富化「视觉」badge;无配置=逐字段透传;上游值不被变异', async () => {
+    configEditorConfiguration = { entries: [{ entry: { options: { id: 'llm-pi-ai' } }, override: { providers: {
+      litellm: {
+        defaultInput: ['text'],
+        models: [
+          { id: 'glm-flash', input: ['text'] },
+          { id: 'glm-vision', input: ['text', 'image'] },
+        ],
+        modelOverrides: { 'glm-catalog-vision': { input: ['image'] } },
+      },
+    } } }] }
+    const enriched = await call('/api/session/modelCatalog', 'bob', {})
+    expect(enriched.result?.result).toMatchObject({ ok: true })
+    const value = (enriched.result?.result as { value: Record<string, unknown> }).value
+    const models = (value.groups as { models: Record<string, unknown>[] }[])[0]!.models
+    expect(models[0]).not.toHaveProperty('badge') // 显式 text-only 不打
+    expect(models[1]!.badge).toEqual({ text: { en: 'Vision', zh: '视觉' }, tone: 'neutral' })
+    expect(models[2]!.badge).toEqual({ text: { en: 'Vision', zh: '视觉' }, tone: 'neutral' }) // modelOverrides 命中
+    expect(value.failures).toEqual(upstreamCatalog.failures) // failures 原样
+    // 不可变富化:上游返回对象本身不被改写
+    const upstreamModels = (upstreamCatalog.groups as { models: Record<string, unknown>[] }[])[0]!.models
+    expect(upstreamModels[1]).not.toHaveProperty('badge')
+    // configEditor 无配置 → 纯透传(逐字段等于上游值)
+    configEditorConfiguration = undefined
+    const passthrough = await call('/api/session/modelCatalog', 'bob', {})
+    expect((passthrough.result?.result as { value: unknown }).value).toEqual(upstreamCatalog)
   })
 
   it('T2.5 迁移:存量 workspace 幂等划归首个 admin', () => {

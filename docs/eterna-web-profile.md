@@ -114,6 +114,17 @@ env 探测提示）、模型目录（逐行 ID/名称/上下文窗口/最大输�
 4. **模型发现即连接测试**：「获取可用模型」经 `llm/discoverModels` 对 baseURL 发
    `/models`（一次性凭据不落库）；目录保存后模型选择器按 displayName 分组展示全量。
 
+**模型能力 tag（视觉，2026-11-13 补）**：模型选择器在模型名旁渲染能力 tag
+（对齐 ZCode 参考样式）。数据链路：能力真值=pi-ai 配置行「输入类型〔视觉〕」
+（`providers.<ns>.models[].input` / 路由级 `defaultInput`；modality 词表仅
+`text|image`，故「视觉」是唯一可真实推导的能力，不编造）；`@eterna/access`
+网关在 `/api/session/modelCatalog` 响应上**不可变富化**上游既有字段
+`ModelCatalogModel.badge`（`src/model-catalog.ts` 纯函数层 + tenant 专路；只补缺、
+provider 自带 badge 不覆盖，configEditor 缺席=逐字段纯透传）。同一 RPC 亦供上游
+`ui-model-selection`——composer 触发器与上游菜单零改动自动亮（上游位次：触发器
+tag 在名前、菜单在名后，只读面不追改）。客户端 chip 全 `--et-*` 令牌渲染；
+文案 LocalizedText `{en: Vision, zh: 视觉}` 按 `navigator.language` 解析（en 兜底）。
+
 **企业挂载集第 6 行（@eterna/llm-doctor 体检哨兵，2026-11-09 补）**：协议↔baseURL
 自动适配 + 逐模型连通性测试。装载 = 挂载集 insert 块加一行
 `- id: eterna-llm-doctor, name: '@eterna/llm-doctor'`（profile node_modules symlink
