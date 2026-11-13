@@ -308,6 +308,29 @@ describe('aiChatCompletion(同构 wire,三协议请求/响应形态)', () => {
     expect(badApi.ok).toBe(false)
     expect(badApi.error).toContain('不支持的协议')
   })
+
+  it('跨协议兜底反引:anthropic 路由回 openai 形态(choices)→ 仍能反引(2026-11-13 生产网关形态漂移)', async () => {
+    const fetchImpl = recordingFetch(() => jsonResponse(200, { choices: [{ message: { content: '跨形态文本' } }] }))
+    const result = await aiChatCompletion({ ...base, api: 'anthropic-messages', system: 'SYS', user: 'USR', fetchImpl })
+    expect(result.ok).toBe(true)
+    expect(result.text).toBe('跨形态文本')
+  })
+
+  it('空响应(content=[] + stop_reason)→ 可诊断错误(stop_reason/输出块/output_tokens),不裸甩 JSON', async () => {
+    const fetchImpl = recordingFetch(() => jsonResponse(200, {
+      id: 'resp_x', type: 'message', role: 'assistant', content: [],
+      model: 'deepseek-v4.1-flash', stop_reason: 'end_turn', usage: { input_tokens: 814, output_tokens: 0 },
+    }))
+    const result = await aiChatCompletion({ ...base, api: 'anthropic-messages', system: 'S', user: 'U', fetchImpl })
+    expect(result.ok).toBe(false)
+    expect(result.error).toContain('模型返回空内容')
+    expect(result.error).toContain('stop_reason=end_turn')
+    expect(result.error).toContain('[]')
+    expect(result.error).toContain('output_tokens=0')
+    expect(result.error).toContain('重试')
+    // 响应摘录被截短(不再整段甩 JSON)
+    expect((result.error?.length ?? 0) < 400).toBe(true)
+  })
 })
 
 describe('AI 端点全链(真实 cordis 根 Context + configEditor 桩 + 同构假 fetch)', () => {

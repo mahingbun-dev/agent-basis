@@ -152,6 +152,7 @@ export type StudioLocaleKey =
   | 'studio.ai.status.unavailable'
   | 'studio.ai.instruction'
   | 'studio.ai.instructionPlaceholder'
+  | 'studio.ai.inputHint'
   | 'studio.ai.polish'
   | 'studio.ai.polishing'
   | 'studio.ai.unavailable.note'
@@ -345,7 +346,8 @@ export const zh: Record<StudioLocaleKey, string> = {
   'studio.ai.status.checking': '检测中…',
   'studio.ai.status.unavailable': 'AI 能力不可用',
   'studio.ai.instruction': '润色侧重点(可省)',
-  'studio.ai.instructionPlaceholder': '例如:更紧凑,保留全部红线锚点',
+  'studio.ai.instructionPlaceholder': '输入润色要求(可多行)——例如:我不希望预设就是 coding agent,应更像全能智能管家,增加记忆管理;保留全部红线锚点',
+  'studio.ai.inputHint': 'Enter 生成 · Shift+Enter 换行',
   'studio.ai.polish': '生成建议稿',
   'studio.ai.polishing': 'AI 生成中…',
   'studio.ai.unavailable.note': '建议稿无法生成:需宿主配置默认模型路由并导出 API key 环境变量后方可使用;条目编辑、版本与审批不受影响。',
@@ -540,7 +542,8 @@ export const en: Record<StudioLocaleKey, string> = {
   'studio.ai.status.checking': 'Checking…',
   'studio.ai.status.unavailable': 'AI unavailable',
   'studio.ai.instruction': 'Polish focus (optional)',
-  'studio.ai.instructionPlaceholder': 'e.g. more compact, keep all red-line anchors',
+  'studio.ai.instructionPlaceholder': 'Enter your polish request (multi-line) — e.g. the preset should be an all-round intelligent butler rather than a coding agent; add memory management; keep all red-line anchors',
+  'studio.ai.inputHint': 'Enter to generate · Shift+Enter for newline',
   'studio.ai.polish': 'Generate draft',
   'studio.ai.polishing': 'AI generating…',
   'studio.ai.unavailable.note': 'Draft generation unavailable: the host needs a default model route and the API key exported in its environment. Entry editing, versions and approvals are unaffected.',

@@ -818,18 +818,29 @@ function AiPolishSection({ status, polish, instruction, aiBusy, busy, canPolish,
         </p>
       )}
       <div data-ps-ai-input-row className="ps-ai-input-row">
-        <input
+        <textarea
           data-ps-ai-instruction
-          type="text"
           value={instruction}
+          rows={4}
           placeholder={t('studio.ai.instructionPlaceholder')}
           aria-label={t('studio.ai.instruction')}
           disabled={aiBusy}
           onChange={event => { onInstructionChange(event.target.value) }}
+          onKeyDown={event => {
+            // 聊天框纪律(2026-11-13 用户反馈):Enter 直接生成,Shift+Enter 换行;
+            // 输入法组合中(ime)不触发,避免拼音上屏被截。
+            if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+              event.preventDefault()
+              if (!blockPolish) onPolish()
+            }
+          }}
         />
-        <button type="button" data-ps-ai-polish-btn disabled={blockPolish} onClick={onPolish}>
-          {aiBusy ? t('studio.ai.polishing') : t('studio.ai.polish')}
-        </button>
+        <div className="ps-ai-input-foot">
+          <span className="ps-ai-input-hint">{t('studio.ai.inputHint')}</span>
+          <button type="button" data-ps-ai-polish-btn disabled={blockPolish} onClick={onPolish}>
+            {aiBusy ? t('studio.ai.polishing') : t('studio.ai.polish')}
+          </button>
+        </div>
       </div>
       {polish.status === 'loading' && <p data-t7-placeholder data-ps-ai-loading="true">{t('studio.ai.polishing')}</p>}
       {polish.status === 'error' && <p data-ps-ai-error>{t('studio.ai.error')}:{polish.message}</p>}
