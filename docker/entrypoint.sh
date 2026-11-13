@@ -161,7 +161,8 @@ echo "[entrypoint] governance rules: $GOV_SRC -> $DSH_HOME/.eterna/governance.ru
 
 # ── 3. 插件 symlink(本仓 @eterna/*) ────────────────────────────────────
 # compaction(2026-11-12 fork 的上下文压缩家族)必须在此清单内,否则容器内解析不到。
-for pkg in glue llm-doctor brand panel prompt-studio llm-openai access usage-stats compaction; do
+# attachments(2026-11-12 附件入口,客户端双面包)同理——缺 symlink 即 insert 行静默 disable。
+for pkg in glue llm-doctor brand panel prompt-studio llm-openai access usage-stats compaction attachments; do
   ln -sfn "$REPO/packages/$pkg" "$PROFILE_DIR/node_modules/@eterna/$pkg"
 done
 # creation-skills 别名(preset-cordis skill-filesystem 解析名)

@@ -53,6 +53,7 @@ export const TOGGLEABLE_PLUGINS: ReadonlyArray<{ id: string; label: string }> = 
   { id: 'eterna-llm-doctor', label: '模型诊断' },
   { id: 'eterna-brand', label: '品牌层' },
   { id: 'eterna-panel', label: '基座面板' },
+  { id: 'eterna-attachments', label: '附件入口' },
   { id: 'eterna-prompt-studio', label: '提示词工作室' },
   { id: 'eterna-usage-stats', label: '用量统计' },
 ]

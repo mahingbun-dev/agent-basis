@@ -31,6 +31,7 @@ export type IconName =
   | 'palette'
   | 'logout'
   | 'settings'
+  | 'paperclip'
 
 export const ICONS: Readonly<Record<IconName, readonly IconPrimitive[]>> = {
   /* 基座面板:半环仪表 + 指针,表达「观测/控制台」而非通用齿轮。 */
@@ -140,6 +141,11 @@ export const ICONS: Readonly<Record<IconName, readonly IconPrimitive[]>> = {
   settings: [
     { tag: 'circle', attrs: { cx: 12, cy: 12, r: 3.1 } },
     { tag: 'path', attrs: { d: 'M19.2 13.4l1.6 1.2-1.6 2.8-1.9-.6a7.6 7.6 0 0 1-2 1.2l-.3 2h-3.2l-.3-2a7.6 7.6 0 0 1-2-1.2l-1.9.6-1.6-2.8 1.5-1.2a7.7 7.7 0 0 1 0-2.4L4.1 9.2l1.6-2.8 1.9.6a7.6 7.6 0 0 1 2-1.2l.3-2h3.2l.3 2a7.6 7.6 0 0 1 2 1.2l1.9-.6 1.6 2.8-1.5 1.2a7.7 7.7 0 0 1 0 2.4z' } },
+  ],
+
+  /* 附件入口:竖直回形针一笔画(外线-底弯-左线-内顶弯-内线,开口在右上)。 */
+  paperclip: [
+    { tag: 'path', attrs: { d: 'M16.5 5.5v9.5a4.5 4.5 0 0 1-9 0V7a2.5 2.5 0 0 1 5 0v8' } },
   ],
 }
 

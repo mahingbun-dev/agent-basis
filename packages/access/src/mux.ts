@@ -102,18 +102,20 @@ export const SESSION_EVENT_ACTIONS: readonly string[] = [
  *  workspace 系会话动作也在此列)。实际调用走守卫 fetch 路由归属校验,双保险。
  *  session/prompt·session/cancel·fileUploads/upload(2026-11-12 修复「发送按钮
  *  消失」):InputBar.tsx:63-65 以 useAccess(...) === false 判定,缺席=发送/停止
- *  按钮与文件上传门整体不渲染(T2 换血后线上三按钮实证)。三动作均为上游
- *  unary(mux-drift 互斥断言保持绿),快照门在此,数据面仍由守卫路由把关。 */
+ *  按钮与文件上传门整体不渲染(T2 换血后线上三按钮实证;fileUploads/upload
+ *  同时是附件入口门——缺席=「+」菜单"文件"命令/粘贴/拖拽全拒,附件功能
+ *  整体不可见,fix/attachment-entry 实证)。四动作均为上游 unary(mux-drift
+ *  互斥断言保持绿),快照门在此,数据面仍由守卫路由把关。 */
 export const SESSION_UNARY_ACTIONS: readonly string[] = [
   'session/rename',
   'session/fork',
+  'fileUploads/upload',
   'workspace/pinSession',
   'workspace/unpinSession',
   'workspace/archiveSession',
   'workspace/unarchiveSession',
   'session/prompt',
   'session/cancel',
-  'fileUploads/upload',
   // schedule/list 双授(global+session):入口挂会话头部槽位(ui-schedule
   // index.ts:271 conversation.session.header.utilities),上游资源级答案严格查
   // 该资源自身绑定(PR#57 实证),global 绑定不兜底——按两处 useAccess 的

@@ -105,6 +105,8 @@ const HOST_KEPT_ROWS = [
   'credentials',
   // 提示词工作室（T1.2 生产挂载，insert 行 + profile node_modules symlink）
   'eterna-prompt-studio',
+  // 附件入口（2026-11-12 生产挂载，输入框工具行「附件」按钮，客户端双面包）
+  'eterna-attachments',
 ]
 
 /** Kept rows that live behind agent presets: present + enabled + active in `standard`. */
@@ -172,6 +174,14 @@ if (!existsSync(join(promptStudioPkg, 'lib', 'client.js'))) {
 }
 mkdirSync(join(profileDir, 'node_modules', '@eterna'), { recursive: true })
 symlinkSync(promptStudioPkg, join(profileDir, 'node_modules', '@eterna', 'prompt-studio'), 'dir')
+// 附件入口（2026-11-12 生产挂载）：insert 行 name 解析 '@eterna/attachments'
+// 同样只经 profile node_modules；客户端双面包需宿主 Loader 条目 + lib/client.js。
+const attachmentsPkg = join(repoRoot, 'packages', 'attachments')
+if (!existsSync(join(attachmentsPkg, 'lib', 'client.js'))) {
+  console.error('verify-eterna-web: packages/attachments/lib/client.js 缺失——先跑 pnpm --filter @eterna/attachments run verify（build:client）')
+  process.exit(1)
+}
+symlinkSync(attachmentsPkg, join(profileDir, 'node_modules', '@eterna', 'attachments'), 'dir')
 // 上下文压缩家族（2026-11-12 fork 本地化）：compaction group 三行 name 解析
 // '@eterna/compaction/*-plugin' 同样只经 profile node_modules。缺此行时三行解析失败，
 // 整组 standard 预设行静默不激活（fiberPhase=null）——与 entrypoint 记载的
@@ -343,6 +353,13 @@ if (!roster.ok) {
   pass('browser roster: 压缩包 combo 可取且含 factory 注册(id=@eterna/compaction)',
     roster.compactionBody !== '' && roster.compactionBody.includes('id: "@eterna/compaction"'),
     roster.compactionBody === '' ? 'combo 取回为空' : `bytes=${roster.compactionBody.length}`)
+  // 附件入口(2026-11-12):工具行「附件」按钮 client 半边——花名册含
+  // @eterna/attachments/client.js 且 factory 注册,否则按钮不渲染。
+  pass('browser roster: combo 花名册含 @eterna/attachments/client.js', roster.attachmentsCombo !== '',
+    roster.attachmentsCombo === '' ? 'combo urls 无附件包条目——dsh.client 声明或 lib/client.js 缺失' : roster.attachmentsCombo.slice(0, 120))
+  pass('browser roster: 附件包 combo 可取且含 factory 注册(id=@eterna/attachments)',
+    roster.attachmentsBody !== '' && roster.attachmentsBody.includes('id: "@eterna/attachments"'),
+    roster.attachmentsBody === '' ? 'combo 取回为空' : `bytes=${roster.attachmentsBody.length}`)
 }
 
 // ---------------------------------------------------------------------------
@@ -419,7 +436,14 @@ async function probeRoster(url) {
       const combo = await fetch(`${index.origin}/${compactionCombo.replace(/^\/+/, '')}`, { headers: { cookie }, signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) })
       if (combo.ok) compactionBody = await combo.text()
     }
-    return { ok: true, status: page.status, html, ours, comboBody, compactionCombo, compactionBody }
+    // 附件入口(2026-11-12):输入框工具行按钮 client 半边的花名册取证,同款口径。
+    const attachmentsCombo = comboUrls.find((u) => u.includes('@eterna/attachments/client.js')) ?? ''
+    let attachmentsBody = ''
+    if (attachmentsCombo !== '') {
+      const combo = await fetch(`${index.origin}/${attachmentsCombo.replace(/^\/+/, '')}`, { headers: { cookie }, signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) })
+      if (combo.ok) attachmentsBody = await combo.text()
+    }
+    return { ok: true, status: page.status, html, ours, comboBody, compactionCombo, compactionBody, attachmentsCombo, attachmentsBody }
   } catch (error) {
     return { ok: false, error: { code: 'roster', message: String(error?.message ?? error) } }
   }

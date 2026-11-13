@@ -54,6 +54,10 @@ describe('T2:mux 策略绑定', () => {
     // 客户端 answer() 不落回 global 绑定——workspace 角色必须实名含 session/create,
     // 缺项=加号不渲染(2026-11-12 第三轮回归根因)。
     expect(workspaces[0]?.role.actions).toContain('session/create')
+    // 防漂移:输入栏附件门是会话资源级门 useAccess('fileUploads/upload')
+    // (InputBar.tsx:65),缺项=「+」菜单"文件"命令不渲染、粘贴/拖拽全拒
+    // (2026-11-12 附件功能整体不可见根因)。
+    expect(sessions[0]?.role.actions).toContain('fileUploads/upload')
   })
 
   it('bob:零资源 → 仅 GLOBAL(其余资源默认 deny)', () => {
