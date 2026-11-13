@@ -21,6 +21,7 @@ import {
 } from '../src/registry.ts'
 import type { PromptRegistryEntry, RegistryFileReader } from '../src/registry.ts'
 import { MAX_PERSONA_BYTES, RED_LINE_RULES } from '../src/validator.ts'
+import { ENTRY_META_LOCALE_EN, ENTRY_META_LOCALE_ZH, entryDescriptionKey, entryEffectNoteKey } from '../src/client/entry-meta.ts'
 
 /** 仓库根(packages/prompt-studio/tests → 上三级)。 */
 const REPO_ROOT = join(import.meta.dirname, '..', '..', '..')
@@ -346,6 +347,22 @@ describe('T1.3 ④红线豁免语义(persona 类必检,非 persona 豁免)', () 
     expect(industrialPersona).toContain('达梦业务库只读')
     expect(industrialPersona).toContain('deny 优先、fail-closed')
     expect(entry('domain.industrial-analysis.persona-md').redLineRuleSet).toBe('eterna.red-lines.industrial-analysis')
+  })
+})
+
+describe('客户端元数据词典交叉钉住(entry-meta.ts zh ≡ registry.ts,2026-11-13)', () => {
+  // 版本区信息块的本地化值经 entry-meta.ts 词典(zh=registry 逐字副本,en=翻译层,
+  // 缺键回退注册表原文)。zh 副本与注册表无结构关联,靠本测试逐条目钉死——注册表
+  // 改 description/effect.note 而不同步本词典,此处即红(单一事实源的机器证据)。
+  it('每条目的 zh description/effectNote 与注册表逐字一致,且 en 层不缺键', () => {
+    for (const e of PROMPT_REGISTRY_ENTRIES) {
+      const descKey = entryDescriptionKey(e.id)
+      const noteKey = entryEffectNoteKey(e.id)
+      expect(ENTRY_META_LOCALE_ZH[descKey], `${e.id} description zh 副本漂移`).toBe(e.description)
+      expect(ENTRY_META_LOCALE_ZH[noteKey], `${e.id} effectNote zh 副本漂移`).toBe(e.effect.note)
+      expect(ENTRY_META_LOCALE_EN?.[descKey], `${e.id} description 缺 en 翻译`).toBeTruthy()
+      expect(ENTRY_META_LOCALE_EN?.[noteKey], `${e.id} effectNote 缺 en 翻译`).toBeTruthy()
+    }
   })
 })
 

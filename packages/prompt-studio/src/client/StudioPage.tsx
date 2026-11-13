@@ -51,6 +51,7 @@ import type {
 /** 指定会话查询的三态线形状(ok/not-found/unavailable;列表态另用 ListResult)。 */
 type SnapshotGetEnvelope = SessionSnapshotGetResult | SessionSnapshotNotFoundResult | SessionSnapshotUnavailableResult
 import { ENDPOINTS, type RpcEnvelope } from './rpc.ts'
+import { entryDescriptionKey, entryEffectNoteKey } from './entry-meta.ts'
 import { formatTime, formatTokens, utf8Bytes } from './format.ts'
 import {
   type AskUserQuestionItem, type PendingApproval, type StudioState, writeOutcomeFrom,
@@ -1574,6 +1575,23 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
   const aiPanelUsable = ready && selected !== undefined && selected.kind === 'patch-value' && !valueUnreadable
   const aiAvailable = aiStatus.status === 'loaded' && aiStatus.result.available
 
+  /**
+   * 注册表元数据本地化(2026-11-13 用户需求:版本区信息随界面语言):description/
+   * effectNote 经词典键 t() 解析(词典见 entry-meta.ts,zh=registry 逐字副本,
+   * en=翻译);词典缺键(未来新增条目未补 en)或返回空时回退注册表快照原文——
+   * 有键缺译不哑,永不显示裸键名。
+   */
+  const localizedEntryMeta = (entry: EntrySummaryView): { description: string; effectNote: string } => {
+    const descKey = entryDescriptionKey(entry.id)
+    const noteKey = entryEffectNoteKey(entry.id)
+    const desc = t(descKey)
+    const note = t(noteKey)
+    return {
+      description: desc === '' || desc === descKey ? entry.description : desc,
+      effectNote: note === '' || note === noteKey ? entry.effect.note : note,
+    }
+  }
+
   return (
     <div data-t7-studio-root aria-label={t('studio')}>
       {/* —— R3 审批卡:root 滚动容器顶部 sticky 常驻(首个子元素=天然可见位;任何
@@ -1809,6 +1827,28 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
               {ready && selected !== undefined && tab === 'versions' && (
                 <section data-t7-section="versions" aria-label={t('studio.versions')}>
                   <p data-t7-section-note>{t('studio.versions.note')}</p>
+                  {/* 条目信息块(2026-11-13 用户需求:版本库里直接可见这份提示词属于
+                      哪个插件、有什么作用、什么时候生效——registry 单一事实源,
+                      不另造数据) */}
+                  <div className="ps-version-entry-info" data-ps-version-entry-info>
+                    <div className="ps-entry-info-row">
+                      <span className="ps-entry-info-label">{t('studio.versions.plugin')}</span>
+                      <span className="ps-entry-info-value">{selected.source}</span>
+                    </div>
+                    <div className="ps-entry-info-row">
+                      <span className="ps-entry-info-label">{t('studio.entry.description')}</span>
+                      <span className="ps-entry-info-value">{localizedEntryMeta(selected).description}</span>
+                    </div>
+                    <div className="ps-entry-info-row">
+                      <span className="ps-entry-info-label">{t('studio.entry.effect')}</span>
+                      <span className="ps-entry-info-value">
+                        <span data-ps-pill data-ps-tone={selected.effect.radius === 'immediate-new-session' ? 'business' : selected.effect.radius === 'not-composed-anywhere' ? 'warn' : 'neutral'}>
+                          {t(`studio.effect.${selected.effect.radius}`)}
+                        </span>
+                        <span className="ps-entry-info-note">{localizedEntryMeta(selected).effectNote}</span>
+                      </span>
+                    </div>
+                  </div>
                   <div data-t7-export-row>
                     <button
                       type="button"

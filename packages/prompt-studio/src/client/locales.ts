@@ -25,6 +25,7 @@ export type StudioLocaleKey =
   | 'studio.compare.current'
   | 'studio.compare.statChanged'
   | 'studio.versions.single'
+  | 'studio.versions.plugin'
   | 'studio.entry.governance'
   | 'studio.ai.assistant'
   | 'studio.ai.hint.noSelection'
@@ -218,6 +219,7 @@ export const zh: Record<StudioLocaleKey, string> = {
   'studio.compare.current': '当前生效',
   'studio.compare.statChanged': '处变更',
   'studio.versions.single': '只有当前一个版本:保存修改后,这里会出现可左右对比的版本记录(只增不删)。',
+  'studio.versions.plugin': '所属插件',
   'studio.entry.governance': '条目说明与生效条件',
   'studio.ai.assistant': 'AI 助手',
   'studio.ai.hint.noSelection': '选中左侧可编辑(patch 值型)条目后,可在这里生成润色建议稿与问题清单审核;运行时注入型条目无写回落点,不提供 AI 面板。',
@@ -412,6 +414,7 @@ export const en: Record<StudioLocaleKey, string> = {
   'studio.compare.current': 'Current effective',
   'studio.compare.statChanged': 'changes',
   'studio.versions.single': 'Only the current version exists: after saving a change, comparable version records appear here (append-only).',
+  'studio.versions.plugin': 'Owner plugin',
   'studio.entry.governance': 'Entry notes & effect',
   'studio.ai.assistant': 'AI assistant',
   'studio.ai.hint.noSelection': 'Pick an editable (patch-value) entry on the left to generate polish drafts and review reports here; runtime-injected entries have no write-back target and offer no AI panel.',

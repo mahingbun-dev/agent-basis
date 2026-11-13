@@ -16,6 +16,7 @@
 import { StudioIcon, TraceIcon } from './icons.tsx'
 import { StudioPage } from './StudioPage.tsx'
 import { TracePage, type TraceState } from './TracePage.tsx'
+import { ENTRY_META_LOCALE_EN, ENTRY_META_LOCALE_ZH } from './entry-meta.ts'
 import { NS, en, zh } from './locales.ts'
 import { injectStudioStyles } from './styles.ts'
 import { callRpc, type RpcEnvelope } from './rpc.ts'
@@ -38,7 +39,12 @@ export const inject: readonly string[] = ['slots', 'locale', 'connection']
  */
 export function apply(ctx: PromptStudioClientContext): () => void {
   const disposeStyles = injectStudioStyles()
-  const disposeLocale = ctx.locale.register(NS, { zh, en })
+  // 注册表条目元数据(版本区信息块)并入命名空间词典:值随活跃语言重解,
+  // zh 侧是 registry 逐字副本(交叉钉住见 tests/registry.test.ts)。
+  const disposeLocale = ctx.locale.register(NS, {
+    zh: { ...zh, ...ENTRY_META_LOCALE_ZH },
+    en: { ...en, ...ENTRY_META_LOCALE_EN },
+  })
   const t = ctx.locale.bind(NS)
 
   // —— 工坊数据源(裸 observable 源;三个只读端点一次拉齐) ——

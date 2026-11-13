@@ -906,6 +906,21 @@ const CSS = `
   background: var(--et-surface);
 }
 .ps-compare-note { margin: 0; font-size: var(--et-text-micro); color: var(--et-muted); }
+/* 版本区条目信息块(所属插件/作用/生效条件;registry 单一事实源直读) */
+.ps-version-entry-info {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 12px 16px; border-radius: var(--et-radius-md);
+  background: var(--et-surface-2);
+  border: 1px solid var(--et-border-soft);
+}
+.ps-entry-info-row { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.ps-entry-info-label { font-size: var(--et-text-micro); color: var(--et-muted); white-space: nowrap; }
+.ps-entry-info-value {
+  min-width: 0; font-size: var(--et-text-caption); line-height: 20px; color: var(--et-fg-2);
+  overflow-wrap: anywhere;
+}
+.ps-entry-info-value [data-ps-pill] { margin-right: 8px; }
+.ps-entry-info-note { color: var(--et-muted); }
 .ps-compare-single { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: var(--et-radius-sm); background: var(--et-surface); border: 1px solid var(--et-border-soft); }
 .ps-compare-single .ps-empty-inline { margin: 2px 0; }
 
