@@ -33,6 +33,13 @@ const ETerna_WEB_TOOLS: readonly string[] = [
   'workflow', 'cordis_inspect_list', 'cordis_inspect_query',
   'list_agents', // ← subagent/tool-subagent-control/src/list-agents.ts(2026-11-10 PH-3 补遗)
   'memory_write', 'memory_read', 'memory_search', 'memory_forget', // ← @eterna/memory MEMORY_TOOL_NAMES(2026-11-13 补遗)
+  // ── 2026-11-13 二批(session-7e15e6ab 挂死事故:52 工具全名单对账,未列名=挂死在不可见审批)──
+  'mcp__browser__browser_snapshot', 'mcp__browser__browser_click', 'mcp__browser__browser_fill', // ← browser-relay mcp.ts
+  'knowledge_propose', 'knowledge_read', 'knowledge_search', 'knowledge_status', // ← @eterna/glue knowledge 插件
+  'list_mcp_resources', 'list_mcp_resource_templates', 'read_mcp_resource', // ← 上游 mcp 资源面
+  'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update', // ← 上游 team 协作族
+  'send_message', 'spawn_teammate', 'wait_agent', 'interrupt_agent', // ← 上游 team 协作族
+  'create_worktree', // ← 上游 workspace 工作树(working_directory 刻意不列,见规则文件尾注)
 ]
 
 describe('容器默认治理规则集(docker/profile/governance.rules.yml)', () => {
