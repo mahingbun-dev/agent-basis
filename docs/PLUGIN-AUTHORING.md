@@ -35,6 +35,23 @@ EternaAgent 部署为多账号门禁形态(eterna-access):unary `/api` 端点由
 4. **启停语义**:L1 插件必须登记进 `packages/access/src/routes.ts` 的 `TOGGLEABLE_PLUGINS`(或红线清单);admin 停用 = 重启后 patch 行被 entrypoint 渲染管线裁剪——插件必须可缺席(audit 缺席降级纪律同样适用于启停)。红线默认:治理/审计/出网/门禁。
 5. **mux 流隔离(原 R12,2026-11-11 已关闭)**:WS mux 流端点(`workspace/follow` 等)经 eterna-access 的 principal 换血+registerPolicy 过滤——mux 升级按 eterna_session 换血 per-user Peer(`packages/access/src/mux.ts`),策略绑定按归属账本动态返回,流 open 越权抛 `remote-access/denied`、列表按 `allows()` 逐项过滤(T2 E2E 容器实证:跨用户列表 0 命中、盗开会话流被拒)。防漂移:`packages/access/tests/mux-drift.spec.ts` 断言上游全部流方法∈策略动作清单。**新上游流端点落地时必须同步加入动作清单(测试即红)。** 新端点设计时仍避免把敏感数据放进列表元数据(过滤按资源归属,非字段级)。
 
+#### 1.1.1 公共面路由映射(铁律 T2 的唯一豁免口)
+
+个别**公开静态资源**在架构上无法走 access 的 `/access/*` 面,也拿不到 `webServer.tapIndex`(上游静态面对非 index 文件按通用文件路径原样返回,没有 transform 钩子)。这类资源可登记豁免,门槛硬性、四项缺一不可:
+
+1. 公开静态资源(对任何访问者字节等价);
+2. 不含任何用户/租户数据;
+3. 无写操作(纯 GET/HEAD);
+4. 不承载鉴权语义(既不判定也不旁路登录态)。
+
+| 包 | 路径 | 性质 | 登记理由 |
+| --- | --- | --- | --- |
+| `brand` | `/manifest.webmanifest` | PWA 清单(站点名/图标引用) | 上游 `dsh-host-frontend-static` 的 `serveStatic` 对非 index 文件无 transform 钩子,品牌化只能以同路径 `kind: 'exact'` 路由接替 |
+
+豁免实现于 `tools/packctl/src/tenant.ts` 的 `PUBLIC_SURFACE_ROUTES`,匹配**精确到包 + 调用块内 `kind: 'exact'` + 该路径字面量**三项同时成立。不做通配、不做子串放宽——否则任何插件在注册行捎带一个已登记路径字符串即可绕过门禁。防漂移用例:`tools/packctl/tests/tenant.spec.ts` 的「公共面豁免不得被滥用」(错包/错路径/prefix/fallback 四类仍判违规)。
+
+新增条目 = 改 `PUBLIC_SURFACE_ROUTES` + 本表 + PR 说明,三者必须同期到位。
+
 ### 1.2 提示词登记铁律(2026-11-11 起,`packctl prompt-scan` 强制)
 
 提示词工作室(ps-v2)是**全产品提示词唯一管理面**:三层全景可查可改、版本化、审批生效。反面强制 = 涉及提示词工程而未登记的插件/包被 CI 拦截(计划书成功标准 4)。**登记真值 = `packages/prompt-studio/src/registry.ts` 的 `PROMPT_REGISTRY_ENTRIES`**(对账文档 `docs/dev/ps-v2-registry-ledger.md`,条目型别/锚点/风险标注见 T1.3)。新插件/包触碰以下任一面 = 先登记再提交:

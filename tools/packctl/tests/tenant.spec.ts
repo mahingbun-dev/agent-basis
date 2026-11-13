@@ -49,4 +49,30 @@ describe('packctl tenant-scan 铁律', () => {
     makeRepo(dir, 'eterna-doc', 'index.ts', '// 参考:上游用 webServer.registerFallback 做 SPA 服务\nexport const x = 1\n')
     expect(tenantScan(dir)).toHaveLength(0)
   })
+
+  it('T2 公共面豁免:仅 brand + /manifest.webmanifest + exact 精确放行', () => {
+    // 跨行书写(真实形态):register 与 path 分处两行,靠调用块聚合识别
+    makeRepo(dir, 'brand', 'index.ts', [
+      'disposers.push(webServer.register({',
+      "  kind: 'exact',",
+      "  path: '/manifest.webmanifest',",
+      '  resource: createManifestResource(file),',
+      '}))',
+    ].join('\n'))
+    expect(tenantScan(dir)).toHaveLength(0)
+  })
+
+  it('T2 公共面豁免不得被滥用:错包/错路径/非 exact 一律仍违规', () => {
+    // 同一路径但非登记包 → 违规
+    makeRepo(dir, 'eterna-rogue', 'index.ts', "ctx.webServer.register({ kind: 'exact', path: '/manifest.webmanifest', handler })\n")
+    // 同包但换路径 → 违规
+    makeRepo(dir, 'brand2', 'evil.ts', "const a = ctx.webServer.register({ kind: 'exact', path: '/api/users', handler })\n")
+    // 登记包 + 登记路径但非 exact(prefix 覆盖任意子面)→ 违规
+    makeRepo(dir, 'brand', 'prefix.ts', "ctx.webServer.register({ kind: 'prefix', path: '/manifest.webmanifest', handler })\n")
+    // 登记包 + 登记路径但走 fallback(抢占全局 fallback seat)→ 违规
+    makeRepo(dir, 'brand3', 'fb.ts', "ctx.webServer.registerFallback({ path: '/manifest.webmanifest' })\n")
+    const findings = tenantScan(dir)
+    const routes = findings.filter(f => f.code === 'tenant/route-escapes-gate')
+    expect(routes.length).toBeGreaterThanOrEqual(4)
+  })
 })
