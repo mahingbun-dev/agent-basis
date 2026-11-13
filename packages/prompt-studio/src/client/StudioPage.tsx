@@ -1476,17 +1476,18 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
   }
 
   /**
-   * 编辑器面板滚入视口:仅当它(几乎)不在视口内时才滚,且用 block:'nearest'
-   * 最小滚动——block:'start' 会把面板顶边对齐视口顶,即使面板已可见也强行滚动
-   * (2026-11-13 用户反馈「点条目页面往上滚」的根因)。宽三栏布局下编辑器本就在
-   * 视口内,nearest=零滚动;窄单列布局下点击库条目仍能可见地滚到编辑器。
+   * 编辑器面板滚入视口:仅当它可见高度不足(≈被视口裁得只剩边角)时才滚,且用
+   * block:'nearest' 最小滚动。阈值 200px:宽三栏布局编辑器本就整栏在视口内(哪怕
+   * 高出视口、底边被裁)→零滚动——任何非零滚动都是用户没要的页面跳动(2026-11-13
+   * 用户反馈「点条目页面往上滚」;nearest 的底边对齐仍会造成 ~百 px 漂移,已实测
+   * 修掉);窄单列布局点库条目时编辑器几乎不可见 → 仍能可见地滚到它。
    */
   const scrollDetailIntoView = (): void => {
     const panel = editorPanelRef.current
     if (panel === null) return
     const rect = panel.getBoundingClientRect()
-    const inView = rect.top >= 0 && rect.bottom <= window.innerHeight
-    if (inView) return
+    const visibleHeight = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0)
+    if (visibleHeight >= 200) return
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     panel.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'nearest' })
   }
