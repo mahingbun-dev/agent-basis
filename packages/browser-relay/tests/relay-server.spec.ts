@@ -136,4 +136,30 @@ describe('RelayServer（E4 鉴权与多连接）', () => {
     expect(body.browsers).toBeInstanceOf(Array)
     expect(typeof body.connectedBrowsers).toBe('number')
   })
+
+  it('/api/status?token= 按令牌探测自己的扩展在线（tokenConnected）', async () => {
+    const b = `ws://127.0.0.1:${String(port)}`
+    // 占住连接：open 后立即 hello 才在 relay 注册命名空间（扩展真实行为）
+    const ws = new WebSocket(`${b}/extension?token=${encodeURIComponent('tok-user-7')}`)
+    await new Promise<void>((resolve) => {
+      ws.on('open', () => {
+        ws.send(JSON.stringify({ t: 'hello', proto: 1, ext: 'test', extVersion: '0.1.0', chromeVersion: '157.0.0.0' }))
+        setTimeout(resolve, 200)
+      })
+      ws.on('error', () => {})
+    })
+    try {
+      const mine = await fetch(`${base()}/api/status?token=${encodeURIComponent('tok-user-7')}`)
+      const mineBody = await mine.json() as { tokenConnected?: boolean }
+      expect(mineBody.tokenConnected).toBe(true)
+      const other = await fetch(`${base()}/api/status?token=tok-not-connected`)
+      const otherBody = await other.json() as { tokenConnected?: boolean }
+      expect(otherBody.tokenConnected).toBe(false)
+      const bare = await fetch(`${base()}/api/status`)
+      const bareBody = await bare.json() as { tokenConnected?: boolean }
+      expect('tokenConnected' in bareBody).toBe(false)
+    } finally {
+      ws.close()
+    }
+  })
 })

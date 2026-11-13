@@ -14,7 +14,9 @@ import { ManageTab } from './plugins-manager.tsx'
 import { DirectoryTreeFlow } from './directory-tree.tsx'
 import { ModelMenu } from './model-menu.tsx'
 import { AccountLauncher, type AccountLauncherInjected } from './account-menu.tsx'
+import { installLinkOpeningDefault } from './link-opening.ts'
 import { injectAccessStyles } from './styles.ts'
+import { api } from './api.ts'
 
 /** 「使用统计」面板 id(与 @eterna/usage-stats 的 main/sidebar key 一致)。 */
 const USAGE_PANEL_ID = 'eterna-usage-stats'
@@ -23,7 +25,9 @@ const USAGE_PANEL_ID = 'eterna-usage-stats'
 // 模型抽屉回显的投影写面(projectionStore(sessionId).apply)。2026-11-11 曾连同
 // 'remote' 一起加导致 entry 静默不激活——根因在 'remote' 键(未定位),单独 'sessions'
 // 由本轮构建验证;若激活回归失败先撤此项。
-export const inject = ['slots', 'locale', 'theme', 'layout', 'uiWorkspace', 'sessions']
+// 'configForms'=设置域基础服务(dsh-client-ui-settings ConfigForms):网页链接默认
+// 打开方式联动(link-opening.ts)经它读写 ui-chat 命名空间,与设置行同一写面。
+export const inject = ['slots', 'locale', 'theme', 'layout', 'uiWorkspace', 'sessions', 'configForms']
 
 const NS = 'eterna-access'
 const LOCALES: Record<string, Record<string, string>> = {
@@ -289,6 +293,10 @@ interface AccessClientContext {
       apply?(key: string, value: unknown, seq: number): void
     } | undefined
   }
+  /** 设置域基础服务结构子集(link-opening.ts 消费面;服务缺席=联动跳过)。 */
+  readonly configForms?: {
+    get<T>(entryId: string): T
+  }
 }
 
 export function apply(ctx: AccessClientContext): () => void {
@@ -318,6 +326,17 @@ export function apply(ctx: AccessClientContext): () => void {
     }, AccountLauncher))
   }
   registerAccountLauncher()
+
+  // 网页链接默认打开方式联动:自己的浏览器扩展在线且用户未显式选择过 → 默认走
+  // 系统默认浏览器(见 link-opening.ts 头注;全程静默,失败不影响主流程)。
+  void installLinkOpeningDefault({
+    companion: () => api.companion(),
+    status: async (relayBase, token) => {
+      const res = await fetch(`${relayBase}/api/status?token=${encodeURIComponent(token)}`, { credentials: 'omit' })
+      return await res.json() as { tokenConnected?: boolean }
+    },
+    chatSettings: ctx.configForms?.get<{ getSnapshot(): { value?: { linkOpening?: unknown } | undefined } | undefined; set(field: string, value: unknown): Promise<boolean> }>('ui-chat'),
+  })
 
   const registerSections = (role: 'admin' | 'user'): void => {
     ctx.slots.inject('settings.section', () => ctx.slots.register({
