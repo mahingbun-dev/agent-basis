@@ -32,6 +32,7 @@ const ETerna_WEB_TOOLS: readonly string[] = [
   'subagent', 'subagent_fork', 'list_subagent_models',
   'workflow', 'cordis_inspect_list', 'cordis_inspect_query',
   'list_agents', // ← subagent/tool-subagent-control/src/list-agents.ts(2026-11-10 PH-3 补遗)
+  'memory_write', 'memory_read', 'memory_search', 'memory_forget', // ← @eterna/memory MEMORY_TOOL_NAMES(2026-11-13 补遗)
 ]
 
 describe('容器默认治理规则集(docker/profile/governance.rules.yml)', () => {
