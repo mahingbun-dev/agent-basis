@@ -2,7 +2,8 @@
  * governance 插件 pre-execute 接线单测(T8 三测之一:waterfall veto)。
  *
  * 覆盖:deny 短路(后续监听者不执行)、allow 透传(不短路后续;后续 deny 不可回翻)、
- * ask 透传后回填(downstream deny 优先;downstream allow 时 ask 生效)、决策审计直投、
+ * ask 透传后回填(downstream deny 优先;downstream allow 时 ask 生效)、未知工具不进
+ * 人审(注册表查无此名 → 结构化 deny;注册表缺席 fail-open)、决策审计直投、
  * 卸载逆闭包。瀑布语义依据:vendor/cordis/src/events.ts:76-85(veto)、
  * packages/core/tools/src/pipeline.ts:199-224(ask/deny 内核处置)。
  */
@@ -112,6 +113,48 @@ describe('governance 插件:tools/pre-execute 瀑布 veto', () => {
     disposers.push(defineGovernancePlugin({ rulesPath: join(tmpdir(), 'eterna-glue-nonexistent', 'rules.yml') }).apply(harness.fake as unknown as Context))
     addDownstream(harness)
     expect((await harness.dispatchPreExecute({ name: 'anything' })).kind).toBe('ask')
+  })
+})
+
+describe('governance 插件:未知工具不进人审(2026-11-12 畸形工具名挂死修复)', () => {
+  it('未注册名 + default ask → 结构化 deny(下游不执行,审计落 deny)', async () => {
+    const { harness } = await mountGovernance()
+    harness.provide('tools', { get: (n: string) => (n === 'bash' ? { name: n } : undefined) })
+    const report = vi.fn<(detail: Record<string, unknown>) => void>()
+    harness.provide('audit', { report })
+    const downstream = addDownstream(harness)
+    const decision = await harness.dispatchPreExecute({ name: 'b=bash' })
+    expect(decision.kind).toBe('deny')
+    if (decision.kind === 'deny') expect(decision.reason).toContain('未知工具')
+    expect(downstream).not.toHaveBeenCalled() // deny 短路瀑布,不产生审批请求
+    expect(report).toHaveBeenCalledWith(expect.objectContaining({ tool: 'b=bash', decision: 'deny' }))
+  })
+
+  it('已注册名命中 ask 规则 → ask 保持(探测只拦「查无此名」,政策问题仍走人审)', async () => {
+    const { harness } = await mountGovernance()
+    harness.provide('tools', { get: (n: string) => (n === 'pay' ? { name: n } : undefined) })
+    addDownstream(harness)
+    const decision = await harness.dispatchPreExecute({ name: 'pay', arguments: { action: 'payment' } })
+    expect(decision.kind).toBe('ask')
+    if (decision.kind === 'ask') expect(decision.reason).toContain('ask-money')
+  })
+
+  it('未知名但规则显式 allow → allow 不变(只转换 ask 路径)', async () => {
+    const yaml = `
+rules:
+  - { id: allow-odd, effect: allow, tools: ['odd_tool'] }
+default: ask
+`
+    const { harness } = await mountGovernance({}, yaml)
+    harness.provide('tools', { get: () => undefined })
+    addDownstream(harness)
+    expect((await harness.dispatchPreExecute({ name: 'odd_tool' })).kind).toBe('allow')
+  })
+
+  it('ctx.tools 缺席 → fail-open 保持 ask(注册表探测面不可用时不改判)', async () => {
+    const { harness } = await mountGovernance()
+    addDownstream(harness)
+    expect((await harness.dispatchPreExecute({ name: 'b=bash' })).kind).toBe('ask')
   })
 })
 

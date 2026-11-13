@@ -45,6 +45,19 @@ EternaAgent 部署为多账号门禁形态(eterna-access):unary `/api` 端点由
 
 **白名单与豁免标注**:确属豁免面(如注册表管理面本体、生成产物)在 `tools/packctl/src/prompt.ts` 的 `PROMPT_SCAN_WHITELIST` 登记,每条必须写 `reason`——缺标注的条目本身产出 warning 且退出码 1(豁免决定必须可审查)。已知边界:块标量正文里形似 `key: value` 的行可能误报(走白名单)、`systemPrompt` 别名调用静态不可见。
 
+### 1.3 内核 frozen-args 合同(2026-11-13 起;违反 = 生产事故)
+
+内核在 `createExecution` 时对工具参数做 snapshot + `deepFreeze`(`@deepseek-ai/dsh-tools` pipeline.js:331),且合同**明确禁止改写输入**:pre-execute 监听器返回值只能是裁决(`allow/deny/ask/cancel`,contracts.d.ts:312-336 "Input rewriting is excluded"),`tools/execute` 只许换 `exec.signal`,同名重复注册 fail-loud(egress-plugin.ts:8-11 记载)。**在 pre-execute 里原地写 `exec.arguments` 必炸**——2026-11-12 生产事故:access 插件瀑布末段写 `args._eternaToken`,`mcp__browser__*` 全灭(`Cannot add property _eternaToken, object is not extensible`)。
+
+需要"服务端给工具调用附加凭据/上下文"时的唯一正路:**`ToolsService.executable` 分发边界实例 wrap**(dispatchToolBody 经它取 ToolDefinition 后才调 execute)。要点:
+
+1. 对冻结 args **展开成新对象**再注入,绝不触碰原件(`{ ...args, token }`);
+2. 实例级 in-place wrap 是既有先例(access `installSandboxBoundary` 的 `sandboxPolicy.resolve` wrap);wrap 要做工具名前缀短路(executable 是热路径)与 WeakMap 缓存,disposer 还原;
+3. deny 语义 = throw(内核 `toolErrorResult` 物化为 `Error: ${message}`,与 pre-execute deny 形态一致,turn 不中断);
+4. 凭据因此不进内核日志/审计/工具 schema(presenters 走 `ToolsService.get` 拿原定义)——"审计不落令牌值"依赖这一点。
+
+参考实现:`packages/access/src/companion-inject.ts`(含 fail-closed deny 与未知会话 passthrough 语义)。另:pre-execute 瀑布仍是**判定**的正位(先于人审;egress/沙箱钳制同款),本节只禁止用它**改写参数**。
+
 ## 2. 环 A:DSH 创造模式(agent 帮你写,你审查)
 
 ```bash

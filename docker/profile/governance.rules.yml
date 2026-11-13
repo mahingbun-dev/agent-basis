@@ -14,7 +14,9 @@
 #   create/get/update_goal ← goal/tool-goal;subagent/subagent_fork/list_subagent_models ←
 #   subagent/tool-subagent(eterna patch 显式 toolName);workflow ← workflow/tool-workflow
 #   (toolName 缺省);cordis_inspect_* ← cordis/tool-cordis;list_agents ←
-#   subagent/tool-subagent-control/src/list-agents.ts(2026-11-10 补遗)。
+#   subagent/tool-subagent-control/src/list-agents.ts(2026-11-10 补遗);memory_* ←
+#   @eterna/memory src/tools.ts MEMORY_TOOL_NAMES(glue memory 插件注册,2026-11-13
+#   补遗:未列名导致每次写记忆触发人审,事故会话中该审批被取消废掉 turn 收尾)。
 # apply_patch 刻意不列:eterna-web 两预设均 applyPatch:false,列名即放行违反对账纪律;
 #   回加该工具时须同步回加本文件(默认 ask 会先兜住)。
 # 运维杠杆:$DSH_HOME/access/governance.rules.yml 存在时优先生效(免重建改规则),
@@ -57,6 +59,10 @@ rules:
     effect: allow
     tools: ['list_agents']
     reason: 只读列举子代理清单,无副作用(2026-11-10 I2 事故补遗:cherry 会话实测该工具被空规则全拒)
+  - id: allow-memory
+    effect: allow
+    tools: ['memory_write', 'memory_read', 'memory_search', 'memory_forget']
+    reason: 记忆面常规操作;写入路径有 PII 过滤兜底(governance.pii 供 memory 写入前调用)
   # working_directory 刻意不列:cwd 即沙箱写边界,运行期改 cwd 属边界相关操作,维持 default: ask
   # (fail-closed);待 P1-T3「沙箱写边界钉死=账号目录+pre-execute 钳制」落地后再评估放行。
   # ——2026-11-10 I2 事故(cherry 会话)中该工具被全拒属空规则副作用,非刻意收紧。

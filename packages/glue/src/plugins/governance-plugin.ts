@@ -26,7 +26,9 @@
  * - 因此 ask 原样返回 `{ kind: 'ask', reason }` 交内核处置(packs/event-planning/plugin.ts:355-357
  *   同款形态):宿主有 approval 服务时走人审批;无 approval 时内核把 ask 转成 deny
  *   (pipeline.ts serviceAsk:approval === undefined → deny,fail-closed 由内核保证,
- *   组合层不二次改写)。
+ *   组合层不二次改写);
+ * - 例外:宿主注册表查无此名的 ask 先行 deny(见监听体内 knownToolProbe 段,
+ *   2026-11-12 畸形工具名挂死事故修复)——不存在的工具不值得一次人审。
  *
  * 审计接线(governance 不 import audit,组合层桥接,src/audit-bridge.ts):
  * deny/ask 终局决策经 ctx.audit.report() 直投(kind 'governance' 记录,含 actor 插件
@@ -67,6 +69,23 @@ export function emptyRules(): RuleEngine {
   return RuleEngine.parse('rules: []', 'glue:empty')
 }
 
+/**
+ * 宿主工具注册表探测(结构面直读 ctx.tools.get,不拖入 dsh-tools 类型面)。
+ * 返回 undefined = 探测面本身不可用(fail-open,调用侧保持原 ask);
+ * false = 注册表确认查无此名;true = 已注册。get 缺省 scope = 全局视图,
+ * eterna 部署的工具(内核五件套/glue/memory/mcp)全部注册在全局层。
+ */
+function knownToolProbe(ctx: Context, name: string): boolean | undefined {
+  try {
+    const tools = (ctx as unknown as { tools?: { get?: (n: string) => unknown } }).tools
+    const get = tools?.get?.bind(tools)
+    if (typeof get !== 'function') return undefined
+    return get(name) !== undefined
+  } catch {
+    return undefined
+  }
+}
+
 export function defineGovernancePlugin(config: GovernancePluginConfig = {}) {
   return {
     name: 'eterna-governance',
@@ -98,6 +117,24 @@ export function defineGovernancePlugin(config: GovernancePluginConfig = {}) {
           return decision
         }
         if (decision.kind === 'ask') {
+          // 未知工具不进人审（2026-11-12 生产事故：mimo 输出畸形工具名 `b=bash` →
+          // default ask → 审批挂起无人应答，会话静默挂死 31 分钟）。宿主注册表
+          // 查无此名 = 该 ask 必然无意义 → 结构化 deny（内核物化为 isError 工具
+          // 结果，模型可自查重试；deny 短路瀑布、先于 serviceAsk，不产生审批请求）。
+          // 只转换 ask 路径：规则显式 allow/deny 不受影响；已注册但未列名（政策
+          // 问题）仍走人审。fail-open：注册表面缺席/异常 → 保持原 ask 行为。
+          if (knownToolProbe(ctx, exec.name) === false) {
+            const reason = `[governance] 未知工具「${exec.name}」：宿主未注册该工具（疑似模型输出了畸形工具名），请核对工具清单后重试`
+            reportToAudit(ctx, {
+              source: 'glue-governance',
+              event: 'tools/pre-execute',
+              tool: exec.name,
+              decision: 'deny',
+              reason,
+              actor,
+            })
+            return { kind: 'deny', reason }
+          }
           const downstream = await next()
           if (downstream.kind !== 'allow') return downstream // 后续 deny/cancel/ask 优先,本 ask 不成立(终局由其来源留痕)
           reportToAudit(ctx, {

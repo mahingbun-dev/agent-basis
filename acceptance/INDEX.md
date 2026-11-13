@@ -126,8 +126,10 @@
 
 **多用户架构**（产品硬性要求落地）：
 - relay 扩展腿按「凭据串=命名空间」多路复用：每 token 一台浏览器，tabs/sessions/ref 注册表全隔离；同令牌二接入 409（token=浏览器实例身份），不同用户完全并行
-- 身份路由链：dsh 会话（exec.agent.session.id）→ sessions 表 owner（access 既有）→ companion-tokens.json 用户令牌 → 对应扩展连接；注入点=access 的 tools/pre-execute 瀑布末段（服务端覆盖 _eternaToken，模型不可伪造；晚于治理/审计=治理面不接触令牌）；已知归属未生成令牌 → deny（fail-closed）
+- 身份路由链：dsh 会话（exec.agent.session.id）→ sessions 表 owner（access 既有）→ companion-tokens.json 用户令牌 → 对应扩展连接；已知归属未生成令牌 → deny（fail-closed）
+- **注入点更正（2026-11-13 生产事故修复）**：原「tools/pre-execute 瀑布末段原地覆盖 _eternaToken」在内核 deepFreeze 的冻结参数上必炸（`mcp__browser__*` 全灭，`Cannot add property _eternaToken, object is not extensible`）——内核合同本就禁止 pre-execute 改写输入（dsh-tools contracts.d.ts:312-336、README:197）。现注入点= `ToolsService.executable` 分发边界实例 wrap（`packages/access/src/companion-inject.ts`：冻结 args 展开新对象注入，模型不可伪造语义不变；令牌不进日志/审计/schema；pre-execute 监听保留 fail-closed deny 判定，先于人审）。合同记录：docs/PLUGIN-AUTHORING.md §1.3
 - /api/tools 凭据校验（x-relay-token）——回闭公网反代透传暴露的上一轮缺口
+- **网页链接默认打开方式联动（2026-11-13）**：上游 chat 设置 linkOpening 出厂默认 sidebar（应用内侧边栏）；当用户已生成 companion 令牌、自己的扩展在线（relay `/api/status?token=` 按令牌探测返回 `tokenConnected`，ns=令牌串）、且从未显式选择过该设置时，access 客户端（`src/client/link-opening.ts`，经公开服务 `configForms.get('ui-chat')` 与设置行同一写面）静默改默认为 new-tab（系统默认浏览器开新页签）——对话链接与浏览器任务执行面保持同一台浏览器；用户显式选择一律尊重，扩展离线/令牌未生成/探测失败全部跳过
 
 **前端令牌卡**（设置→账号→浏览器执行面，全用户可见）：令牌等宽展示+一键复制+生成/重置两击确认+安装指引新窗跳转（guideUrl 由 ETERNA_RELAY_PUBLIC_URL 推导）。
 

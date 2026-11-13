@@ -12,6 +12,10 @@ export interface CompanionTokenEntry {
   readonly createdAt: string
 }
 
+/** 已知归属但未生成令牌时的 fail-closed 拒绝理由（pre-execute deny 与 dispatch wrap throw 共用，文案一致）。 */
+export const COMPANION_TOKEN_MISSING_REASON =
+  '[companion] 浏览器执行面令牌未生成：请在 设置 → 账号 → 浏览器执行面 生成令牌并安装扩展（安装指引见令牌卡片链接）'
+
 type TokenBook = Record<string, CompanionTokenEntry>
 
 export function companionTokenPath(dataDir: string): string {

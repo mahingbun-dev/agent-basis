@@ -343,9 +343,14 @@ export class RelayServer {
       sendJson(res, 200, this.core.listForHttp())
       return
     }
-    if (url === '/api/status') {
+    // /api/status 按 pathname 匹配（?token= 探测参数在 query；历史路由用全 url 精确匹配不动）
+    if ((qIndex >= 0 ? rawUrl.slice(0, qIndex) : rawUrl).replace(/\/+$/, '') === '/api/status') {
       res.setHeader('access-control-allow-origin', '*')
       res.setHeader('access-control-allow-headers', 'content-type')
+      // 按令牌探测自己的扩展是否在线（access 客户端「网页链接默认打开方式」联动）：
+      // ns=令牌串（relay-core nsFor），查无此 ns 的扩展连接即 false——随机令牌探测
+      // 无信息泄露（ns 恰为令牌本身，知道令牌即已持有凭据）；不带 token 不吐该字段。
+      const statusToken = new URL(rawUrl, 'http://x').searchParams.get('token')
       sendJson(res, 200, {
         // 向后兼容：extensionConnected=任一域有连接；多用户视图见 browsers/connectedBrowsers
         extensionConnected: this.core.extensionConnected,
@@ -356,6 +361,7 @@ export class RelayServer {
         connectedBrowsers: this.core.connectedCount,
         browsers: this.core.connections(),
         proto: PROTO_VERSION,
+        ...(statusToken !== null && statusToken !== '' ? { tokenConnected: this.core.nsConnected(statusToken) } : {}),
       })
       return
     }
