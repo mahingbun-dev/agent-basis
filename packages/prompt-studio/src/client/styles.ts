@@ -476,6 +476,16 @@ const CSS = `
   margin: 0; font-size: var(--et-text-caption); line-height: 20px;
   color: var(--et-danger); overflow-wrap: anywhere;
 }
+/* 快照主从视图:返回列表按钮(详情顶格,列表隐藏) */
+[data-ps-snapshot-back] {
+  align-self: flex-start;
+  padding: 5px 14px; font: inherit; font-size: var(--et-text-micro); cursor: pointer;
+  color: var(--et-fg-2); background: transparent;
+  border: 1px solid var(--et-border); border-radius: var(--et-radius-sm);
+}
+[data-ps-snapshot-back]:hover { background: var(--et-surface-2); color: var(--et-fg); }
+/* 导入区并入版本 tab:与导出行之间以虚线分隔 */
+[data-ps-transfer-inline] { margin: 4px 0 0; padding: 10px 0 0; border-top: 1px dashed var(--et-border-soft); }
 
 /* —— AI 润色区(T3.2:建议稿卡/diff 预览/提案提交;对照快照详情卡与版本对比形态) —— */
 [data-ps-ai-status] { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

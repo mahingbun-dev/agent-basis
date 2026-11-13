@@ -632,89 +632,110 @@ function SessionSnapshotsView({ call, t, ready, generatedAt }: {
     })().finally(() => { setDetailBusy(false) })
   }
 
+  /** 返回列表(清所选会话与详情;快照只读,无任何服务端状态)。 */
+  const closeSnapshot = (): void => {
+    setDetail(null)
+    setDetailIssues(null)
+    setSelectedSession(null)
+  }
+
+  // 主从视图:未选中=列表;选中(含查不到的错误态)=详情顶格+返回按钮,列表隐藏——
+  // 此前详情渲染在 20 行列表之后(视口外 ~1830px),点了看不到任何变化(2026-11-13
+  // 用户反馈「选择会话不能查看快照」;数据链路本就正常,纯摆放问题)。
+  const viewing = detail !== null || detailIssues !== null
   return (
     <section data-t7-section="snapshots" data-ps-session-snapshot aria-label={t('studio.snapshots')}>
       <p data-t7-section-note>{t('studio.snapshots.note')}</p>
-      {listState.status === 'loading' && <p data-t7-placeholder data-ps-snapshot-loading="true">{t('studio.snapshots.loading')}</p>}
-      {listState.status === 'error' && (
-        <p data-ps-snapshot-error>{t('studio.snapshots.loadFailed')}{listState.message === '' ? '' : `:${listState.message}`}</p>
+      {viewing && (
+        <button type="button" data-ps-snapshot-back onClick={closeSnapshot}>{t('back')}</button>
       )}
-      {listState.status === 'loaded' && !listState.list.ready && (
-        <p data-t7-placeholder data-ps-snapshot-unavailable="true">{t('studio.snapshots.storeUnavailable')}</p>
-      )}
-      {listState.status === 'loaded' && listState.list.ready && listState.list.snapshots.length === 0 && (
-        <p data-t7-placeholder>{t('studio.snapshots.empty')}</p>
-      )}
-      {listState.status === 'loaded' && listState.list.ready && listState.list.snapshots.length > 0 && (
-        <div>
-          <p data-ps-snapshot-select-hint>{t('studio.snapshots.selectSession')}</p>
-          <ul data-ps-snapshot-session-list>
-            {listState.list.snapshots.map(item => (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  data-ps-snapshot-session-row={item.sessionId}
-                  data-ps-selected={selectedSession === item.sessionId ? 'true' : 'false'}
-                  aria-current={selectedSession === item.sessionId ? 'true' : undefined}
-                  onClick={() => { openSnapshot(item.sessionId) }}
-                >
-                  <span data-ps-snapshot-row-id>{item.sessionId}</span>
-                  <span data-ps-snapshot-row-meta>
-                    {formatTime(item.createdAt)} · {item.entries} {t('studio.snapshots.entriesCount')} · {item.checksum.slice(0, 12)}…
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {detailIssues !== null && <p data-ps-snapshot-error>{detailIssues}</p>}
-      {detail !== null && (
-        <div data-ps-snapshot-detail>
-          <h3 data-t7-section-title>{t('studio.snapshots.detail')}</h3>
-          <p data-ps-snapshot-note>{detail.note}</p>
-          <div data-ps-snapshot-meta>
-            <span data-ps-meta-item>{t('studio.snapshots.createdAt')}: {formatTime(detail.snapshot.createdAt)}</span>
-            <span data-ps-meta-item>{t('studio.snapshots.trigger')}: {detail.snapshot.trigger}</span>
-            <span data-ps-meta-item>{t('studio.snapshots.entriesCount')}: {detail.snapshot.entries.length}</span>
-            <span data-ps-meta-item data-ps-snapshot-checksum>
-              {t('studio.snapshots.checksum')}: {detail.snapshot.checksum.slice(0, 16)}…
-            </span>
-          </div>
-          <ul data-ps-snapshot-entry-list>
-            {detail.snapshot.entries.map(entry => (
-              <li key={entry.entryId} data-ps-snapshot-entry={entry.entryId} data-ps-snapshot-kind={entry.kind}>
-                <div data-ps-snapshot-entry-head>
-                  <span data-ps-snapshot-entry-id>{entry.entryId}</span>
-                  <span data-ps-pill data-ps-tone="neutral">{t(`studio.kind.${entry.kind}`)}</span>
-                  {entry.kind !== 'patch-value' && (
-                    <span data-ps-pill data-ps-tone="neutral" data-ps-snapshot-unreplayable="true">
-                      {t('studio.snapshots.entry.unreplayable')}
-                    </span>
-                  )}
-                  {entry.versionId !== null && (
-                    <span data-ps-snapshot-pointer>{t('studio.snapshots.versionPointer')}: {entry.versionId}</span>
-                  )}
-                  {entry.versionId === null && entry.kind === 'patch-value' && (
-                    <span data-ps-snapshot-pointer data-ps-snapshot-no-pointer="true">{t('studio.snapshots.noPointer')}</span>
-                  )}
-                </div>
-                {entry.annotation !== null && <p data-ps-snapshot-entry-note>{entry.annotation}</p>}
-                {entry.problems.length > 0 && (
-                  <ul>
-                    {entry.problems.map((problem, index) => <li key={index} data-ps-snapshot-entry-problem>{problem}</li>)}
-                  </ul>
-                )}
-                {entry.text !== null && (
-                  <details>
-                    <summary>{t('studio.snapshots.entry.text')}({entry.bytes ?? 0} {t('studio.editor.bytes')})</summary>
-                    <pre data-ps-snapshot-entry-text>{entry.text}</pre>
-                  </details>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
+      {viewing ? (
+        <>
+          {detailIssues !== null && <p data-ps-snapshot-error>{detailIssues}</p>}
+          {detail !== null && (
+            <div data-ps-snapshot-detail>
+              <h3 data-t7-section-title>{t('studio.snapshots.detail')}</h3>
+              <p data-ps-snapshot-note>{detail.note}</p>
+              <div data-ps-snapshot-meta>
+                <span data-ps-meta-item>{t('studio.snapshots.createdAt')}: {formatTime(detail.snapshot.createdAt)}</span>
+                <span data-ps-meta-item>{t('studio.snapshots.trigger')}: {detail.snapshot.trigger}</span>
+                <span data-ps-meta-item>{t('studio.snapshots.entriesCount')}: {detail.snapshot.entries.length}</span>
+                <span data-ps-meta-item data-ps-snapshot-checksum>
+                  {t('studio.snapshots.checksum')}: {detail.snapshot.checksum.slice(0, 16)}…
+                </span>
+              </div>
+              <ul data-ps-snapshot-entry-list>
+                {detail.snapshot.entries.map(entry => (
+                  <li key={entry.entryId} data-ps-snapshot-entry={entry.entryId} data-ps-snapshot-kind={entry.kind}>
+                    <div data-ps-snapshot-entry-head>
+                      <span data-ps-snapshot-entry-id>{entry.entryId}</span>
+                      <span data-ps-pill data-ps-tone="neutral">{t(`studio.kind.${entry.kind}`)}</span>
+                      {entry.kind !== 'patch-value' && (
+                        <span data-ps-pill data-ps-tone="neutral" data-ps-snapshot-unreplayable="true">
+                          {t('studio.snapshots.entry.unreplayable')}
+                        </span>
+                      )}
+                      {entry.versionId !== null && (
+                        <span data-ps-snapshot-pointer>{t('studio.snapshots.versionPointer')}: {entry.versionId}</span>
+                      )}
+                      {entry.versionId === null && entry.kind === 'patch-value' && (
+                        <span data-ps-snapshot-pointer data-ps-snapshot-no-pointer="true">{t('studio.snapshots.noPointer')}</span>
+                      )}
+                    </div>
+                    {entry.annotation !== null && <p data-ps-snapshot-entry-note>{entry.annotation}</p>}
+                    {entry.problems.length > 0 && (
+                      <ul>
+                        {entry.problems.map((problem, index) => <li key={index} data-ps-snapshot-entry-problem>{problem}</li>)}
+                      </ul>
+                    )}
+                    {entry.text !== null && (
+                      <details>
+                        <summary>{t('studio.snapshots.entry.text')}({entry.bytes ?? 0} {t('studio.editor.bytes')})</summary>
+                        <pre data-ps-snapshot-entry-text>{entry.text}</pre>
+                      </details>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          {listState.status === 'loading' && <p data-t7-placeholder data-ps-snapshot-loading="true">{t('studio.snapshots.loading')}</p>}
+          {listState.status === 'error' && (
+            <p data-ps-snapshot-error>{t('studio.snapshots.loadFailed')}{listState.message === '' ? '' : `:${listState.message}`}</p>
+          )}
+          {listState.status === 'loaded' && !listState.list.ready && (
+            <p data-t7-placeholder data-ps-snapshot-unavailable="true">{t('studio.snapshots.storeUnavailable')}</p>
+          )}
+          {listState.status === 'loaded' && listState.list.ready && listState.list.snapshots.length === 0 && (
+            <p data-t7-placeholder>{t('studio.snapshots.empty')}</p>
+          )}
+          {listState.status === 'loaded' && listState.list.ready && listState.list.snapshots.length > 0 && (
+            <div>
+              <p data-ps-snapshot-select-hint>{t('studio.snapshots.selectSession')}</p>
+              <ul data-ps-snapshot-session-list>
+                {listState.list.snapshots.map(item => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      data-ps-snapshot-session-row={item.sessionId}
+                      data-ps-selected={selectedSession === item.sessionId ? 'true' : 'false'}
+                      aria-current={selectedSession === item.sessionId ? 'true' : undefined}
+                      onClick={() => { openSnapshot(item.sessionId) }}
+                    >
+                      <span data-ps-snapshot-row-id>{item.sessionId}</span>
+                      <span data-ps-snapshot-row-meta>
+                        {formatTime(item.createdAt)} · {item.entries} {t('studio.snapshots.entriesCount')} · {item.checksum.slice(0, 12)}…
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
       )}
     </section>
   )
@@ -1799,6 +1820,31 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
                     </button>
                     {exportNote !== null && <span data-t7-export-status>{exportNote}</span>}
                   </div>
+                  {/* 导入与导出同区(2026-11-13 用户反馈:导入按条目落库,不该孤悬页尾) */}
+                  <section data-t7-section="transfer" data-ps-transfer-inline aria-label={t('studio.transfer')}>
+                    <p data-t7-section-note>{t('studio.transfer.note')}</p>
+                    <div data-t7-import-row>
+                      <input
+                        type="file"
+                        data-t7-import-input
+                        accept=".json,application/json"
+                        aria-label={t('studio.import.pick')}
+                        onChange={event => {
+                          setImportFile(event.target.files?.[0] ?? null)
+                          setImportMeta(null)
+                        }}
+                      />
+                      <button
+                        type="button"
+                        data-t7-import-btn
+                        disabled={!ready || importFile === null || busy}
+                        onClick={() => { void startImport() }}
+                      >
+                        {t('studio.import.do')}
+                      </button>
+                      {importMeta !== null && <span data-t7-import-meta>{importMeta}</span>}
+                    </div>
+                  </section>
                   {hasChain && chain !== undefined && pair !== null && (
                     <CompareView
                       pair={pair}
@@ -1980,32 +2026,7 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
         </div>
       )}
 
-      {/* —— 导入(JSON 包;包内 entryId 指名落点条目)+ R3 审批卡 + 写结果就地展示 —— */}
-      <section data-t7-section="transfer" aria-label={t('studio.transfer')}>
-        <h2 data-t7-section-title>{t('studio.transfer')}</h2>
-        <p data-t7-section-note>{t('studio.transfer.note')}</p>
-        <div data-t7-import-row>
-          <input
-            type="file"
-            data-t7-import-input
-            accept=".json,application/json"
-            aria-label={t('studio.import.pick')}
-            onChange={event => {
-              setImportFile(event.target.files?.[0] ?? null)
-              setImportMeta(null)
-            }}
-          />
-          <button
-            type="button"
-            data-t7-import-btn
-            disabled={!ready || importFile === null || busy}
-            onClick={() => { void startImport() }}
-          >
-            {t('studio.import.do')}
-          </button>
-          {importMeta !== null && <span data-t7-import-meta>{importMeta}</span>}
-        </div>
-      </section>
+      {/* R3 审批卡说明见根首;导入区已并入版本 tab(与导出同区) */}
     </div>
   )
 }
