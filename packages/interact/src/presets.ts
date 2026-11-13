@@ -84,7 +84,7 @@ export function generatePresetArtifact(hitl: HitlDocument, options: GeneratePres
   for (const grade of Object.keys(GRADE_SUFFIX) as RiskGrade[]) {
     const presetName = `${prefix}-${GRADE_SUFFIX[grade]}`
     if (RESERVED_PRESET_NAMES.includes(presetName)) {
-      throw new InteractConfigError(`生成的预设名 "${presetName}" 撞上 DSH 保留名(custom/auto),请换 namePrefix`)
+      throw new InteractConfigError(`生成的预设名 "${presetName}" 撞上 EternaAgent 保留名(custom/auto),请换 namePrefix`)
     }
     gradeToPreset[grade] = presetName
     presets[presetName] = {

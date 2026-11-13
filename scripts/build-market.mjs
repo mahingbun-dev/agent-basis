@@ -119,7 +119,7 @@ async function buildGlue() {
     private: true,
     type: 'module',
     description: '组合层 glue bundle(市场自包含构建,由 scripts/build-market.mjs 生成,vendor + esbuild 编译):'
-      + '把 @eterna 的 memory/knowledge/governance 服务装配为真实 DSH 宿主可挂载的插件。'
+      + '把 @eterna 的 memory/knowledge/governance 服务装配为真实 EternaAgent 宿主可挂载的插件。'
       + '源码见 packages/{glue,governance,memory,knowledge}。',
     exports: {
       '.': './src/index.js',

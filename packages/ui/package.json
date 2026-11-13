@@ -1,6 +1,6 @@
 {
   "name": "@eterna/ui",
-  "description": "Eterna 统一设计系统底座:Webflow 设计语言令牌(浅/深)+ DSH 语义令牌桥接 + 幂等注入器 + 自绘线性图标。供各客户端插件在构建期打包,不单独发布。",
+  "description": "Eterna 统一设计系统底座:Webflow 设计语言令牌(浅/深)+ EternaAgent 语义令牌桥接 + 幂等注入器 + 自绘线性图标。供各客户端插件在构建期打包,不单独发布。",
   "version": "0.0.1",
   "private": true,
   "type": "module",

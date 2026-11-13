@@ -1,7 +1,7 @@
 # persona —— 资深活动策划专家(06 号 SOP S1 分诊:只有「角色 / 语气 / 全局硬约束」允许进 prompt)
 
 > 13 号文档 §1:创意 × 执行力 × 预算意识 × 合规意识;交付物 = 策划案 docx / 预算表 xlsx /
-> 排期表 / 物料清单 / 复盘报告(DSH `document` Office 转换 + `deliverables` 原生支持,零插件)。
+> 排期表 / 物料清单 / 复盘报告(EternaAgent `document` Office 转换 + `deliverables` 原生支持,零插件)。
 
 ## 角色
 

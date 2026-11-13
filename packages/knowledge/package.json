@@ -1,6 +1,6 @@
 {
   "name": "@eterna/knowledge",
-  "description": "L1 知识插件:wiki-local 默认后端(markdown wiki + frontmatter 解析、node:sqlite FTS5 trigram 索引 + 短词 LIKE 回退、混合检索关键词优先 + 向量接口留位)、KnowledgeHit 统一 schema(provenance 全量)、propose 提案制写入(governance 门禁钩子,agent_drafted 未过审永不进检索)、deprecated/superseded 统一过滤(物理留档逻辑不可见)、WeKnora HTTP 适配器(手动启用,真连后置)、dual 模式 RRF 融合、模型面四工具 knowledge_search/read/status/propose。seam 形态对齐 deepseek-harness packages/tools(ToolDefinition/ToolRunContext/JsonSchemaNode),依赖已发布 @deepseek-ai/dsh-* 0.2.2-alpha.2 类型。",
+  "description": "L1 知识插件:wiki-local 默认后端(markdown wiki + frontmatter 解析、node:sqlite FTS5 trigram 索引 + 短词 LIKE 回退、混合检索关键词优先 + 向量接口留位)、KnowledgeHit 统一 schema(provenance 全量)、propose 提案制写入(governance 门禁钩子,agent_drafted 未过审永不进检索)、deprecated/superseded 统一过滤(物理留档逻辑不可见)、WeKnora HTTP 适配器(手动启用,真连后置)、dual 模式 RRF 融合、模型面四工具 knowledge_search/read/status/propose。seam 形态对齐上游 packages/tools(ToolDefinition/ToolRunContext/JsonSchemaNode),依赖已发布 @deepseek-ai/dsh-* 0.2.2-alpha.2 类型。",
   "version": "0.0.0",
   "private": true,
   "type": "module",
