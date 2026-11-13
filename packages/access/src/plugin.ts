@@ -13,6 +13,7 @@ import { join } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { reportAccessAudit, type AccessAuditEvent, type AuditReflect } from './audit.ts'
 import { companionTokenOf } from './companion.ts'
+import { installCompanionExecutableWrap, routeCompanion } from './companion-inject.ts'
 import { type AccessRequest } from './http.ts'
 import type { Context } from '@deepseek-ai/cordis'
 // 空类型导入 = dsh-tools 对 cordis Events('tools/pre-execute')增广的触发器（governance-plugin 同款）：
@@ -170,29 +171,40 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       // P3(2026-11-11):把归属账本 provide 出去(usage-stats 聚合的归属唯一事实源;
       // reflect 键 eternaAccessStore)。账本只读面,不含凭据。
       const storeProvide = (ctx as unknown as { provide?: (id: string, value: unknown) => () => void }).provide
-      // ── companion 身份注入（E4 多用户浏览器执行面）────────────────────────
-      // pre-execute 瀑布末段（access 的 insert 行在模板尾部=apply 序最后）：
-      // mcp__browser__* 调用按 exec.agent.session.id → sessions 表 owner → 用户令牌，
-      // 无条件覆盖 arguments._eternaToken（服务端值赢：模型不可伪造；注入晚于
-      // audit/egress/governance——审计与治理面均不接触令牌值）。
-      // 语义：已知会话归属但用户未生成令牌 → deny（fail-closed，防跨用户路由到
-      // 主浏览器）；未知会话（系统任务等）→ 不注入（主域，同历史行为）。
-      const offCompanionIdentity = ctx.on('tools/pre-execute', async (exec, next) => {
-        if (!exec.name.startsWith('mcp__browser__')) return next()
-        const sessionId = exec.agent?.session.id
-        if (typeof sessionId !== 'string' || sessionId === '') return next()
-        const ownerId = store.sessionOwner(sessionId)
-        if (ownerId === undefined) return next()
-        const entry = companionTokenOf(dir, ownerId)
-        if (entry === undefined) {
-          return {
-            kind: 'deny',
-            reason: '[companion] 浏览器执行面令牌未生成：请在 设置 → 账号 → 浏览器执行面 生成令牌并安装扩展（安装指引见令牌卡片链接）',
-          }
+      // ── companion 身份注入（E4 多用户浏览器执行面；2026-11-13 重做注入点）──
+      // 内核在 createExecution 时对 arguments 做 snapshot+deepFreeze，且合同禁止
+      // pre-execute 改写输入（companion-inject.ts 头注详述）——原「瀑布末段原地写
+      // arguments._eternaToken」在冻结对象上必炸（2026-11-12 生产事故：
+      // mcp__browser__* 全灭）。现注入点 = dispatch 边界（tools.executable 实例
+      // wrap，展开新对象注入）；本监听只保留两件事：
+      // 1. 惰性安装 wrap（幂等 + 一次性审计，沿 ensureMux 模式。首调发生在
+      //    prepare 瀑布、先于 dispatch，时序成立；ctx.tools 在 apply 时点可能
+      //    尚未就绪，故不设在 apply）；
+      // 2. fail-closed deny 判定（已知归属未生成令牌 → deny，保持在人审之前）。
+      // 语义不变：未知会话（系统任务等）→ 不注入（主域，同历史行为）。
+      const companionDeps = {
+        sessionOwner: (id: string) => store.sessionOwner(id),
+        tokenOf: (id: number) => companionTokenOf(dir, id)?.token,
+      }
+      let companionWrap: (() => void) | undefined
+      let companionAuditDone = false
+      const ensureCompanionWrap = (): void => {
+        if (companionWrap !== undefined) return
+        const tools = (ctx as unknown as { tools?: object }).tools
+        if (tools === undefined || typeof (tools as { executable?: unknown }).executable !== 'function') return
+        companionWrap = installCompanionExecutableWrap(tools as never, companionDeps)
+        disposers.push(companionWrap)
+        if (!companionAuditDone) {
+          companionAuditDone = true
+          audit({ kind: 'access.companion.install', detail: { executableWrap: true } })
         }
-        const args = exec.arguments as Record<string, unknown>
-        args['_eternaToken'] = entry.token
-        return await next()
+      }
+      const offCompanionIdentity = ctx.on('tools/pre-execute', async (exec, next) => {
+        ensureCompanionWrap()
+        if (!exec.name.startsWith('mcp__browser__')) return next()
+        const route = routeCompanion(companionDeps, exec.agent?.session.id)
+        if (route.kind === 'deny') return { kind: 'deny', reason: route.reason }
+        return next()
       })
 
       const handler = createNodeHandler(deps)
