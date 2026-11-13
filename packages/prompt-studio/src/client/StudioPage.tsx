@@ -861,6 +861,17 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
   const [aiReview, setAiReview] = useState<AiReviewState>({ status: 'idle' })
   const aiBusy = aiBusyOp !== null
 
+  /**
+   * 条目详情区引用(2026-11-13「只能查看,打不开编辑」修复):全景改版后详情/编辑器
+   * 落在首屏之外很远(条目导航+会话快照列表都排在前头),点击导航行时详情在视口外
+   * 更新,没有任何可见反馈=「点了没反应」。selectEntry 现把详情区的编辑器锚点
+   * (patch 值型=编辑器;运行时注入型=只读说明;值不可读=错误面板)滚入视口——
+   * 每次点击都有可见的「打开」。prefers-reduced-motion 时退化为瞬时跳转。
+   */
+  const detailRef = useRef<HTMLElement | null>(null)
+  /** R3 审批卡锚点(卡片出现即滚入视口——写流程第二段不可不见,同上修复)。 */
+  const approvalRef = useRef<HTMLDivElement | null>(null)
+
   /** 选中条目的当前文本(patch 值型=反引文本;运行时注入型=空串,无编辑器)。 */
   const selectedText = selected !== undefined && selected.kind === 'patch-value' ? selected.value.text ?? '' : ''
   /**
@@ -1275,7 +1286,18 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
   /** 切换选中条目(编辑上下文整体重置:对比/导出回执/变更摘要/写入结果/AI 建议稿/
    * AI 审核报告;草稿由 render 期派生逻辑按新条目重置)。摘要会进保存载荷、结果无
    * 条目标识,均不得从上一条目串入下一条目;建议稿与审核报告同理(受审文本与条目
-   * 强绑定)。 */
+   * 强绑定)。
+   *
+   * 重置后把详情区的编辑器锚点滚入视口(2026-11-13「只能查看,打不开编辑」修复,
+   * 见 detailRef 注):详情区元素在切换前后持续存在(ready && selected 恒真),
+   * React 对离散点击事件同步提交,下一动画帧即可按新内容滚动。 */
+  const scrollDetailIntoView = (): void => {
+    const detail = detailRef.current
+    if (detail === null) return
+    const target = detail.querySelector('[data-t7-section="editor"], [data-ps-entry-runtime], [data-t7-section="unreadable"]') ?? detail
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
+  }
   const selectEntry = (entryId: string): void => {
     selectedIdRef.current = entryId
     setSelectedId(entryId)
@@ -1286,7 +1308,16 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
     setAiPolish({ status: 'idle' })
     setAiInstruction('')
     setAiReview({ status: 'idle' })
+    window.requestAnimationFrame(scrollDetailIntoView)
   }
+
+  // R3 审批卡出现即滚入视口(在异步回调里 setState,时序不保证同步提交,走 effect;
+  // 应答后 pending 归 null 不滚,写结果就地呈现在详情区内)。
+  useEffect(() => {
+    if (pending === null) return
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    approvalRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
+  }, [pending])
 
   // AI 区条目归属过滤(评审 2026-11-11 medium 的渲染面防线):ok/done 态携带的
   // entryId 与选中条目不符即按 idle 处理——旧条目的建议稿/审核报告绝不贴在新选中
@@ -1325,12 +1356,11 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
         <GroupNav entries={entries} selectedId={selectedId} onSelect={selectEntry} t={t} />
       )}
 
-      {ready && (
-        <SessionSnapshotsView call={call} t={t} ready={ready} generatedAt={generatedAt} />
-      )}
-
+      {/* 条目详情紧跟全景导航(2026-11-13 重排):会话快照列表(可达 20 行)此前压在
+          详情前面,把编辑器推到首屏外 ~3100px;点击导航行虽有滚动引导,详情仍应
+          尽量靠近导航。快照是浏览面,挪到详情之后、导入之前。 */}
       {ready && selected !== undefined && (
-        <section data-ps-entry-detail data-t7-section="detail" aria-label={t('studio.entry.detail')}>
+        <section ref={detailRef} data-ps-entry-detail data-t7-section="detail" aria-label={t('studio.entry.detail')}>
           <h2 data-t7-section-title data-ps-entry-title>{selected.id}</h2>
           <div data-ps-entry-badges>
             <span data-ps-pill data-ps-tone="neutral">{t(`studio.layer.${selected.layer}`)}</span>
@@ -1569,7 +1599,13 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
       )}
 
       {pending !== null && (
-        <ApprovalSection pending={pending} busy={busy} onAnswer={approved => { void answerApproval(approved) }} t={t} />
+        <div ref={approvalRef} data-t7-approval-anchor>
+          <ApprovalSection pending={pending} busy={busy} onAnswer={approved => { void answerApproval(approved) }} t={t} />
+        </div>
+      )}
+
+      {ready && (
+        <SessionSnapshotsView call={call} t={t} ready={ready} generatedAt={generatedAt} />
       )}
 
       <section data-t7-section="transfer" aria-label={t('studio.transfer')}>
