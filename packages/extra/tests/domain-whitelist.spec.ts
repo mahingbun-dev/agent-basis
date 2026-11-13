@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { DomainWhitelist, normalizeRuleHost, parseDestination, parseDomainWhitelistYaml } from '../src/domain-whitelist.ts'
+import { defaultEgressWhitelist } from '../src/egress-defaults.ts'
 import { ExtraConfigError } from '../src/errors.ts'
 
 /** 主匹配表:规则 × URL → 期望。 */
@@ -42,6 +43,28 @@ describe('DomainWhitelist 通配匹配表', () => {
     expect(whitelist.check('https://a.example.com/').allowed).toBe(true)
     expect(whitelist.check('https://a.b.example.com/').allowed).toBe(true)
     expect(whitelist.check('https://evil-example.com/').allowed).toBe(false)
+  })
+})
+
+describe('DomainWhitelist `**` 全放(显式弃权,2026-11-13 产品裁定语法)', () => {
+  const whitelist = new DomainWhitelist([{ host: '**' }])
+
+  it('任意 host:多标签/单标签/IP 字面量/任意端口 全放', () => {
+    expect(whitelist.check('https://www.baidu.com/').allowed).toBe(true)
+    expect(whitelist.check('https://baidu.com:443/').allowed).toBe(true)
+    expect(whitelist.check('http://192.168.1.1:8080/').allowed).toBe(true)
+    expect(whitelist.check('https://[2001:db8::1]:8443/').allowed).toBe(true)
+  })
+
+  it('其余 fail-closed 面不受全放影响:非法协议/不可解析仍拒', () => {
+    expect(whitelist.check('file:///etc/passwd').allowed).toBe(false)
+    expect(whitelist.check('not a url').allowed).toBe(false)
+  })
+
+  it('缺省规则集(内网 3 条)不含全放——fail-closed 缺省不变', () => {
+    const def = defaultEgressWhitelist()
+    expect(def.check('https://www.baidu.com/').allowed).toBe(false)
+    expect(def.rules.map(r => r.host)).toEqual(['192.168.31.*', 'localhost', 'manas'])
   })
 })
 

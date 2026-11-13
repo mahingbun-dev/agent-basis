@@ -52,6 +52,8 @@ profiles/eterna-web/cordis.patch.yml       profile 用户层（最后写赢，�
   `.eterna/egress-whitelist.yml`，文件缺席 = 内网默认白名单（`192.168.31.*` / `localhost`
   / `manas`，`packages/extra/src/egress-defaults.ts:19-23`），公网域扩展走资产模板
   `packages/extra/assets/egress-whitelist.template.yml`（启用前过企业合规评审）。
+  部署方裁定不做域名级管控时写显式全放规则 `'**'`（任意 host，协议/端口 fail-closed
+  面仍生效；2026-11-13 产品裁定，个人部署不逐域加白——缺省规则集永不含它）。
 - **装卸无残留验证结论（T9 真 boot E2E，`node scripts/verify-governance-e2e.mjs`，
   T4 验收「effect 逆闭包卸载无残留」的宿主级兑现）**：
   - web 档挂载 boot：三行 present+enabled+**active** 且 0 个 failed 条目
