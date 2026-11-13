@@ -432,6 +432,38 @@ function extractAssistantText(api: string, body: unknown): string | undefined {
   return undefined
 }
 
+/**
+ * 跨协议兜底反引(2026-11-13 生产实测:网关可能以非请求协议的形态回包——
+ * opendesign 网关在 anthropic-messages 路由上偶发回 openai 形态的空壳;按请求
+ * 协议解析失败时,依次尝试其余两种形态,仍无文本才判空)。
+ */
+function extractAssistantTextGeneric(body: unknown): string | undefined {
+  for (const api of ['openai-completions', 'openai-responses', 'anthropic-messages']) {
+    const text = extractAssistantText(api, body)
+    if (text !== undefined && text.trim() !== '') return text
+  }
+  return undefined
+}
+
+/** 空响应的可诊断事实(2026-11-13 生产:content=[] + stop_reason=end_turn,思考
+ * 阶段耗尽输出预算/网关瞬断的典型形态;裸 JSON 对用户无意义,给可行动信息)。 */
+function emptyResponseDiagnosis(body: unknown): string {
+  let stopReason = '?'
+  let outputTokens: unknown = '?'
+  let blockTypes = '?'
+  if (typeof body === 'object' && body !== null) {
+    const record = body as Record<string, unknown>
+    if (typeof record['stop_reason'] === 'string') stopReason = record['stop_reason']
+    const usage = plainRecordOf(record['usage'])
+    if (usage !== undefined) outputTokens = usage['output_tokens'] ?? '?'
+    const content = record['content']
+    blockTypes = Array.isArray(content)
+      ? JSON.stringify(content.map(block => plainRecordOf(block)?.['type'] ?? '?'))
+      : typeof content
+  }
+  return `模型返回空内容(stop_reason=${stopReason},输出块=${blockTypes},output_tokens=${outputTokens})——多为思考阶段耗尽输出预算或网关瞬断,重试通常可恢复;持续复现请检查模型路由的 API 协议形态`
+}
+
 /** 规范化 baseURL:去尾斜杠(llm-doctor cleanBase 同款)。 */
 function cleanBase(base: string): string {
   return base.replace(/\/+$/, '')
@@ -493,9 +525,16 @@ export async function aiChatCompletion(request: AiChatRequest): Promise<AiChatRe
     if (!(res.status >= 200 && res.status < 300)) {
       return { ok: false, text: '', latencyMs, status: res.status, error: `HTTP ${res.status}: ${extractErrorText(parsed)}` }
     }
-    const text = extractAssistantText(request.api, parsed)
-    if (text === undefined) {
-      return { ok: false, text: '', latencyMs, status: res.status, error: `响应无可解析的助手文本(${extractErrorText(parsed)})` }
+    const text = extractAssistantText(request.api, parsed) ?? extractAssistantTextGeneric(parsed)
+    if (text === undefined || text.trim() === '') {
+      const excerpt = extractErrorText(parsed).slice(0, 120)
+      return {
+        ok: false,
+        text: '',
+        latencyMs,
+        status: res.status,
+        error: `${emptyResponseDiagnosis(parsed)}(响应摘录:${excerpt})`,
+      }
     }
     return { ok: true, text, latencyMs, status: res.status }
   } catch (error) {

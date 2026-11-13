@@ -497,13 +497,17 @@ const CSS = `
 }
 [data-ps-ai-input-row] { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 [data-ps-ai-instruction] {
-  flex: 1 1 240px; padding: 8px 12px; font: inherit; font-size: var(--et-text-caption);
-  color: var(--et-fg);
+  flex: 1 1 240px; padding: 10px 12px; font: inherit; font-size: var(--et-text-caption);
+  line-height: var(--et-leading-body); color: var(--et-fg);
   background: var(--et-surface);
   border: 1px solid var(--et-border); border-radius: var(--et-radius-sm);
+  resize: vertical; min-height: 84px; width: 100%;
 }
 [data-ps-ai-instruction]:focus-visible { outline: 2px solid var(--et-accent); outline-offset: 1px; }
 [data-ps-ai-instruction]:disabled { opacity: 0.6; }
+/* 聊天框式输入(2026-11-13 用户反馈):多行 textarea + 底部提示/按钮行 */
+.ps-ai-input-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ps-ai-input-hint { font-size: var(--et-text-micro); color: var(--et-muted); }
 [data-ps-ai-polish-btn] {
   padding: 10px 16px; min-height: 36px; font: inherit; font-size: var(--et-text-caption); font-weight: 600; cursor: pointer;
   color: var(--et-fg);

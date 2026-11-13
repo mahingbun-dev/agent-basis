@@ -74,7 +74,7 @@ import {
   aiChatCompletion, buildAiEntryUserPayload, checkAiAvailability, createKeyPresenceResolver,
   extractDraftText, parseAiFindings,
 } from './ai-service.ts'
-import type { AiFetchLike, AiRoute } from './ai-service.ts'
+import type { AiChatResult, AiFetchLike, AiRoute } from './ai-service.ts'
 import {
   ASSEMBLE_EVENT, type AssemblyReplayResult, type ReplayAssembledSection, SKIP_COMPLETE_OWNER,
   agentIdOfAssembleContext, pluginSpanOwnsCompleteFlag, resolveAssemblyReplay,
@@ -1261,7 +1261,10 @@ export class LoopPromptGateway extends TypertRemoteService {
       this.audit.write(`${kind}.unavailable`, { entryId, reason: 'dotenv-not-exported' })
       return { status: 'unavailable', issues: [reason] }
     }
-    const result = await aiChatCompletion({
+    // 空响应自动重试一次(2026-11-13 生产实测:opendesign 网关偶发回 content=[]
+    // 空壳,思考阶段耗尽输出预算/瞬断,重试即恢复——首炸直接甩给用户太伤体验;
+    // 只对「空内容」类失败重试,协议/HTTP/超时错误不重试)。审计如实记两次。
+    const wire = (): Promise<AiChatResult> => aiChatCompletion({
       api: route.api,
       baseURL: route.baseURL,
       model: route.model,
@@ -1272,6 +1275,12 @@ export class LoopPromptGateway extends TypertRemoteService {
       fetchImpl: this.aiFetch,
       timeoutMs: this.aiTimeoutMs,
     })
+    const isEmptyFailure = (r: AiChatResult): boolean => !r.ok && (r.error?.startsWith('模型返回空内容') ?? false)
+    let result = await wire()
+    if (isEmptyFailure(result)) {
+      this.audit.write(`${kind}.retry`, { entryId, provider: route.provider, model: route.model, reason: 'empty-response-retry-once' })
+      result = await wire()
+    }
     if (!result.ok) {
       this.audit.write(`${kind}.failed`, {
         entryId, provider: route.provider, model: route.model, latencyMs: result.latencyMs, reason: result.error,
