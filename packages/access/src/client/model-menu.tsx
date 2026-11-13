@@ -8,6 +8,10 @@
  *   ZCode ComposerProviderMenu 的 offset 补偿:side=menu.right-row.right+4)
  * - 数据面:同窗 RPC(信封与上游 typert 同构);提交=selectModel;
  *   回显=ctx.sessions 投影单键本地写(rename 先例)
+ * - 能力标签(2026-11-13):模型行 badge(上游 ModelCatalogModel 既有字段;
+ *   服务端 access 网关在 /api/session/modelCatalog 上按 llm-pi-ai 配置富化
+ *   「视觉」,见 src/model-catalog.ts)渲染为名后 chip——上游菜单位次;
+ *   文案按 navigator.language 解析 LocalizedText(en 兜底,镜像上游 resolveText)
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
@@ -29,7 +33,14 @@ async function rpc<T>(method: string, args: Record<string, unknown>): Promise<T>
 }
 
 interface ReasoningEffort { readonly id: string; readonly name: string; readonly description?: string }
-interface CatalogModel { readonly id: string; readonly name: string; readonly reasoning?: { readonly efforts: readonly ReasoningEffort[]; readonly defaultEffort?: string } }
+/** 上游 LlmModelBadge 同构;text=字面或按小写 locale id 键的翻译(必含 en)。 */
+type CatalogBadgeTone = 'neutral' | 'info' | 'success' | 'warning'
+interface CatalogModel {
+  readonly id: string
+  readonly name: string
+  readonly reasoning?: { readonly efforts: readonly ReasoningEffort[]; readonly defaultEffort?: string }
+  readonly badge?: { readonly text: string | { readonly en: string; readonly [locale: string]: string }; readonly tone?: CatalogBadgeTone }
+}
 interface CatalogProvider { readonly id: string; readonly name?: string; readonly models?: readonly CatalogModel[] }
 interface CatalogValue { readonly groups?: readonly CatalogProvider[] }
 interface Selected { readonly provider: string; readonly model: string; readonly reasoningEffort?: string }
@@ -62,6 +73,31 @@ const S = {
     fontSize: 10, fontWeight: 600,
   } as React.CSSProperties,
   check: { color: 'var(--et-success)', marginLeft: 'auto' } as React.CSSProperties,
+  // 能力 tag chip(上游 ui-model-selection .badge 同位次:菜单位=名后;
+  // 全令牌着色,零字面色值——frontend-style 铁律)
+  badge: {
+    flexShrink: 0, fontSize: 11, lineHeight: '16px', fontWeight: 500,
+    padding: '1px 7px', borderRadius: 'var(--et-radius-pill)',
+    border: '1px solid transparent', whiteSpace: 'nowrap',
+  } as React.CSSProperties,
+}
+
+/** badge tone→令牌映射(neutral=ZCode 参考图灰 chip;warning 无专属令牌借 danger 语义)。 */
+const BADGE_TONES: Record<CatalogBadgeTone, React.CSSProperties> = {
+  neutral: { background: 'var(--et-surface-2)', borderColor: 'var(--et-border)', color: 'var(--et-muted)' },
+  info: { background: 'var(--et-accent-soft)', color: 'var(--et-accent)' },
+  success: { background: 'color-mix(in oklab, var(--et-success), transparent 88%)', color: 'var(--et-success)' },
+  warning: { background: 'color-mix(in oklab, var(--et-danger), transparent 88%)', color: 'var(--et-danger)' },
+}
+
+/** LocalizedText 解析(镜像上游 locale resolveText 语义):字面直用;
+ *  字典按 navigator.language 全 tag → 基语言 → en 兜底。 */
+function resolveBadgeText(text: NonNullable<CatalogModel['badge']>['text']): string {
+  if (typeof text === 'string') return text
+  const tag = (typeof navigator === 'object' && typeof navigator.language === 'string'
+    ? navigator.language : 'en').toLowerCase()
+  const base = tag.split('-')[0] ?? 'en'
+  return text[tag] ?? text[base] ?? text.en ?? ''
 }
 
 export interface ModelMenuOwner {
@@ -263,7 +299,13 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
           return <button key={m.id} type="button" role="menuitemradio" aria-checked={active} disabled={busy}
             style={{ ...S.row, justifyContent: 'space-between' }}
             onClick={() => { if (current !== null) submit({ provider: current.provider, model: m.id }, { closeAfter: true }) }}>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
+              {m.badge !== undefined &&
+                <span style={{ ...S.badge, ...BADGE_TONES[m.badge.tone ?? 'neutral'] }}>
+                  {resolveBadgeText(m.badge.text)}
+                </span>}
+            </span>
             {active && <span aria-hidden="true" style={S.check}>✓</span>}
           </button>
         })}

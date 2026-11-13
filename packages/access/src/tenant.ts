@@ -14,6 +14,8 @@
 import { mkdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { withinRoot } from './within-root.ts'
+import { enrichModelCatalog, visionIndexFromConfigEditor } from './model-catalog.ts'
+import type { CatalogValueShape } from './model-catalog.ts'
 import { registerUserPluginRoutes } from './user-plugins.ts'
 import { ApprovalFlow, ensureApprovalSchema } from './approvals.ts'
 import type { AccessAuditEvent, AuditReflect } from './audit.ts'
@@ -363,7 +365,7 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
   const sessionValidated = [
     'rename', 'cancel', 'fork', 'page', 'search', 'observeState',
     'observeProjections', 'prompt', 'control', 'attachment',
-    'openWorkspacePath', 'canOpenWorkspacePath', 'initializeDefaultModel', 'modelCatalog',
+    'openWorkspacePath', 'canOpenWorkspacePath', 'initializeDefaultModel',
     'state', 'projections', 'selectModel', 'updateQueue', 'wait',
   ]
   for (const name of sessionValidated) {
@@ -388,6 +390,25 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
       return okFrame(rpcId, value)
     })
   }
+
+  // ── session/modelCatalog 专路(2026-11-13,模型能力 tag):catalog 请求不带
+  //    sessionId/workspaceId/cwd,通用循环守卫本就全放行——专路只为在响应上富化
+  //    「视觉」badge(能力真值=llm-pi-ai 配置行 input/defaultInput,见 model-catalog.ts)。
+  //    configEditor 经 reflect 机会语义读取,缺席/未就绪→空索引=逐字段纯透传;
+  //    富化只补缺,provider 自带 badge(官方 listing 来源)与 failures 原样不动。
+  //    同一 RPC 亦供上游 ui-model-selection(触发器/上游菜单)——一处富化双端亮。 ──
+  register('/api/session/modelCatalog', async (rpcId, args, _ctx, signal) => {
+    const sc = serviceOf(deps, 'sessionController')
+    if (sc === undefined) return failureFrame(rpcId, new Error('sessionController not ready'))
+    const value = await callService(sc, 'modelCatalog', args.request ?? args, signal) as CatalogValueShape | undefined
+    let visionIndex: Map<string, Set<string>> = new Map()
+    const configEditor = serviceOf(deps, 'configEditor') as { configuration?: () => unknown } | undefined
+    try {
+      const configuration = configEditor?.configuration?.()
+      if (configuration !== undefined) visionIndex = visionIndexFromConfigEditor(configuration)
+    } catch { /* 配置面未就绪:空索引=纯透传,不炸目录读 */ }
+    return okFrame(rpcId, enrichModelCatalog(value ?? {}, visionIndex))
+  })
 
   // ── T1 补全(G1):session/events——读任意会话完整历史,之前完全不在守卫清单 ──
   // 请求形态 SessionPageRequest:{address:{kind:'session',sessionId}} 或
