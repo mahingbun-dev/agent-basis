@@ -32,8 +32,8 @@
         "zh": "基座组合层 Glue"
       },
       "description": {
-        "en": "Composition bundle that mounts the @eterna memory, knowledge, and governance services as real DSH host plugins.",
-        "zh": "组合层 bundle:把 @eterna 的 memory/knowledge/governance 服务装配为真实 DSH 宿主可挂载的插件。"
+        "en": "Composition bundle that mounts the @eterna memory, knowledge, and governance services as real EternaAgent host plugins.",
+        "zh": "组合层 bundle:把 @eterna 的 memory/knowledge/governance 服务装配为真实 EternaAgent 宿主可挂载的插件。"
       },
       "homepage": "https://github.com/mahingbun-dev/agent-basis",
       "repository": {

@@ -1,6 +1,6 @@
 {
   "name": "@eterna/memory",
-  "description": "L1 记忆插件:M1 项目记忆(workspace NOTES 文件读写+检索)+ M2 实体记忆(node:sqlite 表 subject/key/content/valid_at/invalid_at/confidence,重写顶替+全历史审计);模型面工具 memory_write/read/search/forget——forget 应用逆闭包真删(物理 DELETE,非打标);systemPrompt 只注入记忆索引(key+一句话摘要,≤500 token 预算);一切写入先过 PII(注入 @eterna/governance PiiFilter,未就绪降级内置实现)。seam 对齐 deepseek-harness packages/core 的 tools+system-prompt(已发布 0.2.2-alpha.2)。",
+  "description": "L1 记忆插件:M1 项目记忆(workspace NOTES 文件读写+检索)+ M2 实体记忆(node:sqlite 表 subject/key/content/valid_at/invalid_at/confidence,重写顶替+全历史审计);模型面工具 memory_write/read/search/forget——forget 应用逆闭包真删(物理 DELETE,非打标);systemPrompt 只注入记忆索引(key+一句话摘要,≤500 token 预算);一切写入先过 PII(注入 @eterna/governance PiiFilter,未就绪降级内置实现)。seam 对齐上游 packages/core 的 tools+system-prompt(已发布 0.2.2-alpha.2)。",
   "version": "0.0.0",
   "private": true,
   "type": "module",

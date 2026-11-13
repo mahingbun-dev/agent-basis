@@ -1,6 +1,6 @@
 {
   "name": "@eterna/brand",
-  "description": "品牌面替换:恒灵·EternaAgent——把 UI 上的 DeepSeek Harness 名与图标替换为企业自有品牌(恒灵/EternaAgent,域 eternity-electricity.cn;恒=企业永恒基因,灵=Agent 智能体灵性)。三替换面:①tab 标题监听(上游 productTitle 硬编码在 ui-layout,MutationObserver 拦截改写);②favicon 换装(SVG data-URI,Webflow Blue 底+白闪电);③侧栏 badge(locale 键 brand.localBuild 字典覆写 + DOM 文本观察器兜底)。零上游改动,升级安全。装载:@eterna/panel 同款双面配方(insert 行 + dsh.client 声明)。资产:assets/icon.svg(Webflow Blue 应用图标:白恒环+白闪电)/icon-mono.svg(纯闪电变体)。",
+  "description": "品牌面替换:恒灵·EternaAgent——把上游产品名与图标全面替换为企业自有品牌(恒灵/EternaAgent,域 eternity-electricity.cn;恒=企业永恒基因,灵=Agent 智能体灵性)。五替换面:①服务端页面(webServer.tapIndex 改写 index.html 的 <title>/apple 短名,/manifest.webmanifest 以同路径 named route 接替——刷新瞬间即品牌,不靠客户端兜底);②模型侧提示词(system-prompt/assemble 瀑布改写身份句与运行时上下文文案);③tab 标题监听(上游 productTitle 硬编码在 ui-layout,MutationObserver 拦截改写);④favicon 换装(SVG data-URI,Webflow Blue 底+白闪电);⑤侧栏 badge 与插件描述(locale 键 brand.localBuild 字典覆写 + DOM 文本观察器兜底,裸 DSH 按词位替换以保住 $DSH_HOME 等运行时标识符)。零上游改动,升级安全。装载:@eterna/panel 同款双面配方(insert 行 + dsh.client 声明)。资产:assets/icon.svg(Webflow Blue 应用图标:白恒环+白闪电)/icon-mono.svg(纯闪电变体)。",
   "version": "0.0.1",
   "private": true,
   "type": "module",

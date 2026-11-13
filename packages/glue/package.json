@@ -1,6 +1,6 @@
 {
   "name": "@eterna/glue",
-  "description": "组合层 glue bundle:把 @eterna 的 memory/knowledge/governance 服务与 audit/extra(T8:审计留痕 + egress 三层出网判定)装配为真实 DSH 宿主可挂载的插件(注册模型面工具 + systemPrompt 记忆索引 + ctx.governance 服务 + tools/pre-execute 治理 veto 接线 + ctx.audit 审计服务)。本包不含业务逻辑——全部能力来自 @eterna/* 包,这里只做 Cordis 装配与组合层桥接。",
+  "description": "组合层 glue bundle:把 @eterna 的 memory/knowledge/governance 服务与 audit/extra(T8:审计留痕 + egress 三层出网判定)装配为真实 EternaAgent 宿主可挂载的插件(注册模型面工具 + systemPrompt 记忆索引 + ctx.governance 服务 + tools/pre-execute 治理 veto 接线 + ctx.audit 审计服务)。本包不含业务逻辑——全部能力来自 @eterna/* 包,这里只做 Cordis 装配与组合层桥接。",
   "version": "0.0.0",
   "private": true,
   "type": "module",

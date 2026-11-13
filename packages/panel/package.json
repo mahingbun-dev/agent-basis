@@ -1,6 +1,6 @@
 {
   "name": "@eterna/panel",
-  "description": "基座面板:DSH Web 双面插件——浏览器半边在侧栏贡献「基座面板」入口并渲染三区块面板(服务清单/操作指引/可观测样例),Host 半边经官方 Typert 网关 SRC 端点 eternaPanel/snapshot 暴露只读快照(governance 规则/审计、memory 实体、knowledge 后端健康、@event 工具清单+R3 标记、最近会话 token/缓存命中)。装载走 @eterna/glue 同款 bundle 配方(cordis.patch.yml insert + dsh.client 声明)。",
+  "description": "基座面板:EternaAgent Web 双面插件——浏览器半边在侧栏贡献「基座面板」入口并渲染三区块面板(服务清单/操作指引/可观测样例),Host 半边经官方 Typert 网关 SRC 端点 eternaPanel/snapshot 暴露只读快照(governance 规则/审计、memory 实体、knowledge 后端健康、@event 工具清单+R3 标记、最近会话 token/缓存命中)。装载走 @eterna/glue 同款 bundle 配方(cordis.patch.yml insert + dsh.client 声明)。",
   "version": "0.0.1",
   "private": true,
   "type": "module",

@@ -200,7 +200,7 @@ export function cardToQuestionItems(card: ApprovalCard, options: CardQuestionOpt
   const reject = options.rejectLabel ?? '拒绝'
   const id = options.id ?? `approve:${card.matchedRule.ruleId}`
   const optionsList: AskUserQuestionOption[] = [
-    { label: approve, description: '本次允许,不产生持久授权(DSH 仅一次性授权)' },
+    { label: approve, description: '本次允许,不产生持久授权(EternaAgent 仅一次性授权)' },
     { label: reject, description: '拒绝该动作并停止执行' },
   ]
   const mainQuestion: AskUserQuestionItem = {

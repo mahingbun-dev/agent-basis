@@ -7,9 +7,10 @@
  * 2. 残余鲸鱼置换:FishLogo 另有渲染点(版本拷贝按钮等)——DOM 观察器按 viewBox
  *    签名 "0 0 23.16 17.04"(FISH_LOGO_VIEWBOX,唯一)识别鲸鱼 svg,原位置换为
  *    恒灵单色标(currentColor,随主题深浅自适配)。
- * 3. 文案地图(文本节点观察器,防回环):
- *    DeepSeek Harness→恒灵·EternaAgent;DSH 本地构建→恒灵·EternaAgent · 本地构建;
- *    DSH Local Build→EternaAgent · Local Build;探索未至之境→方寸灵台，运筹万里(文化向标语,用户 2026-11-09 定:灵台出自《庄子》=心之神明,台=工作台双关,灵=品牌呼应)。
+ * 3. 文案地图(文本节点观察器,防回环;规则表在 text-rules.ts):
+ *    DeepSeek Harness→EternaAgent;DSH 本地构建/DSH Local Build→恒灵·EternaAgent;
+ *    裸 DSH 按词位换成 EternaAgent(`$DSH_HOME` 等标识符原样);
+ *    探索未至之境→方寸灵台，运筹万里(文化向标语,用户 2026-11-09 定:灵台出自《庄子》=心之神明,台=工作台双关,灵=品牌呼应)。
  * 4. tab 标题:ui-layout productTitle 硬编码,观察器拦截(含会话前缀形态)。
  * 5. favicon:SVG data-URI 换装。
  * 另:locale.register('common') 覆写 brand.localBuild 键(DOM 观察器兜底)。
@@ -17,6 +18,7 @@
 import { createElement } from 'react'
 import { BRAND_BOLT_PATH } from '@eterna/ui/icon-data'
 import { BRAND } from './state.ts'
+import { hasBrandText, rebrandUiText } from './text-rules.ts'
 import type { BrandClientContext } from './state.ts'
 
 export const inject = ['slots', 'locale']
@@ -27,19 +29,6 @@ const FAVICON_URI = `data:image/svg+xml,${encodeURIComponent(FAVICON_SVG)}`
 
 /** FishLogo 唯一 viewBox(上游 FISH_LOGO_VIEWBOX 23.16×17.04)——svg 身份签名。 */
 const FISH_VIEWBOX = '0 0 23.16 17.04'
-
-/** 文案替换地图(文本节点精确子串;模型名 deepseek-flash 不在图内,不受影响)。 */
-const TEXT_MAP: readonly (readonly [string, string])[] = [
-  ['DeepSeek Harness', BRAND.full],
-  [BRAND.upstreamBadge[0], BRAND.badge.zh],
-  [BRAND.upstreamBadge[1], BRAND.badge.en],
-  ['探索未至之境', '方寸灵台，运筹万里'],
-  ['DSH', 'EternaAgent'],
-  // 预览版痕迹清除(用户 2026-11-09:不希望有);长短语在前防子串抢先。
-  // 注意:「预览版」命中的文本节点由 hidePreviewChip 整元素隐藏(只清文字会
-  // 留下看不见的空样式块——hero 右上角的可疑残影,2026-11-09 用户实测)。
-  ['预览版说明', ''],
-]
 
 /** 恒灵标内观(currentColor,主题自适配;纯粗壮闪电,v2 修复 24px 圆+点退化)。 */
 function markInner(): string {
@@ -139,14 +128,6 @@ function hideClass(className: string): void {
   }
 }
 
-/** 全量映射改写(所有 TEXT_MAP 条目依序替换)。 */
-function mapReplace(text: string): string {
-  for (const [from, to] of TEXT_MAP) {
-    if (text.includes(from)) text = text.split(from).join(to)
-  }
-  return text
-}
-
 /** 品牌相关 ARIA/提示属性(工具描述会以无障碍属性渲染,textContent 扫描不可见——
  * v3 残留 4 处「DSH file policy」的根因)。 */
 const ATTR_NAMES = ['aria-label', 'title', 'aria-description', 'placeholder', 'alt'] as const
@@ -161,7 +142,7 @@ function replaceTextNode(node: Text): void {
     const chip = node.parentElement
     if (chip !== null) hideClass(chip.className)
   }
-  const text = mapReplace(current)
+  const text = rebrandUiText(current)
   if (text !== current) node.nodeValue = text
 }
 
@@ -170,15 +151,15 @@ function replaceAttrs(el: Element): void {
   for (const name of ATTR_NAMES) {
     const value = el.getAttribute(name)
     if (value === null) continue
-    const replaced = mapReplace(value)
+    const replaced = rebrandUiText(value)
     if (replaced !== value) el.setAttribute(name, replaced)
   }
 }
 
-/** 文本节点命中判定:TEXT_MAP 之外的触发器(预览版 chip 隐藏)必须单独计入——
+/** 文本节点命中判定:品牌规则之外的触发器(预览版 chip 隐藏)必须单独计入——
  * 否则节点被过滤、永远到不了 replaceTextNode 的隐藏分支(v5 首版实测漏检)。 */
 function textHit(text: string): boolean {
-  return text.includes('预览版') || TEXT_MAP.some(([from]) => text.includes(from))
+  return text.includes('预览版') || hasBrandText(text)
 }
 
 /** 文本+鲸鱼观察器:全树扫描文案命中与鲸鱼 svg,原位替换。 */

@@ -219,7 +219,7 @@ function readEntryMetas(frontmatter: Record<string, unknown>): { entries: readon
   const metadata = frontmatter['metadata']
   if (metadata === undefined) return { entries: [], issues: [] }
   if (typeof metadata !== 'object' || metadata === null || Array.isArray(metadata)) {
-    return { entries: [], issues: ['metadata 必须是映射(DSH 原生自由字段)'] }
+    return { entries: [], issues: ['metadata 必须是映射(EternaAgent 原生自由字段)'] }
   }
   const evo = (metadata as Record<string, unknown>)['evo']
   if (evo === undefined) return { entries: [], issues: [] }
