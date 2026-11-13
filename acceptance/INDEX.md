@@ -130,6 +130,8 @@
 - **注入点更正（2026-11-13 生产事故修复）**：原「tools/pre-execute 瀑布末段原地覆盖 _eternaToken」在内核 deepFreeze 的冻结参数上必炸（`mcp__browser__*` 全灭，`Cannot add property _eternaToken, object is not extensible`）——内核合同本就禁止 pre-execute 改写输入（dsh-tools contracts.d.ts:312-336、README:197）。现注入点= `ToolsService.executable` 分发边界实例 wrap（`packages/access/src/companion-inject.ts`：冻结 args 展开新对象注入，模型不可伪造语义不变；令牌不进日志/审计/schema；pre-execute 监听保留 fail-closed deny 判定，先于人审）。合同记录：docs/PLUGIN-AUTHORING.md §1.3
 - /api/tools 凭据校验（x-relay-token）——回闭公网反代透传暴露的上一轮缺口
 - **网页链接默认打开方式联动（2026-11-13）**：上游 chat 设置 linkOpening 出厂默认 sidebar（应用内侧边栏）；当用户已生成 companion 令牌、自己的扩展在线（relay `/api/status?token=` 按令牌探测返回 `tokenConnected`，ns=令牌串）、且从未显式选择过该设置时，access 客户端（`src/client/link-opening.ts`，经公开服务 `configForms.get('ui-chat')` 与设置行同一写面）静默改默认为 new-tab（系统默认浏览器开新页签）——对话链接与浏览器任务执行面保持同一台浏览器；用户显式选择一律尊重，扩展离线/令牌未生成/探测失败全部跳过
+- **wrap 安装面 cordis inject 事故修复（2026-11-13 二轮）**：注入点重做引入回归——access 插件 `inject: ['webServer','connection']` 过滤上下文里访问未声明的 `tools` 服务，cordis ReflectService get trap **直接抛错**（`cannot get property "tools" without inject`，非返回 undefined，可选链兜不住），pre-execute 监听对每个工具调用先炸这一下=全工具面灭。修复=inject 清单补 `'tools'`（根治）+ `readToolsService` 安全读取（try/catch 降级为不装 wrap，与头注诚实边界退化路径一致；hostile-proxy 回归测试钉死「get 抛错必须不外抛」）
+- **egress 域名白名单全放语法 `'**'`（2026-11-13 产品裁定）**：个人部署不做逐域加白（每站一条不可维护）——判定器新增显式全放规则 `'**'`（匹配任意 host，协议/端口 fail-closed 面仍生效；必须显式写入 `.eterna/egress-whitelist.yml` 才生效，缺省内网 3 条规则集不变=缺省仍 fail-closed）。浏览器工具（`mcp__browser__*`）本就豁免域名级判定（出站在用户机器），此语法只影响服务端 `web_fetch`/`web_search` 面
 
 **前端令牌卡**（设置→账号→浏览器执行面，全用户可见）：令牌等宽展示+一键复制+生成/重置两击确认+安装指引新窗跳转（guideUrl 由 ETERNA_RELAY_PUBLIC_URL 推导）。
 

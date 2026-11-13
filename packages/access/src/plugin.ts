@@ -1,6 +1,8 @@
 /**
  * @eterna/access 装配位:DSH 宿主插件(default export 实例,DSH 硬性规范 1)。
- * inject ['webServer','connection'](frontend-static 同款,frontend-static lib/index.js:26 实证);
+ * inject ['webServer','connection','tools'](前二=frontend-static 同款 lib/index.js:26 实证;
+ * 'tools'=companion 分发边界 wrap 的宿主服务——cordis 过滤上下文访问未声明服务是 get trap
+ * 抛错,2026-11-13 生产事故根因,声明缺失时运行侧另有 readToolsService 降级兜底);
  * register 四条路由(/login /logout /account 精确 + /access/api 前缀)+
  * tapIndex 注入账号角标;返回 handle 为 apply 的配逆闭包(路由 disposer + store close)。
  * seam 用结构类型钉住(形态取 @deepseek-ai/dsh-host-webserver 0.2.2-alpha.3
@@ -13,7 +15,7 @@ import { join } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { reportAccessAudit, type AccessAuditEvent, type AuditReflect } from './audit.ts'
 import { companionTokenOf } from './companion.ts'
-import { installCompanionExecutableWrap, routeCompanion } from './companion-inject.ts'
+import { installCompanionExecutableWrap, readToolsService, routeCompanion } from './companion-inject.ts'
 import { type AccessRequest } from './http.ts'
 import type { Context } from '@deepseek-ai/cordis'
 // 空类型导入 = dsh-tools 对 cordis Events('tools/pre-execute')增广的触发器（governance-plugin 同款）：
@@ -136,7 +138,7 @@ function createNodeHandler(deps: AccessDeps): (req: IncomingMessage, res: Server
 export function defineAccessPlugin(config: AccessPluginConfig = {}) {
   return {
     name: ACCESS_PLUGIN_NAME,
-    inject: ['webServer', 'connection'],
+    inject: ['webServer', 'connection', 'tools'],
     apply(ctx: AccessContext & Context): () => void {
       const dir = config.dir
         ?? (process.env.ETERNA_ACCESS_DIR !== undefined && process.env.ETERNA_ACCESS_DIR !== ''
@@ -190,9 +192,13 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       let companionAuditDone = false
       const ensureCompanionWrap = (): void => {
         if (companionWrap !== undefined) return
-        const tools = (ctx as unknown as { tools?: object }).tools
-        if (tools === undefined || typeof (tools as { executable?: unknown }).executable !== 'function') return
-        companionWrap = installCompanionExecutableWrap(tools as never, companionDeps)
+        // ctx.tools 读取必须走安全面:cordis 过滤上下文(inject 清单)访问未声明服务是
+        // get trap 抛错(`cannot get property "tools" without inject`),可选链兜不住
+        // ——2026-11-13 生产事故:本监听对每个工具调用先炸这一下,全工具面灭。
+        // 根治 = inject 清单补 'tools';此助手只兜声明缺失/服务未就绪的退化路径。
+        const tools = readToolsService(ctx)
+        if (tools === undefined || typeof tools.executable !== 'function') return
+        companionWrap = installCompanionExecutableWrap(tools, companionDeps)
         disposers.push(companionWrap)
         if (!companionAuditDone) {
           companionAuditDone = true

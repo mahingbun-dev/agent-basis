@@ -88,6 +88,23 @@ export interface ExecutableCapable {
   executable: (name: string, scope?: unknown, toolSet?: unknown) => ToolDefinitionLike | undefined
 }
 
+/**
+ * 宿主 ctx → ToolsService 的安全读取：cordis 声明了 `inject` 过滤清单的插件上下文，
+ * 访问未声明服务是 **get trap 直接抛错**（`cannot get property "tools" without inject`，
+ * cordis lib/index.js ReflectService.handler.get），不是返回 undefined——可选链兜不住。
+ * 2026-11-13 生产事故：本监听对每个工具调用先炸这一下，全工具面灭。调用侧必须 try/catch
+ * 包裹（本助手即兜底面）；根治靠插件 inject 清单补声明。
+ */
+export function readToolsService(host: unknown): ExecutableCapable | undefined {
+  try {
+    const tools = (host as { tools?: ExecutableCapable | null } | null | undefined)?.tools
+    if (typeof tools !== 'object' || tools === null) return undefined
+    return tools
+  } catch {
+    return undefined // 过滤上下文未声明：降级为不装 wrap（头注诚实边界的退化路径）
+  }
+}
+
 const COMPANION_TOOL_PREFIX = 'mcp__browser__'
 
 /**

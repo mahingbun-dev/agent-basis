@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest'
 import {
   companionShadowDefinition,
   installCompanionExecutableWrap,
+  readToolsService,
   routeCompanion,
   type CompanionInjectDeps,
   type ExecutableCapable,
@@ -133,5 +134,27 @@ describe('companion:installCompanionExecutableWrap', () => {
     const dispose = installCompanionExecutableWrap(tools, deps)
     dispose()
     expect(tools.executable('mcp__browser__browser_snapshot')).toBe(browserDef)
+  })
+})
+
+describe('companion:readToolsService（2026-11-13 线上事故回归）', () => {
+  it('cordis 过滤上下文 get trap 抛错 → 降级 undefined,不外抛', () => {
+    // 真实形态:声明 inject 清单的 ctx 访问未声明服务,proxy get 直接 throw
+    // (`cannot get property "tools" without inject`,cordis ReflectService.handler.get)。
+    const hostileCtx = new Proxy({}, {
+      get(_target, prop) {
+        if (prop === 'tools') throw new Error('cannot get property "tools" without inject')
+        return undefined
+      },
+    })
+    expect(readToolsService(hostileCtx)).toBeUndefined()
+  })
+
+  it('正常 ctx:tools 服务原样返回;tools 缺席/null 形态 → undefined', () => {
+    const tools: ExecutableCapable = { executable: () => undefined }
+    expect(readToolsService({ tools })).toBe(tools)
+    expect(readToolsService({})).toBeUndefined()
+    expect(readToolsService({ tools: null })).toBeUndefined()
+    expect(readToolsService(undefined)).toBeUndefined()
   })
 })

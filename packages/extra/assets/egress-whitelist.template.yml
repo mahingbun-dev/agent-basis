@@ -15,6 +15,8 @@
 # - 'example.com'            精确 host(仅该 host);
 # - '*.example.com'          前导通配:任意深度子域,不含 apex;
 # - 'api-*.example.com'      标签内通配(不跨点);IPv6 用 '[::1]' 字面量,禁止通配;
+# - '**'                     全放(显式弃权):匹配任意 host——部署方裁定不做域名级
+#                            管控时唯一合法写法(协议/端口 fail-closed 面仍生效);
 # - { host: ..., ports: [443] }  限定端口列表;缺省 = 任意端口。
 
 whitelist:

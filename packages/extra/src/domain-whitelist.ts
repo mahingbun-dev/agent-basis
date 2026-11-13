@@ -14,6 +14,9 @@
  *   对齐 curl NO_PROXY 的 `.example.com` 子域语义但要 apex 需并列明写)。
  * - `api-*.example.com`      → 标签内通配:`*` 在标签内部匹配该标签内任意
  *   字符(不跨点),如 api-v2.example.com。
+ * - `**`                      → 全放(显式弃权):匹配任意 host——部署方裁定不做
+ *   域名级管控时唯一合法写法(2026-11-13 产品裁定:个人部署不逐域加白)。必须
+ *   显式出现在配置文件里才生效,缺省规则集永不包含它(fail-closed 缺省不变)。
  * - IPv6 字面量:`[::1]` / `[2001:db8::1]`(URL host 段带方括号形态)只做
  *   精确匹配,不允许通配(防 `*` 豁免内网段)。
  *
@@ -96,6 +99,12 @@ function compileRule(rule: DomainRule): CompiledRule {
   const host = normalizeRuleHost(rule.host)
   let leadingWildcardSuffix: string | undefined
   let regex: RegExp | undefined
+  if (host === '**') {
+    // 全放(显式弃权,语法见头注):锚定正则匹配任意非空 host——判定器其余
+    // fail-closed 面(协议白名单/端口语义/host 规范化)不受影响。
+    regex = /^.+$/u
+    return { rule: { ...rule, host }, leadingWildcardSuffix, regex, portSet: undefined }
+  }
   if (host.startsWith('*.')) {
     // `*.example.com` → 任意深度子域:host 以 `.example.com` 结尾且前缀非空。
     leadingWildcardSuffix = host.slice(1) // ".example.com"
