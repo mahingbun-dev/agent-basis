@@ -10,6 +10,24 @@ export type StudioLocaleKey =
   | 'trace'
   | 'studio.subtitle'
   | 'trace.subtitle'
+  | 'studio.eyebrow'
+  | 'studio.library'
+  | 'studio.search'
+  | 'studio.search.placeholder'
+  | 'studio.filter.all'
+  | 'studio.tab.edit'
+  | 'studio.tab.versions'
+  | 'studio.tab.snapshots'
+  | 'studio.compare.base'
+  | 'studio.compare.target'
+  | 'studio.compare.swap'
+  | 'studio.compare.reset'
+  | 'studio.compare.current'
+  | 'studio.compare.statChanged'
+  | 'studio.versions.single'
+  | 'studio.entry.governance'
+  | 'studio.ai.assistant'
+  | 'studio.ai.hint.noSelection'
   | 'refresh'
   | 'back'
   | 'state.loading'
@@ -183,6 +201,24 @@ export const zh: Record<StudioLocaleKey, string> = {
   trace: '循环轨迹',
   'studio.subtitle': '提示词全景:preset 预设 / 领域包 / 运行时注入 / 元提示词。条目可查可改(保存走 R3 审批,对新会话生效、无需重启),版本可回滚。',
   'trace.subtitle': '最近会话的 agent loop 运行轨迹:轮次、工具调用、耗时与 token',
+  'studio.eyebrow': '治理工具',
+  'studio.library': '提示词库',
+  'studio.search': '搜索提示词条目',
+  'studio.search.placeholder': '搜索 id、说明或内容',
+  'studio.filter.all': '全部',
+  'studio.tab.edit': '编辑',
+  'studio.tab.versions': '版本',
+  'studio.tab.snapshots': '会话快照',
+  'studio.compare.base': '基准(旧)',
+  'studio.compare.target': '对比(新)',
+  'studio.compare.swap': '交换左右版本',
+  'studio.compare.reset': '重置对比',
+  'studio.compare.current': '当前生效',
+  'studio.compare.statChanged': '处变更',
+  'studio.versions.single': '只有当前一个版本:保存修改后,这里会出现可左右对比的版本记录(只增不删)。',
+  'studio.entry.governance': '条目说明与生效条件',
+  'studio.ai.assistant': 'AI 助手',
+  'studio.ai.hint.noSelection': '选中左侧可编辑(patch 值型)条目后,可在这里生成润色建议稿与问题清单审核;运行时注入型条目无写回落点,不提供 AI 面板。',
   refresh: '刷新',
   back: '返回会话列表',
   'state.loading': '正在加载…',
@@ -357,6 +393,24 @@ export const en: Record<StudioLocaleKey, string> = {
   trace: 'Loop Trace',
   'studio.subtitle': 'Full registry panorama: presets / domain packs / runtime injection / meta-prompts. Entries are inspectable and editable (saves go through R3 approval, effective for new sessions without restart); versions roll back.',
   'trace.subtitle': 'Recent session traces: turns, tool calls, durations and tokens',
+  'studio.eyebrow': 'Governance tools',
+  'studio.library': 'Prompt library',
+  'studio.search': 'Search prompt entries',
+  'studio.search.placeholder': 'Search id, description or content',
+  'studio.filter.all': 'All',
+  'studio.tab.edit': 'Edit',
+  'studio.tab.versions': 'Versions',
+  'studio.tab.snapshots': 'Snapshots',
+  'studio.compare.base': 'Base (old)',
+  'studio.compare.target': 'Compare (new)',
+  'studio.compare.swap': 'Swap the two sides',
+  'studio.compare.reset': 'Reset compare',
+  'studio.compare.current': 'Current effective',
+  'studio.compare.statChanged': 'changes',
+  'studio.versions.single': 'Only the current version exists: after saving a change, comparable version records appear here (append-only).',
+  'studio.entry.governance': 'Entry notes & effect',
+  'studio.ai.assistant': 'AI assistant',
+  'studio.ai.hint.noSelection': 'Pick an editable (patch-value) entry on the left to generate polish drafts and review reports here; runtime-injected entries have no write-back target and offer no AI panel.',
   refresh: 'Refresh',
   back: 'Back to sessions',
   'state.loading': 'Loading…',

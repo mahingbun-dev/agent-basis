@@ -1,40 +1,42 @@
 /**
- * 侧栏「提示词工坊」主面板(main keyed slot 占位;T1.5 从 persona 单条改注册表全景):
+ * 侧栏「提示词工坊」主面板(2026-11-13 按前端交互原型改版:三栏工作台):
  *
- * - 分组导航 [data-ps-group-nav]:preset/领域/运行时 三层分组行卡(access 插件页
- *   同构形态)——条目 id + 型别/可编辑性胶囊 + 「升级可能覆盖」风险胶囊 + 版本数/
- *   字节;点击切换条目详情;
- * - 条目详情 [data-ps-entry-detail]:元数据卡(层/型别/来源/红线策略/字节上限/
- *   版本概览)+ 生效条件区 [data-ps-entry-effect](T2.2 实测矩阵:radius 胶囊 +
- *   逐条目生效条件注记,registry effect 字段单一来源;不热生效/不可写条目在此
- *   明示,不造「保存即全面生效」假象)+ 风险标注警示区(升级覆盖等,registry
- *   risks 全文展示)+ 分型值区:patch 值型 → 编辑器(保存两段式 R3;
- *   [data-t7-editor]/[data-t7-save-btn]/[data-ps-entry-save]);运行时注入型 →
- *   只读说明面板(「装配时构建,无 patch 写回落点」明示,不造可编辑假象)
- *   (2026-11-11 用户裁定后注册表无行锚点只读型,其面板与文案已移除);
- * - 版本/diff 复用(T7.3 组件按条目渲染):VersionItem(载入/对比/导出/回滚,
- *   无任何删除入口——版本只增不删)+ DiffView([data-ps-diff-view] 锚点叠加);
- * - AI 润色区(T3.2)[data-ps-ai-polish]:patch 值型条目 → 生成建议稿 → diff 预览
- *   ([data-ps-ai-diff],复用 lineDiffOps 与 DiffView 行渲染形态)→「作为提案提交」
- *   经 loopPrompt/ai-proposal 进与手工保存完全相同的 R3 两段式——**AI 产出永不
- *   直接生效**;不可用降级明示([data-ps-ai-unavailable] 文案锚点);
- * - AI 审核报告卡(T3.3)[data-ps-ai-review]:当前稿(编辑器草稿)→ 问题清单
- *   (ruleFindings=与保存门禁同一套本地校验器;aiFindings=模型按元提示词五维:
- *   红线冲突/长度/变量引用/一致性/清晰度)+ 建议列表([data-ps-ai-review-suggestion])。
- *   **报告仅展示、不拦截保存**([data-ps-ai-review-note] 纪律文案);AI 不可用时
- *   ruleFindings 仍可看(本地校验器不依赖模型),降级明示随结果 issues 呈现;
- * - 会话快照查看(T2.3)[data-ps-session-snapshot]:会话行卡 → 该会话开启时刻
- *   effective prompt 全文(条目版本指针+可展开文本);运行时注入型条目
- *   「不可回放(运行时构建)」降级标注明示,不造可回放假象;
- * - 导入(JSON 包;包内 entryId 指名落点条目)+ R3 审批卡 + 写结果就地展示。
+ * - 页头 [data-t7-heading]:eyebrow + 大标题 + 导语 + 大数字统计(条目/最近会话/
+ *   生效通道/在途审批)+ 页动作(刷新);
+ * - 三栏工作台 [data-ps-workspace]:
+ *   · 左栏 提示词库 [data-ps-library]:搜索框 [data-ps-search](id/说明/内容)+
+ *     层筛选 chips [data-ps-filter-chip] + 分组条目列表 [data-ps-group-nav]
+ *     (条目行卡含未保存草稿圆点 [data-ps-entry-dirty];点击切换选中条目);
+ *   · 中栏 编辑器 [data-ps-editor-panel]:标题行(条目 id + 版本徽标 + 层/型别/
+ *     红线胶囊)+ 三 tab [data-ps-tab](编辑 / 版本 N / 会话快照)+ tab 体 +
+ *     粘底保存栏 [data-ps-editor-foot](变更摘要 + 保存…R3 审批);
+ *     - 编辑 tab [data-ps-entry-detail]:作用说明 + 治理信息折叠区(描述/生效
+ *       条件/风险/来源与上限;T2.2 生效锚点全家桶保留)+ 编辑器(textarea +
+ *       字节/脏状态 + 红线预检查 [data-ps-redline]);运行时注入型=只读说明
+ *       [data-ps-entry-runtime];值不可读=警示区,不冒充空内容;
+ *     - 版本 tab [data-t7-section=versions]:导出最新版本 + 版本对比
+ *       [data-t7-diff][data-ps-diff-view](基准/对比双下拉 + 交换 + 重置 +
+ *       双栏行号逐行 diff;左右版本卡带 载入/对比上一版/导出/回滚 动作,
+ *       版本只增不删);单版本=说明卡;
+ *     - 会话快照 tab:SessionSnapshotsView 原样迁入(T2.3 锚点不变);
+ *   · 右栏 AI 助手 [data-ps-ai-panel]:可用性徽标(零模型调用)+ 润色侧重点 →
+ *     建议稿卡(diff 预览 → 作为提案提交,R3 同门禁)+ 审核报告卡(仅展示);
+ *     无可编辑条目时 hint-box 明示;
+ * - R3 审批卡(两段式第二段):视口底部固定横幅 [data-t7-approval-anchor]
+ *   (access 工具审批横幅同款 idiom——任何 tab/滚动位置都可见可决);
+ * - 导入(JSON 包)区 [data-t7-section=transfer] 保持工作台下方独立区。
+ *
+ * 原型中的「新建/删除提示词」与名称/分类/温度字段不做:注册表条目由代码固定
+ * (写通道对未知条目 fail-closed),不造可建可删假象;原型的「运行记录」映射为
+ * 真实存在的会话快照。快捷键(⌘K/⌘S/⌘↵)不做:宿主壳已占用全局键位,避免冲突。
  *
  * 数据经 inject 面到达(props.useStudio / props.refresh / props.call),不触 ctx。
  * 条目元数据与当前值来自 snapshot.entries[](T1.4 全景);按条目版本链经
- * prompt-versions {entryId} 惰性拉取并缓存(默认条目初始链复用共享源的旧形态
+ * prompt-versions {entryId} 惰性拉取并缓存(默认条目初始链复用共享源旧形态
  * 拉取)。DOM 全部带 data-t7- 与 data-ps- 结构化锚点,供 E2E 严断言定位;样式只经
- * 官方语义令牌(--dsw-alias-*,styles.ts)。
+ * 官方语义令牌(--et-* 与 --dsw-alias-*,styles.ts)。
  */
-import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import { diffLines, lineDiffOps } from '../diff.ts'
 import type { LineDiffOp } from '../diff.ts'
 import { missingRedLineRules, redLineInsertLinesOf } from '../red-lines.ts'
@@ -58,13 +60,18 @@ import {
 /**
  * 默认条目 id(与服务端 registry.ts DEFAULT_ENTRY_ID 同源语义;客户端不 import
  * 服务端 registry——其传递依赖 persona-patch 的 node:fs 面,而客户端 bundle 只允许
- * 基线外部模块,tests/client-bundle.test.ts 钉住)。初始选中条目 = 默认 persona,
- * 保持 T7「打开即见 persona 编辑器」的落座体验。
+ * 基线外部模块,tests/client-bundle.test.ts 钉住)。初始选中条目 = 默认 persona。
  */
 const DEFAULT_ENTRY_ID = 'preset.standard.persona'
 
 /** 分组导航的层次序(注册表层枚举序;preset → 领域 → 运行时 → 元提示词)。 */
 const LAYERS = ['preset', 'domain', 'runtime', 'meta'] as const
+
+/** 库层筛选值(全部 + 四层)。 */
+type LayerFilter = 'all' | (typeof LAYERS)[number]
+
+/** 中栏 tab(编辑 / 版本 / 会话快照;原型「运行记录」映射为真实存在的会话快照)。 */
+type EditorTab = 'edit' | 'versions' | 'snapshots'
 
 /**
  * 按条目版本链的拉取状态(与数据面 chains 分离):「拉取中 / 拉取失败(RPC 通道错、
@@ -104,7 +111,7 @@ type AiPolishState =
  * AI 审核流状态(T3.3;选中条目归属,切条目/关闭报告即重置):idle → loading →
  * done(端点返回整体入卡——ok/unavailable 均属「有报告」:unavailable 时
  * ruleFindings 仍在,本地校验器不依赖模型)或 error(RPC 通道错/rejected/failed
- * 的 issues 就地明示)。**报告仅展示不拦截**:done 态不触任何写通道,也不禁用
+ * 的 issues 就地明示)。**报告仅展示、不拦截**:done 态不触任何写通道,也不禁用
  * 保存按钮——审核结论与保存门禁解耦(本地规则同源,拦截发生在保存端点自身)。
  * done 态携带 entryId(受审条目)与 content(受审稿全文):前者作跨条目失配防护
  * (渲染面不匹配即不显示),后者作过期标识(当前草稿 ≠ 受审稿时卡片明示
@@ -137,7 +144,58 @@ interface DiffPair {
   readonly b: PromptVersionRecord
 }
 
-/** 顶部大数字瓦片。 */
+/**
+ * 双栏对比的行模型(对齐原型 compare-grid:左右两列,同一变更行左右并置):
+ * same=两列同文;mod=修改(左旧右新);del=仅左列;add=仅右列。
+ */
+interface CompareRow {
+  readonly kind: 'same' | 'mod' | 'add' | 'del'
+  readonly a: string | null
+  readonly b: string | null
+}
+
+/** 带行号的展示行(行号只对非空列自增,空列显示占位)。 */
+interface CompareLine extends CompareRow {
+  readonly aNo: string
+  readonly bNo: string
+}
+
+/**
+ * lineDiffOps 逐行差异 → 双栏对齐行(同原型 diffLines 配对语义:相邻 del/add 游程
+ * 逐行配对成 mod,余量单边落行)。复用同一 lineDiffOps 导出(同源不另造实现)。
+ */
+function alignCompareRows(ops: readonly LineDiffOp[]): CompareRow[] {
+  const rows: CompareRow[] = []
+  let index = 0
+  while (index < ops.length) {
+    const op = ops[index]
+    if (op === undefined) break
+    if (op.type === 'same') {
+      rows.push({ kind: 'same', a: op.text, b: op.text })
+      index += 1
+      continue
+    }
+    const dels: string[] = []
+    const adds: string[] = []
+    while (index < ops.length && ops[index]?.type === 'del') {
+      dels.push(ops[index]!.text)
+      index += 1
+    }
+    while (index < ops.length && ops[index]?.type === 'add') {
+      adds.push(ops[index]!.text)
+      index += 1
+    }
+    const count = Math.max(dels.length, adds.length)
+    for (let k = 0; k < count; k += 1) {
+      const a = k < dels.length ? dels[k]! : null
+      const b = k < adds.length ? adds[k]! : null
+      rows.push({ kind: a !== null && b !== null ? 'mod' : a !== null ? 'del' : 'add', a, b })
+    }
+  }
+  return rows
+}
+
+/** 顶部大数字瓦片(原型 stats:数字+标签,竖分隔线经样式)。 */
 function Stat({ label, value, anchor }: {
   readonly label: string
   readonly value: string
@@ -151,10 +209,12 @@ function Stat({ label, value, anchor }: {
   )
 }
 
-/** 分组导航条目行(按钮;型别/可编辑性/升级覆盖风险胶囊 + 版本数/字节概览)。 */
-function EntryNavRow({ entry, selected, onSelect, t }: {
+/** 库列表条目行(按钮;型别/可编辑性胶囊 + 版本数/字节概览 + 未保存草稿圆点)。 */
+function EntryNavRow({ entry, selected, dirty, onSelect, t }: {
   readonly entry: EntrySummaryView
   readonly selected: boolean
+  /** 该条目在 sessionStorage 有未提交草稿(含当前选中条目的脏草稿)。 */
+  readonly dirty: boolean
   readonly onSelect: (entryId: string) => void
   readonly t: (key: string) => string
 }): ReactElement {
@@ -166,11 +226,15 @@ function EntryNavRow({ entry, selected, onSelect, t }: {
         type="button"
         data-ps-entry-row={entry.id}
         data-ps-selected={selected ? 'true' : 'false'}
+        data-ps-entry-dirty={dirty ? 'true' : 'false'}
         aria-current={selected ? 'true' : undefined}
         title={entry.description}
         onClick={() => { onSelect(entry.id) }}
       >
-        <span data-ps-entry-row-id>{entry.id}</span>
+        <span data-ps-entry-row-line>
+          <span data-ps-entry-row-id>{entry.id}</span>
+          <span data-ps-entry-dirty-dot title={t('studio.editor.dirty')} aria-hidden="true" />
+        </span>
         <span data-ps-entry-row-pills>
           <span data-ps-pill data-ps-tone="neutral">{t(`studio.kind.${entry.kind}`)}</span>
           {entry.kind === 'patch-value'
@@ -189,28 +253,40 @@ function EntryNavRow({ entry, selected, onSelect, t }: {
   )
 }
 
-/** 分组导航:preset/领域/运行时 三层分组(access 插件页分组行卡同构形态)。 */
-function GroupNav({ entries, selectedId, onSelect, t }: {
+/** 分组导航:按层分组的条目列表(搜索/筛选命中为空的层整组隐藏)。 */
+function GroupNav({ entries, selectedId, dirtyIds, onSelect, t }: {
   readonly entries: readonly EntrySummaryView[]
   readonly selectedId: string
+  readonly dirtyIds: ReadonlySet<string>
   readonly onSelect: (entryId: string) => void
   readonly t: (key: string) => string
 }): ReactElement {
   return (
     <nav data-ps-group-nav aria-label={t('studio.panorama')}>
-      {LAYERS.map(layer => (
-        <section key={layer} data-ps-layer-group={layer} aria-label={t(`studio.layer.${layer}`)}>
-          <div data-ps-layer-group-head>
-            <h2 data-ps-layer-group-title>{t(`studio.layer.${layer}`)}</h2>
-            <span data-ps-layer-group-hint>{t(`studio.layer.${layer}.hint`)}</span>
-          </div>
-          <ul data-ps-entry-list>
-            {entries.filter(entry => entry.layer === layer).map(entry => (
-              <EntryNavRow key={entry.id} entry={entry} selected={entry.id === selectedId} onSelect={onSelect} t={t} />
-            ))}
-          </ul>
-        </section>
-      ))}
+      {LAYERS.map(layer => {
+        const layerEntries = entries.filter(entry => entry.layer === layer)
+        if (layerEntries.length === 0) return null
+        return (
+          <section key={layer} data-ps-layer-group={layer} aria-label={t(`studio.layer.${layer}`)}>
+            <div data-ps-layer-group-head>
+              <h2 data-ps-layer-group-title>{t(`studio.layer.${layer}`)}</h2>
+              <span data-ps-layer-group-hint>{t(`studio.layer.${layer}.hint`)}</span>
+            </div>
+            <ul data-ps-entry-list>
+              {layerEntries.map(entry => (
+                <EntryNavRow
+                  key={entry.id}
+                  entry={entry}
+                  selected={entry.id === selectedId}
+                  dirty={dirtyIds.has(entry.id)}
+                  onSelect={onSelect}
+                  t={t}
+                />
+              ))}
+            </ul>
+          </section>
+        )
+      })}
     </nav>
   )
 }
@@ -272,69 +348,100 @@ function ApprovalSection({ pending, busy, onAnswer, t }: {
   )
 }
 
-/** 版本行(展开内容 + 载入编辑器 + 与上一版对比 + 导出 + 回滚;无任何删除入口)。 */
-function VersionItem({ version, previous, busy, onLoad, onCompare, onRollback, onExport, t }: {
+/**
+ * 版本卡(对比栅格两侧;载入/对比上一版/导出/回滚动作 + 可展开全文)。
+ * 无任何删除入口——版本只增不删。展开态为卡片局部状态(切换对比对象即重挂)。
+ */
+function VersionSide({ version, isLatest, side, busy, onLoad, onQuickCompare, onExport, onRollback, t }: {
   readonly version: PromptVersionRecord
-  /** 列表中的上一版(更旧);null=本行已是最初版本,对比不可用(初始版本永存,无更早)。 */
-  readonly previous: PromptVersionRecord | null
+  /** 是否当前生效版本(链首):当前生效不可回滚(无意义且必被 diff 空拒收)。 */
+  readonly isLatest: boolean
+  readonly side: 'a' | 'b'
   readonly busy: boolean
   readonly onLoad: (content: string) => void
-  readonly onCompare: (version: PromptVersionRecord, previous: PromptVersionRecord | null) => void
-  readonly onRollback: (version: PromptVersionRecord) => void
+  readonly onQuickCompare: (version: PromptVersionRecord) => void
   readonly onExport: (version: PromptVersionRecord) => void
+  readonly onRollback: (version: PromptVersionRecord) => void
   readonly t: (key: string) => string
 }): ReactElement {
   const [expanded, setExpanded] = useState(false)
   return (
-    <div data-t7-version-item={version.id} data-t7-version-source={version.source}>
-      <div data-t7-version-head>
-        <span data-t7-version-seq>#{version.seq}</span>
-        <span data-t7-version-id>{version.id}</span>
-        <span data-t7-version-source-badge>{version.source}</span>
-        <span data-t7-version-meta>
-          {formatTime(version.createdAt)} · {version.author} · {formatTokens(version.bytes)} {t('studio.version.bytes')}
-        </span>
+    <div
+      className="ps-compare-side"
+      data-t7-version-item={version.id}
+      data-t7-version-source={version.source}
+      data-ps-compare-side={side}
+    >
+      <div className="ps-compare-side-top" data-t7-version-head>
+        <span className="ps-version-badge" data-t7-version-seq>#{version.seq}</span>
+        <span className="ps-version-source-badge" data-t7-version-source-badge>{version.source}</span>
+        {isLatest && <span className="ps-tag-current" data-ps-compare-current>{t('studio.compare.current')}</span>}
       </div>
-      <p data-t7-version-summary>{t('studio.version.summary')}: {version.summary}</p>
-      <div data-t7-version-actions>
+      <p className="ps-compare-side-meta" data-t7-version-meta>
+        {formatTime(version.createdAt)} · {version.author} · {formatTokens(version.bytes)} {t('studio.version.bytes')}
+      </p>
+      <p className="ps-compare-side-summary" data-t7-version-summary>{t('studio.version.summary')}: {version.summary}</p>
+      <div className="ps-compare-side-actions" data-t7-version-actions>
         <button type="button" data-t7-version-toggle onClick={() => setExpanded(v => !v)}>
           {expanded ? t('studio.version.hide') : t('studio.version.show')}
         </button>
         <button type="button" data-t7-load-btn onClick={() => onLoad(version.content)}>
           {t('studio.version.load')}
         </button>
-        <button
-          type="button"
-          data-t7-diff-btn
-          disabled={previous === null || busy}
-          title={previous === null ? undefined : `#${previous.seq} → #${version.seq}`}
-          onClick={() => onCompare(version, previous)}
-        >
+        <button type="button" data-t7-compare-btn onClick={() => onQuickCompare(version)}>
           {t('studio.version.compare')}
         </button>
         <button type="button" data-t7-export-btn disabled={busy} onClick={() => onExport(version)}>
           {t('studio.version.export')}
         </button>
-        <button type="button" data-t7-rollback-btn disabled={busy} onClick={() => onRollback(version)}>
+        <button
+          type="button"
+          data-t7-rollback-btn
+          disabled={busy || isLatest}
+          title={isLatest ? undefined : `${t('studio.rollbackTo')} #${version.seq}(${version.id})`}
+          onClick={() => onRollback(version)}
+        >
           {t('studio.version.rollback')}
         </button>
       </div>
-      {expanded && <pre data-t7-version-content>{version.content}</pre>}
+      {expanded && <pre className="ps-compare-side-content" data-t7-version-content>{version.content}</pre>}
     </div>
   )
 }
 
-/** 版本对比视图(行级 diff 投影;a=旧基线,b=新对照;T1.5 叠加 data-ps-diff-view 锚点)。 */
-function DiffView({ pair, onClose, t }: {
+/**
+ * 版本对比视图(原型 compare 形态):基准/对比双下拉 + 交换/重置 + 左右版本卡 +
+ * 双栏行号逐行 diff。行渲染上限与计数同旧 DiffView(内容完整参与计算,仅截渲染)。
+ */
+function CompareView({ pair, versions, busy, onPick, onSwap, onReset, onLoad, onQuickCompare, onExport, onRollback, t }: {
   readonly pair: DiffPair
-  readonly onClose: () => void
+  /** 该条目完整版本链(新→旧;下拉选项与「对比上一版」定位用)。 */
+  readonly versions: readonly PromptVersionRecord[]
+  readonly busy: boolean
+  readonly onPick: (side: 'a' | 'b', versionId: string) => void
+  readonly onSwap: () => void
+  readonly onReset: () => void
+  readonly onLoad: (content: string) => void
+  readonly onQuickCompare: (version: PromptVersionRecord) => void
+  readonly onExport: (version: PromptVersionRecord) => void
+  readonly onRollback: (version: PromptVersionRecord) => void
   readonly t: (key: string) => string
 }): ReactElement {
   const ops: readonly LineDiffOp[] = lineDiffOps(pair.a.content, pair.b.content)
   const added = ops.filter(op => op.type === 'add').length
   const removed = ops.filter(op => op.type === 'del').length
-  const visible = ops.slice(0, DIFF_RENDER_CAP)
+  const rows = alignCompareRows(ops)
+  let leftNo = 0
+  let rightNo = 0
+  const lines: CompareLine[] = rows.map(row => ({
+    ...row,
+    aNo: row.a !== null ? String(++leftNo) : '',
+    bNo: row.b !== null ? String(++rightNo) : '',
+  }))
+  const visible = lines.slice(0, DIFF_RENDER_CAP)
   const unchanged = added === 0 && removed === 0
+  const latestId = versions[0]?.id ?? null
+  const optionLabel = (version: PromptVersionRecord): string => `#${version.seq} · ${version.source} · ${version.summary}`
   return (
     <div
       data-t7-diff
@@ -342,35 +449,94 @@ function DiffView({ pair, onClose, t }: {
       data-t7-diff-a={pair.a.id}
       data-t7-diff-b={pair.b.id}
       data-t7-diff-empty={unchanged ? 'true' : 'false'}
+      className="ps-compare"
     >
-      <div data-t7-diff-head>
-        <span data-t7-diff-title>#{pair.a.seq} → #{pair.b.seq}</span>
-        <span data-t7-diff-stats>
-          +{added} {t('studio.diff.added')} · −{removed} {t('studio.diff.removed')}
+      <div className="ps-compare-bar">
+        <label className="ps-compare-pick">
+          <span>{t('studio.compare.base')}</span>
+          <select
+            data-ps-compare-pick="a"
+            aria-label={t('studio.compare.base')}
+            value={pair.a.id}
+            onChange={event => { onPick('a', event.target.value) }}
+          >
+            {versions.map(version => (
+              <option key={version.id} value={version.id}>{optionLabel(version)}</option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          className="ps-compare-swap"
+          data-ps-compare-swap
+          aria-label={t('studio.compare.swap')}
+          title={t('studio.compare.swap')}
+          onClick={onSwap}
+        >⇄</button>
+        <label className="ps-compare-pick">
+          <span>{t('studio.compare.target')}</span>
+          <select
+            data-ps-compare-pick="b"
+            aria-label={t('studio.compare.target')}
+            value={pair.b.id}
+            onChange={event => { onPick('b', event.target.value) }}
+          >
+            {versions.map(version => (
+              <option key={version.id} value={version.id}>{optionLabel(version)}</option>
+            ))}
+          </select>
+        </label>
+        <button type="button" className="ps-compare-reset" data-t7-diff-close onClick={onReset}>
+          {t('studio.compare.reset')}
+        </button>
+        <span className="ps-compare-stat" data-t7-diff-stats>
+          {unchanged
+            ? t('studio.diff.identical')
+            : <><b>{added + removed}</b> {t('studio.compare.statChanged')} · +{added} {t('studio.diff.added')} · −{removed} {t('studio.diff.removed')}</>}
         </span>
-        <button type="button" data-t7-diff-close onClick={onClose}>{t('studio.diff.close')}</button>
       </div>
-      <p data-t7-diff-note>{t('studio.diff.note')}</p>
-      {unchanged && <p data-t7-diff-identical>{t('studio.diff.identical')}</p>}
-      {!unchanged && (
-        <div data-t7-diff-body>
-          {visible.map((op, index) => (
-            <div key={index} data-t7-diff-op={op.type}>
-              <span data-t7-diff-sign>{op.type === 'add' ? '+' : op.type === 'del' ? '−' : ' '}</span>
-              <span data-t7-diff-text>{op.text}</span>
-            </div>
-          ))}
-          {ops.length > visible.length && <p data-t7-diff-truncated>{t('studio.diff.truncated')}</p>}
+      <div className="ps-compare-grid" data-t7-diff-body>
+        <VersionSide version={pair.a} isLatest={pair.a.id === latestId} side="a" busy={busy}
+          onLoad={onLoad} onQuickCompare={onQuickCompare} onExport={onExport} onRollback={onRollback} t={t} />
+        <VersionSide version={pair.b} isLatest={pair.b.id === latestId} side="b" busy={busy}
+          onLoad={onLoad} onQuickCompare={onQuickCompare} onExport={onExport} onRollback={onRollback} t={t} />
+        <div className="ps-compare-section" data-t7-diff-head>
+          <span>{t('studio.diff')}</span>
+          <span className="ps-compare-section-meta">{unchanged ? t('studio.diff.identical') : `+${added} −${removed}`}</span>
         </div>
-      )}
+        {visible.map((line, index) => (
+          <Fragment key={index}>
+            <div
+              className="ps-compare-line"
+              data-ps-compare-kind={line.kind}
+              data-ps-compare-column="a"
+            >
+              <span className="ps-compare-ln">{line.aNo}</span>
+              <span className="ps-compare-lc">{line.a ?? ''}</span>
+            </div>
+            <div
+              className="ps-compare-line"
+              data-ps-compare-kind={line.kind}
+              data-ps-compare-column="b"
+            >
+              <span className="ps-compare-ln">{line.bNo}</span>
+              <span className="ps-compare-lc">{line.b ?? ''}</span>
+            </div>
+          </Fragment>
+        ))}
+        {lines.length > visible.length && (
+          <p className="ps-compare-truncated" data-t7-diff-truncated>{t('studio.diff.truncated')}</p>
+        )}
+      </div>
+      <p className="ps-compare-note" data-t7-diff-note>{t('studio.diff.note')}</p>
     </div>
   )
 }
 
 /**
- * AI 建议稿 diff 预览(T3.2):当前稿(润色底稿)→ AI 建议稿的逐行对比。复用
- * diff.ts lineDiffOps 与 DiffView 的行渲染形态(data-t7-diff-* 子结构,样式同源),
- * 只换头部文案与容器锚点(data-ps-ai-diff)——对照既有组件形态,不发明孤立样式。
+ * AI 草稿 diff 预览(T3.2:base↔draft 行级对比;单栏 +/− 行,行数封顶防大稿刷屏)。
+ * data-ps-ai-diff 是 bundle 契约锚点(client-bundle.test.ts T3.2 断言在场);卡片
+ * 样式复用 styles.ts 既有 [data-ps-ai-diff] 块,行内不引入新样式面。
  */
 function AiDraftDiff({ base, draft, t }: {
   readonly base: string
@@ -380,30 +546,19 @@ function AiDraftDiff({ base, draft, t }: {
   const ops: readonly LineDiffOp[] = lineDiffOps(base, draft)
   const added = ops.filter(op => op.type === 'add').length
   const removed = ops.filter(op => op.type === 'del').length
-  const visible = ops.slice(0, DIFF_RENDER_CAP)
   const unchanged = added === 0 && removed === 0
   return (
-    <div data-ps-ai-diff data-t7-diff-empty={unchanged ? 'true' : 'false'}>
-      <div data-t7-diff-head>
-        <span data-t7-diff-title>{t('studio.ai.diff')}</span>
-        <span data-t7-diff-stats>
-          +{added} {t('studio.ai.diff.added')} · −{removed} {t('studio.ai.diff.removed')}
-        </span>
-      </div>
-      <p data-t7-diff-note>{t('studio.ai.diff.note')}</p>
-      {unchanged && <p data-t7-diff-identical>{t('studio.ai.diff.identical')}</p>}
-      {!unchanged && (
-        <div data-t7-diff-body>
-          {visible.map((op, index) => (
-            <div key={index} data-t7-diff-op={op.type}>
-              <span data-t7-diff-sign>{op.type === 'add' ? '+' : op.type === 'del' ? '−' : ' '}</span>
-              <span data-t7-diff-text>{op.text}</span>
-            </div>
-          ))}
-          {ops.length > visible.length && <p data-t7-diff-truncated>{t('studio.ai.diff.truncated')}</p>}
+    <details data-ps-ai-diff>
+      <summary>{unchanged ? t('studio.diff.identical') : `+${added} −${removed}`}</summary>
+      {ops.slice(0, DIFF_RENDER_CAP).map((op, index) => (
+        <div key={index} data-ps-ai-diff-line={op.type}>
+          {op.type === 'add' ? '+' : op.type === 'del' ? '−' : ' '} {op.text}
         </div>
+      ))}
+      {ops.length > DIFF_RENDER_CAP && (
+        <div>{t('studio.diff.truncated')}</div>
       )}
-    </div>
+    </details>
   )
 }
 
@@ -422,7 +577,7 @@ function downloadJson(filename: string, data: unknown): void {
  * 会话快照查看视图(T2.3):会话行卡列表(点击查全文)→ 快照详情(冻结时刻/
  * checksum/捕获事件 + 逐条目指针或分型标注 + 可展开的当时文本)。只读视图——
  * 快照不可变,无任何写操作;运行时注入型条目明示「不可回放(运行时构建)」
- * 降级标注(服务端 note/annotation 透传 + 本地分型徽标双保险,t7-ui-check 文案锚点)。
+ * 降级标注明示,不造可回放假象。
  */
 function SessionSnapshotsView({ call, t, ready, generatedAt }: {
   readonly call: <T>(endpoint: string, args?: Record<string, unknown>) => Promise<RpcEnvelope<T>>
@@ -479,7 +634,6 @@ function SessionSnapshotsView({ call, t, ready, generatedAt }: {
 
   return (
     <section data-t7-section="snapshots" data-ps-session-snapshot aria-label={t('studio.snapshots')}>
-      <h2 data-t7-section-title>{t('studio.snapshots')}</h2>
       <p data-t7-section-note>{t('studio.snapshots.note')}</p>
       {listState.status === 'loading' && <p data-t7-placeholder data-ps-snapshot-loading="true">{t('studio.snapshots.loading')}</p>}
       {listState.status === 'error' && (
@@ -605,11 +759,11 @@ function RedLineCheck({ ruleSet, text, onInsert, t }: {
 }
 
 /**
- * AI 润色区(T3.2):可用性胶囊(零模型调用)→ 润色侧重点 + 生成按钮 → 建议稿卡
- * (生成信息 + 建议稿全文(折叠)+ diff 预览 + 「作为提案提交」/「放弃建议稿」)。
- * 建议稿仅预览(永不直接生效);「作为提案提交」经 loopPrompt/ai-proposal 进与
- * 手工保存完全相同的 R3 两段式。运行时注入型条目不渲染本区(无写回落点,
- * 提案必然 fail-closed,不造可提交假象)。
+ * AI 润色区(T3.2,右栏):润色侧重点 + 生成按钮 → 建议稿卡(生成信息 + 建议稿
+ * 全文(折叠)+ diff 预览 + 「作为提案提交」/「放弃建议稿」)。建议稿仅预览
+ * (永不直接生效);「作为提案提交」经 loopPrompt/ai-proposal 进与手工保存完全
+ * 相同的 R3 两段式。运行时注入型条目不渲染本区(无写回落点,提案必然
+ * fail-closed,不造可提交假象)。
  */
 function AiPolishSection({ status, polish, instruction, aiBusy, busy, canPolish, diffEmpty, onInstructionChange, onPolish, onDiscard, onPropose, t }: {
   readonly status: AiStatusState
@@ -635,24 +789,13 @@ function AiPolishSection({ status, polish, instruction, aiBusy, busy, canPolish,
   const blockPolish = !canPolish || aiBusy || busy || (status.status === 'loaded' && !available)
   return (
     <section data-ps-ai-polish data-t7-section="ai" aria-label={t('studio.ai')}>
-      <h3 data-t7-section-title>{t('studio.ai')}</h3>
       <p data-t7-section-note>{t('studio.ai.note')}</p>
-      <div data-ps-ai-status>
-        <span data-ps-ai-status-label>{t('studio.ai.status')}</span>
-        {status.status === 'loading' && <span data-ps-ai-status-value data-ps-ai-status-state="checking">{t('studio.ai.status.checking')}</span>}
-        {status.status === 'error' && (
-          <span data-ps-ai-status-value data-ps-ai-status-state="error" title={status.message}>{t('studio.ai.status.checking')}</span>
-        )}
-        {status.status === 'loaded' && (available
-          ? <span data-ps-pill data-ps-tone="business" data-ps-ai-status-value data-ps-ai-available="true">{t('studio.ai.status.available')}</span>
-          : <span data-ps-pill data-ps-tone="warn" data-ps-ai-status-value data-ps-ai-unavailable="true">{t('studio.ai.status.unavailable')}</span>)}
-      </div>
       {status.status === 'loaded' && !available && (
         <p data-ps-ai-unavailable-note data-ps-ai-unavailable="true">
           {t('studio.ai.unavailable.note')}{status.result.reason === undefined ? '' : `(${status.result.reason})`}
         </p>
       )}
-      <div data-ps-ai-input-row>
+      <div data-ps-ai-input-row className="ps-ai-input-row">
         <input
           data-ps-ai-instruction
           type="text"
@@ -732,9 +875,8 @@ function AiReviewSection({ review, stale, aiBusy, reviewing, busy, canReview, on
   }
   return (
     <section data-ps-ai-review data-t7-section="ai-review" aria-label={t('studio.ai.review')}>
-      <h3 data-t7-section-title>{t('studio.ai.review')}</h3>
       <p data-t7-section-note>{t('studio.ai.review.note')}</p>
-      <div data-ps-ai-review-input-row>
+      <div data-ps-ai-review-input-row className="ps-ai-input-row">
         <button type="button" data-ps-ai-review-btn disabled={blockReview} onClick={onReview}>
           {reviewing ? t('studio.ai.review.running') : t('studio.ai.review.run')}
         </button>
@@ -807,7 +949,7 @@ function AiReviewSection({ review, stale, aiBusy, reviewing, busy, canReview, on
   )
 }
 
-/** 提示词工坊根组件(注册表全景)。 */
+/** 提示词工坊根组件(三栏工作台:提示词库 / 编辑器 / AI 助手)。 */
 export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): ReactElement {
   const state = useStudio(s => s)
   const ready = state.status === 'ready'
@@ -820,6 +962,13 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
    * (评审 2026-11-11 medium:setState 无条件落位会覆盖 selectEntry 的 idle 重置)。
    */
   const selectedIdRef = useRef<string>(selectedId)
+
+  // —— 原型改版新增:库搜索/层筛选/中栏 tab/版本对比选择 ——
+  const [query, setQuery] = useState('')
+  const [layerFilter, setLayerFilter] = useState<LayerFilter>('all')
+  const [tab, setTab] = useState<EditorTab>('edit')
+  /** 版本对比选择(版本 id 对;null=默认对:链首 vs 链次;切条目重置)。 */
+  const [compareIds, setCompareIds] = useState<{ aId: string; bId: string } | null>(null)
 
   // 编辑器草稿(view-local,按条目归属):draftEntry 记草稿归属条目,切条目即重置
   // (防上一条目的脏草稿串进下一条目);baseline=草稿所据的生效文本,用户未分叉
@@ -841,8 +990,7 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
   const [pending, setPending] = useState<PendingApproval | null>(null)
   const [outcome, setOutcome] = useState<WriteOutcomeView | null>(null)
   const [busy, setBusy] = useState(false)
-  // 版本对比对 / 导出回执 / 导入所选文件与其预检 meta。
-  const [diffPair, setDiffPair] = useState<DiffPair | null>(null)
+  // 导出回执 / 导入所选文件与其预检 meta。
   const [exportNote, setExportNote] = useState<string | null>(null)
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importMeta, setImportMeta] = useState<string | null>(null)
@@ -862,14 +1010,12 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
   const aiBusy = aiBusyOp !== null
 
   /**
-   * 条目详情区引用(2026-11-13「只能查看,打不开编辑」修复):全景改版后详情/编辑器
-   * 落在首屏之外很远(条目导航+会话快照列表都排在前头),点击导航行时详情在视口外
-   * 更新,没有任何可见反馈=「点了没反应」。selectEntry 现把详情区的编辑器锚点
-   * (patch 值型=编辑器;运行时注入型=只读说明;值不可读=错误面板)滚入视口——
-   * 每次点击都有可见的「打开」。prefers-reduced-motion 时退化为瞬时跳转。
+   * 条目编辑面板引用(2026-11-13「只能查看,打不开编辑」修复):窄视口(单列/
+   * 双列)下点击库条目时把编辑器面板滚入视口;三栏宽布局下编辑器本就在视口内,
+   * 滚动是无害的 no-op。prefers-reduced-motion 时退化为瞬时跳转。
    */
-  const detailRef = useRef<HTMLElement | null>(null)
-  /** R3 审批卡锚点(卡片出现即滚入视口——写流程第二段不可不见,同上修复)。 */
+  const editorPanelRef = useRef<HTMLElement | null>(null)
+  /** R3 审批卡锚点(固定横幅,滚动无需;保留 ref 以兼容旧调用面)。 */
   const approvalRef = useRef<HTMLDivElement | null>(null)
 
   /** 选中条目的当前文本(patch 值型=反引文本;运行时注入型=空串,无编辑器)。 */
@@ -908,6 +1054,28 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
     : undefined
   const hasChain = chain !== undefined && chain.ready && chain.versions.length > 0
   const baseVersionId = chain !== undefined && chain.versions.length > 0 ? chain.versions[0]?.id : undefined
+
+  // 库列表:搜索(id/说明/内容)+ 层筛选;未保存草稿圆点(选中条目看内存草稿,
+  // 其余条目看 sessionStorage 持久草稿——跨刷新仍亮,如实反映未提交状态)。
+  const queryLower = query.trim().toLowerCase()
+  const visibleEntries = useMemo(() => entries.filter(entry => {
+    if (layerFilter !== 'all' && entry.layer !== layerFilter) return false
+    if (queryLower === '') return true
+    const haystack = [entry.id, entry.description, entry.note, entry.value.text ?? ''].join(' ').toLowerCase()
+    return haystack.includes(queryLower)
+  }), [entries, layerFilter, queryLower])
+  const dirtyIds = useMemo(() => {
+    const set = new Set<string>()
+    for (const entry of entries) {
+      if (entry.kind !== 'patch-value') continue
+      if (entry.id === selectedId) {
+        if (draft !== null && draft !== selectedText) set.add(entry.id)
+        continue
+      }
+      if (readDraft(entry.id) !== null) set.add(entry.id)
+    }
+    return set
+  }, [entries, selectedId, draft, selectedText])
 
   // 按条目版本链惰性拉取:选中条目变化 / 快照刷新(写后 refresh 会换 generatedAt)时
   // 重拉;运行时注入型无版本链概念(versioned=false),不拉。失败不静默:
@@ -1283,41 +1451,56 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
     }
   }
 
-  /** 切换选中条目(编辑上下文整体重置:对比/导出回执/变更摘要/写入结果/AI 建议稿/
-   * AI 审核报告;草稿由 render 期派生逻辑按新条目重置)。摘要会进保存载荷、结果无
-   * 条目标识,均不得从上一条目串入下一条目;建议稿与审核报告同理(受审文本与条目
-   * 强绑定)。
-   *
-   * 重置后把详情区的编辑器锚点滚入视口(2026-11-13「只能查看,打不开编辑」修复,
-   * 见 detailRef 注):详情区元素在切换前后持续存在(ready && selected 恒真),
-   * React 对离散点击事件同步提交,下一动画帧即可按新内容滚动。 */
+  /** 编辑器面板滚入视口(窄视口点击库条目时可见地「打开」;宽布局无害)。 */
   const scrollDetailIntoView = (): void => {
-    const detail = detailRef.current
-    if (detail === null) return
-    const target = detail.querySelector('[data-t7-section="editor"], [data-ps-entry-runtime], [data-t7-section="unreadable"]') ?? detail
+    const panel = editorPanelRef.current
+    if (panel === null) return
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
+    panel.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
   }
+
+  /**
+   * 切换选中条目(编辑上下文整体重置:对比/变更摘要/写入结果/AI 建议稿/AI 审核
+   * 报告/tab 回编辑;草稿由 render 期派生逻辑按新条目重置)。摘要会进保存载荷、
+   * 结果无条件目标识,均不得从上一条目串入下一条目;建议稿与审核报告同理。
+   */
   const selectEntry = (entryId: string): void => {
     selectedIdRef.current = entryId
     setSelectedId(entryId)
-    setDiffPair(null)
+    setCompareIds(null)
     setExportNote(null)
     setSummary('')
     setOutcome(null)
     setAiPolish({ status: 'idle' })
     setAiInstruction('')
     setAiReview({ status: 'idle' })
+    setTab('edit')
     window.requestAnimationFrame(scrollDetailIntoView)
   }
 
-  // R3 审批卡出现即滚入视口(在异步回调里 setState,时序不保证同步提交,走 effect;
-  // 应答后 pending 归 null 不滚,写结果就地呈现在详情区内)。
-  useEffect(() => {
-    if (pending === null) return
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    approvalRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
-  }, [pending])
+  /** 对比选择:单侧切换(null=默认对兜底)。 */
+  const handleComparePick = (side: 'a' | 'b', versionId: string): void => {
+    setCompareIds(previous => {
+      const fallback = hasChain && chain !== undefined && chain.versions.length >= 2
+        ? { aId: chain.versions[1]!.id, bId: chain.versions[0]!.id }
+        : null
+      const base = previous ?? fallback
+      if (base === null) return null
+      return { aId: side === 'a' ? versionId : base.aId, bId: side === 'b' ? versionId : base.bId }
+    })
+  }
+
+  // 版本对比对解析(versions 新→旧):null 选择=链次 vs 链首;缺失 id 同样回默认。
+  const versions: readonly PromptVersionRecord[] = hasChain && chain !== undefined ? chain.versions : []
+  const pair: DiffPair | null = (() => {
+    if (versions.length < 2) return null
+    const a = compareIds === null ? undefined : versions.find(version => version.id === compareIds.aId)
+    const b = compareIds === null ? undefined : versions.find(version => version.id === compareIds.bId)
+    return {
+      a: a ?? versions[1]!,
+      b: b ?? versions[0]!,
+    }
+  })()
 
   // AI 区条目归属过滤(评审 2026-11-11 medium 的渲染面防线):ok/done 态携带的
   // entryId 与选中条目不符即按 idle 处理——旧条目的建议稿/审核报告绝不贴在新选中
@@ -1332,282 +1515,426 @@ export function StudioPage({ useStudio, refresh, call, t }: StudioPageProps): Re
   // 审核时刻的稿」(评审 2026-11-11 low:无版本线索的旧报告会冒充当前稿结论)。
   const reviewStale = visibleReview.status === 'done' && draft !== null && draft !== visibleReview.content
 
+  /** 右栏 AI 面板可用面(选中条目为可编辑 patch 值型且当前值可读)。 */
+  const aiPanelUsable = ready && selected !== undefined && selected.kind === 'patch-value' && !valueUnreadable
+  const aiAvailable = aiStatus.status === 'loaded' && aiStatus.result.available
+
   return (
     <div data-t7-studio-root aria-label={t('studio')}>
-      <div data-t7-toolbar>
-        <h1 data-t7-heading>{t('studio')}</h1>
-        <button type="button" data-t7-refresh onClick={refresh}>{t('refresh')}</button>
-      </div>
-      <p data-t7-sub>{t('studio.subtitle')}</p>
-
-      {ready && (
-        <div data-t7-stat-row>
-          <Stat anchor="entries" label={t('studio.stats.entries')} value={String(entries.length)} />
-          <Stat anchor="sessions" label={t('studio.stats.sessions')} value={String(state.snapshot.trace.sessions)} />
-          <Stat anchor="channel" label={t('studio.stats.channel')} value={state.snapshot.channel.kind} />
-          <Stat anchor="pending" label={t('studio.stats.pending')} value={state.snapshot.pendingApproval === null ? '0' : '1'} />
+      {/* —— R3 审批卡:root 滚动容器顶部 sticky 常驻(首个子元素=天然可见位;任何
+          tab/滚动位置可决;fixed 会被宿主壳 transform 祖先劫持,见 styles 注) —— */}
+      {pending !== null && (
+        <div ref={approvalRef} data-t7-approval-anchor className="ps-approval-layer">
+          <ApprovalSection pending={pending} busy={busy} onAnswer={approved => { void answerApproval(approved) }} t={t} />
         </div>
       )}
+
+      {/* —— 页头:eyebrow + 标题 + 导语 + 统计 + 页动作 —— */}
+      <header className="ps-page-head">
+        <div className="ps-page-head-text">
+          <p className="ps-eyebrow">{t('studio.eyebrow')}</p>
+          <h1 data-t7-heading>{t('studio')}</h1>
+          <p data-t7-sub>{t('studio.subtitle')}</p>
+          <div data-t7-stat-row>
+            {ready && (
+              <>
+                <Stat anchor="entries" label={t('studio.stats.entries')} value={String(entries.length)} />
+                <Stat anchor="sessions" label={t('studio.stats.sessions')} value={String(state.snapshot.trace.sessions)} />
+                <Stat anchor="channel" label={t('studio.stats.channel')} value={state.snapshot.channel.kind} />
+                <Stat anchor="pending" label={t('studio.stats.pending')} value={state.snapshot.pendingApproval === null ? '0' : '1'} />
+              </>
+            )}
+          </div>
+        </div>
+        <div className="ps-page-actions">
+          <button type="button" data-t7-refresh onClick={refresh}>{t('refresh')}</button>
+        </div>
+      </header>
 
       {state.status === 'loading' && <p data-t7-placeholder>{t('state.loading')}</p>}
       {state.status === 'error' && <p data-t7-error>{t('state.error')}: {state.message}</p>}
 
       {ready && (
-        <GroupNav entries={entries} selectedId={selectedId} onSelect={selectEntry} t={t} />
-      )}
-
-      {/* 条目详情紧跟全景导航(2026-11-13 重排):会话快照列表(可达 20 行)此前压在
-          详情前面,把编辑器推到首屏外 ~3100px;点击导航行虽有滚动引导,详情仍应
-          尽量靠近导航。快照是浏览面,挪到详情之后、导入之前。 */}
-      {ready && selected !== undefined && (
-        <section ref={detailRef} data-ps-entry-detail data-t7-section="detail" aria-label={t('studio.entry.detail')}>
-          <h2 data-t7-section-title data-ps-entry-title>{selected.id}</h2>
-          <div data-ps-entry-badges>
-            <span data-ps-pill data-ps-tone="neutral">{t(`studio.layer.${selected.layer}`)}</span>
-            <span data-ps-pill data-ps-tone="neutral">{t(`studio.kind.${selected.kind}`)}</span>
-            {selected.redLine === 'required'
-              ? <span data-ps-pill data-ps-tone="warn">{t('studio.entry.redline.required')}</span>
-              : <span data-ps-pill data-ps-tone="neutral">{t('studio.entry.redline.exempt')}</span>}
-          </div>
-          <p data-ps-entry-note>{selected.note}</p>
-          <div data-ps-entry-description>
-            <span data-ps-entry-description-title>{t('studio.entry.description')}</span>
-            <p data-ps-entry-description-text>{selected.description}</p>
-          </div>
-          <div data-ps-entry-effect data-ps-effect-radius={selected.effect.radius}>
-            <span data-ps-entry-effect-title>{t('studio.entry.effect')}</span>
-            <span
-              data-ps-pill
-              data-ps-tone={selected.effect.radius === 'immediate-new-session' ? 'business' : selected.effect.radius === 'not-composed-anywhere' ? 'warn' : 'neutral'}
-              data-ps-effect-badge
-            >
-              {t(`studio.effect.${selected.effect.radius}`)}
-            </span>
-            <p data-ps-entry-effect-note>{selected.effect.note}</p>
-          </div>
-          <div data-ps-entry-risks>
-            <span data-ps-entry-risks-title>{t('studio.entry.risks')}</span>
-            <ul>
-              {selected.risks.map((risk, index) => <li key={index} data-ps-risk-item>{risk}</li>)}
-            </ul>
-          </div>
-          <div data-ps-entry-meta>
-            <span data-ps-meta-item>{t('studio.entry.source')}: {selected.source}</span>
-            <span data-ps-meta-item>
-              {t('studio.entry.maxBytes')}: {formatTokens(selected.maxBytes)} {t('studio.editor.bytes')}
-            </span>
-            {selected.redLineRuleSet !== undefined && (
-              <span data-ps-meta-item>{t('studio.entry.ruleSet')}: {selected.redLineRuleSet}</span>
-            )}
-            <span data-ps-meta-item>
-              {t('studio.entry.versionsCount')}:
-              {' '}{selected.versions.ready ? formatTokens(selected.versions.count) : t('studio.entry.storeUnavailable')}
-            </span>
-            {selected.id === DEFAULT_ENTRY_ID && (
-              <span data-ps-meta-item>
-                {t('studio.persona.meta')}: <span data-t7-persona-path>{state.snapshot.persona.patchPath ?? '—'}</span>
-              </span>
-            )}
-          </div>
-
-          {selected.kind === 'patch-value' && !valueUnreadable && (
-            <section data-t7-section="editor" aria-label={t('studio.editor')}>
-              <h3 data-t7-section-title>{t('studio.editor')}</h3>
-              <p data-t7-section-note>{t('studio.editor.note')}</p>
-              <textarea
-                data-t7-editor
-                value={draft ?? ''}
-                disabled={!ready}
-                onChange={event => {
-                  const value = event.target.value
-                  setDraft(value)
-                  persistDraft(selected.id, value, selectedText)
-                }}
-                rows={12}
-                spellCheck={false}
-              />
-              <div data-t7-editor-meta>
-                <span data-t7-editor-bytes>
-                  {formatTokens(bytes)} / {formatTokens(selected.maxBytes)} {t('studio.editor.bytes')}
-                </span>
-                <span data-t7-editor-dirty data-t7-editor-dirty-flag={dirty ? 'true' : 'false'}>
-                  {dirty ? t('studio.editor.dirty') : t('studio.editor.pristine')}
-                </span>
+        <div className="ps-workspace" data-ps-workspace>
+          {/* —— 左栏:提示词库(搜索 + 层筛选 + 分组列表) —— */}
+          <aside className="ps-panel ps-list-panel" data-ps-list-panel aria-label={t('studio.library')}>
+            <div className="ps-panel-head">
+              <div className="ps-head-row">
+                <h2 className="ps-panel-title">{t('studio.library')}</h2>
+                <span className="ps-count-pill" data-ps-library-count>{visibleEntries.length}</span>
               </div>
-              {selected.redLine === 'required' && (
-                <RedLineCheck
-                  ruleSet={selected.redLineRuleSet}
-                  text={draft ?? ''}
-                  t={t}
-                  onInsert={() => {
-                    const missing = missingRedLineRules(selected.redLineRuleSet, draft ?? '')
-                    const lines = redLineInsertLinesOf(missing)
-                    if (lines.length === 0) return
-                    const base = draft ?? ''
-                    const joined = lines.join('\n') + '\n'
-                    const next = base.length > 0 && !base.endsWith('\n') ? base + '\n' + joined : base + joined
-                    setDraft(next)
-                    persistDraft(selected.id, next, selectedText)
-                  }}
+              <div className="ps-search-field">
+                <input
+                  data-ps-search
+                  type="search"
+                  value={query}
+                  placeholder={t('studio.search.placeholder')}
+                  aria-label={t('studio.search')}
+                  onChange={event => { setQuery(event.target.value) }}
                 />
-              )}
-              <input
-                data-t7-save-summary
-                type="text"
-                value={summary}
-                placeholder={t('studio.editor.summaryPlaceholder')}
-                onChange={event => { setSummary(event.target.value) }}
+              </div>
+              <div className="ps-chips" role="group" aria-label={t('studio.panorama')}>
+                <button
+                  type="button"
+                  className="ps-chip"
+                  data-ps-filter-chip="all"
+                  aria-pressed={layerFilter === 'all' ? 'true' : 'false'}
+                  onClick={() => { setLayerFilter('all') }}
+                >{t('studio.filter.all')}</button>
+                {LAYERS.map(layer => (
+                  <button
+                    key={layer}
+                    type="button"
+                    className="ps-chip"
+                    data-ps-filter-chip={layer}
+                    aria-pressed={layerFilter === layer ? 'true' : 'false'}
+                    onClick={() => { setLayerFilter(layer) }}
+                  >{t(`studio.layer.${layer}`)}</button>
+                ))}
+              </div>
+            </div>
+            <div className="ps-library-list">
+              <GroupNav
+                entries={visibleEntries}
+                selectedId={selectedId}
+                dirtyIds={dirtyIds}
+                onSelect={selectEntry}
+                t={t}
               />
-              <div data-t7-editor-actions>
-                <button
-                  type="button"
-                  data-t7-save-btn
-                  data-ps-entry-save
-                  disabled={!ready || busy || draft === null}
-                  onClick={() => { void startSave() }}
-                >
-                  {busy ? t('studio.saving') : t('studio.save')}
-                </button>
-              </div>
-            </section>
-          )}
-          {selected.kind === 'patch-value' && !valueUnreadable && (
-            <AiPolishSection
-              status={aiStatus}
-              polish={visiblePolish}
-              instruction={aiInstruction}
-              aiBusy={aiBusy}
-              busy={busy}
-              canPolish={ready && draft !== null}
-              diffEmpty={visiblePolish.status !== 'ok' || diffLines(visiblePolish.base, visiblePolish.draft).isEmpty}
-              onInstructionChange={setAiInstruction}
-              onPolish={() => { void runAiPolish() }}
-              onDiscard={() => { setAiPolish({ status: 'idle' }) }}
-              onPropose={() => { void submitAiProposal() }}
-              t={t}
-            />
-          )}
-          {selected.kind === 'patch-value' && !valueUnreadable && (
-            <AiReviewSection
-              review={visibleReview}
-              stale={reviewStale}
-              aiBusy={aiBusy}
-              reviewing={aiBusyOp === 'review'}
-              busy={busy}
-              canReview={ready && draft !== null}
-              onReview={() => { void runAiReview() }}
-              onClose={() => { setAiReview({ status: 'idle' }) }}
-              t={t}
-            />
-          )}
-          {valueUnreadable && (
-            <div data-ps-entry-value-error data-t7-section="unreadable" aria-label={t('studio.entry.valueUnreadable.title')}>
-              <h3 data-t7-section-title>{t('studio.entry.valueUnreadable.title')}</h3>
-              <p data-ps-entry-value-error-note>{t('studio.entry.valueUnreadable.note')}</p>
-              {(selected.value.problems.length > 0 ? selected.value.problems : [t('studio.entry.valueUnreadable.fallback')])
-                .map((problem, index) => <p key={index} data-ps-entry-problem-item>{problem}</p>)}
+              {visibleEntries.length === 0 && <p className="ps-empty-inline">{t('state.empty')}</p>}
             </div>
-          )}
-          {selected.kind === 'runtime-injection' && (
-            <div data-ps-entry-runtime data-t7-section="runtime" aria-label={t('studio.entry.runtime.title')}>
-              <h3 data-t7-section-title>{t('studio.entry.runtime.title')}</h3>
-              <p data-ps-entry-runtime-note>{t('studio.entry.runtime.note')}</p>
-              <p data-ps-entry-value-note>{t('studio.entry.runtime.value')}</p>
-            </div>
-          )}
+          </aside>
 
-          {selected.versioned && (
-            <section data-t7-section="versions" aria-label={t('studio.versions')}>
-              <h3 data-t7-section-title>{t('studio.versions')}</h3>
-              <p data-t7-section-note>{t('studio.versions.note')}</p>
-              <div data-t7-export-row>
-                <button
-                  type="button"
-                  data-t7-export-latest
-                  disabled={!hasChain || busy}
-                  onClick={() => { void exportVersion(null) }}
-                >
-                  {t('studio.export.latest')}
-                </button>
-                {exportNote !== null && <span data-t7-export-status>{exportNote}</span>}
+          {/* —— 中栏:编辑器(标题行 + 三 tab + tab 体 + 粘底保存栏) —— */}
+          <section className="ps-panel ps-editor-panel" ref={editorPanelRef} data-ps-editor-panel aria-label={t('studio.entry.detail')}>
+            <div className="ps-panel-head ps-editor-head">
+              <div className="ps-editor-title-row">
+                <h2 className="ps-editor-title" data-ps-entry-title>{selected !== undefined ? selected.id : t('studio.entry.detail')}</h2>
+                {hasChain && chain !== undefined && chain.versions.length > 0 && (
+                  <span className="ps-badge" data-ps-version-badge>#{chain.versions[0]!.seq}</span>
+                )}
+                {selected !== undefined && (
+                  <span data-ps-entry-badges className="ps-editor-pills">
+                    <span data-ps-pill data-ps-tone="neutral">{t(`studio.layer.${selected.layer}`)}</span>
+                    <span data-ps-pill data-ps-tone="neutral">{t(`studio.kind.${selected.kind}`)}</span>
+                    {selected.redLine === 'required'
+                      ? <span data-ps-pill data-ps-tone="warn">{t('studio.entry.redline.required')}</span>
+                      : <span data-ps-pill data-ps-tone="neutral">{t('studio.entry.redline.exempt')}</span>}
+                  </span>
+                )}
               </div>
-              {hasChain && chain !== undefined && (
-                <div data-t7-version-list>
-                  {chain.versions.map((version, index) => (
-                    <VersionItem
-                      key={version.id}
-                      version={version}
-                      previous={chain.versions[index + 1] ?? null}
+              <div className="ps-tabs" role="tablist" aria-label={t('studio.entry.detail')}>
+                <button type="button" className="ps-tab" data-ps-tab="edit" role="tab"
+                  aria-selected={tab === 'edit' ? 'true' : 'false'}
+                  onClick={() => { setTab('edit') }}>{t('studio.tab.edit')}</button>
+                <button type="button" className="ps-tab" data-ps-tab="versions" role="tab"
+                  aria-selected={tab === 'versions' ? 'true' : 'false'}
+                  onClick={() => { setTab('versions') }}>
+                  {t('studio.tab.versions')}
+                  <span className="ps-tab-count">{selected?.versions.ready ? selected.versions.count : '—'}</span>
+                </button>
+                <button type="button" className="ps-tab" data-ps-tab="snapshots" role="tab"
+                  aria-selected={tab === 'snapshots' ? 'true' : 'false'}
+                  onClick={() => { setTab('snapshots') }}>{t('studio.tab.snapshots')}</button>
+              </div>
+            </div>
+
+            <div className="ps-editor-body">
+              {!ready && <p data-t7-placeholder>{t('state.loading')}</p>}
+
+              {ready && selected !== undefined && tab === 'edit' && (
+                <section data-ps-entry-detail data-t7-section="detail" aria-label={t('studio.entry.detail')}>
+                  <p data-ps-entry-note>{selected.note}</p>
+                  <details className="ps-governance" data-ps-entry-governance>
+                    <summary>{t('studio.entry.governance')}</summary>
+                    <div data-ps-entry-description>
+                      <span data-ps-entry-description-title>{t('studio.entry.description')}</span>
+                      <p data-ps-entry-description-text>{selected.description}</p>
+                    </div>
+                    <div data-ps-entry-effect data-ps-effect-radius={selected.effect.radius}>
+                      <span data-ps-entry-effect-title>{t('studio.entry.effect')}</span>
+                      <span
+                        data-ps-pill
+                        data-ps-tone={selected.effect.radius === 'immediate-new-session' ? 'business' : selected.effect.radius === 'not-composed-anywhere' ? 'warn' : 'neutral'}
+                        data-ps-effect-badge
+                      >
+                        {t(`studio.effect.${selected.effect.radius}`)}
+                      </span>
+                      <p data-ps-entry-effect-note>{selected.effect.note}</p>
+                    </div>
+                    <div data-ps-entry-risks>
+                      <span data-ps-entry-risks-title>{t('studio.entry.risks')}</span>
+                      <ul>
+                        {selected.risks.map((risk, index) => <li key={index} data-ps-risk-item>{risk}</li>)}
+                      </ul>
+                    </div>
+                    <div data-ps-entry-meta>
+                      <span data-ps-meta-item>{t('studio.entry.source')}: {selected.source}</span>
+                      <span data-ps-meta-item>
+                        {t('studio.entry.maxBytes')}: {formatTokens(selected.maxBytes)} {t('studio.editor.bytes')}
+                      </span>
+                      {selected.redLineRuleSet !== undefined && (
+                        <span data-ps-meta-item>{t('studio.entry.ruleSet')}: {selected.redLineRuleSet}</span>
+                      )}
+                      <span data-ps-meta-item>
+                        {t('studio.entry.versionsCount')}:
+                        {' '}{selected.versions.ready ? formatTokens(selected.versions.count) : t('studio.entry.storeUnavailable')}
+                      </span>
+                      {selected.id === DEFAULT_ENTRY_ID && (
+                        <span data-ps-meta-item>
+                          {t('studio.persona.meta')}: <span data-t7-persona-path>{state.snapshot.persona.patchPath ?? '—'}</span>
+                        </span>
+                      )}
+                    </div>
+                  </details>
+
+                  {selected.kind === 'runtime-injection' && (
+                    <div data-ps-entry-runtime data-t7-section="runtime" aria-label={t('studio.entry.runtime.title')}>
+                      <h3 data-t7-section-title>{t('studio.entry.runtime.title')}</h3>
+                      <p data-ps-entry-runtime-note>{t('studio.entry.runtime.note')}</p>
+                      <p data-ps-entry-value-note>{t('studio.entry.runtime.value')}</p>
+                    </div>
+                  )}
+
+                  {valueUnreadable && (
+                    <div data-ps-entry-value-error data-t7-section="unreadable" aria-label={t('studio.entry.valueUnreadable.title')}>
+                      <h3 data-t7-section-title>{t('studio.entry.valueUnreadable.title')}</h3>
+                      <p data-ps-entry-value-error-note>{t('studio.entry.valueUnreadable.note')}</p>
+                      {(selected.value.problems.length > 0 ? selected.value.problems : [t('studio.entry.valueUnreadable.fallback')])
+                        .map((problem, index) => <p key={index} data-ps-entry-problem-item>{problem}</p>)}
+                    </div>
+                  )}
+
+                  {selected.kind === 'patch-value' && !valueUnreadable && (
+                    <section data-t7-section="editor" aria-label={t('studio.editor')}>
+                      <h3 data-t7-section-title>{t('studio.editor')}</h3>
+                      <p data-t7-section-note>{t('studio.editor.note')}</p>
+                      <textarea
+                        data-t7-editor
+                        value={draft ?? ''}
+                        disabled={!ready}
+                        onChange={event => {
+                          const value = event.target.value
+                          setDraft(value)
+                          persistDraft(selected.id, value, selectedText)
+                        }}
+                        rows={12}
+                        spellCheck={false}
+                      />
+                      <div data-t7-editor-meta>
+                        <span data-t7-editor-bytes>
+                          {formatTokens(bytes)} / {formatTokens(selected.maxBytes)} {t('studio.editor.bytes')}
+                        </span>
+                        <span data-t7-editor-dirty data-t7-editor-dirty-flag={dirty ? 'true' : 'false'}>
+                          {dirty ? t('studio.editor.dirty') : t('studio.editor.pristine')}
+                        </span>
+                      </div>
+                      {selected.redLine === 'required' && (
+                        <RedLineCheck
+                          ruleSet={selected.redLineRuleSet}
+                          text={draft ?? ''}
+                          t={t}
+                          onInsert={() => {
+                            const missing = missingRedLineRules(selected.redLineRuleSet, draft ?? '')
+                            const lines = redLineInsertLinesOf(missing)
+                            if (lines.length === 0) return
+                            const base = draft ?? ''
+                            const joined = lines.join('\n') + '\n'
+                            const next = base.length > 0 && !base.endsWith('\n') ? base + '\n' + joined : base + joined
+                            setDraft(next)
+                            persistDraft(selected.id, next, selectedText)
+                          }}
+                        />
+                      )}
+                    </section>
+                  )}
+                </section>
+              )}
+
+              {ready && selected !== undefined && tab === 'versions' && (
+                <section data-t7-section="versions" aria-label={t('studio.versions')}>
+                  <p data-t7-section-note>{t('studio.versions.note')}</p>
+                  <div data-t7-export-row>
+                    <button
+                      type="button"
+                      data-t7-export-latest
+                      disabled={!hasChain || busy}
+                      onClick={() => { void exportVersion(null) }}
+                    >
+                      {t('studio.export.latest')}
+                    </button>
+                    {exportNote !== null && <span data-t7-export-status>{exportNote}</span>}
+                  </div>
+                  {hasChain && chain !== undefined && pair !== null && (
+                    <CompareView
+                      pair={pair}
+                      versions={versions}
                       busy={busy}
+                      onPick={handleComparePick}
+                      onSwap={() => { setCompareIds({ aId: pair.b.id, bId: pair.a.id }) }}
+                      onReset={() => { setCompareIds(null) }}
                       onLoad={content => {
                         setDraft(content)
                         if (selected !== undefined) persistDraft(selected.id, content, selectedText)
                       }}
-                      onCompare={(target, previous) => {
-                        if (previous !== null) setDiffPair({ a: previous, b: target })
+                      onQuickCompare={version => {
+                        const index = versions.findIndex(candidate => candidate.id === version.id)
+                        const older = index >= 0 ? versions[index + 1] : undefined
+                        if (older !== undefined) setCompareIds({ aId: older.id, bId: version.id })
                       }}
-                      onRollback={target => { void startRollback(target) }}
                       onExport={target => { void exportVersion(target) }}
+                      onRollback={target => { void startRollback(target) }}
                       t={t}
                     />
-                  ))}
+                  )}
+                  {hasChain && chain !== undefined && chain.versions.length === 1 && chain.versions[0] !== undefined && (
+                    <div className="ps-compare-single" data-t7-version-item={chain.versions[0].id} data-t7-version-source={chain.versions[0].source}>
+                      <div className="ps-compare-side-top" data-t7-version-head>
+                        <span className="ps-version-badge" data-t7-version-seq>#{chain.versions[0].seq}</span>
+                        <span className="ps-version-source-badge" data-t7-version-source-badge>{chain.versions[0].source}</span>
+                        <span className="ps-tag-current" data-ps-compare-current>{t('studio.compare.current')}</span>
+                      </div>
+                      <p className="ps-compare-side-meta" data-t7-version-meta>
+                        {formatTime(chain.versions[0].createdAt)} · {chain.versions[0].author} · {formatTokens(chain.versions[0].bytes)} {t('studio.version.bytes')}
+                      </p>
+                      <p className="ps-compare-side-summary" data-t7-version-summary>{t('studio.version.summary')}: {chain.versions[0].summary}</p>
+                      <p className="ps-empty-inline">{t('studio.versions.single')}</p>
+                      <div className="ps-compare-side-actions" data-t7-version-actions>
+                        <button type="button" data-t7-load-btn onClick={() => {
+                          setDraft(chain.versions[0]!.content)
+                          if (selected !== undefined) persistDraft(selected.id, chain.versions[0]!.content, selectedText)
+                        }}>{t('studio.version.load')}</button>
+                        <button type="button" data-t7-export-btn disabled={busy} onClick={() => { void exportVersion(chain.versions[0]!) }}>{t('studio.version.export')}</button>
+                      </div>
+                    </div>
+                  )}
+                  {ready && chain !== undefined && chain.ready && chain.versions.length === 0 && (
+                    <p data-t7-placeholder>{t('state.empty')}</p>
+                  )}
+                  {ready && chain !== undefined && !chain.ready && (
+                    <p data-t7-placeholder data-t7-versions-unavailable="true">{t('state.empty')}(storage 未挂载)</p>
+                  )}
+                  {/* 三态分离:拉取中(RPC 在途,含 effect 尚未落 loading 态的首帧)与
+                      拉取失败(RPC 通道错/超时)不得冒充 storage 缺席——unavailable 锚点
+                      只在拿到 loaded 数据且 !ready 时点亮。 */}
+                  {chain === undefined && (chainFetch === undefined || chainFetch.status === 'loading') && (
+                    <p data-t7-placeholder data-ps-chain-loading="true">{t('studio.versions.loading')}</p>
+                  )}
+                  {chainFetch !== undefined && chainFetch.status === 'error' && (
+                    <p data-ps-chain-error>
+                      {t('studio.versions.loadFailed')}{chainFetch.message === '' ? '' : `:${chainFetch.message}`}
+                    </p>
+                  )}
+                </section>
+              )}
+
+              {ready && selected !== undefined && tab === 'snapshots' && (
+                <SessionSnapshotsView call={call} t={t} ready={ready} generatedAt={generatedAt} />
+              )}
+
+              {/* 写结果(就地展示;所有写动作共用,跨 tab 可见) */}
+              {outcome !== null && (
+                <div data-t7-write-outcome data-t7-write-status={outcome.status}>
+                  <span data-t7-write-status-label>{t('studio.write.status')}: {outcome.kind} · {outcome.status}</span>
+                  {outcome.message !== undefined && <span data-t7-write-message>{outcome.message}</span>}
+                  {outcome.issues !== undefined && (
+                    <ul data-t7-save-error>
+                      {outcome.issues.map(issue => <li key={issue} data-t7-issue>{issue}</li>)}
+                    </ul>
+                  )}
+                  {outcome.version !== undefined && (
+                    <span data-t7-write-version>
+                      #{outcome.version.seq} {outcome.version.id}({outcome.version.source})
+                    </span>
+                  )}
+                  {outcome.effectiveNote !== undefined && (
+                    <p data-t7-effective-note>{outcome.effectiveNote}</p>
+                  )}
                 </div>
               )}
-              {ready && chain !== undefined && chain.ready && chain.versions.length === 0 && (
-                <p data-t7-placeholder>{t('state.empty')}</p>
-              )}
-              {ready && chain !== undefined && !chain.ready && (
-                <p data-t7-placeholder data-t7-versions-unavailable="true">{t('state.empty')}(storage 未挂载)</p>
-              )}
-              {/* 三态分离:拉取中(RPC 在途,含 effect 尚未落 loading 态的首帧)与
-                  拉取失败(RPC 通道错/超时)不得冒充 storage 缺席——unavailable 锚点
-                  只在拿到 loaded 数据且 !ready 时点亮。 */}
-              {chain === undefined && (chainFetch === undefined || chainFetch.status === 'loading') && (
-                <p data-t7-placeholder data-ps-chain-loading="true">{t('studio.versions.loading')}</p>
-              )}
-              {chainFetch !== undefined && chainFetch.status === 'error' && (
-                <p data-ps-chain-error>
-                  {t('studio.versions.loadFailed')}{chainFetch.message === '' ? '' : `:${chainFetch.message}`}
-                </p>
-              )}
-              {diffPair !== null && (
-                <DiffView pair={diffPair} onClose={() => { setDiffPair(null) }} t={t} />
-              )}
-            </section>
-          )}
+            </div>
 
-          {outcome !== null && (
-            <div data-t7-write-outcome data-t7-write-status={outcome.status}>
-              <span data-t7-write-status-label>{t('studio.write.status')}: {outcome.kind} · {outcome.status}</span>
-              {outcome.message !== undefined && <span data-t7-write-message>{outcome.message}</span>}
-              {outcome.issues !== undefined && (
-                <ul data-t7-save-error>
-                  {outcome.issues.map(issue => <li key={issue} data-t7-issue>{issue}</li>)}
-                </ul>
-              )}
-              {outcome.version !== undefined && (
-                <span data-t7-write-version>
-                  #{outcome.version.seq} {outcome.version.id}({outcome.version.source})
+            {ready && selected !== undefined && selected.kind === 'patch-value' && !valueUnreadable && tab === 'edit' && (
+              <footer className="ps-editor-foot" data-ps-editor-foot>
+                <input
+                  data-t7-save-summary
+                  type="text"
+                  value={summary}
+                  placeholder={t('studio.editor.summaryPlaceholder')}
+                  onChange={event => { setSummary(event.target.value) }}
+                />
+                <div data-t7-editor-actions>
+                  <button
+                    type="button"
+                    data-t7-save-btn
+                    data-ps-entry-save
+                    disabled={!ready || busy || draft === null}
+                    onClick={() => { void startSave() }}
+                  >
+                    {busy ? t('studio.saving') : t('studio.save')}
+                  </button>
+                </div>
+              </footer>
+            )}
+          </section>
+
+          {/* —— 右栏:AI 助手(可用性 + 润色/审核) —— */}
+          <aside className="ps-panel ps-ai-panel" data-ps-ai-panel aria-label={t('studio.ai.assistant')}>
+            <div className="ps-panel-head">
+              <div className="ps-head-row">
+                <h2 className="ps-panel-title">{t('studio.ai.assistant')}</h2>
+                <span data-ps-ai-status>
+                  <span data-ps-ai-status-label className="ps-visually-hidden">{t('studio.ai.status')}</span>
+                  {aiStatus.status === 'loading' && <span data-ps-ai-status-value data-ps-ai-status-state="checking">{t('studio.ai.status.checking')}</span>}
+                  {aiStatus.status === 'error' && (
+                    <span data-ps-ai-status-value data-ps-ai-status-state="error" title={aiStatus.message}>{t('studio.ai.status.checking')}</span>
+                  )}
+                  {aiStatus.status === 'loaded' && (aiAvailable
+                    ? <span data-ps-pill data-ps-tone="business" data-ps-ai-status-value data-ps-ai-available="true">{t('studio.ai.status.available')}</span>
+                    : <span data-ps-pill data-ps-tone="warn" data-ps-ai-status-value data-ps-ai-unavailable="true">{t('studio.ai.status.unavailable')}</span>)}
                 </span>
-              )}
-              {outcome.effectiveNote !== undefined && (
-                <p data-t7-effective-note>{outcome.effectiveNote}</p>
+              </div>
+            </div>
+            <div className="ps-panel-body">
+              {aiPanelUsable ? (
+                <>
+                  <AiPolishSection
+                    status={aiStatus}
+                    polish={visiblePolish}
+                    instruction={aiInstruction}
+                    aiBusy={aiBusy}
+                    busy={busy}
+                    canPolish={ready && draft !== null}
+                    diffEmpty={visiblePolish.status !== 'ok' || diffLines(visiblePolish.base, visiblePolish.draft).isEmpty}
+                    onInstructionChange={setAiInstruction}
+                    onPolish={() => { void runAiPolish() }}
+                    onDiscard={() => { setAiPolish({ status: 'idle' }) }}
+                    onPropose={() => { void submitAiProposal() }}
+                    t={t}
+                  />
+                  <AiReviewSection
+                    review={visibleReview}
+                    stale={reviewStale}
+                    aiBusy={aiBusy}
+                    reviewing={aiBusyOp === 'review'}
+                    busy={busy}
+                    canReview={ready && draft !== null}
+                    onReview={() => { void runAiReview() }}
+                    onClose={() => { setAiReview({ status: 'idle' }) }}
+                    t={t}
+                  />
+                </>
+              ) : (
+                <div className="ps-hint-box" data-ps-ai-hint>
+                  <p>{t('studio.ai.hint.noSelection')}</p>
+                </div>
               )}
             </div>
-          )}
-        </section>
-      )}
-
-      {pending !== null && (
-        <div ref={approvalRef} data-t7-approval-anchor>
-          <ApprovalSection pending={pending} busy={busy} onAnswer={approved => { void answerApproval(approved) }} t={t} />
+          </aside>
         </div>
       )}
 
-      {ready && (
-        <SessionSnapshotsView call={call} t={t} ready={ready} generatedAt={generatedAt} />
-      )}
-
+      {/* —— 导入(JSON 包;包内 entryId 指名落点条目)+ R3 审批卡 + 写结果就地展示 —— */}
       <section data-t7-section="transfer" aria-label={t('studio.transfer')}>
         <h2 data-t7-section-title>{t('studio.transfer')}</h2>
         <p data-t7-section-note>{t('studio.transfer.note')}</p>
