@@ -449,13 +449,14 @@ function extractAssistantTextGeneric(body: unknown): string | undefined {
  * 阶段耗尽输出预算/网关瞬断的典型形态;裸 JSON 对用户无意义,给可行动信息)。 */
 function emptyResponseDiagnosis(body: unknown): string {
   let stopReason = '?'
-  let outputTokens: unknown = '?'
+  let outputTokens = '?'
   let blockTypes = '?'
   if (typeof body === 'object' && body !== null) {
     const record = body as Record<string, unknown>
     if (typeof record['stop_reason'] === 'string') stopReason = record['stop_reason']
     const usage = plainRecordOf(record['usage'])
-    if (usage !== undefined) outputTokens = usage['output_tokens'] ?? '?'
+    const output = usage?.['output_tokens']
+    if (typeof output === 'number') outputTokens = String(output)
     const content = record['content']
     blockTypes = Array.isArray(content)
       ? JSON.stringify(content.map(block => plainRecordOf(block)?.['type'] ?? '?'))
