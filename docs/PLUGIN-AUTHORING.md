@@ -72,6 +72,7 @@ EternaAgent 部署为多账号门禁形态(eterna-access):unary `/api` 端点由
 2. 实例级 in-place wrap 是既有先例(access `installSandboxBoundary` 的 `sandboxPolicy.resolve` wrap);wrap 要做工具名前缀短路(executable 是热路径)与 WeakMap 缓存,disposer 还原;
 3. deny 语义 = throw(内核 `toolErrorResult` 物化为 `Error: ${message}`,与 pre-execute deny 形态一致,turn 不中断);
 4. 凭据因此不进内核日志/审计/工具 schema(presenters 走 `ToolsService.get` 拿原定义)——"审计不落令牌值"依赖这一点。
+5. shadow 定义必须**浅拷贝透传原定义全部字段**(`{ ...def, execute }`,execute 是唯一换面):内核对**成功**结果走 `createSuccessResult` → `tool.output.schema` 校验 + `output.render` 投影(dsh-tools pipeline.js:712)——只返回 `{ execute }` 时成功调用必炸 `Cannot read properties of undefined (reading 'schema')`(2026-11-13 生产事故:副作用已发生、结果丢失;错误路径不碰 output,形成"部分调用正常"的误导对照)。
 
 参考实现:`packages/access/src/companion-inject.ts`(含 fail-closed deny 与未知会话 passthrough 语义)。另:pre-execute 瀑布仍是**判定**的正位(先于人审;egress/沙箱钳制同款),本节只禁止用它**改写参数**。
 
