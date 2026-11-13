@@ -19,6 +19,13 @@ export const TEXT_MAP: readonly (readonly [string | RegExp, string])[] = [
   // 替换会把路径改成不存在的 `$EternaAgent_HOME`(2026-11-13 实测)。`_` 属
   // 单词字符,`\bDSH\b` 天然不命中这族标识符。
   [/\bDSH\b/g, BRAND.full],
+  // 上游营销徽章短语的小写形态(badge 技能插件描述:「powered by dsh」)。
+  // 必须整短语匹配:裸小写 `dsh` 不能按词位替换——它在描述里还充当真实包名
+  // (dsh-base / dsh-headless / dsh-sdk-app / dsh-llm-deepseek),`\bdsh\b` 会
+  // 把包名一起吃掉变成错误陈述。整短语精确匹配天然不碰这些包名。
+  ['powered by dsh', `powered by ${BRAND.full}`],
+  ['powered_by-dsh', `powered_by-${BRAND.full}`],
+  ['Powered by DSH', `Powered by ${BRAND.full}`],
   // 预览版痕迹清除(用户 2026-11-09:不希望有);长短语在前防子串抢先。
   // 注意:「预览版」命中的文本节点由 hidePreviewChip 整元素隐藏(只清文字会
   // 留下看不见的空样式块——hero 右上角的可疑残影,2026-11-09 用户实测)。
