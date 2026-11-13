@@ -17,6 +17,12 @@
 #   subagent/tool-subagent-control/src/list-agents.ts(2026-11-10 补遗);memory_* ←
 #   @eterna/memory src/tools.ts MEMORY_TOOL_NAMES(glue memory 插件注册,2026-11-13
 #   补遗:未列名导致每次写记忆触发人审,事故会话中该审批被取消废掉 turn 收尾)。
+#   2026-11-13 二批(session-7e15e6ab 挂死事故,对账口径=会话 request/header tools
+#   全名单 52 项 vs 本规则 allowed 差集):mcp__browser__* ← browser-relay mcp.ts;
+#   knowledge_* ← @eterna/glue knowledge 插件;list_mcp_resources/list_mcp_resource_
+#   templates/read_mcp_resource ← 上游 mcp 资源面;team_task_*/send_message/spawn_
+#   teammate/wait_agent/interrupt_agent ← 上游 team 协作族;create_worktree ← 上游
+#   workspace 工作树。working_directory 仍刻意不列(见文末注)。
 # apply_patch 刻意不列:eterna-web 两预设均 applyPatch:false,列名即放行违反对账纪律;
 #   回加该工具时须同步回加本文件(默认 ask 会先兜住)。
 # 运维杠杆:$DSH_HOME/access/governance.rules.yml 存在时优先生效(免重建改规则),
@@ -63,6 +69,28 @@ rules:
     effect: allow
     tools: ['memory_write', 'memory_read', 'memory_search', 'memory_forget']
     reason: 记忆面常规操作;写入路径有 PII 过滤兜底(governance.pii 供 memory 写入前调用)
+  - id: allow-browser
+    effect: allow
+    tools: ['mcp__browser__browser_snapshot', 'mcp__browser__browser_click', 'mcp__browser__browser_fill']
+    reason: companion 浏览器执行面——出站发生在用户自己的浏览器(egress 已按同语义豁免),令牌按会话归属路由到本人扩展。2026-11-13 事故补遗:未列名导致每次调用挂死在不可见审批(web 前端无审批面,session-7e15e6ab 实测)
+  - id: allow-knowledge
+    effect: allow
+    tools: ['knowledge_propose', 'knowledge_read', 'knowledge_search', 'knowledge_status']
+    reason: 企业知识底座(@eterna/glue knowledge);propose 只产生提案不直接生效(发布另有评审门),读/搜/状态均只读
+  - id: allow-mcp-resources
+    effect: allow
+    tools: ['list_mcp_resources', 'list_mcp_resource_templates', 'read_mcp_resource']
+    reason: MCP 资源元数据列举与只读读取;内容面仍受 egress 与各 MCP server 自身鉴权约束
+  - id: allow-team-collab
+    effect: allow
+    tools: ['team_task_create', 'team_task_get', 'team_task_list', 'team_task_update', 'send_message', 'spawn_teammate', 'wait_agent', 'interrupt_agent']
+    reason: 多代理协作编排(共享任务板 CAS/成员消息/生命周期),与 subagent 委派同族,不触碰治理红线
+  - id: allow-worktree
+    effect: allow
+    tools: ['create_worktree']
+    reason: 会话工作区内建分支/worktree 并切换会话 cwd,属沙箱兜底的工作区操作面
   # working_directory 刻意不列:cwd 即沙箱写边界,运行期改 cwd 属边界相关操作,维持 default: ask
   # (fail-closed);待 P1-T3「沙箱写边界钉死=账号目录+pre-execute 钳制」落地后再评估放行。
   # ——2026-11-10 I2 事故(cherry 会话)中该工具被全拒属空规则副作用,非刻意收紧。
+  # ——2026-11-13 提示:ask 在 web 前端不可见不可决(无审批卡),未决前该工具调用会挂死
+  #   至用户点停止;审批可见性(宿主侧审批桥+卡片)落地前维持此裁定不动。

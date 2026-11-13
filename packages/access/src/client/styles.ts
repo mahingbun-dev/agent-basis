@@ -510,6 +510,80 @@ const CSS = `
     transition: none;
   }
 }
+
+/* ── 工具审批卡(2026-11-13):治理 ask 的 web 可见面,替代上游缺席的审批 UI ── */
+[data-eterna-approval-root] .eap-overlay {
+  position: fixed;
+  inset-block-start: 16px;
+  inset-inline: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--et-space-3);
+  z-index: 10000;
+  pointer-events: none;
+}
+[data-eterna-approval-root] .eap-card {
+  pointer-events: auto;
+  width: min(560px, calc(100vw - 32px));
+  border: 1px solid var(--et-warn);
+  border-radius: var(--et-radius-md);
+  background: var(--et-surface);
+  box-shadow: var(--et-shadow-raised);
+  overflow: hidden;
+  font-family: var(--et-font-body);
+  color: var(--et-fg);
+}
+[data-eterna-approval-root] .eap-strip {
+  background: var(--et-surface-2);
+  color: var(--et-warn);
+  padding: 8px 16px;
+  font-size: var(--et-text-caption);
+  font-weight: var(--et-weight-body);
+}
+[data-eterna-approval-root] .eap-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--et-space-2);
+  padding: 12px 16px 0;
+}
+[data-eterna-approval-root] .eap-headline { font-size: var(--et-text-body); font-weight: var(--et-weight-body); }
+[data-eterna-approval-root] .eap-tool code {
+  font-family: var(--et-font-mono);
+  font-size: var(--et-text-caption);
+  word-break: break-all;
+}
+[data-eterna-approval-root] .eap-reason { margin: 0; font-size: var(--et-text-caption); color: var(--et-muted); }
+[data-eterna-approval-root] .eap-meta { font-size: var(--et-text-caption); color: var(--et-muted); }
+[data-eterna-approval-root] .eap-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--et-space-2);
+  padding: 12px 16px 14px;
+}
+[data-eterna-approval-root] .eap-actions button {
+  padding: 6px 14px;
+  border-radius: var(--et-radius-sm);
+  border: 1px solid var(--et-border-soft);
+  background: transparent;
+  color: var(--et-fg);
+  font: inherit;
+  cursor: pointer;
+}
+[data-eterna-approval-root] .eap-actions button:disabled { opacity: 0.6; cursor: default; }
+[data-eterna-approval-root] .eap-actions .eap-reject:hover:not(:disabled) {
+  border-color: var(--et-danger);
+  color: var(--et-danger);
+}
+[data-eterna-approval-root] .eap-actions .eap-allow {
+  border-color: transparent;
+  background: var(--et-accent);
+  color: var(--et-accent-on);
+}
+[data-eterna-approval-root] .eap-actions .eap-allow:hover:not(:disabled) { opacity: 0.9; }
+@media (prefers-reduced-motion: reduce) {
+  [data-eterna-approval-root] .eap-card { transition: none; }
+}
 `
 
 export function injectAccessStyles(doc: Document = document): void {
