@@ -78,6 +78,8 @@ export type StudioLocaleKey =
   | 'studio.editor.pristine'
   | 'studio.editor.summary'
   | 'studio.editor.summaryPlaceholder'
+  | 'studio.editor.reset'
+  | 'studio.editor.resetConfirm'
   | 'studio.save'
   | 'studio.saving'
   | 'studio.editor.bytes'
@@ -269,6 +271,8 @@ export const zh: Record<StudioLocaleKey, string> = {
   'studio.editor.pristine': '与当前生效内容一致',
   'studio.editor.summary': '变更摘要(可省)',
   'studio.editor.summaryPlaceholder': '例如:追加红线约束',
+  'studio.editor.reset': '重置',
+  'studio.editor.resetConfirm': '确认重置(丢弃草稿)',
   'studio.save': '保存…(R3 审批)',
   'studio.saving': '提交中…',
   'studio.editor.bytes': '字节',
@@ -461,6 +465,8 @@ export const en: Record<StudioLocaleKey, string> = {
   'studio.editor.pristine': 'Same as effective content',
   'studio.editor.summary': 'Summary (optional)',
   'studio.editor.summaryPlaceholder': 'e.g. add a red-line constraint',
+  'studio.editor.reset': 'Reset',
+  'studio.editor.resetConfirm': 'Confirm reset (discard draft)',
   'studio.save': 'Save… (R3 approval)',
   'studio.saving': 'Submitting…',
   'studio.editor.bytes': 'bytes',
