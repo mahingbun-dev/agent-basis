@@ -520,6 +520,12 @@
       name: '@eterna/prompt-studio'
     - id: eterna-usage-stats
       name: '@eterna/usage-stats'
+    # 附件入口（2026-11-12）：输入框工具行「附件」按钮（客户端双面包，Host 半边
+    # idle 载具；entrypoint 第 3 步已统一 symlink）。上传/预览/重试链路全在上游
+    # file-upload/ui-attachment；按钮可见性另由 mux 策略 fileUploads/upload 动作开闸。
+    # admin 停用=工具行按钮消失，「+」菜单"文件"命令/粘贴/拖拽不受影响。
+    - id: eterna-attachments
+      name: '@eterna/attachments'
     # 上下文压缩宿主载具行(2026-11-12):client-modules 只收集宿主 Loader 条目的
     # dsh.client 双面包,压缩三行全在 preset 组内进不了浏览器花名册;本行 idle 挂载
     #仅为设置分区 client 半边提供宿主条目(数据面=下方 eterna-compaction-admin)。

@@ -372,4 +372,21 @@ describe('T1.2 生产挂载 id 三处交叉钉住(ps-v2)', () => {
     const buildScript = readFileSync(join(import.meta.dirname, '..', '..', 'prompt-studio', 'scripts', 'build-client.mjs'), 'utf8')
     expect(buildScript).toContain(`id: "${pkgName}"`)
   })
+
+  it('eterna-attachments:启停登记 ≡ 生产档/部署模板 patch insert 行 ≡ factory 注册 id——任一改动即红', () => {
+    const rowId = 'eterna-attachments'
+    const pkgName = '@eterna/attachments'
+    // ① 启停登记(TOGGLEABLE_PLUGINS)
+    expect(TOGGLEABLE_PLUGINS.some(p => p.id === rowId)).toBe(true)
+    // ② 生产档 patch insert 行(profiles/eterna-web)与 docker 部署模板行
+    //   (docker/profile/cordis.patch.yml.template——entrypoint 第 2 步渲染的生产 patch 源)
+    const prodPatch = readFileSync(join(import.meta.dirname, '..', '..', '..', 'profiles', 'eterna-web', 'cordis.patch.yml'), 'utf8')
+    expect(prodPatch).toMatch(new RegExp(`- id: ${rowId}\\s*\\n\\s+name: '${pkgName}'`))
+    const deployTemplate = readFileSync(join(import.meta.dirname, '..', '..', '..', 'docker', 'profile', 'cordis.patch.yml.template'), 'utf8')
+    expect(deployTemplate).toMatch(new RegExp(`- id: ${rowId}\\s*\\n\\s+name: '${pkgName}'`))
+    // ③ 客户端 factory 注册 id(build-client.mjs 的 wrapper id;verify-eterna-web.mjs
+    //    花名册断言 `id: "@eterna/attachments"` 的源)
+    const buildScript = readFileSync(join(import.meta.dirname, '..', '..', 'attachments', 'scripts', 'build-client.mjs'), 'utf8')
+    expect(buildScript).toContain(`id: "${pkgName}"`)
+  })
 })

@@ -467,6 +467,15 @@
 - insert:
     - id: eterna-prompt-studio
       name: '@eterna/prompt-studio'
+    # 附件入口双面插件(2026-11-12):浏览器半边在输入框工具行(conversation.input.left)
+    # 贡献常驻「附件」按钮,经 uiConversation.createDrafts 注册草稿附件(上传/预览/
+    # 重试全在上游 file-upload/ui-attachment,本包不自建管线);Host 半边 idle 载具
+    # 仅为客户端双面包提供宿主 Loader 条目。前置:profile node_modules symlink
+    # @eterna/attachments(verify-eterna-web.mjs 物化/entrypoint 第 3 步统一做)。
+    # 停用=工具行按钮消失,上游「+」菜单"文件"命令/粘贴/拖拽不受影响
+    # (其可见性由 mux 策略 fileUploads/upload 动作单独开闸)。
+    - id: eterna-attachments
+      name: '@eterna/attachments'
     # 上下文压缩宿主载具行(2026-11-12):client-modules 只收集宿主 Loader 条目的
     # dsh.client 双面包,压缩三行全在 preset 组内进不了浏览器花名册;本行 idle 挂载
     # 仅为设置分区 client 半边提供宿主条目(数据面=preset 组内 compaction-admin)。
