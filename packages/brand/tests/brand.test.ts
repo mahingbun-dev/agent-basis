@@ -123,6 +123,18 @@ describe('客户端文案规则(裸 DSH 的词位边界)', () => {
       .toBe('通过 pi-ai 为 EternaAgent 提供 DeepSeek 模型适配，作为 dsh-llm-deepseek 的设计验证实现。')
   })
 
+  it('上游营销徽章短语:整短语替换,真实包名不受影响', () => {
+    // badge 技能插件描述(2026-11-13 用户实测:插件页仍显示 powered by dsh)
+    expect(rebrandUiText('让 Agent 为文档、PR 等产出添加「powered by dsh」徽章。'))
+      .toBe('让 Agent 为文档、PR 等产出添加「powered by EternaAgent」徽章。')
+    expect(rebrandUiText('powered_by-dsh-4D6BFE')).toBe('powered_by-EternaAgent-4D6BFE')
+    // 裸小写 dsh 绝不泛化替换:它在描述里充当真实包名
+    expect(rebrandUiText('在 dsh-base 上提供自动化专用的 ACP 通信与进程生命周期。'))
+      .toBe('在 dsh-base 上提供自动化专用的 ACP 通信与进程生命周期。')
+    expect(rebrandUiText('作为 dsh-llm-deepseek 的设计验证实现。'))
+      .toBe('作为 dsh-llm-deepseek 的设计验证实现。')
+  })
+
   it('无命中时逐字返回(观察器据此跳过回写,避免自激死循环)', () => {
     expect(rebrandUiText('模型名 deepseek-flash 与恒灵·EternaAgent')).toBe('模型名 deepseek-flash 与恒灵·EternaAgent')
   })
