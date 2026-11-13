@@ -29,6 +29,12 @@
 #   见 docker/entrypoint.sh 步骤 2.6。
 default: ask
 rules:
+  # ── deny 族(优先级最高:deny > ask > allow,与 allow 规则同工具时 deny 胜)──
+  - id: deny-credential-access
+    effect: deny
+    tools: ['bash', 'read', 'grep', 'glob', 'edit', 'write']
+    argsContains: ['relay-token', 'companion-tokens.json', ':9310']
+    reason: 凭据面隔离(session-7e15e6ab 事故,2026-11-13):禁止读取 relay/用户令牌文件、禁止直连 relay 端口绕过工具管线驱动浏览器——bash 与宿主同信任域,令牌入日志即泄露且 companion-tokens.json 含全员令牌(跨用户升级面);确需触碰凭据的运维由人在宿主侧执行,或在卷上 rules 临时摘除本条
   - id: allow-shell
     effect: allow
     tools: ['bash']
