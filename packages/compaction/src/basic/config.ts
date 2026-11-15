@@ -33,6 +33,8 @@ const POLICY_CONFIG_KEYS = [
   'maxTokens',
   'compactionRetries',
   'maxOverflowRetries',
+  // 2026-11-14 C11(22 号 §5-C11):checkpoint 附件开关,默认 false。
+  'attachments',
 ] as const
 
 /** Complete public top-level configuration key set. */
@@ -112,6 +114,7 @@ export function resolveConfig(config: BasicCompactionConfig = {}): ResolvedConfi
     maxTokens,
     compactionRetries: config.compactionRetries ?? 1,
     maxOverflowRetries: config.maxOverflowRetries ?? 1,
+    attachments: config.attachments ?? false,
     modelPolicies,
     auto: config.auto ?? true,
   })
@@ -143,6 +146,7 @@ export function resolveTargetPolicy(
     maxTokens: override?.maxTokens ?? config.maxTokens,
     compactionRetries: override?.compactionRetries ?? config.compactionRetries,
     maxOverflowRetries: override?.maxOverflowRetries ?? config.maxOverflowRetries,
+    attachments: override?.attachments ?? config.attachments,
   })
 }
 
@@ -221,6 +225,7 @@ export function resolveCompactSpec(
     maxTokens: policy.maxTokens,
     compactionRetries: policy.compactionRetries,
     maxOverflowRetries: policy.maxOverflowRetries,
+    attachments: policy.attachments,
   })
 }
 
@@ -306,6 +311,11 @@ function validatePolicy(
   }
   if (maxOverflowRetries !== undefined) {
     assertNonNegativeInteger(`${name}.maxOverflowRetries`, maxOverflowRetries)
+  }
+  const attachments = config.attachments
+  // 2026-11-14 C11(22 号 §5-C11):附件开关只收布尔(默认 false 在 resolveConfig 落)。
+  if (attachments !== undefined && typeof attachments !== 'boolean') {
+    throw new Error(`${name}.attachments must be a boolean`)
   }
 
   validateSummarizationPair(config, name)

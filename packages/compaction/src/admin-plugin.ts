@@ -14,6 +14,10 @@
  *   overrides 文件,引擎下一次压力评估即热生效。
  * - 统计:扫描 $DSH_HOME/sessions/**\/session.v4.jsonl.zstd 的 compaction/summary|prune
  *   事件(与 packages/usage-stats/src/aggregate.ts 同套多帧 zstd 解码算法),60s 缓存。
+ *   2026-11-13 C9(22 号 §4)扩展:invalidSummaryCount(compaction/end.error 带
+ *   `invalid-summary:` 前缀,C3 约定)、stalePruneCount/staleSavedTokens(L2 占位符
+ *   与相邻 shadow-price 事件配对)、rapidRefillCount/lastRapidRefillAt(C7,state
+ *   文件合并)、summarization 目标(C8b 落值后由引擎写入 state 文件,缺省=跟随会话模型)。
  * - 鉴权(对齐产品现行口径,tenant.ts:483-487 同款):SRC 端点走 unary 持 owner
  *   Peer——mux 换血的 eterna-user principal 只存在于流通道(mux.ts:8-12),unary
  *   能达本端点必已过 access 守卫,视为可信管理面放行;eterna-user principal
@@ -24,9 +28,10 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { zstdDecompressSync } from 'node:zlib'
 import { resolveConfig } from './basic/config.ts'
+import { STALE_PRUNE_MARKER } from './stale/config.ts'
 
 export const ETERNA_COMPACTION_SERVICE_ID = 'eternaCompaction'
 
@@ -37,12 +42,55 @@ export interface CompactionOverrides {
   retainRatio?: number
 }
 
-export interface CompactionStats {
+/**
+ * 事件扫描面统计(同一遍 zstd 扫描得出;不含 state 文件的熔断计数)。
+ */
+export interface CompactionEventStats {
   summaryCount: number
   pruneCount: number
   shadowedTokenCount: number
   lastCompactedAt: string | null
+  /** C3 结构校验拒绝的摘要尝试数(compaction/end.error 带 `invalid-summary:` 前缀)。 */
+  invalidSummaryCount: number
+  /** L2 陈旧清理替换数(占位符标记 + 相邻 shadow-price 事件配对判定)。 */
+  stalePruneCount: number
+  /** L2 陈旧清理回收的原文估价合计(配对 prune 事件 shadowedTokenCount 求和)。 */
+  staleSavedTokens: number
 }
+
+/** C7 rapid-refill 熔断计数(state 文件写时快照;进程重启从 0 起算)。 */
+export interface RapidRefillStats {
+  rapidRefillCount: number
+  lastRapidRefillAt: string | null
+}
+
+export interface CompactionStats extends CompactionEventStats, RapidRefillStats {}
+
+/** 专属摘要模型视图;provider/model 之一缺席即视为未配置(跟随会话模型)。 */
+export interface SummarizationTargetView {
+  provider: string | null
+  model: string | null
+}
+
+/** 最近压缩 checkpoint(M-C4 视图数据行;compaction/summary 事件投影)。 */
+export interface RecentCheckpoint {
+  /** 事件时间(ms epoch;缺席 null)。 */
+  at: number | null
+  /** 归属会话(session 文件父目录名)。 */
+  session: string
+  shadowedTokenCount: number
+  provider: string
+  model: string
+  /** 摘要纯文本(8 段全文,text block join,截 400 字)。 */
+  summary: string
+}
+
+export interface CompactionCheckpointsView {
+  ok: true
+  checkpoints: RecentCheckpoint[]
+}
+
+export type CompactionCheckpointsError = { ok: false; code: 'forbidden' | 'unauthorized'; message: string }
 
 export interface CompactionStateView {
   ok: true
@@ -55,6 +103,8 @@ export interface CompactionStateView {
     maxTokens: number
     compactionRetries: number
     maxOverflowRetries: number
+    /** 专属摘要模型(state 文件就绪后非空;C8b 落值前恒为 null 对)。 */
+    summarization: SummarizationTargetView
   }
   stats: CompactionStats
 }
@@ -110,16 +160,55 @@ function collectSessionFiles(root: string, out: string[] = []): string[] {
 
 interface StatsCache {
   builtAt: number
-  stats: CompactionStats
+  stats: CompactionEventStats
 }
 
 /** 60s 进程内缓存;低频设置页轮询无需增量索引。 */
 let statsCache: StatsCache | null = null
 
-function scanCompactionStats(sessionsRoot: string): CompactionStats {
+/** 最近一条 compaction/prune 的配对面(shadow-price 事件,与替换事件同步相邻落盘)。 */
+interface PendingShadowPrune {
+  shadowedTokenCount: number
+  shadowedSeqs: readonly number[]
+}
+
+/** 扫描面关注的事件载荷与表面操作字段(行级 JSON 的结构面)。 */
+interface ScannedEvent {
+  type?: string
+  time?: number
+  data?: {
+    shadowedTokenCount?: number
+    shadowedSeqs?: unknown
+    error?: unknown
+    message?: { content?: unknown }
+    /** compaction/summary 专属(M-C4 视图):摘要块与路由模型。 */
+    summary?: unknown
+    provider?: unknown
+    model?: unknown
+  }
+  surfaceOp?: { op?: unknown; startSeq?: unknown }
+}
+
+/** stale 占位符判定:消息内容恰为单个 STALE_PRUNE_MARKER 文本块。 */
+function isStalePlaceholder(event: ScannedEvent): boolean {
+  const content = event.data?.message?.content
+  if (!Array.isArray(content) || content.length !== 1) return false
+  const block = content[0] as { type?: unknown; text?: unknown } | undefined
+  return block?.type === 'text' && block.text === STALE_PRUNE_MARKER
+}
+
+/**
+ * 同一遍 zstd 扫描统计全部压缩观测面。stale 配对规则:stale 落盘时
+ * shadow-price 事件与占位符替换同步相邻(dsh append 串行),且替换的
+ * surfaceOp.startSeq 必须落在该 prune 的 shadowedSeqs 内——两条件同时成立才
+ * 计入,防止工具原文恰好回显占位符文案的误配;日志无 surfaceOp 字段时退化为
+ * 仅相邻性判定。
+ */
+export function scanCompactionStats(sessionsRoot: string): CompactionEventStats {
   if (statsCache !== null && Date.now() - statsCache.builtAt < 60_000) return statsCache.stats
-  const stats: CompactionStats = {
+  const stats: CompactionEventStats = {
     summaryCount: 0, pruneCount: 0, shadowedTokenCount: 0, lastCompactedAt: null,
+    invalidSummaryCount: 0, stalePruneCount: 0, staleSavedTokens: 0,
   }
   let lastTime = 0
   for (const file of collectSessionFiles(sessionsRoot)) {
@@ -129,21 +218,54 @@ function scanCompactionStats(sessionsRoot: string): CompactionStats {
     } catch {
       continue
     }
+    let lastPrune: PendingShadowPrune | null = null
+    let lastLineWasPrune = false
     for (const line of text.split('\n')) {
-      if (!line.includes('compaction/')) continue
-      let event: { type?: string; time?: number; data?: { shadowedTokenCount?: number } }
+      // 快路径:只解析 compaction/* 与可能携带 stale 占位符的行(占位符文案
+      // 无 JSON 转义字符,逐字出现在行内)。
+      const isCompactionLine = line.includes('compaction/')
+      if (!isCompactionLine && !line.includes(STALE_PRUNE_MARKER)) {
+        lastLineWasPrune = false
+        continue
+      }
+      let event: ScannedEvent
       try {
-        event = JSON.parse(line) as typeof event
+        event = JSON.parse(line) as ScannedEvent
       } catch {
         continue
       }
-      const shadowed = event.data?.shadowedTokenCount
       if (event.type === 'compaction/summary' || event.type === 'compaction/prune') {
-        stats.summaryCount += event.type === 'compaction/summary' ? 1 : 0
-        stats.pruneCount += event.type === 'compaction/prune' ? 1 : 0
+        const shadowed = event.data?.shadowedTokenCount
+        if (event.type === 'compaction/summary') {
+          stats.summaryCount += 1
+          lastLineWasPrune = false
+        } else {
+          stats.pruneCount += 1
+          lastPrune = {
+            shadowedTokenCount: typeof shadowed === 'number' ? shadowed : 0,
+            shadowedSeqs: Array.isArray(event.data?.shadowedSeqs) ? event.data.shadowedSeqs as number[] : [],
+          }
+          lastLineWasPrune = true
+        }
         stats.shadowedTokenCount += typeof shadowed === 'number' ? shadowed : 0
         if (typeof event.time === 'number' && event.time > lastTime) lastTime = event.time
+        continue
       }
+      if (event.type === 'compaction/end') {
+        if (typeof event.data?.error === 'string' && event.data.error.includes('invalid-summary:')) {
+          stats.invalidSummaryCount += 1
+        }
+        lastLineWasPrune = false
+        continue
+      }
+      if (event.type === 'tool/result' && isStalePlaceholder(event) && lastPrune !== null && lastLineWasPrune) {
+        const startSeq = event.surfaceOp?.startSeq
+        if (typeof startSeq !== 'number' || lastPrune.shadowedSeqs.includes(startSeq)) {
+          stats.stalePruneCount += 1
+          stats.staleSavedTokens += lastPrune.shadowedTokenCount
+        }
+      }
+      lastLineWasPrune = false
     }
   }
   stats.lastCompactedAt = lastTime > 0 ? new Date(lastTime).toISOString() : null
@@ -151,7 +273,55 @@ function scanCompactionStats(sessionsRoot: string): CompactionStats {
   return stats
 }
 
-function resetStatsCache(): void {
+/**
+ * 最近压缩 checkpoint 列表(M-C4 视图数据面;独立扫描不走 stats 缓存——列表要
+ * 新鲜,且解码成本与 stats 共享同量级)。跨会话收集 compaction/summary 事件,
+ * 按时间降序取前 limit 条;无时间的排尾部。
+ */
+export function scanRecentCheckpoints(sessionsRoot: string, limit = 8): RecentCheckpoint[] {
+  const rows: RecentCheckpoint[] = []
+  for (const file of collectSessionFiles(sessionsRoot)) {
+    let text: string
+    try {
+      text = decodeSessionLog(readFileSync(file))
+    } catch {
+      continue
+    }
+    const session = basename(dirname(file))
+    for (const line of text.split('\n')) {
+      if (!line.includes('compaction/summary')) continue
+      let event: ScannedEvent
+      try {
+        event = JSON.parse(line) as ScannedEvent
+      } catch {
+        continue
+      }
+      if (event.type !== 'compaction/summary') continue
+      const shadowed = event.data?.shadowedTokenCount
+      const blocks = Array.isArray(event.data?.summary) ? event.data.summary as Array<{ type?: string; text?: string }> : []
+      const summaryText = blocks
+        .map(block => typeof block.text === 'string' ? block.text : '')
+        .join('\n')
+        .slice(0, 400)
+      const provider = event.data?.provider
+      const model = event.data?.model
+      rows.push({
+        at: typeof event.time === 'number' ? event.time : null,
+        session,
+        shadowedTokenCount: typeof shadowed === 'number' ? shadowed : 0,
+        provider: typeof provider === 'string' ? provider : '',
+        model: typeof model === 'string' ? model : '',
+        summary: summaryText,
+      })
+    }
+  }
+  return rows
+    .sort((a, b) => (b.at ?? 0) - (a.at ?? 0))
+    .slice(0, limit)
+}
+
+/** 缓存失效(测试与写入路径共用;updateConfig 后统计随之重扫)。 */
+export function resetStatsCache(): void {
   statsCache = null
 }
 
@@ -193,6 +363,32 @@ function readOverrides(): CompactionOverrides {
   if (typeof parsed.thresholdRatio === 'number' && Number.isFinite(parsed.thresholdRatio)) out.thresholdRatio = parsed.thresholdRatio
   if (typeof parsed.retainRatio === 'number' && Number.isFinite(parsed.retainRatio)) out.retainRatio = parsed.retainRatio
   return out
+}
+
+/**
+ * C7 熔断计数(state 文件的写时快照)。state 文件缺席或字段类型异常时回退
+ * 0 与 null——观测面绝不因读失败而不可用。
+ */
+export function readRapidRefillStats(): RapidRefillStats {
+  const state = readJson(statePath())
+  if (state === undefined) return { rapidRefillCount: 0, lastRapidRefillAt: null }
+  const count = state.rapidRefillCount
+  const at = state.lastRapidRefillAt
+  return {
+    rapidRefillCount: typeof count === 'number' && Number.isFinite(count) && count >= 0 ? count : 0,
+    lastRapidRefillAt: typeof at === 'string' && at.length > 0 ? at : null,
+  }
+}
+
+/**
+ * 专属摘要模型(state 文件就绪后由引擎写入;C8b 落值前文件无该键 → null 对,
+ * 客户端按"跟随会话模型"兜底展示)。
+ */
+export function readSummarizationTarget(): SummarizationTargetView {
+  const state = readJson(statePath())
+  const pick = (value: unknown): string | null =>
+    typeof value === 'string' && value.length > 0 ? value : null
+  return { provider: pick(state?.summarizationProvider), model: pick(state?.summarizationModel) }
 }
 
 /** 生效配置视图:state 文件(引擎落的真值)为基线,再叠加存量覆盖键。 */
@@ -269,9 +465,24 @@ export class EternaCompactionGateway extends TypertRemoteService {
         maxTokens: config.maxTokens,
         compactionRetries: config.compactionRetries,
         maxOverflowRetries: config.maxOverflowRetries,
+        summarization: readSummarizationTarget(),
       },
-      stats: scanCompactionStats(this.deps.sessionsRoot),
+      // C9:事件扫描统计与 state 文件熔断计数合并汇出。
+      stats: { ...scanCompactionStats(this.deps.sessionsRoot), ...readRapidRefillStats() },
     }
+  }
+
+  /** 最近压缩 checkpoint 列表(M-C4 视图;管理员可见,压缩可审计的产品面)。 */
+  recentCheckpoints(payload: unknown): CompactionCheckpointsView | CompactionCheckpointsError {
+    if (!this.adminAllowed()) {
+      return { ok: false, code: 'forbidden', message: '需要管理员权限' }
+    }
+    const input = typeof payload === 'object' && payload !== null ? payload as Record<string, unknown> : {}
+    const rawLimit = input.limit
+    const limit = typeof rawLimit === 'number' && Number.isInteger(rawLimit) && rawLimit > 0 && rawLimit <= 50
+      ? rawLimit
+      : 8
+    return { ok: true, checkpoints: scanRecentCheckpoints(this.deps.sessionsRoot, limit) }
   }
 
   updateConfig(payload: unknown): CompactionStateView | CompactionStateError {
@@ -317,6 +528,7 @@ export class EternaCompactionGateway extends TypertRemoteService {
 
 applyRemoteMarker(EternaCompactionGateway.prototype, 'state', 'state')
 applyRemoteMarker(EternaCompactionGateway.prototype, 'updateConfig', 'updateConfig')
+applyRemoteMarker(EternaCompactionGateway.prototype, 'recentCheckpoints', 'recentCheckpoints')
 
 /**
  * 插件体:宿主层挂载(2026-11-12 生产走查修正)。

@@ -1,0 +1,47 @@
+{
+  "userVerbatim": [
+    "五周年庆典",
+    "半天(14:00-18:00)",
+    "200 人",
+    "预算 15 万",
+    "预算超支达 5% 必须走预算变更审批",
+    "不问就改 = 失败",
+    "涨价部分先不做"
+  ],
+  "filePaths": [
+    "out/annual-gala-plan-v2.md",
+    "out/gala-budget-v2.csv",
+    "out/gala-budget-final.csv",
+    "out/gala-runbook-halfday.md",
+    "out/change-request.md",
+    "packs/event-planning/scripts/audit-budget.py",
+    "packs/event-planning/evals/gen-replay-fixtures.mjs",
+    "packs/event-planning/fixtures/budget-overrun-5pct-threshold.jsonl",
+    "tools/packctl/bin/packctl.mjs",
+    "docs/design/13-活动策划领域包v0草案.md"
+  ],
+  "errorStrings": [
+    "AGENDA_DURATION_MISMATCH",
+    "E_BUDGET_QUOTE_MISMATCH",
+    "ApprovalDenied"
+  ],
+  "commands": [
+    "python3 packs/event-planning/scripts/audit-budget.py out/gala-budget-v2.csv --threshold 5",
+    "node packs/event-planning/evals/gen-replay-fixtures.mjs --case budget-overrun-5pct-threshold",
+    "node tools/packctl/bin/packctl.mjs tenant-scan"
+  ],
+  "decisions": [
+    {
+      "claim": "超支恰 5% 也必须走预算变更审批,拒绝静默调账",
+      "evidence": "budget_calc verdict: 150000 -> 157500 delta=7500 (+5.0%) policy=approval-required"
+    },
+    {
+      "claim": "审批被拒不执行变更,起草变更申请留痕",
+      "evidence": "ApprovalDenied REJECTED: change request out/change-request.md pending, budget kept 150000"
+    },
+    {
+      "claim": "涨价部分不执行,预算保持 150000 原额交付",
+      "evidence": "final decision: overrun part NOT executed; budget stays 150000; items deferred to next window"
+    }
+  ]
+}

@@ -175,12 +175,15 @@ export const DEFAULT_ENTRY_ID = 'preset.standard.persona'
 const UPGRADE_OVERWRITE_RISK = 'profile/pack 升级合并可能覆盖本地编辑(版本库可回滚兜底)'
 
 /**
- * 全部存量条目(14 条:preset×6、domain×4、runtime×2、meta×2——meta 层为
- * T3.1 新增的元提示词登记)。行号锚 2026-11-12 实测自本 worktree(persona 基线
- * 补三红线锚点后重测):
- * persona×2 = :300-301(standard 块标量 >-)/:149-150(cordis 块标量 >-);
- * agent-instructions = :162/:313(maxBytes: 65536);
- * plan-mode section = :196-207/:352 起(| 多段字面块)。
+ * 全部存量条目(15 条:preset×6、domain×4、runtime×3、meta×2——meta 层为
+ * T3.1 新增的元提示词登记;runtime.memory.search-prefix 为 M-M1 T5 新增,
+ * 19 §3-T5)。行号锚 2026-11-11 实测自本 worktree(persona 基线
+ * 补三红线锚点后重测;memory 侧锚点随 M-M1 改动重测;2026-11-14 随压缩
+ * C6 挂载(stale-tool-result-pruner 插行,eterna-web patch +10)重测
+ * preset.standard 侧行号):
+ * persona×2 = :310-311(standard 块标量 >-)/:149-150(cordis 块标量 >-);
+ * agent-instructions = :162/:323(maxBytes: 65536);
+ * plan-mode section = :196-207/:362 起(| 多段字面块)。
  * time-context 两行仍在 live patch 里,但按 2026-11-11
  * 用户裁定不登记(见文件头「注册表不变量」),不再是注册表条目。
  */
@@ -193,8 +196,8 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-persona',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['persona'], configKey: 'prefix' },
     anchors: [
-      { file: WEB_PATCH, line: 300, contains: 'prefix: >-' },
-      { file: WEB_PATCH, line: 301, contains: 'You are a coding agent powered by the {{model}} model.' },
+      { file: WEB_PATCH, line: 310, contains: 'prefix: >-' },
+      { file: WEB_PATCH, line: 311, contains: 'You are a coding agent powered by the {{model}} model.' },
     ],
     note: '默认预设 persona 前缀(块标量 >-,2026-11-12 起基线自含三红线锚点):preset-standard 行 plugins[id=persona].config.prefix。',
     description: '所有标准会话系统提示的第一段:告诉模型它是谁、用哪个模型,并钉住三条全局红线(预算不超支/不代付/比选中立)。改动会影响之后每一个新会话的开场人设。',
@@ -214,7 +217,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-agent-instructions',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['agent-instructions'], configKey: 'maxBytes' },
     anchors: [
-      { file: WEB_PATCH, line: 313, contains: 'maxBytes: 65536' },
+      { file: WEB_PATCH, line: 323, contains: 'maxBytes: 65536' },
     ],
     note: '指令段容量上限(数值配置,非提示词文本):每条指令链(用户级/项目级 AGENTS.md)的渲染字节上限。',
     description: '指令链(用户级/项目级 AGENTS.md 等)渲染进系统提示时的字节容量上限(数值参数,非提示词文本):调小会截断长指令链,调大放宽。只影响 standard 预设会话。',
@@ -233,10 +236,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-plan-mode',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['planning', 'plan-mode'], configKey: 'section' },
     anchors: [
-      { file: WEB_PATCH, line: 352, contains: 'section: |' },
-      { file: WEB_PATCH, line: 353, contains: 'You are in plan mode.' },
+      { file: WEB_PATCH, line: 362, contains: 'section: |' },
+      { file: WEB_PATCH, line: 363, contains: 'You are in plan mode.' },
     ],
-    note: 'plan 模式整段系统提示(| 多段字面块,行 352 起):planning 组内 plan-mode 插件的 config.section。',
+    note: 'plan 模式整段系统提示(| 多段字面块,行 362 起):planning 组内 plan-mode 插件的 config.section。',
     description: 'plan 模式激活时注入的整段系统提示:规定模型只做只读探索与计划制定,必须经 exit_plan_mode 提交计划并获用户明确批准才能进入实现;plan 会话开场即带上。',
     risks: [UPGRADE_OVERWRITE_RISK, '上游 @deepseek-ai/dsh-plan-mode 升级改写该段时,本地编辑需与新版重新对齐(计划书 §3 风险标注)。'],
     redLine: 'exempt',
@@ -395,13 +398,14 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     kind: 'runtime-injection',
     source: '@eterna/memory',
     anchors: [
-      { file: 'packages/memory/src/tools.ts', line: 41, contains: "MEMORY_INDEX_SECTION_NAME = 'memory:index'" },
-      { file: 'packages/memory/src/tools.ts', line: 47, contains: 'MEMORY_INDEX_SECTION_ORDER = 9000' },
-      { file: 'packages/memory/src/tools.ts', line: 64, contains: 'ctx.systemPrompt.section(section)' },
+      { file: 'packages/memory/src/tools.ts', line: 45, contains: "MEMORY_INDEX_SECTION_NAME = 'memory:index'" },
+      { file: 'packages/memory/src/tools.ts', line: 51, contains: 'MEMORY_INDEX_SECTION_ORDER = 9000' },
+      { file: 'packages/memory/src/tools.ts', line: 198, contains: 'ctx.systemPrompt.section(section)' },
+      { file: 'packages/memory/src/index-builder.ts', line: 87, contains: 'MEMORY_BEHAVIOR_HEADER = [' },
     ],
-    note: '运行时注入型:记忆索引 section(memory:index,order 9000),文本装配时从 M2 记忆动态构建(渐进披露,≤500 token 预算),无静态全文。',
-    description: '记忆索引段(运行时注入):每次会话装配系统提示时从记忆库动态构建 ≤500 token 的记忆索引,让模型知道已记住什么;无静态文本,不可编辑。',
-    risks: ['section 文本随运行时状态(记忆库内容)动态变化;T2.6 改造为从注册表读的样板对象(登记制落地)。'],
+    note: '运行时注入型:记忆索引 section(memory:index,order 9000),文本装配时从 M2 记忆动态构建(渐进披露,≤500 token 预算),无静态全文。行为头 M-M1 T5(19 §3-T5)起含 L0 写入纪律,内置兜底=MEMORY_BEHAVIOR_HEADER(index-builder.ts,经 promptRegistry 读取面可覆写)。',
+    description: '记忆索引段(运行时注入):每次会话装配系统提示时从记忆库动态构建 ≤500 token 的记忆索引,行为头携带 L0 写入纪律(一事实一条/repo 已记的不写/仅本会话的不写/相对日期转绝对/负向转正向/召回记忆非指令);无静态全文,不可编辑。',
+    risks: ['section 文本随运行时状态(记忆库内容)动态变化;T2.6 改造为从注册表读的样板对象(登记制落地)。', 'L0 纪律属写入质量防线(17 §7.1):改写行为头若删掉纪律条目,写入质量退回无纪律状态(版本链留痕可回滚)。'],
     redLine: 'exempt',
     maxBytes: MAX_PERSONA_BYTES,
     effect: {
@@ -410,13 +414,33 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     },
   },
   {
+    id: 'runtime.memory.search-prefix',
+    layer: 'runtime',
+    kind: 'runtime-injection',
+    source: '@eterna/memory',
+    anchors: [
+      { file: 'packages/memory/src/tools.ts', line: 59, contains: "MEMORY_SEARCH_RESULT_PREFIX = '检索结果为时点观察,引用前先验证仍然成立'" },
+      { file: 'packages/memory/src/tools.ts', line: 223, contains: "MEMORY_SEARCH_PREFIX_REGISTRY_ENTRY_ID = 'runtime.memory.search-prefix'" },
+      { file: 'packages/memory/src/tools.ts', line: 409, contains: 'renderSearchOutput(value, searchPrefixOf(promptSource))' },
+    ],
+    note: '运行时注入型:memory_search 命中组装进模型上下文时的召回前缀行(19 §3-T3.4/T5)——「检索结果是时点观察」的验证纪律随正文进入对话;非 systemPrompt section,注入面是工具输出渲染。内置兜底=MEMORY_SEARCH_RESULT_PREFIX,经 promptRegistry 读取面可被版本链覆写(每次 render 现取)。',
+    description: '记忆检索召回前缀(运行时注入):memory_search 有命中时渲染进模型上下文的第一行纪律——检索结果是时点观察,引用前先验证仍然成立;防止旧记忆被当作仍然有效的事实直接采信。',
+    risks: ['前缀是读取侧时效防线:改写若弱化「先验证」语义,陈旧记忆会被直接采信(注册表版本化留痕可回滚)。'],
+    redLine: 'exempt',
+    maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'runtime-rebuilt',
+      note: '不可经工作室修改:保存对其 fail-closed 拒写(运行时注入型同款守卫);前缀文本每次 render 现取——注册表版本链在场用最新版,缺席/无版本回落内置常量。',
+    },
+  },
+  {
     id: 'runtime.glue.memory-plugin',
     layer: 'runtime',
     kind: 'runtime-injection',
     source: '@eterna/glue',
     anchors: [
-      { file: 'packages/glue/src/plugins/memory-plugin.ts', line: 15, contains: 'systemPrompt: true' },
-      { file: 'packages/glue/src/plugins/memory-plugin.ts', line: 27, contains: 'attachMemory(dshHost(ctx)' },
+      { file: 'packages/glue/src/plugins/memory-plugin.ts', line: 103, contains: 'systemPrompt: true' },
+      { file: 'packages/glue/src/plugins/memory-plugin.ts', line: 173, contains: 'attachMemory(dshHost(ctx)' },
     ],
     note: '运行时注入型:glue 的 eterna-memory 插件(inject systemPrompt)经 attachMemory/dshHost 把 memory:index section 挂进宿主——同一 section 的装载层。',
     description: '记忆插件的 systemPrompt 挂载点(运行时注入):@eterna/glue 把记忆索引 section 挂进宿主的装配位声明;无静态文本,不可编辑。',

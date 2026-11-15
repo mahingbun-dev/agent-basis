@@ -1,0 +1,50 @@
+{
+  "userVerbatim": [
+    "把压缩阈值调到 0.9",
+    "retainRatio 提到 0.3",
+    "阈值先不动保持 0.8",
+    "热更新白名单检查补上测试",
+    "模型切换报错",
+    "白名单不扩",
+    "三个键不变"
+  ],
+  "filePaths": [
+    "packages/compaction/src/basic/config.ts",
+    "packages/compaction/src/basic/index.ts",
+    "packages/compaction/tests/basic-config.spec.ts",
+    "packages/compaction/tests/basic-hotreload.spec.ts",
+    "packages/compaction/tests/helpers/fakes.ts",
+    ".eterna/compaction.config.json",
+    ".eterna/compaction.state.json",
+    "packages/compaction/evals/facts.ts",
+    "scripts/verify-eterna-web.mjs"
+  ],
+  "errorStrings": [
+    "TargetPressureConfigError",
+    "MODEL_SWITCH_COMPACTION_FAILED",
+    "ManualCompactionError"
+  ],
+  "commands": [
+    "pnpm --filter @eterna/compaction run verify",
+    "pnpm vitest run tests/basic-hotreload.spec.ts",
+    "node scripts/verify-eterna-web.mjs"
+  ],
+  "decisions": [
+    {
+      "claim": "thresholdRatio 保持 0.8 不动,0.9 缓议",
+      "evidence": "decision: thresholdRatio stays 0.8; 0.9 deferred — later compaction shifts more load onto overflow recovery"
+    },
+    {
+      "claim": "retainRatio 保持 0.16,0.3 在小窗口下不可行",
+      "evidence": "retainRatio 0.3 rejected: TargetPressureConfigError retainTokens >= thresholdTokens in the 120-token window test"
+    },
+    {
+      "claim": "overrides 白名单不扩,三键不变,新键重启生效",
+      "evidence": "overrides whitelist unchanged: auto/thresholdRatio/retainRatio only; new keys require restart"
+    },
+    {
+      "claim": "模型切换压缩失败错误码记录在案",
+      "evidence": "MODEL_SWITCH_COMPACTION_FAILED thrown by the agent/request prepend listener on switch compaction failure"
+    }
+  ]
+}

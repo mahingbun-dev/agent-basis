@@ -114,6 +114,7 @@ const PRESET_KEPT_ROWS = [
   'tool-bash', 'tool-fs', 'tool-fs-search', 'tool-jobs', 'tool-schedule',
   'skill-filesystem', 'tool-skill', 'command-goal', 'tool-goal', 'plan-mode',
   'compaction-basic', 'command-compact', 'tool-result-pruner',
+  'stale-tool-result-pruner',
   'tool-subagent-control', 'tool-subagent', 'tool-subagent-fork',
   'tool-todo', 'tool-web', 'agent-instructions', 'tool-ask-user',
 ]
@@ -187,6 +188,15 @@ symlinkSync(attachmentsPkg, join(profileDir, 'node_modules', '@eterna', 'attachm
 // 整组 standard 预设行静默不激活（fiberPhase=null）——与 entrypoint 记载的
 // @deepseek-ai 版本错配同一种「静默 disable」表现。
 symlinkSync(join(repoRoot, 'packages', 'compaction'), join(profileDir, 'node_modules', '@eterna', 'compaction'), 'dir')
+// 记忆插件载具（M-M3 T12 前端四件，2026-11-14）：eterna-memory-client /
+// eterna-memory-admin 两行 name 解析 '@eterna/memory(+/admin-plugin)' 同样只经
+// profile node_modules（宿主 Loader + SRC 端点两面）；客户端双面包需 lib/client.js。
+const memoryPkg = join(repoRoot, 'packages', 'memory')
+if (!existsSync(join(memoryPkg, 'lib', 'client.js'))) {
+  console.error('verify-eterna-web: packages/memory/lib/client.js 缺失——先跑 pnpm --filter @eterna/memory run verify（build:client）')
+  process.exit(1)
+}
+symlinkSync(memoryPkg, join(profileDir, 'node_modules', '@eterna', 'memory'), 'dir')
 writeFileSync(join(profileDir, 'package.json'), `${JSON.stringify({
   name: `dsh-profile-${profileName}`,
   private: true,

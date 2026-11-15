@@ -32,6 +32,12 @@ export interface CompactionPolicyConfig {
   compactionRetries?: number
   /** Maximum retries after canonical context overflow; `0` disables recovery. Defaults to `1`. */
   maxOverflowRetries?: number
+  /**
+   * C11(22 号 §5-C11,2026-11-14):checkpoint 附件开关——压缩提交前重读被遮蔽
+   * 区间内文件类工具动过的工作区文件,把现场内容并入 checkpoint。默认 `false`;
+   * 工作区根取会话创建 cwd(`Session.header.cwd`),无 cwd 时附件面静默关闭。
+   */
+  attachments?: boolean
 }
 
 /** Exact provider/model override merged over the default compaction policy. */
@@ -64,6 +70,8 @@ interface ResolvedPolicyFields {
   readonly maxTokens: number
   readonly compactionRetries: number
   readonly maxOverflowRetries: number
+  /** C11 checkpoint attachment switch; `false` keeps the pre-C11 behavior. */
+  readonly attachments: boolean
 }
 
 /** Validated immutable config whose target-specific defaults remain unresolved. */

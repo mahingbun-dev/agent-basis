@@ -39,7 +39,7 @@ function entry(id: string): PromptRegistryEntry {
 }
 
 describe('T1.3 ①对账——patch 值型(preset 层,profiles/eterna-web/cordis.patch.yml)', () => {
-  it('preset.standard.persona:块标量锚点 :300-301 在场,反引值含三红线锚点(2026-11-12 基线补红线)', () => {
+  it('preset.standard.persona:块标量锚点 :310-311 在场,反引值含三红线锚点(2026-11-12 基线补红线)', () => {
     const e = entry('preset.standard.persona')
     const read = readEntryValue(e, readRepoFile)
     expect(read.anchorsPresent).toBe(true)
@@ -63,7 +63,7 @@ describe('T1.3 ①对账——patch 值型(preset 层,profiles/eterna-web/cordis
     expect(cordis.text).toBe(standard.text)
   })
 
-  it('agent-instructions×2:锚点 :162/:313 在场,反引值 65536 与 MAX_PERSONA_BYTES 交叉钉住', () => {
+  it('agent-instructions×2:锚点 :162/:323 在场,反引值 65536 与 MAX_PERSONA_BYTES 交叉钉住', () => {
     for (const id of ['preset.standard.agent-instructions', 'preset.cordis.agent-instructions']) {
       const read = readEntryValue(entry(id), readRepoFile)
       expect(read.anchorsPresent, id).toBe(true)
@@ -73,7 +73,7 @@ describe('T1.3 ①对账——patch 值型(preset 层,profiles/eterna-web/cordis
       .toBe(String(MAX_PERSONA_BYTES))
   })
 
-  it('plan-mode.section×2:| 多段字面块锚点(:196-197 与 :352-353)在场,整段反引读回(clip 尾换行)', () => {
+  it('plan-mode.section×2:| 多段字面块锚点(:196-197 与 :362-363)在场,整段反引读回(clip 尾换行)', () => {
     for (const id of ['preset.standard.plan-mode.section', 'preset.cordis.plan-mode.section']) {
       const e = entry(id)
       const read = readEntryValue(e, readRepoFile)
@@ -96,7 +96,7 @@ describe('T1.3 ①对账——patch 值型(preset 层,profiles/eterna-web/cordis
 
   it('结构定位:preset 行内经 pluginPath 嵌套(planning 组 → plan-mode)命中唯一键行', () => {
     const lines = readRepoFile(WEB_PATCH).split('\n')
-    for (const [rowId, expectedLine] of [['preset-standard', 352], ['preset-cordis', 196]] as const) {
+    for (const [rowId, expectedLine] of [['preset-standard', 362], ['preset-cordis', 196]] as const) {
       const located = locateYamlConfigKey(
         { file: WEB_PATCH, rowId, pluginPath: ['planning', 'plan-mode'], configKey: 'section' },
         lines,
@@ -136,7 +136,7 @@ describe('T1.3 ①对账——patch 值型(领域层,packs/{event-planning,indus
 })
 
 describe('T1.3 ①对账——运行时注入型(memory/glue 的 section 元数据)', () => {
-  it('memory:代码锚点在场(section 名/排序/挂载点:tools.ts:41,47,64)', () => {
+  it('memory:代码锚点在场(section 名/排序/挂载点:tools.ts:45,51,198 + index-builder.ts:87 行为头)', () => {
     const e = entry('runtime.memory.index-section')
     expect(e.kind).toBe('runtime-injection')
     const check = checkEntryAnchors(e, readRepoFile)
@@ -146,7 +146,7 @@ describe('T1.3 ①对账——运行时注入型(memory/glue 的 section 元数�
     expect(read.note).toContain('memory:index')
   })
 
-  it('glue:代码锚点在场(inject systemPrompt + attachMemory 装载点:memory-plugin.ts:15,27)', () => {
+  it('glue:代码锚点在场(inject systemPrompt + attachMemory 装载点:memory-plugin.ts:103,171)', () => {
     const e = entry('runtime.glue.memory-plugin')
     const check = checkEntryAnchors(e, readRepoFile)
     expect(check.ok, check.problems.join(';')).toBe(true)
@@ -154,7 +154,7 @@ describe('T1.3 ①对账——运行时注入型(memory/glue 的 section 元数�
   })
 
   it('写守卫:运行时注入型拒写并明示无 patch 落点(自管改造归 T2.6)', () => {
-    for (const id of ['runtime.memory.index-section', 'runtime.glue.memory-plugin']) {
+    for (const id of ['runtime.memory.index-section', 'runtime.memory.search-prefix', 'runtime.glue.memory-plugin']) {
       expect(() => { ensureEntryWritable(entry(id)) }, id).toThrow('运行时注入型')
     }
   })
@@ -163,6 +163,7 @@ describe('T1.3 ①对账——运行时注入型(memory/glue 的 section 元数�
     // memory 侧:条目 id 常量 + promptRegistry 服务名常量(登记制读取面的取值坐标)。
     const toolsSource = readRepoFile('packages/memory/src/tools.ts')
     expect(toolsSource, 'memory 源码缺条目 id 常量(注册表条目 id 漂移?)').toContain("'runtime.memory.index-section'")
+    expect(toolsSource, 'memory 源码缺召回前缀条目 id 常量(M-M1 T5 登记?)').toContain("'runtime.memory.search-prefix'")
     expect(toolsSource, 'memory 源码缺服务名常量(promptRegistry 漂移?)').toContain("'promptRegistry'")
     // glue 侧:装载点经同一服务名接读取面(livePromptSource)。
     const pluginSource = readRepoFile('packages/glue/src/plugins/memory-plugin.ts')
@@ -180,19 +181,19 @@ describe('T1.3 ②条目模型完整性(每条 {id,层,来源,定位,当前值,�
     expect(result.ok).toBe(true)
   })
 
-  it('description:14 条全部非空中文说明(2026-11-12 用户要求;随线下面进 UI 条目详情)', () => {
+  it('description:15 条全部非空中文说明(2026-11-12 用户要求;随线下面进 UI 条目详情)', () => {
     for (const e of PROMPT_REGISTRY_ENTRIES) {
       expect(e.description.trim().length, e.id).toBeGreaterThan(0)
       expect(/[\u4e00-\u9fff]/u.test(e.description), `${e.id}: description 应为中文说明`).toBe(true)
     }
   })
 
-  it('存量规模与分布:preset×6 / 领域×4 / 运行时×2 / 元提示词×2(T3.1);patch 值型×12 / 运行时注入型×2(2026-11-11 裁定后 14 条)', () => {
-    expect(PROMPT_REGISTRY_ENTRIES).toHaveLength(14)
+  it('存量规模与分布:preset×6 / 领域×4 / 运行时×3 / 元提示词×2(T3.1+M-M1 T5);patch 值型×12 / 运行时注入型×3(2026-11-11 裁定后 14 条,M-M1 T5 增召回前缀)', () => {
+    expect(PROMPT_REGISTRY_ENTRIES).toHaveLength(15)
     const byLayer = countBy(PROMPT_REGISTRY_ENTRIES, e => LAYER_LABELS[e.layer])
-    expect(byLayer).toEqual({ 'preset 层': 6, '领域层': 4, '运行时层': 2, '元提示词层': 2 })
+    expect(byLayer).toEqual({ 'preset 层': 6, '领域层': 4, '运行时层': 3, '元提示词层': 2 })
     const byKind = countBy(PROMPT_REGISTRY_ENTRIES, e => ENTRY_KIND_LABELS[e.kind])
-    expect(byKind).toEqual({ 'patch 值型': 12, '运行时注入型': 2 })
+    expect(byKind).toEqual({ 'patch 值型': 12, '运行时注入型': 3 })
   })
 
   it('每型至少 1 条被真文件钉住:全部条目锚点对真文件核对通过(分型不缺判据)', () => {
@@ -309,7 +310,7 @@ describe('T1.3 ④红线豁免语义(persona 类必检,非 persona 豁免)', () 
     'domain.industrial-analysis.persona-md',
   ]
 
-  it('required 集合 = persona 类 6 条;其余 8 条全部 exempt(防 T1.6 把红线错配到全部条目)', () => {
+  it('required 集合 = persona 类 6 条;其余 9 条全部 exempt(防 T1.6 把红线错配到全部条目)', () => {
     const required = PROMPT_REGISTRY_ENTRIES.filter(e => e.redLine === 'required').map(e => e.id).sort()
     expect(required).toEqual([...PERSONA_IDS].sort())
     const exempt = PROMPT_REGISTRY_ENTRIES.filter(e => e.redLine === 'exempt').map(e => e.id)

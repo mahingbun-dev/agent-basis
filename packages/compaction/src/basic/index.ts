@@ -20,6 +20,7 @@ import type { CommandId } from '@deepseek-ai/dsh-commands/brand'
 // 2026-11-12 fork: 指向本包内的精简后端(它携带 `ctx.toolResultPruner` 的 cordis 声明合并),
 // 不再依赖已被本 fork 取代的上游 @deepseek-ai/dsh-compaction-tool-result-pruner。
 import type {} from '../pruner/index.ts'
+import { DEFAULT_ATTACHMENT_BUDGET } from './attachments.ts'
 import {
   resolveCompactSpec,
   resolveConfig,
@@ -90,6 +91,8 @@ const summarizationModelSchema = z.string()
 const maxTokensSchema = z.number().step(1).min(1)
 const compactionRetriesSchema = z.number().step(1).min(0)
 const maxOverflowRetriesSchema = z.number().step(1).min(0)
+// 2026-11-14 C11(22 号 §5-C11):checkpoint 附件开关(默认 false)。
+const attachmentsSchema = z.boolean()
 
 const modelPolicy: z<ModelCompactPolicyConfig> = z.object({
   provider: z.string().required(),
@@ -103,7 +106,19 @@ const modelPolicy: z<ModelCompactPolicyConfig> = z.object({
   maxTokens: maxTokensSchema,
   compactionRetries: compactionRetriesSchema,
   maxOverflowRetries: maxOverflowRetriesSchema,
+  attachments: attachmentsSchema,
 })
+
+/**
+ * 2026-11-13 C7(22 号 §4):rapid-refill 熔断的 per-agent 状态,循
+ * `overflowRetries` 的 WeakMap<Agent> 先例。
+ */
+interface RefillState {
+  /** 上次压缩成功以来经过的 pre-step 数(每个 auto pre-step 递增,压缩成功归零)。 */
+  stepsSinceCompaction: number
+  /** 步距窗口内的连续压力触发次数(步距 ≥ REFILL_STEP_WINDOW 时衰减归零)。 */
+  rapidStreak: number
+}
 
 /**
  * Dependency-light compaction backend using `ctx.tokenMeter` for pressure,
@@ -126,6 +141,7 @@ export class BasicCompactionEngine extends CompactionEngine {
     maxTokens: maxTokensSchema,
     compactionRetries: compactionRetriesSchema,
     maxOverflowRetries: maxOverflowRetriesSchema,
+    attachments: attachmentsSchema,
     modelPolicies: z.array(modelPolicy),
     auto: z.boolean(),
   })
@@ -145,6 +161,18 @@ export class BasicCompactionEngine extends CompactionEngine {
   private readonly warnedPressureConfigTargets = new Set<string>()
   private readonly overflowRetries = new WeakMap<Agent, number>()
   private readonly overflowAgents = new WeakMap<Session, Agent>()
+
+  // 2026-11-13 C7(22 号 §4):rapid-refill 熔断——压缩后 REFILL_STEP_WINDOW 步内
+  // 连续 REFILL_STREAK_LIMIT 次压力触发即跳过本次自动压缩(放行请求),打破
+  // "压缩-填满-压缩"烧钱循环。参数为类常量不暴露配置;计数累计进状态文件
+  // (rapidRefillCount/lastRapidRefillAt,宿主 admin 端点经 _persistStateFile 读)。
+  private static readonly REFILL_STEP_WINDOW = 3
+  private static readonly REFILL_STREAK_LIMIT = 3
+  private readonly refillStates = new WeakMap<Agent, RefillState>()
+  /** 熔断触发累计次数(进程内累计,随 _persistStateFile 快照落盘)。 */
+  private rapidRefillCount = 0
+  /** 最近一次熔断的 ISO 时间戳(从未触发为 null)。 */
+  private lastRapidRefillAt: string | null = null
 
   constructor(ctx: Context, config: BasicCompactionConfig = {}) {
     super(ctx)
@@ -211,12 +239,78 @@ export class BasicCompactionEngine extends CompactionEngine {
     try {
       const dir = join(process.env.DSH_HOME ?? process.cwd(), '.eterna')
       mkdirSync(dir, { recursive: true })
-      const { thresholdRatio, retainRatio, headroomTokens, maxTokens, compactionRetries, maxOverflowRetries, auto } = this.config
+      const {
+        thresholdRatio, retainRatio, headroomTokens, maxTokens,
+        compactionRetries, maxOverflowRetries, auto, summarizationProvider, summarizationModel,
+      } = this.config
       writeFileSync(
         BasicCompactionEngine.statePath(),
-        JSON.stringify({ thresholdRatio, retainRatio, headroomTokens, maxTokens, compactionRetries, maxOverflowRetries, auto }),
+        JSON.stringify({
+          thresholdRatio,
+          retainRatio,
+          headroomTokens,
+          maxTokens,
+          compactionRetries,
+          maxOverflowRetries,
+          auto,
+          // 2026-11-13 C7: rapid-refill 熔断累计观测(写时快照,进程重启从 0 起算——
+          // 状态文件沿既有"只写快照"先例,无读回装载)。
+          rapidRefillCount: this.rapidRefillCount,
+          lastRapidRefillAt: this.lastRapidRefillAt,
+          // 2026-11-15 C9 死读修复:admin readSummarizationTarget 从本文件读这两键,
+          // 引擎此前不写导致客户端「摘要模型」行永远回落"跟随会话模型"。空串=
+          // 未落值(跟随会话模型),admin 侧 pick() 把空串归一为 null。
+          summarizationProvider,
+          summarizationModel,
+        }),
       )
     } catch { /* 状态文件失败不影响压缩本身 */ }
+  }
+
+  /**
+   * 2026-11-13 C7: 每个 auto pre-step 递增步距计数(熔断窗口的时间轴);压缩成功时
+   * 由 compactPressure 归零。auto 关闭/abort 的步不计数——熔断只约束自动压缩。
+   */
+  private _advanceRefillStep(agent: Agent): void {
+    const state = this.refillStates.get(agent)
+    if (state === undefined) {
+      this.refillStates.set(agent, { stepsSinceCompaction: 1, rapidStreak: 0 })
+      return
+    }
+    state.stepsSinceCompaction += 1
+  }
+
+  /**
+   * 2026-11-13 C7: pre-step 压力真实触发点(过阈值处)的熔断判定。步距
+   * ≥ REFILL_STEP_WINDOW(上次压缩已过去 ≥3 步)连击衰减归零,否则连击 +1;
+   * 连击达 REFILL_STREAK_LIMIT 即熔断——记 warn、累计 rapidRefillCount/
+   * lastRapidRefillAt 并落状态文件,返回 true 让调用方跳过本次自动压缩
+   * (返回 null = 无压缩发生,请求放行,绝不阻断步进)。
+   */
+  private _enforceRapidRefillBreaker(agent: Agent): boolean {
+    const state = this.refillStates.get(agent) ?? { stepsSinceCompaction: 0, rapidStreak: 0 }
+    state.rapidStreak = state.stepsSinceCompaction >= BasicCompactionEngine.REFILL_STEP_WINDOW
+      ? 0
+      : state.rapidStreak + 1
+    this.refillStates.set(agent, state)
+    if (state.rapidStreak < BasicCompactionEngine.REFILL_STREAK_LIMIT) return false
+    this.rapidRefillCount += 1
+    this.lastRapidRefillAt = new Date().toISOString()
+    this.ctx.logger.warn(
+      'rapid-refill breaker: skipping automatic pressure compaction after '
+      + `${BasicCompactionEngine.REFILL_STREAK_LIMIT} consecutive pressure triggers within `
+      + `${BasicCompactionEngine.REFILL_STEP_WINDOW} step(s) of the last compaction `
+      + `(trip #${this.rapidRefillCount}); the request proceeds and manual compaction `
+      + 'stays available',
+    )
+    this._persistStateFile()
+    return true
+  }
+
+  /** C7: 压缩成功即重置步距(仅步距;连击保留——连续快速回满要跨压缩累计)。 */
+  private _resetRefillSteps(agent: Agent): void {
+    const state = this.refillStates.get(agent)
+    if (state !== undefined) state.stepsSinceCompaction = 0
   }
 
   /**
@@ -254,6 +348,9 @@ export class BasicCompactionEngine extends CompactionEngine {
     ): Promise<PreStepDecision> => {
       this._applyOverridesFromFile()
       if (!signal.aborted && this.config.auto) {
+        // 2026-11-13 C7: 步距时间轴先行递增(每个 auto pre-step 一次);触发判定与
+        // 跳过在 compactPressure 的压力过阈值点执行(见其 refillBreaker 参数)。
+        this._advanceRefillStep(agent)
         try {
           const result = await this.compactIfNeeded(agent, 'pressure', signal)
           if (result !== null) logResult(result, 'step pressure')
@@ -394,7 +491,10 @@ export class BasicCompactionEngine extends CompactionEngine {
     if (header === undefined || routedTarget(agent.session) === undefined) return null
     switch (trigger) {
       case 'pressure':
-        return this.compactPressure(agent, header, signal, false)
+        // 2026-11-13 C7: 'pressure' 触发仅来自 pre-step 监听器——rapid-refill
+        // 熔断沿此路径生效;模型切换(compactPressure 直调)与溢出恢复
+        // (context-overflow)不受限。
+        return this.compactPressure(agent, header, signal, false, true)
       case 'context-overflow': {
         this.ctx.get('toolResultPruner')?.pruneSession(agent.session)
         const measurement = this.ctx.tokenMeter.measure(agent.session)
@@ -408,12 +508,18 @@ export class BasicCompactionEngine extends CompactionEngine {
     }
   }
 
-  /** Price the proposed header; switch checks require history below its threshold. */
+  /**
+   * Price the proposed header; switch checks require history below its threshold.
+   * With `refillBreaker` (pre-step pressure only), the rapid-refill breaker may
+   * skip the pass once REFILL_STREAK_LIMIT consecutive triggers land within
+   * REFILL_STEP_WINDOW steps of the last compaction (2026-11-13 C7).
+   */
   private async compactPressure(
     agent: Agent,
     header: EpochHeader,
     signal: AbortSignal,
     requireBelowThreshold: boolean,
+    refillBreaker = false,
   ): Promise<CompactionResult | null> {
     const target = header.config
     const policy = resolveTargetPolicy(this.config, target)
@@ -437,6 +543,11 @@ export class BasicCompactionEngine extends CompactionEngine {
     )
     if (measurement.totalTokens < spec.thresholdTokens) return null
 
+    // 2026-11-13 C7: pre-step 压力真实触发点(此处已知压力过阈值;静默步不进连击)。
+    // 熔断即跳过本次自动压缩——pruner/选区/摘要全不执行,返回 null 放行请求;
+    // 模型切换路径(refillBreaker=false)与手动 compactNow(不经本方法)不受限。
+    if (refillBreaker && this._enforceRapidRefillBreaker(agent)) return null
+
     // Once pressure qualifies, land the model-free pass before choosing a
     // summary range, then remeasure through the singleton replay fold.
     if (prune !== undefined) {
@@ -457,7 +568,11 @@ export class BasicCompactionEngine extends CompactionEngine {
       }
       result = await this.compactRegion(range.start, range.end, agent, signal)
       measurement = meter.measure(agent.session, header)
-      if (measurement.totalTokens < spec.thresholdTokens) return result
+      if (measurement.totalTokens < spec.thresholdTokens) {
+        // 2026-11-13 C7: 压缩成功即重置步距(连击保留,见 _enforceRapidRefillBreaker)。
+        if (refillBreaker) this._resetRefillSteps(agent)
+        return result
+      }
     }
 
     throw new Error(
@@ -482,7 +597,7 @@ export class BasicCompactionEngine extends CompactionEngine {
     signal?: AbortSignal,
   ): Promise<CompactionResult> {
     return compactSurfaceRegion(
-      this.regionDependencies(),
+      this.regionDependencies(agent),
       agent.session,
       start,
       end,
@@ -518,7 +633,7 @@ export class BasicCompactionEngine extends CompactionEngine {
           )
           if (range === null) return null
           return await compactSurfaceRegion(
-            this.regionDependencies(),
+            this.regionDependencies(agent),
             agent.session,
             range.start,
             range.end,
@@ -554,8 +669,17 @@ export class BasicCompactionEngine extends CompactionEngine {
     }
   }
 
-  /** Bind the effective token meter and dynamically dispatched summarizer hook. */
-  private regionDependencies(): Parameters<typeof compactSurfaceRegion>[0] {
+  /**
+   * Bind the effective token meter, dynamically dispatched summarizer hook, and
+   * the C11 checkpoint-attachment slot: enabled when the effective policy (with
+   * exact-target override) turns `attachments` on AND the session carries a
+   * creation `cwd` — without a workspace root the attachment boundary cannot be
+   * judged, so the whole face silently stays off (fail-conservative).
+   */
+  private regionDependencies(agent: Agent): Parameters<typeof compactSurfaceRegion>[0] {
+    const target = conversationTarget(agent)
+    const policy = target === undefined ? this.config : resolveTargetPolicy(this.config, target)
+    const workspaceRoot = agent.session.header.cwd
     return {
       meter: this.ctx.tokenMeter,
       summarize: (input, owner, abort) => this.summarize(input, owner, abort),
@@ -565,6 +689,10 @@ export class BasicCompactionEngine extends CompactionEngine {
         error,
         ...signal === undefined ? {} : { signal },
       }, () => false),
+      // 2026-11-14 C11(22 号 §5-C11):附件预算用 22 号默认 5/5000/50000,不另开配置键。
+      ...(policy.attachments && workspaceRoot !== undefined
+        ? { attachments: { workspaceRoot, budget: DEFAULT_ATTACHMENT_BUDGET } }
+        : {}),
     }
   }
 }
