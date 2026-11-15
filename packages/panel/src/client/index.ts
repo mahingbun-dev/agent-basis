@@ -117,7 +117,7 @@ export function apply(ctx: PanelClientContext): () => void {
   // RPC 报错走 outcome.ok=false 同一降级面。
   const loadCheckpoints = async (): Promise<CheckpointsOutcome> => {
     try {
-      const result = await ctx.connection.rpc.call('/api', COMPACTION_CHECKPOINTS_ENDPOINT, { args: { limit: 8 } })
+      const result = await ctx.connection.rpc.call('/api', COMPACTION_CHECKPOINTS_ENDPOINT, { args: { payload: { limit: 8 } } })
       if (result.ok && typeof result.value === 'object' && result.value !== null) {
         const value = result.value as { ok?: boolean; checkpoints?: unknown; message?: string; code?: string }
         if (value.ok === true && Array.isArray(value.checkpoints)) {
