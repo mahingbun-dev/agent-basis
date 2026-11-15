@@ -252,7 +252,7 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
     const r = mainRef.current.getBoundingClientRect()
     if (place === 'below' && r.bottom > window.innerHeight - 8) setPlace('above')
     else if (place === 'above' && r.top < 8) setPlace('below')
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅挂载时定一次位
+    // 空依赖:仅挂载时定一次位(理由见上,不可每渲染重跑)。
   }, [])
   const mainStyle: React.CSSProperties = (() => {
     const left = Math.max(8, Math.min(anchor.x - 40, window.innerWidth - 272))

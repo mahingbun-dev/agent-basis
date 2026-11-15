@@ -7,12 +7,24 @@
 packctl init <industry> [--root <dir>]   # 生成 packs/<industry>/ 骨架(06 号模板)
 packctl lint [<path>] [--json]           # 结构 + Cordis 纪律 + 条目锚点 + golden 完整性
 packctl check [<path>]                   # 静态冒烟:bundle 声明引用的文件都存在
-packctl tenant-scan                      # packages/* 隔离铁律静态检查(路由面/登记册/持久化)
+packctl tenant-scan                      # packages/* 隔离铁律静态检查(路由面/登记册/持久化/记忆分库)
 packctl prompt-scan                      # 提示词登记铁律静态检查(patch 键/section 使用/packs persona)
 ```
 
 `<path>` 缺省为 cwd:是 pack 根(package.json 带 `dsh.bundle`)则检查它;含 `packs/`
 则聚合检查全部领域包;否则向上查找。退出码:0 通过 / 1 有 error / 2 用法错误。
+
+## tenant-scan 检查项(T3.4/T3.5 + M-M1 T5)
+
+packages/* 隔离铁律(PLUGIN-AUTHORING §1.1)的静态检查器,违规 error:
+
+| 码 | 含义 |
+|---|---|
+| `tenant/route-escapes-gate` | T2 路由面独占:非 access 包注册 Web/fetch/rpc 路由(brand `/manifest.webmanifest` 唯一登记豁免,精确三项匹配) |
+| `tenant/workspace-registry-write` | T3 登记册独占写:直读写 `storages/workspace.json` |
+| `tenant/hardcoded-persist-path` | T1 持久化:硬编码容器绝对路径(`/data|/root|/home|/tmp`) |
+| `tenant/memory-persist-escape` | T4(M-M1 T5):dbPath/portrait 派生行混入绝对路径字面量、`..` 逃逸段或 `os.tmpdir()` 基——必须落在 workspace 派生目录(cwd 基 join 相对子路径) |
+| `tenant/memory-persist-anchor-missing` | T4 派生锚 fail-closed:glue 插件与 `memory/scripts/gen-portrait.mjs` 的 cwd 基默认派生被挪走即红,防静默改道;确属改道须同步 `src/tenant.ts` `MEMORY_PERSIST_ANCHORS` 与 PLUGIN-AUTHORING §1.1 再对账 |
 
 运行:`pnpm --filter @eterna/packctl run verify` 内的 vitest 直接调用
 `runPack()`;bin 形态 `bin/packctl.mjs` 以 node ≥ 22.18 原生 TS type-stripping

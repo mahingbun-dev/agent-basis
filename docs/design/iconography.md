@@ -38,7 +38,8 @@
 `gauge` 基座面板 · `chart` 用量统计 · `prompt` 提示词工坊 · `trace` 循环轨迹 ·
 `folder` 目录 · `chevron-right/down` 展开收起 · `eye/eye-off` 密码可见性 ·
 `search` 搜索 · `plus` 新建 · `check` 成功 · `close` 关闭 · `copy` 复制 ·
-`trash` 删除 · `arrow-right` 前进/打开。
+`trash` 删除 · `arrow-right` 前进/打开 · `memory` 记忆(三层叠片,M-M3 T12) ·
+`bookmark` 书签/画像标记(M-M3 T12) · `domain` 域(虚线分组,M-M3 T12)。
 
 ## 3. 插件卡片图标
 

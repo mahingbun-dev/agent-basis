@@ -10,7 +10,8 @@
         "@deepseek-ai/dsh-api-remotes",
         "@deepseek-ai/dsh-api-gateway",
         "@deepseek-ai/dsh-client-locale",
-        "@deepseek-ai/dsh-client-ui-slots"
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-conversation"
       ],
       "platform": "web"
     }
@@ -20,6 +21,7 @@
     "./basic-plugin": "./src/basic/index.ts",
     "./command-plugin": "./src/command-plugin.ts",
     "./pruner-plugin": "./src/pruner/index.ts",
+    "./stale-plugin": "./src/stale/index.ts",
     "./admin-plugin": "./src/admin-plugin.ts",
     "./client": "./lib/client.js",
     "./locale/basic/*.json": "./locale/basic/*.json",
@@ -30,7 +32,8 @@
   "scripts": {
     "build:client": "node scripts/build-client.mjs",
     "typecheck": "../../node_modules/.bin/tsc --noEmit",
-    "verify": "node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ../../node_modules/.bin/tsc --noEmit"
+    "test": "vitest run",
+    "verify": "node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ../../node_modules/.bin/tsc --noEmit && ../../node_modules/.bin/vitest run"
   },
   "dependencies": {
     "@deepseek-ai/cordis": "catalog:",
@@ -50,6 +53,7 @@
     "@types/react": "catalog:",
     "esbuild": "catalog:",
     "react": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

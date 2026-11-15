@@ -10,13 +10,15 @@
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { RuleEngine } from '@eterna/governance'
+import { buildMemoryMetrics, computeIndexZoneTokens, parsePortraitDocument, readMemoryAuditEvents } from '@eterna/memory'
 import type { Context } from '@deepseek-ai/cordis'
 import type {
-  EternaPanelSnapshot, GovernanceSnapshot, KnowledgeSnapshot, MemoryEntityView,
-  MemoryRecentKey, MemorySnapshot, ObservabilitySnapshot, ToolCard,
+  EternaPanelSnapshot, GovernanceSnapshot, KnowledgeSnapshot, MemoryDomainBrowseView,
+  MemoryEntityView, MemoryMetricsView, MemoryPendingView, MemoryPortraitSnapshot, MemoryRecentKey,
+  MemorySnapshot, ObservabilitySnapshot, ToolCard,
 } from './types.ts'
 import { readRecentSessionUsage } from './session-logs.ts'
 
@@ -95,20 +97,48 @@ function queryCount(db: DatabaseSync, sql: string): number | undefined {
   }
 }
 
+/** 空库/打不开时的完整回落视图(字段齐备;portrait/domains 同步缺席)。 */
+/** 无数据指标视图(库缺席/旧 schema:各计数 0、率与时长 null、分区缺席)。 */
+function emptyMetrics(): MemoryMetricsView {
+  return {
+    reviews: { approved: 0, rejected: 0, acceptanceRate: null },
+    reviewLatencyMs: { count: 0, medianMs: null, maxMs: null },
+    corrections: { count: 0, portraitEntries: 0, correctionRate: null },
+    domainResolves: { total: 0, bound: 0, workspace: 0, merged: 0, promoted: 0, candidate: 0, none: 0 },
+    indexZones: null,
+  }
+}
+
+function emptyMemory(available: boolean, dbPath: string): MemorySnapshot {
+  return {
+    available, dbPath, entityCount: 0, totalRows: 0, recentKeys: [], entities: [],
+    pendingCount: 0, pending: [],
+    portrait: { available: false, version: null, generatedAt: null, sections: [] },
+    domains: [],
+    metrics: emptyMetrics(),
+  }
+}
+
 function readMemory(dbPath: string): MemorySnapshot {
   const available = existsSync(dbPath)
-  if (!available) return { available, dbPath, entityCount: 0, totalRows: 0, recentKeys: [], entities: [] }
+  if (!available) return emptyMemory(available, dbPath)
   let db: DatabaseSync
   try {
     db = new DatabaseSync(dbPath, { readOnly: true })
   } catch {
-    return { available, dbPath, entityCount: 0, totalRows: 0, recentKeys: [], entities: [] }
+    return emptyMemory(available, dbPath)
   }
   try {
-    const entityCount = queryCount(db, 'SELECT COUNT(*) AS c FROM memory_entity WHERE invalid_at IS NULL') ?? 0
+    // 有效实体数:review_state 列在场时只计已批准(与 entities 清单同口径——
+    // 待审不算已生效);旧库无列回落 invalid_at IS NULL。
+    const entityCount = queryCount(
+      db,
+      "SELECT COUNT(*) AS c FROM memory_entity WHERE invalid_at IS NULL AND review_state = 'approved'",
+    ) ?? queryCount(db, 'SELECT COUNT(*) AS c FROM memory_entity WHERE invalid_at IS NULL') ?? 0
     const totalRows = queryCount(db, 'SELECT COUNT(*) AS c FROM memory_entity') ?? 0
     const recentKeys: MemoryRecentKey[] = []
     const entities: MemoryEntityView[] = []
+    const pending: MemoryPendingView[] = []
     try {
       const rows = db.prepare(
         'SELECT subject, key, updated_at FROM memory_entity ORDER BY updated_at DESC LIMIT 5',
@@ -122,8 +152,12 @@ function readMemory(dbPath: string): MemorySnapshot {
     } catch {
       // 表缺失(旧库结构):recentKeys 留空
     }
-    // 「记忆」区块全量(有效实体;content 全文渲染用)
-    const ENTITY_SQL = 'SELECT subject, key, content, summary, updated_at' +
+    // 「记忆」区块全量(有效实体;content 全文渲染用)。review_state 列在场时
+    // 只取已批准行——待审(pending)不算已生效记忆,由审批队列单独呈现
+    // (19 号 §4-T9;与检索纪律一致:pending 不入索引);旧库无此列回落全量。
+    const ENTITY_SQL = 'SELECT subject, key, content, summary, updated_at FROM memory_entity' +
+      " WHERE invalid_at IS NULL AND review_state = 'approved' ORDER BY updated_at DESC"
+    const ENTITY_SQL_LEGACY = 'SELECT subject, key, content, summary, updated_at' +
       ' FROM memory_entity WHERE invalid_at IS NULL ORDER BY updated_at DESC'
     try {
       const rows = db.prepare(ENTITY_SQL).all() as unknown[]
@@ -138,12 +172,170 @@ function readMemory(dbPath: string): MemorySnapshot {
         }
       }
     } catch {
-      // 列缺失(旧 schema):entities 留空
+      // review_state 列缺失(旧 schema):回落无评审过滤的全量
+      try {
+        const rows = db.prepare(ENTITY_SQL_LEGACY).all() as unknown[]
+        for (const row of rows) {
+          const record = row as { subject?: unknown; key?: unknown; content?: unknown; summary?: unknown; updated_at?: unknown }
+          if (typeof record.subject === 'string' && typeof record.key === 'string' && typeof record.content === 'string' && typeof record.updated_at === 'number') {
+            entities.push({
+              subject: record.subject, key: record.key, content: record.content,
+              summary: typeof record.summary === 'string' ? record.summary : '',
+              updatedAt: record.updated_at,
+            })
+          }
+        }
+      } catch {
+        // 列缺失(更旧 schema):entities 留空
+      }
     }
-    return { available, dbPath, entityCount, totalRows, recentKeys, entities }
+    // 审批队列(T9):review_state='pending' 且未失效的行,updated_at 降序,
+    // ≤50 条(队列上限面板分页交 M-M3;旧库无列 → 0/[])。裁决走
+    // eternaPanel/review(Memory.review 软失效语义,不经本只读连接)。
+    let pendingCount = 0
+    try {
+      pendingCount = queryCount(
+        db,
+        "SELECT COUNT(*) AS c FROM memory_entity WHERE review_state = 'pending' AND invalid_at IS NULL",
+      ) ?? 0
+      const rows = db.prepare(
+        'SELECT id, subject, key, content, summary, source, origin_session_id, updated_at'
+        + " FROM memory_entity WHERE review_state = 'pending' AND invalid_at IS NULL"
+        + ' ORDER BY updated_at DESC, id DESC LIMIT 50',
+      ).all() as unknown[]
+      for (const row of rows) {
+        const record = row as {
+          id?: unknown
+          subject?: unknown
+          key?: unknown
+          content?: unknown
+          summary?: unknown
+          source?: unknown
+          origin_session_id?: unknown
+          updated_at?: unknown
+        }
+        if (typeof record.id === 'number' && typeof record.subject === 'string' && typeof record.key === 'string'
+          && typeof record.content === 'string' && typeof record.updated_at === 'number') {
+          pending.push({
+            id: record.id,
+            subject: record.subject,
+            key: record.key,
+            content: record.content,
+            summary: typeof record.summary === 'string' ? record.summary : '',
+            source: typeof record.source === 'string' ? record.source : 'agent',
+            originSessionId: typeof record.origin_session_id === 'string' ? record.origin_session_id : null,
+            updatedAt: record.updated_at,
+          })
+        }
+      }
+    } catch {
+      // review_state 列缺失(旧 schema):审批队列留空(pendingCount=0)
+    }
+    // 画像卡数据面(M-M3 T12-②):portrait.md 与 sqlite 同目录(glue 索引注入
+    // 同判据——剥离 frontmatter 后正文非空才算可用);解析失败降级为不可用。
+    const portrait = readPortraitSnapshot(join(dirname(dbPath), 'portrait.md'))
+    // 域浏览(T12-②):domain_registry 全量投影(候选域列出,registered=null)+
+    // 每域待审数(memory_entity 按 domain_key 分组)。旧库无表 → 空清单。
+    const domains = readDomainBrowse(db)
+    const metrics = readMetrics(dbPath, db)
+    return { available, dbPath, entityCount, totalRows, recentKeys, entities, pendingCount, pending, portrait, domains, metrics }
   } finally {
     db.close()
   }
+}
+
+/**
+ * T13 在线指标(19 号 §5-T13/§9-6):审计账本四项 + 现算注入项——
+ * - 分母 portraitEntries:user 层 approved semantic live 行数(画像事实源口径,
+ *   与 portrait.ts buildPortrait 过滤同源;旧库缺列逐级回落到 0);
+ * - indexZones:computeIndexZoneTokens 按当前库现算(最近使用域 + 库同目录画像;
+ *   单区锚点形态/库不可读 = null)。独立打开只读连接,与上方只读连接并发安全
+ *   (node:sqlite WAL 多读者);账本路径与库同目录(audit.ts 约定)。
+ */
+function readMetrics(dbPath: string, db: DatabaseSync): MemoryMetricsView {
+  const portraitEntries = queryCount(
+    db,
+    "SELECT COUNT(*) AS c FROM memory_entity WHERE invalid_at IS NULL AND review_state = 'approved'"
+      + " AND scope = 'user' AND kind = 'semantic'",
+  ) ?? queryCount(
+    db,
+    "SELECT COUNT(*) AS c FROM memory_entity WHERE invalid_at IS NULL AND review_state = 'approved'",
+  ) ?? 0
+  const indexZones = computeIndexZoneTokens(dbPath)
+  const report = buildMemoryMetrics(readMemoryAuditEvents(join(dirname(dbPath), 'memory-audit.jsonl')), {
+    portraitEntries,
+    ...(indexZones !== null ? { indexZones } : {}),
+  })
+  return { ...report, indexZones: report.indexZones ?? null }
+}
+
+/**
+ * 画像快照(T12-②):读 portrait.md → parsePortraitDocument(@eterna/memory,
+ * 与生成器同文件的唯一真值)。文件缺席/解析空节 → available:false(面板显示
+ * 「画像尚未生成」);缺库目录时同样缺席。
+ */
+function readPortraitSnapshot(portraitPath: string): MemoryPortraitSnapshot {
+  if (!existsSync(portraitPath)) return { available: false, version: null, generatedAt: null, sections: [] }
+  try {
+    const parsed = parsePortraitDocument(readFileSync(portraitPath, 'utf8'))
+    const available = parsed.sections.length > 0
+    return { available, version: parsed.version, generatedAt: parsed.generatedAt, sections: parsed.sections }
+  } catch {
+    return { available: false, version: null, generatedAt: null, sections: [] }
+  }
+}
+
+/** 域浏览投影(T12-②):registry 全量 + 每域待审数;防御旧库缺表/缺列。 */
+function readDomainBrowse(db: DatabaseSync): readonly MemoryDomainBrowseView[] {
+  let rows: unknown[] = []
+  try {
+    rows = db.prepare(
+      'SELECT domain_key, label, source, registered, session_count, memory_count, last_used_at'
+      + ' FROM domain_registry ORDER BY (registered IS NULL), COALESCE(last_used_at, created_at) DESC, domain_key ASC',
+    ).all()
+  } catch {
+    return []
+  }
+  const pendingByDomain = new Map<string, number>()
+  try {
+    const pendingRows = db.prepare(
+      'SELECT domain_key, COUNT(*) AS c FROM memory_entity'
+      + " WHERE review_state = 'pending' AND invalid_at IS NULL AND domain_key IS NOT NULL"
+      + ' GROUP BY domain_key',
+    ).all() as unknown[]
+    for (const row of pendingRows) {
+      const record = row as { domain_key?: unknown; c?: unknown }
+      if (typeof record.domain_key === 'string' && typeof record.c === 'number') {
+        pendingByDomain.set(record.domain_key, record.c)
+      }
+    }
+  } catch {
+    // 旧库无 review_state 列:待审数留 0
+  }
+  const views: MemoryDomainBrowseView[] = []
+  for (const row of rows) {
+    const record = row as {
+      domain_key?: unknown
+      label?: unknown
+      source?: unknown
+      registered?: unknown
+      session_count?: unknown
+      memory_count?: unknown
+      last_used_at?: unknown
+    }
+    if (typeof record.domain_key !== 'string' || typeof record.label !== 'string') continue
+    views.push({
+      domainKey: record.domain_key,
+      label: record.label,
+      source: typeof record.source === 'string' ? record.source : 'free',
+      registered: typeof record.registered === 'number' ? record.registered : null,
+      sessionCount: typeof record.session_count === 'number' ? record.session_count : 0,
+      memoryCount: typeof record.memory_count === 'number' ? record.memory_count : 0,
+      lastUsedAt: typeof record.last_used_at === 'number' ? record.last_used_at : null,
+      pendingCount: pendingByDomain.get(record.domain_key) ?? 0,
+    })
+  }
+  return views
 }
 
 function readKnowledge(dbPath: string): KnowledgeSnapshot {

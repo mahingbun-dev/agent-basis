@@ -21,12 +21,23 @@ import type { Message, UserMessage } from '@deepseek-ai/dsh-llm'
 import type { TokenMeasurement, TokenMeter } from '@deepseek-ai/dsh-token-meter'
 import { SessionSeq, type Session, type SessionEvent } from '@deepseek-ai/dsh-session'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { frameSummary } from './summarizer.ts'
+import { buildCompactionAttachments, renderAttachmentSection } from './attachments.ts'
+import type { AttachmentBudget, FileAttachment } from './attachments.ts'
+import { frameSummary, summaryToText, validateSummaryStructure } from './summarizer.ts'
 import type { SummarizationInput, SummaryResult } from './summarizer.ts'
 interface RegionDependencies {
   readonly meter: TokenMeter
   summarize(input: SummarizationInput, agent: Agent, signal?: AbortSignal): Promise<SummaryResult>
   recover(error: unknown, agent: Agent, sourceEventSeqs: readonly SessionSeq[], signal?: AbortSignal): boolean
+  /**
+   * 2026-11-14 C11(22 号 §5-C11):checkpoint 附件槽。在场即启用——commit 前
+   * 重扫 span 内文件类 tool/call,把工作区文件现场内容并入 checkpoint;缺席
+   * (开关关闭/无 header.cwd)行为与既往完全一致。
+   */
+  readonly attachments?: {
+    readonly workspaceRoot: string
+    readonly budget: AttachmentBudget
+  }
 }
 
 /** One validated inclusive span of current surface positions. */
@@ -383,7 +394,13 @@ function prepareCompaction(
   }
 }
 
-/** Run the summarizer and frame its replacement checkpoint. */
+/**
+ * Run the summarizer, reject structurally invalid output, and frame the
+ * replacement checkpoint. Validation rides the same recover loop as a failed
+ * call: a hollow summary behaves like a summarizer failure, so a listening
+ * recover hook resummarizes and otherwise the rejection rethrows into the
+ * caller's retry budget instead of landing a hollow checkpoint.
+ */
 async function summarizeCompaction(
   dependencies: RegionDependencies,
   prepared: PreparedCompaction,
@@ -398,6 +415,7 @@ async function summarizeCompaction(
     signal?.throwIfAborted()
     try {
       summaryResult = await dependencies.summarize(prepared.input, agent, signal)
+      validateSummaryStructure(summaryToText(summaryResult.summary))
       break
     } catch (error: unknown) {
       if (signal?.aborted === true) throw error
@@ -407,23 +425,46 @@ async function summarizeCompaction(
         validateSurfaceRegion(agent.session, prepared.start, prepared.end))
     }
   }
-  const checkpointMessage = createUserMessage({
-    content: frameSummary(summaryResult.summary),
-    source: compactCheckpointSource(compactionId, sourceCommandId),
-  })
-  // The checkpoint is text-only, so its fixed-heuristic price IS its route
-  // price; comparing it against the span's route price asks the real
-  // question — does the replacement lower the next request's pressure.
-  const framedSummaryTokenCount = dependencies.meter.estimateMessage(checkpointMessage)
-  if (framedSummaryTokenCount >= prepared.shadowedRouteTokenCount) {
-    throw new Error(
-      `summary is not smaller than the shadowed content (${framedSummaryTokenCount} estimated framed tokens >= ${prepared.shadowedRouteTokenCount})`,
+  // 2026-11-14 C11(22 号 §5-C11):摘要收敛后、构造 checkpoint 前重建附件。
+  // 附件面只依赖 span(摘要失败重试不白读文件),失败态文件只留路径不阻断;
+  // await 仅一个微任务,提交前的 assertStable 覆盖该间隙。
+  let attachments: FileAttachment[] = []
+  if (dependencies.attachments !== undefined) {
+    attachments = await buildCompactionAttachments(
+      agent.session,
+      { start: prepared.start, end: prepared.end },
+      dependencies.attachments.workspaceRoot,
+      dependencies.attachments.budget,
     )
   }
-  return {
-    ...prepared,
-    ...summaryResult,
-    checkpointMessage,
+  const summaryBlocks = frameSummary(summaryResult.summary)
+  for (;;) {
+    const attachmentSection = renderAttachmentSection(attachments)
+    const checkpointMessage = createUserMessage({
+      content: attachmentSection === ''
+        ? summaryBlocks
+        : [...summaryBlocks, { type: 'text', text: attachmentSection }],
+      source: compactCheckpointSource(compactionId, sourceCommandId),
+    })
+    // The checkpoint is text-only, so its fixed-heuristic price IS its route
+    // price; comparing it against the span's route price asks the real
+    // question — does the replacement lower the next request's pressure.
+    // C11:shrink 校验按含附件后的总价——附件把 framed 价顶过遮蔽价时从最旧端
+    // 逐个再截断;附件耗尽仍不收敛 = 摘要本身过大,走既有失败路径。
+    const framedSummaryTokenCount = dependencies.meter.estimateMessage(checkpointMessage)
+    if (framedSummaryTokenCount < prepared.shadowedRouteTokenCount) {
+      return {
+        ...prepared,
+        ...summaryResult,
+        checkpointMessage,
+      }
+    }
+    if (attachments.length === 0) {
+      throw new Error(
+        `summary is not smaller than the shadowed content (${framedSummaryTokenCount} estimated framed tokens >= ${prepared.shadowedRouteTokenCount})`,
+      )
+    }
+    attachments = attachments.slice(1)
   }
 }
 

@@ -18,20 +18,111 @@ export interface GovernanceSnapshot {
   readonly auditSource: string | null
 }
 
-/** memory 卡片:实体数 + 最近 5 条 key。 */
+/** memory 卡片:实体数 + 最近 5 条 key + 待审队列(M-M2 T9)+ 画像/域浏览(M-M3 T12-②)。 */
 export interface MemorySnapshot {
   /** sqlite 库文件是否存在(glue memory-plugin 缺省 cwd/.eterna/memory.sqlite3)。 */
   readonly available: boolean
   /** 库文件路径(缺省约定路径)。 */
   readonly dbPath: string
-  /** 有效实体数(invalid_at IS NULL)。 */
+  /** 有效实体数(invalid_at IS NULL 且已批准;旧库无 review_state 列时 = invalid_at IS NULL)。 */
   readonly entityCount: number
   /** 全部实体行数(含已失效历史,重写顶替留痕)。 */
   readonly totalRows: number
   /** 最近更新的 5 条 key(updated_at 降序)。 */
   readonly recentKeys: readonly MemoryRecentKey[]
-  /** 有效实体全量(按 updated_at 降序;「记忆」区块渲染用)。 */
+  /** 有效实体全量(按 updated_at 降序;「记忆」区块渲染用;待审行不混入——pending 不算已生效记忆)。 */
   readonly entities: readonly MemoryEntityView[]
+  /** 待审记忆数(review_state='pending' 且 invalid_at IS NULL;T9 审批队列;旧库无此列 = 0)。 */
+  readonly pendingCount: number
+  /** 待审记忆列表(审批队列最小视图;updated_at 降序,≤50 条)。 */
+  readonly pending: readonly MemoryPendingView[]
+  /** 用户画像派生视图(portrait.md 解析;文件缺席 = available:false,面板显示「尚未生成」)。 */
+  readonly portrait: MemoryPortraitSnapshot
+  /** 域浏览(domain_registry 投影;候选域一并列出,registered=null 标记候选)。 */
+  readonly domains: readonly MemoryDomainBrowseView[]
+  /** T13 在线指标(审计账本聚合 + 现算注入;无数据时各率为 null,面板显示「暂无」)。 */
+  readonly metrics: MemoryMetricsView
+}
+
+/**
+ * T13 验收指标视图(19 号 §5-T13/§9-6;@eterna/memory metrics.ts 的 JSON 投影,
+ * rate/时长为 null = 无数据(分母为零或库缺席),不是 0)。
+ */
+export interface MemoryMetricsView {
+  readonly reviews: {
+    readonly approved: number
+    readonly rejected: number
+    readonly acceptanceRate: number | null
+  }
+  readonly reviewLatencyMs: { readonly count: number; readonly medianMs: number | null; readonly maxMs: number | null }
+  readonly corrections: { readonly count: number; readonly portraitEntries: number; readonly correctionRate: number | null }
+  readonly domainResolves: {
+    readonly total: number
+    readonly bound: number
+    readonly workspace: number
+    readonly merged: number
+    readonly promoted: number
+    readonly candidate: number
+    readonly none: number
+  }
+  /** 索引预算占用分布(单区锚点形态/库缺席 = null;口径:最近使用域 + 库同目录画像)。 */
+  readonly indexZones: { readonly portrait: number; readonly domain: number; readonly fallback: number; readonly total: number } | null
+}
+
+/**
+ * 画像卡数据面(M-M3 T12-②,19 号 §5-T12.2;18 §10「画像 = 派生视图」):
+ * 分节展示 + 逐节「纠正此项」(落 user 层记忆的显式通道;纠正必须落到事实源,
+ * 只改视图会在下次再生时回弹,17 §3.3-6)。
+ */
+export interface MemoryPortraitSnapshot {
+  /** portrait.md 是否存在且正文非空(缺席=false;glue 索引注入与文件存在同判据)。 */
+  readonly available: boolean
+  /** frontmatter version(缺席/坏值 null)。 */
+  readonly version: number | null
+  /** frontmatter generated_at(ISO 串;缺席 null)。 */
+  readonly generatedAt: string | null
+  /** 分节(工作习惯/风格偏好/协作要求/工作区索引;空画像/无节 = 空表)。 */
+  readonly sections: readonly MemoryPortraitSectionView[]
+}
+
+/** 画像分节(逐节「纠正此项」的锚点;lines 已剥离 Markdown 记号)。 */
+export interface MemoryPortraitSectionView {
+  readonly title: string
+  readonly lines: readonly string[]
+}
+
+/** 域浏览条目(域名/条数/最近使用/待审,19 号 §5-T12.2 原文口径)。 */
+export interface MemoryDomainBrowseView {
+  readonly domainKey: string
+  readonly label: string
+  /** workspace|taxonomy|free(展示为「显式域/分类/自由域」)。 */
+  readonly source: string
+  /** 转正时刻;null=候选中(≥3 会话命中转正,Q2)。 */
+  readonly registered: number | null
+  readonly sessionCount: number
+  readonly memoryCount: number
+  readonly lastUsedAt: number | null
+  /** 该域待审记忆条数(pending 且未失效)。 */
+  readonly pendingCount: number
+}
+
+/**
+ * 单条待审记忆(审批队列;整固/摘要提案落库后等待人工裁决——批准生效,
+ * 拒绝软失效,19 号 §4-T9)。字段即 entity-store 存储契约的投影。
+ */
+export interface MemoryPendingView {
+  readonly id: number
+  readonly subject: string
+  readonly key: string
+  /** 记忆正文全文(面板完整渲染)。 */
+  readonly content: string
+  /** 一句话摘要(空串=无)。 */
+  readonly summary: string
+  /** 写入来源(explicit/agent/consolidation/compaction;旧库缺省 agent)。 */
+  readonly source: string
+  /** 出处会话(provenance;NULL=旧行/工具未盖章)。 */
+  readonly originSessionId: string | null
+  readonly updatedAt: number
 }
 
 /** 单条有效实体(「记忆」区块渲染用)。 */
@@ -50,6 +141,17 @@ export interface MemoryRecentKey {
   readonly subject: string
   readonly key: string
   readonly updatedAt: number
+}
+
+/** 裁决端点(eternaPanel/review)返回的记忆行投影(record=null 表示行不存在/已处理)。 */
+export interface MemoryReviewRecordView {
+  readonly id: number
+  readonly subject: string
+  readonly key: string
+  /** 裁决后的评审状态(approved 生效 / rejected 软失效)。 */
+  readonly reviewState: string
+  /** 失效时刻(rejected 时为裁决时刻;approved 不动)。 */
+  readonly invalidAt: number | null
 }
 
 /** knowledge 卡片:wiki-local 文档数 + WeKnora 状态。 */

@@ -1,12 +1,15 @@
 /**
  * 基座面板主页面(main keyed slot 的 occupant):三区块——服务清单 / 操作指南 /
- * 可观测样例。数据经 inject 面到达(props.useSnapshot / props.refresh),不触 ctx。
+ * 可观测样例 + 记忆(含 T9 待审审批队列)。数据经 inject 面到达
+ * (props.useSnapshot / props.refresh / props.review),不触 ctx。
  * DOM 全部带 data-eterna-panel* 结构化锚点,供 E2E 严断言定位(非全文匹配)。
  */
-import { useCallback, useState, type ReactElement, type ReactNode } from 'react'
-import type { EternaPanelSnapshot, ToolCard } from '../types.ts'
+import { useCallback, useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
+import type { EternaPanelSnapshot, MemoryPendingView, ToolCard } from '../types.ts'
 import { GUIDE_PROMPTS } from '../prompts.ts'
 import { toolLocale } from './locales.ts'
+import { correctionPrefillText, setCorrectionPrefill } from './correction-bridge.ts'
+import type { ReviewFn, TrackCorrectionFn } from './index.ts'
 
 /** 快照加载状态(inject hooks 份额的快照值)。 */
 export type PanelSnapshotState =
@@ -14,7 +17,7 @@ export type PanelSnapshotState =
   | { readonly status: 'ready', readonly snapshot: EternaPanelSnapshot }
   | { readonly status: 'error', readonly message: string }
 
-/** 面板组件 props(inject 面注入:hooks.snapshot → useSnapshot 选择器钩子,加 refresh 回调)。 */
+/** 面板组件 props(inject 面注入:hooks.snapshot → useSnapshot 选择器钩子,加 refresh/review 回调)。 */
 export interface PanelPageProps {
   /**
    * hooks 份额绑定的选择器钩子(SnapshotSelectorHook 形态:必传 selector,
@@ -23,6 +26,18 @@ export interface PanelPageProps {
   readonly useSnapshot: <S>(selector: (state: PanelSnapshotState) => S) => S
   /** 重新拉取快照。 */
   readonly refresh: () => void
+  /**
+   * 记忆裁决回调(M-M2 T9):批/拒待审记忆,经宿主 eternaPanel/review 端点
+   * (Memory.review 软失效语义);成功后自动刷新快照。
+   */
+  readonly review: ReviewFn
+  /** 画像纠正留痕回调(T13 指标埋点):fire-and-forget,失败静默不打断纠正。 */
+  readonly trackCorrection?: TrackCorrectionFn
+  /**
+   * 最近压缩 checkpoint 拉取回调(M-C4 视图):走 eternaCompaction/
+   * recentCheckpoints(管理员可见);缺席=宿主未提供该端点(老宿主),卡片不渲染。
+   */
+  readonly loadCheckpoints?: () => Promise<CheckpointsOutcome>
   /** 标准语言席位(locale 插件绑定)。 */
   readonly t: (key: string) => string
   /** 当前语言(工具名/说明本地化用)。 */
@@ -86,6 +101,243 @@ function MemoryEntityRow({ entity }: { readonly entity: EternaPanelSnapshot['mem
   )
 }
 
+/**
+ * 两击确认按钮(access confirm-button.tsx TwoClickButton 同款语义,面板本地轻量版):
+ * 首次点击进入待确认态,4s 无操作或移出/失焦自动解除;确认后执行并复位。
+ * 破坏性操作统一走两击(禁用原生 confirm:内嵌 webview 卡死实测)。
+ */
+function ConfirmButton({ label, confirmLabel, className, anchor, disabled, onConfirm }: {
+  readonly label: string
+  readonly confirmLabel: string
+  readonly className: string
+  /** E2E 结构化锚点(data-eterna-panel 值;缺省不带)。 */
+  readonly anchor?: string
+  readonly disabled: boolean
+  readonly onConfirm: () => void
+}): ReactElement {
+  const [armed, setArmed] = useState(false)
+  const timer = useRef<number | undefined>(undefined)
+  const disarm = useCallback((): void => {
+    window.clearTimeout(timer.current)
+    setArmed(false)
+  }, [])
+  useEffect(() => () => { window.clearTimeout(timer.current) }, [])
+  const handleClick = (): void => {
+    if (disabled) return
+    if (!armed) {
+      setArmed(true)
+      window.clearTimeout(timer.current)
+      timer.current = window.setTimeout(() => { setArmed(false) }, 4000)
+      return
+    }
+    disarm()
+    onConfirm()
+  }
+  return (
+    <button
+      type="button"
+      className={armed ? `${className} is-armed` : className}
+      disabled={disabled}
+      {...(anchor !== undefined && { 'data-eterna-panel': anchor })}
+      data-armed={armed ? 'true' : undefined}
+      onMouseLeave={disarm}
+      onBlur={disarm}
+      onClick={handleClick}
+    >{armed ? confirmLabel : label}</button>
+  )
+}
+
+/**
+ * 单条待审记忆(T9 审批队列):key/来源/出处 meta 行 + 内容,批/拒按钮;
+ * 拒绝两击确认;防重复点击(裁决进行中禁用双按钮)。
+ * C10(22 号 §5-C10):source=compaction 的条目来自压缩摘要(二手),带
+ * 「来自压缩摘要」徽标且详情默认折叠——审批者主动展开才见正文。
+ */
+function MemoryPendingRow({ item, review, t }: {
+  readonly item: MemoryPendingView
+  readonly review: ReviewFn
+  readonly t: (key: string) => string
+}): ReactElement {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const fromCompaction = item.source === 'compaction'
+  const [expanded, setExpanded] = useState(false)
+  const date = new Date(item.updatedAt)
+  const time = Number.isNaN(date.getTime()) ? '' : date.toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  const decide = (decision: 'approved' | 'rejected'): void => {
+    setBusy(true)
+    setError(null)
+    void review(item.id, decision).then((outcome) => {
+      if (!outcome.ok) {
+        setError(outcome.message ?? t('state.error'))
+        setBusy(false)
+        return
+      }
+      // 成功:快照已由注入面自动刷新,本行随队列出队卸载;busy 复位兜底
+      setBusy(false)
+    })
+  }
+  return (
+    <div data-eterna-panel="mem-pending-row" data-eterna-panel-pending={String(item.id)}
+      data-eterna-panel-pending-compaction={fromCompaction ? 'true' : undefined}>
+      <div data-eterna-panel="mem-entity-head">
+        <span data-eterna-panel="mem-entity-key">{item.key}</span>
+        <span data-eterna-panel="mem-pending-meta">
+          {fromCompaction && <span data-eterna-panel="mem-pending-compaction">{t('memory.pendingCompaction')}</span>}
+          {' '}{item.subject}{item.originSessionId === null ? '' : ` · ${item.originSessionId.slice(0, 13)}`} · {time}
+        </span>
+      </div>
+      {(!fromCompaction || expanded) && <div data-eterna-panel="mem-entity-content">{item.content}</div>}
+      {fromCompaction && (
+        <button
+          type="button"
+          data-eterna-panel="mem-pending-detail-toggle"
+          data-eterna-panel-expanded={expanded ? 'true' : undefined}
+          onClick={() => setExpanded(v => !v)}
+        >{expanded ? t('memory.pendingCollapse') : t('memory.pendingExpand')}</button>
+      )}
+      {error !== null && <span data-eterna-panel="mem-pending-error">{error}</span>}
+      <div data-eterna-panel="mem-pending-actions">
+        <button
+          type="button"
+          data-eterna-panel="mem-approve"
+          disabled={busy}
+          onClick={() => { decide('approved') }}
+        >{busy ? t('memory.deciding') : t('memory.approve')}</button>
+        <ConfirmButton
+          label={t('memory.reject')}
+          confirmLabel={t('memory.rejectConfirm')}
+          className="eterna-panel-danger"
+          anchor="mem-reject"
+          disabled={busy}
+          onConfirm={() => { decide('rejected') }}
+        />
+      </div>
+    </div>
+  )
+}
+
+/** 待审记忆队列(M-M2 T9 最小版):批/拒,拒绝两击确认;完整体验交 M-M3。 */
+function MemoryPendingSection({ snapshot, review, t }: {
+  readonly snapshot: EternaPanelSnapshot
+  readonly review: ReviewFn
+  readonly t: (key: string) => string
+}): ReactElement {
+  const memory = snapshot.memory
+  const pending = memory.pending ?? []
+  if (memory.pendingCount === 0 && pending.length === 0) return <></>
+  return (
+    <div data-eterna-panel="mem-pending" aria-label={t('memory.pendingTitle')}>
+      <div data-eterna-panel="mem-pending-head">
+        <span data-eterna-panel="mem-pending-title">{t('memory.pendingTitle')}</span>
+        <span data-eterna-panel="mem-pending-count">{memory.pendingCount} 条</span>
+      </div>
+      <p data-eterna-panel="mem-pending-hint">{t('memory.pendingHint')}</p>
+      {pending.map(item => <MemoryPendingRow key={item.id} item={item} review={review} t={t} />)}
+    </div>
+  )
+}
+
+/**
+ * 画像卡(M-M3 T12-②,19 号 §5-T12.2 + 18 §10):分节展示画像摘要 + 逐节
+ * 「纠正此项」——写入纠正预填桥(memory 域 chip 消费,显式通道闭环);纠正必须
+ * 落到事实源(只改视图会在下次再生时回弹,17 §3.3-6),故面板**不直接改画像**。
+ */
+function PortraitSection({ snapshot, trackCorrection, t }: {
+  readonly snapshot: EternaPanelSnapshot
+  readonly trackCorrection?: TrackCorrectionFn
+  readonly t: (key: string) => string
+}): ReactElement {
+  const portrait = snapshot.memory.portrait
+  const [corrected, setCorrected] = useState<string | null>(null)
+  const correct = (section: string): void => {
+    setCorrectionPrefill({ section, text: correctionPrefillText(section) })
+    // T13 指标埋点:纠正动作留痕(纠正率分子;fire-and-forget,失败静默)。
+    trackCorrection?.(section)
+    setCorrected(section)
+  }
+  return (
+    <div data-eterna-panel="portrait" aria-label={t('memory.portraitTitle')}>
+      <div data-eterna-panel="mem-pending-head">
+        <span data-eterna-panel="mem-pending-title">{t('memory.portraitTitle')}</span>
+        {portrait.version !== null && <span data-eterna-panel="portrait-version">v{portrait.version}</span>}
+      </div>
+      {!portrait.available && <p data-eterna-panel="mem-pending-hint">{t('memory.portraitEmpty')}</p>}
+      {portrait.available && (
+        <p data-eterna-panel="mem-pending-hint">{t('memory.portraitHint')}</p>
+      )}
+      {portrait.available && portrait.sections.map(section => (
+        <div key={section.title} data-eterna-panel="portrait-section" data-eterna-panel-portrait-section={section.title}>
+          <div data-eterna-panel="portrait-section-head">
+            <span data-eterna-panel="portrait-section-title">{section.title}</span>
+            <button
+              type="button"
+              data-eterna-panel="portrait-correct"
+              data-eterna-panel-correct={section.title}
+              onClick={() => { correct(section.title) }}
+            >{t('memory.portraitCorrect')}</button>
+          </div>
+          {section.lines.length === 0 && <span data-eterna-panel="portrait-line">{t('state.empty')}</span>}
+          {section.lines.map((line, index) => (
+            <span key={index} data-eterna-panel="portrait-line">{line}</span>
+          ))}
+        </div>
+      ))}
+      {corrected !== null && (
+        <span data-eterna-panel="portrait-corrected" role="status" aria-live="polite">
+          {t('memory.portraitCorrectReady').replace('{section}', corrected)}
+        </span>
+      )}
+    </div>
+  )
+}
+
+/** 域浏览行(域名/条数/最近使用/待审;候选域标记,19 号 §5-T12.2 原文口径)。 */
+function DomainBrowseRow({ domain, t }: {
+  readonly domain: EternaPanelSnapshot['memory']['domains'][number]
+  readonly t: (key: string) => string
+}): ReactElement {
+  const date = domain.lastUsedAt === null ? null : new Date(domain.lastUsedAt)
+  const lastUsed = date === null || Number.isNaN(date.getTime())
+    ? '—'
+    : date.toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return (
+    <div data-eterna-panel="domain-row" data-eterna-panel-domain={domain.domainKey}
+      data-eterna-panel-domain-candidate={domain.registered === null ? 'true' : undefined}>
+      <span data-eterna-panel="domain-label">
+        {domain.label}
+        {domain.registered === null && <span data-eterna-panel="domain-candidate-flag">{t('memory.domainCandidate')}</span>}
+      </span>
+      <span data-eterna-panel="domain-meta">
+        {t('memory.domainMemories').replace('{count}', String(domain.memoryCount))}
+        {' · '}
+        {t('memory.domainSessions').replace('{count}', String(domain.sessionCount))}
+        {' · '}
+        {t('memory.domainLastUsed').replace('{value}', lastUsed)}
+        {domain.pendingCount > 0 && <> · <span data-eterna-panel="domain-pending">{t('memory.domainPending').replace('{count}', String(domain.pendingCount))}</span></>}
+      </span>
+    </div>
+  )
+}
+
+/** 域浏览区块(M-M3 T12-②):按域分组的记忆分布(候选域一并列出)。 */
+function DomainBrowseSection({ snapshot, t }: {
+  readonly snapshot: EternaPanelSnapshot
+  readonly t: (key: string) => string
+}): ReactElement {
+  const domains = snapshot.memory.domains
+  return (
+    <div data-eterna-panel="domain-browse" aria-label={t('memory.domainTitle')}>
+      <div data-eterna-panel="mem-pending-head">
+        <span data-eterna-panel="mem-pending-title">{t('memory.domainTitle')}</span>
+        <span data-eterna-panel="mem-pending-count">{domains.length} {t('memory.domainUnit')}</span>
+      </div>
+      {domains.length === 0 && <p data-eterna-panel="mem-pending-hint">{t('memory.domainEmpty')}</p>}
+      {domains.map(domain => <DomainBrowseRow key={domain.domainKey} domain={domain} t={t} />)}
+    </div>
+  )
+}
+
 /** 「记忆」独立区块:当前工作区全部有效记忆,按主体分组,美观渲染。 */
 /** 主体(subject)→ 人话分类:标签 + 一句说明 + 排序权(小在前)。 */
 const SUBJECT_KINDS: readonly { match: (s: string) => boolean, label: string, desc: string, order: number, tone: 'normal' | 'test' }[] = [
@@ -100,7 +352,42 @@ function subjectKind(subject: string): { label: string, desc: string, order: num
   return hit ?? { label: subject, desc: '', order: 50, tone: 'normal' as const }
 }
 
-function MemorySection({ snapshot, t }: { readonly snapshot: EternaPanelSnapshot, readonly t: (key: string) => string }): ReactElement {
+/**
+ * T13 指标区(19 号 §5-T13/§9-6):五项验收指标的面板投影——审批采纳率/
+ * 响应中位/纠正率/域绑定分布/索引分区占用;「暂无」= 尚无数据(率 null 语义,
+ * 不是 0)。数据源:审计账本聚合 + 现算注入(见 snapshot.ts readMetrics)。
+ */
+function MemoryMetricsSection({ snapshot, t }: { readonly snapshot: EternaPanelSnapshot, readonly t: (key: string) => string }): ReactElement {
+  const metrics = snapshot.memory.metrics
+  const percent = (rate: number | null): string => (rate === null ? t('memory.metricsNoData') : `${Math.round(rate * 100)}%`)
+  const duration = (ms: number | null): string => {
+    if (ms === null) return t('memory.metricsNoData')
+    if (ms < 60_000) return `${Math.max(1, Math.round(ms / 1000))} 秒`
+    if (ms < 3_600_000) return `${Math.round(ms / 60_000)} 分钟`
+    return `${Math.round(ms / 3_600_000)} 小时`
+  }
+  const zones = metrics.indexZones
+  const decided = metrics.reviews.approved + metrics.reviews.rejected
+  return (
+    <div data-eterna-panel="mem-metrics" aria-label={t('memory.metricsTitle')}>
+      <div data-eterna-panel="mem-pending-head">
+        <span data-eterna-panel="mem-pending-title">{t('memory.metricsTitle')}</span>
+      </div>
+      <p data-eterna-panel="mem-pending-hint">{t('memory.metricsHint')}</p>
+      <div data-eterna-panel="mem-metrics-grid">
+        <Metric label={t('memory.metricsAcceptance')} value={`${percent(metrics.reviews.acceptanceRate)} · ${metrics.reviews.approved}/${decided}`} />
+        <Metric label={t('memory.metricsLatency')} value={duration(metrics.reviewLatencyMs.medianMs)} />
+        <Metric label={t('memory.metricsCorrections')} value={`${percent(metrics.corrections.correctionRate)} · ${metrics.corrections.count}/${metrics.corrections.portraitEntries}`} />
+        <Metric label={t('memory.metricsDomains')} value={`${metrics.domainResolves.bound}/${metrics.domainResolves.total}`} />
+        <Metric label={t('memory.metricsIndexZonePortrait')} value={zones === null ? t('memory.metricsNoData') : String(zones.portrait)} />
+        <Metric label={t('memory.metricsIndexZoneDomain')} value={zones === null ? t('memory.metricsNoData') : String(zones.domain)} />
+        <Metric label={t('memory.metricsIndexZoneFallback')} value={zones === null ? t('memory.metricsNoData') : String(zones.fallback)} />
+      </div>
+    </div>
+  )
+}
+
+function MemorySection({ snapshot, review, trackCorrection, t }: { readonly snapshot: EternaPanelSnapshot, readonly review: ReviewFn, readonly trackCorrection?: TrackCorrectionFn, readonly t: (key: string) => string }): ReactElement {
   const memory = snapshot.memory
   const entities = [...(memory.entities ?? [])]
   type Entity = EternaPanelSnapshot['memory']['entities'][number]
@@ -118,6 +405,10 @@ function MemorySection({ snapshot, t }: { readonly snapshot: EternaPanelSnapshot
     <section data-eterna-panel="section" data-eterna-panel-section="memory" aria-label={t('memory')}>
       <h2 data-eterna-panel="section-title">{t('memory')}</h2>
       <p data-eterna-panel="section-note">{t('memory.hint')}</p>
+      <PortraitSection snapshot={snapshot} {...(trackCorrection !== undefined && { trackCorrection })} t={t} />
+      <MemoryPendingSection snapshot={snapshot} review={review} t={t} />
+      <DomainBrowseSection snapshot={snapshot} t={t} />
+      <MemoryMetricsSection snapshot={snapshot} t={t} />
       {entities.length === 0 && <span data-eterna-panel="placeholder">{t('state.empty')}</span>}
       {ordered.map(g => (
         <div key={g.label} data-eterna-panel="mem-group" data-eterna-panel-mem-subject={g.label} data-eterna-panel-mem-tone={g.tone}>
@@ -255,7 +546,7 @@ function SessionRow({ session, t }: {
 }
 
 /** 面板根组件。 */
-export function PanelPage({ useSnapshot, refresh, t, lang }: Omit<PanelPageProps, never> & { lang?: 'zh' | 'en' }): ReactElement {
+export function PanelPage({ useSnapshot, refresh, review, trackCorrection, loadCheckpoints, t, lang }: Omit<PanelPageProps, never> & { lang?: 'zh' | 'en' }): ReactElement {
   const state = useSnapshot(snapshot => snapshot)
   // 语言跟随 DSH 系统(官方把当前语言写在 <html lang>;切换即时生效,字典更新触发重渲染)
   const uiLang: 'zh' | 'en' = lang ?? ((document.documentElement.lang || '').toLowerCase().startsWith('zh') ? 'zh' : 'en')
@@ -296,7 +587,7 @@ export function PanelPage({ useSnapshot, refresh, t, lang }: Omit<PanelPageProps
         </div>
       </section>
 
-      {state.status === 'ready' && <MemorySection snapshot={state.snapshot} t={t} />}
+      {state.status === 'ready' && <MemorySection snapshot={state.snapshot} review={review} {...(trackCorrection !== undefined && { trackCorrection })} t={t} />}
       {state.status !== 'ready' && (
         <section data-eterna-panel="section" data-eterna-panel-section="memory" aria-label={t('memory')}>
           <span data-eterna-panel="placeholder">{t('state.loading')}</span>
@@ -315,6 +606,98 @@ export function PanelPage({ useSnapshot, refresh, t, lang }: Omit<PanelPageProps
         )}
         {state.status !== 'ready' && <span data-eterna-panel="placeholder">{t('state.loading')}</span>}
       </section>
+
+      {loadCheckpoints !== undefined && <CompactionCard loadCheckpoints={loadCheckpoints} />}
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// M-C4 上下文压缩 checkpoint 视图(21 号 §3-C4「压缩可回溯」):
+// 最近压缩列表(时间/会话/释放量/模型)+ 摘要正文展开。数据走
+// eternaCompaction/recentCheckpoints(管理员可见;非 admin 由端点返回
+// forbidden,卡片降级为提示行)。文案内聚中文常量(卡片组件自包含,
+// 不进 panel locale 联合类型)。
+// ---------------------------------------------------------------------------
+
+/** 单条最近压缩(checkpoint 视图行;与 admin RecentCheckpoint 同形)。 */
+export interface CompactionCheckpointRow {
+  readonly at: number | null
+  readonly session: string
+  readonly shadowedTokenCount: number
+  readonly provider: string
+  readonly model: string
+  readonly summary: string
+}
+
+/** loadCheckpoints 回调结果(端点封套的客户端消费面)。 */
+export type CheckpointsOutcome =
+  | { ok: true; checkpoints: readonly CompactionCheckpointRow[] }
+  | { ok: false; message: string }
+
+interface CompactionCardState {
+  readonly status: 'loading' | 'ready' | 'error'
+  readonly rows: readonly CompactionCheckpointRow[]
+  readonly message: string
+}
+
+/** 最近压缩卡片:懒加载一次 + 手动刷新;空列表给"尚未发生"占位。 */
+function CompactionCard({ loadCheckpoints }: { readonly loadCheckpoints: () => Promise<CheckpointsOutcome> }): ReactElement {
+  const [state, setState] = useState<CompactionCardState>({ status: 'loading', rows: [], message: '' })
+  const [expanded, setExpanded] = useState<number | null>(null)
+  const load = (): void => {
+    setState({ status: 'loading', rows: [], message: '' })
+    loadCheckpoints().then((outcome) => {
+      if (outcome.ok) setState({ status: 'ready', rows: outcome.checkpoints, message: '' })
+      else setState({ status: 'error', rows: [], message: outcome.message })
+    }).catch((error: unknown) => {
+      setState({ status: 'error', rows: [], message: error instanceof Error ? error.message : String(error) })
+    })
+  }
+  useEffect(load, [loadCheckpoints])
+  return (
+    <section data-eterna-panel="section" data-eterna-panel-section="compaction" aria-label="上下文压缩">
+      <div data-eterna-panel="section-head-row">
+        <h2 data-eterna-panel="section-title">上下文压缩</h2>
+        <button type="button" data-eterna-panel="refresh" data-eterna-panel-refresh="checkpoints" onClick={load}>刷新</button>
+      </div>
+      <p data-eterna-panel="section-note">最近压缩的 checkpoint:释放量、摘要模型与 8 段摘要正文;原始记录完整保留在会话日志,可回放查看。</p>
+      {state.status === 'loading' && <span data-eterna-panel="placeholder">读取中…</span>}
+      {state.status === 'error' && (
+        <span data-eterna-panel="placeholder" data-eterna-panel-error="true">
+          {state.message.includes('管理员') ? '上下文压缩记录为管理员专用视图,当前账号无权查看。' : `读取失败:${state.message}`}
+        </span>
+      )}
+      {state.status === 'ready' && state.rows.length === 0 && (
+        <span data-eterna-panel="placeholder">尚未发生压缩(会话上下文达到触发阈值时自动执行,或用 /compact 手动执行)。</span>
+      )}
+      {state.status === 'ready' && state.rows.length > 0 && (
+        <div data-eterna-panel="cards" data-eterna-panel-checkpoints="true">
+          {state.rows.map((row, index) => (
+            <section key={`${row.session}-${row.at ?? index}`} data-eterna-panel="card" data-eterna-panel-card="checkpoint">
+              <div data-eterna-panel="card-kicker">
+                {row.at === null ? '时间未知' : new Date(row.at).toLocaleString('zh-CN', { hour12: false })}
+              </div>
+              <div data-eterna-panel="kv">
+                <span>{`会话 ${row.session}`}</span>
+                <span>{`释放 ${row.shadowedTokenCount.toLocaleString('zh-CN')} tokens`}</span>
+                <span>{row.model === '' ? '摘要模型:—' : `摘要模型 ${row.model}`}</span>
+              </div>
+              <button
+                type="button"
+                data-eterna-panel="checkpoint-toggle"
+                aria-expanded={expanded === index}
+                onClick={() => { setExpanded(previous => previous === index ? null : index) }}
+              >
+                {expanded === index ? '收起摘要' : '查看摘要'}
+              </button>
+              {expanded === index && (
+                <pre data-eterna-panel="checkpoint-summary">{row.summary}</pre>
+              )}
+            </section>
+          ))}
+        </div>
+      )}
+    </section>
   )
 }

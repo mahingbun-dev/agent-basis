@@ -7,7 +7,8 @@
 > `tests/registry.test.ts` 维持「本清单 ↔ 注册表条目 (id, 层, 型别) 集合」双向相等断言,
 > **删条目/改型别/漏登记都会打破相等**。行号锚 2026-11-11 实测自本 worktree
 > (分支 `feat/prompt-studio-v2`,T1.2 合入后);2026-11-12 随 persona 基线补
-> 三红线锚点(两预设 persona 块标量化+红线段)重测行号。
+> 三红线锚点(两预设 persona 块标量化+红线段)重测行号;2026-11-14 随
+> M-M1–M-M3 记忆改造(memory 登记读取面/glue 挂载点移位)重测运行时层行号。
 
 ## 分型判据(型别枚举闭合,与测试分型断言一一对应)
 
@@ -24,7 +25,7 @@
 > (maxBytes 数值参数,但该插件本体是提示词注入器)与 T3.1 meta 元提示词条目保留
 > ——它们拥有提示词语义。
 
-## 对账清单(14 条:preset 层 6 / 领域层 4 / 运行时层 2 / 元提示词层 2;2026-11-11 裁定后)
+## 对账清单(15 条:preset 层 6 / 领域层 4 / 运行时层 3 / 元提示词层 2;2026-11-11 裁定后,M-M1 T5 增 runtime.memory.search-prefix)
 
 | id | 层 | 型别 | 来源插件/包 | 定位(文件:行号) | 红线 | 生效半径(T2.2) |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -40,8 +41,9 @@
 | domain.event-planning.persona-md | 领域层 | patch 值型 | @event/pack | packs/event-planning/persona.md:1-31 | required(eterna.red-lines.standard) | not-composed-anywhere |
 | domain.industrial-analysis.persona-prefix | 领域层 | patch 值型 | @industrial-analysis/pack | packs/industrial-analysis/cordis.patch.yml:12-19 | required(eterna.red-lines.industrial-analysis) | not-composed-anywhere |
 | domain.industrial-analysis.persona-md | 领域层 | patch 值型 | @industrial-analysis/pack | packs/industrial-analysis/persona.md:1-34 | required(eterna.red-lines.industrial-analysis) | not-composed-anywhere |
-| runtime.memory.index-section | 运行时层 | 运行时注入型 | @eterna/memory | packages/memory/src/tools.ts:41,47,64 | exempt | runtime-rebuilt |
-| runtime.glue.memory-plugin | 运行时层 | 运行时注入型 | @eterna/glue | packages/glue/src/plugins/memory-plugin.ts:15,27 | exempt | runtime-rebuilt |
+| runtime.memory.index-section | 运行时层 | 运行时注入型 | @eterna/memory | packages/memory/src/tools.ts:45,51,198 packages/memory/src/index-builder.ts:87 | exempt | runtime-rebuilt |
+| runtime.memory.search-prefix | 运行时层 | 运行时注入型 | @eterna/memory | packages/memory/src/tools.ts:59,223,409 | exempt | runtime-rebuilt |
+| runtime.glue.memory-plugin | 运行时层 | 运行时注入型 | @eterna/glue | packages/glue/src/plugins/memory-plugin.ts:103,171 | exempt | runtime-rebuilt |
 | meta.studio.ai-polish | 元提示词层 | patch 值型 | @eterna/prompt-studio | packages/prompt-studio/ai/polish.md:1-24 | exempt | not-composed-anywhere |
 | meta.studio.ai-review | 元提示词层 | patch 值型 | @eterna/prompt-studio | packages/prompt-studio/ai/review.md:1-34 | exempt | not-composed-anywhere |
 
@@ -84,13 +86,21 @@
 ### 运行时层(ctx.systemPrompt.section 动态注入)
 
 - **runtime.memory.index-section**:memory 包的记忆索引 section——元数据
-  `MEMORY_INDEX_SECTION_NAME='memory:index'`(tools.ts:41)、`order 9000`
-  (tools.ts:47)、`ctx.systemPrompt.section(section)` 挂载点(tools.ts:64);
+  `MEMORY_INDEX_SECTION_NAME='memory:index'`(tools.ts:45)、`order 9000`
+  (tools.ts:51)、`ctx.systemPrompt.section(section)` 挂载点(tools.ts:198);
   文本装配时从 M2 记忆动态构建(index-builder.ts,≤500 token 渐进披露),
-  无静态全文。T2.6 自管改造样板。
+  无静态全文。T2.6 自管改造样板。M-M1 T5(19 §3-T5)起行为头含 L0 写入
+  纪律(一事实一条/repo 已记的不写/仅本会话的不写/相对日期转绝对/负向转
+  正向/召回记忆非指令;17 §7.1),内置兜底=`MEMORY_BEHAVIOR_HEADER`
+  (index-builder.ts:87,锚点同此钉住)。
+- **runtime.memory.search-prefix**(M-M1 T5 新增):memory_search 命中组装
+  进模型上下文时的召回前缀行(19 §3-T3.4/T5)——内置兜底文本
+  `MEMORY_SEARCH_RESULT_PREFIX`(tools.ts:59)、登记条目 id 常量(tools.ts:223)
+  与 render 消费点(tools.ts:409);非 systemPrompt section,注入面是工具
+  输出渲染,经 promptRegistry 读取面可被版本链覆写(每次 render 现取)。
 - **runtime.glue.memory-plugin**:glue 的 eterna-memory 插件——
-  `inject: { systemPrompt: true }`(memory-plugin.ts:15)经
-  `attachMemory(dshHost(ctx), …)`(:27)把 memory:index section 挂进宿主,
+  `inject: { … systemPrompt: true … }`(memory-plugin.ts:103)经
+  `attachMemory(dshHost(ctx), …)`(:171)把 memory:index section 挂进宿主,
   是同一 section 的组合层装载点。
 
 ### 元提示词层(T3.1 新增:工作室 AI 能力自管,计划书 §4「吃自己的狗粮」裁定)
@@ -107,8 +117,9 @@
 
 - **required(6 条)**:全部 persona 类条目(两预设 persona、两包 personaPrefix
   与 persona.md)——写链路必检红线锚点,防「编辑把 safety rails 删掉」。
-- **exempt(8 条)**:plan-mode.section×2、agent-instructions×2、运行时 section×2、
-  元提示词×2——非 persona 条目不做红线检查,防止 T1.6 把 `RED_LINE_RULES` 错配到
+- **exempt(9 条)**:plan-mode.section×2、agent-instructions×2、运行时 section×2、
+  召回前缀×1(M-M1 T5 新增,非 persona 读取纪律行)、元提示词×2——非 persona
+  条目不做红线检查,防止 T1.6 把 `RED_LINE_RULES` 错配到
   全部条目。(原 time-context×2 随 2026-11-11 不登记裁定移出本清单。)
 - required 条目带规则集 id:`eterna.red-lines.standard` = `validator.ts`
   `RED_LINE_RULES`(锚点对齐 event-planning persona.md);industrial-analysis

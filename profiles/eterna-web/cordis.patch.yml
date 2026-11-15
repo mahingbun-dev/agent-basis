@@ -211,7 +211,17 @@
         isolate:
           compaction: true
           toolResultPruner: true
+          staleToolResultPruner: true
         config:
+          # 陈旧工具结果清理层（L2；22 号 §4-C6 挂载）：压力达 effectiveWindow×0.7
+          # 触发，按 turn 分组保留最近 5 组、预计回收 ≥4096 tokens 才动手；行序排
+          # 在 compaction-basic 之前（agent/pre-step 先于摘要层泄压，§4-C6 触发节）。
+          - id: stale-tool-result-pruner
+            name: '@eterna/compaction/stale-plugin'
+            config:
+              keepGroups: 5
+              minSavingsTokens: 4096
+              thresholdRatio: 0.7
           - id: compaction-basic
             name: '@eterna/compaction/basic-plugin'
             # 压缩策略沿用上游默认(thresholdRatio 0.8 / retainRatio 0.16 / 重试 1),
@@ -367,7 +377,17 @@
         isolate:
           compaction: true
           toolResultPruner: true
+          staleToolResultPruner: true
         config:
+          # 陈旧工具结果清理层（L2；22 号 §4-C6 挂载）：压力达 effectiveWindow×0.7
+          # 触发，按 turn 分组保留最近 5 组、预计回收 ≥4096 tokens 才动手；行序排
+          # 在 compaction-basic 之前（agent/pre-step 先于摘要层泄压，§4-C6 触发节）。
+          - id: stale-tool-result-pruner
+            name: '@eterna/compaction/stale-plugin'
+            config:
+              keepGroups: 5
+              minSavingsTokens: 4096
+              thresholdRatio: 0.7
           - id: compaction-basic
             name: '@eterna/compaction/basic-plugin'
             # 压缩策略沿用上游默认(thresholdRatio 0.8 / retainRatio 0.16 / 重试 1),
@@ -486,3 +506,17 @@
     # 走查实证);compaction 引擎由展平的 standard 预设提供到宿主树,宿主注入可达。
     - id: eterna-compaction-admin
       name: '@eterna/compaction/admin-plugin'
+    # 记忆插件宿主载具行(M-M3 T12 前端四件,2026-11-14):设置分区「记忆」/
+    # 域识别 chip / Sources 行的浏览器半边(package.json dsh.client 声明把
+    # lib/client.js 组进 window.__DSH_BOOT__ 花名册)。本行 idle 挂载仅为客户端
+    # 半边提供宿主 Loader 条目;数据面=下方 eterna-memory-admin(+生产档的
+    # eterna-memory 行提供引擎)。
+    - id: eterna-memory-client
+      name: '@eterna/memory'
+    # 设置分区「记忆」/域 chip/Sources 行的数据面:eternaMemory/* SRC 端点
+    # (配置文件桥/域清单/会话域切换)必须宿主层挂载(compaction admin 同款
+    # 结论:api-gateway SRC 发现只解析宿主 reflect);sqlite/overrides 走
+    # cwd/.eterna 缺省约定,会话域面经 ctx.get('eternaMemorySession')
+    # 机会读取(glue eterna-memory 行未挂载时端点如实回 unavailable)。
+    - id: eterna-memory-admin
+      name: '@eterna/memory/admin-plugin'

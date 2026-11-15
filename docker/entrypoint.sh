@@ -130,6 +130,12 @@ if [ -f "$DISABLED_FILE" ] || [ -f "$REMOVED_FILE" ]; then
     const disabled = new Set([...read(process.argv[1]), ...read(process.argv[2])])
     const removed = new Set(read(process.argv[2]))
     const redLine = new Set(["eterna-governance", "eterna-audit", "eterna-egress", "eterna-access"])
+    // 家族行展开(M-M3 T12,2026-11-14):双面包插件拆成 载具行+数据面行 后,
+    // 停用主 id 必须连带裁掉家族行,否则浏览器半边仍在(设置分区空转)。
+    const family = { "eterna-memory": ["eterna-memory-client", "eterna-memory-admin"] }
+    for (const [main, rows] of Object.entries(family)) {
+      if (disabled.has(main)) for (const row of rows) disabled.add(row)
+    }
     const file = process.argv[3]
     const lines = fs.readFileSync(file, "utf8").split("\n")
     const out = []
@@ -162,7 +168,9 @@ echo "[entrypoint] governance rules: $GOV_SRC -> $DSH_HOME/.eterna/governance.ru
 # ── 3. 插件 symlink(本仓 @eterna/*) ────────────────────────────────────
 # compaction(2026-11-12 fork 的上下文压缩家族)必须在此清单内,否则容器内解析不到。
 # attachments(2026-11-12 附件入口,客户端双面包)同理——缺 symlink 即 insert 行静默 disable。
-for pkg in glue llm-doctor brand panel prompt-studio llm-openai access usage-stats compaction attachments; do
+# memory(2026-11-15 补记):T12 双面插件(引擎行+client/admin 家族行)同样依赖本清单
+# ——实测缺链时 eterna-memory-client/admin 行静默 disable,设置分区「记忆」不出现。
+for pkg in glue llm-doctor brand panel prompt-studio llm-openai access usage-stats compaction attachments memory; do
   ln -sfn "$REPO/packages/$pkg" "$PROFILE_DIR/node_modules/@eterna/$pkg"
 done
 # creation-skills 别名(preset-cordis skill-filesystem 解析名)

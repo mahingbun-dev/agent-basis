@@ -35,8 +35,13 @@ export interface FakeContextHarness {
   provide(name: string, value: unknown): () => void
   /** 按注册序取某事件的监听器。 */
   listenersOf(event: string): readonly AnyListener[]
-  /** 派发一条 session 事件(audit 插件的入口)。 */
-  emitSession(event: { readonly type: string; readonly data: unknown; readonly seq?: number; readonly time?: number }): void
+  /** 派发一条 session 事件(audit/memory 插件的入口;session 形状缺省为空对象)。 */
+  emitSession(
+    event: { readonly type: string; readonly data: unknown; readonly seq?: number; readonly time?: number },
+    session?: { readonly id?: string },
+  ): void
+  /** 派发 session/disposed(memory 插件 T6 的 teardown 兜底入口)。 */
+  emitDisposed(session: { readonly id?: string }): void
   /** 以 waterfall 语义派发 tools/pre-execute(注册序从外到内;末位 next 返回 allow)。 */
   dispatchPreExecute(exec: ToolExecutionLike): Promise<PreToolDecisionLike>
   /** 服务名清单(provide 顺序)。 */
@@ -99,8 +104,11 @@ export function makeFakeContext(): FakeContextHarness {
       }
     },
     listenersOf: event => [...(listeners.get(event) ?? [])],
-    emitSession: (event) => {
-      for (const listener of [...(listeners.get('session/event') ?? [])]) listener({}, event)
+    emitSession: (event, session = {}) => {
+      for (const listener of [...(listeners.get('session/event') ?? [])]) listener(session, event)
+    },
+    emitDisposed: (session) => {
+      for (const listener of [...(listeners.get('session/disposed') ?? [])]) listener(session)
     },
     dispatchPreExecute: async (exec) => {
       const chain = [...(listeners.get('tools/pre-execute') ?? [])] as unknown as PreExecuteListener[]

@@ -32,6 +32,9 @@ export type IconName =
   | 'logout'
   | 'settings'
   | 'paperclip'
+  | 'memory'
+  | 'bookmark'
+  | 'domain'
 
 export const ICONS: Readonly<Record<IconName, readonly IconPrimitive[]>> = {
   /* 基座面板:半环仪表 + 指针,表达「观测/控制台」而非通用齿轮。 */
@@ -146,6 +149,26 @@ export const ICONS: Readonly<Record<IconName, readonly IconPrimitive[]>> = {
   /* 附件入口:竖直回形针一笔画(外线-底弯-左线-内顶弯-内线,开口在右上)。 */
   paperclip: [
     { tag: 'path', attrs: { d: 'M16.5 5.5v9.5a4.5 4.5 0 0 1-9 0V7a2.5 2.5 0 0 1 5 0v8' } },
+  ],
+
+  /* 记忆:三层错位叠片(两层记忆+派生画像),底片实点表「已沉淀」。 */
+  memory: [
+    { tag: 'path', attrs: { d: 'M5 8.2l7-3.2 7 3.2-7 3.2-7-3.2z' } },
+    { tag: 'path', attrs: { d: 'M5 12.5l7 3.2 7-3.2' } },
+    { tag: 'path', attrs: { d: 'M5 16.6l7 3.2 7-3.2' } },
+  ],
+
+  /* 书签:旗形书签(画像条目/来源记忆的标记动作)。 */
+  bookmark: [
+    { tag: 'path', attrs: { d: 'M6.5 5.5A1.5 1.5 0 0 1 8 4h8a1.5 1.5 0 0 1 1.5 1.5V20L12 15.8 6.5 20z' } },
+  ],
+
+  /* 域:虚线框分组三个节点(功能域=会话内容的归属分组)。 */
+  domain: [
+    { tag: 'rect', attrs: { x: 3.5, y: 6.5, width: 17, height: 12, rx: 2.5, 'stroke-dasharray': '2.6 2.6' } },
+    { tag: 'circle', attrs: { cx: 8.2, cy: 12.5, r: 1.3, fill: 'currentColor', stroke: 'none' } },
+    { tag: 'circle', attrs: { cx: 12, cy: 12.5, r: 1.3, fill: 'currentColor', stroke: 'none' } },
+    { tag: 'circle', attrs: { cx: 15.8, cy: 12.5, r: 1.3, fill: 'currentColor', stroke: 'none' } },
   ],
 }
 

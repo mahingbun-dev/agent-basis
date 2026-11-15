@@ -10,6 +10,104 @@ export interface MemoryPluginConfig {
   readonly dbPath?: string
   /** 记忆索引 section 的 token 预算(缺省 500,08 号设计)。 */
   readonly indexBudgetTokens?: number
+  /** M-M2 T6 会话尾整固 job(缺省开启;19 号 §6 配置键名即最终形态)。 */
+  readonly consolidation?: MemoryConsolidationConfig
+  /** M-M3 T10 域检测与注册(缺省开启;19 号 §6 domain 键 + glue 落地补充键)。 */
+  readonly domain?: MemoryDomainConfig
+  /**
+   * M-M3 T11 重量 Dream(缺省开启;19 号 §6 dream 键;S4-B 退路:会话尾触发 +
+   * lastDreamAt 时间阈值合并,不接 schedule)。
+   */
+  readonly dream?: MemoryDreamConfig
+  /** M-M3 T11 episodic 淘汰参数(19 号 §6 episodic 键;缺省 Q5 决议值)。 */
+  readonly episodic?: MemoryEpisodicConfig
+  /** M-M3 T11 半衰期天数(索引排序与 Dream 挤出降权共用;缺省 90,18 §4.2)。 */
+  readonly halfLifeDays?: number
+  /** M-M3 T11 user 晋升审级(19 号 §6 promotion 键;缺省 Q3 决议全审 1.0)。 */
+  readonly promotion?: MemoryPromotionConfig
+  /** 画像(缺省开启;Dream Prune 再生成条件消费 enabled)。 */
+  readonly portrait?: MemoryPortraitConfig
+}
+
+/**
+ * 会话尾整固配置(19 号 §4-T6/T7/§6):M-M2 不接周期 schedule(留 M-M3 重量
+ * Dream;S-4 结论 schedule seam 不可用,周期触发半面采「会话尾触发+时间阈值
+ * 合并」由 M-M3 落地)。
+ */
+export interface MemoryConsolidationConfig {
+  /** 总开关,默认 true(插件停用即回到四工具旧形态,19 号 §7 回滚面)。 */
+  readonly enabled?: boolean
+  /** 触发档:M-M2 仅 'session-end'(turn/end completed 代理会话尾,S1 结论 B)。 */
+  readonly trigger?: 'session-end'
+  /**
+   * 提取执行体所用 curator 模型(T7 消费:默认 Flash=deepseek-flash;provider 由
+   * ctx.llm 目录兜底扫描,扫描不到回落 'deepseek',19a 号 S4-A3)。
+   */
+  readonly model?: string
+}
+
+/**
+ * 域检测与注册配置(M-M3 T10,19 号 §5-T10/§6):19 号 §6 的 domain 键为
+ * { minSessionsForNewDomain, indexTokens };enabled/workspaceName/model 是 glue
+ * 落地补充键——enabled 即 §7 回滚面(停用回 T10 之前的无域形态),workspaceName
+ * 承载 18 §1.2「workspace 即显式域」的部署侧输入(glue 无 workspace 登记册可读,
+ * cwd 不等价于「用户选定的项目域」,显式绑定由部署配置声明,缺省走语义打标),
+ * model 覆写打标 curator(缺省回落 consolidation.model→Flash,复用 T7 配置面)。
+ */
+export interface MemoryDomainConfig {
+  /** 总开关,默认 true。 */
+  readonly enabled?: boolean
+  /**
+   * 新域转正阈值:≥N 个独立会话命中才注册(缺省 3,18 §13 Q2 决议;「独立会话」
+   * 由 domain_hit_sessions 持久去重钉死,进程重启不重复计数)。
+   */
+  readonly minSessionsForNewDomain?: number
+  /** 当前域索引区 token 上限(缺省 250,19 号 §6 domain.indexTokens)。 */
+  readonly indexTokens?: number
+  /** 显式 workspace 域名(存在 → 会话跳过打标直接注册,18 §1.2)。 */
+  readonly workspaceName?: string
+  /** 打标所用 curator 模型(缺省回落 consolidation.model→deepseek-flash)。 */
+  readonly model?: string
+}
+
+/**
+ * 重量 Dream 配置(M-M3 T11,19 号 §6 dream 键):S4-B 结论 schedule seam 不可用
+ * (dsh-schedule 语义是「把指令 prompt 投递进会话」),周期触发采退路「会话尾
+ * 触发 + lastDreamAt 时间阈值合并」——19 号原文的 `cron: '0 4 * * *'` 键名保留、
+ * 降级解释为**间隔小时数**(S4-B 原文;缺省 24=每日),待上游出现真 cron 面再
+ * 恢复 cron 语义。
+ */
+export interface MemoryDreamConfig {
+  /** 总开关,默认 true(停用即不挂 Dream 触发,§7 回滚面)。 */
+  readonly enabled?: boolean
+  /** 间隔小时数(19 号 §6 dream.cron 键降级语义,缺省 24;见上注释)。 */
+  readonly cron?: number
+  /** Gather 窄读 episodic 条数上限(缺省 50,19 号 §6 dream.maxTurns)。 */
+  readonly maxTurns?: number
+}
+
+/** episodic 淘汰参数(19 号 §6 episodic 键;缺省 18 §13 Q5 决议值)。 */
+export interface MemoryEpisodicConfig {
+  /** episodic TTL 天数(缺省 30)。 */
+  readonly ttlDays?: number
+  /** 单域 live 上限(缺省 200;与 Gm0 容量闸同键同值)。 */
+  readonly perDomainLimit?: number
+}
+
+/** user 晋升审级(19 号 §6 promotion 键;18 §13 Q3 决议)。 */
+export interface MemoryPromotionConfig {
+  /**
+   * user 晋升抽样审比例(缺省 1.0 = 初始全审,逐条审批卡片;画像稳定后降档,
+   * 降档需以画像纠正率下降为前置证据——Q3 决议;降档后未抽样选中的条目自动
+   * 生效,抽样按 key 稳定哈希确定性判定)。
+   */
+  readonly userPromotionSampleRate?: number
+}
+
+/** 画像配置(19 号 §6 portrait 键;maxTokens 是索引装配侧既有键,见 indexBudgetTokens)。 */
+export interface MemoryPortraitConfig {
+  /** 画像开关(缺省 true;false 时 Dream Prune 跳过画像再生成,索引画像区随缓存缺席省略)。 */
+  readonly enabled?: boolean
 }
 
 /** knowledge 插件配置。 */

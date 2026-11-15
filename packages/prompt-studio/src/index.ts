@@ -1405,8 +1405,8 @@ export class LoopPromptGateway extends TypertRemoteService {
     const pending = this.gate.peek()
     // 最近会话清单一次投影:sessions 数 = 清单长度,清单整体随 trace.recent 下发(T7.4)。
     const traceRecent = listTraceSessions(this.sessionsRoot, TRACE_SESSION_LIMIT_DEFAULT)
-    // 版本库一次全量读(评审 2026-11-11:顶层概览 + 14 条目链概览共用同一份记录,
-    // 避免每次快照 ~15 次全表 loadAll——版本库只增不删,长期使用后全扫代价线性涨)。
+    // 版本库一次全量读(评审 2026-11-11:顶层概览 + 全部条目链概览(M-M1 T5 后 15 条)共用同一份
+    // 记录,避免每次快照 ~16 次全表 loadAll——版本库只增不删,长期使用后全扫代价线性涨)。
     await this.ensureEntrySeeds()
     const store = this.store
     const allRecords = store === undefined ? [] : await store.list()

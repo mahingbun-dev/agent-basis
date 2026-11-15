@@ -1,0 +1,2 @@
+# esbuild 打包缓存(run-golden.mjs 的临时 bundle,不入库)
+.cache/

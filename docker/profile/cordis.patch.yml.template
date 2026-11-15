@@ -532,6 +532,11 @@
       name: '@eterna/prompt-studio'
     - id: eterna-usage-stats
       name: '@eterna/usage-stats'
+    # 基座面板(2026-11-15 补记):packages/panel 客户端双面包(画像卡/域浏览/
+    # 审批队列/记忆指标 + 服务清单卡)。历史缺口——包早于本模板存在但从未登记
+    # Host 行,浏览器花名册从未收录(实测容器内无侧栏入口);行形态同 usage-stats。
+    - id: eterna-panel
+      name: '@eterna/panel'
     # 附件入口（2026-11-12）：输入框工具行「附件」按钮（客户端双面包，Host 半边
     # idle 载具；entrypoint 第 3 步已统一 symlink）。上传/预览/重试链路全在上游
     # file-upload/ui-attachment；按钮可见性另由 mux 策略 fileUploads/upload 动作开闸。
@@ -548,6 +553,17 @@
     # 走查实证);compaction 引擎由展平的 standard 预设提供到宿主树,宿主注入可达。
     - id: eterna-compaction-admin
       name: '@eterna/compaction/admin-plugin'
+    # 记忆插件宿主载具行(M-M3 T12 前端四件,2026-11-14):设置分区「记忆」/
+    # 域识别 chip / Sources 行的浏览器半边(package.json dsh.client 声明 +
+    # scripts/build-client.mjs 产物 lib/client.js)。数据面=下方 eterna-memory-admin;
+    # 引擎与四工具由上方 eterna-memory 行提供(glue)。
+    - id: eterna-memory-client
+      name: '@eterna/memory'
+    # 设置分区「记忆」/域 chip/Sources 行的数据面:eternaMemory/* SRC 端点
+    # (配置文件桥 .eterna/memory.config.json/域清单/会话域切换面)宿主层挂载
+    # (compaction admin 同款结论);sqlite/overrides 走 cwd/.eterna 缺省约定。
+    - id: eterna-memory-admin
+      name: '@eterna/memory/admin-plugin'
 
 # ── Companion 浏览器执行面（E4 生产挂载，2026-11-11）：用户浏览器=执行面 ────
 # dsh-mcp-client stdio 挂 browser-relay 的 MCP server（三工具 mcp__browser__*）；
