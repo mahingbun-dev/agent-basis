@@ -1,6 +1,6 @@
 # 19 - 记忆系统开发进度记录(M-M1 → M-M3)
 
-> 状态:进度快照(2026-11-14,由进度记录脚本生成;只读记录,不改代码)
+> 状态:进度快照(2026-11-14 建档;**2026-11-16 增量:0.1.1 已合并上线**,见文末部署节)
 > 上游:[[19-记忆系统开发文档-M-M1至M-M3]](任务总览见其 §2)、[[19a-spike-conclusions]](Spike 结论)、[[18-记忆机制定制设计-两层记忆与RSI上升]]
 > 读法:§1 Git 快照;§2 Spike 指引;§3–§5 按 M-M1/M-M2/M-M3 三节逐任务一句话完成情况(每句附 `文件:行号` 或实测出处);§6 本次实测的测试状态;§7 遗留事项(如实,标注「指定」为既定事项、「核验发现」为本次记录时新查证)。
 
@@ -88,3 +88,15 @@ S-1~S-5 五项勘察已全部 resolved(结论/证据路径/退路三段式),见 
 5. **T13 五项验收指标专项采集面未落地**(核验发现;**2026-11-15 已起步落地**):域打标准确率/晋升提案采纳率/审批卡片响应时长/画像纠正率/索引预算占用分布均无专项采集(全仓 grep 无命中);此为 18 §13 的 Q3 抽样降档与 Q2 归并质量前置证据,首月数据落 panel 的 §9-6 验收项未就位。
    - **2026-11-15 增量**:审计账本新增 `domain-resolve`(域解析定格,glue 域接线埋点)与 `correction`(画像纠正动作,panel 经 `eternaPanel/trackCorrection` 转发)两类事件;新 `src/metrics.ts`(buildMemoryMetrics 四项在线指标纯聚合 + computeIndexZoneTokens 只读现算第五项——曾修一个联动缺陷:经 EntityMemoryStore 打开会触发迁移写,现改 DatabaseSync readOnly,且 classifyLegacySubject 补新编码防改写);索引结果增 `zoneTokens` 分区统计;facade 增 `metrics()`;panel 快照增 `memory.metrics` 与「记忆指标」区块;离线脚本 `scripts/memory-domain-accuracy.mjs`(人工标注 × 账本比对,样本待标注 ≥30 会话)。实测:memory 439 / glue 78 / panel 47 用例全绿,三包 oxlint+tsc 绿,tenant-scan 0,lint-ui-tokens 过(prompt-scan 时点 1 finding 属并行会话未完成 @basis/agent-loop 包,非本面)。
 6. **M-M1 个别验收项未复跑**(核验发现):「隔离 profile 手动 gen-portrait 产出画像文件」本次未执行(函数与脚本在位、portrait.spec 9 例绿);「无域上下文逐字节一致」回归锚点已由 index-builder.spec.ts:145-173 钉住并通过。
+
+---
+
+## 8. 部署记录(2026-11-16,0.1.1 上线)
+
+**PR #79 合并进 main(012ad49)→ worktree 构建镜像 `eterna-agent:0.1.1`(sha 比对一致)→ compose 切版(a178e58)→ `docker compose up -d`。**
+
+- 部署期新增修复(均在镜像内):entrypoint symlink 补 memory(d33232a)、模板补 eterna-panel 行、构建期 peer 对齐(73118a7)/auto-install-peers 关(ab375c7)/verifyDepsBeforeRun 权威位关(3e9ba99,压缩线同题)/逐包 node 直跑(b1c9bb1)——五道部署坑全部由首次镜像重建暴露并闭环;
+- memory_count 投影现算修复(5c70d97)随镜像上线;
+- **上线验证(生产域名 GUI 实测)**:0 禁用/failed;设置分区「记忆」在场(写入策略/用户画像/域识别/蒸馏占位/成本提示全渲染);域 chip 在场;基座面板入口在场,画像卡/审批队列/功能域/记忆指标四区块渲染;显式写入「请记住:…」→「已记住」走通。
+- **带病项(如实)**:Sources 行(turnTail 条目)宿主 rc.1 会话作用域 slot 合并不生效——取证结论与双挂载兼容见提交 5c70d97 与 index.tsx 注释;Definition 数据面已实测可用,宿主升版后零改动生效。CI 的 tools/evals+compaction 两红属压缩线(PR #79 留言归属)。
+- **多租户分库专项**:[[23-记忆多租户分库设计]] 已提交待评审(方案 C per-account store 池;四个开放问题待拍板)。
