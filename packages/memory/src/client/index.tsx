@@ -127,7 +127,12 @@ export function apply(ctx: MemoryClientContext): () => void {
     inject: () => ({ t, connection: ctx.connection }),
   }, DomainChip))
   // ④ Sources 行数据面:会话事件累计器(turn 归并 memory_read/memory_search 命中)。
-  ctx.uiConversation.events.register(memorySourcesDefinition)
+  try {
+    ctx.uiConversation.events.register(memorySourcesDefinition)
+    console.info('[memory-sources:apply]', 'definition registered')
+  } catch (error) {
+    console.error('[memory-sources:apply]', 'register failed:', error)
+  }
   // ④ Sources 行呈现:turnTail 槽位(completed Turn 动作行前;无数据不挂载)。
   ctx.slots.inject('conversation.chat.turnTail', () => ctx.slots.register({
     name: 'conversation.chat.turnTail',

@@ -230,7 +230,7 @@ export class DomainRegistryStore {
     const rows = onlyRegistered
       ? this.#db.prepare(`SELECT * FROM domain_registry WHERE registered IS NOT NULL ${order}`).all()
       : this.#db.prepare(`SELECT * FROM domain_registry ${order}`).all()
-    return rows.map(toDomainRecord)
+    return rows.map(row => this.#withLiveCount(toDomainRecord(row)))
   }
 
   /**
@@ -259,14 +259,38 @@ export class DomainRegistryStore {
 
   #select(domainKey: string): DomainRecord | null {
     const row = this.#db.prepare('SELECT * FROM domain_registry WHERE domain_key = ?').get(domainKey)
-    return row === undefined ? null : toDomainRecord(row)
+    return row === undefined ? null : this.#withLiveCount(toDomainRecord(row))
   }
 
   /** 写入路径回读(行必在;守卫仅为类型收窄,不掩盖逻辑缺口)。 */
   #mustResolve(domainKey: string): DomainRecord {
     const row = this.#db.prepare('SELECT * FROM domain_registry WHERE domain_key = ?').get(domainKey)
     if (row === undefined) throw new Error('[memory] 内部错误:域行写入后不可读')
-    return toDomainRecord(row)
+    return this.#withLiveCount(toDomainRecord(row))
+  }
+
+  /**
+   * memoryCount 投影现算(2026-11-16 修复,M-M1 评审遗留):registry 的
+   * memory_count 列自 T1 建表起无任何维护者(写入路径不碰该列),恒 0——
+   * 面板域浏览「记忆 N 条」与画像工作区索引节全部失真。改为读取时对
+   * memory_entity 现算(live + approved + 该域);registry 列废弃留档不再读。
+   * entity 表由 EntityMemoryStore 开库迁移保证存在(同库),但防御旧库/异构
+   * 读取面:查询失败 fail-open 记 0(计数是展示位,不赌)。
+   */
+  #withLiveCount(record: DomainRecord): DomainRecord {
+    return { ...record, memoryCount: this.#liveMemoryCount(record.domainKey) }
+  }
+
+  #liveMemoryCount(domainKey: string): number {
+    try {
+      const row = this.#db.prepare(
+        "SELECT COUNT(*) AS c FROM memory_entity WHERE invalid_at IS NULL AND review_state = 'approved'"
+          + " AND scope = 'domain' AND domain_key = ?",
+      ).get(domainKey) as { c?: unknown } | undefined
+      return typeof row?.c === 'number' ? row.c : Number(row?.c ?? 0)
+    } catch {
+      return 0
+    }
   }
 
   /** 事务包装:异常 ROLLBACK 后原样重抛(与 entity-store 同款,带回传值)。 */
