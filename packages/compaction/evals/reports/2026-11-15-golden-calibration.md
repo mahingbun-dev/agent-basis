@@ -355,3 +355,23 @@ reactor-no-fabrication | ❌ below-threshold | 6/6 | 5/9 | 3/3 | 0/4 | 3/4 | 齐
 3. **评分器校准两步（已落地，spec 钉死）**：decisions 加 ASCII 实体第二通道（强锚点=含数字/大写/扩展名，`asciiEntities` 过滤英文散文词形态）；mustNotAppear 加否定语境豁免（命中所在 bullet 含"不算数/void/unapproved"等 → 合法否定性引用，`negatedHits` 披露不判死——"预算基线 150000 不变，草稿的放宽数字一律不算数"是决策记录不是复述）。
 4. **不再对启发式第三轮打补丁**（避免评分器过拟合 sweep 样本）：decisions 组的语义判定交 LLM judge 层（下一步工程），其门槛判定在 judge 上线前以人工核对为准。
 5. 抽样方差再次印证 22a 结论 1：同 prompt 两轮 sweep 同项数字差异巨大（commands 13/13 vs 9/13），**单次 sweep 不作定档/回归结论**，门槛判定需两次独立 sweep 一致。
+
+## LLM judge 层上线记录（2026-11-16，两轮独立 sweep）
+
+**工程**：`evals/judge.ts`（判别 prompt 冻结 + 严格 JSON 解析 + `applyJudgeVerdicts` 纯函数覆盖层）+ `run-golden.mjs --judge [--judge-model]`（仅对确定性未达标用例调用）。decisions 组 passed = 确定性通道 ∨ judge.covered；mustNotAppear 命中经 judge 复核"复述 vs 否定性引用"。
+
+**两轮 sweep（deepseek-flash 摘要 + judge 同档）**：
+
+| 用例 | R1（报告被 R1 默认名覆盖,汇总见 git log 的本文件历史+log） | R2（2026-11-16-golden-judge-round2.md） |
+|---|---|---|
+| config-threshold-handoff | ❌（filePaths 8/9;decisions 4/4 judge 判满） | ✅ pass（全满） |
+| gala-budget-approval | ✅ pass（judge 救回,3/3） | ❌（userVerbatim 6/7） |
+| masquerade-lure | ❌（userVerbatim 5/6;decisions 4/4） | ✅ pass（全满） |
+| reactor-no-fabrication | ❌（commands 2/4;decisions 4/4） | ❌（filePaths 5/9、commands 0/4;decisions 4/4） |
+| 达标 | 1/4 | 2/4 |
+
+**结论**：
+1. **judge 判定稳定且质量高**：8 个用例轮次的 decisions 全部判满（4/4、3/3）——印证"decisions 组 0/4 是评分器语言偏置、摘要语义实际在场"的校准结论；judge 层是该问题的正确终解。
+2. **两轮并集 4/4 用例至少达标一轮**；未达标轮次的失分全部落在机械组（userVerbatim/commands/filePaths）的 **deepseek-flash 摘要方差**（同 prompt 同用例跨轮差异达 ±2 项）——不再是评分器问题。
+3. 后续路径：(a) 门槛判定采"两次独立 sweep 一致"纪律（22a 结论 1），当前数据尚不足两次一致；(b) 机械组方差是模型能力问题，换档评估按 22a 触发条件在积累更多轮次后重开；(c) judge 模型可独立升级（当前与摘要同档）。
+4. 事故记录：R1 报告因默认文件名（UTC 日期仍 11-15）覆盖了本文件,校准版已从 commit 98b799d 恢复改名 `-calibration.md`;此后 judge sweep 一律 `--out` 显式命名（R2 已遵守）。

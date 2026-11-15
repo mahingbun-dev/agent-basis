@@ -2,6 +2,7 @@
 /**
  * golden 评估 CLI(C4):node packages/compaction/scripts/run-golden.mjs
  *   [--model <model>] [--case <id>] [--max-tokens <n>] [--out <path>] [--no-fail]
+ *   [--judge] [--judge-model <model>]
  *
  * 实现说明:评估逻辑在 evals/*.ts(与 vitest 共用同一 runner/score 面),但
  * src/basic/summarizer.ts 含 TS 参数属性,node 的 strip-only 类型擦除不能直载,
@@ -33,7 +34,9 @@ function parseArgs(argv) {
       case '--max-tokens': args.maxTokens = Number(argv[++index]); break
       case '--out': args.out = argv[++index]; break
       case '--no-fail': args.noFail = true; break
-      default: throw new Error(`unknown flag "${flag}"(支持 --model/--case/--max-tokens/--out/--no-fail)`)
+      case '--judge': args.judge = true; break
+      case '--judge-model': args.judgeModel = argv[++index]; break
+      default: throw new Error(`unknown flag "${flag}"(支持 --model/--case/--max-tokens/--out/--no-fail/--judge/--judge-model)`)
     }
   }
   if (args.maxTokens !== undefined && (!Number.isInteger(args.maxTokens) || args.maxTokens <= 0)) {

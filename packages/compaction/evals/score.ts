@@ -56,8 +56,8 @@ export interface DecisionScore {
   readonly hitRatio: number
   /** 跨语言实体通道(evidence ∪ claim 的数字/路径/标识符锚点)命中率。 */
   readonly asciiHitRatio: number
-  /** 该决策经由哪条通道通过;未通过为 null。 */
-  readonly matchedVia: 'tokens' | 'ascii' | null
+  /** 该决策经由哪条通道通过('judge'=LLM judge 语义覆盖层);未通过为 null。 */
+  readonly matchedVia: 'tokens' | 'ascii' | 'judge' | null
   readonly passed: boolean
 }
 
