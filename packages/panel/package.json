@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "@eterna/governance": "workspace:*",
+    "@eterna/memory": "workspace:*",
     "@eterna/ui": "workspace:*",
     "@deepseek-ai/cordis": "catalog:",
     "@deepseek-ai/dsh-typert-protocol": "catalog:"

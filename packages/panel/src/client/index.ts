@@ -13,7 +13,7 @@
  * dsh 客户端包依赖;运行时鸭子类型一致,构建期零外部类型依赖。
  */
 import { PanelIcon } from './PanelIcon.tsx'
-import { PanelPage, type PanelSnapshotState } from './PanelPage.tsx'
+import { PanelPage, type CheckpointsOutcome, type CompactionCheckpointRow, type PanelSnapshotState } from './PanelPage.tsx'
 import { ComposerChips } from './ComposerChips.tsx'
 import { NS, en, zh } from './locales.ts'
 import { injectPanelStyles } from './styles.ts'
@@ -25,6 +25,27 @@ export const PANEL_ID = 'eterna-panel'
 
 /** 宿主只读快照端点(eternaPanel 命名空间,Host 半边 EternaPanelGateway)。 */
 export const SNAPSHOT_ENDPOINT = 'eternaPanel/snapshot'
+
+/** 记忆裁决端点(M-M2 T9 审批闭环:待审记忆批/拒,Host 半边同网关)。 */
+export const REVIEW_ENDPOINT = 'eternaPanel/review'
+
+/** 画像纠正留痕端点(T13 纠正率分子:纠正动作写审计行,Host 半边同网关)。 */
+export const CORRECTION_ENDPOINT = 'eternaPanel/trackCorrection'
+
+/** 最近压缩 checkpoint 端点(M-C4 视图;eternaCompaction 命名空间,admin 网关)。 */
+export const COMPACTION_CHECKPOINTS_ENDPOINT = 'eternaCompaction/recentCheckpoints'
+
+/** 裁决结果(客户端消费面;失败带宿主中文 message)。 */
+export interface ReviewOutcome {
+  readonly ok: boolean
+  readonly message?: string
+}
+
+/** 裁决回调(注入面;成功后自动 refresh 快照,队列即时出队)。 */
+export type ReviewFn = (id: number, decision: 'approved' | 'rejected') => Promise<ReviewOutcome>
+
+/** 纠正留痕回调(T13;fire-and-forget——埋点失败不打断纠正预填主流程)。 */
+export type TrackCorrectionFn = (section: string, keyHint?: string) => void
 
 /** 依赖服务:slot 注册表、语言、布局(main 面板选择)、连接(宿主 RPC 通道)。 */
 export const inject = ['slots', 'locale', 'layout', 'connection']
@@ -68,6 +89,48 @@ export function apply(ctx: PanelClientContext): () => void {
   }
   refresh()
 
+  // 记忆裁决(M-M2 T9 审批闭环):调宿主 eternaPanel/review;成功后立即刷新
+  // 快照(队列即时出队)。防重复点击由调用侧 busy 态负责,这里不改全局态。
+  const review = async (id: number, decision: 'approved' | 'rejected'): Promise<ReviewOutcome> => {
+    try {
+      const result = await ctx.connection.rpc.call('/api', REVIEW_ENDPOINT, { args: { id, decision } })
+      if (result.ok) {
+        refresh()
+        return { ok: true }
+      }
+      return { ok: false, message: result.error?.message ?? result.error?.code ?? 'unknown' }
+    } catch (error) {
+      return { ok: false, message: error instanceof Error ? error.message : String(error) }
+    }
+  }
+
+  // 画像纠正留痕(T13 指标埋点):fire-and-forget——纠正主流程是预填桥(本地),
+  // 埋点失败只在 console 留痕,不弹错不打断;纠正率经审计账本进快照指标区。
+  const trackCorrection = (section: string, keyHint?: string): void => {
+    void ctx.connection.rpc
+      .call('/api', CORRECTION_ENDPOINT, { args: { section, ...(keyHint !== undefined && { keyHint }) } })
+      .catch(() => undefined)
+  }
+
+  // 最近压缩 checkpoint(M-C4 视图):管理员可见(eternaCompaction 网关鉴权),
+  // 非 admin 由端点回 forbidden,卡片降级为提示行。端点缺席(老宿主)时
+  // RPC 报错走 outcome.ok=false 同一降级面。
+  const loadCheckpoints = async (): Promise<CheckpointsOutcome> => {
+    try {
+      const result = await ctx.connection.rpc.call('/api', COMPACTION_CHECKPOINTS_ENDPOINT, { args: { limit: 8 } })
+      if (result.ok && typeof result.value === 'object' && result.value !== null) {
+        const value = result.value as { ok?: boolean; checkpoints?: unknown; message?: string; code?: string }
+        if (value.ok === true && Array.isArray(value.checkpoints)) {
+          return { ok: true, checkpoints: value.checkpoints as readonly CompactionCheckpointRow[] }
+        }
+        return { ok: false, message: value.message ?? value.code ?? 'unknown' }
+      }
+      return { ok: false, message: result.error?.message ?? result.error?.code ?? 'unknown' }
+    } catch (error) {
+      return { ok: false, message: error instanceof Error ? error.message : String(error) }
+    }
+  }
+
   ctx.slots.inject('main', () => ctx.slots.register({
     name: 'main',
     key: PANEL_ID,
@@ -75,6 +138,9 @@ export function apply(ctx: PanelClientContext): () => void {
     inject: () => ({
       hooks: { snapshot: source },
       refresh,
+      review,
+      trackCorrection,
+      loadCheckpoints,
       t,
     }),
   }, PanelPage))

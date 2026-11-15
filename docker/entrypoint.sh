@@ -130,6 +130,12 @@ if [ -f "$DISABLED_FILE" ] || [ -f "$REMOVED_FILE" ]; then
     const disabled = new Set([...read(process.argv[1]), ...read(process.argv[2])])
     const removed = new Set(read(process.argv[2]))
     const redLine = new Set(["eterna-governance", "eterna-audit", "eterna-egress", "eterna-access"])
+    // 家族行展开(M-M3 T12,2026-11-14):双面包插件拆成 载具行+数据面行 后,
+    // 停用主 id 必须连带裁掉家族行,否则浏览器半边仍在(设置分区空转)。
+    const family = { "eterna-memory": ["eterna-memory-client", "eterna-memory-admin"] }
+    for (const [main, rows] of Object.entries(family)) {
+      if (disabled.has(main)) for (const row of rows) disabled.add(row)
+    }
     const file = process.argv[3]
     const lines = fs.readFileSync(file, "utf8").split("\n")
     const out = []

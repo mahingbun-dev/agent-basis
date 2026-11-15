@@ -548,6 +548,17 @@
     # 走查实证);compaction 引擎由展平的 standard 预设提供到宿主树,宿主注入可达。
     - id: eterna-compaction-admin
       name: '@eterna/compaction/admin-plugin'
+    # 记忆插件宿主载具行(M-M3 T12 前端四件,2026-11-14):设置分区「记忆」/
+    # 域识别 chip / Sources 行的浏览器半边(package.json dsh.client 声明 +
+    # scripts/build-client.mjs 产物 lib/client.js)。数据面=下方 eterna-memory-admin;
+    # 引擎与四工具由上方 eterna-memory 行提供(glue)。
+    - id: eterna-memory-client
+      name: '@eterna/memory'
+    # 设置分区「记忆」/域 chip/Sources 行的数据面:eternaMemory/* SRC 端点
+    # (配置文件桥 .eterna/memory.config.json/域清单/会话域切换面)宿主层挂载
+    # (compaction admin 同款结论);sqlite/overrides 走 cwd/.eterna 缺省约定。
+    - id: eterna-memory-admin
+      name: '@eterna/memory/admin-plugin'
 
 # ── Companion 浏览器执行面（E4 生产挂载，2026-11-11）：用户浏览器=执行面 ────
 # dsh-mcp-client stdio 挂 browser-relay 的 MCP server（三工具 mcp__browser__*）；

@@ -1,26 +1,51 @@
 {
   "name": "@eterna/memory",
-  "description": "L1 记忆插件:M1 项目记忆(workspace NOTES 文件读写+检索)+ M2 实体记忆(node:sqlite 表 subject/key/content/valid_at/invalid_at/confidence,重写顶替+全历史审计);模型面工具 memory_write/read/search/forget——forget 应用逆闭包真删(物理 DELETE,非打标);systemPrompt 只注入记忆索引(key+一句话摘要,≤500 token 预算);一切写入先过 PII(注入 @eterna/governance PiiFilter,未就绪降级内置实现)。seam 对齐上游 packages/core 的 tools+system-prompt(已发布 0.2.2-alpha.2)。",
+  "description": "L1 记忆插件:M1 项目记忆(workspace NOTES 文件读写+检索)+ M2 实体记忆(node:sqlite 表 subject/key/content/valid_at/invalid_at/confidence,重写顶替+全历史审计);模型面工具 memory_write/read/search/forget——forget 应用逆闭包真删(物理 DELETE,非打标);systemPrompt 只注入记忆索引(key+一句话摘要,≤500 token 预算);一切写入先过 PII(注入 @eterna/governance PiiFilter,未就绪降级内置实现)。seam 对齐上游 packages/core 的 tools+system-prompt(已发布 0.2.2-alpha.2)。M-M3 T12 前端四件:设置分区「记忆」+ 域识别 chip + Sources 行(浏览器半边 lib/client.js)与 eternaMemory/* SRC 端点(admin-plugin.ts 宿主半边)。",
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "dsh": {
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-api-gateway",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ],
+      "platform": "web"
+    }
+  },
   "exports": {
     ".": "./src/index.ts",
+    "./admin-plugin": "./src/admin-plugin.ts",
+    "./client": "./lib/client.js",
     "./package.json": "./package.json"
   },
   "scripts": {
-    "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
+    "build:client": "node scripts/build-client.mjs",
+    "verify": "node scripts/build-client.mjs && oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@eterna/evolve": "workspace:*",
     "@eterna/governance": "workspace:*",
+    "@eterna/interact": "workspace:*",
+    "@eterna/ui": "workspace:*",
     "@deepseek-ai/cordis": "catalog:",
+    "@deepseek-ai/dsh-llm": "catalog:",
     "@deepseek-ai/dsh-system-prompt": "catalog:",
-    "@deepseek-ai/dsh-tools": "catalog:"
+    "@deepseek-ai/dsh-tools": "catalog:",
+    "@deepseek-ai/dsh-typert-protocol": "catalog:",
+    "@deepseek-ai/dsh-util-values": "catalog:"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-user-questions": "catalog:",
     "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "esbuild": "catalog:",
+    "react": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

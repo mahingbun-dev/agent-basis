@@ -24,24 +24,27 @@ function openSession(pii?: PiiFilter) {
 describe('验收 ①:跨会话召回(M1 文件 + M2 sqlite 双层)', () => {
   it('会话 1 写入 → dispose → 会话 2(新实例、同库同目录)可读可检', async () => {
     const session1 = openSession()
+    // source=explicit / domain+episodic → approved(T2 分级卡控),检索与索引可见
     session1.writeEntity({
-      subject: 'user:alice',
+      subject: 'user',
+      scope: 'user',
+      source: 'explicit',
       key: 'prefers-email-summary',
       content: '周报偏好邮件摘要形式,周四上午发送',
       summary: '偏好邮件摘要',
       confidence: 0.9,
     })
-    session1.writeEntity({ subject: 'org:acme', key: 'meeting-cadence', content: '双周例会固定周一上午' })
+    session1.writeEntity({ subject: 'domain:acme', kind: 'episodic', key: 'meeting-cadence', content: '双周例会固定周一上午' })
     await session1.writeNote('NOTES.md', '# 项目记忆\n- 场地首选科技园报告厅')
     session1.dispose()
 
     const session2 = openSession()
-    const recalled = session2.readEntity('user:alice', 'prefers-email-summary')
+    const recalled = session2.readEntity('user', 'prefers-email-summary')
     expect(recalled?.content).toBe('周报偏好邮件摘要形式,周四上午发送')
     expect(recalled?.confidence).toBe(0.9)
 
     const entityHits = await session2.search('周报 邮件')
-    expect(entityHits.some(hit => hit.kind === 'entity' && hit.title === 'user:alice/prefers-email-summary')).toBe(true)
+    expect(entityHits.some(hit => hit.kind === 'entity' && hit.title === 'user/prefers-email-summary')).toBe(true)
     const noteHits = await session2.notes.search('科技园')
     expect(noteHits[0]?.file).toBe('NOTES.md')
     session2.dispose()
@@ -49,13 +52,13 @@ describe('验收 ①:跨会话召回(M1 文件 + M2 sqlite 双层)', () => {
 
   it('跨会话顶替:会话 2 的新值覆盖会话 1 的旧值,历史保留', () => {
     const session1 = openSession()
-    session1.writeEntity({ subject: 'org:acme', key: 'invoice-rule', content: '旧规则' })
+    session1.writeEntity({ subject: 'domain:acme', kind: 'episodic', key: 'invoice-rule', content: '旧规则' })
     session1.dispose()
 
     const session2 = openSession()
-    session2.writeEntity({ subject: 'org:acme', key: 'invoice-rule', content: '新规则' })
-    expect(session2.readEntity('org:acme', 'invoice-rule')?.content).toBe('新规则')
-    expect(session2.entities.readAll('org:acme', 'invoice-rule')).toHaveLength(2)
+    session2.writeEntity({ subject: 'domain:acme', kind: 'episodic', key: 'invoice-rule', content: '新规则' })
+    expect(session2.readEntity('domain:acme', 'invoice-rule')?.content).toBe('新规则')
+    expect(session2.entities.readAll('domain:acme', 'invoice-rule')).toHaveLength(2)
     session2.dispose()
   })
 })
@@ -64,7 +67,9 @@ describe('验收 ②:遗忘后检索不到(真删而非打标)', () => {
   it('forget 后 read/search/索引全链路不可再得', async () => {
     const session = openSession()
     session.writeEntity({
-      subject: 'user:alice',
+      subject: 'user',
+      scope: 'user',
+      source: 'explicit',
       key: 'private-note',
       content: '供应商争议点在尾款条款',
       summary: '尾款争议',
@@ -72,11 +77,11 @@ describe('验收 ②:遗忘后检索不到(真删而非打标)', () => {
     })
     expect(session.buildIndex().text).toContain('private-note')
 
-    const { forgotten } = session.forget('user:alice', 'private-note')
+    const { forgotten } = session.forget('user', 'private-note')
     expect(forgotten).toBe(1)
 
-    expect(session.readEntity('user:alice', 'private-note')).toBeNull()
-    expect(session.entities.readAll('user:alice', 'private-note')).toHaveLength(0)
+    expect(session.readEntity('user', 'private-note')).toBeNull()
+    expect(session.entities.readAll('user', 'private-note')).toHaveLength(0)
     const hits = await session.search('尾款')
     expect(hits.filter(hit => hit.kind === 'entity')).toHaveLength(0)
     expect(session.buildIndex().text).not.toContain('private-note')
@@ -86,7 +91,7 @@ describe('验收 ②:遗忘后检索不到(真删而非打标)', () => {
 
   it('写入的 undo 同样让检索不可得(配逆等价性)', async () => {
     const session = openSession()
-    const written = session.writeEntity({ subject: 'user:alice', key: 'temp', content: '临时记忆内容' })
+    const written = session.writeEntity({ subject: 'user', scope: 'user', source: 'explicit', key: 'temp', content: '临时记忆内容' })
     written.undo()
     expect(await session.search('临时记忆')).toHaveLength(0)
     session.dispose()
@@ -96,9 +101,10 @@ describe('验收 ②:遗忘后检索不到(真删而非打标)', () => {
 describe('验收 ③:索引预算不超(≤500 token,渐进披露)', () => {
   it('海量记忆下 buildIndex 整段 ≤500 token 且含截断提示', () => {
     const session = openSession()
+    // store 原语直种 60 行(默认 approved):本用例测索引预算,不测写入口四操作决策
     for (let index = 0; index < 60; index += 1) {
-      session.writeEntity({
-        subject: index % 2 === 0 ? 'user:alice' : 'org:acme',
+      session.entities.write({
+        subject: index % 2 === 0 ? 'domain:acme' : 'domain:billing',
         key: `convention-${index}`,
         content: `约定 ${index} 的完整正文,内容足够长以撑爆预算`,
         summary: `约定${index}的一句话摘要`,
@@ -116,7 +122,7 @@ describe('验收 ③:索引预算不超(≤500 token,渐进披露)', () => {
 
   it('索引只含 key+摘要,不含正文(渐进披露)', () => {
     const session = openSession()
-    session.writeEntity({ subject: 'user:alice', key: 'k1', content: '这是不该进入索引的长正文内容', summary: '短摘要' })
+    session.writeEntity({ subject: 'domain:demo', kind: 'episodic', key: 'k1', content: '这是不该进入索引的长正文内容', summary: '短摘要' })
     const text = session.buildIndex().text
     expect(text).toContain('k1')
     expect(text).toContain('短摘要')
@@ -167,7 +173,7 @@ describe('验收 ④:一切写入先过 PII(fail-closed)', () => {
 describe('Memory 服务:联合检索与出处', () => {
   it('M2 排序在前、M1 notes 随后,出处锚点带 entity:/notes: 前缀', async () => {
     const session = openSession()
-    session.writeEntity({ subject: 'user:alice', key: 'venue-preference', content: '偏好科技园报告厅' })
+    session.writeEntity({ subject: 'user:alice', kind: 'episodic', key: 'venue-preference', content: '偏好科技园报告厅' })
     await session.writeNote('notes/venue.md', '场地备忘:科技园报告厅容量 200 人')
     const hits = await session.search('科技园')
     expect(hits).toHaveLength(2)
@@ -180,7 +186,7 @@ describe('Memory 服务:联合检索与出处', () => {
 
   it('includeNotes:false 只查 M2;subject 过滤透传到 M2', async () => {
     const session = openSession()
-    session.writeEntity({ subject: 'org:acme', key: 'k', content: '关键词命中' })
+    session.writeEntity({ subject: 'org:acme', kind: 'episodic', key: 'k', content: '关键词命中' })
     await session.writeNote('NOTES.md', '关键词也在这里')
     expect(await session.search('关键词', { includeNotes: false })).toHaveLength(1)
     expect(await session.search('关键词', { subject: 'org:acme', includeNotes: false })).toHaveLength(1)
@@ -191,7 +197,7 @@ describe('Memory 服务:联合检索与出处', () => {
   it('limit 作用于合并结果', async () => {
     const session = openSession()
     for (let index = 0; index < 5; index += 1) {
-      session.writeEntity({ subject: 'org:acme', key: `k-${index}`, content: `批量关键词 ${index}` })
+      session.writeEntity({ subject: `domain:batch-${index}`, kind: 'episodic', key: `k-${index}`, content: `批量关键词 ${index}` })
     }
     expect(await session.search('批量关键词')).toHaveLength(5)
     expect(await session.search('批量关键词', { limit: 2 })).toHaveLength(2)
@@ -210,6 +216,25 @@ describe('Memory 服务:writeNote/appendNote 的配逆', () => {
     const appended = await session.appendNote('NOTES.md', '追加行')
     await appended.undo()
     expect(await session.notes.read('NOTES.md')).toBe('v1')
+    session.dispose()
+  })
+})
+
+describe('M-M1 T3:search 命中时效尾标(updated_at 距今 >14 天,summary 追加「(N 天未验证)」)', () => {
+  it('新鲜命中无尾标;时钟推进 20 天后同库命中 summary 附「(20 天未验证)」;notes 命中不附', async () => {
+    let nowMs = 1_763_000_000_000
+    const session = createMemory({ workspaceDir: dir, dbPath, now: () => nowMs })
+    session.writeEntity({ subject: 'user', scope: 'user', source: 'explicit', key: 'prefers-email', content: '偏好邮件摘要形式', summary: '偏好邮件摘要' })
+    await session.writeNote('NOTES.md', '备忘:科技园报告厅容量 200')
+    const fresh = (await session.search('邮件')).filter(hit => hit.kind === 'entity')
+    expect(fresh[0]?.summary).toBe('偏好邮件摘要')
+
+    nowMs += 20 * 86_400_000
+    const stale = (await session.search('邮件')).filter(hit => hit.kind === 'entity')
+    expect(stale[0]?.summary).toBe('偏好邮件摘要 (20 天未验证)')
+
+    const noteHits = (await session.search('科技园')).filter(hit => hit.kind === 'note')
+    expect(noteHits[0]?.summary).not.toContain('未验证')
     session.dispose()
   })
 })

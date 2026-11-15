@@ -19,6 +19,7 @@ const SCAN_DIRS = [
   'packages/access/src',
   'packages/usage-stats/src',
   'packages/compaction/src',
+  'packages/memory/src',
   'packages/llm-doctor/src',
   'packages/ui/src',
   'packages/brand/src',

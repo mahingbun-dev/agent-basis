@@ -111,6 +111,39 @@ const CSS = `
 [data-eterna-panel='mem-expand']::after { content: ""; position: absolute; inset: -10px -8px; }
 [data-eterna-panel='mem-expand']:hover { text-decoration: underline; text-underline-offset: 3px; }
 
+/* —— 待审记忆队列(M-M2 T9 审批闭环) —— */
+[data-eterna-panel='mem-pending'] {
+  margin-bottom: var(--et-space-4); border-radius: var(--et-radius-md); padding: 4px 20px 8px;
+  background: var(--et-danger-soft); border: 1px solid var(--et-border);
+}
+[data-eterna-panel='mem-pending-head'] { display: flex; align-items: baseline; gap: var(--et-space-2); padding: 12px 0 4px; border-bottom: 1px solid var(--et-border-soft); }
+[data-eterna-panel='mem-pending-title'] { font-size: var(--et-text-caption); font-weight: var(--et-weight-display); color: var(--et-fg); }
+[data-eterna-panel='mem-pending-count'] { margin-left: auto; font-size: var(--et-text-micro); color: var(--et-meta); font-variant-numeric: tabular-nums; }
+[data-eterna-panel='mem-pending-hint'] { margin: 8px 0 0; font-size: var(--et-text-micro); line-height: 1.5; color: var(--et-muted); }
+/* T13 指标区(mem-metrics):卡片栅格与可观测 Metric 同款令牌,数值等宽对齐 */
+[data-eterna-panel='mem-metrics'] { padding-top: 8px; }
+[data-eterna-panel='mem-metrics-grid'] { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; font-variant-numeric: tabular-nums; font-size: var(--et-text-micro); color: var(--et-muted); }
+[data-eterna-panel='mem-pending-row'] { padding: 12px 0; border-bottom: 1px solid var(--et-border-soft); }
+[data-eterna-panel='mem-pending-row']:last-child { border-bottom: 0; padding-bottom: 8px; }
+[data-eterna-panel='mem-pending-row'] [data-eterna-panel='mem-entity-head'] { margin-bottom: 4px; }
+[data-eterna-panel='mem-pending-row'] [data-eterna-panel='mem-entity-content'] { color: var(--et-fg-2); }
+[data-eterna-panel='mem-pending-meta'] { margin-left: auto; font-size: var(--et-text-micro); color: var(--et-meta); overflow-wrap: anywhere; }
+[data-eterna-panel='mem-pending-error'] { display: block; margin-top: 4px; font-size: var(--et-text-micro); color: var(--et-danger); }
+[data-eterna-panel='mem-pending-actions'] { display: flex; align-items: center; gap: var(--et-space-2); margin-top: 8px; }
+[data-eterna-panel='mem-pending-actions'] button {
+  padding: 6px 14px; min-height: 30px; font: inherit; font-size: var(--et-text-micro); cursor: pointer;
+  color: var(--et-fg); background: var(--et-bg);
+  border: 1px solid var(--et-border); border-radius: var(--et-radius-sm);
+  transition: border-color var(--et-motion-fast) var(--et-ease), background var(--et-motion-fast) var(--et-ease), color var(--et-motion-fast) var(--et-ease);
+}
+[data-eterna-panel='mem-pending-actions'] button:disabled { opacity: 0.6; cursor: default; }
+[data-eterna-panel='mem-pending-actions'] [data-eterna-panel='mem-approve']:hover:not(:disabled) { border-color: var(--et-fg-2); }
+[data-eterna-panel='mem-pending-actions'] button.eterna-panel-danger:hover:not(:disabled) { border-color: var(--et-danger); color: var(--et-danger); }
+[data-eterna-panel='mem-pending-actions'] button.eterna-panel-danger.is-armed {
+  border-color: var(--et-danger); color: var(--et-bg); background: var(--et-danger);
+}
+[data-eterna-panel='mem-pending-actions'] button:focus-visible { outline: none; box-shadow: var(--et-focus-ring); }
+
 /* —— 工具清单 —— */
 [data-eterna-panel='card'][data-eterna-panel-card='event-tools'] { grid-column: 1 / -1; }
 [data-eterna-panel='tool-list'] { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -157,6 +190,13 @@ const CSS = `
 [data-eterna-panel='session-metrics'] { display: flex; gap: 14px; flex-wrap: wrap; font-variant-numeric: tabular-nums; font-size: var(--et-text-micro); color: var(--et-muted); }
 [data-eterna-panel='session-last'] { font-size: var(--et-text-micro); color: var(--et-meta); }
 
+/* M-C4 checkpoint 视图(上下文压缩卡片列表;复用 card/kv 基础样式) */
+[data-eterna-panel='section-head-row'] { display: flex; align-items: center; gap: var(--et-space-3); justify-content: space-between; }
+[data-eterna-panel='checkpoint-toggle'] { justify-self: start; padding: 4px 10px; border: 1px solid var(--et-border); border-radius: var(--et-radius-sm); background: var(--et-surface); color: var(--et-fg-2); font: inherit; font-size: var(--et-text-caption); cursor: pointer; }
+[data-eterna-panel='checkpoint-toggle']:focus-visible { outline: 2px solid var(--et-accent); outline-offset: 1px; }
+[data-eterna-panel='checkpoint-toggle']:hover { border-color: var(--et-fg-2); }
+[data-eterna-panel='checkpoint-summary'] { margin: var(--et-space-2) 0 0; padding: var(--et-space-3); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-sm); background: var(--et-surface-2); font-family: var(--et-font-mono, var(--et-font-body)); font-size: var(--et-text-caption); line-height: 1.5; white-space: pre-wrap; word-break: break-word; max-height: 320px; overflow: auto; }
+
 [data-eterna-panel='placeholder'] { font-size: var(--et-text-caption); color: var(--et-muted); }
 [data-eterna-panel='error'] { color: var(--et-danger); overflow-wrap: anywhere; }
 
@@ -173,6 +213,41 @@ const CSS = `
 [data-eterna-panel='chip']::after { content: ""; position: absolute; inset: -5px -4px; }
 [data-eterna-panel='chip']:hover:not(:disabled) { background: color-mix(in oklab, var(--et-accent), transparent 82%); }
 [data-eterna-panel='chip']:disabled { opacity: 0.45; cursor: default; }
+
+/* —— 画像卡 + 域浏览(M-M3 T12-②) —— */
+[data-eterna-panel='portrait'] {
+  display: flex; flex-direction: column; gap: var(--et-space-3); min-width: 0;
+  padding: var(--et-space-5); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md);
+  background: var(--et-surface);
+}
+[data-eterna-panel='portrait-version'] { font-size: var(--et-text-micro); color: var(--et-meta); font-variant-numeric: tabular-nums; }
+[data-eterna-panel='portrait-section'] { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding-top: var(--et-space-2); border-top: 1px dashed var(--et-border-soft); }
+[data-eterna-panel='portrait-section-head'] { display: flex; align-items: center; gap: var(--et-space-3); }
+[data-eterna-panel='portrait-section-title'] { font-size: var(--et-text-caption); font-weight: var(--et-weight-display); color: var(--et-fg-2); }
+[data-eterna-panel='portrait-correct'] {
+  margin-left: auto; padding: 3px 10px; font: inherit; font-size: var(--et-text-micro); cursor: pointer;
+  color: var(--et-fg-2); background: transparent; border: 1px solid var(--et-border); border-radius: var(--et-radius-sm);
+  transition: border-color var(--et-motion-fast) var(--et-ease);
+}
+[data-eterna-panel='portrait-correct']:hover { border-color: var(--et-fg-2); color: var(--et-fg); }
+[data-eterna-panel='portrait-correct']:focus-visible { outline: none; box-shadow: var(--et-focus-ring); }
+[data-eterna-panel='portrait-line'] { font-size: var(--et-text-caption); line-height: 1.6; color: var(--et-fg-2); overflow-wrap: anywhere; }
+[data-eterna-panel='portrait-corrected'] { font-size: var(--et-text-micro); color: var(--et-success); }
+[data-eterna-panel='domain-browse'] {
+  display: flex; flex-direction: column; gap: var(--et-space-3); min-width: 0;
+  padding: var(--et-space-5); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md);
+  background: var(--et-surface);
+}
+[data-eterna-panel='domain-row'] { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 6px 0; border-bottom: 1px solid var(--et-border-soft); }
+[data-eterna-panel='domain-row']:last-child { border-bottom: 0; }
+[data-eterna-panel='domain-label'] { display: flex; align-items: center; gap: 8px; font-size: var(--et-text-caption); font-weight: var(--et-weight-display); color: var(--et-fg); }
+[data-eterna-panel='domain-candidate-flag'] {
+  font-size: var(--et-text-micro); font-weight: var(--et-weight-body);
+  color: var(--et-muted); background: var(--et-surface-2);
+  padding: 1px 8px; border-radius: var(--et-radius-pill);
+}
+[data-eterna-panel='domain-meta'] { font-size: var(--et-text-micro); color: var(--et-muted); font-variant-numeric: tabular-nums; }
+[data-eterna-panel='domain-pending'] { color: var(--et-warn); }
 
 @media (max-width: 760px) {
   [data-eterna-panel='root'] { padding: 32px 20px 64px; }

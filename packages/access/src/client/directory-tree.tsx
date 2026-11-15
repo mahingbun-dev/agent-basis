@@ -166,7 +166,7 @@ export function DirectoryTreeFlow(props: DirectoryTreeProps): React.JSX.Element 
     fetch('/access/api/me', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : null).then((me: { account?: string; nickname?: string } | null) => {
       if (me !== null) setRootName(me.nickname || me.account || '我的目录')
     }).catch(() => { setRootName('我的目录') })
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- open 触发一次
+    // 依赖仅 [open]:打开触发一次(rootName 已拉过即跳过,不入依赖)。
   }, [open])
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const cancelRef = useRef(onCancel)

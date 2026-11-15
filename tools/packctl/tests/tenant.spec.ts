@@ -12,6 +12,14 @@ function makeRepo(dir: string, pkg: string, file: string, text: string): string 
   return dir
 }
 
+/** 按仓库真实相对路径精确落文件(T4 派生锚不在 src/ 下,如 scripts/gen-portrait.mjs)。 */
+function makeFile(dir: string, relPath: string, text: string): string {
+  const target = join(dir, 'packages', relPath)
+  mkdirSync(join(target, '..'), { recursive: true })
+  writeFileSync(target, text, 'utf8')
+  return dir
+}
+
 describe('packctl tenant-scan 铁律', () => {
   let dir: string
 
@@ -58,6 +66,58 @@ describe('packctl tenant-scan 铁律', () => {
       "  path: '/manifest.webmanifest',",
       '  resource: createManifestResource(file),',
       '}))',
+    ].join('\n'))
+    expect(tenantScan(dir)).toHaveLength(0)
+  })
+
+  it('T4 memory 物理分库:dbPath/portrait 派生逃逸 workspace 即违规(绝对路径兜底/../ 逃逸/tmpdir)', () => {
+    makeRepo(dir, 'eterna-rogue', 'paths.ts', [
+      "import { join } from 'node:path'",
+      "const dbPath = config.dbPath ?? '/var/lib/eterna/memory.sqlite3'",
+      "const portraitPath = join(cwd, '../shared/portrait.md')",
+      "const scratchDb = join(os.tmpdir(), 'memory.sqlite3')",
+      "const notesDir = join(cwd, 'NOTES')",
+    ].join('\n'))
+    const findings = tenantScan(dir).filter(f => f.code === 'tenant/memory-persist-escape')
+    expect(findings).toHaveLength(3)
+  })
+
+  it('T4 workspace 派生合规:cwd 基 join + 与库同目录画像不误报(NOTES 等其余路径不在本规则面)', () => {
+    makeRepo(dir, 'eterna-memoryish', 'plugin.ts', [
+      'const cwd = process.cwd()',
+      "const dbPath = config.dbPath ?? join(cwd, '.eterna/memory.sqlite3')",
+      "const portraitPath = join(dirname(dbPath), 'portrait.md')",
+      "const notesDir = config.notesDir ?? join(cwd, 'NOTES')",
+    ].join('\n'))
+    expect(tenantScan(dir).filter(f => f.code.startsWith('tenant/memory-'))).toHaveLength(0)
+  })
+
+  it('T4 派生锚 fail-closed:glue 包在场而默认派生不在 cwd 基 → 红(重构改道必须同步规则再对账)', () => {
+    makeFile(dir, join('glue', 'src', 'plugins', 'memory-plugin.ts'),
+      "const dbPath = config.dbPath ?? join(homedir(), '.eterna/memory.sqlite3')\n")
+    const findings = tenantScan(dir).filter(f => f.code === 'tenant/memory-persist-anchor-missing')
+    expect(findings.map(f => f.path)).toContain('glue/src/plugins/memory-plugin.ts')
+  })
+
+  it('T4 派生锚:glue/memory 的现行默认派生形态过检(cwd 基库 + 同目录画像)', () => {
+    makeFile(dir, join('glue', 'src', 'plugins', 'memory-plugin.ts'), [
+      'const cwd = process.cwd()',
+      "const dbPath = config.dbPath ?? join(cwd, '.eterna/memory.sqlite3')",
+      "const PORTRAIT_CACHE_FILENAME = 'portrait.md'",
+      '...readPortraitCache(join(dirname(dbPath), PORTRAIT_CACHE_FILENAME)),',
+    ].join('\n'))
+    makeFile(dir, join('memory', 'scripts', 'gen-portrait.mjs'), [
+      "const dbPath = resolve(process.argv[2] ?? join(process.cwd(), '.eterna/memory.sqlite3'))",
+      "const portraitPath = join(dirname(dbPath), 'portrait.md')",
+    ].join('\n'))
+    expect(tenantScan(dir)).toHaveLength(0)
+  })
+
+  it('T4 误报防护:模块相对导入(../src/portrait.ts)与注释行不判逃逸', () => {
+    makeRepo(dir, 'eterna-ok', 'index.ts', [
+      "import { buildPortrait } from '../src/portrait.ts'",
+      "// 旧配置示例:dbPath: '/data/memory.sqlite3'(注释豁免)",
+      'export const x = 1',
     ].join('\n'))
     expect(tenantScan(dir)).toHaveLength(0)
   })

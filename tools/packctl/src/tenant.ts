@@ -10,6 +10,15 @@
  *      intercept 仅 @eterna/access(门禁本体)可调用;其余插件一律违规。
  *   T3 workspace 登记册独占写 —— 禁直写 storages/workspace.json(必须经
  *      workspaceController,守卫层才有记账点)。
+ *   T4 memory 物理分库(M-M1 T5,19 §3-T5/18 §9.1)—— eterna-memory 的
+ *      dbPath/portrait 必须落在 workspace 派生目录(部署契约 working_dir=
+ *      $DSH_HOME,每用户工作区在其 workspaces/<账号>/ 下;测试 profile 的
+ *      隔离目录经 config 注入,不在静态判定面)。静态可断言两面:
+ *      a) 逃逸面:凡 dbPath/portrait 路径派生行混入绝对路径字面量、`..`
+ *         逃逸段或 os.tmpdir() 基 → 违规;
+ *      b) 派生锚(防漂移 fail-closed):glue 插件与画像生成脚本必须保留
+ *         「cwd 基 + .eterna/memory.sqlite3 + 与库同目录 portrait.md」的
+ *         默认派生形态——重构改道即红,同步规则再对账。
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
@@ -18,6 +27,23 @@ import { error, hasErrors, type Finding } from './types.ts'
 const ROUTE_API_PATTERN = /webServer\.register|registerFallback|registerUpgrade|\.fetch\.register|\.rpc\.(handle|intercept)/
 const WORKSPACE_REGISTRY_WRITE = /workspace\.json/
 const ABSOLUTE_PERSIST_PATTERN = /['"`]\/(?:data|root|home|tmp)\//
+
+/**
+ * T4 memory 持久化路径派生行:提及 dbPath/portrait 或库名/画像文件名本身,
+ * 且构成/落地一个路径(join/resolve 调用、memory.sqlite3/portrait.md 文件名
+ * 字面量或 tmpdir 基)。仅在派生行上判逃逸,普通引用(类型声明/传参)不扫
+ * ——规则面收敛在「路径从哪来」;变量名不叫 dbPath 的逃逸同样落网。
+ */
+const MEMORY_PATH_LINE = /dbpath|portrait|memory\.sqlite3/i
+const MEMORY_PATH_DERIVES = /join\(|resolve\(|memory\.sqlite3|portrait\.md|tmpdir\(\)/
+/** 派生行禁出现的基:临时目录(与 T1 持久化纪律同源,mem 库绝不去 tmp)。 */
+const MEMORY_PATH_TMPDIR = /tmpdir\(\)/
+/** 派生行禁出现的绝对路径字面量(整个引号内串以 / 开头;cwd 基被顶掉即逃逸)。 */
+const MEMORY_PATH_ABSOLUTE = /['"`]\/[\w.-]+(?:\/[\w.-]+)*['"`]/
+/** 派生行禁出现的 `..` 逃逸段(字面量以 .. 开头,或路径中段含 /..)。 */
+const MEMORY_PATH_ESCAPE = /['"`]\.\.(?:\/|\\|['"`])|\/\.\.(?:\/|['"`])/
+/** 模块说明行(import/export … from '…'):相对说明符是代码组织,不是持久化路径。 */
+const MODULE_SPECIFIER_LINE = /^\s*(?:import|export)\b/
 
 const GATEKEEPER_PACKAGE = 'access'
 
@@ -88,6 +114,37 @@ interface SourceFile {
   readonly text: string
 }
 
+/**
+ * T4 派生锚(19 §3-T5/18 §9.1):eterna-memory 持久化默认派生的「在场证明」,
+ * fail-closed 防漂移——dbPath 默认必须锚在 cwd(DSH_HOME 语义 working_dir)下
+ * 的 .eterna/,portrait 恒与库同目录。锚片段缺席即红;确属改道(如派生基换
+ * 经守卫分配的显式 workspace 路径)须连同本表与 docs/PLUGIN-AUTHORING.md §1.1
+ * 一并再对账,不许静默绕过。包目录在场才核验(合成仓库只含部分包时不误报)。
+ */
+const MEMORY_PERSIST_ANCHORS: readonly {
+  readonly pkg: string
+  readonly file: string
+  readonly requires: readonly string[]
+}[] = [
+  {
+    pkg: 'glue',
+    file: 'src/plugins/memory-plugin.ts',
+    requires: [
+      "join(cwd, '.eterna/memory.sqlite3')", // dbPath 默认 = cwd 基 .eterna/(配置注入的隔离目录走 config.dbPath,不在静态面)
+      'dirname(dbPath)', // portrait 缓存与库同目录(19 §3-T4)
+      "PORTRAIT_CACHE_FILENAME = 'portrait.md'",
+    ],
+  },
+  {
+    pkg: 'memory',
+    file: 'scripts/gen-portrait.mjs',
+    requires: [
+      "join(process.cwd(), '.eterna/memory.sqlite3')", // 手动生成器同款 cwd 基默认
+      "join(dirname(dbPath), 'portrait.md')", // 输出恒为与库同目录的 portrait.md
+    ],
+  },
+]
+
 function listSources(root: string, rel: string, out: SourceFile[]): void {
   const full = join(root, rel)
   const entries = readdirSync(full)
@@ -137,6 +194,35 @@ export function tenantScan(repoRoot: string): readonly Finding[] {
         if (ABSOLUTE_PERSIST_PATTERN.test(clean) && !source.rel.includes('tests/')) {
           findings.push(error('tenant/hardcoded-persist-path', path, '持久化路径禁止硬编码容器绝对路径——使用 $DSH_HOME/cwd 相对基路径(铁律 T1;部署契约 working_dir=home)'))
         }
+        // T4:memory 持久化路径(dbPath/portrait)派生逃逸(测试文件豁免;
+        // import/export 模块说明行豁免——相对说明符是代码组织,不是持久化路径)
+        if (MEMORY_PATH_LINE.test(clean) && MEMORY_PATH_DERIVES.test(clean)
+          && !source.rel.includes('tests/') && !MODULE_SPECIFIER_LINE.test(clean)) {
+          const escapeKind = MEMORY_PATH_TMPDIR.test(clean) ? 'os.tmpdir() 基'
+            : MEMORY_PATH_ABSOLUTE.test(clean) ? '绝对路径字面量'
+              : MEMORY_PATH_ESCAPE.test(clean) ? '`..` 逃逸段' : ''
+          if (escapeKind !== '') {
+            findings.push(error('tenant/memory-persist-escape', path,
+              `memory 持久化路径(dbPath/portrait)派生混入${escapeKind}——必须落在 workspace 派生目录:cwd 基 join 相对子路径(铁律 T4,18 §9.1;测试隔离目录走 config 注入,不在静态面)`))
+          }
+        }
+      }
+    }
+    // T4 派生锚:memory 持久化默认派生的在场证明(本包目录在场才核验,防漂移)
+    for (const anchor of MEMORY_PERSIST_ANCHORS) {
+      if (anchor.pkg !== pkg) continue
+      let text: string
+      try {
+        text = readFileSync(join(pkgDir, anchor.file), 'utf8')
+      } catch {
+        findings.push(error('tenant/memory-persist-anchor-missing', `${pkg}/${anchor.file}`,
+          'memory 持久化派生锚文件缺失或不可读——T4 失锚即红:恢复 workspace 派生默认(cwd 基 .eterna/memory.sqlite3 + 与库同目录 portrait.md),或确属改道则同步 tenant.ts MEMORY_PERSIST_ANCHORS 与 docs/PLUGIN-AUTHORING.md §1.1 再对账'))
+        continue
+      }
+      const missing = anchor.requires.filter(piece => !text.includes(piece))
+      if (missing.length > 0) {
+        findings.push(error('tenant/memory-persist-anchor-missing', `${pkg}/${anchor.file}`,
+          `memory 持久化默认派生锚缺失(${missing.join(';')})——dbPath/portrait 必须落在 workspace 派生目录(铁律 T4,18 §9.1);确属改道则同步 tenant.ts MEMORY_PERSIST_ANCHORS 与 docs/PLUGIN-AUTHORING.md §1.1 再对账`))
       }
     }
   }
