@@ -123,18 +123,20 @@ for (const [account, list] of byAccount) {
   console.log(`[memory] ${account}:写入 ${list.length} 行 → ${dbFile}`)
 }
 
-// 迁移完成后把全局库改名归档(路由面不再读它;物理留档可审计)
+// 迁移完成后把全局库改名归档(路由面不再读它;物理留档可审计)。
+// 2026-11-16 修复:WAL 模式下数据可能仍在 -wal 未 checkpoint——**三件一起 rename**
+// (主文件+-wal+-shm),只 rename 主文件会把 WAL 留在原位导致归档库缺数据表
+// (生产 0.1.2 首次迁移实测:归档库 sqlite_master 为空)。
 const archivePath = `${globalDbPath}.migrated-${Date.now()}`
 try {
   readFileSync(globalDbPath) // 触发存在性检查
   const { renameSync } = await import('node:fs')
   renameSync(globalDbPath, archivePath)
-  const { rmSync } = await import('node:fs')
   for (const suffix of ['-wal', '-shm']) {
-    if (existsSync(globalDbPath + suffix)) rmSync(globalDbPath + suffix)
+    if (existsSync(globalDbPath + suffix)) renameSync(globalDbPath + suffix, archivePath + suffix)
   }
-  console.log(`[memory] 全局库已归档:${archivePath}(归档行 ${archived} 无法归属,只读留档)`)
-} catch {
-  console.log('[memory] 全局库归档改名失败(卷只读?):保留原名,路由面不再读取')
+  console.log(`[memory] 全局库已归档:${archivePath}(含 -wal/-shm;归档行 ${archived} 无法归属,只读留档)`)
+} catch (error) {
+  console.log(`[memory] 全局库归档改名失败,保留原名(路由面不再读取):${error instanceof Error ? error.message : String(error)}`)
 }
 console.log(`[memory] 迁移完成:共 ${migrated} 行 → ${byAccount.size} 个账号库`)
