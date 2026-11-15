@@ -26,13 +26,8 @@ const log = (line) => console.log(`[gate-setup] ${line}`)
 const appendBoot = (chunk) => appendFileSync(join(tmpdir(), 'gate-boot.log'), chunk)
 
 // ── 0. key 与 relay base ──────────────────────────────────────────────
-<<<<<<< HEAD
 const MIMO_API_KEY = process.env.MIMO_API_KEY ?? SECRET('mimo-api-key.txt')
-const LLM_BASE = process.env.MIMO_BASE_URL(可空,默认固化直连) ?? 'https://api.xiaomimimo.com/v1'
-=======
-const LITELLM_API_KEY = process.env.LITELLM_API_KEY ?? SECRET('litellm-master-key.txt')
-const LLM_BASE = process.env.ETERNA_LLM_BASE_URL ?? 'http://manas:4000/v1'
->>>>>>> origin/main
+const LLM_BASE = process.env.MIMO_BASE_URL ?? 'https://api.xiaomimimo.com/v1'
 const ADMIN_USER = process.env.ETERNA_ACCESS_ADMIN_USER ?? 'gate-admin'
 const ADMIN_PASSWORD = process.env.ETERNA_ACCESS_ADMIN_PASSWORD ?? `gate-${Math.random().toString(36).slice(2, 12)}`
 const ADMIN_SECRET = process.env.ETERNA_ACCESS_SECRET ?? `sec-${Math.random().toString(36).slice(2, 18)}`
@@ -43,7 +38,7 @@ mkdirSync(join(PROFILE, 'node_modules/@eterna'), { recursive: true })
 mkdirSync(join(PROFILE, 'node_modules/@deepseek-ai'), { recursive: true })
 
 const rendered = readFileSync(TEMPLATE, 'utf8')
-  .replaceAll('__MIMO_BASE_URL(可空,默认固化直连)__', LLM_BASE)
+  .replaceAll('__MIMO_BASE_URL__', LLM_BASE)
 // 模型收敛：验收用 mimo-v2.6-flash（渲染后从 models 列表删除 deepseek-flash 块）
 const noDeepseek = rendered.replace(
   /\n          - id: deepseek-flash\n(?:            .*\n)*/,

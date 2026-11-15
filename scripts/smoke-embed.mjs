@@ -24,7 +24,7 @@
  *
  * 凭据纪律：MIMO_API_KEY 从启动环境读（缺省兜底 .secrets/mimo-api-key.txt，
  * 只进子进程环境，不进任何被跟踪文件/日志/argv）；网关 BASE_URL 从
- * MIMO_BASE_URL(可空,默认固化直连) 环境读（缺省兜底 .secrets/mimo 直连 baseURL(固化).txt 自查）。
+ * MIMO_BASE_URL 环境读（缺省兜底 .secrets/mimo 直连 baseURL(固化).txt 自查）。
  *
  * 用法：
  *   MIMO_API_KEY=$(cat .secrets/mimo-api-key.txt) node scripts/smoke-embed.mjs
@@ -87,14 +87,14 @@ if (!existsSync(join(eternaLlmDir, 'lib', 'index.js'))) {
 const secretsDir = join(repoRoot, '.secrets')
 const apiKey = process.env.MIMO_API_KEY
   ?? readIfExists(join(secretsDir, 'mimo-api-key.txt'))?.trim()
-const baseURL = process.env.MIMO_BASE_URL(可空,默认固化直连)
+const baseURL = process.env.MIMO_BASE_URL
   ?? readIfExists(join(secretsDir, 'mimo 直连 baseURL(固化).txt'))?.trim()
 if (!apiKey) {
   console.error('smoke-embed: MIMO_API_KEY missing — export it (e.g. MIMO_API_KEY=$(cat .secrets/mimo-api-key.txt)) or provide the secrets file')
   process.exit(1)
 }
 if (!baseURL) {
-  console.error('smoke-embed: gateway BASE_URL missing — set MIMO_BASE_URL(可空,默认固化直连) or provide .secrets/mimo 直连 baseURL(固化).txt')
+  console.error('smoke-embed: gateway BASE_URL missing — set MIMO_BASE_URL or provide .secrets/mimo 直连 baseURL(固化).txt')
   process.exit(1)
 }
 console.log(`smoke-embed: gateway ${baseURL} (key source: ${process.env.MIMO_API_KEY ? 'env MIMO_API_KEY' : '.secrets/mimo-api-key.txt'})`)
@@ -135,7 +135,7 @@ const ws = mkdtempSync(join(tmpdir(), 'eterna-embed-smoke-'))
 
 const child = spawn(process.execPath, [dshBin, '--profile', profileName, '--json', TASK], {
   cwd: ws,
-  env: { ...process.env, DSH_HOME: home, MIMO_API_KEY: apiKey, MIMO_BASE_URL(可空,默认固化直连): baseURL },
+  env: { ...process.env, DSH_HOME: home, MIMO_API_KEY: apiKey, MIMO_BASE_URL: baseURL },
   stdio: ['ignore', 'pipe', 'pipe'],
 })
 

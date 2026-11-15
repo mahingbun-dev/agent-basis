@@ -14,7 +14,7 @@
  * 前缀 P 为确定性文本（约 1.6KB / 数百 token，远超 DeepSeek 缓存 64-token 块粒度）。
  *
  * 凭据纪律：MIMO_API_KEY 从启动环境读（缺省兜底 .secrets/mimo-api-key.txt），
- * 网关 BASE_URL 从 MIMO_BASE_URL(可空,默认固化直连) 读（缺省兜底 .secrets/mimo 直连 baseURL(固化).txt）；
+ * 网关 BASE_URL 从 MIMO_BASE_URL 读（缺省兜底 .secrets/mimo 直连 baseURL(固化).txt）；
  * key 只进请求头，不进日志/落盘文件/argv。
  *
  * 退出码：0 = 测量完成并写入 docs/perf-realsession.json；1 = 网关调用失败。
@@ -35,9 +35,9 @@ const readSecret = (file) => {
 }
 
 const apiKey = process.env.MIMO_API_KEY || readSecret('mimo-api-key.txt')
-const baseUrl = (process.env.MIMO_BASE_URL(可空,默认固化直连) || 'https://api.xiaomimimo.com/v1').replace(/\/$/, '')
+const baseUrl = (process.env.MIMO_BASE_URL || 'https://api.xiaomimimo.com/v1').replace(/\/$/, '')
 if (!apiKey || !baseUrl) {
-  console.error('perf-realsession: 缺少 MIMO_API_KEY 或 MIMO_BASE_URL(可空,默认固化直连)（且 .secrets 兜底不可读）——如实失败，不伪造')
+  console.error('perf-realsession: 缺少 MIMO_API_KEY 或 MIMO_BASE_URL（且 .secrets 兜底不可读）——如实失败，不伪造')
   process.exit(1)
 }
 const MODEL = 'deepseek-flash'
