@@ -5,6 +5,13 @@ FROM node:24-bookworm-slim AS build
 RUN corepack enable
 WORKDIR /repo
 COPY . .
+# pnpm run 前的 depsStatusCheck 强制关闭(2026-11-16):仓库 .npmrc 的两种拼写
+# (verify-deps-before-run/verifyDepsBeforeRun=false)在容器内未拦住该自检,
+# 它以单包 scope 触发子 install,解析 rc.1 依赖树中的私有 optional 包
+# (@deepseek-ai/dsh-type-meta)在公网 registry 404 → build 链路断。ENV 优先级
+# 最高;dsh 内核升 rc.1 且私有包可公网解析后可移除。
+ENV npm_config_verify_deps_before_run=false \
+    npm_config_verifyDepsBeforeRun=false
 # zip：companion 扩展分发包打包需要（仅 build 阶段，runtime 不带）
 # build:client=dsh 客户端半边 bundle（access/panel/brand 等）；build=各包产物
 # （browser-relay relay+mcp dist、extension-companion dist+zip、llm-openai tsc）
