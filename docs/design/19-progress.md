@@ -79,7 +79,10 @@ S-1~S-5 五项勘察已全部 resolved(结论/证据路径/退路三段式),见 
 ## 7. 遗留事项(如实)
 
 1. **隔离 profile 全链路 E2E 未自动执行**(指定):19 §4-M-M2 与 §9-3 要求的隔离 profile E2E(会话 A 学偏好 → 会话尾整固 → pending 审批 → 会话 B 索引命中;双账号互不可见)未建自动脚本——`scripts/` 仅 `t7-e2e.mjs`、`verify-governance-e2e.mjs` 两个既有其他流脚本,无 memory 专项 E2E;隔离语义目前仅由 packctl tenant-scan 规则 + 单测面覆盖。
-2. **UI 深浅主题截图待人工补 PR**(指定):AGENTS.md 前端铁律与 19 §5-T12 要求新增 UI 的 PR 附深浅两主题截图并按 frontend-style §4 清单自查;当前暂存区无任何截图资产(memory client 四件与 panel 画像卡已实现,截图须随 PR 人工补充)。
+2. **UI 深浅主题截图待人工补 PR**(指定;**2026-11-15 已用 ego lite 完成验收截图**):AGENTS.md 前端铁律与 19 §5-T12 要求新增 UI 的 PR 附深浅两主题截图并按 frontend-style §4 清单自查。
+   - **2026-11-15 增量**:隔离容器(独立卷 3108→改 3110,挂载 memory/panel/glue 三包+模板+宽松 peer glue 副本)+ ego lite 完成深浅两主题共 12 张截图,落 `gui-test-screenshots/memory-t13-1115/`(设置记忆分区/会话域 chip/基座面板画像卡+审批+功能域+记忆指标,深浅各半);视觉验收(图像模型逐张)通过:指标数值与种子数据一致、四分节画像+逐节「纠正此项」、审批队列记住/跳过、域浏览 2 域均正确渲染。
+   - 验收顺带**实跑发现的缺口与修复**:① entrypoint §3 symlink 清单缺 `memory`(行被静默 disable)——已补并 staged;② docker 模板缺 `eterna-panel` Host 行(基座面板浏览器半边从未进花名册,**历史缺口**)——已补并 staged;③ **T12-④ Sources 行未渲染**(实测会话中 memory_search 已执行、回复含检索结果,但 `sources-row` 节点不出现)——疑似 turnTail 事件累计口径与 dsh 运行时事件形状不符(S3 当时以既有证据置信、未实跑抓包),**待修**;④ 面板域浏览「记忆 N 条」恒 0(memory_count 无维护者,M-M1 评审发现的回归);⑤ 轻微 UI:指标行右端贴边截断、小号浅灰标签对比度偏低(frontend-style §4 可访问性边缘项)。
+   - 容器内另见:web 多用户下面板/记忆库路径跟随**宿主进程 cwd**(单容器单租户形态 = /data/.eterna 全局库)——多租户 web 部署的记忆分库归属需专项确认(tenant-scan 规则已覆盖 dbPath 派生面,运行时 cwd 语义待核)。
 3. **M-M4 全局蒸馏未启动(范围外)**(指定):19 §9 明示 M-M4 依赖 ai-evo 连通、不在本文档范围;§6 的 `distill?: { enabled: false }` 配置键未落(全仓 grep 仅 `client/settings.tsx:286` 占位禁用态复选框,文案按 Q4 默认关处理),M-M4 启动时需补配置键。
 4. **prompt-studio registry.test.ts 2 例红**(核验发现):`runtime.glue.memory-plugin` 条目锚点行号漂移——`packages/prompt-studio/src/registry.ts:441` 钉 `packages/glue/src/plugins/memory-plugin.ts:171` 须含片段 `attachMemory(dshHost(ctx)`,M-M2 挂载面扩写后该片段实际移至 :173(:171 现为 domainOf 相关行);属 M-M2 改动未同步 T5 锚点的回归债,修复 = 锚点行号 171→173 一行对齐后复跑(本记录仅如实登记,不改代码)。
 5. **T13 五项验收指标专项采集面未落地**(核验发现;**2026-11-15 已起步落地**):域打标准确率/晋升提案采纳率/审批卡片响应时长/画像纠正率/索引预算占用分布均无专项采集(全仓 grep 无命中);此为 18 §13 的 Q3 抽样降档与 Q2 归并质量前置证据,首月数据落 panel 的 §9-6 验收项未就位。
