@@ -11,7 +11,13 @@ COPY . .
 # (@deepseek-ai/dsh-type-meta)在公网 registry 404 → build 链路断。ENV 优先级
 # 最高;dsh 内核升 rc.1 且私有包可公网解析后可移除。
 ENV npm_config_verify_deps_before_run=false \
-    npm_config_verifyDepsBeforeRun=false
+    npm_config_verifyDepsBeforeRun=false \
+    npm_config_auto_install_peers=false
+# auto-install-peers=false(2026-11-16):glue 新增 @deepseek-ai/* peer(catalog:
+# rc.1)后,主 install 的 peer 自动安装开始解析 rc.1 依赖树中的私有 optional 包
+# (@deepseek-ai/dsh-type-meta)公网 404 → frozen install 断。关掉后 install 只走
+# lockfile(本地实测 exit 0);peer 语义由下方 peer 对齐步 + 运行时全局内核满足。
+# dsh 内核升 rc.1 且私有包可公网解析后一并移除。
 # zip：companion 扩展分发包打包需要（仅 build 阶段，runtime 不带）
 # build:client=dsh 客户端半边 bundle（access/panel/brand 等）；build=各包产物
 # （browser-relay relay+mcp dist、extension-companion dist+zip、llm-openai tsc）
