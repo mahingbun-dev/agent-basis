@@ -66,3 +66,8 @@ onlyBuiltDependencies:
   - '@deepseek-ai/dsh-subprocess-local'
   - koffi
   - node-pty
+
+# pnpm 11 权威设置位(2026-11-16):镜像构建期 -r run 前的 depsStatusCheck
+# 子 install 会重解析 glue 新 peer 树,私有 optional 包公网 404 → 构建断。
+# .npmrc 与 npm_config_* ENV 均拦不住,唯此处生效(容器实测)。
+verifyDepsBeforeRun: false
