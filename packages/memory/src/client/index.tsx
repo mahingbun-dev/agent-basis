@@ -127,21 +127,30 @@ export function apply(ctx: MemoryClientContext): () => void {
     inject: () => ({ t, connection: ctx.connection }),
   }, DomainChip))
   // ④ Sources 行数据面:会话事件累计器(turn 归并 memory_read/memory_search 命中)。
-  try {
-    ctx.uiConversation.events.register(memorySourcesDefinition)
-    console.info('[memory-sources:apply]', 'definition registered')
-  } catch (error) {
-    console.error('[memory-sources:apply]', 'register failed:', error)
-  }
+  ctx.uiConversation.events.register(memorySourcesDefinition)
   // ④ Sources 行呈现:turnTail 槽位(completed Turn 动作行前;无数据不挂载)。
-  ctx.slots.inject('conversation.chat.turnTail', () => ctx.slots.register({
-    name: 'conversation.chat.turnTail',
-    id: 'eterna-memory.sources',
-    locale: NS,
-    inject: () => ({
-      t,
-      openPanel: (): void => { ctx.layout.selectMainPanel(PANEL_MAIN_KEY) },
-    }),
-  }, MemorySourcesTailEntry))
+  // 2026-11-16 取证(隔离容器,localStorage 硬探针 + React fiber 反查):Definition
+  // 数据面全链路通——match/累计/Location 发布正常,owner.turn.data.get('memory-sources')
+  // 返回命中条目;但 slots 条目注册对会话作用域 slot 未生效(turnTail 锚内只有
+  // compaction 同形注册的条目,M-C4;我方缺席且延时重挂无效)。属宿主 slots 会话
+  // 作用域条目合并的版本行为(chat rc.1),非本包可修;升版后本注册零改动生效。
+  // 双挂载(立即+延时一拍)保留:对 slot 声明面晚就绪的宿主形态是真实兼容。
+  const registerSourcesEntry = (): void => {
+    ctx.slots.inject('conversation.chat.turnTail', () => ctx.slots.register({
+      name: 'conversation.chat.turnTail',
+      id: 'eterna-memory.sources',
+      locale: NS,
+      inject: () => ({
+        t,
+        openPanel: (): void => { ctx.layout.selectMainPanel(PANEL_MAIN_KEY) },
+      }),
+    }, MemorySourcesTailEntry))
+  }
+  registerSourcesEntry()
+  // 延时一拍(微任务链排空后的宏任务边界):vm 沙箱无 setTimeout,走 window 保证
+  // 浏览器/vm 两态都有定义;不可用(极端环境)静默跳过——双挂载是兼容面不是硬依赖。
+  if (typeof window !== 'undefined' && typeof window.setTimeout === 'function') {
+    window.setTimeout(registerSourcesEntry, 0)
+  }
   return disposeLocale
 }
