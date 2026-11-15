@@ -28,10 +28,10 @@ describe('EternaPanelGateway(Typert SRC 端点)', () => {
     expect(REVIEW_ENDPOINT).toBe('eternaPanel/review')
   })
 
-  it('原型携带 @Remote marker(手工施加等价于装饰器糖):snapshot + review(M-M2 T9)+ trackCorrection(T13)', () => {
+  it('原型携带 @Remote marker(手工施加等价于装饰器糖):snapshot + review + reviewForAccount(M-T2)+ trackCorrection(T13)', () => {
     const markers = remoteMethods(Object.create(EternaPanelGateway.prototype) as object)
-    expect(markers).toHaveLength(3)
-    expect(markers.map(marker => marker.method).sort()).toEqual(['review', 'snapshot', 'trackCorrection'])
+    expect(markers).toHaveLength(4)
+    expect(markers.map(marker => marker.method).sort()).toEqual(['review', 'reviewForAccount', 'snapshot', 'trackCorrection'])
     // typert mark() 规则:exportName 与方法同名时省略,网关按 exportName ?? method 解析
     const snapshot = markers.find(marker => marker.method === 'snapshot')
     expect(snapshot?.exportName ?? snapshot?.method).toBe('snapshot')
@@ -42,7 +42,7 @@ describe('EternaPanelGateway(Typert SRC 端点)', () => {
     // 不经构造器(避免注册服务);直接验证方法体可调用——给伪 ctx 返回空状态。
     const fakeCtx = { get: (): undefined => undefined } as never
     Object.defineProperty(gateway, 'ctx', { value: fakeCtx })
-    const result = await gateway.snapshot.call({ ctx: fakeCtx })
+    const result = await gateway.snapshot()
     expect(result.generatedAt).toBeTruthy()
     expect(result.governance.ruleCount).toBe(0)
     expect(result.observability.sessions).toEqual([])

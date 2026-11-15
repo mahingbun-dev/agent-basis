@@ -133,6 +133,10 @@ const MEMORY_PERSIST_ANCHORS: readonly {
       "join(cwd, '.eterna/memory.sqlite3')", // dbPath 默认 = cwd 基 .eterna/(配置注入的隔离目录走 config.dbPath,不在静态面)
       'dirname(dbPath)', // portrait 缓存与库同目录(19 §3-T4)
       "PORTRAIT_CACHE_FILENAME = 'portrait.md'",
+      // 多租户路由面(23 号 M-T1/M-T2):per-account 路由与账号服务面在场——
+      // 全局库仅作本地单用户/legacy 形态,多用户部署必须走 workspaces/<账号> 分库
+      "'eterna-memory-accounts'",
+      'MemoryAccountRouter',
     ],
   },
   {

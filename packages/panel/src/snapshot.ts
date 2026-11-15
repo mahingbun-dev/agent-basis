@@ -407,13 +407,13 @@ function readObservability(sessionsRoot?: string): ObservabilitySnapshot {
 }
 
 /** 组装完整快照(Host 侧 eternaPanel/snapshot 的方法体)。 */
-export function buildSnapshot(ctx: Context, cwd = process.cwd(), sessionsRoot?: string): EternaPanelSnapshot {
+export function buildSnapshot(ctx: Context, cwd = process.cwd(), sessionsRoot?: string, memoryDbPath?: string): EternaPanelSnapshot {
   const rulesPath = join(cwd, '.eterna', 'governance.rules.yml')
   return {
     generatedAt: new Date().toISOString(),
     workspace: cwd,
     governance: readGovernance(ctx, cwd, rulesPath),
-    memory: readMemory(join(cwd, '.eterna', 'memory.sqlite3')),
+    memory: readMemory(memoryDbPath ?? join(cwd, '.eterna', 'memory.sqlite3')),
     knowledge: readKnowledge(join(cwd, '.eterna', 'knowledge.sqlite3')),
     tools: readEventTools(ctx),
     observability: readObservability(sessionsRoot),

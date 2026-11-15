@@ -99,12 +99,14 @@ describe('packctl tenant-scan 铁律', () => {
     expect(findings.map(f => f.path)).toContain('glue/src/plugins/memory-plugin.ts')
   })
 
-  it('T4 派生锚:glue/memory 的现行默认派生形态过检(cwd 基库 + 同目录画像)', () => {
+  it('T4 派生锚:glue/memory 的现行默认派生形态过检(cwd 基库 + 同目录画像 + M-T2 路由面)', () => {
     makeFile(dir, join('glue', 'src', 'plugins', 'memory-plugin.ts'), [
       'const cwd = process.cwd()',
       "const dbPath = config.dbPath ?? join(cwd, '.eterna/memory.sqlite3')",
       "const PORTRAIT_CACHE_FILENAME = 'portrait.md'",
       '...readPortraitCache(join(dirname(dbPath), PORTRAIT_CACHE_FILENAME)),',
+      "provide2('eterna-memory-accounts', accountsFace),",
+      'router = new MemoryAccountRouter({',
     ].join('\n'))
     makeFile(dir, join('memory', 'scripts', 'gen-portrait.mjs'), [
       "const dbPath = resolve(process.argv[2] ?? join(process.cwd(), '.eterna/memory.sqlite3'))",

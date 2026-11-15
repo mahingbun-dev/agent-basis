@@ -233,6 +233,28 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
             return router?.forAccount(account)
           },
         }
+        // M-T2 账号路由面('eterna-memory-accounts'):panel SRC 端点消费——
+        // principal userId → 账号 → 该账号 Memory/库路径;越权在解析面即不可达。
+        // global 部署也 provide(账号面空、memory/dbPath 回落全局),panel 统一走此面。
+        const provide2 = (ctx as unknown as { provide?: (id: string, value: unknown) => () => void }).provide
+        if (provide2 !== undefined) {
+          const accountsFace = {
+            accountOfUser: (userId: number): string | undefined =>
+              routed && accessFace !== undefined ? accessFace.getUserById(userId)?.account : undefined,
+            memoryForAccount: (account: string): Memory | undefined => {
+              if (!routed) return auditedMemory
+              const dir = join(tenantRoot, account)
+              if (!existsSync(dir)) return undefined
+              return router?.forAccount(account) ?? createDeniedMemory()
+            },
+            dbPathForAccount: (account: string): string | undefined => {
+              if (!routed) return dbPath
+              const dir = join(tenantRoot, account)
+              return existsSync(dir) ? join(dir, '.eterna', 'memory.sqlite3') : undefined
+            },
+          }
+          provide2('eterna-memory-accounts', accountsFace)
+        }
       }
       const detachMemory = attachMemory(dshHost(ctx), auditedMemory, {
         index: resolveIndexOptions,

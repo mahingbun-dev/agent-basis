@@ -25,6 +25,13 @@ export const REVIEW_ENDPOINT = `${ETERNA_PANEL_SERVICE_ID}/review`
 export const CORRECTION_ENDPOINT = `${ETERNA_PANEL_SERVICE_ID}/trackCorrection`
 
 /**
+ * 多租户账号路由面服务 id(23 号 M-T2):glue memory-plugin 在 routed 模式
+ * provide(账号→Memory/库路径);global 部署也 provide(账号面空、回落全局)。
+ * panel 不引依赖,消费侧字面量对齐。
+ */
+export const ETERNA_MEMORY_ACCOUNTS_SERVICE_ID = 'eterna-memory-accounts'
+
+/**
  * Memory 服务的注册 id(glue memory-plugin 经 ctx.provide 注册 '@eterna/memory',
  * 见 packages/memory/src/memory.ts MEMORY_SERVICE_ID;字面量对齐,panel 不引依赖)。
  */
@@ -68,6 +75,17 @@ interface AccessStoreView {
   getUserById(id: number): { role?: string } | undefined
 }
 
+/**
+ * 多租户账号路由面(23 号 M-T2):glue memory-plugin 在 'eterna-memory-accounts'
+ * 提供的账号级原语(结构子集)——principal userId → 账号 → 该账号的 Memory/库路径。
+ * global 部署(本地单用户)glue 也 provide 此面(账号面恒空、memory/dbPath 回落全局)。
+ */
+interface AccountsFaceLike {
+  accountOfUser(userId: number): string | undefined
+  memoryForAccount(account: string): MemoryServiceLike | undefined
+  dbPathForAccount(account: string): string | undefined
+}
+
 /** 裁决端点结果(纯 JSON;ok=false 时 code + 中文 message)。 */
 export type MemoryReviewResult =
   | { readonly ok: true; readonly record: MemoryReviewRecordView | null }
@@ -84,9 +102,29 @@ export class EternaPanelGateway extends TypertRemoteService {
     super(ctx, ETERNA_PANEL_SERVICE_ID)
   }
 
-  /** 面板快照:见 types.ts EternaPanelSnapshot(纯 JSON,无参数端点)。 */
+  /**
+   * 登录账号上下文(23 号 M-T2):eterna-user principal → userId → 账号路由面
+   * → { account, memory, dbPath }。principal 非 eterna-user(unary owner 旧形态
+   * /本地部署)或路由面缺席 → undefined(调用方回落全局 service/路径)。
+   */
+  private accountContext(): { account: string; memory: MemoryServiceLike; dbPath: string } | undefined {
+    const invocation = (this.ctx as { invocation?: { principal?: { kind?: string; userId?: number } } } | undefined)?.invocation
+    const principal = invocation?.principal
+    if (principal === undefined || principal.kind !== 'eterna-user' || typeof principal.userId !== 'number') return undefined
+    const accounts = this.ctx.get(ETERNA_MEMORY_ACCOUNTS_SERVICE_ID) as AccountsFaceLike | undefined
+    if (accounts === undefined) return undefined
+    const account = accounts.accountOfUser(principal.userId)
+    if (account === undefined) return undefined
+    const memory = accounts.memoryForAccount(account)
+    const dbPath = accounts.dbPathForAccount(account)
+    if (memory === undefined || dbPath === undefined) return undefined
+    return { account, memory, dbPath }
+  }
+
+  /** 面板快照:见 types.ts EternaPanelSnapshot(纯 JSON,无参数端点)。M-T2:登录账号路由记忆库。 */
   snapshot(): Promise<EternaPanelSnapshot> {
-    return Promise.resolve(buildSnapshot(this.ctx))
+    const accountCtx = this.accountContext()
+    return Promise.resolve(buildSnapshot(this.ctx, undefined, undefined, accountCtx?.dbPath))
   }
 
   /**
@@ -100,6 +138,47 @@ export class EternaPanelGateway extends TypertRemoteService {
    */
   review(payload: unknown): Promise<MemoryReviewResult> {
     return Promise.resolve(this.reviewSync(payload))
+  }
+
+  /**
+   * 记忆裁决(M-T2 登录账号路由版):eterna-user principal → 本人账号库的
+   * Memory.review(谁的会话谁审,越权在解析面即不可达);旧形态(unary owner
+   * /本地单用户)回落全局 service。unavailable = 路由面与全局服务双缺席。
+   */
+  reviewForAccount(payload: unknown): Promise<MemoryReviewResult> {
+    const accountCtx = this.accountContext()
+    if (accountCtx === undefined) return Promise.resolve(this.reviewSync(payload))
+    if (typeof payload !== 'object' || payload === null) {
+      return Promise.resolve({ ok: false, code: 'invalid', message: '请求体必须是对象' })
+    }
+    const input = payload as Record<string, unknown>
+    const id = input.id
+    const decision = input.decision
+    if (typeof id !== 'number' || !Number.isSafeInteger(id) || id < 0) {
+      return Promise.resolve({ ok: false, code: 'invalid', message: 'id 必须是非负安全整数' })
+    }
+    if (decision !== 'approved' && decision !== 'rejected') {
+      return Promise.resolve({ ok: false, code: 'invalid', message: "decision 只允许 'approved' | 'rejected'" })
+    }
+    try {
+      const record = accountCtx.memory.review(id, decision)
+      return Promise.resolve({
+        ok: true,
+        record: record === null ? null : {
+          id: record.id,
+          subject: record.subject,
+          key: record.key,
+          reviewState: record.reviewState,
+          invalidAt: record.invalidAt,
+        },
+      })
+    } catch (error) {
+      return Promise.resolve({
+        ok: false,
+        code: 'unavailable',
+        message: `裁决执行失败:${error instanceof Error ? error.message : String(error)}`,
+      })
+    }
   }
 
   /**
@@ -190,6 +269,7 @@ export class EternaPanelGateway extends TypertRemoteService {
 
 applyRemoteMarker(EternaPanelGateway.prototype, 'snapshot', 'snapshot')
 applyRemoteMarker(EternaPanelGateway.prototype, 'review', 'review')
+applyRemoteMarker(EternaPanelGateway.prototype, 'reviewForAccount', 'reviewForAccount')
 applyRemoteMarker(EternaPanelGateway.prototype, 'trackCorrection', 'trackCorrection')
 
 export type { EternaPanelSnapshot, MemoryReviewRecordView } from './types.ts'

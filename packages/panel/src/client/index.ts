@@ -29,6 +29,9 @@ export const SNAPSHOT_ENDPOINT = 'eternaPanel/snapshot'
 /** 记忆裁决端点(M-M2 T9 审批闭环:待审记忆批/拒,Host 半边同网关)。 */
 export const REVIEW_ENDPOINT = 'eternaPanel/review'
 
+/** 登录账号路由裁决端点(23 号 M-T2:eterna-user 走本人账号库;Host 半边同网关)。 */
+export const REVIEW_ACCOUNT_ENDPOINT = 'eternaPanel/reviewForAccount'
+
 /** 画像纠正留痕端点(T13 纠正率分子:纠正动作写审计行,Host 半边同网关)。 */
 export const CORRECTION_ENDPOINT = 'eternaPanel/trackCorrection'
 
@@ -93,7 +96,7 @@ export function apply(ctx: PanelClientContext): () => void {
   // 快照(队列即时出队)。防重复点击由调用侧 busy 态负责,这里不改全局态。
   const review = async (id: number, decision: 'approved' | 'rejected'): Promise<ReviewOutcome> => {
     try {
-      const result = await ctx.connection.rpc.call('/api', REVIEW_ENDPOINT, { args: { id, decision } })
+      const result = await ctx.connection.rpc.call('/api', REVIEW_ACCOUNT_ENDPOINT, { args: { id, decision } })
       if (result.ok) {
         refresh()
         return { ok: true }
