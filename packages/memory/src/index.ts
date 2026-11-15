@@ -139,6 +139,8 @@ export type {
   DreamAuditEntry, GateAuditEntry, MemoryAuditCard, MemoryAuditEvent, MemoryAuditLedgerOptions,
   MemoryAuditPendingItem, ProposalAuditEntry, ReviewAuditEntry,
 } from './audit.ts'
+export { MemoryAccountRouter, MemoryAccountDeniedError, createDeniedMemory, isMemoryAccountDeniedError } from './account-router.ts'
+export type { MemorySessionResolver } from './account-router.ts'
 export {
   buildMemoryMetrics, computeIndexZoneTokens, readMemoryAuditEvents,
 } from './metrics.ts'

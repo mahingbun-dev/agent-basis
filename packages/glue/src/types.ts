@@ -27,6 +27,26 @@ export interface MemoryPluginConfig {
   readonly promotion?: MemoryPromotionConfig
   /** 画像(缺省开启;Dream Prune 再生成条件消费 enabled)。 */
   readonly portrait?: MemoryPortraitConfig
+  /**
+   * 多租户分库路由(23 号 M-T1,方案 C):per-account store 池——记忆物理落
+   * `workspaces/<账号>/.eterna/`,四工具/索引按会话账号路由(fail-closed:
+   * 账号解析失败不落库,绝不退回全局库)。
+   * mode 缺省 'auto':宿主可见 eternaAccessStore(多用户部署)→ per-account;
+   * 本地单用户(TUI,无 access 插件)→ global(沿用单库,行为不变)。
+   */
+  readonly routing?: MemoryRoutingConfig
+}
+
+/** 多租户分库路由配置(23 号 §3;Q1 决议参数为缺省)。 */
+export interface MemoryRoutingConfig {
+  /** 'auto'(缺省,按 access store 在场判定)/'per-account'/'global'。 */
+  readonly mode?: 'auto' | 'per-account' | 'global'
+  /** 租户根目录(缺省与 access 插件同源解析:ETERNA_TENANT_ROOT ?? ($DSH_HOME ?? cwd)/workspaces)。 */
+  readonly tenantRoot?: string
+  /** 池上限(缺省 8,Q1 决议)。 */
+  readonly maxAccounts?: number
+  /** 闲置关库毫秒(缺省 600_000,Q1 决议)。 */
+  readonly idleCloseMs?: number
 }
 
 /**

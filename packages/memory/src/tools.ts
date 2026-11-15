@@ -29,6 +29,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { PromptSection } from '@deepseek-ai/dsh-system-prompt'
 import type { ToolDefinition, ToolRunContext } from '@deepseek-ai/dsh-tools'
 import { isPiiBlockedError } from './pii.ts'
+import { createDeniedMemory, isMemoryAccountDeniedError } from './account-router.ts'
 import type { Memory } from './memory.ts'
 import type { MemoryIndexOptions } from './index-builder.ts'
 
@@ -261,6 +262,34 @@ function registryTextOf(source: PromptRegistryFace | undefined, entryId: string)
   }
 }
 
+// ---------- 多租户路由(23 号 M-T1;细节见 account-router.ts) ----------
+
+/**
+ * 会话 → 账号 Memory 的解析面(glue 实现:access store sessionOwner→getUserById
+ * →userRootFor + MemoryAccountRouter 池)。undefined=解析失败——调用方 fail-closed
+ * (换 Denied Memory:写拒绝/读空),绝不退回 base memory(多租户下 base=全局库
+ * 即泄露面)。
+ */
+export interface MemorySessionResolver {
+  forSession(sessionId: string | undefined): Memory | undefined
+}
+
+/** Denied 单例(无状态,池化共享;写抛 MemoryAccountDeniedError/读空)。 */
+let deniedMemorySingleton: Memory | undefined
+
+/** resolver 在场时的工具内存解析:解析失败 → Denied(fail-closed);缺席 → base(单库形态)。 */
+function resolveToolMemory(
+  memory: Memory,
+  resolver: MemorySessionResolver | undefined,
+  exec: ToolRunContext,
+  sessionContext?: () => MemorySessionContext | undefined,
+): Memory {
+  if (resolver === undefined) return memory
+  const { sessionId } = stampProvenance(exec, injectedContextOf(sessionContext))
+  if (deniedMemorySingleton === undefined) deniedMemorySingleton = createDeniedMemory()
+  return resolver.forSession(sessionId ?? undefined) ?? deniedMemorySingleton
+}
+
 /**
  * 构建四个模型面工具定义(注册进 ctx.tools 即对模型可见)。
  * sessionContext:宿主注入的 provenance 回落源(exec.agent 缺席时;19 号 §3-T2.1),
@@ -271,12 +300,17 @@ function registryTextOf(source: PromptRegistryFace | undefined, entryId: string)
  * domainOf(M-M3 T10):会话域归属读取面——glue 按 sessionId 返回会话绑定域;
  * memory_write 的 episodic 写入以会话域为权威归属(18 §1.3「域归属同时写入
  * 会话元数据」),缺席/未绑定不干预,模型 subject 照旧。
+ * resolver(23 号 M-T1 多租户路由):会话 → 账号 Memory 解析面;提供时四个
+ * 工具的每次 execute 按当前会话解析账号库(fail-closed:解析失败 → Denied
+ * Memory,写拒绝/读空,绝不退回 base memory——多租户隔离 23 §3.1)。缺席=
+ * 单库形态(本地单用户/旧部署),base memory 照旧。
  */
 export function defineMemoryTools(
   memory: Memory,
   sessionContext?: () => MemorySessionContext | undefined,
   promptSource?: PromptRegistryFace,
   domainOf?: (sessionId: string) => string | undefined,
+  resolver?: MemorySessionResolver,
 ): ToolDefinition[] {
   return [
     defineTool({
@@ -314,7 +348,7 @@ export function defineMemoryTools(
           const subject = scope === 'domain' && args.kind === 'episodic' && sessionDomain !== undefined
             ? `domain:${sessionDomain}`
             : args.subject
-          const { record, decision, superseded } = memory.writeEntity({
+          const { record, decision, superseded } = resolveToolMemory(memory, resolver, exec, sessionContext).writeEntity({
             subject,
             key: args.key,
             content: args.content,
@@ -371,8 +405,8 @@ export function defineMemoryTools(
         presentationMeta: (_args, value) => memorySourcesMetaOf('memory_read', value) as unknown as JsonValue,
       },
       isConcurrencySafe: () => true,
-      execute: (args, _exec): Promise<MemoryToolOutput> => {
-        const record = memory.readEntity(args.subject, args.key)
+      execute: (args, exec): Promise<MemoryToolOutput> => {
+        const record = resolveToolMemory(memory, resolver, exec, sessionContext).readEntity(args.subject, args.key)
         if (record === null) {
           return Promise.resolve({ ok: true, found: false, subject: args.subject, key: args.key })
         }
@@ -411,9 +445,9 @@ export function defineMemoryTools(
         presentationMeta: (_args, value) => memorySourcesMetaOf('memory_search', value) as unknown as JsonValue,
       },
       isConcurrencySafe: () => true,
-      execute: async (args, _exec): Promise<MemoryToolOutput> => {
+      execute: async (args, exec): Promise<MemoryToolOutput> => {
         try {
-          const hits = await memory.search(args.query, {
+          const hits = await resolveToolMemory(memory, resolver, exec, sessionContext).search(args.query, {
             ...(args.subject !== undefined && { subject: args.subject }),
             ...(args.scope !== undefined && { scope: args.scope }),
             ...(args.domain_key !== undefined && { domainKey: args.domain_key }),
@@ -441,9 +475,9 @@ export function defineMemoryTools(
         schema: { type: 'object', additionalProperties: true },
         render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
       },
-      execute: (args, _exec): Promise<MemoryToolOutput> => {
+      execute: (args, exec): Promise<MemoryToolOutput> => {
         try {
-          const { forgotten, records } = memory.forget(args.subject, args.key)
+          const { forgotten, records } = resolveToolMemory(memory, resolver, exec, sessionContext).forget(args.subject, args.key)
           return Promise.resolve({
             ok: true,
             subject: args.subject,
@@ -484,6 +518,7 @@ export function createMemoryIndexSection(
   memory: Memory,
   options: MemoryIndexOptions | ((assembly: MemoryAssemblyContext) => MemoryIndexOptions) = {},
   promptSource?: PromptRegistryFace,
+  resolver?: MemorySessionResolver,
 ): PromptSection {
   return {
     name: MEMORY_INDEX_SECTION_NAME,
@@ -491,7 +526,13 @@ export function createMemoryIndexSection(
     text: (assembly: MemoryAssemblyContext): string => {
       const base = typeof options === 'function' ? resolveOptionsOf(() => options(assembly)) : options
       const behaviorHeader = registryTextOf(promptSource, MEMORY_SECTION_REGISTRY_ENTRY_ID)
-      return memory.buildIndex(behaviorHeader === undefined ? base : { ...base, behaviorHeader }).text
+      const finalOptions = behaviorHeader === undefined ? base : { ...base, behaviorHeader }
+      // 多租户路由(23 号 M-T1):装配上下文反查会话 → 账号库(fail-closed:
+      // 解析失败 → Denied 索引=仅行为头+提示行,不退回 base memory)
+      const m = resolver === undefined
+        ? memory
+        : (resolver.forSession(assemblySessionIdOf(assembly) ?? undefined) ?? createDeniedMemory())
+      return m.buildIndex(finalOptions).text
     },
     interpolate: false,
   }
@@ -524,6 +565,13 @@ export interface AttachMemoryOptions {
    * (18 §1.3);缺席=不干预,模型 subject 照旧。
    */
   readonly domainOf?: (sessionId: string) => string | undefined
+  /**
+   * 多租户路由解析面(23 号 M-T1):提供时四工具与索引 section 的每次
+   * execute/装配按当前会话解析账号库(fail-closed,解析失败=Denied:写拒绝/
+   * 读空);缺席=单库形态(base memory 照旧)。memory 参数在路由模式下仅作
+   * 未路由路径的兜底,安全上不参与(解析失败绝不退回)。
+   */
+  readonly resolver?: MemorySessionResolver
 }
 
 /**
@@ -541,11 +589,12 @@ export function attachMemory(host: MemoryHost, memory: Memory, options: AttachMe
     host.sessionContext === undefined ? undefined : () => host.sessionContext?.(),
     options.promptSource,
     options.domainOf,
+    options.resolver,
   )) {
     disposers.push(host.registerTool(definition))
   }
   if (options.includeIndexSection !== false) {
-    disposers.push(host.registerPromptSection(createMemoryIndexSection(memory, options.index, options.promptSource)))
+    disposers.push(host.registerPromptSection(createMemoryIndexSection(memory, options.index, options.promptSource, options.resolver)))
   }
   let detached = false
   return (): void => {
@@ -579,6 +628,7 @@ function renderSearchOutput(value: MemoryToolOutput, prefix: string): string {
 function failureOf(error: unknown): MemoryToolOutput {
   const message = error instanceof Error ? error.message : 'unknown error'
   if (isPiiBlockedError(error)) return { ok: false, blocked: 'pii', message }
+  if (isMemoryAccountDeniedError(error)) return { ok: false, blocked: 'account', message }
   return { ok: false, message }
 }
 
