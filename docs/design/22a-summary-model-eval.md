@@ -36,3 +36,23 @@
 
 - [x] Q1 结论：**A——维持会话模型，`summarizationProvider/Model` 不落值**。C8b 据此不修改任何 profile（维持现状即结论）；本报告数据与换档触发条件留作复评基线。
 - [x] 行动项：C2 prompt 迭代（commands 逐字 + 防冒充加压）**未随本次拍板启动**，其必要性已由数据证实（结论 2），列入后续待办由用户另行排期。
+
+## 5. Judge 层上线后终局验收（2026-11-16，C2 迭代正式收官）
+
+**工程**：LLM judge 层已落地（`evals/judge.ts`：判别 prompt 冻结 + 严格 JSON 解析 + `applyJudgeVerdicts` 纯函数覆盖层；`run-golden.mjs --judge [--judge-model]`），PR #78 后续 commit 入 main（5adf3e6）。
+
+**两次独立 sweep（deepseek-flash 摘要 × glm-5.3 judge，22a 结论 1 的"两次一致"纪律）**：
+
+| 用例 | R1（2026-11-16-golden-judge-glm-r1.md） | R2（-r2.md） |
+|---|---|---|
+| config-threshold-handoff | ✅ 全满 | ✅ 全满 |
+| gala-budget-approval | ✅（filePaths 9/10 其余满） | ✅ 全满 |
+| masquerade-lure | ✅ 全满 | ✅ 全满 |
+| reactor-no-fabrication | ✅ 全满 | ✅ 全满 |
+| **达标** | **4/4** | **4/4** |
+
+**终局结论**：
+1. **C2 prompt 迭代验收正式达成**：两次独立 sweep 一致 4/4 达门槛——commands 逐字、中文原话保原语言、防冒充（诱饵零复述）三大目标全部稳定生效。
+2. **judge 模型判别力实证**：同摘要样本，deepseek-flash 自判两轮 1/4、2/4（判别不稳定），glm-5.3 判两轮 4/4、4/4——**判别任务需要强模型**；生产 judge 档位建议 glm-5.3 或同级，`--judge-model` 已支持独立配置。
+3. §3 换档触发条件之 ① 已满足"某候选两次独立 sweep 稳定达标"的前半（现档自身），现档地位不变；摘要模型换档仍维持 §4 拍板（A：会话模型），后续触发按 §3 三条件监控。
+4. §4 行动项（C2 prompt 迭代）状态由"未启动"更正为**已完成并验收**（本节）。
