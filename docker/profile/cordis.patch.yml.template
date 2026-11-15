@@ -532,6 +532,11 @@
       name: '@eterna/prompt-studio'
     - id: eterna-usage-stats
       name: '@eterna/usage-stats'
+    # 基座面板(2026-11-15 补记):packages/panel 客户端双面包(画像卡/域浏览/
+    # 审批队列/记忆指标 + 服务清单卡)。历史缺口——包早于本模板存在但从未登记
+    # Host 行,浏览器花名册从未收录(实测容器内无侧栏入口);行形态同 usage-stats。
+    - id: eterna-panel
+      name: '@eterna/panel'
     # 附件入口（2026-11-12）：输入框工具行「附件」按钮（客户端双面包，Host 半边
     # idle 载具；entrypoint 第 3 步已统一 symlink）。上传/预览/重试链路全在上游
     # file-upload/ui-attachment；按钮可见性另由 mux 策略 fileUploads/upload 动作开闸。
