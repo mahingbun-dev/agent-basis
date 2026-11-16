@@ -201,16 +201,16 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
         ?? join(process.env.DSH_HOME ?? cwd, 'workspaces')
       let router: MemoryAccountRouter | undefined
       let sessionResolver: MemorySessionResolver | undefined
-      let accountOfSession: ((sessionId: string) => string | undefined) | undefined
+      // 会话→账号解析(23 号 M-T1):routed 块内赋值,块外路由面经它解析账号。
+      let resolveAccount: ((sessionId: string) => string | undefined) | undefined
       const accountLedgers = new Map<string, MemoryAuditLedger>()
       if (routed && accessFace !== undefined) {
         const store = accessFace
-        const resolveAccount = (sessionId: string): string | undefined => {
+        resolveAccount = (sessionId: string): string | undefined => {
           const userId = store.sessionOwner(sessionId)
           if (userId === undefined) return undefined
           return store.getUserById(userId)?.account
         }
-        accountOfSession = resolveAccount
         const accountDir = (account: string): string | undefined => {
           const dir = join(tenantRoot, account)
           return existsSync(dir) ? dir : undefined
@@ -229,7 +229,7 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
         sessionResolver = {
           forSession: (sessionId: string | undefined): Memory | undefined => {
             if (sessionId === undefined) return undefined
-            const account = resolveAccount(sessionId)
+            const account = resolveAccount?.(sessionId)
             if (account === undefined) return undefined
             return router?.forAccount(account)
           },
@@ -296,8 +296,8 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
           ...(consolidationOff && { skipExtraction: true }),
           ...(sessionResolver !== undefined && accessFace !== undefined && router !== undefined && {
             routing: {
-              accountOfSession: (sessionId: string): string | undefined => accountOfSession!(sessionId),
-              memoryForAccount: (account: string): Memory | undefined => router?.forAccount(account),
+              accountOfSession: (sessionId: string): string | undefined => resolveAccount?.(sessionId),
+              memoryForAccount: (account: string): Memory | undefined => router.forAccount(account),
               ledgerFor: (account: string): MemoryAuditLedger => {
                 let ledger = accountLedgers.get(account)
                 if (ledger === undefined) {

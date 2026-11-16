@@ -26,7 +26,7 @@ describe('memory 插件多租户路由(config.routing per-account)', () => {
     dir = mkdtempSync(join(tmpdir(), 'eterna-glue-memory-routing-'))
   })
   afterEach(async () => {
-    await rmSync(dir, { recursive: true, force: true })
+    rmSync(dir, { recursive: true, force: true })
   })
 
   /** 伪 access store:两个账号映射(目录由测试预建——登录开通的产物)。 */
@@ -136,7 +136,7 @@ describe('memory 插件多租户路由(config.routing per-account)', () => {
         memoryForAccount(account: string): unknown
         dbPathForAccount(account: string): string | undefined
       }
-      const face = harness.service("eterna-memory-accounts") as AccountsFaceProbe | undefined
+      const face = harness.service('eterna-memory-accounts') as AccountsFaceProbe | undefined
       expect(face).toBeDefined()
       expect(face?.accountOfUser(1)).toBe('alice')
       expect(face?.dbPathForAccount('alice')).toBe(join(dir, 'workspaces', 'alice', '.eterna', 'memory.sqlite3'))
