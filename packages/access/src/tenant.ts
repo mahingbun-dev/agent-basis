@@ -468,6 +468,51 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     isAdmin: (userId: number) => deps.store.getUserById(userId)?.role === 'admin',
   })
 
+  // ── 记忆账号路由守卫(23 号 M-T2,S-6 修复,2026-11-16)─────────────────
+  // unary SRC 通道的 invocation.principal 是 owner peer(不携带 userId,mux.ts
+  // 头注:eterna-user principal 只存在于流通道)——panel 的记忆三端点因此拿不
+  // 到登录账号,面板回落全局路径(已归档改名→空)。正解=身份面在守卫:本守卫
+  // register 的 fetch 已做 cookie 认证(currentUser→userId/account),经 glue
+  // provide 的 eterna-memory-accounts 账号路由面(账号级原语)完成路由与裁决。
+  // 铁律对账:T2 路由面独占=access 是唯一合法的守卫注册方;数据仍由 glue 的
+  // @eterna/memory 服务承载,本守卫零 SQL、零持久化逻辑。
+  const accountsFaceOf = (): {
+    accountOfUser(userId: number): string | undefined
+    viewForAccount(account: string): unknown
+    reviewForAccount(account: string, id: number, decision: 'approved' | 'rejected'): unknown
+    recordCorrectionFor(account: string, section: string, keyHint: string): void
+  } | undefined => serviceOf(deps, 'eterna-memory-accounts') as undefined
+
+  register('/api/eternaMemory/accountSnapshot', async (rpcId, _args, ctx) => {
+    const face = accountsFaceOf()
+    if (face === undefined) return failureFrame(rpcId, new Error('记忆路由面未挂载(eterna-memory 插件未启用)'))
+    return okFrame(rpcId, face.viewForAccount(ctx.account))
+  })
+
+  register('/api/eternaMemory/review', async (rpcId, args, ctx) => {
+    const face = accountsFaceOf()
+    if (face === undefined) return failureFrame(rpcId, new Error('记忆路由面未挂载(eterna-memory 插件未启用)'))
+    const id = firstNumber(args, 'id')
+    const decision = firstString(args, 'decision')
+    if (id === undefined) return failureFrame(rpcId, new Error('id 必填(非负整数)'))
+    if (decision !== 'approved' && decision !== 'rejected') {
+      return failureFrame(rpcId, new Error("decision 只允许 'approved' | 'rejected'"))
+    }
+    return okFrame(rpcId, face.reviewForAccount(ctx.account, id, decision))
+  })
+
+  register('/api/eternaMemory/trackCorrection', async (rpcId, args, ctx) => {
+    const face = accountsFaceOf()
+    if (face === undefined) return failureFrame(rpcId, new Error('记忆路由面未挂载(eterna-memory 插件未启用)'))
+    const section = firstString(args, 'section')
+    if (section === undefined || section.trim().length === 0 || section.trim().length > 64) {
+      return failureFrame(rpcId, new Error('section 必填(非空,≤64 字符)'))
+    }
+    const keyHint = firstString(args, 'keyHint') ?? ''
+    face.recordCorrectionFor(ctx.account, section.trim(), keyHint.slice(0, 128))
+    return okFrame(rpcId, { ok: true })
+  })
+
   // ── P2-T1.7a(2026-11-11,D1 拍板):网关配置角色门——admin 可写,普通用户只读 ──
   // llm-pi-ai 承载行的设置命名空间=settingsNs=行 id('llm-pi-ai');供应商 key 与
   // baseURL 是组织资产,普通用户可写=可把全组织模型流量劫到任意端点。
@@ -558,4 +603,9 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
 function firstString(source: Record<string, unknown> | undefined, key: string): string | undefined {
   const value = source?.[key]
   return typeof value === 'string' && value !== '' ? value : undefined
+}
+
+function firstNumber(source: Record<string, unknown> | undefined, key: string): number | undefined {
+  const value = source?.[key]
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : undefined
 }

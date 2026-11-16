@@ -85,6 +85,7 @@ import {
   defaultMemoryAuditPath,
   dshHost,
   findSessionLogPath,
+  buildMemoryAccountView,
   MemoryAccountRouter,
   withReviewAudit,
 } from '@eterna/memory'
@@ -251,6 +252,36 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
               if (!routed) return dbPath
               const dir = join(tenantRoot, account)
               return existsSync(dir) ? join(dir, '.eterna', 'memory.sqlite3') : undefined
+            },
+            // S-6 修复(23 号 M-T2):unary 通道 principal 不带 userId——panel 的
+            // 记忆三端点改走 access 守卫面(身份在守卫),守卫经本 face 的账号级
+            // 原语完成组装与裁决;view 组装在 memory 包(buildMemoryAccountView)。
+            viewForAccount: (account: string): unknown => {
+              const dbPathFor = routed
+                ? (() => {
+                  const dir = join(tenantRoot, account)
+                  return existsSync(dir) ? join(dir, '.eterna', 'memory.sqlite3') : undefined
+                })()
+                : dbPath
+              return dbPathFor === undefined ? undefined : buildMemoryAccountView(dbPathFor)
+            },
+            reviewForAccount: (account: string, id: number, decision: 'approved' | 'rejected'): unknown => {
+              const m = (() => {
+                if (!routed) return auditedMemory
+                const dir = join(tenantRoot, account)
+                if (!existsSync(dir)) return undefined
+                return router?.forAccount(account) ?? createDeniedMemory()
+              })()
+              return m.review(id, decision)
+            },
+            recordCorrectionFor: (account: string, section: string, keyHint: string): void => {
+              const m = (() => {
+                if (!routed) return auditedMemory
+                const dir = join(tenantRoot, account)
+                if (!existsSync(dir)) return undefined
+                return router?.forAccount(account) ?? createDeniedMemory()
+              })()
+              m.recordCorrection({ section, keyHint })
             },
           }
           provide2('eterna-memory-accounts', accountsFace)

@@ -29,8 +29,14 @@ export const SNAPSHOT_ENDPOINT = 'eternaPanel/snapshot'
 /** 记忆裁决端点(M-M2 T9 审批闭环:待审记忆批/拒,Host 半边同网关)。 */
 export const REVIEW_ENDPOINT = 'eternaPanel/review'
 
-/** 登录账号路由裁决端点(23 号 M-T2:eterna-user 走本人账号库;Host 半边同网关)。 */
-export const REVIEW_ACCOUNT_ENDPOINT = 'eternaPanel/reviewForAccount'
+/** 登录账号路由裁决端点(23 号 M-T2/S-6:access 守卫面,身份=cookie)。 */
+export const REVIEW_ACCOUNT_ENDPOINT = '/api/eternaMemory/review'
+
+/** 登录账号记忆区快照端点(S-6:memory 区按登录账号路由;access 守卫面)。 */
+export const MEMORY_ACCOUNT_SNAPSHOT_ENDPOINT = '/api/eternaMemory/accountSnapshot'
+
+/** 画像纠正留痕端点(S-6:走 access 守卫面,身份=cookie)。 */
+export const CORRECTION_ACCOUNT_ENDPOINT = '/api/eternaMemory/trackCorrection'
 
 /** 画像纠正留痕端点(T13 纠正率分子:纠正动作写审计行,Host 半边同网关)。 */
 export const CORRECTION_ENDPOINT = 'eternaPanel/trackCorrection'
@@ -81,7 +87,16 @@ export function apply(ctx: PanelClientContext): () => void {
     // gateway/internal 拒绝——"exactly one plain-object args field")。
     ctx.connection.rpc.call('/api', SNAPSHOT_ENDPOINT, { args: {} }).then((result) => {
       if (result.ok && typeof result.value === 'object' && result.value !== null) {
-        publish({ status: 'ready', snapshot: result.value as EternaPanelSnapshot })
+        const snapshot = result.value as EternaPanelSnapshot
+        publish({ status: 'ready', snapshot })
+        // S-6/M-T2:memory 区按登录账号路由(access 守卫 /api/eternaMemory/*,
+        // 身份=守卫 cookie;eternaPanel/unary 通道 principal 不带 userId)。
+        // 守卫失败/缺席保留宿主区(全局库回落),不 publish error。
+        ctx.connection.rpc.call('/api', MEMORY_ACCOUNT_SNAPSHOT_ENDPOINT, { args: {} }).then((memoryResult) => {
+          if (memoryResult.ok && typeof memoryResult.value === 'object' && memoryResult.value !== null) {
+            publish({ status: 'ready', snapshot: { ...snapshot, memory: memoryResult.value as EternaPanelSnapshot['memory'] } })
+          }
+        }).catch(() => undefined)
       } else {
         const message = result.error?.message ?? result.error?.code ?? 'unknown'
         publish({ status: 'error', message })
@@ -111,7 +126,7 @@ export function apply(ctx: PanelClientContext): () => void {
   // 埋点失败只在 console 留痕,不弹错不打断;纠正率经审计账本进快照指标区。
   const trackCorrection = (section: string, keyHint?: string): void => {
     void ctx.connection.rpc
-      .call('/api', CORRECTION_ENDPOINT, { args: { section, ...(keyHint !== undefined && { keyHint }) } })
+      .call('/api', CORRECTION_ACCOUNT_ENDPOINT, { args: { section, ...(keyHint !== undefined && { keyHint }) } })
       .catch(() => undefined)
   }
 

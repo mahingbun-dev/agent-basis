@@ -141,6 +141,8 @@ export type {
 } from './audit.ts'
 export { MemoryAccountRouter, MemoryAccountDeniedError, createDeniedMemory, isMemoryAccountDeniedError } from './account-router.ts'
 export type { MemorySessionResolver } from './account-router.ts'
+export { buildMemoryAccountView } from './account-view.ts'
+export type { MemoryAccountView } from './account-view.ts'
 export {
   buildMemoryMetrics, computeIndexZoneTokens, readMemoryAuditEvents,
 } from './metrics.ts'
