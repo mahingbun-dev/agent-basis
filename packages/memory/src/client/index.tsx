@@ -18,7 +18,7 @@ import { injectDesignTokens } from '@eterna/ui'
 import { CSS as SETTINGS_CSS, MEMORY_SECTION_ID, MemorySettingsSection, NS, SETTINGS_LOCALES } from './settings.tsx'
 import { DomainChip } from './domain-chip.tsx'
 import { MemorySourcesTail, memorySourcesDefinition, type MemorySourcesTailProps } from './sources.tsx'
-import type { MemoryClientContext, TurnTailOwnerPropsLike } from './client-types.ts'
+import type { MemoryClientContext, TurnLocationLike } from './client-types.ts'
 
 export { MEMORY_SECTION_ID, NS }
 export {
@@ -96,7 +96,7 @@ function MemorySourcesTailEntry(props: MemorySourcesTailEntryProps): React.JSX.E
 
 interface MemorySourcesTailEntryProps {
   /** 官方 owner:TurnTailOwnerProps(turn/seq/openFile;本地结构面)。 */
-  readonly turn: TurnTailOwnerPropsLike
+  readonly turn: TurnLocationLike
   readonly t?: (key: string) => string
   readonly openPanel?: () => void
 }

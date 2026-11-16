@@ -137,15 +137,25 @@ describe('memory 插件 M-M2 T6 整固挂载(config.consolidation)', () => {
     expect(cursor.doneAt('session-a')).toBeNull() // A 无会话尾标记,从不触发
   })
 
-  it('config.consolidation.enabled=false:不挂监听,事件照发不触发', async () => {
+  it('config.consolidation.enabled=false 且 dream 关:完全不挂监听,事件照发不触发', async () => {
     const harness = makePluginHarness()
-    applyPlugin(harness, { enabled: false, trigger: 'session-end' })
+    applyPlugin(harness, { enabled: false, trigger: 'session-end' }, { dream: { enabled: false } })
     expect(harness.listenersOf('session/event')).toHaveLength(0)
     expect(harness.listenersOf('session/disposed')).toHaveLength(0)
     harness.emitSession(userProse('以后周报用中文', 1), { id: 'session-a' })
     harness.emitSession(turnEnd('completed', 1, 9), { id: 'session-a' })
     await new Promise(resolve => setTimeout(resolve, 25))
     expect(openCursorReader().doneAt('session-a')).toBeNull()
+  })
+
+  it('config.consolidation.enabled=false 且 Dream 缺省开:仅挂 Dream 链(键解耦,low#18)', async () => {
+    const harness = makePluginHarness()
+    applyPlugin(harness, { enabled: false, trigger: 'session-end' })
+    expect(harness.listenersOf('session/event')).toHaveLength(1)
+    harness.emitSession(turnEnd('completed', 1, 9), { id: 'session-a' })
+    await new Promise(resolve => setTimeout(resolve, 25))
+    // 轻量提取 no-op:nothing-to-save 仍推进游标(游标照常前进,Dream 阈值合并继续)
+    expect(openCursorReader().doneAt('session-a')).not.toBeNull()
   })
 
   it('trigger 显式声明 session-end(M-M2 唯一档)照常挂载', () => {

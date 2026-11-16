@@ -107,20 +107,20 @@ describe('memory 插件 M-M3 T10 域解析挂载(config.domain)', () => {
     return { name: 'memory_write', callId: 'call-t10', signal: new AbortController().signal, agent: { session: { id: sessionId } } } as unknown as ToolRunContext
   }
 
-  it('缺省开启:挂 session/event + session/disposed 监听(整固关闭后恒 1+1)', () => {
+  it('缺省开启:挂 session/event(域解析+Dream 链,键解耦后 2)+ session/disposed 监听', () => {
     const harness = makePluginHarness()
     const dispose = applyPlugin(harness)
-    expect(harness.listenersOf('session/event')).toHaveLength(1)
-    expect(harness.listenersOf('session/disposed')).toHaveLength(1)
+    expect(harness.listenersOf('session/event')).toHaveLength(2)
+    expect(harness.listenersOf("session/disposed")).toHaveLength(2)
     dispose()
-    expect(harness.listenersOf('session/event')).toHaveLength(0)
+    expect(harness.listenersOf("session/event")).toHaveLength(0)
     expect(harness.listenersOf('session/disposed')).toHaveLength(0)
   })
 
-  it('config.domain.enabled=false:不挂域解析监听,事件照发不触发打标', () => {
+  it('config.domain.enabled=false:不挂域解析监听(Dream 链仍挂,键解耦),事件照发不触发打标', () => {
     const harness = makePluginHarness()
     applyPlugin(harness, { enabled: false })
-    expect(harness.listenersOf('session/event')).toHaveLength(0)
+    expect(harness.listenersOf('session/event')).toHaveLength(1)
     harness.emitSession(userProse('帮我把部署脚本改成蓝绿', 1), { id: 'session-a' })
     expect(harness.llmPrepared).toHaveLength(0)
   })

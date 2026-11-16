@@ -21,7 +21,7 @@ import { useState, type ReactElement } from 'react'
 import { Icon } from '@eterna/ui/icons'
 import type {
   ConversationLocationDataLike, ConversationMatchLike, ConversationNodeContextLike,
-  SessionEventLike, TurnTailOwnerPropsLike,
+  SessionEventLike, TurnLocationLike,
 } from './client-types.ts'
 
 /** 本插件的 Location data 键(与 buildLocationData 的 key 一致;turnTail 读取同键)。 */
@@ -188,18 +188,23 @@ export const memorySourcesDefinition = {
 
 /** turnTail 条目 props(官方 owner + 本插件 inject 面翻译函数与跳转回调)。 */
 export interface MemorySourcesTailProps {
-  readonly turn: TurnTailOwnerPropsLike
+  readonly turn: TurnLocationLike
   readonly t?: (key: string) => string
   /** 跳转基座面板(apply 注入 layout.selectMainPanel);缺席=仅展开不跳转。 */
   readonly openPanel?: () => void
 }
 
-/** Sources 行:owner.turn.data 无数据返回 null 不挂载(deliverables 同款闸)。 */
-export function selectMemorySources(owner: TurnTailOwnerPropsLike): readonly MemorySourceEntry[] | null {
-  const value = owner.turn.data?.get(MEMORY_SOURCES_DATA_KEY) as MemorySourcesTurnData | undefined
+/**
+ * Sources 行数据闸(2026-11-16 修复,S-6 同轮取证):turnTail 条目收到的
+ * `turn` prop **就是 TurnLocation 本身**(宿主 ContextualEntry 把 ownerProps
+ * 摊平进条目 props——生产 fiber 反查 keys=turn/start/end/status/steps/data
+ * 实证),读 Location 的 data store 应直接 `.data.get(key)`;此前实现误再解
+ * 一层 `.turn`(number→`.data`=undefined)导致行恒不挂载。无数据返回 null
+ * 不挂载(deliverables 同款闸)。
+ */
+export function selectMemorySources(turn: TurnLocationLike): readonly MemorySourceEntry[] | null {
+  const value = turn.data?.get(MEMORY_SOURCES_DATA_KEY) as MemorySourcesTurnData | undefined
   const reads = value?.reads
-  // 2026-11-16 诊断(定位 sources-row 未渲染;定位后移除)。
-  console.info('[memory-sources:tail]', 'turn=', owner.turn.turn, 'hasData=', value !== undefined, 'reads=', reads?.length ?? 'none')
   return reads !== undefined && reads.length > 0 ? reads : null
 }
 

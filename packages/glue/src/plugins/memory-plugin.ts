@@ -266,21 +266,21 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
               return dbPathFor === undefined ? undefined : buildMemoryAccountView(dbPathFor)
             },
             reviewForAccount: (account: string, id: number, decision: 'approved' | 'rejected'): unknown => {
-              const m = (() => {
-                if (!routed) return auditedMemory
-                const dir = join(tenantRoot, account)
-                if (!existsSync(dir)) return undefined
-                return router?.forAccount(account) ?? createDeniedMemory()
-              })()
+              const m = routed
+                ? (() => {
+                  const dir = join(tenantRoot, account)
+                  return existsSync(dir) ? router?.forAccount(account) ?? createDeniedMemory() : createDeniedMemory()
+                })()
+                : auditedMemory
               return m.review(id, decision)
             },
             recordCorrectionFor: (account: string, section: string, keyHint: string): void => {
-              const m = (() => {
-                if (!routed) return auditedMemory
-                const dir = join(tenantRoot, account)
-                if (!existsSync(dir)) return undefined
-                return router?.forAccount(account) ?? createDeniedMemory()
-              })()
+              const m = routed
+                ? (() => {
+                  const dir = join(tenantRoot, account)
+                  return existsSync(dir) ? router?.forAccount(account) ?? createDeniedMemory() : createDeniedMemory()
+                })()
+                : auditedMemory
               m.recordCorrection({ section, keyHint })
             },
           }
@@ -297,11 +297,17 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
       // 不接线,回滚面 19 §7)。轻量链注入 domainOf(episodic 会话史落域);重量
       // Dream 按 config.dream 缺省开(间隔= dream.cron 降级语义的小时数)
       const dreamConfig = config.dream ?? {}
-      const detachConsolidation = config.consolidation?.enabled === false
+      // 键语义解耦(23 号评审 low#18 复盘,2026-11-16):consolidation 只管轻量
+      // 提取链;Dream 独立由 dream.enabled 管——只关轻量时整固接线仍挂(Dream
+      // 的触发面=会话尾在 consolidator 内),提取任务以 no-op 形态占位(返回
+      // nothing-to-save,游标照常推进,保证 Dream 时间阈值合并继续工作)。
+      const consolidationOff = config.consolidation?.enabled === false
+      const detachConsolidation = consolidationOff && dreamConfig.enabled === false
         ? null
         : wireConsolidation(ctx, dbPath, auditedMemory, audit, {
           ...(config.consolidation?.model !== undefined && { curatorModel: config.consolidation.model }),
           ...(domainOfFace !== undefined && { domainOf: domainOfFace }),
+          ...(consolidationOff && { skipExtraction: true }),
           ...(sessionResolver !== undefined && accessFace !== undefined && router !== undefined && {
             routing: {
               accountOfSession: (sessionId: string): string | undefined => accountOfSession?.(sessionId),
@@ -437,6 +443,12 @@ interface ConsolidationWiring {
     ledgerFor(account: string): MemoryAuditLedger
     allAccounts(): readonly { account: string; dir: string }[]
   }
+  /**
+   * 只停轻量提取链(consolidation.enabled=false 而 Dream 开;23 号评审 low#18
+   * 键解耦):提取任务以 no-op 占位(nothing-to-save,游标照常推进),Dream
+   * 触发面(会话尾+时间阈值)继续工作。
+   */
+  readonly skipExtraction?: boolean
 }
 
 /**
@@ -463,7 +475,12 @@ function wireConsolidation(
   // (每账号独立 memory+ledger+meta;fail-closed:账号解析失败=nothing-to-save
   // 且 detail 记原因,不落任何库);缺席=单库形态(预构建任务,行为不变)。
   const routing = wiring.routing
-  const extractionTask = routing === undefined
+  const extractionTask = wiring.skipExtraction === true
+    ? (): Promise<ConsolidationTaskResult> => Promise.resolve({
+      kind: 'nothing-to-save',
+      detail: '轻量提取已停(consolidation.enabled=false),仅保留 Dream 链',
+    })
+    : routing === undefined
     ? createExtractionTask({
       ctx,
       memory,

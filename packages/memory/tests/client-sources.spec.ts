@@ -159,14 +159,14 @@ describe('turnTail 读取面(第 2 步消费)', () => {
   })
 
   it('selectMemorySources:无数据/空 reads 返回 null(deliverables 同款不挂载闸)', () => {
-    const emptyOwner = { turn: { turn: 1, status: 'closed' as const, data: { get: (): undefined => undefined } }, seq: 1, openFile: (): void => undefined }
+    const emptyOwner = { turn: 1, status: "closed" as const, data: { get: (): undefined => undefined } }
     expect(selectMemorySources(emptyOwner)).toBeNull()
-    const blankOwner = { turn: { turn: 1, status: 'closed' as const, data: { get: () => ({ reads: [] }) } }, seq: 1, openFile: (): void => undefined }
+    const blankOwner = { turn: 1, status: "closed" as const, data: { get: () => ({ reads: [] }) } }
     expect(selectMemorySources(blankOwner)).toBeNull()
   })
 
   it('selectMemorySources:有 reads 返回条目清单', () => {
-    const owner = { turn: { turn: 1, status: 'closed' as const, data: { get: () => ({ reads: READ_META.reads }) } }, seq: 1, openFile: (): void => undefined }
+    const owner = { turn: 1, status: "closed" as const, data: { get: () => ({ reads: READ_META.reads }) } }
     expect(selectMemorySources(owner)).toEqual(READ_META.reads)
   })
 
