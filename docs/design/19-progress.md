@@ -100,3 +100,15 @@ S-1~S-5 五项勘察已全部 resolved(结论/证据路径/退路三段式),见 
 - **上线验证(生产域名 GUI 实测)**:0 禁用/failed;设置分区「记忆」在场(写入策略/用户画像/域识别/蒸馏占位/成本提示全渲染);域 chip 在场;基座面板入口在场,画像卡/审批队列/功能域/记忆指标四区块渲染;显式写入「请记住:…」→「已记住」走通。
 - **带病项(如实)**:Sources 行(turnTail 条目)宿主 rc.1 会话作用域 slot 合并不生效——取证结论与双挂载兼容见提交 5c70d97 与 index.tsx 注释;Definition 数据面已实测可用,宿主升版后零改动生效。CI 的 tools/evals+compaction 两红属压缩线(PR #79 留言归属)。
 - **多租户分库专项**:[[23-记忆多租户分库设计]] 已提交待评审(方案 C per-account store 池;四个开放问题待拍板)。
+
+---
+
+## 9. 部署记录二:0.1.2 → 0.1.3(2026-11-16,多租户分库 + S-6 修复)
+
+**0.1.2(多租户分库 M-T1~T3)**:MemoryAccountRouter 路由面/整固 Dream 账号路由/双账号隔离集成测/迁移脚本/tenant-scan 锚(2722e24+92ed7a8)。部署后生产取证发现 **S-6**:panel unary 通道 principal 是 owner peer(无 userId,mux.ts 头注明示)→ 面板账号路由解析恒失败回落全局(已归档改名→面板记忆区空)。**根因归属:宿主 unary principal 形态,非记忆包**;修复=panel 记忆端点迁入 access 守卫面(42288a9):access registerTenantGuards 增 /api/eternaMemory/{accountSnapshot,review,trackCorrection}(cookie→userId/account→glue provide 的 eterna-memory-accounts face),memory 新导出 buildMemoryAccountView(账号区只读组装,与 panel readMemory 同源),glue face 增 viewForAccount/reviewForAccount/recordCorrectionFor。**0.1.3 上线后生产实测:面板 memory 区=Mr.Ma 账号库内容(迁移行可见),全链路通**。
+
+**数据事件(如实,零静默)**:0.1.2 验证期 agent 写入的 3 条探针记忆(multi-tenant-sharding-live/mt-go-live-2026-11-16/probe-final-1116)因迁移脚本首版 rename 只动主文件、WAL 被误删而**丢失**(WAL bug 已修:9ed95d8 三件齐 rename;丢失行均为验证探针,内容已在会话日志留档)。当前 Mr.Ma 账号库 2 行健康(迁移行+直写探针)。
+
+**验证矩阵(0.1.3)**:0 禁用/失败;面板 memory 区=登录账号库(迁移行可见);显式写入链路通;memory 449/glue 81(双账号隔离 3 例)/panel 47/access 199/packctl 85 全绿;tenant-scan 0;lint-ui-tokens 过。
+
+**待办**:双生产账号人工验证(待第二账号);CI tools/evals+compaction 两红属压缩线。
