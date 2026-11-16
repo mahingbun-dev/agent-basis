@@ -165,8 +165,26 @@ describe('memory 插件多租户路由(config.routing per-account)', () => {
     }
   })
 
-  it('auto 模式身份源缺席(本地 TUI):回落全局单库,行为与无路由一致', async () => {
+  it('账号目录在场但 .eterna 缺失(新注册用户):懒建 createMemory 前建目录,写入成功', async () => {
     const harness = makePluginHarness()
+    seedAccess()
+    // 登录只开通根目录(workspaces/<账号>/),.eterna/ 尚未存在(生产 0.1.6 实测炸点)
+    rmSync(join(dir, 'workspaces', 'alice', '.eterna'), { recursive: true, force: true })
+    const dispose = applyPlugin(harness)
+    try {
+      const write = writeTool(harness)
+      const outcome = await write.execute(
+        { subject: 'user', key: 'fresh-user-key', content: '新注册用户偏好', kind: 'semantic', explicit: true },
+        execOf('sess-alice'),
+      )
+      expect(outcome).toMatchObject({ ok: true })
+      expect(rowCount(join(dir, 'workspaces', 'alice', '.eterna', 'memory.sqlite3'))).toBe(1)
+    } finally {
+      dispose()
+    }
+  })
+
+  it('auto 模式身份源缺席(本地 TUI):回落全局单库,行为与无路由一致', async () => {    const harness = makePluginHarness()
     // 不 seedAccess 且 mode 缺省 auto:users.db 永久缺席 = 单库形态。
     const plugin = defineMemoryPlugin({
       notesDir: join(dir, 'NOTES'),

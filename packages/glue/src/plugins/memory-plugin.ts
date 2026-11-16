@@ -50,7 +50,7 @@
  *   last_used + 会话 override,下次索引装配即用新域)+ 已注册域清单;
  *   overrideDomain 的域键合法性(必须已转正注册)在此校验。
  */
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import type { Context } from '@deepseek-ai/cordis'
@@ -241,12 +241,18 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
         }
         router = new MemoryAccountRouter({
           dirOf: accountDir,
-          create: (dir: string): Memory => createMemory({
-            workspaceDir: join(dir, 'NOTES'),
-            dbPath: join(dir, '.eterna', 'memory.sqlite3'),
-            ...(gov?.pii !== undefined ? { pii: gov.pii } : {}),
-            writePolicy: () => hotFlags().writePolicy,
-          }),
+          create: (dir: string): Memory => {
+            // 账号目录在场但 .eterna/ 未建(新注册用户,登录只开通根目录)时,
+            // node:sqlite 打不开库文件会炸穿整个回合(生产 0.1.6 双账号 E2E 实测)
+            // ——先建目录再开库。
+            mkdirSync(join(dir, '.eterna'), { recursive: true })
+            return createMemory({
+              workspaceDir: join(dir, 'NOTES'),
+              dbPath: join(dir, '.eterna', 'memory.sqlite3'),
+              ...(gov?.pii !== undefined ? { pii: gov.pii } : {}),
+              writePolicy: () => hotFlags().writePolicy,
+            })
+          },
           ...(routingConfig.maxAccounts !== undefined && { maxInstances: routingConfig.maxAccounts }),
           ...(routingConfig.idleCloseMs !== undefined && { idleMs: routingConfig.idleCloseMs }),
         })
@@ -558,6 +564,9 @@ function wireConsolidation(
       let anyConsolidated = false
       for (const { account, dir } of routing.allAccounts()) {
         const accountMemory = routing.memoryForAccount(account) ?? createDeniedMemory()
+        // allAccounts 已按「.eterna/memory.sqlite3 在场」筛选,目录恒在场——
+        // 防御性兜建(ConsolidationMetaStore 不自建父目录)
+        mkdirSync(join(dir, '.eterna'), { recursive: true })
         const accountMeta = new ConsolidationMetaStore(join(dir, '.eterna', 'memory.sqlite3'))
         try {
           const task = createDreamTask({
