@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { buildPortrait, PORTRAIT_MAX_PER_SECTION } from '../src/index.ts'
+import {
+  buildPortrait, buildPortraitClassifyUserText, parsePortraitClassifyOutput, PORTRAIT_MAX_PER_SECTION,
+} from '../src/index.ts'
 import type { DomainRecord, EntityRecord } from '../src/index.ts'
 
 /** 固定时钟:画像内 generated_at 与检索分排序全部确定化。 */
@@ -187,5 +189,70 @@ describe('M-M1 T4 buildPortrait:user 层画像聚合(纯函数)', () => {
     expect(workspace).not.toContain('domain-10')
     expect(workspace).not.toContain('domain-11')
     expect(workspace).toContain('(另有 2 个域按排序截断,未列出)')
+  })
+})
+
+// ---------- T-C LLM 归类(sectionHints 注入 + 冻结提示词/解析器,2026-11-16) ----------
+
+describe('T-C buildPortrait sectionHints(LLM 归类注入,启发式兜底)', () => {
+  it('hints 命中 → 按 LLM 归类分节;缺席 → 回落关键词启发式(requirements 先判)', () => {
+    // 「周报用中文」无启发式关键词 → habits 兜底;「必须用中文」含「必须」→ requirements
+    const records = [
+      record({ id: 7, key: 'lang', content: '周报用中文' }),
+      record({ id: 8, key: 'mandate', content: '必须用中文写周报' }),
+    ]
+    const withHints = buildPortrait(records, {
+      version: 1,
+      now: () => NOW,
+      sectionHints: new Map([[7, 'preferences']]),
+    })
+    // id 7 hint → preferences(LLM 覆盖,启发式本会落 habits)
+    const prefSection = withHints.slice(withHints.indexOf('## 风格偏好'), withHints.indexOf('## 协作要求'))
+    expect(prefSection).toContain('lang')
+    // id 8 无 hint → 启发式(「必须」→ requirements)
+    const requirementSection = withHints.slice(withHints.indexOf('## 协作要求'))
+    expect(requirementSection).toContain('mandate')
+  })
+
+  it('hints 为空 Map → 全启发式(与无 hints 输出逐字节一致)', () => {
+    const records = [record({ id: 1, key: 'mandate', content: '必须用中文写周报' })]
+    const without = buildPortrait(records, { version: 1, now: () => NOW })
+    const withEmpty = buildPortrait(records, { version: 1, now: () => NOW, sectionHints: new Map() })
+    expect(withEmpty).toBe(without)
+  })
+})
+
+describe('T-C parsePortraitClassifyOutput(防御解析)', () => {
+  it('合法 JSON:id/节键全合法 → 全收;未知 id 与非法节键丢弃', () => {
+    const hints = parsePortraitClassifyOutput(
+      '前置噪音 {"sections":{"1":"habits","2":"requirements","99":"habits","3":"oops"}} 后置噪音',
+      [1, 2, 3],
+    )
+    expect(hints.get(1)).toBe('habits')
+    expect(hints.get(2)).toBe('requirements')
+    expect(hints.has(99)).toBe(false)
+    expect(hints.has(3)).toBe(false)
+    expect(hints.size).toBe(2)
+  })
+
+  it('非 JSON/缺 sections/空文本 → 空 Map(全回落启发式)', () => {
+    expect(parsePortraitClassifyOutput('完全不是 JSON', [1]).size).toBe(0)
+    expect(parsePortraitClassifyOutput('{"result":"ok"}', [1]).size).toBe(0)
+    expect(parsePortraitClassifyOutput('', [1]).size).toBe(0)
+  })
+})
+
+describe('T-C buildPortraitClassifyUserText(逐条编号形态)', () => {
+  it('每条一行「id. [key] 正文」;超 200 字正文截断', () => {
+    const long = '长'.repeat(300)
+    const text = buildPortraitClassifyUserText([
+      record({ id: 3, key: 'k1', content: '短正文' }),
+      record({ id: 4, key: 'k2', content: long }),
+    ])
+    const lines = text.split('\n')
+    expect(lines[0]).toContain('待归类记忆 2 条')
+    expect(lines[1]).toBe('3. [k1] 短正文')
+    expect(lines[2]?.startsWith('4. [k2] ')).toBe(true)
+    expect(lines[2]?.length).toBeLessThan(300)
   })
 })

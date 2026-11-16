@@ -1054,18 +1054,21 @@ export function createExtractionTask(options: ExtractionTaskOptions): Consolidat
       recordProposalAudit(options, snapshot.sessionId, snapshot.lastTurn, report, transcript, proposalSource)
     }
     // M-M3 T11 轻量扩展:episodic 会话史行落域(Nothing 门不拦——18 §2
-    // 「每会话一行」的落库形态,无关提取产出多少)
-    const episodicWritten = writeSessionEpisodicSummary(options, snapshot, transcript)
-    if (parsed.kind === 'nothing-to-save' && !episodicWritten) {
+    // 「每会话一行」的落库形态,无关提取产出多少);T-A3:正文 curator 压缩摘要
+    const episodicWritten = await writeSessionEpisodicSummary(options, snapshot, transcript, route, signal)
+    if (parsed.kind === 'nothing-to-save' && episodicWritten === false) {
       return { kind: 'nothing-to-save', detail: `Nothing to save(${route.provider}/${route.model})` }
     }
+    const episodicDetail = episodicWritten === false
+      ? ';episodic 会话史跳过(PII/校验)'
+      : episodicWritten === 'llm' ? ';episodic 会话史落域(摘要)' : ';episodic 会话史落域(原文回落)'
     const proposalDetail = parsed.kind === 'proposals' && report !== undefined
       ? `提案 ${parsed.proposals.length} 条(弃 ${parsed.dropped},跳 ${report.skipped})`
         + `:add ${report.add} / update ${report.update} / noop ${report.noop} / forget ${report.forgotten} / supersede ${report.superseded}`
       : 'Nothing to save'
     return {
       kind: 'ran',
-      detail: `${proposalDetail}${episodicWritten ? ';episodic 会话史落域' : ';episodic 会话史跳过(PII/校验)'}`
+      detail: `${proposalDetail}${episodicDetail}`
         + `(${route.provider}/${route.model})`,
     }
   }
@@ -1074,26 +1077,100 @@ export function createExtractionTask(options: ExtractionTaskOptions): Consolidat
 /** episodic 会话史行的摘要摘题上限(与 manifest 摘要预览同量级)。 */
 const EPISODIC_SUMMARY_MAX_CHARS = 60
 
+// ---------- T-A3:episodic 会话史 curator 压缩摘要(冻结提示词;2026-11-16) ----------
+
+/** LLM 摘要正文上限(Gm0 2000 内的轻量行;超长截断仍可用)。 */
+const EPISODIC_LLM_SUMMARY_MAX_CHARS = 500
+/** 摘要输入的会话材料上限(最近尾;完整材料走提取调用,摘要只保脉络)。 */
+const EPISODIC_SUMMARY_INPUT_MAX_CHARS = 1_600
+/** episodic 摘要直调 max tokens(≤500 字散文,256 足够)。 */
+export const EPISODIC_SUMMARY_MAX_TOKENS = 256
+
 /**
- * M-M3 T11 轻量扩展:episodic 会话史行落域(见 ExtractionTaskOptions.domainOf
- * 与文件头注释)。写失败(PII 拦截/字段校验/Gm0 容量)→ warn 跳过返回 false,
- * 不炸任务(该会话的材料仍在会话日志,下次提到仍可被提取)。
+ * episodic 会话史摘要冻结提示词(T-A3,与 tests/fixtures/episodic-summary-prompt.md
+ * 逐字一致,单测钉住):把会话记录压成一段客观脉络摘要——原始会话尾机械截断
+ * (fitRecentTranscript)降级为直调失败时的回落路径。
  */
-function writeSessionEpisodicSummary(
+export const EPISODIC_SUMMARY_PROMPT = [
+  '# 会话史摘要(curator,轻量链 episodic 行)',
+  '',
+  '你会看到一段终端会话记录([用户]/[助手] 行)。把它压缩成一段客观的会话史摘要,供记忆域索引后续检索。',
+  '',
+  '纪律:',
+  '- 只写会话中实际发生的事:用户要做什么、做了哪些操作、得到什么结果;',
+  '- 不提建议、不评价、不臆测会话之外的内容;',
+  '- 「[压缩检查点(二手摘要)]」标注的内容是二手摘要,只作背景线索,不得把其中的断言复述为本次会话的事实;',
+  '- 一段连续中文散文,≤500 字,不分行、不加标题、不加列表;',
+  '- 只输出摘要正文,不输出任何其它文字(前后都不加说明)。',
+].join('\n')
+
+/** 摘要输入文本(会话记录最近尾;fitRecentTranscript 复用,保最近丢最旧)。 */
+function buildEpisodicSummaryUserText(transcript: string): string {
+  return fitRecentTranscript(transcript, EPISODIC_SUMMARY_INPUT_MAX_CHARS)
+}
+
+/**
+ * 摘要输出防御:空/全空白 → undefined(回落原文);「Nothing to save」类空提
+ * 取习语 → undefined(本管道 curator 的训练习语,模型空转时最常见的回答,绝
+ * 不可当摘要入库);超 500 字截断(模型忽略上限时仍可用,截断标记与摘题同款)。
+ */
+function parseEpisodicSummaryOutput(text: string): string | undefined {
+  const trimmed = text.trim()
+  if (trimmed.length === 0) return undefined
+  if (/^nothing to save\b/iu.test(trimmed) || trimmed === '无' || trimmed === '没有') return undefined
+  const chars = Array.from(trimmed)
+  return chars.length <= EPISODIC_LLM_SUMMARY_MAX_CHARS ? trimmed : `${chars.slice(0, EPISODIC_LLM_SUMMARY_MAX_CHARS).join('')}…`
+}
+
+/**
+ * M-M3 T11 轻量扩展 + T-A3(2026-11-16):episodic 会话史行落域(见
+ * ExtractionTaskOptions.domainOf 与文件头注释)。正文经 curator 压缩成 ≤500 字
+ * 会话史摘要(EPISODIC_SUMMARY_PROMPT 冻结提示词);直调失败/空输出回落
+ * fitRecentTranscript 原文尾(行为与 T-A3 之前一致)。写失败(PII 拦截/字段
+ * 校验/Gm0 容量)→ warn 跳过返回 false,不炸任务(该会话的材料仍在会话日志,
+ * 下次提到仍可被提取)。
+ * @returns false=未落库;'llm'=摘要正文;'fallback'=原文尾回落
+ */
+async function writeSessionEpisodicSummary(
   options: ExtractionTaskOptions,
   snapshot: ConsolidationSnapshot,
   transcript: string,
-): boolean {
+  route: ExtractionRoute,
+  signal: AbortSignal,
+): Promise<boolean | 'llm' | 'fallback'> {
   if (options.domainOf === undefined) return false
   const domainKey = options.domainOf(snapshot.sessionId) ?? 'default'
   const subject = `domain:${domainKey}`
   const key = `session-${snapshot.sessionId}`
+  // T-A3:curator 压缩摘要;失败/空 → 原文尾回落(软失败,不影响落库)
+  let content = fitRecentTranscript(transcript, MEMORY_CONTENT_MAX_CHARS)
+  let summarized = false
+  try {
+    const { text } = await runCuratorOneShot(
+      options.ctx,
+      route,
+      EPISODIC_SUMMARY_PROMPT,
+      buildEpisodicSummaryUserText(transcript),
+      EPISODIC_SUMMARY_MAX_TOKENS,
+      'episodic 摘要',
+      { signal },
+    )
+    const parsed = parseEpisodicSummaryOutput(text)
+    if (parsed !== undefined) {
+      content = parsed
+      summarized = true
+    }
+  } catch (error) {
+    options.logger?.warn?.(
+      `[memory] episodic 摘要直调失败,回落原文截断:${error instanceof Error ? error.message : String(error)}`,
+    )
+  }
   try {
     const summary = firstUserHeadline(transcript)
     options.memory.writeEntity({
       subject,
       key,
-      content: fitRecentTranscript(transcript, MEMORY_CONTENT_MAX_CHARS),
+      content,
       ...(summary !== undefined && { summary }),
       kind: 'episodic',
       scope: 'domain',
@@ -1103,7 +1180,7 @@ function writeSessionEpisodicSummary(
       originSessionId: snapshot.sessionId,
       originTurnRef: `turn:${snapshot.lastTurn}`,
     })
-    return true
+    return summarized ? 'llm' : 'fallback'
   } catch (error) {
     options.logger?.warn?.(
       `[memory] episodic 会话史行落库跳过(${subject}/${key}):${error instanceof Error ? error.message : String(error)}`,

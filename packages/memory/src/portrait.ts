@@ -39,16 +39,25 @@ export interface PortraitOptions {
   readonly now?: () => number
   /** 半衰期天数(检索分排序,与索引排序同源;默认 90,18 §4.2)。 */
   readonly halfLifeDays?: number
+  /**
+   * 分节归属提示(T-C LLM 归类):id → 节键;缺席/无该 id/值非法的条目回落
+   * 关键词启发式 classifySection(纯函数兜底,同输入同输出)。由 M-M3 整固
+   * job 的 Dream 阶段经 curator 批量归类后注入(scripts/gen-portrait.mjs
+   * 等离线入口不带 hints,维持纯启发式)。
+   */
+  readonly sectionHints?: ReadonlyMap<number, PortraitSectionKey>
 }
 
 /** 单节条目上限(19 号 §3-T4:单节 ≤10 条,超出按排序截断并在节尾注明)。 */
 export const PORTRAIT_MAX_PER_SECTION = 10
 
 /** 三个人记忆节的内部分节键(标题与顺序见 SECTION_TITLES,18 §5)。 */
-type MemorySectionKey = 'habits' | 'preferences' | 'requirements'
+export type PortraitSectionKey = 'habits' | 'preferences' | 'requirements'
+
+const SECTION_KEYS: readonly PortraitSectionKey[] = ['habits', 'preferences', 'requirements']
 
 /** 节标题固定顺序:工作习惯 → 风格偏好 → 协作要求(工作区索引恒居末)。 */
-const SECTION_TITLES: readonly (readonly [MemorySectionKey, string])[] = [
+const SECTION_TITLES: readonly (readonly [PortraitSectionKey, string])[] = [
   ['habits', '工作习惯'],
   ['preferences', '风格偏好'],
   ['requirements', '协作要求'],
@@ -77,12 +86,12 @@ export function buildPortrait(records: readonly EntityRecord[], options: Portrai
   const nowMs = options.now?.() ?? Date.now()
   const halfLifeDays = options.halfLifeDays ?? MEMORY_HALF_LIFE_DAYS
 
-  const grouped: Record<MemorySectionKey, EntityRecord[]> = { habits: [], preferences: [], requirements: [] }
+  const grouped: Record<PortraitSectionKey, EntityRecord[]> = { habits: [], preferences: [], requirements: [] }
   for (const record of records) {
     if (record.scope !== 'user' || record.kind !== 'semantic' || record.reviewState !== 'approved' || record.invalidAt !== null) {
       continue
     }
-    grouped[classifySection(record)].push(record)
+    grouped[resolveSection(record, options.sectionHints)].push(record)
   }
 
   const includedIds: number[] = []
@@ -106,11 +115,20 @@ export function buildPortrait(records: readonly EntityRecord[], options: Portrai
 }
 
 /** 关键词分节启发式(v0):要求类 → 协作要求;偏好类 → 风格偏好;其余 → 工作习惯。 */
-function classifySection(record: EntityRecord): MemorySectionKey {
+function classifySection(record: EntityRecord): PortraitSectionKey {
   const haystack = `${record.key}\n${record.summary ?? ''}\n${record.content}`.toLowerCase()
   if (REQUIREMENT_KEYWORDS.some(word => haystack.includes(word))) return 'requirements'
   if (PREFERENCE_KEYWORDS.some(word => haystack.includes(word))) return 'preferences'
   return 'habits'
+}
+
+/**
+ * 分节归属(T-C):hints 命中且值合法 → LLM 归类;否则关键词启发式兜底
+ * (同一 record 恒同节,hints 值仅限三节键——解析器已过滤,此处再守一道)。
+ */
+function resolveSection(record: EntityRecord, hints: ReadonlyMap<number, PortraitSectionKey> | undefined): PortraitSectionKey {
+  const hint = hints?.get(record.id)
+  return hint !== undefined && (SECTION_KEYS as readonly string[]).includes(hint) ? hint : classifySection(record)
 }
 
 /** 与索引排序同口径(18 §4.2):检索分 DESC,同分回落 updated_at DESC → id DESC。 */
@@ -209,4 +227,69 @@ export function parsePortraitDocument(raw: string): PortraitDocument {
     generatedAt: generatedMatch === null ? null : generatedMatch[1] ?? null,
     sections,
   }
+}
+
+// ---------- T-C LLM 归类(冻结提示词 + 纯函数解析;Dream 阶段经 curator 直调) ----------
+
+/** 画像归类单条正文的截断上限(与画像行摘要同量级,防提示词膨胀)。 */
+const PORTRAIT_CLASSIFY_ITEM_MAX_CHARS = 200
+/** 画像归类 curator 调用的 max tokens(JSON 小对象,512 足够)。 */
+export const PORTRAIT_CLASSIFY_MAX_TOKENS = 512
+
+/**
+ * 画像归类冻结提示词(T-C,2026-11-16):user 层语义记忆 → 三节键。纪律与
+ * classifySection 启发式同序(指令词先于偏好词),失败由调用方回落启发式。
+ */
+export const PORTRAIT_CLASSIFY_PROMPT = [
+  '# 用户记忆画像归类(curator)',
+  '',
+  '你会看到若干条用户记忆(编号/键/正文)。把每条归入恰好一个画像分节:',
+  '- habits:工作习惯(怎么做事——节奏、流程、工具使用习惯的稳定事实)',
+  '- preferences:风格偏好(品味与表达倾向——语言、格式、语气)',
+  '- requirements:协作要求(指令性约束——必须/禁止/遵守类要求)',
+  '',
+  '纪律:',
+  '- 指令性表述先归 requirements(「必须用 X 风格」是要求,不是偏好);',
+  '- 只依据记忆文本本身,不臆测;拿不准归 habits(兜底节);',
+  '- 每条都必须给出归属,不得遗漏、不得多节;',
+  '- 只输出 JSON,不输出任何其它文字,形态:',
+  '  {"sections":{"<编号>":"habits|preferences|requirements"}}',
+].join('\n')
+
+/** 画像归类 user 文本(逐条:编号/键/正文截断;纯文本,无 markdown 标题)。 */
+export function buildPortraitClassifyUserText(records: readonly EntityRecord[]): string {
+  const lines = records.map((record) => {
+    const content = Array.from(record.content).slice(0, PORTRAIT_CLASSIFY_ITEM_MAX_CHARS).join('')
+    return `${record.id}. [${record.key}] ${content}`
+  })
+  return `待归类记忆 ${records.length} 条:\n${lines.join('\n')}`
+}
+
+/**
+ * 画像归类输出解析(防御):取首个 `{` 到末个 `}` 之间的 JSON;id 不在
+ * validIds 内/节键非法的条目丢弃(调用方对缺席条目回落启发式)。解析失败
+ * 返回空 Map(全部回落启发式,行为与 T-C 之前一致)。
+ */
+export function parsePortraitClassifyOutput(text: string, validIds: readonly number[]): Map<number, PortraitSectionKey> {
+  const hints = new Map<number, PortraitSectionKey>()
+  const start = text.indexOf('{')
+  const end = text.lastIndexOf('}')
+  if (start < 0 || end <= start) return hints
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text.slice(start, end + 1))
+  } catch {
+    return hints
+  }
+  const sections = (parsed as { sections?: unknown }).sections
+  if (typeof sections !== 'object' || sections === null) return hints
+  const allowed = new Set(validIds)
+  for (const [rawId, rawKey] of Object.entries(sections as Record<string, unknown>)) {
+    const id = Number(rawId)
+    if (!Number.isInteger(id) || !allowed.has(id)) continue
+    if (typeof rawKey === 'string' && (SECTION_KEYS as readonly string[]).includes(rawKey)) {
+      hints.set(id, rawKey as PortraitSectionKey)
+    }
+  }
+  return hints
 }

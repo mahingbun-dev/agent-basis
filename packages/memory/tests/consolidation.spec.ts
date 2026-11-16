@@ -73,6 +73,7 @@ import {
   DEFAULT_EXTRACTION_MAX_TOKENS,
   DEFAULT_JUDGMENT_MAX_TOKENS,
   EXTRACTION_PROMPT,
+  EPISODIC_SUMMARY_PROMPT,
   ExtractionParseError,
   NOTHING_TO_SAVE_MARKER,
   applyExtractionProposals,
@@ -100,6 +101,7 @@ import type { Memory } from '../src/memory.ts'
 import type { EntityRecord } from '../src/entity-store.ts'
 import { DomainRegistryStore } from '../src/domain.ts'
 import { MemoryAuditLedger } from '../src/audit.ts'
+import { PORTRAIT_CLASSIFY_PROMPT } from '../src/portrait.ts'
 import {
   CONFLICT_FLAG_PREFIX,
   DREAM_CONFLICT_PROMPT,
@@ -697,6 +699,16 @@ describe('T6 整固 job 骨架', () => {
       it('EXTRACTION_PROMPT 与 tests/fixtures/extraction-prompt.md 逐字一致(改动须两处同步)', () => {
         expect(EXTRACTION_PROMPT).toBe(fixturePrompt())
         expect(EXTRACTION_PROMPT.length).toBeGreaterThan(0)
+      })
+
+      it('EPISODIC_SUMMARY_PROMPT 与 tests/fixtures/episodic-summary-prompt.md 逐字一致(T-A3,改动须两处同步)', () => {
+        expect(EPISODIC_SUMMARY_PROMPT).toBe(
+          readFileSync(join(import.meta.dirname, 'fixtures/episodic-summary-prompt.md'), 'utf8').replace(/\n$/u, ''),
+        )
+        // 要点:客观脉络/二手摘要防线/散文形态/只输出正文
+        for (const phrase of ['实际发生', '二手摘要', '连续中文散文', '只输出摘要正文']) {
+          expect(EPISODIC_SUMMARY_PROMPT).toContain(phrase)
+        }
       })
 
       it('语义要点齐备(19 号 §4-T7 列表:只用会话内容/禁止查证/查重/Nothing/显式记住-忘记立即执行/提案字段)', () => {
@@ -1976,6 +1988,47 @@ describe('M-M3 T11 轻量扩展:episodic 会话史落域(19 号 §5-T11「域打
     expect(memory.readEntity('domain:deploy', 'session-session-a')).toBeNull()
   })
 
+  it('T-A3 摘要直调:第二次直调发冻结摘要提示词,正文=LLM 摘要;Nothing 习语回落原文尾', async () => {
+    const logPath = await writeLog(t11SessionLines())
+    const memory = makeMemory('llm-summary')
+    const streamed: unknown[] = []
+    const replies = ['Nothing to save', '用户确认了周报统一用中文的偏好,助手承诺后续周报都用中文。']
+    let call = 0
+    const fake = {
+      llm: {
+        listProviders: () => [{ id: 'deepseek-official', name: 'p' }],
+        listModels: async () => [{ provider: 'deepseek-official', id: 'deepseek-flash', name: 'Flash' }],
+        prepareCall: async (config: unknown) => ({
+          config: { ...(config as Record<string, unknown>) },
+          stream: (options: unknown): AsyncIterable<unknown> => (async function* () {
+            streamed.push(options)
+            const reply = replies[Math.min(call, replies.length - 1)] ?? ''
+            call += 1
+            yield { type: 'block-start', index: 0, blockType: 'text' }
+            yield { type: 'text-delta', index: 0, text: reply }
+            yield { type: 'block-end', index: 0, block: { type: 'text', text: reply } }
+            yield { type: 'finish', reason: { kind: 'stop' } }
+          })(),
+        }),
+      },
+    }
+    const task = createExtractionTask({
+      ctx: { llm: fake.llm } as unknown as Context,
+      memory,
+      domainOf: () => 'deploy',
+    })
+    const result = await task(lightSnapshot(logPath), new AbortController().signal)
+    // 第二次直调 = 摘要(冻结提示词;输入是会话记录尾)
+    expect(streamed).toHaveLength(2)
+    const summaryOptions = streamed[1] as { system: string; messages: Array<{ content: Array<{ text: string }> }> }
+    expect(summaryOptions.system).toBe(EPISODIC_SUMMARY_PROMPT)
+    expect(summaryOptions.messages[0]?.content[0]?.text).toContain('[用户] 以后周报用中文')
+    // 正文 = LLM 摘要(不再是原始会话尾)
+    const row = memory.readEntity('domain:deploy', 'session-session-a')
+    expect(row?.content).toBe('用户确认了周报统一用中文的偏好,助手承诺后续周报都用中文。')
+    expect(result.detail).toContain('episodic 会话史落域(摘要)')
+  })
+
   it('正文超 Gm0 上限截断保最近(≤2000 字;最旧消息丢弃,最新保留)', async () => {
     const lines: string[] = [
       '{"type":"session","version":4,"id":"session-a","createdAt":1,"cwd":"/w","isSeeded":false,"delegationDepth":0}',
@@ -2649,10 +2702,10 @@ describe('M-M3 T11 Dream 四阶段(dream.ts;19 号 §5-T11 四阶段 + 18 §13 �
       return { memory, meta, registry, portraitPath: join(dir, `portrait-${suffix}.md`) }
     }
 
-    it('首次必生成:portrait.md 落盘(version 1)+ meta 锚点更新', () => {
+    it('首次必生成:portrait.md 落盘(version 1)+ meta 锚点更新', async () => {
       const fixture = makePortraitFixture('portrait-first')
       fixture.memory.writeEntity({ subject: 'user', key: 'pref', content: '周报用中文,必须遵守', scope: 'user', kind: 'semantic', source: 'explicit' })
-      const report = maybeRegeneratePortrait(fixture.memory, {
+      const report = await maybeRegeneratePortrait(fixture.memory, {
         meta: fixture.meta,
         portraitPath: fixture.portraitPath,
         registry: fixture.registry,
@@ -2667,18 +2720,18 @@ describe('M-M3 T11 Dream 四阶段(dream.ts;19 号 §5-T11 四阶段 + 18 §13 �
       expect(fixture.meta.getNumber(PORTRAIT_META_USER_COUNT)).toBe(1)
     })
 
-    it('计数未变且间隔未满 → 不再生成;计数变化 ≥1 → 再生成(bump version)', () => {
+    it('计数未变且间隔未满 → 不再生成;计数变化 ≥1 → 再生成(bump version)', async () => {
       const fixture = makePortraitFixture('portrait-count')
       fixture.memory.writeEntity({ subject: 'user', key: 'pref', content: '周报用中文,必须遵守', scope: 'user', kind: 'semantic', source: 'explicit' })
-      const first = maybeRegeneratePortrait(fixture.memory, { meta: fixture.meta, portraitPath: fixture.portraitPath, nowMs: T0 })
+      const first = await maybeRegeneratePortrait(fixture.memory, { meta: fixture.meta, portraitPath: fixture.portraitPath, nowMs: T0 })
       expect(first.regenerated).toBe(true)
-      const unchanged = maybeRegeneratePortrait(fixture.memory, {
+      const unchanged = await maybeRegeneratePortrait(fixture.memory, {
         meta: fixture.meta, portraitPath: fixture.portraitPath, nowMs: T0 + 3_600_000,
       })
       expect(unchanged.regenerated).toBe(false)
       expect(unchanged.version).toBe(1)
       fixture.memory.writeEntity({ subject: 'user', key: 'pref-2', content: '站会在周一,务必准时', scope: 'user', kind: 'semantic', source: 'explicit' })
-      const changed = maybeRegeneratePortrait(fixture.memory, {
+      const changed = await maybeRegeneratePortrait(fixture.memory, {
         meta: fixture.meta, portraitPath: fixture.portraitPath, nowMs: T0 + 2 * 3_600_000,
       })
       expect(changed.regenerated).toBe(true)
@@ -2686,25 +2739,25 @@ describe('M-M3 T11 Dream 四阶段(dream.ts;19 号 §5-T11 四阶段 + 18 §13 �
       expect(readFileSync(fixture.portraitPath, 'utf8')).toContain('version: 2')
     })
 
-    it('距上次 ≥24h → 再生成;enabled=false → 跳过(版本面保持)', () => {
+    it('距上次 ≥24h → 再生成;enabled=false → 跳过(版本面保持)', async () => {
       const fixture = makePortraitFixture('portrait-age')
-      const first = maybeRegeneratePortrait(fixture.memory, { meta: fixture.meta, portraitPath: fixture.portraitPath, nowMs: T0 })
+      const first = await maybeRegeneratePortrait(fixture.memory, { meta: fixture.meta, portraitPath: fixture.portraitPath, nowMs: T0 })
       expect(first.regenerated).toBe(true)
-      const byAge = maybeRegeneratePortrait(fixture.memory, {
+      const byAge = await maybeRegeneratePortrait(fixture.memory, {
         meta: fixture.meta, portraitPath: fixture.portraitPath, nowMs: T0 + 25 * 3_600_000,
       })
       expect(byAge.regenerated).toBe(true)
       expect(byAge.version).toBe(2)
-      const disabled = maybeRegeneratePortrait(fixture.memory, {
+      const disabled = await maybeRegeneratePortrait(fixture.memory, {
         meta: fixture.meta, portraitPath: fixture.portraitPath, nowMs: T0 + 30 * 3_600_000, enabled: false,
       })
       expect(disabled.regenerated).toBe(false)
     })
 
-    it('写入失败 fail-open(warn,不抛;meta 不更新 → 条件保持未满足待重试)', () => {
+    it('写入失败 fail-open(warn,不抛;meta 不更新 → 条件保持未满足待重试)', async () => {
       const fixture = makePortraitFixture('portrait-fail')
       const warns: string[] = []
-      const report = maybeRegeneratePortrait(fixture.memory, {
+      const report = await maybeRegeneratePortrait(fixture.memory, {
         meta: fixture.meta,
         portraitPath: join(dir, 'no-such-dir', 'portrait.md'),
         nowMs: T0,
@@ -2751,10 +2804,12 @@ describe('M-M3 T11 Dream 四阶段(dream.ts;19 号 §5-T11 四阶段 + 18 §13 �
       seedEpisodic(memory, 'session-b', '部署回滚', '第二次部署回滚,同样健康检查超时') // 同模式 ≥2 → 聚类簇
       memory.writeEntity({ subject: 'domain:deploy', key: 'stale-fact', content: '旧网关 1.2.0', kind: 'semantic', scope: 'domain', domainKey: 'deploy', source: 'explicit' })
       memory.writeEntity({ subject: 'user', key: 'deploy-window', content: '发布窗口是周五。', scope: 'user', kind: 'semantic', source: 'explicit' })
+      // T-C 归类验证用稳定行(不被对账 FLAG 重写;启发式归 habits,LLM 覆盖为 preferences)
+      memory.writeEntity({ subject: 'user', key: 'editor-vim', content: '编辑器一律用 Vim。', scope: 'user', kind: 'semantic', source: 'explicit' })
       return memory
     }
 
-    it('端到端:两次直调(整固+对账)→ 晋升/偏好/回收/FLAG 落库 → Prune/画像 → 周报行', async () => {
+    it('端到端:三次直调(整固+对账+画像归类)→ 晋升/偏好/回收/FLAG 落库 → Prune/画像 → 周报行', async () => {
       const clock = { value: T0 }
       const memory = seedDreamMemory(clock)
       await writeFile(join(dir, 'AGENTS.md'), '# 规则\n- 发布窗口一律周二\n', 'utf8')
@@ -2762,7 +2817,11 @@ describe('M-M3 T11 Dream 四阶段(dream.ts;19 号 §5-T11 四阶段 + 18 §13 �
       const registry = new DomainRegistryStore(join(dir, 'registry-e2e.sqlite3'))
       const ledger = new MemoryAuditLedger({ path: join(dir, 'memory-audit.jsonl') })
       disposers.push(() => { meta.close() }, () => { registry.close() })
-      const fake = makeSequentialLlm([DREAM_REPLY, CONFLICT_REPLY])
+      // T-C:画像归类为第三次直调(editor-vim 行 id 稳定不被重写;LLM 归 preferences
+      // 覆盖启发式 habits。deploy-window 会被对账 FLAG 重写拿新 id——回包里的旧 id
+      // 被 validIds 过滤,恰好同测「解析防御+启发式回落」路径)
+      const editorVimId = memory.readEntity('user', 'editor-vim')?.id
+      const fake = makeSequentialLlm([DREAM_REPLY, CONFLICT_REPLY, `{"sections":{"${String(editorVimId)}":"preferences"}}`])
       const task = createDreamTask({
         ctx: { llm: fake.llm } as unknown as Context,
         memory,
@@ -2776,7 +2835,7 @@ describe('M-M3 T11 Dream 四阶段(dream.ts;19 号 §5-T11 四阶段 + 18 §13 �
       const result = await task(dreamSnapshot(T0, T0 - DAY_MS), new AbortController().signal)
       expect(result.kind).toBe('ran')
       expect(result.detail).toContain('Dream 四阶段完成')
-      expect(fake.prepared).toHaveLength(2)
+      expect(fake.prepared).toHaveLength(3)
       // 第一次直调 = 整固(冻结提示词;材料含聚类簇与清单)
       const consolidationOptions = fake.streamed[0] as { system: string; messages: Array<{ content: Array<{ text: string }> }> }
       expect(consolidationOptions.system).toBe(DREAM_CONSOLIDATION_PROMPT)
@@ -2791,6 +2850,12 @@ describe('M-M3 T11 Dream 四阶段(dream.ts;19 号 §5-T11 四阶段 + 18 §13 �
       const conflictText = conflictOptions.messages[0]?.content[0]?.text ?? ''
       expect(conflictText).toContain('发布窗口一律周二')
       expect(conflictText).toContain('deploy-window')
+      // 第三次直调 = 画像归类(T-C 冻结提示词;仅 eligible 的 user 语义行)
+      const classifyOptions = fake.streamed[2] as { system: string; messages: Array<{ content: Array<{ text: string }> }> }
+      expect(classifyOptions.system).toBe(PORTRAIT_CLASSIFY_PROMPT)
+      const classifyText = classifyOptions.messages[0]?.content[0]?.text ?? ''
+      expect(classifyText).toContain('deploy-window')
+      expect(classifyText).toContain('editor-vim')
       // 落库:晋升 pending / 偏好 pending(Q3 全审)/ 回收软失效 / FLAG 标注
       const promotion = memory.readEntity('domain:deploy', 'rollback-check')
       expect(promotion?.reviewState).toBe('pending')
@@ -2799,14 +2864,22 @@ describe('M-M3 T11 Dream 四阶段(dream.ts;19 号 §5-T11 四阶段 + 18 §13 �
       const flagged = memory.readEntity('user', 'deploy-window')
       expect(flagged?.summary).toContain(CONFLICT_FLAG_PREFIX)
       expect(flagged?.reviewState).toBe('approved')
-      // 画像(首次必生成)与周报行
-      expect(readFileSync(join(dir, 'portrait.md'), 'utf8')).toContain('version: 1')
+      // 画像(首次必生成)双路径钉住:hints 命中 → editor-vim 按 LLM 归类落风格偏好;
+      // deploy-window 因 FLAG 重写换 id,回包旧 id 被防御丢弃 → 回落启发式(工作习惯)
+      const portrait = readFileSync(join(dir, 'portrait.md'), 'utf8')
+      expect(portrait).toContain('version: 1')
+      expect(portrait).toContain('deploy-window — ')
+      expect(portrait).toContain('editor-vim — ')
+      const preferenceSection = portrait.slice(portrait.indexOf('## 风格偏好'), portrait.indexOf('## 协作要求'))
+      expect(preferenceSection).toContain('editor-vim')
+      const habitSection = portrait.slice(portrait.indexOf('## 工作习惯'), portrait.indexOf('## 风格偏好'))
+      expect(habitSection).toContain('deploy-window')
       expect(meta.getNumber(PORTRAIT_META_GENERATED_AT)).toBe(T0)
       const events = ledger.readAll()
       expect(events).toHaveLength(1)
       expect(events[0]).toMatchObject({
         kind: 'dream', runAt: T0, promotions: 1, preferences: 1, retractions: 1,
-        conflictFlags: 1, portraitRegenerated: true, llmCalls: 2,
+        conflictFlags: 1, portraitRegenerated: true, llmCalls: 3,
         pending: [expect.objectContaining({ key: 'rollback-check' }), expect.objectContaining({ key: 'weekly-report-language' })],
       })
     })
@@ -2841,7 +2914,7 @@ describe('M-M3 T11 Dream 四阶段(dream.ts;19 号 §5-T11 四阶段 + 18 §13 �
         now: () => clock.value,
       })
       await expect(task(dreamSnapshot(T0, T0 - DAY_MS), new AbortController().signal)).rejects.toThrow(DreamParseError)
-      expect(memory.entities.count()).toBe(4) // 阶段失败,零写入(种子行数不变)
+      expect(memory.entities.count()).toBe(5) // 阶段失败,零写入(种子行数不变;editor-vim 为 T-C 归类验证行)
     })
 
     it('预中止信号 → 抛错(abort 语义:任务失败,lastDreamAt 不推进)', async () => {

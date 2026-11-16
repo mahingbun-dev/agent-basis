@@ -260,7 +260,9 @@ describe('memory 插件 M-M2 T6 整固挂载(config.consolidation)', () => {
       applyPlugin(harness, undefined, { dream: { enabled: false }, domain: { workspaceName: 'deploy' } })
       harness.emitSession(userProse('以后周报用中文', 1), { id: 'session-t11-light' })
       harness.emitSession(turnEnd('completed', 1, 9), { id: 'session-t11-light' })
-      await vi.waitFor(() => { expect(harness.llmPrepared).toHaveLength(1) }) // 显式域跳过打标,仅提取直调
+      // T-A3:显式域跳过打标 → 提取 + episodic 摘要两次直调(摘要回包 Nothing
+      // 习语被解析器拒绝 → 原文尾回落,行为与 T-A3 之前一致)
+      await vi.waitFor(() => { expect(harness.llmPrepared).toHaveLength(2) })
       const memory = createMemory({ workspaceDir: join(dir, 'NOTES'), dbPath: join(dir, 'memory.sqlite3') })
       try {
         const row = memory.readEntity('domain:deploy', 'session-session-t11-light')
@@ -289,7 +291,7 @@ describe('memory 插件 M-M2 T6 整固挂载(config.consolidation)', () => {
       const cursor = openCursorReader()
       await vi.waitFor(() => { expect(cursor.doneAt('session-t11-dream')).not.toBeNull() }) // 轻量先落定
       await vi.waitFor(() => { expect(cursor.doneAt(DREAM_CURSOR_SESSION_ID)).not.toBeNull() }) // Dream 接续完成
-      expect(harness.llmPrepared).toHaveLength(2) // 提取直调 + Dream 整固直调(对账材料缺席跳过)
+      expect(harness.llmPrepared).toHaveLength(2) // 提取 + Dream 整固直调(对账材料缺席跳过;本 spec 域统一关,domainOf 缺席 → 无 episodic 摘要直调)
       expect(existsSync(join(dir, 'portrait.md'))).toBe(true) // Prune:首次画像再生成
     } finally {
       restore()
@@ -307,7 +309,7 @@ describe('memory 插件 M-M2 T6 整固挂载(config.consolidation)', () => {
       await vi.waitFor(() => { expect(cursor.doneAt('session-t11-off')).not.toBeNull() })
       await new Promise(resolve => setTimeout(resolve, 25))
       expect(cursor.doneAt(DREAM_CURSOR_SESSION_ID)).toBeNull() // Dream 未触发
-      expect(harness.llmPrepared).toHaveLength(1) // 只有提取直调
+      expect(harness.llmPrepared).toHaveLength(1) // 只有提取直调(域关 → 无摘要直调)
     } finally {
       restore()
     }
