@@ -190,11 +190,18 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
       const accessFace = (() => {
         try {
           const reflect = ctx as unknown as { reflect?: { get(name: string, strict?: boolean): unknown } }
-          const store = reflect.reflect?.get('eternaAccessStore', false) as
+          const store = reflect.reflect?.get("eternaAccessStore", false) as
             | { sessionOwner(sessionId: string): number | undefined; getUserById(id: number): { account: string } | undefined }
             | undefined
-          return store !== undefined && typeof store.sessionOwner === 'function' && typeof store.getUserById === 'function' ? store : undefined
-        } catch {
+          const usable = store !== undefined && typeof store.sessionOwner === "function" && typeof store.getUserById === "function"
+          ;(ctx as unknown as { logger?: { info?(...args: unknown[]): void } }).logger?.info?.(
+            `[memory] routing diagnose: eternaAccessStore present=${store !== undefined} usable=${usable}`,
+          )
+          return usable ? store : undefined
+        } catch (error) {
+          (ctx as unknown as { logger?: { warn?(...args: unknown[]): void } }).logger?.warn?.(
+            `[memory] routing diagnose: accessFace read threw: ${error instanceof Error ? error.message : String(error)}`,
+          )
           return undefined
         }
       })()
@@ -291,6 +298,7 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
       // 的触发面=会话尾在 consolidator 内),提取任务以 no-op 形态占位(返回
       // nothing-to-save,游标照常推进,保证 Dream 时间阈值合并继续工作)。
       const consolidationOff = config.consolidation?.enabled === false
+      ctx.logger?.info?.("[memory] routing diagnose: routed=" + routed + " accessFacePresent=" + (accessFace !== undefined) + " tenantRoot=" + tenantRoot)
       const detachConsolidation = consolidationOff && dreamConfig.enabled === false
         ? null
         : wireConsolidation(ctx, dbPath, auditedMemory, audit, {
