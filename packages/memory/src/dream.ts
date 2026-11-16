@@ -657,10 +657,10 @@ export function applyDreamConsolidation(
       }
       if (memory.supersede(row.id) !== null) {
         retractions.count += 1
-        prunedEntries.push({ subject: proposal.subject, key: proposal.key, reason: "retracted" })
+        prunedEntries.push({ subject: proposal.subject, key: proposal.key, reason: 'retracted' })
       }
     } catch (error) {
-      recordSkip(skipped, proposal.key, error, options.logger, "回收提案落地被跳过")
+      recordSkip(skipped, proposal.key, error, options.logger, '回收提案落地被跳过')
     }
   }
   return {
@@ -863,10 +863,10 @@ export function pruneMemory(memory: Memory, options: DreamPruneOptions): DreamPr
   const pruned: { subject: string; key: string; reason: string }[] = []
   let expired = 0
   for (const row of memory.entities.listLive()) {
-    if (row.kind === "episodic" && row.updatedAt < cutoff) {
+    if (row.kind === 'episodic' && row.updatedAt < cutoff) {
       if (memory.supersede(row.id) !== null) {
         expired += 1
-        pruned.push({ subject: row.subject, key: row.key, reason: "expired" })
+        pruned.push({ subject: row.subject, key: row.key, reason: 'expired' })
       }
     }
   }
@@ -893,7 +893,7 @@ export function pruneMemory(memory: Memory, options: DreamPruneOptions): DreamPr
       if (memory.supersede(row.id) !== null) {
         evicted += 1
         countInDomain += 1
-        pruned.push({ subject: row.subject, key: row.key, reason: "evicted" })
+        pruned.push({ subject: row.subject, key: row.key, reason: 'evicted' })
       }
     }
     evictedByDomain.push({ domainKey, count: countInDomain })
