@@ -75,14 +75,6 @@ export function sourcesFromMeta(meta: unknown): readonly MemorySourceEntry[] {
 /** match:抓 turn/start 与记忆工具的 call/result(其余事件不相关)。 */
 export function memorySourcesMatch(event: SessionEventLike): { id: string; role: 'start' | 'update' } | null {
   const data = event.data
-  // 2026-11-16 诊断(定位 sources-row 未渲染;定位后移除):记录事件类型与关键载荷。
-  if (event.type === 'tool/call' || event.type === 'tool/result' || event.type === 'turn/start') {
-    const meta = (data as Record<string, unknown> | undefined)?.meta
-    console.info('[memory-sources:match]', event.type,
-      'turn=', (data as Record<string, unknown> | undefined)?.turn,
-      'name=', (data as Record<string, unknown> | undefined)?.name,
-      'meta=', typeof meta === 'object' ? JSON.stringify(meta)?.slice(0, 200) : meta)
-  }
   if (event.type === 'turn/start') {
     const turn = data?.turn
     return typeof turn === 'number' ? { id: String(turn), role: 'start' } : null
@@ -160,8 +152,6 @@ export function memorySourcesBuildLocationData(
 ): ConversationLocationDataLike | null {
   if (scope !== 'turn') return null
   const reads = context.state.reads
-  // 2026-11-16 诊断(定位 sources-row 未渲染;定位后移除)。
-  console.info('[memory-sources:locdata]', 'turn=', context.state.turn, 'reads=', reads.length)
   if (previous?.kind === 'turn' && previous.turn === context.state.turn
     && previous.key === MEMORY_SOURCES_DATA_KEY
     && (previous.value as MemorySourcesTurnData).reads === reads) {
