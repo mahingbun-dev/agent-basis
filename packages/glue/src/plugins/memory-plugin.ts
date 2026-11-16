@@ -119,7 +119,7 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
       // T13:同一实例注入 createMemory(域解析/纠正埋点与指标读取同源,不双写)。
       const audit = new MemoryAuditLedger({ path: defaultMemoryAuditPath(dbPath), logger: ctx.logger })
       const memory = createMemory({
-        workspaceDir: config.notesDir ?? join(cwd, 'NOTES'),
+        workspaceDir: config.notesDir ?? join(cwd, "NOTES"),
         dbPath,
         ...(gov?.pii !== undefined ? { pii: gov.pii } : {}),
         // 写入策略档位(T12-①,explicit-only/auto-review/full-auto):每次写入现读
@@ -128,6 +128,9 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
         // T13 指标埋点:复用上方单例账本(缺省会另起同路径实例,多实例同文件安全
         // 但日志告警面会丢——glue 显式传入保持单实例口径)。
         audit,
+        // Gm0 上限可配(19 §10-#1 配置键;缺省=库内常量 2000/200)。
+        ...(config.contentMaxChars !== undefined && { contentMaxChars: config.contentMaxChars }),
+        ...(config.perDomainLimit !== undefined && { perDomainLimit: config.perDomainLimit }),
       })
       const auditedMemory = withReviewAudit(memory, audit)
       // Memory 服务按注册表+唯一 ID 形态 provide(memory.ts 头注既定对外形态):

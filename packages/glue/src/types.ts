@@ -35,6 +35,10 @@ export interface MemoryPluginConfig {
    * 本地单用户(TUI,无 access 插件)→ global(沿用单库,行为不变)。
    */
   readonly routing?: MemoryRoutingConfig
+  /** Gm0 单条正文字数上限(缺省 2000;19 §10-#1 配置键)。 */
+  readonly contentMaxChars?: number
+  /** Gm0 单域 live 上限(缺省 200;19 §10-#1 配置键)。 */
+  readonly perDomainLimit?: number
 }
 
 /** 多租户分库路由配置(23 号 §3;Q1 决议参数为缺省)。 */
