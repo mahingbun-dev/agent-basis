@@ -542,6 +542,8 @@ export interface DreamApplyReport {
   readonly skipReasons: readonly string[]
   /** 本次落库产生的待审行(审批卡片/队列数据源,口径同提案报告)。 */
   readonly pending: readonly EntityRecord[]
+  /** 被证伪回收的条目明细(T13 留痕:subject/key 逐条可溯)。 */
+  readonly prunedEntries: readonly { readonly subject: string; readonly key: string; readonly reason: string }[]
 }
 
 /** applyDreamConsolidation 可选项。 */
@@ -595,6 +597,8 @@ export function applyDreamConsolidation(
   const retractions = { count: 0 }
   const skipped: string[] = []
   const pending: EntityRecord[] = []
+  // T13 留痕:被证伪回收/TTL 淘汰/超限挤出的条目明细(审计 DreamAuditEntry.pruned 数据源)。
+  const prunedEntries: { subject: string; key: string; reason: string }[] = []
   const write = (input: Parameters<Memory['writeEntity']>[0]): void => {
     const result = memory.writeEntity(input)
     if (result.record.reviewState === 'pending') pending.push(result.record)
@@ -651,9 +655,12 @@ export function applyDreamConsolidation(
         skipped.push(`${proposal.subject}/${proposal.key}:回收目标不存在或已失效`)
         continue
       }
-      if (memory.supersede(row.id) !== null) retractions.count += 1
+      if (memory.supersede(row.id) !== null) {
+        retractions.count += 1
+        prunedEntries.push({ subject: proposal.subject, key: proposal.key, reason: "retracted" })
+      }
     } catch (error) {
-      recordSkip(skipped, proposal.key, error, options.logger, '回收提案落地被跳过')
+      recordSkip(skipped, proposal.key, error, options.logger, "回收提案落地被跳过")
     }
   }
   return {
@@ -663,6 +670,7 @@ export function applyDreamConsolidation(
     skipped: skipped.length,
     skipReasons: skipped,
     pending,
+    prunedEntries,
   }
 }
 
@@ -823,6 +831,8 @@ export interface DreamPruneReport {
   /** 超限挤出软失效数(半衰期降权排序,低分先出)。 */
   readonly evicted: number
   readonly evictedByDomain: readonly { readonly domainKey: string; readonly count: number }[]
+  /** T13 留痕:被淘汰条目明细(subject/key 逐条可溯,reason=expired|evicted)。 */
+  readonly pruned: readonly { readonly subject: string; readonly key: string; readonly reason: string }[]
 }
 
 /** pruneMemory 可选项(缺省值=19 §6/Q5 决议)。 */
@@ -849,10 +859,15 @@ export function pruneMemory(memory: Memory, options: DreamPruneOptions): DreamPr
   const perDomainLimit = options.perDomainLimit ?? DEFAULT_EPISODIC_PER_DOMAIN_LIMIT
   const halfLifeDays = options.halfLifeDays ?? MEMORY_HALF_LIFE_DAYS
   const cutoff = options.nowMs - ttlDays * MS_PER_DAY
+  // T13 留痕:被淘汰条目明细(审计 DreamAuditEntry.pruned 数据源)。
+  const pruned: { subject: string; key: string; reason: string }[] = []
   let expired = 0
   for (const row of memory.entities.listLive()) {
-    if (row.kind === 'episodic' && row.updatedAt < cutoff && memory.supersede(row.id) !== null) {
-      expired += 1
+    if (row.kind === "episodic" && row.updatedAt < cutoff) {
+      if (memory.supersede(row.id) !== null) {
+        expired += 1
+        pruned.push({ subject: row.subject, key: row.key, reason: "expired" })
+      }
     }
   }
   const groups = new Map<string, EntityRecord[]>()
@@ -878,11 +893,12 @@ export function pruneMemory(memory: Memory, options: DreamPruneOptions): DreamPr
       if (memory.supersede(row.id) !== null) {
         evicted += 1
         countInDomain += 1
+        pruned.push({ subject: row.subject, key: row.key, reason: "evicted" })
       }
     }
     evictedByDomain.push({ domainKey, count: countInDomain })
   }
-  return { expired, evicted, evictedByDomain }
+  return { expired, evicted, evictedByDomain, pruned }
 }
 
 // ---------- 画像再生成(19 号 §5-T11 条件;T4 buildPortrait 复用) ----------
@@ -1156,6 +1172,7 @@ export function createDreamTask(options: DreamTaskOptions): ConsolidationTask {
       skipped: applied.skipped + conflictSkipped,
       skipReasons,
       pending: pendingItems,
+      pruned: [...applied.prunedEntries, ...prune.pruned],
     }
     options.audit?.recordDream(dreamEntry)
     return {

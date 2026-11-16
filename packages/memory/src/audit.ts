@@ -109,6 +109,8 @@ export interface DreamAuditEntry {
   readonly skipped: number
   readonly skipReasons: readonly string[]
   readonly pending: readonly MemoryAuditPendingItem[]
+  /** T13 留痕:被淘汰/回收条目明细(subject/key/reason 逐条;M-T2 补,low#17)。 */
+  readonly pruned: readonly { readonly subject: string; readonly key: string; readonly reason: string }[]
 }
 
 /**
