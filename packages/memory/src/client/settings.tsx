@@ -93,6 +93,8 @@ export const SETTINGS_LOCALES = {
   fieldDistill: '参与全局蒸馏',
   distillDisabledHint: '全局蒸馏尚未开放;当前你的记忆不参与任何跨用户数据聚合(Q4 默认关)',
   costNote: '成本提示:记忆整固与域识别会在会话结束时调用轻量模型,每次约数百 token。',
+  'sources.line': '本回合用到记忆',
+  'sources.jump': '查看记忆',
   save: '保存策略',
   saving: '保存中…',
   saved: '已保存,立即生效',
