@@ -101,8 +101,11 @@ export {
   MEMORY_PORTRAIT_BUDGET_TOKENS, MEMORY_STALENESS_DAYS,
 } from './index-builder.ts'
 export type { MemoryIndexOptions, MemoryIndexResult } from './index-builder.ts'
-export { buildPortrait, parsePortraitDocument, PORTRAIT_MAX_PER_SECTION } from './portrait.ts'
-export type { PortraitDocument, PortraitOptions, PortraitSectionView } from './portrait.ts'
+export {
+  buildPortrait, buildPortraitClassifyUserText, parsePortraitClassifyOutput, parsePortraitDocument,
+  PORTRAIT_CLASSIFY_MAX_TOKENS, PORTRAIT_CLASSIFY_PROMPT, PORTRAIT_MAX_PER_SECTION,
+} from './portrait.ts'
+export type { PortraitDocument, PortraitOptions, PortraitSectionKey, PortraitSectionView } from './portrait.ts'
 export {
   ConsolidationCursorStore, ConsolidationMetaStore, SessionEndConsolidator, SessionGateFactsRegistry,
   SKELETON_CONSOLIDATION_TASK, countUserProseWords, dreamIntervalMs, dreamSnapshot,
@@ -115,7 +118,8 @@ export type {
   SessionEndConsolidatorOptions, SessionEndRef, SessionEventLike, SessionGateFacts,
 } from './consolidation.ts'
 export {
-  CHECKPOINT_TRANSCRIPT_PREFIX, CONTRADICTION_JUDGE_PROMPT, EXTRACTION_PROMPT, NOTHING_TO_SAVE_MARKER,
+  CHECKPOINT_TRANSCRIPT_PREFIX, CONTRADICTION_JUDGE_PROMPT, EPISODIC_SUMMARY_PROMPT, EXTRACTION_PROMPT,
+  EPISODIC_SUMMARY_MAX_TOKENS, NOTHING_TO_SAVE_MARKER,
   DEFAULT_CURATOR_MODEL, DEFAULT_EXTRACTION_MAX_TOKENS, DEFAULT_JUDGMENT_MAX_TOKENS,
   FALLBACK_CURATOR_PROVIDER,
   EXTRACTION_RECENT_MESSAGES, EXTRACTION_MAX_TRANSCRIPT_CHARS, EXTRACTION_MANIFEST_MAX_ROWS,

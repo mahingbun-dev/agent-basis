@@ -57,7 +57,11 @@ import { buildMemoryManifest, resolveCuratorRoute, runCuratorOneShot } from './e
 import { MEMORY_HALF_LIFE_DAYS, buildEntityIndex, memoryRecallScore } from './index-builder.ts'
 import type { Memory } from './memory.ts'
 import { MEMORY_PER_DOMAIN_LIVE_LIMIT } from './memory.ts'
-import { buildPortrait } from './portrait.ts'
+import {
+  buildPortrait, buildPortraitClassifyUserText, parsePortraitClassifyOutput,
+  PORTRAIT_CLASSIFY_MAX_TOKENS, PORTRAIT_CLASSIFY_PROMPT,
+} from './portrait.ts'
+import type { PortraitSectionKey } from './portrait.ts'
 
 const MS_PER_DAY = 86_400_000
 const MS_PER_HOUR = 3_600_000
@@ -909,6 +913,8 @@ export interface PortraitRegenReport {
   /** 本次生效/将生效的画像版本(未再生时=当前文件版本)。 */
   readonly version: number
   readonly reason: string
+  /** 本次归类消耗的 curator 调用数(T-C;未触发归类=0,Dream 汇总入 llmCalls)。 */
+  readonly llmCalls: number
 }
 
 /** maybeRegeneratePortrait 可选项。 */
@@ -922,6 +928,13 @@ export interface PortraitRegenOptions {
   readonly halfLifeDays?: number
   readonly nowMs: number
   readonly logger?: ConsolidationLogger
+  /**
+   * LLM 归类器(T-C):仅在再生成触发时调用(due 判定先行,不因归类空烧);
+   * 抛错/超时由调用方吞掉回落关键词启发式(画像是指派生缓存,归类失败不算
+   * 失败)。Dream 任务注入 curator 直调实现;离线入口(scripts/gen-portrait.mjs)
+   * 不注入,维持纯启发式。
+   */
+  readonly classify?: (records: readonly EntityRecord[]) => Promise<ReadonlyMap<number, PortraitSectionKey>>
 }
 
 /**
@@ -929,13 +942,14 @@ export interface PortraitRegenOptions {
  * ≥24h;首次必生成)。T4 buildPortrait 纯函数复用,version 从现有文件 frontmatter
  * 单调 bump;生成计数与时刻落 consolidation_meta(条件判定的持久锚点)。写盘
  * 失败 fail-open(warn 不抛——画像是指派生缓存,失败留待下次 Dream 重试;
- * meta 不更新即条件保持未满足)。
+ * meta 不更新即条件保持未满足)。T-C:due 触发时先经 classify 归类(LLM,
+ * 失败回落启发式),hints 注入 buildPortrait。
  */
-export function maybeRegeneratePortrait(memory: Memory, options: PortraitRegenOptions): PortraitRegenReport {
+export async function maybeRegeneratePortrait(memory: Memory, options: PortraitRegenOptions): Promise<PortraitRegenReport> {
   const enabled = options.enabled ?? true
   const currentVersion = options.portraitPath === undefined ? 0 : readPortraitVersion(options.portraitPath)
   if (!enabled || options.portraitPath === undefined) {
-    return { regenerated: false, version: currentVersion, reason: '画像再生成关闭或缺写入路径' }
+    return { regenerated: false, version: currentVersion, reason: '画像再生成关闭或缺写入路径', llmCalls: 0 }
   }
   const userCount = memory.entities.listLive().filter(row => row.scope === 'user').length
   const lastCount = options.meta.getNumber(PORTRAIT_META_USER_COUNT)
@@ -943,11 +957,30 @@ export function maybeRegeneratePortrait(memory: Memory, options: PortraitRegenOp
   const dueByAge = lastGenAt === null || options.nowMs - lastGenAt >= PORTRAIT_REGEN_INTERVAL_HOURS * MS_PER_HOUR
   const dueByCount = lastCount !== null && Math.abs(userCount - lastCount) >= 1
   if (!dueByAge && !dueByCount) {
-    return { regenerated: false, version: currentVersion, reason: '未到再生成条件(计数与间隔均未触发)' }
+    return { regenerated: false, version: currentVersion, reason: '未到再生成条件(计数与间隔均未触发)', llmCalls: 0 }
   }
   const version = currentVersion + 1
+  // T-C LLM 归类(due 才调):与 buildPortrait 同过滤口径取条目;归类失败/
+  // 空结果回落启发式(behavior 与 T-C 之前逐字节一致)。llmCalls 按调用发生
+  // 计(解析失败也算一次 curator 调用成本)。
+  let sectionHints: ReadonlyMap<number, PortraitSectionKey> | undefined
+  let classifyCalled = false
+  const eligible = memory.entities.listLive().filter(
+    row => row.scope === 'user' && row.kind === 'semantic' && row.reviewState === 'approved' && row.invalidAt === null,
+  )
+  if (options.classify !== undefined && eligible.length > 0) {
+    classifyCalled = true
+    try {
+      sectionHints = await options.classify(eligible)
+    } catch (error) {
+      options.logger?.warn?.(
+        `[memory] 画像 LLM 归类失败,回落关键词启发式:${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
+  }
   const markdown = buildPortrait(memory.entities.listLive(), {
     ...(options.registry !== undefined && { domains: options.registry.list() }),
+    ...(sectionHints !== undefined && sectionHints.size > 0 ? { sectionHints } : {}),
     version,
     now: (): number => options.nowMs,
     ...(options.halfLifeDays !== undefined && { halfLifeDays: options.halfLifeDays }),
@@ -957,14 +990,37 @@ export function maybeRegeneratePortrait(memory: Memory, options: PortraitRegenOp
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     options.logger?.warn?.(`[memory] 画像写入失败(留待下次 Dream 重试,${options.portraitPath}):${message}`)
-    return { regenerated: false, version, reason: `画像写入失败:${message}` }
+    return { regenerated: false, version, reason: `画像写入失败:${message}`, llmCalls: classifyCalled ? 1 : 0 }
   }
   options.meta.set(PORTRAIT_META_GENERATED_AT, String(options.nowMs))
   options.meta.set(PORTRAIT_META_USER_COUNT, String(userCount))
   const reason = dueByCount
     ? `user 层 approved 记忆数变化(${lastCount}→${userCount})`
     : lastGenAt === null ? '首次生成' : '距上次再生成已到 24h'
-  return { regenerated: true, version, reason }
+  return { regenerated: true, version, reason, llmCalls: classifyCalled ? 1 : 0 }
+}
+
+/**
+ * T-C 归类器(Dream 任务注入 maybeRegeneratePortrait.classify 用):curator
+ * 直调 PORTRAIT_CLASSIFY_PROMPT,解析为 id → 节键 Map(解析失败=空 Map,
+ * 上层回落启发式)。抛错向上(maybeRegeneratePortrait 吞掉)。
+ */
+async function classifyPortraitSections(
+  ctx: Context,
+  route: ExtractionRoute,
+  records: readonly EntityRecord[],
+  signal: AbortSignal,
+): Promise<ReadonlyMap<number, PortraitSectionKey>> {
+  const { text } = await runCuratorOneShot(
+    ctx,
+    route,
+    PORTRAIT_CLASSIFY_PROMPT,
+    buildPortraitClassifyUserText(records),
+    PORTRAIT_CLASSIFY_MAX_TOKENS,
+    '画像归类',
+    { signal },
+  )
+  return parsePortraitClassifyOutput(text, records.map(record => record.id))
 }
 
 /** 现有 portrait.md 的 frontmatter version(缺席/坏值=0;新文件下一版=1)。 */
@@ -1143,7 +1199,7 @@ export function createDreamTask(options: DreamTaskOptions): ConsolidationTask {
       ...(options.perDomainLimit !== undefined && { perDomainLimit: options.perDomainLimit }),
       ...(options.halfLifeDays !== undefined && { halfLifeDays: options.halfLifeDays }),
     })
-    const portrait = maybeRegeneratePortrait(options.memory, {
+    const portrait = await maybeRegeneratePortrait(options.memory, {
       meta: options.meta,
       ...(options.portraitPath !== undefined && { portraitPath: options.portraitPath }),
       ...(options.registry !== undefined && { registry: options.registry }),
@@ -1151,7 +1207,11 @@ export function createDreamTask(options: DreamTaskOptions): ConsolidationTask {
       ...(options.halfLifeDays !== undefined && { halfLifeDays: options.halfLifeDays }),
       nowMs,
       ...(options.logger !== undefined && { logger: options.logger }),
+      // T-C LLM 归类(归类器内部 due 才触发 curator 调用;失败回落启发式)
+      classify: (records): Promise<ReadonlyMap<number, PortraitSectionKey>> =>
+        classifyPortraitSections(options.ctx, route, records, signal),
     })
+    llmCalls += portrait.llmCalls
     // 周报行(审计账本;fail-open 在账本内部)
     const pendingItems: MemoryAuditPendingItem[] = applied.pending.map(record => ({
       id: record.id,

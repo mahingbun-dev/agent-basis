@@ -51,6 +51,12 @@ export interface MemoryRoutingConfig {
   readonly maxAccounts?: number
   /** 闲置关库毫秒(缺省 600_000,Q1 决议)。 */
   readonly idleCloseMs?: number
+  /**
+   * access users.db 路径(身份解析源;缺省 DSH_HOME/access/users.db)。S-6/S-7
+   * 修复:宿主服务解析在 agent ctx 拿不到(拓扑差异),身份改读文件证据——
+   * 部署配置与测试注入共用此键。
+   */
+  readonly accessDbPath?: string
 }
 
 /**

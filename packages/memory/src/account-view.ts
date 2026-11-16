@@ -2,9 +2,10 @@
  * 账号记忆视图组装(23 号 M-T2,S-6 修复):给定账号库路径,只读组装面板
  * memory 区全量视图(实体/待审/画像/域浏览/指标)——access 守卫路由消费
  * (unary 通道 principal 不带 userId,身份面在守卫;glue 的 accounts face
- * viewForAccount 调本函数)。与 panel 包的 readMemory 同源同构:panel 是
- * 宿主级其他区块的宿主,本函数是账号路由的真相源,两者不得漂移(结构由
- * glue tests/memory-routing.spec 与 panel snapshot 测试双侧钉住)。
+ * viewForAccount 调本函数)。T-D 合一(2026-11-16):本函数是记忆视图唯一
+ * 真相源,panel 包 readMemory 已改为本函数的薄适配(双实现曾经漂移:
+ * 旧库 review_state 缺列回落 panel 有/本函数无)——结构由
+ * glue tests/memory-routing.spec 与 panel snapshot 测试双侧钉住。
  *
  * 只读纪律:DatabaseSync readOnly 打开(绝不触发迁移写);库缺席/旧 schema
  * 逐级回落(available:false / 计数 0 / 率 null),不炸面板。
@@ -22,7 +23,7 @@ export interface MemoryAccountView {
   readonly dbPath: string
   readonly entityCount: number
   readonly totalRows: number
-  readonly recentKeys: { readonly key: string; readonly updatedAt: number }[]
+  readonly recentKeys: { readonly subject: string; readonly key: string; readonly updatedAt: number }[]
   readonly entities: {
     readonly subject: string
     readonly key: string
@@ -57,15 +58,25 @@ export interface MemoryAccountView {
     readonly lastUsedAt: number | null
     readonly pendingCount: number
   }[]
-  readonly metrics: MemoryMetricsReport
+  /** T13 指标(indexZones 收敛为恒在场 `| null`,与 panel MemoryMetricsView 同构)。 */
+  readonly metrics: MemoryAccountMetrics
 }
 
-function emptyMetrics(): MemoryMetricsReport {
+/**
+ * 账号视图指标(Omit 而非交叉:MemoryMetricsReport.indexZones 可选不可空,
+ * 与「恒在场 | null」直接交叉会得到不可空交集,赋 null 不合法)。
+ */
+export type MemoryAccountMetrics = Omit<MemoryMetricsReport, 'indexZones'> & {
+  readonly indexZones: MemoryIndexZoneTokens | null
+}
+
+function emptyMetrics(): MemoryAccountMetrics {
   return {
     reviews: { approved: 0, rejected: 0, acceptanceRate: null },
     reviewLatencyMs: { count: 0, medianMs: null, maxMs: null },
     corrections: { count: 0, portraitEntries: 0, correctionRate: null },
     domainResolves: { total: 0, bound: 0, workspace: 0, merged: 0, promoted: 0, candidate: 0, none: 0 },
+    indexZones: null,
   }
 }
 
@@ -100,39 +111,45 @@ export function buildMemoryAccountView(dbPath: string): MemoryAccountView {
     const totalRows = countOr(db, 'SELECT COUNT(*) AS c FROM memory_entity') ?? 0
     const entityCount = countOr(db, "SELECT COUNT(*) AS c FROM memory_entity WHERE invalid_at IS NULL AND review_state = 'approved'")
       ?? countOr(db, 'SELECT COUNT(*) AS c FROM memory_entity WHERE invalid_at IS NULL') ?? 0
-    const recentKeys: { key: string; updatedAt: number }[] = []
+    const recentKeys: { subject: string; key: string; updatedAt: number }[] = []
     const entities: MemoryAccountView['entities'] = []
     const pending: MemoryAccountView['pending'] = []
     let pendingCount = 0
     try {
       for (const row of db.prepare(
-        'SELECT key, updated_at FROM memory_entity WHERE invalid_at IS NULL ORDER BY updated_at DESC, id DESC LIMIT 5',
+        'SELECT subject, key, updated_at FROM memory_entity WHERE invalid_at IS NULL ORDER BY updated_at DESC, id DESC LIMIT 5',
       ).all() as unknown[]) {
-        const record = row as { key?: unknown; updated_at?: unknown }
-        if (typeof record.key === 'string' && typeof record.updated_at === 'number') {
-          recentKeys.push({ key: record.key, updatedAt: record.updated_at })
+        const record = row as { subject?: unknown; key?: unknown; updated_at?: unknown }
+        if (typeof record.subject === 'string' && typeof record.key === 'string' && typeof record.updated_at === 'number') {
+          recentKeys.push({ subject: record.subject, key: record.key, updatedAt: record.updated_at })
         }
       }
-      // 有效实体全量(approved;旧库无列回落全量)
+      // 有效实体全量(approved;旧库无 review_state 列回落 invalid_at IS NULL 全量)
+      let entityRows: unknown[]
       try {
-        for (const row of db.prepare(
+        entityRows = db.prepare(
           'SELECT subject, key, content, summary, updated_at FROM memory_entity'
           + " WHERE invalid_at IS NULL AND review_state = 'approved'"
           + ' ORDER BY updated_at DESC, id DESC',
-        ).all() as unknown[]) {
-          const record = row as { subject?: unknown; key?: unknown; content?: unknown; summary?: unknown; updated_at?: unknown }
-          if (typeof record.subject === 'string' && typeof record.key === 'string' && typeof record.content === 'string' && typeof record.updated_at === 'number') {
-            entities.push({
-              subject: record.subject,
-              key: record.key,
-              content: record.content,
-              summary: typeof record.summary === 'string' ? record.summary : '',
-              updatedAt: record.updated_at,
-            })
-          }
-        }
+        ).all()
       } catch {
-        // 旧 schema 缺 review_state:实体留空(与 panel 既有回落口径一致)
+        // 旧 schema 缺 review_state 列:回落无评审过滤全量
+        entityRows = db.prepare(
+          'SELECT subject, key, content, summary, updated_at FROM memory_entity'
+          + ' WHERE invalid_at IS NULL ORDER BY updated_at DESC, id DESC',
+        ).all()
+      }
+      for (const row of entityRows) {
+        const record = row as { subject?: unknown; key?: unknown; content?: unknown; summary?: unknown; updated_at?: unknown }
+        if (typeof record.subject === 'string' && typeof record.key === 'string' && typeof record.content === 'string' && typeof record.updated_at === 'number') {
+          entities.push({
+            subject: record.subject,
+            key: record.key,
+            content: record.content,
+            summary: typeof record.summary === 'string' ? record.summary : '',
+            updatedAt: record.updated_at,
+          })
+        }
       }
       // 待审队列(T9;updated_at 降序 ≤50)
       pendingCount = countOr(db, "SELECT COUNT(*) AS c FROM memory_entity WHERE review_state = 'pending' AND invalid_at IS NULL") ?? 0
@@ -270,7 +287,7 @@ function readDomainBrowse(db: DatabaseSync): MemoryAccountView['domains'] {
  * approved semantic live 行数(画像事实源口径);indexZones 按当前库只读现算
  * (最近使用域 + 库同目录 portrait.md)。账本路径与库同目录(audit.ts 约定)。
  */
-function readAccountMetrics(dbPath: string, db: DatabaseSync): MemoryMetricsReport {
+function readAccountMetrics(dbPath: string, db: DatabaseSync): MemoryAccountMetrics {
   const portraitEntries = countOr(
     db,
     "SELECT COUNT(*) AS c FROM memory_entity WHERE invalid_at IS NULL AND review_state = 'approved'"
@@ -284,5 +301,11 @@ function readAccountMetrics(dbPath: string, db: DatabaseSync): MemoryMetricsRepo
     portraitEntries,
     ...(indexZones !== null ? { indexZones } : {}),
   })
-  return { ...report, indexZones: report.indexZones ?? null } as MemoryMetricsReport & { indexZones: MemoryIndexZoneTokens | null }
+  return {
+    reviews: report.reviews,
+    reviewLatencyMs: report.reviewLatencyMs,
+    corrections: report.corrections,
+    domainResolves: report.domainResolves,
+    indexZones: report.indexZones ?? null,
+  }
 }

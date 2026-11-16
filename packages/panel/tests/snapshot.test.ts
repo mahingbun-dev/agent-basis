@@ -166,7 +166,9 @@ describe('buildSnapshot', () => {
     expect(snapshot.memory.available).toBe(true)
     expect(snapshot.memory.entityCount).toBe(1)
     expect(snapshot.memory.totalRows).toBe(4)
-    expect(snapshot.memory.recentKeys).toHaveLength(4)
+    // T-D 合一后口径(与 buildMemoryAccountView 同源):最近 key 只列有效行
+    // (invalid_at IS NULL)——被顶替/软失效的旧 key 不进「最近更新」。
+    expect(snapshot.memory.recentKeys).toHaveLength(3)
     expect(snapshot.memory.recentKeys[0]?.key).toBe('deploy-pending')
     // 有效实体清单(review_state='approved')不含待审行
     expect(snapshot.memory.entities.map(entity => entity.key)).toEqual(['meeting-preference'])
