@@ -434,7 +434,7 @@ function decideAndWrite(
   // Gm0 容量闸(M-M2 T8,19 号 §4-T8):仅新增 live 行时检查——顶替/合并路径
   // 在上方 return,不新增 live 行故不受限;user/legacy-org 无域语义不设限。
   assertDomainLiveCapacity(entities, input, limits.perDomainLimit)
-  return withDecision("add", entities.write({ ...input, reviewState }))
+  return withDecision('add', entities.write({ ...input, reviewState }))
 }
 
 /**
