@@ -239,50 +239,34 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
         // global 部署也 provide(账号面空、memory/dbPath 回落全局),panel 统一走此面。
         const provide2 = (ctx as unknown as { provide?: (id: string, value: unknown) => () => void }).provide
         if (provide2 !== undefined) {
+          // 块内 routed/accessFace 已收窄恒真(no-unnecessary-condition):face 方法直写,
+          // 不再携带恒定守卫条件。方法间互调走局部函数(对象键名不可直接引用)。
+          const memoryForAccount = (account: string): Memory | undefined => {
+            const dir = join(tenantRoot, account)
+            if (!existsSync(dir)) return undefined
+            return router?.forAccount(account) ?? createDeniedMemory()
+          }
+          const dbPathForAccount = (account: string): string | undefined => {
+            const dir = join(tenantRoot, account)
+            return existsSync(dir) ? join(dir, '.eterna', 'memory.sqlite3') : undefined
+          }
           const accountsFace = {
-            accountOfUser: (userId: number): string | undefined => {
-              if (!routed || accessFace === undefined) return undefined
-              return accessFace.getUserById(userId)?.account
-            },
-            memoryForAccount: (account: string): Memory | undefined => {
-              if (!routed) return auditedMemory
-              const dir = join(tenantRoot, account)
-              if (!existsSync(dir)) return undefined
-              return router?.forAccount(account) ?? createDeniedMemory()
-            },
-            dbPathForAccount: (account: string): string | undefined => {
-              if (!routed) return dbPath
-              const dir = join(tenantRoot, account)
-              return existsSync(dir) ? join(dir, '.eterna', 'memory.sqlite3') : undefined
-            },
+            accountOfUser: (userId: number): string | undefined => accessFace.getUserById(userId)?.account,
+            memoryForAccount,
+            dbPathForAccount,
             // S-6 修复(23 号 M-T2):unary 通道 principal 不带 userId——panel 的
             // 记忆三端点改走 access 守卫面(身份在守卫),守卫经本 face 的账号级
             // 原语完成组装与裁决;view 组装在 memory 包(buildMemoryAccountView)。
             viewForAccount: (account: string): unknown => {
-              const dbPathFor = routed
-                ? (() => {
-                  const dir = join(tenantRoot, account)
-                  return existsSync(dir) ? join(dir, '.eterna', 'memory.sqlite3') : undefined
-                })()
-                : dbPath
+              const dbPathFor = dbPathForAccount(account)
               return dbPathFor === undefined ? undefined : buildMemoryAccountView(dbPathFor)
             },
             reviewForAccount: (account: string, id: number, decision: 'approved' | 'rejected'): unknown => {
-              const m = routed
-                ? (() => {
-                  const dir = join(tenantRoot, account)
-                  return existsSync(dir) ? router?.forAccount(account) ?? createDeniedMemory() : createDeniedMemory()
-                })()
-                : auditedMemory
+              const m = memoryForAccount(account) ?? createDeniedMemory()
               return m.review(id, decision)
             },
             recordCorrectionFor: (account: string, section: string, keyHint: string): void => {
-              const m = routed
-                ? (() => {
-                  const dir = join(tenantRoot, account)
-                  return existsSync(dir) ? router?.forAccount(account) ?? createDeniedMemory() : createDeniedMemory()
-                })()
-                : auditedMemory
+              const m = memoryForAccount(account) ?? createDeniedMemory()
               m.recordCorrection({ section, keyHint })
             },
           }
