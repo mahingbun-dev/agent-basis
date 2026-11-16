@@ -134,3 +134,5 @@ S-1~S-5 五项勘察已全部 resolved(结论/证据路径/退路三段式),见 
 | 13 | UI 可访问性微调(指标行右端贴边/小号浅灰对比度) | frontend-style §4 | 0.1.5 |
 | 14 | SRC 端点命名与规格偏差(low#20,功能等价) | 文档对账即可(实现形态更优:reviewForAccount 守卫面) | 关闭(以 19-progress 为准) |
 | 15 | 迁移脚本 WAL 三件齐(low,首迁实测) | **已修**(9ed95d8) | 已上线 0.1.3 |
+
+**0.1.4 追记(2026-11-16,Sources 行真根因修复上线)**:§9 的"宿主 rc.1 版本行为"结论**被推翻**——生产会话 log+前端 fiber 反查三线取证实锤:`turnTail` 条目收到的 `turn` prop 就是 TurnLocation 本身(宿主 ContextualEntry 摊平 ownerProps),`selectMemorySources` 误再解一层 `.turn`(number→`.data`=undefined)→ 行恒不挂载;单元测试按同错误语义喂 owner-props 故绿、生产红(教训:**mock 形态取自错误假设时测试只验证假设**)。修复=直接读 Location 的 data store(f5e819c+locale 两键 b91b0db),0.1.4 生产实测 Sources 行渲染「1 本回合用到记忆」全链路通。键解耦(low#18)同批上线。教训登记:**单侧 mock 绿 ≠ 生产红排除宿主嫌疑;两端 prop 形态要用同一段真实形状对拍**。
