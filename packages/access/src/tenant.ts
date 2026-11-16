@@ -483,13 +483,13 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     recordCorrectionFor(account: string, section: string, keyHint: string): void
   } | undefined => serviceOf(deps, 'eterna-memory-accounts') as undefined
 
-  register('/api/eternaMemory/accountSnapshot', async (rpcId, _args, ctx) => {
+  register('/api/eternaMemory/accountSnapshot', (rpcId, _args, ctx) => {
     const face = accountsFaceOf()
     if (face === undefined) return failureFrame(rpcId, new Error('记忆路由面未挂载(eterna-memory 插件未启用)'))
     return okFrame(rpcId, face.viewForAccount(ctx.account))
   })
 
-  register('/api/eternaMemory/review', async (rpcId, args, ctx) => {
+  register('/api/eternaMemory/review', (rpcId, args, ctx) => {
     const face = accountsFaceOf()
     if (face === undefined) return failureFrame(rpcId, new Error('记忆路由面未挂载(eterna-memory 插件未启用)'))
     const id = firstNumber(args, 'id')
@@ -501,7 +501,7 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     return okFrame(rpcId, face.reviewForAccount(ctx.account, id, decision))
   })
 
-  register('/api/eternaMemory/trackCorrection', async (rpcId, args, ctx) => {
+  register('/api/eternaMemory/trackCorrection', (rpcId, args, ctx) => {
     const face = accountsFaceOf()
     if (face === undefined) return failureFrame(rpcId, new Error('记忆路由面未挂载(eterna-memory 插件未启用)'))
     const section = firstString(args, 'section')
