@@ -112,3 +112,25 @@ S-1~S-5 五项勘察已全部 resolved(结论/证据路径/退路三段式),见 
 **验证矩阵(0.1.3)**:0 禁用/失败;面板 memory 区=登录账号库(迁移行可见);显式写入链路通;memory 449/glue 81(双账号隔离 3 例)/panel 47/access 199/packctl 85 全绿;tenant-scan 0;lint-ui-tokens 过。
 
 **待办**:双生产账号人工验证(待第二账号);CI tools/evals+compaction 两红属压缩线。
+
+---
+
+## 10. 遗留项全景治理表(2026-11-16,开发计划)
+
+| # | 遗留项 | 处置 | 状态 |
+|---|---|---|---|
+| 1 | Sources 行未渲染(0.1.2 判"宿主版本阻塞") | **重新取证推翻旧结论**:selectMemorySources 双重解引用(TurnLocation 误再解 .turn)——我方 bug 非宿主 | **已修**(f5e819c),0.1.4 上线验证 |
+| 2 | CI 两红(tools/evals+compaction admin-stats) | 当前 main 本地复跑均已绿(97/14),压缩线已自修 | **已消失** |
+| 3 | prompt-scan agent-loop 未登记 section | 属并行会话活跃工作面,不越界代修 | 待该线自行登记 |
+| 4 | 双生产账号人工验证 | 依赖第二账号创建 | 待人工 |
+| 5 | M-M4 全局蒸馏 | 依赖 ai-evo(容器已删+baseUrl 未定) | 依赖就绪后启动 |
+| 6 | 隔离 profile 全链路 E2E 自动脚本 | 已有库级/集成层双账号隔离测(glue routing spec 3 例);全链路脚本列 0.1.5 | 计划内 |
+| 7 | 键解耦(consolidation.enabled 连带关 Dream,low#18) | **已修**(f5e819c):consolidation 只管轻量链,Dream 独立 | 已上线 0.1.4 |
+| 8 | 配置键补全(halfLifeDays/perDomainLimit/portrait/domain.indexTokens 部署侧) | 0.1.2 已大半补齐(routing/episodic/halfLifeDays 键);余 portrait.maxTokens 等 | 0.1.5 打磨 |
+| 9 | Dream 淘汰条目级留痕(low#17) | DreamAuditEntry 扩被淘汰明细 | 0.1.5 |
+| 10 | turn/end 每回合触发提取成本(low#12) | 时间阈值合并(复用 S4-B Dream 先例形态) | 0.1.5 |
+| 11 | 轻量 episodic 摘要=确定性截断(T11 偏离①) | 升级 LLM 摘要需改冻结提示词契约面 | 0.1.5 |
+| 12 | 画像关键词启发式归类(T4 偏离②) | 升级 LLM 归类 | 0.1.5 |
+| 13 | UI 可访问性微调(指标行右端贴边/小号浅灰对比度) | frontend-style §4 | 0.1.5 |
+| 14 | SRC 端点命名与规格偏差(low#20,功能等价) | 文档对账即可(实现形态更优:reviewForAccount 守卫面) | 关闭(以 19-progress 为准) |
+| 15 | 迁移脚本 WAL 三件齐(low,首迁实测) | **已修**(9ed95d8) | 已上线 0.1.3 |
