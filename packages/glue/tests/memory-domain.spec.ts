@@ -111,9 +111,9 @@ describe('memory 插件 M-M3 T10 域解析挂载(config.domain)', () => {
     const harness = makePluginHarness()
     const dispose = applyPlugin(harness)
     expect(harness.listenersOf('session/event')).toHaveLength(2)
-    expect(harness.listenersOf("session/disposed")).toHaveLength(2)
+    expect(harness.listenersOf('session/disposed')).toHaveLength(2)
     dispose()
-    expect(harness.listenersOf("session/event")).toHaveLength(0)
+    expect(harness.listenersOf('session/event')).toHaveLength(0)
     expect(harness.listenersOf('session/disposed')).toHaveLength(0)
   })
 

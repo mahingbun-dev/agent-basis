@@ -14,7 +14,7 @@ import { dirname, join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { parsePortraitDocument } from './portrait.ts'
 import { buildMemoryMetrics, computeIndexZoneTokens, readMemoryAuditEvents } from './metrics.ts'
-import type { MemoryIndexZoneTokens, MemoryMetricsReport } from "./metrics.ts"
+import type { MemoryIndexZoneTokens, MemoryMetricsReport } from './metrics.ts'
 
 /** 组装结果(panel EternaPanelSnapshot.memory 区的同构视图;纯 JSON)。 */
 export interface MemoryAccountView {
@@ -82,7 +82,7 @@ export function buildMemoryAccountView(dbPath: string): MemoryAccountView {
       portrait: { available: false, version: null, generatedAt: null, sections: [] },
       domains: [],
       metrics: emptyMetrics(),
-    } as MemoryAccountView
+    }
   }
   let db: DatabaseSync
   try {
@@ -94,7 +94,7 @@ export function buildMemoryAccountView(dbPath: string): MemoryAccountView {
       portrait: { available: false, version: null, generatedAt: null, sections: [] },
       domains: [],
       metrics: emptyMetrics(),
-    } as MemoryAccountView
+    }
   }
   try {
     const totalRows = countOr(db, 'SELECT COUNT(*) AS c FROM memory_entity') ?? 0
@@ -142,8 +142,14 @@ export function buildMemoryAccountView(dbPath: string): MemoryAccountView {
         + ' ORDER BY updated_at DESC, id DESC LIMIT 50',
       ).all() as unknown[]) {
         const record = row as {
-          id?: unknown; subject?: unknown; key?: unknown; content?: unknown
-          summary?: unknown; source?: unknown; origin_session_id?: unknown; updated_at?: unknown
+          id?: unknown,
+          subject?: unknown,
+          key?: unknown,
+          content?: unknown,
+          summary?: unknown,
+          source?: unknown,
+          origin_session_id?: unknown,
+          updated_at?: unknown,
         }
         if (typeof record.id === 'number' && typeof record.subject === 'string' && typeof record.key === 'string'
           && typeof record.content === 'string' && typeof record.updated_at === 'number') {
@@ -164,7 +170,19 @@ export function buildMemoryAccountView(dbPath: string): MemoryAccountView {
     }
     const portrait = readPortraitView(join(dirname(dbPath), 'portrait.md'))
     const domains = readDomainBrowse(db)
-    return { available, dbPath, entityCount, totalRows, recentKeys, entities, pendingCount, pending, portrait, domains, metrics: readAccountMetrics(dbPath, db) }
+    return {
+      available,
+      dbPath,
+      entityCount,
+      totalRows,
+      recentKeys,
+      entities,
+      pendingCount,
+      pending,
+      portrait,
+      domains,
+      metrics: readAccountMetrics(dbPath, db),
+    }
   } finally {
     db.close()
   }
@@ -224,8 +242,13 @@ function readDomainBrowse(db: DatabaseSync): MemoryAccountView['domains'] {
   const views: MemoryAccountView['domains'] = []
   for (const row of rows) {
     const record = row as {
-      domain_key?: unknown; label?: unknown; source?: unknown; registered?: unknown
-      session_count?: unknown; memory_count?: unknown; last_used_at?: unknown
+      domain_key?: unknown,
+      label?: unknown,
+      source?: unknown,
+      registered?: unknown,
+      session_count?: unknown,
+      memory_count?: unknown,
+      last_used_at?: unknown,
     }
     if (typeof record.domain_key !== 'string' || typeof record.label !== 'string') continue
     views.push({

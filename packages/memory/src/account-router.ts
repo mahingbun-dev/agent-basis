@@ -62,17 +62,17 @@ export function createDeniedMemory(reason = '账号解析失败'): Memory {
     writeEntity(_input: EntityWriteInput): EntityWriteResult {
       throw new MemoryAccountDeniedError()
     },
-    async writeNote(): Promise<NoteWriteResult> {
+    writeNote(): Promise<NoteWriteResult> {
       throw denied
     },
-    async appendNote(): Promise<NoteWriteResult> {
+    appendNote(): Promise<NoteWriteResult> {
       throw denied
     },
     readEntity(): EntityRecord | null {
       return null
     },
-    async search(): Promise<readonly MemorySearchHit[]> {
-      return []
+    search(): Promise<readonly MemorySearchHit[]> {
+      return Promise.resolve([])
     },
     forget(subject: string, key: string): { forgotten: number; records: readonly EntityRecord[] } {
       void subject

@@ -240,8 +240,10 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
         const provide2 = (ctx as unknown as { provide?: (id: string, value: unknown) => () => void }).provide
         if (provide2 !== undefined) {
           const accountsFace = {
-            accountOfUser: (userId: number): string | undefined =>
-              routed && accessFace !== undefined ? accessFace.getUserById(userId)?.account : undefined,
+            accountOfUser: (userId: number): string | undefined => {
+              if (!routed || accessFace === undefined) return undefined
+              return accessFace.getUserById(userId)?.account
+            },
             memoryForAccount: (account: string): Memory | undefined => {
               if (!routed) return auditedMemory
               const dir = join(tenantRoot, account)
@@ -428,10 +430,10 @@ interface ConsolidationWiring {
     readonly userPromotionSampleRate?: number
     readonly portraitEnabled?: boolean
     readonly registry?: DomainRegistryStore
-  /** AGENTS.md 路径(对账材料;工作区根)。 */
-  readonly agentsPath?: string
-  /** NOTES 根目录(对账材料)。 */
-  readonly notesDir?: string
+    /** AGENTS.md 路径(对账材料;工作区根)。 */
+    readonly agentsPath?: string
+    /** NOTES 根目录(对账材料)。 */
+    readonly notesDir?: string
   }
   /**
    * 多租户路由面(23 号 M-T1;routing 模式启用):账号级原语,任务组合在
@@ -481,29 +483,29 @@ function wireConsolidation(
       detail: '轻量提取已停(consolidation.enabled=false),仅保留 Dream 链',
     })
     : routing === undefined
-    ? createExtractionTask({
-      ctx,
-      memory,
-      logger: ctx.logger,
-      audit,
-      ...(wiring.domainOf !== undefined && { domainOf: wiring.domainOf }),
-      ...(wiring.curatorModel !== undefined && { model: wiring.curatorModel }),
-    })
-    : (snapshot: ConsolidationSnapshot, signal: AbortSignal): Promise<ConsolidationTaskResult> => {
-      const account = routing.accountOfSession(snapshot.sessionId)
-      if (account === undefined) {
-        return Promise.resolve({ kind: 'nothing-to-save', detail: '多租户:会话账号解析失败,fail-closed 不落库(不重试)' })
-      }
-      const accountMemory = routing.memoryForAccount(account) ?? createDeniedMemory()
-      return createExtractionTask({
+      ? createExtractionTask({
         ctx,
-        memory: accountMemory,
+        memory,
         logger: ctx.logger,
-        audit: routing.ledgerFor(account),
+        audit,
         ...(wiring.domainOf !== undefined && { domainOf: wiring.domainOf }),
         ...(wiring.curatorModel !== undefined && { model: wiring.curatorModel }),
-      })(snapshot, signal)
-    }
+      })
+      : (snapshot: ConsolidationSnapshot, signal: AbortSignal): Promise<ConsolidationTaskResult> => {
+        const account = routing.accountOfSession(snapshot.sessionId)
+        if (account === undefined) {
+          return Promise.resolve({ kind: 'nothing-to-save', detail: '多租户:会话账号解析失败,fail-closed 不落库(不重试)' })
+        }
+        const accountMemory = routing.memoryForAccount(account) ?? createDeniedMemory()
+        return createExtractionTask({
+          ctx,
+          memory: accountMemory,
+          logger: ctx.logger,
+          audit: routing.ledgerFor(account),
+          ...(wiring.domainOf !== undefined && { domainOf: wiring.domainOf }),
+          ...(wiring.curatorModel !== undefined && { model: wiring.curatorModel }),
+        })(snapshot, signal)
+      }
   const dreamFace = wiring.dream
   const dreamTask = dreamFace === undefined
     ? undefined
