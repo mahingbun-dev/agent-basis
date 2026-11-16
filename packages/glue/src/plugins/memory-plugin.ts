@@ -407,6 +407,10 @@ interface ConsolidationWiring {
   readonly curatorModel?: string
   /** 会话域归属读取面(T11 轻量:episodic 会话史行落域;wireDomainContext 提供)。 */
   readonly domainOf?: (sessionId: string) => string | undefined
+  /** 成本合并(low#12,19 §10-#3):距上次触发 < minIntervalMs 跳过本次 schedule
+   *(游标不推进、信息不丢——下次触发重跑整段)。缺省 0=每回合触发(现行为)。
+   */
+  readonly minIntervalMs?: number
   /** 重量 Dream 面(T11;config.dream.enabled=false 时缺席=不挂 Dream)。 */
   readonly dream?: {
     readonly intervalMs: number
@@ -559,13 +563,25 @@ function wireConsolidation(
     ...(dreamTask !== undefined && { dreamTask }),
   })
 
-  const offEvent = ctx.on('session/event', (session, event) => {
+  // 成本合并状态:最近一次轻量提取调度时刻(epoch ms;null=尚未调度)。
+  let lastScheduledAt: number | null = null
+  const offEvent = ctx.on("session/event", (session, event) => {
     const sessionId = sessionIdOf(session)
     if (sessionId === null) return
     // 会话尾主触发:dsh 无 session/end,turn/end(completed) 代理(S1 结论 B);
     // 非 completed(aborted/blocked/error/…)不是落定收尾,不触发
-    if (event.type === 'turn/end') {
-      if (event.data.reason.kind !== 'completed') return
+    if (event.type === "turn/end") {
+      if (event.data.reason.kind !== "completed") return
+      // 成本合并(low#12):距上次触发 < minIntervalMs 跳过本次 schedule
+      //(游标不推进、信息不丢——下次触发重跑整段);缺省 0=每回合触发。
+      const nowMs = event.time
+      if (
+        wiring.minIntervalMs !== undefined
+        && wiring.minIntervalMs > 0
+        && lastScheduledAt !== null
+        && nowMs - lastScheduledAt < wiring.minIntervalMs
+      ) return
+      lastScheduledAt = nowMs
       const outcome = consolidator.consolidateOnSessionEnd({
         sessionId,
         // 盘面日志定位在触发时冻结进快照(找不到为 null——turn 边界不保证已

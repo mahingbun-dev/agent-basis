@@ -68,6 +68,12 @@ export interface MemoryConsolidationConfig {
    * ctx.llm 目录兜底扫描,扫描不到回落 'deepseek',19a 号 S4-A3)。
    */
   readonly model?: string
+  /**
+   * 成本合并(low#12,19 §10-#3):两次轻量提取调度的最小间隔 ms(0=每回合
+   * 触发,现行为;建议 600000=10 分钟)。间隔内的触发直接跳过(游标不推进、
+   * 信息不丢——下次触发重跑整段;latest-pending 覆盖合并语义不变)。
+   */
+  readonly minIntervalMs?: number
 }
 
 /**
