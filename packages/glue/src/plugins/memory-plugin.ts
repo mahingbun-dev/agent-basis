@@ -312,7 +312,7 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
           ...(consolidationOff && { skipExtraction: true }),
           ...(sessionResolver !== undefined && accessFace !== undefined && router !== undefined && {
             routing: {
-              accountOfSession: (sessionId: string): string | undefined => accountOfSession?.(sessionId),
+              accountOfSession: (sessionId: string): string | undefined => accountOfSession!(sessionId),
               memoryForAccount: (account: string): Memory | undefined => router?.forAccount(account),
               ledgerFor: (account: string): MemoryAuditLedger => {
                 let ledger = accountLedgers.get(account)
@@ -544,7 +544,7 @@ function wireConsolidation(
               ...(dream.halfLifeDays !== undefined && { halfLifeDays: dream.halfLifeDays }),
               ...(dream.userPromotionSampleRate !== undefined && { userPromotionSampleRate: dream.userPromotionSampleRate }),
               ...(dream.portraitEnabled !== undefined && { portraitEnabled: dream.portraitEnabled }),
-              ...(dream.intervalMs !== undefined && { intervalMs: dream.intervalMs }),
+              ...{ intervalMs: dream.intervalMs },
               ...(wiring.curatorModel !== undefined && { model: wiring.curatorModel }),
             })
             const outcome = await task(snapshot, signal)

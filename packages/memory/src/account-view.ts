@@ -142,14 +142,14 @@ export function buildMemoryAccountView(dbPath: string): MemoryAccountView {
         + ' ORDER BY updated_at DESC, id DESC LIMIT 50',
       ).all() as unknown[]) {
         const record = row as {
-          id?: unknown,
-          subject?: unknown,
-          key?: unknown,
-          content?: unknown,
-          summary?: unknown,
-          source?: unknown,
-          origin_session_id?: unknown,
-          updated_at?: unknown,
+          id?: unknown
+          subject?: unknown
+          key?: unknown
+          content?: unknown
+          summary?: unknown
+          source?: unknown
+          origin_session_id?: unknown
+          updated_at?: unknown
         }
         if (typeof record.id === 'number' && typeof record.subject === 'string' && typeof record.key === 'string'
           && typeof record.content === 'string' && typeof record.updated_at === 'number') {
@@ -242,13 +242,13 @@ function readDomainBrowse(db: DatabaseSync): MemoryAccountView['domains'] {
   const views: MemoryAccountView['domains'] = []
   for (const row of rows) {
     const record = row as {
-      domain_key?: unknown,
-      label?: unknown,
-      source?: unknown,
-      registered?: unknown,
-      session_count?: unknown,
-      memory_count?: unknown,
-      last_used_at?: unknown,
+      domain_key?: unknown
+      label?: unknown
+      source?: unknown
+      registered?: unknown
+      session_count?: unknown
+      memory_count?: unknown
+      last_used_at?: unknown
     }
     if (typeof record.domain_key !== 'string' || typeof record.label !== 'string') continue
     views.push({
