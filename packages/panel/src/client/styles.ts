@@ -122,7 +122,7 @@ const CSS = `
 [data-eterna-panel='mem-pending-hint'] { margin: 8px 0 0; font-size: var(--et-text-micro); line-height: 1.5; color: var(--et-muted); }
 /* T13 指标区(mem-metrics):卡片栅格与可观测 Metric 同款令牌,数值等宽对齐 */
 [data-eterna-panel='mem-metrics'] { padding-top: 8px; }
-[data-eterna-panel='mem-metrics-grid'] { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; font-variant-numeric: tabular-nums; font-size: var(--et-text-micro); color: var(--et-muted); }
+[data-eterna-panel='mem-metrics-grid'] { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; font-variant-numeric: tabular-nums; font-size: var(--et-text-micro); color: var(--et-fg-2); }
 [data-eterna-panel='mem-pending-row'] { padding: 12px 0; border-bottom: 1px solid var(--et-border-soft); }
 [data-eterna-panel='mem-pending-row']:last-child { border-bottom: 0; padding-bottom: 8px; }
 [data-eterna-panel='mem-pending-row'] [data-eterna-panel='mem-entity-head'] { margin-bottom: 4px; }
