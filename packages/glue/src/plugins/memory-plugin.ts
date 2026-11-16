@@ -52,6 +52,7 @@
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import type { Context } from '@deepseek-ai/cordis'
 // 空类型导入 = dsh-session 对 cordis Events('session/event'/'session/disposed')增广的
 // 触发器:不导入则监听签名无法解析(audit/src/plugin.ts:7-10 同款;peer 依赖)。
@@ -119,7 +120,7 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
       // T13:同一实例注入 createMemory(域解析/纠正埋点与指标读取同源,不双写)。
       const audit = new MemoryAuditLedger({ path: defaultMemoryAuditPath(dbPath), logger: ctx.logger })
       const memory = createMemory({
-        workspaceDir: config.notesDir ?? join(cwd, "NOTES"),
+        workspaceDir: config.notesDir ?? join(cwd, 'NOTES'),
         dbPath,
         ...(gov?.pii !== undefined ? { pii: gov.pii } : {}),
         // 写入策略档位(T12-①,explicit-only/auto-review/full-auto):每次写入现读
@@ -183,52 +184,56 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
         domainOfFace = (sessionId): string | undefined => wire.domainOf(sessionId)
       }
       // ── 多租户分库路由(23 号 M-T1,方案 C)──────────────────────────
-      // access store 在场(auto 判定/per-account 显式)时:四工具/索引按会话
-      // 账号路由到 workspaces/<账号>/.eterna/(fail-closed:解析失败=Denied,
-      // 绝不退回全局库);global 模式/本地 TUI(无 access store)沿用单库。
+      // 身份解析直接只读 access 库(23 号 S-6/S-7 修复):宿主服务解析
+      // (reflect.get('eternaAccessStore'))在 agent ctx 拿不到(access 宿主与
+      // agent 宿主拓扑差异,生产 0.1.2-0.1.5 实测路由未生效)——改读文件证据。
+      // 每次调用开查关(轻量;readOnly 连接不写宿主;access 升级 rename 库文件
+      // 也不会拿到过期 fd)。会话账号路由:四工具/索引按会话账号落到
+      // workspaces/<账号>/.eterna/(fail-closed:身份源在场但会话不可归属
+      // =Denied,绝不静默退回全局库)。
       const routingConfig = config.routing ?? {}
-      const accessFace = (() => {
+      const routingMode = routingConfig.mode ?? 'auto'
+      const accessDbPath = routingConfig.accessDbPath ?? join(process.env.DSH_HOME ?? cwd, 'access', 'users.db')
+      const accessQuery = <T>(query: (db: DatabaseSync) => T): T | undefined => {
         try {
-          const reflect = ctx as unknown as { reflect?: { get(name: string, strict?: boolean): unknown } }
-          const store = reflect.reflect?.get("eternaAccessStore", false) as
-            | { sessionOwner(sessionId: string): number | undefined; getUserById(id: number): { account: string } | undefined }
-            | undefined
-          const usable = store !== undefined && typeof store.sessionOwner === "function" && typeof store.getUserById === "function"
-          // 落盘取证(S-7,生产隔离未生效定位):glue ctx 的 accessFace 可用性。
+          const db = new DatabaseSync(accessDbPath, { readOnly: true })
           try {
-            const fs = require("node:fs") as typeof import("node:fs")
-            fs.writeFileSync(
-              join(dirname(dbPath), "routing-diagnose.json"),
-              JSON.stringify({ at: new Date().toISOString(), stage: "accessFace", storePresent: store !== undefined, usable }, null, 2),
-            )
-          } catch { /* 诊断落盘失败不阻断 */ }
-          return usable ? store : undefined
-        } catch (error) {
-          try {
-            const fs = require("node:fs") as typeof import("node:fs")
-            fs.writeFileSync(
-              join(dirname(dbPath), "routing-diagnose.json"),
-              JSON.stringify({ at: new Date().toISOString(), stage: "accessFace-threw", message: error instanceof Error ? error.message : String(error) }, null, 2),
-            )
-          } catch { /* 同上 */ }
+            return query(db)
+          } finally {
+            db.close()
+          }
+        } catch {
           return undefined
         }
-      })()
-      const routed = routingConfig.mode === 'per-account' || (routingConfig.mode !== 'global' && accessFace !== undefined)
+      }
+      const accessFace = {
+        sessionOwner: (sessionId: string): number | undefined => {
+          const row = accessQuery(db =>
+            db.prepare('SELECT owner_id FROM sessions WHERE session_id = ?').get(sessionId)) as
+            | { owner_id: number | bigint }
+            | undefined
+          return row === undefined ? undefined : Number(row.owner_id)
+        },
+        getUserById: (id: number): { account: string } | undefined => {
+          const row = accessQuery(db => db.prepare('SELECT account FROM users WHERE id = ?').get(id)) as
+            | { account: string }
+            | undefined
+          return row === undefined ? undefined : { account: row.account }
+        },
+      }
       const tenantRoot = routingConfig.tenantRoot
         ?? process.env.ETERNA_TENANT_ROOT
         ?? join(process.env.DSH_HOME ?? cwd, 'workspaces')
       let router: MemoryAccountRouter | undefined
       let sessionResolver: MemorySessionResolver | undefined
-      // 会话→账号解析(23 号 M-T1):routed 块内赋值,块外路由面经它解析账号。
+      // 会话→账号解析(23 号 M-T1):路由块内赋值,块外路由面经它解析账号。
       let resolveAccount: ((sessionId: string) => string | undefined) | undefined
       const accountLedgers = new Map<string, MemoryAuditLedger>()
-      if (routed && accessFace !== undefined) {
-        const store = accessFace
+      if (routingMode !== 'global') {
         resolveAccount = (sessionId: string): string | undefined => {
-          const userId = store.sessionOwner(sessionId)
+          const userId = accessFace.sessionOwner(sessionId)
           if (userId === undefined) return undefined
-          return store.getUserById(userId)?.account
+          return accessFace.getUserById(userId)?.account
         }
         const accountDir = (account: string): string | undefined => {
           const dir = join(tenantRoot, account)
@@ -247,6 +252,10 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
         })
         sessionResolver = {
           forSession: (sessionId: string | undefined): Memory | undefined => {
+            // auto 模式按调用判定身份源:users.db 缺席或会话上下文缺席 → 全局单库
+            //(本地 TUI 永久缺席=全程单库;新部署注册后即时路由,无需重启)。
+            // per-account 显式模式不回退:身份源缺席/会话不可归属一律 fail-closed(Denied)。
+            if (routingMode === 'auto' && (sessionId === undefined || !existsSync(accessDbPath))) return auditedMemory
             if (sessionId === undefined) return undefined
             const account = resolveAccount?.(sessionId)
             if (account === undefined) return undefined
@@ -255,11 +264,10 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
         }
         // M-T2 账号路由面('eterna-memory-accounts'):panel SRC 端点消费——
         // principal userId → 账号 → 该账号 Memory/库路径;越权在解析面即不可达。
-        // global 部署也 provide(账号面空、memory/dbPath 回落全局),panel 统一走此面。
+        // 非 global 模式即 provide(auto+身份源缺席时账号面查询为空,但 web 部署
+        // 面板守卫端点仍需此面在场);global(本地 TUI)无 panel,不 provide。
         const provide2 = (ctx as unknown as { provide?: (id: string, value: unknown) => () => void }).provide
         if (provide2 !== undefined) {
-          // 块内 routed/accessFace 已收窄恒真(no-unnecessary-condition):face 方法直写,
-          // 不再携带恒定守卫条件。方法间互调走局部函数(对象键名不可直接引用)。
           const memoryForAccount = (account: string): Memory | undefined => {
             const dir = join(tenantRoot, account)
             if (!existsSync(dir)) return undefined
@@ -307,15 +315,20 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
       // 的触发面=会话尾在 consolidator 内),提取任务以 no-op 形态占位(返回
       // nothing-to-save,游标照常推进,保证 Dream 时间阈值合并继续工作)。
       const consolidationOff = config.consolidation?.enabled === false
-      ctx.logger?.info?.("[memory] routing diagnose: routed=" + routed + " accessFacePresent=" + (accessFace !== undefined) + " tenantRoot=" + tenantRoot)
+      // 路由可观测面(运维日志,450857f 沿革):mode/身份源在场/租户根。
+      ;((ctx as unknown as { readonly logger?: { info?: (...args: unknown[]) => void } }).logger?.info?.(
+        '[memory] routing: mode=' + routingMode + ' identityDb=' + (existsSync(accessDbPath) ? 'present' : 'absent') + ' tenantRoot=' + tenantRoot,
+      ))
       const detachConsolidation = consolidationOff && dreamConfig.enabled === false
         ? null
         : wireConsolidation(ctx, dbPath, auditedMemory, audit, {
           ...(config.consolidation?.model !== undefined && { curatorModel: config.consolidation.model }),
           ...(domainOfFace !== undefined && { domainOf: domainOfFace }),
           ...(consolidationOff && { skipExtraction: true }),
-          ...(sessionResolver !== undefined && accessFace !== undefined && router !== undefined && {
+          ...(sessionResolver !== undefined && router !== undefined && {
             routing: {
+              // auto 模式身份源在场才走账号路径(缺席=单库形态,见 routingActive)
+              active: (): boolean => routingMode === 'per-account' || existsSync(accessDbPath),
               accountOfSession: (sessionId: string): string | undefined => resolveAccount?.(sessionId),
               memoryForAccount: (account: string): Memory | undefined => router.forAccount(account),
               ledgerFor: (account: string): MemoryAuditLedger => {
@@ -448,6 +461,11 @@ interface ConsolidationWiring {
    * wireConsolidation 内(提取按快照会话逐次解析;Dream 遍历 allAccounts)。
    */
   readonly routing?: {
+    /**
+     * 路由当前是否生效(按调用判定):per-account 恒 true;auto 随身份源
+     * (users.db)在场浮动——缺席=单库形态(本地 TUI/新部署注册前)。
+     */
+    active(): boolean
     accountOfSession(sessionId: string): string | undefined
     memoryForAccount(account: string): Memory | undefined
     ledgerFor(account: string): MemoryAuditLedger
@@ -485,89 +503,95 @@ function wireConsolidation(
   // (每账号独立 memory+ledger+meta;fail-closed:账号解析失败=nothing-to-save
   // 且 detail 记原因,不落任何库);缺席=单库形态(预构建任务,行为不变)。
   const routing = wiring.routing
+  // 路由生效判定内联在各任务首行(routing === undefined || !routing.active()):
+  // routing 缺席=单库;auto 模式身份源缺席也=单库(本地 TUI/新部署注册前),
+  // 不把会话误判为「不可归属」而 fail-closed。
+  const singleStoreExtraction = (snapshot: ConsolidationSnapshot, signal: AbortSignal): Promise<ConsolidationTaskResult> =>
+    createExtractionTask({
+      ctx,
+      memory,
+      logger: ctx.logger,
+      audit,
+      ...(wiring.domainOf !== undefined && { domainOf: wiring.domainOf }),
+      ...(wiring.curatorModel !== undefined && { model: wiring.curatorModel }),
+    })(snapshot, signal)
   const extractionTask = wiring.skipExtraction === true
     ? (): Promise<ConsolidationTaskResult> => Promise.resolve({
       kind: 'nothing-to-save',
       detail: '轻量提取已停(consolidation.enabled=false),仅保留 Dream 链',
     })
-    : routing === undefined
-      ? createExtractionTask({
+    : (snapshot: ConsolidationSnapshot, signal: AbortSignal): Promise<ConsolidationTaskResult> => {
+      if (routing === undefined || !routing.active()) return singleStoreExtraction(snapshot, signal)
+      const account = routing.accountOfSession(snapshot.sessionId)
+      if (account === undefined) {
+        return Promise.resolve({ kind: 'nothing-to-save', detail: '多租户:会话账号解析失败,fail-closed 不落库(不重试)' })
+      }
+      const accountMemory = routing.memoryForAccount(account) ?? createDeniedMemory()
+      return createExtractionTask({
         ctx,
-        memory,
+        memory: accountMemory,
         logger: ctx.logger,
-        audit,
+        audit: routing.ledgerFor(account),
         ...(wiring.domainOf !== undefined && { domainOf: wiring.domainOf }),
         ...(wiring.curatorModel !== undefined && { model: wiring.curatorModel }),
-      })
-      : (snapshot: ConsolidationSnapshot, signal: AbortSignal): Promise<ConsolidationTaskResult> => {
-        const account = routing.accountOfSession(snapshot.sessionId)
-        if (account === undefined) {
-          return Promise.resolve({ kind: 'nothing-to-save', detail: '多租户:会话账号解析失败,fail-closed 不落库(不重试)' })
-        }
-        const accountMemory = routing.memoryForAccount(account) ?? createDeniedMemory()
-        return createExtractionTask({
-          ctx,
-          memory: accountMemory,
-          logger: ctx.logger,
-          audit: routing.ledgerFor(account),
-          ...(wiring.domainOf !== undefined && { domainOf: wiring.domainOf }),
-          ...(wiring.curatorModel !== undefined && { model: wiring.curatorModel }),
-        })(snapshot, signal)
-      }
+      })(snapshot, signal)
+    }
   const dreamFace = wiring.dream
   const dreamTask = dreamFace === undefined
     ? undefined
-    : routing === undefined
-      ? createDreamTask({
-        ctx,
-        memory,
-        meta,
-        logger: ctx.logger,
-        audit,
-        portraitPath: join(dirname(dbPath), PORTRAIT_CACHE_FILENAME),
-        ...dreamFace,
-      })
-      : async (snapshot: ConsolidationSnapshot, signal: AbortSignal): Promise<ConsolidationTaskResult> => {
-        // 逐账号跑(Q2:调用方已分片);单账号失败不中断其余(结果聚合在 detail)
-        const dream = dreamFace
-        const details: string[] = []
-        let anyConsolidated = false
-        for (const { account, dir } of routing.allAccounts()) {
-          const accountMemory = routing.memoryForAccount(account) ?? createDeniedMemory()
-          const accountMeta = new ConsolidationMetaStore(join(dir, '.eterna', 'memory.sqlite3'))
-          try {
-            const task = createDreamTask({
-              ctx,
-              memory: accountMemory,
-              meta: accountMeta,
-              logger: ctx.logger,
-              audit: routing.ledgerFor(account),
-              portraitPath: join(dir, '.eterna', PORTRAIT_CACHE_FILENAME),
-              ...(dream.registry !== undefined ? { registry: dream.registry } : {}),
-              ...(dream.agentsPath !== undefined ? { agentsPath: join(dir, 'AGENTS.md') } : {}),
-              ...(dream.notesDir !== undefined ? { notesDir: join(dir, 'NOTES') } : {}),
-              ...(dream.maxTurns !== undefined && { maxTurns: dream.maxTurns }),
-              ...(dream.ttlDays !== undefined && { ttlDays: dream.ttlDays }),
-              ...(dream.perDomainLimit !== undefined && { perDomainLimit: dream.perDomainLimit }),
-              ...(dream.halfLifeDays !== undefined && { halfLifeDays: dream.halfLifeDays }),
-              ...(dream.userPromotionSampleRate !== undefined && { userPromotionSampleRate: dream.userPromotionSampleRate }),
-              ...(dream.portraitEnabled !== undefined && { portraitEnabled: dream.portraitEnabled }),
-              ...{ intervalMs: dream.intervalMs },
-              ...(wiring.curatorModel !== undefined && { model: wiring.curatorModel }),
-            })
-            const outcome = await task(snapshot, signal)
-            if (outcome.kind === 'ran') anyConsolidated = true
-            details.push(`${account}:${outcome.kind}`)
-          } catch (error) {
-            details.push(`${account}:error(${error instanceof Error ? error.message : String(error)})`)
-          } finally {
-            accountMeta.close()
-          }
-        }
-        return anyConsolidated
-          ? { kind: 'ran', detail: `多账号 Dream:${details.join(' ')}` }
-          : { kind: 'nothing-to-save', detail: `多账号 Dream 无变更:${details.join(' ')}` }
+    : async (snapshot: ConsolidationSnapshot, signal: AbortSignal): Promise<ConsolidationTaskResult> => {
+      // 路由生效判定与提取链同源(routingActive):auto+身份源缺席=单库 Dream。
+      if (routing === undefined || !routing.active()) {
+        return createDreamTask({
+          ctx,
+          memory,
+          meta,
+          logger: ctx.logger,
+          audit,
+          portraitPath: join(dirname(dbPath), PORTRAIT_CACHE_FILENAME),
+          ...dreamFace,
+        })(snapshot, signal)
       }
+      // 逐账号跑(Q2:调用方已分片);单账号失败不中断其余(结果聚合在 detail)
+      const dream = dreamFace
+      const details: string[] = []
+      let anyConsolidated = false
+      for (const { account, dir } of routing.allAccounts()) {
+        const accountMemory = routing.memoryForAccount(account) ?? createDeniedMemory()
+        const accountMeta = new ConsolidationMetaStore(join(dir, '.eterna', 'memory.sqlite3'))
+        try {
+          const task = createDreamTask({
+            ctx,
+            memory: accountMemory,
+            meta: accountMeta,
+            logger: ctx.logger,
+            audit: routing.ledgerFor(account),
+            portraitPath: join(dir, '.eterna', PORTRAIT_CACHE_FILENAME),
+            ...(dream.registry !== undefined ? { registry: dream.registry } : {}),
+            ...(dream.agentsPath !== undefined ? { agentsPath: join(dir, 'AGENTS.md') } : {}),
+            ...(dream.notesDir !== undefined ? { notesDir: join(dir, 'NOTES') } : {}),
+            ...(dream.maxTurns !== undefined && { maxTurns: dream.maxTurns }),
+            ...(dream.ttlDays !== undefined && { ttlDays: dream.ttlDays }),
+            ...(dream.perDomainLimit !== undefined && { perDomainLimit: dream.perDomainLimit }),
+            ...(dream.halfLifeDays !== undefined && { halfLifeDays: dream.halfLifeDays }),
+            ...(dream.userPromotionSampleRate !== undefined && { userPromotionSampleRate: dream.userPromotionSampleRate }),
+            ...(dream.portraitEnabled !== undefined && { portraitEnabled: dream.portraitEnabled }),
+            ...{ intervalMs: dream.intervalMs },
+            ...(wiring.curatorModel !== undefined && { model: wiring.curatorModel }),
+          })
+          const outcome = await task(snapshot, signal)
+          if (outcome.kind === 'ran') anyConsolidated = true
+          details.push(`${account}:${outcome.kind}`)
+        } catch (error) {
+          details.push(`${account}:error(${error instanceof Error ? error.message : String(error)})`)
+        } finally {
+          accountMeta.close()
+        }
+      }
+      return anyConsolidated
+        ? { kind: 'ran', detail: `多账号 Dream:${details.join(' ')}` }
+        : { kind: 'nothing-to-save', detail: `多账号 Dream 无变更:${details.join(' ')}` }
+    }
   const consolidator = new SessionEndConsolidator({
     cursor,
     logger: ctx.logger,
@@ -582,13 +606,13 @@ function wireConsolidation(
 
   // 成本合并状态:最近一次轻量提取调度时刻(epoch ms;null=尚未调度)。
   let lastScheduledAt: number | null = null
-  const offEvent = ctx.on("session/event", (session, event) => {
+  const offEvent = ctx.on('session/event', (session, event) => {
     const sessionId = sessionIdOf(session)
     if (sessionId === null) return
     // 会话尾主触发:dsh 无 session/end,turn/end(completed) 代理(S1 结论 B);
     // 非 completed(aborted/blocked/error/…)不是落定收尾,不触发
-    if (event.type === "turn/end") {
-      if (event.data.reason.kind !== "completed") return
+    if (event.type === 'turn/end') {
+      if (event.data.reason.kind !== 'completed') return
       // 成本合并(low#12):距上次触发 < minIntervalMs 跳过本次 schedule
       //(游标不推进、信息不丢——下次触发重跑整段);缺省 0=每回合触发。
       const nowMs = event.time
