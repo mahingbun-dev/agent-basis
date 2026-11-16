@@ -253,6 +253,10 @@ export interface MemoryOptions {
    * 缺省自建同路径实例(append 单行原子,多实例同文件安全——audit.ts 头注口径)。
    */
   readonly audit?: MemoryAuditLedger
+  /** Gm0 单条正文字数上限(缺省 2000=MEMORY_CONTENT_MAX_CHARS;19 §10-#1 配置键)。 */
+  readonly contentMaxChars?: number
+  /** Gm0 单域 live 上限(缺省 MEMORY_PER_DOMAIN_LIVE_LIMIT=200;19 §10-#1 配置键)。 */
+  readonly perDomainLimit?: number
 }
 
 /** 组装 Memory 服务实例(纯对象门面,无隐藏全局)。 */
@@ -262,6 +266,11 @@ export function createMemory(options: MemoryOptions): Memory {
   const entities = new EntityMemoryStore(options.dbPath, { now })
   const notes = new NotesStore(options.workspaceDir, piiGuard)
   const writePolicyOf = options.writePolicy
+  // Gm0 上限可配(19 §10-#1):部署侧经 glue MemoryPluginConfig 注入,缺省=既有常量。
+  const limits = {
+    contentMaxChars: options.contentMaxChars ?? MEMORY_CONTENT_MAX_CHARS,
+    perDomainLimit: options.perDomainLimit ?? MEMORY_PER_DOMAIN_LIVE_LIMIT,
+  }
   const audit = options.audit ?? new MemoryAuditLedger({ path: defaultMemoryAuditPath(options.dbPath) })
   let disposed = false
   return {
@@ -277,11 +286,11 @@ export function createMemory(options: MemoryOptions): Memory {
       // Gm0 结构闸(M-M2 T8,19 号 §4-T8):单条正文 ≤2000 字,超长拒绝
       //(entity-store 65536 是物理容量;业务上限在此收紧,三通道同闸)。
       const contentLength = input.content.trim().length
-      if (contentLength > MEMORY_CONTENT_MAX_CHARS) {
-        throw new RangeError(`[memory] 单条记忆正文超长(${contentLength} > ${MEMORY_CONTENT_MAX_CHARS} 字):请拆分为多条一个事实的记忆,或先整固既有条目`)
+      if (contentLength > limits.contentMaxChars) {
+        throw new RangeError(`[memory] 单条记忆正文超长(${contentLength} > ${limits.contentMaxChars} 字):请拆分为多条一个事实的记忆,或先整固既有条目`)
       }
       // 写入策略档位(T12-①):每次写入现取(glue 文件桥热应用;缺席=现行规则)。
-      return decideAndWrite(entities, input, writePolicyOf?.())
+      return decideAndWrite(entities, input, writePolicyOf?.(), limits)
     },
     async writeNote(file: string, content: string): Promise<NoteWriteResult> {
       return notes.write(file, content)
@@ -376,7 +385,12 @@ function withStalenessMark(text: string, updatedAt: number, nowMs: number): stri
  * review_state 由 resolveWriteReviewState 分级判定后统一带上(writePolicy 为
  * T12-① 部署级档位;缺席=现行规则)。
  */
-function decideAndWrite(entities: EntityMemoryStore, input: EntityWriteInput, writePolicy?: MemoryWritePolicy): EntityWriteResult {
+function decideAndWrite(
+  entities: EntityMemoryStore,
+  input: EntityWriteInput,
+  writePolicy: MemoryWritePolicy | undefined,
+  limits: { readonly contentMaxChars: number; readonly perDomainLimit: number },
+): EntityWriteResult {
   const reviewState = resolveWriteReviewState(input, writePolicy)
   const sameKey = entities.read(input.subject, input.key)
   if (sameKey !== null && tokenOverlapRatio(sameKey.content, input.content) >= MEMORY_DEDUP_NOOP_OVERLAP) {
@@ -402,7 +416,7 @@ function decideAndWrite(entities: EntityMemoryStore, input: EntityWriteInput, wr
       const merged = entities.write({
         subject: row.subject,
         key: row.key,
-        content: mergeMemoryContents(row.content, input.content),
+        content: mergeMemoryContents(row.content, input.content, limits.contentMaxChars),
         ...(summary !== null && { summary }),
         confidence: Math.max(row.confidence, input.confidence ?? 0.8),
         ...(input.validAt !== undefined && { validAt: input.validAt }),
@@ -419,8 +433,8 @@ function decideAndWrite(entities: EntityMemoryStore, input: EntityWriteInput, wr
   }
   // Gm0 容量闸(M-M2 T8,19 号 §4-T8):仅新增 live 行时检查——顶替/合并路径
   // 在上方 return,不新增 live 行故不受限;user/legacy-org 无域语义不设限。
-  assertDomainLiveCapacity(entities, input)
-  return withDecision('add', entities.write({ ...input, reviewState }))
+  assertDomainLiveCapacity(entities, input, limits.perDomainLimit)
+  return withDecision("add", entities.write({ ...input, reviewState }))
 }
 
 /**
@@ -428,15 +442,15 @@ function decideAndWrite(entities: EntityMemoryStore, input: EntityWriteInput, wr
  * (含 pending,与查重面同口径),≥perDomainLimit 即拒绝,错误信息提示整固
  * (19 号 §4-T8「超限拒绝并提示整固」)。非 domain 作用域直接放行。
  */
-function assertDomainLiveCapacity(entities: EntityMemoryStore, input: EntityWriteInput): void {
+function assertDomainLiveCapacity(entities: EntityMemoryStore, input: EntityWriteInput, perDomainLimit: number): void {
   const scope: EntityScope = input.scope ?? 'domain'
   if (scope !== 'domain') return
   const domainKey = resolveDomainKey(input.domainKey, scope, input.subject)
   if (domainKey === null) return
   const live = entities.countLiveInDomain({ subject: input.subject, ...(input.domainKey !== undefined && { domainKey: input.domainKey }) })
-  if (live >= MEMORY_PER_DOMAIN_LIVE_LIMIT) {
+  if (live >= perDomainLimit) {
     throw new RangeError(
-      `[memory] 域 ${domainKey} 的 live 记忆已达上限 ${MEMORY_PER_DOMAIN_LIVE_LIMIT}(perDomainLimit),拒绝新增:`
+      `[memory] 域 ${domainKey} 的 live 记忆已达上限 ${perDomainLimit}(perDomainLimit),拒绝新增:`
       + '请先整固(consolidation)或用 memory_forget 清理该域后再写入',
     )
   }
