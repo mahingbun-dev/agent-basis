@@ -194,14 +194,23 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
             | { sessionOwner(sessionId: string): number | undefined; getUserById(id: number): { account: string } | undefined }
             | undefined
           const usable = store !== undefined && typeof store.sessionOwner === "function" && typeof store.getUserById === "function"
-          ;(ctx as unknown as { logger?: { info?(...args: unknown[]): void } }).logger?.info?.(
-            `[memory] routing diagnose: eternaAccessStore present=${store !== undefined} usable=${usable}`,
-          )
+          // 落盘取证(S-7,生产隔离未生效定位):glue ctx 的 accessFace 可用性。
+          try {
+            const fs = require("node:fs") as typeof import("node:fs")
+            fs.writeFileSync(
+              join(dirname(dbPath), "routing-diagnose.json"),
+              JSON.stringify({ at: new Date().toISOString(), stage: "accessFace", storePresent: store !== undefined, usable }, null, 2),
+            )
+          } catch { /* 诊断落盘失败不阻断 */ }
           return usable ? store : undefined
         } catch (error) {
-          (ctx as unknown as { logger?: { warn?(...args: unknown[]): void } }).logger?.warn?.(
-            `[memory] routing diagnose: accessFace read threw: ${error instanceof Error ? error.message : String(error)}`,
-          )
+          try {
+            const fs = require("node:fs") as typeof import("node:fs")
+            fs.writeFileSync(
+              join(dirname(dbPath), "routing-diagnose.json"),
+              JSON.stringify({ at: new Date().toISOString(), stage: "accessFace-threw", message: error instanceof Error ? error.message : String(error) }, null, 2),
+            )
+          } catch { /* 同上 */ }
           return undefined
         }
       })()
