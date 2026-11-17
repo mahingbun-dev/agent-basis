@@ -123,42 +123,70 @@ export function apply(ctx: PromptStudioClientContext): () => void {
   const call = <T>(endpoint: string, args: Record<string, unknown> = {}): Promise<RpcEnvelope<T>> =>
     callRpc<T>(ctx.connection, endpoint, args)
 
-  // —— 两个 main keyed 面板 + 两个侧栏入口(声明坍塌即随链路撤销) ——
-  ctx.slots.inject('main', () => ctx.slots.register({
-    name: 'main',
-    key: STUDIO_PANEL_ID,
-    locale: NS,
-    inject: () => ({
-      hooks: { studio: studioSource },
-      refresh: refreshStudio,
-      call,
-      t,
-    }),
-  }, StudioPage))
-  ctx.slots.inject('main', () => ctx.slots.register({
-    name: 'main',
-    key: TRACE_PANEL_ID,
-    locale: NS,
-    inject: () => ({
-      hooks: { trace: traceSource },
-      refresh: refreshTrace,
-      openSession: openTraceSession,
-      t,
-    }),
-  }, TracePage))
-  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
-    name: 'sidebar.panellist',
-    id: STUDIO_PANEL_ID,
-    order: 21,
-    locale: NS,
-    label: () => t('studio'),
-  }, StudioIcon))
-  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
-    name: 'sidebar.panellist',
-    id: TRACE_PANEL_ID,
-    order: 22,
-    locale: NS,
-    label: () => t('trace'),
-  }, TraceIcon))
-  return () => { disposeStyles(); disposeLocale() }
+  // —— 管理员可见门(2026-11-17):工坊=系统提示词全局管理面,仅管理员注册侧栏
+  // 入口与面板、发起数据拉取;/access/api/me 缺席或未登录(本地档 404/登录跳转前
+  // 401)维持既有可见行为——可见性只对「明确登录的非管理员」收起,读写防线另有
+  // 宿主端角色门(loopPrompt/* 全端点 requireAdmin)兜底。
+  const registerPanels = (): (() => void)[] => [
+    ctx.slots.inject('main', () => ctx.slots.register({
+      name: 'main',
+      key: STUDIO_PANEL_ID,
+      locale: NS,
+      inject: () => ({
+        hooks: { studio: studioSource },
+        refresh: refreshStudio,
+        call,
+        t,
+      }),
+    }, StudioPage)),
+    ctx.slots.inject('main', () => ctx.slots.register({
+      name: 'main',
+      key: TRACE_PANEL_ID,
+      locale: NS,
+      inject: () => ({
+        hooks: { trace: traceSource },
+        refresh: refreshTrace,
+        openSession: openTraceSession,
+        t,
+      }),
+    }, TracePage)),
+    ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+      name: 'sidebar.panellist',
+      id: STUDIO_PANEL_ID,
+      order: 21,
+      locale: NS,
+      label: () => t('studio'),
+    }, StudioIcon)),
+    ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+      name: 'sidebar.panellist',
+      id: TRACE_PANEL_ID,
+      order: 22,
+      locale: NS,
+      label: () => t('trace'),
+    }, TraceIcon)),
+  ]
+  let disposePanels: readonly (() => void)[] = []
+  void (async (): Promise<void> => {
+    if (!(await adminVisible())) return
+    disposePanels = registerPanels()
+    refreshStudio()
+    refreshTrace()
+  })().catch(() => undefined)
+  return () => { for (const dispose of disposePanels) dispose(); disposeStyles(); disposeLocale() }
+}
+
+/**
+ * 管理员可见判定:GET /access/api/me(eterna-access 红线条目,生产恒在)。
+ * 明确登录且角色非 admin → false;端点缺席/未登录/网络失败 → true(本地档无
+ * 门禁端点,登录前会话本就被门禁页接管;真正的读写防线在宿主端角色门)。
+ */
+async function adminVisible(): Promise<boolean> {
+  try {
+    const res = await fetch('/access/api/me', { credentials: 'same-origin' })
+    if (!res.ok) return true
+    const me = (await res.json()) as { role?: unknown }
+    return me.role === 'admin'
+  } catch {
+    return true
+  }
 }

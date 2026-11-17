@@ -16,8 +16,8 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
-import { buildSnapshot } from './snapshot.ts'
-import type { EternaPanelSnapshot, MemoryReviewRecordView } from './types.ts'
+import { buildSnapshot, unavailableMemorySnapshot, type BuildSnapshotScope } from './snapshot.ts'
+import type { EternaPanelSnapshot, KnowledgeSnapshot, MemoryReviewRecordView } from './types.ts'
 
 export const ETERNA_PANEL_SERVICE_ID = 'eternaPanel'
 export const SNAPSHOT_ENDPOINT = `${ETERNA_PANEL_SERVICE_ID}/snapshot`
@@ -30,6 +30,13 @@ export const CORRECTION_ENDPOINT = `${ETERNA_PANEL_SERVICE_ID}/trackCorrection`
  * panel 不引依赖,消费侧字面量对齐。
  */
 export const ETERNA_MEMORY_ACCOUNTS_SERVICE_ID = 'eterna-memory-accounts'
+
+/**
+ * 知识库账号状态面服务 id(2026-11-17 知识库账号分库):glue knowledge-plugin 在
+ * routed 模式 provide(accountOfUser + statusForAccount 只读计数);panel 非 admin
+ * 视图只经此面读本人分库,不触碰全局库。panel 不引依赖,消费侧字面量对齐。
+ */
+export const ETERNA_KNOWLEDGE_ACCOUNTS_SERVICE_ID = 'eterna-knowledge-accounts'
 
 /**
  * Memory 服务的注册 id(glue memory-plugin 经 ctx.provide 注册 '@eterna/memory',
@@ -86,6 +93,28 @@ interface AccountsFaceLike {
   dbPathForAccount(account: string): string | undefined
 }
 
+/** 知识库账号状态面(glue knowledge-plugin 结构子集;字段口径见其 KnowledgeAccountStatus)。 */
+interface KnowledgeAccountsFaceLike {
+  accountOfUser(userId: number): string | undefined
+  statusForAccount(account: string): {
+    readonly account: string
+    readonly available: boolean
+    readonly dbPath: string
+    readonly wikiDocCount: number
+    readonly proposalCount: number
+  } | undefined
+}
+
+/** 调用者上下文投影(principal → owner / eterna-user[admin/account])。 */
+type CallerContext =
+  | { readonly kind: 'owner' }
+  | { readonly kind: 'eterna-user'; readonly userId: number; readonly admin: boolean; readonly account: string | undefined }
+
+/** 会话 id 归一(归属账本与日志目录名都可能带/不带 `session-` 前缀)。 */
+function normalizeSessionId(id: string): string {
+  return id.startsWith('session-') ? id.slice('session-'.length) : id
+}
+
 /** 裁决端点结果(纯 JSON;ok=false 时 code + 中文 message)。 */
 export type MemoryReviewResult =
   | { readonly ok: true; readonly record: MemoryReviewRecordView | null }
@@ -121,10 +150,89 @@ export class EternaPanelGateway extends TypertRemoteService {
     return { account, memory, dbPath }
   }
 
-  /** 面板快照:见 types.ts EternaPanelSnapshot(纯 JSON,无参数端点)。M-T2:登录账号路由记忆库。 */
+  /**
+   * 调用者上下文(2026-11-17 面板账号隔离):principal → owner(本地/unary 旧形态)
+   * 或 eterna-user(userId + 角色 + 账号)。账号解析优先知识库账号面、次记忆账号面
+   * (两面同由 glue provide;缺席时 account=undefined,调用方 fail-closed)。
+   */
+  private callerContext(): CallerContext {
+    const invocation = (this.ctx as { invocation?: { principal?: { kind?: string; userId?: number } } } | undefined)?.invocation
+    const principal = invocation?.principal
+    if (principal === undefined || principal.kind !== 'eterna-user' || typeof principal.userId !== 'number') {
+      return { kind: 'owner' }
+    }
+    const userId = principal.userId
+    const knowledgeAccounts = this.ctx.get(ETERNA_KNOWLEDGE_ACCOUNTS_SERVICE_ID) as KnowledgeAccountsFaceLike | undefined
+    const memoryAccounts = this.ctx.get(ETERNA_MEMORY_ACCOUNTS_SERVICE_ID) as AccountsFaceLike | undefined
+    let account = knowledgeAccounts?.accountOfUser(userId)
+    if (account === undefined) account = memoryAccounts?.accountOfUser(userId)
+    return { kind: 'eterna-user', userId, admin: this.adminAllowed(), account }
+  }
+
+  /**
+   * 非 admin 调用者的知识库快照(本人账号分库计数;face/账号目录缺席 → 不可用空态)。
+   * 不读全局库——全局知识库是管理员视角,出现在普通用户面板即跨账号信息泄露。
+   */
+  private knowledgeForAccount(account: string | undefined): KnowledgeSnapshot {
+    const weknora = { status: 'not-mounted' as const, detail: '账号知识库仅装配 wiki-local 后端(WeKnora 为全局基础设施,不对普通账号开放)' }
+    if (account === undefined) {
+      return {
+        available: false, dbPath: '(账号知识库不可用)', wikiDocCount: 0, proposalCount: 0, weknora: {
+          status: 'error', detail: '账号知识库路由面缺席(多租户 fail-closed):未展示任何知识库数据',
+        },
+      }
+    }
+    const face = this.ctx.get(ETERNA_KNOWLEDGE_ACCOUNTS_SERVICE_ID) as KnowledgeAccountsFaceLike | undefined
+    const status = face?.statusForAccount(account)
+    if (status === undefined) {
+      return {
+        available: false, dbPath: `(账号 ${account} 知识库未开通)`, wikiDocCount: 0, proposalCount: 0, weknora,
+      }
+    }
+    return {
+      available: status.available,
+      dbPath: status.dbPath,
+      wikiDocCount: status.wikiDocCount,
+      proposalCount: status.proposalCount,
+      weknora,
+    }
+  }
+
+  /**
+   * 非 admin 调用者的会话归属过滤(access 归属账本 sessionsOfOwner 集)。账本面
+   * 缺席 → 空集(fail-closed:宁可不显示,不显示他人会话)。
+   */
+  private ownedSessionFilter(userId: number): (sessionDirName: string) => boolean {
+    const reflect = this.ctx as unknown as { reflect?: { get(name: string, strict?: boolean): unknown } }
+    const store = reflect.reflect?.get('eternaAccessStore', false) as { sessionsOfOwner(id: number): string[] } | undefined
+    let owned = new Set<string>()
+    try {
+      owned = new Set((store?.sessionsOfOwner(userId) ?? []).map(normalizeSessionId))
+    } catch {
+      owned = new Set()
+    }
+    return (sessionDirName: string): boolean => owned.has(normalizeSessionId(sessionDirName))
+  }
+
+  /**
+   * 面板快照:见 types.ts EternaPanelSnapshot(纯 JSON,无参数端点)。
+   * 账号隔离(2026-11-17):eterna-user 普通账号 → 记忆=本人库(accountContext)、
+   * 知识库=本人分库(知识库账号面)、会话历史=仅本人会话(access 归属账本);
+   * admin 与 owner/本地流 → 全局视角(现行为不变)。
+   */
   snapshot(): Promise<EternaPanelSnapshot> {
     const accountCtx = this.accountContext()
-    return Promise.resolve(buildSnapshot(this.ctx, undefined, undefined, accountCtx?.dbPath))
+    const caller = this.callerContext()
+    // 普通账号(非 admin eterna-user):记忆=本人库(账号库不可解析 → fail-closed
+    // 空态,不回落全局库)、知识库=本人分库、会话历史=仅本人会话;admin/owner 全局。
+    const scope: BuildSnapshotScope = caller.kind === 'eterna-user' && !caller.admin
+      ? {
+        ...(accountCtx === undefined ? { memory: unavailableMemorySnapshot() } : {}),
+        knowledge: this.knowledgeForAccount(caller.account),
+        sessionFilter: this.ownedSessionFilter(caller.userId),
+      }
+      : {}
+    return Promise.resolve(buildSnapshot(this.ctx, undefined, undefined, accountCtx?.dbPath, scope))
   }
 
   /**
@@ -184,7 +292,9 @@ export class EternaPanelGateway extends TypertRemoteService {
   /**
    * 画像纠正留痕(T13 纠正率分子):payload { section, keyHint? } →
    * Memory.recordCorrection(审计一行,账本 fail-open)。用户级动作(纠正自己的
-   * 画像),非 admin 面——SRC unary 持 owner peer,能达本端点必已过 access 守卫;
+   * 画像),非 admin 面。
+   * 账号路由(2026-11-17):eterna-user → 本人账号库(accountContext;解析失败
+   * fail-closed 拒绝,**绝不落全局库**);owner/unary 旧形态 → 全局服务(现行为)。
    * 客户端 fire-and-forget,埋点失败不打断纠正预填主流程。
    */
   trackCorrection(payload: unknown): Promise<MemoryCorrectionResult> {
@@ -199,12 +309,22 @@ export class EternaPanelGateway extends TypertRemoteService {
     if (keyHint !== undefined && typeof keyHint !== 'string') {
       return Promise.resolve({ ok: false, code: 'invalid', message: 'keyHint 只允许字符串' })
     }
-    const memory = this.ctx.get(MEMORY_SERVICE_ID) as MemoryServiceLike | undefined
-    if (memory?.recordCorrection === undefined) {
+    const caller = this.callerContext()
+    const target: MemoryServiceLike | undefined = caller.kind === 'eterna-user'
+      ? this.accountContext()?.memory
+      : this.ctx.get(MEMORY_SERVICE_ID) as MemoryServiceLike | undefined
+    if (caller.kind === 'eterna-user' && target === undefined) {
+      return Promise.resolve({
+        ok: false,
+        code: 'unavailable',
+        message: '账号记忆库不可用(多租户 fail-closed):本次纠正留痕未记录',
+      })
+    }
+    if (target?.recordCorrection === undefined) {
       return Promise.resolve({ ok: false, code: 'unavailable', message: '记忆服务未挂载(eterna-memory 插件未启用)' })
     }
     try {
-      memory.recordCorrection({ section: section.trim(), keyHint: typeof keyHint === 'string' ? keyHint.slice(0, 128) : '' })
+      target.recordCorrection({ section: section.trim(), keyHint: typeof keyHint === 'string' ? keyHint.slice(0, 128) : '' })
       return Promise.resolve({ ok: true })
     } catch (error) {
       return Promise.resolve({

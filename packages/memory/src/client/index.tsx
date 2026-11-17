@@ -52,11 +52,13 @@ const en = Object.fromEntries(Object.keys(SETTINGS_LOCALES).map(key => [key, key
 
 /** 会话内两件(域 chip / Sources 行)样式;设置分区样式随 SETTINGS_CSS 一并注入。 */
 export const CHIP_CSS = `
-[data-eterna-memory='domain-chip'] { position: relative; display: inline-flex; align-items: center; gap: 4px; font-family: var(--et-font-body); font-size: var(--et-text-micro); color: var(--et-fg-2); }
-[data-eterna-memory='domain-chip'] button { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border: 1px solid var(--et-border); border-radius: var(--et-radius-sm); background: var(--et-surface); color: var(--et-fg-2); font: inherit; cursor: pointer; }
+[data-eterna-memory='domain-chip'] { position: relative; display: inline-flex; align-items: center; gap: 4px; max-width: 100%; font-family: var(--et-font-body); font-size: var(--et-text-micro); color: var(--et-fg-2); }
+[data-eterna-memory='domain-chip'] button { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; min-width: 0; padding: 3px 8px; border: 1px solid var(--et-border); border-radius: var(--et-radius-sm); background: var(--et-surface); color: var(--et-fg-2); font: inherit; cursor: pointer; }
 [data-eterna-memory='domain-chip'] button:focus-visible { outline: 2px solid var(--et-accent); outline-offset: 1px; }
 [data-eterna-memory='domain-chip'] button:disabled { opacity: 0.55; cursor: not-allowed; }
 [data-eterna-memory='domain-chip'] button:hover:not(:disabled) { border-color: var(--et-fg-2); }
+[data-eterna-memory='domain-label'],
+[data-eterna-memory='correction-label'] { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 [data-eterna-memory='correction-chip'] { border-style: dashed; }
 [data-eterna-memory='domain-menu'] { position: absolute; top: calc(100% + 4px); right: 0; z-index: 30; display: grid; min-width: 160px; padding: 4px; gap: 2px; border: 1px solid var(--et-border); border-radius: var(--et-radius-sm); background: var(--et-surface); box-shadow: var(--et-shadow-raised); }
 [data-eterna-memory='domain-menu'] button { justify-content: flex-start; border: 0; background: none; }

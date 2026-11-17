@@ -388,21 +388,23 @@ describe('模块装载冒烟(vm)', () => {
     }
   }
 
-  it('apply 注册两个 main keyed 面板与两个侧栏入口(id=key 对齐)', () => {
+  it('apply 注册两个 main keyed 面板与两个侧栏入口(id=key 对齐)', async () => {
     const seen: string[] = []
     const exports = loadBundle(seen)
     const { ctx, injected, registered } = fakeCtx()
     const dispose = (exports.apply as (context: unknown) => () => void)(ctx)
     expect(typeof dispose).toBe('function')
-    dispose()
-    // 两个 main keyed 槽占位 + 两个 sidebar.panellist 条目
+    // 管理员可见门(/access/api/me)是异步前置:vm 沙箱无 fetch → 按本地形态放行,
+    // 注册在微任务后完成——先让出一拍再断言(2026-11-17 管理面门引入)。
+    await new Promise(resolve => setTimeout(resolve, 0))
     expect(injected.filter(name => name === 'main')).toHaveLength(2)
     expect(injected.filter(name => name === 'sidebar.panellist')).toHaveLength(2)
     const mains = registered.filter(entry => entry.name === 'main')
     const panels = registered.filter(entry => entry.name === 'sidebar.panellist')
     expect(mains.map(entry => entry.key).sort()).toEqual(['eterna-loop-trace', 'eterna-prompt-studio'])
     expect(panels.map(entry => entry.id).sort()).toEqual(['eterna-loop-trace', 'eterna-prompt-studio'])
-    // 初始拉数(刷新函数立即执行):connection rpc 已被调用(loopPrompt/*)
+    // 初始拉数(刷新函数在门放行后立即执行):connection rpc 已被调用(loopPrompt/*)
     expect(seen.every(specifier => BASELINE_EXTERNALS.includes(specifier as (typeof BASELINE_EXTERNALS)[number]))).toBe(true)
+    dispose()
   })
 })

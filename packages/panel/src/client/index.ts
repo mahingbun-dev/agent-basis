@@ -166,12 +166,19 @@ export function apply(ctx: PanelClientContext): () => void {
       t,
     }),
   }, PanelPage))
-  // 对话框一键触发条(官方席位 conversation.composer.dock:composer 卡下方
-  // 常驻条目,session 作用域)。官方 SessionStandardProps 注入 inputActions
-  // (setDraft/submit = 用户按 Enter 的同一条路径,R3 照常走审批)。
-  // 两个官方席位都试(composer.dock 未渲染,改用 input.right 紧凑位):
-  ctx.slots.inject('conversation.input.right', () => ctx.slots.register({
-    name: 'conversation.input.right',
+  // 对话框一键触发条(官方席位 conversation.input.dock:composer 卡上方整宽常驻条,
+  // session 作用域;hero 首屏与对话内都渲染,官方 Todo/Goal/Queue 同席位先例)。
+  // 官方 SessionStandardProps 注入 inputActions(setDraft/submit = 用户按 Enter
+  // 的同一条路径,R3 照常走审批)。
+  //
+  // 席位选择记录(2026-11-17 实测):曾挂 conversation.input.right,但该席位契约是
+  // "submit 前的紧凑控件",宿主把整组包进 .trailing{flex:0 0 auto}(不可收缩);
+  // 本触发条实测 655px,把右侧组撑到 921px > 卡片 712px(1080 宽)——整组溢出视口
+  // 被静默裁切,发送/模型钮被挤出卡片。conversation.composer.dock(卡片下方)在
+  // hero(新会话首屏,variant==='composer' 才渲染)不显示,首屏正是触发条主场,
+  // 故取 input.dock。条几何与自适应见 styles.ts chips 段。
+  ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
+    name: 'conversation.input.dock',
     id: 'eterna-panel-trigger',
     locale: NS,
     inject: () => ({}),
