@@ -205,6 +205,84 @@ export function unavailableMemorySnapshot(): MemorySnapshot {
   return buildMemoryAccountView(join('(账号记忆库不可用)', 'memory.sqlite3'))
 }
 
+/** 会话 id 归一(归属账本与日志目录名都可能带/不带 `session-` 前缀)。 */
+export function normalizeSessionId(id: string): string {
+  return id.startsWith('session-') ? id.slice('session-'.length) : id
+}
+
+/** 知识库账号状态面(glue knowledge-plugin provide 的结构子集)。 */
+interface KnowledgeAccountsFaceLike {
+  statusForAccount(account: string): {
+    readonly account: string
+    readonly available: boolean
+    readonly dbPath: string
+    readonly wikiDocCount: number
+    readonly proposalCount: number
+  } | undefined
+}
+
+/**
+ * 账号知识库快照(非 admin 视图;face/账号目录缺席 → fail-closed 空态)。
+ * 不读全局库——全局知识库是管理员视角,出现在普通用户面板即跨账号信息泄露。
+ */
+export function knowledgeSnapshotForAccount(ctx: Context, account: string | undefined): KnowledgeSnapshot {
+  const weknora = {
+    status: 'not-mounted' as const,
+    detail: '账号知识库仅装配 wiki-local 后端(WeKnora 为全局基础设施,不对普通账号开放)',
+  }
+  if (account === undefined) {
+    return {
+      available: false, dbPath: '(账号知识库不可用)', wikiDocCount: 0, proposalCount: 0,
+      weknora: { status: 'error', detail: '账号知识库路由面缺席(多租户 fail-closed):未展示任何知识库数据' },
+    }
+  }
+  const face = ctx.get('eterna-knowledge-accounts') as KnowledgeAccountsFaceLike | undefined
+  const status = face?.statusForAccount(account)
+  if (status === undefined) {
+    return { available: false, dbPath: `(账号 ${account} 知识库未开通)`, wikiDocCount: 0, proposalCount: 0, weknora }
+  }
+  return {
+    available: status.available,
+    dbPath: status.dbPath,
+    wikiDocCount: status.wikiDocCount,
+    proposalCount: status.proposalCount,
+    weknora,
+  }
+}
+
+/** 登录身份作用域(access 守卫 /api/eternaPanel/snapshot 组装;身份在守卫 cookie)。 */
+export interface ScopedSnapshotIdentity {
+  readonly account: string
+  readonly admin: boolean
+  /** 守卫按 access 归属账本(sessionsOfOwner)解析出的本人会话 id(scoped 模式用)。 */
+  readonly ownedSessionIds: readonly string[]
+}
+
+/**
+ * 按登录身份组装快照(2026-11-17,unary principal 恒 owner 的守卫协同版):
+ * - admin:全局视野(知识库/会话全局;记忆=本人账号库,与既有口径一致);
+ * - 普通账号:记忆=本人账号库视图(不可解析 → fail-closed 空态)、知识库=本人分库、
+ *   会话历史=仅本人会话。任何分支都不向普通账号返回全局记忆/知识库/他人会话。
+ */
+export function buildSnapshotForIdentity(
+  ctx: Context,
+  identity: ScopedSnapshotIdentity,
+  sessionsRoot?: string,
+): EternaPanelSnapshot {
+  if (identity.admin) {
+    const accounts = ctx.get('eterna-memory-accounts') as { dbPathForAccount?(account: string): string | undefined } | undefined
+    return buildSnapshot(ctx, undefined, sessionsRoot, accounts?.dbPathForAccount?.(identity.account))
+  }
+  const accounts = ctx.get('eterna-memory-accounts') as { viewForAccount?(account: string): MemorySnapshot | undefined } | undefined
+  const memory = accounts?.viewForAccount?.(identity.account) ?? unavailableMemorySnapshot()
+  const owned = new Set(identity.ownedSessionIds.map(normalizeSessionId))
+  return buildSnapshot(ctx, undefined, sessionsRoot, undefined, {
+    memory,
+    knowledge: knowledgeSnapshotForAccount(ctx, identity.account),
+    sessionFilter: (sessionDirName: string) => owned.has(normalizeSessionId(sessionDirName)),
+  })
+}
+
 /** 组装完整快照(Host 侧 eternaPanel/snapshot 的方法体)。 */
 export function buildSnapshot(
   ctx: Context,
