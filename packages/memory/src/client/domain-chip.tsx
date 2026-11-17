@@ -1,6 +1,7 @@
 /**
  * 域识别 chip(M-M3 T12-③,19 号 §5-T12.3 + 18 §10/Q6 决议「进会话 UI」):
- * 官方席位 conversation.input.right(list,session 作用域;eterna-panel 触发条同位)。
+ * 官方席位 conversation.input.right(list,session 作用域;紧凑控件位,
+ * eterna-panel 触发条已迁 conversation.input.dock 整宽条)。
  * - 展示当前会话识别域(「域:部署」/「域:未识别」;人工切换中加「已切换」标记);
  * - 点击展开已注册域列表可切换(切换=写 domain_registry last_used + 当前索引域
  *   更新,经宿主 eternaMemory/selectDomain 端点转发 glue 会话域面);选「无域」
@@ -137,7 +138,9 @@ export function DomainChip(props: DomainChipProps): ReactElement | null {
           onClick={prefillCorrection}
         >
           <Icon name="bookmark" size={12} />
-          {t?.('domain.correctReady') ?? '画像纠正'}:{correction.section}
+          <span data-eterna-memory="correction-label">
+            {t?.('domain.correctReady') ?? '画像纠正'}:{correction.section}
+          </span>
         </button>
       )}
       <button

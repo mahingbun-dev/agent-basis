@@ -29,7 +29,7 @@ describe('lib/client.js 工件形态', () => {
 })
 
 describe('模块装载冒烟(vm)', () => {
-  function loadBundle(): Record<string, unknown> {
+  function loadBundle(sandboxExtra: Record<string, unknown> = {}): Record<string, unknown> {
     const code = readFileSync(bundlePath, 'utf8')
     const registrations: { id: string; factory: (require: (specifier: string) => unknown) => Record<string, unknown> }[] = []
     const sandboxWindow: { __ModuleLoader__?: unknown } = {
@@ -41,7 +41,7 @@ describe('模块装载冒烟(vm)', () => {
       }
       throw new Error(`unexpected require: ${specifier}`)
     }
-    vm.runInNewContext(code, { window: sandboxWindow, require: requireStub })
+    vm.runInNewContext(code, { window: sandboxWindow, require: requireStub, ...sandboxExtra })
     expect(registrations).toHaveLength(1)
     expect(registrations[0]?.id).toBe('@eterna/panel')
     return registrations[0]!.factory(requireStub)
@@ -67,5 +67,40 @@ describe('模块装载冒烟(vm)', () => {
       const invalid = path.split('/').some(part => part === '' || part === '.' || part === '..' || !segment.test(part))
       expect(invalid, `${key}=${JSON.stringify(path)}`).toBe(false)
     }
+  })
+
+  it('触发条挂 conversation.input.dock 整宽条,不占 input.right 紧凑位(2026-11-17 溢出回归钉)', () => {
+    // 根因:input.right 契约是"submit 前紧凑控件",宿主整组 flex:0 0 auto 不可
+    // 收缩;655px 触发条把右侧组撑到 921px > 卡片 712px(1080 宽),溢出视口被
+    // 静默裁切。触发条改挂 input.dock(卡片上方整宽条,hero 首屏也渲染)。
+    const injected: string[] = []
+    const registered: string[] = []
+    const created: { textContent: string }[] = []
+    const sandboxDocument = {
+      querySelector: () => null,
+      getElementById: () => null,
+      createElement: () => {
+        const node = { id: '', textContent: '', setAttribute: () => {}, remove: () => {} }
+        created.push(node)
+        return node
+      },
+      head: { append: () => {} },
+    }
+    const exports = loadBundle({ document: sandboxDocument })
+    const ctx = {
+      slots: {
+        inject: (name: string, contribute: () => unknown) => { injected.push(name); contribute(); return () => {} },
+        register: (options: { name: string }) => { registered.push(options.name); return () => {} },
+      },
+      locale: { register: () => () => {}, bind: () => (key: string) => key },
+      connection: { rpc: { call: () => Promise.resolve({ ok: false }) } },
+    }
+    ;(exports.apply as (context: unknown) => void)(ctx)
+    expect(injected).toEqual(['main', 'conversation.input.dock', 'sidebar.panellist'])
+    expect(registered).toEqual(['main', 'conversation.input.dock', 'sidebar.panellist'])
+    const chipsCss = created.map(node => node.textContent).find(css => css.includes("[data-eterna-panel='chips'] ")) ?? ''
+    expect(chipsCss).toContain('--dsh-composer-side-clearance')
+    expect(chipsCss).toContain('--dsh-composer-card-max-width')
+    expect(chipsCss).toContain('container-type: inline-size')
   })
 })

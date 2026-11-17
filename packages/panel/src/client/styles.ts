@@ -353,11 +353,30 @@ const CSS = `
 [data-eterna-panel='placeholder'] { font-size: var(--et-text-caption); color: var(--et-muted); }
 [data-eterna-panel='placeholder'][data-eterna-panel-error='true'] { color: var(--et-danger); overflow-wrap: anywhere; }
 
-/* —— chips(composer dock) —— */
-[data-eterna-panel='chips'] { display: flex; flex-wrap: wrap; align-items: center; gap: var(--et-space-2); padding: 2px 4px 8px; }
-[data-eterna-panel='chips-label'] { font-size: var(--et-text-micro); color: var(--et-muted); }
+/* —— chips(conversation.input.dock:composer 卡上方整宽常驻条) ——
+   几何与官方 GoalBar/TodoPanel 同式:两侧让出 side-clearance,dock 内缩 4 个
+   dock-inset,上限跟随 composer 卡宽;宿主变量缺席时按同值兜底(独立宿主仍可用,
+   不给宿主留像素依赖)。容器查询按条自身宽度降级:窄条先省略再隐藏 label,
+   chips 自动换行,任何宽度都不越出卡片/视口(2026-11-17 溢出修复)。 */
+[data-eterna-panel='chips'] {
+  box-sizing: border-box;
+  flex: none;
+  width: calc(100% - 2 * var(--dsh-composer-side-clearance, 16px) - 4 * var(--dsh-composer-dock-inset, 8px));
+  max-width: calc(var(--dsh-composer-card-max-width, 952px) - 4 * var(--dsh-composer-dock-inset, 8px));
+  margin: 0 auto;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--et-space-2);
+  padding: 6px var(--et-space-3);
+  border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md);
+  background: var(--et-surface);
+  container-type: inline-size;
+}
+[data-eterna-panel='chips-label'] {
+  flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--et-text-micro); color: var(--et-muted);
+}
 [data-eterna-panel='chip'] {
-  position: relative; padding: 5px 12px; font: inherit; font-size: var(--et-text-micro); line-height: 1.4; cursor: pointer;
+  position: relative; flex: 0 0 auto; padding: 5px 12px; font: inherit; font-size: var(--et-text-micro);
+  line-height: 1.4; cursor: pointer; white-space: nowrap;
   color: var(--et-accent);
   background: var(--et-accent-soft);
   border: 0; border-radius: var(--et-radius-sm);
@@ -366,6 +385,9 @@ const CSS = `
 [data-eterna-panel='chip']::after { content: ""; position: absolute; inset: -5px -4px; }
 [data-eterna-panel='chip']:hover:not(:disabled) { background: color-mix(in oklab, var(--et-accent), transparent 82%); }
 [data-eterna-panel='chip']:disabled { opacity: 0.45; cursor: default; }
+@container (max-width: 560px) {
+  [data-eterna-panel='chips-label'] { display: none; }
+}
 
 /* —— 容器断点(面板嵌在宿主窄列时按容器宽度降级;不依赖视口) —— */
 @container eterna-panel (max-width: 900px) {

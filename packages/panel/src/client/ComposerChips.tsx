@@ -1,6 +1,8 @@
 /**
- * 对话框一键触发条:挂 DSH 官方席位 `conversation.composer.dock`
- * (composer 卡下方常驻条目,list,session 作用域)。
+ * 对话框一键触发条:挂 DSH 官方席位 `conversation.input.dock`
+ * (composer 卡上方整宽常驻条,list,session 作用域;hero 首屏同样渲染)。
+ * 席位变更史见 index.ts 注册处注释(2026-11-17:input.right 紧凑席位放不下
+ * 整宽工具条,溢出视口)。
  *
  * 点击语义(用户定版):启动流程——setDraft 写入流程启动语,**由 useInput
  * 草稿落位自动触发 submit**(Lexical 写入异步提交,立即 submit 会被
