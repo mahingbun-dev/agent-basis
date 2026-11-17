@@ -17,6 +17,7 @@ import { reportAccessAudit, type AccessAuditEvent, type AuditReflect } from './a
 import { companionTokenOf } from './companion.ts'
 import { installCompanionExecutableWrap, readToolsService, routeCompanion } from './companion-inject.ts'
 import { ApprovalBridge, toolApprovalTimeoutMs } from './approval-bridge.ts'
+import { QuestionBridge, userQuestionTimeoutMs } from './question-bridge.ts'
 import { type AccessRequest } from './http.ts'
 import type { Context } from '@deepseek-ai/cordis'
 // 空类型导入 = dsh-tools 对 cordis Events('tools/pre-execute')增广的触发器（governance-plugin 同款）：
@@ -165,6 +166,15 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         audit,
         timeoutMs: toolApprovalTimeoutMs(process.env),
       })
+      // ── 提问桥(2026-11-17):ask_user_question 在多租户下结构性不可达——网关
+      // forward 只投 owner peer(dsh-api-gateway lib:1042/1136),mux 换血后浏览器
+      // 是 eterna-user,提问挂死无 UI 无超时(session-c9a74388 事故 42 分钟)。
+      // 宿主侧接 user-questions/request waterfall,浏览器轮询待答/提交答案。
+      const questionBridge = new QuestionBridge({
+        sessionOwner: (id: string) => store.sessionOwner(id),
+        audit,
+        timeoutMs: userQuestionTimeoutMs(process.env),
+      })
       const deps: AccessDeps = {
         store,
         session,
@@ -179,11 +189,23 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
           ? process.env.ETERNA_RELAY_PUBLIC_URL
           : undefined,
         approvalBridge,
+        questionBridge,
       }
       // 答者随插件卸载解除;disposers 数组在下方 createNodeHandler 后才初始化(TDZ),
       // 故先留柄、落数组时统一收编。on 注册面走结构面 cast(cordis on 具体重载不进桥)。
+      //
+      // prepend(2026-11-17 测试容器实证):waterfall 是链式竞速——api-remotes 的
+      // 转发答者(把事件发给浏览器、等 owner peer 应答)同挂宿主链。缺 prepend 时
+      // 它先注册先执行,mux 换血后的浏览器永非 owner → 永远等不到应答,本桥根本
+      // 没机会执行(提问 42 分钟挂死、审计无任何桥事件)。head 位置 = 先于网关
+      // 转发判定;未知会话仍 next() 透传,维持上游行为。
       const offApprovalAnswerer = approvalBridge.installAnswerer(
-        listener => (ctx as unknown as { on: (event: string, listener: (request: unknown, next: () => unknown) => unknown) => () => void }).on('approval/request', listener),
+        listener => (ctx as unknown as { on: (event: string, listener: (request: unknown, next: () => unknown) => unknown, options?: { prepend?: boolean }) => () => void }).on('approval/request', listener, { prepend: true }),
+      )
+      // 提问答者:与审批同款 waterfall seam(user-questions/request,scopeTarget(agent)
+      // 作用域,由 dsh-user-questions lib:709-714 发起)。prepend 理由同上。
+      const offQuestionAnswerer = questionBridge.installAnswerer(
+        listener => (ctx as unknown as { on: (event: string, listener: (request: unknown, next: () => unknown) => unknown, options?: { prepend?: boolean }) => () => void }).on('user-questions/request', listener, { prepend: true }),
       )
       // P3(2026-11-11):把归属账本 provide 出去(usage-stats 聚合的归属唯一事实源;
       // reflect 键 eternaAccessStore)。账本只读面,不含凭据。
@@ -240,6 +262,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       ]
       disposers.push(offCompanionIdentity)
       disposers.push(offApprovalAnswerer)
+      disposers.push(offQuestionAnswerer)
       // Phase 2 租户面(T2.2/T2.5):存量 workspace 划归首个 admin
       adoptLegacyWorkspaces(store)
       // P1-T2(2026-11-11):mux 流租户隔离——principal 换血 + registerPolicy。

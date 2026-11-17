@@ -264,6 +264,10 @@
             name: '@deepseek-ai/dsh-tool-workflow'
       - id: tool-ask-user
         name: '@deepseek-ai/dsh-tool-ask-user'
+        # timed 止血(2026-11-17):legacy 阻塞模式无超时,提问挂死无出口。
+        config:
+          mode: timed
+          timeout: 300
       - id: tool-todo
         name: '@deepseek-ai/dsh-tool-todo'
         config:
@@ -432,6 +436,10 @@
             disabled: true
       - id: tool-ask-user
         name: '@deepseek-ai/dsh-tool-ask-user'
+        # timed 止血(2026-11-17):legacy 阻塞模式无超时,提问挂死无出口。
+        config:
+          mode: timed
+          timeout: 300
       - id: tool-todo
         name: '@deepseek-ai/dsh-tool-todo'
         config:

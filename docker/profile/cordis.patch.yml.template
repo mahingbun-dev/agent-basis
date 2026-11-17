@@ -275,6 +275,13 @@
             name: '@deepseek-ai/dsh-tool-workflow'
       - id: tool-ask-user
         name: '@deepseek-ai/dsh-tool-ask-user'
+        # timed 止血(2026-11-17):legacy 阻塞模式无超时,配合 web 前端不可达时
+        # 提问挂死无出口(session-c9a74388 42 分钟假死)。timed 模式下前台等待
+        # 到点回落 pending(模型可继续独立工作,用户仍可后答),不再无限挂起。
+        # 治本=eterna-access 提问桥(question-bridge.ts)提供 web 可见面。
+        config:
+          mode: timed
+          timeout: 300
       - id: tool-todo
         name: '@deepseek-ai/dsh-tool-todo'
         config:
@@ -439,6 +446,13 @@
             disabled: true
       - id: tool-ask-user
         name: '@deepseek-ai/dsh-tool-ask-user'
+        # timed 止血(2026-11-17):legacy 阻塞模式无超时,配合 web 前端不可达时
+        # 提问挂死无出口(session-c9a74388 42 分钟假死)。timed 模式下前台等待
+        # 到点回落 pending(模型可继续独立工作,用户仍可后答),不再无限挂起。
+        # 治本=eterna-access 提问桥(question-bridge.ts)提供 web 可见面。
+        config:
+          mode: timed
+          timeout: 300
       - id: tool-todo
         name: '@deepseek-ai/dsh-tool-todo'
         config:
