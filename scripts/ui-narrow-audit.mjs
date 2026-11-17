@@ -76,7 +76,9 @@ function measurePage() {
   const card = document.querySelector('[data-composer-card]')
   const cardRect = card === null ? null : card.getBoundingClientRect()
   const chips = document.querySelector("[data-eterna-panel='chips']")
-  const send = document.querySelector('[aria-label="发送消息"]')
+  // 主操作钮:空闲=发送(aria 发送消息),回合进行中=停止(同一 .primary 位置)。
+  // 类名是 CSS Modules 哈希,uV2eYG_primary 之类——取 _primary 后缀段。
+  const send = document.querySelector('[data-composer-card] button[class*="_primary"]')
   const rectOf = (el) => {
     if (el === null) return null
     const r = el.getBoundingClientRect()
@@ -89,7 +91,10 @@ function measurePage() {
     if (r.width === 0 && r.height === 0) continue
     const overRight = r.right - viewportWidth
     const internal = el.scrollWidth - el.clientWidth
-    if (overRight > 1 || internal > 2) {
+    // chip 的 ::after 是外扩 5px/4px 的透明命中区(styles.ts),会让 scrollWidth
+    // 多出 4px——属设计而非越界,阈值放到 8px。
+    const internalLimit = el.getAttribute('data-eterna-panel') === 'chip' ? 8 : 2
+    if (overRight > 1 || internal > internalLimit) {
       offenders.push({
         key: el.getAttribute('data-eterna-panel') ?? el.getAttribute('data-eterna-memory') ?? el.getAttribute('data-eterna-workbench')
           ?? el.getAttribute('data-t7-studio-root') ?? el.getAttribute('data-eterna-usage-stats') ?? el.getAttribute('data-eterna-compaction')
@@ -131,8 +136,11 @@ function assertFace(name, m, options = {}) {
       if (m.chips.x < m.card.x - 1) failures.push(`${name}: 触发条左缘 ${m.chips.x} 越出卡片左缘 ${m.card.x}`)
       if (m.chips.bottom > m.card.y + 1) failures.push(`${name}: 触发条未落在卡片上方(底 ${m.chips.bottom} > 卡顶 ${m.card.y})`)
     }
-    if (m.send === null) failures.push(`${name}: 缺发送按钮`)
-    else if (m.send.right > m.viewportWidth + 1) failures.push(`${name}: 发送按钮右缘 ${m.send.right} 越出视口 ${m.viewportWidth}`)
+    if (m.send === null) failures.push(`${name}: 缺主操作钮(发送/停止)`)
+    else {
+      if (m.send.right > m.viewportWidth + 1) failures.push(`${name}: 主操作钮右缘 ${m.send.right} 越出视口 ${m.viewportWidth}`)
+      if (m.card !== null && m.send.right > m.card.right + 1) failures.push(`${name}: 主操作钮右缘 ${m.send.right} 越出卡片右缘 ${m.card.right}`)
+    }
   }
   return failures
 }
@@ -173,14 +181,33 @@ try {
       const expand = page.locator('[aria-label="打开侧边栏"]').first()
       if (await expand.isVisible().catch(() => false)) { await expand.click(); await page.waitForTimeout(800) }
 
+      // 全新实例首屏是"选择工作区"触发态(整卡是选择器,没有发送钮);
+      // 先落一个工作区,让 composer 进入真实可用态再测。
+      const workspacePlaceholder = page.getByText('选择工作区', { exact: false }).first()
+      if (await workspacePlaceholder.isVisible().catch(() => false)) {
+        await workspacePlaceholder.click().catch(() => {})
+        await page.waitForTimeout(800)
+        const firstWorkspace = page.locator('[role="menuitem"], [role="option"]').first()
+        if (await firstWorkspace.isVisible().catch(() => false)) {
+          await firstWorkspace.click().catch(() => {})
+          await page.waitForTimeout(2000)
+        }
+      }
+
       // ① 新会话首屏(hero):触发条必须存在且整条在卡片水平范围内
       await snap('01-hero', { expectComposer: true })
 
-      // ② 对话内:同上
-      const conversation = page.getByText(/知识检索|生产部署|产品行业分析/u).first()
-      if (await conversation.isVisible().catch(() => false)) {
-        await conversation.click().catch(() => {})
+      // ② 对话内(docked composer):点侧栏会话行(role=treeitem,类名含
+      // sessionRow;"新会话"行是 hero 态,排除)。按文本点会误中
+      // [data-eterna-panel='chip'] 的流程启动条(点了会真的发一轮对话)。
+      const sessionRow = page.locator('[role="treeitem"][class*="sessionRow"]')
+        .filter({ hasNotText: /^新会话$/u }).first()
+      if (await sessionRow.isVisible().catch(() => false)) {
+        await sessionRow.click().catch(() => {})
+        await page.waitForTimeout(1800)
         await snap('02-session', { expectComposer: true })
+      } else {
+        widthResults['02-session'] = { skipped: '实例内没有既有会话(新库),只断言首屏' }
       }
 
       // ③ 各业务面
@@ -229,7 +256,7 @@ mkdirSync(OUT, { recursive: true })
 writeFileSync(join(OUT, `audit-${SCHEME}.json`), JSON.stringify({ base: BASE, scheme: SCHEME, widths: WIDTHS, results, failures }, null, 2))
 
 for (const [width, faces] of Object.entries(results)) {
-  const summary = Object.entries(faces).map(([name, m]) => `${name}:${m.offenders.length}/${m.cardScrollOverflowX}px`).join(' ')
+  const summary = Object.entries(faces).map(([name, m]) => m.skipped !== undefined ? `${name}:skip` : `${name}:offenders=${m.offenders.length},cardOverflow=${m.cardScrollOverflowX}px`).join(' ')
   console.log(`width=${width}  ${summary}`)
 }
 if (failures.length > 0) {

@@ -385,7 +385,11 @@ const CSS = `
 [data-eterna-panel='chip']::after { content: ""; position: absolute; inset: -5px -4px; }
 [data-eterna-panel='chip']:hover:not(:disabled) { background: color-mix(in oklab, var(--et-accent), transparent 82%); }
 [data-eterna-panel='chip']:disabled { opacity: 0.45; cursor: default; }
-@container (max-width: 560px) {
+@container (max-width: 680px) {
+  /* 条内容宽 < 680px 时 label(约 217px)+ 4 chips(约 470px)+ 间距(约 40px)
+     放不下一行:先牺牲说明文字换单行,chips 保持一眼可点(1080 窗条内容宽
+     实测 634px → 隐藏;1440 窗 716px → 显示且单行)。label 的完整语义仍在
+     toolbar 的 aria-label 里。 */
   [data-eterna-panel='chips-label'] { display: none; }
 }
 
