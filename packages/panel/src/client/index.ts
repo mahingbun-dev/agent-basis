@@ -29,14 +29,18 @@ export const SNAPSHOT_ENDPOINT = 'eternaPanel/snapshot'
 /** 记忆裁决端点(M-M2 T9 审批闭环:待审记忆批/拒,Host 半边同网关)。 */
 export const REVIEW_ENDPOINT = 'eternaPanel/review'
 
-/** 登录账号路由裁决端点(23 号 M-T2/S-6:access 守卫面,身份=cookie)。 */
-export const REVIEW_ACCOUNT_ENDPOINT = '/api/eternaMemory/review'
+// ── 登录账号路由三端点(23 号 M-T2/S-6:access 守卫面,身份=cookie)────────
+// endpoint 段不带 `/api` 前缀:dsh 浏览器 caller assertTarget 禁空段(前导 `/`
+// 必抛 "invalid RPC target /api//api/…"),wire 路径由 channel('/api')+endpoint 拼出,
+// 恰好命中守卫注册的全路径 /api/eternaMemory/*。
+/** 裁决端点。 */
+export const REVIEW_ACCOUNT_ENDPOINT = 'eternaMemory/review'
 
-/** 登录账号记忆区快照端点(S-6:memory 区按登录账号路由;access 守卫面)。 */
-export const MEMORY_ACCOUNT_SNAPSHOT_ENDPOINT = '/api/eternaMemory/accountSnapshot'
+/** 登录账号记忆区快照端点(S-6:memory 区按登录账号路由)。 */
+export const MEMORY_ACCOUNT_SNAPSHOT_ENDPOINT = 'eternaMemory/accountSnapshot'
 
-/** 画像纠正留痕端点(S-6:走 access 守卫面,身份=cookie)。 */
-export const CORRECTION_ACCOUNT_ENDPOINT = '/api/eternaMemory/trackCorrection'
+/** 画像纠正留痕端点。 */
+export const CORRECTION_ACCOUNT_ENDPOINT = 'eternaMemory/trackCorrection'
 
 /** 画像纠正留痕端点(T13 纠正率分子:纠正动作写审计行,Host 半边同网关)。 */
 export const CORRECTION_ENDPOINT = 'eternaPanel/trackCorrection'

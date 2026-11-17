@@ -21,9 +21,13 @@ export type EternaPanelLocaleKey =
   | 'services.proposals'
   | 'services.weknora'
   | 'services.weknora.off'
+  | 'services.weknora.ok'
+  | 'services.weknora.error'
   | 'memory'
   | 'memory.hint'
   | 'memory.pendingTitle'
+  | 'memory.pendingCountLabel'
+  | 'memory.countLabel'
   | 'memory.pendingHint'
   | 'memory.pendingCompaction'
   | 'memory.pendingExpand'
@@ -35,6 +39,7 @@ export type EternaPanelLocaleKey =
   | 'memory.portraitTitle'
   | 'memory.portraitHint'
   | 'memory.portraitEmpty'
+  | 'memory.portraitSectionEmpty'
   | 'memory.portraitCorrect'
   | 'memory.portraitCorrectReady'
   | 'memory.domainTitle'
@@ -107,7 +112,7 @@ function toolKey(name: string): EternaPanelLocaleKey {
 
 export const zh: Record<EternaPanelLocaleKey, string> = {
   panel: '基座面板',
-  subtitle: '这里能看到基座的全部能力:左边看状态,下面照着示例发一句话就能用',
+  subtitle: '这里汇总基座的全部能力:上方管理工作区记忆(待审、画像、功能域),下方看服务状态、照着示例发一句话就能用',
   services: '能力状态',
   'services.governance': '治理与安全',
   'services.memory': '长期记忆',
@@ -121,9 +126,13 @@ export const zh: Record<EternaPanelLocaleKey, string> = {
   'services.proposals': '待你确认的提案',
   'services.weknora': '企业知识库接入',
   'services.weknora.off': '未启用(可在配置中开启)',
+  'services.weknora.ok': '已接入',
+  'services.weknora.error': '连接异常',
   memory: '工作区记忆',
   'memory.hint': 'Agent 在会话中自主维护(相关历史自动检索、偏好与结论自动沉淀;只在你明确说「记住…」时显式写入)',
   'memory.pendingTitle': '待你审批的记忆',
+  'memory.pendingCountLabel': '{count} 条待审',
+  'memory.countLabel': '{count} 条',
   'memory.pendingHint': '这些是 Agent 从会话中学到的内容,批准后才会长期生效并影响后续会话;拒绝则作废(可追溯,不会真的删除记录)',
   'memory.pendingCompaction': '来自压缩摘要',
   'memory.pendingExpand': '展开详情',
@@ -135,6 +144,7 @@ export const zh: Record<EternaPanelLocaleKey, string> = {
   'memory.portraitTitle': '你的画像',
   'memory.portraitHint': '从与你的对话中沉淀(派生视图)。某一条不对?点「纠正」——回到对话后,输入框旁的「画像纠正」标签会把这句话带进输入框,回车发送即生效。',
   'memory.portraitEmpty': '画像尚未生成:Agent 会从你的会话中学习稳定偏好,积累后自动生成。',
+  'memory.portraitSectionEmpty': '暂无沉淀',
   'memory.portraitCorrect': '纠正此项',
   'memory.portraitCorrectReady': '纠正草稿已备好({section}):回到对话,点击输入框旁的「画像纠正」标签后回车发送。',
   'memory.domainTitle': '功能域',
@@ -155,14 +165,14 @@ export const zh: Record<EternaPanelLocaleKey, string> = {
   'memory.metricsIndexZoneDomain': '索引·域区',
   'memory.metricsIndexZoneFallback': '索引·兜底区',
   'memory.metricsNoData': '暂无',
-  guide: '怎么用(点「复制」→ 粘到对话框 → 发送)',
+  guide: '怎么用',
   'guide.hint': '不需要懂任何技术:复制一句示例,粘贴到对话框发送,Agent 会调用对应能力并展示结果',
   'guide.copy': '复制',
-  'guide.copied': '已复制 ✓',
+  'guide.copied': '已复制',
   'steps.title': '三步上手',
-  'steps.one': '① 在「怎么用」里点「复制」',
-  'steps.two': '② 粘贴到左下角对话框,回车发送',
-  'steps.three': '③ 在对话里看 Agent 调用工具与结果(要审批的会先问你)',
+  'steps.one': '在「怎么用」里点「复制」',
+  'steps.two': '粘贴到左下角对话框,回车发送',
+  'steps.three': '在对话里看 Agent 调用工具与结果(要审批的会先问你)',
   observability: '用量观测(最近会话)',
   'observability.session': '会话',
   'observability.turns': '轮次',
@@ -181,7 +191,7 @@ export const zh: Record<EternaPanelLocaleKey, string> = {
 
 export const en: Record<EternaPanelLocaleKey, string> = {
   panel: 'EternaAgent Panel',
-  subtitle: 'Everything the agent can do — check status above, copy an example below to try it',
+  subtitle: 'Everything the base can do — manage workspace memory above (approvals, profile, domains), check services and copy an example below to try it',
   services: 'Capability status',
   'services.governance': 'Governance & safety',
   'services.memory': 'Long-term memory',
@@ -194,9 +204,13 @@ export const en: Record<EternaPanelLocaleKey, string> = {
   'services.wikiDocs': 'Wiki documents',
   'services.proposals': 'Proposals awaiting you',
   'services.weknora': 'Enterprise KB (WeKnora)',
+  'services.weknora.ok': 'Connected',
+  'services.weknora.error': 'Error',
   memory: 'Workspace memory',
   'memory.hint': 'Maintained autonomously by the agent during sessions',
   'memory.pendingTitle': 'Memory awaiting your approval',
+  'memory.pendingCountLabel': '{count} pending',
+  'memory.countLabel': '{count} items',
   'memory.pendingHint': 'Learned from your sessions — approve to make them permanent; rejecting discards them (traceable, never hard-deleted)',
   'memory.pendingCompaction': 'From compaction summary',
   'memory.pendingExpand': 'Show details',
@@ -208,6 +222,7 @@ export const en: Record<EternaPanelLocaleKey, string> = {
   'memory.portraitTitle': 'Your profile',
   'memory.portraitHint': 'Distilled from your sessions (derived view). Something wrong? Click "Correct" — back in the chat, the "Profile correction" chip beside the input box carries the message; press Enter to apply.',
   'memory.portraitEmpty': 'Profile not yet generated: the agent learns stable preferences from your sessions and generates it over time.',
+  'memory.portraitSectionEmpty': 'Nothing yet',
   'memory.portraitCorrect': 'Correct',
   'memory.portraitCorrectReady': 'Correction staged ({section}): back in the chat, click the "Profile correction" chip beside the input box and press Enter.',
   'memory.domainTitle': 'Domains',
@@ -229,14 +244,14 @@ export const en: Record<EternaPanelLocaleKey, string> = {
   'memory.metricsIndexZoneFallback': 'Index · fallback',
   'memory.metricsNoData': 'n/a',
   'services.weknora.off': 'Not enabled (configurable)',
-  guide: 'How to use (Copy → paste into the chat box → send)',
+  guide: 'How to use',
   'guide.hint': 'No expertise needed: copy an example, paste it into the chat box, and the agent calls the right capability',
   'guide.copy': 'Copy',
-  'guide.copied': 'Copied ✓',
+  'guide.copied': 'Copied',
   'steps.title': 'Three steps to start',
-  'steps.one': '① Click “Copy” on any example below',
-  'steps.two': '② Paste into the chat box and send',
-  'steps.three': '③ Watch the agent call tools in the chat (risky ones ask you first)',
+  'steps.one': 'Click “Copy” on any example below',
+  'steps.two': 'Paste into the chat box and send',
+  'steps.three': 'Watch the agent call tools in the chat (risky ones ask you first)',
   observability: 'Usage (recent sessions)',
   'observability.session': 'Session',
   'observability.turns': 'Turns',

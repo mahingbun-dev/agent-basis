@@ -136,7 +136,7 @@ describe('T1.3 ①对账——patch 值型(领域层,packs/{event-planning,indus
 })
 
 describe('T1.3 ①对账——运行时注入型(memory/glue 的 section 元数据)', () => {
-  it('memory:代码锚点在场(section 名/排序/挂载点:tools.ts:45,51,198 + index-builder.ts:87 行为头)', () => {
+  it('memory:代码锚点在场(section 名/排序/挂载点:tools.ts:46,52,199 + index-builder.ts:91 行为头)', () => {
     const e = entry('runtime.memory.index-section')
     expect(e.kind).toBe('runtime-injection')
     const check = checkEntryAnchors(e, readRepoFile)
@@ -146,7 +146,7 @@ describe('T1.3 ①对账——运行时注入型(memory/glue 的 section 元数�
     expect(read.note).toContain('memory:index')
   })
 
-  it('glue:代码锚点在场(inject systemPrompt + attachMemory 装载点:memory-plugin.ts:103,171)', () => {
+  it('glue:代码锚点在场(inject systemPrompt + attachMemory 装载点:memory-plugin.ts:107,309)', () => {
     const e = entry('runtime.glue.memory-plugin')
     const check = checkEntryAnchors(e, readRepoFile)
     expect(check.ok, check.problems.join(';')).toBe(true)

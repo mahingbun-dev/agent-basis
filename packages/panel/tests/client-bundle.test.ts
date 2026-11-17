@@ -52,4 +52,20 @@ describe('模块装载冒烟(vm)', () => {
     expect(typeof exports.apply).toBe('function')
     expect(exports.inject).toEqual(['slots', 'locale', 'layout', 'connection'])
   })
+
+  it('所有 *_ENDPOINT 导出符合 dsh assertTarget 合约(禁前导斜杠/空段)', () => {
+    // 上游 dsh-client-connection assertTarget:endpoint 逐段校验,空段(含前导
+    // `/`)/'.'/'..'/非法字符一律抛 invalid RPC target;wire 路径 = channel('/api')
+    // + '/' + endpoint。曾把守卫端点写成 '/api/eternaMemory/review' 拼出
+    // /api//api/…,"记住/跳过" 全灭(2026-11-17 回归),此测试钉死该合约。
+    const segment = /^[A-Za-z0-9_$.-]+$/u
+    const exports = loadBundle()
+    const endpoints = Object.entries(exports).filter(([key]) => key.endsWith('_ENDPOINT'))
+    expect(endpoints.length).toBeGreaterThanOrEqual(7)
+    for (const [key, value] of endpoints) {
+      const path = String(value)
+      const invalid = path.split('/').some(part => part === '' || part === '.' || part === '..' || !segment.test(part))
+      expect(invalid, `${key}=${JSON.stringify(path)}`).toBe(false)
+    }
+  })
 })

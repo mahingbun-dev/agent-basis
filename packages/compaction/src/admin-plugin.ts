@@ -132,15 +132,56 @@ function applyRemoteMarker(prototype: object, method: string, name: string): voi
 
 const ZSTD_MAGIC = 4247762216
 
-function decodeSessionLog(buffer: Buffer): string {
-  let out = ''
-  for (let offset = 0; offset < buffer.length - 4; offset += 1) {
-    if (buffer.readUInt32LE(offset) !== ZSTD_MAGIC) continue
-    try {
-      out += zstdDecompressSync(buffer.subarray(offset)).toString('utf8')
-    } catch { /* 非帧起点或截断帧:跳过 */ }
+/**
+ * 多帧 zstd 会话日志解码(帧边界解析 + 逐帧切片;与 usage-stats/aggregate.ts
+ * 同一套算法)。禁止退回「逐 magic 位点解到底」的旧写法:Node ≥24.x 的
+ * zlib zstdDecompressSync 会一次解完拼接多帧,首个位点已含全部帧输出,
+ * 后续位点再解一遍末帧 → 末帧重复计数(生产容器 node 24.22 实测 summary
+ * 3 = 期望 2 +1);旧版只解首帧则碰巧正确。逐帧切片对两种实现形态都恰好解一遍。
+ */
+function scanZstdFrames(buffer: Buffer): Array<{ start: number; end: number }> {
+  const frames: Array<{ start: number; end: number }> = []
+  let offset = 0
+  while (offset < buffer.length) {
+    const start = offset
+    if (buffer.length - offset < 4 || buffer.readUInt32LE(offset) !== ZSTD_MAGIC) break
+    offset += 4
+    if (offset === buffer.length) break
+    const descriptor = buffer.readUInt8(offset); offset += 1
+    if ((descriptor & 24) !== 0) break
+    const contentSizeFlag = descriptor >>> 6
+    const singleSegment = (descriptor & 32) !== 0
+    const checksum = (descriptor & 4) !== 0
+    const dictionaryFlag = descriptor & 3
+    const dictionaryBytes = dictionaryFlag === 3 ? 4 : dictionaryFlag
+    const contentSizeBytes = contentSizeFlag === 0 ? (singleSegment ? 1 : 0) : (1 << contentSizeFlag)
+    const remainingHeaderBytes = (singleSegment ? 0 : 1) + dictionaryBytes + contentSizeBytes
+    if (buffer.length - offset < remainingHeaderBytes) break
+    offset += remainingHeaderBytes
+    let lastBlock = false
+    for (;;) {
+      if (buffer.length - offset < 3) { lastBlock = true; break }
+      const blockHeader = buffer.readUIntLE(offset, 3); offset += 3
+      lastBlock = (blockHeader & 1) !== 0
+      const blockType = (blockHeader >>> 1) & 3
+      const blockSize = blockHeader >>> 3
+      if (blockType === 3) { lastBlock = false; break }
+      const payloadBytes = blockType === 1 ? 1 : blockSize
+      if (buffer.length - offset < payloadBytes) { lastBlock = true; break }
+      offset += payloadBytes
+      if (lastBlock) break
+    }
+    if (!lastBlock) break
+    if (checksum) { if (buffer.length - offset < 4) break; offset += 4 }
+    frames.push({ start, end: offset })
   }
-  return out
+  return frames
+}
+
+function decodeSessionLog(buffer: Buffer): string {
+  return scanZstdFrames(buffer)
+    .map(frame => zstdDecompressSync(buffer.subarray(frame.start, frame.end)).toString('utf8'))
+    .join('')
 }
 
 function collectSessionFiles(root: string, out: string[] = []): string[] {
