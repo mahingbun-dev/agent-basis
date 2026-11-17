@@ -16,6 +16,7 @@ import { ModelMenu } from './model-menu.tsx'
 import { AccountLauncher, type AccountLauncherInjected } from './account-menu.tsx'
 import { installLinkOpeningDefault } from './link-opening.ts'
 import { installApprovalCard } from './approval-card.tsx'
+import { installQuestionCard } from './question-card.tsx'
 import { injectAccessStyles } from './styles.ts'
 import { api } from './api.ts'
 
@@ -344,6 +345,10 @@ export function apply(ctx: AccessClientContext): () => void {
   // = approval-bridge.ts(approval/request 答者)。轮询/渲染任何失败静默。
   const requireShimForCard = require as unknown as (id: 'react-dom/client') => { createRoot(container: Element): { render(node: React.ReactElement): void; unmount(): void } }
   const approvalCard = installApprovalCard(requireShimForCard('react-dom/client').createRoot)
+  // 提问卡(2026-11-17):ask_user_question 的 web 可见面——上游卡片组件在 mux 换血后
+  // 收不到 waterfall(网关只发 owner peer),提问假死无 UI(session-c9a74388 事故)。
+  // 宿主半边=question-bridge.ts(user-questions/request 答者)。
+  const questionCard = installQuestionCard(requireShimForCard('react-dom/client').createRoot)
 
   const registerSections = (role: 'admin' | 'user'): void => {
     ctx.slots.inject('settings.section', () => ctx.slots.register({
@@ -444,6 +449,7 @@ export function apply(ctx: AccessClientContext): () => void {
   const disposeLocaleOriginal = disposeLocale
   return () => {
     try { approvalCard?.dispose() } catch { /* 尽力而为 */ }
+    try { questionCard?.dispose() } catch { /* 尽力而为 */ }
     disposeLocaleOriginal()
   }
 }
