@@ -584,6 +584,160 @@ const CSS = `
 @media (prefers-reduced-motion: reduce) {
   [data-eterna-approval-root] .eap-card { transition: none; }
 }
+
+/* ── 提问卡(2026-11-17):ask_user_question 的 web 可见面。上游前端卡片组件在
+   mux 换血后收不到 waterfall(网关只发 owner peer),本卡=宿主提问桥的浏览器半边。
+   与审批卡同层叠放(z-index 同档,纵向堆叠),但语义色用 accent 而非 warn。 ── */
+[data-eterna-question-root] .eq-overlay {
+  position: fixed;
+  inset-block-start: 16px;
+  inset-inline: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--et-space-3);
+  z-index: 10000;
+  pointer-events: none;
+}
+[data-eterna-question-root] .eq-card {
+  pointer-events: auto;
+  width: min(600px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  border: 1px solid var(--et-accent);
+  border-radius: var(--et-radius-md);
+  background: var(--et-surface);
+  box-shadow: var(--et-shadow-raised);
+  font-family: var(--et-font-body);
+  color: var(--et-fg);
+}
+[data-eterna-question-root] .eq-strip {
+  background: var(--et-surface-2);
+  color: var(--et-accent);
+  padding: 8px 16px;
+  font-size: var(--et-text-caption);
+  font-weight: var(--et-weight-body);
+}
+[data-eterna-question-root] .eq-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--et-space-3);
+  padding: 12px 16px 0;
+}
+[data-eterna-question-root] .eq-title {
+  margin: 0;
+  font-size: var(--et-text-body);
+  font-weight: var(--et-weight-body);
+}
+[data-eterna-question-root] .eq-field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--et-space-2);
+  min-inline-size: 0;
+}
+[data-eterna-question-root] .eq-question {
+  padding: 0;
+  font-size: var(--et-text-caption);
+  color: var(--et-fg-2);
+  display: flex;
+  align-items: center;
+  gap: var(--et-space-2);
+  flex-wrap: wrap;
+}
+[data-eterna-question-root] .eq-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--et-radius-pill);
+  background: var(--et-accent-soft);
+  color: var(--et-accent);
+  font-size: var(--et-text-caption);
+}
+[data-eterna-question-root] .eq-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--et-space-1);
+}
+[data-eterna-question-root] .eq-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px var(--et-space-2);
+  align-items: start;
+  padding: 8px 10px;
+  border: 1px solid var(--et-border-soft);
+  border-radius: var(--et-radius-sm);
+  cursor: pointer;
+  transition: border-color var(--et-motion-fast) var(--et-ease), background var(--et-motion-fast) var(--et-ease);
+}
+[data-eterna-question-root] .eq-option:hover { border-color: var(--et-accent); }
+[data-eterna-question-root] .eq-option:focus-within { box-shadow: var(--et-focus-ring); }
+[data-eterna-question-root] .eq-option-on {
+  border-color: var(--et-accent);
+  background: var(--et-accent-soft);
+}
+[data-eterna-question-root] .eq-option input {
+  grid-row: 1 / span 2;
+  margin: 2px 0 0;
+  accent-color: var(--et-accent);
+}
+[data-eterna-question-root] .eq-option-label { font-size: var(--et-text-body); }
+[data-eterna-question-root] .eq-option-desc {
+  grid-column: 2;
+  font-size: var(--et-text-caption);
+  color: var(--et-muted);
+}
+[data-eterna-question-root] .eq-custom {
+  padding: 7px 10px;
+  border: 1px solid var(--et-border-soft);
+  border-radius: var(--et-radius-sm);
+  background: var(--et-surface);
+  color: var(--et-fg);
+  font: inherit;
+  font-size: var(--et-text-body);
+}
+[data-eterna-question-root] .eq-custom:focus {
+  outline: none;
+  border-color: var(--et-accent);
+  box-shadow: var(--et-focus-ring);
+}
+[data-eterna-question-root] .eq-error { margin: 0; font-size: var(--et-text-caption); color: var(--et-danger); }
+[data-eterna-question-root] .eq-meta { margin: 0; font-size: var(--et-text-caption); color: var(--et-muted); }
+[data-eterna-question-root] .eq-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--et-space-2);
+  padding: 12px 16px 14px;
+}
+[data-eterna-question-root] .eq-actions button {
+  padding: 6px 14px;
+  border-radius: var(--et-radius-sm);
+  border: 1px solid var(--et-border-soft);
+  background: transparent;
+  color: var(--et-fg);
+  font: inherit;
+  cursor: pointer;
+}
+[data-eterna-question-root] .eq-actions button:focus-visible {
+  outline: none;
+  box-shadow: var(--et-focus-ring);
+}
+[data-eterna-question-root] .eq-actions button:disabled { opacity: 0.6; cursor: default; }
+[data-eterna-question-root] .eq-actions .eq-skip:hover:not(:disabled) { border-color: var(--et-muted); }
+[data-eterna-question-root] .eq-actions .eq-submit {
+  border-color: transparent;
+  background: var(--et-accent);
+  color: var(--et-accent-on);
+}
+[data-eterna-question-root] .eq-actions .eq-submit:hover:not(:disabled) { background: var(--et-accent-hover); }
+@media (prefers-reduced-motion: reduce) {
+  [data-eterna-question-root] .eq-option { transition: none; }
+}
+@media (max-width: 640px) {
+  [data-eterna-question-root] .eq-card { max-height: calc(100vh - 24px); }
+  [data-eterna-question-root] .eq-overlay { inset-block-start: 8px; }
+}
 `
 
 export function injectAccessStyles(doc: Document = document): void {

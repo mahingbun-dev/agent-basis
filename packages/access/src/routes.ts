@@ -11,6 +11,7 @@ import {
 } from './http.ts'
 import { companionGuideUrl, companionTokenOf, resetCompanionToken } from './companion.ts'
 import type { ToolApprovalView } from './approval-bridge.ts'
+import type { UserQuestionView } from './question-bridge.ts'
 import { PasswordPolicyError } from './password.ts'
 import { renderLoginPage } from './pages.ts'
 import { SlidingWindow } from './ratelimit.ts'
@@ -45,6 +46,14 @@ export interface AccessDeps {
   readonly approvalBridge?: {
     listFor(ownerId: number): ToolApprovalView[]
     decide(id: string, userId: number, allow: boolean): boolean
+  } | undefined
+  /** 提问桥(2026-11-17):ask_user_question 在多租户下不可达的 web 可见面;
+   *  未装配=端点返回空表。 */
+  readonly questionBridge?: {
+    listFor(ownerId: number): UserQuestionView[]
+    answer(id: string, userId: number, body: { readonly answers?: unknown; readonly skip?: boolean }):
+      | { readonly ok: true }
+      | { readonly ok: false; readonly reason: string; readonly status: 404 | 400 }
   } | undefined
 }
 
@@ -98,6 +107,8 @@ export function handleAccessRequest(deps: AccessDeps, req: AccessRequest): Acces
   if (req.pathname === '/access/api/companion/reset' && method === 'POST') return handleCompanionReset(deps, req, ip)
   if (req.pathname === '/access/api/approvals/tool-pending' && method === 'GET') return handleToolApprovalsPending(deps, req)
   if (req.pathname === '/access/api/approvals/tool-decide' && method === 'POST') return handleToolApprovalDecide(deps, req)
+  if (req.pathname === '/access/api/questions/pending' && method === 'GET') return handleQuestionsPending(deps, req)
+  if (req.pathname === '/access/api/questions/answer' && method === 'POST') return handleQuestionAnswer(deps, req)
   if (req.pathname === '/access/api/plugins' && method === 'GET') return handlePluginList(deps, req)
   if (req.pathname.startsWith('/access/api/plugins/') && req.pathname.endsWith('/remove') && method === 'POST') {
     return handlePluginRemove(deps, req, ip)
@@ -136,6 +147,32 @@ function handleToolApprovalDecide(deps: AccessDeps, req: AccessRequest): AccessR
   if (id === '' || typeof body?.allow !== 'boolean') return errorReply(400, '参数不合法')
   const decided = deps.approvalBridge?.decide(id, user.id, body.allow) ?? false
   if (!decided) return errorReply(404, '审批不存在、已收场或不属于你')
+  return jsonResponse(200, { ok: true })
+}
+
+// ── 提问桥(web 可见面,2026-11-17)────────────────────────────────────
+// GET questions/pending:本人待答提问(web 前端轮询);POST questions/answer:
+// 本人提交答案批或整卡跳过。归属校验在桥内(跨用户不可见不可答);审计在桥内出。
+
+function handleQuestionsPending(deps: AccessDeps, req: AccessRequest): AccessReply {
+  const user = requireUser(deps, req)
+  if (user === undefined) return errorReply(401, '未登录')
+  return jsonResponse(200, { items: deps.questionBridge?.listFor(user.id) ?? [] })
+}
+
+function handleQuestionAnswer(deps: AccessDeps, req: AccessRequest): AccessReply {
+  const user = requireUser(deps, req)
+  if (user === undefined) return errorReply(401, '未登录')
+  const body = parseJsonBody(req.body) as { id?: unknown; answers?: unknown; skip?: unknown } | undefined
+  const id = typeof body?.id === 'string' ? body.id : ''
+  if (id === '') return errorReply(400, '参数不合法')
+  const bridge = deps.questionBridge
+  if (bridge === undefined) return errorReply(404, '提问不存在、已结束或不属于你')
+  const result = bridge.answer(id, user.id, {
+    answers: body?.answers,
+    ...(body?.skip === true ? { skip: true } : {}),
+  })
+  if (!result.ok) return errorReply(result.status, result.reason)
   return jsonResponse(200, { ok: true })
 }
 
