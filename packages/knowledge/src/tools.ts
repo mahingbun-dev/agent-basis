@@ -9,6 +9,8 @@
  * propose 是唯一写入口:只产生提案,永不直接生效(未过审内容不会出现在任何检索结果)。
  */
 import type { JsonSchemaNode, ToolDefinition, ToolRunContext } from '@deepseek-ai/dsh-tools'
+import { createDeniedService } from './account-router.ts'
+import type { KnowledgeSessionResolver } from './account-router.ts'
 import { formatCitation } from './frontmatter.ts'
 import { isRecord } from './errors.ts'
 import type { KnowledgeService } from './service.ts'
@@ -22,7 +24,8 @@ export interface KnowledgeToolSpec {
   readonly parameters: Record<string, unknown>
   /** 规范输出 schema(DSH 强制 JSON Schema 子集)。 */
   readonly outputSchema: JsonSchemaNode
-  execute(args: unknown): Promise<unknown>
+  /** exec 为 DSH 工具运行上下文(resolver 路由时取会话身份;直接单测可省略)。 */
+  execute(args: unknown, exec?: ToolRunContext): Promise<unknown>
 }
 
 const STRING = { type: 'string' } as const
@@ -35,8 +38,29 @@ export interface KnowledgeTools {
   readonly propose: KnowledgeToolSpec
 }
 
-/** 构建四工具(绑定一个 KnowledgeService)。 */
-export function buildKnowledgeTools(service: KnowledgeService): KnowledgeTools {
+/** 工具运行上下文里的会话身份(memory stampProvenance 同口径:session.id → agent.id)。 */
+function sessionIdOf(exec: ToolRunContext | undefined): string | undefined {
+  const agent = exec?.agent as { readonly id?: unknown; readonly session?: { readonly id?: unknown } } | undefined
+  const id = agent?.session?.id ?? agent?.id
+  return typeof id === 'string' && id !== '' ? id : undefined
+}
+
+/**
+ * 逐调用解析 KnowledgeService(多租户分库):resolver 缺席=单库形态(base 直通,
+ * 本地/TUI 与既有单测零破坏);resolver 在场时按会话解析,解析失败换 Denied
+ * service(fail-closed,绝不退回全局库——多租户下 base=全局即泄露面)。
+ */
+function serviceFor(
+  base: KnowledgeService,
+  resolver: KnowledgeSessionResolver | undefined,
+  exec: ToolRunContext | undefined,
+): KnowledgeService {
+  if (resolver === undefined) return base
+  return resolver.forSession(sessionIdOf(exec)) ?? createDeniedService()
+}
+
+/** 构建四工具(绑定一个 KnowledgeService;resolver 在场时按会话逐调用路由)。 */
+export function buildKnowledgeTools(service: KnowledgeService, resolver?: KnowledgeSessionResolver): KnowledgeTools {
   const search: KnowledgeToolSpec = {
     name: 'knowledge_search',
     description:
@@ -53,11 +77,12 @@ export function buildKnowledgeTools(service: KnowledgeService): KnowledgeTools {
       required: ['query'],
     },
     outputSchema: SEARCH_OUTPUT,
-    async execute(args) {
+    async execute(args, exec) {
+      const resolved = serviceFor(service, resolver, exec)
       const query = requireString(args, 'query')
       const topK = optionalInt(args, 'top_k')
       const mode = optionalMode(args)
-      const result = await service.search({
+      const result = await resolved.search({
         query,
         ...(topK !== undefined ? { top_k: topK } : {}),
         ...(mode !== undefined ? { mode } : {}),
@@ -87,10 +112,11 @@ export function buildKnowledgeTools(service: KnowledgeService): KnowledgeTools {
       required: ['doc_id'],
     },
     outputSchema: READ_OUTPUT,
-    async execute(args) {
+    async execute(args, exec) {
+      const resolved = serviceFor(service, resolver, exec)
       const docId = requireString(args, 'doc_id')
       const backend = optionalString(args, 'backend') ?? 'wiki-local'
-      const doc = await service.read({ doc_id: docId, source_uri: '', backend })
+      const doc = await resolved.read({ doc_id: docId, source_uri: '', backend })
       return {
         ok: true,
         doc: {
@@ -112,8 +138,8 @@ export function buildKnowledgeTools(service: KnowledgeService): KnowledgeTools {
     description: '查看知识后端状态(启用情况、文档数、能力)。WeKnora 未启用时显示 not-configured。',
     parameters: { type: 'object', properties: {} },
     outputSchema: STATUS_OUTPUT,
-    async execute() {
-      const reports = await service.status()
+    async execute(_args, exec) {
+      const reports = await serviceFor(service, resolver, exec).status()
       return {
         ok: true,
         backends: reports.map(r => ({
@@ -147,13 +173,14 @@ export function buildKnowledgeTools(service: KnowledgeService): KnowledgeTools {
       required: ['title', 'body'],
     },
     outputSchema: PROPOSE_OUTPUT,
-    async execute(args) {
+    async execute(args, exec) {
+      const resolved = serviceFor(service, resolver, exec)
       const title = requireString(args, 'title')
       const body = requireString(args, 'body')
       const tags = optionalStringArray(args, 'tags')
       const origin = optionalString(args, 'origin')
       const path = optionalString(args, 'path')
-      const routed = await service.propose({
+      const routed = await resolved.propose({
         title,
         body,
         ...(tags !== undefined ? { tags } : {}),
@@ -341,13 +368,13 @@ export function toDshToolDefinition(spec: KnowledgeToolSpec): ToolDefinition {
     },
     execute: async (args: unknown, exec: ToolRunContext) => {
       if (exec.signal.aborted) throw new Error(`${spec.name}: 调用已被取消(signal aborted)`)
-      return await spec.execute(args)
+      return await spec.execute(args, exec)
     },
   }
 }
 
-/** 四工具全量适配(注册入口便利)。 */
-export function toDshTools(service: KnowledgeService): readonly ToolDefinition[] {
-  const tools = buildKnowledgeTools(service)
+/** 四工具全量适配(注册入口便利;resolver 在场时按会话逐调用路由到账号分库)。 */
+export function toDshTools(service: KnowledgeService, resolver?: KnowledgeSessionResolver): readonly ToolDefinition[] {
+  const tools = buildKnowledgeTools(service, resolver)
   return [tools.search, tools.read, tools.status, tools.propose].map(toDshToolDefinition)
 }

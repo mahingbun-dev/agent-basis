@@ -493,6 +493,29 @@ export class LoopPromptGateway extends TypertRemoteService {
       || this.writeRules.includes(entryWriteRuleId(entry.id))
   }
 
+  // ---------- 管理员门(2026-11-17:工坊=系统提示词全局管理面,仅管理员可见可操作) ----------
+
+  /**
+   * 管理面放行判定(panel adminAllowed 同款口径,packages/panel/src/index.ts):无
+   * principal(owner/本地流)放行;eterna-user principal(mux 换血后的流通道)查
+   * access store 角色必须 admin——approver/user 一律拒绝。store 缺席时 eterna-user
+   * fail-closed 拒绝(角色不可判定≠放行)。
+   */
+  adminAllowed(): boolean {
+    const invocation = (this.studioCtx as { invocation?: { principal?: { kind?: string; userId?: number } } } | undefined)?.invocation
+    const principal = invocation?.principal
+    if (principal === undefined || principal.kind !== 'eterna-user' || typeof principal.userId !== 'number') return true
+    const reflect = this.studioCtx as unknown as { reflect?: { get(name: string, strict?: boolean): unknown } }
+    const store = reflect.reflect?.get('eternaAccessStore', false) as { getUserById(id: number): { role?: string } | undefined } | undefined
+    return store?.getUserById(principal.userId)?.role === 'admin'
+  }
+
+  /** 端点统一管理员门(全部 loopPrompt/* 端点第一语句调用;非 admin 抛结构化 RemoteError)。 */
+  requireAdmin(): void {
+    if (this.adminAllowed()) return
+    throw badRequest('提示词工坊仅管理员可用(需要管理员权限)')
+  }
+
   // ---------- T2.1 写穿 configEditor(官方 seam 热生效通道) ----------
 
   /**
@@ -953,6 +976,7 @@ export class LoopPromptGateway extends TypertRemoteService {
    * - 缺省 → 列表模式(最近快照,新→旧;未挂载 → ready=false 降级)。
    */
   async sessionSnapshot(input?: SessionSnapshotInput): Promise<SessionSnapshotResult> {
+    this.requireAdmin()
     const sessionId = input?.sessionId
     if (sessionId !== undefined && sessionId !== '') {
       const store = this.snapshotStore
@@ -1031,6 +1055,7 @@ export class LoopPromptGateway extends TypertRemoteService {
    * key 的 env/.env 在场性(绝不回显密钥值);零模型调用,不写任何状态。
    */
   aiStatus(): AiStatusResult {
+    this.requireAdmin()
     const availability = this.aiAvailability()
     return {
       status: availability.available ? 'ok' : 'unavailable',
@@ -1052,6 +1077,7 @@ export class LoopPromptGateway extends TypertRemoteService {
    * unavailable / 调用失败或输出为空 failed——后三类逐事件审计(reason 永不含密钥值)。
    */
   async aiPolish(input?: AiPolishInput): Promise<AiPolishResult> {
+    this.requireAdmin()
     const entryId = input?.entryId !== undefined && input.entryId !== '' ? input.entryId : DEFAULT_ENTRY_ID
     const entry = getPromptRegistryEntry(entryId)
     if (entry === undefined) {
@@ -1127,6 +1153,7 @@ export class LoopPromptGateway extends TypertRemoteService {
    * (红线冲突/长度预算/变量引用/一致性/清晰度)产出的清单。仅展示,零写动作。
    */
   async aiReview(input?: AiReviewInput): Promise<AiReviewResult> {
+    this.requireAdmin()
     const entryId = input?.entryId !== undefined && input.entryId !== '' ? input.entryId : DEFAULT_ENTRY_ID
     const entry = getPromptRegistryEntry(entryId)
     if (entry === undefined) {
@@ -1219,6 +1246,7 @@ export class LoopPromptGateway extends TypertRemoteService {
    * 前提是 R3 审批两段式全部通过——「AI 建议」到「生效文本」之间必经人工确认。
    */
   async aiProposal(input: AiProposalInput): Promise<AiProposalResult> {
+    this.requireAdmin()
     return this.handleWrite('ai-proposal', {
       entryId: input.entryId,
       content: input.content,
@@ -1401,6 +1429,7 @@ export class LoopPromptGateway extends TypertRemoteService {
 
   /** 面板快照(端点 loopPrompt/snapshot;纯 JSON,无参数)。 */
   async snapshot(): Promise<LoopPromptSnapshot> {
+    this.requireAdmin()
     const persona = this.readDefaultPersonaState()
     const pending = this.gate.peek()
     // 最近会话清单一次投影:sessions 数 = 清单长度,清单整体随 trace.recent 下发(T7.4)。
@@ -1433,6 +1462,7 @@ export class LoopPromptGateway extends TypertRemoteService {
 
   /** 循环轨迹(端点 loopPrompt/trace):无 sessionId → 最近会话列表;有 → 轮次树。投影=T7.4 管线(trace.ts)。 */
   trace(input: TraceInput): Promise<TraceReport> {
+    this.requireAdmin()
     const sessionId = input.sessionId
     if (sessionId !== undefined && sessionId !== '') {
       const selected = readSessionTrace(this.sessionsRoot, sessionId)
@@ -1463,6 +1493,7 @@ export class LoopPromptGateway extends TypertRemoteService {
   promptGet(input: { readonly entryId: string }): Promise<PromptGetEntryResult | EntryNotFoundResult>
   promptGet(input?: PromptGetInput): Promise<PromptGetResult>
   async promptGet(input?: PromptGetInput): Promise<PromptGetResult | PromptGetEntryResult | EntryNotFoundResult> {
+    this.requireAdmin()
     const entryId = input?.entryId
     if (entryId !== undefined && entryId !== '') {
       const entry = getPromptRegistryEntry(entryId)
@@ -1492,6 +1523,7 @@ export class LoopPromptGateway extends TypertRemoteService {
    * 缺省/空 → 默认条目 persona(T7 调用形态零改动)。
    */
   async promptSave(input: PromptSaveInput): Promise<PromptSaveResult> {
+    this.requireAdmin()
     return this.handleWrite('save', {
       entryId: input.entryId,
       content: input.content,
@@ -1513,6 +1545,7 @@ export class LoopPromptGateway extends TypertRemoteService {
   promptVersions(input: VersionsInput & { readonly entryId: string }): Promise<VersionsResult | EntryNotFoundResult>
   promptVersions(input?: VersionsInput): Promise<VersionsResult>
   async promptVersions(input?: VersionsInput): Promise<VersionsResult | EntryNotFoundResult> {
+    this.requireAdmin()
     const entryId = input?.entryId
     const limit = input?.limit ?? 50
     if (entryId !== undefined && entryId !== '') {
@@ -1535,6 +1568,7 @@ export class LoopPromptGateway extends TypertRemoteService {
    * fail-closed 明示不支持回滚。
    */
   async promptRollback(input: PromptRollbackInput): Promise<PromptRollbackResult> {
+    this.requireAdmin()
     const author = input.author?.trim() !== '' && input.author !== undefined ? input.author.trim() : 'web'
     // 显式 entryId 先过条目守卫:未知 id/运行时注入型条目 fail-closed 明示(测试计划
     // §3 T1.6(b)⑤;原 time-context 只读型拒回滚断言随 2026-11-11 不登记裁定移除)。
@@ -1583,6 +1617,7 @@ export class LoopPromptGateway extends TypertRemoteService {
    * input.entryId 与 versionId 归属不一致即 bad-request。
    */
   async promptExport(input: PromptExportInput): Promise<PromptExportResult> {
+    this.requireAdmin()
     const store = this.requireStore()
     const entryId = input.entryId !== undefined && input.entryId !== '' ? input.entryId : DEFAULT_ENTRY_ID
     const entry = getPromptRegistryEntry(entryId)
@@ -1619,6 +1654,7 @@ export class LoopPromptGateway extends TypertRemoteService {
    * 同门禁拒收(测试计划 §3 T1.6(b)⑥:导入是写操作,不得绕过按条目校验)。
    */
   async promptImport(input: PromptImportInput): Promise<PromptImportResult> {
+    this.requireAdmin()
     // 线上载荷是运行时数据:pack 按 unknown 收窄校验(导出包校验器,T7.3 ①⑤)。
     const validated = validateExportPack(input.pack)
     const author = input.author?.trim() !== '' && input.author !== undefined ? input.author.trim() : 'web'

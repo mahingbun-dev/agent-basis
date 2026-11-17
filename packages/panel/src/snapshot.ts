@@ -164,26 +164,63 @@ function readEventTools(ctx: Context): readonly ToolCard[] {
   return cards
 }
 
-function readObservability(sessionsRoot?: string): ObservabilitySnapshot {
+function readObservability(sessionsRoot?: string, scope: BuildSnapshotScope = {}): ObservabilitySnapshot {
   const home = process.env.DSH_HOME
   const root = sessionsRoot ?? join(home ?? join(homedir(), '.dsh'), 'sessions')
-  const sessions = readRecentSessionUsage(root)
+  // 归属过滤(多租户):先按扩大读窗取最近日志再过滤再截断——保证「本人最近 5 条」
+  // 语义,而不是「全局最近 5 条 ∩ 本人」(后者在他账号活跃时会显示空)。
+  const filter = scope.sessionFilter
+  const sessions = filter === undefined
+    ? readRecentSessionUsage(root)
+    : readRecentSessionUsage(root, OWN_SESSION_SCAN_LIMIT)
+      .filter(card => filter(card.id))
+      .slice(0, RECENT_SESSION_LIMIT)
   if (sessions.length === 0) {
     return { sessions: [], note: `未读到可用会话用量(${root} 无 session.v4.jsonl.zstd 或均无 usage 事件)` }
   }
   return { sessions }
 }
 
+/** 本人会话展示条数(与 session-logs.ts RECENT_SESSION_LIMIT 同口径)。 */
+const RECENT_SESSION_LIMIT = 5
+
+/** 归属过滤时的扫描窗(过滤后取前 5,20+ 窗口避免多账号环境下自见为空)。 */
+const OWN_SESSION_SCAN_LIMIT = 24
+
+/** 多租户调用者作用域(由 host 网关按 principal 组装;缺省=全局视角,零行为变化)。 */
+export interface BuildSnapshotScope {
+  /** 记忆区覆盖:非 admin 调用者=本人账号库视图(缺省读全局库;账号不可解析时传空态)。 */
+  readonly memory?: MemorySnapshot
+  /** 知识库快照覆盖:非 admin 调用者传本人账号分库状态(缺省读全局库)。 */
+  readonly knowledge?: KnowledgeSnapshot
+  /** 会话用量归属过滤:非 admin 调用者传本人会话判定(缺省=全局)。 */
+  readonly sessionFilter?: (sessionDirName: string) => boolean
+}
+
+/**
+ * 账号记忆库不可解析时的 fail-closed 空态(多租户):available=false 的空视图,
+ * 明示不可用——**绝不回落全局库**(全局库=跨账号泄露面)。
+ */
+export function unavailableMemorySnapshot(): MemorySnapshot {
+  return buildMemoryAccountView(join('(账号记忆库不可用)', 'memory.sqlite3'))
+}
+
 /** 组装完整快照(Host 侧 eternaPanel/snapshot 的方法体)。 */
-export function buildSnapshot(ctx: Context, cwd = process.cwd(), sessionsRoot?: string, memoryDbPath?: string): EternaPanelSnapshot {
+export function buildSnapshot(
+  ctx: Context,
+  cwd = process.cwd(),
+  sessionsRoot?: string,
+  memoryDbPath?: string,
+  scope: BuildSnapshotScope = {},
+): EternaPanelSnapshot {
   const rulesPath = join(cwd, '.eterna', 'governance.rules.yml')
   return {
     generatedAt: new Date().toISOString(),
     workspace: cwd,
     governance: readGovernance(ctx, cwd, rulesPath),
-    memory: readMemory(memoryDbPath ?? join(cwd, '.eterna', 'memory.sqlite3')),
-    knowledge: readKnowledge(join(cwd, '.eterna', 'knowledge.sqlite3')),
+    memory: scope.memory ?? readMemory(memoryDbPath ?? join(cwd, '.eterna', 'memory.sqlite3')),
+    knowledge: scope.knowledge ?? readKnowledge(join(cwd, '.eterna', 'knowledge.sqlite3')),
     tools: readEventTools(ctx),
-    observability: readObservability(sessionsRoot),
+    observability: readObservability(sessionsRoot, scope),
   }
 }

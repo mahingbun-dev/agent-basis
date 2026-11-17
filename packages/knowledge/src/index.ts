@@ -10,13 +10,20 @@
  * 6. weknora.ts      —— WeKnora HTTP 适配器(手动启用;真连后置,见 blockers);
  * 7. rrf.ts          —— RRF 融合原语(dual 模式骨架);
  * 8. service.ts      —— KnowledgeService 组合层(注册表 + KNOWLEDGE_SERVICE_ID,出口级复滤 + dual 融合);
- * 9. tools.ts        —— 模型面四工具 knowledge_search/read/status/propose + DSH ToolDefinition 适配。
+ * 9. tools.ts        —— 模型面四工具 knowledge_search/read/status/propose + DSH ToolDefinition 适配
+ *                       (resolver 在场时按会话逐调用路由到账号分库);
+ * 10. account-router.ts —— 账号分库路由(memory M-T1 同构:KnowledgeSessionResolver +
+ *                        fail-closed Denied service + LRU 池)。
  *
  * Cordis 纪律:effect 配逆(registerBackend/reviewProposal/deprecate 均返回 undo/disposer);
  * coeffect 全声明(fs/fetch/时钟/门禁/凭据解析器构造注入);provide 可交换(KNOWLEDGE_SERVICE_ID 唯一 ID 注册表)。
  * DSH seam 用已发布 @deepseek-ai/dsh-tools 0.2.2-alpha.2 类型编译期钉住(tests/types.seam-pin.ts)。
  */
 export { KnowledgeError, KnowledgeFormatError, KnowledgeNotFoundError, KnowledgeStateError, isRecord } from './errors.ts'
+export {
+  KnowledgeAccountDeniedError, KnowledgeAccountRouter, createDeniedService, isKnowledgeAccountDeniedError,
+} from './account-router.ts'
+export type { KnowledgeSessionResolver } from './account-router.ts'
 export { extractChangelog, extractSnippet, extractWikilinks, formatCitation, parseWikiPage, serializeWikiPage } from './frontmatter.ts'
 export type { WikiFrontmatter, WikiPage } from './frontmatter.ts'
 export { WikiIndexer } from './indexer.ts'
