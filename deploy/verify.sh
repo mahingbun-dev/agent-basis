@@ -30,6 +30,10 @@ check "登录页可达" 200 "$code"
 code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 "$BASE/access/api/me")
 check "匿名 /access/api/me 拒绝" 401 "$code"
 
+# 2.5) 匿名根路径跳登录页（2026-11-17：dsh 索引认证 401 由 access 改写为 302 /login）
+loc=$(curl -s -o /dev/null -w '%{redirect_url}' --max-time 8 "$BASE/")
+check "匿名根路径跳登录页" "$BASE/login" "$loc"
+
 # 3) 管理员登录（JSON 契约）+ 会话
 JAR="$(mktemp)"
 code=$(curl -s -c "$JAR" -o /dev/null -w '%{http_code}' --max-time 8 -X POST "$BASE/login" \
