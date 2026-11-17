@@ -385,15 +385,21 @@ function DomainBrowseSection({ snapshot, t }: {
 /** 「记忆」独立区块:当前工作区全部有效记忆,按主体分组,美观渲染。 */
 /** 主体(subject)→ 人话分类:标签 + 一句说明 + 排序权(小在前)。 */
 const SUBJECT_KINDS: readonly { match: (s: string) => boolean, label: string, desc: string, order: number, tone: 'normal' | 'test' }[] = [
-  { match: s => s.startsWith('user:'), label: '你的偏好与习惯', desc: 'Agent 从对话中沉淀的、关于你个人的记忆', order: 1, tone: 'normal' },
+  // 裸 `user` 与 `user:<id>` 两种历史形态都要收(存量库实测存在裸 user)。
+  { match: s => s === 'user' || s.startsWith('user:'), label: '你的偏好与习惯', desc: 'Agent 从对话中沉淀的、关于你个人的记忆', order: 1, tone: 'normal' },
   { match: s => s.startsWith('project:'), label: '项目记忆', desc: '当前项目/工作区的事实、决定与结论', order: 2, tone: 'normal' },
   { match: s => s.startsWith('org:'), label: '团队约定', desc: '组织层面的约定与口径', order: 3, tone: 'normal' },
+  // domain:<域键> 是记忆系统的默认落库形态(功能域归档),不是未分类残渣。
+  { match: s => s.startsWith('domain:'), label: '功能域记忆', desc: '按功能域归档的会话事实与结论', order: 4, tone: 'normal' },
   { match: s => /^e2e:|^test:|^qa:/i.test(s), label: '测试数据', desc: '验收测试写入的记忆(可安全清理)', order: 99, tone: 'test' },
 ]
 
 function subjectKind(subject: string): { label: string, desc: string, order: number, tone: 'normal' | 'test' } {
   const hit = SUBJECT_KINDS.find(k => k.match(subject))
-  return hit ?? { label: subject, desc: '', order: 50, tone: 'normal' as const }
+  if (hit !== undefined) return hit
+  // 兜底:未知 subject 去掉 key: 式前缀再展示,避免裸编码出现在分组标题。
+  const stripped = subject.replace(/^[a-z][a-z0-9_-]*:/i, '')
+  return { label: stripped === '' ? subject : stripped, desc: '', order: 50, tone: 'normal' as const }
 }
 
 /**
