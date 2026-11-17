@@ -8,7 +8,7 @@ import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { zstdCompressSync } from 'node:zlib'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { buildSnapshot, riskOfTool, unavailableMemorySnapshot } from '../src/snapshot.ts'
+import { buildSnapshot, buildSnapshotForIdentity, riskOfTool, unavailableMemorySnapshot } from '../src/snapshot.ts'
 
 let workspace = ''
 let dshHome = ''
@@ -365,5 +365,54 @@ describe('buildSnapshot 多租户作用域(2026-11-17 账号隔离)', () => {
     expect(snapshot.knowledge).toEqual(knowledge)
     expect(snapshot.memory.available).toBe(false)
     expect(snapshot.memory.dbPath).toContain('账号记忆库不可用')
+  })
+
+  it('buildSnapshotForIdentity(守卫身份通道):普通账号=本人记忆/知识库/会话;admin=全局', () => {
+    const root = mkdtempSync(join(tmpdir(), 'eterna-panel-identity-'))
+    try {
+      const sessionsRoot = join(root, 'sessions')
+      writeSession(sessionsRoot, 'session-alice-1', 1_000)
+      writeSession(sessionsRoot, 'session-bob-1', 2_000)
+      const memoryView = { ...unavailableMemorySnapshot(), available: true, dbPath: '/tenants/alice/.eterna/memory.sqlite3' }
+      const accountsCtx = {
+        get(name: string): unknown {
+          if (name === 'eterna-memory-accounts') {
+            return {
+              viewForAccount: () => memoryView,
+              dbPathForAccount: (account: string) => `/tenants/${account}/.eterna/memory.sqlite3`,
+            }
+          }
+          if (name === 'eterna-knowledge-accounts') {
+            return {
+              statusForAccount: () => ({
+                account: 'alice', available: true, dbPath: '/tenants/alice/.eterna/knowledge.sqlite3',
+                wikiDocCount: 1, proposalCount: 2,
+              }),
+            }
+          }
+          return undefined
+        },
+      }
+      const userSnapshot = buildSnapshotForIdentity(
+        accountsCtx as never,
+        { account: 'alice', admin: false, ownedSessionIds: ['session-alice-1'] },
+        sessionsRoot,
+      )
+      expect(userSnapshot.memory.dbPath).toBe('/tenants/alice/.eterna/memory.sqlite3')
+      expect(userSnapshot.knowledge).toMatchObject({ available: true, wikiDocCount: 1, proposalCount: 2 })
+      expect(userSnapshot.knowledge.dbPath).toBe('/tenants/alice/.eterna/knowledge.sqlite3')
+      expect(userSnapshot.observability.sessions.map(session => session.id)).toEqual(['session-alice-1'])
+      // admin:知识库/会话=全局视野;记忆仍按 admin 账号库
+      const adminSnapshot = buildSnapshotForIdentity(
+        accountsCtx as never,
+        { account: 'root', admin: true, ownedSessionIds: [] },
+        sessionsRoot,
+      )
+      expect(adminSnapshot.knowledge.dbPath).toBe(join(process.cwd(), '.eterna', 'knowledge.sqlite3'))
+      expect(adminSnapshot.observability.sessions).toHaveLength(2)
+      expect(adminSnapshot.memory.dbPath).toBe('/tenants/root/.eterna/memory.sqlite3')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
   })
 })

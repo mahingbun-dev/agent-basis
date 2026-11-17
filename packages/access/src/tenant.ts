@@ -513,6 +513,84 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     return okFrame(rpcId, { ok: true })
   })
 
+  // ── 面板快照守卫(2026-11-17):unary SRC 通道 principal 恒 owner(mux 换血只
+  // 作用流通道,见 mux.ts 头注),登录身份只在守卫——快照按 cookie 身份组装
+  // (admin=全局视野;普通账号=本人记忆/知识库/会话),同时堵住「登录后直调
+  // /api/eternaPanel/snapshot 拿全局数据」的后端旁路。数据组装在 panel 包
+  // (provide 'eterna-panel-accounts'),本守卫只做身份与归属解析(T2 语义)。
+  register('/api/eternaPanel/snapshot', (rpcId, _args, ctx) => {
+    const face = serviceOf(deps, 'eterna-panel-accounts') as unknown as {
+      snapshotForUser?(identity: {
+        readonly account: string
+        readonly admin: boolean
+        readonly ownedSessionIds: readonly string[]
+      }): unknown
+    } | undefined
+    if (face?.snapshotForUser === undefined) {
+      return failureFrame(rpcId, new Error('面板账号路由面未挂载(eterna-panel 插件未启用)'))
+    }
+    const user = deps.store.getUserById(ctx.userId)
+    if (user === undefined) return failureFrame(rpcId, new Error('登录账号不可解析'))
+    const admin = user.role === 'admin'
+    return okFrame(rpcId, face.snapshotForUser({
+      account: user.account,
+      admin,
+      ownedSessionIds: admin ? [] : deps.store.sessionsOfOwner(ctx.userId),
+    }))
+  })
+
+  // 面板写端点直调硬化(review/reviewForAccount/trackCorrection 会写记忆库):
+  // 客户端走 /api/eternaMemory/* 守卫端(账号路由),裸网关直调一律 admin-only
+  // (宿主侧 adminAllowed 在 unary principal 恒 owner 下兜不住)。
+  for (const [endpoint, method] of [
+    ['review', 'review'],
+    ['reviewForAccount', 'reviewForAccount'],
+    ['trackCorrection', 'trackCorrection'],
+  ] as const) {
+    register(`/api/eternaPanel/${endpoint}`, async (rpcId, args, ctx) => {
+      if (deps.store.getUserById(ctx.userId)?.role !== 'admin') {
+        tenantAudit(deps, `panel.${endpoint}.denied`, ctx.account, {})
+        return deniedFrame(rpcId, '需要管理员权限')
+      }
+      const gateway = serviceOf(deps, 'eternaPanel') as unknown as Record<string, (...fnArgs: unknown[]) => unknown> | undefined
+      const fn = gateway?.[method]
+      if (typeof fn !== 'function') return failureFrame(rpcId, new Error('面板网关未挂载(eterna-panel 插件未启用)'))
+      return okFrame(rpcId, await fn.call(gateway, args.payload))
+    })
+  }
+
+  // ── 提示词工坊/循环轨迹端点管理员门(2026-11-17):工坊=系统提示词全局管理面,
+  // unary principal 恒 owner → 宿主侧 requireAdmin 在此通道兜不住;守卫层按
+  // cookie 角色拒绝非 admin。admin 直调网关方法(语义与网关 SRC 派发一致:
+  // 带参端点 wire args={input:…},无参端点 {};参数按方法名传给实例方法)。
+  const LOOP_PROMPT_METHODS: Readonly<Record<string, string>> = {
+    'snapshot': 'snapshot',
+    'trace': 'trace',
+    'prompt-get': 'promptGet',
+    'prompt-save': 'promptSave',
+    'prompt-versions': 'promptVersions',
+    'prompt-rollback': 'promptRollback',
+    'prompt-export': 'promptExport',
+    'prompt-import': 'promptImport',
+    'session-snapshot': 'sessionSnapshot',
+    'ai-status': 'aiStatus',
+    'ai-polish': 'aiPolish',
+    'ai-review': 'aiReview',
+    'ai-proposal': 'aiProposal',
+  }
+  for (const [endpoint, method] of Object.entries(LOOP_PROMPT_METHODS)) {
+    register(`/api/loopPrompt/${endpoint}`, async (rpcId, args, ctx) => {
+      if (deps.store.getUserById(ctx.userId)?.role !== 'admin') {
+        tenantAudit(deps, 'prompt-studio.denied', ctx.account, { endpoint })
+        return deniedFrame(rpcId, '提示词工坊仅管理员可用(需要管理员权限)')
+      }
+      const gateway = serviceOf(deps, 'loopPrompt') as unknown as Record<string, (...fnArgs: unknown[]) => unknown> | undefined
+      const fn = gateway?.[method]
+      if (typeof fn !== 'function') return failureFrame(rpcId, new Error('提示词工坊服务未挂载(eterna-prompt-studio 插件未启用)'))
+      return okFrame(rpcId, await fn.call(gateway, args.input))
+    })
+  }
+
   // ── P2-T1.7a(2026-11-11,D1 拍板):网关配置角色门——admin 可写,普通用户只读 ──
   // llm-pi-ai 承载行的设置命名空间=settingsNs=行 id('llm-pi-ai');供应商 key 与
   // baseURL 是组织资产,普通用户可写=可把全组织模型流量劫到任意端点。

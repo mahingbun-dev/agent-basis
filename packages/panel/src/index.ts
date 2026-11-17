@@ -16,7 +16,10 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
-import { buildSnapshot, unavailableMemorySnapshot, type BuildSnapshotScope } from './snapshot.ts'
+import {
+  buildSnapshot, buildSnapshotForIdentity, knowledgeSnapshotForAccount, normalizeSessionId,
+  unavailableMemorySnapshot, type BuildSnapshotScope,
+} from './snapshot.ts'
 import type { EternaPanelSnapshot, KnowledgeSnapshot, MemoryReviewRecordView } from './types.ts'
 
 export const ETERNA_PANEL_SERVICE_ID = 'eternaPanel'
@@ -37,6 +40,14 @@ export const ETERNA_MEMORY_ACCOUNTS_SERVICE_ID = 'eterna-memory-accounts'
  * 视图只经此面读本人分库,不触碰全局库。panel 不引依赖,消费侧字面量对齐。
  */
 export const ETERNA_KNOWLEDGE_ACCOUNTS_SERVICE_ID = 'eterna-knowledge-accounts'
+
+/**
+ * 面板账号路由面服务 id(2026-11-17):unary SRC 通道 principal 恒 owner
+ * (mux 换血只作用流通道),登录身份只在 access 守卫——守卫拦截
+ * /api/eternaPanel/snapshot 后经本 provide 面用 cookie 身份组装快照
+ * (admin=全局,普通账号=本人记忆/知识库/会话)。面板不引 access 依赖,字面量对齐。
+ */
+export const ETERNA_PANEL_ACCOUNTS_SERVICE_ID = 'eterna-panel-accounts'
 
 /**
  * Memory 服务的注册 id(glue memory-plugin 经 ctx.provide 注册 '@eterna/memory',
@@ -110,11 +121,6 @@ type CallerContext =
   | { readonly kind: 'owner' }
   | { readonly kind: 'eterna-user'; readonly userId: number; readonly admin: boolean; readonly account: string | undefined }
 
-/** 会话 id 归一(归属账本与日志目录名都可能带/不带 `session-` 前缀)。 */
-function normalizeSessionId(id: string): string {
-  return id.startsWith('session-') ? id.slice('session-'.length) : id
-}
-
 /** 裁决端点结果(纯 JSON;ok=false 时 code + 中文 message)。 */
 export type MemoryReviewResult =
   | { readonly ok: true; readonly record: MemoryReviewRecordView | null }
@@ -170,32 +176,11 @@ export class EternaPanelGateway extends TypertRemoteService {
   }
 
   /**
-   * 非 admin 调用者的知识库快照(本人账号分库计数;face/账号目录缺席 → 不可用空态)。
-   * 不读全局库——全局知识库是管理员视角,出现在普通用户面板即跨账号信息泄露。
+   * 非 admin 调用者的知识库快照(账号分库计数;实现收拢在 snapshot.ts,
+   * 守卫身份通道 buildSnapshotForIdentity 复用同一函数)。
    */
   private knowledgeForAccount(account: string | undefined): KnowledgeSnapshot {
-    const weknora = { status: 'not-mounted' as const, detail: '账号知识库仅装配 wiki-local 后端(WeKnora 为全局基础设施,不对普通账号开放)' }
-    if (account === undefined) {
-      return {
-        available: false, dbPath: '(账号知识库不可用)', wikiDocCount: 0, proposalCount: 0, weknora: {
-          status: 'error', detail: '账号知识库路由面缺席(多租户 fail-closed):未展示任何知识库数据',
-        },
-      }
-    }
-    const face = this.ctx.get(ETERNA_KNOWLEDGE_ACCOUNTS_SERVICE_ID) as KnowledgeAccountsFaceLike | undefined
-    const status = face?.statusForAccount(account)
-    if (status === undefined) {
-      return {
-        available: false, dbPath: `(账号 ${account} 知识库未开通)`, wikiDocCount: 0, proposalCount: 0, weknora,
-      }
-    }
-    return {
-      available: status.available,
-      dbPath: status.dbPath,
-      wikiDocCount: status.wikiDocCount,
-      proposalCount: status.proposalCount,
-      weknora,
-    }
+    return knowledgeSnapshotForAccount(this.ctx, account)
   }
 
   /**
@@ -402,7 +387,19 @@ export default {
   name: 'eterna-panel',
   apply(ctx: Context): () => void {
     const gateway = new EternaPanelGateway(ctx)
+    // 账号路由面(2026-11-17):access 守卫拦截 /api/eternaPanel/snapshot 后按
+    // cookie 身份组装——admin 全局,普通账号本人记忆/知识库/会话。
+    const disposeProvide = (ctx as unknown as {
+      provide?: (name: string, value: unknown) => () => void
+    }).provide?.(ETERNA_PANEL_ACCOUNTS_SERVICE_ID, {
+      snapshotForUser: (identity: {
+        readonly account: string
+        readonly admin: boolean
+        readonly ownedSessionIds: readonly string[]
+      }): EternaPanelSnapshot => buildSnapshotForIdentity(ctx, identity),
+    })
     return () => {
+      disposeProvide?.()
       // Service 随 owning fiber 自动注销(cordis Service 语义);引用置空防误用。
       void gateway
     }
