@@ -206,6 +206,16 @@ try {
         await sessionRow.click().catch(() => {})
         await page.waitForTimeout(1800)
         await snap('02-session', { expectComposer: true })
+      } else if (await page.evaluate(() => {
+        // 窄窗侧栏是覆盖抽屉:行在 DOM 里但被抽屉收起隐藏,程序化 click 仍生效
+        const row = [...document.querySelectorAll('[role="treeitem"][class*="sessionRow"]')]
+          .find(el => !/^新会话$/u.test((el.textContent ?? '').trim()))
+        if (row === undefined) return false
+        row.click()
+        return true
+      })) {
+        await page.waitForTimeout(1800)
+        await snap('02-session', { expectComposer: true })
       } else {
         widthResults['02-session'] = { skipped: '实例内没有既有会话(新库),只断言首屏' }
       }
@@ -214,31 +224,58 @@ try {
       const nav = async (label, name) => {
         let item = page.locator(`[aria-label="${label}"]`).first()
         if (!(await item.isVisible().catch(() => false))) item = page.getByText(label, { exact: true }).first()
-        if (!(await item.isVisible().catch(() => false))) return false
-        await item.click().catch(() => {})
-        await snap(name)
-        return true
+        if (await item.isVisible().catch(() => false)) {
+          await item.click().catch(() => {})
+          await snap(name)
+          return true
+        }
+        const clicked = await page.evaluate((text) => {
+          const el = document.querySelector(`[aria-label="${text}"]`)
+          if (el === null) return false
+          el.click()
+          return true
+        }, label)
+        if (clicked) { await snap(name); return true }
+        return false
       }
       await nav('基座面板', '03-panel')
       await nav('提示词工坊', '04-prompt-studio')
       await nav('用量统计', '05-usage')
       await nav('循环轨迹', '06-observe')
 
-      // ④ 设置弹窗分区(桌面端齿轮 / 窄窗账户菜单)
-      let gear = page.locator('[aria-label*="设置"], [title*="设置"]').first()
-      if (!(await gear.isVisible().catch(() => false))) {
-        const account = page.locator('[aria-label="账户菜单"]').first()
-        if (await account.isVisible().catch(() => false)) { await account.click(); await page.waitForTimeout(800) }
-        gear = page.locator('[role="menuitem"]:has-text("设置"), [aria-label*="设置"]').first()
-      }
+      // ④ 设置弹窗分区(桌面端齿轮 / 窄窗账户菜单或抽屉内程序化 click)
+      const settingsOpen = async () => page.getByText('通用设置', { exact: false }).first().isVisible().catch(() => false)
+      let opened = false
+      const gear = page.locator('[aria-label*="设置"], [title*="设置"]').first()
       if (await gear.isVisible().catch(() => false)) {
-        await gear.click()
+        await gear.click().catch(() => {})
+        opened = true
+      }
+      if (!opened) {
+        const account = page.locator('[aria-label="账户菜单"]').first()
+        if (await account.isVisible().catch(() => false)) {
+          await account.click().catch(() => {})
+          await page.waitForTimeout(800)
+          const item = page.locator('[role="menuitem"]:has-text("设置"), [aria-label*="设置"]').first()
+          if (await item.isVisible().catch(() => false)) { await item.click().catch(() => {}); opened = true }
+        }
+      }
+      if (!opened) {
+        // 抽屉收起态:入口在 DOM 里但不可见,程序化 click 仍可打开
+        await page.evaluate(() => {
+          const el = document.querySelector('[aria-label*="设置"], [title*="设置"]')
+          if (el !== null) el.click()
+        })
         await page.waitForTimeout(1500)
+      }
+      if (await settingsOpen()) {
         await snap('07-settings-general')
         for (const [label, name] of [['记忆', '08-settings-memory'], ['上下文压缩', '09-settings-compaction'], ['账号', '10-settings-account'], ['用户管理', '11-settings-users'], ['模型', '12-settings-model']]) {
           const tab = page.getByRole('button', { name: label, exact: false }).first()
           if (await tab.isVisible().catch(() => false)) { await tab.click().catch(() => {}); await snap(name) }
         }
+      } else {
+        widthResults['07-settings-general'] = { skipped: '设置入口不可达(窄窗抽屉态)' }
       }
     } catch (error) {
       failures.push(`${width}: 导航/测量失败 — ${error instanceof Error ? error.message : String(error)}`)
