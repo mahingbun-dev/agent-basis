@@ -28,6 +28,7 @@ import { SlidingWindow } from './ratelimit.ts'
 import { UserStore } from './store.ts'
 import { ensureFirstSession, ensureTenantWorkspace, registerTenantGuards } from './tenant.ts'
 import { installMuxIsolation, type MuxIsolationInstall } from './mux.ts'
+import { installLoginGate } from './login-gate.ts'
 import { installToolClamp, installSandboxBoundary } from './sandbox.ts'
 import { installTerminalTenant, installTerminalSandbox } from './terminal.ts'
 import { BADGE_SCRIPT } from './pages.ts'
@@ -49,10 +50,12 @@ export interface AccessWebServer {
   tapIndex(transform: (html: string) => string): () => void
 }
 
-/** 本插件消费的 Connection seam(authenticatedUrl 桥接 + fetch 路由注册面)。 */
+/** 本插件消费的 Connection seam(authenticatedUrl 桥接 + fetch 路由注册面 + 索引门禁包装面)。 */
 export interface AccessConnection {
   authenticatedUrl(baseUrl: string): string
   fetch: import('./tenant.ts').TenantFetchRegistry
+  /** 索引页认证(dsh-client-connection authorizeIndex);缺省=上游漂移,跳转门禁降级不装。 */
+  authorizeIndex?: (request: unknown, sink: import('./login-gate.ts').IndexAuthSink) => boolean
 }
 
 /** 最小宿主上下文(结构类型,不依赖 cordis 类型面)。 */
@@ -240,6 +243,12 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       ]
       disposers.push(offCompanionIdentity)
       disposers.push(offApprovalAnswerer)
+      // 索引页登录跳转门禁(2026-11-17):未登录/浏览器 cookie 过期访问根路径时,
+      // dsh authorizeIndex 原本回裸 401 文本(index HTML 不发出→tapIndex 角标脚本
+      // 永不运行)。包装为 302 /login;token 兑换 303 与已认证请求原样放行。
+      const loginGateDispose = installLoginGate(ctx.connection)
+      if (loginGateDispose !== undefined) disposers.push(loginGateDispose)
+      audit({ kind: 'access.login.gate', detail: { installed: loginGateDispose !== undefined } })
       // Phase 2 租户面(T2.2/T2.5):存量 workspace 划归首个 admin
       adoptLegacyWorkspaces(store)
       // P1-T2(2026-11-11):mux 流租户隔离——principal 换血 + registerPolicy。

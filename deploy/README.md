@@ -81,14 +81,16 @@ DSM 反代规则要点（Control Panel → Login Portal → Advanced → Reverse
 - `.env` 三件套必须与之一致：`ETERNA_PUBLIC_URL=https://<域名>:<端口>` +
   `ETERNA_TRUSTED_HOST=<域名>:<端口>` + `ETERNA_ACCESS_SECURE=1`
 - 插件同源闸信任面自动包含 `ETERNA_PUBLIC_URL` 声明根（isSameOrigin v2）——声明即免配
+- 未登录/浏览器会话过期访问根路径由插件自动 302 到 `/login`（2026-11-17 起；此前依赖
+  可选的 nginx `error_page 401` 配方，直连端口/其他反代形态会看到裸 401 文本页）
 
 DNS：推荐 **v6-only**（AAAA）。实测记录：家宽 v4 入站被运营商上游封死（v4:3210/8443
 外部探测全败，转发规则形同虚设）；保留 A 记录会让浏览器双栈竞速间歇撞死路（「网络错误」）。
 
 ## 6. 验证清单
 
-自动化：`bash deploy/verify.sh [BASE_URL]` —— 7 项门禁（登录页/匿名拒绝/管理员登录/
-角色回显/红线清单/无会话拒绝/错密码 401），全过退出 0。
+自动化：`bash deploy/verify.sh [BASE_URL]` —— 8 项门禁（登录页/匿名拒绝/匿名根路径跳登录页/
+管理员登录/角色回显/红线清单/无会话拒绝/错密码 401），全过退出 0。
 
 人工：登录落地对话一轮（真模型）→ 设置弹窗三分区（账号/用户管理）→ 插件页「恒灵插件」
 页签 → 审计 jsonl 增长。
