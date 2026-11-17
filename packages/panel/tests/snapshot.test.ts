@@ -2,12 +2,13 @@
  * 快照组装测试:临时工作区(governance 规则文件/审计 JSONL/memory 与 knowledge
  * sqlite/伪 tools 注册表/伪 session 日志)上钉住各区块字段口径。
  */
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, utimesSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
+import { zstdCompressSync } from 'node:zlib'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { buildSnapshot, riskOfTool } from '../src/snapshot.ts'
+import { buildSnapshot, buildSnapshotForIdentity, riskOfTool, unavailableMemorySnapshot } from '../src/snapshot.ts'
 
 let workspace = ''
 let dshHome = ''
@@ -310,5 +311,108 @@ describe('buildSnapshot', () => {
     // 索引分区:workspace 种子含已转正域 + portrait.md → 三区形态,画像区非零
     expect(metrics.indexZones).not.toBeNull()
     expect(metrics.indexZones?.portrait).toBeGreaterThan(0)
+  })
+})
+
+describe('buildSnapshot 多租户作用域(2026-11-17 账号隔离)', () => {
+  /** 造一个带 usage 的单帧会话日志(会话目录名即 SessionUsageCard.id)。 */
+  function writeSession(sessionsRoot: string, sessionId: string, at: number): void {
+    const area = join(sessionsRoot, '--ws--')
+    mkdirSync(join(area, sessionId), { recursive: true })
+    const logPath = join(area, sessionId, 'session.v4.jsonl.zstd')
+    writeFileSync(logPath, zstdCompressSync(Buffer.from([
+      JSON.stringify({ type: 'turn/end', seq: 1, time: at, data: { turn: 1 } }),
+      JSON.stringify({
+        type: 'assistant/message', seq: 2, time: at,
+        data: { turn: 1, step: 1, usage: { inputTokens: 10, outputTokens: 5 } },
+      }),
+    ].join('\n') + '\n', 'utf8')))
+    const atDate = new Date(at)
+    utimesSync(logPath, atDate, atDate)
+  }
+
+  it('sessionFilter:扩大读窗后只保留本人会话(本人最旧、超默认 5 条窗也不丢)', () => {
+    const root = mkdtempSync(join(tmpdir(), 'eterna-panel-scope-'))
+    try {
+      const sessionsRoot = join(root, 'sessions')
+      writeSession(sessionsRoot, 'session-mine', 1_000)
+      for (let index = 0; index < 5; index += 1) writeSession(sessionsRoot, `session-other-${index}`, 2_000 + index)
+      const filtered = buildSnapshot(fakeContext() as never, root, sessionsRoot, undefined, {
+        sessionFilter: (sessionDirName: string) => sessionDirName === 'session-mine',
+      })
+      expect(filtered.observability.sessions.map(session => session.id)).toEqual(['session-mine'])
+      // 不过滤(admin/owner 全局视角)→ 默认窗口最近 5 条,最旧的本人会话不在其中
+      const global = buildSnapshot(fakeContext() as never, root, sessionsRoot)
+      expect(global.observability.sessions).toHaveLength(5)
+      expect(global.observability.sessions.some(session => session.id === 'session-mine')).toBe(false)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('knowledge/memory 覆盖生效:非 admin 不读全局库,记忆不可解析走 fail-closed 空态', () => {
+    const knowledge = {
+      available: true,
+      dbPath: '/tenants/alice/.eterna/knowledge.sqlite3',
+      wikiDocCount: 3,
+      proposalCount: 1,
+      weknora: { status: 'not-mounted' as const, detail: '账号知识库仅装配 wiki-local 后端' },
+    }
+    const snapshot = buildSnapshot(fakeContext() as never, workspace, join(dshHome, 'sessions'), undefined, {
+      memory: unavailableMemorySnapshot(),
+      knowledge,
+    })
+    expect(snapshot.knowledge).toEqual(knowledge)
+    expect(snapshot.memory.available).toBe(false)
+    expect(snapshot.memory.dbPath).toContain('账号记忆库不可用')
+  })
+
+  it('buildSnapshotForIdentity(守卫身份通道):普通账号=本人记忆/知识库/会话;admin=全局', () => {
+    const root = mkdtempSync(join(tmpdir(), 'eterna-panel-identity-'))
+    try {
+      const sessionsRoot = join(root, 'sessions')
+      writeSession(sessionsRoot, 'session-alice-1', 1_000)
+      writeSession(sessionsRoot, 'session-bob-1', 2_000)
+      const memoryView = { ...unavailableMemorySnapshot(), available: true, dbPath: '/tenants/alice/.eterna/memory.sqlite3' }
+      const accountsCtx = {
+        get(name: string): unknown {
+          if (name === 'eterna-memory-accounts') {
+            return {
+              viewForAccount: () => memoryView,
+              dbPathForAccount: (account: string) => `/tenants/${account}/.eterna/memory.sqlite3`,
+            }
+          }
+          if (name === 'eterna-knowledge-accounts') {
+            return {
+              statusForAccount: () => ({
+                account: 'alice', available: true, dbPath: '/tenants/alice/.eterna/knowledge.sqlite3',
+                wikiDocCount: 1, proposalCount: 2,
+              }),
+            }
+          }
+          return undefined
+        },
+      }
+      const userSnapshot = buildSnapshotForIdentity(
+        accountsCtx as never,
+        { account: 'alice', admin: false, ownedSessionIds: ['session-alice-1'] },
+        sessionsRoot,
+      )
+      expect(userSnapshot.memory.dbPath).toBe('/tenants/alice/.eterna/memory.sqlite3')
+      expect(userSnapshot.knowledge).toMatchObject({ available: true, wikiDocCount: 1, proposalCount: 2 })
+      expect(userSnapshot.knowledge.dbPath).toBe('/tenants/alice/.eterna/knowledge.sqlite3')
+      expect(userSnapshot.observability.sessions.map(session => session.id)).toEqual(['session-alice-1'])
+      // admin:知识库/会话=全局视野;记忆仍按 admin 账号库
+      const adminSnapshot = buildSnapshotForIdentity(
+        accountsCtx as never,
+        { account: 'root', admin: true, ownedSessionIds: [] },
+        sessionsRoot,
+      )
+      expect(adminSnapshot.knowledge.dbPath).toBe(join(process.cwd(), '.eterna', 'knowledge.sqlite3'))
+      expect(adminSnapshot.observability.sessions).toHaveLength(2)
+      expect(adminSnapshot.memory.dbPath).toBe('/tenants/root/.eterna/memory.sqlite3')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
   })
 })

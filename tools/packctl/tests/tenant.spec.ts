@@ -108,11 +108,27 @@ describe('packctl tenant-scan 铁律', () => {
       "provide2('eterna-memory-accounts', accountsFace),",
       'router = new MemoryAccountRouter({',
     ].join('\n'))
+    // knowledge 分库锚(2026-11-17):同包另一锚文件也须在场且锚齐全。
+    makeFile(dir, join('glue', 'src', 'plugins', 'knowledge-plugin.ts'), [
+      "const globalDbPath = config.dbPath ?? join(cwd, '.eterna/knowledge.sqlite3')",
+      'const accountDir = (account: string) => join(tenantRoot, account)',
+      "return createService(join(dir, 'knowledge.wiki'), join(dir, '.eterna', 'knowledge.sqlite3'))",
+      "if (user.role === 'admin') return globalService",
+      "provide2('eterna-knowledge-accounts', accountsFace),",
+      'router = new KnowledgeAccountRouter({',
+    ].join('\n'))
     makeFile(dir, join('memory', 'scripts', 'gen-portrait.mjs'), [
       "const dbPath = resolve(process.argv[2] ?? join(process.cwd(), '.eterna/memory.sqlite3'))",
       "const portraitPath = join(dirname(dbPath), 'portrait.md')",
     ].join('\n'))
     expect(tenantScan(dir)).toHaveLength(0)
+  })
+
+  it('knowledge 分库锚 fail-closed:路由/账号面/分库路径被删 → 红(防止静默退回全局单库)', () => {
+    makeFile(dir, join('glue', 'src', 'plugins', 'knowledge-plugin.ts'),
+      "const globalDbPath = config.dbPath ?? join(cwd, '.eterna/knowledge.sqlite3')\n")
+    const findings = tenantScan(dir).filter(f => f.code === 'tenant/knowledge-persist-anchor-missing')
+    expect(findings.map(f => f.path)).toContain('glue/src/plugins/knowledge-plugin.ts')
   })
 
   it('T4 误报防护:模块相对导入(../src/portrait.ts)与注释行不判逃逸', () => {

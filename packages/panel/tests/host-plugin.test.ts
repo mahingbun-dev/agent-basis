@@ -142,8 +142,13 @@ describe('default export 插件形态(DSH bundle loader 契约)', () => {
 })
 
 describe('trackCorrection 端点(T13 画像纠正留痕)', () => {
-  const call = async (ctx: unknown, payload: unknown): Promise<{ ok: boolean; code?: string; message?: string }> =>
-    await Promise.resolve(EternaPanelGateway.prototype.trackCorrection.call({ ctx }, payload))
+  // 账号隔离(2026-11-17)后 trackCorrection 经同类辅助方法解析调用者——this 须
+  // 沿原型链(Object.create,review 测试同款),不能用裸 { ctx } 字面量。
+  const call = async (ctx: unknown, payload: unknown): Promise<{ ok: boolean; code?: string; message?: string }> => {
+    const gateway = Object.create(EternaPanelGateway.prototype) as EternaPanelGateway & { ctx: never }
+    gateway.ctx = ctx as never
+    return await Promise.resolve(gateway.trackCorrection(payload))
+  }
 
   it('合法载荷 → Memory.recordCorrection 落一行;用户级动作不查 admin', async () => {
     const recorded: unknown[] = []
@@ -157,5 +162,155 @@ describe('trackCorrection 端点(T13 画像纠正留痕)', () => {
     expect((await call({ get: () => undefined }, { section: '风格偏好' })).code).toBe('unavailable')
     expect((await call({ get: () => ({}) }, {})).code).toBe('invalid')
     expect((await call({ get: () => ({}) }, { section: '  ' })).code).toBe('invalid')
+  })
+})
+
+describe('面板账号隔离(2026-11-17):snapshot 按 principal 裁剪 / trackCorrection 账号路由', () => {
+  const GLOBAL_MEMORY_DB = join(process.cwd(), '.eterna', 'memory.sqlite3')
+  const GLOBAL_KNOWLEDGE_DB = join(process.cwd(), '.eterna', 'knowledge.sqlite3')
+
+  interface MemoryLike {
+    review(id: number, decision: 'approved' | 'rejected'): unknown
+    recordCorrection?(entry: { section: string; keyHint: string }): void
+  }
+
+  /** 伪 ctx:服务面按名分派 + principal + access store(sessionsOfOwner/getUserById)。 */
+  function isolationCtx(options: {
+    principal?: { kind: string; userId: number }
+    adminRole?: string
+    memoryAccounts?: {
+      accountOfUser(userId: number): string | undefined
+      memoryForAccount(account: string): MemoryLike | undefined
+      dbPathForAccount(account: string): string | undefined
+    }
+    knowledgeAccounts?: {
+      accountOfUser(userId: number): string | undefined
+      statusForAccount(account: string): unknown
+    }
+    ownedSessions?: readonly string[]
+    globalMemory?: MemoryLike
+  }): never {
+    const services: Record<string, unknown> = {
+      '@eterna/memory': options.globalMemory,
+      'eterna-memory-accounts': options.memoryAccounts,
+      'eterna-knowledge-accounts': options.knowledgeAccounts,
+    }
+    return {
+      get: (name: string) => services[name],
+      invocation: options.principal === undefined ? undefined : { principal: options.principal },
+      reflect: {
+        get: (name: string) => (name === 'eternaAccessStore'
+          ? {
+            getUserById: () => ({ role: options.adminRole }),
+            sessionsOfOwner: () => [...(options.ownedSessions ?? [])],
+          }
+          : undefined),
+      },
+    } as never
+  }
+
+  function gatewayOf(ctx: never): EternaPanelGateway {
+    const gateway = Object.create(EternaPanelGateway.prototype) as EternaPanelGateway
+    Object.defineProperty(gateway, 'ctx', { value: ctx })
+    return gateway
+  }
+
+  const cherryPrincipal = { kind: 'eterna-user', userId: 2 }
+
+  function cherryFaces(): {
+    memoryAccounts: NonNullable<Parameters<typeof isolationCtx>[0]['memoryAccounts']>
+    knowledgeAccounts: NonNullable<Parameters<typeof isolationCtx>[0]['knowledgeAccounts']>
+  } {
+    return {
+      memoryAccounts: {
+        accountOfUser: () => 'cherry',
+        memoryForAccount: () => ({ review: () => null }),
+        dbPathForAccount: () => '/tenants/cherry/.eterna/memory.sqlite3',
+      },
+      knowledgeAccounts: {
+        accountOfUser: () => 'cherry',
+        statusForAccount: () => ({
+          account: 'cherry', available: true, dbPath: '/tenants/cherry/.eterna/knowledge.sqlite3',
+          wikiDocCount: 2, proposalCount: 1,
+        }),
+      },
+    }
+  }
+
+  it('普通账号:记忆/知识库按本人账号库,不读全局库;/access/api/me 之外无他路', async () => {
+    const faces = cherryFaces()
+    const snapshot = await gatewayOf(isolationCtx({ principal: cherryPrincipal, ...faces })).snapshot()
+    expect(snapshot.memory.dbPath).toBe('/tenants/cherry/.eterna/memory.sqlite3')
+    expect(snapshot.memory.dbPath).not.toBe(GLOBAL_MEMORY_DB)
+    expect(snapshot.knowledge.dbPath).toBe('/tenants/cherry/.eterna/knowledge.sqlite3')
+    expect(snapshot.knowledge.dbPath).not.toBe(GLOBAL_KNOWLEDGE_DB)
+    expect(snapshot.knowledge).toMatchObject({ available: true, wikiDocCount: 2, proposalCount: 1 })
+  })
+
+  it('admin 与 owner(本地流):知识库走全局库;记忆仍按各自账号(admin)/全局(owner)', async () => {
+    // admin:知识库=全局,记忆=admin 自己账号库(管理面视野,记忆仍是私人数据)
+    const adminSnapshot = await gatewayOf(isolationCtx({
+      principal: { kind: 'eterna-user', userId: 1 },
+      adminRole: 'admin',
+      memoryAccounts: {
+        accountOfUser: () => 'root',
+        memoryForAccount: () => ({ review: () => null }),
+        dbPathForAccount: () => '/tenants/root/.eterna/memory.sqlite3',
+      },
+      knowledgeAccounts: { accountOfUser: () => 'root', statusForAccount: () => ({ wikiDocCount: 999 }) },
+      ownedSessions: ['session-someone-else'],
+    })).snapshot()
+    expect(adminSnapshot.knowledge.dbPath).toBe(GLOBAL_KNOWLEDGE_DB)
+    expect(adminSnapshot.memory.dbPath).toBe('/tenants/root/.eterna/memory.sqlite3')
+    // owner(无 principal,本地/unary 旧形态):记忆与知识库都是全局
+    const ownerSnapshot = await gatewayOf(isolationCtx({})).snapshot()
+    expect(ownerSnapshot.knowledge.dbPath).toBe(GLOBAL_KNOWLEDGE_DB)
+    expect(ownerSnapshot.memory.dbPath).toBe(GLOBAL_MEMORY_DB)
+  })
+
+  it('普通账号但账号路由面缺席 → 记忆/知识库双 fail-closed(不回落全局库)', async () => {
+    const snapshot = await gatewayOf(isolationCtx({ principal: cherryPrincipal })).snapshot()
+    expect(snapshot.memory.available).toBe(false)
+    expect(snapshot.memory.dbPath).toContain('账号记忆库不可用')
+    expect(snapshot.memory.dbPath).not.toBe(GLOBAL_MEMORY_DB)
+    expect(snapshot.knowledge.available).toBe(false)
+    expect(snapshot.knowledge.dbPath).toContain('账号知识库不可用')
+    expect(snapshot.knowledge.dbPath).not.toBe(GLOBAL_KNOWLEDGE_DB)
+  })
+
+  it('trackCorrection 账号路由:普通账号落本人账号库;账号不可解析 fail-closed;owner 走全局', async () => {
+    const accountCalls: unknown[] = []
+    const globalCalls: unknown[] = []
+    const accountMemory: MemoryLike = {
+      review: () => null,
+      recordCorrection: (entry) => { accountCalls.push(entry) },
+    }
+    const globalMemory: MemoryLike = {
+      review: () => null,
+      recordCorrection: (entry) => { globalCalls.push(entry) },
+    }
+    // 普通账号:落本人账号库,全局零调用
+    const cherryGateway = gatewayOf(isolationCtx({
+      principal: cherryPrincipal,
+      globalMemory,
+      memoryAccounts: {
+        accountOfUser: () => 'cherry',
+        memoryForAccount: () => accountMemory,
+        dbPathForAccount: () => '/tenants/cherry/.eterna/memory.sqlite3',
+      },
+    }))
+    await expect(cherryGateway.trackCorrection({ section: '风格偏好', keyHint: 'k' }))
+      .resolves.toMatchObject({ ok: true })
+    expect(accountCalls).toEqual([{ section: '风格偏好', keyHint: 'k' }])
+    expect(globalCalls).toEqual([])
+    // 普通账号但账号库不可解析:拒绝(VS owner 回退全局——多租户下绝不落全局)
+    const deniedGateway = gatewayOf(isolationCtx({ principal: cherryPrincipal, globalMemory }))
+    await expect(deniedGateway.trackCorrection({ section: '风格偏好' }))
+      .resolves.toMatchObject({ ok: false, code: 'unavailable' })
+    expect(globalCalls).toEqual([])
+    // owner(本地流):全局服务(现行为)
+    await expect(gatewayOf(isolationCtx({ globalMemory })).trackCorrection({ section: '风格偏好' }))
+      .resolves.toMatchObject({ ok: true })
+    expect(globalCalls).toEqual([{ section: '风格偏好', keyHint: '' }])
   })
 })

@@ -149,6 +149,32 @@ const MEMORY_PERSIST_ANCHORS: readonly {
   },
 ]
 
+/**
+ * knowledge 账号分库派生锚(2026-11-17,对齐 MEMORY_PERSIST_ANCHORS 口径):
+ * glue knowledge-plugin 必须保留「普通账号 → workspace 分库、admin → 全局库」的
+ * 派生与路由标识——分库路径被改道/路由被删即红(防静默退回全局单库)。
+ * 包目录在场才核验(合成仓库只含部分包时不误报)。
+ */
+const KNOWLEDGE_PERSIST_ANCHORS: readonly {
+  readonly pkg: string
+  readonly file: string
+  readonly requires: readonly string[]
+}[] = [
+  {
+    pkg: 'glue',
+    file: 'src/plugins/knowledge-plugin.ts',
+    requires: [
+      "join(cwd, '.eterna/knowledge.sqlite3')", // 全局库默认(admin/本地模式)= cwd 基 .eterna/
+      'join(tenantRoot, account)', // 账号目录派生自租户根(workspaces/<账号> 语义)
+      "join(dir, 'knowledge.wiki')", // 账号知识 wiki 落账号目录
+      "join(dir, '.eterna', 'knowledge.sqlite3')", // 账号索引落账号目录 .eterna/
+      "user.role === 'admin'", // admin → 全局库的路由口径(与面板 admin 看全局一致)
+      "'eterna-knowledge-accounts'", // 账号状态面(panel 非 admin 视图的唯一读入口)
+      'KnowledgeAccountRouter', // LRU 分库路由在场(分库不是摆设)
+    ],
+  },
+]
+
 function listSources(root: string, rel: string, out: SourceFile[]): void {
   const full = join(root, rel)
   const entries = readdirSync(full)
@@ -227,6 +253,24 @@ export function tenantScan(repoRoot: string): readonly Finding[] {
       if (missing.length > 0) {
         findings.push(error('tenant/memory-persist-anchor-missing', `${pkg}/${anchor.file}`,
           `memory 持久化默认派生锚缺失(${missing.join(';')})——dbPath/portrait 必须落在 workspace 派生目录(铁律 T4,18 §9.1);确属改道则同步 tenant.ts MEMORY_PERSIST_ANCHORS 与 docs/PLUGIN-AUTHORING.md §1.1 再对账`))
+      }
+    }
+    // knowledge 账号分库派生锚(2026-11-17):普通账号分库 + admin 全局 + 账号状态面
+    // 与分库路由必须在场——删路由/改回全局单库即红;确属改道须同步本表与 §1.1。
+    for (const anchor of KNOWLEDGE_PERSIST_ANCHORS) {
+      if (anchor.pkg !== pkg) continue
+      let text: string
+      try {
+        text = readFileSync(join(pkgDir, anchor.file), 'utf8')
+      } catch {
+        findings.push(error('tenant/knowledge-persist-anchor-missing', `${pkg}/${anchor.file}`,
+          'knowledge 分库派生锚文件缺失或不可读——普通账号知识库必须落 <tenantRoot>/<账号>/(铁律 T4 同源);确属改道则同步 tenant.ts KNOWLEDGE_PERSIST_ANCHORS 与 docs/PLUGIN-AUTHORING.md §1.1 再对账'))
+        continue
+      }
+      const missing = anchor.requires.filter(piece => !text.includes(piece))
+      if (missing.length > 0) {
+        findings.push(error('tenant/knowledge-persist-anchor-missing', `${pkg}/${anchor.file}`,
+          `knowledge 账号分库派生锚缺失(${missing.join(';')})——普通账号知识库必须落 <tenantRoot>/<账号>/(wiki + .eterna/knowledge.sqlite3),admin 路由全局库,账号状态面与分库路由不得移除;确属改道则同步 tenant.ts KNOWLEDGE_PERSIST_ANCHORS 与 docs/PLUGIN-AUTHORING.md §1.1 再对账`))
       }
     }
   }

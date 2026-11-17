@@ -148,10 +148,30 @@ export interface MemoryPortraitConfig {
 
 /** knowledge 插件配置。 */
 export interface KnowledgePluginConfig {
-  /** wiki 根目录(缺省 = agent cwd 下的 knowledge.wiki/)。 */
+  /** wiki 根目录(缺省 = agent cwd 下的 knowledge.wiki/;全局库=admin 与本地模式)。 */
   readonly wikiDir?: string
-  /** 索引 sqlite 路径(缺省 = agent cwd 下的 .eterna/knowledge.sqlite3)。 */
+  /** 索引 sqlite 路径(缺省 = agent cwd 下的 .eterna/knowledge.sqlite3;全局库)。 */
   readonly dbPath?: string
+  /**
+   * 多租户分库路由(对齐 MemoryRoutingConfig 口径):admin 角色 → 全局库;普通账号
+   * → `<tenantRoot>/<account>/` 物理分库;缺省 auto(access 库在场即路由,本地 TUI
+   * 无 access 库=全局单库,行为不变)。
+   */
+  readonly routing?: KnowledgeRoutingConfig
+}
+
+/** knowledge 多租户分库路由配置(字段语义与 MemoryRoutingConfig 同款)。 */
+export interface KnowledgeRoutingConfig {
+  /** 'auto'(缺省,按 access 库文件在场判定)/'per-account'/'global'。 */
+  readonly mode?: 'auto' | 'per-account' | 'global'
+  /** 租户根目录(缺省 ETERNA_TENANT_ROOT ?? ($DSH_HOME ?? cwd)/workspaces)。 */
+  readonly tenantRoot?: string
+  /** 池上限(缺省 8,memory Q1 决议口径)。 */
+  readonly maxAccounts?: number
+  /** 闲置关库毫秒(缺省 600_000,memory Q1 决议口径)。 */
+  readonly idleCloseMs?: number
+  /** access users.db 路径(身份解析源;缺省 DSH_HOME/access/users.db)。 */
+  readonly accessDbPath?: string
 }
 
 /** governance 插件配置。 */

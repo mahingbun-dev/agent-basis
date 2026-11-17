@@ -164,26 +164,141 @@ function readEventTools(ctx: Context): readonly ToolCard[] {
   return cards
 }
 
-function readObservability(sessionsRoot?: string): ObservabilitySnapshot {
+function readObservability(sessionsRoot?: string, scope: BuildSnapshotScope = {}): ObservabilitySnapshot {
   const home = process.env.DSH_HOME
   const root = sessionsRoot ?? join(home ?? join(homedir(), '.dsh'), 'sessions')
-  const sessions = readRecentSessionUsage(root)
+  // 归属过滤(多租户):先按扩大读窗取最近日志再过滤再截断——保证「本人最近 5 条」
+  // 语义,而不是「全局最近 5 条 ∩ 本人」(后者在他账号活跃时会显示空)。
+  const filter = scope.sessionFilter
+  const sessions = filter === undefined
+    ? readRecentSessionUsage(root)
+    : readRecentSessionUsage(root, OWN_SESSION_SCAN_LIMIT)
+      .filter(card => filter(card.id))
+      .slice(0, RECENT_SESSION_LIMIT)
   if (sessions.length === 0) {
     return { sessions: [], note: `未读到可用会话用量(${root} 无 session.v4.jsonl.zstd 或均无 usage 事件)` }
   }
   return { sessions }
 }
 
+/** 本人会话展示条数(与 session-logs.ts RECENT_SESSION_LIMIT 同口径)。 */
+const RECENT_SESSION_LIMIT = 5
+
+/** 归属过滤时的扫描窗(过滤后取前 5,20+ 窗口避免多账号环境下自见为空)。 */
+const OWN_SESSION_SCAN_LIMIT = 24
+
+/** 多租户调用者作用域(由 host 网关按 principal 组装;缺省=全局视角,零行为变化)。 */
+export interface BuildSnapshotScope {
+  /** 记忆区覆盖:非 admin 调用者=本人账号库视图(缺省读全局库;账号不可解析时传空态)。 */
+  readonly memory?: MemorySnapshot
+  /** 知识库快照覆盖:非 admin 调用者传本人账号分库状态(缺省读全局库)。 */
+  readonly knowledge?: KnowledgeSnapshot
+  /** 会话用量归属过滤:非 admin 调用者传本人会话判定(缺省=全局)。 */
+  readonly sessionFilter?: (sessionDirName: string) => boolean
+}
+
+/**
+ * 账号记忆库不可解析时的 fail-closed 空态(多租户):available=false 的空视图,
+ * 明示不可用——**绝不回落全局库**(全局库=跨账号泄露面)。
+ */
+export function unavailableMemorySnapshot(): MemorySnapshot {
+  return buildMemoryAccountView(join('(账号记忆库不可用)', 'memory.sqlite3'))
+}
+
+/** 会话 id 归一(归属账本与日志目录名都可能带/不带 `session-` 前缀)。 */
+export function normalizeSessionId(id: string): string {
+  return id.startsWith('session-') ? id.slice('session-'.length) : id
+}
+
+/** 知识库账号状态面(glue knowledge-plugin provide 的结构子集)。 */
+interface KnowledgeAccountsFaceLike {
+  statusForAccount(account: string): {
+    readonly account: string
+    readonly available: boolean
+    readonly dbPath: string
+    readonly wikiDocCount: number
+    readonly proposalCount: number
+  } | undefined
+}
+
+/**
+ * 账号知识库快照(非 admin 视图;face/账号目录缺席 → fail-closed 空态)。
+ * 不读全局库——全局知识库是管理员视角,出现在普通用户面板即跨账号信息泄露。
+ */
+export function knowledgeSnapshotForAccount(ctx: Context, account: string | undefined): KnowledgeSnapshot {
+  const weknora = {
+    status: 'not-mounted' as const,
+    detail: '账号知识库仅装配 wiki-local 后端(WeKnora 为全局基础设施,不对普通账号开放)',
+  }
+  if (account === undefined) {
+    return {
+      available: false, dbPath: '(账号知识库不可用)', wikiDocCount: 0, proposalCount: 0,
+      weknora: { status: 'error', detail: '账号知识库路由面缺席(多租户 fail-closed):未展示任何知识库数据' },
+    }
+  }
+  const face = ctx.get('eterna-knowledge-accounts') as KnowledgeAccountsFaceLike | undefined
+  const status = face?.statusForAccount(account)
+  if (status === undefined) {
+    return { available: false, dbPath: `(账号 ${account} 知识库未开通)`, wikiDocCount: 0, proposalCount: 0, weknora }
+  }
+  return {
+    available: status.available,
+    dbPath: status.dbPath,
+    wikiDocCount: status.wikiDocCount,
+    proposalCount: status.proposalCount,
+    weknora,
+  }
+}
+
+/** 登录身份作用域(access 守卫 /api/eternaPanel/snapshot 组装;身份在守卫 cookie)。 */
+export interface ScopedSnapshotIdentity {
+  readonly account: string
+  readonly admin: boolean
+  /** 守卫按 access 归属账本(sessionsOfOwner)解析出的本人会话 id(scoped 模式用)。 */
+  readonly ownedSessionIds: readonly string[]
+}
+
+/**
+ * 按登录身份组装快照(2026-11-17,unary principal 恒 owner 的守卫协同版):
+ * - admin:全局视野(知识库/会话全局;记忆=本人账号库,与既有口径一致);
+ * - 普通账号:记忆=本人账号库视图(不可解析 → fail-closed 空态)、知识库=本人分库、
+ *   会话历史=仅本人会话。任何分支都不向普通账号返回全局记忆/知识库/他人会话。
+ */
+export function buildSnapshotForIdentity(
+  ctx: Context,
+  identity: ScopedSnapshotIdentity,
+  sessionsRoot?: string,
+): EternaPanelSnapshot {
+  if (identity.admin) {
+    const accounts = ctx.get('eterna-memory-accounts') as { dbPathForAccount?(account: string): string | undefined } | undefined
+    return buildSnapshot(ctx, undefined, sessionsRoot, accounts?.dbPathForAccount?.(identity.account))
+  }
+  const accounts = ctx.get('eterna-memory-accounts') as { viewForAccount?(account: string): MemorySnapshot | undefined } | undefined
+  const memory = accounts?.viewForAccount?.(identity.account) ?? unavailableMemorySnapshot()
+  const owned = new Set(identity.ownedSessionIds.map(normalizeSessionId))
+  return buildSnapshot(ctx, undefined, sessionsRoot, undefined, {
+    memory,
+    knowledge: knowledgeSnapshotForAccount(ctx, identity.account),
+    sessionFilter: (sessionDirName: string) => owned.has(normalizeSessionId(sessionDirName)),
+  })
+}
+
 /** 组装完整快照(Host 侧 eternaPanel/snapshot 的方法体)。 */
-export function buildSnapshot(ctx: Context, cwd = process.cwd(), sessionsRoot?: string, memoryDbPath?: string): EternaPanelSnapshot {
+export function buildSnapshot(
+  ctx: Context,
+  cwd = process.cwd(),
+  sessionsRoot?: string,
+  memoryDbPath?: string,
+  scope: BuildSnapshotScope = {},
+): EternaPanelSnapshot {
   const rulesPath = join(cwd, '.eterna', 'governance.rules.yml')
   return {
     generatedAt: new Date().toISOString(),
     workspace: cwd,
     governance: readGovernance(ctx, cwd, rulesPath),
-    memory: readMemory(memoryDbPath ?? join(cwd, '.eterna', 'memory.sqlite3')),
-    knowledge: readKnowledge(join(cwd, '.eterna', 'knowledge.sqlite3')),
+    memory: scope.memory ?? readMemory(memoryDbPath ?? join(cwd, '.eterna', 'memory.sqlite3')),
+    knowledge: scope.knowledge ?? readKnowledge(join(cwd, '.eterna', 'knowledge.sqlite3')),
     tools: readEventTools(ctx),
-    observability: readObservability(sessionsRoot),
+    observability: readObservability(sessionsRoot, scope),
   }
 }
