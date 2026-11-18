@@ -43,7 +43,7 @@
     }
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "*",
-    "@deepseek-ai/dsh-session": "*"
+    "@deepseek-ai/cordis": "catalog:",
+    "@deepseek-ai/dsh-session": "catalog:"
   }
 }

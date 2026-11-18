@@ -9,9 +9,6 @@ catalogs:
     '@deepseek-ai/cordis':
       specifier: 4.0.6-alpha.1
       version: 4.0.6-alpha.1
-    '@deepseek-ai/cosmokit':
-      specifier: ~1.8.7-alpha.1
-      version: 1.8.7-alpha.2
     '@deepseek-ai/dsh-agent':
       specifier: 0.2.2-alpha.2
       version: 0.2.2-alpha.2
@@ -75,9 +72,6 @@ catalogs:
     '@deepseek-ai/schemastery':
       specifier: ~3.19.0
       version: 3.19.0
-    '@standard-schema/spec':
-      specifier: ^1.1.0
-      version: 1.1.0
     '@stylistic/eslint-plugin':
       specifier: ^5.10.0
       version: 5.10.0
@@ -150,63 +144,6 @@ importers:
         specifier: 'catalog:'
         version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
 
-  core/contracts:
-    dependencies:
-      '@core/cordis':
-        specifier: workspace:*
-        version: link:../cordis
-    devDependencies:
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
-
-  core/cordis:
-    dependencies:
-      '@deepseek-ai/cosmokit':
-        specifier: 'catalog:'
-        version: 1.8.7-alpha.2
-      '@standard-schema/spec':
-        specifier: 'catalog:'
-        version: 1.1.0
-    devDependencies:
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
-
-  core/runtime:
-    dependencies:
-      '@core/contracts':
-        specifier: workspace:*
-        version: link:../contracts
-      '@core/cordis':
-        specifier: workspace:*
-        version: link:../cordis
-      yaml:
-        specifier: 'catalog:'
-        version: 2.9.1
-    devDependencies:
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
-
   packages/access:
     dependencies:
       '@deepseek-ai/cordis':
@@ -234,50 +171,6 @@ importers:
       react:
         specifier: 'catalog:'
         version: 18.3.1
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
-
-  packages/agent-loop:
-    dependencies:
-      '@basis/llm':
-        specifier: workspace:*
-        version: link:../llm
-      '@basis/tools':
-        specifier: workspace:*
-        version: link:../tools
-      '@core/contracts':
-        specifier: workspace:*
-        version: link:../../core/contracts
-      '@core/cordis':
-        specifier: workspace:*
-        version: link:../../core/cordis
-    devDependencies:
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
-
-  packages/approval-cli:
-    dependencies:
-      '@core/contracts':
-        specifier: workspace:*
-        version: link:../../core/contracts
-      '@core/cordis':
-        specifier: workspace:*
-        version: link:../../core/cordis
-    devDependencies:
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -421,9 +314,6 @@ importers:
       '@deepseek-ai/dsh-storage-domain':
         specifier: 'catalog:'
         version: 0.2.2-alpha.2(@deepseek-ai/cordis@4.1.0)(@deepseek-ai/dsh-storage@0.2.2-alpha.2(@deepseek-ai/cordis@4.1.0))
-      '@eterna/tasks':
-        specifier: workspace:*
-        version: link:../tasks
       nodemailer:
         specifier: 'catalog:'
         version: 10.3.1
@@ -593,12 +483,18 @@ importers:
       '@eterna/audit':
         specifier: workspace:*
         version: link:../audit
+      '@eterna/channels':
+        specifier: workspace:*
+        version: link:../channels
       '@eterna/extra':
         specifier: workspace:*
         version: link:../extra
       '@eterna/governance':
         specifier: workspace:*
         version: link:../governance
+      '@eterna/interact':
+        specifier: workspace:*
+        version: link:../interact
       '@eterna/knowledge':
         specifier: workspace:*
         version: link:../knowledge
@@ -698,25 +594,6 @@ importers:
       yaml:
         specifier: 'catalog:'
         version: 2.9.1
-    devDependencies:
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
-
-  packages/llm:
-    dependencies:
-      '@core/contracts':
-        specifier: workspace:*
-        version: link:../../core/contracts
-      '@core/cordis':
-        specifier: workspace:*
-        version: link:../../core/cordis
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -944,44 +821,6 @@ importers:
         specifier: 'catalog:'
         version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
 
-  packages/session:
-    dependencies:
-      '@core/contracts':
-        specifier: workspace:*
-        version: link:../../core/contracts
-      '@core/cordis':
-        specifier: workspace:*
-        version: link:../../core/cordis
-    devDependencies:
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
-
-  packages/system-prompt:
-    dependencies:
-      '@core/contracts':
-        specifier: workspace:*
-        version: link:../../core/contracts
-      '@core/cordis':
-        specifier: workspace:*
-        version: link:../../core/cordis
-    devDependencies:
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
-
   packages/tasks:
     dependencies:
       '@deepseek-ai/cordis':
@@ -996,6 +835,21 @@ importers:
       '@deepseek-ai/dsh-session':
         specifier: 'catalog:'
         version: 0.2.2-alpha.2(@deepseek-ai/cordis@4.0.6-alpha.1)(@deepseek-ai/dsh-scope@0.2.2-alpha.2(@deepseek-ai/cordis@4.0.6-alpha.1))
+      '@deepseek-ai/dsh-system-prompt':
+        specifier: 'catalog:'
+        version: 0.2.2-alpha.2(@deepseek-ai/cordis@4.0.6-alpha.1)(@deepseek-ai/dsh-llm@0.2.2-alpha.2(@deepseek-ai/cordis@4.0.6-alpha.1))(@deepseek-ai/dsh-scope@0.2.2-alpha.2(@deepseek-ai/cordis@4.0.6-alpha.1))
+      '@deepseek-ai/dsh-tools':
+        specifier: 'catalog:'
+        version: 0.2.2-alpha.2(cc29c74f9a82c71c798d6fabd5e88936)
+      '@eterna/channels':
+        specifier: workspace:*
+        version: link:../channels
+      '@eterna/extra':
+        specifier: workspace:*
+        version: link:../extra
+      '@eterna/governance':
+        specifier: workspace:*
+        version: link:../governance
       zod:
         specifier: 'catalog:'
         version: 4.4.3
@@ -1009,6 +863,9 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.1
 
   packages/toolkit:
     dependencies:
@@ -1019,25 +876,6 @@ importers:
       '@eterna/governance':
         specifier: workspace:*
         version: link:../governance
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-      vitest:
-        specifier: 'catalog:'
-        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
-
-  packages/tools:
-    dependencies:
-      '@core/contracts':
-        specifier: workspace:*
-        version: link:../../core/contracts
-      '@core/cordis':
-        specifier: workspace:*
-        version: link:../../core/cordis
-    devDependencies:
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
@@ -1090,9 +928,18 @@ importers:
 
   packages/workbench:
     dependencies:
+      '@deepseek-ai/cordis':
+        specifier: 'catalog:'
+        version: 4.0.6-alpha.1(@deepseek-ai/cordis-plugin-include@1.0.11-alpha.1)(@deepseek-ai/cordis-plugin-loader@1.0.7-alpha.1)
       '@eterna/governance':
         specifier: workspace:*
         version: link:../governance
+      '@eterna/interact':
+        specifier: workspace:*
+        version: link:../interact
+      '@eterna/tasks':
+        specifier: workspace:*
+        version: link:../tasks
       '@eterna/ui':
         specifier: workspace:*
         version: link:../ui
