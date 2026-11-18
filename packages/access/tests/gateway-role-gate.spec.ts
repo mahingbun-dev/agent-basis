@@ -16,7 +16,7 @@ import { handleAccessRequest, type AccessDeps } from '../src/routes.ts'
 import { SessionService } from '../src/session.ts'
 import { SlidingWindow } from '../src/ratelimit.ts'
 import { UserStore } from '../src/store.ts'
-import { bindingsFor, visibilityScopeOf } from '../src/mux.ts'
+import { ADMIN_ONLY_UNARY_ACTIONS, bindingsFor, visibilityScopeOf } from '../src/mux.ts'
 import { registerTenantGuards, type TenantFetchRegistry } from '../src/tenant.ts'
 
 describe('P2-T1.7a:网关配置角色门(实例 wrap)', () => {
@@ -293,6 +293,9 @@ describe('WS-C 审批人角色门(M-4 M1 段)', () => {
         kinds: bindings.map(b => b.resource.kind),
         roleNames: bindings.map(b => b.role.name),
         actions: bindings.map(b => [...b.role.actions].sort()),
+        // T6.1:管理员专属 UI 门(插件页整页门)只收窄不放宽——剥离后比内容面,
+        // 与 mux-policy 的 contentView 同口径。
+        contentActions: bindings.map(b => b.role.actions.filter(a => !ADMIN_ONLY_UNARY_ACTIONS.includes(a)).sort()),
         sessionIds: bindings.filter(b => b.resource.kind === 'session').map(b => (b.resource as { id: string }).id),
         workspaceIds: bindings.filter(b => b.resource.kind === 'workspace').map(b => (b.resource as { id: string }).id),
       }
@@ -304,9 +307,13 @@ describe('WS-C 审批人角色门(M-4 M1 段)', () => {
     expect(approver.kinds).toEqual(user.kinds)
     expect(approver.roleNames).toEqual(user.roleNames)
     expect(approver.actions).toEqual(user.actions)
+    expect(approver.contentActions).toEqual(user.contentActions)
     expect(admin.kinds).toEqual(user.kinds)
     expect(admin.roleNames).toEqual(user.roleNames)
-    expect(admin.actions).toEqual(user.actions)
+    expect(admin.contentActions).toEqual(user.contentActions)
+    // 唯一角色分派面(收窄):admin 多插件页整页门,非 admin 无——不得反向放宽
+    expect(admin.actions.flat().join(' ')).toContain('pluginManager/listBundles')
+    expect(user.actions.flat()).not.toContain('pluginManager/listBundles')
     // 审批人仅见本人 session/workspace(不因 tenant-pending 档放宽 mux 内容绑定)
     expect(approver.sessionIds).toEqual([`s-${approverId}`])
     expect(approver.workspaceIds).toEqual([`w-${approverId}`])
