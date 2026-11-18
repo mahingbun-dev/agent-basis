@@ -266,7 +266,7 @@ const CSS = `
   flex-shrink: 0;
   font-size: var(--et-text-micro);
   line-height: 20px;
-  font-weight: 500;
+  font-weight: var(--et-weight-emphasis);
   padding: 1px 10px;
   border-radius: var(--et-radius-pill);
   border: 1px solid var(--et-border);
@@ -339,7 +339,7 @@ const CSS = `
   color: var(--et-fg);
   font: inherit;
   font-size: var(--et-text-caption);
-  font-weight: 500;
+  font-weight: var(--et-weight-emphasis);
   line-height: 1.4;
   text-align: left;
   cursor: pointer;
@@ -400,7 +400,9 @@ const CSS = `
 
 .ea-account-menu {
   position: fixed;
-  z-index: 2147483000;
+  /* v4 §7a.5:锚定弹层 = 100。原先用"最大值"压过一切,会让账户菜单盖住
+     设置弹窗(1000)与宿主 toast(1100)——那是层级语义错误,不是保险。 */
+  z-index: 100;
   max-height: calc(100dvh - 24px);
   overflow-y: auto;
   padding: 6px;
@@ -532,7 +534,7 @@ const CSS = `
 .ea-account-menu .ea-account-subitem:hover { background: var(--et-surface-2); }
 .ea-account-menu .ea-account-subitem > span { min-width: 0; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .ea-account-menu .ea-account-subitem > svg { flex: none; color: var(--et-accent); }
-.ea-account-menu .ea-account-subitem[aria-checked="true"] { color: var(--et-fg); font-weight: 500; }
+.ea-account-menu .ea-account-subitem[aria-checked="true"] { color: var(--et-fg); font-weight: var(--et-weight-emphasis); }
 .ea-account-menu .ea-account-confirm { padding: 12px 12px 10px; }
 .ea-account-menu .ea-account-confirm-title { margin: 0 0 6px; font-size: var(--et-text-body); font-weight: 600; }
 .ea-account-menu .ea-account-confirm-text { margin: 0 0 16px; color: var(--et-muted); font-size: var(--et-text-caption); line-height: 1.6; }
@@ -547,7 +549,7 @@ const CSS = `
   color: var(--et-fg);
   font: inherit;
   font-size: var(--et-text-caption);
-  font-weight: 500;
+  font-weight: var(--et-weight-emphasis);
   cursor: pointer;
 }
 .ea-account-menu .ea-account-btn:hover { background: var(--et-surface-2); }
@@ -567,125 +569,34 @@ const CSS = `
   }
 }
 
-/* ── 工具审批卡(2026-11-13):治理 ask 的 web 可见面,替代上游缺席的审批 UI ── */
-[data-eterna-approval-root] .eap-overlay {
-  position: fixed;
-  inset-block-start: 16px;
-  inset-inline: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--et-space-3);
-  z-index: 10000;
-  pointer-events: none;
-}
-[data-eterna-approval-root] .eap-card {
-  pointer-events: auto;
-  width: min(560px, calc(100vw - 32px));
-  border: 1px solid var(--et-warn);
-  border-radius: var(--et-radius-md);
-  background: var(--et-surface);
-  box-shadow: var(--et-shadow-raised);
-  overflow: hidden;
-  font-family: var(--et-font-body);
-  color: var(--et-fg);
-}
-[data-eterna-approval-root] .eap-strip {
-  background: var(--et-surface-2);
-  color: var(--et-warn);
-  padding: 8px 16px;
+/* ── 工具审批卡(2026-11-13):治理 ask 的 web 可见面,替代上游缺席的审批 UI ──
+   v4(2026-11-19):叠层位置改由 conversation.input.overlay 席位 + .et-decision-layer
+   决定(贴输入卡顶边,z=200);此处只保留卡片内文字样式,不再有 fixed/overlay。
+   卡片外壳与动作按钮用 @eterna/ui 的 .et-decision-card / .et-btn。 */
+[data-eterna-access-root] .eap-reason,
+[data-eterna-ui] .eap-reason {
+  margin: 0;
   font-size: var(--et-text-caption);
-  font-weight: var(--et-weight-body);
+  color: var(--et-muted);
 }
-[data-eterna-approval-root] .eap-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--et-space-2);
-  padding: 12px 16px 0;
-}
-[data-eterna-approval-root] .eap-headline { font-size: var(--et-text-body); font-weight: var(--et-weight-body); }
-[data-eterna-approval-root] .eap-tool code {
-  font-family: var(--et-font-mono);
-  font-size: var(--et-text-caption);
-  word-break: break-all;
-}
-[data-eterna-approval-root] .eap-reason { margin: 0; font-size: var(--et-text-caption); color: var(--et-muted); }
-[data-eterna-approval-root] .eap-meta { font-size: var(--et-text-caption); color: var(--et-muted); }
-[data-eterna-approval-root] .eap-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--et-space-2);
-  padding: 12px 16px 14px;
-}
-[data-eterna-approval-root] .eap-actions button {
-  padding: 6px 14px;
-  border-radius: var(--et-radius-sm);
-  border: 1px solid var(--et-border-soft);
-  background: transparent;
-  color: var(--et-fg);
-  font: inherit;
-  cursor: pointer;
-}
-[data-eterna-approval-root] .eap-actions button:disabled { opacity: 0.6; cursor: default; }
-[data-eterna-approval-root] .eap-actions .eap-reject:hover:not(:disabled) {
-  border-color: var(--et-danger);
-  color: var(--et-danger);
-}
-[data-eterna-approval-root] .eap-actions .eap-allow {
-  border-color: transparent;
-  background: var(--et-accent);
-  color: var(--et-accent-on);
-}
-[data-eterna-approval-root] .eap-actions .eap-allow:hover:not(:disabled) { opacity: 0.9; }
-@media (prefers-reduced-motion: reduce) {
-  [data-eterna-approval-root] .eap-card { transition: none; }
-}
+[data-eterna-ui] .eap-reason code { word-break: break-all; }
+[data-eterna-ui] .eap-meta { margin: 0; font-size: var(--et-text-meta); color: var(--et-meta); }
 
 /* ── 提问卡(2026-11-17):ask_user_question 的 web 可见面。上游前端卡片组件在
    mux 换血后收不到 waterfall(网关只发 owner peer),本卡=宿主提问桥的浏览器半边。
    与审批卡同层叠放(z-index 同档,纵向堆叠),但语义色用 accent 而非 warn。 ── */
-[data-eterna-question-root] .eq-overlay {
-  position: fixed;
-  inset-block-start: 16px;
-  inset-inline: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--et-space-3);
-  z-index: 10000;
-  pointer-events: none;
-}
-[data-eterna-question-root] .eq-card {
-  pointer-events: auto;
-  width: min(600px, calc(100vw - 32px));
-  max-height: calc(100vh - 48px);
-  overflow-y: auto;
-  border: 1px solid var(--et-accent);
-  border-radius: var(--et-radius-md);
-  background: var(--et-surface);
-  box-shadow: var(--et-shadow-raised);
-  font-family: var(--et-font-body);
-  color: var(--et-fg);
-}
-[data-eterna-question-root] .eq-strip {
-  background: var(--et-surface-2);
-  color: var(--et-accent);
-  padding: 8px 16px;
-  font-size: var(--et-text-caption);
-  font-weight: var(--et-weight-body);
-}
-[data-eterna-question-root] .eq-body {
+[data-eterna-ui] .eq-body {
   display: flex;
   flex-direction: column;
   gap: var(--et-space-3);
   padding: 12px 16px 0;
 }
-[data-eterna-question-root] .eq-title {
+[data-eterna-ui] .eq-title {
   margin: 0;
   font-size: var(--et-text-body);
   font-weight: var(--et-weight-body);
 }
-[data-eterna-question-root] .eq-field {
+[data-eterna-ui] .eq-field {
   margin: 0;
   padding: 0;
   border: 0;
@@ -694,7 +605,7 @@ const CSS = `
   gap: var(--et-space-2);
   min-inline-size: 0;
 }
-[data-eterna-question-root] .eq-question {
+[data-eterna-ui] .eq-question {
   padding: 0;
   font-size: var(--et-text-caption);
   color: var(--et-fg-2);
@@ -703,7 +614,7 @@ const CSS = `
   gap: var(--et-space-2);
   flex-wrap: wrap;
 }
-[data-eterna-question-root] .eq-chip {
+[data-eterna-ui] .eq-chip {
   display: inline-block;
   padding: 1px 8px;
   border-radius: var(--et-radius-pill);
@@ -711,12 +622,12 @@ const CSS = `
   color: var(--et-accent);
   font-size: var(--et-text-caption);
 }
-[data-eterna-question-root] .eq-options {
+[data-eterna-ui] .eq-options {
   display: flex;
   flex-direction: column;
   gap: var(--et-space-1);
 }
-[data-eterna-question-root] .eq-option {
+[data-eterna-ui] .eq-option {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 2px var(--et-space-2);
@@ -727,24 +638,24 @@ const CSS = `
   cursor: pointer;
   transition: border-color var(--et-motion-fast) var(--et-ease), background var(--et-motion-fast) var(--et-ease);
 }
-[data-eterna-question-root] .eq-option:hover { border-color: var(--et-accent); }
-[data-eterna-question-root] .eq-option:focus-within { box-shadow: var(--et-focus-ring); }
-[data-eterna-question-root] .eq-option-on {
+[data-eterna-ui] .eq-option:hover { border-color: var(--et-accent); }
+[data-eterna-ui] .eq-option:focus-within { box-shadow: var(--et-focus-ring); }
+[data-eterna-ui] .eq-option-on {
   border-color: var(--et-accent);
   background: var(--et-accent-soft);
 }
-[data-eterna-question-root] .eq-option input {
+[data-eterna-ui] .eq-option input {
   grid-row: 1 / span 2;
   margin: 2px 0 0;
   accent-color: var(--et-accent);
 }
-[data-eterna-question-root] .eq-option-label { font-size: var(--et-text-body); }
-[data-eterna-question-root] .eq-option-desc {
+[data-eterna-ui] .eq-option-label { font-size: var(--et-text-body); }
+[data-eterna-ui] .eq-option-desc {
   grid-column: 2;
   font-size: var(--et-text-caption);
   color: var(--et-muted);
 }
-[data-eterna-question-root] .eq-custom {
+[data-eterna-ui] .eq-custom {
   padding: 7px 10px;
   border: 1px solid var(--et-border-soft);
   border-radius: var(--et-radius-sm);
@@ -753,47 +664,17 @@ const CSS = `
   font: inherit;
   font-size: var(--et-text-body);
 }
-[data-eterna-question-root] .eq-custom:focus {
+[data-eterna-ui] .eq-custom:focus {
   outline: none;
   border-color: var(--et-accent);
   box-shadow: var(--et-focus-ring);
 }
-[data-eterna-question-root] .eq-error { margin: 0; font-size: var(--et-text-caption); color: var(--et-danger); }
-[data-eterna-question-root] .eq-meta { margin: 0; font-size: var(--et-text-caption); color: var(--et-muted); }
-[data-eterna-question-root] .eq-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--et-space-2);
-  padding: 12px 16px 14px;
-}
-[data-eterna-question-root] .eq-actions button {
-  padding: 6px 14px;
-  border-radius: var(--et-radius-sm);
-  border: 1px solid var(--et-border-soft);
-  background: transparent;
-  color: var(--et-fg);
-  font: inherit;
-  cursor: pointer;
-}
-[data-eterna-question-root] .eq-actions button:focus-visible {
-  outline: none;
-  box-shadow: var(--et-focus-ring);
-}
-[data-eterna-question-root] .eq-actions button:disabled { opacity: 0.6; cursor: default; }
-[data-eterna-question-root] .eq-actions .eq-skip:hover:not(:disabled) { border-color: var(--et-muted); }
-[data-eterna-question-root] .eq-actions .eq-submit {
-  border-color: transparent;
-  background: var(--et-accent);
-  color: var(--et-accent-on);
-}
-[data-eterna-question-root] .eq-actions .eq-submit:hover:not(:disabled) { background: var(--et-accent-hover); }
+[data-eterna-ui] .eq-meta { margin: 0; font-size: var(--et-text-caption); color: var(--et-muted); }
 @media (prefers-reduced-motion: reduce) {
-  [data-eterna-question-root] .eq-option { transition: none; }
+  [data-eterna-ui] .eq-option { transition: none; }
 }
 @media (max-width: 640px) {
-  [data-eterna-question-root] .eq-card { max-height: calc(100vh - 24px); }
-  [data-eterna-question-root] .eq-overlay { inset-block-start: 8px; }
-}
+    }
 /* 思考强度反馈按钮(2026-11-18 V2):挂 assistant 动作条,不在 access root 内,
    故不加 [data-eterna-access-root] 前缀;令牌桥接后深浅主题自动跟随。 */
 .ea-think-feedback { display: inline-flex; align-items: center; gap: 4px; margin-inline-start: 4px; }

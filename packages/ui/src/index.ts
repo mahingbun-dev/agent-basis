@@ -14,3 +14,6 @@ export type {
   BadgeProps, BadgeTone, BeadProps, ButtonProps, ButtonSize, ButtonVariant, CardProps, CardTier,
   FieldProps, IconButtonProps, InputProps, RingProps, StatusDotProps, StatusState, StripProps, TextareaProps,
 } from './components.tsx'
+
+export { DECISION_INSET_VAR, DecisionLayer } from './decision-layer.tsx'
+export type { DecisionLayerProps } from './decision-layer.tsx'

@@ -18,6 +18,14 @@ export const COMPONENT_CSS = `
    高 40 / radius-md(16) / 15px / 400→600 随层级
    主操作实心：accent-fill 底 + accent-on 字（白字对比 ≥4.5:1）
    次要：透明底 + border；幽灵：无边框 muted；破坏：danger 描边 30%+danger 字 */
+/* 组件一律 border-box：宿主/独立页的全局 reset 不一定覆盖我们，
+   而 content-box 会让 width + padding 撑破容器（实测决策卡 758→800 溢出输入卡）。 */
+[data-eterna-ui] .et-btn,
+[data-eterna-ui] .et-input, [data-eterna-ui] .et-textarea, [data-eterna-ui] .et-select,
+[data-eterna-ui] .et-card, [data-eterna-ui] .et-row, [data-eterna-ui] .et-badge,
+[data-eterna-ui] .et-decision-card, [data-eterna-ui] .et-decision-more,
+[data-eterna-ui] .et-strip, [data-eterna-ui] .et-ring { box-sizing: border-box; }
+
 [data-eterna-ui] .et-btn {
   --et-btn-h: 40px;
   display: inline-flex; align-items: center; justify-content: center; gap: var(--et-space-2);
@@ -112,6 +120,11 @@ export const COMPONENT_CSS = `
   border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-lg);
   background: var(--et-surface); box-shadow: var(--et-shadow-r1);
   padding: var(--et-space-5);
+  color: var(--et-fg);
+  font-family: var(--et-font-body);
+  font-size: var(--et-text-body);
+  font-weight: var(--et-weight-body);
+  line-height: var(--et-leading-body);
 }
 [data-eterna-ui] .et-card--emphasis { box-shadow: var(--et-bevel), var(--et-shadow-r2); }
 [data-eterna-ui] .et-card--inset { border: 0; border-radius: var(--et-radius-md); background: var(--et-surface-2); box-shadow: none; padding: var(--et-space-4); }
@@ -132,6 +145,11 @@ export const COMPONENT_CSS = `
   padding: var(--et-space-3) var(--et-space-4);
   border-radius: var(--et-radius-md); background: var(--et-surface);
   border: 1px solid var(--et-border-soft);
+  color: var(--et-fg);
+  font-family: var(--et-font-body);
+  font-size: var(--et-text-body);
+  font-weight: var(--et-weight-body);
+  line-height: var(--et-leading-body);
   transition: box-shadow var(--et-motion-base) var(--et-ease), transform var(--et-motion-base) var(--et-ease), background-color var(--et-motion-fast) var(--et-ease);
 }
 [data-eterna-ui] .et-row:hover { box-shadow: var(--et-shadow-r2); transform: translateY(-2px); }
@@ -152,8 +170,8 @@ export const COMPONENT_CSS = `
 
 /* ── 状态珠（式五：色 + 形 + 字，至少两者） ──────────────────── */
 [data-eterna-ui] .et-dot {
-  --et-dot-size: 10px;
-  display: inline-block; width: var(--et-dot-size); height: var(--et-dot-size); flex: none;
+  --dot-size: 10px;
+  display: inline-block; width: var(--dot-size); height: var(--dot-size); flex: none;
   border-radius: var(--et-radius-pill); background: var(--et-border); box-shadow: inset 0 0 0 1.5px var(--et-border);
 }
 [data-eterna-ui] .et-dot[data-state='running'] { background: var(--et-accent); animation: et-breathe 1.6s var(--et-ease) infinite; }
@@ -230,12 +248,19 @@ export const COMPONENT_CSS = `
   display: flex; flex-direction: column; align-items: center; gap: var(--et-space-2);
   z-index: 200; pointer-events: none;
 }
+/* 决策卡是最外层容器:必须自带文字基线,否则 color/font-size 继承文档默认
+   (深色下实测标题变纯黑、在墨玉底上不可读)。 */
 [data-eterna-ui] .et-decision-card {
   position: relative; overflow: hidden; pointer-events: auto;
   width: min(760px, 100%);
   border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-lg);
   background: var(--et-surface); box-shadow: var(--et-shadow-r3);
   padding: var(--et-space-5);
+  color: var(--et-fg);
+  font-family: var(--et-font-body);
+  font-size: var(--et-text-body);
+  font-weight: var(--et-weight-body);
+  line-height: var(--et-leading-body);
 }
 /* 倒计时：贴卡片顶边的 2px 条，不是独立一行（否则卡内出现一条横线切断内容） */
 [data-eterna-ui] .et-decision-track { position: absolute; inset-block-start: 0; inset-inline: 0; height: 2px; background: var(--et-surface-3); }

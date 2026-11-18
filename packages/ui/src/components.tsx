@@ -222,7 +222,7 @@ export interface StatusDotProps {
 /** 状态珠：色 + 形。语义必须再由旁边的文字或形状补齐（式五）。 */
 export function StatusDot(props: StatusDotProps): ReactNode {
   return <span className='et-dot' data-state={props.state}
-    style={props.size === undefined ? undefined : { ['--et-dot-size' as string]: `${props.size}px` }} />
+    style={props.size === undefined ? undefined : { ['--dot-size' as string]: `${props.size}px` }} />
 }
 
 export type BadgeTone = 'neutral' | 'accent' | 'success' | 'warn' | 'danger' | 'jade'

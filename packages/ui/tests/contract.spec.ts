@@ -116,6 +116,29 @@ describe('组件 CSS：令牌引用必须可解析', () => {
   })
 })
 
+describe('容器组件必须自带文字基线', () => {
+  // 深色下实测：决策卡未声明 color 时标题继承浏览器默认纯黑，在墨玉底上不可读。
+  const CONTAINERS = ['et-card', 'et-decision-card', 'et-row'] as const
+  for (const cls of CONTAINERS) {
+    it(`.${cls} 声明 color / font-size / 行高`, () => {
+      const index = COMPONENT_CSS.indexOf(`.${cls} {`)
+      expect(index, `找不到 .${cls} 的规则`).toBeGreaterThan(-1)
+      const rule = COMPONENT_CSS.slice(index, COMPONENT_CSS.indexOf('}', index))
+      expect(rule, `.${cls} 缺 color`).toContain('color: var(--et-fg)')
+      expect(rule, `.${cls} 缺字号`).toContain('font-size: var(--et-text-body)')
+      expect(rule, `.${cls} 缺行高`).toContain('line-height: var(--et-leading-body)')
+    })
+  }
+
+  it('文字基线用令牌，不写死具体颜色', () => {
+    for (const cls of CONTAINERS) {
+      const index = COMPONENT_CSS.indexOf(`.${cls} {`)
+      const rule = COMPONENT_CSS.slice(index, COMPONENT_CSS.indexOf('}', index))
+      expect(rule).not.toMatch(/color:\s*#[0-9a-fA-F]/u)
+    }
+  })
+})
+
 describe('圆角与层级：只允许阶梯值', () => {
   const LADDER = new Set([0, 8, 12, 16, 22, 28, 36, 9999])
   const Z_PAGE = new Set([100, 200, 1000, 1100, 1500])

@@ -53,7 +53,7 @@ interface Selected { readonly provider: string; readonly model: string; readonly
 
 const S = {
   panel: {
-    position: 'fixed', zIndex: 1300, width: 264,
+    position: 'fixed', zIndex: 100, width: 264,
     background: 'var(--et-surface)',
     color: 'var(--et-fg)',
     border: '1px solid var(--et-border)',

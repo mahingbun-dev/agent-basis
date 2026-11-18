@@ -223,6 +223,22 @@ for (const dir of SCAN_DIRS) {
     for (const match of code.matchAll(/@media[^{}]*?(?:max|min)-width:\s*(?:900|960)px/gu)) {
       issues.push(`${rel}: 规范外断点 ${match[0]}(请改用 1100/760/640)`)
     }
+    // v4 字重(42 号 §5.2):只有 400/500/600 三档。用令牌优先;
+    // 字面 500 仅允许"强调"用途(按钮/徽标/选中项标签),正文必须 400。
+    // 这里只拦规范外的权重值(如 300/700/800),400/500/600 由人工复核语义。
+    const WEIGHTS = new Set([400, 500, 600])
+    for (const match of code.matchAll(/font-weight:\s*([0-9]{3})/gu)) {
+      const value = Number(match[1])
+      if (!WEIGHTS.has(value)) {
+        issues.push(`${rel}: 规范外字重 ${match[0]}(只允许 400/500/600;正文 400、强调 500、标题 600)`)
+      }
+    }
+    for (const match of code.matchAll(/fontWeight:\s*([0-9]{3})/gu)) {
+      const value = Number(match[1])
+      if (!WEIGHTS.has(value)) {
+        issues.push(`${rel}: 规范外字重 ${match[0]}(只允许 400/500/600)`)
+      }
+    }
     // v4 圆角阶梯(42 号 §2.2):只允许 var(--et-radius-*) 与 8/12/16/22/28/36/9999。
     // 0/50%/100% 是圆形与直角,属形状而非档位,不在此列。
     const RADIUS_LADDER = new Set([0, 8, 12, 16, 22, 28, 36, 9999])
@@ -253,8 +269,13 @@ for (const dir of SCAN_DIRS) {
         zViolations.push({ file: rel, kind: 'zIndex', value })
       }
     }
+    // 组件局部自定义属性（同文件内 `--et-x: ...` 定义，如 --et-btn-h / --et-dot-size）
+    // 是合法的局部变量，不算"未定义的全局令牌"；只禁止引用别处不存在、自己也没定义的名字。
+    const localTokens = new Set([...code.matchAll(/(--et-[a-z0-9-]+)\s*:/gu)].map(m => m[1]))
     for (const match of code.matchAll(/--et-[a-z0-9-]+/gu)) {
-      if (!definedTokens.has(match[0])) issues.push(`${rel}: 未定义的令牌 ${match[0]}`)
+      if (!definedTokens.has(match[0]) && !localTokens.has(match[0])) {
+        issues.push(`${rel}: 未定义的令牌 ${match[0]}`)
+      }
     }
     for (const match of code.matchAll(/--dsw-alias-[a-z0-9-]+/gu)) {
       const known = upstream ?? fallbackUpstream
@@ -377,12 +398,8 @@ function statSyncSafe(path) {
  * (宁可让清单变短,不允许它长期留着一个已经不违规的条目)。
  */
 const LADDER_DEBT = [
-  // 审批卡/提问卡:10000 → 200(45 号 P2-1/P2-2)
-  { file: 'packages/access/src/client/styles.ts', kind: 'z-index', value: 10000, plan: 'P2-1/P2-2' },
-  // 账户菜单:2147483000 → 1000(45 号 P2-3)
-  { file: 'packages/access/src/client/styles.ts', kind: 'z-index', value: 2147483000, plan: 'P2-3' },
-  // 模型菜单:1300 → 100(45 号 P2-3)
-  { file: 'packages/access/src/client/model-menu.tsx', kind: 'zIndex', value: 1300, plan: 'P2-3' },
+  // P2 已全部清账(2026-11-19):审批/提问卡 10000→200(贴输入卡决策层)、
+  // 账户菜单 2147483000→100、模型菜单 1300→100。新越级项一律打回,不再记账。
 ]
 
 const debtKey = (v) => `${v.file}|${v.kind}|${v.value}`

@@ -18,8 +18,9 @@ import { SessionBindingProbe } from './session-probe.tsx'
 import { activeSessionId } from './session-bridge.ts'
 import { AccountLauncher, type AccountLauncherInjected } from './account-menu.tsx'
 import { installLinkOpeningDefault } from './link-opening.ts'
-import { installApprovalCard } from './approval-card.tsx'
-import { installQuestionCard } from './question-card.tsx'
+import { ApprovalCards } from './approval-card.tsx'
+import { QuestionCards } from './question-card.tsx'
+import { DecisionLayer } from '@eterna/ui'
 import { injectAccessStyles } from './styles.ts'
 import { api } from './api.ts'
 
@@ -390,15 +391,21 @@ export function apply(ctx: AccessClientContext): () => void {
     chatSettings: ctx.configForms?.get<{ getSnapshot(): { value?: { linkOpening?: unknown } | undefined } | undefined; set(field: string, value: unknown): Promise<boolean> }>('ui-chat'),
   })
 
-  // 工具审批卡(2026-11-13):治理 ask 的 web 可见面——上游前端无审批 UI,ask 挂死
-  // 不可见(session-7e15e6ab 事故)。轮询本人待决审批,body 级横幅允/拒;宿主半边
-  // = approval-bridge.ts(approval/request 答者)。轮询/渲染任何失败静默。
-  const requireShimForCard = require as unknown as (id: 'react-dom/client') => { createRoot(container: Element): { render(node: React.ReactElement): void; unmount(): void } }
-  const approvalCard = installApprovalCard(requireShimForCard('react-dom/client').createRoot)
-  // 提问卡(2026-11-17):ask_user_question 的 web 可见面——上游卡片组件在 mux 换血后
-  // 收不到 waterfall(网关只发 owner peer),提问假死无 UI(session-c9a74388 事故)。
-  // 宿主半边=question-bridge.ts(user-questions/request 答者)。
-  const questionCard = installQuestionCard(requireShimForCard('react-dom/client').createRoot)
+  // 决策层(2026-11-19,v4 §7a.2):工具审批 + 用户提问共用「贴输入卡顶边向上浮出」
+  // 的席位——注册在 `conversation.input.overlay`(session 作用域 list),渲染在宿主
+  // 输入卡的零高度锚点(.overlayAnchor)内。不再自挂 document.body + fixed top:16px
+  // + z-index:10000:两张卡同屏必然重叠,且会压住宿主原生 toast(top:40px/1100)。
+  // 数据仍走各自桥的浏览器半边(approval-bridge / question-bridge),因为多租户 mux
+  // 下 waterfall 只发给 owner peer,上游卡片收不到请求。
+  const registerDecisionLayer = (): void => {
+    ctx.slots.inject('conversation.input.overlay', () => ctx.slots.register({
+      name: 'conversation.input.overlay',
+      id: `${NS}.decision-layer`,
+      order: 80,
+      inject: () => ({ sessionId: undefined as string | undefined }),
+    }, DecisionLayerSlot))
+  }
+  registerDecisionLayer()
 
   const registerSections = (role: 'admin' | 'user'): void => {
     ctx.slots.inject('settings.section', () => ctx.slots.register({
@@ -498,10 +505,28 @@ export function apply(ctx: AccessClientContext): () => void {
 
   const disposeLocaleOriginal = disposeLocale
   return () => {
-    try { approvalCard?.dispose() } catch { /* 尽力而为 */ }
-    try { questionCard?.dispose() } catch { /* 尽力而为 */ }
     disposeLocaleOriginal()
   }
+}
+
+/**
+ * 决策层槽位（v4 §7a.2）：把审批卡与提问卡合成同一叠层。
+ *
+ * 顺序 = 到达顺序的近似：审批优先（阻塞工具执行），提问其次（阻塞模型继续）。
+ * 队列折叠与信息流补偿由 `DecisionLayer` 负责（宽屏 2 张 / 窄屏 1 张 + 切换条）。
+ */
+function DecisionLayerSlot(props: { readonly sessionId?: string | undefined }): React.JSX.Element {
+  const items = [
+    <ApprovalCards key='approval' sessionId={props.sessionId} />,
+    <QuestionCards key='question' sessionId={props.sessionId} />,
+  ]
+  return (
+    <DecisionLayer
+      items={items}
+      moreLabel={n => `另有 ${String(n)} 项待拍板`}
+      switchLabel={(index, total) => `第 ${String(index)}/${String(total)} 项 · 点击切换`}
+    />
+  )
 }
 
 /** 模型双面板菜单装配。React 渲染走壳注入的 react-dom/client(CJS external)。 */

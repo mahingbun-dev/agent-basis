@@ -48,8 +48,11 @@ interface TreeState {
 
 const styles: Record<string, React.CSSProperties> = {
   overlay: {
+    // v4 §6 弹窗:遮罩用 --et-scrim + 2px blur(唯一的 backdrop-filter 例外)。
+    // z=1000 与设置弹窗同档,仍高于决策层(200)、低于宿主 toast(1100)。
     position: 'fixed', inset: 0, zIndex: 1000,
-    background: 'var(--dsw-alias-bg-mask-1, var(--et-overlay))',
+    background: 'var(--et-scrim)',
+    backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   dialog: {
