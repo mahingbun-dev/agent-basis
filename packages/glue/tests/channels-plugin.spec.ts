@@ -193,6 +193,31 @@ describe('channels 插件:ctx.channels 服务 provide', () => {
   })
 })
 
+describe('channels 插件:tasks 投递面消费的结构端口(★A1 双包对接面)', () => {
+  // tasks 侧 channelsDeliveryFromContext(packages/tasks/src/effects/channels-delivery.ts)按
+  // 本结构面消费 ctx.channels 服务(34 号 §1 端口注入):面缺任一成员即不派生、回执回落
+  // UNWIRED 挂起——双包对接面被两侧测试钉住(glue 钉「面存在」,tasks tests/channels-
+  // delivery.spec.ts 钉「面消费语义」)。
+  it('world 满足适配器消费的结构面:adapters.list/get、cards.buildReplyCard/validateOutboundCard/classifyDeliveryFailure、bindings.resolveThread 在场', async () => {
+    const { world } = await mountChannels()
+    expect(typeof world.adapters.list).toBe('function')
+    expect(typeof world.adapters.get).toBe('function')
+    expect(typeof world.cards.buildReplyCard).toBe('function')
+    expect(typeof world.cards.validateOutboundCard).toBe('function')
+    expect(typeof world.cards.classifyDeliveryFailure).toBe('function')
+    expect(typeof world.bindings.resolveThread).toBe('function')
+    // 面可用性冒烟(Outbox reply 的组卡/归类/绑定解析三路径)
+    const card = world.cards.buildReplyCard({ purpose: 'answer', title: '任务回复', body: 'hi' })
+    expect(card).toBeDefined()
+    world.cards.validateOutboundCard(card!)
+    expect(world.cards.classifyDeliveryFailure(new Error('boom'))).toBe('transient')
+    expect(world.adapters.list()).toEqual([])
+    expect(world.adapters.get('feishu/card')).toBeUndefined()
+    world.bindings.bindThread('feishu', 'fs-user-1', 'tasks:t-1')
+    expect(world.bindings.resolveThread('feishu', 'fs-user-1')?.threadKey).toBe('tasks:t-1')
+  })
+})
+
 describe('channels 插件:webhook 端点挂宿主 webServer', () => {
   it('prefix 路由注册在 /channels/api;HMAC 验签通过 → session 回退投递 202(channels 包语义)', async () => {
     const { webServer, world, sessionPort } = await mountChannels()

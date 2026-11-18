@@ -14,7 +14,9 @@
  * ① store —— TasksRealmRouter 按 realm 解析租户库(注入的 dirOf 解析失败即 fail-closed 不开库,
  *    23 号 §3.1;缺省派生的部署指名 realm 由 Store 引导自建目录);
  * ② effects —— Effects 持久副作用队列并在装配步内 start(handler 由 outbox 等随后注册时 kick 重派);
- * ③ outbox —— 回执投递(channels 适配器经 TasksOptions.channels 端口注入,A21 接口位缺省挂起);
+ * ③ outbox —— 回执投递(channels 适配器经 TasksOptions.channels 端口注入;★A1 已接线:
+ *    glue 未显式注入时自宿主 ctx 机会派生 effects/channels-delivery.ts,宿主无 channels
+ *    服务才回落 UNWIRED 挂起);
  * ④ engine —— Engine + Intake/Evals/Tickets/Assignments/Replies 全链真实装配(policy/realmOf/
  *    scope/prepareTicket 由装配面供给;pass 驱动随 engine 步启动,28 号 §8-3 pass 周期);
  * ⑤ assessor —— ★A19 已接线:MasterAssessor(per-eval 状态隔离/候选卡投递 'assessment'
@@ -52,6 +54,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { Engine } from './core/engine.ts'
 import type { DomainEvent, EffortTier, EngineForMainSession, Executor, SourceScope, Thread, Ticket, Trigger } from './core/index.ts'
 import { Effects, HealthBoard, type Health, type HealthEntry } from './effects/effects.ts'
+import { channelsDeliveryFromContext } from './effects/channels-delivery.ts'
 import { Outbox, type ChannelsDelivery } from './effects/outbox.ts'
 import { DshExecutor, ticketExecution, type ExecutorHost } from './executor/dsh.ts'
 import { DEFAULT_SUBAGENT_POLICIES, validateSubagentPolicies, type SubagentPolicies } from './executor/subagent-policies.ts'
@@ -220,7 +223,8 @@ export interface TasksOptions {
    * fail-closed 拒收违规声明(装配期抛错)。
    */
   readonly subagentPolicies?: SubagentPolicies
-  /** channels 回执投递适配器(A21 接线;缺省 UNWIRED_CHANNELS——回执挂起等待,不落 dropped)。 */
+  /** channels 回执投递适配器(A21 接线;缺省经 defineTasksPlugin 自宿主 ctx 派生
+   *  (channels-delivery.ts),宿主亦无 channels 服务时回落 UNWIRED_CHANNELS——回执挂起等待,不落 dropped)。 */
   readonly channels?: ChannelsDelivery
   /**
    * 候选评估的线程上下文读取端口(A19/A21 接线位;缺省不提供——候选评估只用触发文本与批次,
@@ -539,7 +543,7 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
   effects.start()
   begin('effects', (): void => { void effects.drain().catch(() => { /* 关停竞态的错误不阻宿主 */ }) })
 
-  // ── ③ outbox:回执投递(channels 适配器端口注入;A21 接口位缺省挂起等待)────────────
+  // ── ③ outbox:回执投递(channels 适配器端口注入;缺省自宿主 ctx 派生,无 channels 服务保持挂起)──
   const outbox = new Outbox({
     store,
     effects,
@@ -575,10 +579,10 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
     ...(options.threadContext ? { threadContext: options.threadContext } : {}),
     ...(options.deliverCandidate !== undefined || options.sessionHost !== undefined
       ? { deliver: options.deliverCandidate ?? ((requestId: string, text: string) => {
-          const impl = deliverRef.value
-          if (impl === undefined) return Promise.reject(new Error('候选卡投递面未就绪(Sessions 尚未装配)'))
-          return impl(requestId, text)
-        }) }
+        const impl = deliverRef.value
+        if (impl === undefined) return Promise.reject(new Error('候选卡投递面未就绪(Sessions 尚未装配)'))
+        return impl(requestId, text)
+      }) }
       : {}),
     ...(options.readPath ? { readPath: options.readPath } : {}),
     ...(options.sourceLink ? { sourceLink: options.sourceLink } : {}),
@@ -858,14 +862,24 @@ export function defineTasksPlugin(config: TasksPluginConfig = {}) {
         // inject 已声明(见 defineTasksPlugin):apply 时点五服务+宿主面均就绪,无需重试。
         if (stopped) return
         const derived = config.sessionHost === undefined ? sessionHostFromContext(ctx) : undefined
+        // ★channels 投递面自派生(★A1 回执接线,2026-11-19):glue 未显式注入 config.channels
+        // 时,自宿主 ctx 机会读取 channels 服务束(channels-delivery.ts 结构端口,双路反射
+        // 惯例同 sessionHostFromContext)派生 ChannelsDelivery 注入。服务缺席(boot 时序常态:
+        // 清单行序 eterna-tasks 先于 eterna-channels,bootTasks 一次性执行)仍派生惰性面——
+        // 方法逐调用现读,reply effect 的 Later 重试吸收挂载时序;结构面残缺 fail-closed
+        // 不派生,回落 UNWIRED_CHANNELS。显式注入恒优先(glue 的适配面可按需覆写)。
+        const channelsDerived = config.channels === undefined ? channelsDeliveryFromContext(ctx) : undefined
         // 行配置注入(cordis loader apply(ctx, config) 第二参):realm/effort 等部署面
         // 从 super 模板 eterna-tasks 行 config 传入(优先于包内缺省)。
         const resolved: TasksPluginConfig = {
           ...config,
           ...(rowConfig ?? {}),
-          // 派生注入(sessionHost 为只读字段,经展开覆写而非属性赋值)。
+          // 派生注入(sessionHost/channels 均为只读字段,经展开覆写而非属性赋值)。
           ...(rowConfig?.sessionHost === undefined && config.sessionHost === undefined && derived !== undefined
             ? { sessionHost: derived }
+            : {}),
+          ...(rowConfig?.channels === undefined && config.channels === undefined && channelsDerived !== undefined
+            ? { channels: channelsDerived }
             : {}),
         }
         // 宿主 logger 机会读取(结构面,缺席静默——memory-plugin 同款口径,测试 ctx 可缺席)。

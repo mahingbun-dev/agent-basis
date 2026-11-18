@@ -7,7 +7,9 @@
  * permissionPresets/sessionPersistence 在 DSH 0.2.2-rc.1 全部存在且签名与 SA 用法
  * 吻合;逐字签名见其 §5 表,编译期钉住见 tests/types.seam-pin.ts):
  * - `ensure(id, cwd, title, role)`(SA app/sessions.ts:138-155 同路径):resolveAgent
- *   → `'session/not-found'` 判新建 → `workspaceRegistry.create(cwd, title)` →
+ *   → `'session/not-found'` 判新建 → `workspaceRegistry.create(cwd)`(标题解耦:rc.1
+ *   的 create 同 canonical path 幂等复用既有登记且不改其 title,workspace 标题回落宿主
+ *   缺省=目录末段,会话标题不作 workspace 标题)→
  *   `sessionController.create({ sessionId, workspaceId, agentPreset })`(rc.1 的
  *   SessionCreateRequest.agentPreset「replacing a reused Session's recorded preset」
  *   即 SA 的 preset 重选兜底)→ 复解析 → `permissionPresets.set(session, preset)`
@@ -52,7 +54,8 @@ declare module '@deepseek-ai/dsh-llm' {
  *   RemoteError 本体 extends Error 故原样可抛);`'session/not-found'` 是新建判据,
  *   其余错误原样抛出;
  * - `workspaces`:WorkspaceRegistry.create(path, title?) → { id, path, title }
- *   (rc.1 index.d.ts:146);
+ *   (rc.1 index.d.ts:146;title 仅新建时生效,同 path 幂等复用既有登记且不改其 title——
+ *   ensure 只传 path,workspace 标题回落宿主缺省,与会话标题解耦);
  * - `permissions`:PermissionPresetService.set(session, name)(rc.1 index.d.ts:177);
  * - `persistence`:SessionPersistence.flush() + open(id, 'read') → 句柄
  *   read(offset, length) → { events } / close()(rc.1 index.d.ts:133/145、
@@ -168,7 +171,10 @@ export class Sessions {
     const { controller, workspaces, permissions } = this.host.ports
     let result = await controller.resolveAgent(SessionId(id))
     if ('error' in result && result.error.code === 'session/not-found') {
-      const workspace = await workspaces.create(cwd, title)
+      // workspace 标题与会话标题解耦(43-M4 §四『workspace 组名重名』根因):rc.1 的
+      // create 同 canonical path 幂等复用且 title 仅新建时生效,这里只登记 cwd——
+      // workspace 标题回落宿主缺省(目录末段);会话标题照旧走下方 rename。
+      const workspace = await workspaces.create(cwd)
       const preset = this.host.presets?.[role]
       await controller.create({ sessionId: SessionId(id), workspaceId: workspace.id,
         ...(preset !== undefined ? { agentPreset: preset } : {}) })

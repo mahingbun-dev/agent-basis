@@ -20,6 +20,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import {
+  buildReplyCard, classifyDeliveryFailure, createChannelsService, createFeishuChannelAdapter,
+  createOfflineCardTransport, validateOutboundCard,
+} from '@eterna/channels'
 import { Engine } from '../src/core/engine.ts'
 import { Effects } from '../src/effects/effects.ts'
 import { Outbox } from '../src/effects/outbox.ts'
@@ -100,6 +104,44 @@ it('装配按 store→effects→outbox→engine→assessor→executor→sources 
   // 幂等:二次 dispose 不再回放
   runtime.dispose()
   expect(runtime.shutdown).toEqual([...BOOT_ORDER].reverse())
+})
+
+// ── ★A1 channels 投递面自派生(2026-11-19 回执接线;41-M4 判据「reply effect 经 channels 结算」)──
+
+it('channels 投递面自宿主 ctx 派生(A1):ctx 带 channels 服务 fixture 即派生注入,回执经 channels 结算(UNWIRED 不再是终态)', async () => {
+  openRealm()
+  const ctx = new Context()
+  // 假 channels world(glue ChannelsWorld 的结构同构件:@eterna/channels 真件服务束 +
+  // cards 纯函数面),经 ctx.reflect.provide 挂 'channels' 服务名(结构端口,34 §1)。
+  const service = createChannelsService()
+  const transport = createOfflineCardTransport()
+  service.adapters.register(createFeishuChannelAdapter({ transport }))
+  ctx.reflect.provide('channels', {
+    id: service.id, bindings: service.bindings, tokens: service.tokens, adapters: service.adapters,
+    sources: service.sources,
+    cards: { buildReplyCard, validateOutboundCard, classifyDeliveryFailure },
+  })
+  service.bindings.bindThread('feishu', 'fs-user-1', 'tasks:thread-1')
+  // defineTasksPlugin 未显式注入 config.channels:bootTasks 自宿主 ctx 机会派生
+  // (反射惯例,sessionHost 同式,plugin.ts 装配缝)——显式注入恒优先。
+  const plugin = defineTasksPlugin({ tenantRoot: root, realm: 'alice', passIntervalMs: 3_600_000, scope: testScope })
+  const dispose = plugin.apply(ctx)
+  try {
+    const runtime = ctx.tasks as TasksRuntime
+    const trigger = humanTrigger('1', '@bot 修复登录回归', {
+      channel: { source: 'feishu', thread: 'tasks:thread-1', address: { channelUserId: 'fs-user-1' } },
+    })
+    expect(runtime.engine.receive(trigger)).toBe('stored')
+    const reply = runtime.engine.reply({ purpose: 'answer', triggerId: trigger.id, text: '已安排修复,稍后回报' })
+    await runtime.effects.idle('reply')
+    // UNWIRED(available 恒 false)下回执永挂起——派生面在场即经 channels 真实结算 sent
+    // (组卡→适配器出站,离线传输器记录收件人)。
+    expect(runtime.store.receipts.get(reply.id)?.status).toBe('sent')
+    expect(transport.sent[0]?.recipient).toBe('fs-user-1')
+  } finally {
+    dispose()
+    service.close()
+  }
 })
 
 it('关停收口:store 关闭、tasks 健康项注销、stats 面停用;关停在关停序内执行', () => {
