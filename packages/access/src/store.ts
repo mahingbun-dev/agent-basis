@@ -9,6 +9,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { hashPassword, validateAccount, validatePassword, verifyPassword } from './password.ts'
+import { decayBias } from './thinking-score.ts'
 
 /** WS-C(37 号 M-1):审批人第三角色。中文「审批人」仅 UI 文案层(index.tsx i18n),
  *  此处沿英文小写枚举先例。B2 领域专家角色复用时只改此联合类型 + CHECK 迁移函数
@@ -117,6 +118,22 @@ export function migrateSessionsThinkingAuto(db: DatabaseSync): void {
   db.exec('ALTER TABLE sessions ADD COLUMN thinking_auto INTEGER NOT NULL DEFAULT 1')
 }
 
+/**
+ * 思考强度反馈偏置列迁移(V2,2026-11-18):sessions 补 `thinking_bias`(REAL,默认 0)
+ * 与 `thinking_bias_at`(INTEGER epoch ms,默认 0=从未反馈)。
+ * 读时按 24h 半衰衰减(thinking-score.decayBias),写入只存原始值与时间戳 ⇒
+ * 衰减口径可随代码调整而不必回改历史数据。幂等判定同 thinking_auto(fail-loud)。
+ */
+export function migrateSessionsThinkingBias(db: DatabaseSync): void {
+  const columns = db.prepare('PRAGMA table_info(sessions)').all() as Array<{ name: string }>
+  if (!columns.some(column => column.name === 'thinking_bias')) {
+    db.exec('ALTER TABLE sessions ADD COLUMN thinking_bias REAL NOT NULL DEFAULT 0')
+  }
+  if (!columns.some(column => column.name === 'thinking_bias_at')) {
+    db.exec('ALTER TABLE sessions ADD COLUMN thinking_bias_at INTEGER NOT NULL DEFAULT 0')
+  }
+}
+
 export interface CreateUserInput {
   readonly account: string
   readonly password: string
@@ -199,7 +216,9 @@ export class UserStore {
       session_id TEXT PRIMARY KEY,
       owner_id INTEGER NOT NULL REFERENCES users(id),
       workspace_id TEXT,
-      thinking_auto INTEGER NOT NULL DEFAULT 1
+      thinking_auto INTEGER NOT NULL DEFAULT 1,
+      thinking_bias REAL NOT NULL DEFAULT 0,
+      thinking_bias_at INTEGER NOT NULL DEFAULT 0
     )`)
     // T6 装载器(2026-11-18):公共层共享插件记账(转内置产物;拷贝制,与个人行解耦——
     // 原作者删除不影响共享存续,隔离计划 §T7-B「已转内置的插件存续于公共层」)。
@@ -215,6 +234,8 @@ export class UserStore {
     // 思考强度自动模式(2026-11-18):存量库补列——SQLite 的 ADD COLUMN 幂等以
     // pragma table_info 判定;默认 1 = 存量与新会话均默认自动(用户拍板),可按会话关闭。
     migrateSessionsThinkingAuto(this.db)
+    // V2(2026-11-18):反馈偏置两列(读时衰减;写入只存原始值与时间戳)
+    migrateSessionsThinkingBias(this.db)
   }
 
   close(): void {
@@ -453,6 +474,35 @@ export class UserStore {
     const r = this.db.prepare('UPDATE sessions SET thinking_auto = ? WHERE session_id = ?')
       .run(enabled ? 1 : 0, sessionId)
     return Number(r.changes) > 0
+  }
+
+  // ── 思考强度反馈偏置(V2,2026-11-18):sessions.thinking_bias/_at ─────
+
+  /**
+   * 读该会话的原始偏置与写入时刻;从未反馈(或会话不在账本)→ undefined。
+   * 衰减不在存储层做:调用方用 `decayBias(raw, at, now)` 换算有效值。
+   */
+  thinkingBiasOf(sessionId: string): { readonly bias: number; readonly updatedAt: number } | undefined {
+    const row = this.db.prepare('SELECT thinking_bias, thinking_bias_at FROM sessions WHERE session_id = ?')
+      .get(sessionId) as { thinking_bias: number; thinking_bias_at: number } | undefined
+    if (row === undefined || row.thinking_bias_at === 0) return undefined
+    return { bias: row.thinking_bias, updatedAt: row.thinking_bias_at }
+  }
+
+  /**
+   * 叠加一次反馈偏置:先按 24h 半衰把存量偏置衰减到 `now`,再加减 delta,
+   * 钳位 [-0.5,0.5] 后连同 `now` 落库(同向累计、反向抵消、久未操作自然衰减)。
+   * 未知会话返回 undefined(不隐式建行,归属记账才建)。
+   */
+  addThinkingBias(sessionId: string, delta: number, now: number): { readonly bias: number } | undefined {
+    const row = this.db.prepare('SELECT thinking_bias, thinking_bias_at FROM sessions WHERE session_id = ?')
+      .get(sessionId) as { thinking_bias: number; thinking_bias_at: number } | undefined
+    if (row === undefined) return undefined
+    const current = decayBias(row.thinking_bias, row.thinking_bias_at, now)
+    const next = Math.max(-0.5, Math.min(0.5, current + delta))
+    this.db.prepare('UPDATE sessions SET thinking_bias = ?, thinking_bias_at = ? WHERE session_id = ?')
+      .run(next, now, sessionId)
+    return { bias: next }
   }
 
   // ── P4-T6(2026-11-11):双层插件记账(个人层激活清单;装载=进程内按行启用) ──
