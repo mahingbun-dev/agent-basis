@@ -30,6 +30,27 @@
 | 7 | **A1 结构化载荷边界** | Receipt 现只有 text/kind(store/store.ts:39 extends OutboundMessage,core/ports.ts:117) | result/attention 六态/审批 purpose 结构化载荷本期不做,需要时扩 OutboundMessage |
 | 8 | **文档编号撞号遗留(16×2、19×2)** | 16-独立测试计划与验收报告/16-金集评审工作表、19-progress/19-记忆系统开发文档 两两撞号;grep 实证:16-金集评审工作表零外部互引(改号零成本),19-progress 被 23-记忆多租户分库设计.md 与 41-记忆全局蒸馏落地-M-M4两阶段.md 两处引用 | 建议 16-金集评审工作表→16a、19-progress→19b(19a 已被 19a-spike-conclusions 占用);19 改号须同步上述两处引用,随对应文档属主收编(本轮任务面只改 41→43) |
 
+
+## 附A、活体终验(2026-11-19 02:0x,主会话亲验)
+
+桥挂载行落地 + realm 拨正(commit 0ec58ff)后,以真实实例复跑全链:
+
+| 验收点 | 结果 | 证据 |
+|---|---|---|
+| A2 归属自动登记 | ✅ | 删 users.db 归属行 → 重启 → `orchestrator-Mr.Ma\|1` 自动回登,零手工 |
+| realm 对齐 | ✅ | realm=admin 时桥 fail-closed 不登记(显式可见);拨正 Mr.Ma 后即通 |
+| tenant 守卫 | ✅ | `/api/session/prompt` 对 orchestrator-Mr.Ma 直接 `accepted:true`(此前须手工补行) |
+| 候选卡→route→工单 | ✅ | orchestrator_route accept(审批卡批准)→ ticket `6b3ac2dc…` + R4 目录 |
+| worker 真实执行 | ✅ | 交付物 `.ticket/6b3ac2dc…/m4-clearance-final.md` 内容逐字=「清障后全链复验通过」 |
+| A1 回执面 | ✅(按契约) | outbox 落回执行;webchat 无渠道适配器 → available=false → Later 持有退避(channels-delivery.ts 头注边界,非缺陷);飞书/微信适配器接入后即真实出站 |
+| A4 侧栏双名 | ✅ | workspace 组=「Mr.Ma」(账号目录名),会话名解耦,无双名 |
+
+过程发现(设计内行为的观察,记档):
+1. **Eval deadline(120s)< 审批倒计时(215s)**:慢批准会先撞 Eval 超时(unavailable/timeout,
+   trigger 重排);模型自动重试 route 二次(修掉 worktree_name 校验拒因)即恢复出票。
+   两窗口的协调策略归后续 UX 打磨(审批倒计时宜 ≤ Eval 剩余时间)。
+2. admin-era tasks store(workspaces/admin/.eterna)随 realm 拨正退役,数据保留作历史。
+
 ## 三、用户门控遗留(须人/凭据/拍板,机器不可自验收)
 
 | # | 项 | 阻点 | 建议动作 |
