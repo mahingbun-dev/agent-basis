@@ -1009,15 +1009,8 @@ export function defineTasksPlugin(config: TasksPluginConfig = {}) {
         const disposeService = ctx.provide(TASKS_SERVICE_ID, runtime)
         logger?.info?.(`[tasks] realm=${runtime.realm} boot=${runtime.boot.join('→')}`)
         // 关停配逆(34 §4-E):先撤 webchat 入口订阅面与 section 注入面、ctx 服务(反注册面),
-        // 再按装配逆序回放组件关停。bootTasks 无返回值(装配配逆移交 disposeTasks 闭包态)。
-        disposeTasks = () => {
-          disposeWebchat?.()
-          webchatHealth?.release()
-          disposeSection?.()
-          disposeService()
-          runtime.dispose()
-        }
-        // 装配配逆移交外层 disposer(stopped/disposeTasks 闭包态)
+        // 再按装配逆序回放组件关停;装配配逆移交外层 disposer(stopped/disposeTasks 闭包态,
+        // bootTasks 无返回值)。
         disposeTasks = () => {
           disposeWebchat?.()
           webchatHealth?.release()
