@@ -3,13 +3,12 @@
 # tier2 允许登记未落地包(登记先于落地:tasks、workbench 为 31 号 §2.2 点名的 Tier2)。
 # toolkit 不在初始清单(G0-6 ① 初始 Tier2 只点名 tasks、workbench)——其落地 PR(WS-B)时
 # 按"新包落地时登记"加入 tier1(40 号 §9 Q5 暂定;归属随 D1 拍板联动)。
-# 初始 tier1 = 2026-11-17 实测 32 名(40 号 §1 表第 7 行:packages/ 29 + tools/ 3,
+# tier1 = 26 名(packages/ 23 + tools/ 3;「tools」是目录分组名不是包,原表误列已除;2026-11-17 初测 32 名,其中五名在途未落地移 tier2,
 # bundle-core/ 无 package.json 不算包),逐名列出、不用通配——真值源必须显式。
 tier1:
-  # ── packages/ 29 名 ──
+  # ── packages/ 24 名(agent-loop/approval-cli/llm/session/system-prompt 五名在途未落地,
+  #   按「tier2 允许登记未落地包」暂列 tier2,各自落地 PR 时按「新包落地时登记」移回 tier1) ──
   - access
-  - agent-loop
-  - approval-cli
   - attachments
   - audit
   - brand
@@ -24,16 +23,12 @@ tier1:
   - governance
   - interact
   - knowledge
-  - llm
   - llm-doctor
   - llm-openai
   - memory
   - observe
   - panel
   - prompt-studio
-  - session
-  - system-prompt
-  - tools
   - ui
   - usage-stats
   # ── tools/ 3 名 ──
@@ -43,3 +38,8 @@ tier1:
 tier2:
   - tasks
   - workbench
+  - agent-loop
+  - approval-cli
+  - llm
+  - session
+  - system-prompt
