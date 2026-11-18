@@ -129,12 +129,12 @@ const CSS_SETTINGS = `
 [data-eterna-memory-settings] * { box-sizing: border-box; min-width: 0; }
 [data-eterna-memory-settings] .em-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--et-space-3); margin: 0 0 var(--et-space-3); }
 [data-eterna-memory-settings] .em-card { padding: var(--et-space-4); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); background: var(--et-surface); }
-[data-eterna-memory-settings] .em-kicker { font-size: var(--et-text-micro); color: var(--et-muted); margin: 0 0 6px; }
+[data-eterna-memory-settings] .em-kicker { font-size: var(--et-text-meta); letter-spacing: var(--et-tracking-caps); color: var(--et-muted); margin: 0 0 var(--et-space-1); }
 [data-eterna-memory-settings] .em-value { font-size: var(--et-text-lead); line-height: 1.2; font-weight: var(--et-weight-display); font-variant-numeric: tabular-nums; white-space: nowrap; }
 [data-eterna-memory-settings] .em-form { display: grid; gap: var(--et-space-4); padding: var(--et-space-4); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); background: var(--et-surface); max-width: 560px; }
 [data-eterna-memory-settings] .em-field { display: grid; gap: 6px; }
 [data-eterna-memory-settings] .em-label { font-size: var(--et-text-caption); font-weight: var(--et-weight-display); color: var(--et-fg-2); }
-[data-eterna-memory-settings] .em-hint { font-size: var(--et-text-micro); color: var(--et-muted); }
+[data-eterna-memory-settings] .em-hint { font-size: var(--et-text-caption); color: var(--et-muted); }
 [data-eterna-memory-settings] .em-radio { display: flex; align-items: baseline; gap: 8px; font-size: var(--et-text-caption); color: var(--et-fg-2); cursor: pointer; }
 [data-eterna-memory-settings] .em-radio input[type='radio'] { width: 16px; height: 16px; margin: 0; flex: none; align-self: center; accent-color: var(--et-accent); }
 [data-eterna-memory-settings] .em-radio input[type='radio']:focus-visible { outline: 2px solid var(--et-accent); outline-offset: 2px; }
@@ -149,7 +149,7 @@ const CSS_SETTINGS = `
 [data-eterna-memory-settings] .em-note { font-size: var(--et-text-caption); color: var(--et-muted); }
 [data-eterna-memory-settings] .em-note[data-ok='true'] { color: var(--et-fg-2); }
 [data-eterna-memory-settings] .em-note[data-ok='false'] { color: var(--et-danger); }
-[data-eterna-memory-settings] .em-cost { display: flex; align-items: center; gap: 6px; padding-top: var(--et-space-3); border-top: 1px dashed var(--et-border-soft); font-size: var(--et-text-micro); color: var(--et-muted); }
+[data-eterna-memory-settings] .em-cost { display: flex; align-items: center; gap: 6px; padding-top: var(--et-space-3); border-top: 1px dashed var(--et-border-soft); font-size: var(--et-text-caption); color: var(--et-muted); }
 [data-eterna-memory-settings] .em-empty { padding: var(--et-space-5) 0; color: var(--et-muted); }
 [data-eterna-memory-settings] .em-head { display: flex; align-items: center; gap: 8px; margin: 0 0 var(--et-space-3); }
 [data-eterna-memory-settings] .em-head h3 { margin: 0; font-size: var(--et-text-lead); font-weight: var(--et-weight-display); }
