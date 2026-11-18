@@ -751,10 +751,9 @@ export function FlowView(props: FlowViewProps): ReactElement {
   return (
     <section data-eterna-workbench="view" data-eterna-workbench-view="flow" id="wb-v2" aria-labelledby="wb-h-v2">
       <div data-eterna-workbench="view-head">
-        <p data-eterna-workbench="kicker">视图二 · 旗舰视图</p>
         <h2 data-eterna-workbench="view-title" id="wb-h-v2">信息流实时图</h2>
       </div>
-      <p data-eterna-workbench="view-desc">Trigger→Thread→Eval→Decision→Ticket→Assignment→Worker→Report→Outbox 活图：节点即领域对象，边即 DomainEvents，节点状态实时跳动，<strong>person/* 卡点以警示色驻留</strong>（30 §2-1）。渲染为 <strong>Canvas</strong>（§7-1 拍板）：hover / 点击 / 拖拽手写，主题令牌渲染时经 <code>getComputedStyle</code> 读取；等价列表视图见下方（原型四）。</p>
+      <p data-eterna-workbench="view-desc">实时展示每个任务的处理进度：从发起到交付经过的每个环节。卡在某一步的任务会以警示色标注；下方附带等价的文字列表，方便逐项查看。</p>
 
       <div data-eterna-workbench="toolbar" role="group" aria-label="实时图控制">
         <button

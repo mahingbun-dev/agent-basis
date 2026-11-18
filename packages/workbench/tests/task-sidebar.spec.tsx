@@ -237,9 +237,9 @@ describe('报告时间线(assistant blocks 范式,24 号 §6 P2 行;原型一会
     expect(textOf(find1(result, 'data-eterna-workbench-action', 'return'))).toBe('退回并说明')
   })
 
-  it('时间线脚注(原型一 chat-foot 逐字):人的总动作与退回语义', () => {
+  it('时间线脚注:小提示与退回语义', () => {
     expect(textOf(find1(timelineBranch2, 'data-eterna-workbench', 'chat-foot'))).toBe(
-      '人的总动作 = 发起、答一问、验收（、可能的退回说明）——同类工作现状需 2–4 小时人工（24 §7.3）。退回 = 同工单新 Assignment 新分支，无需重新 @agent。',
+      '小提示：退回或补充说明都会继续当前任务，无需重新发起。',
     )
   })
 

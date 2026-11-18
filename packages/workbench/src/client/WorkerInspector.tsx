@@ -76,10 +76,9 @@ export function WorkerInspector({ snapshot }: WorkerInspectorProps): ReactElemen
   return (
     <section data-eterna-workbench="view" data-eterna-workbench-view="worker" id="wb-v5" aria-labelledby="wb-h-v5">
       <div data-eterna-workbench="view-head">
-        <p data-eterna-workbench="kicker">视图五</p>
         <h2 data-eterna-workbench="view-title" id="wb-h-v5">worker 检查器 · 单 worker 深视图</h2>
       </div>
-      <p data-eterna-workbench="view-desc">子代理树（27 号三层权力结构的实况）、运行中 jobs、工具调用历史、上下文占用 %、成本累计（30 §2-5）。数据源：上游 session / jobs 事件 + R1 预算数据。</p>
+      <p data-eterna-workbench="view-desc">查看执行者的实时状态：任务分工、进行中的后台作业、工具调用历史，以及上下文与成本占用。</p>
 
       <div data-eterna-workbench="inspector-head">
         <p data-eterna-workbench="inspector-title"><Icon name="worker" size={20} />worker <span data-eterna-workbench-seg-mono="true">{view.head.id}</span></p>
@@ -94,7 +93,7 @@ export function WorkerInspector({ snapshot }: WorkerInspectorProps): ReactElemen
 
       <div data-eterna-workbench="inspector">
         <div data-eterna-workbench="inspector-col">
-          <h3 data-eterna-workbench="sub-h">子代理树（三层权力结构，27 §2）</h3>
+          <h3 data-eterna-workbench="sub-h">任务分工树</h3>
           <ul data-eterna-workbench="tree">
             <TreeNode node={snapshot.tree} depth={0} />
           </ul>

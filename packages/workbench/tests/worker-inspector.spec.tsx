@@ -107,12 +107,10 @@ describe('投影:四要素(W-1/G2-D10 口径)', () => {
 
 describe('渲染:视图五结构(原型 03 #v5)', () => {
   it('视图头/描述 + 头卡:标题、五元信息列表(工单号等宽/数字表格体)', () => {
-    expect(textOf(find1(inspector, 'data-eterna-workbench', 'kicker'))).toBe('视图五')
     expect(textOf(find1(inspector, 'data-eterna-workbench', 'view-title'))).toBe('worker 检查器 · 单 worker 深视图')
     const desc = textOf(find1(inspector, 'data-eterna-workbench', 'view-desc'))
-    expect(desc).toContain('子代理树（27 号三层权力结构的实况）')
-    expect(desc).toContain('上下文占用 %、成本累计（30 §2-5）')
-    expect(desc).toContain('数据源：上游 session / jobs 事件 + R1 预算数据')
+    expect(desc).toContain('任务分工、进行中的后台作业、工具调用历史')
+    expect(desc).toContain('上下文与成本占用')
     const title = find1(inspector, 'data-eterna-workbench', 'inspector-title')
     expect(textOf(title)).toContain('worker')
     expect(textOf(title)).toContain('event-planning-01')

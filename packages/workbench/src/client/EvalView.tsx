@@ -82,10 +82,9 @@ export function EvalView({ snapshot }: EvalViewProps): ReactElement {
   return (
     <section data-eterna-workbench="view" data-eterna-workbench-view="eval" id="wb-v4" aria-labelledby="wb-h-v4">
       <div data-eterna-workbench="view-head">
-        <p data-eterna-workbench="kicker">视图四</p>
         <h2 data-eterna-workbench="view-title" id="wb-h-v4">评测监控 · 金集趋势与衰减</h2>
       </div>
-      <p data-eterna-workbench="view-desc">金集通过率趋势、路由金集衰减（28 §5：压缩前后通过率差 ≤ 2pp 视为无衰减）、漂移检测曲线。数据源 dsh-evals 结果 + observe（30 §2）。</p>
+      <p data-eterna-workbench="view-desc">质量趋势一目了然：任务金集通过率、路由回归结果与行为漂移曲线。</p>
 
       <div data-eterna-workbench="metrics" data-eterna-workbench-metrics-count="4">
         {evalMetricCards(snapshot.eval).map(card => <MetricTile key={card.label} card={card} />)}

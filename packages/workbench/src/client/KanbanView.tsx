@@ -129,10 +129,9 @@ export function KanbanView({ snapshot, role, principal, stage, onRoleChange, onS
   return (
     <section data-eterna-workbench="view" data-eterna-workbench-view="monitor" id="wb-v1" aria-labelledby="wb-h-v1">
       <div data-eterna-workbench="view-head">
-        <p data-eterna-workbench="kicker">视图一</p>
         <h2 data-eterna-workbench="view-title" id="wb-h-v1">工作监控 · 工单看板</h2>
       </div>
-      <p data-eterna-workbench="view-desc">工单按阶段分列：<code>person/*</code>（等人）、<code>working</code>（进行中）、<code>working/queued</code>（排队）、<code>idle</code>（空闲）。数据按 access realm 钳制：普通用户仅自己的工单，审批人见全租户待人项，管理员全量（30 §4-5、§7-3 拍板）。</p>
+      <p data-eterna-workbench="view-desc">工单按状态分列：等人、进行中、排队、空闲。你只能看到自己有权查看的工单。</p>
 
       <div data-eterna-workbench="toolbar" role="group" aria-label="看板过滤">
         <p data-eterna-workbench="toolbar-label">{t('toolbar.role')}</p>
@@ -151,7 +150,7 @@ export function KanbanView({ snapshot, role, principal, stage, onRoleChange, onS
         {board.columns.map(column => <KanbanColumnView key={column.meta.key} meta={column.meta} tickets={column.tickets} />)}
       </div>
 
-      <h3 data-eterna-workbench="sub-h">冲突三指标（27 号 D2）</h3>
+      <h3 data-eterna-workbench="sub-h">冲突三指标</h3>
       <div data-eterna-workbench="metrics">
         {conflictCards(snapshot.conflict).map(card => <ConflictMetric key={card.label} card={card} />)}
       </div>

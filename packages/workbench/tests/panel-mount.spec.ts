@@ -102,6 +102,6 @@ describe('字典完整性(G-5:中文为主,en 可用)', () => {
     expect(Object.keys(en).sort()).toEqual(Object.keys(zh).sort())
     for (const value of Object.values(zh)) expect(value).toMatch(/\p{Script=Han}/u)
     expect(zh.panel).toBe('工作台')
-    expect(zh['state.ready']).toBe('SSE 已连接 · 快照已加载 · 合批 200ms（§7-2）')
+    expect(zh['state.ready']).toBe('实时连接正常')
   })
 })

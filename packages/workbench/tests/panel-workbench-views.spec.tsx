@@ -34,15 +34,10 @@ const evalView = render(<EvalView snapshot={snapshot} />)
 
 describe('视图一 工作监控 · 看板渲染(原型 03 视图一逐字)', () => {
   it('视图头:kicker 视图一 + 标题「工作监控 · 工单看板」+ 视图描述含阶段分列与 realm 钳制文案', () => {
-    expect(textOf(find1(kanbanAdmin, 'data-eterna-workbench', 'kicker'))).toBe('视图一')
     expect(textOf(find1(kanbanAdmin, 'data-eterna-workbench', 'view-title'))).toBe('工作监控 · 工单看板')
     const desc = textOf(find1(kanbanAdmin, 'data-eterna-workbench', 'view-desc'))
-    expect(desc).toContain('工单按阶段分列：')
-    expect(desc).toContain('（等人）')
-    expect(desc).toContain('（进行中）')
-    expect(desc).toContain('（排队）')
-    expect(desc).toContain('（空闲）')
-    expect(desc).toContain('数据按 access realm 钳制：普通用户仅自己的工单，审批人见全租户待人项，管理员全量（30 §4-5、§7-3 拍板）。')
+    expect(desc).toContain('工单按状态分列：')
+    expect(desc).toContain('你只能看到自己有权查看的工单。')
   })
 
   it('四列常显:等人 person/*/进行中 working/排队中 working/queued/空闲 idle,计数 3/2/1/1(= 原型)', () => {
@@ -110,7 +105,7 @@ describe('视图一 工作监控 · 看板渲染(原型 03 视图一逐字)', ()
   })
 
   it('冲突三指标(27 号 D2):三卡标签/值/副行逐字,duplicate 卡带「达标」徽标,无告警 UI', () => {
-    expect(textOf(find1(kanbanAdmin, 'data-eterna-workbench', 'sub-h'))).toBe('冲突三指标（27 号 D2）')
+    expect(textOf(find1(kanbanAdmin, 'data-eterna-workbench', 'sub-h'))).toBe('冲突三指标')
     const cards = byAttr(kanbanAdmin, 'data-eterna-workbench', 'metric-card')
     expect(cards).toHaveLength(3)
     const rows = cards.map(card => [
@@ -155,13 +150,10 @@ describe('视图一 工作监控 · 看板渲染(原型 03 视图一逐字)', ()
 
 describe('视图三 日志监控 · 摘要行 + 展开态渲染(原型 03 视图三逐字)', () => {
   it('视图头与工具条:标题/描述/工单三 chip(T-9c81 on)/检索框 placeholder', () => {
-    expect(textOf(find1(logs, 'data-eterna-workbench', 'kicker'))).toBe('视图三')
     expect(textOf(find1(logs, 'data-eterna-workbench', 'view-title'))).toBe('日志监控 · 摘要行 + 展开态')
     const desc = textOf(find1(logs, 'data-eterna-workbench', 'view-desc'))
-    expect(desc).toContain('默认摘要行 = 工具名 / 参数摘要 / 结果状态 / 耗时')
-    expect(desc).toContain('可插拔正则')
-    expect(desc).toContain('只过滤不删改')
-    expect(desc).toContain('（§7-4 拍板）')
+    expect(desc).toContain('默认显示摘要，展开查看详情')
+    expect(desc).toContain('敏感信息已自动脱敏')
     const ticketChips = byAttr(logs, 'data-eterna-workbench-ticket')
     expect(ticketChips.map(chip => textOf(chip))).toEqual(['T-9c81', 'T-a21f', 'T-3f2a'])
     expect(ticketChips[0]!.attrs['data-eterna-workbench-on']).toBe('true')
@@ -269,7 +261,6 @@ describe('视图三 日志监控 · 摘要行 + 展开态渲染(原型 03 视图
 
 describe('视图四 评测监控 · 金集趋势与衰减渲染(原型 03 视图四逐字)', () => {
   it('四指标卡:标签/值/副行逐字;衰减卡与漂移卡形态(达标徽标/无警报)', () => {
-    expect(textOf(find1(evalView, 'data-eterna-workbench', 'kicker'))).toBe('视图四')
     expect(textOf(find1(evalView, 'data-eterna-workbench', 'view-title'))).toBe('评测监控 · 金集趋势与衰减')
     const cards = byAttr(evalView, 'data-eterna-workbench', 'metric-card')
     expect(cards).toHaveLength(4)

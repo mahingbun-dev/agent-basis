@@ -178,10 +178,9 @@ export function WorkbenchPage({ useSnapshot, t, retry }: WorkbenchPageProps): Re
         <>
           <section data-eterna-workbench="view" data-eterna-workbench-view="session" id="wb-session" hidden={view !== 'session'} aria-labelledby="wb-h-session">
             <div data-eterna-workbench="view-head">
-              <p data-eterna-workbench="kicker">会话侧</p>
               <h2 data-eterna-workbench="view-title" id="wb-h-session">任务侧栏 · 报告时间线</h2>
             </div>
-            <p data-eterna-workbench="view-desc">发起人不需要知道 Trigger / Ticket / Mandate 这些词，只看到三件事——<strong>侧栏有状态点、该我拍板时弹卡、做完结果回到原对话</strong>（24 §7.2 关键设计）。任务侧栏按 stage 分组 + 状态点（30 §5 原型一）；报告时间线复用 assistant blocks 范式；多 Assignment 分支切换：退回 = 同工单新 Assignment = 新分支（24 §7.2），failed 重试 = 新分支（27 §1.2）。M3 为 mock 演示集（原型一静态稿逐字 + mock 脚本分支），M4 实接 Engine DomainEvents 并挂会话内表面（32 §3）。</p>
+            <p data-eterna-workbench="view-desc">左侧按状态查看你的任务；选中工单即可查看执行时间线。退回或重试会生成新的执行记录，无需重新发起。</p>
             <div data-eterna-workbench="chat-shell">
               <TaskSidebar
                 sessions={ready.sessions}

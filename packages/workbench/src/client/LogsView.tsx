@@ -60,10 +60,9 @@ export function LogsView({ snapshot, filter, onTicketChange, onQueryChange, expa
   return (
     <section data-eterna-workbench="view" data-eterna-workbench-view="logs" id="wb-v3" aria-labelledby="wb-h-v3">
       <div data-eterna-workbench="view-head">
-        <p data-eterna-workbench="kicker">视图三</p>
         <h2 data-eterna-workbench="view-title" id="wb-h-v3">日志监控 · 摘要行 + 展开态</h2>
       </div>
-      <p data-eterna-workbench="view-desc">按工单聚合 audit trace（Trigger→候选卡→Decision 理由→委派→报告→门禁全链）+ worker 会话日志，可过滤检索（30 §2）。默认摘要行 = 工具名 / 参数摘要 / 结果状态 / 耗时；展开全文过 governance <code>pii.ts</code> 可插拔正则——原始全文已在 audit NDJSON，展示层<strong>只过滤不删改</strong>（§7-4 拍板）。</p>
+      <p data-eterna-workbench="view-desc">每个任务的完整执行记录——从发起到交付，可按工单或关键词检索。默认显示摘要，展开查看详情；敏感信息已自动脱敏。</p>
 
       <div data-eterna-workbench="toolbar" role="group" aria-label="日志过滤">
         <p data-eterna-workbench="toolbar-label">{t('toolbar.ticket')}</p>
