@@ -24,6 +24,14 @@ interface MyPlugin {
   enabled: boolean
   promoted: boolean
   withinRoot: boolean
+  mounted: boolean
+  tools: string[]
+  mountError?: string
+}
+
+interface ScanItem {
+  dirName: string
+  dir: string
 }
 
 interface ApprovalItem {
@@ -54,6 +62,7 @@ export function MyPluginsTab(props: {
 export function MyPluginsSection(props: { readonly t: Translate }): React.JSX.Element {
   const { t } = props
   const [items, setItems] = useState<MyPlugin[]>([])
+  const [scanned, setScanned] = useState<ScanItem[] | undefined>(undefined)
   const [name, setName] = useState('')
   const [dirName, setDirName] = useState('')
   const [message, setMessage] = useState('')
@@ -77,6 +86,25 @@ export function MyPluginsSection(props: { readonly t: Translate }): React.JSX.El
     } finally { setBusy(false) }
   }
 
+  const scan = async (): Promise<void> => {
+    setBusy(true)
+    setMessage('')
+    try {
+      const r = await postJson('/api/my-plugins/scan')
+      if (r.ok && typeof r.value === 'object' && r.value !== null) setScanned((r.value as { items: ScanItem[] }).items)
+      else setMessage(r.error?.message ?? t('plugins.actionFailed'))
+    } finally { setBusy(false) }
+  }
+
+  // 装载状态徽标文案(T6 装载器):已启用=已装载 n 个工具/装载失败(+原因);
+  // 已停用=未装载;转内置标记独立追加。
+  const mountMeta = (item: MyPlugin): string => {
+    if (!item.enabled) return t('plugins.disabled')
+    if (item.mountError !== undefined && item.mountError !== '') return `${t('plugins.mountFailed')}(${item.mountError})`
+    if (item.mounted) return t('plugins.mountedTools').replace('{count}', String(item.tools.length))
+    return t('plugins.enabled')
+  }
+
   return <section className="ea-section" data-eterna-access-root data-eterna-my-plugins>
     <h3>{t('plugins.title')}</h3>
     <p className="ea-hint">{t('plugins.hint')}</p>
@@ -85,7 +113,9 @@ export function MyPluginsSection(props: { readonly t: Translate }): React.JSX.El
       {items.length === 0 && <p className="ea-hint">{t('plugins.empty')}</p>}
       {items.map(item => <div key={item.pluginId} className="ea-row" data-eterna-plugin-row={item.pluginId}>
         <span className="ea-row-title">{item.pluginId}</span>
-        <span className="ea-row-meta">{item.enabled ? t('plugins.enabled') : t('plugins.disabled')}{item.promoted ? ` · ${t('plugins.promoted')}` : ''}</span>
+        <span className="ea-row-meta" data-eterna-plugin-mount={item.enabled ? (item.mounted ? 'mounted' : item.mountError !== undefined && item.mountError !== '' ? 'failed' : 'recorded') : 'disabled'}>
+          {mountMeta(item)}{item.promoted ? ` · ${t('plugins.promoted')}` : ''}
+        </span>
         <span className="ea-row-actions">
           <button type="button" className="ea-btn ghost" disabled={busy}
             onClick={() => { void action(item.enabled ? '/api/my-plugins/disable' : '/api/my-plugins/enable', { pluginId: item.pluginId }) }}>
@@ -97,6 +127,21 @@ export function MyPluginsSection(props: { readonly t: Translate }): React.JSX.El
             {t('plugins.promote')}</button>}
         </span>
       </div>)}
+    </div>
+    {/* T6 发现性:扫描 plugins 根下未登记目录,一键导入(替代手填表单) */}
+    <div className="ea-row" style={{ marginTop: 10 }}>
+      <button type="button" className="ea-btn ghost" disabled={busy} data-eterna-plugin-scan
+        onClick={() => { void scan() }}>
+        {t('plugins.scan')}
+      </button>
+      {scanned !== undefined && (scanned.length === 0
+        ? <span className="ea-hint">{t('plugins.scanEmpty')}</span>
+        : <span className="ea-row-actions">
+          {scanned.map(entry => <button key={entry.dirName} type="button" className="ea-btn ghost" disabled={busy}
+            onClick={() => { void action('/api/my-plugins/install', { name: entry.dirName, dir: entry.dirName }) }}>
+            {`${t('plugins.install')}: ${entry.dirName}`}
+          </button>)}
+        </span>)}
     </div>
     <div className="ea-row" style={{ marginTop: 10 }}>
       <input className="ea-input" placeholder={t('plugins.namePlaceholder')} aria-label={t('plugins.nameLabel')}

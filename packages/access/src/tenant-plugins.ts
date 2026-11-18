@@ -28,11 +28,18 @@ import { pathToFileURL } from 'node:url'
 import type { AccessAuditEvent } from './audit.ts'
 import type { UserStore } from './store.ts'
 
+/** when 谓词的 activation 形态(上游 ToolActivationContext 的结构子集)。 */
+export type TenantPluginActivation = {
+  readonly agent?: { readonly id?: string; readonly session?: { readonly id?: string } }
+}
+/** 当步可见性谓词(注册选项;返回 false = 本步目录与派发都排除)。 */
+export type TenantPluginWhen = (activation: TenantPluginActivation) => boolean
+
 /** 宿主 tools.register 的结构面(注册/注销;当步可见性谓词)。 */
 export interface TenantPluginToolsFace {
   register(
     definition: Record<string, unknown>,
-    options?: { when?: (activation: { readonly agent?: { readonly id?: string; readonly session?: { readonly id?: string } } }) => boolean },
+    options?: { when?: TenantPluginWhen },
   ): () => void
 }
 
@@ -191,14 +198,20 @@ export function createTenantPluginLoader(deps: TenantPluginLoaderDeps): {
       takenNames.add(mounted)
       names.push(mounted)
       // when 谓词:个人=仅 owner 会话;共享=恒可见。activation 拿不到会话 id 一律
-      // 不可见(fail-closed,系统任务/无主步骤不继承个人工具)。
-      const when = opts.ownerUserId === undefined
-        ? undefined
-        : (activation: { readonly agent?: { readonly id?: string; readonly session?: { readonly id?: string } } }): boolean => {
-            const agent = activation?.agent
+      // 不可见(fail-closed,系统任务/无主步骤不继承个人工具);谓词异常按不可见。
+      const owner = opts.ownerUserId
+      let when: TenantPluginWhen | undefined
+      if (owner !== undefined) {
+        when = (activation) => {
+          try {
+            const agent = activation.agent
             const sessionId = agent?.session?.id ?? agent?.id
-            return typeof sessionId === 'string' && deps.sessionOwnerOf(sessionId) === opts.ownerUserId
+            return typeof sessionId === 'string' && deps.sessionOwnerOf(sessionId) === owner
+          } catch {
+            return false
           }
+        }
+      }
       const dispose = tools.register({ ...definition, name: mounted }, when === undefined ? {} : { when })
       disposers.push(() => {
         takenNames.delete(mounted)

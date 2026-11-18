@@ -6,11 +6,87 @@
  * - 红线(治理/审计/出网/门禁)锁定展示:checked+disabled 开关,不可停用
  * - 数据走 /access/api/plugins(服务端 admin 强制);仅 admin 注册本页签
  * 注:@eterna 插件为 profile 挂载,不进上游 Installed 清单,故用页签承载。
+ * T6(2026-11-18):新增「共享工具」分区——转内置产物的进程内装载面
+ * (/api/my-plugins/shared/*),启停即时生效(区别于上方 @eterna 插件的重启语义)。
  */
 import { useCallback, useEffect, useState } from 'react'
 import { api, type PluginRowView } from './api.ts'
 import { ArmedDelete } from './confirm-button.tsx'
 import { PLUGIN_META } from './plugin-meta.tsx'
+
+async function postJson(path: string, body?: unknown): Promise<{ ok: boolean; value?: unknown; error?: { message?: string } | undefined }> {
+  const r = await fetch(path, {
+    method: 'POST', credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body ?? {}),
+  })
+  const payload = await r.json().catch(() => null) as { result?: { ok?: boolean; value?: unknown; error?: { message?: string } | undefined } } | null
+  return { ok: payload?.result?.ok === true, value: payload?.result?.value, error: payload?.result?.error ?? undefined }
+}
+
+interface SharedPlugin {
+  pluginId: string
+  dir: string
+  enabled: boolean
+  mounted: boolean
+  tools: string[]
+  mountError?: string
+}
+
+/** 共享工具分区(转内置产物;admin 启停,进程内装载即刻生效)。 */
+function SharedSection(): React.JSX.Element | null {
+  const [items, setItems] = useState<SharedPlugin[]>([])
+  const [loaded, setLoaded] = useState(false)
+  const [busyId, setBusyId] = useState('')
+  const [note, setNote] = useState('')
+
+  const refresh = useCallback(async (): Promise<void> => {
+    const r = await postJson('/api/my-plugins/shared/list')
+    if (r.ok && typeof r.value === 'object' && r.value !== null) setItems((r.value as { items: SharedPlugin[] }).items)
+    setLoaded(true)
+  }, [])
+  useEffect(() => { void refresh() }, [refresh])
+
+  const toggle = useCallback((item: SharedPlugin): void => {
+    const path = item.enabled ? '/api/my-plugins/shared/disable' : '/api/my-plugins/shared/enable'
+    setBusyId(item.pluginId)
+    setNote('')
+    postJson(path, { request: { pluginId: item.pluginId } })
+      .then(r => {
+        if (!r.ok) setNote(r.error?.message ?? '操作失败')
+        else void refresh()
+      })
+      .catch((error: unknown) => { setNote(error instanceof Error ? error.message : '操作失败') })
+      .finally(() => { setBusyId('') })
+  }, [refresh])
+
+  if (!loaded || items.length === 0) return null
+  return <section className="ea-group" data-eterna-shared-plugins>
+    <div className="ea-group-head">
+      <h3 className="ea-group-title">共享工具(转内置)</h3>
+      <span className="ea-group-hint">全员可用;启停即刻生效,无需重启</span>
+    </div>
+    <ul className="ea-cards">
+      {items.map(item => <li className="ea-pcard ea-act" key={item.pluginId}>
+        <div className="ea-phead">
+          <div className="ea-pmain">
+            <div className="ea-ptitle-row">
+              <span className="ea-ptitle">{item.pluginId}</span>
+              <span className="ea-pill neutral">{item.enabled ? (item.mounted ? `已装载 ${item.tools.length} 个工具` : '已启用(未装载)') : '已停用'}</span>
+            </div>
+            <span className="ea-pdesc">{item.mountError !== undefined && item.mountError !== '' ? `装载失败:${item.mountError}` : item.tools.length > 0 ? item.tools.join(', ') : item.dir}</span>
+          </div>
+          <div className="ea-pend">
+            <Switch checked={item.enabled} disabled={busyId === item.pluginId}
+              label={`${item.pluginId}(共享工具,${item.enabled ? '已启用' : '已停用'})`}
+              onToggle={() => { toggle(item) }} />
+          </div>
+        </div>
+      </li>)}
+    </ul>
+    {note !== '' && <p className="ea-err" role="alert" aria-live="polite">{note}</p>}
+  </section>
+}
 
 /** 开关(原生 Switch 同构):button[role=switch]+圆点,形态由 CSS 承担。 */
 function Switch(props: {
@@ -132,6 +208,7 @@ export function ManageTab(): React.JSX.Element {
         </div>
         <ul className="ea-cards">{toggleable.map(row)}</ul>
       </section>
+      <SharedSection />
     </div>}
     <p className={note.ok ? 'ea-ok' : 'ea-err'} aria-live="polite" style={{ marginTop: 10 }}>{note.text}</p>
   </div>

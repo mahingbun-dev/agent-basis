@@ -38,12 +38,13 @@ export function defineInstallPersonalPluginTool(deps: {
     },
     output: {
       schema: { type: 'string' },
-      render: (_args, value) => [{ type: 'text', text: String(value) }],
+      render: (_args, value) => [{ type: 'text', text: typeof value === 'string' ? value : JSON.stringify(value) }],
     },
     async execute(args, exec) {
       const request = args as { dir?: unknown; name?: unknown }
       // 身份面:会话归属 → 账号(与守卫 currentUser 同源;无主会话拒绝)
-      const sessionId = exec.agent?.session?.id
+      const session = exec.agent?.session as { readonly id?: string } | undefined
+      const sessionId = session?.id
       if (typeof sessionId !== 'string' || sessionId === '') {
         return '拒绝:未能定位当前会话(个人插件安装仅对登录用户的会话开放)'
       }

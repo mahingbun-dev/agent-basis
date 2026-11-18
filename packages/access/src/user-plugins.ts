@@ -141,7 +141,7 @@ export function registerUserPluginRoutes(
   const list = (rpcId: string, ctx: GuardContextLike): Response => {
     const rows = store.userPluginsOfOwner(ctx.userId)
     const userRoot = userRootFor(deps.tenantRoot, ctx.account)
-    const items = rows.map(row => {
+    const items = rows.map((row) => {
       const state = loader?.stateOf(row.pluginId)
       return {
         pluginId: row.pluginId,
@@ -252,14 +252,16 @@ export function registerUserPluginRoutes(
   // ── T6 共享层(转内置产物;admin 启停,热生效)──
   register(`${USER_PLUGINS_PREFIX}/shared/list`, (rpcId, _args, ctx) => {
     if (approvalDeps === undefined || !approvalDeps.isAdmin(ctx.userId)) return deniedFrame(rpcId, '仅管理员可查看共享插件')
-    const items = store.sharedPlugins().map(row => {
+    const items = store.sharedPlugins().map((row) => {
       const state = loader?.stateOf(row.pluginId)
       return { ...row, mounted: state?.mounted ?? false, tools: state?.tools ?? [], mountError: state?.error }
     })
     return okFrame(rpcId, { items })
   })
 
-  const setSharedEnabled = async (rpcId: string, ctx: GuardContextLike, args: Record<string, unknown>, enabled: boolean): Promise<Response> => {
+  const setSharedEnabled = async (
+    rpcId: string, ctx: GuardContextLike, args: Record<string, unknown>, enabled: boolean,
+  ): Promise<Response> => {
     if (approvalDeps === undefined || !approvalDeps.isAdmin(ctx.userId)) return deniedFrame(rpcId, '仅管理员可启停共享插件')
     const request = args.request as { pluginId?: string } | undefined
     const pluginId = typeof request?.pluginId === 'string' ? request.pluginId : ''

@@ -316,11 +316,12 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       // (glue knowledge/memory 先例;inject ['tools'] 使 ctx.tools 就绪),失败只降级
       // (审计+日志,不炸装配);装载器 disposer 随插件卸载(全部 mount 子树回收)。
       try {
-        disposers.push(ctx.tools.register(defineInstallPersonalPluginTool({ tenantDeps: { store, session, reflect: ctx.reflect, tenantRoot, audit }, loader: pluginLoader })))
+        const toolDeps = { tenantDeps: { store, session, reflect: ctx.reflect, tenantRoot, audit }, loader: pluginLoader }
+        disposers.push(ctx.tools.register(defineInstallPersonalPluginTool(toolDeps)))
       } catch (error) {
         audit({ kind: 'access.tenant', detail: { action: 'install-tool.register.failed', error: error instanceof Error ? error.message : String(error) } })
       }
-      disposers.push(() => pluginLoader.dispose())
+      disposers.push(() => { pluginLoader.dispose() })
       ensureBootScan()
       // 索引页登录跳转门禁(2026-11-17):未登录/浏览器 cookie 过期访问根路径时,
       // dsh authorizeIndex 原本回裸 401 文本(index HTML 不发出→tapIndex 角标脚本
