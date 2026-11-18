@@ -20,6 +20,7 @@ import { CSS as DISTILL_CSS, DISTILL_LOCALES, MEMORY_DISTILL_TAB_ID, DistillRepo
 import { DomainChip } from './domain-chip.tsx'
 import { MemorySourcesTail, memorySourcesDefinition, type MemorySourcesTailProps } from './sources.tsx'
 import type { MemoryClientContext, TurnLocationLike } from './client-types.ts'
+import { createIdempotentSlotContribution } from './contribution.ts'
 
 export { MEMORY_SECTION_ID, NS }
 export {
@@ -158,9 +159,12 @@ export function apply(ctx: MemoryClientContext): () => void {
   // 返回命中条目;但 slots 条目注册对会话作用域 slot 未生效(turnTail 锚内只有
   // compaction 同形注册的条目,M-C4;我方缺席且延时重挂无效)。属宿主 slots 会话
   // 作用域条目合并的版本行为(chat rc.1),非本包可修;升版后本注册零改动生效。
-  // 双挂载(立即+延时一拍)保留:对 slot 声明面晚就绪的宿主形态是真实兼容。
-  const registerSourcesEntry = (): void => {
-    ctx.slots.inject('conversation.chat.turnTail', () => ctx.slots.register({
+  // 双挂载(立即+延时一拍)保留:对 slot 声明面晚就绪的宿主形态是真实兼容;
+  // 2026-11-18:两条路径各跑一次 contribute → 第二次登记抛重复 id 的未捕获异常
+  // (每次加载一条 pageerror),改用幂等贡献工厂,只登记一次。
+  const contributeSourcesEntry = createIdempotentSlotContribution(
+    ctx.slots.register.bind(ctx.slots),
+    {
       name: 'conversation.chat.turnTail',
       id: 'eterna-memory.sources',
       locale: NS,
@@ -168,7 +172,11 @@ export function apply(ctx: MemoryClientContext): () => void {
         t,
         openPanel: (): void => { ctx.layout.selectMainPanel(PANEL_MAIN_KEY) },
       }),
-    }, MemorySourcesTailEntry))
+    },
+    MemorySourcesTailEntry,
+  )
+  const registerSourcesEntry = (): void => {
+    ctx.slots.inject('conversation.chat.turnTail', contributeSourcesEntry)
   }
   registerSourcesEntry()
   // 延时一拍(微任务链排空后的宏任务边界):vm 沙箱无 setTimeout,走 window 保证
