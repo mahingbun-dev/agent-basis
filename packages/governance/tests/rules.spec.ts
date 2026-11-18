@@ -32,9 +32,9 @@ describe('规则引擎:解析与校验(fail-closed)', () => {
     expect(engine.policy.rules[0]?.id).toBe('deny-rm-rf')
   })
 
-  it('default 只允许 ask/deny:显式 allow 在解析期被拒绝(fail-closed)', () => {
-    expect(() => RuleEngine.parse('default: allow\nrules: []')).toThrow(GovernanceConfigError)
-    expect(() => RuleEngine.parse('default: allow\nrules: []')).toThrow(/fail-closed/)
+  it('default 接受 allow(2026-11-19 产品拍板:沙箱已限界,部署显式声明静默);非法值仍拒', () => {
+    expect(RuleEngine.parse('default: allow\nrules: []').policy.default).toBe('allow')
+    expect(() => RuleEngine.parse('default: bogus\nrules: []')).toThrow(GovernanceConfigError)
   })
 
   it('未写 default 时缺省为 ask', () => {

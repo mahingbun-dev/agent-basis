@@ -1,9 +1,15 @@
+# ── 2026-11-19 产品拍板:default 翻 allow ──
+# 用户裁决:沙箱边界(workspace-write=账号工作区)+access 路径钳制+egress 域名白名单
+# 已承担全部限界,工具调用权限询问一律静默(普通模式与 superagent 模式同口径)——
+# 未列名工具(含后加的 @eterna orchestrator_*/worker 工具族)不再逐调用弹审批卡
+# (M4 联调实测:orchestrator_route 每跳必 ask,215s 审批窗与 120s Eval 期限互呛)。
+# ask/deny 保留为显式规则面:此后要人审/要拦的工具在此显式列名。
 # ── Eterna Agent 默认治理规则集(容器启动时渲染到 /repo/.eterna/governance.rules.yml)──
 # 来源:2026-11-10「完全权限全拒」事故修复(方案 A)。根因:镜像内无规则文件 → glue
 # governance-plugin 回落空规则集 → fail-closed 默认 ask 打在每个工具调用上;而「完全权限」
 # 预设 = approval never,ApprovalService 对 ask 在征求任何人之前确定性 rejected —— 空规则
 # × never = 静默全拒(pwd 也被 9ms 自动拒)。本文件让核心工具族显式 allow,未列名工具仍
-# 走 default: ask(fail-closed 底线不动:沙箱/egress/审批三层防线全部保持)。
+# 未列名工具按 default 裁决(2026-11-19 起 allow;沙箱/access 钳制/egress 三层防线全部保持)。
 #
 # 工具名对账(逐字核对,不得凭记忆增删;2026-11-10 自 deepseek-harness 源码):
 #   bash ← shell/tool-bash;read/write/edit/read_image ← fs/tool-fs;glob/grep ←
@@ -27,7 +33,7 @@
 #   回加该工具时须同步回加本文件(默认 ask 会先兜住)。
 # 运维杠杆:$DSH_HOME/access/governance.rules.yml 存在时优先生效(免重建改规则),
 #   见 docker/entrypoint.sh 步骤 2.6。
-default: ask
+default: allow
 rules:
   # ── deny 族(优先级最高:deny > ask > allow,与 allow 规则同工具时 deny 胜)──
   - id: deny-credential-access

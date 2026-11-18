@@ -163,11 +163,13 @@ function validateDocument(raw: unknown, sourceLabel: string): PolicyDocument {
   let def: RuleEffect = 'ask'
   if (raw['default'] !== undefined) {
     const value = raw['default']
-    if (value === 'ask' || value === 'deny') {
+    if (value === 'allow' || value === 'ask' || value === 'deny') {
+      // 2026-11-19 产品拍板:沙箱边界(workspace-write=账号工作区)+access 钳制+egress
+      // 白名单已承担限界,default 放开为 allow——部署文件显式声明「未列名工具静默放行」,
+      // ask/deny 保留为显式规则面。引擎缺省仍 ask(无规则文件的裸宿主 fail-closed 不动)。
       def = value
     } else {
-      // fail-closed:显式 allow 被拒绝——引擎永不因配置宽松而放行
-      issues.push(`default 只允许 'ask' | 'deny'(fail-closed),得到:${JSON.stringify(value)}`)
+      issues.push(`default 只允许 'allow' | 'ask' | 'deny',得到:${JSON.stringify(value)}`)
     }
   }
 
