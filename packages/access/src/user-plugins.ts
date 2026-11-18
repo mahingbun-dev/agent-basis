@@ -6,7 +6,8 @@
  * - 个人层=$DSH_HOME/workspaces/<账号>/plugins/<plugin-dir>(DSH_HOME 语义 T1 铁律),
  *   记账=user_plugins 表(激活清单,运行时合并不复制);
  * - 命名强制 user:<account>:<name>(禁 shadow 公共 id,MCP 整体替换陷阱);
- * - 堵洞(T6.1):plugin-manager/plugin-market RPC 与 detail-file 路由 admin-only;
+ * - 堵洞(T6.1):plugin-manager/plugin-market RPC 与 detail-file 路由 admin-only
+ *   (2026-11-19 落地于 mux.ts 的 MARKET_ADMIN_PREFIXES admit 门,本文件仅留史注);
  * - 转内置(T7B)=个人发起→admin 审批(可缺席降级)/admin 直转即时;拷贝制,
  *   通过后个人原件停用标记「已转内置」(避免同码双装载);
  * - 消息提醒(T7A)=站内 notifications(不出内网);审批模型 type+payload 泛化。

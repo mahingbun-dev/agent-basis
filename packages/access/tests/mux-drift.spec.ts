@@ -12,7 +12,7 @@
 import { readdirSync, readFileSync, existsSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { join } from 'node:path'
-import { SESSION_EVENT_ACTIONS, SESSION_STREAM_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS, bindingsFor } from '../src/mux.ts'
+import { GLOBAL_EVENT_ACTIONS, SESSION_EVENT_ACTIONS, SESSION_STREAM_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS, bindingsFor } from '../src/mux.ts'
 
 function findPnpmRoot(): string {
   let dir = new URL('..', import.meta.url).pathname
@@ -205,7 +205,6 @@ function upstreamEmitEvents(): Set<string> {
 
 /** 上游转发清单(API_REMOTE_FORWARDED_EVENTS,构建时并入 dsh-api-remotes lib/index.js)。 */
 function forwardedEventsManifest(): string {
-  console.error('DEBUG regex source:', /^@deepseek-ai\+dsh-api-remotes@/.source, 'self-test:', /^@deepseek-ai\+dsh-api-remotes@/.test('@agentclientprotocol+sdk@1.4.0_zod@4.6.7'), 'good-test:', /^@deepseek-ai\+dsh-api-remotes@/.test('@deepseek-ai+dsh-api-remotes@0.2.2'))
   const root = findPnpmRoot()
   for (const entry of readdirSync(root, { withFileTypes: true })) {
     const nameMatch = /^@deepseek-ai\+dsh-api-remotes@/.exec(entry.name)
@@ -284,7 +283,24 @@ describe('T2 防漂移:上游流方法表全覆盖', () => {
     }
   })
 
-  it('全局绑定零事件动作(卫生锚:事件只能授在会话绑定逐会话过滤,global 即全宿主广播)', () => {
+  it('全局失效事件授权清单在上游转发清单内且**不带 resources**(不携带资源身份=跨租户面为零)', () => {
+    // 2026-11-18「设置页新增供应商保存后配置页看不到」修复的防漂移门:
+    // 全局事件只许是本清单列出的失效信号;每个事件在上游 manifest 里的条目
+    // 不得声明 resources(声明即按会话/工作区资源判定,只能走 SESSION_EVENT_ACTIONS)。
+    const manifest = forwardedEventsManifest()
+    expect(GLOBAL_EVENT_ACTIONS.length).toBeGreaterThan(0)
+    for (const action of GLOBAL_EVENT_ACTIONS) {
+      expect(action.startsWith('event:'), action).toBe(true)
+      const event = action.replace(/^event:/, '')
+      // 转发清单即宿主广播的权威面(api-remotes lib/index.js 构建时并入);
+      // emit 事件名在 typert.host 描述符里只覆盖 dsh-api-* 包,全局事件的服务
+      // 侧声明在 dsh-llm/dsh-settings/dsh-credentials,故此处以清单条目为准。
+      const entryPattern = new RegExp(String.raw`\{\s*event: "${event}",\s*mode: "emit"\s*\}`)
+      expect(entryPattern.test(manifest), `${event} 不在转发清单或声明了 resources——全局绑定禁授`).toBe(true)
+    }
+  })
+
+  it('全局绑定只含白名单失效事件(其余 event:* 仍恒拒;会话事件仍走会话绑定)', () => {
     // bindingsFor 依赖 store.session/session 仅为类型面;直接构造最小依赖
     // (WS-C 后 Pick 增 getUserById——角色现查,此处桩返回 undefined=fail-closed 按 user 档)
     const minimal = {
@@ -293,7 +309,10 @@ describe('T2 防漂移:上游流方法表全覆盖', () => {
     } as never
     const bindings = bindingsFor(minimal, 0)
     const global = bindings.find(b => b.resource.kind === 'global')
-    expect(global?.role.actions.filter(a => a.startsWith('event:'))).toEqual([])
+    // 差集=∅:任何非白名单事件动作(例如未来新增的会话事件)误入全局绑定即红。
+    expect(global?.role.actions.filter(a => a.startsWith('event:')).sort())
+      .toEqual([...GLOBAL_EVENT_ACTIONS].sort())
+    for (const action of SESSION_EVENT_ACTIONS) expect(GLOBAL_EVENT_ACTIONS).not.toContain(action)
   })
 
   it('停止按钮生命线事件在位(2026-11-13 回归锚:running 旗标唯此一路,缺席=回合中无停止按钮)', () => {
