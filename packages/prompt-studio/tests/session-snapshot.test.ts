@@ -296,20 +296,30 @@ describe('T2.3 网关链路:会话开启事件 → 快照存储 → 查询端点
     await gateway.attachBackend(backend)
   }
 
-  /** 审计明细(轮询等待异步落盘;host-plugin.test waitForAudit 同款)。 */
-  async function auditDetails(): Promise<Array<Record<string, unknown>>> {
-    // 审计是异步落盘:本地 2s 内必到,CI 负载下(20 包并行 verify)偶发超窗——
-    // 0.1.29/PR#99 CI 实证 session-snapshot.captured 超 2s 才可见 → 放宽到 10s
-    // (轮询命中即返回,不增加通过路径耗时)。
+  /**
+   * 审计明细(predicate 轮询等待异步落盘;host-plugin.test waitForAudit 同款)。
+   * 注意:只等「文件可读」不够——attach 阶段文件就已存在,首读成功即返回会拿到
+   * 尚未追加目标行的旧内容(PR#109 CI 实证 T2.3 偶发 captured=undefined)。
+   * 必须轮询到 predicate 命中;10s 上限覆盖 CI 负载(20 包并行 verify)。
+   */
+  async function auditDetails(predicate: (details: Array<Record<string, unknown>>) => boolean): Promise<Array<Record<string, unknown>>> {
+    let last: Array<Record<string, unknown>> = []
     for (let waited = 0; waited < 10000; waited += 10) {
-      try {
-        return readFileSync(auditPath, 'utf8').split('\n').filter(Boolean)
-          .map(line => (JSON.parse(line) as { detail?: Record<string, unknown> }).detail ?? {})
-      } catch {
-        await new Promise(resolve => setTimeout(resolve, 10))
-      }
+      last = auditDetailsNow()
+      if (predicate(last)) return last
+      await new Promise(resolve => setTimeout(resolve, 10))
     }
-    return []
+    return last
+  }
+
+  /** 同步读一次(容忍尾写未完成:解析失败返回 [] 由轮询重试)。 */
+  function auditDetailsNow(): Array<Record<string, unknown>> {
+    try {
+      return readFileSync(auditPath, 'utf8').split('\n').filter(Boolean)
+        .map(line => (JSON.parse(line) as { detail?: Record<string, unknown> }).detail ?? {})
+    } catch {
+      return []
+    }
   }
 
   /** 两段式保存(便捷封装,断言 committed)。 */
@@ -346,8 +356,9 @@ describe('T2.3 网关链路:会话开启事件 → 快照存储 → 查询端点
     expect([...byId.values()].every(item => item.kind !== 'patch-value' || item.text !== null || item.problems.length > 0)).toBe(true)
     // 查看语义说明在场(不可回放条目明示)。
     expect(result.note).toContain('不可回放')
-    // 审计留痕(异步落盘,轮询等待)。
-    const details = await auditDetails()
+    // 审计留痕(异步落盘:轮询到目标行出现,不只等文件可读)。
+    const details = await auditDetails(records =>
+      records.some(detail => detail['action'] === 'session-snapshot.captured' && detail['sessionId'] === 'session-t23-a'))
     const captured = details.find(detail => detail['action'] === 'session-snapshot.captured')
     expect(captured?.['sessionId']).toBe('session-t23-a')
   })
@@ -413,7 +424,8 @@ describe('T2.3 网关链路:会话开启事件 → 快照存储 → 查询端点
     const list = await gateway.sessionSnapshot({}) as SessionSnapshotListResult
     expect(list.status).toBe('ok')
     expect(list.total).toBe(0)
-    const details = await auditDetails()
+    const details = await auditDetails(records =>
+      records.filter(detail => detail['action'] === 'session-snapshot.rejected').length >= 2)
     const rejected = details.filter(detail => detail['action'] === 'session-snapshot.rejected')
     expect(rejected.length).toBeGreaterThanOrEqual(2)
   })

@@ -5,10 +5,12 @@
  * fail-closed 默认 ask 打在每个调用上 × 完全权限档 approval=never 确定性 rejected
  * = 静默全拒。修复 = docker/entrypoint.sh 步骤 2.6 渲染 docker/profile/
  * governance.rules.yml。本测试钉住三件事:
- * 1. 规则文件始终可通过 RuleEngine 严格校验(default 只允许 ask|deny,解析期拒绝 allow);
+ * 1. 规则文件始终可通过 RuleEngine 严格校验(default 为白名单允许值之一);
  * 2. 清单内工具逐名 allow——名字是从 deepseek-harness 源码逐字对账的
  *    (见规则文件头注),上游改名/eterna patch 换工具而规则没跟上时在此红灯;
- * 3. 清单外未知工具仍走 default: ask(fail-closed 底线未被规则文件悄悄放宽)。
+ * 3. 清单外未知工具按 default 裁决——2026-11-19 产品拍板 default: allow(询问
+ *    全局静默,沙箱/access 钳制/egress 白名单承担限界),本文件显式声明该口径;
+ *    引擎自身缺省仍 ask:无规则文件的裸宿主 fail-closed 不动(rules.ts 缺省逻辑)。
  */
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -45,8 +47,8 @@ const ETerna_WEB_TOOLS: readonly string[] = [
 describe('容器默认治理规则集(docker/profile/governance.rules.yml)', () => {
   const engine = RuleEngine.parse(readFileSync(RULES_PATH, 'utf8'), RULES_PATH)
 
-  it('解析通过且 default 保持 fail-closed ask', () => {
-    expect(engine.policy.default).toBe('ask')
+  it('解析通过且 default 为显式 allow(2026-11-19 产品拍板:询问全局静默)', () => {
+    expect(engine.policy.default).toBe('allow')
     expect(engine.policy.rules.length).toBeGreaterThan(0)
   })
 
@@ -70,9 +72,9 @@ describe('容器默认治理规则集(docker/profile/governance.rules.yml)', () 
     expect([...allowlisted].sort()).toEqual([...ETerna_WEB_TOOLS].sort())
   })
 
-  it('清单外未知工具仍 fail-closed 走 default ask', () => {
+  it('清单外未知工具按 default 裁决(2026-11-19 起 allow,显式声明非引擎缺省)', () => {
     const evaluation = engine.evaluateCall({ name: 'definitely_not_a_registered_tool' })
-    expect(evaluation.decision).toBe('ask')
+    expect(evaluation.decision).toBe('allow')
     expect(evaluation.isDefault).toBe(true)
   })
 
