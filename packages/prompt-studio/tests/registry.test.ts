@@ -96,7 +96,7 @@ describe('T1.3 ①对账——patch 值型(preset 层,profiles/eterna-web/cordis
 
   it('结构定位:preset 行内经 pluginPath 嵌套(planning 组 → plan-mode)命中唯一键行', () => {
     const lines = readRepoFile(WEB_PATCH).split('\n')
-    for (const [rowId, expectedLine] of [['preset-standard', 362], ['preset-cordis', 196]] as const) {
+    for (const [rowId, expectedLine] of [['preset-standard', 366], ['preset-cordis', 196]] as const) {
       const located = locateYamlConfigKey(
         { file: WEB_PATCH, rowId, pluginPath: ['planning', 'plan-mode'], configKey: 'section' },
         lines,

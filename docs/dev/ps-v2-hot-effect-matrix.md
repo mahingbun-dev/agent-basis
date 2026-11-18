@@ -46,6 +46,8 @@
 
 声明对账:断言 **15.1**(snapshot `entries[]` 14 条全部带 `effect.radius` 枚举值;2026-11-11 裁定后注册表共 14 条,无 time-context)与 **15.40**(registry 声明 ↔ 上表逐面一致:preset patch 值型×6=即时、domain×4=not-composed-anywhere、runtime×2=runtime-rebuilt)把本表与代码互相锁住;**15.41/15.42**(矩阵全程 pid 不变 + 领域层零残留)是矩阵收尾。
 
+**boot 期升级移植(2026-11-18 补登记)**:preset 层 6 条的写回落点=卷上 `cordis.patch.yml`,而 entrypoint 哈希门控在模板变更升级时会重渲染该文件——此前重渲染把工坊编辑打回模板默认(0.1.13→0.1.14 实证,即 registry UPGRADE_OVERWRITE_RISK)。现 `docker/profile/migrate-prompt-edits.mjs` 在渲染后按基线快照判定移植(旧文件值 ≠ 模板基线值 = 用户编辑 → 搬入新渲染;= 基线 → 新模板基线照常落地),写通道/生效半径语义均不变,只是升级不再丢这 6 条的本地编辑。测试:`packages/prompt-studio/tests/boot-migrate.test.ts`(真 base/super 模板子进程实跑,兼模板结构漂移守卫)。
+
 ## 3. 「需重启」一档的现状
 
 **当前注册表 14 条目中没有任何一条实测为「需重启」**:preset 层条目全部经 configEditor 官方 seam 同步重组合(即时);领域层条目不是「需重启」而是**更强的「无组合面」**(当前根本没有宿主装载该来源,重启也不进入组合——若未来有宿主把领域包加入 `dsh.profile.bundles`,其半径需按该宿主另行实测,本文不臆测)。entry-patch 直写兜底通道(persona-patch 时代通道)本身依赖文件监视 HMR(≈2-8s)重组合——该通道对 live patch 条目仍是「不重启、新会话生效」,只是存在 HMR 等待窗;本轮矩阵全部领域层写走的即此通道(写回+回滚闭环实测),无一需要重启。

@@ -844,7 +844,13 @@ const CSS = `
 .ps-compare-grid {
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   column-gap: 1px; background: var(--et-border-soft);
-  border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-sm); overflow: hidden;
+  border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-sm);
+  /* 长 diff 必须自身可滚(2026-11-18):宿主面板给 .ps-compare 限定高度时,本 grid
+     作为 flex 子项被压缩且 overflow≠visible 使自动最小尺寸归零——曾因 overflow:hidden
+     硬裁剪且无处滚动,diff 看不全。max-height+overflow-y:auto 为库列表(.ps-library-list)
+     同款惯用法;overflow-x:hidden 保留圆角裁剪职责。 */
+  max-height: min(620px, 72vh);
+  overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain;
 }
 .ps-compare-grid > * { background: var(--et-surface); min-width: 0; }
 .ps-compare-grid .ps-compare-side { padding: 12px; border-bottom: 0; }
