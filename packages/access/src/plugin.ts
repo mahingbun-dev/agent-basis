@@ -1,8 +1,9 @@
 /**
  * @eterna/access 装配位:DSH 宿主插件(default export 实例,DSH 硬性规范 1)。
- * inject ['webServer','connection','tools'](前二=frontend-static 同款 lib/index.js:26 实证;
+ * inject ['webServer','connection','tools','llm'](前二=frontend-static 同款 lib/index.js:26 实证;
  * 'tools'=companion 分发边界 wrap 的宿主服务——cordis 过滤上下文访问未声明服务是 get trap
- * 抛错,2026-11-13 生产事故根因,声明缺失时运行侧另有 readToolsService 降级兜底);
+ * 抛错,2026-11-13 生产事故根因,声明缺失时运行侧另有 readToolsService 降级兜底;
+ * 'llm'=2026-11-18 思考强度自动模式的档位表来源,同 get-trap 纪律);
  * register 四条路由(/login /logout /account 精确 + /access/api 前缀)+
  * tapIndex 注入账号角标;返回 handle 为 apply 的配逆闭包(路由 disposer + store close)。
  * seam 用结构类型钉住(形态取 @deepseek-ai/dsh-host-webserver 0.2.2-alpha.3
@@ -27,6 +28,7 @@ import { handleAccessRequest, type AccessDeps } from './routes.ts'
 import { loadOrCreateSecret, SessionService } from './session.ts'
 import { SlidingWindow } from './ratelimit.ts'
 import { UserStore } from './store.ts'
+import { installThinkingAuto, type InboxInsertedPayload, type ThinkingAutoLlm } from './thinking-auto.ts'
 import { ensureFirstSession, ensureTenantWorkspace, registerTenantGuards } from './tenant.ts'
 import { installMuxIsolation, type MuxIsolationInstall } from './mux.ts'
 import { installLoginGate } from './login-gate.ts'
@@ -64,6 +66,8 @@ export interface AccessContext {
   readonly webServer: AccessWebServer
   readonly connection: AccessConnection
   readonly reflect: AuditReflect
+  /** llm 服务(2026-11-18 思考强度自动模式:resolveModelInfo 取档位表;结构面见 ThinkingAutoLlm)。 */
+  readonly llm: ThinkingAutoLlm
 }
 
 const MAX_BODY_BYTES = 2 * 1024 * 1024
@@ -143,7 +147,7 @@ function createNodeHandler(deps: AccessDeps): (req: IncomingMessage, res: Server
 export function defineAccessPlugin(config: AccessPluginConfig = {}) {
   return {
     name: ACCESS_PLUGIN_NAME,
-    inject: ['webServer', 'connection', 'tools'],
+    inject: ['webServer', 'connection', 'tools', 'llm'],
     apply(ctx: AccessContext & Context): () => void {
       const dir = config.dir
         ?? (process.env.ETERNA_ACCESS_DIR !== undefined && process.env.ETERNA_ACCESS_DIR !== ''
@@ -210,6 +214,16 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       const offQuestionAnswerer = questionBridge.installAnswerer(
         listener => (ctx as unknown as { on: (event: string, listener: (request: unknown, next: () => unknown) => unknown, options?: { prepend?: boolean }) => () => void }).on('user-questions/request', listener, { prepend: true }),
       )
+      // ── 思考强度自动模式(2026-11-18):每轮用户消息入箱(agent/inbox/inserted,
+      // 同步 emit、早于驱动唤醒)按启发式评分自动调 agent.model.select 选档。
+      // 监听体全同步(emit 分发不回等 promise);开关存 users.db
+      // sessions.thinking_auto(默认开启),UI=模型菜单「自动」chip(模型菜单铁律内)。
+      const offThinkingAuto = installThinkingAuto(
+        { store, llm: ctx.llm, audit },
+        (event, listener) => (ctx as unknown as {
+          on: (event: string, listener: (payload: InboxInsertedPayload) => void) => () => void
+        }).on(event, listener),
+      )
       // P3(2026-11-11):把归属账本 provide 出去(usage-stats 聚合的归属唯一事实源;
       // reflect 键 eternaAccessStore)。账本只读面,不含凭据。
       const storeProvide = (ctx as unknown as { provide?: (id: string, value: unknown) => () => void }).provide
@@ -266,6 +280,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       disposers.push(offCompanionIdentity)
       disposers.push(offApprovalAnswerer)
       disposers.push(offQuestionAnswerer)
+      disposers.push(offThinkingAuto)
       // 索引页登录跳转门禁(2026-11-17):未登录/浏览器 cookie 过期访问根路径时,
       // dsh authorizeIndex 原本回裸 401 文本(index HTML 不发出→tapIndex 角标脚本
       // 永不运行)。包装为 302 /login;token 兑换 303 与已认证请求原样放行。

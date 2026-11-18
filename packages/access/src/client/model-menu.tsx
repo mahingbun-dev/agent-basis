@@ -73,6 +73,16 @@ const S = {
     fontSize: 10, fontWeight: 600,
   } as React.CSSProperties,
   check: { color: 'var(--et-success)', marginLeft: 'auto' } as React.CSSProperties,
+  // 思考强度自动模式 chip(2026-11-18):小号 pill 开关,全令牌着色
+  autoChip: {
+    flexShrink: 0, fontSize: 12, lineHeight: '20px', fontWeight: 500,
+    padding: '1px 10px', borderRadius: 'var(--et-radius-pill)', minHeight: 24,
+    border: '1px solid var(--et-border)', background: 'var(--et-surface-2)',
+    color: 'var(--et-muted)', cursor: 'pointer',
+  } as React.CSSProperties,
+  autoChipOn: {
+    background: 'var(--et-accent-soft)', borderColor: 'var(--et-accent)', color: 'var(--et-accent)',
+  } as React.CSSProperties,
   // 能力 tag chip(上游 ui-model-selection .badge 同位次:菜单位=名后;
   // 全令牌着色,零字面色值——frontend-style 铁律)
   badge: {
@@ -137,9 +147,31 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
   const [subOpen, setSubOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // 思考强度自动模式(2026-11-18):null=读取中(chip 不渲染,避免闪错态);
+  // 服务端列默认 1 ⇒ 新/存量会话默认开启。读取失败保持 null(本菜单不误标状态)。
+  const [autoOn, setAutoOn] = useState<boolean | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const mainRef = useRef<HTMLDivElement | null>(null)
   const [mainRect, setMainRect] = useState<{ left: number; top: number; right: number } | null>(null)
+
+  // 自动模式开关初值(独立 effect:目录读取失败不应连坐开关态)
+  useEffect(() => {
+    let alive = true
+    rpc<{ enabled: boolean }>('thinkingAuto', { request: { sessionId: props.sessionId } })
+      .then(value => { if (alive) setAutoOn(value?.enabled === true) })
+      .catch(() => { /* 读取失败=本菜单不显示开关,不误标 */ })
+    return () => { alive = false }
+  }, [props.sessionId])
+
+  /** 自动开关切换(防重复点击复用 busy;失败就地 role=alert,不关面板)。 */
+  const toggleAuto = (): void => {
+    if (busy || autoOn === null) return
+    const next = !autoOn
+    setBusy(true); setError(null)
+    rpc<{ enabled: boolean }>('thinkingAuto', { request: { sessionId: props.sessionId, enabled: next } })
+      .then(value => { setAutoOn(value?.enabled ?? next); setBusy(false) })
+      .catch((e: unknown) => { setBusy(false); setError(e instanceof Error ? e.message : String(e)) })
+  }
 
   // 初始 current:触发按钮 aria「…当前 X，推理等级 Y」+catalog 匹配 id/name
   useEffect(() => {
@@ -218,6 +250,18 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
     const effort = curEfforts[index]
     if (effort === undefined || current === null || busy) return
     if (effort.id === curEffortId) return
+    // 自动开启时拖滑杆=显式手动选档 ⇒ 先落开关(false)再选档;开关写失败则
+    // 不提交选档(状态一致优先,错误就地展示)。
+    if (autoOn === true) {
+      setBusy(true); setError(null)
+      rpc<{ enabled: boolean }>('thinkingAuto', { request: { sessionId: props.sessionId, enabled: false } })
+        .then(() => {
+          setAutoOn(false); setBusy(false)
+          submit({ provider: current.provider, model: current.model, reasoningEffort: effort.id }, { closeAfter: false })
+        })
+        .catch((e: unknown) => { setBusy(false); setError(e instanceof Error ? e.message : String(e)) })
+      return
+    }
     submit({ provider: current.provider, model: current.model, reasoningEffort: effort.id }, { closeAfter: false })
   }
 
@@ -314,15 +358,26 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
       {curEfforts.length > 0 && <>
         <div style={S.divider} />
         <div style={S.section}>思考强度</div>
+        {/* 自动模式 chip 行(2026-11-18):开关只在本菜单——access 记账 +
+            宿主入箱钩子自动选档;aria-pressed 语义,防重复点击复用 busy。 */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 14px 6px', gap: 8 }}>
+          <span style={{ fontSize: 12, color: 'var(--et-muted)' }}>
+            {autoOn === true ? '已按每轮消息自动选档' : '按每轮消息自动选档'}
+          </span>
+          {autoOn !== null && <button type="button" aria-pressed={autoOn} disabled={busy}
+            style={{ ...S.autoChip, ...(autoOn ? S.autoChipOn : {}) }}
+            onClick={toggleAuto}>自动</button>}
+        </div>
         {/* 滑杆=ZCode ComposerModelMenu 同构(2026-11-12):
             可视轨道(填充+档位圆点+白 thumb)+透明原生 range 叠加;
             提交只在手势完成时(onPointerUp/onKeyUp),onChange 仅视觉——
-            拖动不提交、不关面板;事件全部 stopPropagation 防冒泡关闭链。 */}
+            拖动不提交、不关面板;事件全部 stopPropagation 防冒泡关闭链。
+            自动开启时视觉降饱和(data-disabled 复用),仍可拖动=退出自动。 */}
         <div style={{ padding: '4px 14px 12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 4 }}>
             <span>{visualEffortName}</span>
           </div>
-          <div className="et-thought-slider" data-disabled={busy}>
+          <div className="et-thought-slider" data-disabled={busy || autoOn === true}>
             {/* 可视轨道 */}
             <div aria-hidden="true" style={{ position: 'absolute', inset: 0 }}>
               <div style={{ position: 'absolute', left: 0, right: 0, top: 4, height: 24, borderRadius: 'var(--et-radius-pill)',

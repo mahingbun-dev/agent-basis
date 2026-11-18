@@ -410,6 +410,28 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     return okFrame(rpcId, enrichModelCatalog(value ?? {}, visionIndex))
   })
 
+  // ── session/thinkingAuto 专路(2026-11-18,思考强度自动模式开关)──
+  // 读 {request:{sessionId}} → {enabled};写 {request:{sessionId, enabled}} → {enabled}。
+  // 纯 access 记账(users.db sessions.thinking_auto,不打扰上游 sessionController):
+  // 宿主侧 thinking-auto 路由器按此开关在消息入箱时自动调 agent.model.select 选档。
+  // 默认开启(列默认 1,用户拍板);归属守卫同通用循环——会话必须存在且属于当前用户。
+  register('/api/session/thinkingAuto', (rpcId, args, ctx) => {
+    const request0 = args.request as Record<string, unknown> | undefined
+    const sessionId = firstString(request0, 'sessionId') ?? firstString(args, 'sessionId')
+    if (sessionId === undefined || deps.store.sessionOwner(sessionId) !== ctx.userId) {
+      return deniedFrame(rpcId, '会话不存在或不属于你')
+    }
+    const enabledArg = firstBoolean(request0, 'enabled') ?? firstBoolean(args, 'enabled')
+    if (enabledArg === undefined) {
+      return okFrame(rpcId, { enabled: deps.store.thinkingAutoOf(sessionId) })
+    }
+    if (!deps.store.setThinkingAuto(sessionId, enabledArg)) {
+      return deniedFrame(rpcId, '会话不存在或不属于你')
+    }
+    tenantAudit(deps, 'thinking.auto.set', ctx.account, { sessionId, enabled: enabledArg })
+    return okFrame(rpcId, { enabled: enabledArg })
+  })
+
   // ── T1 补全(G1):session/events——读任意会话完整历史,之前完全不在守卫清单 ──
   // 请求形态 SessionPageRequest:{address:{kind:'session',sessionId}} 或
   // {address:{kind:'subagent',parentSessionId,childSessionId}}(子代理历史按父归属判定)。
@@ -686,4 +708,9 @@ function firstString(source: Record<string, unknown> | undefined, key: string): 
 function firstNumber(source: Record<string, unknown> | undefined, key: string): number | undefined {
   const value = source?.[key]
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : undefined
+}
+
+function firstBoolean(source: Record<string, unknown> | undefined, key: string): boolean | undefined {
+  const value = source?.[key]
+  return typeof value === 'boolean' ? value : undefined
 }
