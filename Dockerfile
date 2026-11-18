@@ -44,8 +44,11 @@ FROM node:24-bookworm-slim
 # dsh-mcp-client：companion 浏览器执行面挂载用。必须与内核版本族严格一致
 # （rc.1 在 alpha.3 内核上被静默 disable——requirements 整组 rc.1 包不匹配，
 # 2026-11-11 生产实测；「@deepseek-ai symlink 须指全局同版本」老坑的版本族变体）
+# git(2026-11-19):插件市场 git 源安装(plugin-manager→pnpm→git)与一键发布
+# (submit_plugin_to_market)都依赖 git CLI——此前镜像缺 git,发现页装 git 源
+# 插件必败(ENOENT),一键发布同样不可用。
 RUN apt-get update \
- && apt-get install -y --no-install-recommends python3 make g++ curl \
+ && apt-get install -y --no-install-recommends python3 make g++ curl git \
  && rm -rf /var/lib/apt/lists/* \
  && npm i -g @deepseek-ai/dsh@0.2.2-alpha.3 @deepseek-ai/dsh-mcp-client@0.2.2-alpha.3 \
  && npm cache clean --force \

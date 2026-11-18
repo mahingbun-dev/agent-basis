@@ -161,6 +161,7 @@ sleep 15; grep -icE "skipping|incompatible" /tmp/eterna-web-app.log   # 0 = 装�
 - plugin_manager 在上游非裁切部署中安装**需逐次审批**;build-script(pnpm approve-scripts)同审;`compatibility.json` 豁免需显式 accept-risk。
 - 无 HMR 的 profile 改动报 `restart-required`——重启后生效,不是 bug。
 - 自修改/装卸插件是**高危面**:生产 profile 建议禁用 plugin_manager 行(bundles 里 `disabled: true`),只在开发 profile 开放。
+- **一键发布到官方插件市场(2026-11-19)**:agent 工具 `submit_plugin_to_market` 把本人 plugins 根下的工具插件自动送进 [eterna-plugins](https://github.com/mahingbun-dev/eterna-plugins)——bundle 化改写(清单重写/wrapper 入口/insert 补丁行)→ 仓库分支两段 commit(bundle+索引,索引钉 bundle SHA)→ `validate.mjs` 零漂移校验 → push 分支 → 开 PR。**main 有分支保护,永不直推**;CI(validate)绿 → 人工合并 PR → 发现页刷新即可给全员安装。范围边界:仅工具型(UI 型 dsh.client 拒发);TS 源拒发(个人层契约本就要求纯 JS);凭据走 `ETERNA_MARKET_GITHUB_TOKEN`(.env 注入,缺席=发布停在本地 commit 并返回手动 PR 链接)。实现:`packages/access/src/market-publish.ts` + `publish-tool.ts`。
 
 ## 7. Web 插件市场(发现页)现状
 
