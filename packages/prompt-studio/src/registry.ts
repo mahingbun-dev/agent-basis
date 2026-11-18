@@ -440,7 +440,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@eterna/glue',
     anchors: [
       { file: 'packages/glue/src/plugins/memory-plugin.ts', line: 116, contains: 'systemPrompt: true' },
-      { file: 'packages/glue/src/plugins/memory-plugin.ts', line: 318, contains: 'attachMemory(dshHost(ctx)' },
+      { file: 'packages/glue/src/plugins/memory-plugin.ts', line: 322, contains: 'attachMemory(dshHost(ctx)' },
     ],
     note: '运行时注入型:glue 的 eterna-memory 插件(inject systemPrompt)经 attachMemory/dshHost 把 memory:index section 挂进宿主——同一 section 的装载层。',
     description: '记忆插件的 systemPrompt 挂载点(运行时注入):@eterna/glue 把记忆索引 section 挂进宿主的装配位声明;无静态文本,不可编辑。',
