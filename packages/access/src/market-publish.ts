@@ -40,14 +40,24 @@ export interface MarketPublishEnv {
   readonly token: string | undefined
 }
 
+/**
+ * compose 的 `${VAR:-}` 会把「未设置」传成空串:`??` 只挡 undefined,空串会顶掉
+ * 默认值(repoUrl 空 → clone "" 必败)。空/纯空白一律按缺席处理。
+ */
+function envOr(name: 'ETERNA_MARKET_REPO_URL' | 'ETERNA_MARKET_REPO_DIR' | 'ETERNA_MARKET_DSH_RANGE', fallback: string): string {
+  const value = process.env[name]?.trim()
+  return value === undefined || value === '' ? fallback : value
+}
+
 export function marketPublishEnvFromProcess(): MarketPublishEnv {
+  const token = process.env.ETERNA_MARKET_GITHUB_TOKEN?.trim()
   return {
-    repoUrl: process.env.ETERNA_MARKET_REPO_URL ?? 'https://github.com/mahingbun-dev/eterna-plugins.git',
+    repoUrl: envOr('ETERNA_MARKET_REPO_URL', 'https://github.com/mahingbun-dev/eterna-plugins.git'),
     // 铁律 T1(tenant-scan):持久化路径以 $DSH_HOME/cwd 为基,禁硬编码容器绝对路径
     // ——部署契约 working_dir=home(DSH_HOME=/data),故缺省落 <home>/market/eterna-plugins。
-    repoDir: process.env.ETERNA_MARKET_REPO_DIR ?? join(process.env.DSH_HOME ?? process.cwd(), 'market', 'eterna-plugins'),
-    dshRange: process.env.ETERNA_MARKET_DSH_RANGE ?? '>=0.2.2-alpha.2',
-    token: process.env.ETERNA_MARKET_GITHUB_TOKEN ?? undefined,
+    repoDir: envOr('ETERNA_MARKET_REPO_DIR', join(process.env.DSH_HOME ?? process.cwd(), 'market', 'eterna-plugins')),
+    dshRange: envOr('ETERNA_MARKET_DSH_RANGE', '>=0.2.2-alpha.2'),
+    token: token === undefined || token === '' ? undefined : token,
   }
 }
 
