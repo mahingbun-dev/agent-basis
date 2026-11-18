@@ -1,0 +1,29 @@
+{
+  "events": [
+    { "type": "message_start", "message": { "id": "c1d2e3f4-1111-4a2b-9c3d-4e5f6a7b8c9d", "model": "deepseek-flash", "usage": { "input_tokens": 8, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0, "output_tokens": 0 } } },
+    { "type": "content_block_start", "index": 0, "content_block": { "type": "server_tool_use", "id": "srvtoolu_rl_1_4f", "name": "deepseek_read_url", "input": { "action": "read_link", "url": "https://example.com/venue-guide" }, "caller": { "type": "direct" }, "kind": "read_link" } },
+    { "type": "content_block_stop", "index": 0 },
+    {
+      "type": "content_block_start",
+      "index": 1,
+      "content_block": {
+        "type": "web_fetch_tool_result",
+        "tool_use_id": "srvtoolu_rl_1_4f",
+        "kind": "read_link",
+        "content": {
+          "type": "web_fetch_result",
+          "url": "https://example.com/venue-guide",
+          "content": { "type": "document", "source": { "type": "text", "media_type": "text/plain", "data": "" }, "title": "场地选址指南" },
+          "published_at": "Tue, 03 Nov 2026 09:00:00 GMT"
+        },
+        "signature": "read-link-page-signature"
+      }
+    },
+    { "type": "content_block_stop", "index": 1 },
+    { "type": "content_block_start", "index": 2, "content_block": { "type": "text", "text": "" } },
+    { "type": "content_block_delta", "index": 2, "delta": { "type": "text_delta", "text": "该页面指出场地需提前三个月确认档期。" } },
+    { "type": "content_block_stop", "index": 2 },
+    { "type": "message_delta", "delta": { "stop_reason": "end_turn", "stop_sequence": null }, "usage": { "input_tokens": 8, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0, "output_tokens": 512, "server_tool_use": { "web_fetch_requests": 1, "tool_fetch": 1 } } },
+    { "type": "message_stop" }
+  ]
+}

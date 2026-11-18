@@ -1,0 +1,26 @@
+{
+  "id": "web-search-generic-degraded",
+  "capability": "web_search",
+  "scope": "generic",
+  "description": "generic 分支降级路径:Tavily /search 401 → 显式降级(错误步骤块+理由+回灌 JSON)",
+  "params": {
+    "query": "Tavily 接入形态"
+  },
+  "expected": {
+    "status": "degraded",
+    "reason": "Tavily /search 失败(兜底段显式降级): Tavily HTTP 401: {\"detail\":\"Invalid API key\"}",
+    "blocks": [
+      {
+        "type": "search_step",
+        "step": 1,
+        "action": "search",
+        "query": "Tavily 接入形态",
+        "status": "error",
+        "detail": "Tavily /search 失败(兜底段显式降级): Tavily HTTP 401: {\"detail\":\"Invalid API key\"}"
+      }
+    ],
+    "toolResult": "{\"ok\":false,\"layers\":[\"tavily\"],\"internal\":null,\"web\":null,\"degraded_reason\":\"Tavily /search 失败(兜底段显式降级): Tavily HTTP 401: {\\\"detail\\\":\\\"Invalid API key\\\"}\"}"
+  },
+  "contractVersion": 1,
+  "status": "draft"
+}

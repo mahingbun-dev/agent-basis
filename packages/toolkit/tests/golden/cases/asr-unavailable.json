@@ -1,0 +1,13 @@
+{
+  "id": "asr-unavailable",
+  "capability": "asr",
+  "scope": "common",
+  "description": "asr 声明 → 显式 unavailable(同 tts:P-3 语音链未开发,O-9 未裁决前一律显式禁用态)",
+  "params": {},
+  "expected": {
+    "status": "unavailable",
+    "blocks": []
+  },
+  "contractVersion": 1,
+  "status": "draft"
+}

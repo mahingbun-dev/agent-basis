@@ -1,0 +1,24 @@
+{
+  "id": "read-url-generic-ok",
+  "capability": "read_url",
+  "scope": "generic",
+  "description": "generic 分支:read_url 声明 → Tavily /extract → open_page 步骤(raw_content 入回灌,无来源卡字段可造——Tavily /extract 无 title/publishTime,不虚构)",
+  "params": {
+    "url": "https://example.com/paper"
+  },
+  "expected": {
+    "status": "ok",
+    "blocks": [
+      {
+        "type": "search_step",
+        "step": 1,
+        "action": "open_page",
+        "url": "https://example.com/paper",
+        "status": "ok"
+      }
+    ],
+    "toolResult": "{\"ok\":true,\"url\":\"https://example.com/paper\",\"content\":\"论文全文:规范化块协议是渲染与 prompt 的唯一消费物。\"}"
+  },
+  "contractVersion": 1,
+  "status": "draft"
+}

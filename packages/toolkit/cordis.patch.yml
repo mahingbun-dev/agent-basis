@@ -1,0 +1,3 @@
+# @eterna/toolkit bundle patch 占位(36 号 K1.1)。
+# M-K1 批次为纯逻辑层(契约/块/路由器),无宿主半边与浏览器半边;
+# 挂载行随 K4.4 落地(D1:base 可选挂载、admin 可开,TOGGLEABLE_PLUGINS 登记)。

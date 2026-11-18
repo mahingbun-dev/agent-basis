@@ -1,0 +1,29 @@
+{
+  "chat": [
+    {
+      "choices": [
+        {
+          "message": {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              { "id": "call_golden_ws", "type": "function", "function": { "name": "web_search", "arguments": "{\"query\":\"Tavily 接入形态\"}" } }
+            ]
+          },
+          "finish_reason": "tool_calls"
+        }
+      ]
+    },
+    {
+      "choices": [
+        { "message": { "role": "assistant", "content": "已检索到 Tavily 接入要点并汇总。" }, "finish_reason": "stop" }
+      ]
+    }
+  ],
+  "tavilySearch": {
+    "results": [
+      { "title": "Tavily API 参考", "url": "https://docs.tavily.com/api", "content": "REST 直调与 Bearer 认证。", "published_date": "Tue, 11 Mar 2025 17:00:00 GMT", "score": 0.7 },
+      { "title": "Tavily 计费", "url": "https://www.tavily.com/pricing", "content": "credit 制按请求计。", "published_date": null, "score": 0.9 }
+    ]
+  }
+}

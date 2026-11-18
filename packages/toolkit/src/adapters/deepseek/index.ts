@@ -1,0 +1,81 @@
+/**
+ * deepseek 适配器子路径门面(36 号 K2.1:对话侧服务端工具)。
+ * files/独立端点(K2.2)与 v4-pro 第三类工具组装(M-K3 借用)随批次后续落地。
+ */
+export {
+  MIRRORED_SERVER_TOOL_SHAPES,
+  WEB_SEARCH_TOOL_RESULT_ERROR_CODES,
+} from './types.ts'
+export type {
+  AnthropicWebSearchTool,
+  ApiErrorBody,
+  AssistantBlockParam,
+  ContentBlockDelta,
+  CreateMessageRequest,
+  DeepseekChatModel,
+  DeepseekOutputBlock,
+  DeepseekRequestTool,
+  DeepseekWebSearchTool,
+  DeepseekReadUrlTool,
+  FileBlockParam,
+  FileObject,
+  FilePurpose,
+  MessageParam,
+  MessageStreamEvent,
+  MessageUsage,
+  MirroredServerToolPayload,
+  MirroredServerToolShape,
+  OutputBlockStart,
+  OutputConfig,
+  ServerToolBlock,
+  ServerToolInput,
+  ServerToolKind,
+  ServerToolUseBlock,
+  ServerToolUseBlockParam,
+  ServerToolUseUsage,
+  StopDetails,
+  StopReason,
+  TextBlock,
+  TextBlockParam,
+  TextCitation,
+  ThinkingBlock,
+  ThinkingConfig,
+  ThinkingType,
+  ToolUseBlock,
+  WebFetchResult,
+  WebFetchToolResultBlock,
+  WebFetchToolResultBlockParam,
+  WebFetchToolResultError,
+  WebFetchToolResultErrorCode,
+  WebSearchResult,
+  WebSearchToolResultBlock,
+  WebSearchToolResultBlockParam,
+  WebSearchToolResultError,
+  WebSearchToolResultErrorCode,
+} from './types.ts'
+export { ServerSentEventDecoder, decodeSseText } from './sse.ts'
+export type { ServerSentEvent } from './sse.ts'
+export { readMessageEvent } from './parse-event.ts'
+export {
+  DeepseekRequestError,
+  applyMessageEvent,
+  assertNoServerToolConflicts,
+  assertToolChoiceAllowed,
+  buildMessagesRequest,
+  buildServerTools,
+  consumeSseFrames,
+  createMessageAccumulator,
+  parseMessageStreamFromSse,
+  runMessageStream,
+  toAttachmentRefBlocks,
+  toNormalizedBlocks,
+  toReadUrlUserMessage,
+  toWebSearchUserMessage,
+} from './messages.ts'
+export type {
+  BuildMessagesRequestInput,
+  DeepseekMessageState,
+  MessageAccumulator,
+  ServerToolCapability,
+  SseFrameOutcome,
+} from './messages.ts'

@@ -1,0 +1,13 @@
+{
+  "id": "tts-unavailable",
+  "capability": "tts",
+  "scope": "common",
+  "description": "tts 声明 → 显式 unavailable(P-3 语音链未开发;29 §4 P-3/§7-2,36 号 §8/O-9 自然读出 §1 ⑤:显式禁用态不假装可用;reason 为分支自述文案不进 golden 比对)",
+  "params": {},
+  "expected": {
+    "status": "unavailable",
+    "blocks": []
+  },
+  "contractVersion": 1,
+  "status": "draft"
+}

@@ -1,0 +1,30 @@
+{
+  "id": "read-url-server-tools",
+  "capability": "read_url",
+  "scope": "deepseek",
+  "description": "read_url 声明 → 打开页面步骤 + 来源卡(deepseek 面:web_fetch_tool_result 携带 title/publishTime 可成来源卡;timeout/returnFormat 在 deepseek 通道无对位如实丢弃)。【golden 修改注记 2026-11-17,K2.4 属主:原 scope=common,但 generic 分支的 Tavily /extract 响应只有 url+raw_content(R6),无 title/publishTime 来源,不得虚构字段——本例归 deepseek 面;generic 面对应用例=read-url-generic-ok(open_page 步骤,raw_content 入回灌)。修改 golden 已按 36 号 K2.4 纪律在此说明】",
+  "params": {
+    "url": "https://example.com/venue-guide"
+  },
+  "expected": {
+    "status": "ok",
+    "blocks": [
+      {
+        "type": "search_step",
+        "step": 1,
+        "action": "open_page",
+        "url": "https://example.com/venue-guide",
+        "status": "ok"
+      },
+      {
+        "type": "source",
+        "title": "场地选址指南",
+        "url": "https://example.com/venue-guide",
+        "summary": "",
+        "publishTime": "2026-11-03T09:00:00.000Z"
+      }
+    ]
+  },
+  "contractVersion": 1,
+  "status": "draft"
+}
