@@ -8,8 +8,8 @@ import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { defaultMarketPublishDeps, publishPersonalPlugin, type MarketPublishEnv, type MarketPublishDeps } from '../src/market-publish.ts'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { defaultMarketPublishDeps, marketPublishEnvFromProcess, publishPersonalPlugin, type MarketPublishEnv, type MarketPublishDeps } from '../src/market-publish.ts'
 
 const GIT = (args: string[], cwd: string): string =>
   execFileSync('git', args, { cwd, encoding: 'utf8' })
@@ -265,5 +265,37 @@ describe('一键发布:submit_plugin_to_market 核心流', () => {
     const dirty = await publishPersonalPlugin(defaultMarketPublishDeps(), env, { userRoot, pluginDirName: 'my-tool', skipValidate: true })
     expect(dirty.ok).toBe(false)
     expect(dirty.message).toContain('未提交改动')
+  })
+})
+
+describe('marketPublishEnvFromProcess:compose 空串口径', () => {
+  it('compose ${VAR:-} 的未设置空串按缺席处理:默认值不被空串顶掉', () => {
+    vi.stubEnv('ETERNA_MARKET_REPO_URL', '')
+    vi.stubEnv('ETERNA_MARKET_REPO_DIR', '  ')
+    vi.stubEnv('ETERNA_MARKET_DSH_RANGE', '')
+    vi.stubEnv('ETERNA_MARKET_GITHUB_TOKEN', '')
+    vi.stubEnv('DSH_HOME', '/tmp/dsh-home-env-spec')
+    try {
+      const env = marketPublishEnvFromProcess()
+      expect(env.repoUrl).toBe('https://github.com/mahingbun-dev/eterna-plugins.git')
+      expect(env.repoDir).toBe('/tmp/dsh-home-env-spec/market/eterna-plugins')
+      expect(env.dshRange).toBe('>=0.2.2-alpha.2')
+      // 空 token 必须退化为 undefined(否则凭据 helper 用空密码 push,报错误导)。
+      expect(env.token).toBeUndefined()
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it('显式值优先且去首尾空白', () => {
+    vi.stubEnv('ETERNA_MARKET_REPO_URL', ' https://example.com/x.git ')
+    vi.stubEnv('ETERNA_MARKET_GITHUB_TOKEN', ' tok-123 ')
+    try {
+      const env = marketPublishEnvFromProcess()
+      expect(env.repoUrl).toBe('https://example.com/x.git')
+      expect(env.token).toBe('tok-123')
+    } finally {
+      vi.unstubAllEnvs()
+    }
   })
 })
