@@ -8,9 +8,15 @@
  */
 import { describe, expect, it } from 'vitest'
 import {
-  CSS, isMemoryPolicyDirty, MEMORY_SECTION_ID, MEMORY_STATE_ENDPOINT, MEMORY_UPDATE_ENDPOINT,
+  CSS, isDistillDirty, isMemoryPolicyDirty, MEMORY_SECTION_ID, MEMORY_STATE_ENDPOINT, MEMORY_UPDATE_ENDPOINT,
+  MEMORY_DISTILL_SET_PARTICIPATE_ENDPOINT, MEMORY_DISTILL_VIEW_ENDPOINT,
   MEMORY_POLICY_TIERS, resolvePolicyTier, SETTINGS_LOCALES,
 } from '../src/client/settings.tsx'
+import {
+  CSS as DISTILL_CSS, DISTILL_LOCALES, MEMORY_DISTILL_CANDIDATES_ENDPOINT, MEMORY_DISTILL_ENABLE_ENDPOINT,
+  MEMORY_DISTILL_RELEASE_ENDPOINT, MEMORY_DISTILL_REJECT_ENDPOINT, MEMORY_DISTILL_REPORT_ENDPOINT,
+  MEMORY_DISTILL_RUN_ENDPOINT, MEMORY_DISTILL_TAB_ID,
+} from '../src/client/distill-report.tsx'
 import { domainChipLabel, registeredDomainsOf } from '../src/client/domain-chip.tsx'
 import {
   clearCorrectionPrefill, isMemoryCorrectionPrefill, MEMORY_CORRECTION_BRIDGE_KEY,
@@ -69,7 +75,7 @@ describe('中文文案键面', () => {
       'fieldPortrait', 'fieldPortraitHint', 'fieldDomain', 'fieldDomainHint',
       'fieldPolicy', 'tierExplicitOnly', 'tierExplicitOnlyHint', 'tierAutoReview',
       'tierAutoReviewHint', 'tierFullAuto', 'tierFullAutoHint',
-      'fieldDistill', 'distillDisabledHint', 'costNote',
+      'fieldDistill', 'distillOnHint', 'distillOffHint', 'costNote',
       'save', 'saving', 'saved', 'unchanged', 'saveFailed',
     ] as const) {
       expect(SETTINGS_LOCALES[key], `zh.${key} 缺失`).toBeTruthy()
@@ -131,5 +137,44 @@ describe('画像纠正预填桥(T12-② 显式通道交接)', () => {
   it('桥键与事件名为字面契约(与 @eterna/panel 各自内联,改动须双侧同步)', () => {
     expect(MEMORY_CORRECTION_BRIDGE_KEY).toBe('__eternaMemoryCorrectionPrefill')
     expect(MEMORY_CORRECTION_EVENT).toBe('eterna-memory:correction')
+  })
+})
+
+describe('M-M4 蒸馏参与(client 侧纯逻辑)', () => {
+  it('蒸馏端点常量(与宿主 admin-plugin 字面契约)', () => {
+    expect(MEMORY_DISTILL_VIEW_ENDPOINT).toBe('eternaMemory/distillView')
+    expect(MEMORY_DISTILL_SET_PARTICIPATE_ENDPOINT).toBe('eternaMemory/setDistillParticipate')
+    expect(MEMORY_DISTILL_TAB_ID).toBe('eterna-memory.distill')
+    expect(MEMORY_DISTILL_REPORT_ENDPOINT).toBe('eternaMemory/distillReport')
+    expect(MEMORY_DISTILL_ENABLE_ENDPOINT).toBe('eternaMemory/distillEnable')
+    expect(MEMORY_DISTILL_RUN_ENDPOINT).toBe('eternaMemory/distillRun')
+    expect(MEMORY_DISTILL_CANDIDATES_ENDPOINT).toBe('eternaMemory/distillCandidates')
+    expect(MEMORY_DISTILL_RELEASE_ENDPOINT).toBe('eternaMemory/distillCandidateRelease')
+    expect(MEMORY_DISTILL_REJECT_ENDPOINT).toBe('eternaMemory/distillCandidateReject')
+  })
+
+  it('isDistillDirty:loaded 缺席按缺省参与比对(默认开可关闭)', () => {
+    expect(isDistillDirty(null, true)).toBe(false)
+    expect(isDistillDirty(null, false)).toBe(true)
+    expect(isDistillDirty({ ok: true, deploymentEnabled: true, participate: true }, false)).toBe(true)
+    expect(isDistillDirty({ ok: true, deploymentEnabled: true, participate: false }, false)).toBe(false)
+    expect(isDistillDirty({ ok: true, deploymentEnabled: true, participate: false }, true)).toBe(true)
+  })
+
+  it('蒸馏文案键齐备且为中文(含部署开/关两态口径)', () => {
+    for (const key of ['fieldDistill', 'distillOnHint', 'distillOffHint'] as const) {
+      expect(SETTINGS_LOCALES[key], `zh.${key} 缺失`).toBeTruthy()
+      expect(SETTINGS_LOCALES[key], `zh.${key} 应为中文`).toMatch(/\p{Script=Han}/u)
+    }
+    for (const key of ['distillPrivacy', 'distillGateEnable', 'distillCandidateRelease', 'distillGateG2Skipped'] as const) {
+      expect(DISTILL_LOCALES[key], `zh.${key} 缺失`).toBeTruthy()
+      expect(DISTILL_LOCALES[key], `zh.${key} 应为中文`).toMatch(/\p{Script=Han}/u)
+    }
+  })
+
+  it('报告页 CSS 零字面色值(AGENTS.md §2)', () => {
+    expect(DISTILL_CSS).not.toMatch(/#[0-9a-fA-F]{3,8}\b/)
+    expect(DISTILL_CSS).not.toMatch(/\b(?:rgba?|hsla?)\(/)
+    expect(DISTILL_CSS).toContain('var(--et-')
   })
 })

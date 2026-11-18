@@ -56,9 +56,12 @@ import {
   evaluateSessionGates,
   findSessionLogPath,
   DEFAULT_DREAM_INTERVAL_HOURS,
+  DEFAULT_DISTILL_INTERVAL_HOURS,
   DREAM_CURSOR_SESSION_ID,
+  DISTILL_CURSOR_SESSION_ID,
   MIN_USER_PROSE_WORDS,
   SKELETON_CONSOLIDATION_TASK,
+  distillSnapshot,
 } from '../src/consolidation.ts'
 import type {
   ConsolidationSnapshot,
@@ -2144,6 +2147,7 @@ describe('M-M3 T11 重量 Dream 触发面(S4-B 退路:会话尾触发 + lastDrea
   function makeConsolidator(options: {
     task?: ConsolidationTask
     dreamTask?: ConsolidationTask
+    distillTask?: ConsolidationTask
     now?: () => number
   } = {}) {
     const cursor = new ConsolidationCursorStore(':memory:')
@@ -2151,6 +2155,7 @@ describe('M-M3 T11 重量 Dream 触发面(S4-B 退路:会话尾触发 + lastDrea
       cursor,
       ...(options.task !== undefined && { task: options.task }),
       ...(options.dreamTask !== undefined && { dreamTask: options.dreamTask }),
+      ...(options.distillTask !== undefined && { distillTask: options.distillTask }),
       ...(options.now !== undefined && { now: options.now }),
     })
     disposers.push(() => consolidator.dispose())
@@ -2219,7 +2224,7 @@ describe('M-M3 T11 重量 Dream 触发面(S4-B 退路:会话尾触发 + lastDrea
     expect(consolidator.maybeEnqueueDream(T0 + INTERVAL + 1, INTERVAL)).toBe('not-due')
   })
 
-  it('dream pending 被会话任务顶掉 → dream 游标不推进(lastDreamAt 不被虚假推进,留待下个会话尾)', async () => {
+  it('dream pending 粘滞:后来的会话任务不顶掉(防周期任务饥饿),dream 游标不虚假推进', async () => {
     const controlled = makeControllableTask() // 会话提取体(挂起受控)
     const dreamRuns: ConsolidationSnapshot[] = []
     const dreamTask: ConsolidationTask = (snapshot) => {
@@ -2230,17 +2235,21 @@ describe('M-M3 T11 重量 Dream 触发面(S4-B 退路:会话尾触发 + lastDrea
     consolidator.consolidateOnSessionEnd(ref('session-a')) // 会话任务占 running
     expect(consolidator.maybeEnqueueDream(T0, INTERVAL)).toBe('scheduled') // dream 入 pending
     expect(consolidator.schedulerState()).toEqual({ running: 'session-a', pending: DREAM_CURSOR_SESSION_ID })
-    consolidator.consolidateOnSessionEnd(ref('session-b')) // 会话任务顶掉 dream pending
-    expect(consolidator.schedulerState()).toEqual({ running: 'session-a', pending: 'session-b' })
+    consolidator.consolidateOnSessionEnd(ref('session-b')) // 粘滞:session-b 不顶掉 dream pending
+    expect(consolidator.schedulerState()).toEqual({ running: 'session-a', pending: DREAM_CURSOR_SESSION_ID })
     expect(cursor.doneAt(DREAM_CURSOR_SESSION_ID)).toBeNull() // 不虚假推进
     expect(dreamRuns).toHaveLength(0) // dream 从未运行
+    // session-b 的会话尾标记被丢弃(游标未推进)——下个会话尾自然重触发,不丢信息。
+    expect(cursor.doneAt('session-b')).toBeNull()
     controlled.settleLast({ kind: 'ran' })
     await flush()
-    controlled.settleLast({ kind: 'ran' })
+    // running 空出 → pending 的 dream 接续运行(先到先跑)。
+    expect(dreamRuns).toHaveLength(1)
     await flush()
-    expect(cursor.doneAt(DREAM_CURSOR_SESSION_ID)).toBeNull()
-    // 下个会话尾的 dream 触发仍到期(时间阈值未被污染)
-    expect(consolidator.maybeEnqueueDream(T0 + INTERVAL, INTERVAL)).toBe('scheduled')
+    expect(cursor.doneAt(DREAM_CURSOR_SESSION_ID)).not.toBeNull()
+    // 下个会话尾的 dream 触发按时间阈值判定:dream 已跑完(lastDreamAt 已推进),
+    // 间隔未满 → not-due(阈值未被污染的直接证据)。
+    expect(consolidator.maybeEnqueueDream(T0 + INTERVAL, INTERVAL)).toBe('not-due')
     expect(dreamRuns).toHaveLength(1)
   })
 
@@ -2933,6 +2942,141 @@ describe('M-M3 T11 Dream 四阶段(dream.ts;19 号 §5-T11 四阶段 + 18 §13 �
       controller.abort()
       await expect(task(dreamSnapshot(T0, T0 - DAY_MS), controller.signal)).rejects.toThrow()
     })
+  })
+})
+
+// ---------- M-M4:全局蒸馏触发面(与 Dream 同款时间阈值合并;18 号 §8) ----------
+
+describe('M-M4 蒸馏触发面(maybeEnqueueDistill)', () => {
+  let dir = ''
+  const disposers: Array<() => unknown> = []
+  const INTERVAL = 24 * 3_600_000
+  const T0 = 1_793_760_000_000
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'eterna-memory-distill-trigger-'))
+  })
+
+  afterEach(async () => {
+    for (const dispose of disposers.splice(0)) await dispose()
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  function makeConsolidator(options: {
+    task?: ConsolidationTask
+    distillTask?: ConsolidationTask
+    now?: () => number
+    drainTimeoutMs?: number
+  } = {}) {
+    const cursor = new ConsolidationCursorStore(':memory:')
+    const consolidator = new SessionEndConsolidator({
+      cursor,
+      ...(options.task !== undefined && { task: options.task }),
+      ...(options.distillTask !== undefined && { distillTask: options.distillTask }),
+      ...(options.now !== undefined && { now: options.now }),
+      ...(options.drainTimeoutMs !== undefined && { drainTimeoutMs: options.drainTimeoutMs }),
+    })
+    disposers.push(() => consolidator.dispose())
+    return { consolidator, cursor }
+  }
+
+  async function flush(): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, 0))
+  }
+
+  it('常量:游标伪会话 id 与默认间隔(24h)', () => {
+    expect(DISTILL_CURSOR_SESSION_ID).toBe('distill')
+    expect(DEFAULT_DISTILL_INTERVAL_HOURS).toBe(24)
+  })
+
+  it('未提供 distillTask → disabled;调度即入队(快照 jobKind/sessionId/logPath/windowStart)', async () => {
+    const { consolidator, cursor } = makeConsolidator()
+    expect(consolidator.maybeEnqueueDistill(T0, INTERVAL)).toBe('disabled')
+    const distillRuns: ConsolidationSnapshot[] = []
+    const { consolidator: withTask, cursor: cursor2 } = makeConsolidator({
+      distillTask: (snapshot) => {
+        distillRuns.push(snapshot)
+        return Promise.resolve({ kind: 'nothing-to-save' })
+      },
+    })
+    void consolidator
+    void cursor
+    expect(withTask.maybeEnqueueDistill(T0, INTERVAL)).toBe('scheduled')
+    await flush()
+    expect(distillRuns).toHaveLength(1)
+    expect(distillRuns[0]?.jobKind).toBe('distill')
+    expect(distillRuns[0]?.sessionId).toBe(DISTILL_CURSOR_SESSION_ID)
+    expect(distillRuns[0]?.logPath).toBeNull()
+    expect(distillRuns[0]?.windowStart).toBe(T0 - INTERVAL) // 首跑窗口回落 now-interval
+    expect(distillRuns[0]?.facts).toEqual({ memoryWriteCalls: 0, maxUserProseWords: 0, approvalAsks: 0 })
+    expect(cursor2.doneAt(DISTILL_CURSOR_SESSION_ID)).not.toBeNull() // nothing-to-save 也推进(已处理)
+  })
+
+  it('完成推进 distill 游标 = 原子更新 lastDistillAt;间隔内 not-due,到期再入', async () => {
+    let clock = T0
+    const { consolidator, cursor } = makeConsolidator({
+      distillTask: () => Promise.resolve({ kind: 'ran' }),
+      now: () => clock,
+    })
+    expect(consolidator.maybeEnqueueDistill(T0, INTERVAL)).toBe('scheduled')
+    clock = T0 + 50
+    await flush()
+    expect(cursor.doneAt(DISTILL_CURSOR_SESSION_ID)).toBe(T0 + 50)
+    expect(consolidator.maybeEnqueueDistill(T0 + 3_600_000, INTERVAL)).toBe('not-due')
+    expect(consolidator.maybeEnqueueDistill(T0 + INTERVAL + 3_600_000, INTERVAL)).toBe('scheduled')
+  })
+
+  it('蒸馏任务失败 → 游标不推进,到期后补跑', async () => {
+    let clock = T0
+    const { consolidator, cursor } = makeConsolidator({
+      distillTask: () => Promise.reject(new Error('聚合写入失败')),
+      now: () => clock,
+    })
+    expect(consolidator.maybeEnqueueDistill(T0, INTERVAL)).toBe('scheduled')
+    clock = T0 + 50
+    await flush()
+    expect(cursor.doneAt(DISTILL_CURSOR_SESSION_ID)).toBeNull()
+    expect(consolidator.maybeEnqueueDistill(T0 + 3_600_000, INTERVAL)).toBe('scheduled')
+  })
+
+  it('distill 在跑/已排队 → already-queued(单 distill 语义;与 Dream 互不阻挡)', async () => {
+    let settleDistill: ((result: ConsolidationTaskResult) => void) | undefined
+    const { consolidator } = makeConsolidator({
+      distillTask: () => new Promise((resolve) => { settleDistill = resolve }),
+    })
+    expect(consolidator.maybeEnqueueDistill(T0, INTERVAL)).toBe('scheduled')
+    expect(consolidator.maybeEnqueueDistill(T0 + INTERVAL, INTERVAL)).toBe('already-queued')
+    settleDistill?.({ kind: 'ran' })
+    await flush()
+    expect(consolidator.maybeEnqueueDistill(T0 + INTERVAL + 1, INTERVAL)).toBe('not-due')
+  })
+
+  it('distill pending 粘滞:后来的 session 任务不顶掉(distill 游标不虚假推进)', async () => {
+    const hang: ConsolidationTask = () => new Promise(() => {})
+    const distillRuns: ConsolidationSnapshot[] = []
+    const { consolidator, cursor } = makeConsolidator({
+      task: hang,
+      distillTask: (snapshot) => {
+        distillRuns.push(snapshot)
+        return Promise.resolve({ kind: 'ran' })
+      },
+      drainTimeoutMs: 20, // 挂起会话任务不让 dispose 等满 60s
+    })
+    consolidator.consolidateOnSessionEnd(ref('session-a')) // 会话任务占 running
+    expect(consolidator.maybeEnqueueDistill(T0, INTERVAL)).toBe('scheduled') // 入 pending
+    consolidator.consolidateOnSessionEnd(ref('session-b')) // 粘滞:session-b 不顶掉 distill pending
+    expect(consolidator.schedulerState()).toEqual({ running: 'session-a', pending: DISTILL_CURSOR_SESSION_ID })
+    expect(distillRuns).toHaveLength(0)
+    expect(cursor.doneAt(DISTILL_CURSOR_SESSION_ID)).toBeNull() // 不被虚假推进
+  })
+
+  it('distillSnapshot:伪会话形态(logPath 缺席/facts 恒零/windowStart 供报告)', () => {
+    const snapshot = distillSnapshot(T0, T0 - INTERVAL)
+    expect(snapshot.jobKind).toBe('distill')
+    expect(snapshot.sessionId).toBe(DISTILL_CURSOR_SESSION_ID)
+    expect(snapshot.logPath).toBeNull()
+    expect(snapshot.windowStart).toBe(T0 - INTERVAL)
+    expect(snapshot.facts).toEqual({ memoryWriteCalls: 0, maxUserProseWords: 0, approvalAsks: 0 })
   })
 })
 
