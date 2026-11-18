@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Icon } from '@eterna/ui/icons'
 import { api, fileToAvatarDataUrl, type CompanionView, type Me, type UserRowView } from './api.ts'
 import { DeleteButton, TwoClickButton } from './confirm-button.tsx'
+import type { UserRole } from '../store.ts'
 import type { Translate } from './i18n.ts'
 
 function Avatar(props: { url: string | null; nickname: string; size?: number }): React.JSX.Element {
@@ -254,14 +255,17 @@ export function AccountSection(props: { readonly t: Translate }): React.JSX.Elem
   </div>
 }
 
-/** 用户管理分区(admin):添加(重名自动后缀)+两击删除。 */
+/** 用户管理分区(admin):添加(重名自动后缀)+两击删除+行内角色变更(分配/收回审批人)。
+ *  M-3(37 号 §3):审批人档=默认 ea-tag 不新增视觉语言;非本人且非 admin 的行提供
+ *  角色 select(当前角色预选,即选即改,失败行内提示+回落服务端值——非破坏性,权限
+ *  收回可逆,不加两击确认,37 号 §7 缺口 5);admin 行不可在线变更(§7 缺口 7)。 */
 export function UsersSection(props: { readonly t: Translate }): React.JSX.Element {
   const { t } = props
   const [users, setUsers] = useState<UserRowView[]>([])
   const [selfId, setSelfId] = useState<number | null>(null)
   const [account, setAccount] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<'admin' | 'user'>('user')
+  const [role, setRole] = useState<UserRole>('user')
   const [msg, setMsg] = useState<{ ok: boolean; text: string }>({ ok: true, text: '' })
   const [busy, setBusy] = useState(false)
 
@@ -294,13 +298,24 @@ export function UsersSection(props: { readonly t: Translate }): React.JSX.Elemen
     })
   }, [t])
 
+  const changeRole = useCallback((user: UserRowView, nextRole: 'approver' | 'user') => {
+    if (nextRole === user.role) return
+    api.setUserRole(user.id, nextRole).then(result => {
+      setUsers(previous => previous.map(row => row.id === user.id ? result.user : row))
+    }).catch((error: unknown) => {
+      // 失败行内提示;select 值由 users 状态驱动,服务端值即回滚(§4 对照表 S2)
+      setMsg({ ok: false, text: error instanceof Error ? error.message : t('users.roleChangeFailed') })
+    })
+  }, [t])
+
   return <div data-eterna-access-root data-eterna-settings-section="users">
     <p className="ea-lead">{t('users.lead')}</p>
     <div className="ea-row" style={{ margin: '0 0 6px' }}>
       <input className="ea-input" placeholder={t('users.account')} value={account} onChange={event => { setAccount(event.target.value) }} style={{ flex: 1 }} />
       <input className="ea-input" type="password" placeholder={t('users.password')} value={password} onChange={event => { setPassword(event.target.value) }} style={{ flex: 1 }} />
-      <select className="ea-input" value={role} onChange={event => { setRole(event.target.value as 'admin' | 'user') }} style={{ width: 110 }}>
+      <select className="ea-input" value={role} aria-label={t('users.role')} onChange={event => { setRole(event.target.value as UserRole) }} style={{ width: 110 }}>
         <option value="user">{t('users.roleUser')}</option>
+        <option value="approver">{t('users.roleApprover')}</option>
         <option value="admin">{t('users.roleAdmin')}</option>
       </select>
       <button className="ea-btn" disabled={busy || account === '' || password === ''} onClick={create}>{t('users.add')}</button>
@@ -313,7 +328,15 @@ export function UsersSection(props: { readonly t: Translate }): React.JSX.Elemen
             <td><Avatar url={user.hasAvatar ? `/access/api/avatar/${user.id}` : null} nickname={user.nickname} size={24} /></td>
             <td>{user.account}</td>
             <td>{user.nickname}</td>
-            <td>{user.role === 'admin' ? <span className="ea-tag brand">{t('users.roleAdmin')}</span> : <span className="ea-tag">{t('users.roleUser')}</span>}</td>
+            <td>{user.role === 'admin'
+              ? <span className="ea-tag brand">{t('users.roleAdmin')}</span>
+              : user.id === selfId
+                ? <span className="ea-tag">{user.role === 'approver' ? t('users.roleApprover') : t('users.roleUser')}</span>
+                : <select className="ea-input" value={user.role} aria-label={t('users.role')}
+                  onChange={event => { changeRole(user, event.target.value as 'approver' | 'user') }} style={{ width: 110 }}>
+                    <option value="user">{t('users.roleUser')}</option>
+                    <option value="approver">{t('users.roleApprover')}</option>
+                  </select>}</td>
             <td className="ea-hint">{user.createdAt}</td>
             <td>{user.id === selfId
               ? <span className="ea-hint">{t('users.current')}</span>

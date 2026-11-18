@@ -1,0 +1,15 @@
+{
+  "id": "asr-generic-unavailable",
+  "capability": "asr",
+  "scope": "generic",
+  "description": "语音能力:本批显式 unavailable(P-3/O-9)——降级路径用例",
+  "params": {},
+  "expected": {
+    "status": "unavailable",
+    "reason": "语音供给链归 P-3 开发(29 §4 P-3/§7-2),generic 兜底不可路由——显式禁用态,不假装可用(36 号 §8/开放问题 O-9)",
+    "blocks": [],
+    "toolResult": "语音供给链归 P-3 开发(29 §4 P-3/§7-2),generic 兜底不可路由——显式禁用态,不假装可用(36 号 §8/开放问题 O-9)"
+  },
+  "contractVersion": 1,
+  "status": "draft"
+}

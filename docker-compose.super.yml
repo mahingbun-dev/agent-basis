@@ -1,0 +1,61 @@
+# Eterna Agent super 形态本机容器部署（40 号 S-4；31 号 §2.5「切换=并存」）。
+#
+# 与 docker-compose.yml（base，一行不改）并列、同时跑的两个 compose 项目：
+#   - 单镜像不变（eterna-agent:<同一 tag>，31 号 §5 D2 暂定）：super 挂载面由
+#     ETERNA_FORM=super → entrypoint 选 super 模板渲染 + super 形态 symlink 清单实现；
+#   - 端口：宿主 3220（base 占 3210）/ companion 中继宿主 9320（base 占 9310，
+#     容器内仍是 9310，仅映射不同——§9 Q3 暂定）；
+#   - 数据卷：named volume eterna-super-home（与 eterna-home 分离、永不互通，G4-7）；
+#   - 容器名 eterna-agent-super（不复用 base 的 eterna-agent，并存相容负向断言见 40 号 S-4）。
+#
+# 首次启动：同 base——cp .env.example .env 填模型 key 与管理员账号后
+#   docker compose -f docker-compose.super.yml up -d --build
+#   访问 http://<本机局域网IP>:3220/login
+# 会话/存储/审计/用户库全部落 eterna-super-home 卷，升级镜像不丢数据。
+
+services:
+  eterna-agent-super:
+    build: .
+    image: eterna-agent:0.1.7
+    container_name: eterna-agent-super
+    # cwd=卷根:审计/治理规则/记忆库默认落 $cwd/.eterna → 持久化在 eterna-super-home 卷
+    working_dir: /data
+    ports:
+      - "3220:8080"
+      # companion 中继（浏览器执行面）：容器内 9310 不变，仅宿主映射换 9320（并存不撞 base）
+      - "9320:9310"
+    environment:
+      # 形态选择（31 号 §2.5）：entrypoint 据此选 super 模板渲染到
+      # $DSH_HOME/profiles/eterna-super，并按 super 形态清单建 @eterna symlink
+      # （Tier2 包守卫式 [ -d ] 存在才建链）。缺省/非法值处置见 entrypoint 头注。
+      ETERNA_FORM: super
+      # 以下 env 逐字复制 base 服务段（docker-compose.yml:30-46）
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      MIMO_API_KEY: ${MIMO_API_KEY:-}
+      BIGMODEL_API_KEY: ${BIGMODEL_API_KEY:-}
+      # OpenDesign(Go 套餐)直连(2026-11-12):llm-pi-ai opendesign 路由 apiKeyEnv
+      OPENDESIGN_API_KEY: ${OPENDESIGN_API_KEY:-}
+      ETERNA_PUBLIC_URL: ${ETERNA_PUBLIC_URL:-}
+      ETERNA_TRUSTED_HOST: ${ETERNA_TRUSTED_HOST:-}
+      # companion 中继鉴权与公网展示地址（红线 9）：TOKEN 缺省自动生成落卷
+      # /data/relay-token；PUBLIC_URL=扩展实际连接地址，guide 页/报错文案按它展示
+      ETERNA_RELAY_TOKEN: ${ETERNA_RELAY_TOKEN:-}
+      ETERNA_RELAY_PUBLIC_URL: ${ETERNA_RELAY_PUBLIC_URL:-}
+      # 账号门禁(eterna-access):admin 首启播种(表空时);SECRET 缺省自动生成落卷
+      ETERNA_ACCESS_ADMIN_USER: ${ETERNA_ACCESS_ADMIN_USER:-}
+      ETERNA_ACCESS_ADMIN_PASSWORD: ${ETERNA_ACCESS_ADMIN_PASSWORD:-}
+      ETERNA_ACCESS_SECRET: ${ETERNA_ACCESS_SECRET:-}
+      ETERNA_ACCESS_SECURE: ${ETERNA_ACCESS_SECURE:-}
+    volumes:
+      - eterna-super-home:/data
+      # 模板免重建挂载(照 base 先例 docker-compose.yml:53,只读):super 模板挂到
+      # 镜像内同名路径 cordis.super.patch.yml.template——entrypoint 按 ETERNA_FORM
+      # 选该文件渲染(哈希门控);镜像内烘焙的是构建时副本,挂载后模板改动 up -d 即生效。
+      # (40 号 S-4 表行的容器侧路径写作 base 名,与 31 号 §2.5「entrypoint 选模板渲染」
+      # 及 S-5 分派语义 2「模板换 cordis.super.patch.yml.template」不能同时成立——
+      # 取后者挂 super 名路径,否则 super 容器读不到挂载内容/裸容器读错模板。)
+      - ./docker/profile/cordis.super.patch.yml.template:/repo/docker/profile/cordis.super.patch.yml.template:ro
+    restart: unless-stopped
+
+volumes:
+  eterna-super-home:

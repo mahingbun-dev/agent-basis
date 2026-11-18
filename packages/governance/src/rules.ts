@@ -7,6 +7,7 @@
  * - 优先级:deny > ask > allow;未命中走 default;
  * - fail-closed:default 只允许 ask/deny(解析期拒绝 `default: allow`),配置非法直接抛错,绝不静默放行。
  */
+import { createHash } from 'node:crypto'
 import { parse as parseYaml } from 'yaml'
 import { GovernanceConfigError, isRecord } from './errors.ts'
 import { matchAnyGlob } from './glob.ts'
@@ -122,6 +123,28 @@ export class RuleEngine {
     if (rule.argsContains === undefined || rule.argsContains.length === 0) return true
     return rule.argsContains.some(needle => serializedArgs.includes(needle))
   }
+}
+
+/**
+ * 规则版本域标识(进 hash 的首参,与 tasks 侧 `POLICY_REVISION` 同构的域内防撞;跨域不撞)。
+ */
+export const RULES_REVISION = 'governance-rules-v1'
+
+/**
+ * 规则版本 = 规则内容 hash(24a 拍板记录·C3:「规则版本 = 文件内容 hash,热改即新版本;
+ * 在跑工单钉旧版,新规则只影响新工单」;24 号 §9-2:版本化落点在 governance/src/rules.ts,
+ * 「版本号由文件内容 hash 派生,热改即产生新版本,历史可查」;33 号 G2-A15 第①句)。
+ *
+ * 粒度口径:对**解析后的策略文档**取 stableStringify 内容 hash(与 tasks 侧 `policyContent`
+ * 同粒度——语义内容而非原始字节:同一份规则的 YAML 重排/注释增删不虚增版本,规则实质
+ * 变化即新版本)。hash 构造与 tasks/src/core/ids.ts `key()` 同构(sha256 前 32 位十六进制),
+ * 但不 import——Tier1 永不 import Tier2(31 号 §2.2 铁律 1)。
+ * glue 层组参面:把本函数产物作为 tasks `jointPolicyVersion` 的 `governance` 侧
+ * (A10 联合 hash = governance rules.yaml + hitl.yaml + tasks 准入表,34 号 §2.2 version 行;
+ * 触发时机=规则热改重parse 出新实例时,开放问题 3 的 fs watch vs 保存时由 glue 装配决定)。
+ */
+export function rulesVersion(engine: RuleEngine): string {
+  return createHash('sha256').update(JSON.stringify([RULES_REVISION, stableStringify(engine.policy)])).digest('hex').slice(0, 32)
 }
 
 /** 参数序列化:dsh `tool/call` 事件的 arguments 是模型原始 JSON 字符串,pre-execute 里则是已解析值;两者统一。 */

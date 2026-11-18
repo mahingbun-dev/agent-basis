@@ -285,6 +285,84 @@ describe('access 路由核心', () => {
     expect(handleAccessRequest(deps, req({ method: 'DELETE', pathname: `/access/api/users/${carol.id}`, cookie: adminCookie })).status).toBe(404)
   })
 
+  // ── WS-C(37 号 M-3):角色变更端点 + 建号 approver 档 + 审计 ─────────────────
+
+  function setRole(id: number, role: string, cookie = adminCookie): AccessReply {
+    return handleAccessRequest(deps, req({
+      method: 'POST', pathname: `/access/api/users/${id}/role`, cookie,
+      body: Buffer.from(JSON.stringify({ role })),
+    }))
+  }
+
+  it('WS-C ①:admin 建号 role=approver → 201 + 响应 user.role=approver(JSON 字段)', () => {
+    const reply = handleAccessRequest(deps, req({
+      method: 'POST', pathname: '/access/api/users', cookie: adminCookie,
+      body: Buffer.from(JSON.stringify({ account: 'auditor', password: 'password8', role: 'approver' })),
+    }))
+    expect(reply.status).toBe(201)
+    const body = bodyOf(reply) as { user: { account: string; role: string }; finalAccount: string }
+    expect(body.user.role).toBe('approver')
+    expect(body.user.account).toBe('auditor')
+    expect(store.listUsers().find(u => u.account === 'auditor')?.role).toBe('approver')
+  })
+
+  it('WS-C ②:admin 经角色端点 user→approver→user 两向 200 + 响应体 JSON 断言', () => {
+    const target = store.createUserWithSuffix({ account: 'flip', password: 'password8' }).user
+    const grant = setRole(target.id, 'approver')
+    expect(grant.status).toBe(200)
+    expect((bodyOf(grant) as { user: { role: string } }).user.role).toBe('approver')
+    expect(store.getUserById(target.id)?.role).toBe('approver')
+    const revoke = setRole(target.id, 'user')
+    expect(revoke.status).toBe(200)
+    expect((bodyOf(revoke) as { user: { role: string } }).user.role).toBe('user')
+    expect(store.getUserById(target.id)?.role).toBe('user')
+  })
+
+  it('WS-C ③:审计断言——access.user.role 事件 detail 含 target/from/to,account=操作者', () => {
+    auditEvents.length = 0
+    const target = store.createUserWithSuffix({ account: 'tracked', password: 'password8' }).user
+    setRole(target.id, 'approver')
+    const event = auditEvents.find(e => e.kind === 'access.user.role')
+    expect(event).toBeDefined()
+    expect(event?.account).toBe('Mr.Ma')
+    expect(event?.detail).toEqual({ target: 'tracked', from: 'user', to: 'approver' })
+  })
+
+  it('WS-C ④:非法值 admin/root → 400(端点值域仅 approver/user);目标不存在 404', () => {
+    const target = store.createUserWithSuffix({ account: 'victim', password: 'password8' }).user
+    expect(setRole(target.id, 'admin').status).toBe(400)
+    expect(setRole(target.id, 'root').status).toBe(400)
+    expect(bodyOf(setRole(target.id, 'admin')).error).toBe('角色仅支持 approver/user')
+    expect(setRole(99999, 'approver').status).toBe(404)
+    expect(store.getUserById(target.id)?.role).toBe('user') // 非法请求零落库
+  })
+
+  it('WS-C ⑤:普通用户/审批人调端点 403(审批人无权分配角色)', () => {
+    const target = store.createUserWithSuffix({ account: 'pawn', password: 'password8' }).user
+    store.createUserWithSuffix({ account: 'plain', password: 'password8' })
+    const plainCookie = login('plain', 'password8')
+    expect(setRole(target.id, 'approver', plainCookie).status).toBe(403)
+    store.setUserRole(store.listUsers().find(u => u.account === 'plain')!.id, 'approver')
+    const approverCookie = login('plain', 'password8')
+    expect(setRole(target.id, 'approver', approverCookie).status).toBe(403)
+    expect(store.getUserById(target.id)?.role).toBe('user')
+  })
+
+  it('WS-C ⑥:admin 改自己角色 400(§7 缺口 10 自设护栏,fail-closed 待评审)', () => {
+    const reply = setRole(adminId, 'approver')
+    expect(reply.status).toBe(400)
+    expect(bodyOf(reply).error).toBe('不能修改自己的角色')
+    expect(store.getUserById(adminId)?.role).toBe('admin')
+  })
+
+  it('WS-C ⑥b:目标现为 admin → 400(§7 缺口 7:admin 变更仍走建号/删号,不在线换档)', () => {
+    const other = store.createUserWithSuffix({ account: 'admin2', password: 'password8', role: 'admin' }).user
+    const reply = setRole(other.id, 'user')
+    expect(reply.status).toBe(400)
+    expect(bodyOf(reply).error).toBe('管理员角色不可在线变更')
+    expect(store.getUserById(other.id)?.role).toBe('admin')
+  })
+
   it('删除用户后其会话即刻失效(uid 消失)', () => {
     const carol = store.createUserWithSuffix({ account: 'carol', password: 'password8' }).user
     const carolCookie = login('carol', 'password8')

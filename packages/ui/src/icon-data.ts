@@ -35,6 +35,15 @@ export type IconName =
   | 'memory'
   | 'bookmark'
   | 'domain'
+  | 'log'
+  | 'bell'
+  | 'kanban'
+  | 'flow'
+  | 'worker'
+  | 'pause'
+  | 'replay'
+  | 'clock'
+  | 'comment'
 
 export const ICONS: Readonly<Record<IconName, readonly IconPrimitive[]>> = {
   /* 基座面板:半环仪表 + 指针,表达「观测/控制台」而非通用齿轮。 */
@@ -169,6 +178,52 @@ export const ICONS: Readonly<Record<IconName, readonly IconPrimitive[]>> = {
     { tag: 'circle', attrs: { cx: 8.2, cy: 12.5, r: 1.3, fill: 'currentColor', stroke: 'none' } },
     { tag: 'circle', attrs: { cx: 12, cy: 12.5, r: 1.3, fill: 'currentColor', stroke: 'none' } },
     { tag: 'circle', attrs: { cx: 15.8, cy: 12.5, r: 1.3, fill: 'currentColor', stroke: 'none' } },
+  ],
+  /* 工作台日志监控(38 号 T10;原型 03 五视图内联 SVG 落库提案,iconography §6)。 */
+  log: [
+    { tag: 'path', attrs: { d: 'M6 3.5h8.2L19 8.3V20.5H6z' } },
+    { tag: 'path', attrs: { d: 'M14 3.5v5h5' } },
+    { tag: 'path', attrs: { d: 'M9.2 12h6M9.2 15.5h4' } },
+  ],
+  /* 工作台 Attention 徽标(38 号 T7/T8;原型 02/03 内联 SVG 落库提案)。 */
+  bell: [
+    { tag: 'path', attrs: { d: 'M12 3.8a5.6 5.6 0 0 0-5.6 5.6c0 4.6-1.9 6.1-1.9 6.1h15s-1.9-1.5-1.9-6.1A5.6 5.6 0 0 0 12 3.8z' } },
+    { tag: 'path', attrs: { d: 'M10.3 18.9a1.9 1.9 0 0 0 3.4 0' } },
+  ],
+  /* 工作台侧栏入口(38 号 T3;原型 03 内联 SVG 落库提案)。 */
+  kanban: [
+    { tag: 'rect', attrs: { x: 3.5, y: 4.5, width: 17, height: 15, rx: 2.5 } },
+    { tag: 'path', attrs: { d: 'M9.2 4.5v15M14.8 4.5v15' } },
+  ],
+  /* 信息流实时图视图入口(38 号 T9;原型 03/04 内联 SVG 落库提案,iconography §6)。 */
+  flow: [
+    { tag: 'circle', attrs: { cx: 4.8, cy: 12, r: 2.1 } },
+    { tag: 'circle', attrs: { cx: 19.2, cy: 12, r: 2.1 } },
+    { tag: 'path', attrs: { d: 'M7.5 12h9' } },
+    { tag: 'circle', attrs: { cx: 12, cy: 12, r: 1.4, fill: 'currentColor', stroke: 'none' } },
+  ],
+  /* worker 检查器视图入口(38 号 T12;原型 03 内联 SVG 落库提案)。 */
+  worker: [
+    { tag: 'circle', attrs: { cx: 12, cy: 8.2, r: 3.4 } },
+    { tag: 'path', attrs: { d: 'M5.5 20c.6-3.7 3.2-5.8 6.5-5.8s5.9 2.1 6.5 5.8' } },
+  ],
+  /* 信息流图暂停(38 号 T9;30 号 §7-2 实时语义;原型 03 内联 SVG 落库提案)。 */
+  pause: [
+    { tag: 'path', attrs: { d: 'M9.2 5.8v12.4M14.8 5.8v12.4' } },
+  ],
+  /* 单工单回放(38 号 T9;30 号 §7-2 拍板;原型 03/04 内联 SVG 落库提案)。 */
+  replay: [
+    { tag: 'path', attrs: { d: 'M19.5 12a7.5 7.5 0 1 1-3-6' } },
+    { tag: 'path', attrs: { d: 'M16.6 2.6v3.5h3.5' } },
+  ],
+  /* Attention 倒计时/超时升级提示(38 号 T7/T6;原型 01/02 内联 SVG 落库提案,iconography §6)。 */
+  clock: [
+    { tag: 'circle', attrs: { cx: 12, cy: 12, r: 8.5 } },
+    { tag: 'path', attrs: { d: 'M12 7.6V12l3.1 2' } },
+  ],
+  /* 补充说明/退回说明(38 号 T7 三动作、T6 结果卡退回;原型 01/02 内联 SVG 落库提案,iconography §6)。 */
+  comment: [
+    { tag: 'path', attrs: { d: 'M6.3 4.5h11.4a2 2 0 0 1 2 2v6.9a2 2 0 0 1-2 2h-5.9l-4.6 4v-4h-.9a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2z' } },
   ],
 }
 

@@ -1,0 +1,748 @@
+/**
+ * plugin 装配——createTasks() 真实装配为 `ctx.tasks` 服务(35 号 A16;34 号 §1 plugin.ts 行、
+ * §2.6 runtime 胶水行「pass 驱动/健康面/notice 合并等机制并入装配,按需重写」)。
+ *
+ * 设计依据:35 号 A16 交付原文(启动顺序 store→effects→outbox→engine→assessor→executor,
+ * sources 留接口位,关停配逆);34 号 §4-E runtime.spec→plugin-boot.spec 判据;26 号 §2.1-1
+ * (tasks 对外暴露 ctx.tasks 服务,与消费 ctx.audit 同构);24 号 §5.3-5/6(横切不拥有业务状态、
+ * 每状态单写者)。插件形态参照 glue governance-plugin(provide/ctx.on/disposer 形态,
+ * packages/glue/src/plugins/governance-plugin.ts)与 compaction basic-plugin 宿主消费形态
+ * (packages/compaction/src/basic);Cordis 纪律:组合层以服务(注册表 + 唯一 SERVICE_ID)
+ * provide、可配逆(34 号 §2 通用要点④,packages/governance/src/index.ts:1-13 先例)。
+ *
+ * 装配顺序(begin 记录,dispose 逆序回放,34 §4-E 判据):
+ * ① store —— TasksRealmRouter 按 realm 解析租户库(注入的 dirOf 解析失败即 fail-closed 不开库,
+ *    23 号 §3.1;缺省派生的部署指名 realm 由 Store 引导自建目录);
+ * ② effects —— Effects 持久副作用队列并在装配步内 start(handler 由 outbox 等随后注册时 kick 重派);
+ * ③ outbox —— 回执投递(channels 适配器经 TasksOptions.channels 端口注入,A21 接口位缺省挂起);
+ * ④ engine —— Engine + Intake/Evals/Tickets/Assignments/Replies 全链真实装配(policy/realmOf/
+ *    scope/prepareTicket 由装配面供给;pass 驱动随 engine 步启动,28 号 §8-3 pass 周期);
+ * ⑤ assessor —— ★A19 已接线:MasterAssessor(per-eval 状态隔离/候选卡投递 'assessment'
+ *    持久 effect/TextCache;线程上下文与投递面经 TasksOptions 端口注入,缺省不投递不计时);
+ *    ⑥ executor —— ★A22 已接线:TasksOptions.sessionHost(宿主 DSH session 服务束,A0 §5-C11
+ *    结构端口)在场即真实 DshExecutor+Sessions(每工单一条 `worker-<ticketId>` DSH session、
+ *    install() 四类宿主事件 + resume() 对账;A0 处置 D3/D4)替换可控 stub,缺席保持 stub
+ *    (34 §4-E 假件记账语义);⑦ sources —— ★A21 已接线:ChannelTriggerAdapter(channels
+ *    事件 → Engine 的被动汇,无注册表无轮询,34 §0-A5;glue 注给 channels 网关 sink 位)。
+ *
+ * ★T2 路由面独占(docs/PLUGIN-AUTHORING §1.1-2,packctl tenant-scan CI 强制):本插件不占用
+ * 宿主 Web 路由面(T2 点名的各注册面一律不调用)——数据端点唯一正路是 access 守卫清单登记
+ * (归 WS-C),健康面/状态面以服务形态暴露(ctx.tasks.health()/stats(),供工作台与探针消费);
+ * 宿主 webServer 等路由面服务不在本插件解析持有,glue 层接线经 TasksOptions 端口注入
+ * (34 号 §1 依赖方向行)。
+ * ★T15 数据面(38 号 M4 实接;24a 裁决 dwfq-843ec077-1 口径「数据面经 tasks 提供、路由经
+ * access 登记」):DomainEvents 经 ctx.tasks.subscribe() 多播暴露、当前工单/线程领域态经
+ * ctx.tasks.snapshot() 只读暴露——工作台 live hub(workbench 包,Tier2→Tier2 依赖不受约束,
+ * 33 号 G0-6④)据此投影 SSE 快照+增量;SSE 端点本体由 access 守卫面登记(38 号 O-5,
+ * packages/access/src/tenant.ts WORKBENCH_STREAM_ENDPOINT),本插件不碰任何注册面。
+ */
+import { join } from 'node:path'
+import type { SQLInputValue } from 'node:sqlite'
+import type { Context } from '@deepseek-ai/cordis'
+import { Engine } from './core/engine.ts'
+import type { DomainEvent, EffortTier, EngineForMainSession, Executor, SourceScope, Thread, Ticket, Trigger } from './core/index.ts'
+import { Effects, HealthBoard, type Health } from './effects/effects.ts'
+import { Outbox, type ChannelsDelivery } from './effects/outbox.ts'
+import { DshExecutor, ticketExecution, type ExecutorHost } from './executor/dsh.ts'
+import { DEFAULT_SUBAGENT_POLICIES, validateSubagentPolicies, type SubagentPolicies } from './executor/subagent-policies.ts'
+import { MasterAssessor, type TriggerContext } from './session/assessor.ts'
+import { Prompts } from './session/prompts.ts'
+import { orchestratorTools, type OrchestratorToolsHost } from './tools/orchestrator.ts'
+import { toDshTool } from './tools/tool.ts'
+import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
+import { ticketOfSession } from './executor/dsh.ts'
+import { Sessions, type SessionsHost } from './session/sessions.ts'
+import { ChannelTriggerAdapter } from './sources/channel-adapter.ts'
+import { settingsPolicy, type AllowedRoster, type PolicyWiring } from './policy/gate.ts'
+import type { Settings } from './policy/settings.ts'
+import { policyVersion } from './policy/version.ts'
+import { activeTicketsFace, ACTIVE_TICKETS_SECTION_NAME, type ActiveTicketsSection } from './session/sections.ts'
+import { TasksRealmRouter } from './store/realm.ts'
+import { defaultTenantRoot, Store } from './store/store.ts'
+
+/** 组合层注册 ctx.tasks 服务时的唯一 ID(注册表 + 唯一 ID,provide 可交换;34 §2 通用要点④)。 */
+export const TASKS_SERVICE_ID = 'tasks'
+/** bundle 装载行 id(cordis.patch.yml 的 eterna-tasks 行;随 A25 预设一并登记)。 */
+export const TASKS_PLUGIN_NAME = 'eterna-tasks'
+/** 缺省租户 realm(单 realm 栈;多 realm 分栈随 A21 sources 归属接线扩展,35 号 §12-2)。 */
+export const DEFAULT_TASKS_REALM = 'default'
+/** pass 周期(28 号 §8-3「pass 周期(2s)刷新」,24a C6 拍板采纳后者;清单/时钟秒级延迟无害)。 */
+export const PASS_INTERVAL_MS = 2000
+
+/**
+ * realm 工作区目录缺省解析:部署指名的 realm 直接派生 `<tenantRoot>/<realm>`——Store 引导
+ * 时自建 `.eterna/` 库目录(mode 0700,store.ts 同款),与 access 登录开通的账号工作区同布局。
+ * fail-closed 铁律(23 号 §3.1「宁可拒一次,不可跨租户写」)由**注入的** dirOf 承担:glue 按
+ * access accountOf()/userRootFor 注入账号级解析(其 existsSync 语义见 realm.ts 头注),
+ * 返回 undefined 即不开库;缺省派生不设目录存在闸——进程级 realm 是部署指名,不存在
+ * 账号身份解析失败的跨租户歧义。
+ */
+export function defaultTasksDirOf(tenantRoot: string): (realm: string) => string | undefined {
+  return (realm: string): string => join(tenantRoot, realm)
+}
+
+/** A21 接口位:未注入 channels 适配器时的投递面——一律「不可用」,回执以 Later 挂起等待(outbox.ts 语义),不落 dropped、不丢消息。 */
+const UNWIRED_CHANNELS: ChannelsDelivery = {
+  available: () => false,
+  channelAllowed: () => false,
+  send: (): Promise<'waiting'> => Promise.resolve('waiting'),
+}
+
+/** A21 接口位:未注入 SourceScope 时的监听面——一律不监听,Trigger 记 `filtered` 落库(intake.ts:37-40),不进 Eval。 */
+const UNWIRED_SCOPE: SourceScope = {
+  scope: () => ({ listened: false, reason: 'sources_unwired' }),
+}
+
+/** 一次 Executor 委托的记账(start/deliver/stop 三类,reason 仅 stop 携带)。 */
+export interface ExecutorCall { op: 'start' | 'deliver' | 'stop'; ticketId: string; assignmentId: string; reason?: string }
+
+/**
+ * 可控 Executor stub(35 号 A16③「executor 本轮用可控 stub」):只按序记录 Engine 委托的
+ * start/deliver/stop,不建 worker session、不碰 Effects/槽位——工单在领域内开出并停在
+ * pending,执行契约(R4 目录 + assignment 文本)已由装配面 prepareTicket 经 ticketExecution
+ * 纯函数填入。★A22 替换点(35 号 A22 实现类已落地):DshExecutor+Sessions 需要宿主
+ * ctx.agents 注册表与四类事件(agent/status、agent/inbox/claimed、session/event、agent/error),
+ * 装配接线在本 'executor' 步替换本类(ExecutorHost 的 store/effects/health/sessions 由
+ * 装配供给,tests/fixtures/host.ts 有同构装配先例)。
+ */
+export class StubExecutor implements Executor {
+  /** Engine 委托记录(时间序;探针与 plugin-boot 断言面)。 */
+  readonly calls: ExecutorCall[] = []
+  start(ticket: Parameters<Executor['start']>[0], assignment: Parameters<Executor['start']>[1]): void {
+    this.calls.push({ op: 'start', ticketId: ticket.id, assignmentId: assignment.id })
+  }
+  deliver(ticket: Parameters<Executor['deliver']>[0], assignment: Parameters<Executor['deliver']>[1]): void {
+    this.calls.push({ op: 'deliver', ticketId: ticket.id, assignmentId: assignment.id })
+  }
+  stop(ticket: Parameters<Executor['stop']>[0], assignment: Parameters<Executor['stop']>[1], reason: string): void {
+    this.calls.push({ op: 'stop', ticketId: ticket.id, assignmentId: assignment.id, reason })
+  }
+  /** 某工单(或缺省全部)的委托记录(探针面)。 */
+  callsOf(ticketId?: string): ExecutorCall[] {
+    return ticketId === undefined ? [...this.calls] : this.calls.filter(call => call.ticketId === ticketId)
+  }
+}
+
+/** createTasks() 装配选项(全部可选;glue 层接线经端口注入,34 号 §1 依赖方向行)。 */
+export interface TasksOptions {
+  /** 任务栈绑定的租户 realm(账号;缺省 DEFAULT_TASKS_REALM。多 realm 分栈随 A21 扩展,35 号 §12-2)。 */
+  readonly realm?: string
+  /** realm → 工作区目录(glue 按 access accountOf()/userRootFor 注入账号级解析,返回 undefined 即 fail-closed 不开库;缺省 defaultTasksDirOf——部署指名 realm 的直派生)。 */
+  readonly dirOf?: (realm: string) => string | undefined
+  /** 租户根基目录(缺省 defaultTenantRoot():$ETERNA_TENANT_ROOT → $DSH_HOME/workspaces → cwd/workspaces)。 */
+  readonly tenantRoot?: string
+  /** Source 监听范围端口(sources 接口位,A21 接线;缺省 UNWIRED_SCOPE——一律不监听,Trigger 记 filtered)。 */
+  readonly scope?: SourceScope
+  /** A10 名单查询端口(access 用户表 + realm 准入表;缺省 settings 自带的 realm 内名单)。 */
+  readonly allowed?: AllowedRoster
+  /** C3 联合 hash(governance rules.yaml + hitl.yaml + tasks 准入表;glue 热改重算后注入,缺省 settings 内容 hash)。 */
+  readonly policyVersion?: string
+  /**
+   * R1 effort 档位(24 §5.5-R1;26 §4.1 effort 段;35 号 A17):领域包 effort 档位声明段
+   * (五段之一,schema 待 G2-A18 拍板)经 glue 解析后注入——进候选卡字段(EngineOptions.effort)
+   * 与 Mandate 执行契约;声明缺席 = 工单不带档,预算守卫不设分档上限(内核不发明默认档)。
+   */
+  readonly effort?: EffortTier
+  /**
+   * D1 subagent_policies(24a 拍板记录·D1;26 §4.1 worker 段;35 号 A18):worker 声明段的
+   * `subagent_policies` 消费面(types seam,**不预设 YAML 格式**——26 §7-1 schema 待拍板,
+   * 领域包声明的解析在 glue/packctl 侧)。缺省 DEFAULT_SUBAGENT_POLICIES(只读 reviewer 类,
+   * 引用 @eterna/extra reviewer preset 平台资产);注入值经 validateSubagentPolicies 校验,
+   * fail-closed 拒收违规声明(装配期抛错)。
+   */
+  readonly subagentPolicies?: SubagentPolicies
+  /** channels 回执投递适配器(A21 接线;缺省 UNWIRED_CHANNELS——回执挂起等待,不落 dropped)。 */
+  readonly channels?: ChannelsDelivery
+  /**
+   * 候选评估的线程上下文读取端口(A19/A21 接线位;缺省不提供——候选评估只用触发文本与批次,
+   * 候选卡与 context 的 thread 节给「该 Source 无线程上下文」的显式说明)。
+   */
+  readonly threadContext?: (trigger: Trigger) => TriggerContext | undefined
+  /**
+   * 候选卡到主会话的投递面(A19/A22 接线位:Sessions.prompt(masterId, requestId, …, 'queue');
+   * 缺省不投递——候选卡不经主会话送达,deadline 不启动(未送达的 Eval 永不过期),候选由
+   * 调用方(测试/glue 探针)显式 decide。
+   */
+  readonly deliverCandidate?: (requestId: string, text: string) => Promise<void>
+  /** 候选评估的有界仓库读取端口(A21 接线位;缺省不可用——orchestrator_eval_read 的 file/directory 显式报缺)。 */
+  readonly readPath?: (path: string, kind: 'file' | 'directory', signal?: AbortSignal) => Promise<string>
+  /** 一条 Trigger 的来源消息链接(A21 sources 接线;缺省不带链接)。 */
+  readonly sourceLink?: (trigger: Trigger, signal?: AbortSignal) => Promise<{ source_url?: string; source_url_read?: string }>
+  /** `trigger` 在回复某条已存 Trigger 时,那条被回复的 Trigger(A21 接线位;缺省未知)。 */
+  readonly repliedTo?: (trigger: Trigger) => Trigger | undefined
+  /** 名单同步端口(orchestrator_policy_sync 的后端;A21 接线位,缺省该工具报 nothingToSync)。 */
+  readonly syncSource?: (source: string, signal?: AbortSignal) => Promise<{ id: string; name?: string }[]>
+  /**
+   * A22 真实执行面接线端口(35 号 A22;34 号 §2.4/§2.5):宿主 DSH session 服务束
+   * (context + masterId + SessionHostPorts 结构端口;glue 按 access 包 tenant.ts
+   * `serviceOf` 的 ctx.reflect 反射惯例从宿主 ctx 适配注入)。
+   * 在场时 'executor' 装配步以真实 **DshExecutor+Sessions** 替换 StubExecutor
+   * (每工单一条 `worker-<ticketId>` DSH session、租户 realm 工作区内建会话;install()
+   * 四类宿主事件 + resume() 对账,A0 评审处置 D3/D4);缺席时保持可控 stub
+   * (34 §4-E 假件记账语义,plugin-boot 判据面)。仅注入面:worker session 由 executor
+   * 按需 ensure;主会话(masterId)的建立归 glue 装配(工作区根与标题属部署决策),
+   * master session 缺席时 relay 投递按 Effects 重试等待,不炸内核。
+   */
+  readonly sessionHost?: Omit<SessionsHost, 'effects' | 'lifetime'>
+  /** pass 周期 ms(缺省 PASS_INTERVAL_MS=2000,28 号 §8-3)。 */
+  readonly passIntervalMs?: number
+  /**
+   * 主会话(orchestrator)的 session id([active-tickets] section 的会话过滤面,A24;SA
+   * masterId 模式,SA app/sessions.ts ROUTER_PRESET 同位):在场时 [active-tickets] section
+   * 的 text provider 按装配上下文的 agent id fail-closed 过滤——只在主会话装配渲染
+   * (28 号 §6「给主 Session 增加」);缺席(★A19/A22 替换点:装配接线注入)时不做会话
+   * 过滤,过滤交由注册面的 scope。仅注入面,任务内核不据此建会话。
+   */
+  readonly masterId?: string
+  /** 领域事件装配位订阅(observe/测试用既有接口位;先于 TasksWorld.subscribe 订阅方到达;每事件回调一次,载荷见 core/ports.ts DomainEvents)。 */
+  readonly onEvent?: (event: DomainEvent) => void
+  /** 时钟注入(Effects 退避/健康时刻;缺省 Date.now)。 */
+  readonly now?: () => number
+}
+
+/** 聚合健康面(35 号 A16④「health() 供工作台与探针」):aggregate 单值 + 组件明细(HealthBoard.all)。 */
+export interface TasksHealth {
+  /** 聚合态:任一组件 error → error;处理暂停(settings.paused)→ paused;否则 ready。 */
+  readonly state: Health['state']
+  readonly detail: string
+  readonly at: string
+  /** 组件健康明细(键 = 装配级 'tasks' 与各 effect kind;Effects/HealthBoard 认领制)。 */
+  readonly components: Readonly<Record<string, Health | undefined>>
+}
+
+/** 任务内核最小状态面(35 号 A16④;工作台与探针消费,26 §2.1-1):全部为只读计数,不含领域载荷。 */
+export interface TasksStats {
+  readonly realm: string
+  readonly tickets: { readonly open: number; readonly active: number; readonly total: number }
+  readonly threads: { readonly active: number; readonly subscribed: number }
+  readonly triggers: { readonly total: number }
+  readonly decisions: { readonly total: number }
+  readonly effects: { readonly waiting: number; readonly byKind: Readonly<Record<string, number>> }
+  readonly outbox: { readonly pending: number; readonly dropped: number }
+  readonly policy: { readonly version: string; readonly paused: boolean; readonly evalMode: Settings['eval']['mode']; readonly rules: number }
+  readonly executor: { readonly maxWorkers: number }
+}
+
+/**
+ * 只读快照读取面返回(38 号 T15 SSE 快照;30 号 §3 快照范围「当前工单/线程/worker 状态」中
+ * tasks 内核可供给的工单/线程两节,领域态原样;worker 节归上游 session/jobs 事件,
+ * ★A22 替换点接线后由消费面扩)。读走 store 仓储面,写者唯一纪律不破
+ * (34 号 §3「read 面只读投影走 store/reads.ts,不经 Engine」同款纪律)。
+ */
+export interface TasksSnapshotView {
+  /** 本栈绑定的租户 realm(载荷按 realm 归账;38 号 §6.12「ticket.ended 载荷带 realm」同源)。 */
+  readonly realm: string
+  /** 当前全部工单(含已结束;开放/卡点分面由消费方投影,分类口径 = core/stage.ts ticketStage)。 */
+  readonly tickets: readonly Ticket[]
+  /** 当前全部线程(含订阅关系;信息流图 Thread 节点与订阅面的投影输入)。 */
+  readonly threads: readonly Thread[]
+}
+
+/** `ctx.tasks` 服务面(26 §2.1-1 与 ctx.audit 同构;注册表 + TASKS_SERVICE_ID 唯一 ID)。 */
+export interface TasksWorld {
+  /** 服务 id(TASKS_SERVICE_ID;注册表形态标记)。 */
+  readonly id: typeof TASKS_SERVICE_ID
+  /** 本栈绑定的租户 realm。 */
+  readonly realm: string
+  /** 装配启动序(store→effects→outbox→engine→assessor→executor→sources;34 §4-E 观测面)。 */
+  readonly boot: readonly string[]
+  /** 关停执行序(= boot 逆序;dispose 逐 stop 回放时记录)。 */
+  readonly shutdown: readonly string[]
+  /** 领域引擎(EngineForSources/MainSession/People/Settings/Executor 角色面经 Pick 消费)。 */
+  readonly engine: Engine
+  /** 聚合健康面(供工作台与探针)。 */
+  health(): TasksHealth
+  /** 最小状态面(供工作台与探针)。 */
+  stats(): TasksStats
+  /**
+   * 领域事件订阅面(38 号 T15 M4 实接的数据面;observe 冲突指标/工作台 live hub 的
+   * 桥接接口位):多播,每事件回调一次,载荷见 core/ports.ts DomainEvents
+   * (13 类事件,枚举以该端口清单为准——38 号 O-1);返回退订闭包;dispose 退订全部。
+   * 订阅方异常不外溢(不破内核事务);装配位 onEvent(TasksOptions)先于订阅方到达。
+   */
+  subscribe(listener: (event: DomainEvent) => void): () => void
+  /** 只读快照读取面(38 号 T15 SSE 快照;30 号 §3「连接先推全量快照」):本 realm 当前工单/线程领域态。 */
+  snapshot(): TasksSnapshotView
+  /**
+   * 只读查询面(38 号 T15 工作台 live 源的计数读数:7 日 trigger/routed 决策/kind
+   * 计数等;store/reads.ts 之外的即席只读查询)。仅接受 SELECT(白名单校验,
+   * fail-closed)——写路径唯一经 Engine 事务(34 号 §2.1 单写者),本面零写入。
+   * @throws 非 SELECT 语句或内核已关停时。
+   */
+  query(sql: string, ...parameters: unknown[]): unknown[]
+  /** 手动排一次 pass(Engine.evaluateDue + [active-tickets] 缓存刷新;探针与测试用;周期驱动由 PassDriver 承担)。 */
+  pass(): void
+  /**
+   * [active-tickets] 活跃工单清单 section(35 号 A24;28 号 §6;34 号 §2.5 sections 行):
+   * pass 周期刷新的缓存文本面,经 prompt section seam 注入(defineTasksPlugin 在宿主
+   * system-prompt 服务在场时注册;缺席则由宿主装配经本面自取注册)。刷新=runtime.pass()。
+   */
+  readonly activeTickets: ActiveTicketsSection
+  /** 关停:装配逆序回放(34 §4-E「关停配逆」);幂等。 */
+  dispose(): void
+}
+
+/** createTasks() 装配产物:TasksWorld 服务面 + 组件句柄(测试与 glue 深消费用)。 */
+export interface TasksRuntime extends TasksWorld {
+  readonly router: TasksRealmRouter
+  readonly store: Store
+  readonly effects: Effects
+  readonly outbox: Outbox
+  readonly assessor: MasterAssessor
+  /** 执行面:sessionHost 注入即真实 DshExecutor(★A22 接线),否则可控 stub(34 §4-E)。 */
+  readonly executor: StubExecutor | DshExecutor
+  /** worker session 面(sessionHost 注入时在场;A22;glue/测试深消费)。 */
+  readonly sessions: Sessions | undefined
+  /** A21 channels 入站汇(被动;glue 注给 channels webhook 网关 sink 位,39 §3-E3)。 */
+  readonly sources: ChannelTriggerAdapter
+  readonly board: HealthBoard
+  /** 生效的 D1 subagent_policies(35 号 A18;缺省 DEFAULT_SUBAGENT_POLICIES;A20 worker 派生工具消费)。 */
+  readonly subagentPolicies: SubagentPolicies
+}
+
+/** ctx.tasks 服务属性(governance-plugin 的 declare module 增广同款;provide('tasks') → ctx.tasks)。 */
+declare module '@deepseek-ai/cordis' {
+  interface Context {
+    /** tasks 服务(注册表 + TASKS_SERVICE_ID 唯一 ID;defineTasksPlugin 装配)。 */
+    tasks?: TasksWorld
+  }
+}
+
+/**
+ * pass 驱动——pass 周期合并调度 Engine.evaluateDue(35 号 A16「pass 驱动…机制并入装配」;
+ * 34 §2.6 第二行 SA passes.ts 不整体移植、机制按需重写)。
+ * 依据:28 号 §8-3(pass 周期 2s,24a C6 拍板)——Engine 时钟([active-tickets] 清单刷新、
+ * evaluateDue 的到期重排/线程 Eval 启动/已结束工单恢复)由本驱动按周期触发;合并语义:
+ * 上一轮在跑时不重入(欠账一次,跑完即清,下个周期照常);处理暂停期间照常驱动(暂停的
+ * deadline 顺延与恢复重排在 Engine/evals 内部)。定时器 unref,不阻宿主退出。
+ * 导出仅为其单测面(35 号 A27 具名门禁 tests/pass.spec.ts 以假件直测合并/停驱语义;
+ * 生产面仍由 createTasks 装配持有,不改任何行为语义)。
+ */
+export class PassDriver {
+  private timer: ReturnType<typeof setInterval> | undefined
+  private running = false
+  private readonly engine: Pick<Engine, 'evaluateDue'>
+  private readonly intervalMs: number
+  constructor(engine: Pick<Engine, 'evaluateDue'>, intervalMs: number) {
+    this.engine = engine
+    this.intervalMs = intervalMs
+  }
+  start(): void {
+    if (this.timer !== undefined) return
+    const timer = setInterval(() => { this.pass() }, this.intervalMs)
+    timer.unref()
+    this.timer = timer
+  }
+  /** 一轮 pass;合并:在跑时欠账一次(不排队堆积),跑完即清。 */
+  pass(): void {
+    if (this.running) return
+    this.running = true
+    try { this.engine.evaluateDue() } finally { this.running = false }
+  }
+  stop(): void {
+    if (this.timer === undefined) return
+    clearInterval(this.timer)
+    this.timer = undefined
+  }
+}
+
+/**
+ * createTasks() 装配入口(35 号 A16;34 §1「门面 re-export + createTasks() 装配入口」)。
+ *
+ * 按序装配 store→effects→outbox→engine→assessor→executor→sources(sources 留接口位),
+ * 每步以 `begin` 记录启动序并登记其关停回调;`dispose()` 按登记逆序回放(34 §4-E
+ * 「装配启动顺序…与关停配逆」)。fail-closed:**注入的** dirOf 解析失败(realm 工作区不存在)
+ * 即抛错不开库(23 号 §3.1「宁可拒一次,不可跨租户写」;realm.ts 头注同款铁律)——缺省派生
+ * (defaultTasksDirOf)的部署指名 realm 由 Store 引导自建目录,不在此闸内。
+ *
+ * 关停语义:'effects' 步的关停为 fire-and-forget drain(宿主 disposer 不可 await,
+ * audit/memory 插件同款)——在跑 attempt 的落库可能因 store 随后关闭而失败,行已持久、
+ * 下次 start 重派(effects-resume 语义;34 §2.3「drain 留行等下次 start」)。
+ * @throws 当注入的 dirOf 解析失败(fail-closed,23 号 §3.1)或 Store 开库失败时。
+ */
+export function createTasks(options: TasksOptions = {}): TasksRuntime {
+  const realm = options.realm ?? DEFAULT_TASKS_REALM
+  const tenantRoot = options.tenantRoot ?? defaultTenantRoot()
+  const dirOf = options.dirOf ?? defaultTasksDirOf(tenantRoot)
+  const intervalMs = options.passIntervalMs ?? PASS_INTERVAL_MS
+  const nowMs = options.now ?? ((): number => Date.now())
+  const nowIso = (): string => new Date(nowMs()).toISOString()
+  // D1 subagent_policies(35 号 A18):缺省只读 reviewer 类;注入声明 fail-closed 校验——
+  // 违规声明(词汇表外工具/变更型工具/非 false 嵌套)装配期即拒,不带病上岗。
+  const subagentPolicies = options.subagentPolicies ?? DEFAULT_SUBAGENT_POLICIES
+  const policyErrors = validateSubagentPolicies(subagentPolicies)
+  if (policyErrors.length) {
+    throw new Error(`subagent_policies 声明段未过校验(fail-closed,24a D1):${policyErrors.join('; ')}`)
+  }
+  const board = new HealthBoard()
+  // 装配级健康项(34 §2.6「健康面并入装配与 effects」):starting → ready;dispose 时注销。
+  const self = board.claim('tasks', { state: 'starting', detail: '任务内核装配中', at: nowIso() })
+  /** 启动序记录(34 §4-E 观测面)。 */
+  const boot: string[] = []
+  /** 关停执行序记录(= 逆序回放)。 */
+  const shutdownLog: string[] = []
+  /** 各装配步的关停回调(登记序 = 启动序;dispose 逆序回放)。 */
+  const steps: { name: string; stop: () => void }[] = []
+  const begin = (name: string, stop: () => void = (): void => {}): void => {
+    boot.push(name)
+    steps.push({ name, stop })
+  }
+  let disposed = false
+  /**
+   * 领域事件多播分发(38 号 T15 订阅面的装配实现):装配位 onEvent(TasksOptions,
+   * 既有接口位)先达;subscribe() 的订阅方随 Set 迭代序后达。订阅方异常就地吞没——
+   * Engine 在事务内同步回调 emit(core/part.ts emit 行),订阅方异常外溢会破内核事务
+   * (24 号 §5.3-5/6「横切不拥有业务状态」的服务化表达);dispose 时退订全部。
+   */
+  const eventListeners = new Set<(event: DomainEvent) => void>()
+  const emitEvent = (event: DomainEvent): void => {
+    options.onEvent?.(event)
+    for (const listener of eventListeners) {
+      try { listener(event) } catch { /* 订阅方异常不外溢(见上注) */ }
+    }
+  }
+
+  // ── ① store:realm → 租户库(TasksRealmRouter 池;一租户一 SQLite,24a A1)────────
+  const router = new TasksRealmRouter({
+    dirOf,
+    create: (dir, realmName) => new Store(realmName, { workspaceDir: dir, report: (error): void => { self.set({ state: 'error', detail: `afterCommit 回调失败:${String(error)}`, at: nowIso() }) } }),
+  })
+  const store = router.forRealm(realm)
+  if (store === undefined) {
+    throw new Error(`任务内核 realm「${realm}」的工作区目录不存在(fail-closed 不开库,23 号 §3.1):${join(tenantRoot, realm)}`)
+  }
+  // 库由 router 池持有:store 是首个装配步,其关停(全池 close)在逆序回放中最后执行。
+  begin('store', (): void => { router.dispose() })
+
+  // ── ② effects:持久副作用队列(本步内 start;handler 由 outbox 等随后注册时 kick 重派)──
+  const effects = new Effects(store, board, nowMs)
+  effects.start()
+  begin('effects', (): void => { void effects.drain().catch(() => { /* 关停竞态的错误不阻宿主 */ }) })
+
+  // ── ③ outbox:回执投递(channels 适配器端口注入;A21 接口位缺省挂起等待)────────────
+  const outbox = new Outbox({
+    store,
+    effects,
+    channels: options.channels ?? UNWIRED_CHANNELS,
+    paused: (): boolean => store.settings().paused,
+  })
+  begin('outbox')
+
+  // ── ④ engine:Intake/Evals/Tickets/Assignments/Replies 全链 + pass 驱动(28 号 §8-3)────
+  // sources 接口位的端口面:scope 是 Engine 的构造输入(纯函数),随本步消费;'sources' 装配步
+  // (⑤后)留待 A21 启动 Source 适配器/轮询。
+  const scope = options.scope ?? UNWIRED_SCOPE
+  const wiring: PolicyWiring = {
+    ...(options.allowed !== undefined ? { allowed: options.allowed } : {}),
+    ...(options.policyVersion !== undefined ? { version: options.policyVersion } : {}),
+  }
+  // ★A19 替换点(35 号 A19):MasterAssessor 接线——per-eval 状态隔离/候选卡投递('assessment'
+  // 持久 effect)/TextCache。线程上下文与投递面为端口注入(A21/A22 接线位):缺省不投递,
+  // 不启动 deadline(未送达的 Eval 永不过期),候选由调用方显式 decide(assessor.ts 头注)。
+  // 实例先于 engine 构造(Engine 构造输入),engine 以 getter 惰性取用——handler 首次运行
+  // (effects 已 start,见②)不早于 engine 就绪;'assessor' 装配步标注其关停(stop 中断在跑读取)。
+  const assessor = new MasterAssessor({
+    get engine(): Pick<EngineForMainSession, 'candidate' | 'candidateDelivered' | 'decide'> { return engine },
+    effects,
+    settings: (): Settings => store.settings(),
+    paused: (): boolean => store.settings().paused,
+    ...(options.threadContext ? { threadContext: options.threadContext } : {}),
+    ...(options.deliverCandidate ? { deliver: options.deliverCandidate } : {}),
+    ...(options.readPath ? { readPath: options.readPath } : {}),
+    ...(options.sourceLink ? { sourceLink: options.sourceLink } : {}),
+    ...(options.repliedTo ? { repliedTo: options.repliedTo } : {}),
+    store,
+  })
+  // ★A22 替换点(35 号 A22;34 号 §2.4/§2.5):sessionHost 注入即真实执行面接线——
+  // Sessions(A0 §5-C11 宿主 session 服务面的结构端口:resolveAgent/create/rename +
+  // workspaceRegistry + permissionPresets + sessionPersistence)+ DshExecutor(每工单一条
+  // `worker-<ticketId>` DSH session、租户 realm 工作区内建会话)。缺席保持可控 stub
+  // (34 §4-E 假件记账语义,plugin-boot 判据面)。Engine 需 executor 于构造输入、
+  // ExecutorHost 需 engine 于事件回调:engine 以 getter 惰性供给(fixtures/host.ts 同构
+  // 先例;effects 在②已 start,handler 首跑不早于 engine 就绪)。
+  const lifetime = new AbortController()
+  const engineRef: { value?: Engine } = {}
+  const stubExecutor = new StubExecutor()
+  let executor: StubExecutor | DshExecutor = stubExecutor
+  let sessions: Sessions | undefined
+  let dshExecutor: DshExecutor | undefined
+  if (options.sessionHost !== undefined) {
+    sessions = new Sessions({ ...options.sessionHost, effects, lifetime: lifetime.signal })
+    dshExecutor = new DshExecutor({
+      context: options.sessionHost.context,
+      get engine() { return engineRef.value as ExecutorHost['engine'] },
+      store,
+      effects,
+      health: board.claim('worker'),
+      lifetime: lifetime.signal,
+      sessions,
+      closing: (): boolean => lifetime.signal.aborted,
+      paused: (): boolean => store.settings().paused,
+      ...(options.sourceLink !== undefined ? { sourceLink: options.sourceLink } : {}),
+      ...(options.repliedTo !== undefined ? { repliedTo: options.repliedTo } : {}),
+    })
+    executor = dshExecutor
+  }
+  const engine = new Engine({
+    repo: store,
+    policy: (): ReturnType<typeof settingsPolicy> => settingsPolicy(store.settings(), scope, wiring),
+    realmOf: (): string => realm,
+    // R1 effort 档位(35 号 A17):领域包声明经装配注入,进候选卡字段;缺席不带档。
+    effort: (): EffortTier | undefined => options.effort,
+    scope,
+    assessor,
+    executor,
+    outbox,
+    // 执行契约(R4 目录 + assignment 文本):真实执行面走 executor.prepare(同一实现,
+    // executor/dsh.ts ticketExecution 纯函数读现值);stub 面走装配面同款纯函数。
+    prepareTicket: (ticket, outcome) => dshExecutor !== undefined
+      ? dshExecutor.prepare(ticket, outcome)
+      : { ...ticket, execution: ticketExecution(ticket, outcome, store.settings(), store.workspaceDir) },
+    // 领域事件恒经多播分发(38 号 T15 订阅面;装配位 onEvent 在分发器内先达——
+    // 既有 onEvent 语义不变,引擎 emit 由条件接线改为恒接线是本行的唯一变化)
+    emit: emitEvent,
+  })
+  engineRef.value = engine
+  // [active-tickets] 活跃工单清单 section(35 号 A24;28 号 §6;24a C6 拍板 pass 周期刷新):
+  // 数据源全部现读(store 活跃面/executor.maxWorkers);缓存由 pass 驱动重算——PassDriver
+  // 每轮 pass 在 evaluateDue 之后调 refresh(清单是提示不是协议,秒级延迟无害,28 §8-3);
+  // usedSlots 由真实执行面的 WorkerSlots.used() 供给(★A22 替换点接线),stub 面缺省恒 0。
+  const activeTickets = activeTicketsFace({
+    tickets: (): readonly Ticket[] => store.tickets.active(),
+    maxWorkers: (): number => store.settings().executor.maxWorkers,
+    ...(dshExecutor !== undefined ? { usedSlots: (): number => dshExecutor.usedSlots() } : {}),
+    ...(options.masterId !== undefined ? { masterId: (): string => options.masterId ?? '' } : {}),
+    now: nowMs,
+  })
+  // pass 驱动的引擎面包装:evaluateDue 后追加重算清单缓存(合并语义不变,PassDriver 不感知)。
+  const passDriver = new PassDriver({ evaluateDue: (): void => { engine.evaluateDue(); activeTickets.refresh() } }, intervalMs)
+  passDriver.start()
+  begin('engine', (): void => { passDriver.stop() })
+
+  // ── ⑤ assessor(★A19 已接线)/ ⑥ executor(★A22 已接线)/ ⑦ sources(A21 已接线)────
+  begin('assessor', (): void => { assessor.stop() }) // 关停中断在跑的候选上下文读取(assessor.stop)
+  if (dshExecutor !== undefined && sessions !== undefined) {
+    // install():agent/status、agent/inbox/claimed、session/event、agent/error 四类宿主事件
+    // 订阅(34 §2.4 dsh 行;A0 评审 §4 逐签名钉住,tests/types.seam-pin.ts);resume():
+    // 宿主重启对账(在跑 assignmentInterrupted + pending 重排,A0 处置 D3)。关停:限时
+    // 停后台工作(shutdown fire-and-forget,同 effects 步口径)、退订事件与 session 面配逆。
+    const wiredExecutor = dshExecutor, wiredSessions = sessions
+    wiredExecutor.install()
+    wiredExecutor.resume()
+    begin('executor', (): void => {
+      void wiredExecutor.shutdown().catch(() => { /* 关停竞态的错误不阻宿主(effects 步同款) */ })
+      wiredExecutor.dispose()
+      wiredSessions.dispose()
+    })
+  }
+  else { begin('executor') }
+  // sources:A21 channels 适配器(34 §2.5 channel-adapter 行)——被动汇,无注册表无轮询
+  // (34 §0-A5;24a A5「channels 统一接收面」);glue 组合层把它按结构类型注给 channels
+  // webhook 网关的 sink 位(39 §3-E3)与 SourceRegistry.deliverLifecycle 的转发目标。
+  const sources = new ChannelTriggerAdapter({ engine })
+  begin('sources')
+
+  self.set({ state: 'ready', detail: `realm ${realm} 就绪(pass ${intervalMs}ms)`, at: nowIso() })
+
+  const runtime: TasksRuntime = {
+    id: TASKS_SERVICE_ID,
+    realm,
+    boot,
+    shutdown: shutdownLog,
+    router,
+    store,
+    effects,
+    outbox,
+    assessor,
+    executor,
+    sessions,
+    sources,
+    board,
+    engine,
+    subagentPolicies,
+    health: (): TasksHealth => {
+      const components = board.all
+      if (disposed) return { state: 'error', detail: '任务内核已关停', at: nowIso(), components }
+      const failing = Object.entries(components).filter(([, entry]) => entry?.state === 'error')
+      if (failing.length > 0) {
+        return { state: 'error', detail: `组件异常:${failing.map(([name]) => name).join(', ')}`, at: nowIso(), components }
+      }
+      if (store.settings().paused) return { state: 'paused', detail: '处理暂停中(settings.paused)', at: nowIso(), components }
+      return { state: 'ready', detail: `realm ${realm} 就绪`, at: nowIso(), components }
+    },
+    stats: (): TasksStats => {
+      if (disposed) throw new Error('任务内核已关停:stats 面不再可用')
+      const db = store.db
+      // 单值计数读取(COUNT 恒非空,SUM 空表为 null;node:sqlite 默认返回 number)。
+      const count = (sql: string): number => {
+        const row = db.prepare(sql).get() as { n: number | null } | undefined
+        return row?.n ?? 0
+      }
+      const kindRows = db.prepare('SELECT kind, COUNT(*) AS n FROM effect GROUP BY kind').all() as Array<{ kind: string; n: number }>
+      const byKind: Record<string, number> = {}
+      let waiting = 0
+      for (const row of kindRows) { byKind[row.kind] = row.n; waiting += row.n }
+      const ticketRow = db.prepare('SELECT COUNT(*) AS n, SUM(open = 1) AS open, SUM(active = 1) AS active FROM ticket').get() as
+        { n: number | null; open: number | null; active: number | null } | undefined
+      const settings = store.settings()
+      return {
+        realm,
+        tickets: { open: ticketRow?.open ?? 0, active: ticketRow?.active ?? 0, total: ticketRow?.n ?? 0 },
+        threads: {
+          active: count('SELECT COUNT(*) AS n FROM thread WHERE active = 1'),
+          subscribed: count('SELECT COUNT(*) AS n FROM thread WHERE subscribed IS NOT NULL'),
+        },
+        triggers: { total: count('SELECT COUNT(*) AS n FROM trigger') },
+        decisions: { total: count('SELECT COUNT(*) AS n FROM decision') },
+        effects: { waiting, byKind },
+        outbox: {
+          pending: count("SELECT COUNT(*) AS n FROM outbox WHERE value ->> '$.status' = 'pending'"),
+          dropped: count('SELECT COUNT(*) AS n FROM outbox WHERE dropped IS NOT NULL'),
+        },
+        policy: {
+          version: wiring.version ?? policyVersion(settings),
+          paused: settings.paused,
+          evalMode: settings.eval.mode,
+          rules: settings.policy.rules.length,
+        },
+        executor: { maxWorkers: settings.executor.maxWorkers },
+      }
+    },
+    pass: (): void => { passDriver.pass() },
+    activeTickets,
+    subscribe: (listener): (() => void) => {
+      if (disposed) throw new Error('任务内核已关停:subscribe 面不再可用')
+      eventListeners.add(listener)
+      return () => { eventListeners.delete(listener) }
+    },
+    snapshot: (): TasksSnapshotView => {
+      if (disposed) throw new Error('任务内核已关停:snapshot 面不再可用')
+      return { realm, tickets: store.tickets.list(), threads: store.threads.list() }
+    },
+    query: (sql: string, ...parameters: unknown[]): unknown[] => {
+      if (disposed) throw new Error('任务内核已关停:query 面不再可用')
+      // 只读白名单(fail-closed):非 SELECT 一律拒绝——写路径唯一经 Engine 事务
+      // (34 号 §2.1 单写者;read 面只读投影纪律,34 号 §3)。
+      if (!sql.trim().toLowerCase().startsWith('select')) {
+        throw new Error('query 面只读:仅接受 SELECT 语句(写路径唯一经 Engine 事务)')
+      }
+      return store.db.prepare(sql).all(...(parameters as SQLInputValue[]))
+    },
+    dispose: (): void => {
+      if (disposed) return
+      disposed = true
+      // 宿主生命周期先行中止:在跑的 Sessions.prompt/投递拒绝继续(lifetime.throwIfAborted)。
+      lifetime.abort()
+      // 订阅面收口:退订全部(关停后不再有多播;订阅方持有退订闭包亦为 no-op)。
+      eventListeners.clear()
+      // 关停配逆(34 §4-E):按装配登记逆序回放;每步执行后记入 shutdown 序。
+      for (const step of [...steps].reverse()) {
+        step.stop()
+        shutdownLog.push(step.name)
+      }
+      self.release()
+    },
+  }
+  return runtime
+}
+
+/** tasks 插件配置(TasksOptions 全量透传给 createTasks;glue 层按部署注入 realm/dirOf/端口)。 */
+export type TasksPluginConfig = TasksOptions
+
+/**
+ * tasks 插件(35 号 A16②;34 §1 plugin.ts 行):createTasks() 真实装配为 ctx.tasks 服务
+ * (注册表 + TASKS_SERVICE_ID 唯一 ID,provide 可配逆——34 §2 通用要点④)。
+ *
+ * 形态参照:glue governance-plugin(provide/ctx.on/disposer 形态,官方 seam——ctx 属性必须
+ * 经 provide 声明后才能赋值,服务名 = ctx 属性名:provide('tasks') → ctx.tasks)与
+ * compaction basic-plugin(宿主消费面)。健康面注册:装配级 'tasks' 健康项(HealthBoard
+ * 认领制,effects 各 kind 自报,34 §2.6「健康面并入装配与 effects」)+ 服务面
+ * health()/stats()(35 号 A16④,供工作台与探针)。宿主服务解析:本插件只机会读取
+ * ctx.logger 观测(memory-plugin 同款结构面,测试 ctx 可缺席);webServer 等路由面服务
+ * 不解析不持有——★T2 路由面独占(docs/PLUGIN-AUTHORING §1.1-2),tasks 的数据端点唯一
+ * 正路是 access 守卫清单登记,健康/状态面以服务形态暴露即可满足工作台(38 号,WS-D)
+ * 与探针的消费;channels/access 名单等接线经 TasksOptions 端口由 glue 层注入
+ * (34 号 §1 依赖方向行:接线经端口注入,不 import 服务实例)。
+ */
+export function defineTasksPlugin(config: TasksPluginConfig = {}) {
+  return {
+    name: TASKS_PLUGIN_NAME,
+    apply(ctx: Context): () => void {
+      // 宿主 logger 机会读取(结构面,缺席静默——memory-plugin 同款口径,测试 ctx 可缺席)。
+      const logger = (ctx as unknown as { readonly logger?: { readonly info?: (...args: unknown[]) => void } }).logger
+      // fail-closed:注入的 dirOf 解析失败时 createTasks 抛错 → 插件装载失败(宿主日志可见),
+      // 不静默降级为无内核的空服务(23 号 §3.1 铁律的服务化表达);缺省派生的部署指名
+      // realm 由 Store 引导自建目录(defaultTasksDirOf 注)。
+      const runtime = createTasks(config)
+      // ★A20 注册面(35 号表⑤-7「注册即 ctx.tools.register(def),disposer 必须进 ctx.effect」;
+      // B4 先例 packages/memory/src/tools.ts:282):orchestrator 14 工具面注册进宿主 ctx.tools
+      // (dsh-tools 服务,机会读取——裸 cordis ctx/测试宿主缺席即跳过,不炸装配)。角色分面
+      // (24 §8.3-4;34 §4-D tools 行)经注册 when 谓词钉住:worker session(id 约定
+      // worker-<ticketId>,executor/dsh.ts ticketOfSession)的步骤里主会话面不可见。
+      // worker 6 工具面(tools/worker.ts)随 executor 建 worker session 时装入(★A22 接线点,
+      // SA executorTools 同款时机),不经全局注册。
+      try {
+        const tools = (ctx as unknown as { readonly tools?: { register(definition: ToolDefinition,
+          options?: { when?: (activation: { readonly agent: { readonly id: string } }) => boolean }): () => void } }).tools
+        if (tools !== undefined && typeof tools.register === 'function') {
+          const wiring: PolicyWiring = {
+            ...(config.allowed !== undefined ? { allowed: config.allowed } : {}),
+            ...(config.policyVersion !== undefined ? { version: config.policyVersion } : {}),
+          }
+          const host: OrchestratorToolsHost = {
+            engine: runtime.engine,
+            store: runtime.store,
+            settings: (): Settings => runtime.store.settings(),
+            assessor: runtime.assessor,
+            outbox: runtime.outbox,
+            prompts: new Prompts(runtime.store),
+            resources: { store: runtime.store },
+            scope: config.scope ?? UNWIRED_SCOPE,
+            ...(wiring.allowed !== undefined || wiring.version !== undefined ? { wiring } : {}),
+            ...(config.syncSource !== undefined ? { syncSource: config.syncSource } : {}),
+            requestPass: (): void => { runtime.pass() },
+            policyChanged: (from, to, effects): void => { runtime.engine.policyChanged(from, to, effects) },
+          }
+          ctx.effect(function* (): Generator<() => void, void, void> {
+            for (const definition of orchestratorTools(host)) {
+              yield tools.register(toDshTool(definition), { when: ({ agent }) => ticketOfSession(agent.id) === undefined })
+            }
+          }, 'tasks orchestrator tools')
+          logger?.info?.('[tasks] orchestrator 工具面已注册(14,worker 面随 executor 接线)')
+        }
+      } catch (error) {
+        logger?.info?.(`[tasks] orchestrator 工具面注册跳过:${String(error)}`)
+      }
+      // [active-tickets] section 注入(35 号 A24;28 号 §6「经 prompt section seam 注入,同
+      // dsh-memory 渐进披露」):宿主 system-prompt 服务在场(机会读取,memory-plugin 的
+      // inject systemPrompt 同款消费面;测试/无宿主 ctx 缺席或未就绪即跳过)时注册,
+      // disposer 进插件关停链(effect 配逆);`systemPrompt.section` 即官方 seam
+      // (@deepseek-ai/dsh-system-prompt SystemPrompt.section,提示词注册表条目
+      // runtime.tasks.active-tickets)。注册失败不炸装配——清单缺席只是少了保底摘要。
+      let disposeSection: (() => void) | undefined
+      try {
+        const systemPrompt = (ctx as unknown as { readonly systemPrompt?: { section(section: unknown): () => void } }).systemPrompt
+        if (systemPrompt !== undefined && typeof systemPrompt.section === 'function') {
+          disposeSection = systemPrompt.section(runtime.activeTickets)
+          logger?.info?.(`[tasks] ${ACTIVE_TICKETS_SECTION_NAME} section 已注册`)
+        }
+      } catch (error) {
+        logger?.info?.(`[tasks] ${ACTIVE_TICKETS_SECTION_NAME} section 注册跳过:${String(error)}`)
+      }
+      // 官方 seam:ctx 属性必须经 provide 声明后才能赋值(cordis Context set 陷阱,
+      // governance-plugin.ts:100-103 同款);provide 的 disposer 运行时是 async
+      // (reflect.ts:311-321),关停路径裸调用不 await,防阻塞宿主(audit 插件同款)。
+      const disposeService = ctx.provide(TASKS_SERVICE_ID, runtime)
+      logger?.info?.(`[tasks] realm=${runtime.realm} boot=${runtime.boot.join('→')}`)
+      return () => {
+        // 关停配逆(34 §4-E):先撤 section 注入面与 ctx 服务(反注册面),再按装配逆序回放组件关停。
+        disposeSection?.()
+        disposeService()
+        runtime.dispose()
+      }
+    },
+  }
+}
+
+// DSH bundle loader 取 default export 插件实例(漏写 = 静默不装载,docs/PLUGIN-AUTHORING §1-1)
+export default defineTasksPlugin()

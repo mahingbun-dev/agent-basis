@@ -33,6 +33,13 @@ export interface FakeContextHarness {
   readonly fake: FakeContext
   /** 预置一个服务(镜像真实 provide:进 services 表 + ctx 属性),返回卸载器。 */
   provide(name: string, value: unknown): () => void
+  /**
+   * cordis registry.inject 的 fake 面(brand/channels 插件的 webServer 延迟挂载用):
+   * deps 全部在 services 表时同步调用 callback(参数=fake 本体,inject 回调内经
+   * reflect.get 读服务);缺席时跳过 —— 对应真宿主「无 Web 层形态子 fiber 挂起,
+   * 插件本体照常活动」的语义(embed 档 embed-deps 永不来)。
+   */
+  inject(deps: readonly string[], callback: (ctx: FakeContext) => void): unknown
   /** 按注册序取某事件的监听器。 */
   listenersOf(event: string): readonly AnyListener[]
   /** 派发一条 session 事件(audit/memory 插件的入口;session 形状缺省为空对象)。 */
@@ -52,6 +59,8 @@ export interface FakeContextHarness {
 
 export interface FakeContext {
   provide(name: string, value: unknown): () => Promise<void>
+  /** cordis registry.inject 混入面(见 FakeContextHarness.inject 注释)。 */
+  inject(deps: readonly string[], callback: (ctx: FakeContext) => void): unknown
   on(event: string, listener: (...args: unknown[]) => unknown): () => void
   /** cordis 无 inject 读取面(audit-bridge/audit 插件的机会读取走 ctx.reflect.get)。 */
   readonly reflect: { get(name: string, strict?: boolean): unknown }
@@ -78,6 +87,10 @@ export function makeFakeContext(): FakeContextHarness {
         fake[name] = undefined
       }
     },
+    inject: (deps, callback) => {
+      if (deps.every(name => services.has(name))) callback(fake)
+      return undefined
+    },
     on: (event, listener) => {
       let set = listeners.get(event)
       if (set === undefined) {
@@ -102,6 +115,10 @@ export function makeFakeContext(): FakeContextHarness {
         services.delete(name)
         fake[name] = undefined
       }
+    },
+    inject: (deps, callback) => {
+      if (deps.every(name => services.has(name))) callback(fake)
+      return undefined
     },
     listenersOf: event => [...(listeners.get(event) ?? [])],
     emitSession: (event, session = {}) => {

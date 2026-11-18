@@ -27,11 +27,15 @@ import type {} from '@deepseek-ai/dsh-tools'
 import { handleAccessRequest, type AccessDeps } from './routes.ts'
 import { loadOrCreateSecret, SessionService } from './session.ts'
 import { SlidingWindow } from './ratelimit.ts'
+import { createStreamBridgeHandler } from './stream.ts'
 import { UserStore } from './store.ts'
 import { installThinkingAuto, type ThinkingAutoLlm } from './thinking-auto.ts'
-import { ensureFirstSession, ensureTenantWorkspace, registerTenantGuards } from './tenant.ts'
+import { ensureFirstSession, ensureTenantWorkspace, registerTenantGuards, WORKBENCH_STREAM_ENDPOINT } from './tenant.ts'
+import { createTenantPluginLoader, type TenantPluginToolsFace } from './tenant-plugins.ts'
+import { defineInstallPersonalPluginTool } from './install-tool.ts'
 import { installMuxIsolation, type MuxIsolationInstall } from './mux.ts'
 import { installLoginGate } from './login-gate.ts'
+import { registerChannelsWebhook } from './channels-webhook.ts'
 import { installToolClamp, installSandboxBoundary } from './sandbox.ts'
 import { installTerminalTenant, installTerminalSandbox } from './terminal.ts'
 import { BADGE_SCRIPT } from './pages.ts'
@@ -165,6 +169,26 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         secure: process.env.ETERNA_ACCESS_SECURE === '1',
       })
       const tenantRoot = process.env.ETERNA_TENANT_ROOT ?? join(process.env.DSH_HOME ?? process.cwd(), 'workspaces')
+      // ── T6 装载器(2026-11-18):个人/共享工具插件进程内 mount(闭合 P4-T6 一期
+      // 边界「mount 面留后续任务」)。tools 面惰性取用——ctx.tools 在 apply 时点可能
+      // 未就绪(companion wrap 同款时序),bootScan 未就绪则跳过,由首个工具调用的
+      // pre-execute 监听补扫(见下方 ensureBootScan);个人插件启停/安装/转内置
+      // 从此免重启。装载失败只记插件状态+审计,绝不炸 boot。
+      const pluginLoader = createTenantPluginLoader({
+        store,
+        sessionOwnerOf: (id: string) => store.sessionOwner(id),
+        // register 面(区别于 companion 的 executable 面):本插件已 inject 'tools',
+        // 属性直取不触发 get trap;仍留 undefined 兜底(companion readToolsService 同款宽松)。
+        readTools: () => (ctx as unknown as { readonly tools?: TenantPluginToolsFace }).tools,
+        audit,
+      })
+      let bootScanStarted = false
+      const ensureBootScan = (): void => {
+        if (bootScanStarted) return
+        if (readToolsService(ctx) === undefined) return
+        bootScanStarted = true
+        void pluginLoader.bootScan()
+      }
       // ── 工具审批桥(2026-11-13):web 前端无审批面,治理 ask 挂死不可见(session-
       // 7e15e6ab 事故)。宿主侧答者接内核 approval/request waterfall,按会话归属
       // 暴露给本人浏览器(轮询/裁决;超时 unavailable)。未知会话 next() 透传。
@@ -262,6 +286,9 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       }
       const offCompanionIdentity = ctx.on('tools/pre-execute', async (exec, next) => {
         ensureCompanionWrap()
+        // T6 补扫:apply 时点 tools 未就绪导致 bootScan 跳过时,首个工具调用补扫
+        // (此时 tools 服务必已就绪——本监听正是 tools/pre-execute)。
+        ensureBootScan()
         if (!exec.name.startsWith('mcp__browser__')) return next()
         const route = routeCompanion(companionDeps, exec.agent?.session.id)
         if (route.kind === 'deny') return { kind: 'deny', reason: route.reason }
@@ -276,18 +303,39 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         // 302 回应用(routes.ts)——不注册则 webServer 直接 404 空体=浏览器黑屏。
         ctx.webServer.register({ kind: 'exact', path: '/account', handler }),
         ctx.webServer.register({ kind: 'prefix', path: '/access/api', handler }),
+        // 工作台实时流桥(T15;38 号 O-5/G2-C4,路径唯一事实源 = tenant.ts
+        // WORKBENCH_STREAM_ENDPOINT 守卫清单登记行):GET + 登录会话守卫,数据面 =
+        // eterna-workbench live hub(tasks DomainEvents,反射键 eternaWorkbenchStream)。
+        // 铁律 T2 路由面独占——workbench/tasks 不得自注册,登记面只在 access。
+        ctx.webServer.register({ kind: 'exact', path: WORKBENCH_STREAM_ENDPOINT, handler: createStreamBridgeHandler({ store, session, reflect: ctx.reflect, audit }) }),
         ctx.webServer.tapIndex(html => injectBadge(html)),
       ]
       disposers.push(offCompanionIdentity)
       disposers.push(offApprovalAnswerer)
       disposers.push(offQuestionAnswerer)
       disposers.push(offThinkingAuto)
+      // ── T6 自研安装工具(2026-11-18):install_personal_plugin。注册走 apply 直注
+      // (glue knowledge/memory 先例;inject ['tools'] 使 ctx.tools 就绪),失败只降级
+      // (审计+日志,不炸装配);装载器 disposer 随插件卸载(全部 mount 子树回收)。
+      try {
+        const toolDeps = { tenantDeps: { store, session, reflect: ctx.reflect, tenantRoot, audit }, loader: pluginLoader }
+        disposers.push(ctx.tools.register(defineInstallPersonalPluginTool(toolDeps)))
+      } catch (error) {
+        audit({ kind: 'access.tenant', detail: { action: 'install-tool.register.failed', error: error instanceof Error ? error.message : String(error) } })
+      }
+      disposers.push(() => { pluginLoader.dispose() })
+      ensureBootScan()
       // 索引页登录跳转门禁(2026-11-17):未登录/浏览器 cookie 过期访问根路径时,
       // dsh authorizeIndex 原本回裸 401 文本(index HTML 不发出→tapIndex 角标脚本
       // 永不运行)。包装为 302 /login;token 兑换 303 与已认证请求原样放行。
       const loginGateDispose = installLoginGate(ctx.connection)
       if (loginGateDispose !== undefined) disposers.push(loginGateDispose)
       audit({ kind: 'access.login.gate', detail: { installed: loginGateDispose !== undefined } })
+      // channels webhook 公共面(39 号 E8;铁律 T2 路由面独占,24a 裁决口径):外部渠道
+      // 入站 webhook 与邮件审批令牌是服务器到服务器的公共面(无浏览器 cookie,自带
+      // HMAC/单次令牌 fail-closed 鉴权),路由面归本插件登记,数据面归 channels 网关
+      // (逐请求 reflect 机会读,卸载即 503)。语义与失败兜底见 channels-webhook.ts 头注。
+      disposers.push(registerChannelsWebhook(ctx.webServer, ctx.reflect))
       // Phase 2 租户面(T2.2/T2.5):存量 workspace 划归首个 admin
       adoptLegacyWorkspaces(store)
       // P1-T2(2026-11-11):mux 流租户隔离——principal 换血 + registerPolicy。
@@ -384,6 +432,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         tenantRoot,
         audit,
         ensureMux: () => { ensureMux(); ensureSandbox(); ensureTerminal() },
+        pluginLoader,
       }, ctx.connection))
       return () => {
         for (const dispose of disposers) dispose()

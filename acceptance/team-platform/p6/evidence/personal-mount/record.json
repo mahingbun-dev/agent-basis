@@ -1,0 +1,66 @@
+{
+  "at": "2026-11-18T12:03:28.770Z",
+  "base": "http://127.0.0.1:3213",
+  "container": "eterna-tp-t6",
+  "checks": {
+    "install": {
+      "ok": true,
+      "pluginId": "user:Mr.Ma:hello",
+      "mount": {
+        "ok": true,
+        "tools": [
+          "user_Mr_Ma_greet"
+        ]
+      }
+    },
+    "listMounted": {
+      "mounted": true,
+      "tools": [
+        "user_Mr_Ma_greet"
+      ]
+    },
+    "scan": {
+      "items": [
+        "stray"
+      ]
+    },
+    "disableUnmounts": true,
+    "enableRemounts": true,
+    "promote": {
+      "ok": true,
+      "promoted": true,
+      "mount": {
+        "ok": true,
+        "tools": [
+          "shared_greet"
+        ]
+      },
+      "error": null
+    },
+    "sharedList": {
+      "mounted": true,
+      "enabled": true,
+      "tools": [
+        "shared_greet"
+      ]
+    },
+    "sharedDisable": {
+      "becameDisabled": true,
+      "becameUnmounted": true
+    },
+    "afterRestart": {
+      "personalRow": {
+        "pluginId": "user:Mr.Ma:hello",
+        "dir": "/data/workspaces/Mr.Ma/plugins/hello",
+        "dirExists": true,
+        "enabled": false,
+        "promoted": true,
+        "withinRoot": true,
+        "mounted": false,
+        "tools": []
+      },
+      "sharedStaysUnmounted": true
+    },
+    "sharedReenable": true
+  }
+}

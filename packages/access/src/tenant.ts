@@ -20,6 +20,7 @@ import { decayBias } from './thinking-score.ts'
 // ── 知识库管理端点:调用者身份与服务面结构子集(仅类型;运行期零依赖)──
 import type { KnowledgeAdminCaller, KnowledgeAdminFaceLike } from './knowledge-admin-face.ts'
 import { registerUserPluginRoutes } from './user-plugins.ts'
+import type { UserPluginLoader } from './user-plugins.ts'
 import { ApprovalFlow, ensureApprovalSchema } from './approvals.ts'
 import type { AccessAuditEvent, AuditReflect } from './audit.ts'
 import type { SessionService } from './session.ts'
@@ -44,7 +45,25 @@ export interface TenantDeps {
   audit(event: AccessAuditEvent): void
   /** P1-T2:mux 隔离惰性安装钩子(服务在插件 apply 后才挂载,首个守卫请求时落地)。 */
   readonly ensureMux?: () => void
+  /** T6 装载器(2026-11-18):个人/共享插件进程内 mount;缺席=纯记账降级。 */
+  readonly pluginLoader?: UserPluginLoader
 }
+
+/**
+ * 工作台 SSE 流端点(38 号 O-5 开放问题的登记落位;33 号 G2-C4「新端点进本守卫
+ * 清单」;本守卫清单登记的第一个插件数据端点):
+ * - 铁律 T2 路由面独占:workbench/tasks 均不得自注册(tenant-scan
+ *   tenant/route-escapes-gate CI 强制);24a 裁决 dwfq-843ec077-1 口径——
+ *   **数据面经 tasks 提供、路由经 access 登记**;
+ * - 数据面 = tasks 引擎 DomainEvents(eterna-workbench live hub 投影,服务反射键
+ *   'eternaWorkbenchStream';src/stream.ts 桥装载,登记点 = plugin.ts 的
+ *   webServer.register 精确路径);
+ * - 守卫 = 登录会话(cookie→pwv→用户,与本清单同一身份面;未登录 401,hub 未就绪
+ *   503 fail-closed);传输 = text/event-stream(GET,Last-Event-ID 续传,200ms
+ *   合批,30 号 §3;插件启停面未收录——流随 eterna-workbench 装载,不在
+ *   routes.ts TOGGLEABLE_PLUGINS)。
+ */
+export const WORKBENCH_STREAM_ENDPOINT = '/workbench/api/stream'
 
 type ServiceHandle = Record<string, (...args: never[]) => unknown>
 
@@ -578,12 +597,13 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
   })
 
   // ── P4-T6/T7(2026-11-11):双层插件个人层端点+审批流(复用守卫 register=cookie 认证+审计) ──
+  // T6(2026-11-18):装载器随 deps 注入——启停/移除/转内置即刻生效,零重启。
   ensureApprovalSchema(deps.store)
   const approvalFlow = new ApprovalFlow(deps)
   registerUserPluginRoutes(deps, register, {
     flow: approvalFlow,
     isAdmin: (userId: number) => deps.store.getUserById(userId)?.role === 'admin',
-  })
+  }, deps.pluginLoader)
 
   // ── 记忆账号路由守卫(23 号 M-T2,S-6 修复,2026-11-16)─────────────────
   // unary SRC 通道的 invocation.principal 是 owner peer(不携带 userId,mux.ts

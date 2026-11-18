@@ -8,11 +8,14 @@
 import { initPack } from './init.ts'
 import { anyLintErrors, lintPacks } from './lint.ts'
 import { checkPack } from './check.ts'
+import { formCheck, resolveFormCheckRoot } from './form.ts'
 import { discoverPackRoots, isPackDir } from './pack.ts'
 import { promptScan } from './prompt.ts'
 import { tenantScan } from './tenant.ts'
 import { hasErrors } from './types.ts'
 import type { Finding } from './types.ts'
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 export interface CliIo {
   readonly cwd: string
@@ -27,6 +30,7 @@ const USAGE = [
   '  packctl check [<path>]                   静态冒烟:bundle 声明引用的文件都存在',
   '  packctl tenant-scan                      packages/* 隔离铁律静态检查(路由面/登记册/持久化)',
   '  packctl prompt-scan                      提示词登记铁律静态检查(patch 键/section 使用/packs persona)',
+  '  packctl form-check [--enforce-pair-drift] 双形态依赖方向(TIER001)与挂载一致(FORM001)静态检查(G0-6;docs/tiers.yml 真值源;仓库根=cwd 向上查找,不在仓库内时回退 packctl 所属仓库)',
   '<path> 缺省为 cwd:是 pack 根则 lint 它;含 packs/ 则 lint 全部领域包;否则向上查找。',
 ].join('\n')
 
@@ -73,6 +77,8 @@ export function runPack(argv: readonly string[], io: CliIo): number {
       return cmdCheck(positional, io)
     case 'tenant-scan':
       return cmdTenantScan(io)
+    case 'form-check':
+      return cmdFormCheck(flags, io)
     case 'prompt-scan':
       return cmdPromptScan(io)
     case 'help':
@@ -82,6 +88,28 @@ export function runPack(argv: readonly string[], io: CliIo): number {
       io.writeLine(`未知命令: ${command || '(空)'}\n${USAGE}`)
       return 2
   }
+}
+
+/**
+ * form-check(G0-6,40 号 S-2):双形态依赖方向与挂载一致性静态检查。
+ * Tier 真值源问题 → 退出码 2(用法错误);有 error finding → 1;全绿 → 0。
+ * --enforce-pair-drift:清单↔模板漂移置 error(默认 warning 显式登记,40 号 §9 Q1 暂定)。
+ */
+function cmdFormCheck(flags: Readonly<Record<string, string | boolean>>, io: CliIo): number {
+  // 仓库根解析:cwd 向上找 docs/tiers.yml;不在仓库内(如绝对路径调用)时回退到
+  // packctl 自身所属仓库(form-check 检查的本就是 packctl 所在仓库的工件)。
+  const repoRoot = resolveFormCheckRoot(io.cwd, dirname(fileURLToPath(import.meta.url)))
+  const { usageError, findings } = formCheck(repoRoot, { enforcePairDrift: flags['enforce-pair-drift'] === true })
+  if (usageError !== undefined) {
+    io.writeLine(`form-check: ${usageError}`)
+    return 2
+  }
+  for (const finding of findings) {
+    io.writeLine(`${finding.severity.toUpperCase()} ${finding.code} ${finding.path}: ${finding.message}`)
+  }
+  const errorCount = findings.filter(f => f.severity === 'error').length
+  io.writeLine(`form-check: ${String(findings.length)} finding(s)(${String(errorCount)} error)`)
+  return errorCount > 0 ? 1 : 0
 }
 
 /** tenant-scan(T3.4):packages/* 隔离铁律静态检查;违规 error → 退出码 1。 */

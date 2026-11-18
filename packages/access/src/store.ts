@@ -11,7 +11,10 @@ import { dirname } from 'node:path'
 import { hashPassword, validateAccount, validatePassword, verifyPassword } from './password.ts'
 import { decayBias } from './thinking-score.ts'
 
-export type UserRole = 'admin' | 'user'
+/** WS-C(37 号 M-1):审批人第三角色。中文「审批人」仅 UI 文案层(index.tsx i18n),
+ *  此处沿英文小写枚举先例。B2 领域专家角色复用时只改此联合类型 + CHECK 迁移函数
+ *  参数(37 号 §3 M-5 锚①/§7 缺口 8;tests/role-expansion-anchor.spec.ts 防旁路)。 */
+export type UserRole = 'admin' | 'approver' | 'user'
 
 export interface UserRow {
   readonly id: number
@@ -42,28 +45,72 @@ const NICKNAME_MAX = 32
 const ACCOUNT_MAX = 32
 const SUFFIX_MAX_N = 9999
 
-export interface CreateUserInput {
-  readonly account: string
-  readonly password: string
-  readonly role?: UserRole
-  readonly nickname?: string
+/** 角色值 CHECK 子句(建表语句与迁移重建共用同一生成源,防两处字面漂移)。 */
+function roleCheckOf(allowedRoles: readonly string[]): string {
+  return `CHECK(role IN (${allowedRoles.map(role => `'${role}'`).join(',')}))`
 }
 
-/** D11 候选序列:基名 → 基名01…基名09 → 基名10…基名99 → 基名100…;超 32 位截基座保后缀。 */
-export function* accountCandidates(base: string): Generator<string> {
-  yield base
-  for (let n = 1; n <= SUFFIX_MAX_N; n++) {
-    const suffix = String(n).padStart(2, '0')
-    const trimmed = base.length + suffix.length > ACCOUNT_MAX ? base.slice(0, ACCOUNT_MAX - suffix.length) : base
-    yield trimmed + suffix
+/**
+ * M-1(37 号 §3):存量库 users 表 CHECK 约束迁移——SQLite 的 CHECK 不可 ALTER,
+ * 按官方 ALTER TABLE §7 十二步流程的必要子集重建表壳:
+ * - 判定:sqlite_master 的建表 SQL 缺任一允许角色值 ⇒ 旧形态(新库/已迁移库跳过,幂等);
+ * - 重建:事务外存 `PRAGMA foreign_keys` 原值并 OFF(事务内设置是 no-op)→ 事务内
+ *   CREATE 新表(新 CHECK,列集与现表一致)→ 显式列名拷行(**禁 `SELECT *`**——两表
+ *   列序若漂移即错位)→ DROP 旧表 → RENAME → 提交 → `PRAGMA foreign_key_check`
+ *   核对(空)→ 恢复原 foreign_keys 值。任何一步失败抛出(fail-loud——启动失败
+ *   优于静默半迁移库);
+ * - 子表(workspaces/sessions/approvals/notifications/user_plugins)不动:重建仅换
+ *   父表壳,行 id 与 FK 引用不变。
+ * 运维形态(37 号 §7 缺口 4,未拍板):「构造器内静默幂等迁移」系自选默认;若评审定
+ * 部署窗口+卷快照(23 §3.3/§4 Q4 先例),本函数前移为显式脚本——代码同源,可直接复用。
+ * allowedRoles 参数化(§7 缺口 8):B2 领域专家角色二次迁移时复用。
+ */
+export function migrateRoleConstraint(db: DatabaseSync, allowedRoles: readonly string[] = ['admin', 'approver', 'user']): void {
+  const row = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get() as
+    | { sql: string }
+    | undefined
+  if (row === undefined) return
+  if (allowedRoles.every(role => row.sql.includes(`'${role}'`))) return
+  const fkBefore = (db.prepare('PRAGMA foreign_keys').get() as { foreign_keys: number }).foreign_keys
+  db.exec('PRAGMA foreign_keys = OFF')
+  try {
+    db.exec('BEGIN IMMEDIATE')
+    db.exec(`CREATE TABLE users_m (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      account TEXT NOT NULL UNIQUE,
+      nickname TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      password_version INTEGER NOT NULL DEFAULT 1,
+      role TEXT NOT NULL ${roleCheckOf(allowedRoles)},
+      avatar BLOB,
+      avatar_mime TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`)
+    db.exec(
+      'INSERT INTO users_m (id, account, nickname, password_hash, password_version, role, avatar, avatar_mime, created_at) ' +
+      'SELECT id, account, nickname, password_hash, password_version, role, avatar, avatar_mime, created_at FROM users',
+    )
+    db.exec('DROP TABLE users')
+    db.exec('ALTER TABLE users_m RENAME TO users')
+    db.exec('COMMIT')
+  } catch (error) {
+    try { db.exec('ROLLBACK') } catch { /* 事务已不在(如 BEGIN 即失败) */ }
+    db.exec(`PRAGMA foreign_keys = ${fkBefore}`)
+    throw error
   }
+  const violations = db.prepare('PRAGMA foreign_key_check').all()
+  if (violations.length > 0) {
+    db.exec(`PRAGMA foreign_keys = ${fkBefore}`)
+    throw new Error(`users 表角色约束迁移后 foreign_key_check 非空: ${JSON.stringify(violations)}`)
+  }
+  db.exec(`PRAGMA foreign_keys = ${fkBefore}`)
 }
 
 /**
  * 思考强度自动模式列迁移(2026-11-18):sessions 补 `thinking_auto`(默认 1)。
  * SQLite 的 ADD COLUMN 不可重复执行,以 pragma table_info 判定幂等;失败抛出
- * (fail-loud,启动失败优于静默半迁移库)。默认开启系用户拍板:存量与新会话均
- * 自动选档,按会话可关(模型菜单「自动」chip → /api/session/thinkingAuto)。
+ * (fail-loud,与 migrateRoleConstraint 同纪律)。默认开启系用户拍板:存量与新
+ * 会话均自动选档,按会话可关(模型菜单「自动」chip → /api/session/thinkingAuto)。
  */
 export function migrateSessionsThinkingAuto(db: DatabaseSync): void {
   const columns = db.prepare('PRAGMA table_info(sessions)').all() as Array<{ name: string }>
@@ -84,6 +131,23 @@ export function migrateSessionsThinkingBias(db: DatabaseSync): void {
   }
   if (!columns.some(column => column.name === 'thinking_bias_at')) {
     db.exec('ALTER TABLE sessions ADD COLUMN thinking_bias_at INTEGER NOT NULL DEFAULT 0')
+  }
+}
+
+export interface CreateUserInput {
+  readonly account: string
+  readonly password: string
+  readonly role?: UserRole
+  readonly nickname?: string
+}
+
+/** D11 候选序列:基名 → 基名01…基名09 → 基名10…基名99 → 基名100…;超 32 位截基座保后缀。 */
+export function* accountCandidates(base: string): Generator<string> {
+  yield base
+  for (let n = 1; n <= SUFFIX_MAX_N; n++) {
+    const suffix = String(n).padStart(2, '0')
+    const trimmed = base.length + suffix.length > ACCOUNT_MAX ? base.slice(0, ACCOUNT_MAX - suffix.length) : base
+    yield trimmed + suffix
   }
 }
 
@@ -109,7 +173,7 @@ export class UserStore {
       nickname TEXT NOT NULL,
       password_hash TEXT NOT NULL,
       password_version INTEGER NOT NULL DEFAULT 1,
-      role TEXT NOT NULL CHECK(role IN ('admin','user')),
+      role TEXT NOT NULL ${roleCheckOf(['admin', 'approver', 'user'])},
       avatar BLOB,
       avatar_mime TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -156,6 +220,17 @@ export class UserStore {
       thinking_bias REAL NOT NULL DEFAULT 0,
       thinking_bias_at INTEGER NOT NULL DEFAULT 0
     )`)
+    // T6 装载器(2026-11-18):公共层共享插件记账(转内置产物;拷贝制,与个人行解耦——
+    // 原作者删除不影响共享存续,隔离计划 §T7-B「已转内置的插件存续于公共层」)。
+    this.db.exec(`CREATE TABLE IF NOT EXISTS shared_plugins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      plugin_id TEXT NOT NULL UNIQUE,
+      dir TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`)
+    // M-1:存量库 CHECK 迁移(建表语句之后;插件每次启动都走构造器——幂等,新库跳过)
+    migrateRoleConstraint(this.db)
     // 思考强度自动模式(2026-11-18):存量库补列——SQLite 的 ADD COLUMN 幂等以
     // pragma table_info 判定;默认 1 = 存量与新会话均默认自动(用户拍板),可按会话关闭。
     migrateSessionsThinkingAuto(this.db)
@@ -279,6 +354,13 @@ export class UserStore {
     if (!verifyPassword(oldPassword, row.password_hash)) throw new OldPasswordMismatchError('旧密码不正确')
     this.db.prepare('UPDATE users SET password_hash = ?, password_version = password_version + 1 WHERE id = ?')
       .run(hashPassword(newPassword), id)
+  }
+
+  /** M-3(37 号 §3)角色写面:store 层不判角色语义(值域与护栏在 routes 层),
+   *  沿 setPassword 形态(requireRow + UPDATE);G2-C5 即时生效=角色读取面动态查库。 */
+  setUserRole(id: number, role: UserRole): void {
+    this.requireRow(id)
+    this.db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, id)
   }
 
   setAvatar(id: number, avatar: Uint8Array | null, mime: string | null): void {
@@ -473,6 +555,35 @@ export class UserStore {
       | { user_id: number }
       | undefined
     return row === undefined ? undefined : row.user_id
+  }
+
+  /** 全量启用行(T6 bootScan 用;装载器启动期扫描个人层激活清单)。 */
+  allEnabledUserPlugins(): Array<{ pluginId: string; dir: string; userId: number }> {
+    const rows = this.db.prepare('SELECT plugin_id, dir, user_id FROM user_plugins WHERE enabled = 1').all() as
+      Array<{ plugin_id: string; dir: string; user_id: number }>
+    return rows.map(row => ({ pluginId: row.plugin_id, dir: row.dir, userId: row.user_id }))
+  }
+
+  // ── T6(2026-11-18):公共层共享插件记账(转内置真装载的激活清单) ──
+
+  /** 共享插件记账(upsert;转内置拷贝完成后与 admin 启停共用)。 */
+  recordSharedPlugin(pluginId: string, dir: string, enabled: boolean): void {
+    this.db.prepare(
+      'INSERT INTO shared_plugins (plugin_id, dir, enabled) VALUES (?, ?, ?) ' +
+      'ON CONFLICT(plugin_id) DO UPDATE SET dir = excluded.dir, enabled = excluded.enabled',
+    ).run(pluginId, dir, enabled ? 1 : 0)
+  }
+
+  setSharedPluginEnabled(pluginId: string, enabled: boolean): boolean {
+    const r = this.db.prepare('UPDATE shared_plugins SET enabled = ? WHERE plugin_id = ?')
+      .run(enabled ? 1 : 0, pluginId)
+    return Number(r.changes) > 0
+  }
+
+  sharedPlugins(): Array<{ pluginId: string; dir: string; enabled: boolean }> {
+    const rows = this.db.prepare('SELECT plugin_id, dir, enabled FROM shared_plugins').all() as
+      Array<{ plugin_id: string; dir: string; enabled: number }>
+    return rows.map(row => ({ pluginId: row.plugin_id, dir: row.dir, enabled: row.enabled === 1 }))
   }
 
   // ── P4-T7(2026-11-11):审批流+站内通知数据面(users.db 同库新表,泛化模型) ──

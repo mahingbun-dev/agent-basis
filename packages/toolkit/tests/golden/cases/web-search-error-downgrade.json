@@ -1,0 +1,24 @@
+{
+  "id": "web-search-error-downgrade",
+  "capability": "web_search",
+  "scope": "deepseek",
+  "description": "降级路径:搜索工具错误响应(WebSearchToolResultError 6 值枚举之一)→ degraded + search_step{status:'error', detail=错误码}(deepseek 面:detail 为 R4-③ 错误码;generic 分支降级 detail 为其执行器文案,接入时以 PR 说明调整)",
+  "params": {
+    "query": "场地 档期"
+  },
+  "expected": {
+    "status": "degraded",
+    "blocks": [
+      {
+        "type": "search_step",
+        "step": 1,
+        "action": "search",
+        "query": "场地 档期",
+        "status": "error",
+        "detail": "unavailable"
+      }
+    ]
+  },
+  "contractVersion": 1,
+  "status": "draft"
+}

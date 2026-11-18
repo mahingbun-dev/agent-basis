@@ -8,7 +8,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { SessionService } from '../src/session.ts'
 import { UserStore } from '../src/store.ts'
-import { bindingsFor, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_EVENT_ACTIONS, SESSION_STREAM_ACTIONS, SESSION_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS } from '../src/mux.ts'
+import { bindingsFor, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_EVENT_ACTIONS, SESSION_STREAM_ACTIONS, SESSION_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS, visibilityScopeOf } from '../src/mux.ts'
 
 describe('T2:mux 策略绑定', () => {
   let dir: string
@@ -72,5 +72,52 @@ describe('T2:mux 策略绑定', () => {
     expect(bindingsFor(deps, aliceId).filter(b => b.resource.kind === 'session')).toHaveLength(2)
     store.recordSession('s-a3', aliceId, null)
     expect(bindingsFor(deps, aliceId).filter(b => b.resource.kind === 'session')).toHaveLength(3)
+  })
+
+  // ── WS-C(37 号 M-2):角色感知 + 可见性谓词 + 零放宽不变式 ──────────────────
+
+  it('WS-C ①:visibilityScopeOf 三档映射 + 未知值 fail-closed 判 self', () => {
+    expect(visibilityScopeOf('user')).toBe('self')
+    expect(visibilityScopeOf('approver')).toBe('tenant-pending')
+    expect(visibilityScopeOf('admin')).toBe('all')
+    expect(visibilityScopeOf('nobody' as never)).toBe('self')
+  })
+
+  it('WS-C ②:approver 与 user/admin 的 bindingsFor 逐项全等(内容绑定零放宽不变式)', () => {
+    const deps = { store, session }
+    // 同一资源集跨三角色轮转对比(approver 化 → admin 化 → 回 user),逐项 deep-equal
+    const asUser = bindingsFor(deps, aliceId)
+    store.setUserRole(aliceId, 'approver')
+    const asApprover = bindingsFor(deps, aliceId)
+    store.setUserRole(aliceId, 'admin')
+    const asAdmin = bindingsFor(deps, aliceId)
+    store.setUserRole(aliceId, 'user')
+    expect(asApprover).toEqual(asUser)
+    expect(asAdmin).toEqual(asUser)
+    // 不变量明示:任何角色档都只见本人资源(跨租户待人项是工作台数据面,不经 mux 内容绑定)
+    const stranger = store.createUserWithSuffix({ account: 'stranger', password: 'password8' }).user
+    store.recordSession('s-stranger', stranger.id, null)
+    store.setUserRole(aliceId, 'approver')
+    const approverBindings = bindingsFor(deps, aliceId)
+    expect(approverBindings.filter(b => b.resource.kind === 'session').map(b => (b.resource as { id: string }).id))
+      .not.toContain('s-stranger')
+  })
+
+  it('WS-C ③:角色动态性——setUserRole 后再调 bindings 回调,绑定与谓词随新角色(即时生效 node 面)', () => {
+    const deps = { store, session }
+    // 与 installMuxIsolation 的注册形态同构:回调内现查(principal → bindings),
+    // 不在安装时缓存角色(G2-C5;上游每 decide/allows 直调回调——TS-37-1 已核实)
+    const policy = { bindings: (principal: { userId: number }) => bindingsFor(deps, principal.userId) }
+    expect(visibilityScopeOf(store.getUserById(bobId)!.role)).toBe('self')
+    expect(policy.bindings({ userId: bobId })).toHaveLength(1) // bob 零资源 → 仅 GLOBAL
+    store.setUserRole(bobId, 'approver')
+    store.recordSession('s-bob', bobId, null)
+    // 换角色+记账后不重建策略、不重装 Peer——下一次回调调用即见新账本与谓词
+    const after = policy.bindings({ userId: bobId })
+    expect(after.filter(b => b.resource.kind === 'session').map(b => (b.resource as { id: string }).id)).toEqual(['s-bob'])
+    expect(visibilityScopeOf(store.getUserById(bobId)!.role)).toBe('tenant-pending')
+    store.setUserRole(bobId, 'user')
+    expect(visibilityScopeOf(store.getUserById(bobId)!.role)).toBe('self')
+    expect(policy.bindings({ userId: bobId })).toEqual(after) // 内容绑定不随档位变化(零放宽不变式)
   })
 })

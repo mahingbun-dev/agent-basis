@@ -244,3 +244,122 @@ export function createDingTalkChannelAdapter(options: DingTalkAdapterOptions): C
     },
   }
 }
+
+/* --------------- Outbox reply 出站 + 报告六态渲染(39 号 E7) --------------- */
+
+/**
+ * 工单报告六态(39 号 §3-E7;枚举权威=24 号 §2.3-机制 5)。31 号 §2.2 铁律 1
+ * 「Tier1 永不 import Tier2」下在本包内部声明,与 @eterna/tasks core model.ts 的
+ * `ReportState` 逐态同构、语义同一(tasks 侧适配本面),两侧不得单侧增删态值。
+ */
+export type ReportState = 'progress' | 'waiting' | 'ready' | 'blocked' | 'failed' | 'dropped'
+
+/**
+ * 工单报告六态文案(39 号 §3-E7;枚举=24 号 §2.3-5)。状态语义逐态对齐 tasks
+ * model 的权威注释(model.ts「工作在进行/其 worker 在等一条 Trigger/结果就绪/
+ * 需要人行动才能解锁或恢复/无事可做」),文案仅描述状态、不加设计外语义
+ * (「半成品标为半成品,失败报为失败」,24 号 §2.1 行为律 5)。
+ */
+const REPORT_STATE_LINES: Record<ReportState, string> = {
+  progress: '进行中:工作在进行',
+  waiting: '等待中:worker 在等一条消息',
+  ready: '就绪:结果已就绪',
+  blocked: '受阻:需要人行动才能解锁',
+  failed: '失败:需要人行动才能恢复',
+  dropped: '已放弃:无事可做',
+}
+
+/**
+ * 六态 → 中文文案行(进卡片 body;39 号 §3-E7 落点原文)。
+ * 返回形态:首行状态、次行摘要(summary 非空时)——Outbox 结果/摘要卡的渠道端渲染。
+ */
+export function renderReportLines(state: ReportState, summary: string): string {
+  const lines = [REPORT_STATE_LINES[state]]
+  if (summary.length > 0) lines.push(`摘要:${summary}`)
+  return lines.join('\n')
+}
+
+/** 投递失败的归类(39 号 E7;「channelIgnored/channelGone 落 dropped」,34 号 §4-C)。 */
+export type DeliveryFailureKind = 'channelIgnored' | 'channelGone' | 'transient'
+
+/**
+ * 带显式归类标记的投递错误:适配器对「渠道侧明确拒绝/忽略」(channelIgnored)与
+ * 「渠道/会话已消失」(channelGone)抛出;两者在 tasks 侧落 dropped(不重试);
+ * 一切未显式标记的错误(网络抖动等)一律 transient(可重试,归 effects 退避)。
+ */
+export class ChannelsDeliveryError extends Error {
+  readonly failureKind: Exclude<DeliveryFailureKind, 'transient'>
+
+  constructor(message: string, failureKind: Exclude<DeliveryFailureKind, 'transient'>) {
+    super(`[channels] ${message}`)
+    this.failureKind = failureKind
+  }
+}
+
+/**
+ * 投递错误分类(39 号 §3-E7 落点原文):只认 ChannelsDeliveryError 上的显式标记,
+ * 未标记错误归 'transient'——落 dropped 的记账在 tasks 侧,channels 只提供分类面。
+ */
+export function classifyDeliveryFailure(error: unknown): DeliveryFailureKind {
+  if (error instanceof ChannelsDeliveryError) return error.failureKind
+  return 'transient'
+}
+
+/** Outbox 回执消息的四种 purpose(34 号 §2.1 replies 行:ack/answer/result/attention)。 */
+export type ReplyPurpose = 'ack' | 'answer' | 'result' | 'attention'
+
+/** result purpose 携带的工单报告(六态 + 摘要;进文案与 metadata)。 */
+export interface ReplyReportInput {
+  readonly state: ReportState
+  readonly summary: string
+}
+
+/**
+ * Outbox 回执 → 出站卡片的组卡入参:
+ * - purpose=attention:必须携带 approval(BuildApprovalCardInput,载荷契约同 E4——
+ *   approve/reject 各一枚一次性令牌,buildApprovalCard 强制装配);
+ * - purpose=result:携带 report(六态经 renderReportLines 进文案,并落 metadata.reportState);
+ * - purpose=ack/answer:正文即 body。
+ */
+export interface ReplyCardInput {
+  readonly purpose: ReplyPurpose
+  readonly title: string
+  readonly body?: string
+  readonly report?: ReplyReportInput
+  readonly approval?: BuildApprovalCardInput
+}
+
+/**
+ * Outbox `reply` 投递器的渠道端组卡(39 号 E7 渲染映射;34 号 §5-channels「Outbox
+ * reply 投递器经 channels 适配器出站——结果回到发起渠道」的 channels 半边):
+ * - attention → kind='approval'(载荷契约同 E4,validateOutboundCard 强校验路径);
+ * - ack/answer/result → kind='delivery'(不扩 OutboundCardKind 枚举,types.ts 既有三值);
+ * - working 类中间态(progress/waiting)不产生出站卡 → 返回 undefined
+ *   (「进度不进 IM」,24 号 §7.6;replies 无 progress purpose,34 号 §2.1)。
+ * 组卡产物过 validateOutboundCard 自检(title/载荷 fail-closed)。
+ */
+export function buildReplyCard(input: ReplyCardInput): OutboundCard | undefined {
+  // working 类中间态不出站:出站只发生在 purpose 存在时(终/卡态经 result/attention 承载)。
+  if (input.report !== undefined && (input.report.state === 'progress' || input.report.state === 'waiting')) {
+    return undefined
+  }
+  if (input.purpose === 'attention') {
+    if (input.approval === undefined) {
+      throw new ChannelsCardError('attention 回执必须携带审批载荷输入(approve/reject 各一枚令牌)')
+    }
+    const card = buildApprovalCard(input.approval)
+    validateOutboundCard(card)
+    return card
+  }
+  const body = input.report !== undefined
+    ? renderReportLines(input.report.state, input.report.summary)
+    : input.body ?? ''
+  const card: OutboundCard = {
+    kind: 'delivery',
+    title: input.title,
+    body,
+    ...(input.report !== undefined && { metadata: { reportState: input.report.state } }),
+  }
+  validateOutboundCard(card)
+  return card
+}

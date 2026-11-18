@@ -1,0 +1,552 @@
+{
+  "$schema-note": "T6/T7 新增组件状态点 × --et-* 令牌对照清单的机器可读真值源(38 号 T14 主题自查;frontend-style §5 检查清单的核对子集)。expectedTokens 为该状态点按原型必须出现的令牌(组件文件级 ⊇ 状态级),enforce=true 时 G0-2(lint-ui-tokens.mjs)与 tests/theme-tokens.spec.ts 双门禁强制;selectorHints 为实现锚点建议(原型 class 词汇照 panel 先例译为 data-eterna-* 结构锚点,仅报告不强断);anchorChecks 为选择器级精查:CSS 中含该子串的选择器块必须携带期望令牌(文件级核对查不出的『实心/描边换用』类偏差由此兜住),缺失或令牌不符均计失败;files 为包内相对路径,组件未落地时状态点记 pending 不计失败。令牌实值真值源 packages/ui/src/tokens.ts。",
+  "meta": {
+    "依据": [
+      "38 号 §5 T14 行、§6.0 G-3/G-8、§6.4 S-1~S-5、§6.5 A-1~A-7",
+      "30 号 §4-2/§4-4/§5",
+      "frontend-style.md §1/§3/§5",
+      "design-tokens.md §1/§2/§4",
+      "docs/prototypes/01-task-sidebar.html(原型一,T6 视觉规格)",
+      "docs/prototypes/02-attention-card.html(原型二,T7 视觉规格)"
+    ],
+    "gate": "node scripts/lint-ui-tokens.mjs [--report <path>] + pnpm --filter @eterna/workbench run verify(tests/theme-tokens.spec.ts)",
+    "updatedAt": "2026-11-18"
+  },
+  "components": [
+    {
+      "id": "task-sidebar",
+      "label": "T6 任务侧栏(会话侧任务分组 + 状态点)",
+      "prototype": "docs/prototypes/01-task-sidebar.html",
+      "files": [
+        "src/client/TaskSidebar.tsx",
+        "src/client/styles.ts"
+      ],
+      "states": [
+        {
+          "id": "dot-wait-person",
+          "label": "状态点 · 等我处理(person/*,琥珀)",
+          "prototypeClass": ".dot.dot-wait-person(.dot-pulse)",
+          "expectedTokens": [
+            "--et-warn"
+          ],
+          "selectorHints": [
+            "wait-person"
+          ],
+          "enforce": true,
+          "note": "S-2 状态点语义色配文字,不得只靠颜色(frontend-style §3 徽标行)"
+        },
+        {
+          "id": "dot-working",
+          "label": "状态点 · 进行中(working,实心蓝)",
+          "prototypeClass": ".dot.dot-working",
+          "expectedTokens": [
+            "--et-accent"
+          ],
+          "selectorHints": [
+            "working"
+          ],
+          "enforce": true
+        },
+        {
+          "id": "dot-queued",
+          "label": "状态点 · 排队中(working/queued,空心蓝)",
+          "prototypeClass": ".dot.dot-queued",
+          "expectedTokens": [
+            "--et-accent"
+          ],
+          "selectorHints": [
+            "queued"
+          ],
+          "enforce": true,
+          "note": "空心 = transparent 底 + 2px --et-accent 描边"
+        },
+        {
+          "id": "dot-idle",
+          "label": "状态点 · 空闲(idle,灰)",
+          "prototypeClass": ".dot.dot-idle",
+          "expectedTokens": [
+            "--et-meta"
+          ],
+          "selectorHints": [
+            "idle"
+          ],
+          "enforce": true
+        },
+        {
+          "id": "dot-ready",
+          "label": "状态点 · 已就绪(ready,绿)",
+          "prototypeClass": ".dot.dot-ready",
+          "expectedTokens": [
+            "--et-success"
+          ],
+          "selectorHints": [
+            "ready"
+          ],
+          "enforce": true
+        },
+        {
+          "id": "dot-error",
+          "label": "状态点 · 出错(error,红;全原型统一词汇表成员)",
+          "prototypeClass": ".dot.dot-error",
+          "expectedTokens": [
+            "--et-danger"
+          ],
+          "selectorHints": [
+            "error"
+          ],
+          "enforce": true
+        },
+        {
+          "id": "dot-pulse",
+          "label": "状态点脉冲动效(等人驻留提示)",
+          "prototypeClass": ".dot-pulse + @keyframes dot-pulse",
+          "expectedTokens": [
+            "--et-warn",
+            "--et-ease"
+          ],
+          "selectorHints": [
+            "pulse"
+          ],
+          "enforce": true,
+          "note": "prefers-reduced-motion 下停跳(G-6;styles.ts 已有全局降级)"
+        },
+        {
+          "id": "group-header",
+          "label": "任务分组头(分组标题 + stage 码)",
+          "prototypeClass": ".task-group-h / .stage-code",
+          "expectedTokens": [
+            "--et-muted",
+            "--et-meta"
+          ],
+          "selectorHints": [
+            "group",
+            "stage"
+          ],
+          "enforce": true,
+          "note": "S-1 按 stage 分组(person/*、working、working/queued、idle;分组依据 tasks ticketStage)"
+        },
+        {
+          "id": "count-badge",
+          "label": "分组计数徽标(warn/accent/muted 三态,状态色配文字)",
+          "prototypeClass": ".badge.badge-warn / .badge.badge-accent / .badge.badge-muted",
+          "expectedTokens": [
+            "--et-warn",
+            "--et-accent",
+            "--et-accent-soft",
+            "--et-muted",
+            "--et-surface-2",
+            "--et-border-soft"
+          ],
+          "selectorHints": [
+            "badge",
+            "count"
+          ],
+          "enforce": true
+        },
+        {
+          "id": "row-default",
+          "label": "工单行默认(标题 fg / 副行 muted / id-stage-等谁-耗时 meta)",
+          "prototypeClass": ".task-item .t-title / .t-meta / .chev",
+          "expectedTokens": [
+            "--et-fg",
+            "--et-muted",
+            "--et-meta"
+          ],
+          "selectorHints": [
+            "task-item",
+            "t-title",
+            "t-meta"
+          ],
+          "enforce": true
+        },
+        {
+          "id": "row-hover",
+          "label": "工单行悬停",
+          "prototypeClass": ".task-item:hover",
+          "expectedTokens": [
+            "--et-surface-2"
+          ],
+          "selectorHints": [
+            "hover"
+          ],
+          "enforce": true
+        },
+        {
+          "id": "row-active",
+          "label": "工单行当前态(选中工单/分支切换高亮)",
+          "prototypeClass": ".task-item.is-active",
+          "expectedTokens": [
+            "--et-accent",
+            "--et-accent-soft"
+          ],
+          "selectorHints": [
+            "active"
+          ],
+          "enforce": true,
+          "note": "S-4 分支切换入口挂该行;O-9 拍板前分支切换本体不得开工(原型缺位)"
+        },
+        {
+          "id": "session-active",
+          "label": "会话行当前项(aria-current)",
+          "prototypeClass": ".session-list a[aria-current='page']",
+          "expectedTokens": [
+            "--et-accent",
+            "--et-accent-soft",
+            "--et-surface-2"
+          ],
+          "selectorHints": [
+            "session",
+            "aria-current"
+          ],
+          "enforce": true
+        },
+        {
+          "id": "ask-card",
+          "label": "会话内提问卡(一次一问,警示驻留)",
+          "prototypeClass": ".ask-card / .ask-title / .ask-q / .ask-foot / .reply-row .btn",
+          "expectedTokens": [
+            "--et-warn",
+            "--et-fg",
+            "--et-muted"
+          ],
+          "selectorHints": [
+            "ask"
+          ],
+          "anchorChecks": [
+            {
+              "anchor": "reply-row'] [data-eterna-workbench='btn'",
+              "expectedTokens": [
+                "--et-accent-fill",
+                "--et-accent-on",
+                "--et-accent-fill-hover"
+              ],
+              "note": "原型一提交回答 = .btn 实心主操作(提交回答/验收通过共用 .btn 基类);共享 'btn' 锚点为 T9 描边样式,须以 reply-row 作用域规则给实心令牌,不得改共享块影响 FlowCanvas"
+            }
+          ],
+          "enforce": true,
+          "note": "卡底/边 = --et-warn 透明度合成(color-mix);标题 --et-warn、问题 --et-fg、脚注 --et-muted;T7 站内横幅同源(A-1 超集)"
+        },
+        {
+          "id": "result-card",
+          "label": "结果卡(结果回原对话;头/文件 chip/摘要)",
+          "prototypeClass": ".result-card / .result-head / .file-chip",
+          "expectedTokens": [
+            "--et-border",
+            "--et-surface-2",
+            "--et-fg",
+            "--et-success",
+            "--et-border-soft"
+          ],
+          "selectorHints": [
+            "result",
+            "file-chip"
+          ],
+          "enforce": true,
+          "note": "头图标 --et-success;chip 边 --et-border-soft、悬停 --et-accent"
+        },
+        {
+          "id": "result-actions",
+          "label": "结果卡动作(验收通过=实心主操作;退回并说明=次操作)",
+          "prototypeClass": ".result-actions .btn / .btn-secondary",
+          "expectedTokens": [
+            "--et-accent-fill",
+            "--et-accent-on",
+            "--et-border",
+            "--et-fg-2"
+          ],
+          "selectorHints": [
+            "result-actions"
+          ],
+          "anchorChecks": [
+            {
+              "anchor": "result-actions'] [data-eterna-workbench='btn'",
+              "expectedTokens": [
+                "--et-accent-fill",
+                "--et-accent-on",
+                "--et-accent-fill-hover"
+              ],
+              "note": "原型一验收通过 = .btn 实心主操作;共享 'btn' 锚点为 T9 描边样式,须以 result-actions 作用域规则给实心令牌,不得改共享块影响 FlowCanvas"
+            }
+          ],
+          "enforce": true,
+          "note": "frontend-style §3 按钮行:主操作 --et-accent-fill/--et-accent-on,次操作描边;保存/通过不得用错误红"
+        }
+      ]
+    },
+    {
+      "id": "attention-banner",
+      "label": "T7 Attention 卡站内横幅形态(工作台顶部驻留)",
+      "prototype": "docs/prototypes/02-attention-card.html(形态一;形态二渠道卡片归 channels cards.ts,A-2)",
+      "files": [
+        "src/client/AttentionBanner.tsx",
+        "src/client/styles.ts"
+      ],
+      "states": [
+        {
+          "id": "banner-default",
+          "label": "横幅常态(警示驻留:warn 左 3px 竖条 + 浅 warn 边)",
+          "prototypeClass": ".attn-banner",
+          "expectedTokens": [
+            "--et-warn",
+            "--et-surface"
+          ],
+          "selectorHints": [
+            "attn",
+            "banner"
+          ],
+          "enforce": true,
+          "note": "G-1:一次仅驻留一张待答卡;答复前不可关闭"
+        },
+        {
+          "id": "banner-badge-warn",
+          "label": "『需要你拍板』徽标",
+          "prototypeClass": ".badge.badge-warn",
+          "expectedTokens": [
+            "--et-warn"
+          ],
+          "selectorHints": [
+            "badge",
+            "needDecision"
+          ],
+          "enforce": true
+        },
+        {
+          "id": "banner-badge-danger",
+          "label": "资金红线 R3 徽标",
+          "prototypeClass": ".badge.badge-danger",
+          "expectedTokens": [
+            "--et-danger",
+            "--et-danger-soft"
+          ],
+          "selectorHints": [
+            "tone=\"danger\"",
+            "riskLabel"
+          ],
+          "enforce": true
+        },
+        {
+          "id": "countdown-normal",
+          "label": "倒计时常态(warn 字 + 浅 warn 底胶囊)",
+          "prototypeClass": ".countdown",
+          "expectedTokens": [
+            "--et-warn"
+          ],
+          "selectorHints": [
+            "countdown"
+          ],
+          "enforce": true,
+          "note": "tabular-nums(数字对齐,frontend-style §3 表格行同款纪律)"
+        },
+        {
+          "id": "countdown-urgent",
+          "label": "倒计时 · 临近超时强调(warn 实底反白)",
+          "prototypeClass": ".countdown.is-urgent",
+          "expectedTokens": [
+            "--et-warn",
+            "--et-surface"
+          ],
+          "selectorHints": [
+            "urgent"
+          ],
+          "enforce": true,
+          "note": "反白字色 = --et-surface(原型口径;深浅主题下与底色对调由令牌翻转承担)"
+        },
+        {
+          "id": "countdown-escalated",
+          "label": "倒计时 · 已超时升级(danger 实底反白)",
+          "prototypeClass": ".countdown.is-escalated",
+          "expectedTokens": [
+            "--et-danger",
+            "--et-surface"
+          ],
+          "selectorHints": [
+            "escalated"
+          ],
+          "enforce": true,
+          "note": "超时升级只加通知人不撤销工单(A-3 超时升级提示;24 §7.2)"
+        },
+        {
+          "id": "escalate-note",
+          "label": "升级提示行(warn 文字 + dashed warn 分隔)",
+          "prototypeClass": ".attn-escalate",
+          "expectedTokens": [
+            "--et-warn"
+          ],
+          "selectorHints": [
+            "attn-escalate"
+          ],
+          "enforce": true
+        },
+        {
+          "id": "question",
+          "label": "单问主文案(A-4 一次只问一个)",
+          "prototypeClass": ".attn-q",
+          "expectedTokens": [
+            "--et-fg"
+          ],
+          "selectorHints": [
+            "attn-q",
+            "question"
+          ],
+          "enforce": true,
+          "note": "20px(text-lead)+600 字重 + font-display(原型口径)"
+        },
+        {
+          "id": "meta-line",
+          "label": "元信息行与上下文行(发起人/渠道/已等待/Mandate)",
+          "prototypeClass": ".attn-meta / .attn-context",
+          "expectedTokens": [
+            "--et-muted",
+            "--et-fg-2"
+          ],
+          "selectorHints": [
+            "attn-meta",
+            "attn-context"
+          ],
+          "enforce": true
+        },
+        {
+          "id": "action-approve",
+          "label": "批准主按钮(R3 双确认走两击确认)",
+          "prototypeClass": ".attn-actions .btn(实心)",
+          "expectedTokens": [
+            "--et-accent-fill",
+            "--et-accent-on",
+            "--et-accent-fill-hover"
+          ],
+          "selectorHints": [
+            "attention-action=\"approve\""
+          ],
+          "enforce": true,
+          "note": "A-3 双确认=两击确认(frontend-style §1-4),禁原生 confirm()"
+        },
+        {
+          "id": "action-supplement",
+          "label": "补充说明次按钮(描边)",
+          "prototypeClass": ".btn.btn-secondary",
+          "expectedTokens": [
+            "--et-surface",
+            "--et-border",
+            "--et-fg-2",
+            "--et-accent"
+          ],
+          "selectorHints": [
+            "supplement"
+          ],
+          "enforce": true
+        },
+        {
+          "id": "action-deny",
+          "label": "拒绝破坏性文字钮(需一句理由)",
+          "prototypeClass": ".btn.btn-danger-text",
+          "expectedTokens": [
+            "--et-danger",
+            "--et-danger-soft"
+          ],
+          "selectorHints": [
+            "attn-btn-danger"
+          ],
+          "enforce": true,
+          "note": "破坏性=低权重文字 + 两击确认,不用实底红(frontend-style §1-4)"
+        },
+        {
+          "id": "action-ghost",
+          "label": "回原对话 ghost 钮",
+          "prototypeClass": ".btn.btn-ghost",
+          "expectedTokens": [
+            "--et-muted",
+            "--et-accent",
+            "--et-accent-soft"
+          ],
+          "selectorHints": [
+            "ghost"
+          ],
+          "enforce": true
+        },
+        {
+          "id": "focus-ring",
+          "label": "动作区焦点光圈(:focus-visible 0 0 0 3px)",
+          "prototypeClass": ".btn:focus-visible(全局)",
+          "expectedTokens": [
+            "--et-focus-ring"
+          ],
+          "selectorHints": [
+            "focus-visible"
+          ],
+          "enforce": true,
+          "note": "frontend-style §1-4;styles.ts 全局 focus 规则已覆盖 button,新增锚点不得裁剪"
+        },
+        {
+          "id": "resolved",
+          "label": "已解决/消卡态(渠道卡片侧 success 描边;站内横幅答复即移除无驻留面)",
+          "prototypeClass": ".im-card.is-resolved(形态二)",
+          "expectedTokens": [
+            "--et-success"
+          ],
+          "selectorHints": [
+            "is-resolved"
+          ],
+          "enforce": false,
+          "note": "A-2:渠道卡片渲染归 channels cards.ts(含报告六态),workbench 站内横幅答复后移除;若站内实现含解决态回显则对齐 --et-success"
+        }
+      ]
+    }
+  ],
+  "crossCutting": [
+    {
+      "id": "bridge",
+      "label": "DSH 桥接跟随产品深浅主题",
+      "expect": "injectDesignTokens({ bridge: true })",
+      "files": [
+        "src/client/styles.ts"
+      ],
+      "pattern": "bridge: true",
+      "enforce": true,
+      "依据": "frontend-style §1-2;design-tokens §2(桥接必须落 body 层)"
+    },
+    {
+      "id": "focus-ring",
+      "label": "全局 :focus-visible 焦点光圈",
+      "expect": "CSS 含 --et-focus-ring",
+      "files": [
+        "src/client/styles.ts"
+      ],
+      "pattern": "--et-focus-ring",
+      "enforce": true,
+      "依据": "G-6;frontend-style §1-4"
+    },
+    {
+      "id": "reduced-motion",
+      "label": "prefers-reduced-motion 动效尊重",
+      "expect": "CSS 含 prefers-reduced-motion 降级",
+      "files": [
+        "src/client/styles.ts"
+      ],
+      "pattern": "prefers-reduced-motion",
+      "enforce": true,
+      "依据": "G-6;frontend-style §1-5"
+    },
+    {
+      "id": "breakpoints",
+      "label": "响应式断点 1100/760/640",
+      "expect": "CSS 三个断点全在(640 为移动端可用性承接)",
+      "files": [
+        "src/client/styles.ts"
+      ],
+      "patterns": [
+        "1100",
+        "760",
+        "640"
+      ],
+      "enforce": true,
+      "依据": "G-7;frontend-style §1-6"
+    },
+    {
+      "id": "state-color-with-text",
+      "label": "状态色必须配文字(S-2/徽标行;机器核对作半,人工截图核对照全)",
+      "expect": "状态点/徽标同现可读文字(由人工清单核对)",
+      "enforce": false,
+      "依据": "frontend-style §3 徽标行;38 号 §6.4 S-2"
+    }
+  ]
+}

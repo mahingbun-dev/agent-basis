@@ -6,16 +6,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ArmedDelete } from './confirm-button.tsx'
 import type { Translate } from './i18n.ts'
-
-async function postJson(path: string, body?: unknown): Promise<{ ok: boolean; value?: unknown; error?: { message?: string } | undefined }> {
-  const r = await fetch(path, {
-    method: 'POST', credentials: 'same-origin',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body ?? {}),
-  })
-  const payload = await r.json().catch(() => null) as { result?: { ok?: boolean; value?: unknown; error?: { message?: string } | undefined } } | null
-  return { ok: payload?.result?.ok === true, value: payload?.result?.value, error: payload?.result?.error ?? undefined }
-}
+import { postRpc } from './rpc.ts'
 
 interface MyPlugin {
   pluginId: string
@@ -24,6 +15,14 @@ interface MyPlugin {
   enabled: boolean
   promoted: boolean
   withinRoot: boolean
+  mounted: boolean
+  tools: string[]
+  mountError?: string
+}
+
+interface ScanItem {
+  dirName: string
+  dir: string
 }
 
 interface ApprovalItem {
@@ -54,13 +53,14 @@ export function MyPluginsTab(props: {
 export function MyPluginsSection(props: { readonly t: Translate }): React.JSX.Element {
   const { t } = props
   const [items, setItems] = useState<MyPlugin[]>([])
+  const [scanned, setScanned] = useState<ScanItem[] | undefined>(undefined)
   const [name, setName] = useState('')
   const [dirName, setDirName] = useState('')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
 
   const refresh = useCallback(async (): Promise<void> => {
-    const r = await postJson('/api/my-plugins/list')
+    const r = await postRpc('/api/my-plugins/list')
     if (r.ok && typeof r.value === 'object' && r.value !== null) {
       setItems((r.value as { items: MyPlugin[] }).items)
     }
@@ -71,10 +71,29 @@ export function MyPluginsSection(props: { readonly t: Translate }): React.JSX.El
     setBusy(true)
     setMessage('')
     try {
-      const r = await postJson(path, { request: body })
+      const r = await postRpc(path, { request: body })
       if (!r.ok) setMessage(r.error?.message ?? t('plugins.actionFailed'))
       else await refresh()
     } finally { setBusy(false) }
+  }
+
+  const scan = async (): Promise<void> => {
+    setBusy(true)
+    setMessage('')
+    try {
+      const r = await postRpc('/api/my-plugins/scan')
+      if (r.ok && typeof r.value === 'object' && r.value !== null) setScanned((r.value as { items: ScanItem[] }).items)
+      else setMessage(r.error?.message ?? t('plugins.actionFailed'))
+    } finally { setBusy(false) }
+  }
+
+  // 装载状态徽标文案(T6 装载器):已启用=已装载 n 个工具/装载失败(+原因);
+  // 已停用=未装载;转内置标记独立追加。
+  const mountMeta = (item: MyPlugin): string => {
+    if (!item.enabled) return t('plugins.disabled')
+    if (item.mountError !== undefined && item.mountError !== '') return `${t('plugins.mountFailed')}(${item.mountError})`
+    if (item.mounted) return t('plugins.mountedTools').replace('{count}', String(item.tools.length))
+    return t('plugins.enabled')
   }
 
   return <section className="ea-section" data-eterna-access-root data-eterna-my-plugins>
@@ -85,7 +104,9 @@ export function MyPluginsSection(props: { readonly t: Translate }): React.JSX.El
       {items.length === 0 && <p className="ea-hint">{t('plugins.empty')}</p>}
       {items.map(item => <div key={item.pluginId} className="ea-row" data-eterna-plugin-row={item.pluginId}>
         <span className="ea-row-title">{item.pluginId}</span>
-        <span className="ea-row-meta">{item.enabled ? t('plugins.enabled') : t('plugins.disabled')}{item.promoted ? ` · ${t('plugins.promoted')}` : ''}</span>
+        <span className="ea-row-meta" data-eterna-plugin-mount={item.enabled ? (item.mounted ? 'mounted' : item.mountError !== undefined && item.mountError !== '' ? 'failed' : 'recorded') : 'disabled'}>
+          {mountMeta(item)}{item.promoted ? ` · ${t('plugins.promoted')}` : ''}
+        </span>
         <span className="ea-row-actions">
           <button type="button" className="ea-btn ghost" disabled={busy}
             onClick={() => { void action(item.enabled ? '/api/my-plugins/disable' : '/api/my-plugins/enable', { pluginId: item.pluginId }) }}>
@@ -97,6 +118,21 @@ export function MyPluginsSection(props: { readonly t: Translate }): React.JSX.El
             {t('plugins.promote')}</button>}
         </span>
       </div>)}
+    </div>
+    {/* T6 发现性:扫描 plugins 根下未登记目录,一键导入(替代手填表单) */}
+    <div className="ea-row" style={{ marginTop: 10 }}>
+      <button type="button" className="ea-btn ghost" disabled={busy} data-eterna-plugin-scan
+        onClick={() => { void scan() }}>
+        {t('plugins.scan')}
+      </button>
+      {scanned !== undefined && (scanned.length === 0
+        ? <span className="ea-hint">{t('plugins.scanEmpty')}</span>
+        : <span className="ea-row-actions">
+          {scanned.map(entry => <button key={entry.dirName} type="button" className="ea-btn ghost" disabled={busy}
+            onClick={() => { void action('/api/my-plugins/install', { name: entry.dirName, dir: entry.dirName }) }}>
+            {`${t('plugins.install')}: ${entry.dirName}`}
+          </button>)}
+        </span>)}
     </div>
     <div className="ea-row" style={{ marginTop: 10 }}>
       <input className="ea-input" placeholder={t('plugins.namePlaceholder')} aria-label={t('plugins.nameLabel')}
@@ -118,8 +154,8 @@ export function NotificationsSection(props: { readonly t: Translate }): React.JS
 
   const refresh = useCallback(async (): Promise<void> => {
     const [notif, myApprovals] = await Promise.all([
-      postJson('/api/notifications'),
-      postJson('/api/approvals/mine'),
+      postRpc('/api/notifications'),
+      postRpc('/api/approvals/mine'),
     ])
     if (notif.ok && typeof notif.value === 'object' && notif.value !== null) {
       const v = notif.value as { items: NotificationItem[]; unread: number }
@@ -148,7 +184,7 @@ export function NotificationsSection(props: { readonly t: Translate }): React.JS
         </div>)}
       </div>
     </>}
-    {unread > 0 && <button type="button" className="ea-btn ghost" onClick={() => { void postJson('/api/notifications/read-all').then(() => refresh()) }}>
+    {unread > 0 && <button type="button" className="ea-btn ghost" onClick={() => { void postRpc('/api/notifications/read-all').then(() => refresh()) }}>
       {t('notifications.readAll')}</button>}
   </section>
 }
@@ -160,7 +196,7 @@ export function ApprovalQueueSection(props: { readonly t: Translate }): React.JS
   const [notes, setNotes] = useState<Record<number, string>>({})
 
   const refresh = useCallback(async (): Promise<void> => {
-    const r = await postJson('/api/approvals/pending')
+    const r = await postRpc('/api/approvals/pending')
     if (r.ok && typeof r.value === 'object' && r.value !== null) {
       setItems((r.value as { items: ApprovalItem[] }).items)
     }
@@ -170,7 +206,7 @@ export function ApprovalQueueSection(props: { readonly t: Translate }): React.JS
   const decide = async (id: number, approve: boolean, note: string): Promise<void> => {
     setBusy(true)
     try {
-      await postJson('/api/my-plugins/promote-decide', { request: { requestId: id, approve, note } })
+      await postRpc('/api/my-plugins/promote-decide', { request: { requestId: id, approve, note } })
       await refresh()
     } finally { setBusy(false) }
   }

@@ -1,0 +1,24 @@
+{
+  "chat": [
+    {
+      "choices": [
+        {
+          "message": {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              { "id": "call_golden_ws401", "type": "function", "function": { "name": "web_search", "arguments": "{\"query\":\"Tavily 接入形态\"}" } }
+            ]
+          },
+          "finish_reason": "tool_calls"
+        }
+      ]
+    },
+    {
+      "choices": [
+        { "message": { "role": "assistant", "content": "搜索兜底失败,如实告知降级。" }, "finish_reason": "stop" }
+      ]
+    }
+  ],
+  "tavilySearchError": { "status": 401, "body": { "detail": "Invalid API key" } }
+}

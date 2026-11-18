@@ -25,14 +25,14 @@
 > (maxBytes 数值参数,但该插件本体是提示词注入器)与 T3.1 meta 元提示词条目保留
 > ——它们拥有提示词语义。
 
-## 对账清单(15 条:preset 层 6 / 领域层 4 / 运行时层 3 / 元提示词层 2;2026-11-11 裁定后,M-M1 T5 增 runtime.memory.search-prefix)
+## 对账清单(16 条:preset 层 6 / 领域层 4 / 运行时层 4 / 元提示词层 2;2026-11-11 裁定后,M-M1 T5 增 runtime.memory.search-prefix;35 号 A24 增 runtime.tasks.active-tickets)
 
 | id | 层 | 型别 | 来源插件/包 | 定位(文件:行号) | 红线 | 生效半径(T2.2) |
 | --- | --- | --- | --- | --- | --- | --- |
-| preset.standard.persona | preset 层 | patch 值型 | @deepseek-ai/dsh-persona | profiles/eterna-web/cordis.patch.yml:300-312 | required(eterna.red-lines.standard) | immediate-new-session |
-| preset.standard.agent-instructions | preset 层 | patch 值型 | @deepseek-ai/dsh-agent-instructions | profiles/eterna-web/cordis.patch.yml:313 | exempt | immediate-new-session |
-| preset.standard.plan-mode.section | preset 层 | patch 值型 | @deepseek-ai/dsh-plan-mode | profiles/eterna-web/cordis.patch.yml:352-363 | exempt | immediate-new-session |
-| preset.standard.time-context | preset 层 | **不登记**(2026-11-11 用户裁定:工作室只展示拥有提示词文本的插件;原行锚点只读型行保留注记) | @deepseek-ai/dsh-time-context | profiles/eterna-web/cordis.patch.yml:314-315 | — | — |
+| preset.standard.persona | preset 层 | patch 值型 | @deepseek-ai/dsh-persona | profiles/eterna-web/cordis.patch.yml:304-316 | required(eterna.red-lines.standard) | immediate-new-session |
+| preset.standard.agent-instructions | preset 层 | patch 值型 | @deepseek-ai/dsh-agent-instructions | profiles/eterna-web/cordis.patch.yml:317 | exempt | immediate-new-session |
+| preset.standard.plan-mode.section | preset 层 | patch 值型 | @deepseek-ai/dsh-plan-mode | profiles/eterna-web/cordis.patch.yml:356-367 | exempt | immediate-new-session |
+| preset.standard.time-context | preset 层 | **不登记**(2026-11-11 用户裁定:工作室只展示拥有提示词文本的插件;原行锚点只读型行保留注记) | @deepseek-ai/dsh-time-context | profiles/eterna-web/cordis.patch.yml:318-319 | — | — |
 | preset.cordis.persona | preset 层 | patch 值型 | @deepseek-ai/dsh-persona | profiles/eterna-web/cordis.patch.yml:149-164 | required(eterna.red-lines.standard) | immediate-new-session |
 | preset.cordis.agent-instructions | preset 层 | patch 值型 | @deepseek-ai/dsh-agent-instructions | profiles/eterna-web/cordis.patch.yml:162 | exempt | immediate-new-session |
 | preset.cordis.plan-mode.section | preset 层 | patch 值型 | @deepseek-ai/dsh-plan-mode | profiles/eterna-web/cordis.patch.yml:196-207 | exempt | immediate-new-session |
@@ -43,7 +43,8 @@
 | domain.industrial-analysis.persona-md | 领域层 | patch 值型 | @industrial-analysis/pack | packs/industrial-analysis/persona.md:1-34 | required(eterna.red-lines.industrial-analysis) | not-composed-anywhere |
 | runtime.memory.index-section | 运行时层 | 运行时注入型 | @eterna/memory | packages/memory/src/tools.ts:45,51,198 packages/memory/src/index-builder.ts:87 | exempt | runtime-rebuilt |
 | runtime.memory.search-prefix | 运行时层 | 运行时注入型 | @eterna/memory | packages/memory/src/tools.ts:59,223,409 | exempt | runtime-rebuilt |
-| runtime.glue.memory-plugin | 运行时层 | 运行时注入型 | @eterna/glue | packages/glue/src/plugins/memory-plugin.ts:103,171 | exempt | runtime-rebuilt |
+| runtime.glue.memory-plugin | 运行时层 | 运行时注入型 | @eterna/glue | packages/glue/src/plugins/memory-plugin.ts:112,177 | exempt | runtime-rebuilt |
+| runtime.tasks.active-tickets | 运行时层 | 运行时注入型 | @eterna/tasks | packages/tasks/src/session/sections.ts:44,50 packages/tasks/src/plugin.ts:726 | exempt | runtime-rebuilt |
 | meta.studio.ai-polish | 元提示词层 | patch 值型 | @eterna/prompt-studio | packages/prompt-studio/ai/polish.md:1-24 | exempt | not-composed-anywhere |
 | meta.studio.ai-review | 元提示词层 | patch 值型 | @eterna/prompt-studio | packages/prompt-studio/ai/review.md:1-34 | exempt | not-composed-anywhere |
 
@@ -52,7 +53,7 @@
 ### preset 层(profiles/eterna-web/cordis.patch.yml,479 行)
 
 - **persona×2**:两预设 `plugins[id=persona].config.prefix` 均为 **`>-` 折叠块标量**
-  (`preset-cordis` :149-164 / `preset-standard` :300-312,T7 persona-patch 既有写回落点)。
+  (`preset-cordis` :149-164 / `preset-standard` :304-316,T7 persona-patch 既有写回落点)。
   2026-11-12 起两处基线同文且**自含三条红线锚点**(首句 + 全局红线段:预算不超支/
   不代付/比选中立,反引 466 字节)——写链路红线校验要求新文本带锚点,基线先行示范,
   用户在基线上小改即可通过;测试互证两块标量反引一致。
@@ -102,6 +103,13 @@
   `inject: { … systemPrompt: true … }`(memory-plugin.ts:103)经
   `attachMemory(dshHost(ctx), …)`(:171)把 memory:index section 挂进宿主,
   是同一 section 的组合层装载点。
+- **runtime.tasks.active-tickets**(35 号 A24 新增):tasks 包的 [active-tickets]
+  活跃工单清单 section——28 号 §6 主 Session 保底摘要(一行一单:id+标题截断+stage+
+  等谁;上限 20 行超出折叠 orchestrator_read 指引)。元数据
+  `ACTIVE_TICKETS_SECTION_NAME='eterna-tasks:active-tickets'`(sections.ts:44)、
+  `order 9050`(sections.ts:50)、tasks 插件 `systemPrompt.section(runtime.activeTickets)`
+  挂载点(plugin.ts:726,宿主 system-prompt 服务在场时注册);文本由 tasks 插件
+  pass 周期重算缓存(24a C6 拍板),无静态全文。挂 super 形态(base 不装载 tasks)。
 
 ### 元提示词层(T3.1 新增:工作室 AI 能力自管,计划书 §4「吃自己的狗粮」裁定)
 

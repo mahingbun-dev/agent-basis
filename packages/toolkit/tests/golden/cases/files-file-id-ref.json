@@ -1,0 +1,21 @@
+{
+  "id": "files-file-id-ref",
+  "capability": "files",
+  "scope": "deepseek",
+  "description": "files 声明(版面感知意图)→ 附件引用块(deepseek 面:document 块 file_id 引用形态;generic files 兜底产 search_step 步骤块,接入时按其块形态以 PR 说明调整 golden——36 号纪律:修改 golden 必须在 PR 说明)",
+  "params": {
+    "layoutAware": true
+  },
+  "expected": {
+    "status": "ok",
+    "blocks": [
+      {
+        "type": "attachment_ref",
+        "fileId": "file-api-9f2c",
+        "name": "选址手册.pdf"
+      }
+    ]
+  },
+  "contractVersion": 1,
+  "status": "draft"
+}

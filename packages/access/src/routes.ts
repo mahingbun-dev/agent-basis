@@ -18,7 +18,7 @@ import { SlidingWindow } from './ratelimit.ts'
 import { SessionService } from './session.ts'
 import {
   LastAdminError, NicknamePolicyError, OldPasswordMismatchError, SelfDeleteError, SuffixExhaustedError,
-  UserNotFoundError, UserStore, type UserRow,
+  UserNotFoundError, UserStore, type UserRow, type UserRole,
 } from './store.ts'
 
 export interface AccessDeps {
@@ -102,6 +102,9 @@ export function handleAccessRequest(deps: AccessDeps, req: AccessRequest): Acces
   if (req.pathname.startsWith('/access/api/avatar/') && method === 'GET') return handleAvatarGet(deps, req)
   if (req.pathname === '/access/api/users' && method === 'GET') return handleUserList(deps, req)
   if (req.pathname === '/access/api/users' && method === 'POST') return handleUserCreate(deps, req, ip)
+  if (req.pathname.startsWith('/access/api/users/') && req.pathname.endsWith('/role') && method === 'POST') {
+    return handleUserRoleSet(deps, req, ip)
+  }
   if (req.pathname.startsWith('/access/api/users/') && method === 'DELETE') return handleUserDelete(deps, req, ip)
   if (req.pathname === '/access/api/companion' && method === 'GET') return handleCompanionView(deps, req)
   if (req.pathname === '/access/api/companion/reset' && method === 'POST') return handleCompanionReset(deps, req, ip)
@@ -415,9 +418,9 @@ function handleUserCreate(deps: AccessDeps, req: AccessRequest, ip: string): Acc
   const password = typeof body?.password === 'string' ? body.password : ''
   const roleRaw = body?.role
   if (account === '' || password === '') return errorReply(400, '请输入账号与密码')
-  let role: 'admin' | 'user' = 'user'
+  let role: UserRole = 'user'
   if (roleRaw !== undefined && roleRaw !== null) {
-    if (roleRaw !== 'admin' && roleRaw !== 'user') return errorReply(400, '角色仅支持 admin/user')
+    if (roleRaw !== 'admin' && roleRaw !== 'approver' && roleRaw !== 'user') return errorReply(400, '角色仅支持 admin/approver/user')
     role = roleRaw
   }
   let created: UserRow
@@ -453,6 +456,41 @@ function handleUserDelete(deps: AccessDeps, req: AccessRequest, ip: string): Acc
   }
   deps.audit({ kind: 'access.user.delete', account: target.account, ip })
   return jsonResponse(200, { ok: true })
+}
+
+/**
+ * M-3(37 号 §3)角色变更端点(G2-C5:分配/收回审批人角色)。
+ * - admin-only(沿 handleUserCreate 判定);
+ * - body 值域仅 {'approver','user'}——G2-C5 只拍板「分配/收回审批人」;admin 角色在线
+ *   变更无拍板依据不扩(§7 缺口 7),目标现为 admin 的一并拒(变更仍走建号/删号);
+ * - actor==target 返 400:§7 缺口 10 自设护栏(沿 SelfDeleteError 自操作护栏精神的
+ *   类推,设计文档之外新增的限制性行为,方向 fail-closed,去留待评审——放开则删此判);
+ * - 审计 kind 'access.user.role':account=操作者,detail={target,from,to}——
+ *   actor=account 字段、时间=audit 侧时间戳、对象=detail.target(沿 access.user.add 先例);
+ * - mux 即时生效由 bindings 回调动态读角色承担(37 号 M-2;TS-37-1 已核实上游无缓存)。
+ */
+function handleUserRoleSet(deps: AccessDeps, req: AccessRequest, ip: string): AccessReply {
+  const admin = requireUser(deps, req)
+  if (admin === undefined) return errorReply(401, '未登录')
+  if (admin.role !== 'admin') return errorReply(403, '需要管理员权限')
+  const id = Number(req.pathname.slice('/access/api/users/'.length, req.pathname.length - '/role'.length))
+  if (!Number.isInteger(id) || id <= 0) return errorReply(404, 'not found')
+  const body = parseJsonBody(req.body)
+  const roleRaw = body?.role
+  if (roleRaw !== 'approver' && roleRaw !== 'user') return errorReply(400, '角色仅支持 approver/user')
+  const target = deps.store.getUserById(id)
+  if (target === undefined) return errorReply(404, '用户不存在')
+  if (target.id === admin.id) return errorReply(400, '不能修改自己的角色')
+  if (target.role === 'admin') return errorReply(400, '管理员角色不可在线变更')
+  deps.store.setUserRole(id, roleRaw)
+  deps.audit({
+    kind: 'access.user.role',
+    account: admin.account,
+    ip,
+    detail: { target: target.account, from: target.role, to: roleRaw },
+  })
+  const updated = deps.store.getUserById(id) ?? target
+  return jsonResponse(200, { ok: true, user: publicView(updated) })
 }
 
 function storeErrorToReply(error: unknown): AccessReply {

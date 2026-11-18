@@ -1,0 +1,29 @@
+{
+  "name": "@eterna/toolkit",
+  "description": "能力契约层(五能力/版本化/禁入清单/命名规范) + 规范化块协议(四类块/提供方字段泄漏防护) + 工具路由器(部署级矩阵/三段式裁决含跨供应商借用/参数翻译) + generic 兜底适配器(OpenAI 兼容 function calling 客户端循环[R3 八条裁剪]、知识库优先→Tavily 搜索兜底、/extract 读网、files 混合兜底、egress 联动)——体感一致靠协议收口(29 号 §1 五层;36 号 M-K1+M-K2 generic 线)。",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./plugin": "./src/plugin.ts",
+    "./contract": "./src/contract/index.ts",
+    "./blocks": "./src/blocks/index.ts",
+    "./router": "./src/router/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "typecheck": "../../node_modules/.bin/tsc --noEmit",
+    "test": "vitest run",
+    "verify": "../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ../../node_modules/.bin/tsc --noEmit && ../../node_modules/.bin/vitest run"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "catalog:"
+  },
+  "devDependencies": {
+    "@eterna/governance": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

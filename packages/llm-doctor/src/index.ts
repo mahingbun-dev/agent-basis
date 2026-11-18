@@ -6,6 +6,10 @@
  *   (Loader 热生效,设置页经 settings/document-updated 推送自动刷新显示修正值);
  * ②逐模型连通性测试:SRC 端点 llmDoctor/probe 按协议真发一次极小补全(与 agent
  *   会话同 wire 路径),返回延迟与回复预览/错误原文。
+ * ③逐能力路径探活(36 号 K4.2;29 §3 doctor 行):SRC 端点 llmDoctor/probe-capability
+ *   对矩阵路径发最小验证请求(generic=MIMO/deepseek/glm/Tavily 各形态见
+ *   src/capability-probe.ts 头注),borrow 路径探活出借方=整条借用链(29 §2.4);
+ *   结论结构化输出供 toolkit 矩阵 UI 消费(29 §6);不自动触发(触发时机=O-11 未拍板)。
  *
  * 触发时机:boot 后延迟首检(不拖启动)+ 每次 volatile-update 防抖复检;改写本身
  * 触发的后续 volatile-update 复检时当前路径已存在 → 无动作,天然幂等(另有
@@ -25,6 +29,17 @@ import {
   normalizeConfig, pingModel,
   type AutoFixRecord, type FetchLike, type PingResult, type ProviderRouteConfig, type RouteHealth,
 } from './doctor.ts'
+import { probeCapability } from './capability-probe.ts'
+import type {
+  CapabilityProbeInput, CapabilityProbePath, CapabilityProbeResult,
+} from './capability-probe.ts'
+
+// K4.2 纯判定层重导出(toolkit 矩阵 UI / 部署脚本消费面;36 号 §4 K4.2)。
+export { probeCapability, joinEndpoint } from './capability-probe.ts'
+export type {
+  CapabilityProbeDeps, CapabilityProbeInput, CapabilityProbePath,
+  CapabilityProbeRequestShape, CapabilityProbeResult, CapabilityProbeVerdict, GlmStreamBackflowFinding,
+} from './capability-probe.ts'
 
 /** Typert 服务名(RPC namespace)。 */
 export const LLM_DOCTOR_SERVICE_ID = 'llmDoctor'
@@ -36,6 +51,7 @@ export const PI_AI_ENTRY_ID = 'llm-pi-ai'
 export const ENDPOINTS = {
   health: `${LLM_DOCTOR_SERVICE_ID}/health`,
   probe: `${LLM_DOCTOR_SERVICE_ID}/probe`,
+  probeCapability: `${LLM_DOCTOR_SERVICE_ID}/probe-capability`,
 } as const
 
 /** configEditor 消费面(结构子集;测试注入同构假体)。 */
@@ -82,6 +98,16 @@ export interface ProbeInput {
   readonly provider?: string
   /** 模型 id(wire model id)。 */
   readonly model?: string
+}
+
+/** probe-capability 端点入参(K4.2 逐能力探活;path=toolkit 矩阵路径,结构子集直传)。 */
+export interface ProbeCapabilityEndpointInput {
+  /** 矩阵路径(toolkit RouteDecision 的结构子集;capability-probe.ts CapabilityProbePath)。 */
+  readonly path?: CapabilityProbePath
+  /** generic 兜底承载路由键(缺省 'generic')。 */
+  readonly genericRouteKey?: string
+  /** Tavily 兜底配置(兜底路径验证其配置;29 §3)。 */
+  readonly tavily?: { readonly apiKeyEnv?: string }
 }
 
 /** 手工施加 @Remote 装饰器(对齐 packages/prompt-studio/src/index.ts 同款函数)。 */
@@ -263,11 +289,45 @@ export class LlmDoctorGateway extends TypertRemoteService {
     }
     return pingModel(route, model, this.resolveApiKey(route.apiKeyEnv), this.fetchImpl)
   }
+
+  /**
+   * SRC 端点:llmDoctor/probe-capability——逐能力路径探活(36 号 K4.2;29 §3 doctor 行)。
+   * wire 路由取自承载行 config(与 probeModel 同源);path 由调用方(toolkit 矩阵 UI)传入;
+   * borrow 路径探活出借方路由=整条借用链(29 §2.4)。探活真调消耗配额(触发时机=O-11 未拍板,
+   * 本端点只被动响应调用,不自动触发)。
+   */
+  async probeCapabilityPath(input?: ProbeCapabilityEndpointInput): Promise<CapabilityProbeResult> {
+    const path = input?.path
+    if (path === undefined || typeof path.capability !== 'string' || path.capability === '') {
+      return {
+        capability: '', route: 'unavailable', adapter: 'none', verdict: 'unprobed', latencyMs: 0,
+        detail: 'probe-capability 需要 input.path(矩阵路径,toolkit RouteDecision 结构子集)',
+      }
+    }
+    const editor = resolveConfigEditor(this.doctorCtx)
+    if (editor === undefined) {
+      return { capability: path.capability, route: path.route, adapter: path.adapter, verdict: 'unprobed', latencyMs: 0, detail: 'configEditor 服务缺席' }
+    }
+    const rows = readRows(editor)
+    const row = rows.find(candidate => candidate.entry.options.id === this.watchedEntryId)
+    if (row === undefined) {
+      return { capability: path.capability, route: path.route, adapter: path.adapter, verdict: 'unprobed', latencyMs: 0, detail: `未找到承载行 ${this.watchedEntryId}` }
+    }
+    const routes = (row.override['providers'] as Record<string, ProviderRouteConfig> | undefined) ?? {}
+    const probeInput: CapabilityProbeInput = {
+      path,
+      routes,
+      ...(input?.genericRouteKey !== undefined ? { genericRouteKey: input.genericRouteKey } : {}),
+      ...(input?.tavily !== undefined ? { tavily: input.tavily } : {}),
+    }
+    return probeCapability(probeInput, { fetchImpl: this.fetchImpl, resolveApiKey: this.resolveApiKey })
+  }
 }
 
 // 手工施加 @Remote(端点名 = kebab-case;方法名保持驼峰)
 applyRemoteMarker(LlmDoctorGateway.prototype, 'report', 'health')
 applyRemoteMarker(LlmDoctorGateway.prototype, 'probeModel', 'probe')
+applyRemoteMarker(LlmDoctorGateway.prototype, 'probeCapabilityPath', 'probe-capability')
 
 export interface LlmDoctorPluginConfig {
   /** boot 后首检延迟(毫秒;默认 2000,不拖启动)。 */
