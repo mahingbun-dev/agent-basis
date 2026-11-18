@@ -16,6 +16,7 @@ import { join, resolve } from 'node:path'
 import { withinRoot } from './within-root.ts'
 import { enrichModelCatalog, visionIndexFromConfigEditor } from './model-catalog.ts'
 import type { CatalogValueShape } from './model-catalog.ts'
+import { decayBias } from './thinking-score.ts'
 import { registerUserPluginRoutes } from './user-plugins.ts'
 import type { UserPluginLoader } from './user-plugins.ts'
 import { ApprovalFlow, ensureApprovalSchema } from './approvals.ts'
@@ -438,13 +439,26 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     const request0 = args.request as Record<string, unknown> | undefined
     const sessionId = firstString(request0, 'sessionId') ?? firstString(args, 'sessionId')
     if (sessionId === undefined || deps.store.sessionOwner(sessionId) !== ctx.userId) {
+      tenantAudit(deps, 'thinking.auto.denied', ctx.account, { reason: 'owner' })
       return deniedFrame(rpcId, '会话不存在或不属于你')
     }
+    // enabled 键存在即必须可解释为布尔:近似拼写、''、0、'false' 一律拒绝,不得静默
+    // 落成读支(调用方会误以为写入成功);键缺席才是读。
+    const enabledKey = keyKindOf(request0, 'enabled') ?? keyKindOf(args, 'enabled')
+    if (enabledKey === 'near') {
+      tenantAudit(deps, 'thinking.auto.denied', ctx.account, { sessionId, reason: 'enabled' })
+      return deniedFrame(rpcId, 'enabled 无效')
+    }
     const enabledArg = firstBoolean(request0, 'enabled') ?? firstBoolean(args, 'enabled')
+    if (enabledKey === 'exact' && enabledArg === undefined) {
+      tenantAudit(deps, 'thinking.auto.denied', ctx.account, { sessionId, reason: 'enabled' })
+      return deniedFrame(rpcId, 'enabled 无效')
+    }
     if (enabledArg === undefined) {
       return okFrame(rpcId, { enabled: deps.store.thinkingAutoOf(sessionId) })
     }
     if (!deps.store.setThinkingAuto(sessionId, enabledArg)) {
+      tenantAudit(deps, 'thinking.auto.denied', ctx.account, { sessionId, reason: 'owner' })
       return deniedFrame(rpcId, '会话不存在或不属于你')
     }
     tenantAudit(deps, 'thinking.auto.set', ctx.account, { sessionId, enabled: enabledArg })
@@ -452,23 +466,77 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
   })
 
   // ── session/thinkingFeedback 专路(V2,2026-11-18):显式纠正「想多了/想少了」──
-  // 写 {request:{sessionId, messageId, direction:'less'|'more'}} → {bias, effectiveBias}。
-  // 语义:会话级偏置 ±0.2、同向累计/反向抵消、钳位 ±0.5,读时按 24h 半衰;
-  // 归属守卫同 thinkingAuto(会话必须存在且属于当前用户);messageId 仅作审计锚点。
+  // 读 {request:{sessionId}} → {bias, effectiveBias}(bias=落库原值,effectiveBias=按 24h
+  //   半衰减值;两者读侧不等,无偏置/已清零 ⇒ {0,0})。
+  // 写 {request:{sessionId, messageId?, direction:'less'|'more'}} → 叠加 ±0.2 后同形。
+  // 清 {request:{sessionId, messageId?, direction:'reset'}} → 清零后 {0,0}。
+  // 语义:会话级偏置、同向累计/反向抵消、钳位 ±0.5;归属守卫同 thinkingAuto(会话必须
+  // 存在且属于当前用户,守卫在方向分流之前);messageId 仅作审计锚点(须为 ≤128 字符的
+  // 字符串;存在性不做校验——access 无消息访问面,越权由会话归属挡住)。
+  // 审计:写/清各一条 thinking.feedback;所有拒绝(归属/方向/锚点)记 .denied + reason。
+  // 读支不记(菜单每次打开都读,避免审计流被读刷屏)。
   register('/api/session/thinkingFeedback', (rpcId, args, ctx) => {
     const request0 = args.request as Record<string, unknown> | undefined
     const sessionId = firstString(request0, 'sessionId') ?? firstString(args, 'sessionId')
     if (sessionId === undefined || deps.store.sessionOwner(sessionId) !== ctx.userId) {
+      tenantAudit(deps, 'thinking.feedback.denied', ctx.account, { reason: 'owner' })
       return deniedFrame(rpcId, '会话不存在或不属于你')
     }
-    const direction = firstString(request0, 'direction') ?? firstString(args, 'direction')
-    if (direction !== 'less' && direction !== 'more') {
+    const now = Date.now()
+    // 分流按**原始键存在性**并识别近似拼写:firstString 把 ''/非字符串一律折成
+    // undefined,按返回值判会把 direction:''/数字/拼错键静默解释成读请求。
+    const directionKey = keyKindOf(request0, 'direction') ?? keyKindOf(args, 'direction')
+    if (directionKey === 'near') {
+      tenantAudit(deps, 'thinking.feedback.denied', ctx.account, { sessionId, reason: 'direction' })
       return deniedFrame(rpcId, 'direction 无效')
     }
-    const messageId = firstString(request0, 'messageId') ?? firstString(args, 'messageId') ?? ''
-    const now = Date.now()
+    if (directionKey === undefined) {
+      const raw = deps.store.thinkingBiasOf(sessionId)
+      if (raw === undefined) return okFrame(rpcId, { bias: 0, effectiveBias: 0 })
+      return okFrame(rpcId, { bias: raw.bias, effectiveBias: decayBias(raw.bias, raw.updatedAt, now) })
+    }
+    const direction = firstString(request0, 'direction') ?? firstString(args, 'direction')
+    if (direction !== 'less' && direction !== 'more' && direction !== 'reset') {
+      tenantAudit(deps, 'thinking.feedback.denied', ctx.account, { sessionId, reason: 'direction' })
+      return deniedFrame(rpcId, 'direction 无效')
+    }
+    // messageId 仅作审计锚点:限长防放大审计日志;非字符串同样拒绝(不静默丢成 '')。
+    const messageKey = keyKindOf(request0, 'messageId') ?? keyKindOf(args, 'messageId')
+    const messageRaw = firstString(request0, 'messageId') ?? firstString(args, 'messageId')
+    if (messageKey !== undefined
+      && (messageRaw === undefined || messageRaw.length > MESSAGE_ID_MAX)) {
+      tenantAudit(deps, 'thinking.feedback.denied', ctx.account, { sessionId, reason: 'messageId' })
+      return deniedFrame(rpcId, 'messageId 无效')
+    }
+    const messageId = messageRaw ?? ''
+    if (direction === 'reset') {
+      // 写前只读一次留痕:清零后 thinkingBiasOf 即 undefined。审计同时保留**原始落库值**
+      // 与衰减后有效值——只记衰减值会在死区里显示 0,事后无法复盘清零前的真实偏置。
+      const previous = deps.store.thinkingBiasOf(sessionId)
+      const previousEffective = previous === undefined
+        ? 0
+        : decayBias(previous.bias, previous.updatedAt, now)
+      if (!deps.store.resetThinkingBias(sessionId, now)) {
+        tenantAudit(deps, 'thinking.feedback.denied', ctx.account, { sessionId, reason: 'owner' })
+        return deniedFrame(rpcId, '会话不存在或不属于你')
+      }
+      tenantAudit(deps, 'thinking.feedback', ctx.account, {
+        sessionId,
+        messageId,
+        direction,
+        bias: 0,
+        effectiveBias: 0,
+        previousBias: previous === undefined ? 0 : previous.bias,
+        previousUpdatedAt: previous === undefined ? 0 : previous.updatedAt,
+        previousBiasEffective: previousEffective,
+      })
+      return okFrame(rpcId, { bias: 0, effectiveBias: 0 })
+    }
     const written = deps.store.addThinkingBias(sessionId, direction === 'less' ? -0.2 : 0.2, now)
-    if (written === undefined) return deniedFrame(rpcId, '会话不存在或不属于你')
+    if (written === undefined) {
+      tenantAudit(deps, 'thinking.feedback.denied', ctx.account, { sessionId, reason: 'owner' })
+      return deniedFrame(rpcId, '会话不存在或不属于你')
+    }
     // 落库时已把存量衰减到 now ⇒ effectiveBias=落库值(读侧再衰减,衰减函数同源)
     tenantAudit(deps, 'thinking.feedback', ctx.account, {
       sessionId, messageId, direction, bias: written.bias, effectiveBias: written.bias,
@@ -748,6 +816,29 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
 function firstString(source: Record<string, unknown> | undefined, key: string): string | undefined {
   const value = source?.[key]
   return typeof value === 'string' && value !== '' ? value : undefined
+}
+
+/** 原始键存在性(含值为 undefined):分流判定专用——firstString 会折掉 ''/非字符串。 */
+function hasKey(source: Record<string, unknown> | undefined, key: string): boolean {
+  return source !== undefined && Object.prototype.hasOwnProperty.call(source, key)
+}
+
+/** 审计锚点 messageId 的字符上限(防伪造/超长值放大审计日志)。 */
+const MESSAGE_ID_MAX = 128
+
+/**
+ * 键的三分判定:exact=精确键存在;near=存在前缀相近的拼错键(如 directon/enabeld);
+ * undefined=完全没提及。分流前先跑本判定,拼错键不得静默落进读支。
+ */
+function keyKindOf(source: Record<string, unknown> | undefined, key: string): 'exact' | 'near' | undefined {
+  if (source === undefined) return undefined
+  if (hasKey(source, key)) return 'exact'
+  const prefix = key.slice(0, 3).toLowerCase()
+  for (const candidate of Object.keys(source)) {
+    if (candidate === 'request') continue
+    if (candidate.toLowerCase().startsWith(prefix)) return 'near'
+  }
+  return undefined
 }
 
 function firstNumber(source: Record<string, unknown> | undefined, key: string): number | undefined {

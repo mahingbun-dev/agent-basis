@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { installThinkingAuto, type InboxInsertedPayload } from '../src/thinking-auto.ts'
+import { decayBias } from '../src/thinking-score.ts'
 import { UserStore } from '../src/store.ts'
 import type { AccessAuditEvent } from '../src/audit.ts'
 
@@ -312,6 +313,24 @@ describe('thinking-auto store 开关与迁移', () => {
       // 未知会话不隐式建行
       expect(store.addThinkingBias('s-ghost', 0.2, now)).toBeUndefined()
       expect(store.thinkingBiasOf('s-ghost')).toBeUndefined()
+      // reset:清零两列(读侧回 undefined);命中行语义——对已清零行/从未反馈的存量行
+      // 重复 reset 仍 true(SQLite 同值 UPDATE 也计 changes),不是「原本非零」
+      expect(store.resetThinkingBias('s-bias', now)).toBe(true)
+      expect(store.thinkingBiasOf('s-bias')).toBeUndefined()
+      const raw = new DatabaseSync(dbPath)
+      try {
+        const columns = raw.prepare('SELECT thinking_bias, thinking_bias_at FROM sessions WHERE session_id = ?')
+          .get('s-bias') as { thinking_bias: number; thinking_bias_at: number }
+        expect(columns).toEqual({ thinking_bias: 0, thinking_bias_at: 0 })
+      } finally {
+        raw.close()
+      }
+      expect(store.resetThinkingBias('s-bias', now)).toBe(true)
+      expect(store.resetThinkingBias('s-new-reset', now)).toBe(false) // 未知会话=false 且不建行
+      expect(store.sessionOwner('s-new-reset')).toBeUndefined()
+      // 死区:reset 后 decayBias 视角为 0;久远偏置(>5 天)衰减到死区同样为 0
+      expect(decayBias(0, now, now)).toBe(0)
+      expect(decayBias(0.2, now, now + 8 * day)).toBe(0)
     } finally {
       store.close()
     }

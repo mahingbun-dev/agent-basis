@@ -505,6 +505,21 @@ export class UserStore {
     return { bias: next }
   }
 
+  /**
+   * 清零该会话的反馈偏置(`thinking_bias = 0`、`thinking_bias_at = 0`;后者归零让
+   * `thinkingBiasOf` 回到 undefined=从未反馈)。纯 UPDATE+WHERE,**不 INSERT**——
+   * 未知会话不建行,返回是否命中行。
+   * `_now` 按契约不落库(at 必须为 0),保留第二参只为与 `addThinkingBias` 同形,
+   * 调用方用同一时刻做审计时间戳。
+   * boolean 语义=「命中行」而非「原本非零」:SQLite 把同值 UPDATE 也计入 changes,
+   * 故对已清零会话重复 reset 仍返回 true(幂等)。
+   */
+  resetThinkingBias(sessionId: string, _now: number): boolean {
+    const r = this.db.prepare('UPDATE sessions SET thinking_bias = 0, thinking_bias_at = 0 WHERE session_id = ?')
+      .run(sessionId)
+    return Number(r.changes) > 0
+  }
+
   // ── P4-T6(2026-11-11):双层插件记账(个人层激活清单;装载=进程内按行启用) ──
 
   /** 个人插件记账行。 */
