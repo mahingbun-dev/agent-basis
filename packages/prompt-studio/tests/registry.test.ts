@@ -96,7 +96,7 @@ describe('T1.3 ①对账——patch 值型(preset 层,profiles/eterna-web/cordis
 
   it('结构定位:preset 行内经 pluginPath 嵌套(planning 组 → plan-mode)命中唯一键行', () => {
     const lines = readRepoFile(WEB_PATCH).split('\n')
-    for (const [rowId, expectedLine] of [['preset-standard', 362], ['preset-cordis', 196]] as const) {
+    for (const [rowId, expectedLine] of [['preset-standard', 366], ['preset-cordis', 196]] as const) {
       const located = locateYamlConfigKey(
         { file: WEB_PATCH, rowId, pluginPath: ['planning', 'plan-mode'], configKey: 'section' },
         lines,
@@ -154,7 +154,7 @@ describe('T1.3 ①对账——运行时注入型(memory/glue 的 section 元数�
   })
 
   it('写守卫:运行时注入型拒写并明示无 patch 落点(自管改造归 T2.6)', () => {
-    for (const id of ['runtime.memory.index-section', 'runtime.memory.search-prefix', 'runtime.glue.memory-plugin']) {
+    for (const id of ['runtime.memory.index-section', 'runtime.memory.search-prefix', 'runtime.glue.memory-plugin', 'runtime.tasks.active-tickets']) {
       expect(() => { ensureEntryWritable(entry(id)) }, id).toThrow('运行时注入型')
     }
   })
@@ -188,12 +188,12 @@ describe('T1.3 ②条目模型完整性(每条 {id,层,来源,定位,当前值,�
     }
   })
 
-  it('存量规模与分布:preset×6 / 领域×4 / 运行时×3 / 元提示词×2(T3.1+M-M1 T5);patch 值型×12 / 运行时注入型×3(2026-11-11 裁定后 14 条,M-M1 T5 增召回前缀)', () => {
-    expect(PROMPT_REGISTRY_ENTRIES).toHaveLength(15)
+  it('存量规模与分布:preset×6 / 领域×4 / 运行时×4 / 元提示词×2(T3.1+M-M1 T5;35 号 A24 增 runtime.tasks.active-tickets);patch 值型×12 / 运行时注入型×4', () => {
+    expect(PROMPT_REGISTRY_ENTRIES).toHaveLength(16)
     const byLayer = countBy(PROMPT_REGISTRY_ENTRIES, e => LAYER_LABELS[e.layer])
-    expect(byLayer).toEqual({ 'preset 层': 6, '领域层': 4, '运行时层': 3, '元提示词层': 2 })
+    expect(byLayer).toEqual({ 'preset 层': 6, '领域层': 4, '运行时层': 4, '元提示词层': 2 })
     const byKind = countBy(PROMPT_REGISTRY_ENTRIES, e => ENTRY_KIND_LABELS[e.kind])
-    expect(byKind).toEqual({ 'patch 值型': 12, '运行时注入型': 3 })
+    expect(byKind).toEqual({ 'patch 值型': 12, '运行时注入型': 4 })
   })
 
   it('每型至少 1 条被真文件钉住:全部条目锚点对真文件核对通过(分型不缺判据)', () => {

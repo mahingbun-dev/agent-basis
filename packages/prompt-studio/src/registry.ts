@@ -172,7 +172,7 @@ export const WEB_PATCH = 'profiles/eterna-web/cordis.patch.yml'
 export const DEFAULT_ENTRY_ID = 'preset.standard.persona'
 
 /** profile/pack 升级合并的通用风险(计划书 §3「升级可能覆盖」+ §7 风险表)。 */
-const UPGRADE_OVERWRITE_RISK = 'profile/pack 升级合并可能覆盖本地编辑(版本库可回滚兜底)'
+const UPGRADE_OVERWRITE_RISK = 'profile/pack 升级合并可能覆盖本地编辑——preset 层 6 条托管键自 2026-11-18 起由 entrypoint 渲染门控按基线快照自动移植(docker/profile/migrate-prompt-edits.mjs);其余条目仍以版本库可回滚兜底'
 
 /**
  * 全部存量条目(15 条:preset×6、domain×4、runtime×3、meta×2——meta 层为
@@ -196,8 +196,8 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-persona',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['persona'], configKey: 'prefix' },
     anchors: [
-      { file: WEB_PATCH, line: 310, contains: 'prefix: >-' },
-      { file: WEB_PATCH, line: 311, contains: 'You are a coding agent powered by the {{model}} model.' },
+      { file: WEB_PATCH, line: 314, contains: 'prefix: >-' },
+      { file: WEB_PATCH, line: 315, contains: 'You are a coding agent powered by the {{model}} model.' },
     ],
     note: '默认预设 persona 前缀(块标量 >-,2026-11-12 起基线自含三红线锚点):preset-standard 行 plugins[id=persona].config.prefix。',
     description: '所有标准会话系统提示的第一段:告诉模型它是谁、用哪个模型,并钉住三条全局红线(预算不超支/不代付/比选中立)。改动会影响之后每一个新会话的开场人设。',
@@ -217,7 +217,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-agent-instructions',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['agent-instructions'], configKey: 'maxBytes' },
     anchors: [
-      { file: WEB_PATCH, line: 323, contains: 'maxBytes: 65536' },
+      { file: WEB_PATCH, line: 327, contains: 'maxBytes: 65536' },
     ],
     note: '指令段容量上限(数值配置,非提示词文本):每条指令链(用户级/项目级 AGENTS.md)的渲染字节上限。',
     description: '指令链(用户级/项目级 AGENTS.md 等)渲染进系统提示时的字节容量上限(数值参数,非提示词文本):调小会截断长指令链,调大放宽。只影响 standard 预设会话。',
@@ -236,10 +236,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-plan-mode',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['planning', 'plan-mode'], configKey: 'section' },
     anchors: [
-      { file: WEB_PATCH, line: 362, contains: 'section: |' },
-      { file: WEB_PATCH, line: 363, contains: 'You are in plan mode.' },
+      { file: WEB_PATCH, line: 366, contains: 'section: |' },
+      { file: WEB_PATCH, line: 367, contains: 'You are in plan mode.' },
     ],
-    note: 'plan 模式整段系统提示(| 多段字面块,行 362 起):planning 组内 plan-mode 插件的 config.section。',
+    note: 'plan 模式整段系统提示(| 多段字面块,行 366 起):planning 组内 plan-mode 插件的 config.section。',
     description: 'plan 模式激活时注入的整段系统提示:规定模型只做只读探索与计划制定,必须经 exit_plan_mode 提交计划并获用户明确批准才能进入实现;plan 会话开场即带上。',
     risks: [UPGRADE_OVERWRITE_RISK, '上游 @deepseek-ai/dsh-plan-mode 升级改写该段时,本地编辑需与新版重新对齐(计划书 §3 风险标注)。'],
     redLine: 'exempt',
@@ -391,7 +391,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
       note: '整文件基准:仓库内未见运行时注入代码,该文件当前不参与任何宿主组装(写后 dump-config 实测不含新文);写回/回滚闭环实测 t7-e2e 15.36I-15.39I。',
     },
   },
-  // ── 运行时层:ctx.systemPrompt.section 动态注入(现存使用者 memory/glue)────
+  // ── 运行时层:ctx.systemPrompt.section 动态注入(现存使用者 memory/glue/tasks)────
   {
     id: 'runtime.memory.index-section',
     layer: 'runtime',
@@ -439,8 +439,8 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     kind: 'runtime-injection',
     source: '@eterna/glue',
     anchors: [
-      { file: 'packages/glue/src/plugins/memory-plugin.ts', line: 107, contains: 'systemPrompt: true' },
-      { file: 'packages/glue/src/plugins/memory-plugin.ts', line: 309, contains: 'attachMemory(dshHost(ctx)' },
+      { file: 'packages/glue/src/plugins/memory-plugin.ts', line: 116, contains: 'systemPrompt: true' },
+      { file: 'packages/glue/src/plugins/memory-plugin.ts', line: 318, contains: 'attachMemory(dshHost(ctx)' },
     ],
     note: '运行时注入型:glue 的 eterna-memory 插件(inject systemPrompt)经 attachMemory/dshHost 把 memory:index section 挂进宿主——同一 section 的装载层。',
     description: '记忆插件的 systemPrompt 挂载点(运行时注入):@eterna/glue 把记忆索引 section 挂进宿主的装配位声明;无静态文本,不可编辑。',
@@ -495,6 +495,27 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     effect: {
       radius: 'not-composed-anywhere',
       note: '不进入任何会话的系统提示组装;AI 审核调用时现读注册表当前值,改后经 R3 审批写回,下次审核调用即用新文。',
+    },
+  },
+  // ── 运行时层第 4 条(35 号 A24;tasks 包首个运行时注入型条目)────────────────────
+  {
+    id: 'runtime.tasks.active-tickets',
+    layer: 'runtime',
+    kind: 'runtime-injection',
+    source: '@eterna/tasks',
+    anchors: [
+      { file: 'packages/tasks/src/session/sections.ts', line: 44, contains: "ACTIVE_TICKETS_SECTION_NAME = 'eterna-tasks:active-tickets'" },
+      { file: 'packages/tasks/src/session/sections.ts', line: 50, contains: 'ACTIVE_TICKETS_SECTION_ORDER = 9050' },
+      { file: 'packages/tasks/src/plugin.ts', line: 726, contains: 'systemPrompt.section(runtime.activeTickets)' },
+    ],
+    note: '运行时注入型:活跃工单清单 section(eterna-tasks:active-tickets,order 9050)——28 号 §6 主 Session 保底摘要,一行一单(id+标题截断+stage+等谁),上限 20 行超出折叠 orchestrator_read 指引;文本由 tasks 插件 pass 周期重算(24a C6 拍板),无静态全文,插件的 systemPrompt 注册面在 plugin.ts(宿主 system-prompt 服务在场时注册)。',
+    description: '活跃工单清单段(运行时注入):主 Session 系统提示常驻「当前有哪些活、各等谁」的一行一单清单——压缩无论怎么摘要它永远在场(tasks 压缩互补件);清单是提示不是协议,pass 周期秒级刷新;无静态全文,不可编辑。',
+    risks: ['清单文本随运行时状态(活跃工单)动态变化;挂 super 形态 tasks 插件,base 形态不装载(31 号双形态)。', '「等谁」是 waitsForPerson 等谓词的可见化而非授权面:改写渲染若丢失阶段/等谁列,主会话路由裁决失去保底摘要(28 号 §6 设计目的)。'],
+    redLine: 'exempt',
+    maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'runtime-rebuilt',
+      note: '不可经工作室修改:保存对其 fail-closed 拒写(运行时注入型同款守卫);清单文本由 tasks 插件每轮 pass 重算缓存,装配时返回缓存(不逐次查询库)。',
     },
   },
 ]
