@@ -189,6 +189,14 @@ const VIEW_H = 400
 const NODE_W = 140
 const NODE_H = 60
 const GAP = 6
+/**
+ * v4 圆角阶梯的画布镜像（与 --et-radius-* 同值）。
+ * canvas 取不到 CSS 变量,只能写常量;改令牌必须同步这里。
+ * 同心弧:节点 16 → 内层高亮环 16+2=18(向外扩张,不是内缩)。
+ */
+const NODE_RADIUS = 16
+const BUBBLE_RADIUS = 22
+const TIP_RADIUS = 12
 const EDGE_DASH: readonly number[] = [6, 5]
 const BUBBLE_DASH: readonly number[] = [5, 4]
 const NODE_KEYS: readonly FlowNodeKey[] = [
@@ -322,18 +330,18 @@ export function paintFlowGraph(ctx: FlowPaintContext, view: FlowGraphView, theme
     ctx.moveTo(linkX, anchor.y + NODE_H)
     ctx.lineTo(linkX, 306)
     ctx.stroke()
-    roundedRect(ctx, 440, 310, 420, 64, 4)
+    roundedRect(ctx, 440, 310, 420, 64, BUBBLE_RADIUS)
     ctx.fillStyle = rgba(theme.warn, 0.08)
     ctx.fill()
     ctx.strokeStyle = rgba(theme.warn)
     ctx.setLineDash(BUBBLE_DASH)
     ctx.stroke()
     ctx.setLineDash([])
-    ctx.font = fontOf(14, 600)
+    ctx.font = fontOf(15, 500)
     ctx.textAlign = 'center'
     ctx.fillStyle = rgba(theme.warn)
     ctx.fillText(view.bubble.text, 650, 336)
-    ctx.font = fontOf(12, 500)
+    ctx.font = fontOf(13, 400)
     ctx.fillStyle = rgba(theme.muted)
     ctx.fillText(view.bubble.sub, 650, 358)
   }
@@ -342,33 +350,35 @@ export function paintFlowGraph(ctx: FlowPaintContext, view: FlowGraphView, theme
   for (const node of view.nodes) {
     const rect = nodeRect(node.key)
     const colors = stateColors(node.state, theme)
-    roundedRect(ctx, rect.x, rect.y, NODE_W, NODE_H, 4)
+    roundedRect(ctx, rect.x, rect.y, NODE_W, NODE_H, NODE_RADIUS)
     ctx.fillStyle = colors.fill
     ctx.fill()
     ctx.strokeStyle = rgba(colors.stroke)
     ctx.lineWidth = colors.width
     ctx.stroke()
     if (node.key === state.hoverKey && node.key !== state.selectedKey) {
-      roundedRect(ctx, rect.x - 2, rect.y - 2, NODE_W + 4, NODE_H + 4, 6)
+      /* hover 环:向外 2px,圆角同步 +2 保持同心 */
+      roundedRect(ctx, rect.x - 2, rect.y - 2, NODE_W + 4, NODE_H + 4, NODE_RADIUS + 2)
       ctx.strokeStyle = rgba(theme.accent, 0.6)
       ctx.lineWidth = 1
       ctx.stroke()
     }
     if (node.key === state.selectedKey) {
-      roundedRect(ctx, rect.x - 3, rect.y - 3, NODE_W + 6, NODE_H + 6, 7)
+      /* selected 环:向外 3px */
+      roundedRect(ctx, rect.x - 3, rect.y - 3, NODE_W + 6, NODE_H + 6, NODE_RADIUS + 3)
       ctx.strokeStyle = rgba(theme.accent)
       ctx.lineWidth = 2
       ctx.stroke()
     }
     ctx.beginPath()
-    ctx.arc(rect.x + 14, rect.y + 16, 4, 0, Math.PI * 2)
+    ctx.arc(rect.x + 14, rect.y + 16, 5, 0, Math.PI * 2)
     ctx.fillStyle = rgba(colors.dot)
     ctx.fill()
     ctx.textAlign = 'left'
-    ctx.font = fontOf(14, 600)
+    ctx.font = fontOf(15, 500)
     ctx.fillStyle = rgba(theme.fg)
     ctx.fillText(node.title, rect.x + 26, rect.y + 21)
-    ctx.font = fontOf(12, 500)
+    ctx.font = fontOf(13, 400)
     ctx.fillStyle = rgba(theme.muted)
     ctx.fillText(node.sub, rect.x + 12, rect.y + 44)
   }
@@ -380,20 +390,20 @@ export function paintFlowGraph(ctx: FlowPaintContext, view: FlowGraphView, theme
       const rect = nodeRect(node.key)
       const line1 = node.title
       const line2 = `${node.stateLabel} · ${node.sub}`
-      ctx.font = fontOf(12, 600)
+      ctx.font = fontOf(13, 500)
       const width = Math.max(ctx.measureText(line1).width, ctx.measureText(line2).width) + 16
       const boxX = Math.min(Math.max(rect.x, 4), Math.max(4, VIEW_W - width - 4))
       const boxY = rect.y + NODE_H + 8
-      roundedRect(ctx, boxX, boxY, width, 40, 4)
+      roundedRect(ctx, boxX, boxY, width, 40, TIP_RADIUS)
       ctx.fillStyle = rgba(theme.surface, 0.96)
       ctx.fill()
       ctx.strokeStyle = rgba(theme.border)
       ctx.lineWidth = 1
       ctx.stroke()
-      ctx.font = fontOf(12, 600)
+      ctx.font = fontOf(13, 500)
       ctx.fillStyle = rgba(theme.fg)
       ctx.fillText(line1, boxX + 8, boxY + 16)
-      ctx.font = fontOf(11, 500)
+      ctx.font = fontOf(12, 400)
       ctx.fillStyle = rgba(theme.muted)
       ctx.fillText(line2, boxX + 8, boxY + 31)
     }

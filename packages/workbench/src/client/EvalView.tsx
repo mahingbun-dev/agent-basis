@@ -5,6 +5,7 @@
  * 纯数据驱动组件(无本地状态)。
  */
 import type { ReactElement } from 'react'
+import { Ring } from '@eterna/ui'
 import { decayChart, evalMetricCards, trendChart, type LineChartView, type MetricCard } from '../project/eval-view.ts'
 import type { WorkbenchSnapshot } from '../types.ts'
 
@@ -13,10 +14,18 @@ export interface EvalViewProps {
 }
 
 function MetricTile({ card }: { readonly card: MetricCard }): ReactElement {
+  // v4 §8:指标卡 = 玉环 + 数字(比例一眼成形,不再靠读两位小数)
   return (
     <div data-eterna-workbench="metric-card" data-eterna-workbench-metric={card.label}>
-      <p data-eterna-workbench="metric-label">{card.label}</p>
-      <p data-eterna-workbench="metric-value" data-eterna-workbench-num="true">{card.value}</p>
+      <div data-eterna-workbench="metric-face">
+        {card.ratio === undefined
+          ? null
+          : <Ring ratio={card.ratio} tone={card.ratioTone ?? 'accent'} size={44} ariaLabel={card.label} label='' />}
+        <div data-eterna-workbench="metric-body">
+          <p data-eterna-workbench="metric-label">{card.label}</p>
+          <p data-eterna-workbench="metric-value" data-eterna-workbench-num="true">{card.value}</p>
+        </div>
+      </div>
       <p data-eterna-workbench="metric-sub">
         {card.sub}
         {card.badge !== undefined && (
