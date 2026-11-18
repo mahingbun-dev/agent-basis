@@ -163,3 +163,55 @@ luna 含 xhigh)天然自适应。
 - 偏置只按会话累积,不跨会话;`messageId` 仅审计锚点,不参与语义。
 - 语料来自生产日志:分布偏向真实用法,寒暄/超长材料需按配额补抽;`corpus/` 永不入库。
 - 客户端反馈按钮对最近消息常驻、对历史消息同样可达;未登录/无当前会话时不渲染。
+
+## V2 收尾(2026-11-18,复核 15 条发现处置)
+
+### RPC 契约(定型)
+
+```
+POST /api/session/thinkingFeedback
+  {request:{sessionId}}                                 → {bias, effectiveBias}   只读,不审计
+  {request:{sessionId, messageId?, direction:'less'|'more'}}
+                                                        → {bias, effectiveBias}   ±0.2
+  {request:{sessionId, messageId?, direction:'reset'}}  → {bias:0, effectiveBias:0}
+拒绝(均记 thinking.feedback.denied {reason}):
+  owner      会话不存在/不属于当前用户(守卫在方向分流之前)
+  direction  值非法、非字符串、或近似键拼错(directon 等)
+  messageId  非字符串或 >128 字符(锚点防伪造/防放大审计)
+```
+
+- 分流按**原始键存在性**判定,并识别 `/^dir/i` 近似键:拼错方向不得静默落入读支
+  返回 `ok:true`(调用方会误以为写入成功)。
+- reset 审计保留三键:`previousBias`(原始落库值)、`previousUpdatedAt`、
+  `previousBiasEffective`(衰减后)——只记衰减值会在死区里显示 0,事后无法复盘。
+- `thinkingAuto` 同步严格化:`enabled` 键存在但非布尔、或近似键(`enable`)→ 拒绝
+  + `thinking.auto.denied`,不再静默当读。
+
+### 菜单偏置行
+
+- 可见阈值 `client/bias-view.BIAS_VISIBLE_MIN = 0.01`,与判档 `BIAS_DEAD_ZONE` 同值
+  (两边单测互相钉住);文案两位小数(「已调深 +0.04」),不再四舍五入到 0.1 后整行消失。
+- 自动选档关闭时行内给**可见**文案「自动选档已关闭，偏置暂不参与判档」,重置仍可用。
+- 「重置」两击确认、`role="menuitem"`、`aria-label="重置本会话思考偏置"`、
+  `min-height: 36px`(触控目标)、失败只显示中文固定文案(原始异常进 console)。
+- 行异步插入后**双向**纠正主面板上/下定位,并触发子面板定位基准重测。
+
+### 会话 id 来源(矫正 F1)
+
+`localStorage['dsh.sessions.current']` 只是导航快照,多 tab/多会话会错。现按优先级:
+
+1. assistant-actions 组件:slot 标准席位 `props.sessionId`(ui-session 会话绑定下发);
+2. 会话桥 `client/session-bridge.ts`:由 `SessionBindingProbe` 注册在
+   `conversation.input.overlay`(session 作用域,渲染 null)在渲染时写入;
+3. 最后才回退 localStorage(旧壳/探针缺席)。
+
+模型菜单(命令式挂载、拿不到 slot props)走 `activeSessionId() ?? readCurrentSession()`。
+
+### 验证覆盖
+
+- `tests/bias-view.spec.ts`:阈值/文案/桥覆盖语义。
+- `tests/tenant.spec.ts`:读支衰减(24h 前 0.4 ⇒ effective≈0.2)、reset 不动
+  `thinking_auto`、reset 审计原始值、拒绝审计三 reason、`enabled` 严格化。
+- `tests/tenant-guard-matrix.spec.ts`:两专路 × {本人/他人/未登录} 六例。
+- `scripts/team-platform-gates/p7-e2e-thinking-feedback.mjs`:新增读支/reset(PRC 与 UI
+  两击)判据、偏置行深浅截图(`bias-row-*.png`)、`p7/gate-summary.json` 阶段摘要。
