@@ -102,7 +102,7 @@ export function CompanionCard(props: { readonly t: Translate }): React.JSX.Eleme
         ? <p className="ea-hint">{t('companion.empty')}</p>
         : <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <code style={{
-              flex: 1, minWidth: 220, fontFamily: 'var(--et-font-mono)', fontSize: 12,
+              flex: 1, minWidth: 220, fontFamily: 'var(--et-font-mono)', fontSize: 'var(--et-text-meta)',
               padding: '7px 10px', borderRadius: 'var(--et-radius-sm)',
               border: '1px solid var(--et-border)',
               background: 'var(--et-surface-2)',

@@ -171,7 +171,7 @@ export function NotificationsSection(props: { readonly t: Translate }): React.JS
     <h3>{t('notifications.title')}{unread > 0 ? t('notifications.unread').replace('{count}', String(unread)) : ''}</h3>
     <div className="ea-list">
       {notifications.length === 0 && <p className="ea-hint">{t('notifications.empty')}</p>}
-      {notifications.map(n => <div key={n.id} className="ea-row" style={n.read === 0 ? { fontWeight: 600 } : undefined}>
+      {notifications.map(n => <div key={n.id} className="ea-row" style={n.read === 0 ? { fontWeight: 'var(--et-weight-display)' } : undefined}>
         <span>{n.message}</span>
       </div>)}
     </div>
