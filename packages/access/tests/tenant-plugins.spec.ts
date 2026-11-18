@@ -161,12 +161,33 @@ describe('T6 装载器:受限 ctx 与生命周期', () => {
     expect(when?.({ agent: { session: { id: 's-other' } } })).toBe(false)
     expect(when?.({ agent: { session: { id: 's-unknown' } } })).toBe(false)
     expect(when?.({})).toBe(false)
-    // 共享 mount(无 owner)= 恒可见(when 缺省);命名空间段取 plugin_id 账号段
+    // 共享 mount(无 owner)= 恒可见(when 缺省);命名空间段=shared(无账号归属)
     const shared = writeToolPlugin(join(dir, 'shared'), 'wave')
     const rs = await loader.mount('user:alice:shared', { dir: shared })
     expect(rs.ok).toBe(true)
-    expect(rs.tools).toEqual(['user_alice_wave'])
+    expect(rs.tools).toEqual(['shared_wave'])
     expect(registered[1]?.when).toBeUndefined()
+  })
+
+  it('个人副本与共享副本共存:同 pluginId 双层独立挂载,停个人不拆共享', async () => {
+    const plugin = writeToolPlugin(join(dir, 'hello'), 'greet')
+    const rp = await loader.mount('user:alice:hello', { dir: plugin, ownerUserId: 1 })
+    expect(rp.ok).toBe(true)
+    expect(rp.tools).toEqual(['user_alice_greet'])
+    // 转内置副本:同 pluginId、无 owner → 共享层,工具名与个人副本不撞
+    const rs = await loader.mount('user:alice:hello', { dir: plugin })
+    expect(rs.ok).toBe(true)
+    expect(rs.tools).toEqual(['shared_greet'])
+    expect(loader.stateOf('user:alice:hello', 'personal').mounted).toBe(true)
+    expect(loader.stateOf('user:alice:hello', 'shared').mounted).toBe(true)
+    // 停用个人行 → 只拆个人层(曾因单键控把共享一并拆掉)
+    loader.unmount('user:alice:hello', 'personal')
+    expect(loader.stateOf('user:alice:hello', 'personal').mounted).toBe(false)
+    expect(loader.stateOf('user:alice:hello', 'shared').mounted).toBe(true)
+    // 停用共享 → 只拆共享层
+    loader.unmount('user:alice:hello', 'shared')
+    expect(loader.stateOf('user:alice:hello', 'shared').mounted).toBe(false)
+    expect(registered.filter(t => !t.disposed)).toHaveLength(0)
   })
 
   it('unmount 回收:disposer 执行、名字释放、再装不撞名', async () => {

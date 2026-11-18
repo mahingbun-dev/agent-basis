@@ -3,7 +3,7 @@
 // 零模型调用:mount.ok 即宿主 ctx.tools.register 真实接受的进程内证据。
 // 用法:node scripts/team-platform-gates/p6-e2e-personal-mount.mjs [--base http://127.0.0.1:3213] [--container eterna-tp-t6]
 import { createRequire } from 'node:module'
-import { readdirSync, mkdirSync, rmSync } from 'node:fs'
+import { readdirSync, mkdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -29,39 +29,45 @@ const args = process.argv.slice(2)
 const pick = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined }
 const BASE = pick('--base') ?? 'http://127.0.0.1:3213'
 const CONTAINER = pick('--container') ?? 'eterna-tp-t6'
-const { readFileSync } = await import('node:fs')
 const envText = readFileSync(join(MAIN_REPO, '.env'), 'utf8')
 const envVal = (k) => (envText.match(new RegExp('^' + k + '=(.*)$', 'm'))?.[1] ?? '').trim()
 const ADMIN = { account: envVal('ETERNA_ACCESS_ADMIN_USER'), password: envVal('ETERNA_ACCESS_ADMIN_PASSWORD') }
 if (ADMIN.account === '' || ADMIN.password === '') throw new Error('.env 缺 ETERNA_ACCESS_ADMIN_USER/PASSWORD')
 
-const docker = (cmd) => execFileSync('docker', cmd, { encoding: 'utf8' }).trim()
+const dockerRaw = (argv) => execFileSync('docker', argv, { encoding: 'utf8' }).trim()
+const shIn = (script) => dockerRaw(['exec', CONTAINER, 'sh', '-c', script])
+/** 夹具经 docker cp 落盘(绕开 sh 内嵌 JS 的引号地狱)。 */
+function writeFixture(account) {
+  const stage = join(OUT, 'fixture-hello')
+  mkdirSync(stage, { recursive: true })
+  writeFileSync(join(stage, 'package.json'), JSON.stringify({ name: 'fixture-hello', version: '0.0.0', type: 'module', main: 'index.js' }))
+  writeFileSync(join(stage, 'index.js'), [
+    'export function apply(ctx) {',
+    '  ctx.tools.register({ name: "greet", description: "fixture greet", parameters: {},',
+    '    output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: String(v) }] },',
+    '    execute() { return "hi" } })',
+    '}',
+  ].join('\n'))
+  shIn(`mkdir -p /data/workspaces/${account}/plugins/hello /data/workspaces/${account}/plugins/stray`)
+  dockerRaw(['cp', stage + '/.', `${CONTAINER}:/data/workspaces/${account}/plugins/hello/`])
+}
 
-// ── 容器就绪等待 ──
+// ── 容器就绪等待(宿主侧探活:entrypoint 让 dsh 监听 eth0 IP,loopback 不通) ──
+const probe = async () => {
+  try { const r = await fetch(BASE + '/login'); return r.ok } catch { return false }
+}
 const deadline = Date.now() + 180_000
-let ready = false
+let ready = await probe()
 while (Date.now() < deadline && !ready) {
-  try { ready = docker(['exec', CONTAINER, 'sh', '-c', 'wget -qO- http://127.0.0.1:8080/login | head -c 32']).length > 0 } catch { await new Promise(r => setTimeout(r, 3000)) }
+  await new Promise(r => setTimeout(r, 3000))
+  ready = await probe()
 }
 if (!ready) throw new Error('容器 /login 未就绪(180s)')
 console.log('container ready:', CONTAINER, BASE)
 
 // ── 夹具:admin 个人工具插件(最小契约,含 package.json+index.js) ──
 const acc = ADMIN.account
-docker(['exec', CONTAINER, 'sh', '-c', [
-  `mkdir -p /data/workspaces/${acc}/plugins/hello`,
-  `cat > /data/workspaces/${acc}/plugins/hello/package.json <<'EOF'`,
-  '{"name":"fixture-hello","version":"0.0.0","type":"module","main":"index.js"}',
-  'EOF',
-  `cat > /data/workspaces/${acc}/plugins/hello/index.js <<'EOF'`,
-  'export function apply(ctx) {',
-  '  ctx.tools.register({ name: "greet", description: "fixture greet", parameters: {},',
-  '    output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: String(v) }] },',
-  '    execute() { return "hi" } })',
-  '}',
-  'EOF',
-  `mkdir -p /data/workspaces/${acc}/plugins/stray`, // scan 夹具:未登记目录
-].join(' && ')])
+writeFixture(acc)
 
 const checks = {}
 async function newLogin(context, creds, tag) {
@@ -79,7 +85,9 @@ async function newLogin(context, creds, tag) {
 }
 
 async function rpc(page, path, argsObj) {
-  return page.evaluate(async ({ path, argsObj }) => {
+  // 登录后壳可能二次跳转(容器刚重启时更明显),evaluate 会撞上 Execution context
+  // destroyed——先等页面稳定,失败重试一次(测试脚本层健壮性,非产品行为)。
+  const attempt = async () => page.evaluate(async ({ path, argsObj }) => {
     const r = await fetch(path, {
       method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ type: 'client-request', rpcId: 'p6-' + Math.random().toString(36).slice(2), method: path.replace('/api/', ''), payload: { args: argsObj } }),
@@ -87,6 +95,15 @@ async function rpc(page, path, argsObj) {
     const body = await r.json().catch(() => null)
     return { status: r.status, ok: body?.result?.ok === true, value: body?.result?.value, error: body?.result?.error ?? null }
   }, { path, argsObj })
+  await page.waitForLoadState('networkidle').catch(() => {})
+  try {
+    return await attempt()
+  } catch (error) {
+    if (!String(error).includes('Execution context was destroyed')) throw error
+    await page.waitForLoadState('networkidle').catch(() => {})
+    await page.waitForTimeout(1500)
+    return attempt()
+  }
 }
 
 rmSync(join(OUT, 'profile-a'), { recursive: true, force: true })
@@ -101,7 +118,8 @@ try {
   if (!install.ok) throw new Error('install 失败:' + JSON.stringify(install.error))
   if (install.value?.mount?.ok !== true) throw new Error('mount 未即时生效:' + JSON.stringify(install.value))
   const nsTool = install.value.mount.tools?.[0]
-  if (nsTool !== `user_${acc}_greet`) throw new Error('工具名命名空间不符:' + String(nsTool))
+  const nsSegment = acc.replace(/[^\w]/gu, '_')
+  if (nsTool !== `user_${nsSegment}_greet`) throw new Error('工具名命名空间不符:' + String(nsTool))
 
   // 2. list 下发装载态
   const list1 = await rpc(pageA, '/api/my-plugins/list', {})
@@ -120,31 +138,29 @@ try {
   const list3 = await rpc(pageA, '/api/my-plugins/list', {})
   checks.enableRemounts = list3.value?.items?.find(i => i.pluginId === `user:${acc}:hello`)?.mounted === true
 
-  // 5. 截图:我的插件分区(装载徽标)
-  const shot = join(OUT, 'my-plugins.png')
-  await pageA.evaluate(() => { document.querySelector('[data-eterna-my-plugins]')?.scrollIntoView({ block: 'center' }) }).catch(() => {})
-  const section = pageA.locator('[data-eterna-my-plugins]')
-  if (await section.isVisible({ timeout: 3000 }).catch(() => false)) await section.screenshot({ path: shot }).catch(() => {})
-  checks.screenshot = shot
+  // 5. (截图归 p6-gui-shots.mjs:本页停在首页,分区不可见;此处只做数据断言)
 
   // 6. 转内置(admin 直转)= 共享行记账 + 全局装载
   const promote = await rpc(pageA, '/api/my-plugins/promote-direct', { request: { pluginId: `user:${acc}:hello` } })
   checks.promote = { ok: promote.ok, promoted: promote.value?.promoted, mount: promote.value?.mount ?? null, error: promote.error?.message ?? null }
   const sharedList = await rpc(pageA, '/api/my-plugins/shared/list', {})
   checks.sharedList = { mounted: sharedList.value?.items?.[0]?.mounted === true, enabled: sharedList.value?.items?.[0]?.enabled, tools: sharedList.value?.items?.[0]?.tools ?? [] }
+  // 共享层命名空间独立(shared_<原名>),与个人副本区分
+  if (sharedList.value?.items?.[0]?.tools?.[0] !== 'shared_greet') throw new Error('共享层工具名命名空间不符:' + String(sharedList.value?.items?.[0]?.tools?.[0]))
 
   // 7. 共享停用 = 即时卸载
   await rpc(pageA, '/api/my-plugins/shared/disable', { request: { pluginId: `user:${acc}:hello` } })
   const sharedList2 = await rpc(pageA, '/api/my-plugins/shared/list', {})
-  checks.sharedDisable = { enabled: sharedList2.value?.items?.[0]?.enabled === false, mounted: sharedList2.value?.items?.[0]?.mounted === false }
+  checks.sharedDisable = { becameDisabled: sharedList2.value?.items?.[0]?.enabled === false, becameUnmounted: sharedList2.value?.items?.[0]?.mounted === false }
 
   // 8. 重启容器:bootScan 按账本重挂——停用的共享不复活,重启后重新启用即恢复
   //    (重启持久化 = 用户「重启也不丢」的兜底;免重启是主路径,本步验证账本真源)
-  docker(['restart', CONTAINER])
+  dockerRaw(["restart", CONTAINER])
   const deadline2 = Date.now() + 180_000
   let ready2 = false
   while (Date.now() < deadline2 && !ready2) {
-    try { ready2 = docker(['exec', CONTAINER, 'sh', '-c', 'wget -qO- http://127.0.0.1:8080/login | head -c 32']).length > 0 } catch { await new Promise(r => setTimeout(r, 3000)) }
+    await new Promise(r => setTimeout(r, 3000))
+    ready2 = await probe()
   }
   if (!ready2) throw new Error('重启后 /login 未就绪')
   await pageA.goto(BASE + '/', { waitUntil: 'domcontentloaded' }).catch(() => {})
@@ -154,7 +170,7 @@ try {
   // 转内置后个人原件 enabled=0 → 重启后个人行不装载;shared disabled 也不装载
   checks.afterRestart = {
     personalRow: list4.value?.items?.find(i => i.pluginId === `user:${acc}:hello`) ?? null,
-    sharedListMounted: (await rpc(pageA, '/api/my-plugins/shared/list', {})).value?.items?.[0]?.mounted === false,
+    sharedStaysUnmounted: (await rpc(pageA, '/api/my-plugins/shared/list', {})).value?.items?.[0]?.mounted === false,
   }
   await rpc(pageA, '/api/my-plugins/shared/enable', { request: { pluginId: `user:${acc}:hello` } })
   const sharedList3 = await rpc(pageA, '/api/my-plugins/shared/list', {})

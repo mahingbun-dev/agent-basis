@@ -41,15 +41,16 @@ interface RegisterFn {
   (path: string, handler: SyncGuardHandler): void
 }
 
-/** T6 装载器结构面(tenant-plugins.ts 返回值的窄子集;可缺席=纯记账降级)。 */
+/** T6 装载器结构面(tenant-plugins.ts 返回值的窄子集;可缺席=纯记账降级)。
+ *  层:个人副本与共享副本按层独立挂载(unmount 不传=个人层)。 */
 export interface UserPluginLoader {
   mount(pluginId: string, opts: { readonly dir: string; readonly ownerUserId?: number }): Promise<{
     readonly ok: boolean
     readonly tools?: readonly string[]
     readonly error?: string
   }>
-  unmount(pluginId: string): void
-  stateOf(pluginId: string): { readonly mounted: boolean; readonly tools: readonly string[]; readonly error?: string }
+  unmount(pluginId: string, layer?: 'personal' | 'shared'): void
+  stateOf(pluginId: string, layer?: 'personal' | 'shared'): { readonly mounted: boolean; readonly tools: readonly string[]; readonly error?: string }
 }
 
 function frame(rpcId: string, result: unknown): Response {
@@ -238,6 +239,12 @@ export function registerUserPluginRoutes(
     // T6 补完:共享行记账 + 全局 mount(原实现止步于拷贝,共享区无装载器读取)
     store.recordSharedPlugin(pluginId, dest, true)
     const mount = loader === undefined ? undefined : await loader.mount(pluginId, { dir: dest })
+    // 共享装载成功后个人副本退场(转内置语义 = 全员版接管):否则个人行+共享行
+    // 同时挂载、同一插件贡献两套工具。共享装载失败则保留个人副本可用。
+    if (mount?.ok === true) {
+      loader?.unmount(pluginId, 'personal')
+      store.setUserPluginEnabled(owner, pluginId, false)
+    }
     deps.audit({ kind: 'access.tenant', account: 'system', detail: { action: 'plugin.promoted', pluginId, dest, mounted: mount?.ok === true } })
     return okFrame(rpcId, { pluginId, promoted: true, sharedDir: dest, ...(mount !== undefined ? { mount } : {}) })
   }
@@ -253,7 +260,7 @@ export function registerUserPluginRoutes(
   register(`${USER_PLUGINS_PREFIX}/shared/list`, (rpcId, _args, ctx) => {
     if (approvalDeps === undefined || !approvalDeps.isAdmin(ctx.userId)) return deniedFrame(rpcId, '仅管理员可查看共享插件')
     const items = store.sharedPlugins().map((row) => {
-      const state = loader?.stateOf(row.pluginId)
+      const state = loader?.stateOf(row.pluginId, 'shared')
       return { ...row, mounted: state?.mounted ?? false, tools: state?.tools ?? [], mountError: state?.error }
     })
     return okFrame(rpcId, { items })
@@ -270,7 +277,8 @@ export function registerUserPluginRoutes(
     store.setSharedPluginEnabled(pluginId, enabled)
     let mount: InstallOutcome['mount']
     if (loader !== undefined) {
-      mount = enabled ? await loader.mount(pluginId, { dir: row.dir }) : (loader.unmount(pluginId), undefined)
+      if (enabled) mount = await loader.mount(pluginId, { dir: row.dir })
+      else loader.unmount(pluginId, 'shared')
     }
     deps.audit({ kind: 'access.tenant', account: ctx.account, detail: { action: enabled ? 'shared.enable' : 'shared.disable', pluginId } })
     return okFrame(rpcId, { pluginId, enabled, ...(mount !== undefined ? { mount } : {}) })

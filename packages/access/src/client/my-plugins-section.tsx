@@ -6,16 +6,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ArmedDelete } from './confirm-button.tsx'
 import type { Translate } from './i18n.ts'
-
-async function postJson(path: string, body?: unknown): Promise<{ ok: boolean; value?: unknown; error?: { message?: string } | undefined }> {
-  const r = await fetch(path, {
-    method: 'POST', credentials: 'same-origin',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body ?? {}),
-  })
-  const payload = await r.json().catch(() => null) as { result?: { ok?: boolean; value?: unknown; error?: { message?: string } | undefined } } | null
-  return { ok: payload?.result?.ok === true, value: payload?.result?.value, error: payload?.result?.error ?? undefined }
-}
+import { postRpc } from './rpc.ts'
 
 interface MyPlugin {
   pluginId: string
@@ -69,7 +60,7 @@ export function MyPluginsSection(props: { readonly t: Translate }): React.JSX.El
   const [busy, setBusy] = useState(false)
 
   const refresh = useCallback(async (): Promise<void> => {
-    const r = await postJson('/api/my-plugins/list')
+    const r = await postRpc('/api/my-plugins/list')
     if (r.ok && typeof r.value === 'object' && r.value !== null) {
       setItems((r.value as { items: MyPlugin[] }).items)
     }
@@ -80,7 +71,7 @@ export function MyPluginsSection(props: { readonly t: Translate }): React.JSX.El
     setBusy(true)
     setMessage('')
     try {
-      const r = await postJson(path, { request: body })
+      const r = await postRpc(path, { request: body })
       if (!r.ok) setMessage(r.error?.message ?? t('plugins.actionFailed'))
       else await refresh()
     } finally { setBusy(false) }
@@ -90,7 +81,7 @@ export function MyPluginsSection(props: { readonly t: Translate }): React.JSX.El
     setBusy(true)
     setMessage('')
     try {
-      const r = await postJson('/api/my-plugins/scan')
+      const r = await postRpc('/api/my-plugins/scan')
       if (r.ok && typeof r.value === 'object' && r.value !== null) setScanned((r.value as { items: ScanItem[] }).items)
       else setMessage(r.error?.message ?? t('plugins.actionFailed'))
     } finally { setBusy(false) }
@@ -163,8 +154,8 @@ export function NotificationsSection(props: { readonly t: Translate }): React.JS
 
   const refresh = useCallback(async (): Promise<void> => {
     const [notif, myApprovals] = await Promise.all([
-      postJson('/api/notifications'),
-      postJson('/api/approvals/mine'),
+      postRpc('/api/notifications'),
+      postRpc('/api/approvals/mine'),
     ])
     if (notif.ok && typeof notif.value === 'object' && notif.value !== null) {
       const v = notif.value as { items: NotificationItem[]; unread: number }
@@ -193,7 +184,7 @@ export function NotificationsSection(props: { readonly t: Translate }): React.JS
         </div>)}
       </div>
     </>}
-    {unread > 0 && <button type="button" className="ea-btn ghost" onClick={() => { void postJson('/api/notifications/read-all').then(() => refresh()) }}>
+    {unread > 0 && <button type="button" className="ea-btn ghost" onClick={() => { void postRpc('/api/notifications/read-all').then(() => refresh()) }}>
       {t('notifications.readAll')}</button>}
   </section>
 }
@@ -205,7 +196,7 @@ export function ApprovalQueueSection(props: { readonly t: Translate }): React.JS
   const [notes, setNotes] = useState<Record<number, string>>({})
 
   const refresh = useCallback(async (): Promise<void> => {
-    const r = await postJson('/api/approvals/pending')
+    const r = await postRpc('/api/approvals/pending')
     if (r.ok && typeof r.value === 'object' && r.value !== null) {
       setItems((r.value as { items: ApprovalItem[] }).items)
     }
@@ -215,7 +206,7 @@ export function ApprovalQueueSection(props: { readonly t: Translate }): React.JS
   const decide = async (id: number, approve: boolean, note: string): Promise<void> => {
     setBusy(true)
     try {
-      await postJson('/api/my-plugins/promote-decide', { request: { requestId: id, approve, note } })
+      await postRpc('/api/my-plugins/promote-decide', { request: { requestId: id, approve, note } })
       await refresh()
     } finally { setBusy(false) }
   }

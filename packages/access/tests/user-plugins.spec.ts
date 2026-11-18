@@ -231,7 +231,10 @@ describe('T6:装载器接入后的端点即时语义', () => {
     const sharedList = await call('/api/my-plugins/shared/list', 'alice', {})
     const shared = (sharedList.result as { value?: { items?: Array<{ mounted: boolean; tools: string[] }> } }).value?.items?.[0]
     expect(shared?.mounted).toBe(true)
-    expect(shared?.tools).toEqual(['user_alice_greet'])
+    // 共享层命名空间 = shared_(无账号归属;与个人副本工具名区分)
+    expect(shared?.tools).toEqual(['shared_greet'])
+    // 转内置后个人行退场(共享接管),个人副本不残留挂载
+    expect(store.userPluginsOfOwner(1)[0]?.enabled).toBe(false)
     await call('/api/my-plugins/shared/disable', 'alice', { request: { pluginId: 'user:alice:hello' } })
     expect(registered.every(t => t.disposed)).toBe(true)
     expect(store.sharedPlugins()[0]?.enabled).toBe(false)

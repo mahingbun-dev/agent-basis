@@ -13,16 +13,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api, type PluginRowView } from './api.ts'
 import { ArmedDelete } from './confirm-button.tsx'
 import { PLUGIN_META } from './plugin-meta.tsx'
-
-async function postJson(path: string, body?: unknown): Promise<{ ok: boolean; value?: unknown; error?: { message?: string } | undefined }> {
-  const r = await fetch(path, {
-    method: 'POST', credentials: 'same-origin',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body ?? {}),
-  })
-  const payload = await r.json().catch(() => null) as { result?: { ok?: boolean; value?: unknown; error?: { message?: string } | undefined } } | null
-  return { ok: payload?.result?.ok === true, value: payload?.result?.value, error: payload?.result?.error ?? undefined }
-}
+import { postRpc } from './rpc.ts'
 
 interface SharedPlugin {
   pluginId: string
@@ -41,7 +32,7 @@ function SharedSection(): React.JSX.Element | null {
   const [note, setNote] = useState('')
 
   const refresh = useCallback(async (): Promise<void> => {
-    const r = await postJson('/api/my-plugins/shared/list')
+    const r = await postRpc('/api/my-plugins/shared/list')
     if (r.ok && typeof r.value === 'object' && r.value !== null) setItems((r.value as { items: SharedPlugin[] }).items)
     setLoaded(true)
   }, [])
@@ -51,7 +42,7 @@ function SharedSection(): React.JSX.Element | null {
     const path = item.enabled ? '/api/my-plugins/shared/disable' : '/api/my-plugins/shared/enable'
     setBusyId(item.pluginId)
     setNote('')
-    postJson(path, { request: { pluginId: item.pluginId } })
+    postRpc(path, { request: { pluginId: item.pluginId } })
       .then(r => {
         if (!r.ok) setNote(r.error?.message ?? '操作失败')
         else void refresh()

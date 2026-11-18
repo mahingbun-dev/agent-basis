@@ -1,0 +1,30 @@
+{
+  "at": "2026-11-18T12:04:42.839Z",
+  "base": "http://127.0.0.1:3213",
+  "checks": {
+    "light.rows": [
+      {
+        "id": "user:Mr.Ma:hello",
+        "mount": "disabled"
+      }
+    ],
+    "light.enableClick": {
+      "afterMount": "mounted"
+    },
+    "light.scanClick": "我的插件个人插件仅本人可见可用;启停与安装即时生效,无需重启。创造模式里开发的插件,点「扫描 plugins 目录」即可导入;好用的插件可发起「转内置」给全团队使用(管理员审批,即刻生效)。user:Mr.Ma:hello已停用(未装载) · 已转内置启用删除扫描 plugins 目录安装: stray安装",
+    "light.shared": "共享工具(转内置)全员可用;启停即刻生效,无需重启user:Mr.Ma:hello已装载 1 个工具shared_greet",
+    "light.badRpc": [],
+    "dark.rows": [
+      {
+        "id": "user:Mr.Ma:hello",
+        "mount": "disabled"
+      }
+    ],
+    "dark.enableClick": {
+      "afterMount": "mounted"
+    },
+    "dark.scanClick": "我的插件个人插件仅本人可见可用;启停与安装即时生效,无需重启。创造模式里开发的插件,点「扫描 plugins 目录」即可导入;好用的插件可发起「转内置」给全团队使用(管理员审批,即刻生效)。user:Mr.Ma:hello已停用(未装载) · 已转内置启用删除扫描 plugins 目录安装: stray安装",
+    "dark.shared": "共享工具(转内置)全员可用;启停即刻生效,无需重启user:Mr.Ma:hello已装载 1 个工具shared_greet",
+    "dark.badRpc": []
+  }
+}

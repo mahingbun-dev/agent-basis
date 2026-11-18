@@ -32,7 +32,7 @@
 | manifest 无 `dsh.client` / `dsh.bundle.patch` | 指引管理员 bundle 安装(UI/bundle 非个人层承载面) |
 | 工具名 `^[\w][\w.-]{0,63}$` + 全局不撞名(装载后名) | 「工具名非法 / 撞名」 |
 
-- **受限 ctx**:插件拿到的合成对象只有 `tools.register` 包装面——自动 ①工具名命名空间 `user_<账号>_<原名>`(共享层账号段取 plugin_id 中段);②`when` 谓词归属可见性(个人=仅 owner 会话,`agent.session.id ?? agent.id` 双取径,拿不到会话 id/谓词抛错=不可见 fail-closed;共享=恒可见);③disposer 收管,unmount 全量回收、名字释放。
+- **受限 ctx**:插件拿到的合成对象只有 `tools.register` 包装面——自动 ①工具名命名空间分层——个人 `user_<账号>_<原名>`、共享 `shared_<原名>`(同 pluginId 双副本不撞名);②`when` 谓词归属可见性(个人=仅 owner 会话,`agent.session.id ?? agent.id` 双取径,拿不到会话 id/谓词抛错=不可见 fail-closed;共享=恒可见);③disposer 收管,unmount 全量回收、名字释放。
 - **重装=原子替换**:先 unmount 旧挂载,`import(pathToFileURL(entry)?t=<ts>)` 破 ESM 缓存。
 - **tools 未就绪**:apply 时点可能未就绪(companion wrap 同款时序),装载器 tools 面惰性取用;bootScan 跳过,由首个 `tools/pre-execute`(companion 身份监听内 `ensureBootScan()`)补扫。
 - **失败隔离**:单插件装载失败只记 `stateOf` 错误+审计,绝不炸 boot。
@@ -56,12 +56,55 @@
 
 ## 5. 验证(2026-11-18 实测)
 
-- 单测:`pnpm --filter @eterna/access run verify` 全绿——**291 测试**(原 278 + 装载器 9 + 路由即时语义 4):契约 fail-closed 矩阵、命名空间/when 双取径+fail-closed、unmount 回收与名字释放、撞名拒载、apply 抛错零残留、bootScan 失败隔离;install 即刻 mount、disable/enable 即时 unmount/mount、scan、shared admin 矩阵、promote-direct 全局装载。
-- 门禁:G1-1/G1-2 与容器 E2E 见本文末(待跑记录,跑完回填)。
+- 单测:`pnpm --filter @eterna/access run verify` 全绿——**298 测试**(原 278 + 装载器 10 + 路由即时语义 4 + 客户端信封 5 + 双层共存 1):契约 fail-closed 矩阵、命名空间/when 双取径+fail-closed、unmount 回收与名字释放、撞名拒载、apply 抛错零残留、bootScan 失败隔离;install 即刻 mount、disable/enable 即时 unmount/mount、scan、shared admin 矩阵、promote-direct 全局装载。
+- **G1-1**(verify-eterna-web)PASS:206 host entries / 3 presets / cut rows inactive / kept rows active——装载器+工具接线后真 boot 零 failed。
+- **G1-2**(verify-eterna-super)PASS:220 host entries / super 挂载面 21 行 active。
+- **form-check** 0 error(FORM001 零扰动——本批不改任何 patch 行;唯一 WARNING=40 号 §9 Q1 在案的 base 形态漂移,存量)。
+- **brand verify** 绿(技能 fork 文档面)。
+- 存量断点(非本批,如实登记):①仓根 `pnpm run verify` 被并行会话 tasks 包未提交 WIP lint 挡住(`src/sources/webchat.ts` member-delimiter 等,归属并行任务);②`packctl tenant-scan` 2 findings 在 `glue/src/plugins/channels-plugin.ts:71,164`(T2 路由逃逸,来自 a412357 渠道绑定提交,本批零涉 glue)——均按「不得静默放红」在此显式登记,归属对应任务收口。
 
-## 6. E2E / 门禁记录(回填区)
+## 6. E2E / 门禁记录(2026-11-18 实测)
 
-- G1-1(verify-eterna-web):待跑
-- G1-2(verify-eterna-super):待跑
-- packctl tenant-scan / form-check:待跑
-- 容器 E2E p6(个人插件安装→会话真调工具→转内置→第二账号→disable):待跑
+### 6.1 容器 E2E(`scripts/team-platform-gates/p6-e2e-personal-mount.mjs`)
+
+独立测试容器 `eterna-tp-t6`(3213 端口 + 独立卷,零生产接触),镜像由部署线 worktree(`d8ba0e7`)+ 本批 access/brand 检出构建。**全链 PASS**(`acceptance/team-platform/p6/evidence/personal-mount/record.json`,exit=0):
+
+| 检查 | 结果 |
+|---|---|
+| `install`(路由)→ 即刻装载 | `mount.ok=true`,`tools=['user_Mr_Ma_greet']`(账号 `Mr.Ma` 命名空间化为 `Mr_Ma`) |
+| `list` 下发装载态 | `mounted=true`,同一工具名 |
+| `scan` 发现未登记目录 | `items=['stray']` |
+| `disable` → `enable` 即时卸载/重挂 | 两步均 `true` |
+| `promote-direct` 转内置 = 共享行 + 全局装载 | `mount.ok=true`,共享层工具名 `shared_greet` |
+| `shared/list` 装载态 | `mounted=true`,`enabled=true`,`tools=['shared_greet']` |
+| 转内置后个人行退场 | 个人行 `enabled=false`(共享版接管) |
+| `shared/disable` 即时卸载 | `becameDisabled=true`,`becameUnmounted=true` |
+| 容器重启后 `bootScan` | 个人行 `mounted=false`(已停用),共享 `sharedStaysUnmounted=true` |
+| 重启后 `shared/enable` | `true`(账本为真源,不依赖 hmr/patch) |
+
+零模型调用:`mount.ok` 即宿主 `ctx.tools.register` 真实接受的进程内证据。
+
+### 6.2 GUI 深浅两主题(`scripts/team-platform-gates/p6-gui-shots.mjs`)
+
+入口 = **侧栏「插件」→ 页签**(2026-11-11 起「我的插件」自设置弹窗迁入 `plugins.tab`;旧脚本点设置齿轮只会截到首页)。脚本同时做真实点击链路断言——**纯截图不断言会漏掉客户端信封缺陷**。PASS(`badRpc=[]` 两主题):
+
+- `my-plugins-{light,dark}.png`:个人行 `user:Mr.Ma:hello` + 装载徽标 + 扫描导入 + 手填安装
+- `my-plugins-{light,dark}-mounted.png`:点「启用」后徽标 → `mounted`(`已装载 1 个工具`),证明浏览器 RPC 真通
+- `shared-plugins-{light,dark}.png`:共享工具分区(`shared_greet`,`已装载 1 个工具`,admin 开关)
+- `manage-{light,dark}.png`:整页上下文(恒灵插件页签)
+
+### 6.3 本批修复的两个实证缺陷(浏览器路径首次被真验证)
+
+E2E 手写 RPC 信封直打 HTTP,恰好绕过了客户端缺陷——两个分区在**真实浏览器里从未加载过数据**:
+
+1. **客户端 RPC 信封缺失**:`my-plugins-section.tsx`/`plugins-manager.tsx` 的私有 `postJson` 发裸 body,服务端 `unpack()`(tenant.ts:138-146)判 `400 invalid client-request message` → 分区永不渲染、静默空态。这正是用户「在我的插件里发现不了、管理不了」的直接成因之一。修复=抽 `client/rpc.ts` 单一信封构造(`postRpc`),新增 `tests/client-rpc.spec.ts` 5 例锁信封形状。
+2. **个人/共享双层挂载互相拆台**:装载器原按 `pluginId` 单键控,而个人行与共享行共享同一 `pluginId`——停用个人行会把共享装载一并卸掉(GUI 实证:`已启用(未装载)`)。修复=①挂载键改 `层:pluginId`;②共享层命名空间独立 `shared_<原名>`(避免同插件双副本撞名);③转内置成功后个人副本自动退场(共享版接管),共享装载失败则保留个人可用。新增「双层共存」回归用例。
+
+单测:`pnpm --filter @eterna/access run verify` **298 测试全绿**(原 291 + 客户端信封 5 + 双层共存 1 + 转内置退场断言)。
+
+### 6.4 门禁(2026-11-18 复跑)
+
+- **G1-1** PASS:206 host entries / 3 presets / cut rows inactive / kept rows active。
+- **G1-2** PASS:220 host entries / super 挂载面 21 行 active。
+- **packctl form-check** 0 error(唯一 WARNING = 40 号 §9 Q1 在案的 base 形态漂移,存量)。
+- **packctl tenant-scan** 2 findings:glue `channels-plugin.ts:71,164`(T2 路由逃逸,a412357 渠道绑定提交引入,本批零涉 glue)——存量红,归属对应任务收口。

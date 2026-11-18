@@ -79,26 +79,32 @@ function namespaceSegment(account: string): string {
   return account.replace(/[^\w]/gu, '_')
 }
 
+/** 装载层:个人副本与共享(转内置)副本可同时存在(同一 pluginId 两条独立挂载)。 */
+export type TenantPluginLayer = 'personal' | 'shared'
+
 export function createTenantPluginLoader(deps: TenantPluginLoaderDeps): {
   mount(pluginId: string, opts: { readonly dir: string; readonly ownerUserId?: number }): Promise<TenantPluginMountResult>
-  unmount(pluginId: string): void
+  unmount(pluginId: string, layer?: TenantPluginLayer): void
   bootScan(): Promise<void>
-  stateOf(pluginId: string): TenantPluginState
+  stateOf(pluginId: string, layer?: TenantPluginLayer): TenantPluginState
   dispose(): void
 } {
+  // 键 = 层+pluginId:同一插件「个人副本」与「转内置共享副本」互不干扰——
+  // 曾只按 pluginId 键控,停用个人行把共享装载一并拆掉(2026-11-18 GUI 实证)。
   const mounts = new Map<string, MountRecord>()
   const takenNames = new Set<string>()
+  const mountKey = (pluginId: string, layer: TenantPluginLayer): string => `${layer}:${pluginId}`
 
-  const stateOf = (pluginId: string): TenantPluginState => {
-    return mounts.get(pluginId)?.state ?? { mounted: false, tools: [] }
+  const stateOf = (pluginId: string, layer: TenantPluginLayer = 'personal'): TenantPluginState => {
+    return mounts.get(mountKey(pluginId, layer))?.state ?? { mounted: false, tools: [] }
   }
 
   const auditMount = (action: string, pluginId: string, detail: Record<string, unknown>): void => {
     deps.audit({ kind: 'access.tenant', detail: { action: `plugin.${action}`, pluginId, ...detail } })
   }
 
-  const unmount = (pluginId: string): void => {
-    const record = mounts.get(pluginId)
+  const unmountKey = (key: string): void => {
+    const record = mounts.get(key)
     if (record === undefined) return
     for (const name of record.names) takenNames.delete(name)
     for (const dispose of [...record.disposers].reverse()) {
@@ -108,8 +114,12 @@ export function createTenantPluginLoader(deps: TenantPluginLoaderDeps): {
         // 单个注销失败不阻断其余回收(宿主 disposer 纪律:卸载尽力而为)
       }
     }
-    mounts.delete(pluginId)
-    auditMount('unmount', pluginId, {})
+    mounts.delete(key)
+    auditMount('unmount', key.slice(key.indexOf(':') + 1), { layer: key.slice(0, key.indexOf(':')) })
+  }
+
+  const unmount = (pluginId: string, layer: TenantPluginLayer = 'personal'): void => {
+    unmountKey(mountKey(pluginId, layer))
   }
 
   /** 读 manifest 并校验装载契约(返回错误文案;通过时返回解析结果)。 */
@@ -153,22 +163,24 @@ export function createTenantPluginLoader(deps: TenantPluginLoaderDeps): {
   }
 
   async function mount(pluginId: string, opts: { readonly dir: string; readonly ownerUserId?: number }): Promise<TenantPluginMountResult> {
-    unmount(pluginId)
+    const layer: TenantPluginLayer = opts.ownerUserId === undefined ? 'shared' : 'personal'
+    const key = mountKey(pluginId, layer)
+    unmountKey(key)
     const tools = deps.readTools()
     if (tools === undefined || typeof tools.register !== 'function') {
       const error = '宿主 tools 服务未就绪,装载器惰性'
-      mounts.set(pluginId, { names: [], disposers: [], state: { mounted: false, tools: [], error } })
+      mounts.set(key, { names: [], disposers: [], state: { mounted: false, tools: [], error } })
       return { ok: false, error }
     }
     const contract = readContract(opts.dir)
     if (typeof contract === 'string') {
-      mounts.set(pluginId, { names: [], disposers: [], state: { mounted: false, tools: [], error: contract } })
+      mounts.set(key, { names: [], disposers: [], state: { mounted: false, tools: [], error: contract } })
       auditMount('mount.rejected', pluginId, { reason: contract, dir: opts.dir })
       return { ok: false, error: contract }
     }
     const half = await importHostHalf(contract.entry)
     if (typeof half === 'string') {
-      mounts.set(pluginId, { names: [], disposers: [], state: { mounted: false, tools: [], error: half } })
+      mounts.set(key, { names: [], disposers: [], state: { mounted: false, tools: [], error: half } })
       auditMount('mount.rejected', pluginId, { reason: half, dir: opts.dir })
       return { ok: false, error: half }
     }
@@ -177,15 +189,17 @@ export function createTenantPluginLoader(deps: TenantPluginLoaderDeps): {
       const allowed = Array.isArray(inject) && inject.length <= 1 && (inject.length === 0 || inject[0] === 'tools')
       if (!allowed) {
         const error = `inject 越权:${JSON.stringify(inject)}(个人层仅允许 ['tools'])`
-        mounts.set(pluginId, { names: [], disposers: [], state: { mounted: false, tools: [], error } })
+        mounts.set(key, { names: [], disposers: [], state: { mounted: false, tools: [], error } })
         auditMount('mount.rejected', pluginId, { reason: error, dir: opts.dir })
         return { ok: false, error }
       }
     }
-    // 命名空间段:共享层无 owner → 用原作者账号(plugin_id 中段);个人层用本人。
-    const segment = opts.ownerUserId === undefined
-      ? namespaceSegment(pluginId.split(':')[1] ?? pluginId)
-      : namespaceSegment(deps.store.getUserById(opts.ownerUserId)?.account ?? pluginId)
+    // 命名空间分层:个人=user_<账号>_<原名>;共享=shared_<原名>(无账号归属——
+    // 转内置后是全员资产;独立前缀保证同一 pluginId 的个人行与共享行可同时装载
+    // 而不撞名,也避免账号恰好叫 shared 时混淆)。
+    const prefix = opts.ownerUserId === undefined
+      ? 'shared'
+      : `user_${namespaceSegment(deps.store.getUserById(opts.ownerUserId)?.account ?? pluginId)}`
     const names: string[] = []
     const disposers: Array<() => void> = []
     const register = (definition: Record<string, unknown>): () => void => {
@@ -193,7 +207,7 @@ export function createTenantPluginLoader(deps: TenantPluginLoaderDeps): {
       if (typeof original !== 'string' || !TOOL_NAME_PATTERN.test(original)) {
         throw new Error(`工具名非法:${JSON.stringify(original)}(须匹配 ${TOOL_NAME_PATTERN.source})`)
       }
-      const mounted = `user_${segment}_${original}`
+      const mounted = `${prefix}_${original}`
       if (takenNames.has(mounted)) throw new Error(`工具名撞名:${mounted}(先卸载同名插件或改工具名)`)
       takenNames.add(mounted)
       names.push(mounted)
@@ -227,12 +241,12 @@ export function createTenantPluginLoader(deps: TenantPluginLoaderDeps): {
       for (const dispose of disposers.splice(0).reverse()) dispose()
       for (const name of names) takenNames.delete(name)
       const reason = `apply 执行失败:${error instanceof Error ? error.message : String(error)}`
-      mounts.set(pluginId, { names: [], disposers: [], state: { mounted: false, tools: [], error: reason } })
+      mounts.set(key, { names: [], disposers: [], state: { mounted: false, tools: [], error: reason } })
       auditMount('mount.rejected', pluginId, { reason, dir: opts.dir })
       return { ok: false, error: reason }
     }
     const record: MountRecord = { names, disposers, state: { mounted: true, tools: names } }
-    mounts.set(pluginId, record)
+    mounts.set(key, record)
     auditMount('mount', pluginId, { dir: opts.dir, tools: names, personal: opts.ownerUserId !== undefined })
     return { ok: true, tools: names }
   }
@@ -262,7 +276,7 @@ export function createTenantPluginLoader(deps: TenantPluginLoaderDeps): {
     bootScan,
     stateOf,
     dispose(): void {
-      for (const pluginId of [...mounts.keys()]) unmount(pluginId)
+      for (const key of [...mounts.keys()]) unmountKey(key)
     },
   }
 }
