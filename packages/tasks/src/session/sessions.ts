@@ -13,7 +13,10 @@
  *   `sessionController.create({ sessionId, workspaceId, agentPreset })`(rc.1 的
  *   SessionCreateRequest.agentPreset「replacing a reused Session's recorded preset」
  *   即 SA 的 preset 重选兜底)→ 复解析 → `permissionPresets.set(session, preset)`
- *   (A4 拍板 v1 现有沙箱旋钮;缺省 workspace-write,见 permissionPreset 注)→ `rename(sessionId, title)`;
+ *   (A4 拍板 v1 现有沙箱旋钮;缺省 workspace-write,见 permissionPreset 注)→
+ *   `roleModel` 播种(46 号:A25 双角色模型设置的消费面——每角色现读 settings,
+ *   非 null 即 `agent.model.select` 落定下一步,首轮第一步即生效;null=不覆写随宿主
+ *   默认)→ `rename(sessionId, title)`;
  * - worker session id 约定 `worker-<ticketId>`(SA dsh.ts:24;executor/dsh.ts 定义)保留;
  *   worker session cwd 一律由调用方(executor)从租户 realm 工作区派生(A22 交付原文
  *   「worker session 一律建在租户 realm 工作区内」;R4 目录 `.ticket/<id>/`)。
@@ -38,6 +41,7 @@ import { freezeMessage, MessageId, type ContextFormed } from '@deepseek-ai/dsh-l
 import { SessionId, type Session } from '@deepseek-ai/dsh-session'
 import { key } from '../core/ids.ts'
 import type { Effects } from '../effects/effects.ts'
+import type { RoleModel } from '../policy/settings.ts'
 
 /** 本包投递的消息在 DSH 里的生产者身份(executor 的 inputsRead 订阅按它识别)。 */
 declare module '@deepseek-ai/dsh-llm' {
@@ -122,6 +126,12 @@ export interface SessionsHost {
   readonly lifetime: AbortSignal
   /** 各角色创建 session 时选用的 agent preset 名(A25 cordis.patch.yml 落地后由装配注入;未注入用宿主默认)。 */
   readonly presets?: Partial<Record<SessionRole, string>>
+  /** 各角色的模型播种面(46 号;A25 role-models 语义的消费端):每次 ensure **现读**
+   * (装配注入 settings 派生 getter,设置热生效,无需重启),非 null 经
+   * `agent.model.select` 覆写该会话下一步的模型;null/缺席 = 不播种、随宿主会话默认
+   * (/api/session/modelCatalog 里人选的默认模型)——与 SA initializeRoleModel 的
+   * 「模型缺席即不播种」同一语义。 */
+  readonly roleModel?: (role: SessionRole) => RoleModel | null
   /** 建会话写入的权限 preset 名(A4 拍板 v1 现有沙箱旋钮;缺省 'workspace-write'——worker
    * 要在租户工作区写工单目录,workspace-write 正是其语义;★2026-11-18 改缺省:SA 同款
    * 'danger-full-access' 非标准部署 preset(permission-presets 按部署 config.presets 配置,
@@ -181,9 +191,50 @@ export class Sessions {
       result = await controller.resolveAgent(SessionId(id))
     }
     if ('error' in result) throw result.error
+    // 角色模型播种(46 号):新建与复用(重启 resume)同走此处——设置在场即该角色恒用
+    // 此模型(每次 ensure 现读,热改下一次 ensure 生效);select 早于任何投递,首轮第一步
+    // 即捕获该选择(宿主 pre-step 的 model.current() 捕获时点,thinking-auto 同款纪律)。
+    this.seedModel(result.agent, role)
     permissions.set(result.agent.session, this.host.permissionPreset ?? 'workspace-write')
     await controller.rename({ sessionId: SessionId(id), title })
     return result.agent
+  }
+  /**
+   * 把角色模型落到该 session 的下一步(46 号 §二;宿主 `Agent.model.select` 结构面):
+   * - 未配置(roleModel 缺席或返回 null)= 不播种——随宿主会话默认(UI 里选的默认
+   *   模型),这是缺省形态,任何工单都不因配置缺席改变路由;
+   * - 已配置 = 覆写:`select` 对同档是原子 no-op(不产生事件噪音),异档落
+   *   `model/selection` 事件;已入史换档时宿主 pre-step 会补一条 model changed 提示语
+   *   (仅当既有 request/header 已用过别的路由,新会话首轮无提示);
+   * - 结构面缺席(stub 假件/未实现 model 的 Agent)或 select 抛错时 fail-neutral:
+   *   记一条 warn 跳过,不阻断 ensure(权限/标题半边照旧)——角色模型是增强面,
+   *   不能成为建会话的硬依赖。
+   */
+  private seedModel(agent: Agent, role: SessionRole): void {
+    const model = this.host.roleModel?.(role)
+    if (model === null || model === undefined) return
+    const surface = (agent as unknown as {
+      readonly model?: {
+        readonly select?: (selection: {
+          readonly provider: string
+          readonly model: string
+          readonly reasoningEffort?: string
+        }) => void
+      }
+    }).model
+    const select = surface?.select
+    if (select === undefined) return
+    try {
+      // 三键原样落定;exactOptionalPropertyTypes 下可选档位按「在场才带」装配。
+      select.call(surface, { provider: model.provider, model: model.model,
+        ...(model.reasoningEffort === undefined ? {} : { reasoningEffort: model.reasoningEffort }) })
+    } catch (error) {
+      // 宿主 logger 机会读取(plugin.ts 同款结构面;测试 ctx 可缺席,缺席静默)。
+      const logger = (this.ctx as unknown as {
+        readonly logger?: { readonly warn?: (...args: unknown[]) => void }
+      }).logger
+      logger?.warn?.(`[tasks] 角色模型 ${role} 播种失败(${model.provider}/${model.model}):${String(error)}`)
+    }
   }
   /**
    * session `sessionId` 是否已持有 `requestId` 的消息(在 inbox 里等,或已入史)。
