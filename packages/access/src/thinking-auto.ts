@@ -235,11 +235,13 @@ export function installThinkingAuto(
 
       // 落盘在微任务:当前 tick 处于 session.append 派发中,嵌套 append 被宿主禁止;
       // 入箱先于 wakeDriver 入队,微任务仍早于 preStep 的 current() 捕获(见头注时序)。
+      // 注意经 receiver 调用(model.select(...)),不得抽出方法裸调——this 会丢
+      // (0.1.18 生产实证:裸调炸 recordedSelection of undefined)。
       const selection = { provider, model, reasoningEffort: effort.id }
       queueMicrotask(() => {
         try {
-          const select = agent?.model?.select
-          if (typeof select === 'function') select(selection)
+          const modelRef = agent?.model
+          if (modelRef !== undefined && typeof modelRef.select === 'function') modelRef.select(selection)
           else if (typeof sessionRef.append === 'function') sessionRef.append('model/selection', selection)
           else return
           deps.audit({

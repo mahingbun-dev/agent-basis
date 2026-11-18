@@ -44,13 +44,22 @@ function makeHarness(options: HarnessOptions = {}) {
     requestHeader: () => ({ config: { provider: 'prov', model: 'model-a' } }),
     append: (type: string, data: unknown) => { appends.push({ type, data }) },
   }
-  const agent = {
-    session,
-    model: {
-      current: () => ({ provider: 'prov', model: 'model-a' }),
-      select: (s: { provider: string; model: string; reasoningEffort?: string }) => { selectCalls.push(s) },
-    },
+  // 形态对齐宿主 AgentModel:select/current 是**依赖 this 的方法**——
+  // 0.1.18 生产事故回归锚:路由器抽出方法裸调会 here 炸(this undefined)。
+  const makeAgentModel = () => {
+    let pending: unknown = null
+    return {
+      recordedSelection(): unknown { return pending },
+      current(): unknown { return this.recordedSelection() ?? { provider: 'prov', model: 'model-a' } },
+      select(selection: { provider: string; model: string; reasoningEffort?: string }): void {
+        const recorded = this.recordedSelection()
+        if (JSON.stringify(recorded) === JSON.stringify(selection)) return
+        pending = selection
+        selectCalls.push(selection)
+      },
+    }
   }
+  const agent = { session, model: makeAgentModel() }
 
   const on: ThinkingAutoOn = (event, listener) => {
     const list = listeners.get(event) ?? []

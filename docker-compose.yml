@@ -17,7 +17,7 @@
 services:
   eterna-agent:
     build: .
-    image: eterna-agent:0.1.18
+    image: eterna-agent:0.1.19
     container_name: eterna-agent
     # cwd=卷根:审计/治理规则/记忆库默认落 $cwd/.eterna → 持久化在 eterna-home 卷
     working_dir: /data
