@@ -189,14 +189,29 @@ node tools/packctl/bin/packctl.mjs lint packs/<行业名>          # 结构/Cord
 
 ## 插件怎么从索引安装
 
+### 前置:「发现」标签需要启用实验 bundle
+
+shipped profile 默认**不含**「发现」tab。启用一次(管理员):
+
+```bash
+cd $DSH_HOME/profiles/<profile>       # 例如 eterna-web
+pnpm add @deepseek-ai/dsh-experimental-plugin-market-bundle@0.2.2-rc.1
+# package.json 的 dsh.profile.bundles 追加该包名,然后重启宿主
+```
+
+⚠️ 多用户部署启用前必读 `docs/PLUGIN-AUTHORING.md` §7「已知安全缺口」:市场 RPC 的 admin-only 门(T6.1)尚未落地,普通登录用户当前也能调用安装。单租户/受信环境可接受。
+
 ### Web「发现」标签(推荐)
 
 1. 打开 Web → 侧栏「**插件**」页 → 切到「**发现**」标签
-2. 首次使用点「**添加索引源**」(或工具栏「插件索引」菜单 →「管理索引源…」),填入插件索引的 http(s) URL——索引是一份 JSON 清单,列出可安装的组合包。
-   本仓库自家插件(@eterna/glue、@event/pack)的长期索引源:**`https://raw.githubusercontent.com/mahingbun-dev/agent-basis/main/market/index.json`**
-   (离线演示备用:仓库根 `python3 -m http.server 8765 -d market/` 后填 `http://127.0.0.1:8765/index.json`)
-3. 搜索/按标签筛选 → 卡片上点「**安装**」→ 确认对话框(显示版本、来源 spec、registry)→ 确认后进入安装检查界面
-4. 装完到「已安装」标签启用/停用;装新组合包默认启用,eterna-web profile 无 HMR 时按提示重启生效
+2. 首次使用点「**添加索引源**」(或工具栏「插件索引」菜单 →「管理索引源…」),填入插件索引的 http(s) URL——索引是一份 JSON 清单,列出可安装的插件包。
+   **官方插件仓库源(长期):**`https://raw.githubusercontent.com/mahingbun-dev/eterna-plugins/main/market/index.json`
+   本主仓库索引(演示用,`@eterna/glue`/`@event/pack`):**`https://raw.githubusercontent.com/mahingbun-dev/agent-basis/main/market/index.json`**
+   (离线演示备用:仓库根 `python3 -m http.server 8765 -d market/` 后填 `http://127.0.0.1:8765/index.json`;自建索引服务须允许浏览器跨源读取/CORS)
+3. 搜索/按标签筛选 → 卡片上点「**安装**」→ 确认对话框(显示版本、来源 spec、commit)→ 确认后进入安装检查(不兼容版本会被拒并提示豁免方式)
+4. 装完到「已安装」标签启用/停用;启用行写入 profile 的 `dsh.profile.bundles`,eterna-web profile 无 HMR 时按提示**重启生效**
+
+安装/启用是管理员面;普通用户的个人工具插件走设置弹窗「我的插件」(免重启,见 `docs/dev/tenant-plugins.md`)。
 
 ### 会话内让代理装(工具链)
 

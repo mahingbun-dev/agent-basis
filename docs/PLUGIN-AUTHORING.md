@@ -151,7 +151,7 @@ sleep 15; grep -icE "skipping|incompatible" /tmp/eterna-web-app.log   # 0 = 装�
 1. `pnpm -w run verify`(全包)+ 新包 verify + 装载冒烟(§4)。
 2. commit 信息以任务/模块开头;`docs/` 若有行为变更同步更新。
 3. push → CI 绿(verify + packctl lint + replay 冒烟)。
-4. **市场分发**(可选):`market/index.json` 加条目(官方格式 1,`source: git` 固定 commit + `path` 指向包目录),版本号 bump——别人的 DSH「发现」页填仓库索引 URL 即可一键安装/更新。
+4. **市场分发**(可选):插件发布到独立官方仓库 [eterna-plugins](https://github.com/mahingbun-dev/eterna-plugins)(format 1 索引 + 自包含 bundle + 零漂移校验)——按其 `docs/PUBLISHING.md` 六步走:bundle 自包含化(只发 .js)、commit 钉版、索引追加版本条目、`node scripts/validate.mjs` 全绿。仅需随本仓演示/离线内嵌的条目才留在本仓 `market/index.json`(同款 format 1,勿重复上架同一插件)。
 
 ## 6. 创造模式专属须知
 
@@ -161,3 +161,10 @@ sleep 15; grep -icE "skipping|incompatible" /tmp/eterna-web-app.log   # 0 = 装�
 - plugin_manager 在上游非裁切部署中安装**需逐次审批**;build-script(pnpm approve-scripts)同审;`compatibility.json` 豁免需显式 accept-risk。
 - 无 HMR 的 profile 改动报 `restart-required`——重启后生效,不是 bug。
 - 自修改/装卸插件是**高危面**:生产 profile 建议禁用 plugin_manager 行(bundles 里 `disabled: true`),只在开发 profile 开放。
+
+## 7. Web 插件市场(发现页)现状
+
+- **组成**:上游「发现」tab 由实验 bundle `@deepseek-ai/dsh-experimental-plugin-market-bundle` 提供(shipped profile **默认不装**);安装器服务 `plugin-manager` 本就在 dsh-base 宿主行,`ui-plugin-manager`(已安装页)在 web-app。启用发现页 = profile `dsh.profile.bundles` 追加该实验 bundle + `pnpm add` 该包,重启生效(2026-11-19 本地实测:发现 tab、索引源添加、搜索、安装、启用、重启装载全链贯通)。
+- **agent 面工具链维持裁切**:`tool-plugin-manager`/`tool-plugin-market` 在标准/创造预设均 `disabled: true`(2026-11-09 三方准入红线,2026-11-18 裁定不回加)——Web 面开放不改变此裁定;会话内 agent 仍不能自装 bundle。
+- **⚠️ 已知安全缺口(T6.1 未实现)**:计划文档 `plans/2026-11-10-多用户权限隔离与双层插件空间改造计划.md` §堵洞先行要求的「pluginManager/pluginMarket RPC 与 detail-file 路由 admin-only」**只写了注释未落地**(commit 77e2d73 `user-plugins.ts` 头注;`packages/access/src/` 无对应守卫注册)。实测(2026-11-19,双账号 E2E):普通用户 role=user 经发现页可成功 `installBundle` 写入**共享 profile**(影响全体用户)。机制=unary RPC 走 owner peer,mux 租户策略不覆盖(`mux.ts` 头注已述),access 的守卫只拦 `/access/*` 前缀;webServer 前缀最长匹配独占,access 无法在 `/api/pluginManager` 上叠守卫并转发。**结论:多租户部署启用发现页前必须先实现该门**(可行方向:access 接管 `/api` 前门并内部转发,或上游 remote-access 对 unary 生效)——单租户/受信环境可接受。
+- 索引源必须允许浏览器直连(CORS):raw.githubusercontent.com 可用;内网静态托管需带 `Access-Control-Allow-Origin`。
