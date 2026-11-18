@@ -5,7 +5,9 @@
  * - 承载方式 B:挂在 DSH `tools/pre-execute` waterfall 上,deny 不可绕过由内核单调 guard 保证;
  * - 匹配维度:tool 名 glob + 参数子串(序列化后 includes);
  * - 优先级:deny > ask > allow;未命中走 default;
- * - fail-closed:default 只允许 ask/deny(解析期拒绝 `default: allow`),配置非法直接抛错,绝不静默放行。
+ * - fail-closed 底线:引擎缺省 default=ask(无规则文件的裸宿主不静默放行);部署规则
+ *   文件可显式声明 `default: allow`(2026-11-19 产品拍板:沙箱/access 钳制/egress 承担
+ *   限界,询问全局静默),ask/deny 保留为显式规则面。default 仅允许 allow|ask|deny,非法值解析期抛错。
  */
 import { createHash } from 'node:crypto'
 import { parse as parseYaml } from 'yaml'
@@ -26,7 +28,7 @@ export interface PolicyRule {
   readonly reason?: string
 }
 
-/** 策略文档。`default` 为未命中时的裁决(仅 ask/deny)。 */
+/** 策略文档。`default` 为未命中时的裁决(allow|ask|deny;缺省 ask)。 */
 export interface PolicyDocument {
   readonly rules: readonly PolicyRule[]
   readonly default: RuleEffect
