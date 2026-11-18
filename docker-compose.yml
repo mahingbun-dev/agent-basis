@@ -54,4 +54,8 @@ services:
     restart: unless-stopped
 
 volumes:
+  # 生产卷钉扎(2026-11-19):现网数据在 agent-basis_eterna-home(首建 compose 项目名),
+  # 本目录项目名不同会新建空卷——external 钉名后 compose up 恒挂生产卷。
   eterna-home:
+    external: true
+    name: agent-basis_eterna-home
