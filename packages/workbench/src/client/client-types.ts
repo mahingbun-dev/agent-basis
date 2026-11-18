@@ -38,8 +38,19 @@ export interface LocaleFace {
   bind(ns: string): (key: string) => string
 }
 
+/**
+ * 会话导航服务消费面(宿主 ui-workspace 的 `uiWorkspace` 服务,2026-11-19
+ * 「主会话」显式入口用):只取打开会话一个动作。
+ */
+export interface UiWorkspaceFace {
+  /** 选中会话并把会话区切过去(宿主导航动作;未知 id 由宿主侧收敛)。 */
+  openSession(sessionId: string): void
+}
+
 /** 浏览器插件上下文(本插件消费的最小服务面)。 */
 export interface WorkbenchClientContext {
   readonly slots: SlotsFace
   readonly locale: LocaleFace
+  /** 会话导航面(ui-workspace;裸宿主/测试可缺席,缺席时入口不渲染)。 */
+  readonly uiWorkspace?: UiWorkspaceFace
 }
