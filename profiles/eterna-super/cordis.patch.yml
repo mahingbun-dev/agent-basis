@@ -586,13 +586,18 @@
     # tier1)。verify-eterna-super「挂一行、验一行」口径维持(行集派生自 super 模板)。
     - id: eterna-tasks
       name: '@eterna/tasks'
-      # realm 对齐部署账号(单租户验收;多租户经 glue 注入账号 realm 后移除本行):
-      # 工单库/orchestrator 主会话落在 admin 工作区,用户侧栏可见可委派。
+      # realm 对齐登录账号名(单租户验收;多租户经 glue 注入账号 realm 后移除本行):
+      # A2 归属桥按 userIdByAccount(realm) 查 id,不对齐即 fail-closed 不登记。
       config:
-        realm: admin
+        realm: Mr.Ma
     - id: eterna-channels
       name: '@eterna/glue/channels-plugin'
     - id: eterna-interact
       name: '@eterna/glue/interact-plugin'
     - id: eterna-toolkit
       name: '@eterna/toolkit'
+    - id: eterna-tasks-access-bridge
+      name: '@eterna/glue/tasks-access-bridge-plugin'
+      # A2 归属桥(2026-11-19):orchestrator 主会话归属自动登记进 access 账本
+      # (删行 reboot 幂等回登)。realm 必须与登录账号名对齐(桥按 userIdByAccount(realm)
+      # 查 id),不对齐时 fail-closed 不登记、log 显式可见。44 号 §二 #4 收口。
