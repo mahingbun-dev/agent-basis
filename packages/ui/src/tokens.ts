@@ -12,6 +12,8 @@
  * 规范：docs/design/42-前端视觉体系v4-温润如玉.md、docs/design/frontend-style.md
  */
 
+import { COMPONENT_CSS } from './components-css.ts'
+
 const LIGHT = `
   color-scheme: light;
 
@@ -165,6 +167,16 @@ const SHARED = `
   --et-container-panel: 1600px;
   --et-gutter: 24px;
 
+  /* 四级暖调柔影（浅色基准值；桥接块内会按主题覆盖为深色值）。
+     必须放 SHARED：否则只用桥接模式时取不到，阴影会退回浏览器默认/深色值。 */
+  --et-shadow-r1: 0 1px 2px rgba(38, 42, 36, 0.05), 0 2px 6px rgba(38, 42, 36, 0.04);
+  --et-shadow-r2: 0 1px 2px rgba(38, 42, 36, 0.05), 0 8px 24px rgba(38, 42, 36, 0.07);
+  --et-shadow-r3: 0 2px 6px rgba(38, 42, 36, 0.07), 0 16px 40px rgba(38, 42, 36, 0.1);
+  --et-shadow-r4: 0 4px 12px rgba(38, 42, 36, 0.09), 0 24px 64px rgba(38, 42, 36, 0.18);
+  --et-warn-soft: rgba(148, 102, 28, 0.1);
+  --et-jade: #3f7d6a;
+  --et-sand: #c2a179;
+
   /* 兼容别名：v3 代码仍引用 --et-shadow / --et-shadow-raised，指向 v4 档位 */
   --et-shadow: 0 1px 2px rgba(38, 42, 36, 0.05), 0 8px 24px rgba(38, 42, 36, 0.07);
   --et-shadow-raised: 0 1px 2px rgba(38, 42, 36, 0.05), 0 8px 24px rgba(38, 42, 36, 0.07);
@@ -313,7 +325,7 @@ body, [data-eterna-ui] {
 }
 
 /* 深色：只换中性别名（同一批名字，主题由壳切换 data-ds-dark-theme） */
-body[data-ds-dark-theme], [data-eterna-ui][data-ds-dark-theme] {
+body[data-ds-dark-theme] {
   --dsw-alias-bg-base: #161917;
   --dsw-alias-bg-layer-1: #1d211f;
   --dsw-alias-bg-layer-2: #242826;
@@ -391,12 +403,22 @@ body[data-ds-dark-theme], [data-eterna-ui][data-ds-dark-theme] {
   --dsw-alias-brand-text: #eceee9;
   --dsw-alias-brand-primary-new-colorprimary-new-color: #7fb2bd;
 
-  /* 品牌层在深色下的本地派生 */
+  /* 品牌层在深色下的本地派生（含柔影与语义软底：SHARED 给的是浅色基准） */
   --et-accent-fill: var(--dsw-alias-button-primary-fill);
   --et-accent-fill-hover: var(--dsw-alias-button-primary-hover);
   --et-accent-on: #f7fbfc;
+  --et-jade: #5f9b86;
   --et-sand: #a98a63;
   --et-bevel: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --et-shadow-r1: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --et-shadow-r2: 0 2px 6px rgba(0, 0, 0, 0.34), 0 10px 28px rgba(0, 0, 0, 0.24);
+  --et-shadow-r3: 0 4px 12px rgba(0, 0, 0, 0.4), 0 18px 44px rgba(0, 0, 0, 0.34);
+  --et-shadow-r4: 0 8px 20px rgba(0, 0, 0, 0.46), 0 28px 72px rgba(0, 0, 0, 0.5);
+  --et-shadow: 0 2px 6px rgba(0, 0, 0, 0.34), 0 10px 28px rgba(0, 0, 0, 0.24);
+  --et-shadow-raised: 0 2px 6px rgba(0, 0, 0, 0.34), 0 10px 28px rgba(0, 0, 0, 0.24);
+  --et-warn-soft: rgba(223, 174, 98, 0.16);
+  --et-danger-soft: rgba(224, 138, 123, 0.14);
+  --et-accent-soft: rgba(127, 178, 189, 0.16);
 }
 `
 
@@ -409,9 +431,12 @@ const STYLE_ID = 'eterna-ui-tokens'
  */
 export function injectDesignTokens(options: { readonly bridge?: boolean; readonly doc?: Document } = {}): () => void {
   const doc = options.doc ?? document
-  // 应用内只注入非颜色令牌 + 宿主桥接：不设置 color-scheme，避免覆盖产品壳
-  // 自身的主题选择；独立页才使用完整品牌浅/深色令牌。
-  const css = options.bridge === true ? `:root {${SHARED}}\n${DSH_BRIDGE_CSS}` : WEBFLOW_TOKENS_CSS
+  // 应用内只注入非颜色令牌 + 宿主桥接 + 共享基础件：不设置 color-scheme，避免覆盖
+  // 产品壳自身的主题选择；独立页才使用完整品牌浅/深色令牌。
+  // 基础件样式只在应用内下发（class 契约限定 [data-eterna-ui] 作用域）。
+  const css = options.bridge === true
+    ? `:root {${SHARED}}\n${DSH_BRIDGE_CSS}\n${COMPONENT_CSS}`
+    : WEBFLOW_TOKENS_CSS
   const existing = doc.querySelector(`#${STYLE_ID}`)
   if (existing !== null) {
     if (existing.textContent !== css) existing.textContent = css

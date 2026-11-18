@@ -1,7 +1,7 @@
 /**
  * 恒灵·EternaAgent 图标 React 组件。
  *
- * 统一 24 网格 / 1.75 描边 / currentColor;所有路径来自 icon-data.ts。
+ * 统一 24 网格 / 1.6 描边 / currentColor;所有路径来自 icon-data.ts。
  * 功能图标默认 aria-hidden;需要独立可访问名称时传 label。
  */
 import type { ReactElement } from 'react'
@@ -27,7 +27,7 @@ export function Icon({ name, size = 20, className, label }: IconProps): ReactEle
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.75}
+      strokeWidth={1.6}
       strokeLinecap="round"
       strokeLinejoin="round"
       focusable="false"

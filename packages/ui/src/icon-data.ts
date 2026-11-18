@@ -3,7 +3,7 @@
  *
  * 单一事实源:React 组件(@eterna/ui/icons)与独立页字符串(iconSvg)都从
  * 这里取路径,避免登录页/插件页再各自手写 SVG。图形统一 24 网格、20 视觉区、
- * 1.75 描边、圆头圆角;只使用 currentColor,不写死色值。
+ * 1.6 描边、圆头圆角;只使用 currentColor,不写死色值。
  */
 export interface IconPrimitive {
   readonly tag: 'path' | 'circle' | 'rect' | 'line'
@@ -259,7 +259,7 @@ export function iconInner(name: IconName): string {
 /** 独立页/服务端字符串出口;与 React <Icon> 共用同一份路径数据。 */
 export function iconSvg(name: IconName, size = 20, className?: string): string {
   const cls = className === undefined ? '' : ` class="${escapeAttr(className)}"`
-  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"${cls}>${iconInner(name)}</svg>`
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"${cls}>${iconInner(name)}</svg>`
 }
 
 /** 品牌闪电(24 网格,竖版比例,16px 仍可辨)。 */
