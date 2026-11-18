@@ -28,7 +28,7 @@ import { handleAccessRequest, type AccessDeps } from './routes.ts'
 import { loadOrCreateSecret, SessionService } from './session.ts'
 import { SlidingWindow } from './ratelimit.ts'
 import { UserStore } from './store.ts'
-import { installThinkingAuto, type InboxInsertedPayload, type ThinkingAutoLlm } from './thinking-auto.ts'
+import { installThinkingAuto, type ThinkingAutoLlm } from './thinking-auto.ts'
 import { ensureFirstSession, ensureTenantWorkspace, registerTenantGuards } from './tenant.ts'
 import { installMuxIsolation, type MuxIsolationInstall } from './mux.ts'
 import { installLoginGate } from './login-gate.ts'
@@ -214,14 +214,15 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       const offQuestionAnswerer = questionBridge.installAnswerer(
         listener => (ctx as unknown as { on: (event: string, listener: (request: unknown, next: () => unknown) => unknown, options?: { prepend?: boolean }) => () => void }).on('user-questions/request', listener, { prepend: true }),
       )
-      // ── 思考强度自动模式(2026-11-18):每轮用户消息入箱(agent/inbox/inserted,
-      // 同步 emit、早于驱动唤醒)按启发式评分自动调 agent.model.select 选档。
-      // 监听体全同步(emit 分发不回等 promise);开关存 users.db
+      // ── 思考强度自动模式(2026-11-18):每轮用户消息入箱时按启发式评分自动
+      // 调 agent.model.select 选档。信号面=agent/created 登记 + session/event
+      // (alpha.3 主路径)+ inbox/inserted(rc.1 兼容,双路径去重);选档落盘在
+      // 微任务(session.append 派发中嵌套 append 被宿主禁止)。开关存 users.db
       // sessions.thinking_auto(默认开启),UI=模型菜单「自动」chip(模型菜单铁律内)。
       const offThinkingAuto = installThinkingAuto(
         { store, llm: ctx.llm, audit },
         (event, listener) => (ctx as unknown as {
-          on: (event: string, listener: (payload: InboxInsertedPayload) => void) => () => void
+          on: (event: string, listener: (...args: unknown[]) => void) => () => void
         }).on(event, listener),
       )
       // P3(2026-11-11):把归属账本 provide 出去(usage-stats 聚合的归属唯一事实源;
