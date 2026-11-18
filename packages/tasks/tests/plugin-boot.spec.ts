@@ -7,7 +7,10 @@
  * - engine 全链经装配走通(trigger→Eval→accept→工单开出→stub executor 记账,★A19/A22 替换点),
  *   realm 标注落库与 R4 执行契约经装配面填入;
  * - ctx.tasks 服务面(defineTasksPlugin + TASKS_SERVICE_ID provide 可配逆;health()/stats()
- *   供工作台与探针,35 号 A16④)。
+ *   供工作台与探针,35 号 A16④);
+ * - ★master 会话引导与 sessionHost 自主机 ctx 派生(2026-11-18 出票端到端三断点①/④):
+ *   masterId 按 config → KV → 约定派生解析、写 KV、health/stats 暴露;约定派生的主会话经
+ *   宿主 session 面 ensure 存在;宿主 session 服务缺席时回落 StubExecutor(联合类型保持)。
  *
  * 模拟宿主形态承 34 §4-E「模拟宿主驱动 runtime 级用例」:临时租户根 + 触发器构造复用
  * fixtures/host.ts;不依赖真实 DSH 宿主服务(stub executor 不触 ctx.agents)。
@@ -22,6 +25,7 @@ import { Effects } from '../src/effects/effects.ts'
 import { Outbox } from '../src/effects/outbox.ts'
 import { Store } from '../src/store/store.ts'
 import { TasksRealmRouter } from '../src/store/realm.ts'
+import { KV } from '../src/store/kv.ts'
 import {
   createTasks, DEFAULT_TASKS_REALM, defineTasksPlugin, PASS_INTERVAL_MS, StubExecutor,
   TASKS_PLUGIN_NAME, TASKS_SERVICE_ID,
@@ -29,6 +33,7 @@ import {
 import { MasterAssessor } from '../src/session/assessor.ts'
 import { DshExecutor } from '../src/executor/dsh.ts'
 import { workerSessionId } from '../src/executor/dsh.ts'
+import { masterSessionId, MASTER_SESSION_TITLE } from '../src/session/sessions.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionHostPorts } from '../src/session/sessions.ts'
 import type { TasksRuntime, TasksWorld } from '../src/plugin.ts'
@@ -76,6 +81,11 @@ it('装配按 store→effects→outbox→engine→assessor→executor→sources 
   expect(runtime.assessor).toBeInstanceOf(MasterAssessor)
   // executor 面按 sessionHost 注入分派(★A22):无宿主服务束装配为可控 stub
   expect(runtime.executor instanceof StubExecutor).toBe(true)
+  // ★master 会话引导(三断点①):裸 createTasks(无 sessionHost、无 config.masterId、KV 空)
+  // 不猜主会话——masterId 缺省,health()/stats() 如实缺省,webchat 入口无从安装。
+  expect(runtime.masterId).toBeUndefined()
+  expect(runtime.health().masterId).toBeUndefined()
+  expect(runtime.stats().masterId).toBeUndefined()
   // 库路径派生自租户工作区(34 §4-C tenant-scan 级断言;realm router 经 workspaceDir 建 Store)
   expect(runtime.store.path).toBe(join(dir, '.eterna', 'tasks.sqlite3'))
   expect(runtime.store.realm).toBe('alice')
@@ -175,16 +185,34 @@ it('engine 全链经装配走通:trigger→Eval→accept→工单开出→stub e
   runtime.dispose()
 })
 
-it('sources 接口位:未注入 SourceScope 时 Trigger 记 filtered 落库、不进 Eval(fail-closed)', () => {
+it('缺省 SourceScope 真实现(三断点③):webchat 主会话 listened,余一律 filtered 落库不进 Eval', () => {
   openRealm()
-  const runtime = boot()
+  // masterId 经 config 注入(引导解析第一序;三断点①),缺省 scope 面即 webchatMasterScope。
+  const runtime = boot('alice', { masterId: 'orchestrator-main' })
   runtime.store.saveSettings({ policy: { sources: { [SOURCE]: { allowed: [{ id: MEMBER, name: 'Alice' }] } } } })
   const trigger = humanTrigger('1', '@bot 修复登录回归')
-  // 缺省 UNWIRED_SCOPE 一律不监听:intake 记 filtered 处置落库(intake.ts:37-40),不排 Eval
+  // 非 webchat 来源:缺省面一律不监听——intake 记 filtered 处置落库(intake.ts:37-40),不排 Eval。
   expect(runtime.engine.receive(trigger)).toBe('filtered')
   runtime.pass()
   expect(runtime.engine.candidate(trigger.id)).toBeUndefined()
   expect(runtime.store.triggers.disposition(trigger.id)?.filtered).toBeDefined()
+  // webchat 主会话的用户消息:listened(explicit 强度由 gate 名单 × direct 裁定),进 Eval。
+  runtime.store.saveSettings({ policy: { sources: { [SOURCE]: { allowed: [{ id: MEMBER, name: 'Alice' }] },
+    webchat: { allowed: [{ id: runtime.realm, name: '部署账号' }] } } } })
+  const webchat = humanTrigger('2', '请把深色模式补上', {
+    source: 'webchat', threads: [{ source: 'webchat', id: 'orchestrator-main' }],
+    actor: { source: 'webchat', id: runtime.realm }, addressed: 'direct',
+    meta: { sessionId: 'orchestrator-main', messageId: 'm-1' },
+  })
+  expect(runtime.engine.receive(webchat)).toBe('stored')
+  expect(runtime.store.triggers.disposition(webchat.id)?.filtered).toBeUndefined()
+  // 同一 webchat 来源但非主会话:不在白名单,仍 filtered(不猜会话归属)。
+  const stranger = humanTrigger('3', '这不是主会话', {
+    source: 'webchat', threads: [{ source: 'webchat', id: 'someone-else' }],
+    actor: { source: 'webchat', id: runtime.realm }, addressed: 'direct',
+    meta: { sessionId: 'someone-else', messageId: 'm-2' },
+  })
+  expect(runtime.engine.receive(stranger)).toBe('filtered')
   runtime.dispose()
 })
 
@@ -328,4 +356,105 @@ it('A22 真实执行面接线:sessionHost 注入即 DshExecutor+Sessions 替换�
     expect(ticket?.assignments.at(-1)?.state).toBe('running')
   }
   finally { runtime.dispose() }
+})
+
+// ── ★master 会话引导与 sessionHost 自宿主 ctx 派生(2026-11-18 出票端到端三断点①/④)─────
+
+it('master 引导·解析序:config.masterId → KV 既有约定 → 约定派生 orchestrator-<realm>;解析结果写 KV 并经 health/stats 暴露', () => {
+  openRealm()
+  // 第一序:config 显式注入原样采信并写 KV(无宿主 session 面也落 KV——重启可复得)。
+  const first = boot('alice', { masterId: 'orchestrator-main' })
+  expect(first.masterId).toBe('orchestrator-main')
+  expect(first.store.get(KV.master.session)).toBe('orchestrator-main')
+  expect(first.health().masterId).toBe('orchestrator-main')
+  expect(first.stats().masterId).toBe('orchestrator-main')
+  expect(first.executor instanceof StubExecutor).toBe(true)
+  first.dispose()
+
+  // 第二序:config 缺席时自 KV 复得既有约定(重启后同一主会话;不重新派生)。
+  const second = boot('alice')
+  expect(second.masterId).toBe('orchestrator-main')
+  expect(second.store.get(KV.master.session)).toBe('orchestrator-main')
+  second.dispose()
+
+  // 第三序:宿主 session 面在场且 config/KV 皆缺席 → 确定性约定派生 `orchestrator-<realm>`,
+  // 并经 Sessions.ensure 确保主会话存在(SA runtime.ts:210 同构;resolveAgent 已有即复用)。
+  const thirdRoot = join(root, 'fresh')
+  mkdirSync(thirdRoot, { recursive: true })
+  const ctx = new Context()
+  const fake = fakeSessionHost(ctx)
+  const third = createTasks({ tenantRoot: thirdRoot, realm: 'alice', passIntervalMs: 3_600_000,
+    sessionHost: { context: ctx, ports: fake.ports } })
+  try {
+    expect(third.masterId).toBe(masterSessionId('alice'))
+    expect(third.masterId).toBe('orchestrator-alice')
+    expect(third.store.get(KV.master.session)).toBe('orchestrator-alice')
+    // 主会话经真实宿主 session 面建立(扩展点:fire-and-forget 的 ensure 待落定)。
+    return vi.waitFor(() => {
+      expect(fake.agentIds).toContain('orchestrator-alice')
+      expect(fake.renamed.get('orchestrator-alice')).toBe(MASTER_SESSION_TITLE)
+      expect(fake.permissions.get('orchestrator-alice')).toBe('danger-full-access')
+      expect(third.health().components.master?.state).toBe('ready')
+    }).then(() => { third.dispose() })
+  } catch (error) { third.dispose(); throw error }
+})
+
+it('sessionHost 自宿主 ctx 派生(三断点④):五服务齐全即真实 DshExecutor;任一缺席回落 StubExecutor', () => {
+  openRealm()
+  // 齐全:defineTasksPlugin 未显式注入 config.sessionHost,自 ctx 反射读取服务束派生
+  // (服务名 = DSH 0.2.2-rc.1 实测键:sessionController/workspaceRegistry/
+  // permissionPresets/sessionPersistence/agents,dsh-*/lib/index.js 的 super(ctx, "<name>") 处)。
+  const ctx = new Context()
+  const fake = fakeSessionHost(ctx)
+  ctx.reflect.provide('sessionController', fake.ports.controller)
+  ctx.reflect.provide('workspaceRegistry', fake.ports.workspaces)
+  ctx.reflect.provide('permissionPresets', fake.ports.permissions)
+  ctx.reflect.provide('sessionPersistence', fake.ports.persistence)
+  const plugin = defineTasksPlugin({ tenantRoot: root, realm: 'alice', passIntervalMs: 3_600_000, scope: testScope })
+  const dispose = plugin.apply(ctx)
+  try {
+    const runtime = ctx.tasks as TasksRuntime
+    expect(runtime.executor).toBeInstanceOf(DshExecutor)
+    expect(runtime.sessions).toBeDefined()
+    // 约定派生的主会话:宿主 session 面在场 → masterId 就绪(三断点①在该形态下恒成立)。
+    expect(runtime.masterId).toBe('orchestrator-alice')
+    // worker session 经派生出的宿主面真实建立(worker-<ticketId>,cwd = R4 目录)。
+    return (async () => {
+      await vi.waitFor(() => { expect(fake.agentIds).toContain('orchestrator-alice') })
+      runtime.store.saveSettings({ policy: { sources: { [SOURCE]: { allowed: [{ id: MEMBER, name: 'Alice' }] } } } })
+      const trigger = humanTrigger('1', '@bot 修复登录回归')
+      expect(runtime.engine.receive(trigger)).toBe('stored')
+      runtime.pass()
+      const candidate = runtime.engine.candidate(trigger.id)
+      expect(candidate).toBeDefined()
+      runtime.engine.candidateDelivered(candidate!.evalId)
+      const decision = runtime.engine.decide(trigger.id, {
+        kind: 'accept', title: '修复登录回归', scope: 'Do the work described by the request.', reason: 'explicit request',
+        delegation: { objective: 'Fix it.', outputFormat: 'Patch.', toolGuidance: 'Tools.', taskBoundaries: 'Defect only.' },
+      })
+      await runtime.effects.idle()
+      expect(fake.agentIds).toContain(workerSessionId(decision.ticketId!))
+    })().finally(() => { dispose() })
+  } catch (error) { dispose(); throw error }
+})
+
+it('sessionHost 派生 fail-closed:宿主仅提供部分服务(缺 agents/sessionPersistence)即回落 stub,不造桩', () => {
+  openRealm()
+  const ctx = new Context()
+  // 只给 sessionController + workspaceRegistry + permissionPresets;sessionPersistence 与
+  // agents 缺席 —— 派生的结构面不全,按 fail-closed 不派生(投递/建会话路径上缺面即炸内核)。
+  ctx.reflect.provide('sessionController', { resolveAgent: async () => ({ error: { code: 'session/not-found' } }),
+    create: async () => ({}), rename: async () => ({}) })
+  ctx.reflect.provide('workspaceRegistry', { create: async () => ({ id: 'w', path: '/tmp', title: 't' }) })
+  ctx.reflect.provide('permissionPresets', { set: () => {} })
+  const plugin = defineTasksPlugin({ tenantRoot: root, realm: 'alice', passIntervalMs: 3_600_000 })
+  const dispose = plugin.apply(ctx)
+  try {
+    const runtime = ctx.tasks as TasksRuntime
+    expect(runtime.executor).toBeInstanceOf(StubExecutor)
+    expect(runtime.sessions).toBeUndefined()
+    // 未派生 → 无从派生约定主会话(不猜),webchat 入口不装。
+    expect(runtime.masterId).toBeUndefined()
+    expect(runtime.health().components.webchat).toBeUndefined()
+  } finally { dispose() }
 })

@@ -92,6 +92,16 @@ export interface SessionHostPorts {
 /** `prompt` 在 `requestId` 下投递的消息 id——每次重试都是同一个(SA messageId 同构)。 */
 export const messageId = (requestId: string): ReturnType<typeof MessageId> => MessageId(`eterna-tasks:${requestId}`)
 
+/**
+ * master 会话的缺省 id 约定:`orchestrator-<realm>`(★master 会话引导,2026-11-18 出票端到端
+ * 三断点①;SA app/runtime.ts:104 `orchestrator-${key(stateDir)}` 同构——确定性派生 + KV
+ * 持久,重启复用同一 id;worker 侧 `worker-<ticketId>` 约定的主会话半边)。仅宿主 session
+ * 面在场且 config/KV 三处皆缺席时由装配派生;config/sessionHost 显式注入的 id 原样采信。
+ */
+export const masterSessionId = (realm: string): string => `orchestrator-${realm}`
+/** master 会话标题(Sessions.ensure 的 rename 半边;SA ensure(masterId, …, 'dsh-superagent orchestrator') 同构)。 */
+export const MASTER_SESSION_TITLE = 'eterna-tasks orchestrator'
+
 /** 会话角色:orchestrator(主会话)或 worker(工单的 Executor session)。 */
 export type SessionRole = 'orchestrator' | 'worker'
 

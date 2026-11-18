@@ -111,7 +111,11 @@ function valueSpec(node: JsonSchemaNode): Record<string, unknown> {
     case 'array': return { type: 'array', ...(node.items ? { items: valueSpec(node.items) } : {}), ...shared }
     case 'object': {
       const required = new Set(node.required ?? [])
-      return { type: 'object', additionalProperties: node.additionalProperties ?? false,
+      // ★A20 修复(装配面门禁发现):zod `z.record` 经 z.toJSONSchema 的 additionalProperties
+      // 是值 schema(非布尔),宿主 defineTool 只认 true/false——这里投影为 true 放行任意键,
+      // 键/值模式仍由 execute 内的同一 zod schema 再校验强制(四纪律之一:zod 是唯一事实源)。
+      const additional = typeof node.additionalProperties === 'boolean' ? node.additionalProperties : true
+      return { type: 'object', additionalProperties: additional,
         properties: Object.fromEntries(Object.entries(node.properties ?? {}).map(([name, child]) =>
           [name, { ...valueSpec(child), ...(required.has(name) ? { required: true } : {}) }])), ...shared }
     }

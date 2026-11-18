@@ -21,9 +21,19 @@
  *    持久 effect/TextCache;线程上下文与投递面经 TasksOptions 端口注入,缺省不投递不计时);
  *    ⑥ executor —— ★A22 已接线:TasksOptions.sessionHost(宿主 DSH session 服务束,A0 §5-C11
  *    结构端口)在场即真实 DshExecutor+Sessions(每工单一条 `worker-<ticketId>` DSH session、
- *    install() 四类宿主事件 + resume() 对账;A0 处置 D3/D4)替换可控 stub,缺席保持 stub
- *    (34 §4-E 假件记账语义);⑦ sources —— ★A21 已接线:ChannelTriggerAdapter(channels
- *    事件 → Engine 的被动汇,无注册表无轮询,34 §0-A5;glue 注给 channels 网关 sink 位)。
+ *    install() 四类宿主事件 + resume() 对账;A0 处置 D3/D4)替换可控 stub;★最后一公里接线
+ *    (2026-11-18 出票端到端验收三断点④):glue 未显式注入 config.sessionHost 时,插件
+ *    apply 自宿主 ctx 机会读取 session 服务束(reflect.get 反射惯例,access tenant.ts
+ *    serviceOf 同款;fixtures/host.ts 同构装配)派生注入——宿主服务缺席(测试裸宿主)回落
+ *    stub,TasksRuntime.executor 联合类型保持(34 §4-E 假件记账语义);⑦ sources ——
+ *    ★A21 已接线:ChannelTriggerAdapter(channels 事件 → Engine 的被动汇,无注册表无轮询,
+ *    34 §0-A5;glue 注给 channels 网关 sink 位);缺省 SourceScope 同步真实现(三断点③:
+ *    webchatMasterScope 替换 UNWIRED_SCOPE——webchat 主会话用户消息 listened,余 filtered)。
+ *    ★webchat 委派入口(35-A21 诊断清单①)为插件面接线(非装配步,boot 序不变):master
+ *    会话引导(三断点①:masterId 按 config → KV → 约定派生解析并写 KV,health()/stats()
+ *    暴露;宿主 session 面在场且约定派生时以 Sessions.ensure 确保主会话存在)就绪后,
+ *    WebchatDelegationEntry 监听主会话用户消息归一化为 Trigger 进 Engine.receive
+ *    (sources/webchat.ts);工具可见性(诊断清单②)同步收敛为主会话白名单。
  *
  * ★T2 路由面独占(docs/PLUGIN-AUTHORING §1.1-2,packctl tenant-scan CI 强制):本插件不占用
  * 宿主 Web 路由面(T2 点名的各注册面一律不调用)——数据端点唯一正路是 access 守卫清单登记
@@ -41,7 +51,7 @@ import type { SQLInputValue } from 'node:sqlite'
 import type { Context } from '@deepseek-ai/cordis'
 import { Engine } from './core/engine.ts'
 import type { DomainEvent, EffortTier, EngineForMainSession, Executor, SourceScope, Thread, Ticket, Trigger } from './core/index.ts'
-import { Effects, HealthBoard, type Health } from './effects/effects.ts'
+import { Effects, HealthBoard, type Health, type HealthEntry } from './effects/effects.ts'
 import { Outbox, type ChannelsDelivery } from './effects/outbox.ts'
 import { DshExecutor, ticketExecution, type ExecutorHost } from './executor/dsh.ts'
 import { DEFAULT_SUBAGENT_POLICIES, validateSubagentPolicies, type SubagentPolicies } from './executor/subagent-policies.ts'
@@ -51,13 +61,16 @@ import { orchestratorTools, type OrchestratorToolsHost } from './tools/orchestra
 import { toDshTool } from './tools/tool.ts'
 import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import { ticketOfSession } from './executor/dsh.ts'
-import { Sessions, type SessionsHost } from './session/sessions.ts'
+import { MASTER_SESSION_TITLE, masterSessionId, Sessions, type SessionHostPorts, type SessionsHost } from './session/sessions.ts'
 import { ChannelTriggerAdapter } from './sources/channel-adapter.ts'
+import { WEBSCHAT_SOURCE, webchatMasterScope, WebchatDelegationEntry } from './sources/webchat.ts'
+import type { ActorRef } from './core/index.ts'
 import { settingsPolicy, type AllowedRoster, type PolicyWiring } from './policy/gate.ts'
 import type { Settings } from './policy/settings.ts'
 import { policyVersion } from './policy/version.ts'
 import { activeTicketsFace, ACTIVE_TICKETS_SECTION_NAME, type ActiveTicketsSection } from './session/sections.ts'
 import { TasksRealmRouter } from './store/realm.ts'
+import { KV } from './store/kv.ts'
 import { defaultTenantRoot, Store } from './store/store.ts'
 
 /** 组合层注册 ctx.tasks 服务时的唯一 ID(注册表 + 唯一 ID,provide 可交换;34 §2 通用要点④)。 */
@@ -88,13 +101,51 @@ const UNWIRED_CHANNELS: ChannelsDelivery = {
   send: (): Promise<'waiting'> => Promise.resolve('waiting'),
 }
 
-/** A21 接口位:未注入 SourceScope 时的监听面——一律不监听,Trigger 记 `filtered` 落库(intake.ts:37-40),不进 Eval。 */
-const UNWIRED_SCOPE: SourceScope = {
-  scope: () => ({ listened: false, reason: 'sources_unwired' }),
-}
+// A21 接口位的缺省监听面(★真实现,2026-11-18 出票端到端三断点③):旧 `UNWIRED_SCOPE`
+// 「一律不监听」已由 sources/webchat.ts 的 `webchatMasterScope` 替换——webchat 来源、
+// orchestrator 主会话(引导解析的 masterId,getter 动态现读)的用户消息 listened,
+// 其余一律 filtered(reason 'sources_unwired' 原码,intake 记 filtered 落库不进 Eval)。
+// 两处消费(createTasks 的 Engine 构造 + 工具面 OrchestratorToolsHost.scope)同用该面。
 
 /** 一次 Executor 委托的记账(start/deliver/stop 三类,reason 仅 stop 携带)。 */
 export interface ExecutorCall { op: 'start' | 'deliver' | 'stop'; ticketId: string; assignmentId: string; reason?: string }
+
+/**
+ * 宿主 ctx → session 服务束的机会读取(★最后一公里,2026-11-18 出票端到端三断点④
+ * 「sessionHost 未注入 → StubExecutor → 票停 pending」):按 access 包 tenant.ts
+ * `serviceOf` 的 `ctx.reflect.get(name, false)` 反射惯例(非严格机会语义,tasks 不
+ * import 宿主服务实例,34 号 §1 依赖方向行),从宿主 ctx 取
+ * sessionController / workspaceRegistry / permissionPresets / sessionPersistence
+ * 四服务与 agents 注册表,按 `SessionHostPorts` 结构端口装配。
+ *
+ * fail-closed:任一服务缺席或缺少所消费的方法(裸 cordis ctx、测试裸宿主)即返回
+ * undefined——装配面回落 StubExecutor(`TasksRuntime.executor` 联合保持,
+ * 34 §4-E 假件记账语义);不猜、不造桩。逐签名结构对齐 A0 评审 §5-C11 钉住的
+ * 0.2.2-rc.1 面(tests/types.seam-pin.ts)与 fixtures/host.ts 的同构装配先例。
+ */
+export function sessionHostFromContext(ctx: Context): Omit<SessionsHost, 'effects' | 'lifetime' | 'masterId'> | undefined {
+  const reflect = (ctx as unknown as { readonly reflect?: { get(name: string, strict?: boolean): unknown } }).reflect
+  if (reflect === undefined || typeof reflect.get !== 'function') return undefined
+  const service = (name: string): Record<string, unknown> | undefined => {
+    const value = reflect.get(name, false)
+    return typeof value === 'object' && value !== null ? value as Record<string, unknown> : undefined
+  }
+  const callable = (target: Record<string, unknown> | undefined, ...names: string[]): boolean =>
+    target !== undefined && names.every(name => typeof target[name] === 'function')
+  const controller = service('sessionController'), workspaces = service('workspaceRegistry')
+  const permissions = service('permissionPresets'), persistence = service('sessionPersistence')
+  const agents = service('agents')
+  // 四端口 + agents 注册表全在才派生(Sessions/DshExecutor 的消费面:resolveAgent/
+  // create/rename、workspaceRegistry.create、permissionPresets.set、persistence.flush+open、
+  // agents.get;缺一即在投递/建会话路径上炸内核,不如不派生)。
+  if (!callable(controller, 'resolveAgent', 'create', 'rename')) return undefined
+  if (!callable(workspaces, 'create') || !callable(permissions, 'set')) return undefined
+  if (!callable(persistence, 'flush', 'open') || !callable(agents, 'get')) return undefined
+  return {
+    context: ctx,
+    ports: { controller, workspaces, permissions, persistence } as unknown as SessionHostPorts,
+  }
+}
 
 /**
  * 可控 Executor stub(35 号 A16③「executor 本轮用可控 stub」):只按序记录 Engine 委托的
@@ -131,7 +182,7 @@ export interface TasksOptions {
   readonly dirOf?: (realm: string) => string | undefined
   /** 租户根基目录(缺省 defaultTenantRoot():$ETERNA_TENANT_ROOT → $DSH_HOME/workspaces → cwd/workspaces)。 */
   readonly tenantRoot?: string
-  /** Source 监听范围端口(sources 接口位,A21 接线;缺省 UNWIRED_SCOPE——一律不监听,Trigger 记 filtered)。 */
+  /** Source 监听范围端口(sources 接口位,A21 接线;缺省 webchatMasterScope——webchat 主会话用户消息 listened,余 filtered 落库)。 */
   readonly scope?: SourceScope
   /** A10 名单查询端口(access 用户表 + realm 准入表;缺省 settings 自带的 realm 内名单)。 */
   readonly allowed?: AllowedRoster
@@ -174,26 +225,45 @@ export interface TasksOptions {
   readonly syncSource?: (source: string, signal?: AbortSignal) => Promise<{ id: string; name?: string }[]>
   /**
    * A22 真实执行面接线端口(35 号 A22;34 号 §2.4/§2.5):宿主 DSH session 服务束
-   * (context + masterId + SessionHostPorts 结构端口;glue 按 access 包 tenant.ts
-   * `serviceOf` 的 ctx.reflect 反射惯例从宿主 ctx 适配注入)。
+   * (context + SessionHostPorts 结构端口;glue 按 access 包 tenant.ts `serviceOf` 的
+   * ctx.reflect 反射惯例从宿主 ctx 适配注入)。
    * 在场时 'executor' 装配步以真实 **DshExecutor+Sessions** 替换 StubExecutor
    * (每工单一条 `worker-<ticketId>` DSH session、租户 realm 工作区内建会话;install()
    * 四类宿主事件 + resume() 对账,A0 评审处置 D3/D4);缺席时保持可控 stub
-   * (34 §4-E 假件记账语义,plugin-boot 判据面)。仅注入面:worker session 由 executor
-   * 按需 ensure;主会话(masterId)的建立归 glue 装配(工作区根与标题属部署决策),
-   * master session 缺席时 relay 投递按 Effects 重试等待,不炸内核。
+   * (34 §4-E 假件记账语义,plugin-boot 判据面)。★最后一公里(2026-11-18 三断点④):
+   * defineTasksPlugin 在 glue 未显式注入时自宿主 ctx 机会读取 sessionController/
+   * workspaceRegistry/permissionPresets/sessionPersistence/agents 服务束派生注入
+   * (任一缺席/缺方法即不派生,回落 stub;`TasksRuntime.executor` 联合类型保持)。
+   * `masterId` 就绪可缺(sessionHost.masterId 可选):装配的 master 会话引导解析
+   * (config.masterId → 本键 → KV 既有约定 → 约定派生 orchestrator-<realm>)兜底;
+   * 仅注入面:worker session 由 executor 按需 ensure;显式注入 masterId 的主会话建立
+   * 仍归 glue 装配(工作区根与标题属部署决策),master session 缺席时 relay 投递按
+   * Effects 重试等待,不炸内核;约定派生的 id 由装配经 Sessions.ensure 确保存在。
    */
-  readonly sessionHost?: Omit<SessionsHost, 'effects' | 'lifetime'>
+  readonly sessionHost?: Omit<SessionsHost, 'effects' | 'lifetime' | 'masterId'> & { readonly masterId?: string }
   /** pass 周期 ms(缺省 PASS_INTERVAL_MS=2000,28 号 §8-3)。 */
   readonly passIntervalMs?: number
   /**
    * 主会话(orchestrator)的 session id([active-tickets] section 的会话过滤面,A24;SA
-   * masterId 模式,SA app/sessions.ts ROUTER_PRESET 同位):在场时 [active-tickets] section
-   * 的 text provider 按装配上下文的 agent id fail-closed 过滤——只在主会话装配渲染
-   * (28 号 §6「给主 Session 增加」);缺席(★A19/A22 替换点:装配接线注入)时不做会话
-   * 过滤,过滤交由注册面的 scope。仅注入面,任务内核不据此建会话。
+   * masterId 模式,SA app/sessions.ts ROUTER_PRESET 同位):master 会话引导解析的最高优先级
+   * 来源(config 显式 > sessionHost.masterId > KV 既有约定 > 约定派生;解析结果恒写 KV,
+   * 重启复用)。在场时 [active-tickets] section 的 text provider 按装配上下文的 agent id
+   * fail-closed 过滤——只在主会话装配渲染(28 号 §6「给主 Session 增加」);缺席(宿主
+   * session 面不在场且 KV 空)时不做会话过滤,过滤交由注册面的 scope。仅注入面:本键
+   * 自身不触发建会话(约定派生的会话建立由 sessionHost 在场路径经 Sessions.ensure 承担)。
+   * ★webchat 委派入口(35-A21 诊断清单①/②)共用本面:主会话白名单——入口只监听本会话的
+   * 用户消息,orchestrator 工具面只在主会话可见;解析后仍缺席(裸宿主且无 KV)时不接
+   * 入口、工具面退回「非 worker 会话」基线(不猜主会话)。
    */
   readonly masterId?: string
+  /**
+   * 会话主人解析端口(webchat 委派入口的发送者面,35-A21 目标行为「发送者=会话主人」;
+   * glue 按 access 账号面注入,与 dirOf 的 accountOf 同源):主会话用户消息归一化为 Trigger
+   * 时解析其行动者;返回 undefined 即跳过该消息(fail-closed,不带无主 Trigger 进引擎)。
+   * 缺省以本栈绑定的 realm(账号)为主人——单 realm 一账号栈,主会话的主人是部署账号本身;
+   * 准入仍由 gate 按名单 × addressed='direct' 裁定,本端口只回答「谁说的」。
+   */
+  readonly sessionOwner?: (sessionId: string) => ActorRef | undefined
   /** 领域事件装配位订阅(observe/测试用既有接口位;先于 TasksWorld.subscribe 订阅方到达;每事件回调一次,载荷见 core/ports.ts DomainEvents)。 */
   readonly onEvent?: (event: DomainEvent) => void
   /** 时钟注入(Effects 退避/健康时刻;缺省 Date.now)。 */
@@ -208,6 +278,12 @@ export interface TasksHealth {
   readonly at: string
   /** 组件健康明细(键 = 装配级 'tasks' 与各 effect kind;Effects/HealthBoard 认领制)。 */
   readonly components: Readonly<Record<string, Health | undefined>>
+  /**
+   * orchestrator 主会话 id(★master 会话引导,2026-11-18 出票端到端三断点①:masterId
+   * 经 health()/stats() 暴露,工作台与探针消费;未引导——宿主 session 面不在场且
+   * config/KV 皆缺席——时缺省,不猜主会话)。
+   */
+  readonly masterId?: string
 }
 
 /** 任务内核最小状态面(35 号 A16④;工作台与探针消费,26 §2.1-1):全部为只读计数,不含领域载荷。 */
@@ -221,6 +297,8 @@ export interface TasksStats {
   readonly outbox: { readonly pending: number; readonly dropped: number }
   readonly policy: { readonly version: string; readonly paused: boolean; readonly evalMode: Settings['eval']['mode']; readonly rules: number }
   readonly executor: { readonly maxWorkers: number }
+  /** orchestrator 主会话 id(★master 会话引导;undefined = 未引导,不猜主会话)。 */
+  readonly masterId: string | undefined
 }
 
 /**
@@ -278,6 +356,15 @@ export interface TasksWorld {
    * system-prompt 服务在场时注册;缺席则由宿主装配经本面自取注册)。刷新=runtime.pass()。
    */
   readonly activeTickets: ActiveTicketsSection
+  /**
+   * orchestrator 主会话 id(★master 会话引导解析结果,2026-11-18 出票端到端三断点①;
+   * 恒已写 KV `KV.master.session`):config.masterId → sessionHost.masterId → KV 既有约定
+   * → 宿主 session 面在场时的约定派生(`masterSessionId(realm)`);四者皆不可得(裸宿主
+   * 且无 config)时 undefined,不猜主会话。webchat 入口安装、缺省 scope 监听、
+   * [active-tickets] 会话过滤与 orchestrator 工具面可见性共用本面;服务形态暴露供
+   * 工作台与探针消费(health()/stats() 同时带同值)。
+   */
+  readonly masterId: string | undefined
   /** 关停:装配逆序回放(34 §4-E「关停配逆」);幂等。 */
   dispose(): void
 }
@@ -414,6 +501,19 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
   // 库由 router 池持有:store 是首个装配步,其关停(全池 close)在逆序回放中最后执行。
   begin('store', (): void => { router.dispose() })
 
+  // ★master 会话引导·解析半边(①;2026-11-18 出票端到端三断点①「masterId 缺席 → 入口
+  // 不装 → Trigger 未入」):orchestrator 主会话 id 按「config.masterId 显式 → sessionHost
+  // .masterId 显式 → KV 既有约定 → 宿主 session 面在场时的确定性约定派生
+  // (orchestrator-<realm>,SA app/runtime.ts:104 KV runtime.masterId 同序同构)」解析;
+  // 解析结果恒写 KV(KV.master.session)——重启后 config 缺席也恒可复得同一主会话。四者
+  // 皆不可得(裸宿主且无 config)时 undefined:不猜主会话,webchat 入口不装、scope 对
+  // webchat 恒 filtered、工具面退回「非 worker 会话」基线(fail-closed)。会话本体的确保
+  // 存在(ensure)在 sessionHost 在场路径的引导半边(下方 executor 步)承担。
+  const kvMaster = store.get(KV.master.session)
+  const masterId: string | undefined = options.masterId ?? options.sessionHost?.masterId ?? kvMaster
+    ?? (options.sessionHost !== undefined ? masterSessionId(realm) : undefined)
+  if (masterId !== undefined && masterId !== kvMaster) store.set(KV.master.session, masterId)
+
   // ── ② effects:持久副作用队列(本步内 start;handler 由 outbox 等随后注册时 kick 重派)──
   const effects = new Effects(store, board, nowMs)
   effects.start()
@@ -430,8 +530,10 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
 
   // ── ④ engine:Intake/Evals/Tickets/Assignments/Replies 全链 + pass 驱动(28 号 §8-3)────
   // sources 接口位的端口面:scope 是 Engine 的构造输入(纯函数),随本步消费;'sources' 装配步
-  // (⑤后)留待 A21 启动 Source 适配器/轮询。
-  const scope = options.scope ?? UNWIRED_SCOPE
+  // (⑤后)留待 A21 启动 Source 适配器/轮询。缺省面为 webchatMasterScope 真实现(三断点③,
+  // 替换旧 UNWIRED_SCOPE 一律不监听):masterId 经 getter 现读——引导解析已在上文落定,
+  // 后续重启自 KV 复得也恒走同一闭包。
+  const scope = options.scope ?? webchatMasterScope((): string | undefined => masterId)
   const wiring: PolicyWiring = {
     ...(options.allowed !== undefined ? { allowed: options.allowed } : {}),
     ...(options.policyVersion !== undefined ? { version: options.policyVersion } : {}),
@@ -466,8 +568,12 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
   let executor: StubExecutor | DshExecutor = stubExecutor
   let sessions: Sessions | undefined
   let dshExecutor: DshExecutor | undefined
+  /** master 会话引导健康项('master';仅约定派生路径认领,见下——采信 id 的建立归 glue)。 */
+  let masterHealth: HealthEntry | undefined
   if (options.sessionHost !== undefined) {
-    sessions = new Sessions({ ...options.sessionHost, effects, lifetime: lifetime.signal })
+    // 引导解析保证 sessionHost 在场时 masterId 就绪(约定派生分支);?? 兜底同式,仅类型收窄。
+    sessions = new Sessions({ ...options.sessionHost, effects, lifetime: lifetime.signal,
+      masterId: masterId ?? masterSessionId(realm) })
     dshExecutor = new DshExecutor({
       context: options.sessionHost.context,
       get engine() { return engineRef.value as ExecutorHost['engine'] },
@@ -482,6 +588,24 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
       ...(options.repliedTo !== undefined ? { repliedTo: options.repliedTo } : {}),
     })
     executor = dshExecutor
+    // ★master 会话引导·确保存在半边(①):仅当 id 未由 config/sessionHost 显式注入、且解析
+    // 结果即本装配的确定性约定(`orchestrator-<realm>`)时经宿主 session 面建立
+    // (Sessions.ensure = resolveAgent → 缺则建 → 权限 preset → rename;SA
+    // runtime.ts:210 ensure(masterId, …, 'orchestrator') 同构,resolveAgent 已有即复用
+    // 故幂等——首次引导派生与重启自 KV 复得两条路径同走此处)。显式注入/采信 id
+    // (config/sessionHost)的会话建立归 glue 装配(工作区根与标题属部署决策,
+    // TasksOptions.sessionHost 注:本装配不改写其标题)——缺席时 relay 投递按 Effects
+    // 重试等待,不炸内核。fire-and-forget:宿主 disposer 不可 await(effects 步同款);
+    // 失败经 'master' 健康项上报,不外溢装配;关停在 executor 步释放健康项
+    // (ensure 晚于关停落定时 set 为 no-op,认领制 held 闸)。
+    if (options.masterId === undefined && options.sessionHost.masterId === undefined
+      && masterId === masterSessionId(realm)) {
+      masterHealth = board.claim('master', { state: 'starting', detail: 'master 会话引导中', at: nowIso() })
+      const bootstrapping = masterId
+      void sessions.ensure(bootstrapping, store.workspaceDir, MASTER_SESSION_TITLE, 'orchestrator')
+        .then(() => { masterHealth?.set({ state: 'ready', detail: `master 会话 ${bootstrapping} 就绪`, at: nowIso() }) })
+        .catch((error: unknown) => { masterHealth?.set({ state: 'error', detail: `master 会话引导失败:${String(error)}`, at: nowIso() }) })
+    }
   }
   const engine = new Engine({
     repo: store,
@@ -511,7 +635,9 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
     tickets: (): readonly Ticket[] => store.tickets.active(),
     maxWorkers: (): number => store.settings().executor.maxWorkers,
     ...(dshExecutor !== undefined ? { usedSlots: (): number => dshExecutor.usedSlots() } : {}),
-    ...(options.masterId !== undefined ? { masterId: (): string => options.masterId ?? '' } : {}),
+    // 主会话过滤面(①):引导解析的 masterId 动态现读;undefined = 未引导,不做会话过滤
+    // (sections.ts「masterId 缺席 → 过滤交由注册面 scope」原语义)。
+    masterId: (): string | undefined => masterId,
     now: nowMs,
   })
   // pass 驱动的引擎面包装:evaluateDue 后追加重算清单缓存(合并语义不变,PassDriver 不感知)。
@@ -533,6 +659,9 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
       void wiredExecutor.shutdown().catch(() => { /* 关停竞态的错误不阻宿主(effects 步同款) */ })
       wiredExecutor.dispose()
       wiredSessions.dispose()
+      // master 引导健康项随 executor 步配逆注销(认领制:不释放则集合恒占位);未认领时为 no-op。
+      masterHealth?.release()
+      masterHealth = undefined
     })
   }
   else { begin('executor') }
@@ -560,15 +689,17 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
     board,
     engine,
     subagentPolicies,
+    masterId,
     health: (): TasksHealth => {
       const components = board.all
-      if (disposed) return { state: 'error', detail: '任务内核已关停', at: nowIso(), components }
+      const master = masterId === undefined ? {} : { masterId }
+      if (disposed) return { state: 'error', detail: '任务内核已关停', at: nowIso(), components, ...master }
       const failing = Object.entries(components).filter(([, entry]) => entry?.state === 'error')
       if (failing.length > 0) {
-        return { state: 'error', detail: `组件异常:${failing.map(([name]) => name).join(', ')}`, at: nowIso(), components }
+        return { state: 'error', detail: `组件异常:${failing.map(([name]) => name).join(', ')}`, at: nowIso(), components, ...master }
       }
-      if (store.settings().paused) return { state: 'paused', detail: '处理暂停中(settings.paused)', at: nowIso(), components }
-      return { state: 'ready', detail: `realm ${realm} 就绪`, at: nowIso(), components }
+      if (store.settings().paused) return { state: 'paused', detail: '处理暂停中(settings.paused)', at: nowIso(), components, ...master }
+      return { state: 'ready', detail: `realm ${realm} 就绪`, at: nowIso(), components, ...master }
     },
     stats: (): TasksStats => {
       if (disposed) throw new Error('任务内核已关停:stats 面不再可用')
@@ -606,6 +737,7 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
           rules: settings.policy.rules.length,
         },
         executor: { maxWorkers: settings.executor.maxWorkers },
+        masterId,
       }
     },
     pass: (): void => { passDriver.pass() },
@@ -670,10 +802,24 @@ export function defineTasksPlugin(config: TasksPluginConfig = {}) {
     apply(ctx: Context): () => void {
       // 宿主 logger 机会读取(结构面,缺席静默——memory-plugin 同款口径,测试 ctx 可缺席)。
       const logger = (ctx as unknown as { readonly logger?: { readonly info?: (...args: unknown[]) => void } }).logger
+      // ★sessionHost 装配面注入(④;2026-11-18 三断点④):glue 未显式注入 config.sessionHost
+      // 时,自宿主 ctx 机会读取 session 服务束(反射惯例,见 sessionHostFromContext 注)派生
+      // 注入——宿主服务缺席(裸 cordis ctx/测试裸宿主)即不派生,createTasks 回落
+      // StubExecutor(TasksRuntime.executor 联合保持,34 §4-E)。显式注入恒优先(glue 的
+      // 适配面可按需覆写,masterId 等部署决策照旧归 glue)。
+      const derived = config.sessionHost === undefined ? sessionHostFromContext(ctx) : undefined
+      const resolved: TasksPluginConfig = derived === undefined ? config : { ...config, sessionHost: derived }
       // fail-closed:注入的 dirOf 解析失败时 createTasks 抛错 → 插件装载失败(宿主日志可见),
       // 不静默降级为无内核的空服务(23 号 §3.1 铁律的服务化表达);缺省派生的部署指名
       // realm 由 Store 引导自建目录(defaultTasksDirOf 注)。
-      const runtime = createTasks(config)
+      const runtime = createTasks(resolved)
+      // 主会话白名单(35-A21 诊断清单①/②共用的注入面;★master 会话引导①):取 createTasks
+      // 的解析结果——config.masterId → config.sessionHost.masterId → KV 既有约定 →
+      // 宿主 session 面在场时的约定派生(orchestrator-<realm>),解析结果已写 KV
+      // (KV.master.session)并经 health()/stats() 暴露。undefined(裸宿主且无 config)=
+      // webchat 入口不接线、scope 对 webchat 恒 filtered、工具面退回「非 worker 会话」基线
+      // (fail-closed,不猜主会话)。
+      const masterId = runtime.masterId
       // ★A20 注册面(35 号表⑤-7「注册即 ctx.tools.register(def),disposer 必须进 ctx.effect」;
       // B4 先例 packages/memory/src/tools.ts:282):orchestrator 14 工具面注册进宿主 ctx.tools
       // (dsh-tools 服务,机会读取——裸 cordis ctx/测试宿主缺席即跳过,不炸装配)。角色分面
@@ -697,7 +843,9 @@ export function defineTasksPlugin(config: TasksPluginConfig = {}) {
             outbox: runtime.outbox,
             prompts: new Prompts(runtime.store),
             resources: { store: runtime.store },
-            scope: config.scope ?? UNWIRED_SCOPE,
+            // 与 Engine 同一 scope 面(三断点③):注入面优之,缺省即 webchatMasterScope 真实现
+            // (masterId 动态现读;policyEffects 热改重算走同一闭包)。
+            scope: config.scope ?? webchatMasterScope((): string | undefined => masterId),
             ...(wiring.allowed !== undefined || wiring.version !== undefined ? { wiring } : {}),
             ...(config.syncSource !== undefined ? { syncSource: config.syncSource } : {}),
             requestPass: (): void => { runtime.pass() },
@@ -705,13 +853,59 @@ export function defineTasksPlugin(config: TasksPluginConfig = {}) {
           }
           ctx.effect(function* (): Generator<() => void, void, void> {
             for (const definition of orchestratorTools(host)) {
-              yield tools.register(toDshTool(definition), { when: ({ agent }) => ticketOfSession(agent.id) === undefined })
+              yield tools.register(toDshTool(definition), {
+                // ★工具可见性(35-A21 诊断清单②;24 §8.3-4 角色分面):主会话 id 在场时按
+                // 「realm 内主会话」白名单——orchestrator 14 工具面只在主会话可见,普通 web
+                // 聊天会话与 worker session(worker-<ticketId>)一律不可见;主会话 id 缺席时
+                // 退回既有基线「非 worker 会话」(worker 恒不可见,分面不破)。
+                when: ({ agent }) => masterId !== undefined
+                  ? agent.id === masterId
+                  : ticketOfSession(agent.id) === undefined,
+              })
             }
           }, 'tasks orchestrator tools')
           logger?.info?.('[tasks] orchestrator 工具面已注册(14,worker 面随 executor 接线)')
         }
       } catch (error) {
         logger?.info?.(`[tasks] orchestrator 工具面注册跳过:${String(error)}`)
+      }
+      // ★webchat 委派入口接线(35-A21 诊断清单①;35 号 A16「sources 留接口位」的宿主事件
+      // 半边):宿主 ctx 的 session 事件 seam 在场(机会读取,tools 注册同款口径)且主会话
+      // 白名单已注入时,监听主会话的用户消息归一化为 Trigger 进 Engine.receive——用户在
+      // web 聊天会话里发的委派消息由此成为 explicit Trigger(发送者=会话主人),经 Eval
+      // 评估、accept 出票、worker session 接手。准入不在入口裁决(scope 监听过滤 + gate
+      // 名单 × direct,webchat.ts 头注)。健康项 'webchat' 上报处理失败;装配关停先退订。
+      let disposeWebchat: (() => void) | undefined
+      let webchatHealth: HealthEntry | undefined
+      try {
+        const host = ctx as unknown as { readonly on?: (event: 'session/event',
+          listener: (session: { readonly id: string }, event: never) => void) => () => void }
+        if (masterId !== undefined && typeof host.on === 'function') {
+          const at = (): string => new Date((config.now ?? (() => Date.now()))()).toISOString()
+          webchatHealth = runtime.board.claim('webchat', { state: 'ready', detail: 'webchat 委派入口待命', at: at() })
+          const entry = new WebchatDelegationEntry({
+            masterId,
+            engine: runtime.engine,
+            actorOf: config.sessionOwner ?? ((): ActorRef => ({ source: WEBSCHAT_SOURCE, id: runtime.realm })),
+            ...(config.now !== undefined ? { now: config.now } : {}),
+            onStored: (): void => {
+              // 入引擎即排一轮 pass:评估与候选卡投递不等到下一周期(orchestrator_route 的
+              // requestPass 同款口径);若曾报错,处理成功即回 ready(executor background 同款)。
+              if (webchatHealth?.get()?.state === 'error') webchatHealth.set({ state: 'ready', detail: 'webchat 委派入口处理恢复', at: at() })
+              runtime.pass()
+            },
+            onError: (failure: unknown): void => {
+              webchatHealth?.set({ state: 'error', detail: `webchat 委派入口处理失败:${String(failure)}`, at: at() })
+            },
+          })
+          disposeWebchat = entry.install(ctx)
+          logger?.info?.(`[tasks] webchat 委派入口已接线(master=${masterId})`)
+        }
+      } catch (error) {
+        // 认领后未接线的半途失败也要释放健康项(认领制:不释放则集合恒占位)。
+        webchatHealth?.release()
+        webchatHealth = undefined
+        logger?.info?.(`[tasks] webchat 委派入口接线跳过:${String(error)}`)
       }
       // [active-tickets] section 注入(35 号 A24;28 号 §6「经 prompt section seam 注入,同
       // dsh-memory 渐进披露」):宿主 system-prompt 服务在场(机会读取,memory-plugin 的
@@ -735,7 +929,10 @@ export function defineTasksPlugin(config: TasksPluginConfig = {}) {
       const disposeService = ctx.provide(TASKS_SERVICE_ID, runtime)
       logger?.info?.(`[tasks] realm=${runtime.realm} boot=${runtime.boot.join('→')}`)
       return () => {
-        // 关停配逆(34 §4-E):先撤 section 注入面与 ctx 服务(反注册面),再按装配逆序回放组件关停。
+        // 关停配逆(34 §4-E):先撤 webchat 入口订阅面与 section 注入面、ctx 服务(反注册面),
+        // 再按装配逆序回放组件关停。
+        disposeWebchat?.()
+        webchatHealth?.release()
         disposeSection?.()
         disposeService()
         runtime.dispose()
