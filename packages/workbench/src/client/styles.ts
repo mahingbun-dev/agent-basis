@@ -12,6 +12,7 @@ import { injectDesignTokens } from '@eterna/ui'
 const CSS = `
 [data-eterna-workbench='root'] {
   animation: wb-fade-in var(--et-motion-base) var(--et-ease) both;
+  box-sizing: border-box;
   width: 100%;
   height: 100%;
   overflow-y: auto;
@@ -28,6 +29,11 @@ const CSS = `
   color: var(--et-fg-2);
   min-width: 0;
 }
+/* 盒模型:border-box 全作用域——此前 content-box 使 width:100%+gutter 内边距
+ * 相加成 1208px,1440 视口下整页右切 48px(2026-11-18 视觉验收实测)。 */
+[data-eterna-workbench='root'] *,
+[data-eterna-workbench='root'] *::before,
+[data-eterna-workbench='root'] *::after { box-sizing: border-box; }
 [data-eterna-workbench='root'] * { min-width: 0; overflow-wrap: anywhere; }
 [data-eterna-workbench='root'] h1, [data-eterna-workbench='root'] h2, [data-eterna-workbench='root'] h3 {
   color: var(--et-fg); font-family: var(--et-font-display); font-weight: var(--et-weight-display);
