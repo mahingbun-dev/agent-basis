@@ -14,17 +14,31 @@
  *   由上游 decide 链自动生效。
  *
  * 绑定动作清单 = 上游全部 mode:'stream' 方法盘点(2026-11-11 typert.remote-client 全量扫描;
- *   2026-11-12 补 UI 门缺项——session/control 升 GLOBAL、会话级 unary 补 prompt/cancel/upload):
- *   GLOBAL: workspace/follow · terminal/attach · terminal/retain · workspaceFiles/changes ·
- *           account/watch · account/watchExpiry · job/list · job/follow · session/control
- *           (宿主级共享面,owner 等价——terminal 与 workspaceFiles 无 per-user 资源注册,
- *           维持现状语义,T4/T6 收紧;control 见 GLOBAL_STREAM_ACTIONS 处注释)
+ *   2026-11-12 补 UI 门缺项——session/control 升 GLOBAL、会话级 unary 补 prompt/cancel/upload;
+ *   2026-11-18 资源 kind 复核——动作按「网关解析出的资源 kind」归位,不再是按方法名一刀切 global):
+ *   GLOBAL: workspace/follow · account/watch · account/watchExpiry · job/follow · session/control
+ *           (open 时解析为 global 资源:无 lookup 参数、无 sessionId 参数、无对象参数带
+ *           sessionId 字段;job/follow 的 sessionId 可选=双授,见 SESSION_STREAM_ACTIONS 注释)
  *   session 资源: session/follow · session/observeState · session/observeProjections ·
- *           session/observeEvent · session/control
+ *           session/observeEvent · session/control(双授) · terminal/attach · terminal/retain ·
+ *           workspaceFiles/changes · job/list · job/follow(双授)
+ *           ——2026-11-18「右侧文件面板 读取失败:remote access: workspaceFiles/changes:
+ *           access denied (no-allow)」根因:上游自 0.2.2-rc.1 起这些流方法的资源解析即
+ *           逐会话(dsh-api-gateway access.ts lookupResources:lookup 参数读 lookups.register
+ *           的 resource kind;workspace-files lib/index.js:399 workspaceFileScope lookup
+ *           resource:'session' · core/agent lib/index.js:452 agent lookup resource:'session';
+ *           session-controller lib/index.js:3401 resolveSessionResource + :3801
+ *           resources.register('session',{resolve}) 读 sessionId 参数/首对象参数的
+ *           address.sessionId),decide 按 sameResource 严格匹配绑定(remote-access
+ *           lib/index.js:338),global 绑定永不命中 → 恒 no-allow。T2 当年的
+ *           「terminal 与 workspaceFiles 无 per-user 资源注册」盘点结论已过时。
+ *           租户面同时收窄:旧 global 授予下任意登录用户可 attach/retain/watch 任意
+ *           会话的终端与文件变更流(元数据越权),改会话绑定后仅本人会话可达。
  *   workspace 资源: workspace/follow(逐项可见性过滤用)
  *   session 事件: event:api-session/{status,added,removed,activity,error}(2026-11-13 补,
  *           逐会话资源判定零泄漏,停止按钮生命线 status 见 SESSION_EVENT_ACTIONS 处注释)
- * 防漂移:tests/mux-drift.spec.ts 断言本清单与上游 typert 流方法表差集=∅。
+ * 防漂移:tests/mux-drift.spec.ts 断言本清单与上游 typert 流方法表差集=∅,且逐方法
+ *   资源 kind(lookup/资源注册表推导)与归位清单一致——名称覆盖之外再锁 kind 归位。
  */
 import type { SessionService } from './session.ts'
 import type { UserStore, UserRole } from './store.ts'
@@ -38,22 +52,24 @@ export interface EternaUserPrincipal {
 /** mux 通道路径(=上游 REMOTE_STREAM_MUX_PATH,dsh-api-gateway lib/index.js:534)。 */
 export const MUX_PATH = '/api/remote.mux'
 
-/** 宿主级共享面的流动作(策略 GLOBAL 绑定;新上游流方法在此缺失时 mux-drift 测试红)。
+/** open 时解析为 global 资源的流动作(策略 GLOBAL 绑定;新上游流方法归位错误时
+ *  mux-drift 的资源 kind 断言红)。判定口径=网关 callResources(api-gateway
+ *  lib/index.js:1207):无 lookup 参数、无 sessionId 参数、无对象参数带 sessionId
+ *  字段,kind 注册面(resources.register)亦不命中 → 资源集空 → 按 GLOBAL 判定。
  *  remoteAccess/follow 为上游 FOLLOW_ACTION(decide 链恒 allow),不需绑定。
- *  session/control 亦在此列(2026-11-12 修复「发送按钮/控制流双失」):上游 control
- *  快照流是无载荷宿主级流(session-controller client/transport.ts:121 open 不带
- *  sessionId),网关资源解析为空时按 global 资源判定(api-gateway access.ts:35-37)
- *  ——只授在会话绑定上时 open 恒 no-allow。租户安全:上游对流基线/增量逐会话
- *  allows() 过滤(session-controller index.ts:636/641,action 取当前调用面
- *  session/control,会话绑定已含),他人会话的投影不落本用户流。 */
+ *  session/control 双授亦在此列(2026-11-12 修复「发送按钮/控制流双失」):上游
+ *  control 快照流是无载荷宿主级流(session-controller client/transport.ts:121 open
+ *  不带 sessionId),网关资源解析为空时按 global 资源判定——只授在会话绑定上时
+ *  open 恒 no-allow。租户安全:上游对流基线/增量逐会话 allows() 过滤
+ *  (session-controller index.ts:636/641,action 取当前调用面 session/control,
+ *  会话绑定已含),他人会话的投影不落本用户流。
+ *  job/follow 双授亦在此列:JobFollowRequest.sessionId 可选(typert schema
+ *  required 只含 jobId),省略时上游按「无主 job 任何调用者可观察」的自身语义
+ *  放行——global 授予仅覆盖该无主面;带 sessionId 的有主读由会话绑定把关。 */
 export const GLOBAL_STREAM_ACTIONS: readonly string[] = [
   'workspace/follow',
-  'terminal/attach',
-  'terminal/retain',
-  'workspaceFiles/changes',
   'account/watch',
   'account/watchExpiry',
-  'job/list',
   'job/follow',
   'session/control',
 ]
@@ -147,13 +163,30 @@ export const WORKSPACE_UNARY_ACTIONS: readonly string[] = [
   'workspace/insertBefore',
 ]
 
-/** 会话级流动作(策略 session 绑定)。 */
+/** 会话级流动作(策略 session 绑定)。2026-11-18 资源 kind 复核后本清单收编四个
+ *  原 GLOBAL 成员——上游资源解析逐会话,global 绑定永不命中(decide sameResource
+ *  严格匹配,证据链见文件头注):
+ *  - terminal/attach:参数 agent 为 lookup(agent 注册 resource:'session',
+ *    core/agent lib/index.js:452),scope.context 亦 agent;
+ *  - terminal/retain:参数名 sessionId,session 解析器按参数名直读
+ *    (session-controller lib/index.js:3405);
+ *  - workspaceFiles/changes:参数 workspaceFileScope 为 lookup(resource:'session',
+ *    workspace-files lib/index.js:399-402)——「右侧文件面板读取失败」直接当事动作;
+ *  - job/list:JobListRequest.sessionId required(schema required:['sessionId']),
+ *    解析器读首对象参数 sessionId → 恒会话资源;
+ *  - job/follow 双授:sessionId 可选(省略=无主 job,上游语义任何调用者可观察),
+ *    会话绑定覆盖有主读那半。 */
 export const SESSION_STREAM_ACTIONS: readonly string[] = [
   'session/follow',
   'session/observeState',
   'session/observeProjections',
   'session/observeEvent',
   'session/control',
+  'terminal/attach',
+  'terminal/retain',
+  'workspaceFiles/changes',
+  'job/list',
+  'job/follow',
 ]
 
 /** 工作区级流动作(策略 workspace 绑定;供 follow 逐项可见性过滤)。 */
