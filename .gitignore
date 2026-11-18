@@ -57,3 +57,6 @@ packages/browser-relay/smoke/.gate-relay-port
 # E2E 浏览器 profile 运行态(不入库)
 acceptance/**/profile*
 gui-test-screenshots/**/profile*
+
+# 思考强度回放语料(生产日志抽样,永不入库)
+corpus/

@@ -187,4 +187,32 @@ describe('T1 守卫矩阵:session 补全端点 × 三身份', () => {
     const r = await call('/api/session/workspacePathApplications', undefined, { request: { path: join(root, 'alice') } })
     expect((r.result?.result as { error?: { code?: string } })?.error?.code).toBe('tenant/unauthenticated')
   })
+
+  // ── 思考强度两专路 × 3 身份 = 6 例(access 记账面,不直调 sessionController) ──
+  it('thinkingAuto: 本人读放行;他人/未登录拒绝;零控制器调用', async () => {
+    const own = await call('/api/session/thinkingAuto', 'alice', { request: { sessionId: aliceSessionId } })
+    expect(own.result?.result).toMatchObject({ ok: true, value: { enabled: true } })
+    const other = await call('/api/session/thinkingAuto', 'bob', { request: { sessionId: aliceSessionId } })
+    denyBody(other)
+    const anon = await call('/api/session/thinkingAuto', undefined, { request: { sessionId: aliceSessionId } })
+    expect((anon.result?.result as { error?: { code?: string } })?.error?.code).toBe('tenant/unauthenticated')
+    expect(calls).toHaveLength(0)
+  })
+  it('thinkingFeedback: 本人写放行;他人/未登录拒绝且不写偏置', async () => {
+    const own = await call('/api/session/thinkingFeedback', 'alice', {
+      request: { sessionId: aliceSessionId, direction: 'more' },
+    })
+    expect(own.result?.result).toMatchObject({ ok: true, value: { bias: 0.2 } })
+    const other = await call('/api/session/thinkingFeedback', 'bob', {
+      request: { sessionId: aliceSessionId, direction: 'more' },
+    })
+    denyBody(other)
+    const anon = await call('/api/session/thinkingFeedback', undefined, {
+      request: { sessionId: aliceSessionId, direction: 'more' },
+    })
+    expect((anon.result?.result as { error?: { code?: string } })?.error?.code).toBe('tenant/unauthenticated')
+    // 两次拒绝都没落库:仍是单次 +0.2
+    expect(store.thinkingBiasOf(aliceSessionId)?.bias).toBeCloseTo(0.2)
+    expect(calls).toHaveLength(0)
+  })
 })
