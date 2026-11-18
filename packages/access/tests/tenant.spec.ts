@@ -303,7 +303,35 @@ describe('tenant 守卫', () => {
     // 他人会话(归属守卫)与未知会话一律 denied
     const other = await call('/api/session/thinkingAuto', 'bob', { request: { sessionId: 's-auto' } })
     expect(JSON.stringify(other.result)).toContain('tenant/denied')
-    const ghost = await call('/api/session/thinkingAuto', 'alice', { request: { sessionId: 's-ghost' } })
+    const ghostAuto = await call('/api/session/thinkingAuto', 'alice', { request: { sessionId: 's-ghost' } })
+    expect(JSON.stringify(ghostAuto.result)).toContain('tenant/denied')
+  })
+
+  it('session/thinkingFeedback:±0.2 累计与抵消;非法 direction/他人/未知会话拒绝', async () => {
+    store.recordSession('s-fb', aliceId, null)
+    const more = await call('/api/session/thinkingFeedback', 'alice', {
+      request: { sessionId: 's-fb', messageId: 'm1', direction: 'more' },
+    })
+    expect(more.result?.result).toMatchObject({ ok: true, value: { bias: 0.2, effectiveBias: 0.2 } })
+    expect(store.thinkingBiasOf('s-fb')?.bias).toBeCloseTo(0.2)
+    // 反向点击抵消到 0
+    const less = await call('/api/session/thinkingFeedback', 'alice', {
+      request: { sessionId: 's-fb', messageId: 'm2', direction: 'less' },
+    })
+    expect((less.result?.result as { value?: { bias?: number } }).value?.bias).toBeCloseTo(0)
+    // 非法方向、他人会话、未知会话一律 denied
+    const bad = await call('/api/session/thinkingFeedback', 'alice', {
+      request: { sessionId: 's-fb', direction: 'sideways' },
+    })
+    expect(JSON.stringify(bad.result)).toContain('tenant/denied')
+    const other = await call('/api/session/thinkingFeedback', 'bob', {
+      request: { sessionId: 's-fb', direction: 'more' },
+    })
+    expect(JSON.stringify(other.result)).toContain('tenant/denied')
+    const ghost = await call('/api/session/thinkingFeedback', 'alice', {
+      request: { sessionId: 's-ghost', direction: 'more' },
+    })
     expect(JSON.stringify(ghost.result)).toContain('tenant/denied')
+    expect(store.thinkingBiasOf('s-ghost')).toBeUndefined()
   })
 })

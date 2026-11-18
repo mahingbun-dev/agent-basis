@@ -451,6 +451,31 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     return okFrame(rpcId, { enabled: enabledArg })
   })
 
+  // ── session/thinkingFeedback 专路(V2,2026-11-18):显式纠正「想多了/想少了」──
+  // 写 {request:{sessionId, messageId, direction:'less'|'more'}} → {bias, effectiveBias}。
+  // 语义:会话级偏置 ±0.2、同向累计/反向抵消、钳位 ±0.5,读时按 24h 半衰;
+  // 归属守卫同 thinkingAuto(会话必须存在且属于当前用户);messageId 仅作审计锚点。
+  register('/api/session/thinkingFeedback', (rpcId, args, ctx) => {
+    const request0 = args.request as Record<string, unknown> | undefined
+    const sessionId = firstString(request0, 'sessionId') ?? firstString(args, 'sessionId')
+    if (sessionId === undefined || deps.store.sessionOwner(sessionId) !== ctx.userId) {
+      return deniedFrame(rpcId, '会话不存在或不属于你')
+    }
+    const direction = firstString(request0, 'direction') ?? firstString(args, 'direction')
+    if (direction !== 'less' && direction !== 'more') {
+      return deniedFrame(rpcId, 'direction 无效')
+    }
+    const messageId = firstString(request0, 'messageId') ?? firstString(args, 'messageId') ?? ''
+    const now = Date.now()
+    const written = deps.store.addThinkingBias(sessionId, direction === 'less' ? -0.2 : 0.2, now)
+    if (written === undefined) return deniedFrame(rpcId, '会话不存在或不属于你')
+    // 落库时已把存量衰减到 now ⇒ effectiveBias=落库值(读侧再衰减,衰减函数同源)
+    tenantAudit(deps, 'thinking.feedback', ctx.account, {
+      sessionId, messageId, direction, bias: written.bias, effectiveBias: written.bias,
+    })
+    return okFrame(rpcId, { bias: written.bias, effectiveBias: written.bias })
+  })
+
   // ── T1 补全(G1):session/events——读任意会话完整历史,之前完全不在守卫清单 ──
   // 请求形态 SessionPageRequest:{address:{kind:'session',sessionId}} 或
   // {address:{kind:'subagent',parentSessionId,childSessionId}}(子代理历史按父归属判定)。

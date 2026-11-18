@@ -13,6 +13,7 @@ import { MyPluginsTab, NotificationsSection, ApprovalQueueSection } from './my-p
 import { ManageTab } from './plugins-manager.tsx'
 import { DirectoryTreeFlow } from './directory-tree.tsx'
 import { ModelMenu } from './model-menu.tsx'
+import { ThinkingFeedbackActions, type ThinkingFeedbackInjected } from './thinking-feedback.tsx'
 import { AccountLauncher, type AccountLauncherInjected } from './account-menu.tsx'
 import { installLinkOpeningDefault } from './link-opening.ts'
 import { installApprovalCard } from './approval-card.tsx'
@@ -40,6 +41,14 @@ const LOCALES: Record<string, Record<string, string>> = {
     'section.myPlugins': '我的插件',
     'section.notifications': '消息与审批',
     'section.approvalQueue': '审批队列',
+    // 思考强度显式反馈(2026-11-18 V2):assistant 动作条两枚轻按钮
+    'thinking.less': '想浅点',
+    'thinking.more': '想深点',
+    'thinking.lessDone': '已调浅',
+    'thinking.moreDone': '已调深',
+    'thinking.failed': '提交失败',
+    'thinking.lessAria': '这条回答思考过多，下一轮想浅一点',
+    'thinking.moreAria': '这条回答思考不足，下一轮想深一点',
     'account.loading': '加载中…',
     'account.passwordToggle': '切换密码可见性',
     'account.passwordToggleTitle': '显示/隐藏密码',
@@ -340,6 +349,20 @@ export function apply(ctx: AccessClientContext): () => void {
     }, AccountLauncher))
   }
   registerAccountLauncher()
+
+  // 思考强度显式反馈(2026-11-18 V2):assistant 消息动作条追加「想浅点/想深点」。
+  // 原生 list slot(ui-chat 声明,scope=session,props=messageId);产品内不新开入口。
+  // 注入面仅文案;会话 id 由组件从 localStorage 当前会话读取,不依赖宿主 props。
+  const registerThinkingFeedback = (): void => {
+    ctx.slots.inject('conversation.chat.assistant-actions', () => ctx.slots.register({
+      name: 'conversation.chat.assistant-actions',
+      id: `${NS}.thinking-feedback`,
+      order: 60,
+      locale: NS,
+      inject: (): ThinkingFeedbackInjected => ({ t }),
+    }, ThinkingFeedbackActions))
+  }
+  registerThinkingFeedback()
 
   // 网页链接默认打开方式联动:自己的浏览器扩展在线且用户未显式选择过 → 默认走
   // 系统默认浏览器(见 link-opening.ts 头注;全程静默,失败不影响主流程)。

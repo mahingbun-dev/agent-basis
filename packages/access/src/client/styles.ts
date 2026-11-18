@@ -738,6 +738,29 @@ const CSS = `
   [data-eterna-question-root] .eq-card { max-height: calc(100vh - 24px); }
   [data-eterna-question-root] .eq-overlay { inset-block-start: 8px; }
 }
+/* 思考强度反馈按钮(2026-11-18 V2):挂 assistant 动作条,不在 access root 内,
+   故不加 [data-eterna-access-root] 前缀;令牌桥接后深浅主题自动跟随。 */
+.ea-think-feedback { display: inline-flex; align-items: center; gap: 4px; margin-inline-start: 4px; }
+.ea-think-feedback .ea-think-btn {
+  font: inherit;
+  font-size: var(--et-text-micro);
+  line-height: 1.4;
+  padding: 2px 8px;
+  color: var(--et-muted);
+  background: transparent;
+  border: 1px solid var(--et-border-soft);
+  border-radius: var(--et-radius-pill);
+  cursor: pointer;
+  transition: color var(--et-motion-fast) var(--et-ease), border-color var(--et-motion-fast) var(--et-ease);
+}
+.ea-think-feedback .ea-think-btn:hover:not(:disabled) { color: var(--et-fg); border-color: var(--et-border); }
+.ea-think-feedback .ea-think-btn:focus-visible { outline: none; box-shadow: var(--et-focus-ring); }
+.ea-think-feedback .ea-think-btn:disabled { opacity: 0.6; cursor: default; }
+.ea-think-feedback .ea-think-btn[data-done='true'] { color: var(--et-success); border-color: var(--et-success); }
+.ea-think-feedback .ea-think-error { font-size: var(--et-text-micro); color: var(--et-danger); }
+@media (prefers-reduced-motion: reduce) {
+  .ea-think-feedback .ea-think-btn { transition: none; }
+}
 `
 
 export function injectAccessStyles(doc: Document = document): void {
