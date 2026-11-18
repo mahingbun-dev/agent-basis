@@ -35,6 +35,7 @@ import { createTenantPluginLoader, type TenantPluginToolsFace } from './tenant-p
 import { defineInstallPersonalPluginTool } from './install-tool.ts'
 import { installMuxIsolation, type MuxIsolationInstall } from './mux.ts'
 import { installLoginGate } from './login-gate.ts'
+import { registerChannelsWebhook } from './channels-webhook.ts'
 import { installToolClamp, installSandboxBoundary } from './sandbox.ts'
 import { installTerminalTenant, installTerminalSandbox } from './terminal.ts'
 import { BADGE_SCRIPT } from './pages.ts'
@@ -330,6 +331,11 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       const loginGateDispose = installLoginGate(ctx.connection)
       if (loginGateDispose !== undefined) disposers.push(loginGateDispose)
       audit({ kind: 'access.login.gate', detail: { installed: loginGateDispose !== undefined } })
+      // channels webhook 公共面(39 号 E8;铁律 T2 路由面独占,24a 裁决口径):外部渠道
+      // 入站 webhook 与邮件审批令牌是服务器到服务器的公共面(无浏览器 cookie,自带
+      // HMAC/单次令牌 fail-closed 鉴权),路由面归本插件登记,数据面归 channels 网关
+      // (逐请求 reflect 机会读,卸载即 503)。语义与失败兜底见 channels-webhook.ts 头注。
+      disposers.push(registerChannelsWebhook(ctx.webServer, ctx.reflect))
       // Phase 2 租户面(T2.2/T2.5):存量 workspace 划归首个 admin
       adoptLegacyWorkspaces(store)
       // P1-T2(2026-11-11):mux 流租户隔离——principal 换血 + registerPolicy。
