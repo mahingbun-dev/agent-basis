@@ -30,7 +30,8 @@
  * (gateway 既有语义);sessionPort 缺席 = 不装配网关、不注册路由、world.gateway
  * 如实 undefined(渠道出站令牌/绑定存储照常可用),并打一条观测日志。
  */
-import { join } from 'node:path'
+import { mkdirSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
 import {
@@ -126,6 +127,10 @@ export function defineChannelsPlugin(config: ChannelsPluginConfig = {}) {
     name: ETERNA_CHANNELS_PLUGIN_NAME,
     apply(ctx: Context): () => void {
       const dbPath = config.dbPath ?? join(process.cwd(), '.eterna/channels.sqlite3')
+      // node:sqlite 不自建父目录:全新卷 cwd/.eterna 缺席时开库即炸,插件装载失败
+      // (G1-2 super 真启动门禁 CI 实证「unable to open database file」,0.1.29)——
+      // 开库前先建父目录(knowledge-plugin 2026-11-18 同款守卫,幂等)。
+      mkdirSync(dirname(dbPath), { recursive: true })
       const service = createChannelsService({
         dbPath,
         ...(config.adapters !== undefined && { adapters: config.adapters }),
