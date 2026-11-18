@@ -183,6 +183,40 @@ describe('品牌层与桥接层互不污染', () => {
   })
 })
 
+describe('共享基础件必须在应用内真实生效', () => {
+  // 实测事故：COMPONENT_CSS 的 .et-* 全部限定在 [data-eterna-ui]，但全仓没有
+  // 任何组件设置该属性——生产环境玉环渲染成 SVG 默认黑盘、按钮/决策卡零样式。
+  // 探针页手动加了属性才「验证通过」，是假绿。注入器必须自己落标记。
+  const source = readFileSync(join(here, '../src/tokens.ts'), 'utf8')
+
+  it('桥接模式在 body 上落下作用域标识，并在 disposer 里移除', () => {
+    expect(source).toContain("body.setAttribute('data-eterna-ui', '')")
+    expect(source).toContain("body.removeAttribute('data-eterna-ui')")
+    expect(source).toMatch(/options\.bridge === true/u)
+  })
+
+  it('作用域标识只在应用内（桥接模式）设置，独立页不受影响', () => {
+    const anchor = source.indexOf("body.setAttribute('data-eterna-ui'")
+    const setter = source.slice(anchor, anchor + 200)
+    expect(setter).not.toContain('WEBFLOW')
+  })
+
+  it('把组件类限定在作用域内是有意为之：根节点必须能承接该标识', () => {
+    // 组件的选择器前缀统一，才能被 body 上的单一标识覆盖。
+    // 跳过 @media/@keyframes 容器与 keyframes 内的百分比步骤选择器。
+    const selectors: string[] = []
+    let inAtRule = 0
+    for (const match of COMPONENT_CSS.matchAll(/([^{}]+)\{/gu)) {
+      const selector = match[1]!.trim()
+      if (selector.startsWith('@')) { inAtRule += 1; continue }
+      if (inAtRule > 0 && /^[0-9]+(%|\b)/u.test(selector)) continue
+      selectors.push(selector)
+    }
+    const unscoped = selectors.filter(selector => selector !== '' && !selector.includes('[data-eterna-ui]'))
+    expect(unscoped, `未限定作用域的组件规则: ${unscoped.slice(0, 5).join(' | ')}`).toEqual([])
+  })
+})
+
 describe('规范约束：不新建 toast 系统', () => {
   it('组件层不导出 Toast（应用内一律走宿主原子）', async () => {
     const index = await import('../src/index.ts')

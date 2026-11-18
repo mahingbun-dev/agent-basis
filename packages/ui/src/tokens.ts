@@ -446,5 +446,16 @@ export function injectDesignTokens(options: { readonly bridge?: boolean; readonl
   style.id = STYLE_ID
   style.textContent = css
   doc.head.append(style)
-  return () => { style.remove() }
+  // v4 作用域标识：COMPONENT_CSS 的 `.et-*` 契约全部限定在 [data-eterna-ui]，
+  // 但应用内没有任何组件去设置该属性——不在此处落一次，共享基础件（含玉环、
+  // 决策卡、按钮）在生产环境一条都不生效（实测 r1 玉环渲染成 SVG 默认黑盘）。
+  // 落在 body 而不是某个插件面：一个插件注入过，全产品面共用同一套基础件。
+  // body 在类型上非空，但 vm 冒烟桩只提供 head——运行时必须容忍。
+  // 没有 body 就没有挂载点，组件面本来也不会渲染，标记留待下一次注入。
+  const body = doc.body as HTMLElement | null | undefined
+  if (options.bridge === true && body != null) body.setAttribute('data-eterna-ui', '')
+  return () => {
+    style.remove()
+    if (options.bridge === true && body != null) body.removeAttribute('data-eterna-ui')
+  }
 }
