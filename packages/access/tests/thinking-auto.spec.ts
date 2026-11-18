@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { installThinkingAuto, type ThinkingAutoOn } from '../src/thinking-auto.ts'
+import { decayBias } from '../src/thinking-score.ts'
 import { UserStore } from '../src/store.ts'
 import type { AccessAuditEvent } from '../src/audit.ts'
 
@@ -28,6 +29,14 @@ const flush = async (): Promise<void> => {
 interface HarnessOptions {
   readonly effortIds?: readonly string[]
   readonly resolveHang?: boolean
+  /** V2:会话反馈偏置原始值(与写入时刻)。 */
+  readonly bias?: { readonly bias: number; readonly updatedAt: number }
+  /** V2:会话尾部窗口事件(空数组=有窗口但无事件)。 */
+  readonly events?: readonly unknown[]
+  /** V2:会话日志尾下标(触发窗口裁剪)。 */
+  readonly seq?: number
+  /** V2:快照抛错(=日志面故障,必须退化为 V1 判档)。 */
+  readonly snapshotThrows?: boolean
 }
 
 /** 结构替身:可编程 llm 面 + 多事件注册器 + 落盘记录面。 */
@@ -36,6 +45,7 @@ function makeHarness(options: HarnessOptions = {}) {
   const appends: Array<{ type: string; data: unknown }> = []
   const audits: AccessAuditEvent[] = []
   const resolveCalls: Array<{ provider: string; model: string }> = []
+  const snapshotCalls: number[] = []
   const listeners = new Map<string, Array<(...args: unknown[]) => void>>()
   let messageSeq = 0
 
@@ -43,6 +53,14 @@ function makeHarness(options: HarnessOptions = {}) {
     id: 's-on',
     requestHeader: () => ({ config: { provider: 'prov', model: 'model-a' } }),
     append: (type: string, data: unknown) => { appends.push({ type, data }) },
+    ...(options.seq === undefined ? {} : { seq: options.seq }),
+    ...(options.events === undefined ? {} : {
+      snapshotEvents: (fromSeq: number): readonly unknown[] => {
+        snapshotCalls.push(fromSeq)
+        if (options.snapshotThrows === true) throw new Error('log unavailable')
+        return options.events as readonly unknown[]
+      },
+    }),
   }
   // 形态对齐宿主 AgentModel:select/current 是**依赖 this 的方法**——
   // 0.1.18 生产事故回归锚:路由器抽出方法裸调会 here 炸(this undefined)。
@@ -75,7 +93,10 @@ function makeHarness(options: HarnessOptions = {}) {
 
   const dispose = installThinkingAuto(
     {
-      store: { thinkingAutoOf: (id: string) => id === 's-on' },
+      store: {
+        thinkingAutoOf: (id: string) => id === 's-on',
+        thinkingBiasOf: (id: string) => (id === 's-on' ? options.bias : undefined),
+      },
       llm: {
         listProviders: () => (options.effortIds === undefined ? [] : [{ id: 'prov' }]),
         listModels: (_provider: string) => Promise.resolve(options.effortIds === undefined ? [] : [{ id: 'model-a' }]),
@@ -99,7 +120,7 @@ function makeHarness(options: HarnessOptions = {}) {
   }
 
   return {
-    selectCalls, appends, audits, resolveCalls, listeners, session, agent,
+    selectCalls, appends, audits, resolveCalls, snapshotCalls, listeners, session, agent,
     fire, spliceIn, userMessage, dispose,
   }
 }
@@ -265,6 +286,66 @@ describe('thinking-auto 路由器', () => {
     disposeBoom()
   })
 
+  it('会话窗口:本轮工具连续失败 ⇒ 升档(0.1→0.4 ⇒ medium),审计带信号明细', async () => {
+    const at = '2026-11-18T10:00:00.000Z'
+    const events = [
+      { type: 'user/message', at, data: { role: 'user', source: { kind: 'user' }, content: [{ type: 'text', text: '跑一下测试' }] } },
+      { type: 'tool/call', at, data: { callId: 'c1', name: 'bash' } },
+      { type: 'tool/result', at, data: { message: { role: 'tool', isError: true, toolCallId: 'c1', content: [] } } },
+      { type: 'tool/call', at, data: { callId: 'c2', name: 'bash' } },
+      { type: 'tool/result', at, data: { message: { role: 'tool', isError: true, toolCallId: 'c2', content: [] } } },
+    ]
+    const h = makeHarness({ effortIds: ['low', 'medium', 'high'], events })
+    h.fire('agent/created', { agent: h.agent })
+    await flush()
+    h.spliceIn(h.userMessage('帮我看看这段逻辑怎么改'))
+    await micro()
+    expect(h.selectCalls).toEqual([{ provider: 'prov', model: 'model-a', reasoningEffort: 'medium' }])
+    expect(h.audits[0]).toMatchObject({
+      kind: 'access.thinking.auto',
+      detail: { signals: { toolFailures: 2, sameToolFailures: 2 } },
+    })
+    h.dispose()
+  })
+
+  it('反馈偏置生效并按 24h 半衰:新鲜 +0.4 升档,48h 前同值退回最低档', async () => {
+    const five = ['minimal', 'low', 'medium', 'high', 'xhigh']
+    const fresh = makeHarness({ effortIds: five, bias: { bias: 0.4, updatedAt: Date.now() } })
+    fresh.fire('agent/created', { agent: fresh.agent })
+    await flush()
+    fresh.spliceIn(fresh.userMessage('帮我看看这段逻辑怎么改'))
+    await micro()
+    expect(fresh.selectCalls[0]).toMatchObject({ reasoningEffort: 'medium' })
+    fresh.dispose()
+
+    const stale = makeHarness({ effortIds: five, bias: { bias: 0.4, updatedAt: Date.now() - 2 * 24 * 60 * 60_000 } })
+    stale.fire('agent/created', { agent: stale.agent })
+    await flush()
+    stale.spliceIn(stale.userMessage('帮我看看这段逻辑怎么改'))
+    await micro()
+    expect(stale.selectCalls[0]).toMatchObject({ reasoningEffort: 'low' })
+    stale.dispose()
+  })
+
+  it('窗口按 seq 裁剪:只读最近 200 事件;快照抛错=空窗口仍按 V1 判档', async () => {
+    const sliced = makeHarness({ effortIds: ['low', 'medium', 'high'], events: [], seq: 1000 })
+    sliced.fire('agent/created', { agent: sliced.agent })
+    await flush()
+    sliced.spliceIn(sliced.userMessage('帮我看看这段逻辑怎么改'))
+    await micro()
+    expect(sliced.snapshotCalls).toEqual([800])
+    sliced.dispose()
+
+    const broken = makeHarness({ effortIds: ['low', 'medium', 'high'], events: [], seq: 5, snapshotThrows: true })
+    broken.fire('agent/created', { agent: broken.agent })
+    await flush()
+    broken.spliceIn(broken.userMessage('帮我看看这段逻辑怎么改'))
+    await micro()
+    expect(broken.selectCalls).toHaveLength(1)
+    expect(broken.audits.every(event => event.ok !== false)).toBe(true)
+    broken.dispose()
+  })
+
   it('disposer:解除全部三个监听并中止预热', async () => {
     const h = makeHarness({ effortIds: ['low', 'medium', 'high'] })
     h.dispose()
@@ -315,6 +396,9 @@ describe('thinking-auto store 开关与迁移', () => {
     try {
       const columns = (store as unknown as { db: DatabaseSync }).db.prepare('PRAGMA table_info(sessions)').all() as Array<{ name: string }>
       expect(columns.some(column => column.name === 'thinking_auto')).toBe(true)
+      // V2 两列同迁移到存量库
+      expect(columns.some(column => column.name === 'thinking_bias')).toBe(true)
+      expect(columns.some(column => column.name === 'thinking_bias_at')).toBe(true)
       // 旧行吃列默认 1 ⇒ 默认开启(用户拍板)
       expect(store.thinkingAutoOf('s-legacy')).toBe(true)
       // 关闭可写回;未知会话 false 兜底(系统/subagent 不启用)
@@ -325,6 +409,53 @@ describe('thinking-auto store 开关与迁移', () => {
       // recordSession 不列该列 ⇒ 新行走列默认 1
       store.recordSession('s-new', 1, null)
       expect(store.thinkingAutoOf('s-new')).toBe(true)
+    } finally {
+      store.close()
+    }
+  })
+  it('反馈偏置:叠加前先衰减、反向抵消、钳位 ±0.5;未知会话不建行', () => {
+    const dbPath = join(dir, 'bias.db')
+    const store = new UserStore(dbPath)
+    try {
+      expect(store.seedAdmin('admin', 'admin-pass-123')).toBe(true)
+      store.recordSession('s-bias', 1, null)
+      const now = Date.parse('2026-11-18T12:00:00.000Z')
+      const day = 24 * 60 * 60 * 1000
+
+      expect(store.thinkingBiasOf('s-bias')).toBeUndefined() // 从未反馈
+      expect(store.addThinkingBias('s-bias', 0.2, now)).toEqual({ bias: 0.2 })
+      expect(store.thinkingBiasOf('s-bias')).toEqual({ bias: 0.2, updatedAt: now })
+      // 同向累计、反向抵消
+      store.addThinkingBias('s-bias', 0.2, now)
+      expect(store.thinkingBiasOf('s-bias')?.bias).toBeCloseTo(0.4)
+      store.addThinkingBias('s-bias', -0.2, now)
+      expect(store.thinkingBiasOf('s-bias')?.bias).toBeCloseTo(0.2)
+      // 钳位上限
+      store.addThinkingBias('s-bias', 0.5, now)
+      expect(store.thinkingBiasOf('s-bias')?.bias).toBeCloseTo(0.5)
+      // 隔 24h 再加:先把存量 0.5 衰减到 0.25 再叠加
+      store.addThinkingBias('s-bias', 0.1, now + day)
+      expect(store.thinkingBiasOf('s-bias')?.bias).toBeCloseTo(0.35)
+      // 未知会话不隐式建行
+      expect(store.addThinkingBias('s-ghost', 0.2, now)).toBeUndefined()
+      expect(store.thinkingBiasOf('s-ghost')).toBeUndefined()
+      // reset:清零两列(读侧回 undefined);命中行语义——对已清零行重复 reset 仍 true
+      expect(store.resetThinkingBias('s-bias', now)).toBe(true)
+      expect(store.thinkingBiasOf('s-bias')).toBeUndefined()
+      const raw = new DatabaseSync(dbPath)
+      try {
+        const columns = raw.prepare('SELECT thinking_bias, thinking_bias_at FROM sessions WHERE session_id = ?')
+          .get('s-bias') as { thinking_bias: number; thinking_bias_at: number }
+        expect(columns).toEqual({ thinking_bias: 0, thinking_bias_at: 0 })
+      } finally {
+        raw.close()
+      }
+      expect(store.resetThinkingBias('s-bias', now)).toBe(true)
+      expect(store.resetThinkingBias('s-new-reset', now)).toBe(false) // 未知会话=false 且不建行
+      expect(store.sessionOwner('s-new-reset')).toBeUndefined()
+      // 死区:reset 后衰减视角为 0;久远偏置(>5 天)衰减到死区同样为 0
+      expect(decayBias(0, now, now)).toBe(0)
+      expect(decayBias(0.2, now, now + 8 * day)).toBe(0)
     } finally {
       store.close()
     }

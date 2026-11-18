@@ -8,12 +8,18 @@
  *   ZCode ComposerProviderMenu 的 offset 补偿:side=menu.right-row.right+4)
  * - 数据面:同窗 RPC(信封与上游 typert 同构);提交=selectModel;
  *   回显=ctx.sessions 投影单键本地写(rename 先例)
+ * - 思考偏置可见面(2026-11-18 V2):「自动」chip 区域展示**本会话有效偏置**
+ *   (thinkingFeedback 读支 {bias,effectiveBias};只显示实际参与判档的
+ *   effectiveBias,正=调深/负=调浅),右侧「重置」两击确认 →
+ *   direction='reset' 只清偏置(不清 thinking_auto、不改模型档位)
  * - 能力标签(2026-11-13):模型行 badge(上游 ModelCatalogModel 既有字段;
  *   服务端 access 网关在 /api/session/modelCatalog 上按 llm-pi-ai 配置富化
  *   「视觉」,见 src/model-catalog.ts)渲染为名后 chip——上游菜单位次;
  *   文案按 navigator.language 解析 LocalizedText(en 兜底,镜像上游 resolveText)
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { biasLabel, biasVisible } from './bias-view.ts'
+import { TwoClickButton } from './confirm-button.tsx'
 
 /** typert RPC 同构信封(POST /api/session/<method>)。 */
 async function rpc<T>(method: string, args: Record<string, unknown>): Promise<T> {
@@ -83,6 +89,16 @@ const S = {
   autoChipOn: {
     background: 'var(--et-accent-soft)', borderColor: 'var(--et-accent)', color: 'var(--et-accent)',
   } as React.CSSProperties,
+  // 思考偏置行(chip + 重置):布局与间距走内联,可交互态(focus/hover/armed)
+  // 走 styles.ts 的 .ea-bias-*(需 :focus-visible 与 prefers-reduced-motion)
+  biasRow: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+    padding: '2px 14px 6px', boxSizing: 'border-box',
+  } as React.CSSProperties,
+  // 重置 + 就地错误文案(aria-live)合成右侧一组:错误出现时不挤动 chip
+  biasActions: {
+    display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0,
+  } as React.CSSProperties,
   // 能力 tag chip(上游 ui-model-selection .badge 同位次:菜单位=名后;
   // 全令牌着色,零字面色值——frontend-style 铁律)
   badge: {
@@ -150,6 +166,17 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
   // 思考强度自动模式(2026-11-18):null=读取中(chip 不渲染,避免闪错态);
   // 服务端列默认 1 ⇒ 新/存量会话默认开启。读取失败保持 null(本菜单不误标状态)。
   const [autoOn, setAutoOn] = useState<boolean | null>(null)
+  // 思考偏置(2026-11-18 V2):null=读取中/读取失败(整行不渲染,不误标「无偏置」);
+  // 只显示 effectiveBias——判档(thinking-auto)用的就是衰减后的值,原值 bias
+  // 仅作可观测字段,菜单不拿它显示(否则显示的是陈旧值)。
+  const [bias, setBias] = useState<{ readonly bias: number; readonly effectiveBias: number } | null>(null)
+  const [biasError, setBiasError] = useState<string | null>(null)
+  // 偏置显示口径(声明在一切 effect 之前:主面板 rect 重测依赖 biasShown)。
+  // 只认 effectiveBias(与服务端 decayBias 同源),可见阈值与判档死区严格同值
+  // (0.01,bias-view.BIAS_VISIBLE_MIN)——四舍五入到 0.1 会把仍在生效的
+  // 0.01–0.04 偏置整行藏掉,用户既看不到也清不掉(复核 F2)。
+  const biasView = bias === null ? null : biasLabel(bias.effectiveBias)
+  const biasShown = bias !== null && biasVisible(bias.effectiveBias)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const mainRef = useRef<HTMLDivElement | null>(null)
   const [mainRect, setMainRect] = useState<{ left: number; top: number; right: number } | null>(null)
@@ -171,6 +198,43 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
     rpc<{ enabled: boolean }>('thinkingAuto', { request: { sessionId: props.sessionId, enabled: next } })
       .then(value => { setAutoOn(value?.enabled ?? next); setBusy(false) })
       .catch((e: unknown) => { setBusy(false); setError(e instanceof Error ? e.message : String(e)) })
+  }
+
+  // 思考偏置读支(独立 effect:与自动开关/目录互不连坐)。读 = POST 同一路由
+  // 但无 direction ⇒ 服务端走只读支({bias,effectiveBias}),**零审计**(读支不记账);
+  // 读取失败=不显示偏置行(旧宿主无读支/网络抖动),不弹错、不改其他控件。
+  useEffect(() => {
+    let alive = true
+    rpc<{ bias: number; effectiveBias: number }>('thinkingFeedback', { request: { sessionId: props.sessionId } })
+      .then(value => {
+        if (!alive) return
+        setBias({
+          bias: typeof value?.bias === 'number' ? value.bias : 0,
+          effectiveBias: typeof value?.effectiveBias === 'number' ? value.effectiveBias : 0,
+        })
+      })
+      .catch(() => { /* 读失败:本菜单不显示偏置行 */ })
+    return () => { alive = false }
+  }, [props.sessionId])
+
+  /** 重置本会话偏置(两击确认在按钮内):成功即本地归零 ⇒ 偏置行随即消失。
+   *  失败只显示中文固定文案(原始异常不展示——浏览器/网关英文会透传给用户)。 */
+  const resetBias = (): void => {
+    if (busy) return
+    setBusy(true); setBiasError(null)
+    rpc<{ bias: number; effectiveBias: number }>('thinkingFeedback', {
+      request: { sessionId: props.sessionId, direction: 'reset' },
+    }).then(value => {
+      setBias({
+        bias: typeof value?.bias === 'number' ? value.bias : 0,
+        effectiveBias: typeof value?.effectiveBias === 'number' ? value.effectiveBias : 0,
+      })
+      setBusy(false)
+    }).catch((e: unknown) => {
+      setBusy(false)
+      console.warn('[eterna-access] 重置思考偏置失败:', e)
+      setBiasError('重置失败，请稍后重试')
+    })
   }
 
   // 初始 current:触发按钮 aria「…当前 X，推理等级 Y」+catalog 匹配 id/name
@@ -220,12 +284,13 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
     }
   }, [dismiss])
 
-  // 主面板实测 rect(子面板定位基准;above=bottom 定位时 top 由渲染结果给出)
+  // 主面板实测 rect(子面板定位基准;above=bottom 定位时 top 由渲染结果给出)。
+  // 偏置行异步出现/消失会改变主面板高度 ⇒ 行显隐也触发重测(F8)。
   useLayoutEffect(() => {
     if (mainRef.current === null) return
     const r = mainRef.current.getBoundingClientRect()
     setMainRect({ left: r.left, top: r.top, right: r.right })
-  }, [subOpen])
+  }, [subOpen, biasShown])
 
   const curProvider = useMemo(() => groups?.find(g => g.id === current?.provider) ?? null, [groups, current])
   const curModels = curProvider?.models ?? []
@@ -298,6 +363,15 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
     else if (place === 'above' && r.top < 8) setPlace('below')
     // 空依赖:仅挂载时定一次位(理由见上,不可每渲染重跑)。
   }, [])
+  // 偏置行是异步读回才出现的(读支返回非 0 才渲染),会给面板加上一行高度。
+  // 上面「仅挂载定位」不能每渲染重跑,否则 catalog/偏置回包时面板挪位;这里只做
+  // **双向**越界纠正(below↔above),deps 只含行的显隐与当前位次,不随普通渲染抖动。
+  useLayoutEffect(() => {
+    if (!biasShown || mainRef.current === null) return
+    const r = mainRef.current.getBoundingClientRect()
+    if (place === 'below' && r.bottom > window.innerHeight - 8) setPlace('above')
+    else if (place === 'above' && r.top < 8) setPlace('below')
+  }, [biasShown, place])
   const mainStyle: React.CSSProperties = (() => {
     const left = Math.max(8, Math.min(anchor.x - 40, window.innerWidth - 272))
     return {
@@ -355,6 +429,35 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
         })}
         {curModels.length === 0 && <div style={{ ...S.row, opacity: 0.5, cursor: 'default' }}>目录读取中…</div>}
       </div>
+      {/* 思考偏置行(2026-11-18 V2 收尾):放在「思考强度」条件块之外——偏置是会话
+          属性,不依赖当前模型的档位表。显隐阈值与判档死区同值(0.01);自动关闭时
+          行内给可见说明(不再只藏 title);重置=两击确认,成功即本地归零让本行消失。 */}
+      {biasShown && biasView !== null && <>
+        <div style={S.divider} />
+        <div style={S.biasRow}>
+          <span
+            className="ea-bias-chip"
+            data-sign={biasView.direction}
+            title={`本会话思考偏置（${biasView.text}）`}
+          >
+            {biasView.text}
+          </span>
+          {autoOn === false && <span className="ea-bias-hint">自动选档已关闭，偏置暂不参与判档</span>}
+          <span style={S.biasActions}>
+            <TwoClickButton
+              label="重置"
+              confirmLabel="再点一次确认重置"
+              className="ea-bias-reset"
+              armedClassName="ea-bias-reset ea-bias-reset-armed"
+              ariaLabel="重置本会话思考偏置"
+              role="menuitem"
+              disabled={busy}
+              onConfirm={resetBias}
+            />
+            <span className="ea-bias-error" role="status" aria-live="polite">{biasError ?? ''}</span>
+          </span>
+        </div>
+      </>}
       {curEfforts.length > 0 && <>
         <div style={S.divider} />
         <div style={S.section}>思考强度</div>

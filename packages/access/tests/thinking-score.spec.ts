@@ -4,7 +4,7 @@
  * 调参即改测试,保持「文档=代码=测试」三者同源。
  */
 import { describe, expect, it } from 'vitest'
-import { pickEffort, scoreMessage } from '../src/thinking-score.ts'
+import { decayBias, pickEffort, scoreMessage } from '../src/thinking-score.ts'
 
 describe('scoreMessage 信号表', () => {
   it('空输入=0;钳位在 [0,1]', () => {
@@ -50,6 +50,90 @@ describe('scoreMessage 信号表', () => {
     expect(huge).toBeCloseTo(0.2 + 0.1 + 0.1 + 0.15) // >2000 叠加
     const attachment = scoreMessage({ text: '', hasAttachment: true })
     expect(attachment).toBeCloseTo(0.2 - 0.1 + 0.15)
+  })
+})
+
+/** V2 信号默认值:全零(只测某一条时逐项覆盖)。 */
+const ZERO_SIGNALS = {
+  toolFailureStreak: 0,
+  sameToolFailureStreak: 0,
+  followUpOverlap: 0,
+  followUpGapMinutes: Number.POSITIVE_INFINITY,
+  windowEvents: 0,
+  recentChars: 0,
+  bias: 0,
+} as const
+
+describe('scoreMessage 会话上下文信号(V2)', () => {
+  // 基线文本:'帮我看看这段逻辑怎么改' = 0.2 - 0.1(短句) = 0.1
+  const base = { text: '帮我看看这段逻辑怎么改', hasAttachment: false } as const
+
+  it('signals 缺省=V1 逐条不变(回放基线)', () => {
+    expect(scoreMessage(base)).toBeCloseTo(0.1)
+    expect(scoreMessage({ text: '请深入思考这个问题', hasAttachment: false })).toBe(0.85)
+    expect(scoreMessage({ text: '你好', hasAttachment: false })).toBe(0.15)
+  })
+
+  it('工具失败 +0.15/次、封顶 +0.3;同工具连续失败再加 +0.15', () => {
+    expect(scoreMessage({ ...base, signals: { ...ZERO_SIGNALS, toolFailureStreak: 1 } })).toBeCloseTo(0.25)
+    expect(scoreMessage({ ...base, signals: { ...ZERO_SIGNALS, toolFailureStreak: 2 } })).toBeCloseTo(0.4)
+    expect(scoreMessage({ ...base, signals: { ...ZERO_SIGNALS, toolFailureStreak: 5 } })).toBeCloseTo(0.4)
+    expect(scoreMessage({
+      ...base,
+      signals: { ...ZERO_SIGNALS, toolFailureStreak: 2, sameToolFailureStreak: 2 },
+    })).toBeCloseTo(0.55)
+  })
+
+  it('同题追问:重叠 ≥0.6 且间隔 ≤10 分钟才 +0.15', () => {
+    const hit = { ...ZERO_SIGNALS, followUpOverlap: 0.8, followUpGapMinutes: 3 }
+    expect(scoreMessage({ ...base, signals: hit })).toBeCloseTo(0.25)
+    expect(scoreMessage({ ...base, signals: { ...hit, followUpOverlap: 0.5 } })).toBeCloseTo(0.1)
+    expect(scoreMessage({ ...base, signals: { ...hit, followUpGapMinutes: 11 } })).toBeCloseTo(0.1)
+  })
+
+  it('上下文规模:事件 ≥200 与文本 ≥20000 各 +0.1', () => {
+    expect(scoreMessage({ ...base, signals: { ...ZERO_SIGNALS, windowEvents: 200 } })).toBeCloseTo(0.2)
+    expect(scoreMessage({ ...base, signals: { ...ZERO_SIGNALS, recentChars: 20_000 } })).toBeCloseTo(0.2)
+    expect(scoreMessage({
+      ...base,
+      signals: { ...ZERO_SIGNALS, windowEvents: 200, recentChars: 20_000 },
+    })).toBeCloseTo(0.3)
+  })
+
+  it('上轮档位弱先验 ±0.05(归一中点 0.5)', () => {
+    expect(scoreMessage({ ...base, signals: { ...ZERO_SIGNALS, previousEffortRank: 1 } })).toBeCloseTo(0.15)
+    expect(scoreMessage({ ...base, signals: { ...ZERO_SIGNALS, previousEffortRank: 0 } })).toBeCloseTo(0.05)
+    expect(scoreMessage({ ...base, signals: { ...ZERO_SIGNALS, previousEffortRank: 0.5 } })).toBeCloseTo(0.1)
+  })
+
+  it('偏置最后叠加并钳位;显式指令优先于偏置', () => {
+    expect(scoreMessage({ ...base, signals: { ...ZERO_SIGNALS, bias: 0.2 } })).toBeCloseTo(0.3)
+    expect(scoreMessage({ ...base, signals: { ...ZERO_SIGNALS, bias: -0.5 } })).toBeCloseTo(0)
+    // 用户当轮点名简答:历史"想深点"偏置不得翻案
+    expect(scoreMessage({ text: '简短回答：1+1=?', hasAttachment: false, signals: { ...ZERO_SIGNALS, bias: 0.5 } })).toBe(0.1)
+    expect(scoreMessage({ text: '请深入思考这个问题', hasAttachment: false, signals: { ...ZERO_SIGNALS, bias: -0.5 } })).toBe(0.85)
+  })
+
+  it('失败/追问在场时寒暄不再钳到 0.15("继续"是工作指令)', () => {
+    expect(scoreMessage({ text: '继续', hasAttachment: false, signals: { ...ZERO_SIGNALS, toolFailureStreak: 1 } }))
+      .toBeCloseTo(0.25)
+    // 无工作信号时维持 V1 寒暄钳制
+    expect(scoreMessage({ text: '继续', hasAttachment: false, signals: ZERO_SIGNALS })).toBe(0.15)
+  })
+})
+
+describe('decayBias', () => {
+  const now = Date.parse('2026-11-18T12:00:00.000Z')
+  const day = 24 * 60 * 60 * 1000
+
+  it('从未反馈=0;24h 半衰;死区内归零;钳位 ±0.5', () => {
+    expect(decayBias(0.4, 0, now)).toBe(0)
+    expect(decayBias(0.4, now, now)).toBeCloseTo(0.4)
+    expect(decayBias(0.4, now - day, now)).toBeCloseTo(0.2)
+    expect(decayBias(0.4, now - 2 * day, now)).toBeCloseTo(0.1)
+    expect(decayBias(-0.4, now - day, now)).toBeCloseTo(-0.2)
+    expect(decayBias(0.9, now, now)).toBeCloseTo(0.5)
+    expect(decayBias(0.015, now - 2 * day, now)).toBe(0)
   })
 })
 
