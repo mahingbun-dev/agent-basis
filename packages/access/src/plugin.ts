@@ -33,6 +33,7 @@ import { installThinkingAuto, type ThinkingAutoLlm } from './thinking-auto.ts'
 import { ensureFirstSession, ensureTenantWorkspace, registerTenantGuards, WORKBENCH_STREAM_ENDPOINT } from './tenant.ts'
 import { createTenantPluginLoader, type TenantPluginToolsFace } from './tenant-plugins.ts'
 import { defineInstallPersonalPluginTool } from './install-tool.ts'
+import { defineSubmitPluginToMarketTool } from './publish-tool.ts'
 import { installMuxIsolation, type MuxIsolationInstall } from './mux.ts'
 import { installLoginGate } from './login-gate.ts'
 import { registerChannelsWebhook } from './channels-webhook.ts'
@@ -322,6 +323,10 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       try {
         const toolDeps = { tenantDeps: { store, session, reflect: ctx.reflect, tenantRoot, audit }, loader: pluginLoader }
         disposers.push(ctx.tools.register(defineInstallPersonalPluginTool(toolDeps)))
+        // 一键发布(2026-11-19):submit_plugin_to_market——个人插件 → eterna-plugins
+        // 分支 commit + PR(main 分支保护,永不直推);凭据走 ETERNA_MARKET_GITHUB_TOKEN
+        // (.env/compose 注入,不入被跟踪文件)。失败只降级(审计+日志,不炸装配)。
+        disposers.push(ctx.tools.register(defineSubmitPluginToMarketTool({ tenantDeps: toolDeps.tenantDeps })))
       } catch (error) {
         audit({ kind: 'access.tenant', detail: { action: 'install-tool.register.failed', error: error instanceof Error ? error.message : String(error) } })
       }

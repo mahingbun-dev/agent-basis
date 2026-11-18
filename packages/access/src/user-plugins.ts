@@ -74,8 +74,8 @@ export function personalPluginId(account: string, name: string): string | undefi
   return `user:${account}:${name}`
 }
 
-/** dir 必须在 <userRoot>/plugins/ 之下。 */
-function personalPluginDir(userRoot: string, dirName: string): string | undefined {
+/** dir 必须在 <userRoot>/plugins/ 之下(发布工具 market-publish 复用同一钳制口径)。 */
+export function personalPluginDir(userRoot: string, dirName: string): string | undefined {
   if (!/^[\w][\w.-]{0,63}$/u.test(dirName)) return undefined
   const dir = resolve(userRoot, 'plugins', dirName)
   const pluginsRoot = resolve(userRoot, 'plugins')

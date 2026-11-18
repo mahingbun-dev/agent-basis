@@ -201,6 +201,15 @@ pnpm add @deepseek-ai/dsh-experimental-plugin-market-bundle@0.2.2-rc.1
 
 ✅ **市场面仅管理员可用(T6.1,2026-11-19 落地)**:安装/卸载/启停/索引源写入与 detail-file 仅 `admin` 角色可调用(普通用户/审批人 403;未登录会话 401);非 admin 的「插件」页整页不渲染,个人插件走设置弹窗「我的插件」。机制与实测证据见 `docs/PLUGIN-AUTHORING.md` §7。
 
+### 创造模式插件上架官方市场(一键发布,推荐)
+
+创造模式开发的个人插件想给**全员**用,不必手工走仓库发布流程——直接在会话里让 agent 调用 `submit_plugin_to_market`(或在设置弹窗「我的插件」确认目录名后发起):
+
+- 自动完成:bundle 化改写 → 官方仓库分支 commit(bundle + 索引两段,索引钉 bundle SHA)→ 零漂移校验 → push → **开 PR**;
+- 你只做一件事:**合并 PR**(仓库 main 有分支保护,CI validate 绿才能合;PR 链接工具会直接给出);
+- 合并后:管理员在「插件 → 发现 → 插件索引」菜单刷新 → 新版本卡片出现 → 安装 → 启用(重启生效);
+- 边界:仅工具型插件(UI 型不支持)、纯 JS 入口、版本自动递增(可显式传 version)。手工六步配方保留为等效路径,见 eterna-plugins 仓 `docs/PUBLISHING.md`。
+
 ### Web「发现」标签(推荐)
 
 1. 打开 Web → 侧栏「**插件**」页 → 切到「**发现**」标签

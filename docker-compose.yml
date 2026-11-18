@@ -44,6 +44,11 @@ services:
       ETERNA_ACCESS_ADMIN_PASSWORD: ${ETERNA_ACCESS_ADMIN_PASSWORD:-}
       ETERNA_ACCESS_SECRET: ${ETERNA_ACCESS_SECRET:-}
       ETERNA_ACCESS_SECURE: ${ETERNA_ACCESS_SECURE:-}
+      # 插件市场一键发布(submit_plugin_to_market,2026-11-19):clone 目录/远端/
+      # token(凭据只进 .env,绝不入被跟踪文件);TOKEN 缺席=发布停在 push 降级。
+      ETERNA_MARKET_REPO_URL: ${ETERNA_MARKET_REPO_URL:-}
+      ETERNA_MARKET_REPO_DIR: ${ETERNA_MARKET_REPO_DIR:-}
+      ETERNA_MARKET_GITHUB_TOKEN: ${ETERNA_MARKET_GITHUB_TOKEN:-}
     volumes:
       - eterna-home:/data
       # 模板免重建挂载(2026-11-12):entrypoint 按模板哈希门控渲染卷内 profile
