@@ -1,0 +1,16 @@
+PASS  boot log clean (no skipping/incompatible) — boot + probe 期间 stdout/stderr 无装载跳过或版本不兼容记录
+PASS  no failed entries — 206 entries settled
+PASS  all 22 cut rows inactive — absent or disabled everywhere
+PASS  all 106 kept host rows enabled+active — active in the settled Loader tree
+PASS  mcp-browser (companion browser execution plane) enabled+active — enabled/active
+PASS  eterna-prompt-studio (prompt studio panel) enabled+active — enabled/active
+PASS  standard preset composed and default — presets: standard, minimal, cordis
+PASS  all 21 kept preset rows enabled+active in standard — flattened composition active
+PASS  browser roster: index.html 200 且注入 __DSH_BOOT__ 花名册 — status=200, __DSH_BOOT__=true
+PASS  browser roster: combo 花名册含 @eterna/prompt-studio/client.js — plugins/??@deepseek-ai/dsh-api-remote-access/client.js,@deepseek-ai/dsh-session-log-export/client.js,@deepseek-ai/dsh-cl
+PASS  browser roster: 本包 combo 脚本可取且含 factory 注册(id=@eterna/prompt-studio) — bytes=2160599
+PASS  browser roster: combo 花名册含 @eterna/compaction/client.js — plugins/??@deepseek-ai/dsh-api-gateway/client.js,@deepseek-ai/dsh-client-ui-file-actions/client.js,@deepseek-ai/dsh-clie
+PASS  browser roster: 压缩包 combo 可取且含 factory 注册(id=@eterna/compaction) — bytes=7483370
+PASS  browser roster: combo 花名册含 @eterna/attachments/client.js — plugins/??@deepseek-ai/dsh-api-gateway/client.js,@deepseek-ai/dsh-client-ui-file-actions/client.js,@deepseek-ai/dsh-clie
+PASS  browser roster: 附件包 combo 可取且含 factory 注册(id=@eterna/attachments) — bytes=7483370
+verify-eterna-web: OK — 206 host entries, 3 presets, cut rows inactive, kept rows active

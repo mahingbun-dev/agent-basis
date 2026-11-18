@@ -11,6 +11,10 @@
 #   启停与模型设置(package.json dsh.profile / patch llm-pi-ai 行)跨重启持久;
 #   模板变更(镜像升级)才重渲染,并把旧文件的启停标记/追加覆写行/bundles 选择
 #   窄移植到新渲染(模型行 config 不移植——升级重置,重启场景已由门控根治)。
+#   提示词工坊托管值(2026-11-18 补:migrate-prompt-edits.mjs)另走基线快照移植
+#   ——persona/plan-mode section/maxBytes 共 6 条,经「旧文件 vs 基线快照」判定
+#   用户编辑后搬到新渲染;模板基线自身的更新照常落地。此前模板变更升级会把
+#   工坊编辑打回默认(0.1.13→0.1.14 实证)。
 #   会话/存储/审计全在卷,升级镜像不丢数据。
 # - bootstrap token 打印在 stdout(docker logs 取);首次浏览器连接消费后,
 #   BrowserAuth 会话签名落卷 credentials(重启不掉线)。
@@ -18,8 +22,31 @@ set -eu
 
 : "${MIMO_API_KEY:?MIMO_API_KEY required (env / compose .env——默认模型走 MiMo 直连)}"
 DSH_HOME="${DSH_HOME:-/data}"
-PROFILE_DIR="$DSH_HOME/profiles/eterna-web"
 REPO=/repo
+
+# ── 0. 形态分派(ETERNA_FORM,31 号 §2.5/40 号 S-5)────────────────────────
+# 缺省=base:现网 docker-compose.yml 无此 env(40 号 §1 表第 2 行),缺省行为必须与
+# 历史现状逐字等价——2.5 裁剪/2.6 治理/4 家族链接/4.5 relay/5 启动各步一行不改,
+# 仅 profile 目录、patch 模板、第 3 步 @eterna 清单三处按形态取值。
+# 非法值 fail-closed 拒启(40 号 §9 Q4 暂定):与 §2.5「schema 前向守卫拒启」同款
+# 纪律——不静默按 base 落(未拍板前不得自行选择其他行为)。
+ETERNA_FORM="${ETERNA_FORM:-base}"
+case "$ETERNA_FORM" in
+  base)
+    PROFILE_NAME=eterna-web
+    PATCH_TEMPLATE="$REPO/docker/profile/cordis.patch.yml.template"
+    ;;
+  super)
+    PROFILE_NAME=eterna-super
+    PATCH_TEMPLATE="$REPO/docker/profile/cordis.super.patch.yml.template"
+    ;;
+  *)
+    echo "[entrypoint] ETERNA_FORM 非法值: $ETERNA_FORM(仅 base|super)——fail-closed 拒启(31 号 §2.5/40 号 S-5)" >&2
+    exit 1
+    ;;
+esac
+PROFILE_DIR="$DSH_HOME/profiles/$PROFILE_NAME"
+echo "[entrypoint] form=$ETERNA_FORM profile=$PROFILE_NAME template=$(basename "$PATCH_TEMPLATE")"
 
 # ── 1. profile 骨架(不覆盖既有会话数据) ─────────────────────────────────
 mkdir -p "$PROFILE_DIR/node_modules/@eterna" "$PROFILE_DIR/node_modules/@deepseek-ai"
@@ -118,7 +145,26 @@ TRANSPLANT_EOF
 }
 
 ensure_rendered /repo/docker/profile/package.json "$PROFILE_DIR/package.json" "$PROFILE_DIR/.rendered.package.json.sha256" manifest
-ensure_rendered /repo/docker/profile/cordis.patch.yml.template "$PROFILE_DIR/cordis.patch.yml" "$PROFILE_DIR/.rendered.cordis.patch.yml.sha256" patch
+# 形态分派(40 号 S-5):base/super 各选各的模板;super 模板由 docker-compose.super.yml
+# 挂到镜像内同名路径(挂载后模板改动 up -d 即生效)。哈希门控原样复用,哈希文件
+# .rendered.*.sha256 随 profile 目录自然隔离(40 号 §9 Q2)。
+# 工坊托管值移植(2026-11-18):渲染前快照旧 patch → 渲染后按基线判定把用户改过的
+# persona/section/maxBytes 搬进新渲染。时序纪律:必须在 2.5 启停裁剪之前(其后会按
+# disabled/removed 清单再裁,移植不会复活停用行),也必须在下方 relay token sed 之前
+# (此后除 sed 外不再改本文件)。keep 路径(模板未变)同样跑——基线在册时等值零写,
+# 基线缺席(存量卷首启)借机建立。脚本逐条 fail-closed,失败仅告警不阻塞启动。
+PREV_PATCH="$PROFILE_DIR/.prev.cordis.patch.yml"
+BASELINE_JSON="$PROFILE_DIR/.rendered.cordis.patch.yml.baseline.json"
+PREV_ARG="--"
+if [ -f "$PROFILE_DIR/cordis.patch.yml" ]; then
+  cp "$PROFILE_DIR/cordis.patch.yml" "$PREV_PATCH"
+  PREV_ARG="$PREV_PATCH"
+fi
+ensure_rendered "$PATCH_TEMPLATE" "$PROFILE_DIR/cordis.patch.yml" "$PROFILE_DIR/.rendered.cordis.patch.yml.sha256" patch
+node /repo/docker/profile/migrate-prompt-edits.mjs \
+  "$PATCH_TEMPLATE" "$PREV_ARG" "$PROFILE_DIR/cordis.patch.yml" "$BASELINE_JSON" \
+  || echo "[entrypoint] WARNING 工坊值移植失败(该批托管值保模板默认;成因见上一行)"
+rm -f "$PREV_PATCH"
 
 # ── 2.5 插件启停清单(T2.3):admin 停用的可停插件 → 渲染时裁剪对应 insert 行 ──
 DISABLED_FILE="$DSH_HOME/access/disabled-plugins.json"
@@ -165,16 +211,30 @@ mkdir -p "$DSH_HOME/.eterna"
 cp "$GOV_SRC" "$DSH_HOME/.eterna/governance.rules.yml"
 echo "[entrypoint] governance rules: $GOV_SRC -> $DSH_HOME/.eterna/governance.rules.yml (cwd=$(pwd))"
 
-# ── 3. 插件 symlink(本仓 @eterna/*) ────────────────────────────────────
+# ── 3. 插件 symlink(本仓 @eterna/*;形态即清单,40 号 S-5)──────────────────
 # compaction(2026-11-12 fork 的上下文压缩家族)必须在此清单内,否则容器内解析不到。
 # attachments(2026-11-12 附件入口,客户端双面包)同理——缺 symlink 即 insert 行静默 disable。
 # memory(2026-11-15 补记):T12 双面插件(引擎行+client/admin 家族行)同样依赖本清单
 # ——实测缺链时 eterna-memory-client/admin 行静默 disable,设置分区「记忆」不出现。
-for pkg in glue llm-doctor brand panel prompt-studio llm-openai access usage-stats compaction attachments memory; do
+# base 清单=下述 11 包逐字保留;super 形态守卫式补链 Tier2/接线包(见下方注)。
+for pkg in glue llm-doctor brand panel prompt-studio llm-openai access usage-stats compaction attachments memory governance; do
   ln -sfn "$REPO/packages/$pkg" "$PROFILE_DIR/node_modules/@eterna/$pkg"
 done
 # creation-skills 别名(preset-cordis skill-filesystem 解析名)
 ln -sfn "$REPO/packages/brand" "$PROFILE_DIR/node_modules/@eterna/creation-skills"
+# super 形态守卫式补链(31 号 §2.1 super=base⊕tasks+channels+interact+workbench+toolkit):
+# 单镜像内 Tier2 源码始终在(§5 D2),但只有 super 形态建链——base 形态的 profile
+# node_modules/@eterna/ 物理上不存在 Tier2 链接(31 号 §3「base 的轻在于挂载面」与
+# §2.2 铁律 1 的装配对偶)。守卫=包目录 [ -d ] 存在才建链(登记先于落地:tasks/
+# workbench/toolkit 未落地时不建;channels/interact 已落地即建,无挂载行则链路闲置)。
+if [ "$ETERNA_FORM" = "super" ]; then
+  for pkg in tasks channels interact workbench toolkit; do
+    if [ -d "$REPO/packages/$pkg" ]; then
+      ln -sfn "$REPO/packages/$pkg" "$PROFILE_DIR/node_modules/@eterna/$pkg"
+      echo "[entrypoint] super symlink: @eterna/$pkg"
+    fi
+  done
+fi
 
 # ── 4. @deepseek-ai 家族 → 全局拷贝 ─────────────────────────────────────
 # preset 必须指 dsh 包内拷贝（版本与运行内核严格一致——指向别处会静默 disable）；
@@ -229,7 +289,10 @@ fi
 
 # ── 5. 启动(--host 拒通配:解析容器具体地址) ────────────────────────────
 IP="$(hostname -i | awk '{print $1}')"
-set -- --profile eterna-web --host "$IP" --port 8080 --no-open
+# profile 名随形态取值(40 号 S-5:super 容器 boot eterna-super——容器探针实测硬编码
+# eterna-web 时 super 形态 fresh 卷直接 "profile does not exist" 拒启;启动机制本身
+# --host/--port/--no-open 与 public-url/trusted-host 处理逐字不变)。
+set -- --profile "$PROFILE_NAME" --host "$IP" --port 8080 --no-open
 if [ -n "${ETERNA_PUBLIC_URL:-}" ]; then
   set -- "$@" --public-url "$ETERNA_PUBLIC_URL"
 fi

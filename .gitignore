@@ -47,6 +47,8 @@ tools/evals/pnpm-lock.yaml
 /.eterna/
 /.basis-home*/
 /.eterna-home*/
+# super 形态验证 home(40 号 S-6:verify-eterna-super 默认 ETERNA_PROFILE_HOME=<repo>/.eterna-super-home,与 base 验证 home 隔离)
+/.eterna-super-home*/
 /.zcode/
 /scripts/init-profile.mjs
 /scripts/smoke.mjs

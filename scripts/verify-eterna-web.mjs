@@ -375,7 +375,11 @@ if (!roster.ok) {
 // ---------------------------------------------------------------------------
 // 4. Verdict.
 
-console.log(`verify-eterna-web: boot ${urlLine}`)
+// boot 行走 stderr:它含每次运行随机的端口与 token,进 stdout 会使 G3-M1 ③ 的基线 diff
+// (docs/baselines/verify-eterna-web-m0.txt,stdout 全量口径)结构性永不为空(40 号 S-8
+// 剩余项的口径修正:boot 行随机面不属"base 形态不受扰动"的判定面;PASS/FAIL 与 verdict
+// 仍是 stdout 全量)。token 不落任何被跟踪文件(AGENTS.md 凭据纪律)。
+console.error(`verify-eterna-web: boot ${urlLine}`)
 console.log(failures.length === 0
   ? `verify-eterna-web: OK — ${snapshot.entries.length} host entries, ${presetByName.size} presets, cut rows inactive, kept rows active`
   : `verify-eterna-web: FAILED — ${failures.join('; ')}`)

@@ -12,8 +12,9 @@
 # 本文件作为该 profile 的 cordis.patch.yml（用户层，最后写赢）。裁切=按 id 覆写
 # 既有行并置 disabled: true（补丁语义：裸 id 行只覆写既有行且整份替换 config，
 # 覆写 config 的行重述全部键；新增行必须用 "- insert:"——见
-# packages/glue/cordis.patch.yml 的 E2E 教训）。本层不含任何 "- insert:" 行，
-# 全部为覆写。
+# packages/glue/cordis.patch.yml 的 E2E 教训）。裁切/回加全部为覆写行；文末另有
+# 三个 "- insert:" 新增块（directory-picker-host / @eterna 挂载块 / mcp-browser），
+# 见各自段注。
 #
 # 权威依据：plans/2026-11-06-dsh企业agent路线定案.md §11（§11.7 图纸复核、
 # §11.8 二次裁定为准）。行 id 核对自 deepseek-harness 两个 bundle patch 的
@@ -147,8 +148,10 @@
 
 # cordis 预设（创造模式）：2026-11-09 用户裁定回加（很重要）——Agent 可编写
 # 插件、组合工具与提示词创建模式，workflow 创建能力为其本体。整份 config 重述
-# 装品 presets/cordis.patch.yml，仅两处变化：tool-plugin-manager/tool-plugin-market
-# → disabled: true（企业红线：三方准入不开放）。
+# 装品 presets/cordis.patch.yml，变化四处：tool-plugin-manager/tool-plugin-market
+# → disabled: true（企业红线：三方准入不开放）；tool-ask-user → timed 模式
+# （2026-11-17 提问桥止血，commit 6e28b92）；compaction 组内补
+# stale-tool-result-pruner 行（2026-11-18 对齐开发档，22 号 §4-C6 挂载）。
 # ⚠️ 硬依赖：skill-filesystem 的 customSkillDirs 表达式以 createRequire(baseUrl)
 # 解析 @eterna/creation-skills（=packages/brand，profile node_modules 需 symlink；
 # 品牌化技能 fork 见 packages/brand/skills/），否则 boot 即 MODULE_NOT_FOUND。
@@ -232,7 +235,17 @@
         isolate:
           compaction: true
           toolResultPruner: true
+          staleToolResultPruner: true
         config:
+          # 陈旧工具结果清理层（L2；22 号 §4-C6 挂载）：压力达 effectiveWindow×0.7
+          # 触发，按 turn 分组保留最近 5 组、预计回收 ≥4096 tokens 才动手；行序排
+          # 在 compaction-basic 之前（agent/pre-step 先于摘要层泄压，§4-C6 触发节）。
+          - id: stale-tool-result-pruner
+            name: '@eterna/compaction/stale-plugin'
+            config:
+              keepGroups: 5
+              minSavingsTokens: 4096
+              thresholdRatio: 0.7
           - id: compaction-basic
             name: '@eterna/compaction/basic-plugin'
             # 压缩策略沿用上游默认(thresholdRatio 0.8 / retainRatio 0.16 / 重试 1),
@@ -314,9 +327,12 @@
         disabled: true
 
 # standard 预设（默认预设）：整份 config 重述（补丁语义：config 整份替换），
-# 与装品 presets/standard.patch.yml 逐行一致，仅三处变化：
+# 与装品 presets/standard.patch.yml 逐行一致，仅五处变化：
 #   - delegation 组内 workflow-ptc / tool-workflow → disabled: true（§11.2/§11.8）；
-#   - tool-plugin-manager → disabled: true（§11.8「本就 disabled」维持裁定）。
+#   - tool-plugin-manager → disabled: true（§11.8「本就 disabled」维持裁定）；
+#   - tool-ask-user → timed 模式（2026-11-17 提问桥止血，commit 6e28b92）；
+#   - compaction 组内补 stale-tool-result-pruner 行（2026-11-18 对齐开发档：
+#     22 号 §4-C6 挂载，98b799d 落开发档时未重放容器模板，G1-2 断言面实测缺席）。
 - id: preset-standard
   config:
     id: standard
@@ -401,7 +417,17 @@
         isolate:
           compaction: true
           toolResultPruner: true
+          staleToolResultPruner: true
         config:
+          # 陈旧工具结果清理层（L2；22 号 §4-C6 挂载）：压力达 effectiveWindow×0.7
+          # 触发，按 turn 分组保留最近 5 组、预计回收 ≥4096 tokens 才动手；行序排
+          # 在 compaction-basic 之前（agent/pre-step 先于摘要层泄压，§4-C6 触发节）。
+          - id: stale-tool-result-pruner
+            name: '@eterna/compaction/stale-plugin'
+            config:
+              keepGroups: 5
+              minSavingsTokens: 4096
+              thresholdRatio: 0.7
           - id: compaction-basic
             name: '@eterna/compaction/basic-plugin'
             # 压缩策略沿用上游默认(thresholdRatio 0.8 / retainRatio 0.16 / 重试 1),
@@ -479,7 +505,12 @@
 # ① 覆写基础档 `permission` 行(dsh-base cordis.patch.yml:264)：只留两档,危险档
 #    danger-full-access 从目录中消失（approval=never×空规则全拒事故模式一并消除）。
 #    覆写语义：重述全部键。
-# ② ui-permission 客户端行禁用：用户不可自助换档（档位固定 workspace-write+ask）。
+# ② ui-permission 客户端行禁用（2026-11-11 原裁定：用户不可自助换档）→
+#    2026-11-18 回加：禁用与 G1-1/G1-2 门禁口径冲突——HOST_KEPT_ROWS 要求该行
+#    present+enabled+active（verify-eterna-super 2026-11-18 起源取容器模板，
+#    该行首次进门禁即 disabled/no-fiber FAIL）。删覆写行恢复 dsh-base 默认
+#    （enabled）；可换档自由度仍受 ① 两档覆写约束（danger-full-access 不在
+#    目录），多租户风险面不回扩。
 - id: permission
   config:
     presets:
@@ -489,8 +520,6 @@
       workspace-write:
         sandbox: workspace-write
         approval: ask
-- id: ui-permission
-  disabled: true
 
 
 # ── P1-T5（2026-11-11）：目录树工作区选择器——裁 browse 客户端、保 directoryPicker 路由 ──
@@ -530,6 +559,10 @@
     # 记忆/知识底座（2026-11-11 E2E 回归补挂）：@eterna/glue 的双导出（symlink 已就位），
     # 插件登记册（access routes.ts + plugin-meta）自始列此二项而 profile 从未挂载——
     # UI 宣称已启用、会话内却无 memory_*/knowledge_* 工具（会话工具集缺失事故根因）。
+    # M-M4 全局蒸馏（41 号文档；Q4 默认关）：蒸馏接线恒挂于本行（bundle default
+    # export 无 config 注入），授权链 = admin UI「插件 → 全局蒸馏」写部署根 overrides
+    # distillEnabled（默认关）；K 阈值本部署配 3 = 根 overrides distillMinUsers: 3
+    # （改后重启生效）；用户级 opt-out 在设置分区（全员可见，默认参与）。
     - id: eterna-memory
       name: '@eterna/glue/memory-plugin'
     - id: eterna-knowledge
@@ -934,8 +967,13 @@
   name: "@deepseek-ai/dsh-session-log-deepseek"
   config:
     enabled: false
+# 默认预设（2026-11-18 回整）：原并写 selectedDefault: cordis（2026-11-09 随创造
+# 模式回加写入），而 registry defaultId=selectedDefault??default（装品
+# dsh-agent-preset-registry lib/index.js:471-472），standard 遂非 isDefault——
+# 与 G1-1/G1-2 断言「standard preset composed and default」冲突（verify-eterna-super
+# 2026-11-18 实测 FAIL）。删 selectedDefault 回整 defaultId=standard；创造模式
+# 仍可在设置中选用（preset-cordis 行保留）。
 - id: agent-preset-registry
   name: "@deepseek-ai/dsh-agent-preset-registry"
   config:
     default: standard
-    selectedDefault: cordis
