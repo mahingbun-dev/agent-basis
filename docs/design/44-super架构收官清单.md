@@ -83,3 +83,27 @@ pnpm --filter @eterna/packctl verify   # 10 文件 100 测试
 未跑项如实登记:根门禁 `pnpm verify` 全仓(lint-ui + 全部包)本轮未跑(跑的是上述
 点名面);verify-eterna-web 的退出码经输出 `OK — 215 host entries` + 15 PASS/0 FAIL
 判定(super 同口径退出 0 已实测)。
+
+## 附B、工具权限询问全局静默(2026-11-19 02:4x,产品拍板即日落地)
+
+用户裁决:沙箱边界(workspace-write=账号工作区)+access 路径钳制+egress 白名单已承担
+全部限界,工具调用权限询问一律静默——普通模式与 superagent 模式同口径。
+
+根因(两层,均实测钉住):
+1. 治理规则 `default: ask`(2026-11-10 事故后的 fail-closed 底线),而规则文件只列宿主
+   内建工具——后加的 orchestrator_*/worker 工具族全部未列名 → 每调用一 ask
+   (session log 实证:orchestrator_route/read/reply/ticket_request_status 全部
+   approval/asked)。215s 审批窗与 120s Eval 期限互呛,后台主会话场景用户看不到弹窗。
+2. 宿主 approval 服务 config.policy 缺省 ask(dsh-base cordis.patch.yml:259-262)。
+
+处置(commit eed2b41):
+- rules.ts:default 校验放开 'allow'(引擎缺省仍 ask,裸宿主 fail-closed 不动);
+- governance.rules.yml(容器渲染源):default: allow;ask/deny 保留为显式规则面;
+- 两份容器模板:permission 两档规格 approval never + approval 行覆写 policy never
+  ——残余 ask 仅剩沙箱升级企图,确定性 rejected 不弹窗,越界从未被放行。
+
+活体复验(re-materialize + 真 boot 门禁绿 22 行后):
+| 验收点 | 结果 | 证据 |
+|---|---|---|
+| 新轮次零审批 | ✅ | session log:最后一次 approval/asked=事件 125(重启前),重启后 approval/policy never(138),新委派(146)→交付(166)零 ask |
+| 无人值守全链 | ✅ | 委派「静默模式验证通过」12s 内交付,m4-silent-final.md 内容逐字正确,回复「任务完成…已读回核对无误」直达用户,UI 无 alertdialog |
