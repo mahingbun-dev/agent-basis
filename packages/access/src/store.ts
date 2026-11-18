@@ -58,6 +58,18 @@ export function* accountCandidates(base: string): Generator<string> {
   }
 }
 
+/**
+ * 思考强度自动模式列迁移(2026-11-18):sessions 补 `thinking_auto`(默认 1)。
+ * SQLite 的 ADD COLUMN 不可重复执行,以 pragma table_info 判定幂等;失败抛出
+ * (fail-loud,启动失败优于静默半迁移库)。默认开启系用户拍板:存量与新会话均
+ * 自动选档,按会话可关(模型菜单「自动」chip → /api/session/thinkingAuto)。
+ */
+export function migrateSessionsThinkingAuto(db: DatabaseSync): void {
+  const columns = db.prepare('PRAGMA table_info(sessions)').all() as Array<{ name: string }>
+  if (columns.some(column => column.name === 'thinking_auto')) return
+  db.exec('ALTER TABLE sessions ADD COLUMN thinking_auto INTEGER NOT NULL DEFAULT 1')
+}
+
 interface StoredRow {
   readonly id: number
   readonly account: string
@@ -122,8 +134,12 @@ export class UserStore {
     this.db.exec(`CREATE TABLE IF NOT EXISTS sessions (
       session_id TEXT PRIMARY KEY,
       owner_id INTEGER NOT NULL REFERENCES users(id),
-      workspace_id TEXT
+      workspace_id TEXT,
+      thinking_auto INTEGER NOT NULL DEFAULT 1
     )`)
+    // 思考强度自动模式(2026-11-18):存量库补列——SQLite 的 ADD COLUMN 幂等以
+    // pragma table_info 判定;默认 1 = 存量与新会话均默认自动(用户拍板),可按会话关闭。
+    migrateSessionsThinkingAuto(this.db)
   }
 
   close(): void {
@@ -335,6 +351,26 @@ export class UserStore {
       | { owner_id: number }
       | undefined
     return row === undefined ? undefined : row.owner_id
+  }
+
+  // ── 思考强度自动模式(2026-11-18):每会话开关,sessions.thinking_auto 列 ──
+
+  /**
+   * 该会话是否开启自动选档。列默认 1(存量/新建会话均默认开启,用户拍板);
+   * **行不存在返回 false**——subagent/系统任务的会话不在归属账本,天然不启用。
+   */
+  thinkingAutoOf(sessionId: string): boolean {
+    const row = this.db.prepare('SELECT thinking_auto FROM sessions WHERE session_id = ?').get(sessionId) as
+      | { thinking_auto: number }
+      | undefined
+    return row !== undefined && row.thinking_auto === 1
+  }
+
+  /** 按会话写开关;返回是否命中(未知会话=false,不隐式建行——归属记账才建)。 */
+  setThinkingAuto(sessionId: string, enabled: boolean): boolean {
+    const r = this.db.prepare('UPDATE sessions SET thinking_auto = ? WHERE session_id = ?')
+      .run(enabled ? 1 : 0, sessionId)
+    return Number(r.changes) > 0
   }
 
   // ── P4-T6(2026-11-11):双层插件记账(个人层激活清单;装载=进程内按行启用) ──

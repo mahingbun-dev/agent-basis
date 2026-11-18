@@ -288,4 +288,22 @@ describe('tenant 守卫', () => {
     expect(store.workspaceOwner('legacy-1')).toBe(admin.id)
     expect(store.adoptOrphanWorkspaces(admin.id, [{ workspaceId: 'legacy-1', path: '/data/demo' }])).toBe(0)
   })
+
+  it('session/thinkingAuto:默认开启可读;写开关即记账;他人/未知会话拒绝', async () => {
+    store.recordSession('s-auto', aliceId, null)
+    // 读:列默认 1 ⇒ 归属会话默认开启
+    const read1 = await call('/api/session/thinkingAuto', 'alice', { request: { sessionId: 's-auto' } })
+    expect(read1.result?.result).toMatchObject({ ok: true, value: { enabled: true } })
+    // 写:关→读回 false;再开→true
+    const off = await call('/api/session/thinkingAuto', 'alice', { request: { sessionId: 's-auto', enabled: false } })
+    expect(off.result?.result).toMatchObject({ ok: true, value: { enabled: false } })
+    expect(store.thinkingAutoOf('s-auto')).toBe(false)
+    const on = await call('/api/session/thinkingAuto', 'alice', { request: { sessionId: 's-auto', enabled: true } })
+    expect(on.result?.result).toMatchObject({ ok: true, value: { enabled: true } })
+    // 他人会话(归属守卫)与未知会话一律 denied
+    const other = await call('/api/session/thinkingAuto', 'bob', { request: { sessionId: 's-auto' } })
+    expect(JSON.stringify(other.result)).toContain('tenant/denied')
+    const ghost = await call('/api/session/thinkingAuto', 'alice', { request: { sessionId: 's-ghost' } })
+    expect(JSON.stringify(ghost.result)).toContain('tenant/denied')
+  })
 })
