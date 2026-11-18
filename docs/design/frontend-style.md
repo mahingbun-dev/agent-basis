@@ -199,11 +199,35 @@ xs 8 · sm 12 · md 16 · lg 22 · xl 28 · 2xl 36 · pill 9999
 | 按钮 | 主：`accent-fill` 底 + `accent-on` 字 + `md` 圆角 + 高 40 + `r1`；次：透明 + 1px `border`；幽灵：无边框 `muted` 字；破坏：danger 描边 30% + danger 字 + 两击确认 |
 | 输入 | `surface-3` 底、1px `border`、`sm` 圆角、高 40；聚焦边框转 accent + 3px 光环 + 轻微内阴影 |
 | 卡片 | 一级 `surface`+`border-soft`+`r1`+`lg`+内距 20；强调 +`bevel`+`r2`（每屏 ≤1）；凹槽 `surface-2` 无边框无阴影 `md`；行卡 高≥56 `md` 悬停 `r1→r2` |
-| 表格 | 表头 11px `muted`、行高 ≥48、仅横向 `border-soft`、数字 tabular；**行不得有圆角** |
+| 表格 | 表头 12px `muted` + 500、单元格 13px、行高 ≥48、仅横向 `border-soft`、数字 tabular；**行不得有圆角** |
 | 弹窗 | `xl` 圆角、`r4`、遮罩 `--et-scrim` + `blur(2px)`、内距 24 |
-| 浮层菜单 | `lg` 圆角、`r3`、内距 6、条目高 36、分隔 1px 且左右内缩 12 |
+| 浮层菜单 | `lg` 圆角、`r3`、内距 6、条目高 **40**、分隔 1px 且左右内缩 12 |
 | 图标 | `@eterna/ui/icons`（React）或 `icon-data`（服务端字符串）；24 网格、**1.6px** 描边、圆头、`currentColor`；**禁止 emoji 功能图标、禁止圆形彩色底图标阵列、禁止上游图标与一次性手写 SVG** |
-| 徽标 | `pill`、高 28、内距 6×12、11–12px；状态色必须配文字 |
+| 徽标 | `pill`、高 28、内距 6×12、12px（`--et-text-meta`）；状态色必须配文字 |
+
+---
+
+### 6.1 共享基础件的作用域（生产事故沉淀，2026-11-19）
+
+`@eterna/ui` 的 `COMPONENT_CSS`（`.et-btn` / `.et-input` / `.et-card` / `.et-ring` /
+`.et-beads` / `.et-strip` / `.et-badge` / `.et-decision-*`）全部限定在
+**`[data-eterna-ui]` 作用域**内。这个标识由 `injectDesignTokens({bridge:true})`
+落在 `body` 上，插件**不需要也不应该**自己加。
+
+> 为什么写进规范：改造期间发现全仓**没有任何一处**设置该属性，
+> 于是这些样式在真实产品里一条都不生效——工作台指标卡的玉环渲染成
+> SVG 默认黑盘，按钮/决策卡零样式。而当时的验收探针页手动加了该属性，
+> 于是「探针绿、生产坏」，属于假绿验证。
+>
+> 护栏：`packages/ui/tests/contract.spec.ts` 现在断言
+> (a) 桥接模式必须落标识且 disposer 必须移除；(b) 标识只在应用内设置；
+> (c) COMPONENT_CSS 每条规则都必须带 `[data-eterna-ui]` 前缀。
+
+自建样式的插件遵守两条：
+
+1. 根节点用 `data-eterna-access-root` 这类**自己的**命名空间锚点（本插件私有）；
+2. 想复用共享基础件（按钮/卡片/玉环…）时，直接加 `.et-*` 类即可，
+   **不要再给元素加 `data-eterna-ui`**——它已经在 `body` 上。
 
 ---
 
@@ -226,6 +250,8 @@ xs 8 · sm 12 · md 16 · lg 22 · xl 28 · 2xl 36 · pill 9999
 - [ ] 所有按钮/输入有 `:focus-visible`；触控 ≥36px
 - [ ] 破坏性操作两击确认；保存不用错误红
 - [ ] `prefers-reduced-motion` 覆盖；常驻动画 ≤2
+- [ ] 复用共享基础件（`.et-*`）时未自行设置 `data-eterna-ui`（由注入器落 body）
+- [ ] 验收探针页复用了真实下发链路，而不是手画一份 CSS
 - [ ] 图标来自共享图标集；无 emoji 功能图标
 - [ ] 应用内面走 DSH 桥接；独立页两主题各一张
 
