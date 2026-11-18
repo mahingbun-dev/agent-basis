@@ -189,14 +189,18 @@ it('200ms 服务端合批:同窗事件一次冲刷(30 号 §3 频控;服务端�
   hub.subscribe((frame) => {
     for (const event of parseFrames([frame])) arrivals.push({ type: event.kind, at: Date.now() })
   })
-  // 同步驱动两张工单开出:两个 tickets-updated 增量进同一 200ms 合批窗,窗尾一次冲刷
+  // 同步驱动两张工单开出:两个 tickets-updated 增量进同一 200ms 合批窗,窗尾一次冲刷。
+  // driveAt 必须在 openTicket **之前**取:EventBatcher 首事件入队即开窗,openTicket
+  // 在 CI 慢机上耗时 >50ms 时,窗尾实际时刻会早于「(后取的)driveAt+window」→ 原断言
+  // (at-driveAt>=150)在负载下假红(PR#113 CI 实证 129ms;setTimeout 不早触发,故
+  // 「先取 driveAt → 窗尾>=driveAt+window」恒成立,150 仅留时钟粒度余量)。
+  const driveAt = Date.now()
   openTicket(runtime, '1')
   openTicket(runtime, '2')
-  const driveAt = Date.now()
   await waitFor(() => { expect(arrivals.filter(item => item.type === 'tickets-updated').length).toBeGreaterThanOrEqual(2) })
   const boardFrames = arrivals.filter(item => item.type === 'tickets-updated')
   expect(boardFrames[0]!.at - driveAt).toBeGreaterThanOrEqual(150) // 窗尾冲刷,不逐事件直发
-  expect(boardFrames.at(-1)!.at - boardFrames[0]!.at).toBeLessThan(50) // 同批到达
+  expect(boardFrames.at(-1)!.at - boardFrames[0]!.at).toBeLessThan(50) // 同批到达(同一次 flush)
   hub.dispose()
   runtime.dispose()
 })
