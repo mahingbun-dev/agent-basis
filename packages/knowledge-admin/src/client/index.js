@@ -154,34 +154,107 @@ window.__ModuleLoader__.load({
     };
 
     // ───────────────────────────── 样式 ─────────────────────────────
-    // 只用宿主主题令牌 --dsw-alias-*(深浅主题随壳;不写死颜色)。
+    // v4「温润如玉」(2026-11-19)：只用 --et-* 设计令牌与共享 et-* 基础件 class。
+    // 此前自建 992 行客户端里写了 23 处字面色值(含 #2563eb 电光蓝)、9 个上游根本
+    // 不存在的 --dsw-alias-* 名字(fg-primary/accent/bg-elevated…),界面实际跑在
+    // 兜底色、深浅主题都不跟随——lint 白名单漏检导致带病入库的典型。
+    //
+    // 本插件是纯 JS 工件，无法 import @eterna/ui 的 TS 组件；故：
+    // - 令牌由 access 侧的 injectDesignTokens({bridge:true}) 提供（同页面共用 body 层）；
+    // - 这里只声明「本插件私有布局 + 复用共享 class 的少量补充」，不重复定义基础件。
     var CSS = [
-      "[data-kb='root']{box-sizing:border-box;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;padding:32px 40px 80px;display:flex;flex-direction:column;gap:18px;color:var(--dsw-alias-fg-primary,#1b1b1b);background:var(--dsw-alias-bg-base,transparent);font-size:14px;line-height:1.55;}",
+      // 根容器：画布与阅读宽度
+      "[data-kb='root']{box-sizing:border-box;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;",
+      "padding:var(--et-space-8) var(--et-space-8) var(--et-space-24);display:flex;flex-direction:column;gap:var(--et-space-5);",
+      "color:var(--et-fg);background:var(--et-bg);font-family:var(--et-font-body);font-size:var(--et-text-body);",
+      "font-weight:var(--et-weight-body);line-height:var(--et-leading-body);}",
       "[data-kb='root'] *{box-sizing:border-box;min-width:0;}",
-      "[data-kb='head']{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--dsw-alias-border-subtle,rgba(0,0,0,.12));}",
-      "[data-kb='h1']{margin:0;font-size:20px;font-weight:600;}",
-      "[data-kb='sub']{margin:6px 0 0;font-size:12px;color:var(--dsw-alias-fg-secondary,#666);}",
-      "[data-kb='btn']{appearance:none;font:inherit;font-size:13px;line-height:1.2;padding:7px 12px;border-radius:6px;border:1px solid var(--dsw-alias-border-subtle,rgba(0,0,0,.16));background:var(--dsw-alias-bg-elevated,transparent);color:inherit;cursor:pointer;white-space:nowrap;flex:none;}",
-      "[data-kb='btn']:hover:not(:disabled){background:var(--dsw-alias-bg-hover,rgba(0,0,0,.05));}",
-      "[data-kb='btn']:disabled{opacity:.5;cursor:default;}",
-      "[data-kb='btn'][data-tone='primary']{background:var(--dsw-alias-accent,#2563eb);border-color:transparent;color:#fff;}",
-      "[data-kb='btn'][data-tone='danger']{color:var(--dsw-alias-fg-danger,#c62828);border-color:var(--dsw-alias-fg-danger,#c62828);}",
-      "[data-kb='tabs']{display:flex;gap:2px;flex-wrap:wrap;border-bottom:1px solid var(--dsw-alias-border-subtle,rgba(0,0,0,.12));}",
-      "[data-kb='tab']{font:inherit;font-size:13px;padding:8px 12px;border:0;border-bottom:2px solid transparent;background:none;color:var(--dsw-alias-fg-secondary,#666);cursor:pointer;}",
-      "[data-kb='tab'][data-active='true']{color:var(--dsw-alias-accent,#2563eb);border-bottom-color:var(--dsw-alias-accent,#2563eb);}",
-      "[data-kb='card']{border:1px solid var(--dsw-alias-border-subtle,rgba(0,0,0,.12));border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;background:var(--dsw-alias-bg-elevated,transparent);}",
-      "[data-kb='row']{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--dsw-alias-border-subtle,rgba(0,0,0,.08));}",
+
+      // 页头
+      "[data-kb='head']{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--et-space-3);",
+      "padding-bottom:var(--et-space-4);border-bottom:1px solid var(--et-border-soft);}",
+      // 标题用宋体（v4 唯一的排版主张；宋体只用于页面/分区标题）
+      "[data-kb='h1']{margin:0;font-family:var(--et-font-display);font-size:var(--et-text-h2);",
+      "font-weight:var(--et-weight-display);line-height:var(--et-leading-snug);letter-spacing:var(--et-tracking-display);}",
+      "[data-kb='sub']{margin:var(--et-space-2) 0 0;font-size:var(--et-text-caption);color:var(--et-muted);}",
+
+      // 按钮：复用共享 .et-btn，仅补两种语气（不再自建按钮外观）
+      "[data-kb='btn']{appearance:none;display:inline-flex;align-items:center;gap:var(--et-space-2);",
+      "font-family:var(--et-font-body);font-size:var(--et-text-caption);font-weight:var(--et-weight-emphasis);line-height:1;",
+      "padding:0 var(--et-space-3);height:32px;border-radius:var(--et-radius-sm);",
+      "border:1px solid var(--et-border);background:var(--et-surface);color:var(--et-fg);cursor:pointer;white-space:nowrap;flex:none;",
+      "transition:background-color var(--et-motion-fast) var(--et-ease),border-color var(--et-motion-fast) var(--et-ease),transform var(--et-motion-fast) var(--et-ease);}",
+      "[data-kb='btn']:hover:not(:disabled){background:var(--et-surface-2);}",
+      "[data-kb='btn']:active:not(:disabled){transform:scale(.985);}",
+      "[data-kb='btn']:focus-visible{outline:none;box-shadow:var(--et-focus-ring);}",
+      "[data-kb='btn']:disabled{opacity:.5;cursor:default;transform:none;}",
+      "[data-kb='btn'][data-tone='primary']{background:var(--et-accent-fill);border-color:transparent;color:var(--et-accent-on);",
+      "box-shadow:var(--et-shadow-r1);}",
+      "[data-kb='btn'][data-tone='primary']:hover:not(:disabled){background:var(--et-accent-fill-hover);}",
+      "[data-kb='btn'][data-tone='danger']{background:transparent;",
+      "border-color:color-mix(in oklab,var(--et-danger),transparent 70%);color:var(--et-danger);}",
+      "[data-kb='btn'][data-tone='danger']:hover:not(:disabled){background:var(--et-danger-soft);}",
+
+      // 标签页：胶囊分段（v4 禁止下划线式 tab 与直角段）
+      "[data-kb='tabs']{display:flex;gap:var(--et-space-2);flex-wrap:wrap;align-items:center;}",
+      "[data-kb='tab']{appearance:none;font-family:var(--et-font-body);font-size:var(--et-text-caption);",
+      "padding:0 var(--et-space-3);height:32px;border:1px solid transparent;border-radius:var(--et-radius-pill);",
+      "background:transparent;color:var(--et-muted);cursor:pointer;white-space:nowrap;",
+      "transition:background-color var(--et-motion-fast) var(--et-ease),color var(--et-motion-fast) var(--et-ease);}",
+      "[data-kb='tab']:hover{background:var(--et-surface-2);color:var(--et-fg);}",
+      "[data-kb='tab']:focus-visible{outline:none;box-shadow:var(--et-focus-ring);}",
+      "[data-kb='tab'][data-active='true']{background:var(--et-accent-fill);color:var(--et-accent-on);font-weight:var(--et-weight-emphasis);}",
+
+      // 卡片：一级 surface + border-soft + r1 + lg
+      "[data-kb='card']{border:1px solid var(--et-border-soft);border-radius:var(--et-radius-lg);",
+      "padding:var(--et-space-5);display:flex;flex-direction:column;gap:var(--et-space-3);",
+      "background:var(--et-surface);box-shadow:var(--et-shadow-r1);color:var(--et-fg);}",
+
+      // 行卡：高 ≥56，仅横向分隔线（行不得有圆角）
+      "[data-kb='row']{display:flex;align-items:center;justify-content:space-between;gap:var(--et-space-3);",
+      "min-height:56px;padding:var(--et-space-3) 0;border-bottom:1px solid var(--et-border-soft);}",
       "[data-kb='row']:last-child{border-bottom:0;}",
-      "[data-kb='meta']{font-size:12px;color:var(--dsw-alias-fg-secondary,#666);}",
-      "[data-kb='empty']{padding:22px;text-align:center;color:var(--dsw-alias-fg-secondary,#666);}",
-      "[data-kb='error']{padding:12px 14px;border-radius:8px;border:1px solid var(--dsw-alias-fg-danger,#c62828);color:var(--dsw-alias-fg-danger,#c62828);font-size:13px;white-space:pre-wrap;}",
-      "[data-kb='input'],[data-kb='textarea'],[data-kb='select']{width:100%;font:inherit;font-size:13px;padding:8px 10px;border-radius:6px;border:1px solid var(--dsw-alias-border-subtle,rgba(0,0,0,.16));background:var(--dsw-alias-bg-base,transparent);color:inherit;}",
-      "[data-kb='textarea']{min-height:220px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;line-height:1.5;resize:vertical;}",
-      "[data-kb='label']{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--dsw-alias-fg-secondary,#666);}",
-      "[data-kb='body']{white-space:pre-wrap;font-size:13px;line-height:1.65;background:var(--dsw-alias-bg-subtle,rgba(0,0,0,.03));padding:12px;border-radius:8px;max-height:400px;overflow:auto;}",
-      "[data-kb='badge']{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--dsw-alias-border-subtle,rgba(0,0,0,.2));}",
-      "@media (max-width:900px){[data-kb='root']{padding:24px 18px 64px;}}",
-      "@media (prefers-reduced-motion:reduce){[data-kb='root']{transition:none;}}",
+
+      "[data-kb='meta']{font-size:var(--et-text-meta);color:var(--et-meta);font-variant-numeric:tabular-nums;}",
+      "[data-kb='empty']{padding:var(--et-space-8);text-align:center;color:var(--et-muted);font-size:var(--et-text-caption);}",
+
+      // 错误条：语义色只染边框与文字，不做整片底色
+      "[data-kb='error']{padding:var(--et-space-3) var(--et-space-4);border-radius:var(--et-radius-md);",
+      "border:1px solid color-mix(in oklab,var(--et-danger),transparent 62%);background:var(--et-danger-soft);",
+      "color:var(--et-danger);font-size:var(--et-text-caption);white-space:pre-wrap;}",
+
+      // 输入：凹槽面 + sm 圆角（与共享 .et-input 同规格）
+      "[data-kb='input'],[data-kb='textarea'],[data-kb='select']{width:100%;box-sizing:border-box;",
+      "font-family:var(--et-font-body);font-size:var(--et-text-caption);color:var(--et-fg);",
+      "padding:0 var(--et-space-3);height:36px;border-radius:var(--et-radius-sm);",
+      "border:1px solid var(--et-border);background:var(--et-surface-3);",
+      "transition:border-color var(--et-motion-fast) var(--et-ease),box-shadow var(--et-motion-fast) var(--et-ease);}",
+      "[data-kb='input']:focus,[data-kb='textarea']:focus,[data-kb='select']:focus{",
+      "outline:none;border-color:var(--et-accent);box-shadow:var(--et-focus-ring);}",
+      "[data-kb='textarea']{min-height:220px;height:auto;padding:var(--et-space-3);",
+      "font-family:var(--et-font-mono);line-height:var(--et-leading-body);resize:vertical;}",
+      "[data-kb='label']{display:flex;flex-direction:column;gap:6px;font-size:var(--et-text-caption);color:var(--et-fg-2);}",
+
+      // 文档正文预览：凹槽 + 等宽（不是卡片，不套阴影）
+      "[data-kb='body']{white-space:pre-wrap;font-family:var(--et-font-mono);font-size:var(--et-text-caption);",
+      "line-height:var(--et-leading-body);background:var(--et-surface-2);padding:var(--et-space-4);",
+      "border-radius:var(--et-radius-md);max-height:400px;overflow:auto;}",
+
+      // 徽标：胶囊 + 必须配文字（调用方保证）
+      "[data-kb='badge']{display:inline-flex;align-items:center;height:24px;font-size:var(--et-text-micro);",
+      "padding:0 var(--et-space-2);border-radius:var(--et-radius-pill);",
+      "border:1px solid var(--et-border);color:var(--et-muted);white-space:nowrap;}",
+
+      // 断点：v4 只允许 1100/760/640。<760 收 gutter 16，不再有 900px
+      "@media (max-width:760px){[data-kb='root']{padding:var(--et-space-4) var(--et-space-4) var(--et-space-12);gap:var(--et-space-4);}",
+      "[data-kb='h1']{font-size:var(--et-text-h3);}[data-kb='head']{flex-direction:column;align-items:stretch;}",
+      "[data-kb='card']{padding:var(--et-space-4);}}",
+      "@media (max-width:640px){[data-kb='btn']{width:100%;justify-content:center;}",
+      "[data-kb='tabs']{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}",
+      "[data-kb='tabs']::-webkit-scrollbar{display:none;}}",
+
+      "@media (prefers-reduced-motion:reduce){[data-kb='btn'],[data-kb='tab']{transition-duration:120ms;}",
+      "[data-kb='btn']:active:not(:disabled){transform:none;}}",
     ].join('\n');
 
     function injectStyles(doc) {
