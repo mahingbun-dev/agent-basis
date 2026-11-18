@@ -349,8 +349,9 @@ it('A22 真实执行面接线:sessionHost 注入即 DshExecutor+Sessions 替换�
     const ticket = runtime.store.tickets.get(ticketId)
     // worker session cwd = R4 目录(租户 realm 工作区内,A22 交付原文;经 workspaceRegistry.create 登记)
     expect(fake.cwdBySession.get(sessionId)).toBe(ticket?.execution?.directory)
-    // 权限 preset 写入(A4 拍板 v1 现有沙箱旋钮;SA sessions.ts:150 同款缺省)与标题 rename
-    expect(fake.permissions.get(sessionId)).toBe('danger-full-access')
+    // 权限 preset 写入(A4 拍板 v1 现有沙箱旋钮;缺省 workspace-write——SA 同款
+    // danger-full-access 非标准部署 preset,M4 真实链路实测;glue 可显式覆写)与标题 rename
+    expect(fake.permissions.get(sessionId)).toBe('workspace-write')
     expect(fake.renamed.get(sessionId)).toBe('修复登录回归')
     // assignment 已启动(执行面经 lazy engine getter 回报 Engine——接线闭环)
     expect(ticket?.assignments.at(-1)?.state).toBe('running')
@@ -393,7 +394,7 @@ it('master 引导·解析序:config.masterId → KV 既有约定 → 约定派�
     return vi.waitFor(() => {
       expect(fake.agentIds).toContain('orchestrator-alice')
       expect(fake.renamed.get('orchestrator-alice')).toBe(MASTER_SESSION_TITLE)
-      expect(fake.permissions.get('orchestrator-alice')).toBe('danger-full-access')
+      expect(fake.permissions.get('orchestrator-alice')).toBe('workspace-write')
       expect(third.health().components.master?.state).toBe('ready')
     }).then(() => { third.dispose() })
   } catch (error) { third.dispose(); throw error }

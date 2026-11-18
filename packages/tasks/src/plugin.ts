@@ -229,8 +229,10 @@ export interface TasksOptions {
   readonly threadContext?: (trigger: Trigger) => TriggerContext | undefined
   /**
    * 候选卡到主会话的投递面(A19/A22 接线位:Sessions.prompt(masterId, requestId, …, 'queue');
-   * 缺省不投递——候选卡不经主会话送达,deadline 不启动(未送达的 Eval 永不过期),候选由
-   * 调用方(测试/glue 探针)显式 decide。
+   * ★最后一公里(2026-11-18):glue 未显式注入且 sessionHost 在场时自派生同式注入
+   * (Sessions 就绪后接线,见 assessor/sessionHost 两处装配注)——候选卡送达主会话,
+   * deadline 送达才启动;glue 与 sessionHost 皆缺席时才保持「不投递、候选由调用方显式 decide」
+   * 的测试语义。
    */
   readonly deliverCandidate?: (requestId: string, text: string) => Promise<void>
   /** 候选评估的有界仓库读取端口(A21 接线位;缺省不可用——orchestrator_eval_read 的 file/directory 显式报缺)。 */
@@ -557,17 +559,27 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
     ...(options.policyVersion !== undefined ? { version: options.policyVersion } : {}),
   }
   // ★A19 替换点(35 号 A19):MasterAssessor 接线——per-eval 状态隔离/候选卡投递('assessment'
-  // 持久 effect)/TextCache。线程上下文与投递面为端口注入(A21/A22 接线位):缺省不投递,
-  // 不启动 deadline(未送达的 Eval 永不过期),候选由调用方显式 decide(assessor.ts 头注)。
+  // 持久 effect)/TextCache。线程上下文为端口注入(A21 接线位;缺省候选卡带「无线程上下文」
+  // 说明);投递面注入优先,glue 缺席且 sessionHost 在场时惰性自派生(★最后一公里·候选卡,
+  // 2026-11-18:assessor 构造早于 Sessions 实例,故经 deliverRef 现读——Sessions 就绪后
+  // `deliverCandidate = Sessions.prompt(masterId, requestId, text, 'queue')`,候选卡由此
+  // 送达主会话、deadline 才启动;两者皆缺席保持「不投递、未送达永不过期」原语义)。
   // 实例先于 engine 构造(Engine 构造输入),engine 以 getter 惰性取用——handler 首次运行
   // (effects 已 start,见②)不早于 engine 就绪;'assessor' 装配步标注其关停(stop 中断在跑读取)。
+  const deliverRef: { value?: (requestId: string, text: string) => Promise<void> } = {}
   const assessor = new MasterAssessor({
     get engine(): Pick<EngineForMainSession, 'candidate' | 'candidateDelivered' | 'decide'> { return engine },
     effects,
     settings: (): Settings => store.settings(),
     paused: (): boolean => store.settings().paused,
     ...(options.threadContext ? { threadContext: options.threadContext } : {}),
-    ...(options.deliverCandidate ? { deliver: options.deliverCandidate } : {}),
+    ...(options.deliverCandidate !== undefined || options.sessionHost !== undefined
+      ? { deliver: options.deliverCandidate ?? ((requestId: string, text: string) => {
+          const impl = deliverRef.value
+          if (impl === undefined) return Promise.reject(new Error('候选卡投递面未就绪(Sessions 尚未装配)'))
+          return impl(requestId, text)
+        }) }
+      : {}),
     ...(options.readPath ? { readPath: options.readPath } : {}),
     ...(options.sourceLink ? { sourceLink: options.sourceLink } : {}),
     ...(options.repliedTo ? { repliedTo: options.repliedTo } : {}),
@@ -592,6 +604,14 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
     // 引导解析保证 sessionHost 在场时 masterId 就绪(约定派生分支);?? 兜底同式,仅类型收窄。
     sessions = new Sessions({ ...options.sessionHost, effects, lifetime: lifetime.signal,
       masterId: masterId ?? masterSessionId(realm) })
+    // ★候选卡投递面·自派生(★最后一公里·候选卡,2026-11-18):glue 未显式注入
+    // deliverCandidate 时,Sessions 就绪即接线——候选卡经 Sessions.prompt 投到主会话
+    // ('queue';kind 'eterna-tasks' 的投递消息不与用户亲口消息混淆,sessions.ts 头注),
+    // 主会话模型经 orchestrator_eval_decide 裁决(A19/A20 回路)。显式注入恒优先。
+    if (options.deliverCandidate === undefined) {
+      const wiredSessions = sessions
+      deliverRef.value = (requestId, text): Promise<void> => wiredSessions.prompt(masterId ?? masterSessionId(realm), requestId, text, 'queue')
+    }
     dshExecutor = new DshExecutor({
       context: options.sessionHost.context,
       get engine() { return engineRef.value as ExecutorHost['engine'] },
@@ -645,6 +665,11 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
     emit: emitEvent,
   })
   engineRef.value = engine
+  // ★评估对账(boot resume,2026-11-18):重启后持 evaluating 且从未 delivered 的线程,其
+  // 'assessment' effect 已随旧装配丢失——deliver 面已就绪(deliverRef 已接线),此处重排,
+  // 下一轮 pass 开新 Eval 重投候选卡(Engine.resumeAssessments 注)。engineRef 赋值后立即
+  // 执行(先于 passDriver.start,对账开的新 Eval 由 pass 周期评估)。
+  engine.resumeAssessments()
   // [active-tickets] 活跃工单清单 section(35 号 A24;28 号 §6;24a C6 拍板 pass 周期刷新):
   // 数据源全部现读(store 活跃面/executor.maxWorkers);缓存由 pass 驱动重算——PassDriver
   // 每轮 pass 在 evaluateDue 之后调 refresh(清单是提示不是协议,秒级延迟无害,28 §8-3);
@@ -835,9 +860,13 @@ export function defineTasksPlugin(config: TasksPluginConfig = {}) {
         const derived = config.sessionHost === undefined ? sessionHostFromContext(ctx) : undefined
         // 行配置注入(cordis loader apply(ctx, config) 第二参):realm/effort 等部署面
         // 从 super 模板 eterna-tasks 行 config 传入(优先于包内缺省)。
-        const resolved: TasksPluginConfig = { ...config, ...(rowConfig ?? {}) }
-        if (resolved.sessionHost === undefined && derived !== undefined) {
-          resolved.sessionHost = derived
+        const resolved: TasksPluginConfig = {
+          ...config,
+          ...(rowConfig ?? {}),
+          // 派生注入(sessionHost 为只读字段,经展开覆写而非属性赋值)。
+          ...(rowConfig?.sessionHost === undefined && config.sessionHost === undefined && derived !== undefined
+            ? { sessionHost: derived }
+            : {}),
         }
         // 宿主 logger 机会读取(结构面,缺席静默——memory-plugin 同款口径,测试 ctx 可缺席)。
         const logger = (ctx as unknown as { readonly logger?: { readonly info?: (...args: unknown[]) => void } }).logger
@@ -965,9 +994,9 @@ export function defineTasksPlugin(config: TasksPluginConfig = {}) {
         // (reflect.ts:311-321),关停路径裸调用不 await,防阻塞宿主(audit 插件同款)。
         const disposeService = ctx.provide(TASKS_SERVICE_ID, runtime)
         logger?.info?.(`[tasks] realm=${runtime.realm} boot=${runtime.boot.join('→')}`)
-        return () => {
-          // 关停配逆(34 §4-E):先撤 webchat 入口订阅面与 section 注入面、ctx 服务(反注册面),
-          // 再按装配逆序回放组件关停。
+        // 关停配逆(34 §4-E):先撤 webchat 入口订阅面与 section 注入面、ctx 服务(反注册面),
+        // 再按装配逆序回放组件关停。bootTasks 无返回值(装配配逆移交 disposeTasks 闭包态)。
+        disposeTasks = () => {
           disposeWebchat?.()
           webchatHealth?.release()
           disposeSection?.()
@@ -983,7 +1012,7 @@ export function defineTasksPlugin(config: TasksPluginConfig = {}) {
           runtime.dispose()
         }
       }
-      bootTasks(1)
+      bootTasks()
       return (): void => { stopped = true; disposeTasks?.() }
     },
   }

@@ -11,7 +11,7 @@
  *   `sessionController.create({ sessionId, workspaceId, agentPreset })`(rc.1 的
  *   SessionCreateRequest.agentPreset「replacing a reused Session's recorded preset」
  *   即 SA 的 preset 重选兜底)→ 复解析 → `permissionPresets.set(session, preset)`
- *   (A4 拍板 v1 现有沙箱旋钮;SA 用 'danger-full-access')→ `rename(sessionId, title)`;
+ *   (A4 拍板 v1 现有沙箱旋钮;缺省 workspace-write,见 permissionPreset 注)→ `rename(sessionId, title)`;
  * - worker session id 约定 `worker-<ticketId>`(SA dsh.ts:24;executor/dsh.ts 定义)保留;
  *   worker session cwd 一律由调用方(executor)从租户 realm 工作区派生(A22 交付原文
  *   「worker session 一律建在租户 realm 工作区内」;R4 目录 `.ticket/<id>/`)。
@@ -119,7 +119,11 @@ export interface SessionsHost {
   readonly lifetime: AbortSignal
   /** 各角色创建 session 时选用的 agent preset 名(A25 cordis.patch.yml 落地后由装配注入;未注入用宿主默认)。 */
   readonly presets?: Partial<Record<SessionRole, string>>
-  /** 建会话写入的权限 preset 名(A4 拍板 v1 现有沙箱旋钮;缺省 SA 同款 'danger-full-access')。 */
+  /** 建会话写入的权限 preset 名(A4 拍板 v1 现有沙箱旋钮;缺省 'workspace-write'——worker
+   * 要在租户工作区写工单目录,workspace-write 正是其语义;★2026-11-18 改缺省:SA 同款
+   * 'danger-full-access' 非标准部署 preset(permission-presets 按部署 config.presets 配置,
+   * 标准面仅 read-only/workspace-write),worker 首启即 `permission: unknown preset` 失败
+   * (M4 真实链路实测);glue 可按部署显式覆写)。 */
   readonly permissionPreset?: string
 }
 
@@ -171,7 +175,7 @@ export class Sessions {
       result = await controller.resolveAgent(SessionId(id))
     }
     if ('error' in result) throw result.error
-    permissions.set(result.agent.session, this.host.permissionPreset ?? 'danger-full-access')
+    permissions.set(result.agent.session, this.host.permissionPreset ?? 'workspace-write')
     await controller.rename({ sessionId: SessionId(id), title })
     return result.agent
   }
