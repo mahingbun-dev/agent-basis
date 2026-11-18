@@ -14,6 +14,8 @@ import { ManageTab } from './plugins-manager.tsx'
 import { DirectoryTreeFlow } from './directory-tree.tsx'
 import { ModelMenu } from './model-menu.tsx'
 import { ThinkingFeedbackActions, type ThinkingFeedbackInjected } from './thinking-feedback.tsx'
+import { SessionBindingProbe } from './session-probe.tsx'
+import { activeSessionId } from './session-bridge.ts'
 import { AccountLauncher, type AccountLauncherInjected } from './account-menu.tsx'
 import { installLinkOpeningDefault } from './link-opening.ts'
 import { installApprovalCard } from './approval-card.tsx'
@@ -352,7 +354,8 @@ export function apply(ctx: AccessClientContext): () => void {
 
   // 思考强度显式反馈(2026-11-18 V2):assistant 消息动作条追加「想浅点/想深点」。
   // 原生 list slot(ui-chat 声明,scope=session,props=messageId);产品内不新开入口。
-  // 注入面仅文案;会话 id 由组件从 localStorage 当前会话读取,不依赖宿主 props。
+  // 会话 id 取自 slot 标准席位(ui-session 会话绑定下发的 props.sessionId,即渲染该条
+  // 消息的会话),组件内才回退 localStorage 导航快照——两处不同源,勿各自换源。
   const registerThinkingFeedback = (): void => {
     ctx.slots.inject('conversation.chat.assistant-actions', () => ctx.slots.register({
       name: 'conversation.chat.assistant-actions',
@@ -363,6 +366,18 @@ export function apply(ctx: AccessClientContext): () => void {
     }, ThinkingFeedbackActions))
   }
   registerThinkingFeedback()
+
+  // 会话绑定探针(2026-11-18 收尾):conversation.input.overlay(session 作用域 list)
+  // 渲染 null,只把标准席位的 sessionId 写入会话桥——模型菜单/动作条据此取
+  // 「真正渲染当前对话」的会话,不再只依赖 localStorage 导航快照。
+  const registerSessionProbe = (): void => {
+    ctx.slots.inject('conversation.input.overlay', () => ctx.slots.register({
+      name: 'conversation.input.overlay',
+      id: `${NS}.session-probe`,
+      order: 70,
+    }, SessionBindingProbe))
+  }
+  registerSessionProbe()
 
   // 网页链接默认打开方式联动:自己的浏览器扩展在线且用户未显式选择过 → 默认走
   // 系统默认浏览器(见 link-opening.ts 头注;全程静默,失败不影响主流程)。
@@ -576,7 +591,7 @@ function registerModelDrawer(ctx: AccessClientContext): void {
     btn.setAttribute('data-eterna-drawer-bound', '1')
     btn.addEventListener('click', (e: MouseEvent) => {
       if (e.shiftKey) return // shift+click 保留上游菜单
-      const sessionId = readCurrentSession()
+      const sessionId = activeSessionId() ?? readCurrentSession()
       if (sessionId === null) return
       e.stopImmediatePropagation()
       e.preventDefault()

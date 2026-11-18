@@ -10,6 +10,10 @@ export interface TwoClickButtonProps {
   readonly className?: string | undefined
   readonly armedClassName?: string | undefined
   readonly disabled?: boolean | undefined
+  /** 可访问名(菜单语境里「重置」不足以说明对象;缺省=label)。 */
+  readonly ariaLabel?: string | undefined
+  /** 菜单内条目语义(role="menu" 面板里的按钮应为 menuitem)。 */
+  readonly role?: 'menuitem' | undefined
   readonly onConfirm: () => void
 }
 
@@ -36,6 +40,8 @@ export function TwoClickButton(props: TwoClickButtonProps): React.JSX.Element {
     type="button"
     className={armed ? (props.armedClassName ?? props.className) : props.className}
     disabled={props.disabled}
+    aria-label={props.ariaLabel}
+    role={props.role}
     onMouseLeave={disarm}
     onBlur={disarm}
     onClick={handleClick}

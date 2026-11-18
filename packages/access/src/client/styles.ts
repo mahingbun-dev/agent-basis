@@ -259,6 +259,62 @@ const CSS = `
   }
 }
 
+/* 模型菜单思考偏置行(2026-11-18 V2):chip 显示本会话有效偏置 + 「重置」两击确认。
+   菜单根挂在 document.body(不在 [data-eterna-access-root] 内),故全局类名;
+   全 --et-* 令牌,深浅主题经桥接自动跟随。 */
+.ea-bias-chip {
+  flex-shrink: 0;
+  font-size: var(--et-text-micro);
+  line-height: 20px;
+  font-weight: 500;
+  padding: 1px 10px;
+  border-radius: var(--et-radius-pill);
+  border: 1px solid var(--et-border);
+  background: var(--et-surface-2);
+  color: var(--et-muted);
+  white-space: nowrap;
+}
+/* 自动选档关闭时的可见说明(偏置此时不参与判档;不再只藏在 title 里)。 */
+.ea-bias-hint { font-size: var(--et-text-micro); color: var(--et-muted); white-space: nowrap; }
+/* 调深=偏高档(slider 高档侧 accent);调浅=偏低档(success) */
+.ea-bias-chip[data-sign='up'] {
+  background: var(--et-accent-soft);
+  border-color: var(--et-accent);
+  color: var(--et-accent);
+}
+.ea-bias-chip[data-sign='down'] {
+  background: color-mix(in oklab, var(--et-success), transparent 88%);
+  border-color: var(--et-success);
+  color: var(--et-success);
+}
+.ea-bias-reset {
+  font: inherit;
+  font-size: var(--et-text-micro);
+  line-height: 20px;
+  /* 触控目标 ≥36px(frontend-style.md);内联 padding 让按钮在偏置行里不显臃肿 */
+  min-height: 36px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--et-radius-pill);
+  border: 1px solid var(--et-border-soft);
+  background: transparent;
+  color: var(--et-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--et-motion-fast) var(--et-ease), border-color var(--et-motion-fast) var(--et-ease);
+}
+.ea-bias-reset:hover:not(:disabled) { color: var(--et-fg); border-color: var(--et-border); }
+.ea-bias-reset:focus-visible { outline: none; box-shadow: var(--et-focus-ring); }
+.ea-bias-reset:disabled { opacity: 0.6; cursor: default; }
+.ea-bias-reset-armed { color: var(--et-danger); border-color: var(--et-danger); }
+/* armed 态必须压过 :hover(首击后鼠标仍停在按钮上,否则红色确认态被 hover 色盖掉) */
+.ea-bias-reset-armed:hover:not(:disabled) { color: var(--et-danger); border-color: var(--et-danger); }
+.ea-bias-error { font-size: var(--et-text-micro); color: var(--et-danger); min-width: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .ea-bias-reset { transition: none; }
+}
+
 /* ── 侧栏底部账户入口与账户菜单(原型:头像+昵称入口,菜单向上展开) ── */
 [data-eterna-account-root] {
   flex: 1;

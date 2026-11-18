@@ -5,7 +5,8 @@
  * 变成会话级偏置(±0.2、同向累计、反向抵消、24h 半衰、钳位 ±0.5)。
  *
  * 纪律:
- * - 零新页面/零新入口:只注册上游 slot(list/scope=session,props 带 messageId);
+ * - 零新页面/零新入口:只注册上游 slot(list/scope=session,props 带 messageId
+ *   与会话绑定的 sessionId——后者才是「这条消息属于哪个会话」的权威来源);
  * - 纯文字按钮(无手写 SVG;图标集无 minus,不硬凑);
  * - 令牌 `--et-*`、focus-visible 光圈、prefers-reduced-motion(样式在 styles.ts);
  * - 防重复点击:请求中 disabled;成功后短暂显示「已调浅/已调深」;
@@ -13,6 +14,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import type { Translate } from './i18n.ts'
+import { activeSessionId } from './session-bridge.ts'
 
 /** slot 注入份额:仅文案绑定。 */
 export interface ThinkingFeedbackInjected {
@@ -22,6 +24,13 @@ export interface ThinkingFeedbackInjected {
 /** slot 属主份额(ui-chat AssistantActionOwnerProps 子集)。 */
 export interface ThinkingFeedbackOwnerProps {
   readonly messageId?: string
+  /**
+   * 渲染这条消息的会话 id。`conversation.chat.assistant-actions` 在 ui-chat 声明为
+   * scope='session',ui-session 的会话绑定把 sessionId 作为标准 prop 随 kit 逐字下发
+   * (ui-session/src/client/index.ts:269 `props: ['sessionId']`;缺 scope 绑定则渲染期
+   * 直接抛 SlotAssemblyError)。**首选此值**:它等于「哪个会话正在渲染这条消息」。
+   */
+  readonly sessionId?: string
 }
 
 /** typert RPC 同构信封(POST /api/session/<method>;与 model-menu 同源)。 */
@@ -41,7 +50,9 @@ async function rpc<T>(method: string, args: Record<string, unknown>): Promise<T>
   return d.result.value as T
 }
 
-/** 当前会话 id(与 index.tsx readCurrentSession 同源;缺席=不渲染按钮)。 */
+/** 导航「当前选择」快照(index.tsx readCurrentSession 同源)——**仅作降级**:
+ * 它是最后一次导航选择的持久化,多 tab 共享、切账号后可能残留,不保证就是
+ * 渲染当前消息的那个会话;标准席位缺席(旧壳/合成异常)时才回退到它。 */
 function currentSessionId(): string | null {
   try {
     const raw = localStorage.getItem('dsh.sessions.current')
@@ -62,18 +73,22 @@ export function ThinkingFeedbackActions(
   const { messageId, t } = props
   const [state, setState] = useState<FeedbackState | null>(null)
   const timerRef = useRef<number | undefined>(undefined)
+  // 会话 id 在渲染时定一次:标准席位(scope='session' 交付的 props.sessionId)最权威;
+  // 缺席时取会话桥(overlay 探针按 session 作用域写入的「当前渲染会话」);最末才回退
+  // 导航快照。send 复用同值——避免「渲染时一个会话、提交时另一个会话」。
+  const sessionId = props.sessionId !== undefined && props.sessionId !== ''
+    ? props.sessionId
+    : activeSessionId() ?? currentSessionId()
 
   useEffect(() => () => {
     if (timerRef.current !== undefined) window.clearTimeout(timerRef.current)
   }, [])
 
   if (messageId === undefined || messageId === '') return null
-  if (currentSessionId() === null) return null
+  if (sessionId === null) return null
 
   const send = (direction: Direction): void => {
     if (state?.phase === 'busy') return
-    const sessionId = currentSessionId()
-    if (sessionId === null) return
     if (timerRef.current !== undefined) window.clearTimeout(timerRef.current)
     setState({ direction, phase: 'busy' })
     rpc<{ bias: number; effectiveBias: number }>('thinkingFeedback', {
