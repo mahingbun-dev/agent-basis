@@ -101,7 +101,7 @@ describe('投影:四要素(W-1/G2-D10 口径)', () => {
   })
 
   it('树纪律注记逐字(27 §2.1 纪律 3)', () => {
-    expect(workerInspectorView(snapshot.worker).treeNote).toBe('subagent 借 worker 权限、只向 worker 回复；输出落 .ticket/T-9c81/ 不落消息（27 §2.1 纪律 3）。')
+    expect(workerInspectorView(snapshot.worker).treeNote).toBe('子代理借用执行者权限，仅向执行者回报；产出统一保存在任务档案目录。')
   })
 })
 
@@ -131,7 +131,7 @@ describe('渲染:视图五结构(原型 03 #v5)', () => {
     const dots = nodes.map(node => find1(node, 'data-eterna-workbench', 'dot').attrs['data-eterna-workbench-dot'])
     expect(dots).toEqual(['idle', 'working', 'ready', 'working', 'queued'])
     // 渲染树的 ul 嵌套由 depth 锚点断言(0/1/2);纪律注记逐字
-    expect(textOf(find1(inspector, 'data-eterna-workbench', 'tree-note'))).toBe('subagent 借 worker 权限、只向 worker 回复；输出落 .ticket/T-9c81/ 不落消息（27 §2.1 纪律 3）。')
+    expect(textOf(find1(inspector, 'data-eterna-workbench', 'tree-note'))).toBe('子代理借用执行者权限，仅向执行者回报；产出统一保存在任务档案目录。')
   })
 
   it('jobs 两段:运行中列表 2 项(working 点)+ 已结束 details 收起 4 项(ready 点)', () => {
@@ -237,8 +237,8 @@ describe('M4 实接:引擎真值源(workerSection;30 号 §2 视图 5 数据源�
     expect(workerTreeDepth(worker.tree)).toBe(1) // W-2 不增层:执行层需 A22 session 事件
     expect(worker.slotsUsed).toBe(0)
     expect(worker.slotsTotal).toBe(3)
-    expect(worker.context.note).toContain('R1 预算数据未接线')
-    expect(worker.cost.note).toContain('预算守卫 R1')
+    expect(worker.context.note).toContain('预算接入后将展示用量 · 超过 80% 会提示压缩')
+    expect(worker.cost.note).toContain('预算守卫')
   })
 
   it('R1 预算读数注入 → 上下文占用 %(token 口径)与成本累计计算(W-3)', () => {
@@ -248,7 +248,7 @@ describe('M4 实接:引擎真值源(workerSection;30 号 §2 视图 5 数据源�
       runtime.store.tickets.list(), 3, Date.now(),
     )
     expect(worker.context.percent).toBe(80)
-    expect(worker.context.note).toContain('分母 maxTokens')
+    expect(worker.context.note).toContain('按 token 口径 · 80% 为压缩提示线')
     expect(worker.cost.spentYuan).toBe(1.2)
     expect(worker.cost.budgetYuan).toBe(4)
     expect(worker.cost.maxTurns).toBe('20/60')

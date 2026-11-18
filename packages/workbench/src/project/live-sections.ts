@@ -232,7 +232,7 @@ export function conflictSection(inputs: LiveSectionsInputs): ConflictMetrics {
   return conflictFromTasks({
     attachCount: attachCountOf(recentDecisions(tasks), weekAgo),
     attachNote: '同线程候选挂接 · 7 日（routed 决策）',
-    ...(tasks?.db === undefined ? { attachUnavailableNote: 'routed 决策计数 · store 面未接线（G2-A10 落盘接线后替换）' } : {}),
+    ...(tasks?.db === undefined ? { attachUnavailableNote: '计数接入后展示' } : {}),
     ...(jumpCount !== undefined ? { jumpCount } : {}),
   })
 }
@@ -264,7 +264,7 @@ export function flowSection(
   }
   return {
     nodes: [
-      node('trigger', weekReceived === undefined ? '计数面未接线' : `7 日 ${weekReceived} 次`, false),
+      node('trigger', weekReceived === undefined ? '计数接入后展示' : `7 日 ${weekReceived} 次`, false),
       node('thread', `${subscribedThreads} 订阅`, subscribedThreads > 0),
       node('eval', '合批 200ms', false),
       node('decision', `accept ${decisions.accept} · stop ${decisions.stop}`, false),
@@ -351,10 +351,10 @@ export function workerSection(
     workerId: focused?.execution?.name ?? focused?.id ?? '—',
     ticketId: focused?.id ?? '—',
     runMinutes,
-    presetNote: 'preset 注记待执行器装配（35 号 A22/A25 接线后呈现）',
+    presetNote: 'preset 将在任务开始执行时显示',
     slotsUsed: working.length,
     slotsTotal: workerSlots,
-    domainPack: '—（领域包装配后呈现，26 号 §2）',
+    domainPack: '待接入',
     tree,
     jobs,
     toolHistory,
@@ -362,15 +362,15 @@ export function workerSection(
       percent: contextPercent,
       thresholdPercent: 80,
       note: budget === undefined
-        ? 'R1 预算数据未接线（governance BudgetGuard 装配后呈现；80% 为 28 号分层压缩标线）'
-        : 'R1 预算 token 口径（分母 maxTokens）· 80% 为 28 号分层压缩标线',
+        ? '预算接入后将展示用量 · 超过 80% 会提示压缩'
+        : '按 token 口径 · 80% 为压缩提示线',
     },
     cost: {
       spentYuan: budget?.cost ?? 0,
       budgetYuan: budget?.maxCost ?? 0,
-      tokensNote: budget === undefined ? '预算读数未接线' : `${Math.round(budget.totalTokens / 1000)}k（输入+输出合计）`,
+      tokensNote: budget === undefined ? '预算读数待接入' : `${Math.round(budget.totalTokens / 1000)}k（输入+输出合计）`,
       maxTurns: budget === undefined ? '—' : budget.maxTurns === undefined ? '不设限' : `${budget.turns}/${budget.maxTurns}`,
-      note: '预算守卫 R1（24 号 §5.5）',
+      note: '预算守卫',
     },
   }
 }

@@ -60,7 +60,7 @@ const CSS = `
 /* —— 头部与流状态 —— */
 [data-eterna-workbench='toolbar'] {
   display: flex; align-items: center; justify-content: space-between;
-  gap: var(--et-space-3); flex-wrap: wrap; margin-bottom: var(--et-space-2);
+  gap: var(--et-space-3); flex-wrap: wrap; margin-bottom: var(--et-space-5);
 }
 [data-eterna-workbench='sse-chip'] {
   display: inline-flex; align-items: center; gap: 6px;
@@ -84,13 +84,14 @@ const CSS = `
 [data-eterna-workbench='view-head'] { display: flex; align-items: baseline; gap: var(--et-space-3); flex-wrap: wrap; }
 [data-eterna-workbench='kicker'] { color: var(--et-accent); font-size: var(--et-text-micro); font-weight: 600; }
 [data-eterna-workbench='view-desc'] {
-  color: var(--et-muted); font-size: var(--et-text-caption); max-width: 88ch;
-  margin: var(--et-space-2) 0 var(--et-space-5);
+  color: var(--et-muted); font-size: var(--et-text-caption);
+  max-width: 60ch; line-height: 1.8;
+  margin: var(--et-space-3) 0 var(--et-space-6);
 }
 [data-eterna-workbench='view-desc'] strong { color: var(--et-fg-2); }
 [data-eterna-workbench='sub-h'] {
   font-size: var(--et-text-caption); color: var(--et-fg);
-  margin: var(--et-space-6) 0 var(--et-space-3);
+  margin: var(--et-space-7) 0 var(--et-space-4);
 }
 [data-eterna-workbench='view-nav'] {
   position: sticky; top: 0; z-index: 40; background: var(--et-bg);
@@ -186,7 +187,7 @@ const CSS = `
 [data-eterna-workbench='count'][data-eterna-workbench-tone='muted'] { color: var(--et-muted); background: var(--et-surface); border: 1px solid var(--et-border-soft); }
 [data-eterna-workbench='kan-cards'] { display: grid; gap: var(--et-space-2); }
 [data-eterna-workbench='kan-card'] {
-  display: grid; gap: 6px; padding: var(--et-space-3);
+  display: grid; gap: 6px; padding: var(--et-space-4) var(--et-space-3);
   background: var(--et-surface); border: 1px solid var(--et-border-soft);
   border-radius: var(--et-radius-sm); color: inherit;
 }
@@ -286,6 +287,7 @@ const CSS = `
 }
 @media (max-width: 640px) {
   [data-eterna-workbench='root'] { padding: var(--et-space-5) var(--et-space-4) var(--et-space-8); }
+  [data-eterna-workbench='view-desc'] { max-width: none; }
   [data-eterna-workbench='kanban'] { grid-auto-columns: minmax(232px, 82vw); }
   [data-eterna-workbench='toolbar'][role='group'] [data-eterna-workbench='chip'] { flex: 1 1 auto; justify-content: center; }
 }
@@ -418,7 +420,7 @@ tbody [data-eterna-workbench='ticket-row'][data-eterna-workbench-stuck='true']:h
   font-weight: 600; font-size: var(--et-text-body);
 }
 [data-eterna-workbench='inspector-meta'] {
-  list-style: none; display: flex; flex-wrap: wrap; gap: 4px var(--et-space-4);
+  list-style: none; display: flex; flex-wrap: wrap; gap: var(--et-space-1) var(--et-space-5);
   color: var(--et-muted); font-size: var(--et-text-caption); margin-left: auto;
 }
 [data-eterna-workbench='inspector'] {
@@ -502,9 +504,10 @@ tbody [data-eterna-workbench='ticket-row'][data-eterna-workbench-stuck='true']:h
 
 /* —— 会话侧任务侧栏(38 号 T6;原型 01 side-panel/task-group/task-item 逐字翻译)—— */
 [data-eterna-workbench='chat-shell'] {
-  display: grid; grid-template-columns: 340px minmax(0, 1fr);
+  display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
   gap: var(--et-space-6); align-items: start;
 }
+[data-eterna-workbench='side-panel'] { position: sticky; top: var(--et-space-8); }
 [data-eterna-workbench='side-panel'] {
   background: var(--et-surface); border: 1px solid var(--et-border-soft);
   border-radius: var(--et-radius-sm); overflow: hidden; display: block;
@@ -557,7 +560,9 @@ tbody [data-eterna-workbench='ticket-row'][data-eterna-workbench-stuck='true']:h
 [data-eterna-workbench='ticket-timeline'] {
   background: var(--et-surface); border: 1px solid var(--et-border-soft);
   border-radius: var(--et-radius-sm); overflow: hidden; min-width: 0;
+  min-height: 320px; display: flex; flex-direction: column;
 }
+[data-eterna-workbench='ticket-timeline'] [data-eterna-workbench='chat-body'] { flex: 1; }
 [data-eterna-workbench='chat-head'] {
   display: flex; align-items: center; justify-content: space-between; gap: var(--et-space-4); flex-wrap: wrap;
   padding: var(--et-space-4); border-bottom: 1px solid var(--et-border-soft);

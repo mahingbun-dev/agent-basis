@@ -158,7 +158,7 @@ export function ticketCardsOf(tickets: readonly Ticket[], nowMs: number): readon
  * `unavailable: true` 如实标注(不伪报 0);插队计数挂在 DshExecutor(A22 接线
  * 后可读,plugin.ts 本轮为 StubExecutor)。K-3:只展示,无告警字段。
  */
-export const CONFLICT_DUPLICATE_UNAVAILABLE_NOTE = '幂等 trigger id 查重（intake receive 三态）· 计数点未接线（A21 sources 落地后可采）'
+export const CONFLICT_DUPLICATE_UNAVAILABLE_NOTE = '幂等查重 · 计数接入后展示'
 export const CONFLICT_JUMP_UNAVAILABLE_NOTE = '人插队 +1 槽（WorkerSlots）· 执行器 A22 接线后可采'
 
 export function conflictFromTasks(inputs: {

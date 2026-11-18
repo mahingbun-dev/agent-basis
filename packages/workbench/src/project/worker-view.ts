@@ -74,7 +74,7 @@ export function workerInspectorView(snapshot: WorkerInspectorSnapshot): WorkerIn
       domainPack: snapshot.domainPack,
     },
     tree,
-    treeNote: `subagent 借 worker 权限、只向 worker 回复；输出落 .ticket/${snapshot.ticketId}/ 不落消息（27 §2.1 纪律 3）。`,
+    treeNote: '子代理借用执行者权限，仅向执行者回报；产出统一保存在任务档案目录。',
     jobsRunning: snapshot.jobs.filter(job => job.running).map(job => ({ id: job.id, name: job.name, meta: job.meta })),
     jobsDone: snapshot.jobs.filter(job => !job.running).map(job => ({ id: job.id, name: job.name, meta: job.meta })),
     toolRows: snapshot.toolHistory,
