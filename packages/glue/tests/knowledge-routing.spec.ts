@@ -171,3 +171,43 @@ describe('knowledge 插件多租户路由(config.routing)', () => {
     }
   })
 })
+
+describe('knowledge 插件全新卷目录自建(装载告警回归,eterna-tp-t6 2026-11-18)', () => {
+  let dir = ''
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'eterna-glue-knowledge-fresh-'))
+  })
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  // 复现 t6 全新卷形态:库里父目录缺席(cwd/.eterna 未建)→ node:sqlite 开库即炸
+  // (「2 entries did not activate」)。修复口径:createService 开库前自建父目录,
+  // 装载零告警——本用例不预建任何目录,apply 即视为装载成功。
+  it('库父目录缺席:apply 即自建目录并装载四工具', () => {
+    const harness = makeFakeContext()
+    const toolDefs = new Map<string, ToolDefinition>()
+    const fake = harness.fake as unknown as Record<string, unknown>
+    fake.tools = {
+      register: (definition: ToolDefinition): (() => void) => {
+        toolDefs.set(definition.name, definition)
+        return () => { toolDefs.delete(definition.name) }
+      },
+    }
+    const dbPath = join(dir, 'fresh', '.eterna', 'knowledge.sqlite3')
+    const dispose = defineKnowledgePlugin({
+      wikiDir: join(dir, 'fresh', 'knowledge.wiki'),
+      dbPath,
+    }).apply(harness.fake as unknown as Context)
+    try {
+      // 开库成功即落 SCHEMA(库文件在场 = 父目录自建 + DatabaseSync 构造通过)
+      expect(existsSync(dbPath)).toBe(true)
+      for (const name of ['knowledge_search', 'knowledge_read', 'knowledge_status', 'knowledge_propose']) {
+        expect(toolDefs.has(name)).toBe(true)
+      }
+    } finally {
+      dispose()
+    }
+  })
+})
