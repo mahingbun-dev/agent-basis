@@ -64,6 +64,10 @@ export const PROMPT_SCAN_WHITELIST: readonly PromptWhitelistEntry[] = [
     path: 'market/pack-bundle/',
     reason: '市场自包含构建产物(scripts/build-market.mjs 生成,勿手改):镜像 packs/event-planning,提示词真值由源包条目登记',
   },
+  {
+    path: 'profiles/eterna-super/cordis.patch.yml',
+    reason: 'super 双形态档(40 号 S-5)的 patch 是 base 档(eterna-web)同名提示词块的超集镜像:persona prefix 与 planning/plan-mode section 在 preset-cordis/preset-standard 两行同文复制,登记真值锚定 profiles/eterna-web 的注册表条目(PROMPT_REGISTRY_ENTRIES yaml 定位);super 侧不另立条目以免同一提示词在注册表出现双条目,两模板成对漂移由双形态同步纪律(40 号 S-5)与 form-check FORM001 挂载面看护',
+  },
 ]
 
 /** promptScan 选项:登记真值与白名单均可注入(测试用;缺省=仓内既知事实)。 */
