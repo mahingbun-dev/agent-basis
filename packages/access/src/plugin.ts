@@ -339,20 +339,29 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       // Phase 2 租户面(T2.2/T2.5):存量 workspace 划归首个 admin
       adoptLegacyWorkspaces(store)
       // P1-T2(2026-11-11):mux 流租户隔离——principal 换血 + registerPolicy。
-      // 服务(client-connection/remoteAccess)在插件 apply 时点尚未挂载,故惰性安装:
-      // 首个守卫请求时落地(届时 webServer 已工作,上游服务必已就绪),并审计安装结果。
+      // 连接服务经 ctx.connection 属性直取(inject 面,apply 时即得);remoteAccess 只经
+      // reflect 可得且可能晚挂载。T6.1(2026-11-19)后 admit 包装(含市场面 admin 门)
+      // 不再等 remoteAccess:**apply 即装**,无「首次请求前无门」窗口;策略面缺席时
+      // mux 换血暂缺,由守卫请求重试 retryPolicy 补注册。审计记录首装与补注册两次事实。
       let muxInstall: MuxIsolationInstall | undefined
       let muxAuditDone = false
       const ensureMux = (): void => {
-        if (muxInstall !== undefined) return
+        if (muxInstall !== undefined) {
+          // 服务晚挂载补注册(幂等);生效瞬间补审计,便于线上确认换血时点。
+          if (!muxInstall.muxActive && muxInstall.retryPolicy()) {
+            audit({ kind: 'access.mux.install', detail: { installed: true, policyLate: true, muxActive: true } })
+          }
+          return
+        }
         // 连接服务经 ctx.connection 属性直取(cordis provide 面;reflect 键 'client-connection'
-        // 实测不可得——2026-11-11 容器探针);remoteAccess 经 reflect 可得(探针实证)。
+        // 实测不可得——2026-11-11 容器探针);remoteAccess 经 reflect 可得(探针实证),
+        // 但可能晚挂载——传解析器让 retryPolicy 每次现查(T6.1 首装时它常缺席)。
         const connService = ctx.connection as unknown
         const accessService = ctx.reflect.get('remoteAccess', false)
         muxInstall = installMuxIsolation(
           { store, session },
           connService as never,
-          accessService as never,
+          () => ctx.reflect.get('remoteAccess', false) as never,
         )
         if (muxInstall !== undefined) disposers.push(muxInstall.dispose)
         if (!muxAuditDone) {
@@ -361,6 +370,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
             kind: 'access.mux.install',
             detail: {
               installed: muxInstall !== undefined,
+              muxActive: muxInstall?.muxActive === true,
               probe: {
                 connection: typeof connService,
                 remoteAccess: typeof accessService,
@@ -370,6 +380,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
           })
         }
       }
+      ensureMux()
       // P1-T3(2026-11-11):沙箱写边界钉死=账号目录 + 工具参数逃逸钳制。
       // pre-execute 监听可即时挂(ctx.on 全局事件总线,沿 glue governance-plugin 挂法);
       // sandboxPolicy.resolve wrap 惰性(服务挂载时点,同 ensureMux)。

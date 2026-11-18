@@ -199,7 +199,7 @@ pnpm add @deepseek-ai/dsh-experimental-plugin-market-bundle@0.2.2-rc.1
 # package.json 的 dsh.profile.bundles 追加该包名,然后重启宿主
 ```
 
-⚠️ 多用户部署启用前必读 `docs/PLUGIN-AUTHORING.md` §7「已知安全缺口」:市场 RPC 的 admin-only 门(T6.1)尚未落地,普通登录用户当前也能调用安装。单租户/受信环境可接受。
+✅ **市场面仅管理员可用(T6.1,2026-11-19 落地)**:安装/卸载/启停/索引源写入与 detail-file 仅 `admin` 角色可调用(普通用户/审批人 403;未登录会话 401);非 admin 的「插件」页整页不渲染,个人插件走设置弹窗「我的插件」。机制与实测证据见 `docs/PLUGIN-AUTHORING.md` §7。
 
 ### Web「发现」标签(推荐)
 
