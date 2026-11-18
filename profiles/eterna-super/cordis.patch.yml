@@ -8,8 +8,14 @@
 # 2026-11-18 挂载面收口：insert 块 @eterna 挂载行集与 docker/profile/
 # cordis.super.patch.yml.template 逐行一致（20 行，FORM001 按序口径）——S-3 纪律 2
 # 「同步改模板与清单两处」的清单半边（2026-11-17 挂载收口只落了模板半边，form-check
-# FORM001 漂移在案）。其余正文仍与 profiles/eterna-web/cordis.patch.yml 逐字一致；
+# FORM001 漂移在案）。其余正文仍与 profiles/eterna-web/cordis.patch.yml 逐字一致
+# （2026-11-19 起例外：base 清单对同步新增 P1-T5 成对行——directory-picker disabled
+# 覆写 + directory-picker-host insert；super 清单按「不回加 base 裁切行」惯例继承
+# 不重述，此段为唯一正文差）；
 # base 清单对同步（模板独有 10 行）仍按 40 号 §9 Q1 走独立 PR，不在本文件先行。
+# 2026-11-19 super 收尾（A5 契约）：super 专属块注释刷新为四行已落地事实；eterna-tasks
+# 行补 config.realm=admin 与容器模板同款对齐（单租户验收，realm=部署账号；行内 config
+# 的机器比对口径见 tools/packctl/src/form.ts 头注演进项）。
 # Eterna enterprise Web 档（eterna-web）：dsh-base + dsh-web-app 之上的企业裁切层。
 #
 # 装载形态：DSH profile `$DSH_HOME/profiles/eterna-web`，其 package.json 声明
@@ -572,11 +578,18 @@
       name: '@eterna/memory/admin-plugin'
     # ── super 形态专属挂载行(2026-11-17 挂载收口;40 号 S-3 纪律 2)──────────
     # 四行均为 super 模板登记、base 模板不挂(31 号 §2.1 super=base⊕… 的加法面)。
-    # ⚠️ 登记时点 tasks/toolkit 为纯逻辑层、无 DSH 插件导出;channels/interact 待
-    # glue 双插件装配(39 号 E8)——行转真 active 须待各自装配半边落地,verify-eterna-super
-    # super 挂载面断言「挂一行、验一行」随落地转绿。
+    # 2026-11-19 已落地转绿:四行装配半边全部在案且 verify-eterna-super 断言 active
+    # ——tasks(packages/tasks/src/plugin.ts:1036 defineTasksPlugin default export,
+    # :474 createTasks 装配 ctx.tasks 服务)、channels/interact(39 号 E8 glue 双插件
+    # 装配:channels-plugin.ts:197/interact-plugin.ts:81 default export)、toolkit
+    # (packages/toolkit/src/plugin.ts:105 default export;同日按 40 号 §9 Q5 登记
+    # tier1)。verify-eterna-super「挂一行、验一行」口径维持(行集派生自 super 模板)。
     - id: eterna-tasks
       name: '@eterna/tasks'
+      # realm 对齐部署账号(单租户验收;多租户经 glue 注入账号 realm 后移除本行):
+      # 工单库/orchestrator 主会话落在 admin 工作区,用户侧栏可见可委派。
+      config:
+        realm: admin
     - id: eterna-channels
       name: '@eterna/glue/channels-plugin'
     - id: eterna-interact

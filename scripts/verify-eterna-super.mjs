@@ -388,6 +388,7 @@ pass(`super 挂载面:清单派生 ${superMountRows.length} 行 @eterna insert �
     || superMountRows.map((row) => row.id).join(', '))
 
 // 3c-companion. mcp-browser（companion 浏览器执行面挂载，E1）：present + enabled + active。
+// 本地裸跑无 /repo：boot 日志里 browser-relay '/repo/packages/browser-relay/dist/mcp.mjs' 的 MODULE_NOT_FOUND 告警属容器时代路径（模板 args 写死 /repo，容器内由镜像 WORKDIR=/repo 承担），本地预期内——仅注释说明，不改本断言逻辑。
 const browserMcpEntry = hostByEntry.get('mcp-browser')
 pass('mcp-browser (companion browser execution plane) enabled+active',
   browserMcpEntry !== undefined && browserMcpEntry.enabled && browserMcpEntry.fiberPhase === 'active',

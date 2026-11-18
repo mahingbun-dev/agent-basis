@@ -630,6 +630,10 @@
     # 两处并双跑 G1-1+G1-2(FORM001 看护;清单先行会致 verify-eterna-super 红)。
     - id: eterna-tasks
       name: '@eterna/tasks'
+      # realm 对齐部署账号(单租户验收;多租户经 glue 注入账号 realm 后移除本行):
+      # 工单库/orchestrator 主会话落在 admin 工作区,用户侧栏可见可委派。
+      config:
+        realm: admin
     - id: eterna-channels
       name: '@eterna/glue/channels-plugin'
     - id: eterna-interact

@@ -88,6 +88,13 @@ const HOST_KEPT_ROWS = [
   'webserver', 'web-runtime', 'web-startup', 'connection', 'modules', 'plugin-inventory',
   // jobs/报告异步化（图纸⑦）
   'job-controller', 'ui-jobs', 'deliverable-file-references',
+  // 企业挂载面（2026-11-19 base 清单对同步补断言，A6 契约 ②）：治理三行 + memory/
+  // knowledge/brand/access/llm-doctor/usage-stats/panel + directory-picker-host
+  // ——与 BASE_MOUNT_PACKAGES 及挂载行一一对应防回归（super 母本 2026-11-17 端到端
+  // 教训：symlink 缺链时行静默不激活且原断言面不覆盖，/login 404、/access/api 无守卫）。
+  'directory-picker-host',
+  'eterna-governance', 'eterna-audit', 'eterna-egress', 'eterna-memory', 'eterna-knowledge',
+  'eterna-llm-doctor', 'eterna-brand', 'eterna-access', 'eterna-usage-stats', 'eterna-panel',
   // UI：审批/上传/设置/交付
   'ui-chat', 'ui-conversation', 'ui-approval', 'ui-permission', 'ui-user-questions',
   'ui-attachment', 'ui-tool', 'ui-renderer', 'settings-controller', 'ui-settings',
@@ -197,6 +204,15 @@ if (!existsSync(join(memoryPkg, 'lib', 'client.js'))) {
   process.exit(1)
 }
 symlinkSync(memoryPkg, join(profileDir, 'node_modules', '@eterna', 'memory'), 'dir')
+// base 模板 insert 面其余 @eterna 行的 symlink（2026-11-19 base 清单对同步，A6 契约 ①②）：
+// 治理三行 name='@eterna/glue/*-plugin' 与 memory/knowledge 同经 glue；access/brand/
+// llm-doctor/usage-stats/panel 各行同样只经 profile node_modules 解析——缺链时 Loader
+// 静默跳过（行不激活、boot log 照洁），镜像侧由 entrypoint 第 3 步全量清单承担；
+// 本地 verify 与镜像同口径补齐（verify-eterna-super.mjs BASE_MOUNT_PACKAGES 同源）。
+const BASE_MOUNT_PACKAGES = ['glue', 'llm-doctor', 'brand', 'access', 'usage-stats', 'panel']
+for (const pkg of BASE_MOUNT_PACKAGES) {
+  symlinkSync(join(repoRoot, 'packages', pkg), join(profileDir, 'node_modules', '@eterna', pkg), 'dir')
+}
 writeFileSync(join(profileDir, 'package.json'), `${JSON.stringify({
   name: `dsh-profile-${profileName}`,
   private: true,

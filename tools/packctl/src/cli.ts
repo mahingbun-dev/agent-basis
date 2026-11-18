@@ -93,13 +93,18 @@ export function runPack(argv: readonly string[], io: CliIo): number {
 /**
  * form-check(G0-6,40 号 S-2):双形态依赖方向与挂载一致性静态检查。
  * Tier 真值源问题 → 退出码 2(用法错误);有 error finding → 1;全绿 → 0。
- * --enforce-pair-drift:清单↔模板漂移置 error(默认 warning 显式登记,40 号 §9 Q1 暂定)。
+ * --enforce-pair-drift:显式置 error(缺省随 ENFORCE_PAIR_DRIFT 常量——2026-11-19
+ * base 对同步 PR 合入后=true,漂移即 error;旗标保留为显式复跑口径)。
  */
 function cmdFormCheck(flags: Readonly<Record<string, string | boolean>>, io: CliIo): number {
   // 仓库根解析:cwd 向上找 docs/tiers.yml;不在仓库内(如绝对路径调用)时回退到
   // packctl 自身所属仓库(form-check 检查的本就是 packctl 所在仓库的工件)。
+  // 旗标缺省传 undefined 让库层 ENFORCE_PAIR_DRIFT 常量治理默认 severity——此前
+  // 显式传 false 会把 warning 钉死、常量翻转在 CLI 层失效(A6 契约「翻 true 转
+  // error」的接线前提,2026-11-19)。
   const repoRoot = resolveFormCheckRoot(io.cwd, dirname(fileURLToPath(import.meta.url)))
-  const { usageError, findings } = formCheck(repoRoot, { enforcePairDrift: flags['enforce-pair-drift'] === true })
+  const { usageError, findings } = formCheck(repoRoot,
+    flags['enforce-pair-drift'] === true ? { enforcePairDrift: true } : {})
   if (usageError !== undefined) {
     io.writeLine(`form-check: ${usageError}`)
     return 2

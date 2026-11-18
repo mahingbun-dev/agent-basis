@@ -1,12 +1,14 @@
 # Tier 真值源(33 号 G0-6 ①;40 号 S-1):packctl form-check 的唯一事实源,新包落地时登记。
 # tier1 条目必须实际存在(packages/<名> 或 tools/<名>;不存在 → form-check 退出码 2 用法错误);
 # tier2 允许登记未落地包(登记先于落地:tasks、workbench 为 31 号 §2.2 点名的 Tier2)。
-# toolkit 不在初始清单(G0-6 ① 初始 Tier2 只点名 tasks、workbench)——其落地 PR(WS-B)时
-# 按"新包落地时登记"加入 tier1(40 号 §9 Q5 暂定;归属随 D1 拍板联动)。
+# toolkit 登记(2026-11-19):按 40 号 §9 Q5 拍板执行「新包落地时登记」——toolkit
+# 宿主半边已落地(super 模板挂载行 verify-eterna-super 断言 active),自此入 tier1
+# 参与 TIER001 扫描;归属值随 D1 改判联动(31 号 §5,如有异议随时改)。初始清单不含
+# toolkit(G0-6 ① 初始 Tier2 只点名 tasks、workbench)。
 # 初始 tier1 = 2026-11-17 实测 32 名(40 号 §1 表第 7 行:packages/ 29 + tools/ 3,
 # bundle-core/ 无 package.json 不算包),逐名列出、不用通配——真值源必须显式。
 tier1:
-  # ── packages/ 29 名 ──
+  # ── packages/ 30 名(2026-11-17 初始 29 + toolkit)──
   - access
   - agent-loop
   - approval-cli
@@ -34,6 +36,7 @@ tier1:
   - session
   - system-prompt
   - tools
+  - toolkit
   - ui
   - usage-stats
   # ── tools/ 3 名 ──
