@@ -47,8 +47,6 @@ tools/evals/pnpm-lock.yaml
 /.eterna/
 /.basis-home*/
 /.eterna-home*/
-# super 形态验证 home(40 号 S-6:verify-eterna-super 默认 ETERNA_PROFILE_HOME=<repo>/.eterna-super-home,与 base 验证 home 隔离)
-/.eterna-super-home*/
 /.zcode/
 /scripts/init-profile.mjs
 /scripts/smoke.mjs
@@ -60,5 +58,5 @@ packages/browser-relay/smoke/.gate-relay-port
 acceptance/**/profile*
 gui-test-screenshots/**/profile*
 
-# 思考强度回放语料(本地脱敏样本,数据不出内网,不入库)
+# 思考强度回放语料(生产日志抽样,永不入库)
 corpus/
