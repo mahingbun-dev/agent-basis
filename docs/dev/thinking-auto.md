@@ -15,37 +15,55 @@
 
 ## 链路(为什么是这个挂载点)
 
+生产内核为 **dsh 0.2.2-alpha.3**(npm 钉版),其事件载荷与仓库 node_modules 的 rc.1
+类型面有实质差异(0.1.17 首版因此空转,E2E 实证后修正)——路由器按双形态实现:
+
 ```
-用户消息入箱(agent/inbox/inserted,dsh-agent-loop lib/index.js:200 同步 emit)
-  → access 宿主监听(全同步,早于 wakeDriver → preStep 的 model.current() 捕获):
-      store.thinkingAutoOf(sessionId)? → 否:返回(手动零侵入)
+【alpha.3(生产)】
+agent/created 载荷 {agent} ⇒ WeakMap<session,agent> 登记 agent 引用
+用户消息入箱:session.append('agent/inbox/spliced') 在 commit 内同步分发
+  session/event (session, event) → event.type==='agent/inbox/spliced'
+  → inserted 消息逐条进入决策:
+      store.thinkingAutoOf(session.id)? → 否:返回(手动零侵入)
       message.source.kind === 'user'? → 否:返回(提问桥/notice 等系统源不评)
-      agent.model.current() → provider/model
-      档位表内存缓存(TTL 5min)命中? → 否:本轮不动(fail-neutral)+ 后台预热
+      agent.model.current()(无登记时回退 session.requestHeader().config)
+      档位表内存缓存(TTL 5min)命中? → 否:本轮不动(fail-neutral,审计 cold-skip)+ 后台预热
       scoreMessage(文本块, 附件?) → pickEffort(score, efforts)
-      agent.model.select({provider, model, reasoningEffort})   ← 本轮第一步即生效
+      【微任务】agent.model.select(...) / session.append('model/selection', ...)   ← 本轮第一步即生效
       审计 access.thinking.auto {sessionId, provider, model, score, effort, efforts}
+【rc.1+】inbox/inserted 载荷带 agent ⇒ 保留该信号面,双路径按 sessionId:messageId 去重
   → 投影 ModelSelection.pending(durable)
   → 每步请求消费该选择(dsh-llm GenerateOptions.reasoningEffort)
   → pi-ai 折算 wire 字段(cordis.patch.yml.template 档位表 → thinkingLevelMap)
 ```
 
-排除项(宿主源码实读,dsh-agent 0.2.2-rc.1):
+时序两条硬约束(宿主源码实读):
+
+- **落盘必须微任务**:`session/event` 在 `session.append` 的 commit 内同步分发,
+  commit 期间嵌套 append 被宿主禁止("session append cannot reenter",
+  dsh-session lib:1580)。入箱先于 wakeDriver 入队,而 wakeDriver→kick→turn 在
+  `await this.preStep()` 处挂起 ⇒ 入箱期间排队的微任务先于其恢复执行,
+  仍早于 preStep 开头的 `model.current()` 捕获点。
+- **preStep 即捕获点**:步选择在 preStep() 开头固定,`agent/pre-step` 瀑布只能影响
+  下一步,首轮第一步够不着——这就是选档必须挂在入箱时机的原因。
+
+排除项:
 
 - `agent/request` waterfall 改 reasoningEffort **直接 throw**(runtime-types.d.ts:
   "use agent.model.select() before step preparation"),且整体 @deprecated;
-- `agent/pre-step` 时步选择已捕获,只能影响下一步,首轮第一步够不着;
 - `installModelSelection` 对**仅 effort 变化**不插 `[model changed]` 提示语,
   `select()` 同档原子 no-op ⇒ 自动模式不产生事件噪音,不发系统消息。
 
 ## 存储与 RPC
 
 - 列:`sessions.thinking_auto INTEGER NOT NULL DEFAULT 1`(`migrateSessionsThinkingAuto`
-  幂等补列,pragma table_info 判定;fail-loud 同 migrateRoleConstraint 纪律)。
+  幂等补列,pragma table_info 判定;失败抛出 fail-loud)。
 - **行不存在 = false**:subagent/系统任务的会话不在归属账本,天然不启用。
 - RPC:`/api/session/thinkingAuto` 专路(tenant.ts,仿 modelCatalog 先例)
   读 `{request:{sessionId}}` → `{enabled}`;写 `{request:{sessionId, enabled}}` → `{enabled}`。
   归属守卫同通用循环(sessionOwner 比对);写路径审计 `access.tenant` action=thinking.auto.set。
+- 该 RPC 走 dsh client-connection 鉴权面(浏览器同源会话),不能拿 access cookie 直打
+  curl——E2E 必须走浏览器真路径。
 
 ## 评分信号表(纯启发式,2026-11-18 拍板)
 
