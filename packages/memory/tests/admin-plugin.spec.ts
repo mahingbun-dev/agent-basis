@@ -467,3 +467,27 @@ describe('M-M4 后修正:state 统计读登录者本人账号库(分库口径)',
     expect(legacy.state().ok).toBe(true)
   })
 })
+
+describe('蒸馏端点目录惰性创建(生产 0.1.21「unable to open database file」回归)', () => {
+  const lazyRoot = mkdtempSync(join(tmpdir(), 'eterna-memory-distill-lazy-'))
+  afterAll(() => {
+    rmSync(lazyRoot, { recursive: true, force: true })
+  })
+
+  it('distillCandidates:distillRoot 整条路径缺席 → 建目录返回空清单(不炸)', () => {
+    // 用一个**连父目录都不存在**的深层路径(复现生产:Phase A 未跑过、memory-distill/ 从未创建)
+    const gateway = Object.create(EternaMemoryGateway.prototype) as EternaMemoryGateway
+    Object.defineProperty(gateway, 'ctx', { value: fakeCtxOf({ principal: { kind: 'eterna-user', userId: 1 }, adminRole: 'admin' }) })
+    Object.defineProperty(gateway, 'deps', {
+      value: {
+        dbPath,
+        sessionDomainFace: () => undefined,
+        distillRoot: join(lazyRoot, 'never-ran', 'memory-distill'),
+      },
+    })
+    const view = gateway.distillCandidates()
+    expect(view.ok).toBe(true)
+    if (view.ok) expect(view.candidates).toEqual([])
+    expect(existsSync(join(lazyRoot, 'never-ran', 'memory-distill', 'ledger.sqlite3'))).toBe(true)
+  })
+})
