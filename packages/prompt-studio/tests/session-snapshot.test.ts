@@ -298,7 +298,10 @@ describe('T2.3 网关链路:会话开启事件 → 快照存储 → 查询端点
 
   /** 审计明细(轮询等待异步落盘;host-plugin.test waitForAudit 同款)。 */
   async function auditDetails(): Promise<Array<Record<string, unknown>>> {
-    for (let waited = 0; waited < 2000; waited += 10) {
+    // 审计是异步落盘:本地 2s 内必到,CI 负载下(20 包并行 verify)偶发超窗——
+    // 0.1.29/PR#99 CI 实证 session-snapshot.captured 超 2s 才可见 → 放宽到 10s
+    // (轮询命中即返回,不增加通过路径耗时)。
+    for (let waited = 0; waited < 10000; waited += 10) {
       try {
         return readFileSync(auditPath, 'utf8').split('\n').filter(Boolean)
           .map(line => (JSON.parse(line) as { detail?: Record<string, unknown> }).detail ?? {})
