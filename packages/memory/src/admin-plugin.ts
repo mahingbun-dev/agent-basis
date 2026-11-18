@@ -683,6 +683,10 @@ export class EternaMemoryGateway extends TypertRemoteService {
     if (!this.adminAllowed()) {
       return { ok: false, code: 'forbidden', message: '需要管理员权限' }
     }
+    // LedgerStore 不自建父目录:蒸馏从未运行时产物目录缺席,开账本即炸
+    //(生产 0.1.21 实测「unable to open database file」)——先建目录再开库
+    //(createDistillJob 侧同款修法的端点面镜像)。
+    mkdirSync(this.distillRoot(), { recursive: true })
     const ledger = new LedgerStore(join(this.distillRoot(), 'ledger.sqlite3'))
     try {
       return { ok: true, candidates: listDistillCandidates({ outputDir: this.distillRoot(), ledger }) }
