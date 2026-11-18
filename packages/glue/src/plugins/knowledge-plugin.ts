@@ -19,7 +19,7 @@
  */
 import * as nodeFs from 'node:fs'
 import { existsSync, mkdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import type { Context } from '@deepseek-ai/cordis'
 import {
@@ -76,9 +76,15 @@ export function defineKnowledgePlugin(config: KnowledgePluginConfig = {}) {
         if (verdict?.decision === 'allow') return { kind: 'approve' as const }
         return { kind: 'reject' as const, reason: 'glue: 知识发布需人工评审(工作台/对话式添加确认后调用 approve);governance 规则未放行' }
       }
-      const createService = (wikiDir: string, dbPath: string): KnowledgeService => createKnowledgeService({
-        backends: [new WikiLocalBackend({ wikiDir, dbPath, fs: createNodeFsAdapter(nodeFs), gate })],
-      })
+      const createService = (wikiDir: string, dbPath: string): KnowledgeService => {
+        // node:sqlite 不自建父目录:全新卷 cwd/.eterna 缺席时开库即炸,插件装载失败
+        // (告警「2 entries did not activate」,eterna-tp-t6 2026-11-18 实测)——
+        // 开库前先建父目录(与下方账号分库 create 回调的 mkdirSync 同款守卫,幂等)。
+        mkdirSync(dirname(dbPath), { recursive: true })
+        return createKnowledgeService({
+          backends: [new WikiLocalBackend({ wikiDir, dbPath, fs: createNodeFsAdapter(nodeFs), gate })],
+        })
+      }
       // 全局库(= 改造前单库形态;admin 路由与本地降级共用)。
       const globalWikiDir = config.wikiDir ?? join(cwd, 'knowledge.wiki')
       const globalDbPath = config.dbPath ?? join(cwd, '.eterna/knowledge.sqlite3')
