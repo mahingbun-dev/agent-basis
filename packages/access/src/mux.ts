@@ -37,8 +37,13 @@
  *   workspace 资源: workspace/follow(逐项可见性过滤用)
  *   session 事件: event:api-session/{status,added,removed,activity,error}(2026-11-13 补,
  *           逐会话资源判定零泄漏,停止按钮生命线 status 见 SESSION_EVENT_ACTIONS 处注释)
+ *   global 事件: event:{llm/adapters-updated,llm/models-updated,settings/document-updated,
+ *           credentials/reference-updated,credentials/record-updated}(2026-11-18 补,
+ *           浏览器缓存失效信号,见 GLOBAL_EVENT_ACTIONS 处注释)
  * 防漂移:tests/mux-drift.spec.ts 断言本清单与上游 typert 流方法表差集=∅,且逐方法
  *   资源 kind(lookup/资源注册表推导)与归位清单一致——名称覆盖之外再锁 kind 归位。
+ *   事件面两条互斥断言:会话事件必须带 resources={session}(逐租户过滤);
+ *   全局事件必须不带 resources(不携带任何资源身份),且仅在 ACTION 清单内。
  */
 import type { SessionService } from './session.ts'
 import type { UserStore } from './store.ts'
@@ -91,6 +96,33 @@ export const GLOBAL_UNARY_ACTIONS: readonly string[] = [
   'schedule/list',
 ]
 
+/** 宿主级失效信号事件(策略 global 绑定;2026-11-18「设置页新增模型供应商保存后
+ *  配置页看不到」根因修复)。
+ *
+ *  机制:网关对非 owner peer 的广播逐条 decide(action=`event:<名>`,资源=转发清单
+ *  声明的 resources;api-gateway lib/index.js:625-633 + access.ts:98 无 readers
+ *  即 GLOBAL)。mux 换血后浏览器 peer 恒 kind='eterna-user' ≠ owner(answers=false,
+ *  index.js:584),故这五个事件在旧清单下恒 deny——保存落在宿主与磁盘、页面却
+ *  永远读自己镜像里的旧 describe(mirror.ensure 只从 idle 读,settings-mirror.ts:125;
+ *  模型页 load() 正是 ensure+getSnapshot),模型选择服务也订阅同样五个事件
+ *  (ui-model-selection client/service.ts:54-58)。
+ *
+ *  安全面:五事件均为纯失效信号,上游声明无 resources(remote-events.ts 无
+ *  resources 字段=GLOBAL 资源),载荷仅 adapters-updated() / models-updated(provider) /
+ *  document-updated(ns,revision) / reference-updated(ref) / record-updated(key)——
+ *  不含模型内容、会话/工作区身份或密钥值;其指向的目录面本就全员可读
+ *  (settings/describe 全量命名空间、session/modelCatalog、credentials/describe 脱敏徽标)。
+ *  三角色绑定保持同构(WS-C 不变式),不做角色分叉。
+ *  防漂移:mux-drift 断言每个成员都在上游 emit 转发清单内**且不带 resources**
+ *  (带 resources 的会话事件只许走 SESSION_EVENT_ACTIONS)。 */
+export const GLOBAL_EVENT_ACTIONS: readonly string[] = [
+  'event:llm/adapters-updated',
+  'event:llm/models-updated',
+  'event:settings/document-updated',
+  'event:credentials/reference-updated',
+  'event:credentials/record-updated',
+]
+
 /** 会话级广播事件动作(策略 session 绑定;2026-11-13 补「回合中无停止按钮」)。
  *  gateway broadcastRemoteEvent 对非 owner peer 按 action=`event:<名>` decide
  *  (api-gateway index.ts:626-635);api-session 五事件在转发清单逐会话声明资源
@@ -102,7 +134,8 @@ export const GLOBAL_UNARY_ACTIONS: readonly string[] = [
  *  缺席=回合中按钮恒「发送消息」无从停止);added/removed=侧栏实时增删;
  *  activity=侧栏时序;error=会话错误浮出。客户端 $on 订阅见 session-controller
  *  client/index.ts:116-124。防漂移:mux-drift 断言均在上游转发清单(逐会话
- *  resources)+emit 声明表内,且全局绑定不得含任何 event:* 动作(卫生锚)。 */
+ *  resources)+emit 声明表内,且全局绑定不得含任何**会话** event:* 动作(卫生锚;
+ *  全局失效信号白名单见 GLOBAL_EVENT_ACTIONS)。 */
 export const SESSION_EVENT_ACTIONS: readonly string[] = [
   'event:api-session/status',
   'event:api-session/added',
@@ -231,7 +264,7 @@ function eternaUserOf(deps: MuxPolicyDeps, request: unknown): number | undefined
 
 /** 一个用户的资源绑定(账本为唯一事实源;子代理子会话经 parentSessionId 由上游随父判定)。 */
 export function bindingsFor(deps: MuxPolicyDeps, userId: number): readonly TenantBinding[] {
-  const globalRole = { name: 'eterna:member-global', resource: 'global' as const, actions: [...GLOBAL_STREAM_ACTIONS, ...GLOBAL_UNARY_ACTIONS] }
+  const globalRole = { name: 'eterna:member-global', resource: 'global' as const, actions: [...GLOBAL_STREAM_ACTIONS, ...GLOBAL_UNARY_ACTIONS, ...GLOBAL_EVENT_ACTIONS] }
   // 会话资源还须授予 workspace/follow:上游 workspace-controller 的 follow 流对
   // workspace.sessionIds 逐项 allows({kind:'session',id}) 判定,action 取当前
   // 调用面(=workspace/follow)——会话绑定不含此动作时,连用户自己的会话也会被从

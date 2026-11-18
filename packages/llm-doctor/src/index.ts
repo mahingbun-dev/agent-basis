@@ -114,6 +114,22 @@ function readRows(configEditor: ConfigEditorFace): { entry: { options: { id: str
   return out
 }
 
+/** 凭据服务消费面(结构子集:credentials.resolve(ref)→{value};测试注入同构假体)。 */
+export interface CredentialsFace {
+  resolve(ref: string): Promise<{ readonly value?: unknown } | undefined>
+}
+
+/** 安全解析 credentials 服务(缺席/未就绪时 undefined,不炸宿主)。 */
+function resolveCredentials(ctx: DoctorContextLike): CredentialsFace | undefined {
+  try {
+    const service = ctx.get('credentials') as CredentialsFace | undefined
+    if (service !== undefined && typeof service.resolve === 'function') return service
+    return undefined
+  } catch {
+    return undefined
+  }
+}
+
 /** 安全解析 configEditor 服务(缺席/未就绪时 undefined,不炸宿主)。 */
 function resolveConfigEditor(ctx: DoctorContextLike): ConfigEditorFace | undefined {
   try {
@@ -135,7 +151,7 @@ export class LlmDoctorGateway extends TypertRemoteService {
   lastError: string | undefined
   /** 测试注入口:生产为全局 fetch。 */
   fetchImpl: FetchLike = globalThis.fetch
-  /** 测试注入口:apiKey 解析(生产按 apiKeyEnv 读 process.env)。 */
+  /** 测试注入口:apiKey 解析(生产按 apiKeyEnv 读 process.env;credentials 服务优先,见 {@link apiKeyFor})。 */
   resolveApiKey: (apiKeyEnv: string | undefined) => string | undefined = env =>
     (env === undefined || env === '' ? undefined : process.env[env])
 
@@ -148,6 +164,28 @@ export class LlmDoctorGateway extends TypertRemoteService {
   constructor(ctx: DoctorContextLike) {
     super(ctx as never, LLM_DOCTOR_SERVICE_ID)
     this.doctorCtx = ctx
+  }
+
+  /**
+   * 一条路由 apiKeyEnv 的实际密钥(2026-11-18「新供应商测试恒 401」根因修复)。
+   *
+   * 旧实现只读 process.env,而设置页新增供应商时密钥落在 credentials 仓储
+   * (.credentials.yaml)而非容器 env——探针拿到 undefined 就裸发请求,网关回
+   * 401「Missing API key」,用户以为供应商不可用(实测 baidu tokenplan)。
+   * 口径:credentials 服务优先(与 llm-pi-ai 适配器同源),查不到回退 env
+   * (部署 env 注入的四家仍走原路径);解析异常一律静默回退,不炸诊断面。
+   */
+  async apiKeyFor(apiKeyEnv: string | undefined): Promise<string | undefined> {
+    if (apiKeyEnv === undefined || apiKeyEnv === '') return undefined
+    const credentials = resolveCredentials(this.doctorCtx)
+    if (credentials !== undefined) {
+      try {
+        const record = await credentials.resolve(apiKeyEnv)
+        const value = record?.value
+        if (typeof value === 'string' && value.length > 0) return value
+      } catch { /* 服务未就绪:回退 env */ }
+    }
+    return this.resolveApiKey(apiKeyEnv)
   }
 
   /** 体检 + 必要时自动适配写回。幂等:路径已存在时无动作。 */
@@ -261,7 +299,7 @@ export class LlmDoctorGateway extends TypertRemoteService {
     if (route.models !== undefined && !route.models.some(entry => entry.id === model)) {
       return { ok: false, latencyMs: 0, error: `模型 ${model} 不在路由 ${provider} 目录内` }
     }
-    return pingModel(route, model, this.resolveApiKey(route.apiKeyEnv), this.fetchImpl)
+    return pingModel(route, model, await this.apiKeyFor(route.apiKeyEnv), this.fetchImpl)
   }
 }
 

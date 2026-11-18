@@ -194,6 +194,11 @@ async function pingRequest(
   } else if (api === 'anthropic-messages') {
     url = `${clean}/v1/messages`
     headers['anthropic-version'] = '2023-06-01'
+    // pi-ai 的 anthropic 适配器走 x-api-key(官方口径),而部分兼容网关只认
+    // Authorization: Bearer——两台头并带覆盖两类(2026-11-18 baidu tokenplan
+    // 端点实证:单独/并列均 200)。此前只带 Bearer,官方 anthropic 端点会以
+    // 「Missing API key」401 冤枉整条路由。
+    if (apiKey !== undefined && apiKey !== '') headers['x-api-key'] = apiKey
     body = { model, max_tokens: 16, messages: [{ role: 'user', content: 'ping' }] }
   } else {
     throw new Error(`不支持的协议:${api}`)
