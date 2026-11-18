@@ -265,7 +265,7 @@ cd ~/.dsh/profiles/eterna-web && pnpm install
 - **OpenDesign（Go 套餐）分组**（2026-11-12）：模型选择器新增 OpenDesign 分组（anthropic-messages 协议直连 `amr-link.open-design.ai`），14 个模型（Claude Haiku 5.5 / DeepSeek V4 与 V4.1 系 / GLM 5.3 Flash 系 / GPT-6 Luna / Kimi K2.7 Code / MiMo V2.6 系 / MiniMax M3.1 等）。key 经 `OPENDESIGN_API_KEY` env 注入；上下文声明统一 300K（Kimi K2.7 Code 按官方元数据 262K）。
 - **会话与工作区隔离**：成员只能看到自己的工作区与会话（含侧栏列表与搜索）；「添加工作区」走目录树，只能在本人目录内选择与新建文件夹。
 - **用量统计**：侧栏「用量统计」面板查看 Token 总量、缓存命中率、近 14 天趋势与按模型分布。普通成员看本人，管理员看全局。
-- **我的插件**：设置弹窗新分区——把插件放进本人 `plugins/` 目录即可安装，仅本人可见；「转内置」提交申请，管理员在「审批队列」通过后全员可用。
+- **我的插件**：设置弹窗新分区——把工具型插件放进本人 `plugins/` 目录即可安装，仅本人可见；安装/启停/移除**即时生效，无需重启**（T6 装载器，2026-11-18）。创造模式里开发的插件，点「扫描 plugins 目录」一键导入；会话里代理也可直接调 `install_personal_plugin` 帮你装。行内徽标显示装载状态（已装载 n 个工具/装载失败原因）；「转内置」提交申请，管理员在「审批队列」通过后**即刻全员可用**（「恒灵插件」页签「共享工具」分区可启停）。契约与边界见 `docs/dev/tenant-plugins.md`：仅工具型（UI/bundle 型需管理员 bundle 安装），最小模板在品牌技能 `templates/personal-tool/`。
 - **消息与审批**：设置弹窗新分区——审批结果与待办的站内提醒。
 - 已知问题：浏览器若缓存了旧版登录页，密码小眼睛可能出现位移——硬刷新（⌘⇧R）即可。
 - 全部功能验收证据：`acceptance/team-platform/`（分阶段门禁 gate-summary 与工件）。

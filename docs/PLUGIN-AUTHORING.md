@@ -155,6 +155,9 @@ sleep 15; grep -icE "skipping|incompatible" /tmp/eterna-web-app.log   # 0 = 装�
 
 ## 6. 创造模式专属须知
 
-- plugin_manager 安装**需逐次审批**;build-script(pnpm approve-scripts)同审;`compatibility.json` 豁免需显式 accept-risk。
+- **EternaAgent 部署中 plugin_manager/plugin_market 已裁切(2026-11-09 三方准入红线;2026-11-18 用户裁定不回加)**——上游 `install_bundle` 指令在本部署不可执行。个人工具型插件走 `install_personal_plugin`(进程内即时装载,免审批免重启,仅本人会话可见),契约见 `references/personal-tools.md`(品牌技能 fork)与 `docs/dev/tenant-plugins.md`;最小模板 `packages/brand/skills/cordis-plugin-development/templates/personal-tool/`。
+- 全员可用 = 设置弹窗「我的插件」发起「转内置」(admin 审批/直转),通过后即刻全员生效(共享工具分区可启停)。
+- UI/bundle 型插件不在个人层装载范围,需管理员手工 bundle 安装(上游 installBundle 语义:本地目录 link 进 profile + hmr 热应用;容器缺 pnpm 时不可用,诚实边界见 docs/dev/tenant-plugins.md §4)。
+- plugin_manager 在上游非裁切部署中安装**需逐次审批**;build-script(pnpm approve-scripts)同审;`compatibility.json` 豁免需显式 accept-risk。
 - 无 HMR 的 profile 改动报 `restart-required`——重启后生效,不是 bug。
 - 自修改/装卸插件是**高危面**:生产 profile 建议禁用 plugin_manager 行(bundles 里 `disabled: true`),只在开发 profile 开放。
