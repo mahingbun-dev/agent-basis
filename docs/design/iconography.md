@@ -39,7 +39,13 @@
 `folder` 目录 · `chevron-right/down` 展开收起 · `eye/eye-off` 密码可见性 ·
 `search` 搜索 · `plus` 新建 · `check` 成功 · `close` 关闭 · `copy` 复制 ·
 `trash` 删除 · `arrow-right` 前进/打开 · `memory` 记忆(三层叠片,M-M3 T12) ·
-`bookmark` 书签/画像标记(M-M3 T12) · `domain` 域(虚线分组,M-M3 T12)。
+`bookmark` 书签/画像标记(M-M3 T12) · `domain` 域(虚线分组,M-M3 T12) ·
+`log` 日志监控(38 号 T10,原型 03 落库提案) · `bell` Attention 徽标(38 号 T7/T8,原型 02/03 落库提案) ·
+`kanban` 工作台入口(38 号 T3,原型 03 落库提案) ·
+`flow` 信息流实时图(38 号 T9,原型 03/04 落库提案) · `worker` worker 检查器(38 号 T12,原型 03 落库提案) ·
+`pause` 信息流暂停(38 号 T9,30 号 §7-2) · `replay` 单工单回放(38 号 T9,30 号 §7-2;原型 03/04 落库提案) ·
+`clock` Attention 倒计时/超时升级提示(38 号 T7/T6;原型 01/02 落库提案) ·
+`comment` 补充说明/退回说明(38 号 T7 三动作、T6 结果卡退回;原型 01/02 落库提案)。
 
 ## 3. 插件卡片图标
 

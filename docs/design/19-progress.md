@@ -83,7 +83,8 @@ S-1~S-5 五项勘察已全部 resolved(结论/证据路径/退路三段式),见 
    - **2026-11-15 增量**:隔离容器(独立卷 3108→改 3110,挂载 memory/panel/glue 三包+模板+宽松 peer glue 副本)+ ego lite 完成深浅两主题共 12 张截图,落 `gui-test-screenshots/memory-t13-1115/`(设置记忆分区/会话域 chip/基座面板画像卡+审批+功能域+记忆指标,深浅各半);视觉验收(图像模型逐张)通过:指标数值与种子数据一致、四分节画像+逐节「纠正此项」、审批队列记住/跳过、域浏览 2 域均正确渲染。
    - 验收顺带**实跑发现的缺口与修复**:① entrypoint §3 symlink 清单缺 `memory`(行被静默 disable)——已补并 staged;② docker 模板缺 `eterna-panel` Host 行(基座面板浏览器半边从未进花名册,**历史缺口**)——已补并 staged;③ **T12-④ Sources 行未渲染**(实测会话中 memory_search 已执行、回复含检索结果,但 `sources-row` 节点不出现)——疑似 turnTail 事件累计口径与 dsh 运行时事件形状不符(S3 当时以既有证据置信、未实跑抓包),**待修**;④ 面板域浏览「记忆 N 条」恒 0(memory_count 无维护者,M-M1 评审发现的回归);⑤ 轻微 UI:指标行右端贴边截断、小号浅灰标签对比度偏低(frontend-style §4 可访问性边缘项)。
    - 容器内另见:web 多用户下面板/记忆库路径跟随**宿主进程 cwd**(单容器单租户形态 = /data/.eterna 全局库)——多租户 web 部署的记忆分库归属需专项确认(tenant-scan 规则已覆盖 dbPath 派生面,运行时 cwd 语义待核)。
-3. **M-M4 全局蒸馏未启动(范围外)**(指定):19 §9 明示 M-M4 依赖 ai-evo 连通、不在本文档范围;§6 的 `distill?: { enabled: false }` 配置键未落(全仓 grep 仅 `client/settings.tsx:286` 占位禁用态复选框,文案按 Q4 默认关处理),M-M4 启动时需补配置键。
+3. **M-M4 全局蒸馏未启动(范围外)**(指定;**2026-11-18 已落地闭环**):19 §9 明示 M-M4 依赖 ai-evo 连通、不在本文档范围;§6 的 `distill?: { enabled: false }` 配置键未落(全仓 grep 仅 `client/settings.tsx:286` 占位禁用态复选框,文案按 Q4 默认关处理),M-M4 启动时需补配置键。
+   - **2026-11-18 落地**:Phase A+Phase B 一起实现(用户拍板,K 缺省 5/本部署配 3,opt-out 全员可见默认开)——配置键落位(`MemoryPluginConfig.distill` + 根 overrides `distillEnabled`/`distillMinUsers` 热改面 + 账号 overrides `distillParticipate`)、授权链(admin UI 开启+隐私声明)、跨用户计数报告 job('distill' 伪会话游标,Dream 同款)、Phase B 候选起草走 G0–G2 进 quarantine(G2 降级明示)+ 三查探针 + SME 签发;新增 `distill.ts`/`distill-curate.ts`、八个 SRC 端点、设置分区三态字段、plugins.tab「全局蒸馏」页签。**ai-evo 依赖被既有 degraded 路径化解**(账本明示),不再是启动阻塞。实测 memory 500 / glue 107 用例全绿;实现文档 = 41 号(配置键/数据流/门禁探针口径/遗留全录)。E2E 独立容器与部署上线待人工。
 4. **prompt-studio registry.test.ts 2 例红**(核验发现):`runtime.glue.memory-plugin` 条目锚点行号漂移——`packages/prompt-studio/src/registry.ts:441` 钉 `packages/glue/src/plugins/memory-plugin.ts:171` 须含片段 `attachMemory(dshHost(ctx)`,M-M2 挂载面扩写后该片段实际移至 :173(:171 现为 domainOf 相关行);属 M-M2 改动未同步 T5 锚点的回归债,修复 = 锚点行号 171→173 一行对齐后复跑(本记录仅如实登记,不改代码)。
 5. **T13 五项验收指标专项采集面未落地**(核验发现;**2026-11-15 已起步落地**):域打标准确率/晋升提案采纳率/审批卡片响应时长/画像纠正率/索引预算占用分布均无专项采集(全仓 grep 无命中);此为 18 §13 的 Q3 抽样降档与 Q2 归并质量前置证据,首月数据落 panel 的 §9-6 验收项未就位。
    - **2026-11-15 增量**:审计账本新增 `domain-resolve`(域解析定格,glue 域接线埋点)与 `correction`(画像纠正动作,panel 经 `eternaPanel/trackCorrection` 转发)两类事件;新 `src/metrics.ts`(buildMemoryMetrics 四项在线指标纯聚合 + computeIndexZoneTokens 只读现算第五项——曾修一个联动缺陷:经 EntityMemoryStore 打开会触发迁移写,现改 DatabaseSync readOnly,且 classifyLegacySubject 补新编码防改写);索引结果增 `zoneTokens` 分区统计;facade 增 `metrics()`;panel 快照增 `memory.metrics` 与「记忆指标」区块;离线脚本 `scripts/memory-domain-accuracy.mjs`(人工标注 × 账本比对,样本待标注 ≥30 会话)。实测:memory 439 / glue 78 / panel 47 用例全绿,三包 oxlint+tsc 绿,tenant-scan 0,lint-ui-tokens 过(prompt-scan 时点 1 finding 属并行会话未完成 @basis/agent-loop 包,非本面)。
@@ -123,7 +124,7 @@ S-1~S-5 五项勘察已全部 resolved(结论/证据路径/退路三段式),见 
 | 2 | CI 两红(tools/evals+compaction admin-stats) | 当前 main 本地复跑均已绿(97/14),压缩线已自修 | **已消失** |
 | 3 | prompt-scan agent-loop 未登记 section | 属并行会话活跃工作面,不越界代修 | 待该线自行登记 |
 | 4 | 双生产账号人工验证 | 依赖第二账号创建 | 待人工 |
-| 5 | M-M4 全局蒸馏 | 依赖 ai-evo(容器已删+baseUrl 未定) | 依赖就绪后启动 |
+| 5 | M-M4 全局蒸馏 | **已落地**(2026-11-18,Phase A+B;ai-evo 依赖由 G2 degraded 降级化解并账本明示):配置键+授权链+opt-out+计数报告 job+候选 quarantine+签发面,41 号实现文档 | **代码已落地**;E2E 独立容器与部署上线待人工 |
 | 6 | 隔离 profile 全链路 E2E 自动脚本 | 已有库级/集成层双账号隔离测(glue routing spec 3 例);全链路脚本列 0.1.5 | 计划内 |
 | 7 | 键解耦(consolidation.enabled 连带关 Dream,low#18) | **已修**(f5e819c):consolidation 只管轻量链,Dream 独立 | 已上线 0.1.4 |
 | 8 | 配置键补全(halfLifeDays/perDomainLimit/portrait/domain.indexTokens 部署侧) | 0.1.2 已大半补齐(routing/episodic/halfLifeDays 键);余 portrait.maxTokens 等 | 0.1.5 打磨 |
