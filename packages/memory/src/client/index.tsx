@@ -16,16 +16,26 @@
  */
 import { injectDesignTokens } from '@eterna/ui'
 import { CSS as SETTINGS_CSS, MEMORY_SECTION_ID, MemorySettingsSection, NS, SETTINGS_LOCALES } from './settings.tsx'
+import { CSS as DISTILL_CSS, DISTILL_LOCALES, MEMORY_DISTILL_TAB_ID, DistillReportSection } from './distill-report.tsx'
 import { DomainChip } from './domain-chip.tsx'
 import { MemorySourcesTail, memorySourcesDefinition, type MemorySourcesTailProps } from './sources.tsx'
 import type { MemoryClientContext, TurnLocationLike } from './client-types.ts'
 
 export { MEMORY_SECTION_ID, NS }
 export {
-  isMemoryPolicyDirty, MEMORY_STATE_ENDPOINT, MEMORY_UPDATE_ENDPOINT,
+  isMemoryPolicyDirty, isDistillDirty, MEMORY_STATE_ENDPOINT, MEMORY_UPDATE_ENDPOINT,
+  MEMORY_DISTILL_VIEW_ENDPOINT, MEMORY_DISTILL_SET_PARTICIPATE_ENDPOINT,
   MEMORY_POLICY_TIERS, resolvePolicyTier, SETTINGS_LOCALES,
 } from './settings.tsx'
-export type { MemoryConfigView, MemoryPolicyFormState, MemoryStateView } from './settings.tsx'
+export type { MemoryConfigView, MemoryPolicyFormState, MemoryStateView, MemoryDistillViewData } from './settings.tsx'
+export {
+  MEMORY_DISTILL_TAB_ID, MEMORY_DISTILL_REPORT_ENDPOINT, MEMORY_DISTILL_ENABLE_ENDPOINT,
+  MEMORY_DISTILL_RUN_ENDPOINT, MEMORY_DISTILL_CANDIDATES_ENDPOINT,
+  MEMORY_DISTILL_RELEASE_ENDPOINT, MEMORY_DISTILL_REJECT_ENDPOINT,
+} from './distill-report.tsx'
+export type {
+  DistillCandidateGateView, DistillCandidateMetaView, DistillClusterView, DistillLocaleKey, DistillReportView,
+} from './distill-report.tsx'
 export { DomainChip, domainChipLabel, registeredDomainsOf } from './domain-chip.tsx'
 export {
   memorySourcesBuildLocationData, memorySourcesDefinition, memorySourcesMatch,
@@ -48,7 +58,8 @@ export { MEMORY_DOMAINS_ENDPOINT, MEMORY_SELECT_DOMAIN_ENDPOINT, MEMORY_SESSION_
 export const inject = ['slots', 'locale', 'connection', 'layout', 'uiConversation']
 
 /** en 界面降级口径(键名原样;compaction 设置分区同款,产品中文优先)。 */
-const en = Object.fromEntries(Object.keys(SETTINGS_LOCALES).map(key => [key, key])) as Record<string, string>
+const ALL_LOCALES = { ...SETTINGS_LOCALES, ...DISTILL_LOCALES }
+const en = Object.fromEntries(Object.keys(ALL_LOCALES).map(key => [key, key])) as Record<string, string>
 
 /** 会话内两件(域 chip / Sources 行)样式;设置分区样式随 SETTINGS_CSS 一并注入。 */
 export const CHIP_CSS = `
@@ -79,7 +90,7 @@ function injectMemoryStyles(doc: Document = document): void {
   if (doc.getElementById('eterna-memory-styles') !== null) return
   const style = doc.createElement('style')
   style.id = 'eterna-memory-styles'
-  style.textContent = `${SETTINGS_CSS}\n${CHIP_CSS}`
+  style.textContent = `${SETTINGS_CSS}\n${DISTILL_CSS}\n${CHIP_CSS}`
   doc.head.append(style)
 }
 
@@ -110,9 +121,10 @@ interface MemorySourcesTailEntryProps {
  */
 export function apply(ctx: MemoryClientContext): () => void {
   injectMemoryStyles()
-  const disposeLocale = ctx.locale.register(NS, { zh: { ...SETTINGS_LOCALES }, en })
+  const disposeLocale = ctx.locale.register(NS, { zh: { ...ALL_LOCALES }, en })
   const t = ctx.locale.bind(NS)
-  // ① 设置分区「记忆」(管理员专用文案由 state 端点鉴权视图反馈)。
+  // ① 设置分区「记忆」(管理员专用文案由 state 端点鉴权视图反馈;蒸馏参与
+  // 字段登录即可——Q4 opt-out 全员可见,见 settings.tsx)。
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: MEMORY_SECTION_ID,
@@ -121,6 +133,16 @@ export function apply(ctx: MemoryClientContext): () => void {
     inject: () => ({ t, connection: ctx.connection }),
     label: () => t('section'),
   }, MemorySettingsSection))
+  // ⑤ 全局蒸馏报告页(plugins.tab,18 §10「admin 报告页」;非 admin 由端点
+  // 403 反馈显示无权文案,settings.section 同款降级)。
+  ctx.slots.inject('plugins.tab', () => ctx.slots.register({
+    name: 'plugins.tab',
+    id: MEMORY_DISTILL_TAB_ID,
+    order: 46,
+    locale: NS,
+    inject: () => ({ t, connection: ctx.connection }),
+    label: () => t('distillTab'),
+  }, DistillReportSection))
   // ③ 域识别 chip(会话输入行右侧;session 作用域,声明坍塌即随链路撤销)。
   ctx.slots.inject('conversation.input.right', () => ctx.slots.register({
     name: 'conversation.input.right',

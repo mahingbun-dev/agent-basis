@@ -137,7 +137,12 @@ describe('T2 防漂移:上游流方法表全覆盖', () => {
 
   it('全局绑定零事件动作(卫生锚:事件只能授在会话绑定逐会话过滤,global 即全宿主广播)', () => {
     // bindingsFor 依赖 store.session/session 仅为类型面;直接构造最小依赖
-    const bindings = bindingsFor({ store: { sessionsOfOwner: () => [], workspacesOfOwner: () => [] }, session: undefined } as never, 0)
+    // (WS-C 后 Pick 增 getUserById——角色现查,此处桩返回 undefined=fail-closed 按 user 档)
+    const minimal = {
+      store: { sessionsOfOwner: () => [] as string[], workspacesOfOwner: () => [] as string[], getUserById: () => undefined },
+      session: undefined,
+    } as never
+    const bindings = bindingsFor(minimal, 0)
     const global = bindings.find(b => b.resource.kind === 'global')
     expect(global?.role.actions.filter(a => a.startsWith('event:'))).toEqual([])
   })

@@ -15,6 +15,7 @@ permission-presets 配置产物、富上下文审批卡片、同 turn 提问合�
 | 富审批卡片 | `src/card.ts` | 五必备字段:将发生什么(命令/API+参数,超长折叠)/为什么(SOP/skill/golden)/影响面(文件+diff 摘要、外部系统对象)/回滚性(逆闭包明示,不可逆明示)/命中规则(ruleId+档+依据);R3 附加控制;`cardToQuestionItems()` 渲染为官方 user-questions 载荷 | `ctx.userQuestions`(intent `approval` 分支) |
 | 提问合并 | `src/ask.ts` | 同 turn 多次 `ask_user_question` 合并为一张多问题卡片(上限 3 问,超限顺序拆卡);同 turn 重复 id 去重(保留首个);turn 切换自动 flush;合并率统计(asksIn/cardsOut/interruptionsSaved/mergeRate,供 observe「question 合并率」) | `ask_user_question` 工具参数形态 |
 | 负信号 | `src/negative.ts` | 审批被拒(DSH `ApprovalOutcome='rejected'` 翻译)/被修改(R2 产出被用户改写=隐含差评)事件发布:订阅扇出+环形快照,监听器抛错隔离;allowed-once/cancelled/unavailable **非**负信号不发布 | `ctx.approval` waterfall 结局 |
+| 升级接线 | `src/escalation.ts` | escalate→channels 出站(channels 审批卡,approve/reject 双一次性令牌强制装配;Attention 单问;升级不并发去重)、冷静期+双确认运行时判定(`confirmGate` 纯函数:两问均 approve 且过冷静期才 allow-once)、`on_no_answer` 三策略分派(suspend 只发 onSuspended 事件/escalate 转出站/fail 以 denied 收场且不发负信号);传输/令牌/寻址全部注入,独立工厂 `createEscalationRuntime` | channels `ApprovalTokenService`/`sendCard`(注入) |
 | 组合门 | `src/index.ts` | `createInteract()`:hitl + 预设产物 + 卡片 + 合并器 + 信号总线一站式装配 | — |
 
 ## hitl.yaml 示例(键统一 snake_case)
@@ -85,11 +86,12 @@ const interact = createInteract({ hitlYaml, ask: { onFlush: r => sendAsk(r) } })
   (`recordModification`)的 diff 检测由组合层对接 deliverables 事件。
 - **未在真实 DSH 运行时联调**(acp 驱动/bundle 挂载):seam 兼容性靠官方类型直用 + 编译期钉住
   保证;需运行时联调(见 PROGRESS.md T3 备注)。
-- `on_no_answer` 的挂起/升级执行(suspend=任务暂停非失败 replay 即恢复、escalate=超时升级
-  channels)由组合层与 T11 channels 落地;本包提供策略数据与逐条解析。
+- `on_no_answer` 的挂起/升级执行已由 `src/escalation.ts` 运行时接线(39 号 E4-E6):suspend=任务
+  暂停非失败(只发 onSuspended 事件,登记归口 tasks/组合层)、escalate=出站 channels 审批卡、
+  fail=denied 收场;传输/令牌/寻址注入,装配(glue 挂 approval 终局)归组合层。
 
 ## verify
 
 ```bash
-pnpm --filter @eterna/interact run verify   # oxlint + tsc --noEmit + vitest run(55 用例)
+pnpm --filter @eterna/interact run verify   # oxlint + tsc --noEmit + vitest run(69 用例)
 ```

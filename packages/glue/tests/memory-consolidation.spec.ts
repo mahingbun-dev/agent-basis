@@ -315,3 +315,111 @@ describe('memory 插件 M-M2 T6 整固挂载(config.consolidation)', () => {
     }
   })
 })
+
+// ---------- M-M4:全局蒸馏接线(config.distill;18 号 §8,Q4 授权链) ----------
+
+describe('memory 插件 M-M4 蒸馏接线(config.distill)', () => {
+  let dir = ''
+  let previousDshHome: string | undefined
+  let reader: ConsolidationCursorStore | undefined
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'eterna-glue-memory-distill-'))
+    // 蒸馏产物/身份源/租户根全部钉进临时 DSH_HOME(隔离,不污染仓库 cwd)。
+    previousDshHome = process.env.DSH_HOME
+    process.env.DSH_HOME = dir
+  })
+
+  afterEach(async () => {
+    process.env.DSH_HOME = previousDshHome
+    reader?.close()
+    reader = undefined
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  function openCursorReader(): ConsolidationCursorStore {
+    reader = new ConsolidationCursorStore(join(dir, 'memory.sqlite3'))
+    return reader
+  }
+
+  it('config.distill 在场 → provide eternaMemoryDistill face(门/阈值/手动运行)', async () => {
+    const harness = makePluginHarness()
+    const plugin = defineMemoryPlugin({
+      notesDir: join(dir, 'NOTES'),
+      dbPath: join(dir, 'memory.sqlite3'),
+      domain: { enabled: false },
+      distill: { enabled: true, minUsers: 3, intervalHours: 24 },
+    })
+    const dispose = plugin.apply(harness.fake as unknown as Context)
+    try {
+      const face = harness.service('eternaMemoryDistill') as {
+        gate(): boolean
+        minUsers: number
+        intervalMs: number
+        runNow(): Promise<{ ok: boolean; detail?: string; message?: string }>
+      }
+      expect(face).toBeDefined()
+      expect(face.gate()).toBe(true) // 部署基线 enabled:true,根 overrides 缺席
+      expect(face.minUsers).toBe(3)
+      expect(face.intervalMs).toBe(24 * 3_600_000)
+      // 手动运行:无账号租户 → 0 账号报告落盘(DSH_HOME/memory-distill),游标不炸。
+      const outcome = await face.runNow()
+      expect(outcome.ok).toBe(true)
+      expect(outcome.detail ?? '').toContain('蒸馏报告')
+      // 部署门热改:根 overrides(与 dbPath 同目录,memoryOverridesPathForDb 真值)
+      // distillEnabled=false 覆写基线(每次现读)。
+      const { mkdirSync, writeFileSync } = await import('node:fs')
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(join(dir, 'memory.config.json'), JSON.stringify({ distillEnabled: false }))
+      expect(face.gate()).toBe(false)
+    } finally {
+      dispose()
+    }
+  })
+
+  it('config.distill 缺席(bundle default export 形态)→ face 恒在但门关(回滚面=不开门)', async () => {
+    const harness = makePluginHarness()
+    const plugin = defineMemoryPlugin({
+      notesDir: join(dir, 'NOTES'),
+      dbPath: join(dir, 'memory.sqlite3'),
+      domain: { enabled: false },
+    })
+    const dispose = plugin.apply(harness.fake as unknown as Context)
+    try {
+      // 生产走 default export 无 config 注入:接线恒挂,授权链完全由根 overrides
+      // distillEnabled 承载——缺席即门关(Q4 默认关)。
+      const face = harness.service('eternaMemoryDistill') as { gate(): boolean } | undefined
+      expect(face).toBeDefined()
+      expect(face?.gate()).toBe(false)
+    } finally {
+      dispose()
+    }
+  })
+
+  it('distill.enabled=false(门关)仍挂调度面:completed 会话尾到期入队,任务内 nothing-to-save 推进游标', async () => {
+    const harness = makePluginHarness()
+    const plugin = defineMemoryPlugin({
+      notesDir: join(dir, 'NOTES'),
+      dbPath: join(dir, 'memory.sqlite3'),
+      domain: { enabled: false },
+      consolidation: { enabled: false },
+      distill: { enabled: false },
+    })
+    const dispose = plugin.apply(harness.fake as unknown as Context)
+    try {
+      const face = harness.service('eternaMemoryDistill') as { gate(): boolean } | undefined
+      expect(face?.gate()).toBe(false)
+      // 第一个会话尾:distill 在 Dream 之后入队,被周期粘滞让位(Dream 先到先跑)。
+      harness.emitSession(userProse('以后周报用中文', 1), { id: 'session-d' })
+      harness.emitSession(turnEnd('completed', 1, 9), { id: 'session-d' })
+      const cursor = openCursorReader()
+      await vi.waitFor(() => { expect(cursor.doneAt(DREAM_CURSOR_SESSION_ID)).not.toBeNull() })
+      // 第二个会话尾:Dream 间隔未满 not-due,蒸馏轮到入队并推进游标(门关也推进)。
+      harness.emitSession(userProse('再补一句中文', 2), { id: 'session-d' })
+      harness.emitSession(turnEnd('completed', 2, 10), { id: 'session-d' })
+      await vi.waitFor(() => { expect(cursor.doneAt('distill')).not.toBeNull() })
+    } finally {
+      dispose()
+    }
+  })
+})

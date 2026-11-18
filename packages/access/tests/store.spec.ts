@@ -1,7 +1,9 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { hashPassword } from '../src/password.ts'
 import {
   accountCandidates, LastAdminError, OldPasswordMismatchError, SelfDeleteError,
   UserNotFoundError, UserStore,
@@ -163,5 +165,104 @@ describe('UserStore 用户存储', () => {
     const summary = store.listUsers().find(u => u.account === 'erin')
     expect(summary?.hasAvatar).toBe(true)
     expect(JSON.stringify(summary)).not.toContain('password')
+  })
+
+  // ── WS-C(37 号 M-1):角色值域扩 approver + 存量库 CHECK 迁移 ──────────────
+
+  it('WS-C:新库建 approver 用户成功且读回 role=approver;setUserRole 写面直改', () => {
+    const { user } = store.createUserWithSuffix({ account: 'auditor', password: 'password8', role: 'approver' })
+    expect(store.getUserById(user.id)?.role).toBe('approver')
+    expect(store.verifyLogin('auditor', 'password8')?.role).toBe('approver')
+    expect(store.listUsers().find(u => u.id === user.id)?.role).toBe('approver')
+    // M-3 角色写面(requireRow + UPDATE,语义护栏在 routes 层)
+    store.setUserRole(user.id, 'user')
+    expect(store.getUserById(user.id)?.role).toBe('user')
+    store.setUserRole(user.id, 'approver')
+    expect(store.getUserById(user.id)?.role).toBe('approver')
+    expect(() => { store.setUserRole(99999, 'user') }).toThrow(UserNotFoundError)
+  })
+
+  it('WS-C 迁移:旧 CHECK 存量库 → new UserStore 触发重建,数据/FK 完整且可写 approver', () => {
+    // 手工构造旧形态库(两值 CHECK;admin/user 各一 + 子表 FK 行),复用 mkdtemp 先例
+    const legacyPath = join(dir, 'legacy.db')
+    const legacy = new DatabaseSync(legacyPath)
+    legacy.exec(`CREATE TABLE users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      account TEXT NOT NULL UNIQUE,
+      nickname TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      password_version INTEGER NOT NULL DEFAULT 1,
+      role TEXT NOT NULL CHECK(role IN ('admin','user')),
+      avatar BLOB,
+      avatar_mime TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`)
+    legacy.exec('CREATE TABLE sessions (session_id TEXT PRIMARY KEY, owner_id INTEGER NOT NULL REFERENCES users(id), workspace_id TEXT)')
+    legacy.exec('CREATE TABLE workspaces (workspace_id TEXT PRIMARY KEY, owner_id INTEGER NOT NULL REFERENCES users(id), path TEXT NOT NULL)')
+    legacy.prepare("INSERT INTO users (account, nickname, password_hash, role) VALUES ('root', '老管理员', ?, 'admin')").run(hashPassword('password8'))
+    legacy.prepare("INSERT INTO users (account, nickname, password_hash, role) VALUES ('u1', '用户一', ?, 'user')").run(hashPassword('password8'))
+    legacy.exec("INSERT INTO sessions (session_id, owner_id) VALUES ('s-legacy', 2)")
+    legacy.exec("INSERT INTO workspaces (workspace_id, owner_id, path) VALUES ('w-legacy', 2, '/tmp/u1')")
+    legacy.close()
+    // 触发迁移:构造器内建表后幂等迁移
+    const migrated = new UserStore(legacyPath)
+    try {
+      // 旧三列数据完整读回(含 admin/user 各一)
+      const admin = migrated.verifyLogin('root', 'password8')
+      const user = migrated.verifyLogin('u1', 'password8')
+      expect(admin).toMatchObject({ account: 'root', nickname: '老管理员', role: 'admin' })
+      expect(user).toMatchObject({ account: 'u1', role: 'user' })
+      // 已迁移库可写 approver
+      const approver = migrated.createUserWithSuffix({ account: 'auditor', password: 'password8', role: 'approver' })
+      expect(approver.user.role).toBe('approver')
+      // FK 完整:子表行不变 + foreign_key_check 空
+      expect(migrated.sessionOwner('s-legacy')).toBe(user!.id)
+      expect(migrated.workspaceOwner('w-legacy')).toBe(user!.id)
+      const probe = new DatabaseSync(legacyPath)
+      try {
+        expect(probe.prepare('PRAGMA foreign_key_check').all()).toEqual([])
+        const sql = (probe.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get() as { sql: string }).sql
+        expect(sql).toContain("'approver'")
+      } finally {
+        probe.close()
+      }
+    } finally {
+      migrated.close()
+    }
+  })
+
+  it('WS-C 迁移幂等:对已迁移库再 new UserStore 无副作用(sqlite_master SQL 不再变)', () => {
+    const oncePath = join(dir, 'once.db')
+    const legacy = new DatabaseSync(oncePath)
+    legacy.exec(`CREATE TABLE users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      account TEXT NOT NULL UNIQUE,
+      nickname TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      password_version INTEGER NOT NULL DEFAULT 1,
+      role TEXT NOT NULL CHECK(role IN ('admin','user')),
+      avatar BLOB,
+      avatar_mime TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`)
+    legacy.close()
+    const first = new UserStore(oncePath)
+    first.close()
+    const probeA = new DatabaseSync(oncePath)
+    const sqlAfterFirst = (probeA.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get() as { sql: string }).sql
+    probeA.close()
+    const second = new UserStore(oncePath)
+    second.createUserWithSuffix({ account: 'someone', password: 'password8' })
+    second.close()
+    const probeB = new DatabaseSync(oncePath)
+    const sqlAfterSecond = (probeB.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").get() as { sql: string }).sql
+    probeB.close()
+    expect(sqlAfterSecond).toBe(sqlAfterFirst)
+  })
+
+  it('WS-C:非法 role 仍被新 CHECK 拒绝(constraint error 冒泡,fail-loud)', () => {
+    expect(() => {
+      store.createUserWithSuffix({ account: 'badrole', password: 'password8', role: 'root' as never })
+    }).toThrow(/CHECK constraint failed/)
   })
 })

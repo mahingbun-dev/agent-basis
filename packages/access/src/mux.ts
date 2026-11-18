@@ -27,7 +27,7 @@
  * 防漂移:tests/mux-drift.spec.ts 断言本清单与上游 typert 流方法表差集=∅。
  */
 import type { SessionService } from './session.ts'
-import type { UserStore } from './store.ts'
+import type { UserStore, UserRole } from './store.ts'
 
 /** 换血后的 principal 形态(Typert PrincipalMap 合并声明;类型面,无运行时注册)。 */
 export interface EternaUserPrincipal {
@@ -169,8 +169,41 @@ export interface TenantBinding {
 
 /** 策略所需的最小依赖面。 */
 export interface MuxPolicyDeps {
-  readonly store: Pick<UserStore, 'sessionsOfOwner' | 'workspacesOfOwner'>
+  /** WS-C(37 号 M-2):增 getUserById——bindings 回调内按 principal.userId 现查角色,
+   *  不得在 installMuxIsolation 时缓存(G2-C5「角色变更对 mux 可见性即时生效」)。 */
+  readonly store: Pick<UserStore, 'sessionsOfOwner' | 'workspacesOfOwner' | 'getUserById'>
   readonly session: SessionService
+}
+
+/** 30 号 §4.5:工作台数据可见性档位——普通用户仅自己;审批人全租户待人项;管理员全量。
+ *  消费面:P2 工作台数据端点(待人项过滤)与 G2-C3 三角色断言。mux 内容绑定不消费
+ *  此谓词放宽(见 bindingsFor 的零放宽不变式)。 */
+export type VisibilityScope = 'self' | 'tenant-pending' | 'all'
+
+/** 三档映射(单真值;exhaustive switch,default fail-closed 判 'self'——宁可少可见,
+ *  不可多可见,23 §3.1 fail-closed 纪律同构迁移)。 */
+export function visibilityScopeOf(role: UserRole): VisibilityScope {
+  switch (role) {
+    case 'approver': return 'tenant-pending'
+    case 'admin': return 'all'
+    case 'user': return 'self'
+    default: return 'self'
+  }
+}
+
+/** 待人项动作分派表(37 号 M-2「角色感知」的唯一行为面):当前上游流方法表无任何
+ *  person/* 待人项端点(本文件头注动作清单盘点;PLUGIN-AUTHORING §1.1 第 6 条:
+ *  无上游端点即不登记动作,mux-drift 防漂移测试即红),三档一律空集=零新增动作。
+ *  Record 以 VisibilityScope 全键约束——扩档漏配即编译红(同 exhaustive switch 语义,
+ *  M-5 锚②的行为面)。WS-D 待人项端点落地时在此按档分派。 */
+const PENDING_ACTIONS_BY_SCOPE: Record<VisibilityScope, readonly string[]> = {
+  self: [],
+  'tenant-pending': [],
+  all: [],
+}
+
+function pendingStreamActionsOf(scope: VisibilityScope): readonly string[] {
+  return PENDING_ACTIONS_BY_SCOPE[scope]
 }
 
 interface ServiceHandle {
@@ -196,9 +229,16 @@ function eternaUserOf(deps: MuxPolicyDeps, request: unknown): number | undefined
   return claims.userId
 }
 
-/** 一个用户的资源绑定(账本为唯一事实源;子代理子会话经 parentSessionId 由上游随父判定)。 */
+/** 一个用户的资源绑定(账本为唯一事实源;子代理子会话经 parentSessionId 由上游随父判定)。
+ *
+ * WS-C(37 号 M-2)内容绑定零放宽不变式:普通用户/审批人/管理员三角色返回**完全同构**
+ * 的本人内容绑定(GLOBAL + 本人 sessions + 本人 workspaces)——30 §7-3 只授权审批人见
+ * 「待人项」(工作台数据面),未授权跨租户会话/工作区内容流;「管理员全量」同样是工作台
+ * 数据语义(30 §4.5),mux 内容流无放宽依据(37 号 §7 缺口 3)。角色现查(不缓存)
+ * 仅驱动待人项动作分派点 pendingStreamActionsOf——本批三档皆空,零新增动作/绑定。 */
 export function bindingsFor(deps: MuxPolicyDeps, userId: number): readonly TenantBinding[] {
-  const globalRole = { name: 'eterna:member-global', resource: 'global' as const, actions: [...GLOBAL_STREAM_ACTIONS, ...GLOBAL_UNARY_ACTIONS] }
+  const role: UserRole = deps.store.getUserById(userId)?.role ?? 'user'
+  const globalRole = { name: 'eterna:member-global', resource: 'global' as const, actions: [...GLOBAL_STREAM_ACTIONS, ...GLOBAL_UNARY_ACTIONS, ...pendingStreamActionsOf(visibilityScopeOf(role))] }
   // 会话资源还须授予 workspace/follow:上游 workspace-controller 的 follow 流对
   // workspace.sessionIds 逐项 allows({kind:'session',id}) 判定,action 取当前
   // 调用面(=workspace/follow)——会话绑定不含此动作时,连用户自己的会话也会被从
@@ -240,7 +280,11 @@ export function installMuxIsolation(
   if (typeof admitFn !== 'function' || typeof createPeerFn !== 'function') return undefined
   if (typeof registerPolicyFn !== 'function') return undefined
 
-  // 1. 策略(每用户绑定动态读账本;归属变更由调用方 invalidate)
+  // 1. 策略(每用户绑定动态读账本+角色。TS-37-1 已核实上游求值时机:dsh-api-remote-access
+  //    lib/index.js:326 bindingsOf 每 decide(:227)/allows(:259)直调 policy.bindings,
+  //    无 per-principal 快照缓存(:212 注释「bindings() is called once per decision」;
+  //    :245 长 coursing 流逐检查重读)——角色/归属变更下一次判定即生效,本批无需
+  //    per-user Peer 失效面;绑定形变待人项落地时由调用方 remoteAccess.invalidate 推流。)
   const disposePolicy = registerPolicyFn.call(remoteAccess, 'eterna-user', {
     bindings: (principal: EternaUserPrincipal) => bindingsFor(deps, principal.userId),
   })

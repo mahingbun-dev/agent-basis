@@ -108,9 +108,10 @@ export {
 export type { PortraitDocument, PortraitOptions, PortraitSectionKey, PortraitSectionView } from './portrait.ts'
 export {
   ConsolidationCursorStore, ConsolidationMetaStore, SessionEndConsolidator, SessionGateFactsRegistry,
-  SKELETON_CONSOLIDATION_TASK, countUserProseWords, dreamIntervalMs, dreamSnapshot,
+  SKELETON_CONSOLIDATION_TASK, countUserProseWords, dreamIntervalMs, dreamSnapshot, distillSnapshot,
   evaluateSessionGates, findSessionLogPath, resolveDshSessionsRoot, userMessageTextOf,
-  DEFAULT_DRAIN_TIMEOUT_MS, DEFAULT_DREAM_INTERVAL_HOURS, DREAM_CURSOR_SESSION_ID, MIN_USER_PROSE_WORDS,
+  DEFAULT_DRAIN_TIMEOUT_MS, DEFAULT_DREAM_INTERVAL_HOURS, DEFAULT_DISTILL_INTERVAL_HOURS,
+  DREAM_CURSOR_SESSION_ID, DISTILL_CURSOR_SESSION_ID, MIN_USER_PROSE_WORDS,
 } from './consolidation.ts'
 export type {
   ConsolidationJobKind, ConsolidationLogger, ConsolidationSkipReason, ConsolidationSnapshot,
@@ -189,14 +190,44 @@ export {
 } from './config-bridge.ts'
 export type { MemoryEffectiveFlags, MemoryOverrides, MemoryWritePolicy } from './config-bridge.ts'
 export {
+  DEFAULT_DISTILL_MIN_USERS, DISTILL_CLUSTER_OVERLAP, DISTILL_MAX_ENTRIES_PER_ACCOUNT,
+  DISTILL_REPORT_SCHEMA, DISTILL_ROOT_DIRNAME,
+  accountParticipatesInDistill, aggregateDistillReport, createDistillTask, distillMaskText,
+  distillRootOf, readApprovedEntitiesForDistill, readLatestDistillReport,
+  resolveDistillGate, writeDistillReport,
+} from './distill.ts'
+export type {
+  DistillAccountRef, DistillCluster, DistillEntry, DistillPiiScanner, DistillReport, DistillTaskOptions,
+} from './distill.ts'
+export {
+  DISTILL_PACK_ID, DISTILL_SKILL_PATH, MAX_CANDIDATES_PER_RUN,
+  createDistillJob, curateDistillCandidates, draftDistillProposal, listDistillCandidates,
+  prepareDistillPackBase, readDistillCandidateMeta, releaseDistillCandidate,
+  rejectDistillCandidate, runDistillProbes,
+} from './distill-curate.ts'
+export type {
+  DistillCandidateDecision, DistillCandidateGateSummary, DistillCandidateMeta,
+  DistillCurateOutcome, DistillJobOptions, DistillProbeResult,
+} from './distill-curate.ts'
+// evolve 模型面 re-export(glue 蒸馏接线消费;glue 不直依 @eterna/evolve——
+// 私有 registry 下 workspace 外链面最小化,模型适配统一从 @eterna/memory 走)。
+export { dshLlmModelCaller } from '@eterna/evolve'
+export type { DshLlmLike, ModelCaller } from '@eterna/evolve'
+export {
   EternaMemoryGateway, listDomainViews, memoryStatsOf,
   ETERNA_MEMORY_SERVICE_ID, ETERNA_MEMORY_SESSION_SERVICE_ID,
+  ETERNA_MEMORY_ACCOUNTS_SERVICE_ID, ETERNA_MEMORY_DISTILL_SERVICE_ID,
   MEMORY_DOMAINS_ENDPOINT, MEMORY_SELECT_DOMAIN_ENDPOINT, MEMORY_SESSION_DOMAIN_ENDPOINT,
   MEMORY_STATE_ENDPOINT, MEMORY_UPDATE_ENDPOINT,
+  MEMORY_DISTILL_VIEW_ENDPOINT, MEMORY_DISTILL_SET_PARTICIPATE_ENDPOINT,
+  MEMORY_DISTILL_REPORT_ENDPOINT, MEMORY_DISTILL_ENABLE_ENDPOINT, MEMORY_DISTILL_RUN_ENDPOINT,
+  MEMORY_DISTILL_CANDIDATES_ENDPOINT, MEMORY_DISTILL_RELEASE_ENDPOINT, MEMORY_DISTILL_REJECT_ENDPOINT,
 } from './admin-plugin.ts'
 export type {
   MemoryDomainView, MemoryGatewayDeps, MemoryDomainsView, MemorySelectDomainView,
   MemorySessionDomainFace, MemorySessionDomainView, MemoryStateError, MemoryStateView,
+  MemoryAccountsFaceLike, MemoryDistillFace, MemoryDistillView, MemoryDistillReportView,
+  MemoryDistillCandidatesView, MemoryDistillCandidateDecisionView, MemoryDistillRunView,
 } from './admin-plugin.ts'
 export { MEMORY_INDEX_BUDGET_TOKENS, estimateTokens } from './tokens.ts'
 export {

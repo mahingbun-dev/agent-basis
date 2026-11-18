@@ -19,6 +19,11 @@ export interface MemoryPluginConfig {
    * lastDreamAt 时间阈值合并,不接 schedule)。
    */
   readonly dream?: MemoryDreamConfig
+  /**
+   * M-M4 全局蒸馏(18 号 §8;Q4 决议默认关,enabled 为部署基线、根 overrides
+   * distillEnabled 热改键覆写——最终生效见 resolveDistillGate)。
+   */
+  readonly distill?: MemoryDistillConfig
   /** M-M3 T11 episodic 淘汰参数(19 号 §6 episodic 键;缺省 Q5 决议值)。 */
   readonly episodic?: MemoryEpisodicConfig
   /** M-M3 T11 半衰期天数(索引排序与 Dream 挤出降权共用;缺省 90,18 §4.2)。 */
@@ -122,6 +127,24 @@ export interface MemoryDreamConfig {
   readonly maxTurns?: number
 }
 
+/**
+ * 全局蒸馏配置(M-M4,18 号 §8 + §13 Q4 决议;19 号 §6 distill 键落位):
+ * Phase A = 跨用户计数报告(admin 只读,≥K 才列出);Phase B = 从报告起草脱敏
+ * pack 候选走 G0–G2 门禁进 quarantine。**enabled 是部署基线,不是最终开关**——
+ * 最终生效 = 根 overrides distillEnabled(管理员 UI 热改)?? enabled ?? false
+ * (resolveDistillGate;默认关,开启需管理员授权+隐私声明)。
+ */
+export interface MemoryDistillConfig {
+  /** 部署基线(缺省 false,Q4「默认关」;管理员可在 UI 热开,见上)。 */
+  readonly enabled?: boolean
+  /** 跨用户交叉验证阈值 K(缺省 5,18 §8/Gm2-global「≥5 个独立用户」)。 */
+  readonly minUsers?: number
+  /** 聚合间隔小时数(缺省 24;会话尾触发+时间阈值合并,与 Dream 同款退路)。 */
+  readonly intervalHours?: number
+  /** Phase B curator 模型(缺省回落 consolidation.model→deepseek-flash)。 */
+  readonly model?: string
+}
+
 /** episodic 淘汰参数(19 号 §6 episodic 键;缺省 18 §13 Q5 决议值)。 */
 export interface MemoryEpisodicConfig {
   /** episodic TTL 天数(缺省 30)。 */
@@ -202,4 +225,36 @@ export interface EgressPluginConfig {
    * 出站在用户机器不经服务端——按服务端白名单审计属语义错位,2026-11-11 生产实测)。
    */
   readonly exemptToolGlobs?: readonly string[]
+}
+
+/** channels 插件配置(39 号 §3-E8 装配形态;不新增运行时配置键,39 号 §4 口径)。 */
+export interface ChannelsPluginConfig {
+  /** sqlite 库路径(缺省 = agent cwd 下的 .eterna/channels.sqlite3;.eterna 缺省约定)。 */
+  readonly dbPath?: string
+  /** 渠道验签密钥表(channels WebhookSecretTable 透传;缺省 {} = 全渠道 404 unknown-channel)。 */
+  readonly secrets?: import('@eterna/channels').WebhookSecretTable
+  /** 会话投递端口(桥接 DSH acp seam;缺席则不装配 webhook 网关、不注册路由)。 */
+  readonly sessionPort?: import('@eterna/channels').SessionPort
+  /** tasks 侧统一接收端口(TriggerSink;缺席则 message 全走 session 投递回退,39 §3-E3)。 */
+  readonly sink?: import('@eterna/channels').TriggerSink
+  /** 渠道适配器(注册进服务注册表;缺省无——E4 出站适配器经此处装配)。 */
+  readonly adapters?: readonly import('@eterna/channels').ChannelAdapter[]
+  /** 令牌服务选项(TTL 等;channels ApprovalTokenServiceOptions 透传)。 */
+  readonly tokenOptions?: import('@eterna/channels').ApprovalTokenServiceOptions
+  /** webhook 路由前缀(缺省 '/channels/api';39 号 E8 端点即 POST /channels/api/webhook/:channelType)。 */
+  readonly webhookPathPrefix?: string
+}
+
+/** interact 插件配置(39 号 §3-E8 装配形态;数据源=hitl.yaml 既有声明,39 号 §4 不新增键)。 */
+export interface InteractPluginConfig {
+  /** hitl.yaml 路径(缺省 = agent cwd 下的 .eterna/hitl.yaml;文件存在但非法=装载抛错 fail-closed)。 */
+  readonly hitlPath?: string
+  /** hitl.yaml 全文(直接喂入,绕过文件;测试/程序化装配用,优先于 hitlPath)。 */
+  readonly hitlYaml?: string
+  /** 提问合并器选项(单卡上限/flush 回调;interact TurnQuestionMergerOptions 透传)。 */
+  readonly ask?: import('@eterna/interact').TurnQuestionMergerOptions
+  /** 负信号总线选项(时钟注入/缓冲上限;interact ApprovalSignalBusOptions 透传)。 */
+  readonly signals?: import('@eterna/interact').ApprovalSignalBusOptions
+  /** 预设名前缀(interact createInteract 透传;缺省 'eterna')。 */
+  readonly presetNamePrefix?: string
 }

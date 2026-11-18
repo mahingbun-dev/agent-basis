@@ -11,6 +11,8 @@
     "./governance-plugin": "./src/plugins/governance-plugin.ts",
     "./audit-plugin": "./src/plugins/audit-plugin.ts",
     "./egress-plugin": "./src/plugins/egress-plugin.ts",
+    "./channels-plugin": "./src/plugins/channels-plugin.ts",
+    "./interact-plugin": "./src/plugins/interact-plugin.ts",
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -20,8 +22,10 @@
   },
   "dependencies": {
     "@eterna/audit": "workspace:*",
+    "@eterna/channels": "workspace:*",
     "@eterna/extra": "workspace:*",
     "@eterna/governance": "workspace:*",
+    "@eterna/interact": "workspace:*",
     "@eterna/knowledge": "workspace:*",
     "@eterna/memory": "workspace:*",
     "@deepseek-ai/cordis": "catalog:",
@@ -39,7 +43,7 @@
     }
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "catalog:",
-    "@deepseek-ai/dsh-session": "catalog:"
+    "@deepseek-ai/cordis": "*",
+    "@deepseek-ai/dsh-session": "*"
   }
 }

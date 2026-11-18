@@ -6,7 +6,9 @@
  * 控件面(19 号 §5-T12.1 原文口径):
  * - 开关:画像 / 域识别(总开关=插件启停,在设置弹窗插件分区,本节不重复);
  * - 写入策略档位:仅显式 / 自动+审批(缺省)/ 全自动 → 映射 review 规则;
- * - 蒸馏 opt-out 占位禁用态(全局蒸馏未开放,Q4 决议默认关);
+ * - 蒸馏参与(M-M4,18 §13 Q4 + §10):全员可见——部署关=禁用态如实说明;
+ *   部署开=默认勾选(随部署),取消即 opt-out(写本人账号 overrides);
+ *   策略三键维持 admin 门禁不变,非 admin 见 distill-only 卡;
  * - 成本提示常驻文案(整固/域打标用轻量模型)。
  *
  * 交互纪律(AGENTS.md §3):合并保存(脏检查+单按钮);保存防重复点击;错误
@@ -18,6 +20,8 @@ import { Icon } from '@eterna/ui/icons'
 export const MEMORY_SECTION_ID = 'eterna-memory.settings'
 export const MEMORY_STATE_ENDPOINT = 'eternaMemory/state'
 export const MEMORY_UPDATE_ENDPOINT = 'eternaMemory/updateConfig'
+export const MEMORY_DISTILL_VIEW_ENDPOINT = 'eternaMemory/distillView'
+export const MEMORY_DISTILL_SET_PARTICIPATE_ENDPOINT = 'eternaMemory/setDistillParticipate'
 
 /** 写入策略档位(T12-① 三档;与 config-bridge MEMORY_WRITE_POLICIES 同真值)。 */
 export const MEMORY_POLICY_TIERS = ['explicit-only', 'auto-review', 'full-auto'] as const
@@ -38,6 +42,16 @@ export interface MemoryStateView {
   stats?: { entityCount: number; pendingCount: number; domainCount: number }
 }
 
+/** distillView 端点视图(登录即可;与宿主 MemoryDistillView 同形,客户端自承载)。 */
+export interface MemoryDistillViewData {
+  ok: boolean
+  code?: 'forbidden' | 'unauthorized' | 'invalid' | 'unavailable'
+  message?: string
+  deploymentEnabled?: boolean
+  participate?: boolean
+  minUsers?: number
+}
+
 export interface ConnectionRpc {
   rpc: { call(channel: string, endpoint: string, payload: unknown): Promise<{ ok: boolean; value?: unknown; error?: { code?: string; message?: string } }> }
 }
@@ -55,6 +69,11 @@ export function isMemoryPolicyDirty(loaded: MemoryConfigView, form: MemoryPolicy
   if (loaded.domainEnabled !== form.domainEnabled) return true
   if (loaded.writePolicy !== form.writePolicy) return true
   return false
+}
+
+/** 蒸馏参与脏检查(loaded 缺席按缺省 true=默认参与比对)。 */
+export function isDistillDirty(loaded: MemoryDistillViewData | null, participate: boolean): boolean {
+  return (loaded?.participate ?? true) !== participate
 }
 
 /** 存量档位防御回退(未知值回落缺省档,UI 不空转)。 */
@@ -91,7 +110,8 @@ export const SETTINGS_LOCALES = {
   tierFullAuto: '全自动',
   tierFullAutoHint: '不再产生待审;只有摘要压缩来源仍强制待审(安全底线)',
   fieldDistill: '参与全局蒸馏',
-  distillDisabledHint: '全局蒸馏尚未开放;当前你的记忆不参与任何跨用户数据聚合(Q4 默认关)',
+  distillOnHint: '已开启:你的已批准记忆将与其它参与账号做聚合统计(仅计数与共性模式,不含你的记忆原文);取消勾选即退出,保存后生效。',
+  distillOffHint: '部署未开启全局蒸馏;你的记忆不参与任何跨用户数据聚合。',
   costNote: '成本提示:记忆整固与域识别会在会话结束时调用轻量模型,每次约数百 token。',
   'sources.line': '本回合用到记忆',
   'sources.jump': '查看记忆',
@@ -156,19 +176,82 @@ export interface MemorySettingsSectionProps {
   readonly connection: ConnectionRpc
 }
 
+/** 蒸馏参与字段(部署开=默认勾选可退出;部署关=禁用+如实说明)。 */
+export function MemoryDistillField(props: {
+  readonly t: (key: string) => string
+  readonly enabled: boolean
+  readonly checked: boolean
+  readonly onChange: (next: boolean) => void
+}): React.JSX.Element {
+  const { t, enabled, checked, onChange } = props
+  return (
+    <div className="em-field">
+      <span className={enabled ? 'em-check' : 'em-check-disabled'}>
+        <input id="em-distill" type="checkbox" disabled={!enabled}
+          checked={enabled ? checked : false}
+          onChange={event => { onChange(event.target.checked) }} />
+        <label className="em-label" htmlFor="em-distill">{t('fieldDistill')}</label>
+      </span>
+      <span className="em-hint">{enabled ? t('distillOnHint') : t('distillOffHint')}</span>
+    </div>
+  )
+}
+
+/** 蒸馏参与独立卡(非 admin 视图;策略字段维持 admin 门禁,Q4 opt-out 全员可见)。 */
+export function DistillOnlyCard(props: {
+  readonly t: (key: string) => string
+  readonly deploymentEnabled: boolean
+  readonly participate: boolean
+  readonly saving: boolean
+  readonly feedback: { ok: boolean | null; text: string }
+  readonly dirty: boolean
+  readonly onChange: (next: boolean) => void
+  readonly onSave: () => void
+}): React.JSX.Element {
+  const { t, deploymentEnabled, participate, saving, feedback, dirty, onChange, onSave } = props
+  return (
+    <div data-eterna-memory-settings>
+      <div className="em-head"><Icon name="memory" size={16} /><h3>{t('fieldDistill')}</h3></div>
+      <form className="em-form" onSubmit={event => { event.preventDefault() }}>
+        <MemoryDistillField t={t} enabled={deploymentEnabled} checked={participate} onChange={onChange} />
+        <div className="em-actions">
+          <button type="button" className="em-save" disabled={!dirty || saving || !deploymentEnabled}
+            onClick={onSave}>
+            <Icon name="check" size={14} />{saving ? t('saving') : t('save')}
+          </button>
+          <span className="em-note" data-ok={feedback.ok === null ? undefined : String(feedback.ok)} role="status" aria-live="polite">{
+            feedback.text !== '' ? feedback.text : !dirty ? t('unchanged') : ''
+          }</span>
+        </div>
+      </form>
+    </div>
+  )
+}
+
 /** 设置分区「记忆」(settings.section 的 occupant)。 */
 export function MemorySettingsSection(props: MemorySettingsSectionProps): React.JSX.Element {
   const { t, connection } = props
   const [state, setState] = useState<MemoryStateView | null>(null)
+  const [distillView, setDistillView] = useState<MemoryDistillViewData | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [portraitEnabled, setPortraitEnabled] = useState(true)
   const [domainEnabled, setDomainEnabled] = useState(true)
   const [writePolicy, setWritePolicy] = useState<MemoryPolicyTier>('auto-review')
+  const [participate, setParticipate] = useState(true)
   const [saving, setSaving] = useState(false)
   const [feedback, setFeedback] = useState<{ ok: boolean | null; text: string }>({ ok: null, text: '' })
 
   useEffect(() => {
     let alive = true
+    // 蒸馏参与视图登录即可(Q4 opt-out 全员可见),与 admin 配置视图并行读。
+    const distillCall = connection.rpc.call('/api', MEMORY_DISTILL_VIEW_ENDPOINT, { args: {} }).then(result => {
+      if (!alive) return
+      if (result.ok && typeof result.value === 'object' && result.value !== null) {
+        const value = result.value as MemoryDistillViewData
+        setDistillView(value)
+        if (value.ok) setParticipate(value.participate ?? true)
+      }
+    }).catch(() => {})
     connection.rpc.call('/api', MEMORY_STATE_ENDPOINT, { args: {} }).then(result => {
       if (!alive) return
       if (result.ok && typeof result.value === 'object' && result.value !== null) {
@@ -186,35 +269,67 @@ export function MemorySettingsSection(props: MemorySettingsSectionProps): React.
     }).catch((error: unknown) => {
       if (alive) setLoadError(error instanceof Error ? error.message : t('loadFailed'))
     })
-    return () => { alive = false }
+    return () => { alive = false; void distillCall }
   }, [connection, t])
 
   const loaded = state?.ok === true && state.config !== undefined ? state.config : null
-  const dirty = loaded !== null && isMemoryPolicyDirty(loaded, { portraitEnabled, domainEnabled, writePolicy })
+  const distillLoaded = distillView?.ok === true
+  const deploymentEnabled = distillView?.deploymentEnabled === true
+  const policyDirty = loaded !== null && isMemoryPolicyDirty(loaded, { portraitEnabled, domainEnabled, writePolicy })
+  const distillDirty = isDistillDirty(distillView, participate)
+  const dirty = policyDirty || distillDirty
 
   const save = async (): Promise<void> => {
     if (!dirty || saving) return
     setSaving(true)
     setFeedback({ ok: null, text: '' })
     try {
-      const result = await connection.rpc.call('/api', MEMORY_UPDATE_ENDPOINT, {
-        args: { payload: { portraitEnabled, domainEnabled, writePolicy } },
-      })
-      if (result.ok && typeof result.value === 'object' && result.value !== null) {
-        const value = result.value as MemoryStateView
-        if (value.ok && value.config !== undefined) {
-          setState(value)
-          const form = formStateOf(value.config)
-          setPortraitEnabled(form.portraitEnabled)
-          setDomainEnabled(form.domainEnabled)
-          setWritePolicy(form.writePolicy)
-          setFeedback({ ok: true, text: t('saved') })
+      // 合并保存:策略三键(admin 配置面)与蒸馏参与(本人账号面)分端点提交;
+      // 任一失败即报错并停在脏态(不隐瞒部分成功——两端点各自幂等,可重按)。
+      let savedPolicy = true
+      let savedDistill = true
+      if (policyDirty && loaded !== null) {
+        const result = await connection.rpc.call('/api', MEMORY_UPDATE_ENDPOINT, {
+          args: { payload: { portraitEnabled, domainEnabled, writePolicy } },
+        })
+        if (result.ok && typeof result.value === 'object' && result.value !== null) {
+          const value = result.value as MemoryStateView
+          if (value.ok && value.config !== undefined) {
+            setState(value)
+            const form = formStateOf(value.config)
+            setPortraitEnabled(form.portraitEnabled)
+            setDomainEnabled(form.domainEnabled)
+            setWritePolicy(form.writePolicy)
+          } else {
+            savedPolicy = false
+            setFeedback({ ok: false, text: value.message ?? t('saveFailed') })
+          }
         } else {
-          setFeedback({ ok: false, text: value.message ?? t('saveFailed') })
+          savedPolicy = false
+          setFeedback({ ok: false, text: result.error?.message ?? t('saveFailed') })
         }
-      } else {
-        setFeedback({ ok: false, text: result.error?.message ?? t('saveFailed') })
       }
+      if (distillDirty) {
+        const result = await connection.rpc.call('/api', MEMORY_DISTILL_SET_PARTICIPATE_ENDPOINT, {
+          args: { payload: { participate } },
+        })
+        if (result.ok && typeof result.value === 'object' && result.value !== null) {
+          const value = result.value as MemoryDistillViewData
+          if (value.ok) {
+            setDistillView(value)
+            setParticipate(value.participate ?? participate)
+          } else {
+            savedDistill = false
+            if (!savedPolicy) setFeedback({ ok: false, text: `${t('saveFailed')}:${value.message ?? ''}` })
+            else setFeedback({ ok: false, text: value.message ?? t('saveFailed') })
+          }
+        } else {
+          savedDistill = false
+          if (!savedPolicy) setFeedback({ ok: false, text: `${t('saveFailed')}:${result.error?.message ?? ''}` })
+          else setFeedback({ ok: false, text: result.error?.message ?? t('saveFailed') })
+        }
+      }
+      if (savedPolicy && savedDistill) setFeedback({ ok: true, text: t('saved') })
     } catch (error: unknown) {
       setFeedback({ ok: false, text: error instanceof Error ? error.message : t('saveFailed') })
     } finally {
@@ -222,19 +337,31 @@ export function MemorySettingsSection(props: MemorySettingsSectionProps): React.
     }
   }
 
-  if (loadError !== null) {
+  if (loadError !== null && state === null && distillView === null) {
     return <div data-eterna-memory-settings><div className="em-empty">{t('loadFailed')}:{loadError}</div></div>
   }
-  if (state === null) {
+  if (state === null && distillView === null) {
     return <div data-eterna-memory-settings><div className="em-empty">{t('loading')}</div></div>
   }
-  if (!state.ok) {
+  if (state !== null && !state.ok && !distillLoaded) {
     const text = state.code === 'unauthorized'
       ? t('needLogin')
       : state.code === 'forbidden' ? t('needAdmin') : `${t('loadFailed')}:${state.message ?? ''}`
     return <div data-eterna-memory-settings><div className="em-empty">{text}</div></div>
   }
-  const stats = state.stats
+  if (distillLoaded && (state === null || !state.ok)) {
+    // 非 admin:distill-only 卡(Q4「设置分区提供用户级 opt-out」,18 §10)。
+    return <DistillOnlyCard
+      t={t}
+      deploymentEnabled={deploymentEnabled}
+      participate={participate}
+      saving={saving}
+      feedback={feedback}
+      dirty={distillDirty}
+      onChange={setParticipate}
+      onSave={() => { void save() }} />
+  }
+  const stats = state?.stats
   const tierHintKey = `tier${writePolicy === 'explicit-only' ? 'ExplicitOnly' : writePolicy === 'full-auto' ? 'FullAuto' : 'AutoReview'}Hint`
   return (
     <div data-eterna-memory-settings>
@@ -283,13 +410,7 @@ export function MemorySettingsSection(props: MemorySettingsSectionProps): React.
           ))}
           <span className="em-hint">{t(tierHintKey)}</span>
         </div>
-        <div className="em-field">
-          <span className="em-check-disabled">
-            <input id="em-distill" type="checkbox" disabled checked={false} readOnly />
-            <label className="em-label" htmlFor="em-distill">{t('fieldDistill')}</label>
-          </span>
-          <span className="em-hint">{t('distillDisabledHint')}</span>
-        </div>
+        <MemoryDistillField t={t} enabled={deploymentEnabled} checked={participate} onChange={setParticipate} />
         <div className="em-cost">
           <Icon name="settings" size={12} />
           <span>{t('costNote')}</span>

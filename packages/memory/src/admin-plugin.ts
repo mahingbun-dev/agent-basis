@@ -28,11 +28,22 @@ import type { Context } from '@deepseek-ai/cordis'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { DatabaseSync } from 'node:sqlite'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { LedgerStore } from '@eterna/evolve'
 import {
-  memoryOverridesDirForDb, memoryOverridesPathForDb, parseMemoryOverrides, readMemoryOverridesFile, resolveEffectiveFlags,
+  memoryOverridesDirForDb, memoryOverridesPathForDb, parseMemoryOverrides, readMemoryOverridesFile,
+  resolveEffectiveFlags,
 } from './config-bridge.ts'
 import type { MemoryOverrides } from './config-bridge.ts'
+import {
+  accountParticipatesInDistill, DEFAULT_DISTILL_MIN_USERS, distillRootOf, readLatestDistillReport,
+  resolveDistillGate,
+} from './distill.ts'
+import type { DistillReport } from './distill.ts'
+import {
+  listDistillCandidates, rejectDistillCandidate, releaseDistillCandidate,
+} from './distill-curate.ts'
+import type { DistillCandidateMeta } from './distill-curate.ts'
 
 export const ETERNA_MEMORY_SERVICE_ID = 'eternaMemory'
 
@@ -42,9 +53,23 @@ export const MEMORY_UPDATE_ENDPOINT = `${ETERNA_MEMORY_SERVICE_ID}/updateConfig`
 export const MEMORY_DOMAINS_ENDPOINT = `${ETERNA_MEMORY_SERVICE_ID}/domains`
 export const MEMORY_SESSION_DOMAIN_ENDPOINT = `${ETERNA_MEMORY_SERVICE_ID}/sessionDomain`
 export const MEMORY_SELECT_DOMAIN_ENDPOINT = `${ETERNA_MEMORY_SERVICE_ID}/selectDomain`
+export const MEMORY_DISTILL_VIEW_ENDPOINT = `${ETERNA_MEMORY_SERVICE_ID}/distillView`
+export const MEMORY_DISTILL_SET_PARTICIPATE_ENDPOINT = `${ETERNA_MEMORY_SERVICE_ID}/setDistillParticipate`
+export const MEMORY_DISTILL_REPORT_ENDPOINT = `${ETERNA_MEMORY_SERVICE_ID}/distillReport`
+export const MEMORY_DISTILL_ENABLE_ENDPOINT = `${ETERNA_MEMORY_SERVICE_ID}/distillEnable`
+export const MEMORY_DISTILL_RUN_ENDPOINT = `${ETERNA_MEMORY_SERVICE_ID}/distillRun`
+export const MEMORY_DISTILL_CANDIDATES_ENDPOINT = `${ETERNA_MEMORY_SERVICE_ID}/distillCandidates`
+export const MEMORY_DISTILL_RELEASE_ENDPOINT = `${ETERNA_MEMORY_SERVICE_ID}/distillCandidateRelease`
+export const MEMORY_DISTILL_REJECT_ENDPOINT = `${ETERNA_MEMORY_SERVICE_ID}/distillCandidateReject`
 
 /** glue memory-plugin 提供的会话域面服务名(记忆包与 glue 的字面量互为真值)。 */
 export const ETERNA_MEMORY_SESSION_SERVICE_ID = 'eternaMemorySession'
+
+/** glue memory-plugin 提供的账号路由面服务名(M-T2;panel/本网关共用)。 */
+export const ETERNA_MEMORY_ACCOUNTS_SERVICE_ID = 'eterna-memory-accounts'
+
+/** glue memory-plugin 提供的蒸馏面服务名(M-M4;runNow/门/阈值,字面量互为真值)。 */
+export const ETERNA_MEMORY_DISTILL_SERVICE_ID = 'eternaMemoryDistill'
 
 /** 会话域面的结构消费面(glue wireDomainContext 增广;结构子集,鸭子一致)。 */
 export interface MemorySessionDomainFace {
@@ -56,6 +81,26 @@ export interface MemorySessionDomainFace {
   readonly overrideDomain: (sessionId: string, domainKey: string | null) => { domainKey: string | null }
   /** 已转正注册域清单(域 chip 列表;与 domain_registry 同源)。 */
   readonly listRegisteredDomains: () => readonly { domainKey: string; label: string }[]
+}
+
+/** 蒸馏面的结构消费面(glue 'eternaMemoryDistill' provide;M-M4,鸭子一致)。 */
+export interface MemoryDistillFace {
+  /** 部署门(根 overrides distillEnabled ?? config.distill.enabled ?? false)。 */
+  readonly gate: () => boolean
+  /** 跨用户阈值 K(报告与 UI 展示口径同源)。 */
+  readonly minUsers: number
+  /** 聚合间隔毫秒(UI 展示「下次自动运行」口径)。 */
+  readonly intervalMs: number
+  /** 手动运行(单飞守卫;结果 detail 即任务 detail,错误以 ok:false 回)。 */
+  readonly runNow: () => Promise<{ ok: true; detail: string } | { ok: false; message: string }>
+}
+
+/** 账号路由面的结构消费面('eterna-memory-accounts';结构子集,鸭子一致)。 */
+export interface MemoryAccountsFaceLike {
+  readonly accountOfUser: (userId: number) => string | undefined
+  readonly dbPathForAccount: (account: string) => string | undefined
+  /** 缺席可选(开通面;setDistillParticipate 用它懒开通无库账号)。 */
+  readonly memoryForAccount?: (account: string) => unknown
 }
 
 /** 域清单条目(domains 端点与面板域浏览共用)。 */
@@ -110,6 +155,40 @@ export interface MemorySelectDomainView {
   ok: true
   domainKey: string | null
   overridden: boolean
+}
+
+/** distillView 端点视图(登录即可;本人参与态 + 部署门,M-M4)。 */
+export interface MemoryDistillView {
+  ok: true
+  deploymentEnabled: boolean
+  /** 本人参与态(账号 overrides distillParticipate,缺省 true=默认参与)。 */
+  participate: boolean
+  /** 跨用户阈值 K(face 同源;face 缺席回落库内缺省 5)。 */
+  minUsers: number
+}
+
+/** distillReport 端点视图(admin;latest.json 直读,未运行过为 null)。 */
+export interface MemoryDistillReportView {
+  ok: true
+  report: DistillReport | null
+}
+
+/** distillCandidates 端点视图(admin;quarantine 清单 join 账本状态)。 */
+export interface MemoryDistillCandidatesView {
+  ok: true
+  candidates: readonly { readonly meta: DistillCandidateMeta; readonly ledgerStatus: string }[]
+}
+
+/** 蒸馏候选决策端点视图(release/reject 共用;回更新后的 meta)。 */
+export interface MemoryDistillCandidateDecisionView {
+  ok: true
+  meta: DistillCandidateMeta
+}
+
+/** distillRun 端点视图(admin 手动运行;detail 即任务 detail)。 */
+export interface MemoryDistillRunView {
+  ok: true
+  detail: string
 }
 
 /** sqlite 只读数(state 统计与域清单共用;库缺席/表缺失一律 0,不炸面板)。 */
@@ -228,12 +307,18 @@ function applyRemoteMarker(prototype: object, method: string, name: string): voi
   for (const initialize of initializers) initialize.call(receiver)
 }
 
-/** 网关依赖(sqlite 路径 + 会话域面读取器;测试可注入假面)。 */
+/** 网关依赖(sqlite 路径 + 会话域/蒸馏/账号面读取器;测试可注入假面)。 */
 export interface MemoryGatewayDeps {
   /** memory.sqlite3 路径(统计面只读数 + overrides 文件桥同源派生,config-bridge 唯一真值)。 */
   readonly dbPath: string
   /** 会话域面(glue memory-plugin provide 'eternaMemorySession';缺席=域 UI 降级)。 */
   readonly sessionDomainFace?: () => MemorySessionDomainFace | undefined
+  /** 蒸馏面(glue provide 'eternaMemoryDistill';缺席=蒸馏 UI 降级,门回落根 overrides)。 */
+  readonly distillFace?: () => MemoryDistillFace | undefined
+  /** 账号路由面(glue provide 'eterna-memory-accounts';缺席=本人参与面不可用)。 */
+  readonly accountsFace?: () => MemoryAccountsFaceLike | undefined
+  /** 蒸馏产物目录(缺省 distillRootOf();测试注临时目录)。 */
+  readonly distillRoot?: string
 }
 
 function defaultSessionDomainFace(ctx: Context): () => MemorySessionDomainFace | undefined {
@@ -246,13 +331,38 @@ function defaultSessionDomainFace(ctx: Context): () => MemorySessionDomainFace |
   }
 }
 
+function defaultDistillFace(ctx: Context): () => MemoryDistillFace | undefined {
+  return () => {
+    try {
+      return ctx.get(ETERNA_MEMORY_DISTILL_SERVICE_ID) as MemoryDistillFace | undefined
+    } catch {
+      return undefined
+    }
+  }
+}
+
+function defaultAccountsFace(ctx: Context): () => MemoryAccountsFaceLike | undefined {
+  return () => {
+    try {
+      return ctx.get(ETERNA_MEMORY_ACCOUNTS_SERVICE_ID) as MemoryAccountsFaceLike | undefined
+    } catch {
+      return undefined
+    }
+  }
+}
+
 /** 设置分区「记忆」+ 域识别 chip 的 SRC 网关(Typert Remote 端点 eternaMemory/*)。 */
 export class EternaMemoryGateway extends TypertRemoteService {
   private readonly deps: MemoryGatewayDeps
 
   constructor(ctx: Context, deps: MemoryGatewayDeps) {
     super(ctx, ETERNA_MEMORY_SERVICE_ID)
-    this.deps = { ...deps, sessionDomainFace: deps.sessionDomainFace ?? defaultSessionDomainFace(ctx) }
+    this.deps = {
+      ...deps,
+      sessionDomainFace: deps.sessionDomainFace ?? defaultSessionDomainFace(ctx),
+      distillFace: deps.distillFace ?? defaultDistillFace(ctx),
+      accountsFace: deps.accountsFace ?? defaultAccountsFace(ctx),
+    }
   }
 
   /**
@@ -380,6 +490,234 @@ export class EternaMemoryGateway extends TypertRemoteService {
       return { ok: false, code: 'invalid', message: error instanceof Error ? error.message : String(error) }
     }
   }
+
+  // ---------- M-M4 全局蒸馏端点(18 号 §8 + §13 Q4 授权链) ----------
+
+  /** 蒸馏产物目录(deps 注入优先;缺省 $DSH_HOME/memory-distill 隔离目录)。 */
+  private distillRoot(): string {
+    return this.deps.distillRoot ?? distillRootOf()
+  }
+
+  /** 蒸馏面(defensive get;缺席 = 门回落根 overrides、run 不可用)。 */
+  private distillFace(): MemoryDistillFace | undefined {
+    const resolve = this.deps.distillFace
+    if (resolve === undefined) return undefined
+    try {
+      return resolve()
+    } catch {
+      return undefined
+    }
+  }
+
+  /** 账号路由面(defensive get;缺席 = 本人参与面不可用)。 */
+  private accountsFace(): MemoryAccountsFaceLike | undefined {
+    const resolve = this.deps.accountsFace
+    if (resolve === undefined) return undefined
+    try {
+      return resolve()
+    } catch {
+      return undefined
+    }
+  }
+
+  /** 当前 eterna-user 的 userId(owner peer/unary 流无 userId → undefined)。 */
+  private viewerIdOf(): number | undefined {
+    const invocation = (this.ctx as { invocation?: { principal?: { kind?: string; userId?: unknown } } } | undefined)?.invocation
+    const principal = invocation?.principal
+    return principal !== undefined && principal.kind === 'eterna-user' && typeof principal.userId === 'number'
+      ? principal.userId
+      : undefined
+  }
+
+  /** 本人账号目录(principal → 账号 → workspace 根;不可解析/未开通 → undefined)。 */
+  private viewerAccountDir(): string | undefined {
+    const userId = this.viewerIdOf()
+    if (userId === undefined) return undefined
+    const face = this.accountsFace()
+    if (face === undefined) return undefined
+    const account = face.accountOfUser(userId)
+    if (account === undefined) return undefined
+    const dbPath = face.dbPathForAccount(account)
+    return dbPath === undefined ? undefined : dirname(dirname(dbPath))
+  }
+
+  /** 本人参与态(账号 overrides;目录不可解析 = 无库不聚合,按参与展示)。 */
+  private viewerParticipates(): boolean {
+    const dir = this.viewerAccountDir()
+    return dir === undefined ? true : accountParticipatesInDistill(dir)
+  }
+
+  /**
+   * 蒸馏参与视图:登录即可(普通用户可见 opt-out,Q4「设置分区提供用户级
+   * opt-out」/18 §10);部署门 = 蒸馏面 gate(face 缺席回落根 overrides 基线)。
+   */
+  distillView(): MemoryDistillView | MemoryStateError {
+    const face = this.distillFace()
+    const deploymentEnabled = face !== undefined
+      ? face.gate()
+      : resolveDistillGate(undefined, this.readMemoryOverrides())
+    return {
+      ok: true,
+      deploymentEnabled,
+      participate: this.viewerParticipates(),
+      minUsers: face?.minUsers ?? DEFAULT_DISTILL_MIN_USERS,
+    }
+  }
+
+  /**
+   * 本人参与开关(登录即可;写**本人账号** overrides distillParticipate——
+   * 与部署根文件分文件归属,见 config-bridge 归属纪律)。无库账号先经
+   * memoryForAccount 懒开通(懒建库先 mkdir 先例),保证退出意向持久。
+   */
+  setDistillParticipate(payload: unknown): MemoryDistillView | MemoryStateError {
+    // 参与面登录即可(普通用户可见 opt-out,Q4);owner peer/TUI 通道无 userId
+    // = 本地单库形态,无「本人账号参与」语义,如实回报。
+    const userId = this.viewerIdOf()
+    if (userId === undefined) {
+      return { ok: false, code: 'invalid', message: '当前通道无本人账号(本地单库形态无 opt-out 语义)' }
+    }
+    const parsed = typeof payload === 'boolean' ? payload : boolArgOf(payload)
+    if (parsed === null) {
+      return { ok: false, code: 'invalid', message: 'participate 必须是布尔值' }
+    }
+    const face = this.accountsFace()
+    if (face === undefined) {
+      return { ok: false, code: 'unavailable', message: '账号路由面未挂载(本地单库形态)' }
+    }
+    const account = face.accountOfUser(userId)
+    if (account === undefined) {
+      return { ok: false, code: 'invalid', message: '登录账号不在账号路由面(账号不存在)' }
+    }
+    try {
+      // 懒开通:无库账号先开通目录(空库),opt-out 落在账号 overrides 持久。
+      face.memoryForAccount?.(account)
+    } catch {
+      // 开通失败不阻断:若目录本就不存在,写入面下方 mkdir 兜底。
+    }
+    const dbPath = face.dbPathForAccount(account)
+    if (dbPath === undefined) {
+      return { ok: false, code: 'unavailable', message: '账号记忆目录开通失败,无法持久参与偏好' }
+    }
+    const overridesPath = memoryOverridesPathForDb(dbPath)
+    const merged: MemoryOverrides = { ...readMemoryOverridesFile(overridesPath), distillParticipate: parsed }
+    try {
+      mkdirSync(memoryOverridesDirForDb(dbPath), { recursive: true })
+      writeFileSync(overridesPath, JSON.stringify(merged))
+    } catch {
+      return { ok: false, code: 'unavailable', message: '参与偏好写入失败(账号 .eterna 目录不可写)' }
+    }
+    return this.distillView()
+  }
+
+  /** 蒸馏报告(admin;latest.json 直读,未运行过 report=null)。 */
+  distillReport(): MemoryDistillReportView | MemoryStateError {
+    if (!this.adminAllowed()) {
+      return { ok: false, code: 'forbidden', message: '需要管理员权限' }
+    }
+    return { ok: true, report: readLatestDistillReport(this.distillRoot()) }
+  }
+
+  /**
+   * 部署门开关(admin 授权链,Q4「开启需管理员授权 + 隐私声明」):写**部署根**
+   * overrides distillEnabled 热改键(UI 两击确认+隐私声明在客户端,端点幂等)。
+   */
+  distillEnable(payload: unknown): MemoryStateView | MemoryStateError {
+    if (!this.adminAllowed()) {
+      return { ok: false, code: 'forbidden', message: '需要管理员权限' }
+    }
+    const enabled = boolArgOf(payload)
+    if (enabled === null) {
+      return { ok: false, code: 'invalid', message: 'enabled 必须是布尔值' }
+    }
+    const merged: MemoryOverrides = { ...this.readMemoryOverrides(), distillEnabled: enabled }
+    try {
+      mkdirSync(this.overridesRoot(), { recursive: true })
+      writeFileSync(this.overridesPath(), JSON.stringify(merged))
+    } catch {
+      return { ok: false, code: 'unavailable', message: '部署门写入失败(.eterna 目录不可写)' }
+    }
+    return this.state()
+  }
+
+  /** 手动运行(admin;转发 glue 蒸馏面 runNow,单飞守卫在 face 内)。 */
+  async distillRun(): Promise<MemoryDistillRunView | MemoryStateError> {
+    if (!this.adminAllowed()) {
+      return { ok: false, code: 'forbidden', message: '需要管理员权限' }
+    }
+    const face = this.distillFace()
+    if (face === undefined) {
+      return { ok: false, code: 'unavailable', message: '蒸馏任务未挂载(整固接线未启用)' }
+    }
+    try {
+      const outcome = await face.runNow()
+      return outcome.ok ? { ok: true, detail: outcome.detail } : { ok: false, code: 'unavailable', message: outcome.message }
+    } catch (error) {
+      return { ok: false, code: 'unavailable', message: `蒸馏运行失败:${error instanceof Error ? error.message : String(error)}` }
+    }
+  }
+
+  /** 候选清单(admin;quarantine 目录 join 账本状态,默认不含已拒绝)。 */
+  distillCandidates(): MemoryDistillCandidatesView | MemoryStateError {
+    if (!this.adminAllowed()) {
+      return { ok: false, code: 'forbidden', message: '需要管理员权限' }
+    }
+    const ledger = new LedgerStore(join(this.distillRoot(), 'ledger.sqlite3'))
+    try {
+      return { ok: true, candidates: listDistillCandidates({ outputDir: this.distillRoot(), ledger }) }
+    } finally {
+      ledger.close()
+    }
+  }
+
+  /** 候选签发(admin = SME 人审动作;探针复检 fail-closed 在 distill-curate 内)。 */
+  distillCandidateRelease(payload: unknown): MemoryDistillCandidateDecisionView | MemoryStateError {
+    if (!this.adminAllowed()) {
+      return { ok: false, code: 'forbidden', message: '需要管理员权限' }
+    }
+    const id = candidateIdArgOf(payload)
+    if (id === null) {
+      return { ok: false, code: 'invalid', message: 'id 必须是非空字符串' }
+    }
+    const userId = this.viewerIdOf()
+    const approver = this.resolveAccountName(userId) ?? 'admin'
+    try {
+      const meta = releaseDistillCandidate({ outputDir: this.distillRoot(), id, approver })
+      return { ok: true, meta }
+    } catch (error) {
+      return { ok: false, code: 'invalid', message: error instanceof Error ? error.message : String(error) }
+    }
+  }
+
+  /** 候选拒绝(admin;账本状态不变,meta 记 decision)。 */
+  distillCandidateReject(payload: unknown): MemoryDistillCandidateDecisionView | MemoryStateError {
+    if (!this.adminAllowed()) {
+      return { ok: false, code: 'forbidden', message: '需要管理员权限' }
+    }
+    const id = candidateIdArgOf(payload)
+    if (id === null) {
+      return { ok: false, code: 'invalid', message: 'id 必须是非空字符串' }
+    }
+    const userId = this.viewerIdOf()
+    const operator = this.resolveAccountName(userId) ?? 'admin'
+    try {
+      const meta = rejectDistillCandidate({ outputDir: this.distillRoot(), id, operator })
+      return { ok: true, meta }
+    } catch (error) {
+      return { ok: false, code: 'invalid', message: error instanceof Error ? error.message : String(error) }
+    }
+  }
+
+  /** admin 账号名(签发/拒绝记录 approver;解析失败回落 'admin')。 */
+  private resolveAccountName(userId: number | undefined): string | undefined {
+    if (userId === undefined) return undefined
+    const face = this.accountsFace()
+    if (face === undefined) return undefined
+    try {
+      return face.accountOfUser(userId)
+    } catch {
+      return undefined
+    }
+  }
 }
 
 /** sessionDomain 载荷防御收窄({ args: { sessionId } } 的命名参数形态)。 */
@@ -389,11 +727,37 @@ function sessionArgOf(payload: unknown): string | null {
   return typeof input.sessionId === 'string' && input.sessionId.length > 0 ? input.sessionId : null
 }
 
+/** 布尔载荷防御收窄(裸布尔或 { enabled }/{ participate } 命名参数形态)。 */
+function boolArgOf(payload: unknown): boolean | null {
+  if (typeof payload === 'boolean') return payload
+  if (typeof payload !== 'object' || payload === null) return null
+  const input = payload as Record<string, unknown>
+  if (typeof input['enabled'] === 'boolean') return input['enabled']
+  if (typeof input['participate'] === 'boolean') return input['participate']
+  return null
+}
+
+/** 候选 id 载荷防御收窄(裸字符串或 { id } 命名参数形态)。 */
+function candidateIdArgOf(payload: unknown): string | null {
+  if (typeof payload === 'string' && payload.length > 0) return payload
+  if (typeof payload !== 'object' || payload === null) return null
+  const input = payload as Record<string, unknown>
+  return typeof input['id'] === 'string' && input['id'].length > 0 ? input['id'] : null
+}
+
 applyRemoteMarker(EternaMemoryGateway.prototype, 'state', 'state')
 applyRemoteMarker(EternaMemoryGateway.prototype, 'updateConfig', 'updateConfig')
 applyRemoteMarker(EternaMemoryGateway.prototype, 'domains', 'domains')
 applyRemoteMarker(EternaMemoryGateway.prototype, 'sessionDomain', 'sessionDomain')
 applyRemoteMarker(EternaMemoryGateway.prototype, 'selectDomain', 'selectDomain')
+applyRemoteMarker(EternaMemoryGateway.prototype, 'distillView', 'distillView')
+applyRemoteMarker(EternaMemoryGateway.prototype, 'setDistillParticipate', 'setDistillParticipate')
+applyRemoteMarker(EternaMemoryGateway.prototype, 'distillReport', 'distillReport')
+applyRemoteMarker(EternaMemoryGateway.prototype, 'distillEnable', 'distillEnable')
+applyRemoteMarker(EternaMemoryGateway.prototype, 'distillRun', 'distillRun')
+applyRemoteMarker(EternaMemoryGateway.prototype, 'distillCandidates', 'distillCandidates')
+applyRemoteMarker(EternaMemoryGateway.prototype, 'distillCandidateRelease', 'distillCandidateRelease')
+applyRemoteMarker(EternaMemoryGateway.prototype, 'distillCandidateReject', 'distillCandidateReject')
 
 /**
  * 插件体:宿主层挂载(compaction admin 同款)。dbPath 与 glue memory-plugin 的

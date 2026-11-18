@@ -43,6 +43,22 @@ export interface TenantDeps {
   readonly ensureMux?: () => void
 }
 
+/**
+ * 工作台 SSE 流端点(38 号 O-5 开放问题的登记落位;33 号 G2-C4「新端点进本守卫
+ * 清单」;本守卫清单登记的第一个插件数据端点):
+ * - 铁律 T2 路由面独占:workbench/tasks 均不得自注册(tenant-scan
+ *   tenant/route-escapes-gate CI 强制);24a 裁决 dwfq-843ec077-1 口径——
+ *   **数据面经 tasks 提供、路由经 access 登记**;
+ * - 数据面 = tasks 引擎 DomainEvents(eterna-workbench live hub 投影,服务反射键
+ *   'eternaWorkbenchStream';src/stream.ts 桥装载,登记点 = plugin.ts 的
+ *   webServer.register 精确路径);
+ * - 守卫 = 登录会话(cookie→pwv→用户,与本清单同一身份面;未登录 401,hub 未就绪
+ *   503 fail-closed);传输 = text/event-stream(GET,Last-Event-ID 续传,200ms
+ *   合批,30 号 §3;插件启停面未收录——流随 eterna-workbench 装载,不在
+ *   routes.ts TOGGLEABLE_PLUGINS)。
+ */
+export const WORKBENCH_STREAM_ENDPOINT = '/workbench/api/stream'
+
 type ServiceHandle = Record<string, (...args: never[]) => unknown>
 
 /** 反射取宿主控制器(audit-bridge 模式:strict=false 机会语义,缺席返回 undefined)。 */
@@ -410,6 +426,28 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     return okFrame(rpcId, enrichModelCatalog(value ?? {}, visionIndex))
   })
 
+  // ── session/thinkingAuto 专路(2026-11-18,思考强度自动模式开关)──
+  // 读 {request:{sessionId}} → {enabled};写 {request:{sessionId, enabled}} → {enabled}。
+  // 纯 access 记账(users.db sessions.thinking_auto,不打扰上游 sessionController):
+  // 宿主侧 thinking-auto 路由器按此开关在消息入箱时自动调 agent.model.select 选档。
+  // 默认开启(列默认 1,用户拍板);归属守卫同通用循环——会话必须存在且属于当前用户。
+  register('/api/session/thinkingAuto', async (rpcId, args, ctx) => {
+    const request0 = args.request as Record<string, unknown> | undefined
+    const sessionId = firstString(request0, 'sessionId') ?? firstString(args, 'sessionId')
+    if (sessionId === undefined || deps.store.sessionOwner(sessionId) !== ctx.userId) {
+      return deniedFrame(rpcId, '会话不存在或不属于你')
+    }
+    const enabledArg = firstBoolean(request0, 'enabled') ?? firstBoolean(args, 'enabled')
+    if (enabledArg === undefined) {
+      return okFrame(rpcId, { enabled: deps.store.thinkingAutoOf(sessionId) })
+    }
+    if (!deps.store.setThinkingAuto(sessionId, enabledArg)) {
+      return deniedFrame(rpcId, '会话不存在或不属于你')
+    }
+    tenantAudit(deps, 'thinking.auto.set', ctx.account, { sessionId, enabled: enabledArg })
+    return okFrame(rpcId, { enabled: enabledArg })
+  })
+
   // ── T1 补全(G1):session/events——读任意会话完整历史,之前完全不在守卫清单 ──
   // 请求形态 SessionPageRequest:{address:{kind:'session',sessionId}} 或
   // {address:{kind:'subagent',parentSessionId,childSessionId}}(子代理历史按父归属判定)。
@@ -686,4 +724,9 @@ function firstString(source: Record<string, unknown> | undefined, key: string): 
 function firstNumber(source: Record<string, unknown> | undefined, key: string): number | undefined {
   const value = source?.[key]
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : undefined
+}
+
+function firstBoolean(source: Record<string, unknown> | undefined, key: string): boolean | undefined {
+  const value = source?.[key]
+  return typeof value === 'boolean' ? value : undefined
 }

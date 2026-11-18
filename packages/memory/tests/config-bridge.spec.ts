@@ -123,3 +123,32 @@ describe('resolveWriteReviewState 写入策略档位映射(19 号 §3-T2.5 + T12
     expect(resolveWriteReviewState(compaction, 'full-auto')).toBe('pending')
   })
 })
+
+describe('M-M4 蒸馏热改键(parseMemoryOverrides;两键同 schema 分文件归属)', () => {
+  it('distillEnabled / distillParticipate 布尔解析进载荷', () => {
+    expect(parsedOverridesOf(parseMemoryOverrides({ distillEnabled: true }))).toEqual({ distillEnabled: true })
+    expect(parsedOverridesOf(parseMemoryOverrides({ distillParticipate: false }))).toEqual({ distillParticipate: false })
+    expect(parsedOverridesOf(parseMemoryOverrides({ distillEnabled: true, distillParticipate: true }))).toEqual({
+      distillEnabled: true,
+      distillParticipate: true,
+    })
+  })
+
+  it('类型不符拒绝(中文 message);文件读 fail-open 回落基线不变', () => {
+    expect(parseMemoryOverrides({ distillEnabled: 'yes' })).toHaveProperty('error')
+    expect(parseMemoryOverrides({ distillParticipate: 1 })).toHaveProperty('error')
+    const path = join(dir, 'distill-overrides.json')
+    writeFileSync(path, JSON.stringify({ distillEnabled: true, distillParticipate: false }))
+    expect(readMemoryOverridesFile(path)).toEqual({ distillEnabled: true, distillParticipate: false })
+    writeFileSync(path, '{broken')
+    expect(readMemoryOverridesFile(path)).toEqual({})
+  })
+
+  it('resolveEffectiveFlags 不受蒸馏两键影响(蒸馏有独立门控面)', () => {
+    expect(resolveEffectiveFlags({ distillEnabled: true, distillParticipate: false })).toEqual({
+      portraitEnabled: true,
+      domainEnabled: true,
+      writePolicy: DEFAULT_MEMORY_WRITE_POLICY,
+    })
+  })
+})

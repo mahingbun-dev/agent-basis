@@ -7,7 +7,9 @@
  * 3. card.ts:富上下文审批卡片 payload(将发生什么/为什么/影响面/回滚性/命中规则 + R3 附加),
  *    可渲染为官方 user-questions 载荷(intent approval 分支);
  * 4. ask.ts:同 turn 提问合并包装器(一卡 ≤3 问,禁挤牙膏式逐个问) + 合并率统计;
- * 5. negative.ts:审批负信号事件(被拒/被修改)发布接口,供 observe 消费。
+ * 5. negative.ts:审批负信号事件(被拒/被修改)发布接口,供 observe 消费;
+ * 6. escalation.ts:escalate→channels / 冷静期 / 双确认 / on_no_answer 运行时接线
+ *    (39 号 E4-E6,缝合 G2 半接线;独立工厂 createEscalationRuntime,传输与令牌注入)。
  *
  * Cordis 纪律:本包是策略纯函数层(不触碰 ctx 全局);实例态(提问缓冲、负信号订阅与快照)
  * 全部挂在 createInteract() 产物上,组合层以 `ctx.interact` 服务(注册表 + INTERACT_SERVICE_ID
@@ -39,6 +41,14 @@ export type {
   CardQuestionOptions, CardR3Controls, CardRollback, CardWhy,
 } from './card.ts'
 export { InteractConfigError, isRecord } from './errors.ts'
+export {
+  confirmGate, createEscalationRuntime, EscalationRuntime, NO_ANSWER_ACTIONS, resolveNoAnswerAction,
+} from './escalation.ts'
+export type {
+  ConfirmAnswerMap, ConfirmGateResult, EscalationContext, EscalationOutcome, EscalationRuntimeOptions,
+  EscalationSendCard, EscalationSettlement, EscalationStatus, EscalationTokenService, NoAnswerAction,
+  NoAnswerDispatch, NoAnswerDispatchInput, NoAnswerRuleRef, OnSuspendedEvent, OnSuspendedListener,
+} from './escalation.ts'
 export { HitlPolicy } from './hitl.ts'
 export type { GradeDecision, HitlDocument, HitlRule } from './hitl.ts'
 export { ApprovalSignalBus } from './negative.ts'
