@@ -418,8 +418,30 @@ export class EternaMemoryGateway extends TypertRemoteService {
         domainEnabled: flags.domainEnabled,
         writePolicy: flags.writePolicy,
       },
-      stats: memoryStatsOf(this.deps.dbPath),
+      stats: this.viewerStats(),
     }
+  }
+
+  /**
+   * 运行状态统计口径(分库后修正,2026-11-18):「待你审批/已生效记忆」读**登录者
+   * 本人账号库**——T12 单库时代「根库=你的库」成立,多租户分库后设置卡读根库
+   * 会显示面板永远看不到的回退遗留条目(生产 0.1.16 实测 4 条 11-16 根库遗留
+   * 待审 vs 面板 0)。账号面缺席/账号未开通回落部署根库(本地 TUI 单库形态,
+   * 行为不变)。
+   */
+  private viewerStats(): { entityCount: number; pendingCount: number; domainCount: number } {
+    const face = this.accountsFace()
+    const userId = this.viewerIdOf()
+    if (face !== undefined && userId !== undefined) {
+      try {
+        const account = face.accountOfUser(userId)
+        const dbPath = account !== undefined ? face.dbPathForAccount(account) : undefined
+        if (dbPath !== undefined) return memoryStatsOf(dbPath)
+      } catch {
+        // 账号面异常回落根库(与 distillView 的 face 防御同口径)
+      }
+    }
+    return memoryStatsOf(this.deps.dbPath)
   }
 
   updateConfig(payload: unknown): MemoryStateView | MemoryStateError {
