@@ -76,8 +76,18 @@ export const DEFAULT_DRAIN_TIMEOUT_MS = 60_000
  */
 export const DREAM_CURSOR_SESSION_ID = 'dream'
 
+/**
+ * 全局蒸馏伪会话 id(M-M4 Phase A,18 §8):consolidation_cursor 里以它为主键
+ * 的行即 lastDistillAt 元数据行。与 'dream' 同款语义——'distill' 不会与真实
+ * 会话冲突;任务路由由快照 jobKind='distill' 判定,不依赖键名巧合。
+ */
+export const DISTILL_CURSOR_SESSION_ID = 'distill'
+
 /** Dream 默认间隔小时数(19 §6 `dream.cron` 键降级解释,18 §6「如每日」)。 */
 export const DEFAULT_DREAM_INTERVAL_HOURS = 24
+
+/** 全局蒸馏默认间隔小时数(M-M4 Phase A,与 Dream 同款缺省 24h)。 */
+export const DEFAULT_DISTILL_INTERVAL_HOURS = 24
 
 const MS_PER_HOUR = 3_600_000
 
@@ -368,7 +378,7 @@ export interface SessionEndRef {
 }
 
 /** 快照任务类别(session=会话尾轻量整固;dream=重量 Dream,S4-B 退路)。 */
-export type ConsolidationJobKind = 'session' | 'dream'
+export type ConsolidationJobKind = 'session' | 'dream' | 'distill'
 
 /** 冻结快照(调度时快照 session log 路径+会话元数据+门控事实,消费时不重查)。 */
 export interface ConsolidationSnapshot {
@@ -434,6 +444,12 @@ export interface SessionEndConsolidatorOptions {
    * maybeEnqueueDream 才可入调度;与会话整固共用同一队列纪律。
    */
   readonly dreamTask?: ConsolidationTask
+  /**
+   * 全局蒸馏执行体(M-M4 Phase A,distill.ts 的 createDistillTask / distill-curate
+   * 的组合任务):提供后 maybeEnqueueDistill 才可入调度;'distill' 伪会话游标
+   * 语义与 Dream 同款(error/abort 不推进;被顶掉不虚假推进)。
+   */
+  readonly distillTask?: ConsolidationTask
   readonly now?: () => number
   readonly logger?: ConsolidationLogger
   /** dispose 的 drain 上界(默认 60s;测试注小值)。 */
@@ -455,6 +471,7 @@ export class SessionEndConsolidator {
   readonly #cursor: ConsolidationCursorStore
   readonly #task: ConsolidationTask
   readonly #dreamTask: ConsolidationTask | undefined
+  readonly #distillTask: ConsolidationTask | undefined
   readonly #now: () => number
   readonly #logger: ConsolidationLogger
   readonly #drainTimeoutMs: number
@@ -467,6 +484,7 @@ export class SessionEndConsolidator {
     this.#cursor = options.cursor
     this.#task = options.task ?? SKELETON_CONSOLIDATION_TASK
     this.#dreamTask = options.dreamTask
+    this.#distillTask = options.distillTask
     this.#now = options.now ?? ((): number => Date.now())
     this.#logger = options.logger ?? {}
     this.#drainTimeoutMs = options.drainTimeoutMs ?? DEFAULT_DRAIN_TIMEOUT_MS
@@ -522,6 +540,28 @@ export class SessionEndConsolidator {
   }
 
   /**
+   * 全局蒸馏触发入口(M-M4 Phase A,18 §8;与 maybeEnqueueDream 同构的时间阈值
+   * 合并):轻量链/Dream 判定后由 glue 在 turn/end(completed) 时调用。判定顺序:
+   * 1. 未提供 distillTask 或已 dispose → 'disabled'(不调度);
+   * 2. distill 已在跑/已排队 → 'already-queued'(单 distill 语义,防背靠背重跑;
+   *    与 Dream 互不阻挡——互为不同 jobKind,共用单 running 队列自然串行);
+   * 3. `now - lastDistillAt < intervalMs`(lastDistillAt=游标 'distill' 行)→ 'not-due';
+   * 4. 到期 → distill 快照入调度,完成时 markDone 推进 'distill' 行 = 原子更新
+   *    lastDistillAt;error/abort 不推进,待下次会话尾补跑(T6 游标纪律逐字复用)。
+   * 蒸馏无会话事实,不过三门控;窗口起点 = lastDistillAt ?? now-interval。
+   */
+  maybeEnqueueDistill(nowMs: number, intervalMs: number): 'scheduled' | 'not-due' | 'already-queued' | 'disabled' {
+    if (this.#distillTask === undefined || this.#disposed) return 'disabled'
+    if (this.#running?.snapshot.jobKind === 'distill' || this.#pending?.jobKind === 'distill') {
+      return 'already-queued'
+    }
+    const last = this.#cursor.doneAt(DISTILL_CURSOR_SESSION_ID)
+    if (last !== null && nowMs - last < intervalMs) return 'not-due'
+    this.#schedule(distillSnapshot(nowMs, last ?? nowMs - intervalMs))
+    return 'scheduled'
+  }
+
+  /**
    * 单会话 teardown(session/disposed 兜底):abort 匹配的 running、丢弃匹配的
    * pending,游标均不推进(abort 语义,留待该会话下次会话尾标记重试);
    * 不匹配的会话不受影响。同步返回,abort 后的收尾在内部 done 链上完成
@@ -563,11 +603,21 @@ export class SessionEndConsolidator {
   #schedule(snapshot: ConsolidationSnapshot): void {
     if (this.#running !== undefined) {
       const superseded = this.#pending
+      const incomingKind = snapshot.jobKind ?? 'session'
+      const pendingKind = superseded?.jobKind ?? 'session'
+      const pendingPeriodic = pendingKind !== 'session'
+      if (pendingPeriodic && incomingKind !== pendingKind) {
+        // 周期任务(Dream/蒸馏)占 pending 时粘滞:同 kind 重入才覆盖(去重语义),
+        // session 快照或另一周期任务不顶掉——否则同一会话尾上后入队的蒸馏会
+        // **系统性**挤掉先入队的 Dream(M-M4 引入的顺序回归),二者按先到先跑,
+        // 后来者游标未推进、下个会话尾由时间阈值自然重触发(不丢信息)。
+        return
+      }
       this.#pending = snapshot
       // 被顶掉 = 该次会话尾标记已由调度器处理(调度级 skip),推进其游标;
-      // dream 例外:被顶掉时 lastDreamAt 尚未到点,不得虚假推进(否则 Dream
-      // 白白延后一个周期)——留待下次会话尾由时间阈值自然重新触发
-      if (superseded !== undefined && superseded.jobKind !== 'dream') {
+      // dream/distill 例外:被顶掉时对应元数据行尚未到点,不得虚假推进(否则
+      // 周期被白白延后一段)——留待下次会话尾由时间阈值自然重新触发
+      if (superseded !== undefined && superseded.jobKind !== 'dream' && superseded.jobKind !== 'distill') {
         this.#cursor.markDone(superseded.sessionId, this.#now())
       }
       return
@@ -587,10 +637,15 @@ export class SessionEndConsolidator {
    * 中止语义优先于任务结果(17 号 §2.4:error/abort 不推进)。
    */
   async #execute(snapshot: ConsolidationSnapshot, controller: AbortController): Promise<void> {
-    // 任务路由(T11):dream 快照走 dreamTask(缺席不可能——maybeEnqueueDream
-    // 已挡),session 快照走轻量提取体;markDone 的键=快照 sessionId,'dream'
-    // 伪会话行的推进即原子更新 lastDreamAt(T6 语义逐字复用)
-    const task = snapshot.jobKind === 'dream' && this.#dreamTask !== undefined ? this.#dreamTask : this.#task
+    // 任务路由(T11+M-M4):dream 快照走 dreamTask、distill 快照走 distillTask
+    // (缺席不可能——maybeEnqueue* 已挡),session 快照走轻量提取体;markDone 的
+    // 键=快照 sessionId,'dream'/'distill' 伪会话行的推进即原子更新对应元数据行
+    // (T6 语义逐字复用)
+    const task = snapshot.jobKind === 'dream' && this.#dreamTask !== undefined
+      ? this.#dreamTask
+      : snapshot.jobKind === 'distill' && this.#distillTask !== undefined
+        ? this.#distillTask
+        : this.#task
     try {
       const result = await task(snapshot, controller.signal)
       if (controller.signal.aborted) {
@@ -638,6 +693,23 @@ export function dreamSnapshot(nowMs: number, windowStart: number): Consolidation
   return Object.freeze({
     jobKind: 'dream' as const,
     sessionId: DREAM_CURSOR_SESSION_ID,
+    logPath: null,
+    lastTurn: 0,
+    endedAt: nowMs,
+    windowStart,
+    facts: Object.freeze({ memoryWriteCalls: 0, maxUserProseWords: 0, approvalAsks: 0 }),
+  })
+}
+
+/**
+ * 蒸馏快照(M-M4 Phase A,调度器内与 Dream 同构):伪会话 'distill',logPath
+ * 缺席(蒸馏读各账号库,不读会话日志),facts 恒零(不过三门控);windowStart
+ * 供报告窗口标注(自 lastDistillAt 起,首跑回落 now-interval)。
+ */
+export function distillSnapshot(nowMs: number, windowStart: number): ConsolidationSnapshot {
+  return Object.freeze({
+    jobKind: 'distill' as const,
+    sessionId: DISTILL_CURSOR_SESSION_ID,
     logPath: null,
     lastTurn: 0,
     endedAt: nowMs,

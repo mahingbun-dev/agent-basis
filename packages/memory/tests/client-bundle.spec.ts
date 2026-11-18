@@ -98,14 +98,15 @@ describe('模块装载冒烟(vm)', () => {
     }
     const dispose = (exports.apply as (ctx: unknown) => () => void)(fakeCtx)
     expect(typeof dispose).toBe('function')
-    // ① settings.section + ③ conversation.input.right + ④ conversation.chat.turnTail(声明等待面)
+    // ① settings.section + ③ conversation.input.right + ④ conversation.chat.turnTail
+    //    + ⑤ plugins.tab(M-M4 全局蒸馏报告页,18 §10)
     expect(Object.keys(contributes).sort()).toEqual([
-      'conversation.chat.turnTail', 'conversation.input.right', 'settings.section',
+      'conversation.chat.turnTail', 'conversation.input.right', 'plugins.tab', 'settings.section',
     ])
-    // 席位就位 → contribute 触发 register(三贡献 id)
+    // 席位就位 → contribute 触发 register(四贡献 id)
     for (const contribute of Object.values(contributes)) contribute()
     expect(registered.map(entry => entry.id).sort()).toEqual([
-      'eterna-memory.domain-chip', 'eterna-memory.settings', 'eterna-memory.sources',
+      'eterna-memory.distill', 'eterna-memory.domain-chip', 'eterna-memory.settings', 'eterna-memory.sources',
     ])
     // ④ 事件累计器以 kind='memory-sources' 注册(Location data 键一致)
     expect(eventDefinitions).toEqual(['memory-sources'])

@@ -60,18 +60,25 @@ import type {} from '@deepseek-ai/dsh-session'
 import type { Session } from '@deepseek-ai/dsh-session'
 import {
   assemblySessionIdOf,
+  BuiltinPiiGuard,
   ConsolidationCursorStore,
   ConsolidationMetaStore,
+  createDistillJob,
   createDomainTagger,
   createDreamTask,
+  DEFAULT_DISTILL_INTERVAL_HOURS,
+  DEFAULT_DISTILL_MIN_USERS,
   DomainRegistryStore,
   dreamIntervalMs,
+  DISTILL_CURSOR_SESSION_ID,
+  distillSnapshot,
   ETERNA_MEMORY_SESSION_SERVICE_ID,
   MemoryAuditLedger,
   MEMORY_SERVICE_ID,
   memoryOverridesPathForDb,
   readMemoryOverridesFile,
   resolveCuratorRoute,
+  resolveDistillGate,
   resolveDomain,
   resolveDshSessionsRoot,
   resolveEffectiveFlags,
@@ -94,6 +101,8 @@ import type {
   ConsolidationLogger, ConsolidationSnapshot, ConsolidationTaskResult, DomainResolution, DomainTagger, DomainTaggerInput, Memory,
   MemoryAssemblyContext, MemoryIndexOptions, MemorySessionResolver,
 } from '@eterna/memory'
+import { dshLlmModelCaller } from '@eterna/memory'
+import type { DshLlmLike } from '@eterna/memory'
 import type { MemoryDomainConfig, MemoryPluginConfig } from '../types.ts'
 
 export const ETERNA_MEMORY_PLUGIN_NAME = 'eterna-memory'
@@ -325,12 +334,41 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
       ;((ctx as unknown as { readonly logger?: { info?: (...args: unknown[]) => void } }).logger?.info?.(
         '[memory] routing: mode=' + routingMode + ' identityDb=' + (existsSync(accessDbPath) ? 'present' : 'absent') + ' tenantRoot=' + tenantRoot,
       ))
+      // ── M-M4 全局蒸馏(18 号 §8;Q4 授权链):接线**恒挂**——生产走 bundle
+      // default export(无 config 注入),授权链完全由根 overrides distillEnabled
+      //(admin UI 热改)承载,双缺省 = false(门关,任务内 nothing-to-save 推进
+      // 游标,零成本)。遍历面全量账号不分片(蒸馏轻只读,Dream 的 >20 日分片
+      // 是重 LLM 成本合并——分片会造成跨用户计数偏差,见 41 号文档)。蒸馏随
+      // 整固接线挂载(consolidation 与 Dream 双关 = 蒸馏也不可用,文档化限制)。
+      const distillConfig = config.distill
+      const distillAccounts = (): readonly { account: string; dir: string }[] => {
+        try {
+          if (!existsSync(tenantRoot)) return []
+          return readDirNames(tenantRoot)
+            .filter(account => existsSync(join(tenantRoot, account, '.eterna', 'memory.sqlite3')))
+            .sort()
+            .map(account => ({ account, dir: join(tenantRoot, account) }))
+        } catch {
+          return []
+        }
+      }
       const detachConsolidation = consolidationOff && dreamConfig.enabled === false
         ? null
         : wireConsolidation(ctx, dbPath, auditedMemory, audit, {
           ...(config.consolidation?.model !== undefined && { curatorModel: config.consolidation.model }),
           ...(domainOfFace !== undefined && { domainOf: domainOfFace }),
           ...(consolidationOff && { skipExtraction: true }),
+          distill: {
+            enabled: (): boolean => resolveDistillGate(distillConfig?.enabled, readMemoryOverridesFile(overridesFile)),
+            accounts: distillAccounts,
+            // K 解析链(41 号 §2):profile distill.minUsers → 根 overrides
+            // distillMinUsers(部署旋钮,apply 时解析一次,改后重启生效)→ 库内缺省 5。
+            minUsers: distillConfig?.minUsers
+              ?? readMemoryOverridesFile(overridesFile).distillMinUsers
+              ?? DEFAULT_DISTILL_MIN_USERS,
+            ...(distillConfig?.intervalHours !== undefined && { intervalMs: distillConfig.intervalHours * 3_600_000 }),
+            ...(distillConfig?.model !== undefined && { curatorModel: distillConfig.model }),
+          },
           ...(sessionResolver !== undefined && router !== undefined && {
             routing: {
               // auto 模式身份源在场才走账号路径(缺席=单库形态,见 routingActive)
@@ -461,6 +499,29 @@ interface ConsolidationWiring {
     readonly agentsPath?: string
     /** NOTES 根目录(对账材料)。 */
     readonly notesDir?: string
+  }
+  /**
+   * 全局蒸馏面(M-M4,18 号 §8;config.distill 在场即挂,最终生效由 enabled
+   * 每次现读):Phase A 跨用户计数报告 + Phase B 候选起草,组合任务在
+   * wireConsolidation 内(createDistillJob)。'distill' 伪会话游标与 Dream
+   * 同款时间阈值合并;全量账号遍历(轻只读,不走 Dream 的日分片)。
+   */
+  readonly distill?: {
+    /** 跨用户交叉验证阈值 K(缺省 5,distill-curate/distill 缺省面)。 */
+    readonly minUsers?: number
+    /** 聚合间隔毫秒(缺省 24h;config.distill.intervalHours 换算)。 */
+    readonly intervalMs?: number
+    /** 部署门(根 overrides distillEnabled ?? config.distill.enabled ?? false)。 */
+    readonly enabled: () => boolean
+    /**
+     * 全量账号遍历面(蒸馏轻只读,不走 routing.allAccounts 的 >20 日分片——
+     * 分片会造成跨用户计数偏差;由 apply 层从 tenantRoot 构建传入)。
+     */
+    readonly accounts: () => readonly { account: string; dir: string }[]
+    /** Phase B curator 模型(缺省回落 curatorModel→deepseek-flash)。 */
+    readonly curatorModel?: string
+    /** 产物目录(缺省 distillRootOf();glue 显式传入保持单一推导点)。 */
+    readonly outputDir?: string
   }
   /**
    * 多租户路由面(23 号 M-T1;routing 模式启用):账号级原语,任务组合在
@@ -601,6 +662,65 @@ function wireConsolidation(
         ? { kind: 'ran', detail: `多账号 Dream:${details.join(' ')}` }
         : { kind: 'nothing-to-save', detail: `多账号 Dream 无变更:${details.join(' ')}` }
     }
+  // ── M-M4 全局蒸馏(18 号 §8;config.distill 在场即挂,生效由 enabled 现读)──
+  // 组合任务 = Phase A 跨用户计数报告(distill.ts)+ Phase B 候选起草
+  //(distill-curate.ts);'distill' 伪会话游标与 Dream 同款时间阈值合并。
+  // 部署门关闭时任务内直接 nothing-to-save(游标照常推进,不留过期排队)。
+  const distillFace = wiring.distill
+  const distillDefaultIntervalMs = DEFAULT_DISTILL_INTERVAL_HOURS * 3_600_000
+  // Phase B curator 调用面(懒解析;llm 缺席/路由失败 → undefined = 模板回落,
+  // 与 evolve curator 双路纪律一致——蒸馏离线也能跑,只是正文退模板)。
+  const distillLlm = (ctx as unknown as { llm?: unknown }).llm
+  const distillCaller = distillLlm === undefined
+    ? undefined
+    : async () => {
+      const route = await resolveCuratorRoute(ctx, distillFace?.curatorModel ?? wiring.curatorModel)
+      return { route, caller: dshLlmModelCaller(distillLlm as DshLlmLike) }
+    }
+  const distillTask = distillFace === undefined
+    ? undefined
+    : createDistillJob({
+      accounts: distillFace.accounts,
+      enabled: distillFace.enabled,
+      ...(distillFace.outputDir !== undefined && { outputDir: distillFace.outputDir }),
+      ...(distillFace.minUsers !== undefined && { minUsers: distillFace.minUsers }),
+      pii: new BuiltinPiiGuard(),
+      logger: ctx.logger,
+      ...(distillCaller !== undefined && { resolveCaller: distillCaller }),
+    })
+  // 手动运行面('eternaMemoryDistill' 服务,宿主 eternaMemory 网关的 distillRun
+  // 端点转发):单飞守卫 + 直调组合任务(不走调度队列——管理员显式动作不排队;
+  // 窗口起点 = 上次游标,首跑回落 now-interval)。
+  let distillRunInFlight = false
+  const distillRunNow = distillTask === undefined
+    ? undefined
+    : async (): Promise<{ ok: true; detail: string } | { ok: false; message: string }> => {
+      if (distillRunInFlight) return { ok: false, message: '蒸馏任务已在运行,请稍后再试' }
+      distillRunInFlight = true
+      const controller = new AbortController()
+      const nowMs = Date.now()
+      const last = cursor.doneAt(DISTILL_CURSOR_SESSION_ID)
+      try {
+        const result = await distillTask(distillSnapshot(nowMs, last ?? nowMs - distillDefaultIntervalMs), controller.signal)
+        return { ok: true, detail: result.detail ?? result.kind }
+      } catch (error) {
+        return { ok: false, message: error instanceof Error ? error.message : String(error) }
+      } finally {
+        distillRunInFlight = false
+      }
+    }
+  const disposeDistillFace = distillFace === undefined || distillRunNow === undefined
+    ? null
+    : (() => {
+      const provide = (ctx as unknown as { provide?: (id: string, value: unknown) => () => void }).provide
+      if (provide === undefined) return null
+      return provide('eternaMemoryDistill', {
+        gate: distillFace.enabled,
+        minUsers: distillFace.minUsers ?? DEFAULT_DISTILL_MIN_USERS,
+        intervalMs: distillFace.intervalMs ?? distillDefaultIntervalMs,
+        runNow: distillRunNow,
+      })
+    })()
   const consolidator = new SessionEndConsolidator({
     cursor,
     logger: ctx.logger,
@@ -611,6 +731,8 @@ function wireConsolidation(
     task: extractionTask,
     // T11 重量:Dream 四阶段执行体(S4-B 退路的调度面在 consolidator 内)
     ...(dreamTask !== undefined && { dreamTask }),
+    // M-M4:蒸馏组合任务(Phase A 报告 + Phase B 候选;'distill' 游标)
+    ...(distillTask !== undefined && { distillTask }),
   })
 
   // 成本合并状态:最近一次轻量提取调度时刻(epoch ms;null=尚未调度)。
@@ -647,6 +769,9 @@ function wireConsolidation(
       // T11 重量:轻量链落定后按时间阈值合并 Dream(S4-B 退路)——不因轻量
       // skip/already-done 而跳过判定(每个 completed 会话尾都是 Dream 的触发点)
       consolidator.maybeEnqueueDream(event.time, wiring.dream?.intervalMs ?? dreamIntervalMs())
+      // M-M4:蒸馏同款时间阈值合并(门关时任务内 nothing-to-save 推进游标,
+      // 不留过期排队;单 distill 排队语义防背靠背重跑)
+      consolidator.maybeEnqueueDistill(event.time, distillFace?.intervalMs ?? distillDefaultIntervalMs)
       return
     }
     registry.observe(sessionId, event)
@@ -664,6 +789,7 @@ function wireConsolidation(
   return () => {
     offEvent()
     offDisposed()
+    disposeDistillFace?.()
     // 先 abort 在跑整固再释放;drain 上界 60s(挂死任务不再等)。宿主 disposer
     // 同步签名不可 await → fire-and-forget(audit 插件 flush 同款)
     void consolidator.dispose().catch(() => {})

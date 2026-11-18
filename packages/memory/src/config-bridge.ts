@@ -67,7 +67,18 @@ export const MEMORY_WRITE_POLICIES: readonly MemoryWritePolicy[] = ['explicit-on
 /** 缺省档位(现行规则,18 §13 Q3 初始全审语义所在档)。 */
 export const DEFAULT_MEMORY_WRITE_POLICY: MemoryWritePolicy = 'auto-review'
 
-/** overrides 文件的可热改键(其余键由 profile patch 拥有,不进本文件)。 */
+/**
+ * overrides 文件的可热改键(其余键由 profile patch 拥有,不进本文件)。
+ *
+ * M-M4 全局蒸馏两键(18 号 §8 + §13 Q4 决议)同 schema 分文件归属,**不得混用**:
+ * - `distillEnabled` 只应出现在**部署根** overrides(<根>/.eterna/)——部署级授权
+ *   热改键(缺省回落 profile patch distill.enabled,再缺省 false);admin 经
+ *   eternaMemory/distillEnable 写入;
+ * - `distillParticipate` 只应出现在**账号** overrides(workspaces/<账号>/.eterna/)
+ *   ——用户级 opt-out(缺省 true=随部署参与);本人经 eternaMemory/
+ *   setDistillParticipate 写入。解析面不区分文件位置(防御面同口径),归属纪律
+ *   由写入端点与蒸馏任务各读各的文件钉死。
+ */
 export interface MemoryOverrides {
   /** 画像开关(缺省 true;false=索引不再注入画像区,Dream 再生成跳过)。 */
   readonly portraitEnabled?: boolean
@@ -75,13 +86,29 @@ export interface MemoryOverrides {
   readonly domainEnabled?: boolean
   /** 写入策略档位(缺省 'auto-review')。 */
   readonly writePolicy?: MemoryWritePolicy
+  /** 全局蒸馏部署级授权(仅根文件;缺省回落 profile distill.enabled→false,Q4)。 */
+  readonly distillEnabled?: boolean
+  /** 本人记忆参与全局蒸馏(仅账号文件;缺省 true=默认参与,可退出,18 §10)。 */
+  readonly distillParticipate?: boolean
+  /**
+   * 跨用户交叉验证阈值 K(仅根文件;缺省 5,18 §8;本部署配 3——41 号 §2)。
+   * 部署旋钮:glue apply 时解析一次,改后重启插件生效(非热改键)。
+   */
+  readonly distillMinUsers?: number
 }
 
 /** 防御解析 overrides 载荷(文件读出/网关入参共用一份口径):未知键忽略,类型不符拒绝。 */
 export function parseMemoryOverrides(raw: unknown): MemoryOverrides | { readonly error: string } {
   if (typeof raw !== 'object' || raw === null) return { error: '配置必须是对象' }
   const input = raw as Record<string, unknown>
-  const out: { portraitEnabled?: boolean; domainEnabled?: boolean; writePolicy?: MemoryWritePolicy } = {}
+  const out: {
+    portraitEnabled?: boolean
+    domainEnabled?: boolean
+    writePolicy?: MemoryWritePolicy
+    distillEnabled?: boolean
+    distillParticipate?: boolean
+    distillMinUsers?: number
+  } = {}
   if (input.portraitEnabled !== undefined) {
     if (typeof input.portraitEnabled !== 'boolean') return { error: 'portraitEnabled 必须是布尔值' }
     out.portraitEnabled = input.portraitEnabled
@@ -95,6 +122,20 @@ export function parseMemoryOverrides(raw: unknown): MemoryOverrides | { readonly
       return { error: `writePolicy 只允许 ${MEMORY_WRITE_POLICIES.join(' / ')}` }
     }
     out.writePolicy = input.writePolicy as MemoryWritePolicy
+  }
+  if (input.distillEnabled !== undefined) {
+    if (typeof input.distillEnabled !== 'boolean') return { error: 'distillEnabled 必须是布尔值' }
+    out.distillEnabled = input.distillEnabled
+  }
+  if (input.distillParticipate !== undefined) {
+    if (typeof input.distillParticipate !== 'boolean') return { error: 'distillParticipate 必须是布尔值' }
+    out.distillParticipate = input.distillParticipate
+  }
+  if (input.distillMinUsers !== undefined) {
+    if (typeof input.distillMinUsers !== 'number' || !Number.isFinite(input.distillMinUsers) || input.distillMinUsers < 1) {
+      return { error: 'distillMinUsers 必须是 ≥1 的数字' }
+    }
+    out.distillMinUsers = input.distillMinUsers
   }
   return out
 }

@@ -19,6 +19,11 @@ export interface MemoryPluginConfig {
    * lastDreamAt 时间阈值合并,不接 schedule)。
    */
   readonly dream?: MemoryDreamConfig
+  /**
+   * M-M4 全局蒸馏(18 号 §8;Q4 决议默认关,enabled 为部署基线、根 overrides
+   * distillEnabled 热改键覆写——最终生效见 resolveDistillGate)。
+   */
+  readonly distill?: MemoryDistillConfig
   /** M-M3 T11 episodic 淘汰参数(19 号 §6 episodic 键;缺省 Q5 决议值)。 */
   readonly episodic?: MemoryEpisodicConfig
   /** M-M3 T11 半衰期天数(索引排序与 Dream 挤出降权共用;缺省 90,18 §4.2)。 */
@@ -120,6 +125,24 @@ export interface MemoryDreamConfig {
   readonly cron?: number
   /** Gather 窄读 episodic 条数上限(缺省 50,19 号 §6 dream.maxTurns)。 */
   readonly maxTurns?: number
+}
+
+/**
+ * 全局蒸馏配置(M-M4,18 号 §8 + §13 Q4 决议;19 号 §6 distill 键落位):
+ * Phase A = 跨用户计数报告(admin 只读,≥K 才列出);Phase B = 从报告起草脱敏
+ * pack 候选走 G0–G2 门禁进 quarantine。**enabled 是部署基线,不是最终开关**——
+ * 最终生效 = 根 overrides distillEnabled(管理员 UI 热改)?? enabled ?? false
+ * (resolveDistillGate;默认关,开启需管理员授权+隐私声明)。
+ */
+export interface MemoryDistillConfig {
+  /** 部署基线(缺省 false,Q4「默认关」;管理员可在 UI 热开,见上)。 */
+  readonly enabled?: boolean
+  /** 跨用户交叉验证阈值 K(缺省 5,18 §8/Gm2-global「≥5 个独立用户」)。 */
+  readonly minUsers?: number
+  /** 聚合间隔小时数(缺省 24;会话尾触发+时间阈值合并,与 Dream 同款退路)。 */
+  readonly intervalHours?: number
+  /** Phase B curator 模型(缺省回落 consolidation.model→deepseek-flash)。 */
+  readonly model?: string
 }
 
 /** episodic 淘汰参数(19 号 §6 episodic 键;缺省 18 §13 Q5 决议值)。 */
