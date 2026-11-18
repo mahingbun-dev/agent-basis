@@ -145,6 +145,25 @@ describe('UserStore 用户存储', () => {
     expect(store.workspaceIdByOwnerPath(other.id, '/home/zhangsan')).toBe('ws-2')
   })
 
+  it('userIdByAccount:按账号名查 id,命中/未命中(A2 归属登记的 realm→账号映射读取面,不验密)', () => {
+    const { user } = store.createUserWithSuffix({ account: 'admin', password: 'password8', role: 'admin' })
+    expect(store.userIdByAccount('admin')).toBe(user.id)
+    // 未命中(部署 realm 与登录账号名不对齐时,消费方按 undefined 显式可见)
+    expect(store.userIdByAccount('nobody')).toBeUndefined()
+  })
+
+  it('recordSession:同 id 二写不炸且覆写(INSERT…ON CONFLICT upsert;归属改判语义)', () => {
+    const alice = store.createUserWithSuffix({ account: 'alice', password: 'password8' }).user
+    const bob = store.createUserWithSuffix({ account: 'bob', password: 'password8' }).user
+    store.recordSession('sess-x', alice.id, null)
+    expect(store.sessionOwner('sess-x')).toBe(alice.id)
+    expect(() => { store.recordSession('sess-x', bob.id, 'ws-bob') }).not.toThrow()
+    expect(store.sessionOwner('sess-x')).toBe(bob.id)
+    // 二写不增行(主键唯一,upsert)
+    expect(store.sessionsOfOwner(bob.id)).toEqual(['sess-x'])
+    expect(store.sessionsOfOwner(alice.id)).toEqual([])
+  })
+
   it('头像 BLOB 往返与重置;昵称策略', () => {
     const { user } = store.createUserWithSuffix({ account: 'dave', password: 'password8' })
     const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3])

@@ -520,10 +520,19 @@
     presets:
       read-only:
         sandbox: read-only
-        approval: ask
+        approval: never
       workspace-write:
         sandbox: workspace-write
-        approval: ask
+        approval: never
+
+# ── 2026-11-19 静默拍板:审批面收敛 ──
+# 治理规则 default allow(governance.rules.yml 头注)后,残余 ask 仅剩沙箱升级企图
+# (bash 请求越界权限等)——按用户裁决一律静默拒绝(approval never=确定性 rejected,
+# 不弹窗;模型得到拒绝结果即在界内自适应)。风险面:越界操作从未被放行,只是不再问人。
+- id: approval
+  config:
+    policy: never
+
 
 
 # ── P1-T5（2026-11-11）：目录树工作区选择器——裁 browse 客户端、保 directoryPicker 路由 ──
@@ -630,12 +639,21 @@
     # 两处并双跑 G1-1+G1-2(FORM001 看护;清单先行会致 verify-eterna-super 红)。
     - id: eterna-tasks
       name: '@eterna/tasks'
+      # realm 对齐登录账号名(单租户验收;多租户经 glue 注入账号 realm 后移除本行):
+      # A2 归属桥按 userIdByAccount(realm) 查 id,不对齐即 fail-closed 不登记。
+      config:
+        realm: Mr.Ma
     - id: eterna-channels
       name: '@eterna/glue/channels-plugin'
     - id: eterna-interact
       name: '@eterna/glue/interact-plugin'
     - id: eterna-toolkit
       name: '@eterna/toolkit'
+    - id: eterna-tasks-access-bridge
+      name: '@eterna/glue/tasks-access-bridge-plugin'
+      # A2 归属桥(2026-11-19):orchestrator 主会话归属自动登记进 access 账本
+      # (删行 reboot 幂等回登)。realm 必须与登录账号名对齐(桥按 userIdByAccount(realm)
+      # 查 id),不对齐时 fail-closed 不登记、log 显式可见。44 号 §二 #4 收口。
 
 # ── Companion 浏览器执行面（E4 生产挂载，2026-11-11）：用户浏览器=执行面 ────
 # dsh-mcp-client stdio 挂 browser-relay 的 MCP server（三工具 mcp__browser__*）；

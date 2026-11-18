@@ -19,9 +19,11 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it, vi } from 'vitest'
 import type { z } from 'zod'
+import { Context } from '@deepseek-ai/cordis'
 import { WorktreeNameSchema, orchestratorTools, type OrchestratorToolsHost } from '../src/tools/orchestrator.ts'
+import { defineTasksPlugin } from '../src/plugin.ts'
 import { RESOURCES, readResource, resourceGrammar, type ResourceHost } from '../src/tools/resources.ts'
 import { IM_WORDS, NOTE_WORDS, readTool, toDshTool, tool, wordCount } from '../src/tools/tool.ts'
 import { workerTools, type WorkerToolsHost } from '../src/tools/worker.ts'
@@ -85,6 +87,43 @@ describe('角色分面(34 §4-D;24 §8.3-4)', () => {
     const when = ({ agent }: { readonly agent: { readonly id: string } }): boolean => ticketOfSession(agent.id) === undefined
     expect(when({ agent: { id: 'worker-t1' } })).toBe(false)
     expect(when({ agent: { id: 'orchestrator-main' } })).toBe(true)
+  })
+
+  it('装配面的 when 白名单(35-A21 诊断清单②):主会话 id 在场时 orchestrator 面只在主会话可见', () => {
+    // 真实 defineTasksPlugin 注册路径:假 tools 服务捕获每次注册的 when 谓词。
+    const registered: Array<(({ agent }: { readonly agent: { readonly id: string } }) => boolean) | undefined> = []
+    const boot = (masterId?: string) => {
+      const root = mkdtempSync(join(tmpdir(), 'tasks-when-'))
+      try {
+        const ctx = new Context()
+        const plugin = defineTasksPlugin({ tenantRoot: root, realm: 'alice', passIntervalMs: 3_600_000,
+          ...(masterId !== undefined ? { masterId } : {}) })
+        ctx.reflect.provide('tools', { register: vi.fn((_definition: { name: string },
+          options?: { when?: ({ agent }: { readonly agent: { readonly id: string } }) => boolean }): () => void => {
+          registered.push(options?.when)
+          return () => {}
+        }) })
+        const dispose = plugin.apply(ctx)
+        dispose()
+      } finally { rmSync(root, { recursive: true, force: true }) }
+    }
+    // 主会话白名单:主会话 true;普通 web 聊天会话与 worker session 一律 false(14 项全一致)。
+    boot('orchestrator-main')
+    expect(registered).toHaveLength(14)
+    for (const when of registered) {
+      expect(when!({ agent: { id: 'orchestrator-main' } })).toBe(true)
+      expect(when!({ agent: { id: 'plain-chat-session' } })).toBe(false)
+      expect(when!({ agent: { id: 'worker-t1' } })).toBe(false)
+    }
+    // 主会话 id 缺席:退回既有基线「非 worker 会话」(worker 恒不可见,分面不破)。
+    registered.length = 0
+    boot()
+    expect(registered).toHaveLength(14)
+    for (const when of registered) {
+      expect(when!({ agent: { id: 'orchestrator-main' } })).toBe(true)
+      expect(when!({ agent: { id: 'plain-chat-session' } })).toBe(true)
+      expect(when!({ agent: { id: 'worker-t1' } })).toBe(false)
+    }
   })
 })
 

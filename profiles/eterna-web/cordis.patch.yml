@@ -482,6 +482,20 @@
           ETNA_RELAY_BASE: http://127.0.0.1:9310
         toolCallTimeoutMs: 120000
 
+# ── 目录树工作区选择器（P1-T5 ①+②；2026-11-19 base 清单对同步，40 号 §1 表第 6 行）────
+# 与容器模板 P1-T5 同款成对行：① 禁 directory-picker auto 行（其运行时 insert 的
+# browse 对=host 路由+browse 客户端，客户端含可键入路径编辑区；slot 单洞必须唯一
+# 占用者——eterna-access 客户端注册 directoryFlow slot）；② insert host-browse 行，
+# 恢复 /api/directoryPicker/* 路由（该包无客户端面，lib 仅 index.js）。
+# ①② 成对为 boot 实证刚需：只落 ② 不落 ① 时 auto 行与 host 行双注册 directoryPicker
+# 服务、auto 行进 failed（verify-eterna-web「no failed entries」红，2026-11-19 实测）；
+# ② 为行账对齐行（模板独有 11 行含之），FORM001 只比 @eterna 行，本段机器不可见。
+- id: directory-picker
+  disabled: true
+- insert:
+    - id: directory-picker-host
+      name: '@deepseek-ai/dsh-host-directory-picker-browse'
+
 # ── 提示词工作室挂载（T1.2；plans/2026-11-11-提示词工作室全景化改造计划.md）────
 # @eterna/prompt-studio 双面插件（与 packages/prompt-studio/cordis.patch.yml 同款
 # insert 行——裸 id 行只覆写既有行，基础树无 eterna-* 行会被 applyPatches 丢弃）：
@@ -493,8 +507,34 @@
 # entrypoint 渲染裁剪（TOGGLEABLE_PLUGINS 登记：packages/access/src/routes.ts）。
 # 移除=删本段。
 - insert:
+    # ── base 挂载面 16 行（2026-11-19 base 清单对同步补齐；A6 契约 ①，FORM001 按序一致）
+    # 行序=apply 序=pre-execute 瀑布序（与容器模板「验收挂载」块/super 清单同源）；
+    # 本地 dev boot 需按 docs/eterna-web-profile.md symlink 对应包（verify-eterna-web.mjs
+    # 物化），缺链行 Loader 静默跳过。
+    - id: eterna-governance
+      name: '@eterna/glue/governance-plugin'
+    - id: eterna-audit
+      name: '@eterna/glue/audit-plugin'
+    - id: eterna-egress
+      name: '@eterna/glue/egress-plugin'
+    # 记忆/知识底座(2026-11-11 E2E 回归补挂)：@eterna/glue 的双导出，插件登记册
+    # 自始列此二项——挂载清单补行前 UI 宣称已启用、会话内却无 memory_*/knowledge_* 工具。
+    - id: eterna-memory
+      name: '@eterna/glue/memory-plugin'
+    - id: eterna-knowledge
+      name: '@eterna/glue/knowledge-plugin'
+    - id: eterna-llm-doctor
+      name: '@eterna/llm-doctor'
+    - id: eterna-brand
+      name: '@eterna/brand'
+    - id: eterna-access
+      name: '@eterna/access'
     - id: eterna-prompt-studio
       name: '@eterna/prompt-studio'
+    - id: eterna-usage-stats
+      name: '@eterna/usage-stats'
+    - id: eterna-panel
+      name: '@eterna/panel'
     # 附件入口双面插件(2026-11-12):浏览器半边在输入框工具行(conversation.input.left)
     # 贡献常驻「附件」按钮,经 uiConversation.createDrafts 注册草稿附件(上传/预览/
     # 重试全在上游 file-upload/ui-attachment,本包不自建管线);Host 半边 idle 载具

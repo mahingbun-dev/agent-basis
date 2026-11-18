@@ -93,7 +93,7 @@ export {
   resolveSubagentPolicy, validateSubagentPolicies,
   type ConstrainedSpawn, type SubagentPolicies, type SubagentPolicy, type SubagentSpawnIntent,
 } from './executor/subagent-policies.ts'
-export { Sessions, messageId, type SessionHostPorts, type SessionRole, type SessionsHost } from './session/sessions.ts'
+export { Sessions, messageId, masterSessionId, MASTER_SESSION_TITLE, type SessionHostPorts, type SessionRole, type SessionsHost } from './session/sessions.ts'
 
 // Source 端口与 channels 适配(35 号 A21;34 号 §2.5 port/channel-adapter 两行、§0-A5):
 // Trigger 归一化契约与 SourceScope 契约位(注册表与轮询不搬,channels 是统一接收面)、
@@ -103,6 +103,13 @@ export {
   normalizeChannelTrigger, threadRefOf, ChannelTriggerAdapter, applyLifecycleForwards,
   type ChannelAdapterHost,
 } from './sources/channel-adapter.ts'
+// webchat 委派入口与其缺省监听范围(35-A21 诊断清单①;2026-11-18 出票端到端三断点②③):
+// 主会话用户消息 → Trigger(幂等 id=会话id+消息id、human、addressed=direct)进 Engine,
+// 与缺省 SourceScope 真实现(webchat 主会话 listened、余 filtered;替换旧 UNWIRED_SCOPE)。
+export {
+  WEBSCHAT_SOURCE, WebchatDelegationEntry, normalizeWebchatTrigger, webchatMasterScope,
+  type WebchatEntryHost, type WebchatMessageInput, type WebchatSessionEvent,
+} from './sources/webchat.ts'
 export type { SourceSink } from './sources/port.ts'
 export type { ChannelsLifecycleForward, ChannelsThreadRefAligned, ChannelsTriggerAligned, SourceSinkIsTriggerSink } from './sources/port.ts'
 export type { ScopeResult as SourceScopeResult, SourceScope as SourceScopePort } from './sources/port.ts'
@@ -159,9 +166,12 @@ export {
 // →engine→assessor→executor→sources,关停配逆)、defineTasksPlugin(ctx.tasks 服务 provide,
 // TASKS_SERVICE_ID 唯一)、健康面/状态面(assessor 已于 A19 接线 MasterAssessor;
 // executor 于 A22 接线真实 DshExecutor+Sessions——TasksOptions.sessionHost 注入即替换
-// 可控 stub,sources 于 A21 接线 channels 入站汇)。
+// 可控 stub,sources 于 A21 接线 channels 入站汇)。★最后一公里(2026-11-18 三断点):
+// masterId 按 config → KV → 约定派生解析(health()/stats() 暴露)、sessionHost 自宿主 ctx
+// 反射派生(sessionHostFromContext;缺席回落 stub,联合类型保持)、缺省 scope 真实现与
+// webchat 入口安装——裸挂载行即可走通 Trigger→Eval→出票→worker。
 export {
-  createTasks, defaultTasksDirOf, defineTasksPlugin, DEFAULT_TASKS_REALM,
+  createTasks, defaultTasksDirOf, defineTasksPlugin, sessionHostFromContext, DEFAULT_TASKS_REALM,
   PASS_INTERVAL_MS, StubExecutor, TASKS_PLUGIN_NAME, TASKS_SERVICE_ID,
 } from './plugin.ts'
 export type {

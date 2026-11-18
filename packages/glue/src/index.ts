@@ -10,6 +10,8 @@
  * - channels:绑定存储/令牌/Source 注册表 → ctx.channels 服务 provide + webhook 网关
  *   挂宿主 webServer(POST /channels/api/webhook/:channelType,39 号 §3-E8)
  * - interact:hitl.yaml 分档/提问合并/负信号总线 → ctx.interact 服务 provide(39 号 §3-E8)
+ * - tasks-access-bridge:orchestrator 主会话归属登记入 access 账本(A2;realm→账号
+ *   映射 + recordSession upsert,幂等)
  *
  * Cordis 纪律:插件导出 name + inject + apply(ctx);注册返回 disposer 即 effect 逆。
  */
@@ -41,6 +43,11 @@ export {
 } from './plugins/interact-plugin.ts'
 export { reportToAudit } from './audit-bridge.ts'
 export type { AuditReportSink } from './audit-bridge.ts'
+export {
+  ETERNA_TASKS_ACCESS_BRIDGE_PLUGIN_NAME,
+  defineTasksAccessBridgePlugin,
+} from './plugins/tasks-access-bridge-plugin.ts'
+export type { AccessStoreBridgeFace, TasksBridgeFace } from './plugins/tasks-access-bridge-plugin.ts'
 export { ETERNA_GLUE_PLUGIN_NAME } from './types.ts'
 export type {
   ChannelsPluginConfig, EgressPluginConfig, GovernancePluginConfig, InteractPluginConfig,

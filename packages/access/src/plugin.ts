@@ -250,7 +250,9 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         }).on(event, listener),
       )
       // P3(2026-11-11):把归属账本 provide 出去(usage-stats 聚合的归属唯一事实源;
-      // reflect 键 eternaAccessStore)。账本只读面,不含凭据。
+      // reflect 键 eternaAccessStore)。只读面不含凭据;A2(2026-11-19)增受限写面
+      // recordSession 与映射读取面 userIdByAccount——账本写权限收口在本包(消费方
+      // glue 的 tasks-access-bridge 桥只传参,不直碰 users.db)。
       const storeProvide = (ctx as unknown as { provide?: (id: string, value: unknown) => () => void }).provide
       // ── companion 身份注入（E4 多用户浏览器执行面；2026-11-13 重做注入点）──
       // 内核在 createExecution 时对 arguments 做 snapshot+deepFreeze，且合同禁止
@@ -434,6 +436,12 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
           workspaceOwner: (id: string) => store.workspaceOwner(id),
           workspacesOfOwner: (id: number) => store.workspacesOfOwner(id),
           getUserById: (id: number) => store.getUserById(id),
+          // A2(2026-11-19):归属登记写面 + realm→账号映射面(glue 桥登记 orchestrator
+          // 主会话归属用;upsert 语义幂等,见 store.recordSession)。
+          recordSession: (sessionId: string, ownerId: number, workspaceId: string | null): void => {
+            store.recordSession(sessionId, ownerId, workspaceId)
+          },
+          userIdByAccount: (account: string) => store.userIdByAccount(account),
         }))
       }
       disposers.push(registerTenantGuards({

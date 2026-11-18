@@ -13,6 +13,7 @@
     "./egress-plugin": "./src/plugins/egress-plugin.ts",
     "./channels-plugin": "./src/plugins/channels-plugin.ts",
     "./interact-plugin": "./src/plugins/interact-plugin.ts",
+    "./tasks-access-bridge-plugin": "./src/plugins/tasks-access-bridge-plugin.ts",
     "./package.json": "./package.json"
   },
   "scripts": {

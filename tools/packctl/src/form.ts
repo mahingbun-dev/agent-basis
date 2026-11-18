@@ -12,13 +12,16 @@
  *     挂载行集 ⊆ super 模板挂载行集(31 号 §2.1「base ⊕」语义的机器化);
  *  ④ Tier2 → Tier2 依赖不受约束(31 号 §2.2 只约束 Tier1→Tier2)——不做检查。
  *
- * FORM001 首版范围(40 号 §8 风险 1「form-check 出生即红」的处置,按 §9 Q1 暂定
- * 「按建议暂定,如有异议随时改」):清单↔模板按序比对当前以 WARNING 显式登记
- * 漂移、不置退出码 1(base 对 11 行漂移在案——40 号 §1 表第 6 行;base 对同步是
- * 行为变更必须独立 PR + 双 boot 复跑,不并入本子命令合入)。漂移每次运行都
- * 全量打印(「两条路都不得静默放红」:warning 即显式登记);ENFORCE_PAIR_DRIFT
- * 常量(base 同步独立 PR 合入时置 true)与 --enforce-pair-drift 旗标供测试与
- * 复跑证明 ERROR 路径。超集断言与文件缺失恒为 ERROR,不在此列。
+ * FORM001 漂移处置(40 号 §8 风险 1「两条路都不得静默放红」):base 对同步独立 PR
+ * 已合入(2026-11-19:11 行补齐 + G1-1 断言面同步扩 + 双 boot 复跑——§9 Q1 拍板的
+ * 同步路),ENFORCE_PAIR_DRIFT 常量自此置 true:清单↔模板按序漂移一律 ERROR、置
+ * 退出码 1;--enforce-pair-drift 旗标保留为显式复跑口径。漂移每次运行仍全量打印。
+ * 超集断言与文件缺失恒为 ERROR,不在此列。
+ *
+ * 演进项(2026-11-19 登记,不在本次施工;A5 契约 ④):FORM001 比对口径拟把行内
+ * config 纳入(见 extractEternaMountRows——现只取 id+name):super 形态 eterna-tasks
+ * 行 config.realm=admin 曾只落容器模板、开发档清单缺同款,按序比对不可见;两侧
+ * 补齐后由本演进项收口「行内 config 也参与漂移判定」。
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, normalize, relative, resolve } from 'node:path'
@@ -26,10 +29,11 @@ import { error, warning, type Finding } from './types.ts'
 import { asStringArray, isRecord, parseYaml, stripCommentsLineByLine } from './util.ts'
 
 /**
- * 清单↔模板按序比对是否置 error(40 号 §9 Q1 暂定:false)。
- * base 对同步独立 PR(11 行补齐 + G1-1 断言面同步扩 + 双 boot 复跑)合入后置 true。
+ * 清单↔模板按序比对是否置 error。base 对同步独立 PR 已合入(2026-11-19,40 号
+ * §9 Q1 拍板的同步路:11 行补齐 + G1-1 断言面同步扩 + 双 boot 复跑)→ true;
+ * 首版曾按 Q1 暂定 false(以 WARNING 显式登记、不置退出码)。
  */
-const ENFORCE_PAIR_DRIFT = false
+const ENFORCE_PAIR_DRIFT = true
 
 /** form-check 的两对工件:形态 → {容器档模板, 开发档挂载清单}。 */
 const FORM_PAIRS: readonly {
@@ -295,11 +299,11 @@ export function formCheck(repoRoot: string, opts: { enforcePairDrift?: boolean }
     const listRows = extractEternaMountRows(readFileSync(listPath, 'utf8'))
     const drift = describeDrift(templateRows, listRows)
     if (drift !== '') {
-      const message = `${pair.form} 形态挂载清单与模板漂移(比对口径=insert 块内 @eterna 挂载行 id+name 按序,40 号 §9 Q1): ${drift}`
+      const message = `${pair.form} 形态挂载清单与模板漂移(比对口径=insert 块内 @eterna 挂载行 id+name 按序,40 号 §9 Q1;行内 config 纳入口径见文件头演进项): ${drift}`
       findings.push(enforce
         ? error('FORM001', pair.list, message)
         : warning('FORM001', pair.list,
-          `${message}——首版按 Q1 暂定以 WARNING 显式登记(base 对 11 行漂移在案,40 号 §1 表第 6 行;base 同步独立 PR 合入后 ENFORCE_PAIR_DRIFT 置 true 转 error,40 号 §8 风险 1「不得静默放红」)`))
+          `${message}——WARNING 为显式登记路径(仅在显式传 enforcePairDrift:false 时,40 号 §8 风险 1「不得静默放红」;缺省已置 true,见文件头)`))
     }
   }
   const baseTemplate = FORM_PAIRS[0]?.template

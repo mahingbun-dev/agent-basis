@@ -7,11 +7,13 @@
  * permissionPresets/sessionPersistence 在 DSH 0.2.2-rc.1 全部存在且签名与 SA 用法
  * 吻合;逐字签名见其 §5 表,编译期钉住见 tests/types.seam-pin.ts):
  * - `ensure(id, cwd, title, role)`(SA app/sessions.ts:138-155 同路径):resolveAgent
- *   → `'session/not-found'` 判新建 → `workspaceRegistry.create(cwd, title)` →
+ *   → `'session/not-found'` 判新建 → `workspaceRegistry.create(cwd)`(标题解耦:rc.1
+ *   的 create 同 canonical path 幂等复用既有登记且不改其 title,workspace 标题回落宿主
+ *   缺省=目录末段,会话标题不作 workspace 标题)→
  *   `sessionController.create({ sessionId, workspaceId, agentPreset })`(rc.1 的
  *   SessionCreateRequest.agentPreset「replacing a reused Session's recorded preset」
  *   即 SA 的 preset 重选兜底)→ 复解析 → `permissionPresets.set(session, preset)`
- *   (A4 拍板 v1 现有沙箱旋钮;SA 用 'danger-full-access')→ `rename(sessionId, title)`;
+ *   (A4 拍板 v1 现有沙箱旋钮;缺省 workspace-write,见 permissionPreset 注)→ `rename(sessionId, title)`;
  * - worker session id 约定 `worker-<ticketId>`(SA dsh.ts:24;executor/dsh.ts 定义)保留;
  *   worker session cwd 一律由调用方(executor)从租户 realm 工作区派生(A22 交付原文
  *   「worker session 一律建在租户 realm 工作区内」;R4 目录 `.ticket/<id>/`)。
@@ -52,7 +54,8 @@ declare module '@deepseek-ai/dsh-llm' {
  *   RemoteError 本体 extends Error 故原样可抛);`'session/not-found'` 是新建判据,
  *   其余错误原样抛出;
  * - `workspaces`:WorkspaceRegistry.create(path, title?) → { id, path, title }
- *   (rc.1 index.d.ts:146);
+ *   (rc.1 index.d.ts:146;title 仅新建时生效,同 path 幂等复用既有登记且不改其 title——
+ *   ensure 只传 path,workspace 标题回落宿主缺省,与会话标题解耦);
  * - `permissions`:PermissionPresetService.set(session, name)(rc.1 index.d.ts:177);
  * - `persistence`:SessionPersistence.flush() + open(id, 'read') → 句柄
  *   read(offset, length) → { events } / close()(rc.1 index.d.ts:133/145、
@@ -92,6 +95,16 @@ export interface SessionHostPorts {
 /** `prompt` 在 `requestId` 下投递的消息 id——每次重试都是同一个(SA messageId 同构)。 */
 export const messageId = (requestId: string): ReturnType<typeof MessageId> => MessageId(`eterna-tasks:${requestId}`)
 
+/**
+ * master 会话的缺省 id 约定:`orchestrator-<realm>`(★master 会话引导,2026-11-18 出票端到端
+ * 三断点①;SA app/runtime.ts:104 `orchestrator-${key(stateDir)}` 同构——确定性派生 + KV
+ * 持久,重启复用同一 id;worker 侧 `worker-<ticketId>` 约定的主会话半边)。仅宿主 session
+ * 面在场且 config/KV 三处皆缺席时由装配派生;config/sessionHost 显式注入的 id 原样采信。
+ */
+export const masterSessionId = (realm: string): string => `orchestrator-${realm}`
+/** master 会话标题(Sessions.ensure 的 rename 半边;SA ensure(masterId, …, 'dsh-superagent orchestrator') 同构)。 */
+export const MASTER_SESSION_TITLE = 'eterna-tasks orchestrator'
+
 /** 会话角色:orchestrator(主会话)或 worker(工单的 Executor session)。 */
 export type SessionRole = 'orchestrator' | 'worker'
 
@@ -109,7 +122,11 @@ export interface SessionsHost {
   readonly lifetime: AbortSignal
   /** 各角色创建 session 时选用的 agent preset 名(A25 cordis.patch.yml 落地后由装配注入;未注入用宿主默认)。 */
   readonly presets?: Partial<Record<SessionRole, string>>
-  /** 建会话写入的权限 preset 名(A4 拍板 v1 现有沙箱旋钮;缺省 SA 同款 'danger-full-access')。 */
+  /** 建会话写入的权限 preset 名(A4 拍板 v1 现有沙箱旋钮;缺省 'workspace-write'——worker
+   * 要在租户工作区写工单目录,workspace-write 正是其语义;★2026-11-18 改缺省:SA 同款
+   * 'danger-full-access' 非标准部署 preset(permission-presets 按部署 config.presets 配置,
+   * 标准面仅 read-only/workspace-write),worker 首启即 `permission: unknown preset` 失败
+   * (M4 真实链路实测);glue 可按部署显式覆写)。 */
   readonly permissionPreset?: string
 }
 
@@ -154,14 +171,17 @@ export class Sessions {
     const { controller, workspaces, permissions } = this.host.ports
     let result = await controller.resolveAgent(SessionId(id))
     if ('error' in result && result.error.code === 'session/not-found') {
-      const workspace = await workspaces.create(cwd, title)
+      // workspace 标题与会话标题解耦(43-M4 §四『workspace 组名重名』根因):rc.1 的
+      // create 同 canonical path 幂等复用且 title 仅新建时生效,这里只登记 cwd——
+      // workspace 标题回落宿主缺省(目录末段);会话标题照旧走下方 rename。
+      const workspace = await workspaces.create(cwd)
       const preset = this.host.presets?.[role]
       await controller.create({ sessionId: SessionId(id), workspaceId: workspace.id,
         ...(preset !== undefined ? { agentPreset: preset } : {}) })
       result = await controller.resolveAgent(SessionId(id))
     }
     if ('error' in result) throw result.error
-    permissions.set(result.agent.session, this.host.permissionPreset ?? 'danger-full-access')
+    permissions.set(result.agent.session, this.host.permissionPreset ?? 'workspace-write')
     await controller.rename({ sessionId: SessionId(id), title })
     return result.agent
   }

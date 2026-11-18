@@ -160,6 +160,13 @@ export class Engine {
   /** assessor 已把某 Eval 的候选卡投递到其 Session:该 Eval 的 deadline 自此刻起算。 */
   candidateDelivered(evalId: string): void { this.repo.atomic(() => { this.evals.delivered(evalId, this.options.policy()) }) }
   /**
+   * 启动对账(★assessor resume,2026-11-18):装配时调用——持 evaluating 且从未 delivered 的
+   * 线程以 `hostRestarted` 重排(pass 周期开新 Eval 重排候选卡),治愈「assessment effect 已随
+   * 旧装配丢失、Eval 永不过期」的死锁。与 executor.resume() 的重启对账同位。
+   * @returns 被对账重排的线程数。
+   */
+  resumeAssessments(): number { return this.repo.atomic(() => this.evals.resume()) }
+  /**
    * 把一条已落库的 Trigger 排到新 Eval,例如人的重放;有 Eval 持有它时返回 false。
    * @throws UserError 当 Trigger 未知。
    */

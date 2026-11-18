@@ -84,6 +84,23 @@ export class Evals extends EnginePart {
     this.repo.threads.save(thread)
   }
   /**
+   * 启动对账(★assessor resume,2026-11-18):持 `evaluating` 且从未 `delivered` 的线程,其
+   * 'assessment' effect 已随上次装配丢失(旧装配未投递即结算、或投递面当时缺席)——这样的
+   * Eval 按原语义永不过期,陷入永不投递的死锁。以 `hostRestarted` 终结为 unavailable 并把
+   * Trigger 排回队首,pass 周期即开新 Eval 重排候选卡(deliver 面就绪后送达才起 deadline,
+   * 与 executor.resume() 的重启对账同位)。
+   * @returns 被对账重排的线程数。
+   */
+  resume(): number {
+    let resumed = 0
+    for (const thread of this.repo.threads.active()) {
+      if (!thread.evaluating || thread.evaluating.delivered) continue
+      this.reassess(thread, { code: 'hostRestarted' })
+      resumed += 1
+    }
+    return resumed
+  }
+  /**
    * 过期的 Eval 把其 Trigger 重新排队等一次新 Eval,至多连续 `REQUEUES` 次——忙碌的 assessor
    * 因此不丢请求;此后记为 unavailable。
    */

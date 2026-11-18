@@ -15,7 +15,7 @@ sha256 前 32 位十六进制;装配 = 段内行以空格连接、空行分段,�
 | 资产 | 覆盖键(PartKey) | 读它的角色 | 版本(hash) |
 |---|---|---|---|
 | shared.md | runtime/shared | orchestrator+worker | 5ef43de048060d521b465aa574e4c3e0 |
-| orchestrator.md | runtime/orchestrator | orchestrator | da1173e4b3194cd74e886de4315205b2 |
+| orchestrator.md | runtime/orchestrator | orchestrator | 93b6332ee9bbb3e171d7ca552153a4f6 |
 | worker.md | runtime/worker | worker | b2eb7693aa31c93c213913285e7cd6ac |
 | subscriptions.md | runtime/subscriptions | orchestrator+worker | 8b25658ec1956ff66d5dcc70f0610e51 |
 | replies.md | runtime/replies | orchestrator+worker | 40e769405348a7a3ceac724ed0f0d469 |

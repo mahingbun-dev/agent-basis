@@ -309,6 +309,14 @@ export class UserStore {
     return row === undefined ? undefined : row.password_version
   }
 
+  /** 按账号名查用户 id(归属登记的 realm→账号映射读取面;单查询不验密,不暴露行本体)。 */
+  userIdByAccount(account: string): number | undefined {
+    const row = this.db.prepare('SELECT id FROM users WHERE account = ?').get(account) as
+      | { id: number }
+      | undefined
+    return row === undefined ? undefined : row.id
+  }
+
   getUserById(id: number): UserRow | undefined {
     const row = this.db.prepare('SELECT id, account, nickname, role, password_version FROM users WHERE id = ?').get(id) as
       | { id: number; account: string; nickname: string; role: string; password_version: number }

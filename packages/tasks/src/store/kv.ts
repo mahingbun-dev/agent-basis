@@ -39,4 +39,12 @@ export const KV = {
     builtIn: family<string, [base: string]>('prompts-built-in:'),
     binding: family<number[], [sessionId: string]>('prompts-binding:'),
   },
+  /**
+   * Master(★master 会话引导,2026-11-18 出票端到端验收三断点①):orchestrator 主会话 id。
+   * 拥有者 = plugin 装配的引导解析(config.masterId / sessionHost.masterId 显式 → 本键既有
+   * 约定 → 宿主 session 面在场时按 `masterSessionId(realm)` 确定性约定派生),解析结果恒回写
+   * 本键——重启后 config 缺席也恒可复得同一主会话(SA app/runtime.ts KV runtime.masterId
+   * 同构:KV 持久、`?? store.get ?? 约定派生` 同序)。
+   */
+  master: { session: record<string>('master-session') },
 }

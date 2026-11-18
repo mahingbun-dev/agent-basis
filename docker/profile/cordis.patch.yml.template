@@ -516,10 +516,19 @@
     presets:
       read-only:
         sandbox: read-only
-        approval: ask
+        approval: never
       workspace-write:
         sandbox: workspace-write
-        approval: ask
+        approval: never
+
+# ── 2026-11-19 静默拍板:审批面收敛 ──
+# 治理规则 default allow(governance.rules.yml 头注)后,残余 ask 仅剩沙箱升级企图
+# (bash 请求越界权限等)——按用户裁决一律静默拒绝(approval never=确定性 rejected,
+# 不弹窗;模型得到拒绝结果即在界内自适应)。风险面:越界操作从未被放行,只是不再问人。
+- id: approval
+  config:
+    policy: never
+
 
 
 # ── P1-T5（2026-11-11）：目录树工作区选择器——裁 browse 客户端、保 directoryPicker 路由 ──

@@ -14,8 +14,8 @@ const hasFixture = rendered !== '' && existsSync(rendered)
 describe('G-PH-01 渲染产物活性', () => {
   const engine = () => RuleEngine.parse(readFileSync(rendered, 'utf8'), 'container:/data/.eterna/governance.rules.yml')
 
-  it.skipIf(!hasFixture)('default 为 ask(fail-closed 底线不动)', () => {
-    expect(engine().policy.default).toBe('ask')
+  it.skipIf(!hasFixture)('default 为 allow(2026-11-19 静默拍板:沙箱已限界)', () => {
+    expect(engine().policy.default).toBe('allow')
   })
 
   it.skipIf(!hasFixture)('allow-fs 规则命中 read/glob(空规则×never 全拒事故的反证)', () => {
@@ -25,7 +25,7 @@ describe('G-PH-01 渲染产物活性', () => {
     expect(engine().evaluate('list_agents').decision).toBe('allow')
   })
 
-  it.skipIf(!hasFixture)('working_directory 维持 ask(PH-3 刻意不列)', () => {
-    expect(engine().evaluate('working_directory').decision).toBe('ask')
+  it.skipIf(!hasFixture)('working_directory 静默放行(2026-11-19 default allow;越界仍由 access 钳制 deny)', () => {
+    expect(engine().evaluate('working_directory').decision).toBe('allow')
   })
 })

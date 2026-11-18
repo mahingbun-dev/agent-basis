@@ -292,10 +292,14 @@ export async function startHost() {
   const persisted = new Map<string, unknown[]>()
   let workspaceSeq = 0
   const workspaceRegistry = {
+    // rc.1 createCanonical 幂等语义(dsh-workspace「Repeated calls for the same canonical
+    // path return the existing entity without changing its title」):同 path 已登记即原样
+    // 复用(不改 title),仅新建时取 title ?? basename(path)。
     create: vi.fn(async (path: string, title?: string) => {
-      const id = `ws-${++workspaceSeq}`
-      const workspace = { id, path, title: title ?? basename(path) }
-      workspaces.set(id, workspace)
+      const existing = [...workspaces.values()].find(workspace => workspace.path === path)
+      if (existing) return existing
+      const workspace = { id: `ws-${++workspaceSeq}`, path, title: title ?? basename(path) }
+      workspaces.set(workspace.id, workspace)
       return workspace
     }),
   }

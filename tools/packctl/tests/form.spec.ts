@@ -153,19 +153,25 @@ describe('FORM001: 挂载清单与模板一致 + base ⊆ super 超集', () => {
     expect(out).toContain('form-check: 0 finding(s)(0 error)')
   })
 
-  it('红·增: 清单多一行 → 默认 WARNING(退出 0,Q1 暂定显式登记);--enforce → ERROR,退出 1', () => {
+  it('红·增: 清单多一行 → 默认 ERROR 退出 1(ENFORCE_PAIR_DRIFT=true,base 对同步合入后语义);显式 false 仍可 WARNING 登记', () => {
     const root = makeRepo('form-red-add', {
       baseListRows: [['eterna-alpha', 'alpha'], ['eterna-extra', 'extra']],
       superTemplateRows: [['eterna-alpha', 'alpha'], ['eterna-extra', 'extra']],
       superListRows: [['eterna-alpha', 'alpha'], ['eterna-extra', 'extra']],
     })
-    const warn = run(root)
-    expect(warn.code).toBe(0)
-    expect(warn.out).toContain('WARNING FORM001')
-    expect(warn.out).toContain('清单独有')
-    const strict = run(root, ['form-check', '--enforce-pair-drift'])
+    // 缺省(ENFORCE_PAIR_DRIFT=true,40 号 §8 风险 1):漂移即 ERROR、退出 1。
+    const strict = run(root)
     expect(strict.code).toBe(1)
     expect(strict.out).toContain('ERROR FORM001')
+    expect(strict.out).toContain('清单独有')
+    // --enforce-pair-drift 旗标保留为显式复跑口径(与缺省同向,见 cli.ts cmdFormCheck)。
+    const flag = run(root, ['form-check', '--enforce-pair-drift'])
+    expect(flag.code).toBe(1)
+    expect(flag.out).toContain('ERROR FORM001')
+    // 显式登记路径:库层显式传 enforcePairDrift:false → WARNING、不置退出码。
+    const lenient = formCheck(root, { enforcePairDrift: false })
+    expect(lenient.findings.map(f => f.severity)).toEqual(['warning'])
+    expect(lenient.findings[0]?.message).toContain('清单独有')
   })
 
   it('红·删: 清单少一行(模板独有) → ERROR(--enforce)', () => {
