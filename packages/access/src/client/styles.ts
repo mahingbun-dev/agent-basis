@@ -16,7 +16,7 @@ const CSS = `
 
 /* 设置弹窗:所有分区共用同一固定尺寸,切换页面不再伸缩;导航 200 固定,
    内容区保留单一纵向滚动轴(滚动条常驻槽位,避免切换时宽度抖动)。 */
-@media (min-width: 768px) {
+@media (min-width: 760px) {
   [data-shortcut-modal="settings"] {
     --ea-settings-width: 880px;
     --ea-settings-height: 720px;

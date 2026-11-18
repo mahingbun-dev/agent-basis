@@ -95,17 +95,21 @@ export function parseCssColor(value: string, fallback: string): FlowThemeColor {
   }
 }
 
-/** 令牌兜位值(packages/ui tokens.ts 的 Webflow 浅色;仅令牌不可解析时使用)。 */
+/**
+ * 令牌兜位值(packages/ui tokens.ts 的 v4「温润如玉」浅色;仅当令牌不可解析
+ * 时使用)。改令牌时这里必须同步——画布是 <canvas>,取不到 CSS 变量就退回
+ * 这组十六进制,漏改会静默画出 v3 的冷白/电光蓝。
+ */
 const TOKEN_FALLBACKS = {
-  '--et-surface': '#ffffff',
-  '--et-border': '#d8d8d8',
-  '--et-fg': '#080808',
-  '--et-fg-2': '#363636',
-  '--et-muted': '#5a5a5a',
-  '--et-meta': '#6b6b6b',
-  '--et-accent': '#146ef5',
-  '--et-warn': '#8a5a00',
-  '--et-danger': '#d3122b',
+  '--et-surface': '#fbfaf6',
+  '--et-border': '#dcd8cd',
+  '--et-fg': '#1b1e1c',
+  '--et-fg-2': '#3c423e',
+  '--et-muted': '#5f655f',
+  '--et-meta': '#6f756e',
+  '--et-accent': '#2b6272',
+  '--et-warn': '#94661c',
+  '--et-danger': '#a63d2e',
 } as const
 
 /** rgba() 串(tint 合成:同色给透明度,原型 color-mix 的画布等价)。 */
