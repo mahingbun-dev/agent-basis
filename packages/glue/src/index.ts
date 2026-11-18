@@ -34,7 +34,7 @@ export {
   ETERNA_CHANNELS_PLUGIN_NAME,
   defineChannelsPlugin,
 } from './plugins/channels-plugin.ts'
-export type { ChannelsCardsFace, ChannelsWebServerFace, ChannelsWorld } from './plugins/channels-plugin.ts'
+export type { ChannelsCardsFace, ChannelsWorld } from './plugins/channels-plugin.ts'
 export {
   DEFAULT_HITL_YAML,
   ETERNA_INTERACT_PLUGIN_NAME,

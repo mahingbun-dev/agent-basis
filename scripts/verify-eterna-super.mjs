@@ -334,8 +334,11 @@ const pass = (label, condition, detail) => {
 
 // 3-pre. 启动日志洁净（无 skipping/incompatible——装载被跳过或版本不兼容时
 // 宿主只打日志不进 failed 相位,母本 t7-ui-check.mjs:127 同款口径)。
-pass('boot log clean (no skipping/incompatible)', !/skipping|incompatible/i.test(output.join('')),
-  'boot + probe 期间 stdout/stderr 无装载跳过或版本不兼容记录')
+const skipLines = output.join('').split('\n').filter(line => /skipping|incompatible/i.test(line))
+pass('boot log clean (no skipping/incompatible)', skipLines.length === 0,
+  skipLines.length === 0
+    ? 'boot + probe 期间 stdout/stderr 无装载跳过或版本不兼容记录'
+    : `命中 ${skipLines.length} 行(前 8 行):\n${skipLines.slice(0, 8).map(l => `    ${l.trim().slice(0, 220)}`).join('\n')}`)
 
 // 3a. No failed rows: a failed row means an injection chain broke (e.g. a cut
 // row still has a hard consumer) — fatal even when the audit only warns.

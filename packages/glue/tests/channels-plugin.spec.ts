@@ -2,7 +2,9 @@
  * channels 插件装配单测(39 号 §3-E8;形态照抄 governance-plugin.spec 的 fake ctx 模式)。
  *
  * 覆盖:ctx.channels 服务 provide(bindings/tokens/adapters/sources/cards/gateway 面)、
- * webhook 端点挂宿主 webServer(prefix 路由,handler 原样委托 WebhookGateway.handle)、
+ * webhook 经 access 公共面转发器端到端(路由面登记于 access,24a 裁决口径;本 spec
+ * 用同形转发器镜像驱动:reflect 机会读 + 503/500 兜底,转发原样委托
+ * WebhookGateway.handle)、
  * HMAC 验签与状态码契约沿用 channels 包语义(401/404/202/410;网关全集见
  * packages/channels/tests/webhook.spec.ts)、thread 绑定优先走 TriggerSink(E3 幂等
  * 副作用计数)、邮件令牌点击路由(/channels/api/approval/:token)、cards 渲染器装配、
@@ -14,7 +16,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { tmpdir } from 'node:os'
 import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Context } from '@deepseek-ai/cordis'
 import {
   ApprovalTokenService, ChannelBindingStore, ChannelsCardError, WebhookGateway,
@@ -119,8 +121,38 @@ async function mountChannels(): Promise<MountResult> {
     sink,
   })
   closers.push(plugin.apply(harness.fake as unknown as Context))
+  registerAccessMirrorForwarder(webServer, harness)
   const world = harness.service(CHANNELS_PLUGIN_SERVICE_ID) as ChannelsWorld
   return { harness, webServer, world, sessionPort, sink }
+}
+
+/**
+ * access 公共面转发器镜像(packages/access/src/channels-webhook.ts 同形):
+ * 路由面登记在 access,本 spec 以同款逐请求 reflect 机会读 + 503/500 兜底驱动
+ * gateway 行为测试——access 侧契约由其自有单测钉住,两侧漂移即红。
+ */
+function registerAccessMirrorForwarder(webServer: FakeWebServer, harness: ReturnType<typeof makeFakeContext>): void {
+  webServer.register({
+    kind: 'prefix',
+    path: '/channels/api',
+    handler: (req, res) => {
+      const world = harness.service(CHANNELS_PLUGIN_SERVICE_ID) as ChannelsWorld | undefined
+      const gateway = world?.gateway
+      if (gateway === undefined) {
+        res.writeHead(503, { 'content-type': 'application/json; charset=utf-8' })
+        res.end(JSON.stringify({ error: 'unavailable', detail: 'channels webhook 网关未挂载(eterna-channels 插件未启用或 sessionPort 未配置)' }))
+        return
+      }
+      gateway.handle(req, res).catch((error: unknown) => {
+        if (!res.headersSent) {
+          res.writeHead(500, { 'content-type': 'application/json; charset=utf-8' })
+          res.end(JSON.stringify({ error: 'internal', detail: error instanceof Error ? error.message : String(error) }))
+        } else {
+          res.destroy()
+        }
+      })
+    },
+  })
 }
 
 /** 手工挂载(装载形态自定;sessionPort 缺席/卸载断言用)。 */
@@ -218,7 +250,7 @@ describe('channels 插件:tasks 投递面消费的结构端口(★A1 双包对�
   })
 })
 
-describe('channels 插件:webhook 端点挂宿主 webServer', () => {
+describe('channels 插件:webhook 经 access 公共面转发器端到端', () => {
   it('prefix 路由注册在 /channels/api;HMAC 验签通过 → session 回退投递 202(channels 包语义)', async () => {
     const { webServer, world, sessionPort } = await mountChannels()
     expect(webServer.routes).toHaveLength(1)
@@ -296,7 +328,7 @@ describe('channels 插件:webhook 端点挂宿主 webServer', () => {
 })
 
 describe('channels 插件:sessionPort 缺席与卸载逆闭包', () => {
-  it('sessionPort 缺席 = 网关缺席、不注册路由;绑定存储/令牌/渲染器照常在场', async () => {
+  it('sessionPort 缺席 = 网关缺席(插件不自注册路由);绑定存储/令牌/渲染器照常在场', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'eterna-glue-channels-'))
     tempDirs.push(dir)
     const webServer = new FakeWebServer()
@@ -311,7 +343,7 @@ describe('channels 插件:sessionPort 缺席与卸载逆闭包', () => {
     expect('buildApprovalCard' in world.cards).toBe(true)
   })
 
-  it('卸载摘路由、撤服务(装卸无残留;库随 service.close 收口)', async () => {
+  it('卸载撤服务;转发器视角网关消失(503 fail-closed;库随 service.close 收口)', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'eterna-glue-channels-'))
     tempDirs.push(dir)
     const webServer = new FakeWebServer()
@@ -320,11 +352,15 @@ describe('channels 插件:sessionPort 缺席与卸载逆闭包', () => {
       secrets: { feishu: { secret: 'feishu-topsecret' } },
       sessionPort: new RecordingSessionPort(),
     })
+    registerAccessMirrorForwarder(webServer, harness)
     expect(harness.services()).toContain(CHANNELS_PLUGIN_SERVICE_ID)
     expect(webServer.routes).toHaveLength(1)
 
     disposer()
-    expect(webServer.routes).toHaveLength(0)
     expect(harness.services()).not.toContain(CHANNELS_PLUGIN_SERVICE_ID)
+    // 路由面(access 登记)仍在,但网关随 provide 撤销 → 转发器 503 fail-closed
+    const res = { headersSent: false, writeHead: vi.fn(), end: vi.fn(), destroy: vi.fn() }
+    void webServer.routes[0]?.handler({} as never, res as never)
+    expect(res.writeHead).toHaveBeenCalledWith(503, { 'content-type': 'application/json; charset=utf-8' })
   })
 })

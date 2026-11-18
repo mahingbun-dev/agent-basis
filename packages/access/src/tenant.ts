@@ -17,6 +17,8 @@ import { withinRoot } from './within-root.ts'
 import { enrichModelCatalog, visionIndexFromConfigEditor } from './model-catalog.ts'
 import type { CatalogValueShape } from './model-catalog.ts'
 import { decayBias } from './thinking-score.ts'
+// ── 知识库管理端点:调用者身份与服务面结构子集(仅类型;运行期零依赖)──
+import type { KnowledgeAdminCaller, KnowledgeAdminFaceLike } from './knowledge-admin-face.ts'
 import { registerUserPluginRoutes } from './user-plugins.ts'
 import type { UserPluginLoader } from './user-plugins.ts'
 import { ApprovalFlow, ensureApprovalSchema } from './approvals.ts'
@@ -691,6 +693,102 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
       const fn = gateway?.[method]
       if (typeof fn !== 'function') return failureFrame(rpcId, new Error('面板网关未挂载(eterna-panel 插件未启用)'))
       return okFrame(rpcId, await fn.call(gateway, args.payload))
+    })
+  }
+
+  // ── 知识库管理端点(@eterna/knowledge-admin,2026-11-18):17 方法守卫面 ──
+  // 知识库管理是全员可用面(普通账号读写**本人**分库),不能整面 admin-only;守卫只做
+  // ①cookie 身份(store.getUserById→{account,admin,userId})②显式跨账号兜底(非 admin 且
+  // 目标账号≠本人 → denied+审计,零直调服务面;主防线仍是服务面 sanitizeTarget)
+  // ③服务面机会语义读取(reflect.get(key,false),缺席=「未挂载」明说不静默降级)。
+  // 调用约定:face[method].call(face, caller, args)——args 原样透传(unpack 已把
+  // payload.args 解包,即客户端 rpc.call('/api','knowledgeAdmin/<m>',{args:DTO}) 的 DTO),
+  // **绝不**传 owner/peer/principal 任何绕过字段(unary SRC 通道 principal 恒 owner,
+  // 服务面不得自解身份——tenant.ts 头注不变式)。裸网关直调面 /api/eternaKnowledgeAdmin/*
+  // 一律不注册;客户端只能走本守卫面。
+  /** 知识库管理端点前缀(守卫路由;客户端只走这里,永不裸连网关)。 */
+  const KNOWLEDGE_ADMIN_PREFIX = '/api/knowledgeAdmin'
+
+  /**
+   * 读类白名单(只读投影,不写库;仍经守卫身份,服务面自行按 caller 裁剪)。
+   * 注:以 @eterna/knowledge-admin 契约表为准;方法名如变更须同步更新本白名单。
+   */
+  const KNOWLEDGE_ADMIN_READ_METHODS = [
+    'listAccounts', 'overview', 'listDocs', 'readDoc', 'listProposals',
+    'search', 'ask', 'listMembers', 'listAudit', 'testSource',
+  ] as const
+
+  /**
+   * 写类白名单(逐条落 access 审计:成功 ok=true,失败带 error 摘要)。
+   * 注:以 @eterna/knowledge-admin 契约表为准;方法名如变更须同步更新本白名单。
+   */
+  const KNOWLEDGE_ADMIN_WRITE_METHODS = [
+    'saveDoc', 'deprecateDoc', 'reviewProposal', 'discardProposal',
+    'importMarkdown', 'importRepo', 'setMember',
+  ] as const
+
+  const KNOWLEDGE_ADMIN_WRITE_SET: ReadonlySet<string> = new Set(KNOWLEDGE_ADMIN_WRITE_METHODS)
+
+  /**
+   * 请求体里的显式目标账号(跨账号兜底判据)。取 DTO 优先(body 形态兼容),再取 args 顶层;
+   * 键只认 account/targetAccount/accountId——其余形态(以文档 id/成员键寻址)由服务面
+   * sanitizeTarget 主防线裁决。
+   */
+  const knowledgeTargetAccountOf = (args: Record<string, unknown>): string | undefined => {
+    const body0 = args.body
+    const body = typeof body0 === 'object' && body0 !== null && !Array.isArray(body0)
+      ? body0 as Record<string, unknown>
+      : undefined
+    for (const source of [body, args]) {
+      if (source === undefined) continue
+      const value = firstString(source, 'account')
+        ?? firstString(source, 'targetAccount')
+        ?? firstString(source, 'accountId')
+      if (value !== undefined) return value
+    }
+    return undefined
+  }
+
+  const knowledgeErrorSummary = (error: unknown): string => {
+    const message = error instanceof Error ? error.message : String(error)
+    return message.length > 256 ? `${message.slice(0, 256)}…` : message
+  }
+
+  for (const method of [...KNOWLEDGE_ADMIN_READ_METHODS, ...KNOWLEDGE_ADMIN_WRITE_METHODS] as const) {
+    const isWrite = KNOWLEDGE_ADMIN_WRITE_SET.has(method)
+    register(`${KNOWLEDGE_ADMIN_PREFIX}/${method}`, async (rpcId, args, ctx) => {
+      // ① 身份:守卫已 cookie 认证(ctx.userId/account);admin 由 access store 判读
+      //    (与 /api/eternaPanel/snapshot 同一读法,不另建身份解析)。
+      const user = deps.store.getUserById(ctx.userId)
+      if (user === undefined) return failureFrame(rpcId, new Error('登录账号不可解析'))
+      const admin = user.role === 'admin'
+      // ② 兜底裁决:非管理员显式指向他人账号 → 守卫层先拒(服务面 sanitizeTarget 是主防线)
+      const target = knowledgeTargetAccountOf(args)
+      if (!admin && target !== undefined && target !== user.account) {
+        tenantAudit(deps, `knowledgeAdmin.${method}.denied`, user.account, { target })
+        return deniedFrame(rpcId, '非管理员只能访问本人知识库账号')
+      }
+      // ③ 服务面:机会语义读取(reflect.get(key,false),同 serviceOf);
+      //    缺席 = failureFrame 明说,不静默降级、不回退全局库(23 号 M 记忆路由同口径)。
+      const face = deps.reflect.get('eterna-knowledge-admin', false) as KnowledgeAdminFaceLike | undefined
+      const fn = face?.[method]
+      if (face === undefined || typeof fn !== 'function') {
+        return failureFrame(rpcId, new Error('知识库管理服务未挂载(eterna-knowledge-admin 未注册)'))
+      }
+      // ④ 调用者身份 {account, admin, userId} + args 原样透传
+      const caller: KnowledgeAdminCaller = { account: user.account, admin, userId: user.id }
+      try {
+        const value = await Promise.resolve(fn.call(face, caller, args))
+        if (isWrite) tenantAudit(deps, `knowledgeAdmin.${method}`, user.account, { ok: true, target: target ?? user.account })
+        return okFrame(rpcId, value)
+      } catch (error) {
+        if (isWrite) {
+          tenantAudit(deps, `knowledgeAdmin.${method}`, user.account, {
+            ok: false, target: target ?? user.account, error: knowledgeErrorSummary(error),
+          })
+        }
+        return failureFrame(rpcId, error)
+      }
     })
   }
 
