@@ -227,3 +227,34 @@ describe('memory 插件多租户路由(config.routing per-account)', () => {
     }
   })
 })
+
+describe('memory 插件全新卷目录自建(装载告警回归,eterna-tp-t6 2026-11-18)', () => {
+  let dir = ''
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'eterna-glue-memory-fresh-'))
+  })
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  // 复现 t6 全新卷形态:库父目录缺席(cwd/.eterna 未建)→ node:sqlite 开库即炸
+  // (与知识插件同一条「2 entries did not activate」告警)。修复口径:apply 开库前
+  // 自建父目录——本用例不预建任何目录,apply 即视为装载成功。
+  it('库父目录缺席:apply 即自建目录并装载工具', () => {
+    const harness = makePluginHarness()
+    const dbPath = join(dir, 'fresh', '.eterna', 'memory.sqlite3')
+    const dispose = defineMemoryPlugin({
+      notesDir: join(dir, 'fresh', 'NOTES'),
+      dbPath,
+      consolidation: { enabled: false },
+    }).apply(harness.fake as unknown as Context)
+    try {
+      // 开库成功即落建表(库文件在场 = 父目录自建 + DatabaseSync 构造通过)
+      expect(existsSync(dbPath)).toBe(true)
+      expect(harness.toolDefs.has('memory_write')).toBe(true)
+    } finally {
+      dispose()
+    }
+  })
+})
