@@ -17,6 +17,7 @@ import { withinRoot } from './within-root.ts'
 import { enrichModelCatalog, visionIndexFromConfigEditor } from './model-catalog.ts'
 import type { CatalogValueShape } from './model-catalog.ts'
 import { registerUserPluginRoutes } from './user-plugins.ts'
+import type { UserPluginLoader } from './user-plugins.ts'
 import { ApprovalFlow, ensureApprovalSchema } from './approvals.ts'
 import type { AccessAuditEvent, AuditReflect } from './audit.ts'
 import type { SessionService } from './session.ts'
@@ -41,6 +42,8 @@ export interface TenantDeps {
   audit(event: AccessAuditEvent): void
   /** P1-T2:mux 隔离惰性安装钩子(服务在插件 apply 后才挂载,首个守卫请求时落地)。 */
   readonly ensureMux?: () => void
+  /** T6 装载器(2026-11-18):个人/共享插件进程内 mount;缺席=纯记账降级。 */
+  readonly pluginLoader?: UserPluginLoader
 }
 
 /**
@@ -431,7 +434,7 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
   // 纯 access 记账(users.db sessions.thinking_auto,不打扰上游 sessionController):
   // 宿主侧 thinking-auto 路由器按此开关在消息入箱时自动调 agent.model.select 选档。
   // 默认开启(列默认 1,用户拍板);归属守卫同通用循环——会话必须存在且属于当前用户。
-  register('/api/session/thinkingAuto', async (rpcId, args, ctx) => {
+  register('/api/session/thinkingAuto', (rpcId, args, ctx) => {
     const request0 = args.request as Record<string, unknown> | undefined
     const sessionId = firstString(request0, 'sessionId') ?? firstString(args, 'sessionId')
     if (sessionId === undefined || deps.store.sessionOwner(sessionId) !== ctx.userId) {
@@ -499,12 +502,13 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
   })
 
   // ── P4-T6/T7(2026-11-11):双层插件个人层端点+审批流(复用守卫 register=cookie 认证+审计) ──
+  // T6(2026-11-18):装载器随 deps 注入——启停/移除/转内置即刻生效,零重启。
   ensureApprovalSchema(deps.store)
   const approvalFlow = new ApprovalFlow(deps)
   registerUserPluginRoutes(deps, register, {
     flow: approvalFlow,
     isAdmin: (userId: number) => deps.store.getUserById(userId)?.role === 'admin',
-  })
+  }, deps.pluginLoader)
 
   // ── 记忆账号路由守卫(23 号 M-T2,S-6 修复,2026-11-16)─────────────────
   // unary SRC 通道的 invocation.principal 是 owner peer(不携带 userId,mux.ts

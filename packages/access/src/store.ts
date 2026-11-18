@@ -201,6 +201,15 @@ export class UserStore {
       workspace_id TEXT,
       thinking_auto INTEGER NOT NULL DEFAULT 1
     )`)
+    // T6 装载器(2026-11-18):公共层共享插件记账(转内置产物;拷贝制,与个人行解耦——
+    // 原作者删除不影响共享存续,隔离计划 §T7-B「已转内置的插件存续于公共层」)。
+    this.db.exec(`CREATE TABLE IF NOT EXISTS shared_plugins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      plugin_id TEXT NOT NULL UNIQUE,
+      dir TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`)
     // M-1:存量库 CHECK 迁移(建表语句之后;插件每次启动都走构造器——幂等,新库跳过)
     migrateRoleConstraint(this.db)
     // 思考强度自动模式(2026-11-18):存量库补列——SQLite 的 ADD COLUMN 幂等以
@@ -481,6 +490,35 @@ export class UserStore {
       | { user_id: number }
       | undefined
     return row === undefined ? undefined : row.user_id
+  }
+
+  /** 全量启用行(T6 bootScan 用;装载器启动期扫描个人层激活清单)。 */
+  allEnabledUserPlugins(): Array<{ pluginId: string; dir: string; userId: number }> {
+    const rows = this.db.prepare('SELECT plugin_id, dir, user_id FROM user_plugins WHERE enabled = 1').all() as
+      Array<{ plugin_id: string; dir: string; user_id: number }>
+    return rows.map(row => ({ pluginId: row.plugin_id, dir: row.dir, userId: row.user_id }))
+  }
+
+  // ── T6(2026-11-18):公共层共享插件记账(转内置真装载的激活清单) ──
+
+  /** 共享插件记账(upsert;转内置拷贝完成后与 admin 启停共用)。 */
+  recordSharedPlugin(pluginId: string, dir: string, enabled: boolean): void {
+    this.db.prepare(
+      'INSERT INTO shared_plugins (plugin_id, dir, enabled) VALUES (?, ?, ?) ' +
+      'ON CONFLICT(plugin_id) DO UPDATE SET dir = excluded.dir, enabled = excluded.enabled',
+    ).run(pluginId, dir, enabled ? 1 : 0)
+  }
+
+  setSharedPluginEnabled(pluginId: string, enabled: boolean): boolean {
+    const r = this.db.prepare('UPDATE shared_plugins SET enabled = ? WHERE plugin_id = ?')
+      .run(enabled ? 1 : 0, pluginId)
+    return Number(r.changes) > 0
+  }
+
+  sharedPlugins(): Array<{ pluginId: string; dir: string; enabled: boolean }> {
+    const rows = this.db.prepare('SELECT plugin_id, dir, enabled FROM shared_plugins').all() as
+      Array<{ plugin_id: string; dir: string; enabled: number }>
+    return rows.map(row => ({ pluginId: row.plugin_id, dir: row.dir, enabled: row.enabled === 1 }))
   }
 
   // ── P4-T7(2026-11-11):审批流+站内通知数据面(users.db 同库新表,泛化模型) ──
