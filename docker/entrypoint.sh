@@ -11,6 +11,10 @@
 #   启停与模型设置(package.json dsh.profile / patch llm-pi-ai 行)跨重启持久;
 #   模板变更(镜像升级)才重渲染,并把旧文件的启停标记/追加覆写行/bundles 选择
 #   窄移植到新渲染(模型行 config 不移植——升级重置,重启场景已由门控根治)。
+#   提示词工坊托管值(2026-11-18 补:migrate-prompt-edits.mjs)另走基线快照移植
+#   ——persona/plan-mode section/maxBytes 共 6 条,经「旧文件 vs 基线快照」判定
+#   用户编辑后搬到新渲染;模板基线自身的更新照常落地。此前模板变更升级会把
+#   工坊编辑打回默认(0.1.13→0.1.14 实证)。
 #   会话/存储/审计全在卷,升级镜像不丢数据。
 # - bootstrap token 打印在 stdout(docker logs 取);首次浏览器连接消费后,
 #   BrowserAuth 会话签名落卷 credentials(重启不掉线)。
@@ -118,7 +122,23 @@ TRANSPLANT_EOF
 }
 
 ensure_rendered /repo/docker/profile/package.json "$PROFILE_DIR/package.json" "$PROFILE_DIR/.rendered.package.json.sha256" manifest
+# 工坊托管值移植(2026-11-18):渲染前快照旧 patch → 渲染后按基线判定把用户改过的
+# persona/section/maxBytes 搬进新渲染。时序纪律:必须在 2.5 启停裁剪之前(其后会按
+# disabled/removed 清单再裁,移植不会复活停用行),也必须在下方 relay token sed 之前
+# (此后除 sed 外不再改本文件)。keep 路径(模板未变)同样跑——基线在册时等值零写,
+# 基线缺席(存量卷首启)借机建立。脚本逐条 fail-closed,失败仅告警不阻塞启动。
+PREV_PATCH="$PROFILE_DIR/.prev.cordis.patch.yml"
+BASELINE_JSON="$PROFILE_DIR/.rendered.cordis.patch.yml.baseline.json"
+PREV_ARG="--"
+if [ -f "$PROFILE_DIR/cordis.patch.yml" ]; then
+  cp "$PROFILE_DIR/cordis.patch.yml" "$PREV_PATCH"
+  PREV_ARG="$PREV_PATCH"
+fi
 ensure_rendered /repo/docker/profile/cordis.patch.yml.template "$PROFILE_DIR/cordis.patch.yml" "$PROFILE_DIR/.rendered.cordis.patch.yml.sha256" patch
+node /repo/docker/profile/migrate-prompt-edits.mjs \
+  /repo/docker/profile/cordis.patch.yml.template "$PREV_ARG" "$PROFILE_DIR/cordis.patch.yml" "$BASELINE_JSON" \
+  || echo "[entrypoint] WARNING 工坊值移植失败(该批托管值保模板默认;成因见上一行)"
+rm -f "$PREV_PATCH"
 
 # ── 2.5 插件启停清单(T2.3):admin 停用的可停插件 → 渲染时裁剪对应 insert 行 ──
 DISABLED_FILE="$DSH_HOME/access/disabled-plugins.json"

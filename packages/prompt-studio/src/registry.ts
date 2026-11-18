@@ -172,7 +172,7 @@ export const WEB_PATCH = 'profiles/eterna-web/cordis.patch.yml'
 export const DEFAULT_ENTRY_ID = 'preset.standard.persona'
 
 /** profile/pack 升级合并的通用风险(计划书 §3「升级可能覆盖」+ §7 风险表)。 */
-const UPGRADE_OVERWRITE_RISK = 'profile/pack 升级合并可能覆盖本地编辑(版本库可回滚兜底)'
+const UPGRADE_OVERWRITE_RISK = 'profile/pack 升级合并可能覆盖本地编辑——preset 层 6 条托管键自 2026-11-18 起由 entrypoint 渲染门控按基线快照自动移植(docker/profile/migrate-prompt-edits.mjs);其余条目仍以版本库可回滚兜底'
 
 /**
  * 全部存量条目(15 条:preset×6、domain×4、runtime×3、meta×2——meta 层为
@@ -196,8 +196,8 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-persona',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['persona'], configKey: 'prefix' },
     anchors: [
-      { file: WEB_PATCH, line: 310, contains: 'prefix: >-' },
-      { file: WEB_PATCH, line: 311, contains: 'You are a coding agent powered by the {{model}} model.' },
+      { file: WEB_PATCH, line: 314, contains: 'prefix: >-' },
+      { file: WEB_PATCH, line: 315, contains: 'You are a coding agent powered by the {{model}} model.' },
     ],
     note: '默认预设 persona 前缀(块标量 >-,2026-11-12 起基线自含三红线锚点):preset-standard 行 plugins[id=persona].config.prefix。',
     description: '所有标准会话系统提示的第一段:告诉模型它是谁、用哪个模型,并钉住三条全局红线(预算不超支/不代付/比选中立)。改动会影响之后每一个新会话的开场人设。',
@@ -217,7 +217,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-agent-instructions',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['agent-instructions'], configKey: 'maxBytes' },
     anchors: [
-      { file: WEB_PATCH, line: 323, contains: 'maxBytes: 65536' },
+      { file: WEB_PATCH, line: 327, contains: 'maxBytes: 65536' },
     ],
     note: '指令段容量上限(数值配置,非提示词文本):每条指令链(用户级/项目级 AGENTS.md)的渲染字节上限。',
     description: '指令链(用户级/项目级 AGENTS.md 等)渲染进系统提示时的字节容量上限(数值参数,非提示词文本):调小会截断长指令链,调大放宽。只影响 standard 预设会话。',
@@ -236,10 +236,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-plan-mode',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['planning', 'plan-mode'], configKey: 'section' },
     anchors: [
-      { file: WEB_PATCH, line: 362, contains: 'section: |' },
-      { file: WEB_PATCH, line: 363, contains: 'You are in plan mode.' },
+      { file: WEB_PATCH, line: 366, contains: 'section: |' },
+      { file: WEB_PATCH, line: 367, contains: 'You are in plan mode.' },
     ],
-    note: 'plan 模式整段系统提示(| 多段字面块,行 362 起):planning 组内 plan-mode 插件的 config.section。',
+    note: 'plan 模式整段系统提示(| 多段字面块,行 366 起):planning 组内 plan-mode 插件的 config.section。',
     description: 'plan 模式激活时注入的整段系统提示:规定模型只做只读探索与计划制定,必须经 exit_plan_mode 提交计划并获用户明确批准才能进入实现;plan 会话开场即带上。',
     risks: [UPGRADE_OVERWRITE_RISK, '上游 @deepseek-ai/dsh-plan-mode 升级改写该段时,本地编辑需与新版重新对齐(计划书 §3 风险标注)。'],
     redLine: 'exempt',
