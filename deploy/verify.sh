@@ -74,6 +74,18 @@ else
   bad "治理规则活性探针失败（实得: ${gov:-不可达}）——空规则×完全权限=静默全拒事故模式"
 fi
 
+# 8.5) 知识库管理插件装载（2026-11-19 切 super 形态丢失事故：插件只装在 eterna-web
+#      profile，切 ETERNA_FORM=super 后 profile 换目录，侧栏「知识库」整页消失）。
+#      三件齐才算过：镜像内 host 产物 dist/index.js、profile 的 @eterna 链、profile
+#      package.json 的 bundle 登记。web/super 任一 profile 满足即可（非当前形态的
+#      profile 保留旧登记不算失败）。
+kb=$(docker exec "$CONTAINER" sh -c 'test -f /repo/packages/knowledge-admin/dist/index.js || exit 0; for p in /data/profiles/eterna-web /data/profiles/eterna-super; do if [ -e "$p/node_modules/@eterna/knowledge-admin" ] && grep -q "@eterna/knowledge-admin" "$p/package.json" 2>/dev/null; then basename "$p"; break; fi; done' 2>/dev/null)
+if [ -n "$kb" ]; then
+  ok "知识库管理插件装载（profile: $kb）"
+else
+  bad "知识库管理插件未装载（dist/链/bundle 任一缺席）——切形态后侧栏「知识库」会消失"
+fi
+
 rm -f "$JAR"
 
 # ── companion 中继（浏览器执行面，8-10）：直连宿主映射端口 9310 ─────────────

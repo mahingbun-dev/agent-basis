@@ -28,6 +28,7 @@
 | `eterna-egress` | `@eterna/glue/egress-plugin` | `basis-egress` | 三层出网判定（工具级→域名级→代理强注） | 无直接上游（自研） |
 | `eterna-memory` | `@eterna/glue/memory-plugin` | `basis-memory` | 记忆面板/注入 | 无直接上游（自研） |
 | `eterna-knowledge` | `@eterna/glue/knowledge-plugin` | `basis-knowledge` | 知识底座（kb 直连拒绝/检索） | 无直接上游（自研） |
+| `eterna-knowledge-admin` | `@eterna/knowledge-admin` | —（2026-11-18 入库，2026-11-19 转内置装载） | 知识库管理面：侧栏「知识库」+ 七标签工作台（文档/编辑/问答/提案/导入/成员/审计），Host 半边 17 个 access 守卫端点；复用 `@eterna/knowledge` 的 wiki-local 分库 | 无直接上游（自研；DeepWiki 为可选外源） |
 | `eterna-llm` | `@eterna/llm-openai` | `basis-llm` | OpenAI 兼容适配器（embed 档无头 env-only） | packages/llm/llm-pi-ai（同类适配器形态） |
 | **包位置迁移** | `packages/llm-openai` | `/basis/llm-openai`（gitignored 本地目录） | **2026-11-09 迁入仓库**——自包含要求基础插件入库；本地 `basis/` 目录仅存 basis-minimal 实验启动器 | — |
 | `eterna-llm-doctor` | `@eterna/llm-doctor` | `basis-llm-doctor` | LLM 连通性诊断 | packages/llm/llm-pi-ai（承载联动） |
