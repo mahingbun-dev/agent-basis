@@ -87,18 +87,89 @@ describe('桥接层：上游别名必须真实存在', () => {
   })
 
   it('宿主实际使用的别名全部被覆盖（否则壳仍残留旧色）', () => {
-    const { frontend } = upstreamPackages()
+    const { frontend, theme } = upstreamPackages()
     const covered = new Set([...DSH_BRIDGE_CSS.matchAll(/--dsw-alias-([a-z0-9-]+)\s*:/gu)].map(m => m[1]!))
-    const assets = frontendAssets(frontend)
     const used = new Set<string>()
+    const assets = frontendAssets(frontend)
     for (const file of readdirSync(assets)) {
       if (!file.endsWith('.css')) continue
       for (const match of readFileSync(join(assets, file), 'utf8').matchAll(/var\(--dsw-alias-([a-z0-9-]+)/gu)) {
         used.add(match[1]!)
       }
     }
+    // 主题插件把一批别名定义在 client.js 里（不在 CSS 资产），宿主组件照样按名取值：
+    // 漏了 --dsw-alias-button-info-fill 的后果是发/送按钮一直是电光蓝（2026-11-19 生产实测）。
+    const themeSource = readFileSync(
+      join(pnpmDir, theme, 'node_modules/@deepseek-ai/dsh-client-ui-theme/lib/client.js'), 'utf8')
+    for (const match of themeSource.matchAll(/var\(--dsw-alias-([a-z0-9-]+)/gu)) used.add(match[1]!)
+    for (const match of themeSource.matchAll(/--dsw-alias-([a-z0-9-]+)\s*:/gu)) used.add(match[1]!)
+
     const missing = [...used].filter(name => !covered.has(name))
     expect(missing, `宿主在用但未覆盖的别名: ${missing.join(', ')}`).toEqual([])
+  })
+
+  it('静态色板被整体重映射（未来新增别名也不会漏出冷白/电光蓝）', () => {
+    // 别名只是指针，真颜色在 --dsw-static-*。上游色板里任何一处纯白/纯黑/
+    // 高饱和蓝漏进暖玉界面，都是肉眼可见的破面。
+    const { theme } = upstreamPackages()
+    const themeSource = readFileSync(
+      join(pnpmDir, theme, 'node_modules/@deepseek-ai/dsh-client-ui-theme/lib/client.js'), 'utf8')
+
+    const upstreamStatic = new Set([...themeSource.matchAll(/--dsw-static-([a-z0-9-]+)\s*:/gu)].map(m => m[1]!))
+    expect(upstreamStatic.size, '上游 --dsw-static-* 表过小：主题插件源未读到').toBeGreaterThan(50)
+
+    const remapped = new Set([...DSH_BRIDGE_CSS.matchAll(/--dsw-static-([a-z0-9-]+)\s*:/gu)].map(m => m[1]!))
+    const missing = [...upstreamStatic].filter(name => !remapped.has(name))
+    expect(missing, `未重映射的静态色板: ${missing.join(', ')}`).toEqual([])
+
+    // 重映射后的值不得再是纯白/纯黑或上游那支电光蓝。
+    const blocks = [...DSH_BRIDGE_CSS.matchAll(/--dsw-static-([a-z0-9-]+)\s*:\s*([^;]+);/gu)]
+    const forbidden = blocks.filter(([, value]) => {
+      const v = value!.trim().toLowerCase()
+      if (v === '#fff' || v === '#ffffff' || v === '#000' || v === '#000000') return true
+      // 上游电光蓝族（deepseek-500 系）与纯浏览器蓝
+      return /^(#4176e6|#3b82f6|#2563eb|#60a5fa)$/u.test(v)
+    })
+    expect(forbidden.map(([n, v]) => `${n}=${v}`), '静态色板里仍有纯白/纯黑/电光蓝').toEqual([])
+  })
+
+  it('静态色板只映射一次，深浅共用（不得在深色块里再翻一遍）', () => {
+    // 实测(2026-11-19 生产 0.1.37)：宿主 ui-theme 的 82 个 --dsw-static-* 在
+    // 浅色块与 body[data-ds-dark-theme] 块里**取值完全相同**——它是固定色板，
+    // 主题差异全在语义层（比如 sidebar-fill 浅色指 bluish-50、深色指 bluish-900）。
+    // 所以在深色块里再写一套"反向阶梯"是错的：它把 bluish-900（深色侧栏底）
+    // 翻成亮色，侧栏白底亮字，深色界面直接塌掉。
+    const blocks = [...DSH_BRIDGE_CSS.matchAll(/([^{}]+)\{([^{}]*)\}/gu)]
+      .filter(([, , body]) => /--dsw-static-[a-z0-9-]+\s*:/u.test(body!))
+    expect(blocks.length, '静态色板被分散到多个块：应当只映射一次').toBe(1)
+
+    const selector = blocks[0]![1]!.replace(/\/\*[\s\S]*?\*\//gu, '').trim()
+    expect(/^html body$/u.test(selector), `静态色板落在了非浅色根选择器: ${selector}`).toBe(true)
+  })
+
+  it('--dsw-specific-* 专用令牌全部被覆盖（侧栏/气泡/菜单不漏冷白）', () => {
+    // 侧栏读 --dsw-specific-sidebar-fill，气泡读 --dsw-specific-bubble；
+    // 这族不在 --dsw-alias-* 里，只补别名会漏掉整个侧栏（2026-11-19 生产实测：
+    // 深色下侧栏仍是 rgb(236,238,233) 亮底，亮字压亮底不可读）。
+    const { theme } = upstreamPackages()
+    const themeSource = readFileSync(
+      join(pnpmDir, theme, 'node_modules/@deepseek-ai/dsh-client-ui-theme/lib/client.js'), 'utf8')
+
+    const upstreamSpecific = new Set(
+      [...themeSource.matchAll(/--dsw-specific-([a-z0-9-]+)\s*:/gu)].map(m => m[1]!))
+    expect(upstreamSpecific.size, '上游 --dsw-specific-* 表过小：主题插件源未读到')
+      .toBeGreaterThan(5)
+
+    // 深浅两侧都要覆盖面；只覆盖浅色会在深色下退回宿主冷白/亮底。
+    const lightBlock = DSH_BRIDGE_CSS.slice(0, DSH_BRIDGE_CSS.indexOf("[data-eterna-theme='dark']"))
+    const darkStart = DSH_BRIDGE_CSS.indexOf('body[data-ds-dark-theme]')
+    const darkBlock = DSH_BRIDGE_CSS.slice(darkStart)
+
+    for (const [label, block] of [['浅色', lightBlock], ['深色', darkBlock]] as const) {
+      const covered = new Set([...block.matchAll(/--dsw-specific-([a-z0-9-]+)\s*:/gu)].map(m => m[1]!))
+      const missing = [...upstreamSpecific].filter(name => !covered.has(name))
+      expect(missing, `${label}侧未覆盖的 --dsw-specific-*: ${missing.join(', ')}`).toEqual([])
+    }
   })
 })
 

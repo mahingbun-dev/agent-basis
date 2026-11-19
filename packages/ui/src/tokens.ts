@@ -295,6 +295,168 @@ html body {
   --dsw-alias-brand-text: #1b1e1c;
   --dsw-alias-brand-primary-new-colorprimary-new-color: #2b6272;
 
+  /* ── 补漏：宿主 108 个别名里我们先前只覆盖了 72 个 ──────────────
+     漏掉的那批全部指向 --dsw-static-* 原始色板，于是漏一个就漏一处
+     电光蓝/冷白。实测(2026-11-19 生产)：输入框发送按钮读
+     --dsw-alias-button-info-fill(= #4176e6 电光蓝)，一直是蓝的；
+     文档预览、多选底、滚动条、设置卡描边同理。这里逐条补上。 */
+  --dsw-alias-button-info-fill: #2b6272;
+  --dsw-alias-button-info-hover: #224f5c;
+  --dsw-alias-button-contrast-fill: #1b1e1c;
+  --dsw-alias-button-tool-bar-fill-invisible: rgba(38, 42, 36, 0);
+  --dsw-alias-bg-overlay: #fbfaf6;
+  --dsw-alias-bg-mask-2: rgba(22, 25, 23, 0.16);
+  --dsw-alias-bg-mask-3: rgba(22, 25, 23, 0.48);
+  --dsw-alias-bg-mask-drop: rgba(22, 25, 23, 0.32);
+  --dsw-alias-bg-mask-photo: rgba(22, 25, 23, 0.55);
+  --dsw-alias-bg-multi-select: #efede5;
+  --dsw-alias-bg-document-preview: #efede5;
+  --dsw-alias-bg-document-selection: rgba(43, 98, 114, 0.22);
+  --dsw-alias-border-inverted: rgba(0, 0, 0, 0);
+  --dsw-alias-border-inverted2: rgba(0, 0, 0, 0);
+  --dsw-alias-brand-primary-invert: #fbfaf6;
+  --dsw-alias-label-primary-dimmed: #1b1e1c;
+  --dsw-alias-label-document-preview: #3c423e;
+  --dsw-alias-label-deep-diving: #5f655f;
+  --dsw-alias-label-deep-diving-shimmer: rgba(38, 42, 36, 0.12);
+  --dsw-alias-markdown-placeholder: #efede5;
+  --dsw-alias-markdown-code-segment-selected: #e6e3d9;
+  --dsw-alias-markdown-code-segment-unselected: #fbfaf6;
+  --dsw-alias-settings-card-fill: #fbfaf6;
+  --dsw-alias-settings-card-stroke: #eae6dc;
+  --dsw-alias-onboarding-accent: #2b6272;
+  --dsw-alias-onboarding-card-fill: #fbfaf6;
+  --dsw-alias-onboarding-secondary-fill: #efede5;
+  --dsw-alias-onboarding-checkbox-border: #cdc7ba;
+  --dsw-alias-scrollbar-bg-l1: rgba(38, 42, 36, 0.1);
+  --dsw-alias-scrollbar-hover-l1: rgba(38, 42, 36, 0.22);
+  --dsw-alias-state-success-secondary: #2d7a55;
+  --dsw-alias-state-error-secondary: #a63d2e;
+  --dsw-alias-state-warn-secondary: #94661c;
+  --dsw-alias-file-diff-added-bg: rgba(45, 122, 85, 0.1);
+  --dsw-alias-file-diff-added-gutter: rgba(45, 122, 85, 0.16);
+  --dsw-alias-file-diff-added-marker: #2d7a55;
+  --dsw-alias-file-diff-deleted-bg: rgba(166, 61, 46, 0.1);
+  --dsw-alias-file-diff-deleted-gutter: rgba(166, 61, 46, 0.16);
+  --dsw-alias-file-diff-deleted-marker: #a63d2e;
+  --dsw-alias-illustration-background: #efede5;
+  --dsw-alias-illustration-backing: #e6e3d9;
+  --dsw-alias-illustration-detail: #c2a179;
+  --dsw-alias-illustration-inset: #fbfaf6;
+  --dsw-alias-illustration-shadow: rgba(38, 42, 36, 0.08);
+  --dsw-alias-illustration-surface: #fbfaf6;
+
+  /* ── 兜底层：静态色板本身 ──────────────────────────────────────
+     别名只是指针，真正定义颜色的是这 82 个 --dsw-static-*。宿主组件里
+     还有一批地方直接读静态令牌（不经过别名层），漏一个就是一处电光蓝。
+     把整个色板重映射到玉色族，等价于关掉上游默认皮肤——以后宿主新增
+     别名时，即便我们没逐条覆盖，底层色也不会漏出冷白/电光蓝。 */
+
+  /* 冷白中性 → 宣纸/玉面/凹槽阶梯（数值越大越深） */
+  --dsw-static-neutral-bluish-00: #fbfaf6;
+  --dsw-static-neutral-bluish-50: #f7f5ef;
+  --dsw-static-neutral-bluish-55: #f4f2ec;
+  --dsw-static-neutral-bluish-60: #f4f2ec;
+  --dsw-static-neutral-bluish-75: #efede5;
+  --dsw-static-neutral-bluish-90: #efede5;
+  --dsw-static-neutral-bluish-100: #eae6dc;
+  --dsw-static-neutral-bluish-150: #e6e3d9;
+  --dsw-static-neutral-bluish-200: #dcd8cd;
+  --dsw-static-neutral-bluish-300: #d3cec2;
+  --dsw-static-neutral-bluish-310: #d3cec2;
+  --dsw-static-neutral-bluish-400: #b3ada1;
+  --dsw-static-neutral-bluish-500: #8f8a80;
+  --dsw-static-neutral-bluish-600: #6f756e;
+  --dsw-static-neutral-bluish-700: #5f655f;
+  --dsw-static-neutral-bluish-750: #4b514c;
+  --dsw-static-neutral-bluish-800: #3c423e;
+  --dsw-static-neutral-bluish-850: #2c312e;
+  --dsw-static-neutral-bluish-875: #242826;
+  --dsw-static-neutral-bluish-900: #1d211f;
+  --dsw-static-neutral-bluish-950: #161917;
+  --dsw-static-neutral-bluish-1000: #0f1210;
+
+  /* 纯灰阶 → 同阶梯的暖灰 */
+  --dsw-static-neutral-00: #fbfaf6;
+  --dsw-static-neutral-50: #f7f5ef;
+  --dsw-static-neutral-100: #efede5;
+  --dsw-static-neutral-150: #eae6dc;
+  --dsw-static-neutral-200: #e6e3d9;
+  --dsw-static-neutral-250: #dcd8cd;
+  --dsw-static-neutral-300: #d3cec2;
+  --dsw-static-neutral-400: #b3ada1;
+  --dsw-static-neutral-500: #8f8a80;
+  --dsw-static-neutral-550: #7a8079;
+  --dsw-static-neutral-600: #5f655f;
+  --dsw-static-neutral-700: #3c423e;
+  --dsw-static-neutral-800: #2c312e;
+  --dsw-static-neutral-850: #242826;
+  --dsw-static-neutral-900: #1b1e1c;
+  --dsw-static-neutral-1000: #0f1210;
+
+  /* 电光蓝族 → 黛青/青玉（这是 v4 里最后一批高饱和蓝的来源） */
+  --dsw-static-deepseek-50: #eff4f5;
+  --dsw-static-deepseek-100: #dfeaec;
+  --dsw-static-deepseek-200: #c6dadf;
+  --dsw-static-deepseek-300: #a0c2ca;
+  --dsw-static-deepseek-400: #6f9da9;
+  --dsw-static-deepseek-450: #548697;
+  --dsw-static-deepseek-500: #2b6272;
+  --dsw-static-deepseek-600: #245260;
+  --dsw-static-deepseek-700-delete: #1d434e;
+  --dsw-static-deepseek-800: #183540;
+  --dsw-static-deepseek-900: #132830;
+  --dsw-static-blue-50: #eff4f5;
+  --dsw-static-blue-50p: #eaf0f1;
+  --dsw-static-blue-75: #e4ecee;
+  --dsw-static-blue-100: #dfeaec;
+  --dsw-static-blue-300: #a0c2ca;
+  --dsw-static-blue-400: #6f9da9;
+  --dsw-static-blue-450: #548697;
+  --dsw-static-blue-500: #3f7d6a;
+  --dsw-static-blue-600: #2b6272;
+  --dsw-static-blue-800: #1d434e;
+  --dsw-static-blue-900: #183540;
+  --dsw-static-blue-950: #132830;
+
+  /* 语义色去饱和（原值是高饱和荧光绿/正红/橙） */
+  --dsw-static-green-100: #e4efe8;
+  --dsw-static-green-400: #3f7d6a;
+  --dsw-static-green-500: #2d7a55;
+  --dsw-static-green-500-a08: rgba(45, 122, 85, 0.08);
+  --dsw-static-green-500-a12: rgba(45, 122, 85, 0.12);
+  --dsw-static-green-900: #1e3a2c;
+  --dsw-static-red-50: #f7ece9;
+  --dsw-static-red-100: #f0dcd7;
+  --dsw-static-red-400: #b9553f;
+  --dsw-static-red-400-a12: rgba(166, 61, 46, 0.12);
+  --dsw-static-red-500: #a63d2e;
+  --dsw-static-red-600: #8f3225;
+  --dsw-static-red-600-a08: rgba(166, 61, 46, 0.08);
+  --dsw-static-red-900: #3d1511;
+  --dsw-static-amber-100: #f6eddd;
+  --dsw-static-amber-400: #b07c2e;
+  --dsw-static-amber-500: #94661c;
+  --dsw-static-amber-600: #855a19;
+  --dsw-static-amber-900: #2e2210;
+  --dsw-static-violet-400: #7d6c9e;
+  --dsw-static-violet-600: #61527d;
+
+  /* ── --dsw-specific-*：另一族专用令牌，同样指向静态色板 ──────────
+     侧栏、气泡、菜单、登录输入读的是这族（宿主按主题给它不同指针：
+     浅色 sidebar-fill → bluish-50，深色 → bluish-900）。我们把指针本身
+     落到玉色阶梯，这样深浅两侧都跟着走，不用逐主题再翻一次。 */
+  --dsw-specific-sidebar-fill: #f4f2ec;
+  --dsw-specific-sidebar-nav-item-active: #efede5;
+  --dsw-specific-sidebar-nav-item-active-accent: #e6e3d9;
+  --dsw-specific-bubble: #fbfaf6;
+  --dsw-specific-bubble-highlight: #efede5;
+  --dsw-specific-menu: #fbfaf6;
+  --dsw-specific-selector: #efede5;
+  --dsw-specific-input-major: #e6e3d9;
+  --dsw-specific-login-input: #fbfaf6;
+  --dsw-specific-tip: #efede5;
+
 }
 
 /* 品牌层映射：插件面读 --et-*；别名从 body 继承，独立挂载时退回浅色兜底。
@@ -411,6 +573,65 @@ html body[data-ds-dark-theme] {
   --dsw-alias-brand-primary: #eceee9;
   --dsw-alias-brand-text: #eceee9;
   --dsw-alias-brand-primary-new-colorprimary-new-color: #7fb2bd;
+
+  /* 补漏别名（深色侧；对应浅色那批，一个都不少） */
+  --dsw-alias-button-info-fill: #3f7d6a;
+  --dsw-alias-button-info-hover: #4b8d79;
+  --dsw-alias-button-contrast-fill: #eceee9;
+  --dsw-alias-button-tool-bar-fill-invisible: rgba(255, 255, 255, 0);
+  --dsw-alias-bg-overlay: #1d211f;
+  --dsw-alias-bg-mask-2: rgba(8, 10, 9, 0.4);
+  --dsw-alias-bg-mask-3: rgba(8, 10, 9, 0.72);
+  --dsw-alias-bg-mask-drop: rgba(8, 10, 9, 0.56);
+  --dsw-alias-bg-mask-photo: rgba(8, 10, 9, 0.8);
+  --dsw-alias-bg-multi-select: #2c312e;
+  --dsw-alias-bg-document-preview: #242826;
+  --dsw-alias-bg-document-selection: rgba(127, 178, 189, 0.24);
+  --dsw-alias-border-inverted: rgba(255, 255, 255, 0);
+  --dsw-alias-border-inverted2: rgba(255, 255, 255, 0);
+  --dsw-alias-brand-primary-invert: #1b1e1c;
+  --dsw-alias-label-primary-dimmed: #eceee9;
+  --dsw-alias-label-document-preview: #c4c9c2;
+  --dsw-alias-label-deep-diving: #9aa096;
+  --dsw-alias-label-deep-diving-shimmer: rgba(255, 255, 255, 0.12);
+  --dsw-alias-markdown-placeholder: #2c312e;
+  --dsw-alias-markdown-code-segment-selected: #333835;
+  --dsw-alias-markdown-code-segment-unselected: #242826;
+  --dsw-alias-settings-card-fill: #1d211f;
+  --dsw-alias-settings-card-stroke: #272b29;
+  --dsw-alias-onboarding-accent: #7fb2bd;
+  --dsw-alias-onboarding-card-fill: #242826;
+  --dsw-alias-onboarding-secondary-fill: #2c312e;
+  --dsw-alias-onboarding-checkbox-border: #3d433f;
+  --dsw-alias-scrollbar-bg-l1: rgba(255, 255, 255, 0.1);
+  --dsw-alias-scrollbar-hover-l1: rgba(255, 255, 255, 0.22);
+  --dsw-alias-state-success-secondary: #5f9b86;
+  --dsw-alias-state-error-secondary: #e08a7b;
+  --dsw-alias-state-warn-secondary: #dfae62;
+  --dsw-alias-file-diff-added-bg: rgba(95, 155, 134, 0.14);
+  --dsw-alias-file-diff-added-gutter: rgba(95, 155, 134, 0.2);
+  --dsw-alias-file-diff-added-marker: #5f9b86;
+  --dsw-alias-file-diff-deleted-bg: rgba(224, 138, 123, 0.14);
+  --dsw-alias-file-diff-deleted-gutter: rgba(224, 138, 123, 0.2);
+  --dsw-alias-file-diff-deleted-marker: #e08a7b;
+  --dsw-alias-illustration-background: #242826;
+  --dsw-alias-illustration-backing: #2c312e;
+  --dsw-alias-illustration-detail: #a98a63;
+  --dsw-alias-illustration-inset: #1d211f;
+  --dsw-alias-illustration-shadow: rgba(0, 0, 0, 0.24);
+  --dsw-alias-illustration-surface: #1d211f;
+
+  /* --dsw-specific-* 的深色侧（侧栏/气泡/菜单必须比页面底更沉，不能更亮） */
+  --dsw-specific-sidebar-fill: #161917;
+  --dsw-specific-sidebar-nav-item-active: #242826;
+  --dsw-specific-sidebar-nav-item-active-accent: #2c312e;
+  --dsw-specific-bubble: #1d211f;
+  --dsw-specific-bubble-highlight: #2c312e;
+  --dsw-specific-menu: #1d211f;
+  --dsw-specific-selector: #242826;
+  --dsw-specific-input-major: #2c312e;
+  --dsw-specific-login-input: #1d211f;
+  --dsw-specific-tip: #242826;
 
   /* 品牌层在深色下的本地派生（含柔影与语义软底：SHARED 给的是浅色基准） */
   --et-accent-fill: var(--dsw-alias-button-primary-fill);
