@@ -6,7 +6,7 @@
  * - 角标:注入 dsh index 页;401 → 跳 /login(门禁);404/网络错误静默降级;
  *   位置=头部下方悬浮(不得压头部右侧按钮——2026-11-11 E2E 遮挡事故),兼落座兜底
  */
-import { WEBFLOW_TOKENS_CSS } from '@eterna/ui'
+import { WEBFLOW_TOKENS_CSS } from '@eterna/ui/tokens'
 import { escapeHtml } from './http.ts'
 
 const STYLE = `

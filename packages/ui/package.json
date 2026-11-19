@@ -8,7 +8,8 @@
     ".": "./src/index.ts",
     "./icons": "./src/icons.tsx",
     "./icon-data": "./src/icon-data.ts",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./tokens": "./src/tokens.ts"
   },
   "devDependencies": {
     "@types/react": "catalog:",
