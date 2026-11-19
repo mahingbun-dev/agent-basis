@@ -26,6 +26,9 @@ export const CSS = `
   font-family: var(--et-font-body); font-size: var(--et-text-micro);
   line-height: 1.4; white-space: nowrap; overflow: hidden;
 }
+[data-eterna-tasks='candidate'] [data-eterna-tasks-candidate-at] {
+  color: var(--et-fg-2); font-variant-numeric: tabular-nums;
+}
 [data-eterna-tasks='candidate'] [data-eterna-tasks-candidate-from] { color: var(--et-fg-2); }
 [data-eterna-tasks='candidate'] [data-eterna-tasks-candidate-hint] { color: var(--et-muted); }
 

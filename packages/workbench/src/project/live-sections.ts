@@ -14,6 +14,7 @@ import { attachCountOf, conflictFromTasks } from './engine-view.ts'
 import type { AuditDayFile, EvalRunReport } from './trace-files.ts'
 import { evalSnapshotFromRuns, toolHistoryForTicket, traceEntriesForTicket } from './trace-files.ts'
 import { ticketTraceEntries, type TicketTraceStore } from './ticket-trace.ts'
+import { beijingParts } from './time.ts'
 import type {
   ConflictMetrics, EvalSnapshot, FlowLiveState, FlowNodeKey, FlowNodeLiveState, LogSegment,
   WorkbenchLogEntry, WorkerInspectorSnapshot, WorkerJobItem, WorkerTreeNode,
@@ -34,9 +35,11 @@ export const FLOW_RING_LIMIT = 12
 /** routed 决策计数窗口(attach「本周」):只读查询最近 500 条决策再按周窗过滤。 */
 const DECISION_WINDOW = 500
 
-/** 节点「最近事件」行(时间 num 段 + mono id + 文本;原型 04 event-list 词汇)。 */
+/** 节点「最近事件」行(北京时间 HH:mm + mono id + 文本;原型 04 event-list 词汇)。 */
 function ringLine(at: string, id: string, text: string): readonly LogSegment[] {
-  return [{ text: `${at.slice(11, 16)} · `, num: true }, { text: id, mono: true }, { text: ` ${text}` }]
+  const parts = beijingParts(at)
+  return [{ text: `${parts === undefined ? '--:--' : `${parts.hour}:${parts.minute}`} · `, num: true },
+    { text: id, mono: true }, { text: ` ${text}` }]
 }
 
 /** 事件环条目(信息流图活跃边与节点事件行的来源;真事件流驱动,F-3)。 */

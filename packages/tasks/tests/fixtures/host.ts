@@ -191,6 +191,8 @@ export async function startHost() {
   const agents = new Map<string, RegisteredAgent>()
   /** 每个 session 的下一步;它领取等待步骤的消息。 */
   const steps = new Map<string, () => void>(), claims = new Map<string, () => void>()
+  /** 每个 session 开一个新回合(claim next-turn 排队消息);`nextTurn` 驱动面用。 */
+  const turns = new Map<string, () => void>()
   const deliveries = vi.fn<(request: Delivery) => void>()
   /** session id → 最近一次角色模型播种(Sessions.ensure 的 select 落点,46 号断言面)。 */
   const modelSelections = new Map<string, RoleModel>()
@@ -236,6 +238,15 @@ export async function startHost() {
     }
     steps.set(sessionId, () => { take(false) })
     claims.set(sessionId, () => { take(false, true) })
+    // 开一个新回合:领取 next-turn 排队的第一条(DSH 回合起点的 claim 语义)。
+    turns.set(sessionId, () => {
+      const agent = agents.get(sessionId)
+      if (!agent || agent.status !== 'idle') return
+      agent.status = 'running'
+      ctx.emit('agent/status', { agent, status: 'running' } as never)
+      turn++
+      take(true)
+    })
     const deliver = (mode: 'queue' | 'steer'): Mock<(message: UserMessage) => void> => vi.fn((message: UserMessage) => {
       inbox[mode === 'queue' ? 'nextTurn' : 'nextStep'].push(message)
       deliveries({
@@ -243,12 +254,7 @@ export async function startHost() {
         text: message.content.map(block => block.type === 'text' ? block.text : '').join(''),
       })
       // 消息唤醒闲着的 agent:其回合立即开始(DSH 如是说),第一步领取等待中的。
-      const agent = agents.get(sessionId)
-      if (!agent || agent.status !== 'idle') return
-      agent.status = 'running'
-      ctx.emit('agent/status', { agent, status: 'running' } as never)
-      turn++
-      take(true)
+      turns.get(sessionId)?.()
     })
     // cancel 清掉 inbox(除非保留),其停止的回合片刻后结束——DSH 如是说。
     const cancel = vi.fn((_cause: unknown, options?: { keepInbox?: boolean }) => {
@@ -408,6 +414,12 @@ export async function startHost() {
   const claim = (sessionId: string): void => { claims.get(sessionId)?.() }
   /** 某 session 的回合结束,DSH 如是说(idle 事件)。 */
   const idle = (sessionId: string): void => { becomeIdle(sessionId) }
+  /** 收掉在跑的回合(如有)并开下一回合:领取 next-turn 排队消息(promptHeld 的 claim 驱动面)。 */
+  const nextTurn = (sessionId: string): void => {
+    const agent = agents.get(sessionId)
+    if (agent?.status === 'running') becomeIdle(sessionId)
+    turns.get(sessionId)?.()
+  }
   /** worker 的最后一段话(assistant 文本)——经 session 事件进入 `said` 跟踪。 */
   const say = (sessionId: string, text: string): void => {
     const agent = agents.get(sessionId)
@@ -461,7 +473,7 @@ export async function startHost() {
     workspaces, renamed, permissionPresetBySession, selectedPresets, persisted,
     /** 角色模型面(46 号):播种落点与可变的 roleModel 注入值。 */
     modelSelections, roleModels,
-    step, claim, idle, say, settle, accept, stop,
+    step, claim, idle, nextTurn, say, settle, accept, stop,
     /** 手动排一次 pass(Engine 时钟)。 */
     pass: (): void => { engine.evaluateDue() },
   }

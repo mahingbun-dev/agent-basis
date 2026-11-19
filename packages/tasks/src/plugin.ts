@@ -240,11 +240,12 @@ export interface TasksOptions {
    */
   readonly threadContext?: (trigger: Trigger) => TriggerContext | undefined
   /**
-   * 候选卡到主会话的投递面(A19/A22 接线位:Sessions.prompt(masterId, requestId, …, 'queue');
+   * 候选卡到主会话的投递面(A19/A22 接线位:Sessions.promptHeld(masterId, requestId, …, 'queue');
    * ★最后一公里(2026-11-18):glue 未显式注入且 sessionHost 在场时自派生同式注入
    * (Sessions 就绪后接线,见 assessor/sessionHost 两处装配注)——候选卡送达主会话,
-   * deadline 送达才启动;glue 与 sessionHost 皆缺席时才保持「不投递、候选由调用方显式 decide」
-   * 的测试语义。
+   * **resolve 即已进入主会话回合**(不是仅入 inbox),deadline 此刻才启动;忙碌主会话的
+   * 排队时间不消耗评估超时(2026-11-19 重复候选卡修复)。glue 与 sessionHost 皆缺席时
+   * 才保持「不投递、候选由调用方显式 decide」的测试语义。
    */
   readonly deliverCandidate?: (requestId: string, text: string) => Promise<void>
   /** 候选评估的有界仓库读取端口(A21 接线位;缺省不可用——orchestrator_eval_read 的 file/directory 显式报缺)。 */
@@ -586,8 +587,9 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
   // 持久 effect)/TextCache。线程上下文为端口注入(A21 接线位;缺省候选卡带「无线程上下文」
   // 说明);投递面注入优先,glue 缺席且 sessionHost 在场时惰性自派生(★最后一公里·候选卡,
   // 2026-11-18:assessor 构造早于 Sessions 实例,故经 deliverRef 现读——Sessions 就绪后
-  // `deliverCandidate = Sessions.prompt(masterId, requestId, text, 'queue')`,候选卡由此
-  // 送达主会话、deadline 才启动;两者皆缺席保持「不投递、未送达永不过期」原语义)。
+  // `deliverCandidate = Sessions.promptHeld(masterId, requestId, text, 'queue')`,候选卡由此
+  // 送达主会话、**被回合收走**才 resolve、deadline 才启动(仅入 inbox 的排队时间不消耗
+  // 评估超时);两者皆缺席保持「不投递、未送达永不过期」原语义)。
   // 实例先于 engine 构造(Engine 构造输入),engine 以 getter 惰性取用——handler 首次运行
   // (effects 已 start,见②)不早于 engine 就绪;'assessor' 装配步标注其关停(stop 中断在跑读取)。
   const deliverRef: { value?: (requestId: string, text: string) => Promise<void> } = {}
@@ -635,12 +637,15 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
     sessions = new Sessions({ ...options.sessionHost, effects, lifetime: lifetime.signal,
       masterId: masterId ?? masterSessionId(realm), roleModel })
     // ★候选卡投递面·自派生(★最后一公里·候选卡,2026-11-18):glue 未显式注入
-    // deliverCandidate 时,Sessions 就绪即接线——候选卡经 Sessions.prompt 投到主会话
-    // ('queue';kind 'eterna-tasks' 的投递消息不与用户亲口消息混淆,sessions.ts 头注),
-    // 主会话模型经 orchestrator_eval_decide 裁决(A19/A20 回路)。显式注入恒优先。
+    // deliverCandidate 时,Sessions 就绪即接线——候选卡经 Sessions.promptHeld 投到主会话
+    // ('queue';kind 'eterna-tasks' 的投递消息不与用户亲口消息混淆,sessions.ts 头注)。
+    // promptHeld 等到消息被回合收走才 resolve:主会话忙碌时卡只在排队区等,**不**起评估
+    // deadline(修复同一触发每 120s 超时重投的重复候选卡)。主会话模型经
+    // orchestrator_eval_decide 裁决(A19/A20 回路)。显式注入恒优先。
     if (options.deliverCandidate === undefined) {
       const wiredSessions = sessions
-      deliverRef.value = (requestId, text): Promise<void> => wiredSessions.prompt(masterId ?? masterSessionId(realm), requestId, text, 'queue')
+      deliverRef.value = (requestId, text): Promise<void> =>
+        wiredSessions.promptHeld(masterId ?? masterSessionId(realm), requestId, text, 'queue')
     }
     dshExecutor = new DshExecutor({
       context: options.sessionHost.context,

@@ -261,9 +261,11 @@ it('observe 档的推断 accept 记 would_accept(评估层),auto 档才真实受
   expect(auto.kind).toBe('accept')
 })
 
-it('候选卡投递:assessment effect 幂等入队;送达面接线时投递一次并起算 deadline', async () => {
+it('候选卡投递:assessment effect 幂等入队;deliver 只在进入回合后 resolve,此前不起算 deadline', async () => {
   const repo = new MemoryRepositories()
-  const deliver = vi.fn(async (_requestId: string, _text: string): Promise<void> => {})
+  // 未 resolve 的投递 = 候选卡还在主会话 inbox 排队（忙碌回合）；直到被回合收走才 resolve。
+  const entered = Promise.withResolvers<undefined>()
+  const deliver = vi.fn((_requestId: string, _text: string): Promise<void> => entered.promise.then(() => {}))
   const handlers: ((payload: { triggerId: string }, key: string) => Promise<void>)[] = []
   const host: AssessorHost = {
     // engine 在下方以 const 初始化;getter 惰性取用(handler 运行时不早于 engine 就绪)。
@@ -290,12 +292,17 @@ it('候选卡投递:assessment effect 幂等入队;送达面接线时投递一�
     actor: { source: 'github', id: 'bob' }, basis: { via: 'followup' }, policyVersion: 'v1', startedAt: '', deadline: '' } })
   assessor.request(engine.candidate('issue-1')!)
   expect(host.effects.enqueue).toHaveBeenCalledWith('assessment', 'eval-1', { triggerId: 'issue-1' })
-  // 投递 handler:组装紧凑候选卡、deliver 一次、candidateDelivered 起算 deadline。
+  // 投递 handler:组装紧凑候选卡、deliver 一次;deliver 未 resolve（卡在排队）时 deadline 不起算。
   expect(handlers).toHaveLength(1)
-  await handlers[0]!({ triggerId: 'issue-1' }, 'eval-1')
-  expect(deliver).toHaveBeenCalledTimes(1)
+  const running = handlers[0]!({ triggerId: 'issue-1' }, 'eval-1')
+  // handler 里 candidateCard 是 async:等 deliver 真的被调用(仍 await 在未 resolve 的投递上)。
+  await vi.waitFor(() => { expect(deliver).toHaveBeenCalledTimes(1) })
   expect(deliver.mock.calls[0]![0]).toBe('candidate:eval-1')
   expect(JSON.parse(deliver.mock.calls[0]![1])).toMatchObject({ kind: 'candidate', tickets_total: 0 })
+  expect(repo.threads.get('github:1')?.evaluating?.delivered).toBeUndefined()
+  // 被主会话回合收走（deliver resolve）才 candidateDelivered 起算 deadline。
+  entered.resolve(undefined)
+  await running
   expect(repo.threads.get('github:1')?.evaluating?.delivered).toBeTruthy()
 })
 

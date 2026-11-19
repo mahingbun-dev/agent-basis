@@ -10,6 +10,7 @@
 import type { Ticket } from '@eterna/tasks'
 import { reasonText } from '@eterna/tasks'
 import type { WorkbenchLogEntry } from '../types.ts'
+import { beijingParts } from './time.ts'
 
 /** Store 的结构只读子集(tasks Store 形状;trace 只读,零写入)。 */
 export interface TicketTraceStore {
@@ -34,7 +35,11 @@ export interface TicketTraceStore {
   }
 }
 
-const clock = (iso: string): string => iso.slice(11, 19)
+/** ISO 时刻 → 北京时间「HH:mm:ss」;非法值回落「—」(不伪造时刻)。 */
+const clock = (iso: string): string => {
+  const parts = beijingParts(iso)
+  return parts === undefined ? '—' : `${parts.hour}:${parts.minute}:${parts.second}`
+}
 
 /** 工单回执行(outbox 表按 ticketId;Receipt 无发送时刻字段——已弃行用 dropped.at,余者如实「—」)。 */
 function outboxEntries(store: TicketTraceStore, ticketId: string): WorkbenchLogEntry[] {

@@ -12,6 +12,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import type { AuditRecord } from '@eterna/governance'
 import type { EvalSnapshot } from '../types.ts'
+import { beijingParts } from './time.ts'
 
 /** audit NDJSON 的 kind 全集(packages/audit/src/query.ts KINDS 同源;坏行跳过)。 */
 const AUDIT_KINDS: readonly AuditRecord['kind'][] = ['turn-end', 'tool-call', 'usage', 'governance']
@@ -85,12 +86,15 @@ function dayOfFileName(name: string): string {
   return /(\d{8})\.jsonl$/.exec(name)?.[1] ?? ''
 }
 
-/** ISO 时刻 → 「MM-DD HH:MM」展示值;兜底 = 文件日 00:00(at 缺席的记录)。 */
+/** ISO 时刻 → 北京时间「MM-DD HH:mm」展示值;兜底 = 文件日 + 无时刻(`--:--`)。 */
 function traceTime(at: string | undefined, day: string): { time: string; sortKey: string } {
-  if (at !== undefined) return { time: `${at.slice(5, 10)} ${at.slice(11, 16)}`, sortKey: at }
+  const parts = beijingParts(at)
+  if (at !== undefined && parts !== undefined) {
+    return { time: `${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`, sortKey: at }
+  }
   const dayIso = day === '' ? '00000000' : day
   const sortKey = `${dayIso.slice(0, 4)}-${dayIso.slice(4, 6)}-${dayIso.slice(6, 8)}T00:00:00.000Z`
-  return { time: `${dayIso.slice(4, 6)}-${dayIso.slice(6, 8)} 00:00`, sortKey }
+  return { time: `${dayIso.slice(4, 6)}-${dayIso.slice(6, 8)} --:--`, sortKey }
 }
 
 /**
