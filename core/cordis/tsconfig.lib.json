@@ -1,0 +1,14 @@
+{
+  "//": "声明文件出口:消费者经 exports 条件吃 lib/types 下的 .d.ts(配合 skipLibCheck),避免 vendored 源码的宽松严格度渗入消费方 tsc。由 verify 脚本产出,lib/ 不入库。",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "src",
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "lib/types"
+  },
+  "include": [
+    "src"
+  ]
+}

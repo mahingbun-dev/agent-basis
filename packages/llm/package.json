@@ -1,0 +1,25 @@
+{
+  "name": "@basis/llm",
+  "description": "v1 插件面:LLM provider 路由(ctx.llm)。openai-completions 语义(node fetch + SSE 解析,零 SDK),默认 LiteLLM 网关路由;chat/stream 双形态。",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@core/cordis": "workspace:*",
+    "@core/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

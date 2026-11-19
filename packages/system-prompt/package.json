@@ -1,0 +1,25 @@
+{
+  "name": "@basis/system-prompt",
+  "description": "v1 插件面:system prompt section 注册与组装(ctx.systemPrompt)。唯一 name + order 升序拼接 + interpolate 插值;memory 索引 section 等由此挂入。",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@core/cordis": "workspace:*",
+    "@core/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

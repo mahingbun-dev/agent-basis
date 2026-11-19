@@ -1,0 +1,10 @@
+# basis bundle 清单:企业 agent 的标准装配(v1 最小可运行集)
+# 装载顺序 = 提供序(agent-loop 最后挂载,消费全部前序 seam)。
+plugins:
+  - packages/system-prompt   # ctx.systemPrompt
+  - packages/session         # ctx.session
+  - packages/tools           # ctx.tools
+  - packages/llm             # ctx.llm(LiteLLM 路由;需 LITELLM_API_KEY)
+  - packages/approval-cli    # ctx.approval(CLI 审批面)
+  - packages/agent-loop      # ctx.agents(default agent)
+agent: default
