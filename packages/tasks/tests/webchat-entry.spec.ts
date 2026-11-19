@@ -54,20 +54,60 @@ const emitUserMessage = (ctx: Context, sessionId: string, messageId: string, tex
     { type: 'user/message', time, data: userMessage(messageId, text, kind) } as never)
 }
 
+/** 假 agent(本文件的投递/回合模拟面;status 可变以驱动「主会话忙」场景)。 */
+interface FakeAgent {
+  id: string
+  status: 'idle' | 'running'
+  session: { id: string }
+  inbox: { nextTurn: unknown[]; nextStep: unknown[]; remove(id: string): boolean }
+  followup: (message: unknown) => void
+  steer: (message: unknown) => void
+  inject: (message: unknown) => void
+  cancel: (cause: unknown, options?: { keepInbox?: boolean }) => void
+  whenIdle: () => Promise<void>
+}
+
+/** 假宿主句柄:ports 给插件,agents/claimNextTurn 给测试驱动回合。 */
+interface FakeSessionHostHandle {
+  readonly ports: SessionHostPorts
+  readonly agents: Map<string, FakeAgent>
+  /** 下一回合领取 next-turn 的第一条(emit agent/inbox/claimed + session/event)。 */
+  readonly claimNextTurn: (sessionId: string) => void
+}
+
 /** 模拟宿主 session 服务束(plugin-boot fakeSessionHost 的紧凑版:ensure/launch 消费面)。 */
-function fakeSessionHost(ctx: Context): SessionHostPorts {
-  const agents = new Map<string, {
-    id: string
-    session: { id: string }
-    inbox: { nextTurn: unknown[]; nextStep: unknown[]; remove(id: string): boolean }
-    followup: (message: unknown) => void
-    steer: (message: unknown) => void
-    inject: (message: unknown) => void
-    cancel: (cause: unknown, options?: { keepInbox?: boolean }) => void
-    whenIdle: () => Promise<void>
-  }>()
+function fakeSessionHost(ctx: Context): FakeSessionHostHandle {
+  const agents = new Map<string, FakeAgent>()
   let workspaceSeq = 0
   const workspaces = new Map<string, string>()
+  const claimNextTurn = (sessionId: string): void => {
+    const agent = agents.get(sessionId)
+    const message = agent?.inbox.nextTurn.shift()
+    if (agent === undefined || message === undefined) return
+    ctx.emit('agent/inbox/claimed', { agent, message } as never)
+    ctx.emit('session/event', agent.session as never, { type: 'user/message', data: message } as never)
+  }
+  const makeAgent = (id: string): FakeAgent => {
+    const agent: FakeAgent = {
+      id, status: 'idle', session: { id }, inbox: { nextTurn: [], nextStep: [], remove: (): boolean => false },
+      followup: (): void => {}, steer: (): void => {}, inject: (): void => {},
+      cancel: (): void => {}, whenIdle: (): Promise<void> => Promise.resolve(),
+    }
+    const deliver = (mode: 'queue' | 'steer') => (message: unknown): void => {
+      ;(mode === 'queue' ? agent.inbox.nextTurn : agent.inbox.nextStep).push(message)
+      // 空闲 agent:投递唤醒回合、消息立即被 claim(DSH 语义);忙碌:等下一回合再 claim。
+      if (agent.status !== 'idle') return
+      agent.status = 'running'
+      ctx.emit('agent/status', { agent, status: 'running' } as never)
+      const pending = mode === 'queue' ? agent.inbox.nextTurn.shift() : agent.inbox.nextStep.shift()
+      if (pending === undefined) return
+      ctx.emit('agent/inbox/claimed', { agent, message: pending } as never)
+      ctx.emit('session/event', agent.session as never, { type: 'user/message', data: pending } as never)
+    }
+    agent.followup = deliver('queue')
+    agent.steer = deliver('steer')
+    return agent
+  }
   const ports: SessionHostPorts = {
     controller: {
       resolveAgent: vi.fn(async (sessionId: SessionId) => {
@@ -77,8 +117,7 @@ function fakeSessionHost(ctx: Context): SessionHostPorts {
       create: vi.fn(async (request: { sessionId?: SessionId; workspaceId?: string }) => {
         const id = String(request.sessionId)
         if (agents.has(id)) throw new Error(`session ${id} already exists`)
-        agents.set(id, { id, session: { id }, inbox: { nextTurn: [], nextStep: [], remove: (): boolean => false },
-          followup: vi.fn(), steer: vi.fn(), inject: vi.fn(), cancel: vi.fn(), whenIdle: (): Promise<void> => Promise.resolve() })
+        agents.set(id, makeAgent(id))
         return { sessionId: SessionId(id) }
       }),
       rename: vi.fn(async (request: { sessionId: SessionId; title: string }) => ({ title: request.title })),
@@ -104,7 +143,7 @@ function fakeSessionHost(ctx: Context): SessionHostPorts {
     get: (id: string | SessionId): unknown => agents.get(String(id)),
     list: (): unknown[] => [...agents.values()],
   })
-  return ports
+  return { ports, agents, claimNextTurn }
 }
 
 /** 装配 webchat 入口的插件(真实 defineTasksPlugin 路径;临时租户根 + 长 pass 周期手动驱动)。 */
@@ -114,9 +153,23 @@ function bootWebchat(overrides: {
   ownerPort?: boolean
   sessionOwner?: ((sessionId: string) => { source: string; id: string } | undefined) | undefined
   roster?: Array<{ id: string; name?: string }>
-} = {}): { ctx: Context; runtime: TasksRuntime; dispose: () => void } {
+  /** 引擎/effect 时钟(ms;测试控制 deadline,不依赖真实时间)。 */
+  now?: () => number
+  /**
+   * true = 不注入显式 masterId,由插件按约定派生 `orchestrator-<realm>` 并 ensure 主会话
+   * (「忙碌主会话排队」回归需要真实主会话面;缺省仍钉 MASTER,其余用例零漂移)。
+   */
+  conventionMaster?: boolean
+} = {}): {
+  ctx: Context
+  runtime: TasksRuntime
+  dispose: () => void
+  agents: Map<string, FakeAgent>
+  claimNextTurn: (sessionId: string) => void
+} {
   const ctx = new Context()
-  const ports = fakeSessionHost(ctx)
+  const fake = fakeSessionHost(ctx)
+  const ports = fake.ports
   const roster = overrides.roster ?? [{ id: OWNER, name: 'Alice' }]
   // 主人端口:ownerPort=false 即不注入(走「缺省主人=realm」路径);否则注入 glue 同构端口。
   const sessionOwner = (overrides.ownerPort ?? true)
@@ -129,13 +182,19 @@ function bootWebchat(overrides: {
     scope: webchatScope,
     ...(overrides.masterId !== undefined ? { masterId: overrides.masterId } : {}),
     ...(sessionOwner !== undefined ? { sessionOwner } : {}),
-    sessionHost: { context: ctx, masterId: overrides.masterId ?? MASTER, ports },
+    ...(overrides.now !== undefined ? { now: overrides.now } : {}),
+    // conventionMaster=true 时省略显式 masterId:插件按约定派生并 ensure 主会话。
+    sessionHost: {
+      context: ctx,
+      ...(overrides.conventionMaster === true ? {} : { masterId: overrides.masterId ?? MASTER }),
+      ports,
+    },
   })
   const dispose = plugin.apply(ctx)
   const runtime = ctx.tasks as TasksRuntime
   // realm 内名单:主人 id 进 webchat 源的 allowed(gate 名单 × direct → explicit 的依据)。
   runtime.store.saveSettings({ policy: { sources: { [WEBSCHAT_SOURCE]: { allowed: roster } } } })
-  return { ctx, runtime, dispose }
+  return { ctx, runtime, dispose, agents: fake.agents, claimNextTurn: fake.claimNextTurn }
 }
 
 /** R3 委派四要素(accept 必填;engine.decide 硬约束,35 号 A7)。 */
@@ -332,4 +391,42 @@ it('插件名与入口 Source 常量面(回归看护)', () => {
   expect(TASKS_PLUGIN_NAME).toBe('eterna-tasks')
   expect(WEBSCHAT_SOURCE).toBe('webchat')
   expect(workerSessionId('t1')).toBe('worker-t1')
+})
+
+it('忙碌主会话:候选卡只排一张,排队期间不消耗评估超时(重复候选卡回归)', async () => {
+  let nowMs = Date.parse('2026-11-19T09:36:24.503Z')
+  // 约定派生主会话(不钉显式 masterId):走插件真实引导 ensure,主会话面才存在。
+  const booted = bootWebchat({ now: () => nowMs, conventionMaster: true })
+  const { ctx, runtime, dispose } = booted
+  const masterId = runtime.masterId!
+  try {
+    // 等装配的引导 ensure 建好主会话(宿主 create 是异步 fire-and-forget)。
+    await vi.waitFor(() => { expect(booted.agents.has(masterId)).toBe(true) })
+    const master = booted.agents.get(masterId)!
+    // 主会话正在长回合:followup 只入 next-turn,不 claim(候选卡在排队区等)。
+    master.status = 'running'
+    emitUserMessage(ctx, masterId, 'm-busy', '帮我调研本产品所有插件的作用')
+    const triggerId = key('tasks/webchat-trigger', masterId, 'm-busy')
+    const evalId = runtime.engine.candidate(triggerId)!.evalId
+    const threadKeyValue = `${WEBSCHAT_SOURCE}:${masterId}`
+    await vi.waitFor(() => { expect(master.inbox.nextTurn).toHaveLength(1) })
+    // 只入 inbox:排队时间不算送达,评估不该起 deadline。
+    expect(runtime.store.threads.get(threadKeyValue)?.evaluating).toMatchObject({ id: evalId })
+    expect(runtime.store.threads.get(threadKeyValue)?.evaluating?.delivered).toBeUndefined()
+    // 推进 10 分钟并驱动 pass:排队中的卡不超时、不重排、不重投(修复前每 120s 一张)。
+    nowMs += 10 * 60_000
+    runtime.pass()
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(runtime.engine.candidate(triggerId)?.evalId).toBe(evalId)
+    expect(master.inbox.nextTurn).toHaveLength(1)
+    expect(runtime.store.threads.get(threadKeyValue)?.evaluating?.delivered).toBeUndefined()
+    // 主会话下一回合收走卡(claim):deadline 此刻才起算,assessment effect 落定。
+    booted.claimNextTurn(masterId)
+    await runtime.effects.idle('assessment')
+    expect(master.inbox.nextTurn).toHaveLength(0)
+    const evaluating = runtime.store.threads.get(threadKeyValue)?.evaluating
+    // 投递定稿时刻=claim 之后(引擎时钟为真实时钟:断言关系而非注入值)。
+    expect(evaluating?.delivered).toBeTruthy()
+    expect(evaluating?.deadline).toBe(new Date(Date.parse(evaluating!.delivered!) + 120_000).toISOString())
+  } finally { dispose() }
 })

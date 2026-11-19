@@ -10,7 +10,8 @@
  * - per-eval 状态隔离:每个 Eval 的读取缓存与线程上下文按 `evalId` 独立存放,
  *   `release(evalId)` 即弃(eval 结束/已决/超时后不留任何缓存;迟到的加载丢弃结果);
  * - 候选卡投递:'assessment' 持久 effect 送达主会话**一次**(幂等 requestId),
- *   `Engine.candidateDelivered` 自送达起计时——送达前 Eval 永不过期;送达的卡片是紧凑
+ *   `Engine.candidateDelivered` 自**被回合收走**起计时(仅入 inbox 排队不算送达;
+ *   忙碌主会话的排队时间不消耗评估超时)——送达前 Eval 永不过期;送达的卡片是紧凑
  *   候选卡(related_tickets ≤8 open 优先 + tickets_total + next_action 指引),完整窗口
  *   由 orchestrator_eval 按需读取(决策局部化:卡片自包含裁决所需的有界事实);
  * - TextCache 机制:已读页按 UTF-16 码元总量有界的 LRU(SA cache.ts 移植),
@@ -19,9 +20,9 @@
  * ★本仓改造(依据见各端口注):
  * - 线程上下文经 `TriggerContext` 端口注入(A21 channels/Source 适配器接线;24 号 §8.2
  *   不采纳具体 Source 实现),未注入时该 Source「无线程上下文」——评估只用触发文本与批次;
- * - 候选卡投递经 `deliver` 端口(A22 Sessions 接线:prompt 到主会话),未注入时不投递、
- *   不启动 deadline(「未送达的 Eval 永不过期」,engine.evaluateDue 语义),候选仍可经
- *   orchestrator_eval 读取、由调用方显式 decide;
+ * - 候选卡投递经 `deliver` 端口(A22 Sessions 接线:promptHeld 到主会话,resolve = 已进入
+ *   回合),未注入时不投递、不启动 deadline(「未送达的 Eval 永不过期」,engine.evaluateDue
+ *   语义),候选仍可经 orchestrator_eval 读取、由调用方显式 decide;
  * - 仓库读取经 `readPath` 端口(A21 接线;SA readRepositoryPath 的 GitHub 实现不移植),
  *   未注入时 file/directory 读取显式报不可用。
  * 评估指令在主会话 prompt(prompts/admission.md,35 号 A23)——本载荷不带指令。
@@ -99,8 +100,9 @@ export interface AssessorHost {
   /** 触发消息的线程上下文读取端口;undefined = 该 Source 不提供线程上下文(A21 接线位)。 */
   threadContext?(trigger: Trigger): TriggerContext | undefined
   /**
-   * 候选卡到主会话的一次投递(A22 Sessions 接线位;按 `requestId` 幂等,resolve 即已送达)。
-   * 未注入:不投递、不启动 deadline(未送达的 Eval 永不过期),候选由调用方显式 decide。
+   * 候选卡到主会话的一次投递(A22 Sessions 接线位;按 `requestId` 幂等,resolve 即**已进入
+   * 主会话回合**——仅入 inbox 的排队不算送达)。未注入:不投递、不启动 deadline(未送达的
+   * Eval 永不过期),候选由调用方显式 decide。
    */
   deliver?(requestId: string, text: string): Promise<void>
   /** 有界仓库读取端口(A21 接线位;SA readRepositoryPath 的实现面),未注入时报不可用。 */
@@ -193,7 +195,7 @@ export class MasterAssessor {
   private readonly host: AssessorHost
   constructor(host: AssessorHost) {
     this.host = host
-    // 候选卡送达才开始该 Eval 的 deadline(SA:busy 的主会话不消耗评估时间);
+    // 候选卡被回合收走才开始该 Eval 的 deadline(SA:busy 的主会话不消耗评估时间);
     // 处理暂停期间扣住投递(并发限 0)。投递按 `candidate:<evalId>` 幂等(送达一次)。
     host.effects.handle('assessment', async ({ triggerId }, evalId) => {
       const candidate = this.host.engine.candidate(triggerId)

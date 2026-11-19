@@ -11,6 +11,7 @@
 import type { ReactElement } from 'react'
 import { Icon } from '@eterna/ui/icons'
 import type { UserTextNodeSlotProps, UserTextRule, UserTextRuleMatch } from './client-types.ts'
+import { beijingFull, beijingMinute } from './time.ts'
 
 /** 候选节点 id(与 conversation.user.text.node 的 key 同名)。 */
 export const CANDIDATE_NODE_ID = 'candidate'
@@ -67,14 +68,20 @@ export function CandidateCard({ node, t }: UserTextNodeSlotProps): ReactElement 
   const data = node.data as CandidateCardData | undefined
   if (data === undefined || t === undefined) return null
   const from = data.from
+  // 触发到达时刻按北京时间显示（用户要求；title 带完整日期与「北京时间」字样）。
+  const at = beijingMinute(data.at)
+  const full = beijingFull(data.at)
+  const hint = t('candidate.hint')
+  const title = full === undefined ? hint : `${hint} · ${t('candidate.atTitle', { time: full })}`
   return (
     <span
       data-eterna-tasks="candidate"
       {...(data.triggerId === undefined ? {} : { 'data-eterna-tasks-candidate-id': data.triggerId })}
-      title={t('candidate.hint')}
+      title={title}
     >
       <Icon name="flow" size={12} />
       <span>{t('candidate.label')}</span>
+      {at === undefined ? null : <span data-eterna-tasks-candidate-at="">{at}</span>}
       {from === undefined || from === '' ? null : <span data-eterna-tasks-candidate-from="">{t('candidate.from', { from })}</span>}
       <span data-eterna-tasks-candidate-hint="">{t('candidate.short')}</span>
     </span>

@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { candidateCardRule, parseCandidateCard } from '../src/client/candidate-card.tsx'
+import { beijingFull, beijingMinute, beijingParts } from '../src/client/time.ts'
 
 const CANDIDATE = JSON.stringify({
   kind: 'candidate',
@@ -62,5 +63,25 @@ describe('candidateCardRule', () => {
   it('规则元数据固定(id=候选节点 key,order 先于引用/空白规则)', () => {
     expect(candidateCardRule.id).toBe('candidate')
     expect(candidateCardRule.order).toBe(5)
+  })
+})
+
+describe('北京时间', () => {
+  it('UTC ISO → 北京时间:紧凑「MM-DD HH:mm」与完整「YYYY-MM-DD HH:mm」', () => {
+    // 生产实例的 at(2026-11-19T09:36:24.503Z)= 北京时间 17:36(UTC+8)。
+    expect(beijingMinute('2026-11-19T09:36:24.503Z')).toBe('11-19 17:36')
+    expect(beijingFull('2026-11-19T09:36:24.503Z')).toBe('2026-11-19 17:36')
+    expect(beijingParts('2026-11-19T09:36:24.503Z')).toMatchObject({ year: '2026', month: '11', day: '19', hour: '17', minute: '36', second: '24' })
+  })
+
+  it('跨日进位(UTC 16:30 → 次日 00:30)', () => {
+    expect(beijingMinute('2026-11-19T16:30:00.000Z')).toBe('11-20 00:30')
+  })
+
+  it('非法/空值 → undefined(不伪造时刻,调用方不渲染)', () => {
+    expect(beijingMinute('not-a-date')).toBeUndefined()
+    expect(beijingMinute(undefined)).toBeUndefined()
+    expect(beijingFull('')).toBeUndefined()
+    expect(beijingParts(undefined)).toBeUndefined()
   })
 })

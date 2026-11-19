@@ -147,6 +147,12 @@ interface SeenState {
   loaded?: Promise<Set<string>> | undefined
 }
 
+/** 「消息被回合收走」的等待者(`promptHeld` 的 resolve/reject 面)。 */
+interface ClaimWaiter {
+  readonly resolve: () => void
+  readonly reject: (error: unknown) => void
+}
+
 /**
  * 取、建 orchestrator 与 worker 的 DSH session,并按 requestId 幂等地向其投递消息;
  * 主会话的 relay 经 `Effects` 有序排队。Executor、装配面与人行路由用它 ensure
@@ -157,6 +163,11 @@ export class Sessions {
   private readonly host: SessionsHost
   /** 每 session 的已入史消息 id(实时 ∪ 持久),按 Session 对象跟踪(SA delivery.ts seen 同构)。 */
   private readonly seen = new WeakMap<Session, SeenState>()
+  /**
+   * 等待「消息被 session 回合收走」的 waiter,键 = `<sessionId>\0<messageId>`。
+   * 只服务 `promptHeld`(候选卡:入 inbox 不等于已送达,被回合 claim 才起 deadline)。
+   */
+  private readonly claimWaiters = new Map<string, Set<ClaimWaiter>>()
   private readonly disposers: (() => void)[] = []
   constructor(host: SessionsHost) {
     this.host = host
@@ -167,8 +178,33 @@ export class Sessions {
     // (SA AgentDelivery 构造器同款;持久半边见 loadHistory)。
     this.disposers.push(this.ctx.on('session/event', (session, event) => {
       if (event.type !== 'user/message' || event.data.source.kind !== 'eterna-tasks') return
-      this.seenStateFor(session).ids.add(String(event.data.id))
+      const id = String(event.data.id)
+      this.seenStateFor(session).ids.add(id)
+      this.settleClaimed(session.id, id)
     }))
+    // 回合领取(inbox claim)才是「消息已进入回合」的时刻——宿主 0.2.2 的类型面原文:
+    // claimed 的消息被纳入该回合;若 pre-step 拒绝,它既不 discarded 也不再发 user/message,
+    // 回合无 step 收口(故只等 session/event 会漏掉被拒的领取,promptHeld 会永挂)。
+    this.disposers.push(this.ctx.on('agent/inbox/claimed', ({ agent, message }) => {
+      if (message.source.kind !== 'eterna-tasks') return
+      this.settleClaimed(agent.session.id, String(message.id))
+    }))
+    // 人从队列删除(或宿主 clear inbox):该次投递已被消费——记为已持有(同一 requestId
+    // 不重发),并结束等待;deadline 起算后由超时重排兜底,不留下永挂的 assessment effect。
+    this.disposers.push(this.ctx.on('agent/inbox/discarded', ({ agent, message }) => {
+      if (message.source.kind !== 'eterna-tasks') return
+      const id = String(message.id)
+      this.seenStateFor(agent.session).ids.add(id)
+      this.settleClaimed(agent.session.id, id)
+    }))
+    // 关停:等在 claim 上的投递立即拒绝(Effects.drain 不能等一条永远不会被 claim 的消息)。
+    const abort = (): void => {
+      const error = new Error('Sessions 已关停:候选卡投递等待中止')
+      for (const waiters of [...this.claimWaiters.values()]) for (const waiter of [...waiters]) waiter.reject(error)
+      this.claimWaiters.clear()
+    }
+    this.host.lifetime.addEventListener('abort', abort, { once: true })
+    this.disposers.push(() => { this.host.lifetime.removeEventListener('abort', abort) })
   }
   /**
    * 取或建 session `id`,工作区为 `cwd`(A22「worker session 一律建在租户 realm 工作
@@ -269,12 +305,72 @@ export class Sessions {
     // 收据半边:投递落定后冲刷持久化,重启后的回读才不漏这条(SA delivery.ts 同款)。
     await this.host.ports.persistence.flush()
   }
+  /**
+   * 按 `requestId` 幂等投递一条消息,并等到它**被 session 的回合收走**(`agent/inbox/claimed`
+   * 或已入史)才 resolve——候选卡「送达才起 deadline」的接缝:
+   * - 只入 inbox(`followup`)不算送达:忙碌的主会话把卡排在下一回合时,评估不被超时消耗
+   *   (修复 2026-11-19 生产「同一触发每 120s 超时重投、排队区累积多张卡」);
+   * - 已被回合 claim 或已在史中即立刻 resolve(重试同一 requestId 不重发);
+   * - 人从队列删除(discarded)按已消费处理(记入已持有并 resolve,超时重排兜底);
+   * - 关停(装配逆序的 lifetime.abort)拒绝等待,Effects.drain 不被永挂的 handler 拖住。
+   * 幂等与持久化半边与 `prompt` 完全同序(已持有不重发、投递落定后 flush)。
+   * @throws session 不存在或已被处置、宿主错误、或等待期间关停。
+   */
+  async promptHeld(sessionId: string, requestId: string, text: string, mode: 'queue' | 'steer'): Promise<void> {
+    this.host.lifetime.throwIfAborted()
+    const result = await this.host.ports.controller.resolveAgent(SessionId(sessionId))
+    if ('error' in result) throw result.error
+    const agent = result.agent
+    if (this.ctx.agents.get(agent.id) !== agent) throw new Error(`Session ${sessionId} 已被处置,投递目标失效`)
+    const deliveryId = key(requestId)
+    const id = String(messageId(deliveryId))
+    // 先登记 waiter,再装载持久史/投递:消息可能在回读期间被回合收走(事件早于登记即漏)。
+    const claim = this.awaitClaim(agent.session.id, id)
+    try {
+      const seen = await this.seenOf(agent)
+      this.host.lifetime.throwIfAborted()
+      // 已入史 = 早已进入回合:立刻视为送达(重试同一 requestId 不重发)。
+      if (seen.ids.has(id)) return
+      this.send(agent, seen, deliveryId, text, mode)
+      // 收据半边:投递落定后冲刷持久化(与 prompt 同序;消息仍在 inbox 也不丢)。
+      await this.host.ports.persistence.flush()
+      this.host.lifetime.throwIfAborted()
+      await claim.done
+    }
+    finally { claim.dispose() }
+  }
   /** `prompt` 在 `requestId` 下投递的消息 id:DSH 的 inbox 事件以它点名消息。 */
   promptedId(requestId: string): ReturnType<typeof MessageId> { return messageId(key(requestId)) }
   /** 排队一条到主会话的 steering relay:持久、由 Effects 重试至送达,每 requestId 至多一次。 */
   relay(requestId: string, text: string): void { this.host.effects.enqueue('relay', requestId, { text }) }
   /** 退订宿主 session 事件(装配关停配逆用)。 */
   dispose(): void { for (const dispose of this.disposers.splice(0)) dispose() }
+  /** 登记一条「被回合收走」的等待;`dispose` 撤销登记(不改变已 resolve 的 promise)。 */
+  private awaitClaim(sessionId: string, deliveryId: string): { readonly done: Promise<void>; readonly dispose: () => void } {
+    const waitKey = `${sessionId}\u0000${deliveryId}`
+    let waiters = this.claimWaiters.get(waitKey)
+    if (waiters === undefined) { waiters = new Set(); this.claimWaiters.set(waitKey, waiters) }
+    const { promise, resolve, reject } = Promise.withResolvers<void>()
+    const waiter: ClaimWaiter = { resolve, reject }
+    waiters.add(waiter)
+    // 未被 await 的 rejection(登记后走了「已入史」/抛错分支)不冒到进程级。
+    void promise.catch(() => {})
+    return {
+      done: promise,
+      dispose: () => {
+        waiters.delete(waiter)
+        if (!waiters.size) this.claimWaiters.delete(waitKey)
+      },
+    }
+  }
+  /** 一条消息被回合收走(claim/入史/discarded):唤醒该 session+message 的全部等待者。 */
+  private settleClaimed(sessionId: string, deliveryId: string): void {
+    const waitKey = `${sessionId}\u0000${deliveryId}`
+    const waiters = this.claimWaiters.get(waitKey)
+    if (waiters === undefined) return
+    this.claimWaiters.delete(waitKey)
+    for (const waiter of waiters) waiter.resolve()
+  }
   /** session 是否已持有 `deliveryId` 的消息:已入史(实时/持久)或已在 inbox 等待。 */
   private holdsMessage(agent: Agent, seenIds: Set<string>, deliveryId: string): boolean {
     const id = String(messageId(deliveryId))

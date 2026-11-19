@@ -74,7 +74,7 @@ export class Evals extends EnginePart {
     else return
     this.repo.threads.save(thread)
   }
-  /** Eval 的候选已到达 assessor 的 Session:其 deadline 自此刻起算。 */
+  /** Eval 的候选已被主会话回合收走(进入回合,不是仅入 inbox):其 deadline 自此刻起算。 */
   delivered(evalId: string, policy: Policy): void {
     const thread = this.repo.threads.active().find(item => item.evaluating?.id === evalId)
     if (!thread?.evaluating || thread.evaluating.delivered) return
