@@ -99,18 +99,26 @@ live hub 快照 `sessions` 恒空占位(宿主 session 面未接线);客户端�
 行点击 = 侧栏高亮 + 宿主 `uiWorkspace.openSession`(同「主会话」工具栏入口);角色 chip
 「主控/执行」走 `@eterna/ui/icons` + `--et-*` 令牌;普通会话行无 chip。
 
-## 4. 验收与实测(2026-11-19 本机)
+## 4. 验收与实测(2026-11-19 本机,部署分支 `deploy/tasks-super-01146` @ b328f70)
 
 - `pnpm --filter @eterna/tasks verify`:**51 文件 / 844 测试**全绿(含 build:client)。
-- `pnpm --filter @eterna/access verify`:**37 文件 / 352 测试**全绿。
-- `pnpm --filter @eterna/workbench verify`:**18 文件 / 211 测试**全绿(含 build:client)。
-- `node scripts/lint-ui-tokens.mjs`:16 目录 250 文件通过(任务包客户端样式令牌纪律另按
+- `pnpm --filter @eterna/access verify`:**40 文件 / 383 测试**全绿。
+- `pnpm --filter @eterna/workbench verify`:**18 文件 / 215 测试**全绿(含 build:client)。
+- `node scripts/lint-ui-tokens.mjs`:17 目录 275 文件通过(任务包客户端样式令牌纪律另按
   豁免清单手检,见 §6)。
 - `node tools/packctl/bin/packctl.mjs form-check`:0 finding。
 - `node scripts/verify-eterna-super.mjs`:221 host entries、22 行 super 挂载面 active、
   3 presets;新增花名册断言均 PASS——
   `combo 花名册含 @eterna/tasks/client.js`、`任务包 combo 可取且含 factory 注册(id=@eterna/tasks)`。
-- 隔离容器 E2E 与 3210 部署验收(写路径/截图)见 §7。
+- **隔离容器 E2E(0.1.46 镜像,全新卷,不碰生产)11 项全绿**:匿名 401;roles 登录 200
+  (`masterId=orchestrator-Mr.Ma`);admin GET 全量设置 + 六块修订;非 admin settings 403
+  而 roles 200;非法块/非整数修订 400;保存 `eval.timeoutSeconds` 修订 +1 且版本不变;
+  重读持久;旧修订 409 +「重新加载」;无变化保存 `saved:true/changed:false` 不记修订;
+  规则改动 `policyChanged` + 版本变化;还原规则。
+- 容器内工件复核:`/repo/packages/tasks/lib/client.js`(138095 B,`__ModuleLoader__.load`
+  + `id:"@eterna/tasks"`)、`/data/profiles/eterna-super/node_modules/@eterna/tasks` 链、
+  `/data/sessions/--data-workspaces-Mr.Ma--/orchestrator-Mr.Ma` 主会话目录。
+- 3210 部署验收(verify.sh/只读 UI/截图)见 §7。
 
 ## 5. 边界与不做
 
@@ -120,6 +128,9 @@ live hub 快照 `sessions` 恒空占位(宿主 session 面未接线);客户端�
 - 角色面 30s 缓存 + 在途去重(会话头每会话一枚徽标,不能一 mount 一发);失败清缓存
   下次重试,不重试风暴。
 - 不改 live hub 的 SSE 词汇(不加 `sessions-updated`);派生在客户端,服务端状态机零改动。
+- **空白会话头不渲染 utilities**:宿主 `wSkVaW_headerBlank` 态只挂 corner(右侧栏按钮),
+  `conversation.session.header.utilities` 在会话有内容后才出现。故新建空白主会话的头徽标
+  要等首条消息;工作台「主控」行是该阶段的主入口与标记(实测见 §7-5)。
 
 ## 6. 跟进项
 
@@ -129,9 +140,38 @@ live hub 快照 `sessions` 恒空占位(宿主 session 面未接线);客户端�
    暂按 tasks 内容 hash 记;接入后由 glue 传 `jointSides` 即自动切联合 hash(face 已留缝)。
 3. 工作台会话行的「已结束工单归档」需要宿主 session 面投影;本期不猜。
 
-## 7. 部署(0.1.46)
+## 7. 部署(0.1.46,2026-11-19 已上线 3210)
 
-干净 worktree 构建 → compose 镜像改 0.1.46 → `pre-restart-check` → `docker compose -p agent-basis up -d`
-→ `deploy/verify.sh` → 容器内复核(ETERNA_FORM=super、tasks client 工件/挂载链/花名册、
-主会话存在、admin GET settings 200)→ 双主题 × 1440/900/390 只读截图。写路径 E2E 只在隔离
-容器执行(遵守"测试不动运行中部署")。
+1. **构建**:干净 worktree `/Users/sunny/code/agent-basis-01146` @ `b328f70`(基线
+   `e9160db` 知识融合) → `eterna-agent:0.1.46`(image id `482d36eb758c`)。不用
+   `9b1cde8`:其 `autoInstallPeers:false` 锁文件丢 peer 图,容器内 `@deepseek-ai/dsh-scope`
+   模块缺失。
+2. **停旧**:生产旧容器 image id `daeefd053f63`(0.1.45 tag 已漂移到 `5f432c85ac7b`,
+   故回滚须按 image id,不能按 tag)。
+3. **切换**:`pre-restart-check.sh` 静默窗通过 → compose `image: eterna-agent:0.1.46`
+   → `docker compose -p agent-basis up -d`(不 `--build`)。未动数据卷 `agent-basis_eterna-home`。
+4. **verify.sh**:14 过 / 0 败(登录/匿名拒/桥接 redirect/me/插件红线/越权拒/错密码/
+   治理活性/知识底座装载 + overview/relay status/下载包/guide)。
+5. **容器/路由复核**:`ETERNA_FORM=super`;`/repo/packages/tasks/lib/client.js` 138095 B;
+   `…/node_modules/@eterna/tasks` → `/repo/packages/tasks`;patch 行 `id: eterna-tasks`
+   (644)/`eterna-tasks-access-bridge`(656);主会话目录在;admin `GET
+   /access/api/tasks/settings` 200(realm Mr.Ma、`policyVersion=565427af…`、规则
+   `eterna-delegation`、`eval.mode=auto`、`maxWorkers=3`);`session-roles` 200
+   (`masterId=orchestrator-Mr.Ma`)。
+6. **只读 UI 取证 + 截图**(生产,admin 视角,仅导航):
+   - 设置 →「任务与超级智能体」:八卡渲染(运行状态/评估/执行器/预算/门禁/评估规则/
+     来源名单与准入/来源实例),底部「重新加载 / 保存更改」常驻;正文与主题跟随 `--dsw-alias-*`。
+   - 工作台 → 任务侧栏:「超级智能体主控 · 委派入口」行 +「主控」chip;工单为 0 时无执行行
+     (派生只覆盖开放工单,符合预期)。
+   - **会话头徽标**:生产主会话为空(空白头不挂 utilities,见 §5),故正例在**隔离实例**
+     (同镜像、realm 对齐账号,`ETERNA_ACCESS_ADMIN_USER=Mr.Ma`)首条消息后取证:
+     `data-eterna-tasks-role="orchestrator"` +「主控」在头右对齐;普通会话(生产
+     「只回复两个字：收到」)utilities 在场而徽标不渲染(负例)。
+   - 截图归档 `artifacts/0.1.46-tasks-super/`:`settings-{1440,900,390}-{light,dark}.png`、
+     `workbench-{…}.png`(生产)、`badge-testinstance-{…}.png`(隔离实例)。深浅主题经
+     CDP `prefers-color-scheme` 驱动(不写用户偏好);390 断点下设置卡单列、工作台视图条横滚、
+     内容区不塌。
+7. 写路径 E2E 只在隔离实例执行(遵守「测试不动运行中部署」):同一镜像全新卷,11 项全绿
+   (§4),容器已删除、卷已清理。
+8. **回滚**:compose `image` 改 `sha256:daeefd053f63…` → `docker compose -p agent-basis
+   up -d`;数据卷不变。
