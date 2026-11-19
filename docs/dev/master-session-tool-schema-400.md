@@ -41,6 +41,22 @@ parameters: {
 
 会话日志确认失败回合在请求期即被拒，未落任何模型输出。
 
+### 为什么 0.1.47 仍会复现（重要）
+
+同类修复 `a08b03f`（0.1.38 镜像）确实做过，但它在 `fix/tool-schema-object-root`
+支线上**从未合并进 main**（`git merge-base --is-ancestor a08b03f origin/main` 返回
+非零）。此后 0.1.45 / 0.1.46 / 0.1.47 都按 main 重建，修复随之丢失，缺陷在 0.1.47
+重新出现在生产。本次修复合并为 `b93e592` 进入 main，并把个人插件模板/参考文档一并
+改为对象根写法，避免再走一遍支线热修——**镜像级热修必须落 main，否则下一次按 main
+重建即回退**。
+
+### 其他被本次带入的加固
+
+- `packages/brand/skills/cordis-plugin-development/references/personal-tools.md`：
+  明确要求 `parameters` 写对象根 JSON Schema；说明转内置/bundle 不经装载器。
+- 同目录 `templates/personal-tool/index.js`：模板从裸映射改为
+  `{ type:'object', properties, required }`。
+
 ## 3. 修复
 
 - 新增 `packages/access/src/tool-schema.ts`：
