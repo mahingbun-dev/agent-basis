@@ -168,6 +168,9 @@ describe('品牌层与桥接层互不污染', () => {
     for (const selector of aliasBlocks) {
       for (const part of selector.split(',')) {
         expect(part.includes('body'), `别名覆盖落到了非 body 选择器: ${selector}`).toBe(true)
+        // 宿主主题插件也在 body 上定义同一批别名且后注入——必须比它重一档。
+        // 只写 body 会被冲成宿主冷白（2026-11-19 生产实测 #fff）。
+        expect(/^html body/u.test(part.trim()), `别名覆盖权重不足，会被宿主覆盖: ${part}`).toBe(true)
       }
     }
   })
