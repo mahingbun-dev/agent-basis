@@ -1,4 +1,5 @@
-# @eterna/glue bundle:五个基座插件(governance/memory/knowledge/audit/egress)
+# @eterna/glue bundle:四个基座插件(governance/memory/audit/egress);知识底座
+# (eterna-knowledge)由 @eterna/knowledge-admin 单宿主在 profile 模板内直挂,不走 glue。
 # 装载形态:insert 语义插入基础树——cordis patch 的裸 id 行只按 id 覆写既有行,
 # 基础树无 eterna-* 行时会被 applyPatches 丢弃(dsh-app-boot/lib/index.js applyPatches:
 # "patch: entry %C not found" → continue),插件永远不进解析树(2026-11-04 E2E 实测:
@@ -8,14 +9,12 @@
 # 行序 = 插件 apply 序 = pre-execute 监听器注册序(waterfall 从外到内):
 # eterna-governance 最先(最外层,其 ask 透传后回填让下游 egress deny 先于人审生效);
 # eterna-egress 最后(下游,域名级 deny 短路在 @event/pack 等领域包 ask 门之前)。
-# audit 纯观察不参与瀑布;memory/knowledge 依赖经 cordis inject 解析,与行序无关。
+# audit 纯观察不参与瀑布;memory 依赖经 cordis inject 解析,与行序无关。
 - insert:
     - id: eterna-governance
       name: '@eterna/glue/governance-plugin'
     - id: eterna-memory
       name: '@eterna/glue/memory-plugin'
-    - id: eterna-knowledge
-      name: '@eterna/glue/knowledge-plugin'
     - id: eterna-audit
       name: '@eterna/glue/audit-plugin'
     - id: eterna-egress

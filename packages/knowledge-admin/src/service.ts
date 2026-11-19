@@ -1,15 +1,15 @@
 /**
  * `KnowledgeAdminService` —— 管理面唯一业务实体(Remote 网关 + 路由面 pin 共享同一实例)。
  *
- * ## 职责边界(与既有包的分工)
- * - **不重造 @eterna/knowledge**:检索/读取/提案/发布/废弃全部消费其 `WikiLocalBackend`
- *   (与 glue knowledge-plugin 同契约的 `propose → reviewProposal → deprecate` 三件套);
- *   本包额外持有**按绝对路径 keyed 的独立池**(绝不与 glue 的全局 service 共享实例,故无写冲突)。
- * - **不改 governance 门禁语义**:本包的"人审面"就是 `reviewProposal` 的调用方
- *   (`decided_by='knowledge-admin:<caller>'`);agent 的 `knowledge_propose` 路径仍走 glue 的
- *   governance 门禁,两条路径共享同一后端状态机,互不覆盖。
- * - **身份只在路由面**:service 拿到 `KnowledgeAdminCaller`,自己做 `sanitizeTarget`
- *   (非管理员不得操作他人账号)。
+ * ## 职责边界(融合后的单宿主)
+ * - **唯一知识底座**。检索/读取/提案/发布/废弃全部消费其 `WikiLocalBackend`
+ *   (`propose → reviewProposal → deprecate` 三件套);本包持有**唯一一个**
+ *   `BackendPool`(按绝对路径 keyed),Agent 四工具经薄门面复用同一 pool,
+ *   不再有 glue 的第二套 service/router/连接。
+ * - **写入门禁**:只有 access 守卫铸出的真人 caller(`human:true`)可审批/直接发布;
+ *   Agent 工具与 Typert 网关(`human:false`)写入一律落 pending。
+ * - **身份只在路由面 / 工具 resolver**:service 拿到 `KnowledgeAdminCaller`,自己做
+ *   `#sanitize`(非管理员不得操作他人账号;管理员缺省目标 = 全局 `*`)。
  *
  * ## 有效门禁(gate)
  * wiki-local 的 gate 是 fail-closed 的:未配置 = 一律 reject = 永远发布不了。
@@ -31,8 +31,10 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import {
   WikiLocalBackend, createNodeFsAdapter, formatCitation, parseWikiPage,
 } from '@eterna/knowledge'
-import type { DocPatch, KnownErrorLike, KnowledgeHit, KnowledgeProposal } from './service-kinds.ts'
+import type { DocPatch, KnownErrorLike, KnowledgeProposal } from './service-kinds.ts'
 import { KnowledgePermissionStore } from './access-store.ts'
+import { createAccessDirectory, resolveAccessDbPath, type AccessDirectory } from './access-db.ts'
+import { createKnowledgeAccountsFace, type KnowledgeAccountsFace } from './accounts-face.ts'
 import { KnowledgeAuditLog, parseTime, sanitizeAuditDetail, type AuditServiceLike } from './audit-log.ts'
 import { resolveAdminConfig, type KnowledgeAdminPluginConfig, type ResolvedAdminConfig } from './config.ts'
 import { DeepWikiBackend, describeError, matchPages, toSourceStatus } from './deepwiki.ts'
@@ -42,9 +44,10 @@ import {
   resolveAccountPath, resolveGlobalPath, resolveTenantRoot, type KnowledgeAdminPathsConfig, type ResolvedWikiPath,
 } from './paths.ts'
 import { BackendPool } from './pool.ts'
+import { createKnowledgeCallerRouter, type KnowledgeCallerRouter } from './routing.ts'
 import {
-  ETERNA_KNOWLEDGE_ACCOUNTS_SERVICE_ID, KNOWLEDGE_SERVICE_ID, KNOWLEDGE_ADMIN_TOOL_NAME, LOCAL_CALLER,
-  MEMBER_LEVELS, accountAllowed, fail, ok,
+  KNOWLEDGE_ADMIN_TOOL_NAME, LOCAL_CALLER, MEMBER_LEVELS, accountAllowed,
+  fail, ok,
 } from './types.ts'
 import type {
   AskArgs, AskValue, DeprecateDocArgs, DeprecateDocValue, DiscardProposalArgs, DiscardProposalValue,
@@ -119,14 +122,18 @@ function toProvenance(provenance: {
   }
 }
 
-/** 知识服务(glue knowledge-plugin)的消费面结构子集;缺席即降级。 */
-interface KnowledgeServiceLike {
-  search(query: { query: string; top_k?: number; mode?: 'hybrid' | 'keyword' | 'semantic' }): Promise<{
-    readonly hits: readonly KnowledgeHit[]
-    readonly contributed: readonly string[]
-    readonly degraded: readonly { readonly backend: string; readonly reason: string }[]
-  }>
-  status?(): Promise<readonly { readonly id: string; readonly ok: boolean; readonly reason?: string | undefined }[]>
+/** 知识后端状态(Agent `knowledge_status` 的数据源;不暴露管理面内部字段)。 */
+export interface StatusBackendsValue {
+  readonly account: string
+  readonly backends: readonly {
+    readonly id: string
+    readonly ok: boolean
+    readonly reason?: string | undefined
+    readonly doc_count: number
+    readonly last_sync?: string | undefined
+    readonly capabilities: { readonly write: boolean; readonly deprecate: boolean; readonly graph: boolean }
+    readonly configured: boolean
+  }[]
 }
 
 /** LLM 服务消费面结构子集(`stream(GenerateOptions)`)。 */
@@ -145,16 +152,6 @@ interface LlmServiceLike {
 /** 默认模型选择服务消费面(`currentSelection()`)。 */
 interface AgentDefaultModelLike {
   currentSelection(): { readonly provider?: string; readonly model?: string } | undefined
-}
-
-/** 账号状态面(glue 提供的只读计数;`statusForAccount`) 。 */
-interface KnowledgeAccountsFaceLike {
-  statusForAccount(account: string): {
-    readonly available: boolean
-    readonly dbPath: string
-    readonly wikiDocCount: number
-    readonly proposalCount: number
-  } | undefined
 }
 
 /** 一次性 undo 句柄(deprecate 的逆闭包;**不在服务面代签**,人是执行主体)。 */
@@ -199,6 +196,12 @@ export class KnowledgeAdminService {
   readonly #deepwiki: DeepWikiBackend
   readonly #auditLog: KnowledgeAuditLog
   readonly #permissions: KnowledgePermissionStore
+  /** 只读身份面(users.db;路由与账号面共用)。 */
+  readonly #access: AccessDirectory
+  /** 账号知识只读状态面(plugin provide 的 `eterna-knowledge-accounts`)。 */
+  readonly accounts: KnowledgeAccountsFace
+  /** 会话 → 调用者路由(Agent 工具面身份解析)。 */
+  readonly router: KnowledgeCallerRouter
   readonly #undos = new Map<string, UndoHandle>()
   readonly #logger: { warn?(message: string): void } | undefined
   #disposed = false
@@ -233,6 +236,12 @@ export class KnowledgeAdminService {
     })
     this.#auditLog = new KnowledgeAuditLog(join(this.#home, 'knowledge-audit.jsonl'), () => this.#now())
     this.#permissions = new KnowledgePermissionStore(this.#ensureAccessDb())
+    this.#access = createAccessDirectory(deps.config?.routing?.accessDbPath ?? resolveAccessDbPath(env, cwd))
+    this.accounts = createKnowledgeAccountsFace({ paths: this.#paths, access: this.#access })
+    this.router = createKnowledgeCallerRouter({
+      mode: deps.config?.routing?.mode ?? 'auto',
+      access: this.#access,
+    })
   }
 
   // ── 生命周期 ────────────────────────────────────────────────────────────────
@@ -409,7 +418,8 @@ export class KnowledgeAdminService {
     const body = wireString(args.body).trim()
     if (title.length === 0) return fail('invalid', 'title 必填(非空)')
     if (body.length === 0) return fail('invalid', 'body 必填(非空)')
-    const publish = args.publish !== false
+    // 真人通道才可直接发布;Agent/网关一律 pending(门禁不靠调用方自觉)
+    const publish = caller.human === true && args.publish !== false
     const docId = typeof args.doc_id === 'string' && args.doc_id.trim().length > 0 ? args.doc_id.trim() : undefined
     const edit = docId !== undefined && await this.#docExists(target, docId)
     const path = args.path ?? (edit ? await this.#docPath(target, docId) : undefined)
@@ -428,8 +438,13 @@ export class KnowledgeAdminService {
       // 两段式:propose(只落 pending)→ [publish] reviewProposal(发布)
       const proposalId = await backend.propose(patch)
       if (!publish) {
-        await this.#audit(caller, target.account, 'knowledgeAdmin.saveDoc', 'ok', `提案 ${proposalId}(pending,待审)`)
-        return ok({ proposal_id: proposalId, state: 'pending', note: '已落 pending 提案,待 reviewProposal 批准' })
+        await this.#audit(caller, target.account, 'knowledgeAdmin.saveDoc', 'ok',
+          `提案 ${proposalId}(pending,待审;非人工通道不直接发布)`)
+        return ok({
+          proposal_id: proposalId,
+          state: 'pending',
+          note: '已落 pending 提案,需人工在知识库面板审批后发布;非人工通道不直接发布',
+        })
       }
       return await this.#publish(target, caller, proposalId, 'verified', args.changelog_note)
     } catch (cause) {
@@ -513,6 +528,10 @@ export class KnowledgeAdminService {
   }
 
   async reviewProposal(caller: KnowledgeAdminCaller, args: ReviewProposalArgs): Promise<KnowledgeResult<ReviewProposalValue>> {
+    // 审批只允许知识库面板(真人通道);Agent 工具已无 review action,网关/RPC 也在此兜底拒绝
+    if (caller.human !== true) {
+      return fail('forbidden', '提案审批仅限知识库面板的人工操作(Agent/网关通道不得审批)')
+    }
     const gate = this.#sanitize(caller, args.account)
     if (gate.kind === 'fail') return gate.result
     const target = this.#resolveTarget(gate.account)
@@ -717,10 +736,9 @@ export class KnowledgeAdminService {
   // ── 权限 ────────────────────────────────────────────────────────────────────
 
   listMembers(caller: KnowledgeAdminCaller, args: ListMembersArgs): Promise<KnowledgeResult<ListMembersValue>> {
-    const requested = (args.account ?? '').trim()
-    const gate = this.#sanitize(caller, requested.length === 0 ? undefined : requested)
+    const gate = this.#sanitize(caller, args.account)
     if (gate.kind === 'fail') return Promise.resolve(gate.result)
-    const scope = caller.admin ? (requested === '' ? GLOBAL_ACCOUNT : gate.account) : caller.account
+    const scope = gate.account
     try {
       return Promise.resolve(ok({ members: this.#permissions.list(scope) }))
     } catch (cause) {
@@ -760,10 +778,9 @@ export class KnowledgeAdminService {
   // ── 审计 ────────────────────────────────────────────────────────────────────
 
   async listAudit(caller: KnowledgeAdminCaller, args: ListAuditArgs): Promise<KnowledgeResult<ListAuditValue>> {
-    const requested = (args.account ?? '').trim()
-    const gate = this.#sanitize(caller, requested.length === 0 ? undefined : requested)
+    const gate = this.#sanitize(caller, args.account)
     if (gate.kind === 'fail') return gate.result
-    const account = caller.admin ? (requested === '' ? GLOBAL_ACCOUNT : gate.account) : caller.account
+    const account = gate.account
     try {
       const all = await this.#auditLog.read({
         account,
@@ -786,8 +803,10 @@ export class KnowledgeAdminService {
   async testSource(caller: KnowledgeAdminCaller, args: TestSourceArgs): Promise<KnowledgeResult<TestSourceValue>> {
     const source = args.source ?? 'deepwiki'
     if (source === 'wiki-local') {
-      const target = this.#resolveTarget(this.#selfAccount(caller))
-      if (target === undefined) return fail('invalid', `账号名非法:${caller.account}`)
+      const gate = this.#sanitize(caller, args.account)
+      if (gate.kind === 'fail') return gate.result
+      const target = this.#resolveTarget(gate.account)
+      if (target === undefined) return fail('invalid', `账号名非法:${gate.account}`)
       const backend = this.#pool.acquire(this.#cacheKey(target))
       if (backend === undefined) return fail('unavailable', '后端池已关闭(插件已 dispose)')
       try {
@@ -812,6 +831,40 @@ export class KnowledgeAdminService {
   }
 
   // ── Agent 工具面(复用同一批方法;工具不实现 UI 专属 ask/权限写) ──────────────────
+
+  /**
+   * 后端状态(Agent `knowledge_status` 的数据源;不注册为网关方法)。
+   * 与 overview 的计数同源(同一池、同一 backend),只多给能力/健康明细。
+   */
+  async statusBackends(
+    caller: KnowledgeAdminCaller,
+    args: { readonly account?: string | undefined },
+  ): Promise<KnowledgeResult<StatusBackendsValue>> {
+    const gate = this.#sanitize(caller, args.account)
+    if (gate.kind === 'fail') return gate.result
+    const target = this.#resolveTarget(gate.account)
+    if (target === undefined) return fail('invalid', `账号名非法:${gate.account}`)
+    const backend = this.#pool.acquire(this.#cacheKey(target))
+    if (backend === undefined) return fail('unavailable', '后端池已关闭(插件已 dispose)')
+    try {
+      await backend.reindexAll()
+      const health = await backend.health()
+      return ok({
+        account: gate.account,
+        backends: [{
+          id: 'wiki-local',
+          ok: health.ok,
+          ...(health.reason === undefined ? {} : { reason: health.reason }),
+          doc_count: health.doc_count,
+          ...(health.last_sync === undefined ? {} : { last_sync: health.last_sync }),
+          capabilities: backend.capabilities,
+          configured: true,
+        }],
+      })
+    } catch (cause) {
+      return fail('internal', `读后端状态失败:${describeError(cause)}`)
+    }
+  }
 
   /** `knowledge_admin` 工具(Agent 面);见 tools.ts 的 action 表。 */
   async runTool(caller: KnowledgeAdminCaller, action: string, args: Readonly<Record<string, unknown>>): Promise<KnowledgeResult<unknown>> {
@@ -845,7 +898,8 @@ export class KnowledgeAdminService {
           doc_id: str('doc_id'),
           ...(tags === undefined ? {} : { tags }),
           origin: str('origin'),
-          publish: bool(args.publish) ?? false,
+          // Agent 通道恒 pending;服务面另有 human 门禁兜底
+          publish: false,
         })
       }
       case 'deprecate': {
@@ -874,19 +928,13 @@ export class KnowledgeAdminService {
         return await this.saveDoc(caller, { account, title, body, doc_id: str('doc_id'), publish: false })
       }
       case 'review': {
-        const proposalId = str('proposal_id')
-        const decision = str('decision')
-        if (proposalId === undefined) return fail('invalid', 'review 需要 proposal_id')
-        if (decision !== 'approve' && decision !== 'reject') return fail('invalid', 'review 的 decision 只能是 approve|reject(代签禁止,工具面只接受显式 approve)')
-        return await this.reviewProposal(caller, {
-          account, proposal_id: proposalId, decision, reason: str('reason'),
-          trust: decision === 'approve' ? 'verified' : undefined,
-        })
+        // 保留分支只为一类调用方:显式 upgrade 前的老配置。审批在服务面 human 门禁处拒绝。
+        return fail('forbidden', 'review 已从 Agent 工具面移除:提案审批只允许人工在知识库面板操作')
       }
       case 'list_proposals':
         return await this.listProposals(caller, { account, state: ['pending'], limit: num(args.limit) })
       default:
-        return fail('invalid', `未知 action:${action}(可用:list|read|search|save|deprecate|status|import_markdown|propose|review|list_proposals)`)
+        return fail('invalid', `未知 action:${action}(可用:list|read|search|save|deprecate|status|import_markdown|propose|list_proposals)`)
     }
   }
 
@@ -904,7 +952,7 @@ export class KnowledgeAdminService {
       fs: createNodeFsAdapter(nodeFs),
       now: () => this.#now(),
       // 有效门禁:只有显式 approve 才发布(默认 deny 由下面 #withGate / #publish 覆盖)
-      gate: () => ({ kind: 'reject', reason: 'knowledge-admin:发布需管理面板显式 approve(此 gate 为缺省 deny 兜底)' }),
+      gate: () => ({ kind: 'reject', reason: 'knowledge-admin:发布需人工通道(浏览器面板)显式 approve(此 gate 为缺省 deny 兜底)' }),
     })
     return { backend, dispose: () => { backend.dispose() } }
   }
@@ -973,7 +1021,7 @@ export class KnowledgeAdminService {
 
   // ── 内部:检索聚合 ──────────────────────────────────────────────────────────
 
-  /** 三源聚合:本地分库(必跑)→ 平台 knowledge 服务(可选)→ DeepWiki(可选, fail-soft)。 */
+  /** 三源聚合已收敛为两源:本地分库(必跑)+ DeepWiki(可选, fail-soft)。 */
   async #collectHits(
     caller: KnowledgeAdminCaller,
     account: string,
@@ -1014,29 +1062,8 @@ export class KnowledgeAdminService {
       }
     }
 
-    // 平台 knowledge 服务(glue 注册;账号分库由 resolver 路由)——本包只读消费
-    const platform = this.#knowledge()
-    if (platform === undefined) {
-      degraded.push({ source: KNOWLEDGE_SERVICE_ID, reason: '知识服务未挂载(ctx.get 缺席;仅用本地分库)' })
-    } else {
-      try {
-        const result = await platform.search({ query, top_k: topK, ...(mode === undefined ? {} : { mode }) })
-        for (const hit of result.hits) {
-          hits.push({
-            ref: { doc_id: hit.ref.doc_id, source_uri: hit.ref.source_uri, backend: hit.ref.backend },
-            title: hit.title,
-            snippet: hit.snippet,
-            score: hit.score,
-            provenance: toProvenance(hit.provenance),
-            source: hit.ref.backend === 'weknora' ? 'weknora' : 'wiki-local',
-          })
-        }
-        if (result.hits.length > 0) contributed.push(KNOWLEDGE_SERVICE_ID)
-        for (const item of result.degraded) degraded.push({ source: item.backend, reason: item.reason })
-      } catch (cause) {
-        degraded.push({ source: KNOWLEDGE_SERVICE_ID, reason: describeError(cause) })
-      }
-    }
+    // 平台 knowledge 服务分支已删除:融合后本包就是知识底座唯一宿主,
+    // 不再存在第二个 `@eterna/knowledge` provide(再读一次只会重复检索/跨账号泄漏)。
 
     // DeepWiki(自建 LLM wiki):本地关键词匹配,不依赖它的搜索 API;不可达只算降级
     if (includeSources && this.#deepwiki.enabled) {
@@ -1073,41 +1100,15 @@ export class KnowledgeAdminService {
     const localStatus: KnowledgeAdminSourceStatus = target === undefined
       ? { id: 'wiki-local', status: 'not-mounted', detail: `账号名非法:${account}` }
       : { id: 'wiki-local', status: 'ok', detail: `本地分库 ${target.wikiDir}` }
-    const platform = this.#knowledge()
-    let platformStatus: KnowledgeAdminSourceStatus
-    if (platform === undefined) {
-      platformStatus = {
-        id: KNOWLEDGE_SERVICE_ID,
-        status: 'not-mounted',
-        detail: 'ctx.get(\'@eterna/knowledge\') 缺席(glue knowledge-plugin 未启用);检索降级为本地目录关键词匹配',
-      }
-    } else {
-      try {
-        const reports = await platform.status?.() ?? []
-        const weknora = reports.find(item => item.id === 'weknora')
-        platformStatus = weknora === undefined
-          ? { id: KNOWLEDGE_SERVICE_ID, status: 'ok', detail: '知识服务在场(仅 wiki-local 后端)' }
-          : weknora.ok
-            ? { id: 'weknora', status: 'ok', detail: 'WeKnora 后端可用(knowledge 服务内既有后端)' }
-            : { id: 'weknora', status: 'unreachable', detail: weknora.reason ?? 'WeKnora 不可用' }
-      } catch (cause) {
-        platformStatus = { id: KNOWLEDGE_SERVICE_ID, status: 'unreachable', detail: describeError(cause) }
-      }
-    }
-    const accounts = this.#get(ETERNA_KNOWLEDGE_ACCOUNTS_SERVICE_ID) as KnowledgeAccountsFaceLike | undefined
-    const accountDetail = typeof accounts?.statusForAccount === 'function'
-      ? ((status): string => status === undefined
-        ? `账号 ${account} 知识库未开通(glue 账号面):按需建本地目录时自动补建`
-        : `glue 账号面读数:docs=${status.wikiDocCount} proposals=${status.proposalCount} available=${status.available}`)(
-        accounts.statusForAccount(account),
-      )
-      : 'glue 账号面未挂载(不影响本地分库读写)'
+    const status = this.accounts.statusForAccount(account)
+    const accountDetail = status === undefined
+      ? `账号 ${account} 知识库未开通:按需建本地目录时自动补建`
+      : `账号面读数:docs=${status.wikiDocCount} proposals=${status.proposalCount} available=${status.available}`
     const deepwikiProbe = this.#deepwiki.enabled
       ? await this.#deepwiki.probe({})
       : { status: 'not-configured' as const, detail: 'DeepWiki 未启用(deepwiki.enabled=false,缺省);本地分库兜底' }
     return [
       { ...localStatus, detail: `${localStatus.detail};${accountDetail}` },
-      platformStatus,
       toSourceStatus(deepwikiProbe),
     ]
   }
@@ -1129,17 +1130,14 @@ export class KnowledgeAdminService {
         result: fail('forbidden', `越权:账号 ${caller.account} 无权操作账号 ${target}(管理员可操作任意账号)`),
       }
     }
+    // 管理员缺省目标 = 全局库 `*`(知识底座默认视角);普通账号恒本人。
     const account = caller.admin
-      ? (target.length === 0 ? caller.account : target)
+      ? (target.length === 0 ? GLOBAL_ACCOUNT : target)
       : caller.account
     if (account !== GLOBAL_ACCOUNT && !isValidAccountName(account)) {
       return { kind: 'fail', result: fail('invalid', `账号名非法:${account}`) }
     }
     return { kind: 'ok', account }
-  }
-
-  #selfAccount(caller: KnowledgeAdminCaller): string {
-    return caller.account
   }
 
   #resolveTarget(account: string): ResolvedWikiPath | undefined {
@@ -1172,11 +1170,6 @@ export class KnowledgeAdminService {
   }
 
   // ── 内部:依赖取用 ──────────────────────────────────────────────────────────
-
-  #knowledge(): KnowledgeServiceLike | undefined {
-    const service = this.#get(KNOWLEDGE_SERVICE_ID) as KnowledgeServiceLike | undefined
-    return typeof service?.search === 'function' ? service : undefined
-  }
 
   #llm(): LlmServiceLike | undefined {
     const service = this.#get('llm') as LlmServiceLike | undefined
@@ -1214,13 +1207,16 @@ export class KnowledgeAdminService {
     detail?: string  ,
   ): Promise<void> {
     const actor = `user:${caller.userId}(${caller.account})`
+    // 通道标注(human=浏览器面板真人;agent=工具/网关):审计可区分"谁批的"
+    const channel = caller.human === true ? 'human' : 'agent'
+    const detailText = detail === undefined ? `via=${channel}` : `${detail};via=${channel}`
     // 远端审计:fire-and-forget(服务缺席/抛错一律静默,绝不挡业务)
     const audit = this.#get('audit') as AuditServiceLike | undefined
     if (typeof audit?.report === 'function') {
       try {
         Promise.resolve(audit.report({
           action,
-          detail: { account, outcome, detail: detail === undefined ? undefined : sanitizeAuditDetail(detail) },
+          detail: { account, outcome, detail: `via=${channel}${detail === undefined ? '' : `;${sanitizeAuditDetail(detail)}`}` },
           actor: { kind: 'user', userId: caller.userId, account: caller.account },
         })).catch(() => {})
       } catch {
@@ -1229,7 +1225,7 @@ export class KnowledgeAdminService {
     }
     // 本地 jsonl:写失败只告警,不改变业务结果
     try {
-      await this.#auditLog.append({ account, actor, action, outcome, detail })
+      await this.#auditLog.append({ account, actor, action, outcome, detail: detailText })
     } catch (cause) {
       this.#logger?.warn?.(`knowledge-admin:本地审计写入失败 ${describeError(cause)}`)
     }

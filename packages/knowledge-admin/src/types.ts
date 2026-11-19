@@ -8,18 +8,23 @@
  * ## 端点命名(两面一致,改这里即两面同时生效)
  * - Typert 网关方法名:`eternaKnowledgeAdmin/<method>`(服务 key = `eternaKnowledgeAdmin`);
  * - access 守卫路径:`/api/knowledgeAdmin/<method>`(cookie 身份在守卫,见 README「接入 access 守卫」);
- * - 方法清单见 {@link KnowledgeAdminMethod}(17 个)。
+ * - 方法清单见 {@link KnowledgeAdminMethod}(18 个)。
  *
  * ## 统一封套
  * 每个方法返回 {@link KnowledgeResult} 封套:`{ ok: true, value } | { ok: false, code, message }`。
  * 前端不做字段猜测;`ok:false` 时 `code` 取值见 {@link KnowledgeAdminErrorCode}。
  *
  * ## 目标账号语义(account)
- * - 每个**读/写知识库的方法**都可带 `account`(字符串)。**空串或缺省 = 调用者本人账号**;
+ * - 每个**读/写知识库的方法**都可带 `account`(字符串)。**空串或缺省 = 调用者默认范围**:
+ *   管理员 → 全局库 `'*'`(知识底座默认视角);普通账号 → 本人账号;
  * - 服务面把「调用者身份」(caller:守卫注入)与「目标账号」(payload.account)**分开判定**:
  *   非管理员且 `payload.account !== caller.account` → `{ ok:false, code:'forbidden' }`;
- * - 管理员可操作任意账号;`account === '*'` 在 `listAccounts`/`overview`/`listMembers` 里表示"全局视角",
- *   对其他方法等价于 `forbidden`/`invalid`(不猜)。
+ * - 管理员可操作任意账号;`account === '*'` 表示全局库(管理员专属视角)。
+ *
+ * ## 写入门禁(human 通道)
+ * - `caller.human === true` 只由 access 守卫铸出(浏览器面板 = 真人);
+ * - 只有真人通道可以 `reviewProposal` 审批 / `saveDoc(publish=true)` 直接发布;
+ * - Agent 工具(路由面解析)与 Typert 网关的 caller 恒 `human:false`:写入一律落 pending。
  *
  * ## 凭据红线
  * 本包**不读任何凭据文件**。DeepWiki 的 `bearerRef` 只经宿主 `ctx.get('credentials')` 解析,
@@ -44,10 +49,10 @@ export const KNOWLEDGE_ADMIN_ENDPOINT_PREFIX = `${ETERNA_KNOWLEDGE_ADMIN_SERVICE
 /** access 守卫路径前缀(守卫注册 `/api/knowledgeAdmin/<method>`)。 */
 export const KNOWLEDGE_ADMIN_GUARD_PREFIX = '/api/knowledgeAdmin/'
 
-/** 消费的知识服务 id(glue knowledge-plugin 注册;字面量对齐,本包不引依赖)。 */
+/** 消费的知识服务 id(库层 `@eterna/knowledge`;字面量对齐,本包不引该常量)。 */
 export const KNOWLEDGE_SERVICE_ID = '@eterna/knowledge'
 
-/** 消费的账号知识面 id(glue knowledge-plugin 注册的只读计数面;字面量对齐)。 */
+/** 本包 provide 的账号知识面 id(panel 只读计数消费;字面量对齐)。 */
 export const ETERNA_KNOWLEDGE_ACCOUNTS_SERVICE_ID = 'eterna-knowledge-accounts'
 
 /** 审计服务 key(`ctx.get('audit')`;缺席时静默,只写本地 jsonl)。 */
@@ -65,8 +70,8 @@ export const CREDENTIALS_SERVICE_ID = 'credentials'
 /** `knowledge_admin` 工具名(Agent 面)。 */
 export const KNOWLEDGE_ADMIN_TOOL_NAME = 'knowledge_admin'
 
-/** `@eterna/knowledge-admin` 插件名(bundle loader 行 id 派生)。 */
-export const ETERNA_KNOWLEDGE_ADMIN_PLUGIN_NAME = 'eterna-knowledge-admin'
+/** `@eterna/knowledge-admin` 插件装载名(profile 行 id = `eterna-knowledge`)。 */
+export const ETERNA_KNOWLEDGE_ADMIN_PLUGIN_NAME = 'eterna-knowledge'
 
 /** 统一错误码(前端按它分支,不按 message 字串分支)。 */
 export type KnowledgeAdminErrorCode =
@@ -85,7 +90,7 @@ export type KnowledgeAdminErrorCode =
   /** 其余未分类失败(实现细节在 message 里,绝不回显令牌)。 */
   | 'internal'
 
-/** 统一返回封套(全部 17 个方法同形)。 */
+/** 统一返回封套(全部 18 个方法同形)。 */
 export type KnowledgeResult<T> =
   | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly code: KnowledgeAdminErrorCode; readonly message: string }
@@ -299,18 +304,19 @@ export interface SaveDocArgs {
   readonly changelog_note?: string | undefined
   /**
    * 是否在两段式(propose→reviewProposal)同一次调用内直接发布。
-   * 缺省 true(人审面);false 只落 pending 提案(留给 `reviewProposal` 显式批准)。
+   * 只在**真人通道**(`caller.human === true`,即浏览器面板)生效;缺省 true。
+   * Agent/网关通道即使传 true 也只落 pending(服务面强制),`saveDocValue.state` 如实回显。
    */
   readonly publish?: boolean | undefined
 }
 
 export interface SaveDocValue {
   readonly proposal_id: string
-  /** 提案最终状态(publish=false 时恒为 'pending')。 */
+  /** 提案最终状态(非真人通道 / publish=false 时恒为 'pending')。 */
   readonly state: 'pending' | 'approved' | 'rejected'
-  /** 发布后的文档引用(publish=false 或 reject 时 undefined)。 */
+  /** 发布后的文档引用(未发布时 undefined)。 */
   readonly published?: KnowledgeAdminDocRef | undefined
-  /** 发布依据/拒绝原因(人可读)。 */
+  /** 发布依据/待审说明(人可读)。 */
   readonly note?: string | undefined
 }
 
@@ -332,6 +338,17 @@ export interface DeprecateDocValue {
   readonly undo_hint: string
   /** 撤销令牌(服务面持有内存 undo,前端只回传 doc_id+token;过期失效)。 */
   readonly undo_token: string
+}
+
+/** `undoDeprecate` 入参(撤销一次 deprecate;token 一次性、30 分钟过期)。 */
+export interface UndoDeprecateArgs {
+  /** 缺省沿用 issue 时记录的账号;显式传入须与 token 归属一致。 */
+  readonly account?: string | undefined
+  readonly undo_token: string
+}
+
+export interface UndoDeprecateValue {
+  readonly undone: true
 }
 
 /** `listProposals` 入参。 */
@@ -530,6 +547,8 @@ export type ListAuditValue = KnowledgeAdminPage<KnowledgeAdminAuditEntry>
 
 /** `testSource` 入参(DeepWiki 源探测;fail-soft 不抛)。 */
 export interface TestSourceArgs {
+  /** 探测目标账号(缺省=调用者默认范围:管理员全局 `*`、普通账号本人)。 */
+  readonly account?: string | undefined
   /** 缺省探测 deepwiki;也接受 wiki-local(本地库自检)。 */
   readonly source?: 'deepwiki' | 'wiki-local' | undefined
   /** 覆盖 baseUrl(缺省取插件配置/`http://127.0.0.1:8001`)。 */
@@ -550,7 +569,7 @@ export interface TestSourceValue {
 // 方法名 union + 端点表(守卫与 client 都照这张表走)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** 17 个方法名(顺序即 README 契约表顺序)。 */
+/** 18 个方法名(顺序即 README 契约表顺序)。 */
 export type KnowledgeAdminMethod =
   | 'listAccounts'
   | 'overview'
@@ -558,6 +577,7 @@ export type KnowledgeAdminMethod =
   | 'readDoc'
   | 'saveDoc'
   | 'deprecateDoc'
+  | 'undoDeprecate'
   | 'listProposals'
   | 'reviewProposal'
   | 'discardProposal'
@@ -597,6 +617,7 @@ export interface KnowledgeAdminMethodMap {
   readonly readDoc: MethodEntry<ReadDocArgs, ReadDocValue, false, false>
   readonly saveDoc: MethodEntry<SaveDocArgs, SaveDocValue, true, false>
   readonly deprecateDoc: MethodEntry<DeprecateDocArgs, DeprecateDocValue, true, false>
+  readonly undoDeprecate: MethodEntry<UndoDeprecateArgs, UndoDeprecateValue, true, false>
   readonly listProposals: MethodEntry<ListProposalsArgs, ListProposalsValue, false, false>
   readonly reviewProposal: MethodEntry<ReviewProposalArgs, ReviewProposalValue, true, false>
   readonly discardProposal: MethodEntry<DiscardProposalArgs, DiscardProposalValue, true, false>
@@ -636,6 +657,7 @@ export const KNOWLEDGE_ADMIN_METHOD_SPECS: readonly {
     readDoc: { mutating: false, adminOnly: false },
     saveDoc: { mutating: true, adminOnly: false },
     deprecateDoc: { mutating: true, adminOnly: false },
+    undoDeprecate: { mutating: true, adminOnly: false },
     listProposals: { mutating: false, adminOnly: false },
     reviewProposal: { mutating: true, adminOnly: false },
     discardProposal: { mutating: true, adminOnly: false },
@@ -677,10 +699,15 @@ export interface KnowledgeAdminCaller {
   readonly admin: boolean
   /** 登录 userId(审计 actor + 成员记账;**只存 id,不读 users.db 人名**)。 */
   readonly userId: number
+  /**
+   * 是否真人通道(`access` 守卫铸出;Agent 工具/网关恒 false/缺省)。
+   * 只有 `true` 可审批提案、直接发布;其余通道写入一律落 pending。
+   */
+  readonly human?: boolean | undefined
 }
 
-/** 无身份(本地单用户/unary 旧形态)时的调用者投影:admin=true、account='local'。 */
-export const LOCAL_CALLER: KnowledgeAdminCaller = { account: 'local', admin: true, userId: 0 }
+/** 无身份(本地单用户/unary 旧形态)时的调用者投影:admin=true、全局库、Agent 通道。 */
+export const LOCAL_CALLER: KnowledgeAdminCaller = { account: '*', admin: true, userId: 0, human: false }
 
 /** 账号断言:非管理员且 payload.account≠caller.account → forbidden。 */
 export function accountAllowed(caller: KnowledgeAdminCaller, requested: string | undefined): KnowledgeAdminErrorCode | undefined {
@@ -707,6 +734,7 @@ export interface KnowledgeAdminClientContext {
   readonly readDoc: (args: ReadDocArgs) => Promise<KnowledgeResult<ReadDocValue>>
   readonly saveDoc: (args: SaveDocArgs) => Promise<KnowledgeResult<SaveDocValue>>
   readonly deprecateDoc: (args: DeprecateDocArgs) => Promise<KnowledgeResult<DeprecateDocValue>>
+  readonly undoDeprecate: (args: UndoDeprecateArgs) => Promise<KnowledgeResult<UndoDeprecateValue>>
   readonly listProposals: (args: ListProposalsArgs) => Promise<KnowledgeResult<ListProposalsValue>>
   readonly reviewProposal: (args: ReviewProposalArgs) => Promise<KnowledgeResult<ReviewProposalValue>>
   readonly discardProposal: (args: DiscardProposalArgs) => Promise<KnowledgeResult<DiscardProposalValue>>

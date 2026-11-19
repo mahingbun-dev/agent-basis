@@ -80,16 +80,13 @@ async function buildGlue() {
   const sources = {
     governance: join(root, 'packages', 'governance', 'src'),
     memory: join(root, 'packages', 'memory', 'src'),
-    knowledge: join(root, 'packages', 'knowledge', 'src'),
   }
   const glueSrc = join(root, 'packages', 'glue', 'src')
   const REWRITES = [
     { from: /from '@eterna\/governance'/g, to: "from '../vendor/governance/index.ts'" },
     { from: /from '@eterna\/memory'/g, to: "from '../vendor/memory/index.ts'" },
-    { from: /from '@eterna\/knowledge'/g, to: "from '../vendor/knowledge/index.ts'" },
     { from: /import\('@eterna\/governance'\)/g, to: "import('../vendor/governance/index.ts')" },
     { from: /import\('@eterna\/memory'\)/g, to: "import('../vendor/memory/index.ts')" },
-    { from: /import\('@eterna\/knowledge'\)/g, to: "import('../vendor/knowledge/index.ts')" },
   ]
 
   rmSync(out, { recursive: true, force: true })
@@ -103,7 +100,7 @@ async function buildGlue() {
   }
   cpSync(join(glueSrc, 'index.ts'), join(stage, 'src', 'index.ts'))
   cpSync(join(glueSrc, 'types.ts'), join(stage, 'src', 'types.ts'))
-  for (const file of ['governance-plugin.ts', 'knowledge-plugin.ts', 'memory-plugin.ts']) {
+  for (const file of ['governance-plugin.ts', 'memory-plugin.ts']) {
     const from = join(glueSrc, 'plugins', file)
     if (!existsSync(from)) fail(`缺少 ${from}`)
     let text = readFileSync(from, 'utf8')
@@ -119,12 +116,11 @@ async function buildGlue() {
     private: true,
     type: 'module',
     description: '组合层 glue bundle(市场自包含构建,由 scripts/build-market.mjs 生成,vendor + esbuild 编译):'
-      + '把 @eterna 的 memory/knowledge/governance 服务装配为真实 EternaAgent 宿主可挂载的插件。'
-      + '源码见 packages/{glue,governance,memory,knowledge}。',
+      + '把 @eterna 的 memory/governance 服务装配为真实 EternaAgent 宿主可挂载的插件。'
+      + '源码见 packages/{glue,governance,memory};知识底座由 @eterna/knowledge-admin 单宿主提供。',
     exports: {
       '.': './src/index.js',
       './memory-plugin': './src/plugins/memory-plugin.js',
-      './knowledge-plugin': './src/plugins/knowledge-plugin.js',
       './governance-plugin': './src/plugins/governance-plugin.js',
       './package.json': './package.json',
     },

@@ -92,7 +92,7 @@
 #     - id: eterna-memory
 #       name: '@eterna/glue/memory-plugin'
 #     - id: eterna-knowledge
-#       name: '@eterna/glue/knowledge-plugin'
+#       name: '@eterna/knowledge-admin'
 
 # ── 企业 pruner 换装：上游 tool-result-pruner → @eterna/compaction/pruner-plugin ──
 # base 树已挂上游 @deepseek-ai/dsh-compaction-basic 与上游

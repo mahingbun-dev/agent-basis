@@ -87,8 +87,8 @@ rules:
     reason: companion 浏览器执行面——出站发生在用户自己的浏览器(egress 已按同语义豁免),令牌按会话归属路由到本人扩展。2026-11-13 事故补遗:未列名导致每次调用挂死在不可见审批(web 前端无审批面,session-7e15e6ab 实测)
   - id: allow-knowledge
     effect: allow
-    tools: ['knowledge_propose', 'knowledge_read', 'knowledge_search', 'knowledge_status']
-    reason: 企业知识底座(@eterna/glue knowledge);propose 只产生提案不直接生效(发布另有评审门),读/搜/状态均只读
+    tools: ['knowledge_propose', 'knowledge_read', 'knowledge_search', 'knowledge_status', 'knowledge_admin']
+    reason: 企业知识底座(@eterna/knowledge-admin 单宿主);allow 只放行调用、不等于发布——所有 Agent 写入一律落 pending,审批/直接发布只允许人工在知识库面板(human 通道);读/搜/状态均只读
   - id: allow-mcp-resources
     effect: allow
     tools: ['list_mcp_resources', 'list_mcp_resource_templates', 'read_mcp_resource']

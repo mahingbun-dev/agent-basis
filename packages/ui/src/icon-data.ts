@@ -34,6 +34,7 @@ export type IconName =
   | 'paperclip'
   | 'memory'
   | 'bookmark'
+  | 'knowledge'
   | 'domain'
   | 'log'
   | 'bell'
@@ -171,6 +172,12 @@ export const ICONS: Readonly<Record<IconName, readonly IconPrimitive[]>> = {
   /* 书签:旗形书签(画像条目/来源记忆的标记动作)。 */
   bookmark: [
     { tag: 'path', attrs: { d: 'M6.5 5.5A1.5 1.5 0 0 1 8 4h8a1.5 1.5 0 0 1 1.5 1.5V20L12 15.8 6.5 20z' } },
+  ],
+
+  /* 知识底座:摊开的书(左页/右页 + 书脊;表达 wiki 知识库本身)。 */
+  knowledge: [
+    { tag: 'path', attrs: { d: 'M12 6.6C10.5 5.3 8.5 4.6 6 4.6a.8.8 0 0 0-.8.8v12.2c0 .4.3.8.8.8 2.5 0 4.5.7 6 2 1.5-1.3 3.5-2 6-2a.8.8 0 0 0 .8-.8V5.4a.8.8 0 0 0-.8-.8c-2.5 0-4.5.7-6 2z' } },
+    { tag: 'path', attrs: { d: 'M12 6.6v12.8' } },
   ],
 
   /* 域:虚线框分组三个节点(功能域=会话内容的归属分组)。 */

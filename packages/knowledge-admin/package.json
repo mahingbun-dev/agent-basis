@@ -2,7 +2,7 @@
   "name": "@eterna/knowledge-admin",
   "version": "0.1.0",
   "private": true,
-  "description": "知识库管理插件:左侧栏「知识库」入口 + main keyed 工作台(文档浏览/编辑/废弃、提案审批、检索问答、Markdown 与仓库导入、成员权限、审计、DeepWiki 源探测)。Host 面 provide eternaKnowledgeAdmin 服务与 /api/knowledgeAdmin/* 守卫面;账号隔离复用 DSH 登录账号分库,插件内不另做登录。",
+  "description": "知识底座插件(唯一宿主):本地知识库四工具 knowledge_search/read/status/propose + 知识库管理工作台(knowledge_admin、侧栏「知识库」、提案审批、检索问答、导入、成员、审计)。多租户按账号物理分库;Agent 写入一律 pending,人工在面板审批/直接发布。",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -12,9 +12,6 @@
     "./package.json": "./package.json"
   },
   "dsh": {
-    "bundle": {
-      "patch": "./cordis.patch.yml"
-    },
     "client": {
       "platform": "web",
       "immediately": true,
@@ -36,7 +33,6 @@
     "dist",
     "lib",
     "locale",
-    "cordis.patch.yml",
     "icon.svg",
     "README.md",
     "INSTALL.md",
@@ -50,10 +46,12 @@
     "@deepseek-ai/cordis": "catalog:",
     "@deepseek-ai/dsh-tools": "catalog:",
     "@deepseek-ai/dsh-typert-protocol": "catalog:",
-    "@eterna/knowledge": "workspace:*"
+    "@eterna/knowledge": "workspace:*",
+    "@eterna/ui": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "esbuild": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

@@ -723,7 +723,7 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
    * 注:以 @eterna/knowledge-admin 契约表为准;方法名如变更须同步更新本白名单。
    */
   const KNOWLEDGE_ADMIN_WRITE_METHODS = [
-    'saveDoc', 'deprecateDoc', 'reviewProposal', 'discardProposal',
+    'saveDoc', 'deprecateDoc', 'undoDeprecate', 'reviewProposal', 'discardProposal',
     'importMarkdown', 'importRepo', 'setMember',
   ] as const
 
@@ -775,8 +775,9 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
       if (face === undefined || typeof fn !== 'function') {
         return failureFrame(rpcId, new Error('知识库管理服务未挂载(eterna-knowledge-admin 未注册)'))
       }
-      // ④ 调用者身份 {account, admin, userId} + args 原样透传
-      const caller: KnowledgeAdminCaller = { account: user.account, admin, userId: user.id }
+      // ④ 调用者身份 {account, admin, userId, human}:human=true 只由本守卫铸出(浏览器真人);
+      //    Agent 工具/网关恒 false —— 服务面据此把审批/直接发布限死在面板。
+      const caller: KnowledgeAdminCaller = { account: user.account, admin, userId: user.id, human: true }
       try {
         const value = await Promise.resolve(fn.call(face, caller, args))
         if (isWrite) tenantAudit(deps, `knowledgeAdmin.${method}`, user.account, { ok: true, target: target ?? user.account })

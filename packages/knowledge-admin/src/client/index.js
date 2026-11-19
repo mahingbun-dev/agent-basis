@@ -1,5 +1,5 @@
 /**
- * 知识库管理插件 —— 浏览器半边(纯 JavaScript)。
+ * 知识库管理插件 —— 浏览器半边(纯 JS 模块;esbuild 打包为闭包工厂工件)。
  *
  * 贡献两点(用户需求:「左侧面板开放入口」「在前端进行知识库的内容管理」):
  *  1. `sidebar.panellist` 列表项:左侧栏「知识库」入口(「基座面板」同席位,order 30);
@@ -7,11 +7,15 @@
  *
  * 纪律:
  *  - 不引用任何 Harness Client 包为模块(react 来自浏览器模块表);
+ *  - 图标走 `@eterna/ui/icon-data`(构建期打包,不手写 SVG);
  *  - 工厂零副作用;CSS 以 <style> 注入并在 ctx.effect 里撤销;
  *  - 可见文案全部经 ctx.locale 字典(zh/en);
  *  - 数据只经宿主 `ctx.connection.rpc.call('/api', '<method>@eternaKnowledgeAdmin', { args })` 到达
- *    —— 路径由 access 租户守卫按 cookie 身份解析账号,组件不知道也不判断身份。
+ *    —— 路径由 access 租户守卫按 cookie 身份解析账号;面板只负责显式传目标账号(admin 可切换)。
+ *  - 门禁口径(2026-11-19 融合):面板是 human 通道,单篇保存直接发布;Agent 写入一律 pending。
  */
+import { iconInner } from '@eterna/ui/icon-data'
+
 window.__ModuleLoader__.load({
   id: '@eterna/knowledge-admin',
   factory(require) {
@@ -42,11 +46,14 @@ window.__ModuleLoader__.load({
       cancel: '取消',
       deprecate: '废弃',
       deprecateConfirm: '再点一次确认废弃',
+      successorField: '取代者 doc_id(后端要求废弃必须有取代者;可留空沿用已有)',
+      successorRequired: '请填写取代者 doc_id(知识库要求废弃页面必须指名取代者)',
       titleField: '标题',
       tagsField: '标签(逗号分隔,可空)',
       originField: '权威来源(URL 或文档名,可空)',
       bodyField: '正文(Markdown)',
       savedPending: '已提交提案,审批通过后发布',
+      publishedNow: '已发布,检索立即可见',
       noDocs: '该账号下暂无文档',
       search: '检索',
       searchPlaceholder: '输入关键词,回车检索',
@@ -89,6 +96,12 @@ window.__ModuleLoader__.load({
       empty: '暂无内容',
       error: '请求失败',
       account: '当前账号',
+      accountSwitcher: '切换知识库账号(管理员:全局库/各账号)',
+      globalLibrary: '全局知识库',
+      selfSuffix: '本人',
+      notOpen: '未开通',
+      undoDeprecate: '撤销废弃',
+      undoDone: '已撤销废弃,文档恢复可见',
       count: '条',
     };
 
@@ -103,11 +116,14 @@ window.__ModuleLoader__.load({
       cancel: 'Cancel',
       deprecate: 'Deprecate',
       deprecateConfirm: 'Click again to confirm deprecation',
+      successorField: 'Successor doc_id (required when the page has none; leave empty to keep existing)',
+      successorRequired: 'Enter the successor doc_id (a deprecated page must name its successor)',
       titleField: 'Title',
       tagsField: 'Tags (comma separated, optional)',
       originField: 'Authoritative source (URL or document name, optional)',
       bodyField: 'Body (Markdown)',
       savedPending: 'Proposal submitted; published after approval',
+      publishedNow: 'Published; searchable immediately',
       noDocs: 'No documents in this account yet',
       search: 'Search',
       searchPlaceholder: 'Type a keyword and press Enter',
@@ -150,6 +166,12 @@ window.__ModuleLoader__.load({
       empty: 'Nothing here yet',
       error: 'Request failed',
       account: 'Account',
+      accountSwitcher: 'Switch knowledge account (admin: global library / any account)',
+      globalLibrary: 'Global library',
+      selfSuffix: 'self',
+      notOpen: 'not open',
+      undoDeprecate: 'Undo deprecation',
+      undoDone: 'Deprecation undone; document visible again',
       count: 'items',
     };
 
@@ -196,9 +218,11 @@ window.__ModuleLoader__.load({
       "[data-kb='btn'][data-tone='danger']:hover:not(:disabled){background:var(--et-danger-soft);}",
 
       // 标签页：胶囊分段（v4 禁止下划线式 tab 与直角段）
-      "[data-kb='tabs']{display:flex;gap:var(--et-space-2);flex-wrap:wrap;align-items:center;}",
+      // flex:none 必填：≤640 时 tabs 变 overflow-x:auto，列向 flex 里自动最小尺寸归零，
+      // 不加会被压成 height:0，整条标签栏在窄屏直接消失（390 视口实测塌陷）。
+      "[data-kb='tabs']{display:flex;flex:none;gap:var(--et-space-2);flex-wrap:wrap;align-items:center;}",
       "[data-kb='tab']{appearance:none;font-family:var(--et-font-body);font-size:var(--et-text-caption);",
-      "padding:0 var(--et-space-3);height:32px;border:1px solid transparent;border-radius:var(--et-radius-pill);",
+      "padding:0 var(--et-space-3);height:36px;border:1px solid transparent;border-radius:var(--et-radius-pill);",
       "background:transparent;color:var(--et-muted);cursor:pointer;white-space:nowrap;",
       "transition:background-color var(--et-motion-fast) var(--et-ease),color var(--et-motion-fast) var(--et-ease);}",
       "[data-kb='tab']:hover{background:var(--et-surface-2);color:var(--et-fg);}",
@@ -250,6 +274,18 @@ window.__ModuleLoader__.load({
       "[data-kb='badge']{display:inline-flex;align-items:center;height:24px;font-size:var(--et-text-micro);",
       "padding:0 var(--et-space-2);border-radius:var(--et-radius-pill);",
       "border:1px solid var(--et-border);color:var(--et-muted);white-space:nowrap;}",
+
+      // 账号切换器：details 弹出列表（禁用原生 select；listbox 形态 + 键盘可达）
+      "[data-kb='switcher']{position:relative;flex:none;}",
+      "[data-kb='switcher']>summary{list-style:none;cursor:pointer;}",
+      "[data-kb='switcher']>summary::-webkit-details-marker{display:none;}",
+      "[data-kb='switcher'][open]>summary{box-shadow:var(--et-focus-ring);}",
+      "[data-kb='menu']{position:absolute;right:0;top:calc(100% + var(--et-space-2));z-index:100;",
+      "display:flex;flex-direction:column;gap:2px;min-width:220px;max-height:320px;overflow-y:auto;",
+      "padding:var(--et-space-2);border:1px solid var(--et-border-soft);border-radius:var(--et-radius-md);",
+      "background:var(--et-surface);box-shadow:var(--et-shadow-r2);}",
+      "[data-kb='menu'] [data-kb='tab']{justify-content:flex-start;text-align:left;width:100%;height:36px;}",
+      "[data-kb='menu'] [data-kb='meta']{padding:2px var(--et-space-3);}",
 
       // 断点：v4 只允许 1100/760/640。<760 收 gutter 16，不再有 900px
       "@media (max-width:760px){[data-kb='root']{padding:var(--et-space-4) var(--et-space-4) var(--et-space-12);gap:var(--et-space-4);}",
@@ -369,6 +405,58 @@ window.__ModuleLoader__.load({
       return h('div', { 'data-kb': 'row' }, props.left, props.right);
     }
 
+    /** 账号显示名:全局库走 `*` 哨兵;本人标注;未开通账号带提示。 */
+    function accountLabel(info, t) {
+      var name = info.global === true ? t('globalLibrary') : info.account;
+      if (info.self === true && info.global !== true) name += ' (' + t('selfSuffix') + ')';
+      if (info.available === false) name += ' · ' + t('notOpen');
+      return name;
+    }
+
+    /** 小号 chevron(图标走 @eterna/ui/icon-data;不手写 SVG)。 */
+    function Chevron() {
+      return h('svg', {
+        width: 12, height: 12, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor',
+        strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true,
+        dangerouslySetInnerHTML: { __html: iconInner('chevron-down') },
+      });
+    }
+
+    /**
+     * 账号切换器(v4 叠层纪律:details 弹出列表,不用原生 select)。
+     * - 管理员:全局库 `*` + 全部账号目录;切换后所有分库 RPC 带新 account;
+     * - 普通账号:静态本人标签(服务端也只会返回本人一条,不渲染可操作面)。
+     */
+    function AccountSwitcher(props) {
+      var t = props.t;
+      var state = props.state;
+      var ui = props.ui;
+      if (state.auth !== 'authenticated') return null;
+      var currentInfo = state.accounts.filter(function (info) { return info.account === state.account; })[0];
+      var label = t('account') + ': ' + (currentInfo ? accountLabel(currentInfo, t) : (state.account || '—'));
+      if (state.admin !== true) return h('span', { 'data-kb': 'meta' }, label);
+      return h('details', { 'data-kb': 'switcher' },
+        h('summary', { 'data-kb': 'btn', 'aria-label': t('accountSwitcher'), title: t('accountSwitcher') },
+          label, h(Chevron, null)),
+        h('div', { 'data-kb': 'menu', role: 'listbox', 'aria-label': t('accountSwitcher') },
+          state.accounts.map(function (info) {
+            var active = info.account === state.account;
+            return h('button', {
+              key: 'acc-' + info.account,
+              type: 'button',
+              role: 'option',
+              'aria-selected': active ? 'true' : 'false',
+              'data-kb': 'tab',
+              'data-active': active ? 'true' : 'false',
+              onClick: function (event) {
+                var details = event.currentTarget.closest('details');
+                if (details !== null) details.open = false;
+                ui.selectAccount(info.account);
+              },
+            }, accountLabel(info, t));
+          })));
+    }
+
     // ───────────────────────────── 主面板 ─────────────────────────────
     function KnowledgePanel(props) {
       var t = props.t;
@@ -412,6 +500,7 @@ window.__ModuleLoader__.load({
             h('h1', { 'data-kb': 'h1' }, t('title')),
             h('p', { 'data-kb': 'sub' }, t('subtitle'))),
           h(Toolbar, null,
+            h(AccountSwitcher, { t: t, state: state, ui: ui }),
             h(Button, { onClick: function () { ui.refresh(); }, busy: state.loading }, t('refresh')))),
         h('div', { 'data-kb': 'tabs' },
           TabButton('docs', t('docs')),
@@ -423,8 +512,7 @@ window.__ModuleLoader__.load({
           TabButton('audit', t('audit'))),
         pane,
         state.notice !== null ? h('div', { 'data-kb': 'meta' }, state.notice) : null,
-        state.error !== null ? h(ErrorBox, { message: t('error') + ': ' + state.error }) : null,
-        h('p', { 'data-kb': 'meta' }, t('account') + ': ' + (state.account || '—') + (state.global ? ' (global)' : '')));
+        state.error !== null ? h(ErrorBox, { message: t('error') + ': ' + state.error }) : null);
     }
 
     // ── 文档浏览 / 检索 ──
@@ -454,33 +542,50 @@ window.__ModuleLoader__.load({
       } else {
         var docs = state.docs || [];
         rows = docs.length === 0 ? h(Empty, null, t('noDocs')) : docs.map(function (doc, index) {
-          return h(Row, {
-            key: 'd' + index,
-            left: h('div', null,
-              h('div', null, doc.title || doc.doc_id),
-              h('div', { 'data-kb': 'meta' }, doc.doc_id + (doc.tags.length > 0 ? ' · ' + doc.tags.join(', ') : '')),
-              doc.provenance && doc.provenance.origin
-                ? h('div', { 'data-kb': 'meta' }, doc.provenance.origin)
-                : null),
-            right: h('div', { 'data-kb': 'bar' },
-              h(Badge, null, (doc.provenance && doc.provenance.status) || 'active'),
-              h(Button, { busy: state.busy, onClick: function () { ui.openDoc(doc.doc_id); } }, t('edit')),
-              h(Button, {
-                tone: 'danger',
-                busy: state.busy,
-                onClick: function () {
-                  if (state.confirmDoc !== doc.doc_id) { ui.setConfirmDoc(doc.doc_id); return; }
-                  ui.setConfirmDoc(null);
-                  ui.deprecate(doc.doc_id);
-                },
-              }, state.confirmDoc === doc.doc_id ? t('deprecateConfirm') : t('deprecate'))),
-          });
+          var confirming = state.confirmDoc === doc.doc_id;
+          return h('div', { key: 'd' + index },
+            h(Row, {
+              left: h('div', null,
+                h('div', null, doc.title || doc.doc_id),
+                h('div', { 'data-kb': 'meta' }, doc.doc_id + (doc.tags.length > 0 ? ' · ' + doc.tags.join(', ') : '')),
+                doc.provenance && doc.provenance.origin
+                  ? h('div', { 'data-kb': 'meta' }, doc.provenance.origin)
+                  : null),
+              right: h('div', { 'data-kb': 'bar' },
+                h(Badge, null, (doc.provenance && doc.provenance.status) || 'active'),
+                h(Button, { busy: state.busy, onClick: function () { ui.openDoc(doc.doc_id); } }, t('edit')),
+                h(Button, {
+                  tone: 'danger',
+                  busy: state.busy,
+                  onClick: function () { ui.setConfirmDoc(confirming ? null : doc.doc_id); },
+                }, confirming ? t('deprecateConfirm') : t('deprecate'))),
+            }),
+            // 废弃必填取代者(库层不变量:deprecated 页面必须指名 superseded_by)。
+            // 两击确认 + 独立输入,不做原生 confirm()。
+            confirming
+              ? h('div', { 'data-kb': 'bar' },
+                Input({
+                  label: t('successorField'),
+                  value: state.successor,
+                  onChange: function (value) { ui.setSuccessor(value); },
+                }),
+                h(Button, {
+                  tone: 'danger',
+                  busy: state.busy,
+                  onClick: function () { ui.deprecate(doc.doc_id); },
+                }, t('deprecateConfirm')),
+                h(Button, { onClick: function () { ui.setConfirmDoc(null); ui.setSuccessor(''); } }, t('cancel')))
+              : null,
+          );
         });
       }
 
       return h(Card, null,
         h('div', { 'data-kb': 'bar' },
           h(Button, { onClick: function () { ui.newDoc(); } }, t('newDoc')),
+          state.undo !== null
+            ? h(Button, { busy: state.busy, onClick: function () { ui.undoDeprecate(); } }, t('undoDeprecate'))
+            : null,
           h('span', { 'data-kb': 'meta' }, String(state.total) + ' ' + t('count') + ' · ' + t('proposals') + ' ' + String(state.pendingCount || 0))),
         Input({
           label: t('search'),
@@ -523,7 +628,6 @@ window.__ModuleLoader__.load({
       var t = props.t;
       var ui = props.ui;
       var state = props.state;
-      var ui = props.ui;
       var ask = state.ask;
 
       return h(Card, null,
@@ -534,7 +638,7 @@ window.__ModuleLoader__.load({
           onChange: function (value) { ui.setAsk({ question: value }); },
         }),
         h('div', { 'data-kb': 'bar' },
-          h(Button, { tone: 'primary', busy: state.busy || ask.running, onClick: function () { state.askQuestion(); } }, t('ask'))),
+          h(Button, { tone: 'primary', busy: state.busy || ask.running, onClick: function () { ui.askQuestion(); } }, t('ask'))),
         ask.reason !== null ? h(ErrorBox, { message: t('askUnavailable') + ask.reason }) : null,
         ask.answer !== null
           ? h('label', { 'data-kb': 'label' }, t('askAnswer'), h('div', { 'data-kb': 'body' }, ask.answer))
@@ -707,8 +811,13 @@ window.__ModuleLoader__.load({
     function initialState() {
       return {
         auth: 'pending',
+        /** 当前目标账号(admin 默认 `*` = 全局库;普通账号恒本人)。 */
         account: '',
-        global: false,
+        /** 本人账号名(切换器里标「本人」)。 */
+        selfAccount: '',
+        /** 可切换账号清单(admin = `*` + 全部账号;普通账号只有本人一条)。 */
+        accounts: [],
+        /** 管理员才看到切换器(`*` 只出现在管理员清单里)。 */
         admin: false,
         loading: true,
         error: null,
@@ -721,6 +830,10 @@ window.__ModuleLoader__.load({
         notice: null,
         busy: false,
         confirmDoc: null,
+        /** 废弃确认时填写的取代者 doc_id(库层要求 deprecated 页面必须指名)。 */
+        successor: '',
+        /** 最近一次废弃的撤销句柄({ docId, token });30 分钟内可撤销。 */
+        undo: null,
         ask: { question: '', answer: null, citations: [], reason: null, running: false },
         proposals: [],
         importMd: '',
@@ -780,6 +893,10 @@ window.__ModuleLoader__.load({
         };
         var current = function () { return source.getSnapshot(); };
         var knownUser = 0;
+        /** 目标账号注入:所有分库方法显式带 account(admin= `*` 或切换目标;普通=本人)。 */
+        var withAccount = function (args) {
+          return Object.assign({ account: current().account }, args || {});
+        };
 
         /** 失败即落 error 并收尾 busy;返回是否成功。 */
         var settle = function (result) {
@@ -792,17 +909,23 @@ window.__ModuleLoader__.load({
           return call(ctx.connection.rpc, 'listAccounts', {}).then(function (result) {
             if (!settle(result)) { set({ auth: 'anonymous', loading: false }); return; }
             var accounts = (result.value && result.value.accounts) || [];
-            // 当前账号 = 服务端判定的登录者本人(`self` 标记,守卫按 cookie 铸出)。
-            // 绝不从"可管理账号列表"里猜:admin 的列表含全部账号,首个非 global 是
-            // 字母序任意账号(生产实证:登录 Mr.Ma 显示成 cherry)。
-            var own = accounts.filter(function (info) { return info.self === true; })[0] || accounts[0];
-            set({ auth: 'authenticated', account: own ? own.account : '', global: own ? own.global === true : false });
+            // 当前账号:管理员默认全局库(`*`,融合口径:知识底座的管理视角),普通账号恒本人。
+            // 绝不从"可管理账号列表"里猜管理员本人账号(生产实证:登录 Mr.Ma 显示成 cherry)。
+            var selfInfo = accounts.filter(function (info) { return info.self === true; })[0] || accounts[0];
+            var admin = accounts.some(function (info) { return info.account === '*' && info.global === true; });
+            set({
+              auth: 'authenticated',
+              accounts: accounts,
+              admin: admin,
+              selfAccount: selfInfo ? selfInfo.account : '',
+              account: admin ? '*' : (selfInfo ? selfInfo.account : ''),
+            });
             loadOverview();
           });
         };
 
         var loadOverview = function () {
-          return call(ctx.connection.rpc, 'overview', {}).then(function (result) {
+          return call(ctx.connection.rpc, 'overview', withAccount({})).then(function (result) {
             if (!settle(result)) return;
             var value = result.value || {};
             set({
@@ -818,7 +941,7 @@ window.__ModuleLoader__.load({
         };
 
         var loadDocs = function () {
-          return call(ctx.connection.rpc, 'listDocs', { limit: 50 }).then(function (result) {
+          return call(ctx.connection.rpc, 'listDocs', withAccount({ limit: 50 })).then(function (result) {
             if (!settle(result)) return;
             var value = result.value || {};
             set({ docs: value.items || [], total: value.total || 0, loading: false, busy: false });
@@ -831,20 +954,46 @@ window.__ModuleLoader__.load({
           else loadOverview();
         };
 
+        /** 切换目标账号:清掉当前 tab 的旧数据,按新账号重载。 */
+        var selectAccount = function (account) {
+          if (account === current().account) return;
+          set({
+            account: account,
+            loading: true,
+            error: null,
+            notice: null,
+            results: null,
+            query: '',
+            docs: [],
+            total: 0,
+            proposals: [],
+            members: [],
+            audit: [],
+            undo: null,
+            selected: null,
+            confirmDoc: null,
+            successor: '',
+          });
+          loadOverview();
+          if (current().tab === 'proposals') listProposals();
+          if (current().tab === 'members') listMembers();
+          if (current().tab === 'audit') listAudit();
+        };
+
         var listProposals = function () {
-          return call(ctx.connection.rpc, 'listProposals', { limit: 50 }).then(function (result) {
+          return call(ctx.connection.rpc, 'listProposals', withAccount({ limit: 50 })).then(function (result) {
             if (!settle(result)) return;
             set({ proposals: (result.value && result.value.items) || [], busy: false });
           });
         };
         var listMembers = function () {
-          return call(ctx.connection.rpc, 'listMembers', {}).then(function (result) {
+          return call(ctx.connection.rpc, 'listMembers', withAccount({})).then(function (result) {
             if (!settle(result)) return;
             set({ members: (result.value && result.value.members) || [], busy: false });
           });
         };
         var listAudit = function () {
-          return call(ctx.connection.rpc, 'listAudit', { limit: 100 }).then(function (result) {
+          return call(ctx.connection.rpc, 'listAudit', withAccount({ limit: 100 })).then(function (result) {
             if (!settle(result)) return;
             set({ audit: (result.value && result.value.items) || [], busy: false });
           });
@@ -852,6 +1001,7 @@ window.__ModuleLoader__.load({
 
         var ui = {
           refresh: refresh,
+          selectAccount: selectAccount,
           setTab: function (tab) {
             set({ tab: tab, confirmRemove: null });
             if (tab === 'proposals') listProposals();
@@ -864,7 +1014,7 @@ window.__ModuleLoader__.load({
             var q = current().query.trim();
             if (q === '') return;
             set({ busy: true, error: null });
-            call(ctx.connection.rpc, 'search', { query: q, top_k: 20 }).then(function (result) {
+            call(ctx.connection.rpc, 'search', withAccount({ query: q, top_k: 20 })).then(function (result) {
               if (!settle(result)) return;
               var value = result.value || {};
               var degraded = (value.degraded || []).map(function (entry) { return entry.source + ': ' + entry.reason; }).join('; ');
@@ -882,7 +1032,7 @@ window.__ModuleLoader__.load({
           },
           openDoc: function (docId) {
             set({ busy: true, error: null });
-            call(ctx.connection.rpc, 'readDoc', { doc_id: docId }).then(function (result) {
+            call(ctx.connection.rpc, 'readDoc', withAccount({ doc_id: docId })).then(function (result) {
               if (!settle(result)) return;
               var doc = result.value || {};
               set({
@@ -912,7 +1062,7 @@ window.__ModuleLoader__.load({
               return;
             }
             set({ busy: true, error: null, notice: null });
-            call(ctx.connection.rpc, 'saveDoc', {
+            call(ctx.connection.rpc, 'saveDoc', withAccount({
               doc_id: draft.docId || undefined,
               title: draft.title,
               body: draft.body,
@@ -920,28 +1070,62 @@ window.__ModuleLoader__.load({
               origin: draft.origin || undefined,
               path: draft.path || undefined,
               publish: true,
-            }).then(function (result) {
+            })).then(function (result) {
               if (!settle(result)) return;
               var value = result.value || {};
-              set({ busy: false, notice: t('savedPending') + ' (' + value.proposal_id + ' · ' + value.state + ')' });
+              // 面板 = human 通道:publish=true 直接发布;状态回显以服务端为准。
+              var text = value.state === 'approved' ? t('publishedNow') : t('savedPending');
+              set({ busy: false, notice: text + ' (' + value.proposal_id + ' · ' + value.state + ')' });
               loadDocs();
             });
           },
           deprecate: function (docId) {
+            var successor = current().successor.trim();
+            if (successor === '') {
+              // 客户端的库层不变量前置(后端仍会 fail-closed 复核)
+              var doc = (current().docs || []).filter(function (item) { return item.doc_id === docId; })[0];
+              if (doc === undefined || doc.provenance === undefined || doc.provenance.superseded_by === undefined || doc.provenance.superseded_by === '') {
+                set({ error: t('successorRequired'), busy: false });
+                return;
+              }
+            }
             set({ busy: true, error: null });
-            call(ctx.connection.rpc, 'deprecateDoc', { doc_id: docId, reason: 'management panel: deprecated by user' }).then(function (result) {
+            call(ctx.connection.rpc, 'deprecateDoc', withAccount({
+              doc_id: docId,
+              reason: 'management panel: deprecated by user',
+              ...(successor === '' ? {} : { superseded_by: successor }),
+            })).then(function (result) {
               if (!settle(result)) return;
               var value = result.value || {};
-              set({ busy: false, notice: value.undo_hint || null });
+              set({
+                busy: false,
+                notice: value.undo_hint || null,
+                confirmDoc: null,
+                successor: '',
+                undo: value.undo_available === true && typeof value.undo_token === 'string'
+                  ? { docId: docId, token: value.undo_token }
+                  : null,
+              });
               loadDocs();
             });
           },
-          setConfirmDoc: function (docId) { set({ confirmDoc: docId }); },
+          setSuccessor: function (value) { set({ successor: value }); },
+          undoDeprecate: function () {
+            var undo = current().undo;
+            if (undo === null) return;
+            set({ busy: true, error: null });
+            call(ctx.connection.rpc, 'undoDeprecate', withAccount({ undo_token: undo.token })).then(function (result) {
+              if (!settle(result)) return;
+              set({ busy: false, notice: t('undoDone'), undo: null });
+              loadDocs();
+            });
+          },
+          setConfirmDoc: function (docId) { set({ confirmDoc: docId, successor: '' }); },
           askQuestion: function () {
             var question = current().ask.question.trim();
             if (question === '') return;
             setAsk({ running: true, answer: null, citations: [], reason: null });
-            call(ctx.connection.rpc, 'ask', { question: question, top_k: 6 }).then(function (result) {
+            call(ctx.connection.rpc, 'ask', withAccount({ question: question, top_k: 6 })).then(function (result) {
               var value = result.value || {};
               if (result.ok !== true) {
                 setAsk({ running: false, reason: value.reason || (result.code + ': ' + result.message) });
@@ -954,11 +1138,11 @@ window.__ModuleLoader__.load({
           setAsk: setAsk,
           review: function (proposalId, decision) {
             set({ busy: true, error: null });
-            call(ctx.connection.rpc, 'reviewProposal', {
+            call(ctx.connection.rpc, 'reviewProposal', withAccount({
               proposal_id: proposalId,
               decision: decision,
               reason: decision === 'reject' ? 'management panel: rejected by user' : undefined,
-            }).then(function (result) {
+            })).then(function (result) {
               if (!settle(result)) return;
               set({ busy: false });
               listProposals();
@@ -966,7 +1150,7 @@ window.__ModuleLoader__.load({
           },
           discard: function (proposalId) {
             set({ busy: true, error: null });
-            call(ctx.connection.rpc, 'discardProposal', { proposal_id: proposalId }).then(function (result) {
+            call(ctx.connection.rpc, 'discardProposal', withAccount({ proposal_id: proposalId })).then(function (result) {
               if (!settle(result)) return;
               set({ busy: false });
               listProposals();
@@ -977,7 +1161,7 @@ window.__ModuleLoader__.load({
             var text = current().importMd;
             if (text.trim() === '') return;
             set({ busy: true, error: null, notice: null });
-            call(ctx.connection.rpc, 'importMarkdown', { documents: splitMarkdown(text) }).then(function (result) {
+            call(ctx.connection.rpc, 'importMarkdown', withAccount({ documents: splitMarkdown(text) })).then(function (result) {
               if (!settle(result)) return;
               var value = result.value || {};
               set({ busy: false, notice: t('imported') + ' (' + String(value.created) + ', failed ' + String(value.failed) + ')' });
@@ -989,7 +1173,7 @@ window.__ModuleLoader__.load({
             var path = current().repoPath.trim();
             if (path === '') return;
             set({ busy: true, error: null, notice: null });
-            call(ctx.connection.rpc, 'importRepo', { repo_path: path }).then(function (result) {
+            call(ctx.connection.rpc, 'importRepo', withAccount({ repo_path: path })).then(function (result) {
               if (!settle(result)) return;
               var value = result.value || {};
               set({ busy: false, notice: t('imported') + ' (' + String(value.created) + ', engine ' + value.engine + ')' });
@@ -1000,7 +1184,7 @@ window.__ModuleLoader__.load({
           setConfirmRemove: function (memberUserId) { set({ confirmRemove: memberUserId }); },
           saveMember: function (memberUserId, level) {
             set({ busy: true, error: null });
-            call(ctx.connection.rpc, 'setMember', { member_user_id: memberUserId, level: level }).then(function (result) {
+            call(ctx.connection.rpc, 'setMember', withAccount({ member_user_id: memberUserId, level: level })).then(function (result) {
               if (!settle(result)) return;
               set({ busy: false });
               listMembers();
@@ -1014,7 +1198,7 @@ window.__ModuleLoader__.load({
           },
           testSource: function () {
             set({ busy: true, error: null });
-            call(ctx.connection.rpc, 'testSource', {}).then(function (result) {
+            call(ctx.connection.rpc, 'testSource', withAccount({})).then(function (result) {
               if (!settle(result)) return;
               var value = result.value || {};
               var status = value.source || null;
@@ -1045,12 +1229,10 @@ window.__ModuleLoader__.load({
           }, function KnowledgeIcon(props) {
             return h('svg', {
               viewBox: '0 0 24 24', width: props.size || 20, height: props.size || 20,
-              fill: 'none', stroke: 'currentColor', strokeWidth: 1.75,
+              fill: 'none', stroke: 'currentColor', strokeWidth: 1.6,
               strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true,
-            },
-            h('path', { d: 'M5 4h9l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z' }),
-            h('path', { d: 'M14 4v5h5' }),
-            h('path', { d: 'M8.5 13.5h7M8.5 17h4.5' }));
+              dangerouslySetInnerHTML: { __html: iconInner('knowledge') },
+            });
           });
         });
 

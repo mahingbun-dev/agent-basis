@@ -204,7 +204,8 @@ exit 0 ⇔ 清洁收尾 + tool_calls 一轮闭合 + 落盘证据；输出行显�
 
 | @eterna 能力 | 挂载物 | 嵌入档挂载位 | 首期裁定（§11.4） |
 | --- | --- | --- | --- |
-| governance / memory / knowledge | `@eterna/glue`（bundle；自带 insert 三行 eterna-governance/eterna-memory/eterna-knowledge，见其 cordis.patch.yml） | `dsh.profile.bundles` 追加 `'@eterna/glue'`；或等价地把三行 insert 进本档 patch（本档已留注释模板） | **必挂**（图纸②⑧：写权限管控、调用审计）。挂载顺序：先 glue 后依赖它的 extra |
+| governance / memory | `@eterna/glue`（bundle；自带 insert 两行 eterna-governance/eterna-memory，见其 cordis.patch.yml） | `dsh.profile.bundles` 追加 `'@eterna/glue'`；或等价地把两行 insert 进本档 patch（本档已留注释模板） | **必挂**（图纸②⑧：写权限管控、调用审计）。挂载顺序：先 glue 后依赖它的 extra |
+| knowledge（知识底座 / 知识库工作台） | `@eterna/knowledge-admin`（单宿主，2026-11-19 起从 glue 退场独立 baked row） | 本档 patch 内预留注释行 `- id: eterna-knowledge` / `name: '@eterna/knowledge-admin'`；需要 HTTP 面（侧栏/工作台/18 守卫端点）才启用 | Web 档必挂；嵌入档**默认不挂**（无 HTTP/浏览器面，工作台不可用） |
 | egress 域名白名单 / reviewer preset | `@eterna/extra`（库包；egress wrapper 在 governance 的 egress-lite 之上包装 ToolDefinition.execute） | 需要宿主半包装器随 glue 类插件落地后 insert（reviewer preset 产物是 agent-preset 行 + persona 行模板，可整体 insert） | **挂**（2026-11-07 二次裁定：web 检索回加后出站面重新存在）；realm 多租户不挂 |
 | interact（HITL R0-R3） | `@eterna/interact`（库包；审批卡/提问合并/policy 产物） | 嵌入档**无活审批通道**（headless 限制）；落点改为运行项 `--approval-policy never` + permission preset 收紧；产品化嵌入宿主接 SDK 形态 A 后可经 JSON-RPC `user-question/ask` 应答 | Web 档挂卡片面；嵌入档首期**不挂宿主行**，收口走 approval-policy |
 | observe（T5 性能基线） | `@eterna/observe`（库包：session 事件流→指标聚合/信号存储） | 宿主半待 T4/T5 落地为 bundle 后挂；session 事件流两档同源，采集口径可平移 | 首期挂 Web 档；嵌入档待宿主半 |

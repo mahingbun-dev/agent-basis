@@ -18,6 +18,11 @@ export interface KnowledgeAdminCaller {
   readonly admin: boolean
   /** 用户 id(access users.id;服务面记成员/审计外键用)。 */
   readonly userId: number
+  /**
+   * 真人通道标记:守卫是浏览器 cookie 的唯一解析者,故由这里恒置 true。
+   * 服务面只认 `human===true` 审批提案/直接发布;Agent 工具/网关恒 false。
+   */
+  readonly human?: boolean | undefined
 }
 
 /** 知识库管理服务面(结构子集;方法名以 @eterna/knowledge-admin 契约表为准)。 */

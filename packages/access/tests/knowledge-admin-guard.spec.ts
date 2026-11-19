@@ -1,12 +1,12 @@
 /**
- * 知识库管理守卫(@eterna/knowledge-admin,2026-11-18):17 端点 × 守卫口径。
+ * 知识库管理守卫(@eterna/knowledge-admin,2026-11-18;2026-11-19 融合后 18 端点):
  * 沿 tenant-guard-matrix 基座(真实 UserStore+SessionService+reflect 记录替身),
  * 断言真实 registerTenantGuards 注册出的路由(不是片段复刻):
  *  A. 未登录 → tenant/unauthenticated(cookie 认证来源正确);
  *  B. 非管理员显式指向他人账号 → tenant/denied + 审计,零直调服务面(守卫兜底);
- *  C. 本人/管理员放行,服务面收到 {account,admin,userId} 与原始 args(透传不裁剪);
+ *  C. 本人/管理员放行,服务面收到 {account,admin,userId,human:true} 与原始 args;
  *  D. 服务面缺席 → failureFrame「知识库管理服务未挂载」(不静默降级不回退全局库);
- *  E. 写类 7 方法:成功 ok=true / 失败 ok=false+error 摘要,各落一条 access 审计;
+ *  E. 写类 8 方法:成功 ok=true / 失败 ok=false+error 摘要,各落一条 access 审计;
  *  F. 白名单外端点不注册(清单即唯一注册源)。
  */
 import { mkdtempSync, rmSync } from 'node:fs'
@@ -22,7 +22,7 @@ import type { AccessAuditEvent } from '../src/audit.ts'
 const KNOWLEDGE_ADMIN_METHODS = [
   'listAccounts', 'overview', 'listDocs', 'readDoc', 'listProposals',
   'search', 'ask', 'listMembers', 'listAudit', 'testSource',
-  'saveDoc', 'deprecateDoc', 'reviewProposal', 'discardProposal',
+  'saveDoc', 'deprecateDoc', 'undoDeprecate', 'reviewProposal', 'discardProposal',
   'importMarkdown', 'importRepo', 'setMember',
 ] as const
 
@@ -31,7 +31,7 @@ interface RecordedCall {
   readonly params: unknown[]
 }
 
-describe('knowledgeAdmin 守卫:17 端点 × 身份/跨账号/审计/白名单', () => {
+describe('knowledgeAdmin 守卫:18 端点 × 身份/跨账号/审计/白名单', () => {
   let dir: string
   let store: UserStore
   let session: SessionService
@@ -119,17 +119,17 @@ describe('knowledgeAdmin 守卫:17 端点 × 身份/跨账号/审计/白名单',
     expect(own.result).toMatchObject({ ok: true })
   })
 
-  it('C. 本人/管理员放行,服务面收到 {account,admin,userId} 与原始 args', async () => {
+  it('C. 本人/管理员放行,服务面收到 {account,admin,userId,human} 与原始 args', async () => {
     const own = await call('overview', aliceId, { page: 1 })
     expect(own.result).toMatchObject({ ok: true })
     expect(calls).toHaveLength(1)
-    expect(calls[0]?.params[0]).toEqual({ account: 'alice', admin: false, userId: aliceId })
+    expect(calls[0]?.params[0]).toEqual({ account: 'alice', admin: false, userId: aliceId, human: true })
     expect(calls[0]?.params[1]).toEqual({ page: 1 })
 
     calls = []
     const cross = await call('listDocs', adminId, { account: 'alice' })
     expect(cross.result).toMatchObject({ ok: true })
-    expect(calls[0]?.params[0]).toEqual({ account: 'root', admin: true, userId: adminId })
+    expect(calls[0]?.params[0]).toEqual({ account: 'root', admin: true, userId: adminId, human: true })
   })
 
   it('D. 服务面缺席 → failureFrame「知识库管理服务未挂载」,不静默降级', async () => {

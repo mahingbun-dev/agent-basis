@@ -54,14 +54,19 @@ export function createRig(): TestRig {
   }
 }
 
-/** 普通账号调用者。 */
+/** 普通账号调用者(缺省 = 真人面板通道;Agent 通道用 agentCaller)。 */
 export function userCaller(account: string, userId = 7): KnowledgeAdminCaller {
-  return { account, admin: false, userId }
+  return { account, admin: false, userId, human: true }
 }
 
-/** 管理员调用者。 */
+/** 管理员调用者(缺省 = 真人面板通道)。 */
 export function adminCaller(account = 'root', userId = 1): KnowledgeAdminCaller {
-  return { account, admin: true, userId }
+  return { account, admin: true, userId, human: true }
+}
+
+/** Agent 通道调用者(human=false):写入一律 pending、审批 forbidden。 */
+export function agentCaller(account: string, admin = false, userId = 7): KnowledgeAdminCaller {
+  return { account, admin, userId, human: false }
 }
 
 /** 固定时钟(每次调用返回同一时刻 + 可手推)。 */

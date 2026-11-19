@@ -16,7 +16,7 @@ import { DeepWikiBackend, candidatePaths, matchPages, tokenize } from '../src/de
 import { KnowledgeAdminRouteFace } from '../src/route-face.ts'
 import { buildKnowledgeAdminTool } from '../src/tools.ts'
 import { KNOWLEDGE_ADMIN_METHODS, KNOWLEDGE_ADMIN_METHOD_SPECS } from '../src/types.ts'
-import { createRig, fakeFetch, fixedClock, throwingFetch, userCaller, adminCaller } from './rig.ts'
+import { createRig, fakeFetch, fixedClock, throwingFetch, userCaller, adminCaller, agentCaller } from './rig.ts'
 
 const SECRET = 'sekrit-token-value-do-not-log'
 
@@ -220,8 +220,8 @@ describe('stub 导入', () => {
 })
 
 describe('端点契约 pin(access 守卫按此合并)', () => {
-  it('17 方法:endpoint=eternaKnowledgeAdmin/<m>、guard=/api/knowledgeAdmin/<m>、wireKey=args', () => {
-    expect(KNOWLEDGE_ADMIN_METHOD_SPECS).toHaveLength(17)
+  it('18 方法:endpoint=eternaKnowledgeAdmin/<m>、guard=/api/knowledgeAdmin/<m>、wireKey=args', () => {
+    expect(KNOWLEDGE_ADMIN_METHOD_SPECS).toHaveLength(18)
     for (const spec of KNOWLEDGE_ADMIN_METHOD_SPECS) {
       expect(spec.endpoint).toBe(`eternaKnowledgeAdmin/${spec.method}`)
       expect(spec.guarded).toBe(`/api/knowledgeAdmin/${spec.method}`)
@@ -229,15 +229,16 @@ describe('端点契约 pin(access 守卫按此合并)', () => {
     }
     // 顺序即 README 契约表顺序(不随实现漂移)
     expect(KNOWLEDGE_ADMIN_METHOD_SPECS.map(spec => spec.method)).toEqual([
-      'listAccounts', 'overview', 'listDocs', 'readDoc', 'saveDoc', 'deprecateDoc', 'listProposals',
-      'reviewProposal', 'discardProposal', 'search', 'ask', 'importMarkdown', 'importRepo',
+      'listAccounts', 'overview', 'listDocs', 'readDoc', 'saveDoc', 'deprecateDoc', 'undoDeprecate',
+      'listProposals', 'reviewProposal', 'discardProposal', 'search', 'ask', 'importMarkdown', 'importRepo',
       'listMembers', 'setMember', 'listAudit', 'testSource',
     ])
+    expect(KNOWLEDGE_ADMIN_METHOD_SPECS.find(spec => spec.method === 'undoDeprecate')?.mutating).toBe(true)
   })
 
   it('插件默认导出形态(name/apply)与工具名', async () => {
     const mod = await import('../src/index.ts')
-    expect(mod.default.name).toBe('eterna-knowledge-admin')
+    expect(mod.default.name).toBe('eterna-knowledge')
     expect(typeof mod.default.apply).toBe('function')
     expect((await import('../src/types.ts')).KNOWLEDGE_ADMIN_TOOL_NAME).toBe('knowledge_admin')
   })
@@ -249,7 +250,7 @@ describe('路由面 & 工具面契约', () => {
     const service = new KnowledgeAdminService(rig.deps())
     const face = new KnowledgeAdminRouteFace(service, { id: 'eternaKnowledgeAdmin', methods: KNOWLEDGE_ADMIN_METHODS })
     try {
-      expect(face.methods).toHaveLength(17)
+      expect(face.methods).toHaveLength(18)
       const unknown = await face.call('nope', {}, userCaller('alice'))
       expect(unknown.ok).toBe(false)
       if (!unknown.ok) expect(unknown.code).toBe('invalid')
@@ -270,33 +271,33 @@ describe('路由面 & 工具面契约', () => {
     }
   })
 
-  it('工具面:save 缺省 publish=false;review 只收 approve/reject;未知 action invalid', async () => {
+  it('工具面:save 恒 pending;review 已移除(forbidden);publish 参数被忽略;未知 action invalid', async () => {
     const rig = createRig()
     const clock = fixedClock()
     const service = new KnowledgeAdminService(rig.deps({ now: () => clock.now() }))
-    const tool = buildKnowledgeAdminTool(service, () => userCaller('alice'))
+    // Agent 通道:human=false;即使显式传 publish=true 也只落 pending
+    const tool = buildKnowledgeAdminTool(service, () => agentCaller('alice'))
     try {
       expect(tool.name).toBe('knowledge_admin')
       expect(tool.parameters.required).toEqual(['action'])
+      const actions = (tool.parameters.properties as { action: { enum: readonly string[] } }).action.enum
+      expect(actions).not.toContain('review')
 
-      const saved = await tool.execute({ action: 'save', title: '工具页', body: '工具正文' })
+      const saved = await tool.execute({ action: 'save', title: '工具页', body: '工具正文', publish: true })
       expect(saved.ok).toBe(true)
       if (saved.ok) expect((saved.value as { state: string }).state).toBe('pending')
 
-      const badDecision = await tool.execute({ action: 'review', proposal_id: 'x', decision: 'auto' })
+      const badDecision = await tool.execute({ action: 'review', proposal_id: 'x', decision: 'approve' })
       expect(badDecision.ok).toBe(false)
-      if (!badDecision.ok) expect(badDecision.code).toBe('invalid')
+      if (!badDecision.ok) expect(badDecision.code).toBe('forbidden')
 
       const unknown = await tool.execute({ action: 'delete_everything' })
       expect(unknown.ok).toBe(false)
       if (!unknown.ok) expect(unknown.code).toBe('invalid')
 
-      const proposalId = saved.ok ? (saved.value as { proposal_id: string }).proposal_id : ''
-      const reviewed = await tool.execute({ action: 'review', proposal_id: proposalId, decision: 'approve' })
-      expect(reviewed.ok).toBe(true)
-
+      // 未发布的提案不在检索/概览计数里(Agent 不能自批自发布)
       const status = await tool.execute({ action: 'status' })
-      if (status.ok) expect((status.value as { doc_count: number }).doc_count).toBe(1)
+      if (status.ok) expect((status.value as { proposal_pending: number }).proposal_pending).toBe(1)
     } finally {
       service.dispose()
       rig.cleanup()

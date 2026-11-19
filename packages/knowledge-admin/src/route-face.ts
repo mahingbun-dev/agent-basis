@@ -25,7 +25,7 @@ import type {
   ListAuditArgs, ListAuditValue, ListDocsArgs, ListDocsValue, ListMembersArgs, ListMembersValue,
   ListProposalsArgs, ListProposalsValue, OverviewArgs, OverviewValue, ReadDocArgs, ReadDocValue,
   ReviewProposalArgs, ReviewProposalValue, SaveDocArgs, SaveDocValue, SearchArgs, SearchValue,
-  SetMemberArgs, SetMemberValue, TestSourceArgs, TestSourceValue,
+  SetMemberArgs, SetMemberValue, TestSourceArgs, TestSourceValue, UndoDeprecateArgs, UndoDeprecateValue,
 } from './types.ts'
 import type { KnowledgeAdminService } from './service.ts'
 
@@ -113,6 +113,10 @@ export class KnowledgeAdminRouteFace implements RouteFace {
     return await this.#service.deprecateDoc(caller, args)
   }
 
+  async undoDeprecate(caller: KnowledgeAdminCaller, args: UndoDeprecateArgs): Promise<KnowledgeResult<UndoDeprecateValue>> {
+    return await this.#service.undoDeprecate(caller, args)
+  }
+
   async listProposals(caller: KnowledgeAdminCaller, args: ListProposalsArgs = {}): Promise<KnowledgeResult<ListProposalsValue>> {
     return await this.#service.listProposals(caller, args)
   }
@@ -170,6 +174,7 @@ export class KnowledgeAdminRouteFace implements RouteFace {
       case 'readDoc': return await this.#service.readDoc(caller, asArgs<ReadDocArgs>(args))
       case 'saveDoc': return await this.#service.saveDoc(caller, asArgs<SaveDocArgs>(args))
       case 'deprecateDoc': return await this.#service.deprecateDoc(caller, asArgs<DeprecateDocArgs>(args))
+      case 'undoDeprecate': return await this.#service.undoDeprecate(caller, asArgs<UndoDeprecateArgs>(args))
       case 'listProposals': return await this.#service.listProposals(caller, asArgs<ListProposalsArgs>(args))
       case 'reviewProposal': return await this.#service.reviewProposal(caller, asArgs<ReviewProposalArgs>(args))
       case 'discardProposal': return await this.#service.discardProposal(caller, asArgs<DiscardProposalArgs>(args))

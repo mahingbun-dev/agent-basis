@@ -61,7 +61,7 @@ export const PLUGIN_META: Readonly<Record<string, PluginMeta>> = {
   },
   'eterna-knowledge': {
     title: '知识底座',
-    desc: '本地知识库混合检索,提案制写入,未过审不入检索。',
+    desc: '本地知识库检索 + 知识库管理工作台；Agent 写入先落提案，人工审批后发布；人工编辑直接发布。',
     Artwork: artworkFor('knowledge'),
   },
   'eterna-llm-doctor': {

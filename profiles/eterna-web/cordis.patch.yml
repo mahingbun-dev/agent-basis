@@ -517,12 +517,13 @@
       name: '@eterna/glue/audit-plugin'
     - id: eterna-egress
       name: '@eterna/glue/egress-plugin'
-    # 记忆/知识底座(2026-11-11 E2E 回归补挂)：@eterna/glue 的双导出，插件登记册
+    # 记忆/知识底座(2026-11-11 E2E 回归补挂)：记忆 = @eterna/glue/memory-plugin；
+    # 知识底座 = @eterna/knowledge-admin 单宿主(2026-11-19 融合：四工具 + 知识库工作台)。插件登记册
     # 自始列此二项——挂载清单补行前 UI 宣称已启用、会话内却无 memory_*/knowledge_* 工具。
     - id: eterna-memory
       name: '@eterna/glue/memory-plugin'
     - id: eterna-knowledge
-      name: '@eterna/glue/knowledge-plugin'
+      name: '@eterna/knowledge-admin'
     - id: eterna-llm-doctor
       name: '@eterna/llm-doctor'
     - id: eterna-brand
