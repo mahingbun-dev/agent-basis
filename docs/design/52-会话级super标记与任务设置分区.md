@@ -140,7 +140,7 @@ live hub 快照 `sessions` 恒空占位(宿主 session 面未接线);客户端�
    暂按 tasks 内容 hash 记;接入后由 glue 传 `jointSides` 即自动切联合 hash(face 已留缝)。
 3. 工作台会话行的「已结束工单归档」需要宿主 session 面投影;本期不猜。
 
-## 7. 部署(0.1.46,2026-11-19 已上线 3210)
+## 7. 部署(0.1.46 → 0.1.47,2026-11-19 已上线 3210)
 
 1. **构建**:干净 worktree `/Users/sunny/code/agent-basis-01146` @ `b328f70`(基线
    `e9160db` 知识融合) → `eterna-agent:0.1.46`(image id `482d36eb758c`)。不用
@@ -175,3 +175,18 @@ live hub 快照 `sessions` 恒空占位(宿主 session 面未接线);客户端�
    (§4),容器已删除、卷已清理。
 8. **回滚**:compose `image` 改 `sha256:daeefd053f63…` → `docker compose -p agent-basis
    up -d`;数据卷不变。
+
+### 7.1 合并 main 后按 main 重建(0.1.47)
+
+- PR **#128** squash 合并为 `aaf1d68`(合并前 rebase 到 main `8598fad`,全门禁复跑绿)。
+  CI 首轮红:prompt-studio registry 锚点 `plugin.ts:1006` 被本 PR 代码位移打断,按
+  「改 glue 源码先 grep registry 钉行」纪律修为 **1049**,`@eterna/prompt-studio verify`
+  16 文件 / 349 测试全绿后 CI 通过。
+- 干净 worktree `agent-basis-main-0.1.47` @ `aaf1d68` → `eterna-agent:0.1.47`
+  (image id `fa76f0ca047a`)。隔离容器 boot 探针:client 138095 B、profile 链、
+  `session-roles`/`settings` 200。
+- compose `0.1.46 → 0.1.47` → `pre-restart-check` 通过 → `up -d` → `verify.sh`
+  **14 过 / 0 败**;容器探针(ETERNA_FORM=super、patch 行 644/656、主会话目录、
+  admin GET settings 200)与 0.1.46 一致,`policyVersion=565427af…` 未变(设置跨重建持久);
+  只读 UI 复验主控行 + 设置八卡。
+- 回滚:0.1.47 → 0.1.46 image id `sha256:482d36eb758c…` → `up -d`。
