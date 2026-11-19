@@ -252,7 +252,15 @@ live hub 快照 `sessions` 恒空占位(宿主 session 面未接线);客户端�
   无法稳定制造 >120s 的忙碌回合。故本条的回归证据以集成用例(真实 `agent/inbox/claimed`
   契约形状的假宿主)为准,活体容器只验证工件装载与接口面;把 profile 改成
   `approval: ask` 会让 permission preset 组合失配、tasks 插件 pending(已回滚删除卷)。
-- **部署**:正式 0.1.50 待 push/PR 后按**合并后的 main** 重建 → 3210,构建 id 与
-  verify.sh 结果届时补记 §7.4。
+- **部署**:PR **#135** squash 合并为 `6f061a8`;干净 worktree `agent-basis-main-0.1.50`
+  @ `6f061a8` 构建 `eterna-agent:0.1.50`(image id `6b306037b659`),`pre-restart-check`
+  静默窗通过 → compose `image: 0.1.50` → `docker compose -p agent-basis up -d` →
+  `verify.sh` **14 过 / 0 败**。容器探针:image `6b306037b659…`;client
+  **144107 B**;`@eterna/tasks` symlink → `/repo/packages/tasks`;patch 行
+  `eterna-tasks`(647)/`eterna-tasks-access-bridge`(659);`session-roles` 200
+  (`masterId=orchestrator-Mr.Ma`);`settings` 200,`policyVersion=565427af…` 未变,
+  `eval.mode=auto`、`maxWorkers=3`。回滚:0.1.49 image
+  `sha256:a57d711252a7…` → `up -d`。部署后 `docker builder prune` 回收 **20.62GB**
+  构建缓存,并移除探针用 `0.1.50-rc1` 镜像。
 - 备注:0.1.49 已上线的候选卡可读化只对**新加载的客户端**生效;升级后旧浏览器标签页
   需硬刷新一次,排队区才会从原始 JSON 变成「委派候选」chip。
