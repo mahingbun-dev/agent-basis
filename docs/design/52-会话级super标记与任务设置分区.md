@@ -190,3 +190,15 @@ live hub 快照 `sessions` 恒空占位(宿主 session 面未接线);客户端�
   admin GET settings 200)与 0.1.46 一致,`policyVersion=565427af…` 未变(设置跨重建持久);
   只读 UI 复验主控行 + 设置八卡。
 - 回滚:0.1.47 → 0.1.46 image id `sha256:482d36eb758c…` → `up -d`。
+
+### 7.2 主会话 400 热修(0.1.48)
+
+- 现象与根因:主会话首轮 400 INVALID_REQUEST,触发者 `submit_plugin_to_market` 的
+  **裸 properties 映射**——顶层 `title`/`description` 参数名撞 JSON Schema 注解关键字,
+  provider 拒绝整个请求。完整取证/修复/验证见
+  [dev/master-session-tool-schema-400.md](../dev/master-session-tool-schema-400.md)。
+- PR **#130** → `b93e592`;干净 worktree `agent-basis-main-0.1.48` →
+  `eterna-agent:0.1.48`(image id `8e9ddd5612cc`);`pre-restart-check` 通过 →
+  `up -d` → `verify.sh` **14 过 / 0 败**;`session-roles`/`settings` 200,
+  `policyVersion=565427af…` 未变。
+- 回滚:0.1.48 → 0.1.47 image id `sha256:fa76f0ca047a…` → `up -d`。
