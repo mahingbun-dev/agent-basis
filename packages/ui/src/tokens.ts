@@ -442,6 +442,21 @@ html body {
   --dsw-static-violet-400: #7d6c9e;
   --dsw-static-violet-600: #61527d;
 
+  /* ── --dsw-specific-*：另一族专用令牌，同样指向静态色板 ──────────
+     侧栏、气泡、菜单、登录输入读的是这族（宿主按主题给它不同指针：
+     浅色 sidebar-fill → bluish-50，深色 → bluish-900）。我们把指针本身
+     落到玉色阶梯，这样深浅两侧都跟着走，不用逐主题再翻一次。 */
+  --dsw-specific-sidebar-fill: #f4f2ec;
+  --dsw-specific-sidebar-nav-item-active: #efede5;
+  --dsw-specific-sidebar-nav-item-active-accent: #e6e3d9;
+  --dsw-specific-bubble: #fbfaf6;
+  --dsw-specific-bubble-highlight: #efede5;
+  --dsw-specific-menu: #fbfaf6;
+  --dsw-specific-selector: #efede5;
+  --dsw-specific-input-major: #e6e3d9;
+  --dsw-specific-login-input: #fbfaf6;
+  --dsw-specific-tip: #efede5;
+
 }
 
 /* 品牌层映射：插件面读 --et-*；别名从 body 继承，独立挂载时退回浅色兜底。
@@ -606,92 +621,17 @@ html body[data-ds-dark-theme] {
   --dsw-alias-illustration-shadow: rgba(0, 0, 0, 0.24);
   --dsw-alias-illustration-surface: #1d211f;
 
-  /* 静态色板兜底（深色侧）：与浅色同一阶梯，整体压到墨玉域 */
-  --dsw-static-neutral-bluish-00: #161917;
-  --dsw-static-neutral-bluish-50: #181c1a;
-  --dsw-static-neutral-bluish-55: #1b1e1c;
-  --dsw-static-neutral-bluish-60: #1d211f;
-  --dsw-static-neutral-bluish-75: #242826;
-  --dsw-static-neutral-bluish-90: #242826;
-  --dsw-static-neutral-bluish-100: #2c312e;
-  --dsw-static-neutral-bluish-150: #2c312e;
-  --dsw-static-neutral-bluish-200: #333835;
-  --dsw-static-neutral-bluish-300: #3d433f;
-  --dsw-static-neutral-bluish-310: #3d433f;
-  --dsw-static-neutral-bluish-400: #5f655f;
-  --dsw-static-neutral-bluish-500: #7a8079;
-  --dsw-static-neutral-bluish-600: #9aa096;
-  --dsw-static-neutral-bluish-700: #b3b8b1;
-  --dsw-static-neutral-bluish-750: #c4c9c2;
-  --dsw-static-neutral-bluish-800: #cfd3cd;
-  --dsw-static-neutral-bluish-850: #d8dcd6;
-  --dsw-static-neutral-bluish-875: #e2e5df;
-  --dsw-static-neutral-bluish-900: #eceee9;
-  --dsw-static-neutral-bluish-950: #eceee9;
-  --dsw-static-neutral-bluish-1000: #161917;
-
-  --dsw-static-neutral-00: #161917;
-  --dsw-static-neutral-50: #181c1a;
-  --dsw-static-neutral-100: #242826;
-  --dsw-static-neutral-150: #2c312e;
-  --dsw-static-neutral-200: #333835;
-  --dsw-static-neutral-250: #3d433f;
-  --dsw-static-neutral-300: #494f4b;
-  --dsw-static-neutral-400: #5f655f;
-  --dsw-static-neutral-500: #7a8079;
-  --dsw-static-neutral-550: #9aa096;
-  --dsw-static-neutral-600: #b3b8b1;
-  --dsw-static-neutral-700: #c4c9c2;
-  --dsw-static-neutral-800: #d8dcd6;
-  --dsw-static-neutral-850: #e2e5df;
-  --dsw-static-neutral-900: #eceee9;
-  --dsw-static-neutral-1000: #161917;
-
-  --dsw-static-deepseek-50: #1a2528;
-  --dsw-static-deepseek-100: #1f3034;
-  --dsw-static-deepseek-200: #28414a;
-  --dsw-static-deepseek-300: #335760;
-  --dsw-static-deepseek-400: #477a89;
-  --dsw-static-deepseek-450: #548697;
-  --dsw-static-deepseek-500: #7fb2bd;
-  --dsw-static-deepseek-600: #9cc7d0;
-  --dsw-static-deepseek-700-delete: #8fbcc6;
-  --dsw-static-deepseek-800: #b9d6dc;
-  --dsw-static-deepseek-900: #d3e7eb;
-  --dsw-static-blue-50: #1a2528;
-  --dsw-static-blue-50p: #1d2b2f;
-  --dsw-static-blue-75: #202f33;
-  --dsw-static-blue-100: #243438;
-  --dsw-static-blue-300: #335760;
-  --dsw-static-blue-400: #477a89;
-  --dsw-static-blue-450: #548697;
-  --dsw-static-blue-500: #5f9b86;
-  --dsw-static-blue-600: #7fb2bd;
-  --dsw-static-blue-800: #9cc7d0;
-  --dsw-static-blue-900: #b9d6dc;
-  --dsw-static-blue-950: #d3e7eb;
-
-  --dsw-static-green-100: #1e2e27;
-  --dsw-static-green-400: #5f9b86;
-  --dsw-static-green-500: #6fae97;
-  --dsw-static-green-500-a08: rgba(95, 155, 134, 0.12);
-  --dsw-static-green-500-a12: rgba(95, 155, 134, 0.18);
-  --dsw-static-green-900: #1e3a2c;
-  --dsw-static-red-50: #2a1e1b;
-  --dsw-static-red-100: #33231f;
-  --dsw-static-red-400: #e08a7b;
-  --dsw-static-red-400-a12: rgba(224, 138, 123, 0.16);
-  --dsw-static-red-500: #d9776a;
-  --dsw-static-red-600: #cf6a5c;
-  --dsw-static-red-600-a08: rgba(224, 138, 123, 0.12);
-  --dsw-static-red-900: #3d1511;
-  --dsw-static-amber-100: #2e2618;
-  --dsw-static-amber-400: #dfae62;
-  --dsw-static-amber-500: #e8bd78;
-  --dsw-static-amber-600: #f0cc90;
-  --dsw-static-amber-900: #2e2210;
-  --dsw-static-violet-400: #a598c4;
-  --dsw-static-violet-600: #b8accf;
+  /* --dsw-specific-* 的深色侧（侧栏/气泡/菜单必须比页面底更沉，不能更亮） */
+  --dsw-specific-sidebar-fill: #161917;
+  --dsw-specific-sidebar-nav-item-active: #242826;
+  --dsw-specific-sidebar-nav-item-active-accent: #2c312e;
+  --dsw-specific-bubble: #1d211f;
+  --dsw-specific-bubble-highlight: #2c312e;
+  --dsw-specific-menu: #1d211f;
+  --dsw-specific-selector: #242826;
+  --dsw-specific-input-major: #2c312e;
+  --dsw-specific-login-input: #1d211f;
+  --dsw-specific-tip: #242826;
 
   /* 品牌层在深色下的本地派生（含柔影与语义软底：SHARED 给的是浅色基准） */
   --et-accent-fill: var(--dsw-alias-button-primary-fill);
