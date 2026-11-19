@@ -210,6 +210,17 @@ describe('主题横切项(深浅双主题的自查基座)', () => {
     expect(styles).toContain('bridge: true')
   })
 
+  it('壳层:固定 header + 独立滚动 body;tab 条禁止 sticky(2026-11-19 内容穿出 tab 的回归门)', () => {
+    const navKey = "[data-eterna-workbench='view-nav'] {"
+    const navBlock = WORKBENCH_CSS.slice(WORKBENCH_CSS.indexOf(navKey), WORKBENCH_CSS.indexOf('}', WORKBENCH_CSS.indexOf(navKey)))
+    expect(navBlock.length).toBeGreaterThan(0)
+    expect(navBlock).not.toContain('position: sticky')
+    expect(WORKBENCH_CSS).toContain("[data-eterna-workbench='header'] {")
+    expect(WORKBENCH_CSS).toContain("[data-eterna-workbench='body'] {")
+    const bodyBlock = WORKBENCH_CSS.slice(WORKBENCH_CSS.indexOf("[data-eterna-workbench='body'] {"), WORKBENCH_CSS.indexOf('}', WORKBENCH_CSS.indexOf("[data-eterna-workbench='body'] {")))
+    expect(bodyBlock).toContain('overflow-y: auto')
+  })
+
   for (const item of manifest.crossCutting) {
     if (item.enforce !== true) continue
     const patterns = item.patterns ?? (item.pattern === undefined ? [] : [item.pattern])

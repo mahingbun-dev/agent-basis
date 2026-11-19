@@ -66,6 +66,9 @@ class FakeContext {
 class FakeCanvas {
   readonly style = { cursor: '' }
   readonly ctx = new FakeContext()
+  /** 位图后备尺寸(高 DPI 重绘写入;与 CSS 尺寸分开)。 */
+  width = 960
+  height = 400
   readonly listeners = new Map<string, ((event: { clientX: number; clientY: number }) => void)[]>()
   getContext(): FakeContext {
     return this.ctx
@@ -227,6 +230,30 @@ describe('画布节制器:主题变更重绘 / 暂停冻结 / 手写交互 / 回
     const readsBefore = style.asked.length
     fireThemeChange()
     expect(style.asked.length).toBe(readsBefore + 10) // 十个令牌全部重读
+    expect(canvas.paints()).toBe(2)
+    stage.dispose()
+  })
+
+  it('高 DPI:后备位图 = CSS 尺寸 × devicePixelRatio,逻辑视区按比例映射(流程图模糊修复)', () => {
+    const canvas = new FakeCanvas()
+    const stage = createFlowCanvasStage(canvas, {
+      deps: {
+        themeStyle: () => undefined,
+        watchTheme: () => () => {},
+        requestAnimationFrame: () => 0,
+        cancelAnimationFrame: () => {},
+        reducedMotion: () => true,
+        devicePixelRatio: 2,
+        now: () => 0,
+      },
+    })
+    stage.setView(view)
+    // CSS 960×400 → 位图 1920×800;绘制按 2× 映射,文字/线条不再被拉伸放大
+    expect(canvas.width).toBe(1920)
+    expect(canvas.height).toBe(800)
+    const scale = canvas.ctx.ops.find(op => op.op === 'scale')
+    expect(scale?.args).toEqual([2, 2])
+    stage.resize()
     expect(canvas.paints()).toBe(2)
     stage.dispose()
   })

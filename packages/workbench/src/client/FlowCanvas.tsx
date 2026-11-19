@@ -416,6 +416,9 @@ export function paintFlowGraph(ctx: FlowPaintContext, view: FlowGraphView, theme
 /** 画布元素消费面子集(测试注入假画布)。 */
 export interface FlowCanvasElement {
   readonly style: { cursor: string }
+  /** 位图后备尺寸(高 DPI 重绘时按 CSS 尺寸 × devicePixelRatio 设置)。 */
+  width: number
+  height: number
   getContext(type: '2d'): (FlowPaintContext & { scale(x: number, y: number): void }) | null
   addEventListener(type: string, listener: (event: FlowPointerEvent) => void): void
   removeEventListener(type: string, listener: (event: FlowPointerEvent) => void): void
@@ -441,6 +444,8 @@ export interface FlowStageDeps {
 
 export interface FlowCanvasStage {
   paint(): void
+  /** 布局尺寸变化(窗口/栏宽):按新 CSS 尺寸与 DPR 重设后备位图并重绘。 */
+  resize(): void
   setView(view: FlowGraphView): void
   setPaused(paused: boolean): void
   startReplay(track: ReplayTrack | undefined, ticketId: string): void
@@ -534,9 +539,17 @@ export function createFlowCanvasStage(canvas: FlowCanvasElement, options: FlowSt
 
   const paint = (): void => {
     if (disposed || ctx === null || view === undefined) return
-    const scale = deps.devicePixelRatio > 1 ? deps.devicePixelRatio : 1
+    // 高 DPI 重绘(2026-11-19 线上「流程图模糊」):此前后备位图固定 960×400,
+    // 画布却以 CSS 100% 撑到 ~1000px,Retina 再放大一倍;位图先按 CSS 尺寸 ×
+    // DPR 重设,再把逻辑视区 VIEW_W/VIEW_H 映射到后备位图(1:1 设备像素)。
+    const rect = canvas.getBoundingClientRect()
+    const dpr = deps.devicePixelRatio > 0 ? deps.devicePixelRatio : 1
+    const width = Math.max(1, Math.round((rect.width > 0 ? rect.width : VIEW_W) * dpr))
+    const height = Math.max(1, Math.round((rect.height > 0 ? rect.height : VIEW_H) * dpr))
+    if (canvas.width !== width) canvas.width = width
+    if (canvas.height !== height) canvas.height = height
     ctx.save()
-    if (scale > 1) ctx.scale(scale, scale)
+    ctx.scale(width / VIEW_W, height / VIEW_H)
     paintFlowGraph(ctx, view, theme, {
       panX, panY, hoverKey, selectedKey,
       replay: replay === undefined
@@ -657,6 +670,9 @@ export function createFlowCanvasStage(canvas: FlowCanvasElement, options: FlowSt
 
   return {
     paint,
+    resize(): void {
+      paint() // 尺寸变化 = 重设后备位图 + 重绘;无视图时 paint 自带短路
+    },
     setView(next: FlowGraphView): void {
       view = next
       animating = hasLiveEdge(next) || (replay?.progress ?? 1) < 1
@@ -755,6 +771,106 @@ function roveToRow(container: HTMLElement | null, index: number): void {
   row?.querySelector<HTMLElement>('button, a, summary')?.focus()
 }
 
+/** 关闭所属回放选择器(backdrop/选项点击共用;无 DOM 环境为 no-op)。 */
+function closePicker(element: Element): void {
+  const picker = element.closest('details')
+  if (picker !== null) (picker as HTMLDetailsElement).open = false
+}
+
+/**
+ * 单工单回放选择器(2026-11-19 线上反馈:原生 select 在 macOS 呈系统灰底
+ * 控件,空选项时弹层横跨并盖住左侧文案)。改为 details/summary 披露控件:
+ * 触发器/弹层/选项全部走 --et-* 令牌,空态直接渲染禁用占位(不可展开)。
+ * 纯组件(无 hook,渲染树测试直驱)。
+ */
+function ReplayPicker(props: {
+  readonly options: readonly string[]
+  readonly tickets: readonly WorkbenchTicket[]
+  readonly value: string
+  readonly label: string
+  readonly emptyLabel: string
+  readonly onChange: (ticketId: string) => void
+}): ReactElement {
+  const { options, tickets, value, onChange } = props
+  const ticket = tickets.find(item => item.id === value)
+  const currentLabel = value === '' ? props.emptyLabel : `${value}${ticket === undefined || ticket.title === '' ? '' : ` ${ticket.title}`}`
+  if (options.length === 0) {
+    return <span data-eterna-workbench="replay-select" data-eterna-workbench-disabled="true">{props.emptyLabel}</span>
+  }
+  const moveFocus = (menu: HTMLUListElement, key: string): void => {
+    const items = [...menu.querySelectorAll<HTMLButtonElement>('button[data-eterna-workbench="replay-option"]')]
+    if (items.length === 0) return
+    const index = items.indexOf(document.activeElement as HTMLButtonElement)
+    const step = key === 'ArrowDown' ? 1 : -1
+    const next = index < 0 ? (step === 1 ? 0 : items.length - 1) : (index + step + items.length) % items.length
+    items[next]?.focus()
+  }
+  return (
+    <details
+      data-eterna-workbench="replay-picker"
+      onBlur={event => {
+        const next = event.relatedTarget
+        if (next !== null && next instanceof Node && event.currentTarget.contains(next)) return
+        event.currentTarget.open = false
+      }}
+      onKeyDown={event => {
+        if (event.key !== 'Escape') return
+        event.currentTarget.open = false
+        event.currentTarget.querySelector('summary')?.focus()
+      }}
+    >
+      <summary data-eterna-workbench="replay-select" aria-label={`${props.label}：${currentLabel}`} aria-haspopup="menu">
+        <span data-eterna-workbench="replay-value">{currentLabel}</span>
+        <Icon name="chevron-down" size={14} />
+      </summary>
+      <span data-eterna-workbench="replay-backdrop" aria-hidden="true" onClick={event => { closePicker(event.currentTarget) }} />
+      <ul
+        data-eterna-workbench="replay-menu"
+        role="menu"
+        aria-label={props.label}
+        onKeyDown={event => {
+          if (event.key === 'Escape') {
+            const details = event.currentTarget.closest('details')
+            closePicker(event.currentTarget)
+            details?.querySelector('summary')?.focus()
+            return
+          }
+          if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+          moveFocus(event.currentTarget, event.key)
+          event.preventDefault()
+        }}
+      >
+        {options.map(ticketId => {
+          const option = tickets.find(item => item.id === ticketId)
+          const selected = ticketId === value
+          return (
+            <li key={ticketId} role="none">
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={selected}
+                data-eterna-workbench="replay-option"
+                data-eterna-workbench-option-ticket={ticketId}
+                data-eterna-workbench-selected={selected ? 'true' : undefined}
+                onClick={event => {
+                  onChange(ticketId)
+                  const details = event.currentTarget.closest('details')
+                  closePicker(event.currentTarget)
+                  details?.querySelector('summary')?.focus()
+                }}
+              >
+                <Icon name={selected ? 'check' : 'chevron-right'} size={14} />
+                <span data-eterna-workbench-seg-mono="true">{ticketId}</span>
+                {option === undefined || option.title === '' ? null : <span>{option.title}</span>}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </details>
+  )
+}
+
 /** 视图二 · 信息流实时图(画布 + 图例 + 旁挂 a11y 等价列表 = 原型 03 视图二 + 原型 04)。 */
 export function FlowView(props: FlowViewProps): ReactElement {
   const { view, tickets, paused, replayTicketId, announce, t } = props
@@ -774,22 +890,19 @@ export function FlowView(props: FlowViewProps): ReactElement {
           type="button"
           data-eterna-workbench="btn-secondary"
           data-eterna-workbench-flow="pause"
+          data-eterna-workbench-paused={paused ? 'true' : undefined}
           aria-pressed={paused}
           onClick={() => { props.onTogglePause() }}
-        ><Icon name="pause" size={16} />{t('toolbar.pause')}</button>
-        <label data-eterna-workbench="replay-label" htmlFor="wb-replay-select">{t('toolbar.replay')}</label>
-        <select
-          id="wb-replay-select"
-          data-eterna-workbench="replay-select"
+        ><Icon name={paused ? 'play' : 'pause'} size={16} />{paused ? t('toolbar.resume') : t('toolbar.pause')}</button>
+        <span data-eterna-workbench="replay-label">{t('toolbar.replay')}</span>
+        <ReplayPicker
+          options={view.replayOptions}
+          tickets={tickets}
           value={replayTicketId}
-          onChange={event => { props.onReplayTicketChange(event.target.value) }}
-        >
-          {view.replayOptions.length === 0 && <option value="">（无可回放工单）</option>}
-          {view.replayOptions.map(ticketId => {
-            const ticket = tickets.find(item => item.id === ticketId)
-            return <option key={ticketId} value={ticketId}>{`${ticketId} ${ticket?.title ?? ''}`}</option>
-          })}
-        </select>
+          label={t('toolbar.replay')}
+          emptyLabel={t('toolbar.replayEmpty')}
+          onChange={props.onReplayTicketChange}
+        />
         <button
           type="button"
           data-eterna-workbench="btn-secondary"
@@ -958,11 +1071,14 @@ export function FlowStage({ snapshot, t }: FlowStageProps): ReactElement {
   const [replayTicketId, setReplayTicketId] = useState(view.replayOptions[0] ?? '')
   const [announce, setAnnounce] = useState('')
   const stageRef = useRef<ReturnType<typeof createFlowCanvasStage> | undefined>(undefined)
+  const sizeObserverRef = useRef<ResizeObserver | undefined>(undefined)
   const viewRef = useRef(view)
   viewRef.current = view
   const prevStuckCount = useRef<number | undefined>(undefined)
 
   const attachCanvas = useCallback((element: HTMLCanvasElement | null): void => {
+    sizeObserverRef.current?.disconnect()
+    sizeObserverRef.current = undefined
     if (element === null) {
       stageRef.current?.dispose()
       stageRef.current = undefined
@@ -972,11 +1088,31 @@ export function FlowStage({ snapshot, t }: FlowStageProps): ReactElement {
       onAnnounce: setAnnounce,
     })
     stageRef.current.setView(viewRef.current)
+    // 布局宽度变化(窗口/栏宽)时按新 CSS 尺寸 × DPR 重建后备位图
+    // (2026-11-19 线上「流程图模糊」修复的尺寸侧;公开环境无 ResizeObserver 时跳过)。
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(() => { stageRef.current?.resize() })
+      observer.observe(element)
+      sizeObserverRef.current = observer
+    }
   }, [])
 
   useEffect(() => { stageRef.current?.setView(view) }, [view])
   useEffect(() => { stageRef.current?.setPaused(paused) }, [paused])
-  useEffect(() => () => { stageRef.current?.dispose() }, [])
+  useEffect(() => () => {
+    sizeObserverRef.current?.disconnect()
+    sizeObserverRef.current = undefined
+    stageRef.current?.dispose()
+  }, [])
+
+  // 回放目标随可选工单集合收敛:空集清空、当前值失效时回落到首个可选工单。
+  useEffect(() => {
+    if (view.replayOptions.length === 0) {
+      if (replayTicketId !== '') setReplayTicketId('')
+      return
+    }
+    if (!view.replayOptions.includes(replayTicketId)) setReplayTicketId(view.replayOptions[0]!)
+  }, [view.replayOptions, replayTicketId])
 
   // 卡点人数变化播报(原型 04:「Assignment 等待人数 2 → 3」;驻留不重复播报)
   const stuckCount = view.nodes.find(node => node.key === 'assignment')?.events.length ?? 0

@@ -330,6 +330,16 @@ body, [data-eterna-ui] {
   --et-selection: color-mix(in oklab, var(--et-accent), transparent 78%);
   --et-scrim: var(--dsw-alias-bg-mask-1, rgba(22, 25, 23, 0.42));
   --et-overlay: var(--dsw-alias-bg-mask-1, rgba(22, 25, 23, 0.42));
+  /* v4 阴影阶梯:组件(卡面/浮层)按 r1..r4 取值,桥接模式此前整档缺失——
+   * 组件引用解析为空,应用内卡面与下拉弹层无阴影。宿主 ui-theme 只提供
+   * lv1..lv3,第四档以 lv3 收口;深浅主题由宿主 lv 值自带切换。 */
+  --et-shadow-r1: var(--dsw-shadow-lv1, 0 1px 2px rgba(38, 42, 36, 0.05), 0 2px 6px rgba(38, 42, 36, 0.04));
+  --et-shadow-r2: var(--dsw-shadow-lv2, 0 1px 2px rgba(38, 42, 36, 0.05), 0 8px 24px rgba(38, 42, 36, 0.07));
+  --et-shadow-r3: var(--dsw-shadow-lv3, 0 2px 6px rgba(38, 42, 36, 0.07), 0 16px 40px rgba(38, 42, 36, 0.1));
+  --et-shadow-r4: var(--dsw-shadow-lv3, 0 4px 12px rgba(38, 42, 36, 0.09), 0 24px 64px rgba(38, 42, 36, 0.18));
+  /* v3 兼容别名(v4 tokens.ts 同口径:指向 r2)。 */
+  --et-shadow: var(--et-shadow-r2);
+  --et-shadow-raised: var(--et-shadow-r2);
 }
 
 /* 深色：只换中性别名（同一批名字，主题由壳切换 data-ds-dark-theme）。
