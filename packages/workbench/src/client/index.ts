@@ -61,6 +61,8 @@ export function apply(ctx: WorkbenchClientContext): () => void {
       // 宿主 ui-workspace 导航(未注入的服务面缺席 → 入口不渲染)。
       ...(uiWorkspace === undefined ? {} : {
         openMaster: (sessionId: string) => { uiWorkspace.openSession(sessionId) },
+        // 会话行点击导航(2026-11-19):派生主控/执行行与普通行同一动作面。
+        openSession: (sessionId: string) => { uiWorkspace.openSession(sessionId) },
       }),
     }),
   }, WorkbenchPage))

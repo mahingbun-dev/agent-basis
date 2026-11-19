@@ -206,6 +206,14 @@ if (!existsSync(join(memoryPkg, 'lib', 'client.js'))) {
   process.exit(1)
 }
 symlinkSync(memoryPkg, join(profileDir, 'node_modules', '@eterna', 'memory'), 'dir')
+// 任务内核客户端半边（2026-11-19 会话级 super 标记 + 任务设置分区）：eterna-tasks
+// 是双面包——设置分区「任务与超级智能体」与会话头角色徽标都从 lib/client.js
+// 载入浏览器；缺失时两件静默不渲染（pre-restart 不拦，只能靠本断言）。
+const tasksPkg = join(repoRoot, 'packages', 'tasks')
+if (!existsSync(join(tasksPkg, 'lib', 'client.js'))) {
+  console.error('verify-eterna-super: packages/tasks/lib/client.js 缺失——先跑 pnpm --filter @eterna/tasks run verify（build:client）')
+  process.exit(1)
+}
 // base 模板 insert 面其余 @eterna 行的 symlink（2026-11-18 端到端缺口修复）：治理面
 // 三行 name='@eterna/glue/*-plugin'、记忆 = glue memory-plugin；知识底座 =
 // @eterna/knowledge-admin 单宿主（2026-11-19 融合：四工具 + 知识库工作台 + 账号面）。
@@ -452,6 +460,14 @@ if (!roster.ok) {
   pass('browser roster: 附件包 combo 可取且含 factory 注册(id=@eterna/attachments)',
     roster.attachmentsBody !== '' && roster.attachmentsBody.includes('id: "@eterna/attachments"'),
     roster.attachmentsBody === '' ? 'combo 取回为空' : `bytes=${roster.attachmentsBody.length}`)
+  // 任务设置分区 + 会话头角色徽标（2026-11-19）：tasks 双面包的浏览器半边——
+  // 花名册含 @eterna/tasks/client.js 且 factory 注册，否则设置分区空白、徽标
+  // 不渲染而宿主无任何报错。
+  pass('browser roster: combo 花名册含 @eterna/tasks/client.js', roster.tasksCombo !== '',
+    roster.tasksCombo === '' ? 'combo urls 无任务包条目——dsh.client 声明或 lib/client.js 缺失' : roster.tasksCombo.slice(0, 120))
+  pass('browser roster: 任务包 combo 可取且含 factory 注册(id=@eterna/tasks)',
+    roster.tasksBody !== '' && roster.tasksBody.includes('id: "@eterna/tasks"'),
+    roster.tasksBody === '' ? 'combo 取回为空' : `bytes=${roster.tasksBody.length}`)
   // 知识底座(2026-11-19 融合):@eterna/knowledge-admin 单宿主的侧栏/工作台半边,
   // 花名册与 factory 注册双证;缺席 = 侧栏「知识库」入口静默消失。
   pass('browser roster: combo 花名册含 @eterna/knowledge-admin/client.js', roster.knowledgeCombo !== '',
@@ -549,9 +565,17 @@ async function probeRoster(url) {
       const combo = await fetch(`${index.origin}/${knowledgeCombo.replace(/^\/+/, '')}`, { headers: { cookie }, signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) })
       if (combo.ok) knowledgeBody = await combo.text()
     }
+    // 任务客户端半边(2026-11-19):设置分区(settings.section)与会话头角色徽标
+    // (conversation.session.header.utilities)——与附件/压缩同款花名册取证。
+    const tasksCombo = comboUrls.find((u) => u.includes('@eterna/tasks/client.js')) ?? ''
+    let tasksBody = ''
+    if (tasksCombo !== '') {
+      const combo = await fetch(`${index.origin}/${tasksCombo.replace(/^\/+/, '')}`, { headers: { cookie }, signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) })
+      if (combo.ok) tasksBody = await combo.text()
+    }
     return {
       ok: true, status: page.status, html, ours, comboBody, compactionCombo, compactionBody,
-      attachmentsCombo, attachmentsBody, knowledgeCombo, knowledgeBody,
+      attachmentsCombo, attachmentsBody, knowledgeCombo, knowledgeBody, tasksCombo, tasksBody,
     }
   } catch (error) {
     return { ok: false, error: { code: 'roster', message: String(error?.message ?? error) } }

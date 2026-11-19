@@ -632,6 +632,18 @@ tbody [data-eterna-workbench='ticket-row'][data-eterna-workbench-stuck='true']:h
 [data-eterna-workbench='session-row'][data-eterna-workbench-active='true'] {
   background: var(--et-accent-soft); color: var(--et-accent); font-weight: var(--et-weight-display);
 }
+[data-eterna-workbench='session-row'] > span:not([data-eterna-workbench='session-role']) {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+[data-eterna-workbench='session-role'] {
+  flex: none; margin-left: auto; display: inline-flex; align-items: center;
+  padding: 1px 8px; border-radius: var(--et-radius-pill);
+  background: var(--et-accent-soft); color: var(--et-accent);
+  font-size: var(--et-text-micro); white-space: nowrap;
+}
+[data-eterna-workbench='session-role'][data-eterna-workbench-role='worker'] {
+  background: var(--et-surface-2); color: var(--et-fg-2);
+}
 [data-eterna-workbench='task-group'] { margin-top: var(--et-space-5); }
 [data-eterna-workbench='task-group']:first-of-type { margin-top: 0; }
 [data-eterna-workbench='task-group-h'] {

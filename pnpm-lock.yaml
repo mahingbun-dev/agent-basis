@@ -878,6 +878,9 @@ importers:
       '@eterna/governance':
         specifier: workspace:*
         version: link:../governance
+      '@eterna/ui':
+        specifier: workspace:*
+        version: link:../ui
       zod:
         specifier: 'catalog:'
         version: 4.4.3
@@ -885,6 +888,15 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
+      '@types/react':
+        specifier: 'catalog:'
+        version: 18.3.31
+      esbuild:
+        specifier: 'catalog:'
+        version: 0.28.2
+      react:
+        specifier: 'catalog:'
+        version: 18.3.1
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

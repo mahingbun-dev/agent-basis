@@ -63,7 +63,7 @@ import { Prompts } from './session/prompts.ts'
 import { orchestratorTools, type OrchestratorToolsHost } from './tools/orchestrator.ts'
 import { toDshTool } from './tools/tool.ts'
 import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
-import { ticketOfSession } from './executor/dsh.ts'
+import { ticketOfSession, workerSessionId } from './executor/dsh.ts'
 import { MASTER_SESSION_TITLE, masterSessionId, Sessions, type SessionHostPorts, type SessionRole, type SessionsHost } from './session/sessions.ts'
 import { ChannelTriggerAdapter } from './sources/channel-adapter.ts'
 import { WEBSCHAT_SOURCE, webchatMasterScope, WebchatDelegationEntry } from './sources/webchat.ts'
@@ -71,6 +71,8 @@ import type { ActorRef } from './core/index.ts'
 import { settingsPolicy, type AllowedRoster, type PolicyWiring } from './policy/gate.ts'
 import type { RoleModel, Settings } from './policy/settings.ts'
 import { policyVersion } from './policy/version.ts'
+import { createTasksSettingsFace, type TasksSettingsFace } from './policy/face.ts'
+import type { JointSides } from './policy/save.ts'
 import { activeTicketsFace, ACTIVE_TICKETS_SECTION_NAME, type ActiveTicketsSection } from './session/sections.ts'
 import { TasksRealmRouter } from './store/realm.ts'
 import { KV } from './store/kv.ts'
@@ -209,6 +211,12 @@ export interface TasksOptions {
   readonly allowed?: AllowedRoster
   /** C3 联合 hash(governance rules.yaml + hitl.yaml + tasks 准入表;glue 热改重算后注入,缺省 settings 内容 hash)。 */
   readonly policyVersion?: string
+  /**
+   * C3 联合 hash 的另两侧内容现读面(2026-11-19 任务设置分区):glue 接 governance/hitl 后
+   * 注入,面板保存时与 tasks 侧内容一起现算联合版本;缺省(未注入)= tasks 内容 hash
+   * (save.ts 可选 sides 口径,避免首次面板保存把内容 hash 误判成联合 hash 变化)。
+   */
+  readonly jointSides?: () => JointSides
   /**
    * R1 effort 档位(24 §5.5-R1;26 §4.1 effort 段;35 号 A17):领域包 effort 档位声明段
    * (五段之一,schema 待 G2-A18 拍板)经 glue 解析后注入——进候选卡字段(EngineOptions.effort)
@@ -389,6 +397,13 @@ export interface TasksWorld {
    * 工作台与探针消费(health()/stats() 同时带同值)。
    */
   readonly masterId: string | undefined
+  /**
+   * 任务设置面(2026-11-19 会话级 super 标记 + 任务设置分区):面板/宿主面经
+   * `ctx.tasks.settingsFace` 读写设置——写只经 saveSettingsBlock(分块 CAS + policyChanged
+   * 原子面),读为纯投影。access 路由面经反射键 'tasks' 结构解析(见 access/routes.ts
+   * TasksSettingsFace 结构面,不 import 本包)。
+   */
+  readonly settingsFace: TasksSettingsFace
   /** 关停:装配逆序回放(34 §4-E「关停配逆」);幂等。 */
   dispose(): void
 }
@@ -397,6 +412,11 @@ export interface TasksWorld {
 export interface TasksRuntime extends TasksWorld {
   readonly router: TasksRealmRouter
   readonly store: Store
+  /**
+   * 生效的策略接线(Listing 名单 + 版本注入面;2026-11-19 起为装配内**唯一可变对象**——
+   * 面板保存经 settingsFace 回写 version,Engine/工具宿主共用同一实例,消除版本漂移)。
+   */
+  readonly wiring: PolicyWiring
   readonly effects: Effects
   readonly outbox: Outbox
   readonly assessor: MasterAssessor
@@ -726,6 +746,77 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
 
   self.set({ state: 'ready', detail: `realm ${realm} 就绪(pass ${intervalMs}ms)`, at: nowIso() })
 
+  /** 聚合健康面(runtime.health 与 settingsFace.read 共用;组件认领制见 board.claim)。 */
+  const healthOf = (): TasksHealth => {
+    const components = board.all
+    const master = masterId === undefined ? {} : { masterId }
+    if (disposed) return { state: 'error', detail: '任务内核已关停', at: nowIso(), components, ...master }
+    const failing = Object.entries(components).filter(([, entry]) => entry?.state === 'error')
+    if (failing.length > 0) {
+      return { state: 'error', detail: `组件异常:${failing.map(([name]) => name).join(', ')}`, at: nowIso(), components, ...master }
+    }
+    if (store.settings().paused) return { state: 'paused', detail: '处理暂停中(settings.paused)', at: nowIso(), components, ...master }
+    return { state: 'ready', detail: `realm ${realm} 就绪`, at: nowIso(), components, ...master }
+  }
+  /** 最小状态面(runtime.stats 与 settingsFace.read 共用;只读计数)。 */
+  const statsOf = (): TasksStats => {
+    if (disposed) throw new Error('任务内核已关停:stats 面不再可用')
+    const db = store.db
+    // 单值计数读取(COUNT 恒非空,SUM 空表为 null;node:sqlite 默认返回 number)。
+    const count = (sql: string): number => {
+      const row = db.prepare(sql).get() as { n: number | null } | undefined
+      return row?.n ?? 0
+    }
+    const kindRows = db.prepare('SELECT kind, COUNT(*) AS n FROM effect GROUP BY kind').all() as Array<{ kind: string; n: number }>
+    const byKind: Record<string, number> = {}
+    let waiting = 0
+    for (const row of kindRows) { byKind[row.kind] = row.n; waiting += row.n }
+    const ticketRow = db.prepare('SELECT COUNT(*) AS n, SUM(open = 1) AS open, SUM(active = 1) AS active FROM ticket').get() as
+      { n: number | null; open: number | null; active: number | null } | undefined
+    const settings = store.settings()
+    return {
+      realm,
+      tickets: { open: ticketRow?.open ?? 0, active: ticketRow?.active ?? 0, total: ticketRow?.n ?? 0 },
+      threads: {
+        active: count('SELECT COUNT(*) AS n FROM thread WHERE active = 1'),
+        subscribed: count('SELECT COUNT(*) AS n FROM thread WHERE subscribed IS NOT NULL'),
+      },
+      triggers: { total: count('SELECT COUNT(*) AS n FROM trigger') },
+      decisions: { total: count('SELECT COUNT(*) AS n FROM decision') },
+      effects: { waiting, byKind },
+      outbox: {
+        pending: count("SELECT COUNT(*) AS n FROM outbox WHERE value ->> '$.status' = 'pending'"),
+        dropped: count('SELECT COUNT(*) AS n FROM outbox WHERE dropped IS NOT NULL'),
+      },
+      policy: {
+        version: wiring.version ?? policyVersion(settings),
+        paused: settings.paused,
+        evalMode: settings.eval.mode,
+        rules: settings.policy.rules.length,
+      },
+      executor: { maxWorkers: settings.executor.maxWorkers },
+      masterId,
+    }
+  }
+  // ★任务设置面(2026-11-19 任务设置分区):面板/未来宿主面的唯一设置读写缝——写路径只经
+  // saveSettingsBlock(分块 CAS),版本更新回写同一 wiring(Engine 现读,热生效不重启)。
+  const settingsFace: TasksSettingsFace = createTasksSettingsFace({
+    host: {
+      store,
+      engine,
+      scope: () => scope,
+      wiring: () => wiring,
+      setVersion: (version: string): void => { wiring.version = version },
+    },
+    realm,
+    masterId: () => masterId,
+    masterTitle: MASTER_SESSION_TITLE,
+    health: healthOf,
+    stats: statsOf,
+    workerSessionIds: () => store.tickets.open().map(ticket => workerSessionId(ticket.id)),
+    ...(options.jointSides === undefined ? {} : { jointSides: options.jointSides }),
+  })
+
   const runtime: TasksRuntime = {
     id: TASKS_SERVICE_ID,
     realm,
@@ -743,56 +834,10 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
     engine,
     subagentPolicies,
     masterId,
-    health: (): TasksHealth => {
-      const components = board.all
-      const master = masterId === undefined ? {} : { masterId }
-      if (disposed) return { state: 'error', detail: '任务内核已关停', at: nowIso(), components, ...master }
-      const failing = Object.entries(components).filter(([, entry]) => entry?.state === 'error')
-      if (failing.length > 0) {
-        return { state: 'error', detail: `组件异常:${failing.map(([name]) => name).join(', ')}`, at: nowIso(), components, ...master }
-      }
-      if (store.settings().paused) return { state: 'paused', detail: '处理暂停中(settings.paused)', at: nowIso(), components, ...master }
-      return { state: 'ready', detail: `realm ${realm} 就绪`, at: nowIso(), components, ...master }
-    },
-    stats: (): TasksStats => {
-      if (disposed) throw new Error('任务内核已关停:stats 面不再可用')
-      const db = store.db
-      // 单值计数读取(COUNT 恒非空,SUM 空表为 null;node:sqlite 默认返回 number)。
-      const count = (sql: string): number => {
-        const row = db.prepare(sql).get() as { n: number | null } | undefined
-        return row?.n ?? 0
-      }
-      const kindRows = db.prepare('SELECT kind, COUNT(*) AS n FROM effect GROUP BY kind').all() as Array<{ kind: string; n: number }>
-      const byKind: Record<string, number> = {}
-      let waiting = 0
-      for (const row of kindRows) { byKind[row.kind] = row.n; waiting += row.n }
-      const ticketRow = db.prepare('SELECT COUNT(*) AS n, SUM(open = 1) AS open, SUM(active = 1) AS active FROM ticket').get() as
-        { n: number | null; open: number | null; active: number | null } | undefined
-      const settings = store.settings()
-      return {
-        realm,
-        tickets: { open: ticketRow?.open ?? 0, active: ticketRow?.active ?? 0, total: ticketRow?.n ?? 0 },
-        threads: {
-          active: count('SELECT COUNT(*) AS n FROM thread WHERE active = 1'),
-          subscribed: count('SELECT COUNT(*) AS n FROM thread WHERE subscribed IS NOT NULL'),
-        },
-        triggers: { total: count('SELECT COUNT(*) AS n FROM trigger') },
-        decisions: { total: count('SELECT COUNT(*) AS n FROM decision') },
-        effects: { waiting, byKind },
-        outbox: {
-          pending: count("SELECT COUNT(*) AS n FROM outbox WHERE value ->> '$.status' = 'pending'"),
-          dropped: count('SELECT COUNT(*) AS n FROM outbox WHERE dropped IS NOT NULL'),
-        },
-        policy: {
-          version: wiring.version ?? policyVersion(settings),
-          paused: settings.paused,
-          evalMode: settings.eval.mode,
-          rules: settings.policy.rules.length,
-        },
-        executor: { maxWorkers: settings.executor.maxWorkers },
-        masterId,
-      }
-    },
+    wiring,
+    settingsFace,
+    health: healthOf,
+    stats: statsOf,
     pass: (): void => { passDriver.pass() },
     activeTickets,
     subscribe: (listener): (() => void) => {
@@ -917,10 +962,6 @@ export function defineTasksPlugin(config: TasksPluginConfig = {}) {
           const tools = (ctx as unknown as { readonly tools?: { register(definition: ToolDefinition,
             options?: { when?: (activation: { readonly agent: { readonly id: string } }) => boolean }): () => void } }).tools
           if (tools !== undefined && typeof tools.register === 'function') {
-            const wiring: PolicyWiring = {
-              ...(config.allowed !== undefined ? { allowed: config.allowed } : {}),
-              ...(config.policyVersion !== undefined ? { version: config.policyVersion } : {}),
-            }
             const host: OrchestratorToolsHost = {
               engine: runtime.engine,
               store: runtime.store,
@@ -932,7 +973,9 @@ export function defineTasksPlugin(config: TasksPluginConfig = {}) {
               // 与 Engine 同一 scope 面(三断点③):注入面优之,缺省即 webchatMasterScope 真实现
               // (masterId 动态现读;policyEffects 热改重算走同一闭包)。
               scope: config.scope ?? webchatMasterScope((): string | undefined => masterId),
-              ...(wiring.allowed !== undefined || wiring.version !== undefined ? { wiring } : {}),
+              // ★同一 wiring 实例(2026-11-19 任务设置分区):面板保存回写 runtime.wiring.version,
+              // Engine 与工具宿主现读同一对象——旧实现另建副本,面板保存后工具面版本漂移。
+              wiring: runtime.wiring,
               ...(config.syncSource !== undefined ? { syncSource: config.syncSource } : {}),
               requestPass: (): void => { runtime.pass() },
               policyChanged: (from, to, effects): void => { runtime.engine.policyChanged(from, to, effects) },

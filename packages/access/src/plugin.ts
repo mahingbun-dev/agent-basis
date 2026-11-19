@@ -24,7 +24,7 @@ import type { Context } from '@deepseek-ai/cordis'
 // 空类型导入 = dsh-tools 对 cordis Events('tools/pre-execute')增广的触发器（governance-plugin 同款）：
 // 下方 companion 身份注入钩子的监听签名依赖该声明文件进入本包 tsc 程序。
 import type {} from '@deepseek-ai/dsh-tools'
-import { handleAccessRequest, type AccessDeps } from './routes.ts'
+import { handleAccessRequest, type AccessDeps, type TasksSettingsFace } from './routes.ts'
 import { loadOrCreateSecret, SessionService } from './session.ts'
 import { SlidingWindow } from './ratelimit.ts'
 import { createStreamBridgeHandler } from './stream.ts'
@@ -222,6 +222,18 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
           : undefined,
         approvalBridge,
         questionBridge,
+        // tasks 设置面(2026-11-19 任务设置分区):反射键 'tasks' 现读(ctx.provide('tasks', runtime)
+        // 的服务;ephemeral/装配竞态下缺席 → 端点 503)。三键齐备才算就绪(结构校验 fail-closed,
+        // 同 stream.ts/tenant.ts serviceOf 纪律;access 不 import @eterna/tasks)。
+        tasksSettings: (): TasksSettingsFace | undefined => {
+          const raw = ctx.reflect.get('tasks', false) as { settingsFace?: unknown } | undefined
+          const face = raw?.settingsFace
+          if (typeof face !== 'object' || face === null) return undefined
+          const candidate = face as Record<string, unknown>
+          return typeof candidate.read === 'function' && typeof candidate.roles === 'function' && typeof candidate.save === 'function'
+            ? face as unknown as TasksSettingsFace
+            : undefined
+        },
       }
       // 答者随插件卸载解除;disposers 数组在下方 createNodeHandler 后才初始化(TDZ),
       // 故先留柄、落数组时统一收编。on 注册面走结构面 cast(cordis on 具体重载不进桥)。
