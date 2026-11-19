@@ -144,6 +144,41 @@ describe('probeModel 端点', () => {
     expect((init.headers as Record<string, string>)['authorization']).toBe('Bearer sk-env-key')
     expect(JSON.stringify(init.body)).toContain('deepseek-flash')
   })
+  it('credentials 仓储优先于 env(2026-11-18 新增供应商恒 401 根因回归锚)', async () => {
+    // 设置页新增供应商时密钥落 .credentials.yaml 而非容器 env;探针必须经
+    // credentials 服务取值,否则裸发请求被网关 401「Missing API key」冤枉。
+    const fakeFetch: FetchLike = vi.fn(async () =>
+      new Response(JSON.stringify({ content: [{ type: 'text', text: 'stored-pong' }] }), { status: 200 }))
+    const { face } = fakeEditor([{ id: PI_AI_ENTRY_ID, override: structuredClone(GATEWAY_CONFIG) }])
+    const context = ctxWithEditor(face)
+    context.provide('credentials', { resolve: async (ref: string) => (ref === 'MIMO_API_KEY' ? { value: 'sk-stored-key' } : undefined) })
+    const gateway = new LlmDoctorGateway(context)
+    gateway.fetchImpl = fakeFetch
+    // env 面故意给不同的值:证明 credentials 先赢
+    gateway.resolveApiKey = env => (env === 'MIMO_API_KEY' ? 'sk-env-key' : undefined)
+    const result = await gateway.probeModel({ provider: 'mimo', model: 'deepseek-flash' })
+    expect(result.ok).toBe(true)
+    expect(result.preview).toBe('stored-pong')
+    const init = (fakeFetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit
+    const headers = init.headers as Record<string, string>
+    expect(headers['authorization']).toBe('Bearer sk-stored-key')
+    // anthropic-messages 同时带 x-api-key(官方口径;兼容双头网关)
+    expect(headers['x-api-key']).toBe('sk-stored-key')
+  })
+  it('credentials 缺席/未命中 → 回退 env(部署 env 注入四家原路径不变)', async () => {
+    const fakeFetch: FetchLike = vi.fn(async () =>
+      new Response(JSON.stringify({ content: [{ type: 'text', text: 'env-pong' }] }), { status: 200 }))
+    const { face } = fakeEditor([{ id: PI_AI_ENTRY_ID, override: structuredClone(GATEWAY_CONFIG) }])
+    const context = ctxWithEditor(face)
+    context.provide('credentials', { resolve: async () => undefined })
+    const gateway = new LlmDoctorGateway(context)
+    gateway.fetchImpl = fakeFetch
+    gateway.resolveApiKey = env => (env === 'MIMO_API_KEY' ? 'sk-env-key' : undefined)
+    const result = await gateway.probeModel({ provider: 'mimo', model: 'deepseek-flash' })
+    expect(result.ok).toBe(true)
+    const init = (fakeFetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as RequestInit
+    expect((init.headers as Record<string, string>)['authorization']).toBe('Bearer sk-env-key')
+  })
 })
 
 describe('插件装配', () => {
