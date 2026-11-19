@@ -495,9 +495,6 @@ importers:
       '@eterna/interact':
         specifier: workspace:*
         version: link:../interact
-      '@eterna/knowledge':
-        specifier: workspace:*
-        version: link:../knowledge
       '@eterna/memory':
         specifier: workspace:*
         version: link:../memory
@@ -619,10 +616,16 @@ importers:
       '@eterna/knowledge':
         specifier: workspace:*
         version: link:../knowledge
+      '@eterna/ui':
+        specifier: workspace:*
+        version: link:../ui
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
+      esbuild:
+        specifier: 'catalog:'
+        version: 0.28.2
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

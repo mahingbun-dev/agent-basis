@@ -61,9 +61,16 @@ mkdir -p "$PROFILE_DIR/node_modules/@eterna" "$PROFILE_DIR/node_modules/@deepsee
 # 治理红线行不参与移植(其装载由本文件第 2.5 步 admin 清单独立管理)。
 RENDER_SALT="${ETERNA_RELAY_TOKEN:-}"
 
+# 插件启停清单(T2.3,2026-11-19 修正):停用/删除清单必须参与渲染哈希——否则
+# 「停用 → 2.5 步裁掉 patch 行 → 重启启用」时模板哈希未变走 keep 路径,
+# 被裁掉的行永远回不来(隔离容器 E2E 实测:停用知识底座后重新启用,行不恢复)。
+# 清单变化 = 强制从模板重渲染 + 移植用户标记,再按当前清单裁剪;幂等。
+DISABLED_FILE="$DSH_HOME/access/disabled-plugins.json"
+REMOVED_FILE="$DSH_HOME/access/removed-plugins.json"
+
 ensure_rendered() {
   tpl="$1"; dst="$2"; hashfile="$3"; mode="$4"
-  want="$( { cat "$tpl"; printf '%s' "$RENDER_SALT"; } | sha256sum | cut -d' ' -f1 )"
+  want="$( { cat "$tpl"; printf '%s' "$RENDER_SALT"; if [ "$mode" = "patch" ]; then cat "$DISABLED_FILE" "$REMOVED_FILE" 2>/dev/null; fi; } | sha256sum | cut -d' ' -f1 )"
   if [ -f "$dst" ] && [ -f "$hashfile" ] && [ "$(cat "$hashfile")" = "$want" ]; then
     echo "[entrypoint] profile 渲染:模板未变,保留用户文件 $(basename "$dst")(启停/模型设置跨重启持久)"
     return 0
@@ -166,9 +173,8 @@ node /repo/docker/profile/migrate-prompt-edits.mjs \
   || echo "[entrypoint] WARNING 工坊值移植失败(该批托管值保模板默认;成因见上一行)"
 rm -f "$PREV_PATCH"
 
-# ── 2.5 插件启停清单(T2.3):admin 停用的可停插件 → 渲染时裁剪对应 insert 行 ──
-DISABLED_FILE="$DSH_HOME/access/disabled-plugins.json"
-REMOVED_FILE="$DSH_HOME/access/removed-plugins.json"
+# ── 2.5 插件启停清单(T2.3):admin 停用的可停插件 → 渲染时裁剪对应 insert 行
+# (清单文件在文件头定义,已计入渲染哈希:启停变化触发重渲染,行可恢复)──
 if [ -f "$DISABLED_FILE" ] || [ -f "$REMOVED_FILE" ]; then
   node -e '
     const fs = require("fs")
@@ -217,9 +223,9 @@ echo "[entrypoint] governance rules: $GOV_SRC -> $DSH_HOME/.eterna/governance.ru
 # memory(2026-11-15 补记):T12 双面插件(引擎行+client/admin 家族行)同样依赖本清单
 # ——实测缺链时 eterna-memory-client/admin 行静默 disable,设置分区「记忆」不出现。
 # base 清单逐字保留;super 形态守卫式补链 Tier2/接线包(见下方注)。
-# knowledge-admin(2026-11-19 补入):双面知识库管理插件(侧栏「知识库」+ main 面板),
-# 此前只作为 eterna-web profile 的 bundle 安装——生产切 ETERNA_FORM=super 后 profile
-# 换目录,整页消失(镜像内包在、access 17 端点守卫也在,只差装载)。
+# knowledge-admin(2026-11-19 融合):知识底座唯一宿主 @eterna/knowledge-admin(四工具 +
+# 知识库工作台 + 账号面),装载行 id 仍是 eterna-knowledge(模板 baked row);symlink
+# 必须在此清单内,否则 insert 行静默 disable。
 for pkg in glue llm-doctor brand panel prompt-studio llm-openai access usage-stats compaction attachments memory governance knowledge-admin; do
   ln -sfn "$REPO/packages/$pkg" "$PROFILE_DIR/node_modules/@eterna/$pkg"
 done
@@ -239,29 +245,53 @@ if [ "$ETERNA_FORM" = "super" ]; then
   done
 fi
 
-# knowledge-admin bundle 登记(2026-11-19 切形态丢失事故):profile package.json 的
-# dsh.profile.bundles 幂等追加,只增不删——用户在插件页写的 disabled 标记在
-# cordis.patch.yml,不受本步影响。守卫=包目录与 dist 都在(旧镜像不登记,避免
-# boot 解析失败);dist 由 Dockerfile 的 tsc 步骤产出。
-if [ -d "$REPO/packages/knowledge-admin" ] && [ -f "$REPO/packages/knowledge-admin/dist/index.js" ]; then
-  node - "$PROFILE_DIR/package.json" <<'KBADMIN_EOF'
+# ── 3.5 旧卷迁移(2026-11-19 知识底座融合)────────────────────────────────
+# 融合前 PR #121 曾把 @eterna/knowledge-admin 登记为 profile bundle,另有旧模板/
+# 手工补挂可能留下顶层 `- id: eterna-knowledge-admin` 行。融合后只保留模板 baked
+# row(id=eterna-knowledge,name=@eterna/knowledge-admin)——此处幂等清掉两处遗留,
+# 避免双 Loader source / 重复 provide('eterna-knowledge-accounts')/重复工具注册。
+node - "$PROFILE_DIR/package.json" <<'KBADMIN_LEGACY_MANIFEST'
 const fs = require('fs')
 const [file] = process.argv.slice(2)
-const j = JSON.parse(fs.readFileSync(file, 'utf8'))
-j.dsh = j.dsh ?? {}
-j.dsh.profile = j.dsh.profile ?? {}
-const bundles = j.dsh.profile.bundles ?? (j.dsh.profile.bundles = [])
-if (bundles.includes('@eterna/knowledge-admin')) {
-  console.log('[entrypoint] profile bundle 已在: @eterna/knowledge-admin')
-} else {
-  bundles.push('@eterna/knowledge-admin')
+try {
+  const j = JSON.parse(fs.readFileSync(file, 'utf8'))
+  const bundles = j && j.dsh && j.dsh.profile && j.dsh.profile.bundles
+  if (!Array.isArray(bundles) || !bundles.includes('@eterna/knowledge-admin')) process.exit(0)
+  j.dsh.profile.bundles = bundles.filter((name) => name !== '@eterna/knowledge-admin')
   fs.writeFileSync(file, JSON.stringify(j, null, 2) + '\n')
-  console.log('[entrypoint] profile bundle 追加: @eterna/knowledge-admin')
+  console.log('[entrypoint] 迁移: profile bundle 移除 @eterna/knowledge-admin(改为内置行 eterna-knowledge)')
+} catch (error) {
+  console.log('[entrypoint] 警告: profile manifest 迁移失败 ' + error.message)
 }
-KBADMIN_EOF
-else
-  echo "[entrypoint] 警告：@eterna/knowledge-admin 包或 dist 不在——知识库管理页不装载"
-fi
+KBADMIN_LEGACY_MANIFEST
+node - "$PROFILE_DIR/cordis.patch.yml" <<'KBADMIN_LEGACY_PATCH'
+const fs = require('fs')
+const [file] = process.argv.slice(2)
+try {
+  const lines = fs.readFileSync(file, 'utf8').split('\n')
+  const out = []
+  let skipIndent = -1
+  for (const line of lines) {
+    const match = /^(\s*)- id: eterna-knowledge-admin\s*$/.exec(line)
+    if (match) { skipIndent = match[1].length; continue }
+    if (skipIndent >= 0) {
+      const trimmed = line.trim()
+      const indent = /^\s*/.exec(line)[0].length
+      // 行块内续行(更深缩进或同缩进的 key)一并删除;同缩进的 `- ` 是新行,停止跳过
+      if (trimmed === '' || indent > skipIndent || (indent === skipIndent && !trimmed.startsWith('- '))) continue
+      skipIndent = -1
+    }
+    out.push(line)
+  }
+  const text = out.join('\n')
+  if (text !== lines.join('\n')) {
+    fs.writeFileSync(file, text)
+    console.log('[entrypoint] 迁移: patch 移除遗留 eterna-knowledge-admin 行')
+  }
+} catch (error) {
+  console.log('[entrypoint] 警告: patch 迁移失败 ' + error.message)
+}
+KBADMIN_LEGACY_PATCH
 
 # ── 4. @deepseek-ai 家族 → 全局拷贝 ─────────────────────────────────────
 # preset 必须指 dsh 包内拷贝（版本与运行内核严格一致——指向别处会静默 disable）；

@@ -159,8 +159,8 @@ export function buildKnowledgeTools(service: KnowledgeService, resolver?: Knowle
     name: 'knowledge_propose',
     description:
       '知识写入的唯一入口:提交一篇新页/修改提案(只产生提案,不直接生效)。'
-      + '提案需经 governance 门禁评审通过后才会发布为可检索页面;未过审内容不会进入检索结果。'
-      + '请在 body 中给出完整正文并注明来源(origin)。',
+      + '提案需经人工在知识库面板审批通过后才会发布为可检索页面;Agent 工具不提供审批/发布动作。'
+      + '未过审内容不会进入检索结果。请在 body 中给出完整正文并注明来源(origin)。',
     parameters: {
       type: 'object',
       properties: {
@@ -192,7 +192,7 @@ export function buildKnowledgeTools(service: KnowledgeService, resolver?: Knowle
         proposal_id: routed.proposal_id,
         backend: routed.backend,
         state: 'pending',
-        note: '提案已记录,等待 governance 门禁评审;未过审内容不会出现在检索结果中',
+        note: '提案已记录,等待人工在知识库面板审批;未过审内容不会出现在检索结果中',
       }
     },
   }

@@ -467,4 +467,32 @@ describe('T1.2 生产挂载 id 三处交叉钉住(ps-v2)', () => {
     const buildScript = readFileSync(join(import.meta.dirname, '..', '..', 'attachments', 'scripts', 'build-client.mjs'), 'utf8')
     expect(buildScript).toContain(`id: "${pkgName}"`)
   })
+
+  it('eterna-knowledge:启停登记 ≡ 四档 patch 行(id 不变) ≡ @eterna/knowledge-admin 单宿主(融合后)', () => {
+    const rowId = 'eterna-knowledge'
+    const pkgName = '@eterna/knowledge-admin'
+    // ① 启停登记(TOGGLEABLE_PLUGINS;label 仍是「知识底座」)
+    expect(TOGGLEABLE_PLUGINS.some(p => p.id === rowId && p.label === '知识底座')).toBe(true)
+    // ② 生产档 profile + 部署模板(base/super/embed)
+    for (const file of [
+      ['profiles', 'eterna-web', 'cordis.patch.yml'],
+      ['profiles', 'eterna-super', 'cordis.patch.yml'],
+      ['docker', 'profile', 'cordis.patch.yml.template'],
+      ['docker', 'profile', 'cordis.super.patch.yml.template'],
+    ]) {
+      const text = readFileSync(join(import.meta.dirname, '..', '..', '..', ...file), 'utf8')
+      expect(text, file.join('/')).toMatch(new RegExp(`- id: ${rowId}\\s*\\n\\s+name: '${pkgName}'`))
+    }
+    // ③ 包面:name/客户端半边声明/parse 型导出(host 侧 Node type-stripping 直读 src)
+    const pkg = JSON.parse(readFileSync(join(import.meta.dirname, '..', '..', 'knowledge-admin', 'package.json'), 'utf8')) as {
+      name?: string
+      exports?: Record<string, string>
+      dsh?: { client?: { platform?: string }; bundle?: unknown }
+    }
+    expect(pkg.name).toBe(pkgName)
+    expect(pkg.exports?.['./client']).toBe('./lib/client.js')
+    expect(pkg.dsh?.client?.platform).toBe('web')
+    // 融合后不再以 bundle 安装(避免与 baked row 双 Loader source)
+    expect(pkg.dsh?.bundle).toBeUndefined()
+  })
 })

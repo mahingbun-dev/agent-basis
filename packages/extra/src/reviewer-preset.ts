@@ -40,7 +40,7 @@ export const DEFAULT_REVIEWER_ALLOW: readonly string[] = ['read', 'grep', 'glob'
  * 与词汇表白名单双保险):write/edit/apply_patch 等文件变更、shell 执行、
  * 出网、MCP 全域。
  */
-export const REVIEWER_DENY_GLOBS: readonly string[] = ['write', 'edit', 'apply_patch', 'str_replace_editor', 'bash', 'shell*', 'run_code', 'web_*', 'http_*', 'fetch_*', 'mcp__*', 'memory_write', 'memory_forget', 'knowledge_propose']
+export const REVIEWER_DENY_GLOBS: readonly string[] = ['write', 'edit', 'apply_patch', 'str_replace_editor', 'bash', 'shell*', 'run_code', 'web_*', 'http_*', 'fetch_*', 'mcp__*', 'memory_write', 'memory_forget', 'knowledge_propose', 'knowledge_admin']
 
 /** Cordis 插件行(装载器通用形态;本产物只产数据行)。 */
 export interface PluginRow {

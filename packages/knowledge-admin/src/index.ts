@@ -3,20 +3,22 @@
  *
  * ## 一个插件,三张脸
  * 1. **Remote 网关**(`EternaKnowledgeAdminGateway extends TypertRemoteService`):
- *    `eternaKnowledgeAdmin/<method>` × 17(Agent/SRC 模式调用面)。
+ *    `eternaKnowledgeAdmin/<method>` × 18(Agent/SRC 模式调用面)。
  *    端点清单直接由 `KNOWLEDGE_ADMIN_METHOD_SPECS` 派生 —— 加方法只改 types.ts。
- * 2. **路由面**(`KnowledgeAdminRouteFace`):`ctx.provide('eternaKnowledgeAdmin', face)`,
+ * 2. **路由面**(`KnowledgeAdminRouteFace`):`ctx.provide('eterna-knowledge-admin', face)`,
  *    access 守卫按 `/api/knowledgeAdmin/<method>` 取它(合并片段见 README)。
  *    与 (1) 共享**同一个** service 实例(状态一致:同一批提案/同一批 undo 句柄)。
- * 3. **工具**(`knowledge_admin`):`ctx.tools.register(...)`,action 表见 tools.ts。
+ * 3. **工具**(5 个):库层 `knowledge_search/read/status/propose`(经 `tools-base.ts` 门面
+ *    复用同一池)+ `knowledge_admin`(action 见 tools.ts)。调用者按会话路由
+ *    (`routing.ts`:admin → 全局 `*`,普通账号 → 本人,解析失败 fail-closed)。
+ *
+ * 另 provide `'eterna-knowledge-accounts'`(panel 只读计数面),与 glue 时代的契约一致。
  *
  * ## 生命期(Cordis 纪律)
  * `apply(ctx)` 里的一切都是 effect:service 构造、provide、工具注册。返回的 dispose 逆序关:
  * 工具注销 → provide 注销 → service.dispose(池关库 + 权限库关连接)。
  *
  * ## 依赖取用(全部惰性,缺席即诚实降级)
- * - `@eterna/knowledge`(glue knowledge-plugin 注册):检索二源;缺席 → 只用本地分库;
- * - `eterna-knowledge-accounts`:只读计数(overview 详情);缺席 → 跳过;
  * - `llm` + `agentDefaultModel`:ask 的模型调用;缺席 → `{ok:false,code:'unavailable'}`;
  * - `credentials`:DeepWiki bearerRef 解析(`resolve()`,**绝不读凭据文件**);缺席 → 未配置;
  * - `audit`:审计 fire-and-forget;缺席 → 只写本地 jsonl。
@@ -29,8 +31,10 @@ import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type { KnowledgeAdminPluginConfig } from './config.ts'
 import { KnowledgeAdminRouteFace } from './route-face.ts'
 import { KnowledgeAdminService } from './service.ts'
+import { buildAdminKnowledgeTools } from './tools-base.ts'
 import { buildKnowledgeAdminTool, toDshToolDefinition } from './tools.ts'
 import {
+  ETERNA_KNOWLEDGE_ACCOUNTS_SERVICE_ID,
   ETERNA_KNOWLEDGE_ADMIN_PLUGIN_NAME, ETERNA_KNOWLEDGE_ADMIN_ROUTE_FACE_ID,
   ETERNA_KNOWLEDGE_ADMIN_SERVICE_ID, KNOWLEDGE_ADMIN_METHODS,
   KNOWLEDGE_ADMIN_METHOD_SPECS, LOCAL_CALLER,
@@ -42,6 +46,7 @@ import type {
   ListDocsValue, ListMembersArgs, ListMembersValue, ListProposalsArgs, ListProposalsValue, OverviewArgs,
   OverviewValue, ReadDocArgs, ReadDocValue, ReviewProposalArgs, ReviewProposalValue, SaveDocArgs,
   SaveDocValue, SearchArgs, SearchValue, SetMemberArgs, SetMemberValue, TestSourceArgs, TestSourceValue,
+  UndoDeprecateArgs, UndoDeprecateValue,
 } from './types.ts'
 
 /** 手工施加 @Remote 装饰器(panel 同款:初始化器在接收者原型上落 typertRemote marker)。 */
@@ -62,11 +67,11 @@ function applyRemoteMarker(prototype: object, method: string, name: string): voi
 }
 
 /**
- * Typert Remote 网关(SRC 模式的 17 个端点)。
+ * Typert Remote 网关(SRC 模式的 18 个端点)。
  *
- * 身份语义:**网关通道的调用者恒为本地单用户** —— 浏览器不使用它(浏览器走 access 守卫
- * → 路由面);网关通道给 Agent/SRC 场景,故按 {@link LOCAL_CALLER}(admin='local')。
- * 需要真人身份的场景一律走路由面(守卫注入 caller),不在网关面猜 cookie。
+ * 身份语义:**网关通道的调用者恒为本地单用户**(`human:false`) —— 浏览器不使用它
+ * (浏览器走 access 守卫 → 路由面);网关通道给 Agent/SRC 场景,故按 {@link LOCAL_CALLER}
+ * (admin=true、全局库、非真人通道)。写入在服务面强制 pending;审批一律 forbidden。
  */
 export class EternaKnowledgeAdminGateway extends TypertRemoteService {
   readonly #service: KnowledgeAdminService
@@ -92,7 +97,7 @@ export class EternaKnowledgeAdminGateway extends TypertRemoteService {
     return this.#service
   }
 
-  // ── 17 个 Remote 方法(逐个转发 service;gateway caller = LOCAL_CALLER) ──────────
+  // ── 18 个 Remote 方法(逐个转发 service;gateway caller = LOCAL_CALLER) ──────────
 
   async listAccounts(args: ListAccountsArgs = {}): Promise<KnowledgeResult<ListAccountsValue>> {
     return await this.#service.listAccounts(LOCAL_CALLER, args)
@@ -116,6 +121,10 @@ export class EternaKnowledgeAdminGateway extends TypertRemoteService {
 
   async deprecateDoc(args: DeprecateDocArgs): Promise<KnowledgeResult<DeprecateDocValue>> {
     return await this.#service.deprecateDoc(this.#caller(args.account), args)
+  }
+
+  async undoDeprecate(args: UndoDeprecateArgs): Promise<KnowledgeResult<UndoDeprecateValue>> {
+    return await this.#service.undoDeprecate(this.#caller(args.account), args)
   }
 
   async listProposals(args: ListProposalsArgs = {}): Promise<KnowledgeResult<ListProposalsValue>> {
@@ -163,18 +172,15 @@ export class EternaKnowledgeAdminGateway extends TypertRemoteService {
   }
 
   /**
-   * 网关通道的调用者投影。网关无 cookie 身份(`LOCAL_CALLER` 恒 admin/account='local'),
-   * 因此这里显式把"目标账号"压回网关自身身份:**不让远端随意跨账号写**。
-   * 远端 `args.account` 缺省或等于 'local' → 用 LOCAL_CALLER;其他 → forbidden(早于服务面判定)。
+   * 网关通道的调用者投影(恒本地单用户、非真人)。`args.account` 由服务面 `#sanitize`
+   * 按 admin 语义处理(空 → 全局 `*`);这里不再自行收窄,避免与路由面口径漂移。
    */
-  #caller(account: string | undefined): KnowledgeAdminCaller {
-    const requested = (account ?? '').trim()
-    if (requested !== '' && requested !== LOCAL_CALLER.account) return LOCAL_CALLER
+  #caller(_account: string | undefined): KnowledgeAdminCaller {
     return LOCAL_CALLER
   }
 }
 
-// 网关 17 端点 marker(SRC 模式描述符由此派生;端点名 = eternaKnowledgeAdmin/<method>)
+// 网关 18 端点 marker(SRC 模式描述符由此派生;端点名 = eternaKnowledgeAdmin/<method>)
 for (const spec of KNOWLEDGE_ADMIN_METHOD_SPECS) {
   applyRemoteMarker(EternaKnowledgeAdminGateway.prototype, spec.method, spec.method)
 }
@@ -215,21 +221,30 @@ export default {
     const disposeProvide = provide?.(ETERNA_KNOWLEDGE_ADMIN_ROUTE_FACE_ID, face)
     if (typeof disposeProvide === 'function') disposers.push(disposeProvide)
 
-    // 2) Agent 工具(工具面不实现 ask / 权限写)
+    // 2) 账号知识只读面(panel 消费;契约与 glue 时代一致:accountOfUser + statusForAccount)
+    const disposeAccounts = provide?.(ETERNA_KNOWLEDGE_ACCOUNTS_SERVICE_ID, service.accounts)
+    if (typeof disposeAccounts === 'function') disposers.push(disposeAccounts)
+
+    // 3) Agent 工具:库层四工具(共享同一 pool/门禁,经 routing 解析会话身份)+ knowledge_admin
     const tools = (ctx as unknown as {
       tools?: { register?: (definition: unknown) => () => void }
     }).tools
     if (typeof tools?.register === 'function') {
-      const spec = buildKnowledgeAdminTool(service, () => LOCAL_CALLER)
-      try {
-        const disposeTool = tools.register(toDshToolDefinition(spec))
-        if (typeof disposeTool === 'function') disposers.push(disposeTool)
-      } catch (cause) {
-        // 工具注册失败不该拖垮插件其余两面(诚实告警,之后可重试)
-        ctx.logger('knowledge-admin').warn(`knowledge_admin 工具注册失败:${String(cause)}`)
+      const definitions = [
+        ...buildAdminKnowledgeTools(service, service.router),
+        toDshToolDefinition(buildKnowledgeAdminTool(service, exec => service.router.resolveExec(exec))),
+      ]
+      for (const definition of definitions) {
+        try {
+          const disposeTool = tools.register(definition)
+          if (typeof disposeTool === 'function') disposers.push(disposeTool)
+        } catch (cause) {
+          // 单个工具注册失败不拖垮其余工具与另外两面(诚实告警,之后可重试)
+          ctx.logger('knowledge-admin').warn(`工具注册失败(${String((definition as { name?: unknown }).name)}):${String(cause)}`)
+        }
       }
     } else {
-      ctx.logger('knowledge-admin').warn('ctx.tools 缺席:knowledge_admin 工具未注册(路由面与网关不受影响)')
+      ctx.logger('knowledge-admin').warn('ctx.tools 缺席:知识底座工具未注册(路由面与网关不受影响)')
     }
 
     return disposeAll(disposers)
@@ -239,10 +254,18 @@ export default {
 // ── 导出面(插件包对外符号;client 半边只消费 types.ts) ──────────────────────
 
 export { KnowledgeAdminService } from './service.ts'
+export type { StatusBackendsValue } from './service.ts'
 export { KnowledgeAdminRouteFace } from './route-face.ts'
 export type { RouteFace } from './route-face.ts'
 export { buildKnowledgeAdminTool, toDshToolDefinition, TOOL_ACTIONS } from './tools.ts'
 export type { KnowledgeAdminToolSpec, ToolAction } from './tools.ts'
+export { buildAdminKnowledgeTools, createAdminKnowledgeFacade } from './tools-base.ts'
+export { createAccessDirectory, resolveAccessDbPath } from './access-db.ts'
+export type { AccessDirectory, AccessUser } from './access-db.ts'
+export { createKnowledgeCallerRouter, GLOBAL_TOOL_CALLER, sessionIdOf } from './routing.ts'
+export type { KnowledgeCallerRouter, KnowledgeRoutingMode } from './routing.ts'
+export { createKnowledgeAccountsFace } from './accounts-face.ts'
+export type { KnowledgeAccountStatus, KnowledgeAccountsFace } from './accounts-face.ts'
 export { resolveAdminConfig } from './config.ts'
 export type { KnowledgeAdminPluginConfig, DeepWikiConfig } from './config.ts'
 export { DeepWikiBackend } from './deepwiki.ts'

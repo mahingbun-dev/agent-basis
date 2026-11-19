@@ -1,60 +1,70 @@
-# @eterna/knowledge-admin 安装与装配(含未合并补丁)
+# @eterna/knowledge-admin 安装与装配(内置单插件形态)
 
-## 0. 包的位置与形态
+> 2026-11-19 知识底座融合后,本包是**唯一宿主**:装载 id 保持 `eterna-knowledge`,
+> 显示名保持「知识底座」,不再是「另装一个知识库插件」;glue `knowledge-plugin` 已删除。
+
+## 0. 安装形态
 
 | 项 | 值 |
 |---|---|
-| 包目录 | `/data/workspaces/Mr.Ma/kh-admin-plugin/` |
-| 包名 | `@eterna/knowledge-admin` |
-| bundle 入口 | `cordis.patch.yml` → `- insert: [{ id: eterna-knowledge-admin, name: '@eterna/knowledge-admin' }]` |
-| Host 入口 | `exports["."] = ./src/index.ts`(Node 24 type-stripping)/ `./dist/index.js`(esbuild 产物) |
-| Client 入口 | `dsh.client` → `./lib/client.js`(`exports["./client"]`),`platform: web`,react 来自壳模块表 |
-| 已自检 | `node scripts/build-client.mjs`(工厂 id/外层/语法/禁用 import)+ `node tests/render-smoke.cjs`(离线渲染整棵树、字典键完整、2 个 slot 注册) |
+| 装载行 | `- id: eterna-knowledge` / `name: '@eterna/knowledge-admin'`(profile 模板 + web/super profiles 内 baked row) |
+| Host 入口 | `exports["."] = ./src/index.ts`(Node 24 type-stripping;镜像内 `dist/` 仅排查用) |
+| Client 入口 | `exports["./client"] = ./lib/client.js`(`dsh.client.platform = web`) |
+| 升级 | 随镜像构建(`docker/entrypoint.sh` 把 `/repo/packages/knowledge-admin` symlink 进 profile 根) |
 
-安装方式(需人工批准,本会话未执行):`plugin_manager` `action: install_bundle`,package 目录取上表绝对路径。
+旧卷(PR #121 时代装过 bundle 的卷)由 `docker/entrypoint.sh` **幂等清理**:
+
+1. 从 profile `package.json` 的 `dsh.profile.bundles` 移除 `@eterna/knowledge-admin`;
+2. 从物化 patch 删除遗留 `- id: eterna-knowledge-admin` 块(缩进感知,遇同缩进兄弟行停);
+3. `ln -sfn` 覆盖旧 workspace 副本指向 `/repo/packages/knowledge-admin`。
+
+无需人工 `plugin_manager install_bundle`;设置卡「知识底座」的启停照旧(停止即整包不装载)。
 
 ## 1. 账号隔离如何成立(不新增登录)
 
 ```
-浏览器面板 ──(1) ctx.connection.rpc.call('/api','/api/knowledgeAdmin/<method>',{ args })
+浏览器面板 ──(1) ctx.connection.rpc.call('/api','knowledgeAdmin/<method>',{ args:{account,...} })
       │
       ▼
-access 包 tenant.ts 守卫 register:  cookie → auth → store.getUserById(userId) → { account, admin }
-      │  (2) 透传 { caller:{account,admin,userId}, payload } 给服务面
+access 包 tenant.ts 守卫 register:  cookie → auth → store.getUserById(userId) → { account, admin, human:true }
+      │  (2) 透传 { caller:{account,admin,userId,human}, args } 给服务面
       ▼
-@eterna/knowledge-admin 服务: accountAllowed(caller, payload.account)
-      │  (3) 解析分库路径
+@eterna/knowledge-admin 服务: #sanitize(caller, args.account)
+      │  (3) 解析分库路径(admin 缺省 = 全局库 `*`;普通账号恒本人)
       ▼
 <tenantRoot>/<account>/knowledge.wiki + .eterna/knowledge.sqlite3   (普通账号)
-全局库(admin 视角)                                                (管理员)
+<cwd>/knowledge.wiki + <cwd>/.eterna/knowledge.sqlite3               (管理员全局库)
 ```
 
 关键纪律:unary SRC 通道 principal 恒 owner,插件**不能**从环境态判断调用者 —— 所以所有
 读写端点都必须走 access 守卫 register,服务面只吃守卫组装好的 `caller`,并自己做账号兜底
-(`accountAllowed`,非 admin 且目标账号≠本人 → `forbidden`)。
+(`#sanitize`,非 admin 且目标账号≠本人 → `forbidden`)。
 
-## 2. 仍需人工合并的两处补丁(本会话沙箱不可写 /repo,已交付可粘贴代码)
+Agent 工具面同源:工具执行上下文 → `agent.session.id` → 只读查询 access `users.db`
+(`routing.ts`,不写库)→ caller;admin 目标缺省 `*`,普通账号本人;身份源缺席/解析失败
+按 `mode` fail-closed(auto 无会话 → 全局库;per-account → 拒绝)。
 
-### 2.1 access 守卫端点(17 个)
-- 交付:`../plugins-test/knowledge-admin-access/tenant-kademin.insert.md`
-- 插入点:`/repo/packages/access/src/tenant.ts` A 处 `:23` import 后; B 处 `:562` `/api/eternaPanel/snapshot` 块之后
-- 内容:`/api/knowledgeAdmin/<method>` × 17 的 register 块 + 写类 7 方法的 `tenantAudit` 留痕
-- 已验证:片段插入 tenant.ts 副本后 strict tsc 0 error;既有套件回归与未打补丁基线逐项相同
+## 2. 写入门禁(human 通道)
 
-### 2.2 glue 装配(DeepWiki 源 / 管理面挂载 / 权限感知 access face)
-- 交付:`../plugins-test/glue-patch/glue-knowledge-config.patch.md` + `.diff`
-- 插入点:`packages/glue/src/types.ts` 183 行后、`src/plugins/knowledge-plugin.ts` 29/34/178–181/183/190–192 行
-- 已验证:片段 tsc 0 error、自测 29/29、整包影子 tsc 0 error、整包 vitest 与基线逐位相同(零新增失败)
+| 动作 | 面板(真人) | Agent/网关 |
+|---|---|---|
+| 单篇保存 | 直接发布(`state='approved'`) | 恒 pending(即使传 `publish:true`) |
+| 审批/拒绝提案 | ✅ | ❌ `forbidden` |
+| 批量导入 | pending,逐篇审批 | 同左 |
+| 废弃 / 撤销 | ✅(30 分钟 undo_token) | 废弃可调,撤销不开放给 Agent |
 
-## 3. 未合并时的行为(诚实降级)
+`human` 字段只由 access 守卫铸出;网关 `LOCAL_CALLER.human=false`;路由 resolver
+`human:false`。测试面:`tests/rig.ts` 的 `userCaller/adminCaller` 带 `human:true`,
+`agentCaller` 带 `human:false`。
 
-| 缺席项 | 表现 |
+## 3. 验证
+
+| 场景 | 命令/探针 |
 |---|---|
-| access 守卫端点为合并 | 面板 RPC 得到 404 → 面板显示「知识库管理服务未挂载」(不假装成功、不回退全局库) |
-| glue 装配未合并 | 无 DeepWiki 源增强、`knowledge-accounts` 无权限感知;检索仍走 `@eterna/knowledge` 单路 |
-| `@eterna/knowledge` 服务缺席 | `search` 降级为目录关键词匹配并在 `degraded` 里写明原因 |
-| DeepWiki 不可达 | `testSource` 报 `unreachable`;`search`/`ask` 的 `degraded` 列出原因,不影响本地结果 |
-| 模型网关未配置 | `ask` 返回 `{ok:false, code:'unavailable', message:...}`,面板显示「问答不可用:…」,**不编造答案** |
+| 包级自检 | `pnpm --filter @eterna/knowledge-admin verify`(build:client + render-smoke + oxlint + tsc + vitest) |
+| 租户锚 | `node tools/packctl/bin/packctl.mjs tenant-scan`(`KNOWLEDGE_PERSIST_ANCHORS` 锚 5 个文件) |
+| 容器静态 | `node scripts/verify-eterna-web.mjs` / `verify-eterna-super.mjs`(模板行名 + symlink + `lib/client.js`) |
+| 容器运行 | `deploy/verify.sh` 8.5:登录后 `POST /api/knowledgeAdmin/overview` 期望 `ok:true` |
 
 ## 4. 红线复核(本插件实现口径)
 
@@ -62,3 +72,5 @@ access 包 tenant.ts 守卫 register:  cookie → auth → store.getUserById(use
 - 不绕过工具管线直连 relay/web 端口;DeepWiki 探测走插件配置的 baseUrl(缺省 `http://127.0.0.1:8001`,属用户自建服务而非 Harness 内部端口)。
 - 不代签:废弃文档返回 `undo_token` + `undo_hint`,撤销由人执行;不对外付款、签约、定标。
 - 供应商比选无关本插件;不偏向任何供应商,DeepWiki 仅作为可配置来源之一。
+- 多租户:只读查询 access `users.db`;权限表/审计落 `$DSH_HOME/knowledge-admin/`;
+  知识库分库路径不变(`tenant-scan` 锚表强制)。

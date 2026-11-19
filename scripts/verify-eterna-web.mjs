@@ -205,11 +205,17 @@ if (!existsSync(join(memoryPkg, 'lib', 'client.js'))) {
 }
 symlinkSync(memoryPkg, join(profileDir, 'node_modules', '@eterna', 'memory'), 'dir')
 // base 模板 insert 面其余 @eterna 行的 symlink（2026-11-19 base 清单对同步，A6 契约 ①②）：
-// 治理三行 name='@eterna/glue/*-plugin' 与 memory/knowledge 同经 glue；access/brand/
+// 治理三行 name='@eterna/glue/*-plugin'、记忆 = glue memory-plugin；知识底座 =
+// @eterna/knowledge-admin 单宿主（四工具 + 知识库工作台 + 账号面）。access/brand/
 // llm-doctor/usage-stats/panel 各行同样只经 profile node_modules 解析——缺链时 Loader
 // 静默跳过（行不激活、boot log 照洁），镜像侧由 entrypoint 第 3 步全量清单承担；
 // 本地 verify 与镜像同口径补齐（verify-eterna-super.mjs BASE_MOUNT_PACKAGES 同源）。
-const BASE_MOUNT_PACKAGES = ['glue', 'llm-doctor', 'brand', 'access', 'usage-stats', 'panel']
+const knowledgeAdminPkg = join(repoRoot, 'packages', 'knowledge-admin')
+if (!existsSync(join(knowledgeAdminPkg, 'lib', 'client.js'))) {
+  console.error('verify-eterna-web: packages/knowledge-admin/lib/client.js 缺失——先跑 pnpm --filter @eterna/knowledge-admin run build:client')
+  process.exit(1)
+}
+const BASE_MOUNT_PACKAGES = ['glue', 'llm-doctor', 'brand', 'access', 'usage-stats', 'panel', 'knowledge-admin']
 for (const pkg of BASE_MOUNT_PACKAGES) {
   symlinkSync(join(repoRoot, 'packages', pkg), join(profileDir, 'node_modules', '@eterna', pkg), 'dir')
 }
@@ -386,6 +392,13 @@ if (!roster.ok) {
   pass('browser roster: 附件包 combo 可取且含 factory 注册(id=@eterna/attachments)',
     roster.attachmentsBody !== '' && roster.attachmentsBody.includes('id: "@eterna/attachments"'),
     roster.attachmentsBody === '' ? 'combo 取回为空' : `bytes=${roster.attachmentsBody.length}`)
+  // 知识底座(2026-11-19 融合):@eterna/knowledge-admin 单宿主的侧栏/工作台半边,
+  // 花名册与 factory 注册双证;缺席 = 11-19 事故复现(行在场但入口消失)。
+  pass('browser roster: combo 花名册含 @eterna/knowledge-admin/client.js', roster.knowledgeCombo !== '',
+    roster.knowledgeCombo === '' ? 'combo urls 无知识底座条目——dsh.client 声明或 lib/client.js 缺失' : roster.knowledgeCombo.slice(0, 120))
+  pass('browser roster: 知识底座 combo 可取且含 factory 注册(id=@eterna/knowledge-admin)',
+    roster.knowledgeBody !== '' && roster.knowledgeBody.includes('id: "@eterna/knowledge-admin"'),
+    roster.knowledgeBody === '' ? 'combo 取回为空' : `bytes=${roster.knowledgeBody.length}`)
 }
 
 // ---------------------------------------------------------------------------
@@ -473,7 +486,18 @@ async function probeRoster(url) {
       const combo = await fetch(`${index.origin}/${attachmentsCombo.replace(/^\/+/, '')}`, { headers: { cookie }, signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) })
       if (combo.ok) attachmentsBody = await combo.text()
     }
-    return { ok: true, status: page.status, html, ours, comboBody, compactionCombo, compactionBody, attachmentsCombo, attachmentsBody }
+    // 知识底座(2026-11-19 融合):侧栏「知识库」+ 工作台 client 半边的花名册取证。
+    // 这是 11-19 事故的回归面——行在场但 lib/client.js 不收录,侧栏入口静默消失。
+    const knowledgeCombo = comboUrls.find((u) => u.includes('@eterna/knowledge-admin/client.js')) ?? ''
+    let knowledgeBody = ''
+    if (knowledgeCombo !== '') {
+      const combo = await fetch(`${index.origin}/${knowledgeCombo.replace(/^\/+/, '')}`, { headers: { cookie }, signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) })
+      if (combo.ok) knowledgeBody = await combo.text()
+    }
+    return {
+      ok: true, status: page.status, html, ours, comboBody, compactionCombo, compactionBody,
+      attachmentsCombo, attachmentsBody, knowledgeCombo, knowledgeBody,
+    }
   } catch (error) {
     return { ok: false, error: { code: 'roster', message: String(error?.message ?? error) } }
   }

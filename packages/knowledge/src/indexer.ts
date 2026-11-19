@@ -104,6 +104,14 @@ export class WikiIndexer {
 
   constructor(options?: IndexerOptions) {
     this.db = new DatabaseSync(options?.dbPath ?? ':memory:')
+    // 文件库多连接共存(知识库管理面的池 + review 临时 backend + 只读计数)时,
+    // rollback journal 的写锁会让第二个连接立刻 SQLITE_BUSY。WAL 允许读写并行,
+    // busy_timeout 给短写事务一个等待窗口;:memory: 没有文件锁,跳过。
+    // best-effort:只读/不支持 WAL 的文件系统上仍按原模式工作,不阻断开库。
+    if (options?.dbPath !== undefined && options.dbPath.length > 0) {
+      try { this.db.exec('PRAGMA journal_mode = WAL') } catch { /* 保持原 journal 模式 */ }
+      try { this.db.exec('PRAGMA busy_timeout = 5000') } catch { /* 保持原 busy timeout */ }
+    }
     this.db.exec(SCHEMA)
   }
 

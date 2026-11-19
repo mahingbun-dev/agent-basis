@@ -34,10 +34,14 @@ profiles/eterna-web/cordis.patch.yml       profile 用户层（最后写赢，�
 §11.6/§11.7 裁定的 @eterna 侧挂载（plans/2026-11-06-dsh企业agent路线定案.md），治理面三插件的
 装载形态与验证结论（T8 落地、T9 真 boot E2E 兑现）：
 
-- **装载行**：`packages/glue/cordis.patch.yml:12-22` 五行 `- insert:`（eterna-governance /
-  eterna-memory / eterna-knowledge / eterna-audit / eterna-egress，name 全部指向
-  `@eterna/glue/*-plugin`）。insert 语义是硬性要求——裸 id 行只覆写既有行，基础树无同名行
+- **装载行**：`packages/glue/cordis.patch.yml` 的 `- insert:` 块（eterna-governance /
+  eterna-memory / eterna-audit / eterna-egress，name 指向 `@eterna/glue/*-plugin`）。
+  insert 语义是硬性要求——裸 id 行只覆写既有行，基础树无同名行
   时整行被丢弃（2026-11-04 E2E 教训，见 `packages/glue/cordis.patch.yml:1-6` 头注）。
+  **2026-11-19 知识底座融合**：`eterna-knowledge` 已从 glue 退场，改由
+  `@eterna/knowledge-admin` 单宿主在 profile 模板 / `profiles/eterna-{web,super}` 内
+  baked row 直挂（装载 id 与显示名「知识底座」不变；Agent 四工具 + `knowledge_admin`
+  + 侧栏「知识库」工作台同宿一包）；glue 只剩 governance/memory/audit/egress 四行。
 - **本档源 patch 不携带治理面行**：`profiles/eterna-web/cordis.patch.yml` 至今只做宿主行
   裁切与回加，无任何 `eterna-*` insert 行；治理面挂载行由装载方按需追加。T9 验证即是在
   **物化副本**（`$DSH_HOME/profiles/eterna-web/cordis.patch.yml`）追加三行

@@ -37,7 +37,8 @@ const ETerna_WEB_TOOLS: readonly string[] = [
   'memory_write', 'memory_read', 'memory_search', 'memory_forget', // ← @eterna/memory MEMORY_TOOL_NAMES(2026-11-13 补遗)
   // ── 2026-11-13 二批(session-7e15e6ab 挂死事故:52 工具全名单对账,未列名=挂死在不可见审批)──
   'mcp__browser__browser_snapshot', 'mcp__browser__browser_click', 'mcp__browser__browser_fill', // ← browser-relay mcp.ts
-  'knowledge_propose', 'knowledge_read', 'knowledge_search', 'knowledge_status', // ← @eterna/glue knowledge 插件
+  'knowledge_propose', 'knowledge_read', 'knowledge_search', 'knowledge_status', // ← @eterna/knowledge 库层四工具(知识底座)
+  'knowledge_admin', // ← @eterna/knowledge-admin 管理工具(写面仍落 pending,审批在面板)
   'list_mcp_resources', 'list_mcp_resource_templates', 'read_mcp_resource', // ← 上游 mcp 资源面
   'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update', // ← 上游 team 协作族
   'send_message', 'spawn_teammate', 'wait_agent', 'interrupt_agent', // ← 上游 team 协作族

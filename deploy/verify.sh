@@ -74,17 +74,21 @@ else
   bad "治理规则活性探针失败（实得: ${gov:-不可达}）——空规则×完全权限=静默全拒事故模式"
 fi
 
-# 8.5) 知识库管理插件装载（2026-11-19 切 super 形态丢失事故：插件只装在 eterna-web
-#      profile，切 ETERNA_FORM=super 后 profile 换目录，侧栏「知识库」整页消失）。
-#      三件齐才算过：镜像内 host 产物 dist/index.js、profile 的 @eterna 链、profile
-#      package.json 的 bundle 登记。web/super 任一 profile 满足即可（非当前形态的
-#      profile 保留旧登记不算失败）。
-kb=$(docker exec "$CONTAINER" sh -c 'test -f /repo/packages/knowledge-admin/dist/index.js || exit 0; for p in /data/profiles/eterna-web /data/profiles/eterna-super; do if [ -e "$p/node_modules/@eterna/knowledge-admin" ] && grep -q "@eterna/knowledge-admin" "$p/package.json" 2>/dev/null; then basename "$p"; break; fi; done' 2>/dev/null)
+# 8.5) 知识底座内置装载（2026-11-19 融合：唯一宿主 @eterna/knowledge-admin，
+#      Loader 行 id 仍是 eterna-knowledge；四工具 + 侧栏「知识库」+ 账号面同一实例）。
+#      静态两件：profile patch 的 baked row name + @eterna 链；运行时一件：登录态
+#      POST /api/knowledgeAdmin/overview 返回 ok。web/super 任一 profile 满足即可。
+kb=$(docker exec "$CONTAINER" sh -c 'for p in /data/profiles/eterna-web /data/profiles/eterna-super; do if grep -q "name: .@eterna/knowledge-admin." "$p/cordis.patch.yml" 2>/dev/null && [ -e "$p/node_modules/@eterna/knowledge-admin" ]; then basename "$p"; break; fi; done' 2>/dev/null)
 if [ -n "$kb" ]; then
-  ok "知识库管理插件装载（profile: ${kb}）"
+  ok "知识底座内置装载（profile: ${kb}）"
 else
-  bad "知识库管理插件未装载（dist/链/bundle 任一缺席）——切形态后侧栏「知识库」会消失"
+  bad "知识底座未内置装载（patch 行 name/symlink 任一缺席）——切形态后四工具与「知识库」页会一起消失"
 fi
+kbprobe='{"type":"client-request","rpcId":"verify-kb","method":"knowledgeAdmin/overview","payload":{"args":{}}}'
+kbresp=$(curl -s -b "$JAR" --max-time 10 -X POST "$BASE/api/knowledgeAdmin/overview" \
+  -H 'Content-Type: application/json' -d "$kbprobe")
+echo "$kbresp" | grep -q '"ok":true' && ok "知识底座运行探针（overview ok）" \
+  || bad "知识底座运行探针失败（${kbresp:-不可达}）"
 
 rm -f "$JAR"
 

@@ -150,10 +150,12 @@ const MEMORY_PERSIST_ANCHORS: readonly {
 ]
 
 /**
- * knowledge 账号分库派生锚(2026-11-17,对齐 MEMORY_PERSIST_ANCHORS 口径):
- * glue knowledge-plugin 必须保留「普通账号 → workspace 分库、admin → 全局库」的
- * 派生与路由标识——分库路径被改道/路由被删即红(防静默退回全局单库)。
- * 包目录在场才核验(合成仓库只含部分包时不误报)。
+ * knowledge 账号分库派生锚(2026-11-17;2026-11-19 融合后锚文件迁到
+ * @eterna/knowledge-admin 单宿主,对齐 MEMORY_PERSIST_ANCHORS 口径):
+ * 唯一宿主必须保留「普通账号 → workspace 分库、admin → 全局库」的派生与路由标识,
+ * 且只允许一个 BackendPool(第二池 = 跨账号泄漏面)——分库路径被改道/路由被删/
+ * 账号状态面被移除即红(防静默退回全局单库)。包目录在场才核验(合成仓库只含
+ * 部分包时不误报)。
  */
 const KNOWLEDGE_PERSIST_ANCHORS: readonly {
   readonly pkg: string
@@ -161,17 +163,38 @@ const KNOWLEDGE_PERSIST_ANCHORS: readonly {
   readonly requires: readonly string[]
 }[] = [
   {
-    pkg: 'glue',
-    file: 'src/plugins/knowledge-plugin.ts',
+    pkg: 'knowledge-admin',
+    file: 'src/paths.ts',
     requires: [
-      "join(cwd, '.eterna/knowledge.sqlite3')", // 全局库默认(admin/本地模式)= cwd 基 .eterna/
-      'join(tenantRoot, account)', // 账号目录派生自租户根(workspaces/<账号> 语义)
-      "join(dir, 'knowledge.wiki')", // 账号知识 wiki 落账号目录
-      "join(dir, '.eterna', 'knowledge.sqlite3')", // 账号索引落账号目录 .eterna/
-      "user.role === 'admin'", // admin → 全局库的路由口径(与面板 admin 看全局一致)
-      "'eterna-knowledge-accounts'", // 账号状态面(panel 非 admin 视图的唯一读入口)
-      'KnowledgeAccountRouter', // LRU 分库路由在场(分库不是摆设)
+      "export const ACCOUNT_WIKI_DIRNAME = 'knowledge.wiki'", // 账号知识 wiki 落账号目录
+      "export const ACCOUNT_DB_RELPATH = join('.eterna', 'knowledge.sqlite3')", // 账号索引落账号目录 .eterna/
+      'const home = join(resolveTenantRoot(config), account)', // 账号目录派生自租户根(workspaces/<账号> 语义)
+      'wikiDir: config.wikiDir ?? join(cwd, ACCOUNT_WIKI_DIRNAME)', // 全局库默认(admin/本地模式)= cwd 基
+      'dbPath: config.dbPath ?? join(cwd, ACCOUNT_DB_RELPATH)',
     ],
+  },
+  {
+    pkg: 'knowledge-admin',
+    file: 'src/routing.ts',
+    requires: [
+      'access.sessionOwner(sessionId)', // 会话 → 账号归属(Agent 工具面分库路由在场)
+      "user.role === 'admin'", // admin → 全局库的路由口径(与面板 admin 看全局一致)
+    ],
+  },
+  {
+    pkg: 'knowledge-admin',
+    file: 'src/service.ts',
+    requires: ['this.#pool = new BackendPool({'], // 单池按路径分库;第二池 = 跨账号泄漏面
+  },
+  {
+    pkg: 'knowledge-admin',
+    file: 'src/types.ts',
+    requires: ["ETERNA_KNOWLEDGE_ACCOUNTS_SERVICE_ID = 'eterna-knowledge-accounts'"], // 账号状态面契约 id
+  },
+  {
+    pkg: 'knowledge-admin',
+    file: 'src/index.ts',
+    requires: ['provide?.(ETERNA_KNOWLEDGE_ACCOUNTS_SERVICE_ID, service.accounts)'], // 账号状态面 provide(panel 非 admin 视图的唯一读入口)
   },
 ]
 

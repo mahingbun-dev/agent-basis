@@ -19,10 +19,10 @@ ENV npm_config_verify_deps_before_run=false \
 # lockfile(本地实测 exit 0);peer 语义由下方 peer 对齐步 + 运行时全局内核满足。
 # dsh 内核升 rc.1 且私有包可公网解析后一并移除。
 # zip：companion 扩展分发包打包需要（仅 build 阶段，runtime 不带）
-# build:client=dsh 客户端半边 bundle（access/panel/brand 等）；build=各包产物
+# build:client=dsh 客户端半边 bundle（access/panel/brand/knowledge-admin 等）；build=各包产物
 # （browser-relay relay+mcp dist、extension-companion dist+zip、llm-openai tsc、
-#   knowledge-admin host tsc——包 exports["."] 指 ./dist/index.js，只跑
-#   build-client.mjs 只有 lib/client.js，宿主半边在镜像内不存在）
+#   knowledge-admin 额外 tsc 仅留排查用 dist/——包 exports["."] 指 ./src/index.ts，
+#   Node 24 type-stripping 直读，不需要 dist 也能装载；客户端半边由 build-client 产出 lib/client.js）
 RUN apt-get update \
  && apt-get install -y --no-install-recommends zip \
  && pnpm install --frozen-lockfile \
@@ -39,9 +39,9 @@ RUN apt-get update \
  && sh -c 'for d in /repo/packages/*/; do if [ -f "$d/scripts/build-client.mjs" ]; then (cd "$d" && node scripts/build-client.mjs); fi; done' \
  && sh -c 'cd /repo/packages/browser-relay && node build.mjs && cd /repo/packages/extension-companion && node build.mjs' \
  && sh -c 'cd /repo/packages/llm-openai && ./node_modules/.bin/tsc -p tsconfig.build.json' \
-# knowledge-admin host 产物(2026-11-19 切 super 形态丢失事故补全):此前镜像只跑
-# build-client.mjs 产出 lib/client.js,exports["."] 的 ./dist/index.js 从未生成,
-# entrypoint 即使补链也加载失败。此步产出 dist/ 供内置装载。
+# knowledge-admin host 产物(2026-11-19 融合后不再是装载条件):exports["."] 指
+# src/index.ts(Node 24 type-stripping 直读),内置行由模板 baked row 提供;镜像内
+# 保留一份 dist/ 仅作排查/旧卷兼容,缺失不影响启动。
  && sh -c 'cd /repo/packages/knowledge-admin && ./node_modules/.bin/tsc -p tsconfig.build.json' \
  && rm -rf /var/lib/apt/lists/*
 

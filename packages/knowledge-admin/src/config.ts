@@ -38,6 +38,18 @@ export interface KnowledgeAdminImportConfig {
   readonly maxFiles?: number
 }
 
+/**
+ * 多租户路由配置(与 glue KnowledgeRoutingConfig 同源;融合后由本包唯一消费)。
+ * - `auto`(缺省):users.db 缺席/会话上下文缺席 → 全局库身份(本地 TUI);
+ * - `per-account`:显式多租户,解析失败 fail-closed(绝不退回全局库);
+ * - `global`:关闭路由(纯单库)。
+ */
+export interface KnowledgeAdminRoutingConfig {
+  readonly mode?: 'auto' | 'per-account' | 'global'
+  /** access users.db 路径(缺省 `$DSH_HOME/access/users.db`;只读)。 */
+  readonly accessDbPath?: string
+}
+
 /** 插件配置(全部可选;括号内为缺省)。 */
 export interface KnowledgeAdminPluginConfig {
   /** 租户根目录(缺省 `ETERNA_TENANT_ROOT ?? ($DSH_HOME ?? cwd)/workspaces`,与 glue 同源)。 */
@@ -46,6 +58,8 @@ export interface KnowledgeAdminPluginConfig {
   readonly wikiDir?: string
   /** 全局库索引路径(缺省 `<cwd>/.eterna/knowledge.sqlite3`;admin 视角)。 */
   readonly dbPath?: string
+  /** 多租户路由(身份源与模式;缺省 auto)。 */
+  readonly routing?: KnowledgeAdminRoutingConfig
   /** 本包账本目录(缺省 `$DSH_HOME/knowledge-admin/`;权限库+审计 jsonl)。 */
   readonly adminHome?: string
   readonly deepwiki?: DeepWikiConfig
