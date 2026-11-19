@@ -82,6 +82,33 @@ export type EternaPanelLocaleKey =
   | 'units.rules'
   | 'units.entries'
   | 'units.entities'
+  | 'chips.section'
+  | 'chips.hint'
+  | 'chips.visible'
+  | 'chips.add'
+  | 'chips.importTemplates'
+  | 'chips.clearAll'
+  | 'chips.clearConfirm'
+  | 'chips.empty'
+  | 'chips.fieldTitle'
+  | 'chips.fieldKickoff'
+  | 'chips.fieldNote'
+  | 'chips.titlePlaceholder'
+  | 'chips.kickoffPlaceholder'
+  | 'chips.untitled'
+  | 'chips.edit'
+  | 'chips.done'
+  | 'chips.delete'
+  | 'chips.deleteConfirm'
+  | 'chips.up'
+  | 'chips.down'
+  | 'chips.enabled'
+  | 'chips.save'
+  | 'chips.saving'
+  | 'chips.saved'
+  | 'chips.conflict'
+  | 'chips.error'
+  | 'chips.loadError'
   | `tools.${string}`
 
 /** 单个工具的本地化条目。 */
@@ -187,6 +214,33 @@ export const zh: Record<EternaPanelLocaleKey, string> = {
   'units.rules': '条',
   'units.entries': '条',
   'units.entities': '条',
+  'chips.section': '流程启动条',
+  'chips.hint': '对话框输入卡上方的快捷启动语,点击即把启动语发进会话,Agent 会先向你确认所需信息再执行。配置只对你自己的账号生效,初始为空。',
+  'chips.visible': '显示触发条',
+  'chips.add': '新增流程',
+  'chips.importTemplates': '导入内置模板',
+  'chips.clearAll': '清空全部',
+  'chips.clearConfirm': '确认清空?',
+  'chips.empty': '还没有流程:触发条当前处于隐藏状态。点「新增流程」自己写一条,或「导入内置模板」从基座内置流程开始。',
+  'chips.fieldTitle': '标题',
+  'chips.fieldKickoff': '启动语',
+  'chips.fieldNote': '备注(可选)',
+  'chips.titlePlaceholder': '如:知识检索',
+  'chips.kickoffPlaceholder': '启动语:Agent 收到后会先向你确认所需信息,再执行。',
+  'chips.untitled': '未命名流程',
+  'chips.edit': '编辑',
+  'chips.done': '完成',
+  'chips.delete': '删除',
+  'chips.deleteConfirm': '确认删除?',
+  'chips.up': '上移',
+  'chips.down': '下移',
+  'chips.enabled': '启用',
+  'chips.save': '保存',
+  'chips.saving': '保存中…',
+  'chips.saved': '已保存',
+  'chips.conflict': '配置已被其他窗口修改,已载入最新版本;请核对后再次保存(再次保存将以当前内容覆盖)。',
+  'chips.error': '保存失败',
+  'chips.loadError': '加载失败',
 }
 
 export const en: Record<EternaPanelLocaleKey, string> = {
@@ -266,6 +320,33 @@ export const en: Record<EternaPanelLocaleKey, string> = {
   'units.rules': '',
   'units.entries': '',
   'units.entities': '',
+  'chips.section': 'Flow triggers',
+  'chips.hint': 'Quick kickoff lines above the chat input — clicking one sends the line into the session; the agent confirms what it needs first. Per-account config, empty by default.',
+  'chips.visible': 'Show trigger bar',
+  'chips.add': 'Add flow',
+  'chips.importTemplates': 'Import built-ins',
+  'chips.clearAll': 'Clear all',
+  'chips.clearConfirm': 'Clear everything?',
+  'chips.empty': 'No flows yet: the trigger bar is hidden. Add one yourself, or import the built-in flows to start.',
+  'chips.fieldTitle': 'Title',
+  'chips.fieldKickoff': 'Kickoff line',
+  'chips.fieldNote': 'Note (optional)',
+  'chips.titlePlaceholder': 'e.g. Knowledge search',
+  'chips.kickoffPlaceholder': 'Kickoff: the agent will confirm what it needs before acting.',
+  'chips.untitled': 'Untitled flow',
+  'chips.edit': 'Edit',
+  'chips.done': 'Done',
+  'chips.delete': 'Delete',
+  'chips.deleteConfirm': 'Delete?',
+  'chips.up': 'Move up',
+  'chips.down': 'Move down',
+  'chips.enabled': 'Enabled',
+  'chips.save': 'Save',
+  'chips.saving': 'Saving…',
+  'chips.saved': 'Saved',
+  'chips.conflict': 'Changed in another window — latest version loaded; review and save again (saving again overwrites with your edits).',
+  'chips.error': 'Save failed',
+  'chips.loadError': 'Failed to load',
 }
 
 /** 英文工具词条(en 界面用;zh 界面用 TOOL_LOCALES)。 */

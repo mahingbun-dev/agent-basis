@@ -17,8 +17,10 @@ import { PanelPage, type CheckpointsOutcome, type CompactionCheckpointRow, type 
 import { ComposerChips } from './ComposerChips.tsx'
 import { NS, en, zh } from './locales.ts'
 import { injectPanelStyles } from './styles.ts'
+import { DEFAULT_CHIPS_CONFIG, parseChipsConfig } from '../chips.ts'
 import type { EternaPanelSnapshot } from '../types.ts'
-import type { PanelClientContext } from './client-types.ts'
+import type { ChipsClientState, PanelClientContext } from './client-types.ts'
+import { ChipsSettingsSection } from './chips-settings.tsx'
 
 /** 侧栏入口与 main 面板共享的 id(MainPanelId 为品牌化字符串,自定值合法)。 */
 export const PANEL_ID = 'eterna-panel'
@@ -28,6 +30,12 @@ export const SNAPSHOT_ENDPOINT = 'eternaPanel/snapshot'
 
 /** 记忆裁决端点(M-M2 T9 审批闭环:待审记忆批/拒,Host 半边同网关)。 */
 export const REVIEW_ENDPOINT = 'eternaPanel/review'
+
+/** 流程启动条配置·读端点(2026-11-20,每用户各自一套;access 守卫按 cookie 路由)。 */
+export const CHIPS_ENDPOINT = 'eternaPanel/chips'
+
+/** 流程启动条配置·写端点(守卫落本人用户根;wire args={input:{revision,visible,chips}})。 */
+export const CHIPS_SAVE_ENDPOINT = 'eternaPanel/chipsSave'
 
 // ── 登录账号路由三端点(23 号 M-T2/S-6:access 守卫面,身份=cookie)────────
 // endpoint 段不带 `/api` 前缀:dsh 浏览器 caller assertTarget 禁空段(前导 `/`
@@ -111,6 +119,36 @@ export function apply(ctx: PanelClientContext): () => void {
   }
   refresh()
 
+  // ── 流程启动条配置(2026-11-20,每用户各自一套):平行 observable(与快照源
+  // 同式),composer 触发条经 useSyncExternalStore 订阅,设置分区保存成功后调
+  // refreshChips() 同步。守卫失败/网关缺席 → error 态(触发条隐藏,不炸输入区)。
+  let chipsState: ChipsClientState = { status: 'loading' }
+  const chipsListeners = new Set<() => void>()
+  const chipsSource = {
+    getSnapshot: (): ChipsClientState => chipsState,
+    subscribe: (listener: () => void): (() => void) => {
+      chipsListeners.add(listener)
+      return () => { chipsListeners.delete(listener) }
+    },
+  }
+  const publishChips = (next: ChipsClientState): void => {
+    chipsState = next
+    for (const listener of chipsListeners) listener()
+  }
+  const refreshChips = (): void => {
+    ctx.connection.rpc.call('/api', CHIPS_ENDPOINT, { args: {} }).then((result) => {
+      if (result.ok && typeof result.value === 'object' && result.value !== null) {
+        // 防御性再解析:守卫值结构不符 → 默认空配置(触发条隐藏,不渲染坏数据)。
+        publishChips({ status: 'ready', config: parseChipsConfig(result.value) ?? DEFAULT_CHIPS_CONFIG })
+      } else {
+        publishChips({ status: 'error', message: result.error?.message ?? result.error?.code ?? 'unknown' })
+      }
+    }).catch((error: unknown) => {
+      publishChips({ status: 'error', message: error instanceof Error ? error.message : String(error) })
+    })
+  }
+  refreshChips()
+
   // 记忆裁决(M-M2 T9 审批闭环):调宿主 eternaPanel/review;成功后立即刷新
   // 快照(队列即时出队)。防重复点击由调用侧 busy 态负责,这里不改全局态。
   const review = async (id: number, decision: 'approved' | 'rejected'): Promise<ReviewOutcome> => {
@@ -181,8 +219,19 @@ export function apply(ctx: PanelClientContext): () => void {
     name: 'conversation.input.dock',
     id: 'eterna-panel-trigger',
     locale: NS,
-    inject: () => ({}),
+    inject: () => ({ chipsSource }),
   }, ComposerChips))
+  // 设置分区「流程启动条」(2026-11-20,每用户各自一套;settings.section 席位,
+  // order 46——40/41/43/44/45 已被 access/memory 占用;登录即可,数据面按 cookie
+  // 路由到本人用户根,保存成功经 refreshChips() 同步 composer 触发条)。
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section',
+    id: 'eternaPanel.chips',
+    order: 46,
+    locale: NS,
+    inject: () => ({ t, connection: ctx.connection, refreshChips }),
+    label: () => t('chips.section'),
+  }, ChipsSettingsSection))
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
     name: 'sidebar.panellist',
     id: PANEL_ID,

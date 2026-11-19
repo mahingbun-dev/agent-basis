@@ -5,6 +5,8 @@
  *   会话),堵住登录后直调拿全局快照的旁路;
  * - /api/eternaPanel/{review,reviewForAccount,trackCorrection}:裸网关直调 admin-only
  *   (客户端走 /api/eternaMemory/* 守卫端);
+ * - /api/eternaPanel/{chips,chipsSave}(2026-11-20 流程启动条,每用户一套):登录即可,
+ *   face {account, root} 由守卫按 cookie 解析(只落本人用户根);
  * - /api/loopPrompt/*(13 端点):非 admin 一律 tenant/denied,admin 直调网关方法
  *   (args.input 语义与网关 SRC 派发一致)。
  */
@@ -31,6 +33,8 @@ describe('面板/工坊账号隔离守卫(unary 通道身份在 cookie)', () => 
   const snapshotIdentities: Array<{ account: string; admin: boolean; ownedSessionIds: readonly string[] }> = []
   const loopCalls: Array<{ method: string; arg: unknown }> = []
   const panelCalls: Array<{ method: string; arg: unknown }> = []
+  // 服务面挂在 describe 级(守卫 reflect 闭包动态查表——测试内改写即对既有路由生效)
+  let services: Record<string, Record<string, (...args: never[]) => unknown>>
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'eterna-panel-guard-'))
@@ -44,7 +48,7 @@ describe('面板/工坊账号隔离守卫(unary 通道身份在 cookie)', () => 
     snapshotIdentities.length = 0
     loopCalls.length = 0
     panelCalls.length = 0
-    const services: Record<string, Record<string, (...args: never[]) => unknown>> = {
+    services = {
       'eterna-panel-accounts': {
         snapshotForUser: (identity: never) => {
           snapshotIdentities.push(identity)
@@ -127,5 +131,54 @@ describe('面板/工坊账号隔离守卫(unary 通道身份在 cookie)', () => 
     const allowed = await call('/api/eternaPanel/review', 'admin', { payload: { id: 1, decision: 'approved' } })
     expect(allowed.ok).toBe(true)
     expect(panelCalls).toEqual([{ method: 'review', arg: { id: 1, decision: 'approved' } }])
+  })
+
+  it('流程启动条配置(2026-11-20,每用户各自一套):读/写 face 按 cookie 身份落到本人用户根', async () => {
+    const chipsCalls: Array<{ method: string; face: { account: string; root: string }; input?: unknown }> = []
+    // 追加 chips 两守卫通道方法(守卫 reflect 动态查表,改写即生效);root 断言=守卫解析的本人根
+    const rootOf = (account: string): string => join(dir, 'workspaces', account)
+    services['eternaPanel'] = {
+      ...services['eternaPanel'],
+      chipsForUser: (face: never) => {
+        const f = face as { account: string; root: string }
+        chipsCalls.push({ method: 'chipsForUser', face: f })
+        return { revision: 0, visible: true, chips: [] }
+      },
+      saveChipsForUser: (face: never, input: unknown) => {
+        const f = face as { account: string; root: string }
+        chipsCalls.push({ method: 'saveChipsForUser', face: f, input })
+        return { ok: true, config: { revision: 1, visible: true, chips: [] } }
+      },
+    }
+
+    // 读:登录即可;face={account, root} 由守卫从 cookie 解析,客户端传参不采信
+    const read = await call('/api/eternaPanel/chips', 'user', { bogus: 'payload 里的任何东西都不应到达 face' })
+    expect(read.ok).toBe(true)
+    expect(chipsCalls.at(-1)).toEqual({ method: 'chipsForUser', face: { account: 'alice', root: rootOf('alice') } })
+    // 写:普通账号只落本人根;input 原样透传(校验在网关侧 chips-store)
+    const save = await call('/api/eternaPanel/chipsSave', 'user', { input: { revision: 0, visible: true, chips: [] } })
+    expect(save.ok).toBe(true)
+    expect(chipsCalls.at(-1)).toEqual({
+      method: 'saveChipsForUser',
+      face: { account: 'alice', root: rootOf('alice') },
+      input: { revision: 0, visible: true, chips: [] },
+    })
+    // 另一账号(admin)写:root=root 自己的根,绝不串到 alice
+    await call('/api/eternaPanel/chipsSave', 'admin', { input: { revision: 0, visible: false, chips: [] } })
+    expect(chipsCalls.at(-1)?.face).toEqual({ account: 'root', root: rootOf('root') })
+    // 未登录 → 统一未认证帧
+    const anonymous = await call('/api/eternaPanel/chips', undefined, {})
+    expect(anonymous.error?.code).toBe('tenant/unauthenticated')
+    expect(chipsCalls.filter(entry => entry.method === 'chipsForUser')).toHaveLength(1)
+  })
+
+  it('流程启动条配置:网关缺席(插件未启用)→ failureFrame 中文原因', async () => {
+    services['eternaPanel'] = {}
+    const read = await call('/api/eternaPanel/chips', 'user', {})
+    expect(read.ok).toBe(false)
+    expect(read.error?.message).toContain('面板网关未挂载')
+    const save = await call('/api/eternaPanel/chipsSave', 'user', { input: {} })
+    expect(save.ok).toBe(false)
+    expect(save.error?.message).toContain('面板网关未挂载')
   })
 })

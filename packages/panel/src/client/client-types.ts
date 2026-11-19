@@ -3,6 +3,19 @@
  * connection),与 dsh 客户端壳的运行时形状鸭子一致。不导入跨包类型,
  * 客户端 bundle 因此零运行时依赖(基线外部模块除外:react)。
  */
+import type { ChipsConfig } from '../chips.ts'
+
+/** 流程启动条配置的客户端快照(每用户各自一套;loading=首拉未归)。 */
+export type ChipsClientState =
+  | { readonly status: 'loading' }
+  | { readonly status: 'ready'; readonly config: ChipsConfig }
+  | { readonly status: 'error'; readonly message: string }
+
+/** 裸 observable 源(main 槽 hooks.snapshot 同式:手写 getSnapshot/subscribe)。 */
+export interface ExternalSource<S> {
+  getSnapshot(): S
+  subscribe(listener: () => void): () => void
+}
 
 /** 槽位注册选项(list / keyed 两用的运行时字段)。 */
 export interface SlotRegisterOptions {

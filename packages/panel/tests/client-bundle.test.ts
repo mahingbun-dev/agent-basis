@@ -96,8 +96,9 @@ describe('模块装载冒烟(vm)', () => {
       connection: { rpc: { call: () => Promise.resolve({ ok: false }) } },
     }
     ;(exports.apply as (context: unknown) => void)(ctx)
-    expect(injected).toEqual(['main', 'conversation.input.dock', 'sidebar.panellist'])
-    expect(registered).toEqual(['main', 'conversation.input.dock', 'sidebar.panellist'])
+    // settings.section 为 2026-11-20 新增(流程启动条每用户设置分区,order 46)
+    expect(injected).toEqual(['main', 'conversation.input.dock', 'settings.section', 'sidebar.panellist'])
+    expect(registered).toEqual(['main', 'conversation.input.dock', 'settings.section', 'sidebar.panellist'])
     const chipsCss = created.map(node => node.textContent).find(css => css.includes("[data-eterna-panel='chips'] ")) ?? ''
     expect(chipsCss).toContain('--dsh-composer-side-clearance')
     expect(chipsCss).toContain('--dsh-composer-card-max-width')
