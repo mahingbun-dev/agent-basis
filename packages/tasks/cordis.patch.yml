@@ -1,0 +1,234 @@
+# @eterna/tasks bundle:orchestrator / worker 两组 agent preset(35 号 A25;34 号 §1
+# cordis.patch.yml 行「本包对 DSH 的 preset 声明:orchestrator / worker 两组」)。
+#
+# 装载形态:insert 语义插入组合树(裸 id 行只按 id 覆写既有行,基础树无 eterna-tasks-*
+# 行时会被 applyPatches 丢弃——packages/glue/cordis.patch.yml 的 E2E 教训;本文件经
+# package.json dsh.bundle.patch 声明随 bundle 装载,profile 层 restatement 归 super 形态
+# 接线 PR(40 号 S-3 纪律 2:同步改 super 模板与清单两处并双跑 G1-1+G1-2)。
+#
+# 压缩组(28 号 §3 YAML 原文照搬,两组一致):
+# - 行序保留 stale-tool-result-pruner → compaction-basic → command-compact →
+#   tool-result-pruner(28 号 §4-2「行序保留」:stale 层排在 basic 之前是有意的——
+#   agent/pre-step 先于摘要层泄压,22 号 §4-C6;调换即白烧一次摘要模型调用。
+#   33 号 §6「压缩组挂载」行与 G2-A17 门禁原文「行序不可调换」,断言在
+#   tests/preset.spec.ts);
+# - isolate 三键 compaction/toolResultPruner/staleToolResultPruner(28 号 §3;本仓
+#   stale 层为 fork 增件,上游 SA 只有 compaction/toolResultPruner 两键);
+# - 上游 `@deepseek-ai/dsh-compaction-basic` 不挂载(28 号 §3;B6:生产已替换、上游从未
+#   挂载)——本文件压缩组全部行 name 解析 '@eterna/compaction/*',preset.spec 断言
+#   无 '@deepseek-ai/dsh-compaction' 引用;
+# - 契约版本钉住(28 号 §4-1):basic-plugin 实现的是 @deepseek-ai/dsh 0.2.2-rc.1 的
+#   compaction 契约,DSH pre-stable 期契约可能变 → 纳入 docs/design/upgrade-gate.md
+#   门禁清单(28 号 §4-1 原文)。
+#
+# C5 摘要分档(24a 拍板记录·C5;28 号 §4-4;33 号 G2-A17):orchestrator 的
+# compaction-basic 行落 `summarizationProvider`/`summarizationModel` 分档配置键对。
+# 当前值 = 空串对(22a §4 拍板 Q1 结论 A:「维持会话模型,summarizationProvider/Model
+# 不落值」——空 = 会话模型;basic/config.ts 校验二者必须成对置空或成对置值);
+# 「主 Session 用 22a 最优档」的具体档名与成本口径见 35 号 §12-9 开放问题(分档键暂留
+# 占位,拍板后回填),分档配置改动必全量重跑压缩 golden:`node
+# packages/compaction/scripts/run-golden.mjs --judge`(G2-A17,报告入库留档)。
+#
+# preset 组成与 SA(dsh-superagent-prototype/cordis.patch.yml 的 worker/router preset)
+# 对齐,差异两处、均有依据:
+# 1. 不含 persona 行:角色总纲由本包 prompts/(35 号 A23 中文资产,34 号 §1 prompts/ 行)
+#    经 prompt 装配面投递(SA decorate 同位,归 A19/A22 接线)——orchestrator 侧与 SA
+#    router 同一理由(主会话 prompt 完整,SA cordis.patch.yml「No persona」注);worker
+#    侧避免英文 persona 前缀与中文 prompt 双头(34 号 §6-9 中文为主)。
+# 2. worker 不含 delegation 组(SA 的 tool-subagent-control/tool-subagent):A18
+#    subagent_policies 声明段 schema 未拍板(33 号 G2-A18 占位;35 号 §12-14 同族),
+#    无策略约束的 subagent 面不先行挂载——A18 落地后回加 SA 对应面。
+#
+# 未拍板键值(不自行裁定,35 号 §9 配置面表):worker/orchestrator 的
+# bash-sandbox.timeoutMs 取 SA 值 5000(24 号 §2.4 引注的即此值);本仓 standard preset
+# 前台命令 60s 转后台(27 号 §2.2)——两值不一致,取 5s 还是 60s 见 35 号 §12-12
+# 开放问题,拍板后改值(preset.spec 钉该行存在,值变更有意识)。
+- insert:
+    # ── worker preset(每个 Executor Session;SA WORKER_PRESET 同位)──────────────
+    # 只含执行工作所需工具;前台命令超时转后台,长命令不阻塞人的插话(24 号 §2.4
+    # 「协作与单体 agent 的分水岭」)。preset 行无隐藏设置,preset 选择器可见性由
+    # name/description 表达(SA 同款注)。
+    - id: eterna-tasks-worker-preset
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: eterna-tasks-worker
+        name: Eterna tasks 执行器
+        description: "@eterna/tasks 的 worker(工单执行)Session 专用;前台命令与任务等待超时转后台,只含执行工作所需工具。"
+        order: 90
+        plugins:
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          # 前台命令等待上限(SA 值 5000;35 号 §12-12 未拍板,见文件头注)。
+          - id: shell
+            name: cordis:group
+            group: true
+            isolate:
+              shell: true
+            config:
+              - id: bash-sandbox
+                name: '@deepseek-ai/dsh-bash-sandbox'
+                disabled: !!js process.platform === 'win32'
+                config:
+                  timeoutMs: 5000
+                  maxTimeoutMs: 5000
+              - id: pwsh-sandbox
+                name: '@deepseek-ai/dsh-pwsh-sandbox'
+                disabled: !!js process.platform !== 'win32'
+                config:
+                  timeoutMs: 5000
+                  maxTimeoutMs: 5000
+              - id: tool-bash
+                name: '@deepseek-ai/dsh-tool-bash'
+                disabled: !!js process.platform === 'win32'
+              - id: tool-pwsh
+                name: '@deepseek-ai/dsh-tool-pwsh'
+                disabled: !!js process.platform !== 'win32'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+          # 任务等待超时转后台:job 结束唤醒 worker 并带结果(SA worker 同值)。
+          - id: tool-jobs
+            name: '@deepseek-ai/dsh-tool-jobs'
+            config:
+              waitTimeoutMs: 5000
+              maxWaitTimeoutMs: 5000
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: false
+              searchTimeoutMs: 60000
+          # ── 压缩组(28 号 §3 YAML 原文照搬;行序保留,见文件头)──────────────────
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+              staleToolResultPruner: true
+            config:
+              - id: stale-tool-result-pruner      # 行序保留:先陈旧清理泄压,后摘要压缩(28 §3 原注)
+                name: '@eterna/compaction/stale-plugin'
+                config:
+                  keepGroups: 5
+                  minSavingsTokens: 4096
+                  thresholdRatio: 0.7
+              - id: compaction-basic
+                name: '@eterna/compaction/basic-plugin'
+                # 沿用上游默认参(thresholdRatio 0.8 / retainRatio 0.16 / 重试 1),
+                # config 留空便于按部署调参(28 号 §2.2;eterna-web profile 同款注)。
+                # worker 不落摘要分档键(28 号 §9 配置面表:分档键落位在 orchestrator 组)。
+                config: {}
+              - id: command-compact
+                name: '@eterna/compaction/command-plugin'
+              - id: tool-result-pruner
+                name: '@eterna/compaction/pruner-plugin'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024
+    # ── orchestrator preset(主 Session;SA ROUTER_PRESET 同位)──────────────────
+    # 只含路由所需工具;无 subagent/web/写盘/todo(SA router 同一取舍);无 persona
+    # (主会话 prompt 完整,见文件头)。压缩分档(C5)落本组 compaction-basic。
+    - id: eterna-tasks-orchestrator-preset
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: eterna-tasks-orchestrator
+        name: Eterna tasks 主会话
+        description: "@eterna/tasks 的 orchestrator(主 Session)Session 专用;前台命令和任务等待超时转后台,只含路由所需工具。"
+        order: 91
+        plugins:
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          # 前台命令等待上限(SA router 同值 5000;35 号 §12-12 未拍板,见文件头注)。
+          - id: shell
+            name: cordis:group
+            group: true
+            isolate:
+              shell: true
+            config:
+              - id: bash-sandbox
+                name: '@deepseek-ai/dsh-bash-sandbox'
+                disabled: !!js process.platform === 'win32'
+                config:
+                  timeoutMs: 5000
+                  maxTimeoutMs: 5000
+              - id: pwsh-sandbox
+                name: '@deepseek-ai/dsh-pwsh-sandbox'
+                disabled: !!js process.platform !== 'win32'
+                config:
+                  timeoutMs: 5000
+                  maxTimeoutMs: 5000
+              - id: tool-bash
+                name: '@deepseek-ai/dsh-tool-bash'
+                disabled: !!js process.platform === 'win32'
+              - id: tool-pwsh
+                name: '@deepseek-ai/dsh-tool-pwsh'
+                disabled: !!js process.platform !== 'win32'
+          # 主 Session 只读(SA router 同款:write/edit 关闭;工单产物读经 A20
+          # orchestrator_read 工具面,落 .ticket/<id>/,34 号 §2.5 tools 行)。
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+            config:
+              write: false
+              edit: false
+          - id: tool-jobs
+            name: '@deepseek-ai/dsh-tool-jobs'
+            config:
+              waitTimeoutMs: 5000
+              maxWaitTimeoutMs: 5000
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          # ── 压缩组(28 号 §3 YAML 原文照搬;C5 摘要分档键落位见文件头)────────────
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+              staleToolResultPruner: true
+            config:
+              - id: stale-tool-result-pruner      # 行序保留:先陈旧清理泄压,后摘要压缩(28 §3 原注)
+                name: '@eterna/compaction/stale-plugin'
+                config:
+                  keepGroups: 5
+                  minSavingsTokens: 4096
+                  thresholdRatio: 0.7
+              - id: compaction-basic
+                name: '@eterna/compaction/basic-plugin'
+                # ★C5 摘要分档键(33 号 G2-A17;24a C5;28 号 §4-4):空串对 = 会话模型
+                # (22a §4 拍板 Q1 结论 A「维持会话模型,summarizationProvider/Model 不落值」;
+                # 二者必须成对置空或成对置值,basic/config.ts validateSummarizationPair)。
+                # 具体档名与成本口径 = 35 号 §12-9 开放问题(分档键暂留占位,拍板后回填);
+                # 分档配置改动必全量重跑压缩 golden(G2-A17:run-golden.mjs --judge)。
+                config:
+                  summarizationProvider: ''
+                  summarizationModel: ''
+              - id: command-compact
+                name: '@eterna/compaction/command-plugin'
+              - id: tool-result-pruner
+                name: '@eterna/compaction/pruner-plugin'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024

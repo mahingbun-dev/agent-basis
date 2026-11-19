@@ -1,0 +1,51 @@
+{
+  "name": "@eterna/workbench",
+  "description": "Subagent 工作台(38 号 WS-D):panel 扩展形态挂载的 keyed main panel 工作台页——Attention 站内横幅(interact card.ts 超集:单问/批准/拒绝/补充三动作/超时升级)、会话侧任务侧栏(按 stage 分组 + 状态点,原型 01)、报告时间线与多 Assignment 分支切换、工作监控看板(person/*、working、working/queued、idle 分列 + 冲突三指标)、日志监控(摘要行四字段 + 展开全文经 governance pii redact 只过滤不删改)、评测监控(金集趋势/路由金集衰减/漂移)。M4 实接(38 号 T15/G2-D11):真源 SSE 流 = tasks 引擎 DomainEvents 经 live hub 投影(数据面经 tasks 提供),端点由 access 路由面登记(路由经 access;mock 流降为测试 fixture,无切换开关)。装载走 @eterna/panel 同款 bundle 配方(cordis.patch.yml insert + dsh.client 声明)。",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-workspace",
+        "@deepseek-ai/dsh-api-gateway",
+        "@deepseek-ai/dsh-client-ui-plugin-manager"
+      ],
+      "platform": "web"
+    }
+  },
+  "scripts": {
+    "build:client": "node scripts/build-client.mjs",
+    "dev:sse": "node scripts/dev-sse.mjs",
+    "verify": "node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run",
+    "test": "./node_modules/.bin/vitest run",
+    "typecheck": "./node_modules/.bin/tsc --noEmit"
+  },
+  "dependencies": {
+    "@deepseek-ai/cordis": "catalog:",
+    "@eterna/governance": "workspace:*",
+    "@eterna/interact": "workspace:*",
+    "@eterna/tasks": "workspace:*",
+    "@eterna/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "esbuild": "catalog:",
+    "react": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

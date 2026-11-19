@@ -8,6 +8,11 @@
  *   返回 per-user Peer(principal={kind:'eterna-user',userId});其余路径(含全部 unary HTTP)
  *   维持 owner Peer + 守卫路由双保险(unary fetch 路由上游硬性要求 owner,
  *   client-connection lib/index.js:830)。
+ * - T6.1 市场面收口(2026-11-19,计划文档 §堵洞先行):同一 admit 包装兼任市场路径
+ *   admin-only 门——插件市场 unary RPC 走 owner Peer、上游不认 eterna 角色,而装/卸/
+ *   启停/索引源写入落**共享 profile**,影响全体用户。admit 是全部 `/api` 请求的请求级
+ *   必经点(client-connection lib/index.js:1049 前缀路由 handler 首行),故在此 fail-closed
+ *   收口(路径清单见 MARKET_ADMIN_PREFIXES;无 eterna 会话 401、非 admin 403)。
  * - 策略经 ctx.remoteAccess.registerPolicy('eterna-user', …):bindings 按归属账本
  *   (store.sessionOwner/workspaceOwner)返回资源绑定;此后流 open 越权抛 remote-access/denied、
  *   workspace/follow 列表按 allows() 逐项过滤(workspace-controller lib/index.js:965)全部
@@ -46,7 +51,7 @@
  *   全局事件必须不带 resources(不携带任何资源身份),且仅在 ACTION 清单内。
  */
 import type { SessionService } from './session.ts'
-import type { UserStore } from './store.ts'
+import type { UserStore, UserRole } from './store.ts'
 
 /** 换血后的 principal 形态(Typert PrincipalMap 合并声明;类型面,无运行时注册)。 */
 export interface EternaUserPrincipal {
@@ -56,6 +61,52 @@ export interface EternaUserPrincipal {
 
 /** mux 通道路径(=上游 REMOTE_STREAM_MUX_PATH,dsh-api-gateway lib/index.js:534)。 */
 export const MUX_PATH = '/api/remote.mux'
+
+/** T6.1 市场面 admin-only 路径前缀(2026-11-19 落地;计划文档 §堵洞先行
+ *  「pluginManager/pluginMarket RPC 与 detail-file 路由 admin-only」)。
+ *
+ *  为什么在市场 RPC 面做请求级门:市场所有动作(安装/更新/卸载/启停/版本豁免/
+ *  索引源写入)都落**共享 profile**(package.json + cordis.patch.yml + node_modules),
+ *  影响全体用户;上游 unary 走 owner Peer(mux 策略只覆盖流通道),Web 面不认 eterna
+ *  角色。admit 是 `/api` 全部请求的唯一必经点——前缀路由 handler 首行即
+ *  `connection.admit(req)`,rejection 直接写 401/403(client-connection lib/index.js:1049),
+ *  故收口于此,fail-closed。
+ *
+ *  路径形态(上游 0.2.2-rc.1 实核):
+ *  - RPC 端点 = `/api/<method>`,方法名即路径段(endpointFromPath,lib/index.js:888):
+ *    pluginManager/* 15 个方法(installBundle/updateBundle/removeBundle/setBundleEnabled/
+ *    setPluginEnabled/setVersionExemption/cancelInstall/waitForInstall/inspect/
+ *    readBundleDetail/listBundles/listPlugins/listVersions/listVersionExemptions/registries)
+ *    与 pluginMarket/* 4 个方法(listIndexes/search/readEntryDetail/setIndexes)全被覆盖;
+ *  - detail-file fetch 路由 = `/api/plugin-manager/detail-file`(dsh-plugin-manager)与
+ *    `/api/plugin-market/detail-file`(dsh-plugin-market lib/index.js:987)——二者经
+ *    `/api` 前缀路由 admit 后才进 createSharedFetchHandler(lib/index.js:834),
+ *    admit 拒绝即不触达;
+ *  - 大小写敏感与上游端点匹配同口径(方法名 camelCase);`%2F` 等编码段过不了上游
+ *    endpoint 校验(恒 404),无需本门额外解码。
+ *
+ *  豁免面:admin(role='admin')放行并走原 admit;安全操作(登录/守卫路由/我的插件
+ *  /api/my-plugins/*)不在清单内,不受影响——个人插件面走 eterna 自己的守卫路由。 */
+export const MARKET_ADMIN_PREFIXES: readonly string[] = [
+  '/api/pluginManager/',
+  '/api/pluginMarket/',
+  '/api/plugin-manager/',
+  '/api/plugin-market/',
+]
+
+/** 路径是否属市场面(前缀口径;query 串由调用方先剥离)。 */
+export function isMarketPath(pathname: string): boolean {
+  return MARKET_ADMIN_PREFIXES.some(prefix => pathname.startsWith(prefix))
+}
+
+/** 从 admit 请求的 url 面取 pathname。双形态兼容:node IncomingMessage 的 req.url
+ *  为纯路径(`/api/...`),mux 升级/测试/部分载体可能带完整 URL——同 eternaUserOf
+ *  的双形态纪律。解析失败按首段兜底(宁可少命中,不误伤其它路径)。 */
+export function requestPathname(rawUrl: string): string {
+  const trim = (value: string): string => value.split('?')[0] ?? ''
+  if (rawUrl.startsWith('/')) return trim(rawUrl)
+  try { return new URL(rawUrl).pathname } catch { return trim(rawUrl) }
+}
 
 /** open 时解析为 global 资源的流动作(策略 GLOBAL 绑定;新上游流方法归位错误时
  *  mux-drift 的资源 kind 断言红)。判定口径=网关 callResources(api-gateway
@@ -94,6 +145,20 @@ export const GLOBAL_UNARY_ACTIONS: readonly string[] = [
   'pluginManager/listBundles',
   'session/create',
   'schedule/list',
+]
+
+/** 管理员专属一元门(T6.1「Web 插件页角色门」,2026-11-19):「插件」页
+ *  (已安装 + 发现两 tab 同页)整页门由 pluginManager/listBundles 控制
+ *  (T2 期观察:缺项=整页不渲染)。市场面是共享 profile 级动作,仅 admin 可用
+ *  (请求级收口见 MARKET_ADMIN_PREFIXES);本清单让非 admin 不下发该 UI 门=
+ *  入口自然隐藏,避免「页面可见、RPC 全 403」的破面。
+ *
+ *  分派纪律:只收窄不放宽——非 admin 动作集 = GLOBAL_UNARY_ACTIONS 减去本清单,
+ *  内容绑定(流/会话/工作区)三角色仍逐项同构(WS-C 零放宽不变式)。admin-only
+ *  门不得含任何流动作(流面按资源绑定判,本清单只谈 UI 快照门)。
+ *  防漂移:mux-policy 断言 admin 含/非 admin 不含、本清单 ⊆ GLOBAL_UNARY_ACTIONS。 */
+export const ADMIN_ONLY_UNARY_ACTIONS: readonly string[] = [
+  'pluginManager/listBundles',
 ]
 
 /** 宿主级失效信号事件(策略 global 绑定;2026-11-18「设置页新增模型供应商保存后
@@ -235,8 +300,41 @@ export interface TenantBinding {
 
 /** 策略所需的最小依赖面。 */
 export interface MuxPolicyDeps {
-  readonly store: Pick<UserStore, 'sessionsOfOwner' | 'workspacesOfOwner'>
+  /** WS-C(37 号 M-2):增 getUserById——bindings 回调内按 principal.userId 现查角色,
+   *  不得在 installMuxIsolation 时缓存(G2-C5「角色变更对 mux 可见性即时生效」)。 */
+  readonly store: Pick<UserStore, 'sessionsOfOwner' | 'workspacesOfOwner' | 'getUserById'>
   readonly session: SessionService
+}
+
+/** 30 号 §4.5:工作台数据可见性档位——普通用户仅自己;审批人全租户待人项;管理员全量。
+ *  消费面:P2 工作台数据端点(待人项过滤)与 G2-C3 三角色断言。mux 内容绑定不消费
+ *  此谓词放宽(见 bindingsFor 的零放宽不变式)。 */
+export type VisibilityScope = 'self' | 'tenant-pending' | 'all'
+
+/** 三档映射(单真值;exhaustive switch,default fail-closed 判 'self'——宁可少可见,
+ *  不可多可见,23 §3.1 fail-closed 纪律同构迁移)。 */
+export function visibilityScopeOf(role: UserRole): VisibilityScope {
+  switch (role) {
+    case 'approver': return 'tenant-pending'
+    case 'admin': return 'all'
+    case 'user': return 'self'
+    default: return 'self'
+  }
+}
+
+/** 待人项动作分派表(37 号 M-2「角色感知」的唯一行为面):当前上游流方法表无任何
+ *  person/* 待人项端点(本文件头注动作清单盘点;PLUGIN-AUTHORING §1.1 第 6 条:
+ *  无上游端点即不登记动作,mux-drift 防漂移测试即红),三档一律空集=零新增动作。
+ *  Record 以 VisibilityScope 全键约束——扩档漏配即编译红(同 exhaustive switch 语义,
+ *  M-5 锚②的行为面)。WS-D 待人项端点落地时在此按档分派。 */
+const PENDING_ACTIONS_BY_SCOPE: Record<VisibilityScope, readonly string[]> = {
+  self: [],
+  'tenant-pending': [],
+  all: [],
+}
+
+function pendingStreamActionsOf(scope: VisibilityScope): readonly string[] {
+  return PENDING_ACTIONS_BY_SCOPE[scope]
 }
 
 interface ServiceHandle {
@@ -262,9 +360,21 @@ function eternaUserOf(deps: MuxPolicyDeps, request: unknown): number | undefined
   return claims.userId
 }
 
-/** 一个用户的资源绑定(账本为唯一事实源;子代理子会话经 parentSessionId 由上游随父判定)。 */
+/** 一个用户的资源绑定(账本为唯一事实源;子代理子会话经 parentSessionId 由上游随父判定)。
+ *
+ * WS-C(37 号 M-2)内容绑定零放宽不变式:普通用户/审批人/管理员三角色返回**完全同构**
+ * 的本人内容绑定(GLOBAL 内容动作 + 本人 sessions + 本人 workspaces)——30 §7-3 只授权
+ * 审批人见「待人项」(工作台数据面),未授权跨租户会话/工作区内容流;「管理员全量」同样是
+ * 工作台数据语义(30 §4.5),mux 内容流无放宽依据(37 号 §7 缺口 3)。角色现查(不缓存)
+ * 仅驱动两处:**收窄**面=待人项动作分派点 pendingStreamActionsOf(本批三档皆空)与
+ * 管理员专属 UI 门 ADMIN_ONLY_UNARY_ACTIONS(T6.1 插件页整页门,非 admin 不下发);
+ * 任何角色档都不得因角色获得额外内容绑定(零放宽)。 */
 export function bindingsFor(deps: MuxPolicyDeps, userId: number): readonly TenantBinding[] {
-  const globalRole = { name: 'eterna:member-global', resource: 'global' as const, actions: [...GLOBAL_STREAM_ACTIONS, ...GLOBAL_UNARY_ACTIONS, ...GLOBAL_EVENT_ACTIONS] }
+  const role: UserRole = deps.store.getUserById(userId)?.role ?? 'user'
+  const unaryActions = role === 'admin'
+    ? GLOBAL_UNARY_ACTIONS
+    : GLOBAL_UNARY_ACTIONS.filter(action => !ADMIN_ONLY_UNARY_ACTIONS.includes(action))
+  const globalRole = { name: 'eterna:member-global', resource: 'global' as const, actions: [...GLOBAL_STREAM_ACTIONS, ...unaryActions, ...GLOBAL_EVENT_ACTIONS, ...pendingStreamActionsOf(visibilityScopeOf(role))] }
   // 会话资源还须授予 workspace/follow:上游 workspace-controller 的 follow 流对
   // workspace.sessionIds 逐项 allows({kind:'session',id}) 判定,action 取当前
   // 调用面(=workspace/follow)——会话绑定不含此动作时,连用户自己的会话也会被从
@@ -287,37 +397,78 @@ export interface MuxIsolationInstall {
   readonly dispose: () => void
   /** 防漂移观测:换血 hook 是否已挂(测试与 gate 断言面)。 */
   readonly wrapped: boolean
+  /** mux 换血是否已生效(策略面注册完成)。false = 市场门已生效,但 mux 路径仍走原
+   *  admit(owner Peer——remoteAccess 服务晚挂载时的过渡态)。 */
+  readonly muxActive: boolean
+  /** 策略面补注册(幂等;服务晚挂载时由调用方重试)。返回是否已生效。 */
+  readonly retryPolicy: () => boolean
 }
 
 /**
- * 安装 mux 换血 + 租户策略。connection 为 client-connection 服务实例
- * (reflect.get('client-connection', false)),remoteAccess 为 api-remote-access 服务实例。
- * 返回 disposer;服务缺席返回 undefined(装载冒烟告警)。
+ * 安装 mux 换血 + 租户策略 + T6.1 市场面 admin 门。connection 为 client-connection
+ * 服务实例(ctx.connection,inject 面恒可得);remoteAccess 为 api-remote-access 服务
+ * 实例或其**解析器**(上游服务晚挂载——传 `() => ctx.reflect.get('remoteAccess', false)`
+ * 让 retryPolicy 每次现查;传实例则只试一次)。
+ *
+ * 分相(2026-11-19 T6.1):
+ * - admit 包装(mux 换血 + 市场门)只依赖 connection,**首调即装**——市场门不得因
+ *   remoteAccess 未就绪而出现无门窗口;
+ * - 策略面依赖 remoteAccess.registerPolicy + connection.createPeer,缺席时 mux 路径
+ *   维持原 admit(owner),由 retryPolicy 在服务挂载后补注册。
+ * connection 缺席(上游漂移/非 Web 载体)返回 undefined(装载冒烟告警)。
  */
 export function installMuxIsolation(
   deps: MuxPolicyDeps,
   connection: ServiceHandle | undefined,
-  remoteAccess: ServiceHandle | undefined,
+  remoteAccess: ServiceHandle | (() => ServiceHandle | undefined) | undefined,
 ): MuxIsolationInstall | undefined {
-  if (connection === undefined || remoteAccess === undefined) return undefined
+  if (connection === undefined) return undefined
   const admitFn = connection.admit
-  const createPeerFn = connection.createPeer
-  const registerPolicyFn = remoteAccess.registerPolicy
-  if (typeof admitFn !== 'function' || typeof createPeerFn !== 'function') return undefined
-  if (typeof registerPolicyFn !== 'function') return undefined
+  if (typeof admitFn !== 'function') return undefined
+  const remoteAccessOf = (): ServiceHandle | undefined =>
+    typeof remoteAccess === 'function' ? remoteAccess() : remoteAccess
 
-  // 1. 策略(每用户绑定动态读账本;归属变更由调用方 invalidate)
-  const disposePolicy = registerPolicyFn.call(remoteAccess, 'eterna-user', {
-    bindings: (principal: EternaUserPrincipal) => bindingsFor(deps, principal.userId),
-  })
+  // 1. 策略(每用户绑定动态读账本+角色。TS-37-1 已核实上游求值时机:dsh-api-remote-access
+  //    lib/index.js:326 bindingsOf 每 decide(:227)/allows(:259)直调 policy.bindings,
+  //    无 per-principal 快照缓存(:212 注释「bindings() is called once per decision」;
+  //    :245 长 coursing 流逐检查重读)——角色/归属变更下一次判定即生效,本批无需
+  //    per-user Peer 失效面;绑定形变待人项落地时由调用方 remoteAccess.invalidate 推流。)
+  let muxActive = false
+  let disposePolicy: unknown
+  const retryPolicy = (): boolean => {
+    if (muxActive) return true
+    const service = remoteAccessOf()
+    const registerPolicyFn = service?.registerPolicy
+    const createPeerFn = connection.createPeer
+    if (typeof registerPolicyFn !== 'function' || typeof createPeerFn !== 'function') return false
+    disposePolicy = registerPolicyFn.call(service, 'eterna-user', {
+      bindings: (principal: EternaUserPrincipal) => bindingsFor(deps, principal.userId),
+    })
+    muxActive = true
+    return true
+  }
+  retryPolicy()
 
-  // 2. 换血:仅 mux 升级路径;per-user Peer 缓存(≤20 人,常驻不逐连接 dispose)
+  // 2. 换血 + T6.1 市场门:单一 admit 包装,全部请求必经。
+  //    - 市场路径:先按 eterna 登录态收口(fail-closed:无会话 401、非 admin 403),
+  //      admin 走原 admit(owner Peer)——见 MARKET_ADMIN_PREFIXES;
+  //    - mux 路径:策略面就绪时按 eterna_session 换血 per-user Peer(≤20 人,常驻不逐
+  //      连接 dispose);未就绪时维持原 admit(过渡态,同旧行为);
+  //    - 其余路径(含全部 unary HTTP 与 fetch 路由)→ 原 admit。
   const peers = new Map<number, { id: string; principal: unknown; dispose: () => unknown }>()
   const originalAdmit = admitFn.bind(connection)
   const wrapped = (request: unknown): unknown => {
-    const url = (request as { url?: unknown }).url
-    const isMux = typeof url === 'string' && url.includes(MUX_PATH)
-    if (!isMux) return originalAdmit(request)
+    const rawUrl = (request as { url?: unknown }).url
+    const path = typeof rawUrl === 'string' ? requestPathname(rawUrl) : ''
+    if (path !== '' && isMarketPath(path)) {
+      const userId = eternaUserOf(deps, request)
+      if (userId === undefined) return { rejection: 401 }
+      if (deps.store.getUserById(userId)?.role !== 'admin') return { rejection: 403 }
+      return originalAdmit(request)
+    }
+    const isMux = typeof rawUrl === 'string' && rawUrl.includes(MUX_PATH)
+    const createPeerFn = connection.createPeer
+    if (!isMux || !muxActive || typeof createPeerFn !== 'function') return originalAdmit(request)
     const userId = eternaUserOf(deps, request)
     if (userId === undefined) return originalAdmit(request)
     let peer = peers.get(userId)
@@ -331,6 +482,8 @@ export function installMuxIsolation(
 
   return {
     wrapped: true,
+    get muxActive() { return muxActive },
+    retryPolicy,
     dispose: () => {
       ;(connection as { admit: unknown }).admit = admitFn
       for (const peer of peers.values()) { try { void peer.dispose() } catch { /* 常驻 Peer 尽力而为 */ } }

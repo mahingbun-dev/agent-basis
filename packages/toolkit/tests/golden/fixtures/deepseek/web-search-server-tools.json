@@ -1,0 +1,26 @@
+{
+  "events": [
+    { "type": "message_start", "message": { "id": "8f2a9c31-1e44-4c62-9d3a-2f71c8e0b5a7", "model": "deepseek-flash", "usage": { "input_tokens": 12, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0, "output_tokens": 0 } } },
+    { "type": "content_block_start", "index": 0, "content_block": { "type": "server_tool_use", "id": "srvtoolu_s_1_2b", "name": "deepseek_web_search", "input": { "action": "search", "queries": ["场地", "档期"] }, "caller": { "type": "direct" }, "kind": "search" } },
+    { "type": "content_block_stop", "index": 0 },
+    {
+      "type": "content_block_start",
+      "index": 1,
+      "content_block": {
+        "type": "web_search_tool_result",
+        "tool_use_id": "srvtoolu_s_1_2b",
+        "kind": "search",
+        "content": [
+          { "type": "web_search_result", "title": "场地选址指南", "url": "https://example.com/venue-guide", "snippet": "活动策划中的场地选址要素与档期核对清单。", "site_icon": "https://example.com/favicon.ico", "site_name": null, "encrypted_content": "JWE-encrypted-blob-A", "page_age": "2026-10-12T08:00:00Z" },
+          { "type": "web_search_result", "title": "活动档期表", "url": "https://example.com/schedule", "snippet": "年度档期速查。", "site_icon": null, "site_name": null, "encrypted_content": "JWE-encrypted-blob-B", "page_age": null }
+        ]
+      }
+    },
+    { "type": "content_block_stop", "index": 1 },
+    { "type": "content_block_start", "index": 2, "content_block": { "type": "text", "text": "" } },
+    { "type": "content_block_delta", "index": 2, "delta": { "type": "text_delta", "text": "推荐参考场地选址指南。" } },
+    { "type": "content_block_stop", "index": 2 },
+    { "type": "message_delta", "delta": { "stop_reason": "end_turn", "stop_sequence": null }, "usage": { "input_tokens": 12, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0, "output_tokens": 2048, "server_tool_use": { "web_search_requests": 1, "tool_search": 2 } } },
+    { "type": "message_stop" }
+  ]
+}

@@ -175,3 +175,47 @@ describe('turnTail 读取面(第 2 步消费)', () => {
     expect(memorySourcesDefinition.buildLocationData).toBeTypeOf('function')
   })
 })
+
+/**
+ * 2026-11-18 线上 pageerror 回归:turnTail 双挂载(立即+延时一拍)让 contribute 跑两次,
+ * 第二次 slots.register 抛 `already has an entry with id "eterna-memory.sources"`
+ * (未捕获异常,每次加载一条)。幂等贡献工厂只登记一次,后续返回空 disposer。
+ */
+describe('createIdempotentSlotContribution(双挂载幂等闸)', () => {
+  it('contribute 两次只登记一次;第二次返回空 disposer', async () => {
+    const { createIdempotentSlotContribution } = await import('../src/client/contribution.ts')
+    const calls: Array<{ options: Record<string, unknown>; component: unknown }> = []
+    let disposed = 0
+    const contribute = createIdempotentSlotContribution(
+      (options, component) => {
+        calls.push({ options, component })
+        return () => { disposed += 1 }
+      },
+      { name: 'conversation.chat.turnTail', id: 'eterna-memory.sources' },
+      'component',
+    )
+    const first = contribute()
+    const second = contribute()
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.options.id).toBe('eterna-memory.sources')
+    // 空 disposer 不触发登记 disposer;首个 disposer 照常。
+    second()
+    expect(disposed).toBe(0)
+    first()
+    expect(disposed).toBe(1)
+  })
+
+  it('首次登记失败(未登记成功)不留"已挂载"误判', async () => {
+    const { createIdempotentSlotContribution } = await import('../src/client/contribution.ts')
+    let attempts = 0
+    const contribute = createIdempotentSlotContribution(
+      () => { attempts += 1; throw new Error('slot not ready') },
+      { id: 'x' },
+      'component',
+    )
+    expect(() => contribute()).toThrow('slot not ready')
+    // 首次抛错未完成登记 → 闸未闭合,重试仍走登记(与"已挂载"区分)。
+    expect(() => contribute()).toThrow('slot not ready')
+    expect(attempts).toBe(2)
+  })
+})

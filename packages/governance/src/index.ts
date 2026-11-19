@@ -2,7 +2,8 @@
  * @eterna/governance —— L1 治理插件核心(策略纯函数层 + DSH seam 适配形态)。
  *
  * 五个模块:
- * 1. 规则引擎(rules.ts):YAML 策略 → evaluate(tool, args) → allow|ask|deny;deny 优先、fail-closed 默认 ask。
+ * 1. 规则引擎(rules.ts):YAML 策略 → evaluate(tool, args) → allow|ask|deny;deny 优先、fail-closed 默认 ask;
+ *    规则版本 = 解析后策略文档的内容 hash(rulesVersion,24a C3 拍板/G2-A15——glue 组参进 tasks 联合 hash)。
  * 2. 预算守卫(budget.ts):maxTurns/maxTokens/maxCost + agent/turn-stopping seam 处理器(超限即 agent.cancel 硬截断)。
  * 3. PII 过滤(pii.ts):可插拔正则列表,redact/assertClean 两种用法,供 memory/knowledge 写入前调用。
  * 4. 审计投影(audit.ts):session 事件流 → 审计记录,内存/文件双 sink。
@@ -35,7 +36,7 @@ export { EgressLite, DEFAULT_OUTBOUND_TOOL_GLOBS } from './egress.ts'
 export type { EgressClassification, EgressLiteConfig } from './egress.ts'
 export { PiiBlockedError, PiiFilter, defaultPiiPatterns } from './pii.ts'
 export type { PiiFinding, PiiPattern, PiiRedaction } from './pii.ts'
-export { RuleEngine, serializeArgs } from './rules.ts'
+export { RULES_REVISION, RuleEngine, rulesVersion, serializeArgs } from './rules.ts'
 export type { PolicyDocument, PolicyRule, RuleEffect, RuleEvaluation } from './rules.ts'
 export { GovernanceConfigError, isRecord } from './errors.ts'
 export { globToRegExp, matchAnyGlob, matchGlob } from './glob.ts'

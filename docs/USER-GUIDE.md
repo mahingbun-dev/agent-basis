@@ -189,14 +189,38 @@ node tools/packctl/bin/packctl.mjs lint packs/<行业名>          # 结构/Cord
 
 ## 插件怎么从索引安装
 
+### 前置:「发现」标签需要启用实验 bundle
+
+shipped profile 默认**不含**「发现」tab。启用一次(管理员):
+
+```bash
+cd $DSH_HOME/profiles/<profile>       # 例如 eterna-web
+pnpm add @deepseek-ai/dsh-experimental-plugin-market-bundle@0.2.2-rc.1
+# package.json 的 dsh.profile.bundles 追加该包名,然后重启宿主
+```
+
+✅ **市场面仅管理员可用(T6.1,2026-11-19 落地)**:安装/卸载/启停/索引源写入与 detail-file 仅 `admin` 角色可调用(普通用户/审批人 403;未登录会话 401);非 admin 的「插件」页整页不渲染,个人插件走设置弹窗「我的插件」。机制与实测证据见 `docs/PLUGIN-AUTHORING.md` §7。
+
+### 创造模式插件上架官方市场(一键发布,推荐)
+
+创造模式开发的个人插件想给**全员**用,不必手工走仓库发布流程——直接在会话里让 agent 调用 `submit_plugin_to_market`(或在设置弹窗「我的插件」确认目录名后发起):
+
+- 自动完成:bundle 化改写 → 官方仓库分支 commit(bundle + 索引两段,索引钉 bundle SHA)→ 零漂移校验 → push → **开 PR**;
+- 你只做一件事:**合并 PR**(仓库 main 有分支保护,CI validate 绿才能合;PR 链接工具会直接给出);
+- 合并后:管理员在「插件 → 发现 → 插件索引」菜单刷新 → 新版本卡片出现 → 安装 → 启用(重启生效);
+- 边界:仅工具型插件(UI 型不支持)、纯 JS 入口、版本自动递增(可显式传 version)。手工六步配方保留为等效路径,见 eterna-plugins 仓 `docs/PUBLISHING.md`。
+
 ### Web「发现」标签(推荐)
 
 1. 打开 Web → 侧栏「**插件**」页 → 切到「**发现**」标签
-2. 首次使用点「**添加索引源**」(或工具栏「插件索引」菜单 →「管理索引源…」),填入插件索引的 http(s) URL——索引是一份 JSON 清单,列出可安装的组合包。
-   本仓库自家插件(@eterna/glue、@event/pack)的长期索引源:**`https://raw.githubusercontent.com/mahingbun-dev/agent-basis/main/market/index.json`**
-   (离线演示备用:仓库根 `python3 -m http.server 8765 -d market/` 后填 `http://127.0.0.1:8765/index.json`)
-3. 搜索/按标签筛选 → 卡片上点「**安装**」→ 确认对话框(显示版本、来源 spec、registry)→ 确认后进入安装检查界面
-4. 装完到「已安装」标签启用/停用;装新组合包默认启用,eterna-web profile 无 HMR 时按提示重启生效
+2. 首次使用点「**添加索引源**」(或工具栏「插件索引」菜单 →「管理索引源…」),填入插件索引的 http(s) URL——索引是一份 JSON 清单,列出可安装的插件包。
+   **官方插件仓库源(长期):**`https://raw.githubusercontent.com/mahingbun-dev/eterna-plugins/main/market/index.json`
+   本主仓库索引(演示用,`@eterna/glue`/`@event/pack`):**`https://raw.githubusercontent.com/mahingbun-dev/agent-basis/main/market/index.json`**
+   (离线演示备用:仓库根 `python3 -m http.server 8765 -d market/` 后填 `http://127.0.0.1:8765/index.json`;自建索引服务须允许浏览器跨源读取/CORS)
+3. 搜索/按标签筛选 → 卡片上点「**安装**」→ 确认对话框(显示版本、来源 spec、commit)→ 确认后进入安装检查(不兼容版本会被拒并提示豁免方式)
+4. 装完到「已安装」标签启用/停用;启用行写入 profile 的 `dsh.profile.bundles`,eterna-web profile 无 HMR 时按提示**重启生效**
+
+安装/启用是管理员面;普通用户的个人工具插件走设置弹窗「我的插件」(免重启,见 `docs/dev/tenant-plugins.md`)。
 
 ### 会话内让代理装(工具链)
 
@@ -265,7 +289,7 @@ cd ~/.dsh/profiles/eterna-web && pnpm install
 - **OpenDesign（Go 套餐）分组**（2026-11-12）：模型选择器新增 OpenDesign 分组（anthropic-messages 协议直连 `amr-link.open-design.ai`），14 个模型（Claude Haiku 5.5 / DeepSeek V4 与 V4.1 系 / GLM 5.3 Flash 系 / GPT-6 Luna / Kimi K2.7 Code / MiMo V2.6 系 / MiniMax M3.1 等）。key 经 `OPENDESIGN_API_KEY` env 注入；上下文声明统一 300K（Kimi K2.7 Code 按官方元数据 262K）。
 - **会话与工作区隔离**：成员只能看到自己的工作区与会话（含侧栏列表与搜索）；「添加工作区」走目录树，只能在本人目录内选择与新建文件夹。
 - **用量统计**：侧栏「用量统计」面板查看 Token 总量、缓存命中率、近 14 天趋势与按模型分布。普通成员看本人，管理员看全局。
-- **我的插件**：设置弹窗新分区——把插件放进本人 `plugins/` 目录即可安装，仅本人可见；「转内置」提交申请，管理员在「审批队列」通过后全员可用。
+- **我的插件**：设置弹窗新分区——把工具型插件放进本人 `plugins/` 目录即可安装，仅本人可见；安装/启停/移除**即时生效，无需重启**（T6 装载器，2026-11-18）。创造模式里开发的插件，点「扫描 plugins 目录」一键导入；会话里代理也可直接调 `install_personal_plugin` 帮你装。行内徽标显示装载状态（已装载 n 个工具/装载失败原因）；「转内置」提交申请，管理员在「审批队列」通过后**即刻全员可用**（「恒灵插件」页签「共享工具」分区可启停）。契约与边界见 `docs/dev/tenant-plugins.md`：仅工具型（UI/bundle 型需管理员 bundle 安装），最小模板在品牌技能 `templates/personal-tool/`。
 - **消息与审批**：设置弹窗新分区——审批结果与待办的站内提醒。
 - 已知问题：浏览器若缓存了旧版登录页，密码小眼睛可能出现位移——硬刷新（⌘⇧R）即可。
 - 全部功能验收证据：`acceptance/team-platform/`（分阶段门禁 gate-summary 与工件）。

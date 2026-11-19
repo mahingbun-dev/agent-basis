@@ -9,8 +9,14 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import type { AccessAuditEvent } from '../src/audit.ts'
+import { ApprovalBridge, type ToolApprovalView } from '../src/approval-bridge.ts'
+import { QuestionBridge, type UserQuestionView } from '../src/question-bridge.ts'
+import { handleAccessRequest, type AccessDeps } from '../src/routes.ts'
 import { SessionService } from '../src/session.ts'
+import { SlidingWindow } from '../src/ratelimit.ts'
 import { UserStore } from '../src/store.ts'
+import { ADMIN_ONLY_UNARY_ACTIONS, bindingsFor, visibilityScopeOf } from '../src/mux.ts'
 import { registerTenantGuards, type TenantFetchRegistry } from '../src/tenant.ts'
 
 describe('P2-T1.7a:网关配置角色门(实例 wrap)', () => {
@@ -192,5 +198,387 @@ describe('P2-T1.7a:守卫 fetch 路由层(HTTP cookie 判角色)', () => {
     expect(mutate?.args).toEqual(['agent-preset-registry', [{ op: 'set', path: ['defaultPreset'], value: 'cordis' }], 7])
     expect(update?.args).toEqual(['agent-preset-registry', { selectedDefault: 'cordis' }, 7])
     expect(replace?.args).toEqual(['agent-preset-registry', { selectedDefault: 'cordis' }, 7])
+  })
+})
+
+
+/**
+ * WS-C(37 号 §3 M-4,M1 段):审批人角色门——三角色对现有数据面的响应体 JSON
+ * 特征字段断言(禁全页文本子串断言,33 号 G2-C3 引 docs/USER-GUIDE.md:50-51 纪律)。
+ * M3 段待人项三档断言见下方「WS-C 待人项可见性三档」describe(37 号 M-4「同文件扩」)。
+ */
+describe('WS-C 审批人角色门(M-4 M1 段)', () => {
+  let dir: string
+  let store: UserStore
+  let session: SessionService
+  let deps: AccessDeps
+  let auditEvents: AccessAuditEvent[]
+  let now: number
+  let adminId: number
+  let approverId: number
+  let userId: number
+  let adminCookie: string
+  let approverCookie: string
+  let userCookie: string
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'eterna-wsc-role-'))
+    store = new UserStore(join(dir, 'users.db'))
+    session = new SessionService(Buffer.from('wsc-role-secret-wsc-role-secret0'))
+    auditEvents = []
+    now = 1_000_000
+    deps = {
+      store,
+      session,
+      loginWindow: new SlidingWindow(5, 60_000, () => now),
+      globalWindow: new SlidingWindow(30, 60_000, () => now),
+      audit: event => auditEvents.push(event),
+      bridgeHome: () => 'http://app.local/?token=bridge-token',
+      dataDir: dir,
+      provisionWorkspace: async () => {},
+    }
+    const admin = store.createUserWithSuffix({ account: 'root', password: 'password8', role: 'admin' })
+    const approver = store.createUserWithSuffix({ account: 'auditor', password: 'password8', role: 'approver' })
+    const user = store.createUserWithSuffix({ account: 'alice', password: 'password8', role: 'user' })
+    adminId = admin.user.id
+    approverId = approver.user.id
+    userId = user.user.id
+    // 三角色各持同构资源面(1 session + 1 workspace)——② 同构断言的对照组
+    store.recordSession(`s-${adminId}`, adminId, null)
+    store.recordWorkspace(`w-${adminId}`, adminId, join(dir, 'root'))
+    store.recordSession(`s-${approverId}`, approverId, null)
+    store.recordWorkspace(`w-${approverId}`, approverId, join(dir, 'auditor'))
+    store.recordSession(`s-${userId}`, userId, null)
+    store.recordWorkspace(`w-${userId}`, userId, join(dir, 'alice'))
+    adminCookie = login('root')
+    approverCookie = login('auditor')
+    userCookie = login('alice')
+  })
+  afterEach(() => {
+    store.close()
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  function login(account: string): string {
+    const reply = handleAccessRequest(deps, {
+      method: 'POST', pathname: '/login', cookie: undefined, origin: undefined,
+      host: 'localhost:3210', xff: undefined, contentType: 'application/json',
+      body: Buffer.from(JSON.stringify({ account, password: 'password8' })),
+    })
+    expect(reply.status).toBe(200)
+    return reply.headers.find(([name]) => name === 'set-cookie')?.[1] ?? ''
+  }
+
+  function call(overrides: Partial<{ method: string; pathname: string; cookie?: string; body?: Buffer }>) {
+    const reply = handleAccessRequest(deps, {
+      method: overrides.method ?? 'GET', pathname: overrides.pathname ?? '/', cookie: overrides.cookie,
+      origin: undefined, host: 'localhost:3210', xff: undefined, contentType: 'application/json',
+      body: overrides.body,
+    })
+    const body = typeof reply.body === 'string' ? JSON.parse(reply.body) as Record<string, unknown> : {}
+    return { status: reply.status, body }
+  }
+
+  it('① /access/api/me:三角色 role 字段正确(JSON 特征字段)', () => {
+    expect(call({ pathname: '/access/api/me', cookie: adminCookie }).body).toMatchObject({ account: 'root', role: 'admin' })
+    expect(call({ pathname: '/access/api/me', cookie: approverCookie }).body).toMatchObject({ account: 'auditor', role: 'approver' })
+    expect(call({ pathname: '/access/api/me', cookie: userCookie }).body).toMatchObject({ account: 'alice', role: 'user' })
+  })
+
+  it('② bindingsFor:三角色内容绑定同构(仅本人资源,零放宽不变式)', () => {
+    const muxDeps = { store, session }
+    const shapeOf = (id: number) => {
+      const bindings = bindingsFor(muxDeps, id)
+      return {
+        kinds: bindings.map(b => b.resource.kind),
+        roleNames: bindings.map(b => b.role.name),
+        actions: bindings.map(b => [...b.role.actions].sort()),
+        // T6.1:管理员专属 UI 门(插件页整页门)只收窄不放宽——剥离后比内容面,
+        // 与 mux-policy 的 contentView 同口径。
+        contentActions: bindings.map(b => b.role.actions.filter(a => !ADMIN_ONLY_UNARY_ACTIONS.includes(a)).sort()),
+        sessionIds: bindings.filter(b => b.resource.kind === 'session').map(b => (b.resource as { id: string }).id),
+        workspaceIds: bindings.filter(b => b.resource.kind === 'workspace').map(b => (b.resource as { id: string }).id),
+      }
+    }
+    const admin = shapeOf(adminId)
+    const approver = shapeOf(approverId)
+    const user = shapeOf(userId)
+    // 结构逐项全等(角色名/动作清单/kind 序列);资源 id 各归各人
+    expect(approver.kinds).toEqual(user.kinds)
+    expect(approver.roleNames).toEqual(user.roleNames)
+    expect(approver.actions).toEqual(user.actions)
+    expect(approver.contentActions).toEqual(user.contentActions)
+    expect(admin.kinds).toEqual(user.kinds)
+    expect(admin.roleNames).toEqual(user.roleNames)
+    expect(admin.contentActions).toEqual(user.contentActions)
+    // 唯一角色分派面(收窄):admin 多插件页整页门,非 admin 无——不得反向放宽
+    expect(admin.actions.flat().join(' ')).toContain('pluginManager/listBundles')
+    expect(user.actions.flat()).not.toContain('pluginManager/listBundles')
+    // 审批人仅见本人 session/workspace(不因 tenant-pending 档放宽 mux 内容绑定)
+    expect(approver.sessionIds).toEqual([`s-${approverId}`])
+    expect(approver.workspaceIds).toEqual([`w-${approverId}`])
+    expect(approver.sessionIds).not.toContain(`s-${userId}`)
+    expect(approver.workspaceIds).not.toContain(`w-${adminId}`)
+  })
+
+  it('③ admin 面端点对 approver 403:用户列表/建号/删号/角色变更/插件启停(审批人≠管理员)', () => {
+    expect(call({ pathname: '/access/api/users', cookie: approverCookie }).status).toBe(403)
+    expect(call({ method: 'POST', pathname: '/access/api/users', cookie: approverCookie, body: Buffer.from('{"account":"x1","password":"password8"}') }).status).toBe(403)
+    expect(call({ method: 'DELETE', pathname: `/access/api/users/${userId}`, cookie: approverCookie }).status).toBe(403)
+    expect(call({ method: 'POST', pathname: `/access/api/users/${userId}/role`, cookie: approverCookie, body: Buffer.from('{"role":"user"}') }).status).toBe(403)
+    expect(call({ pathname: '/access/api/plugins', cookie: approverCookie }).status).toBe(403)
+    expect(call({ method: 'POST', pathname: '/access/api/plugins/eterna-memory/disable', cookie: approverCookie }).status).toBe(403)
+  })
+})
+
+
+/**
+ * WS-C 待人项可见性三档(37 号 §3 M-4 M3 段;33 G2-C3「审批人见全租户待人项;
+ * 普通用户仅自己的工单/会话;管理员全量——三角色断言走响应体 JSON 特征字段」)。
+ *
+ * 断言对象口径(37 号 §7 缺口 1 如实登记):WS-D 工作台待人项端点今日不存在
+ * (mux.ts:194「上游流方法表无任何 person/* 待人端点」;packages/access/src/routes.ts
+ * 无工作台数据面)——本文件把三档断言钉在今日真实存在的三个 access 面:
+ *  ① 三档谓词 × 账本闭环:`visibilityScopeOf`(mux.ts:185,30 §4.5 的 access 单真值)
+ *     对 store 实际角色行逐档断言;角色变更即档位翻转——37 号 §8「工作台(WS-D)
+ *     待人项实接时,其数据端点消费 visibilityScopeOf 与本批角色模型」的消费契约;
+ *  ② 既有两个待人面(tool-pending/questions-pending)三档本人-only:tenant-pending/all
+ *     档**不放宽**这两面(37 号 §7 缺口 2 fail-closed 拍板现状),跨用户裁决/作答一律
+ *     404——桥内归属校验(approval-bridge.ts:117/question-bridge.ts:261)与角色无关;
+ *  ③ 档位翻转即时 + mux 内容绑定零放宽(M-2 不变式在角色门视角的翻转时点复述)。
+ * WS-D 端点落地后,三档断言按缺口 1 拍板的字段名扩进 E2E 脚本
+ * (packages/access/scripts/verify-visibility-e2e.mjs,verify-governance-e2e 模式)。
+ */
+describe('WS-C 待人项可见性三档(M-4 M3 段,G2-C3/G2-C5)', () => {
+  let dir: string
+  let store: UserStore
+  let session: SessionService
+  let deps: AccessDeps
+  let auditEvents: AccessAuditEvent[]
+  let now: number
+  let adminId: number
+  let approverId: number
+  let userId: number
+  let adminCookie: string
+  let approverCookie: string
+  let userCookie: string
+  let aliceApprovalId: string
+  let aliceQuestionId: string
+  let approverApprovalId: string
+  let approverQuestionId: string
+
+  /** 捕获桥答者的 register 形(installAnswerer 的 register 参数;approval-bridge.spec 同构)。 */
+  let approvalListener: ((request: unknown, next: () => unknown) => unknown) | undefined
+  let questionListener: ((request: unknown, next: () => unknown) => unknown) | undefined
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'eterna-wsc-pending-'))
+    store = new UserStore(join(dir, 'users.db'))
+    session = new SessionService(Buffer.from('wsc-pending-secret-wsc-pending0'))
+    auditEvents = []
+    now = 1_000_000
+    // 真 桥(非桩):归属真值=store.sessionOwner(plugin.ts:167-180 同款接线),
+    // 档位可见性行为断言跑在生产代码路径上。
+    const approvalBridge = new ApprovalBridge({
+      sessionOwner: id => store.sessionOwner(id),
+      audit: event => auditEvents.push(event),
+      timeoutMs: 60_000,
+    })
+    const questionBridge = new QuestionBridge({
+      sessionOwner: id => store.sessionOwner(id),
+      audit: event => auditEvents.push(event),
+      timeoutMs: 60_000,
+    })
+    // register 契约=返回 disposer(answerer 注册面);测试只捕获 listener,disposer 空实现。
+    approvalBridge.installAnswerer((register) => { approvalListener = register; return () => {} })
+    questionBridge.installAnswerer((register) => { questionListener = register; return () => {} })
+    deps = {
+      store,
+      session,
+      loginWindow: new SlidingWindow(5, 60_000, () => now),
+      globalWindow: new SlidingWindow(30, 60_000, () => now),
+      audit: event => auditEvents.push(event),
+      bridgeHome: () => 'http://app.local/?token=bridge-token',
+      dataDir: dir,
+      provisionWorkspace: async () => {},
+      approvalBridge,
+      questionBridge,
+    }
+    const admin = store.createUserWithSuffix({ account: 'root', password: 'password8', role: 'admin' })
+    const approver = store.createUserWithSuffix({ account: 'auditor', password: 'password8', role: 'approver' })
+    const user = store.createUserWithSuffix({ account: 'alice', password: 'password8', role: 'user' })
+    adminId = admin.user.id
+    approverId = approver.user.id
+    userId = user.user.id
+    // 会话归属账本:三人各持一会话(store.sessionOwner 真值;mock 工单 realm 钳制的
+    // access 侧同构物——30 §4.5「工作台数据按 access realm 钳制」的归属底座)。
+    store.recordSession('s-root', adminId, null)
+    store.recordSession('s-auditor', approverId, null)
+    store.recordSession('s-alice', userId, null)
+    // 种两单:alice(普通用户)与 auditor(审批人)各持一条待人审批+待答提问——
+    // 跨档过滤断言需要「列表非空且互不可见」,空表断言无法区分「过滤生效」与「无数据」。
+    aliceApprovalId = seedApproval('s-alice')
+    approverApprovalId = seedApproval('s-auditor')
+    aliceQuestionId = seedQuestion('s-alice')
+    approverQuestionId = seedQuestion('s-auditor')
+    adminCookie = login('root')
+    approverCookie = login('auditor')
+    userCookie = login('alice')
+  })
+
+  afterEach(() => {
+    store.close()
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  /** 经捕获的答者登记一条待人审批(真桥 #pending;返回 JSON 特征字段 id)。 */
+  function seedApproval(sessionId: string): string {
+    const promise = approvalListener?.(
+      { toolName: 'working_directory', callId: `call-${sessionId}`, reason: '治理策略要求人工确认', agent: { session: { id: sessionId } } },
+      () => 'unavailable',
+    ) as Promise<unknown>
+    expect(promise).toBeInstanceOf(Promise)
+    const view = (deps.approvalBridge?.listFor(store.sessionOwner(sessionId) ?? -1) ?? [])
+      .find(item => item.sessionId === sessionId)
+    expect(view).toBeDefined()
+    return (view as ToolApprovalView).id
+  }
+
+  /** 经捕获的答者登记一张待答提问(单问即可;skip 语义验证不依赖问题数)。 */
+  function seedQuestion(sessionId: string): string {
+    const promise = questionListener?.(
+      {
+        questions: [{ id: 'topic', question: '这次要检索的主题是什么?', options: [{ label: 'A' }, { label: 'B' }] }],
+        agent: { session: { id: sessionId } },
+      },
+      () => 'unavailable',
+    ) as Promise<unknown>
+    expect(promise).toBeInstanceOf(Promise)
+    const view = (deps.questionBridge?.listFor(store.sessionOwner(sessionId) ?? -1) ?? [])
+      .find(item => item.sessionId === sessionId)
+    expect(view).toBeDefined()
+    return (view as UserQuestionView).id
+  }
+
+  function login(account: string): string {
+    const reply = handleAccessRequest(deps, {
+      method: 'POST', pathname: '/login', cookie: undefined, origin: undefined,
+      host: 'localhost:3210', xff: undefined, contentType: 'application/json',
+      body: Buffer.from(JSON.stringify({ account, password: 'password8' })),
+    })
+    expect(reply.status).toBe(200)
+    return reply.headers.find(([name]) => name === 'set-cookie')?.[1] ?? ''
+  }
+
+  function call(overrides: Partial<{ method: string; pathname: string; cookie?: string; body?: Buffer }>) {
+    const reply = handleAccessRequest(deps, {
+      method: overrides.method ?? 'GET', pathname: overrides.pathname ?? '/', cookie: overrides.cookie,
+      origin: undefined, host: 'localhost:3210', xff: undefined, contentType: 'application/json',
+      body: overrides.body,
+    })
+    const body = typeof reply.body === 'string' ? JSON.parse(reply.body) as Record<string, unknown> : {}
+    return { status: reply.status, body }
+  }
+
+  const sessionIdsOf = (body: { items?: Array<{ sessionId?: string }> }): string[] =>
+    (body.items ?? []).map(item => item.sessionId ?? '')
+
+  it('① 三档谓词×账本:store 角色行逐档映射;角色变更即档位翻转(WS-D 消费契约)', () => {
+    // 三档映射从账本实读(非字面量直呼)——30 §4.5「工作台数据按 access realm 钳制」
+    // 的 access 单真值;unknown 值 fail-closed 判 self(mux.ts:190)。
+    expect(visibilityScopeOf(store.getUserById(userId)!.role)).toBe('self')
+    expect(visibilityScopeOf(store.getUserById(approverId)!.role)).toBe('tenant-pending')
+    expect(visibilityScopeOf(store.getUserById(adminId)!.role)).toBe('all')
+    // 分配→可见性变化闭环(G2-C5,账本侧):user→approver 即 tenant-pending,收回即 self。
+    store.setUserRole(userId, 'approver')
+    expect(visibilityScopeOf(store.getUserById(userId)!.role)).toBe('tenant-pending')
+    store.setUserRole(userId, 'user')
+    expect(visibilityScopeOf(store.getUserById(userId)!.role)).toBe('self')
+  })
+
+  it('② 普通用户(self 档):两面均只见本人条目(JSON 特征字段);本人裁决后条目消失', () => {
+    const toolPending = call({ pathname: '/access/api/approvals/tool-pending', cookie: userCookie }).body as { items?: ToolApprovalView[] }
+    expect(sessionIdsOf(toolPending)).toEqual(['s-alice'])
+    expect(toolPending.items?.[0]?.id).toBe(aliceApprovalId)
+    const questionPending = call({ pathname: '/access/api/questions/pending', cookie: userCookie }).body as { items?: UserQuestionView[] }
+    expect(sessionIdsOf(questionPending)).toEqual(['s-alice'])
+    expect(questionPending.items?.[0]?.id).toBe(aliceQuestionId)
+    // 本人裁决正控:条目真实可决,且裁决后即从本人列表消失(可见性闭环)。
+    const decided = call({
+      method: 'POST', pathname: '/access/api/approvals/tool-decide', cookie: userCookie,
+      body: Buffer.from(JSON.stringify({ id: aliceApprovalId, allow: true })),
+    })
+    expect(decided.status).toBe(200)
+    expect(decided.body).toMatchObject({ ok: true })
+    const answered = call({
+      method: 'POST', pathname: '/access/api/questions/answer', cookie: userCookie,
+      body: Buffer.from(JSON.stringify({ id: aliceQuestionId, skip: true })),
+    })
+    expect(answered.status).toBe(200)
+    expect(call({ pathname: '/access/api/approvals/tool-pending', cookie: userCookie }).body).toMatchObject({ items: [] })
+    expect(call({ pathname: '/access/api/questions/pending', cookie: userCookie }).body).toMatchObject({ items: [] })
+  })
+
+  it('② 审批人(tenant-pending 档)不放宽既有两面:见本人、不见他人;跨用户裁决 404(缺口 2 fail-closed)', () => {
+    // 「审批人全租户待人」(30 §4.5)作用对象=WS-D 工作台数据面(端点今日不存在,
+    // 缺口 1);既有插件审批面/提问面按 37 号 §7 缺口 2 维持本人-only——
+    // 审批人看到自己的条目,但他人的条目不可见、不可决。
+    const toolPending = call({ pathname: '/access/api/approvals/tool-pending', cookie: approverCookie }).body as { items?: ToolApprovalView[] }
+    expect(sessionIdsOf(toolPending)).toEqual(['s-auditor'])
+    expect(toolPending.items?.[0]?.id).toBe(approverApprovalId)
+    expect(sessionIdsOf(toolPending)).not.toContain('s-alice')
+    const questionPending = call({ pathname: '/access/api/questions/pending', cookie: approverCookie }).body as { items?: UserQuestionView[] }
+    expect(sessionIdsOf(questionPending)).toEqual(['s-auditor'])
+    expect(questionPending.items?.[0]?.id).toBe(approverQuestionId)
+    // 跨用户裁决/作答:桥内归属校验拒之(approval-bridge.ts:119;question-bridge.ts:261)。
+    const decided = call({
+      method: 'POST', pathname: '/access/api/approvals/tool-decide', cookie: approverCookie,
+      body: Buffer.from(JSON.stringify({ id: aliceApprovalId, allow: true })),
+    })
+    expect(decided.status).toBe(404)
+    expect(decided.body).toMatchObject({ error: '审批不存在、已收场或不属于你' })
+    const answered = call({
+      method: 'POST', pathname: '/access/api/questions/answer', cookie: approverCookie,
+      body: Buffer.from(JSON.stringify({ id: aliceQuestionId, skip: true })),
+    })
+    expect(answered.status).toBe(404)
+    expect(answered.body).toMatchObject({ error: '提问不存在、已结束或不属于你' })
+    // 拒绝即零副作用:alice 的条目仍在(不是「裁掉了再说不可见」)。
+    expect(sessionIdsOf(call({ pathname: '/access/api/approvals/tool-pending', cookie: userCookie }).body as { items?: ToolApprovalView[] }))
+      .toEqual(['s-alice'])
+  })
+
+  it('② 管理员(all 档)不放宽既有两面:本人零条目;他人条目不可见不可决(缺口 2 fail-closed)', () => {
+    // 「管理员全量」(30 §4.5)同为 WS-D 工作台数据语义;root 未持任何待人项,
+    // 两面返回空表——不是全租户聚合(缺口 2)。
+    const toolPending = call({ pathname: '/access/api/approvals/tool-pending', cookie: adminCookie }).body as { items?: ToolApprovalView[] }
+    expect(toolPending).toMatchObject({ items: [] })
+    const questionPending = call({ pathname: '/access/api/questions/pending', cookie: adminCookie }).body as { items?: UserQuestionView[] }
+    expect(questionPending).toMatchObject({ items: [] })
+    const decided = call({
+      method: 'POST', pathname: '/access/api/approvals/tool-decide', cookie: adminCookie,
+      body: Buffer.from(JSON.stringify({ id: aliceApprovalId, allow: true })),
+    })
+    expect(decided.status).toBe(404)
+    const answered = call({
+      method: 'POST', pathname: '/access/api/questions/answer', cookie: adminCookie,
+      body: Buffer.from(JSON.stringify({ id: approverQuestionId, skip: true })),
+    })
+    expect(answered.status).toBe(404)
+  })
+
+  it('③ 档位翻转即时:mux 内容绑定零放宽不变式在 tenant-pending 档仍成立(M-2 不变式翻转时点)', () => {
+    store.setUserRole(userId, 'approver')
+    const muxDeps = { store, session }
+    const bindings = bindingsFor(muxDeps, userId)
+    // 档位已入 tenant-pending,但内容绑定仍仅本人 session/workspace(30 §7-3 只授权
+    // 工作台待人项数据面,mux 内容流无放宽依据——37 号 §7 缺口 3)。
+    expect(bindings.filter(binding => binding.resource.kind === 'session').map(binding => (binding.resource as { id: string }).id))
+      .toEqual(['s-alice'])
+    expect(bindings.filter(binding => binding.resource.kind === 'workspace').map(binding => (binding.resource as { id: string }).id))
+      .toEqual([])
+    // 面上同句柄再证:approver 档下本人待答面照常可达(角色读取每请求现查,不缓存)。
+    const questionPending = call({ pathname: '/access/api/questions/pending', cookie: userCookie }).body as { items?: UserQuestionView[] }
+    expect(sessionIdsOf(questionPending)).toEqual(['s-alice'])
   })
 })

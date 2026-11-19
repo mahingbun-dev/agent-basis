@@ -1,0 +1,28 @@
+{
+  "chat": [
+    {
+      "choices": [
+        {
+          "message": {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              { "id": "call_golden_ru", "type": "function", "function": { "name": "read_url", "arguments": "{\"url\":\"https://example.com/paper\"}" } }
+            ]
+          },
+          "finish_reason": "tool_calls"
+        }
+      ]
+    },
+    {
+      "choices": [
+        { "message": { "role": "assistant", "content": "已读取页面并作答。" }, "finish_reason": "stop" }
+      ]
+    }
+  ],
+  "tavilyExtract": {
+    "results": [
+      { "url": "https://example.com/paper", "raw_content": "论文全文:规范化块协议是渲染与 prompt 的唯一消费物。" }
+    ]
+  }
+}

@@ -13,6 +13,9 @@ import { MyPluginsTab, NotificationsSection, ApprovalQueueSection } from './my-p
 import { ManageTab } from './plugins-manager.tsx'
 import { DirectoryTreeFlow } from './directory-tree.tsx'
 import { ModelMenu } from './model-menu.tsx'
+import { ThinkingFeedbackActions, type ThinkingFeedbackInjected } from './thinking-feedback.tsx'
+import { SessionBindingProbe } from './session-probe.tsx'
+import { activeSessionId } from './session-bridge.ts'
 import { AccountLauncher, type AccountLauncherInjected } from './account-menu.tsx'
 import { installLinkOpeningDefault } from './link-opening.ts'
 import { installApprovalCard } from './approval-card.tsx'
@@ -40,6 +43,14 @@ const LOCALES: Record<string, Record<string, string>> = {
     'section.myPlugins': '我的插件',
     'section.notifications': '消息与审批',
     'section.approvalQueue': '审批队列',
+    // 思考强度显式反馈(2026-11-18 V2):assistant 动作条两枚轻按钮
+    'thinking.less': '想浅点',
+    'thinking.more': '想深点',
+    'thinking.lessDone': '已调浅',
+    'thinking.moreDone': '已调深',
+    'thinking.failed': '提交失败',
+    'thinking.lessAria': '这条回答思考过多，下一轮想浅一点',
+    'thinking.moreAria': '这条回答思考不足，下一轮想深一点',
     'account.loading': '加载中…',
     'account.passwordToggle': '切换密码可见性',
     'account.passwordToggleTitle': '显示/隐藏密码',
@@ -82,6 +93,7 @@ const LOCALES: Record<string, Record<string, string>> = {
     'users.account': '账号',
     'users.password': '密码（至少 8 位）',
     'users.roleUser': '普通用户',
+    'users.roleApprover': '审批人',
     'users.roleAdmin': '管理员',
     'users.add': '添加',
     'users.nickname': '昵称',
@@ -93,13 +105,14 @@ const LOCALES: Record<string, Record<string, string>> = {
     'users.created': '用户 {account} 已创建',
     'users.createdSuffix': '用户已创建，账号为 {account}（重名自动后缀）',
     'users.createFailed': '创建失败',
+    'users.roleChangeFailed': '角色变更失败',
     'users.deleted': '用户已删除，其会话已失效',
     'users.deleteFailed': '删除失败',
     'plugins.title': '我的插件',
-    'plugins.hint': '个人插件仅本人可见可用;好用的插件可发起「转内置」给全团队使用。',
+    'plugins.hint': '个人插件仅本人可见可用;启停与安装即时生效,无需重启。创造模式里开发的插件,点「扫描 plugins 目录」即可导入;好用的插件可发起「转内置」给全团队使用(管理员审批,即刻生效)。',
     'plugins.empty': '还没有安装个人插件',
     'plugins.enabled': '已启用',
-    'plugins.disabled': '已停用',
+    'plugins.disabled': '已停用(未装载)',
     'plugins.promoted': '已转内置',
     'plugins.disable': '停用',
     'plugins.enable': '启用',
@@ -112,6 +125,10 @@ const LOCALES: Record<string, Record<string, string>> = {
     'plugins.dirLabel': '插件目录名',
     'plugins.install': '安装',
     'plugins.actionFailed': '操作失败',
+    'plugins.mountedTools': '已装载 {count} 个工具',
+    'plugins.mountFailed': '装载失败',
+    'plugins.scan': '扫描 plugins 目录',
+    'plugins.scanEmpty': '未发现待安装的插件目录',
     'notifications.title': '消息与审批',
     'notifications.unread': '({count} 未读)',
     'notifications.empty': '暂无消息',
@@ -195,6 +212,7 @@ const LOCALES: Record<string, Record<string, string>> = {
     'users.account': 'Account',
     'users.password': 'Password (at least 8 characters)',
     'users.roleUser': 'User',
+    'users.roleApprover': 'Approver',
     'users.roleAdmin': 'Admin',
     'users.add': 'Add',
     'users.nickname': 'Nickname',
@@ -206,13 +224,14 @@ const LOCALES: Record<string, Record<string, string>> = {
     'users.created': 'User {account} created',
     'users.createdSuffix': 'User created as {account} (suffix added for duplicate)',
     'users.createFailed': 'Could not create user',
+    'users.roleChangeFailed': 'Could not change role',
     'users.deleted': 'User deleted; their sessions were revoked',
     'users.deleteFailed': 'Could not delete user',
     'plugins.title': 'My plugins',
-    'plugins.hint': 'Personal plugins are visible only to you; useful ones can be promoted for the whole team.',
+    'plugins.hint': 'Personal plugins are visible only to you; install, enable and disable take effect immediately without restart. Plugins developed in creator mode can be imported via "Scan plugins directory"; useful ones can be promoted for the whole team (admin approval, immediate).',
     'plugins.empty': 'No personal plugins installed',
     'plugins.enabled': 'Enabled',
-    'plugins.disabled': 'Disabled',
+    'plugins.disabled': 'Disabled (not mounted)',
     'plugins.promoted': 'Promoted',
     'plugins.disable': 'Disable',
     'plugins.enable': 'Enable',
@@ -225,6 +244,10 @@ const LOCALES: Record<string, Record<string, string>> = {
     'plugins.dirLabel': 'Plugin directory',
     'plugins.install': 'Install',
     'plugins.actionFailed': 'Action failed',
+    'plugins.mountedTools': '{count} tools mounted',
+    'plugins.mountFailed': 'Mount failed',
+    'plugins.scan': 'Scan plugins directory',
+    'plugins.scanEmpty': 'No unregistered plugin directories found',
     'notifications.title': 'Notifications & approvals',
     'notifications.unread': ' ({count} unread)',
     'notifications.empty': 'No notifications',
@@ -328,6 +351,33 @@ export function apply(ctx: AccessClientContext): () => void {
     }, AccountLauncher))
   }
   registerAccountLauncher()
+
+  // 思考强度显式反馈(2026-11-18 V2):assistant 消息动作条追加「想浅点/想深点」。
+  // 原生 list slot(ui-chat 声明,scope=session,props=messageId);产品内不新开入口。
+  // 会话 id 取自 slot 标准席位(ui-session 会话绑定下发的 props.sessionId,即渲染该条
+  // 消息的会话),组件内才回退 localStorage 导航快照——两处不同源,勿各自换源。
+  const registerThinkingFeedback = (): void => {
+    ctx.slots.inject('conversation.chat.assistant-actions', () => ctx.slots.register({
+      name: 'conversation.chat.assistant-actions',
+      id: `${NS}.thinking-feedback`,
+      order: 60,
+      locale: NS,
+      inject: (): ThinkingFeedbackInjected => ({ t }),
+    }, ThinkingFeedbackActions))
+  }
+  registerThinkingFeedback()
+
+  // 会话绑定探针(2026-11-18 收尾):conversation.input.overlay(session 作用域 list)
+  // 渲染 null,只把标准席位的 sessionId 写入会话桥——模型菜单/动作条据此取
+  // 「真正渲染当前对话」的会话,不再只依赖 localStorage 导航快照。
+  const registerSessionProbe = (): void => {
+    ctx.slots.inject('conversation.input.overlay', () => ctx.slots.register({
+      name: 'conversation.input.overlay',
+      id: `${NS}.session-probe`,
+      order: 70,
+    }, SessionBindingProbe))
+  }
+  registerSessionProbe()
 
   // 网页链接默认打开方式联动:自己的浏览器扩展在线且用户未显式选择过 → 默认走
   // 系统默认浏览器(见 link-opening.ts 头注;全程静默,失败不影响主流程)。
@@ -541,7 +591,7 @@ function registerModelDrawer(ctx: AccessClientContext): void {
     btn.setAttribute('data-eterna-drawer-bound', '1')
     btn.addEventListener('click', (e: MouseEvent) => {
       if (e.shiftKey) return // shift+click 保留上游菜单
-      const sessionId = readCurrentSession()
+      const sessionId = activeSessionId() ?? readCurrentSession()
       if (sessionId === null) return
       e.stopImmediatePropagation()
       e.preventDefault()

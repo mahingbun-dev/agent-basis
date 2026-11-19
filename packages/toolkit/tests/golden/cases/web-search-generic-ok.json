@@ -1,0 +1,38 @@
+{
+  "id": "web-search-generic-ok",
+  "capability": "web_search",
+  "scope": "generic",
+  "description": "generic 分支:web_search 声明 → 模型 tool_calls 驱动供给链(内部优先+Tavily 兜底)→ 步骤+来源卡;含回灌 toolResult 快照",
+  "params": {
+    "query": "Tavily 接入形态"
+  },
+  "expected": {
+    "status": "ok",
+    "blocks": [
+      {
+        "type": "search_step",
+        "step": 1,
+        "action": "search",
+        "query": "Tavily 接入形态",
+        "status": "ok"
+      },
+      {
+        "type": "source",
+        "title": "Tavily 计费",
+        "url": "https://www.tavily.com/pricing",
+        "summary": "credit 制按请求计。",
+        "publishTime": null
+      },
+      {
+        "type": "source",
+        "title": "Tavily API 参考",
+        "url": "https://docs.tavily.com/api",
+        "summary": "REST 直调与 Bearer 认证。",
+        "publishTime": "2025-03-11T17:00:00.000Z"
+      }
+    ],
+    "toolResult": "{\"ok\":true,\"layers\":[\"tavily\"],\"internal\":null,\"web\":{\"provider\":\"tavily\",\"results\":[{\"title\":\"Tavily 计费\",\"url\":\"https://www.tavily.com/pricing\",\"content\":\"credit 制按请求计。\",\"published_date\":null},{\"title\":\"Tavily API 参考\",\"url\":\"https://docs.tavily.com/api\",\"content\":\"REST 直调与 Bearer 认证。\",\"published_date\":\"2025-03-11T17:00:00.000Z\"}]}}"
+  },
+  "contractVersion": 1,
+  "status": "draft"
+}

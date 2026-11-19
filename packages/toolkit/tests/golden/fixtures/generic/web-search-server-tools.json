@@ -1,0 +1,29 @@
+{
+  "chat": [
+    {
+      "choices": [
+        {
+          "message": {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+              { "id": "call_common_ws", "type": "function", "function": { "name": "web_search", "arguments": "{\"query\":\"场地 档期\"}" } }
+            ]
+          },
+          "finish_reason": "tool_calls"
+        }
+      ]
+    },
+    {
+      "choices": [
+        { "message": { "role": "assistant", "content": "已核对场地与档期信息。" }, "finish_reason": "stop" }
+      ]
+    }
+  ],
+  "tavilySearch": {
+    "results": [
+      { "title": "场地选址指南", "url": "https://example.com/venue-guide", "content": "活动策划中的场地选址要素与档期核对清单。", "published_date": "Sun, 12 Oct 2026 08:00:00 GMT", "score": 0.93, "favicon": "https://example.com/favicon.ico" },
+      { "title": "活动档期表", "url": "https://example.com/schedule", "content": "年度档期速查。", "published_date": null, "score": 0.81 }
+    ]
+  }
+}

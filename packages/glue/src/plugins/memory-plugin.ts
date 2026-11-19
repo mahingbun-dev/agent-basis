@@ -118,6 +118,10 @@ export function defineMemoryPlugin(config: MemoryPluginConfig = {}) {
       const cwd = process.cwd()
       const gov = (ctx as unknown as { governance?: { pii?: import('@eterna/governance').PiiFilter } }).governance
       const dbPath = config.dbPath ?? join(cwd, '.eterna/memory.sqlite3')
+      // node:sqlite 不自建父目录:全新卷 cwd/.eterna 缺席时开库即炸,插件装载失败
+      // (「2 entries did not activate」,eterna-tp-t6 2026-11-18 实测;知识插件同款)
+      // ——开库前先建父目录(与下方账号分库 create 回调的 mkdirSync 同款守卫,幂等)。
+      mkdirSync(dirname(dbPath), { recursive: true })
       // T12-① 配置文件桥热改键(每次写入/装配现读,fail-open 回落基线):
       // overrides 与 dbPath 同目录(memoryOverridesPathForDb 唯一真值,dbPath 派生;
       // 宿主 eternaMemory 端点以同一函数派生写路径——缺省布局两端落

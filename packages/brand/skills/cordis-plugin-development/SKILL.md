@@ -5,6 +5,15 @@ description: Use when designing, reviewing, adding, enabling, disabling, install
 
 # Persistent Harness plugins
 
+<!-- EternaAgent 适配段(2026-11-18;上游 re-diff 重放时保留本段并重放替换): -->
+<!-- EternaAgent 不提供 plugin_manager/plugin_market 工具(三方准入红线,工具行维持裁切)。 -->
+<!-- 个人工具型插件走 install_personal_plugin 即时装载(免重启,仅本人会话可见); -->
+<!-- 全员可用走「我的插件」转内置(admin 审批);UI/bundle 型需管理员手工 bundle 安装。 -->
+<!-- 其余上游散文(segment 下方的 installation flow、references)仍适用于 bundle 形态的 -->
+<!-- 设计参考;其中所有 install_bundle 指令在本部署中不可执行,替换为上述两条路径。 -->
+
+**EternaAgent 安装路径(本部署唯一有效)**:工具型插件作者到工作区 `plugins/<目录名>/`(契约见 `references/personal-tools.md`,最小模板 `templates/personal-tool/`),然后调用 `install_personal_plugin`(`dir`=目录名)——进程内即时装载,免审批免重启,仅本人会话可见,装完即用;全局可用让用户在设置弹窗「我的插件」发起转内置(管理员审批后即刻全员生效)。上游 `plugin_manager` 在 EternaAgent 已裁切,不要调用。
+
 For implementation, use ordinary workspace files to author a bundle, then `plugin_manager` with `action: install_bundle` and the absolute package directory as `target` to install it in the current profile. Changes affect every session in that profile and survive restart. Load `editing-cordis-compositions` for agent preset changes.
 
 Do not write the profile's `package.json` or `cordis.patch.yml`, create packages under `$DSH_HOME`, or run pnpm in the profile directory: `install_bundle` performs those steps, and each hand-made write outside the workspace needs its own approval. Every `plugin_manager` action, including `list_plugins` and `list_bundles`, also needs approval without Full access, so call it only when its result decides the next step.

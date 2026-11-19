@@ -16,7 +16,11 @@ import { join, resolve } from 'node:path'
 import { withinRoot } from './within-root.ts'
 import { enrichModelCatalog, visionIndexFromConfigEditor } from './model-catalog.ts'
 import type { CatalogValueShape } from './model-catalog.ts'
+import { decayBias } from './thinking-score.ts'
+// ── 知识库管理端点:调用者身份与服务面结构子集(仅类型;运行期零依赖)──
+import type { KnowledgeAdminCaller, KnowledgeAdminFaceLike } from './knowledge-admin-face.ts'
 import { registerUserPluginRoutes } from './user-plugins.ts'
+import type { UserPluginLoader } from './user-plugins.ts'
 import { ApprovalFlow, ensureApprovalSchema } from './approvals.ts'
 import type { AccessAuditEvent, AuditReflect } from './audit.ts'
 import type { SessionService } from './session.ts'
@@ -41,7 +45,25 @@ export interface TenantDeps {
   audit(event: AccessAuditEvent): void
   /** P1-T2:mux 隔离惰性安装钩子(服务在插件 apply 后才挂载,首个守卫请求时落地)。 */
   readonly ensureMux?: () => void
+  /** T6 装载器(2026-11-18):个人/共享插件进程内 mount;缺席=纯记账降级。 */
+  readonly pluginLoader?: UserPluginLoader
 }
+
+/**
+ * 工作台 SSE 流端点(38 号 O-5 开放问题的登记落位;33 号 G2-C4「新端点进本守卫
+ * 清单」;本守卫清单登记的第一个插件数据端点):
+ * - 铁律 T2 路由面独占:workbench/tasks 均不得自注册(tenant-scan
+ *   tenant/route-escapes-gate CI 强制);24a 裁决 dwfq-843ec077-1 口径——
+ *   **数据面经 tasks 提供、路由经 access 登记**;
+ * - 数据面 = tasks 引擎 DomainEvents(eterna-workbench live hub 投影,服务反射键
+ *   'eternaWorkbenchStream';src/stream.ts 桥装载,登记点 = plugin.ts 的
+ *   webServer.register 精确路径);
+ * - 守卫 = 登录会话(cookie→pwv→用户,与本清单同一身份面;未登录 401,hub 未就绪
+ *   503 fail-closed);传输 = text/event-stream(GET,Last-Event-ID 续传,200ms
+ *   合批,30 号 §3;插件启停面未收录——流随 eterna-workbench 装载,不在
+ *   routes.ts TOGGLEABLE_PLUGINS)。
+ */
+export const WORKBENCH_STREAM_ENDPOINT = '/workbench/api/stream'
 
 type ServiceHandle = Record<string, (...args: never[]) => unknown>
 
@@ -419,17 +441,109 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     const request0 = args.request as Record<string, unknown> | undefined
     const sessionId = firstString(request0, 'sessionId') ?? firstString(args, 'sessionId')
     if (sessionId === undefined || deps.store.sessionOwner(sessionId) !== ctx.userId) {
+      tenantAudit(deps, 'thinking.auto.denied', ctx.account, { reason: 'owner' })
       return deniedFrame(rpcId, '会话不存在或不属于你')
     }
+    // enabled 键存在即必须可解释为布尔:近似拼写、''、0、'false' 一律拒绝,不得静默
+    // 落成读支(调用方会误以为写入成功);键缺席才是读。
+    const enabledKey = keyKindOf(request0, 'enabled') ?? keyKindOf(args, 'enabled')
+    if (enabledKey === 'near') {
+      tenantAudit(deps, 'thinking.auto.denied', ctx.account, { sessionId, reason: 'enabled' })
+      return deniedFrame(rpcId, 'enabled 无效')
+    }
     const enabledArg = firstBoolean(request0, 'enabled') ?? firstBoolean(args, 'enabled')
+    if (enabledKey === 'exact' && enabledArg === undefined) {
+      tenantAudit(deps, 'thinking.auto.denied', ctx.account, { sessionId, reason: 'enabled' })
+      return deniedFrame(rpcId, 'enabled 无效')
+    }
     if (enabledArg === undefined) {
       return okFrame(rpcId, { enabled: deps.store.thinkingAutoOf(sessionId) })
     }
     if (!deps.store.setThinkingAuto(sessionId, enabledArg)) {
+      tenantAudit(deps, 'thinking.auto.denied', ctx.account, { sessionId, reason: 'owner' })
       return deniedFrame(rpcId, '会话不存在或不属于你')
     }
     tenantAudit(deps, 'thinking.auto.set', ctx.account, { sessionId, enabled: enabledArg })
     return okFrame(rpcId, { enabled: enabledArg })
+  })
+
+  // ── session/thinkingFeedback 专路(V2,2026-11-18):显式纠正「想多了/想少了」──
+  // 读 {request:{sessionId}} → {bias, effectiveBias}(bias=落库原值,effectiveBias=按 24h
+  //   半衰减值;两者读侧不等,无偏置/已清零 ⇒ {0,0})。
+  // 写 {request:{sessionId, messageId?, direction:'less'|'more'}} → 叠加 ±0.2 后同形。
+  // 清 {request:{sessionId, messageId?, direction:'reset'}} → 清零后 {0,0}。
+  // 语义:会话级偏置、同向累计/反向抵消、钳位 ±0.5;归属守卫同 thinkingAuto(会话必须
+  // 存在且属于当前用户,守卫在方向分流之前);messageId 仅作审计锚点(须为 ≤128 字符的
+  // 字符串;存在性不做校验——access 无消息访问面,越权由会话归属挡住)。
+  // 审计:写/清各一条 thinking.feedback;所有拒绝(归属/方向/锚点)记 .denied + reason。
+  // 读支不记(菜单每次打开都读,避免审计流被读刷屏)。
+  register('/api/session/thinkingFeedback', (rpcId, args, ctx) => {
+    const request0 = args.request as Record<string, unknown> | undefined
+    const sessionId = firstString(request0, 'sessionId') ?? firstString(args, 'sessionId')
+    if (sessionId === undefined || deps.store.sessionOwner(sessionId) !== ctx.userId) {
+      tenantAudit(deps, 'thinking.feedback.denied', ctx.account, { reason: 'owner' })
+      return deniedFrame(rpcId, '会话不存在或不属于你')
+    }
+    const now = Date.now()
+    // 分流按**原始键存在性**并识别近似拼写:firstString 把 ''/非字符串一律折成
+    // undefined,按返回值判会把 direction:''/数字/拼错键静默解释成读请求。
+    const directionKey = keyKindOf(request0, 'direction') ?? keyKindOf(args, 'direction')
+    if (directionKey === 'near') {
+      tenantAudit(deps, 'thinking.feedback.denied', ctx.account, { sessionId, reason: 'direction' })
+      return deniedFrame(rpcId, 'direction 无效')
+    }
+    if (directionKey === undefined) {
+      const raw = deps.store.thinkingBiasOf(sessionId)
+      if (raw === undefined) return okFrame(rpcId, { bias: 0, effectiveBias: 0 })
+      return okFrame(rpcId, { bias: raw.bias, effectiveBias: decayBias(raw.bias, raw.updatedAt, now) })
+    }
+    const direction = firstString(request0, 'direction') ?? firstString(args, 'direction')
+    if (direction !== 'less' && direction !== 'more' && direction !== 'reset') {
+      tenantAudit(deps, 'thinking.feedback.denied', ctx.account, { sessionId, reason: 'direction' })
+      return deniedFrame(rpcId, 'direction 无效')
+    }
+    // messageId 仅作审计锚点:限长防放大审计日志;非字符串同样拒绝(不静默丢成 '')。
+    const messageKey = keyKindOf(request0, 'messageId') ?? keyKindOf(args, 'messageId')
+    const messageRaw = firstString(request0, 'messageId') ?? firstString(args, 'messageId')
+    if (messageKey !== undefined
+      && (messageRaw === undefined || messageRaw.length > MESSAGE_ID_MAX)) {
+      tenantAudit(deps, 'thinking.feedback.denied', ctx.account, { sessionId, reason: 'messageId' })
+      return deniedFrame(rpcId, 'messageId 无效')
+    }
+    const messageId = messageRaw ?? ''
+    if (direction === 'reset') {
+      // 写前只读一次留痕:清零后 thinkingBiasOf 即 undefined。审计同时保留**原始落库值**
+      // 与衰减后有效值——只记衰减值会在死区里显示 0,事后无法复盘清零前的真实偏置。
+      const previous = deps.store.thinkingBiasOf(sessionId)
+      const previousEffective = previous === undefined
+        ? 0
+        : decayBias(previous.bias, previous.updatedAt, now)
+      if (!deps.store.resetThinkingBias(sessionId, now)) {
+        tenantAudit(deps, 'thinking.feedback.denied', ctx.account, { sessionId, reason: 'owner' })
+        return deniedFrame(rpcId, '会话不存在或不属于你')
+      }
+      tenantAudit(deps, 'thinking.feedback', ctx.account, {
+        sessionId,
+        messageId,
+        direction,
+        bias: 0,
+        effectiveBias: 0,
+        previousBias: previous === undefined ? 0 : previous.bias,
+        previousUpdatedAt: previous === undefined ? 0 : previous.updatedAt,
+        previousBiasEffective: previousEffective,
+      })
+      return okFrame(rpcId, { bias: 0, effectiveBias: 0 })
+    }
+    const written = deps.store.addThinkingBias(sessionId, direction === 'less' ? -0.2 : 0.2, now)
+    if (written === undefined) {
+      tenantAudit(deps, 'thinking.feedback.denied', ctx.account, { sessionId, reason: 'owner' })
+      return deniedFrame(rpcId, '会话不存在或不属于你')
+    }
+    // 落库时已把存量衰减到 now ⇒ effectiveBias=落库值(读侧再衰减,衰减函数同源)
+    tenantAudit(deps, 'thinking.feedback', ctx.account, {
+      sessionId, messageId, direction, bias: written.bias, effectiveBias: written.bias,
+    })
+    return okFrame(rpcId, { bias: written.bias, effectiveBias: written.bias })
   })
 
   // ── T1 补全(G1):session/events——读任意会话完整历史,之前完全不在守卫清单 ──
@@ -483,12 +597,13 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
   })
 
   // ── P4-T6/T7(2026-11-11):双层插件个人层端点+审批流(复用守卫 register=cookie 认证+审计) ──
+  // T6(2026-11-18):装载器随 deps 注入——启停/移除/转内置即刻生效,零重启。
   ensureApprovalSchema(deps.store)
   const approvalFlow = new ApprovalFlow(deps)
   registerUserPluginRoutes(deps, register, {
     flow: approvalFlow,
     isAdmin: (userId: number) => deps.store.getUserById(userId)?.role === 'admin',
-  })
+  }, deps.pluginLoader)
 
   // ── 记忆账号路由守卫(23 号 M-T2,S-6 修复,2026-11-16)─────────────────
   // unary SRC 通道的 invocation.principal 是 owner peer(不携带 userId,mux.ts
@@ -578,6 +693,102 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
       const fn = gateway?.[method]
       if (typeof fn !== 'function') return failureFrame(rpcId, new Error('面板网关未挂载(eterna-panel 插件未启用)'))
       return okFrame(rpcId, await fn.call(gateway, args.payload))
+    })
+  }
+
+  // ── 知识库管理端点(@eterna/knowledge-admin,2026-11-18):17 方法守卫面 ──
+  // 知识库管理是全员可用面(普通账号读写**本人**分库),不能整面 admin-only;守卫只做
+  // ①cookie 身份(store.getUserById→{account,admin,userId})②显式跨账号兜底(非 admin 且
+  // 目标账号≠本人 → denied+审计,零直调服务面;主防线仍是服务面 sanitizeTarget)
+  // ③服务面机会语义读取(reflect.get(key,false),缺席=「未挂载」明说不静默降级)。
+  // 调用约定:face[method].call(face, caller, args)——args 原样透传(unpack 已把
+  // payload.args 解包,即客户端 rpc.call('/api','knowledgeAdmin/<m>',{args:DTO}) 的 DTO),
+  // **绝不**传 owner/peer/principal 任何绕过字段(unary SRC 通道 principal 恒 owner,
+  // 服务面不得自解身份——tenant.ts 头注不变式)。裸网关直调面 /api/eternaKnowledgeAdmin/*
+  // 一律不注册;客户端只能走本守卫面。
+  /** 知识库管理端点前缀(守卫路由;客户端只走这里,永不裸连网关)。 */
+  const KNOWLEDGE_ADMIN_PREFIX = '/api/knowledgeAdmin'
+
+  /**
+   * 读类白名单(只读投影,不写库;仍经守卫身份,服务面自行按 caller 裁剪)。
+   * 注:以 @eterna/knowledge-admin 契约表为准;方法名如变更须同步更新本白名单。
+   */
+  const KNOWLEDGE_ADMIN_READ_METHODS = [
+    'listAccounts', 'overview', 'listDocs', 'readDoc', 'listProposals',
+    'search', 'ask', 'listMembers', 'listAudit', 'testSource',
+  ] as const
+
+  /**
+   * 写类白名单(逐条落 access 审计:成功 ok=true,失败带 error 摘要)。
+   * 注:以 @eterna/knowledge-admin 契约表为准;方法名如变更须同步更新本白名单。
+   */
+  const KNOWLEDGE_ADMIN_WRITE_METHODS = [
+    'saveDoc', 'deprecateDoc', 'reviewProposal', 'discardProposal',
+    'importMarkdown', 'importRepo', 'setMember',
+  ] as const
+
+  const KNOWLEDGE_ADMIN_WRITE_SET: ReadonlySet<string> = new Set(KNOWLEDGE_ADMIN_WRITE_METHODS)
+
+  /**
+   * 请求体里的显式目标账号(跨账号兜底判据)。取 DTO 优先(body 形态兼容),再取 args 顶层;
+   * 键只认 account/targetAccount/accountId——其余形态(以文档 id/成员键寻址)由服务面
+   * sanitizeTarget 主防线裁决。
+   */
+  const knowledgeTargetAccountOf = (args: Record<string, unknown>): string | undefined => {
+    const body0 = args.body
+    const body = typeof body0 === 'object' && body0 !== null && !Array.isArray(body0)
+      ? body0 as Record<string, unknown>
+      : undefined
+    for (const source of [body, args]) {
+      if (source === undefined) continue
+      const value = firstString(source, 'account')
+        ?? firstString(source, 'targetAccount')
+        ?? firstString(source, 'accountId')
+      if (value !== undefined) return value
+    }
+    return undefined
+  }
+
+  const knowledgeErrorSummary = (error: unknown): string => {
+    const message = error instanceof Error ? error.message : String(error)
+    return message.length > 256 ? `${message.slice(0, 256)}…` : message
+  }
+
+  for (const method of [...KNOWLEDGE_ADMIN_READ_METHODS, ...KNOWLEDGE_ADMIN_WRITE_METHODS] as const) {
+    const isWrite = KNOWLEDGE_ADMIN_WRITE_SET.has(method)
+    register(`${KNOWLEDGE_ADMIN_PREFIX}/${method}`, async (rpcId, args, ctx) => {
+      // ① 身份:守卫已 cookie 认证(ctx.userId/account);admin 由 access store 判读
+      //    (与 /api/eternaPanel/snapshot 同一读法,不另建身份解析)。
+      const user = deps.store.getUserById(ctx.userId)
+      if (user === undefined) return failureFrame(rpcId, new Error('登录账号不可解析'))
+      const admin = user.role === 'admin'
+      // ② 兜底裁决:非管理员显式指向他人账号 → 守卫层先拒(服务面 sanitizeTarget 是主防线)
+      const target = knowledgeTargetAccountOf(args)
+      if (!admin && target !== undefined && target !== user.account) {
+        tenantAudit(deps, `knowledgeAdmin.${method}.denied`, user.account, { target })
+        return deniedFrame(rpcId, '非管理员只能访问本人知识库账号')
+      }
+      // ③ 服务面:机会语义读取(reflect.get(key,false),同 serviceOf);
+      //    缺席 = failureFrame 明说,不静默降级、不回退全局库(23 号 M 记忆路由同口径)。
+      const face = deps.reflect.get('eterna-knowledge-admin', false) as KnowledgeAdminFaceLike | undefined
+      const fn = face?.[method]
+      if (face === undefined || typeof fn !== 'function') {
+        return failureFrame(rpcId, new Error('知识库管理服务未挂载(eterna-knowledge-admin 未注册)'))
+      }
+      // ④ 调用者身份 {account, admin, userId} + args 原样透传
+      const caller: KnowledgeAdminCaller = { account: user.account, admin, userId: user.id }
+      try {
+        const value = await Promise.resolve(fn.call(face, caller, args))
+        if (isWrite) tenantAudit(deps, `knowledgeAdmin.${method}`, user.account, { ok: true, target: target ?? user.account })
+        return okFrame(rpcId, value)
+      } catch (error) {
+        if (isWrite) {
+          tenantAudit(deps, `knowledgeAdmin.${method}`, user.account, {
+            ok: false, target: target ?? user.account, error: knowledgeErrorSummary(error),
+          })
+        }
+        return failureFrame(rpcId, error)
+      }
     })
   }
 
@@ -703,6 +914,29 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
 function firstString(source: Record<string, unknown> | undefined, key: string): string | undefined {
   const value = source?.[key]
   return typeof value === 'string' && value !== '' ? value : undefined
+}
+
+/** 原始键存在性(含值为 undefined):分流判定专用——firstString 会折掉 ''/非字符串。 */
+function hasKey(source: Record<string, unknown> | undefined, key: string): boolean {
+  return source !== undefined && Object.prototype.hasOwnProperty.call(source, key)
+}
+
+/** 审计锚点 messageId 的字符上限(防伪造/超长值放大审计日志)。 */
+const MESSAGE_ID_MAX = 128
+
+/**
+ * 键的三分判定:exact=精确键存在;near=存在前缀相近的拼错键(如 directon/enabeld);
+ * undefined=完全没提及。分流前先跑本判定,拼错键不得静默落进读支。
+ */
+function keyKindOf(source: Record<string, unknown> | undefined, key: string): 'exact' | 'near' | undefined {
+  if (source === undefined) return undefined
+  if (hasKey(source, key)) return 'exact'
+  const prefix = key.slice(0, 3).toLowerCase()
+  for (const candidate of Object.keys(source)) {
+    if (candidate === 'request') continue
+    if (candidate.toLowerCase().startsWith(prefix)) return 'near'
+  }
+  return undefined
 }
 
 function firstNumber(source: Record<string, unknown> | undefined, key: string): number | undefined {

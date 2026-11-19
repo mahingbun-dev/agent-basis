@@ -11,7 +11,7 @@
  */
 import { existsSync, mkdtempSync, rmSync, mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { remoteMethods } from '@deepseek-ai/dsh-typert-protocol'
 import { LedgerStore } from '@eterna/evolve'
@@ -414,5 +414,80 @@ describe('M-M4 蒸馏端点(授权链 + 本人账号 opt-out + 报告/候选面)
     // 非法载荷。
     expect(admin.distillCandidateRelease({}).ok).toBe(false)
     expect(admin.distillCandidateRelease({ id: 'ghost' }).ok).toBe(false)
+  })
+})
+
+describe('M-M4 后修正:state 统计读登录者本人账号库(分库口径)', () => {
+  const tenantsStats = mkdtempSync(join(tmpdir(), 'eterna-memory-admin-stats-'))
+
+  function gatewayStatsOf(ctx: never, accountsFace?: unknown): EternaMemoryGateway {
+    const gateway = Object.create(EternaMemoryGateway.prototype) as EternaMemoryGateway
+    Object.defineProperty(gateway, 'ctx', { value: ctx })
+    Object.defineProperty(gateway, 'deps', {
+      value: {
+        dbPath,
+        sessionDomainFace: () => undefined,
+        ...(accountsFace !== undefined ? { accountsFace: () => accountsFace } : {}),
+      },
+    })
+    return gateway
+  }
+
+  afterAll(() => {
+    rmSync(tenantsStats, { recursive: true, force: true })
+  })
+
+  it('accountsFace 在场 → state().stats 读本人账号库;账号未开通回落根库;无 face 行为不变', () => {
+    // alice 账号库:1 pending + 2 approved(与部署根库的 0 pending 相区分)
+    const aliceDb = join(tenantsStats, 'alice', '.eterna', 'memory.sqlite3')
+    mkdirSync(dirname(aliceDb), { recursive: true })
+    const store = new EntityMemoryStore(aliceDb, { now: () => Date.now() })
+    store.write({ subject: 'user', key: 'p-1', content: '本人待审一', kind: 'semantic', scope: 'user', reviewState: 'pending' })
+    store.write({ subject: 'user', key: 'a-1', content: '本人已生效一', kind: 'semantic', scope: 'user', reviewState: 'approved' })
+    store.write({ subject: 'user', key: 'a-2', content: '本人已生效二', kind: 'semantic', scope: 'user', reviewState: 'approved' })
+    store.close()
+    const accountsFace = {
+      accountOfUser: (id: number): string | undefined => (id === 1 ? 'alice' : undefined),
+      dbPathForAccount: (account: string): string | undefined =>
+        existsSync(join(tenantsStats, account)) ? join(tenantsStats, account, '.eterna', 'memory.sqlite3') : undefined,
+    }
+    const admin = gatewayStatsOf(fakeCtxOf({ principal: { kind: 'eterna-user', userId: 1 }, adminRole: 'admin' }), accountsFace)
+    const view = admin.state()
+    expect(view.ok).toBe(true)
+    if (view.ok) {
+      expect(view.stats.pendingCount).toBe(1) // 本人账号库口径(根库是 0)
+      expect(view.stats.entityCount).toBe(2)
+    }
+    // 账号未开通(bob 无目录)→ 回落根库(根库 = gateway deps.dbPath,0 pending)
+    const bob = gatewayStatsOf(fakeCtxOf({ principal: { kind: 'eterna-user', userId: 2 }, adminRole: 'admin' }), accountsFace)
+    const bobView = bob.state()
+    if (bobView.ok) expect(bobView.stats.pendingCount).toBe(memoryStatsOf(dbPath).pendingCount)
+    // 无 accountsFace(既有部署/本地 TUI)→ 根库,行为不变
+    const legacy = gatewayStatsOf(fakeCtxOf({ principal: { kind: 'eterna-user', userId: 1 }, adminRole: 'admin' }))
+    expect(legacy.state().ok).toBe(true)
+  })
+})
+
+describe('蒸馏端点目录惰性创建(生产 0.1.21「unable to open database file」回归)', () => {
+  const lazyRoot = mkdtempSync(join(tmpdir(), 'eterna-memory-distill-lazy-'))
+  afterAll(() => {
+    rmSync(lazyRoot, { recursive: true, force: true })
+  })
+
+  it('distillCandidates:distillRoot 整条路径缺席 → 建目录返回空清单(不炸)', () => {
+    // 用一个**连父目录都不存在**的深层路径(复现生产:Phase A 未跑过、memory-distill/ 从未创建)
+    const gateway = Object.create(EternaMemoryGateway.prototype) as EternaMemoryGateway
+    Object.defineProperty(gateway, 'ctx', { value: fakeCtxOf({ principal: { kind: 'eterna-user', userId: 1 }, adminRole: 'admin' }) })
+    Object.defineProperty(gateway, 'deps', {
+      value: {
+        dbPath,
+        sessionDomainFace: () => undefined,
+        distillRoot: join(lazyRoot, 'never-ran', 'memory-distill'),
+      },
+    })
+    const view = gateway.distillCandidates()
+    expect(view.ok).toBe(true)
+    if (view.ok) expect(view.candidates).toEqual([])
+    expect(existsSync(join(lazyRoot, 'never-ran', 'memory-distill', 'ledger.sqlite3'))).toBe(true)
   })
 })

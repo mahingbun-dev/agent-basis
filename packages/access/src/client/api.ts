@@ -1,13 +1,16 @@
 /**
  * access 客户端 API 面:同源 fetch 封装(/access/api/*,eterna_session cookie
  * 自动携带)+最小类型(本地结构面,panel 同纪律:零外部类型依赖)。
+ * 角色值域与服务端同源:UserRole(type-only import,构建期擦除,不引 node:sqlite
+ * 运行时依赖;30 §7-3「一次立住角色模型」——UI 层不另造角色字符串)。
  */
+import type { UserRole } from '../store.ts'
 
 export interface Me {
   readonly id: number
   readonly account: string
   readonly nickname: string
-  readonly role: 'admin' | 'user'
+  readonly role: UserRole
   readonly avatarUrl: string | null
 }
 
@@ -15,7 +18,7 @@ export interface UserRowView {
   readonly id: number
   readonly account: string
   readonly nickname: string
-  readonly role: 'admin' | 'user'
+  readonly role: UserRole
   readonly createdAt: string
   readonly hasAvatar: boolean
 }
@@ -62,8 +65,11 @@ export const api = {
     call('/access/api/avatar', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ dataUrl }) }),
   resetAvatar: (): Promise<{ ok: true }> => call('/access/api/avatar', { method: 'DELETE' }),
   users: (): Promise<{ users: UserRowView[] }> => call('/access/api/users'),
-  createUser: (account: string, password: string, role: 'admin' | 'user'): Promise<{ user: UserRowView; finalAccount: string }> =>
+  createUser: (account: string, password: string, role: UserRole): Promise<{ user: UserRowView; finalAccount: string }> =>
     call('/access/api/users', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ account, password, role }) }),
+  /** M-3(37 号 §3):分配/收回审批人角色(端点值域仅 approver/user,admin 在线变更未开放)。 */
+  setUserRole: (id: number, role: 'approver' | 'user'): Promise<{ ok: true; user: UserRowView }> =>
+    call(`/access/api/users/${id}/role`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ role }) }),
   deleteUser: (id: number): Promise<{ ok: true }> => call(`/access/api/users/${id}`, { method: 'DELETE' }),
   companion: (): Promise<CompanionView> => call('/access/api/companion'),
   resetCompanionToken: (): Promise<{ ok: true; token: string; createdAt: string; guideUrl: string }> =>

@@ -151,10 +151,23 @@ sleep 15; grep -icE "skipping|incompatible" /tmp/eterna-web-app.log   # 0 = 装�
 1. `pnpm -w run verify`(全包)+ 新包 verify + 装载冒烟(§4)。
 2. commit 信息以任务/模块开头;`docs/` 若有行为变更同步更新。
 3. push → CI 绿(verify + packctl lint + replay 冒烟)。
-4. **市场分发**(可选):`market/index.json` 加条目(官方格式 1,`source: git` 固定 commit + `path` 指向包目录),版本号 bump——别人的 DSH「发现」页填仓库索引 URL 即可一键安装/更新。
+4. **市场分发**(可选):插件发布到独立官方仓库 [eterna-plugins](https://github.com/mahingbun-dev/eterna-plugins)(format 1 索引 + 自包含 bundle + 零漂移校验)——按其 `docs/PUBLISHING.md` 六步走:bundle 自包含化(只发 .js)、commit 钉版、索引追加版本条目、`node scripts/validate.mjs` 全绿。仅需随本仓演示/离线内嵌的条目才留在本仓 `market/index.json`(同款 format 1,勿重复上架同一插件)。
 
 ## 6. 创造模式专属须知
 
-- plugin_manager 安装**需逐次审批**;build-script(pnpm approve-scripts)同审;`compatibility.json` 豁免需显式 accept-risk。
+- **EternaAgent 部署中 plugin_manager/plugin_market 已裁切(2026-11-09 三方准入红线;2026-11-18 用户裁定不回加)**——上游 `install_bundle` 指令在本部署不可执行。个人工具型插件走 `install_personal_plugin`(进程内即时装载,免审批免重启,仅本人会话可见),契约见 `references/personal-tools.md`(品牌技能 fork)与 `docs/dev/tenant-plugins.md`;最小模板 `packages/brand/skills/cordis-plugin-development/templates/personal-tool/`。
+- 全员可用 = 设置弹窗「我的插件」发起「转内置」(admin 审批/直转),通过后即刻全员生效(共享工具分区可启停)。
+- UI/bundle 型插件不在个人层装载范围,需管理员手工 bundle 安装(上游 installBundle 语义:本地目录 link 进 profile + hmr 热应用;容器缺 pnpm 时不可用,诚实边界见 docs/dev/tenant-plugins.md §4)。
+- plugin_manager 在上游非裁切部署中安装**需逐次审批**;build-script(pnpm approve-scripts)同审;`compatibility.json` 豁免需显式 accept-risk。
 - 无 HMR 的 profile 改动报 `restart-required`——重启后生效,不是 bug。
 - 自修改/装卸插件是**高危面**:生产 profile 建议禁用 plugin_manager 行(bundles 里 `disabled: true`),只在开发 profile 开放。
+- **一键发布到官方插件市场(2026-11-19)**:agent 工具 `submit_plugin_to_market` 把本人 plugins 根下的工具插件自动送进 [eterna-plugins](https://github.com/mahingbun-dev/eterna-plugins)——bundle 化改写(清单重写/wrapper 入口/insert 补丁行)→ 仓库分支两段 commit(bundle+索引,索引钉 bundle SHA)→ `validate.mjs` 零漂移校验 → push 分支 → 开 PR。**main 有分支保护,永不直推**;CI(validate)绿 → 人工合并 PR → 发现页刷新即可给全员安装。范围边界:仅工具型(UI 型 dsh.client 拒发);TS 源拒发(个人层契约本就要求纯 JS);凭据走 `ETERNA_MARKET_GITHUB_TOKEN`(.env 注入,缺席=发布停在本地 commit 并返回手动 PR 链接)。实现:`packages/access/src/market-publish.ts` + `publish-tool.ts`。
+
+## 7. Web 插件市场(发现页)现状
+
+- **组成**:上游「发现」tab 由实验 bundle `@deepseek-ai/dsh-experimental-plugin-market-bundle` 提供(shipped profile **默认不装**);安装器服务 `plugin-manager` 本就在 dsh-base 宿主行,`ui-plugin-manager`(已安装页)在 web-app。启用发现页 = profile `dsh.profile.bundles` 追加该实验 bundle + `pnpm add` 该包,重启生效(2026-11-19 本地实测:发现 tab、索引源添加、搜索、安装、启用、重启装载全链贯通)。
+- **agent 面工具链维持裁切**:`tool-plugin-manager`/`tool-plugin-market` 在标准/创造预设均 `disabled: true`(2026-11-09 三方准入红线,2026-11-18 裁定不回加)——Web 面开放不改变此裁定;会话内 agent 仍不能自装 bundle。
+- **✅ 市场面 admin-only(T6.1 已落地,2026-11-19)**:计划文档 §堵洞先行要求的「pluginManager/pluginMarket RPC 与 detail-file 路由 admin-only」实现在 `packages/access/src/mux.ts`:admit 包装(全部 `/api` 请求必经点,`dsh-client-connection lib/index.js:1049`)对 `MARKET_ADMIN_PREFIXES` 四前缀(`/api/pluginManager/`、`/api/pluginMarket/`、`/api/plugin-manager/`、`/api/plugin-market/`)按 eterna 会话收口——无会话 401(**即使持 owner 级 dsh 浏览器 cookie 也拒**,fail-closed)、非 admin 403、admin 走原 admit;角色逐请求现查(升降权下一次请求即生效)。同一策略对非 admin 不下发 `pluginManager/listBundles` UI 门(`ADMIN_ONLY_UNARY_ACTIONS`),插件页整页自然隐藏。admit 包装随插件 apply 首装(不等 remote-access 晚挂载,无「首请求前无门」窗口)。
+  实测(2026-11-19,隔离宿主 eterna-web profile 双账号无头 E2E,**17/17 断言**):admin `listBundles` ok=true、`installBundle` 抵达安装器(参数层错误信封);bob(role=user)对 listBundles/installBundle/pluginMarket·setIndexes/plugin-market·detail-file **四面全 403**;仅持 dsh 浏览器 cookie、无 eterna 会话 → 401;非市场面(`/api/session/list`、`/api/my-plugins/list`)不受影响。单元面:mux-peer-drift(市场门 7 例)+ mux-policy(角色分派)+ gateway-role-gate(内容面同构豁免)。
+  **残余边界(如实登记)**:①门在 access 插件内实现——部署若不含 eterna-access,市场无门(同 mux 隔离缺席语义);②审批人(approver)亦按非 admin 拒绝(市场装/卸是宿主级动作,裁定 admin-only);③agent 面 `tool-plugin-manager`/`tool-plugin-market` 维持裁切,不受本门影响。
+- 索引源必须允许浏览器直连(CORS):raw.githubusercontent.com 可用;内网静态托管需带 `Access-Control-Allow-Origin`。

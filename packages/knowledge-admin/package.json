@@ -1,0 +1,60 @@
+{
+  "name": "@eterna/knowledge-admin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "知识库管理插件:左侧栏「知识库」入口 + main keyed 工作台(文档浏览/编辑/废弃、提案审批、检索问答、Markdown 与仓库导入、成员权限、审计、DeepWiki 源探测)。Host 面 provide eternaKnowledgeAdmin 服务与 /api/knowledgeAdmin/* 守卫面;账号隔离复用 DSH 登录账号分库,插件内不另做登录。",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./lib/client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ]
+    }
+  },
+  "scripts": {
+    "build:client": "node scripts/build-client.mjs",
+    "test:client": "node tests/render-smoke.cjs",
+    "typecheck": "../../node_modules/.bin/tsc --noEmit -p tsconfig.json",
+    "test": "../../node_modules/.bin/vitest run",
+    "verify": "node scripts/build-client.mjs && node tests/render-smoke.cjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ../../node_modules/.bin/tsc --noEmit -p tsconfig.json && ../../node_modules/.bin/vitest run"
+  },
+  "files": [
+    "dist",
+    "lib",
+    "locale",
+    "cordis.patch.yml",
+    "icon.svg",
+    "README.md",
+    "INSTALL.md",
+    "src",
+    "tsconfig.json",
+    "tsconfig.build.json",
+    "scripts",
+    "tests"
+  ],
+  "dependencies": {
+    "@deepseek-ai/cordis": "catalog:",
+    "@deepseek-ai/dsh-tools": "catalog:",
+    "@deepseek-ai/dsh-typert-protocol": "catalog:",
+    "@eterna/knowledge": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

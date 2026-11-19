@@ -148,9 +148,7 @@ describe('boot 期工坊托管值移植脚本(migrate-prompt-edits.mjs)', () => 
     expect(written.values).toEqual(tplValues()) // 回填后下一轮起判定恢复精确
   }, 30000)
 
-  // super 模板现阶段是 super 形态分支的在途文件(未跟踪,CI 检出不存在)——
-  // 缺席即跳过本场景;super 形态合入 main 后守卫自动激活。
-  it.skipIf(!existsSync(TPL_SUPER))('⑤ super 模板:6 条托管键全命中(兼模板结构漂移守卫),仅回填基线模式 dst 不动', () => {
+  it('⑤ super 模板:6 条托管键全命中(兼模板结构漂移守卫),仅回填基线模式 dst 不动', () => {
     const superText = readFileSync(TPL_SUPER, 'utf8')
     const dst = join(dir, 'cordis.patch.yml')
     const baseline = join(dir, 'baseline.json')

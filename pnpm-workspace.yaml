@@ -3,6 +3,8 @@ packages:
   - packages/*
   # 跨行业工具与 CLI(packctl / evals CLI 等)及约定载体包
   - tools/*
+  # 自持内核与 seam 契约(@core/cordis / @core/contracts / @core/runtime),packages/* 以 workspace:* 引用
+  - core/*
 
 allowBuilds:
   '@google/genai': true
@@ -16,6 +18,9 @@ allowBuilds:
 # @deepseek-ai/dsh-* 钉在与 deepseek-harness 相同的 0.2.2-alpha.2(seam 类型即取自该版本)。
 catalog:
   '@deepseek-ai/cordis': 4.0.6-alpha.1
+  # @core/cordis(vendor 自 4.0.6-alpha.1)运行时依赖:与上游同版约束
+  '@deepseek-ai/cosmokit': ~1.8.7-alpha.1
+  '@standard-schema/spec': ^1.1.0
   '@deepseek-ai/dsh-agent': 0.2.2-alpha.2
   # extra(T13):reviewer preset 产物的行形态与 persona/子代理委派 seam 类型
   # compaction(2026-11-12 fork 的上下文压缩家族)补齐同族钉版:seam 契约包、
@@ -54,6 +59,9 @@ catalog:
   'eslint-plugin-sonarjs': ^4.2.0
   # channels:仅取其类型定义(SMTP transport 形态),不建真实连接
   nodemailer: 10.3.1
+  # tasks(35 号 A4):策略/准入/设置面的 schema 纪律用 zod(.strict()+.describe()+默认值,
+  # 34 §2 通用要点⑥);钉 SA dsh-superagent-prototype 同版 4.4.3(schema API 语义同源)。
+  zod: 4.4.3
   oxlint: 1.81.0
   oxlint-tsgolint: 7.0.2001
   typescript: ^6.0.3

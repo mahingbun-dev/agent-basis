@@ -9,11 +9,16 @@
  * 3. webhook.ts:入站网关(极简 http server:HMAC 验签→投递绑定 session;
  *    /approval/:token 邮件令牌点击路由)。
  * 4. cards.ts:出站卡片中立 schema + 飞书/钉钉渲染 + 发送接口;
- *    所有出站审批卡片统一携带审批按钮动作载荷。
+ *    所有出站审批卡片统一携带审批按钮动作载荷;Outbox reply 组卡 + 报告六态
+ *    渲染 + 投递错误分类(39 号 E7)。
  * 5. email.ts:邮箱适配器接口(IMAP 收/SMTP 发,nodemailer 类型钉住不真连;
  *    正文"同意"字样永不放行)。
  * 6. wechat.ts:微信三路径适配器接口(腾讯官方插件/企微智能机器人/微信客服)
  *    + 注册表;实现说明见 docs/wechat-three-paths.md。
+ * 7. source.ts:Source 统一接收面 + 扩展钩子(39 号 E2)——渠道事件归一化为
+ *    Trigger(trigger.ts 中立契约,幂等 id 内容派生;31 号 §2.2 铁律 1 下与
+ *    @eterna/tasks core 同构、tasks 侧适配)进 TriggerSink;PR 生命周期类钩子
+ *    转发 bindThread/threadClosed。
  *
  * Cordis 纪律:本包不触碰 ctx 全局;组合层把 createChannelsService() 的产物以
  * `ctx.channels` 服务(注册表 + CHANNELS_SERVICE_ID 唯一 ID)形态 provide,
@@ -26,26 +31,34 @@ import { ChannelBindingStore } from './binding.ts'
 import { ApprovalTokenService, type ApprovalTokenServiceOptions } from './token.ts'
 import { WebhookGateway, type WebhookGatewayHandle, type WebhookSecretTable } from './webhook.ts'
 import { createAdapterRegistry, type ChannelAdapter, type ChannelAdapterRegistry, type SessionPort } from './types.ts'
+import { createSourceRegistry, webhookSourceKind, type SourceRegistry, type TriggerSink } from './source.ts'
 
 export { ChannelBindingStore, bindingKey } from './binding.ts'
-export type { BindOutcome, ChannelBindingRecord, ChannelBindingStoreOptions } from './binding.ts'
+export type {
+  BindOutcome, ChannelBindingRecord, ChannelBindingStoreOptions, ThreadBindOutcome, ThreadTarget,
+} from './binding.ts'
 export { ApprovalTokenService, hashApprovalToken } from './token.ts'
 export type {
   ApprovalTokenGrant, ApprovalTokenIssueInput, ApprovalTokenRedemption, ApprovalTokenServiceOptions,
 } from './token.ts'
 export { WebhookGateway } from './webhook.ts'
 export type {
-  WebhookChannelSecret, WebhookEnvelope, WebhookGatewayHandle, WebhookGatewayOptions, WebhookSecretTable,
+  SourceDelivery, WebhookChannelSecret, WebhookEnvelope, WebhookGatewayHandle, WebhookGatewayOptions,
+  WebhookSecretTable,
 } from './webhook.ts'
 export {
-  buildApprovalCard, cardApprovalPayload, ChannelsCardError, createDingTalkChannelAdapter,
-  createFeishuChannelAdapter, createOfflineCardTransport, renderDingTalkCard, renderFeishuCard,
+  buildApprovalCard, buildReplyCard, cardApprovalPayload, ChannelsCardError, ChannelsDeliveryError,
+  classifyDeliveryFailure, createDingTalkChannelAdapter, createFeishuChannelAdapter,
+  createOfflineCardTransport, renderDingTalkCard, renderFeishuCard, renderReportLines,
   validateOutboundCard,
 } from './cards.ts'
 export type {
-  BuildApprovalCardInput, CardActionInput, CardTransport, DingTalkAdapterOptions, DingTalkCardPayload,
-  FeishuAdapterOptions, FeishuCardButton, FeishuCardElement, FeishuCardPayload, OfflineCardTransport,
+  BuildApprovalCardInput, CardActionInput, CardTransport, DeliveryFailureKind, DingTalkAdapterOptions,
+  DingTalkCardPayload, FeishuAdapterOptions, FeishuCardButton, FeishuCardElement, FeishuCardPayload,
+  OfflineCardTransport, ReplyCardInput, ReplyPurpose, ReplyReportInput,
 } from './cards.ts'
+/** 工单报告六态(24 号 §2.3-5;本地中立声明见 cards.ts):Outbox result 组卡(replies)的 report.state 取值面。 */
+export type { ReportState } from './cards.ts'
 export {
   approvalLink, buildApprovalEmail, createEmailChannelAdapter, FREE_TEXT_CONSENT_PATTERN, parseEmailApproval,
 } from './email.ts'
@@ -66,6 +79,16 @@ export type {
   ApprovalAction, ApprovalActionPayload, ApprovalAnswer, ApprovalDecision, ChannelAdapter, ChannelAdapterRegistry,
   ChannelType, DeliveryReceipt, InboundDelivery, InboundMessage, OutboundCard, OutboundCardKind, SessionPort,
 } from './types.ts'
+export {
+  applyLifecycleForwards, createSourceRegistry, githubPrSourceKind, threadRefFromKey, webhookSourceKind,
+} from './source.ts'
+export type {
+  LifecycleForward, ReceiveDisposition, SourceKind, SourceRegistry, TriggerSink,
+} from './source.ts'
+export { isoTime, key, threadKey } from './trigger.ts'
+export type {
+  ActorRef, ChannelRef, ThreadRef, Trigger,
+} from './trigger.ts'
 
 /** 组合层注册 ctx.channels 服务时的唯一 ID(注册表 + 唯一 ID,provide 可交换)。 */
 export const CHANNELS_SERVICE_ID = '@eterna/channels'
@@ -76,12 +99,21 @@ export interface ChannelsService {
   readonly tokens: ApprovalTokenService
   readonly adapters: ChannelAdapterRegistry
   /**
+   * Source 统一接收面(39 号 E2):kind 注册表,内置 webhook kind;
+   * PR 生命周期类(github-pr)等扩展钩子按需 register。
+   */
+  readonly sources: SourceRegistry
+  /**
    * 启动入站网关;返回句柄的 close() 即配逆(Cordis effect 逆闭包)。
    * 审批令牌路由(/approval/:token)与 approval_click 信封自动接通 tokens 服务。
+   * 传入 sink 时,message 信封按 thread 绑定归一化为 Trigger 进统一接收面
+   * (39 号 E3:thread 优先,无 thread 绑定回退 sessionPort 投递)。
    */
   startWebhookGateway(options: {
     readonly sessionPort: SessionPort
     readonly secrets: WebhookSecretTable
+    /** tasks 侧统一接收端口(组合层注入;缺席则全部走 session 投递)。 */
+    readonly sink?: TriggerSink
     readonly host?: string
     readonly port?: number
     readonly pathPrefix?: string
@@ -107,17 +139,22 @@ export function createChannelsService(options: ChannelsServiceOptions = {}): Cha
   })
   const adapters = createAdapterRegistry()
   for (const adapter of options.adapters ?? []) adapters.register(adapter)
+  const sources = createSourceRegistry([webhookSourceKind])
   return {
     id: CHANNELS_SERVICE_ID,
     bindings,
     tokens,
     adapters,
+    sources,
     async startWebhookGateway(gatewayOptions): Promise<WebhookGatewayHandle> {
       const gateway = new WebhookGateway({
         bindings,
         tokens,
         sessionPort: gatewayOptions.sessionPort,
         secrets: gatewayOptions.secrets,
+        ...(gatewayOptions.sink !== undefined && {
+          sources: { registry: sources, sink: gatewayOptions.sink },
+        }),
         ...(gatewayOptions.host !== undefined && { host: gatewayOptions.host }),
         ...(gatewayOptions.port !== undefined && { port: gatewayOptions.port }),
         ...(gatewayOptions.pathPrefix !== undefined && { pathPrefix: gatewayOptions.pathPrefix }),

@@ -98,6 +98,7 @@ const SHARED = `
   --et-space-4: 16px;
   --et-space-5: 20px;
   --et-space-6: 24px;
+  --et-space-7: 28px;
   --et-space-8: 32px;
   --et-space-12: 48px;
   --et-space-24: 96px;

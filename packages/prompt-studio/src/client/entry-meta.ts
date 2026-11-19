@@ -46,6 +46,8 @@ export const ENTRY_META_LOCALE_ZH: Record<string, string> = {
   [entryEffectNoteKey('meta.studio.ai-polish')]: '不进入任何会话的系统提示组装;AI 润色调用时现读注册表当前值,改后经 R3 审批写回,下次润色调用即用新文。',
   [entryDescriptionKey('meta.studio.ai-review')]: 'AI 审校的元提示词:工坊「AI 审校」生成问题清单时用它做 system 消息,规定审校维度与输出格式;改它即改审校行为,下次审校即用新文。',
   [entryEffectNoteKey('meta.studio.ai-review')]: '不进入任何会话的系统提示组装;AI 审核调用时现读注册表当前值,改后经 R3 审批写回,下次审核调用即用新文。',
+  [entryDescriptionKey('runtime.tasks.active-tickets')]: '活跃工单清单段(运行时注入):主 Session 系统提示常驻「当前有哪些活、各等谁」的一行一单清单——压缩无论怎么摘要它永远在场(tasks 压缩互补件);清单是提示不是协议,pass 周期秒级刷新;无静态全文,不可编辑。',
+  [entryEffectNoteKey('runtime.tasks.active-tickets')]: '不可经工作室修改:保存对其 fail-closed 拒写(运行时注入型同款守卫);清单文本由 tasks 插件每轮 pass 重算缓存,装配时返回缓存(不逐次查询库)。',
 }
 
 /** en:翻译层(新增条目时补;缺键回退注册表中文原文)。 */
@@ -76,6 +78,8 @@ export const ENTRY_META_LOCALE_EN: Record<string, string> = {
   [entryEffectNoteKey('runtime.memory.search-prefix')]: 'Cannot be modified through the studio: the save path fail-closed rejects writes to it (same guard as other runtime-injection entries); the prefix text is fetched at every render — latest registry version when present, built-in constant when absent.',
   [entryDescriptionKey('runtime.glue.memory-plugin')]: "The memory plugin's systemPrompt mounting point (runtime injection): @eterna/glue mounts the memory-index section into the host's assembly declaration; no static text, not editable.",
   [entryEffectNoteKey('runtime.glue.memory-plugin')]: 'Cannot be modified through the studio: the save path fail-closed rejects writes to it (verified in t7-e2e 15.27); the loading layer of the same section, its text is rebuilt at every assembly and not frozen by snapshot replay (replay skips it by kind and audits, t7-e2e 15.28).',
+  [entryDescriptionKey('runtime.tasks.active-tickets')]: "The active-tickets list section (runtime injection): a one-line-per-ticket rundown of 'what is in flight and who it waits on' that stays resident in the orchestrator's system prompt — present no matter how compaction summarizes (the tasks-side complement to compaction); it is a hint, not a protocol, refreshed on the pass cycle; no static text, not editable.",
+  [entryEffectNoteKey('runtime.tasks.active-tickets')]: 'Cannot be modified through the studio: the save path fail-closed rejects writes to it (same guard as other runtime-injection entries); the list text is recomputed into a cache by the tasks plugin on every pass cycle, and assemblies read the cache (no per-assembly store queries).',
   [entryDescriptionKey('meta.studio.ai-polish')]: "Meta-prompt for AI polish: the studio's \"AI polish\" uses it as the system message when calling the model, defining polish discipline (suggest-only, never applied, keep red-line sections, etc.); changing it changes polish behavior — the next polish run uses the new text.",
   [entryEffectNoteKey('meta.studio.ai-polish')]: "Enters no session's system-prompt assembly; AI polish reads the registry's current value at call time — after an R3-approved write-back, the next polish call uses the new text.",
   [entryDescriptionKey('meta.studio.ai-review')]: "Meta-prompt for AI review: the studio's \"AI review\" uses it as the system message when producing findings, defining review dimensions and output format; changing it changes review behavior — the next review run uses the new text.",

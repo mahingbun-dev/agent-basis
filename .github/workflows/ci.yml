@@ -4,6 +4,11 @@ on:
   push:
     branches: [main, dev]
   pull_request:
+  # 每日双形态 boot 门禁(33 号 §5 矩阵「每日(CI schedule)」列、§6 缺口 13;
+  # 40 号 S-7/§9 Q8 暂定双轨:PR/push 面进 verify job,定时面独立 daily-boot-gate job。
+  # cron 时点为实现自由度(Q8:任一固定时刻即可,不构成行为设计)。
+  schedule:
+    - cron: '19 21 * * *'
 
 jobs:
   verify:
@@ -24,6 +29,17 @@ jobs:
       - name: Verify(oxlint + tsc strict + vitest,20 包)
         run: pnpm -w run verify
 
+      # 双形态门禁三步(40 号 S-7,33 号 §6 缺口 13):与本地命令逐字同款
+      # (G4-4 互证纪律:本地绿+CI 红先怀疑环境差异不许硬并,本地红就地修)。
+      - name: 双形态依赖方向与挂载一致(form-check,G0-6)
+        run: node tools/packctl/bin/packctl.mjs form-check
+
+      - name: eterna-base 真启动门禁(G1-1)
+        run: node scripts/verify-eterna-web.mjs
+
+      - name: eterna-super 真启动门禁(G1-2)
+        run: node scripts/verify-eterna-super.mjs
+
       - name: Lint 所有领域包(packs/*,逐包循环)
         run: |
           for d in packs/*/; do
@@ -39,6 +55,34 @@ jobs:
 
       - name: 评测 replay 冒烟(dsh-evals,t14-replay 子集)
         run: node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --subset t14-replay --adapter replay
+
+  # 每日双形态 boot 门禁(31 号 §4-2「双 boot 门禁进 CI」;33 号 §5 矩阵每日列、
+  # §6 缺口 13;40 号 S-7):与 verify job 的三步逐字同款,每天固定时刻复跑——
+  # 每 PR 是最低线,每日面捕获非 PR 路径(如上游依赖漂移)。
+  daily-boot-gate:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: 双形态依赖方向与挂载一致(form-check,G0-6)
+        run: node tools/packctl/bin/packctl.mjs form-check
+
+      - name: eterna-base 真启动门禁(G1-1)
+        run: node scripts/verify-eterna-web.mjs
+
+      - name: eterna-super 真启动门禁(G1-2)
+        run: node scripts/verify-eterna-super.mjs
 
   # 升级门禁(SOP 见 docs/upgrade-gate.md):上游 @deepseek-ai/dsh-* 升版时,
   # 本地先跑同款四步(docs/upgrade-gate.md §本地门禁),CI 复跑互证后才裁决放行/回滚。

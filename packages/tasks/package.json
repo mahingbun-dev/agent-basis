@@ -1,0 +1,40 @@
+{
+  "name": "@eterna/tasks",
+  "description": "任务内核(Tier2 super 专属;设计文档 24 §5 架构与 R1–R6、24a 拍板、27 号冲突五机制、28 号上下文策略、34 号详细设计、35 号任务分解):Trigger→Eval→Mandate→Assignment 单写者领域内核(src/core 零 I/O)、一租户一 SQLite 存储与 realm 路由、Effects/Outbox 持久副作用队列、DSH executor(R4 一工单一目录/R2 分层门禁)、orchestrator/worker 双工具面与活跃工单清单 section。seam 类型取自已发布 @deepseek-ai/dsh-agent / dsh-session / dsh-llm 0.2.2-alpha.2。35 号进度:A1–A14 内核+执行层、A22 worker sessions 与 A16 plugin 装配已落地(模拟宿主 fixture 走通工单全生命周期;createTasks 真实装配 + ctx.tasks 服务,plugin-boot 判据测试通过);A15/A17/A18/A19/A24/A25/A26 落地——R4 工作区与 R2 分层门禁、R1 预算接线、D1 subagent_policies、MasterAssessor 候选评估、[active-tickets] 清单 section(seam 注入+pass 刷新+registry 登记)、orchestrator/worker 双 preset(cordis.patch.yml 压缩组四件套+C5 分档键)与路由金集 20 条(tests/route-golden,nightly 口径);A20–A21/A27 收口中。",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./plugin": "./src/plugin.ts",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@deepseek-ai/cordis": "catalog:",
+    "@deepseek-ai/dsh-agent": "catalog:",
+    "@deepseek-ai/dsh-llm": "catalog:",
+    "@deepseek-ai/dsh-session": "catalog:",
+    "@deepseek-ai/dsh-system-prompt": "catalog:",
+    "@deepseek-ai/dsh-tools": "catalog:",
+    "@eterna/channels": "workspace:*",
+    "@eterna/extra": "workspace:*",
+    "@eterna/governance": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "yaml": "catalog:"
+  }
+}

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
-  buildApprovalCard, cardApprovalPayload, ChannelsCardError, createDingTalkChannelAdapter,
-  createFeishuChannelAdapter, createOfflineCardTransport, renderDingTalkCard, renderFeishuCard,
-  validateOutboundCard, type OutboundCard,
+  buildApprovalCard, buildReplyCard, cardApprovalPayload, ChannelsCardError, ChannelsDeliveryError,
+  classifyDeliveryFailure, createDingTalkChannelAdapter, createFeishuChannelAdapter,
+  createOfflineCardTransport, renderDingTalkCard, renderFeishuCard, renderReportLines,
+  validateOutboundCard, type OutboundCard, type ReportState,
 } from '../src/index.ts'
 
 const BASE = 'https://gw.example.com'
@@ -131,5 +132,105 @@ describe('钉钉卡片渲染', () => {
       ],
     })
     expect(() => renderDingTalkCard(card, { approvalBaseUrl: '' })).toThrow(ChannelsCardError)
+  })
+})
+
+describe('Outbox reply 出站:purpose → 卡片映射(39 号 E7)', () => {
+  it('attention purpose → kind=approval,走审批载荷强校验路径(载荷契约同 E4)', () => {
+    const card = buildReplyCard({
+      purpose: 'attention',
+      title: '需要你批准',
+      approval: {
+        approvalRequestId: 'apr-reply-1',
+        channel: 'feishu/card',
+        title: '需要你批准',
+        body: '将向 1200 名参会者发送确认邮件。',
+        approvalBaseUrl: BASE,
+        actions: [
+          { label: '批准', decision: 'approve', token: 'tok-appr' },
+          { label: '拒绝', decision: 'reject', token: 'tok-rej' },
+        ],
+      },
+    })
+    expect(card).toBeDefined()
+    expect(card?.kind).toBe('approval')
+    // 39 号 E7 验收②:attention 组卡走 validateOutboundCard 既有强校验路径
+    expect(() => {
+      if (card !== undefined) validateOutboundCard(card)
+    }).not.toThrow()
+    const payload = card !== undefined ? cardApprovalPayload(card) : undefined
+    expect(payload?.approvalRequestId).toBe('apr-reply-1')
+    const decisions = payload?.actions.map(action => action.decision) ?? []
+    expect(decisions).toContain('approve')
+    expect(decisions).toContain('reject')
+  })
+
+  it('attention 缺审批载荷输入 → 组卡即拒绝(fail-closed)', () => {
+    expect(() => buildReplyCard({ purpose: 'attention', title: 't' })).toThrow(ChannelsCardError)
+  })
+
+  it('ack/answer → kind=delivery(不扩枚举),正文即 body', () => {
+    for (const purpose of ['ack', 'answer'] as const) {
+      const card = buildReplyCard({ purpose, title: '已收到', body: 'T-9c81 已开始处理。' })
+      expect(card?.kind).toBe('delivery')
+      expect(card?.body).toBe('T-9c81 已开始处理。')
+      expect(card?.metadata).toBeUndefined()
+    }
+  })
+
+  it('result → kind=delivery,六态进 metadata 与文案(renderReportLines 承载)', () => {
+    const card = buildReplyCard({
+      purpose: 'result',
+      title: '工单 T-9c81 结果',
+      report: { state: 'ready', summary: '发布会日程草案已就绪' },
+    })
+    expect(card?.kind).toBe('delivery')
+    expect(card?.metadata?.reportState).toBe('ready')
+    expect(card?.body).toContain('结果已就绪')
+    expect(card?.body).toContain('摘要:发布会日程草案已就绪')
+  })
+
+  it('working 类中间态(progress/waiting)不产生出站卡 → undefined(进度不进 IM)', () => {
+    for (const state of ['progress', 'waiting'] as const) {
+      const card = buildReplyCard({
+        purpose: 'result',
+        title: '工单 T-9c81',
+        report: { state, summary: '中间态不应出站' },
+      })
+      expect(card).toBeUndefined()
+    }
+  })
+})
+
+describe('报告六态渲染 renderReportLines(39 号 E7 验收①;枚举与 24 号 §2.3-5 逐一对应)', () => {
+  it('六态逐态断言:状态行文案 + 摘要行', () => {
+    const expectations: ReadonlyArray<readonly [ReportState, string]> = [
+      ['progress', '进行中:工作在进行'],
+      ['waiting', '等待中:worker 在等一条消息'],
+      ['ready', '就绪:结果已就绪'],
+      ['blocked', '受阻:需要人行动才能解锁'],
+      ['failed', '失败:需要人行动才能恢复'],
+      ['dropped', '已放弃:无事可做'],
+    ]
+    for (const [state, line] of expectations) {
+      expect(renderReportLines(state, '做完了')).toBe(`${line}\n摘要:做完了`)
+    }
+  })
+
+  it('摘要为空时只有状态行', () => {
+    expect(renderReportLines('failed', '')).toBe('失败:需要人行动才能恢复')
+  })
+})
+
+describe('投递错误分类 classifyDeliveryFailure(39 号 E7 验收③:三分支)', () => {
+  it('channelIgnored / channelGone 显式标记原样归类;未标记错误一律 transient', () => {
+    expect(classifyDeliveryFailure(new ChannelsDeliveryError('渠道明确拒绝', 'channelIgnored'))).toBe('channelIgnored')
+    expect(classifyDeliveryFailure(new ChannelsDeliveryError('会话已不存在', 'channelGone'))).toBe('channelGone')
+    expect(classifyDeliveryFailure(new Error('ECONNRESET'))).toBe('transient')
+    expect(classifyDeliveryFailure('不是错误对象的值')).toBe('transient')
+  })
+
+  it('ChannelsDeliveryError 消息带 [channels] 前缀(与包内错误风格一致)', () => {
+    expect(new ChannelsDeliveryError('x', 'channelGone').message).toBe('[channels] x')
   })
 })

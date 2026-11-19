@@ -1,14 +1,22 @@
 /**
- * webhook 入站网关(极简 http server 模块):验签 → 投递到绑定的 session 接口。
+ * webhook 入站网关(极简 http server 模块):验签 → 归一化投递。
  *
  * 12 号文档 §7.4(acp/api 原生可编程触发,本模块是薄网关)+ §7.7(邮箱审批
  * 一次性令牌)。两条路由:
  *
  * - `POST {prefix}/webhook/:channelType`(IM/平台回调,如飞书/钉钉/企微):
  *   HMAC-SHA256(raw body, channel secret) 验签(timing-safe)→ 解析信封
- *   (message 投递到绑定会话 / approval_click 消费一次性令牌后回传审批应答)。
+ *   (message 归一化投递 / approval_click 消费一次性令牌后回传审批应答)。
  * - `GET|POST {prefix}/approval/:token`(邮件链接点击):token 本身即凭证
  *   (32 字节 CSPRNG),单次有效; redeemed 后一律 410 Gone。
+ *
+ * message 投递目标(39 号 E3,34 §5-channels「外部事件入口 → channel-adapter
+ * 归一化为 Trigger(幂等 id)」):**thread 优先**——绑定解析带 thread_key 时经
+ * Source 统一接收面(source.ts)归一化为 Trigger 投递 TriggerSink,应答
+ * `202 {accepted, disposition}`(stored/duplicate/filtered 透传,供上游观测
+ * 幂等命中;重复投递不产生第二次投递副作用,幂等归 tasks 侧);无 thread 绑定
+ * **回退 session 投递**(现行行为不回归;去留为 39 §9-6 开放问题)。验签/路由/
+ * 状态码契约(401/404/410/413)不变(12 号 §7.4/§7.7)。
  *
  * Cordis 纪律:start() 返回 handle,handle.close() 为 start 的配逆闭包
  * (server.closeAllConnections + close),无逃逸副作用。
@@ -16,6 +24,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { ChannelBindingStore } from './binding.ts'
+import type { SourceRegistry, TriggerSink } from './source.ts'
 import type { ApprovalTokenService } from './token.ts'
 import type { SessionPort } from './types.ts'
 
@@ -34,11 +43,23 @@ export interface WebhookGatewayOptions {
   /** approval_click 信封与 /approval/:token 路由必需。 */
   readonly tokens?: ApprovalTokenService
   readonly secrets: WebhookSecretTable
+  /**
+   * Source 统一接收面(39 号 E3):thread 绑定的 message 归一化为 Trigger 投递;
+   * 缺席时全部走 session 投递回退(现行行为)。kindId 缺省 'webhook'。
+   */
+  readonly sources?: SourceDelivery
   readonly host?: string
   readonly port?: number
   readonly pathPrefix?: string
   /** 默认 1 MiB;超出 413。 */
   readonly maxBodyBytes?: number
+}
+
+/** Source 统一接收面接线位:注册表 + tasks 侧 sink + 归一化用 kind id。 */
+export interface SourceDelivery {
+  readonly registry: SourceRegistry
+  readonly sink: TriggerSink
+  readonly kindId?: string
 }
 
 export interface WebhookGatewayHandle {
@@ -142,7 +163,14 @@ export class WebhookGateway {
     return this.server?.listening ?? false
   }
 
-  private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  /**
+   * 请求管线(39 号 §3-E8 宿主挂载 seam):按 pathPrefix 切前缀后路由两条路径。
+   * 公开给组合层把网关挂上宿主 webServer 的 prefix 路由(glue channels-plugin:
+   * POST {prefix}/webhook/:channelType 与 GET|POST {prefix}/approval/:token)——
+   * 验签/路由/状态码契约仍由本方法单一实现,glue 不复制语义。start() 的自起
+   * server 也走同一方法(createServer 回调),两条挂载形态行为逐字节一致。
+   */
+  async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const url = new URL(req.url ?? '/', 'http://gateway.local')
     const path = url.pathname
 
@@ -211,7 +239,31 @@ export class WebhookGateway {
       return
     }
 
-    const sessionId = this.options.bindings.resolveSession(channelType, envelope.channelUserId)
+    // 39 号 E3:thread 优先——绑定带 thread_key 时归一化为 Trigger 进统一接收面;
+    // 无 thread 绑定回退 session 投递(现行行为);两者皆无 → 404 unknown-binding。
+    const target = this.options.bindings.resolveThread(channelType, envelope.channelUserId)
+    if (target === undefined) {
+      this.respond(res, 404, { error: 'unknown-binding' })
+      return
+    }
+    const sources = this.options.sources
+    if (target.threadKey !== undefined && sources !== undefined) {
+      const disposition = sources.registry.deliverMessage(
+        sources.kindId ?? 'webhook',
+        {
+          channelType: this.channelTypeOf(channelType),
+          channelUserId: envelope.channelUserId,
+          text: envelope.text,
+          ...(envelope.messageId !== undefined && { messageId: envelope.messageId }),
+          occurredAt: new Date().toISOString(),
+        },
+        target,
+        sources.sink,
+      )
+      this.respond(res, 202, { accepted: true, disposition })
+      return
+    }
+    const sessionId = target.sessionId
     if (sessionId === undefined) {
       this.respond(res, 404, { error: 'unknown-binding' })
       return

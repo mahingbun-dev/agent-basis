@@ -8,6 +8,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { SessionService } from '../src/session.ts'
 import { UserStore } from '../src/store.ts'
+import type { AccessAuditEvent } from '../src/audit.ts'
 import { ensureFirstSession, registerTenantGuards, type TenantFetchRegistry } from '../src/tenant.ts'
 
 interface RecordedCall {
@@ -29,12 +30,14 @@ describe('tenant 守卫', () => {
   // modelCatalog 专路测试注入口:配置行清单(缺省 undefined=纯透传)与上游返回值
   let configEditorConfiguration: unknown
   let upstreamCatalog: Record<string, unknown>
+  let audits: AccessAuditEvent[]
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'eterna-tenant-'))
     store = new UserStore(join(dir, 'users.db'))
     calls = []
     routes = new Map()
+    audits = []
     configEditorConfiguration = undefined
     upstreamCatalog = {
       default: { provider: 'litellm', model: 'glm-flash' },
@@ -108,7 +111,7 @@ describe('tenant 守卫', () => {
         return () => Promise.resolve()
       },
     }
-    registerTenantGuards({ store, session, reflect, tenantRoot: root, audit: () => {} }, { fetch: registry })
+    registerTenantGuards({ store, session, reflect, tenantRoot: root, audit: (event) => { audits.push(event) } }, { fetch: registry })
   })
   afterEach(() => {
     store.close()
@@ -303,7 +306,173 @@ describe('tenant 守卫', () => {
     // 他人会话(归属守卫)与未知会话一律 denied
     const other = await call('/api/session/thinkingAuto', 'bob', { request: { sessionId: 's-auto' } })
     expect(JSON.stringify(other.result)).toContain('tenant/denied')
-    const ghost = await call('/api/session/thinkingAuto', 'alice', { request: { sessionId: 's-ghost' } })
+    const ghostAuto = await call('/api/session/thinkingAuto', 'alice', { request: { sessionId: 's-ghost' } })
+    expect(JSON.stringify(ghostAuto.result)).toContain('tenant/denied')
+  })
+
+  it('session/thinkingFeedback:±0.2 累计与抵消;非法 direction/他人/未知会话拒绝', async () => {
+    store.recordSession('s-fb', aliceId, null)
+    const more = await call('/api/session/thinkingFeedback', 'alice', {
+      request: { sessionId: 's-fb', messageId: 'm1', direction: 'more' },
+    })
+    expect(more.result?.result).toMatchObject({ ok: true, value: { bias: 0.2, effectiveBias: 0.2 } })
+    expect(store.thinkingBiasOf('s-fb')?.bias).toBeCloseTo(0.2)
+    // 反向点击抵消到 0
+    const less = await call('/api/session/thinkingFeedback', 'alice', {
+      request: { sessionId: 's-fb', messageId: 'm2', direction: 'less' },
+    })
+    expect((less.result?.result as { value?: { bias?: number } }).value?.bias).toBeCloseTo(0)
+    // 非法方向、他人会话、未知会话一律 denied
+    const bad = await call('/api/session/thinkingFeedback', 'alice', {
+      request: { sessionId: 's-fb', direction: 'sideways' },
+    })
+    expect(JSON.stringify(bad.result)).toContain('tenant/denied')
+    const other = await call('/api/session/thinkingFeedback', 'bob', {
+      request: { sessionId: 's-fb', direction: 'more' },
+    })
+    expect(JSON.stringify(other.result)).toContain('tenant/denied')
+    const ghost = await call('/api/session/thinkingFeedback', 'alice', {
+      request: { sessionId: 's-ghost', direction: 'more' },
+    })
     expect(JSON.stringify(ghost.result)).toContain('tenant/denied')
+    expect(store.thinkingBiasOf('s-ghost')).toBeUndefined()
+  })
+
+  it('session/thinkingFeedback 读支:无偏置 {0,0};写后读回原值与衰减值;零审计', async () => {
+    store.recordSession('s-fb2', aliceId, null)
+    // 从未反馈 ⇒ {0,0}(归属已过守卫,undefined 只能是「从未反馈/已清零」,不是 denied)
+    const fresh = await call('/api/session/thinkingFeedback', 'alice', { request: { sessionId: 's-fb2' } })
+    expect(fresh.result?.result).toMatchObject({ ok: true, value: { bias: 0, effectiveBias: 0 } })
+    // 写后读回:bias=落库原值 0.2,effectiveBias=刚写完的现值(≈0.2)
+    await call('/api/session/thinkingFeedback', 'alice', { request: { sessionId: 's-fb2', direction: 'more' } })
+    const read = await call('/api/session/thinkingFeedback', 'alice', { request: { sessionId: 's-fb2' } })
+    const readValue = (read.result?.result as { value?: { bias?: number; effectiveBias?: number } }).value
+    expect(readValue?.bias).toBeCloseTo(0.2)
+    expect(readValue?.effectiveBias).toBeCloseTo(0.2)
+    // 读支零审计;写支一条(审计只记写)
+    const feedbackAudits = audits.filter(event => event.detail?.action === 'thinking.feedback')
+    expect(feedbackAudits).toHaveLength(1)
+    expect(feedbackAudits[0]?.detail).toMatchObject({ sessionId: 's-fb2', direction: 'more' })
+    // 读支不直调 sessionController(access 记账面,控制器无此方法)
+    expect(calls.filter(recorded => recorded.service === 'sessionController')).toHaveLength(0)
+  })
+
+  it('session/thinkingFeedback reset:清零后读 {0,0} 且 thinkingBiasOf undefined;审计记 reset+previousBias', async () => {
+    store.recordSession('s-fb3', aliceId, null)
+    await call('/api/session/thinkingFeedback', 'alice', {
+      request: { sessionId: 's-fb3', messageId: 'm1', direction: 'more' },
+    })
+    const reset = await call('/api/session/thinkingFeedback', 'alice', {
+      request: { sessionId: 's-fb3', messageId: 'm2', direction: 'reset' },
+    })
+    expect(reset.result?.result).toMatchObject({ ok: true, value: { bias: 0, effectiveBias: 0 } })
+    expect(store.thinkingBiasOf('s-fb3')).toBeUndefined()
+    const after = await call('/api/session/thinkingFeedback', 'alice', { request: { sessionId: 's-fb3' } })
+    expect(after.result?.result).toMatchObject({ ok: true, value: { bias: 0, effectiveBias: 0 } })
+    const resetAudit = audits.find(event => event.detail?.action === 'thinking.feedback'
+      && event.detail?.direction === 'reset')
+    expect(resetAudit?.detail).toMatchObject({ sessionId: 's-fb3', messageId: 'm2', bias: 0, effectiveBias: 0 })
+    expect(resetAudit?.detail?.previousBias as number).toBeCloseTo(0.2)
+    // 幂等:再 reset 一次仍 ok(命中行语义,不因已清零而失败)
+    const again = await call('/api/session/thinkingFeedback', 'alice', {
+      request: { sessionId: 's-fb3', direction: 'reset' },
+    })
+    expect(again.result?.result).toMatchObject({ ok: true, value: { bias: 0, effectiveBias: 0 } })
+    // 未知会话不建行
+    expect(store.sessionOwner('s-fb3')).toBe(aliceId)
+  })
+
+  it('session/thinkingFeedback 伪造方向:direction:\'\'/数字/null 一律 denied 而非静默当读', async () => {
+    store.recordSession('s-fb4', aliceId, null)
+    for (const direction of ['', 0, 5, null, true] as unknown[]) {
+      const forged = await call('/api/session/thinkingFeedback', 'alice', {
+        request: { sessionId: 's-fb4', direction },
+      })
+      expect(JSON.stringify(forged.result), `direction=${JSON.stringify(direction)}`).toContain('tenant/denied')
+      expect(JSON.stringify(forged.result)).toContain('direction 无效')
+    }
+    // 顶层 args 上的 direction 同样生效(键存在即分流,非读支)
+    const topLevel = await call('/api/session/thinkingFeedback', 'alice', {
+      sessionId: 's-fb4', direction: '',
+    })
+    expect(JSON.stringify(topLevel.result)).toContain('direction 无效')
+    // 归属守卫在方向分流之前:他人/未知会话即使 direction 非法也按归属拒绝
+    const otherRead = await call('/api/session/thinkingFeedback', 'bob', { request: { sessionId: 's-fb4' } })
+    expect(JSON.stringify(otherRead.result)).toContain('tenant/denied')
+    expect(JSON.stringify(otherRead.result)).not.toContain('direction 无效')
+    const ghostRead = await call('/api/session/thinkingFeedback', 'alice', { request: { sessionId: 's-ghost2' } })
+    expect(JSON.stringify(ghostRead.result)).toContain('tenant/denied')
+    const ghostReset = await call('/api/session/thinkingFeedback', 'alice', {
+      request: { sessionId: 's-ghost2', direction: 'reset' },
+    })
+    expect(JSON.stringify(ghostReset.result)).toContain('tenant/denied')
+    // 未知会话/伪造方向都不建行
+    expect(store.thinkingBiasOf('s-ghost2')).toBeUndefined()
+    expect(store.sessionOwner('s-ghost2')).toBeUndefined()
+  })
+
+  it('session/thinkingFeedback 读支随时间衰减:24h 前写 0.4 ⇒ bias=0.4, effectiveBias≈0.2', async () => {
+    store.recordSession('s-fb5', aliceId, null)
+    store.addThinkingBias('s-fb5', 0.4, Date.now() - 24 * 60 * 60_000)
+    const read = await call('/api/session/thinkingFeedback', 'alice', { request: { sessionId: 's-fb5' } })
+    const value = (read.result?.result as { value?: { bias?: number; effectiveBias?: number } }).value
+    expect(value?.bias).toBeCloseTo(0.4)
+    expect(value?.effectiveBias).toBeCloseTo(0.2)
+  })
+
+  it('session/thinkingFeedback reset 只清偏置:不动 thinking_auto 与归属行', async () => {
+    store.recordSession('s-fb6', aliceId, null)
+    store.setThinkingAuto('s-fb6', false)
+    await call('/api/session/thinkingFeedback', 'alice', { request: { sessionId: 's-fb6', direction: 'more' } })
+    await call('/api/session/thinkingFeedback', 'alice', { request: { sessionId: 's-fb6', direction: 'reset' } })
+    expect(store.thinkingAutoOf('s-fb6')).toBe(false)
+    expect(store.sessionOwner('s-fb6')).toBe(aliceId)
+  })
+
+  it('session/thinkingFeedback reset 审计保留原始偏置:24h 前 0.4 ⇒ previousBias=0.4, previousBiasEffective≈0.2', async () => {
+    store.recordSession('s-fb7', aliceId, null)
+    store.addThinkingBias('s-fb7', 0.4, Date.now() - 24 * 60 * 60_000)
+    await call('/api/session/thinkingFeedback', 'alice', { request: { sessionId: 's-fb7', direction: 'reset' } })
+    const resetAudit = audits.filter(event => event.detail?.action === 'thinking.feedback'
+      && event.detail?.direction === 'reset').at(-1)
+    expect(resetAudit?.detail?.previousBias as number).toBeCloseTo(0.4)
+    expect(resetAudit?.detail?.previousBiasEffective as number).toBeCloseTo(0.2)
+    expect(resetAudit?.detail?.previousUpdatedAt as number).toBeGreaterThan(0)
+  })
+
+  it('session/thinkingFeedback 拒绝均落 denied 审计(归属/方向拼错/锚点超长)', async () => {
+    store.recordSession('s-fb8', aliceId, null)
+    const deniedOf = () => audits.filter(event => event.detail?.action === 'thinking.feedback.denied')
+    const before = deniedOf().length
+    // 他人会话
+    await call('/api/session/thinkingFeedback', 'bob', { request: { sessionId: 's-fb8', direction: 'more' } })
+    // 方向键拼错(近似键)
+    await call('/api/session/thinkingFeedback', 'alice', { request: { sessionId: 's-fb8', directon: 'more' } })
+    // 锚点超长
+    await call('/api/session/thinkingFeedback', 'alice', {
+      request: { sessionId: 's-fb8', messageId: 'x'.repeat(129), direction: 'more' },
+    })
+    const reasons = deniedOf().slice(before).map(event => event.detail?.reason)
+    expect(reasons).toEqual(['owner', 'direction', 'messageId'])
+    // 拒绝不应写入偏置
+    expect(store.thinkingBiasOf('s-fb8')).toBeUndefined()
+  })
+
+  it('session/thinkingAuto 严格化:enabled 非布尔或近似键拒绝,不再静默当读', async () => {
+    store.recordSession('s-fb9', aliceId, null)
+    for (const enabled of ['', 0, 'false', null] as unknown[]) {
+      const forged = await call('/api/session/thinkingAuto', 'alice', { request: { sessionId: 's-fb9', enabled } })
+      expect(JSON.stringify(forged.result), `enabled=${JSON.stringify(enabled)}`).toContain('enabled 无效')
+    }
+    const typo = await call('/api/session/thinkingAuto', 'alice', { request: { sessionId: 's-fb9', enable: true } })
+    expect(JSON.stringify(typo.result)).toContain('enabled 无效')
+    // 合法布尔仍生效;键缺席仍是读
+    await call('/api/session/thinkingAuto', 'alice', { request: { sessionId: 's-fb9', enabled: false } })
+    expect(store.thinkingAutoOf('s-fb9')).toBe(false)
+    const read = await call('/api/session/thinkingAuto', 'alice', { request: { sessionId: 's-fb9' } })
+    expect(read.result?.result).toMatchObject({ ok: true, value: { enabled: false } })
+    const denied = audits.filter(event => event.detail?.action === 'thinking.auto.denied'
+      && event.detail?.reason === 'enabled')
+    expect(denied.length).toBeGreaterThanOrEqual(5)
   })
 })

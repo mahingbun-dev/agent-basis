@@ -5,8 +5,11 @@
  * - 承载方式 B:挂在 DSH `tools/pre-execute` waterfall 上,deny 不可绕过由内核单调 guard 保证;
  * - 匹配维度:tool 名 glob + 参数子串(序列化后 includes);
  * - 优先级:deny > ask > allow;未命中走 default;
- * - fail-closed:default 只允许 ask/deny(解析期拒绝 `default: allow`),配置非法直接抛错,绝不静默放行。
+ * - fail-closed 底线:引擎缺省 default=ask(无规则文件的裸宿主不静默放行);部署规则
+ *   文件可显式声明 `default: allow`(2026-11-19 产品拍板:沙箱/access 钳制/egress 承担
+ *   限界,询问全局静默),ask/deny 保留为显式规则面。default 仅允许 allow|ask|deny,非法值解析期抛错。
  */
+import { createHash } from 'node:crypto'
 import { parse as parseYaml } from 'yaml'
 import { GovernanceConfigError, isRecord } from './errors.ts'
 import { matchAnyGlob } from './glob.ts'
@@ -25,7 +28,7 @@ export interface PolicyRule {
   readonly reason?: string
 }
 
-/** 策略文档。`default` 为未命中时的裁决(仅 ask/deny)。 */
+/** 策略文档。`default` 为未命中时的裁决(allow|ask|deny;缺省 ask)。 */
 export interface PolicyDocument {
   readonly rules: readonly PolicyRule[]
   readonly default: RuleEffect
@@ -124,6 +127,28 @@ export class RuleEngine {
   }
 }
 
+/**
+ * 规则版本域标识(进 hash 的首参,与 tasks 侧 `POLICY_REVISION` 同构的域内防撞;跨域不撞)。
+ */
+export const RULES_REVISION = 'governance-rules-v1'
+
+/**
+ * 规则版本 = 规则内容 hash(24a 拍板记录·C3:「规则版本 = 文件内容 hash,热改即新版本;
+ * 在跑工单钉旧版,新规则只影响新工单」;24 号 §9-2:版本化落点在 governance/src/rules.ts,
+ * 「版本号由文件内容 hash 派生,热改即产生新版本,历史可查」;33 号 G2-A15 第①句)。
+ *
+ * 粒度口径:对**解析后的策略文档**取 stableStringify 内容 hash(与 tasks 侧 `policyContent`
+ * 同粒度——语义内容而非原始字节:同一份规则的 YAML 重排/注释增删不虚增版本,规则实质
+ * 变化即新版本)。hash 构造与 tasks/src/core/ids.ts `key()` 同构(sha256 前 32 位十六进制),
+ * 但不 import——Tier1 永不 import Tier2(31 号 §2.2 铁律 1)。
+ * glue 层组参面:把本函数产物作为 tasks `jointPolicyVersion` 的 `governance` 侧
+ * (A10 联合 hash = governance rules.yaml + hitl.yaml + tasks 准入表,34 号 §2.2 version 行;
+ * 触发时机=规则热改重parse 出新实例时,开放问题 3 的 fs watch vs 保存时由 glue 装配决定)。
+ */
+export function rulesVersion(engine: RuleEngine): string {
+  return createHash('sha256').update(JSON.stringify([RULES_REVISION, stableStringify(engine.policy)])).digest('hex').slice(0, 32)
+}
+
 /** 参数序列化:dsh `tool/call` 事件的 arguments 是模型原始 JSON 字符串,pre-execute 里则是已解析值;两者统一。 */
 export function serializeArgs(args: unknown): string {
   return typeof args === 'string' ? args : stableStringify(args)
@@ -140,11 +165,13 @@ function validateDocument(raw: unknown, sourceLabel: string): PolicyDocument {
   let def: RuleEffect = 'ask'
   if (raw['default'] !== undefined) {
     const value = raw['default']
-    if (value === 'ask' || value === 'deny') {
+    if (value === 'allow' || value === 'ask' || value === 'deny') {
+      // 2026-11-19 产品拍板:沙箱边界(workspace-write=账号工作区)+access 钳制+egress
+      // 白名单已承担限界,default 放开为 allow——部署文件显式声明「未列名工具静默放行」,
+      // ask/deny 保留为显式规则面。引擎缺省仍 ask(无规则文件的裸宿主 fail-closed 不动)。
       def = value
     } else {
-      // fail-closed:显式 allow 被拒绝——引擎永不因配置宽松而放行
-      issues.push(`default 只允许 'ask' | 'deny'(fail-closed),得到:${JSON.stringify(value)}`)
+      issues.push(`default 只允许 'allow' | 'ask' | 'deny',得到:${JSON.stringify(value)}`)
     }
   }
 

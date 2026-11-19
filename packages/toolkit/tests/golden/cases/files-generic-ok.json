@@ -1,0 +1,21 @@
+{
+  "id": "files-generic-ok",
+  "capability": "files",
+  "scope": "generic",
+  "description": "generic 分支:files 混合兜底(文档抽取注入)→ 步骤块;矩阵标注文本级",
+  "params": {},
+  "expected": {
+    "status": "ok",
+    "blocks": [
+      {
+        "type": "search_step",
+        "step": 1,
+        "action": "tool_call",
+        "status": "ok"
+      }
+    ],
+    "toolResult": "[{\"name\":\"规格说明.docx\",\"kind\":\"document\",\"status\":\"ok\"}]"
+  },
+  "contractVersion": 1,
+  "status": "draft"
+}

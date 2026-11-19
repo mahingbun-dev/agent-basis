@@ -1,0 +1,38 @@
+{
+  "id": "web-search-server-tools",
+  "capability": "web_search",
+  "scope": "common",
+  "description": "web_search 声明 → 搜索步骤 + 来源卡(共同面:search_step{action:'search',query} + source{title,url,summary,publishTime,icon};siteName 为分支可选项不进 golden,citation 为 deepseek 特有断言于其包级 spec)",
+  "params": {
+    "query": "场地 档期"
+  },
+  "expected": {
+    "status": "ok",
+    "blocks": [
+      {
+        "type": "search_step",
+        "step": 1,
+        "action": "search",
+        "query": "场地 档期",
+        "status": "ok"
+      },
+      {
+        "type": "source",
+        "title": "场地选址指南",
+        "url": "https://example.com/venue-guide",
+        "summary": "活动策划中的场地选址要素与档期核对清单。",
+        "publishTime": "2026-10-12T08:00:00.000Z",
+        "icon": "https://example.com/favicon.ico"
+      },
+      {
+        "type": "source",
+        "title": "活动档期表",
+        "url": "https://example.com/schedule",
+        "summary": "年度档期速查。",
+        "publishTime": null
+      }
+    ]
+  },
+  "contractVersion": 1,
+  "status": "draft"
+}

@@ -1,0 +1,9 @@
+{
+  "files": {
+    "inputs": [
+      { "kind": "document", "name": "规格说明.docx", "bytesBase64": "ZG9jLWNvbnRlbnRz" }
+    ],
+    "limits": { "maxBytes": 100 },
+    "extractText": "抽取出的文档文本"
+  }
+}

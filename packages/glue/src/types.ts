@@ -226,3 +226,35 @@ export interface EgressPluginConfig {
    */
   readonly exemptToolGlobs?: readonly string[]
 }
+
+/** channels 插件配置(39 号 §3-E8 装配形态;不新增运行时配置键,39 号 §4 口径)。 */
+export interface ChannelsPluginConfig {
+  /** sqlite 库路径(缺省 = agent cwd 下的 .eterna/channels.sqlite3;.eterna 缺省约定)。 */
+  readonly dbPath?: string
+  /** 渠道验签密钥表(channels WebhookSecretTable 透传;缺省 {} = 全渠道 404 unknown-channel)。 */
+  readonly secrets?: import('@eterna/channels').WebhookSecretTable
+  /** 会话投递端口(桥接 DSH acp seam;缺席则不装配 webhook 网关、不注册路由)。 */
+  readonly sessionPort?: import('@eterna/channels').SessionPort
+  /** tasks 侧统一接收端口(TriggerSink;缺席则 message 全走 session 投递回退,39 §3-E3)。 */
+  readonly sink?: import('@eterna/channels').TriggerSink
+  /** 渠道适配器(注册进服务注册表;缺省无——E4 出站适配器经此处装配)。 */
+  readonly adapters?: readonly import('@eterna/channels').ChannelAdapter[]
+  /** 令牌服务选项(TTL 等;channels ApprovalTokenServiceOptions 透传)。 */
+  readonly tokenOptions?: import('@eterna/channels').ApprovalTokenServiceOptions
+  /** webhook 路由前缀(缺省 '/channels/api';39 号 E8 端点即 POST /channels/api/webhook/:channelType)。 */
+  readonly webhookPathPrefix?: string
+}
+
+/** interact 插件配置(39 号 §3-E8 装配形态;数据源=hitl.yaml 既有声明,39 号 §4 不新增键)。 */
+export interface InteractPluginConfig {
+  /** hitl.yaml 路径(缺省 = agent cwd 下的 .eterna/hitl.yaml;文件存在但非法=装载抛错 fail-closed)。 */
+  readonly hitlPath?: string
+  /** hitl.yaml 全文(直接喂入,绕过文件;测试/程序化装配用,优先于 hitlPath)。 */
+  readonly hitlYaml?: string
+  /** 提问合并器选项(单卡上限/flush 回调;interact TurnQuestionMergerOptions 透传)。 */
+  readonly ask?: import('@eterna/interact').TurnQuestionMergerOptions
+  /** 负信号总线选项(时钟注入/缓冲上限;interact ApprovalSignalBusOptions 透传)。 */
+  readonly signals?: import('@eterna/interact').ApprovalSignalBusOptions
+  /** 预设名前缀(interact createInteract 透传;缺省 'eterna')。 */
+  readonly presetNamePrefix?: string
+}

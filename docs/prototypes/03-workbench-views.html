@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>原型三 · 工作台五视图 · EternaAgent 工作台原型</title>
+<style>
+/* ===== 设计令牌：实值内联自 packages/ui/src/tokens.ts（结构同 WEBFLOW_TOKENS_CSS）===== */
+:root, [data-eterna-theme='light'] {
+  color-scheme: light;
+  --et-bg: #ffffff;
+  --et-surface: #ffffff;
+  --et-surface-2: #f7f7f7;
+  --et-fg: #080808;
+  --et-fg-2: #363636;
+  --et-muted: #5a5a5a;
+  --et-meta: #6b6b6b;
+  --et-border: #d8d8d8;
+  --et-border-soft: #ebebeb;
+  --et-accent: #146ef5;
+  --et-accent-hover: #0055d4;
+  --et-accent-active: #0b4fc0;
+  --et-accent-fill: #146ef5;
+  --et-accent-fill-hover: #0055d4;
+  --et-accent-on: #ffffff;
+  --et-accent-soft: color-mix(in oklab, var(--et-accent), transparent 90%);
+  --et-success: #067a1c;
+  --et-warn: #8a5a00;
+  --et-danger: #d3122b;
+  --et-danger-soft: color-mix(in oklab, var(--et-danger), transparent 90%);
+  --et-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 24px 64px rgba(0, 0, 0, 0.08);
+  --et-shadow-raised:
+    0px 84px 24px rgba(0, 0, 0, 0),
+    0px 54px 22px rgba(0, 0, 0, 0.01),
+    0px 30px 18px rgba(0, 0, 0, 0.04),
+    0px 13px 13px rgba(0, 0, 0, 0.08),
+    0px 3px 7px rgba(0, 0, 0, 0.09);
+  --et-focus-ring: 0 0 0 3px color-mix(in oklab, var(--et-accent), transparent 70%);
+  --et-selection: color-mix(in oklab, var(--et-accent), transparent 78%);
+  --et-overlay: rgba(0, 0, 0, 0.5);
+  --et-font-display: "WF Visual Sans Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --et-font-body: "WF Visual Sans Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --et-font-mono: "Inconsolata", ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  --et-text-micro: 12px;
+  --et-text-caption: 14px;
+  --et-text-body: 16px;
+  --et-text-lead: 20px;
+  --et-text-h3: 24px;
+  --et-text-h2: 32px;
+  --et-text-h1: 56px;
+  --et-leading-body: 1.6;
+  --et-leading-tight: 1.04;
+  --et-leading-snug: 1.3;
+  --et-tracking-display: -0.01em;
+  --et-weight-body: 500;
+  --et-weight-display: 600;
+  --et-space-1: 4px;
+  --et-space-2: 8px;
+  --et-space-3: 12px;
+  --et-space-4: 16px;
+  --et-space-5: 20px;
+  --et-space-6: 24px;
+  --et-space-8: 32px;
+  --et-space-12: 48px;
+  --et-space-24: 96px;
+  --et-radius-sm: 4px;
+  --et-radius-md: 4px;
+  --et-radius-lg: 8px;
+  --et-radius-pill: 9999px;
+  --et-motion-fast: 150ms;
+  --et-motion-base: 200ms;
+  --et-ease: cubic-bezier(0.2, 0, 0, 1);
+  --et-container: 1200px;
+  --et-container-panel: 1600px;
+  --et-gutter: 24px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-eterna-theme='light']) {
+  color-scheme: dark;
+  --et-bg: #080808;
+  --et-surface: #101010;
+  --et-surface-2: #161616;
+  --et-fg: #f5f5f5;
+  --et-fg-2: #d4d4d4;
+  --et-muted: #a3a3a3;
+  --et-meta: #8a8a8a;
+  --et-border: #2a2a2a;
+  --et-border-soft: #1e1e1e;
+  --et-accent: #3b89ff;
+  --et-accent-hover: #6aa6ff;
+  --et-accent-active: #146ef5;
+  --et-accent-fill: #2a6fd0;
+  --et-accent-fill-hover: #1f5bb0;
+  --et-accent-on: #ffffff;
+  --et-accent-soft: color-mix(in oklab, var(--et-accent), transparent 88%);
+  --et-success: #35e35f;
+  --et-warn: #ffb020;
+  --et-danger: #ff4d5f;
+  --et-danger-soft: color-mix(in oklab, var(--et-danger), transparent 88%);
+  --et-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 24px 64px rgba(0, 0, 0, 0.45);
+  --et-shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.6), 0 24px 64px rgba(0, 0, 0, 0.45);
+  --et-focus-ring: 0 0 0 3px color-mix(in oklab, var(--et-accent), transparent 65%);
+  --et-selection: color-mix(in oklab, var(--et-accent), transparent 70%);
+  --et-overlay: rgba(0, 0, 0, 0.72);
+  }
+}
+[data-eterna-theme='dark'] {
+  color-scheme: dark;
+  --et-bg: #080808;
+  --et-surface: #101010;
+  --et-surface-2: #161616;
+  --et-fg: #f5f5f5;
+  --et-fg-2: #d4d4d4;
+  --et-muted: #a3a3a3;
+  --et-meta: #8a8a8a;
+  --et-border: #2a2a2a;
+  --et-border-soft: #1e1e1e;
+  --et-accent: #3b89ff;
+  --et-accent-hover: #6aa6ff;
+  --et-accent-active: #146ef5;
+  --et-accent-fill: #2a6fd0;
+  --et-accent-fill-hover: #1f5bb0;
+  --et-accent-on: #ffffff;
+  --et-accent-soft: color-mix(in oklab, var(--et-accent), transparent 88%);
+  --et-success: #35e35f;
+  --et-warn: #ffb020;
+  --et-danger: #ff4d5f;
+  --et-danger-soft: color-mix(in oklab, var(--et-danger), transparent 88%);
+  --et-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 24px 64px rgba(0, 0, 0, 0.45);
+  --et-shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.6), 0 24px 64px rgba(0, 0, 0, 0.45);
+  --et-focus-ring: 0 0 0 3px color-mix(in oklab, var(--et-accent), transparent 65%);
+  --et-selection: color-mix(in oklab, var(--et-accent), transparent 70%);
+  --et-overlay: rgba(0, 0, 0, 0.72);
+}
+
+
+/* ===== 基础（frontend-style v3.2）===== */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--et-bg);
+  color: var(--et-fg-2);
+  font-family: var(--et-font-body);
+  font-size: var(--et-text-body);
+  font-weight: var(--et-weight-body);
+  line-height: var(--et-leading-body);
+}
+h1, h2, h3, h4 { color: var(--et-fg); font-family: var(--et-font-display); font-weight: var(--et-weight-display); line-height: var(--et-leading-snug); margin: 0; }
+h1 { font-size: var(--et-text-h2); letter-spacing: var(--et-tracking-display); }
+h2 { font-size: var(--et-text-h3); }
+h3 { font-size: var(--et-text-lead); }
+p { margin: 0; }
+ul, ol { margin: 0; padding: 0; }
+a { color: var(--et-accent); text-decoration: none; }
+a:hover { color: var(--et-accent-hover); text-decoration: underline; }
+code, .mono { font-family: var(--et-font-mono); font-size: 0.92em; }
+.num, .mono { font-variant-numeric: tabular-nums; }
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.icon { flex: none; display: inline-block; vertical-align: -0.18em; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+/* focus 光圈：0 0 0 3px 强调色 30% 光环（frontend-style §1-4） */
+a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visible, select:focus-visible {
+  outline: none;
+  box-shadow: var(--et-focus-ring);
+  border-radius: var(--et-radius-sm);
+}
+.skip-link {
+  position: absolute; left: -9999px; top: 0; z-index: 100;
+  background: var(--et-surface); color: var(--et-accent);
+  padding: var(--et-space-2) var(--et-space-4); border-radius: var(--et-radius-sm);
+}
+.skip-link:focus { left: var(--et-space-2); top: var(--et-space-2); }
+/* 页头 */
+.proto-header { position: sticky; top: 0; z-index: 50; background: var(--et-bg); border-bottom: 1px solid var(--et-border-soft); }
+.proto-header-inner {
+  max-width: var(--et-container-panel); margin: 0 auto;
+  padding: var(--et-space-2) var(--et-gutter);
+  display: flex; align-items: center; gap: var(--et-space-4); min-height: 56px;
+}
+.proto-brand { display: flex; align-items: center; gap: var(--et-space-2); color: var(--et-fg); font-weight: 600; font-size: var(--et-text-caption); white-space: nowrap; }
+.proto-brand .icon { color: var(--et-accent); }
+.proto-nav { display: flex; gap: var(--et-space-1); margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+.proto-nav::-webkit-scrollbar { display: none; }
+.proto-nav a {
+  white-space: nowrap; padding: 6px 10px; border-radius: var(--et-radius-sm);
+  color: var(--et-muted); font-size: var(--et-text-caption);
+}
+.proto-nav a:hover { color: var(--et-accent); text-decoration: none; background: var(--et-accent-soft); }
+.proto-nav a[aria-current='page'] { color: var(--et-accent); background: var(--et-accent-soft); font-weight: 600; }
+.theme-toggle {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px;
+  padding: 6px 12px; border-radius: var(--et-radius-sm);
+  border: 1px solid var(--et-border); background: var(--et-surface); color: var(--et-fg-2);
+  font: inherit; font-size: var(--et-text-caption); cursor: pointer; white-space: nowrap;
+}
+.theme-toggle:hover { border-color: var(--et-accent); color: var(--et-accent); }
+.proto-note-bar {
+  max-width: var(--et-container-panel); margin: 0 auto;
+  padding: 0 var(--et-gutter) var(--et-space-2);
+  color: var(--et-meta); font-size: var(--et-text-micro);
+}
+/* 版面 */
+.page { max-width: var(--et-container-panel); margin: 0 auto; padding: var(--et-space-8) var(--et-gutter) var(--et-space-12); }
+.page-head { margin-bottom: var(--et-space-8); }
+.kicker { color: var(--et-accent); font-size: var(--et-text-micro); font-weight: 600; }
+.lede { margin-top: var(--et-space-3); color: var(--et-muted); max-width: 72ch; }
+.proto-footer {
+  max-width: var(--et-container-panel); margin: 0 auto;
+  padding: var(--et-space-6) var(--et-gutter) var(--et-space-12);
+  border-top: 1px solid var(--et-border-soft);
+  color: var(--et-meta); font-size: var(--et-text-micro); line-height: var(--et-leading-snug);
+  display: grid; gap: var(--et-space-2);
+}
+/* 按钮：主操作实心 Webflow Blue；次操作描边；破坏性 = 低权重文字（两击确认） */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 36px; padding: 8px 16px; border-radius: var(--et-radius-sm);
+  border: 1px solid transparent; background: var(--et-accent-fill); color: var(--et-accent-on);
+  font: inherit; font-size: var(--et-text-caption); font-weight: var(--et-weight-body);
+  cursor: pointer;
+  transition: background var(--et-motion-fast) var(--et-ease), border-color var(--et-motion-fast) var(--et-ease), color var(--et-motion-fast) var(--et-ease);
+}
+.btn:hover { background: var(--et-accent-fill-hover); }
+.btn-secondary { background: var(--et-surface); border-color: var(--et-border); color: var(--et-fg-2); }
+.btn-secondary:hover { border-color: var(--et-accent); color: var(--et-accent); background: var(--et-surface); }
+.btn-ghost { background: transparent; color: var(--et-muted); }
+.btn-ghost:hover { color: var(--et-accent); background: var(--et-accent-soft); }
+.btn-danger-text { background: transparent; color: var(--et-danger); }
+.btn-danger-text:hover { background: var(--et-danger-soft); }
+a.btn:hover { text-decoration: none; }
+/* 徽标：状态色必须配文字 */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px;
+  border-radius: var(--et-radius-sm); font-size: var(--et-text-micro); font-weight: 600; line-height: 1.6; white-space: nowrap;
+}
+.badge-accent { color: var(--et-accent); background: var(--et-accent-soft); }
+.badge-success { color: var(--et-success); background: color-mix(in oklab, var(--et-success), transparent 90%); }
+.badge-warn { color: var(--et-warn); background: color-mix(in oklab, var(--et-warn), transparent 88%); }
+.badge-danger { color: var(--et-danger); background: var(--et-danger-soft); }
+.badge-muted { color: var(--et-muted); background: var(--et-surface-2); border: 1px solid var(--et-border-soft); }
+/* 状态点（全原型统一词汇表） */
+.dot { flex: none; width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot-wait-person { background: var(--et-warn); }
+.dot-working { background: var(--et-accent); }
+.dot-queued { background: transparent; border: 2px solid var(--et-accent); }
+.dot-idle { background: var(--et-meta); }
+.dot-ready { background: var(--et-success); }
+.dot-error { background: var(--et-danger); }
+.dot-pulse { animation: dot-pulse 2s var(--et-ease) infinite; }
+@keyframes dot-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--et-warn), transparent 70%); }
+  70% { box-shadow: 0 0 0 6px color-mix(in oklab, var(--et-warn), transparent 100%); }
+  100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--et-warn), transparent 100%); }
+}
+/* 卡片 / 标注 */
+.card { background: var(--et-surface); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-sm); padding: var(--et-space-5); }
+.note {
+  border-left: 3px solid var(--et-border);
+  padding: var(--et-space-3) var(--et-space-4);
+  background: var(--et-surface-2);
+  border-radius: 0 var(--et-radius-sm) var(--et-radius-sm) 0;
+  color: var(--et-muted); font-size: var(--et-text-caption);
+}
+.note strong { color: var(--et-fg-2); }
+.note-list { list-style: none; display: grid; gap: var(--et-space-2); margin-top: var(--et-space-4); }
+/* 表格：14px、表头 12px 辅助色、行间 border-soft、数字 tabular、外层横向滚动 */
+.table-scroll { overflow-x: auto; border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-sm); background: var(--et-surface); }
+table { width: 100%; border-collapse: collapse; font-size: var(--et-text-caption); }
+caption { text-align: left; padding: var(--et-space-3) var(--et-space-4); color: var(--et-muted); font-size: var(--et-text-micro); }
+th { font-size: var(--et-text-micro); color: var(--et-muted); text-align: left; font-weight: 600; padding: 10px 12px; white-space: nowrap; }
+td { padding: 10px 12px; border-top: 1px solid var(--et-border-soft); color: var(--et-fg-2); vertical-align: top; }
+tbody tr:hover { background: var(--et-surface-2); }
+/* 展开收起 */
+details > summary { list-style: none; cursor: pointer; }
+details > summary::-webkit-details-marker { display: none; }
+/* 指标卡 */
+.metric-card { background: var(--et-surface); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-sm); padding: var(--et-space-4); display: grid; gap: var(--et-space-1); }
+.metric-value { font-size: var(--et-text-h3); font-family: var(--et-font-display); color: var(--et-fg); font-variant-numeric: tabular-nums; line-height: var(--et-leading-tight); }
+.metric-label { font-size: var(--et-text-caption); color: var(--et-fg); font-weight: 600; }
+.metric-sub { font-size: var(--et-text-micro); color: var(--et-muted); }
+/* 进度条 */
+.meter { height: 8px; border-radius: var(--et-radius-pill); background: var(--et-surface-2); border: 1px solid var(--et-border-soft); overflow: hidden; position: relative; }
+.meter > span { display: block; height: 100%; background: var(--et-accent); border-radius: var(--et-radius-pill); }
+.meter-warn > span { background: var(--et-warn); }
+.meter-wrap { position: relative; }
+.meter-threshold { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--et-danger); }
+/* 图例 */
+.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--et-space-2) var(--et-space-4); font-size: var(--et-text-caption); color: var(--et-muted); }
+.legend-item { display: flex; align-items: center; gap: var(--et-space-2); }
+.legend-swatch { flex: none; width: 18px; height: 12px; border-radius: var(--et-radius-sm); border: 1.5px solid var(--et-border); display: inline-block; }
+.legend-swatch.sw-active { border-color: var(--et-accent); background: color-mix(in oklab, var(--et-accent), transparent 92%); }
+.legend-swatch.sw-stuck { border-color: var(--et-warn); background: color-mix(in oklab, var(--et-warn), transparent 88%); }
+.legend-swatch.sw-error { border-color: var(--et-danger); background: var(--et-danger-soft); }
+.legend-line { flex: none; width: 18px; height: 0; border-top: 2px solid var(--et-meta); }
+.legend-line.ln-live { border-top-style: dashed; border-top-color: var(--et-accent); }
+.legend-line.ln-replay { border-top: 3px solid var(--et-accent); }
+/* 输入 */
+.text-input {
+  padding: 8px 12px; border: 1px solid var(--et-border); border-radius: var(--et-radius-sm);
+  font: inherit; font-size: var(--et-text-caption); background: var(--et-surface); color: var(--et-fg);
+  min-height: 36px;
+}
+.text-input:focus-visible { border-color: var(--et-accent); box-shadow: var(--et-focus-ring); }
+/* ===== 响应式：1100 / 760 / 640（frontend-style §1-6）===== */
+@media (max-width: 1100px) {
+  .page { padding-top: var(--et-space-6); }
+  h1 { font-size: var(--et-text-h3); }
+  .proto-header-inner { gap: var(--et-space-3); }
+}
+@media (max-width: 760px) {
+  h1 { font-size: var(--et-text-lead); }
+  h2 { font-size: var(--et-text-lead); }
+  .page { padding-top: var(--et-space-5); }
+  .proto-header-inner { flex-wrap: wrap; padding-bottom: var(--et-space-1); }
+  .proto-nav { order: 3; width: 100%; margin-left: 0; }
+  .proto-note-bar { display: none; }
+}
+@media (max-width: 640px) {
+  :root { --et-gutter: 16px; }
+  .page { padding-left: var(--et-space-4); padding-right: var(--et-space-4); padding-bottom: var(--et-space-8); }
+  .lede { font-size: var(--et-text-caption); }
+  th, td { padding: 8px; }
+  .card { padding: var(--et-space-4); }
+}
+/* ===== 动效尊重（frontend-style §1-5）===== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+/* ===== 本页样式 ===== */
+/* 原型三：工作台五视图 */
+.view { scroll-margin-top: 132px; padding-top: var(--et-space-8); }
+.view + .view { margin-top: var(--et-space-8); border-top: 1px solid var(--et-border-soft); }
+.view-head { display: flex; align-items: baseline; gap: var(--et-space-3); flex-wrap: wrap; }
+.view-desc { color: var(--et-muted); font-size: var(--et-text-caption); max-width: 88ch; margin: var(--et-space-2) 0 var(--et-space-5); }
+.view-desc strong { color: var(--et-fg-2); }
+.sub-h { font-size: var(--et-text-caption); color: var(--et-fg); margin: var(--et-space-6) 0 var(--et-space-3); font-family: var(--et-font-display); font-weight: 600; }
+.view-nav { position: sticky; top: 84px; z-index: 40; background: var(--et-bg); border-bottom: 1px solid var(--et-border-soft); }
+.view-nav-inner {
+  max-width: var(--et-container-panel); margin: 0 auto;
+  padding: var(--et-space-2) var(--et-gutter);
+  display: flex; gap: var(--et-space-2); overflow-x: auto; scrollbar-width: none;
+}
+.view-nav-inner::-webkit-scrollbar { display: none; }
+.view-nav a {
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  padding: 6px 12px; border-radius: var(--et-radius-pill);
+  font-size: var(--et-text-caption); color: var(--et-muted);
+}
+.view-nav a:hover { color: var(--et-accent); background: var(--et-accent-soft); text-decoration: none; }
+/* 工具条与过滤 chip */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--et-space-2); margin-bottom: var(--et-space-4); }
+.toolbar-label { font-size: var(--et-text-micro); color: var(--et-muted); margin-right: var(--et-space-1); }
+.chip {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 36px;
+  padding: 6px 12px; border-radius: var(--et-radius-pill);
+  border: 1px solid var(--et-border); background: var(--et-surface); color: var(--et-fg-2);
+  font: inherit; font-size: var(--et-text-caption); cursor: pointer;
+}
+.chip:hover { border-color: var(--et-accent); color: var(--et-accent); }
+.chip.is-on { border-color: var(--et-accent); color: var(--et-accent); background: var(--et-accent-soft); font-weight: 600; }
+.log-search { flex: none; width: 240px; margin-left: auto; }
+.sse-chip { display: inline-flex; align-items: center; gap: 6px; font-size: var(--et-text-micro); color: var(--et-success); margin-left: auto; }
+/* 看板 */
+.kanban {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(248px, 1fr);
+  gap: var(--et-space-4); overflow-x: auto; padding-bottom: var(--et-space-2);
+}
+.kanban-col { background: var(--et-surface-2); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-sm); padding: var(--et-space-3); min-width: 0; }
+.kanban-col-h { display: flex; align-items: center; gap: var(--et-space-2); padding: 4px 4px var(--et-space-3); font-size: var(--et-text-caption); font-weight: 600; color: var(--et-fg); }
+.kanban-col-h .stage-code { margin-left: auto; font-size: var(--et-text-micro); color: var(--et-meta); font-weight: 400; }
+.kanban-col-h .count { flex: none; }
+.kan-cards { display: grid; gap: var(--et-space-2); }
+.kan-card {
+  display: grid; gap: 6px; padding: var(--et-space-3);
+  background: var(--et-surface); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-sm);
+  color: inherit;
+}
+.kan-card:hover { border-color: var(--et-accent); text-decoration: none; }
+.kan-card.is-stuck { border-color: color-mix(in oklab, var(--et-warn), transparent 50%); box-shadow: 0 0 0 1px color-mix(in oklab, var(--et-warn), transparent 65%); }
+.kan-card .t { font-size: var(--et-text-caption); font-weight: 600; color: var(--et-fg); }
+.kan-card .m { font-size: var(--et-text-micro); color: var(--et-muted); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+/* 指标 */
+.metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--et-space-4); }
+.metrics-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: var(--et-space-4); }
+/* 信息流图 */
+.graph-wrap { border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-sm); background: var(--et-surface); padding: var(--et-space-4); overflow-x: auto; }
+.flow-svg { display: block; width: 100%; min-width: 760px; height: auto; }
+.flow-svg text { font-family: var(--et-font-body); }
+.flow-svg .fnode rect { fill: var(--et-surface); stroke: var(--et-border); stroke-width: 1.5; }
+.flow-svg .fnode .fdot { fill: var(--et-meta); }
+.flow-svg .fnode .ftitle { font-size: 14px; fill: var(--et-fg); font-weight: 600; }
+.flow-svg .fnode .fsub { font-size: 12px; fill: var(--et-muted); }
+.flow-svg .fnode.is-active rect { stroke: var(--et-accent); fill: color-mix(in oklab, var(--et-accent), transparent 93%); }
+.flow-svg .fnode.is-active .fdot { fill: var(--et-accent); }
+.flow-svg .fnode.is-stuck rect { stroke: var(--et-warn); stroke-width: 2; fill: color-mix(in oklab, var(--et-warn), transparent 90%); }
+.flow-svg .fnode.is-stuck .fdot { fill: var(--et-warn); }
+.flow-svg .fedge { stroke: var(--et-meta); stroke-width: 1.5; fill: none; }
+.flow-svg .fedge-live { stroke: var(--et-accent); stroke-width: 1.5; stroke-dasharray: 6 5; fill: none; animation: edge-flow 1.2s linear infinite; }
+.flow-svg .freplay { stroke: var(--et-accent); stroke-width: 3; fill: none; opacity: 0.8; stroke-linejoin: round; }
+@keyframes edge-flow { to { stroke-dashoffset: -11; } }
+.flow-svg .fbubble-rect { fill: color-mix(in oklab, var(--et-warn), transparent 92%); stroke: var(--et-warn); stroke-dasharray: 5 4; stroke-width: 1.5; }
+.flow-svg .fbubble-t1 { font-size: 14px; fill: var(--et-warn); font-weight: 600; }
+.flow-svg .fbubble-t2 { font-size: 12px; fill: var(--et-muted); }
+.replay-label { font-size: var(--et-text-caption); color: var(--et-muted); margin-left: var(--et-space-3); }
+/* 日志 */
+.log-list { display: grid; gap: 2px; }
+.log-entry { border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-sm); background: var(--et-surface); overflow: hidden; }
+.log-entry + .log-entry { margin-top: 2px; }
+.log-entry > summary {
+  display: flex; align-items: center; gap: var(--et-space-3);
+  padding: 10px var(--et-space-4); min-height: 44px;
+  font-size: var(--et-text-caption); color: var(--et-fg-2);
+}
+.log-entry > summary:hover { background: var(--et-surface-2); }
+.log-time { color: var(--et-meta); flex: none; }
+.log-src { color: var(--et-fg); font-weight: 600; flex: none; }
+.log-sum { color: var(--et-fg-2); min-width: 0; }
+.log-dur { color: var(--et-meta); margin-left: auto; flex: none; }
+.log-entry .chev { color: var(--et-meta); flex: none; transition: transform var(--et-motion-fast) var(--et-ease); }
+.log-entry[open] .chev { transform: rotate(180deg); }
+.log-full {
+  border-top: 1px solid var(--et-border-soft); background: var(--et-surface-2);
+  padding: var(--et-space-3) var(--et-space-4); display: grid; gap: var(--et-space-2);
+  font-size: var(--et-text-caption); color: var(--et-fg-2);
+}
+.log-full p { color: var(--et-fg-2); }
+/* 图表 */
+.charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--et-space-4); }
+.chart-card { background: var(--et-surface); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-sm); padding: var(--et-space-4); }
+.chart-title { font-size: var(--et-text-caption); color: var(--et-fg); font-family: var(--et-font-display); font-weight: 600; margin-bottom: var(--et-space-3); }
+.chart-svg { width: 100%; height: auto; display: block; }
+.chart-svg text { font-family: var(--et-font-body); font-size: 12px; }
+.chart-svg .lbl { fill: var(--et-meta); }
+.chart-svg .grid { stroke: var(--et-border-soft); stroke-width: 1; }
+.chart-svg .axis { stroke: var(--et-border); stroke-width: 1; }
+.chart-svg .series { fill: none; stroke: var(--et-accent); stroke-width: 2; }
+.chart-svg .pt { fill: var(--et-accent); }
+.chart-svg .pt-warn { fill: var(--et-warn); }
+.chart-svg .gate { stroke: var(--et-warn); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.chart-svg .gate-lbl { fill: var(--et-warn); }
+.chart-note { color: var(--et-muted); font-size: var(--et-text-micro); margin-top: var(--et-space-2); }
+/* 检查器 */
+.inspector-head { display: flex; align-items: center; gap: var(--et-space-4); flex-wrap: wrap; margin-bottom: var(--et-space-4); }
+.inspector-title { display: flex; align-items: center; gap: var(--et-space-2); color: var(--et-fg); font-weight: 600; font-size: var(--et-text-body); }
+.inspector-title .icon { color: var(--et-accent); }
+.inspector-meta { list-style: none; display: flex; flex-wrap: wrap; gap: 4px var(--et-space-4); color: var(--et-muted); font-size: var(--et-text-caption); margin-left: auto; }
+.inspector { display: grid; grid-template-columns: minmax(280px, 5fr) minmax(320px, 7fr); gap: var(--et-space-5); align-items: start; }
+.inspector-col { display: grid; gap: 0; }
+/* 子代理树 */
+.tree, .tree ul { list-style: none; }
+.tree ul { margin-left: 14px; padding-left: 20px; position: relative; }
+.tree ul::before { content: ''; position: absolute; left: 0; top: -4px; bottom: 14px; border-left: 1px solid var(--et-border); }
+.tree li { position: relative; padding: 4px 0; }
+.tree ul > li::before { content: ''; position: absolute; left: -20px; top: 18px; width: 16px; border-top: 1px solid var(--et-border); }
+.tree ul > li:last-child::after { content: ''; position: absolute; left: -21px; top: 19px; bottom: -4px; background: var(--et-bg); width: 3px; }
+.tree-node {
+  display: inline-flex; align-items: center; gap: var(--et-space-2); flex-wrap: wrap;
+  padding: 6px 10px; border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-sm);
+  background: var(--et-surface); font-size: var(--et-text-caption); color: var(--et-fg);
+}
+.tree-node .role { color: var(--et-muted); font-size: var(--et-text-micro); }
+.tree-node.is-current { border-color: var(--et-accent); background: var(--et-accent-soft); }
+.tree-node.is-done { color: var(--et-fg-2); }
+.tree-note { color: var(--et-muted); font-size: var(--et-text-micro); margin-top: var(--et-space-3); }
+/* jobs */
+.job-list { list-style: none; display: grid; gap: var(--et-space-2); }
+.job-item {
+  display: flex; gap: 10px; align-items: flex-start;
+  border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-sm);
+  background: var(--et-surface); padding: 10px var(--et-space-3);
+}
+.job-item > .dot { margin-top: 6px; }
+.job-body { display: grid; gap: 2px; }
+.job-name { color: var(--et-fg); font-size: var(--et-text-caption); font-weight: 600; }
+.job-meta { color: var(--et-muted); font-size: var(--et-text-micro); }
+.jobs-done { margin-top: var(--et-space-2); }
+.jobs-done > summary { display: flex; align-items: center; gap: 6px; color: var(--et-muted); font-size: var(--et-text-caption); padding: 6px 0; min-height: 36px; }
+.jobs-done > summary:hover { color: var(--et-accent); }
+.jobs-done[open] > summary .icon { transform: rotate(90deg); }
+.jobs-done .icon { transition: transform var(--et-motion-fast) var(--et-ease); }
+.jobs-done .job-list { margin-top: var(--et-space-2); }
+/* 统计卡 */
+.stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--et-space-3); }
+.stat-card { background: var(--et-surface); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-sm); padding: var(--et-space-4); display: grid; gap: var(--et-space-3); }
+/* 响应式 */
+@media (max-width: 1100px) {
+  .metrics-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .charts { grid-template-columns: 1fr; }
+  .inspector { grid-template-columns: 1fr; }
+  .log-search { width: 180px; }
+}
+@media (max-width: 760px) {
+  .view-nav { position: static; }
+  .view { scroll-margin-top: 16px; }
+  .metrics, .metrics-4 { grid-template-columns: 1fr; }
+  .log-search { margin-left: 0; width: 100%; }
+  .log-entry > summary { flex-wrap: wrap; row-gap: 4px; }
+  .log-dur { margin-left: 0; }
+  .sse-chip { margin-left: 0; width: 100%; }
+  .inspector-meta { margin-left: 0; }
+}
+@media (max-width: 640px) {
+  .kanban { grid-auto-columns: minmax(232px, 82vw); }
+  .stat-grid { grid-template-columns: 1fr; }
+  .toolbar .chip { flex: 1 1 auto; justify-content: center; }
+}
+
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">跳到主内容</a>
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-palette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 0 0 0 17c1.4 0 2.2-.9 2.2-2.1 0-1.4 1-2.4 2.4-2.4h1.3a2.6 2.6 0 0 0 2.6-2.6A8.5 8.5 0 0 0 12 3.5z"/><circle cx="8" cy="9.2" r="1.15" fill="currentColor" stroke="none"/><circle cx="7.2" cy="13.6" r="1.15" fill="currentColor" stroke="none"/><circle cx="10.8" cy="16.8" r="1.15" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.3"/><path d="M15.4 15.4L20.5 20.5"/></symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6.5l5.5 5.5-5.5 5.5"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 9.5L12 15l5.5-5.5"/></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13.5 6.5L19 12l-5.5 5.5"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M7.5 20v-5.5M12 20v-10M16.5 20V5.5"/></symbol>
+    <symbol id="i-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17.5a8.5 8.5 0 0 1 17 0"/><path d="M12 17.5l4.2-5.4"/><circle cx="12" cy="17.5" r="1.4" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-trace" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 7.5a4.5 4.5 0 0 0 0 9c4.5 0 4.5-9 9-9a4.5 4.5 0 0 1 0 9c-4.5 0-4.5-9-9-9z"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-paperclip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 5.5v9.5a4.5 4.5 0 0 1-9 0V7a2.5 2.5 0 0 1 5 0v8"/></symbol>
+    <symbol id="i-memory" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8.2l7-3.2 7 3.2-7 3.2-7-3.2z"/><path d="M5 12.5l7 3.2 7-3.2"/><path d="M5 16.6l7 3.2 7-3.2"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4l1.8 2H19a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5z"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.3 2.4 3.5 5.3 3.5 8.5s-1.2 6.1-3.5 8.5c-2.3-2.4-3.5-5.3-3.5-8.5s1.2-6.1 3.5-8.5z"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2.8 12S6.4 5.5 12 5.5 21.2 12 21.2 12 17.6 18.5 12 18.5 2.8 12 2.8 12z"/><circle cx="12" cy="12" r="2.8"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 8.5h9.5A1.5 1.5 0 0 1 19.5 10v9.5a1.5 1.5 0 0 1-1.5 1.5H8.5A1.5 1.5 0 0 1 7 19.5V10a1.5 1.5 0 0 1 1.5-1.5z"/><path d="M15.5 8.5V5.5A2 2 0 0 0 13.5 3.5H5.5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M19.2 13.4l1.6 1.2-1.6 2.8-1.9-.6a7.6 7.6 0 0 1-2 1.2l-.3 2h-3.2l-.3-2a7.6 7.6 0 0 1-2-1.2l-1.9.6-1.6-2.8 1.5-1.2a7.7 7.7 0 0 1 0-2.4L4.1 9.2l1.6-2.8 1.9.6a7.6 7.6 0 0 1 2-1.2l.3-2h3.2l.3 2a7.6 7.6 0 0 1 2 1.2l1.9-.6 1.6 2.8-1.5 1.2a7.7 7.7 0 0 1 0 2.4z"/></symbol>
+    <symbol id="i-domain" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="6.5" width="17" height="12" rx="2.5" stroke-dasharray="2.6 2.6"/><circle cx="8.2" cy="12.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="15.8" cy="12.5" r="1.3" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4.5 13.5H11L9.5 22 19 10.5h-6.5L13 2Z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.8a5.6 5.6 0 0 0-5.6 5.6c0 4.6-1.9 6.1-1.9 6.1h15s-1.9-1.5-1.9-6.1A5.6 5.6 0 0 0 12 3.8z"/><path d="M10.3 18.9a1.9 1.9 0 0 0 3.4 0"/></symbol>
+    <symbol id="i-ticket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M11 9.5h6M11 14.5h3.5"/><circle cx="7.6" cy="12" r="1.3" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-worker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.2" r="3.4"/><path d="M5.5 20c.6-3.7 3.2-5.8 6.5-5.8s5.9 2.1 6.5 5.8"/></symbol>
+    <symbol id="i-flow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="4.8" cy="12" r="2.1"/><circle cx="19.2" cy="12" r="2.1"/><path d="M7.5 12h9"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-log" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h8.2L19 8.3V20.5H6z"/><path d="M14 3.5v5h5"/><path d="M9.2 12h6M9.2 15.5h4"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.6V12l3.1 2"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 5.8v12.4M14.8 5.8v12.4"/></symbol>
+    <symbol id="i-replay" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 12a7.5 7.5 0 1 1-3-6"/><path d="M16.6 2.6v3.5h3.5"/></symbol>
+    <symbol id="i-kanban" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.2 4.5v15M14.8 4.5v15"/></symbol>
+    <symbol id="i-comment" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6.3 4.5h11.4a2 2 0 0 1 2 2v6.9a2 2 0 0 1-2 2h-5.9l-4.6 4v-4h-.9a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2z"/></symbol>
+    <symbol id="i-cost" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.7 7.8l3.3 3.9 3.3-3.9M12 11.7v4.8M9.6 12.3h4.8"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5h2.4M3.5 12h2.4M3.5 17.5h2.4M9 6.5h11.5M9 12h11.5M9 17.5h7"/></symbol>
+  </defs>
+</svg>
+<header class="proto-header">
+  <div class="proto-header-inner">
+    <p class="proto-brand"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-bolt"/></svg>EternaAgent · 工作台原型</p>
+    <nav class="proto-nav" aria-label="原型页导航">
+      <a href="index.html">总览</a>
+      <a href="01-task-sidebar.html">任务侧栏</a>
+      <a href="02-attention-card.html">Attention 卡</a>
+      <a href="03-workbench-views.html" aria-current="page">工作台五视图</a>
+      <a href="04-flow-a11y-list.html">信息流 a11y 列表</a>
+    </nav>
+    <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false">
+      <svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-palette"/></svg>
+      <span class="theme-label">切换深色</span>
+    </button>
+  </div>
+  <p class="proto-note-bar">静态原型 · 无业务脚本（仅主题切换） · 令牌内联自 <code>packages/ui/src/tokens.ts</code></p>
+</header>
+<main id="main" class="page">
+  <div class="page-head">
+    <p class="kicker">原型三 · 30 号 §2 五视图一检查器 / §7 拍板</p>
+    <h1>工作台五视图 · 静态稿</h1>
+    <p class="lede">五视图一检查器：工作监控看板、信息流实时图（Canvas 的布局静态稿）、日志监控（摘要行 + 展开）、评测监控、worker 检查器。数据全部来自既有或 P1 已规划的事件面，传输统一 SSE（快照 + 增量，200ms 合批，30 §3）。本页为纯静态结构稿。</p>
+  </div>
+
+  <nav class="view-nav" aria-label="五视图导航">
+    <div class="view-nav-inner">
+      <a href="#v1"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-gauge"/></svg>工作监控</a>
+      <a href="#v2"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-flow"/></svg>信息流实时图</a>
+      <a href="#v3"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-log"/></svg>日志监控</a>
+      <a href="#v4"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-chart"/></svg>评测监控</a>
+      <a href="#v5"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-worker"/></svg>worker 检查器</a>
+    </div>
+  </nav>
+
+  <!-- ================= 视图一：工作监控 ================= -->
+  <section class="view" id="v1" aria-labelledby="h-v1">
+    <div class="view-head">
+      <p class="kicker">视图一</p>
+      <h2 id="h-v1">工作监控 · 工单看板</h2>
+    </div>
+    <p class="view-desc">工单按阶段分列：<code>person/*</code>（等人）、<code>working</code>（进行中）、<code>working/queued</code>（排队）、<code>idle</code>（空闲）。数据按 access realm 钳制：普通用户仅自己的工单，审批人见全租户待人项，管理员全量（30 §4-5、§7-3 拍板）。</p>
+
+    <div class="toolbar" role="group" aria-label="看板过滤">
+      <p class="toolbar-label">视角：</p>
+      <button class="chip" type="button">普通用户（仅自己的）</button>
+      <button class="chip" type="button">审批人（全租户待人）</button>
+      <button class="chip is-on" type="button" aria-pressed="true">管理员（全量）</button>
+      <p class="toolbar-label">阶段：</p>
+      <button class="chip is-on" type="button" aria-pressed="true">全部 <span class="num">7</span></button>
+      <button class="chip" type="button">等人 <span class="num">3</span></button>
+      <button class="chip" type="button">进行中 <span class="num">2</span></button>
+      <button class="chip" type="button">排队 <span class="num">1</span></button>
+      <button class="chip" type="button">空闲 <span class="num">1</span></button>
+    </div>
+
+    <div class="kanban" role="list" aria-label="工单按阶段分列">
+      <div class="kanban-col" role="list" aria-labelledby="col-person">
+        <h3 class="kanban-col-h" id="col-person"><span class="dot dot-wait-person dot-pulse" aria-hidden="true"></span>等人<span class="stage-code mono">person/*</span><span class="count badge badge-warn">3</span></h3>
+        <div class="kan-cards">
+          <a class="kan-card is-stuck" href="02-attention-card.html" role="listitem">
+            <span class="t">报价对比：口径确认</span>
+            <span class="m"><span class="mono">T-9c81</span><span>person/answer</span><span>等陈默回答</span><span class="num">4 小时</span></span>
+            <span class="m"><span class="badge badge-warn"><svg class="icon" width="12" height="12" aria-hidden="true"><use href="#i-bell"/></svg>Attention #12</span><span>卡点驻留</span></span>
+          </a>
+          <a class="kan-card is-stuck" href="02-attention-card.html" role="listitem">
+            <span class="t">付款申请：预付款审批</span>
+            <span class="m"><span class="mono">T-a21f</span><span>person/approve</span><span>等王琳批准 · R3</span><span class="num">1 小时 20 分</span></span>
+          </a>
+          <a class="kan-card is-stuck" href="01-task-sidebar.html#result-card" role="listitem">
+            <span class="t">客户答谢会物料</span>
+            <span class="m"><span class="mono">T-88b1</span><span>person/accept</span><span>等陈默验收</span><span class="num">6 分钟</span></span>
+          </a>
+        </div>
+      </div>
+
+      <div class="kanban-col" role="list" aria-labelledby="col-working">
+        <h3 class="kanban-col-h" id="col-working"><span class="dot dot-working" aria-hidden="true"></span>进行中<span class="stage-code mono">working</span><span class="count badge badge-accent">2</span></h3>
+        <div class="kan-cards">
+          <a class="kan-card" href="#v5" role="listitem">
+            <span class="t">合同审查</span>
+            <span class="m"><span class="mono">T-3f2a</span><span>worker legal-02</span><span class="num">22 分钟</span></span>
+          </a>
+          <a class="kan-card" href="#v5" role="listitem">
+            <span class="t">供应商背调</span>
+            <span class="m"><span class="mono">T-77c0</span><span>worker sourcing-01</span><span class="num">12 分钟</span></span>
+          </a>
+        </div>
+      </div>
+
+      <div class="kanban-col" role="list" aria-labelledby="col-queued">
+        <h3 class="kanban-col-h" id="col-queued"><span class="dot dot-queued" aria-hidden="true"></span>排队中<span class="stage-code mono">working/queued</span><span class="count badge badge-muted">1</span></h3>
+        <div class="kan-cards">
+          <a class="kan-card" href="04-flow-a11y-list.html" role="listitem">
+            <span class="t">活动排期</span>
+            <span class="m"><span class="mono">T-1d07</span><span>2/4 槽</span><span>预计 15 分钟后启动</span></span>
+          </a>
+        </div>
+      </div>
+
+      <div class="kanban-col" role="list" aria-labelledby="col-idle">
+        <h3 class="kanban-col-h" id="col-idle"><span class="dot dot-idle" aria-hidden="true"></span>空闲<span class="stage-code mono">idle</span><span class="count badge badge-muted">1</span></h3>
+        <div class="kan-cards">
+          <a class="kan-card" href="04-flow-a11y-list.html" role="listitem">
+            <span class="t">周报整理</span>
+            <span class="m"><span class="mono">T-55e9</span><span>观察模式 · 无待办</span></span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="sub-h">冲突三指标（27 号 D2）</h3>
+    <div class="metrics">
+      <div class="metric-card">
+        <p class="metric-label">attach 次数 · 本周</p>
+        <p class="metric-value num">6</p>
+        <p class="metric-sub">同线程候选挂接 · 环比 <span class="num">-2</span></p>
+      </div>
+      <div class="metric-card">
+        <p class="metric-label">duplicate 比例</p>
+        <p class="metric-value num">3.2%</p>
+        <p class="metric-sub">幂等 trigger id 查重 · 阈值 &lt; 5% <span class="badge badge-success">达标</span></p>
+      </div>
+      <div class="metric-card">
+        <p class="metric-label">插队次数 · 本周</p>
+        <p class="metric-value num">1</p>
+        <p class="metric-sub">人插队 +1 槽（WorkerSlots），唤醒优先于新 launch</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 视图二：信息流实时图 ================= -->
+  <section class="view" id="v2" aria-labelledby="h-v2">
+    <div class="view-head">
+      <p class="kicker">视图二 · 旗舰视图</p>
+      <h2 id="h-v2">信息流实时图 · 静态稿</h2>
+    </div>
+    <p class="view-desc">Trigger→Thread→Eval→Decision→Ticket→Assignment→Worker→Report→Outbox 活图：节点即领域对象，边即 DomainEvents，节点状态实时跳动，<strong>person/* 卡点以警示色驻留</strong>（30 §2-1）。实现为 <strong>Canvas 渲染</strong>（§7-1 拍板）：hover / 点击 / 拖拽手写，主题令牌渲染时经 <code>getComputedStyle</code> 读取；本节为节点布局与状态静态稿，等价列表视图见<a href="04-flow-a11y-list.html">原型四</a>。</p>
+
+    <div class="toolbar" role="group" aria-label="实时图控制">
+      <button class="btn btn-secondary" type="button"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-pause"/></svg>暂停</button>
+      <label class="replay-label" for="replay-select">单工单回放</label>
+      <select class="text-input" id="replay-select">
+        <option>T-9c81 报价对比：口径确认</option>
+        <option>T-a21f 付款申请：预付款审批</option>
+      </select>
+      <button class="btn btn-secondary" type="button"><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-replay"/></svg>重放事件序列</button>
+      <p class="sse-chip"><span class="dot dot-ready" aria-hidden="true"></span>SSE 已连接 · 快照已加载 · 合批 200ms（§7-2）</p>
+    </div>
+
+    <div class="graph-wrap">
+      <svg class="flow-svg" viewBox="0 0 960 400" role="img" aria-labelledby="flow-title flow-desc">
+        <title id="flow-title">信息流实时图：九个领域节点的静态布局稿</title>
+        <desc id="flow-desc">第一行从左到右：Trigger 触发、Thread 线程（活跃）、Eval 评估（活跃，合批 200ms）、Decision 裁决；折向下到第二行从右到左：Ticket 工单、Assignment 委派（卡点：3 单等人，最长 4 小时）、Worker 执行（2/4 槽，活跃）、Report 报告（1 待发）、Outbox 出箱。加粗强调线为工单 T-9c81 的回放轨迹。完整可读清单见原型四等价列表视图。</desc>
+        <defs>
+          <marker id="arrowMeta" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" fill="var(--et-meta)"/></marker>
+          <marker id="arrowAccent" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" fill="var(--et-accent)"/></marker>
+        </defs>
+        <!-- 回放轨迹（T-9c81 事件序列，绘制于节点之下） -->
+        <polyline class="freplay" points="110,70 350,70 590,70 830,70 830,240 650,240"/>
+        <!-- 事件边：DomainEvents -->
+        <path class="fedge" d="M180 70 L274 70" marker-end="url(#arrowMeta)"/>
+        <path class="fedge-live" d="M420 70 L514 70" marker-end="url(#arrowAccent)"/>
+        <path class="fedge" d="M660 70 L754 70" marker-end="url(#arrowMeta)"/>
+        <path class="fedge" d="M830 100 L830 204" marker-end="url(#arrowMeta)"/>
+        <path class="fedge-live" d="M760 240 L726 240" marker-end="url(#arrowAccent)"/>
+        <path class="fedge" d="M580 240 L546 240" marker-end="url(#arrowMeta)"/>
+        <path class="fedge" d="M400 240 L366 240" marker-end="url(#arrowMeta)"/>
+        <path class="fedge" d="M220 240 L186 240" marker-end="url(#arrowMeta)"/>
+        <!-- 第一行 -->
+        <g class="fnode" transform="translate(40,40)">
+          <rect width="140" height="60" rx="4"/><circle class="fdot" cx="14" cy="16" r="4"/>
+          <text class="ftitle" x="26" y="21">Trigger 触发</text>
+          <text class="fsub" x="12" y="44">今日 23 次</text>
+        </g>
+        <g class="fnode is-active" transform="translate(280,40)">
+          <rect width="140" height="60" rx="4"/><circle class="fdot" cx="14" cy="16" r="4"/>
+          <text class="ftitle" x="26" y="21">Thread 线程</text>
+          <text class="fsub" x="12" y="44">2 运行</text>
+        </g>
+        <g class="fnode is-active" transform="translate(520,40)">
+          <rect width="140" height="60" rx="4"/><circle class="fdot" cx="14" cy="16" r="4"/>
+          <text class="ftitle" x="26" y="21">Eval 评估</text>
+          <text class="fsub" x="12" y="44">合批 200ms</text>
+        </g>
+        <g class="fnode" transform="translate(760,40)">
+          <rect width="140" height="60" rx="4"/><circle class="fdot" cx="14" cy="16" r="4"/>
+          <text class="ftitle" x="26" y="21">Decision 裁决</text>
+          <text class="fsub" x="12" y="44">accept 21 · stop 2</text>
+        </g>
+        <!-- 第二行 -->
+        <g class="fnode" transform="translate(760,210)">
+          <rect width="140" height="60" rx="4"/><circle class="fdot" cx="14" cy="16" r="4"/>
+          <text class="ftitle" x="26" y="21">Ticket 工单</text>
+          <text class="fsub" x="12" y="44">7 活跃</text>
+        </g>
+        <g class="fnode is-stuck" transform="translate(580,210)">
+          <rect width="140" height="60" rx="4"/><circle class="fdot" cx="14" cy="16" r="4"/>
+          <text class="ftitle" x="26" y="21">Assignment 委派</text>
+          <text class="fsub" x="12" y="44">3 单等人 · 最长 4h</text>
+        </g>
+        <g class="fnode is-active" transform="translate(400,210)">
+          <rect width="140" height="60" rx="4"/><circle class="fdot" cx="14" cy="16" r="4"/>
+          <text class="ftitle" x="26" y="21">Worker 执行</text>
+          <text class="fsub" x="12" y="44">2/4 槽</text>
+        </g>
+        <g class="fnode is-active" transform="translate(220,210)">
+          <rect width="140" height="60" rx="4"/><circle class="fdot" cx="14" cy="16" r="4"/>
+          <text class="ftitle" x="26" y="21">Report 报告</text>
+          <text class="fsub" x="12" y="44">1 待发</text>
+        </g>
+        <g class="fnode" transform="translate(40,210)">
+          <rect width="140" height="60" rx="4"/><circle class="fdot" cx="14" cy="16" r="4"/>
+          <text class="ftitle" x="26" y="21">Outbox 出箱</text>
+          <text class="fsub" x="12" y="44">今日已发 5</text>
+        </g>
+        <!-- 卡点高亮气泡 -->
+        <path class="fedge fbubble-link" d="M650 270 L650 306" marker-end="url(#arrowMeta)"/>
+        <rect class="fbubble-rect" x="440" y="310" width="420" height="64" rx="4"/>
+        <text class="fbubble-t1" x="650" y="336" text-anchor="middle">person/* 卡点：3 单等人 · 最长 4 小时</text>
+        <text class="fbubble-t2" x="650" y="358" text-anchor="middle">person/* 阶段工单在图上以警示色驻留，答复即消（30 §2-1）</text>
+      </svg>
+    </div>
+
+    <h3 class="sub-h">图例</h3>
+    <div class="legend">
+      <p class="legend-item"><span class="legend-swatch" aria-hidden="true"></span>待命节点（默认边框）</p>
+      <p class="legend-item"><span class="legend-swatch sw-active" aria-hidden="true"></span>活跃节点（事件流动中）</p>
+      <p class="legend-item"><span class="legend-swatch sw-stuck" aria-hidden="true"></span>卡点节点（person/* 等人驻留）</p>
+      <p class="legend-item"><span class="legend-swatch sw-error" aria-hidden="true"></span>异常节点（fail-closed，本稿未触发）</p>
+      <p class="legend-item"><span class="legend-line" aria-hidden="true"></span>事件边（DomainEvents 流向）</p>
+      <p class="legend-item"><span class="legend-line ln-live" aria-hidden="true"></span>活跃边（200ms 合批推送）</p>
+      <p class="legend-item"><span class="legend-line ln-replay" aria-hidden="true"></span>回放轨迹（单工单事件序列）</p>
+    </div>
+
+    <ul class="note-list">
+      <li class="note"><strong>Canvas 拍板（§7-1）</strong>：性能优先；hover / 点击 / 拖拽手写，画布不吃 CSS——双主题切换经 <code>getComputedStyle</code> 读取 <code>--et-*</code> 重绘；a11y 补偿为旁挂等价列表视图（原型四）。</li>
+      <li class="note"><strong>实时语义（§7-2）</strong>：200ms 合批 + 暂停 + 单工单回放（数据源 audit trace）；<strong>全局时间轴回放不做</strong>。</li>
+    </ul>
+  </section>
+
+  <!-- ================= 视图三：日志监控 ================= -->
+  <section class="view" id="v3" aria-labelledby="h-v3">
+    <div class="view-head">
+      <p class="kicker">视图三</p>
+      <h2 id="h-v3">日志监控 · 摘要行 + 展开态</h2>
+    </div>
+    <p class="view-desc">按工单聚合 audit trace（Trigger→候选卡→Decision 理由→委派→报告→门禁全链）+ worker 会话日志，可过滤检索（30 §2）。默认摘要行 = 工具名 / 参数摘要 / 结果状态 / 耗时；展开全文过 governance <code>pii.ts</code> 可插拔正则——原始全文已在 audit NDJSON，展示层<strong>只过滤不删改</strong>（§7-4 拍板）。</p>
+
+    <div class="toolbar" role="group" aria-label="日志过滤">
+      <p class="toolbar-label">工单：</p>
+      <button class="chip is-on" type="button" aria-pressed="true"><span class="mono">T-9c81</span></button>
+      <button class="chip" type="button"><span class="mono">T-a21f</span></button>
+      <button class="chip" type="button"><span class="mono">T-3f2a</span></button>
+      <label class="visually-hidden" for="log-search">检索日志</label>
+      <input class="text-input log-search" id="log-search" type="search" placeholder="检索工具 / 参数 / 状态">
+    </div>
+
+    <div class="log-list">
+      <details class="log-entry">
+        <summary>
+          <span class="log-time num">14:02:11</span>
+          <span class="log-src">Trigger</span>
+          <span class="log-sum">飞书群 @agent · 幂等 id <span class="mono">tri_9f21</span></span>
+          <span class="badge badge-accent">accept</span>
+          <span class="log-dur num">84ms</span>
+          <svg class="icon chev" width="16" height="16" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </summary>
+        <div class="log-full">
+          <p>触发原文逐字保留（28 §5 D3）：「帮我把这三家供应商的报价做成对比，出一版给采购总监的材料。」</p>
+          <p>准入矩阵：名单内（采购三部）+ 明确 @ → explicit。附件 3 份（quote_a/b/c.pdf）。</p>
+        </div>
+      </details>
+      <details class="log-entry">
+        <summary>
+          <span class="log-time num">14:02:13</span>
+          <span class="log-src">Eval</span>
+          <span class="log-sum">候选 2 · attach 0 · duplicate 0</span>
+          <span class="badge badge-accent">done</span>
+          <span class="log-dur num">41ms</span>
+          <svg class="icon chev" width="16" height="16" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </summary>
+        <div class="log-full">
+          <p>线程上全部工单可见（含已结束）；无重复 accept（27 号机制③ 幂等 + 查重）。</p>
+        </div>
+      </details>
+      <details class="log-entry" open>
+        <summary>
+          <span class="log-time num">14:02:13</span>
+          <span class="log-src">Decision</span>
+          <span class="log-sum">accept → 建票 <span class="mono">T-9c81</span></span>
+          <span class="badge badge-accent">accept</span>
+          <span class="log-dur num">12ms</span>
+          <svg class="icon chev" width="16" height="16" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </summary>
+        <div class="log-full">
+          <p>理由：名单内 + 明确 @；范围 = 三家供应商报价对比；Mandate v3 · L2 委派；stop 候选 0。</p>
+          <p>策略版本 <span class="mono">hitl.yaml@v7</span> 随单固化，后续不可变（24 §7.5 合规优势）。</p>
+        </div>
+      </details>
+      <details class="log-entry">
+        <summary>
+          <span class="log-time num">14:02:14</span>
+          <span class="log-src">Assignment</span>
+          <span class="log-sum">worker <span class="mono">event-planning-01</span> · 槽位 2/4</span>
+          <span class="badge badge-accent">done</span>
+          <span class="log-dur num">8ms</span>
+          <svg class="icon chev" width="16" height="16" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </summary>
+        <div class="log-full"><p>一工单一目录：<span class="mono">.ticket/T-9c81/</span>（空间分区，27 号防线①）。</p></div>
+      </details>
+      <details class="log-entry">
+        <summary>
+          <span class="log-time num">14:09:47</span>
+          <span class="log-src">工具 fs.read</span>
+          <span class="log-sum">参数：3 个文件（quote_a.pdf …）</span>
+          <span class="badge badge-success">成功</span>
+          <span class="log-dur num">1.2s</span>
+          <svg class="icon chev" width="16" height="16" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </summary>
+        <div class="log-full">
+          <p>参数全文：<span class="mono">fs.read paths=[quote_a.pdf, quote_b.pdf, quote_c.pdf] chunk=64k</span></p>
+          <p>结果摘要：共 12 页报价表；联系人 <span class="mono">138****5678</span> / 邮箱 <span class="mono">j***@corp.com</span>（展示层 PII 正则脱敏）。</p>
+        </div>
+      </details>
+      <details class="log-entry">
+        <summary>
+          <span class="log-time num">14:10:02</span>
+          <span class="log-src">工具 web.fetch</span>
+          <span class="log-sum">域名 <span class="mono">supplier-b.com</span> 不在 egress 白名单</span>
+          <span class="badge badge-danger">拒绝</span>
+          <span class="log-dur num">96ms</span>
+          <svg class="icon chev" width="16" height="16" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </summary>
+        <div class="log-full">
+          <p>governance deny-wins：目标域未在白名单；worker 改走人工附件路径，未重试。</p>
+        </div>
+      </details>
+      <details class="log-entry">
+        <summary>
+          <span class="log-time num">14:18:30</span>
+          <span class="log-src">Report</span>
+          <span class="log-sum">blocked → Attention #12 · 报价口径不一致</span>
+          <span class="badge badge-warn">blocked</span>
+          <span class="log-dur num">200ms</span>
+          <svg class="icon chev" width="16" height="16" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </summary>
+        <div class="log-full"><p>半成品标为半成品：材料完成 80%，口径问题阻塞交付（诚实报告纪律，24 §8）。</p></div>
+      </details>
+      <details class="log-entry">
+        <summary>
+          <span class="log-time num">14:31:05</span>
+          <span class="log-src">Outbox</span>
+          <span class="log-sum">结果发回原对话（2 文件 + 摘要卡）</span>
+          <span class="badge badge-success">成功</span>
+          <span class="log-dur num">340ms</span>
+          <svg class="icon chev" width="16" height="16" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </summary>
+        <div class="log-full"><p>发回渠道 = 发起渠道（飞书群「采购三部」）；验收入口随卡附带。</p></div>
+      </details>
+    </div>
+
+    <h3 class="sub-h">worker 会话日志（event-planning-01）</h3>
+    <div class="log-list">
+      <details class="log-entry">
+        <summary>
+          <span class="log-time num">14:09:50</span>
+          <span class="log-src">session</span>
+          <span class="log-sum">轮次 6 · 解析报价表 · 上下文 41%</span>
+          <span class="badge badge-muted">info</span>
+          <span class="log-dur num">—</span>
+          <svg class="icon chev" width="16" height="16" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </summary>
+        <div class="log-full"><p>fs.read 完成 3 份；发现 A 含税 / B 不含税口径差异，转入比对分支。</p></div>
+      </details>
+      <details class="log-entry">
+        <summary>
+          <span class="log-time num">14:10:03</span>
+          <span class="log-src">session</span>
+          <span class="log-sum">web.fetch 被拒 · 转人工附件路径</span>
+          <span class="badge badge-warn">warn</span>
+          <span class="log-dur num">—</span>
+          <svg class="icon chev" width="16" height="16" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </summary>
+        <div class="log-full"><p>egress 白名单拒once；不改判、不重试（fail-closed）。</p></div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ================= 视图四：评测监控 ================= -->
+  <section class="view" id="v4" aria-labelledby="h-v4">
+    <div class="view-head">
+      <p class="kicker">视图四</p>
+      <h2 id="h-v4">评测监控 · 金集趋势与衰减</h2>
+    </div>
+    <p class="view-desc">金集通过率趋势、路由金集衰减（28 §5：压缩前后通过率差 ≤ 2pp 视为无衰减）、漂移检测曲线。数据源 dsh-evals 结果 + observe（30 §2）。</p>
+
+    <div class="metrics metrics-4">
+      <div class="metric-card">
+        <p class="metric-label">金集通过率 · 最近跑批</p>
+        <p class="metric-value num">92.4%</p>
+        <p class="metric-sub">环比 <span class="num">+0.6pp</span> · 金集 30 条</p>
+      </div>
+      <div class="metric-card">
+        <p class="metric-label">路由金集衰减</p>
+        <p class="metric-value num">0.8pp</p>
+        <p class="metric-sub">会话深度 8 · 阈值 ≤ 2pp <span class="badge badge-success">达标</span></p>
+      </div>
+      <div class="metric-card">
+        <p class="metric-label">漂移检测（observe）</p>
+        <p class="metric-value">无警报</p>
+        <p class="metric-sub">连续 14 天无漂移</p>
+      </div>
+      <div class="metric-card">
+        <p class="metric-label">本周回归跑批</p>
+        <p class="metric-value num">14 次</p>
+        <p class="metric-sub">prompt 版本绑定请求（24 §7.6）</p>
+      </div>
+    </div>
+
+    <div class="charts">
+      <div class="chart-card">
+        <h3 class="chart-title">金集通过率趋势（近 7 次跑批）</h3>
+        <svg class="chart-svg" viewBox="0 0 520 250" role="img" aria-labelledby="c1-title c1-desc">
+          <title id="c1-title">金集通过率趋势折线图</title>
+          <desc id="c1-desc">近 7 次跑批通过率依次为 90.2、91.0、89.8、91.5、92.0、91.2、92.4；达标线 90%。第 3 次 89.8% 低于达标线，其余均达标。</desc>
+          <line class="grid" x1="50" y1="200" x2="500" y2="200"/><text class="lbl" x="44" y="204" text-anchor="end">80</text>
+          <line class="grid" x1="50" y1="155" x2="500" y2="155"/><text class="lbl" x="44" y="159" text-anchor="end">85</text>
+          <line class="grid" x1="50" y1="110" x2="500" y2="110"/><text class="lbl" x="44" y="114" text-anchor="end">90</text>
+          <line class="grid" x1="50" y1="65" x2="500" y2="65"/><text class="lbl" x="44" y="69" text-anchor="end">95</text>
+          <line class="grid" x1="50" y1="20" x2="500" y2="20"/><text class="lbl" x="44" y="24" text-anchor="end">100</text>
+          <line class="axis" x1="50" y1="20" x2="50" y2="200"/><line class="axis" x1="50" y1="200" x2="500" y2="200"/>
+          <line class="gate" x1="50" y1="110" x2="500" y2="110"/><text class="gate-lbl" x="496" y="104" text-anchor="end">达标线 90%</text>
+          <polyline class="series" points="80,108.2 145,101 210,111.8 275,96.5 340,92 405,99.2 470,88.4"/>
+          <circle class="pt" cx="80" cy="108.2" r="3"/><circle class="pt" cx="145" cy="101" r="3"/><circle class="pt pt-warn" cx="210" cy="111.8" r="3.5"/><circle class="pt" cx="275" cy="96.5" r="3"/><circle class="pt" cx="340" cy="92" r="3"/><circle class="pt" cx="405" cy="99.2" r="3"/><circle class="pt" cx="470" cy="88.4" r="3"/>
+          <text class="lbl" x="80" y="218" text-anchor="middle">第 1 次</text>
+          <text class="lbl" x="470" y="218" text-anchor="middle">第 7 次</text>
+          <text class="lbl" x="470" y="238" text-anchor="end">通过率 %</text>
+        </svg>
+        <p class="chart-note">第 3 次 89.8% 触发达标线复核（dsh-evals 回归门）。</p>
+      </div>
+
+      <div class="chart-card">
+        <h3 class="chart-title">路由金集衰减曲线（压缩前后通过率差）</h3>
+        <svg class="chart-svg" viewBox="0 0 520 250" role="img" aria-labelledby="c2-title c2-desc">
+          <title id="c2-title">路由金集衰减折线图</title>
+          <desc id="c2-desc">会话深度 1 至 8 的衰减依次为 0.2、0.5、0.4、0.8、0.7、0.9、0.8、1.1 个百分点；阈值 2 个百分点，全程未超标。</desc>
+          <line class="grid" x1="50" y1="200" x2="500" y2="200"/><text class="lbl" x="44" y="204" text-anchor="end">0</text>
+          <line class="grid" x1="50" y1="128" x2="500" y2="128"/><text class="lbl" x="44" y="132" text-anchor="end">1</text>
+          <line class="grid" x1="50" y1="56" x2="500" y2="56"/><text class="lbl" x="44" y="60" text-anchor="end">2</text>
+          <line class="axis" x1="50" y1="20" x2="50" y2="200"/><line class="axis" x1="50" y1="200" x2="500" y2="200"/>
+          <line class="gate" x1="50" y1="56" x2="500" y2="56"/><text class="gate-lbl" x="496" y="50" text-anchor="end">阈值 2pp（28 §5）</text>
+          <polyline class="series" points="80,185.6 136,171.2 192,164 248,142.4 304,149.6 359,135.2 415,142.4 470,120.8"/>
+          <circle class="pt" cx="80" cy="185.6" r="3"/><circle class="pt" cx="136" cy="171.2" r="3"/><circle class="pt" cx="192" cy="164" r="3"/><circle class="pt" cx="248" cy="142.4" r="3"/><circle class="pt" cx="304" cy="149.6" r="3"/><circle class="pt" cx="359" cy="135.2" r="3"/><circle class="pt" cx="415" cy="142.4" r="3"/><circle class="pt" cx="470" cy="120.8" r="3"/>
+          <text class="lbl" x="80" y="218" text-anchor="middle">深度 1</text>
+          <text class="lbl" x="470" y="218" text-anchor="middle">深度 8</text>
+          <text class="lbl" x="470" y="238" text-anchor="end">衰减 pp</text>
+        </svg>
+        <p class="chart-note">压缩前后各跑一遍路由金集；衰减超标调摘要档位，不靠 prompt 硬扛（28 §5）。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 视图五：worker 检查器 ================= -->
+  <section class="view" id="v5" aria-labelledby="h-v5">
+    <div class="view-head">
+      <p class="kicker">视图五</p>
+      <h2 id="h-v5">worker 检查器 · 单 worker 深视图</h2>
+    </div>
+    <p class="view-desc">子代理树（27 号三层权力结构的实况）、运行中 jobs、工具调用历史、上下文占用 %、成本累计（30 §2-5）。数据源：上游 session / jobs 事件 + R1 预算数据。</p>
+
+    <div class="inspector-head card">
+      <p class="inspector-title"><svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-worker"/></svg>worker <span class="mono">event-planning-01</span></p>
+      <ul class="inspector-meta">
+        <li>工单 <span class="mono">T-9c81</span></li>
+        <li>运行 <span class="num">22 分钟</span></li>
+        <li>preset standard（前台 60 秒转后台）</li>
+        <li>槽位 <span class="num">2/4</span></li>
+        <li>域包 event-planning</li>
+      </ul>
+    </div>
+
+    <div class="inspector">
+      <div class="inspector-col">
+        <h3 class="sub-h">子代理树（三层权力结构，27 §2）</h3>
+        <ul class="tree">
+          <li>
+            <span class="tree-node"><span class="dot dot-idle" aria-hidden="true"></span>Orchestrator<span class="role">主 Session · 组织层</span></span>
+            <ul>
+              <li>
+                <span class="tree-node is-current"><span class="dot dot-working" aria-hidden="true"></span>worker event-planning-01<span class="role">T-9c81 · 战术层</span></span>
+                <ul>
+                  <li><span class="tree-node is-done"><span class="dot dot-ready" aria-hidden="true"></span>subagent 调查-报价A<span class="role">完成 · 3 分钟</span></span></li>
+                  <li><span class="tree-node"><span class="dot dot-working" aria-hidden="true"></span>subagent 调查-报价B<span class="role">运行中 · 2 分钟 · 执行层</span></span></li>
+                  <li><span class="tree-node"><span class="dot dot-queued" aria-hidden="true"></span>subagent reviewer<span class="role">排队 · 只读 preset</span></span></li>
+                </ul>
+              </li>
+            </ul>
+          </li>
+        </ul>
+        <p class="tree-note">subagent 借 worker 权限、只向 worker 回复；输出落 <span class="mono">.ticket/T-9c81/</span> 不落消息（27 §2.1 纪律 3）。</p>
+
+        <h3 class="sub-h">运行中 jobs（2）</h3>
+        <ul class="job-list">
+          <li class="job-item">
+            <span class="dot dot-working" aria-hidden="true"></span>
+            <span class="job-body"><span class="job-name">解析 quote_b.pdf</span><span class="job-meta">后台 job #31 · 运行 <span class="num">2 分钟</span></span></span>
+          </li>
+          <li class="job-item">
+            <span class="dot dot-working" aria-hidden="true"></span>
+            <span class="job-body"><span class="job-name">汇总表格生成</span><span class="job-meta">前台 · 运行 <span class="num">1 分钟</span></span></span>
+          </li>
+        </ul>
+        <details class="jobs-done">
+          <summary><svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-chevron-right"/></svg>已结束 jobs（4）</summary>
+          <ul class="job-list is-done">
+            <li class="job-item"><span class="dot dot-ready" aria-hidden="true"></span><span class="job-body"><span class="job-name">解析 quote_a.pdf</span><span class="job-meta">3 分钟 · 成功</span></span></li>
+            <li class="job-item"><span class="dot dot-ready" aria-hidden="true"></span><span class="job-body"><span class="job-name">解析 quote_c.pdf</span><span class="job-meta">2 分钟 · 成功</span></span></li>
+            <li class="job-item"><span class="dot dot-ready" aria-hidden="true"></span><span class="job-body"><span class="job-name">口径比对</span><span class="job-meta">1 分钟 · 成功</span></span></li>
+            <li class="job-item"><span class="dot dot-ready" aria-hidden="true"></span><span class="job-body"><span class="job-name">索引构建</span><span class="job-meta">40 秒 · 成功</span></span></li>
+          </ul>
+        </details>
+      </div>
+
+      <div class="inspector-col">
+        <h3 class="sub-h">工具调用历史</h3>
+        <div class="table-scroll">
+          <table>
+            <caption>worker event-planning-01 · 本工单</caption>
+            <thead>
+              <tr><th scope="col">时间</th><th scope="col">工具</th><th scope="col">参数摘要</th><th scope="col">状态</th><th scope="col">耗时</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="num">14:09:47</td><td class="mono">fs.read</td><td>quote_a.pdf 等 3 个文件</td><td><span class="badge badge-success">成功</span></td><td class="num">1.2s</td></tr>
+              <tr><td class="num">14:10:02</td><td class="mono">web.fetch</td><td>supplier-b.com · 白名单外</td><td><span class="badge badge-danger">拒绝</span></td><td class="num">96ms</td></tr>
+              <tr><td class="num">14:12:18</td><td class="mono">web.search</td><td>报价 含税 口径</td><td><span class="badge badge-success">成功</span></td><td class="num">2.1s</td></tr>
+              <tr><td class="num">14:15:40</td><td class="mono">shell.python</td><td>calc_tax.py 换算脚本</td><td><span class="badge badge-success">成功</span></td><td class="num">1.8s</td></tr>
+              <tr><td class="num">14:18:30</td><td class="mono">report.write</td><td>.ticket/T-9c81/report.md</td><td><span class="badge badge-success">成功</span></td><td class="num">40ms</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 class="sub-h">上下文占用与成本</h3>
+        <div class="stat-grid">
+          <div class="stat-card">
+            <p class="metric-label">上下文占用 <span class="num">68%</span></p>
+            <div class="meter-wrap">
+              <p class="meter" role="img" aria-label="上下文占用 68%，压缩阈值 80%"><span style="width: 68%"></span></p>
+              <span class="meter-threshold" style="left: 80%" aria-hidden="true"></span>
+            </div>
+            <p class="metric-sub">阈值 80% 触发分层压缩（28 号） · 系统 12% / 会话 41% / 工单档案 15%</p>
+          </div>
+          <div class="stat-card">
+            <p class="metric-label">成本累计 <span class="num">¥3.42</span> / 预算 <span class="num">¥8.00</span></p>
+            <div class="meter-wrap">
+              <p class="meter" role="img" aria-label="成本 3.42 元，占预算 8 元的 43%"><span style="width: 43%"></span></p>
+            </div>
+            <p class="metric-sub">tokens <span class="num">184k</span>（输入 160k / 输出 24k） · maxTurns <span class="num">32/60</span> · 预算守卫 R1</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="proto-footer">
+  <p>设计令牌实值内联自 <code>packages/ui/src/tokens.ts</code>（WEBFLOW_TOKENS_CSS + SHARED）。界面图标为内联 SVG，遵循 <code>docs/design/iconography.md</code>：24 网格 / 1.75 描边 / 圆头圆角 / currentColor；其中 bell、ticket、worker、flow、log、clock、pause、replay、kanban、comment、cost、list 为原型新增提案，落库时按 iconography §6 进 <code>packages/ui/src/icon-data.ts</code> 共享集合。</p>
+  <p>依据文档：<code>docs/design/30-Subagent工作台与可视化监控.md</code>（§2 五视图+检查器、§4 UI 铁律、§7 拍板）；<code>docs/design/24-主动工作体系融合设计</code> §7.2 五角色五种界面 / §7.3 端到端叙事 / §7.6 风险对策；27 号 D2 冲突三指标与三层权力结构；28 号 §5 路由金集 / §6 活跃工单清单；<code>frontend-style.md</code> v3.2 / <code>design-tokens.md</code> / <code>iconography.md</code>。</p>
+</footer>
+<script>
+(function () {
+  var root = document.documentElement;
+  var btn = document.getElementById('themeToggle');
+  if (!btn) return;
+  function isDark() {
+    var t = root.getAttribute('data-eterna-theme');
+    return t === 'dark' || (t !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+  function sync() {
+    btn.setAttribute('aria-pressed', String(isDark()));
+    var label = btn.querySelector('.theme-label');
+    if (label) label.textContent = isDark() ? '切换浅色' : '切换深色';
+  }
+  btn.addEventListener('click', function () {
+    root.setAttribute('data-eterna-theme', isDark() ? 'light' : 'dark');
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>
