@@ -33,8 +33,12 @@ export function defineInstallPersonalPluginTool(deps: {
       'UI 型(dsh.client)与 bundle 型(dsh.bundle.patch)不支持,需管理员走 bundle 安装。' +
       '装载成功返回注册的工具名(自动加 user_<账号>_ 前缀);如需全员可用,引导用户在设置弹窗「我的插件」发起转内置(管理员审批)。',
     parameters: {
-      dir: { type: 'string', required: true, description: '插件目录名(相对当前用户 plugins 目录)或该目录绝对路径' },
-      name: { type: 'string', description: '登记名(缺省取目录名);与既有个人插件同名将更新到新目录' },
+      type: 'object',
+      properties: {
+        dir: { type: 'string', description: '插件目录名(相对当前用户 plugins 目录)或该目录绝对路径' },
+        name: { type: 'string', description: '登记名(缺省取目录名);与既有个人插件同名将更新到新目录' },
+      },
+      required: ['dir'],
     },
     output: {
       schema: { type: 'string' },

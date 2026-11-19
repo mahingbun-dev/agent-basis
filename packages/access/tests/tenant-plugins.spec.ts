@@ -35,9 +35,10 @@ function writeManifestOnly(dir: string, manifest: Record<string, unknown>): stri
   return dir
 }
 
-/** tools 记录器假件:登记名+when 存档;disposer 标记注销。 */
+/** tools 记录器假件:登记名+parameters+when 存档;disposer 标记注销。 */
 interface RecordedTool {
   name: string
+  parameters: unknown
   when: TenantPluginWhen | undefined
   disposed: boolean
 }
@@ -47,7 +48,7 @@ function recorderTools(): { face: TenantPluginToolsFace; registered: RecordedToo
     registered,
     face: {
       register(definition, options) {
-        const row = { name: String(definition.name), when: options?.when, disposed: false }
+        const row = { name: String(definition.name), parameters: definition.parameters, when: options?.when, disposed: false }
         registered.push(row)
         return () => { row.disposed = true }
       },
@@ -118,7 +119,7 @@ describe('T6 装载器:契约 fail-closed', () => {
 
 describe('T6 装载器:受限 ctx 与生命周期', () => {
   let dir: string
-  let registered: Array<{ name: string; when: TenantPluginWhen | undefined; disposed: boolean }>
+  let registered: Array<{ name: string; parameters: unknown; when: TenantPluginWhen | undefined; disposed: boolean }>
   let owners: Map<string, number>
   let loader: ReturnType<typeof createTenantPluginLoader>
 
@@ -167,6 +168,39 @@ describe('T6 装载器:受限 ctx 与生命周期', () => {
     expect(rs.ok).toBe(true)
     expect(rs.tools).toEqual(['shared_wave'])
     expect(registered[1]?.when).toBeUndefined()
+  })
+
+  it('参数 schema 归一化:个人插件裸 properties 映射收敛为 JSON Schema(2026-11-19 MiMo 400)', async () => {
+    const plugin = join(dir, 'bare')
+    mkdirSync(plugin, { recursive: true })
+    writeFileSync(join(plugin, 'package.json'), JSON.stringify({ name: 'f', version: '0.0.0', type: 'module', main: 'index.js' }))
+    writeFileSync(join(plugin, 'index.js'), [
+      'export const inject = ["tools"]',
+      'export function apply(ctx) {',
+      '  ctx.tools.register({',
+      '    name: "bare",',
+      '    description: "bare schema fixture",',
+      '    parameters: {',
+      '      title: { type: "string", description: "标题" },',
+      '      description: { type: "string", description: "描述" },',
+      '      dir: { type: "string", required: true, description: "目录" },',
+      '    },',
+      '    output: { schema: { type: "string" }, render: (_a, v) => [{ type: "text", text: String(v) }] },',
+      '    execute() { return "ok" },',
+      '  })',
+      '}',
+    ].join('\n'))
+    const r = await loader.mount('user:alice:bare', { dir: plugin, ownerUserId: 1 })
+    expect(r.ok).toBe(true)
+    const params = registered[0]?.parameters as Record<string, unknown>
+    expect(params.type).toBe('object')
+    // 裸映射的顶层 title/description 是参数名,不能被 provider 当 schema 注解
+    expect(params.title).toBeUndefined()
+    expect(params.description).toBeUndefined()
+    expect(Object.keys(params.properties as Record<string, unknown>).sort()).toEqual(['description', 'dir', 'title'])
+    expect(params.required).toEqual(['dir'])
+    const dirSchema = (params.properties as Record<string, Record<string, unknown>>).dir
+    expect(dirSchema?.required).toBeUndefined()
   })
 
   it('个人副本与共享副本共存:同 pluginId 双层独立挂载,停个人不拆共享', async () => {
