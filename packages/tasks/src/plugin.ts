@@ -64,12 +64,12 @@ import { orchestratorTools, type OrchestratorToolsHost } from './tools/orchestra
 import { toDshTool } from './tools/tool.ts'
 import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import { ticketOfSession } from './executor/dsh.ts'
-import { MASTER_SESSION_TITLE, masterSessionId, Sessions, type SessionHostPorts, type SessionsHost } from './session/sessions.ts'
+import { MASTER_SESSION_TITLE, masterSessionId, Sessions, type SessionHostPorts, type SessionRole, type SessionsHost } from './session/sessions.ts'
 import { ChannelTriggerAdapter } from './sources/channel-adapter.ts'
 import { WEBSCHAT_SOURCE, webchatMasterScope, WebchatDelegationEntry } from './sources/webchat.ts'
 import type { ActorRef } from './core/index.ts'
 import { settingsPolicy, type AllowedRoster, type PolicyWiring } from './policy/gate.ts'
-import type { Settings } from './policy/settings.ts'
+import type { RoleModel, Settings } from './policy/settings.ts'
 import { policyVersion } from './policy/version.ts'
 import { activeTicketsFace, ACTIVE_TICKETS_SECTION_NAME, type ActiveTicketsSection } from './session/sections.ts'
 import { TasksRealmRouter } from './store/realm.ts'
@@ -606,8 +606,14 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
   let masterHealth: HealthEntry | undefined
   if (options.sessionHost !== undefined) {
     // 引导解析保证 sessionHost 在场时 masterId 就绪(约定派生分支);?? 兜底同式,仅类型收窄。
+    // ★角色模型播种(46 号;A25 role-models 消费端):宿主 sessionHost 未显式带 roleModel
+    // 时,按角色现读租户 settings——eval.model = orchestrator(主会话),executor.model =
+    // worker(工单执行);null = 不播种、随宿主会话默认。每次 ensure 现读(getter),设置在
+    // 主会话/面板热改后下一次建/取会话即生效,不需重启。显式注入恒优先(同 deliverCandidate)。
+    const roleModel = options.sessionHost.roleModel ?? ((role: SessionRole): RoleModel | null =>
+      role === 'orchestrator' ? store.settings().eval.model : store.settings().executor.model)
     sessions = new Sessions({ ...options.sessionHost, effects, lifetime: lifetime.signal,
-      masterId: masterId ?? masterSessionId(realm) })
+      masterId: masterId ?? masterSessionId(realm), roleModel })
     // ★候选卡投递面·自派生(★最后一公里·候选卡,2026-11-18):glue 未显式注入
     // deliverCandidate 时,Sessions 就绪即接线——候选卡经 Sessions.prompt 投到主会话
     // ('queue';kind 'eterna-tasks' 的投递消息不与用户亲口消息混淆,sessions.ts 头注),

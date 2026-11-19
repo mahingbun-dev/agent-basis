@@ -298,17 +298,22 @@ interface FakeSessionHostHandle {
   readonly renamed: Map<string, string>
   readonly permissions: Map<string, string>
   readonly workspaces: Map<string, string>
+  /** session id → 最近一次角色模型播种(46 号:settings→roleModel→agent.model.select 的落点)。 */
+  readonly selections: Map<string, unknown>
 }
 
 function fakeSessionHost(ctx: Context): FakeSessionHostHandle {
   const agentIds: string[] = [], cwdBySession = new Map<string, string | undefined>()
   const renamed = new Map<string, string>(), permissions = new Map<string, string>(), workspaces = new Map<string, string>()
+  const selections = new Map<string, unknown>()
   let workspaceSeq = 0
   const agents = new Map<string, unknown>()
   const makeAgent = (sessionId: string, cwd?: string): unknown => ({
     id: sessionId, status: 'idle', session: { id: sessionId }, cwd,
     inbox: { nextTurn: [], nextStep: [], remove: (): boolean => false },
     followup: vi.fn(), steer: vi.fn(), inject: vi.fn(),
+    // 宿主 Agent.model 结构面(Sessions.seedModel 消费端;缺席即 fail-neutral,见 46 号)。
+    model: { select: vi.fn((selection: unknown): void => { selections.set(sessionId, selection) }) },
     cancel: vi.fn(), whenIdle: (): Promise<void> => Promise.resolve(),
   })
   const ports = {
@@ -353,7 +358,7 @@ function fakeSessionHost(ctx: Context): FakeSessionHostHandle {
     list: (): unknown[] => [...agents.values()],
   }
   ctx.reflect.provide('agents', registry)
-  return { ports, agentIds, cwdBySession, renamed, permissions, workspaces }
+  return { ports, agentIds, cwdBySession, renamed, permissions, workspaces, selections }
 }
 
 it('A22 真实执行面接线:sessionHost 注入即 DshExecutor+Sessions 替换可控 stub,worker session 经真实宿主 seam 建在租户工作区', async () => {
@@ -401,7 +406,40 @@ it('A22 真实执行面接线:sessionHost 注入即 DshExecutor+Sessions 替换�
   finally { runtime.dispose() }
 })
 
-// ── ★master 会话引导与 sessionHost 自宿主 ctx 派生(2026-11-18 出票端到端三断点①/④)─────
+// ── ★角色模型播种的装配接线(46 号;A25 role-models 消费端)─────────────────────────
+
+it('46 号角色模型播种:settings.eval.model/executor.model 经装配 roleModel 现读,orchestrator/worker 各走各的档', async () => {
+  openRealm()
+  const ctx = new Context()
+  const fake = fakeSessionHost(ctx)
+  const runtime = boot('alice', {
+    scope: testScope,
+    sessionHost: { context: ctx, masterId: 'orchestrator-main', ports: fake.ports },
+  })
+  try {
+    const masterId = runtime.masterId!
+    const cwd = runtime.store.workspaceDir
+    // 设置在场:两块模型键各指一个档(其余块取 schema 缺省)。
+    const evalModel = { provider: 'pi-ai', model: 'deepseek-pro', reasoningEffort: 'high' }
+    const workerModel = { provider: 'pi-ai', model: 'glm-flash' }
+    runtime.store.saveSettings({ eval: { model: evalModel }, executor: { model: workerModel } })
+    await runtime.sessions!.ensure(masterId, cwd, MASTER_SESSION_TITLE, 'orchestrator')
+    await runtime.sessions!.ensure('worker-m46', cwd, '工单标题', 'worker')
+    // 装配注入的 roleModel 现读租户 settings:两角色各取各的键。
+    expect(fake.selections.get(masterId)).toEqual(evalModel)
+    expect(fake.selections.get('worker-m46')).toEqual(workerModel)
+    // 热改(等价于主会话 orchestrator_settings_save 改 executor 块):下一次 ensure 现读即生效。
+    const updated = { provider: 'pi-ai', model: 'glm-air' }
+    runtime.store.saveSettings({ eval: { model: evalModel }, executor: { model: updated } })
+    await runtime.sessions!.ensure('worker-m46b', cwd, '工单标题', 'worker')
+    expect(fake.selections.get('worker-m46b')).toEqual(updated)
+    // null = 不播种:清掉 orchestrator 档后,主会话不再被覆写(旧 choice 保留在会话侧,不由此处断言)。
+    runtime.store.saveSettings({ eval: { model: null }, executor: { model: updated } })
+    await runtime.sessions!.ensure(masterId, cwd, MASTER_SESSION_TITLE, 'orchestrator')
+    expect(fake.selections.get(masterId)).toEqual(evalModel)
+  }
+  finally { runtime.dispose() }
+})
 
 it('master 引导·解析序:config.masterId → KV 既有约定 → 约定派生 orchestrator-<realm>;解析结果写 KV 并经 health/stats 暴露', () => {
   openRealm()
