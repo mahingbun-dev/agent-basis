@@ -142,11 +142,27 @@ export function decayChart(evalSnap: EvalSnapshot): LineChartView {
 }
 
 /** 四指标卡(原型 03 视图四 metrics-4 逐字;值随快照数据驱动)。 */
+/**
+ * 比例投影：0–1 夹紧并保留四位小数。
+ * 不取整会让 SVG 环长出现 0.9279999999999999 这类浮点尾巴,实测抖动亚像素。
+ */
+function ratioOf(value: number, total: number): number {
+  if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) return 1
+  return Math.round(Math.min(1, Math.max(0, value / total)) * 10000) / 10000
+}
+
 export interface MetricCard {
   readonly label: string
   readonly value: string
   readonly sub: string
   readonly badge?: string
+  /**
+   * v4 §8:有比例语义的指标用「玉环 + 数字」表达（0–1）。
+   * 无数值或非比例的卡片省缺，只呈数字。
+   */
+  readonly ratio?: number
+  /** 玉环色调；阈内 = jade，越阈 = warn/danger。 */
+  readonly ratioTone?: 'accent' | 'jade' | 'warn' | 'danger'
 }
 
 export function evalMetricCards(evalSnap: EvalSnapshot): readonly MetricCard[] {
@@ -161,7 +177,12 @@ export function evalMetricCards(evalSnap: EvalSnapshot): readonly MetricCard[] {
       label: '金集通过率 · 最近跑批',
       ...(trendEmpty
         ? { value: '暂无', sub: 'dsh-evals 结果目录尚无 run 报告' }
-        : { value: `${fixed1(latest)}%`, sub: `环比 ${deltaText} · 金集 ${evalSnap.suiteSize} 条` }),
+        : {
+          value: `${fixed1(latest)}%`,
+          sub: `环比 ${deltaText} · 金集 ${evalSnap.suiteSize} 条`,
+          ratio: ratioOf(latest, 100),
+          ratioTone: 'jade',
+        }),
     },
     {
       label: '路由金集衰减',
@@ -171,6 +192,9 @@ export function evalMetricCards(evalSnap: EvalSnapshot): readonly MetricCard[] {
           value: `${fixed1(decayLatest)}pp`,
           sub: `会话深度 ${evalSnap.decaySeries.length} · 阈值 ≤ ${evalSnap.decayThresholdPp}pp`,
           ...(decayOk ? { badge: '达标' } : {}),
+          /* 衰减是"越小越好":用阈值吃满环,越阈才染色 */
+          ratio: ratioOf(decayLatest, evalSnap.decayThresholdPp),
+          ratioTone: decayOk ? 'jade' : 'warn',
         }),
     },
     {

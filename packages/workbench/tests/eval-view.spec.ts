@@ -50,7 +50,10 @@ describe('金集通过率趋势(E-1;原型 03 图一逐值)', () => {
     expect(chart.xLastLabel).toBe('第 8 次')
     expect(chart.points[7]).toMatchObject({ x: 470, y: 84.8, warn: false })
     const cards = evalMetricCards(next.eval)
-    expect(cards[0]).toEqual({ label: '金集通过率 · 最近跑批', value: '92.8%', sub: '环比 +0.4pp · 金集 30 条' })
+    expect(cards[0]).toEqual({
+      label: '金集通过率 · 最近跑批', value: '92.8%', sub: '环比 +0.4pp · 金集 30 条',
+      ratio: 0.928, ratioTone: 'jade',
+    })
     expect(cards[3]!.value).toBe('15 次')
   })
 })
@@ -85,9 +88,16 @@ describe('路由金集衰减(E-2;28 号 §5 阈值 2pp;原型 03 图二逐值)',
 
 describe('四指标卡(E-1~E-4;原型 03 metrics-4 逐字)', () => {
   it('初始四卡:92.4% (+0.6pp)/0.8pp 达标/无警报 14 天/14 次', () => {
+    // v4 §8:有比例语义的两卡带 ratio(玉环),无数值的两卡省缺
     expect(evalMetricCards(snapshot.eval)).toEqual([
-      { label: '金集通过率 · 最近跑批', value: '92.4%', sub: '环比 +0.6pp · 金集 30 条' },
-      { label: '路由金集衰减', value: '0.8pp', sub: '会话深度 8 · 阈值 ≤ 2pp', badge: '达标' },
+      {
+        label: '金集通过率 · 最近跑批', value: '92.4%', sub: '环比 +0.6pp · 金集 30 条',
+        ratio: 0.924, ratioTone: 'jade',
+      },
+      {
+        label: '路由金集衰减', value: '0.8pp', sub: '会话深度 8 · 阈值 ≤ 2pp', badge: '达标',
+        ratio: 0.4, ratioTone: 'jade',
+      },
       { label: '漂移检测（observe）', value: '无警报', sub: '连续 14 天无漂移' },
       { label: '本周回归跑批', value: '14 次', sub: 'prompt 版本绑定请求（24 §7.6）' },
     ])
@@ -96,6 +106,9 @@ describe('四指标卡(E-1~E-4;原型 03 metrics-4 逐字)', () => {
   it('衰减超标不带达标徽标;环比负值带负号(数据驱动)', () => {
     const over = evalMetricCards({ ...snapshot.eval, decayLatestPp: 2.1 })
     expect(over[1]!.badge).toBeUndefined()
+    // 越阈:环吃满(cap 到 1)+ warn 着色,不出现"环比阈值还长"
+    expect(over[1]!.ratio).toBe(1)
+    expect(over[1]!.ratioTone).toBe('warn')
     const down = evalMetricCards({ ...snapshot.eval, trend: [90, 89.4], passDelta: -0.6 })
     expect(down[0]!.sub).toBe('环比 -0.6pp · 金集 30 条')
   })

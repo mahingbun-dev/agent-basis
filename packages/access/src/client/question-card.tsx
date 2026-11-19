@@ -11,6 +11,10 @@
  * - 变更请求防重复点击(busy 锁);
  * - 破坏性动作不用原生 confirm——跳过本轮是「模型继续」的软动作,用文字按钮不弹窗;
  * - 语义化标题、focus 光圈、prefers-reduced-motion、窄屏断点。
+ *
+ * v4 叠层契约(2026-11-19,42 号 §7a.2):与审批卡同席位——在
+ * `conversation.input.overlay`(输入卡顶边零高度锚点)内渲染,不再自挂 body +
+ * `fixed top:16px` + `z-index:10000`;卡片作用域=会话,只呈本 sessionId 的提问。
  */
 import { useEffect, useMemo, useState } from 'react'
 
@@ -158,10 +162,19 @@ function QuestionCard(props: {
     send({ answers })
   }
   return (
-    <section className='eq-card' role='dialog' aria-modal='false' aria-labelledby={`eq-title-${props.item.id}`}>
-      <div className='eq-strip'>Agent 想请你确认</div>
+    <section className='et-decision-card' data-kind='question' role='dialog' aria-modal='false'
+      aria-labelledby={`eq-title-${props.item.id}`}>
+      <div className='et-decision-track' aria-hidden='true'>
+        <i style={{ width: `${String(Math.min(100, Math.max(0, (props.item.expiresAt - Date.now()) / Math.max(1, props.item.expiresAt - props.item.requestedAt) * 100)))}%` }} />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span className='et-badge' data-tone='accent'>待回答</span>
+        <h2 className='eq-title' id={`eq-title-${props.item.id}`}
+          style={{ margin: 0, font: '600 var(--et-text-body)/1.35 var(--et-font-body)' }}>
+          需要你的回答才能继续
+        </h2>
+      </div>
       <div className='eq-body'>
-        <h2 className='eq-title' id={`eq-title-${props.item.id}`}>需要你的回答才能继续(期间任务暂停)</h2>
         {props.item.questions.map(question => (
           <QuestionField
             key={question.id}
@@ -173,24 +186,21 @@ function QuestionCard(props: {
         {error !== undefined ? <p className='eq-error' role='alert'>{error}</p> : null}
         <p className='eq-meta'>{String(remaining)} 秒后自动放行(模型会说明未获回答继续)</p>
       </div>
-      <div className='eq-actions'>
-        <button type='button' className='eq-skip' disabled={busy} onClick={() => { send({ skip: true }) }}>
-          跳过本轮
-        </button>
-        <button
-          type='button'
-          className='eq-submit'
-          disabled={busy || !allFilled}
-          onClick={submitAnswers}
-        >
-          提交回答
-        </button>
+      <div className='et-card-actions' style={{ justifyContent: 'flex-end' }}>
+        <button type='button' className='et-btn et-btn--ghost et-btn--sm' disabled={busy}
+          onClick={() => { send({ skip: true }) }}>跳过本轮</button>
+        <button type='button' className='et-btn et-btn--primary et-btn--sm'
+          disabled={busy || !allFilled} onClick={submitAnswers}>提交回答</button>
       </div>
     </section>
   )
 }
 
-export function QuestionCardOverlay(): React.JSX.Element {
+/**
+ * 提问卡槽位组件：在 `conversation.input.overlay` 席位内渲染。
+ * 只呈属于本会话（`sessionId`）的提问——提问与审批同为会话作用域。
+ */
+export function QuestionCards(props: { readonly sessionId?: string | undefined }): React.JSX.Element {
   const [items, setItems] = useState<PendingQuestion[]>([])
   useEffect(() => {
     let alive = true
@@ -209,37 +219,11 @@ export function QuestionCardOverlay(): React.JSX.Element {
     }
   }, [])
   const onDone = (id: string): void => { setItems(prev => prev.filter(item => item.id !== id)) }
-  if (items.length === 0) return <></>
-  return (
-    <div className='eq-overlay'>
-      {items.map(item => <QuestionCard key={item.id} item={item} onDone={onDone} />)}
-    </div>
-  )
+  // 会话作用域:没有 sessionId 时保守显示全部(宿主可能在首帧未下发)
+  const mine = props.sessionId === undefined
+    ? items
+    : items.filter(item => item.sessionId === props.sessionId)
+  if (mine.length === 0) return <></>
+  return <>{mine.map(item => <QuestionCard key={item.id} item={item} onDone={onDone} />)}</>
 }
 
-export interface QuestionCardHandle {
-  dispose(): void
-}
-
-/** 装载提问卡(body 级 React 挂载,审批卡同款形态;任何失败静默不影响主流程)。
- * createRoot 由调用方传入——react-dom/client 是壳注入的 CJS external,
- * 客户端工件不得静态 import。 */
-export function installQuestionCard(
-  createRoot: (container: Element) => { render(node: React.ReactElement): void; unmount(): void },
-): QuestionCardHandle | undefined {
-  try {
-    const host = document.createElement('div')
-    host.setAttribute('data-eterna-question-root', '')
-    document.body.appendChild(host)
-    const root = createRoot(host)
-    root.render(<QuestionCardOverlay />)
-    return {
-      dispose: () => {
-        try { root.unmount() } catch { /* 尽力而为 */ }
-        host.remove()
-      },
-    }
-  } catch {
-    return undefined
-  }
-}

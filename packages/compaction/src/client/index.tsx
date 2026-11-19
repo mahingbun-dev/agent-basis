@@ -151,13 +151,13 @@ const CSS = `
 [data-eterna-compaction] * { box-sizing: border-box; min-width: 0; }
 [data-eterna-compaction] .ec-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--et-space-3); margin: 0 0 var(--et-space-3); }
 [data-eterna-compaction] .ec-card { padding: var(--et-space-4); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); background: var(--et-surface); }
-[data-eterna-compaction] .ec-kicker { font-size: var(--et-text-micro); color: var(--et-muted); margin: 0 0 6px; }
+[data-eterna-compaction] .ec-kicker { font-size: var(--et-text-meta); letter-spacing: var(--et-tracking-caps); color: var(--et-muted); margin: 0 0 var(--et-space-1); }
 [data-eterna-compaction] .ec-value { font-size: var(--et-text-lead); line-height: 1.2; font-weight: var(--et-weight-display); font-variant-numeric: tabular-nums; white-space: nowrap; }
-[data-eterna-compaction] .ec-observe { font-size: var(--et-text-micro); color: var(--et-muted); margin: 0 0 var(--et-space-5); }
+[data-eterna-compaction] .ec-observe { font-size: var(--et-text-caption); color: var(--et-muted); margin: 0 0 var(--et-space-5); }
 [data-eterna-compaction] .ec-form { display: grid; gap: var(--et-space-4); padding: var(--et-space-4); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); background: var(--et-surface); max-width: 560px; }
 [data-eterna-compaction] .ec-field { display: grid; gap: 6px; }
 [data-eterna-compaction] .ec-label { font-size: var(--et-text-caption); font-weight: var(--et-weight-display); color: var(--et-fg-2); }
-[data-eterna-compaction] .ec-hint { font-size: var(--et-text-micro); color: var(--et-muted); }
+[data-eterna-compaction] .ec-hint { font-size: var(--et-text-caption); color: var(--et-muted); }
 [data-eterna-compaction] .ec-radio { display: flex; align-items: center; gap: 8px; font-size: var(--et-text-caption); color: var(--et-fg-2); cursor: pointer; }
 [data-eterna-compaction] .ec-radio input[type='radio'] { width: 16px; height: 16px; margin: 0; accent-color: var(--et-accent); }
 [data-eterna-compaction] .ec-radio input[type='radio']:focus-visible { outline: 2px solid var(--et-accent); outline-offset: 2px; }
@@ -185,7 +185,7 @@ const CSS = `
 @media (max-width: 640px) { [data-eterna-compaction] .ec-cards { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { [data-eterna-compaction] * { animation: none !important; transition: none !important; } }
 /* M-C4 公告行(照 memory sources-row 形态;--et-* 令牌跟随深浅主题) */
-[data-eterna-compaction='announcement-row'] { margin: var(--et-space-2) 0; font-family: var(--et-font-body); font-size: var(--et-text-micro); color: var(--et-muted); }
+[data-eterna-compaction='announcement-row'] { margin: var(--et-space-2) 0; font-family: var(--et-font-body); font-size: var(--et-text-meta); color: var(--et-muted); }
 [data-eterna-compaction='announcement-toggle'] { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border: 0; background: none; color: var(--et-muted); font: inherit; cursor: pointer; }
 [data-eterna-compaction='announcement-toggle']:focus-visible { outline: 2px solid var(--et-accent); outline-offset: 1px; }
 [data-eterna-compaction='announcement-toggle']:hover { color: var(--et-fg-2); }

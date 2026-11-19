@@ -53,7 +53,7 @@ interface Selected { readonly provider: string; readonly model: string; readonly
 
 const S = {
   panel: {
-    position: 'fixed', zIndex: 1300, width: 264,
+    position: 'fixed', zIndex: 100, width: 264,
     background: 'var(--et-surface)',
     color: 'var(--et-fg)',
     border: '1px solid var(--et-border)',
@@ -63,12 +63,13 @@ const S = {
   } as React.CSSProperties,
   row: {
     width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-    padding: '8px 14px', border: 'none', background: 'transparent',
-    color: 'inherit', cursor: 'pointer', fontSize: 14, textAlign: 'left',
-    boxSizing: 'border-box', minHeight: 36,
+    /* v4 §6:锚定弹层行 = 40 高(36 在触屏偏小) */
+    padding: '0 var(--et-space-3)', border: 'none', background: 'transparent',
+    color: 'inherit', cursor: 'pointer', fontSize: 'var(--et-text-body)', textAlign: 'left',
+    boxSizing: 'border-box', minHeight: 40,
   } as React.CSSProperties,
   section: {
-    padding: '8px 14px 4px', fontSize: 12,
+    padding: 'var(--et-space-2) var(--et-space-3) var(--et-space-1)', fontSize: 'var(--et-text-meta)',
     color: 'var(--et-muted)',
   } as React.CSSProperties,
   divider: { height: 1, background: 'var(--et-border-soft)', margin: '5px 0' } as React.CSSProperties,
@@ -76,13 +77,13 @@ const S = {
     width: 18, height: 18, borderRadius: 'var(--et-radius-sm)', flexShrink: 0,
     background: 'var(--et-accent-soft)',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 10, fontWeight: 600,
+    fontSize: 'var(--et-text-micro)', fontWeight: 'var(--et-weight-display)',
   } as React.CSSProperties,
   check: { color: 'var(--et-success)', marginLeft: 'auto' } as React.CSSProperties,
   // 思考强度自动模式 chip(2026-11-18):小号 pill 开关,全令牌着色
   autoChip: {
-    flexShrink: 0, fontSize: 12, lineHeight: '20px', fontWeight: 500,
-    padding: '1px 10px', borderRadius: 'var(--et-radius-pill)', minHeight: 24,
+    flexShrink: 0, fontSize: 'var(--et-text-meta)', lineHeight: '20px', fontWeight: 'var(--et-weight-emphasis)',
+    padding: '1px 10px', borderRadius: 'var(--et-radius-pill)', minHeight: 28,
     border: '1px solid var(--et-border)', background: 'var(--et-surface-2)',
     color: 'var(--et-muted)', cursor: 'pointer',
   } as React.CSSProperties,
@@ -93,7 +94,7 @@ const S = {
   // 走 styles.ts 的 .ea-bias-*(需 :focus-visible 与 prefers-reduced-motion)
   biasRow: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-    padding: '2px 14px 6px', boxSizing: 'border-box',
+    padding: '2px var(--et-space-3) var(--et-space-1)', boxSizing: 'border-box',
   } as React.CSSProperties,
   // 重置 + 就地错误文案(aria-live)合成右侧一组:错误出现时不挤动 chip
   biasActions: {
@@ -102,7 +103,7 @@ const S = {
   // 能力 tag chip(上游 ui-model-selection .badge 同位次:菜单位=名后;
   // 全令牌着色,零字面色值——frontend-style 铁律)
   badge: {
-    flexShrink: 0, fontSize: 11, lineHeight: '16px', fontWeight: 500,
+    flexShrink: 0, fontSize: 'var(--et-text-micro)', lineHeight: '16px', fontWeight: 'var(--et-weight-emphasis)',
     padding: '1px 7px', borderRadius: 'var(--et-radius-pill)',
     border: '1px solid transparent', whiteSpace: 'nowrap',
   } as React.CSSProperties,
@@ -401,7 +402,7 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
     <div ref={mainRef} role="menu" aria-label="模型与思考强度" style={mainStyle}>
       {/* 当前供应商行 → 右飞供应商子面板 */}
       <button type="button" role="menuitem" aria-expanded={subOpen}
-        style={{ ...S.row, justifyContent: 'space-between', fontWeight: 600 }}
+        style={{ ...S.row, justifyContent: 'space-between', fontWeight: 'var(--et-weight-display)' }}
         onClick={() => { setSubOpen(v => !v) }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
           <span aria-hidden="true" style={S.logo}>{(curProvider?.name ?? '?').slice(0, 1)}</span>
@@ -464,7 +465,7 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
         {/* 自动模式 chip 行(2026-11-18):开关只在本菜单——access 记账 +
             宿主入箱钩子自动选档;aria-pressed 语义,防重复点击复用 busy。 */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 14px 6px', gap: 8 }}>
-          <span style={{ fontSize: 12, color: 'var(--et-muted)' }}>
+          <span style={{ fontSize: 'var(--et-text-meta)', color: 'var(--et-muted)' }}>
             {autoOn === true ? '已按每轮消息自动选档' : '按每轮消息自动选档'}
           </span>
           {autoOn !== null && <button type="button" aria-pressed={autoOn} disabled={busy}
@@ -477,7 +478,7 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
             拖动不提交、不关面板;事件全部 stopPropagation 防冒泡关闭链。
             自动开启时视觉降饱和(data-disabled 复用),仍可拖动=退出自动。 */}
         <div style={{ padding: '4px 14px 12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--et-text-caption)', marginBottom: 4 }}>
             <span>{visualEffortName}</span>
           </div>
           <div className="et-thought-slider" data-disabled={busy || autoOn === true}>
@@ -537,9 +538,9 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
           </div>
         </div>
       </>}
-      {error !== null && <div role="alert" style={{ padding: '6px 14px', color: 'var(--et-danger)', fontSize: 12 }}>{error}</div>}
+      {error !== null && <div role="alert" style={{ padding: '6px 14px', color: 'var(--et-danger)', fontSize: 'var(--et-text-meta)' }}>{error}</div>}
       <div style={S.divider} />
-      <button type="button" role="menuitem" style={{ ...S.row, fontWeight: 500 }}
+      <button type="button" role="menuitem" style={{ ...S.row, fontWeight: 'var(--et-weight-emphasis)' }}
         onClick={() => {
           // 2026-11-12 用户反馈:该按钮此前只 dismiss(),点下去面板消失而无任何操作
           // =空按钮。ZCode 同一入口切设置页「模型」分区(SettingsPage.tsx:704
@@ -572,7 +573,7 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
             <span aria-hidden="true" style={S.logo}>{(g.name ?? g.id).slice(0, 1)}</span>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.name ?? g.id}</span>
           </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, opacity: 0.7, flexShrink: 0 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--et-text-meta)', opacity: 0.7, flexShrink: 0 }}>
             {modelCount > 0 ? `${modelCount} 模型` : ''}
             {active && <span aria-hidden="true" style={S.check}>✓</span>}
           </span>

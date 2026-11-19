@@ -48,8 +48,11 @@ interface TreeState {
 
 const styles: Record<string, React.CSSProperties> = {
   overlay: {
+    // v4 §6 弹窗:遮罩用 --et-scrim + 2px blur(唯一的 backdrop-filter 例外)。
+    // z=1000 与设置弹窗同档,仍高于决策层(200)、低于宿主 toast(1100)。
     position: 'fixed', inset: 0, zIndex: 1000,
-    background: 'var(--dsw-alias-bg-mask-1, var(--et-overlay))',
+    background: 'var(--et-scrim)',
+    backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   dialog: {
@@ -62,13 +65,14 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: 'var(--et-shadow-raised)',
     overflow: 'hidden',
   },
-  header: { padding: '18px 20px 8px', fontSize: 16, fontWeight: 600, lineHeight: 1.4 },
+  /* v4:弹窗标题 = body/display;纵向内距走 space 阶梯 */
+  header: { padding: 'var(--et-space-5) var(--et-space-5) var(--et-space-2)', fontSize: 'var(--et-text-body)', fontWeight: 'var(--et-weight-display)', lineHeight: 'var(--et-leading-snug)' },
   body: { flex: 1, overflowY: 'auto', padding: '4px 10px', minHeight: 200 },
   row: {
     display: 'flex', alignItems: 'center', gap: 6, width: '100%',
     padding: '8px 8px', border: 'none', background: 'transparent',
     color: 'inherit', textAlign: 'left', cursor: 'pointer', borderRadius: 'var(--et-radius-sm)',
-    fontSize: 14, lineHeight: 1.5,
+    fontSize: 'var(--et-text-caption)', lineHeight: 'var(--et-leading-snug)',
   },
   rowSelected: {
     background: 'var(--et-surface-2)',
@@ -78,24 +82,25 @@ const styles: Record<string, React.CSSProperties> = {
   footer: { padding: '12px 20px 20px', display: 'flex', flexDirection: 'column', gap: 12 },
   newFolderRow: { display: 'flex', gap: 8 },
   input: {
-    flex: 1, padding: '10px 12px', fontSize: 14,
-    background: 'var(--et-bg)',
+    flex: 1, padding: '0 var(--et-space-3)', height: 40, fontSize: 'var(--et-text-body)',
+    background: 'var(--et-surface-3)',
     border: '1px solid var(--et-border)', borderRadius: 'var(--et-radius-sm)', color: 'inherit',
     outline: 'none',
   },
   buttonRow: { display: 'flex', justifyContent: 'flex-end', gap: 8 },
   button: {
-    padding: '10px 14px', fontSize: 14, borderRadius: 'var(--et-radius-sm)', cursor: 'pointer',
+    padding: '0 var(--et-space-4)', height: 40, fontSize: 'var(--et-text-body)', borderRadius: 'var(--et-radius-md)', cursor: 'pointer',
     border: '1px solid var(--et-border)',
     background: 'transparent', color: 'inherit',
   },
   primary: {
     background: 'var(--et-accent-fill)',
     borderColor: 'transparent', color: 'var(--et-accent-on)',
+    fontWeight: 'var(--et-weight-emphasis)',
   },
-  error: { color: 'var(--et-danger)', fontSize: 12, lineHeight: 1.5 },
-  empty: { padding: '24px 16px', textAlign: 'center', opacity: 0.6, fontSize: 14 },
-  hint: { fontSize: 12, color: 'var(--et-muted)', fontWeight: 400 },
+  error: { color: 'var(--et-danger)', fontSize: 'var(--et-text-meta)', lineHeight: 'var(--et-leading-snug)' },
+  empty: { padding: 'var(--et-space-6) var(--et-space-4)', textAlign: 'center', color: 'var(--et-muted)', fontSize: 'var(--et-text-caption)' },
+  hint: { fontSize: 'var(--et-text-meta)', color: 'var(--et-muted)', fontWeight: 'var(--et-weight-body)' },
 }
 
 /** 单层目录行(懒展开:展开时拉取子层)。 */
@@ -264,7 +269,7 @@ export function DirectoryTreeFlow(props: DirectoryTreeProps): React.JSX.Element 
           {rootPath !== null && rootName !== null && (
             <button
               type="button"
-              style={{ ...styles.row, ...(state.selected === rootPath ? styles.rowSelected : {}), fontWeight: 600 }}
+              style={{ ...styles.row, ...(state.selected === rootPath ? styles.rowSelected : {}), fontWeight: 'var(--et-weight-display)' }}
               onClick={() => setState(s => ({ ...s, selected: rootPath }))}
               data-eterna-tree-root-row
             >

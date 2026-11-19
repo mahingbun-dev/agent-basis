@@ -6,10 +6,11 @@ import { injectDesignTokens } from '@eterna/ui'
 
 const CSS = `
 [data-bdoc-root] {
-  margin-top: 12px;
-  padding: 12px 14px 10px;
+  margin-top: var(--et-space-3);
+  padding: var(--et-space-3) var(--et-space-3) var(--et-space-2);
   border: 1px solid var(--et-border-soft);
   border-radius: var(--et-radius-md);
+  box-shadow: var(--et-shadow-r1);
   background: var(--et-surface);
   font-family: var(--et-font-body);
   font-size: var(--et-text-caption);
@@ -22,11 +23,11 @@ const CSS = `
   gap: 10px; margin-bottom: 8px;
 }
 [data-bdoc-title] {
-  font-weight: var(--et-weight-display); font-size: var(--et-text-micro); line-height: 1.4;
+  font-weight: var(--et-weight-display); font-size: var(--et-text-meta); line-height: var(--et-leading-snug);
   color: var(--et-fg-2); letter-spacing: 0;
 }
 [data-bdoc-health] {
-  font-size: var(--et-text-micro); line-height: 1.4; padding: 2px 8px; border-radius: var(--et-radius-sm);
+  font-size: var(--et-text-meta); line-height: var(--et-leading-snug); padding: 2px 10px; border-radius: var(--et-radius-pill);
   white-space: nowrap;
 }
 [data-bdoc-health="ok"] {
@@ -43,7 +44,7 @@ const CSS = `
 }
 [data-bdoc-autofix] {
   margin: 0 0 8px; padding: 6px 10px; border-radius: var(--et-radius-sm);
-  font-size: var(--et-text-micro); line-height: 1.5;
+  font-size: var(--et-text-caption); line-height: var(--et-leading-snug);
   color: var(--et-success);
   background: color-mix(in oklab, var(--et-success), transparent 90%);
   overflow-wrap: anywhere;
@@ -55,7 +56,8 @@ const CSS = `
 }
 [data-bdoc-row] {
   display: flex; align-items: center; gap: 10px;
-  padding: 6px 0; min-height: 32px;
+  /* v4:行 = 40 高(诊断行内嵌按钮) */
+  padding: 0; min-height: 40px;
 }
 [data-bdoc-row] + [data-bdoc-row] {
   border-top: 1px solid var(--et-border-soft);
@@ -67,7 +69,7 @@ const CSS = `
 }
 [data-bdoc-result] {
   flex: 1 1 auto; min-width: 0;
-  font-size: var(--et-text-micro); line-height: 1.5;
+  font-size: var(--et-text-caption); line-height: var(--et-leading-snug);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 [data-bdoc-result="idle"] { color: var(--et-muted); }
@@ -75,7 +77,7 @@ const CSS = `
 [data-bdoc-result="fail"] { color: var(--et-danger); }
 [data-bdoc-btn] { flex: 0 0 auto; margin-left: auto; }
 [data-bdoc-empty] {
-  font-size: var(--et-text-micro); color: var(--et-muted); margin-top: 4px;
+  font-size: var(--et-text-caption); color: var(--et-muted); margin-top: var(--et-space-1);
 }
 `
 

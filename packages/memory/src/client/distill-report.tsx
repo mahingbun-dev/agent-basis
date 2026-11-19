@@ -138,10 +138,10 @@ const CSS_DISTILL = `
 [data-eterna-memory-distill] .em-card { padding: var(--et-space-4); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); background: var(--et-surface); margin: 0 0 var(--et-space-3); }
 [data-eterna-memory-distill] .em-head { display: flex; align-items: center; gap: 8px; margin: 0 0 var(--et-space-2); }
 [data-eterna-memory-distill] .em-head h3 { margin: 0; font-size: var(--et-text-lead); font-weight: var(--et-weight-display); }
-[data-eterna-memory-distill] .em-kicker { font-size: var(--et-text-micro); color: var(--et-muted); margin: 0 0 4px; }
+[data-eterna-memory-distill] .em-kicker { font-size: var(--et-text-meta); letter-spacing: var(--et-tracking-caps); color: var(--et-muted); margin: 0 0 var(--et-space-1); }
 [data-eterna-memory-distill] .em-stats { display: flex; gap: var(--et-space-4); flex-wrap: wrap; font-variant-numeric: tabular-nums; }
 [data-eterna-memory-distill] .em-stat b { font-size: var(--et-text-lead); font-weight: var(--et-weight-display); }
-[data-eterna-memory-distill] .em-privacy { padding: var(--et-space-3); border: 1px dashed var(--et-border); border-radius: var(--et-radius-sm); font-size: var(--et-text-caption); color: var(--et-muted); margin: 0 0 var(--et-space-3); }
+[data-eterna-memory-distill] .em-privacy { padding: var(--et-space-3); border: 1px dashed var(--et-border); border-radius: var(--et-radius-md); font-size: var(--et-text-caption); color: var(--et-muted); margin: 0 0 var(--et-space-3); }
 [data-eterna-memory-distill] .em-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 1px solid var(--et-accent); border-radius: var(--et-radius-sm); background: var(--et-accent); color: var(--et-fg); font: inherit; font-weight: var(--et-weight-display); cursor: pointer; }
 [data-eterna-memory-distill] .em-btn.ghost { background: none; color: var(--et-fg-2); border-color: var(--et-border); }
 [data-eterna-memory-distill] .em-btn.danger { background: none; color: var(--et-danger); border-color: var(--et-danger); }
@@ -155,7 +155,7 @@ const CSS_DISTILL = `
 [data-eterna-memory-distill] th { text-align: left; color: var(--et-muted); font-weight: var(--et-weight-display); padding: 4px 8px; border-bottom: 1px solid var(--et-border-soft); }
 [data-eterna-memory-distill] td { padding: 6px 8px; border-bottom: 1px solid var(--et-border-soft); vertical-align: top; }
 [data-eterna-memory-distill] td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
-[data-eterna-memory-distill] .em-chip { display: inline-block; padding: 1px 8px; border: 1px solid var(--et-border); border-radius: var(--et-radius-sm); font-size: var(--et-text-micro); color: var(--et-fg-2); white-space: nowrap; }
+[data-eterna-memory-distill] .em-chip { display: inline-block; padding: 1px 10px; border: 1px solid var(--et-border); border-radius: var(--et-radius-pill); font-size: var(--et-text-meta); color: var(--et-fg-2); white-space: nowrap; }
 [data-eterna-memory-distill] .em-chip[data-tone='ok'] { color: var(--et-fg-2); border-color: var(--et-fg-2); }
 [data-eterna-memory-distill] .em-chip[data-tone='warn'] { color: var(--et-muted); }
 [data-eterna-memory-distill] .em-chip[data-tone='bad'] { color: var(--et-danger); border-color: var(--et-danger); }

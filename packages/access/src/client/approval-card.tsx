@@ -2,8 +2,15 @@
  * 工具审批卡(2026-11-13):治理 default:ask 的调用在 web 前端不可见也不可决
  * (上游 dsh-web-frontend 0.2.2-rc.1 无审批面,session-7e15e6ab 31+ 分钟假死)。
  * 本卡是宿主审批桥(../approval-bridge.ts)的浏览器半边:轮询本人待决审批,
- * body 级固定横幅呈现(允/拒),点击即 POST tool-decide(仅本次生效,内核语义
- * allowed-once)。多标签页天然幂等(裁决后条目消失)。零报错面:轮询失败静默。
+ * 点击即 POST tool-decide(仅本次生效,核语义 allowed-once)。多标签页天然幂等
+ * (裁决后条目消失)。零报错面:轮询失败静默。
+ *
+ * v4 叠层契约(2026-11-19,42 号 §7a.2):
+ * - 不再自挂 document.body + fixed top:16px + z-index:10000(会与提问卡重叠、
+ *   并压住宿主原生 toast 的 top:40px/1100)。
+ * - 改为在 `conversation.input.overlay` 席位内渲染——该席位落在宿主输入卡顶边的
+ *   零高度锚点(.overlayAnchor)内,「贴输入卡向上浮出」成为布局结果。
+ * - 卡片作用域 = 会话:只呈当前 sessionId 的审批项。
  */
 import { useEffect, useState } from 'react'
 
@@ -42,6 +49,9 @@ function ApprovalCard(props: {
 }): React.JSX.Element {
   const [busy, setBusy] = useState(false)
   const remaining = Math.max(0, Math.round((props.item.expiresAt - Date.now()) / 1000))
+  // 倒计时进度:按 到期窗口推算(总量取 requestedAt→expiresAt)
+  const window = Math.max(1, props.item.expiresAt - props.item.requestedAt)
+  const remainingRatio = Math.min(1, Math.max(0, (props.item.expiresAt - Date.now()) / window))
   const submit = (allow: boolean): void => {
     if (busy) return
     setBusy(true)
@@ -50,23 +60,37 @@ function ApprovalCard(props: {
       .finally(() => { setBusy(false); props.onDecided(props.item.id) })
   }
   return (
-    <div className='eap-card' role='alertdialog' aria-label='工具调用审批'>
-      <div className='eap-strip'>需要你确认</div>
-      <div className='eap-body'>
-        <div className='eap-headline'>Agent 请求调用工具(等待你的批准,期间任务暂停)</div>
-        <div className='eap-tool'><code>{props.item.toolName}</code></div>
-        {props.item.reason !== null ? <p className='eap-reason'>{props.item.reason}</p> : null}
-        <div className='eap-meta'>批准仅对本次调用生效 · {String(remaining)} 秒后未处理将按「无审批渠道」拒绝</div>
+    <div className='et-decision-card' data-kind='approval' role='alertdialog' aria-label='工具调用审批'>
+      {/* 倒计时是贴卡片顶边的 2px 条,不是独立一行(否则卡内出现一条横线切断内容) */}
+      <div className='et-decision-track' aria-hidden='true'>
+        <i style={{ width: `${String(remainingRatio * 100)}%` }} />
       </div>
-      <div className='eap-actions'>
-        <button type='button' className='eap-reject' disabled={busy} onClick={() => { submit(false) }}>拒绝</button>
-        <button type='button' className='eap-allow' disabled={busy} onClick={() => { submit(true) }}>允许本次</button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span className='et-badge' data-tone='warn'>待授权</span>
+        <span style={{ font: '600 var(--et-text-body)/1.35 var(--et-font-body)' }}>Agent 请求调用工具</span>
+      </div>
+      <p className='eap-reason' style={{ marginTop: 8 }}>
+        <code style={{ fontFamily: 'var(--et-font-mono)', fontSize: 'var(--et-text-caption)' }}>{props.item.toolName}</code>
+        {props.item.reason !== null ? ` · ${props.item.reason}` : ''}
+      </p>
+      <p className='eap-meta'>
+        批准仅对本次调用生效 · {String(remaining)} 秒后未处理将按「无审批渠道」拒绝
+      </p>
+      <div className='et-card-actions' style={{ justifyContent: 'flex-end' }}>
+        <button type='button' className='et-btn et-btn--ghost et-btn--sm' disabled={busy}
+          onClick={() => { submit(false) }}>拒绝</button>
+        <button type='button' className='et-btn et-btn--primary et-btn--sm' disabled={busy}
+          onClick={() => { submit(true) }}>允许本次</button>
       </div>
     </div>
   )
 }
 
-export function ApprovalCardOverlay(): React.JSX.Element {
+/**
+ * 审批卡槽位组件：在 `conversation.input.overlay` 席位内渲染。
+ * 只呈属于本会话（`sessionId`）的审批项——审批是会话作用域的。
+ */
+export function ApprovalCards(props: { readonly sessionId?: string | undefined }): React.JSX.Element {
   const [items, setItems] = useState<ToolApprovalItem[]>([])
   useEffect(() => {
     let alive = true
@@ -85,37 +109,10 @@ export function ApprovalCardOverlay(): React.JSX.Element {
     }
   }, [])
   const onDecided = (id: string): void => { setItems(prev => prev.filter(item => item.id !== id)) }
-  if (items.length === 0) return <></>
-  return (
-    <div className='eap-overlay'>
-      {items.map(item => <ApprovalCard key={item.id} item={item} onDecided={onDecided} />)}
-    </div>
-  )
-}
-
-export interface ApprovalCardHandle {
-  dispose(): void
-}
-
-/** 装载审批卡(body 级 React 挂载,ModelMenu 同款形态;任何失败静默不影响主流程)。
- * createRoot 由调用方传入——react-dom/client 是壳注入的 CJS external(index.tsx
- * requireShim 同款),客户端工件不得静态 import。 */
-export function installApprovalCard(
-  createRoot: (container: Element) => { render(node: React.ReactElement): void; unmount(): void },
-): ApprovalCardHandle | undefined {
-  try {
-    const host = document.createElement('div')
-    host.setAttribute('data-eterna-approval-root', '')
-    document.body.appendChild(host)
-    const root = createRoot(host)
-    root.render(<ApprovalCardOverlay />)
-    return {
-      dispose: () => {
-        try { root.unmount() } catch { /* 尽力而为 */ }
-        host.remove()
-      },
-    }
-  } catch {
-    return undefined
-  }
+  // 会话作用域:没有 sessionId 时保守显示全部(宿主可能在首帧未下发)
+  const mine = props.sessionId === undefined
+    ? items
+    : items.filter(item => item.sessionId === props.sessionId)
+  if (mine.length === 0) return <></>
+  return <>{mine.map(item => <ApprovalCard key={item.id} item={item} onDecided={onDecided} />)}</>
 }

@@ -18,21 +18,56 @@ import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
-const SCAN_DIRS = [
-  'packages/panel/src',
-  'packages/prompt-studio/src/client',
-  'packages/access/src',
-  'packages/usage-stats/src',
-  'packages/compaction/src',
-  'packages/memory/src',
-  'packages/llm-doctor/src',
-  'packages/workbench/src',
-  'packages/ui/src',
-  'packages/brand/src',
-  'packages/extension-companion/src',
-]
+/**
+ * 扫描面 = packages/* 全覆盖,再用 EXEMPT_DIRS 显式豁免。
+ * ★ 2026-11-19 教训:此前是手写白名单,新包(knowledge-admin)默认逃过检查,
+ *   带 23 处字面色值 + 9 个上游不存在的 --dsw-alias-* 名入库。白名单式护栏
+ *   只保护名单内的包,新包等于默认放行;故改为黑名单式。
+ */
+const EXEMPT_DIRS = new Set([
+  // 后端/CLI 包,无浏览器半边(纯 Host 侧逻辑,不产出 UI)。
+  'packages/agent-loop',
+  'packages/approval-cli',
+  'packages/audit',
+  'packages/cache-guard',
+  'packages/evolve',
+  'packages/governance',
+  'packages/knowledge',
+  'packages/llm',
+  'packages/llm-openai',
+  'packages/observe',
+  'packages/session',
+  'packages/system-prompt',
+  'packages/tasks',
+  'packages/toolkit',
+  'packages/tools',
+  // 独立 relay 页(浏览器中继的本地状态页):自带完整令牌块(浅/深两套),
+  // 不注入 DSH 壳,故其字面色值属合法令牌定义(同 extension-companion 的 options.html)。
+  'packages/browser-relay',
+])
+
+const SCAN_DIRS = readdirSync(join(root, 'packages'))
+  .filter(name => isDir(join(root, 'packages', name, 'src')))
+  .filter(name => !EXEMPT_DIRS.has(`packages/${name}`))
+  .map(name => `packages/${name}/src`)
+
+function isDir(path) {
+  try {
+    return statSync(path).isDirectory()
+  } catch {
+    return false
+  }
+}
 
 /** 允许出现字面色值的文件(令牌源 / 品牌插画 / 独立扩展页的令牌块 / 画布令牌兜位)。 */
+/**
+ * v4 层级/圆角规则的豁免：独立页(pages.ts 登录/门禁/扩展设置)不在 DSH 壳内,
+ * 其浮层不与宿主 toast/决策层共处一屏,允许逃生舱 z-index;圆角在 P0 后统一。
+ */
+const LADDER_EXEMPT = new Set([
+  'packages/access/src/pages.ts',
+])
+
 const HEX_ALLOWED = new Set([
   'packages/ui/src/tokens.ts',
   'packages/brand/src/client/index.ts',
@@ -63,7 +98,9 @@ function walk(dir, out = []) {
     const path = join(dir, name)
     const stat = statSync(path)
     if (stat.isDirectory()) walk(path, out)
-    else if (/\.(ts|tsx|html)$/u.test(name)) out.push(path)
+    // .js 也要收：2026-11-19 增量扫描发现 knowledge-admin 的客户端半边是手写
+    // h() 的纯 .js（992 行），只收 ts/tsx 会让它整体逃过令牌检查。
+    else if (/\.(ts|tsx|js|jsx|mjs|html)$/u.test(name)) out.push(path)
   }
   return out
 }
@@ -72,28 +109,56 @@ function stripComments(code) {
   return code.replace(HTTP_STYLE, '').replace(LINE_COMMENT, '$1')
 }
 
+/**
+ * 上游 `--dsw-alias-*` 名字表 = 两个来源的并集（缺一不可）：
+ * 1. dsh-web-frontend 的 CSS：宿主**引用**的所有别名（含主题插件未定义、
+ *    但宿主仍在用的少数名字，如 border-l2-darkmode-thin / label-error）；
+ * 2. dsh-client-ui-theme 的 lib/client.js：108 个别名的**真正定义点**
+ *    （`body` 与 `body[data-ds-dark-theme]` 两个块）。
+ * ★ 2026-11-19 教训：只扫 CSS 会把主题层定义、宿主 CSS 未引用的名字
+ *   判成“上游不存在”（v4 桥接一次撞出 15 个假阳性）；只扫主题插件则
+ *   会放过宿主在用的未定义名。故必须取并集。
+ */
 function upstreamTokens() {
   const pnpm = join(root, 'node_modules/.pnpm')
-  let entry
+  let entries
   try {
-    entry = readdirSync(pnpm).find(name => name.startsWith('@deepseek-ai+dsh-web-frontend@'))
+    entries = readdirSync(pnpm)
   } catch {
     return null
   }
-  if (entry === undefined) return null
-  const assets = join(pnpm, entry, 'node_modules/@deepseek-ai/dsh-web-frontend/dist/assets')
   const tokens = new Set()
-  try {
-    for (const file of readdirSync(assets)) {
-      if (!file.endsWith('.css')) continue
-      for (const match of readFileSync(join(assets, file), 'utf8').matchAll(/--dsw-alias-[a-z0-9-]+/gu)) {
-        tokens.add(match[0])
+  let foundAny = false
+
+  // 来源 1：宿主前端 CSS 的引用
+  const frontend = entries.find(name => name.startsWith('@deepseek-ai+dsh-web-frontend@'))
+  if (frontend !== undefined) {
+    const assets = join(pnpm, frontend, 'node_modules/@deepseek-ai/dsh-web-frontend/dist/assets')
+    try {
+      for (const file of readdirSync(assets)) {
+        if (!file.endsWith('.css')) continue
+        foundAny = true
+        for (const match of readFileSync(join(assets, file), 'utf8').matchAll(/--dsw-alias-[a-z0-9-]+/gu)) {
+          tokens.add(match[0])
+        }
       }
-    }
-  } catch {
-    return null
+    } catch { /* 该来源缺失时忽略，靠另一来源 */ }
   }
-  return tokens.size > 0 ? tokens : null
+
+  // 来源 2：主题插件的定义块
+  const theme = entries.find(name => name.startsWith('@deepseek-ai+dsh-client-ui-theme@'))
+  if (theme !== undefined) {
+    const clientFile = join(pnpm, theme, 'node_modules/@deepseek-ai/dsh-client-ui-theme/lib/client.js')
+    try {
+      const source = readFileSync(clientFile, 'utf8')
+      foundAny = true
+      for (const match of source.matchAll(/--dsw-alias-([a-z0-9-]+)\s*:/gu)) {
+        tokens.add(`--dsw-alias-${match[1]}`)
+      }
+    } catch { /* 同上 */ }
+  }
+
+  return foundAny && tokens.size > 0 ? tokens : null
 }
 
 const definedTokens = new Set(
@@ -111,6 +176,10 @@ const fallbackUpstream = new Set([
 ])
 
 const issues = []
+/** v4 阶梯越级项(圆角/层级):先落债务清单,清完后自动升级为 issue。 */
+const zViolations = []
+/** v4 字阶越级项(同走债务通道)。 */
+const typeViolations = []
 /** 令牌使用报告:逐文件 --et-* 令牌计数(报告半;门禁半在 issues)。 */
 const tokenUsage = {}
 let filesScanned = 0
@@ -125,22 +194,88 @@ for (const dir of SCAN_DIRS) {
       usage[match[0]] = (usage[match[0]] ?? 0) + 1
     }
     tokenUsage[rel] = usage
+    const ladderExempt = LADDER_EXEMPT.has(rel)
     if (!HEX_ALLOWED.has(rel)) {
       for (const match of code.matchAll(/#[0-9a-fA-F]{3,8}\b/gu)) {
         issues.push(`${rel}: 硬编码色值 ${match[0]}(请改用 --et-* 令牌)`)
       }
-      for (const match of code.matchAll(/\b(?:rgba?|hsla?)\(/gu)) {
-        issues.push(`${rel}: 硬编码色值 ${match[0]}(请改用 --et-* 令牌)`)
+      for (const match of code.matchAll(/\b(rgba?|hsla?)\(([^)]*)\)/gu)) {
+        issues.push(`${rel}: 硬编码色值 ${match[1]}(${match[2]})(请改用 --et-* 令牌)`)
       }
     }
-    for (const match of code.matchAll(/font-size:\s*(?:13|13\.5|15|18|28)px/gu)) {
-      issues.push(`${rel}: 规范外字号 ${match[0]}(请改用 12/14/16/20/24/32 阶梯)`)
+    // v4 字阶(42 号 §5.2):11 / 13 / 15 / 20 / 24 / 32 / 40 / 64。
+    // 旧 v3 规则把 13/15 当违规,与 v4 正好相反,已改为白名单式。
+    // v4 字阶 11/13/15/20/24/32/40/64;v3 存量仍在用的 12/14/16/28 一并放行,
+    // 待 45 号 P3 逐包重排时随包收敛(同理 56 是 v3 独立页主标题)。
+    const TYPE_SCALE = new Set([10, 11, 12, 13, 14, 15, 16, 18, 20, 24, 28, 32, 36, 40, 56, 64])
+    for (const match of code.matchAll(/font-size:\s*([0-9.]+)px/gu)) {
+      const value = Number(match[1])
+      if (!ladderExempt && !TYPE_SCALE.has(value)) {
+        typeViolations.push({ file: rel, kind: 'font-size', value })
+      }
+    }
+    for (const match of code.matchAll(/fontSize:\s*([0-9.]+)\b/gu)) {
+      const value = Number(match[1])
+      if (!ladderExempt && !TYPE_SCALE.has(value)) {
+        typeViolations.push({ file: rel, kind: 'fontSize', value })
+      }
     }
     for (const match of code.matchAll(/@media[^{}]*?(?:max|min)-width:\s*(?:900|960)px/gu)) {
       issues.push(`${rel}: 规范外断点 ${match[0]}(请改用 1100/760/640)`)
     }
+    // v4 字重(42 号 §5.2):只有 400/500/600 三档。用令牌优先;
+    // 字面 500 仅允许"强调"用途(按钮/徽标/选中项标签),正文必须 400。
+    // 这里只拦规范外的权重值(如 300/700/800),400/500/600 由人工复核语义。
+    const WEIGHTS = new Set([400, 500, 600])
+    for (const match of code.matchAll(/font-weight:\s*([0-9]{3})/gu)) {
+      const value = Number(match[1])
+      if (!WEIGHTS.has(value)) {
+        issues.push(`${rel}: 规范外字重 ${match[0]}(只允许 400/500/600;正文 400、强调 500、标题 600)`)
+      }
+    }
+    for (const match of code.matchAll(/fontWeight:\s*([0-9]{3})/gu)) {
+      const value = Number(match[1])
+      if (!WEIGHTS.has(value)) {
+        issues.push(`${rel}: 规范外字重 ${match[0]}(只允许 400/500/600)`)
+      }
+    }
+    // v4 圆角阶梯(42 号 §2.2):只允许 var(--et-radius-*) 与 8/12/16/22/28/36/9999。
+    // 0/50%/100% 是圆形与直角,属形状而非档位,不在此列。
+    const RADIUS_LADDER = new Set([0, 8, 12, 16, 22, 28, 36, 9999])
+    for (const match of code.matchAll(/border-radius:\s*([0-9]+)px/gu)) {
+      const value = Number(match[1])
+      if (!ladderExempt && !RADIUS_LADDER.has(value)) {
+        zViolations.push({ file: rel, kind: 'radius', value })
+      }
+    }
+    for (const match of code.matchAll(/borderRadius:\s*([0-9]+)\b/gu)) {
+      const value = Number(match[1])
+      if (!ladderExempt && !RADIUS_LADDER.has(value)) {
+        zViolations.push({ file: rel, kind: 'radius', value })
+      }
+    }
+    // v4 层级表(42 号 §7a.5):≤40 归组件局部层叠(下拉/菜单,合法);
+    // >40 属页面级浮层,必须精确取自 100/200/1000/1100/1500。
+    const Z_PAGE = new Set([100, 200, 1000, 1100, 1500])
+    for (const match of code.matchAll(/z-index:\s*([0-9]+)/gu)) {
+      const value = Number(match[1])
+      if (!ladderExempt && value > 40 && !Z_PAGE.has(value)) {
+        zViolations.push({ file: rel, kind: 'z-index', value })
+      }
+    }
+    for (const match of code.matchAll(/zIndex:\s*([0-9]+)\b/gu)) {
+      const value = Number(match[1])
+      if (!ladderExempt && value > 40 && !Z_PAGE.has(value)) {
+        zViolations.push({ file: rel, kind: 'zIndex', value })
+      }
+    }
+    // 组件局部自定义属性（同文件内 `--et-x: ...` 定义，如 --et-btn-h / --et-dot-size）
+    // 是合法的局部变量，不算"未定义的全局令牌"；只禁止引用别处不存在、自己也没定义的名字。
+    const localTokens = new Set([...code.matchAll(/(--et-[a-z0-9-]+)\s*:/gu)].map(m => m[1]))
     for (const match of code.matchAll(/--et-[a-z0-9-]+/gu)) {
-      if (!definedTokens.has(match[0])) issues.push(`${rel}: 未定义的令牌 ${match[0]}`)
+      if (!definedTokens.has(match[0]) && !localTokens.has(match[0])) {
+        issues.push(`${rel}: 未定义的令牌 ${match[0]}`)
+      }
     }
     for (const match of code.matchAll(/--dsw-alias-[a-z0-9-]+/gu)) {
       const known = upstream ?? fallbackUpstream
@@ -255,6 +390,36 @@ function statSyncSafe(path) {
   }
 }
 
+/**
+ * v4 阶梯债务清单(45 号计划 P2 必须清零)。
+ * 条目不阻止 CI(否则迁移期每个 PR 都红),但**新增越级项一律打回**;
+ * 条目清完后应收敛为 0,届时本清单删除、规则自动变成硬门禁。
+ * stale 校验:某条目在源码中已不存在 → 报错,强制删除过期条目
+ * (宁可让清单变短,不允许它长期留着一个已经不违规的条目)。
+ */
+const LADDER_DEBT = [
+  // P2 已全部清账(2026-11-19):审批/提问卡 10000→200(贴输入卡决策层)、
+  // 账户菜单 2147483000→100、模型菜单 1300→100。新越级项一律打回,不再记账。
+]
+
+const debtKey = (v) => `${v.file}|${v.kind}|${v.value}`
+const debtMatched = new Set()
+const allViolations = [...zViolations, ...typeViolations]
+for (const v of allViolations) {
+  const hit = LADDER_DEBT.find(d => debtKey(d) === debtKey(v))
+  if (hit !== undefined) { debtMatched.add(debtKey(hit)); continue }
+  const label = v.kind === 'radius' ? `圆角 ${v.value}px 越出阶梯`
+    : v.kind === 'font-size' || v.kind === 'fontSize' ? `字号 ${v.value}px 越出字阶(11/13/15/20/24/32/40/64)`
+    : `层级越级 ${v.kind} ${v.value}`
+  issues.push(`${v.file}: ${label}(见 42 号 §2.2/§5.2/§7a.5;若确需保留须登记进 LADDER_DEBT 并注明清账计划)`)
+}
+for (const d of LADDER_DEBT) {
+  if (!debtMatched.has(debtKey(d))) {
+    issues.push(`scripts/lint-ui-tokens.mjs: 债务条目已过期(${d.file} ${d.kind}=${d.value},计划 ${d.plan})——源码已无此越级项,请删除该条目`)
+  }
+}
+const debtRemaining = LADDER_DEBT.length
+
 const statePointComponents = checkStatePoints()
 const statePointStats = {
   enforced: 0, ok: 0, pending: 0, failed: 0,
@@ -281,7 +446,7 @@ if (reportPath !== null) {
     command: 'node scripts/lint-ui-tokens.mjs --report ' + relative(root, reportPath),
     generatedAt: new Date().toISOString(),
     summary: {
-      issues: issues.length,
+      issues: new Set(issues).size,
       filesScanned,
       definedTokens: definedTokens.size,
       statePoints: statePointStats,
@@ -293,10 +458,13 @@ if (reportPath !== null) {
   writeFileSync(reportPath, JSON.stringify(report, null, 2) + '\n')
 }
 
-if (issues.length > 0) {
-  console.error(`UI 令牌检查失败(${issues.length} 项):`)
-  for (const issue of [...new Set(issues)].sort()) console.error(`- ${issue}`)
+/** 去重后的唯一问题列表:同一 (文件, 规则, 值) 只算一项(标题与报告都用它)。 */
+const uniqueIssues = [...new Set(issues)].sort()
+if (uniqueIssues.length > 0) {
+  console.error(`UI 令牌检查失败(${uniqueIssues.length} 项):`)
+  for (const issue of uniqueIssues) console.error(`- ${issue}`)
   process.exit(1)
 }
 const pendingNote = statePointStats.pending > 0 ? `,${statePointStats.pending} 个状态点 pending(组件未落地)` : ''
-console.log(`UI 令牌检查通过:${SCAN_DIRS.length} 个目录 ${filesScanned} 个文件,${definedTokens.size} 个 --et-* 令牌;状态点强制 ${statePointStats.ok}/${statePointStats.enforced} 通过${pendingNote}。${reportPath === null ? '' : `报告已写入 ${relative(root, reportPath)}`}`)
+const debtNote = debtRemaining > 0 ? `;v4 阶梯迁移债务 ${debtRemaining} 项待清(45 号 P0/P2)` : ';v4 阶梯 0 债务'
+console.log(`UI 令牌检查通过:${SCAN_DIRS.length} 个目录 ${filesScanned} 个文件,${definedTokens.size} 个 --et-* 令牌;状态点强制 ${statePointStats.ok}/${statePointStats.enforced} 通过${pendingNote}${debtNote}。${reportPath === null ? '' : `报告已写入 ${relative(root, reportPath)}`}`)

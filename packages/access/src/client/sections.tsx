@@ -35,7 +35,7 @@ function PasswordInput(props: {
       onClick={() => { setVisible(v => !v) }}
       style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', width: 36, height: 36,
         margin: 0, minWidth: 0, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        background: 'none', border: 0, borderRadius: 4, color: 'var(--et-muted, currentColor)', cursor: 'pointer' }}>
+        background: 'none', border: 0, borderRadius: 'var(--et-radius-xs)', color: 'var(--et-muted, currentColor)', cursor: 'pointer' }}>
       <Icon name={visible ? 'eye-off' : 'eye'} size={18} />
     </button>
   </div>
@@ -102,8 +102,8 @@ export function CompanionCard(props: { readonly t: Translate }): React.JSX.Eleme
         ? <p className="ea-hint">{t('companion.empty')}</p>
         : <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <code style={{
-              flex: 1, minWidth: 220, fontFamily: 'var(--et-font-mono)', fontSize: 12,
-              padding: '7px 10px', borderRadius: 4,
+              flex: 1, minWidth: 220, fontFamily: 'var(--et-font-mono)', fontSize: 'var(--et-text-meta)',
+              padding: '7px 10px', borderRadius: 'var(--et-radius-sm)',
               border: '1px solid var(--et-border)',
               background: 'var(--et-surface-2)',
               wordBreak: 'break-all',

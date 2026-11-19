@@ -103,7 +103,7 @@ describe('配套②:令牌读取(30 号 §7-1②;design-tokens §2 body 层桥�
     const style = new FakeStyle({
       '--et-surface': '#101010', '--et-border': '#2a2a2a', '--et-fg': '#f5f5f5',
       '--et-fg-2': '#d4d4d4', '--et-muted': '#a3a3a3', '--et-meta': '#8a8a8a',
-      '--et-accent': '#3b89ff', '--et-warn': '#ffb020', '--et-danger': '#ff4d5f',
+      '--et-accent': '#2b6272', '--et-warn': '#94661c', '--et-danger': '#a63d2e',
       '--et-font-body': '"Inter", sans-serif',
     })
     const theme = readFlowTheme(style)
@@ -111,18 +111,19 @@ describe('配套②:令牌读取(30 号 §7-1②;design-tokens §2 body 层桥�
       '--et-surface', '--et-border', '--et-fg', '--et-fg-2', '--et-muted',
       '--et-meta', '--et-accent', '--et-warn', '--et-danger', '--et-font-body',
     ]))
-    expect(theme.accent).toEqual({ r: 0x3b, g: 0x89, b: 0xff, a: 1 })
+    expect(theme.accent).toEqual({ r: 0x2b, g: 0x62, b: 0x72, a: 1 })
     expect(theme.font).toBe('"Inter", sans-serif')
   })
 
-  it('color-mix()/空值等画布不可求值形态回落 Webflow 缺省(桥接断裂仍可读)', () => {
+  it('color-mix()/空值等画布不可求值形态回落 v4 缺省(桥接断裂仍可读)', () => {
     const theme = readFlowTheme(new FakeStyle({
       '--et-accent': 'color-mix(in oklab, var(--et-accent), transparent 90%)',
       '--et-warn': '',
     }))
-    expect(theme.accent).toEqual({ r: 0x14, g: 0x6e, b: 0xf5, a: 1 })
-    expect(theme.warn).toEqual({ r: 0x8a, g: 0x5a, b: 0x00, a: 1 })
-    expect(readFlowTheme(undefined).surface).toEqual({ r: 0xff, g: 0xff, b: 0xff, a: 1 })
+    // 兜位值 = tokens.ts 的 v4 浅色(黛青 / 暖褐);改令牌须同步改这里与 TOKEN_FALLBACKS
+    expect(theme.accent).toEqual({ r: 0x2b, g: 0x62, b: 0x72, a: 1 })
+    expect(theme.warn).toEqual({ r: 0x94, g: 0x66, b: 0x1c, a: 1 })
+    expect(readFlowTheme(undefined).surface).toEqual({ r: 0xfb, g: 0xfa, b: 0xf6, a: 1 })
   })
 
   it('parseCssColor:hex 三/六/八位、rgb()/rgba() 空格与逗号式、垃圾值回落', () => {
