@@ -291,6 +291,12 @@ export interface WorkbenchSnapshot {
   readonly timelines: readonly TicketTimeline[]
   /** 驻留 Attention 卡(T7;一次仅一张;缺省 = 无待人卡,健康态不占版面)。 */
   readonly attention?: AttentionCardSnapshot
+  /**
+   * orchestrator 主会话 id(工作台「主会话」显式入口,2026-11-19):空主会话在
+   * 侧栏只以「新会话」占位行出现,本字段给入口一个稳定寻址面;来源 =
+   * tasks stats().masterId(主会话未引导时缺省,入口不渲染)。
+   */
+  readonly masterSessionId?: string
 }
 
 /**

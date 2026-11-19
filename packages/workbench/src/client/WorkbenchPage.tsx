@@ -34,6 +34,29 @@ export interface WorkbenchPageProps {
   readonly t: (key: string) => string
   /** 手动重连(错误态重试按钮)。 */
   readonly retry: () => void
+  /**
+   * 「主会话」显式入口(2026-11-19):打开 orchestrator 主会话(快照 masterSessionId
+   * 寻址)。宿主未注入导航面时缺席,入口不渲染。
+   */
+  readonly openMaster?: (sessionId: string) => void
+}
+
+/**
+ * 「主会话」入口(2026-11-19):空主会话在侧栏只以工作区「新会话」占位行出现,
+ * 本按钮给主会话一个稳定入口(id 由 live 快照 masterSessionId 供给;缺席时整键
+ * 不渲染——未引导装配与裸宿主都不显示死按钮)。
+ */
+export function MasterLink({ sessionId, onOpen, t }: {
+  readonly sessionId: string | undefined
+  readonly onOpen: ((sessionId: string) => void) | undefined
+  readonly t: (key: string) => string
+}): ReactElement | null {
+  if (sessionId === undefined || onOpen === undefined) return null
+  return (
+    <button type="button" data-eterna-workbench="open-master" data-eterna-workbench-master={sessionId} onClick={() => { onOpen(sessionId) }}>
+      <Icon name="comment" size={16} />{t('toolbar.master')}
+    </button>
+  )
 }
 
 interface ViewNavItem {
@@ -94,7 +117,7 @@ interface AttentionBannerUi {
 const BANNER_UI_INITIAL: AttentionBannerUi = { arm: 'none', rejectReason: '', supplementOpen: false, supplementText: '' }
 
 /** 面板根组件(状态壳;受控纯视图见 KanbanView/TaskSidebar/AttentionBanner 等)。 */
-export function WorkbenchPage({ useSnapshot, t, retry }: WorkbenchPageProps): ReactElement {
+export function WorkbenchPage({ useSnapshot, t, retry, openMaster }: WorkbenchPageProps): ReactElement {
   const stream = useSnapshot(state => state)
   const [role, setRole] = useState<WorkbenchRole>('admin')
   const [stage, setStage] = useState<StageFilter>('all')
@@ -155,6 +178,7 @@ export function WorkbenchPage({ useSnapshot, t, retry }: WorkbenchPageProps): Re
     <div data-eterna-workbench="root" aria-label={t('panel')}>
       <div data-eterna-workbench="toolbar">
         <h1 data-eterna-workbench="heading">{t('panel')}</h1>
+        <MasterLink sessionId={ready?.masterSessionId} onOpen={openMaster} t={t} />
         <StreamStatus state={stream} t={t} retry={retry} />
       </div>
 

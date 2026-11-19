@@ -66,6 +66,8 @@ export interface TasksWorldView {
     readonly decisions: { readonly total: number }
     readonly outbox: { readonly pending: number; readonly dropped: number }
     readonly executor: { readonly maxWorkers: number }
+    /** orchestrator 主会话 id(「主会话」入口寻址面;未引导时 undefined)。 */
+    readonly masterId: string | undefined
   }
   query(sql: string, ...parameters: unknown[]): unknown[]
 }
@@ -228,7 +230,8 @@ export function createLiveWorkbenchHub(options: WorkbenchLiveHubOptions): Workbe
     const tasks = resolveTasks()
     if (tasks === undefined) throw new Error('任务内核服务未就绪(ctx.tasks 缺席)')
     const view = tasks.snapshot()
-    const workerSlots = tasks.stats().executor.maxWorkers
+    const stats = tasks.stats()
+    const workerSlots = stats.executor.maxWorkers
     return {
       tickets: ticketCardsOf(view.tickets, nowMs()),
       conflict: conflictSection(sectionInputs()),
@@ -239,6 +242,9 @@ export function createLiveWorkbenchHub(options: WorkbenchLiveHubOptions): Workbe
       sessions: [],
       assignments: branchesOf(view.tickets),
       timelines: [],
+      // 「主会话」显式入口(2026-11-19):主会话未引导 stats().masterId 为 undefined,
+      // 快照不带键(客户端入口不渲染)。
+      ...(stats.masterId === undefined ? {} : { masterSessionId: stats.masterId }),
     }
   }
 

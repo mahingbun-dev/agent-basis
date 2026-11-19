@@ -51,7 +51,7 @@ describe('模块装载冒烟(vm)', () => {
   it('factory 暴露 apply 函数与 inject 服务表 + PANEL_ID 锚点', () => {
     const exports = loadBundle()
     expect(typeof exports.apply).toBe('function')
-    expect(exports.inject).toEqual(['slots', 'locale'])
+    expect(exports.inject).toEqual(['slots', 'locale', 'uiWorkspace'])
     expect(exports.PANEL_ID).toBe('eterna-workbench')
   })
 
