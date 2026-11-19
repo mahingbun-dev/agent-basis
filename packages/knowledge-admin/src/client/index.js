@@ -179,9 +179,9 @@ window.__ModuleLoader__.load({
       "[data-kb='sub']{margin:var(--et-space-2) 0 0;font-size:var(--et-text-caption);color:var(--et-muted);}",
 
       // 按钮：复用共享 .et-btn，仅补两种语气（不再自建按钮外观）
-      "[data-kb='btn']{appearance:none;display:inline-flex;align-items:center;gap:var(--et-space-2);",
+      "[data-kb='btn']{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:var(--et-space-2);",
       "font-family:var(--et-font-body);font-size:var(--et-text-caption);font-weight:var(--et-weight-emphasis);line-height:1;",
-      "padding:0 var(--et-space-3);height:32px;border-radius:var(--et-radius-sm);",
+      "padding:0 var(--et-space-4);height:40px;border-radius:var(--et-radius-md);",
       "border:1px solid var(--et-border);background:var(--et-surface);color:var(--et-fg);cursor:pointer;white-space:nowrap;flex:none;",
       "transition:background-color var(--et-motion-fast) var(--et-ease),border-color var(--et-motion-fast) var(--et-ease),transform var(--et-motion-fast) var(--et-ease);}",
       "[data-kb='btn']:hover:not(:disabled){background:var(--et-surface-2);}",
@@ -215,6 +215,12 @@ window.__ModuleLoader__.load({
       "min-height:56px;padding:var(--et-space-3) 0;border-bottom:1px solid var(--et-border-soft);}",
       "[data-kb='row']:last-child{border-bottom:0;}",
 
+      // 工具条：按钮 + 元数据的横向一行。
+      // 缺这条规则时 Toolbar 退化成块级堆叠——1440 下按钮与计数挤成一串、
+      // 390 下每个按钮各占一整行（实测 2026-11-19）。wrap 允许窄屏折行。
+      "[data-kb='bar']{display:flex;align-items:center;gap:var(--et-space-3);flex-wrap:wrap;min-width:0;}",
+      "[data-kb='bar']>[data-kb='meta']{min-width:0;}",
+
       "[data-kb='meta']{font-size:var(--et-text-meta);color:var(--et-meta);font-variant-numeric:tabular-nums;}",
       "[data-kb='empty']{padding:var(--et-space-8);text-align:center;color:var(--et-muted);font-size:var(--et-text-caption);}",
 
@@ -223,10 +229,10 @@ window.__ModuleLoader__.load({
       "border:1px solid color-mix(in oklab,var(--et-danger),transparent 62%);background:var(--et-danger-soft);",
       "color:var(--et-danger);font-size:var(--et-text-caption);white-space:pre-wrap;}",
 
-      // 输入：凹槽面 + sm 圆角（与共享 .et-input 同规格）
+      // 输入：凹槽面 + md 圆角（与共享 .et-input 同规格：40px 高）
       "[data-kb='input'],[data-kb='textarea'],[data-kb='select']{width:100%;box-sizing:border-box;",
-      "font-family:var(--et-font-body);font-size:var(--et-text-caption);color:var(--et-fg);",
-      "padding:0 var(--et-space-3);height:36px;border-radius:var(--et-radius-sm);",
+      "font-family:var(--et-font-body);font-size:var(--et-text-body);color:var(--et-fg);",
+      "padding:0 var(--et-space-3);height:40px;border-radius:var(--et-radius-md);",
       "border:1px solid var(--et-border);background:var(--et-surface-3);",
       "transition:border-color var(--et-motion-fast) var(--et-ease),box-shadow var(--et-motion-fast) var(--et-ease);}",
       "[data-kb='input']:focus,[data-kb='textarea']:focus,[data-kb='select']:focus{",
@@ -247,11 +253,18 @@ window.__ModuleLoader__.load({
 
       // 断点：v4 只允许 1100/760/640。<760 收 gutter 16，不再有 900px
       "@media (max-width:760px){[data-kb='root']{padding:var(--et-space-4) var(--et-space-4) var(--et-space-12);gap:var(--et-space-4);}",
-      "[data-kb='h1']{font-size:var(--et-text-h3);}[data-kb='head']{flex-direction:column;align-items:stretch;}",
+      "[data-kb='h1']{font-size:var(--et-text-h3);}",
+      // 页头竖排后按钮不得被 stretch 拉成整宽：保持自身宽度并靠左。
+      "[data-kb='head']{flex-direction:column;align-items:flex-start;}",
       "[data-kb='card']{padding:var(--et-space-4);}}",
-      "@media (max-width:640px){[data-kb='btn']{width:100%;justify-content:center;}",
-      "[data-kb='tabs']{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}",
-      "[data-kb='tabs']::-webkit-scrollbar{display:none;}}",
+      "@media (max-width:640px){[data-kb='tabs']{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}",
+      "[data-kb='tabs']::-webkit-scrollbar{display:none;}",
+      // 640 以下按钮不再一刀切整宽（那会把工具条撑成四行按钮堆）；改为：
+      // 工具条内多个按钮等分宽度、元数据独占一行。只有一个按钮时不拉伸——
+      // 单按钮整宽在窄屏上显得笨重（实测 2026-11-19 390 截图）。
+      "[data-kb='bar']{gap:var(--et-space-2);}",
+      "[data-kb='bar']>[data-kb='btn']:not(:only-of-type){flex:1 1 0;min-width:0;padding:0 var(--et-space-3);}",
+      "[data-kb='bar']>[data-kb='meta']{flex:1 1 100%;}}",
 
       "@media (prefers-reduced-motion:reduce){[data-kb='btn'],[data-kb='tab']{transition-duration:120ms;}",
       "[data-kb='btn']:active:not(:disabled){transform:none;}}",

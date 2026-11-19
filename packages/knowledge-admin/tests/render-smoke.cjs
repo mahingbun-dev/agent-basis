@@ -98,6 +98,43 @@ html += render(sidebar.component({ size: 20 }), 0)
 const missing = needed.filter((k) => !t(k).startsWith('[') === false && t(k).startsWith('[!'))
 const broken = html.match(/\[![^\]]+\]/g) || []
 if (broken.length) throw new Error('missing dictionary keys: ' + broken.join(','))
+
+// ── 标记 ↔ 样式覆盖率（2026-11-19 缺陷沉淀）──────────────────────────
+// 本插件样式全挂在 [data-kb='X'] 上。代码用了标记却没有规则，那块 UI 就退化成
+// 浏览器默认排版：Toolbar 缺 data-kb='bar' 规则时，按钮与计数挤成一串、390 下
+// 每个按钮各占一整行（生产实测）。渲染烟测能抓——html 带着所有标记，styleNode
+// 带着整份 CSS。
+const usedMarkers = new Set()
+for (const m of html.matchAll(/data-kb[=:]\s*["']?([a-z0-9-]+)/g)) usedMarkers.add(m[1])
+// 只认「以该标记作为主语」的规则块：`[data-kb='bar']{...}`、`[data-kb='bar']:hover{...}`、
+// `[data-kb='bar'][data-tone='primary']{...}`。后代/兄弟选择器（`[data-kb='bar']>[...]`）
+// 不算给 bar 本身定义了样式——否则删掉主规则也能骗过检查（已实测复现两次）。
+const styledMarkers = new Set()
+for (const m of styleNode.textContent.matchAll(/(?:^|\n)[ \t]*\[data-kb='([a-z0-9-]+)'\]((?::[:a-z-]*)?(?:\[[^\]]*\])*)\{/g)) {
+  // 紧跟的后缀里出现 > + ~ 或空格，说明是后代/兄弟选择器，主语不是它本身。
+  const suffix = m[2] || ''
+  if (suffix.includes('>') || suffix.includes('+') || suffix.includes('~') || suffix.includes(' ')) continue
+  styledMarkers.add(m[1])
+}
+if (usedMarkers.size === 0) throw new Error('no data-kb markers found in rendered html')
+if (styledMarkers.size === 0) throw new Error('no [data-kb=...] rules found in CSS')
+const unstyled = [...usedMarkers].filter((k) => !styledMarkers.has(k))
+if (unstyled.length) throw new Error('渲染用到但没有样式的 data-kb 标记: ' + unstyled.join(', '))
+console.log('markers: used=' + usedMarkers.size + ' styled=' + styledMarkers.size + ' (all covered)')
+
+// 触控高度：v4 规范「触控 ≥36px」；按钮与输入按共享基础件取 40px。
+const btnRule = styleNode.textContent.match(/\[data-kb='btn'\]\{([^}]*)\}/)
+if (!btnRule) throw new Error("missing [data-kb='btn'] base rule")
+const btnH = Number((btnRule[1].match(/height:(\d+)px/) || [])[1])
+if (!(btnH >= 36)) throw new Error('[data-kb=btn] 触控高度不足 36px: ' + btnH)
+const inputRule = styleNode.textContent.match(/\[data-kb='input'\][^{]*\{([^}]*)\}/)
+const inputH = Number((((inputRule || [])[1] || '').match(/height:(\d+)px/) || [])[1])
+if (inputH > 0 && inputH < 36) throw new Error('[data-kb=input] 高度不足 36px: ' + inputH)
+
+// 字面色值：样式必须全走 --et-*（历史事故：23 处字面色 + 9 个上游不存在的别名）。
+const literals = styleNode.textContent.match(/#[0-9a-fA-F]{3,8}|rgb\(|rgba\(/g) || []
+if (literals.length) throw new Error('CSS 里出现字面色值: ' + literals.join(','))
+
 if (!html.includes('data-kb="root"') && !html.includes('data-kb=root')) throw new Error('no root anchor rendered')
 fs.writeFileSync('/tmp/kb-render.html', html)
 console.log('render ok: slots=' + slots_.length + ' dict=' + zhKeys.length + ' html=' + html.length + ' bytes')
