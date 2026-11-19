@@ -43,7 +43,7 @@ check "管理员登录" 200 "$code"
 
 # 4) 会话生效：me 返回管理员
 me=$(curl -s -b "$JAR" --max-time 8 "$BASE/access/api/me")
-echo "$me" | grep -q '"role":"admin"' && ok "me 返回 admin 角色" || bad "me 未返回 admin（$me）"
+echo "$me" | grep -q '"role":"admin"' && ok "me 返回 admin 角色" || bad "me 未返回 admin（${me}）"
 
 # 5) 插件清单（含红线）
 plugins=$(curl -s -b "$JAR" --max-time 8 "$BASE/access/api/plugins")
@@ -81,7 +81,7 @@ fi
 #      profile 保留旧登记不算失败）。
 kb=$(docker exec "$CONTAINER" sh -c 'test -f /repo/packages/knowledge-admin/dist/index.js || exit 0; for p in /data/profiles/eterna-web /data/profiles/eterna-super; do if [ -e "$p/node_modules/@eterna/knowledge-admin" ] && grep -q "@eterna/knowledge-admin" "$p/package.json" 2>/dev/null; then basename "$p"; break; fi; done' 2>/dev/null)
 if [ -n "$kb" ]; then
-  ok "知识库管理插件装载（profile: $kb）"
+  ok "知识库管理插件装载（profile: ${kb}）"
 else
   bad "知识库管理插件未装载（dist/链/bundle 任一缺席）——切形态后侧栏「知识库」会消失"
 fi
@@ -103,7 +103,7 @@ if [ "$(printf '%s' "$body" | head -c 2)" = "PK" ]; then ok "扩展分发包 /co
 
 # 10) 指引页（含生产扩展连接地址占位不可判——只验 200 HTML）
 ctype=$(curl -s -o /dev/null -w '%{http_code} %{content_type}' --max-time 8 "$RELAY_BASE/companion/guide")
-case "$ctype" in "200 text/html"*) ok "指引页 /companion/guide 可达";; *) bad "指引页异常（$ctype）"; FAIL=$((FAIL+1));; esac
+case "$ctype" in "200 text/html"*) ok "指引页 /companion/guide 可达";; *) bad "指引页异常（${ctype}）"; FAIL=$((FAIL+1));; esac
 
 echo "── 结果: $PASS 过 / $FAIL 败"
 [ "$FAIL" -eq 0 ]
