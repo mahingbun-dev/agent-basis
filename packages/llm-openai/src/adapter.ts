@@ -102,7 +102,11 @@ export class BasisOpenAIAdapter extends LlmAdapter {
     })
     if (!response.ok) {
       const text = await response.text()
-      throw new LlmError(`Basis OpenAI gateway returned ${String(response.status)}: ${text.slice(0, 400)}`, 'PROVIDER_ERROR', { cause: new Error(text) })
+      throw new LlmError(
+        `Basis OpenAI gateway returned ${String(response.status)}: ${text.slice(0, 400)}`,
+        `HTTP_${String(response.status)}`,
+        { cause: new Error(text), status: response.status },
+      )
     }
     if (response.body === null) throw new LlmError('Basis OpenAI gateway returned no response body', 'EMPTY_RESPONSE')
     yield* translate(readFrames(response.body, activity))

@@ -16,7 +16,7 @@ import { handleAccessRequest, type AccessDeps } from '../src/routes.ts'
 import { SessionService } from '../src/session.ts'
 import { SlidingWindow } from '../src/ratelimit.ts'
 import { UserStore } from '../src/store.ts'
-import { ADMIN_ONLY_UNARY_ACTIONS, bindingsFor, visibilityScopeOf } from '../src/mux.ts'
+import { ADMIN_ONLY_STREAM_ACTIONS, ADMIN_ONLY_UNARY_ACTIONS, bindingsFor, visibilityScopeOf } from '../src/mux.ts'
 import { registerTenantGuards, type TenantFetchRegistry } from '../src/tenant.ts'
 
 describe('P2-T1.7a:网关配置角色门(实例 wrap)', () => {
@@ -293,9 +293,11 @@ describe('WS-C 审批人角色门(M-4 M1 段)', () => {
         kinds: bindings.map(b => b.resource.kind),
         roleNames: bindings.map(b => b.role.name),
         actions: bindings.map(b => [...b.role.actions].sort()),
-        // T6.1:管理员专属 UI 门(插件页整页门)只收窄不放宽——剥离后比内容面,
+        // T6.1/B14:管理员专属门(插件页 UI 门 + 系统 MCP 流门)只收窄不放宽——剥离后比内容面,
         // 与 mux-policy 的 contentView 同口径。
-        contentActions: bindings.map(b => b.role.actions.filter(a => !ADMIN_ONLY_UNARY_ACTIONS.includes(a)).sort()),
+        contentActions: bindings.map(b => b.role.actions
+          .filter(a => !ADMIN_ONLY_UNARY_ACTIONS.includes(a) && !ADMIN_ONLY_STREAM_ACTIONS.includes(a))
+          .sort()),
         sessionIds: bindings.filter(b => b.resource.kind === 'session').map(b => (b.resource as { id: string }).id),
         workspaceIds: bindings.filter(b => b.resource.kind === 'workspace').map(b => (b.resource as { id: string }).id),
       }

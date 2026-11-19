@@ -1,7 +1,8 @@
 /**
  * T2 防漂移 fixture(2026-11-11):上游 typert 全量 mode:'stream' 方法表 −
  * 策略动作清单(GLOBAL∪SESSION∪WORKSPACE)=∅。上游新增流端点而清单未跟时本测试红。
- * 直接读 node_modules 上游包(typert.remote-client.js),锁版 0.2.2-rc.1。
+ * 直接读 node_modules 上游包(typert.remote-client.js),锁版 0.2.2-rc.5;rc.5 起
+ * 扫描面为全部 dsh-* 包(remote 面不再只住 dsh-api-*)。
  *
  * 2026-11-18 增资源 kind 防漂移(「右侧文件面板 no-allow」根因):名称覆盖之外,
  * 逐方法按网关 callResources 的解析口径(gateway access.ts:lookup 参数读
@@ -36,9 +37,11 @@ function upstreamStreamSegments(): Map<string, string> {
   const segments = new Map<string, string>()
   for (const entry of readdirSync(root, { withFileTypes: true })) {
     // .pnpm 目录名形如 @deepseek-ai+dsh-api-session-controller@0.2.2-rc.1_<peerhash>
+    // rc.5:remote 面不再只住 dsh-api-*——deepseek-account / terminal-controller 等
+    // 也各自发布 typert.remote-client.js;扫描全 dsh-* 包,按 action 去重。
     const nameMatch = /^@deepseek-ai\+([a-z-]+)@/.exec(entry.name)
     const pkgName = nameMatch?.[1]
-    if (pkgName === undefined || !pkgName.startsWith('dsh-api-')) continue
+    if (pkgName === undefined || !pkgName.startsWith('dsh-')) continue
     const file = join(root, entry.name, 'node_modules', '@deepseek-ai', pkgName, 'lib', 'typert.remote-client.js')
     if (!existsSync(file)) continue
     const text = readFileSync(file, 'utf8')
@@ -359,6 +362,15 @@ describe('T2 防漂移:流方法资源 kind 归位(2026-11-18「文件面板 no-
       'terminal/retain': 'session', // 具名 sessionId 参数
       'workspaceFiles/changes': 'session', // lookup workspaceFileScope → session
       'job/list': 'session', // sessionId required
+      // rc.5 新增流方法(先占位,再按实核修正)
+      'terminal/watch': 'session',
+      'productAnalytics/watchPolicy': 'global',
+      'toolResults/watch': 'session',
+      'speech/follow': 'global',
+      'forgePanel/changeRequestStates': 'global',
+      'forgePanel/follow': 'session',
+      'mcpManager/watch': 'global',
+      'userQuestions/attachWait': 'session',
     }
     // 上游新增流方法(表外)必须显式入表:缺失即红,防止静默按 global 放宽
     const undocumented = [...kinds.keys()].filter(action => !(action in expected))

@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@deepseek-ai/cordis": "catalog:",
+    "@deepseek-ai/cordis-plugin-loader": "~1.1.0",
     "@deepseek-ai/dsh-typert-protocol": "catalog:",
     "@eterna/ui": "workspace:*"
   },

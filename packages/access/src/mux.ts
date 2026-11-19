@@ -128,6 +128,12 @@ export const GLOBAL_STREAM_ACTIONS: readonly string[] = [
   'account/watchExpiry',
   'job/follow',
   'session/control',
+  // rc.5 新增流面(2026-11-20 对账):远程面不再只住 dsh-api-*,扫描面=全部 dsh-*;
+  // 资源 kind 由 mux-drift 按网关 callResources 口径推导并锁表。
+  'productAnalytics/watchPolicy',
+  'mcpManager/watch',
+  'speech/follow',
+  'forgePanel/changeRequestStates',
 ]
 
 /** 宿主级一元(非流)读面动作:浏览器 peer 换血为 eterna-user 后,客户端 whenAccess
@@ -159,6 +165,14 @@ export const GLOBAL_UNARY_ACTIONS: readonly string[] = [
  *  防漂移:mux-policy 断言 admin 含/非 admin 不含、本清单 ⊆ GLOBAL_UNARY_ACTIONS。 */
 export const ADMIN_ONLY_UNARY_ACTIONS: readonly string[] = [
   'pluginManager/listBundles',
+]
+
+/** 管理员专属流门(2026-11-20,rc.5 B14):系统层 MCP 的 watch 面对非 admin 不下发
+ *  ——普通用户只走个人层(mcp-personal),系统层连接状态/服务器清单仅管理员可见。
+ *  纪律同 ADMIN_ONLY_UNARY_ACTIONS:本清单必须 ⊆ GLOBAL_STREAM_ACTIONS(只收窄);
+ *  非 admin 全局绑定 = GLOBAL_STREAM_ACTIONS − 本清单。*/
+export const ADMIN_ONLY_STREAM_ACTIONS: readonly string[] = [
+  'mcpManager/watch',
 ]
 
 /** 宿主级失效信号事件(策略 global 绑定;2026-11-18「设置页新增模型供应商保存后
@@ -282,9 +296,14 @@ export const SESSION_STREAM_ACTIONS: readonly string[] = [
   'session/control',
   'terminal/attach',
   'terminal/retain',
+  'terminal/watch',
   'workspaceFiles/changes',
   'job/list',
   'job/follow',
+  // rc.5 新增会话级流(逐会话资源,跨租户 deny):
+  'toolResults/watch',
+  'forgePanel/follow',
+  'userQuestions/attachWait',
 ]
 
 /** 工作区级流动作(策略 workspace 绑定;供 follow 逐项可见性过滤)。 */
@@ -374,7 +393,10 @@ export function bindingsFor(deps: MuxPolicyDeps, userId: number): readonly Tenan
   const unaryActions = role === 'admin'
     ? GLOBAL_UNARY_ACTIONS
     : GLOBAL_UNARY_ACTIONS.filter(action => !ADMIN_ONLY_UNARY_ACTIONS.includes(action))
-  const globalRole = { name: 'eterna:member-global', resource: 'global' as const, actions: [...GLOBAL_STREAM_ACTIONS, ...unaryActions, ...GLOBAL_EVENT_ACTIONS, ...pendingStreamActionsOf(visibilityScopeOf(role))] }
+  const streamActions = role === 'admin'
+    ? GLOBAL_STREAM_ACTIONS
+    : GLOBAL_STREAM_ACTIONS.filter(action => !ADMIN_ONLY_STREAM_ACTIONS.includes(action))
+  const globalRole = { name: 'eterna:member-global', resource: 'global' as const, actions: [...streamActions, ...unaryActions, ...GLOBAL_EVENT_ACTIONS, ...pendingStreamActionsOf(visibilityScopeOf(role))] }
   // 会话资源还须授予 workspace/follow:上游 workspace-controller 的 follow 流对
   // workspace.sessionIds 逐项 allows({kind:'session',id}) 判定,action 取当前
   // 调用面(=workspace/follow)——会话绑定不含此动作时,连用户自己的会话也会被从

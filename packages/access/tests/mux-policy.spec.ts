@@ -8,16 +8,19 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { SessionService } from '../src/session.ts'
 import { UserStore } from '../src/store.ts'
-import { ADMIN_ONLY_UNARY_ACTIONS, bindingsFor, GLOBAL_EVENT_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_EVENT_ACTIONS, SESSION_STREAM_ACTIONS, SESSION_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS, visibilityScopeOf } from '../src/mux.ts'
+import { ADMIN_ONLY_STREAM_ACTIONS, ADMIN_ONLY_UNARY_ACTIONS, bindingsFor, GLOBAL_EVENT_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_EVENT_ACTIONS, SESSION_STREAM_ACTIONS, SESSION_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS, visibilityScopeOf } from '../src/mux.ts'
 
 /** 非 admin 的全局一元动作 = 全员清单减去管理员专属 UI 门(T6.1 收窄面)。 */
 const memberUnary = GLOBAL_UNARY_ACTIONS.filter(action => !ADMIN_ONLY_UNARY_ACTIONS.includes(action))
 
-/** 内容绑定对比视图:剥掉管理员专属 UI 门,只比内容动作与资源(WS-C 零放宽口径)。 */
+/** 管理员专属门(UI 一元门 + 系统 MCP 流门)统一视为收窄面。 */
+const adminOnlyActions = [...ADMIN_ONLY_UNARY_ACTIONS, ...ADMIN_ONLY_STREAM_ACTIONS]
+
+/** 内容绑定对比视图:剥掉管理员专属门,只比内容动作与资源(WS-C 零放宽口径)。 */
 const contentView = (bindings: ReturnType<typeof bindingsFor>): unknown =>
   bindings.map(binding => ({
     ...binding,
-    role: { ...binding.role, actions: binding.role.actions.filter(action => !ADMIN_ONLY_UNARY_ACTIONS.includes(action)) },
+    role: { ...binding.role, actions: binding.role.actions.filter(action => !adminOnlyActions.includes(action)) },
   }))
 
 describe('T2:mux 策略绑定', () => {
@@ -50,8 +53,9 @@ describe('T2:mux 策略绑定', () => {
     expect(bindings).toHaveLength(4)
     const global = bindings.filter(b => b.resource.kind === 'global')
     expect(global).toHaveLength(1)
-    // alice 默认 role=user:T6.1 后全局一元动作=全员清单减去管理员专属门
-    expect(global[0]?.role.actions).toEqual([...GLOBAL_STREAM_ACTIONS, ...memberUnary, ...GLOBAL_EVENT_ACTIONS])
+    // alice 默认 role=user:全局动作=全员清单减去管理员专属门(一元 UI 门 + 系统 MCP 流门)
+    const memberStream = GLOBAL_STREAM_ACTIONS.filter(action => !ADMIN_ONLY_STREAM_ACTIONS.includes(action))
+    expect(global[0]?.role.actions).toEqual([...memberStream, ...memberUnary, ...GLOBAL_EVENT_ACTIONS])
     const sessions = bindings.filter(b => b.resource.kind === 'session')
     expect(sessions.map(b => (b.resource as { id: string }).id).sort()).toEqual(['s-a1', 's-a2'])
     // 会话角色含 workspace/follow(workspace 视图 sessionIds 逐项 allows 用,见 mux.ts 注释)
@@ -112,6 +116,10 @@ describe('T2:mux 策略绑定', () => {
     expect(actionsOf(asAdmin)).toEqual([...GLOBAL_STREAM_ACTIONS, ...GLOBAL_UNARY_ACTIONS, ...GLOBAL_EVENT_ACTIONS])
     expect(actionsOf(asApprover)).not.toContain('pluginManager/listBundles')
     expect(actionsOf(asUser)).not.toContain('pluginManager/listBundles')
+    // rc.5 B14:系统层 MCP watch 仅 admin
+    expect(actionsOf(asAdmin)).toContain('mcpManager/watch')
+    expect(actionsOf(asApprover)).not.toContain('mcpManager/watch')
+    expect(actionsOf(asUser)).not.toContain('mcpManager/watch')
     // 不变量明示:任何角色档都只见本人资源(跨租户待人项是工作台数据面,不经 mux 内容绑定)
     const stranger = store.createUserWithSuffix({ account: 'stranger', password: 'password8' }).user
     store.recordSession('s-stranger', stranger.id, null)
@@ -126,8 +134,11 @@ describe('T2:mux 策略绑定', () => {
     const unaryOf = (userId: number) => (bindingsFor(deps, userId)
       .find(b => b.resource.kind === 'global') as { role: { actions: readonly string[] } }).role.actions
     expect(ADMIN_ONLY_UNARY_ACTIONS).toContain('pluginManager/listBundles')
-    // 清单纪律:必须是全员一元门的子集(只收窄,不得引入清单外动作)
+    // 清单纪律:必须是全员门的子集(只收窄,不得引入清单外动作)
     for (const action of ADMIN_ONLY_UNARY_ACTIONS) expect(GLOBAL_UNARY_ACTIONS).toContain(action)
+    for (const action of ADMIN_ONLY_STREAM_ACTIONS) expect(GLOBAL_STREAM_ACTIONS).toContain(action)
+    // 管理员专属门不得含任何会话/工作区资源动作(只谈全局面)
+    for (const action of ADMIN_ONLY_STREAM_ACTIONS) expect(SESSION_STREAM_ACTIONS).not.toContain(action)
     // 非 admin 两档(审批人同 user)不下发
     const bobRole = store.getUserById(bobId)!.role
     expect(bobRole).toBe('user')

@@ -62,18 +62,19 @@ describe('T4:终端租户校验', () => {
       rename: vi.fn(() => { calls.push('rename'); return {} }),
       attach: vi.fn(() => { calls.push('attach'); return {} }),
       retain: vi.fn(() => { calls.push('retain'); return {} }),
+      watch: vi.fn(() => { calls.push('watch'); return {} }),
     }
     return { svc, calls }
   }
 
-  it('eterna-user 访问归属会话 → 放行;他人会话 → terminal/tenant-denied(8 方法)', () => {
+  it('eterna-user 访问归属会话 → 放行;他人会话 → terminal/tenant-denied(9 方法)', () => {
     const { svc, calls } = fakeService({ kind: 'eterna-user', userId: aliceId })
     const dispose = installTerminalTenant(deps, svc)
     expect(dispose).toBeDefined()
     for (const m of TERMINAL_METHODS) {
       const fn = (svc as unknown as Record<string, ((...args: unknown[]) => unknown) | undefined>)[m]
       if (fn === undefined) throw new Error(`${m} missing`)
-      if (m === 'list') fn(aliceSession)
+      if (m === 'list' || m === 'watch' || m === 'retain') fn(aliceSession)
       else fn({ session: { id: aliceSession } }, {})
       expect(calls).toContain(m)
     }

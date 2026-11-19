@@ -5,7 +5,7 @@
  * (eterna-user principal),在服务入口按 invocation principal + 归属账本校验即可拦截
  * 跨用户终端访问,零协议面风险(客户端零改动);PTY 沙箱经 ctx.sandbox.confine 包装
  * spawnTerminal(bash-sandbox 同款 seam,landlock 写边界=账号根,由 T3 边界 wrap 钳定)。
- * 防漂移由 fixture 测试钉 8 方法名。
+ * 防漂移由 fixture 测试钉 9 方法名(rc.5 增 watch)。
  *
  * 上游事实(2026-11-11 实核):
  * - 客户端每方法首参=sessionId(client.js:199/272/315,wire agentId)——攻击者可控;
@@ -19,9 +19,10 @@ export interface TerminalDeps {
   readonly accountOf: (userId: number) => string | undefined
 }
 
-/** 上游 8 方法(防漂移:tests/terminal-drift.spec.ts 与 typert.host.js 方法表对账)。 */
+/** 上游 9 方法(rc.5;防漂移:tests/terminal-tenant.spec.ts 与 typert.host 方法表对账)。
+ *  watch 是 rc.5 新增的会话级流(sessionId 具名参数),必须同时进 mux 会话流守卫。 */
 export const TERMINAL_METHODS: readonly string[] = [
-  'environment', 'shells', 'list', 'create', 'close', 'rename', 'attach', 'retain',
+  'environment', 'shells', 'list', 'create', 'close', 'rename', 'attach', 'retain', 'watch',
 ] as const
 
 interface InvocationLike {
