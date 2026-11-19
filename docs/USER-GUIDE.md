@@ -207,7 +207,7 @@ pnpm add @deepseek-ai/dsh-experimental-plugin-market-bundle@0.2.2-rc.1
 
 - 自动完成:bundle 化改写 → 官方仓库分支 commit(bundle + 索引两段,索引钉 bundle SHA)→ 零漂移校验 → push → **开 PR**;
 - 你只做一件事:**合并 PR**(仓库 main 有分支保护,CI validate 绿才能合;PR 链接工具会直接给出);
-- 合并后:管理员在「插件 → 发现 → 插件索引」菜单刷新 → 新版本卡片出现 → 安装 → 启用(重启生效);
+- 合并后:管理员在「插件 → 发现 → 插件索引」菜单刷新 → 新版本卡片出现 → 安装 → 启用(HMR 配置重载即时生效,浏览器刷新页面;替换已装载插件代码的新版本需重启容器);
 - 边界:仅工具型插件(UI 型不支持)、纯 JS 入口、版本自动递增(可显式传 version)。手工六步配方保留为等效路径,见 eterna-plugins 仓 `docs/PUBLISHING.md`。
 
 ### Web「发现」标签(推荐)
@@ -218,7 +218,7 @@ pnpm add @deepseek-ai/dsh-experimental-plugin-market-bundle@0.2.2-rc.1
    本主仓库索引(演示用,`@eterna/glue`/`@event/pack`):**`https://raw.githubusercontent.com/mahingbun-dev/agent-basis/main/market/index.json`**
    (离线演示备用:仓库根 `python3 -m http.server 8765 -d market/` 后填 `http://127.0.0.1:8765/index.json`;自建索引服务须允许浏览器跨源读取/CORS)
 3. 搜索/按标签筛选 → 卡片上点「**安装**」→ 确认对话框(显示版本、来源 spec、commit)→ 确认后进入安装检查(不兼容版本会被拒并提示豁免方式)
-4. 装完到「已安装」标签启用/停用;启用行写入 profile 的 `dsh.profile.bundles`,eterna-web profile 无 HMR 时按提示**重启生效**
+4. 装完到「已安装」标签启用/停用;启用行写入 profile 的 `dsh.profile.bundles`。`dsh --profile` 启动(带 profileContext)时 dsh-base 默认开 **HMR 配置重载**:首装/启停即时重组合(浏览器刷新页面即见 UI),结果字段 `application=applied`;仅**替换已装载模块代码**(如重装同路径新版本)且 hmr `root: []`(不 watch 源码)时需重启容器,或给 profile 配 `hmr root: ['.']` 打开模块替换
 
 安装/启用是管理员面;普通用户的个人工具插件走设置弹窗「我的插件」(免重启,见 `docs/dev/tenant-plugins.md`)。
 
