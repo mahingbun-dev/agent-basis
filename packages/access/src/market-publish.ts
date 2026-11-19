@@ -491,7 +491,7 @@ export async function publishPersonalPlugin(
       `✅ 发布流程完成:${pkgName}@${version}`,
       `分支:${branch}(bundle commit ${bundleCommit.slice(0, 10)})`,
       prUrl !== undefined ? `PR:${prUrl}` : `开 PR:${compareUrl}`,
-      '后续:CI(validate)绿 → 合并 PR → 产品「插件 → 发现 → 插件索引菜单刷新」→ 安装 → 启用(重启生效)。',
+      '后续:CI(validate)绿 → 合并 PR → 产品「插件 → 发现 → 插件索引菜单刷新」→ 安装 → 启用(HMR 配置重载即时生效,浏览器刷新页面;替换已装载插件的代码需重启容器)。',
     ]
     return {
       ok: true,
