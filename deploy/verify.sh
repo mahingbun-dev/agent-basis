@@ -36,10 +36,21 @@ check "匿名根路径跳登录页" "$BASE/login" "$loc"
 
 # 3) 管理员登录（JSON 契约）+ 会话
 JAR="$(mktemp)"
-code=$(curl -s -c "$JAR" -o /dev/null -w '%{http_code}' --max-time 8 -X POST "$BASE/login" \
+resp=$(curl -s -c "$JAR" -w '\n%{http_code}' --max-time 8 -X POST "$BASE/login" \
   -H 'Content-Type: application/json' \
   -d "{\"account\":\"$ADMIN_USER\",\"password\":\"$ADMIN_PASS\"}")
+code="${resp##*$'\n'}"; body="${resp%$'\n'*}"
 check "管理员登录" 200 "$code"
+# dsh 桥接：登录 JSON 只回 redirect；必须跟一次 /?token=... 才铸 dsh 会话 cookie。
+# 知识库 RPC 走 access 租户守卫，按 dsh token 认人——不跟就 401 unauthorized
+# （2026-11-19 首次部署实测；E2E 脚本一直这么跟，verify 漏了一步）。
+redirect=$(printf '%s' "$body" | sed -n 's/.*"redirect":"\([^"]*\)".*/\1/p')
+# 生产 redirect 是 ETERNA_PUBLIC_URL 公网根；本机验证要换成 $BASE 再跟，
+# 否则 token cookie 落在公网域名/localhost 不一致，守卫仍认不出会话。
+redirect_path=$(printf '%s' "$redirect" | sed -E 's#^[a-zA-Z][a-zA-Z0-9+.-]*://[^/]*##')
+if [ -n "$redirect_path" ]; then
+  curl -s -b "$JAR" -c "$JAR" -L --max-time 8 "$BASE$redirect_path" >/dev/null || true
+fi
 
 # 4) 会话生效：me 返回管理员
 me=$(curl -s -b "$JAR" --max-time 8 "$BASE/access/api/me")
