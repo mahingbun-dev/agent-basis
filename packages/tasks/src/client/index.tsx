@@ -17,7 +17,8 @@ import { injectDesignTokens } from '@eterna/ui'
 import { CSS } from './styles.ts'
 import { NS, SETTINGS_LOCALES, en } from './locales.ts'
 import { TASKS_SECTION_ID, TasksSettingsSection } from './settings.tsx'
-import { SessionRoleBadgeEntry } from './session-role.tsx'
+import { SessionRoleBadgeEntry, SessionRoleRowEntry } from './session-role.tsx'
+import { CANDIDATE_NODE_ID, CandidateCard, candidateCardRule } from './candidate-card.tsx'
 import type { TasksClientContext } from './client-types.ts'
 
 export { TASKS_SECTION_ID, TasksSettingsSection } from './settings.tsx'
@@ -31,20 +32,24 @@ export type {
   RuleView, SourceInstanceView, SourcePolicyView, TasksSettings, ValidationIssue,
 } from './settings-model.ts'
 export {
-  SessionRoleBadge, SessionRoleBadgeEntry, fetchSessionRolesCached, resetSessionRolesCache, sessionRoleOf,
+  SessionRoleBadge, SessionRoleBadgeEntry, SessionRoleRowEntry, fetchSessionRolesCached, resetSessionRolesCache, sessionRoleOf,
 } from './session-role.tsx'
 export type { SessionRole } from './session-role.tsx'
+export { CANDIDATE_NODE_ID, CandidateCard, candidateCardRule, parseCandidateCard } from './candidate-card.tsx'
+export type { CandidateCardData } from './candidate-card.tsx'
 export { fetchTasksSessionRoles, fetchTasksSettings, saveTasksBlock, TasksApiError } from './api.ts'
 export type { TasksSaveOk, TasksSessionRoles, TasksSettingsView } from './api.ts'
 
 /** 会话徽标席位 id(profile 侧槽位条目登记用)。 */
 export const SESSION_BADGE_ID = 'eterna-tasks.session-badge'
+/** 侧边栏会话行角色席位 id。 */
+export const SESSION_ROW_BADGE_ID = 'eterna-tasks.session-row-badge'
 
 /**
  * 运行时依赖服务表(DSH bundle loader 读取;与 package.json dsh.client.inject 同真值):
- * slots/locale + uiWorkspace(设置卡「打开主会话」)。
+ * slots/locale + uiWorkspace(设置卡「打开主会话」)+ uiConversation(候选卡文本规则)。
  */
-export const inject = ['slots', 'locale', 'uiWorkspace']
+export const inject = ['slots', 'locale', 'uiWorkspace', 'uiConversation']
 
 function injectTasksStyles(doc: Document = document): void {
   injectDesignTokens({ bridge: true, doc })
@@ -56,9 +61,9 @@ function injectTasksStyles(doc: Document = document): void {
 }
 
 /**
- * 浏览器插件体:注册字典与两个 slot 贡献。
+ * 浏览器插件体:注册字典、设置分区、角色徽标(会话头 + 侧边栏行)与候选卡渲染。
  * @param ctx - 浏览器插件上下文。
- * @returns 撤销字典注册的 disposer(slot 贡献随插件 fiber 自撤)。
+ * @returns 撤销字典与候选规则的 disposer(slot 贡献随插件 fiber 自撤)。
  */
 export function apply(ctx: TasksClientContext): () => void {
   injectTasksStyles()
@@ -81,5 +86,28 @@ export function apply(ctx: TasksClientContext): () => void {
     locale: NS,
     inject: () => ({ t }),
   }, SessionRoleBadgeEntry))
-  return disposeLocale
+  // ③ 侧边栏会话行角色 chip(「主控/执行」与普通会话同列区分;运行时也常驻)。
+  ctx.slots.inject('sidebar.session.row.trailing', () => ctx.slots.register({
+    name: 'sidebar.session.row.trailing',
+    id: SESSION_ROW_BADGE_ID,
+    locale: NS,
+    inject: () => ({ t }),
+  }, SessionRoleRowEntry))
+  // ④ 候选卡可读化:规则注册在宿主 userText 面;node 渲染器挂在 keyed 子席位。
+  const uiConversation = ctx.uiConversation
+  let disposeRule: (() => void) | undefined
+  if (uiConversation !== undefined) {
+    disposeRule = uiConversation.userText.register(candidateCardRule)
+    ctx.slots.inject('conversation.user.text.node', () => ctx.slots.register({
+      name: 'conversation.user.text.node',
+      key: CANDIDATE_NODE_ID,
+      priority: 100,
+      locale: NS,
+      inject: () => ({ t }),
+    }, CandidateCard))
+  }
+  return () => {
+    disposeRule?.()
+    disposeLocale()
+  }
 }
