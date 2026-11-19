@@ -44,11 +44,13 @@ export async function fetchSessionRolesCached(now = Date.now()): Promise<TasksSe
 
 export interface SessionRoleBadgeProps {
   readonly sessionId: string
-  readonly t: (key: string) => string
+  readonly t: (key: string, params?: Record<string, string | number>) => string
+  /** 侧边栏会话行用紧凑形态(更小内距;文案与语义不变)。 */
+  readonly compact?: boolean
 }
 
 /** 徽标本体(纯展示;role undefined 不渲染——保持会话头零噪声)。 */
-export function SessionRoleBadge({ sessionId, t }: SessionRoleBadgeProps): ReactElement | null {
+export function SessionRoleBadge({ sessionId, t, compact = false }: SessionRoleBadgeProps): ReactElement | null {
   const [role, setRole] = useState<SessionRole | undefined>(undefined)
   useEffect(() => {
     let alive = true
@@ -63,6 +65,7 @@ export function SessionRoleBadge({ sessionId, t }: SessionRoleBadgeProps): React
     <span
       data-eterna-tasks="session-role"
       data-eterna-tasks-role={role}
+      {...(compact ? { 'data-eterna-tasks-compact': 'true' } : {})}
       title={t(master ? 'badge.masterTitle' : 'badge.workerTitle')}
     >
       <Icon name={master ? 'flow' : 'worker'} size={12} />
@@ -75,4 +78,10 @@ export function SessionRoleBadge({ sessionId, t }: SessionRoleBadgeProps): React
 export function SessionRoleBadgeEntry(props: SessionSlotProps): ReactElement | null {
   if (typeof props.sessionId !== 'string' || props.sessionId === '' || props.t === undefined) return null
   return <SessionRoleBadge sessionId={props.sessionId} t={props.t} />
+}
+
+/** 侧边栏会话行 trailing 席位入口(与普通会话同列区分;运行时也常驻)。 */
+export function SessionRoleRowEntry(props: SessionSlotProps): ReactElement | null {
+  if (typeof props.sessionId !== 'string' || props.sessionId === '' || props.t === undefined) return null
+  return <SessionRoleBadge sessionId={props.sessionId} t={props.t} compact />
 }

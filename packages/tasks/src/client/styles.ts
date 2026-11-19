@@ -16,6 +16,18 @@ export const CSS = `
 [data-eterna-tasks='session-role'][data-eterna-tasks-role='worker'] {
   background: var(--et-surface-2); color: var(--et-fg-2);
 }
+[data-eterna-tasks='session-role'][data-eterna-tasks-compact='true'] {
+  padding: 0 6px; gap: 2px;
+}
+[data-eterna-tasks='candidate'] {
+  display: inline-flex; align-items: center; gap: var(--et-space-1);
+  max-width: 100%; padding: 2px 8px; border-radius: var(--et-radius-pill);
+  background: var(--et-accent-soft); color: var(--et-accent);
+  font-family: var(--et-font-body); font-size: var(--et-text-micro);
+  line-height: 1.4; white-space: nowrap; overflow: hidden;
+}
+[data-eterna-tasks='candidate'] [data-eterna-tasks-candidate-from] { color: var(--et-fg-2); }
+[data-eterna-tasks='candidate'] [data-eterna-tasks-candidate-hint] { color: var(--et-muted); }
 
 [data-eterna-tasks-settings] {
   display: grid; gap: var(--et-space-4);
