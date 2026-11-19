@@ -259,9 +259,11 @@ window.__ModuleLoader__.load({
       "[data-kb='card']{padding:var(--et-space-4);}}",
       "@media (max-width:640px){[data-kb='tabs']{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}",
       "[data-kb='tabs']::-webkit-scrollbar{display:none;}",
-      // 640 以下按钮不再一刀切整宽（那会把工具条撑成四行按钮堆）；改为工具条内
-      // 按钮等分共享宽度，元数据独占一行——仍是「一行按钮 + 一行说明」的形态。
-      "[data-kb='bar']{gap:var(--et-space-2);}[data-kb='bar']>[data-kb='btn']{flex:1 1 0;min-width:0;padding:0 var(--et-space-3);}",
+      // 640 以下按钮不再一刀切整宽（那会把工具条撑成四行按钮堆）；改为：
+      // 工具条内多个按钮等分宽度、元数据独占一行。只有一个按钮时不拉伸——
+      // 单按钮整宽在窄屏上显得笨重（实测 2026-11-19 390 截图）。
+      "[data-kb='bar']{gap:var(--et-space-2);}",
+      "[data-kb='bar']>[data-kb='btn']:not(:only-of-type){flex:1 1 0;min-width:0;padding:0 var(--et-space-3);}",
       "[data-kb='bar']>[data-kb='meta']{flex:1 1 100%;}}",
 
       "@media (prefers-reduced-motion:reduce){[data-kb='btn'],[data-kb='tab']{transition-duration:120ms;}",
