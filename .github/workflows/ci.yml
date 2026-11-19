@@ -34,6 +34,12 @@ jobs:
       - name: 运行态目录与凭据入库扫描(runtime-home)
         run: node scripts/lint-no-runtime-home.mjs
 
+      # 升级重渲染的用户配置移植回归(2026-11-19 生产事故:设置页新增的 LLM provider
+      # 在模板变更重渲染后静默消失,存量会话逐轮 NO_ADAPTER)。剧本=entrypoint 同款
+      # docker/profile/transplant-profile.mjs,node --test 零依赖。
+      - name: profile 升级移植回归(transplant-profile)
+        run: node --test docker/profile/transplant-profile.test.mjs
+
       # 双形态门禁三步(40 号 S-7,33 号 §6 缺口 13):与本地命令逐字同款
       # (G4-4 互证纪律:本地绿+CI 红先怀疑环境差异不许硬并,本地红就地修)。
       - name: 双形态依赖方向与挂载一致(form-check,G0-6)

@@ -10,7 +10,9 @@
 #   未变则保留卷上用户文件——插件页启停(cordis.patch.yml disabled: 标记)、包级
 #   启停与模型设置(package.json dsh.profile / patch llm-pi-ai 行)跨重启持久;
 #   模板变更(镜像升级)才重渲染,并把旧文件的启停标记/追加覆写行/bundles 选择
-#   窄移植到新渲染(模型行 config 不移植——升级重置,重启场景已由门控根治)。
+#   窄移植到新渲染。模型行 config 升级仍按模板重置(既有口径),但设置页新增的
+#   provider 路由(llm-pi-ai config.providers 下模板没有的键)例外——整块保留,
+#   理由见 2026-11-19 事故注(docker/profile/transplant-profile.mjs 头注)。
 #   提示词工坊托管值(2026-11-18 补:migrate-prompt-edits.mjs)另走基线快照移植
 #   ——persona/plan-mode section/maxBytes 共 6 条,经「旧文件 vs 基线快照」判定
 #   用户编辑后搬到新渲染;模板基线自身的更新照常落地。此前模板变更升级会把
@@ -58,6 +60,10 @@ mkdir -p "$PROFILE_DIR/node_modules/@eterna" "$PROFILE_DIR/node_modules/@deepsee
 # 现按 sha256(模板内容 + ETERNA_RELAY_TOKEN 盐) 门控:未变→保留用户文件;
 # 首启/模板变更→重渲染,且把旧文件的显式 disabled 标记、仅存于旧文件的用户
 # 覆写行、manifest 的 dsh.profile 块移植到新渲染(2026-11-12 用户拍板)。
+# 2026-11-19 补:设置页新增的 LLM provider 路由(llm-pi-ai config.providers 下模板
+# 没有的键)也随升级移植——此前重渲染整份重置模型行 config,用户自建路由静默消失,
+# 存量会话 lastUsed 仍指向它,dsh-llm 逐轮 NO_ADAPTER(已发生的生产事故)。
+# 移植逻辑见 docker/profile/transplant-profile.mjs(可单测,node --test)。
 # 治理红线行不参与移植(其装载由本文件第 2.5 步 admin 清单独立管理)。
 RENDER_SALT="${ETERNA_RELAY_TOKEN:-}"
 
@@ -77,73 +83,7 @@ ensure_rendered() {
   fi
   if [ -f "$dst" ]; then
     echo "[entrypoint] profile 渲染:模板变更/首启接管,移植用户标记后重渲染 $(basename "$dst")"
-    node - "$tpl" "$dst" "$mode" <<'TRANSPLANT_EOF' || cp "$tpl" "$dst"
-const fs = require('fs')
-const [tplPath, dstPath, mode] = process.argv.slice(2)
-if (mode === 'manifest') {
-  let tpl = null, old = null
-  try { tpl = JSON.parse(fs.readFileSync(tplPath, 'utf8')) } catch { /* 模板坏:走直拷 */ }
-  try { old = JSON.parse(fs.readFileSync(dstPath, 'utf8')) } catch { /* 旧文件坏:弃移植 */ }
-  if (tpl === null) { process.exit(1) }
-  if (old !== null && old.dsh && typeof old.dsh === 'object') tpl.dsh = old.dsh
-  fs.writeFileSync(dstPath, JSON.stringify(tpl, null, 2) + '\n')
-  process.exit(0)
-}
-// patch 模式:文本级顶层块移植(顶层=col0 的 `- ` 行;preset 组内嵌行有缩进不参与)
-const tplText = fs.readFileSync(tplPath, 'utf8')
-const oldText = fs.readFileSync(dstPath, 'utf8')
-function splitBlocks(text) {
-  const lines = text.split('\n')
-  const out = []
-  let start = -1
-  for (let i = 0; i <= lines.length; i++) {
-    const line = i < lines.length ? lines[i] : '- '
-    if (/^- /.test(line) && start >= 0) { out.push({ lines: lines.slice(start, i), start }); start = -1 }
-    if (i < lines.length && /^- /.test(line)) start = i
-  }
-  return { lines, out }
-}
-const blockId = (b) => { const m = /^- id: (\S+)\s*$/.exec(b[0]); return m ? m[1] : null }
-const explicitDisabled = (b) => {
-  for (const l of b.slice(1)) { const m = /^  disabled: (true|false)\s*$/.exec(l); if (m) return m[1] }
-  return null
-}
-const tpl = splitBlocks(tplText)
-const old = splitBlocks(oldText)
-const tplById = new Map()
-for (const b of tpl.out) { const id = blockId(b.lines); if (id !== null && !tplById.has(id)) tplById.set(id, b) }
-const edits = []
-for (const b of old.out) {
-  const id = blockId(b.lines)
-  const oldDis = explicitDisabled(b.lines)
-  if (id === null || oldDis === null) continue
-  const tb = tplById.get(id)
-  if (tb !== undefined) {
-    if (explicitDisabled(tb.lines) === oldDis) continue
-    let replaced = false
-    for (let k = 1; k < tb.lines.length; k++) {
-      if (/^  disabled: /.test(tb.lines[k])) { edits.push({ at: tb.start + k, kind: 'replace', text: '  disabled: ' + oldDis }); replaced = true; break }
-    }
-    if (!replaced) edits.push({ at: tb.start + 1, kind: 'insertBefore', text: '  disabled: ' + oldDis })
-  } else {
-    const appendLines = [...b.lines]
-    while (appendLines.length > 0 && appendLines[appendLines.length - 1].trim() === '') appendLines.pop()
-    if (appendLines.every((l, k) => k === 0 || l.trim() === '' || /^#/.test(l) || /^  [A-Za-z][\w-]*: (?!!!)\S/.test(l))) {
-      edits.push({ at: -1, kind: 'append', text: appendLines.join('\n') })
-    }
-  }
-}
-const lines = tplText.split('\n')
-while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop()
-for (const e of edits.sort((a, b) => b.at - a.at)) {
-  if (e.kind === 'replace') lines[e.at] = e.text
-  else if (e.kind === 'insertBefore') lines.splice(e.at, 0, e.text)
-  else { lines.push(''); for (const l of e.text.split('\n')) lines.push(l) }
-}
-lines.push('')
-fs.writeFileSync(dstPath, lines.join('\n'))
-console.log('[entrypoint] 移植标记:', edits.length, '处')
-TRANSPLANT_EOF
+    node /repo/docker/profile/transplant-profile.mjs "$tpl" "$dst" "$mode" || cp "$tpl" "$dst"
   else
     echo "[entrypoint] profile 渲染:全新卷,直拷模板 $(basename "$dst")"
     cp "$tpl" "$dst"

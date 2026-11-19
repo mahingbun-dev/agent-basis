@@ -13,7 +13,8 @@
     "verify": "node scripts/lint-ui-tokens.mjs && pnpm -r --if-present run verify",
     "lint": "oxlint .",
     "lint:ui": "node scripts/lint-ui-tokens.mjs",
-    "test": "pnpm -r --if-present run test"
+    "test": "pnpm -r --if-present run test",
+    "test:profile": "node --test docker/profile/transplant-profile.test.mjs"
   },
   "devDependencies": {
     "@stylistic/eslint-plugin": "catalog:",
