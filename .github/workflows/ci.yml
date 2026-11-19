@@ -29,6 +29,11 @@ jobs:
       - name: Verify(oxlint + tsc strict + vitest,20 包)
         run: pnpm -w run verify
 
+      # 仓库卫生:DSH_HOME 运行态与凭据文件不得入库(2026-11-19 事故的护栏)。
+      # 放在 verify 之后、boot 门禁之前——它比真启动便宜,却直接决定 G1-2 能否起。
+      - name: 运行态目录与凭据入库扫描(runtime-home)
+        run: node scripts/lint-no-runtime-home.mjs
+
       # 双形态门禁三步(40 号 S-7,33 号 §6 缺口 13):与本地命令逐字同款
       # (G4-4 互证纪律:本地绿+CI 红先怀疑环境差异不许硬并,本地红就地修)。
       - name: 双形态依赖方向与挂载一致(form-check,G0-6)

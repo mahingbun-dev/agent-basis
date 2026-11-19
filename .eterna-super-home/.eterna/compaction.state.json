@@ -1,1 +1,0 @@
-{"thresholdRatio":0.8,"retainRatio":0.16,"headroomTokens":65536,"maxTokens":65536,"compactionRetries":1,"maxOverflowRetries":1,"auto":true,"rapidRefillCount":0,"lastRapidRefillAt":null,"summarizationProvider":"","summarizationModel":""}

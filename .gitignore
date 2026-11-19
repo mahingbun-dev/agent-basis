@@ -51,6 +51,12 @@ tools/evals/pnpm-lock.yaml
 /scripts/init-profile.mjs
 /scripts/smoke.mjs
 /.eterna-gate-home*/
+
+# T7 隔离宿主 home(super 门禁在仓库根生成):含凭据/账号库/会话日志/工作区 SQLite
+# ——2026-11-19 事故:f02a8c3 误把 25 个文件提交,其中 .credentials.yaml(授予 secret)
+# 与 access/secret.key(HMAC 签名钥)被推到 PUBLIC 仓库,同时导致 CI G1-2 因
+# 检出后 644 权限被 credentials-local 拒启。本地运行态永不入库。
+/.eterna-super-home*/
 packages/browser-relay/smoke/.browsers/
 packages/browser-relay/smoke/.gate-relay-port
 
