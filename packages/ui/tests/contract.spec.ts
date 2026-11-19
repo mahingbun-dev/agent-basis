@@ -87,18 +87,50 @@ describe('桥接层：上游别名必须真实存在', () => {
   })
 
   it('宿主实际使用的别名全部被覆盖（否则壳仍残留旧色）', () => {
-    const { frontend } = upstreamPackages()
+    const { frontend, theme } = upstreamPackages()
     const covered = new Set([...DSH_BRIDGE_CSS.matchAll(/--dsw-alias-([a-z0-9-]+)\s*:/gu)].map(m => m[1]!))
-    const assets = frontendAssets(frontend)
     const used = new Set<string>()
+    const assets = frontendAssets(frontend)
     for (const file of readdirSync(assets)) {
       if (!file.endsWith('.css')) continue
       for (const match of readFileSync(join(assets, file), 'utf8').matchAll(/var\(--dsw-alias-([a-z0-9-]+)/gu)) {
         used.add(match[1]!)
       }
     }
+    // 主题插件把一批别名定义在 client.js 里（不在 CSS 资产），宿主组件照样按名取值：
+    // 漏了 --dsw-alias-button-info-fill 的后果是发/送按钮一直是电光蓝（2026-11-19 生产实测）。
+    const themeSource = readFileSync(
+      join(pnpmDir, theme, 'node_modules/@deepseek-ai/dsh-client-ui-theme/lib/client.js'), 'utf8')
+    for (const match of themeSource.matchAll(/var\(--dsw-alias-([a-z0-9-]+)/gu)) used.add(match[1]!)
+    for (const match of themeSource.matchAll(/--dsw-alias-([a-z0-9-]+)\s*:/gu)) used.add(match[1]!)
+
     const missing = [...used].filter(name => !covered.has(name))
     expect(missing, `宿主在用但未覆盖的别名: ${missing.join(', ')}`).toEqual([])
+  })
+
+  it('静态色板被整体重映射（未来新增别名也不会漏出冷白/电光蓝）', () => {
+    // 别名只是指针，真颜色在 --dsw-static-*。上游色板里任何一处纯白/纯黑/
+    // 高饱和蓝漏进暖玉界面，都是肉眼可见的破面。
+    const { theme } = upstreamPackages()
+    const themeSource = readFileSync(
+      join(pnpmDir, theme, 'node_modules/@deepseek-ai/dsh-client-ui-theme/lib/client.js'), 'utf8')
+
+    const upstreamStatic = new Set([...themeSource.matchAll(/--dsw-static-([a-z0-9-]+)\s*:/gu)].map(m => m[1]!))
+    expect(upstreamStatic.size, '上游 --dsw-static-* 表过小：主题插件源未读到').toBeGreaterThan(50)
+
+    const remapped = new Set([...DSH_BRIDGE_CSS.matchAll(/--dsw-static-([a-z0-9-]+)\s*:/gu)].map(m => m[1]!))
+    const missing = [...upstreamStatic].filter(name => !remapped.has(name))
+    expect(missing, `未重映射的静态色板: ${missing.join(', ')}`).toEqual([])
+
+    // 重映射后的值不得再是纯白/纯黑或上游那支电光蓝。
+    const blocks = [...DSH_BRIDGE_CSS.matchAll(/--dsw-static-([a-z0-9-]+)\s*:\s*([^;]+);/gu)]
+    const forbidden = blocks.filter(([, value]) => {
+      const v = value!.trim().toLowerCase()
+      if (v === '#fff' || v === '#ffffff' || v === '#000' || v === '#000000') return true
+      // 上游电光蓝族（deepseek-500 系）与纯浏览器蓝
+      return /^(#4176e6|#3b82f6|#2563eb|#60a5fa)$/u.test(v)
+    })
+    expect(forbidden.map(([n, v]) => `${n}=${v}`), '静态色板里仍有纯白/纯黑/电光蓝').toEqual([])
   })
 })
 
