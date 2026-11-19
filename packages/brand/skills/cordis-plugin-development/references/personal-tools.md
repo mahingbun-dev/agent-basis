@@ -17,6 +17,10 @@ plugins/hello/
 - `ctx` 是受限对象:**只有 `ctx.tools.register(def)`**(自动加 `user_<账号>_` 名前缀 + 归属可见性;disposer 由装载器收管)。没有 `ctx.webServer`/`ctx.reflect`/事件面——路由、服务注入、UI 一律不可用。
 - manifest 带 `dsh.client`(UI)或 `dsh.bundle.patch`(bundle)→ 拒载:个人层只承载工具型;这类走管理员 bundle 安装。
 - 工具 `name` 须匹配 `^[\w][\w.-]{0,63}$`;同账号两插件撞工具名 → 后装者失败,先停用同名插件或改名。
+- 工具 `parameters` 必须是**标准 JSON Schema(对象根)**:`{ type: 'object', properties: {…}, required: […] }`。
+  写成裸属性映射(`{ who: { type: 'string' } }`)时装载器会代编译,但转内置/发布成 bundle 后不再经过
+  装载器——裸映射顶层出现 `title`/`description` 等参数名会被严格供应商当作 JSON Schema 注解关键字,
+  整条请求 400(2026-11-19 线上事故)。一律直接写对象根。
 
 ## 流程
 
