@@ -113,6 +113,21 @@ const waitFor = async (assert: () => void, timeoutMs = 3_000): Promise<void> => 
   }
 }
 
+it('快照携带 masterSessionId(「主会话」入口寻址面;tasks stats().masterId 投影)', () => {
+  const runtime = createTasks({
+    tenantRoot: root, realm: 'alice', passIntervalMs: 3_600_000, scope: testScope,
+    masterId: 'orchestrator-alice',
+  })
+  const hub = createLiveWorkbenchHub({ tasks: (): TasksWorldView | undefined => runtime })
+  try {
+    const first = parseFrames([hub.snapshotFrame()])[0]
+    expect(first?.kind).toBe('snapshot')
+    if (first?.kind === 'snapshot') expect(first.snapshot.masterSessionId).toBe('orchestrator-alice')
+  } finally {
+    hub.dispose()
+  }
+})
+
 it('真实事件驱动视图更新(引擎→hub→SSE→live 控制器→看板投影)', async () => {
   const runtime = bootTasks()
   const hub = createLiveWorkbenchHub({ tasks: (): TasksWorldView | undefined => runtime, batchWindowMs: 30 })

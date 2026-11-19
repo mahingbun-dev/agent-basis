@@ -16,8 +16,14 @@ interface Captured {
   component: SlotComponent
 }
 
-function stubContext(): { ctx: WorkbenchClientContext; captures: Captured[]; localeDisposeCount: () => number } {
+function stubContext(): {
+  ctx: WorkbenchClientContext
+  captures: Captured[]
+  localeDisposeCount: () => number
+  opened: string[]
+} {
   const captures: Captured[] = []
+  const opened: string[] = []
   let localeDisposes = 0
   const slots: SlotsFace = {
     inject(slot, contribute) {
@@ -43,13 +49,14 @@ function stubContext(): { ctx: WorkbenchClientContext; captures: Captured[]; loc
       register: () => { localeDisposes += 1; return () => { localeDisposes -= 1 } },
       bind: () => (key: string) => zh[key as keyof typeof zh] ?? key,
     },
+    uiWorkspace: { openSession: (sessionId) => { opened.push(sessionId) } },
   }
-  return { ctx, captures, localeDisposeCount: () => localeDisposes }
+  return { ctx, captures, localeDisposeCount: () => localeDisposes, opened }
 }
 
 describe('keyed main panel 注册(B1 先例同构)', () => {
-  it('inject 服务面 = slots + locale(M3 无宿主 RPC 消费)', () => {
-    expect(inject).toEqual(['slots', 'locale'])
+  it('inject 服务面 = slots + locale + uiWorkspace(主会话入口导航面)', () => {
+    expect(inject).toEqual(['slots', 'locale', 'uiWorkspace'])
   })
 
   it('apply:main keyed slot(key=eterna-workbench,occupant=WorkbenchPage)+ sidebar.panellist 入口 + 字典注册', () => {
@@ -65,6 +72,7 @@ describe('keyed main panel 注册(B1 先例同构)', () => {
       expect(typeof (injected.hooks as { snapshot: unknown }).snapshot).toBe('object')
       expect(typeof injected.retry).toBe('function')
       expect(typeof injected.t).toBe('function')
+      expect(typeof injected.openMaster).toBe('function')
 
       const sidebar = captures.find(captured => captured.options.id === PANEL_ID)
       expect(sidebar).toBeDefined()
@@ -73,6 +81,20 @@ describe('keyed main panel 注册(B1 先例同构)', () => {
       expect((sidebar!.options.label as () => string)()).toBe('工作台')
       expect(sidebar!.component.name).toBe('WorkbenchIcon')
       expect(captures).toHaveLength(2)
+    } finally {
+      dispose()
+    }
+  })
+
+  it('「主会话」入口:注入面 openMaster 经 uiWorkspace.openSession 导航', () => {
+    const { ctx, captures, opened } = stubContext()
+    const dispose = apply(ctx)
+    try {
+      const main = captures.find(captured => captured.options.key === PANEL_ID)
+      const injected = (main!.options.inject as () => Record<string, unknown>)()
+      const openMaster = injected.openMaster as (sessionId: string) => void
+      openMaster('orchestrator-Mr.Ma')
+      expect(opened).toEqual(['orchestrator-Mr.Ma'])
     } finally {
       dispose()
     }

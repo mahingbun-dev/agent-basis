@@ -9,7 +9,8 @@
     "./icons": "./src/icons.tsx",
     "./icon-data": "./src/icon-data.ts",
     "./package.json": "./package.json",
-    "./react": "./src/react.ts"
+    "./react": "./src/react.ts",
+    "./tokens": "./src/tokens.ts"
   },
   "devDependencies": {
     "@types/react": "catalog:",

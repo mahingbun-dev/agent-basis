@@ -29,8 +29,9 @@ export { AttentionBanner, type AttentionBannerProps } from './AttentionBanner.ts
 /** 侧栏入口与 main 面板共享的 id(keyed main panel:sidebar 条目 id = 面板 key)。 */
 export const PANEL_ID = 'eterna-workbench'
 
-/** 依赖服务:槽位注册表 + 语言(工作台不消费宿主 RPC,数据走同源真源 SSE 流)。 */
-export const inject = ['slots', 'locale']
+/** 依赖服务:槽位注册表 + 语言(数据走同源真源 SSE 流,不消费宿主 RPC)+
+ * 会话导航(「主会话」显式入口,2026-11-19;ui-workspace 的 uiWorkspace)。 */
+export const inject = ['slots', 'locale', 'uiWorkspace']
 
 export type { WorkbenchPageProps, WorkbenchStreamController }
 
@@ -46,6 +47,7 @@ export function apply(ctx: WorkbenchClientContext): () => void {
   const t = ctx.locale.bind(NS)
 
   const stream = createLiveStreamController()
+  const uiWorkspace = ctx.uiWorkspace
 
   ctx.slots.inject('main', () => ctx.slots.register({
     name: 'main',
@@ -55,6 +57,11 @@ export function apply(ctx: WorkbenchClientContext): () => void {
       hooks: { snapshot: stream },
       retry: () => { stream.retry() },
       t,
+      // 「主会话」显式入口(2026-11-19):id 由快照 masterSessionId 供给,动作走
+      // 宿主 ui-workspace 导航(未注入的服务面缺席 → 入口不渲染)。
+      ...(uiWorkspace === undefined ? {} : {
+        openMaster: (sessionId: string) => { uiWorkspace.openSession(sessionId) },
+      }),
     }),
   }, WorkbenchPage))
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({

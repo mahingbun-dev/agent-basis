@@ -237,6 +237,8 @@ describe('入口分层：根入口必须服务端安全', () => {
     expect(reactSource).toContain("from './decision-layer.tsx'")
     const pkg = JSON.parse(readFileSync(join(here, '../package.json'), 'utf8')) as { exports: Record<string, string> }
     expect(pkg.exports['./react']).toBe('./src/react.ts')
+    // 服务端也可以只取令牌（SSR 页面不必拖上整个根面）
+    expect(pkg.exports['./tokens']).toBe('./src/tokens.ts')
     expect(pkg.exports['.']).toBe('./src/index.ts')
   })
 

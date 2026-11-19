@@ -31,6 +31,7 @@ import { Sessions, type SessionHostPorts } from '../../src/session/sessions.ts'
 import { Outbox } from '../../src/effects/outbox.ts'
 import { Effects, HealthBoard, Store } from '../../src/index.ts'
 import { settingsPolicy } from '../../src/policy/gate.ts'
+import type { RoleModel } from '../../src/policy/settings.ts'
 import type { Assessor, Candidate, DomainEvent, SourceScope, Trigger } from '../../src/core/index.ts'
 
 export const REALM = 'alice'
@@ -58,6 +59,8 @@ type RegisteredAgent = {
   inject: Mock<(message: UserMessage) => void>
   steer: Mock<(message: UserMessage) => void>
   followup: Mock<(message: UserMessage) => void>
+  /** 宿主 Agent.model 面(Sessions.seedModel 的播种消费端,46 号);select 记录进 modelSelections。 */
+  model: { select: Mock<(selection: RoleModel) => void> }
   whenIdle(): Promise<void>
 }
 /** 一条文本 user 消息(job 工具与 subagent 的通知同款)。 */
@@ -169,6 +172,7 @@ export function subagentRuntime(agents: Map<string, RegisteredAgent>) {
       id, status: 'running', session: { id }, cwd: undefined,
       inbox: { nextTurn: [], nextStep: [], remove: () => false },
       cancel: vi.fn(), inject: vi.fn(), steer: vi.fn(), followup: vi.fn(),
+      model: { select: vi.fn() },
       whenIdle: () => Promise.resolve(),
     })
     return id
@@ -188,6 +192,10 @@ export async function startHost() {
   /** 每个 session 的下一步;它领取等待步骤的消息。 */
   const steps = new Map<string, () => void>(), claims = new Map<string, () => void>()
   const deliveries = vi.fn<(request: Delivery) => void>()
+  /** session id → 最近一次角色模型播种(Sessions.ensure 的 select 落点,46 号断言面)。 */
+  const modelSelections = new Map<string, RoleModel>()
+  /** 角色模型注入面的可变值(测试按角色置值;null=不播种=随宿主默认)。 */
+  const roleModels: { orchestrator: RoleModel | null; worker: RoleModel | null } = { orchestrator: null, worker: null }
   let turn = 0
   /** 每 session 的 whenIdle 等待者;回合结束(idle)时全部唤醒。 */
   const idleWakers = new Map<string, (() => void)[]>()
@@ -257,6 +265,7 @@ export async function startHost() {
           text: message.content.map(block => block.type === 'text' ? block.text : '').join(''),
         })
       }), cancel,
+      model: { select: vi.fn((selection: RoleModel) => { modelSelections.set(sessionId, { ...selection }) }) },
       whenIdle: () => agents.get(sessionId)?.status === 'idle'
         ? Promise.resolve()
         : new Promise<void>((resolve) => { idleWakers.set(sessionId, [...idleWakers.get(sessionId) ?? [], resolve]) }),
@@ -357,7 +366,9 @@ export async function startHost() {
     scope: ({ source }): { listened: true; observed: boolean; row?: string } | { listened: false; reason: string } =>
       source === SOURCE ? { listened: true, observed: true, row: 'main' } : { listened: false, reason: 'not_listened' },
   }
-  const sessions = new Sessions({ context: ctx, ports: sessionPorts, effects, masterId: MAIN, lifetime: lifetime.signal })
+  const sessions = new Sessions({ context: ctx, ports: sessionPorts, effects, masterId: MAIN, lifetime: lifetime.signal,
+    // 角色模型播种面(46 号):现读 roleModels,测试按角色置值后再 ensure/dispatch 即断言。
+    roleModel: role => roleModels[role] })
   const channels = {
     available: () => true,
     channelAllowed: () => true,
@@ -448,6 +459,8 @@ export async function startHost() {
     sessionController, workspaceRegistry, permissionPresets, sessionPersistence, sessionPorts,
     /** session 面断言面:工作区登记/标题/权限 preset/选用的 agent preset/持久史。 */
     workspaces, renamed, permissionPresetBySession, selectedPresets, persisted,
+    /** 角色模型面(46 号):播种落点与可变的 roleModel 注入值。 */
+    modelSelections, roleModels,
     step, claim, idle, say, settle, accept, stop,
     /** 手动排一次 pass(Engine 时钟)。 */
     pass: (): void => { engine.evaluateDue() },

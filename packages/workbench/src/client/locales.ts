@@ -57,6 +57,7 @@ export type WorkbenchLocaleKey =
   | 'attention.rejectConfirm'
   | 'attention.reasonLabel'
   | 'attention.reasonPlaceholder'
+  | 'toolbar.master'
 
 export const zh: Record<WorkbenchLocaleKey, string> = {
   panel: '工作台',
@@ -108,6 +109,7 @@ export const zh: Record<WorkbenchLocaleKey, string> = {
   'attention.rejectConfirm': '确认拒绝',
   'attention.reasonLabel': '拒绝理由',
   'attention.reasonPlaceholder': '一句话理由（必填）',
+  'toolbar.master': '主会话',
 }
 
 export const en: Record<WorkbenchLocaleKey, string> = {
@@ -160,4 +162,5 @@ export const en: Record<WorkbenchLocaleKey, string> = {
   'attention.rejectConfirm': 'Confirm rejection',
   'attention.reasonLabel': 'Rejection reason',
   'attention.reasonPlaceholder': 'One-line reason (required)',
+  'toolbar.master': 'Master session',
 }
