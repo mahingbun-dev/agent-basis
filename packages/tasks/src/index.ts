@@ -177,6 +177,12 @@ export {
 export type {
   ExecutorCall, TasksHealth, TasksOptions, TasksPluginConfig, TasksRuntime, TasksSnapshotView, TasksStats, TasksWorld,
 } from './plugin.ts'
+// 任务设置面(2026-11-19 任务设置分区):面板/宿主面的读/roles/分块保存缝——写只经
+// saveSettingsBlock,跨层以结果 union 返回(access 路由结构映射,不 import 本包)。
+export { createTasksSettingsFace, settingsBlockList } from './policy/face.ts'
+export type {
+  TasksSessionRoles, TasksSettingsFace, TasksSettingsFaceDeps, TasksSettingsSaveResult, TasksSettingsSnapshot,
+} from './policy/face.ts'
 // DSH bundle loader 取 default export 插件实例(profiles/eterna-super/cordis.patch.yml 的
 // eterna-tasks 行 name 指向包根 exports ".";panel/llm-doctor 包根 default 同款形态)。
 export { default } from './plugin.ts'

@@ -199,6 +199,12 @@ export interface SidebarSession {
   readonly id: string
   readonly title: string
   readonly channel: string
+  /**
+   * 会话角色(2026-11-19 会话级 super 标记):orchestrator = 超级智能体主控
+   * (orchestrator-<realm>),worker = 工单执行会话(worker-<ticketId>);缺省 =
+   * 普通会话(mock fixture 与宿主会话面无角色信息时的降级形态)。
+   */
+  readonly role?: 'orchestrator' | 'worker'
 }
 
 /** 多 Assignment 分支(38 号 T6/S-4:退回 = 同工单新 Assignment = 新分支,

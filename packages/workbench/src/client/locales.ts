@@ -32,6 +32,8 @@ export type WorkbenchLocaleKey =
   | 'toolbar.replayStart'
   | 'sidebar.sessions'
   | 'sidebar.tickets'
+  | 'role.master'
+  | 'role.worker'
   | 'timeline.emptyTitle'
   | 'timeline.emptySub'
   | 'timeline.ticketPrefix'
@@ -86,6 +88,8 @@ export const zh: Record<WorkbenchLocaleKey, string> = {
   'toolbar.replayStart': '重放事件序列',
   'sidebar.sessions': '会话',
   'sidebar.tickets': '我的工单',
+  'role.master': '主控',
+  'role.worker': '执行',
   'timeline.emptyTitle': '选择工单查看报告时间线',
   'timeline.emptySub': '在左侧选中一个任务后，这里会显示它的执行时间线',
   'timeline.ticketPrefix': '工单 ',
@@ -141,6 +145,8 @@ export const en: Record<WorkbenchLocaleKey, string> = {
   'toolbar.replayStart': 'Replay event sequence',
   'sidebar.sessions': 'Sessions',
   'sidebar.tickets': 'My tickets',
+  'role.master': 'Master',
+  'role.worker': 'Worker',
   'timeline.emptyTitle': 'Select a ticket to view its report timeline',
   'timeline.emptySub': 'Pick a ticket under “My tickets”; the timeline renders per Assignment branch',
   'timeline.ticketPrefix': 'Ticket ',

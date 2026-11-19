@@ -99,8 +99,16 @@ export function TaskSidebar({ sessions, tickets, activeSessionId, onSessionSelec
                 aria-current={session.id === activeSessionId ? 'true' : undefined}
                 onClick={() => { onSessionSelect(session.id) }}
               >
-                <Icon name="globe" size={16} />
+                <Icon name={session.role === 'orchestrator' ? 'flow' : session.role === 'worker' ? 'worker' : 'globe'} size={16} />
                 <span>{`${session.title} · ${session.channel}`}</span>
+                {session.role !== undefined && (
+                  <span
+                    data-eterna-workbench="session-role"
+                    data-eterna-workbench-role={session.role}
+                  >
+                    {t(session.role === 'orchestrator' ? 'role.master' : 'role.worker')}
+                  </span>
+                )}
               </button>
             </li>
           ))}

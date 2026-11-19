@@ -7,15 +7,26 @@
   "exports": {
     ".": "./src/index.ts",
     "./plugin": "./src/plugin.ts",
+    "./client": "./lib/client.js",
     "./package.json": "./package.json"
   },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-workspace"
+      ],
+      "platform": "web"
     }
   },
   "scripts": {
-    "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
+    "build:client": "node scripts/build-client.mjs",
+    "verify": "node scripts/build-client.mjs && oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -29,10 +40,14 @@
     "@eterna/channels": "workspace:*",
     "@eterna/extra": "workspace:*",
     "@eterna/governance": "workspace:*",
+    "@eterna/ui": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "esbuild": "catalog:",
+    "react": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
     "yaml": "catalog:"

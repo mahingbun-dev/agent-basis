@@ -99,10 +99,16 @@ export interface PolicySaveOutcome extends PolicySyncOutcome {
  *    tasks: policyContent(新设置)});与现版本不同时:policyEffects(开放工单,旧,新) →
  *    `Engine.policyChanged(from, to, effects)`——在跑工单钉旧版、只收 policy-changed 通知,
  *    新规则只影响新工单(27 号 §3.2-④);`setVersion(to)` 与落库同原子。
+ * ★联合 sides 可选(2026-11-19 任务设置分区):glue 层尚未注入 governance/hitl 内容时
+ * 省略 `sides`,版本面退回 tasks 内容 hash(`policyVersion`,与运行时
+ * `wiring.version ?? policyVersion(settings)` 同口径)——否则首次面板保存会把
+ * 「内容 hash → 联合 hash」误判成版本变化,给在跑工单发无谓的 policy-changed。
+ * sides 在场时保留 A10 原语义:未注入联合版本的装配由本次保存切换到联合版本
+ * (settings.spec.ts「未注入联合版本时回落 settings 内容 hash 口径」用例钉住)。
  * @throws SettingsConflict 当 `revision` 已过期(保存前或原子内检出)。
  */
 export function saveSettingsBlock(host: PolicySaveHost, block: SettingsSave, value: unknown, revision: number,
-  origin: SettingsOrigin, sides: JointSides): PolicySaveOutcome {
+  origin: SettingsOrigin, sides?: JointSides): PolicySaveOutcome {
   const stale = (): boolean => revision !== host.store.blockRevision(block)
   if (stale()) throw new SettingsConflict('Settings changed. Reload before saving.')
   const candidate = SettingsSchema.parse(value)
@@ -113,7 +119,9 @@ export function saveSettingsBlock(host: PolicySaveHost, block: SettingsSave, val
     return { saved: true, revision: host.store.blockRevision(block), settings: old,
       from: current, to: current, changed: false, effects: new Map(), notified: [] }
   }
-  const to = jointPolicyVersion({ ...sides, tasks: policyContent(candidate) })
+  const to = sides === undefined
+    ? policyVersion(candidate)
+    : jointPolicyVersion({ ...sides, tasks: policyContent(candidate) })
   const effects = to === current ? new Map<string, PolicyEffect>()
     : policyEffects(host.store.tickets.open(), old, candidate, host.scope, host.wiring())
   const notified = [...effects.keys()]

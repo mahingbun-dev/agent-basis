@@ -55,6 +55,52 @@ export interface AccessDeps {
       | { readonly ok: true }
       | { readonly ok: false; readonly reason: string; readonly status: 404 | 400 }
   } | undefined
+  /**
+   * tasks 设置面(2026-11-19 任务设置分区;反射键 'tasks' 的 settingsFace 结构面):
+   * 每次请求现读,任务插件未装载/未就绪返回 undefined → 端点 503(fail-closed)。
+   * access 为 Tier1,不 import @eterna/tasks——结构面声明在本文件(panel/stream 同纪律)。
+   */
+  readonly tasksSettings?: (() => TasksSettingsFace | undefined) | undefined
+}
+
+/** tasks 设置视图(结构面;载荷整体 JSON 序列化,access 不解释领域字段)。 */
+export interface TasksSettingsView {
+  readonly realm: string
+  readonly masterId: string | undefined
+  readonly masterTitle: string
+  readonly paused: boolean
+  readonly policyVersion: string
+  readonly settings: unknown
+  readonly revisions: Readonly<Record<string, number>>
+  readonly workerSessionIds: readonly string[]
+  readonly health: unknown
+  readonly stats: unknown
+}
+
+/** 会话角色面(徽标数据源;登录用户可见,只暴露角色判定所需 id)。 */
+export interface TasksSessionRolesView {
+  readonly masterId: string | undefined
+  readonly masterTitle: string
+  readonly workerSessionIds: readonly string[]
+}
+
+/** 分块保存结果(tasks 侧 union 原样;conflict/invalid 为预期业务失败)。 */
+export type TasksSettingsSaveResult =
+  | {
+    readonly ok: true
+    readonly saved: boolean
+    readonly changed: boolean
+    readonly revision: number
+    readonly policyVersion: string
+    readonly settings: unknown
+  }
+  | { readonly ok: false; readonly code: 'conflict' | 'invalid'; readonly message: string }
+
+/** tasks 设置面(tasks World.settingsFace 的结构子集;三键齐备才算就绪)。 */
+export interface TasksSettingsFace {
+  read(): TasksSettingsView
+  roles(): TasksSessionRolesView
+  save(block: string, value: unknown, revision: number): TasksSettingsSaveResult
 }
 
 /** T2.3 插件启停清单:红线(治理/审计/出网/门禁本体)不可停,其余 L1 可由 admin 停用。 */
@@ -117,6 +163,10 @@ export function handleAccessRequest(deps: AccessDeps, req: AccessRequest): Acces
     return handlePluginRemove(deps, req, ip)
   }
   if (req.pathname.startsWith('/access/api/plugins/') && method === 'POST') return handlePluginToggle(deps, req, ip)
+  // 任务设置分区(2026-11-19):角色面登录可见(会话头徽标);设置读写仅 admin。
+  if (req.pathname === '/access/api/tasks/session-roles' && method === 'GET') return handleTasksSessionRoles(deps, req)
+  if (req.pathname === '/access/api/tasks/settings' && method === 'GET') return handleTasksSettingsView(deps, req)
+  if (req.pathname === '/access/api/tasks/settings' && method === 'POST') return handleTasksSettingsSave(deps, req, ip)
   return errorReply(404, 'not found')
 }
 
@@ -177,6 +227,66 @@ function handleQuestionAnswer(deps: AccessDeps, req: AccessRequest): AccessReply
   })
   if (!result.ok) return errorReply(result.status, result.reason)
   return jsonResponse(200, { ok: true })
+}
+
+// ── 任务设置分区(2026-11-19 会话级 super 标记 + 任务设置分区)──────────────
+// 数据面归 tasks(ctx.tasks.settingsFace,经 deps 注入的反射解析器现读);路由面独占
+// 归 access(铁律 T2)。save 的 CAS/版本/policyChanged 语义全在 tasks saveSettingsBlock,
+// 本层只做身份、参数与 HTTP 映射(conflict→409、invalid→400、内核缺席→503)。
+// no-store:设置视图含实时修订与计数,缓存即误判 CAS 基准(AGENTS 交互纪律)。
+
+/** tasks 设置块白名单(pause + 固定六块 + 来源实例块;与 tasks SettingsSave 同域)。 */
+const TASKS_SETTINGS_BLOCK = /^(?:pause|policy|eval|executor|budget|gates|source:[a-z][a-z0-9-]*)$/u
+
+/** 角色面(登录即可):会话头徽标判定主控/执行;只回 id 与标题,不含设置内容。 */
+function handleTasksSessionRoles(deps: AccessDeps, req: AccessRequest): AccessReply {
+  const user = requireUser(deps, req)
+  if (user === undefined) return errorReply(401, '未登录')
+  const face = deps.tasksSettings?.()
+  if (face === undefined) return errorReply(503, '任务内核未就绪')
+  return jsonResponse(200, { ok: true, ...face.roles() }, [['cache-control', 'no-store']])
+}
+
+/** 设置视图(admin;设置分区「任务与超级智能体」读面)。 */
+function handleTasksSettingsView(deps: AccessDeps, req: AccessRequest): AccessReply {
+  const user = requireUser(deps, req)
+  if (user === undefined) return errorReply(401, '未登录')
+  if (user.role !== 'admin') return errorReply(403, '需要管理员权限')
+  const face = deps.tasksSettings?.()
+  if (face === undefined) return errorReply(503, '任务内核未就绪')
+  return jsonResponse(200, { ok: true, ...face.read() }, [['cache-control', 'no-store']])
+}
+
+/** 分块保存(admin):参数 → face.save → 409/400 映射;审计只记块与结果(不记设置值)。 */
+function handleTasksSettingsSave(deps: AccessDeps, req: AccessRequest, ip: string): AccessReply {
+  const user = requireUser(deps, req)
+  if (user === undefined) return errorReply(401, '未登录')
+  if (user.role !== 'admin') return errorReply(403, '需要管理员权限')
+  const body = parseJsonBody(req.body)
+  if (body === undefined) return errorReply(400, '参数不合法：block/revision/value 缺一不可')
+  const block = typeof body.block === 'string' ? body.block : ''
+  const revisionValue = body.revision
+  const revision = typeof revisionValue === 'number' && Number.isInteger(revisionValue) ? revisionValue : -1
+  if (block === '' || !TASKS_SETTINGS_BLOCK.test(block) || revision < 0 || !('value' in body)) {
+    return errorReply(400, '参数不合法：block/revision/value 缺一不可')
+  }
+  const face = deps.tasksSettings?.()
+  if (face === undefined) return errorReply(503, '任务内核未就绪')
+  const result = face.save(block, body.value, revision)
+  if (!result.ok) {
+    deps.audit({ kind: 'access.tasks.settings', account: user.account, ip, ok: false, detail: { block, code: result.code } })
+    return errorReply(result.code === 'conflict' ? 409 : 400, result.message)
+  }
+  deps.audit({ kind: 'access.tasks.settings', account: user.account, ip, ok: true,
+    detail: { block, saved: result.saved, changed: result.changed } })
+  return jsonResponse(200, {
+    ok: true,
+    saved: result.saved,
+    changed: result.changed,
+    revision: result.revision,
+    policyVersion: result.policyVersion,
+    settings: result.settings,
+  }, [['cache-control', 'no-store']])
 }
 
 /** companion 令牌生成/重置(覆盖旧值即刻失效);审计只记动作不记令牌值。 */

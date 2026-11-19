@@ -17,6 +17,7 @@ import type { StageFilter } from '../project/kanban.ts'
 import type { WorkbenchRole } from '../types.ts'
 import { LOG_TICKET_CHIPS } from '../project/trace-view.ts'
 import { activeBranchOf, branchesFor, timelineFor } from '../project/task-sidebar.ts'
+import { workbenchSessions } from '../project/sessions.ts'
 import type { WorkbenchStreamState } from './mock-stream.ts'
 import { KanbanView } from './KanbanView.tsx'
 import { FlowStage } from './FlowCanvas.tsx'
@@ -39,6 +40,11 @@ export interface WorkbenchPageProps {
    * 寻址)。宿主未注入导航面时缺席,入口不渲染。
    */
   readonly openMaster?: (sessionId: string) => void
+  /**
+   * 会话行点击导航(2026-11-19 会话侧 super 标记):派生行/普通行点击即打开宿主
+   * 对应会话;宿主未注入导航面时只切换侧栏高亮(裸宿主与渲染测试降级)。
+   */
+  readonly openSession?: (sessionId: string) => void
 }
 
 /**
@@ -117,7 +123,7 @@ interface AttentionBannerUi {
 const BANNER_UI_INITIAL: AttentionBannerUi = { arm: 'none', rejectReason: '', supplementOpen: false, supplementText: '' }
 
 /** 面板根组件(状态壳;受控纯视图见 KanbanView/TaskSidebar/AttentionBanner 等)。 */
-export function WorkbenchPage({ useSnapshot, t, retry, openMaster }: WorkbenchPageProps): ReactElement {
+export function WorkbenchPage({ useSnapshot, t, retry, openMaster, openSession }: WorkbenchPageProps): ReactElement {
   const stream = useSnapshot(state => state)
   const [role, setRole] = useState<WorkbenchRole>('admin')
   const [stage, setStage] = useState<StageFilter>('all')
@@ -139,6 +145,15 @@ export function WorkbenchPage({ useSnapshot, t, retry, openMaster }: WorkbenchPa
   useEffect(() => { bodyRef.current?.scrollTo({ top: 0 }) }, [view])
 
   const ready = stream.status === 'ready' ? stream.snapshot : undefined
+  // 会话区行(live 快照 sessions 恒空 → 客户端按 masterSessionId + 工单派生;
+  // mock fixture 非空时原样回退,渲染测试行为不变)。
+  const sessions = ready === undefined
+    ? []
+    : workbenchSessions({
+      sessions: ready.sessions,
+      tickets: ready.tickets,
+      ...(ready.masterSessionId === undefined ? {} : { masterSessionId: ready.masterSessionId }),
+    })
   const logsFilter = { ticketId: logTicket, query }
 
   const toggleExpand = (entryId: string): void => {
@@ -222,10 +237,13 @@ export function WorkbenchPage({ useSnapshot, t, retry, openMaster }: WorkbenchPa
               <p data-eterna-workbench="view-desc">左侧按状态查看你的任务；选中工单即可查看执行时间线。退回或重试会生成新的执行记录，无需重新发起。</p>
               <div data-eterna-workbench="chat-shell">
                 <TaskSidebar
-                  sessions={ready.sessions}
+                  sessions={sessions}
                   tickets={ready.tickets}
                   activeSessionId={activeSessionId}
-                  onSessionSelect={setActiveSessionId}
+                  onSessionSelect={(sessionId) => {
+                    setActiveSessionId(sessionId)
+                    openSession?.(sessionId)
+                  }}
                   activeTicketId={activeTicketId}
                   onTicketSelect={selectTicket}
                   t={t}
