@@ -216,8 +216,11 @@ echo "[entrypoint] governance rules: $GOV_SRC -> $DSH_HOME/.eterna/governance.ru
 # attachments(2026-11-12 附件入口,客户端双面包)同理——缺 symlink 即 insert 行静默 disable。
 # memory(2026-11-15 补记):T12 双面插件(引擎行+client/admin 家族行)同样依赖本清单
 # ——实测缺链时 eterna-memory-client/admin 行静默 disable,设置分区「记忆」不出现。
-# base 清单=下述 11 包逐字保留;super 形态守卫式补链 Tier2/接线包(见下方注)。
-for pkg in glue llm-doctor brand panel prompt-studio llm-openai access usage-stats compaction attachments memory governance; do
+# base 清单逐字保留;super 形态守卫式补链 Tier2/接线包(见下方注)。
+# knowledge-admin(2026-11-19 补入):双面知识库管理插件(侧栏「知识库」+ main 面板),
+# 此前只作为 eterna-web profile 的 bundle 安装——生产切 ETERNA_FORM=super 后 profile
+# 换目录,整页消失(镜像内包在、access 17 端点守卫也在,只差装载)。
+for pkg in glue llm-doctor brand panel prompt-studio llm-openai access usage-stats compaction attachments memory governance knowledge-admin; do
   ln -sfn "$REPO/packages/$pkg" "$PROFILE_DIR/node_modules/@eterna/$pkg"
 done
 # creation-skills 别名(preset-cordis skill-filesystem 解析名)
@@ -234,6 +237,30 @@ if [ "$ETERNA_FORM" = "super" ]; then
       echo "[entrypoint] super symlink: @eterna/$pkg"
     fi
   done
+fi
+
+# knowledge-admin bundle 登记(2026-11-19 切形态丢失事故):profile package.json 的
+# dsh.profile.bundles 幂等追加,只增不删——用户在插件页写的 disabled 标记在
+# cordis.patch.yml,不受本步影响。守卫=包目录与 dist 都在(旧镜像不登记,避免
+# boot 解析失败);dist 由 Dockerfile 的 tsc 步骤产出。
+if [ -d "$REPO/packages/knowledge-admin" ] && [ -f "$REPO/packages/knowledge-admin/dist/index.js" ]; then
+  node - "$PROFILE_DIR/package.json" <<'KBADMIN_EOF'
+const fs = require('fs')
+const [file] = process.argv.slice(2)
+const j = JSON.parse(fs.readFileSync(file, 'utf8'))
+j.dsh = j.dsh ?? {}
+j.dsh.profile = j.dsh.profile ?? {}
+const bundles = j.dsh.profile.bundles ?? (j.dsh.profile.bundles = [])
+if (bundles.includes('@eterna/knowledge-admin')) {
+  console.log('[entrypoint] profile bundle 已在: @eterna/knowledge-admin')
+} else {
+  bundles.push('@eterna/knowledge-admin')
+  fs.writeFileSync(file, JSON.stringify(j, null, 2) + '\n')
+  console.log('[entrypoint] profile bundle 追加: @eterna/knowledge-admin')
+}
+KBADMIN_EOF
+else
+  echo "[entrypoint] 警告：@eterna/knowledge-admin 包或 dist 不在——知识库管理页不装载"
 fi
 
 # ── 4. @deepseek-ai 家族 → 全局拷贝 ─────────────────────────────────────
