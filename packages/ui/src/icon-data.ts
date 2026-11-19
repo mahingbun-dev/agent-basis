@@ -41,6 +41,7 @@ export type IconName =
   | 'flow'
   | 'worker'
   | 'pause'
+  | 'play'
   | 'replay'
   | 'clock'
   | 'comment'
@@ -210,6 +211,10 @@ export const ICONS: Readonly<Record<IconName, readonly IconPrimitive[]>> = {
   /* 信息流图暂停(38 号 T9;30 号 §7-2 实时语义;原型 03 内联 SVG 落库提案)。 */
   pause: [
     { tag: 'path', attrs: { d: 'M9.2 5.8v12.4M14.8 5.8v12.4' } },
+  ],
+  /* 暂停后的继续(工作台暂停按钮双态;与 pause 同为线性家族三角描边)。 */
+  play: [
+    { tag: 'path', attrs: { d: 'M8.6 5.7L18.4 12 8.6 18.3z' } },
   ],
   /* 单工单回放(38 号 T9;30 号 §7-2 拍板;原型 03/04 内联 SVG 落库提案)。 */
   replay: [

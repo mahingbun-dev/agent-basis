@@ -11,7 +11,7 @@
  * 直接驱动,不进本壳)。DOM 带 data-eterna-workbench* 结构化锚点(panel 先例:
  * E2E 严断言定位)。
  */
-import { useState, type ReactElement } from 'react'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { Icon } from '@eterna/ui/icons'
 import type { StageFilter } from '../project/kanban.ts'
 import type { WorkbenchRole } from '../types.ts'
@@ -133,6 +133,10 @@ export function WorkbenchPage({ useSnapshot, t, retry, openMaster }: WorkbenchPa
   const [bannerUi, setBannerUi] = useState<AttentionBannerUi>(BANNER_UI_INITIAL)
   // 当前视图(真 tab 切换;默认会话侧区——发起人视角首屏)
   const [view, setView] = useState<WorkbenchView>('session')
+  // 内容滚动区(2026-11-19:tab 条改为不滚动头部,内容独立滚;切 tab 回顶)
+  const bodyRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => { bodyRef.current?.scrollTo({ top: 0 }) }, [view])
 
   const ready = stream.status === 'ready' ? stream.snapshot : undefined
   const logsFilter = { ticketId: logTicket, query }
@@ -176,87 +180,99 @@ export function WorkbenchPage({ useSnapshot, t, retry, openMaster }: WorkbenchPa
 
   return (
     <div data-eterna-workbench="root" aria-label={t('panel')}>
-      <div data-eterna-workbench="toolbar">
-        <h1 data-eterna-workbench="heading">{t('panel')}</h1>
-        <MasterLink sessionId={ready?.masterSessionId} onOpen={openMaster} t={t} />
-        <StreamStatus state={stream} t={t} retry={retry} />
+      {/* 头部(标题/tab 条)不随内容滚动:此前 nav 用 sticky 而滚动容器 root
+       * 带 48px padding-top,吸顶位停在 padding 之下,内容从 tab 上方穿出
+       * (2026-11-19 线上实测)。现结构 = 固定头部 + 独立滚动正文,内容 DOM
+       * 位于 tab 之下([data-eterna-workbench='body'])。 */}
+      <div data-eterna-workbench="header">
+        <div data-eterna-workbench="toolbar">
+          <div data-eterna-workbench="toolbar-main">
+            <h1 data-eterna-workbench="heading">{t('panel')}</h1>
+            <MasterLink sessionId={ready?.masterSessionId} onOpen={openMaster} t={t} />
+          </div>
+          <StreamStatus state={stream} t={t} retry={retry} />
+        </div>
+
+        <nav data-eterna-workbench="view-nav" aria-label="工作台视图导航">
+          {VIEW_NAV.map(item => (
+            <button key={item.view} type="button" data-eterna-workbench="view-tab" data-eterna-workbench-view-active={view === item.view || undefined} aria-current={view === item.view ? 'page' : undefined} onClick={() => { setView(item.view) }}>
+              <Icon name={item.icon} size={16} />{t(item.key)}
+            </button>
+          ))}
+        </nav>
       </div>
 
-      {ready?.attention !== undefined && <AttentionBanner card={ready.attention} arm={bannerUi.arm} rejectReason={bannerUi.rejectReason} supplementOpen={bannerUi.supplementOpen} supplementText={bannerUi.supplementText} {...bannerActions} t={t} />}
+      <div data-eterna-workbench="body" ref={bodyRef}>
+        {/* Attention 横幅随正文滚动(不钉死在头部):窄视口下横幅换行后高度可
+         * 超过一屏,钉死会挤掉全部内容;tab 条保持固定在头部。 */}
+        {ready?.attention !== undefined && <AttentionBanner card={ready.attention} arm={bannerUi.arm} rejectReason={bannerUi.rejectReason} supplementOpen={bannerUi.supplementOpen} supplementText={bannerUi.supplementText} {...bannerActions} t={t} />}
 
-      <nav data-eterna-workbench="view-nav" aria-label="工作台视图导航">
-        {VIEW_NAV.map(item => (
-          <button key={item.view} type="button" data-eterna-workbench="view-tab" data-eterna-workbench-view-active={view === item.view || undefined} aria-current={view === item.view ? 'page' : undefined} onClick={() => { setView(item.view) }}>
-            <Icon name={item.icon} size={16} />{t(item.key)}
-          </button>
-        ))}
-      </nav>
+        {ready === undefined && stream.status !== 'ready' && (
+          <p data-eterna-workbench="placeholder" data-eterna-workbench-sse={stream.status === 'error' ? 'error' : 'connecting'}>
+            {stream.status === 'error' ? `${t('state.error')}：${stream.message}` : t('state.connecting')}
+          </p>
+        )}
 
-      {ready === undefined && stream.status !== 'ready' && (
-        <p data-eterna-workbench="placeholder" data-eterna-workbench-sse={stream.status === 'error' ? 'error' : 'connecting'}>
-          {stream.status === 'error' ? `${t('state.error')}：${stream.message}` : t('state.connecting')}
-        </p>
-      )}
-
-      {ready !== undefined && (
-        <>
-          <section data-eterna-workbench="view" data-eterna-workbench-view="session" id="wb-session" hidden={view !== 'session'} aria-labelledby="wb-h-session">
-            <div data-eterna-workbench="view-head">
-              <h2 data-eterna-workbench="view-title" id="wb-h-session">任务侧栏 · 报告时间线</h2>
-            </div>
-            <p data-eterna-workbench="view-desc">左侧按状态查看你的任务；选中工单即可查看执行时间线。退回或重试会生成新的执行记录，无需重新发起。</p>
-            <div data-eterna-workbench="chat-shell">
-              <TaskSidebar
-                sessions={ready.sessions}
-                tickets={ready.tickets}
-                activeSessionId={activeSessionId}
-                onSessionSelect={setActiveSessionId}
-                activeTicketId={activeTicketId}
-                onTicketSelect={selectTicket}
-                t={t}
-              />
-              <TicketTimeline
-                ticket={activeTicket}
-                branches={branches}
-                activeBranchId={activeBranchId}
-                onBranchChange={setBranchOverride}
-                blocks={timelineBlocks}
-                answerDraft={answerDraft}
-                onAnswerChange={setAnswerDraft}
-                onAnswerSubmit={() => { setAnswerDraft('') }}
-                onAccept={() => {}}
-                onReturn={() => {}}
-                t={t}
-              />
-            </div>
-          </section>
-          {view === 'monitor' && (
-          <KanbanView
-            snapshot={ready}
-            role={role}
-            principal={MOCK_PRINCIPAL}
-            stage={stage}
-            onRoleChange={setRole}
-            onStageChange={setStage}
-            t={t}
-          />
-          )}
-          {view === 'flow' && <FlowStage snapshot={ready} t={t} />}
-          {view === 'logs' && (
-          <LogsView
-            snapshot={ready}
-            filter={logsFilter}
-            onTicketChange={setLogTicket}
-            onQueryChange={setQuery}
-            expandedIds={expandedIds}
-            onToggleExpand={toggleExpand}
-            t={t}
-          />
-          )}
-          {view === 'eval' && <EvalView snapshot={ready} />}
-          {view === 'worker' && <WorkerInspector snapshot={ready.worker} />}
-        </>
-      )}
+        {ready !== undefined && (
+          <>
+            <section data-eterna-workbench="view" data-eterna-workbench-view="session" id="wb-session" hidden={view !== 'session'} aria-labelledby="wb-h-session">
+              <div data-eterna-workbench="view-head">
+                <h2 data-eterna-workbench="view-title" id="wb-h-session">任务侧栏 · 报告时间线</h2>
+              </div>
+              <p data-eterna-workbench="view-desc">左侧按状态查看你的任务；选中工单即可查看执行时间线。退回或重试会生成新的执行记录，无需重新发起。</p>
+              <div data-eterna-workbench="chat-shell">
+                <TaskSidebar
+                  sessions={ready.sessions}
+                  tickets={ready.tickets}
+                  activeSessionId={activeSessionId}
+                  onSessionSelect={setActiveSessionId}
+                  activeTicketId={activeTicketId}
+                  onTicketSelect={selectTicket}
+                  t={t}
+                />
+                <TicketTimeline
+                  ticket={activeTicket}
+                  branches={branches}
+                  activeBranchId={activeBranchId}
+                  onBranchChange={setBranchOverride}
+                  blocks={timelineBlocks}
+                  answerDraft={answerDraft}
+                  onAnswerChange={setAnswerDraft}
+                  onAnswerSubmit={() => { setAnswerDraft('') }}
+                  onAccept={() => {}}
+                  onReturn={() => {}}
+                  t={t}
+                />
+              </div>
+            </section>
+            {view === 'monitor' && (
+            <KanbanView
+              snapshot={ready}
+              role={role}
+              principal={MOCK_PRINCIPAL}
+              stage={stage}
+              onRoleChange={setRole}
+              onStageChange={setStage}
+              t={t}
+            />
+            )}
+            {view === 'flow' && <FlowStage snapshot={ready} t={t} />}
+            {view === 'logs' && (
+            <LogsView
+              snapshot={ready}
+              filter={logsFilter}
+              onTicketChange={setLogTicket}
+              onQueryChange={setQuery}
+              expandedIds={expandedIds}
+              onToggleExpand={toggleExpand}
+              t={t}
+            />
+            )}
+            {view === 'eval' && <EvalView snapshot={ready} />}
+            {view === 'worker' && <WorkerInspector snapshot={ready.worker} />}
+          </>
+        )}
+      </div>
     </div>
   )
 }

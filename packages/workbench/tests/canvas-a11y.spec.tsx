@@ -50,16 +50,62 @@ describe('视图二渲染:画布 + 三配套入口(原型 03 视图二)', () => 
     expect(canvas.attrs['aria-label']).toContain('按节点浏览')
   })
 
-  it('工具条:暂停按钮(aria-pressed)+ 单工单回放 select 两项 + 重放事件序列按钮', () => {
+  it('工具条:暂停按钮(aria-pressed)+ 回放选择器两项 + 重放事件序列按钮', () => {
     const pause = find1(flowView, 'data-eterna-workbench-flow', 'pause')
     expect(pause.attrs['aria-pressed']).toBe('false')
     expect(textOf(pause)).toBe('暂停')
-    const select = find1(flowView, 'data-eterna-workbench', 'replay-select')
-    const options = all(select, node => node.tag === 'option').map(node => node.text)
+    const picker = find1(flowView, 'data-eterna-workbench', 'replay-picker')
+    const trigger = find1(picker, 'data-eterna-workbench', 'replay-select')
+    expect(trigger.tag).toBe('summary')
+    expect(trigger.attrs['aria-haspopup']).toBe('menu')
+    expect(textOf(trigger)).toBe('T-9c81 报价对比：口径确认')
+    const options = byAttr(picker, 'role', 'menuitemradio').map(node => textOf(node))
     expect(options).toEqual(['T-9c81 报价对比：口径确认', 'T-a21f 付款申请：预付款审批'])
-    expect(select.attrs['value']).toBe('T-9c81')
+    expect(byAttr(picker, 'data-eterna-workbench-selected', 'true').map(node => textOf(node))).toEqual(['T-9c81 报价对比：口径确认'])
     const start = find1(flowView, 'data-eterna-workbench-flow', 'replay-start')
     expect(textOf(start)).toBe('重放事件序列')
+  })
+
+  it('回放选择器空态:无可回放工单 = 禁用占位(不可展开,不弹系统菜单)', () => {
+    const emptyView = render(
+      <FlowView
+        view={{ ...view, replayOptions: [] }}
+        tickets={snapshot.tickets}
+        paused={false}
+        replayTicketId=""
+        announce=""
+        t={t}
+        onTogglePause={() => {}}
+        onReplayTicketChange={() => {}}
+        onReplayStart={() => {}}
+        onRowReplay={() => {}}
+      />,
+    )
+    const placeholder = find1(emptyView, 'data-eterna-workbench', 'replay-select')
+    expect(placeholder.tag).toBe('span')
+    expect(placeholder.attrs['data-eterna-workbench-disabled']).toBe('true')
+    expect(textOf(placeholder)).toBe('暂无可回放工单')
+    expect(byAttr(emptyView, 'data-eterna-workbench', 'replay-picker')).toHaveLength(0)
+  })
+
+  it('暂停态:按钮文案切「继续」+ aria-pressed(按下态由 CSS 强调底给出)', () => {
+    const pausedView = render(
+      <FlowView
+        view={view}
+        tickets={snapshot.tickets}
+        paused
+        replayTicketId="T-9c81"
+        announce=""
+        t={t}
+        onTogglePause={() => {}}
+        onReplayTicketChange={() => {}}
+        onReplayStart={() => {}}
+        onRowReplay={() => {}}
+      />,
+    )
+    const pause = find1(pausedView, 'data-eterna-workbench-flow', 'pause')
+    expect(pause.attrs['aria-pressed']).toBe('true')
+    expect(textOf(pause)).toBe('继续')
   })
 
   it('图例七项逐字(38 号 F-12 图例要素)', () => {

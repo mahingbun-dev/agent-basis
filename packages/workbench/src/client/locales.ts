@@ -26,7 +26,9 @@ export type WorkbenchLocaleKey =
   | 'toolbar.searchLabel'
   | 'toolbar.searchPlaceholder'
   | 'toolbar.pause'
+  | 'toolbar.resume'
   | 'toolbar.replay'
+  | 'toolbar.replayEmpty'
   | 'toolbar.replayStart'
   | 'sidebar.sessions'
   | 'sidebar.tickets'
@@ -78,7 +80,9 @@ export const zh: Record<WorkbenchLocaleKey, string> = {
   'toolbar.searchLabel': '检索日志',
   'toolbar.searchPlaceholder': '检索工具 / 参数 / 状态',
   'toolbar.pause': '暂停',
-  'toolbar.replay': '单工单回放',
+  'toolbar.resume': '继续',
+  'toolbar.replay': '按工单回放',
+  'toolbar.replayEmpty': '暂无可回放工单',
   'toolbar.replayStart': '重放事件序列',
   'sidebar.sessions': '会话',
   'sidebar.tickets': '我的工单',
@@ -131,7 +135,9 @@ export const en: Record<WorkbenchLocaleKey, string> = {
   'toolbar.searchLabel': 'Search logs',
   'toolbar.searchPlaceholder': 'Search tool / params / status',
   'toolbar.pause': 'Pause',
-  'toolbar.replay': 'Single-ticket replay',
+  'toolbar.resume': 'Resume',
+  'toolbar.replay': 'Replay by ticket',
+  'toolbar.replayEmpty': 'No replayable tickets',
   'toolbar.replayStart': 'Replay event sequence',
   'sidebar.sessions': 'Sessions',
   'sidebar.tickets': 'My tickets',
