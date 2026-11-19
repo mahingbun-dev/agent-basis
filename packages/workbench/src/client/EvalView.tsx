@@ -5,7 +5,7 @@
  * 纯数据驱动组件(无本地状态)。
  */
 import type { ReactElement } from 'react'
-import { Ring } from '@eterna/ui'
+import { Ring } from '@eterna/ui/react'
 import { decayChart, evalMetricCards, trendChart, type LineChartView, type MetricCard } from '../project/eval-view.ts'
 import type { WorkbenchSnapshot } from '../types.ts'
 
