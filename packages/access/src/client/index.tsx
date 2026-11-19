@@ -20,7 +20,8 @@ import { AccountLauncher, type AccountLauncherInjected } from './account-menu.ts
 import { installLinkOpeningDefault } from './link-opening.ts'
 import { ApprovalCards } from './approval-card.tsx'
 import { QuestionCards } from './question-card.tsx'
-import { DecisionLayer } from '@eterna/ui'
+/* React 基础件走 /react 子路径：根入口必须留纯 .ts（服务端 strip-only） */
+import { DecisionLayer } from '@eterna/ui/react'
 import { injectAccessStyles } from './styles.ts'
 import { api } from './api.ts'
 

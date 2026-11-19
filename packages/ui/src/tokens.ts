@@ -205,7 +205,15 @@ export const WEBFLOW_TOKENS_CSS = `
  *   保证白字 ≥4.5:1。深色下混黑会更暗，所以深色走 `--et-accent-fill` 兜底值。
  */
 export const DSH_BRIDGE_CSS = `
-body {
+/*
+ * 选择器用 html body 而不是 body：宿主主题插件同样在 body 上定义这批
+ * --dsw-alias-*,而它的样式表在客户端 bundle 之后注入——同权重下后写的胜出,
+ * 会把这里的暖玉色全部冲回 --dsw-static-neutral-bluish-* 的冷白。
+ * 实测(2026-11-19 生产):data-eterna-ui 已落、tokens CSS 已注入,但 --et-bg
+ * 解析结果仍是 #fff,正是这个覆盖顺序造成。
+ * html body 多一个类型选择器(0,0,2 > 0,0,1),不依赖注入顺序。
+ */
+html body {
   /* 中性阶梯：宿主静止中性色 → 玉色（浅色侧） */
   --dsw-alias-bg-base: #f4f2ec;
   --dsw-alias-bg-layer-1: #fbfaf6;
@@ -324,8 +332,9 @@ body, [data-eterna-ui] {
   --et-overlay: var(--dsw-alias-bg-mask-1, rgba(22, 25, 23, 0.42));
 }
 
-/* 深色：只换中性别名（同一批名字，主题由壳切换 data-ds-dark-theme） */
-body[data-ds-dark-theme] {
+/* 深色：只换中性别名（同一批名字，主题由壳切换 data-ds-dark-theme）。
+   同样用 html body 前缀：宿主的深色块也是 body[...]，避免被后注入者冲掉。 */
+html body[data-ds-dark-theme] {
   --dsw-alias-bg-base: #161917;
   --dsw-alias-bg-layer-1: #1d211f;
   --dsw-alias-bg-layer-2: #242826;

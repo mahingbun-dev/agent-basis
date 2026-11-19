@@ -168,6 +168,9 @@ describe('品牌层与桥接层互不污染', () => {
     for (const selector of aliasBlocks) {
       for (const part of selector.split(',')) {
         expect(part.includes('body'), `别名覆盖落到了非 body 选择器: ${selector}`).toBe(true)
+        // 宿主主题插件也在 body 上定义同一批别名且后注入——必须比它重一档。
+        // 只写 body 会被冲成宿主冷白（2026-11-19 生产实测 #fff）。
+        expect(/^html body/u.test(part.trim()), `别名覆盖权重不足，会被宿主覆盖: ${part}`).toBe(true)
       }
     }
   })
@@ -217,10 +220,42 @@ describe('共享基础件必须在应用内真实生效', () => {
   })
 })
 
+describe('入口分层：根入口必须服务端安全', () => {
+  // 实测事故：根 index.ts 导出 .tsx（components/decision-layer）后，
+  // @eterna/access 在服务端 import 阶段抛 ERR_UNKNOWN_FILE_EXTENSION
+  // （宿主 Loader 是 strip-only TS），整行 enabled/no-fiber，G1-1 门禁红。
+  const indexPath = join(here, '../src/index.ts')
+  const indexSource = readFileSync(indexPath, 'utf8')
+
+  it('根入口只引用 .ts，不得出现 .tsx', () => {
+    const imports = [...indexSource.matchAll(/from '(\.[^']+)'/gu)].map(m => m[1]!)
+    expect(imports.length).toBeGreaterThan(0)
+    const tsx = imports.filter(path => path.endsWith('.tsx'))
+    expect(tsx, `根入口引入了 .tsx：${tsx.join(', ')}`).toEqual([])
+  })
+
+  it('React 基础件从 /react 子路径导出（不是根入口）', () => {
+    const reactSource = readFileSync(join(here, '../src/react.ts'), 'utf8')
+    expect(reactSource).toContain("from './components.tsx'")
+    expect(reactSource).toContain("from './decision-layer.tsx'")
+    const pkg = JSON.parse(readFileSync(join(here, '../package.json'), 'utf8')) as { exports: Record<string, string> }
+    expect(pkg.exports['./react']).toBe('./src/react.ts')
+    // 服务端也可以只取令牌（SSR 页面不必拖上整个根面）
+    expect(pkg.exports['./tokens']).toBe('./src/tokens.ts')
+    expect(pkg.exports['.']).toBe('./src/index.ts')
+  })
+
+  it('根入口仍导出服务端需要的令牌与注入器', () => {
+    for (const name of ['WEBFLOW_TOKENS_CSS', 'DSH_BRIDGE_CSS', 'injectDesignTokens', 'COMPONENT_CSS']) {
+      expect(indexSource).toContain(name)
+    }
+  })
+})
+
 describe('规范约束：不新建 toast 系统', () => {
   it('组件层不导出 Toast（应用内一律走宿主原子）', async () => {
-    const index = await import('../src/index.ts')
-    expect('Toast' in index).toBe(false)
+    const reactEntry = await import('../src/react.ts')
+    expect('Toast' in reactEntry).toBe(false)
   })
 
   it('组件 CSS 不含 toast 相关类', () => {
