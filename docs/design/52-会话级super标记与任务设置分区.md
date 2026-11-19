@@ -219,3 +219,40 @@ live hub 快照 `sessions` 恒空占位(宿主 session 面未接线);客户端�
   `up -d` → `verify.sh` **14 过 / 0 败**;`session-roles`/`settings` 200,
   `policyVersion=565427af…` 未变。
 - 回滚:0.1.48 → 0.1.47 image id `sha256:fa76f0ca047a…` → `up -d`。
+
+### 7.3 候选卡排队与北京时间(0.1.50)
+
+- **现象**(2026-11-19 用户截图,生产 0.1.49):主会话排队区持续累积同一条候选卡,
+  多行是同一份原始 JSON、`at` 同为 `2026-11-19T09:36:24.503Z`(UTC,显示比北京时间少 8 小时)。
+- **根因**:`MasterAssessor` 的 `assessment` effect 经 `Sessions.prompt(...,'queue')`
+  投递候选卡;`prompt` 在 `agent.followup()` 把消息放进 inbox 时即 resolve,引擎随后
+  `candidateDelivered` **从「入 inbox」起算 120s 评估 deadline**。主会话正在跑长回合时,
+  卡只是排在下一回合队列里,并未被处理;deadline 到期 → `Evals.due` 判 unavailable/timeout
+  → Trigger 重排 → 新 Eval 以同一 requestId 再投一张 → 排队区反复出现(生产库同一
+  trigger 约每 120s 评估一次)。
+- **修复**:`Sessions.promptHeld` 把 resolve 时刻改为消息**被回合收走**
+  (`agent/inbox/claimed`)或已在史/被丢弃;仅入 inbox 不算送达。插件自派生投递面改走
+  `promptHeld`;关停 abort 拒绝等待,`Effects.drain` 不被永不 claim 的消息拖住。
+- **北京时间**:候选卡显示 `MM-DD HH:mm`(title 带完整日期与「北京时间」字样);工作台
+  审计 trace、工单前链 clock、事件环统一 UTC+8(固定偏移,不依赖宿主时区;排序键仍 ISO)。
+- **验证**:tasks **860** 用例(新增忙碌主会话回归:排队期 `delivered` 保持空、10 分钟
+  pass 不超时、只排一张;`promptHeld` 的 requestId 幂等/已入史不重发/abort 中止)、
+  workbench **218** 用例(北京时间三例);仓库级 `pnpm run verify` 绿,
+  `lint-ui-tokens`/`form-check`/`prompt-scan` 0 债务;`verify-eterna-super` 真机 boot
+  **221 条目 / 22 挂载行 active / combo 花名册含 @eterna/tasks/client.js**。
+- **隔离容器探针**(不碰生产):干净 worktree 构建 `eterna-agent:0.1.50-rc1`
+  (image id `a27b69442a73`),全新卷 + 127.0.0.1:3110 起容器。healthy;镜像内
+  `packages/tasks/lib/client.js` 含 `data-eterna-tasks-candidate-at`(2 处)与
+  `candidate.atTitle` 北京时间文案;镜像内 `sessions.ts` 含 `promptHeld`(4 处)与
+  `agent/inbox/claimed`(2 处);admin 登录后 `session-roles` 200
+  (`masterId=orchestrator-Mr.Ma`)、`settings` 200(`policyVersion=f8c053ae…`)。
+  探针容器与卷已清理。
+- **活体忙碌主会话复现的边界**:探针实例里 `approval: never` 使 bash/知识工具请求被
+  自动拒,主会话回合无法被"挂住";模型对"sleep"类指令会改走 `orchestrator_route`,
+  无法稳定制造 >120s 的忙碌回合。故本条的回归证据以集成用例(真实 `agent/inbox/claimed`
+  契约形状的假宿主)为准,活体容器只验证工件装载与接口面;把 profile 改成
+  `approval: ask` 会让 permission preset 组合失配、tasks 插件 pending(已回滚删除卷)。
+- **部署**:正式 0.1.50 待 push/PR 后按**合并后的 main** 重建 → 3210,构建 id 与
+  verify.sh 结果届时补记 §7.4。
+- 备注:0.1.49 已上线的候选卡可读化只对**新加载的客户端**生效;升级后旧浏览器标签页
+  需硬刷新一次,排队区才会从原始 JSON 变成「委派候选」chip。
