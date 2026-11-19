@@ -27,6 +27,7 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { AccessAuditEvent } from './audit.ts'
 import type { UserStore } from './store.ts'
+import { normalizeToolParameters } from './tool-schema.ts'
 
 /** when 谓词的 activation 形态(上游 ToolActivationContext 的结构子集)。 */
 export type TenantPluginActivation = {
@@ -226,7 +227,13 @@ export function createTenantPluginLoader(deps: TenantPluginLoaderDeps): {
           }
         }
       }
-      const dispose = tools.register({ ...definition, name: mounted }, when === undefined ? {} : { when })
+      // 参数 schema 归一化(2026-11-19):个人插件作者常写裸 properties 映射,顶层
+      // title/description 会被 provider 当 JSON Schema 注解 → 整个会话请求 400
+      // (tool-schema.ts 头注;装载面兜底,不再要求插件作者懂 schema 包装)。
+      const dispose = tools.register(
+        { ...definition, name: mounted, parameters: normalizeToolParameters(definition.parameters) },
+        when === undefined ? {} : { when },
+      )
       disposers.push(() => {
         takenNames.delete(mounted)
         dispose()

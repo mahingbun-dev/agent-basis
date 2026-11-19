@@ -23,11 +23,15 @@ export function defineSubmitPluginToMarketTool(deps: { readonly tenantDeps: Tena
       'UI 型插件不支持。PR 合并后,管理员在「插件 → 发现」刷新索引即可安装给全员。' +
       '版本缺省自动递增;首次发布 0.1.0。',
     parameters: {
-      plugin: { type: 'string', required: true, description: '插件目录名(你 plugins 目录下的子目录名)' },
-      version: { type: 'string', description: '发布版本(x.y.z;缺省自动递增,首发 0.1.0)' },
-      title: { type: 'string', description: '市场卡片标题(缺省取插件 package.json 的 description 或目录名)' },
-      description: { type: 'string', description: '市场卡片描述(缺省同上)' },
-      push: { type: 'boolean', description: '是否推送并开 PR(缺省 true;false = 只在本地仓库做分支提交,便于先自查)' },
+      type: 'object',
+      properties: {
+        plugin: { type: 'string', description: '插件目录名(你 plugins 目录下的子目录名)' },
+        version: { type: 'string', description: '发布版本(x.y.z;缺省自动递增,首发 0.1.0)' },
+        title: { type: 'string', description: '市场卡片标题(缺省取插件 package.json 的 description 或目录名)' },
+        description: { type: 'string', description: '市场卡片描述(缺省同上)' },
+        push: { type: 'boolean', description: '是否推送并开 PR(缺省 true;false = 只在本地仓库做分支提交,便于先自查)' },
+      },
+      required: ['plugin'],
     },
     output: {
       schema: { type: 'string' },
