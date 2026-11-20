@@ -48,18 +48,18 @@
       "note": "修后 PASS=8 FAIL=0 SKIP=4；delta=10 allImportedPresent=true"
     },
     {
-      "cmd": "pnpm --filter @eterna/access exec vitest run",
+      "cmd": "cd packages/access && npx vitest run",
       "exit": 0,
       "log": "artifacts/rc5/p6a/repairs/unit-vitest.log",
       "note": "49 files / 504 tests"
     },
     {
-      "cmd": "pnpm --filter @eterna/access exec tsc --noEmit",
+      "cmd": "cd packages/access && npx tsc --noEmit",
       "exit": 0,
       "log": "artifacts/rc5/p6a/repairs/unit-tsc.log"
     },
     {
-      "cmd": "pnpm --filter @eterna/access exec oxlint --config ../../.oxlintrc.json .",
+      "cmd": "cd packages/access && npx oxlint --config ../../.oxlintrc.json .",
       "exit": 0,
       "log": "artifacts/rc5/p6a/repairs/unit-oxlint.log",
       "note": "0 warnings / 0 errors"
