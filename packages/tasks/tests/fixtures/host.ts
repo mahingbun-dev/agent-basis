@@ -61,6 +61,8 @@ type RegisteredAgent = {
   followup: Mock<(message: UserMessage) => void>
   /** 宿主 Agent.model 面(Sessions.seedModel 的播种消费端,46 号);select 记录进 modelSelections。 */
   model: { select: Mock<(selection: RoleModel) => void> }
+  /** 宿主 per-agent ctx 面(R22):agent.ctx.systemPrompt.section 注册面;登记进 roleSections。 */
+  ctx: { systemPrompt: { section: Mock<(section: { name: string; order: number; text: string | (() => string) }) => () => void> } }
   whenIdle(): Promise<void>
 }
 /** 一条文本 user 消息(job 工具与 subagent 的通知同款)。 */
@@ -210,6 +212,7 @@ export function subagentRuntime(agents: Map<string, RegisteredAgent>) {
       inbox: { nextTurn: [], nextStep: [], remove: () => false },
       cancel: vi.fn(), inject: vi.fn(), steer: vi.fn(), followup: vi.fn(),
       model: { select: vi.fn() },
+      ctx: { systemPrompt: { section: vi.fn(() => vi.fn()) } },
       whenIdle: () => Promise.resolve(),
     })
     return id
@@ -235,6 +238,12 @@ export async function startHost() {
   const modelSelections = new Map<string, RoleModel>()
   /** 角色模型注入面的可变值(测试按角色置值;null=不播种=随宿主默认)。 */
   const roleModels: { orchestrator: RoleModel | null; worker: RoleModel | null } = { orchestrator: null, worker: null }
+  /** 角色 prompt 注入面的可变值(R22;undefined=缺席=不注册=随宿主 prompt)。 */
+  const rolePromptTexts: { orchestrator: string | undefined; worker: string | undefined } = { orchestrator: undefined, worker: undefined }
+  /** session id → 已注册的角色 section(Sessions.registerRoleSection 断言面;text 已取值)。 */
+  const roleSections = new Map<string, Array<{ name: string; order: number; text: string }>>()
+  /** session id → 原始 section(R22 provider 现算断言面:装配时刻才调 text())。 */
+  const roleSectionRaw = new Map<string, { name: string; order: number; text: string | (() => string) }>()
   let turn = 0
   /** 每 session 的 whenIdle 等待者;回合结束(idle)时全部唤醒。 */
   const idleWakers = new Map<string, (() => void)[]>()
@@ -309,6 +318,18 @@ export async function startHost() {
         })
       }), cancel,
       model: { select: vi.fn((selection: RoleModel) => { modelSelections.set(sessionId, { ...selection }) }) },
+      ctx: {
+        systemPrompt: {
+          section: vi.fn((section: { name: string; order: number; text: string | (() => string) }) => {
+            roleSectionRaw.set(sessionId, section)
+            roleSections.set(sessionId, [...roleSections.get(sessionId) ?? [], {
+              name: section.name, order: section.order,
+              text: typeof section.text === 'string' ? section.text : section.text(),
+            }])
+            return vi.fn()
+          }),
+        },
+      },
       whenIdle: () => agents.get(sessionId)?.status === 'idle'
         ? Promise.resolve()
         : new Promise<void>((resolve) => { idleWakers.set(sessionId, [...idleWakers.get(sessionId) ?? [], resolve]) }),
@@ -411,7 +432,11 @@ export async function startHost() {
   }
   const sessions = new Sessions({ context: ctx, ports: sessionPorts, effects, masterId: MAIN, lifetime: lifetime.signal,
     // 角色模型播种面(46 号):现读 roleModels,测试按角色置值后再 ensure/dispatch 即断言。
-    roleModel: role => roleModels[role] })
+    roleModel: role => roleModels[role],
+    // 角色 prompt 注入面(R22):现读 rolePromptTexts,缺席(undefined)= 不注册=随宿主 prompt。
+    rolePrompt: role => rolePromptTexts[role],
+    // preset 选组面(R22):plugin.ts 生产接线同款常量(消费面断言走 selectedPresets)。
+    presets: { orchestrator: 'eterna-tasks-orchestrator', worker: 'eterna-tasks-worker' } })
   const channels = {
     available: () => true,
     channelAllowed: () => true,
@@ -510,6 +535,8 @@ export async function startHost() {
     workspaces, renamed, permissionPresetBySession, selectedPresets, persisted,
     /** 角色模型面(46 号):播种落点与可变的 roleModel 注入值。 */
     modelSelections, roleModels,
+    /** 角色 prompt 面(R22):注册落点、原始 section(现算断言)与可变注入值。 */
+    roleSections, roleSectionRaw, rolePromptTexts,
     step, claim, idle, nextTurn, say, settle, accept, stop,
     /** 手动排一次 pass(Engine 时钟)。 */
     pass: (): void => { engine.evaluateDue() },

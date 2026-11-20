@@ -65,6 +65,7 @@ import { toDshTool } from './tools/tool.ts'
 import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import { ticketOfSession, workerSessionId } from './executor/dsh.ts'
 import { MASTER_SESSION_TITLE, masterSessionId, Sessions, type SessionHostPorts, type SessionRole, type SessionsHost } from './session/sessions.ts'
+import { ORCHESTRATOR_PRESET_ID, WORKER_PRESET_ID } from './session/presets.ts'
 import { ChannelTriggerAdapter } from './sources/channel-adapter.ts'
 import { WEBSCHAT_SOURCE, webchatMasterScope, WebchatDelegationEntry } from './sources/webchat.ts'
 import type { ActorRef } from './core/index.ts'
@@ -634,8 +635,22 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
     // 主会话/面板热改后下一次建/取会话即生效,不需重启。显式注入恒优先(同 deliverCandidate)。
     const roleModel = options.sessionHost.roleModel ?? ((role: SessionRole): RoleModel | null =>
       role === 'orchestrator' ? store.settings().eval.model : store.settings().executor.model)
+    // ★R22 preset/prompt 接线(2026-11-21;交付审计 §2.1 修复方案落地):
+    // - presets:双角色建会话即选 tasks 专属 preset(orchestrator 只含路由工具面、
+    //   worker 只含执行工具面;A25 cordis.patch.yml 两组行,restatement 已进 super
+    //   模板与开发档 profile——registry 由 preset 行的 config.id 解析,常量即
+    //   src/session/presets.ts,preset.spec 交叉钉住)。显式注入恒优先。
+    // - rolePrompt:每次 ensure 经该 agent 自己的 agent.ctx.systemPrompt.section
+    //   注册(additive,order 0,provider 现算——Policy 段按当前 settings,热改即生效;
+    //   每 agent 一次,见 sessions.ts registerRoleSection)。组合面用与设置面板同一
+    //   的 Prompts(同一 store,读支无状态),使面板改的团队段/覆盖件对角色 prompt
+    //   立即生效。既有主会话(标准 preset 记账)随 ensure 复用即获得角色 section;
+    //   其 recorded preset 的替换归会话重建(见审计 §2.1 备注)。
+    const rolePrompts = new Prompts(store)
     sessions = new Sessions({ ...options.sessionHost, effects, lifetime: lifetime.signal,
-      masterId: masterId ?? masterSessionId(realm), roleModel })
+      masterId: masterId ?? masterSessionId(realm), roleModel,
+      presets: options.sessionHost.presets ?? { orchestrator: ORCHESTRATOR_PRESET_ID, worker: WORKER_PRESET_ID },
+      rolePrompt: (role: SessionRole): string => rolePrompts.compose(rolePrompts.current().config, role) })
     // ★候选卡投递面·自派生(★最后一公里·候选卡,2026-11-18):glue 未显式注入
     // deliverCandidate 时,Sessions 就绪即接线——候选卡经 Sessions.promptHeld 投到主会话
     // ('queue';kind 'eterna-tasks' 的投递消息不与用户亲口消息混淆,sessions.ts 头注)。

@@ -644,6 +644,198 @@
       # A2 归属桥按 userIdByAccount(realm) 查 id,不对齐即 fail-closed 不登记。
       config:
         realm: Mr.Ma
+    # ── tasks 双角色 preset(R22 接线,2026-11-21;40 号 S-3 纪律 2 的 restatement)──
+    # 下面两行 = packages/tasks/cordis.patch.yml 两组 @deepseek-ai/dsh-agent-preset 的
+    # 逐字复述:tasks 未进 bundles 清单(docker/profile/package.json 为 base/super 共享
+    # manifest,web 形态不得装载 tasks),bundle patch 不生效 → preset registry 缺席
+    # (R22 根因)。在此 restatement 后 registry 注册双 preset,消费面 = plugin.ts 的
+    # Sessions presets 接线(src/session/presets.ts 常量,preset.spec 交叉钉住);
+    # 逐字漂移由 packages/tasks/tests/preset.spec.ts「super 模板/开发档 profile ≡ 包源」
+    # 深等断言守卫;G1-2 断言面同步扩(verify-eterna-super roster 含双 preset)。
+    - id: eterna-tasks-worker-preset
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: eterna-tasks-worker
+        name: Eterna tasks 执行器
+        description: "@eterna/tasks 的 worker(工单执行)Session 专用;前台命令与任务等待超时转后台,只含执行工作所需工具。"
+        order: 90
+        plugins:
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          # 前台命令等待上限(SA 值 5000;35 号 §12-12 未拍板,见文件头注)。
+          - id: shell
+            name: cordis:group
+            group: true
+            isolate:
+              shell: true
+            config:
+              - id: bash-sandbox
+                name: '@deepseek-ai/dsh-bash-sandbox'
+                disabled: !!js process.platform === 'win32'
+                config:
+                  timeoutMs: 5000
+                  maxTimeoutMs: 5000
+              - id: pwsh-sandbox
+                name: '@deepseek-ai/dsh-pwsh-sandbox'
+                disabled: !!js process.platform !== 'win32'
+                config:
+                  timeoutMs: 5000
+                  maxTimeoutMs: 5000
+              - id: tool-bash
+                name: '@deepseek-ai/dsh-tool-bash'
+                disabled: !!js process.platform === 'win32'
+              - id: tool-pwsh
+                name: '@deepseek-ai/dsh-tool-pwsh'
+                disabled: !!js process.platform !== 'win32'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+          # 任务等待超时转后台:job 结束唤醒 worker 并带结果(SA worker 同值)。
+          - id: tool-jobs
+            name: '@deepseek-ai/dsh-tool-jobs'
+            config:
+              waitTimeoutMs: 5000
+              maxWaitTimeoutMs: 5000
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: false
+              searchTimeoutMs: 60000
+          # ── 压缩组(28 号 §3 YAML 原文照搬;行序保留,见文件头)──────────────────
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+              staleToolResultPruner: true
+            config:
+              - id: stale-tool-result-pruner      # 行序保留:先陈旧清理泄压,后摘要压缩(28 §3 原注)
+                name: '@eterna/compaction/stale-plugin'
+                config:
+                  keepGroups: 5
+                  minSavingsTokens: 4096
+                  thresholdRatio: 0.7
+              - id: compaction-basic
+                name: '@eterna/compaction/basic-plugin'
+                # 沿用上游默认参(thresholdRatio 0.8 / retainRatio 0.16 / 重试 1),
+                # config 留空便于按部署调参(28 号 §2.2;eterna-web profile 同款注)。
+                # worker 不落摘要分档键(28 号 §9 配置面表:分档键落位在 orchestrator 组)。
+                config: {}
+              - id: command-compact
+                name: '@eterna/compaction/command-plugin'
+              - id: tool-result-pruner
+                name: '@eterna/compaction/pruner-plugin'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024
+    # ── orchestrator preset(主 Session;SA ROUTER_PRESET 同位)──────────────────
+    # 只含路由所需工具;无 subagent/web/写盘/todo(SA router 同一取舍);无 persona
+    # (主会话 prompt 完整,见文件头)。压缩分档(C5)落本组 compaction-basic。
+    - id: eterna-tasks-orchestrator-preset
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: eterna-tasks-orchestrator
+        name: Eterna tasks 主会话
+        description: "@eterna/tasks 的 orchestrator(主 Session)Session 专用;前台命令和任务等待超时转后台,只含路由所需工具。"
+        order: 91
+        plugins:
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          # 前台命令等待上限(SA router 同值 5000;35 号 §12-12 未拍板,见文件头注)。
+          - id: shell
+            name: cordis:group
+            group: true
+            isolate:
+              shell: true
+            config:
+              - id: bash-sandbox
+                name: '@deepseek-ai/dsh-bash-sandbox'
+                disabled: !!js process.platform === 'win32'
+                config:
+                  timeoutMs: 5000
+                  maxTimeoutMs: 5000
+              - id: pwsh-sandbox
+                name: '@deepseek-ai/dsh-pwsh-sandbox'
+                disabled: !!js process.platform !== 'win32'
+                config:
+                  timeoutMs: 5000
+                  maxTimeoutMs: 5000
+              - id: tool-bash
+                name: '@deepseek-ai/dsh-tool-bash'
+                disabled: !!js process.platform === 'win32'
+              - id: tool-pwsh
+                name: '@deepseek-ai/dsh-tool-pwsh'
+                disabled: !!js process.platform !== 'win32'
+          # 主 Session 只读(SA router 同款:write/edit 关闭;工单产物读经 A20
+          # orchestrator_read 工具面,落 .ticket/<id>/,34 号 §2.5 tools 行)。
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+            config:
+              write: false
+              edit: false
+          - id: tool-jobs
+            name: '@deepseek-ai/dsh-tool-jobs'
+            config:
+              waitTimeoutMs: 5000
+              maxWaitTimeoutMs: 5000
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          # ── 压缩组(28 号 §3 YAML 原文照搬;C5 摘要分档键落位见文件头)────────────
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+              staleToolResultPruner: true
+            config:
+              - id: stale-tool-result-pruner      # 行序保留:先陈旧清理泄压,后摘要压缩(28 §3 原注)
+                name: '@eterna/compaction/stale-plugin'
+                config:
+                  keepGroups: 5
+                  minSavingsTokens: 4096
+                  thresholdRatio: 0.7
+              - id: compaction-basic
+                name: '@eterna/compaction/basic-plugin'
+                # ★C5 摘要分档键(33 号 G2-A17;24a C5;28 号 §4-4):空串对 = 会话模型
+                # (22a §4 拍板 Q1 结论 A「维持会话模型,summarizationProvider/Model 不落值」;
+                # 二者必须成对置空或成对置值,basic/config.ts validateSummarizationPair)。
+                # 具体档名与成本口径 = 35 号 §12-9 开放问题(分档键暂留占位,拍板后回填);
+                # 分档配置改动必全量重跑压缩 golden(G2-A17:run-golden.mjs --judge)。
+                config:
+                  summarizationProvider: ''
+                  summarizationModel: ''
+              - id: command-compact
+                name: '@eterna/compaction/command-plugin'
+              - id: tool-result-pruner
+                name: '@eterna/compaction/pruner-plugin'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024
     - id: eterna-channels
       name: '@eterna/glue/channels-plugin'
     - id: eterna-interact

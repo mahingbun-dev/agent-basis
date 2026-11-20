@@ -56,7 +56,9 @@ const PROBE_TIMEOUT_MS = 10_000
  *    面 == 浏览器实收 bundle 的注册面（无缺失/无多出）；
  *  - stderr 不得出现 app-boot 的 `disabling profile plugin`（兼容性冲突静默裁行）。
  */
-const EXPECTED_HOST_ENTRIES = 235
+// R22(2026-11-21):tasks 双 preset restatement 行进 super 树,+2(preset 行本身是树行;
+// 其组成插件行挂 preset 后面,不占宿主树)。
+const EXPECTED_HOST_ENTRIES = 237
 const EXPECTED_TEMPLATE_BLOCKS = 43
 const EXPECTED_TEMPLATE_INSERTS = 3
 const EXPECTED_TEMPLATE_OVERRIDES = 40
@@ -301,9 +303,12 @@ function extractEternaMountRows(text) {
     if (/^-\s+insert:\s*$/.test(line)) { inInsert = true; pendingId = undefined; continue }
     if (/^\S/.test(line)) { inInsert = false; pendingId = undefined; continue }
     if (!inInsert) continue
-    const idMatch = /^\s+- id:\s*(\S+)\s*$/.exec(line)
+    // R22(2026-11-21):只取 insert 块的顶层行(精确 4 空格 id / 6 空格 name)——
+    // preset 组内的嵌套插件行(compaction 组的 @eterna/compaction/* 等)挂在
+    // @deepseek-ai/dsh-agent-preset 后面,不是宿主树行,断言面归 preset 组成行(3d-3)。
+    const idMatch = /^ {4}- id:\s*(\S+)\s*$/.exec(line)
     if (idMatch !== null) { pendingId = idMatch[1]; continue }
-    const nameMatch = /^\s+name:\s*['"]?([^'"\s#]+)['"]?\s*$/.exec(line)
+    const nameMatch = /^ {6}name:\s*['"]?([^'"\s#]+)['"]?\s*$/.exec(line)
     if (nameMatch !== null && pendingId !== undefined) {
       if (nameMatch[1].startsWith('@eterna/')) rows.push({ id: pendingId, name: nameMatch[1] })
       pendingId = undefined
@@ -474,6 +479,40 @@ if (standard !== undefined) {
   pass(`all ${PRESET_KEPT_ROWS.length} kept preset rows enabled+active in standard`,
     presetMissing.length === 0 && presetInactive.length === 0,
     [...presetMissing.map((id) => `${id}: absent`), ...presetInactive.map((id) => `${id}: ${JSON.stringify(rowById.get(id) && { enabled: rowById.get(id).enabled, fiberPhase: rowById.get(id).fiberPhase })}`)].join('; ') || 'flattened composition active')
+}
+
+// 3d-2. tasks 双 preset 在册(R22 接线,2026-11-21):restatement 行(preset 行非 @eterna
+// 挂载行,FORM001 不覆盖)经 registry 注册后,roster 必须含 orchestrator/worker 两组;
+// 消费面 = Sessions presets 接线(plugin.ts,src/session/presets.ts 常量)。
+const tasksPresetIds = ['eterna-tasks-orchestrator', 'eterna-tasks-worker']
+const missingTasksPresets = tasksPresetIds.filter(id => !presetByName.has(id))
+pass('tasks 双 preset 在册(R22)', missingTasksPresets.length === 0,
+  missingTasksPresets.length === 0
+    ? `roster 含 ${tasksPresetIds.join(' + ')}(roster ${presetByName.size} 组)`
+    : `roster 缺 ${missingTasksPresets.join(' + ')};现有 ${[...presetByName.keys()].join(', ')}`)
+
+// 3d-3. tasks 双 preset 组成行 enabled+active(R22):preset 后面的行不在宿主树
+// (3c-super 的抽取器已排除),在 roster 的 preset 组成里断言关键行——双 preset 共有面
+// (指令/时间/沙箱/bash/fs/jobs/skill/压缩四件套;worker 专属 tool-todo/tool-web 与
+// orchestrator 的只读 tool-fs 差异由 cordis.patch.yml 深等断言守卫,此处不重复)。
+const TASKS_PRESET_KEPT_ROWS = [
+  'agent-instructions', 'time-context', 'bash-sandbox', 'tool-bash', 'tool-fs',
+  'tool-jobs', 'skill-filesystem', 'tool-skill',
+  'stale-tool-result-pruner', 'compaction-basic', 'command-compact', 'tool-result-pruner',
+]
+for (const presetId of tasksPresetIds) {
+  const preset = presetByName.get(presetId)
+  const rowById = preset === undefined ? new Map() : new Map(preset.rows.map(row => [row.entryId, row]))
+  const absent = TASKS_PRESET_KEPT_ROWS.filter(id => !rowById.has(id))
+  const inactive = TASKS_PRESET_KEPT_ROWS.filter(id => {
+    const row = rowById.get(id)
+    return row !== undefined && (!row.enabled || row.fiberPhase !== 'active')
+  })
+  pass(`${presetId} 组成行 enabled+active(R22)`,
+    preset !== undefined && absent.length === 0 && inactive.length === 0,
+    preset === undefined
+      ? 'preset 不在 roster'
+      : [...absent.map(id => `${id}: absent`), ...inactive.map(id => `${id}: ${JSON.stringify({ enabled: rowById.get(id).enabled, fiberPhase: rowById.get(id).fiberPhase })}`)].join('; ') || `${TASKS_PRESET_KEPT_ROWS.length} 行 active(preset ${preset.rows.length} 行)`)
 }
 
 // 3e. 浏览器半边花名册取证（母本原样继承;super 初始挂载面=base）。

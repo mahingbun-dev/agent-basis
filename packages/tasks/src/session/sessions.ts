@@ -126,6 +126,14 @@ export interface SessionsHost {
   readonly lifetime: AbortSignal
   /** 各角色创建 session 时选用的 agent preset 名(A25 cordis.patch.yml 落地后由装配注入;未注入用宿主默认)。 */
   readonly presets?: Partial<Record<SessionRole, string>>
+  /**
+   * 各角色的 system prompt 文本(R22 接线面;装配注入):ensure 时经该 agent 自己的
+   * `agent.ctx.systemPrompt.section` 注册(additive,order 0,与 SA decorate 同位——
+   * per-agent 注册归 agent.ctx,全局注册会撞 dsh-system-prompt 的同名守卫;每次模型
+   * 请求以 provider 现算,Policy 段随 settings 热改)。缺席/返回 undefined = 不注册、
+   * 会话随宿主 prompt(缺省降级形态)。
+   */
+  readonly rolePrompt?: (role: SessionRole) => string | undefined
   /** 各角色的模型播种面(46 号;A25 role-models 语义的消费端):每次 ensure **现读**
    * (装配注入 settings 派生 getter,设置热生效,无需重启),非 null 经
    * `agent.model.select` 覆写该会话下一步的模型;null/缺席 = 不播种、随宿主会话默认
@@ -168,6 +176,8 @@ export class Sessions {
    * 只服务 `promptHeld`(候选卡:入 inbox 不等于已送达,被回合 claim 才起 deadline)。
    */
   private readonly claimWaiters = new Map<string, Set<ClaimWaiter>>()
+  /** 每 agent 已注册的角色 section(ensure 幂等半边:同一 agent 重复 ensure 不重复注册)。 */
+  private readonly roleSections = new WeakSet<Agent>()
   private readonly disposers: (() => void)[] = []
   constructor(host: SessionsHost) {
     this.host = host
@@ -231,6 +241,10 @@ export class Sessions {
     // 此模型(每次 ensure 现读,热改下一次 ensure 生效);select 早于任何投递,首轮第一步
     // 即捕获该选择(宿主 pre-step 的 model.current() 捕获时点,thinking-auto 同款纪律)。
     this.seedModel(result.agent, role)
+    // 角色 prompt section(R22):新建与复用同走此处,每 agent 恰一次——主会话按标准
+    // preset 创建/复用时(工单 worker 每票新建天然带角色 preset),角色纪律以 additive
+    // section 投递,主会话不再缺「你是 orchestrator/## dispatch」而自行派 subagent。
+    this.registerRoleSection(result.agent, role)
     permissions.set(result.agent.session, this.host.permissionPreset ?? 'workspace-write')
     await controller.rename({ sessionId: SessionId(id), title })
     return result.agent
@@ -270,6 +284,61 @@ export class Sessions {
         readonly logger?: { readonly warn?: (...args: unknown[]) => void }
       }).logger
       logger?.warn?.(`[tasks] 角色模型 ${role} 播种失败(${model.provider}/${model.model}):${String(error)}`)
+    }
+  }
+  /**
+   * 把角色 prompt 注册到该 agent 自己的 ctx(R22;SA decorate 同位):`agent.ctx`
+   * 的 systemPrompt 是 per-agent 作用域层——全局注册同名会被 dsh-system-prompt 的
+   * 同名守卫拒绝(其报错原文即指引「register through that agent's agent.ctx」)。
+   * - section 为 provider(每次装配现算):Policy 段按当前 settings 现算,设置热改
+   *   下一次装配即生效,无需重启或重注册;
+   * - additive order 0:与部署 persona 前缀同段位区(asc 拼接,同名并列按名序)——
+   *   角色纪律排在 harness 身份之后、工具段之前,不遮蔽也不被遮蔽;
+   * - 幂等:WeakSet 按 agent 去重(重启 resume 会重走 ensure,实时集合清零后靠它
+   *   不重复注册);同 agent 已有本名 section 时 dsh 会抛,落 catch 同样 fail-neutral;
+   * - 结构面缺席(fixture 假件/宿主未装配 system-prompt)或注册抛错:记 warn 跳过,
+   *   不阻断 ensure(权限/标题半边照旧)——角色 prompt 是增强面,不是建会话硬依赖。
+   */
+  private registerRoleSection(agent: Agent, role: SessionRole): void {
+    const text = this.host.rolePrompt?.(role)
+    if (text === undefined || text === '' || this.roleSections.has(agent)) return
+    const surface = (agent as unknown as {
+      readonly ctx?: {
+        readonly systemPrompt?: {
+          readonly section?: (section: {
+            readonly name: string
+            readonly order: number
+            readonly text: string | (() => string)
+            readonly interpolate?: boolean
+          }) => () => void
+        }
+      }
+    }).ctx
+    const systemPrompt = surface?.systemPrompt
+    const section = systemPrompt?.section
+    if (systemPrompt === undefined || section === undefined) return
+    try {
+      const dispose = section.call(systemPrompt, {
+        name: `eterna-tasks:role-${role}`,
+        order: 0,
+        // provider 现算:每次装配重新组合(Policy 段按当前 settings),宿主每个 agent
+        // 各自装配,互不串写;空段(团队段全空不会发生——固定段恒在)返回原文组合。
+        text: () => this.host.rolePrompt?.(role) ?? '',
+        interpolate: false,
+      })
+      this.roleSections.add(agent)
+      this.disposers.push(dispose)
+      // 装配日志(生产 boot 可见):R22 验证面——主会话/worker 首次 ensure 即应有本行。
+      const logger = (this.ctx as unknown as {
+        readonly logger?: { readonly info?: (...args: unknown[]) => void }
+      }).logger
+      logger?.info?.(`[tasks] 角色 prompt section(${role}) 已注册 session=${agent.id}(additive order 0)`)
+    } catch (error) {
+      // 宿主 logger 机会读取(seedModel 同款;测试 ctx 可缺席,缺席静默)。
+      const logger = (this.ctx as unknown as {
+        readonly logger?: { readonly warn?: (...args: unknown[]) => void }
+      }).logger
+      logger?.warn?.(`[tasks] 角色 prompt section(${role}) 注册失败,会话随宿主 prompt:${String(error)}`)
     }
   }
   /**

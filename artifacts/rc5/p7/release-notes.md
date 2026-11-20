@@ -125,7 +125,7 @@ bash deploy/verify.sh http://127.0.0.1:3210
 | # | 问题 | 级别 | 影响与现状 |
 |---|---|---|---|
 | 1 | 24h 浸泡满窗判据（TERM-013/DATA-009）：**产品签字豁免**（2026-11-21 00:28，指令「不用等24小时了，直接进行接下来的流程」）；决策时点主 soak 10.3h、规模 8.9h 全健康（609 tick churn 全 ok、fd 292→280、写/锁/integrity 0 异常） | P1（豁免，WAIVED） | 采样跑到满窗（06:08Z/07:37Z）作事后观察证据；残余风险由上线后 24h 观察覆盖（§8） |
-| 2 | R22 任务角色 prompt/preset 接线：super profile `bundles` 未含 `@eterna/tasks`，orchestrator/worker preset 与角色 prompt 未生效 | P1（产品遗留，非 RC5 回归） | 主会话按标准 preset 创建，可能自行派 subagent 与 tasks 路由重复；**不影响 API-005/006/007 判据**；随下一次镜像变更窗口修复（`p7/doc54-delivery-audit.md` §2.1） |
+| 2 | ~~R22 任务角色 prompt/preset 接线~~ **已修复（2026-11-21）**：双 preset restatement 进 super 模板/开发档 + `Sessions.presets`/`rolePrompt` 接线 + per-agent 角色 prompt section（G1-1/G1-2 绿、tasks 包 877 测试全绿）；随 R22 修复镜像窗口部署生效。既有主会话 recorded preset 替换归会话重建（角色 section 随重启即生效） | P1（已闭） | 见 `p7/doc54-delivery-audit.md` §2 R22 行 |
 | 3 | 四方签字未完成（`artifacts/rc5/p7/regression/signoff.md`；产品对 24h 豁免的签字已落字） | P0 | 合并/上线前补签 |
 | 4 | CI 未跑（分支未 push；`upgrade-gate` / `v1-line` 无运行记录） | P0 | push 后以 CI 为准，不以本地结果代替 |
 

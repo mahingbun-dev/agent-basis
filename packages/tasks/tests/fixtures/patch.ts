@@ -17,3 +17,20 @@ export const patchText = readFileSync(fileURLToPath(new URL(`../../${CORDIS_PATC
 /** 解析为顶层行数组(YAML 列表保序——行序断言即数组序)。 */
 export const parseTasksPatch = (): Array<Record<string, unknown>> =>
   parseYaml(patchText.replace(/^([ \t]*)disabled: !!js.*$/gm, '$1disabled: false')) as Array<Record<string, unknown>>
+
+/** !!js 置换(与包源同口径;被置换的 disabled 值不在断言面,见文件头注)。 */
+const stripJsTags = (text: string): string => text.replace(/^([ \t]*)disabled: !!js.*$/gm, '$1disabled: false')
+
+/** super 容器模板原文(R22 restatement 的模板半边;40 号 S-3 纪律 2)。 */
+export const superTemplateText = readFileSync(fileURLToPath(new URL('../../../../docker/profile/cordis.super.patch.yml.template', import.meta.url)), 'utf8')
+
+/** 开发档 super profile 原文(R22 restatement 的开发档半边;与容器模板成对,G1-2 装载面)。 */
+export const devSuperProfileText = readFileSync(fileURLToPath(new URL('../../../../profiles/eterna-super/cordis.patch.yml', import.meta.url)), 'utf8')
+
+/** 通用行解析(!!js 置换后 YAML → 顶层行数组;列表保序)。 */
+export const parseRows = (text: string): Array<Record<string, unknown>> =>
+  parseYaml(stripJsTags(text)) as Array<Record<string, unknown>>
+
+/** 一份 patch 文档内 insert 块的全部行(平铺;R22 restatement 断言面取 preset 行用)。 */
+export const insertRowsOf = (rows: Array<Record<string, unknown>>): Array<Record<string, unknown>> =>
+  rows.flatMap(row => (Array.isArray(row.insert) ? row.insert as Array<Record<string, unknown>> : []))
