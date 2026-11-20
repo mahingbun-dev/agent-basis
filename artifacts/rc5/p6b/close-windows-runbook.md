@@ -25,7 +25,28 @@ jq -c '{complete:.windowComplete, verdict:.verdict, elapsed:.elapsedSeconds}' \
 docker ps --filter name=eterna-rc5 --format '{{.Names}}\t{{.Status}}'   # 三容器 healthy、restarts=0
 ```
 
-## 2. 矩阵自动判定（权威分支）
+## 2. 一条命令收口（推荐）
+
+```sh
+cd /Users/sunny/code/agent-basis-rc5
+node scripts/rc5-close-windows.mjs
+```
+
+行为：两份摘要都满窗且 verdict 无 FAIL → 调矩阵 `--write`，并要求
+`rows=164 PASS=164 FAIL=0 MISSING=0`，通过后写 `artifacts/rc5/p6b/window-close.json`
+（判定快照，供 PR/签字引用），最后打印 `STATUS=READY`；矩阵不是 164/164 则
+`STATUS=BLOCKED`（EXIT=1），不写结果文件。
+窗口未满 → `STATUS=NOTRUN`（EXIT=0）、不改矩阵；verdict 含 FAIL → `STATUS=FAIL`（EXIT=1）。
+
+演练（合成摘要 + `--dry`，不写回矩阵；环境覆盖不带 `--dry` 会被拒绝，EXIT=2）：
+
+```sh
+RC5_SOAK_SUMMARY=/tmp/rc5-soak-test/soak-pass.json \
+RC5_SCALE_SUMMARY=/tmp/rc5-soak-test/scale-pass.json \
+node scripts/rc5-close-windows.mjs --dry
+```
+
+## 2.1 手工等价步骤（审计用）
 
 `scripts/rc5-acceptance-matrix.mjs` 已接「24h 时间窗权威」：
 
