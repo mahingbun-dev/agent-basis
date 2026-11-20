@@ -68,7 +68,7 @@
 | R17 | P0 | **closed** | P0 基线/冷备/旧镜像 digest：`artifacts/rc5/p0/summary.json`、`p0/backup/` |
 | R18 | P1 | **closed** | 发布说明 + 反代 `IMP-010` PASS：`p7/release-notes.md`、`E1/IMP/RC5-IMP-010` |
 | R19 | P1 | **closed** | `PATCH_SCAN_ROOTS` 含 `docker/profile` + 未登记 key 被拦测试（`p2/acc-002`） |
-| R20 | P1 | **closed（补充面）** | 治理 ask/deny：`artifacts/rc5/E2/SEC/RC5-SEC-GOV/result.md`（deny/ask 均审计+会话事件+工具结果；ask 决策卡按产品 `approval:never` 口径不产生）；companion 中继：`p7/regression/supplement/companion-relay.md`（协议级 PASS；**真实扩展 NOTRUN**，见 §4）；审计 jsonl：`supplement.json`（2749 行、凭据值 0 命中） |
+| R20 | P1 | **closed（协议级；真实扩展 NOTRUN）** | 治理 ask/deny：`artifacts/rc5/E2/SEC/RC5-SEC-GOV/result.md`（deny/ask 均审计+会话事件+工具结果；ask 决策卡按产品 `approval:never` 口径不产生）；companion 中继：`p7/regression/supplement/companion-relay.md`（协议级 PASS；**真实扩展 NOTRUN**，见 §4.3-6）；审计 jsonl：`supplement.json`（2861 行、凭据值 0 命中） |
 | R21 | P2 | **open（文档瑕疵）** | 51 分节标题计数落后实际行（BOOT/MCPS/ACP/OFF）；不影响 164 行判定，登记后续修标题 |
 
 > 按 54 §9 目标「P0/P1 清零」：当前 **P0 仅 R01 未清（API-005）**；P1 仅 **R04 未清（API-005/006/007）**，其余 P1 已闭。
@@ -114,7 +114,7 @@
 | `artifacts/rc5/E2/SEC/RC5-SEC-GOV/{cmd.log,result.md}` | 治理 deny/ask 实跑：探针规则经 `access/governance.rules.yml` 注入，跑完还原 | **PASS**（deny：`命中规则 probe-deny(deny)` + 审计 decision=deny；ask：`approval/asked` → `approval/decided=rejected`（policy=never）+ 审计 decision=ask） |
 | `artifacts/rc5/p7/regression/R02/{cmd.log,result.md}` | R02 六件逐项补证 | **PASS**（9/9 断言） |
 | `artifacts/rc5/p7/regression/supplement/companion-relay.{log,md}` | companion 令牌/relay 协议实测 | **PASS（协议级）**；REAL-EXT NOTRUN |
-| `artifacts/rc5/p7/regression/supplement/supplement.json` | 审计 jsonl/治理规则计数（凭据值 0 命中） | 刷新 |
+| `artifacts/rc5/p7/regression/supplement/supplement.json` | 审计 jsonl/治理规则计数（2861 行；凭据值 0 命中） | 刷新 |
 
 ---
 
