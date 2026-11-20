@@ -2,6 +2,7 @@
 
 > **历史快照（2026-11-20 上午，HEAD `c75f876`）**：本文记录 T52 复跑时的红项，其中 ENV-004/CROSS-TENANT/TERM-006/SEC-002/UI-006/DATA-DRILLS/API005 stub 等已在最终镜像 `sha256:22fe8acb…` 上复跑清零。
 > **现行遗留项以 `artifacts/rc5/acceptance-matrix.md` §遗留项 为准**（5 条 MISSING：API-005/006/007、TERM-013、DATA-009）。
+> **2026-11-20 晚补充更新**：`GOVERNANCE-ASK` 已闭（`E2/SEC/RC5-SEC-GOV/result.md`：deny/ask 均审计+事件留痕；ask 决策卡按产品 `approval:never` 口径不产生）；`COMPANION-LIVE` 已补协议级证据（`supplement/companion-relay.md`，真实扩展仍 NOTRUN）；R02 六件已闭（`regression/R02/result.md`）。下表保留为历史记录。
 
 格式：`id|现象|级别|建议`。级别：P0 = 停线/发布阻断；P1 = 发布前补跑或签字；P2 = 证据/脚手架瑕疵。
 

@@ -135,6 +135,9 @@
 | 镜像不含测试夹具 ENV-004 | `artifacts/rc5/ENV/RC5-ENV-004/result.md`（PASS） |
 | 口令字面量 SEC-002 | `artifacts/rc5/SEC/RC5-SEC-002/`（PASS） |
 | 旧数据升级 SEC-010 | `artifacts/rc5/E2/SEC/RC5-SEC-010/result.md`（PASS：旧会话逐字一致、记忆/提示词不变、可续聊） |
+| 治理规则 ask/deny 实跑（R20 补充面） | `artifacts/rc5/E2/SEC/RC5-SEC-GOV/result.md`（PASS：deny 命中 → isError + 审计 `decision=deny`；ask → `approval/asked` → `approval/decided=rejected`（产品 `approval:never`）+ 审计 `decision=ask`） |
+| companion 令牌/中继（R20 补充面） | `artifacts/rc5/p7/regression/supplement/companion-relay.md`（协议级 PASS：匿名 401、reset 签发、错误 token 拒、`tokenConnected`/断开回收；**真实扩展 NOTRUN**，headless 无法交互式加载未打包 MV3） |
+| R02 行为项六件 | `artifacts/rc5/p7/regression/R02/result.md`（PASS：rc.5 安装源精确签名 + 本仓消费位 + verify EXIT=0） |
 
 ---
 
@@ -190,6 +193,10 @@ bash deploy/verify.sh http://127.0.0.1:3210
 | `artifacts/rc5/p6b/soak/final-image2/` | 24h 浸泡 meta/term/data 采样（未满窗） |
 | `artifacts/rc5/p7/regression/rerun/API/out/results.json` | API-005/006/007 真实 tasks 装配 harness（stub 模型） |
 | `artifacts/rc5/p7/PR.md` / `release-notes.md` / `rollback-record.md` | 本描述、发布说明、回滚记录 |
+| `artifacts/rc5/p7/doc54-delivery-audit.md` | 54 号 workflow 交付审计（阶段/DoD/RAID/遗留与解除条件） |
+| `artifacts/rc5/p7/regression/R02/result.md` | R02 行为项六件逐项补证 |
+| `artifacts/rc5/E2/SEC/RC5-SEC-GOV/result.md` | 治理 ask/deny 实跑（审计+会话事件） |
+| `artifacts/rc5/p7/regression/supplement/companion-relay.md` | companion 令牌/中继协议实测 |
 
 > 证据已脱敏（`artifacts/rc5/p7/regression/SANITIZE.md`）；不含 cookie/token/密钥明文。
 
@@ -215,6 +222,7 @@ bash deploy/verify.sh http://127.0.0.1:3210
 3. **TERM-013 / DATA-009（P1）**：24h 浸泡未满窗（`final-image2`，`plannedEndAt=2026-11-21T06:08:06.781Z`）；DATA-009 现行 soak 为 2 writers / 5min，未达 48 §4.5 的 ≥50 并发 + 2h 全库 integrity。
 4. **远端 CI 未跑**：分支未 push；`ci.yml` 全步骤已在本地逐条复跑 EXIT=0（`ci-local.log`），但远端 `upgrade-gate` / `v1-line` 仍无运行记录，不得以本地代替。
 5. **签字**：`artifacts/rc5/p7/regression/signoff.md` 四方签字栏未签。
+6. **补充回归面 · 真实扩展**：companion 中继已协议级 PASS（令牌签发/错误 token 拒/在线探测/断开回收），但**真实 Chrome 扩展与 `mcp__browser__*` 实跑记 NOTRUN**——headless 无人值守环境不能交互式加载未打包 MV3 扩展；需在桌面验收机补测或产品接受协议级口径（`p7/regression/supplement/companion-relay.md`）。
 
 ### 8.3 解除条件
 
