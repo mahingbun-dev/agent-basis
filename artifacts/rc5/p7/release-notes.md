@@ -132,7 +132,7 @@ bash deploy/verify.sh http://127.0.0.1:3210
 | 6 | CI 未跑（分支未 push；`upgrade-gate` / `v1-line` 无运行记录） | P0 | push 后以 CI 为准，不以本地结果代替 |
 
 > 已清零项（本轮最终镜像复验）：跨租户文件面 ACC-008/SEC-004、系统 MCP 管理面 MCPS-006/SEC-005、terminal TERM-006/008、镜像夹具 ENV-004、口令字面量 SEC-002、UI-006 双主题三视口、迁移两遍/全库 integrity/回滚演练 DATA-004/005/010。
-> 明细与证据：`artifacts/rc5/acceptance-matrix.md`、`artifacts/rc5/p7/regression/signoff.md`、`leftovers.md`。
+> 明细与证据：`artifacts/rc5/acceptance-matrix.md` §遗留项（现行）、`artifacts/rc5/p7/regression/signoff.md`；T52 的 `leftovers.md` 为历史快照（顶部有说明）。
 
 ---
 

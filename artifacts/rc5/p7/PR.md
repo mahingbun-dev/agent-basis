@@ -1,7 +1,7 @@
 # PR · `feat/dsh-rc5-merge` → `main`：上游 DSH 0.2.2-rc.5 合并
 
 - 任务：T53（54 §4.9 / §10.1；53 §7）
-- 分支：`feat/dsh-rc5-merge`（合并 `origin/main` 后 HEAD 见 §0）
+- 分支：`feat/dsh-rc5-merge`，HEAD `f1418dd`（已 merge `origin/main` = `282675c feat(panel): 流程启动条每用户可配置`）
 - 边界：**未 `git push`、未合并、未部署、未停/改生产容器**；push/合并/部署待生产确认
 - 依据：`docs/design/49-上游rc.5合并总设计.md`、`50-上游rc.5合并开发落地文档.md`、`51-上游rc.5合并测试用例与回归.md`、`54-rc.5开发与测试验收完整workflow.md`
 
@@ -11,7 +11,7 @@
 |---|---|
 | 验收矩阵（164 条） | **PASS 159 / FAIL 0 / MISSING 5** |
 | P0（102 条） | **101 PASS / 0 FAIL / 1 MISSING（RC5-API-005）** |
-| 全工作区门禁 | `pnpm -w run verify` **EXIT=0**（`artifacts/rc5/p7/verify-precommit.log`） |
+| 全工作区门禁 | `pnpm -w run verify` **EXIT=0**（pre-merge 与 post-merge 各一次：`artifacts/rc5/p7/verify-precommit.log`、`verify-postmerge.log`） |
 | 最终镜像复跑 | `eterna-agent:rc5-test` = `sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb` |
 | 未通过 5 条 | API-005/006/007（真模型 + realm 对齐）、TERM-013/DATA-009（24h 浸泡未满窗） |
 | 合并条件 | 1 条 P0 缺失需补跑或签字豁免；浸泡满窗后复核 |
@@ -98,7 +98,7 @@
 | E2（ACC 10 / LLM 5 / MCPP 24 / SEC 7 / TERM 16 / UI 8） | 67 PASS / 0 FAIL（MCPP 3 条 SKIP 由 LLM 车道覆盖） |
 | E3（super） | 18 PASS / 0 FAIL / 5 NOTRUN（API-005/006/007、TERM-013、E3-UI-002） |
 | 矩阵（164 条） | **159 PASS / 0 FAIL / 5 MISSING**（`artifacts/rc5/acceptance-matrix.md`） |
-| 全工作区门禁 | **EXIT=0**（38 个 workspace 包 `verify: Done`；`artifacts/rc5/p7/verify-precommit.log`） |
+| 全工作区门禁 | **EXIT=0**（38 个 workspace 包 `verify: Done`；pre-merge `verify-precommit.log`、post-merge `verify-postmerge.log`） |
 
 ### 4.2 P0 结果表（102 条）
 
@@ -183,7 +183,7 @@ bash deploy/verify.sh http://127.0.0.1:3210
 | `artifacts/rc5/E1/*/summary.json`、`E2/*/summary.json` | 最终镜像车道汇总（镜像 id、容器、数据根） |
 | `artifacts/rc5/e3-super/*/report.json` | E3 super 逐用例报告（18 PASS / 5 NOTRUN） |
 | `artifacts/rc5/p6a/rerun-{e1,e2,e3,acp}-final.log` | 最终镜像全车道复跑命令与 EXIT 原文 |
-| `artifacts/rc5/p7/verify-precommit.log` | `pnpm -w run verify` 全工作区 EXIT=0 |
+| `artifacts/rc5/p7/verify-precommit.log` / `verify-postmerge.log` | `pnpm -w run verify` 全工作区 EXIT=0（合并 main 前后各一次） |
 | `artifacts/rc5/E2/SEC/RC5-SEC-010/result.md` | 旧数据升级验证 |
 | `artifacts/rc5/p6b/soak/final-image2/` | 24h 浸泡 meta/term/data 采样（未满窗） |
 | `artifacts/rc5/p7/regression/rerun/API/out/results.json` | API-005/006/007 真实 tasks 装配 harness（stub 模型） |
@@ -198,7 +198,7 @@ bash deploy/verify.sh http://127.0.0.1:3210
 ### 8.1 已绿（有证据）
 
 - 164 行矩阵 159 PASS / 0 FAIL；P0 101/102。
-- `pnpm -w run verify` 全工作区 EXIT=0（38 包）。
+- `pnpm -w run verify` 全工作区 EXIT=0（38 包；merge `origin/main` 前后各一次）。
 - 最终镜像 E1/E2/E3 全车道复跑；TERM-002/005/006、API-004 等此前红项均在最终镜像转绿。
 - 迁移两遍、全库 integrity、回滚演练（DATA-004/005/010）PASS。
 - 双主题 × 三视口 UI 截图 24 张已归档（`artifacts/rc5/E2/UI/RC5-UI-006/`、`E2/MCPP/RC5-MCPP-024/`）。
