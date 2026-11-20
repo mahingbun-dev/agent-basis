@@ -4,41 +4,50 @@
    "audit-20261119.jsonl",
    "audit-20261120.jsonl"
   ],
-  "rowsTotal": 790,
+  "rowsTotal": 2862,
   "windowSince": "2026-11-20T01:35:00",
-  "windowRows": 117,
+  "windowRows": 2189,
   "eventKinds": {
-   "mcp.personal.install": 4,
-   "access.login.gate": 4,
-   "access.mux.install": 4,
-   "access.chatImport": 5,
-   "access.sandbox.install": 8,
-   "access.login": 25,
-   "access.terminal.install": 4,
-   "access.tenant": 21,
-   "access.logout": 1,
-   "mcp.personal.upsert": 19,
-   "mcp.personal.delete": 19,
-   "mcp.personal.probe": 3
+   "mcp.personal.install": 33,
+   "access.login.gate": 33,
+   "access.mux.install": 33,
+   "access.chatImport": 40,
+   "access.sandbox.install": 61,
+   "access.login": 400,
+   "access.terminal.install": 28,
+   "access.tenant": 772,
+   "access.logout": 13,
+   "mcp.personal.upsert": 122,
+   "mcp.personal.delete": 112,
+   "mcp.personal.probe": 16,
+   "access.thinking.auto": 85,
+   "turn-end": 95,
+   "usage": 210,
+   "access.companion.install": 9,
+   "tool-call": 119,
+   "governance": 7,
+   "access.companion.token": 1
   },
-  "secretFieldHits": 2
+  "secretFieldHits": 0,
+  "fixtureNameRows": 10,
+  "secretScanNote": "只扫凭据值形态（session/token/password/authorization/api-key 的值），字段名与夹具名不算；fixtureNameRows 单列"
  },
  "governance": {
   "rulesFile": "/Users/sunny/eterna-data/test-20261120/e2/.eterna/governance.rules.yml",
   "rulesFileBytes": 7839,
   "actions": {
-   "allow": 0,
+   "allow": 15,
    "ask": 0,
-   "deny": 0
+   "deny": 1
   },
-  "denyEventsInWindow": 0,
-  "note": "ask/allow 决策卡需要模型回合与浏览器，未在本轮执行；deny 面以租户拒绝审计为证"
+  "denyEventsInWindow": 4,
+  "note": "deny/ask 已由 E2/SEC/RC5-SEC-GOV 实跑（审计 decision=deny/ask + 会话 approval 事件）；ask 决策卡因产品 approval:never 口径不产生"
  },
  "companion": {
   "anonymousStatus": 401,
   "adminStatus": 200,
-  "adminTokenPresent": false,
+  "adminTokenPresent": true,
   "guideUrl": "present",
-  "note": "扩展连接 + mcp__browser__* 工具调用需要真实浏览器/模型回合，未执行（NOTRUN）"
+  "note": "协议级见 supplement/companion-relay.md（PASS：token/在线探测/断开回收）；真实扩展与 mcp__browser__* 实跑 NOTRUN（headless 无法加载未打包 MV3）"
  }
 }

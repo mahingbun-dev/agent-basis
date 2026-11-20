@@ -1,0 +1,33 @@
+PASS  companion 视图：匿名 401
+status=401
+
+PASS  companion reset：签发本人令牌 + guideUrl
+status=200 token=issued guide=http://127.0.0.1:9310/companion/guide
+
+PASS  relay /extension：错误令牌被拒（连接关闭）
+closed=true code=1006
+
+PASS  relay /extension：正确令牌握手（WS open）
+
+
+PASS  relay /api/status：tokenConnected=true（命名空间=令牌）
+{
+          "extensionConnected": true,
+          "extVersion": "0.0.0-sim",
+          "chromeVersion": "test",
+          "tabCount": 0,
+          "cdpConnected": false,
+          "connectedBrowsers": 1,
+          "browsers": [
+                    {
+                              "extVersion": "0.0.0-sim",
+                              "chromeVersion": "test",
+                              "tabCoun
+
+PASS  relay /api/status：extensionConnected=true + browsers≥1
+connectedBrowsers=1
+
+PASS  relay /api/status：断开后 tokenConnected=false
+tokenConnected=false
+
+RESULT=PASS

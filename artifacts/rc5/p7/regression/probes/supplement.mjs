@@ -37,13 +37,25 @@ for (const row of windowRows) {
   const kind = row?.detail?.kind ?? row?.kind ?? 'unknown'
   kinds[kind] = (kinds[kind] ?? 0) + 1
 }
-const secretPattern = /(eterna_session=|dsh-auth=|password|secret|authorization|api[_-]?key|token=)/i
-const secretHits = windowRows.filter(row => secretPattern.test(JSON.stringify(row))).length
+/* 凭据值扫描（不是字段名）：字段名含 password/token 不算泄露，值形态才算。
+ * 夹具名（secret-b / cross-user-secret）不是凭据值，单独排除并计数。 */
+const secretValuePatterns = [
+  /eterna_session=[A-Za-z0-9._%+/-]{8,}/i,
+  /dsh-auth=[A-Za-z0-9._%+/-]{8,}/i,
+  /"password"\s*:\s*"[^"]{1,}"/i,
+  /"token"\s*:\s*"[^"]{8,}"/i,
+  /"authorization"\s*:\s*"[^"]{8,}"/i,
+  /"api[_-]?key"\s*:\s*"[^"]{8,}"/i,
+]
+const fixturePattern = /secret-b|cross-user-secret/
+const secretHits = windowRows.filter(row => secretValuePatterns.some(re => re.test(JSON.stringify(row)))).length
+const fixtureNameRows = windowRows.filter(row => fixturePattern.test(JSON.stringify(row))).length
 
 const rulePath = join(auditDir, 'governance.rules.yml')
 const ruleText = existsSync(rulePath) ? readFileSync(rulePath, 'utf8') : ''
+/* 规则 schema 是 effect:（不是 action:）；三种都计。 */
 const ruleActions = { allow: 0, ask: 0, deny: 0 }
-for (const match of ruleText.matchAll(/^\s*-?\s*action:\s*(\w+)/gm)) {
+for (const match of ruleText.matchAll(/^\s*-?\s*(?:action|effect):\s*(\w+)/gm)) {
   if (ruleActions[match[1]] !== undefined) ruleActions[match[1]] += 1
 }
 const denyEvents = windowRows.filter(row => JSON.stringify(row).includes('"decision":"deny"') || row?.detail?.decision === 'deny').length
@@ -66,20 +78,22 @@ const report = {
     windowRows: windowRows.length,
     eventKinds: kinds,
     secretFieldHits: secretHits,
+    fixtureNameRows,
+    secretScanNote: '只扫凭据值形态（session/token/password/authorization/api-key 的值），字段名与夹具名不算；fixtureNameRows 单列',
   },
   governance: {
     rulesFile: rulePath,
     rulesFileBytes: existsSync(rulePath) ? statSync(rulePath).size : 0,
     actions: ruleActions,
     denyEventsInWindow: denyEvents,
-    note: 'ask/allow 决策卡需要模型回合与浏览器，未在本轮执行；deny 面以租户拒绝审计为证',
+    note: 'deny/ask 已由 E2/SEC/RC5-SEC-GOV 实跑（审计 decision=deny/ask + 会话 approval 事件）；ask 决策卡因产品 approval:never 口径不产生',
   },
   companion: {
     anonymousStatus: anon.status,
     adminStatus: authed.status,
     adminTokenPresent: tokenPresent,
     guideUrl: typeof body?.guideUrl === 'string' ? 'present' : 'absent',
-    note: '扩展连接 + mcp__browser__* 工具调用需要真实浏览器/模型回合，未执行（NOTRUN）',
+    note: '协议级见 supplement/companion-relay.md（PASS：token/在线探测/断开回收）；真实扩展与 mcp__browser__* 实跑 NOTRUN（headless 无法加载未打包 MV3）',
   },
 }
 console.log(JSON.stringify(report, null, 1))
