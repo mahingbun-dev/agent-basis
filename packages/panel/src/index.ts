@@ -17,6 +17,10 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import {
+  DEFAULT_CHIPS_CONFIG, readChipsConfig, saveChipsConfig,
+  type ChipsConfig, type ChipsSaveOutcome,
+} from './chips-store.ts'
+import {
   buildSnapshot, buildSnapshotForIdentity, knowledgeSnapshotForAccount, normalizeSessionId,
   unavailableMemorySnapshot, type BuildSnapshotScope,
 } from './snapshot.ts'
@@ -369,6 +373,30 @@ export class EternaPanelGateway extends TypertRemoteService {
     const reflect = this.ctx as unknown as { reflect?: { get(name: string, strict?: boolean): unknown } }
     const store = reflect.reflect?.get('eternaAccessStore', false) as AccessStoreView | undefined
     return store?.getUserById(principal.userId)?.role === 'admin'
+  }
+
+  /**
+   * 流程启动条配置·读(2026-11-20,每用户各自一套):守卫通道专用——unary 通道
+   * principal 恒 owner,身份只在 access 守卫(cookie),守卫解析出本人 root 后
+   * 显式点名调用;本方法不做任何 principal/租户推导。**不加 Remote 标记**——
+   * SRC 直调无后门,守卫是唯一通道(remoteMethods 维持 4,同「面板写端点直调
+   * 硬化」取向);缺文件/损坏由 readChipsConfig fail-closed 回默认空配置。
+   */
+  chipsForUser(face: { readonly account: string; readonly root: string }): ChipsConfig {
+    if (typeof face.root !== 'string' || face.root === '') return DEFAULT_CHIPS_CONFIG
+    return readChipsConfig(face.root)
+  }
+
+  /**
+   * 流程启动条配置·写(守卫通道专用,同 chipsForUser 口径):root=守卫解析的
+   * 本人用户根,客户端只传全量条目与 revision(CAS);越权在守卫路径解析面即
+   * 不可能(只可能写本人根)。root 不可解析 → unavailable 拒写(绝不落全局)。
+   */
+  saveChipsForUser(face: { readonly account: string; readonly root: string }, input: unknown): ChipsSaveOutcome {
+    if (typeof face.root !== 'string' || face.root === '') {
+      return { ok: false, code: 'unavailable', message: '账号工作区根不可解析,配置未保存' }
+    }
+    return saveChipsConfig(face.root, input)
   }
 }
 

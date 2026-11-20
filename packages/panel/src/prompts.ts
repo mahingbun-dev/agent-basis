@@ -73,3 +73,20 @@ export const GUIDE_PROMPTS: readonly GuidePrompt[] = [
 
     kickoff: '启动「付款红线」流程:我会提供合同额/定金比例/收款方;你必须先生成付款申请草稿并触发审批,未经批准绝不执行任何支付动作。'  },
 ]
+
+/**
+ * 触发条内置模板(2026-11-20,设置分区「导入内置模板」用):由 GUIDE_PROMPTS 非
+ * memory 域条目派生——触发条改为每用户配置后不再静态渲染(初始为空,用户拍板),
+ * 内置四条只作为可选起点,灌入后即成为可编辑可删的普通条目。
+ */
+export const BUILTIN_CHIP_TEMPLATES: readonly {
+  readonly title: string
+  readonly kickoff: string
+  readonly note?: string
+}[] = GUIDE_PROMPTS
+  .filter(entry => entry.capability !== 'memory' && entry.kickoff !== undefined)
+  .map(entry => ({
+    title: entry.title,
+    kickoff: entry.kickoff ?? '',
+    ...(entry.note !== undefined ? { note: entry.note } : {}),
+  }))

@@ -703,6 +703,36 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     })
   }
 
+  // ── 流程启动条配置(2026-11-20,每用户各自一套):对话框快捷启动语的增删改,
+  // 登录即可读写**本人**配置(非 admin 面)——root 由守卫按 cookie 身份解析
+  // (userRoot),客户端传参不采信,越权在路径解析面即不可能;数据面落
+  // <userRoot>/.eterna/panel/chips.json(panel 网关守卫通道专用方法,无 Remote
+  // 标记,SRC 直调无后门;读缺文件 fail-closed 回空配置,写 CAS 防并发互踩)。
+  register('/api/eternaPanel/chips', (rpcId, _args, ctx) => {
+    const gateway = serviceOf(deps, 'eternaPanel') as unknown as
+      { chipsForUser?: (face: { account: string; root: string }) => unknown } | undefined
+    if (gateway?.chipsForUser === undefined) {
+      return failureFrame(rpcId, new Error('面板网关未挂载(eterna-panel 插件未启用)'))
+    }
+    return okFrame(rpcId, gateway.chipsForUser({ account: ctx.account, root: userRoot(ctx) }))
+  })
+  register('/api/eternaPanel/chipsSave', async (rpcId, args, ctx) => {
+    const gateway = serviceOf(deps, 'eternaPanel') as unknown as
+      { saveChipsForUser?: (face: { account: string; root: string }, input: unknown) => unknown } | undefined
+    if (gateway?.saveChipsForUser === undefined) {
+      return failureFrame(rpcId, new Error('面板网关未挂载(eterna-panel 插件未启用)'))
+    }
+    const outcome = await Promise.resolve(
+      gateway.saveChipsForUser({ account: ctx.account, root: userRoot(ctx) }, args.input),
+    ) as { ok?: boolean; config?: { chips?: unknown[] } } | undefined
+    if (outcome?.ok === true) {
+      tenantAudit(deps, 'panel.chips.saved', ctx.account, {
+        chips: Array.isArray(outcome.config?.chips) ? outcome.config.chips.length : 0,
+      })
+    }
+    return okFrame(rpcId, outcome)
+  })
+
   // ── 知识库管理端点(@eterna/knowledge-admin,2026-11-18):17 方法守卫面 ──
   // 知识库管理是全员可用面(普通账号读写**本人**分库),不能整面 admin-only;守卫只做
   // ①cookie 身份(store.getUserById→{account,admin,userId})②显式跨账号兜底(非 admin 且

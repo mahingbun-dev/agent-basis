@@ -15,6 +15,106 @@
  */
 import { injectDesignTokens } from '@eterna/ui'
 
+/**
+ * 设置分区「流程启动条」样式(2026-11-20;导出供客户端测试做令牌纪律断言:
+ * 无字面色值、只引用 --et-* 令牌)。行卡/开关/输入按 v4 交互纪律:输入触达
+ * ≥36px、focus 光圈、断点只用 760/640、prefers-reduced-motion 全覆盖、无新增
+ * 叠层(行内展开编辑,无 z-index)。
+ */
+export const CHIPS_SETTINGS_CSS = `
+[data-eterna-panel='chipcfg'] {
+  box-sizing: border-box;
+  display: flex; flex-direction: column; gap: var(--et-space-4); min-width: 0;
+  font-family: var(--et-font-body); font-size: var(--et-text-body); font-weight: 400;
+  line-height: var(--et-leading-body); color: var(--et-fg);
+}
+[data-eterna-panel='chipcfg'] *, [data-eterna-panel='chipcfg'] *::before, [data-eterna-panel='chipcfg'] *::after { box-sizing: border-box; min-width: 0; }
+[data-eterna-panel='chipcfg-head'] { display: flex; flex-direction: column; gap: var(--et-space-2); }
+[data-eterna-panel='chipcfg-title-row'] { display: flex; align-items: center; gap: var(--et-space-2); color: var(--et-fg); }
+[data-eterna-panel='chipcfg-title-row'] h3 { margin: 0; font-size: var(--et-text-lead); font-weight: 600; line-height: 1.3; }
+[data-eterna-panel='chipcfg-hint'] { margin: 0; font-size: var(--et-text-caption); color: var(--et-muted); }
+[data-eterna-panel='chipcfg-loaderr'] { margin: 0; font-size: var(--et-text-caption); color: var(--et-danger); overflow-wrap: anywhere; }
+[data-eterna-panel='chipcfg-bar'] { display: flex; flex-wrap: wrap; align-items: center; gap: var(--et-space-2); }
+[data-eterna-panel='chipcfg-visible'] { display: inline-flex; align-items: center; gap: var(--et-space-2); min-height: 36px; }
+[data-eterna-panel='chipcfg-vislabel'] { font-size: var(--et-text-caption); color: var(--et-fg); }
+[data-eterna-panel='chipcfg-gap'] { flex: 1 1 auto; }
+[data-eterna-panel='chipcfg-switch'] {
+  position: relative; flex: none; width: 36px; height: 20px; padding: 0; cursor: pointer;
+  background: var(--et-surface-2); border: 1px solid var(--et-border); border-radius: 9999px;
+  transition: background var(--et-motion-fast) var(--et-ease), border-color var(--et-motion-fast) var(--et-ease);
+}
+[data-eterna-panel='chipcfg-switch'][data-checked] { background: var(--et-accent); border-color: var(--et-accent); }
+[data-eterna-panel='chipcfg-thumb'] {
+  position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 9999px;
+  background: var(--et-fg); transition: transform var(--et-motion-fast) var(--et-ease);
+}
+[data-eterna-panel='chipcfg-switch'][data-checked] [data-eterna-panel='chipcfg-thumb'] { background: var(--et-accent-on); transform: translateX(16px); }
+[data-eterna-panel='chipcfg-btn'], [data-eterna-panel='chipcfg-op'], [data-eterna-panel='chipcfg-save'], [data-eterna-panel='chipcfg-danger'] {
+  flex: none; padding: 6px 12px; min-height: 36px; font: inherit; font-size: var(--et-text-caption);
+  cursor: pointer; white-space: nowrap; color: var(--et-fg);
+  background: transparent; border: 1px solid var(--et-border); border-radius: var(--et-radius-sm);
+  transition: background var(--et-motion-fast) var(--et-ease), border-color var(--et-motion-fast) var(--et-ease), color var(--et-motion-fast) var(--et-ease);
+}
+[data-eterna-panel='chipcfg-btn']:hover:not(:disabled), [data-eterna-panel='chipcfg-op']:hover:not(:disabled) { background: var(--et-surface-2); }
+[data-eterna-panel='chipcfg-save'] { color: var(--et-accent-on); background: var(--et-accent-fill); border-color: var(--et-accent-fill); }
+[data-eterna-panel='chipcfg-save']:hover:not(:disabled) { background: var(--et-accent-fill-hover); }
+[data-eterna-panel='chipcfg-save']:disabled { opacity: 0.45; cursor: default; }
+[data-eterna-panel='chipcfg-danger'][data-armed] { color: var(--et-danger); border-color: var(--et-danger); }
+[data-eterna-panel='chipcfg-danger']:disabled { opacity: 0.45; cursor: default; }
+[data-eterna-panel='chipcfg-btn']:focus-visible, [data-eterna-panel='chipcfg-op']:focus-visible,
+[data-eterna-panel='chipcfg-save']:focus-visible, [data-eterna-panel='chipcfg-danger']:focus-visible,
+[data-eterna-panel='chipcfg-switch']:focus-visible {
+  outline: none; box-shadow: var(--et-focus-ring); border-color: var(--et-accent);
+}
+[data-eterna-panel='chipcfg-empty'] { margin: 0; font-size: var(--et-text-caption); color: var(--et-muted); }
+[data-eterna-panel='chipcfg-list'] { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--et-space-2); }
+[data-eterna-panel='chipcfg-row'] {
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--et-space-3);
+  padding: var(--et-space-3); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md);
+  background: var(--et-surface);
+}
+[data-eterna-panel='chipcfg-row'][data-enabled='false'] [data-eterna-panel='chipcfg-name'],
+[data-eterna-panel='chipcfg-row'][data-enabled='false'] [data-eterna-panel='chipcfg-kickoff'] { color: var(--et-muted); }
+[data-eterna-panel='chipcfg-main'] { flex: 1 1 240px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+[data-eterna-panel='chipcfg-name'] { font-weight: 500; color: var(--et-fg); }
+[data-eterna-panel='chipcfg-kickoff'] {
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  font-size: var(--et-text-caption); color: var(--et-fg-2); word-break: break-word;
+}
+[data-eterna-panel='chipcfg-notetext'] { font-size: var(--et-text-micro); color: var(--et-muted); }
+[data-eterna-panel='chipcfg-ops'] { display: flex; flex-wrap: wrap; align-items: center; gap: var(--et-space-2); }
+[data-eterna-panel='chipcfg-edit'] { flex: 1 1 100%; display: flex; flex-direction: column; gap: var(--et-space-3); }
+[data-eterna-panel='chipcfg-field'] { display: flex; flex-direction: column; gap: var(--et-space-1); }
+[data-eterna-panel='chipcfg-flabel'] { font-size: var(--et-text-micro); color: var(--et-muted); }
+[data-eterna-panel='chipcfg-input'], [data-eterna-panel='chipcfg-textarea'] {
+  min-height: 36px; padding: 6px 10px; font: inherit; font-size: var(--et-text-caption); color: var(--et-fg);
+  background: var(--et-surface-2); border: 1px solid var(--et-border); border-radius: var(--et-radius-sm);
+  transition: border-color var(--et-motion-fast) var(--et-ease), box-shadow var(--et-motion-fast) var(--et-ease);
+}
+[data-eterna-panel='chipcfg-textarea'] { min-height: 72px; resize: vertical; line-height: 1.5; }
+[data-eterna-panel='chipcfg-input']:focus-visible, [data-eterna-panel='chipcfg-textarea']:focus-visible {
+  outline: none; border-color: var(--et-accent); box-shadow: var(--et-focus-ring);
+}
+[data-eterna-panel='chipcfg-input']::placeholder, [data-eterna-panel='chipcfg-textarea']::placeholder { color: var(--et-muted); }
+[data-eterna-panel='chipcfg-editdone'] { display: flex; justify-content: flex-end; }
+[data-eterna-panel='chipcfg-actions'] { display: flex; flex-wrap: wrap; align-items: center; gap: var(--et-space-3); }
+[data-eterna-panel='chipcfg-issue'] { font-size: var(--et-text-caption); color: var(--et-danger); }
+[data-eterna-panel='chipcfg-note'] { font-size: var(--et-text-caption); color: var(--et-success); overflow-wrap: anywhere; }
+[data-eterna-panel='chipcfg-note'][data-ok='false'] { color: var(--et-danger); }
+@media (max-width: 640px) {
+  [data-eterna-panel='chipcfg-row'] { flex-direction: column; }
+  /* 行卡转纵排后 main 不得保留 flex-grow(240px basis 在 column 方向变纵向拉伸,
+     kicker 与操作行之间会撑出整段空白——390 视口实测) */
+  [data-eterna-panel='chipcfg-main'] { flex: 0 0 auto; }
+  [data-eterna-panel='chipcfg-ops'] { width: 100%; justify-content: flex-end; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-eterna-panel='chipcfg-switch'], [data-eterna-panel='chipcfg-thumb'], [data-eterna-panel='chipcfg-btn'],
+  [data-eterna-panel='chipcfg-op'], [data-eterna-panel='chipcfg-save'], [data-eterna-panel='chipcfg-danger'],
+  [data-eterna-panel='chipcfg-input'], [data-eterna-panel='chipcfg-textarea'] { transition: none; }
+}
+`
+
 const CSS = `
 /* —— 底盘 —— */
 [data-eterna-panel='root'],
@@ -439,6 +539,7 @@ const CSS = `
 @keyframes et-fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { [data-eterna-panel='root'], [data-eterna-usage-stats], [data-t7-studio-root], [data-t7-trace-root] { animation: none; } }
 
+${CHIPS_SETTINGS_CSS}
 `
 
 /** 幂等注入面板样式表(同文档重复装载时复用既有节点)。 */
