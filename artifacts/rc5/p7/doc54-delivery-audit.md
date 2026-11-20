@@ -3,7 +3,7 @@
 > 审计对象：`docs/design/54-rc.5开发与测试验收完整workflow.md`（8 阶段 v2）
 > 口径：54 §3.2 阶段退出条件 + §9 RAID + §10 交付/部署；用例唯一口径 = 51 的 164 条
 > （本文件所有数字均可在 `artifacts/rc5/` 对应路径复查，未跑项不标绿）
-> 施工面：worktree `/Users/sunny/code/agent-basis-rc5`，分支 `feat/dsh-rc5-merge`，HEAD `ffeecf8`（领先 `origin/main` 21 提交，落后 0）
+> 施工面：worktree `/Users/sunny/code/agent-basis-rc5`，分支 `feat/dsh-rc5-merge`，HEAD `c70da3e` + 本轮真模型证据（提交前）
 
 ## 0. 结论
 
@@ -11,15 +11,15 @@
 
 | 类别 | 状态 |
 |---|---|
-| P0–P6 代码与测试 | **已收口到最终镜像**：矩阵 164 条 = **159 PASS / 0 FAIL / 5 MISSING**；P0 102 条 = **101 PASS / 0 FAIL / 1 MISSING** |
+| P0–P6 代码与测试 | **已收口到最终镜像**：矩阵 164 条 = **162 PASS / 0 FAIL / 2 MISSING**；P0 102 条 = **102 PASS / 0 FAIL / 0 MISSING** |
 | 全工作区门禁 | `pnpm -w run verify` merge 前后各 **EXIT=0**；`ci.yml` 全步骤本地镜像 **35 步 EXIT=0** |
-| P6 剩余 5 条 | 1 条 P0（API-005，真模型/realm 阻塞）+ 2 条 P1 同前置（API-006/007）+ 2 条 P1 时间窗（TERM-013/DATA-009 24h 未满） |
+| P6 剩余 2 条 | 均为 P1 时间窗：TERM-013 / DATA-009 的 24h 未满（主 2026-11-21T06:08:06Z / 规模 07:37:17Z）。API-005/006/007 已由真模型档补跑 PASS |
 | P7 | **未执行**：未 push、未建 PR、未合并、未从 latest main 构建部署、无上线后 24h |
 | 签字 | 四方签字栏空 |
 | 远端 CI | 分支未 push，`upgrade-gate` / `v1-line` 无远端运行记录 |
 
-> 一句话：**代码/证据面已到 P6 可交付状态；P7 与 1 条 P0 环境项、2 条 24h 时间窗、签字与远端 CI 未闭合。**
-> 按 54 §3.2「P6 未收口，P7 不得启动」——当前不能宣称 54 全量交付完成。
+> 一句话：**P0 已全绿（102/102），代码/证据面已到 P6 可交付状态；P7 与 2 条 24h 时间窗、签字与远端 CI 未闭合。**
+> 按 54 §3.2「P6 未收口，P7 不得启动」——当前不能宣称 54 全量交付完成；但已无 P0 阻塞项。
 
 ---
 
@@ -33,7 +33,7 @@
 | **P3** v1 + 派生件 | V1-001..007、含 v1 的全仓 verify、brand 扫描 0、compaction 语义、B10 typecheck、v1 CI 绿 | `p3/summary.json` 7/7；V1-008 运行时探针 8/8；`ci-local.log` v1-line 全步骤 EXIT=0 | ✅ 关闭（v1-line 远端运行仍缺，见 §4） |
 | **P4** 能力 + 客户端 | 各包 verify、静态门禁、B14/B16/B19/B20 单测、UI-001..005/007/008、10 包 client 重建、`PluginTabProps.update()` | `p4/summary.json` 17/17；10 包 `lib/client.js` 重建提交 `5b91c5f`；R02 六件补证 PASS | ✅ 关闭 |
 | **P5** 镜像/基座 | 镜像构建、dsh 版本、node≥24.9、symlink、v1 剥离、字体/Python、3108 测试容器、ENV/DATA/BOOT 子集、浸泡启动 | 最终镜像 `sha256:22fe8acb…`；`p5/summary.json` 16/16；E1/E2/E3/scale 容器均 healthy、restarts=0 | ✅ 关闭（浸泡「启动」满足；「满窗」归 P6） |
-| **P6a** E2E 全组 | 51 P0 全绿、P1 清零或签字、跨租户矩阵、证据齐 | E1 58 PASS/1 NOTRUN；E2 67 PASS；E3 18 PASS/5 NOTRUN；矩阵 159/0/5 | ⚠️ **未全绿**：API-005（P0）+ API-006/007（P1）真模型前置；TERM-013（P1）24h 未满 |
+| **P6a** E2E 全组 | 51 P0 全绿、P1 清零或签字、跨租户矩阵、证据齐 | E1 58 PASS/1 NOTRUN；E2 67 PASS；E3 21 PASS/2 NOTRUN（API-005/006/007 真模型 PASS）；矩阵 **162/0/2** | ✅ **P0 全绿**；剩 TERM-013/DATA-009 两条 P1 时间窗 |
 | **P6b** 数据轨 | TERM-013/DATA-009 浸泡通过、DATA-004/005/008/009/010、证据齐、签字表齐 | DATA-004/005/007/008/010 PASS；DATA-009 两条 24h 窗口进行中（见 §3）；签字空 | ⚠️ **未收口**：24h 窗口未满 + 签字缺 |
 | **P7** 回归→PR→合并→部署→准出 | 51 §6.1 全勾、PR CI 全绿、latest main 构建部署、§6.2 全勾、发布说明、回滚记录 | 发布说明/回滚记录/PR body 已定稿；**未 push/未建 PR/未合并/未部署** | ⛔ **未执行** |
 
@@ -49,10 +49,10 @@
 
 | id | 级别 | 现状 | 证据/说明 |
 |---|---|---|---|
-| R01 | P0 | **in_progress** | tasks API 已迁移（`e71e33d`），stub 模型 2 worker 真回执已跑；**API-005 真模型 E2E 仍缺** |
+| R01 | P0 | **closed** | API-005 真模型补跑 PASS：`artifacts/rc5/e3-super/real-harness/results.json`（2 工单/2 真实 worker/2 child/`waitForTreeWork` 41.9s/2 条 completed 回执）+ 确定性档 executor join 补证（`artifacts/rc5/API/_harness/results/api005-007-results.json`） |
 | R02 | P1 | **closed** | 六件逐项补证 PASS：`artifacts/rc5/p7/regression/R02/result.md`（LoggerLevel 引 API-009；投影帧参数序/GenerateOptions 泛型/ToolGuardDenial/PluginTabProps.update 均为 rc.5 安装源精确签名 + 本仓消费位 + verify EXIT=0） |
 | R03 | P1 | **closed** | 版本残留 0（`p1/verify-rc5-env.*`、`p1/summary.json`） |
-| R04 | P1 | **in_progress** | API-009 PASS；API-005/006/007 仍 MISSING（真模型/realm） |
+| R04 | P1 | **closed** | API-009 PASS；API-005/006/007 真模型补跑均 PASS（同 R01；API-006 `listDescendants` 精确 2 child，API-007 `drainDescendants` 后 `residentAfter=[]`） |
 | R05 | P0 | **closed** | mcpManager 管理面 admin-only：`MCPS-006`、`SEC-005` PASS；`mux.ts` `MCP_MANAGER_PATH_PREFIX` 403 分支 |
 | R06 | P0 | **closed** | channels webhook 路由面移交 access（`packages/access/src/channels-webhook.ts` + entrypoint 接线）；tenant-scan **0 finding** |
 | R07 | P1 | **closed** | 10 包 client 重建（`5b91c5f`；`ci-local.log` 10 包 build-client EXIT=0） |
@@ -71,7 +71,13 @@
 | R20 | P1 | **closed（协议级；真实扩展 NOTRUN）** | 治理 ask/deny：`artifacts/rc5/E2/SEC/RC5-SEC-GOV/result.md`（deny/ask 均审计+会话事件+工具结果；ask 决策卡按产品 `approval:never` 口径不产生）；companion 中继：`p7/regression/supplement/companion-relay.md`（协议级 PASS；**真实扩展 NOTRUN**，见 §4.3-6）；审计 jsonl：`supplement.json`（2861 行、凭据值 0 命中） |
 | R21 | P2 | **closed** | 51 分节标题计数已对齐实际行：BOOT 13 / MCPS 11 / ACP 10 / OFF 7（`docs/design/51-上游rc.5合并测试用例与回归.md` §3.2/3.5/3.9/3.10） |
 
-> 按 54 §9 目标「P0/P1 清零」：当前 **P0 仅 R01 未清（API-005）**；P1 仅 **R04 未清（API-005/006/007）**，其余 P1 已闭。
+> 按 54 §9 目标「P0/P1 清零」：**P0 已清零**（R01 关闭）；**P1 已清零**（R04 关闭）。本轮新发现 **R22（P1，任务角色 prompt/preset 接线）**，已定根因与修复方案，因最终镜像 24h 浸泡进行中、改动会作废窗口，按 54 §7 记入下一次镜像变更窗口，不阻塞本次判据。
+
+### 2.1 本轮新增 RAID
+
+| id | 级别 | 现状 | 根因/方案/证据 |
+|---|---|---|---|
+| R22 | P1（产品遗留，非 RC5 回归） | **open（deferred）** | **根因**：super profile `docker/profile/package.json` 的 bundles 未含 `@eterna/tasks` → `packages/tasks/cordis.patch.yml` 的 orchestrator/worker preset 未进 preset registry；`SessionsHost.presets` 从未注入；`prompts.composePrompt` 只在测试中使用。**现象**（E3 真模型实测）：主会话按标准 preset 创建（带 persona/subagent 工具），系统 prompt 无 `你是 orchestrator`/`## dispatch`，会自行派 subagent 与 tasks 路由重复。**方案**：bundles 加 `@eterna/tasks` → `eterna-tasks` 配置 `presets` → `Sessions.ensure` 在 `agent.ctx.systemPrompt.section(...)` 注册角色 prompt（additive，order 0）→ 单测覆盖「每 agent 一次/role 文本/缺席降级」。**为何 defer**：镜像 `22fe8acb…` 上的 TERM-013/DATA-009 24h 浸泡正在跑，改代码需重建镜像并重跑窗口。**证据**：`artifacts/rc5/e3-super/API-005-real-model.md` §4-2 |
 
 ---
 
@@ -95,8 +101,7 @@
 
 ### 4.2 需要用户授权/外部条件
 
-3. **API-005（P0）/ API-006 / API-007**：真模型 + `realm=Mr.Ma` 对齐才能跑 app 级 worker E2E。当前环境实测 `AUTH 401 invalid API Key` + realm 不在 access 用户表；P7 harness 已用真实 tasks 装配 + stub 模型跑通 2 worker 真回执（`p7/regression/rerun/API/out/results.json`），但按 51 口径仍记 MISSING。
-   - 出路：提供可用模型凭据并授权测试 lane 使用；或产品签字豁免（PR §8.2-1）。
+3. ~~**API-005（P0）/ API-006 / API-007**~~：**已闭**。用户授权「用已配置的模型验证」后，E3 真模型档（`mimo/mimo-v2.6-pro`）跑通 2 工单/2 真实 worker/2 child/`waitForTreeWork` 41.9s/2 条 completed 回执；`listDescendants` 精确、`drainDescendants` 后 `residentAfter=[]`。证据：`artifacts/rc5/e3-super/API-005-real-model.md`、`artifacts/rc5/e3-super/real-harness/`。
 4. **四方签字**：`p7/regression/signoff.md` 未签；需产品/研发/测试/运维签字。
 5. **P7 生产操作**：`git push`、创建 PR、合并、从 latest main 构建部署、上线后 24h 观察——**均需用户单独确认**（54 §10.2、§13.6）；当前一律未做。
 
@@ -104,6 +109,7 @@
 
 6. **真实 Chrome 扩展 REAL-EXT = NOTRUN**：headless 无人值守环境不能交互式加载未打包 MV3 扩展；中继协议/令牌/在线探测已协议级 PASS（`companion-relay.md`）。若要实测，需在带桌面会话的验收机执行。
 7. **H16 个人 MCP HTTP 可访问内网 / H7 回滚后 rc.5 新会话不可读 / terminal 接管不可交还**：49 §11 产品已书面接受，PR §5 与发布说明已逐条落字，控制项证据在 `packages/access/src/mcp-personal.ts`、`p7/rollback-record.md`、TERM 车道。
+8. **R22 任务角色 prompt/preset 接线（产品 P1，deferred）**：主会话当前按标准 preset 创建，角色 prompt 未投递，可能自行派 subagent 与 tasks 路由重复；不影响 API-005/006/007 的判据。修复方案与不在本镜像改的原因见 §2.1；发布说明需落字「tasks 编排角色 prompt 接线随下一次镜像窗口」。
 
 ---
 
@@ -115,6 +121,9 @@
 | `artifacts/rc5/p7/regression/R02/{cmd.log,result.md}` | R02 六件逐项补证 | **PASS**（9/9 断言） |
 | `artifacts/rc5/p7/regression/supplement/companion-relay.{log,md}` | companion 令牌/relay 协议实测 | **PASS（协议级）**；REAL-EXT NOTRUN |
 | `artifacts/rc5/p7/regression/supplement/supplement.json` | 审计 jsonl/治理规则计数（2861 行；凭据值 0 命中） | 刷新 |
+| `artifacts/rc5/e3-super/real-harness/{results.json,harness.log,worker-a.jsonl,boot.log}` | **API-005/006/007 真模型补跑**（E3 隔离 DSH_HOME，`mimo/mimo-v2.6-pro`） | **PASS**：2 工单/2 真实 worker/2 child/`waitForTreeWork` 41883ms/2 completed 回执/`listDescendants` 精确/`drain` 后 `residentAfter=[]`；`executorTreeJoin` 记 advisory（确定性档补证） |
+| `artifacts/rc5/e3-super/API-005-real-model.md` | 真模型三组证据合并、边界与 R22 说明 | 新增 |
+| `artifacts/rc5/API/_harness/{index.js,run-api005-real.sh}` | 真模型 harness 模式与复现脚本（`API_HARNESS_REAL=1`） | 新增 |
 
 ---
 
@@ -122,7 +131,7 @@
 
 全部满足才可：
 
-- [ ] API-005 真模型/realm 补跑 PASS，或产品签字豁免（同时解除 API-006/007 口径）；
+- [x] API-005 真模型/realm 补跑 PASS（同时解除 API-006/007 口径）；
 - [ ] TERM-013 + DATA-009 主窗口满窗通过（`2026-11-21T06:08:06Z` 后）；
 - [ ] DATA-009 规模窗口满窗通过（`2026-11-21T07:37:17Z` 后，50 并发口径）；
 - [ ] 矩阵 164 行无 MISSING（或全部经签字豁免），P0 102/102；

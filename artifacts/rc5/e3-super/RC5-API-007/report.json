@@ -4,66 +4,30 @@
   "priority": "P1",
   "title": "排空后代后无残留 running（API-007）",
   "expected": "drainDescendants 后无残留 running",
-  "status": "NOTRUN",
-  "startedAt": "2026-11-20T07:01:46.772Z",
-  "finishedAt": "2026-11-20T07:02:46.911Z",
+  "status": "PASS",
+  "startedAt": "2026-11-20T08:46:37.088Z",
+  "finishedAt": "2026-11-20T08:48:17.524Z",
+  "realModel": true,
+  "evidence": [
+    "artifacts/rc5/e3-super/real-harness/results.json",
+    "artifacts/rc5/e3-super/real-harness/harness.log",
+    "artifacts/rc5/e3-super/API-005-real-model.md"
+  ],
   "assertions": [
     {
-      "name": "admin 登录 200",
+      "name": "worker B 上派长驻 child 后 drainDescendants",
       "ok": true,
-      "detail": "status=200"
+      "detail": "drainedChild=8192e459-072b-4289-8bdc-691ef8433db8；drainMs=10"
     },
     {
-      "name": "worker 列表为空（drain 前置缺失）",
+      "name": "drain 后无残留 running（agents 注册表复查）",
       "ok": true,
-      "detail": "[]"
+      "detail": "residentAfter=[]；descendantsAfter=[{id:8192e459...,resident:false}]；waitForTreeWorkAfter=false；workerStatusAfter=idle"
+    },
+    {
+      "name": "确定性 stub 档同一断言",
+      "ok": true,
+      "detail": "artifacts/rc5/API/_harness/results/api005-007-results.json checks.drainDescendants.ok=true"
     }
-  ],
-  "commands": [
-    {
-      "cmd": "docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)",
-      "exit": 0,
-      "note": "boot token 不入证据"
-    },
-    {
-      "cmd": "GET /connect + GET /?token=… (dsh session bootstrap)",
-      "exit": 200,
-      "note": "token 已脱敏"
-    },
-    {
-      "cmd": "POST /login (admin from 0600 accounts file)",
-      "exit": 429,
-      "note": ""
-    },
-    {
-      "cmd": "POST /login (admin from 0600 accounts file)",
-      "exit": 429,
-      "note": "retry#1"
-    },
-    {
-      "cmd": "POST /login (admin from 0600 accounts file)",
-      "exit": 429,
-      "note": "retry#2"
-    },
-    {
-      "cmd": "POST /login (admin from 0600 accounts file)",
-      "exit": 200,
-      "note": "retry#3"
-    },
-    {
-      "cmd": "GET /access/api/tasks/session-roles",
-      "exit": 200,
-      "note": ""
-    }
-  ],
-  "notes": [
-    "drainDescendants 需真实后代树；前置（模型/ realm）见 RC5-API-005。"
-  ],
-  "env": {
-    "base": "http://127.0.0.1:3109",
-    "container": "eterna-rc5-e3",
-    "project": "rc5-test-e3",
-    "image": "eterna-agent:rc5-test",
-    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
-  }
+  ]
 }

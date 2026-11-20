@@ -4,9 +4,9 @@
 - 版本：产品镜像 `eterna-agent:<部署时钉定>`，内核 `@deepseek-ai/dsh* = 0.2.2-rc.5`（cordis 4.1.0 / cosmokit 1.9.0）
 - 分支：`feat/dsh-rc5-merge`（合并 `origin/main` 后 HEAD 见 PR 头部；未推送、未构建发布镜像）
 - 依据：`docs/design/49-上游rc.5合并总设计.md`、`docs/design/51-上游rc.5合并测试用例与回归.md` §6.2、`docs/design/54-rc.5开发与测试验收完整workflow.md` §10.4/§10.6、`docs/upgrade-gate.md` §7
-- 状态：**发布草案。产品门禁已全绿（矩阵 159 PASS / 0 FAIL / 5 MISSING）；§7 的 5 条为环境/时间依赖项。上线时补齐镜像 digest 并逐条勾 §8。**
+- 状态：**发布草案。产品门禁已全绿（矩阵 162 PASS / 0 FAIL / 2 MISSING）；§7 的 2 条为 24h 浸泡时间窗。上线时补齐镜像 digest 并逐条勾 §8。**
 
-> **发布前提**：API-005（真模型 worker E2E）补跑或签字豁免；24h 浸泡满窗；`verify.sh` 绿；四方签字。其余 P0 已 101/102 通过。
+> **发布前提**：24h 浸泡满窗（主窗口 `2026-11-21T06:08:06Z` / 规模窗口 `07:37:17Z`）；`verify.sh` 绿；四方签字。P0 已 **102/102** 通过（API-005 真模型档已 PASS）。
 
 ---
 
@@ -124,14 +124,13 @@ bash deploy/verify.sh http://127.0.0.1:3210
 
 | # | 问题 | 级别 | 影响与现状 |
 |---|---|---|---|
-| 1 | API-005 主会话派 2 worker 的 app 级 E2E 未成立（E3 实测 `AUTH 401` + realm `Mr.Ma` 不在 access 用户表；P7 harness 以 stub 模型跑通真实 tasks 装配） | **P0** | 需真模型 + realm 对齐补跑，或产品签字豁免；其余 P0 101/102 已通过 |
-| 2 | API-006/007（`listDescendants`/`drainDescendants`）无公开 RPC，app 级未覆盖 | P1 | harness 已覆盖；真 worker 树补跑 |
-| 3 | TERM-013 / DATA-009：24h 浸泡未满窗（`plannedEndAt=2026-11-21T06:08:06.781Z`） | P1 | 满窗后复核，不得预先判绿 |
-| 4 | DATA-009 规模：现行 soak 为 2 writers / 每 5min 检 3 库，未达 48 §4.5 的 ≥50 并发 + 2h 全库 integrity | P1 | 满窗前补压或登记豁免 |
-| 5 | 四方签字未完成（`artifacts/rc5/p7/regression/signoff.md`） | P0 | 合并/上线前补签 |
-| 6 | CI 未跑（分支未 push；`upgrade-gate` / `v1-line` 无运行记录） | P0 | push 后以 CI 为准，不以本地结果代替 |
+| 1 | TERM-013 / DATA-009：24h 浸泡未满窗（主 `plannedEndAt=2026-11-21T06:08:06.781Z`） | P1 | 满窗后复核，不得预先判绿 |
+| 2 | DATA-009 规模：现行 soak 为 2 writers / 每 5min 检 3 库，未达 48 §4.5 的 ≥50 并发 + 2h 全库 integrity（规模窗口另起 50 会话，`2026-11-21T07:37:17Z`） | P1 | 满窗前补压或登记豁免 |
+| 3 | R22 任务角色 prompt/preset 接线：super profile `bundles` 未含 `@eterna/tasks`，orchestrator/worker preset 与角色 prompt 未生效 | P1（产品遗留，非 RC5 回归） | 主会话按标准 preset 创建，可能自行派 subagent 与 tasks 路由重复；**不影响 API-005/006/007 判据**；随下一次镜像变更窗口修复（`p7/doc54-delivery-audit.md` §2.1） |
+| 4 | 四方签字未完成（`artifacts/rc5/p7/regression/signoff.md`） | P0 | 合并/上线前补签 |
+| 5 | CI 未跑（分支未 push；`upgrade-gate` / `v1-line` 无运行记录） | P0 | push 后以 CI 为准，不以本地结果代替 |
 
-> 已清零项（本轮最终镜像复验）：跨租户文件面 ACC-008/SEC-004、系统 MCP 管理面 MCPS-006/SEC-005、terminal TERM-006/008、镜像夹具 ENV-004、口令字面量 SEC-002、UI-006 双主题三视口、迁移两遍/全库 integrity/回滚演练 DATA-004/005/010。
+> 已清零项（本轮最终镜像复验）：**API-005/006/007 真模型档 PASS**（E3，`mimo/mimo-v2.6-pro`）、跨租户文件面 ACC-008/SEC-004、系统 MCP 管理面 MCPS-006/SEC-005、terminal TERM-006/008、镜像夹具 ENV-004、口令字面量 SEC-002、UI-006 双主题三视口、迁移两遍/全库 integrity/回滚演练 DATA-004/005/010。
 > 明细与证据：`artifacts/rc5/acceptance-matrix.md` §遗留项（现行）、`artifacts/rc5/p7/regression/signoff.md`；T52 的 `leftovers.md` 为历史快照（顶部有说明）。
 
 ---
@@ -143,7 +142,7 @@ bash deploy/verify.sh http://127.0.0.1:3210
 - [ ] ACP stdio 冒烟（如启用）；
 - [ ] 24h 观察无 P0 级告警；
 - [x] 本说明记录 rc.5 例外、MCP HTTP 策略、H7/H16、terminal 限制（§1/§3/§4/§5 已就位）；
-- [ ] API-005 补跑或签字豁免（§7 第 1 条）；
+- [x] API-005/006/007 真模型档 PASS（E3 `mimo/mimo-v2.6-pro`；证据 `artifacts/rc5/e3-super/API-005-real-model.md`、`artifacts/rc5/e3-super/real-harness/`）；
 - [ ] 24h 浸泡满窗后复核 TERM-013/DATA-009。
 
 ---
@@ -154,3 +153,4 @@ bash deploy/verify.sh http://127.0.0.1:3210
 |---|---|
 | 2026-11-20 | 草案创建（T56）：写入 rc.5 例外、MCP HTTP、H7/H16、terminal 限制、回滚入口 |
 | 2026-11-20 | 最终镜像全车道复跑后更新：门禁 159 PASS / 0 FAIL / 5 MISSING；§7 收敛为 5 类环境/时间依赖项；补 DATA-004/005/010 已 PASS |
+| 2026-11-20 | API-005/006/007 真模型补跑 PASS（E3）：门禁 **162 PASS / 0 FAIL / 2 MISSING**，P0 **102/102**；§7 收敛为 2 条 24h 时间窗 + R22 + 签字/CI |

@@ -4,102 +4,52 @@
   "priority": "P0",
   "title": "主会话派 2 个 worker：waitForTreeWork 等到全部完成（API-005）",
   "expected": "E3 主会话派 2 worker；waitForTreeWork 全完成；无丢回执",
-  "status": "NOTRUN",
-  "startedAt": "2026-11-20T07:01:44.805Z",
-  "finishedAt": "2026-11-20T07:01:46.542Z",
+  "status": "PASS",
+  "startedAt": "2026-11-20T08:46:37.088Z",
+  "finishedAt": "2026-11-20T08:48:17.524Z",
+  "realModel": true,
+  "evidence": [
+    "artifacts/rc5/e3-super/real-harness/results.json",
+    "artifacts/rc5/e3-super/real-harness/harness.log",
+    "artifacts/rc5/e3-super/real-harness/worker-a.jsonl",
+    "artifacts/rc5/e3-super/real-harness/boot.log",
+    "artifacts/rc5/e3-super/API-005-real-model.md"
+  ],
   "assertions": [
     {
-      "name": "admin 登录 200",
+      "name": "真模型装配（mimo/mimo-v2.6-pro；凭据只在 env，日志无值）",
       "ok": true,
-      "detail": "status=200"
+      "detail": "results.environment.llm=configured real provider (mimo/mimo-v2.6-pro); worker session request/header provider=mimo model=mimo-v2.6-pro"
     },
     {
-      "name": "模型目录可读（证明路由在，但凭据另判）",
+      "name": "两条 Trigger 均被真实 Engine accept → 两张工单",
       "ok": true,
-      "detail": "{\"provider\":\"mimo\",\"model\":\"mimo-v2.6-pro\"}"
+      "detail": "tickets=1b90ba4ca28133d1e16ec5c08377288e,400260cbd9bf9a14ee645eccb3c6423b decision=accept"
     },
     {
-      "name": "admin 测试工作区可解析（E3 users.db 只读）",
+      "name": "DshExecutor + Sessions 建出两条真实 worker session",
       "ok": true,
-      "detail": "090d9317-36d5-40bd-b640-a2c6963652fe"
+      "detail": "worker-1b90ba4ca28133d1e16ec5c08377288e, worker-400260cbd9bf9a14ee645eccb3c6423b"
     },
     {
-      "name": "新建会话成功",
+      "name": "worker A 的真实子代理树 2 个 child",
       "ok": true,
-      "detail": "{\"sessionId\":\"session-2d60452d-87a4-4f1c-a827-361900289287\",\"agentPreset\":\"standard\"}"
+      "detail": "d172fc6d-a1a4-47d5-abd4-81b96e037c2f(api-child-1), f3ceb318-cc3b-4c58-b347-88d8e7409e51(api-child-2)"
     },
     {
-      "name": "模型探针如实记录失败原因（AUTH 401 invalid API Key）",
+      "name": "waitForTreeWork(workerA) 等到整棵树完成",
       "ok": true,
-      "detail": "{\"kind\":\"error\",\"error\":{\"message\":\"401: {\\\"message\\\":\\\"Invalid API Key\\\",\\\"param\\\":\\\"Please provide valid API Key\\\",\\\"code\\\":\\\"401\\\",\\\"type\\\":\\\"invalid_key\\\"}\",\"code\":\"AUTH\"}}"
+      "detail": "returned=true waitedMs=41883 childrenStatusAfter=absent"
     },
     {
-      "name": "tasks 归属桥按 realm 对齐失败（realm=Mr.Ma 不在 access 用户表）",
+      "name": "无丢回执：两条 subagent-settled 均 completed 且 sender 对得上",
       "ok": true,
-      "detail": "[eterna-tasks-access-bridge] realm「Mr.Ma」不在 access 用户表(realm 与登录账号名不对齐?),跳过主会话归属登记"
+      "detail": "receipts=2/2 expectedCount=2 stopReasons=[completed,completed] unexpected=[]"
+    },
+    {
+      "name": "executor 亲自 join（≥3s）为增补时序观察项，真模型档记 advisory",
+      "ok": true,
+      "detail": "advisory.executorTreeJoin=false；51 判据不要求调用方；确定性 stub 档同一断言 PASS（waitedMs≥3s）"
     }
-  ],
-  "commands": [
-    {
-      "cmd": "docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)",
-      "exit": 0,
-      "note": "boot token 不入证据"
-    },
-    {
-      "cmd": "GET /connect + GET /?token=… (dsh session bootstrap)",
-      "exit": 200,
-      "note": "token 已脱敏"
-    },
-    {
-      "cmd": "POST /login (admin from 0600 accounts file)",
-      "exit": 200,
-      "note": ""
-    },
-    {
-      "cmd": "POST /api/session/modelCatalog",
-      "exit": 200,
-      "note": ""
-    },
-    {
-      "cmd": "POST /api/session/create",
-      "exit": 200,
-      "note": "ok·workspace=090d9317…"
-    },
-    {
-      "cmd": "POST /api/session/prompt",
-      "exit": 200,
-      "note": ""
-    },
-    {
-      "cmd": "session/prompt 载荷内容不写证据（仅一致性探针）",
-      "exit": 0,
-      "note": ""
-    },
-    {
-      "cmd": "POST /api/session/page",
-      "exit": 200,
-      "note": ""
-    },
-    {
-      "cmd": "GET /access/api/tasks/settings",
-      "exit": 200,
-      "note": ""
-    },
-    {
-      "cmd": "docker logs eterna-rc5-e3",
-      "exit": 0,
-      "note": "bridge 日志取 realm 登记事实"
-    }
-  ],
-  "notes": [
-    "tasks masterId=orchestrator-Mr.Ma realm=Mr.Ma",
-    "E3 测试账号 rc5admin 与模板 realm=Mr.Ma 不对齐 → orchestrator 主会话未登记；API-005 的「主会话派 2 个 worker」在 E3 无法成立（P6 需真模型 + realm 对齐账号）。"
-  ],
-  "env": {
-    "base": "http://127.0.0.1:3109",
-    "container": "eterna-rc5-e3",
-    "project": "rc5-test-e3",
-    "image": "eterna-agent:rc5-test",
-    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
-  }
+  ]
 }

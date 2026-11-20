@@ -1,0 +1,520 @@
+{
+  "case": "RC5-API-005/006/007",
+  "startedAt": "2026-11-20T08:46:37.088Z",
+  "realModel": true,
+  "environment": {
+    "dsh": "0.2.2-rc.5",
+    "profile": "api-prof",
+    "dshHome": "/tmp/api-real-home",
+    "node": "v24.22.3",
+    "llm": "configured real provider (mimo/mimo-v2.6-pro)",
+    "master": "orchestrator-ApiHarness",
+    "note": "真模型回合；tasks worker/session/subagent manager 均为真实 rc.5 装配",
+    "realm": "ApiHarness",
+    "masterId": "orchestrator-ApiHarness",
+    "boot": [
+      "store",
+      "effects",
+      "outbox",
+      "engine",
+      "assessor",
+      "executor",
+      "sources"
+    ],
+    "healthAtStart": {
+      "state": "ready",
+      "detail": "realm ApiHarness 就绪",
+      "at": "2026-11-20T08:46:37.089Z",
+      "components": {
+        "tasks": {
+          "state": "ready",
+          "detail": "realm ApiHarness 就绪(pass 2000ms)",
+          "at": "2026-11-20T08:46:37.079Z"
+        },
+        "reply": {
+          "state": "ready",
+          "detail": "2 waiting since 2026-11-20T08:46:37.301Z",
+          "at": "2026-11-20T08:46:48.921Z"
+        },
+        "assessment": {
+          "state": "ready",
+          "detail": "1 waiting since 2026-11-20T08:46:37.303Z",
+          "at": "2026-11-20T08:46:37.339Z"
+        },
+        "relay": {
+          "state": "ready",
+          "detail": "Nothing waiting",
+          "at": "2026-11-20T08:46:48.926Z"
+        },
+        "launch": {
+          "state": "ready",
+          "detail": "Nothing waiting",
+          "at": "2026-11-20T08:46:37.429Z"
+        },
+        "delivery": {
+          "state": "ready",
+          "detail": "Nothing waiting",
+          "at": "2026-11-20T08:46:37.077Z"
+        },
+        "master": {
+          "state": "ready",
+          "detail": "master 会话 orchestrator-ApiHarness 就绪",
+          "at": "2026-11-20T08:46:37.192Z"
+        },
+        "webchat": {
+          "state": "ready",
+          "detail": "webchat 委派入口待命",
+          "at": "2026-11-20T08:46:37.086Z"
+        }
+      },
+      "masterId": "orchestrator-ApiHarness"
+    }
+  },
+  "checks": {
+    "policyAllowed": {
+      "ok": true,
+      "saved": true,
+      "revision": 1
+    },
+    "twoTicketsAccepted": {
+      "ok": true,
+      "tickets": [
+        "1b90ba4ca28133d1e16ec5c08377288e",
+        "400260cbd9bf9a14ee645eccb3c6423b"
+      ]
+    },
+    "realWorkerSessions": {
+      "ok": true,
+      "workers": [
+        {
+          "id": "worker-1b90ba4ca28133d1e16ec5c08377288e",
+          "status": "running",
+          "cwd": null
+        },
+        {
+          "id": "worker-400260cbd9bf9a14ee645eccb3c6423b",
+          "status": "running",
+          "cwd": null
+        }
+      ]
+    },
+    "waitForTreeWork": {
+      "ok": true,
+      "returned": true,
+      "waitedMs": 41883,
+      "childrenStatusAfter": [
+        {
+          "id": "d172fc6d-a1a4-47d5-abd4-81b96e037c2f",
+          "status": "absent"
+        },
+        {
+          "id": "f3ceb318-cc3b-4c58-b347-88d8e7409e51",
+          "status": "absent"
+        }
+      ]
+    },
+    "receipts": {
+      "ok": true,
+      "count": 2,
+      "expectedCount": 2,
+      "stopReasons": [
+        "completed",
+        "completed"
+      ],
+      "senders": [
+        "f3ceb318-cc3b-4c58-b347-88d8e7409e51",
+        "d172fc6d-a1a4-47d5-abd4-81b96e037c2f"
+      ],
+      "expectedSenders": [
+        "d172fc6d-a1a4-47d5-abd4-81b96e037c2f",
+        "f3ceb318-cc3b-4c58-b347-88d8e7409e51"
+      ],
+      "unexpected": []
+    },
+    "executorTreeJoin": {
+      "ok": false,
+      "calls": [
+        {
+          "root": "worker-400260cbd9bf9a14ee645eccb3c6423b",
+          "fromExecutor": true,
+          "value": false,
+          "waitedMs": 0,
+          "at": "2026-11-20T08:46:48.914Z",
+          "stack": "    at subagents.waitForTreeWork (file:///tmp/api-harness/index.js:184:20) |     at Object.apply (file:///usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/cordis/lib/index.js:122:36) |     at childrenEnd (file:///repo/packages/tasks/src/executor/background.ts:58:22) |     at untilQuiet (file:///repo/packages/tasks/src/executor/background.ts:108:46) |     at DshExecutor.workerIdle (file:///repo/packages/tasks/src/executor/dsh.ts:714:25) |     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)"
+        },
+        {
+          "root": "worker-1b90ba4ca28133d1e16ec5c08377288e",
+          "fromExecutor": false,
+          "value": true,
+          "waitedMs": 41883,
+          "at": "2026-11-20T08:47:19.428Z",
+          "stack": "    at subagents.waitForTreeWork (file:///tmp/api-harness/index.js:184:20) |     at Object.apply (file:///usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/cordis/lib/index.js:122:36) |     at run (file:///tmp/api-harness/index.js:310:46)"
+        },
+        {
+          "root": "worker-400260cbd9bf9a14ee645eccb3c6423b",
+          "fromExecutor": false,
+          "value": false,
+          "waitedMs": 0,
+          "at": "2026-11-20T08:48:02.133Z",
+          "stack": "    at subagents.waitForTreeWork (file:///tmp/api-harness/index.js:184:20) |     at Object.apply (file:///usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/cordis/lib/index.js:122:36) |     at run (file:///tmp/api-harness/index.js:395:53)"
+        }
+      ]
+    },
+    "listDescendants": {
+      "ok": true,
+      "ids": [
+        "d172fc6d-a1a4-47d5-abd4-81b96e037c2f",
+        "f3ceb318-cc3b-4c58-b347-88d8e7409e51"
+      ],
+      "expected": [
+        "d172fc6d-a1a4-47d5-abd4-81b96e037c2f",
+        "f3ceb318-cc3b-4c58-b347-88d8e7409e51"
+      ],
+      "extras": []
+    },
+    "drainDescendants": {
+      "ok": true,
+      "residentAfter": [],
+      "waitForTreeWorkAfter": false,
+      "workerStatusAfter": "idle"
+    }
+  },
+  "dispatch": [
+    {
+      "i": 1,
+      "triggerId": "f9d2fdaec38dc204637e294064a28a56",
+      "strength": "explicit",
+      "decisionKind": "accept",
+      "ticketId": "1b90ba4ca28133d1e16ec5c08377288e",
+      "reason": [
+        {
+          "code": "said",
+          "values": {
+            "text": "explicit harness request"
+          }
+        }
+      ]
+    },
+    {
+      "i": 2,
+      "triggerId": "4d28d39bf6e11f3952a356eed418814a",
+      "strength": "explicit",
+      "decisionKind": "accept",
+      "ticketId": "400260cbd9bf9a14ee645eccb3c6423b",
+      "reason": [
+        {
+          "code": "said",
+          "values": {
+            "text": "explicit harness request"
+          }
+        }
+      ]
+    }
+  ],
+  "spawns": [
+    {
+      "worker": "worker-1b90ba4ca28133d1e16ec5c08377288e",
+      "children": [
+        {
+          "id": "d172fc6d-a1a4-47d5-abd4-81b96e037c2f",
+          "name": "api-child-1",
+          "messageId": "00f1786a-e7f0-4e5c-af5d-95a905eb8475"
+        },
+        {
+          "id": "f3ceb318-cc3b-4c58-b347-88d8e7409e51",
+          "name": "api-child-2",
+          "messageId": "7d157298-4260-47ad-9450-eacf009cd92c"
+        }
+      ]
+    },
+    {
+      "worker": "worker-400260cbd9bf9a14ee645eccb3c6423b",
+      "children": [
+        {
+          "id": "8192e459-072b-4289-8bdc-691ef8433db8",
+          "name": "api-drain-child",
+          "messageId": "7000bbcd-6938-41b9-983c-54d570abef22"
+        }
+      ]
+    }
+  ],
+  "receipts": [
+    {
+      "worker": "worker-1b90ba4ca28133d1e16ec5c08377288e",
+      "receipts": [
+        {
+          "stopReason": "completed",
+          "sender": "f3ceb318-cc3b-4c58-b347-88d8e7409e51",
+          "text": "Background subagent api-child-2 finished and will do no further work unless you send it more.\nIts closing message:\nDONE-2"
+        },
+        {
+          "stopReason": "completed",
+          "sender": "d172fc6d-a1a4-47d5-abd4-81b96e037c2f",
+          "text": "Background subagent api-child-1 finished and will do no further work unless you send it more.\nIts closing message:\nDONE-1"
+        }
+      ]
+    }
+  ],
+  "descendants": {
+    "workerA": {
+      "entries": [
+        {
+          "id": "d172fc6d-a1a4-47d5-abd4-81b96e037c2f",
+          "parent": "worker-1b90ba4ca28133d1e16ec5c08377288e",
+          "path": "api-child-1",
+          "depth": 1,
+          "mode": "continuable",
+          "diagnostic": null
+        },
+        {
+          "id": "f3ceb318-cc3b-4c58-b347-88d8e7409e51",
+          "parent": "worker-1b90ba4ca28133d1e16ec5c08377288e",
+          "path": "api-child-2",
+          "depth": 1,
+          "mode": "continuable",
+          "diagnostic": null
+        }
+      ],
+      "ids": [
+        "d172fc6d-a1a4-47d5-abd4-81b96e037c2f",
+        "f3ceb318-cc3b-4c58-b347-88d8e7409e51"
+      ]
+    },
+    "workerBBefore": [
+      {
+        "id": "8192e459-072b-4289-8bdc-691ef8433db8",
+        "status": "running"
+      }
+    ]
+  },
+  "drain": {
+    "worker": "worker-400260cbd9bf9a14ee645eccb3c6423b",
+    "drainedChild": "8192e459-072b-4289-8bdc-691ef8433db8",
+    "drainMs": 10,
+    "descendantsAfter": [
+      {
+        "id": "8192e459-072b-4289-8bdc-691ef8433db8",
+        "resident": false
+      }
+    ],
+    "residentAfter": [],
+    "waitForTreeWorkAfter": false,
+    "workerStatusAfter": "idle",
+    "subagentEnds": [
+      {
+        "id": "8192e459-072b-4289-8bdc-691ef8433db8",
+        "parent": "worker-400260cbd9bf9a14ee645eccb3c6423b",
+        "stopReason": "aborted",
+        "at": "2026-11-20T08:48:02.128Z"
+      }
+    ]
+  },
+  "statuses": {
+    "master": "idle",
+    "worker-1b90ba4ca28133d1e16ec5c08377288e": "running",
+    "worker-400260cbd9bf9a14ee645eccb3c6423b": "running",
+    "after": {
+      "workerA": "idle",
+      "workerB": "idle",
+      "children": [
+        {
+          "id": "d172fc6d-a1a4-47d5-abd4-81b96e037c2f",
+          "status": "absent"
+        },
+        {
+          "id": "f3ceb318-cc3b-4c58-b347-88d8e7409e51",
+          "status": "absent"
+        }
+      ]
+    }
+  },
+  "errors": [],
+  "tickets": [
+    {
+      "id": "1b90ba4ca28133d1e16ec5c08377288e",
+      "title": "API005 双 worker 验证 A",
+      "realm": "ApiHarness"
+    },
+    {
+      "id": "400260cbd9bf9a14ee645eccb3c6423b",
+      "title": "API005 双 worker 验证 B",
+      "realm": "ApiHarness"
+    }
+  ],
+  "waitCalls": [
+    {
+      "root": "worker-400260cbd9bf9a14ee645eccb3c6423b",
+      "fromExecutor": true,
+      "value": false,
+      "waitedMs": 0,
+      "at": "2026-11-20T08:46:48.914Z",
+      "stack": "    at subagents.waitForTreeWork (file:///tmp/api-harness/index.js:184:20) |     at Object.apply (file:///usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/cordis/lib/index.js:122:36) |     at childrenEnd (file:///repo/packages/tasks/src/executor/background.ts:58:22) |     at untilQuiet (file:///repo/packages/tasks/src/executor/background.ts:108:46) |     at DshExecutor.workerIdle (file:///repo/packages/tasks/src/executor/dsh.ts:714:25) |     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)"
+    },
+    {
+      "root": "worker-1b90ba4ca28133d1e16ec5c08377288e",
+      "fromExecutor": false,
+      "value": true,
+      "waitedMs": 41883,
+      "at": "2026-11-20T08:47:19.428Z",
+      "stack": "    at subagents.waitForTreeWork (file:///tmp/api-harness/index.js:184:20) |     at Object.apply (file:///usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/cordis/lib/index.js:122:36) |     at run (file:///tmp/api-harness/index.js:310:46)"
+    },
+    {
+      "root": "worker-400260cbd9bf9a14ee645eccb3c6423b",
+      "fromExecutor": false,
+      "value": false,
+      "waitedMs": 0,
+      "at": "2026-11-20T08:48:02.133Z",
+      "stack": "    at subagents.waitForTreeWork (file:///tmp/api-harness/index.js:184:20) |     at Object.apply (file:///usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/cordis/lib/index.js:122:36) |     at run (file:///tmp/api-harness/index.js:395:53)"
+    }
+  ],
+  "subagentStarts": [
+    {
+      "id": "d172fc6d-a1a4-47d5-abd4-81b96e037c2f",
+      "parent": "worker-1b90ba4ca28133d1e16ec5c08377288e",
+      "provider": "spawn",
+      "at": "2026-11-20T08:46:37.528Z"
+    },
+    {
+      "id": "f3ceb318-cc3b-4c58-b347-88d8e7409e51",
+      "parent": "worker-1b90ba4ca28133d1e16ec5c08377288e",
+      "provider": "spawn",
+      "at": "2026-11-20T08:46:37.544Z"
+    },
+    {
+      "id": "8192e459-072b-4289-8bdc-691ef8433db8",
+      "parent": "worker-400260cbd9bf9a14ee645eccb3c6423b",
+      "provider": "spawn",
+      "at": "2026-11-20T08:48:02.116Z"
+    }
+  ],
+  "subagentEnds": [
+    {
+      "id": "f3ceb318-cc3b-4c58-b347-88d8e7409e51",
+      "parent": "worker-1b90ba4ca28133d1e16ec5c08377288e",
+      "stopReason": "completed",
+      "at": "2026-11-20T08:47:16.339Z"
+    },
+    {
+      "id": "d172fc6d-a1a4-47d5-abd4-81b96e037c2f",
+      "parent": "worker-1b90ba4ca28133d1e16ec5c08377288e",
+      "stopReason": "completed",
+      "at": "2026-11-20T08:47:19.428Z"
+    },
+    {
+      "id": "8192e459-072b-4289-8bdc-691ef8433db8",
+      "parent": "worker-400260cbd9bf9a14ee645eccb3c6423b",
+      "stopReason": "aborted",
+      "at": "2026-11-20T08:48:02.128Z"
+    }
+  ],
+  "agentStatusTransitions": [
+    {
+      "id": "orchestrator-ApiHarness",
+      "status": "running",
+      "at": "2026-11-20T08:46:37.318Z"
+    },
+    {
+      "id": "worker-1b90ba4ca28133d1e16ec5c08377288e",
+      "status": "running",
+      "at": "2026-11-20T08:46:37.409Z"
+    },
+    {
+      "id": "worker-400260cbd9bf9a14ee645eccb3c6423b",
+      "status": "running",
+      "at": "2026-11-20T08:46:37.422Z"
+    },
+    {
+      "id": "d172fc6d-a1a4-47d5-abd4-81b96e037c2f",
+      "status": "running",
+      "at": "2026-11-20T08:46:37.528Z"
+    },
+    {
+      "id": "f3ceb318-cc3b-4c58-b347-88d8e7409e51",
+      "status": "running",
+      "at": "2026-11-20T08:46:37.545Z"
+    },
+    {
+      "id": "worker-400260cbd9bf9a14ee645eccb3c6423b",
+      "status": "idle",
+      "at": "2026-11-20T08:46:48.912Z"
+    },
+    {
+      "id": "f3ceb318-cc3b-4c58-b347-88d8e7409e51",
+      "status": "idle",
+      "at": "2026-11-20T08:47:16.309Z"
+    },
+    {
+      "id": "d172fc6d-a1a4-47d5-abd4-81b96e037c2f",
+      "status": "idle",
+      "at": "2026-11-20T08:47:19.411Z"
+    },
+    {
+      "id": "8192e459-072b-4289-8bdc-691ef8433db8",
+      "status": "running",
+      "at": "2026-11-20T08:48:02.117Z"
+    },
+    {
+      "id": "8192e459-072b-4289-8bdc-691ef8433db8",
+      "status": "idle",
+      "at": "2026-11-20T08:48:02.120Z"
+    },
+    {
+      "id": "worker-1b90ba4ca28133d1e16ec5c08377288e",
+      "status": "idle",
+      "at": "2026-11-20T08:48:17.520Z"
+    }
+  ],
+  "healthAtEnd": {
+    "state": "ready",
+    "detail": "realm ApiHarness 就绪",
+    "at": "2026-11-20T08:48:17.524Z",
+    "components": {
+      "tasks": {
+        "state": "ready",
+        "detail": "realm ApiHarness 就绪(pass 2000ms)",
+        "at": "2026-11-20T08:46:37.079Z"
+      },
+      "reply": {
+        "state": "ready",
+        "detail": "2 waiting since 2026-11-20T08:46:37.301Z",
+        "at": "2026-11-20T08:46:48.921Z"
+      },
+      "assessment": {
+        "state": "ready",
+        "detail": "1 waiting since 2026-11-20T08:46:37.303Z",
+        "at": "2026-11-20T08:46:37.339Z"
+      },
+      "relay": {
+        "state": "ready",
+        "detail": "Nothing waiting",
+        "at": "2026-11-20T08:46:48.926Z"
+      },
+      "launch": {
+        "state": "ready",
+        "detail": "Nothing waiting",
+        "at": "2026-11-20T08:46:37.429Z"
+      },
+      "delivery": {
+        "state": "ready",
+        "detail": "Nothing waiting",
+        "at": "2026-11-20T08:46:37.077Z"
+      },
+      "master": {
+        "state": "ready",
+        "detail": "master 会话 orchestrator-ApiHarness 就绪",
+        "at": "2026-11-20T08:46:37.192Z"
+      },
+      "webchat": {
+        "state": "ready",
+        "detail": "webchat 委派入口待命",
+        "at": "2026-11-20T08:46:37.086Z"
+      }
+    },
+    "masterId": "orchestrator-ApiHarness"
+  },
+  "finishedAt": "2026-11-20T08:48:17.524Z",
+  "advisory": {
+    "executorTreeJoin": false
+  },
+  "ok": true
+}

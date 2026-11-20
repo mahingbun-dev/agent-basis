@@ -1,0 +1,25 @@
+PASS  生产已配置模型凭据可读（inspect，仅内存）
+MIMO_API_KEY=51:ed620f772ada DEEPSEEK_API_KEY=35:9f8bfaabbe8f
+
+PASS  E3 0600 env 已注入生产已配置凭据（备份同 0600）
+backup=.env.e3.bak-2026-11-20T08-17-47-721Z
+
+PASS  E3 access 建 realm 账号 Mr.Ma（口令只入 0600 文件）
+status=201 user=Mr.Ma
+
+PASS  Mr.Ma 登录 200（realm 与 access 账号对齐）
+status=200
+
+PASS  E3 容器重建（compose rc5-test-e3）
+ Container eterna-rc5-e3 Started
+
+PASS  E3 healthy
+health=healthy
+
+FAIL  归属桥登记主会话到 Mr.Ma
+
+
+PASS  容器内 MIMO_API_KEY 与生产同指纹
+51:ed620f772ada
+
+RESULT=FAIL

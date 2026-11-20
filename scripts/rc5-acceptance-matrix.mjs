@@ -13,7 +13,8 @@
  *   - 其余 id 取 E1/E2 summary；同一 id 多条时 PASS/FAIL 优先于 SKIP/NOTRUN。
  *
  * 已知「证据不足」登记：API-005..007 的 E1 stub 证据不满足 51 的「真 worker」口径，
- * 即使旧行曾标 PASS 也回落为 MISSING（遗留项 API005-REALMODEL）。
+ * 即使旧行曾标 PASS 也回落为 MISSING（遗留项 API005-REALMODEL）。2026-11-20 晚真模型
+ * 补跑后，E3 的 report.json 已判 PASS —— E3 权威分支优先，本回落只对「E3 无报告」生效。
  *
  * 用法：
  *   node scripts/rc5-acceptance-matrix.mjs            # 只打印差异与统计
@@ -229,9 +230,9 @@ leftover.push(`| SOAK-24H | 24h 浸泡窗口未满（final-image2；${soak?.plan
 leftover.push(`| NOTPASS-P0 | ${missingP0.length === 0 ? '无' : missingP0.join('、')} | P0 | ${missingP0.length === 0 ? 'P0 全绿' : 'P0 未全绿：按 51 补跑后方可进 P7'} |`)
 const notPassP1 = missing.filter(id => !missingP0.includes(id))
 leftover.push(`| NOTPASS-P1+ | ${notPassP1.length === 0 ? '无' : notPassP1.join('、')} | P1 | 按 51 步骤逐条补跑或取得用户签字豁免 |`)
-leftover.push('| API005-REALMODEL | API-005/006/007 的 E3 车道记录为 NOTRUN：需真模型 + realm=Mr.Ma 账号对齐才能驱动 worker 树；E1 stub 证据不满足 51「真 worker」口径（已回落 MISSING） | P0 | 真模型 + realm 对齐后补跑；或用户签字豁免 |')
 leftover.push(`| TERM013-DATA009 | TERM-013/DATA-009 依赖 24h 浸泡满窗（同一窗口 final-image2）；满窗前记 MISSING | P1 | ${soak?.plannedEndAt ?? '见 meta-24h-final2.json'} 后复核 |`)
 leftover.push('| DATA-009-SCALE | 现行 soak 为 2 writers、每 5min 检 3 库，未达 48 §4.5 ≥50 并发 + 2h 全库 integrity | P1 | 满窗前补压或登记豁免 |')
+leftover.push('| R22-TASKS-PROMPT | 任务主会话按标准 preset 创建，角色 prompt/preset 未接线；可能自行派 subagent 与 tasks 路由重复（产品遗留，不影响 API-005/006/007 判据） | P1 | 下一次镜像变更窗口：bundles 加 `@eterna/tasks` + 注入 presets + `agent.ctx.systemPrompt.section` 角色 prompt（见 `p7/doc54-delivery-audit.md` §2.1） |')
 leftover.push('| EVID-ACP | ACP-001..010 以 assert.json 作为结果记录（无 result.md） | P3 | 补 result.md 或登记等价证据规范 |')
 leftover.push('| EVID-ENV-V1 | ENV-004/005、V1-008 的运行时断言由 P5 镜像探针补证（非逐字 docker run） | P3 | 保留探针索引；按需逐字复跑 |')
 leftover.push('| P7-NOTRUN | P7 全量复跑/PR/合并/生产部署/上线后 24h 未执行 | P0 | P6 清零后按 51 §6.1/§6.2、54 §3.2 执行 |')

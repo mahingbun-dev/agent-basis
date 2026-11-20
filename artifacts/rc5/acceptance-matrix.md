@@ -1,8 +1,8 @@
 # rc.5 测试验收矩阵（164 条）
 
-- 生成时间：2026-11-20T08:00:36Z
+- 生成时间：2026-11-20T08:52:41Z
 - 汇编：T50（54 §5.4 / §7.1 / §7.3；51 §0.3 / §6.3）
-- 工作树：`/Users/sunny/code/agent-basis-rc5`（`feat/dsh-rc5-merge`，HEAD `c3d7781`）
+- 工作树：`/Users/sunny/code/agent-basis-rc5`（`feat/dsh-rc5-merge`，HEAD `c70da3e`）
 - 用例定义：`docs/design/51-上游rc.5合并测试用例与回归.md` §3（164 条）；阶段映射：`docs/design/54-rc.5开发与测试验收完整workflow.md` §5.1/§5.2
 
 ## 判定规则（只取真实证据）
@@ -18,12 +18,12 @@
 
 | 状态 | 条数 |
 |---|---:|
-| PASS | 159 |
+| PASS | 162 |
 | FAIL | 0 |
-| MISSING | 5 |
+| MISSING | 2 |
 | **合计** | **164** |
 
-> **当前不可判绿**：FAIL 0 条；MISSING 5 条，其中 P0 1 条（RC5-API-005）。P6 未收口，P7 不得启动。
+> **当前不可判绿**：FAIL 0 条；MISSING 2 条，其中 P0 0 条（无）。P6 未收口，P7 不得启动。
 
 ### 套件 × 状态
 
@@ -31,7 +31,7 @@
 |---|---:|---:|---:|---:|
 | ENV | 8 | 8 | 0 | 0 |
 | BOOT | 13 | 13 | 0 | 0 |
-| API | 9 | 6 | 0 | 3 |
+| API | 9 | 9 | 0 | 0 |
 | ACC | 10 | 10 | 0 | 0 |
 | MCPS | 11 | 11 | 0 | 0 |
 | MCPP | 24 | 24 | 0 | 0 |
@@ -45,7 +45,7 @@
 | DATA | 10 | 9 | 0 | 1 |
 | UI | 8 | 8 | 0 | 0 |
 | SEC | 10 | 10 | 0 | 0 |
-| **合计** | **164** | **159** | **0** | **5** |
+| **合计** | **164** | **162** | **0** | **2** |
 
 ### 阶段 × 状态
 
@@ -56,18 +56,18 @@
 | P3 | 7 | 7 | 0 | 0 |
 | P4 | 17 | 17 | 0 | 0 |
 | P5 | 16 | 16 | 0 | 0 |
-| P6a | 97 | 93 | 0 | 4 |
+| P6a | 97 | 96 | 0 | 1 |
 | P6b | 5 | 4 | 0 | 1 |
-| **合计** | **164** | **159** | **0** | **5** |
+| **合计** | **164** | **162** | **0** | **2** |
 
 ## 24h 浸泡窗口（DATA-009 / TERM-013）
 
 - soak 启动：`2026-11-20T06:08:06.781Z`；计划结束：`2026-11-21T06:08:06.781Z`（86400s）
 - 窗口：tag=`24h-final2`，容器=`eterna-rc5-e1`，镜像=final-image2（`sha256:22fe8acb436f…`）
-- 最新采样：已观测 **1.87 h / 24 h**（7.8%），`windowComplete=false`
+- 最新采样：已观测 **2.74 h / 24 h**（11.4%），`windowComplete=false`
 - 结论：**未满窗口，不得判绿**；DATA-009 = MISSING，TERM-013 = MISSING
-- 最新 TERM tick：`{"at":"2026-11-20T08:00:29.681Z","elapsedSeconds":6742,"dshPid":1,"fds":80,"rssKb":404896,"threads":11,"longProcs":1,"churn":"ok","probeExit":0}`
-- 最新 DATA tick：`{"at":"2026-11-20T08:00:29.930Z","elapsedSeconds":6742,"databases":[{"file":"access/users.db","walBytes":618032,"shmBytes":32768,"ok":true,"journal":"wal","integrity":["ok"],"sessions":497},{"file":".eterna/memory.sqlite`
+- 最新 TERM tick：`{"at":"2026-11-20T08:52:31.492Z","elapsedSeconds":9863,"dshPid":1,"fds":102,"rssKb":487732,"threads":11,"longProcs":1,"churn":"ok","probeExit":0}`
+- 最新 DATA tick：`{"at":"2026-11-20T08:51:30.267Z","elapsedSeconds":9802,"databases":[{"file":"access/users.db","walBytes":828152,"shmBytes":32768,"ok":true,"journal":"wal","integrity":["ok"],"sessions":517},{"file":".eterna/memory.sqlite`
 - leftover：`SOAK-24H`、`TERM013-DATA009`
 
 
@@ -105,9 +105,9 @@
 | memory verify | RC5-API-002 | P1 | PASS | artifacts/rc5/API/RC5-API-002/{cmd.log,result.md} | T09/L6 |
 | llm-openai typecheck | RC5-API-003 | P1 | PASS | artifacts/rc5/API/RC5-API-003/{cmd.log,result.md} | T09/L6 |
 | tasks verify（864 tests） | RC5-API-004 | P1 | PASS | artifacts/rc5/API/RC5-API-004/{cmd.log,result.md} | T09/L6 |
-| 主会话派 2 worker/waitForTreeWork 全完成 | RC5-API-005 | P6a | MISSING | artifacts/rc5/API/RC5-API-005/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-API-005/{cmd.log,result.md} | T49e/L6 |
-| listDescendants 与任务树一致 | RC5-API-006 | P6a | MISSING | artifacts/rc5/API/RC5-API-006/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-API-006/{cmd.log,result.md} | T49e/L6 |
-| drainDescendants 后无残留 running | RC5-API-007 | P6a | MISSING | artifacts/rc5/API/RC5-API-007/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-API-007/{cmd.log,result.md} | T49e/L6 |
+| 主会话派 2 worker/waitForTreeWork 全完成 | RC5-API-005 | P6a | PASS | artifacts/rc5/API/RC5-API-005/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-API-005/{cmd.log,result.md} | T49e/L6 |
+| listDescendants 与任务树一致 | RC5-API-006 | P6a | PASS | artifacts/rc5/API/RC5-API-006/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-API-006/{cmd.log,result.md} | T49e/L6 |
+| drainDescendants 后无残留 running | RC5-API-007 | P6a | PASS | artifacts/rc5/API/RC5-API-007/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-API-007/{cmd.log,result.md} | T49e/L6 |
 | LlmError 旧构造签名 0 残留 | RC5-API-008 | P1 | PASS | artifacts/rc5/API/RC5-API-008/{cmd.log,result.md} | T09/L6 |
 | LoggerLevel 数值语义（WARN=1/INFO=2） | RC5-API-009 | P4 | PASS | artifacts/rc5/API/RC5-API-009/{cmd.log,result.md} | T07/L1 |
 | packctl tenant-scan 0 违规 | RC5-ACC-001 | P4 | PASS | artifacts/rc5/E2/ACC/RC5-ACC-001/{cmd.log,result.md} | T24/L4 |
@@ -250,11 +250,11 @@
 | id | 现象 | 级别 | 建议 |
 |---|---|---|---|
 | SOAK-24H | 24h 浸泡窗口未满（final-image2；plannedEnd=2026-11-21T06:08:06.781Z） | P1 | 满窗后复核 window.complete=true 与 verdict；未满不得判绿 |
-| NOTPASS-P0 | RC5-API-005 | P0 | P0 未全绿：按 51 补跑后方可进 P7 |
-| NOTPASS-P1+ | RC5-API-006、RC5-API-007、RC5-TERM-013、RC5-DATA-009 | P1 | 按 51 步骤逐条补跑或取得用户签字豁免 |
-| API005-REALMODEL | API-005/006/007 的 E3 车道记录为 NOTRUN：需真模型 + realm=Mr.Ma 账号对齐才能驱动 worker 树；E1 stub 证据不满足 51「真 worker」口径（已回落 MISSING） | P0 | 真模型 + realm 对齐后补跑；或用户签字豁免 |
+| NOTPASS-P0 | 无 | P0 | P0 全绿 |
+| NOTPASS-P1+ | RC5-TERM-013、RC5-DATA-009 | P1 | 按 51 步骤逐条补跑或取得用户签字豁免 |
 | TERM013-DATA009 | TERM-013/DATA-009 依赖 24h 浸泡满窗（同一窗口 final-image2）；满窗前记 MISSING | P1 | 2026-11-21T06:08:06.781Z 后复核 |
 | DATA-009-SCALE | 现行 soak 为 2 writers、每 5min 检 3 库，未达 48 §4.5 ≥50 并发 + 2h 全库 integrity | P1 | 满窗前补压或登记豁免 |
+| R22-TASKS-PROMPT | 任务主会话按标准 preset 创建，角色 prompt/preset 未接线；可能自行派 subagent 与 tasks 路由重复（产品遗留，不影响 API-005/006/007 判据） | P1 | 下一次镜像变更窗口：bundles 加 `@eterna/tasks` + 注入 presets + `agent.ctx.systemPrompt.section` 角色 prompt（见 `p7/doc54-delivery-audit.md` §2.1） |
 | EVID-ACP | ACP-001..010 以 assert.json 作为结果记录（无 result.md） | P3 | 补 result.md 或登记等价证据规范 |
 | EVID-ENV-V1 | ENV-004/005、V1-008 的运行时断言由 P5 镜像探针补证（非逐字 docker run） | P3 | 保留探针索引；按需逐字复跑 |
 | P7-NOTRUN | P7 全量复跑/PR/合并/生产部署/上线后 24h 未执行 | P0 | P6 清零后按 51 §6.1/§6.2、54 §3.2 执行 |

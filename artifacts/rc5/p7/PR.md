@@ -9,15 +9,15 @@
 
 | 项 | 值 |
 |---|---|
-| 验收矩阵（164 条） | **PASS 159 / FAIL 0 / MISSING 5** |
-| P0（102 条） | **101 PASS / 0 FAIL / 1 MISSING（RC5-API-005）** |
+| 验收矩阵（164 条） | **PASS 162 / FAIL 0 / MISSING 2** |
+| P0（102 条） | **102 PASS / 0 FAIL / 0 MISSING** |
 | 全工作区门禁 | `pnpm -w run verify` **EXIT=0**（pre-merge 与 post-merge 各一次：`artifacts/rc5/p7/verify-precommit.log`、`verify-postmerge.log`） |
 | CI 本地镜像 | `ci.yml` 三个 job 的全部步骤本地逐条复跑 **EXIT=0**（install/verify/runtime-home/transplant/form-check/双 boot/packs lint/tenant-scan/prompt-scan/evals/v1-line；`artifacts/rc5/p7/ci-local.log`） |
 | 最终镜像复跑 | `eterna-agent:rc5-test` = `sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb` |
-| 未通过 5 条 | API-005/006/007（真模型 + realm 对齐）、TERM-013/DATA-009（24h 浸泡未满窗） |
-| 合并条件 | 1 条 P0 缺失需补跑或签字豁免；浸泡满窗后复核 |
+| 未通过 2 条 | TERM-013/DATA-009（24h 浸泡未满窗）；API-005/006/007 已由真模型档补跑 PASS |
+| 合并条件 | P0 已全绿；两条 24h 浸泡窗口满窗后复核 |
 
-> 结论：代码门禁已全绿；P6 仅剩「真模型 worker E2E」与「24h 浸泡窗口」两类环境/时间依赖项，均已登记 leftover 与处置。
+> 结论：代码门禁已全绿、P0 102/102；P6 仅剩两条 24h 浸泡时间窗，已登记 leftover 与处置。
 
 ---
 
@@ -97,8 +97,8 @@
 |---|---|
 | E1（BOOT 11 / CMD 4 / HERO 8 / IMP 10 / MCPS 11 / OFF 7 / TERM 8） | 58 PASS / 0 FAIL / 1 NOTRUN（TERM-013 等浸泡） |
 | E2（ACC 10 / LLM 5 / MCPP 24 / SEC 7 / TERM 16 / UI 8） | 67 PASS / 0 FAIL（MCPP 3 条 SKIP 由 LLM 车道覆盖） |
-| E3（super） | 18 PASS / 0 FAIL / 5 NOTRUN（API-005/006/007、TERM-013、E3-UI-002） |
-| 矩阵（164 条） | **159 PASS / 0 FAIL / 5 MISSING**（`artifacts/rc5/acceptance-matrix.md`） |
+| E3（super） | 21 PASS / 0 FAIL / 2 NOTRUN（TERM-013、E3-UI-002；API-005/006/007 真模型 PASS） |
+| 矩阵（164 条） | **162 PASS / 0 FAIL / 2 MISSING**（`artifacts/rc5/acceptance-matrix.md`） |
 | 全工作区门禁 | **EXIT=0**（38 个 workspace 包 `verify: Done`；pre-merge `verify-precommit.log`、post-merge `verify-postmerge.log`） |
 
 ### 4.2 P0 结果表（102 条）
@@ -107,7 +107,7 @@
 |---|---:|---:|---:|---:|
 | ACC | 8 | 8 | 0 | 0 |
 | ACP | 7 | 7 | 0 | 0 |
-| API | 5 | 4 | 0 | 1 |
+| API | 5 | 5 | 0 | 0 |
 | BOOT | 11 | 11 | 0 | 0 |
 | DATA | 8 | 8 | 0 | 0 |
 | ENV | 6 | 6 | 0 | 0 |
@@ -120,10 +120,10 @@
 | TERM | 9 | 9 | 0 | 0 |
 | UI | 2 | 2 | 0 | 0 |
 | V1 | 5 | 5 | 0 | 0 |
-| **合计** | **102** | **101** | **0** | **1** |
+| **合计** | **102** | **102** | **0** | **0** |
 
-- 唯一 P0 缺失：`RC5-API-005`（主会话派 2 worker / `waitForTreeWork` 全完成）。E3 实测阻断：模型 `AUTH 401 invalid API Key` + `realm=Mr.Ma 不在 access 用户表`；P7 回归 harness 已用**真实 tasks 装配 + stub 模型**跑通 2 worker 真回执/`listDescendants`/`drainDescendants`（`artifacts/rc5/p7/regression/rerun/API/out/results.json`），但按 51「真 worker」口径仍记 MISSING（见 §8.2）。
-- 164 行矩阵中其余 4 条 MISSING：API-006/007（同前置）、TERM-013/DATA-009（24h 浸泡未满窗）。
+- `RC5-API-005` **已 PASS（真模型档）**：用户授权「用已配置的模型验证」后，E3 注入已配置 `mimo/mimo-v2.6-pro` 凭据并建 `Mr.Ma`，真宿主 harness 跑通 2 工单/2 真实 worker/2 child/`waitForTreeWork` 41.9s/2 条 `completed` 回执；`listDescendants` 精确、`drainDescendants` 后 `residentAfter=[]`。证据：`artifacts/rc5/e3-super/API-005-real-model.md`、`artifacts/rc5/e3-super/real-harness/`。
+- 164 行矩阵中仅剩 2 条 MISSING：TERM-013/DATA-009（24h 浸泡未满窗）。
 
 ### 4.3 关键修复的复验证据
 
@@ -183,15 +183,17 @@ bash deploy/verify.sh http://127.0.0.1:3210
 
 | 路径 | 内容 |
 |---|---|
-| `artifacts/rc5/acceptance-matrix.md` | 164 行验收矩阵（159/0/5；生成器 `scripts/rc5-acceptance-matrix.mjs`） |
+| `artifacts/rc5/acceptance-matrix.md` | 164 行验收矩阵（162/0/2；生成器 `scripts/rc5-acceptance-matrix.mjs`） |
 | `artifacts/rc5/E1/*/summary.json`、`E2/*/summary.json` | 最终镜像车道汇总（镜像 id、容器、数据根） |
-| `artifacts/rc5/e3-super/*/report.json` | E3 super 逐用例报告（18 PASS / 5 NOTRUN） |
+| `artifacts/rc5/e3-super/*/report.json` | E3 super 逐用例报告（21 PASS / 2 NOTRUN） |
 | `artifacts/rc5/p6a/rerun-{e1,e2,e3,acp}-final.log` | 最终镜像全车道复跑命令与 EXIT 原文 |
 | `artifacts/rc5/p7/verify-precommit.log` / `verify-postmerge.log` | `pnpm -w run verify` 全工作区 EXIT=0（合并 main 前后各一次） |
 | `artifacts/rc5/p7/ci-local.log` | `ci.yml` 全步骤本地镜像（35 个 EXIT=0，含双 boot/扫描/evals/v1-line） |
 | `artifacts/rc5/E2/SEC/RC5-SEC-010/result.md` | 旧数据升级验证 |
 | `artifacts/rc5/p6b/soak/final-image2/` | 24h 浸泡 meta/term/data 采样（未满窗） |
-| `artifacts/rc5/p7/regression/rerun/API/out/results.json` | API-005/006/007 真实 tasks 装配 harness（stub 模型） |
+| `artifacts/rc5/p7/regression/rerun/API/out/results.json` | API-005/006/007 真实 tasks 装配 harness（确定性 stub 模型；补 executor join 时序） |
+| `artifacts/rc5/e3-super/real-harness/{results.json,harness.log,worker-a.jsonl,boot.log}` | API-005/006/007 **真模型**补跑（E3 隔离 DSH_HOME；`mimo/mimo-v2.6-pro`） |
+| `artifacts/rc5/e3-super/API-005-real-model.md` | 真模型三组证据合并、边界与 R22 说明 |
 | `artifacts/rc5/p7/PR.md` / `release-notes.md` / `rollback-record.md` | 本描述、发布说明、回滚记录 |
 | `artifacts/rc5/p7/doc54-delivery-audit.md` | 54 号 workflow 交付审计（阶段/DoD/RAID/遗留与解除条件） |
 | `artifacts/rc5/p7/regression/R02/result.md` | R02 行为项六件逐项补证 |
@@ -206,7 +208,7 @@ bash deploy/verify.sh http://127.0.0.1:3210
 
 ### 8.1 已绿（有证据）
 
-- 164 行矩阵 159 PASS / 0 FAIL；P0 101/102。
+- 164 行矩阵 162 PASS / 0 FAIL；P0 102/102。
 - `pnpm -w run verify` 全工作区 EXIT=0（38 包；merge `origin/main` 前后各一次）。
 - `ci.yml` 全步骤本地镜像 EXIT=0（`ci-local.log`，含双 boot、tenant-scan、prompt-scan、evals、v1-line）。
 - 最终镜像 E1/E2/E3 全车道复跑；TERM-002/005/006、API-004 等此前红项均在最终镜像转绿。
@@ -216,18 +218,15 @@ bash deploy/verify.sh http://127.0.0.1:3210
 
 ### 8.2 未绿（阻塞合并/上线）
 
-1. **RC5-API-005（P0）**：主会话派 2 worker 的 app 级 E2E 未成立。E3 实测 `AUTH 401 invalid API Key` + `realm=Mr.Ma 不在 access 用户表`；P7 harness（stub 模型 + 真实 tasks 装配）已跑通但按 51 口径记 MISSING。
-   - 出路：真模型 + realm 对齐后补跑，或产品签字豁免。
-2. **API-006/007（P1）**：`listDescendants`/`drainDescendants` 无公开 RPC，需真实后代树；harness 已覆盖，app 级未覆盖。
-3. **TERM-013 / DATA-009（P1）**：24h 浸泡未满窗（`final-image2`，`plannedEndAt=2026-11-21T06:08:06.781Z`）；DATA-009 现行 soak 为 2 writers / 5min，未达 48 §4.5 的 ≥50 并发 + 2h 全库 integrity。
-4. **远端 CI 未跑**：分支未 push；`ci.yml` 全步骤已在本地逐条复跑 EXIT=0（`ci-local.log`），但远端 `upgrade-gate` / `v1-line` 仍无运行记录，不得以本地代替。
-5. **签字**：`artifacts/rc5/p7/regression/signoff.md` 四方签字栏未签。
-6. **补充回归面 · 真实扩展**：companion 中继已协议级 PASS（令牌签发/错误 token 拒/在线探测/断开回收），但**真实 Chrome 扩展与 `mcp__browser__*` 实跑记 NOTRUN**——headless 无人值守环境不能交互式加载未打包 MV3 扩展；需在桌面验收机补测或产品接受协议级口径（`p7/regression/supplement/companion-relay.md`）。
+1. **TERM-013 / DATA-009（P1）**：24h 浸泡未满窗（`final-image2`，`plannedEndAt=2026-11-21T06:08:06.781Z`；规模窗口 `07:37:17Z`）；DATA-009 现行 soak 为 2 writers / 5min，未达 48 §4.5 的 ≥50 并发 + 2h 全库 integrity（规模窗口另行补证）。
+2. **远端 CI 未跑**：分支未 push；`ci.yml` 全步骤已在本地逐条复跑 EXIT=0（`ci-local.log`），但远端 `upgrade-gate` / `v1-line` 仍无运行记录，不得以本地代替。
+3. **签字**：`artifacts/rc5/p7/regression/signoff.md` 四方签字栏未签。
+4. **补充回归面 · 真实扩展**：companion 中继已协议级 PASS（令牌签发/错误 token 拒/在线探测/断开回收），但**真实 Chrome 扩展与 `mcp__browser__*` 实跑记 NOTRUN**——headless 无人值守环境不能交互式加载未打包 MV3 扩展；需在桌面验收机补测或产品接受协议级口径（`p7/regression/supplement/companion-relay.md`）。
+5. **R22（P1，产品遗留，非本 PR 阻塞）**：tasks 主会话按标准 preset 创建，角色 prompt/preset 未接线（super bundles 未含 `@eterna/tasks`；`SessionsHost.presets` 未注入；`composePrompt` 未投递），主会话可能自行派 subagent 与 tasks 路由重复。已定修复方案；因最终镜像 24h 浸泡进行中，改动需重建镜像并重跑窗口，随下一次镜像变更处理（`p7/doc54-delivery-audit.md` §2.1）。不影响 API-005/006/007 判据。
 
 ### 8.3 解除条件
 
-- API-005 真模型/realm 补跑通过，或产品签字豁免；
-- 24h 浸泡满窗（2026-11-21T06:08:06Z 后）复核 TERM-013/DATA-009；
+- 24h 浸泡满窗（主窗口 2026-11-21T06:08:06Z / 规模窗口 07:37:17Z 后）复核 TERM-013/DATA-009；
 - CI 全绿（含 `v1-line`）+ 人工复核；
 - 四方签字。
 

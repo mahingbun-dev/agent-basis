@@ -1,21 +1,25 @@
 {
   "phase": "P7",
-  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "commit": "c70da3e6b5cbd6370f7d1c5218989c239a19a33f",
   "imageTag": null,
   "imageId": null,
   "startedAt": null,
   "finishedAt": null,
-  "windowBasis": "未执行（P6 未收口：FAIL 0 + MISSING 11）",
+  "windowBasis": "P6 未收口：FAIL 0 + MISSING 2（TERM-013/DATA-009 两条 24h 时间窗；P0 102/102 全绿）",
   "commands": [],
   "cases": {
-    "total": 0,
-    "pass": 0,
+    "total": 164,
+    "pass": 162,
     "fail": 0,
-    "skip": 0
+    "skip": 2
   },
   "leftovers": [
-    "P7-NOTRUN|P7 全量复跑/PR/合并/生产部署/上线后 24h 未执行（P6 未收口）|P0|P6 清零后按 51 §6.1/§6.2、54 §3.2 执行"
+    "P7-NOTRUN|P7 push/PR/合并/生产部署/上线后 24h 未执行（需用户显式确认）|P0|P6 清零后按 51 §6.1/§6.2、54 §3.2 执行",
+    "SOAK-24H|TERM-013/DATA-009 24h 浸泡未满窗（主 2026-11-21T06:08:06Z / 规模 07:37:17Z）|P1|满窗后复核，未满不得判绿",
+    "R22-TASKS-PROMPT|tasks 角色 prompt/preset 未接线（super bundles 未含 @eterna/tasks）|P1|下一次镜像变更窗口修复（p7/doc54-delivery-audit.md §2.1）",
+    "SIGNOFF|四方签字未完成|P0|p7/regression/signoff.md",
+    "REMOTE-CI|分支未 push，upgrade-gate/v1-line 无远端运行记录|P0|push 后以 CI 为准"
   ],
-  "generatedBy": "T50/artifacts/rc5/p6a/scan-matrix.mjs",
-  "generatedAt": "2026-11-20T05:25:41Z"
+  "generatedBy": "T50/artifacts/rc5/p6a/scan-matrix.mjs + T56 refresh (API-005 real-model)",
+  "generatedAt": "2026-11-20T09:05:00Z"
 }

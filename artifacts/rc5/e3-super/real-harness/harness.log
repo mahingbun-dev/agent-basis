@@ -1,0 +1,12 @@
+[2026-11-20T08:46:37.091Z] policy save {"ok":true,"saved":true,"revision":1}
+[2026-11-20T08:46:37.301Z] dispatch 1 stored explicit accept 1b90ba4ca28133d1e16ec5c08377288e
+[2026-11-20T08:46:37.307Z] dispatch 2 stored explicit accept 400260cbd9bf9a14ee645eccb3c6423b
+[2026-11-20T08:46:37.515Z] worker ready worker-1b90ba4ca28133d1e16ec5c08377288e running
+[2026-11-20T08:46:37.515Z] worker ready worker-400260cbd9bf9a14ee645eccb3c6423b running
+[2026-11-20T08:46:37.532Z] spawned child 1 d172fc6d-a1a4-47d5-abd4-81b96e037c2f api-child-1
+[2026-11-20T08:46:37.545Z] spawned child 2 f3ceb318-cc3b-4c58-b347-88d8e7409e51 api-child-2
+[2026-11-20T08:47:19.428Z] waitForTreeWork returned true 41883ms
+[2026-11-20T08:48:02.078Z] receipts {"ok":true,"count":2,"expectedCount":2,"stopReasons":["completed","completed"],"senders":["f3ceb318-cc3b-4c58-b347-88d8e7409e51","d172fc6d-a1a4-47d5-abd4-81b96e037c2f"],"expectedSenders":["d172fc6d-a1a4-47d5-abd4-81b96e037c2f","f3ceb318-cc3b-4c58-b347-88d8e7409e51"],"unexpected":[]}
+[2026-11-20T08:48:02.106Z] listDescendants A ["d172fc6d-a1a4-47d5-abd4-81b96e037c2f","f3ceb318-cc3b-4c58-b347-88d8e7409e51"]
+[2026-11-20T08:48:02.119Z] child B resident status running
+[2026-11-20T08:48:02.133Z] drain B {"ok":true,"residentAfter":[],"waitForTreeWorkAfter":false,"workerStatusAfter":"idle"}
