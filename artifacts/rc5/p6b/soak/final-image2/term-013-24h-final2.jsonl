@@ -69,3 +69,5 @@
 {"at":"2026-11-20T07:17:39.212Z","elapsedSeconds":4171,"dshPid":1,"fds":64,"rssKb":403956,"threads":11,"longProcs":1,"churn":"ok","probeExit":0}
 {"at":"2026-11-20T07:18:40.364Z","elapsedSeconds":4232,"dshPid":1,"fds":64,"rssKb":403696,"threads":11,"longProcs":1,"churn":"ok","probeExit":0}
 {"at":"2026-11-20T07:19:41.498Z","elapsedSeconds":4294,"dshPid":1,"fds":64,"rssKb":404000,"threads":11,"longProcs":1,"churn":"ok","probeExit":0}
+{"at":"2026-11-20T07:20:42.933Z","elapsedSeconds":4355,"dshPid":1,"fds":66,"rssKb":475448,"threads":11,"longProcs":1,"churn":"ok","probeExit":0}
+{"at":"2026-11-20T07:21:44.094Z","elapsedSeconds":4416,"dshPid":1,"fds":66,"rssKb":475900,"threads":11,"longProcs":1,"churn":"ok","probeExit":0}
