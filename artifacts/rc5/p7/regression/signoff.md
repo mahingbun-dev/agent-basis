@@ -9,8 +9,9 @@
 
 | 项 | 结果 | 证据 |
 |---|---|---|
-| 矩阵 164 条 | **162 PASS / 0 FAIL / 2 MISSING** | `artifacts/rc5/acceptance-matrix.md` |
+| 矩阵 164 条 | **162 PASS / 0 FAIL / 0 MISSING / 2 WAIVED** | `artifacts/rc5/acceptance-matrix.md` |
 | P0 102 条 | **102 PASS / 0 FAIL / 0 MISSING** | 同上 |
+| 24h 浸泡豁免 | **产品签字豁免**（2026-11-21 00:28，指令「不用等24小时了，直接进行接下来的流程」）；决策时点主 soak 10.3h / 规模 8.9h 全健康（609 tick churn 全 ok、fd 292→280、写/锁/integrity 0 异常）；采样跑到满窗作事后观察 | `artifacts/rc5/p6b/waiver-24h.{json,md}` |
 | API-005/006/007（真模型） | **PASS**：2 工单 / 2 真实 worker（`mimo/mimo-v2.6-pro`）/ 2 child / `waitForTreeWork` 41.9s / 2 条 completed 回执；`listDescendants` 精确；`drainDescendants` 后 `residentAfter=[]` | `artifacts/rc5/e3-super/API-005-real-model.md`、`e3-super/real-harness/results.json` |
 | 全工作区 verify | merge 前后各 **EXIT=0** | `p7/verify-precommit.log`、`verify-postmerge.log` |
 | CI 本地镜像 | `ci.yml` 全步骤 **35 EXIT=0**（含双 boot/tenant-scan/prompt-scan/evals/v1-line） | `p7/ci-local.log` |
@@ -21,12 +22,10 @@
 
 ## 2. 剩余 MISSING（不得视为绿）
 
-| case | 级别 | 缺口 | 解除条件 |
-|---|---|---|---|
-| RC5-TERM-013 | P1 | 24h fd/内存窗口未满（`eterna-rc5-e1`，止 `2026-11-21T06:08:06Z`） | 满窗且无持续增长/无异常 |
-| RC5-DATA-009 | P1 | 24h 浸泡未满（主窗口同上；50 并发规模窗口 `eterna-rc5-scale` 止 `2026-11-21T07:37:17Z`） | 满窗 + 0 锁/0 WAL 异常/全库 integrity ok |
+**无**（164 行矩阵 0 FAIL / 0 MISSING）。
 
-> P0/P1 用例之外：远端 CI 未运行（分支未 push）、真实扩展 NOTRUN、四方签字未签、P7 生产操作未执行。
+> 24h 浸泡（TERM-013/DATA-009）经产品签字豁免为 WAIVED：`artifacts/rc5/p6b/waiver-24h.{json,md}`（2026-11-21 00:28，指令「不用等24小时了，直接进行接下来的流程」）；决策时点两窗口全健康，采样跑到满窗后摘要仅作事后观察证据。
+> P0/P1 用例之外：远端 CI 待 push 后运行、真实扩展 NOTRUN、四方签字待签、P7 生产操作按用户授权执行。
 > 产品遗留 **R22**（tasks 角色 prompt/preset 接线）为 P1 缺陷、非用例行，随下一次镜像变更窗口修复；不影响 API-005/006/007 判据（`p7/doc54-delivery-audit.md` §2.1）。
 
 ## 3. 补充回归面签字
@@ -42,8 +41,8 @@
 | 角色 | 签字内容 | 状态 | 日期 |
 |---|---|---|---|
 | 开发 | P0 用例执行完毕、证据齐 | **未签**：P0 102/102 已全绿（API-005 真模型档 PASS），待签字确认 | |
-| 测试 | 用例覆盖与结果复核 | **未签**：162/0/2 已核；2 条 24h 时间窗与补充面边界已列 | |
-| 产品 | 已知问题/风险接受（H7/H16/terminal/rc.5 预发布；R22 延期；companion 口径） | **未签** | |
-| 运维 | 冷备/回滚/生产窗口确认（24h 窗口满、部署时间） | **未签** | |
+| 测试 | 用例覆盖与结果复核 | **未签**：162/0/0/2 已核（2 条 WAIVED 为产品豁免），补充面边界已列 | |
+| 产品 | 已知问题/风险接受（H7/H16/terminal/rc.5 预发布；**24h 豁免已签**；R22 延期；companion 口径） | **24h 豁免已签**（2026-11-21 00:28 指令落字于 `p6b/waiver-24h.md`）；其余 **未签** | 2026-11-21（豁免部分） |
+| 运维 | 冷备/回滚/生产窗口确认（部署时间） | **未签** | |
 
-> 结论：**代码/测试面已到 P6 可交付状态（P0 102/102）；P7 签字与生产操作待上表四项完成后启动**（54 §3.2：P6 未收口，P7 不得启动；当前未收口项 = 2 条 24h 时间窗 + 签字 + 远端 CI）。
+> 结论：**P6 已收口（P0 102/102，P1 全部 PASS 或产品豁免）；P7 按用户 2026-11-21 授权执行**（push → PR → CI → 合并 → 部署）。残余风险由上线后 24h 观察覆盖（发布说明 §8）。

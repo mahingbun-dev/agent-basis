@@ -1,8 +1,8 @@
 # rc.5 测试验收矩阵（164 条）
 
-- 生成时间：2026-11-20T09:08:08Z
+- 生成时间：2026-11-20T16:31:11Z
 - 汇编：T50（54 §5.4 / §7.1 / §7.3；51 §0.3 / §6.3）
-- 工作树：`/Users/sunny/code/agent-basis-rc5`（`feat/dsh-rc5-merge`，HEAD `292746f`）
+- 工作树：`/Users/sunny/code/agent-basis-rc5`（`feat/dsh-rc5-merge`，HEAD `7881987`）
 - 用例定义：`docs/design/51-上游rc.5合并测试用例与回归.md` §3（164 条）；阶段映射：`docs/design/54-rc.5开发与测试验收完整workflow.md` §5.1/§5.2
 
 ## 判定规则（只取真实证据）
@@ -20,55 +20,58 @@
 |---|---:|
 | PASS | 162 |
 | FAIL | 0 |
-| MISSING | 2 |
+| MISSING | 0 |
+| WAIVED（产品豁免） | 2 |
 | **合计** | **164** |
 
-> **当前不可判绿**：FAIL 0 条；MISSING 2 条，其中 P0 0 条（无）。P6 未收口，P7 不得启动。
+> **P0 全绿、可进入 P7**：FAIL 0 条；MISSING 0 条（P0 0 条）；WAIVED 2 条（RC5-TERM-013、RC5-DATA-009）为产品签字豁免（`p6b/waiver-24h.json`），不计入未通过。
 
 ### 套件 × 状态
 
-| 套件 | 总数 | PASS | FAIL | MISSING |
-|---|---:|---:|---:|---:|
-| ENV | 8 | 8 | 0 | 0 |
-| BOOT | 13 | 13 | 0 | 0 |
-| API | 9 | 9 | 0 | 0 |
-| ACC | 10 | 10 | 0 | 0 |
-| MCPS | 11 | 11 | 0 | 0 |
-| MCPP | 24 | 24 | 0 | 0 |
-| TERM | 14 | 13 | 0 | 1 |
-| IMP | 10 | 10 | 0 | 0 |
-| ACP | 10 | 10 | 0 | 0 |
-| OFF | 7 | 7 | 0 | 0 |
-| HERO | 8 | 8 | 0 | 0 |
-| CMD | 4 | 4 | 0 | 0 |
-| V1 | 8 | 8 | 0 | 0 |
-| DATA | 10 | 9 | 0 | 1 |
-| UI | 8 | 8 | 0 | 0 |
-| SEC | 10 | 10 | 0 | 0 |
-| **合计** | **164** | **162** | **0** | **2** |
+| 套件 | 总数 | PASS | FAIL | MISSING | WAIVED |
+|---|---:|---:|---:|---:|---:|
+| ENV | 8 | 8 | 0 | 0 | 0 |
+| BOOT | 13 | 13 | 0 | 0 | 0 |
+| API | 9 | 9 | 0 | 0 | 0 |
+| ACC | 10 | 10 | 0 | 0 | 0 |
+| MCPS | 11 | 11 | 0 | 0 | 0 |
+| MCPP | 24 | 24 | 0 | 0 | 0 |
+| TERM | 14 | 13 | 0 | 0 | 1 |
+| IMP | 10 | 10 | 0 | 0 | 0 |
+| ACP | 10 | 10 | 0 | 0 | 0 |
+| OFF | 7 | 7 | 0 | 0 | 0 |
+| HERO | 8 | 8 | 0 | 0 | 0 |
+| CMD | 4 | 4 | 0 | 0 | 0 |
+| V1 | 8 | 8 | 0 | 0 | 0 |
+| DATA | 10 | 9 | 0 | 0 | 1 |
+| UI | 8 | 8 | 0 | 0 | 0 |
+| SEC | 10 | 10 | 0 | 0 | 0 |
+| **合计** | **164** | **162** | **0** | **0** | **2** |
 
 ### 阶段 × 状态
 
-| 阶段 | 总数 | PASS | FAIL | MISSING |
-|---|---:|---:|---:|---:|
-| P1 | 10 | 10 | 0 | 0 |
-| P2 | 12 | 12 | 0 | 0 |
-| P3 | 7 | 7 | 0 | 0 |
-| P4 | 17 | 17 | 0 | 0 |
-| P5 | 16 | 16 | 0 | 0 |
-| P6a | 97 | 96 | 0 | 1 |
-| P6b | 5 | 4 | 0 | 1 |
-| **合计** | **164** | **162** | **0** | **2** |
+| 阶段 | 总数 | PASS | FAIL | MISSING | WAIVED |
+|---|---:|---:|---:|---:|---:|
+| P1 | 10 | 10 | 0 | 0 | 0 |
+| P2 | 12 | 12 | 0 | 0 | 0 |
+| P3 | 7 | 7 | 0 | 0 | 0 |
+| P4 | 17 | 17 | 0 | 0 | 0 |
+| P5 | 16 | 16 | 0 | 0 | 0 |
+| P6a | 97 | 96 | 0 | 0 | 1 |
+| P6b | 5 | 4 | 0 | 0 | 1 |
+| **合计** | **164** | **162** | **0** | **0** | **2** |
 
 ## 24h 浸泡窗口（DATA-009 / TERM-013）
 
 - soak 启动：`2026-11-20T06:08:06.781Z`；计划结束：`2026-11-21T06:08:06.781Z`（86400s）
+- 状态：**产品豁免满窗判据**（2026-11-21 00:28 (UTC+8)，指令「不用等24小时了，直接进行接下来的流程」）；TERM-013/DATA-009 = WAIVED，不计未通过
+- 决策时点健康度：主 soak 10.3h、规模 8.9h，churn/写/锁/integrity 全 ok（详见 `p6b/waiver-24h.md`）
+- 观察不中断：满窗摘要出来后仅作事后观察证据，不回改判定
 - 窗口：tag=`24h-final2`，容器=`eterna-rc5-e1`，镜像=final-image2（`sha256:22fe8acb436f…`）
-- 最新采样：已观测 **3.00 h / 24 h**（12.5%），`windowComplete=false`
-- 结论：**未满窗口，不得判绿**；DATA-009 = MISSING，TERM-013 = MISSING
-- 最新 TERM tick：`{"at":"2026-11-20T09:07:49.589Z","elapsedSeconds":10782,"dshPid":1,"fds":108,"rssKb":517064,"threads":11,"longProcs":1,"churn":"ok","probeExit":0}`
-- 最新 DATA tick：`{"at":"2026-11-20T09:06:48.434Z","elapsedSeconds":10720,"databases":[{"file":"access/users.db","walBytes":877592,"shmBytes":32768,"ok":true,"journal":"wal","integrity":["ok"],"sessions":523},{"file":".eterna/memory.sqlit`
-- leftover：`SOAK-24H`、`TERM013-DATA009`
+- 当前采样：已观测 **10.38 h / 24 h**（43.3%）；进程继续跑到 `2026-11-21T06:08:06.781Z`
+- 最新 TERM tick：`{"at":"2026-11-20T16:30:32.062Z","elapsedSeconds":37344,"dshPid":1,"fds":280,"rssKb":380664,"threads":11,"longProcs":1,"churn":"ok","probeExit":0}`
+- 最新 DATA tick：`{"at":"2026-11-20T16:30:32.437Z","elapsedSeconds":37344,"databases":[{"file":"access/users.db","walBytes":2562672,"shmBytes":32768,"ok":true,"journal":"wal","integrity":["ok"],"sessions":697},{"file":".eterna/memory.sqli`
+- leftover：`WAIVED-24H`（产品豁免，观察继续）
 
 
 ## P0 未通过清单（门禁红/缺失）
@@ -167,7 +170,7 @@
 | close 后再 attach 无幽灵终端 | RC5-TERM-010 | P6a | PASS | artifacts/rc5/E1/TERM/RC5-TERM-010/{cmd.log,result.md} | T49b/L6 |
 | rename/retain 后刷新状态持久 | RC5-TERM-011 | P6a | PASS | artifacts/rc5/E1/TERM/RC5-TERM-011/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-011/{cmd.log,result.md} | T49b/L6 |
 | 两会话各开终端互不可见/互不输入 | RC5-TERM-012 | P6a | PASS | artifacts/rc5/E1/TERM/RC5-TERM-012/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-TERM-012/{cmd.log,result.md} | T49b/L6 |
-| 24h 浸泡无 fd 泄漏/内存增长 | RC5-TERM-013 | P6a | MISSING | artifacts/rc5/E1/TERM/RC5-TERM-013/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-TERM-013/{cmd.log,result.md} ［24h 窗口未满（final-image 窗口 plannedEnd 2026-11-21T05:06:19Z）；每 tick churn=create→WS attach(snapshot)→close 全 ok；未满不得判绿］ | T49b/L6 |
+| 24h 浸泡无 fd 泄漏/内存增长 | RC5-TERM-013 | P6a | WAIVED | 产品豁免（2026-11-21 00:28 (UTC+8)）：/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p6b/waiver-24h.json、waiver-24h.md；未满窗不判 PASS | T49b/L6 |
 | bash 不存在时明确报错、容器不崩 | RC5-TERM-014 | P5 | PASS | artifacts/rc5/E1/TERM/RC5-TERM-014/{cmd.log,result.md} | T48/L6 |
 | 未登录 POST archive 401 不写会话 | RC5-IMP-001 | P6a | PASS | artifacts/rc5/E1/IMP/RC5-IMP-001/{cmd.log,result.md} | T49c/L6 |
 | B 传 A 的 workspaceId 403 不写 | RC5-IMP-002 | P6a | PASS | artifacts/rc5/E1/IMP/RC5-IMP-002/{cmd.log,result.md} | T49c/L6 |
@@ -224,7 +227,7 @@
 | DSH_AGENTS_HOME=/data/agents | RC5-DATA-006 | P5 | PASS | artifacts/rc5/DATA/RC5-DATA-006/{cmd.log,result.md} | T45/L5 |
 | 重启后会话/设置/MCP/记忆全在 | RC5-DATA-007 | P5 | PASS | artifacts/rc5/DATA/RC5-DATA-007/{cmd.log,result.md} | T45/L5 |
 | 备份→删除→恢复一致 | RC5-DATA-008 | P6b | PASS | artifacts/rc5/DATA/RC5-DATA-008/{cmd.log,result.md} | T51/L5 |
-| 24h SQLite 浸泡无锁/WAL 异常 | RC5-DATA-009 | P6b | MISSING | artifacts/rc5/DATA/RC5-DATA-009/{cmd.log,result.md} ［24h 窗口未满（final-image）；每 tick integrity 全 ok、0 锁/WAL 异常、写成功；未满不得判绿］ | T51/L5 |
+| 24h SQLite 浸泡无锁/WAL 异常 | RC5-DATA-009 | P6b | WAIVED | 产品豁免（2026-11-21 00:28 (UTC+8)）：/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p6b/waiver-24h.json、waiver-24h.md；未满窗不判 PASS | T51/L5 |
 | 回滚演练：旧镜像+旧卷副本可用 | RC5-DATA-010 | P6b | PASS | artifacts/rc5/DATA/RC5-DATA-010/{cmd.log,result.md} | T51/L5 |
 | lint-ui-tokens 0 违规（新包全覆盖） | RC5-UI-001 | P4 | PASS | artifacts/rc5/UI/RC5-UI-001/{cmd.log,result.md} | T36/L7 |
 | 圆角只用阶梯值且嵌套同心 | RC5-UI-002 | P4 | PASS | artifacts/rc5/UI/RC5-UI-002/{cmd.log,result.md} | T36/L7 |
@@ -249,11 +252,9 @@
 
 | id | 现象 | 级别 | 建议 |
 |---|---|---|---|
-| SOAK-24H | 24h 浸泡窗口未满（final-image2；plannedEnd=2026-11-21T06:08:06.781Z） | P1 | 满窗后复核 window.complete=true 与 verdict；未满不得判绿 |
+| WAIVED-24H | TERM-013/DATA-009 满窗判据经产品签字豁免（2026-11-21 00:28 (UTC+8)，指令「不用等24小时了，直接进行接下来的流程」）；决策时点主 soak 10.3h、规模 8.9h 全部健康（churn/写/锁/integrity 0 异常） | P1 | 采样跑到满窗，摘要仅作事后观察证据；残余风险由上线后 24h 观察覆盖（发布说明 §8） |
 | NOTPASS-P0 | 无 | P0 | P0 全绿 |
-| NOTPASS-P1+ | RC5-TERM-013、RC5-DATA-009 | P1 | 按 51 步骤逐条补跑或取得用户签字豁免 |
-| TERM013-DATA009 | TERM-013/DATA-009 依赖 24h 浸泡满窗（同一窗口 final-image2）；满窗前记 MISSING | P1 | 2026-11-21T06:08:06.781Z 后复核 |
-| DATA-009-SCALE | 规模口径由独立 scale 窗口覆盖（50 持久会话 / 60s 50 并发读 / 5min 50 并发写 / 2h 全库 integrity，止 2026-11-21T07:37:17Z）；主窗口为 2 writers 的 24h 浸泡 | P1 | 满窗后合并两窗口判定 DATA-009 |
+| NOTPASS-P1+ | 无 | P1 | 按 51 步骤逐条补跑或取得用户签字豁免 |
 | R22-TASKS-PROMPT | 任务主会话按标准 preset 创建，角色 prompt/preset 未接线；可能自行派 subagent 与 tasks 路由重复（产品遗留，不影响 API-005/006/007 判据） | P1 | 下一次镜像变更窗口：bundles 加 `@eterna/tasks` + 注入 presets + `agent.ctx.systemPrompt.section` 角色 prompt（见 `p7/doc54-delivery-audit.md` §2.1） |
 | EVID-ACP | ACP-001..010 以 assert.json 作为结果记录（无 result.md） | P3 | 补 result.md 或登记等价证据规范 |
 | EVID-ENV-V1 | ENV-004/005、V1-008 的运行时断言由 P5 镜像探针补证（非逐字 docker run） | P3 | 保留探针索引；按需逐字复跑 |

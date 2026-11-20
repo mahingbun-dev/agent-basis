@@ -2,22 +2,23 @@
 
 - 任务：T53（54 §4.9 / §10.1；53 §7）
 - 分支：`feat/dsh-rc5-merge`（已 merge `origin/main` = `282675c feat(panel): 流程启动条每用户可配置`；HEAD 以远端分支为准，合并后另有证据/文档提交）
-- 边界：**未 `git push`、未合并、未部署、未停/改生产容器**；push/合并/部署待生产确认
+- 边界：生产操作（push/PR/合并/部署）经用户 **2026-11-21 00:28（UTC+8）明确指示「不用等24小时了，直接进行接下来的流程」**授权执行；24h 满窗判据按 51 §3「用户签字豁免」路径豁免（`artifacts/rc5/p6b/waiver-24h.{json,md}`）
 - 依据：`docs/design/49-上游rc.5合并总设计.md`、`50-上游rc.5合并开发落地文档.md`、`51-上游rc.5合并测试用例与回归.md`、`54-rc.5开发与测试验收完整workflow.md`
 
 ## 0. 状态摘要
 
 | 项 | 值 |
 |---|---|
-| 验收矩阵（164 条） | **PASS 162 / FAIL 0 / MISSING 2** |
+| 验收矩阵（164 条） | **PASS 162 / FAIL 0 / MISSING 0 / WAIVED 2**（TERM-013/DATA-009 产品签字豁免） |
 | P0（102 条） | **102 PASS / 0 FAIL / 0 MISSING** |
+| 24h 浸泡豁免 | `artifacts/rc5/p6b/waiver-24h.{json,md}`：用户 2026-11-21 00:28 指示豁免满窗判据；决策时点主 soak 10.3h / 规模 8.9h 全健康（churn/写/锁/integrity 0 异常）；采样跑到满窗作事后观察 |
 | 全工作区门禁 | `pnpm -w run verify` **EXIT=0**（pre-merge / post-merge / 最终证据 HEAD 各一次：`artifacts/rc5/p7/verify-precommit.log`、`verify-postmerge.log`、`verify-final-51cb527.log`） |
 | CI 本地镜像 | `ci.yml` 三个 job 的全部步骤本地逐条复跑 **EXIT=0**（install/verify/runtime-home/transplant/form-check/双 boot/packs lint/tenant-scan/prompt-scan/evals/v1-line；`artifacts/rc5/p7/ci-local.log`） |
 | 最终镜像复跑 | `eterna-agent:rc5-test` = `sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb` |
-| 未通过 2 条 | TERM-013/DATA-009（24h 浸泡未满窗）；API-005/006/007 已由真模型档补跑 PASS |
-| 合并条件 | P0 已全绿；两条 24h 浸泡窗口满窗后复核 |
+| 未通过 0 条 | API-005/006/007 已由真模型档补跑 PASS；TERM-013/DATA-009 满窗判据产品豁免（WAIVED） |
+| 合并条件 | P0 全绿 + 豁免已登记；远端 CI 绿；残余风险由上线后 24h 观察覆盖 |
 
-> 结论：代码门禁已全绿、P0 102/102；P6 仅剩两条 24h 浸泡时间窗，已登记 leftover 与处置。
+> 结论：**P6 收口**——代码门禁全绿、P0 102/102、P1 用例全部 PASS 或经产品签字豁免；进入 P7（push → PR → CI → 合并 → 部署）。
 
 ---
 
@@ -98,7 +99,7 @@
 | E1（BOOT 11 / CMD 4 / HERO 8 / IMP 10 / MCPS 11 / OFF 7 / TERM 8） | 58 PASS / 0 FAIL / 1 NOTRUN（TERM-013 等浸泡） |
 | E2（ACC 10 / LLM 5 / MCPP 24 / SEC 7 / TERM 16 / UI 8） | 67 PASS / 0 FAIL（MCPP 3 条 SKIP 由 LLM 车道覆盖） |
 | E3（super） | 21 PASS / 0 FAIL / 2 NOTRUN（TERM-013、E3-UI-002；API-005/006/007 真模型 PASS） |
-| 矩阵（164 条） | **162 PASS / 0 FAIL / 2 MISSING**（`artifacts/rc5/acceptance-matrix.md`） |
+| 矩阵（164 条） | **162 PASS / 0 FAIL / 2 WAIVED**（`artifacts/rc5/acceptance-matrix.md`；TERM-013/DATA-009 产品豁免） |
 | 全工作区门禁 | **EXIT=0**（38 个 workspace 包 `verify: Done`；pre-merge `verify-precommit.log`、post-merge `verify-postmerge.log`、最终证据 HEAD `verify-final-51cb527.log`） |
 
 ### 4.2 P0 结果表（102 条）
@@ -123,7 +124,7 @@
 | **合计** | **102** | **102** | **0** | **0** |
 
 - `RC5-API-005` **已 PASS（真模型档）**：用户授权「用已配置的模型验证」后，E3 注入已配置 `mimo/mimo-v2.6-pro` 凭据并建 `Mr.Ma`，真宿主 harness 跑通 2 工单/2 真实 worker/2 child/`waitForTreeWork` 41.9s/2 条 `completed` 回执；`listDescendants` 精确、`drainDescendants` 后 `residentAfter=[]`。证据：`artifacts/rc5/e3-super/API-005-real-model.md`、`artifacts/rc5/e3-super/real-harness/`。
-- 164 行矩阵中仅剩 2 条 MISSING：TERM-013/DATA-009（24h 浸泡未满窗）。
+- 164 行矩阵中 0 条 MISSING；TERM-013/DATA-009（24h 浸泡）经产品签字豁免为 WAIVED（`p6b/waiver-24h.{json,md}`），采样继续跑到满窗作事后观察。
 
 ### 4.3 关键修复的复验证据
 
@@ -208,27 +209,26 @@ bash deploy/verify.sh http://127.0.0.1:3210
 
 ### 8.1 已绿（有证据）
 
-- 164 行矩阵 162 PASS / 0 FAIL；P0 102/102。
+- 164 行矩阵 162 PASS / 0 FAIL / 0 MISSING / 2 WAIVED；P0 102/102。
 - `pnpm -w run verify` 全工作区 EXIT=0（38 包；merge `origin/main` 前后 + 最终证据 HEAD `51cb527` 各一次）。
 - `ci.yml` 全步骤本地镜像 EXIT=0（`ci-local.log`，含双 boot、tenant-scan、prompt-scan、evals、v1-line）。
 - 最终镜像 E1/E2/E3 全车道复跑；TERM-002/005/006、API-004 等此前红项均在最终镜像转绿。
 - 迁移两遍、全库 integrity、回滚演练（DATA-004/005/010）PASS。
 - 双主题 × 三视口 UI 截图 24 张已归档（`artifacts/rc5/E2/UI/RC5-UI-006/`、`E2/MCPP/RC5-MCPP-024/`）。
 - 旧数据升级 SEC-010 PASS。
+- **24h 浸泡产品豁免**（`p6b/waiver-24h.{json,md}`）：用户 2026-11-21 00:28 指示「不用等24小时了，直接进行接下来的流程」；决策时点主 soak 10.3h（609 tick churn 全 ok、fd 292→280、RSS 回落）、规模 8.9h（读 26500/写 5300 全成功、0 锁、integrity 全 ok）。
 
 ### 8.2 未绿（阻塞合并/上线）
 
-1. **TERM-013 / DATA-009（P1）**：24h 浸泡未满窗（`final-image2`，`plannedEndAt=2026-11-21T06:08:06.781Z`；规模窗口 `07:37:17Z`）；DATA-009 现行 soak 为 2 writers / 5min，未达 48 §4.5 的 ≥50 并发 + 2h 全库 integrity（规模窗口另行补证）。
-2. **远端 CI 未跑**：分支未 push；`ci.yml` 全步骤已在本地逐条复跑 EXIT=0（`ci-local.log`），但远端 `upgrade-gate` / `v1-line` 仍无运行记录，不得以本地代替。
-3. **签字**：`artifacts/rc5/p7/regression/signoff.md` 四方签字栏未签。
-4. **补充回归面 · 真实扩展**：companion 中继已协议级 PASS（令牌签发/错误 token 拒/在线探测/断开回收），但**真实 Chrome 扩展与 `mcp__browser__*` 实跑记 NOTRUN**——headless 无人值守环境不能交互式加载未打包 MV3 扩展；需在桌面验收机补测或产品接受协议级口径（`p7/regression/supplement/companion-relay.md`）。
-5. **R22（P1，产品遗留，非本 PR 阻塞）**：tasks 主会话按标准 preset 创建，角色 prompt/preset 未接线（super bundles 未含 `@eterna/tasks`；`SessionsHost.presets` 未注入；`composePrompt` 未投递），主会话可能自行派 subagent 与 tasks 路由重复。已定修复方案；因最终镜像 24h 浸泡进行中，改动需重建镜像并重跑窗口，随下一次镜像变更处理（`p7/doc54-delivery-audit.md` §2.1）。不影响 API-005/006/007 判据。
+1. **远端 CI 未跑**：分支未 push；`ci.yml` 全步骤已在本地逐条复跑 EXIT=0（`ci-local.log`），但远端 `upgrade-gate` / `v1-line` 仍无运行记录，不得以本地代替。
+2. **签字**：`artifacts/rc5/p7/regression/signoff.md` 四方签字栏未签（产品对 24h 豁免的签字已由用户指令落字）。
+3. **补充回归面 · 真实扩展**：companion 中继已协议级 PASS（令牌签发/错误 token 拒/在线探测/断开回收），但**真实 Chrome 扩展与 `mcp__browser__*` 实跑记 NOTRUN**——headless 无人值守环境不能交互式加载未打包 MV3 扩展；需在桌面验收机补测或产品接受协议级口径（`p7/regression/supplement/companion-relay.md`）。
+4. **R22（P1，产品遗留，非本 PR 阻塞）**：tasks 主会话按标准 preset 创建，角色 prompt/preset 未接线（super bundles 未含 `@eterna/tasks`；`SessionsHost.presets` 未注入；`composePrompt` 未投递），主会话可能自行派 subagent 与 tasks 路由重复。已定修复方案；因最终镜像已交付，随下一次镜像变更处理（`p7/doc54-delivery-audit.md` §2.1）。不影响 API-005/006/007 判据。
 
 ### 8.3 解除条件
 
-- 24h 浸泡满窗（主窗口 2026-11-21T06:08:06Z / 规模窗口 07:37:17Z 后）复核 TERM-013/DATA-009；
-- CI 全绿（含 `v1-line`）+ 人工复核；
-- 四方签字。
+- 远端 CI 全绿（含 `v1-line`）；
+- 合并/部署按用户 2026-11-21 授权执行；24h 豁免的残余风险由上线后 24h 观察覆盖（发布说明 §8）。
 
 ---
 

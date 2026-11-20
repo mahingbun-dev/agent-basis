@@ -65,19 +65,19 @@ if (DRY) {
 const matrix = spawnSync(process.execPath, [join(ROOT, 'scripts', 'rc5-acceptance-matrix.mjs'), '--write'], { cwd: ROOT, encoding: 'utf8' })
 const output = `${matrix.stdout ?? ''}${matrix.stderr ?? ''}`
 console.log(output.trim().split('\n').slice(-4).join('\n'))
-const counts = /rows=(\d+) PASS=(\d+) FAIL=(\d+) MISSING=(\d+)/.exec(output)
+const counts = /rows=(\d+) PASS=(\d+) FAIL=(\d+) MISSING=(\d+)(?: WAIVED=(\d+))?/.exec(output)
 if (matrix.status !== 0 || counts === null) {
   console.log(`STATUS=ERROR（矩阵脚本 EXIT=${matrix.status}）`)
   process.exit(1)
 }
-const [, rows, pass, fail, missing] = counts.map(Number)
-report.matrix = { rows, pass, fail, missing }
-if (!(rows === 164 && pass === 164 && fail === 0 && missing === 0)) {
-  console.log(`STATUS=BLOCKED（矩阵 ${rows} 行：PASS=${pass} FAIL=${fail} MISSING=${missing}，非 164/0/0）`)
+const [, rows, pass, fail, missing, waived = 0] = counts.map(Number)
+report.matrix = { rows, pass, fail, missing, waived }
+if (!(rows === 164 && fail === 0 && missing === 0 && pass + waived === 164)) {
+  console.log(`STATUS=BLOCKED（矩阵 ${rows} 行：PASS=${pass} FAIL=${fail} MISSING=${missing} WAIVED=${waived}，非 164/0/0+豁免）`)
   process.exit(1)
 }
 report.status = 'READY'
 report.head = spawnSync('git', ['-C', ROOT, 'rev-parse', '--short', 'HEAD'], { encoding: 'utf8' }).stdout.trim()
 writeFileSync(OUT, `${JSON.stringify(report, null, 2)}\n`)
-console.log(`STATUS=READY（164/164，P0 全绿；判定快照 ${OUT}）`)
+console.log(`STATUS=READY（164 行无 FAIL/MISSING：PASS=${pass} + WAIVED=${waived}，P0 全绿；判定快照 ${OUT}）`)
 console.log('NEXT=P7 push/PR/合并/部署（需用户显式确认）')
