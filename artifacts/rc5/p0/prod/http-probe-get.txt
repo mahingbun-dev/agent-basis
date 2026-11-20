@@ -1,0 +1,4 @@
+http://127.0.0.1:3210/login -> code=200 redirect= type=text/html; charset=utf-8
+http://127.0.0.1:3210/access/api/me -> code=401 redirect= type=application/json; charset=utf-8
+http://127.0.0.1:3210/ -> code=302 redirect=http://127.0.0.1:3210/login type=
+http://127.0.0.1:9310/api/status -> code=200 redirect= type=application/json; charset=utf-8

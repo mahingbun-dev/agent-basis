@@ -1,0 +1,6 @@
+[PASS] ENV-e3 :: /Users/sunny/eterna-data/test-rc5/.env.e3 新建（密钥来源 /Users/sunny/eterna-data/test-rc5/.env.e1，0600）
+[PASS] DATA-e3 :: /Users/sunny/eterna-data/test-rc5/e3（init-data-dirs exit=0）
+[PASS] BOOT-e3 :: container=eterna-rc5-e3 health=healthy image=eterna-agent:rc5-test
+[PASS] E3-FORM :: ETERNA_FORM=super
+
+[PREP] PASS=4 FAIL=0

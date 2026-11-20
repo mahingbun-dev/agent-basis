@@ -1,0 +1,25 @@
+# CMD/RC5-CMD-004
+# started 2026-11-19T23:18:14.264Z
+
+$ cat docker/profile/package.acp.json（dsh.profile.bundles）
+EXIT=0
+["@deepseek-ai/dsh-base","@deepseek-ai/dsh-acp-app"]
+
+[ASSERT] ACP profile 不挂 UI/client 包 => PASS :: uiBundles=-
+
+$ node scripts/verify-acp-stdio.mjs --project rc5-e1suite --env-file <0600 env> --timeout-ms 90000 --json <case>/acp-report.json
+EXIT=0
+[PASS] RC5-ACP-001 (P0) initialize：合法 JSON-RPC 响应 + 协议版本协商 :: protocolVersion=1 agent=deepseek-harness-acp version=0.0.1 mcpHttp=true
+[PASS] RC5-ACP-002a (P0) session/new 返回 sessionId :: sessionId=becc2d55-46dd-46c2-a676-c71c18342cb6
+[NOTRUN] RC5-ACP-002b (P0) session/prompt 正常返回（需真实模型凭据） :: 模型/凭据层错误（E4 用测试占位 key）：{
+[PASS] RC5-ACP-004 (P0) ACP 容器无监听端口 :: 无应用监听（基础设施监听 1 个：127.0.0.11:64935）
+[PASS] RC5-ACP-005 (P0) 非法 JSON → JSON-RPC error 且进程不崩 :: error.code=-32700 aliveAfter=true
+[PASS] RC5-ACP-003 (P0) stdout 纯净：每行均为 JSON-RPC，无日志/横幅 :: lines=5 nonJsonRpc=0
+[PASS] ACP-STDERR (INFO) stderr 诊断面（不计入纯净性） :: lines=14 exit={"code":0,"signal":null}
+[ACP] PASS=6 FAIL=0 SKIP=0 NOTRUN=1
+
+[ASSERT] ACP initialize 成功（protocolVersion=1） => FAIL
+
+[ASSERT] ACP stdout 纯 JSON-RPC（无 UI/横幅） => FAIL
+
+[ASSERT] ACP 无监听端口（纯 stdio） => FAIL

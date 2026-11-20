@@ -1,0 +1,60 @@
+T12/T13/T14（B1/H9/H11）迁移接线证据 — 命令原文与退出码
+生成: 2026-11-19T18:24Z（UTC） HEAD: 02f4857 分支: feat/dsh-rc5-merge
+路径已脱敏: 家目录 → /Users/<user>
+
+[1] 单测（三个 .test.mjs；任务要求“跑两个”，实际三个全跑）
+$ node --test /Users/<user>/code/agent-basis-rc5/scripts/profile-upgrade-check.test.mjs
+EXIT=0  tests 10 pass 10 fail 0   （log: profile-upgrade-check.test.mjs.log）
+$ node --test /Users/<user>/code/agent-basis-rc5/docker/profile/migrate-mcp-servers.test.mjs
+EXIT=0  tests 12 pass 12 fail 0   （log: migrate-mcp-servers.test.mjs.log）
+$ node --test /Users/<user>/code/agent-basis-rc5/docker/profile/migrate-profile-bundles.test.mjs
+EXIT=0  tests 7  pass 7  fail 0   （log: migrate-profile-bundles.test.mjs.log）
+
+[2] 旧 rc.1 开发档 dry-run A（dev profile: base+web-app；旧 patch = git HEAD:profiles/eterna-web/cordis.patch.yml；新 patch = rc.5 模板）
+run1:
+$ node docker/profile/migrate-profile-bundles.mjs <profile>/package.json docker/profile/package.json <profile>/.eterna-default-bundles.json
+EXIT_T14=0
+$ node docker/profile/migrate-mcp-servers.mjs <profile>/.prev.cordis.patch.yml <profile>/cordis.patch.yml <profile>/.upgrade-mcp-servers-backup.json
+EXIT_T13=0 （输出：新 patch 自带 mcp-client 行承载 browser → 零写）
+$ node scripts/profile-upgrade-check.mjs <profile> --boot --apply-removals --install-anchor node_modules/@deepseek-ai/dsh/package.json
+EXIT_T12=0 （bundles[ok=6]，OK 无坏项）
+run2（同一命令）:
+EXIT_T14=0（无新增默认 bundle，已幂等）
+EXIT_T13=0（零写）
+EXIT_T12=0（ok=6）
+断言：package.json / cordis.patch.yml / marker 的 sha256 与 mtime 均与 run1 后一致；文件清单一致（无新 .bak）。
+（log: dryrun-rc1-dev-run1.log / dryrun-rc1-dev-run2.log；最终 manifest: fixture-rc1-dev/）
+
+[3] dry-run B（rc.1 开发档 + 运维手写 mcp-manager.servers.internal；验证升级前后键集合）
+run1: T14 EXIT=0；T13 EXIT=0（迁移 1 项 servers，写后 1）；T12 EXIT=0
+       manager 键集合 = internal；mcp-browser 行恰 1（无 serverName 双实例）
+run2: 三命令 EXIT=0；package.json / patch / marker sha256+mtime 均未变；无新备份
+（log: dryrun-manager-run1.log / dryrun-manager-run2.log）
+
+[4] 生产旧 manifest（含下架 bundle）boot 预检 C
+$ node docker/profile/migrate-profile-bundles.mjs <profile>/package.json docker/profile/package.json ...
+EXIT_T14=0
+$ node scripts/profile-upgrade-check.mjs <profile> --boot --apply-removals --install-anchor ...
+EXIT_T12=0；REMOVED @deepseek-ai/dsh-experimental-agent-team-profile（先备份 package.json.bak-<ts>）
+断言：下架项已不在 bundles；留痕 .upgrade-removed-bundles.json 模式 0600；成功路径无 MCP 失败留痕
+（log: dryrun-prod-removal.log；最终 manifest: fixture-prod-after/）
+
+[5] entrypoint 静态门禁 + 2.4 段控制流模拟（提取原文，/repo→工作树）
+$ sh -n docker/entrypoint.sh
+EXIT=0
+时序（行号）：manifest 渲染 94 < prompt 移植 111 < migrate-profile-bundles 136 < migrate-mcp-servers 142 < relay token sed 314 < exec dsh 359
+成功路径模拟：SIM_OK_EXIT=0；无迁移告警；marker 已写；PREV_PATCH 已清理
+坏文件模拟（损坏 package.json + 损坏旧 patch，旧 patch 内植入测试令牌）：
+SIM_BAD_EXIT=0（只告警，不 exit 1）
+WARNING profile 存量迁移有失败项 = 1
+.upgrade-profile-bundles-backup.json 0600；.upgrade-mcp-servers-backup.json 0600
+坏 manifest / 新 patch 均原样保留
+日志与留痕中测试令牌出现次数 = 0（code frame 已脱敏）
+（log: wiring-sim-ok.log / wiring-sim-bad.log；提取块: entrypoint-2.4-block.sh）
+
+[6] 总 harness
+$ sh /tmp/rc5-t12-t14-harness.sh
+EXIT=0  PASS=61 FAIL=0   （log: harness.log）
+
+[7] lint 说明
+仓库 .oxlintrc.json 的 ignorePatterns 含 **/*.mjs（lint 不覆盖这些脚本）；本条为未运行项，不以 lint 结果作通过依据。

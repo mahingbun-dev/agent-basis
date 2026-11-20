@@ -1,0 +1,11 @@
+acp template parse errors: 0
+top-level blocks: 12
+ids: otel,session-telemetry-otel,authorization,deepseek-account,llm-deepseek,llm-deepseek-account,session-log-deepseek,system-prompt,llm-pi-ai,agent-default-model,acp
+unknown ids: 0 (none)
+forbidden desktop-product-telemetry: absent-OK
+forbidden product-analytics: absent-OK
+acp row: {"provider":"mimo","model":"mimo-v2.6-pro"}
+llm providers: mimo model: mimo-v2.6-pro apiKeyEnv: MIMO_API_KEY baseURL: https://api.xiaomimimo.com/v1
+system-prompt personaPrefix starts: You are EternaAgent, an enterprise coding agent powered by the {{model}} model.
+insert ids: eterna-governance,eterna-audit,eterna-egress
+package.acp.json bundles: @deepseek-ai/dsh-base,@deepseek-ai/dsh-acp-app

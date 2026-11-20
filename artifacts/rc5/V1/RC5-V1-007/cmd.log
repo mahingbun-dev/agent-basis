@@ -1,0 +1,8 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ if grep -RIn --include="*.ts" --include="*.mjs" "@deepseek-ai/dsh" core packages/system-prompt packages/session packages/tools packages/llm packages/approval-cli packages/agent-loop; then echo "FAIL: product-line dsh import found in v1 sources"; exit 1; else echo "GREP_EXIT=1 (no match)"; echo "PASS: no @deepseek-ai/dsh reference in v1 sources"; exit 0; fi
+# started 2026-11-19T22:10:21Z
+GREP_EXIT=1 (no match)
+PASS: no @deepseek-ai/dsh reference in v1 sources
+
+EXIT 0
+# finished 2026-11-19T22:10:21Z

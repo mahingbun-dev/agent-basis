@@ -1,0 +1,3 @@
+cd /Users/sunny/code/agent-basis-rc5
+bash scripts/verify-data-root.sh --root /Users/sunny/eterna-data/test-rc5 --instance e1 --container eterna-rc5-e1 --env-file /Users/sunny/eterna-data/test-rc5/.env.e1 --json artifacts/rc5/p5/testbed/data-root/report.json
+EXIT=0

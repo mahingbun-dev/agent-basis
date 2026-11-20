@@ -1,0 +1,20 @@
+[entrypoint] form=super profile=eterna-super template=cordis.super.patch.yml.template manifest=package.json
+[entrypoint] /data mountpoint OK (DSH_HOME=/data DSH_AGENTS_HOME=/data/agents)
+[entrypoint] profile 渲染:模板变更/首启接管,移植用户标记后重渲染 package.json
+[entrypoint] profile 渲染:模板变更/首启接管,移植用户标记后重渲染 cordis.patch.yml
+[entrypoint] 移植: 标记 2 处 | 保留用户新增 LLM provider: baidu-token-plan
+[entrypoint] 工坊值移植: 模板 6 条托管键 | 移植 1 处:preset.standard.persona | 基线已按新模板重写 → /data/profiles/eterna-super/.rendered.cordis.patch.yml.baseline.json
+[migrate-profile-bundles]: 追加默认 bundle: @deepseek-ai/dsh-deepseek-chat-import, @deepseek-ai/dsh-experimental-session-search, @deepseek-ai/dsh-experimental-terminal-bundle | 备份: /data/profiles/eterna-super/package.json.bak-2026-11-19T22-12-39-717Z
+[migrate-mcp-servers]: 新 patch 自带 mcp-client 行承载 browser，跳过系统层迁移（避免 serverName 双实例）；无其它待迁移项，零写
+[profile-upgrade-check]: profile=eterna-super mode=boot installAnchor=/usr/local/lib/node_modules/@deepseek-ai/dsh/package.json bundles[ok=15 removed-by-check=1]
+[profile-upgrade-check]: REMOVED @deepseek-ai/dsh-experimental-agent-team-profile（备份 /data/profiles/eterna-super/package.json.bak-2026-11-19T22-12-39-874Z）
+[profile-upgrade-check]: 留痕 /data/profiles/eterna-super/.upgrade-removed-bundles.json
+[profile-upgrade-check]: OK 无坏项
+[entrypoint] plugin strip applied: (none) | removed: (none)
+[entrypoint] governance rules: /repo/docker/profile/governance.rules.yml -> /data/.eterna/governance.rules.yml (cwd=/data)
+[entrypoint] super symlink: @eterna/tasks
+[entrypoint] super symlink: @eterna/channels
+[entrypoint] super symlink: @eterna/interact
+[entrypoint] super symlink: @eterna/workbench
+[entrypoint] super symlink: @eterna/toolkit
+[entrypoint] dsh-mcp-client 0.2.2-rc.5 == dsh 0.2.2-rc.5 (/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-mcp-client)

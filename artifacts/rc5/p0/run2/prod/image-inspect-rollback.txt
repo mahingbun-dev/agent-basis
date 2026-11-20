@@ -1,0 +1,10 @@
+# cmd: docker image inspect --format '{{.Id}} {{.RepoTags}} {{.Created}}' for rollback tags
+---
+[eterna-agent:0.1.51] sha256:3ca0d66055898b092f09761e5f67baa4a82741f1c7233d27bd2ddbd6de2b1a7b 2026-11-19T17:19:57.83957547Z eterna-agent@sha256:3ca0d66055898b092f09761e5f67baa4a82741f1c7233d27bd2ddbd6de2b1a7b
+EXIT[eterna-agent:0.1.51]=0
+[eterna-agent:0.1.50] sha256:6b306037b6593d94e7c797a97f15e8fb7f60fe97f871fd673da6ce659e7b2052 2026-11-19T10:41:00.763384668Z eterna-agent@sha256:6b306037b6593d94e7c797a97f15e8fb7f60fe97f871fd673da6ce659e7b2052
+EXIT[eterna-agent:0.1.50]=0
+[eterna-agent:0.1.38] sha256:b0dbe8bc6da4c918ee1a848548d92980d8caba4bb5301b26c5878932b5ae95e1 2026-11-19T03:05:37.045901508Z eterna-agent@sha256:b0dbe8bc6da4c918ee1a848548d92980d8caba4bb5301b26c5878932b5ae95e1
+EXIT[eterna-agent:0.1.38]=0
+[eterna-agent:kf-knowledge-test] sha256:58b2a2d019e000912eac3bfd28c6885b5967862502b34f5a24c3e1ea32d88ca4 2026-11-19T04:11:53.195421792Z eterna-agent@sha256:58b2a2d019e000912eac3bfd28c6885b5967862502b34f5a24c3e1ea32d88ca4
+EXIT[eterna-agent:kf-knowledge-test]=0

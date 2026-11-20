@@ -1,0 +1,52 @@
+# docker/entrypoint.sh 静态门禁
+$ sh -n docker/entrypoint.sh
+EXIT=0
+
+# 时序（行号）：prompt 移植 < T14 < T13 < T12 预检 < relay token sed < exec dsh
+16:#   提示词工坊托管值(2026-11-18 补:migrate-prompt-edits.mjs)另走基线快照移植
+111:node /repo/docker/profile/migrate-prompt-edits.mjs \
+124:#            防 serverName 双实例;见 migrate-mcp-servers.mjs 头注)。
+130:if ! node /repo/docker/profile/migrate-profile-bundles.mjs \
+135:  if ! node /repo/docker/profile/migrate-mcp-servers.mjs \
+145:node /repo/scripts/profile-upgrade-check.mjs "$PROFILE_DIR" \
+308:sed -i "s|__ETERNA_RELAY_TOKEN__|$RELAY_TOKEN|g" "$PROFILE_DIR/cordis.patch.yml"
+353:exec dsh "$@"
+
+# 插入块原文（2.4 段）
+
+# ── 2.4 rc.5 存量迁移(B1/H9/H11;54 §4.4 T12–T14)──────────────────────────
+# 时序纪律(50 §3.4.1 H9 / §5.5):必须在 prompt 移植之后、4.5 段 relay token sed
+# 之前——sed 之后除占位替换外不再改 patch。两步都 fail-closed:旧/新文件解析失败
+# → 脚本保留原文件+备份留痕,本段停启并 exit 1。不得带着坏 manifest/patch 让
+# dsh 半装载后静默丢插件(坏 bundle 会被哈希门控忠实保留,47 §B1)。
+#   H11/B18: package.json 的 dsh.profile.bundles 只追加缺失的 rc.5 默认项;
+#            .eterna-default-bundles.json 记 opt-out,用户关闭的项不回加。
+#   H9:      旧 patch 的 mcp-manager.config.servers / mcp-browser 行写入新渲染
+#            patch 的 mcp-manager 行(新 patch 自带同名 mcp-client 行时不重复写,
+#            防 serverName 双实例;见 migrate-mcp-servers.mjs 头注)。
+# 迁移后预检(B1,47 §B1 第 4 条):坏 bundle 留痕 .upgrade-removed-bundles.json,
+# 上游已下架项删除(先备份 package.json.bak-<ts>)。预检异常不阻塞启动——坏项
+# 由 dsh 的 skippedBundles 语义跳过(profile.ts:543-551),boot 不炸。
+DSH_PKG="$(dirname "$(dirname "$(readlink -f "$(command -v dsh)")")")"
+MIGRATE_FAILED=0
+if ! node /repo/docker/profile/migrate-profile-bundles.mjs \
+  "$PROFILE_DIR/package.json" /repo/docker/profile/package.json; then
+  MIGRATE_FAILED=1
+fi
+if [ -f "$PREV_PATCH" ]; then
+  if ! node /repo/docker/profile/migrate-mcp-servers.mjs \
+    "$PREV_PATCH" "$PROFILE_DIR/cordis.patch.yml" \
+    "$PROFILE_DIR/.upgrade-mcp-servers-backup.json"; then
+    MIGRATE_FAILED=1
+  fi
+fi
+if [ "$MIGRATE_FAILED" != "0" ]; then
+  echo "[entrypoint] ERROR profile 存量迁移失败(fail-closed 停启;旧文件与备份已保留,成因见上方日志)" >&2
+  exit 1
+fi
+node /repo/scripts/profile-upgrade-check.mjs "$PROFILE_DIR" \
+  --boot --apply-removals --install-anchor "$DSH_PKG/package.json" \
+  || echo "[entrypoint] WARNING profile 预检脚本异常(不阻塞启动;留痕见 $PROFILE_DIR/.upgrade-removed-bundles.json)"
+rm -f "$PREV_PATCH"
+
+# ── 2.5 插件启停清单(T2.3):admin 停用的可停插件 → 渲染时裁剪对应 insert 行

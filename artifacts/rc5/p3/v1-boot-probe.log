@@ -1,0 +1,15 @@
+manifest.plugins.length=6
+  - packages/system-prompt
+  - packages/session
+  - packages/tools
+  - packages/llm
+  - packages/approval-cli
+  - packages/agent-loop
+manifest.agent=default
+ctx.systemPrompt=present
+ctx.session=present
+ctx.tools=present
+ctx.llm=present
+ctx.approval=present
+ctx.agents=present
+PROBE=PASS

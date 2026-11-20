@@ -1,0 +1,2 @@
+[migrate-mcp-servers]: 迁移 2 项 servers 到 mcp-manager（写后 2）| 备份: artifacts/rc5/MCPS/RC5-MCPS-008/fixture/new.cordis.patch.yml.bak-2026-11-19T18-32-14-672Z
+[migrate-mcp-servers]: 新 patch 行已承载 browser，未复制到 mcp-manager（避免 serverName 双实例）

@@ -1,0 +1,11 @@
+# SEC/RC5-SEC-009
+# started 2026-11-20T00:37:12.650Z
+
+$ pnpm -w run verify > artifacts/rc5/E2/SEC/_evidence/verify.log 2>&1
+EXIT=0
+packages/glue verify: Done
+EXIT=0
+
+[ASSERT] verify 退出 0 => PASS :: exit=0
+
+[ASSERT] 全部 workspace 包有测试通过记录 => PASS :: packages=38

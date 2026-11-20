@@ -1,0 +1,58 @@
+{
+  "id": "RC5-ACP-008",
+  "priority": "P1",
+  "title": "两客户端并发：各自 initialize + session/new + prompt；会话隔离无串话",
+  "status": "PASS",
+  "at": "2026-11-19T22:22:17.099Z",
+  "detail": "idA=888c0855-64b3-428d-8cdf-bc210b888583 idB=97bffe3a-7a71-48b7-a3f0-ee64139f436f stopA=end_turn stopB=end_turn crossA=0 crossB=0 ownA=3 ownB=3 lockedA=false lockedB=false exitA={\"code\":0,\"signal\":null,\"elapsedMs\":3685} exitB={\"code\":0,\"signal\":null,\"elapsedMs\":3894} elapsed=4150ms",
+  "assertions": [
+    {
+      "name": "两会话 id 不同",
+      "expected": "idA!=idB",
+      "observed": "888c0855-64b3-428d-8cdf-bc210b888583 / 97bffe3a-7a71-48b7-a3f0-ee64139f436f",
+      "ok": true
+    },
+    {
+      "name": "A 收到自己的 session 帧",
+      "expected": ">0",
+      "observed": "3",
+      "ok": true
+    },
+    {
+      "name": "B 收到自己的 session 帧",
+      "expected": ">0",
+      "observed": "3",
+      "ok": true
+    },
+    {
+      "name": "A 无 B 的会话串话",
+      "expected": "0",
+      "observed": "0",
+      "ok": true
+    },
+    {
+      "name": "B 无 A 的会话串话",
+      "expected": "0",
+      "observed": "0",
+      "ok": true
+    },
+    {
+      "name": "两端 prompt 均 end_turn",
+      "expected": "end_turn/end_turn",
+      "observed": "end_turn/end_turn",
+      "ok": true
+    },
+    {
+      "name": "无 database is locked",
+      "expected": "false/false",
+      "observed": "false/false",
+      "ok": true
+    },
+    {
+      "name": "两容器均 exit 0",
+      "expected": "0/0",
+      "observed": "0/0",
+      "ok": true
+    }
+  ]
+}

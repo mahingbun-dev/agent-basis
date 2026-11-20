@@ -1,0 +1,49 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+
+# 1) 把 harness 与复现脚本送进 3108 测试容器（隔离 DSH_HOME=/tmp/api-run-home）
+$ docker cp artifacts/rc5/API/_harness/index.js eterna-rc5-e1:/tmp/api-harness/index.js
+$ docker cp artifacts/rc5/API/_harness/package.json eterna-rc5-e1:/tmp/api-harness/package.json
+PKG_COPY_EXIT=0
+$ docker cp artifacts/rc5/API/_harness/run-api005-007.sh eterna-rc5-e1:/tmp/run-api005-007.sh
+
+# 2) 在容器内跑真实 dsh 0.2.2-rc.5（base+web-app bundle + 真实 @eterna/tasks + harness）
+$ docker exec eterna-rc5-e1 sh /tmp/run-api005-007.sh
+[2026-11-19T22:54:16.933Z] policy save {"ok":true,"saved":true,"revision":1}
+dsh web: http://127.0.0.1:35159/?token=<REDACTED>
+[2026-11-19T22:54:17.154Z] dispatch 1 stored explicit accept 709dea15795ec8518199c38e37d54e74
+[2026-11-19T22:54:17.161Z] dispatch 2 stored explicit accept 36ed884efff9cfc179578853b538df70
+[2026-11-19T22:54:17.362Z] worker ready worker-709dea15795ec8518199c38e37d54e74 running
+[2026-11-19T22:54:17.362Z] worker ready worker-36ed884efff9cfc179578853b538df70 running
+[2026-11-19T22:54:17.376Z] spawned child 1 7cb4fa40-67fa-4ee2-acc0-ef85bb51bc31 api-child-1
+[2026-11-19T22:54:17.384Z] spawned child 2 1ad10993-392d-457d-adab-cf8c3b2d5a63 api-child-2
+[2026-11-19T22:54:25.432Z] waitForTreeWork returned true 8048ms
+[2026-11-19T22:54:25.664Z] receipts {"ok":true,"count":2,"stopReasons":["completed","completed"],"senders":["7cb4fa40-67fa-4ee2-acc0-ef85bb51bc31","1ad10993-392d-457d-adab-cf8c3b2d5a63"],"expectedSenders":["7cb4fa40-67fa-4ee2-acc0-ef85bb51bc31","1ad10993-392d-457d-adab-cf8c3b2d5a63"]}
+[2026-11-19T22:54:25.701Z] listDescendants A ["7cb4fa40-67fa-4ee2-acc0-ef85bb51bc31","1ad10993-392d-457d-adab-cf8c3b2d5a63"]
+[2026-11-19T22:54:25.710Z] child B resident status running
+[2026-11-19T22:54:25.722Z] drain B {"ok":true,"residentAfter":[],"waitForTreeWorkAfter":false,"workerStatusAfter":"idle"}
+[api-harness] ok= true
+HARNESS_EXIT=0
+# 外层
+DOCKER_EXEC_EXIT=0
+
+# 3) 版本与源码一致性（证明容器 /repo 跑的是当前工作树的迁移代码）
+$ docker exec eterna-rc5-e1 dsh --version
+0.2.2-rc.5
+$ docker exec eterna-rc5-e1 node -p 'require("/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/cordis/package.json").version'
+4.1.0
+$ shasum -a 256 packages/tasks/src/executor/background.ts packages/tasks/src/executor/dsh.ts packages/tasks/src/session/sessions.ts packages/tasks/src/plugin.ts
+39ebd4a790c14c75a7358f481b7cd178856ca940fbfab913e52b2adbcd931823  packages/tasks/src/executor/background.ts
+43437c35f7215ccb09f3785a334c431c2230b717c446a3c32d653942308c7b14  packages/tasks/src/executor/dsh.ts
+3eec4e1ddc1309da561d4819198cfc5b5bc5166503d98e3ca1d688c06c0be531  packages/tasks/src/session/sessions.ts
+e125ad1141067b2d1cf9005ad25c9cda5008266543ebcd52032db4f3c0ff3bd8  packages/tasks/src/plugin.ts
+$ docker exec eterna-rc5-e1 sh -lc 'cd /repo && sha256sum packages/tasks/src/executor/background.ts packages/tasks/src/executor/dsh.ts packages/tasks/src/session/sessions.ts packages/tasks/src/plugin.ts'
+# 与宿主逐行相同（完整输出见 ../_harness/results/hash-compare.log）
+HASH_EXIT=0
+
+# 4) worker A 持久史脱敏切片 / 回执正文（容器内 zstd 解码后只保留相关事件）
+#    输出：worker-a-session-extract.jsonl（17 事件）、worker-a-receipts.txt（2 条）
+#    token= 已脱敏；未读取/复制 .credentials.yaml。
+EXTRACT_EXIT=0
+
+# 注：早期一次 profile 初始化顺序错误导致 EXIT 124（symlink 先于 api-prof 创建被清掉），
+#     修正脚本后重跑，以上为最终成功运行的原文。

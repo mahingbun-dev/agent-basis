@@ -1,0 +1,7 @@
+# cmd: shasum -a 256 <tgz>; stat; tar tzf | wc -l
+---
+5976686ff2caab6a668c7231daded925c10053e062b9d4b28ecb31e61fbbd281  /Users/sunny/eterna-data/backups/rc5-2026-11-20/eterna-home-20261120-021802.tgz
+bytes=26566225 mtime=2026-11-20T02:18:04Z
+entries=10466
+db_files=16
+EXIT=0

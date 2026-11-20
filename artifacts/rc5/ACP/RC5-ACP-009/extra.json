@@ -1,0 +1,62 @@
+{
+  "hits": [
+    {
+      "check": "trusted-stdio",
+      "expectation": "文档明确 ACP 是受信 stdio 面/受信控制器，不是 Web 功能",
+      "phrase": "受信 stdio 面",
+      "found": [
+        {
+          "file": "deploy/README.md",
+          "line": 288,
+          "text": "ACP 是**自动化客户端的受信 stdio 面**，不是 Web 功能（47 B17 / 49 §5.7）："
+        },
+        {
+          "file": "docker-compose.yml",
+          "line": 104,
+          "text": "# ACP 是自动化客户端的**受信 stdio 面**,不是 Web 功能:"
+        }
+      ]
+    },
+    {
+      "check": "trusted-operator-only",
+      "expectation": "明确仅可信操作员/本机驱动，不暴露公网/端口",
+      "phrase": "只允许管理员/运维在本机启动",
+      "found": [
+        {
+          "file": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+          "line": 1186,
+          "text": "**只允许管理员/运维在本机启动，不暴露端口、不接终端用户**；"
+        }
+      ]
+    },
+    {
+      "check": "no-tenant-isolation",
+      "expectation": "明确 ACP 是无租户隔离的受信面，可读全部租户数据",
+      "phrase": "无租户隔离",
+      "found": [
+        {
+          "file": "docs/design/49-上游rc.5合并总设计.md",
+          "line": 345,
+          "text": "**结论**：ACP 是唯一“无租户隔离”的受信面；其余所有新能力都必须落在"
+        }
+      ]
+    },
+    {
+      "check": "shared-data-root",
+      "expectation": "明确与 web 共享 /data（跨租户数据可读）",
+      "phrase": "共享同一 `/data` 实例根",
+      "found": [
+        {
+          "file": "deploy/README.md",
+          "line": 294,
+          "text": "`stdin_open: true`、`tty: false`、**无 ports**，与 web 共享同一 `/data` 实例根；"
+        },
+        {
+          "file": "docs/docker-deploy.md",
+          "line": 35,
+          "text": "ACP 是独立 stdio service（`profiles: [\"acp\"]`，无端口），与 web 共享同一 `/data` 实例根，"
+        }
+      ]
+    }
+  ]
+}

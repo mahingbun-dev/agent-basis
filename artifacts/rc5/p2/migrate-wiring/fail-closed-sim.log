@@ -1,0 +1,4 @@
+# fail-closed 控制流等价模拟（复制 entrypoint 2.4 段的 if ! 结构；非整跑）
+$ sh /tmp/rc5-failclosed-sim.sh
+[sim] ERROR profile 存量迁移失败(fail-closed 停启)
+EXIT=1

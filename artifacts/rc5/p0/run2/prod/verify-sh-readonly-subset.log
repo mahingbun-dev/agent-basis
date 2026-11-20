@@ -1,0 +1,23 @@
+# readonly subset of deploy/verify.sh — no credentials, GET/docker exec only
+# started: 2026-11-19T18:17:34Z
+# BASE=http://127.0.0.1:3210 RELAY=http://127.0.0.1:9310
+== 1 login page ==
+code=200 type=text/html; charset=utf-8
+== 2 anon me ==
+code=401
+== 2.5 anon root ==
+code=302 redirect=http://127.0.0.1:3210/login
+== 8 governance ==
+1 1 
+gov_exit=0
+== 8.5 kb static ==
+eterna-super
+kb_exit=0
+== relay status ==
+code=200
+== 9 companion zip range 0-1 ==
+           P   K                                                        
+
+== 10 guide ==
+code=200 type=text/html; charset=utf-8
+# finished: 2026-11-19T18:17:34Z

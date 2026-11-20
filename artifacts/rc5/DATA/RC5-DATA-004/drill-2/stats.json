@@ -1,0 +1,7 @@
+{
+  "source": "/Users/sunny/eterna-data/test-rc5/.p6b-cold/p6b-e5b-eterna-home-20261120-021802",
+  "dest": "/Users/sunny/eterna-data/test-rc5/p6b-e5b",
+  "src": {"files": 8620, "bytes": 108848480, "linkGroups": 3148, "symlinks": 352},
+  "dst": {"files": 8620, "bytes": 108848480, "linkGroups": 3148, "symlinks": 352},
+  "equal": true
+}

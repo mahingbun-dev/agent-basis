@@ -1,0 +1,11 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ node scripts/verify-rc5-env.mjs --api-static --json artifacts/rc5/ENV/_suite/verify-rc5-env.json
+# suite run 2026-11-19T22:04:26.457Z (mode=env+api-static); full stdout: artifacts/rc5/ENV/_suite/verify-rc5-env.stdout.log
+== API-008 [PASS] LlmError 构造签名(rc.5: message, code, options?)
+   口径:51 API-008:无旧构造签名残留。静态扫描 new LlmError(...) 参数形态 + 记录 fromFailure 出点。
+   ✓ 无旧构造签名残留 — 15 处构造全部 (message, code[, options]);2 处 fromFailure 形态合法
+   ✓ 构造点非空(扫描面有效) — 命中 15 处
+
+EXIT 0 (suite)
+# started 2026-11-19T22:04:26.457Z
+# finished 2026-11-19T22:04:26.457Z

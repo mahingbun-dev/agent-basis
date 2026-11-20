@@ -1,0 +1,44 @@
+{
+  "id": "RC5-TERM-013",
+  "suite": "E3-super",
+  "priority": "P1",
+  "title": "24h 浸泡：长进程 + attach/close 无 fd 泄漏（TERM-013）",
+  "expected": "窗口满 + fd/RSS 曲线平稳",
+  "status": "NOTRUN",
+  "startedAt": "2026-11-19T22:32:54.728Z",
+  "finishedAt": "2026-11-19T22:32:54.729Z",
+  "assertions": [
+    {
+      "name": "24h 浸泡窗口进行中（未满，不得判通过）",
+      "ok": true,
+      "detail": "plannedEnd=2026-11-20T21:45:37.331Z now=2026-11-19T22:32:54.729Z samples=48"
+    },
+    {
+      "name": "浸泡跑在 E1（eterna-rc5-e1/3108），非 E3 容器",
+      "ok": true,
+      "detail": "eterna-rc5-e1"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "read artifacts/rc5/p5/testbed/soak/meta-24h.json",
+      "exit": 0,
+      "note": ""
+    },
+    {
+      "cmd": "read artifacts/rc5/p5/testbed/soak/term-013-24h.jsonl",
+      "exit": 0,
+      "note": "samples=48"
+    }
+  ],
+  "notes": [
+    "P5 24h 浸泡在 E1 运行，plannedEndAt=2026-11-20T21:45:37.331Z；当前采样 48 条、窗口未满不得判过；且 churn=create 持续 fail（同 session.snapshotEvents 错误）。"
+  ],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

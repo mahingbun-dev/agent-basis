@@ -1,0 +1,17 @@
+## commands (cwd=/Users/sunny/code/agent-basis-rc5)
+
+1) ETERNA_PROFILE_HOME=<tmp> ETERNA_EVIDENCE_DIR=artifacts/rc5/p2/t11-slot-drift/web node scripts/verify-eterna-web.mjs
+EXIT=0
+2) ETERNA_PROFILE_HOME=<tmp> ETERNA_EVIDENCE_DIR=artifacts/rc5/p2/t11-slot-drift/super node scripts/verify-eterna-super.mjs
+EXIT=0
+
+## assertions
+PASS  BOOT-004 unknown plugin row count = 0 — live patch targets all resolve (40 overrides)
+PASS  BOOT-004 unknown plugin row count = 0 — live patch targets all resolve (40 overrides)
+
+## unknown row / patch target scan (raw boot output only; expect 0)
+       0
+
+## template stats
+web: {"lines":1058,"blocks":43,"inserts":3,"overrides":40}
+super: {"lines":1090,"blocks":43,"inserts":3,"overrides":40}

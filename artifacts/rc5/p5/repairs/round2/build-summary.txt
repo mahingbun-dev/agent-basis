@@ -1,0 +1,11 @@
+# 重建 eterna-agent:rc5-test(当前工作树)
+$ docker build --progress=plain -t eterna-agent:rc5-test .
+
+EXIT=0
+
+#18 naming to docker.io/library/eterna-agent:rc5-test done
+#18 unpacking to docker.io/library/eterna-agent:rc5-test
+#18 unpacking to docker.io/library/eterna-agent:rc5-test 6.0s done
+#18 DONE 21.8s
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/tjs5aukpy9yh3h5x2w4e6elzj

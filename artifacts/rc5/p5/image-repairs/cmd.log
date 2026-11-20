@@ -1,0 +1,81 @@
+# L5 镜像构建修复 · 命令原文与退出码（2026-11-20，/Users/sunny/code/agent-basis-rc5）
+# 说明：多行 RUN/ssh 命令按实际执行形态缩写为单行；完整逐字输出见同名证据文件。
+# 所有命令均在 macOS host + Docker 29.7.2 / buildx 0.36.0 / desktop-linux 上执行。
+
+[1] docker build --check .
+    EXIT=0   # "Check complete, no warnings found."（改动前后各跑一次，均 0）
+
+[2] docker run --rm node:24-bookworm-slim sh -c 'apt-config dump | grep -i retries'
+    EXIT=1   # 无输出 = Acquire::Retries 未设（apt 默认 0，不重试）
+    → artifacts/rc5/p5/image-repairs/proof-apt-retries.txt
+
+[3] docker run --rm node:24-bookworm-slim sh -c '<坏源 127.0.0.1:1，Retries=0 vs 3 对照>'
+    EXIT=0   # Retries=0 → 仅 1 次 Err；Retries=3 → 3 次 Ign(:重试) 后才 Err
+    → artifacts/rc5/p5/image-repairs/proof-apt-retries.txt
+
+[4] docker run --rm node:24-bookworm-slim sh -c 'apt-get update && apt-get install -y --no-install-recommends python3 make g++ curl git ca-certificates fontconfig fonts-noto-cjk fonts-liberation fonts-dejavu-core python3-pip python3-docx python3-openpyxl'
+    EXIT=0   # 28s 装通（同一失败包清单，链路正常时可用 → 排除包名/版本问题）
+    → artifacts/rc5/p5/image-repairs/repro-apt-install.txt
+
+[5] docker build --progress=plain -f Dockerfile.scratch -t rc5-runtime-stage:scratch /tmp/rc5-scratch/
+    EXIT=2   # 第一版修复的 scratch 首跑（该层无缓存）："/bin/sh: 1: DEBIAN_MIRROR: parameter not set"
+             # set -u + ARG 未设 → 已修（改用 ${DEBIAN_MIRROR:-}，并在两阶段显式 ARG）
+
+[6] docker build --progress=plain -f Dockerfile.scratch -t rc5-runtime-stage:scratch2 .   # 修 ARG 后
+    EXIT=0   # 43.8s（apt/pip/npm 段命中 cache mount，较首次 58s 快）
+
+[7] docker build --no-cache --progress=plain -f Dockerfile.scratch -t rc5-runtime-stage:cold .
+    EXIT=0   # 60.2s，冷缓存真跑修复后的同一条 RUN；探针：mcp-client==dsh、docx/openpyxl/pptx、probes OK
+    → artifacts/rc5/p5/image-repairs/scratch-runtime-stage-cold.log
+
+[8] docker run --rm --network=none rc5-runtime-stage:scratch2 pnpm --version
+    EXIT=0   # 11.7.0（钉版在镜像层里）；对照：第一版把 /root/.cache 整体挂 cache mount 时，
+             # 同一断言会触发 corepack 去下 pnpm 12.21.0 → 已改为只挂 /root/.cache/pip
+
+[9] docker run --rm node:24-bookworm-slim sh -c '<DEBIAN_MIRROR=https://mirrors.aliyun.com + 同一段 sed>'
+    EXIT=0   # URIs: https://mirrors.aliyun.com/debian + https://mirrors.aliyun.com/debian-security
+
+[10] docker run --rm --network=none --entrypoint sh eterna-agent:rc5-p5-repair -c '<koffi/node-pty 断言>'
+    EXIT=0   # koffi load OK 3.1.1；node-pty spawn OK（真实 spawn 输出 "hi"）
+
+[11] docker run --rm node:24-bookworm-slim sh -c '<retry() CASE A/B/C>'
+    EXIT=1 / 0 / 0   # A 始终失败→3 次后 FATAL+1；B 两次失败后成功→0；C 一次成功→0
+    → artifacts/rc5/p5/image-repairs/retry-helper-cases.txt
+
+[12] ETERNA_DATA_ROOT=/tmp/eterna-cfgcheck docker compose -f docker-compose.yml config
+    EXIT=0   # args: DEBIAN_MIRROR: ""
+[13] ETERNA_DATA_ROOT=/tmp/eterna-cfgcheck docker compose -f docker-compose.super.yml config
+    EXIT=0   # 同上
+
+[14] docker build --progress=plain -t eterna-agent:rc5-p5-repair .
+    EXIT=0   # 完整构建成功（full-build.log）；runtime RUN 行 `#4 CACHED`（命中摘要 [7] 的同一条命令层）
+
+[14b] docker build --progress=plain -t eterna-agent:rc5-p5-repair .   # 最终 Dockerfile 状态（仅注释改动）
+    EXIT=0   # full-build-final.log；`#12 CACHED`（注释不参与命令哈希）、`#10 [build 6/7]` 实跑 11.9s
+
+[15] docker run --rm --network=none --entrypoint pnpm eterna-agent:rc5-p5-repair --version
+    EXIT=0   # 11.7.0
+[16] docker run --rm --network=none --entrypoint sh eterna-agent:rc5-p5-repair -c '<断言集>'
+    EXIT=0   # dsh 0.2.2-rc.5 / node v24.22.3 / python 三库 OK / Noto CJK=10 / flock / entrypoint 可执行 /
+             # v1 已剥离 / apt·npm·pip 缓存无泄漏 / corepack home 20M / koffi load OK 3.1.1 /
+             # 体积 3.92GB(全局 node_modules 1.3G + /repo/node_modules 884M + 字体 94M)
+             # 注:[14b] 重建后同一断言集复跑一次,结果相同
+    → artifacts/rc5/p5/image-repairs/image-assertions.txt
+
+[17] ETERNA_DATA_ROOT=/tmp/eterna-cfgcheck ETERNA_IMAGE=eterna-agent:rc5-p5-repair-compose docker compose -f docker-compose.yml build
+    EXIT=0   # "Image eterna-agent:rc5-p5-repair-compose Built"
+    → artifacts/rc5/p5/image-repairs/compose-build.log
+
+[18] docker run --rm --network=none --entrypoint sh eterna-agent:rc5-p5-repair -c '<spawn-helper 权限/存在性>'
+    EXIT=0   # 仅 darwin-* 预编译包含 spawn-helper（-rwxr-xr-x），linux-arm64 无此文件 →
+             # 被 npm 11 allowScripts 跳过的 postinstall 在 linux 上为 no-op
+[19] ETERNA_DATA_ROOT=/tmp/eterna-cfgcheck docker compose -f docker-compose.yml config
+     EXIT=0   # 最终状态复验（含 DEBIAN_MIRROR 透传）
+[20] ETERNA_DATA_ROOT=/tmp/eterna-cfgcheck docker compose -f docker-compose.super.yml config
+     EXIT=0
+[21] docker build --check .
+     EXIT=0   # 最终状态："Check complete, no warnings found."
+
+[22] docker run --rm node:24-bookworm-slim sh -c 'corepack enable; corepack prepare pnpm@11.7.0 --activate; pnpm store path'
+     EXIT=0   # store path: /root/.local/share/pnpm/store/v11 → build 阶段的 cache mount
+              # target=/root/.local/share/pnpm/store 覆盖到它（父目录）

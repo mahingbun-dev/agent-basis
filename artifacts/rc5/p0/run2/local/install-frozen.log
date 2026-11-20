@@ -1,0 +1,9 @@
+# cmd: pnpm install --frozen-lockfile
+# cwd: /Users/sunny/code/agent-basis-rc5
+# started: 2026-11-19T18:12:50Z
+---
+Scope: all 40 workspace projects
+Already up to date
+Done in 191ms using pnpm v11.7.0
+---
+EXIT=0

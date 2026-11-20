@@ -1,0 +1,15 @@
+# ACC/RC5-ACC-005
+# started 2026-11-19T23:51:59.099Z
+
+$ pnpm --filter @eterna/access exec vitest run tests/mux-policy.spec.ts
+EXIT=0
+RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+
+ ✓ tests/mux-policy.spec.ts (7 tests) 339ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  07:51:59
+   Duration  475ms (transform 30ms, setup 0ms, import 42ms, tests 339ms, environment 0ms)
+
+[ASSERT] admin-only 不变式测试绿 => PASS ::  ✓ tests/mux-policy.spec.ts (7 tests) 339ms |  |  Test Files  1 passed (1) |       Tests  7 passed (7) |    Start at  07:51:59 |    Duration  475ms (transform 30ms, setup 0ms, import 42ms, tests 339ms, environment 0ms)

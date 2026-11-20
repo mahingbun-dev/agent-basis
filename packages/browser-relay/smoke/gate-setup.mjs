@@ -118,8 +118,8 @@ for (const pkg of ['glue', 'llm-doctor', 'brand', 'panel', 'prompt-studio', 'llm
   symlinkSync(join(REPO, `packages/${pkg}`), join(PROFILE, 'node_modules/@eterna', pkg), 'dir')
 }
 symlinkSync(join(REPO, 'packages/brand'), join(PROFILE, 'node_modules/@eterna/creation-skills'), 'dir')
-const presetTarget = firstPnpm('@deepseek-ai+dsh-agent-preset@0.2.2-rc.1')
-const mcpTarget = firstPnpm('@deepseek-ai+dsh-mcp-client@0.2.2-rc.1')
+const presetTarget = firstPnpm('@deepseek-ai+dsh-agent-preset@0.2.2-rc.5')
+const mcpTarget = firstPnpm('@deepseek-ai+dsh-mcp-client@0.2.2-rc.5')
 if (!existsSync(presetTarget) || !existsSync(mcpTarget)) throw new Error(`symlink 目标不存在：${String(presetTarget)} / ${String(mcpTarget)}`)
 symlinkSync(presetTarget, join(PROFILE, 'node_modules/@deepseek-ai/dsh-agent-preset'), 'dir')
 symlinkSync(mcpTarget, join(PROFILE, 'node_modules/@deepseek-ai/dsh-mcp-client'), 'dir')

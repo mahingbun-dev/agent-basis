@@ -1,0 +1,24 @@
+# T17 prompt.spec.ts 断言明细(补充证据)
+# cmd: ./node_modules/.bin/vitest run tests/prompt.spec.ts --reporter=verbose(cwd=tools/packctl)
+# date: 2026-11-19T18:11:29Z
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/tools/packctl
+
+ ✓ tests/prompt.spec.ts > packctl prompt-scan 提示词登记铁律 > 方向 1|未登记被拦:patch 键(personaPrefix/prefix/section)、section 使用、packs persona 三个面各有 finding 3ms
+ ✓ tests/prompt.spec.ts > packctl prompt-scan 提示词登记铁律 > 方向 2|登记后通过(注入登记元数据):同构造 + registry 条目 → 0 findings 2ms
+ ✓ tests/prompt.spec.ts > packctl prompt-scan 提示词登记铁律 > 方向 2|登记后通过(真实注册表对账):真实锚点路径的仓库事实 0 findings 2ms
+ ✓ tests/prompt.spec.ts > packctl prompt-scan 提示词登记铁律 > 误报防护:注释行/测试文件豁免;非 persona 插件的 prefix 不算提示词面 2ms
+ ✓ tests/prompt.spec.ts > packctl prompt-scan 提示词登记铁律 > 白名单与豁免标注:精确文件豁免不报;缺 reason 的白名单条目本身出 warning 1ms
+ ✓ tests/prompt.spec.ts > packctl prompt-scan 提示词登记铁律 > 白名单条目都是精确文件路径(无目录前缀/尾斜杠)且 reason 非空(T17/R19 防整目录盲区) 1ms
+ ✓ tests/prompt.spec.ts > packctl prompt-scan 提示词登记铁律 > 真实仓(T17/R19):docker/profile 模板在扫描根内,模板扫描 0 findings 78ms
+ ✓ tests/prompt.spec.ts > packctl prompt-scan 提示词登记铁律 > 模板盲区:docker/profile/cordis.patch.yml(及 .template 命名)未登记 personaPrefix 命中 prompt/unregistered-prompt-key 1ms
+ ✓ tests/prompt.spec.ts > packctl prompt-scan 提示词登记铁律 > 真实模板副本:super 四键走同文镜像登记、ACP 一键走模板键登记(0 findings);docker/profile 无整目录豁免,换名 clone 被拦 2ms
+ ✓ tests/prompt.spec.ts > packctl prompt-scan 提示词登记铁律 > 豁免只覆盖 eterna-web/eterna-super 两开发档:同构造的未豁免 profile clone 仍报 unregistered-prompt-key 1ms
+ ✓ tests/prompt.spec.ts > packctl prompt-scan 提示词登记铁律 > CLI 形态:prompt-scan 违规仓库退出码 1 并打印 finding;干净仓库退出码 0 2ms
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+   Start at  02:11:29
+   Duration  270ms (transform 58ms, setup 0ms, import 85ms, tests 97ms, environment 0ms)
+
+# EXIT=0

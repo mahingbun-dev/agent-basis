@@ -1,0 +1,3 @@
+cd /Users/sunny/code/agent-basis-rc5
+node artifacts/rc5/ACP/acp-e4-driver.mjs --scenario docs
+EXIT=0

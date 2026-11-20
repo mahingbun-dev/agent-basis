@@ -1,0 +1,6 @@
+# IMP/RC5-IMP-003
+# started 2026-11-19T23:26:27.455Z
+
+$ scripts/verify-chat-import.mjs（RC5-IMP-003 行）
+EXIT=0
+PASS: status=200 ok=true sessionIds=10 skipped=1 lines=12

@@ -1,0 +1,14 @@
+$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+Found 0 warnings and 0 errors.
+Finished in 1.0s on 8 files with 87 rules using 10 threads.
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/core/runtime
+
+ ✓ tests/cli.spec.ts (7 tests) 14ms
+ ✓ tests/boot.spec.ts (6 tests) 19ms
+
+ Test Files  2 passed (2)
+      Tests  13 passed (13)
+   Start at  00:59:38
+   Duration  279ms (transform 162ms, setup 0ms, import 262ms, tests 33ms, environment 0ms)
+

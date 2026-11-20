@@ -1,0 +1,14 @@
+# HERO/RC5-HERO-003
+# started 2026-11-19T23:17:24.413Z
+
+$ IAB 1440×900: composer.focus() → execCommand("insertText") → get button[aria-label="发送消息"].disabled → click
+EXIT=0
+focus=true text=hero 自检 ping send.disabled=false aria-disabled=null
+
+[ASSERT] 输入框可聚焦 => PASS
+
+[ASSERT] 可输入（DOM 文本=hero 自检 ping） => PASS
+
+[ASSERT] 发送按钮可用（disabled=false） => PASS
+
+[ASSERT] 点击发送后消息出现在 transcript => PASS

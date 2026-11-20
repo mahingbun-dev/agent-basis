@@ -1,0 +1,104 @@
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+
+ ✓ tests/channels-webhook-contract.spec.ts (2 tests) 16ms
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-vEjBS3/origin.git
+ * [new branch]      main -> main
+ ✓ tests/mux-peer-drift.spec.ts (9 tests) 1199ms
+ ✓ tests/user-plugins.spec.ts (8 tests) 1192ms
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-McXVCq/origin.git
+ * [new branch]      main -> main
+ ✓ tests/tasks-settings.spec.ts (8 tests) 2034ms
+     ✓ admin GET:返回设置视图 + no-store;roles 同样 no-store  313ms
+ ✓ tests/mux-policy.spec.ts (7 tests) 854ms
+ ✓ tests/workspace-session-actions.spec.ts (19 tests) 2487ms
+ ✓ tests/tenant.spec.ts (20 tests) 2796ms
+Cloning into '/var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-McXVCq/merge-work'...
+done.
+From /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-McXVCq/origin
+ * branch            publish/my-tool-0.1.0 -> FETCH_HEAD
+ ✓ tests/store.spec.ts (19 tests) 3183ms
+     ✓ D11:基名可用直用;重名后缀从 01 递增  347ms
+     ✓ D11:手工占用的同后缀号自动跳过  331ms
+     ✓ D11:基名已含后缀形态的重名照常递增,基名与后缀号互不干扰  341ms
+     ✓ setPassword:验旧密;成功后 password_version 递增(旧会话吊销原语)  343ms
+ ✓ tests/panel-isolation.spec.ts (3 tests) 360ms
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-McXVCq/origin.git
+   2b2c5b4..ab0c2ba  main -> main
+ ✓ tests/within-root.spec.ts (6 tests) 387ms
+ ✓ tests/tenant-guard-matrix.spec.ts (26 tests) 3252ms
+ ✓ tests/workbench-stream.spec.ts (5 tests) 401ms
+ ✓ tests/knowledge-admin-guard.spec.ts (6 tests) 1113ms
+ ✓ tests/password.spec.ts (5 tests) 292ms
+ ✓ tests/companion.spec.ts (4 tests) 245ms
+ ✓ tests/session-create-cwd.spec.ts (3 tests) 227ms
+ ✓ tests/terminal-tenant.spec.ts (4 tests) 207ms
+ ✓ tests/tenant-plugins.spec.ts (11 tests) 101ms
+ ✓ tests/approval-bridge.spec.ts (10 tests) 64ms
+ ✓ tests/thinking-auto.spec.ts (15 tests) 115ms
+ ✓ tests/sandbox-clamp.spec.ts (6 tests) 170ms
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-hrdENl/origin.git
+ * [new branch]      main -> main
+ ✓ tests/plugin.spec.ts (4 tests) 245ms
+ ✓ tests/mux-drift.spec.ts (17 tests) 116ms
+ ✓ tests/role-expansion-anchor.spec.ts (3 tests) 11ms
+ ✓ tests/question-bridge.spec.ts (16 tests) 40ms
+ ✓ tests/client-rpc.spec.ts (5 tests) 72ms
+ ✓ tests/thinking-score.spec.ts (16 tests) 7ms
+ ✓ tests/link-opening.spec.ts (8 tests) 10ms
+ ✓ tests/decision-layer.spec.ts (11 tests) 4ms
+ ✓ tests/tool-schema.spec.ts (6 tests) 5ms
+ ✓ tests/bias-view.spec.ts (3 tests) 5ms
+ ✓ tests/channels-webhook.spec.ts (4 tests) 9ms
+ ✓ tests/login-gate.spec.ts (7 tests) 7ms
+ ✓ tests/thinking-context.spec.ts (9 tests) 5ms
+ ✓ tests/companion-inject.spec.ts (12 tests) 29ms
+ ✓ tests/session.spec.ts (6 tests) 6ms
+ ✓ tests/model-catalog.spec.ts (4 tests) 27ms
+ ✓ tests/ratelimit.spec.ts (3 tests) 3ms
+ ✓ tests/pages.spec.ts (5 tests) 3ms
+Cloning into '/var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-hrdENl/merge-work'...
+done.
+From /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-hrdENl/origin
+ * branch            publish/my-tool-0.1.0 -> FETCH_HEAD
+ ✓ tests/routes.spec.ts (31 tests) 5131ms
+     ✓ 改密:错旧密 400;成功后旧会话 cookie 失效(pwv 吊销)、新 cookie 可用  318ms
+     ✓ 用户列表与创建:非 admin 403;admin 建号默认昵称=账号;重名自动后缀;非法角色/弱密码 400  518ms
+     ✓ WS-C ⑤:普通用户/审批人调端点 403(审批人无权分配角色)  340ms
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-hrdENl/origin.git
+   6fc61d1..b4039bc  main -> main
+ ✓ tests/gateway-role-gate.spec.ts (15 tests) 3453ms
+     ✓ ② bindingsFor:三角色内容绑定同构(仅本人资源,零放宽不变式)  362ms
+     ✓ ③ admin 面端点对 approver 403:用户列表/建号/删号/角色变更/插件启停(审批人≠管理员)  312ms
+     ✓ ① 三档谓词×账本:store 角色行逐档映射;角色变更即档位翻转(WS-D 消费契约)  380ms
+     ✓ ② 普通用户(self 档):两面均只见本人条目(JSON 特征字段);本人裁决后条目消失  342ms
+     ✓ ② 审批人(tenant-pending 档)不放宽既有两面:见本人、不见他人;跨用户裁决 404(缺口 2 fail-closed)  372ms
+     ✓ ② 管理员(all 档)不放宽既有两面:本人零条目;他人条目不可见不可决(缺口 2 fail-closed)  305ms
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-g2OPbS/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-oeBODD/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-k5U2md/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-uCzCpB/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-YSAZXh/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-HiObxN/origin.git
+ * [new branch]      main -> main
+ ✓ tests/market-publish.spec.ts (11 tests) 7894ms
+     ✓ 首发全流程:组装/清单重写/两段 commit/push 到裸仓/compare 链接  1601ms
+     ✓ 二次发布自动递增版本;索引多版本按 SemVer 降序  2400ms
+     ✓ 撞版先查:显式已存在版本在 commit 之前被拒  1349ms
+     ✓ 远端同名分支已存在 → 拒绝(上次 PR 未合并)  528ms
+     ✓ 负路径:TS 源拒发/UI 型拒发/越权目录拒发/缺 package.json 拒发  436ms
+     ✓ 校验红:回退到 origin/main、不 push、带回校验输出  525ms
+     ✓ push=false:停在本地分支,不 push 不开 PR  441ms
+     ✓ clone 缺席自动克隆;clone 不干净拒绝继续  403ms
+
+ Test Files  42 passed (42)
+      Tests  392 passed (392)
+   Start at  01:38:30
+   Duration  8.64s (transform 3.12s, setup 0ms, import 5.62s, tests 37.78s, environment 6ms)
+
+EXIT=0

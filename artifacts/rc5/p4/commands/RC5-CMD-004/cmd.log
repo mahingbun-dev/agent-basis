@@ -1,0 +1,25 @@
+# T39 / 51 §3.12 RC5-CMD-004 — ACP 命令面(按设计无 UI 面)
+# 工作树: /Users/sunny/code/agent-basis-rc5 (feat/dsh-rc5-merge)
+# 时间: 2026-11-20
+# 状态: DEFERRED to W5(未执行真 E4 ACP 会话,不标绿)
+
+[1] 上游 acp profile 组合树(只读诊断):
+  $ T=$(mktemp -d); DSH_HOME="$T" node node_modules/@deepseek-ai/dsh/lib/bin.js --profile acp --dump-config
+  EXIT=0  → acp-dump-config.log(388 行)
+  事实: 宿主 commands 注册表仍在(commands / command-feedback / command-goal / command-compact, 行 201-210,263-266),
+        但无 dsh-client-ui-commands 等 web 客户端面 → 无命令列表面
+
+[2] 上游设计声明(只读):
+  dsh-acp/README.md:82  "Unsupported surfaces are omitted or rejected: ... modes, commands, plans, terminals, ..."
+  dsh-acp/README.md:177 "... modes, commands, plans, terminals, client filesystem operations, and elicitation remain outside this automation surface."
+  dsh-acp/src 无 available_commands / availableCommands 实现(命令面不经 ACP 协议暴露)
+  dsh-acp-app/cordis.patch.yml 只 insert acp-app-startup + acp(stdio JSON-RPC)
+
+[3] 未执行原因:
+  - 51 §0.4 E4 ACP 实例依赖 54 §4.6 T31(B17 ACP entrypoint/service);T31 当前 ⬜ 未实现;
+  - 本工作树无 E4 容器/无 ETERNA_FORM=acp 接线;硬边界禁止起/改生产容器;
+  - 上游 `dsh --profile acp` 只证明上游 bundle 可组合,不等于 Eterna E4 产品面。
+
+[4] 判定:
+  DEFERRED to W5 — T31 落地后按 51 RC5-CMD-004 在 E4 做真 ACP 会话断言(初始化/会话能力面不含命令列表;
+  /compact 文本不被当作 ACP 命令面)。静态证据与「无 UI 面」设计一致,但不能替代 E4 实测。

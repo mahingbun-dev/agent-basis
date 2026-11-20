@@ -1,0 +1,3411 @@
+{
+  "script": "scripts/verify-rc5-env.mjs",
+  "generatedAt": "2026-11-19T22:46:25.940Z",
+  "node": "v24.18.0",
+  "targets": {
+    "dsh": "0.2.2-rc.5",
+    "cordis": "4.1.0",
+    "cosmokit": "1.9.0"
+  },
+  "runtime": "not-run",
+  "composeEnvFile": null,
+  "mode": "env+api-static",
+  "sections": [
+    {
+      "id": "SELF",
+      "title": "扫描规则自检",
+      "note": "正向/负向样例锁死 classifySpec / stripComment / splitArgs / isConstantCode。",
+      "status": "pass",
+      "assertions": [
+        {
+          "name": "规则样例全部通过",
+          "ok": true,
+          "detail": "19/19 条样例通过"
+        }
+      ],
+      "hits": [],
+      "warnings": [],
+      "blockers": []
+    },
+    {
+      "id": "ENV-003",
+      "title": "版本族统一(全仓 package.json 免 v1/core + workspace catalog)",
+      "note": "51 ENV-003:全部 0.2.2-rc.5;cordis 4.1.0;cosmokit 1.9.0。硬门禁=0.2.1/rc.1/4.0.6 的钉版。",
+      "status": "pass",
+      "assertions": [
+        {
+          "name": "catalog dsh 全族 = 0.2.2-rc.5",
+          "ok": true,
+          "detail": "28 个 @deepseek-ai/dsh-* catalog 条目,期望 0.2.2-rc.5;偏离:无"
+        },
+        {
+          "name": "catalog @deepseek-ai/cordis = 4.1.0",
+          "ok": true,
+          "detail": "实测 4.1.0"
+        },
+        {
+          "name": "catalog @deepseek-ai/cosmokit = 1.9.0",
+          "ok": true,
+          "detail": "实测 1.9.0"
+        },
+        {
+          "name": "清单中无 0.2.1/rc.1/4.0.6 钉版",
+          "ok": true,
+          "detail": "扫描 47 个清单 / 63 条 @deepseek-ai/dsh* spec"
+        },
+        {
+          "name": "清单 dsh* 精确版无偏离 rc.5",
+          "ok": true,
+          "detail": "全部 catalog:/workspace:/精确 rc.5"
+        }
+      ],
+      "hits": [],
+      "warnings": [],
+      "blockers": [],
+      "scanned": {
+        "manifests": 47,
+        "dshSpecs": 63,
+        "catalogDsh": 28
+      },
+      "scannedFiles": 48,
+      "files": [
+        ".eterna-super-home/profiles/eterna-super/package.json",
+        "docker/profile/package.json",
+        "market/glue-bundle/package.json",
+        "market/pack-bundle/package.json",
+        "package.json",
+        "packages/access/package.json",
+        "packages/agent-loop/package.json",
+        "packages/approval-cli/package.json",
+        "packages/attachments/package.json",
+        "packages/audit/package.json",
+        "packages/brand/package.json",
+        "packages/brand/skills/dsh-doc/templates/decoration/package.json",
+        "packages/brand/skills/dsh-doc/templates/mcp/package.json",
+        "packages/brand/skills/dsh-doc/templates/personal-tool/package.json",
+        "packages/browser-relay/package.json",
+        "packages/cache-guard/package.json",
+        "packages/channels/package.json",
+        "packages/compaction/package.json",
+        "packages/evolve/package.json",
+        "packages/extension-companion/package.json",
+        "packages/extra/package.json",
+        "packages/glue/package.json",
+        "packages/governance/package.json",
+        "packages/interact/package.json",
+        "packages/knowledge-admin/package.json",
+        "packages/knowledge/package.json",
+        "packages/llm-doctor/package.json",
+        "packages/llm-openai/package.json",
+        "packages/llm/package.json",
+        "packages/memory/package.json",
+        "packages/observe/package.json",
+        "packages/panel/package.json",
+        "packages/prompt-studio/package.json",
+        "packages/session/package.json",
+        "packages/system-prompt/package.json",
+        "packages/tasks/package.json",
+        "packages/toolkit/package.json",
+        "packages/tools/package.json",
+        "packages/ui/package.json",
+        "packages/usage-stats/package.json",
+        "packages/workbench/package.json",
+        "packs/event-planning/package.json",
+        "packs/event-planning/tools/package.json",
+        "packs/industrial-analysis/package.json",
+        "tools/eterna-smoke/package.json",
+        "tools/evals/package.json",
+        "tools/packctl/package.json",
+        "pnpm-workspace.yaml"
+      ]
+    },
+    {
+      "id": "ENV-002",
+      "title": "全仓版本残留(排除历史文档/锁文件)",
+      "note": "51 ENV-002:0.2.2-alpha.2|alpha.3|rc.1 命中 0;本仓另扫 0.2.1/4.0.6。非注释命中为硬门禁,注释命中为信息面。",
+      "status": "pass",
+      "assertions": [
+        {
+          "name": "扫描面不含 .secrets/.env*",
+          "ok": true,
+          "detail": "凭据面 0 文件"
+        },
+        {
+          "name": "代码/配置无非注释残留",
+          "ok": true,
+          "detail": "扫描 1773 个文件,非注释命中 0"
+        }
+      ],
+      "hits": [],
+      "warnings": [
+        "历史叙述命中 80 注释 + 276 文档 + 8 清单 description + 2 裸 rc.1(不计门禁):Dockerfile=1, core=6, docker=3, packages=89, profiles=5, scripts=1, tools=5, acceptance=3, docs=234, plans=19"
+      ],
+      "blockers": [],
+      "scannedFiles": 1773,
+      "selfScanned": false,
+      "gatedCount": 0,
+      "commentCount": 80,
+      "docCount": 276,
+      "proseCount": 8,
+      "weakCount": 2,
+      "informational": {
+        "comments": {
+          "items": [
+            {
+              "path": "Dockerfile",
+              "line": 35,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "# 2026-11-20 rc.5(T40):rc.1 时代三步 workaround 全部删除——(a) 关闭 depsStatusCheck /"
+            },
+            {
+              "path": "core/contracts/src/tools.ts",
+              "line": 4,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 与上游(dsh-tools 0.2.2-alpha.2)语义对齐的自有子集:"
+            },
+            {
+              "path": "core/cordis/tests/smoke.spec.ts",
+              "line": 94,
+              "token": "cordis-4.0.6",
+              "kind": "comment",
+              "gated": false,
+              "text": "// 4.1.0 显式反转级别数值(4.0.6 为 INFO=1/WARN=2);消费方不得按旧序硬编码"
+            },
+            {
+              "path": "docker/profile/migrate-mcp-servers.mjs",
+              "line": 10,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "*      companion 浏览器执行面，rc.1 时代的唯一 MCP 载体。"
+            },
+            {
+              "path": "docker/profile/migrate-mcp-servers.mjs",
+              "line": 68,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "/** 该行是否是独立 mcp-client 行（rc.1 的 mcp-browser 载体；rc.5 模板仍保留 companion 行）。 */"
+            },
+            {
+              "path": "packages/access/src/approval-bridge.ts",
+              "line": 3,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* dsh-web-frontend 0.2.2-rc.1 发行包没有任何审批面(上游 dsh-client-ui-approval"
+            },
+            {
+              "path": "packages/access/src/client/approval-card.tsx",
+              "line": 3,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* (上游 dsh-web-frontend 0.2.2-rc.1 无审批面,session-7e15e6ab 31+ 分钟假死)。"
+            },
+            {
+              "path": "packages/access/src/client/plugin-manager-contract.d.ts",
+              "line": 9,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* rc.1 时代本包页签只有 install/openPackage 两项,rc.5 新增必填 `update()`"
+            },
+            {
+              "path": "packages/access/src/mux.ts",
+              "line": 31,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "*           access denied (no-allow)」根因:上游自 0.2.2-rc.1 起这些流方法的资源解析即"
+            },
+            {
+              "path": "packages/access/src/mux.ts",
+              "line": 75,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "*  路径形态(上游 0.2.2-rc.1 实核):"
+            },
+            {
+              "path": "packages/access/src/mux.ts",
+              "line": 265,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "*  session/create(2026-11-12 第三轮):dsh 0.2.2-rc.1 的工作区行「+」不是全局门,"
+            },
+            {
+              "path": "packages/access/src/plugin.ts",
+              "line": 9,
+              "token": "dsh-alpha.3",
+              "kind": "comment",
+              "gated": false,
+              "text": "* seam 用结构类型钉住(形态取 @deepseek-ai/dsh-host-webserver 0.2.2-alpha.3"
+            },
+            {
+              "path": "packages/access/src/plugin.ts",
+              "line": 300,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "// (alpha.3 主路径)+ inbox/inserted(rc.1 兼容,双路径去重);选档落盘在"
+            },
+            {
+              "path": "packages/access/src/question-bridge.ts",
+              "line": 6,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 根因链(全部 file:line 实核,dsh 0.2.2-rc.1):"
+            },
+            {
+              "path": "packages/access/src/thinking-auto.ts",
+              "line": 7,
+              "token": "dsh-alpha.3",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 信号面(生产内核 dsh 0.2.2-alpha.3 与 rc.1 载荷差异实测,详见 docs/dev/thinking-auto.md):"
+            },
+            {
+              "path": "packages/access/src/thinking-auto.ts",
+              "line": 7,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 信号面(生产内核 dsh 0.2.2-alpha.3 与 rc.1 载荷差异实测,详见 docs/dev/thinking-auto.md):"
+            },
+            {
+              "path": "packages/access/src/thinking-auto.ts",
+              "line": 12,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* - rc.1+:inbox/inserted 载荷带回 agent ⇒ 保留该路径,双路径以"
+            },
+            {
+              "path": "packages/access/src/thinking-auto.ts",
+              "line": 62,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "/** rc.1+ inbox/inserted 载荷(alpha.3 只有 message 字段,本类型字段全部可选)。 */"
+            },
+            {
+              "path": "packages/access/src/thinking-auto.ts",
+              "line": 110,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "/** 去重表上限与条目寿命(rc.1 双路径同 tick 去重;内存有界)。 */"
+            },
+            {
+              "path": "packages/access/src/thinking-auto.ts",
+              "line": 349,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "// 信号面 2(rc.1+ 兼容):inbox/inserted 载荷带 agent;alpha.3 无 agent 字段自然短路"
+            },
+            {
+              "path": "packages/access/tests/mux-drift.spec.ts",
+              "line": 39,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "// .pnpm 目录名形如 @deepseek-ai+dsh-api-session-controller@0.2.2-rc.1_<peerhash>"
+            },
+            {
+              "path": "packages/access/tests/thinking-auto.spec.ts",
+              "line": 3,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* rc.1 兼容;选档落盘在微任务)与 store 开关/迁移。"
+            },
+            {
+              "path": "packages/cache-guard/src/types.ts",
+              "line": 4,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 来源与依据(deepseek-harness,0.2.2-alpha.2,只读):"
+            },
+            {
+              "path": "packages/cache-guard/tests/types.seam-pin.ts",
+              "line": 6,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 0.2.2-alpha.2)类型**断言:缓存守护的最小接口与官方 seam 双向兼容——DSH 升级破坏"
+            },
+            {
+              "path": "packages/channels/tests/types.seam-pin.ts",
+              "line": 9,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* - 绑定数据面:@deepseek-ai/dsh-storage-domain 0.2.2-alpha.2 导出"
+            },
+            {
+              "path": "packages/compaction/src/index.ts",
+              "line": 4,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 为什么包根是它:client-modules 收集器(0.2.2-rc.1 lib/index.ts exactPackageSpecifier)"
+            },
+            {
+              "path": "packages/compaction/src/stale/index.ts",
+              "line": 9,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* `eventAt`/`snapshotEvents`/`ownEvents` 已 @deprecated（dsh-session 0.2.2-alpha.2"
+            },
+            {
+              "path": "packages/evolve/src/models.ts",
+              "line": 64,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* src/types.ts GenerateOptions/StreamChunk,0.2.2-alpha.2):"
+            },
+            {
+              "path": "packages/evolve/src/models.ts",
+              "line": 81,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* (判别联合,kind 判别;0.2.2-alpha.2 packages/llm/llm/src/types.ts:163-172)。"
+            },
+            {
+              "path": "packages/evolve/tests/types.seam-pin.ts",
+              "line": 5,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 本文件用已发布 @deepseek-ai/dsh-llm(0.2.2-alpha.2,与 deepseek-harness 同版)类型断言:"
+            },
+            {
+              "path": "packages/extra/tests/types.seam-pin.ts",
+              "line": 7,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "*    返回 ContentBlock[])与已发布 0.2.2-alpha.2 类型双向兼容;"
+            },
+            {
+              "path": "packages/governance/src/types.ts",
+              "line": 4,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 来源与依据(deepseek-harness,0.2.2-alpha.2,只读):"
+            },
+            {
+              "path": "packages/governance/tests/types.seam-pin.ts",
+              "line": 6,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 0.2.2-alpha.2)类型**断言:治理包的最小接口与官方 seam 双向兼容——DSH 升级破坏"
+            },
+            {
+              "path": "packages/interact/src/types.ts",
+              "line": 8,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* `import type` 从已发布 0.2.2-alpha.2 依赖引入(与 deepseek-harness 同版),不在本文件重复;"
+            },
+            {
+              "path": "packages/interact/tests/types.seam-pin.ts",
+              "line": 6,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* dsh-permission-presets / dsh-sandbox(均与 deepseek-harness 同为 0.2.2-alpha.2)类型**断言"
+            },
+            {
+              "path": "packages/knowledge/src/index.ts",
+              "line": 20,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* DSH seam 用已发布 @deepseek-ai/dsh-tools 0.2.2-alpha.2 类型编译期钉住(tests/types.seam-pin.ts)。"
+            },
+            {
+              "path": "packages/knowledge/src/tools.ts",
+              "line": 5,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* DSH 官方 ToolDefinition(seam 类型来自已发布 @deepseek-ai/dsh-tools 0.2.2-alpha.2,编译期钉住;"
+            },
+            {
+              "path": "packages/knowledge-admin/src/tools.ts",
+              "line": 21,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* `@deepseek-ai/dsh-tools` 0.2.2-alpha.2 的 ToolDefinition(seam 类型编译期钉住)。"
+            },
+            {
+              "path": "packages/memory/src/approval.ts",
+              "line": 6,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 两个 client 包**未打进 dsh-web-frontend 0.2.2-rc.1 发行包**(发行包 JS 内"
+            },
+            {
+              "path": "packages/memory/src/client/index.tsx",
+              "line": 161,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "// 作用域条目合并的版本行为(chat rc.1),非本包可修;升版后本注册零改动生效。"
+            },
+            {
+              "path": "packages/memory/src/tools.ts",
+              "line": 5,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* seam 依据(deepseek-harness,只读;类型取自已发布 0.2.2-alpha.2):"
+            },
+            {
+              "path": "packages/memory/tests/types.seam-pin.ts",
+              "line": 6,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 同为 0.2.2-alpha.2)类型**断言:记忆包的工具/注入接口与官方 seam 双向兼容——"
+            },
+            {
+              "path": "packages/observe/src/types.ts",
+              "line": 4,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 来源与依据(deepseek-harness,0.2.2-alpha.2,只读):"
+            },
+            {
+              "path": "packages/observe/tests/types.seam-pin.ts",
+              "line": 6,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 0.2.2-alpha.2)类型**断言:观测包的最小接口与官方 seam 双向兼容——DSH 升级破坏"
+            },
+            {
+              "path": "packages/panel/src/client/index.ts",
+              "line": 12,
+              "token": "cordis-4.0.6",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 4.0.6-alpha.2)服务面比本仓库安装的 alpha.1 类型宽,跨包类型导入会引入"
+            },
+            {
+              "path": "packages/prompt-studio/src/assembly-replay.ts",
+              "line": 8,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 机制依据 spike 报告 docs/dev/ps-v2-spike.md(0.2.2-rc.1 真宿主 27/27):"
+            },
+            {
+              "path": "packages/prompt-studio/src/trace.ts",
+              "line": 8,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* SessionEventMap 为准(本仓库实测 0.2.2-rc.1):"
+            },
+            {
+              "path": "packages/prompt-studio/tests/assembly-replay.test.ts",
+              "line": 11,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 机制口径依据 spike 报告 docs/dev/ps-v2-spike.md(0.2.2-rc.1 真宿主 27/27):"
+            },
+            {
+              "path": "packages/tasks/cordis.patch.yml",
+              "line": 20,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "# - 契约版本钉住(28 号 §4-1):basic-plugin 实现的是 @deepseek-ai/dsh 0.2.2-rc.1 的"
+            },
+            {
+              "path": "packages/tasks/src/plugin.ts",
+              "line": 129,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 0.2.2-rc.1 面(tests/types.seam-pin.ts)与 fixtures/host.ts 的同构装配先例。"
+            },
+            {
+              "path": "packages/tasks/src/session/sessions.ts",
+              "line": 7,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* permissionPresets/sessionPersistence 在 DSH 0.2.2-rc.1 全部存在且签名与 SA 用法"
+            },
+            {
+              "path": "packages/tasks/src/session/sessions.ts",
+              "line": 10,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "*   → `'session/not-found'` 判新建 → `workspaceRegistry.create(cwd)`(标题解耦:rc.1"
+            },
+            {
+              "path": "packages/tasks/src/session/sessions.ts",
+              "line": 13,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "*   `sessionController.create({ sessionId, workspaceId, agentPreset })`(rc.1 的"
+            },
+            {
+              "path": "packages/tasks/src/session/sessions.ts",
+              "line": 32,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 签名逐字对齐 A0 §5 实测的 0.2.2-rc.1 面,形状漂移由 fixtures/host.ts 的假件"
+            },
+            {
+              "path": "packages/tasks/src/session/sessions.ts",
+              "line": 54,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 宿主 session 服务面的结构端口(A0 §5-C11 钉住的 0.2.2-rc.1 签名;glue 以"
+            },
+            {
+              "path": "packages/tasks/src/session/sessions.ts",
+              "line": 61,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "*   (rc.1 index.d.ts:146;title 仅新建时生效,同 path 幂等复用既有登记且不改其 title——"
+            },
+            {
+              "path": "packages/tasks/src/session/sessions.ts",
+              "line": 63,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* - `permissions`:PermissionPresetService.set(session, name)(rc.1 index.d.ts:177);"
+            },
+            {
+              "path": "packages/tasks/src/session/sessions.ts",
+              "line": 65,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "*   read(offset, length) → { events } / close()(rc.1 index.d.ts:133/145、"
+            },
+            {
+              "path": "packages/tasks/src/session/sessions.ts",
+              "line": 220,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "// workspace 标题与会话标题解耦(43-M4 §四『workspace 组名重名』根因):rc.1 的"
+            },
+            {
+              "path": "packages/tasks/tests/fixtures/host.ts",
+              "line": 16,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "*   钉住的 0.2.2-rc.1 面,经 ctx.reflect.provide 挂真实服务名;"
+            },
+            {
+              "path": "packages/tasks/tests/fixtures/host.ts",
+              "line": 332,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "//    0.2.2-rc.1 面:resolveAgent/create/rename + workspaceRegistry + permissionPresets +"
+            },
+            {
+              "path": "packages/tasks/tests/fixtures/host.ts",
+              "line": 347,
+              "token": "bare-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "// rc.1 createCanonical 幂等语义(dsh-workspace「Repeated calls for the same canonical"
+            },
+            {
+              "path": "packages/tasks/tests/plugin-boot.spec.ts",
+              "line": 289,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "/** 宿主 session 服务面假件(签名逐项对齐 A0 §5-C11 钉住的 0.2.2-rc.1 面;fixtures/host.ts 同构假件的紧凑版)。 */"
+            },
+            {
+              "path": "packages/tasks/tests/plugin-boot.spec.ts",
+              "line": 486,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "// (服务名 = DSH 0.2.2-rc.1 实测键:sessionController/workspaceRegistry/"
+            },
+            {
+              "path": "packages/tasks/tests/runtime.spec.ts",
+              "line": 20,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 服务面假件的紧凑版,服务名与 DSH 0.2.2-rc.1 实测一致,经 ctx.reflect.provide 挂载);"
+            },
+            {
+              "path": "packages/tasks/tests/runtime.spec.ts",
+              "line": 54,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 同构宿主装配(fixtures/host.ts 的紧凑版;服务名经 DSH 0.2.2-rc.1 实测核对):"
+            },
+            {
+              "path": "packages/tasks/tests/runtime.spec.ts",
+              "line": 91,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "// 宿主 session 服务面假件(A0 §5-C11 钉住的 0.2.2-rc.1 签名;错误按 RemoteError code 判别)。"
+            },
+            {
+              "path": "packages/tasks/tests/sessions.spec.ts",
+              "line": 2,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* Sessions.ensure 的 workspace 登记面用例(41 号 A4;上游 0.2.2-rc.1 workspaceRegistry"
+            },
+            {
+              "path": "packages/tasks/tests/types.seam-pin.ts",
+              "line": 4,
+              "token": "dsh-0.2.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 目的(35 号 §10 风险表「DSH 0.2.1→0.2.2-rc.1 契约差破坏 executor」行;34 §6-8):"
+            },
+            {
+              "path": "packages/tasks/tests/types.seam-pin.ts",
+              "line": 4,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 目的(35 号 §10 风险表「DSH 0.2.1→0.2.2-rc.1 契约差破坏 executor」行;34 §6-8):"
+            },
+            {
+              "path": "packages/tasks/tests/types.seam-pin.ts",
+              "line": 8,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 依据(本仓 node_modules 实测,catalog 均为 0.2.2-alpha.2):"
+            },
+            {
+              "path": "packages/tasks/tests/types.seam-pin.ts",
+              "line": 14,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 注:35 号 A0-2/A14 仍须对本仓 DSH 0.2.2-rc.1 宿主做全量 seam 复核与事件订阅对齐"
+            },
+            {
+              "path": "packages/tasks/tests/types.seam-pin.ts",
+              "line": 72,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "// 0.2.2-rc.1 全部存在且签名与 SA 用法吻合。"
+            },
+            {
+              "path": "packages/ui/tests/contract.spec.ts",
+              "line": 30,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "* （`@deepseek-ai+dsh-client-ui-theme@0.2.2-rc.1_...`），不是 `@scope/name` 的 `/`。"
+            },
+            {
+              "path": "profiles/eterna-embed/cordis.patch.yml",
+              "line": 13,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "# 行 id/行号核对自装品 @deepseek-ai/dsh-base 0.2.2-rc.1 的 cordis.patch.yml"
+            },
+            {
+              "path": "profiles/eterna-embed/cordis.patch.yml",
+              "line": 17,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "# @deepseek-ai/dsh-headless 0.2.2-rc.1 cordis.patch.yml，与本仓库检出逐字一致）。"
+            },
+            {
+              "path": "scripts/smoke-embed.mjs",
+              "line": 19,
+              "token": "dsh-rc.1",
+              "kind": "comment",
+              "gated": false,
+              "text": "*     =stop 在 DSH 0.2.2-rc.1 各官方面都投影为 turn reason kind 'completed'，"
+            },
+            {
+              "path": "tools/evals/src/types.ts",
+              "line": 7,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 会话事件形态对齐 DSH(deepseek-harness,0.2.2-alpha.2,只读):"
+            },
+            {
+              "path": "tools/evals/src/types.ts",
+              "line": 11,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "*   (已发布 @deepseek-ai/dsh-user-approval 0.2.2-alpha.2 同源);"
+            },
+            {
+              "path": "tools/evals/tests/types.seam-pin.ts",
+              "line": 6,
+              "token": "dsh-alpha.2",
+              "kind": "comment",
+              "gated": false,
+              "text": "* 0.2.2-alpha.2)类型**断言评测包消费的事件形态与官方 seam 兼容——DSH 升级"
+            }
+          ],
+          "total": 80,
+          "truncated": false
+        },
+        "docs": {
+          "items": [
+            {
+              "path": "acceptance/INDEX.md",
+              "line": 111,
+              "token": "dsh-alpha.3",
+              "kind": "doc",
+              "gated": false,
+              "text": "1. **dsh-mcp-client 版本族**：rc.1 被 dsh@0.2.2-alpha.3 内核静默 disable（requirements 整组 rc.1 包不匹配）——「@deepseek-ai 须同版本」老坑的版本族变体；改装同族 0.2.2-alpha.3 后零拒装、容器内 MCP initialize+tools/list 三工具全通。"
+            },
+            {
+              "path": "acceptance/INDEX.md",
+              "line": 111,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "1. **dsh-mcp-client 版本族**：rc.1 被 dsh@0.2.2-alpha.3 内核静默 disable（requirements 整组 rc.1 包不匹配）——「@deepseek-ai 须同版本」老坑的版本族变体；改装同族 0.2.2-alpha.3 后零拒装、容器内 MCP initialize+tools/list 三工具全通。"
+            },
+            {
+              "path": "acceptance/INDEX.md",
+              "line": 135,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- **治理白名单 52 工具全量对账补齐（2026-11-13 三轮，session-7e15e6ab 挂死事故）**：修复链层层剥洋葱后浏览器工具首次活着走到治理层，暴露「`mcp__browser__*` 不在白名单 → default ask → web 前端无审批面（上游 dsh-web-frontend 0.2.2-rc.1 无任何审批代码；`dsh-client-ui-approva"
+            },
+            {
+              "path": "core/cordis/README.md",
+              "line": 35,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "逐文件 diff `4.0.6-alpha.1 → 4.1.0` 后,上表 12 项仍是全集:新版没有引入新的不可擦除语法(无新参数属性 / `const enum` / 值 namespace),因此**未新增变换项**。落点变化:"
+            },
+            {
+              "path": "core/cordis/README.md",
+              "line": 37,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "- `registry.ts` / `service.ts` / `index.ts` 与 4.0.6-alpha.1 逐字节相同,沿用上一版已改造文件;"
+            },
+            {
+              "path": "core/cordis/README.md",
+              "line": 41,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "### 4.0.6-alpha.1 → 4.1.0 上游语义变更清单(供消费方适配,非本包改造)"
+            },
+            {
+              "path": "core/cordis/README.md",
+              "line": 45,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `LoggerLevel` | **数值反转**:`WARN = 1` / `INFO = 2`(4.0.6 为 `INFO = 1` / `WARN = 2`);按数值比较级别的 exporter 必须复核 |"
+            },
+            {
+              "path": "docs/USER-GUIDE.md",
+              "line": 198,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "pnpm add @deepseek-ai/dsh-experimental-plugin-market-bundle@0.2.2-rc.1"
+            },
+            {
+              "path": "docs/design/04-DSH源码设计笔记.md",
+              "line": 3,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "> 研读时间:2026-11-03。对象:官方仓库浅克隆 `master@ce7073d5`(版本 `0.2.2-alpha.2`,20,233 个文件)。本地路径:`~/.zcode/workspace/draft-50d92869-2a8d-4d02-8c95-cccdab6eafca/deepseek-harness`。所有结论附仓库内文件路径证据。关联:[[05-Cordis论文研读笔记]"
+            },
+            {
+              "path": "docs/design/04-DSH源码设计笔记.md",
+              "line": 99,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 当前 `0.2.2-alpha.2`;README:\"developer preview… THERE WILL BE COMPATIBILITY-BREAKING CHANGES\";`AGENTS.md`:\"Public APIs are pre-stable; update every consumer\"。"
+            },
+            {
+              "path": "docs/design/04-DSH源码设计笔记.md",
+              "line": 100,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 每个破坏性变更记入 `docs/upgrade-guide/`(v0.1.7-rc.2 … v0.2.2-alpha.2);Session 格式迁移链 v0→v4(已发布代不改名不删除);`ignorable` 事件标记是向前兼容机制。"
+            },
+            {
+              "path": "docs/design/19-progress.md",
+              "line": 102,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- **带病项(如实)**:Sources 行(turnTail 条目)宿主 rc.1 会话作用域 slot 合并不生效——取证结论与双挂载兼容见提交 5c70d97 与 index.tsx 注释;Definition 数据面已实测可用,宿主升版后零改动生效。CI 的 tools/evals+compaction 两红属压缩线(PR #79 留言归属)。"
+            },
+            {
+              "path": "docs/design/19-progress.md",
+              "line": 139,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "**0.1.4 追记(2026-11-16,Sources 行真根因修复上线)**:§9 的\"宿主 rc.1 版本行为\"结论**被推翻**——生产会话 log+前端 fiber 反查三线取证实锤:`turnTail` 条目收到的 `turn` prop 就是 TurnLocation 本身(宿主 ContextualEntry 摊平 ownerProps),`selectMemorySources"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 7,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "> 证据基线:dsh 运行时类型与事件词表核对自只读源仓 `/Users/sunny/code/deepseek-harness`(版本 0.2.2-rc.1,与本仓 node_modules 同版本);持久化事件负载另用本机真实会话日志(`~/.dsh/sessions/...`)解码实测确认。本仓 node_modules 只装了 `@deepseek-ai/dsh`(CLI 插件管理 bun"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 59,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 本仓 node_modules 只装了 `@deepseek-ai/dsh`(CLI 插件管理 bundle)与 `dsh-sdk-client`;dsh 运行时事件词表不在 node_modules 里,grep 其 `lib/plugin-*.js` 无 'turn/end'(那是 plugin-manager CLI,非运行时)。词表与类型取自只读源仓 `/Users/sunny/cod"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 70,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- node_modules 核查:`grep 'turn/end' /Users/sunny/code/agent-basis/node_modules/@deepseek-ai/dsh/lib/plugin-DscIHF4k.js` 计数 0(CLI bundle 非运行时);dsh/package.json 显示 dsh-session 0.2.2-rc.1 仅列 devDependenci"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 88,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "2. **官方服务面(注册面)**:宿主 dsh-base 0.2.2-rc.1 装品 cordis.patch.yml 已装载行 `user-questions`(@deepseek-ai/dsh-user-questions,装品 :79-80)与 `approval`(dsh-user-approval,:260),eterna-web patch 未裁它们——`ctx.userQuesti"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 92,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "4. **UI 消费 slot(断点)**:`conversation.approval.card`(dsh-client-ui-approval slots.d.ts SlotFactoryMap,scope:'session',props 为该包自己的 ApprovalCardInput——requestKey/title/canAnswer/onAllow/onReject,与 intera"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 107,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 官方包:`packages/interact/node_modules/@deepseek-ai/dsh-user-questions/lib/types/types.d.ts:147-176`;`lib/index.js:270`;`lib/index.js:676`;`README.md:12`;`node_modules/.pnpm/@deepseek-ai+dsh-tool-ask-u"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 108,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 宿主装载与断点:`.basis-home-t7/profiles/t7-studio/node_modules/.pnpm/@deepseek-ai+dsh-base@0.2.2-rc.1_*/node_modules/@deepseek-ai/dsh-base/cordis.patch.yml:79-80`、`:260`;`.basis-home-t7/profiles/t7-studio/"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 182,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- slot 合同:`node_modules/.pnpm/@deepseek-ai+dsh-client-ui-chat@0.2.2-rc.1_*/node_modules/@deepseek-ai/dsh-client-ui-chat/lib/types/client/contract/slots.d.ts:436-440`('conversation.chat.turnTail':kind "
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 183,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- Conversation 合同:`node_modules/.pnpm/@deepseek-ai+dsh-client-ui-conversation@0.2.2-rc.1_*/node_modules/@deepseek-ai/dsh-client-ui-conversation/lib/types/client/contract/conversation.d.ts:87-95`(TurnL"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 184,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 官方先例实现:`node_modules/.pnpm/@deepseek-ai+dsh-client-ui-deliverables@0.2.2-rc.1_*/node_modules/@deepseek-ai/dsh-client-ui-deliverables/lib/client.js:1151-1254`(deliverablesDefinition:match turn/start "
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 185,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 事件负载与 meta:`node_modules/.pnpm/@deepseek-ai+dsh-session@0.2.2-alpha.2_*/node_modules/@deepseek-ai/dsh-session/lib/types/types.d.ts:362-368`('tool/call' 负载);`:382-399`('tool/result' 负载;meta 由产出工具自持形状"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 185,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 事件负载与 meta:`node_modules/.pnpm/@deepseek-ai+dsh-session@0.2.2-alpha.2_*/node_modules/@deepseek-ai/dsh-session/lib/types/types.d.ts:362-368`('tool/call' 负载);`:382-399`('tool/result' 负载;meta 由产出工具自持形状"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 186,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 本仓:`packages/memory/src/tools.ts:38`(MEMORY_TOOL_NAMES = ['memory_write','memory_read','memory_search','memory_forget']);`:164-227`(memory_read 返回 {found, record{key,summary}};memory_search 返回 {coun"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 201,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "1. 服务取法:`ctx.llm: LlmRuntime` 是 cordis Context 增强服务(dsh-llm lib/types/index.d.ts:28-31)。glue 插件对象用 inject 对象形态声明(照 `packages/glue/src/plugins/memory-plugin.ts:15` 的 `{ tools: true, ..., governance: fa"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 217,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 上游 one-shot 先例:`node_modules/.pnpm/@deepseek-ai+dsh-session-title-llm@0.2.2-rc.1_*/node_modules/@deepseek-ai/dsh-session-title-llm/lib/index.js:181-215`。"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 219,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- schedule/jobs 判定:`node_modules/.pnpm/@deepseek-ai+dsh-schedule@0.2.2-rc.1_*/node_modules/@deepseek-ai/dsh-schedule/lib/types/index.d.ts:24-34`;`index.d.ts:98`;`README.zh.md:2`;`README.zh.md:12`;`nod"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 219,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "- schedule/jobs 判定:`node_modules/.pnpm/@deepseek-ai+dsh-schedule@0.2.2-rc.1_*/node_modules/@deepseek-ai/dsh-schedule/lib/types/index.d.ts:24-34`;`index.d.ts:98`;`README.zh.md:2`;`README.zh.md:12`;`nod"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 232,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "**exec 形状(已核实,memory 实际解析版本 @deepseek-ai/dsh-tools@0.2.2-alpha.2,pnpm-workspace.yaml:41 catalog)**"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 253,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "- exec 类型:`node_modules/.pnpm/@deepseek-ai+dsh-tools@0.2.2-alpha.2_*/node_modules/@deepseek-ai/dsh-tools/lib/types/contracts.d.ts:36`(execute(args, exec: ToolRunContext) 签名);`contracts.d.ts:163`(ToolE"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 254,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "- agent/session 面:`node_modules/.pnpm/@deepseek-ai+dsh-agent@0.2.2-alpha.2_*/node_modules/@deepseek-ai/dsh-agent/lib/types/types.d.ts:14`(Agent 基础接口 readonly id: SessionId);`lib/types/runtime-types.d."
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 255,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 派发面:`node_modules/.pnpm/@deepseek-ai+dsh-tools@0.2.2-alpha.2_*/node_modules/@deepseek-ai/dsh-tools/lib/pipeline.js:39`(agent loop 派发时 exec 注入 agent 字段);`pipeline.js:471`(tool.execute(exec.arguments,"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 256,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 本仓先例与现状:`packages/access/src/plugin.ts:226`(仓库先例:exec.agent?.session.id,上游 tools/pre-execute 类型);`packages/access/src/sandbox.ts:71`(仓库先例:exec.agent?.session?.id;本地 ToolExecLike 定义在 :30);`packages/m"
+            },
+            {
+              "path": "docs/design/19a-spike-conclusions.md",
+              "line": 274,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "5. **§4 T9 第 2/3 点(177-178 行,审批闭环)**:M-M2 定稿采第 3 点最小版(panel snapshot 增 pendingCount + 面板审批列表,拒两击确认,裁决走 `Memory.review`);第 2 点的 ApprovalCardInput 组卡保留(类型复用)但**不投官方通道**——因 dsh-client-ui-approval/user-qu"
+            },
+            {
+              "path": "docs/design/22-压缩系统开发文档-M-C1至M-C3.md",
+              "line": 49,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "### 1.5 dsh-session / token-meter API（版本 0.2.2-alpha.2）"
+            },
+            {
+              "path": "docs/design/24-主动工作体系融合设计-任务内核与chat-demo范式.md",
+              "line": 27,
+              "token": "dsh-0.2.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "**关键结构判断**：superagent 是 Cordis plugin bundle（`dsh ^0.2.1-alpha.2`），本产品锚 `@deepseek-ai/dsh 0.2.2-rc.1`——**版本有差，但 Ports 解耦使其内核可移植**。⚠️ 不要把 superagent 作为第二个 bundle 并装（plugin id / stateDir / panel 路由三重冲突）"
+            },
+            {
+              "path": "docs/design/24-主动工作体系融合设计-任务内核与chat-demo范式.md",
+              "line": 27,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "**关键结构判断**：superagent 是 Cordis plugin bundle（`dsh ^0.2.1-alpha.2`），本产品锚 `@deepseek-ai/dsh 0.2.2-rc.1`——**版本有差，但 Ports 解耦使其内核可移植**。⚠️ 不要把 superagent 作为第二个 bundle 并装（plugin id / stateDir / panel 路由三重冲突）"
+            },
+            {
+              "path": "docs/design/28-上下文策略-主Session滚动治理与自研压缩替换.md",
+              "line": 125,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 1 | **契约版本钉住** | basic-plugin 实现的是 `@deepseek-ai/dsh 0.2.2-rc.1` 的 compaction 契约；DSH pre-stable 期契约可能变（rc.3 曾全仓改名不留兼容）→ 纳入 `upgrade-gate.md` 门禁清单 |"
+            },
+            {
+              "path": "docs/design/33-开发总工作流与门禁.md",
+              "line": 214,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "| G4-6 | 钉版与 rc 红线 | **过滤版钉版自查输出为空**（只检 `\"@deepseek-ai/dsh*\": \"<版本>\"` 形态的依赖行、排除装载清单裸包名数组——upgrade-gate.md §0 原命令无法区分二者，本日实测原命令输出 36 行非空致恒红：33 行为 `dsh.client.inject` 等装载清单裸包名 + 3 行 market 范围符）；同族整族升级无半"
+            },
+            {
+              "path": "docs/design/33-开发总工作流与门禁.md",
+              "line": 369,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "12. **钉版 grep 文档与实现矛盾待裁定**：market/glue-bundle、pack-bundle 的 peerDeps 实测为 `>=0.2.2-alpha.2` 范围符，与 `docs/upgrade-gate.md` §1\"market peerDeps 精确版\"记载直接矛盾；处置二选一（修三处 peerDeps 为精确版 / 修 upgrade-gate.md §1 口径为"
+            },
+            {
+              "path": "docs/design/34-tasks包详细设计-草案.md",
+              "line": 150,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `src/executor/dsh.ts`（673） | `src/executor/dsh.ts`（主体）+ `slots.ts` + `workspace.ts` + `gates.ts` 拆分 | 拆四个文件避免单文件 673 行（本仓可读性惯例）。**去 worktree**：`ticketExecution`（dsh.ts:97-111）与 `ticketWorktreeName`（"
+            },
+            {
+              "path": "docs/design/34-tasks包详细设计-草案.md",
+              "line": 327,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "1. **R6 宿主能力评估的前置性**：`tool-jobs`/`schedule`/session persistence 能否承接 `launch/delivery/relay` 等 effect kind，决定 Effects 队列的裁剪幅度——需在开工前对 DSH 0.2.2-rc.1 宿主做一次 seam 评估并记录结论（本文按「Effects 全量照搬」保守设计）。"
+            },
+            {
+              "path": "docs/design/34-tasks包详细设计-草案.md",
+              "line": 334,
+              "token": "dsh-0.2.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "8. **DSH 契约版本差**：SA 锚 `dsh 0.2.1-alpha.2`、本仓 `0.2.2-rc.1`——executor 依赖的四类事件（agent/status、agent/inbox/claimed、session/event、agent/error）与 sessions 面签名需 seam 钉住并纳入 upgrade-gate 门禁（28 号 §4-1 同款风险）。"
+            },
+            {
+              "path": "docs/design/34-tasks包详细设计-草案.md",
+              "line": 334,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "8. **DSH 契约版本差**：SA 锚 `dsh 0.2.1-alpha.2`、本仓 `0.2.2-rc.1`——executor 依赖的四类事件（agent/status、agent/inbox/claimed、session/event、agent/error）与 sessions 面签名需 seam 钉住并纳入 upgrade-gate 门禁（28 号 §4-1 同款风险）。"
+            },
+            {
+              "path": "docs/design/35-tasks内核开发文档.md",
+              "line": 23,
+              "token": "dsh-0.2.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| B9 | DSH 版本差：SA 锚 `0.2.1-alpha.2`，本仓 `0.2.2-rc.1` | 24 号 §1；34 号 §6-8 |"
+            },
+            {
+              "path": "docs/design/35-tasks内核开发文档.md",
+              "line": 23,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| B9 | DSH 版本差：SA 锚 `0.2.1-alpha.2`，本仓 `0.2.2-rc.1` | 24 号 §1；34 号 §6-8 |"
+            },
+            {
+              "path": "docs/design/35-tasks内核开发文档.md",
+              "line": 52,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "**交付**：对 DSH `0.2.2-rc.1` 宿主做一次 seam 评估并记录结论：① `tool-jobs`/`schedule`/session persistence 能否承接 `launch/delivery/relay` 等 effect kind（决定 A12 的裁剪幅度；结论未出前按「Effects 全量照搬」保守设计）；② executor 依赖的四类宿主事件（agent/s"
+            },
+            {
+              "path": "docs/design/35-tasks内核开发文档.md",
+              "line": 180,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "**交付**：`src/executor/dsh.ts`（主体，去 worktree：`ticketExecution`/`ticketWorktreeName` 删除；`install()` 四类宿主事件订阅按本仓 DSH 0.2.2-rc.1 事件名对齐，seam 钉住 `tests/types.seam-pin.ts`；`workerIdle` 30 分钟后台限与 `BACKGROUND_L"
+            },
+            {
+              "path": "docs/design/35-tasks内核开发文档.md",
+              "line": 314,
+              "token": "dsh-0.2.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| DSH 0.2.1→0.2.2-rc.1 契约差破坏 executor | 四类事件与 sessions 面 seam 钉住 `tests/types.seam-pin.ts`；升版走 upgrade-gate SOP | 34 §6-8；28 §4-1；33 G4-5 |"
+            },
+            {
+              "path": "docs/design/35-tasks内核开发文档.md",
+              "line": 314,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| DSH 0.2.1→0.2.2-rc.1 契约差破坏 executor | 四类事件与 sessions 面 seam 钉住 `tests/types.seam-pin.ts`；升版走 upgrade-gate SOP | 34 §6-8；28 §4-1；33 G4-5 |"
+            },
+            {
+              "path": "docs/design/39-channels 与 interact 接线开发文档.md",
+              "line": 74,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- **面板送达先例**：`packages/memory/src/approval.ts:4-18`（S2 实测结论）——官方 `conversation.approval.card` 所在 client 包未打进 dsh-web-frontend 0.2.2-rc.1 发行包，现行送达走面板审批队列。E4 的渠道送达（channels 出站）不受此限制，但站内横幅仍归 WS-D。"
+            },
+            {
+              "path": "docs/design/43-M4真实链路端到端验收记录.md",
+              "line": 63,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "宿主缺省=目录末段),同 cwd 幂等复用既有登记(rc.1 dsh-workspace createCanonical"
+            },
+            {
+              "path": "docs/design/44-super架构收官清单.md",
+              "line": 15,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| A3 | DSH 0.2.2-rc.1 版本钉与名字依赖核对 | ✅ no-change | 零改动:deepseek-harness package.json:3 与 agent-basis package.json:26 均 `0.2.2-rc.1`(grep 实证);dsh.ts:41-45 workerSessionId/ticketOfSession 及 18 个消费点逐一命中同一约"
+            },
+            {
+              "path": "docs/design/44-super架构收官清单.md",
+              "line": 16,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| A4 | workspace 标题与 会话标题解耦(根因修复) | ✅ done | sessions.ts:177 改 `workspaces.create(cwd)`(rc.1 createCanonical:同 path 幂等复用不改 title,标题回落宿主缺省=目录末段;头注 :9-14 与端口注 :54-56 同步);tests/fixtures/host.ts:294-305 假"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 14,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "> **v6 决议（2026-11-19）**：P0-2 **不做 rc.1 检查点，直接升 rc.5**（§5 Phase 1 合并两段）；"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 46,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "npm 事实：`latest = 0.2.2-rc.1`，`next = 0.2.2-rc.5`——**rc.5 是预发布通道**。"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 52,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `pnpm-workspace.yaml` catalog（20 个 `dsh-*` + cordis/cosmokit/schemastery） | `0.2.2-alpha.2` / cordis `4.0.6-alpha.1` / cosmokit `~1.8.7-alpha.1` |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 52,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `pnpm-workspace.yaml` catalog（20 个 `dsh-*` + cordis/cosmokit/schemastery） | `0.2.2-alpha.2` / cordis `4.0.6-alpha.1` / cosmokit `~1.8.7-alpha.1` |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 53,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 根 `package.json` devDependencies | `0.2.2-rc.1`；`engines.node` 仍 `>=22` |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 54,
+              "token": "dsh-alpha.3",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `Dockerfile:2,50` 全局内核 + mcp-client | `0.2.2-alpha.3` |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 55,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `packages/llm-openai` | `0.2.2-rc.1`（其 cordis/loader/cosmokit 已是 4.1.0/1.1.0/1.9.0） |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 56,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `tools/evals`、`packs/*`、`market/*`、`basis/basis-minimal` | `alpha.2` / `rc.1` 混用 |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 58,
+              "token": "dsh-alpha.3",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 生产容器实际内核 | `0.2.2-alpha.3` |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 60,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "**额外事实**：`node_modules` 里实际运行的 cordis 已是 **4.1.0**（rc.1 的 dsh-compaction 等包"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 61,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "peer 为 `~4.1.0` 拉入），而 catalog 还钉 `4.0.6-alpha.1`。把 catalog 抬到 4.1.0"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 62,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "是**修现状**，不是引入新风险；但 `core/cordis` 另有一份 4.0.6 vendor，见 §2.7。"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 77,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "> `dsh-commands` / `dsh-client-ui-commands` 自 rc.1 起已在 `dsh-base` / `dsh-web-app` 行集内，"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 87,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| H3 | **profile 引用已下架包**：`dsh-experimental-agent-team-profile` 在 rc.1 后不再发布；现网 `eterna-web/super` 的 bundles 仍有它 | 现网 `/data/profiles/*/package.json` 实读；entrypoint 哈希门控会忠实保留旧 manifest | boot |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 88,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| H4 | **office 行替换**：`office-to-pdf` 在 rc.5 被包级替换为 `office-kit`，无兼容行；只删旧行会让 office 家族默认启用。**2026-11-19 拍板要启用，所以这不再是“静默回归”**；但必须同时补齐 B15 的 config/镜像依赖，否则行在而转换 `unavailable` | rc.1 web-app:283 → rc.5:2"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 91,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| H7 | **回滚不可逆面**：rc.5 新会话可写 `team/mode` 事件与 catalog v3；旧 rc.1 内核读新日志会被拒 | 上游 session persistence-change 说明 | 回滚 |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 99,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "| H15 | **v1 线进分支的完整性缺口**：`core/cordis` 仍 vendor `4.0.6-alpha.1-basis.1`，与宿主 4.1.0 不同代；`basis.yml` 引用的 `packages/bundle-core` **没有 `package.json`**（只有 tsconfig/vitest），无法作为插件装载；`@basis/*` / `@core/*` "
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 104,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "**直接升 rc.5（P0-2 已拍板，不设 rc.1 检查点）；profile/preset 重放、v1 线合并、锚点同步"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 107,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "理由：rc.1 与 rc.5 的破坏面高度重叠（cordis 4.1.0、subagent 重构、LlmError 收窄都在 rc.1），"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 110,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "作为唯一回滚点（不再有 rc.1 中间点）。P0-6 的干净 worktree 与 `origin/main` 基线保证"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 137,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 版本链 | `dsh-v0.2.2-alpha.2` → `alpha.3` → `rc.1` → `rc.2` → `rc.3` → `rc.4` → `rc.5` |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 137,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 版本链 | `dsh-v0.2.2-alpha.2` → `alpha.3` → `rc.1` → `rc.2` → `rc.3` → `rc.4` → `rc.5` |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 138,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 包版本一致性 | 34 个目标包在 alpha.2 / rc.1 / rc.5 均为同版本号；包级无 `engines`，根 `node >=24.9.0` 三版不变 |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 139,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 差异规模 | alpha.2→rc.5：5773 文件 / +253,193 / −79,542；rc.1→rc.5：4736 文件 / +171,983 / −58,746 |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 175,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `core/cordis`（vendor） | `@deepseek-ai/cordis 4.0.6-alpha.1` 的 strip-types 改造 | `vendor/cordis`（rc.1 起 4.1.0，rc.5 与 rc.1 逐字节相同） | 159/2755 行 |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 175,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `core/cordis`（vendor） | `@deepseek-ai/cordis 4.0.6-alpha.1` 的 strip-types 改造 | `vendor/cordis`（rc.1 起 4.1.0，rc.5 与 rc.1 逐字节相同） | 159/2755 行 |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 186,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "### 2.1 包级增删（rc.1 → rc.5）"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 219,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "### 2.2 Bundle patch 行漂移（rc.1 → rc.5，含行号）"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 231,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- account-controller          (rc.1:143)   → + ui-account-notifications (rc.5:143)"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 233,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- office-to-pdf               (rc.1:283)   → + office-kit (291) / workspace-dependencies (301) / skill-office (308)"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 260,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "### 2.3 Preset 漂移（rc.1 → rc.5）"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 279,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| **`dsh-session`** | `append` 新增数组重载、`SessionEventInput`、`currentBatchPublication`；新增 `team/mode` 事件 | 测试替身需支持双签名；**旧 rc.1 读新日志被拒（H7）** |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 292,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `dsh-commands` | 新增 `./builtin` 导出 | **自 rc.1 已在 base/web-app 行集；本品 `HOST_KEPT_ROWS` 已含 `commands`**——本轮只验斜杠命令面，不新增行 |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 307,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "逐字一致（rc.1→rc.5 无变化），所以重建是机械动作，但**必须重建**（H8）。"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 329,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| npm 运行时 | **4.1.0**（rc.1 包 peer `~4.1.0` 拉入，`node_modules/.pnpm/...` 实测） | 真正跑的产品内核 |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 330,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "| catalog 钉版 | `4.0.6-alpha.1` | 仅影响 `catalog:` 引用解析（现状是“声明落后于实际”） |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 331,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `core/cordis` vendor | `4.0.6-basis.1`（自 4.0.6-alpha.1 改造） | v1 线 `@core/*` 消费 |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 333,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "**4.1.0 的关键变化**（rc.1 起，rc.5 不变）："
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 340,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "5. **`LoggerLevel` 数值反转：INFO=2 / WARN=1**（4.0.6 是相反）——任何按数值比较日志级别的"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 376,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- rc.1 同位置同样存在（base:321 / web-app:379），**不是 rc.5 新增**。"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 548,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| A6 | 上游内部修复随版本落地 + **命令面确认** | session/tools/llm/sandbox/plugin-manager/mcp-client/app-boot 的修复；`commands`/`ui-commands` 自 rc.1 已在 base/web-app，不新增行，只验 `/`、`/model`、`/compact` | 全仓 verify + 浏览器 E2E "
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 618,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "`@deepseek-ai/dsh-experimental-agent-team-profile`；该包在 rc.1 之后不再发布（最后一版 rc.1），"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 764,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "当前 v1 线不是一个可 boot 的完整包集——`core/cordis` 还是 `4.0.6-alpha.1-basis.1`，"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 1404,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "> 不设 rc.1 检查点。回滚点 = 旧镜像 + 冷备 `/data`，不再有中间版本可回。"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 1427,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "> 保留编号空位。P0-2 拍板不做 rc.1 检查点，原 Phase 2 的版本/类型/LoggerLevel 工作"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 1567,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 版本残留扫描 | `grep` 旧版本号（alpha.2/alpha.3/rc.1）在跟踪文件中=0（历史文档豁免） |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 1629,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| D2 | 两段升级 vs 一步 | **2026-11-19 已拍板：直接 rc.5**（P0-2）；rc.1 破坏面与 rc.5 高度重叠，分段不隔离风险 | §5 Phase 1 合并两段；Phase 2 空位；回滚只靠旧镜像+冷备 |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 1645,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| D18 | 单段升级的回滚策略 | 无 rc.1 中间点，失败只能整版回滚 | 旧镜像 tag + 冷备 `/data` + Phase 0 回滚演练；Phase 1 未全绿不得进 Phase 3 |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 1656,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `@core/cordis` 4.0.6 与宿主 4.1.0 seam 漂移（tsc/服务实例） | **确定（v1 进分支）** | 高（Phase 4 红） | B11 必须同日 re-vendor 4.1.0，不得 4.0.6 混装；v1 车道独立失败信号 |"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 1698,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "git diff --name-status dsh-v0.2.2-rc.1 dsh-v0.2.2-rc.5 -- 'packages/**/package.json'"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 1701,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "git diff dsh-v0.2.2-rc.1 dsh-v0.2.2-rc.5 -- packages/bundle/base/cordis.patch.yml"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 1704,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "git diff dsh-v0.2.2-rc.1 dsh-v0.2.2-rc.5 -- packages/bundle/web-app/cordis.patch.yml \\"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 1708,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "for t in dsh-v0.2.2-alpha.2 dsh-v0.2.2-rc.5; do"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 1720,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "grep -rn \"0.2.2-alpha.2\\|0.2.2-alpha.3\\|0.2.2-rc.1\\|4.0.6-alpha.1\" \\"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 1720,
+              "token": "dsh-alpha.3",
+              "kind": "doc",
+              "gated": false,
+              "text": "grep -rn \"0.2.2-alpha.2\\|0.2.2-alpha.3\\|0.2.2-rc.1\\|4.0.6-alpha.1\" \\"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 1720,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "grep -rn \"0.2.2-alpha.2\\|0.2.2-alpha.3\\|0.2.2-rc.1\\|4.0.6-alpha.1\" \\"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 1720,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "grep -rn \"0.2.2-alpha.2\\|0.2.2-alpha.3\\|0.2.2-rc.1\\|4.0.6-alpha.1\" \\"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 1734,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "# commands 自 rc.1 已在 base/web-app（不是 rc.5 新增）"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 1735,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "git show dsh-v0.2.2-rc.1:packages/bundle/base/cordis.patch.yml | grep -n -A2 'id: commands'"
+            },
+            {
+              "path": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md",
+              "line": 1736,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "git show dsh-v0.2.2-rc.1:packages/bundle/web-app/cordis.patch.yml | grep -n -A2 'id: ui-commands'"
+            },
+            {
+              "path": "docs/design/48-容器数据持久化目录改造方案.md",
+              "line": 35,
+              "token": "dsh-alpha.3",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 运行内核 | `@deepseek-ai/dsh@0.2.2-alpha.3` + `dsh-mcp-client@0.2.2-alpha.3` |"
+            },
+            {
+              "path": "docs/design/49-上游rc.5合并总设计.md",
+              "line": 32,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "消除当前 alpha.2 / alpha.3 / rc.1 混族。"
+            },
+            {
+              "path": "docs/design/49-上游rc.5合并总设计.md",
+              "line": 71,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| npm 通道 | `latest = 0.2.2-rc.1`；`next = 0.2.2-rc.5` |"
+            },
+            {
+              "path": "docs/design/49-上游rc.5合并总设计.md",
+              "line": 73,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 版本链 | `alpha.2 → alpha.3 → rc.1 → … → rc.5` |"
+            },
+            {
+              "path": "docs/design/49-上游rc.5合并总设计.md",
+              "line": 79,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `pnpm-workspace.yaml` catalog（20 个 `dsh-*`） | `0.2.2-alpha.2` | `0.2.2-rc.5` |"
+            },
+            {
+              "path": "docs/design/49-上游rc.5合并总设计.md",
+              "line": 80,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "| catalog cordis | `4.0.6-alpha.1` | `4.1.0` |"
+            },
+            {
+              "path": "docs/design/49-上游rc.5合并总设计.md",
+              "line": 82,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 根 `devDependencies` | `0.2.2-rc.1` | `0.2.2-rc.5` |"
+            },
+            {
+              "path": "docs/design/49-上游rc.5合并总设计.md",
+              "line": 84,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `tools/evals`、`packs/*`、`market/*`、`basis/basis-minimal` | alpha.2 / rc.1 混用 | rc.5 单族 |"
+            },
+            {
+              "path": "docs/design/49-上游rc.5合并总设计.md",
+              "line": 85,
+              "token": "dsh-alpha.3",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `Dockerfile` 全局内核 / mcp-client | `0.2.2-alpha.3` | `0.2.2-rc.5`（只装 `dsh`，mcp-client 用宿主内嵌） |"
+            },
+            {
+              "path": "docs/design/49-上游rc.5合并总设计.md",
+              "line": 86,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `core/cordis` | `4.0.6-alpha.1-basis.1` | re-vendor `4.1.0`（B11） |"
+            },
+            {
+              "path": "docs/design/49-上游rc.5合并总设计.md",
+              "line": 87,
+              "token": "dsh-alpha.3",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 生产容器实际内核 | `0.2.2-alpha.3` | 新镜像 `0.2.2-rc.5` |"
+            },
+            {
+              "path": "docs/design/49-上游rc.5合并总设计.md",
+              "line": 94,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "| catalog | 4.0.6-alpha.1 | 4.1.0 | 改 catalog 一处 |"
+            },
+            {
+              "path": "docs/design/49-上游rc.5合并总设计.md",
+              "line": 95,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `core/cordis` vendor | 4.0.6-basis.1 | 4.1.0 | 按 12 项 strip-types 变换重做（B11） |"
+            },
+            {
+              "path": "docs/design/49-上游rc.5合并总设计.md",
+              "line": 165,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| D2 | 单段还是两段升级 | **直接 rc.5**（P0-2） | 无 rc.1 检查点；回滚靠旧镜像 + 冷备 |"
+            },
+            {
+              "path": "docs/design/49-上游rc.5合并总设计.md",
+              "line": 428,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 单段升级无中间回滚点 | rc.1 破坏面与 rc.5 重叠 | Phase 1 一次全绿；回滚演练 |"
+            },
+            {
+              "path": "docs/design/50-上游rc.5合并开发落地文档.md",
+              "line": 123,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "grep -rn \"0.2.2-alpha.2\\|0.2.2-alpha.3\\|0.2.2-rc.1\\|4.0.6-alpha.1\" \\"
+            },
+            {
+              "path": "docs/design/50-上游rc.5合并开发落地文档.md",
+              "line": 123,
+              "token": "dsh-alpha.3",
+              "kind": "doc",
+              "gated": false,
+              "text": "grep -rn \"0.2.2-alpha.2\\|0.2.2-alpha.3\\|0.2.2-rc.1\\|4.0.6-alpha.1\" \\"
+            },
+            {
+              "path": "docs/design/50-上游rc.5合并开发落地文档.md",
+              "line": 123,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "grep -rn \"0.2.2-alpha.2\\|0.2.2-alpha.3\\|0.2.2-rc.1\\|4.0.6-alpha.1\" \\"
+            },
+            {
+              "path": "docs/design/50-上游rc.5合并开发落地文档.md",
+              "line": 123,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "grep -rn \"0.2.2-alpha.2\\|0.2.2-alpha.3\\|0.2.2-rc.1\\|4.0.6-alpha.1\" \\"
+            },
+            {
+              "path": "docs/design/51-上游rc.5合并测试用例与回归.md",
+              "line": 91,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "| RC5-ENV-002 | P0 | A | 全仓 | 扫 `0.2.2-alpha.2\\|alpha.3\\|rc.1`（排除历史文档/锁文件） | 命中 0；`cmd.log` |"
+            },
+            {
+              "path": "docs/design/51-上游rc.5合并测试用例与回归.md",
+              "line": 91,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| RC5-ENV-002 | P0 | A | 全仓 | 扫 `0.2.2-alpha.2\\|alpha.3\\|rc.1`（排除历史文档/锁文件） | 命中 0；`cmd.log` |"
+            },
+            {
+              "path": "docs/design/54-rc.5开发与测试验收完整workflow.md",
+              "line": 867,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| rc.5 预发布上生产 | 产品拍板 + 全门禁 | 精确钉 `0.2.2-rc.5`（T03/T08）；旧镜像 digest + `/data` 冷备（T01/T02）；升级门 §7 例外记录 | “上游预发布版本；升级后不可回退到 rc.1 中间态” | `artifacts/rc5/p0/`、`artifacts/rc5/p7/` |"
+            },
+            {
+              "path": "docs/design/54-rc.5开发与测试验收完整workflow.md",
+              "line": 868,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 单段升级无中间回滚点 | rc.1 破坏面与 rc.5 重叠 | Phase 1 一次全绿；T55 回滚演练（旧卷+旧镜像） | “回滚=回 rc.1 旧镜像+旧卷；不提供 rc.5→rc.1 的中间版本” | `artifacts/rc5/p7/rollback/` |"
+            },
+            {
+              "path": "docs/design/reviews/2026-11-18-全量排查-未完成开发项目清单.md",
+              "line": 28,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 4 | 35-A0 | [M1 收尾] R6 宿主能力 seam 评估与评审登记 | **missing** · ls docs/design/reviews/ → No such file or directory；全 docs 下 find 无 tasks-engine-review.md。§0-B8 的 SA 副本路径钉住已回填（35 号文档头修订附记，实测 /Users/sunny/."
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 3,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "> 评审对象：DSH 宿主 `0.2.2-rc.1`（本仓 `node_modules/@deepseek-ai/dsh`，根 `package.json:26` 钉版；seam 家族另见 `pnpm-workspace.yaml:18` 注——catalog 钉 `0.2.2-alpha.2`，「seam 类型即取自该版本」）+ SA（`dsh-superagent-prototype`）副本。"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 3,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "> 评审对象：DSH 宿主 `0.2.2-rc.1`（本仓 `node_modules/@deepseek-ai/dsh`，根 `package.json:26` 钉版；seam 家族另见 `pnpm-workspace.yaml:18` 注——catalog 钉 `0.2.2-alpha.2`，「seam 类型即取自该版本」）+ SA（`dsh-superagent-prototype`）副本。"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 12,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "**R6 评估结论：「Effects 全量照搬」成立，A12 裁剪幅度 = 0。** DSH `0.2.2-rc.1` 宿主的三项候选能力各承一层、互不重叠，均**不构成** `launch/delivery/relay` 等引擎级 effect kind 的持久派发层："
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 34,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| C9 | executor 四类宿主事件签名（0.2.2-rc.1） | **全部存在且钉住成功** | 逐条签名与实测文件：行见 §5 表（dsh-agent `runtime-types.d.ts:109/279/304/437`；dsh-session `index.d.ts:63`） | 签名逐条进 `tests/types.seam-pin.ts`（A1 建文件、A14 补断言；34"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 35,
+              "token": "dsh-0.2.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| C10 | B9 版本差（SA 锚 0.2.1-alpha.2 vs 本仓）实测敞口 | **事件/会话/消息三面类型 alpha.2 与 rc.1 完全一致，当前敞口 = 0** | `diff -q` 实测三组文件字节级相同：dsh-agent `runtime-types.d.ts`、dsh-session `index.d.ts`+`types.d.ts`、dsh-llm `messa"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 35,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| C10 | B9 版本差（SA 锚 0.2.1-alpha.2 vs 本仓）实测敞口 | **事件/会话/消息三面类型 alpha.2 与 rc.1 完全一致，当前敞口 = 0** | `diff -q` 实测三组文件字节级相同：dsh-agent `runtime-types.d.ts`、dsh-session `index.d.ts`+`types.d.ts`、dsh-llm `messa"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 58,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "实测包：`.pnpm/@deepseek-ai+dsh-tool-jobs@0.2.2-rc.1_*/`、`.pnpm/@deepseek-ai+dsh-jobs@0.2.2-rc.1_776462*/`。"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 66,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "实测包：`.pnpm/@deepseek-ai+dsh-schedule@0.2.2-rc.1_9c311d3e*/`（附 `dsh-tool-schedule` 模型工具面）。"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 75,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "实测包：`.pnpm/@deepseek-ai+dsh-session-persistence-jsonl@0.2.2-rc.1_f6a4d672*/`、`.pnpm/@deepseek-ai+dsh-session@0.2.2-rc.1_*/`。"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 84,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "## 4. R6 ②：executor 四类宿主事件签名钉住（0.2.2-rc.1 实测）"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 86,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "SA `install()`（SA `src/executor/dsh.ts:477-512`）订阅的四类事件在本仓 DSH 0.2.2-rc.1 类型面逐一钉住如下（文件均以 `node_modules/.pnpm/<pkg>@0.2.2-rc.1_<hash>/node_modules/@deepseek-ai/<pkg>/lib/types/` 为根）："
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 88,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 事件 | 0.2.2-rc.1 签名（逐字） | 实测出处 | SA 用法（对照） |"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 104,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "**版本差实测（C10，开放问题 8 / B9）**：catalog 钉的 seam 家族为 0.2.2-alpha.2（`pnpm-workspace.yaml:18-24`），CLI 为 0.2.2-rc.1——对上述 seam 文件做 `diff -q`：dsh-agent `runtime-types.d.ts`、dsh-session `index.d.ts` + `types.d.ts"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 104,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "**版本差实测（C10，开放问题 8 / B9）**：catalog 钉的 seam 家族为 0.2.2-alpha.2（`pnpm-workspace.yaml:18-24`），CLI 为 0.2.2-rc.1——对上述 seam 文件做 `diff -q`：dsh-agent `runtime-types.d.ts`、dsh-session `index.d.ts` + `types.d.ts"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 108,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "## 5. R6 ②（续）：sessions 面签名钉住（0.2.2-rc.1 实测）"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 110,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "SA `Sessions`（SA `src/app/sessions.ts:24-36,138-171`）依赖的宿主面在 0.2.2-rc.1 逐一存在且签名吻合："
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 112,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 宿主面 | 0.2.2-rc.1 签名（逐字） | 实测出处 | SA 用法 |"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 124,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "结论（C11）：SA `Sessions` 契约面（`ensure/prompt/promptedId/relay/holds`）在 0.2.2-rc.1 宿主原语上**无缺失原语**，全部可按 34 §2.5 sessions 行「实现按本仓 DSH session 面重写」执行；A22 `worker session id 约定 worker-<ticketId>`（SA `dsh.ts:24"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 130,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "25 号 §5（25:110-122）五项逐行对照 DSH 0.2.2-rc.1："
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 132,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| # | Temporal 提供 | SA 现状（25 号实测） | DSH 0.2.2-rc.1 宿主实测 | 结论与处置 |"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 203,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "1. 版本核对：`cat node_modules/@deepseek-ai/dsh/package.json` → `\"version\": \"0.2.2-rc.1\"`；根 `package.json:26` `\"@deepseek-ai/dsh\": \"0.2.2-rc.1\"`；`pnpm-workspace.yaml:24-46` seam 家族 catalog 钉 `0.2.2-alpha.2"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 203,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "1. 版本核对：`cat node_modules/@deepseek-ai/dsh/package.json` → `\"version\": \"0.2.2-rc.1\"`；根 `package.json:26` `\"@deepseek-ai/dsh\": \"0.2.2-rc.1\"`；`pnpm-workspace.yaml:24-46` seam 家族 catalog 钉 `0.2.2-alpha.2"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 204,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "2. 事件面钉住：`grep -n \"agent/status\\|agent/error\\|agent/inbox/claimed\" node_modules/.pnpm/@deepseek-ai+dsh-agent@0.2.2-rc.1_*/node_modules/@deepseek-ai/dsh-agent/lib/types/runtime-types.d.ts` → 109/279/30"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 207,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "5. 版本差 diff：`diff -q` dsh-agent `runtime-types.d.ts`（alpha.2 `cf3b7946…` vs rc.1 `d9740b81…`）→ IDENTICAL；dsh-session `index.d.ts`+`types.d.ts`（alpha.2 `1c96c846…` vs rc.1 `2c1eb9e8…`）→ IDENTICAL。"
+            },
+            {
+              "path": "docs/design/reviews/tasks-engine-review.md",
+              "line": 208,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "6. 消息面 diff：`diff -q` dsh-llm `message.d.ts`（alpha.2 vs rc.1）→ IDENTICAL。"
+            },
+            {
+              "path": "docs/dev/DEV-REPORT.md",
+              "line": 16,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "架构按设计落地为三层:**L0 DSH 内核(官方 @deepseek-ai/dsh-* 0.2.2-alpha.2,类型编译期钉住)→ L1 基座插件(governance/memory/interact/observe/evolve/knowledge/channels/cache-guard/extra)→ L2 领域包(packs/event-planning)**;工具链 evals(评"
+            },
+            {
+              "path": "docs/dev/DEV-REPORT.md",
+              "line": 107,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 依赖:全部 catalog 单源;DSH 官方 seam 钉在 `@deepseek-ai/dsh-* 0.2.2-alpha.2`(与 deepseek-harness 同版);Cordis `@deepseek-ai/cordis 4.0.6-alpha.1`"
+            },
+            {
+              "path": "docs/dev/DEV-REPORT.md",
+              "line": 107,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 依赖:全部 catalog 单源;DSH 官方 seam 钉在 `@deepseek-ai/dsh-* 0.2.2-alpha.2`(与 deepseek-harness 同版);Cordis `@deepseek-ai/cordis 4.0.6-alpha.1`"
+            },
+            {
+              "path": "docs/dev/PROGRESS.md",
+              "line": 10,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "| T1 治理 @basis/governance | 完成 | T1: @basis/governance 五模块+DSH seam 钉住 | 验收门通过:pnpm --filter @basis/governance run verify exit 0(oxlint 0 错、tsc strict、vitest 74/74);规则引擎 deny 优先 fail-closed、预算截断(turn-"
+            },
+            {
+              "path": "docs/dev/PROGRESS.md",
+              "line": 11,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "| T2 记忆 @basis/memory | 完成 | T2: @basis/memory M1 文件记忆+M2 sqlite 实体记忆+四工具+索引注入 | 验收门通过:pnpm --filter @basis/memory run verify exit 0(oxlint 0 错、tsc strict、vitest 80/80);M1 NotesStore(NOTES 文件读写+检索,路径安"
+            },
+            {
+              "path": "docs/dev/PROGRESS.md",
+              "line": 12,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "| T3 交互 @basis/interact | 完成 | T3: @basis/interact 五模块(hitl 分档/预设产物/富审批卡片/提问合并/负信号) | 验收门通过:pnpm --filter @basis/interact run verify exit 0(oxlint 0 错、tsc strict、vitest 55/55);hitl.yaml 校验 fail-closed"
+            },
+            {
+              "path": "docs/dev/PROGRESS.md",
+              "line": 13,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "| T4 评测 @basis/evals | 完成 | T4: @basis/evals 评测 runner(独立 CLI dsh-evals) | 验收门通过:pnpm --filter @basis/evals run verify exit 0(oxlint 0 错、tsc strict、vitest 82/82);golden YAML 加载+schema 校验(字段对齐 ai-evo,终"
+            },
+            {
+              "path": "docs/dev/PROGRESS.md",
+              "line": 18,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "| T9 观测 @basis/observe | 完成 | T9: @basis/observe 观测插件四模块+DSH seam 钉住 | 验收门通过:pnpm --filter @basis/observe run verify exit 0(oxlint 0 错、tsc strict、vitest 60/60);evolve_signal sqlite 存取((kind,ref) 去重幂等+"
+            },
+            {
+              "path": "docs/dev/PROGRESS.md",
+              "line": 21,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "| T12 缓存守护 @basis/cache-guard | 完成 | T12: @basis/cache-guard 前缀稳定性检查器+命中率指标输出 | 验收门通过:pnpm --filter @basis/cache-guard run verify exit 0(oxlint 0 错、tsc strict、vitest 46/46);连续多轮 prompt 组装序列→段级前缀对齐,动态时"
+            },
+            {
+              "path": "docs/dev/PROGRESS.md",
+              "line": 22,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "| T13 收尾 @basis/extra | 完成 | T13: @basis/extra egress 完整版+reviewer preset+tenant realm | 验收门通过:pnpm --filter @basis/extra run verify exit 0(oxlint 0 错、tsc strict、vitest 111/111);egress 完整版=域名白名单判定器(`*"
+            },
+            {
+              "path": "docs/dev/TODO.md",
+              "line": 32,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| P0-2 | 两段升级（rc.1 检查点 → rc.5）还是一次到 rc.5 | Phase 1 | **已拍板：直接 rc.5**（2026-11-19）；不设 rc.1 检查点，Phase 2 并入 Phase 1 | 已拍板 |"
+            },
+            {
+              "path": "docs/dev/TODO.md",
+              "line": 43,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| P0-13 | `dsh-commands` | Phase 3/5 | **已具备**（base/web-app 自 rc.1 已有）；只做斜杠命令验收，不新增行 | 已确认 |"
+            },
+            {
+              "path": "docs/dev/TODO.md",
+              "line": 77,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- [ ] 建回滚点：旧镜像 tag + 生产 `/data` 冷备（单段升级无 rc.1 中间点）"
+            },
+            {
+              "path": "docs/dev/TODO.md",
+              "line": 461,
+              "token": "dsh-alpha.3",
+              "kind": "doc",
+              "gated": false,
+              "text": "dsh=**0.2.2-alpha.3**。冷备重做：`eterna-home-20261120-021802.tgz`"
+            },
+            {
+              "path": "docs/dev/ps-v2-spike-run.json",
+              "line": 44,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "\"spVersion\": \"0.2.2-rc.1\""
+            },
+            {
+              "path": "docs/dev/ps-v2-spike-run.json",
+              "line": 71,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "\"name\": \"T1·实测包版本=0.2.2-rc.1（生产 profile 同版本）\","
+            },
+            {
+              "path": "docs/dev/ps-v2-spike-run.json",
+              "line": 73,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "\"detail\": \"v=0.2.2-rc.1\""
+            },
+            {
+              "path": "docs/dev/ps-v2-spike.md",
+              "line": 6,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- **实测版本**：`@deepseek-ai/dsh-system-prompt`/`dsh-agent`/`dsh-agent-loop` **0.2.2-rc.1**（生产 profile 同版本，`profiles/eterna-web/README.md:14`），经 LiteLLM 真模型回合验证，27/27 断言通过"
+            },
+            {
+              "path": "docs/dev/ps-v2-spike.md",
+              "line": 26,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "`agent-basis` 仓库 `packages/memory/node_modules/@deepseek-ai/dsh-system-prompt/lib/types/index.d.ts`（0.2.2-alpha.2，rc.1 同形）："
+            },
+            {
+              "path": "docs/dev/ps-v2-spike.md",
+              "line": 26,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "`agent-basis` 仓库 `packages/memory/node_modules/@deepseek-ai/dsh-system-prompt/lib/types/index.d.ts`（0.2.2-alpha.2，rc.1 同形）："
+            },
+            {
+              "path": "docs/dev/ps-v2-spike.md",
+              "line": 33,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "`ScopeKey` 语义（`@deepseek-ai/dsh-scope`，t7/ps-spike profile 0.2.2-rc.1，`lib/types/index.d.ts`）："
+            },
+            {
+              "path": "docs/dev/ps-v2-spike.md",
+              "line": 38,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- `dsh-agent@0.2.2-rc.1` `lib/index.js:407-413` — `assembleContextFor(agent, signal)` 返回"
+            },
+            {
+              "path": "docs/dev/ps-v2-spike.md",
+              "line": 40,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- `dsh-agent@0.2.2-rc.1` `lib/types/types.d.ts:12-15` — `interface Agent { readonly id: SessionId }`，"
+            },
+            {
+              "path": "docs/dev/ps-v2-spike.md",
+              "line": 42,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- `dsh-agent-loop@0.2.2-rc.1` `lib/index.js:679-683` — 每个拟议模型步骤调"
+            },
+            {
+              "path": "docs/dev/ps-v2-spike.md",
+              "line": 44,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- `dsh-system-prompt@0.2.2-rc.1` `lib/index.js:358-401` — `assemble(context)` 把**调用方 context 原对象原样透传**给"
+            },
+            {
+              "path": "docs/dev/ps-v2-spike.md",
+              "line": 47,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- `dsh-system-prompt@0.2.2-rc.1` `lib/index.js:403-407` — 无 complete 段时返回"
+            },
+            {
+              "path": "docs/dev/ps-v2-spike.md",
+              "line": 63,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "### 3.1 Tier1 进程内最小 harness（无模型，直测 dsh-system-prompt@0.2.2-rc.1）"
+            },
+            {
+              "path": "docs/dev/ps-v2-spike.md",
+              "line": 73,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 实测包版本=0.2.2-rc.1（生产同版本） | PASS | v=0.2.2-rc.1 |"
+            },
+            {
+              "path": "docs/dev/ps-v2-spike.md",
+              "line": 75,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "### 3.2 Tier2 真宿主（dsh-base+dsh-web-app 0.2.2-rc.1，LiteLLM 真模型回合）"
+            },
+            {
+              "path": "docs/dev/ps-v2-waterfall-spike.mjs",
+              "line": 12,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "*   Tier2 真宿主（dsh 0.2.2-rc.1 = 生产 profile 同版本）：起隔离 scratch 宿主"
+            },
+            {
+              "path": "docs/dev/ps-v2-waterfall-spike.mjs",
+              "line": 163,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "'@deepseek-ai/dsh': '0.2.2-rc.1',"
+            },
+            {
+              "path": "docs/dev/ps-v2-waterfall-spike.mjs",
+              "line": 164,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "'@deepseek-ai/dsh-base': '0.2.2-rc.1',"
+            },
+            {
+              "path": "docs/dev/ps-v2-waterfall-spike.mjs",
+              "line": 165,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "'@deepseek-ai/dsh-web-app': '0.2.2-rc.1',"
+            },
+            {
+              "path": "docs/dev/ps-v2-waterfall-spike.mjs",
+              "line": 229,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": ".filter((d) => d.startsWith('@deepseek-ai+dsh-system-prompt@0.2.2-rc.1'))"
+            },
+            {
+              "path": "docs/dev/ps-v2-waterfall-spike.mjs",
+              "line": 231,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "if (!spDir) throw new Error('profile .pnpm 内找不到 dsh-system-prompt@0.2.2-rc.1')"
+            },
+            {
+              "path": "docs/dev/ps-v2-waterfall-spike.mjs",
+              "line": 402,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "check('T1·实测包版本=0.2.2-rc.1（生产 profile 同版本）', unit.spVersion === '0.2.2-rc.1', `v=${unit.spVersion}`)"
+            },
+            {
+              "path": "docs/dev/ps-v2-waterfall-spike.mjs",
+              "line": 406,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "console.log('\\n===== Tier2 真宿主（dsh-base+dsh-web-app 0.2.2-rc.1 + LiteLLM 真回合）=====')"
+            },
+            {
+              "path": "docs/dev/t7-prompt-studio.md",
+              "line": 137,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "with dsh 0.2.2-rc.1: requirements …\")。本包与 panel/glue/governance/interact"
+            },
+            {
+              "path": "docs/dev/t7-prompt-studio.md",
+              "line": 291,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- **数据源与事件口径**(官方 SessionEventMap,0.2.2-rc.1 实证):"
+            },
+            {
+              "path": "docs/dev/t7-spike.md",
+              "line": 46,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "隔离与清理：DSH_HOME=`.basis-home-t7`（自包含 profile `profiles/t7-studio`，依赖 `@deepseek-ai/dsh@0.2.2-rc.1` + `file:` 链接 `basis/llm-openai`，pnpm install 在 profile 目录内完成）；宿主监听 3108；进程清理只用 `host.kill('SIGTERM')` "
+            },
+            {
+              "path": "docs/dev/t7-spike.md",
+              "line": 71,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 版本：profile 依赖 `@deepseek-ai/dsh`、`@deepseek-ai/dsh-base`、`@deepseek-ai/dsh-web-app` 均钉 `0.2.2-rc.1`（与 `basis/basis-minimal` 的官方包同版家族）；静态机制读源也取 rc.1 包体。"
+            },
+            {
+              "path": "docs/dev/t7-spike.md",
+              "line": 71,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 版本：profile 依赖 `@deepseek-ai/dsh`、`@deepseek-ai/dsh-base`、`@deepseek-ai/dsh-web-app` 均钉 `0.2.2-rc.1`（与 `basis/basis-minimal` 的官方包同版家族）；静态机制读源也取 rc.1 包体。"
+            },
+            {
+              "path": "docs/dev/thinking-auto.md",
+              "line": 18,
+              "token": "dsh-alpha.3",
+              "kind": "doc",
+              "gated": false,
+              "text": "生产内核为 **dsh 0.2.2-alpha.3**(npm 钉版),其事件载荷与仓库 node_modules 的 rc.1"
+            },
+            {
+              "path": "docs/dev/thinking-auto.md",
+              "line": 18,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "生产内核为 **dsh 0.2.2-alpha.3**(npm 钉版),其事件载荷与仓库 node_modules 的 rc.1"
+            },
+            {
+              "path": "docs/dev/thinking-auto.md",
+              "line": 35,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "【rc.1+】inbox/inserted 载荷带 agent ⇒ 保留该信号面,双路径按 sessionId:messageId 去重"
+            },
+            {
+              "path": "docs/embed-profile.md",
+              "line": 7,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "裁切清单（§11.8 为准）。行 id 权威来源：装品 `@deepseek-ai/dsh-base` 0.2.2-rc.1"
+            },
+            {
+              "path": "docs/embed-profile.md",
+              "line": 8,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "与 `@deepseek-ai/dsh-headless` 0.2.2-rc.1 的 cordis.patch.yml（后者与本仓库"
+            },
+            {
+              "path": "docs/embed-profile.md",
+              "line": 14,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "@deepseek-ai/dsh-base        0.2.2-rc.1   bundle 层（基础树：llm/session/agent/agent-loop/"
+            },
+            {
+              "path": "docs/embed-profile.md",
+              "line": 18,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "@deepseek-ai/dsh-headless    0.2.2-rc.1   bundle 层（headless-startup/headless-runner、"
+            },
+            {
+              "path": "docs/embed-profile.md",
+              "line": 57,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "### 嵌入档 profile 层裁切清单（全部装品 0.2.2-rc.1 实测存在）"
+            },
+            {
+              "path": "docs/embed-profile.md",
+              "line": 172,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "任务书写的是「finishReason=stop → exit 0」。实测（本次会话，DSH 0.2.2-rc.1）："
+            },
+            {
+              "path": "docs/embed-profile.md",
+              "line": 185,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "即置 exit 1，说明既有 smoke 的字面断言与 rc.1 协议不符。"
+            },
+            {
+              "path": "docs/embed-profile.md",
+              "line": 245,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "一致（diff 实测）；base 层行号以装品 0.2.2-rc.1 为准（与 deepseek-harness"
+            },
+            {
+              "path": "docs/eterna-web-profile.md",
+              "line": 14,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "@deepseek-ai/dsh-base        0.2.2-rc.1   bundle 层（基础树 insert）"
+            },
+            {
+              "path": "docs/eterna-web-profile.md",
+              "line": 15,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "@deepseek-ai/dsh-web-app     0.2.2-rc.1   bundle 层 + 其 presets/*.patch.yml（4 个预设）"
+            },
+            {
+              "path": "docs/eterna-web-profile.md",
+              "line": 76,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "模型配置的正式承载：**官方 `@deepseek-ai/dsh-llm-pi-ai` 适配器**（0.2.2-rc.1 装品自带，"
+            },
+            {
+              "path": "docs/eterna-web-profile.md",
+              "line": 191,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "`ln -s <node_modules/.pnpm/@deepseek-ai+dsh-agent-preset@0.2.2-rc.1_*/node_modules/@deepseek-ai/dsh-agent-preset>"
+            },
+            {
+              "path": "docs/eterna-web-profile.md",
+              "line": 338,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "仓库检出（deepseek-harness @ 0.2.2-rc.1 工作树）比装品（npm 0.2.2-rc.1，实际"
+            },
+            {
+              "path": "docs/eterna-web-profile.md",
+              "line": 378,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "1. `@deepseek-ai/dsh-mcp-client@0.2.2-rc.1` 需 symlink 进"
+            },
+            {
+              "path": "docs/upgrade-gate-drill.md",
+              "line": 1,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "# 升级门禁演练报告(0.2.2-alpha.2 → 0.2.2-rc.1)"
+            },
+            {
+              "path": "docs/upgrade-gate-drill.md",
+              "line": 1,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "# 升级门禁演练报告(0.2.2-alpha.2 → 0.2.2-rc.1)"
+            },
+            {
+              "path": "docs/upgrade-gate-drill.md",
+              "line": 21,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "## 1. 演练变更(§1 表 alpha.2 族 → rc.1,整族一起改)"
+            },
+            {
+              "path": "docs/upgrade-gate-drill.md",
+              "line": 27,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `pnpm-workspace.yaml` `catalog:` 段 | 16 | 全部 dsh-* 条目;另 2 处注释同步。`@deepseek-ai/cordis: 4.0.6-alpha.1` 非 dsh 族,未动 |"
+            },
+            {
+              "path": "docs/upgrade-gate-drill.md",
+              "line": 35,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 各 packs/* 的 `\"@deepseek-ai/cordis\": \">=4.0.6-alpha.1\"` 是既有形态(§1 表「不进 workspace,锁文件不涉及」行),非 dsh 族,未动。"
+            },
+            {
+              "path": "docs/upgrade-gate-drill.md",
+              "line": 42,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| §2.2 刷锁 | `pnpm install --no-frozen-lockfile` | 0 | `Packages: +54 -46`,全部本地缓存复用(0 下载);catalogs 快照更新为 rc.1;WARN: 1 deprecated subdependency(node-domexception@1.0.0)+ peer dependency issues |"
+            },
+            {
+              "path": "docs/upgrade-gate-drill.md",
+              "line": 48,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "锁文件刷新合理性核对(§2.3「只应有版本号与锁文件变更」):对备份锁文件逐行 diff,18 对 specifier 行(alpha.2→rc.1)+ 16 对纯 version 行 + rc.1 依赖树带来的 cordis 生态包块增删(cordis-plugin-loader@1.1.0、cordis-plugin-timer@1.2.0 等);新锁文件中 alpha.2 残留 0 处、rc"
+            },
+            {
+              "path": "docs/upgrade-gate-drill.md",
+              "line": 58,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "正面信号:直接钉 rc.1 的 `tools/evals` verify **全绿**(vitest 10 文件 97 测试通过 + python 19 测试 OK),说明升级的直接消费方在 rc.1 下工作正常。"
+            },
+            {
+              "path": "docs/upgrade-gate-drill.md",
+              "line": 62,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "**回滚。** 依据:任何一步红(② exit 1)即不满足放行条件。同时如实记录:红因经归因与升级无关(见 §2),升级本身的兼容性证据是积极的——rc.1 全族解析与安装成功(+54/-46,无 404)、门禁①复跑绿、直接消费方 tools/evals 测试全绿。**rc.1 族升版可在基线 lint 修复后重试**,本报告即 §5 要求的「升级尝试留档」。"
+            },
+            {
+              "path": "docs/upgrade-gate-drill.md",
+              "line": 69,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 五个族文件版本号逆转 | grep 零残留:六文件中无 rc.1;`pnpm-workspace.yaml` alpha.2 恢复 18 处 |"
+            },
+            {
+              "path": "docs/upgrade-gate.md",
+              "line": 8,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 全仓对 `@deepseek-ai/dsh*` 的依赖 specifier **必须是精确版本**(如 `0.2.2-rc.1`),禁止 `^` / `~` / `>=` 等范围符,也禁止 `*` / `x` 通配。"
+            },
+            {
+              "path": "docs/upgrade-gate.md",
+              "line": 24,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `pnpm-workspace.yaml` `catalog:` 段 | catalog(L1 插件 packages/* 与 tools/* 全部经 `catalog:` 引用) | `0.2.2-alpha.2` |"
+            },
+            {
+              "path": "docs/upgrade-gate.md",
+              "line": 25,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `package.json`(root)devDependencies | 精确版 | `0.2.2-rc.1` |"
+            },
+            {
+              "path": "docs/upgrade-gate.md",
+              "line": 26,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `basis/basis-minimal`(本地实验包)、`packages/llm-openai` | 精确版 | `0.2.2-rc.1` |"
+            },
+            {
+              "path": "docs/upgrade-gate.md",
+              "line": 27,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `.eterna-home/profiles/*`、`.eterna-home-t7/profiles/*` | 精确版 | `0.2.2-rc.1` |"
+            },
+            {
+              "path": "docs/upgrade-gate.md",
+              "line": 28,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `tools/evals` | 精确版 | `0.2.2-alpha.2` |"
+            },
+            {
+              "path": "docs/upgrade-gate.md",
+              "line": 29,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `packs/event-planning`、`market/glue-bundle`、`market/pack-bundle` peerDependencies | 精确版(不进 workspace,锁文件不涉及) | `0.2.2-alpha.2` |"
+            },
+            {
+              "path": "packages/channels/README.md",
+              "line": 31,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "`KvTable<string, ChannelBindingRecord>`(0.2.2-alpha.2)。"
+            },
+            {
+              "path": "packages/evolve/README.md",
+              "line": 43,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "模型调用面消费 `ctx.llm`(已发布 `@deepseek-ai/dsh-llm` 0.2.2-alpha.2 类型):"
+            },
+            {
+              "path": "packages/extra/README.md",
+              "line": 64,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "- reviewer preset 的 `@deepseek-ai/dsh-tool-subagent` 行与 persona/preset 组合需真实 DSH host 装载验证(编译期已用已发布 0.2.2-alpha.2 类型钉住,运行时联调后置,见 PROGRESS blockers)。"
+            },
+            {
+              "path": "packages/governance/README.md",
+              "line": 49,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "(0.2.2-alpha.2,与 deepseek-harness 完全同版,catalog 钉死),仅 `import type`。"
+            },
+            {
+              "path": "packages/interact/README.md",
+              "line": 68,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "+ `@deepseek-ai/cordis`(全部与 deepseek-harness 同为 0.2.2-alpha.2,catalog 钉死),仅 `import type`"
+            },
+            {
+              "path": "packages/knowledge/README.md",
+              "line": 36,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "`tests/types.seam-pin.ts` 用已发布 `@deepseek-ai/dsh-tools` 0.2.2-alpha.2 类型断言:四工具适配产物可赋给官方 `ToolDefinition`,且 `ctx.tools.register(def)` 返回 Cordis disposer。DSH 升级破坏 seam 形态时 `verify` 的 tsc 阶段即失败。运行时注册联调后置"
+            },
+            {
+              "path": "packages/memory/README.md",
+              "line": 21,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| `src/approval.ts` | **审批卡片与评审审计**(M-M2 T9 + 勘察 S2 结论):pending 产生时组 @eterna/interact `ApprovalCardInput`(标题「从本次会话学到…」/ Why=出处会话摘要经 PiiGuard 回退 / Action=记住/跳过)经 `buildApprovalCard` fail-closed 校验并渲染 d"
+            },
+            {
+              "path": "packages/memory/README.md",
+              "line": 88,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "- **需运行时联调**:seam 已用已发布 `@deepseek-ai/dsh-*` 0.2.2-alpha.2 类型编译期钉住,但未在真实 DSH 宿主(agent loop + prompt assembly)里跑过 `ctx.tools.register` / `ctx.systemPrompt.section` 的运行时行为;"
+            },
+            {
+              "path": "packages/observe/README.md",
+              "line": 30,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "(0.2.2-alpha.2,与 deepseek-harness 同版)断言官方 `SessionEvent`/`TokenUsage`/`LlmCallConfig`/"
+            },
+            {
+              "path": "packages/panel/README.md",
+              "line": 91,
+              "token": "cordis-4.0.6",
+              "kind": "doc",
+              "gated": false,
+              "text": "profile 侧包的 `peerDependencies` 钉宿主已装版本(cordis `>=4.0.6-alpha.1`、"
+            },
+            {
+              "path": "packages/panel/README.md",
+              "line": 92,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "dsh-typert-protocol `>=0.2.2-alpha.2`),运行期由 dsh 的解析拦截解析到全局安装。"
+            },
+            {
+              "path": "plans/2026-11-06-dsh企业agent路线定案.md",
+              "line": 71,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "| T12 | 升级门禁真实升版演练（T2 验收：门禁拦截或放行有据可查） | T2 | 演练报告 `docs/upgrade-gate-drill.md`（0.2.2-alpha.2 → 0.2.2-rc.1 全链路留档：改版本清单 / 四步门禁 / 裁决回滚 / 还原证据 / 观察） | 一次真实升版走完「改版本 → 本地门禁 → 裁决/还原」且全程有据。**本次结果（2026-11-09）："
+            },
+            {
+              "path": "plans/2026-11-06-dsh企业agent路线定案.md",
+              "line": 71,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| T12 | 升级门禁真实升版演练（T2 验收：门禁拦截或放行有据可查） | T2 | 演练报告 `docs/upgrade-gate-drill.md`（0.2.2-alpha.2 → 0.2.2-rc.1 全链路留档：改版本清单 / 四步门禁 / 裁决回滚 / 还原证据 / 观察） | 一次真实升版走完「改版本 → 本地门禁 → 裁决/还原」且全程有据。**本次结果（2026-11-09）："
+            },
+            {
+              "path": "plans/2026-11-06-dsh企业agent路线定案.md",
+              "line": 71,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| T12 | 升级门禁真实升版演练（T2 验收：门禁拦截或放行有据可查） | T2 | 演练报告 `docs/upgrade-gate-drill.md`（0.2.2-alpha.2 → 0.2.2-rc.1 全链路留档：改版本清单 / 四步门禁 / 裁决回滚 / 还原证据 / 观察） | 一次真实升版走完「改版本 → 本地门禁 → 裁决/还原」且全程有据。**本次结果（2026-11-09）："
+            },
+            {
+              "path": "plans/2026-11-06-dsh企业agent路线定案.md",
+              "line": 82,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 0.2.2-rc.1 为 rc 版本，生产不满足稳定口径 | 线上行为漂移 | 生产钉 release；升级必过 T2 门禁 |"
+            },
+            {
+              "path": "plans/2026-11-09-eterna-access登录注册门禁插件.md",
+              "line": 94,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "浏览器调用 / 网页点击 / 控制台直连 ──POST /api/<端点>──▶ 组合层 prefix 路由 '/api'(rc.1 index.ts:141-158)"
+            },
+            {
+              "path": "plans/2026-11-09-eterna改名与docker云端部署.md",
+              "line": 34,
+              "token": "bare-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 镜像内核钉版 | 与验收实例同版（实施时核对 profile 实际 bundle 版本，rc.1/alpha.3 以 boot 日志为准） | Dockerfile 编写时 |"
+            },
+            {
+              "path": "plans/2026-11-09-内置浏览器体验与性能优化调研与计划.md",
+              "line": 13,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "1. **本产品（eterna/agent-basis）模型侧目前没有任何浏览器工具**；DSH 内核的 browser-use 框架 + 三 provider **已公开发布到 npm（0.2.2-rc.1，与全树同版）**，但 dsh CLI 安装锚的依赖闭包不含它们，agent-basis 未装。启用是「装 2 个包 + profile patch insert 2 行，代码零改动」的事，但"
+            },
+            {
+              "path": "plans/2026-11-09-内置浏览器体验与性能优化调研与计划.md",
+              "line": 44,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 1 | browser-use 五包\"未安装未挂载\" | ✔ 但补充 | 五个包**已发布 npm 0.2.2-rc.1**（latest tag 陈旧停在 0.1.6-alpha.1，**必须钉精确版本**）；未装的原因是 dsh CLI 依赖闭包不含它们 |"
+            },
+            {
+              "path": "plans/2026-11-09-内置浏览器体验与性能优化调研与计划.md",
+              "line": 149,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "**现状**：agent-basis 仅装 `@deepseek-ai/dsh@0.2.2-rc.1` + `dsh-sdk-client`（node_modules/@deepseek-ai 实测只有这两个）；workspace 不链 deepseek-harness；profile patch 无任何 browser-use 键。"
+            },
+            {
+              "path": "plans/2026-11-09-内置浏览器体验与性能优化调研与计划.md",
+              "line": 151,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "**五包均已发布 npm `0.2.2-rc.1`**（`dsh-browser-use`、`dsh-experimental-browser-use-runtime`、`-playwright-mcp`、`-chrome-devtools-mcp`、`-stagehand-native`），但 dist-tag `latest` 停在陈旧的 `0.1.6-alpha.1`——**必须钉精确版本*"
+            },
+            {
+              "path": "plans/2026-11-09-内置浏览器体验与性能优化调研与计划.md",
+              "line": 154,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "1. `pnpm --filter @eterna/root add @deepseek-ai/dsh-browser-use@0.2.2-rc.1 @deepseek-ai/dsh-experimental-browser-use-playwright-mcp@0.2.2-rc.1`；"
+            },
+            {
+              "path": "plans/2026-11-09-内置浏览器体验与性能优化调研与计划.md",
+              "line": 324,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| dsh 五包为 experimental（kernel 未在 eterna 依赖闭包内，升级可能变动） | 中 | 钉 0.2.2-rc.1；M5 自研收敛面后仅依赖 browser-use 注册契约（稳定接口），provider 可替换 |"
+            },
+            {
+              "path": "plans/2026-11-10-团队平台化测试门禁与验收计划.md",
+              "line": 242,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| T-P1-U6 | 守卫清单防漂移 fixture | T1 完成 | `packages/access/tests/guard-drift.spec.ts`：`import … from 'node_modules/@deepseek-ai/dsh-api-session-controller/typert.remote-client.js'`（或读文件正则）提取端点全集 | 上游包实体（锁"
+            },
+            {
+              "path": "plans/2026-11-10-团队平台化测试门禁与验收计划.md",
+              "line": 462,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "5. **防漂移 fixture 三件套**：守卫清单 vs 上游 typert 表差集=∅、终端 8 路由对齐、换血 monkey-patch 行为断言——上游 0.2.2-rc.1 漂移即红；"
+            },
+            {
+              "path": "plans/2026-11-10-团队平台化统一设计方案.md",
+              "line": 281,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 上游 0.2.2-rc.1 内部结构漂移（两计划共依赖：终端 8 路由/registerPolicy/scope/patch 管线） | 升级即碎 | catalog 锁版；终端协议与守卫清单防漂移 fixture（沿 governance-rules-fixture 先例）；「上游 typert 表−守卫清单=∅」断言测试；换血 monkey-patch 配防漂移测试+上游 feature "
+            },
+            {
+              "path": "plans/2026-11-10-团队平台化统一设计方案.md",
+              "line": 305,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 防漂移 | 守卫清单−上游 typert 表=∅；终端 8 路由；换血 monkey-patch 断言——上游 0.2.2-rc.1 漂移即红 | P1/P4 | G-P1-10/11、G-P1-15、G-P4-18 |"
+            },
+            {
+              "path": "plans/2026-11-10-多用户权限隔离与双层插件空间改造计划.md",
+              "line": 85,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 上游装载管线（改造依据，`dsh-app-boot` 0.2.2-rc.1）："
+            },
+            {
+              "path": "plans/2026-11-10-多用户权限隔离与双层插件空间改造计划.md",
+              "line": 259,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "| 上游 0.2.2-rc.1 协议耦合（终端 8 路由、registerPolicy、scope API） | 上游升级漂移 | 锁版本 catalog；终端协议/守卫清单做防漂移 fixture 测试（沿 governance-rules-fixture.spec 先例） |"
+            },
+            {
+              "path": "plans/2026-11-10-多用户权限隔离与双层插件空间改造计划.md",
+              "line": 274,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "- 上游 node_modules（0.2.2-rc.1，与源仓库 HEAD 同版）：`dsh-api-session-controller/typert.remote-client.js`（端点全集）、`dsh-api-gateway/lib/index.js:141`（mux 路径）、`dsh-client-connection/lib/index.js:714,783`（owner Peer"
+            },
+            {
+              "path": "profiles/eterna-embed/README.md",
+              "line": 16,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "1. `@deepseek-ai/dsh-base`（bundle 层，装品 0.2.2-rc.1）"
+            },
+            {
+              "path": "profiles/eterna-super/README.md",
+              "line": 24,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "1. `@deepseek-ai/dsh-base`（bundle 层，装品 0.2.2-rc.1）"
+            },
+            {
+              "path": "profiles/eterna-web/README.md",
+              "line": 15,
+              "token": "dsh-rc.1",
+              "kind": "doc",
+              "gated": false,
+              "text": "1. `@deepseek-ai/dsh-base`（bundle 层，装品 0.2.2-rc.1）"
+            },
+            {
+              "path": "tools/evals/README.md",
+              "line": 6,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "> `tests/types.seam-pin.ts` 用已发布 `@deepseek-ai/dsh-* 0.2.2-alpha.2` 类型编译期钉住。"
+            },
+            {
+              "path": "tools/packctl/README.md",
+              "line": 115,
+              "token": "dsh-alpha.2",
+              "kind": "doc",
+              "gated": false,
+              "text": "卸载无残留验证需要 DSH 运行时(0.2.2-alpha.2 尚未在本仓安装为可执行 profile),"
+            }
+          ],
+          "total": 276,
+          "truncated": false
+        },
+        "manifestProse": {
+          "items": [
+            {
+              "path": "packages/cache-guard/package.json",
+              "line": 3,
+              "token": "dsh-alpha.2",
+              "kind": "prose",
+              "gated": false,
+              "text": "\"description\": \"L1 缓存守护插件:KV-cache 前缀稳定性检查器(连续多轮 prompt 组装序列 → 分段对齐,检测动态时间戳/随机 ID/前缀变动/结构变动 → 告警列表 + 稳定性评分,评分=Σ共同前缀字符/Σ上轮字符,对失稳严格单调递减)+ 命中率指标输出接口(事件字段提取器注册表 cache-usage/request-route + 与 @eterna/obser"
+            },
+            {
+              "path": "packages/extra/package.json",
+              "line": 3,
+              "token": "dsh-alpha.2",
+              "kind": "prose",
+              "gated": false,
+              "text": "\"description\": \"L1 收尾插件(T13):①egress 完整版——域名白名单判定器(通配域名+端口,fail-closed)+出网工具包装器(在 @eterna/governance egress-lite 之上叠加域名级管控,包装 ToolDefinition.execute,拒未列名域名于执行前);②reviewer preset——只读审查 subagent 的 prese"
+            },
+            {
+              "path": "packages/governance/package.json",
+              "line": 3,
+              "token": "dsh-alpha.2",
+              "kind": "prose",
+              "gated": false,
+              "text": "\"description\": \"L1 治理插件核心:规则引擎(allow/ask/deny,deny 优先 fail-closed)、预算守卫(maxTurns/maxTokens/maxCost,agent/turn-stopping seam)、PII 过滤服务(供 memory/knowledge 调用)、审计投影(session 事件流→审计记录,内存/文件双 sink)、egress-l"
+            },
+            {
+              "path": "packages/interact/package.json",
+              "line": 3,
+              "token": "dsh-alpha.2",
+              "kind": "prose",
+              "gated": false,
+              "text": "\"description\": \"L1 人机交互质量插件(设计文档 08 §6、12 §3、14 号 T3):hitl.yaml 风险分档(R0 只读/R1 可逆写/R2 需确认/R3 高危)加载与校验、R0-R3→EternaAgent permission-presets 配置产物生成器、富上下文审批卡片 payload 构造器(将发生什么/为什么/影响面/回滚性/命中规则)、同 turn 提问"
+            },
+            {
+              "path": "packages/knowledge/package.json",
+              "line": 3,
+              "token": "dsh-alpha.2",
+              "kind": "prose",
+              "gated": false,
+              "text": "\"description\": \"L1 知识插件:wiki-local 默认后端(markdown wiki + frontmatter 解析、node:sqlite FTS5 trigram 索引 + 短词 LIKE 回退、混合检索关键词优先 + 向量接口留位)、KnowledgeHit 统一 schema(provenance 全量)、propose 提案制写入(governance 门禁钩子,"
+            },
+            {
+              "path": "packages/memory/package.json",
+              "line": 3,
+              "token": "dsh-alpha.2",
+              "kind": "prose",
+              "gated": false,
+              "text": "\"description\": \"L1 记忆插件:M1 项目记忆(workspace NOTES 文件读写+检索)+ M2 实体记忆(node:sqlite 表 subject/key/content/valid_at/invalid_at/confidence,重写顶替+全历史审计);模型面工具 memory_write/read/search/forget——forget 应用逆闭包真删(物理 "
+            },
+            {
+              "path": "packages/observe/package.json",
+              "line": 3,
+              "token": "dsh-alpha.2",
+              "kind": "prose",
+              "gated": false,
+              "text": "\"description\": \"L1 观测插件:evolve_signal 信号存储(sqlite,kind/ref/payload/tags/trajectory_hash,(kind,ref) 去重)、session 事件流→指标聚合器(tokens/成本估算/缓存命中率/轮数,request/header 锚定路由)、feedback 低分→信号入队、漂移快照对比(超阈值项→drift 信号"
+            },
+            {
+              "path": "packages/tasks/package.json",
+              "line": 3,
+              "token": "dsh-alpha.2",
+              "kind": "prose",
+              "gated": false,
+              "text": "\"description\": \"任务内核(Tier2 super 专属;设计文档 24 §5 架构与 R1–R6、24a 拍板、27 号冲突五机制、28 号上下文策略、34 号详细设计、35 号任务分解):Trigger→Eval→Mandate→Assignment 单写者领域内核(src/core 零 I/O)、一租户一 SQLite 存储与 realm 路由、Effects/Outbox 持"
+            }
+          ],
+          "total": 8,
+          "truncated": false
+        },
+        "weakBareTokens": {
+          "items": [
+            {
+              "path": "docker/profile/migrate-mcp-servers.test.mjs",
+              "line": 26,
+              "token": "bare-rc.1",
+              "kind": "live",
+              "gated": false,
+              "text": "const OLD_PATCH_BROWSER = `# old profile patch (rc.1 render)"
+            },
+            {
+              "path": "packages/access/tests/thinking-auto.spec.ts",
+              "line": 159,
+              "token": "bare-rc.1",
+              "kind": "live",
+              "gated": false,
+              "text": "it('rc.1 路径:inbox/inserted 载荷带 agent 时独立可用', async () => {"
+            }
+          ],
+          "total": 2,
+          "truncated": false
+        }
+      }
+    },
+    {
+      "id": "ENV-006",
+      "title": "Dockerfile 内核钉版",
+      "note": "51 ENV-006:grep @deepseek-ai/dsh@ → 精确 rc.5,无 alpha.3;49 §4:只装 dsh,mcp-client 用宿主内嵌。",
+      "status": "pass",
+      "assertions": [
+        {
+          "name": "全局内核精确 0.2.2-rc.5",
+          "ok": true,
+          "detail": "dsh@0.2.2-rc.5"
+        },
+        {
+          "name": "有效行无 alpha.* 钉版",
+          "ok": true,
+          "detail": "无"
+        }
+      ],
+      "hits": [
+        {
+          "path": "Dockerfile",
+          "line": 6,
+          "value": "0.2.2-rc.5",
+          "token": "npm-i-g-dsh",
+          "kind": "ok",
+          "text": "npm i -g @deepseek-ai/dsh@0.2.2-rc.5"
+        }
+      ],
+      "warnings": [],
+      "blockers": [],
+      "scannedFiles": 1,
+      "files": [
+        "Dockerfile"
+      ]
+    },
+    {
+      "id": "ENV-004",
+      "title": "容器内 dsh --version = 0.2.2-rc.5(静态代理)",
+      "note": "51 ENV-004 的运行时半需 P5 镜像;此处只验「本仓实装版本 + 镜像钉版」两处静态事实。 运行时检查(容器内 dsh --version)未执行:加 --runtime-image/--runtime-container。",
+      "status": "pass",
+      "assertions": [
+        {
+          "name": "workspace 实装 @deepseek-ai/dsh = rc.5",
+          "ok": true,
+          "detail": "实测 0.2.2-rc.5"
+        },
+        {
+          "name": "镜像钉版 = rc.5(静态)",
+          "ok": true,
+          "detail": "0.2.2-rc.5"
+        }
+      ],
+      "hits": [],
+      "warnings": [],
+      "blockers": [],
+      "scope": "static-only",
+      "runtime": "not-run",
+      "scannedFiles": 2,
+      "files": [
+        "Dockerfile",
+        "node_modules/@deepseek-ai/dsh/package.json"
+      ]
+    },
+    {
+      "id": "API-008",
+      "title": "LlmError 构造签名(rc.5: message, code, options?)",
+      "note": "51 API-008:无旧构造签名残留。静态扫描 new LlmError(...) 参数形态 + 记录 fromFailure 出点。",
+      "status": "pass",
+      "assertions": [
+        {
+          "name": "无旧构造签名残留",
+          "ok": true,
+          "detail": "15 处构造全部 (message, code[, options]);2 处 fromFailure 形态合法"
+        },
+        {
+          "name": "构造点非空(扫描面有效)",
+          "ok": true,
+          "detail": "命中 15 处"
+        }
+      ],
+      "hits": [
+        {
+          "path": "packages/compaction/src/basic/index.ts",
+          "line": 388,
+          "argCount": 3,
+          "second": "'MODEL_SWITCH_COMPACTION_FAILED'",
+          "text": "`Cannot switch to ${config.provider}/${config.model}: contex | 'MODEL_SWITCH_COMPACTION_FAILED' | { cause: error }",
+          "token": "new-LlmError",
+          "kind": "ok"
+        },
+        {
+          "path": "packages/compaction/src/basic/summarizer.ts",
+          "line": 224,
+          "argCount": 2,
+          "second": "'UNSUPPORTED_CONTENT'",
+          "text": "'compaction summary cannot contain image output' | 'UNSUPPORTED_CONTENT'",
+          "token": "new-LlmError",
+          "kind": "ok"
+        },
+        {
+          "path": "packages/llm-openai/src/adapter.ts",
+          "line": 122,
+          "argCount": 3,
+          "second": "'TIMEOUT'",
+          "text": "'Basis OpenAI stream idle timeout' | 'TIMEOUT' | { cause: error }",
+          "token": "new-LlmError",
+          "kind": "ok"
+        },
+        {
+          "path": "packages/llm-openai/src/adapter.ts",
+          "line": 123,
+          "argCount": 3,
+          "second": "'ABORTED'",
+          "text": "'Basis OpenAI request aborted' | 'ABORTED' | { cause: error }",
+          "token": "new-LlmError",
+          "kind": "ok"
+        },
+        {
+          "path": "packages/llm-openai/src/adapter.ts",
+          "line": 125,
+          "argCount": 3,
+          "second": "'TRANSPORT'",
+          "text": "'Basis OpenAI transport failed' | 'TRANSPORT' | { cause: error }",
+          "token": "new-LlmError",
+          "kind": "ok"
+        },
+        {
+          "path": "packages/llm-openai/src/adapter.ts",
+          "line": 152,
+          "argCount": 3,
+          "second": "httpCode(response.status, providerFields(text))",
+          "text": "`Basis OpenAI gateway returned ${String(response.status)}: $ | httpCode(response.status, providerFields(text)) | { cause: new Error(text), status: response.status }",
+          "token": "new-LlmError",
+          "kind": "ok"
+        },
+        {
+          "path": "packages/llm-openai/src/adapter.ts",
+          "line": 158,
+          "argCount": 2,
+          "second": "'EMPTY_RESPONSE'",
+          "text": "'Basis OpenAI gateway returned no response body' | 'EMPTY_RESPONSE'",
+          "token": "new-LlmError",
+          "kind": "ok"
+        },
+        {
+          "path": "packages/llm-openai/src/adapter.ts",
+          "line": 183,
+          "argCount": 2,
+          "second": "'MALFORMED_RESPONSE'",
+          "text": "'Basis OpenAI stream contains invalid JSON' | 'MALFORMED_RESPONSE'",
+          "token": "new-LlmError",
+          "kind": "ok"
+        },
+        {
+          "path": "packages/llm-openai/src/index.ts",
+          "line": 19,
+          "argCount": 2,
+          "second": "'MISSING_CREDENTIAL'",
+          "text": "`basis-llm-openai: no API key for provider route \"${connecti | 'MISSING_CREDENTIAL'",
+          "token": "new-LlmError",
+          "kind": "ok"
+        },
+        {
+          "path": "packages/llm-openai/src/serialize.ts",
+          "line": 38,
+          "argCount": 2,
+          "second": "'UNSUPPORTED_CONTENT'",
+          "text": "`Basis OpenAI transport cannot represent ${type}` | 'UNSUPPORTED_CONTENT'",
+          "token": "new-LlmError",
+          "kind": "ok"
+        },
+        {
+          "path": "packages/llm-openai/src/translate.ts",
+          "line": 31,
+          "argCount": 2,
+          "second": "'MALFORMED_RESPONSE'",
+          "text": "`Basis OpenAI stream: ${detail}` | 'MALFORMED_RESPONSE'",
+          "token": "new-LlmError",
+          "kind": "ok"
+        },
+        {
+          "path": "packages/llm-openai/src/translate.ts",
+          "line": 160,
+          "argCount": 2,
+          "second": "'STREAM_CLOSED'",
+          "text": "'Basis OpenAI stream ended without a finish reason' | 'STREAM_CLOSED'",
+          "token": "new-LlmError",
+          "kind": "ok"
+        },
+        {
+          "path": "packages/llm-openai/src/translate.ts",
+          "line": 178,
+          "argCount": 2,
+          "second": "'EMPTY_RESPONSE'",
+          "text": "'Basis OpenAI transport returned no content' | 'EMPTY_RESPONSE'",
+          "token": "new-LlmError",
+          "kind": "ok"
+        },
+        {
+          "path": "packages/llm-openai/src/types.ts",
+          "line": 99,
+          "argCount": 2,
+          "second": "'INVALID_REQUEST'",
+          "text": "'basis-llm-openai: baseURL is required; set BASIS_LLM_BASE_U | 'INVALID_REQUEST'",
+          "token": "new-LlmError",
+          "kind": "ok"
+        },
+        {
+          "path": "packages/llm-openai/src/types.ts",
+          "line": 105,
+          "argCount": 2,
+          "second": "'INVALID_REQUEST'",
+          "text": "`basis-llm-openai: unsupported replayReasoning \"${replayRaw} | 'INVALID_REQUEST'",
+          "token": "new-LlmError",
+          "kind": "ok"
+        }
+      ],
+      "warnings": [],
+      "blockers": [],
+      "scannedFiles": 680,
+      "fromFailureSites": [
+        "packages/compaction/src/basic/summarizer.ts:207",
+        "packages/memory/src/extraction.ts:253"
+      ]
+    },
+    {
+      "id": "API-009",
+      "title": "LoggerLevel 数值语义(4.1.0: WARN=1 / INFO=2)",
+      "note": "51 API-009:级别显示正确(rc.5 数值语义)。静态半=常量值与全仓数值比较复核;真行为(E2E 触发 debug/info/warn)属 T49e。",
+      "status": "pass",
+      "assertions": [
+        {
+          "name": "vendor LoggerLevel = {ERROR:0, WARN:1, INFO:2, DEBUG:3}",
+          "ok": true,
+          "detail": "{\"ERROR\":0,\"WARN\":1,\"INFO\":2,\"DEBUG\":3}"
+        },
+        {
+          "name": "构建产物 LoggerLevel 同值",
+          "ok": true,
+          "detail": "{\"ERROR\":0,\"WARN\":1,\"INFO\":2,\"DEBUG\":3}"
+        },
+        {
+          "name": "阈值缺省用 LoggerLevel.INFO 符号(非字面量 2)",
+          "ok": true,
+          "detail": "logger.ts:159 形态匹配"
+        },
+        {
+          "name": "过滤方向 targetLevel < level(与上游 4.1.0 一致)",
+          "ok": true,
+          "detail": "logger.ts:160 形态匹配"
+        },
+        {
+          "name": "全仓日志级别数值比较均在登记簿内",
+          "ok": true,
+          "detail": "2 处命中,全部复核登记"
+        },
+        {
+          "name": "登记簿无失效条目",
+          "ok": true,
+          "detail": "无"
+        }
+      ],
+      "hits": [
+        {
+          "path": "core/cordis/src/logger.ts",
+          "line": 96,
+          "text": "const colors = !level ? [] : level >= 2 ? c256 : c16",
+          "reason": "vendor 自 cordis 4.1.0 的 Logger.code:按级别深度选 ANSI 调色板(c256/c16),纯配色不影响阈值判定;与实装 @deepseek-ai/cordis@4.1.0 lib/index.js:1007 逐字相同",
+          "token": "level-numeric-compare",
+          "kind": "ok"
+        },
+        {
+          "path": "packages/tasks/src/store/store.ts",
+          "line": 230,
+          "text": "const parent = level > 0 ? this.committed[level - 1] : undefined",
+          "reason": "SQLite SAVEPOINT 嵌套深度(同文件 level = this.depth++),与日志严重级无关;非 LoggerLevel 消费方",
+          "token": "level-numeric-compare",
+          "kind": "ok"
+        }
+      ],
+      "warnings": [],
+      "blockers": [],
+      "scannedFiles": 1061,
+      "allowlist": [
+        {
+          "path": "core/cordis/src/logger.ts",
+          "pattern": "level >= 2 ? c256 : c16",
+          "reason": "vendor 自 cordis 4.1.0 的 Logger.code:按级别深度选 ANSI 调色板(c256/c16),纯配色不影响阈值判定;与实装 @deepseek-ai/cordis@4.1.0 lib/index.js:1007 逐字相同"
+        },
+        {
+          "path": "packages/tasks/src/store/store.ts",
+          "pattern": "level > 0 ? this.committed[level - 1]",
+          "reason": "SQLite SAVEPOINT 嵌套深度(同文件 level = this.depth++),与日志严重级无关;非 LoggerLevel 消费方"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "pass": 7,
+    "warn": 0,
+    "fail": 0,
+    "blockers": [],
+    "warnings": [
+      "ENV-002: 历史叙述命中 80 注释 + 276 文档 + 8 清单 description + 2 裸 rc.1(不计门禁):Dockerfile=1, core=6, docker=3, packages=89, profiles=5, scripts=1, tools=5, acceptance=3, docs=234, plans=19"
+    ]
+  }
+}

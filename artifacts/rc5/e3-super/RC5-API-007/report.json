@@ -1,0 +1,54 @@
+{
+  "id": "RC5-API-007",
+  "suite": "E3-super",
+  "priority": "P1",
+  "title": "排空后代后无残留 running（API-007）",
+  "expected": "drainDescendants 后无残留 running",
+  "status": "NOTRUN",
+  "startedAt": "2026-11-19T22:27:51.606Z",
+  "finishedAt": "2026-11-19T22:27:51.684Z",
+  "assertions": [
+    {
+      "name": "admin 登录 200",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "worker 列表为空（drain 前置缺失）",
+      "ok": true,
+      "detail": "[]"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)",
+      "exit": 0,
+      "note": "boot token 不入证据"
+    },
+    {
+      "cmd": "GET /connect + GET /?token=… (dsh session bootstrap)",
+      "exit": 200,
+      "note": "token 已脱敏"
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 200,
+      "note": "account=rc5admin"
+    },
+    {
+      "cmd": "GET /access/api/tasks/session-roles",
+      "exit": 200,
+      "note": ""
+    }
+  ],
+  "notes": [
+    "drainDescendants 需真实后代树；前置（模型/ realm）见 RC5-API-005。"
+  ],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

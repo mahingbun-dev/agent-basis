@@ -1,0 +1,22 @@
+$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+Found 0 warnings and 0 errors.
+Finished in 952ms on 26 files with 87 rules using 10 threads.
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/tools/packctl
+
+ ✓ tests/tenant.spec.ts (12 tests) 32ms
+ ✓ tests/golden.spec.ts (12 tests) 31ms
+ ✓ tests/skills.spec.ts (8 tests) 34ms
+ ✓ tests/structure.spec.ts (7 tests) 57ms
+ ✓ tests/init.spec.ts (9 tests) 84ms
+ ✓ tests/prompt.spec.ts (7 tests) 35ms
+ ✓ tests/cli.spec.ts (8 tests) 72ms
+ ✓ tests/badpacks.spec.ts (9 tests) 109ms
+ ✓ tests/cordis.spec.ts (15 tests) 3ms
+ ✓ tests/form.spec.ts (14 tests) 291ms
+
+ Test Files  10 passed (10)
+      Tests  101 passed (101)
+   Start at  01:25:12
+   Duration  704ms (transform 724ms, setup 0ms, import 1.27s, tests 749ms, environment 5ms)
+

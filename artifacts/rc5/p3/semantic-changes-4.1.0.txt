@@ -1,0 +1,93 @@
+RC5 P3 / B11 v1 线 —— @core/cordis 4.1.0 re-vendor 证据
+================================================================
+日期:2026-11-20
+worktree:/Users/sunny/code/agent-basis-rc5 (feat/dsh-rc5-merge)
+上游只读源:deepseek-harness tag dsh-v0.2.2-rc.5 = 9c2670d3bce5275e0d1610272958121af87787bb
+  上游 4.1.0 发布提交:60d811de43a819eb4317966845c9fc677c41b50d(2026-11-04)
+  对比基线 4.0.6-alpha.1:656c740669f76a9135a6992aeb5c07282fc76418(2026-10-27)
+本包版本:4.0.6-alpha.1-basis.1 -> 4.1.0-basis.1
+
+一、上游源码差异 4.0.6-alpha.1 -> 4.1.0(src/,未改造)
+  context.ts |  2 +-
+  events.ts  | 143 +++++++++++++++++++++++++++++-------------------
+  fiber.ts   | 153 ++++++++++++++++++++++++++++++++--------------------
+  logger.ts  |  15 ++--
+  reflect.ts |  56 +++++++++++++++---------
+  utils.ts   |  49 +++++++++++---------
+  6 files changed, 252 insertions(+), 166 deletions(-)
+  registry.ts / service.ts / index.ts 逐字节相同。
+  全文:artifacts/rc5/p3/cordis-upstream-4.0.6-to-4.1.0.diff
+
+二、12 项机械变换复核
+  本仓库 src/ vs 上游 4.1.0:7 files changed, 98 insertions(+), 68 deletions(-)
+  (events 6 / fiber 62 / logger 20 / reflect 7 / registry 64 / service 5 / utils 2)
+  = 与 4.0.6 时的变换 diff 完全同构;未新增变换项:
+  - 4.1.0 没有引入新的不可擦除语法(无新参数属性/const enum/值 namespace);
+  - registry.ts / service.ts / index.ts 沿用上一版已改造文件;
+  - 变换 11 仍为 5 处 declare module '@core/cordis';
+  - 变换 12 实为 5 处类型注补(README 原写“4 处”,已按实测更正并保留明细)。
+  全文:artifacts/rc5/p3/cordis-transform-4.1.0.diff
+  摘要:artifacts/rc5/p3/cordis-diff-summary.txt
+
+三、4.0.6-alpha.1 -> 4.1.0 语义变更清单(供 PR 描述)
+  1. LoggerLevel 数值反转:WARN=1 / INFO=2(原 INFO=1 / WARN=2)。按数值比较级别的
+     exporter/消费方必须复核;本仓 v1 六插件无按数值比较的用法(grep 已确认)。
+  2. Events 接口:
+     - internal/config(fiber, next)(原 (this: Fiber, config, next));
+     - 新增 internal/commit(fiber, originalConfig);
+     - internal/update(config, next) 去掉 noSave,返回 Awaitable<void>;
+     - 新增 symbol 索引签名;internal/dispatch 名称类型放宽为 string | symbol。
+  3. EventsService:
+     - register/unregister 改私有(原公开);
+     - once 接受 symbol;
+     - parallel 上报的 dispatch 模式修正为 'parallel'(原误报 'emit')。
+  4. Fiber:
+     - config 语义改为 raw input(原 validated);rawConfig 读写同一字段;
+     - effectiveConfig 单独存放(_effectiveConfig),仅激活/成功 update 后发布;
+     - store 退役 -> committed(依赖快照)+ provisions(自有提供);
+     - update() 返回 Awaitable<void>;
+     - FAILED fiber 不再因依赖变化自动恢复,须显式 update();
+     - 卸载先等 dependents 完成,再撤自身 effects;被取代的加载失败只记日志。
+  5. reflect.Impl:
+     - fiber 字段 -> ctx;新增 uid / dependents / release / isolate;
+     - provide disposer 等待 dependents;notify() 返回 void(原返回 fiber 列表);
+     - 服务解析优先 committed,再按 provisions 的 isolate 匹配。
+  6. utils:
+     - 新增 symbols.caller;
+     - createShadow/createTraceable 区分 defSite(服务解析)与 useSite(intercept/isolate/effects);
+     - createCallable 走 Reflect.apply;apply 分支为 proxy 生成 shadow receiver。
+  7. context.ts:baseUrl?: string | undefined(exactOptionalPropertyTypes 友好)。
+  8. FiberState 数值/导出名不变;CordisError 码表不变。
+
+四、本 lane 的必要适配(非语义改造)
+  - core/runtime/src/cli.ts(2 处):agents.resolve(name) -> agents.resolve(name, bundle.ctx)。
+    WA0 基线缺陷:真 bundle 装载成功后,AgentRegistryImpl.resolve 在缺 ctx 时抛
+    "agents:物化 runner 需要 ctx(agent:default)",chat/run 均退出 2;修正后 chat EOF 0、
+    run --json 0。与 cordis 4.1.0 无关(4.0.6 同样成立),但阻断 RC5-V1-005 的“CLI 退出 0”。
+    复现/对照证据:artifacts/rc5/p3/cli-resolve-ctx-repro.log
+  - core/contracts/**、packages/{system-prompt,session,tools,llm,approval-cli,agent-loop}:
+    零改动(typecheck/test 全绿,见 core-and-v1-packages.log)。
+
+五、验证结果
+  - pnpm --filter @core/cordis verify:exit 0;vitest 5/5(tests/smoke.spec.ts,
+    新增 4.1.0 语义断言:LoggerLevel 数值序 + rawConfig/effectiveConfig 分工)。
+    log:artifacts/rc5/p3/cordis-verify.log
+  - @core/contracts:typecheck 0,test 3/3;@core/runtime:typecheck 0,test 13/13
+    (@core/runtime verify 含 oxlint 0 warnings/0 errors)见 core-and-v1-packages.log、
+    runtime-verify.log。
+  - 六插件 typecheck 全 0;test 合计 35/35(system-prompt 5、session 4、tools 8、
+    llm 5、approval-cli 6、agent-loop 7)见 core-and-v1-packages.log。
+  - boot:basis.yml 六插件全部 ACTIVE(state=2),六 seam 服务 present,
+    registry size=6,dispose 干净。
+    log:artifacts/rc5/p3/boot-probe-services.log
+  - CLI:`node core/runtime/bin/basis.mjs chat --bundle basis.yml </dev/null` 退出 0
+    (无 LITELLM_API_KEY,装载完成后 EOF 退出);
+    `run "ping" --bundle core/runtime/tests/fixtures/basis-run.yml --json` 退出 0。
+    log:artifacts/rc5/p3/boot-chat-basis-yml.log
+  - v1 源无 @deepseek-ai/dsh import(RC5-V1-007 本地 grep 0)。
+  - pnpm-lock.yaml 无 @core/cordis 版本条目(workspace link),版本号变更不需动锁。
+
+六、文件清单
+  改:core/cordis/{package.json,README.md,src/{context,events,fiber,logger,reflect,utils}.ts,
+      tests/smoke.spec.ts}、core/runtime/src/cli.ts、.github/workflows/ci.yml
+  增:core/cordis/LICENSE(上游原样,MIT 版权声明补齐)、artifacts/rc5/p3/**

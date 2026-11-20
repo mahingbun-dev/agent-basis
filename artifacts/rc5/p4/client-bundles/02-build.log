@@ -1,0 +1,61 @@
+===== @eterna/access build:client 2026-11-19T20:20:53Z =====
+
+  lib/client.js  309.7kb
+
+⚡ Done in 13ms
+EXIT:0
+===== @eterna/attachments build:client 2026-11-19T20:20:54Z =====
+
+  lib/client.js  71.9kb
+
+⚡ Done in 4ms
+EXIT:0
+===== @eterna/brand build:client 2026-11-19T20:20:54Z =====
+
+  lib/client.js  72.4kb
+
+⚡ Done in 3ms
+EXIT:0
+===== @eterna/compaction build:client 2026-11-19T20:20:54Z =====
+
+  lib/client.js  96.6kb
+
+⚡ Done in 3ms
+EXIT:0
+===== @eterna/llm-doctor build:client 2026-11-19T20:20:55Z =====
+
+  lib/client.js  61.1kb
+
+⚡ Done in 3ms
+EXIT:0
+===== @eterna/memory build:client 2026-11-19T20:20:55Z =====
+
+  lib/client.js  136.3kb
+
+⚡ Done in 4ms
+EXIT:0
+===== @eterna/panel build:client 2026-11-19T20:20:55Z =====
+
+  lib/client.js  161.5kb
+
+⚡ Done in 4ms
+EXIT:0
+===== @eterna/prompt-studio build:client 2026-11-19T20:20:56Z =====
+
+  lib/client.js  303.6kb
+
+⚡ Done in 7ms
+EXIT:0
+===== @eterna/usage-stats build:client 2026-11-19T20:20:56Z =====
+
+  lib/client.js  83.9kb
+
+⚡ Done in 3ms
+EXIT:0
+===== @eterna/workbench build:client 2026-11-19T20:20:56Z =====
+
+  lib/client.js  273.5kb
+
+⚡ Done in 8ms
+EXIT:0
+OVERALL_EXIT:0

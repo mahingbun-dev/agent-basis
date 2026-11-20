@@ -1,0 +1,7 @@
+# E3-UI-002 — （lane 本地）真浏览器渲染截图（super 工作台/任务板/terminal 面板）
+CMD: node artifacts/rc5/e3-super/run-suite.mjs E3-UI-002
+START: 2026-11-19T22:31:11.480Z
+# 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
+
+
+EXIT=0

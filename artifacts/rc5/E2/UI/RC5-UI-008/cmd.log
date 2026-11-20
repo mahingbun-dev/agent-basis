@@ -1,0 +1,21 @@
+# UI/RC5-UI-008
+# started 2026-11-19T23:57:42.077Z
+
+$ node artifacts/rc5/E2/UI/_suite/ui-scan.mjs UI-008
+EXIT=0
+scope files=17 z-index declarations=4
+z-index packages/access/src/client/styles.ts:153 = 1
+z-index packages/access/src/client/styles.ts:417 = 100
+z-index packages/brand/src/client/styles.ts:25 = -1
+z-index packages/brand/src/client/styles.ts:29 = -1
+decision layer slot conversation.input.overlay: true
+notification center as settings.section notifications: true
+custom toast implementation: false
+hero -1 exception documented: true
+PASS z-index only allowlist: 0 处越界
+PASS decision layer uses input overlay slot: true
+PASS notification center is a settings section: true
+PASS no self-built toast: none (host toast)
+SUMMARY UI-008 failures=0
+
+[ASSERT] UI-008 扫描退出 0 => PASS

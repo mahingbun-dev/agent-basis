@@ -1,0 +1,17 @@
+npm warn Unknown project config "verify-deps-before-run". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown project config "verifyDepsBeforeRun". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+
+ ✓ tests/mcp-manager-drift.spec.ts (9 tests) 6ms
+ ✓ tests/mux-drift.spec.ts (17 tests) 74ms
+ ✓ tests/mux-policy.spec.ts (7 tests) 496ms
+ ✓ tests/tenant.spec.ts (20 tests) 1326ms
+ ✓ tests/tenant-guard-matrix.spec.ts (26 tests) 1641ms
+ ✓ tests/gateway-role-gate.spec.ts (23 tests) 2287ms
+
+ Test Files  6 passed (6)
+      Tests  102 passed (102)
+   Start at  01:56:20
+   Duration  2.61s (transform 462ms, setup 0ms, import 850ms, tests 5.83s, environment 0ms)
+

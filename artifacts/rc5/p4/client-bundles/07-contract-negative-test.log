@@ -1,0 +1,7 @@
+== negative test: contract 删掉 update() ==
+src/client/my-plugins-section.tsx(55,38): error TS2339: Property 'update' does not exist on type 'PluginTabProps & { readonly t: Translate; }'.
+src/client/plugins-manager.tsx(101,35): error TS2339: Property 'update' does not exist on type 'PluginTabProps'.
+EXIT_NEGATIVE:2
+
+== restore contract: 再跑一次 ==
+EXIT_RESTORED:0

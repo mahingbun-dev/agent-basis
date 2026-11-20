@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-11-19T17:58:13.228Z",
+  "version": 1,
+  "profileDir": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p2/migrate-t12-profile-check/fixture/eterna-web",
+  "profile": "eterna-web",
+  "mode": "gate",
+  "removed": [],
+  "backup": null,
+  "manifestError": null,
+  "patchError": null,
+  "bad": [
+    {
+      "bundle": "@deepseek-ai/dsh-experimental-agent-team-profile",
+      "status": "retired",
+      "reason": "上游 RETIRED_BUNDLES 已下架（47 §B1 迁移规则：删除该 bundle 项）"
+    },
+    {
+      "bundle": "@eterna/knowledge-admin",
+      "status": "invalid",
+      "reason": "未声明 dsh.bundle（dsh 会跳过该层）"
+    }
+  ]
+}

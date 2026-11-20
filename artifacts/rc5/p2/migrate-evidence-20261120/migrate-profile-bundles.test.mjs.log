@@ -1,0 +1,17 @@
+[migrate-profile-bundles]: ERROR /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-bundles-tPlFvL/package.json: JSON 解析失败(Expected property name or '}' in JSON at position 2 (line 1 column 3))
+[migrate-profile-bundles]: ERROR /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-bundles-p6Y6nd/package.json: JSON 解析失败(Unexpected end of JSON input)
+✔ 旧清单 → 新默认集：只追加缺失项并按模板顺序落位 (2.438208ms)
+✔ opt-out：marker 已记录且用户从清单移除的默认项不回加 (0.496833ms)
+✔ 幂等：二次运行零追加、且 marker/清单字节不变 (0.52975ms)
+✔ 坏 JSON fail-closed：旧文件保留、留痕 JSON（0600）、不写 marker (0.892041ms)
+✔ 坏 JSON 留痕不落 manifest 原文（依赖 URL 里的凭据不落盘） (0.697541ms)
+✔ 成功迁移不产生失败留痕 JSON（0600 只在失败路径） (0.421625ms)
+✔ 旧清单缺 bundles 键：按空清单补齐全部默认项（不猜其它键） (0.403834ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 72.09075

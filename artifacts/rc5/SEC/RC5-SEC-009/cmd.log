@@ -1,0 +1,2 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ # NOT RUN — NOT RUN（本套件口径）：同一条命令已在 ENV-007 执行并 EXIT 0；SEC 套件未单独签字，故不重复计为 SEC-009。

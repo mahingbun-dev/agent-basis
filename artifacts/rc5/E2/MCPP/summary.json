@@ -1,0 +1,184 @@
+{
+  "suite": "MCPP",
+  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "imageTag": "eterna-agent:rc5-test",
+  "imageId": "sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00",
+  "container": "rc5-e2suite",
+  "base": "http://127.0.0.1:3119",
+  "dataRoot": "/Users/sunny/eterna-data/test-20261120/e2",
+  "startedAt": "2026-11-19T23:53:24.563Z",
+  "finishedAt": "2026-11-19T23:53:32.478Z",
+  "total": 24,
+  "pass": 16,
+  "fail": 0,
+  "skip": 8,
+  "notrun": 0,
+  "counts": {
+    "PASS": 16,
+    "FAIL": 0,
+    "SKIP": 8,
+    "NOTRUN": 0
+  },
+  "halted": false,
+  "haltReason": "",
+  "cases": [
+    {
+      "id": "RC5-MCPP-001",
+      "status": "PASS",
+      "title": "A 的 list 只含 A 的条目",
+      "detail": "count=1 names=[\"p1_a-echo\"]"
+    },
+    {
+      "id": "RC5-MCPP-002",
+      "status": "PASS",
+      "title": "B 的 list 只含 B 的条目",
+      "detail": "count=1 names=[\"p2_echo-b\"]"
+    },
+    {
+      "id": "RC5-MCPP-003",
+      "status": "PASS",
+      "title": "B upsert A 的行被拒且 A 行不变",
+      "detail": "denied=true code=tenant/denied unchanged=true"
+    },
+    {
+      "id": "RC5-MCPP-004",
+      "status": "PASS",
+      "title": "B delete A 的行被拒且 A 行仍在",
+      "detail": "denied=true code=tenant/denied still=true"
+    },
+    {
+      "id": "RC5-MCPP-005",
+      "status": "PASS",
+      "title": "catalog 只含允许项；自填 stdio command 被拒",
+      "detail": "catalog=[\"echo\"]; command denied=true/stdio 的 command/args 只能来自管理员目录,禁止自填; args denied=true/stdio 的 command/args 只能来自管理员目录,禁止自填"
+    },
+    {
+      "id": "RC5-MCPP-006",
+      "status": "PASS",
+      "title": "B 从管理员目录新建 echo（serverName 按 uid 隔离）",
+      "detail": "serverName=p2_echo-b expected=p2_echo-b transport=stdio"
+    },
+    {
+      "id": "RC5-MCPP-007",
+      "status": "PASS",
+      "title": "本地 HTTP MCP 新建并 probe 成功",
+      "detail": "serverName=p2_http-b probe={\n  \"ok\": true,\n  \"toolCount\": 1\n}"
+    },
+    {
+      "id": "RC5-MCPP-008",
+      "status": "PASS",
+      "title": "IPv4 元数据地址被拒",
+      "detail": "denied=true code=tenant/denied message=拒绝访问云元数据地址"
+    },
+    {
+      "id": "RC5-MCPP-009",
+      "status": "PASS",
+      "title": "IPv6 元数据地址被拒",
+      "detail": "denied=true code=tenant/denied message=拒绝访问云元数据地址"
+    },
+    {
+      "id": "RC5-MCPP-012",
+      "status": "PASS",
+      "title": "header secret 以 AES-GCM 密文落库、日志无明文",
+      "detail": "db=ciphertext-only filesWithPlaintext=0 logPlaintext=false"
+    },
+    {
+      "id": "RC5-MCPP-013",
+      "status": "PASS",
+      "title": "list 只回 hasSecret:true 与 header 名，不回值",
+      "detail": "hasSecret=\"<redacted>\" headerNames=[\"authorization\"] leaked=false"
+    },
+    {
+      "id": "RC5-MCPP-014",
+      "status": "PASS",
+      "title": "每人 8 条上限（第 9 条拒绝）",
+      "detail": "ninth denied=true message=每人最多 8 个 MCP 服务器"
+    },
+    {
+      "id": "RC5-MCPP-015",
+      "status": "PASS",
+      "title": "256KB 配置上限（原配置不被覆盖）",
+      "detail": "denied=true unchanged=true"
+    },
+    {
+      "id": "RC5-MCPP-021",
+      "status": "PASS",
+      "title": "A/B 同名 server 的 serverName 不同且互不覆盖",
+      "detail": "a=p1_same b=p2_same aOnlyOwn=true bOnlyOwn=true"
+    },
+    {
+      "id": "RC5-MCPP-010",
+      "status": "PASS",
+      "title": "任意 HTTPS 地址（不可解析域名）校验通过、不被策略拦",
+      "detail": "upsert=true/streamable-http；probe={\"ok\":false,\"toolCount\":0,\"error\":\"SdkError: Version negotiation probe failed: fetch failed, cause: TypeError: fetch fai…"
+    },
+    {
+      "id": "RC5-MCPP-011",
+      "status": "SKIP",
+      "title": "personalHttpHosts 白名单：b.example 拒 / a.example 过",
+      "detail": "单测 `personalHttpHosts 空=放行;非空=白名单且支持 *.suffix` 绿；但本容器未以该白名单启动，未做容器实跑 → 记 SKIP（不以单测冒充容器结论）"
+    },
+    {
+      "id": "RC5-MCPP-023",
+      "status": "PASS",
+      "title": "重启容器后个人配置仍在",
+      "detail": "健康=healthy 重启前=[\"p2_persist-probe\"] 重启后=[\"p2_persist-probe\"]"
+    },
+    {
+      "id": "RC5-MCPP-016",
+      "status": "SKIP",
+      "title": "挂死 stdio 8s 放弃",
+      "detail": "未执行：需要 live 会话建立挂死子进程；API 层无 8s 启动时序面"
+    },
+    {
+      "id": "RC5-MCPP-017",
+      "status": "SKIP",
+      "title": "慢 HTTP 工具 60s 超时",
+      "detail": "未执行：需要真实工具调用与 60s 等待（模型回合）"
+    },
+    {
+      "id": "RC5-MCPP-018",
+      "status": "SKIP",
+      "title": "断线重连 3 次后停止",
+      "detail": "未执行：需要长时断连/恢复时序"
+    },
+    {
+      "id": "RC5-MCPP-019",
+      "status": "SKIP",
+      "title": "删除后 live 会话工具当场消失",
+      "detail": "未执行：需要 live 会话 + tools/list 观察"
+    },
+    {
+      "id": "RC5-MCPP-020",
+      "status": "SKIP",
+      "title": "跨用户 mcp__p<uid>_* 调用 deny",
+      "detail": "未执行：需要子代理/跨用户会话工具调用（模型回合）"
+    },
+    {
+      "id": "RC5-MCPP-022",
+      "status": "SKIP",
+      "title": "登出后个人工具不可用",
+      "detail": "未执行：需要 live 会话作用域观察"
+    },
+    {
+      "id": "RC5-MCPP-024",
+      "status": "SKIP",
+      "title": "MCP UI 双主题三视口",
+      "detail": "未执行：浏览器人工/截图（本 lane UI 套件另测；若 UI 未完成则保持 SKIP）"
+    }
+  ],
+  "officialReport": {
+    "path": "artifacts/rc5/E2/MCPP/report.json",
+    "pass": 17,
+    "fail": 1,
+    "skip": 7
+  },
+  "corrections": [
+    {
+      "id": "RC5-MCPP-023",
+      "status": "PASS",
+      "title": "重启容器后个人配置仍在",
+      "detail": "健康=healthy 重启前=[\"p2_persist-probe\"] 重启后=[\"p2_persist-probe\"]"
+    }
+  ]
+}

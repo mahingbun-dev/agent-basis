@@ -1,0 +1,37 @@
+# H2 rc.5 subagent API contract evidence (T06)
+# generated: 2026-11-19T17:51:26Z
+# cwd: /Users/sunny/code/agent-basis-rc5
+
+$ node_modules/.pnpm/@deepseek-ai+dsh-subagent@0.2.2-rc.5_3cc1721e5e0cc59e8e4484ab1d132145/node_modules/@deepseek-ai/dsh-subagent/package.json version:
+  "version": "0.2.2-rc.5",
+EXIT=0
+
+$ grep -n 'waitForTreeWork\|drainDescendants' node_modules/.pnpm/@deepseek-ai+dsh-subagent@0.2.2-rc.5_3cc1721e5e0cc59e8e4484ab1d132145/node_modules/@deepseek-ai/dsh-subagent/lib/types/manager.d.ts
+78:    waitForTreeWork(root: Agent): Promise<boolean>;
+83:    drainDescendants(parents: readonly Agent[]): Promise<void>;
+EXIT=0
+
+$ grep -n 'waitForTreeWork\|drainDescendants\|listDescendants' node_modules/.pnpm/@deepseek-ai+dsh-subagent@0.2.2-rc.5_3cc1721e5e0cc59e8e4484ab1d132145/node_modules/@deepseek-ai/dsh-subagent/lib/types/index.d.ts
+185:    waitForTreeWork(root: Agent): Promise<boolean>;
+224:    drainDescendants(parents: readonly Agent[]): Promise<void>;
+241:    listDescendants(rootSessionId: SessionId, signal?: AbortSignal): Promise<SubagentDescendantListEntry[]>;
+EXIT=0
+
+$ grep -n 'listDescendants' node_modules/.pnpm/@deepseek-ai+dsh-subagent@0.2.2-rc.5_3cc1721e5e0cc59e8e4484ab1d132145/node_modules/@deepseek-ai/dsh-subagent/lib/types/list-children.d.ts
+31: * @see SubagentRuntime.listDescendants for failure and cancellation semantics.
+37:export declare function listDescendants(ctx: Context, rootSessionId: SessionId, signal?: AbortSignal): Promise<SubagentDescendantListEntry[]>;
+EXIT=0
+
+# Old API names absent from repo sources (packages/tools/core/scripts):
+$ grep -rn "waitForChildren|listChildren|drainChildren" packages tools core scripts ... | grep -v node_modules
+EXIT=1 (1 = no match)
+
+# background.ts Subagents seam (rc.5 names):
+$ grep -n "waitForTreeWork|listDescendants|drainDescendants" packages/tasks/src/executor/background.ts
+24:  waitForTreeWork(root: Agent): Promise<boolean>
+25:  listDescendants(rootSessionId: SessionId, signal?: AbortSignal): Promise<readonly { id: string }[]>
+26:  drainDescendants(parents: readonly Agent[]): Promise<void>
+58:    join = subagents.waitForTreeWork(agent).finally(() => { joins.delete(agent) })
+162:  const live = (await subagents.listDescendants(agent.id)).map(child => child.id).filter(id => ctx.agents.get(id as SessionId))
+164:  try { await until(subagents.drainDescendants([agent]), undefined, DRAIN_LIMIT_MS) }
+EXIT=0

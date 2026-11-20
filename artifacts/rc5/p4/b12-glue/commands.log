@@ -1,0 +1,96 @@
+# T24 / B12 glue channels webhook 收口 — 命令原文、EXIT 与断言结果
+# 仓库: /Users/sunny/code/agent-basis-rc5   分支: feat/dsh-rc5-merge
+# 执行时间: 2026-11-20 (Asia/Shanghai)
+
+## 前置事实(定位"两条 webhook 直注册")
+git merge-base --is-ancestor de0d2b1 HEAD            # EXIT=0 —— 迁移 commit 已是 HEAD 祖先
+git show de0d2b1^:packages/glue/src/plugins/channels-plugin.ts | grep -n "webServer.register\|path: pathPrefix"
+# 169:          disposers.push(webServer.register({
+# 171:            path: pathPrefix,
+# 结论: 收口前 glue 侧是 1 次 prefix 注册(pathPrefix 缺省 /channels/api),同时承载
+#       /webhook/:channelType 与 /approval/:token 两条端点族(文档记"2 条"指端点族)。
+#       该直注册已由 de0d2b1 迁到 access;当前 glue src 路由 API 命中数 = 0。
+
+## 1. 指定门禁(51 ACC-001 / 50 §9.1): tenant-scan
+node tools/packctl/bin/packctl.mjs tenant-scan
+# tenant-scan: 0 finding(s)
+# EXIT=0            -> tenant-scan.log
+node tools/packctl/bin/packctl.mjs tenant-scan        # 改动后复跑
+# tenant-scan: 0 finding(s)
+# EXIT=0            -> tenant-scan-post-change.log
+
+## 2. access 侧既有单测
+pnpm --filter @eterna/access exec vitest run tests/channels-webhook.spec.ts
+# Test Files 1 passed / Tests 4 passed
+# EXIT=0
+
+## 3. glue 侧装配/网关行为单测
+pnpm --filter @eterna/glue exec vitest run tests/channels-plugin.spec.ts
+# Test Files 1 passed / Tests 9 passed
+# EXIT=0
+
+## 4. 新增契约 spec
+pnpm --filter @eterna/access exec vitest run tests/channels-webhook-contract.spec.ts
+# Test Files 1 passed / Tests 2 passed
+# EXIT=0
+
+## 5. 漂移断言有效性(mutation): 临时把 glue 字面量改成 /channels/api-drift
+#    备份 -> 改 -> 跑 -> 还原 -> sha256 复核
+shasum -a 256 packages/glue/src/plugins/channels-plugin.ts   # pre : 53ae1c39...c4faae3
+# (perl 就地改成 '/channels/api-drift')
+pnpm --filter @eterna/access exec vitest run tests/channels-webhook-contract.spec.ts
+# AssertionError: expected '/channels/api-drift' to be '/channels/api'
+# Tests 1 failed | 1 passed
+# EXIT=1            -> drift-mutation-red.log
+cp /tmp/b12-glue-channels-plugin.ts.orig packages/glue/src/plugins/channels-plugin.ts
+shasum -a 256 packages/glue/src/plugins/channels-plugin.ts   # post: 53ae1c39...c4faae3(一致)
+git status --short -- packages/glue/src/plugins/channels-plugin.ts   # 空(无残留改动)
+
+## 6. 还原后复跑(绿)
+pnpm --filter @eterna/access exec vitest run tests/channels-webhook-contract.spec.ts tests/channels-webhook.spec.ts
+# Test Files 2 passed / Tests 6 passed
+# EXIT=0            -> contract-spec-green.log
+
+## 7. 全包回归
+pnpm --filter @eterna/access exec vitest run
+# Test Files 42 passed / Tests 392 passed
+# EXIT=0            -> access-vitest-full.log
+pnpm --filter @eterna/glue exec vitest run --passWithNoTests
+# Test Files 12 passed / Tests 113 passed
+# EXIT=0            -> glue-vitest-full.log
+
+## 8. 类型检查
+pnpm --filter @eterna/glue run typecheck
+# tsc --noEmit, no diagnostics
+# EXIT=0            -> glue-typecheck.log
+pnpm --filter @eterna/access run typecheck
+# src/mcp-personal.ts(552,9)/(558,61) TS6133
+# src/store.ts(817,18)/(822,25)/(827,16)/(827,32) TS6133
+# EXIT=2            -> access-typecheck.log
+# 归因: 全部落在其它 lane 未提交的 packages/access/src/store.ts(+238 行) 与
+#       untracked packages/access/src/mcp-personal.ts;本 lane 新增文件无任何诊断。
+
+## 9. Lint(新增文件)
+pnpm --filter @eterna/access exec oxlint --config ../../.oxlintrc.json tests/channels-webhook-contract.spec.ts
+# 首跑 1 error @stylistic(eol-last) -> 补文件尾换行
+# 复跑 Found 0 warnings and 0 errors
+# EXIT=0            -> oxlint-contract.log
+
+## 10. 路由面静态证据
+# glue src 路由 API 命中数 = 0;access 登记点 plugin.ts:357;
+# channels-webhook.ts:51-52 唯一 prefix 登记;历史直注册 de0d2b1^:169
+#   -> route-surface-evidence.txt
+## 11. 历史基线复现(核对文档"基线 2 条")
+git worktree add --detach /tmp/b12-baseline de0d2b1^
+ln -s <repo>/tools/packctl/node_modules /tmp/b12-baseline/tools/packctl/node_modules
+(cd /tmp/b12-baseline && node tools/packctl/bin/packctl.mjs tenant-scan)
+# ERROR tenant/route-escapes-gate glue/glue/src/plugins/channels-plugin.ts:72
+# ERROR tenant/route-escapes-gate glue/glue/src/plugins/channels-plugin.ts:169
+# tenant-scan: 2 finding(s)
+# EXIT=1            -> baseline-tenant-scan.log
+# 判读: :169 是唯一的真实 webServer.register 调用(prefix /channels/api,同时承载
+#       webhook 与 approval 两条端点族);:72 是 JSDoc 正文行
+#       「* 本插件消费的 Web 载体 seam(webServer.register 的结构子集…」——
+#       扫描器只剥行内 // 与 /*…*/，JSDoc 续行里的字样被误报。
+#       故文档"2 条"= 1 条真实直注册 + 1 条注释误报；收口后两者同时归零。
+git worktree remove /tmp/b12-baseline --force

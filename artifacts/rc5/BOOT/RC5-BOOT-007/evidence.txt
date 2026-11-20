@@ -1,0 +1,11 @@
+## commands
+1) web/super verify boots (see RC5-BOOT-004/evidence.txt)
+2) node -e query on artifacts/rc5/p2/t11-slot-drift/{web,super}/*.json
+
+## assertion (web / super)
+web:   PASS  BOOT-007 preset-standard restatement retains rc.5 default rows — 30 declared rows all present (disabled flags honored)
+super: PASS  BOOT-007 preset-standard restatement retains rc.5 default rows — 30 declared rows all present (disabled flags honored)
+
+## preset-standard restatement vs live standard rows
+web: declared=30 live=30 missing=0 drift=0
+super: declared=30 live=30 missing=0 drift=0

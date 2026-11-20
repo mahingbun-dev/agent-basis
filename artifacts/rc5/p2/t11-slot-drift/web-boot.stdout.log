@@ -1,0 +1,43 @@
+PASS  boot log clean (no skipping/incompatible) — boot + probe 期间 stdout/stderr 无装载跳过或版本不兼容记录
+PASS  no failed entries — 229 entries settled
+PASS  all 22 cut rows inactive — absent or disabled everywhere
+PASS  all 128 kept host rows enabled+active — active in the settled Loader tree
+PASS  mcp-browser (companion browser execution plane) enabled+active — enabled/active
+PASS  eterna-prompt-studio (prompt studio panel) enabled+active — enabled/active
+PASS  standard preset composed and default — presets: standard, minimal, cordis
+PASS  all 22 kept preset rows enabled+active in standard — flattened composition active
+PASS  browser roster: index.html 200 且注入 __DSH_BOOT__ 花名册 — status=200, __DSH_BOOT__=true
+PASS  browser roster: combo 花名册含 @eterna/prompt-studio/client.js — plugins/??@eterna/attachments/client.js,@eterna/compaction/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deeps
+PASS  browser roster: 本包 combo 脚本可取且含 factory 注册(id=@eterna/prompt-studio) — bytes=2759270
+PASS  browser roster: combo 花名册含 @eterna/compaction/client.js — plugins/??@eterna/attachments/client.js,@eterna/compaction/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deeps
+PASS  browser roster: 压缩包 combo 可取且含 factory 注册(id=@eterna/compaction) — bytes=2759270
+PASS  browser roster: combo 花名册含 @eterna/attachments/client.js — plugins/??@eterna/attachments/client.js,@eterna/compaction/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deeps
+PASS  browser roster: 附件包 combo 可取且含 factory 注册(id=@eterna/attachments) — bytes=2759270
+PASS  browser roster: combo 花名册含 @eterna/knowledge-admin/client.js — plugins/??@eterna/attachments/client.js,@eterna/compaction/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deeps
+PASS  browser roster: 知识底座 combo 可取且含 factory 注册(id=@eterna/knowledge-admin) — bytes=2759270
+PASS  template shape: 43 blocks = 3 insert + 40 override — blocks=43, insert=3, override=40, lines=1058
+PASS  template overrides: 40/40 resolve in live host tree (0 unknown) — all override ids present & settled
+PASS  host entry count = 229 — live=229, expected=229
+PASS  boot stderr clean (no disabling profile plugin) — stderr 无兼容性裁行记录
+PASS  BOOT-004 unknown plugin row count = 0 — live patch targets all resolve (40 overrides)
+PASS  BOOT-005 deleted rows absent (account-controller, office-to-pdf) — absent in host tree and every preset
+PASS  BOOT-006 rc.5 new rows present+active (9) — agent-team, tool-agent-team, ui-agent-team, ui-file-actions, ui-context-menu, mcp-manager, office-kit, skill-office, deepseek-chat-import
+PASS  BOOT-007 preset-standard restatement retains rc.5 default rows — 30 declared rows all present (disabled flags honored)
+SLOT  [access] declared=7 served=7 missing=0 extra=0 catalogMiss=0
+SLOT  [attachments] declared=1 served=1 missing=0 extra=0 catalogMiss=0
+SLOT  [brand] declared=2 served=2 missing=0 extra=0 catalogMiss=0
+SLOT  [compaction] declared=2 served=2 missing=0 extra=0 catalogMiss=0
+SLOT  [knowledge-admin] declared=2 served=2 missing=0 extra=0 catalogMiss=0
+SLOT  [llm-doctor] declared=1 served=1 missing=0 extra=0 catalogMiss=0
+SLOT  [memory] declared=4 served=4 missing=0 extra=0 catalogMiss=0
+SLOT  [panel] declared=3 served=3 missing=0 extra=0 catalogMiss=0
+SLOT  [prompt-studio] declared=2 served=2 missing=0 extra=0 catalogMiss=0
+SKIP  slot drift [tasks] — 本形态未挂载该包（4 个声明槽位不参与）
+SLOT  [usage-stats] declared=2 served=2 missing=0 extra=0 catalogMiss=0
+SKIP  slot drift [workbench] — 本形态未挂载该包（2 个声明槽位不参与）
+PASS  slot drift: all 26 declared slot keys hit the live host slot catalog (116 slots) — settings.section=3, conversation.*=8, plugins.tab=2
+PASS  slot drift: 10 mounted packages — declared == served (no missing / no extra) — source declarations and served client bundles agree
+PASS  slot drift: every mounted slot-declaring package has a __ModuleLoader__ entry — 10 packages present in roster
+PASS  BOOT-012 client roster complete: T36 9/10 mounted bundles + release — 78 boot entries, release 0.2.2-rc.5, access, attachments, brand, compaction, llm-doctor, memory, panel, prompt-studio, usage-stats
+verify-eterna-web: evidence -> /Users/sunny/code/agent-basis-rc5/artifacts/rc5/p2/t11-slot-drift/web
+verify-eterna-web: OK — 229 host entries, 3 presets, cut rows inactive, kept rows active

@@ -1,0 +1,16 @@
+# TERM/RC5-TERM-007
+# started 2026-11-19T23:26:01.354Z
+
+$ node scripts/verify-terminal-guard.mjs ...（脚本内 007 行，先于 004 执行）
+EXIT=0
+bundles-terminal=true readUserTerminals=false:true preferredShells=[bash]:true
+
+$ grep -n -A6 "optional-terminal-panel" $DSH_HOME/profiles/eterna-web/cordis.patch.yml
+EXIT=0
+preferredShells:
+  - bash
+readUserTerminals: false
+
+[ASSERT] readUserTerminals=false => PASS
+
+[ASSERT] preferredShells=[bash] => PASS

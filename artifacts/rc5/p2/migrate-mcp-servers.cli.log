@@ -1,0 +1,10 @@
+[migrate-mcp-servers]: 失败（fail-closed，新 patch 保留原样）: /tmp/rc5-cli-pML3/old.yml: YAML 解析失败:Flow sequence in block collection must be sufficiently indented and end with a ] at line 2, column 1:
+
+a: [unclosed
+
+^
+
+[migrate-mcp-servers]: 备份 JSON: /tmp/rc5-cli-pML3/bad.json
+EXIT=1
+[migrate-mcp-servers]: 旧 patch 无 MCP 配置（mcp-manager.config.servers / mcp-browser 均缺失），空操作
+EXIT2=0

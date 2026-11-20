@@ -1,0 +1,48 @@
+{
+  "manifestScope": "全仓 package.json 免 v1/ core/",
+  "manifestsScanned": 46,
+  "specCounts": {
+    "dsh": 63,
+    "cordis": 24,
+    "cosmokit": 1
+  },
+  "dshFamilySpecs": 88,
+  "stalePins": [],
+  "staleFloors": [
+    {
+      "kind": "FLOOR",
+      "file": "market/glue-bundle/package.json",
+      "field": "peerDependencies",
+      "name": "@deepseek-ai/cordis",
+      "spec": ">=4.0.6-alpha.1"
+    },
+    {
+      "kind": "FLOOR",
+      "file": "market/pack-bundle/package.json",
+      "field": "peerDependencies",
+      "name": "@deepseek-ai/cordis",
+      "spec": ">=4.0.6-alpha.1"
+    },
+    {
+      "kind": "FLOOR",
+      "file": "packs/event-planning/package.json",
+      "field": "peerDependencies",
+      "name": "@deepseek-ai/cordis",
+      "spec": ">=4.0.6-alpha.1"
+    },
+    {
+      "kind": "FLOOR",
+      "file": "packs/industrial-analysis/package.json",
+      "field": "peerDependencies",
+      "name": "@deepseek-ai/cordis",
+      "spec": ">=4.0.6-alpha.1"
+    }
+  ],
+  "catalog": {
+    "dshEntries": 28,
+    "offTarget": [],
+    "cordis": "4.1.0",
+    "cosmokit": "1.9.0",
+    "staleTextTokens": []
+  }
+}

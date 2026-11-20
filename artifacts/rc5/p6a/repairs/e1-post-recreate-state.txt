@@ -1,0 +1,14 @@
+# 重建后：新镜像与 fd 面（不得再有 (deleted) 的 users.db-*）
+image: sha256:48782afaf8ba665e3ec3ea0995c8f5b3e844ebad764e03f34c281b14e48389d3
+startedAt: 2026-11-20T01:15:29.862944468Z
+lrwx------ 1 root root 64 Nov 20 01:15 43 -> /data/access/users.db
+lrwx------ 1 root root 64 Nov 20 01:15 44 -> /data/access/users.db-wal
+lrwx------ 1 root root 64 Nov 20 01:15 45 -> /data/access/users.db-shm
+
+total 164
+drwx------  6 root root    192 Nov 20 01:15 .
+drwx------ 21 root root    672 Nov 20 01:15 ..
+-rw-------  1 root root     32 Nov 19 21:09 secret.key
+-rw-r--r--  1 root root 131072 Nov 20 01:15 users.db
+-rw-r--r--  1 root root  32768 Nov 20 01:15 users.db-shm
+-rw-r--r--  1 root root      0 Nov 20 01:15 users.db-wal

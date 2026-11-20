@@ -1,0 +1,65 @@
+# T29/T34/T35 profile-capabilities — executed commands, EXIT, result summary
+# 工作树: /Users/sunny/code/agent-basis-rc5 (feat/dsh-rc5-merge)
+# 时间: 2026-11-20
+
+[1] ETERNA_EVIDENCE_DIR="$PWD/artifacts/rc5/p4/profile-capabilities/web" node scripts/verify-eterna-web.mjs > artifacts/rc5/p4/profile-capabilities/web/verify.stdout.log 2> artifacts/rc5/p4/profile-capabilities/web/verify.stderr.log
+EXIT=0
+结果: verify-eterna-web: OK — 229 host entries, 3 presets, cut rows inactive, kept rows active
+关键 PASS: BOOT-006 rc.5 new rows present+active (9) — agent-team, tool-agent-team, ui-agent-team, ui-file-actions, ui-context-menu, mcp-manager, office-kit, skill-office, deepseek-chat-import
+         all 128 kept host rows enabled+active（含 optional-terminal-registry/panel/tool-terminal、terminal-controller、ui-sidebar-terminal）
+         all 22 kept preset rows enabled+active in standard（含 tool-office）
+注: 脚本 stderr 打印的 boot URL 含一次性 token；落盘后已用 token=<redacted> 脱敏（web/verify.stderr.log、super/verify.stderr.log、super/verify.stdout.log）。
+
+[2] ETERNA_EVIDENCE_DIR="$PWD/artifacts/rc5/p4/profile-capabilities/super" node scripts/verify-eterna-super.mjs > artifacts/rc5/p4/profile-capabilities/super/verify.stdout.log 2> artifacts/rc5/p4/profile-capabilities/super/verify.stderr.log
+EXIT=0
+结果: verify-eterna-super: OK — 235 host entries, 3 presets, cut rows inactive, kept rows active, super 挂载面 22 行 active
+关键 PASS: BOOT-006 rc.5 new rows present+active (9) — agent-team, tool-agent-team, ui-agent-team, ... office-kit, skill-office, deepseek-chat-import
+         all 124 kept host rows enabled+active（terminal 三行 + 侧栏两行在列）
+
+[3] DSH_HOME="$PWD/.eterna-home" node node_modules/@deepseek-ai/dsh/lib/bin.js --profile eterna-web --dump-config > artifacts/rc5/p4/profile-capabilities/web/dump-config.log
+EXIT=0
+结果: 1780 行组合树；含 agent-team(maxTasks:256)、office-kit(outputDirectory=dshHomePath('office-kit','outputs'))、
+      skill-office(pythonEnvironment 表达式)、preset-standard/ptc/cordis 各含 tool-office、optional-terminal-panel(preferredShells:[bash], readUserTerminals:false)
+
+[4] DSH_HOME="$PWD/.eterna-super-home" node node_modules/@deepseek-ai/dsh/lib/bin.js --profile eterna-super --dump-config > artifacts/rc5/p4/profile-capabilities/super/dump-config.log
+EXIT=0
+结果: 1794 行组合树；同上配置面与 web 一致（super 模板同源）
+
+[5] node artifacts/rc5/p4/profile-capabilities/profile-assertions.mjs > artifacts/rc5/p4/profile-capabilities/profile-assertions.log
+EXIT=0
+结果: 63 PASS / 0 FAIL — profile-assertions: OK — all capability assertions passed
+覆盖: T29 tool-office 三预设 + office-kit/skill-office 活体 effectiveConfig + 24h/512MiB 默认；
+      T34 terminal 模板/活体配置 + 6 工具 + 9 方法守卫；
+      T35 三行 web/super 真 boot active + 新会话 Team mode isEnabled=false + defaultEnabled=false；
+      B18 六 bundle/ACP/16 optional 默认矩阵
+
+[6] node artifacts/rc5/p4/profile-capabilities/team-mode/run-team-probe.mjs > artifacts/rc5/p4/profile-capabilities/team-mode/runner.stdout.log
+EXIT=0
+结果: TEAM_DEFAULT_PROBE {"sessionId":"probe-mwny9tmu-kfdv03","isEnabled":false,"teamModeEventCount":0,"selection":{"provider":"mimo","model":"mimo-v2.6-pro"}}
+手法: 复制 .eterna-home/profiles/eterna-web 到临时 DSH_HOME → --patch 追加临时探针插件 → 真 boot 产品 profile →
+      探针 ctx.agentLoop.create() 新建会话并读 ctx.agentTeams.isEnabled()；另读 Loader 活体 effectiveConfig：
+      skillOffice.pythonEnvironment=user; officeKit.outputDirectory=<DSH_HOME>/office-kit/outputs;
+      officeKit.outputRetentionMs=86400000; officeKit.maxOutputStoreBytes=536870912;
+      terminalPanel.preferredShells=[bash], readUserTerminals=false; agentTeam.defaultEnabled=false, maxTasks=256
+      （team-mode/team-mode-runtime.log，token 已脱敏）
+
+[7] node artifacts/rc5/p4/profile-capabilities/b18-check.mjs > artifacts/rc5/p4/profile-capabilities/b18-default-set.log
+EXIT=0
+结果: 8 PASS — OPTIONAL_BUNDLES=16；web bundles 精确六项；ACP=base+acp-app；16 个全部是 dsh@0.2.2-rc.5 依赖且已装入 .pnpm；
+      默认开 session-search/terminal/plugin-market/deepseek-chat-import；其余 12 默认关；ACP 不含 optional bundle
+
+[8] node_modules/.bin/vitest run packages/access/tests/terminal-tenant.spec.ts > artifacts/rc5/p4/profile-capabilities/terminal-tenant.spec.log 2>&1
+EXIT=0
+结果: 4 tests passed（含「9 方法 terminal/tenant-denied」与 TERMINAL_METHODS ↔ 上游 typert.host 差集=∅ 防漂移）
+
+[9] node_modules/.bin/vitest run packages/glue/tests/governance-rules-fixture.spec.ts > artifacts/rc5/p4/profile-capabilities/governance-rules-fixture.log 2>&1
+EXIT=0
+结果: 7 tests passed（治理规则含 team_task_create/get/list/update + send_message/spawn_teammate/wait_agent/interrupt_agent）
+
+[10] 渲染一致性（profile-render.log）
+$ shasum -a 256 docker/profile/cordis.patch.yml.template .eterna-home/profiles/eterna-web/cordis.patch.yml
+EXIT=0 — 902c94b7…，cmp identical
+$ shasum -a 256 docker/profile/cordis.super.patch.yml.template .eterna-super-home/profiles/eterna-super/cordis.patch.yml
+EXIT=0 — 97d027b5…，cmp identical
+$ node -e '<compare dsh.profile.bundles template vs rendered>'
+EXIT=0 — web/super rendered bundles 与 docker/profile/package.json 逐项相等

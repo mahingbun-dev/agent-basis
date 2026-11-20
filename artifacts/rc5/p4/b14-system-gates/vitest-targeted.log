@@ -1,0 +1,13 @@
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+
+ ✓ tests/mcp-manager-drift.spec.ts (9 tests) 3ms
+ ✓ tests/mux-drift.spec.ts (17 tests) 47ms
+ ✓ tests/mux-policy.spec.ts (7 tests) 410ms
+ ✓ tests/gateway-role-gate.spec.ts (23 tests) 2159ms
+
+ Test Files  4 passed (4)
+      Tests  56 passed (56)
+   Start at  02:16:46
+   Duration  2.38s (transform 180ms, setup 0ms, import 311ms, tests 2.62s, environment 0ms)
+

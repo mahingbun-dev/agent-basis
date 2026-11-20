@@ -1,0 +1,16 @@
+# deploy/verify.sh 免凭据只读子集（逐条同源命令；凭据类/POST 类未执行）
+$ docker exec eterna-agent sh -c 'test -s /data/.eterna/governance.rules.yml && grep -cE "^default: (allow|ask|deny)$" /data/.eterna/governance.rules.yml && grep -c "^  - id: allow-fs" /data/.eterna/governance.rules.yml'
+gov=[1 1 ]
+EXIT=0
+
+$ docker exec eterna-agent sh -c '<kb static profile check>'
+kb=[eterna-super]
+EXIT=0
+
+$ curl -s --max-time 8 -r 0-1 http://127.0.0.1:9310/companion/download.zip
+magic=[PK]
+EXIT=0
+
+$ curl -s -o /dev/null -w '%{http_code} %{content_type}' http://127.0.0.1:9310/companion/guide
+200 text/html; charset=utf-8
+EXIT=0

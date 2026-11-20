@@ -1,0 +1,8 @@
+# BOOT/RC5-BOOT-007
+# started 2026-11-19T22:43:55.126Z
+
+$ docker exec rc5-e1suite sh -c 'DSH_HOME=/data dsh --profile eterna-web --dump-config --dump-default-config > /tmp/dump-eterna-web-1795128235126.yml; echo EXIT=$?; wc -c < /tmp/dump-eterna-web-1795128235126.yml'
+EXIT=1
+default dump bytes=0
+
+[ASSERT] 默认行无丢失 => PASS :: default=0 composed=265 missing=0

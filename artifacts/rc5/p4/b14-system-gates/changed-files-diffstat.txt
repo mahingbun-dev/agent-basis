@@ -1,0 +1,10 @@
+ packages/access/src/mux.ts                      |   9 ++
+ packages/access/src/tenant.ts                   |  90 ++++++++++++--
+ packages/access/tests/gateway-role-gate.spec.ts | 154 +++++++++++++++++++++++-
+ packages/access/tests/mux-policy.spec.ts        |   6 +
+ 4 files changed, 246 insertions(+), 13 deletions(-)
+ M packages/access/src/mux.ts
+ M packages/access/src/tenant.ts
+ M packages/access/tests/gateway-role-gate.spec.ts
+ M packages/access/tests/mux-policy.spec.ts
+?? packages/access/tests/mcp-manager-drift.spec.ts

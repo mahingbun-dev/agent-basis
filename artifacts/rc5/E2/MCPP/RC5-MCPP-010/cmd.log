@@ -1,0 +1,14 @@
+# MCPP/RC5-MCPP-010
+# started 2026-11-19T23:53:24.865Z
+
+$ POST /api/mcp-personal/upsert {name:https-unresolvable,url:https://unresolvable.invalid/mcp}（B）
+EXIT=200
+ok=true code=- serverName=p2_https-unresolvable msg=
+
+$ POST /api/mcp-personal/probe（同一行）
+EXIT=200
+ok=true value={"ok":false,"toolCount":0,"error":"SdkError: Version negotiation probe failed: fetch failed, cause: TypeError: fetch failed, cause: getaddrinfo ENOTFOUND unresolvable.invalid"} code=-
+
+[ASSERT] 策略接受 https 任意 host（不被白名单拦） => PASS
+
+[ASSERT] probe 失败属网络层（返回 error 字段，非策略拒绝） => PASS

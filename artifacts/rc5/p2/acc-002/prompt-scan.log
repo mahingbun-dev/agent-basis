@@ -1,0 +1,7 @@
+# T17 prompt-scan(ACC-002 / R08+R19)
+# cmd: node tools/packctl/bin/packctl.mjs prompt-scan
+# cwd: /Users/sunny/code/agent-basis-rc5
+# head: 02f4857
+# date: 2026-11-19T18:11:04Z
+prompt-scan: 0 finding(s)
+# EXIT=0

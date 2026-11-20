@@ -1,0 +1,58 @@
+[2026-11-19T21:45:37.331Z] soak start suite=both duration=86400s interval=60s dbInterval=300s container=eterna-rc5-e1
+[2026-11-19T21:45:37.332Z] plannedEnd=2026-11-20T21:45:37.331Z logs=/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p5/testbed/soak
+[2026-11-19T21:45:37.426Z] auth refreshed
+[2026-11-19T21:45:37.451Z] victim session=session-18840738-ec79-4754-b84a-4567e35f6b9d
+[2026-11-19T21:45:37.527Z] long process: spawned pid detached
+[2026-11-19T21:45:37.602Z] term tick=1 fds=69 rssKb=586976 threads=11 longProcs=1 churn=fail
+[2026-11-19T21:45:37.800Z] data tick=1 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=105
+[2026-11-19T21:50:38.691Z] data tick=6 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=128
+[2026-11-19T21:55:39.592Z] data tick=11 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=130
+[2026-11-19T22:00:40.739Z] data tick=16 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=132
+[2026-11-19T22:05:41.670Z] data tick=21 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=134
+[2026-11-19T22:10:42.558Z] data tick=26 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T22:14:43.081Z] term tick=30 fds=80 rssKb=486308 threads=11 longProcs=1 churn=fail
+[2026-11-19T22:15:43.488Z] data tick=31 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T22:20:44.358Z] data tick=36 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T22:25:45.577Z] data tick=41 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T22:30:46.501Z] data tick=46 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T22:35:47.387Z] data tick=51 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T22:40:48.184Z] data tick=56 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T22:44:48.646Z] term tick=60 fds=96 rssKb=305544 threads=11 longProcs=1 churn=fail
+[2026-11-19T22:45:49.019Z] data tick=61 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T22:50:49.899Z] data tick=66 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T22:55:50.770Z] data tick=71 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T23:00:51.584Z] data tick=76 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T23:05:52.463Z] data tick=81 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T23:10:53.362Z] data tick=86 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T23:14:53.810Z] term tick=90 fds=108 rssKb=277348 threads=11 longProcs=1 churn=fail
+[2026-11-19T23:15:54.186Z] data tick=91 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T23:20:55.012Z] data tick=96 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T23:25:55.759Z] data tick=101 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T23:30:56.631Z] data tick=106 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T23:35:57.552Z] data tick=111 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T23:40:58.426Z] data tick=116 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T23:44:58.915Z] term tick=120 fds=120 rssKb=292448 threads=11 longProcs=1 churn=fail
+[2026-11-19T23:45:59.286Z] data tick=121 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T23:51:00.163Z] data tick=126 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-19T23:56:01.013Z] data tick=131 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-20T00:01:01.941Z] data tick=136 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-20T00:06:02.808Z] data tick=141 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-20T00:11:03.598Z] data tick=146 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-20T00:15:04.062Z] term tick=150 fds=132 rssKb=304312 threads=11 longProcs=1 churn=fail
+[2026-11-20T00:16:04.451Z] data tick=151 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-20T00:21:05.327Z] data tick=156 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-20T00:26:06.161Z] data tick=161 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-20T00:31:06.894Z] data tick=166 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-20T00:36:07.694Z] data tick=171 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-20T00:41:08.633Z] data tick=176 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-20T00:45:09.144Z] term tick=180 fds=144 rssKb=306072 threads=11 longProcs=1 churn=fail
+[2026-11-20T00:46:09.492Z] data tick=181 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-20T00:51:10.372Z] data tick=186 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-20T00:56:11.232Z] data tick=191 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-20T01:01:12.144Z] data tick=196 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-20T01:06:12.939Z] data tick=201 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-20T01:11:13.840Z] data tick=206 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=136
+[2026-11-20T01:15:14.479Z] term tick=210 fds=157 rssKb=462028 threads=11 longProcs=1 churn=fail
+[2026-11-20T01:16:14.844Z] data tick=211 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=287
+[2026-11-20T01:21:15.860Z] data tick=216 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=312
+[2026-11-20T01:26:16.657Z] data tick=221 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=335

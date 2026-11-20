@@ -1,0 +1,248 @@
+# case: FUSE
+# host: ma-macminideMac-mini.local  user: sunny  time: 2026-11-19T22:10:20Z
+
+$ docker run --rm --network none -v /Users/sunny/eterna-data/test-rc5/.p6b-fuse/data:/data -v /Users/sunny/code/agent-basis-rc5/artifacts/rc5/DATA/_tools:/tools:ro eterna-agent:rc5-test sh -c 
+echo "== mount info =="
+grep " /data " /proc/mounts
+echo "== fs type =="
+stat -f -c "data=%T" /data
+stat -f -c "tmp=%T" /tmp
+stat -f -c "rootfs=%T" /
+echo "== 权限/属主/硬链接（容器内创建） =="
+mkdir -p /data/fuse/perm
+umask 000
+printf a > /data/fuse/perm/f600; chmod 600 /data/fuse/perm/f600
+printf b > /data/fuse/perm/f644; chmod 644 /data/fuse/perm/f644
+mkdir -p /data/fuse/perm/d700; chmod 700 /data/fuse/perm/d700
+printf c > /data/fuse/perm/f-owned; chown 1000:1000 /data/fuse/perm/f-owned; echo "chown_rc=$?"
+printf d > /data/fuse/perm/hl-a; ln /data/fuse/perm/hl-a /data/fuse/perm/hl-b; echo "ln_rc=$?"
+stat -c "%a %u %g %i %n" /data/fuse/perm/f600 /data/fuse/perm/f644 /data/fuse/perm/d700 /data/fuse/perm/f-owned /data/fuse/perm/hl-a /data/fuse/perm/hl-b
+echo "== flock =="
+mkdir -p /data/fuse/lock
+flock -n /data/fuse/lock/l1 -c "echo first-acquired"; echo "first_rc=$?"
+( flock -n /data/fuse/lock/l1 -c "sleep 2" ) &
+sleep 0.4
+flock -n /data/fuse/lock/l1 -c "echo second-acquired"; echo "second_rc=$?"
+wait
+echo "== overlayfs 对照（容器层 /tmp） =="
+mkdir -p /tmp/fuse/perm
+umask 000
+printf a > /tmp/fuse/perm/f600; chmod 600 /tmp/fuse/perm/f600
+stat -c "%a %u %g %n" /tmp/fuse/perm/f600
+
+# label: 容器内 FUSE 语义探针
+# started: 2026-11-19T22:10:20Z
+== mount info ==
+virtiofs0 /data virtiofs rw,nosuid,nodev,relatime,ignore_atime,no_xattr 0 0
+== fs type ==
+data=fuseblk
+tmp=overlayfs
+rootfs=overlayfs
+== 权限/属主/硬链接（容器内创建） ==
+chown_rc=0
+ln_rc=0
+600 0 0 183096 /data/fuse/perm/f600
+644 0 0 183097 /data/fuse/perm/f644
+700 0 0 183098 /data/fuse/perm/d700
+666 0 0 183099 /data/fuse/perm/f-owned
+666 0 0 183100 /data/fuse/perm/hl-a
+666 0 0 183100 /data/fuse/perm/hl-b
+== flock ==
+first-acquired
+first_rc=0
+second_rc=1
+== overlayfs 对照（容器层 /tmp） ==
+600 0 0 /tmp/fuse/perm/f600
+EXIT=0
+
+drwx------ sunny:staff 88569864 /Users/sunny/eterna-data/test-rc5/.p6b-fuse/data/fuse/perm/d700
+-rw-rw-rw- sunny:staff 88569865 /Users/sunny/eterna-data/test-rc5/.p6b-fuse/data/fuse/perm/f-owned
+-rw------- sunny:staff 88569862 /Users/sunny/eterna-data/test-rc5/.p6b-fuse/data/fuse/perm/f600
+-rw-r--r-- sunny:staff 88569863 /Users/sunny/eterna-data/test-rc5/.p6b-fuse/data/fuse/perm/f644
+-rw-rw-rw- sunny:staff 88569866 /Users/sunny/eterna-data/test-rc5/.p6b-fuse/data/fuse/perm/hl-a
+-rw-rw-rw- sunny:staff 88569866 /Users/sunny/eterna-data/test-rc5/.p6b-fuse/data/fuse/perm/hl-b
+ASSERT PASS | 宿主侧 f600 权限=600（chmod 落宿主） | actual=600 expected=600
+ASSERT PASS | 宿主侧 d700 权限=700 | actual=700 expected=700
+ASSERT PASS | 宿主侧 hl-a/hl-b 同 inode（硬链接落宿主） | actual=same expected=same
+宿主侧 f-owned 属主=sunny（容器内 chown 1000:1000；macOS virtiofs 不映射 uid）
+
+$ docker run --rm --network none -v /Users/sunny/eterna-data/test-rc5/.p6b-fuse/data:/data -v /Users/sunny/code/agent-basis-rc5/artifacts/rc5/DATA/_tools:/tools:ro eterna-agent:rc5-test node /tools/fuse-sqlite-stress.mjs /data/fuse-stress --writers 8 --ops 200
+# label: FUSE(bind) SQLite WAL 8×200 并发 + 崩溃恢复
+# started: 2026-11-19T22:10:22Z
+{
+  "dir": "/data/fuse-stress",
+  "writers": 8,
+  "opsPerWriter": 200,
+  "expected": 1600,
+  "ok": 1600,
+  "busy": 0,
+  "other": 0,
+  "rows": 1600,
+  "elapsedMs": 837,
+  "integrity": "ok",
+  "quickCheck": "ok",
+  "journalMode": "wal",
+  "mmapSize": 268435456,
+  "walBytes": 4152,
+  "shmBytes": 32768,
+  "crash": {
+    "exit": 97,
+    "integrity": "ok",
+    "rows": 0
+  },
+  "workerResults": [
+    {
+      "worker": 0,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 1,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 2,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 3,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 4,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 5,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 6,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 7,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    }
+  ]
+}
+EXIT=0
+
+$ docker run --rm --network none -v /Users/sunny/code/agent-basis-rc5/artifacts/rc5/DATA/_tools:/tools:ro eterna-agent:rc5-test node /tools/fuse-sqlite-stress.mjs /tmp/overlay-stress --writers 8 --ops 200
+# label: overlayfs 对照 SQLite WAL 8×200 并发 + 崩溃恢复
+# started: 2026-11-19T22:10:23Z
+{
+  "dir": "/tmp/overlay-stress",
+  "writers": 8,
+  "opsPerWriter": 200,
+  "expected": 1600,
+  "ok": 1600,
+  "busy": 0,
+  "other": 0,
+  "rows": 1600,
+  "elapsedMs": 107,
+  "integrity": "ok",
+  "quickCheck": "ok",
+  "journalMode": "wal",
+  "mmapSize": 268435456,
+  "walBytes": 4152,
+  "shmBytes": 32768,
+  "crash": {
+    "exit": 97,
+    "integrity": "ok",
+    "rows": 0
+  },
+  "workerResults": [
+    {
+      "worker": 0,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 1,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 2,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 3,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 4,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 5,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 6,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 7,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    }
+  ]
+}
+EXIT=0
+
+ASSERT PASS | bind(FUSE) WAL 并发写全成功且 integrity/崩溃恢复 ok | actual=0 expected=0
+ASSERT PASS | overlayfs 对照 WAL 并发写全成功且 integrity ok | actual=0 expected=0
+$ sh -c docker logs eterna-rc5-e1 2>&1 | grep -c -E 'database is locked|SQLITE_BUSY' || true
+# label: E1 容器日志 database is locked/SQLITE_BUSY 计数（全量）
+# started: 2026-11-19T22:10:25Z
+0
+EXIT=0
+
+PASS=5 FAIL=0
+

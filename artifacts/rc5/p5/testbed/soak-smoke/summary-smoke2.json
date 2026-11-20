@@ -1,0 +1,103 @@
+{
+  "script": "scripts/soak-rc5.mjs",
+  "tag": "smoke2",
+  "suite": "both",
+  "startedAt": "2026-11-19T21:29:23.905Z",
+  "endedAt": "2026-11-19T21:29:33.909Z",
+  "plannedSeconds": 10,
+  "elapsedSeconds": 10,
+  "reason": "planned-end",
+  "window": {
+    "complete": true,
+    "requirement": "24h 窗口未满不得判定通过（54 §6.3）",
+    "note": "窗口已满"
+  },
+  "container": "eterna-rc5-e1",
+  "dataRoot": "/Users/sunny/eterna-data/test-rc5/e1",
+  "counts": {
+    "termSamples": 2,
+    "dataSamples": 1
+  },
+  "logs": {
+    "term": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p5/testbed/soak-smoke/term-013-smoke2.jsonl",
+    "data": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p5/testbed/soak-smoke/data-009-smoke2.jsonl",
+    "soak": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p5/testbed/soak-smoke/soak-smoke2.log"
+  },
+  "term": {
+    "verdict": "FAIL",
+    "samples": 2,
+    "fd": {
+      "first": 54,
+      "last": 54,
+      "min": 54,
+      "max": 54,
+      "growth": 0,
+      "spread": 0,
+      "slopePerHour": 0,
+      "ok": true
+    },
+    "rssKb": {
+      "first": 461476,
+      "last": 462892,
+      "min": 461476,
+      "max": 462892,
+      "growthMb": 1.38,
+      "slopeMbPerHour": 497.813,
+      "limitMb": 67.6,
+      "ok": true
+    },
+    "churn": {
+      "cycles": 2,
+      "failures": 2,
+      "firstError": "create={\n  \"code\": \"gateway/internal\",\n  \"message\": \"session.snapshotEvents is not a fu close=ok",
+      "ok": false
+    },
+    "longProcess": {
+      "started": true,
+      "ok": true,
+      "detail": "spawned pid detached"
+    }
+  },
+  "data": {
+    "verdict": "PASS",
+    "samples": 1,
+    "cycles": 2,
+    "writerFailures": 0,
+    "writerErrors": [],
+    "integrityFailures": [],
+    "lockMatches": 0,
+    "walBytesFirst": [
+      {
+        "file": "access/users.db",
+        "walBytes": 1083592
+      },
+      {
+        "file": ".eterna/memory.sqlite3",
+        "walBytes": 90672
+      },
+      {
+        "file": "knowledge-admin/access.sqlite3",
+        "walBytes": 0
+      }
+    ],
+    "walBytesLast": [
+      {
+        "file": "access/users.db",
+        "walBytes": 1083592
+      },
+      {
+        "file": ".eterna/memory.sqlite3",
+        "walBytes": 90672
+      },
+      {
+        "file": "knowledge-admin/access.sqlite3",
+        "walBytes": 0
+      }
+    ],
+    "sessionRows": 70
+  },
+  "limitations": [
+    "terminal/attach 走 WS mux（HTTP 不可达），脚本未执行 attach；created/closed churn 已记账",
+    "进程/内存采样为容器 /proc 只读采样（60s 级），非 profiler"
+  ]
+}

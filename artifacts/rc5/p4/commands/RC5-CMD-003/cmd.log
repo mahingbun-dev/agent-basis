@@ -1,0 +1,29 @@
+# T39 / 51 §3.12 RC5-CMD-003 — 与既有 slash 命令并存:无重复/无冲突
+# 工作树: /Users/sunny/code/agent-basis-rc5 (feat/dsh-rc5-merge)
+# 时间: 2026-11-20
+
+[1] DSH_HOME="$PWD/.eterna-home" node node_modules/@deepseek-ai/dsh/lib/bin.js --profile eterna-web --dump-config
+EXIT=0  → dump-config.log(63683 行)
+渲染树事实:
+- 宿主 command-compact(@deepseek-ai/dsh-command-compact) disabled: true(dump 575-577;
+  上游 dsh-web-app/cordis.patch.yml:579-580 统一禁宿主行)
+- preset-standard: command-compact = @eterna/compaction/command-plugin(dump 1153-1154; 源 profiles/eterna-web/cordis.patch.yml:448-449)
+- preset-cordis:   command-compact = @eterna/compaction/command-plugin(dump 1623-1624; 源 profiles/eterna-web/cordis.patch.yml:267-268)
+- preset-ptc: disabled: true(dump 1388; 源 profiles/eterna-web/cordis.patch.yml:164-165),其内 upstream
+  command-compact 行(dump 1327-1328)不激活
+- preset-minimal(存活,order 3): compaction-basic/command-compact 均为上游包(dump 1416-1418)
+→ 任一激活预设内只有 1 条 /compact 注册;默认 standard 走 @eterna/compaction/command-plugin
+
+[2] node artifacts/rc5/p4/commands/T39-BOOT/run-probe.mjs   EXIT=0
+活体: commandCount=6, duplicateNames=[], presetRoster=[standard(default), minimal, cordis],
+      activePreset=standard; compact.definitionId=@deepseek-ai/dsh-command-compact
+→ 活体命令目录无重名
+
+[3] node_modules/.bin/vitest run --root packages/compaction tests/command-plugin.spec.ts   EXIT=0
+用例: 「同层重复注册同名命令被注册表拒绝」→ 抛 command "compact" is already registered
+(注册表实现: dsh-commands/src/index.ts:94-104 CommandLayer NamedEntries)
+
+[4] 浏览器菜单: compact 恰 1 行、model 恰 1 行、29 行 id 唯一(见 ../RC5-CMD-001/browser-assertions.json)
+
+结论: PASS(默认 standard 路径无重复注册/无冲突)
+遗留: preset-minimal(可选,非默认)仍用上游 compact 实现 → 见 result.md「遗留」

@@ -1,0 +1,15 @@
+[PASS] SETUP-LOGIN (P0) A/B/C 登录 :: a=200 b=200 c=200
+[PASS] SETUP-FIXTURES (P0) 归档夹具与 B 工作区可用 :: fixture=/Users/sunny/code/agent-basis-rc5/tests/fixtures/chat-import/deepseek-export-11.zip bytes=62335 bWorkspace=adf1e03e-505e-468b-b1b0-9ebc31f5e1a4 aWorkspace=7439e2fd-4920-44b0-8fb2-b2bf80790427
+[PASS] RC5-IMP-001 (P0) 未登录上传 → 401 且不写会话 :: status=401 count 144→144
+[PASS] RC5-IMP-002 (P0) B 传 A 的 workspaceId → 403 且不写会话 :: status=403 body=forbidden count 1→1
+[PASS] RC5-IMP-003 (P0) B 导入 11 会话归档 → 200，outcome.sessionIds=10 :: status=200 ok=true sessionIds=10 skipped=1 lines=12
+[PASS] RC5-IMP-005 (P0) access 库 10 行 owner=B、无空属主 :: B rows=154 delta=10 allImportedPresent=true ownerClean=true
+[PASS] RC5-IMP-004 (P0) 导入的会话 B 可见、A 不可见 :: B 可见 10/10，A 可见 0/10（A 还能看到他人会话 = 跨租户元数据泄漏）
+[PASS] RC5-IMP-009 (P1) 坏 JSON 会话被跳过、其余完整导入 :: status=200 sessionIds=10 skipped=1 brokenNamed=true
+[SKIP] RC5-IMP-006 (P1) 1001 会话上限 :: 需要生成 1001 会话归档（体积与时长），P6 手工构造
+[SKIP] RC5-IMP-007 (P1) 512MiB 边界 :: 需要 512MiB 上传与反代链路（P6/E6）
+[SKIP] RC5-IMP-008 (P1) 上传中途取消后对账 :: 需要浏览器/中断控制（P6 E2E）
+[SKIP] RC5-IMP-010 (P1) 反代 client_max_body_size/读超时 :: 反代配置属 T44/E6，不在 E1
+
+[IMP] PASS=8 FAIL=0 SKIP=4 NOTRUN=0
+[IMP] report → artifacts/rc5/p6a/repairs/after-chat-import.json

@@ -1,0 +1,58 @@
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/compaction
+
+ ❯ tests/command-plugin.spec.ts (9 tests | 2 failed) 21ms
+     × 注册 name=compact,且 / 菜单/中文别名按上游首方身份识别(builtinCommandName/resolveCommand) 8ms
+     ✓ 同层重复注册同名命令被注册表拒绝(不得重复注册同一命令) 1ms
+     ✓ 无参校验:带 rawInput 返回 Usage 错误且不调用 compactNow 1ms
+     ✓ 委托当前 compaction.compactNow:同一 agent/signal/commandId 1ms
+     ✓ 有压缩范围时回显条数与 token 估算,并带 summarySeq 1ms
+     ✓ ManualCompactionError 六码各自映射为可读错误(不抛出) 5ms
+     × 请求 abort → cancelled 文案(即使实现先抛 abort 原因) 2ms
+     ✓ 非 ManualCompactionError 的异常照常上抛(loud) 1ms
+     ✓ 插件 dispose 后命令注销(命令面板不再列出) 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/command-plugin.spec.ts > /compact 注册与命令面板身份 > 注册 name=compact,且 / 菜单/中文别名按上游首方身份识别(builtinCommandName/resolveCommand)
+AssertionError: expected undefined to be 'compact' // Object.is equality
+
+- Expected:
+"compact"
+
++ Received:
+undefined
+
+ ❯ tests/command-plugin.spec.ts:69:44
+     67|     expect(descriptor.description).toBe('Compact older conversation hi…
+     68|     // 上游 ui-commands 的 builtinRowFace/claimToken 与 /压缩 别名都只认这个 identi…
+     69|     expect(builtinCommandName(descriptor)).toBe('compact')
+       |                                            ^
+     70|     expect(resolveCommand('compact', descriptors)?.name).toBe('compact…
+     71|     expect(resolveCommand('压缩', descriptors)?.name).toBe('compact')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/command-plugin.spec.ts > /compact 行为(走当前 compact 实现) > 请求 abort → cancelled 文案(即使实现先抛 abort 原因)
+AbortError: This operation was aborted
+ ❯ Object.<anonymous> tests/command-plugin.spec.ts:132:18
+    130|     const controller = new AbortController()
+    131|     const { ctx, agent } = await bootPlugin(async () => {
+    132|       controller.abort()
+       |                  ^
+    133|       throw new Error('abort reason')
+    134|     })
+ ❯ executeCompact src/command-plugin.ts:67:41
+ ❯ Object.handler src/command-plugin.ts:88:23
+ ❯ Proxy.execute ../../node_modules/.pnpm/@deepseek-ai+dsh-commands@0.2.2-rc.5_@deepseek-ai+cordis@4.1.0_@deepseek-ai+dsh-agent@0_a6495d68041ef73d47cdfc33314e0b8e/node_modules/@deepseek-ai/dsh-commands/lib/index.js:388:39
+ ❯ Object.apply ../../node_modules/.pnpm/@deepseek-ai+cordis@4.1.0_@deepseek-ai+cordis-plugin-include@1.1.0_@deepseek-ai+cordis-plugin-loader@1.1.0/node_modules/@deepseek-ai/cordis/lib/index.js:122:36
+ ❯ tests/command-plugin.spec.ts:135:42
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 7 passed (9)
+   Start at  03:49:29
+   Duration  153ms (transform 15ms, setup 0ms, import 34ms, tests 21ms, environment 0ms)
+

@@ -1,0 +1,10 @@
+# E2 套件 override：夹具只读挂载 + 个人层 MCP 环境（测试环境专用）
+services:
+  eterna-agent:
+    volumes:
+      - ${RC5_FIXTURES:?set RC5_FIXTURES}:/fixtures:ro
+    environment:
+      ETERNA_MCP_PERSONAL_ENABLED: ${ETERNA_MCP_PERSONAL_ENABLED:-true}
+      ETERNA_MCP_PERSONAL_CATALOG: ${ETERNA_MCP_PERSONAL_CATALOG:?set ETERNA_MCP_PERSONAL_CATALOG}
+      ETERNA_MCP_MASTER_KEY_FILE: ${ETERNA_MCP_MASTER_KEY_FILE:?set ETERNA_MCP_MASTER_KEY_FILE}
+      ETERNA_TENANT_ROOT: /data/workspaces

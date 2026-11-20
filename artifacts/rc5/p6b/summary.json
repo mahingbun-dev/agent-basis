@@ -1,0 +1,197 @@
+{
+  "schema": "eterna.rc5.p6b.data/1",
+  "lane": "P6b 数据轨（E5 迁移演练 / DATA 全组 / 24h 浸泡观测）",
+  "task": "T51（54 §4.8；48 §7–§10；51 §3.14 DATA-001..010）",
+  "repo": {
+    "worktree": "/Users/sunny/code/agent-basis-rc5",
+    "branch": "feat/dsh-rc5-merge",
+    "head": "02f485788411b9aed1938a3c4b009793a090961e"
+  },
+  "startedAt": "2026-11-19T22:03:20Z",
+  "finishedAt": "2026-11-19T22:34:39Z",
+  "images": {
+    "new": {
+      "tag": "eterna-agent:rc5-test",
+      "id": "sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00"
+    },
+    "old_rollback": {
+      "tag": "eterna-agent:0.1.51",
+      "id": "sha256:3ca0d66055898b092f09761e5f67baa4a82741f1c7233d27bd2ddbd6de2b1a7b"
+    }
+  },
+  "environment": {
+    "host": "macOS arm64 (Darwin 27.2.0)，Docker 29.7.2",
+    "testRoot": "$HOME/eterna-data/test-rc5",
+    "source": "生产冷备 $HOME/eterna-data/backups/rc5-2026-11-20/eterna-home-20261120-021802.tgz（sha256 5976686f…d281，10,466 条目）",
+    "drillContainers": [
+      "eterna-rc5-p6b-a（rc.5 / super / 3230 / 数据根 p6b-e5a）",
+      "eterna-rc5-p6b-old（0.1.51 / 3231 / 数据根 p6b-e5b，已停）"
+    ],
+    "productionTouched": false,
+    "productionContainer": "eterna-agent（3210，0.1.51）未停/未改（StartedAt 2026-11-19T17:21:06Z 全程未变）；本 lane 未对 E1/E3 执行 stop/restart（E1 StartedAt 21:09:04Z 未变；E3 StartedAt 22:15:24Z 系其它 lane 重建，本 lane 对 E3 无任何命令）"
+  },
+  "counts": {
+    "cases": 11,
+    "pass": 10,
+    "notrun": 1,
+    "fail": 0,
+    "assertionsPass": 90,
+    "assertionsFail": 0,
+    "assertionsNote": "含 DATA-009 采样窗口口径 6 条；DATA-009 自身判 NOTRUN"
+  },
+  "cases": [
+    {
+      "id": "RC5-DATA-001",
+      "status": "PASS",
+      "assertions": "11/11",
+      "summary": "init-data-dirs 幂等；根/实例/子目录 0700；4 条负控 fail-closed",
+      "evidence": "artifacts/rc5/DATA/RC5-DATA-001/"
+    },
+    {
+      "id": "RC5-DATA-002",
+      "status": "PASS",
+      "assertions": "7/7",
+      "summary": "/data bind→test-rc5/e1；compose config；漏挂 entrypoint 拒启 EXIT=1",
+      "evidence": "artifacts/rc5/DATA/RC5-DATA-002/"
+    },
+    {
+      "id": "RC5-DATA-003",
+      "status": "PASS",
+      "assertions": "1/1",
+      "summary": "容器内 DSH_HOME=/data",
+      "evidence": "artifacts/rc5/DATA/RC5-DATA-003/"
+    },
+    {
+      "id": "RC5-DATA-004",
+      "status": "PASS",
+      "assertions": "4/4",
+      "summary": "两遍迁移：8620 文件 / 108,848,480 B / 3148 硬链接组 / 352 符号链接，与源及 P5 E5 副本全等",
+      "evidence": "artifacts/rc5/DATA/RC5-DATA-004/"
+    },
+    {
+      "id": "RC5-DATA-005",
+      "status": "PASS",
+      "assertions": "1/1（聚合）",
+      "summary": "4 份副本 + rc.5 启动后复测：每份 17 库 integrity 全 ok",
+      "evidence": "artifacts/rc5/DATA/RC5-DATA-005/"
+    },
+    {
+      "id": "RC5-DATA-006",
+      "status": "PASS",
+      "assertions": "3/3",
+      "summary": "DSH_AGENTS_HOME=/data/agents（容器+宿主均存在）",
+      "evidence": "artifacts/rc5/DATA/RC5-DATA-006/"
+    },
+    {
+      "id": "RC5-DATA-007",
+      "status": "PASS",
+      "assertions": "20/20",
+      "summary": "生产数据副本起 rc.5：用户/会话/工作区/记忆/任务/工坊/relay token 全在；重启前后指纹一致；17 库 ok",
+      "evidence": "artifacts/rc5/DATA/RC5-DATA-007/"
+    },
+    {
+      "id": "RC5-DATA-008",
+      "status": "PASS",
+      "assertions": "15/15",
+      "summary": "冷备 stop→tar→start；删 marker→空目录恢复：5428 文件清单一致、marker sha 一致、16 库 ok",
+      "evidence": "artifacts/rc5/DATA/RC5-DATA-008/"
+    },
+    {
+      "id": "RC5-DATA-009",
+      "status": "NOTRUN",
+      "assertions": "6/6（仅采样窗口口径）",
+      "summary": "24h 浸泡窗口 0.67h/24h；采样内 0 锁/0 WAL 异常/写 18 成功/integrity 9/9 ok；窗口未满不得判绿",
+      "evidence": "artifacts/rc5/DATA/RC5-DATA-009/"
+    },
+    {
+      "id": "RC5-DATA-010",
+      "status": "PASS",
+      "assertions": "17/17",
+      "summary": "停新容器→旧镜像 0.1.51 + 旧卷副本可用（login 200/me 401/relay 200/17 库 ok）→起回新容器无二次损坏",
+      "evidence": "artifacts/rc5/DATA/RC5-DATA-010/"
+    },
+    {
+      "id": "FUSE-CHECK",
+      "status": "PASS",
+      "assertions": "5/5",
+      "summary": "bind=virtiofs/fuseblk；chmod 落宿主、chown 不生效；flock 互斥；8×200 WAL 0 BUSY + 崩溃恢复 ok",
+      "evidence": "artifacts/rc5/DATA/FUSE/"
+    }
+  ],
+  "soak": {
+    "case": "RC5-DATA-009",
+    "pid": 56706,
+    "startedAt": "2026-11-19T21:45:37.331Z",
+    "plannedEndAt": "2026-11-20T21:45:37.331Z",
+    "observedAt": "2026-11-19T22:26:44Z",
+    "elapsedHours": 0.67,
+    "complete": false,
+    "verdict": "NOTRUN",
+    "sample": {
+      "dataTicks": 9,
+      "integrityOkTicks": 9,
+      "writeOk": 18,
+      "writeFail": 0,
+      "lockMatches": 0,
+      "walLogMatches": 0,
+      "termTicks": 41,
+      "termChurnFailTicks": 41
+    },
+    "snapshot": "artifacts/rc5/p6b/soak/"
+  },
+  "failures": [],
+  "leftovers": [
+    "SOAK-24H|24h 浸泡窗口未满（实时观测见 artifacts/rc5/p6a/soak-window.json；plannedEnd 2026-11-20T21:45:37.331Z）|P0|满窗后复核 window.complete=true 与 verdict",
+    "DATA-009-SCALE|现行 soak 仅 2 writers、每 5min 检 3 库，未达 48 §4.5 ≥50 并发 + 2h 全库 integrity|P1|满窗前补压",
+    "DATA-009-24H|24h 浸泡窗口未满（观测 0.67h/24h；采样内无锁/WAL 异常、integrity 9/9 ok）；plannedEnd 2026-11-20T21:45:37Z|P0|满窗后由 P6b 复核 summary-24h.json 的 window.complete=true 与 verdict，未满不得判绿",
+    "DATA-007-RERENDER|rc.5 对带工坊编辑的存量 profile 每次重启都走「模板变更/首启接管」重渲染（内容幂等；同数据用 0.1.51 起时走 keep 路径）|P2|在 migrate-prompt-edits 之后重算并重写 .rendered.*.sha256（或让移植写入参与哈希），恢复「模板未变即保留」；另测插件启停/模型设置跨重启持久",
+    "DATA-007-SESSION-CHURN|重启时 dsh 重写 sessions/--data-workspaces-Mr.Ma--/orchestrator-Mr.Ma/session.v4.jsonl.zstd（文件数不变、integrity ok）|P3|确认上游 compact/重写为预期；升级验收加「重启后会话内容可比对」口径",
+    "DATA-009-TERM-CHURN|TERM churn 41/41 tick 失败（terminal/create 返回 gateway/internal: session.snapshotEvents is not a function），属 P5 已记 P0，非 DATA 判据|P1|由 TERM-013 lane 修复后复跑；DATA 轨不据此判绿也不据此判红",
+    "DATA-008-RESTORE-BOOT|恢复演练只做文件清单/SQLite 校验，未在恢复根上起容器|P3|正式迁移窗口按 48 §8.2 第 4–5 步在恢复根起容器 + verify.sh；本 lane 的「起容器」面已由 DATA-007/010 覆盖",
+    "FUSE-LOWPRI|bind 挂载为 virtiofs 且带 no_xattr；容器内 chown 返回 0 但 uid 不映射（宿主始终 sunny:staff）|P3|如后续插件用 xattr 或依赖属主隔离，需在 Linux/目标宿主重验；macOS 单用户机上可接受"
+  ],
+  "boundaries": {
+    "git": "未 push/merge/rebase；未 checkout/reset/clean",
+    "production": "未停/改生产容器 eterna-agent；未改生产 compose/.env；未写 /Users/sunny/code/agent-basis",
+    "test": "E1 未重启（StartedAt 21:09:04Z，浸泡在跑）；本 lane 未对 E3 执行任何 stop/start（其 22:15:24Z 重建非本 lane）；所有演练容器独立命名/独立数据根/独立端口",
+    "secrets": "凭据只在 0600 测试 env 文件；证据中 bootstrap token 已脱敏；命令 argv 无凭据",
+    "files": "仅写 artifacts/rc5/DATA/**、artifacts/rc5/p6b/** 与 $HOME/eterna-data/test-rc5 下测试根"
+  },
+  "phase": "P6b",
+  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "imageTag": "eterna-agent:rc5-test",
+  "imageId": "sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00",
+  "windowBasis": "p6b/summary.json（lane 自报 22:03:20Z–22:34:39Z；24h soak 仍在采样）",
+  "commands": [
+    {
+      "cmd": "env ETERNA_DATA_ROOT=$HOME/eterna-data/test-rc5/.p6b-data001/root bash deploy/init-data-dirs.sh probe",
+      "exit": 0,
+      "log": "artifacts/rc5/DATA/RC5-DATA-001/cmd.log"
+    },
+    {
+      "cmd": "env ETERNA_DATA_ROOT=$HOME/eterna-data/test-rc5 BACKUP_DIR=... ETERNA_CONTAINER_NAME=eterna-rc5-p6b-a bash deploy/backup-data.sh p6b-e5a",
+      "exit": 0,
+      "log": "artifacts/rc5/DATA/RC5-DATA-008/cmd.log"
+    },
+    {
+      "cmd": "check_root drill1/drill2/p5-e5/staging1（全部库 PRAGMA integrity_check）",
+      "exit": 0,
+      "log": "artifacts/rc5/DATA/RC5-DATA-005/cmd.log",
+      "note": "checked=17 ok=17 fail=0"
+    },
+    {
+      "cmd": "node scripts/soak-rc5.mjs --suite both --duration 24h --interval 60s --db-interval 5m --writers 2 --container eterna-rc5-e1 --data-root $HOME/eterna-data/test-rc5/e1",
+      "exit": null,
+      "log": "artifacts/rc5/p5/testbed/soak/soak-24h.log",
+      "note": "仍在采样（未满 24h，无终态退出码）"
+    }
+  ],
+  "generatedBy": "T50/artifacts/rc5/p6a/scan-matrix.mjs",
+  "generatedAt": "2026-11-20T00:56:25Z",
+  "casesSummary": {
+    "total": 5,
+    "pass": 4,
+    "fail": 0,
+    "skip": 1
+  }
+}

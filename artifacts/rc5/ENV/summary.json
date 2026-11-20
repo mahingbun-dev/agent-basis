@@ -1,0 +1,20 @@
+{
+  "suite": "ENV",
+  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "branch": "feat/dsh-rc5-merge",
+  "imageTag": null,
+  "imageTagNote": "E0 未构建/未使用镜像",
+  "startedAt": "2026-11-19T22:04:05Z",
+  "finishedAt": "2026-11-19T22:19:04Z",
+  "total": 8,
+  "pass": 8,
+  "fail": 0,
+  "skip": 0,
+  "failures": [],
+  "skipped": [],
+  "staticOnly": [
+    "RC5-ENV-004",
+    "RC5-ENV-005"
+  ],
+  "note": "E0 静态与版本套件（54 §5.1）；不启生产容器，只读接口。"
+}

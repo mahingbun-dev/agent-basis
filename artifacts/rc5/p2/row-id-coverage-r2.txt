@@ -1,0 +1,7 @@
+rc.5 行 id 覆盖核验(开发档 vs base+web-app+chat-import+session-search+plugin-market+terminal bundle + 四预设)
+union ids: 229
+
+profiles/eterna-web/cordis.patch.yml rows=35 unknownOverrideIds=2 (mcp-browser,directory-picker-host)
+profiles/eterna-super/cordis.patch.yml rows=33 unknownOverrideIds=1 (mcp-browser)
+
+说明:仅两个产品自建 insert 行(mcp-browser / directory-picker-host)不在 rc.5 bundle 集合内,为预期;所有覆写行均命中 rc.5 存在 id。

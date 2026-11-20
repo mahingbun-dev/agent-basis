@@ -1,0 +1,4 @@
+package=@deepseek-ai/dsh-mcp-manager version=0.2.2-rc.5 dir=@deepseek-ai+dsh-mcp-manager@0.2.2-rc.5_a12757bdc748caa5f49e8951f5d3d35b
+  mcpManager/probe  mode=unary
+  mcpManager/restart  mode=unary
+  mcpManager/watch  mode=stream

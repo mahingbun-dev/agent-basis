@@ -1,0 +1,18 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ node artifacts/rc5/UI/_suite/ui-scan.mjs UI-002
+# started 2026-11-19T22:19:04Z
+scope files=17 radius declarations=38
+tokens=32 px_literal=0 pct_50=5 zero=1 other=0
+NOTE circle 50% (pre-existing, not added by this branch) packages/access/src/client/styles.ts:104 50%
+NOTE circle 50% (pre-existing, not added by this branch) packages/access/src/client/styles.ts:106 50%
+NOTE circle 50% (pre-existing, not added by this branch) packages/access/src/client/styles.ts:159 50%
+NOTE circle 50% (pre-existing, not added by this branch) packages/access/src/client/styles.ts:236 50%
+NOTE circle 50% (pre-existing, not added by this branch) packages/access/src/client/styles.ts:247 50%
+NOTE square reset 0 packages/access/src/client/styles.ts:728 0
+NOTE 嵌套同心弧需逐组件人工核对;本扫描只核对取值阶梯。
+PASS no non-ladder px radius: 0 处
+PASS no unrecognized radius literal: 0 处
+SUMMARY UI-002 failures=0
+
+EXIT 0
+# finished 2026-11-19T22:19:04Z

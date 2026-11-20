@@ -1,0 +1,15 @@
+# MCPS/RC5-MCPS-001
+# started 2026-11-19T22:50:42.163Z
+
+$ POST /api/settings/update {"request":{"ns":"mcp-manager","patch":{servers:{e1http:{transport:streamable-http,url:http://host.docker.internal:8766/mcp}}}}
+EXIT=200
+ok=true {"ns":"mcp-manager","autoGenerate":true,"schema":{"uid":9237,"refs":{"9211":{"type":"boolean","meta":{"default":true}},"9212":{"type":"number","meta":{"min":1,"max":2147483647,"default":500}},"9213":{"type":"number","meta":{"min":1,"max":2147483647,"default":30000}},"9214":{"type":"number","meta":{"…
+
+[ASSERT] 设置写入返回 ok => PASS :: status=200
+
+[ASSERT] profile patch 落盘 servers.e1http => PASS :: block=    servers:
+      e1http:
+        transport: streamable-http
+        url: http://host.docker.internal:8766/mcp
+
+[ASSERT] describe.value.servers 含 e1http => PASS :: keys=e1http

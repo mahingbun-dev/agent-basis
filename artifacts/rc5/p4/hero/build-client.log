@@ -1,0 +1,6 @@
+$ node packages/brand/scripts/build-client.mjs
+
+  packages/brand/lib/client.js  72.5kb
+
+⚡ Done in 10ms
+EXIT=0

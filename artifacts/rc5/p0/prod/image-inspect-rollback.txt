@@ -1,0 +1,7 @@
+$ docker image inspect eterna-agent:0.1.50 (rollback candidate)
+Id=sha256:6b306037b6593d94e7c797a97f15e8fb7f60fe97f871fd673da6ce659e7b2052 Created=2026-11-19T10:41:00.763384668Z Tags=["eterna-agent:0.1.50"] Digests=["eterna-agent@sha256:6b306037b6593d94e7c797a97f15e8fb7f60fe97f871fd673da6ce659e7b2052"] Size=582537027
+EXIT=0
+
+$ docker image inspect eterna-agent:0.1.38 (older fallback)
+Id=sha256:b0dbe8bc6da4c918ee1a848548d92980d8caba4bb5301b26c5878932b5ae95e1 Created=2026-11-19T03:05:37.045901508Z Tags=["eterna-agent:0.1.38"]
+EXIT=0

@@ -1,0 +1,12 @@
+# OFF/RC5-OFF-007
+# started 2026-11-19T23:29:57.920Z
+
+$ IAB: 输入 "/" → 候选列表（CMD-001 证据）
+EXIT=0
+office-docx / office-xlsx / office-pptx / office 技能出现在命令候选（12 条之一）
+
+$ grep -n -A2 "tool-office" $DSH_HOME/profiles/eterna-web/cordis.patch.yml
+EXIT=0
+- insert: id: tool-office name: '@deepseek-ai/dsh-tool-office'（office_render/convert/recalculate 由该插件注册）
+
+# note: 加载技能并编辑样本需要真实模型回合；E1 占位密钥 AUTH 失败（HERO-003 实测），未执行

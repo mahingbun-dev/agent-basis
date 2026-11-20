@@ -1,0 +1,16 @@
+$ shasum -a 256 packages/glue/src/plugins/channels-plugin.ts
+53ae1c398a01f22c79c8c9a70ef40555f2d980991806f242fbd9a7c08c4faae3  packages/glue/src/plugins/channels-plugin.ts
+$ printf "\nconst __mutationProbe = webServer.register(\n" >> packages/glue/src/plugins/channels-plugin.ts
+$ pnpm --filter @eterna/access exec vitest run tests/channels-webhook-contract.spec.ts
+     ✓ 单条 prefix 登记同时接住 webhook 与 approval,且只作用于 /channels/api 命名空间 2ms
+     ✓ access 前缀字面量与 glue channels-plugin 缺省值同源(漂移即宿主 404) 0ms
+     × T2 回潮门:glue 侧零自注册;access 侧接线恰好一次(插件改回自注册或漏接线即红) 3ms
+AssertionError: glue channels-plugin 不得再持有任何 webServer.register 调用: expected '\nimport { mkdirSync } from \'node:fs…' not to contain 'webServer.register('
+    106|       expect(glueSource, 'glue channels-plugin 不得再持有任何 webServer.regis…
+      Tests  1 failed | 2 passed (3)
+EXIT=1
+$ cp /tmp/b12-rerun-channels-plugin.ts.orig packages/glue/src/plugins/channels-plugin.ts
+$ shasum -a 256 packages/glue/src/plugins/channels-plugin.ts
+53ae1c398a01f22c79c8c9a70ef40555f2d980991806f242fbd9a7c08c4faae3  packages/glue/src/plugins/channels-plugin.ts
+$ git status --porcelain -- packages/glue/src/plugins/channels-plugin.ts
+(空行 = 工作树无残留改动)

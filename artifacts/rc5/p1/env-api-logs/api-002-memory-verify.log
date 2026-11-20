@@ -1,0 +1,37 @@
+$ node scripts/build-client.mjs && oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+
+  lib/client.js  136.3kb
+
+⚡ Done in 4ms
+Found 0 warnings and 0 errors.
+Finished in 873ms on 53 files with 87 rules using 10 threads.
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/memory
+
+ ✓ tests/distill.spec.ts (15 tests) 168ms
+ ✓ tests/domain.spec.ts (33 tests) 57ms
+ ✓ tests/notes.spec.ts (17 tests) 75ms
+ ✓ tests/entity-store.spec.ts (28 tests) 80ms
+ ✓ tests/memory.spec.ts (15 tests) 131ms
+ ✓ tests/distill-curate.spec.ts (8 tests) 131ms
+ ✓ tests/admin-plugin.spec.ts (21 tests) 139ms
+ ✓ tests/tools.spec.ts (58 tests) 266ms
+ ✓ tests/client-bundle.spec.ts (4 tests) 13ms
+ ✓ tests/config-bridge.spec.ts (17 tests) 8ms
+ ✓ tests/client-sources.spec.ts (21 tests) 11ms
+ ✓ tests/index-builder.spec.ts (28 tests) 67ms
+ ✓ tests/metrics.spec.ts (8 tests) 21ms
+ ✓ tests/approval.spec.ts (11 tests) 33ms
+ ✓ tests/account-router.spec.ts (10 tests) 48ms
+ ✓ tests/client-settings.spec.ts (16 tests) 5ms
+ ✓ tests/sources-meta.spec.ts (7 tests) 7ms
+ ✓ tests/portrait.spec.ts (14 tests) 4ms
+ ✓ tests/pii.spec.ts (6 tests) 3ms
+ ✓ tests/tokens.spec.ts (5 tests) 2ms
+ ✓ tests/consolidation.spec.ts (162 tests) 781ms
+
+ Test Files  21 passed (21)
+      Tests  504 passed (504)
+   Start at  02:26:39
+   Duration  1.34s (transform 2.06s, setup 0ms, import 4.96s, tests 2.05s, environment 2ms)
+

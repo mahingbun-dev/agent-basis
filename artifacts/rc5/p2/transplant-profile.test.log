@@ -1,0 +1,16 @@
+[entrypoint] 移植: WARNING 新模板无 llm-pi-ai 行,用户新增 provider 无法移植
+✔ 用户新增的 LLM provider 跨升级重渲染保留(事故回归) (2.066125ms)
+✔ 模板既有 provider 不被旧渲染覆盖(产品目录升级照常落地) (0.175416ms)
+✔ 历史移植面:disabled 标记与用户追加行保留 (0.1435ms)
+✔ 仅存于旧文件、带显式 disabled 的简单标量行仍被追加(半截嵌套不搬) (0.530459ms)
+✔ 新模板缺 llm-pi-ai 行:只告警不炸,其余移植照常 (0.453417ms)
+✔ 幂等:同一模板重复移植产出逐字一致 (0.085834ms)
+✔ manifest 模式:dsh.profile 块跨升级保留 (0.114209ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 79.992417

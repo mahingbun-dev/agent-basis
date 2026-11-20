@@ -1,0 +1,6 @@
+# IMP/RC5-IMP-004
+# started 2026-11-19T23:26:27.456Z
+
+$ scripts/verify-chat-import.mjs（RC5-IMP-004 行）
+EXIT=0
+PASS: B 可见 10/10，A 可见 0/10（A 还能看到他人会话 = 跨租户元数据泄漏）

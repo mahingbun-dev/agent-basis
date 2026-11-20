@@ -1,0 +1,24 @@
+{
+  "script": "scripts/soak-rc5.mjs",
+  "tag": "24h",
+  "suite": "both",
+  "startedAt": "2026-11-19T21:29:49.174Z",
+  "plannedEndAt": "2026-11-20T21:29:49.174Z",
+  "plannedSeconds": 86400,
+  "intervalSeconds": 60,
+  "dbIntervalSeconds": 300,
+  "writers": 2,
+  "container": "eterna-rc5-e1",
+  "dataRoot": "/Users/sunny/eterna-data/test-rc5/e1",
+  "base": "http://127.0.0.1:3108",
+  "out": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p5/testbed/soak",
+  "logs": {
+    "term": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p5/testbed/soak/term-013-24h.jsonl",
+    "data": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p5/testbed/soak/data-009-24h.jsonl",
+    "soak": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p5/testbed/soak/soak-24h.log"
+  },
+  "limitations": [
+    "terminal/attach 走 WS mux（HTTP 不可达），脚本未执行 attach；created/closed churn 已记账",
+    "进程/内存采样为容器 /proc 只读采样（60s 级），非 profiler"
+  ]
+}

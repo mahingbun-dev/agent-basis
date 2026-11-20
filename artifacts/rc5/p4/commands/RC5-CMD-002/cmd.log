@@ -1,0 +1,28 @@
+# T39 / 51 §3.12 RC5-CMD-002 — 执行内置命令:结果正确、不污染普通消息
+# 工作树: /Users/sunny/code/agent-basis-rc5 (feat/dsh-rc5-merge)
+# 时间: 2026-11-20
+# 命令: /compact(当前 compact 实现)
+
+[1] node artifacts/rc5/p4/commands/T39-BOOT/run-probe.mjs        EXIT=0
+活体(真 boot eterna-web, sessionController 建会话, preset=standard):
+  T39_COMMAND_PROBE {
+    commandCount: 6, names: [compact, export, feedback, goal, permission, plan],
+    compact.definitionId: "@deepseek-ai/dsh-command-compact",
+    compactExecution.result: {kind:"success", text:"No compactable history yet."},
+    commandEventTypes: ["command/run","command/done"],
+    userMessageCount: 0, userMessageMentionsCompact: false
+  }
+证据: probe.stdout.log / probe.runtime.log
+
+[2] node artifacts/rc5/p4/commands/T39-MODEL/run-ui.mjs            EXIT=0
+浏览器(空会话):
+  compact-executes PASS  → 对话区出现 "> compact · No compactable history yet."
+  compact-zh-alias PASS  → 键入 /压缩 再执行一次(occurrences=2),同样落 /compact
+截图: compact-result.png, compact-zh-alias.png
+
+[3] 单测(node_modules/.bin/vitest run --root packages/compaction tests/command-plugin.spec.ts) EXIT=0
+  9/9 通过:无参→Usage;委托 compactNow(同 agent/signal/commandId);null→No compactable history yet.;
+  结果计数+summarySeq 回显;ManualCompactionError 六码映射;abort→cancelled;异常上抛
+  证据: ../T39-UNIT/vitest.log
+
+结论: PASS(命令路由/结果/会话事件面)。真实历史压缩(需模型回合)未覆盖 → deferred to W5(见 result.md 边界)

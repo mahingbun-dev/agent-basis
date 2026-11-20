@@ -1,0 +1,110 @@
+# T38 检索/市场 静态核查(2026-11-20)
+# lane=T30/T38 chat-import 租户桥与检索/市场回归
+# 说明:web_search/web_fetch 三路由真实模型回归需要 deepseek/mimo/glm 三家真凭据+出网,本 lane 未执行(见 README)。
+
+## 1) 三 provider(deepseek/mimo/glm)在两份 profile 模板中的定义
+730:      deepseek:
+765:      mimo:
+810:      glm:
+--- super ---
+762:      deepseek:
+797:      mimo:
+842:      glm:
+
+## 2) tool-web 行(web_search/web_fetch 的宿主面;fetch:true 才注册 web_fetch)
+348:      - id: tool-web
+349-        name: '@deepseek-ai/dsh-tool-web'
+350-        config:
+351-          fetch: true
+352-          searchTimeoutMs: 60000
+--
+549:      - id: tool-web
+550-        name: '@deepseek-ai/dsh-tool-web'
+551-        config:
+552-          fetch: true
+553-          searchTimeoutMs: 60000
+--- super ---
+349:      - id: tool-web
+350-        name: '@deepseek-ai/dsh-tool-web'
+351-        config:
+352-          fetch: true
+353-          searchTimeoutMs: 60000
+--
+551:      - id: tool-web
+552-        name: '@deepseek-ai/dsh-tool-web'
+553-        config:
+554-          fetch: true
+555-          searchTimeoutMs: 60000
+
+## 3) 产品模板是否覆写 web 行(47 B7 要求保留上游默认,不覆写)
+(无覆写行 => 走上游默认:按会话模型路由选 search provider)
+
+## 4) 上游路由规则(dsh-web rc.5)
+69:const DEEPSEEK_MODEL_ROUTES = new Set(["deepseek-official", "deepseek-account"]);
+74:const DEEPSEEK_ROUTE_SEARCH_PROVIDER = "deepseek-official";
+76:const OTHER_ROUTE_SEARCH_PROVIDER = "deepseek-search-api";
+88:*   `deepseek-official` and `deepseek-account` routes, `deepseek-search-api` on every other
+123:		* `$DSH_WEB_SEARCH_PROVIDER` / `$DSH_WEB_FETCH_PROVIDER` are equivalent to
+137:			this.searchProviderEnv = process.env.DSH_WEB_SEARCH_PROVIDER;
+233:			const preferredId = llmProvider !== void 0 && DEEPSEEK_MODEL_ROUTES.has(llmProvider) ? DEEPSEEK_ROUTE_SEARCH_PROVIDER : OTHER_ROUTE_SEARCH_PROVIDER;
+
+## 5) web_search / web_fetch 工具注册面(dsh-tool-web rc.5)
+272:* and so declares, dispatches, and describes it, only while `ctx.web.searchReady()` answers true
+293:		name: "web_search",
+351:	}), { when: ({ modelSelection }) => ctx.web.searchReady(modelSelection.provider) });
+756:* tool, and so declares, dispatches, and describes it, only while `ctx.web.fetchReady()` answers true
+773:		name: "web_fetch",
+854:	}), { when: ({ modelSelection }) => ctx.web.fetchReady(modelSelection.provider) });
+863:* `web_search` or `web_fetch` while `ctx.web.searchReady()` or `ctx.web.fetchReady()`
+
+## 6) 搜索/抓取 provider 包(镜像闭包内存在)
+@deepseek-ai+dsh-web-deepseek-api@0.2.2-rc.5_e2ccff83c1f29901815700f0c3dc5552
+@deepseek-ai+dsh-web-fetch-http@0.2.2-rc.5_@deepseek-ai+cordis@4.1.0_@deepseek-ai+dsh-t_4b98c72ae40506c3ef9ae9e43a8bd10b
+@deepseek-ai+dsh-web-search-deepseek@0.2.2-rc.5_a954ee4fcf6c382ea41fd84e56461253
+
+## 6) 搜索/抓取 provider 包(镜像闭包内存在)
+@deepseek-ai+dsh-web-deepseek-api@0.2.2-rc.5_e2ccff83c1f29901815700f0c3dc5552
+@deepseek-ai+dsh-web-fetch-http@0.2.2-rc.5_@deepseek-ai+cordis@4.1.0_@deepseek-ai+dsh-t_4b98c72ae40506c3ef9ae9e43a8bd10b
+@deepseek-ai+dsh-web-search-deepseek@0.2.2-rc.5_a954ee4fcf6c382ea41fd84e56461253
+
+## 7) 上游 bundle 已含 web 行与三 provider(dsh-base cordis.patch.yml;产品模板不重复写)
+488:    - id: web
+489-      name: '@deepseek-ai/dsh-web'
+490-      config:
+491-        fetchProvider: http
+492-
+493:    - id: web-search-deepseek
+494-      name: '@deepseek-ai/dsh-web-search-deepseek'
+495-      config:
+496-        apiKeyEnv: DEEPSEEK_API_KEY
+497-
+498:    - id: web-deepseek-api
+499-      name: '@deepseek-ai/dsh-web-deepseek-api'
+500-
+501:    - id: web-fetch-http
+502-      name: '@deepseek-ai/dsh-web-fetch-http'
+
+## 8) 路由→provider 选择(三路由事实):DeepSeek 路由=deepseek-official(Messages search),
+#    其余路由(mimo/glm)=deepseek-search-api;后者凭据取自 DeepSeek 模型 provider 的 apiKey/baseURL
+		}
+		/**
+		* Select the search provider with the rules above, throwing the matching {@link WebError}.
+		* @param llmProvider - provider route id of the model request the search serves, when known.
+		* @returns the provider the search runs through.
+		*/
+		selectSearchProvider(llmProvider) {
+			const configuredId = this.config.searchProvider.get() ?? this.searchProviderEnv;
+			const preferredId = llmProvider !== void 0 && DEEPSEEK_MODEL_ROUTES.has(llmProvider) ? DEEPSEEK_ROUTE_SEARCH_PROVIDER : OTHER_ROUTE_SEARCH_PROVIDER;
+			return resolveProvider({
+				providers: this.searchProviders,
+				preferredId,
+				...configuredId !== void 0 ? { configuredId } : {}
+			});
+		}
+		/**
+
+## 9) 结论(静态可证部分)
+- 两份模板均定义 deepseek/mimo/glm 三 provider;tool-web 行 fetch:true + searchTimeoutMs 60000(web+super 各一份);
+- 产品模板不覆写 web 行 → 走上游 rc.5 默认:按会话模型路由选 search provider(B7 设计第 1/2 条);
+- web_search/web_fetch 注册条件 = ctx.web.searchReady/fetchReady(modelSelection.provider)(dsh-tool-web);
+- 真实三路由 web_search+web_fetch 调用需真凭据+出网,本 lane 未执行(见 README 的 not-run 声明)。

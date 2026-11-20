@@ -1,0 +1,18 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ bash artifacts/rc5/V1/RC5-V1-001/check-tracked.sh
+# started 2026-11-19T22:10:04Z
+tracked core/cordis: 16 files
+tracked core/contracts: 18 files
+tracked core/runtime: 14 files
+tracked basis.yml: 1 files
+tracked packages/system-prompt: 7 files
+tracked packages/session: 7 files
+tracked packages/tools: 8 files
+tracked packages/llm: 8 files
+tracked packages/approval-cli: 7 files
+tracked packages/agent-loop: 8 files
+untracked files in scope: none
+SUMMARY failures=0
+
+EXIT 0
+# finished 2026-11-19T22:10:04Z

@@ -1,0 +1,17 @@
+# IMP-005 根因取证：容器 SQLite 连接持有被删除的 users.db-wal / users.db-shm
+# 命令：docker exec eterna-rc5-e1 sh -c 'ls -l /proc/1/fd | grep users.db'
+lrwx------ 1 root root 64 Nov 19 21:29 30 -> /data/access/users.db
+lrwx------ 1 root root 64 Nov 19 21:29 33 -> /data/access/users.db-wal (deleted)
+lrwx------ 1 root root 64 Nov 19 21:29 34 -> /data/access/users.db-shm (deleted)
+
+# 文件面（/data/access）：
+total 164
+drwx------  6 root root    192 Nov 19 23:50 .
+drwx------ 21 root root    672 Nov 19 21:09 ..
+-rw-------  1 root root     32 Nov 19 21:09 secret.key
+-rw-r--r--  1 root root 110592 Nov 19 22:09 users.db
+-rw-r--r--  1 root root  32768 Nov 20 01:11 users.db-shm
+-rw-r--r--  1 root root      0 Nov 19 23:50 users.db-wal
+
+# 主库行数（容器内新连接只读，仍不见长连接写入）：
+[{"owner_id":1,"n":41},{"owner_id":2,"n":94},{"owner_id":3,"n":1}]

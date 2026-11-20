@@ -1,0 +1,30 @@
+# T39-BOOT — 活体命令目录探针(真 boot eterna-web)
+# 工作树: /Users/sunny/code/agent-basis-rc5 (feat/dsh-rc5-merge)
+# 时间: 2026-11-20
+
+[1] $ node artifacts/rc5/p4/commands/T39-BOOT/run-probe.mjs
+EXIT=0 → probe.stdout.log / runtime.log
+  (临时 DSH_HOME 复制 .eterna-home/profiles/eterna-web;--patch 追加探针行;--port 0;不碰生产)
+
+T39_COMMAND_PROBE {"ok":true,
+  "sessionId":"session-4aa886ba-...","agentPreset":"standard","activePreset":"standard",
+  "presetRoster":[{"id":"standard","order":1},{"id":"minimal","order":3},{"id":"cordis","order":4}],
+  "commandCount":6,"names":["compact","export","feedback","goal","permission","plan"],
+  "duplicateNames":[],
+  "compact":{"name":"compact","definitionId":"@deepseek-ai/dsh-command-compact","description":"Compact older conversation history"},
+  "builtinCompactIdentity":true,
+  "compactExecution":{"commandId":"cmd-...","result":{"kind":"success","text":"No compactable history yet."}},
+  "modelInHostCatalog":false,
+  "modelExecutionResult":"unresolved(客户端命令:不在 Host 目录)",
+  "unknownExecutionResult":"unresolved(预期)",
+  "commandEventTypes":["command/run","command/done"],"commandEventCount":2,
+  "userMessageCount":0,"userMessageMentionsCompact":false}
+
+[2] 结论:
+  - 默认 standard 预设:6 条首方命令、无重名;
+  - /compact 注册身份 = 上游首方身份(修复后),执行走当前 compact 实现(空会话→null);
+  - 命令生命周期只写 command/run+done,不产生 user/message(不污染普通消息);
+  - /model 不在 Host 目录(客户端 commandUi 贡献),与浏览器实测一致;
+  - 可选预设 roster:standard(默认)/minimal/cordis → minimal 的压缩实现遗留见 ../RC5-CMD-003
+
+复跑: node artifacts/rc5/p4/commands/T39-BOOT/run-probe.mjs

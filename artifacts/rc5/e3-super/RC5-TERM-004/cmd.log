@@ -1,0 +1,21 @@
+# RC5-TERM-004 — B 用 A 的 sessionId：6 个 terminal unary 全部拒绝（TERM-004）
+CMD: node artifacts/rc5/e3-super/run-suite.mjs RC5-TERM-004
+START: 2026-11-19T22:33:40.039Z
+# 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
+
+[exit=0] docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)  # boot token 不入证据
+[exit=200] GET /connect + GET /?token=… (dsh session bootstrap)  # token 已脱敏
+[exit=200] POST /login (admin from 0600 accounts file)
+[exit=200] POST /api/session/create  # ok·workspace=090d9317…
+[exit=200] POST /api/terminal/environment  # A 正向控制
+[exit=200] POST /api/terminal/shells  # A 正向控制
+[exit=200] GET /access/api/users  # seeding 前置：用户清单
+[exit=200] POST /login (user_b from 0600 accounts file)
+[exit=200] POST /api/terminal/environment  # B 打 A 的 sessionId
+[exit=200] POST /api/terminal/shells  # B 打 A 的 sessionId
+[exit=200] POST /api/terminal/list  # B 打 A 的 sessionId
+[exit=200] POST /api/terminal/create  # B 打 A 的 sessionId
+[exit=200] POST /api/terminal/rename  # B 打 A 的 sessionId
+[exit=200] POST /api/terminal/close  # B 打 A 的 sessionId
+
+EXIT=1

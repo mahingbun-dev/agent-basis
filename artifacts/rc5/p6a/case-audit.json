@@ -1,0 +1,5480 @@
+{
+  "schema": "eterna.rc5.t50.acceptance-matrix/1",
+  "generatedAt": "2026-11-20T00:58:23Z",
+  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "cases": [
+    {
+      "id": "RC5-ENV-001",
+      "suite": "ENV",
+      "phase": "P1",
+      "priority": "P0",
+      "title": "pnpm install --frozen-lockfile（EXIT 0/锁不变）",
+      "owner": "T09/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/ENV/RC5-ENV-001",
+          "files": [
+            "artifacts/rc5/ENV/RC5-ENV-001/result.md",
+            "artifacts/rc5/ENV/RC5-ENV-001/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ENV-002",
+      "suite": "ENV",
+      "phase": "P1",
+      "priority": "P0",
+      "title": "版本残留扫描（alpha/rc.1 = 0 命中）",
+      "owner": "T09/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/ENV/RC5-ENV-002",
+          "files": [
+            "artifacts/rc5/ENV/RC5-ENV-002/result.md",
+            "artifacts/rc5/ENV/RC5-ENV-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ENV-003",
+      "suite": "ENV",
+      "phase": "P1",
+      "priority": "P0",
+      "title": "版本族统一（dsh rc.5/cordis 4.1.0/cosmokit 1.9.0）",
+      "owner": "T09/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/ENV/RC5-ENV-003",
+          "files": [
+            "artifacts/rc5/ENV/RC5-ENV-003/result.md",
+            "artifacts/rc5/ENV/RC5-ENV-003/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ENV-004",
+      "suite": "ENV",
+      "phase": "P5",
+      "priority": "P0",
+      "title": "容器内 dsh --version = 0.2.2-rc.5",
+      "owner": "T48/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/ENV/RC5-ENV-004",
+          "files": [
+            "artifacts/rc5/ENV/RC5-ENV-004/result.md",
+            "artifacts/rc5/ENV/RC5-ENV-004/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": false
+        },
+        {
+          "kind": "marker",
+          "path": "artifacts/rc5/p5/testbed/env-runtime/run.log",
+          "files": [
+            "artifacts/rc5/p5/testbed/env-runtime/run.log",
+            "artifacts/rc5/p5/testbed/env-runtime/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "全文命中：RC5-ENV-004 + dsh --version = 0.2.2-rc.5",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ENV-005",
+      "suite": "ENV",
+      "phase": "P5",
+      "priority": "P0",
+      "title": "engines.node ≥24.9 且镜像 node 满足",
+      "owner": "T48/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/ENV/RC5-ENV-005",
+          "files": [
+            "artifacts/rc5/ENV/RC5-ENV-005/result.md",
+            "artifacts/rc5/ENV/RC5-ENV-005/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": false
+        },
+        {
+          "kind": "marker",
+          "path": "artifacts/rc5/p5/testbed/env-runtime/run.log",
+          "files": [
+            "artifacts/rc5/p5/testbed/env-runtime/run.log",
+            "artifacts/rc5/p5/testbed/env-runtime/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "全文命中：node -v ≥ 24.9 + v24.22.3",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ENV-006",
+      "suite": "ENV",
+      "phase": "P5",
+      "priority": "P0",
+      "title": "Dockerfile 钉版 dsh@0.2.2-rc.5",
+      "owner": "T48/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/ENV/RC5-ENV-006",
+          "files": [
+            "artifacts/rc5/ENV/RC5-ENV-006/result.md",
+            "artifacts/rc5/ENV/RC5-ENV-006/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ENV-007",
+      "suite": "ENV",
+      "phase": "P1",
+      "priority": "P1",
+      "title": "pnpm -w run verify 全包绿（含工坊锚点）",
+      "owner": "T09/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/ENV/RC5-ENV-007",
+          "files": [
+            "artifacts/rc5/ENV/RC5-ENV-007/result.md",
+            "artifacts/rc5/ENV/RC5-ENV-007/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ENV-008",
+      "suite": "ENV",
+      "phase": "P1",
+      "priority": "P1",
+      "title": "llm-openai typecheck",
+      "owner": "T09/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/ENV/RC5-ENV-008",
+          "files": [
+            "artifacts/rc5/ENV/RC5-ENV-008/result.md",
+            "artifacts/rc5/ENV/RC5-ENV-008/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-BOOT-001",
+      "suite": "BOOT",
+      "phase": "P5",
+      "priority": "P0",
+      "title": "E1 空数据根首启 healthy",
+      "owner": "T43/L5",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/BOOT/RC5-BOOT-001",
+          "files": [
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-001/result.md",
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-001/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-BOOT-002",
+      "suite": "BOOT",
+      "phase": "P5",
+      "priority": "P0",
+      "title": "E3 super 容器起 + super 路由",
+      "owner": "T43/L5",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/BOOT/RC5-BOOT-002",
+          "files": [
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-002/result.md",
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/e3-super/RC5-BOOT-002",
+          "files": [
+            "artifacts/rc5/e3-super/RC5-BOOT-002/result.md",
+            "artifacts/rc5/e3-super/RC5-BOOT-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "200",
+            "0",
+            "0",
+            "200",
+            "0",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-BOOT-003",
+      "suite": "BOOT",
+      "phase": "P5",
+      "priority": "P0",
+      "title": "E4 ACP 容器起、stdio 纯净",
+      "owner": "T31/L5",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/BOOT/RC5-BOOT-003",
+          "files": [
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-003/result.md",
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-003/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-BOOT-004",
+      "suite": "BOOT",
+      "phase": "P2",
+      "priority": "P0",
+      "title": "启动日志 unknown plugin row = 0",
+      "owner": "T10/L2",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/BOOT/RC5-BOOT-004",
+          "files": [
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-004/result.md",
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-004/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-BOOT-005",
+      "suite": "BOOT",
+      "phase": "P2",
+      "priority": "P0",
+      "title": "已删除行（account-controller/office-to-pdf）不存在",
+      "owner": "T10/L2",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/BOOT/RC5-BOOT-005",
+          "files": [
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-005/result.md",
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-005/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-BOOT-006",
+      "suite": "BOOT",
+      "phase": "P2",
+      "priority": "P0",
+      "title": "rc.5 新增 9 行全部到位",
+      "owner": "T10/L2",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/BOOT/RC5-BOOT-006",
+          "files": [
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-006/result.md",
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-006/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-BOOT-007",
+      "suite": "BOOT",
+      "phase": "P2",
+      "priority": "P0",
+      "title": "preset 全量替换后保留 rc.5 默认行",
+      "owner": "T10/L2",
+      "status": "MISSING",
+      "decision": "`--dump-default-config` EXIT=1/0 bytes；default=0 的空集 PASS 不成立，需修复命令后重跑（tokens=1|1）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/BOOT/RC5-BOOT-007",
+          "files": [
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-007/result.md",
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-007/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "1",
+            "1"
+          ],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-BOOT-008",
+      "suite": "BOOT",
+      "phase": "P2",
+      "priority": "P0",
+      "title": "旧 profile 默认 bundle 迁移一次",
+      "owner": "T14/L2",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0|0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/BOOT/RC5-BOOT-008",
+          "files": [
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-008/result.md",
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-008/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-BOOT-009",
+      "suite": "BOOT",
+      "phase": "P2",
+      "priority": "P0",
+      "title": "已 opt-out 默认 bundle 不回加",
+      "owner": "T14/L2",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/BOOT/RC5-BOOT-009",
+          "files": [
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-009/result.md",
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-009/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-BOOT-010",
+      "suite": "BOOT",
+      "phase": "P2",
+      "priority": "P1",
+      "title": "损坏 package.json 的 profile boot 不静默炸",
+      "owner": "T12/L2",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/BOOT/RC5-BOOT-010",
+          "files": [
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-010/result.md",
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-010/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-BOOT-011",
+      "suite": "BOOT",
+      "phase": "P2",
+      "priority": "P0",
+      "title": "DSH_AGENTS_HOME=/data/agents + 用户技能可用",
+      "owner": "T42/L5",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0|0|0|0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/BOOT/RC5-BOOT-011",
+          "files": [
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-011/result.md",
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-011/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-BOOT-012",
+      "suite": "BOOT",
+      "phase": "P2",
+      "priority": "P0",
+      "title": "10 个产品 client bundle/roster 完整",
+      "owner": "T36/L7",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/BOOT/RC5-BOOT-012",
+          "files": [
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-012/result.md",
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-012/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-BOOT-013",
+      "suite": "BOOT",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "super agent-team 三行 + Team mode 默认关",
+      "owner": "T49a/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0|0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/BOOT/RC5-BOOT-013",
+          "files": [
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-013/result.md",
+            "artifacts/rc5/E1/BOOT/RC5-BOOT-013/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/e3-super/RC5-BOOT-013",
+          "files": [
+            "artifacts/rc5/e3-super/RC5-BOOT-013/result.md",
+            "artifacts/rc5/e3-super/RC5-BOOT-013/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "200",
+            "0",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-API-001",
+      "suite": "API",
+      "phase": "P1",
+      "priority": "P0",
+      "title": "compaction verify（241 tests）",
+      "owner": "T09/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/API/RC5-API-001",
+          "files": [
+            "artifacts/rc5/API/RC5-API-001/result.md",
+            "artifacts/rc5/API/RC5-API-001/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-API-002",
+      "suite": "API",
+      "phase": "P1",
+      "priority": "P0",
+      "title": "memory verify",
+      "owner": "T09/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/API/RC5-API-002",
+          "files": [
+            "artifacts/rc5/API/RC5-API-002/result.md",
+            "artifacts/rc5/API/RC5-API-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-API-003",
+      "suite": "API",
+      "phase": "P1",
+      "priority": "P0",
+      "title": "llm-openai typecheck",
+      "owner": "T09/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/API/RC5-API-003",
+          "files": [
+            "artifacts/rc5/API/RC5-API-003/result.md",
+            "artifacts/rc5/API/RC5-API-003/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-API-004",
+      "suite": "API",
+      "phase": "P1",
+      "priority": "P0",
+      "title": "tasks verify（864 tests）",
+      "owner": "T09/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/API/RC5-API-004",
+          "files": [
+            "artifacts/rc5/API/RC5-API-004/result.md",
+            "artifacts/rc5/API/RC5-API-004/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-API-005",
+      "suite": "API",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "主会话派 2 worker/waitForTreeWork 全完成",
+      "owner": "T49e/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|124）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/API/RC5-API-005",
+          "files": [
+            "artifacts/rc5/API/RC5-API-005/result.md",
+            "artifacts/rc5/API/RC5-API-005/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS（API 语义）",
+          "exitTokens": [
+            "0",
+            "0",
+            "124"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/e3-super/RC5-API-005",
+          "files": [
+            "artifacts/rc5/e3-super/RC5-API-005/result.md",
+            "artifacts/rc5/e3-super/RC5-API-005/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "NOTRUN",
+          "exitTokens": [
+            "0",
+            "200",
+            "0",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": false
+        }
+      ]
+    },
+    {
+      "id": "RC5-API-006",
+      "suite": "API",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "listDescendants 与任务树一致",
+      "owner": "T49e/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/API/RC5-API-006",
+          "files": [
+            "artifacts/rc5/API/RC5-API-006/result.md",
+            "artifacts/rc5/API/RC5-API-006/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/e3-super/RC5-API-006",
+          "files": [
+            "artifacts/rc5/e3-super/RC5-API-006/result.md",
+            "artifacts/rc5/e3-super/RC5-API-006/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "NOTRUN",
+          "exitTokens": [
+            "0",
+            "200",
+            "0",
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": false
+        }
+      ]
+    },
+    {
+      "id": "RC5-API-007",
+      "suite": "API",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "drainDescendants 后无残留 running",
+      "owner": "T49e/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/API/RC5-API-007",
+          "files": [
+            "artifacts/rc5/API/RC5-API-007/result.md",
+            "artifacts/rc5/API/RC5-API-007/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/e3-super/RC5-API-007",
+          "files": [
+            "artifacts/rc5/e3-super/RC5-API-007/result.md",
+            "artifacts/rc5/e3-super/RC5-API-007/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "NOTRUN",
+          "exitTokens": [
+            "0",
+            "200",
+            "0",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": false
+        }
+      ]
+    },
+    {
+      "id": "RC5-API-008",
+      "suite": "API",
+      "phase": "P1",
+      "priority": "P1",
+      "title": "LlmError 旧构造签名 0 残留",
+      "owner": "T09/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/API/RC5-API-008",
+          "files": [
+            "artifacts/rc5/API/RC5-API-008/result.md",
+            "artifacts/rc5/API/RC5-API-008/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-API-009",
+      "suite": "API",
+      "phase": "P4",
+      "priority": "P2",
+      "title": "LoggerLevel 数值语义（WARN=1/INFO=2）",
+      "owner": "T07/L1",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/API/RC5-API-009",
+          "files": [
+            "artifacts/rc5/API/RC5-API-009/result.md",
+            "artifacts/rc5/API/RC5-API-009/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACC-001",
+      "suite": "ACC",
+      "phase": "P4",
+      "priority": "P0",
+      "title": "packctl tenant-scan 0 违规",
+      "owner": "T24/L4",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/ACC/RC5-ACC-001",
+          "files": [
+            "artifacts/rc5/E2/ACC/RC5-ACC-001/result.md",
+            "artifacts/rc5/E2/ACC/RC5-ACC-001/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACC-002",
+      "suite": "ACC",
+      "phase": "P2",
+      "priority": "P0",
+      "title": "packctl prompt-scan 0 违规",
+      "owner": "T17/L2",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/ACC/RC5-ACC-002",
+          "files": [
+            "artifacts/rc5/E2/ACC/RC5-ACC-002/result.md",
+            "artifacts/rc5/E2/ACC/RC5-ACC-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACC-003",
+      "suite": "ACC",
+      "phase": "P4",
+      "priority": "P0",
+      "title": "packctl form-check 0 违规",
+      "owner": "T24/L4",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/ACC/RC5-ACC-003",
+          "files": [
+            "artifacts/rc5/E2/ACC/RC5-ACC-003/result.md",
+            "artifacts/rc5/E2/ACC/RC5-ACC-003/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACC-004",
+      "suite": "ACC",
+      "phase": "P4",
+      "priority": "P0",
+      "title": "mux 动作漂移差集 0（含 terminal 9）",
+      "owner": "T24/L4",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/ACC/RC5-ACC-004",
+          "files": [
+            "artifacts/rc5/E2/ACC/RC5-ACC-004/result.md",
+            "artifacts/rc5/E2/ACC/RC5-ACC-004/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACC-005",
+      "suite": "ACC",
+      "phase": "P4",
+      "priority": "P0",
+      "title": "admin-only 不变式（⊆ 全量）",
+      "owner": "T25/L4",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/ACC/RC5-ACC-005",
+          "files": [
+            "artifacts/rc5/E2/ACC/RC5-ACC-005/result.md",
+            "artifacts/rc5/E2/ACC/RC5-ACC-005/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACC-006",
+      "suite": "ACC",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "普通用户 mcp-manager 设置/管理全拒",
+      "owner": "T49a/L6",
+      "status": "FAIL",
+      "decision": "普通用户 probe=200/true、restart=200/true（unary 未拒）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/ACC/RC5-ACC-006",
+          "files": [
+            "artifacts/rc5/E2/ACC/RC5-ACC-006/result.md",
+            "artifacts/rc5/E2/ACC/RC5-ACC-006/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "FAIL",
+          "verdictRaw": "FAIL",
+          "exitTokens": [
+            "200",
+            "200",
+            "200",
+            "200",
+            "0",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACC-007",
+      "suite": "ACC",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "B 用 A 的 sessionId unary 403/审计",
+      "owner": "T49a/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|200|200|404|200|200|200|200|200|404|200）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/ACC/RC5-ACC-007",
+          "files": [
+            "artifacts/rc5/E2/ACC/RC5-ACC-007/result.md",
+            "artifacts/rc5/E2/ACC/RC5-ACC-007/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "200",
+            "200",
+            "200",
+            "200",
+            "404",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "404",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACC-008",
+      "suite": "ACC",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "B 用 A 的 workspaceId 文件/检索 403",
+      "owner": "T49a/L6",
+      "status": "FAIL",
+      "decision": "workspaceFiles/list|stat|read 未拒，A 文件内容泄漏",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/ACC/RC5-ACC-008",
+          "files": [
+            "artifacts/rc5/E2/ACC/RC5-ACC-008/result.md",
+            "artifacts/rc5/E2/ACC/RC5-ACC-008/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "FAIL",
+          "verdictRaw": "FAIL",
+          "exitTokens": [
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACC-009",
+      "suite": "ACC",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "chat-import 前缀登记；未登录 401",
+      "owner": "T49a/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（401|400|401|400）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/ACC/RC5-ACC-009",
+          "files": [
+            "artifacts/rc5/E2/ACC/RC5-ACC-009/result.md",
+            "artifacts/rc5/E2/ACC/RC5-ACC-009/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "401",
+            "400",
+            "401",
+            "400"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACC-010",
+      "suite": "ACC",
+      "phase": "P4",
+      "priority": "P1",
+      "title": "全局事件 allowlist 单测无回归",
+      "owner": "T25/L4",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/ACC/RC5-ACC-010",
+          "files": [
+            "artifacts/rc5/E2/ACC/RC5-ACC-010/result.md",
+            "artifacts/rc5/E2/ACC/RC5-ACC-010/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPS-001",
+      "suite": "MCPS",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "管理员新增系统层 HTTP MCP server",
+      "owner": "T49a/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/MCPS/RC5-MCPS-001",
+          "files": [
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-001/result.md",
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-001/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPS-002",
+      "suite": "MCPS",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "重启后 server 仍在且连接成功",
+      "owner": "T49a/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|200|0|200）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/MCPS/RC5-MCPS-002",
+          "files": [
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-002/result.md",
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "200",
+            "0",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPS-003",
+      "suite": "MCPS",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "会话内调用系统 MCP 工具",
+      "owner": "T49a/L6",
+      "status": "MISSING",
+      "decision": "会话内调用需真实模型回合；E1 无 LLM 凭据，未执行",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/MCPS/RC5-MCPS-003",
+          "files": [
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-003/result.md",
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-003/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "NOTRUN",
+          "exitTokens": [
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPS-004",
+      "suite": "MCPS",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "普通用户看不到/改不了全局 MCP",
+      "owner": "T49a/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|200|200|200|200）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/MCPS/RC5-MCPS-004",
+          "files": [
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-004/result.md",
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-004/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPS-005",
+      "suite": "MCPS",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "普通用户 watch 系统 MCP 被拒",
+      "owner": "T49a/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/MCPS/RC5-MCPS-005",
+          "files": [
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-005/result.md",
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-005/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPS-006",
+      "suite": "MCPS",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "普通用户 restart/probe 必须被拒",
+      "owner": "T49a/L6",
+      "status": "FAIL",
+      "decision": "普通用户 restart/probe 200/true",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/MCPS/RC5-MCPS-006",
+          "files": [
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-006/result.md",
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-006/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "FAIL",
+          "verdictRaw": "FAIL",
+          "exitTokens": [
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPS-007",
+      "suite": "MCPS",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "管理员 watch 连接状态流可用",
+      "owner": "T49a/L6",
+      "status": "MISSING",
+      "decision": "套件因 MCPS-006 越权红中止",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/MCPS/RC5-MCPS-007",
+          "files": [
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-007/result.md",
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-007/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPS-008",
+      "suite": "MCPS",
+      "phase": "P2",
+      "priority": "P1",
+      "title": "migrate-mcp-servers 写入/幂等（12 tests）",
+      "owner": "T13/L2",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/MCPS/RC5-MCPS-008",
+          "files": [
+            "artifacts/rc5/MCPS/RC5-MCPS-008/report.md",
+            "artifacts/rc5/MCPS/RC5-MCPS-008/run1.log",
+            "artifacts/rc5/MCPS/RC5-MCPS-008/run2.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS（本地 CLI + 单测覆盖）",
+          "exitTokens": [
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/MCPS/RC5-MCPS-008",
+          "files": [
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-008/result.md",
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-008/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": false
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPS-009",
+      "suite": "MCPS",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "非法 YAML/未知 transport 报错不破坏配置",
+      "owner": "T49a/L6",
+      "status": "MISSING",
+      "decision": "套件因 MCPS-006 越权红中止",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/MCPS/RC5-MCPS-009",
+          "files": [
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-009/result.md",
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-009/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPS-010",
+      "suite": "MCPS",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "系统 MCP 启动失败不阻塞 boot/会话可用",
+      "owner": "T49a/L6",
+      "status": "MISSING",
+      "decision": "套件因 MCPS-006 越权红中止",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/MCPS/RC5-MCPS-010",
+          "files": [
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-010/result.md",
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-010/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPS-011",
+      "suite": "MCPS",
+      "phase": "P2",
+      "priority": "P0",
+      "title": "H9 重渲染保留 servers + 0600 失败备份",
+      "owner": "T13/L2",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|1）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/MCPS/RC5-MCPS-011",
+          "files": [
+            "artifacts/rc5/MCPS/RC5-MCPS-011/report.md",
+            "artifacts/rc5/MCPS/RC5-MCPS-011/render.log",
+            "artifacts/rc5/MCPS/RC5-MCPS-011/failure.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "本地 H9 机制 PASS（11/11）；",
+          "exitTokens": [
+            "0",
+            "1"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/MCPS/RC5-MCPS-011",
+          "files": [
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-011/result.md",
+            "artifacts/rc5/E1/MCPS/RC5-MCPS-011/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": false
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-001",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "A list 只含 A 的条目",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-001",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-001/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-001/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-002",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "B list 只含 B 的条目",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-002",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-002/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-003",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "B upsert A 行被拒且 A 不变",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-003",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-003/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-003/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-004",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "B delete A 行被拒且 A 仍在",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-004",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-004/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-004/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-005",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "catalog 只含允许项；自填 stdio 被拒",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-005",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-005/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-005/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-006",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "B 从管理员目录新建 echo 成功",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-006",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-006/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-006/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-007",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "本地 HTTP MCP 新建/probe 成功",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-007",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-007/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-007/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-008",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "IPv4 元数据地址拒绝",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-008",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-008/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-008/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-009",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "IPv6 元数据地址拒绝",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-009",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-009/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-009/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-010",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "任意 HTTPS 校验通过、不被策略拦",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|200|200）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-010",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-010/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-010/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-011",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "personalHttpHosts 白名单",
+      "owner": "T49b/L6",
+      "status": "MISSING",
+      "decision": "未以 personalHttpHosts 白名单启动容器；仅有单测，未容器实跑",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-011",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-011/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-011/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-012",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "header secret AES-GCM、日志无明文",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-012",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-012/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-012/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-013",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "list 只回 hasSecret 不回值",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-013",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-013/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-013/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-014",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "每人 8 条上限",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-014",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-014/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-014/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-015",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "256KB 配置上限",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-015",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-015/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-015/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-016",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "挂死 stdio 8s 放弃",
+      "owner": "T49b/L6",
+      "status": "MISSING",
+      "decision": "需 live 会话建立挂死子进程；未执行",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-016",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-016/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-016/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-017",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "慢 HTTP 工具 60s 超时",
+      "owner": "T49b/L6",
+      "status": "MISSING",
+      "decision": "需真实工具调用与 60s 等待；未执行",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-017",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-017/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-017/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-018",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "断线重连 3 次后停止",
+      "owner": "T49b/L6",
+      "status": "MISSING",
+      "decision": "需长时断连/恢复时序；未执行",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-018",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-018/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-018/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-019",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "删除后 live 会话工具当场消失",
+      "owner": "T49b/L6",
+      "status": "MISSING",
+      "decision": "需 live 会话 + tools/list 观察；未执行",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-019",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-019/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-019/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-020",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "跨用户 mcp__p<uid>_* 调用 deny",
+      "owner": "T49b/L6",
+      "status": "MISSING",
+      "decision": "需子代理/跨用户会话工具调用；未执行",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-020",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-020/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-020/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-021",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "A/B 同名 server 隔离",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-021",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-021/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-021/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-022",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "登出/禁用后个人工具不可用",
+      "owner": "T49b/L6",
+      "status": "MISSING",
+      "decision": "需 live 会话作用域观察；未执行",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-022",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-022/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-022/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-023",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "重启后个人配置仍在",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|0|0|200|200|200|200|0|0|200|200）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-023",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-023/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-023/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "200",
+            "200",
+            "0",
+            "0",
+            "200",
+            "200",
+            "200",
+            "200",
+            "0",
+            "0",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-MCPP-024",
+      "suite": "MCPP",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "个人 MCP UI 增删改测/密钥 write-only",
+      "owner": "T49b/L6",
+      "status": "MISSING",
+      "decision": "浏览器双主题三视口截图未执行",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/MCPP/RC5-MCPP-024",
+          "files": [
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-024/result.md",
+            "artifacts/rc5/E2/MCPP/RC5-MCPP-024/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-TERM-001",
+      "suite": "TERM",
+      "phase": "P4",
+      "priority": "P0",
+      "title": "profile 含 terminal bundle",
+      "owner": "T34/L4",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/TERM/RC5-TERM-001",
+          "files": [
+            "artifacts/rc5/E1/TERM/RC5-TERM-001/result.md",
+            "artifacts/rc5/E1/TERM/RC5-TERM-001/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/e3-super/RC5-TERM-001",
+          "files": [
+            "artifacts/rc5/e3-super/RC5-TERM-001/result.md",
+            "artifacts/rc5/e3-super/RC5-TERM-001/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "200",
+            "0",
+            "0",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-TERM-002",
+      "suite": "TERM",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "侧栏 terminal 面板/首键人接管",
+      "owner": "T49b/L6",
+      "status": "MISSING",
+      "decision": "需浏览器键盘实测；且 create P1 使活终端建不出",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/TERM/RC5-TERM-002",
+          "files": [
+            "artifacts/rc5/E1/TERM/RC5-TERM-002/result.md",
+            "artifacts/rc5/E1/TERM/RC5-TERM-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/TERM/RC5-TERM-002",
+          "files": [
+            "artifacts/rc5/E2/TERM/RC5-TERM-002/result.md",
+            "artifacts/rc5/E2/TERM/RC5-TERM-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/e3-super/RC5-TERM-002",
+          "files": [
+            "artifacts/rc5/e3-super/RC5-TERM-002/result.md",
+            "artifacts/rc5/e3-super/RC5-TERM-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "NOTRUN",
+          "exitTokens": [
+            "0",
+            "200",
+            "0",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-TERM-003",
+      "suite": "TERM",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "6 个 terminal_* 工具逐个可调用",
+      "owner": "T49b/L6",
+      "status": "MISSING",
+      "decision": "需模型回合触发工具调用；未执行",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/TERM/RC5-TERM-003",
+          "files": [
+            "artifacts/rc5/E1/TERM/RC5-TERM-003/result.md",
+            "artifacts/rc5/E1/TERM/RC5-TERM-003/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/TERM/RC5-TERM-003",
+          "files": [
+            "artifacts/rc5/E2/TERM/RC5-TERM-003/result.md",
+            "artifacts/rc5/E2/TERM/RC5-TERM-003/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-TERM-004",
+      "suite": "TERM",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "B 用 A sessionId 调 6 unary 全拒",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "修后复跑 6/6 remote-access/denied（final-terminal-guard.json）；修前 FAIL 日志保留",
+      "sources": [
+        {
+          "kind": "file",
+          "path": "artifacts/rc5/p6a/repairs/final-terminal-guard.json",
+          "files": [
+            "artifacts/rc5/p6a/repairs/final-terminal-guard.json",
+            "artifacts/rc5/p6a/repairs/final-terminal-guard.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true,
+          "note": "repairs round 1；修前 E1/E2/E3 目录日志保留，不参与当前判定"
+        }
+      ]
+    },
+    {
+      "id": "RC5-TERM-005",
+      "suite": "TERM",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "attach/retain/watch 三流跨租户被拒",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/TERM/RC5-TERM-005",
+          "files": [
+            "artifacts/rc5/E1/TERM/RC5-TERM-005/result.md",
+            "artifacts/rc5/E1/TERM/RC5-TERM-005/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": false
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/TERM/RC5-TERM-005a",
+          "files": [
+            "artifacts/rc5/E2/TERM/RC5-TERM-005a/result.md",
+            "artifacts/rc5/E2/TERM/RC5-TERM-005a/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/TERM/RC5-TERM-005b",
+          "files": [
+            "artifacts/rc5/E2/TERM/RC5-TERM-005b/result.md",
+            "artifacts/rc5/E2/TERM/RC5-TERM-005b/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/TERM/RC5-TERM-005c",
+          "files": [
+            "artifacts/rc5/E2/TERM/RC5-TERM-005c/result.md",
+            "artifacts/rc5/E2/TERM/RC5-TERM-005c/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/e3-super/RC5-TERM-005",
+          "files": [
+            "artifacts/rc5/e3-super/RC5-TERM-005/result.md",
+            "artifacts/rc5/e3-super/RC5-TERM-005/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "NOTRUN",
+          "exitTokens": [
+            "0",
+            "200",
+            "0",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": false
+        }
+      ]
+    },
+    {
+      "id": "RC5-TERM-006",
+      "suite": "TERM",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "A 同 session 9 动作全部成功",
+      "owner": "T49b/L6",
+      "status": "FAIL",
+      "decision": "create/rename/retain 失败（session.snapshotEvents / terminal unavailable）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/TERM/RC5-TERM-006",
+          "files": [
+            "artifacts/rc5/E1/TERM/RC5-TERM-006/result.md",
+            "artifacts/rc5/E1/TERM/RC5-TERM-006/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/TERM/RC5-TERM-006",
+          "files": [
+            "artifacts/rc5/E2/TERM/RC5-TERM-006/result.md",
+            "artifacts/rc5/E2/TERM/RC5-TERM-006/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "FAIL",
+          "verdictRaw": "FAIL",
+          "exitTokens": [
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "0",
+            "0",
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/e3-super/RC5-TERM-006",
+          "files": [
+            "artifacts/rc5/e3-super/RC5-TERM-006/result.md",
+            "artifacts/rc5/e3-super/RC5-TERM-006/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "FAIL",
+          "verdictRaw": "FAIL",
+          "exitTokens": [
+            "1",
+            "200",
+            "0",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-TERM-007",
+      "suite": "TERM",
+      "phase": "P4",
+      "priority": "P0",
+      "title": "readUserTerminals=false/preferredShells=[bash]",
+      "owner": "T34/L4",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/TERM/RC5-TERM-007",
+          "files": [
+            "artifacts/rc5/E1/TERM/RC5-TERM-007/result.md",
+            "artifacts/rc5/E1/TERM/RC5-TERM-007/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/TERM/RC5-TERM-007",
+          "files": [
+            "artifacts/rc5/E2/TERM/RC5-TERM-007/result.md",
+            "artifacts/rc5/E2/TERM/RC5-TERM-007/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/e3-super/RC5-TERM-007",
+          "files": [
+            "artifacts/rc5/e3-super/RC5-TERM-007/result.md",
+            "artifacts/rc5/e3-super/RC5-TERM-007/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "200",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-TERM-008",
+      "suite": "TERM",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "用户终端列表能力不可见/不可调",
+      "owner": "T49b/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|200|200）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/TERM/RC5-TERM-008",
+          "files": [
+            "artifacts/rc5/E1/TERM/RC5-TERM-008/result.md",
+            "artifacts/rc5/E1/TERM/RC5-TERM-008/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/TERM/RC5-TERM-008",
+          "files": [
+            "artifacts/rc5/E2/TERM/RC5-TERM-008/result.md",
+            "artifacts/rc5/E2/TERM/RC5-TERM-008/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-TERM-009",
+      "suite": "TERM",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "长进程切页再回：进程存活/输出连续",
+      "owner": "T49b/L6",
+      "status": "MISSING",
+      "decision": "套件因 TERM-004 跨租户红中止",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/TERM/RC5-TERM-009",
+          "files": [
+            "artifacts/rc5/E1/TERM/RC5-TERM-009/result.md",
+            "artifacts/rc5/E1/TERM/RC5-TERM-009/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-TERM-010",
+      "suite": "TERM",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "close 后再 attach 无幽灵终端",
+      "owner": "T49b/L6",
+      "status": "MISSING",
+      "decision": "套件因 TERM-004 跨租户红中止",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/TERM/RC5-TERM-010",
+          "files": [
+            "artifacts/rc5/E1/TERM/RC5-TERM-010/result.md",
+            "artifacts/rc5/E1/TERM/RC5-TERM-010/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-TERM-011",
+      "suite": "TERM",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "rename/retain 后刷新状态持久",
+      "owner": "T49b/L6",
+      "status": "MISSING",
+      "decision": "依赖 create 成功；被 session.snapshotEvents P1 阻断",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/TERM/RC5-TERM-011",
+          "files": [
+            "artifacts/rc5/E1/TERM/RC5-TERM-011/result.md",
+            "artifacts/rc5/E1/TERM/RC5-TERM-011/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/TERM/RC5-TERM-011",
+          "files": [
+            "artifacts/rc5/E2/TERM/RC5-TERM-011/result.md",
+            "artifacts/rc5/E2/TERM/RC5-TERM-011/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-TERM-012",
+      "suite": "TERM",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "两会话各开终端互不可见/互不输入",
+      "owner": "T49b/L6",
+      "status": "MISSING",
+      "decision": "套件中止；E3 亦未执行",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/TERM/RC5-TERM-012",
+          "files": [
+            "artifacts/rc5/E1/TERM/RC5-TERM-012/result.md",
+            "artifacts/rc5/E1/TERM/RC5-TERM-012/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/e3-super/RC5-TERM-012",
+          "files": [
+            "artifacts/rc5/e3-super/RC5-TERM-012/result.md",
+            "artifacts/rc5/e3-super/RC5-TERM-012/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "NOTRUN",
+          "exitTokens": [
+            "0",
+            "200",
+            "0",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-TERM-013",
+      "suite": "TERM",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "24h 浸泡无 fd 泄漏/内存增长",
+      "owner": "T49b/L6",
+      "status": "MISSING",
+      "decision": "套件中止；24h soak churn 持续失败（create=session.snapshotEvents）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/TERM/RC5-TERM-013",
+          "files": [
+            "artifacts/rc5/E1/TERM/RC5-TERM-013/result.md",
+            "artifacts/rc5/E1/TERM/RC5-TERM-013/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/e3-super/RC5-TERM-013",
+          "files": [
+            "artifacts/rc5/e3-super/RC5-TERM-013/result.md",
+            "artifacts/rc5/e3-super/RC5-TERM-013/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "NOTRUN",
+          "exitTokens": [
+            "0",
+            "200",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-TERM-014",
+      "suite": "TERM",
+      "phase": "P5",
+      "priority": "P2",
+      "title": "bash 不存在时明确报错、容器不崩",
+      "owner": "T48/L6",
+      "status": "MISSING",
+      "decision": "套件因 TERM-004 跨租户红中止",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/TERM/RC5-TERM-014",
+          "files": [
+            "artifacts/rc5/E1/TERM/RC5-TERM-014/result.md",
+            "artifacts/rc5/E1/TERM/RC5-TERM-014/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-IMP-001",
+      "suite": "IMP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "未登录 POST archive 401 不写会话",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/IMP/RC5-IMP-001",
+          "files": [
+            "artifacts/rc5/E1/IMP/RC5-IMP-001/result.md",
+            "artifacts/rc5/E1/IMP/RC5-IMP-001/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-IMP-002",
+      "suite": "IMP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "B 传 A 的 workspaceId 403 不写",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/IMP/RC5-IMP-002",
+          "files": [
+            "artifacts/rc5/E1/IMP/RC5-IMP-002/result.md",
+            "artifacts/rc5/E1/IMP/RC5-IMP-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-IMP-003",
+      "suite": "IMP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "10 会话归档 200/sessionIds=10",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/IMP/RC5-IMP-003",
+          "files": [
+            "artifacts/rc5/E1/IMP/RC5-IMP-003/result.md",
+            "artifacts/rc5/E1/IMP/RC5-IMP-003/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-IMP-004",
+      "suite": "IMP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "导入会话 B 可见/A 不可见",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/IMP/RC5-IMP-004",
+          "files": [
+            "artifacts/rc5/E1/IMP/RC5-IMP-004/result.md",
+            "artifacts/rc5/E1/IMP/RC5-IMP-004/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-IMP-005",
+      "suite": "IMP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "DB sessions owner_id=B 无空属主",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（1|0|1|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/IMP/RC5-IMP-005",
+          "files": [
+            "artifacts/rc5/E1/IMP/RC5-IMP-005/result.md",
+            "artifacts/rc5/E1/IMP/RC5-IMP-005/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "1",
+            "0",
+            "1",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-IMP-006",
+      "suite": "IMP",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "1001 会话按上限拒绝/截断",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/IMP/RC5-IMP-006",
+          "files": [
+            "artifacts/rc5/E1/IMP/RC5-IMP-006/result.md",
+            "artifacts/rc5/E1/IMP/RC5-IMP-006/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-IMP-007",
+      "suite": "IMP",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "512MiB 边界上传不 OOM",
+      "owner": "T49c/L6",
+      "status": "MISSING",
+      "decision": "512MiB 压测规避共享宿主，未执行",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/IMP/RC5-IMP-007",
+          "files": [
+            "artifacts/rc5/E1/IMP/RC5-IMP-007/result.md",
+            "artifacts/rc5/E1/IMP/RC5-IMP-007/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "NOTRUN",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-IMP-008",
+      "suite": "IMP",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "上传中途取消后对账无孤儿",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/IMP/RC5-IMP-008",
+          "files": [
+            "artifacts/rc5/E1/IMP/RC5-IMP-008/result.md",
+            "artifacts/rc5/E1/IMP/RC5-IMP-008/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-IMP-009",
+      "suite": "IMP",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "坏 JSON 行跳过、成功会话完整",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/IMP/RC5-IMP-009",
+          "files": [
+            "artifacts/rc5/E1/IMP/RC5-IMP-009/result.md",
+            "artifacts/rc5/E1/IMP/RC5-IMP-009/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-IMP-010",
+      "suite": "IMP",
+      "phase": "P5",
+      "priority": "P1",
+      "title": "反代 client_max_body_size 512m/读超时",
+      "owner": "T44/L5",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/IMP/RC5-IMP-010",
+          "files": [
+            "artifacts/rc5/E1/IMP/RC5-IMP-010/result.md",
+            "artifacts/rc5/E1/IMP/RC5-IMP-010/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACP-001",
+      "suite": "ACP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "initialize 协议协商成功",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3319}）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/ACP/RC5-ACP-001",
+          "files": [
+            "artifacts/rc5/ACP/RC5-ACP-001/assert.json",
+            "artifacts/rc5/ACP/RC5-ACP-001/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "{\"code\":0,\"signal\":null,\"elapsedMs\":3319}"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACP-002",
+      "suite": "ACP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "session/new + prompt 正常返回",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3319}）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/ACP/RC5-ACP-002",
+          "files": [
+            "artifacts/rc5/ACP/RC5-ACP-002/assert.json",
+            "artifacts/rc5/ACP/RC5-ACP-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "{\"code\":0,\"signal\":null,\"elapsedMs\":3319}"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACP-003",
+      "suite": "ACP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "stdout 每行均为纯 JSON-RPC",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3319}）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/ACP/RC5-ACP-003",
+          "files": [
+            "artifacts/rc5/ACP/RC5-ACP-003/assert.json",
+            "artifacts/rc5/ACP/RC5-ACP-003/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "{\"code\":0,\"signal\":null,\"elapsedMs\":3319}"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACP-004",
+      "suite": "ACP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "ACP 容器无监听端口",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3319}）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/ACP/RC5-ACP-004",
+          "files": [
+            "artifacts/rc5/ACP/RC5-ACP-004/assert.json",
+            "artifacts/rc5/ACP/RC5-ACP-004/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "{\"code\":0,\"signal\":null,\"elapsedMs\":3319}"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACP-005",
+      "suite": "ACP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "非法 JSON 返回 error 且进程不崩",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3319}）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/ACP/RC5-ACP-005",
+          "files": [
+            "artifacts/rc5/ACP/RC5-ACP-005/assert.json",
+            "artifacts/rc5/ACP/RC5-ACP-005/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "{\"code\":0,\"signal\":null,\"elapsedMs\":3319}"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACP-006",
+      "suite": "ACP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "工具审批 request_permission 不挂死",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3319}）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/ACP/RC5-ACP-006",
+          "files": [
+            "artifacts/rc5/ACP/RC5-ACP-006/assert.json",
+            "artifacts/rc5/ACP/RC5-ACP-006/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "{\"code\":0,\"signal\":null,\"elapsedMs\":3319}"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACP-007",
+      "suite": "ACP",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "取消 prompt 生效、后续可用",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3319}）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/ACP/RC5-ACP-007",
+          "files": [
+            "artifacts/rc5/ACP/RC5-ACP-007/assert.json",
+            "artifacts/rc5/ACP/RC5-ACP-007/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "{\"code\":0,\"signal\":null,\"elapsedMs\":3319}"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACP-008",
+      "suite": "ACP",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "两客户端并发隔离无串话",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（{\"A\":{\"code\":0,\"signal\":null,\"elapsedMs\":3685},\"B\":{\"code\":0,\"signal\":null,\"elapsedMs\":3894}}）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/ACP/RC5-ACP-008",
+          "files": [
+            "artifacts/rc5/ACP/RC5-ACP-008/assert.json",
+            "artifacts/rc5/ACP/RC5-ACP-008/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "{\"A\":{\"code\":0,\"signal\":null,\"elapsedMs\":3685},\"B\":{\"code\":0,\"signal\":null,\"elapsedMs\":3894}}"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACP-009",
+      "suite": "ACP",
+      "phase": "P4",
+      "priority": "P1",
+      "title": "文档定位（共享 /data/无租户隔离）",
+      "owner": "T31/L5",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/ACP/RC5-ACP-009",
+          "files": [
+            "artifacts/rc5/ACP/RC5-ACP-009/assert.json",
+            "artifacts/rc5/ACP/RC5-ACP-009/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-ACP-010",
+      "suite": "ACP",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "web+ACP 同卷并发无数据库锁",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":2428}）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/ACP/RC5-ACP-010",
+          "files": [
+            "artifacts/rc5/ACP/RC5-ACP-010/assert.json",
+            "artifacts/rc5/ACP/RC5-ACP-010/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "{\"code\":0,\"signal\":null,\"elapsedMs\":2428}"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-OFF-001",
+      "suite": "OFF",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "docx → pdf（中文不乱码）",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/OFF/RC5-OFF-001",
+          "files": [
+            "artifacts/rc5/E1/OFF/RC5-OFF-001/result.md",
+            "artifacts/rc5/E1/OFF/RC5-OFF-001/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-OFF-002",
+      "suite": "OFF",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "xlsx → pdf（表格/公式正确）",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/OFF/RC5-OFF-002",
+          "files": [
+            "artifacts/rc5/E1/OFF/RC5-OFF-002/result.md",
+            "artifacts/rc5/E1/OFF/RC5-OFF-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-OFF-003",
+      "suite": "OFF",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "pptx → pdf（版式不崩）",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/OFF/RC5-OFF-003",
+          "files": [
+            "artifacts/rc5/E1/OFF/RC5-OFF-003/result.md",
+            "artifacts/rc5/E1/OFF/RC5-OFF-003/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-OFF-004",
+      "suite": "OFF",
+      "phase": "P5",
+      "priority": "P1",
+      "title": "镜像含 Noto Sans CJK",
+      "owner": "T41/L5",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/OFF/RC5-OFF-004",
+          "files": [
+            "artifacts/rc5/E1/OFF/RC5-OFF-004/result.md",
+            "artifacts/rc5/E1/OFF/RC5-OFF-004/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-OFF-005",
+      "suite": "OFF",
+      "phase": "P5",
+      "priority": "P1",
+      "title": "镜像 python-docx/openpyxl/pptx 可导入",
+      "owner": "T41/L5",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/OFF/RC5-OFF-005",
+          "files": [
+            "artifacts/rc5/E1/OFF/RC5-OFF-005/result.md",
+            "artifacts/rc5/E1/OFF/RC5-OFF-005/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-OFF-006",
+      "suite": "OFF",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "输出 24h/512MB 清理、备份排除 outputs",
+      "owner": "T49c/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|2|0|0|2|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/OFF/RC5-OFF-006",
+          "files": [
+            "artifacts/rc5/E1/OFF/RC5-OFF-006/result.md",
+            "artifacts/rc5/E1/OFF/RC5-OFF-006/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "2",
+            "0",
+            "0",
+            "2",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-OFF-007",
+      "suite": "OFF",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "office-docx 技能加载并编辑样本",
+      "owner": "T49c/L6",
+      "status": "MISSING",
+      "decision": "需模型回合加载技能，未执行",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/OFF/RC5-OFF-007",
+          "files": [
+            "artifacts/rc5/E1/OFF/RC5-OFF-007/result.md",
+            "artifacts/rc5/E1/OFF/RC5-OFF-007/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "NOTRUN",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-HERO-001",
+      "suite": "HERO",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "hero=false 页面无额外包裹",
+      "owner": "T49d/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/HERO/RC5-HERO-001",
+          "files": [
+            "artifacts/rc5/E1/HERO/RC5-HERO-001/result.md",
+            "artifacts/rc5/E1/HERO/RC5-HERO-001/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-HERO-002",
+      "suite": "HERO",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "hero=true 品牌层出现且不遮输入框",
+      "owner": "T49d/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/HERO/RC5-HERO-002",
+          "files": [
+            "artifacts/rc5/E1/HERO/RC5-HERO-002/result.md",
+            "artifacts/rc5/E1/HERO/RC5-HERO-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-HERO-003",
+      "suite": "HERO",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "输入框可聚焦/输入/发送",
+      "owner": "T49d/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/HERO/RC5-HERO-003",
+          "files": [
+            "artifacts/rc5/E1/HERO/RC5-HERO-003/result.md",
+            "artifacts/rc5/E1/HERO/RC5-HERO-003/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-HERO-004",
+      "suite": "HERO",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "滚动到底/顶无浮层错位重影",
+      "owner": "T49d/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/HERO/RC5-HERO-004",
+          "files": [
+            "artifacts/rc5/E1/HERO/RC5-HERO-004/result.md",
+            "artifacts/rc5/E1/HERO/RC5-HERO-004/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-HERO-005",
+      "suite": "HERO",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "双主题品牌色跟随主题",
+      "owner": "T49d/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/HERO/RC5-HERO-005",
+          "files": [
+            "artifacts/rc5/E1/HERO/RC5-HERO-005/result.md",
+            "artifacts/rc5/E1/HERO/RC5-HERO-005/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-HERO-006",
+      "suite": "HERO",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "三视口布局只收缩不溢出",
+      "owner": "T49d/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/HERO/RC5-HERO-006",
+          "files": [
+            "artifacts/rc5/E1/HERO/RC5-HERO-006/result.md",
+            "artifacts/rc5/E1/HERO/RC5-HERO-006/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-HERO-007",
+      "suite": "HERO",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "prefers-reduced-motion 静态呈现",
+      "owner": "T49d/L6",
+      "status": "MISSING",
+      "decision": "IAB 无 media 模拟接口，未动态执行",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/HERO/RC5-HERO-007",
+          "files": [
+            "artifacts/rc5/E1/HERO/RC5-HERO-007/result.md",
+            "artifacts/rc5/E1/HERO/RC5-HERO-007/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "NOTRUN",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-HERO-008",
+      "suite": "HERO",
+      "phase": "P6a",
+      "priority": "P2",
+      "title": "浮层只挂 hero 态、切换无残留",
+      "owner": "T49d/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/HERO/RC5-HERO-008",
+          "files": [
+            "artifacts/rc5/E1/HERO/RC5-HERO-008/result.md",
+            "artifacts/rc5/E1/HERO/RC5-HERO-008/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-CMD-001",
+      "suite": "CMD",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "输入 / 命令列表可见且齐全",
+      "owner": "T49d/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/CMD/RC5-CMD-001",
+          "files": [
+            "artifacts/rc5/E1/CMD/RC5-CMD-001/result.md",
+            "artifacts/rc5/E1/CMD/RC5-CMD-001/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-CMD-002",
+      "suite": "CMD",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "执行内置命令结果正确",
+      "owner": "T49d/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/CMD/RC5-CMD-002",
+          "files": [
+            "artifacts/rc5/E1/CMD/RC5-CMD-002/result.md",
+            "artifacts/rc5/E1/CMD/RC5-CMD-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-CMD-003",
+      "suite": "CMD",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "与现有 slash 命令并存无冲突",
+      "owner": "T49d/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/CMD/RC5-CMD-003",
+          "files": [
+            "artifacts/rc5/E1/CMD/RC5-CMD-003/result.md",
+            "artifacts/rc5/E1/CMD/RC5-CMD-003/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-CMD-004",
+      "suite": "CMD",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "ACP 无命令面（无 UI 面）",
+      "owner": "T49d/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/CMD/RC5-CMD-004",
+          "files": [
+            "artifacts/rc5/E1/CMD/RC5-CMD-004/result.md",
+            "artifacts/rc5/E1/CMD/RC5-CMD-004/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-V1-001",
+      "suite": "V1",
+      "phase": "P3",
+      "priority": "P0",
+      "title": "v1 源/basis.yml 全部已跟踪",
+      "owner": "T20/L3",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/V1/RC5-V1-001",
+          "files": [
+            "artifacts/rc5/V1/RC5-V1-001/result.md",
+            "artifacts/rc5/V1/RC5-V1-001/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-V1-002",
+      "suite": "V1",
+      "phase": "P3",
+      "priority": "P0",
+      "title": "锁文件含 @basis/@core 全部条目",
+      "owner": "T20/L3",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/V1/RC5-V1-002",
+          "files": [
+            "artifacts/rc5/V1/RC5-V1-002/result.md",
+            "artifacts/rc5/V1/RC5-V1-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-V1-003",
+      "suite": "V1",
+      "phase": "P3",
+      "priority": "P0",
+      "title": "cordis 4.1.0 版本/来源/NOTICE",
+      "owner": "T19/L3",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/V1/RC5-V1-003",
+          "files": [
+            "artifacts/rc5/V1/RC5-V1-003/result.md",
+            "artifacts/rc5/V1/RC5-V1-003/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-V1-004",
+      "suite": "V1",
+      "phase": "P3",
+      "priority": "P0",
+      "title": "core/cordis test 绿（5 tests）",
+      "owner": "T20/L3",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/V1/RC5-V1-004",
+          "files": [
+            "artifacts/rc5/V1/RC5-V1-004/result.md",
+            "artifacts/rc5/V1/RC5-V1-004/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-V1-005",
+      "suite": "V1",
+      "phase": "P3",
+      "priority": "P0",
+      "title": "core/runtime test + basis chat 6 插件",
+      "owner": "T20/L3",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0|0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/V1/RC5-V1-005",
+          "files": [
+            "artifacts/rc5/V1/RC5-V1-005/result.md",
+            "artifacts/rc5/V1/RC5-V1-005/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-V1-006",
+      "suite": "V1",
+      "phase": "P3",
+      "priority": "P1",
+      "title": "v1 CI 独立车道绿",
+      "owner": "T20/L3",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/V1/RC5-V1-006",
+          "files": [
+            "artifacts/rc5/V1/RC5-V1-006/result.md",
+            "artifacts/rc5/V1/RC5-V1-006/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-V1-007",
+      "suite": "V1",
+      "phase": "P3",
+      "priority": "P1",
+      "title": "v1 源无 @deepseek-ai/dsh import",
+      "owner": "T20/L3",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/V1/RC5-V1-007",
+          "files": [
+            "artifacts/rc5/V1/RC5-V1-007/result.md",
+            "artifacts/rc5/V1/RC5-V1-007/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-V1-008",
+      "suite": "V1",
+      "phase": "P5",
+      "priority": "P1",
+      "title": "镜像不含 v1 源/清单",
+      "owner": "T48/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/V1/RC5-V1-008",
+          "files": [
+            "artifacts/rc5/V1/RC5-V1-008/result.md",
+            "artifacts/rc5/V1/RC5-V1-008/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "NOT RUN",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": false
+        },
+        {
+          "kind": "marker",
+          "path": "artifacts/rc5/p5/testbed/env-runtime/run.log",
+          "files": [
+            "artifacts/rc5/p5/testbed/env-runtime/run.log",
+            "artifacts/rc5/p5/testbed/env-runtime/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "全文命中：v1 剥离 + absent",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-DATA-001",
+      "suite": "DATA",
+      "phase": "P5",
+      "priority": "P0",
+      "title": "init-data-dirs 幂等、根/实例 0700",
+      "owner": "T45/L5",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "p6b",
+          "path": "artifacts/rc5/DATA/RC5-DATA-001 + artifacts/rc5/p6b/summary.json",
+          "files": [
+            "artifacts/rc5/p6b/summary.json",
+            "artifacts/rc5/DATA/RC5-DATA-001/result.md",
+            "artifacts/rc5/DATA/RC5-DATA-001/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "init-data-dirs 幂等；根/实例/子目录 0700；4 条负控 fail-closed",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-DATA-002",
+      "suite": "DATA",
+      "phase": "P5",
+      "priority": "P0",
+      "title": "E1 compose /data 绑定测试数据根",
+      "owner": "T43/L5",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0|1|0|0|1|0|1）",
+      "sources": [
+        {
+          "kind": "p6b",
+          "path": "artifacts/rc5/DATA/RC5-DATA-002 + artifacts/rc5/p6b/summary.json",
+          "files": [
+            "artifacts/rc5/p6b/summary.json",
+            "artifacts/rc5/DATA/RC5-DATA-002/result.md",
+            "artifacts/rc5/DATA/RC5-DATA-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "/data bind→test-rc5/e1；compose config；漏挂 entrypoint 拒启 EXIT=1",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "1",
+            "0",
+            "0",
+            "1",
+            "0",
+            "1"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-DATA-003",
+      "suite": "DATA",
+      "phase": "P5",
+      "priority": "P0",
+      "title": "容器内 DSH_HOME=/data",
+      "owner": "T43/L5",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "p6b",
+          "path": "artifacts/rc5/DATA/RC5-DATA-003 + artifacts/rc5/p6b/summary.json",
+          "files": [
+            "artifacts/rc5/p6b/summary.json",
+            "artifacts/rc5/DATA/RC5-DATA-003/result.md",
+            "artifacts/rc5/DATA/RC5-DATA-003/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "容器内 DSH_HOME=/data",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-DATA-004",
+      "suite": "DATA",
+      "phase": "P6b",
+      "priority": "P0",
+      "title": "迁移两遍硬链接/大小与源一致",
+      "owner": "T51/L5",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "p6b",
+          "path": "artifacts/rc5/DATA/RC5-DATA-004 + artifacts/rc5/p6b/summary.json",
+          "files": [
+            "artifacts/rc5/p6b/summary.json",
+            "artifacts/rc5/DATA/RC5-DATA-004/result.md",
+            "artifacts/rc5/DATA/RC5-DATA-004/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "两遍迁移：8620 文件 / 108,848,480 B / 3148 硬链接组 / 352 符号链接，与源及 P5 E5 副本全等",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-DATA-005",
+      "suite": "DATA",
+      "phase": "P6b",
+      "priority": "P0",
+      "title": "迁移副本全库 integrity_check ok",
+      "owner": "T51/L5",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0|0）",
+      "sources": [
+        {
+          "kind": "p6b",
+          "path": "artifacts/rc5/DATA/RC5-DATA-005 + artifacts/rc5/p6b/summary.json",
+          "files": [
+            "artifacts/rc5/p6b/summary.json",
+            "artifacts/rc5/DATA/RC5-DATA-005/result.md",
+            "artifacts/rc5/DATA/RC5-DATA-005/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "4 份副本 + rc.5 启动后复测：每份 17 库 integrity 全 ok",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-DATA-006",
+      "suite": "DATA",
+      "phase": "P5",
+      "priority": "P0",
+      "title": "DSH_AGENTS_HOME=/data/agents",
+      "owner": "T45/L5",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "p6b",
+          "path": "artifacts/rc5/DATA/RC5-DATA-006 + artifacts/rc5/p6b/summary.json",
+          "files": [
+            "artifacts/rc5/p6b/summary.json",
+            "artifacts/rc5/DATA/RC5-DATA-006/result.md",
+            "artifacts/rc5/DATA/RC5-DATA-006/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "DSH_AGENTS_HOME=/data/agents（容器+宿主均存在）",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-DATA-007",
+      "suite": "DATA",
+      "phase": "P5",
+      "priority": "P0",
+      "title": "重启后会话/设置/MCP/记忆全在",
+      "owner": "T45/L5",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0|0|0|0|0|0|0|0）",
+      "sources": [
+        {
+          "kind": "p6b",
+          "path": "artifacts/rc5/DATA/RC5-DATA-007 + artifacts/rc5/p6b/summary.json",
+          "files": [
+            "artifacts/rc5/p6b/summary.json",
+            "artifacts/rc5/DATA/RC5-DATA-007/result.md",
+            "artifacts/rc5/DATA/RC5-DATA-007/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "生产数据副本起 rc.5：用户/会话/工作区/记忆/任务/工坊/relay token 全在；重启前后指纹一致；17 库 ok",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-DATA-008",
+      "suite": "DATA",
+      "phase": "P6b",
+      "priority": "P1",
+      "title": "备份→删除→恢复一致",
+      "owner": "T51/L5",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0|0|0|0|0|0|0|0|0|0）",
+      "sources": [
+        {
+          "kind": "p6b",
+          "path": "artifacts/rc5/DATA/RC5-DATA-008 + artifacts/rc5/p6b/summary.json",
+          "files": [
+            "artifacts/rc5/p6b/summary.json",
+            "artifacts/rc5/DATA/RC5-DATA-008/result.md",
+            "artifacts/rc5/DATA/RC5-DATA-008/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "冷备 stop→tar→start；删 marker→空目录恢复：5428 文件清单一致、marker sha 一致、16 库 ok",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-DATA-009",
+      "suite": "DATA",
+      "phase": "P6b",
+      "priority": "P1",
+      "title": "24h SQLite 浸泡无锁/WAL 异常",
+      "owner": "T51/L5",
+      "status": "MISSING",
+      "decision": "24h 浸泡窗口未满（p6b 记录 0.67h/24h；当前约 3.1h/24h）；窗口内 0 锁/WAL 异常、integrity 全 ok；不得判绿",
+      "sources": [
+        {
+          "kind": "p6b",
+          "path": "artifacts/rc5/DATA/RC5-DATA-009 + artifacts/rc5/p6b/summary.json",
+          "files": [
+            "artifacts/rc5/p6b/summary.json",
+            "artifacts/rc5/DATA/RC5-DATA-009/result.md",
+            "artifacts/rc5/DATA/RC5-DATA-009/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "NOTRUN",
+          "verdictRaw": "24h 浸泡窗口 0.67h/24h；采样内 0 锁/0 WAL 异常/写 18 成功/integrity 9/9 ok；窗口未满不得判绿",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-DATA-010",
+      "suite": "DATA",
+      "phase": "P6b",
+      "priority": "P0",
+      "title": "回滚演练：旧镜像+旧卷副本可用",
+      "owner": "T51/L5",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0|0|0|0|0|0）",
+      "sources": [
+        {
+          "kind": "p6b",
+          "path": "artifacts/rc5/DATA/RC5-DATA-010 + artifacts/rc5/p6b/summary.json",
+          "files": [
+            "artifacts/rc5/p6b/summary.json",
+            "artifacts/rc5/DATA/RC5-DATA-010/result.md",
+            "artifacts/rc5/DATA/RC5-DATA-010/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "停新容器→旧镜像 0.1.51 + 旧卷副本可用（login 200/me 401/relay 200/17 库 ok）→起回新容器无二次损坏",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-UI-001",
+      "suite": "UI",
+      "phase": "P4",
+      "priority": "P0",
+      "title": "lint-ui-tokens 0 违规（新包全覆盖）",
+      "owner": "T36/L7",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/UI/RC5-UI-001",
+          "files": [
+            "artifacts/rc5/UI/RC5-UI-001/result.md",
+            "artifacts/rc5/UI/RC5-UI-001/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-UI-002",
+      "suite": "UI",
+      "phase": "P4",
+      "priority": "P1",
+      "title": "圆角只用阶梯值且嵌套同心",
+      "owner": "T36/L7",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/UI/RC5-UI-002",
+          "files": [
+            "artifacts/rc5/UI/RC5-UI-002/result.md",
+            "artifacts/rc5/UI/RC5-UI-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-UI-003",
+      "suite": "UI",
+      "phase": "P4",
+      "priority": "P1",
+      "title": "font-weight 仅 400/500/600、正文无 500",
+      "owner": "T36/L7",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/UI/RC5-UI-003",
+          "files": [
+            "artifacts/rc5/UI/RC5-UI-003/result.md",
+            "artifacts/rc5/UI/RC5-UI-003/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-UI-004",
+      "suite": "UI",
+      "phase": "P4",
+      "priority": "P1",
+      "title": "图标走 @eterna/ui/icons/icon-data",
+      "owner": "T36/L7",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/UI/RC5-UI-004",
+          "files": [
+            "artifacts/rc5/UI/RC5-UI-004/result.md",
+            "artifacts/rc5/UI/RC5-UI-004/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-UI-005",
+      "suite": "UI",
+      "phase": "P4",
+      "priority": "P1",
+      "title": "断点仅 1100/760/640",
+      "owner": "T36/L7",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/UI/RC5-UI-005",
+          "files": [
+            "artifacts/rc5/UI/RC5-UI-005/result.md",
+            "artifacts/rc5/UI/RC5-UI-005/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-UI-006",
+      "suite": "UI",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "双主题×三视口截图（MCP/terminal/hero/chat-import）",
+      "owner": "T49d/L6",
+      "status": "FAIL",
+      "decision": "390 hero 提示遮挡 chip；terminal 5/6 错误页；chat-import 6/6 无入口",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/UI/RC5-UI-006",
+          "files": [
+            "artifacts/rc5/E2/UI/RC5-UI-006/result.md",
+            "artifacts/rc5/E2/UI/RC5-UI-006/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "FAIL",
+          "verdictRaw": "FAIL",
+          "exitTokens": [
+            "0",
+            "200",
+            "200",
+            "0",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-UI-007",
+      "suite": "UI",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "MCP 作为 settings.section、无独立页",
+      "owner": "T49d/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/UI/RC5-UI-007",
+          "files": [
+            "artifacts/rc5/E2/UI/RC5-UI-007/result.md",
+            "artifacts/rc5/E2/UI/RC5-UI-007/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-UI-008",
+      "suite": "UI",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "z-index 白名单/叠层分区",
+      "owner": "T49d/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/UI/RC5-UI-008",
+          "files": [
+            "artifacts/rc5/E2/UI/RC5-UI-008/result.md",
+            "artifacts/rc5/E2/UI/RC5-UI-008/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-SEC-001",
+      "suite": "SEC",
+      "phase": "P4",
+      "priority": "P0",
+      "title": "无运行态目录/凭据入库",
+      "owner": "T24/L4",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/SEC/RC5-SEC-001",
+          "files": [
+            "artifacts/rc5/SEC/RC5-SEC-001/result.md",
+            "artifacts/rc5/SEC/RC5-SEC-001/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-SEC-002",
+      "suite": "SEC",
+      "phase": "P4",
+      "priority": "P0",
+      "title": "凭据扫描（跟踪文件/镜像/argv）",
+      "owner": "T24/L4",
+      "status": "FAIL",
+      "decision": "跟踪测试文件含疑似口令字面量（17 行/7 文件 + 固定测试口令 5 行）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/SEC/RC5-SEC-002",
+          "files": [
+            "artifacts/rc5/SEC/RC5-SEC-002/result.md",
+            "artifacts/rc5/SEC/RC5-SEC-002/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "FAIL",
+          "verdictRaw": "FAIL",
+          "exitTokens": [
+            "1"
+          ],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-SEC-003",
+      "suite": "SEC",
+      "phase": "P4",
+      "priority": "P0",
+      "title": "无外发遥测",
+      "owner": "T24/L4",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/SEC/RC5-SEC-003",
+          "files": [
+            "artifacts/rc5/SEC/RC5-SEC-003/result.md",
+            "artifacts/rc5/SEC/RC5-SEC-003/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-SEC-004",
+      "suite": "SEC",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "跨租户枚举 session/workspace/文件/MCP 全拒",
+      "owner": "T49e/L6",
+      "status": "FAIL",
+      "decision": "workspaceFiles/read 未拒，B 读到 A 工作区文件",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/SEC/RC5-SEC-004",
+          "files": [
+            "artifacts/rc5/E2/SEC/RC5-SEC-004/result.md",
+            "artifacts/rc5/E2/SEC/RC5-SEC-004/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "FAIL",
+          "verdictRaw": "FAIL",
+          "exitTokens": [
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-SEC-005",
+      "suite": "SEC",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "普通用户管理面（MCP/插件/市场写）不可写",
+      "owner": "T49e/L6",
+      "status": "FAIL",
+      "decision": "mcpManager/probe|restart 200/true（管理面 unary 可达）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/SEC/RC5-SEC-005",
+          "files": [
+            "artifacts/rc5/E2/SEC/RC5-SEC-005/result.md",
+            "artifacts/rc5/E2/SEC/RC5-SEC-005/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "FAIL",
+          "verdictRaw": "FAIL",
+          "exitTokens": [
+            "200",
+            "200",
+            "403",
+            "403",
+            "403",
+            "403",
+            "200",
+            "200",
+            "200",
+            "200",
+            "403",
+            "403"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-SEC-006",
+      "suite": "SEC",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "审计无明文、关键事件齐全",
+      "owner": "T49e/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0|0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/SEC/RC5-SEC-006",
+          "files": [
+            "artifacts/rc5/E2/SEC/RC5-SEC-006/result.md",
+            "artifacts/rc5/E2/SEC/RC5-SEC-006/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-SEC-007",
+      "suite": "SEC",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "内网 MCP 放行、元数据地址拒绝",
+      "owner": "T49e/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|200|200|200|200|200|200）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/SEC/RC5-SEC-007",
+          "files": [
+            "artifacts/rc5/E2/SEC/RC5-SEC-007/result.md",
+            "artifacts/rc5/E2/SEC/RC5-SEC-007/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-SEC-008",
+      "suite": "SEC",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "登录归属/登出后拒绝",
+      "owner": "T49e/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|0|302|401|200|200|200|0|302|401|200）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/SEC/RC5-SEC-008",
+          "files": [
+            "artifacts/rc5/E2/SEC/RC5-SEC-008/result.md",
+            "artifacts/rc5/E2/SEC/RC5-SEC-008/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "200",
+            "200",
+            "0",
+            "302",
+            "401",
+            "200",
+            "200",
+            "200",
+            "0",
+            "302",
+            "401",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-SEC-009",
+      "suite": "SEC",
+      "phase": "P6a",
+      "priority": "P0",
+      "title": "既有单测全绿（verify 38 包/4187 tests）",
+      "owner": "T49e/L6",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0|0）",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/SEC/RC5-SEC-009",
+          "files": [
+            "artifacts/rc5/E2/SEC/RC5-SEC-009/result.md",
+            "artifacts/rc5/E2/SEC/RC5-SEC-009/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        }
+      ]
+    },
+    {
+      "id": "RC5-SEC-010",
+      "suite": "SEC",
+      "phase": "P6a",
+      "priority": "P1",
+      "title": "旧会话/记忆/提示词升级后可用",
+      "owner": "T49e/L6",
+      "status": "MISSING",
+      "decision": "无旧版本数据实例；未执行",
+      "sources": [
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/SEC/RC5-SEC-010",
+          "files": [
+            "artifacts/rc5/E2/SEC/RC5-SEC-010/result.md",
+            "artifacts/rc5/E2/SEC/RC5-SEC-010/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "SKIP",
+          "verdictRaw": "SKIP",
+          "exitTokens": [],
+          "exitOk": false,
+          "cover": true
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "total": 164,
+    "status": {
+      "PASS": 130,
+      "FAIL": 8,
+      "MISSING": 26
+    },
+    "bySuite": {
+      "ENV": 8,
+      "BOOT": 13,
+      "API": 9,
+      "ACC": 10,
+      "MCPS": 11,
+      "MCPP": 24,
+      "TERM": 14,
+      "IMP": 10,
+      "ACP": 10,
+      "OFF": 7,
+      "HERO": 8,
+      "CMD": 4,
+      "V1": 8,
+      "DATA": 10,
+      "UI": 8,
+      "SEC": 10
+    },
+    "byPhase": {
+      "P1": 10,
+      "P2": 12,
+      "P3": 7,
+      "P4": 17,
+      "P5": 16,
+      "P6a": 97,
+      "P6b": 5
+    }
+  },
+  "soak": {
+    "case": "RC5-DATA-009 + RC5-TERM-013",
+    "startedAt": "2026-11-19T21:45:37.331Z",
+    "plannedEndAt": "2026-11-20T21:45:37.331Z",
+    "plannedSeconds": 86400,
+    "observedElapsedSeconds": 11434,
+    "observedElapsedHours": 3.18,
+    "observedAt": "2026-11-20T00:56:11.232Z",
+    "windowComplete": false,
+    "verdict": "INCOMPLETE",
+    "latestDataTick": {
+      "at": "2026-11-20T00:56:11.232Z",
+      "elapsedSeconds": 11434,
+      "databases": [
+        {
+          "file": "access/users.db",
+          "walBytes": 0,
+          "shmBytes": 32768,
+          "ok": true,
+          "journal": "wal",
+          "integrity": [
+            "ok"
+          ],
+          "sessions": 136
+        },
+        {
+          "file": ".eterna/memory.sqlite3",
+          "walBytes": 90672,
+          "shmBytes": 32768,
+          "ok": true,
+          "journal": "wal",
+          "integrity": [
+            "ok"
+          ]
+        },
+        {
+          "file": "knowledge-admin/access.sqlite3",
+          "walBytes": 0,
+          "shmBytes": 0,
+          "ok": true,
+          "journal": "delete",
+          "integrity": [
+            "ok"
+          ]
+        }
+      ],
+      "write": {
+        "ok": 2,
+        "failed": 0,
+        "errors": []
+      },
+      "lockMatches": 0,
+      "walLogMatches": 0
+    },
+    "latestTermTick": {
+      "at": "2026-11-20T00:58:11.500Z",
+      "elapsedSeconds": 11554,
+      "dshPid": 1,
+      "fds": 150,
+      "rssKb": 306632,
+      "threads": 11,
+      "longProcs": 1,
+      "churn": "fail",
+      "churnError": "create={\n  \"code\": \"gateway/internal\",\n  \"message\": \"session.snapshotEvents is not a fu close=ok",
+      "probeExit": 0
+    },
+    "note": "窗口未满 24h，不得判绿；留 leftover SOAK-24H"
+  },
+  "recheckedAt": "2026-11-20T01:25:29Z",
+  "recheckNote": "T52 纳入 artifacts/rc5/p6a/repairs 修后复跑：TERM-004 FAIL→PASS；IMP-005 维持 PASS"
+}

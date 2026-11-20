@@ -1,0 +1,3 @@
+cd /Users/sunny/code/agent-basis-rc5
+node scripts/prepare-rc5-envs.mjs e1 --dry-run
+EXIT=0

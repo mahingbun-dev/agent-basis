@@ -1,0 +1,6 @@
+$ mkdir -p /Users/sunny/eterna-data/backups/rc5-2026-11-20
+EXIT=0
+$ docker run --rm --entrypoint sh -v agent-basis_eterna-home:/data:ro -v /Users/sunny/eterna-data/backups/rc5-2026-11-20:/backup eterna-agent:0.1.51 -c 'tar czf /backup/eterna-home-20261120-013829.tgz -C /data .'
+2026-11-19T17:38:29Z
+EXIT=0
+2026-11-19T17:38:32Z

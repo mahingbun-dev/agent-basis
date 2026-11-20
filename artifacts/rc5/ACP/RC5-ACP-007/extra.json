@@ -1,0 +1,16 @@
+{
+  "cancelResponse": {
+    "jsonrpc": "2.0",
+    "id": 7,
+    "result": {
+      "stopReason": "cancelled"
+    }
+  },
+  "cancelToResponseMs": 19,
+  "totalMs": 271,
+  "modelHit": true,
+  "modelAbort": {
+    "requestId": 4,
+    "aborted": true
+  }
+}

@@ -1,0 +1,5 @@
+# E1 套件 override：夹具只读挂载（夹具不进镜像；测试环境专用）
+services:
+  eterna-agent:
+    volumes:
+      - ${RC5_FIXTURES:?set RC5_FIXTURES}:/fixtures:ro

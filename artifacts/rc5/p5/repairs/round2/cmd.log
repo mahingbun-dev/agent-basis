@@ -1,0 +1,46 @@
+# P5 · W4 门禁第 2 轮 · 命令原文与退出码（2026-11-20，/Users/sunny/code/agent-basis-rc5）
+
+[1] for img in $(docker images --format '{{.Repository}}:{{.Tag}}' | grep '^eterna-agent:'); do
+      docker run --rm --entrypoint sh "$img" -c 'echo "mimo@$(grep -n "MIMO_API_KEY:?" /app/entrypoint.sh | cut -d: -f1) cmd_mode=$(grep -c "直接命令模式" /app/entrypoint.sh)"'
+    done
+    EXIT=0
+    # 重建前:只有 rc5-p5-repair = mimo@57/cmd_mode=1；rc5-test = mimo@36/cmd_mode=0
+    #        ← 门禁报错 `entrypoint.sh: 36` 与之逐字吻合
+    → artifacts/rc5/p5/repairs/round2/image-fingerprint.txt
+
+[2] docker image inspect eterna-agent:rc5-test --format 'Created={{.Created}} Labels={{json .Config.Labels}}'
+    EXIT=0   # 重建前：Created=2026-11-19T21:01:23Z(05:01+0800)、Labels=null（plain docker build）
+[3] stat -f '%Sm %N' docker/entrypoint.sh
+    EXIT=0   # Nov 20 05:55:39 —— 晚于镜像构建时间，修复不可能在该镜像里
+
+[4] docker build --progress=plain -t eterna-agent:rc5-test .
+    EXIT=0   # 用当前工作树重建门禁实际使用的那张镜像标签
+    → artifacts/rc5/p5/repairs/round2/build-rc5-test.log
+
+[5] docker run --rm --entrypoint sh eterna-agent:rc5-test -c 'grep -n "MIMO_API_KEY:?" /app/entrypoint.sh; grep -c 直接命令模式 /app/entrypoint.sh'
+    EXIT=0   # 重建后 mimo@57、cmd_mode=1、line36="# ── 直接命令模式…"
+
+[6] docker run --rm eterna-agent:rc5-test dsh --version
+    EXIT=0   # 0.2.2-rc.5
+[7] docker run --rm eterna-agent:rc5-test node -v
+    EXIT=0   # v24.22.3
+[8] docker run --rm eterna-agent:rc5-test sh -c 'test ! -e /repo/core && test ! -e /repo/basis.yml && for p in system-prompt session tools llm approval-cli agent-loop; do test ! -e /repo/packages/$p || exit 1; done && echo OK'
+    EXIT=0   # OK
+[9] docker run --rm eterna-agent:rc5-test sh -c 'python3 -c "import docx, openpyxl, pptx" && fc-list | grep -qi "Noto Sans CJK" && fc-list | grep -qi "Liberation" && fc-list | grep -qi "DejaVu" && echo OK'
+    EXIT=0   # OK
+[10] docker run --rm eterna-agent:rc5-test "dsh --version"
+    EXIT=0   # 0.2.2-rc.5（单 argv 形态）
+[11] docker run --rm eterna-agent:rc5-test     # 无参数 = 生产启动
+    EXIT=2   # entrypoint.sh:57 MIMO_API_KEY required —— 生产 fail-closed 未被放开
+    → artifacts/rc5/p5/repairs/round2/w4-image-checks.txt
+
+[12] env -u ETERNA_DATA_ROOT docker compose -f docker-compose.yml config
+    EXIT=0   # source: /Users/sunny/eterna-data/super
+[13] env -u ETERNA_DATA_ROOT docker compose -f docker-compose.super.yml config
+    EXIT=0   # source: /Users/sunny/eterna-data/super-2
+[14] env -u ETERNA_DATA_ROOT docker compose -f docker-compose.yml --profile acp config
+    EXIT=0   # web 与 acp 同源
+    → artifacts/rc5/p5/repairs/round2/compose-config.txt
+
+[15] docker ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}'
+    EXIT=0   # eterna-rc5-e1/e3 仍 Up(旧 image id 5b10f5136403)；eterna-agent 仍 Up(0.1.51) —— 均未动

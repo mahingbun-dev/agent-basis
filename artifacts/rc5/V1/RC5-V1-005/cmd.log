@@ -1,0 +1,45 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ pnpm --filter @core/runtime test; T=$?; echo "--- basis chat ---"; node core/runtime/bin/basis.mjs chat --bundle basis.yml </dev/null; C=$?; echo "runtime_test_exit=$T basis_chat_exit=$C"; if [ $T -eq 0 ] && [ $C -eq 0 ]; then exit 0; else exit 1; fi
+# started 2026-11-19T22:06:52Z
+$ vitest run
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/core/runtime
+
+ ✓ tests/cli.spec.ts (7 tests) 15ms
+ ✓ tests/boot.spec.ts (6 tests) 16ms
+
+ Test Files  2 passed (2)
+      Tests  13 passed (13)
+   Start at  06:06:53
+   Duration  199ms (transform 110ms, setup 0ms, import 160ms, tests 30ms, environment 0ms)
+
+--- basis chat ---
+basis chat 已就绪(/exit 或 EOF 退出;每行输入 = 一个 turn)
+> runtime_test_exit=0 basis_chat_exit=0
+
+EXIT 0
+# finished 2026-11-19T22:06:53Z
+
+# --- supplementary: six-plugin boot probe (same case) ---
+$ node /tmp/rc5-v1-boot-probe.mjs
+manifest.plugins.length=6
+  - packages/system-prompt
+  - packages/session
+  - packages/tools
+  - packages/llm
+  - packages/approval-cli
+  - packages/agent-loop
+manifest.agent=default
+ctx.systemPrompt=present
+ctx.session=present
+ctx.tools=present
+ctx.llm=present
+ctx.approval=present
+ctx.agents=present
+PROBE=PASS
+EXIT 0
+
+# --- supplementary: no bundle-core row/dir ---
+$ grep -RIn 'bundle-core' basis.yml core packages/system-prompt packages/session packages/tools packages/llm packages/approval-cli packages/agent-loop; echo GREP_EXIT=$?; test ! -e packages/bundle-core; echo DIR_ABSENT_EXIT=$?
+GREP_EXIT=1
+DIR_PRESENT=no

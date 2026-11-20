@@ -1,0 +1,16 @@
+[entrypoint] form=web profile=eterna-web template=cordis.patch.yml.template manifest=package.json
+[entrypoint] /data mountpoint OK (DSH_HOME=/data DSH_AGENTS_HOME=/data/agents)
+[entrypoint] profile 渲染:全新卷,直拷模板 package.json
+[entrypoint] profile 渲染:全新卷,直拷模板 cordis.patch.yml
+[entrypoint] 工坊值移植: 模板 6 条托管键 | 移植 0 处 | 基线已按新模板重写 → /data/profiles/eterna-web/.rendered.cordis.patch.yml.baseline.json
+[migrate-profile-bundles]: 无新增默认 bundle（已幂等）
+[profile-upgrade-check]: profile=eterna-web mode=boot installAnchor=/usr/local/lib/node_modules/@deepseek-ai/dsh/package.json bundles[ok=6]
+[profile-upgrade-check]: OK 无坏项
+[entrypoint] governance rules: /repo/docker/profile/governance.rules.yml -> /data/.eterna/governance.rules.yml (cwd=/)
+[entrypoint] dsh-mcp-client 0.2.2-rc.5 == dsh 0.2.2-rc.5 (/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-mcp-client)
+[entrypoint] companion relay 后台启动 :9310（token 已生成落卷 /data/relay-token；publicWsUrl=未设（guide 按本机默认展示））
+[entrypoint] container IP: 172.17.0.3  LLM: 三家直连(deepseek/mimo/glm,P2 网关)
+[entrypoint] sandbox runner: landlock full
+dsh web: http://172.17.0.3:8080/?token=JYURbF8uAvu7_B0VnrXKNIdRTdICTc8Bo65EfFg1l1Q
+[relay] relay 监听 http://0.0.0.0:9310（/extension /cdp /api/tools /fixture）
+dsh web: listening on 172.17.0.3 over plain HTTP; restrict this port to a trusted proxy or network

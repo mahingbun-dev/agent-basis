@@ -1,0 +1,9 @@
+$ docker inspect eterna-rc5-e1 --format "{{range .Config.Env}}{{println .}}{{end}}" | grep -E "DSH_|ETERNA_FORM"
+DSH_AGENTS_HOME=/data/agents
+ETERNA_FORM=web
+DSH_HOME=/data
+$ docker inspect eterna-rc5-e3 --format "{{range .Config.Env}}{{println .}}{{end}}" | grep -E "DSH_|ETERNA_FORM"
+DSH_HOME=/data
+ETERNA_FORM=super
+DSH_AGENTS_HOME=/data/agents
+EXIT 0

@@ -1,0 +1,9 @@
+mcp_css_bytes=4232
+media=["@media (max-width: 760px) {","@media (max-width: 640px) {","@media (prefers-reduced-motion: reduce) {"]
+radii=["0","var(--et-radius-sm)","var(--et-radius-lg)"]
+z_index_count=0 hex=[] rgb=[]
+mcp-personal-api.ts literal_colors=0 native_confirm_alert=false
+mcp-servers-model.ts literal_colors=0 native_confirm_alert=false
+mcp-servers-section.tsx literal_colors=0 native_confirm_alert=false
+mcp-servers-locales.ts literal_colors=0 native_confirm_alert=false
+settings-nav.ts literal_colors=0 native_confirm_alert=false

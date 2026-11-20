@@ -1,0 +1,41 @@
+## [1] glue src 内路由 API 命中数（期望 0）
+matches=0
+
+## [2] glue channels-plugin 内 register 字样（期望无调用）
+(no match)
+
+## [3] access 侧登记点
+39:import { registerChannelsWebhook } from './channels-webhook.ts'
+357:      disposers.push(registerChannelsWebhook(ctx.webServer, ctx.reflect))
+
+## [4] access channels-webhook 路由登记（prefix 唯一）
+21:export const CHANNELS_WEBHOOK_PATH_PREFIX = '/channels/api'
+51:    kind: 'prefix',
+52:    path: CHANNELS_WEBHOOK_PATH_PREFIX,
+
+## [5] 收口前 glue 直注册（de0d2b1^ 历史证据：单条 prefix 同时承载两条端点族）
+72: * 本插件消费的 Web 载体 seam(webServer.register 的结构子集;access 插件
+169:          disposers.push(webServer.register({
+171:            path: pathPrefix,
+
+## [6] 两条端点族由同一网关按 pathPrefix 切片处理（channels 包单一实现）
+177:    const approvalMatch = /^\/approval\/([A-Za-z0-9_-]+)$/.exec(path.slice(this.pathPrefix.length))
+178:    if (approvalMatch !== null) {
+183:      const token = approvalMatch[1] ?? ''
+188:    const webhookMatch = /^\/webhook\/([a-z0-9_-]+)$/.exec(path.slice(this.pathPrefix.length))
+189:    if (webhookMatch !== null) {
+190:      const channelType = webhookMatch[1] ?? ''
+
+## [7] glue 测试的路由计数断言（plugin 自注册 0 条的间接证明）
+256:    expect(webServer.routes).toHaveLength(1)
+341:    expect(webServer.routes).toHaveLength(0)
+357:    expect(webServer.routes).toHaveLength(1)
+
+## [8] de0d2b1 是否为 HEAD 祖先（迁移已在树上）
+is-ancestor EXIT=0
+
+## [9] 生产 profile 挂载行（无 config → sessionPort 未注入）
+profiles/eterna-super/cordis.patch.yml:647:    - id: eterna-channels
+profiles/eterna-super/cordis.patch.yml-648-      name: '@eterna/glue/channels-plugin'
+docker/profile/cordis.super.patch.yml.template:714:    - id: eterna-channels
+docker/profile/cordis.super.patch.yml.template-715-      name: '@eterna/glue/channels-plugin'

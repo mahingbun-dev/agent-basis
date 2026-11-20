@@ -1,0 +1,5 @@
+# cmd: pnpm --filter @eterna/llm-openai typecheck
+# cwd: /Users/sunny/code/agent-basis-rc5
+# date: 2026-11-19T19:08:35Z
+$ tsc -p tsconfig.json --noEmit
+# EXIT: 0

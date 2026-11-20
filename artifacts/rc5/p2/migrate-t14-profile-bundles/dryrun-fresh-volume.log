@@ -1,0 +1,13 @@
+$ node docker/profile/migrate-profile-bundles.mjs artifacts/rc5/p2/migrate-t14-profile-bundles/fixture/fresh-volume/package.json artifacts/rc5/p2/migrate-t14-profile-bundles/fixture/template.package.json
+[migrate-profile-bundles]: 无新增默认 bundle（已幂等）
+EXIT=0
+---
+$ node docker/profile/migrate-profile-bundles.mjs artifacts/rc5/p2/migrate-t14-profile-bundles/fixture/fresh-volume/package.json artifacts/rc5/p2/migrate-t14-profile-bundles/fixture/template.package.json
+[migrate-profile-bundles]: 无新增默认 bundle（已幂等）
+EXIT=0
+---
+SHA0=500b15afd6459e64322324914fc57e56f945d49c528194a7f315a41f17777dae SHA1=500b15afd6459e64322324914fc57e56f945d49c528194a7f315a41f17777dae SHA2=500b15afd6459e64322324914fc57e56f945d49c528194a7f315a41f17777dae MARK1=3d92cf47a7877c51c1a189fda7ae1057e310d8edffadb621364ceebd0b4de855 MARK2=3d92cf47a7877c51c1a189fda7ae1057e310d8edffadb621364ceebd0b4de855
+ASSERT PASS: fresh run1 EXIT=0
+ASSERT PASS: fresh run1 manifest 不变（模板已含默认集）
+ASSERT PASS: fresh run1 marker 建立
+ASSERT PASS: fresh run2 EXIT=0 且 manifest/marker 零写

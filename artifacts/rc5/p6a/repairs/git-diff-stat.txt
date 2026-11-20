@@ -1,0 +1,8 @@
+ packages/access/src/mux.ts                    | 89 ++++++++++++++++++++++++---
+ packages/access/src/terminal.ts               | 49 ++++++++++++---
+ packages/access/tests/mux-drift.spec.ts       | 55 ++++++++++++++++-
+ packages/access/tests/mux-peer-drift.spec.ts  | 43 ++++++++++++-
+ packages/access/tests/mux-policy.spec.ts      | 14 ++++-
+ packages/access/tests/terminal-tenant.spec.ts | 46 ++++++++++++++
+ 6 files changed, 275 insertions(+), 21 deletions(-)
+ scripts/verify-terminal-guard.mjs       | 222 lines (untracked, full file)

@@ -1,0 +1,18 @@
+# UI/RC5-UI-005
+# started 2026-11-19T23:57:41.968Z
+
+$ node artifacts/rc5/E2/UI/_suite/ui-scan.mjs UI-005
+EXIT=0
+scope files=17 width_media=7 matchMedia=0
+media packages/access/src/client/styles.ts:20 (min-width: 760px)
+media packages/access/src/client/styles.ts:180 (max-width: 760px)
+media packages/access/src/client/styles.ts:819 (max-width: 760px)
+media packages/access/src/client/styles.ts:823 (max-width: 640px)
+media packages/brand/src/client/styles.ts:94 (max-width: 1100px)
+media packages/brand/src/client/styles.ts:99 (max-width: 760px)
+media packages/brand/src/client/styles.ts:105 (max-width: 640px)
+PASS breakpoints only 1100/760/640: 0 处越界
+NOTE 组件 min-width/max-width(max-width:none、min(...)、表格 560px)不是断点,不计入。
+SUMMARY UI-005 failures=0
+
+[ASSERT] UI-005 扫描退出 0 => PASS

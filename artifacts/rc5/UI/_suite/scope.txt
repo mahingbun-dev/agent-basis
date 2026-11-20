@@ -1,0 +1,17 @@
+packages/access/src/client/index.tsx
+packages/access/src/client/mcp-personal-api.ts
+packages/access/src/client/mcp-servers-locales.ts
+packages/access/src/client/mcp-servers-model.ts
+packages/access/src/client/mcp-servers-section.tsx
+packages/access/src/client/my-plugins-section.tsx
+packages/access/src/client/plugin-manager-contract.d.ts
+packages/access/src/client/plugins-manager.tsx
+packages/access/src/client/sections.tsx
+packages/access/src/client/settings-nav.ts
+packages/access/src/client/styles.ts
+packages/brand/src/client/hero.ts
+packages/brand/src/client/index.ts
+packages/brand/src/client/state.ts
+packages/brand/src/client/styles.ts
+packages/prompt-studio/src/client/entry-meta.ts
+packages/ui/src/tokens.ts

@@ -1,0 +1,330 @@
+$ bash /Users/sunny/code/agent-basis-rc5/deploy/init-data-dirs.sh e2
+EXIT=0
+[init-data-dirs] 数据根: /Users/sunny/eterna-data/test-20261120 (0700)
+  /Users/sunny/eterna-data/test-20261120/backups
+  /Users/sunny/eterna-data/test-20261120/exports
+  /Users/sunny/eterna-data/test-20261120/e2/(0700)
+    /Users/sunny/eterna-data/test-20261120/e2/.eterna
+    /Users/sunny/eterna-data/test-20261120/e2/access
+    /Users/sunny/eterna-data/test-20261120/e2/agents
+    /Users/sunny/eterna-data/test-20261120/e2/attachments
+    /Users/sunny/eterna-data/test-20261120/e2/cache
+    /Users/sunny/eterna-data/test-20261120/e2/eterna-prompt-studio
+    /Users/sunny/eterna-data/test-20261120/e2/knowledge-admin
+    /Users/sunny/eterna-data/test-20261120/e2/knowledge.wiki
+    /Users/sunny/eterna-data/test-20261120/e2/logs
+    /Users/sunny/eterna-data/test-20261120/e2/market
+    /Users/sunny/eterna-data/test-20261120/e2/memory-distill
+    /Users/sunny/eterna-data/test-20261120/e2/office-kit
+    /Users/sunny/eterna-data/test-20261120/e2/profiles
+    /Users/sunny/eterna-data/test-20261120/e2/sessions
+    /Users/sunny/eterna-data/test-20261120/e2/storages
+    /Users/sunny/eterna-data/test-20261120/e2/workspaces
+[init-data-dirs] OK —— 下一步: 设 .env 的 ETERNA_DATA_ROOT=/Users/sunny/eterna-data/test-20261120 后 docker compose up -d
+
+---
+2026-11-19T23:40:15.254Z [setup] data dir /Users/sunny/eterna-data/test-20261120 mode=700
+2026-11-19T23:40:15.254Z [setup] data dir /Users/sunny/eterna-data/test-20261120/e2 mode=700
+$ sqlite3 /Users/sunny/eterna-data/test-rc5/e1/access/users.db '.backup '\''/Users/sunny/eterna-data/test-20261120/e2/access/users.db'\'''
+EXIT=0
+
+
+---
+2026-11-19T23:40:15.267Z [setup] users.db 快照完成（/Users/sunny/eterna-data/test-20261120/e2/access/users.db）
+2026-11-19T23:40:15.267Z [setup] secret.key 已复制（0600，不入证据）
+$ sqlite3 /Users/sunny/eterna-data/test-20261120/e2/access/users.db 'SELECT COUNT(*) FROM users'
+EXIT=0
+3
+
+---
+2026-11-19T23:40:15.272Z [setup] users.db 账号行数=3
+$ sqlite3 /Users/sunny/eterna-data/test-20261120/e2/access/users.db 'SELECT role || '\'':'\'' || COUNT(*) FROM users GROUP BY role'
+EXIT=0
+admin:1
+user:2
+
+---
+2026-11-19T23:40:15.277Z [setup] users.db 角色分布=admin:1,user:2
+2026-11-19T23:40:15.277Z [setup] 个人层 MCP 主密钥已生成（0600，.secrets）
+2026-11-19T23:40:15.277Z [setup] env 文件: /Users/sunny/eterna-data/test-20261120/.env.e2suite（0600）; override: /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/_setup/compose.e2suite.override.yml
+$ docker image inspect eterna-agent:rc5-test --format {{.Id}}
+EXIT=0
+sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00
+
+---
+$ sqlite3 /Users/sunny/eterna-data/test-20261120/e2/access/users.db 'SELECT COUNT(*) FROM users'
+EXIT=0
+3
+
+---
+2026-11-19T23:40:15.327Z [setup] init 完成
+$ docker image inspect eterna-agent:rc5-test --format {{.Id}}
+EXIT=0
+sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00
+
+---
+2026-11-19T23:40:17.610Z [setup] 镜像 tag=eterna-agent:rc5-test id=sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00
+$ docker compose -p rc5-e2suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e2suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/_setup/compose.e2suite.override.yml config --quiet
+EXIT=0
+
+
+---
+2026-11-19T23:40:17.740Z [setup] compose config OK
+$ docker compose -p rc5-e2suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e2suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/_setup/compose.e2suite.override.yml up -d eterna-agent
+EXIT=0
+
+Network rc5-e2suite_default Creating 
+ Network rc5-e2suite_default Created 
+ Container rc5-e2suite Creating 
+ Container rc5-e2suite Created 
+ Container rc5-e2suite Starting 
+ Container rc5-e2suite Started
+---
+2026-11-19T23:40:24.164Z [setup] container=rc5-e2suite health=healthy
+$ sqlite3 /Users/sunny/eterna-data/test-20261120/e2/access/users.db 'SELECT COUNT(*) FROM users'
+EXIT=0
+3
+
+---
+2026-11-19T23:40:24.176Z [setup] up 完成
+2026-11-19T23:40:28.017Z [setup] provision: {"admin":"login=200 ws=/data/workspaces/rc5admin","user_b":"login=200 ws=/data/workspaces/rc5userb","user_c":"login=200 ws=/data/workspaces/rc5userc"}
+$ docker image inspect eterna-agent:rc5-test --format {{.Id}}
+EXIT=0
+sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00
+
+---
+2026-11-19T23:41:14.461Z [setup] 镜像 tag=eterna-agent:rc5-test id=sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00
+$ docker compose -p rc5-e2suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e2suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/_setup/compose.e2suite.override.yml config --quiet
+EXIT=0
+
+
+---
+2026-11-19T23:41:14.617Z [setup] compose config OK
+$ docker compose -p rc5-e2suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e2suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/_setup/compose.e2suite.override.yml up -d eterna-agent
+EXIT=0
+
+Container rc5-e2suite Starting 
+ Container rc5-e2suite Started
+---
+2026-11-19T23:41:20.912Z [setup] container=rc5-e2suite health=healthy
+$ sqlite3 /Users/sunny/eterna-data/test-20261120/e2/access/users.db 'SELECT COUNT(*) FROM users'
+EXIT=0
+3
+
+---
+2026-11-19T23:41:20.925Z [setup] up 完成
+2026-11-19T23:41:23.801Z [setup] provision: {"admin":"login=200 ws=/data/workspaces/rc5admin","user_b":"login=200 ws=/data/workspaces/rc5userb","user_c":"login=200 ws=/data/workspaces/rc5userc"}
+$ docker compose -p rc5-e2suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e2suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/_setup/compose.e2suite.override.yml down --remove-orphans
+EXIT=0
+
+Container rc5-e2suite Stopping 
+ Container rc5-e2suite Stopped 
+ Container rc5-e2suite Removing 
+ Container rc5-e2suite Removed 
+ Network rc5-e2suite_default Removing 
+ Network rc5-e2suite_default Removed
+---
+2026-11-19T23:44:08.417Z [setup] down exit=0
+2026-11-19T23:44:08.424Z [setup] 数据根已删除（仅本 lane）: /Users/sunny/eterna-data/test-20261120/e2
+$ bash /Users/sunny/code/agent-basis-rc5/deploy/init-data-dirs.sh e2
+EXIT=0
+[init-data-dirs] 数据根: /Users/sunny/eterna-data/test-20261120 (0700)
+  /Users/sunny/eterna-data/test-20261120/backups
+  /Users/sunny/eterna-data/test-20261120/exports
+  /Users/sunny/eterna-data/test-20261120/e2/(0700)
+    /Users/sunny/eterna-data/test-20261120/e2/.eterna
+    /Users/sunny/eterna-data/test-20261120/e2/access
+    /Users/sunny/eterna-data/test-20261120/e2/agents
+    /Users/sunny/eterna-data/test-20261120/e2/attachments
+    /Users/sunny/eterna-data/test-20261120/e2/cache
+    /Users/sunny/eterna-data/test-20261120/e2/eterna-prompt-studio
+    /Users/sunny/eterna-data/test-20261120/e2/knowledge-admin
+    /Users/sunny/eterna-data/test-20261120/e2/knowledge.wiki
+    /Users/sunny/eterna-data/test-20261120/e2/logs
+    /Users/sunny/eterna-data/test-20261120/e2/market
+    /Users/sunny/eterna-data/test-20261120/e2/memory-distill
+    /Users/sunny/eterna-data/test-20261120/e2/office-kit
+    /Users/sunny/eterna-data/test-20261120/e2/profiles
+    /Users/sunny/eterna-data/test-20261120/e2/sessions
+    /Users/sunny/eterna-data/test-20261120/e2/storages
+    /Users/sunny/eterna-data/test-20261120/e2/workspaces
+[init-data-dirs] OK —— 下一步: 设 .env 的 ETERNA_DATA_ROOT=/Users/sunny/eterna-data/test-20261120 后 docker compose up -d
+
+---
+2026-11-19T23:44:08.618Z [setup] data dir /Users/sunny/eterna-data/test-20261120 mode=700
+2026-11-19T23:44:08.618Z [setup] data dir /Users/sunny/eterna-data/test-20261120/e2 mode=700
+$ sqlite3 /Users/sunny/eterna-data/test-rc5/e1/access/users.db '.backup '\''/Users/sunny/eterna-data/test-20261120/e2/access/users.db'\'''
+EXIT=0
+
+
+---
+2026-11-19T23:44:08.630Z [setup] users.db 快照完成（/Users/sunny/eterna-data/test-20261120/e2/access/users.db）
+2026-11-19T23:44:08.630Z [setup] secret.key 已复制（0600，不入证据）
+$ sqlite3 /Users/sunny/eterna-data/test-20261120/e2/access/users.db 'DELETE FROM workspaces; DELETE FROM sessions; DELETE FROM mcp_personal_server; DELETE FROM mcp_personal_secret;'
+EXIT=0
+
+
+---
+$ sqlite3 /Users/sunny/eterna-data/test-20261120/e2/access/users.db 'SELECT COUNT(*) FROM users'
+EXIT=0
+3
+
+---
+2026-11-19T23:44:08.643Z [setup] users.db 账号行数=3（workspace/session/个人 MCP 行已清空）
+$ sqlite3 /Users/sunny/eterna-data/test-20261120/e2/access/users.db 'SELECT role || '\'':'\'' || COUNT(*) FROM users GROUP BY role'
+EXIT=0
+admin:1
+user:2
+
+---
+2026-11-19T23:44:08.648Z [setup] users.db 角色分布=admin:1,user:2
+2026-11-19T23:44:08.648Z [setup] 个人层 MCP 主密钥已生成（0600，.secrets）
+2026-11-19T23:44:08.648Z [setup] env 文件: /Users/sunny/eterna-data/test-20261120/.env.e2suite（0600）; override: /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/_setup/compose.e2suite.override.yml
+$ docker image inspect eterna-agent:rc5-test --format {{.Id}}
+EXIT=0
+sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00
+
+---
+$ sqlite3 /Users/sunny/eterna-data/test-20261120/e2/access/users.db 'SELECT COUNT(*) FROM users'
+EXIT=0
+3
+
+---
+2026-11-19T23:44:08.678Z [setup] init 完成
+$ docker image inspect eterna-agent:rc5-test --format {{.Id}}
+EXIT=0
+sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00
+
+---
+2026-11-19T23:44:12.236Z [setup] 镜像 tag=eterna-agent:rc5-test id=sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00
+$ docker compose -p rc5-e2suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e2suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/_setup/compose.e2suite.override.yml config --quiet
+EXIT=0
+
+
+---
+2026-11-19T23:44:12.275Z [setup] compose config OK
+$ docker compose -p rc5-e2suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e2suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/_setup/compose.e2suite.override.yml up -d eterna-agent
+EXIT=0
+
+Network rc5-e2suite_default Creating 
+ Network rc5-e2suite_default Created 
+ Container rc5-e2suite Creating 
+ Container rc5-e2suite Created 
+ Container rc5-e2suite Starting 
+ Container rc5-e2suite Started
+---
+2026-11-19T23:44:18.667Z [setup] container=rc5-e2suite health=healthy
+$ sqlite3 /Users/sunny/eterna-data/test-20261120/e2/access/users.db 'SELECT COUNT(*) FROM users'
+EXIT=0
+3
+
+---
+2026-11-19T23:44:18.686Z [setup] up 完成
+2026-11-19T23:45:24.030Z [setup] provision: {"admin":"login=200 ws=/data/workspaces/rc5admin","user_b":"login=200 ws=/data/workspaces/rc5userb","user_c":"login=200 ws=/data/workspaces/rc5userc"}
+$ docker compose -p rc5-e2suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e2suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/_setup/compose.e2suite.override.yml down --remove-orphans
+EXIT=0
+
+Container rc5-e2suite Stopping 
+ Container rc5-e2suite Stopped 
+ Container rc5-e2suite Removing 
+ Container rc5-e2suite Removed 
+ Network rc5-e2suite_default Removing 
+ Network rc5-e2suite_default Removed
+---
+2026-11-19T23:47:08.041Z [setup] down exit=0
+2026-11-19T23:47:08.049Z [setup] 数据根已删除（仅本 lane）: /Users/sunny/eterna-data/test-20261120/e2
+$ bash /Users/sunny/code/agent-basis-rc5/deploy/init-data-dirs.sh e2
+EXIT=0
+[init-data-dirs] 数据根: /Users/sunny/eterna-data/test-20261120 (0700)
+  /Users/sunny/eterna-data/test-20261120/backups
+  /Users/sunny/eterna-data/test-20261120/exports
+  /Users/sunny/eterna-data/test-20261120/e2/(0700)
+    /Users/sunny/eterna-data/test-20261120/e2/.eterna
+    /Users/sunny/eterna-data/test-20261120/e2/access
+    /Users/sunny/eterna-data/test-20261120/e2/agents
+    /Users/sunny/eterna-data/test-20261120/e2/attachments
+    /Users/sunny/eterna-data/test-20261120/e2/cache
+    /Users/sunny/eterna-data/test-20261120/e2/eterna-prompt-studio
+    /Users/sunny/eterna-data/test-20261120/e2/knowledge-admin
+    /Users/sunny/eterna-data/test-20261120/e2/knowledge.wiki
+    /Users/sunny/eterna-data/test-20261120/e2/logs
+    /Users/sunny/eterna-data/test-20261120/e2/market
+    /Users/sunny/eterna-data/test-20261120/e2/memory-distill
+    /Users/sunny/eterna-data/test-20261120/e2/office-kit
+    /Users/sunny/eterna-data/test-20261120/e2/profiles
+    /Users/sunny/eterna-data/test-20261120/e2/sessions
+    /Users/sunny/eterna-data/test-20261120/e2/storages
+    /Users/sunny/eterna-data/test-20261120/e2/workspaces
+[init-data-dirs] OK —— 下一步: 设 .env 的 ETERNA_DATA_ROOT=/Users/sunny/eterna-data/test-20261120 后 docker compose up -d
+
+---
+2026-11-19T23:47:08.235Z [setup] data dir /Users/sunny/eterna-data/test-20261120 mode=700
+2026-11-19T23:47:08.236Z [setup] data dir /Users/sunny/eterna-data/test-20261120/e2 mode=700
+$ sqlite3 /Users/sunny/eterna-data/test-rc5/e1/access/users.db '.backup '\''/Users/sunny/eterna-data/test-20261120/e2/access/users.db'\'''
+EXIT=0
+
+
+---
+2026-11-19T23:47:08.253Z [setup] users.db 快照完成（/Users/sunny/eterna-data/test-20261120/e2/access/users.db）
+2026-11-19T23:47:08.253Z [setup] secret.key 已复制（0600，不入证据）
+$ sqlite3 /Users/sunny/eterna-data/test-20261120/e2/access/users.db 'DELETE FROM workspaces; DELETE FROM sessions; DELETE FROM mcp_personal_server; DELETE FROM mcp_personal_secret;'
+EXIT=0
+
+
+---
+$ sqlite3 /Users/sunny/eterna-data/test-20261120/e2/access/users.db 'SELECT COUNT(*) FROM users'
+EXIT=0
+3
+
+---
+2026-11-19T23:47:08.267Z [setup] users.db 账号行数=3（workspace/session/个人 MCP 行已清空）
+$ sqlite3 /Users/sunny/eterna-data/test-20261120/e2/access/users.db 'SELECT role || '\'':'\'' || COUNT(*) FROM users GROUP BY role'
+EXIT=0
+admin:1
+user:2
+
+---
+2026-11-19T23:47:08.271Z [setup] users.db 角色分布=admin:1,user:2
+2026-11-19T23:47:08.271Z [setup] 个人层 MCP 主密钥已生成（0600，.secrets）
+2026-11-19T23:47:08.271Z [setup] env 文件: /Users/sunny/eterna-data/test-20261120/.env.e2suite（0600）; override: /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/_setup/compose.e2suite.override.yml
+$ docker image inspect eterna-agent:rc5-test --format {{.Id}}
+EXIT=0
+sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00
+
+---
+$ sqlite3 /Users/sunny/eterna-data/test-20261120/e2/access/users.db 'SELECT COUNT(*) FROM users'
+EXIT=0
+3
+
+---
+2026-11-19T23:47:08.299Z [setup] init 完成
+$ docker image inspect eterna-agent:rc5-test --format {{.Id}}
+EXIT=0
+sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00
+
+---
+2026-11-19T23:47:08.381Z [setup] 镜像 tag=eterna-agent:rc5-test id=sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00
+$ docker compose -p rc5-e2suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e2suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/_setup/compose.e2suite.override.yml config --quiet
+EXIT=0
+
+
+---
+2026-11-19T23:47:08.422Z [setup] compose config OK
+$ docker compose -p rc5-e2suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e2suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/_setup/compose.e2suite.override.yml up -d eterna-agent
+EXIT=0
+
+Network rc5-e2suite_default Creating 
+ Network rc5-e2suite_default Created 
+ Container rc5-e2suite Creating 
+ Container rc5-e2suite Created 
+ Container rc5-e2suite Starting 
+ Container rc5-e2suite Started
+---
+2026-11-19T23:47:14.792Z [setup] container=rc5-e2suite health=healthy
+2026-11-19T23:47:14.863Z [setup] up 完成
+2026-11-19T23:48:24.029Z [setup] provision: {"admin":"login=200 ws=/data/workspaces/rc5admin","user_b":"login=200 ws=/data/workspaces/rc5userb","user_c":"login=200 ws=/data/workspaces/rc5userc"}
+$ docker ps -a --filter name=rc5-e2suite --format '{{.Names}} {{.Image}} {{.Status}} {{.Ports}}'
+EXIT=0
+rc5-e2suite eterna-agent:rc5-test Up 57 seconds (healthy) 0.0.0.0:3119->8080/tcp, [::]:3119->8080/tcp, 0.0.0.0:9322->9310/tcp, [::]:9322->9310/tcp
+
+---

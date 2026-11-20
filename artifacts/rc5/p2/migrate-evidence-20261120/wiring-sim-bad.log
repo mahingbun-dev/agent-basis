@@ -1,0 +1,10 @@
+[migrate-profile-bundles]: ERROR /tmp/rc5-sim-KHSqBG/bad/profiles/eterna-web/package.json: JSON 解析失败(Expected property name or '}' in JSON at position 2 (line 1 column 3))
+[migrate-profile-bundles]: 保留旧 package.json 不写（fail-closed）
+[migrate-profile-bundles]: 失败留痕: /tmp/rc5-sim-KHSqBG/bad/profiles/eterna-web/.upgrade-profile-bundles-backup.json
+[migrate-mcp-servers]: 失败（fail-closed，新 patch 保留原样）: /tmp/rc5-sim-KHSqBG/bad/profiles/eterna-web/.prev.cordis.patch.yml: YAML 解析失败:Flow sequence in block collection must be sufficiently indented and end with a ] at line 6, column 1:
+[migrate-mcp-servers]: 备份 JSON: /tmp/rc5-sim-KHSqBG/bad/profiles/eterna-web/.upgrade-mcp-servers-backup.json
+[entrypoint] WARNING profile 存量迁移有失败项(原文件保留、留痕已写;成因见上方日志)
+[profile-upgrade-check]: profile=eterna-web mode=boot installAnchor=/Users/<user>/code/agent-basis-rc5/node_modules/.pnpm/@deepseek-ai+dsh@0.2.2-rc.5_8ca72e6bb32c9ec5bc17292fafab01ed/node_modules/@deepseek-ai/dsh/package.json bundles[none]
+[profile-upgrade-check]: BAD (package.json) [manifest] package.json JSON 解析失败(Expected property name or '}' in JSON at position 2 (line 1 column 3))
+[profile-upgrade-check]: 留痕 /tmp/rc5-sim-KHSqBG/bad/profiles/eterna-web/.upgrade-removed-bundles.json
+SIM_BAD_EXIT=0

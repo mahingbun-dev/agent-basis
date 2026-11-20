@@ -1,0 +1,62 @@
+{
+  "id": "RC5-TERM-001",
+  "suite": "E3-super",
+  "priority": "P0",
+  "title": "profile bundle 清单含 terminal bundle（TERM-001）",
+  "expected": "dsh-experimental-terminal-bundle 在；terminal 行 active",
+  "status": "PASS",
+  "startedAt": "2026-11-19T22:27:56.200Z",
+  "finishedAt": "2026-11-19T22:27:56.452Z",
+  "assertions": [
+    {
+      "name": "profile bundles 含 dsh-experimental-terminal-bundle",
+      "ok": true,
+      "detail": "\"@deepseek-ai/dsh-base\", \"@deepseek-ai/dsh-web-app\", \"@deepseek-ai/dsh-deepseek-chat-import\", \"@deepseek-ai/dsh-experimental-session-search\", \"@deepseek-ai/dsh-experimental-plugin-market-bundle\", \"@deepseek-ai/dsh-experimental-terminal-bundle\""
+    },
+    {
+      "name": "admin 登录 200",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "terminal 行集 active（registry/panel/tool/controller/ui）",
+      "ok": true,
+      "detail": "include:terminal-controller, include:ui-sidebar-terminal, include:optional-terminal-registry, include:optional-terminal-panel, include:optional-tool-terminal"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "docker exec eterna-rc5-e3 cat /data/profiles/eterna-super/package.json",
+      "exit": 0,
+      "note": "profile package.json"
+    },
+    {
+      "cmd": "docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)",
+      "exit": 0,
+      "note": "boot token 不入证据"
+    },
+    {
+      "cmd": "GET /connect + GET /?token=… (dsh session bootstrap)",
+      "exit": 200,
+      "note": "token 已脱敏"
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 200,
+      "note": "account=rc5admin"
+    },
+    {
+      "cmd": "POST /api/pluginInventory/list",
+      "exit": 200,
+      "note": "ok=true"
+    }
+  ],
+  "notes": [],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

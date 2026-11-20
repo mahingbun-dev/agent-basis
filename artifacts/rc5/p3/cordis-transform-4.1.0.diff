@@ -1,0 +1,356 @@
+diff -ru /tmp/rc5p3/up410/src/events.ts core/cordis/src/events.ts
+--- /tmp/rc5p3/up410/src/events.ts	2026-11-18 17:45:47
++++ core/cordis/src/events.ts	2026-11-20 00:54:34
+@@ -30,7 +30,7 @@
+  */
+ export type DispatchMode = 'emit' | 'parallel' | 'serial' | 'bail' | 'waterfall'
+ 
+-declare module './context.ts' {
++declare module '@core/cordis' {
+   export interface Context {
+     /* eslint-disable max-len */
+     /**
+@@ -128,9 +128,11 @@
+  * dispatch and automatically disposes listeners with their owning fiber.
+  */
+ export class EventsService {
++  readonly ctx: Context
+   _hooks: Record<keyof any, Hook[]> = Object.create(null)
+ 
+-  constructor(private ctx: Context) {
++  constructor(ctx: Context) {
++    this.ctx = ctx
+     defineProperty(this, symbols.tracker, {
+       property: 'ctx',
+       noShadow: true,
+diff -ru /tmp/rc5p3/up410/src/fiber.ts core/cordis/src/fiber.ts
+--- /tmp/rc5p3/up410/src/fiber.ts	2026-11-18 17:45:47
++++ core/cordis/src/fiber.ts	2026-11-20 00:54:44
+@@ -6,7 +6,7 @@
+ import type { Impl } from './reflect.ts'
+ import type { StandardSchemaV1 } from '@standard-schema/spec'
+ 
+-declare module './context.ts' {
++declare module '@core/cordis' {
+   export interface Context extends Pick<Fiber, 'effect'> {
+     /** The fiber (plugin runtime instance) that owns this context. */
+     fiber: Fiber
+@@ -57,7 +57,7 @@
+   if (result.issues) {
+     throw new ValidationError(result.issues)
+   } else {
+-    return result.value
++    return (result as StandardSchemaV1.SuccessResult<unknown>).value
+   }
+ }
+ 
+@@ -144,35 +144,38 @@
+  * config threw; `UNLOADING` — disposers are running; `DISPOSED` — the fiber
+  * was removed and cannot restart.
+  */
+-export const enum FiberState {
+-  PENDING,
+-  LOADING,
+-  ACTIVE,
+-  FAILED,
+-  DISPOSED,
+-  UNLOADING,
+-}
++export const FiberState = {
++  PENDING: 0,
++  LOADING: 1,
++  ACTIVE: 2,
++  FAILED: 3,
++  DISPOSED: 4,
++  UNLOADING: 5,
++} as const
++export type FiberState = typeof FiberState[keyof typeof FiberState]
+ 
++/** Cordis error code keys (upstream: `namespace CordisError { type Code }`, flattened for strip-only mode). */
++export type CordisErrorCode = keyof typeof CordisError.Code
++
+ /** Framework error with a stable machine-readable code. */
+ export class CordisError extends Error {
++  /** Cordis error code definitions (upstream: namespace-held const, flattened to a static field). */
++  static readonly Code = {
++    INACTIVE_EFFECT: 'cannot create effect on inactive context',
++  } as const
++
++  code: CordisErrorCode
++
+   /**
+    * @param code — the stable error code; also the default message.
+    * @param message — optional human-readable override.
+    */
+-  constructor(public code: CordisError.Code, message?: string) {
++  constructor(code: CordisErrorCode, message?: string) {
+     super(message ?? CordisError.Code[code])
++    this.code = code
+   }
+ }
+ 
+-/** Cordis error code definitions. */
+-export namespace CordisError {
+-  export type Code = keyof typeof Code
+-
+-  export const Code = {
+-    INACTIVE_EFFECT: 'cannot create effect on inactive context',
+-  } as const
+-}
+-
+ const INACTIVE = '__INACTIVE__'
+ 
+ /**
+@@ -189,7 +192,7 @@
+   /** Raw plugin input retained for the next activation. */
+   public config: any
+   /** Current lifecycle state; transitions emit `internal/status`. */
+-  public state = FiberState.PENDING
++  public state: FiberState = FiberState.PENDING
+   /** Dispose this fiber: unload the plugin, then settle once cleanup finished. */
+   public readonly dispose: () => Promise<void>
+   /** Required implementations retained through dependent teardown. */
+@@ -213,6 +216,10 @@
+   private _store: Dict<Impl> = Object.create(null)
+   private _release: (() => void) | undefined
+ 
++  parent: Context
++  inject: Dict<any>
++  runtime: Plugin.Runtime | null
++
+   /**
+    * Create a fiber. Plugin authors normally obtain fibers from `ctx.plugin()`
+    * rather than constructing them directly.
+@@ -224,12 +231,15 @@
+    * @param getOuterStack — captures the caller stack for effect diagnostics.
+    */
+   constructor(
+-    public parent: Context,
++    parent: Context,
+     config: any,
+-    public inject: Dict<any>,
+-    public runtime: Plugin.Runtime | null,
++    inject: Dict<any>,
++    runtime: Plugin.Runtime | null,
+     getOuterStack: () => string[],
+   ) {
++    this.parent = parent
++    this.inject = inject
++    this.runtime = runtime
+     this.config = config
+     const collect = (dispose: Disposable) => {
+       this._disposables.push(dispose)
+@@ -548,7 +558,7 @@
+ 
+     // prevent unhandled rejection — both from `task` itself and from the
+     // disposer chain if it fails to settle cleanly.
+-    task?.catch(() => {
++    ;(task as Promise<void> | undefined)?.catch(() => {
+       if (!runner.epoch) return dispose()
+       return finalizeDisposal(dispose)
+     }).catch((error) => this.ctx.logger.error(error))
+@@ -586,7 +596,7 @@
+ 
+   private _updateState(callback: () => void | FiberState) {
+     const oldState = this.state
+-    this.state = callback() ?? this._getState()
++    this.state = (callback() ?? this._getState()) as FiberState
+     if (oldState === this.state) return
+     // FIXME internal/fiber-info
+     this.context.emit('internal/status', this, oldState)
+diff -ru /tmp/rc5p3/up410/src/logger.ts core/cordis/src/logger.ts
+--- /tmp/rc5p3/up410/src/logger.ts	2026-11-18 17:45:47
++++ core/cordis/src/logger.ts	2026-11-20 00:54:34
+@@ -3,7 +3,7 @@
+ import { Fiber } from './fiber.ts'
+ import { createCallable, joinPrototype, symbols, type Tracker } from './utils.ts'
+ 
+-declare module './context.ts' {
++declare module '@core/cordis' {
+   interface Intercept {
+     logger: LoggerService.Intercept
+   }
+@@ -19,12 +19,13 @@
+ export type Formatter = (value: any, exporter: Exporter, message: Message) => any
+ 
+ /** Numeric severity used when exporters decide whether to emit a message. */
+-export const enum LoggerLevel {
+-  ERROR = 0,
+-  WARN = 1,
+-  INFO = 2,
+-  DEBUG = 3,
+-}
++export const LoggerLevel = {
++  ERROR: 0,
++  WARN: 1,
++  INFO: 2,
++  DEBUG: 3,
++} as const
++export type LoggerLevel = typeof LoggerLevel[keyof typeof LoggerLevel]
+ 
+ /** Structured log record delivered to exporters. */
+ export interface Message {
+@@ -130,7 +131,10 @@
+     }).join('\n')
+   }
+ 
+-  constructor(options: LoggerOptions, private service: LoggerService) {
++  private service: LoggerService
++
++  constructor(options: LoggerOptions, service: LoggerService) {
++    this.service = service
+     Object.assign(this, options)
+     this.error = this._method('error', LoggerLevel.ERROR)
+     this.info = this._method('info', LoggerLevel.INFO)
+diff -ru /tmp/rc5p3/up410/src/reflect.ts core/cordis/src/reflect.ts
+--- /tmp/rc5p3/up410/src/reflect.ts	2026-11-18 17:45:47
++++ core/cordis/src/reflect.ts	2026-11-20 00:54:34
+@@ -4,7 +4,7 @@
+ import { getTraceable, symbols, withProps } from './utils.ts'
+ import { Fiber, FiberState } from './fiber.ts'
+ 
+-declare module './context.ts' {
++declare module '@core/cordis' {
+   interface Context {
+     /**
+      * Read a service from the store without the inject requirement.
+@@ -223,8 +223,11 @@
+   /** Declared context properties (services and accessors), by name. */
+   public props: Dict<Property> = Object.create(null)
+   private _implCounter = 0
++  /** The context this service backs (upstream: `public ctx` parameter property). */
++  public ctx: Context
+ 
+-  constructor(public ctx: Context) {
++  constructor(ctx: Context) {
++    this.ctx = ctx
+     defineProperty(this, symbols.tracker, {
+       property: 'ctx',
+       noShadow: true,
+diff -ru /tmp/rc5p3/up410/src/registry.ts core/cordis/src/registry.ts
+--- /tmp/rc5p3/up410/src/registry.ts	2026-11-18 17:45:47
++++ core/cordis/src/registry.ts	2026-11-20 00:41:29
+@@ -59,35 +59,41 @@
+   }
+ }
+ 
+-/** Utilities for normalizing plugin dependency declarations. */
+-export namespace Inject {
+-  /**
+-   * Convert array/object/class-inherited inject metadata into a plain map.
+-   *
+-   * @param inject — the declaration to normalize; `null`/`undefined` add nothing.
+-   * @param result — the map to fill (service name → intercept config or `null`).
+-   * @returns `result`.
+-   */
+-  export function resolve(inject: Inject | null | undefined, result: Dict = Object.create(null)) {
+-    if (!inject) return result
+-    if (Array.isArray(inject)) {
+-      for (const name of inject) {
+-        result[name] = null
+-      }
+-    } else if (Reflect.has(inject, symbols.checkProto)) {
+-      Object.assign(result, resolve(Object.getPrototypeOf(inject)))
+-      for (const name of Object.keys(inject)) {
+-        result[name] = inject[name] ?? null
+-      }
+-    } else {
+-      for (const name of Object.keys(inject)) {
+-        result[name] = inject[name] ?? null
+-      }
++/**
++ * Convert array/object/class-inherited inject metadata into a plain map.
++ *
++ * Upstream held this under `namespace Inject { resolve }`; flattened for
++ * strip-only mode — access it as `InjectStatic.resolve(...)`.
++ *
++ * @param inject — the declaration to normalize; `null`/`undefined` add nothing.
++ * @param result — the map to fill (service name → intercept config or `null`).
++ * @returns `result`.
++ */
++function resolveInject(inject: Inject | null | undefined, result: Dict = Object.create(null)) {
++  if (!inject) return result
++  if (Array.isArray(inject)) {
++    for (const name of inject) {
++      result[name] = null
+     }
+-    return result
++  } else if (Reflect.has(inject, symbols.checkProto)) {
++    Object.assign(result, resolveInject(Object.getPrototypeOf(inject)))
++    for (const name of Object.keys(inject)) {
++      result[name] = inject[name] ?? null
++    }
++  } else {
++    for (const name of Object.keys(inject)) {
++      result[name] = inject[name] ?? null
++    }
+   }
++  return result
+ }
+ 
++/** Typed accessor for {@link resolveInject} attached onto the `Inject` decorator function. */
++export const InjectStatic = Inject as typeof Inject & {
++  resolve(inject: Inject | null | undefined, result?: Dict): Dict
++}
++InjectStatic.resolve = resolveInject
++
+ /** Supported plugin entrypoint shapes. */
+ export type Plugin<T = any> =
+   | Plugin.Function<T>
+@@ -161,7 +167,7 @@
+   ? S
+   : GetPluginParameters<P>[0]
+ 
+-declare module './context.ts' {
++declare module '@core/cordis' {
+   export interface Context {
+     /**
+      * Run a callback once the requested services are available.
+@@ -195,8 +201,10 @@
+ export class RegistryService {
+   private _counter = 0
+   private _internal = new Map<Function, Plugin.Runtime>()
++  ctx: Context
+ 
+-  constructor(public ctx: Context) {
++  constructor(ctx: Context) {
++    this.ctx = ctx
+     defineProperty(this, symbols.tracker, {
+       property: 'ctx',
+       noShadow: true,
+@@ -327,7 +335,7 @@
+       this._internal.set(callback, runtime)
+     }
+ 
+-    const fiber = new Fiber(this.ctx, config, Inject.resolve(plugin.inject), runtime, getOuterStack)
++    const fiber = new Fiber(this.ctx, config, InjectStatic.resolve(plugin.inject), runtime, getOuterStack)
+     const wrapped = Object.create(fiber) as Fiber & PromiseLike<Fiber>
+     wrapped.then = (onFulfilled, onRejected) => {
+       return fiber.await().then(onFulfilled, onRejected)
+diff -ru /tmp/rc5p3/up410/src/service.ts core/cordis/src/service.ts
+--- /tmp/rc5p3/up410/src/service.ts	2026-11-18 17:45:47
++++ core/cordis/src/service.ts	2026-11-20 00:41:29
+@@ -39,7 +39,10 @@
+    * @param ctx — the context to register in (stored as `this.ctx`).
+    * @param name — the service name; defaults to the static `provide` field.
+    */
+-  constructor(protected ctx: Context, name: string) {
++  /** The context this service is registered in (upstream: `protected ctx` parameter property). */
++  protected ctx!: Context
++
++  constructor(ctx: Context, name: string) {
+     name ??= this.constructor['provide'] as string
+ 
+     let self = this
+diff -ru /tmp/rc5p3/up410/src/utils.ts core/cordis/src/utils.ts
+--- /tmp/rc5p3/up410/src/utils.ts	2026-11-18 17:45:47
++++ core/cordis/src/utils.ts	2026-11-20 00:54:34
+@@ -117,7 +117,7 @@
+ /** Wrap services/functions so method calls see the caller's active context. */
+ export function getTraceable<T>(ctx: Context, value: T): T {
+   if (!isObject(value)) return value
+-  if (Object.hasOwn(value, symbols.shadow)) {
++  if (Object.hasOwn(value as object, symbols.shadow)) {
+     return Object.getPrototypeOf(value)
+   }
+   const tracker = value[symbols.tracker]

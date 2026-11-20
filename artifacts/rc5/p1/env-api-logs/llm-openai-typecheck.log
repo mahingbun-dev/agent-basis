@@ -1,0 +1,5 @@
+$ tsc -p tsconfig.json --noEmit
+src/adapter.ts(107,9): error TS2345: Argument of type '`HTTP_${string}`' is not assignable to parameter of type 'BuiltinLlmFailureCode'.
+/Users/sunny/code/agent-basis-rc5/packages/llm-openai:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @eterna/llm-openai@0.1.0 typecheck: `tsc -p tsconfig.json --noEmit`
+Exit status 2

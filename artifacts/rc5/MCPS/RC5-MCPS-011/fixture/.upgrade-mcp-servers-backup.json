@@ -1,0 +1,6 @@
+{
+  "capturedAt": "2026-11-19T18:32:34.762Z",
+  "source": "artifacts/rc5/MCPS/RC5-MCPS-011/fixture/old-broken.cordis.patch.yml",
+  "error": "artifacts/rc5/MCPS/RC5-MCPS-011/fixture/old-broken.cordis.patch.yml: YAML 解析失败:Unexpected : in flow sequence at line 2, column 8:",
+  "servers": null
+}

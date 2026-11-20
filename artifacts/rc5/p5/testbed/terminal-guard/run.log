@@ -1,0 +1,42 @@
+[PASS] SETUP-LOGIN (P0) A/B 登录 :: a=200 b=200
+[PASS] RC5-TERM-007 (P0) readUserTerminals=false / preferredShells=[bash] / terminal bundle 在 :: bundles-terminal=true readUserTerminals=false:true preferredShells=[bash]:true
+[PASS] SETUP-VICTIM-SESSION (P0) A 建立活会话（terminal 方法的受害者） :: sessionId=session-5b203e31-5b83-4028-b5bd-eab27c494154
+[PASS] CONTROL-A-ENVIRONMENT (P0) A 自己的 terminal/environment 成功（正向控制） :: cwd=/data/workspaces/rc5admin
+[PASS] CONTROL-A-SHELLS (P0) A 自己的 terminal/shells 成功（正向控制） :: shells=1
+[FAIL] RC5-TERM-004a (P0) B 用 A 的 session 调 terminal/list 必须被拒 :: 跨租户未拒绝：B 与 A 结果相同=true；B=[]
+[FAIL] RC5-TERM-004b (P0) B 用 A 的 session 调 terminal/environment 必须被拒 :: 跨租户未拒绝：B 与 A 结果相同=true；B={
+  "cwd": "/data/workspaces/rc5admin",
+  "maxInputBytes": 65536,
+  "maxBufferedBytes": 2097152,
+  "maxCols": 500,
+  "maxRows": 200,
+  "scrollback": 1000
+}
+[FAIL] RC5-TERM-004c (P0) B 用 A 的 session 调 terminal/shells 必须被拒 :: 跨租户未拒绝：B 与 A 结果相同=true；B=[
+  {
+    "path": "/bin/bash",
+    "name": "bash",
+    "args": [
+      "-i"
+    ]
+  }
+]
+[NOTRUN] RC5-TERM-004d (P0) B 用 A 的 session 调 terminal/create 必须被拒 :: A/B 同错（方法不可用，无法判定授权）：A={
+  "code": "gateway/internal",
+  "message": "session.snapshotEvents is not a function",
+  "details" B={
+  "code": "gateway/internal",
+  "message": "session.snapshotEvents is not a function",
+  "details"
+[FAIL] RC5-TERM-004e (P0) B 用 A 的 session 调 terminal/close 必须被拒 :: 跨租户未拒绝：B 与 A 结果相同=true；B=undefined
+[NOTRUN] RC5-TERM-004f (P0) B 用 A 的 session 调 terminal/rename 必须被拒 :: A/B 同错（方法不可用，无法判定授权）：A={
+  "code": "terminal/unavailable",
+  "message": "Terminal no longer exists in this Session",
+  "det B={
+  "code": "terminal/unavailable",
+  "message": "Terminal no longer exists in this Session",
+  "det
+[NOTRUN] RC5-TERM-005 (P0) attach/retain/watch 流动作被拒（WS mux 面） :: 策略清单已含 attach/retain/watch（静态核对通过），但流拒绝需 WS mux 客户端，本脚本未执行；P6 必跑
+
+[TERM] PASS=5 FAIL=4 SKIP=0 NOTRUN=3
+[TERM] report → artifacts/rc5/p5/testbed/terminal-guard/report.json

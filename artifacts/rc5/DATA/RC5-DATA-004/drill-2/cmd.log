@@ -1,0 +1,31 @@
+== 1. 归档清单与安全性 ==
+$ sh -c tar tzf '/Users/sunny/eterna-data/backups/rc5-2026-11-20/eterna-home-20261120-021802.tgz' > 'artifacts/rc5/DATA/RC5-DATA-004/drill-2/archive-entries.txt'
+EXIT=0
+
+entries=10466 unsafe=0
+== 2. 解包到 staging ==
+$ tar xzf /Users/sunny/eterna-data/backups/rc5-2026-11-20/eterna-home-20261120-021802.tgz -C /Users/sunny/eterna-data/test-rc5/.p6b-cold/p6b-e5b-eterna-home-20261120-021802
+EXIT=0
+
+== 3. rsync -aH 复制到新实例根 ==
+$ rsync -aH --stats /Users/sunny/eterna-data/test-rc5/.p6b-cold/p6b-e5b-eterna-home-20261120-021802/ /Users/sunny/eterna-data/test-rc5/p6b-e5b/
+Number of files: 10466
+Number of files transferred: 4406
+Total file size: 108882060 B
+Total transferred file size: 60891415 B
+Unmatched data: 60891415 B
+Matched data: 0 B
+File list size: 1589569 B
+File list generation time: 0.050 seconds
+File list transfer time: 0.157 seconds
+Total sent: 63368604 B
+Total received: 778104 B
+
+sent 63368604 bytes  received 778104 bytes  31991774 bytes/sec
+total size is 108882060  speedup is 1.70
+EXIT=0
+
+== 4. 源/副本统计（文件数/字节/硬链接组/符号链接） ==
+src files=8620 bytes=108848480 linkGroups=3148 symlinks=352
+dst files=8620 bytes=108848480 linkGroups=3148 symlinks=352
+ASSERT PASS | 迁移副本与源一致

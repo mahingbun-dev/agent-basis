@@ -1,0 +1,14 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ B=$(shasum -a 256 pnpm-lock.yaml | cut -d" " -f1); echo "lock_sha256_before=$B"; pnpm install --frozen-lockfile; EC=$?; A=$(shasum -a 256 pnpm-lock.yaml | cut -d" " -f1); echo "lock_sha256_after=$A"; if [ "$B" = "$A" ]; then echo "LOCK_UNCHANGED=yes"; else echo "LOCK_UNCHANGED=no"; fi; echo "git_status_lock:"; git status --porcelain pnpm-lock.yaml; exit $EC
+# started 2026-11-19T22:04:33Z
+lock_sha256_before=0af006d87645384347e1b20960a7fcb36c61256fa3dee49a457ddbc8b4ee6ac6
+Scope: all 40 workspace projects
+Already up to date
+Done in 204ms using pnpm v11.7.0
+lock_sha256_after=0af006d87645384347e1b20960a7fcb36c61256fa3dee49a457ddbc8b4ee6ac6
+LOCK_UNCHANGED=yes
+git_status_lock:
+ M pnpm-lock.yaml
+
+EXIT 0
+# finished 2026-11-19T22:04:33Z

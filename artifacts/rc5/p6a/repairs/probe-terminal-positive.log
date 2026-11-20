@@ -1,0 +1,3 @@
+A environment ok= true cwd= /data/workspaces/rc5admin
+A create ok= false code= gateway/internal msg= session.snapshotEvents is not a function
+A list ok= true items= 0

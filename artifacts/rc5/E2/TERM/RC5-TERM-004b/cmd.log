@@ -1,0 +1,13 @@
+# TERM/RC5-TERM-004b
+# started 2026-11-20T00:39:24.631Z
+
+$ node scripts/verify-terminal-guard.mjs --base http://127.0.0.1:3119 --accounts-file <0600> --data-root <E2 数据根> --container rc5-e2suite --json artifacts/rc5/E2/TERM/report.json
+EXIT=0
+FAIL :: 跨租户未拒绝：B 与 A 结果相同=true；B={
+  "cwd": "/data/workspaces/rc5admin",
+  "maxInputBytes": 65536,
+  "maxBufferedBytes": 2097152,
+  "maxCols": 500,
+  "maxRows": 200,
+  "scrollback": 1000
+}

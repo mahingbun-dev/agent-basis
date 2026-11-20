@@ -1,0 +1,33 @@
+{
+  "permissionRequest": {
+    "at": 1795126931929,
+    "params": {
+      "sessionId": "ff37a599-b26e-4820-9033-1014e5df08b3",
+      "toolCall": {
+        "toolCallId": "call_acp_fixture_1"
+      },
+      "options": [
+        {
+          "optionId": "allow-once",
+          "name": "Allow once",
+          "kind": "allow_once"
+        },
+        {
+          "optionId": "reject-once",
+          "name": "Reject",
+          "kind": "reject_once"
+        }
+      ]
+    },
+    "answeredAt": 1795126932080
+  },
+  "permissionPrompt": {
+    "jsonrpc": "2.0",
+    "id": 6,
+    "result": {
+      "stopReason": "end_turn"
+    }
+  },
+  "elapsedMs": 221,
+  "handlerDelayMs": 151
+}

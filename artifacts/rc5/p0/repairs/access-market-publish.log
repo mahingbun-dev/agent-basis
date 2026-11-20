@@ -1,0 +1,46 @@
+npm warn Unknown project config "verify-deps-before-run". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown project config "verifyDepsBeforeRun". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-TQ2GXP/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-SbfSYj/origin.git
+ * [new branch]      main -> main
+Cloning into '/var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-SbfSYj/merge-work'...
+done.
+From /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-SbfSYj/origin
+ * branch            publish/my-tool-0.1.0 -> FETCH_HEAD
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-SbfSYj/origin.git
+   1d48f29..6d42433  main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-plS4Bx/origin.git
+ * [new branch]      main -> main
+Cloning into '/var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-plS4Bx/merge-work'...
+done.
+From /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-plS4Bx/origin
+ * branch            publish/my-tool-0.1.0 -> FETCH_HEAD
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-plS4Bx/origin.git
+   1d48f29..2e5552b  main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-423s5x/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-ogqDvZ/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-tMqHq5/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-Dhbkwz/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-cEURKp/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-HT8eeE/origin.git
+ * [new branch]      main -> main
+ ✓ tests/market-publish.spec.ts (11 tests) 2747ms
+     ✓ 首发全流程:组装/清单重写/两段 commit/push 到裸仓/compare 链接  317ms
+     ✓ 二次发布自动递增版本;索引多版本按 SemVer 降序  560ms
+     ✓ 撞版先查:显式已存在版本在 commit 之前被拒  451ms
+     ✓ 远端同名分支已存在 → 拒绝(上次 PR 未合并)  332ms
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+   Start at  02:45:49
+   Duration  2.89s (transform 42ms, setup 0ms, import 53ms, tests 2.75s, environment 0ms)
+

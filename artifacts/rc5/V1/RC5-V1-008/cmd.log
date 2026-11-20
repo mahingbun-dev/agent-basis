@@ -1,0 +1,2 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ # NOT RUN — NOT RUN：需 P5 构建镜像与 tag；E0 不启容器、无镜像 tag。

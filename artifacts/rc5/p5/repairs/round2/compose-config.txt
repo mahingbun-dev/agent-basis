@@ -1,0 +1,14 @@
+# W4 门禁 · compose config 复验(2026-11-20 第 2 轮;无 .env、未设 ETERNA_DATA_ROOT)
+
+## docker compose -f docker-compose.yml config
+        source: /Users/sunny/eterna-data/super
+EXIT=0
+
+## docker compose -f docker-compose.super.yml config
+        source: /Users/sunny/eterna-data/super-2
+EXIT=0
+
+## docker compose -f docker-compose.yml --profile acp config
+        source: /Users/sunny/eterna-data/super
+        source: /Users/sunny/eterna-data/super
+EXIT=0

@@ -1,0 +1,7 @@
+# cmd: docker run --rm --entrypoint sh -v agent-basis_eterna-home:/src:ro -v /Users/sunny/eterna-data/backups/rc5-2026-11-20:/backup eterna-agent:0.1.51 -c 'tar czf /backup/eterna-home-20261120-021802.tgz -C /src .'
+# started: 2026-11-19T18:18:02Z
+---
+---
+EXIT=0
+TS=20261120-021802
+# finished: 2026-11-19T18:18:04Z

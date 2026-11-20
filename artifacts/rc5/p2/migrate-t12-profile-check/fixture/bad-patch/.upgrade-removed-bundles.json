@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-11-19T17:58:13.391Z",
+  "version": 1,
+  "profileDir": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p2/migrate-t12-profile-check/fixture/eterna-web",
+  "profile": "eterna-web",
+  "mode": "boot",
+  "removed": [
+    "@deepseek-ai/dsh-experimental-agent-team-profile"
+  ],
+  "backup": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p2/migrate-t12-profile-check/fixture/eterna-web/package.json.bak-2026-11-19T17-58-13-388Z",
+  "manifestError": null,
+  "patchError": null,
+  "bad": [
+    {
+      "bundle": "@eterna/knowledge-admin",
+      "status": "invalid",
+      "reason": "未声明 dsh.bundle（dsh 会跳过该层）"
+    }
+  ]
+}

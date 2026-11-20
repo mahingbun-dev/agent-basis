@@ -1,0 +1,23 @@
+# T24/B12 路由面静态证据(2026-11-20 复验)
+
+$ grep -rn "webServer\.register\|\.register({" packages/glue/src --include="*.ts"
+EXIT=1 (1 = 零命中,glue 源码无任何路由注册调用)
+
+$ git show de0d2b1^:packages/glue/src/plugins/channels-plugin.ts | grep -n "webServer.register\|path: pathPrefix"
+72: * 本插件消费的 Web 载体 seam(webServer.register 的结构子集;access 插件
+169:          disposers.push(webServer.register({
+171:            path: pathPrefix,
+
+$ grep -n "registerChannelsWebhook\|kind: .prefix." packages/access/src/plugin.ts packages/access/src/channels-webhook.ts
+packages/access/src/channels-webhook.ts:46:export function registerChannelsWebhook(
+packages/access/src/channels-webhook.ts:51:    kind: 'prefix',
+packages/access/src/plugin.ts:39:import { registerChannelsWebhook } from './channels-webhook.ts'
+packages/access/src/plugin.ts:320:        ctx.webServer.register({ kind: 'prefix', path: '/access/api', handler }),
+packages/access/src/plugin.ts:357:      disposers.push(registerChannelsWebhook(ctx.webServer, ctx.reflect))
+
+$ grep -n "GATEKEEPER_PACKAGE = \|pkg: .brand." tools/packctl/src/tenant.ts
+48:const GATEKEEPER_PACKAGE = 'access'
+62:    pkg: 'brand',
+
+$ git diff HEAD --stat -- tools/packctl/src/tenant.ts
+(无输出 = 豁免清单/门禁逻辑本 lane 未改)

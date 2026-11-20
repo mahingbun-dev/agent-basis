@@ -1,0 +1,28 @@
+{
+  "id": "RC5-ACP-005",
+  "priority": "P0",
+  "title": "非法 JSON → JSON-RPC error（-32700）且进程不崩",
+  "status": "PASS",
+  "at": "2026-11-19T22:22:11.894Z",
+  "detail": "error.code=-32700 id=null aliveAfter=true",
+  "assertions": [
+    {
+      "name": "parse error 帧到达",
+      "expected": "error.code=-32700",
+      "observed": "-32700",
+      "ok": true
+    },
+    {
+      "name": "错误后 initialize 仍可用",
+      "expected": "true",
+      "observed": "true",
+      "ok": true
+    },
+    {
+      "name": "无 stdout 非 JSON 行",
+      "expected": "0",
+      "observed": "0",
+      "ok": true
+    }
+  ]
+}

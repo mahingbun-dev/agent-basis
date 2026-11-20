@@ -1,0 +1,6 @@
+# TERM/RC5-TERM-005a
+# started 2026-11-20T00:39:24.789Z
+
+$ WS /api/remote.mux open terminal/attach {agentId:A.sessionId}（B）
+EXIT=0
+frames=[{"type":"error","streamId":"e2-term-terminal-attach-niaegy","error":{"code":"remote-access/denied","message":"remote access: terminal/attach: access denied (no-allow)","details":{"action":"terminal/attach","reason":"no-allow"}}}]

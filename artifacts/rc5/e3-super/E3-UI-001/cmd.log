@@ -1,0 +1,8 @@
+# E3-UI-001 — （lane 本地）super 形态 UI 入口工件
+CMD: node artifacts/rc5/e3-super/run-suite.mjs E3-UI-001
+START: 2026-11-19T22:31:11.390Z
+# 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
+
+[exit=200] GET /login  # 公开登录页（无凭据）
+
+EXIT=0

@@ -1,0 +1,75 @@
+{
+  "generated_at": "2026-11-19T20:21:17Z",
+  "packages": [
+    {
+      "package": "access",
+      "file": "packages/access/lib/client.js",
+      "bytes": 317099,
+      "mtime_utc": "2026-11-19T20:20:54Z",
+      "sha256": "84d7502a7a8990989ba9077d5bc3b8f7df5398da2eb6b2da0451848ac0cb5487"
+    },
+    {
+      "package": "attachments",
+      "file": "packages/attachments/lib/client.js",
+      "bytes": 73619,
+      "mtime_utc": "2026-11-19T20:20:54Z",
+      "sha256": "607b89f85bef73672b5f0cb0d250101ef29ec22dbc16c20c48d9fd0a6149a861"
+    },
+    {
+      "package": "brand",
+      "file": "packages/brand/lib/client.js",
+      "bytes": 74117,
+      "mtime_utc": "2026-11-19T20:20:54Z",
+      "sha256": "a28ce5904d2517c5d9291f38692ef98f7556f49b6c028408ced96b2385c444e3"
+    },
+    {
+      "package": "compaction",
+      "file": "packages/compaction/lib/client.js",
+      "bytes": 98896,
+      "mtime_utc": "2026-11-19T20:20:55Z",
+      "sha256": "673c570b775af44431675e44594afd0d580763dfb427eab9ffb38d432b935ca9"
+    },
+    {
+      "package": "llm-doctor",
+      "file": "packages/llm-doctor/lib/client.js",
+      "bytes": 62533,
+      "mtime_utc": "2026-11-19T20:20:55Z",
+      "sha256": "ddcddbbb1a16237cf364b9345ed83fbb7c1864b0304ac1d30bed09038938fd8e"
+    },
+    {
+      "package": "memory",
+      "file": "packages/memory/lib/client.js",
+      "bytes": 139579,
+      "mtime_utc": "2026-11-19T20:20:55Z",
+      "sha256": "bba81bf5b4781120583570a0371f48b8c868ed8fb14013f5e19e2fe59a834a94"
+    },
+    {
+      "package": "panel",
+      "file": "packages/panel/lib/client.js",
+      "bytes": 165372,
+      "mtime_utc": "2026-11-19T20:20:56Z",
+      "sha256": "b9def5a097e07be213bd9d88e43ea81c8a84735fb3cf39ebad1da13ad0059cb2"
+    },
+    {
+      "package": "prompt-studio",
+      "file": "packages/prompt-studio/lib/client.js",
+      "bytes": 310922,
+      "mtime_utc": "2026-11-19T20:20:56Z",
+      "sha256": "5cfd1f97221a34fe74e37a6264b3e06e7115a1d24273136ba4deafb5855c10c1"
+    },
+    {
+      "package": "usage-stats",
+      "file": "packages/usage-stats/lib/client.js",
+      "bytes": 85913,
+      "mtime_utc": "2026-11-19T20:20:56Z",
+      "sha256": "959c527dc4b43962f94e2b359dede58991418aec7495efc7601452dcd9cea7b7"
+    },
+    {
+      "package": "workbench",
+      "file": "packages/workbench/lib/client.js",
+      "bytes": 280070,
+      "mtime_utc": "2026-11-19T20:20:56Z",
+      "sha256": "d163276c96f4fed4e81cc73038b5cf480e384a574a6167c1ab0fcb05f771f3ac"
+    }
+  ]
+}

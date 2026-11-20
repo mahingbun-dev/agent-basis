@@ -1,0 +1,15 @@
+# 构建期 apt/pip 依赖可得性核对（2026-11-20；L5 T40/T41）
+# 检查方式：packages.debian.org/bookworm/<pkg> 页面读取（WebFetch），非本地 apt（宿主 macOS 无 apt）。
+# 目的：确认 Dockerfile runtime 层 apt/pip 包名在 bookworm 存在，避免构建期才炸。
+
+fonts-noto-cjk      bookworm: 1:20220127+repack1-1        https://packages.debian.org/bookworm/fonts-noto-cjk
+fonts-liberation    bookworm: 1:1.07.4-11                  https://packages.debian.org/bookworm/fonts-liberation
+fonts-dejavu-core   bookworm: 2.37-6                       https://packages.debian.org/bookworm/fonts-dejavu-core
+python3-docx        bookworm: 0.8.11+dfsg1-5               https://packages.debian.org/bookworm/python3-docx
+python3-openpyxl    bookworm: 3.0.9-1                      https://packages.debian.org/bookworm/python3-openpyxl
+python3-pptx        bookworm: NO SUCH PACKAGE              https://packages.debian.org/bookworm/python3-pptx
+  → 按 50 §3.5「apt 不可用则 pip」改用 pip 钉版 python-pptx==1.0.2
+python3-pip         bookworm: 23.0.1+dfsg-1                 https://packages.debian.org/bookworm/python3-pip
+  → pip 23.0.1 引入 --break-system-packages（PEP 668），与 Dockerfile 用法匹配
+util-linux(flock)   bookworm filelist: /usr/bin/flock       https://packages.debian.org/bookworm/amd64/util-linux/filelist
+  → entrypoint 渲染锁依赖的 flock 由 Debian 基础镜像自带

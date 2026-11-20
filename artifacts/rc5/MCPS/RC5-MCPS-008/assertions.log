@@ -1,0 +1,71 @@
+PASS  mcp-manager row present
+PASS  servers keys = alpha,beta
+PASS  alpha.url preserved
+PASS  beta.command preserved
+PASS  beta.env token preserved
+PASS  browser not duplicated into manager
+PASS  template still has mcp-browser row
+PASS  template default servers was empty
+MCPS-008 assertions: 8/8 passed
+(node:48722) [TAG_RESOLVE_FAILED] YAMLWarning: Unresolved tag: tag:yaml.org,2002:js at line 244, column 19:
+
+        disabled: !!js process.platform === 'win32'
+                  ^^^^
+
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:48722) [TAG_RESOLVE_FAILED] YAMLWarning: Unresolved tag: tag:yaml.org,2002:js at line 247, column 19:
+
+        disabled: !!js process.platform !== 'win32'
+                  ^^^^
+
+(node:48722) [TAG_RESOLVE_FAILED] YAMLWarning: Unresolved tag: tag:yaml.org,2002:js at line 374, column 15:
+
+            - !!js process.getBuiltinModule('node:path').join(process.getBuilti…
+              ^^^^
+
+(node:48722) [TAG_RESOLVE_FAILED] YAMLWarning: Unresolved tag: tag:yaml.org,2002:js at line 433, column 19:
+
+        disabled: !!js process.platform === 'win32'
+                  ^^^^
+
+(node:48722) [TAG_RESOLVE_FAILED] YAMLWarning: Unresolved tag: tag:yaml.org,2002:js at line 436, column 19:
+
+        disabled: !!js process.platform !== 'win32'
+                  ^^^^
+
+(node:48722) [TAG_RESOLVE_FAILED] YAMLWarning: Unresolved tag: tag:yaml.org,2002:js at line 457, column 15:
+
+            - !!js process.getBuiltinModule('node:path').join(process.getBuilti…
+              ^^^^
+
+(node:48722) [TAG_RESOLVE_FAILED] YAMLWarning: Unresolved tag: tag:yaml.org,2002:js at line 234, column 19:
+
+        disabled: !!js process.platform === 'win32'
+                  ^^^^
+
+(node:48722) [TAG_RESOLVE_FAILED] YAMLWarning: Unresolved tag: tag:yaml.org,2002:js at line 237, column 19:
+
+        disabled: !!js process.platform !== 'win32'
+                  ^^^^
+
+(node:48722) [TAG_RESOLVE_FAILED] YAMLWarning: Unresolved tag: tag:yaml.org,2002:js at line 364, column 15:
+
+            - !!js process.getBuiltinModule('node:path').join(process.getBuilti…
+              ^^^^
+
+(node:48722) [TAG_RESOLVE_FAILED] YAMLWarning: Unresolved tag: tag:yaml.org,2002:js at line 423, column 19:
+
+        disabled: !!js process.platform === 'win32'
+                  ^^^^
+
+(node:48722) [TAG_RESOLVE_FAILED] YAMLWarning: Unresolved tag: tag:yaml.org,2002:js at line 426, column 19:
+
+        disabled: !!js process.platform !== 'win32'
+                  ^^^^
+
+(node:48722) [TAG_RESOLVE_FAILED] YAMLWarning: Unresolved tag: tag:yaml.org,2002:js at line 447, column 15:
+
+            - !!js process.getBuiltinModule('node:path').join(process.getBuilti…
+              ^^^^
+
+EXIT=0

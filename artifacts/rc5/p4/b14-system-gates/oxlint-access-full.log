@@ -1,0 +1,148 @@
+
+  x eslint(no-unused-vars): Parameter 'userId' is declared but never used. Unused parameters should start with a '_'.
+     ,-[src/store.ts:817:18]
+ 816 |   /** 本人全部条目(最近更新最后;id/name 均由服务端记账)。 */
+ 817 |   listMcpServers(userId: number): McpServerRow[] {
+     :                  ^^^|^^
+     :                     `-- 'userId' is declared here
+ 818 |     return this.mcpSelect('user_id = ? ORDER BY created_at, id').map(row => row)
+     `----
+  help: Consider removing this parameter.
+
+  x eslint(no-unused-vars): Parameter 'userId' is declared but never used. Unused parameters should start with a '_'.
+     ,-[src/store.ts:822:25]
+ 821 |   /** 仅启用行(挂载面;上限由路由层控制)。 */
+ 822 |   listEnabledMcpServers(userId: number): McpServerRow[] {
+     :                         ^^^|^^
+     :                            `-- 'userId' is declared here
+ 823 |     return this.mcpSelect('user_id = ? AND enabled = 1 ORDER BY created_at, id')
+     `----
+  help: Consider removing this parameter.
+
+  x eslint(no-unused-vars): Parameter 'userId' is declared but never used. Unused parameters should start with a '_'.
+     ,-[src/store.ts:827:16]
+ 826 |   /** 属主+id 单查(禁止先在路由层按 id 查再判属主——统一 403 防枚举)。 */
+ 827 |   getMcpServer(userId: number, id: string): McpServerRow | undefined {
+     :                ^^^|^^
+     :                   `-- 'userId' is declared here
+ 828 |     return this.mcpSelect('user_id = ? AND id = ?')[0]
+     `----
+  help: Consider removing this parameter.
+
+  x eslint(no-unused-vars): Parameter 'id' is declared but never used. Unused parameters should start with a '_'.
+     ,-[src/store.ts:827:32]
+ 826 |   /** 属主+id 单查(禁止先在路由层按 id 查再判属主——统一 403 防枚举)。 */
+ 827 |   getMcpServer(userId: number, id: string): McpServerRow | undefined {
+     :                                ^|
+     :                                 `-- 'id' is declared here
+ 828 |     return this.mcpSelect('user_id = ? AND id = ?')[0]
+     `----
+  help: Consider removing this parameter.
+
+  x eslint(no-unused-vars): Variable 'rowOwned' is declared but never used. Unused variables should start with a '_'.
+     ,-[src/mcp-personal.ts:552:9]
+ 551 | 
+ 552 |   const rowOwned = (caller: McpPersonalCaller, id: string): McpServerRow | Response => {
+     :         ^^^^|^^^
+     :             `-- 'rowOwned' is declared here
+ 553 |     const row = store.getMcpServer(caller.userId, id)
+     `----
+  help: Consider removing this declaration.
+
+  x eslint(no-unused-vars): Parameter 'caller' is declared but never used. Unused parameters should start with a '_'.
+     ,-[src/mcp-personal.ts:558:61]
+ 557 | 
+ 558 |   register(`${MCP_PERSONAL_PREFIX}/catalog`, (rpcId, _args, caller) => {
+     :                                                             ^^^|^^
+     :                                                                `-- 'caller' is declared here
+ 559 |     if (unavailableReason !== undefined) return unavailableFrame(rpcId, unavailableReason)
+     `----
+  help: Consider removing this parameter.
+
+  x @stylistic(eol-last): Newline required at end of file but not found.
+     ,-[src/mcp-personal.ts:866:2]
+ 865 |   return redacted
+ 866 | }
+     `----
+
+  x @stylistic(max-len): This line has a length of 149. Maximum allowed is 140.
+     ,-[src/mcp-personal.ts:202:1]
+ 201 | export function resolveMcpPersonalConfig(
+ 202 |   input?: { readonly enabled?: unknown; readonly catalog?: unknown; readonly personalHttpHosts?: unknown; readonly httpHosts?: unknown } | undefined,
+     : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 203 |   env: NodeJS.ProcessEnv = process.env,
+     `----
+
+  x @stylistic(max-len): This line has a length of 170. Maximum allowed is 140.
+     ,-[src/mcp-personal.ts:520:1]
+ 519 | 
+ 520 |   const auditOk = (kind: string, caller: McpPersonalCaller, row: McpServerRow | { name?: string; serverName?: string; transport?: McpTransport; url?: string }): void => {
+     : ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 521 |     let host: string | undefined
+     `----
+
+  x @stylistic(quotes): Strings must use singlequote.
+     ,-[src/mcp-personal.ts:380:19]
+ 379 |   if (METADATA_HOSTS.has(host)) return true
+ 380 |   return host === `::ffff:169.254.169.254` || host.endsWith('.169.254.169.254')
+     :                   ^^^^^^^^^^^^^^^^^^^^^^^^
+ 381 | }
+     `----
+
+  x typescript(no-unnecessary-type-assertion): This assertion is unnecessary since it does not change the type of the expression.
+     ,-[src/mcp-personal.ts:157:100]
+ 156 |     const argsRaw = row.args ?? []
+ 157 |     const args = Array.isArray(argsRaw) && argsRaw.every(arg => typeof arg === 'string') ? argsRaw as string[] : undefined
+     :                                                                                            ^^^|^^^ ^^^^^|^^^^^^
+     :                                                                                               |         `-- Casting it to 'string[]' is unnecessary
+     :                                                                                               `-- This expression already has the type 'string[]'
+ 158 |     const envRaw = row.envSchema ?? []
+     `----
+
+  x typescript(no-base-to-string): 'row.name ?? ''' will use Object's default stringification format ('[object Object]') when stringified.
+     ,-[src/mcp-personal.ts:168:113]
+ 167 |       : []
+ 168 |     if (name === '' || command === '' || args === undefined) return { error: `管理员目录项非法:${String(row.name ?? '')}` }
+     :                                                                                                         ^^^^^^^^^^^^^^
+ 169 |     if (row.transport !== undefined && row.transport !== 'stdio') return { error: `管理员目录只支持 stdio:${name}` }
+     `----
+  help: Consider picking a property (e.g. `user.name`), using a formatter (or `JSON.stringify`), or implementing a custom `toString()`/`toLocaleString()` on the type.
+
+  x typescript(no-unnecessary-type-assertion): This assertion is unnecessary since it does not change the type of the expression.
+     ,-[src/mcp-personal.ts:193:44]
+ 192 |   }
+ 193 |   return { hosts: parsed.map(item => (item as string).trim().toLowerCase()).filter(item => item !== '') }
+     :                                       ^^|^ ^^^^|^^^^^
+     :                                         |      `-- Casting it to 'string' is unnecessary
+     :                                         `-- This expression already has the type 'string'
+ 194 | }
+     `----
+
+  x typescript(no-duplicate-type-constituents): Explicit undefined is unnecessary on an optional parameter.
+     ,-[src/mcp-personal.ts:202:140]
+ 201 | export function resolveMcpPersonalConfig(
+ 202 |   input?: { readonly enabled?: unknown; readonly catalog?: unknown; readonly personalHttpHosts?: unknown; readonly httpHosts?: unknown } | undefined,
+     :                                                                                                                                            ^^^^^^^^^
+ 203 |   env: NodeJS.ProcessEnv = process.env,
+     `----
+
+  x typescript(no-confusing-void-expression): Returning a void expression from an arrow function shorthand is forbidden.
+     ,-[src/mcp-personal.ts:804:38]
+ 803 |     const controller = new AbortController()
+ 804 |     const timeout = setTimeout(() => controller.abort(), MCP_PERSONAL_PROBE_TIMEOUT_MS)
+     :                                      ^^^^^^^^^^^^^^^^^^
+ 805 |     const onAbort = (): void => controller.abort()
+     `----
+  help: Add braces to the arrow function.
+
+  x typescript(no-confusing-void-expression): Returning a void expression from an arrow function shorthand is forbidden.
+     ,-[src/mcp-personal.ts:805:33]
+ 804 |     const timeout = setTimeout(() => controller.abort(), MCP_PERSONAL_PROBE_TIMEOUT_MS)
+ 805 |     const onAbort = (): void => controller.abort()
+     :                                 ^^^^^^^^^^^^^^^^^^
+ 806 |     signal.addEventListener('abort', onAbort, { once: true })
+     `----
+  help: Add braces to the arrow function.
+
+Found 0 warnings and 16 errors.
+Finished in 1.4s on 99 files with 87 rules using 10 threads.

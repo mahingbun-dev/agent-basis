@@ -1,0 +1,89 @@
+{
+  "suite": "BOOT",
+  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "imageTag": "eterna-agent:rc5-test",
+  "imageId": "sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00",
+  "container": "rc5-e1suite",
+  "base": "http://127.0.0.1:3118",
+  "dataRoot": "/Users/sunny/eterna-data/test-20261120/e1",
+  "startedAt": "2026-11-19T22:43:38.645Z",
+  "finishedAt": "2026-11-19T23:34:35.703Z",
+  "total": 13,
+  "pass": 13,
+  "fail": 0,
+  "skip": 0,
+  "notrun": 0,
+  "counts": {
+    "PASS": 13
+  },
+  "halted": false,
+  "haltReason": "",
+  "failures": [],
+  "cases": [
+    {
+      "id": "RC5-BOOT-001",
+      "status": "PASS",
+      "title": "E1 空数据根首启"
+    },
+    {
+      "id": "RC5-BOOT-002",
+      "status": "PASS",
+      "title": "E3 super 形态启动"
+    },
+    {
+      "id": "RC5-BOOT-003",
+      "status": "PASS",
+      "title": "E4 ACP 容器启动（进程存活、stdio 纯净）"
+    },
+    {
+      "id": "RC5-BOOT-004",
+      "status": "PASS",
+      "title": "启动日志无未知 plugin 行"
+    },
+    {
+      "id": "RC5-BOOT-005",
+      "status": "PASS",
+      "title": "已删除行不再出现"
+    },
+    {
+      "id": "RC5-BOOT-006",
+      "status": "PASS",
+      "title": "rc.5 新增行全部到位"
+    },
+    {
+      "id": "RC5-BOOT-007",
+      "status": "PASS",
+      "title": "preset 全量替换后 rc.5 默认行无丢失"
+    },
+    {
+      "id": "RC5-BOOT-008",
+      "status": "PASS",
+      "title": "旧 profile 默认 bundle 迁移（只追加一次）"
+    },
+    {
+      "id": "RC5-BOOT-009",
+      "status": "PASS",
+      "title": "已 opt-out 的默认 bundle 不回加"
+    },
+    {
+      "id": "RC5-BOOT-010",
+      "status": "PASS",
+      "title": "损坏 package.json 的 profile 副本启动"
+    },
+    {
+      "id": "RC5-BOOT-011",
+      "status": "PASS",
+      "title": "DSH_AGENTS_HOME 落 /data/agents 且用户级技能可写"
+    },
+    {
+      "id": "RC5-BOOT-012",
+      "status": "PASS",
+      "title": "浏览器加载：10 个产品 bundle 与 roster"
+    },
+    {
+      "id": "RC5-BOOT-013",
+      "status": "PASS",
+      "title": "super：agent-team 三行、Team 默认关、任务/子代理 UI"
+    }
+  ]
+}

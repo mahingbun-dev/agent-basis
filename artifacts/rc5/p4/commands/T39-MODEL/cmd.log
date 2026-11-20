@@ -1,0 +1,25 @@
+# T39 / 54 §4.6 — `/model`:注册、弹层、切换回显
+# 工作树: /Users/sunny/code/agent-basis-rc5 (feat/dsh-rc5-merge)
+# 时间: 2026-11-20
+# 形态: 本地真 boot eterna-web(临时 DSH_HOME,--port 0)+ Chromium
+
+[1] node artifacts/rc5/p4/commands/T39-MODEL/run-ui.mjs    EXIT=0
+断言(assertions.json,全部 PASS):
+- model-menu-row: / 菜单存在且仅一条 "模型model选择本会话使用的模型"
+- model-popup-options: 弹层列出目录模型 ["MiMo V2.6 Flash","MiMo V2.6 Pro"]
+- model-switch-echo:
+    before: 选择模型，当前 MiMo V2.6 Pro，推理等级 Default
+    target: MiMo V2.6 Flash
+    after : 选择模型，当前 MiMo V2.6 Flash，推理等级 Default
+截图: 02-model-popup.png(弹层), 03-model-echo.png(composer 触发钮回显 + 触发钮文本 "MiMo V2.6 Flash Default")
+
+[2] 实现定位(上游):
+  dsh-client-ui-model-selection/src/client/index.ts:124-166 — ctx.commandUi.register({name:'model', ui:{kind:'popupSelect', onSelect → directory.select(selection)}})
+  dsh-client-ui-commands/src/client/service.ts:252-266 — contribution 优先于 host 目录(menu/enter 两列)
+  access pages.ts:330-354 — selectModel 响应成功后改写 composer 触发钮 aria-label/文本(回显观测点)
+
+[3] 环境说明:
+  临时 DSH_HOME 无 config-editor 模型路由 → 测试 overlay 声明两个 keyless mimo 模型(不联网/无凭据);
+  仅作用于临时 home,生产配置与 profile 未改。
+
+结论: PASS(注册/弹层/回显)。模型真实请求未发(不需要也不应在本用例发);跨端/ACP 不涉及。

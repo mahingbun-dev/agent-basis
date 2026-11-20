@@ -1,0 +1,85 @@
+# case: RC5-DATA-009
+# host: ma-macminideMac-mini.local  user: sunny  time: 2026-11-19T22:29:43Z
+
+$ ps -p 56706 -o pid,etime,command
+# label: 浸泡进程存活检查
+# started: 2026-11-19T22:29:43Z
+  PID ELAPSED COMMAND
+56706   44:06 node scripts/soak-rc5.mjs --suite both --duration 24h --interval 60s --db-interval 5m --writers 2 --container eterna-rc5-e1 --data-root /Users/sunny/eterna-data/test-rc5/e1 --out artifacts/rc5/p5/testbed/soak --tag 24h
+EXIT=0
+
+$ cat /Users/sunny/code/agent-basis-rc5/artifacts/rc5/p5/testbed/soak/meta-24h.json
+# label: 浸泡 meta
+# started: 2026-11-19T22:29:43Z
+{
+  "script": "scripts/soak-rc5.mjs",
+  "tag": "24h",
+  "suite": "both",
+  "startedAt": "2026-11-19T21:45:37.331Z",
+  "plannedEndAt": "2026-11-20T21:45:37.331Z",
+  "plannedSeconds": 86400,
+  "intervalSeconds": 60,
+  "dbIntervalSeconds": 300,
+  "writers": 2,
+  "container": "eterna-rc5-e1",
+  "dataRoot": "/Users/sunny/eterna-data/test-rc5/e1",
+  "base": "http://127.0.0.1:3108",
+  "out": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p5/testbed/soak",
+  "logs": {
+    "term": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p5/testbed/soak/term-013-24h.jsonl",
+    "data": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p5/testbed/soak/data-009-24h.jsonl",
+    "soak": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p5/testbed/soak/soak-24h.log"
+  },
+  "limitations": [
+    "terminal/attach 走 WS mux（HTTP 不可达），脚本未执行 attach；created/closed churn 已记账",
+    "进程/内存采样为容器 /proc 只读采样（60s 级），非 profiler"
+  ]
+}
+EXIT=0
+
+ASSERT PASS | 窗口未满 24h（不得标绿） | actual=False expected=False
+ASSERT PASS | 采样 tick 数 > 0 | actual=True expected=True
+ASSERT PASS | 已采样窗口内 integrity 全 ok | actual=9 expected=9
+ASSERT PASS | 已采样窗口内无写失败 | actual=0 expected=0
+ASSERT PASS | 已采样窗口内 database is locked 命中 0 | actual=0 expected=0
+ASSERT PASS | 已采样窗口内 WAL 日志异常命中 0 | actual=0 expected=0
+{
+  "case": "RC5-DATA-009",
+  "window": {
+    "startedAt": "2026-11-19T21:45:37.331Z",
+    "plannedEndAt": "2026-11-20T21:45:37.331Z",
+    "observedAt": "2026-11-19T22:29:43.776677+00:00",
+    "elapsedSeconds": 2408,
+    "elapsedHours": 0.67,
+    "requiredHours": 24,
+    "complete": false,
+    "remainingHours": 23.33,
+    "processAlive": true
+  },
+  "data": {
+    "ticks": 9,
+    "integrityAllOkTicks": 9,
+    "writeOk": 18,
+    "writeFail": 0,
+    "lockMatches": 0,
+    "walLogMatches": 0,
+    "walDatabases": [
+      ".eterna/memory.sqlite3",
+      "access/users.db"
+    ],
+    "lastSessions": 136
+  },
+  "term": {
+    "ticks": 44,
+    "fdFirst": 69,
+    "fdLast": 90,
+    "fdMin": 69,
+    "fdMax": 90,
+    "rssKbFirst": 586976,
+    "rssKbLast": 298780,
+    "churnFailTicks": 44
+  },
+  "verdict": "NOTRUN（窗口未满 24h，不得判通过）"
+}
+verdict=NOTRUN：窗口 0.67 h / 24 h；plannedEnd 2026-11-20T21:45:37.331Z
+

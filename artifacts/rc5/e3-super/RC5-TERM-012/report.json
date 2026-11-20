@@ -1,0 +1,94 @@
+{
+  "id": "RC5-TERM-012",
+  "suite": "E3-super",
+  "priority": "P0",
+  "title": "两会话各开终端互不可见（TERM-012）",
+  "expected": "互不可见/互不输入",
+  "status": "NOTRUN",
+  "startedAt": "2026-11-19T22:32:54.490Z",
+  "finishedAt": "2026-11-19T22:32:54.668Z",
+  "assertions": [
+    {
+      "name": "admin 登录 200",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "admin 测试工作区可解析（E3 users.db 只读）",
+      "ok": true,
+      "detail": "090d9317-36d5-40bd-b640-a2c6963652fe"
+    },
+    {
+      "name": "新建会话成功",
+      "ok": true,
+      "detail": "{\"sessionId\":\"session-a034094f-acab-4673-abcc-5294e8d0d270\",\"agentPreset\":\"standard\"}"
+    },
+    {
+      "name": "admin 测试工作区可解析（E3 users.db 只读）",
+      "ok": true,
+      "detail": "090d9317-36d5-40bd-b640-a2c6963652fe"
+    },
+    {
+      "name": "新建会话成功",
+      "ok": true,
+      "detail": "{\"sessionId\":\"session-e6dd5484-86c9-486c-9f9f-7c8f956dc89a\",\"agentPreset\":\"standard\"}"
+    },
+    {
+      "name": "两会话各自可建终端（隔离判定前置）缺失：create 均 gateway/internal",
+      "ok": true,
+      "detail": "createA={\"code\":\"gateway/internal\",\"message\":\"session.snapshotEvents is not a function\",\"details\":{}} createB={\"code\":\"gateway/internal\",\"message\":\"session.snapshotEvents is not a function\",\"details\":{}}"
+    },
+    {
+      "name": "两会话的 terminal/list 均为空（无终端可比较）",
+      "ok": true,
+      "detail": "list 返回 []（create 被阻断）"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)",
+      "exit": 0,
+      "note": "boot token 不入证据"
+    },
+    {
+      "cmd": "GET /connect + GET /?token=… (dsh session bootstrap)",
+      "exit": 200,
+      "note": "token 已脱敏"
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 200,
+      "note": ""
+    },
+    {
+      "cmd": "POST /api/session/create",
+      "exit": 200,
+      "note": "ok·workspace=090d9317…"
+    },
+    {
+      "cmd": "POST /api/session/create",
+      "exit": 200,
+      "note": "ok·workspace=090d9317…"
+    },
+    {
+      "cmd": "POST /api/terminal/create",
+      "exit": 200,
+      "note": "A 会话 1"
+    },
+    {
+      "cmd": "POST /api/terminal/create",
+      "exit": 200,
+      "note": "A 会话 2"
+    }
+  ],
+  "notes": [
+    "terminal/create 被 gateway/internal（session.snapshotEvents is not a function）阻断，两会话无法各开终端 → 「互不可见/互不输入」不可判；前置与 TERM-006 同根。"
+  ],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

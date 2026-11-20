@@ -1,0 +1,14 @@
+# ACC/RC5-ACC-009
+# started 2026-11-19T23:52:00.344Z
+
+$ POST /api/deepseek-chat-import/archive（无 cookie）
+EXIT=401
+unauthorized
+
+$ POST /api/deepseek-chat-import/archive（B 登录 + 自己的 workspaceId + 空归档）
+EXIT=400
+workspaceId is required
+
+[ASSERT] 未登录 401 => PASS :: status=401
+
+[ASSERT] 登录用户经 access 门（非 401/403） => PASS :: status=400

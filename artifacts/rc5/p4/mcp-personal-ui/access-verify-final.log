@@ -1,0 +1,79 @@
+$ node scripts/build-client.mjs && oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+
+  lib/client.js  309.7kb
+
+⚡ Done in 19ms
+Found 0 warnings and 0 errors.
+Finished in 1.3s on 112 files with 87 rules using 10 threads.
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+
+ ✓ tests/workspace-session-actions.spec.ts (19 tests) 1430ms
+Cloning into '/var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-FzGaKE/merge-work'...
+done.
+From /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-FzGaKE/origin
+ * branch            publish/my-tool-0.1.0 -> FETCH_HEAD
+ ✓ tests/chat-import-gate.spec.ts (20 tests) 1528ms
+ ✓ tests/tenant.spec.ts (20 tests) 1525ms
+   56f6faa..a9c7f2c  main -> main
+ ✓ tests/store.spec.ts (19 tests) 1816ms
+ ✓ tests/mcp-personal-routes.spec.ts (24 tests) 1813ms
+ ✓ tests/tenant-guard-matrix.spec.ts (26 tests) 1970ms
+ ✓ tests/knowledge-admin-guard.spec.ts (6 tests) 739ms
+ ✓ tests/user-plugins.spec.ts (8 tests) 622ms
+ ✓ tests/mux-peer-drift.spec.ts (9 tests) 665ms
+ ✓ tests/mux-policy.spec.ts (7 tests) 584ms
+ ✓ tests/tasks-settings.spec.ts (8 tests) 1171ms
+ ✓ tests/gateway-role-gate.spec.ts (23 tests) 2808ms
+ ✓ tests/mcp-personal-runtime.spec.ts (14 tests) 1040ms
+Cloning into '/var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-LzDwpA/merge-work'...
+done.
+From /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-LzDwpA/origin
+ * branch            publish/my-tool-0.1.0 -> FETCH_HEAD
+   9ab072c..95e328f  main -> main
+ ✓ tests/market-gate-coverage.spec.ts (6 tests) 439ms
+ ✓ tests/routes.spec.ts (31 tests) 3103ms
+ ✓ tests/within-root.spec.ts (6 tests) 274ms
+ ✓ tests/workbench-stream.spec.ts (5 tests) 308ms
+ ✓ tests/companion.spec.ts (4 tests) 187ms
+ ✓ tests/session-create-cwd.spec.ts (3 tests) 159ms
+ ✓ tests/password.spec.ts (5 tests) 206ms
+ ✓ tests/panel-isolation.spec.ts (3 tests) 282ms
+ ✓ tests/question-bridge.spec.ts (16 tests) 37ms
+ ✓ tests/tenant-plugins.spec.ts (11 tests) 54ms
+ ✓ tests/approval-bridge.spec.ts (10 tests) 62ms
+ ✓ tests/thinking-auto.spec.ts (15 tests) 97ms
+ ✓ tests/sandbox-clamp.spec.ts (6 tests) 127ms
+ ✓ tests/terminal-tenant.spec.ts (4 tests) 127ms
+ ✓ tests/mux-drift.spec.ts (17 tests) 70ms
+ ✓ tests/thinking-score.spec.ts (16 tests) 9ms
+ ✓ tests/client-rpc.spec.ts (5 tests) 38ms
+ ✓ tests/plugin.spec.ts (4 tests) 160ms
+ ✓ tests/mcp-personal-client.spec.ts (19 tests) 37ms
+ ✓ tests/role-expansion-anchor.spec.ts (3 tests) 8ms
+ ✓ tests/login-gate.spec.ts (7 tests) 7ms
+ ✓ tests/companion-inject.spec.ts (12 tests) 8ms
+ ✓ tests/thinking-context.spec.ts (9 tests) 4ms
+ ✓ tests/channels-webhook.spec.ts (4 tests) 9ms
+ ✓ tests/link-opening.spec.ts (8 tests) 10ms
+ ✓ tests/channels-webhook-contract.spec.ts (3 tests) 3ms
+ ✓ tests/tool-schema.spec.ts (6 tests) 4ms
+ ✓ tests/decision-layer.spec.ts (11 tests) 6ms
+ ✓ tests/mcp-manager-drift.spec.ts (9 tests) 3ms
+ ✓ tests/model-catalog.spec.ts (4 tests) 3ms
+ ✓ tests/mcp-personal-wiring.spec.ts (5 tests) 3ms
+ ✓ tests/session.spec.ts (6 tests) 4ms
+ ✓ tests/ratelimit.spec.ts (3 tests) 2ms
+ ✓ tests/bias-view.spec.ts (3 tests) 2ms
+ ✓ tests/pages.spec.ts (5 tests) 2ms
+ ✓ tests/market-publish.spec.ts (11 tests) 5115ms
+     ✓ 首发全流程:组装/清单重写/两段 commit/push 到裸仓/compare 链接  760ms
+     ✓ 二次发布自动递增版本;索引多版本按 SemVer 降序  1313ms
+     ✓ 撞版先查:显式已存在版本在 commit 之前被拒  1121ms
+     ✓ 远端同名分支已存在 → 拒绝(上次 PR 未合并)  786ms
+
+ Test Files  49 passed (49)
+      Tests  498 passed (498)
+   Start at  03:45:39
+   Duration  5.39s (transform 1.22s, setup 0ms, import 2.88s, tests 28.68s, environment 3ms)
+

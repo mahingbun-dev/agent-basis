@@ -1,0 +1,3 @@
+docker exec eterna-rc5-e1 node -e '<libreoffice-kit createConverter().convert({inputPath,outputPath}) 三格式探针>'
+EXIT=0
+EXIT=0

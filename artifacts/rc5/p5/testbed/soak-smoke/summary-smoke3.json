@@ -1,0 +1,73 @@
+{
+  "script": "scripts/soak-rc5.mjs",
+  "tag": "smoke3",
+  "suite": "term",
+  "startedAt": "2026-11-19T21:45:11.897Z",
+  "endedAt": "2026-11-19T21:45:19.900Z",
+  "plannedSeconds": 8,
+  "elapsedSeconds": 8,
+  "reason": "planned-end",
+  "window": {
+    "complete": true,
+    "requirement": "24h 窗口未满不得判定通过（54 §6.3）",
+    "note": "窗口已满"
+  },
+  "container": "eterna-rc5-e1",
+  "dataRoot": "/Users/sunny/eterna-data/test-rc5/e1",
+  "counts": {
+    "termSamples": 2,
+    "dataSamples": 0
+  },
+  "logs": {
+    "term": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p5/testbed/soak-smoke/term-013-smoke3.jsonl",
+    "data": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p5/testbed/soak-smoke/data-009-smoke3.jsonl",
+    "soak": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p5/testbed/soak-smoke/soak-smoke3.log"
+  },
+  "term": {
+    "verdict": "FAIL",
+    "samples": 2,
+    "basis": {
+      "warmupSeconds": 1,
+      "baselineSamples": 2,
+      "steadySamples": 1,
+      "method": "预热期后基线中位数 vs 末 30min 中位数"
+    },
+    "fd": {
+      "first": 68,
+      "last": 66,
+      "min": 66,
+      "max": 68,
+      "baseline": 67,
+      "steady": 66,
+      "growth": -1,
+      "spreadAfterWarmup": 0,
+      "ok": true
+    },
+    "rssKb": {
+      "first": 586968,
+      "last": 586968,
+      "min": 586968,
+      "max": 586968,
+      "baseline": 586968,
+      "steady": 586968,
+      "growthMb": 0,
+      "limitMb": 45.86,
+      "ok": true
+    },
+    "churn": {
+      "cycles": 1,
+      "failures": 1,
+      "firstError": "create={\n  \"code\": \"gateway/internal\",\n  \"message\": \"session.snapshotEvents is not a fu close=ok",
+      "ok": false
+    },
+    "longProcess": {
+      "started": true,
+      "ok": true,
+      "detail": "spawned pid detached"
+    }
+  },
+  "limitations": [
+    "terminal/attach 走 WS mux（HTTP 不可达），脚本未执行 attach；created/closed churn 已记账",
+    "进程/内存采样为容器 /proc 只读采样（60s 级），非 profiler"
+  ]
+}

@@ -1,0 +1,168 @@
+{
+  "light": {
+    "390": {
+      "frameDisplay": "contents",
+      "layer": {
+        "position": "absolute",
+        "zIndex": "-1",
+        "pointerEvents": "none",
+        "top": "0px",
+        "left": "0px",
+        "right": "0px",
+        "bottom": "0px"
+      },
+      "coversRoot": true,
+      "ariaHidden": "true",
+      "markOpacity": "0.045",
+      "markWidth": "140px",
+      "ringDisplays": [
+        "none",
+        "none"
+      ],
+      "glowAnimation": "eterna-hero-breathe",
+      "headlineMarkSize": "34",
+      "hitAtInputCenter": "input.composer-input",
+      "hitIsInput": true,
+      "inputVisible": true,
+      "focused": "composer-input",
+      "scrollTop": 208
+    },
+    "900": {
+      "frameDisplay": "contents",
+      "layer": {
+        "position": "absolute",
+        "zIndex": "-1",
+        "pointerEvents": "none",
+        "top": "0px",
+        "left": "0px",
+        "right": "0px",
+        "bottom": "0px"
+      },
+      "coversRoot": true,
+      "ariaHidden": "true",
+      "markOpacity": "0.045",
+      "markWidth": "234px",
+      "ringDisplays": [
+        "block",
+        "block"
+      ],
+      "glowAnimation": "eterna-hero-breathe",
+      "headlineMarkSize": "34",
+      "hitAtInputCenter": "input.composer-input",
+      "hitIsInput": true,
+      "inputVisible": true,
+      "focused": "composer-input",
+      "scrollTop": 208
+    },
+    "1440": {
+      "frameDisplay": "contents",
+      "layer": {
+        "position": "absolute",
+        "zIndex": "-1",
+        "pointerEvents": "none",
+        "top": "0px",
+        "left": "0px",
+        "right": "0px",
+        "bottom": "0px"
+      },
+      "coversRoot": true,
+      "ariaHidden": "true",
+      "markOpacity": "0.045",
+      "markWidth": "380px",
+      "ringDisplays": [
+        "block",
+        "block"
+      ],
+      "glowAnimation": "eterna-hero-breathe",
+      "headlineMarkSize": "34",
+      "hitAtInputCenter": "input.composer-input",
+      "hitIsInput": true,
+      "inputVisible": true,
+      "focused": "composer-input",
+      "scrollTop": 88
+    }
+  },
+  "dark": {
+    "390": {
+      "frameDisplay": "contents",
+      "layer": {
+        "position": "absolute",
+        "zIndex": "-1",
+        "pointerEvents": "none",
+        "top": "0px",
+        "left": "0px",
+        "right": "0px",
+        "bottom": "0px"
+      },
+      "coversRoot": true,
+      "ariaHidden": "true",
+      "markOpacity": "0.03",
+      "markWidth": "140px",
+      "ringDisplays": [
+        "none",
+        "none"
+      ],
+      "glowAnimation": "eterna-hero-breathe",
+      "headlineMarkSize": "34",
+      "hitAtInputCenter": "input.composer-input",
+      "hitIsInput": true,
+      "inputVisible": true,
+      "focused": "composer-input",
+      "scrollTop": 208
+    },
+    "900": {
+      "frameDisplay": "contents",
+      "layer": {
+        "position": "absolute",
+        "zIndex": "-1",
+        "pointerEvents": "none",
+        "top": "0px",
+        "left": "0px",
+        "right": "0px",
+        "bottom": "0px"
+      },
+      "coversRoot": true,
+      "ariaHidden": "true",
+      "markOpacity": "0.03",
+      "markWidth": "234px",
+      "ringDisplays": [
+        "block",
+        "block"
+      ],
+      "glowAnimation": "eterna-hero-breathe",
+      "headlineMarkSize": "34",
+      "hitAtInputCenter": "input.composer-input",
+      "hitIsInput": true,
+      "inputVisible": true,
+      "focused": "composer-input",
+      "scrollTop": 208
+    },
+    "1440": {
+      "frameDisplay": "contents",
+      "layer": {
+        "position": "absolute",
+        "zIndex": "-1",
+        "pointerEvents": "none",
+        "top": "0px",
+        "left": "0px",
+        "right": "0px",
+        "bottom": "0px"
+      },
+      "coversRoot": true,
+      "ariaHidden": "true",
+      "markOpacity": "0.03",
+      "markWidth": "380px",
+      "ringDisplays": [
+        "block",
+        "block"
+      ],
+      "glowAnimation": "eterna-hero-breathe",
+      "headlineMarkSize": "34",
+      "hitAtInputCenter": "input.composer-input",
+      "hitIsInput": true,
+      "inputVisible": true,
+      "focused": "composer-input",
+      "scrollTop": 88
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "case": "RC5-DATA-009 + RC5-TERM-013",
+  "startedAt": "2026-11-19T21:45:37.331Z",
+  "plannedEndAt": "2026-11-20T21:45:37.331Z",
+  "plannedSeconds": 86400,
+  "observedElapsedSeconds": 11434,
+  "observedElapsedHours": 3.18,
+  "observedAt": "2026-11-20T00:56:11.232Z",
+  "windowComplete": false,
+  "verdict": "INCOMPLETE",
+  "latestDataTick": {
+    "at": "2026-11-20T00:56:11.232Z",
+    "elapsedSeconds": 11434,
+    "databases": [
+      {
+        "file": "access/users.db",
+        "walBytes": 0,
+        "shmBytes": 32768,
+        "ok": true,
+        "journal": "wal",
+        "integrity": [
+          "ok"
+        ],
+        "sessions": 136
+      },
+      {
+        "file": ".eterna/memory.sqlite3",
+        "walBytes": 90672,
+        "shmBytes": 32768,
+        "ok": true,
+        "journal": "wal",
+        "integrity": [
+          "ok"
+        ]
+      },
+      {
+        "file": "knowledge-admin/access.sqlite3",
+        "walBytes": 0,
+        "shmBytes": 0,
+        "ok": true,
+        "journal": "delete",
+        "integrity": [
+          "ok"
+        ]
+      }
+    ],
+    "write": {
+      "ok": 2,
+      "failed": 0,
+      "errors": []
+    },
+    "lockMatches": 0,
+    "walLogMatches": 0
+  },
+  "latestTermTick": {
+    "at": "2026-11-20T00:58:11.500Z",
+    "elapsedSeconds": 11554,
+    "dshPid": 1,
+    "fds": 150,
+    "rssKb": 306632,
+    "threads": 11,
+    "longProcs": 1,
+    "churn": "fail",
+    "churnError": "create={\n  \"code\": \"gateway/internal\",\n  \"message\": \"session.snapshotEvents is not a fu close=ok",
+    "probeExit": 0
+  },
+  "note": "窗口未满 24h，不得判绿；留 leftover SOAK-24H"
+}

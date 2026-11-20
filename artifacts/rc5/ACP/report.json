@@ -1,0 +1,81 @@
+{
+  "suite": "ACP",
+  "scenario": "all",
+  "startedAt": "2026-11-19T22:22:09.185Z",
+  "finishedAt": "2026-11-19T22:22:20.484Z",
+  "repo": "/Users/sunny/code/agent-basis-rc5",
+  "counts": {
+    "PASS": 11,
+    "FAIL": 0,
+    "SKIP": 0,
+    "NOTRUN": 0
+  },
+  "cases": [
+    {
+      "id": "RC5-ACP-001",
+      "priority": "P0",
+      "title": "initialize：合法 JSON-RPC 响应 + 协议版本协商",
+      "status": "PASS"
+    },
+    {
+      "id": "RC5-ACP-002",
+      "priority": "P0",
+      "title": "session/new + session/prompt 正常返回；无超时",
+      "status": "PASS"
+    },
+    {
+      "id": "RC5-ACP-004",
+      "priority": "P0",
+      "title": "ACP 容器无监听端口（无 host 端口映射 + /proc/net 无应用 LISTEN）",
+      "status": "PASS"
+    },
+    {
+      "id": "RC5-ACP-005",
+      "priority": "P0",
+      "title": "非法 JSON → JSON-RPC error（-32700）且进程不崩",
+      "status": "PASS"
+    },
+    {
+      "id": "RC5-ACP-006",
+      "priority": "P0",
+      "title": "工具需审批：ACP 按协议发 session/request_permission；客户端应答后不挂死",
+      "status": "PASS"
+    },
+    {
+      "id": "RC5-ACP-007",
+      "priority": "P0",
+      "title": "取消 prompt：取消生效（stopReason=cancelled）且后续请求可用",
+      "status": "PASS"
+    },
+    {
+      "id": "RC5-ACP-003",
+      "priority": "P0",
+      "title": "stdout 纯净：每行均为 JSON-RPC 2.0，无日志/横幅/进度",
+      "status": "PASS"
+    },
+    {
+      "id": "RC5-ACP-EXIT",
+      "priority": "INFO",
+      "title": "ACP 容器关闭 stdin 后正常退出（stderr 诊断面不计入纯净性）",
+      "status": "PASS"
+    },
+    {
+      "id": "RC5-ACP-008",
+      "priority": "P1",
+      "title": "两客户端并发：各自 initialize + session/new + prompt；会话隔离无串话",
+      "status": "PASS"
+    },
+    {
+      "id": "RC5-ACP-009",
+      "priority": "P1",
+      "title": "文档定位：仅可信操作员、无租户隔离、共享 /data、不暴露公网",
+      "status": "PASS"
+    },
+    {
+      "id": "RC5-ACP-010",
+      "priority": "P1",
+      "title": "web 与 ACP 同时启动同卷各跑一轮：两端可用；SQLite 无 database is locked；无 profile 渲染竞争",
+      "status": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+# L5 · W4 基座门禁修复 · 命令原文与退出码（2026-11-20，/Users/sunny/code/agent-basis-rc5）
+# 镜像：eterna-agent:rc5-p5-repair（entrypoint 改动后重建）。worktree 无 .env、未注入任何密钥。
+# 本机 shell = zsh（注意：zsh 不对未加引号的变量做词拆分，[14] 记录了这一点）。
+
+[1] env -u ETERNA_DATA_ROOT docker compose -f docker-compose.yml config
+    EXIT=0   # source: /Users/sunny/eterna-data/super（修复前：required variable ETERNA_DATA_ROOT …）
+[2] env -u ETERNA_DATA_ROOT docker compose -f docker-compose.super.yml config
+    EXIT=0   # source: /Users/sunny/eterna-data/super-2
+[3] env -u ETERNA_DATA_ROOT docker compose -f docker-compose.yml --profile acp config
+    EXIT=0   # 3 个服务；web 与 acp 的 /data 同源
+[4] ETERNA_DATA_ROOT=/srv/alt docker compose -f docker-compose.yml config
+    EXIT=0   # source: /srv/alt/super（显式覆写仍生效）
+    → artifacts/rc5/p5/repairs/compose-config.txt
+
+[5] docker build --progress=plain -t eterna-agent:rc5-p5-repair .
+    EXIT=0   # entrypoint 改动后重建（runtime 尾部层重跑，~2 分钟）
+    → artifacts/rc5/p5/repairs/image-build.log
+
+[6] docker run --rm eterna-agent:rc5-p5-repair dsh --version
+    EXIT=0   # 0.2.2-rc.5（修复前：entrypoint.sh:36 MIMO_API_KEY required，exit 2）
+[7] docker run --rm eterna-agent:rc5-p5-repair node -v
+    EXIT=0   # v24.22.3（同上，修复前 exit 2）
+[8] docker run --rm eterna-agent:rc5-p5-repair "dsh --version"
+    EXIT=0   # 整条命令当一个 argv 也能达断言（走 sh -c 兜底）
+[9] docker run --rm eterna-agent:rc5-p5-repair sh -c 'test ! -e /repo/core && test ! -e /repo/basis.yml && for p in system-prompt session tools llm approval-cli agent-loop; do test ! -e /repo/packages/$p || exit 1; done && echo "v1 stripped OK"'
+    EXIT=0   # v1 stripped OK（修复前 exit 2）
+[10] docker run --rm eterna-agent:rc5-p5-repair sh -c 'python3 -c "import docx, openpyxl, pptx; ..." && fc-list | grep -qi "Noto Sans CJK" && ...'
+    EXIT=0   # python docx/openpyxl/pptx OK + Noto Sans CJK/Liberation/DejaVu OK（修复前 exit 2）
+[11] docker run --rm eterna-agent:rc5-p5-repair sh -c 'echo command-mode-ok; id -u'
+    EXIT=0   # command-mode-ok / 0
+    → artifacts/rc5/p5/repairs/w4-image-checks.txt
+
+[12] docker run --rm eterna-agent:rc5-p5-repair
+    EXIT=2   # 仍 MIMO_API_KEY required（entrypoint.sh:57）——生产启动链未放开
+[13] docker run --rm eterna-agent:rc5-p5-repair --profile eterna-web
+    EXIT=2   # 同上：首参以 - 开头 = dsh 旗标，仍走完整启动链
+    → artifacts/rc5/p5/repairs/w4-negative-controls.txt
+
+[14] for spec in "dsh --version" "node -v"; do docker run --rm <img> $spec; done   # zsh 不拆词
+    EXIT=127 # "/app/entrypoint.sh: 47: exec: dsh --version: not found"——这是 zsh 不拆分
+             # 未加引号变量导致的单 argv 形态，不是 entrypoint 缺陷；为覆盖这种引号习惯，
+             # 已在 entrypoint 加「单 argv 含空格 → sh -c」兜底（[8] 验证）
+
+[15] docker run --rm --network=none --entrypoint sh eterna-agent:rc5-p5-repair -c '<断言集>'
+    EXIT=0   # dsh 0.2.2-rc.5 / node v24.22.3 / pnpm 11.7.0 / flock / entrypoint -rwxr-xr-x /
+             # koffi 3.1.1 load OK / apt lists 仅 auxfiles / apt archives 仅 lock+partial /
+             # npm cache absent / pip cache absent / corepack home 20M；镜像 3.93GB
+    → artifacts/rc5/p5/repairs/image-assertions.txt

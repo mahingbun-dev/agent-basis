@@ -1,0 +1,10 @@
+$ tsc --noEmit
+src/mcp-personal.ts(485,10): error TS6133: 'unauthenticatedFrame' is declared but its value is never read.
+src/mcp-personal.ts(576,61): error TS6133: 'caller' is declared but its value is never read.
+src/store.ts(817,18): error TS6133: 'userId' is declared but its value is never read.
+src/store.ts(822,25): error TS6133: 'userId' is declared but its value is never read.
+src/store.ts(827,16): error TS6133: 'userId' is declared but its value is never read.
+src/store.ts(827,32): error TS6133: 'id' is declared but its value is never read.
+/Users/sunny/code/agent-basis-rc5/packages/access:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @eterna/access@0.0.0 typecheck: `tsc --noEmit`
+Exit status 2

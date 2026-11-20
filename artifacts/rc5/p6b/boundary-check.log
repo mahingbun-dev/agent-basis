@@ -1,0 +1,20 @@
+# P6b 边界证据（2026-11-19T22:33Z）
+$ docker inspect eterna-agent --format ...
+name=/eterna-agent image=eterna-agent:0.1.51 id=sha256:3ca0d66055898b092f09761e5f67baa4a82741f1c7233d27bd2ddbd6de2b1a7b started=2026-11-19T17:21:06.582265918Z status=running
+
+$ docker inspect eterna-rc5-e1/e3 --format ...
+eterna-rc5-e1 image=sha256:5b10f5136403b905c327f8438cedd07eb65979075b818cf625e088f623064172 started=2026-11-19T21:09:04.191250888Z status=running
+eterna-rc5-e3 image=sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00 started=2026-11-19T22:15:24.63643105Z status=running
+
+$ git status --short artifacts/rc5/DATA artifacts/rc5/p6b
+?? artifacts/rc5/DATA/
+?? artifacts/rc5/p6b/
+
+$ git rev-parse HEAD
+02f485788411b9aed1938a3c4b009793a090961e
+
+# 验收后收尾（释放资源；数据根保留）2026-11-19T22:34:39Z
+$ docker stop -t 30 eterna-rc5-p6b-a
+eterna-rc5-p6b-a
+EXIT=0
+status=exited started=2026-11-19T22:25:57.638124009Z

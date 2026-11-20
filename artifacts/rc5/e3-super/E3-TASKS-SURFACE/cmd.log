@@ -1,0 +1,14 @@
+# E3-TASKS-SURFACE — （lane 本地）tasks 设置/角色面 live 契约
+CMD: node artifacts/rc5/e3-super/run-suite.mjs E3-TASKS-SURFACE
+START: 2026-11-19T22:27:51.747Z
+# 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
+
+[exit=0] docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)  # boot token 不入证据
+[exit=200] GET /connect + GET /?token=… (dsh session bootstrap)  # token 已脱敏
+[exit=200] POST /login (admin from 0600 accounts file)  # account=rc5admin
+[exit=200] GET /access/api/tasks/settings
+[exit=200] POST /access/api/tasks/settings  # no-op 保存（资料类合并保存，值不变）
+[exit=200] GET /access/api/tasks/session-roles
+[exit=400] POST /access/api/tasks/settings  # 非法块名负向
+
+EXIT=0

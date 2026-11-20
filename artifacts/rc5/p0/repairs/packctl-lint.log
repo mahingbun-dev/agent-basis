@@ -1,0 +1,5 @@
+pack: /Users/sunny/code/agent-basis-rc5/packs/event-planning
+  ✓ 无发现(lint 全绿)
+pack: /Users/sunny/code/agent-basis-rc5/packs/industrial-analysis
+  ✓ 无发现(lint 全绿)
+lint 通过: 0 error / 0 warning,共 2 个包

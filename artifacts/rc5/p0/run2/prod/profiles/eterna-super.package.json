@@ -1,0 +1,28 @@
+{
+  "name": "dsh-profile-eterna-web",
+  "private": true,
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "@eterna/hello-market",
+        "@deepseek-ai/dsh-experimental-plugin-market-bundle",
+        "@deepseek-ai/dsh-experimental-voice-input-bundle",
+        "@deepseek-ai/dsh-experimental-auto-review",
+        "@deepseek-ai/dsh-experimental-forge-bundle",
+        "@deepseek-ai/dsh-personalized-recommendations",
+        "@deepseek-ai/dsh-experimental-inspector-profile",
+        "@deepseek-ai/dsh-experimental-cot-translation-bundle",
+        "@deepseek-ai/dsh-experimental-session-titles-bundle",
+        "@deepseek-ai/dsh-experimental-agent-team-profile",
+        "@deepseek-ai/dsh-experimental-badge-skill-bundle"
+      ]
+    }
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-experimental-plugin-market-bundle": "0.2.2-alpha.3",
+    "@eterna/hello-market": "github:mahingbun-dev/eterna-plugins#1633fc451214009b3f1b2ffac74d4670d85bed75&path:/bundles/hello-market",
+    "@eterna/knowledge-admin": "link:/data/workspaces/Mr.Ma/kh-admin-plugin"
+  }
+}

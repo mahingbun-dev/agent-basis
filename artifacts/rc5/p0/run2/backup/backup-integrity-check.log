@@ -1,0 +1,20 @@
+# cmd: python3 -I -c 'PRAGMA integrity_check' over extracted DBs
+---
+.eterna/channels.sqlite3: ok
+.eterna/knowledge.sqlite3: ok
+.eterna/memory.sqlite3: ok
+access/users.db: ok
+.pnpm-store/v11/index.db: ok
+workspaces/cherry/.eterna/knowledge.sqlite3: ok
+workspaces/cherry/.eterna/memory.sqlite3: ok
+workspaces/Mr.Ma/.eterna/knowledge.sqlite3: ok
+workspaces/Mr.Ma/.eterna/memory.sqlite3: ok
+workspaces/Mr.Ma/.eterna/tasks.sqlite3: ok
+workspaces/Mr.Ma/kh-admin-plugin/.tmp-probe/ledger/access.sqlite3: ok
+workspaces/Mr.Ma/kh-admin-plugin/.tmp-probe/tenants/demo/.eterna/knowledge.sqlite3: ok
+workspaces/iso-beta/.eterna/memory.sqlite3: ok
+workspaces/iso-alpha/.eterna/memory.sqlite3: ok
+knowledge-admin/access.sqlite3: ok
+memory-distill/ledger.sqlite3: ok
+SUMMARY ok=16 bad=0
+EXIT=0

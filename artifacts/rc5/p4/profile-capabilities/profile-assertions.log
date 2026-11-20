@@ -1,0 +1,64 @@
+PASS  [web] preset-standard row set includes tool-office
+PASS  [web] template cuts preset-ptc (product decision) without restating its config
+PASS  [web] preset-cordis (product restatement) includes tool-office
+PASS  [web] template does not re-insert office-kit/skill-office (upstream web-app owns them)
+PASS  [super] preset-standard row set includes tool-office
+PASS  [super] template cuts preset-ptc (product decision) without restating its config
+PASS  [super] preset-cordis (product restatement) includes tool-office
+PASS  [super] template does not re-insert office-kit/skill-office (upstream web-app owns them)
+PASS  [web] composed profile: preset-standard row set includes tool-office
+PASS  [web] composed profile: preset-ptc row set includes tool-office
+PASS  [web] composed profile: preset-cordis row set includes tool-office
+PASS  [web] composed profile: office-kit outputDirectory = dshHomePath(office-kit, outputs)
+PASS  [web] composed profile: skill-office pythonEnvironment resolves to user unless desktop
+PASS  [super] composed profile: preset-standard row set includes tool-office
+PASS  [super] composed profile: preset-ptc row set includes tool-office
+PASS  [super] composed profile: preset-cordis row set includes tool-office
+PASS  [super] composed profile: office-kit outputDirectory = dshHomePath(office-kit, outputs)
+PASS  [super] composed profile: skill-office pythonEnvironment resolves to user unless desktop
+PASS  [web] composed profile: terminal panel config preferredShells=[bash], readUserTerminals=false
+PASS  [super] composed profile: terminal panel config preferredShells=[bash], readUserTerminals=false
+PASS  office-kit upstream default outputRetentionMs = 24h (86400000) —   outputRetentionMs: z.natural().min(1).max(2_147_483_647).default(24 * 60 * 60 * 1000),
+PASS  office-kit upstream default maxOutputStoreBytes = 512MB —   maxOutputStoreBytes: z.natural().min(1).max(Number.MAX_SAFE_INTEGER).default(512 * 1024 * 1024),
+PASS  [web] boot: office-kit active
+PASS  [web] boot: skill-office active
+PASS  [web] boot: standard preset tool-office enabled+active
+PASS  [web] boot: cordis (创造模式) preset tool-office enabled+active
+PASS  [web] boot: preset-ptc cut from live roster (product decision)
+PASS  [super] boot: office-kit active
+PASS  [super] boot: skill-office active
+PASS  [super] boot: standard preset tool-office enabled+active
+PASS  [super] boot: cordis (创造模式) preset tool-office enabled+active
+PASS  [super] boot: preset-ptc cut from live roster (product decision)
+PASS  [web] template: optional-terminal-panel preferredShells=[bash], readUserTerminals=false
+PASS  [web] template: terminal rows not re-inserted (bundle owns the group)
+PASS  [super] template: optional-terminal-panel preferredShells=[bash], readUserTerminals=false
+PASS  [super] template: terminal rows not re-inserted (bundle owns the group)
+PASS  [web] boot: optional-terminal-registry enabled+active
+PASS  [web] boot: optional-terminal-panel enabled+active
+PASS  [web] boot: optional-tool-terminal enabled+active
+PASS  [web] boot: terminal-controller enabled+active
+PASS  [web] boot: ui-sidebar-terminal enabled+active
+PASS  [super] boot: optional-terminal-registry enabled+active
+PASS  [super] boot: optional-terminal-panel enabled+active
+PASS  [super] boot: optional-tool-terminal enabled+active
+PASS  [super] boot: terminal-controller enabled+active
+PASS  [super] boot: ui-sidebar-terminal enabled+active
+PASS  tool-terminal exposes 6 terminal_* tools — terminal_open, terminal_send, terminal_read, terminal_signal, terminal_close, terminal_list
+PASS  access tenant guard covers 9 terminal methods — environment, shells, list, create, close, rename, attach, retain, watch
+PASS  [web] boot: agent-team enabled+active
+PASS  [web] boot: tool-agent-team enabled+active
+PASS  [web] boot: ui-agent-team enabled+active
+PASS  [web] boot: no agent-team row duplicate
+PASS  [super] boot: agent-team enabled+active
+PASS  [super] boot: tool-agent-team enabled+active
+PASS  [super] boot: ui-agent-team enabled+active
+PASS  [super] boot: no agent-team row duplicate
+PASS  真 boot effectiveConfig: skill-office pythonEnvironment=user — {"pythonEnvironment":"user"}
+PASS  真 boot effectiveConfig: office-kit outputDirectory=<DSH_HOME>/office-kit/outputs — /tmp/team-mode-probe-13036/office-kit/outputs
+PASS  真 boot effectiveConfig: office-kit outputRetentionMs=24h, maxOutputStoreBytes=512MiB — {"outputRetentionMs":86400000,"maxOutputStoreBytes":536870912}
+PASS  真 boot effectiveConfig: terminal panel preferredShells=[bash], readUserTerminals=false — {"preferredShells":["bash"],"readUserTerminals":false}
+PASS  真 boot effectiveConfig: agent-team defaultEnabled=false (Team mode 默认关) — {"maxTasks":256,"defaultEnabled":false}
+PASS  真 boot: new Session defaults Team mode OFF (agentTeams.isEnabled=false) — TEAM_DEFAULT_PROBE {"sessionId":"probe-mwny9tmu-kfdv03","isEnabled":false,"teamModeEventCount":0,"selection":{"provider":"mimo","model":"mimo-v2.6-pro"}}
+PASS  governance rules list team_* collab tools (audited allow rule)
+profile-assertions: OK — all capability assertions passed

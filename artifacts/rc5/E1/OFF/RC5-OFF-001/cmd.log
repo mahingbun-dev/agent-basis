@@ -1,0 +1,14 @@
+# OFF/RC5-OFF-001
+# started 2026-11-19T23:29:57.674Z
+
+$ docker cp tests/fixtures/office/sample.docx rc5-e1suite:/tmp/office/docx/ && docker exec rc5-e1suite node /tmp/office/probe.mjs
+EXIT=0
+backend=wasm pageCount=1 missingFonts=[]
+
+$ docker exec rc5-e1suite node … renderImages({inputPath:/tmp/office/docx/sample.docx,pages:[1]})
+EXIT=0
+page-0001.png 144dpi；人工查看：中文标题/正文/表格清晰，不重复/不乱码
+
+[ASSERT] docx → pdf 成功 => PASS
+
+[ASSERT] 中文不乱码（渲染图人工核对） => PASS :: sample-docx-page1.png

@@ -1,0 +1,80 @@
+{
+  "dir": "/tmp/overlay-stress",
+  "writers": 8,
+  "opsPerWriter": 200,
+  "expected": 1600,
+  "ok": 1600,
+  "busy": 0,
+  "other": 0,
+  "rows": 1600,
+  "elapsedMs": 86,
+  "integrity": "ok",
+  "quickCheck": "ok",
+  "journalMode": "wal",
+  "mmapSize": 268435456,
+  "walBytes": 4152,
+  "shmBytes": 32768,
+  "crash": {
+    "exit": 97,
+    "integrity": "ok",
+    "rows": 0
+  },
+  "workerResults": [
+    {
+      "worker": 0,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 1,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 2,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 3,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 4,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 5,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 6,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    },
+    {
+      "worker": 7,
+      "ok": 200,
+      "busy": 0,
+      "other": 0,
+      "errors": {}
+    }
+  ]
+}

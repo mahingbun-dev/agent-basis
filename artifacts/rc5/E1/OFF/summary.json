@@ -1,0 +1,62 @@
+{
+  "suite": "OFF",
+  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "imageTag": "eterna-agent:rc5-test",
+  "imageId": "",
+  "container": "rc5-e1suite",
+  "base": "http://127.0.0.1:3118",
+  "dataRoot": "",
+  "startedAt": "2026-11-19T23:29:57.673Z",
+  "finishedAt": "2026-11-19T23:29:57.939Z",
+  "total": 7,
+  "pass": 6,
+  "fail": 0,
+  "skip": 0,
+  "notrun": 1,
+  "counts": {
+    "PASS": 6,
+    "FAIL": 0,
+    "SKIP": 0,
+    "NOTRUN": 1
+  },
+  "halted": false,
+  "haltReason": "",
+  "failures": [],
+  "cases": [
+    {
+      "id": "RC5-OFF-001",
+      "status": "PASS",
+      "title": "docx → pdf（中文）"
+    },
+    {
+      "id": "RC5-OFF-002",
+      "status": "PASS",
+      "title": "xlsx → pdf（公式/表格）"
+    },
+    {
+      "id": "RC5-OFF-003",
+      "status": "PASS",
+      "title": "pptx → pdf（版式）"
+    },
+    {
+      "id": "RC5-OFF-004",
+      "status": "PASS",
+      "title": "镜像 CJK 字体"
+    },
+    {
+      "id": "RC5-OFF-005",
+      "status": "PASS",
+      "title": "镜像 Python Office 库"
+    },
+    {
+      "id": "RC5-OFF-006",
+      "status": "PASS",
+      "title": "输出目录 24h/512MB 清理与备份排除"
+    },
+    {
+      "id": "RC5-OFF-007",
+      "status": "NOTRUN",
+      "title": "office-docx 技能加载 + 编辑样本（未执行）"
+    }
+  ]
+}

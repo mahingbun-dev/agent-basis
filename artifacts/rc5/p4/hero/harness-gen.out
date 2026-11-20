@@ -1,0 +1,23 @@
+{
+  "tokensCssBytes": 46002,
+  "heroCssBytes": 3043,
+  "htmlBytesLight": 53330,
+  "registrations": [
+    {
+      "name": "sidebar.brand.mark",
+      "id": null
+    },
+    {
+      "name": "sidebar.brand.name",
+      "id": null
+    },
+    {
+      "name": "conversation.hero.frame",
+      "id": "eterna-hero-skin"
+    },
+    {
+      "name": "conversation.hero.brand.mark",
+      "id": null
+    }
+  ]
+}

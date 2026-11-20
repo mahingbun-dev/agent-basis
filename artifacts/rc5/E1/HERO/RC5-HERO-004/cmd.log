@@ -1,0 +1,14 @@
+# HERO/RC5-HERO-004
+# started 2026-11-19T23:17:24.413Z
+
+$ IAB 1440×900: 连续发送 8 轮（每轮模型因占位密钥失败）→ scrollBody.scrollTop=scrollHeight / 0
+EXIT=0
+clientHeight=824 scrollHeight=1616 max=792 bottom=792 top=0 frameBottom=false frameTop=false
+
+[ASSERT] 对话体可滚动（scrollHeight > clientHeight） => PASS :: max=792
+
+[ASSERT] 滚到底：无 hero frame/layer 残留 => PASS
+
+[ASSERT] 滚到顶：无 hero frame/layer 残留 => PASS
+
+# note: 第 2 轮文本因上一轮草稿残留重复为 “hero 滚动自检 2hero 滚动自检 2”，属测试操作瑕疵，非产品缺陷；其余 3..8 轮正常

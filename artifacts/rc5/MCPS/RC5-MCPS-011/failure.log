@@ -1,0 +1,2 @@
+[migrate-mcp-servers]: 失败（fail-closed，新 patch 保留原样）: artifacts/rc5/MCPS/RC5-MCPS-011/fixture/old-broken.cordis.patch.yml: YAML 解析失败:Unexpected : in flow sequence at line 2, column 8:
+[migrate-mcp-servers]: 备份 JSON: artifacts/rc5/MCPS/RC5-MCPS-011/fixture/.upgrade-mcp-servers-backup.json

@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-11-19T17:58:13.965Z",
+  "version": 1,
+  "profileDir": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p2/migrate-t12-profile-check/fixture/bad-patch",
+  "profile": "bad-patch",
+  "mode": "boot",
+  "removed": [],
+  "backup": null,
+  "manifestError": null,
+  "patchError": "cordis.patch.yml 解析失败:Flow sequence in block collection must be sufficiently indented and end with a ] at line 2, column 1: (line 2, column 1)",
+  "bad": [
+    {
+      "bundle": "@eterna/knowledge-admin",
+      "status": "invalid",
+      "reason": "未声明 dsh.bundle（dsh 会跳过该层）"
+    },
+    {
+      "bundle": "(cordis.patch.yml)",
+      "status": "patch",
+      "reason": "cordis.patch.yml 解析失败:Flow sequence in block collection must be sufficiently indented and end with a ] at line 2, column 1: (line 2, column 1)"
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "suite": "IMP",
+  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "imageTag": "eterna-agent:rc5-test",
+  "imageId": "",
+  "container": "rc5-e1suite",
+  "base": "http://127.0.0.1:3118",
+  "dataRoot": "",
+  "startedAt": "2026-11-19T23:26:27.443Z",
+  "finishedAt": "2026-11-19T23:26:27.457Z",
+  "total": 10,
+  "pass": 9,
+  "fail": 0,
+  "skip": 0,
+  "notrun": 1,
+  "counts": {
+    "PASS": 9,
+    "FAIL": 0,
+    "SKIP": 0,
+    "NOTRUN": 1
+  },
+  "halted": false,
+  "haltReason": "",
+  "failures": [],
+  "cases": [
+    {
+      "id": "RC5-IMP-001",
+      "status": "PASS",
+      "title": "未登录上传 401 且不写会话"
+    },
+    {
+      "id": "RC5-IMP-002",
+      "status": "PASS",
+      "title": "B 传 A 的 workspaceId 403 且不写"
+    },
+    {
+      "id": "RC5-IMP-003",
+      "status": "PASS",
+      "title": "B 导入 10 会话归档 200 → sessionIds=10"
+    },
+    {
+      "id": "RC5-IMP-004",
+      "status": "PASS",
+      "title": "导入会话 B 可见 / A 不可见"
+    },
+    {
+      "id": "RC5-IMP-009",
+      "status": "PASS",
+      "title": "坏 JSON 会话跳过、其余完整"
+    },
+    {
+      "id": "RC5-IMP-005",
+      "status": "PASS",
+      "title": "导入会话属主记账（含异步收敛）"
+    },
+    {
+      "id": "RC5-IMP-006",
+      "status": "PASS",
+      "title": "1001 会话按上限截断"
+    },
+    {
+      "id": "RC5-IMP-008",
+      "status": "PASS",
+      "title": "上传中途取消后对账"
+    },
+    {
+      "id": "RC5-IMP-010",
+      "status": "PASS",
+      "title": "反代 512m/读超时配置口径"
+    },
+    {
+      "id": "RC5-IMP-007",
+      "status": "NOTRUN",
+      "title": "512MiB 边界上传不 OOM"
+    }
+  ]
+}

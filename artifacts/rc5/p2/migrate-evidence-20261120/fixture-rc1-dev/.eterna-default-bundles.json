@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "defaultBundles": [
+    "@deepseek-ai/dsh-base",
+    "@deepseek-ai/dsh-deepseek-chat-import",
+    "@deepseek-ai/dsh-experimental-plugin-market-bundle",
+    "@deepseek-ai/dsh-experimental-session-search",
+    "@deepseek-ai/dsh-experimental-terminal-bundle",
+    "@deepseek-ai/dsh-web-app"
+  ]
+}

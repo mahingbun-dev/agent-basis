@@ -1,0 +1,35 @@
+# T39-UNIT — `/compact` 命令插件单测(新增)与包级 verify
+# 工作树: /Users/sunny/code/agent-basis-rc5 (feat/dsh-rc5-merge)
+# 时间: 2026-11-20
+# 新增文件: packages/compaction/tests/command-plugin.spec.ts
+# 改动文件: packages/compaction/src/command-plugin.ts(definitionId 修复)
+
+[1] 修复前(暴露缺陷):
+  $ node_modules/.bin/vitest run --root packages/compaction tests/command-plugin.spec.ts
+  EXIT=1 → pre-fix.vitest.log
+  关键 FAIL: 「注册 name=compact,且 / 菜单/中文别名按上游首方身份识别」
+    builtinCommandName(descriptor) === undefined
+    (definitionId 被 fork 成 '@eterna/compaction/command-plugin',不在 dsh-commands BUILTINS)
+  说明: 同次运行另一条 abort 用例失败是测试写法问题(注册表 withAbort 先 reject),
+       已改为直接调 handler 验证插件映射,不是产品缺陷。
+
+[2] 修复: packages/compaction/src/command-plugin.ts:103
+  definitionId: CommandDefinitionId('@deepseek-ai/dsh-command-compact')
+  (恢复上游首方能力标识;插件模块/挂载行名仍是 @eterna/compaction/command-plugin)
+
+[3] 修复后:
+  $ node_modules/.bin/vitest run --root packages/compaction tests/command-plugin.spec.ts
+  EXIT=0 → vitest.log   Test Files 1 passed / Tests 9 passed
+  覆盖: 注册身份(builtinCommandName='compact';resolveCommand('compact'/'压缩') 命中)、
+        同层重名拒绝、无参 Usage、compactNow 委托(同 agent/signal/commandId)、
+        null→No compactable history yet.、结果计数+summarySeq、ManualCompactionError 六码、
+        handler abort→cancelled、非 ManualCompactionError 上抛、dispose 注销
+
+[4] 包级 verify(含 build:client + oxlint + tsc + 全量单测):
+  $ /opt/homebrew/bin/pnpm --filter @eterna/compaction run verify
+  EXIT=0 → verify.log   Test Files 18 passed / Tests 241 passed; oxlint 0 warnings 0 errors; tsc 无错误
+
+[5] 浏览器侧回归: 修复后 / 菜单显示 "压缩compact压缩以上对话内容"(本地化 label/icon 生效),
+    /压缩 可执行 → 见 ../RC5-CMD-001、../RC5-CMD-002
+
+结论: PASS(单测/包 verify 全绿;缺陷已修复并回归)

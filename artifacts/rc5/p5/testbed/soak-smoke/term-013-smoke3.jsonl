@@ -1,0 +1,2 @@
+{"at":"2026-11-19T21:45:12.243Z","elapsedSeconds":0,"dshPid":1,"fds":68,"rssKb":586968,"threads":11,"longProcs":2,"churn":"fail","churnError":"create={\n  \"code\": \"gateway/internal\",\n  \"message\": \"session.snapshotEvents is not a fu close=ok","probeExit":0}
+{"at":"2026-11-19T21:45:16.351Z","elapsedSeconds":4,"dshPid":1,"fds":66,"rssKb":586968,"threads":11,"longProcs":2,"churn":"fail","churnError":"create={\n  \"code\": \"gateway/internal\",\n  \"message\": \"session.snapshotEvents is not a fu close=ok","probeExit":0}

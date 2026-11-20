@@ -1,0 +1,74 @@
+# case: RC5-DATA-008
+# host: ma-macminideMac-mini.local  user: sunny  time: 2026-11-19T22:23:29Z
+
+marker sha256=5a20d6e937442fdbff5c27eb1ce18977fc7f338fb1e741ed92646f22141bb862
+
+$ env ETERNA_DATA_ROOT=/Users/sunny/eterna-data/test-rc5 BACKUP_DIR=/Users/sunny/eterna-data/test-rc5/.p6b-data008-backups ETERNA_CONTAINER_NAME=eterna-rc5-p6b-a bash deploy/backup-data.sh p6b-e5a
+# label: backup-data.sh 全链（内置 stop/start）
+# started: 2026-11-19T22:23:29Z
+[backup-data] 停止容器（冷备）: eterna-rc5-p6b-a
+[backup-data] 归档: /Users/sunny/eterna-data/test-rc5/p6b-e5a -> /Users/sunny/eterna-data/test-rc5/.p6b-data008-backups/p6b-e5a-20261120-062329.tgz
+[backup-data] 校验 OK: 6987 文件条目（ 25M）
+[backup-data] 冷备完成: /Users/sunny/eterna-data/test-rc5/.p6b-data008-backups/p6b-e5a-20261120-062329.tgz
+[backup-data] 重启容器 eterna-rc5-p6b-a
+EXIT=0
+
+ASSERT PASS | 备份脚本 EXIT=0 | actual=0 expected=0
+ASSERT PASS | 备份文件存在 | actual=yes expected=yes
+ASSERT PASS | 备份包权限 0600 | actual=600 expected=600
+ASSERT PASS | 备份目录权限 0700 | actual=700 expected=700
+$ sh -c tar tzf '/Users/sunny/eterna-data/test-rc5/.p6b-data008-backups/p6b-e5a-20261120-062329.tgz' | wc -l
+# label: tar tzf 校验（条目数）
+# started: 2026-11-19T22:23:33Z
+    6987
+EXIT=0
+
+ASSERT PASS | 包内含 marker | actual=1 expected=1
+ASSERT PASS | 包内不含 office-kit/outputs | actual=0 expected=0
+ASSERT PASS | 包内不含 .pnpm-store | actual=0 expected=0
+ASSERT PASS | 脚本已把容器重新启动 | actual=true expected=true
+$ sh -c docker inspect eterna-rc5-p6b-a --format '{{.State.Status}}/{{.State.Health.Status}}'
+# label: 容器健康（脚本 restart 后）
+# started: 2026-11-19T22:23:34Z
+running/starting
+EXIT=0
+
+$ docker stop -t 60 eterna-rc5-p6b-a
+# label: docker stop（取冷态基线）
+# started: 2026-11-19T22:23:34Z
+eterna-rc5-p6b-a
+EXIT=0
+
+冷态基线文件数=5428（排除 office-kit/outputs 与 .pnpm-store）
+
+$ env SKIP_STOP=1 ETERNA_DATA_ROOT=/Users/sunny/eterna-data/test-rc5 BACKUP_DIR=/Users/sunny/eterna-data/test-rc5/.p6b-data008-backups ETERNA_CONTAINER_NAME=eterna-rc5-p6b-a bash deploy/backup-data.sh p6b-e5a
+# label: SKIP_STOP=1 backup-data.sh（冷态归档）
+# started: 2026-11-19T22:24:35Z
+[backup-data] SKIP_STOP=1：假定容器已是冷态，不执行 stop/start
+[backup-data] 归档: /Users/sunny/eterna-data/test-rc5/p6b-e5a -> /Users/sunny/eterna-data/test-rc5/.p6b-data008-backups/p6b-e5a-20261120-062435.tgz
+[backup-data] 校验 OK: 6991 文件条目（ 26M）
+[backup-data] 冷备完成: /Users/sunny/eterna-data/test-rc5/.p6b-data008-backups/p6b-e5a-20261120-062435.tgz
+EXIT=0
+
+用于恢复的归档: /Users/sunny/eterna-data/test-rc5/.p6b-data008-backups/p6b-e5a-20261120-062435.tgz（sha256 f1b0d58de76abbbab5be46a4858a2ab62bcba709b7b5a45e5b0490eccb7a1091）
+
+$ docker start eterna-rc5-p6b-a
+# label: docker start（恢复容器运行）
+# started: 2026-11-19T22:24:38Z
+eterna-rc5-p6b-a
+EXIT=0
+
+ASSERT PASS | 测试文件已删除 | actual=deleted expected=deleted
+$ sh -c tar xzf '/Users/sunny/eterna-data/test-rc5/.p6b-data008-backups/p6b-e5a-20261120-062435.tgz' -C '/Users/sunny/eterna-data/test-rc5/p6b-restore'
+# label: tar xzf 恢复到空目录
+# started: 2026-11-19T22:24:39Z
+EXIT=0
+
+ASSERT PASS | 恢复解包 EXIT=0 | actual=0 expected=0
+ASSERT PASS | 恢复后 marker 内容一致 | actual=5a20d6e937442fdbff5c27eb1ce18977fc7f338fb1e741ed92646f22141bb862 expected=5a20d6e937442fdbff5c27eb1ce18977fc7f338fb1e741ed92646f22141bb862
+ASSERT PASS | 恢复后清单（路径|大小|权限）与备份前一致 | actual=identical (5428 files) expected=identical (5428 files)
+ASSERT PASS | 恢复副本全库 integrity_check | actual=0 expected=0
+ASSERT PASS | 恢复副本 DB 数 = 16（源 17 − 备份排除项 .pnpm-store/v11/index.db） | actual=16 expected=16
+ASSERT PASS | 被排除的库不含 .pnpm-store（备份口径） | actual=yes expected=yes
+PASS=15 FAIL=0
+

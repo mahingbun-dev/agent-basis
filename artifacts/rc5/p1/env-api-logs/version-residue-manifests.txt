@@ -1,0 +1,22 @@
+### per-surface version pin scan (0.2.1 / 0.2.2-alpha.2|3 / 0.2.2-rc.1 / 4.0.6)
+## surfaces: package.json(除 v1/ core/), pnpm-workspace.yaml, tools/**, packs/**, market/**
+manifests_scanned=46
+dsh_family_specs=88
+stale_pins=0
+stale_floors=4
+FLOOR | market/glue-bundle/package.json | peerDependencies.@deepseek-ai/cordis=>=4.0.6-alpha.1
+FLOOR | market/pack-bundle/package.json | peerDependencies.@deepseek-ai/cordis=>=4.0.6-alpha.1
+FLOOR | packs/event-planning/package.json | peerDependencies.@deepseek-ai/cordis=>=4.0.6-alpha.1
+FLOOR | packs/industrial-analysis/package.json | peerDependencies.@deepseek-ai/cordis=>=4.0.6-alpha.1
+## pnpm-workspace.yaml raw tokens:
+(0 hits)
+## root package.json @deepseek-ai specs:
+{
+  "@deepseek-ai/dsh": "0.2.2-rc.5",
+  "@deepseek-ai/dsh-sdk-client": "0.2.2-rc.5"
+ }
+}
+## catalog dsh entries:
+dsh_catalog_entries=28 off_target=none
+cordis_catalog='@deepseek-ai/cordis': 4.1.0
+cosmokit_catalog='@deepseek-ai/cosmokit': 1.9.0

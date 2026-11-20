@@ -1,0 +1,4 @@
+GLOBAL_STREAM_ACTIONS = [workspace/follow, account/watch, account/watchExpiry, job/follow, session/control, productAnalytics/watchPolicy, mcpManager/watch, speech/follow, forgePanel/changeRequestStates]
+ADMIN_ONLY_STREAM_ACTIONS = [mcpManager/watch]
+GLOBAL_UNARY_ACTIONS = [settings/describe, pluginManager/listBundles, session/create, schedule/list, mcpManager/restart, mcpManager/probe]
+ADMIN_ONLY_UNARY_ACTIONS = [pluginManager/listBundles, mcpManager/restart, mcpManager/probe]

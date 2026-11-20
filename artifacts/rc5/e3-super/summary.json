@@ -1,0 +1,235 @@
+{
+  "suite": "E3-super",
+  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "imageTag": "eterna-agent:rc5-test",
+  "imageId": "sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00",
+  "startedAt": "2026-11-19T22:26:30.343Z",
+  "finishedAt": "2026-11-19T22:35:39.623Z",
+  "total": 23,
+  "pass": 12,
+  "fail": 2,
+  "skip": 0,
+  "notrun": 9,
+  "failures": [
+    {
+      "id": "RC5-TERM-006",
+      "title": "同 session 调 9 动作全部成功（TERM-006）",
+      "failed": [
+        "terminal/create 成功（9 动作前置）",
+        "6 个 unary 动作全部成功"
+      ]
+    },
+    {
+      "id": "RC5-TERM-004",
+      "title": "B 用 A 的 sessionId：6 个 terminal unary 全部拒绝（TERM-004）",
+      "failed": [
+        "B 用 A 的 sessionId 调 6 个 unary 全部 403/deny",
+        "B 未拿到 A 的 cwd/shells（无数据泄漏）"
+      ]
+    }
+  ],
+  "notrunCases": [
+    {
+      "id": "RC5-API-004",
+      "title": "tasks 包 verify（API-004）——替代覆盖：test/typecheck/oxlint",
+      "reason": "51 的 API-004 命名命令 `pnpm --filter @eterna/tasks verify` 含 build:client（写 packages/tasks/lib/client.js）；本 lane 可改文件仅限 artifacts/rc5/e3-super/**，故未跑复合 verify，改跑 test/typecheck/oxlint 三段并如实标注。"
+    },
+    {
+      "id": "RC5-API-005",
+      "title": "主会话派 2 个 worker：waitForTreeWork 等到全部完成（API-005）",
+      "reason": "E3 测试账号 rc5admin 与模板 realm=Mr.Ma 不对齐 → orchestrator 主会话未登记；API-005 的「主会话派 2 个 worker」在 E3 无法成立（P6 需真模型 + realm 对齐账号）。"
+    },
+    {
+      "id": "RC5-API-006",
+      "title": "查询后代列表与任务树一致（API-006）",
+      "reason": "listDescendants 属宿主 subagent 服务方法，无公开 RPC；需由真实 worker 树驱动。前置（模型/ realm）见 RC5-API-005。"
+    },
+    {
+      "id": "RC5-API-007",
+      "title": "排空后代后无残留 running（API-007）",
+      "reason": "drainDescendants 需真实后代树；前置（模型/ realm）见 RC5-API-005。"
+    },
+    {
+      "id": "RC5-TERM-005",
+      "title": "attach/retain/watch 三流动作跨租户被拒（TERM-005）",
+      "reason": "TERM-005 为 P0 未跑项：需要 WS mux 客户端（同 P5 记录）。unary 面已证同族跨租户泄漏（TERM-004）。"
+    },
+    {
+      "id": "RC5-TERM-002",
+      "title": "侧栏 terminal 面板可见/可开/首次按键接管（TERM-002）",
+      "reason": "侧栏 terminal 面板的「可见/可开/首次按键接管/Agent 只读」需真浏览器交互与输入；本轮不做（凭据边界见 E3-UI-002）。"
+    },
+    {
+      "id": "RC5-TERM-012",
+      "title": "两会话各开终端互不可见（TERM-012）",
+      "reason": "terminal/create 被 gateway/internal（session.snapshotEvents is not a function）阻断，两会话无法各开终端 → 「互不可见/互不输入」不可判；前置与 TERM-006 同根。"
+    },
+    {
+      "id": "RC5-TERM-013",
+      "title": "24h 浸泡：长进程 + attach/close 无 fd 泄漏（TERM-013）",
+      "reason": "P5 24h 浸泡在 E1 运行，plannedEndAt=2026-11-20T21:45:37.331Z；当前采样 48 条、窗口未满不得判过；且 churn=create 持续 fail（同 session.snapshotEvents 错误）。"
+    },
+    {
+      "id": "E3-UI-002",
+      "title": "（lane 本地）真浏览器渲染截图（super 工作台/任务板/terminal 面板）",
+      "reason": "真浏览器渲染（工作台五视图/任务板/terminal 面板）需把 0600 测试口令或会话 cookie 传入浏览器自动化；无论 argv、页面代码或日志都会使凭据落盘/落日志，违反本 lane 凭据纪律。替代证据：E3-UI-001 HTML、WB-002 花名册/工厂、WB-001 SSE 快照、RC5-TERM-002 面板行/bundle。"
+    }
+  ],
+  "production": {
+    "baseline": "ID=492c35a4d450fddd1e65c993e4237e14fb497499e9fb077095dec796786fae7c StartedAt=2026-11-19T17:21:06.582265918Z RestartCount=0 Image=eterna-agent:0.1.51",
+    "now": "ID=492c35a4d450fddd1e65c993e4237e14fb497499e9fb077095dec796786fae7c StartedAt=2026-11-19T17:21:06.582265918Z RestartCount=0 Image=eterna-agent:0.1.51",
+    "unchanged": true
+  },
+  "env": {
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "base": "http://127.0.0.1:3109",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3",
+    "dsh": "0.2.2-rc.5"
+  },
+  "imageProvenance": {
+    "created": "2026-11-19T22:00:49.966685464Z",
+    "labels": "null",
+    "note": "镜像无 commit 标签：证据按 image id 追溯，不能等同于 worktree commit 的确定性构建。"
+  },
+  "cases": [
+    {
+      "id": "E3-PREP",
+      "status": "PASS",
+      "priority": "P0",
+      "title": "E3 super 独立测试容器（项目/端口/数据根/镜像）"
+    },
+    {
+      "id": "RC5-BOOT-002",
+      "status": "PASS",
+      "priority": "P0",
+      "title": "E3 super 容器起：healthy + super 路由可访问"
+    },
+    {
+      "id": "RC5-BOOT-013",
+      "status": "PASS",
+      "priority": "P1",
+      "title": "agent-team 三行与 Team mode（BOOT-013）"
+    },
+    {
+      "id": "RC5-BOOT-012",
+      "status": "PASS",
+      "priority": "P0",
+      "title": "浏览器加载：10 个产品 client bundle 无版本不匹配（BOOT-012 → workbench 回归面）"
+    },
+    {
+      "id": "RC5-API-004",
+      "status": "NOTRUN",
+      "priority": "P0",
+      "title": "tasks 包 verify（API-004）——替代覆盖：test/typecheck/oxlint"
+    },
+    {
+      "id": "RC5-API-005",
+      "status": "NOTRUN",
+      "priority": "P0",
+      "title": "主会话派 2 个 worker：waitForTreeWork 等到全部完成（API-005）"
+    },
+    {
+      "id": "RC5-API-006",
+      "status": "NOTRUN",
+      "priority": "P1",
+      "title": "查询后代列表与任务树一致（API-006）"
+    },
+    {
+      "id": "RC5-API-007",
+      "status": "NOTRUN",
+      "priority": "P1",
+      "title": "排空后代后无残留 running（API-007）"
+    },
+    {
+      "id": "E3-TASKS-SURFACE",
+      "status": "PASS",
+      "priority": "P1",
+      "title": "（lane 本地）tasks 设置/角色面 live 契约"
+    },
+    {
+      "id": "RC5-TERM-001",
+      "status": "PASS",
+      "priority": "P0",
+      "title": "profile bundle 清单含 terminal bundle（TERM-001）"
+    },
+    {
+      "id": "RC5-TERM-007",
+      "status": "PASS",
+      "priority": "P0",
+      "title": "terminal 配置（TERM-007）"
+    },
+    {
+      "id": "RC5-TERM-006",
+      "status": "FAIL",
+      "priority": "P0",
+      "title": "同 session 调 9 动作全部成功（TERM-006）"
+    },
+    {
+      "id": "RC5-TERM-004",
+      "status": "FAIL",
+      "priority": "P0",
+      "title": "B 用 A 的 sessionId：6 个 terminal unary 全部拒绝（TERM-004）"
+    },
+    {
+      "id": "RC5-TERM-005",
+      "status": "NOTRUN",
+      "priority": "P0",
+      "title": "attach/retain/watch 三流动作跨租户被拒（TERM-005）"
+    },
+    {
+      "id": "RC5-TERM-002",
+      "status": "NOTRUN",
+      "priority": "P0",
+      "title": "侧栏 terminal 面板可见/可开/首次按键接管（TERM-002）"
+    },
+    {
+      "id": "RC5-TERM-012",
+      "status": "NOTRUN",
+      "priority": "P0",
+      "title": "两会话各开终端互不可见（TERM-012）"
+    },
+    {
+      "id": "RC5-TERM-013",
+      "status": "NOTRUN",
+      "priority": "P1",
+      "title": "24h 浸泡：长进程 + attach/close 无 fd 泄漏（TERM-013）"
+    },
+    {
+      "id": "WB-001",
+      "status": "PASS",
+      "priority": "P1",
+      "title": "（workbench）实时流首帧快照契约"
+    },
+    {
+      "id": "WB-002",
+      "status": "PASS",
+      "priority": "P1",
+      "title": "（workbench）panel 挂载 + 客户端工件"
+    },
+    {
+      "id": "WB-003",
+      "status": "PASS",
+      "priority": "P1",
+      "title": "（workbench）单元/类型/静态门"
+    },
+    {
+      "id": "WB-004",
+      "status": "PASS",
+      "priority": "P1",
+      "title": "（workbench）tasks↔workbench 主会话/健康面链路"
+    },
+    {
+      "id": "E3-UI-001",
+      "status": "PASS",
+      "priority": "P1",
+      "title": "（lane 本地）super 形态 UI 入口工件"
+    },
+    {
+      "id": "E3-UI-002",
+      "status": "NOTRUN",
+      "priority": "P1",
+      "title": "（lane 本地）真浏览器渲染截图（super 工作台/任务板/terminal 面板）"
+    }
+  ]
+}

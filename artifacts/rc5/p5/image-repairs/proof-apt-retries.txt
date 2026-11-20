@@ -1,0 +1,23 @@
+# apt 重试语义实测(2026-11-20;L5 镜像构建修复)
+# 目的:确认「构建事故」为何一次断链即 exit 100,以及 Acquire::Retries 是否真的生效。
+
+$ docker run --rm node:24-bookworm-slim sh -c 'apt-config dump | grep -i retries'
+EXIT=1  # 无输出 = 该键未设,apt 默认 0(不重试)
+
+$ docker run --rm node:24-bookworm-slim ... 坏源对照(127.0.0.1:1 连接拒绝, 与事故 'Could not connect ... connection timed out' 同类)
+=== Acquire::Retries=0 逐字输出 ===
+Err:1 http://127.0.0.1:1/debian bookworm InRelease
+  Could not connect to 127.0.0.1:1 (127.0.0.1). - connect (111: Connection refused)
+Reading package lists...
+W: Failed to fetch http://127.0.0.1:1/debian/dists/bookworm/InRelease  Could not connect to 127.0.0.1:1 (127.0.0.1). - connect (111: Connection refused)
+W: Some index files failed to download. They have been ignored, or old ones used instead.
+=== Acquire::Retries=3 逐字输出 ===
+Ign:1 http://127.0.0.1:1/debian bookworm InRelease
+Ign:1 http://127.0.0.1:1/debian bookworm InRelease
+Ign:1 http://127.0.0.1:1/debian bookworm InRelease
+Err:1 http://127.0.0.1:1/debian bookworm InRelease
+  Could not connect to 127.0.0.1:1 (127.0.0.1). - connect (111: Connection refused)
+Reading package lists...
+W: Failed to fetch http://127.0.0.1:1/debian/dists/bookworm/InRelease  Could not connect to 127.0.0.1:1 (127.0.0.1). - connect (111: Connection refused)
+W: Some index files failed to download. They have been ignored, or old ones used instead.
+EXIT=0

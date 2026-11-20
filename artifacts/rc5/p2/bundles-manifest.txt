@@ -1,0 +1,2 @@
+docker/profile/package.json name=dsh-profile-eterna-web bundles=@deepseek-ai/dsh-base,@deepseek-ai/dsh-web-app,@deepseek-ai/dsh-deepseek-chat-import,@deepseek-ai/dsh-experimental-session-search,@deepseek-ai/dsh-experimental-plugin-market-bundle,@deepseek-ai/dsh-experimental-terminal-bundle
+docker/profile/package.acp.json name=dsh-profile-eterna-acp bundles=@deepseek-ai/dsh-base,@deepseek-ai/dsh-acp-app

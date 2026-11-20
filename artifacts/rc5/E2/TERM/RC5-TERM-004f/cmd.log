@@ -1,0 +1,12 @@
+# TERM/RC5-TERM-004f
+# started 2026-11-20T00:39:24.632Z
+
+$ node scripts/verify-terminal-guard.mjs --base http://127.0.0.1:3119 --accounts-file <0600> --data-root <E2 数据根> --container rc5-e2suite --json artifacts/rc5/E2/TERM/report.json
+EXIT=0
+NOTRUN :: A/B 同错（方法不可用，无法判定授权）：A={
+  "code": "terminal/unavailable",
+  "message": "Terminal no longer exists in this Session",
+  "det B={
+  "code": "terminal/unavailable",
+  "message": "Terminal no longer exists in this Session",
+  "det

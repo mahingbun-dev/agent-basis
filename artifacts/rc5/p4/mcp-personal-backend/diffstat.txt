@@ -1,0 +1,13 @@
+ packages/access/package.json  |   2 +
+ packages/access/src/plugin.ts |  81 ++++++++++++++
+ packages/access/src/routes.ts |  15 ++-
+ packages/access/src/store.ts  | 238 ++++++++++++++++++++++++++++++++++++++++++
+ pnpm-lock.yaml                |   6 ++
+ 5 files changed, 341 insertions(+), 1 deletion(-)
+--- untracked (B14 backend) ---
+     994 packages/access/src/mcp-personal.ts
+     340 packages/access/src/mcp-personal-runtime.ts
+     481 packages/access/tests/mcp-personal-routes.spec.ts
+     306 packages/access/tests/mcp-personal-runtime.spec.ts
+      64 packages/access/tests/mcp-personal-wiring.spec.ts
+    2185 total

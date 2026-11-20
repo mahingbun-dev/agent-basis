@@ -1,0 +1,28 @@
+# lane 文件清单与 diffstat(2026-11-20)
+
+ M .github/workflows/ci.yml
+ M core/cordis/README.md
+ M core/cordis/package.json
+ M core/cordis/src/context.ts
+ M core/cordis/src/events.ts
+ M core/cordis/src/fiber.ts
+ M core/cordis/src/logger.ts
+ M core/cordis/src/reflect.ts
+ M core/cordis/src/utils.ts
+ M core/cordis/tests/smoke.spec.ts
+ M core/runtime/src/cli.ts
+?? artifacts/rc5/p3/
+?? core/cordis/LICENSE
+
+ .github/workflows/ci.yml        |  91 +++++++++++++++++++++++
+ core/cordis/README.md           |  34 +++++++--
+ core/cordis/package.json        |   4 +-
+ core/cordis/src/context.ts      |   2 +-
+ core/cordis/src/events.ts       | 143 +++++++++++++++++++----------------
+ core/cordis/src/fiber.ts        | 161 ++++++++++++++++++++++++----------------
+ core/cordis/src/logger.ts       |  15 ++--
+ core/cordis/src/reflect.ts      |  56 +++++++++-----
+ core/cordis/src/utils.ts        |  49 ++++++------
+ core/cordis/tests/smoke.spec.ts |  26 ++++++-
+ core/runtime/src/cli.ts         |   4 +-
+ 11 files changed, 403 insertions(+), 182 deletions(-)

@@ -1,0 +1,50 @@
+npm warn Unknown project config "verify-deps-before-run". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown project config "verifyDepsBeforeRun". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+
+ ✓ tests/mcp-manager-drift.spec.ts > rc.5 B14 防漂移:上游 dsh-mcp-manager Remote 方法表 > 锁版包可解析且版本=0.2.2-rc.5(解析失效=后续断言失去意义) 1ms
+ ✓ tests/mcp-manager-drift.spec.ts > rc.5 B14 防漂移:上游 dsh-mcp-manager Remote 方法表 > 上游 Remote 面恰好 {watch,restart,probe}(写配置无直接 RPC,新增方法即红) 0ms
+ ✓ tests/mcp-manager-drift.spec.ts > rc.5 B14 防漂移:上游 dsh-mcp-manager Remote 方法表 > 上游方法模式:watch=stream,restart/probe=unary(描述符无 mode 字段) 0ms
+ ✓ tests/mcp-manager-drift.spec.ts > rc.5 B14 防漂移:上游 dsh-mcp-manager Remote 方法表 > watch ∈ GLOBAL_STREAM + ADMIN_ONLY_STREAM(系统层连接状态流仅 admin) 0ms
+ ✓ tests/mcp-manager-drift.spec.ts > rc.5 B14 防漂移:上游 dsh-mcp-manager Remote 方法表 > restart/probe ∈ GLOBAL_UNARY + ADMIN_ONLY_UNARY(系统层管理动作仅 admin) 0ms
+ ✓ tests/mcp-manager-drift.spec.ts > rc.5 B14 防漂移:上游 dsh-mcp-manager Remote 方法表 > mcpManager 动作全部落在全局面(会话/工作区/事件清单零命中) 0ms
+ ✓ tests/mcp-manager-drift.spec.ts > rc.5 B14 防漂移:上游 dsh-mcp-manager Remote 方法表 > admin-only ⊆ 全量(只收窄不放宽),且不含任何资源绑定动作 0ms
+ ✓ tests/mcp-manager-drift.spec.ts > rc.5 B14 防漂移:上游 dsh-mcp-manager Remote 方法表 > admin-only 的 mcpManager 半恰好等于上游全量(三个动作全部收窄,无遗漏/无越界) 0ms
+ ✓ tests/mcp-manager-drift.spec.ts > rc.5 B14 防漂移:上游 dsh-mcp-manager Remote 方法表 > 策略清单无僵尸 mcpManager 动作(每个动作都在上游 Remote 表内) 0ms
+ ✓ tests/mux-policy.spec.ts > T2:mux 策略绑定 > alice:GLOBAL+2 session+1 workspace,动作清单完整 66ms
+ ✓ tests/gateway-role-gate.spec.ts > P2-T1.7a:网关配置角色门(实例 wrap) > eterna-user(普通用户)写 llm-pi-ai → throw tenant/denied 中文文案+零直调(三方法) 68ms
+ ✓ tests/mux-policy.spec.ts > T2:mux 策略绑定 > bob:零资源 → 仅 GLOBAL(其余资源默认 deny) 65ms
+ ✓ tests/mux-policy.spec.ts > T2:mux 策略绑定 > 归属变更后重读即反映(账本实时,无缓存漂移) 62ms
+ ✓ tests/gateway-role-gate.spec.ts > P2-T1.7a:网关配置角色门(实例 wrap) > eterna-user(admin)写 llm-pi-ai → 放行直调(三方法) 61ms
+ ✓ tests/gateway-role-gate.spec.ts > P2-T1.7a:网关配置角色门(实例 wrap) > owner principal(本地流)原样放行(角色门只管 eterna-user) 59ms
+ ✓ tests/mux-policy.spec.ts > T2:mux 策略绑定 > WS-C ①:visibilityScopeOf 三档映射 + 未知值 fail-closed 判 self 60ms
+ ✓ tests/mux-policy.spec.ts > T2:mux 策略绑定 > WS-C ②:approver 与 user/admin 的 bindingsFor 内容面逐项全等(零放宽不变式;唯一豁免=管理员专属 UI 门收窄) 87ms
+ ✓ tests/gateway-role-gate.spec.ts > P2-T1.7a:网关配置角色门(实例 wrap) > 其他命名空间(用户个人设置)eterna-user 原样代理(不受角色门影响) 59ms
+ ✓ tests/gateway-role-gate.spec.ts > P2-T1.7a:网关配置角色门(实例 wrap) > B14:eterna-user 写 mcp-manager(位置参数形态)→ throw tenant/denied+审计+零直调(三方法) 58ms
+ ✓ tests/mux-policy.spec.ts > T2:mux 策略绑定 > T6.1 管理员专属 UI 门:pluginManager/listBundles 仅 admin 下发(插件页整页门),清单 ⊆ 全员门 60ms
+ ✓ tests/mux-policy.spec.ts > T2:mux 策略绑定 > WS-C ③:角色动态性——setUserRole 后再调 bindings 回调,绑定与谓词随新角色(即时生效 node 面) 59ms
+ ✓ tests/gateway-role-gate.spec.ts > P2-T1.7a:网关配置角色门(实例 wrap) > B14:eterna-user 写 mcp-manager(对象形态回归)→ 同样拒绝 60ms
+ ✓ tests/gateway-role-gate.spec.ts > P2-T1.7a:网关配置角色门(实例 wrap) > B14:eterna-user(admin)/owner principal 写 mcp-manager → 放行(门只收窄 non-admin eterna-user) 58ms
+ ✓ tests/gateway-role-gate.spec.ts > P2-T1.7a:网关配置角色门(实例 wrap) > B14:describe 面非 admin 过滤 mcp-manager ns,其余命名空间与顶层字段原样 56ms
+ ✓ tests/gateway-role-gate.spec.ts > P2-T1.7a:网关配置角色门(实例 wrap) > B14:describe 形状漂移(上游改字段)→ 非 admin fail-closed 空清单,不原样透出 55ms
+ ✓ tests/gateway-role-gate.spec.ts > P2-T1.7a:守卫 fetch 路由层(HTTP cookie 判角色) > 普通用户写 llm-pi-ai → 拒绝帧+零直调(三路) 79ms
+ ✓ tests/gateway-role-gate.spec.ts > P2-T1.7a:守卫 fetch 路由层(HTTP cookie 判角色) > admin 写 llm-pi-ai → 代理直调(三路);其他 ns 普通用户原样代理 82ms
+ ✓ tests/gateway-role-gate.spec.ts > P2-T1.7a:守卫 fetch 路由层(HTTP cookie 判角色) > 2026-11-12 回归:update/replace 载荷键名随 descriptor 转发,不再丢成 undefined 69ms
+ ✓ tests/gateway-role-gate.spec.ts > P2-T1.7a:守卫 fetch 路由层(HTTP cookie 判角色) > B14:普通用户写 mcp-manager → 拒绝帧+审计+零直调(三路) 59ms
+ ✓ tests/gateway-role-gate.spec.ts > P2-T1.7a:守卫 fetch 路由层(HTTP cookie 判角色) > B14:admin 写 mcp-manager → 代理直调(三路);普通用户仍可写其他 ns 60ms
+ ✓ tests/gateway-role-gate.spec.ts > P2-T1.7a:守卫 fetch 路由层(HTTP cookie 判角色) > B14:describe 面非 admin 过滤 mcp-manager(HTTP cookie 判角色);admin 全量;未登录 401 帧 58ms
+ ✓ tests/gateway-role-gate.spec.ts > WS-C 审批人角色门(M-4 M1 段) > ① /access/api/me:三角色 role 字段正确(JSON 特征字段) 164ms
+ ✓ tests/gateway-role-gate.spec.ts > WS-C 审批人角色门(M-4 M1 段) > ② bindingsFor:三角色内容绑定同构(仅本人资源,零放宽不变式) 165ms
+ ✓ tests/gateway-role-gate.spec.ts > WS-C 审批人角色门(M-4 M1 段) > ③ admin 面端点对 approver 403:用户列表/建号/删号/角色变更/插件启停(审批人≠管理员) 165ms
+ ✓ tests/gateway-role-gate.spec.ts > WS-C 待人项可见性三档(M-4 M3 段,G2-C3/G2-C5) > ① 三档谓词×账本:store 角色行逐档映射;角色变更即档位翻转(WS-D 消费契约) 167ms
+ ✓ tests/gateway-role-gate.spec.ts > WS-C 待人项可见性三档(M-4 M3 段,G2-C3/G2-C5) > ② 普通用户(self 档):两面均只见本人条目(JSON 特征字段);本人裁决后条目消失 164ms
+ ✓ tests/gateway-role-gate.spec.ts > WS-C 待人项可见性三档(M-4 M3 段,G2-C3/G2-C5) > ② 审批人(tenant-pending 档)不放宽既有两面:见本人、不见他人;跨用户裁决 404(缺口 2 fail-closed) 166ms
+ ✓ tests/gateway-role-gate.spec.ts > WS-C 待人项可见性三档(M-4 M3 段,G2-C3/G2-C5) > ② 管理员(all 档)不放宽既有两面:本人零条目;他人条目不可见不可决(缺口 2 fail-closed) 165ms
+ ✓ tests/gateway-role-gate.spec.ts > WS-C 待人项可见性三档(M-4 M3 段,G2-C3/G2-C5) > ③ 档位翻转即时:mux 内容绑定零放宽不变式在 tenant-pending 档仍成立(M-2 不变式翻转时点) 164ms
+
+ Test Files  3 passed (3)
+      Tests  39 passed (39)
+   Start at  01:51:41
+   Duration  2.53s (transform 204ms, setup 0ms, import 274ms, tests 2.73s, environment 0ms)
+

@@ -1,0 +1,216 @@
+# T25 B14 系统层五道门 — 命令原文 / EXIT / 断言结果
+
+工作树: /Users/sunny/code/agent-basis-rc5 (分支 feat/dsh-rc5-merge)
+日期: 2026-11-20
+脱敏声明: 本目录全部文件只含方法名/动作名/断言名/退出码;无 cookie、token、密码、
+env/argv 凭据原值,无生产容器输出。
+
+## 1. access 定向测试(T25 相关 6 个 spec)
+
+命令:
+```
+cd /Users/sunny/code/agent-basis-rc5
+npx vitest run --root packages/access \
+  tests/mcp-manager-drift.spec.ts tests/gateway-role-gate.spec.ts \
+  tests/mux-policy.spec.ts tests/mux-drift.spec.ts \
+  tests/tenant.spec.ts tests/tenant-guard-matrix.spec.ts
+```
+EXIT=0
+结果: Test Files 6 passed (6) / Tests 102 passed (102)
+日志: targeted-tests.log
+
+## 2. access 全包回归
+
+命令:
+```
+cd /Users/sunny/code/agent-basis-rc5
+npx vitest run --root packages/access
+```
+EXIT=0
+结果: Test Files 43 passed (43) / Tests 409 passed (409)
+日志: access-full-tests.log
+
+## 3. 断言明细(verbose;新增/扩展用例逐条)
+
+命令:
+```
+cd /Users/sunny/code/agent-basis-rc5
+npx vitest run --root packages/access --reporter=verbose \
+  tests/mcp-manager-drift.spec.ts tests/gateway-role-gate.spec.ts tests/mux-policy.spec.ts
+```
+EXIT=0
+日志: assertions-verbose.log(逐条 ✓ 列表)
+
+## 4. 上游 Remote 方法表 dump(脱敏:仅 package/version/action/mode)
+
+命令(解析脚本本体见同目录 dump-upstream-remote-table.mjs):
+```
+cd /Users/sunny/code/agent-basis-rc5
+node artifacts/rc5/p4/b14-system-gates/dump-upstream-remote-table.mjs \
+  > artifacts/rc5/p4/b14-system-gates/upstream-dsh-mcp-manager-remote-table.txt
+```
+EXIT=0
+结果:
+```
+package=@deepseek-ai/dsh-mcp-manager version=0.2.2-rc.5 dir=@deepseek-ai+dsh-mcp-manager@0.2.2-rc.5_a12757bdc748caa5f49e8951f5d3d35b
+  mcpManager/probe  mode=unary
+  mcpManager/restart  mode=unary
+  mcpManager/watch  mode=stream
+```
+文件: upstream-dsh-mcp-manager-remote-table.txt
+
+## 5. mux 动作表 dump(策略面实值)
+
+命令:
+```
+cd /Users/sunny/code/agent-basis-rc5
+node --input-type=module -e 'import { ADMIN_ONLY_STREAM_ACTIONS, ADMIN_ONLY_UNARY_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS } from "./packages/access/src/mux.ts"; const j = a => a.join(", "); console.log("GLOBAL_STREAM_ACTIONS = [" + j(GLOBAL_STREAM_ACTIONS) + "]"); console.log("ADMIN_ONLY_STREAM_ACTIONS = [" + j(ADMIN_ONLY_STREAM_ACTIONS) + "]"); console.log("GLOBAL_UNARY_ACTIONS = [" + j(GLOBAL_UNARY_ACTIONS) + "]"); console.log("ADMIN_ONLY_UNARY_ACTIONS = [" + j(ADMIN_ONLY_UNARY_ACTIONS) + "]")' \
+  > artifacts/rc5/p4/b14-system-gates/mux-action-tables.txt
+```
+EXIT=0
+文件: mux-action-tables.txt
+摘要:
+- GLOBAL_STREAM_ACTIONS 含 mcpManager/watch;ADMIN_ONLY_STREAM_ACTIONS = [mcpManager/watch]
+- GLOBAL_UNARY_ACTIONS 含 mcpManager/restart、mcpManager/probe;
+  ADMIN_ONLY_UNARY_ACTIONS = [pluginManager/listBundles, mcpManager/restart, mcpManager/probe]
+
+## 6. 类型检查(packages/access)
+
+命令:
+```
+cd /Users/sunny/code/agent-basis-rc5/packages/access
+npx tsc --noEmit
+```
+EXIT=2
+结果: 6 条 TS6133,全部位于本次未改动的其它在途文件:
+- src/mcp-personal.ts(552/558;T26 个人层,工作树未跟踪新文件)
+- src/store.ts(817/822/827;工作树中已被其它 lane 修改)
+本次改动文件(tenant.ts / mux.ts / 三个 spec)0 条错误。
+日志: tsc-access.log
+
+## 7. Lint(packages/access 全包)
+
+命令:
+```
+cd /Users/sunny/code/agent-basis-rc5/packages/access
+npx oxlint --config ../../.oxlintrc.json .
+```
+EXIT=1
+结果: Found 0 warnings and 16 errors —— 全部落在 src/mcp-personal.ts(12)、
+src/store.ts(4)(其它 lane 在途文件);本次改动文件 0 条。
+日志: oxlint-access-full.log
+
+## 8. Lint(仅本次改动文件)
+
+命令:
+```
+cd /Users/sunny/code/agent-basis-rc5/packages/access
+npx oxlint --config ../../.oxlintrc.json \
+  src/tenant.ts src/mux.ts tests/gateway-role-gate.spec.ts \
+  tests/mcp-manager-drift.spec.ts tests/mux-policy.spec.ts
+```
+EXIT=0
+结果: Found 0 warnings and 0 errors.
+
+## 9. 改动清单
+
+命令:
+```
+cd /Users/sunny/code/agent-basis-rc5
+git diff --stat -- packages/access/src/tenant.ts packages/access/src/mux.ts \
+  packages/access/tests/gateway-role-gate.spec.ts packages/access/tests/mux-policy.spec.ts
+git status --short -- <同上 + mcp-manager-drift.spec.ts>
+```
+文件: changed-files-diffstat.txt
+
+## 10. 补充说明:为何改动 mux.ts
+
+任务文字「可改文件」列了 tenant.ts + 新 spec + 既有测试,但同一条任务的验收项要求
+新 spec 断言 restart/probe ∈ GLOBAL_UNARY + ADMIN_ONLY_UNARY;两者不在 mux.ts 里就
+必然红。54 §8.1 Lane 与文件所有权(第 662/667 行)把 `packages/access/**`(含
+`tenant.ts`/`mux.ts`)整体划给 L4(本 lane),故 mux.ts 非其它 lane 独占文件;改动
+仅 4 行清单条目 + 注释,见 changed-files-diffstat.txt。
+
+## 11. 变异校验(证明断言非空转)
+
+对 mux.ts 临时移除 ADMIN_ONLY_UNARY_ACTIONS 的 mcpManager/restart、mcpManager/probe
+两条后:
+```
+npx vitest run --root packages/access tests/mcp-manager-drift.spec.ts
+```
+结果: Tests 2 failed | 7 passed(9)——「restart/probe ∈ GLOBAL_UNARY +
+ADMIN_ONLY_UNARY」与「admin-only 的 mcpManager 半恰好等于上游全量」两条转红。
+随后从备份还原 mux.ts(grep 复核 5 处 mcpManager 条目在 134/157/158/175/176/184 行),
+重跑:9 passed(9);再跑 6 个 spec:102 passed(102)。
+
+## 12. 复核重跑(2026-11-20 02:16–02:17,本 session)
+
+复核序:先确认工作树已有本次改动(tenant.ts 写门/describe 过滤、mux 策略条目、
+drift spec 在案),再逐项重跑并另存日志;未再改产品源码。
+
+### 12.1 定向 4 spec
+
+命令:
+```
+cd /Users/sunny/code/agent-basis-rc5
+pnpm --filter @eterna/access exec vitest run \
+  tests/gateway-role-gate.spec.ts tests/mcp-manager-drift.spec.ts \
+  tests/mux-policy.spec.ts tests/mux-drift.spec.ts
+```
+EXIT=0
+结果: Test Files 4 passed (4) / Tests 56 passed (56)
+  - mcp-manager-drift.spec.ts 9 passed
+  - mux-drift.spec.ts 17 passed
+  - mux-policy.spec.ts 7 passed
+  - gateway-role-gate.spec.ts 23 passed
+日志: vitest-targeted.log
+
+### 12.2 access 全包回归
+
+命令:
+```
+cd /Users/sunny/code/agent-basis-rc5
+pnpm --filter @eterna/access test
+```
+EXIT=0
+结果: Test Files 43 passed (43) / Tests 410 passed (410)
+  (较 01:56 的 409 多 1:其它 lane 在 channels-webhook-contract.spec.ts 增 1 条;
+  本次改动文件计数不变)
+日志: vitest-access-full.log
+
+### 12.3 类型检查(packages/access,含本次改动)
+
+命令:
+```
+cd /Users/sunny/code/agent-basis-rc5
+pnpm --filter @eterna/access exec tsc --noEmit
+```
+EXIT=1
+结果: 6 条 TS6133,仍全部落在 src/mcp-personal.ts(552/558)、src/store.ts
+(817/822/827)——其它 lane 在途文件;本次改动文件 0 条。
+日志: tsc.log
+
+### 12.4 Lint(本次改动文件 3 个)
+
+命令:
+```
+cd /Users/sunny/code/agent-basis-rc5
+pnpm --filter @eterna/access exec oxlint --config ../../.oxlintrc.json \
+  src/tenant.ts tests/mcp-manager-drift.spec.ts tests/gateway-role-gate.spec.ts
+```
+EXIT=0
+结果: Found 0 warnings and 0 errors.
+日志: oxlint.log
+
+### 12.5 上游方法表 / mux 策略面 dump(重跑,脱敏)
+
+命令:
+```
+cd /Users/sunny/code/agent-basis-rc5
+node artifacts/rc5/p4/b14-system-gates/dump-upstream-remote-table.mjs \
+  > artifacts/rc5/p4/b14-system-gates/upstream-dsh-mcp-manager-remote-table.txt
+node --input-type=module -e '<§5 同一条 dump 表达式>' \
+  > artifacts/rc5/p4/b14-system-gates/mux-action-tables.txt
+```
+EXIT=0 / EXIT=0
+结果与 §4/§5 一致(watch=stream;restart/probe=unary;四个策略清单实值不变)。

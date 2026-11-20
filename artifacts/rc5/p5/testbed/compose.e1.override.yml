@@ -1,0 +1,29 @@
+# E1 测试容器 override（仅测试环境；生产 compose 文件不动）。
+#
+# 目的：
+#   1. 把 tests/fixtures 只读挂进容器（夹具不进镜像，构建后挂载/测试时拷贝均可）；
+#   2. 给 access 个人层注入测试主密钥与管理员目录——base/super compose 的生产
+#      配置面没有这两个变量（见 artifacts/rc5/p5/testbed/result.md 遗留项），
+#      测试用 override 才能跑通 MCPP 用例；
+#   3. 可变端口/实例/容器名全部由环境变量注入，不写死。
+#
+# 用法（scripts/prepare-rc5-envs.sh e1 会自动带这些参数）：
+#   ETERNA_DATA_ROOT=$HOME/eterna-data/test-rc5 \
+#   ETERNA_INSTANCE=e1 ETERNA_PORT=3108 ETERNA_RELAY_PORT=9311 \
+#   ETERNA_CONTAINER_NAME=eterna-rc5-e1 ETERNA_IMAGE=eterna-agent:rc5-test \
+#   RC5_FIXTURES=/Users/sunny/code/agent-basis-rc5/tests/fixtures \
+#   ETERNA_MCP_MASTER_KEY=<test-only> ETERNA_MCP_PERSONAL_CATALOG='[...]' \
+#   docker compose -p rc5-test-e1 -f docker-compose.yml \
+#     -f artifacts/rc5/p5/testbed/compose.e1.override.yml up -d
+services:
+  eterna-agent:
+    environment:
+      # 测试主密钥（32B hex / base64 / 32 字符）；生产从 .secrets/ 注入，绝不入库。
+      ETERNA_MCP_MASTER_KEY: ${ETERNA_MCP_MASTER_KEY:-}
+      ETERNA_MCP_PERSONAL_ENABLED: ${ETERNA_MCP_PERSONAL_ENABLED:-true}
+      # 管理员 stdio 目录：echo 夹具（命令在容器内绝对路径；fixtures 只读挂载）。
+      ETERNA_MCP_PERSONAL_CATALOG: ${ETERNA_MCP_PERSONAL_CATALOG:-}
+      # 个人层 HTTP host 白名单：缺省空=放行任意 host（仅拒绝云元数据地址）。
+      ETERNA_MCP_PERSONAL_HTTP_HOSTS: ${ETERNA_MCP_PERSONAL_HTTP_HOSTS:-}
+    volumes:
+      - ${RC5_FIXTURES:?set RC5_FIXTURES to tests/fixtures absolute path}:/fixtures:ro

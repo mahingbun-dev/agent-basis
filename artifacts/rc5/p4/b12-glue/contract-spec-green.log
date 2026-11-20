@@ -1,0 +1,12 @@
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+
+ ✓ tests/channels-webhook-contract.spec.ts (2 tests) 3ms
+ ✓ tests/channels-webhook.spec.ts (4 tests) 5ms
+
+ Test Files  2 passed (2)
+      Tests  6 passed (6)
+   Start at  01:39:55
+   Duration  173ms (transform 57ms, setup 0ms, import 78ms, tests 8ms, environment 0ms)
+
+EXIT=0

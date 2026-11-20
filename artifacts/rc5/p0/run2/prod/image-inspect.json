@@ -1,0 +1,75 @@
+[
+    {
+        "Id": "sha256:3ca0d66055898b092f09761e5f67baa4a82741f1c7233d27bd2ddbd6de2b1a7b",
+        "RepoTags": [
+            "eterna-agent:0.1.51"
+        ],
+        "RepoDigests": [
+            "eterna-agent@sha256:3ca0d66055898b092f09761e5f67baa4a82741f1c7233d27bd2ddbd6de2b1a7b"
+        ],
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-11-19T17:19:57.83957547Z",
+        "Config": {
+            "ExposedPorts": {
+                "8080/tcp": {}
+            },
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NODE_VERSION=24.22.3",
+                "YARN_VERSION=1.22.22",
+                "DSH_HOME=/data"
+            ],
+            "Entrypoint": [
+                "/app/entrypoint.sh"
+            ],
+            "Labels": {
+                "com.docker.compose.project": "agent-basis-main-0151",
+                "com.docker.compose.service": "eterna-agent",
+                "com.docker.compose.version": "5.3.1"
+            },
+            "Healthcheck": {
+                "Test": [
+                    "CMD-SHELL",
+                    "curl -s -o /dev/null \"http://$(hostname -i | awk '{print $1}'):8080/\" || exit 1"
+                ],
+                "Interval": 30000000000,
+                "Timeout": 5000000000,
+                "StartPeriod": 20000000000,
+                "Retries": 3
+            }
+        },
+        "Architecture": "arm64",
+        "Os": "linux",
+        "Size": 582574950,
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:c96c411090da09187c55ab267826b3903b542b5c03f1cafa912d60e060e7850c",
+                "sha256:5e97429ace1a77428c46acb00e6c4cfc281d4153fa6b7fae41d69a8d294385c4",
+                "sha256:8802b01ec1f041ebbec5d481df0177567eeeb4087a414b24585b9af1eb625977",
+                "sha256:53e133882cd77216221aae5b5cb5716b1aa2d372c29e21155ba54475af3f56bb",
+                "sha256:03fdb515789d4e4762b35e9b1614e5b0d90167377bd716d6a4033a4c0ae0e6b3",
+                "sha256:1866e7b47e257e4eaa572be06352e763352bffc0a0354b90a04be180b135bd28",
+                "sha256:70ec291fa3e3291339c5e1c2891b3b09bbc162d1b05885181009b72204855723",
+                "sha256:43cb9073ada8d8ffca2ae04b400a39a021ac0395b14d92d7762ddf2d1e03f725",
+                "sha256:799acd792ce3c44a56e68bce831a48c3c10e1f144d044b18b6cf5c948a88876f"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2026-11-19T17:20:34.064046625Z"
+        },
+        "Descriptor": {
+            "mediaType": "application/vnd.oci.image.index.v1+json",
+            "digest": "sha256:3ca0d66055898b092f09761e5f67baa4a82741f1c7233d27bd2ddbd6de2b1a7b",
+            "size": 856
+        },
+        "Identity": {
+            "Build": [
+                {
+                    "Ref": "saxbxvmokoz3tv8kdm2fjgw8e",
+                    "CreatedAt": "2026-11-19T17:20:50.625104717Z"
+                }
+            ]
+        }
+    }
+]

@@ -1,0 +1,90 @@
+$ vitest run
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/tasks
+
+stderr | tests/plugin-boot.spec.ts > channels 投递面自宿主 ctx 派生(A1):ctx 带 channels 服务 fixture 即派生注入,回执经 channels 结算(UNWIRED 不再是终态)
+[tasks] sessionHost 派生失败:宿主服务缺席 sessionController, workspaceRegistry, permissionPresets, sessionPersistence, agents(reflect=true)
+
+stderr | tests/plugin-boot.spec.ts > 插件形态:apply(ctx) 以 TASKS_SERVICE_ID provide ctx.tasks 服务,disposer 先撤服务再逆序关停
+[tasks] sessionHost 派生失败:宿主服务缺席 sessionController, workspaceRegistry, permissionPresets, sessionPersistence, agents(reflect=true)
+
+stderr | tests/webchat-entry.spec.ts > 主会话 id 缺席不接线(fail-safe 不猜主会话)
+[tasks] sessionHost 派生失败:宿主服务缺席 sessionController, workspaceRegistry, permissionPresets, sessionPersistence, agents(reflect=true)
+
+ ✓ tests/core-engine.spec.ts (48 tests) 64ms
+stderr | tests/webchat-entry.spec.ts > masterId 自 KV 复得即安装监听(三断点①②:profile 裸挂载行的二次启动也接线)
+[tasks] sessionHost 派生失败:宿主服务缺席 sessionController, workspaceRegistry, permissionPresets, sessionPersistence, agents(reflect=true)
+[tasks] sessionHost 派生失败:宿主服务缺席 sessionController, workspaceRegistry, permissionPresets, sessionPersistence, agents(reflect=true)
+
+ ✓ tests/delivery.spec.ts (4 tests) 128ms
+ ✓ tests/runtime-lifecycle.spec.ts (3 tests) 166ms
+ ✓ tests/route-golden.spec.ts (5 tests) 196ms
+ ✓ tests/webchat-entry.spec.ts (10 tests) 201ms
+stderr | tests/plugin-boot.spec.ts > sessionHost 派生 fail-closed:宿主仅提供部分服务(缺 agents/sessionPersistence)即回落 stub,不造桩
+[tasks] sessionHost 派生失败:宿主服务缺席 sessionPersistence, agents(reflect=true)
+
+ ✓ tests/plugin-boot.spec.ts (13 tests) 217ms
+ ✓ tests/concurrency.spec.ts (4 tests) 316ms
+ ✓ tests/effects.spec.ts (13 tests) 328ms
+ ✓ tests/pass.spec.ts (5 tests) 330ms
+ ✓ tests/store.spec.ts (19 tests) 91ms
+ ✓ tests/policy.spec.ts (332 tests) 30ms
+ ✓ tests/sessions.spec.ts (7 tests) 43ms
+ ✓ tests/role-model-seeding.spec.ts (5 tests) 46ms
+ ✓ tests/assignment-files.spec.ts (3 tests) 45ms
+stderr | tests/tools.spec.ts > 角色分面(34 §4-D;24 §8.3-4) > 装配面的 when 白名单(35-A21 诊断清单②):主会话 id 在场时 orchestrator 面只在主会话可见
+[tasks] sessionHost 派生失败:宿主服务缺席 sessionController, workspaceRegistry, permissionPresets, sessionPersistence, agents(reflect=true)
+[tasks] sessionHost 派生失败:宿主服务缺席 sessionController, workspaceRegistry, permissionPresets, sessionPersistence, agents(reflect=true)
+
+ ✓ tests/tools.spec.ts (11 tests) 61ms
+ ✓ tests/budget.spec.ts (12 tests) 61ms
+ ✓ tests/effects-resume.spec.ts (3 tests) 74ms
+ ✓ tests/runtime.spec.ts (1 test) 105ms
+ ✓ tests/prompts.spec.ts (19 tests) 56ms
+ ✓ tests/assessor.spec.ts (11 tests) 97ms
+ ✓ tests/outbox.spec.ts (7 tests) 34ms
+ ✓ tests/followups.spec.ts (10 tests) 22ms
+ ✓ tests/settings-face.spec.ts (13 tests) 45ms
+ ✓ tests/settings.spec.ts (7 tests) 36ms
+ ✓ tests/idempotency.spec.ts (8 tests) 19ms
+ ✓ tests/attention.spec.ts (12 tests) 13ms
+ ✓ tests/candidate-context.spec.ts (11 tests) 12ms
+ ✓ tests/channels-delivery.spec.ts (5 tests) 44ms
+ ✓ tests/domain-events.spec.ts (5 tests) 32ms
+ ✓ tests/subagent-receipt.spec.ts (3 tests) 25ms
+ ✓ tests/realm.spec.ts (6 tests) 35ms
+stderr | tests/active-tickets.spec.ts > prompt section seam 注入与 pass 周期刷新(28 §6;C6 拍板) > defineTasksPlugin:宿主 system-prompt 在场时经 systemPrompt.section 注入,disposer 配逆
+[tasks] sessionHost 派生失败:宿主服务缺席 sessionController, workspaceRegistry, permissionPresets, sessionPersistence, agents(reflect=true)
+
+stderr | tests/active-tickets.spec.ts > prompt section seam 注入与 pass 周期刷新(28 §6;C6 拍板) > 宿主 system-prompt 缺席:插件装载不受影响,section 不注册(注入面归宿主装配)
+[tasks] sessionHost 派生失败:宿主服务缺席 sessionController, workspaceRegistry, permissionPresets, sessionPersistence, agents(reflect=true)
+
+ ✓ tests/active-tickets.spec.ts (13 tests) 23ms
+ ✓ tests/deliverable-check.spec.ts (11 tests) 8ms
+ ✓ tests/class-docs.spec.ts (1 test) 9ms
+ ✓ tests/model-surface.spec.ts (8 tests) 15ms
+ ✓ tests/schema.spec.ts (3 tests) 18ms
+ ✓ tests/health.spec.ts (25 tests) 14ms
+ ✓ tests/workspace.spec.ts (7 tests) 7ms
+ ✓ tests/timeline.spec.ts (4 tests) 24ms
+ ✓ tests/memory.spec.ts (15 tests) 10ms
+ ✓ tests/mandate-policy.spec.ts (6 tests) 25ms
+ ✓ tests/eval-delegation.spec.ts (8 tests) 20ms
+ ✓ tests/background.spec.ts (9 tests) 16ms
+ ✓ tests/subagent-policies.spec.ts (10 tests) 11ms
+ ✓ tests/model.spec.ts (42 tests) 5ms
+ ✓ tests/preset.spec.ts (8 tests) 4ms
+ ✓ tests/client-settings-model.spec.ts (19 tests) 6ms
+ ✓ tests/client-session-role.spec.ts (7 tests) 2ms
+ ✓ tests/client-candidate-card.spec.ts (11 tests) 3ms
+ ✓ tests/role-models.spec.ts (4 tests) 4ms
+ ✓ tests/channel-adapter.spec.ts (5 tests) 7ms
+ ✓ tests/stage.spec.ts (31 tests) 3ms
+ ✓ tests/skeleton.spec.ts (2 tests) 1ms
+
+ Test Files  53 passed (53)
+      Tests  864 passed (864)
+   Start at  06:14:50
+   Duration  2.62s (transform 2.37s, setup 0ms, import 10.69s, tests 3.21s, environment 3ms)
+
+EXIT=0

@@ -1,0 +1,2 @@
+no-eterna terminal/environment status= 401 code= unauthorized
+no-eterna terminal/list http status= 401 body= unauthorized

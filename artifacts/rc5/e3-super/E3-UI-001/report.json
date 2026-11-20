@@ -1,0 +1,37 @@
+{
+  "id": "E3-UI-001",
+  "suite": "E3-super",
+  "priority": "P1",
+  "title": "（lane 本地）super 形态 UI 入口工件",
+  "expected": "/login 200，v4 令牌块与中文登录文案",
+  "status": "PASS",
+  "startedAt": "2026-11-19T22:31:11.390Z",
+  "finishedAt": "2026-11-19T22:31:11.428Z",
+  "assertions": [
+    {
+      "name": "登录页 200 且为 v4 令牌块 HTML",
+      "ok": true,
+      "detail": "status=200 bytes=21095"
+    },
+    {
+      "name": "登录页中文文案（账号/密码/登录）",
+      "ok": true,
+      "detail": "yes"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "GET /login",
+      "exit": 200,
+      "note": "公开登录页（无凭据）"
+    }
+  ],
+  "notes": [],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

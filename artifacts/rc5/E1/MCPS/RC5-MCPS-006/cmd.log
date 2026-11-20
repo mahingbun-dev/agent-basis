@@ -1,0 +1,10 @@
+# MCPS/RC5-MCPS-006
+# started 2026-11-19T22:50:49.762Z
+
+$ POST /api/mcpManager/probe（B 普通用户）
+EXIT=200
+ok=true code=- value={"ok":true,"serverInfo":{"name":"fixture-echo","version":"1.0.0"},"toolNames":["echo"],"truncated":false,"durationMs":6,"closeConfirmed":true}
+
+$ POST /api/mcpManager/restart（B 普通用户）
+EXIT=200
+ok=true code=-

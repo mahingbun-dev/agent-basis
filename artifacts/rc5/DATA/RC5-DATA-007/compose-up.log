@@ -1,0 +1,8 @@
+$ docker compose -p rc5-p6b --env-file ~/eterna-data/test-rc5/.env.p6b-a -f docker-compose.yml up -d --no-build
+ Network rc5-p6b_default Creating 
+ Network rc5-p6b_default Created 
+ Container eterna-rc5-p6b-a Creating 
+ Container eterna-rc5-p6b-a Created 
+ Container eterna-rc5-p6b-a Starting 
+ Container eterna-rc5-p6b-a Started 
+EXIT=0

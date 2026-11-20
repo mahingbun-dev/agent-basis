@@ -1,0 +1,43 @@
+# case: RC5-DATA-002
+# host: ma-macminideMac-mini.local  user: sunny  time: 2026-11-19T22:08:10Z
+
+$ docker inspect eterna-rc5-e1 --format {{json .Mounts}}
+# label: inspect E1 mounts
+# started: 2026-11-19T22:08:10Z
+[{"Type":"bind","Source":"/Users/sunny/code/agent-basis-rc5/docker/profile/cordis.super.patch.yml.template","Destination":"/repo/docker/profile/cordis.super.patch.yml.template","Mode":"ro","RW":false,"Propagation":"rprivate"},{"Type":"bind","Source":"/Users/sunny/code/agent-basis-rc5/tests/fixtures","Destination":"/fixtures","Mode":"ro","RW":false,"Propagation":"rprivate"},{"Type":"bind","Source":"/Users/sunny/eterna-data/test-rc5/e1","Destination":"/data","Mode":"rw","RW":true,"Propagation":"rprivate"},{"Type":"bind","Source":"/Users/sunny/code/agent-basis-rc5/docker/profile/cordis.patch.yml.template","Destination":"/repo/docker/profile/cordis.patch.yml.template","Mode":"ro","RW":false,"Propagation":"rprivate"}]
+EXIT=0
+
+parsed: source=/Users/sunny/eterna-data/test-rc5/e1 type=bind rw=True
+
+ASSERT PASS | /data 绑定源为测试根 e1 | actual=/Users/sunny/eterna-data/test-rc5/e1 expected=/Users/sunny/eterna-data/test-rc5/e1
+ASSERT PASS | /data 挂载类型为 bind | actual=bind expected=bind
+ASSERT PASS | /data 读写挂载 | actual=True expected=True
+compose config EXIT=0
+
+      - type: bind
+        source: /Users/sunny/eterna-data/test-rc5/e1
+        target: /data
+      - type: bind
+        source: /Users/sunny/code/agent-basis-rc5/docker/profile/cordis.patch.yml.template
+        read_only: true
+      - type: bind
+        source: /Users/sunny/code/agent-basis-rc5/docker/profile/cordis.super.patch.yml.template
+        read_only: true
+ASSERT PASS | compose config 中 /data 为 bind 到测试根 | actual=ok expected=ok
+compose config without ETERNA_DATA_ROOT EXIT=0（缺省口径见 docker-compose.yml 头注）
+
+      - type: bind
+        source: /Users/sunny/eterna-data/super
+        target: /data
+ASSERT PASS | 无 ETERNA_DATA_ROOT 时 compose config 仍可用（W4 缺省口径） | actual=0 expected=0
+entrypoint without /data mount EXIT=1
+
+[entrypoint] form=base profile=eterna-web template=cordis.patch.yml.template manifest=package.json
+[entrypoint] FATAL /data 不是挂载点——数据会落容器层,拒启(48 §6.1)
+ASSERT PASS | 漏挂 /data 时 entrypoint 拒启（非 0） | actual=1 expected=1
+ASSERT PASS | 拒启日志含「不是挂载点」 | actual=ok expected=ok
+--- 追加：三份 compose 的 /data 绑定静态检查（DATA-002 补充）
+docker-compose.super.yml:72:      - ${ETERNA_DATA_ROOT:-$HOME/eterna-data}/${ETERNA_INSTANCE:-super-2}:/data
+docker-compose.yml:92:      - ${ETERNA_DATA_ROOT:-$HOME/eterna-data}/${ETERNA_INSTANCE:-super}:/data
+docker-compose.yml:132:      - ${ETERNA_DATA_ROOT:-$HOME/eterna-data}/${ETERNA_INSTANCE:-super}:/data
+EXIT=0

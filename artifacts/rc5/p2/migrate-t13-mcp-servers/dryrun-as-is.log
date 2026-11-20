@@ -1,0 +1,15 @@
+# 输入：rc.1 开发档 patch（无 mcp-manager 行）+ rc.5 模板渲染结果
+OLD_SHA256=a7ad0f8e48de28a02a76b770947272e465e519f81fb24245d9ef37b17f3c8aa4
+NEW_SHA256=902c94b71b118cb1c7705ef7dc331361b42cb335a6397d7b4d96cf8153ef0edf
+$ node docker/profile/migrate-mcp-servers.mjs artifacts/rc5/p2/migrate-t13-mcp-servers/fixture/as-is/cordis.patch.yml artifacts/rc5/p2/migrate-t13-mcp-servers/fixture/new-as-is.yml
+[migrate-mcp-servers]: 新 patch 自带 mcp-client 行承载 browser，跳过系统层迁移（避免 serverName 双实例）；无其它待迁移项，零写
+EXIT=0
+---
+$ node docker/profile/migrate-mcp-servers.mjs artifacts/rc5/p2/migrate-t13-mcp-servers/fixture/as-is/cordis.patch.yml artifacts/rc5/p2/migrate-t13-mcp-servers/fixture/new-as-is.yml
+[migrate-mcp-servers]: 新 patch 自带 mcp-client 行承载 browser，跳过系统层迁移（避免 serverName 双实例）；无其它待迁移项，零写
+EXIT=0
+---
+SHA0=902c94b71b118cb1c7705ef7dc331361b42cb335a6397d7b4d96cf8153ef0edf SHA1=902c94b71b118cb1c7705ef7dc331361b42cb335a6397d7b4d96cf8153ef0edf SHA2=902c94b71b118cb1c7705ef7dc331361b42cb335a6397d7b4d96cf8153ef0edf
+ASSERT PASS: as-is run1 EXIT=0 且零写（新模板行已承载 browser）
+ASSERT PASS: as-is run2 EXIT=0 且零写
+ASSERT PASS: as-is 无 serverName 双实例（mcp-browser 行恰 1，mcp-manager servers 空）

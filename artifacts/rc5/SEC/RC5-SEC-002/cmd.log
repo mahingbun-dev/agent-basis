@@ -1,0 +1,22 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ node artifacts/rc5/SEC/RC5-SEC-002/scan-secrets.mjs
+# started 2026-11-19T22:12:22Z
+tracked files=2123 scanned_text=1865 skipped_binary=45
+HIT assigned-api_key docs/ai-evo-integration.md:30 value=ai***ck(15)
+HIT assigned-password packages/access/tests/companion.spec.ts:71 value=Mq***02(12)
+HIT assigned-password packages/access/tests/companion.spec.ts:74 value=Mq***02(12)
+HIT assigned-password packages/access/tests/routes.spec.ts:50 value=Mq***02(12)
+HIT assigned-password packages/access/tests/routes.spec.ts:106 value=Mq***02(12)
+HIT assigned-password packages/access/tests/routes.spec.ts:159 value=Mq***02(12)
+HIT assigned-password packages/access/tests/tasks-settings.spec.ts:52 value=Mq***02(12)
+HIT assigned-password packages/access/tests/tasks-settings.spec.ts:53 value=Mq***03(12)
+HIT assigned-password packages/access/tests/tenant.spec.ts:285 value=Mq***02(12)
+HIT assigned-password packages/access/tests/workbench-stream.spec.ts:64 value=Mq***02(12)
+HIT assigned-password scripts/team-platform-gates/p1-e2e-mux.mjs:40 value=tp***-8(13)
+HIT assigned-password scripts/team-platform-gates/p2-key-leak-scan.mjs:120 value=tp***-8(13)
+HIT assigned-password scripts/team-platform-gates/p3-e2e-panel.mjs:73 value=tp***-8(13)
+HIT assigned-password scripts/team-platform-gates/p3-e2e-panel.mjs:79 value=tp***-8(13)
+summary: hits=14
+
+EXIT 1
+# finished 2026-11-19T22:12:22Z

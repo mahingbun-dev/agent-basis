@@ -1,0 +1,17 @@
+{"seq":5,"type":"turn/start","time":1795128857220}
+{"seq":7,"type":"step/start","time":1795128857246}
+{"seq":9,"type":"user/message","time":1795128857248,"source":"eterna-tasks","content":[{"type":"text","text":"{\"ticket_id\":\"709dea15795ec8518199c38e37d54e74\",\"title\":\"API005 双 worker 验证 A\",\"assignment\":\"\\n\\nGate contract: readiness is validated, not self-reported. Before reporting ready, write the required ticket files (progress, decisions, evidence) into this ticket directory — the orchestrator checks the deliverable structure and only a passing gate makes ready count; a failed check records the ticket as failed (gate:structure). Golden-set replay applies at the release gate and to sampled high-risk tickets, not to your self-assessment.\",\"trigger\":{\"trigger_id\":\"f9d2fdaec38dc204637e294064a28a56\",\"from\":\"ApiHarness\",\"thread\":\"webchat:orchestrator-ApiHarness::api-batch-1\",\"at\":\"2026-11-19T22:54:17.145Z\",\"text\":\"用 bash 工具运行 `sleep 45` 并等待它结束，然后回复 REPORT: worker-a done。不要做别的事。\"}}"}]}
+{"seq":15,"type":"subagent/catalog","time":1795128857373,"catalog":{"version":3,"childId":"7cb4fa40-67fa-4ee2-acc0-ef85bb51bc31","childCreatedAt":1795128857365,"mode":"continuable","label":"api-child-1","name":"api-child-1"}}
+{"seq":16,"type":"subagent/catalog","time":1795128857384,"catalog":{"version":3,"childId":"1ad10993-392d-457d-adab-cf8c3b2d5a63","childCreatedAt":1795128857379,"mode":"continuable","label":"api-child-2","name":"api-child-2"}}
+{"seq":17,"type":"assistant/message","time":1795128859268}
+{"seq":18,"type":"step/end","time":1795128859269}
+{"seq":19,"type":"turn/end","time":1795128859269,"reason":{"kind":"completed"}}
+{"seq":21,"type":"turn/start","time":1795128859421}
+{"seq":23,"type":"step/start","time":1795128859434}
+{"seq":24,"type":"user/message","time":1795128859435,"source":"subagent-settled","content":[{"type":"text","text":"Background subagent api-child-1 finished and will do no further work unless you send it more."},{"type":"text","text":"Its closing message:"},{"type":"text","text":"DONE-1"}]}
+{"seq":25,"type":"assistant/message","time":1795128861445}
+{"seq":26,"type":"step/end","time":1795128861447}
+{"seq":27,"type":"turn/end","time":1795128861447,"reason":{"kind":"completed"}}
+{"seq":29,"type":"turn/start","time":1795128865424}
+{"seq":31,"type":"step/start","time":1795128865447}
+{"seq":32,"type":"user/message","time":1795128865448,"source":"subagent-settled","content":[{"type":"text","text":"Background subagent api-child-2 finished and will do no further work unless you send it more."},{"type":"text","text":"Its closing message:"},{"type":"text","text":"DONE-2"}]}

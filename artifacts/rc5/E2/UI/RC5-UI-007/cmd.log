@@ -1,0 +1,15 @@
+# UI/RC5-UI-007
+# started 2026-11-19T23:57:42.025Z
+
+$ node artifacts/rc5/E2/UI/_suite/ui-scan.mjs UI-007
+EXIT=0
+settings.section mcp-servers registration: present
+McpServersSection component used: true
+data-eterna-settings-section="mcp-servers": true
+access page routes containing mcp: none
+registered slot ids: thinking-feedback, session-probe, decision-layer, account, mcp-servers, notifications, my-plugins, users, approval-queue, manage
+PASS MCP registered as settings.section: index.tsx settings.section id=${NS}.mcp-servers
+PASS no standalone MCP page route: routes.ts 无 mcp 页面路由
+SUMMARY UI-007 failures=0
+
+[ASSERT] UI-007 扫描退出 0 => PASS

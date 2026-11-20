@@ -1,0 +1,25 @@
+### API-009 independent scan A: level vs numeric literal
+core/cordis/src/logger.ts:96:    const colors = !level ? [] : level >= 2 ? c256 : c16
+scripts/verify-rc5-env.mjs:647:    pattern: 'level >= 2 ? c256 : c16',
+scripts/verify-rc5-env.mjs:652:    pattern: 'level > 0 ? this.committed[level - 1]',
+packages/tasks/src/store/store.ts:230:    const parent = level > 0 ? this.committed[level - 1] : undefined
+EXIT_A=0
+### API-009 independent scan B: numeric literal vs level
+EXIT_B=1
+### API-009 independent scan C: severity literal maps
+tools/aievo-run.mjs:20:export const EXIT = { PASS: 0, FAIL: 1, ERROR: 2 };
+core/cordis/tests/smoke.spec.ts:94:    // 4.1.0 显式反转级别数值(4.0.6 为 INFO=1/WARN=2);消费方不得按旧序硬编码
+core/cordis/src/logger.ts:23:  ERROR: 0,
+core/cordis/src/logger.ts:24:  WARN: 1,
+core/cordis/src/logger.ts:25:  INFO: 2,
+core/cordis/src/logger.ts:26:  DEBUG: 3,
+scripts/verify-rc5-env.mjs:34: *            ERROR=0/WARN=1/INFO=2/DEBUG=3(4.0.6 为 INFO=1/WARN=2);
+scripts/verify-rc5-env.mjs:671:  // `export declare const LoggerLevel: { readonly WARN: 1; ... }`。
+scripts/verify-rc5-env.mjs:680:  const entry = section('API-009', 'LoggerLevel 数值语义(4.1.0: WARN=1 / INFO=2)',
+scripts/verify-rc5-env.mjs:684:  const expected = { ERROR: 0, WARN: 1, INFO: 2, DEBUG: 3 }
+scripts/verify-rc5-env.mjs:686:  assert(entry, 'vendor LoggerLevel = {ERROR:0, WARN:1, INFO:2, DEBUG:3}', srcOk,
+packages/tasks/src/effects/effects.ts:28:export const FAILURES_BEFORE_ERROR = 3
+EXIT_C=0
+### API-009 independent scan D: level name ordinal arrays
+core/cordis/src/logger.ts:274:    for (const type of ['error', 'info', 'warn', 'debug'] as const) {
+EXIT_D=0

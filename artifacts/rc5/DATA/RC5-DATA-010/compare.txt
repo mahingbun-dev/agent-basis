@@ -1,0 +1,6 @@
+db True
+secretFiles True
+storages True
+sessions.files True 396 396
+files True 8625 8625
+db values {'users': 2, 'accessSessions': 145, 'workspaces': 3, 'approvals': 0, 'notifications': 0, 'userPlugins': 0, 'memoryEntities': 12, 'memoryDomains': 15, 'knowledgePermissions': 0, 'workspaceMemoryEntities': 24, 'tasksTickets': 0, 'tasksThreads': 1} {'users': 2, 'accessSessions': 145, 'workspaces': 3, 'approvals': 0, 'notifications': 0, 'userPlugins': 0, 'memoryEntities': 12, 'memoryDomains': 15, 'knowledgePermissions': 0, 'workspaceMemoryEntities': 24, 'tasksTickets': 0, 'tasksThreads': 1}

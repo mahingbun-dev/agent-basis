@@ -1,0 +1,20 @@
+# command: pnpm --filter @eterna/tasks exec vitest run tests/background.spec.ts --reporter=verbose
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/tasks
+
+ ✓ tests/background.spec.ts > subagent 检查期间被结束唤醒的 worker 不算安静:它自己的 idle 再看新一轮 2ms
+ ✓ tests/background.spec.ts > 宿主停止后不再等待永不结束的 subagent 0ms
+ ✓ tests/background.spec.ts > 只有 job 结束才再看一眼:吵闹 job 的每次输出不看 2ms
+ ✓ tests/background.spec.ts > 释放 subagent 的 teardown 失败照样取消 worker 回合,并把失败抛给调用方 1ms
+ ✓ tests/background.spec.ts > 等待 subagent 的多次查看只 join 一次(DSH 无法取消该 join) 0ms
+ ✓ tests/background.spec.ts > 10 秒内不结束的 subagent 释放被放弃,且其结束唤醒的回合被取消 1ms
+ ✓ tests/background.spec.ts > killJobs 只杀该 session 拥有的在跑 job,收集其结束(不再唤醒 owner) 0ms
+ ✓ tests/background.spec.ts > collectJob 收集一个 job 的结束并汇报其状态;未被收集的结束唤醒闲着的 owner 0ms
+ ✓ tests/background.spec.ts > stopBackground 停掉 job 与 subagent,job 的 kill 失败也照样释放 subagent 0ms
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  02:16:47
+   Duration  410ms (transform 196ms, setup 0ms, import 294ms, tests 8ms, environment 0ms)
+
+# EXIT=0

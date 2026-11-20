@@ -1,0 +1,172 @@
+{
+  "phase": "P5",
+  "task": "T31/T37/T40-T45 image/deploy (lane L5)",
+  "commit": "02f4857",
+  "branch": "feat/dsh-rc5-merge",
+  "imageTag": "not-built (mainline gate 执行 docker build)",
+  "startedAt": "2026-11-19T20:39:54Z",
+  "finishedAt": "2026-11-19T20:41:09.571Z",
+  "note": "静态/本地可执行检查；镜像内探针与容器 E2E 由主线 gate 执行（本条未 build/run）",
+  "commands": [
+    {
+      "cmd": "sh -n docker/entrypoint.sh",
+      "exit": 0,
+      "desc": "1 entrypoint POSIX syntax (dash)"
+    },
+    {
+      "cmd": "bash -n deploy/init-data-dirs.sh && bash -n deploy/backup-data.sh && bash -n deploy/pre-restart-check.sh",
+      "exit": 0,
+      "desc": "2 deploy scripts bash syntax"
+    },
+    {
+      "cmd": "grep -n 'npm i -g' Dockerfile; grep -c 'dsh-mcp-client@' Dockerfile || true; grep -c 'auto_install_peers\\|npm_config_verify' Dockerfile || true",
+      "exit": 0,
+      "desc": "3 Dockerfile: only dsh rc.5, no separate mcp-client, no rc.1 workarounds"
+    },
+    {
+      "cmd": "grep -n 'process.versions.node\\|0.2.2-rc.5\\|rm -rf /repo/core\\|fonts-noto-cjk\\|python-pptx\\|fc-list' Dockerfile",
+      "exit": 0,
+      "desc": "4 Dockerfile: node>=24.9 assert + rc.5 probe + v1 strip + fonts/python"
+    },
+    {
+      "cmd": "ETERNA_DATA_ROOT=/Users/sunny/eterna-data docker compose -f docker-compose.yml config > /tmp/p5-compose-base.out && grep -c 'eterna-agent-acp' /tmp/p5-compose-base.out || true",
+      "exit": 0,
+      "desc": "5 compose base config (default profile)"
+    },
+    {
+      "cmd": "ETERNA_DATA_ROOT=/Users/sunny/eterna-data docker compose --profile acp -f docker-compose.yml config > /tmp/p5-compose-acp.out && awk '/eterna-agent-acp:/{f=1} f' /tmp/p5-compose-acp.out | grep -c 'published' || true",
+      "exit": 0,
+      "desc": "6 compose base config with acp profile (no ports, stdin_open)"
+    },
+    {
+      "cmd": "awk '/eterna-agent-acp:/{f=1} f' /tmp/p5-compose-acp.out | grep -E 'profiles:|- acp|container_name|stdin_open|tty|restart|disable: true|source:.*/super'",
+      "exit": 0,
+      "desc": "7 compose base ACP assertions"
+    },
+    {
+      "cmd": "env -u ETERNA_DATA_ROOT docker compose -f docker-compose.yml config",
+      "exit": 1,
+      "desc": "8 compose fail-closed without ETERNA_DATA_ROOT"
+    },
+    {
+      "cmd": "ETERNA_DATA_ROOT=/tmp/eterna-data ETERNA_CONTAINER_NAME=eterna-agent-test ETERNA_PORT=3108 ETERNA_RELAY_PORT=9318 ETERNA_INSTANCE=test-20261120 docker compose -f docker-compose.yml config | grep -E 'container_name|published|source: /tmp'",
+      "exit": 0,
+      "desc": "9 compose parameter overrides"
+    },
+    {
+      "cmd": "ETERNA_DATA_ROOT=/Users/sunny/eterna-data docker compose -f docker-compose.super.yml config | grep -E 'container_name|published|source: /Users|DSH_AGENTS_HOME'",
+      "exit": 0,
+      "desc": "10 compose super bind root default super-2"
+    },
+    {
+      "cmd": "rm -rf /tmp/p5-data && ETERNA_DATA_ROOT=/tmp/p5-data bash deploy/init-data-dirs.sh super test-20261120 > /tmp/p5-init1.out && ETERNA_DATA_ROOT=/tmp/p5-data bash deploy/init-data-dirs.sh super test-20261120 > /tmp/p5-init2.out && diff /tmp/p5-init1.out /tmp/p5-init2.out && echo IDEMPOTENT",
+      "exit": 0,
+      "desc": "11 init-data-dirs run1+run2 idempotent"
+    },
+    {
+      "cmd": "stat -f '%Sp %N' /tmp/p5-data /tmp/p5-data/super /tmp/p5-data/super/agents /tmp/p5-data/super/access /tmp/p5-data/backups",
+      "exit": 0,
+      "desc": "12 init-data-dirs modes 0700"
+    },
+    {
+      "cmd": "ETERNA_DATA_ROOT=relative/dir bash deploy/init-data-dirs.sh",
+      "exit": 1,
+      "desc": "13 init-data-dirs rejects relative root"
+    },
+    {
+      "cmd": "rm -rf /tmp/p5-gitprobe && mkdir -p /tmp/p5-gitprobe && git -C /tmp/p5-gitprobe init -q && ETERNA_DATA_ROOT=/tmp/p5-gitprobe/data bash deploy/init-data-dirs.sh",
+      "exit": 1,
+      "desc": "14 init-data-dirs rejects git worktree"
+    },
+    {
+      "cmd": "mkdir -p /tmp/p5-data/super/office-kit/outputs /tmp/p5-data/super/.pnpm-store /tmp/p5-data/super/access && echo keep > /tmp/p5-data/super/access/users.db && echo tmp > /tmp/p5-data/super/office-kit/outputs/x.docx && echo store > /tmp/p5-data/super/.pnpm-store/blob && ETERNA_DATA_ROOT=/tmp/p5-data SKIP_STOP=1 bash deploy/backup-data.sh super && TGZ=$(ls /tmp/p5-data/backups/*.tgz | head -1) && tar tzf \"$TGZ\" | grep -E 'users.db|outputs|pnpm-store' && stat -f '%Sp %N' \"$TGZ\"",
+      "exit": 0,
+      "desc": "15 backup-data cold-backup logic (SKIP_STOP, exclusions, 0600)"
+    },
+    {
+      "cmd": "ETERNA_DATA_ROOT=/tmp/p5-data SKIP_STOP=1 bash deploy/backup-data.sh nope",
+      "exit": 1,
+      "desc": "16 backup-data missing instance rejected"
+    },
+    {
+      "cmd": "ls /tmp/dshprobe-rc5/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/ | grep -E 'dsh-mcp-client|dsh-acp-app|dsh-agent-preset' && node -e 'console.log(require(\"/tmp/dshprobe-rc5/lib/node_modules/@deepseek-ai/dsh/package.json\").version, require(\"/tmp/dshprobe-rc5/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-mcp-client/package.json\").version)' && /tmp/dshprobe-rc5/bin/dsh --version && readlink -f /tmp/dshprobe-rc5/bin/dsh",
+      "exit": 0,
+      "desc": "17 npm -g dsh rc.5 layout probe (nested mcp-client/acp-app)"
+    },
+    {
+      "cmd": "grep -n 'ETERNA_FORM\" = \"acp\"\\|exec dsh --profile\\|exec 1>&2\\|flock\\|mountpoint\\|/data 不是挂载点\\|DSH_AGENTS_HOME' docker/entrypoint.sh | grep -v '^.*#'",
+      "exit": 0,
+      "desc": "18 entrypoint: ACP branch and no global exec 1>&2"
+    },
+    {
+      "cmd": "grep -n 'migrate-prompt-edits\\|migrate-profile-bundles\\|migrate-mcp-servers\\|profile-upgrade-check\\|plugin strip applied' docker/entrypoint.sh",
+      "exit": 0,
+      "desc": "19 entrypoint: migrate wiring order (prompt -> migrate -> strip) + acp skip"
+    },
+    {
+      "cmd": "grep -n 'client_max_body_size\\|proxy_read_timeout\\|proxy_send_timeout' deploy/README.md",
+      "exit": 0,
+      "desc": "20 reverse proxy doc: 512m + read timeout"
+    },
+    {
+      "cmd": "git status --short Dockerfile docker/entrypoint.sh docker-compose.yml docker-compose.super.yml deploy docs/docker-deploy.md",
+      "exit": 0,
+      "desc": "21 changed file list"
+    },
+    {
+      "cmd": "dash -n docker/entrypoint.sh",
+      "exit": 0,
+      "desc": "22 dash POSIX syntax (real dash)"
+    },
+    {
+      "cmd": "printf 'proc /proc proc rw 0 0\\n/dev/sda1 /data ext4 rw 0 0\\n' | awk '$2 == \"/data\" { found = 1 } END { exit found ? 0 : 1 }'; echo MOUNTED_RC=$?; printf 'proc /proc proc rw 0 0\\n' | awk '$2 == \"/data\" { found = 1 } END { exit found ? 0 : 1 }'; echo NOT_MOUNTED_RC=$?",
+      "exit": 0,
+      "desc": "23 mountpoint predicate unit test (awk from 48 §6.1)"
+    },
+    {
+      "cmd": "MIMO_API_KEY=dummy dash docker/entrypoint.sh",
+      "exit": 1,
+      "desc": "24 entrypoint fail-closed: no /proc/mounts on host -> FATAL, exit 1"
+    },
+    {
+      "cmd": "MIMO_API_KEY=dummy ETERNA_FORM=bogus dash docker/entrypoint.sh",
+      "exit": 1,
+      "desc": "25 entrypoint invalid ETERNA_FORM fail-closed"
+    },
+    {
+      "cmd": "MIMO_API_KEY=dummy ETERNA_FORM=acp dash docker/entrypoint.sh > /tmp/p5-acp-out.txt 2> /tmp/p5-acp-err.txt; echo STDOUT_BYTES=$(wc -c < /tmp/p5-acp-out.txt); grep -c 'FATAL /data 不是挂载点' /tmp/p5-acp-err.txt",
+      "exit": 0,
+      "desc": "26 ACP mode stdout purity up to precheck (stdout empty, FATAL on stderr)"
+    },
+    {
+      "cmd": "grep -n 'stdin_open: true\\|tty: false\\|profiles: \\[\"acp\"\\]\\|disable: true' docker-compose.yml",
+      "exit": 0,
+      "desc": "27 compose tty:false + stdin_open + profiles in source"
+    },
+    {
+      "cmd": "grep -n 'ETERNA_DATA_ROOT\\|external: true\\|eterna-home' docker-compose.yml docker-compose.super.yml",
+      "exit": 0,
+      "desc": "28 data-root bind + external volume removed"
+    },
+    {
+      "cmd": "python3 artifacts/rc5/p5/image-deploy/verify-dockerfile-runs.py Dockerfile",
+      "exit": 0,
+      "desc": "29 Dockerfile RUN shell syntax (dash -n per RUN, comments stripped like BuildKit)"
+    }
+  ],
+  "notRun": [
+    "docker build / 镜像内探针（dsh --version、mcp-client realpath、字体/Python、v1 剥离）",
+    "容器内 entrypoint 全链（web/ACP boot、/data 挂载点、flock、ACP stdout 纯净）",
+    "backup-data.sh stop/start 分支（会停生产容器，禁）",
+    "SQLite integrity_check / macOS FUSE 24h 浸泡（P6b T51）",
+    "ACP/IMP/OFF E2E（P6）"
+  ],
+  "leftovers": [
+    "R-P5-01",
+    "R-P5-02",
+    "R-P5-03",
+    "R-P5-04",
+    "R-P5-05",
+    "R-P5-06"
+  ]
+}

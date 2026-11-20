@@ -1,0 +1,154 @@
+{
+  "id": "RC5-BOOT-002",
+  "suite": "E3-super",
+  "priority": "P0",
+  "title": "E3 super 容器起：healthy + super 路由可访问",
+  "expected": "healthy；super 路由可访问（/login、/、/access/api/tasks/*、/workbench/api/stream），22 行 @eterna 挂载 active",
+  "status": "PASS",
+  "startedAt": "2026-11-19T22:26:30.343Z",
+  "finishedAt": "2026-11-19T22:26:30.744Z",
+  "assertions": [
+    {
+      "name": "super 容器 healthy",
+      "ok": true,
+      "detail": "healthy"
+    },
+    {
+      "name": "最近一次 healthcheck ExitCode=0",
+      "ok": true,
+      "detail": "{\"exit\":0}"
+    },
+    {
+      "name": "ETERNA_FORM=super 且 profile 目录=eterna-super",
+      "ok": true,
+      "detail": "form=super"
+    },
+    {
+      "name": "容器内 dsh --version = 0.2.2-rc.5",
+      "ok": true,
+      "detail": "0.2.2-rc.5"
+    },
+    {
+      "name": "GET /login 200 且返回中文登录页",
+      "ok": true,
+      "detail": "status=200 bytes=21095"
+    },
+    {
+      "name": "admin 登录 200",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "GET / 200 且注入 __DSH_BOOT__ 花名册",
+      "ok": true,
+      "detail": "status=200 bytes=47093"
+    },
+    {
+      "name": "GET /access/api/tasks/settings 200 ok（super 专属路由）",
+      "ok": true,
+      "detail": "{\"ok\":true,\"realm\":\"Mr.Ma\",\"masterId\":\"orchestrator-Mr.Ma\",\"masterTitle\":\"eterna-tasks orchestrator\",\"paused\":false,\"policyVersion\":\"f8c053aea3997ba0e4045d9a7acc1cb2\",\"settings\":{\"paused\":false,\"sources\":{},\"policy\":{\"rules\":[],\"sources\":{}},\"eval\":{\"mode\":\"observe\",\"timeoutSeconds\":120,\"model\":null"
+    },
+    {
+      "name": "任务设置含 realm/masterId/health/stats",
+      "ok": true,
+      "detail": "{\"realm\":\"Mr.Ma\",\"masterId\":\"orchestrator-Mr.Ma\",\"health\":\"object\",\"stats\":\"object\"}"
+    },
+    {
+      "name": "GET /access/api/tasks/session-roles 200 ok",
+      "ok": true,
+      "detail": "{\"ok\":true,\"masterId\":\"orchestrator-Mr.Ma\",\"masterTitle\":\"eterna-tasks orchestrator\",\"workerSessionIds\":[]}"
+    },
+    {
+      "name": "GET /workbench/api/stream 200 text/event-stream",
+      "ok": true,
+      "detail": "200 text/event-stream; charset=utf-8"
+    },
+    {
+      "name": "工作台首帧为 snapshot",
+      "ok": true,
+      "detail": "{\"kind\":\"snapshot\",\"seq\":2,\"snapshot\":{\"tickets\":[],\"conflict\":{\"attach\":{\"count\":0,\"note\":\"同线程候选挂接 · 7 日（routed 决策）\"},\"duplicate\":{\"percent\":0,\"thresholdPercent\":5,\"note\":\"幂等查重 · 计数接入后展示\",\"unavailabl"
+    },
+    {
+      "name": "host entries=235（rc.5 基线）",
+      "ok": true,
+      "detail": "entries=235"
+    },
+    {
+      "name": "super 模板 22 行 @eterna insert 全部 enabled+active",
+      "ok": true,
+      "detail": "eterna-governance, eterna-audit, eterna-egress, eterna-memory, eterna-knowledge, eterna-llm-doctor, eterna-brand, eterna-access, eterna-prompt-studio, eterna-usage-stats, eterna-panel, eterna-workbench, eterna-attachments, eterna-compaction-client, eterna-compaction-admin, eterna-memory-client, eterna-memory-admin, eterna-tasks, eterna-channels, eterna-interact, eterna-toolkit, eterna-tasks-access-bridge"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "docker inspect eterna-rc5-e3 --format {{json .}}",
+      "exit": 0,
+      "note": "E3 容器 inspect（仅取白名单字段）"
+    },
+    {
+      "cmd": "docker exec eterna-rc5-e3 dsh --version",
+      "exit": 0,
+      "note": "容器内 dsh 版本"
+    },
+    {
+      "cmd": "GET /login",
+      "exit": 200,
+      "note": "super 登录页"
+    },
+    {
+      "cmd": "docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)",
+      "exit": 0,
+      "note": "boot token 不入证据"
+    },
+    {
+      "cmd": "GET /connect + GET /?token=… (dsh session bootstrap)",
+      "exit": 200,
+      "note": "token 已脱敏"
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 200,
+      "note": "account=rc5admin"
+    },
+    {
+      "cmd": "GET /",
+      "exit": 200,
+      "note": "super 应用壳（带会话）"
+    },
+    {
+      "cmd": "GET /access/api/tasks/settings",
+      "exit": 200,
+      "note": "super 专属任务设置读面"
+    },
+    {
+      "cmd": "GET /access/api/tasks/session-roles",
+      "exit": 200,
+      "note": "super 专属会话角色读面"
+    },
+    {
+      "cmd": "GET /workbench/api/stream",
+      "exit": 200,
+      "note": "SSE 首帧"
+    },
+    {
+      "cmd": "POST /api/pluginInventory/list",
+      "exit": 200,
+      "note": "ok=true"
+    },
+    {
+      "cmd": "read docker/profile/cordis.super.patch.yml.template",
+      "exit": 0,
+      "note": ""
+    }
+  ],
+  "notes": [
+    "容器 /eterna-rc5-e3 project=rc5-test-e3 image=eterna-agent:rc5-test health=healthy"
+  ],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

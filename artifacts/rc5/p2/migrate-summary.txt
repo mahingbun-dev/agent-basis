@@ -1,0 +1,10 @@
+T12/T13/T14 B1/H9/H11 预检+迁移接线证据
+生成时间: 2026-11-19T17:58:14Z
+HEAD: 02f4857
+分支: feat/dsh-rc5-merge
+PASS=42 FAIL=0
+
+T12: test.log / dryrun.log / fail-closed-bad-patch.log / trace-*.json
+T13: test.log / dryrun-as-is.log / dryrun-manager-server.log / fail-closed.log / backup-json.json
+T14: test.log / dryrun.log / dryrun-fresh-volume.log
+WIRING: entrypoint.block.log / fail-closed-sim.log

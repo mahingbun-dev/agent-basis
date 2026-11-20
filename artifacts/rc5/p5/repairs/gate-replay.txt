@@ -1,0 +1,34 @@
+# 门禁项整体重放(2026-11-20;最终文件状态 ↔ 已构建镜像 eterna-agent:rc5-p5-repair)
+
+## dsh --version
+0.2.2-rc.5
+EXIT=0
+
+## node -v
+v24.22.3
+EXIT=0
+
+## v1 stripped
+OK
+EXIT=0
+
+## fonts/python
+OK
+EXIT=0
+
+## compose config
+        source: /Users/sunny/eterna-data/super
+EXIT=0
+
+## compose super config
+        source: /Users/sunny/eterna-data/super-2
+EXIT=0
+
+## compose acp config
+        source: /Users/sunny/eterna-data/super
+        source: /Users/sunny/eterna-data/super
+EXIT=0
+
+## 反向:无参数启动仍 fail-closed
+/app/entrypoint.sh: 57: MIMO_API_KEY: MIMO_API_KEY required (env / compose .env——默认模型走 MiMo 直连)
+EXIT=2

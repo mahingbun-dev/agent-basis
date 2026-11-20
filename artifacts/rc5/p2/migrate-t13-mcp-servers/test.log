@@ -1,0 +1,20 @@
+$ node --test docker/profile/migrate-mcp-servers.test.mjs
+✔ mcp-browser 旧行 → mcp-manager.config.servers（键名取 serverName） (55.316417ms)
+✔ 旧 mcp-manager servers 与 mcp-browser 合并（同键以旧 servers 为准） (2.88025ms)
+✔ 幂等：二次运行 servers 已一致 → 零写、无新备份 (2.39025ms)
+✔ 坏 YAML fail-closed：新 patch 原样保留、写 0600 备份 JSON、非 0 语义 (1.941416ms)
+✔ 旧 patch 无 MCP 配置 → 明确空操作（exit 0 语义） (0.456834ms)
+✔ 旧 patch 不存在 → 空操作 (0.175417ms)
+✔ 新 patch 缺 mcp-manager 行 → fail-closed，新文件不写 (0.897834ms)
+✔ 新 patch 自带同名 mcp-client 行 → 不重复写入 mcp-manager（serverName 双实例防护） (1.375042ms)
+✔ 新 patch 行承载 browser 时，旧 manager 的其它 server 仍迁移 (1.604041ms)
+✔ 失败留痕 JSON 脱敏：servers 里的令牌/密钥值不落盘 (1.421417ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 155.2355
+EXIT=0

@@ -1,0 +1,3 @@
+cd /Users/sunny/code/agent-basis-rc5
+node scripts/verify-rc5-env.mjs --api-static --runtime-image eterna-agent:rc5-test --compose-env-file "$HOME/eterna-data/test-rc5/.env.e1" --json artifacts/rc5/p5/testbed/env-runtime/report.json
+EXIT=0

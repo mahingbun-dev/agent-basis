@@ -1,0 +1,16 @@
+# HERO/RC5-HERO-005
+# started 2026-11-19T23:17:24.413Z
+
+$ IAB: 偏好设置 → 通用设置 → 外观 → 浅色/深色；getComputedStyle(hero mark/glow/ring)
+EXIT=0
+light={"bg":"rgb(244, 242, 236)","scheme":"light","mark":"rgb(43, 98, 114)","glow":"oklab(0.466059 -0.0484649 -0.0402361 / 0.07)","ring":"oklab(0.466059 -0.0484649 -0.0402361 / 0.13)"} dark={"bg":"rgb(22, 25, 23)","scheme":"dark","mark":"rgb(127, 178, 189)","glow":"oklab(0.731538 -0.0471314 -0.0300473 / 0.07)","ring":"oklab(0.731538 -0.0471314 -0.0300473 / 0.13)"}
+
+[ASSERT] 浅色主题生效（bg/scheme） => PASS
+
+[ASSERT] 深色主题生效（bg/scheme） => PASS
+
+[ASSERT] 品牌色随主题变化（mark/glow/ring 计算值不同） => PASS
+
+$ grep -nE "#[0-9a-fA-F]{3,8}|rgba?\(" packages/brand/src/client/styles.ts packages/brand/src/client/hero.ts
+EXIT=0
+(无输出=零字面色值；令牌全部 var(--et-*))

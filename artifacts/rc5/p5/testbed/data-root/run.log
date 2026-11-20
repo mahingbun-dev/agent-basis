@@ -1,0 +1,9 @@
+[PASS] RC5-DATA-001 init-data-dirs 幂等、根 0700、子目录齐全 :: root=700 instance=700 second-run=ok
+[PASS] RC5-DATA-002 /data 绑定到测试数据根 :: source=/Users/sunny/eterna-data/test-rc5/e1
+[PASS] RC5-DATA-002b compose config 可用且 /data 为 bind :: source: /Users/sunny/eterna-data/test-rc5/e1
+[PASS] RC5-DATA-003 容器内 DSH_HOME=/data :: DSH_HOME=/data
+[PASS] RC5-DATA-006 容器内 DSH_AGENTS_HOME=/data/agents :: DSH_AGENTS_HOME=/data/agents
+[NOTRUN] RC5-DATA-004 迁移副本硬链接/大小与源一致 :: 未提供 --migration-source/--migration-dest；合成样本自检通过（files=3 bytes=14 linkGroups=1）
+
+[DATA] PASS=5 FAIL=0 NOTRUN=1
+[DATA] report → artifacts/rc5/p5/testbed/data-root/report.json

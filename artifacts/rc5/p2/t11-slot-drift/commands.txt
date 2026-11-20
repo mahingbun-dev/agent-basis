@@ -1,0 +1,47 @@
+# T11 / P2 出口验收 — 命令原文（cwd=/Users/sunny/code/agent-basis-rc5，本地 2026-11-20 02:39 / UTC 2026-11-19T18:39Z）
+
+## git
+$ git rev-parse HEAD
+02f485788411b9aed1938a3c4b009793a090961e
+$ git rev-parse --abbrev-ref HEAD
+feat/dsh-rc5-merge
+
+## 双 boot（独立临时 home，不连生产；运行前后整树 digest 相同）
+$ ETERNA_PROFILE_HOME=$(mktemp -d /tmp/eterna-web-home.XXXXXX) ETERNA_EVIDENCE_DIR=artifacts/rc5/p2/t11-slot-drift/web node scripts/verify-eterna-web.mjs
+EXIT=0
+$ ETERNA_PROFILE_HOME=$(mktemp -d /tmp/eterna-super-home.XXXXXX) ETERNA_EVIDENCE_DIR=artifacts/rc5/p2/t11-slot-drift/super node scripts/verify-eterna-super.mjs
+EXIT=0
+source-tree digest: af2d82d823b4cbd3dc4cd146244b9bb5633a525d0f79b4be8122d1fbcb307d92 (stable before/after both runs)
+
+## MCPS-008
+$ node --test docker/profile/migrate-mcp-servers.test.mjs
+ℹ tests 12
+ℹ pass 12
+ℹ fail 0
+EXIT1=0
+EXIT2=0
+
+## MCPS-011
+EXIT_RENDER=0
+EXIT_FAIL=1
+
+## BOOT-008/009/010 支撑单测
+$ node --test docker/profile/migrate-profile-bundles.test.mjs
+ℹ tests 7
+ℹ pass 7
+ℹ fail 0
+
+## BOOT-004..007/012 证据查询（在最终双 boot 之后执行，读取落盘 dump）
+$ grep -h "BOOT-00[4567]\|BOOT-012" artifacts/rc5/p2/t11-slot-drift/{web,super}-boot.stdout.log
+$ node -e "…inventory.json: host 树/preset 行/启用态查询…"   # 见各 evidence.txt 原文
+$ node -e "…preset-standard.json vs inventory.json standard 行对比…"
+$ node -e "…slot-drift.json: roster/bundle/declared/served 表…"
+
+## 最终断言计数
+web:   PASS 29 / FAIL 0 / SKIP 2（tasks、workbench 本形态未挂载）
+super: PASS 33 / FAIL 0 / SKIP 0
+
+## 已知瞬态（第一次 super 运行）
+packages/access/src/mcp-personal-runtime.ts 在 02:30 被并行 lane 半写；首次 super boot stderr 出现
+ERR_INVALID_TYPESCRIPT_SYNTAX at mcp-personal-runtime.ts:302 → eterna-access failed to import。
+该次日志已被重跑覆盖；源码 digest 稳定后两次重跑均 EXIT=0（见 source-hashes.txt）。

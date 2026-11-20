@@ -1,0 +1,721 @@
+diff --git a/packages/access/src/mux.ts b/packages/access/src/mux.ts
+index f0af781..0da55d3 100644
+--- a/packages/access/src/mux.ts
++++ b/packages/access/src/mux.ts
+@@ -8,6 +8,12 @@
+  *   返回 per-user Peer(principal={kind:'eterna-user',userId});其余路径(含全部 unary HTTP)
+  *   维持 owner Peer + 守卫路由双保险(unary fetch 路由上游硬性要求 owner,
+  *   client-connection lib/index.js:830)。
++ * - TERM-004 终端一元门(2026-11-20 W5 门禁修复):`/api/terminal/*` 一元 RPC 同样换血
++ *   per-user Peer——rc.5 网关对 owner principal 跳过 prepareInvocation 的 decide
++ *   (dsh-api-gateway lib/index.js:1204),terminal 服务入口守卫因此拿不到身份,跨租户
++ *   可读他人会话 cwd/shells。terminal 六方法的资源逐会话(agent lookup→session),故
++ *   动作授在会话绑定(TERMINAL_UNARY_ACTIONS),他人会话由 decide 拒
++ *   (remote-access/denied);策略面未就绪时 fail-closed 503,绝不退回 owner。
+  * - T6.1 市场面收口(2026-11-19,计划文档 §堵洞先行):同一 admit 包装兼任市场路径
+  *   admin-only 门——插件市场 unary RPC 走 owner Peer、上游不认 eterna 角色,而装/卸/
+  *   启停/索引源写入落**共享 profile**,影响全体用户。admit 是全部 `/api` 请求的请求级
+@@ -99,6 +105,39 @@ export function isMarketPath(pathname: string): boolean {
+   return MARKET_ADMIN_PREFIXES.some(prefix => pathname.startsWith(prefix))
+ }
+ 
++/** 终端一元动作路径前缀(2026-11-20 W5 门禁修复 TERM-004;rc.5 实核)。 */
++export const TERMINAL_UNARY_PATH_PREFIX = '/api/terminal/'
++
++/** 路径是否属 terminal 一元 RPC(`POST /api/terminal/<method>`)。 */
++export function isTerminalUnaryPath(pathname: string): boolean {
++  return pathname.startsWith(TERMINAL_UNARY_PATH_PREFIX)
++}
++
++/**
++ * 终端一元动作(6 个;stream 三件套 attach/retain/watch 走 mux,不在此列)。
++ *
++ * 为什么必须授在**会话绑定**上而不是全局:rc.5 网关 prepareInvocation 对非 owner
++ * Peer 先按 callResources 解析资源再 decide(dsh-api-gateway lib/index.js:1204-1215),
++ * terminal 六方法的资源全部逐会话——首参 `agent` 是 lookup(typert.host.js 描述符
++ * `source:'lookup', lookup:'agent'`;agent 注册 resource:'session',core/agent
++ * lib/index.js:452),`list` 是具名 sessionId 参数(session-controller lib/index.js:3495
++ * resolveSessionResource 按参数名直读)。remote-access evaluate 对资源做
++ * sameResource 严格匹配(lib/index.js:338)——global 绑定永不命中 session 资源,
++ * 只授 global 会让本人会话也恒 no-allow;授会话绑定则本人放行、他人会话 deny
++ * (`remote-access/denied`)。
++ *
++ * 防漂移:tests/mux-drift.spec.ts 断言本清单与上游 terminal typert.host.js 的
++ * 非流方法表一致。
++ */
++export const TERMINAL_UNARY_ACTIONS: readonly string[] = [
++  'terminal/environment',
++  'terminal/shells',
++  'terminal/list',
++  'terminal/create',
++  'terminal/close',
++  'terminal/rename',
++]
++
+ /** 从 admit 请求的 url 面取 pathname。双形态兼容:node IncomingMessage 的 req.url
+  *  为纯路径(`/api/...`),mux 升级/测试/部分载体可能带完整 URL——同 eternaUserOf
+  *  的双形态纪律。解析失败按首段兜底(宁可少命中,不误伤其它路径)。 */
+@@ -151,6 +190,11 @@ export const GLOBAL_UNARY_ACTIONS: readonly string[] = [
+   'pluginManager/listBundles',
+   'session/create',
+   'schedule/list',
++  // rc.5 B14 系统层 MCP 管理面(2026-11-20,50 §3.4.1):restart/probe 只谈全局机群
++  // (rebuild 单个 server / 连接探测),授予 global 绑定;非 admin 不下发(见
++  // ADMIN_ONLY_UNARY_ACTIONS)。写配置不走 RPC(settings 门收口),本组只开 UI 门。
++  'mcpManager/restart',
++  'mcpManager/probe',
+ ]
+ 
+ /** 管理员专属一元门(T6.1「Web 插件页角色门」,2026-11-19):「插件」页
+@@ -165,6 +209,10 @@ export const GLOBAL_UNARY_ACTIONS: readonly string[] = [
+  *  防漂移:mux-policy 断言 admin 含/非 admin 不含、本清单 ⊆ GLOBAL_UNARY_ACTIONS。 */
+ export const ADMIN_ONLY_UNARY_ACTIONS: readonly string[] = [
+   'pluginManager/listBundles',
++  // rc.5 B14(2026-11-20):系统层 MCP restart/probe 仅 admin——rebuild 全局 server
++  // (可拉起任意 command)与探测其连接面都是管理动作;普通用户只走个人层。
++  'mcpManager/restart',
++  'mcpManager/probe',
+ ]
+ 
+ /** 管理员专属流门(2026-11-20,rc.5 B14):系统层 MCP 的 watch 面对非 admin 不下发
+@@ -402,7 +450,7 @@ export function bindingsFor(deps: MuxPolicyDeps, userId: number): readonly Tenan
+   // 调用面(=workspace/follow)——会话绑定不含此动作时,连用户自己的会话也会被从
+   // workspace 视图的 sessionIds 里过滤掉(侧栏落「未分组」),blank 会话的
+   // sessionWorkspace/chipTitle 断链 = 新用户首屏死锁根因(2026-11-11 E2E)。
+-  const sessionRole = { name: 'eterna:session-member', resource: 'session' as const, actions: [...SESSION_STREAM_ACTIONS, ...WORKSPACE_STREAM_ACTIONS, ...SESSION_UNARY_ACTIONS, ...SESSION_EVENT_ACTIONS] }
++  const sessionRole = { name: 'eterna:session-member', resource: 'session' as const, actions: [...SESSION_STREAM_ACTIONS, ...TERMINAL_UNARY_ACTIONS, ...WORKSPACE_STREAM_ACTIONS, ...SESSION_UNARY_ACTIONS, ...SESSION_EVENT_ACTIONS] }
+   const workspaceRole = { name: 'eterna:workspace-member', resource: 'workspace' as const, actions: [...WORKSPACE_STREAM_ACTIONS, ...WORKSPACE_UNARY_ACTIONS] }
+   const bindings: TenantBinding[] = [{ resource: { kind: 'global' }, role: globalRole }]
+   for (const sessionId of deps.store.sessionsOfOwner(userId)) {
+@@ -471,14 +519,32 @@ export function installMuxIsolation(
+   }
+   retryPolicy()
+ 
+-  // 2. 换血 + T6.1 市场门:单一 admit 包装,全部请求必经。
++  // 2. 换血 + T6.1 市场门 + TERM-004 终端一元门:单一 admit 包装,全部请求必经。
+   //    - 市场路径:先按 eterna 登录态收口(fail-closed:无会话 401、非 admin 403),
+   //      admin 走原 admit(owner Peer)——见 MARKET_ADMIN_PREFIXES;
++  //    - 终端一元路径(/api/terminal/*):必须换血成 per-user Peer——rc.5 的
++  //      browser admit 恒 owner(client-connection lib/index.js:714/790-800),
++  //      而 owner principal 会被网关 prepareInvocation 的 decide 整段跳过
++  //      (dsh-api-gateway lib/index.js:1204 `peer.principal.kind !== 'owner'`),
++  //      terminal 服务入口的归属守卫(terminal.ts)因此看不到任何身份。换血后
++  //      网关按会话资源 decide:本人会话(会话绑定含 TERMINAL_UNARY_ACTIONS)放行,
++  //      他人会话 deny(remote-access/denied)。策略面未就绪时 fail-closed 503,
++  //      绝不以 owner 身份放行(否则跨租户读 cwd/shells 的老洞复现);
+   //    - mux 路径:策略面就绪时按 eterna_session 换血 per-user Peer(≤20 人,常驻不逐
+   //      连接 dispose);未就绪时维持原 admit(过渡态,同旧行为);
+-  //    - 其余路径(含全部 unary HTTP 与 fetch 路由)→ 原 admit。
++  //    - 其余路径(含全部其它 unary HTTP 与 fetch 路由)→ 原 admit。
+   const peers = new Map<number, { id: string; principal: unknown; dispose: () => unknown }>()
+   const originalAdmit = admitFn.bind(connection)
++  const createPeerFn = connection.createPeer
++  const peerOf = (userId: number): { id: string; principal: unknown; dispose: () => unknown } => {
++    let peer = peers.get(userId)
++    if (peer === undefined) {
++      if (typeof createPeerFn !== 'function') throw new Error('connection.createPeer is unavailable')
++      peer = createPeerFn.call(connection, { principal: { kind: 'eterna-user', userId } })
++      peers.set(userId, peer)
++    }
++    return peer
++  }
+   const wrapped = (request: unknown): unknown => {
+     const rawUrl = (request as { url?: unknown }).url
+     const path = typeof rawUrl === 'string' ? requestPathname(rawUrl) : ''
+@@ -488,17 +554,20 @@ export function installMuxIsolation(
+       if (deps.store.getUserById(userId)?.role !== 'admin') return { rejection: 403 }
+       return originalAdmit(request)
+     }
++    if (path !== '' && isTerminalUnaryPath(path)) {
++      // 策略未就绪(remoteAccess/createPeer 服务面缺席)→ 现场补注册;仍缺席则拒,
++      // 不退回 owner Peer(终端租户校验的唯一身份来源是 eterna-user principal)。
++      if (!muxActive && !retryPolicy()) return { rejection: 503 }
++      const userId = eternaUserOf(deps, request)
++      if (userId === undefined) return { rejection: 401 }
++      if (typeof createPeerFn !== 'function') return { rejection: 503 }
++      return { peer: peerOf(userId) }
++    }
+     const isMux = typeof rawUrl === 'string' && rawUrl.includes(MUX_PATH)
+-    const createPeerFn = connection.createPeer
+     if (!isMux || !muxActive || typeof createPeerFn !== 'function') return originalAdmit(request)
+     const userId = eternaUserOf(deps, request)
+     if (userId === undefined) return originalAdmit(request)
+-    let peer = peers.get(userId)
+-    if (peer === undefined) {
+-      peer = createPeerFn.call(connection, { principal: { kind: 'eterna-user', userId } })
+-      peers.set(userId, peer)
+-    }
+-    return { peer }
++    return { peer: peerOf(userId) }
+   }
+   ;(connection as { admit: unknown }).admit = wrapped
+ 
+diff --git a/packages/access/src/terminal.ts b/packages/access/src/terminal.ts
+index cec7bdf..b9ab3e8 100644
+--- a/packages/access/src/terminal.ts
++++ b/packages/access/src/terminal.ts
+@@ -7,10 +7,16 @@
+  * spawnTerminal(bash-sandbox 同款 seam,landlock 写边界=账号根,由 T3 边界 wrap 钳定)。
+  * 防漂移由 fixture 测试钉 9 方法名(rc.5 增 watch)。
+  *
+- * 上游事实(2026-11-11 实核):
++ * 上游事实(2026-11-11 实核;2026-11-20 rc.5 W5 门禁复核修订):
+  * - 客户端每方法首参=sessionId(client.js:199/272/315,wire agentId)——攻击者可控;
+- * - terminal/* 无 session 资源注册(agentId 不匹配 resolveSessionResource)→ T2 策略
+- *   GLOBAL 放行 → 跨用户终端可达,必须在服务入口补租户校验;
++ * - ~~terminal/* 无 session 资源注册~~ **rc.5 已不成立**:六方法的资源逐会话
++ *   (agent lookup→session、list 具名 sessionId),网关对非 owner Peer 会 decide;
++ *   但**身份面变了**:`ctx.invocation` 不再直挂 principal,而是 `invocation.peer.principal`
++ *   (dsh-api-gateway lib/index.js 的 GatewayInvocation;typert-protocol
++ *   principalOf=invocation?.peer.principal),旧读法恒 undefined=整条校验静默失效
++ *   (TERM-004 跨租户读 cwd/shells 的根因)。另:`/api/terminal/*` 一元请求经
++ *   connection.admit 恒 owner Peer,必须在 mux.ts 的 admit 包装换血成 eterna-user
++ *   Peer 才能让本守卫拿到身份;
+  * - spawnTerminal 不经沙箱(subprocess-local lib/index.js:1618 直调 node-pty)→
+  *   终端内 cd / 写 /tmp 本可成功,经 confine 后 landlock 写边界=账号根。
+  */
+@@ -26,12 +32,23 @@ export const TERMINAL_METHODS: readonly string[] = [
+ ] as const
+ 
+ interface InvocationLike {
++  /** alpha.3 旧形态:principal 直挂 invocation。 */
+   readonly principal?: { readonly kind?: string; readonly userId?: number }
++  /** rc.5 形态:GatewayInvocation 只暴露 peer(dsh-api-gateway lib/index.js:1653-1662
++   *  字段 request/service/peer/signal/uplink_;身份在 peer.principal,
++   *  typert-protocol lib/index.js:294 principalOf = invocation?.peer.principal)。 */
++  readonly peer?: { readonly principal?: { readonly kind?: string; readonly userId?: number } }
+ }
+ 
+ interface TerminalServiceLike {
+   readonly ctx?: { readonly invocation?: InvocationLike }
+   readonly [method: string]: unknown
++  /**
++   * cordis 服务经 ctx 追踪(tracker.associate=name):方法以调用方(网关
++   * receiverContext,内含 invocation)上下文执行,故 `this.ctx.invocation`
++   * 才是本次 Remote 调用的身份面(上游 terminal-controller lib/index.js:1316
++   * 读法同构)。实例自身的 ctx 是定义侧上下文,恒无 invocation。
++   */
+ }
+ 
+ interface TerminalRemoteErrorLike extends Error {
+@@ -51,6 +68,19 @@ function sessionIdOf(args: readonly unknown[]): string | undefined {
+   return first?.session?.id
+ }
+ 
++/** 调用方身份面:rc.5 `invocation.peer.principal` 优先,alpha.3 `invocation.principal` 兜底。 */
++function principalOf(invocation: InvocationLike | undefined): { readonly kind?: string; readonly userId?: number } | undefined {
++  if (invocation === undefined) return undefined
++  return invocation.peer?.principal ?? invocation.principal
++}
++
++/** 读 `this` 或服务实例上的 invocation(调用点上下文优先——见 TerminalServiceLike 注释)。 */
++function invocationOf(holder: unknown, fallback: TerminalServiceLike): InvocationLike | undefined {
++  const fromCallSite = (holder as { ctx?: { invocation?: InvocationLike } } | undefined)?.ctx?.invocation
++  if (fromCallSite !== undefined) return fromCallSite
++  return fallback.ctx?.invocation
++}
++
+ /**
+  * 服务入口租户校验:eterna-user principal 只能访问归属会话的终端。
+  * owner Peer(本地流)与非 eterna principal 原样放行。返回 disposer。
+@@ -65,16 +95,21 @@ export function installTerminalTenant(
+   for (const method of TERMINAL_METHODS) {
+     const original = terminalService[method]
+     if (typeof original !== 'function') continue
+-    const bound = (original as (...args: unknown[]) => unknown).bind(terminalService)
++    const target = original as (...args: unknown[]) => unknown
+     originals.set(method, original)
+-    const guarded = (...args: unknown[]): unknown => {
+-      const principal = terminalService.ctx?.invocation?.principal
++    // 非箭头函数:网关以 receiverContext(内含 invocation)为 this 调用方法,
++    // 身份面必须从调用点 this.ctx.invocation 读(实例自身 ctx 恒无 invocation)。
++    // 同理,上游本体必须用**调用点的 this** 执行——bind 到服务实例会把 cordis 的
++    // ctx 追踪钉在装配侧上下文,上游 `this.ctx.invocation`(attach/retain 的流面)
++    // 将退化为 undefined("Terminal attachment requires a Remote invocation")。
++    const guarded = function (this: unknown, ...args: unknown[]): unknown {
++      const principal = principalOf(invocationOf(this, terminalService))
+       if (principal?.kind === 'eterna-user' && typeof principal.userId === 'number') {
+         const sessionId = sessionIdOf(args)
+         const ownerId = sessionId === undefined ? undefined : deps.sessionOwner(sessionId)
+         if (ownerId !== principal.userId) throw tenantDenied()
+       }
+-      return bound(...args)
++      return Reflect.apply(target, this ?? terminalService, args)
+     }
+     ;(terminalService as Record<string, unknown>)[method] = guarded
+     wrapped.push(() => { (terminalService as Record<string, unknown>)[method] = original })
+diff --git a/packages/access/tests/mux-drift.spec.ts b/packages/access/tests/mux-drift.spec.ts
+index a25882a..98d0005 100644
+--- a/packages/access/tests/mux-drift.spec.ts
++++ b/packages/access/tests/mux-drift.spec.ts
+@@ -13,7 +13,7 @@
+ import { readdirSync, readFileSync, existsSync } from 'node:fs'
+ import { describe, expect, it } from 'vitest'
+ import { join } from 'node:path'
+-import { GLOBAL_EVENT_ACTIONS, SESSION_EVENT_ACTIONS, SESSION_STREAM_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS, bindingsFor } from '../src/mux.ts'
++import { GLOBAL_EVENT_ACTIONS, SESSION_EVENT_ACTIONS, SESSION_STREAM_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_UNARY_ACTIONS, TERMINAL_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS, bindingsFor } from '../src/mux.ts'
+ 
+ function findPnpmRoot(): string {
+   let dir = new URL('..', import.meta.url).pathname
+@@ -189,6 +189,34 @@ function classifyStreamResourceKind(
+   return 'global'
+ }
+ 
++/** 上游 terminal 控制器的**非流**方法表('terminal/x';读 typert.host.js 实库防漂移)。
++ *  终端一元六动作(TERM-004,2026-11-20)必须与该表一致——上游新增一元方法而清单
++ *  未跟时,该动作在会话绑定上无授权,网关 decide 恒 no-allow(本人终端也被拒)。 */
++function upstreamTerminalUnaryMethods(): string[] {
++  const root = findPnpmRoot()
++  for (const entry of readdirSync(root, { withFileTypes: true })) {
++    if (!/^@deepseek-ai\+dsh-api-terminal-controller@/.test(entry.name)) continue
++    const file = join(root, entry.name, 'node_modules', '@deepseek-ai', 'dsh-api-terminal-controller', 'lib', 'typert.host.js')
++    if (!existsSync(file)) continue
++    const lines = readFileSync(file, 'utf8').split('\n')
++    const keyRe = /^\s+'terminal\/([a-zA-Z]+)': \{/
++    const unary: string[] = []
++    let current: string | undefined
++    let start = -1
++    for (let i = 0; i < lines.length; i++) {
++      const key = keyRe.exec(lines[i] ?? '')?.[1]
++      if (key !== undefined) {
++        if (current !== undefined && !/mode: 'stream'/.test(lines.slice(start, i).join('\n'))) unary.push(current)
++        current = key
++        start = i
++      }
++    }
++    if (current !== undefined && !/mode: 'stream'/.test(lines.slice(start).join('\n'))) unary.push(current)
++    return unary.map(method => `terminal/${method}`).sort()
++  }
++  throw new Error('找不到 dsh-api-terminal-controller/lib/typert.host.js')
++}
++
+ /** 上游全部 mode:'emit' 的宿主广播事件('ns/method';typert.host.js 的声明 JSON)。 */
+ function upstreamEmitEvents(): Set<string> {
+   const root = findPnpmRoot()
+@@ -265,6 +293,31 @@ describe('T2 防漂移:上游流方法表全覆盖', () => {
+     expect(SESSION_STREAM_ACTIONS).toContain('session/control')
+   })
+ 
++  it('TERM-004 终端一元动作表与上游 typert.host.js 一致(差集=∅,双向)', () => {
++    const upstream = upstreamTerminalUnaryMethods()
++    // 表可解析的卫生锚:空表=解析失效,断言失去意义
++    expect(upstream).toContain('terminal/environment')
++    expect(upstream).toContain('terminal/list')
++    expect([...TERMINAL_UNARY_ACTIONS].sort()).toEqual(upstream)
++  })
++
++  it('TERM-004 终端一元动作授在会话绑定,且不混入流/GLOBAL 清单', () => {
++    const upstreamStream = new Set(upstreamStreamMethods())
++    for (const action of TERMINAL_UNARY_ACTIONS) {
++      // 流面三件套由 mux 面覆盖,一元清单不得含(否则重复放宽)
++      expect(upstreamStream.has(action), `${action} 是流方法`).toBe(false)
++      expect(GLOBAL_UNARY_ACTIONS, `${action} 资源逐会话,global 授予永不命中(禁区)`).not.toContain(action)
++      expect(SESSION_UNARY_ACTIONS, `${action} 归 TERMINAL_UNARY_ACTIONS 单列`).not.toContain(action)
++    }
++    // 会话绑定实名含全部终端一元动作(缺项=本人终端 decide 恒 no-allow)
++    const minimal = {
++      store: { sessionsOfOwner: () => ['s-own'], workspacesOfOwner: () => [] as string[], getUserById: () => undefined },
++      session: undefined,
++    } as never
++    const session = bindingsFor(minimal, 0).find(b => b.resource.kind === 'session')
++    for (const action of TERMINAL_UNARY_ACTIONS) expect(session?.role.actions, action).toContain(action)
++  })
++
+   it('上游全部 mode:\'emit\' 事件表可解析且含已知核心集(空表=解析失效,测试本身失去意义)', () => {
+     const upstream = upstreamEmitEvents()
+     for (const event of ['api-session/status', 'api-session/added', 'api-session/error']) {
+diff --git a/packages/access/tests/mux-peer-drift.spec.ts b/packages/access/tests/mux-peer-drift.spec.ts
+index 3785018..bd9de52 100644
+--- a/packages/access/tests/mux-peer-drift.spec.ts
++++ b/packages/access/tests/mux-peer-drift.spec.ts
+@@ -7,6 +7,10 @@
+  *
+  * T6.1 市场面 admin 门(2026-11-19):同一包装对 MARKET_ADMIN_PREFIXES 路径先按 eterna
+  * 登录态收口——无会话 401、非 admin 403(不触达原 admit)、admin 放行;角色逐请求现查。
++ *
++ * TERM-004 终端一元门(2026-11-20 W5):`/api/terminal/*` 必须换血 eterna-user Peer
++ * (rc.5 浏览器 admit 恒 owner,网关对 owner 跳过 decide → 服务入口守卫无身份可判);
++ * 无 eterna 会话 401、策略面未就绪 503(fail-closed,绝不退回 owner)。
+  */
+ import { mkdtempSync, rmSync } from 'node:fs'
+ import { tmpdir } from 'node:os'
+@@ -100,7 +104,7 @@ describe('T2 换血:admit 包装', () => {
+     install?.dispose()
+   })
+ 
+-  it('非 mux/非市场路径(含 unary HTTP+合法 cookie)→ 原 admit(owner,守卫路由硬性要求)', () => {
++  it('非 mux/非市场/非 terminal 路径(含 unary HTTP+合法 cookie)→ 原 admit(owner,守卫路由硬性要求)', () => {
+     const connection = fakeConnection()
+     const install = installMuxIsolation({ store, session }, connection, { registerPolicy: vi.fn() })
+     const unary = admitOf(connection)(httpReq(aliceCookie))
+@@ -109,6 +113,43 @@ describe('T2 换血:admit 包装', () => {
+     install?.dispose()
+   })
+ 
++  it('TERM-004 终端一元路径 → eterna-user Peer(与 mux 同用户缓存;无 cookie 401)', () => {
++    // rc.5:terminal 六方法资源逐会话,但浏览器 admit 恒 owner Peer、网关对 owner
++    // 跳过 decide——不在 admit 换血则服务入口守卫拿不到任何身份(跨租户读 cwd/shells)。
++    const connection = fakeConnection()
++    const install = installMuxIsolation({ store, session }, connection, { registerPolicy: vi.fn() })
++    for (const method of ['environment', 'shells', 'list', 'create', 'close', 'rename']) {
++      const admitted = admitOf(connection)(marketReq(`/api/terminal/${method}`, aliceCookie))
++      expect((admitted.peer as { principal: unknown }).principal, method).toEqual({ kind: 'eterna-user', userId: aliceId })
++    }
++    // 同用户复用缓存(不逐请求建 Peer)
++    expect(connection.created).toHaveLength(1)
++    const anonymous = admitOf(connection)(marketReq('/api/terminal/environment'))
++    expect(anonymous.rejection).toBe(401)
++    const badCookie = admitOf(connection)(marketReq('/api/terminal/environment', 'eterna_session=garbage'))
++    expect(badCookie.rejection).toBe(401)
++    // 近形路径不倒(不能把其它 /api 面卷进换血)
++    for (const path of ['/api/terminalX/environment', '/api/terminals/list', '/api/session/list']) {
++      expect(admitOf(connection)(marketReq(path, aliceCookie)).peer, path).toBe('owner-peer')
++    }
++    install?.dispose()
++  })
++
++  it('TERM-004 策略面未就绪 → 终端一元 503(fail-closed,绝不退回 owner)', () => {
++    const connection = fakeConnection()
++    const box: { service?: { registerPolicy: () => unknown } } = {}
++    const install = installMuxIsolation({ store, session }, connection, () => box.service)
++    expect(install?.muxActive).toBe(false)
++    expect(admitOf(connection)(marketReq('/api/terminal/environment', aliceCookie)).rejection).toBe(503)
++    expect(connection.original).not.toHaveBeenCalled()
++    expect(connection.created).toHaveLength(0)
++    // 策略服务挂载后现场补注册即放行为 eterna-user Peer(无需重装)
++    box.service = { registerPolicy: vi.fn(() => vi.fn()) }
++    const admitted = admitOf(connection)(marketReq('/api/terminal/environment', aliceCookie))
++    expect((admitted.peer as { principal: unknown }).principal).toEqual({ kind: 'eterna-user', userId: aliceId })
++    install?.dispose()
++  })
++
+   it('T6.1 市场面:非 admin 403、无 eterna 会话 401,均不触达原 admit', () => {
+     const connection = fakeConnection()
+     const install = installMuxIsolation({ store, session }, connection, { registerPolicy: vi.fn() })
+diff --git a/packages/access/tests/mux-policy.spec.ts b/packages/access/tests/mux-policy.spec.ts
+index f190048..110a64c 100644
+--- a/packages/access/tests/mux-policy.spec.ts
++++ b/packages/access/tests/mux-policy.spec.ts
+@@ -8,7 +8,7 @@ import { join } from 'node:path'
+ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+ import { SessionService } from '../src/session.ts'
+ import { UserStore } from '../src/store.ts'
+-import { ADMIN_ONLY_STREAM_ACTIONS, ADMIN_ONLY_UNARY_ACTIONS, bindingsFor, GLOBAL_EVENT_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_EVENT_ACTIONS, SESSION_STREAM_ACTIONS, SESSION_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS, visibilityScopeOf } from '../src/mux.ts'
++import { ADMIN_ONLY_STREAM_ACTIONS, ADMIN_ONLY_UNARY_ACTIONS, bindingsFor, GLOBAL_EVENT_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_EVENT_ACTIONS, SESSION_STREAM_ACTIONS, SESSION_UNARY_ACTIONS, TERMINAL_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS, visibilityScopeOf } from '../src/mux.ts'
+ 
+ /** 非 admin 的全局一元动作 = 全员清单减去管理员专属 UI 门(T6.1 收窄面)。 */
+ const memberUnary = GLOBAL_UNARY_ACTIONS.filter(action => !ADMIN_ONLY_UNARY_ACTIONS.includes(action))
+@@ -60,8 +60,12 @@ describe('T2:mux 策略绑定', () => {
+     expect(sessions.map(b => (b.resource as { id: string }).id).sort()).toEqual(['s-a1', 's-a2'])
+     // 会话角色含 workspace/follow(workspace 视图 sessionIds 逐项 allows 用,见 mux.ts 注释)
+     expect(sessions[0]?.role.actions).toEqual([
+-      ...SESSION_STREAM_ACTIONS, ...WORKSPACE_STREAM_ACTIONS, ...SESSION_UNARY_ACTIONS, ...SESSION_EVENT_ACTIONS,
++      ...SESSION_STREAM_ACTIONS, ...TERMINAL_UNARY_ACTIONS, ...WORKSPACE_STREAM_ACTIONS, ...SESSION_UNARY_ACTIONS, ...SESSION_EVENT_ACTIONS,
+     ])
++    // TERM-004(2026-11-20):终端六一元动作资源逐会话(agent lookup→session /
++    // list 具名 sessionId),必须授在会话绑定——缺项=本人终端恒 no-allow;
++    // 授 global 永不命中 sameResource(remote-access evaluate)。
++    for (const action of TERMINAL_UNARY_ACTIONS) expect(sessions[0]?.role.actions).toContain(action)
+     const workspaces = bindings.filter(b => b.resource.kind === 'workspace')
+     expect(workspaces.map(b => (b.resource as { id: string }).id)).toEqual(['w-a1'])
+     expect(workspaces[0]?.role.actions).toEqual([...WORKSPACE_STREAM_ACTIONS, ...WORKSPACE_UNARY_ACTIONS])
+@@ -120,6 +124,12 @@ describe('T2:mux 策略绑定', () => {
+     expect(actionsOf(asAdmin)).toContain('mcpManager/watch')
+     expect(actionsOf(asApprover)).not.toContain('mcpManager/watch')
+     expect(actionsOf(asUser)).not.toContain('mcpManager/watch')
++    // rc.5 B14:系统层 MCP restart/probe(一元管理门)仅 admin;普通用户只走个人层
++    for (const action of ['mcpManager/restart', 'mcpManager/probe']) {
++      expect(actionsOf(asAdmin), `${action} 应下发给 admin`).toContain(action)
++      expect(actionsOf(asApprover), `${action} 不应下发给审批人`).not.toContain(action)
++      expect(actionsOf(asUser), `${action} 不应下发给普通用户`).not.toContain(action)
++    }
+     // 不变量明示:任何角色档都只见本人资源(跨租户待人项是工作台数据面,不经 mux 内容绑定)
+     const stranger = store.createUserWithSuffix({ account: 'stranger', password: 'password8' }).user
+     store.recordSession('s-stranger', stranger.id, null)
+diff --git a/packages/access/tests/terminal-tenant.spec.ts b/packages/access/tests/terminal-tenant.spec.ts
+index 3c98658..6dce18b 100644
+--- a/packages/access/tests/terminal-tenant.spec.ts
++++ b/packages/access/tests/terminal-tenant.spec.ts
+@@ -107,6 +107,52 @@ describe('T4:终端租户校验', () => {
+     expect(ownerSvc.calls).toHaveLength(TERMINAL_METHODS.length)
+   })
+ 
++  it('rc.5 身份形态:invocation.peer.principal 同样校验(旧 invocation.principal 恒 undefined 的回归锚)', () => {
++    // 2026-11-20 W5 门禁 TERM-004 根因:rc.5 GatewayInvocation 只暴露 peer,
++    // 旧读法 invocation.principal 恒 undefined → 他人会话不被拒(B 读到 A 的 cwd)。
++    const rc5Service = (principal: { kind?: string; userId?: number }) => {
++      const calls: string[] = []
++      const svc = {
++        ctx: { invocation: { peer: { principal } } },
++        environment: vi.fn((_agent?: unknown, _request?: unknown) => { calls.push('environment'); return { cwd: '/' } }),
++        shells: vi.fn((_agent?: unknown, _request?: unknown) => { calls.push('shells'); return [] }),
++        list: vi.fn((_sessionId?: string) => { calls.push('list'); return [] }),
++      }
++      return { svc, calls }
++    }
++    const own = rc5Service({ kind: 'eterna-user', userId: aliceId })
++    const disposeOwn = installTerminalTenant(deps, own.svc)
++    const env = own.svc.environment
++    env({ session: { id: aliceSession } }, {})
++    expect(own.calls).toContain('environment')
++    disposeOwn?.()
++
++    const foreign = rc5Service({ kind: 'eterna-user', userId: aliceId + 1 })
++    installTerminalTenant(deps, foreign.svc)
++    expect(() => foreign.svc.environment({ session: { id: aliceSession } }, {})).toThrow('终端不存在或不属于你的会话')
++    expect(foreign.calls).toHaveLength(0)
++
++    expect(() => foreign.svc.list(aliceSession)).toThrow('终端不存在或不属于你的会话')
++    expect(foreign.calls).toHaveLength(0)
++  })
++
++  it('调用点 this 透传:上游本体以网关 receiverContext 为 this 执行(流面 this.ctx.invocation 生命线)', () => {
++    // bind 到服务实例会把 cordis ctx 追踪钉在装配侧上下文 → attach/retain 的
++    // this.ctx.invocation 退化为 undefined("Terminal attachment requires a Remote
++    // invocation")。本锚断言 this 原样传给上游本体。
++    const seen: unknown[] = []
++    const svc = {
++      ctx: { invocation: { peer: { principal: { kind: 'eterna-user', userId: aliceId } } } },
++      environment: function (this: unknown) { seen.push(this); return { cwd: '/' } },
++    }
++    installTerminalTenant(deps, svc)
++    const callSite = { ctx: { invocation: { peer: { principal: { kind: 'eterna-user', userId: aliceId } } } }, marker: 'gateway-receiver' }
++    // oxlint-disable-next-line typescript/unbound-method -- 故意取未绑定引用以验证 this 透传
++    const fn = svc.environment as unknown as (this: unknown, ...args: unknown[]) => unknown
++    Reflect.apply(fn, callSite, [{ session: { id: aliceSession } }, {}])
++    expect(seen[0]).toBe(callSite)
++  })
++
+   it('防漂移:TERMINAL_METHODS 与上游 typert.host 方法表一致(差集=∅)', () => {
+     const upstream = upstreamTerminalMethods()
+     expect(upstream.length).toBeGreaterThanOrEqual(8)
+diff --git a/scripts/verify-terminal-guard.mjs b/scripts/verify-terminal-guard.mjs
+new file mode 100644
+index 0000000..379ae9d
+--- /dev/null
++++ b/scripts/verify-terminal-guard.mjs
+@@ -0,0 +1,223 @@
++#!/usr/bin/env node
++/**
++ * terminal 租户守卫验证（51 §3.7 / §4；54 §6.3；T47）。
++ *
++ * 覆盖：
++ *   TERM-004   B 用 A 的 sessionId 调 6 个 unary 动作（close/create/environment/
++ *              list/rename/shells）→ 必须 403/deny
++ *   TERM-005   attach/retain/watch 三个流动作 → 流被拒（WS mux 面，HTTP 不可达；
++ *              本脚本做静态策略清单核对 + 标 NOTRUN 说明原因，不冒充通过）
++ *   TERM-007   容器配置 readUserTerminals=false / preferredShells=['bash'] /
++ *              profile bundles 含 terminal bundle
++ *
++ * 方法学：
++ *   - A（admin）先 `session/create` 拿一个**活会话**作为受害者；
++ *   - 正向控制：A 调 `terminal/environment`/`terminal/shells` 必须成功（证明方法可用、
++ *     参数形状正确）；
++ *   - 负向：B 用同一 agentId/sessionId 调，必须在服务入口被拒（terminal/tenant-denied
++ *     或 403）。若 B 拿到与 A 相同的值 → P0 跨租户泄漏，脚本 FAIL 并记录脱敏后的
++ *     形状（cwd 属于测试账号目录，非凭据）。
++ *
++ * 需要 dsh-auth + eterna_session 两枚 cookie（与浏览器同构）；boot token 只从容器
++ * 日志读入内存，不打印。
++ *
++ * 用法：
++ *   node scripts/verify-terminal-guard.mjs \
++ *     --base http://127.0.0.1:3108 \
++ *     --accounts-file $HOME/eterna-data/test-rc5/.test-accounts.json \
++ *     --data-root $HOME/eterna-data/test-rc5/e1 \
++ *     --container eterna-rc5-e1 \
++ *     --json artifacts/rc5/p5/testbed/terminal-guard/report.json
++ */
++import { existsSync, readFileSync } from 'node:fs'
++import { join } from 'node:path'
++import {
++  Report,
++  STATUS,
++  bootTokenFromContainer,
++  bootstrapDshSession,
++  defaultPaths,
++  loadAccounts,
++  login,
++  parseArgs,
++  rpc,
++  shape,
++} from './rc5-test-client.mjs'
++
++const args = parseArgs(process.argv.slice(2), { ...defaultPaths() })
++const BASE = String(args.base)
++const ACCOUNTS_FILE = String(args.accountsFile)
++const DATA_ROOT = String(args.dataRoot)
++const CONTAINER = String(args.container)
++const OUT = args.json === undefined ? undefined : String(args.json)
++
++const report = new Report({ suite: 'TERM', env: { base: BASE, container: CONTAINER, dataRoot: DATA_ROOT }, out: OUT })
++const accounts = loadAccounts(ACCOUNTS_FILE)
++const dshCookie = await bootstrapDshSession(BASE, typeof args['boot-token'] === 'string' ? args['boot-token'] : bootTokenFromContainer(CONTAINER))
++
++const authA = await login(BASE, accounts.admin.account, accounts.admin.password)
++const authB = await login(BASE, accounts.user_b.account, accounts.user_b.password)
++const cookieA = `${dshCookie}; ${authA.cookie}`
++const cookieB = `${dshCookie}; ${authB.cookie}`
++report.add('SETUP-LOGIN', 'P0', authA.status === 200 && authB.status === 200 ? STATUS.PASS : STATUS.FAIL, 'A/B 登录', `a=${authA.status} b=${authB.status}`)
++
++async function call(cookie, method, params) {
++  return rpc(BASE, cookie, `terminal/${method}`, params, { timeoutMs: 60_000 })
++}
++
++/**
++ * 判定“被拒”：错误码含 tenant-denied / tenant/denied / remote-access/denied；或 HTTP 403。
++ *
++ * remote-access/denied(2026-11-20 W5 修复后新增)：rc.5 网关对非 owner Peer 的
++ * terminal 一元调用先按会话资源 decide，拒绝即抛 remote-access/denied
++ * (dsh-api-gateway lib/index.js prepareInvocation；dsh-api-remote-access
++ * lib/index.js decide)。它是上游唯一的一元跨租户拒绝码——服务入口的
++ * terminal/tenant-denied 只在 decide 放行后才会执行（第二道）。两者都算显式拒绝；
++ * 拿到数据（ok=true）的路径本函数一律判非拒绝。
++ */
++function denied(result) {
++  const code = String(result?.error?.code ?? '')
++  const message = String(result?.error?.message ?? '')
++  return result.status === 403
++    || code.includes('tenant-denied')
++    || code.includes('tenant/denied')
++    || code === 'remote-access/denied'
++    || /不属于你的会话/.test(message)
++}
++
++/* ── TERM-007 静态配置 ─────────────────────────────────────────────── */
++
++await report.run('RC5-TERM-007', 'P0', 'readUserTerminals=false / preferredShells=[bash] / terminal bundle 在', async () => {
++  const findings = []
++  const profilePkg = join(DATA_ROOT, 'profiles', 'eterna-web', 'package.json')
++  const patch = join(DATA_ROOT, 'profiles', 'eterna-web', 'cordis.patch.yml')
++  if (!existsSync(profilePkg)) return { status: STATUS.SKIP, detail: `渲染 profile 不存在: ${profilePkg}（容器未启动或 --data-root 不对）` }
++  const manifest = JSON.parse(readFileSync(profilePkg, 'utf8'))
++  const bundles = manifest?.dsh?.profile?.bundles ?? []
++  const hasTerminalBundle = bundles.some(name => String(name).includes('terminal'))
++  findings.push(`bundles-terminal=${hasTerminalBundle}`)
++  const text = existsSync(patch) ? readFileSync(patch, 'utf8') : ''
++  const readUserTerminalsFalse = /readUserTerminals:\s*false/.test(text)
++  const preferredBash = /preferredShells:\s*\n\s*-\s*bash/.test(text) || /preferredShells:\s*\[\s*['"]?bash['"]?\s*\]/.test(text)
++  findings.push(`readUserTerminals=false:${readUserTerminalsFalse}`, `preferredShells=[bash]:${preferredBash}`)
++  const pass = hasTerminalBundle && readUserTerminalsFalse && preferredBash
++  return { status: pass ? STATUS.PASS : STATUS.FAIL, detail: findings.join(' ') }
++})
++
++/* ── 受害者会话：A 建活会话 ───────────────────────────────────────── */
++
++let victimSession
++await report.run('SETUP-VICTIM-SESSION', 'P0', 'A 建立活会话（terminal 方法的受害者）', async () => {
++  const created = await rpc(BASE, cookieA, 'session/create', { request: {} })
++  victimSession = created.value?.sessionId ?? created.value?.id
++  return {
++    status: typeof victimSession === 'string' ? STATUS.PASS : STATUS.FAIL,
++    detail: typeof victimSession === 'string' ? `sessionId=${victimSession}` : shape(created.error ?? created.text?.slice(0, 160)),
++  }
++})
++
++/* 正向控制：A 自己必须能用（否则负向结果无意义） */
++let positive = { environment: false, shells: false }
++if (typeof victimSession === 'string') {
++  await report.run('CONTROL-A-ENVIRONMENT', 'P0', 'A 自己的 terminal/environment 成功（正向控制）', async () => {
++    const result = await call(cookieA, 'environment', { agentId: victimSession })
++    positive.environment = result.ok === true
++    return { status: positive.environment ? STATUS.PASS : STATUS.FAIL, detail: positive.environment ? `cwd=${result.value?.cwd ?? '?'}` : shape(result.error ?? result.text?.slice(0, 160)) }
++  })
++  await report.run('CONTROL-A-SHELLS', 'P0', 'A 自己的 terminal/shells 成功（正向控制）', async () => {
++    const result = await call(cookieA, 'shells', { agentId: victimSession })
++    positive.shells = result.ok === true
++    return { status: positive.shells ? STATUS.PASS : STATUS.FAIL, detail: positive.shells ? `shells=${(result.value ?? []).length}` : shape(result.error ?? result.text?.slice(0, 160)) }
++  })
++}
++
++/* ── TERM-004 六个 unary 动作跨租户 ───────────────────────────────── */
++
++const unary = [
++  {
++    id: 'TERM-004a',
++    label: 'terminal/list',
++    params: { sessionId: victimSession },
++    // list 对未知/他人会话的上游语义是空数组；拒绝应显式 deny，不能只是空。
++    passWhen: result => denied(result),
++  },
++  {
++    id: 'TERM-004b',
++    label: 'terminal/environment',
++    params: { agentId: victimSession },
++    passWhen: result => denied(result),
++  },
++  {
++    id: 'TERM-004c',
++    label: 'terminal/shells',
++    params: { agentId: victimSession },
++    passWhen: result => denied(result),
++  },
++  {
++    id: 'TERM-004d',
++    label: 'terminal/create',
++    params: { agentId: victimSession, request: { id: 'b-hijack', cols: 80, rows: 24 } },
++    passWhen: result => denied(result),
++  },
++  {
++    id: 'TERM-004e',
++    label: 'terminal/close',
++    params: { agentId: victimSession, id: 'b-hijack' },
++    passWhen: result => denied(result),
++  },
++  {
++    id: 'TERM-004f',
++    label: 'terminal/rename',
++    params: { agentId: victimSession, id: 'b-hijack', title: 'hijacked' },
++    passWhen: result => denied(result),
++  },
++]
++
++if (typeof victimSession === 'string') {
++  for (const item of unary) {
++    await report.run(`RC5-${item.id}`, 'P0', `B 用 A 的 session 调 ${item.label} 必须被拒`, async () => {
++      const method = item.label.slice('terminal/'.length)
++      const asB = await call(cookieB, method, item.params)
++      if (item.passWhen(asB)) return { status: STATUS.PASS, detail: `denied code=${asB.error?.code ?? '-'}` }
++      // 未拒绝：用 A 的同一调用做对照，区分「跨租户泄漏」与「方法本身不可用」。
++      const asA = await call(cookieA, method, item.params)
++      const bShape = asB.ok === true ? shape(asB.value) : shape(asB.error)
++      if (asA.ok === true && asB.ok === true) {
++        const identical = JSON.stringify(asA.value) === JSON.stringify(asB.value)
++        return {
++          status: STATUS.FAIL,
++          detail: `跨租户未拒绝：B 与 A 结果相同=${identical}；B=${bShape.slice(0, 160)}`,
++        }
++      }
++      if (asA.ok !== true && asB.ok !== true) {
++        return {
++          status: STATUS.NOTRUN,
++          detail: `A/B 同错（方法不可用，无法判定授权）：A=${shape(asA.error).slice(0, 100)} B=${bShape.slice(0, 100)}`,
++        }
++      }
++      return {
++        status: STATUS.FAIL,
++        detail: `B 未被显式拒绝（A.ok=${asA.ok} B.ok=${asB.ok}）：${bShape.slice(0, 160)}`,
++      }
++    })
++  }
++} else {
++  for (const item of unary) report.add(`RC5-${item.id}`, 'P0', STATUS.NOTRUN, `B 用 A 的 session 调 ${item.label}`, '缺少受害者会话（SETUP-VICTIM-SESSION 失败）')
++}
++
++/* ── TERM-005 三个流动作 ──────────────────────────────────────────── */
++
++await report.run('RC5-TERM-005', 'P0', 'attach/retain/watch 流动作被拒（WS mux 面）', async () => {
++  // 流动作走 `/api/remote.mux` WebSocket（open frame），HTTP unary 面不承载。
++  // 这里只做静态策略清单核对；真实跨租户流拒绝必须在 P6 WS 客户端执行。
++  const muxSource = readFileSync(new URL('../packages/access/src/mux.ts', import.meta.url), 'utf8')
++  const listed = ['terminal/attach', 'terminal/retain', 'terminal/watch'].every(action => muxSource.includes(`'${action}'`))
++  return {
++    status: STATUS.NOTRUN,
++    detail: listed
++      ? '策略清单已含 attach/retain/watch（静态核对通过），但流拒绝需 WS mux 客户端，本脚本未执行；P6 必跑'
++      : 'mux.ts 的 SESSION_STREAM_ACTIONS 未包含全部三个流动作（静态失败）',
++  }
++})
++
++process.exit(report.finish())
+\ No newline at end of file

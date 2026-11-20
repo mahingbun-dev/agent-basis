@@ -1,0 +1,86 @@
+{
+  "suite": "ACC",
+  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "imageTag": "eterna-agent:rc5-test",
+  "imageId": "sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00",
+  "container": "rc5-e2suite",
+  "base": "http://127.0.0.1:3119",
+  "dataRoot": "/Users/sunny/eterna-data/test-20261120/e2",
+  "startedAt": "2026-11-19T23:51:56.678Z",
+  "finishedAt": "2026-11-19T23:52:01.298Z",
+  "total": 10,
+  "pass": 8,
+  "fail": 2,
+  "skip": 0,
+  "notrun": 0,
+  "counts": {
+    "PASS": 8,
+    "FAIL": 2,
+    "SKIP": 0,
+    "NOTRUN": 0
+  },
+  "halted": true,
+  "haltReason": "RC5-ACC-008: B 用 A 的 workspaceId/sessionId 打文件/检索必须 403/deny",
+  "cases": [
+    {
+      "id": "RC5-ACC-001",
+      "status": "PASS",
+      "title": "packctl tenant-scan 0 违规",
+      "detail": "tenant-scan: 0 finding(s)"
+    },
+    {
+      "id": "RC5-ACC-002",
+      "status": "PASS",
+      "title": "packctl prompt-scan 0 违规",
+      "detail": "prompt-scan: 0 finding(s)"
+    },
+    {
+      "id": "RC5-ACC-003",
+      "status": "PASS",
+      "title": "packctl form-check 0 违规",
+      "detail": "form-check: 0 finding(s)(0 error)"
+    },
+    {
+      "id": "RC5-ACC-004",
+      "status": "PASS",
+      "title": "mux 动作漂移测试（上游差集=0，含 terminal 9）",
+      "detail": "2 test files passed"
+    },
+    {
+      "id": "RC5-ACC-005",
+      "status": "PASS",
+      "title": "admin-only 不变式（⊆ 全量；无资源动作误入）",
+      "detail": "1 test file passed"
+    },
+    {
+      "id": "RC5-ACC-007",
+      "status": "PASS",
+      "title": "B 用 A 的 sessionId 打 unary 必须 403/deny",
+      "detail": "拒绝=5/6；不存在=session/title；未拒=无；审计命中=true"
+    },
+    {
+      "id": "RC5-ACC-008",
+      "status": "FAIL",
+      "title": "B 用 A 的 workspaceId/sessionId 打文件/检索必须 403/deny",
+      "detail": "拒绝=4/7；未拒=workspaceFiles/list,workspaceFiles/stat,workspaceFiles/read；A 文件内容泄漏=true"
+    },
+    {
+      "id": "RC5-ACC-006",
+      "status": "FAIL",
+      "title": "普通用户访问 mcp-manager 设置/管理动作不可见且被拒",
+      "detail": "设置隐藏=true 写拒=true watch拒=true unary拒=false（probe=200/true restart=200/true）"
+    },
+    {
+      "id": "RC5-ACC-009",
+      "status": "PASS",
+      "title": "chat-import 路由经 access 门；未登录 401",
+      "detail": "未登录=401；登录=400"
+    },
+    {
+      "id": "RC5-ACC-010",
+      "status": "PASS",
+      "title": "全局事件 allowlist 单测",
+      "detail": "2 test files passed"
+    }
+  ]
+}

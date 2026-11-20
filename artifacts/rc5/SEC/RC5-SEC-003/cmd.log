@@ -1,0 +1,20 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ node artifacts/rc5/SEC/RC5-SEC-003/check-telemetry.mjs
+# started 2026-11-19T22:13:26Z
+PASS docker/profile/cordis.patch.yml.template otel disabled: line 46 disabled=true
+PASS docker/profile/cordis.patch.yml.template session-telemetry-otel disabled: line 49 disabled=true
+PASS docker/profile/cordis.patch.yml.template desktop-product-telemetry disabled: line 52 disabled=true
+PASS docker/profile/cordis.patch.yml.template product-analytics disabled: line 55 disabled=true
+PASS docker/profile/cordis.super.patch.yml.template otel disabled: line 48 disabled=true
+PASS docker/profile/cordis.super.patch.yml.template session-telemetry-otel disabled: line 51 disabled=true
+PASS docker/profile/cordis.super.patch.yml.template desktop-product-telemetry disabled: line 54 disabled=true
+PASS docker/profile/cordis.super.patch.yml.template product-analytics disabled: line 57 disabled=true
+PASS docker/profile/cordis.acp.patch.yml.template otel disabled: line 19 disabled=true
+PASS docker/profile/cordis.acp.patch.yml.template session-telemetry-otel disabled: line 22 disabled=true
+PASS no telemetry/analytics SDK dependency in workspace manifests: 51 manifests scanned
+PASS no telemetry SDK reference in product source: 0 hits
+NOTE: 运行时抓包未执行(E0 不启容器);本结果只覆盖 profile 配置与依赖/源码静态面。
+SUMMARY failures=0
+
+EXIT 0
+# finished 2026-11-19T22:13:26Z

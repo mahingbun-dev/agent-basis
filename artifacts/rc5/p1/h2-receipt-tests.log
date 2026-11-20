@@ -1,0 +1,16 @@
+# T06 worker real-receipt integration tests (rc.5-shaped fixture manager)
+# generated: 2026-11-19T17:54:38Z
+$ pnpm --filter @eterna/tasks exec vitest run tests/subagent-receipt.spec.ts --reporter=verbose
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/tasks
+
+ ✓ tests/subagent-receipt.spec.ts > 完成路径:waitForTreeWork 等到整棵树结束,completed 回执都到 worker(不丢) 12ms
+ ✓ tests/subagent-receipt.spec.ts > 失败路径:error 终态回执到达 worker,并当面报告失败 4ms
+ ✓ tests/subagent-receipt.spec.ts > 取消路径:drainDescendants 停掉整棵树,aborted 回执注入,worker 回合被取消 5ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  01:54:39
+   Duration  476ms (transform 211ms, setup 0ms, import 340ms, tests 22ms, environment 0ms)
+
+EXIT=0

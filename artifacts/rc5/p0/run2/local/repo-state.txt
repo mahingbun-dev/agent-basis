@@ -1,0 +1,85 @@
+# repo-state @ 2026-11-19T18:18:23Z
+worktree=/Users/sunny/code/agent-basis-rc5
+branch=feat/dsh-rc5-merge
+head=02f485788411b9aed1938a3c4b009793a090961e
+head_subject=rc5: P1 依赖族统一 0.2.2-rc.5 + H1 LlmError + subagent/流动作适配 + UI 桥接补全
+dirty_entries=72
+pnpm_lock_sha256=dfd900640d90bf3413bb6e2b8121a2f633a376871d65676f610e62fd80b0faa4
+node=v24.18.0
+pnpm=11.7.0
+docker_server=29.7.2
+local_dsh_version=0.2.2-rc.5
+--- untracked/modified (porcelain) ---
+ M .github/workflows/ci.yml
+ M core/cordis/README.md
+ M core/cordis/package.json
+ M core/cordis/src/context.ts
+ M core/cordis/src/events.ts
+ M core/cordis/src/fiber.ts
+ M core/cordis/src/logger.ts
+ M core/cordis/src/reflect.ts
+ M core/cordis/src/utils.ts
+ M core/cordis/tests/smoke.spec.ts
+ M core/runtime/src/cli.ts
+ M docker/entrypoint.sh
+ M docker/profile/cordis.patch.yml.template
+ M docker/profile/cordis.super.patch.yml.template
+ M docker/profile/package.json
+ M "docs/design/53-rc.5\345\274\200\345\217\221\346\211\247\350\241\214workflow.md"
+ M docs/dev/TODO.md
+ M docs/dev/ps-v2-registry-ledger.md
+ M packages/access/src/mux.ts
+ M packages/access/src/store.ts
+ M packages/access/src/tenant.ts
+ M packages/access/tests/gateway-role-gate.spec.ts
+ M packages/access/tests/mux-policy.spec.ts
+ M packages/prompt-studio/src/client/entry-meta.ts
+ M packages/prompt-studio/src/registry.ts
+ M packages/prompt-studio/tests/assembly-replay.test.ts
+ M packages/prompt-studio/tests/registry.test.ts
+ M packages/prompt-studio/tests/session-snapshot.test.ts
+ M packages/tasks/src/executor/background.ts
+ M packages/tasks/tests/background.spec.ts
+ M packages/tasks/tests/fixtures/host.ts
+ M profiles/eterna-super/cordis.patch.yml
+ M profiles/eterna-web/cordis.patch.yml
+ M scripts/verify-eterna-super.mjs
+ M scripts/verify-eterna-web.mjs
+ M tools/packctl/src/prompt.ts
+ M tools/packctl/tests/prompt.spec.ts
+?? artifacts/rc5/p0/
+?? artifacts/rc5/p1/env-api-logs/
+?? artifacts/rc5/p1/env-api.json
+?? artifacts/rc5/p1/h2-api-contract-rerun.log
+?? artifacts/rc5/p1/h2-api-contract.log
+?? artifacts/rc5/p1/h2-background-spec-rerun.log
+?? artifacts/rc5/p1/h2-receipt-tests-rerun.log
+?? artifacts/rc5/p1/h2-receipt-tests.log
+?? artifacts/rc5/p1/h2-report-rerun.md
+?? artifacts/rc5/p1/h2-report.md
+?? artifacts/rc5/p1/h2-revert-teeth-rerun.log
+?? artifacts/rc5/p1/h2-revert-teeth.log
+?? artifacts/rc5/p1/h2-tasks-verify-baseline.log
+?? artifacts/rc5/p1/h2-tasks-verify-final.log
+?? artifacts/rc5/p1/h2-tasks-verify-rerun.log
+?? artifacts/rc5/p1/h2-tasks-verify.log
+?? artifacts/rc5/p1/verify-rc5-env.json
+?? artifacts/rc5/p1/verify-rc5-env.log
+?? artifacts/rc5/p2/
+?? artifacts/rc5/p3/
+?? artifacts/rc5/p4/
+?? core/cordis/LICENSE
+?? docker/profile/cordis.acp.patch.yml.template
+?? docker/profile/migrate-mcp-servers.mjs
+?? docker/profile/migrate-mcp-servers.test.mjs
+?? docker/profile/migrate-profile-bundles.mjs
+?? docker/profile/migrate-profile-bundles.test.mjs
+?? docker/profile/package.acp.json
+?? "docs/design/54-rc.5\345\274\200\345\217\221\344\270\216\346\265\213\350\257\225\351\252\214\346\224\266\345\256\214\346\225\264workflow.md"
+?? packages/access/src/mcp-personal.ts
+?? packages/access/tests/channels-webhook-contract.spec.ts
+?? packages/access/tests/mcp-manager-drift.spec.ts
+?? packages/tasks/tests/subagent-receipt.spec.ts
+?? scripts/profile-upgrade-check.mjs
+?? scripts/profile-upgrade-check.test.mjs
+?? scripts/verify-rc5-env.mjs

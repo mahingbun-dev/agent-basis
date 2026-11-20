@@ -1,0 +1,28 @@
+# MCPS-008 fixture: old profile patch (rc.1 era) with system-layer MCP servers.
+# Placeholder values only — no real credentials (AGENTS.md credential discipline).
+- id: mcp-manager
+  config:
+    servers:
+      alpha:
+        transport: http
+        url: http://127.0.0.1:9111/mcp
+      beta:
+        transport: stdio
+        command: node
+        args:
+          - /tmp/beta-mcp.mjs
+        env:
+          BETA_TOKEN: token-placeholder
+- insert:
+    - id: mcp-browser
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: browser
+        transport: stdio
+        command: node
+        args:
+          - /repo/packages/browser-relay/dist/mcp.mjs
+        env:
+          ETNA_RELAY_BASE: http://127.0.0.1:9310
+          ETNA_RELAY_TOKEN: token-placeholder
+        toolCallTimeoutMs: 120000

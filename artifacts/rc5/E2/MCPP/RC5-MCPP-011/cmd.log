@@ -1,0 +1,13 @@
+# MCPP/RC5-MCPP-011
+# started 2026-11-19T23:53:24.952Z
+
+$ pnpm --filter @eterna/access exec vitest run tests/mcp-personal-routes.spec.ts -t personalHttpHosts
+EXIT=0
+RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+
+ ✓ tests/mcp-personal-routes.spec.ts (24 tests | 23 skipped) 69ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 23 skipped (24)
+   Start at  07:53:25
+   Duration  261ms (transform 70ms, setup 0ms, import 90ms, tests 69ms, environment 0ms)

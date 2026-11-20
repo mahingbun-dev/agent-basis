@@ -1,0 +1,47 @@
+$ vitest run
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/compaction
+
+ ✓ tests/stale.spec.ts (24 tests) 16ms
+ ✓ tests/basic-prompt.spec.ts (14 tests) 6ms
+stdout | tests/e2e-compaction.spec.ts > C12 E2E:L3 长会话压缩(附件 + 持久日志) > pre-step 触发 L3:checkpoint 8 标题+尾注+附件块并入单条 user/message,start|end 配对,遮蔽原文仍在持久日志,尾段逐字
+[c12-metrics] l3-transaction surfaceNodes=5 shadowedSeqs=19 shadowedTokens=10217 totalBefore=12302 threshold=9600 startToSummaryTimeDiffMs=2 wallClockMs=2.311
+
+ ✓ tests/basic-hotreload.spec.ts (7 tests) 23ms
+ ✓ tests/basic-convergence.spec.ts (17 tests) 23ms
+ ✓ tests/basic-refill.spec.ts (6 tests) 31ms
+stdout | tests/e2e-compaction.spec.ts > C12 cache-guard 对照:L3 单 replace > 一次前缀突变(单转移单边界,prefix-mutation),保留尾段段级逐字,后续轮次全量保留
+[c12-metrics] cache-guard-l3 mutationAtSegment=1 commonPrefix=81/48461 nextTransitionRetention=9363/9363
+
+ ✓ tests/admin-stats.spec.ts (14 tests) 56ms
+stdout | tests/e2e-compaction.spec.ts > C12 E2E:L2→L3 联动 > 先 L2 后 L3:L2 占位先落盘,summarize 输入含占位符,start|end 配对且无熔断误报
+[c12-metrics] l2-then-l3 staleSavedTokens=1444 totalBefore=10933 postL2=9489 threshold=8800 shadowedTokens=5137
+
+stdout | tests/e2e-compaction.spec.ts > C12 E2E:L2→L3 联动 > L2 后压力复测短路:L2 清够 → 零摘要调用、无压缩事务、无熔断误报
+[c12-metrics] l2-short-circuit totalBefore=6033 staleSavedTokens=4744 postL2=1289 threshold=8800 summarizeCalls=0
+
+stdout | tests/e2e-compaction.spec.ts > C12 cache-guard 对照:L2 一次多节点 replace > 单转移单边界突变(prefix-mutation),段序不乱、恰好候选段文本变化,后续轮次全量保留
+[c12-metrics] cache-guard-l2 cleared=4 savedTokens=4744 mutationAtSegment=3 commonPrefix=2690/23625 nextTransitionRetention=4649/4649
+
+ ✓ tests/basic-attachments.spec.ts (24 tests) 34ms
+stdout | tests/e2e-compaction.spec.ts > C12 基线采集 > rapid-refill 熔断频次:3 步窗口内第 3 次连续压力触发跳闸,state 计数落盘
+[c12-metrics] rapid-refill window=3 limit=3 trips=1 thresholdTokens=8000 lastRapidRefillAt=2026-11-19T19:01:18.600Z
+
+stdout | tests/e2e-compaction.spec.ts > C12 基线采集 > L2 回收量分布:三档负载 savedTokens 单调增长且与公式镜像一致
+[c12-metrics] l2-savings-sweep 2000c:4nodes/1944tok | 4000c:4nodes/3944tok | 8000c:4nodes/7944tok
+
+ ✓ tests/e2e-compaction.spec.ts (7 tests) 59ms
+ ✓ tests/evals-golden.spec.ts (27 tests) 34ms
+ ✓ tests/basic-config.spec.ts (20 tests) 5ms
+ ✓ tests/evals-compare.spec.ts (14 tests) 5ms
+ ✓ tests/basic-region.spec.ts (7 tests) 5ms
+ ✓ tests/evals-judge.spec.ts (9 tests) 5ms
+ ✓ tests/client-announcement.spec.ts (11 tests) 3ms
+ ✓ tests/basic-overflow.spec.ts (7 tests) 9ms
+ ✓ tests/client-section.spec.ts (13 tests) 3ms
+
+ Test Files  16 passed (16)
+      Tests  221 passed (221)
+   Start at  03:01:18
+   Duration  532ms (transform 712ms, setup 0ms, import 1.36s, tests 318ms, environment 1ms)
+

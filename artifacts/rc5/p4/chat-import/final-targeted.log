@@ -1,0 +1,11 @@
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+
+ ✓ tests/market-gate-coverage.spec.ts (6 tests) 294ms
+ ✓ tests/chat-import-gate.spec.ts (20 tests) 973ms
+
+ Test Files  2 passed (2)
+      Tests  26 passed (26)
+   Start at  03:42:14
+   Duration  1.13s (transform 104ms, setup 0ms, import 140ms, tests 1.27s, environment 0ms)
+

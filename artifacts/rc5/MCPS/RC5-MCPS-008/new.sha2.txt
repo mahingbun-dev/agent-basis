@@ -1,0 +1,1 @@
+7ac777fd510785468ed10b64f694e07ce457676caa94ca2d933cbe1e6c7ceb5e  artifacts/rc5/MCPS/RC5-MCPS-008/fixture/new.cordis.patch.yml

@@ -1,0 +1,74 @@
+# teeth-check: background.ts temporarily reverted to old API names
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/tasks
+
+ ❯ tests/subagent-receipt.spec.ts (3 tests | 3 failed) 18ms
+   × 完成路径:waitForTreeWork 等到整棵树结束,completed 回执都到 worker(不丢) 10ms
+   × 失败路径:error 终态回执到达 worker,并当面报告失败 3ms
+   × 取消路径:drainDescendants 停掉整棵树,aborted 回执注入,worker 回合被取消 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/subagent-receipt.spec.ts > 完成路径:waitForTreeWork 等到整棵树结束,completed 回执都到 worker(不丢)
+TypeError: subagents.waitForChildren is not a function
+ ❯ childrenEnd src/executor/background.ts:58:22
+     56|   let join = joins.get(agent)
+     57|   if (!join) {
+     58|     join = subagents.waitForChildren(agent).finally(() => { joins.dele…
+       |                      ^
+     59|     joins.set(agent, join)
+     60|   }
+ ❯ untilQuiet src/executor/background.ts:108:46
+ ❯ tests/subagent-receipt.spec.ts:56:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/subagent-receipt.spec.ts > 失败路径:error 终态回执到达 worker,并当面报告失败
+TypeError: subagents.waitForChildren is not a function
+ ❯ childrenEnd src/executor/background.ts:58:22
+     56|   let join = joins.get(agent)
+     57|   if (!join) {
+     58|     join = subagents.waitForChildren(agent).finally(() => { joins.dele…
+       |                      ^
+     59|     joins.set(agent, join)
+     60|   }
+ ❯ untilQuiet src/executor/background.ts:108:46
+ ❯ tests/subagent-receipt.spec.ts:84:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/subagent-receipt.spec.ts > 取消路径:drainDescendants 停掉整棵树,aborted 回执注入,worker 回合被取消
+TypeError: subagents.listChildren is not a function
+ ❯ stopSubagents src/executor/background.ts:162:33
+    160|   // rc.5:目录列出整棵树的每个后代(含已结束的持久行);只有驻留的后代仍有 agent。
+    161|   // 只释放其自身为根的树——worker 是 assignment 的树根,普通成员不关闭他人树。
+    162|   const live = (await subagents.listChildren(agent.id)).map(child => c…
+       |                                 ^
+    163|   if (!live.length) return
+    164|   try { await until(subagents.drainChildren([agent]), undefined, DRAIN…
+ ❯ tests/subagent-receipt.spec.ts:103:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed (3)
+   Start at  02:15:54
+   Duration  360ms (transform 159ms, setup 0ms, import 241ms, tests 18ms, environment 0ms)
+
+undefined
+/Users/sunny/code/agent-basis-rc5/packages/tasks:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run tests/subagent-receipt.spec.ts
+# teeth EXIT=1
+# post-restore rerun
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/tasks
+
+ ✓ tests/subagent-receipt.spec.ts (3 tests) 26ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  02:16:24
+   Duration  977ms (transform 618ms, setup 0ms, import 800ms, tests 26ms, environment 0ms)
+
+# EXIT=0

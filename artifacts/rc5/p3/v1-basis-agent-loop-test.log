@@ -1,0 +1,11 @@
+$ vitest run
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/agent-loop
+
+ ✓ tests/loop.spec.ts (7 tests) 7ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  02:59:50
+   Duration  192ms (transform 60ms, setup 0ms, import 81ms, tests 7ms, environment 0ms)
+

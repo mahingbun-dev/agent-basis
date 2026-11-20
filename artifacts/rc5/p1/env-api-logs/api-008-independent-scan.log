@@ -1,0 +1,25 @@
+### API-008 independent scan: new LlmError( in source (tests excluded)
+scripts/verify-rc5-env.mjs:30: *   API-008  `new LlmError(...)` 构造签名:rc.5 为 (message, code, options?),
+scripts/verify-rc5-env.mjs:564:    '51 API-008:无旧构造签名残留。静态扫描 new LlmError(...) 参数形态 + 记录 fromFailure 出点。')
+scripts/verify-rc5-env.mjs:586:      // 文档/注释里的 `new LlmError(...)` 叙述不是构造点(用去注释后的行判定)。
+scripts/verify-rc5-env.mjs:587:      if (!stripComment(lines[lineOf(text, match.index) - 1] ?? '', abs).includes('new LlmError(')) continue
+packages/compaction/src/basic/summarizer.ts:224:    throw new LlmError('compaction summary cannot contain image output', 'UNSUPPORTED_CONTENT')
+packages/compaction/src/basic/index.ts:388:        throw new LlmError(
+packages/llm-openai/src/adapter.ts:77:      if (timeoutOf(watchdog.signal, 'BASIS_OPENAI_IDLE') !== undefined) throw new LlmError('Basis OpenAI stream idle timeout', 'TIMEOUT', { cause: error })
+packages/llm-openai/src/adapter.ts:78:      if (options.signal?.aborted) throw new LlmError('Basis OpenAI request aborted', 'ABORTED', { cause: error })
+packages/llm-openai/src/adapter.ts:80:      throw new LlmError('Basis OpenAI transport failed', 'TRANSPORT', { cause: error })
+packages/llm-openai/src/adapter.ts:105:      throw new LlmError(
+packages/llm-openai/src/adapter.ts:111:    if (response.body === null) throw new LlmError('Basis OpenAI gateway returned no response body', 'EMPTY_RESPONSE')
+packages/llm-openai/src/index.ts:19:    throw new LlmError(
+packages/llm-openai/src/types.ts:99:    throw new LlmError('basis-llm-openai: baseURL is required; set BASIS_LLM_BASE_URL in the bundle row or environment', 'INVALID_REQUEST')
+packages/llm-openai/src/types.ts:105:    throw new LlmError(`basis-llm-openai: unsupported replayReasoning "${replayRaw}"; expected "drop" or "preserve"`, 'INVALID_REQUEST')
+packages/llm-openai/src/serialize.ts:38:  throw new LlmError(`Basis OpenAI transport cannot represent ${type}`, 'UNSUPPORTED_CONTENT')
+packages/llm-openai/src/translate.ts:31:  throw new LlmError(`Basis OpenAI stream: ${detail}`, 'MALFORMED_RESPONSE')
+packages/llm-openai/src/translate.ts:160:  if (reason === undefined) throw new LlmError('Basis OpenAI stream ended without a finish reason', 'STREAM_CLOSED')
+packages/llm-openai/src/translate.ts:178:  if (blocks.size === 0 && reason.kind === 'stop') throw new LlmError('Basis OpenAI transport returned no content', 'EMPTY_RESPONSE')
+EXIT=0
+### fromFailure sites
+scripts/verify-rc5-env.mjs:32: *            `LlmError.fromFailure(...)` 的出点(provider 码透传走它)。
+packages/memory/src/extraction.ts:253:      return LlmError.fromFailure(finish.failure)
+packages/compaction/src/basic/summarizer.ts:207:      return LlmError.fromFailure(finish.failure)
+EXIT_FROM=0

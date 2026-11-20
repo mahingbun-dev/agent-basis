@@ -1,0 +1,11 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ node -v && node -e 'const p=require("./package.json");const e=String(p.engines&&p.engines.node||"");const m=e.match(/^>=\s*(\d+\.\d+\.\d+)$/);const parse=s=>s.replace(/^v/,"").split(".").map(Number);const cmp=(a,b)=>{const x=parse(a),y=parse(b);for(let i=0;i<3;i++){if(x[i]>y[i])return 1;if(x[i]<y[i])return -1}return 0};const local=process.versions.node;const floor=m?m[1]:null;console.log("engines.node="+e);console.log("local_node="+local);console.log("floor_is_24_9_0="+(floor==="24.9.0"));console.log("local_ge_floor="+(floor!==null&&cmp(local,floor)>=0));process.exit(floor==="24.9.0"&&cmp(local,floor)>=0?0:1)'
+# started 2026-11-19T22:04:43Z
+v24.18.0
+engines.node=>=24.9.0
+local_node=24.18.0
+floor_is_24_9_0=true
+local_ge_floor=true
+
+EXIT 0
+# finished 2026-11-19T22:04:43Z

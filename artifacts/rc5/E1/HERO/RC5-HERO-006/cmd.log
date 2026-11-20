@@ -1,0 +1,12 @@
+# HERO/RC5-HERO-006
+# started 2026-11-19T23:17:24.416Z
+
+$ IAB: setViewportSize(1440/900/390) → screenshot ×3 → 量 composerRect/layerRect/scrollWidth
+EXIT=0
+[{"w":1440,"composerW":770,"layer":[280,40,1160,860],"overflow":false},{"w":900,"composerW":577,"layer":[280,40,620,860],"overflow":false},{"w":390,"composerW":291,"layer":[56,40,334,804],"overflow":false}]
+
+[ASSERT] 三视口均无横向溢出 => PASS
+
+[ASSERT] 输入框宽度只收缩（770→577→291） => PASS
+
+[ASSERT] 装饰层始终在视口内（x≥0 且 x+w≤视口） => PASS

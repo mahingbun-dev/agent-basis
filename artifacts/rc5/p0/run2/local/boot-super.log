@@ -1,0 +1,31 @@
+# cmd: ETERNA_PROFILE_HOME=/tmp/eterna-rc5-p0-run2/super node scripts/verify-eterna-super.mjs
+# cwd: /Users/sunny/code/agent-basis-rc5
+# started: 2026-11-19T18:14:14Z
+---
+verify-eterna-super: 挂载面清单派生 22 行 @eterna insert(守卫式补链:tasks, channels, interact, workbench, toolkit)
+PASS  boot log clean (no skipping/incompatible) — boot + probe 期间 stdout/stderr 无装载跳过或版本不兼容记录
+PASS  no failed entries — 235 entries settled
+PASS  no duplicate entryId in pluginInventory — 235 entry ids all unique
+PASS  all 22 cut rows inactive — absent or disabled everywhere
+PASS  all 124 kept host rows enabled+active — active in the settled Loader tree
+PASS  super 挂载面:清单派生 22 行 @eterna insert 全部 enabled+active — eterna-governance, eterna-audit, eterna-egress, eterna-memory, eterna-knowledge, eterna-llm-doctor, eterna-brand, eterna-access, eterna-prompt-studio, eterna-usage-stats, eterna-panel, eterna-workbench, eterna-attachments, eterna-compaction-client, eterna-compaction-admin, eterna-memory-client, eterna-memory-admin, eterna-tasks, eterna-channels, eterna-interact, eterna-toolkit, eterna-tasks-access-bridge
+PASS  mcp-browser (companion browser execution plane) enabled+active — enabled/active
+PASS  eterna-prompt-studio (prompt studio panel) enabled+active — enabled/active
+PASS  standard preset composed and default — presets: standard, minimal, cordis
+PASS  all 22 kept preset rows enabled+active in standard — flattened composition active
+PASS  browser roster: index.html 200 且注入 __DSH_BOOT__ 花名册 — status=200, __DSH_BOOT__=true
+PASS  browser roster: combo 花名册含 @eterna/prompt-studio/client.js — plugins/??@eterna/attachments/client.js,@eterna/compaction/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deeps
+PASS  browser roster: 本包 combo 脚本可取且含 factory 注册(id=@eterna/prompt-studio) — bytes=3185866
+PASS  browser roster: combo 花名册含 @eterna/compaction/client.js — plugins/??@eterna/attachments/client.js,@eterna/compaction/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deeps
+PASS  browser roster: 压缩包 combo 可取且含 factory 注册(id=@eterna/compaction) — bytes=3185866
+PASS  browser roster: combo 花名册含 @eterna/attachments/client.js — plugins/??@eterna/attachments/client.js,@eterna/compaction/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deeps
+PASS  browser roster: 附件包 combo 可取且含 factory 注册(id=@eterna/attachments) — bytes=3185866
+PASS  browser roster: combo 花名册含 @eterna/tasks/client.js — plugins/??@eterna/attachments/client.js,@eterna/compaction/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deeps
+PASS  browser roster: 任务包 combo 可取且含 factory 注册(id=@eterna/tasks) — bytes=3185866
+PASS  browser roster: combo 花名册含 @eterna/knowledge-admin/client.js — plugins/??@eterna/attachments/client.js,@eterna/compaction/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deeps
+PASS  browser roster: 知识底座 combo 可取且含 factory 注册(id=@eterna/knowledge-admin) — bytes=3185866
+verify-eterna-super: boot http://127.0.0.1:51394/?token=am5Km5a7ynHTNOQp7GF14leCbdKZhQGvrmGXoLAId3A
+verify-eterna-super: OK — 235 host entries, 3 presets, cut rows inactive, kept rows active, super 挂载面 22 行 active
+---
+EXIT=0
+# finished: 2026-11-19T18:14:16Z

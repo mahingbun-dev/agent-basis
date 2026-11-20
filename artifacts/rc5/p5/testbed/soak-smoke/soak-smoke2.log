@@ -1,0 +1,8 @@
+[2026-11-19T21:29:23.905Z] soak start suite=both duration=10s interval=5s dbInterval=10s container=eterna-rc5-e1
+[2026-11-19T21:29:23.906Z] plannedEnd=2026-11-19T21:29:33.905Z logs=/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p5/testbed/soak-smoke
+[2026-11-19T21:29:24.017Z] auth refreshed
+[2026-11-19T21:29:24.037Z] victim session=session-24a316af-efff-400a-a84e-fb84649ab3c7
+[2026-11-19T21:29:24.137Z] long process: spawned pid detached
+[2026-11-19T21:29:24.206Z] term tick=1 fds=54 rssKb=461476 threads=11 longProcs=2 churn=fail
+[2026-11-19T21:29:24.401Z] data tick=1 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=70
+[2026-11-19T21:29:33.910Z] soak stop reason=planned-end elapsed=10s complete=true term=FAIL data=PASS summary=/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p5/testbed/soak-smoke/summary-smoke2.json

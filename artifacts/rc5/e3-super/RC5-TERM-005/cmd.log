@@ -1,0 +1,17 @@
+# RC5-TERM-005 — attach/retain/watch 三流动作跨租户被拒（TERM-005）
+CMD: node artifacts/rc5/e3-super/run-suite.mjs RC5-TERM-005
+START: 2026-11-19T22:29:55.980Z
+# 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
+
+[exit=0] docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)  # boot token 不入证据
+[exit=200] GET /connect + GET /?token=… (dsh session bootstrap)  # token 已脱敏
+[exit=200] POST /login (admin from 0600 accounts file)
+[exit=200] POST /api/session/create  # ok·workspace=090d9317…
+[exit=200] POST /api/terminal/attach  # A（HTTP unary 形态）
+[exit=200] terminal/attach unary 形态  # gateway/arguments-invalid
+[exit=200] POST /api/terminal/retain  # A（HTTP unary 形态）
+[exit=200] terminal/retain unary 形态  # gateway/arguments-invalid
+[exit=200] POST /api/terminal/watch  # A（HTTP unary 形态）
+[exit=200] terminal/watch unary 形态  # gateway/arguments-invalid
+
+EXIT=0

@@ -1,0 +1,19 @@
+# case: RC5-DATA-006  switched: 2026-11-19T22:08:11Z
+$ docker exec eterna-rc5-e1 sh -c printf %s "$DSH_AGENTS_HOME"
+# label: E1 DSH_AGENTS_HOME
+# started: 2026-11-19T22:08:11Z
+/data/agents
+EXIT=0
+
+ASSERT PASS | 容器内 DSH_AGENTS_HOME=/data/agents | actual=/data/agents expected=/data/agents
+$ docker exec eterna-rc5-e1 sh -c ls -ld /data/agents && stat -c "%a" /data/agents
+# label: E1 /data/agents 目录
+# started: 2026-11-19T22:08:11Z
+drwx------ 2 root root 64 Nov 19 21:09 /data/agents
+700
+EXIT=0
+
+ASSERT PASS | 容器内 /data/agents 存在 | actual=yes expected=yes
+ASSERT PASS | 宿主侧 e1/agents 存在（/data 实为 bind） | actual=yes expected=yes
+PASS=11 FAIL=0
+

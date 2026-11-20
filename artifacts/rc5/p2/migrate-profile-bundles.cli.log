@@ -1,0 +1,4 @@
+[migrate-profile-bundles]: 追加默认 bundle: @deepseek-ai/dsh-deepseek-chat-import, @deepseek-ai/dsh-experimental-session-search, @deepseek-ai/dsh-experimental-plugin-market-bundle, @deepseek-ai/dsh-experimental-terminal-bundle | 备份: /tmp/rc5-cli-pML3/package.json.bak-2026-11-19T17-16-28-963Z
+EXIT=0
+[migrate-profile-bundles]: 无新增默认 bundle（已幂等）
+EXIT2=0

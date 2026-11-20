@@ -1,0 +1,5 @@
+cd /Users/sunny/code/agent-basis-rc5
+node scripts/prepare-rc5-envs.mjs e2
+EXIT=1
+EXIT=1
+EXIT=0

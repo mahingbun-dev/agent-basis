@@ -1,0 +1,36 @@
+## commands
+1) web/super verify boots (see RC5-BOOT-004/evidence.txt)
+2) node -e query on artifacts/rc5/p2/t11-slot-drift/{web,super}/slot-drift.json
+
+## assertion
+PASS  BOOT-012 client roster complete: T36 9/10 mounted bundles + release — 78 boot entries, release 0.2.2-rc.5, access, attachments, brand, compaction, llm-doctor, memory, panel, prompt-studio, usage-stats
+PASS  BOOT-012 client roster complete: T36 10/10 mounted bundles + release — 80 boot entries, release 0.2.2-rc.5, access, attachments, brand, compaction, llm-doctor, memory, panel, prompt-studio, usage-stats, workbench
+
+## client roster evidence
+== web == checkedPackages=10 liveCatalog=116
+  @eterna/access               roster=true bundle=200 declared=7 served=7
+  @eterna/attachments          roster=true bundle=200 declared=1 served=1
+  @eterna/brand                roster=true bundle=200 declared=2 served=2
+  @eterna/compaction           roster=true bundle=200 declared=2 served=2
+  @eterna/knowledge-admin      roster=true bundle=200 declared=2 served=2
+  @eterna/llm-doctor           roster=true bundle=200 declared=1 served=1
+  @eterna/memory               roster=true bundle=200 declared=4 served=4
+  @eterna/panel                roster=true bundle=200 declared=3 served=3
+  @eterna/prompt-studio        roster=true bundle=200 declared=2 served=2
+  @eterna/usage-stats          roster=true bundle=200 declared=2 served=2
+== super == checkedPackages=12 liveCatalog=116
+  @eterna/access               roster=true bundle=200 declared=7 served=7
+  @eterna/attachments          roster=true bundle=200 declared=1 served=1
+  @eterna/brand                roster=true bundle=200 declared=2 served=2
+  @eterna/compaction           roster=true bundle=200 declared=2 served=2
+  @eterna/knowledge-admin      roster=true bundle=200 declared=2 served=2
+  @eterna/llm-doctor           roster=true bundle=200 declared=1 served=1
+  @eterna/memory               roster=true bundle=200 declared=4 served=4
+  @eterna/panel                roster=true bundle=200 declared=3 served=3
+  @eterna/prompt-studio        roster=true bundle=200 declared=2 served=2
+  @eterna/tasks                roster=true bundle=200 declared=4 served=4
+  @eterna/usage-stats          roster=true bundle=200 declared=2 served=2
+  @eterna/workbench            roster=true bundle=200 declared=2 served=2
+
+## deferred (NOT green)
+真实浏览器控制台「版本不匹配」面需 E1/容器浏览器加载（W5）；本地已证花名册完整 + release.version 0.2.2-rc.5 + 每个 bundle 200 且含 factory 注册。

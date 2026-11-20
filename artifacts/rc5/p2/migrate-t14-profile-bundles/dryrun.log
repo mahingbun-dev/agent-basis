@@ -1,0 +1,37 @@
+# 输入摘要（rc.1 开发档重建物）
+SOURCE_MANIFEST=artifacts/rc5/p0/prod/profiles-package-json.raw.txt (eterna-web 段)
+SOURCE_PATCH=git show HEAD:profiles/eterna-web/cordis.patch.yml
+PROFILE_PACKAGE_SHA256=9153514a6eef71e36be70a2cf0f8829b8b61b5761c5470a88b65ac467c1e8d5d
+PROFILE_PATCH_SHA256=a7ad0f8e48de28a02a76b770947272e465e519f81fb24245d9ef37b17f3c8aa4
+TEMPLATE_PACKAGE_SHA256=500b15afd6459e64322324914fc57e56f945d49c528194a7f315a41f17777dae
+
+# RUN 1（rc.1 → rc.5 默认集追加）
+$ node docker/profile/migrate-profile-bundles.mjs artifacts/rc5/p2/migrate-t14-profile-bundles/fixture/eterna-web/package.json artifacts/rc5/p2/migrate-t14-profile-bundles/fixture/template.package.json
+[migrate-profile-bundles]: 追加默认 bundle: @deepseek-ai/dsh-deepseek-chat-import, @deepseek-ai/dsh-experimental-session-search, @deepseek-ai/dsh-experimental-terminal-bundle | 备份: artifacts/rc5/p2/migrate-t14-profile-bundles/fixture/eterna-web/package.json.bak-2026-11-19T17-58-11-030Z
+EXIT=0
+---
+SHA_BEFORE=9153514a6eef71e36be70a2cf0f8829b8b61b5761c5470a88b65ac467c1e8d5d SHA_AFTER1=b69cba5d8d5e1aa9521bcfd0b1014ebdc1c8ba87f8c27519890d3e18932a6cd0 MARKER1=3d92cf47a7877c51c1a189fda7ae1057e310d8edffadb621364ceebd0b4de855 BACKUPS=1
+ASSERT PASS: run1 EXIT=0
+ASSERT PASS: run1 package.json changed
+ASSERT PASS: run1 marker written
+ASSERT PASS: run1 备份 1 份
+ASSERT PASS: run1 追加 chat-import/session-search/terminal
+ASSERT PASS: rc.1 已有项不重复（plugin-market 只 1 次）
+# RUN 2（幂等：第二次应零写）
+$ node docker/profile/migrate-profile-bundles.mjs artifacts/rc5/p2/migrate-t14-profile-bundles/fixture/eterna-web/package.json artifacts/rc5/p2/migrate-t14-profile-bundles/fixture/template.package.json
+[migrate-profile-bundles]: 无新增默认 bundle（已幂等）
+EXIT=0
+---
+SHA_AFTER2=b69cba5d8d5e1aa9521bcfd0b1014ebdc1c8ba87f8c27519890d3e18932a6cd0 MARKER2=3d92cf47a7877c51c1a189fda7ae1057e310d8edffadb621364ceebd0b4de855 BACKUPS=1
+ASSERT PASS: run2 EXIT=0
+ASSERT PASS: run2 package.json 字节不变
+ASSERT PASS: run2 marker 字节不变
+ASSERT PASS: run2 无新备份
+
+# opt-out 回归（marker 已记 + 用户移除 terminal → 不回加）
+$ node docker/profile/migrate-profile-bundles.mjs artifacts/rc5/p2/migrate-t14-profile-bundles/fixture/eterna-web/package.json artifacts/rc5/p2/migrate-t14-profile-bundles/fixture/template.package.json
+[migrate-profile-bundles]: 无新增默认 bundle（已幂等） | 用户已 opt-out: @deepseek-ai/dsh-experimental-terminal-bundle
+EXIT=0
+---
+EXIT=0
+ASSERT PASS: opt-out 后 terminal 不被回加

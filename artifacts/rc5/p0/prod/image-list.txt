@@ -1,0 +1,6 @@
+$ docker image ls eterna-agent --format ...
+eterna-agent:0.1.51	3ca0d6605589	2026-11-20 01:19:57 +0800 CST	3.03GB
+eterna-agent:0.1.50	6b306037b659	2026-11-19 18:41:00 +0800 CST	3.03GB
+eterna-agent:kf-knowledge-test	58b2a2d019e0	2026-11-19 12:11:53 +0800 CST	3.03GB
+eterna-agent:0.1.38	b0dbe8bc6da4	2026-11-19 11:05:37 +0800 CST	3.03GB
+EXIT=0

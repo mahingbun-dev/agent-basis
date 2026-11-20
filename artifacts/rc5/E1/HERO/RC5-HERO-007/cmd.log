@@ -1,0 +1,12 @@
+# HERO/RC5-HERO-007
+# started 2026-11-19T23:17:24.418Z
+
+$ IAB: 查询 media 模拟能力（browser-client.mjs 仅暴露 setViewportSize；无 emulateMedia/CDP）
+EXIT=-1
+IAB 后端不提供 prefers-reduced-motion 媒体模拟接口 → 动态验证未执行
+
+$ grep -n "animation|prefers-reduced-motion" packages/brand/src/client/styles.ts
+EXIT=0
+48: animation: eterna-hero-breathe 18s ...；110: @media (prefers-reduced-motion: reduce)；111: [data-eterna-hero-glow] { animation: none; }
+
+[ASSERT] 样式表存在 reduced-motion 关断规则 => PASS :: styles.ts:110-111

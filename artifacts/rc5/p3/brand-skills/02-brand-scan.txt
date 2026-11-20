@@ -1,0 +1,16 @@
+$ python3 -I artifacts/rc5/p3/brand-skills/scan_brand.py
+root: <HOME>/code/agent-basis-rc5/packages/brand/skills
+files scanned: 46
+DeepSeek Harness hits: 0
+standalone DSH hits: 0
+raw @deepseek-ai/ package refs (exempt): 303
+DSH_* runtime identifier tokens (exempt):
+  DSH_: 1
+  DSH_HOME: 5
+  DSH_INSTALL_DIR: 11
+  DSH_NODE_EXECUTABLE: 6
+  DSH_PROFILE: 7
+  DSH_PROFILE_DIR: 3
+  __DSH_BOOT__: 1
+verdict: PASS
+EXIT=0

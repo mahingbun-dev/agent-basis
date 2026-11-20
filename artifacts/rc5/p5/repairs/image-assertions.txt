@@ -1,0 +1,16 @@
+# 重建后的镜像断言(2026-11-20;entrypoint 改动后复核,断网 --network=none --entrypoint sh)
+
+dsh: 0.2.2-rc.5
+node: v24.22.3
+pnpm: 11.7.0
+flock: /usr/bin/flock
+entrypoint mode: -rwxr-xr-x
+koffi: load OK 3.1.1
+apt lists: [auxfiles ]
+apt archives: [lock partial ]
+npm cache: absent-ok
+pip cache: absent-ok
+corepack home: 20M
+EXIT=0
+
+# 镜像大小: 3.93GB

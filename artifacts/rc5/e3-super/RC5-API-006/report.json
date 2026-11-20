@@ -1,0 +1,64 @@
+{
+  "id": "RC5-API-006",
+  "suite": "E3-super",
+  "priority": "P1",
+  "title": "查询后代列表与任务树一致（API-006）",
+  "expected": "listDescendants 返回与任务树一致",
+  "status": "NOTRUN",
+  "startedAt": "2026-11-19T22:27:51.442Z",
+  "finishedAt": "2026-11-19T22:27:51.548Z",
+  "assertions": [
+    {
+      "name": "admin 登录 200",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "tasks 视图/角色面可读（引擎就绪）",
+      "ok": true,
+      "detail": "master=orchestrator-Mr.Ma workers=[]"
+    },
+    {
+      "name": "当前无 worker 会话（无法观察后代树）",
+      "ok": true,
+      "detail": "[]"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)",
+      "exit": 0,
+      "note": "boot token 不入证据"
+    },
+    {
+      "cmd": "GET /connect + GET /?token=… (dsh session bootstrap)",
+      "exit": 200,
+      "note": "token 已脱敏"
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 200,
+      "note": "account=rc5admin"
+    },
+    {
+      "cmd": "GET /access/api/tasks/settings",
+      "exit": 200,
+      "note": ""
+    },
+    {
+      "cmd": "GET /access/api/tasks/session-roles",
+      "exit": 200,
+      "note": ""
+    }
+  ],
+  "notes": [
+    "listDescendants 属宿主 subagent 服务方法，无公开 RPC；需由真实 worker 树驱动。前置（模型/ realm）见 RC5-API-005。"
+  ],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

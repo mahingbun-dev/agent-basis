@@ -1,0 +1,103 @@
+{
+  "suite": "IMP",
+  "startedAt": "2026-11-20T01:15:46.880Z",
+  "finishedAt": "2026-11-20T01:15:49.841Z",
+  "env": {
+    "base": "http://127.0.0.1:3108",
+    "container": "eterna-rc5-e1",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e1",
+    "fixture": "/Users/sunny/code/agent-basis-rc5/tests/fixtures/chat-import/deepseek-export-11.zip"
+  },
+  "counts": {
+    "PASS": 8,
+    "FAIL": 0,
+    "SKIP": 4,
+    "NOTRUN": 0
+  },
+  "cases": [
+    {
+      "id": "SETUP-LOGIN",
+      "priority": "P0",
+      "status": "PASS",
+      "title": "A/B/C 登录",
+      "detail": "a=200 b=200 c=200"
+    },
+    {
+      "id": "SETUP-FIXTURES",
+      "priority": "P0",
+      "status": "PASS",
+      "title": "归档夹具与 B 工作区可用",
+      "detail": "fixture=/Users/sunny/code/agent-basis-rc5/tests/fixtures/chat-import/deepseek-export-11.zip bytes=62335 bWorkspace=adf1e03e-505e-468b-b1b0-9ebc31f5e1a4 aWorkspace=7439e2fd-4920-44b0-8fb2-b2bf80790427"
+    },
+    {
+      "id": "RC5-IMP-001",
+      "priority": "P0",
+      "status": "PASS",
+      "title": "未登录上传 → 401 且不写会话",
+      "detail": "status=401 count 144→144"
+    },
+    {
+      "id": "RC5-IMP-002",
+      "priority": "P0",
+      "status": "PASS",
+      "title": "B 传 A 的 workspaceId → 403 且不写会话",
+      "detail": "status=403 body=forbidden count 1→1"
+    },
+    {
+      "id": "RC5-IMP-003",
+      "priority": "P0",
+      "status": "PASS",
+      "title": "B 导入 11 会话归档 → 200，outcome.sessionIds=10",
+      "detail": "status=200 ok=true sessionIds=10 skipped=1 lines=12"
+    },
+    {
+      "id": "RC5-IMP-005",
+      "priority": "P0",
+      "status": "PASS",
+      "title": "access 库 10 行 owner=B、无空属主",
+      "detail": "B rows=154 delta=10 allImportedPresent=true ownerClean=true"
+    },
+    {
+      "id": "RC5-IMP-004",
+      "priority": "P0",
+      "status": "PASS",
+      "title": "导入的会话 B 可见、A 不可见",
+      "detail": "B 可见 10/10，A 可见 0/10（A 还能看到他人会话 = 跨租户元数据泄漏）"
+    },
+    {
+      "id": "RC5-IMP-009",
+      "priority": "P1",
+      "status": "PASS",
+      "title": "坏 JSON 会话被跳过、其余完整导入",
+      "detail": "status=200 sessionIds=10 skipped=1 brokenNamed=true"
+    },
+    {
+      "id": "RC5-IMP-006",
+      "priority": "P1",
+      "status": "SKIP",
+      "title": "1001 会话上限",
+      "detail": "需要生成 1001 会话归档（体积与时长），P6 手工构造"
+    },
+    {
+      "id": "RC5-IMP-007",
+      "priority": "P1",
+      "status": "SKIP",
+      "title": "512MiB 边界",
+      "detail": "需要 512MiB 上传与反代链路（P6/E6）"
+    },
+    {
+      "id": "RC5-IMP-008",
+      "priority": "P1",
+      "status": "SKIP",
+      "title": "上传中途取消后对账",
+      "detail": "需要浏览器/中断控制（P6 E2E）"
+    },
+    {
+      "id": "RC5-IMP-010",
+      "priority": "P1",
+      "status": "SKIP",
+      "title": "反代 client_max_body_size/读超时",
+      "detail": "反代配置属 T44/E6，不在 E1"
+    }
+  ]
+}
