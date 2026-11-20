@@ -11,6 +11,11 @@
  *   - E3（super）对 TERM-002/005/006、TERM-013、API-004..007 为准；
  *   - MCPP-019/020/022 以 E2/LLM 的 live 回合为准（MCPP 套件本身只标 SKIP 指引）；
  *   - 其余 id 取 E1/E2 summary；同一 id 多条时 PASS/FAIL 优先于 SKIP/NOTRUN。
+ *   - TERM-013/DATA-009 另有一条「24h 时间窗权威」：主 soak `summary-24h-final2.json`
+ *     的 window.complete=true 时取 term/data verdict；DATA-009 还需规模窗口
+ *     `E2/DATA/scale/summary.json` 的 windowComplete=true 且 verdict=PASS。窗口未满
+ *     一律不覆盖（维持 MISSING）。演练可用 RC5_SOAK_SUMMARY / RC5_SCALE_SUMMARY 指向
+ *     合成摘要，无需触碰真实证据。
  *
  * 已知「证据不足」登记：API-005..007 的 E1 stub 证据不满足 51 的「真 worker」口径，
  * 即使旧行曾标 PASS 也回落为 MISSING（遗留项 API005-REALMODEL）。2026-11-20 晚真模型
@@ -70,6 +75,40 @@ const E3_AUTHORITATIVE = new Set([
 /** 旧 stub 证据不满足 51 口径的用例（即使旧行 PASS 也回落 MISSING）。 */
 const INSUFFICIENT_EVIDENCE = new Set(['RC5-API-005', 'RC5-API-006', 'RC5-API-007'])
 
+/**
+ * 24h 时间窗权威判定：窗口未满一律不覆盖（保持 MISSING）。
+ * TERM-013 取主 soak 的 term.verdict；DATA-009 需主 soak 的 data.verdict 与
+ * 规模窗口 summary.json 的 verdict 同时 PASS 才判 PASS。
+ * 路径可用 RC5_SOAK_SUMMARY / RC5_SCALE_SUMMARY 覆盖（仅用于演练）。
+ */
+const SOAK_SUMMARY = process.env.RC5_SOAK_SUMMARY ?? join(RC5, 'p6b', 'soak', 'final-image2', 'summary-24h-final2.json')
+const SCALE_SUMMARY = process.env.RC5_SCALE_SUMMARY ?? join(RC5, 'E2', 'DATA', 'scale', 'summary.json')
+function soakStatuses() {
+  const result = new Map()
+  const readJson = path => (existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : undefined)
+  const soak = readJson(SOAK_SUMMARY)
+  if (soak?.window?.complete === true) {
+    if (soak.term?.verdict !== undefined) {
+      result.set('RC5-TERM-013', { status: soak.term.verdict, evidence: `${SOAK_SUMMARY}（term.verdict，窗口已满）` })
+    }
+    if (soak.data?.verdict !== undefined) {
+      result.set('RC5-DATA-009', { status: soak.data.verdict, evidence: `${SOAK_SUMMARY}（data.verdict，窗口已满）` })
+    }
+  }
+  const data = result.get('RC5-DATA-009')
+  if (data !== undefined) {
+    const scale = readJson(SCALE_SUMMARY)
+    if (scale?.windowComplete !== true) {
+      result.set('RC5-DATA-009', { status: 'MISSING', evidence: `${SOAK_SUMMARY}；规模窗口未满（${SCALE_SUMMARY}）` })
+    } else {
+      const status = data.status === 'PASS' && scale.verdict === 'PASS' ? 'PASS' : 'FAIL'
+      result.set('RC5-DATA-009', { status, evidence: `${SOAK_SUMMARY} + ${SCALE_SUMMARY}（两窗口均满）` })
+    }
+  }
+  return result
+}
+const soak = soakStatuses()
+
 const text = readFileSync(MATRIX, 'utf8')
 const lines = text.split('\n')
 const rowPattern = /^\| (.*?) \| (RC5-[A-Z0-9]+-[0-9]+) \| ([^|]+) \| (PASS|FAIL|MISSING) \| (.*?) \| (.*?) \|$/
@@ -100,7 +139,12 @@ const changes = []
 for (const row of rows) {
   let status = row.status
   let source = 'matrix'
-  if (E3_AUTHORITATIVE.has(row.id) && e3.has(row.id)) {
+  let evidenceOverride
+  if (soak.has(row.id)) {
+    status = soak.get(row.id).status
+    source = 'soak'
+    evidenceOverride = soak.get(row.id).evidence
+  } else if (E3_AUTHORITATIVE.has(row.id) && e3.has(row.id)) {
     status = e3.get(row.id)
     source = 'E3'
   } else if (INSUFFICIENT_EVIDENCE.has(row.id)) {
@@ -114,7 +158,9 @@ for (const row of rows) {
   if (status !== row.status) {
     changes.push({ id: row.id, from: row.status, to: status, source })
     row.status = status
-    if (status === 'PASS' && row.evidence.includes('MISSING')) {
+    if (evidenceOverride !== undefined) {
+      row.evidence = evidenceOverride
+    } else if (status === 'PASS' && row.evidence.includes('MISSING')) {
       const lane = source === 'E3' ? 'e3-super' : undefined
       row.evidence = `${evidenceFor(row.id, lane)} ［最终镜像车道 ${source}］`
     }
@@ -200,15 +246,27 @@ if (existsSync(metaPath)) {
   const elapsedH = ((now - Date.parse(meta.startedAt)) / 3_600_000).toFixed(2)
   const plannedH = (meta.plannedSeconds / 3600).toFixed(0)
   const pct = ((now - Date.parse(meta.startedAt)) / (meta.plannedSeconds * 1000) * 100).toFixed(1)
+  const soakSummary = existsSync(SOAK_SUMMARY) ? JSON.parse(readFileSync(SOAK_SUMMARY, 'utf8')) : undefined
+  const scaleSummary = existsSync(SCALE_SUMMARY) ? JSON.parse(readFileSync(SCALE_SUMMARY, 'utf8')) : undefined
+  const windowComplete = soakSummary?.window?.complete === true
+  const windowLines = windowComplete
+    ? [
+      `- 窗口：tag=\`${meta.tag}\`，容器=\`${meta.container}\`，镜像=final-image2（\`sha256:22fe8acb436f…\`）`,
+      `- 窗口：**已满**（${soakSummary.elapsedSeconds}s）；term=\`${soakSummary.term?.verdict ?? '-'}\`、data=\`${soakSummary.data?.verdict ?? '-'}\`；规模窗口=\`${scaleSummary?.windowComplete === true ? scaleSummary.verdict : '未满'}\``,
+      `- 摘要：\`${SOAK_SUMMARY}\`${scaleSummary === undefined ? '' : ` + \`${SCALE_SUMMARY}\``}`,
+    ]
+    : [
+      `- 窗口：tag=\`${meta.tag}\`，容器=\`${meta.container}\`，镜像=final-image2（\`sha256:22fe8acb436f…\`）`,
+      `- 最新采样：已观测 **${elapsedH} h / ${plannedH} h**（${pct}%），\`windowComplete=false\``,
+      '- 结论：**未满窗口，不得判绿**；DATA-009 = MISSING，TERM-013 = MISSING',
+    ]
   const soakSection = [
     '## 24h 浸泡窗口（DATA-009 / TERM-013）', '',
     `- soak 启动：\`${meta.startedAt}\`；计划结束：\`${meta.plannedEndAt}\`（${meta.plannedSeconds}s）`,
-    `- 窗口：tag=\`${meta.tag}\`，容器=\`${meta.container}\`，镜像=final-image2（\`sha256:22fe8acb436f…\`）`,
-    `- 最新采样：已观测 **${elapsedH} h / ${plannedH} h**（${pct}%），\`windowComplete=false\``,
-    '- 结论：**未满窗口，不得判绿**；DATA-009 = MISSING，TERM-013 = MISSING',
+    ...windowLines,
     `- 最新 TERM tick：${lastTerm === undefined ? '尚无' : `\`${lastTerm.slice(0, 220)}\``}`,
     `- 最新 DATA tick：${lastData === undefined ? '尚无' : `\`${lastData.slice(0, 220)}\``}`,
-    '- leftover：`SOAK-24H`、`TERM013-DATA009`', '',
+    `- leftover：${windowComplete ? '`SOAK-24H`（已闭）、`TERM013-DATA009`（已闭）' : '`SOAK-24H`、`TERM013-DATA009`'}`, '',
   ].join('\n')
   next = next.replace(/## 24h 浸泡窗口（DATA-009 \/ TERM-013）\n\n[\s\S]*?(\n\n## P0 未通过清单)/, `${soakSection}$1`)
 }
@@ -225,13 +283,23 @@ next = next.replace(/## P0 未通过清单（门禁红\/缺失）\n\n[\s\S]*?(\n
 /* 遗留项 */
 const leftover = ['## 遗留项（leftovers）', '', '| id | 现象 | 级别 | 建议 |', '|---|---|---|---|']
 const soakFile = join(RC5, 'p6b', 'soak', 'final-image2', 'meta-24h-final2.json')
-const soak = existsSync(soakFile) ? JSON.parse(readFileSync(soakFile, 'utf8')) : undefined
-leftover.push(`| SOAK-24H | 24h 浸泡窗口未满（final-image2；${soak?.plannedEndAt === undefined ? '见 artifacts/rc5/p6b/soak/final-image2/window.json' : `plannedEnd=${soak.plannedEndAt}`}） | P1 | 满窗后复核 window.complete=true 与 verdict；未满不得判绿 |`)
+const soakMeta = existsSync(soakFile) ? JSON.parse(readFileSync(soakFile, 'utf8')) : undefined
+const soakFull = existsSync(SOAK_SUMMARY) ? JSON.parse(readFileSync(SOAK_SUMMARY, 'utf8')) : undefined
+const scaleFull = existsSync(SCALE_SUMMARY) ? JSON.parse(readFileSync(SCALE_SUMMARY, 'utf8')) : undefined
+const soakComplete = soakFull?.window?.complete === true
+const scaleComplete = scaleFull?.windowComplete === true
+if (!soakComplete) {
+  leftover.push(`| SOAK-24H | 24h 浸泡窗口未满（final-image2；${soakMeta?.plannedEndAt === undefined ? '见 meta-24h-final2.json' : `plannedEnd=${soakMeta.plannedEndAt}`}） | P1 | 满窗后复核 window.complete=true 与 verdict；未满不得判绿 |`)
+}
 leftover.push(`| NOTPASS-P0 | ${missingP0.length === 0 ? '无' : missingP0.join('、')} | P0 | ${missingP0.length === 0 ? 'P0 全绿' : 'P0 未全绿：按 51 补跑后方可进 P7'} |`)
 const notPassP1 = missing.filter(id => !missingP0.includes(id))
 leftover.push(`| NOTPASS-P1+ | ${notPassP1.length === 0 ? '无' : notPassP1.join('、')} | P1 | 按 51 步骤逐条补跑或取得用户签字豁免 |`)
-leftover.push(`| TERM013-DATA009 | TERM-013/DATA-009 依赖 24h 浸泡满窗（同一窗口 final-image2）；满窗前记 MISSING | P1 | ${soak?.plannedEndAt ?? '见 meta-24h-final2.json'} 后复核 |`)
-leftover.push('| DATA-009-SCALE | 规模口径由独立 scale 窗口覆盖（50 持久会话 / 60s 50 并发读 / 5min 50 并发写 / 2h 全库 integrity，止 2026-11-21T07:37:17Z）；主窗口为 2 writers 的 24h 浸泡 | P1 | 满窗后合并两窗口判定 DATA-009 |')
+if (!soakComplete) {
+  leftover.push(`| TERM013-DATA009 | TERM-013/DATA-009 依赖 24h 浸泡满窗（同一窗口 final-image2）；满窗前记 MISSING | P1 | ${soakMeta?.plannedEndAt ?? '见 meta-24h-final2.json'} 后复核 |`)
+}
+if (!scaleComplete) {
+  leftover.push(`| DATA-009-SCALE | 规模口径由独立 scale 窗口覆盖（50 持久会话 / 60s 50 并发读 / 5min 50 并发写 / 2h 全库 integrity，止 ${scaleFull?.plannedEndAt ?? '2026-11-21T07:37:17Z'}）；主窗口为 2 writers 的 24h 浸泡 | P1 | 满窗后合并两窗口判定 DATA-009 |`)
+}
 leftover.push('| R22-TASKS-PROMPT | 任务主会话按标准 preset 创建，角色 prompt/preset 未接线；可能自行派 subagent 与 tasks 路由重复（产品遗留，不影响 API-005/006/007 判据） | P1 | 下一次镜像变更窗口：bundles 加 `@eterna/tasks` + 注入 presets + `agent.ctx.systemPrompt.section` 角色 prompt（见 `p7/doc54-delivery-audit.md` §2.1） |')
 leftover.push('| EVID-ACP | ACP-001..010 以 assert.json 作为结果记录（无 result.md） | P3 | 补 result.md 或登记等价证据规范 |')
 leftover.push('| EVID-ENV-V1 | ENV-004/005、V1-008 的运行时断言由 P5 镜像探针补证（非逐字 docker run） | P3 | 保留探针索引；按需逐字复跑 |')

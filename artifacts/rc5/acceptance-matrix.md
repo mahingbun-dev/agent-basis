@@ -1,8 +1,8 @@
 # rc.5 测试验收矩阵（164 条）
 
-- 生成时间：2026-11-20T09:01:08Z
+- 生成时间：2026-11-20T09:08:08Z
 - 汇编：T50（54 §5.4 / §7.1 / §7.3；51 §0.3 / §6.3）
-- 工作树：`/Users/sunny/code/agent-basis-rc5`（`feat/dsh-rc5-merge`，HEAD `84b5823`）
+- 工作树：`/Users/sunny/code/agent-basis-rc5`（`feat/dsh-rc5-merge`，HEAD `292746f`）
 - 用例定义：`docs/design/51-上游rc.5合并测试用例与回归.md` §3（164 条）；阶段映射：`docs/design/54-rc.5开发与测试验收完整workflow.md` §5.1/§5.2
 
 ## 判定规则（只取真实证据）
@@ -64,10 +64,10 @@
 
 - soak 启动：`2026-11-20T06:08:06.781Z`；计划结束：`2026-11-21T06:08:06.781Z`（86400s）
 - 窗口：tag=`24h-final2`，容器=`eterna-rc5-e1`，镜像=final-image2（`sha256:22fe8acb436f…`）
-- 最新采样：已观测 **2.88 h / 24 h**（12.0%），`windowComplete=false`
+- 最新采样：已观测 **3.00 h / 24 h**（12.5%），`windowComplete=false`
 - 结论：**未满窗口，不得判绿**；DATA-009 = MISSING，TERM-013 = MISSING
-- 最新 TERM tick：`{"at":"2026-11-20T09:00:41.013Z","elapsedSeconds":10353,"dshPid":1,"fds":104,"rssKb":405364,"threads":11,"longProcs":1,"churn":"ok","probeExit":0}`
-- 最新 DATA tick：`{"at":"2026-11-20T08:56:36.384Z","elapsedSeconds":10108,"databases":[{"file":"access/users.db","walBytes":844632,"shmBytes":32768,"ok":true,"journal":"wal","integrity":["ok"],"sessions":519},{"file":".eterna/memory.sqlit`
+- 最新 TERM tick：`{"at":"2026-11-20T09:07:49.589Z","elapsedSeconds":10782,"dshPid":1,"fds":108,"rssKb":517064,"threads":11,"longProcs":1,"churn":"ok","probeExit":0}`
+- 最新 DATA tick：`{"at":"2026-11-20T09:06:48.434Z","elapsedSeconds":10720,"databases":[{"file":"access/users.db","walBytes":877592,"shmBytes":32768,"ok":true,"journal":"wal","integrity":["ok"],"sessions":523},{"file":".eterna/memory.sqlit`
 - leftover：`SOAK-24H`、`TERM013-DATA009`
 
 
