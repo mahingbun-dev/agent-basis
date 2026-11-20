@@ -1,0 +1,49 @@
+$ node scripts/lint-ui-tokens.mjs && pnpm -r --if-present run verify
+UI 令牌检查通过:17 个目录 277 个文件,79 个 --et-* 令牌;状态点强制 30/30 通过;v4 阶梯 0 债务。
+Scope: 39 of 40 workspace projects
+core/cordis verify$ tsc --noEmit && tsc -p tsconfig.lib.json && vitest run
+packages/channels verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/browser-relay verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && pnpm run build && vitest run
+packages/extension-companion verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && pnpm run build && vitest run
+packages/channels verify: Found 0 warnings and 0 errors.
+packages/channels verify: Finished in 1.5s on 19 files with 87 rules using 10 threads.
+packages/extension-companion verify: Found 0 warnings and 0 errors.
+packages/extension-companion verify: Finished in 1.5s on 8 files with 87 rules using 10 threads.
+packages/browser-relay verify: Found 0 warnings and 0 errors.
+packages/browser-relay verify: Finished in 1.6s on 11 files with 87 rules using 10 threads.
+core/cordis verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/core/cordis
+core/cordis verify:  ✓ tests/smoke.spec.ts (4 tests) 8ms
+core/cordis verify:  Test Files  1 passed (1)
+core/cordis verify:       Tests  4 passed (4)
+core/cordis verify:    Start at  00:42:51
+core/cordis verify:    Duration  348ms (transform 145ms, setup 0ms, import 182ms, tests 8ms, environment 0ms)
+core/cordis verify: Done
+packages/governance verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/extension-companion verify: $ node build.mjs
+packages/browser-relay verify: $ node build.mjs
+packages/extension-companion verify:   dist/background.js  10.5kb
+packages/extension-companion verify:   dist/options.js      2.6kb
+packages/extension-companion verify: ⚡ Done in 4ms
+packages/extension-companion verify: extension dist 已生成
+packages/browser-relay verify:   dist/cli.mjs  55.1kb
+packages/browser-relay verify:   dist/mcp.mjs   9.2kb
+packages/browser-relay verify: ⚡ Done in 5ms
+packages/browser-relay verify: relay dist 已生成
+packages/extension-companion verify: zip 已生成: /Users/sunny/code/agent-basis-rc5/packages/extension-companion/eterna-companion.zip
+packages/channels verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/channels
+packages/governance verify:   x typescript(no-unsafe-argument): Unsafe argument of type any assigned to a parameter of type TurnStoppingEvent.
+packages/governance verify:     ,-[tests/types.seam-pin.ts:38:30]
+packages/governance verify:  37 | export const pinTurnStoppingArrow: Events['agent/turn-stopping'] = (event) => {
+packages/governance verify:  38 |   void budget.onTurnStopping(event)
+packages/governance verify:     :                              ^^^^^
+packages/governance verify:  39 | }
+packages/governance verify:     `----
+packages/governance verify: Found 0 warnings and 1 error.
+packages/governance verify: Finished in 832ms on 20 files with 87 rules using 10 threads.
+packages/governance verify: Failed
+/Users/sunny/code/agent-basis-rc5/packages/governance:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @eterna/governance@0.0.0 verify: `oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run`
+Exit status 1
+packages/knowledge verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+[ELIFECYCLE] Command failed with exit code 1.
+EXIT=1

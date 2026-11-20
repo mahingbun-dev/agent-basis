@@ -1,0 +1,8 @@
+# ACC/RC5-ACC-002
+# started 2026-11-20T07:05:45.538Z
+
+$ node tools/packctl/bin/packctl.mjs prompt-scan
+EXIT=0
+prompt-scan: 0 finding(s)
+
+[ASSERT] prompt-scan 0 违规 => PASS :: prompt-scan: 0 finding(s)

@@ -1,0 +1,27 @@
+{
+  "name": "@basis/agent-loop",
+  "description": "v1 插件面:turn/step 引擎(ctx.agents)。对齐 04 号笔记:claim 输入 → pre-step waterfall → llm 调用 → tools 执行链 → 有工具欠账续 step → turn-stopping(预算守卫)→ turn/end;无内置无限循环(step 硬上限)。",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@basis/llm": "workspace:*",
+    "@basis/tools": "workspace:*",
+    "@core/cordis": "workspace:*",
+    "@core/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

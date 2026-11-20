@@ -1,0 +1,17 @@
+# cmd: pnpm --filter @eterna/llm-openai test
+# cwd: /Users/sunny/code/agent-basis-rc5
+# date: 2026-11-19T19:08:35Z
+$ vitest run
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/llm-openai
+
+ ✓ tests/translate.spec.ts (6 tests) 3ms
+ ✓ tests/serialize.spec.ts (8 tests) 3ms
+ ✓ tests/adapter.spec.ts (23 tests) 56ms
+
+ Test Files  3 passed (3)
+      Tests  37 passed (37)
+   Start at  03:08:36
+   Duration  209ms (transform 68ms, setup 0ms, import 121ms, tests 62ms, environment 0ms)
+
+# EXIT: 0

@@ -1,0 +1,884 @@
+$ node scripts/lint-ui-tokens.mjs && pnpm -r --if-present run verify
+UI 令牌检查通过:17 个目录 292 个文件,79 个 --et-* 令牌;状态点强制 30/30 通过;v4 阶梯 0 债务。
+Scope: 39 of 40 workspace projects
+core/cordis verify$ tsc --noEmit && tsc -p tsconfig.lib.json && vitest run
+packages/browser-relay verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && pnpm run build && vitest run
+packages/channels verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/extension-companion verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && pnpm run build && vitest run
+packages/extension-companion verify: Found 0 warnings and 0 errors.
+packages/extension-companion verify: Finished in 1.3s on 8 files with 87 rules using 10 threads.
+packages/browser-relay verify: Found 0 warnings and 0 errors.
+packages/browser-relay verify: Finished in 1.4s on 11 files with 87 rules using 10 threads.
+packages/channels verify: Found 0 warnings and 0 errors.
+packages/channels verify: Finished in 1.4s on 19 files with 87 rules using 10 threads.
+core/cordis verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/core/cordis
+core/cordis verify:  ✓ tests/smoke.spec.ts (5 tests) 9ms
+core/cordis verify:  Test Files  1 passed (1)
+core/cordis verify:       Tests  5 passed (5)
+core/cordis verify:    Start at  16:57:03
+core/cordis verify:    Duration  347ms (transform 106ms, setup 0ms, import 133ms, tests 9ms, environment 0ms)
+core/cordis verify: Done
+packages/governance verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/extension-companion verify: $ node build.mjs
+packages/channels verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/channels
+packages/browser-relay verify: $ node build.mjs
+packages/extension-companion verify:   dist/background.js  10.5kb
+packages/extension-companion verify:   dist/options.js      2.6kb
+packages/extension-companion verify: ⚡ Done in 12ms
+packages/extension-companion verify: extension dist 已生成
+packages/extension-companion verify: zip 已生成: /Users/sunny/code/agent-basis-rc5/packages/extension-companion/eterna-companion.zip
+packages/browser-relay verify:   dist/cli.mjs  55.1kb
+packages/browser-relay verify:   dist/mcp.mjs   9.2kb
+packages/browser-relay verify: ⚡ Done in 8ms
+packages/browser-relay verify: relay dist 已生成
+packages/channels verify:  ✓ tests/cards.spec.ts (18 tests) 4ms
+packages/channels verify:  ✓ tests/wechat.spec.ts (7 tests) 11ms
+packages/channels verify:  ✓ tests/email.spec.ts (7 tests) 12ms
+packages/channels verify:  ✓ tests/token.spec.ts (8 tests) 10ms
+packages/channels verify:  ✓ tests/source-registry.spec.ts (8 tests) 16ms
+packages/channels verify:  ✓ tests/binding.spec.ts (12 tests) 25ms
+packages/channels verify:  ✓ tests/service.spec.ts (2 tests) 48ms
+packages/extension-companion verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/extension-companion
+packages/channels verify:  ✓ tests/webhook.spec.ts (15 tests) 106ms
+packages/channels verify:  Test Files  8 passed (8)
+packages/channels verify:       Tests  77 passed (77)
+packages/channels verify:    Start at  16:57:04
+packages/channels verify:    Duration  523ms (transform 572ms, setup 0ms, import 1.30s, tests 232ms, environment 3ms)
+packages/channels verify: Done
+packages/knowledge verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/browser-relay verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/browser-relay
+packages/extension-companion verify:  ✓ tests/protocol.spec.ts (5 tests) 4ms
+packages/extension-companion verify:  Test Files  1 passed (1)
+packages/extension-companion verify:       Tests  5 passed (5)
+packages/extension-companion verify:    Start at  16:57:05
+packages/extension-companion verify:    Duration  184ms (transform 19ms, setup 0ms, import 32ms, tests 4ms, environment 0ms)
+packages/extension-companion verify: Done
+packages/observe verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/governance verify: Found 0 warnings and 0 errors.
+packages/governance verify: Finished in 1.0s on 20 files with 87 rules using 10 threads.
+packages/browser-relay verify:  ✓ tests/ax-snapshot.spec.ts (7 tests) 3ms
+packages/browser-relay verify:  ✓ tests/relay-server.spec.ts (7 tests) 459ms
+packages/knowledge verify: Found 0 warnings and 0 errors.
+packages/knowledge verify: Finished in 999ms on 23 files with 87 rules using 10 threads.
+packages/observe verify: Found 0 warnings and 0 errors.
+packages/observe verify: Finished in 880ms on 14 files with 87 rules using 10 threads.
+packages/governance verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/governance
+packages/governance verify:  ↓ tests/ph-rules-live.spec.ts (3 tests | 3 skipped)
+packages/governance verify:  ✓ tests/budget-ticket.spec.ts (3 tests) 3ms
+packages/governance verify:  ✓ tests/pii.spec.ts (12 tests) 6ms
+packages/governance verify:  ✓ tests/budget.spec.ts (13 tests) 8ms
+packages/governance verify:  ✓ tests/egress.spec.ts (11 tests) 10ms
+packages/governance verify:  ✓ tests/rules.spec.ts (19 tests) 10ms
+packages/governance verify:  ✓ tests/rules-version.spec.ts (4 tests) 31ms
+packages/governance verify:  ✓ tests/governance.spec.ts (10 tests) 33ms
+packages/governance verify:  ✓ tests/audit.spec.ts (10 tests) 58ms
+packages/governance verify:  Test Files  8 passed | 1 skipped (9)
+packages/governance verify:       Tests  82 passed | 3 skipped (85)
+packages/governance verify:    Start at  16:57:06
+packages/governance verify:    Duration  517ms (transform 749ms, setup 0ms, import 1.59s, tests 158ms, environment 1ms)
+packages/governance verify: Done
+packages/ui verify$ ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ../../node_modules/.bin/tsc --noEmit && ../../node_modules/.bin/vitest run
+packages/knowledge verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/knowledge
+packages/browser-relay verify:  ✓ tests/relay-core.spec.ts (14 tests) 2047ms
+packages/browser-relay verify:      ✓ ref 注册表按命名空间隔离（同 ref 串互不串扰）  2024ms
+packages/browser-relay verify:  Test Files  3 passed (3)
+packages/browser-relay verify:       Tests  28 passed (28)
+packages/browser-relay verify:    Start at  16:57:05
+packages/browser-relay verify:    Duration  2.30s (transform 144ms, setup 0ms, import 232ms, tests 2.51s, environment 0ms)
+packages/browser-relay verify: Done
+tools/eterna-smoke verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/observe verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/observe
+packages/knowledge verify:  ✓ tests/indexer-wal.spec.ts (2 tests) 9ms
+packages/knowledge verify:  ✓ tests/account-routing.spec.ts (6 tests) 12ms
+packages/knowledge verify:  ✓ tests/weknora.spec.ts (12 tests) 11ms
+packages/knowledge verify:  ✓ tests/rrf.spec.ts (5 tests) 14ms
+packages/knowledge verify:  ✓ tests/frontmatter.spec.ts (11 tests) 45ms
+packages/knowledge verify:  ✓ tests/service.spec.ts (7 tests) 111ms
+packages/observe verify:  ✓ tests/feedback.spec.ts (9 tests) 10ms
+packages/knowledge verify:  ✓ tests/tools.spec.ts (10 tests) 192ms
+packages/observe verify:  ✓ tests/metrics.spec.ts (17 tests) 8ms
+packages/observe verify:  ✓ tests/drift.spec.ts (11 tests) 6ms
+packages/observe verify:  ✓ tests/observatory.spec.ts (6 tests) 18ms
+packages/observe verify:  ✓ tests/signals.spec.ts (17 tests) 34ms
+packages/observe verify:  Test Files  5 passed (5)
+packages/observe verify:       Tests  60 passed (60)
+packages/observe verify:    Start at  16:57:07
+packages/observe verify:    Duration  503ms (transform 275ms, setup 0ms, import 560ms, tests 77ms, environment 0ms)
+packages/observe verify: Done
+tools/evals verify$ ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run && python3 -m unittest discover -s python -p 'test_*.py'
+packages/ui verify: Found 0 warnings and 0 errors.
+packages/ui verify: Finished in 1.1s on 9 files with 87 rules using 10 threads.
+packages/knowledge verify:  ✓ tests/propose.spec.ts (14 tests) 267ms
+packages/knowledge verify:  ✓ tests/wiki-search.spec.ts (17 tests) 298ms
+packages/knowledge verify:  Test Files  9 passed (9)
+packages/knowledge verify:       Tests  84 passed (84)
+packages/knowledge verify:    Start at  16:57:07
+packages/knowledge verify:    Duration  771ms (transform 829ms, setup 0ms, import 1.83s, tests 959ms, environment 1ms)
+packages/knowledge verify: Done
+tools/eterna-smoke verify: Found 0 warnings and 0 errors.
+tools/eterna-smoke verify: Finished in 815ms on 2 files with 87 rules using 10 threads.
+tools/evals verify: Found 0 warnings and 0 errors.
+tools/evals verify: Finished in 826ms on 25 files with 87 rules using 10 threads.
+packages/ui verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/ui
+tools/eterna-smoke verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/tools/eterna-smoke
+packages/ui verify:  ✓ tests/contract.spec.ts (25 tests) 165ms
+packages/ui verify:  Test Files  1 passed (1)
+packages/ui verify:       Tests  25 passed (25)
+packages/ui verify:    Start at  16:57:09
+packages/ui verify:    Duration  322ms (transform 52ms, setup 0ms, import 45ms, tests 165ms, environment 0ms)
+packages/ui verify: Done
+tools/eterna-smoke verify:  ✓ tests/smoke.spec.ts (5 tests) 2ms
+tools/eterna-smoke verify:  Test Files  1 passed (1)
+tools/eterna-smoke verify:       Tests  5 passed (5)
+tools/eterna-smoke verify:    Start at  16:57:09
+tools/eterna-smoke verify:    Duration  186ms (transform 15ms, setup 0ms, import 21ms, tests 2ms, environment 0ms)
+tools/eterna-smoke verify: Done
+tools/evals verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/tools/evals
+tools/evals verify:  ✓ tests/trajectory.spec.ts (14 tests) 7ms
+tools/evals verify:  ✓ tests/schema.spec.ts (23 tests) 51ms
+tools/evals verify:  ✓ tests/replay.spec.ts (6 tests) 51ms
+tools/evals verify:  ✓ tests/finalState.spec.ts (12 tests) 67ms
+tools/evals verify:  ✓ tests/acp-real-notification.spec.ts (5 tests) 106ms
+tools/evals verify:  ✓ tests/goldenset-event-planning.spec.ts (5 tests) 144ms
+tools/evals verify: pack=/Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini adapter=auto total=4 pass=4 fail=0
+tools/evals verify:   [PASS] approval-redline 
+tools/evals verify:   [PASS] script-check 
+tools/evals verify:   [PASS] smoke-file-plan 
+tools/evals verify:   [PASS] smoke-http-submit 
+tools/evals verify:   [SCHEMA-FAIL] /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml: /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml.final_state 应为 数组,实际: {"file_assert":{"path":"whatever.md"}}
+tools/evals verify: report: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-w49Gxp/smoke/report.md
+tools/evals verify: sessions: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-w49Gxp/smoke/sessions.jsonl
+tools/evals verify:  ✓ tests/budgetAnswer.spec.ts (7 tests) 3ms
+tools/evals verify: pack=/Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini adapter=auto total=6 pass=5 fail=1
+tools/evals verify:   [FAIL] answer-budget-fail — answer: 最终回答未包含 "这句话在最终回答里一定不存在",实际: 继续整理
+tools/evals verify:   [PASS] approval-redline 
+tools/evals verify:   [PASS] script-check 
+tools/evals verify:   [PASS] smoke-file-plan 
+tools/evals verify:   [PASS] smoke-http-submit 
+tools/evals verify:   [PASS] strict-trajectory 
+tools/evals verify:   [SCHEMA-FAIL] /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml: /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml.final_state 应为 数组,实际: {"file_assert":{"path":"whatever.md"}}
+tools/evals verify: report: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-w49Gxp/all/report.md
+tools/evals verify: sessions: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-w49Gxp/all/sessions.jsonl
+tools/evals verify: --pack 为必填
+tools/evals verify: 用法: dsh-evals run --pack <目录> [选项]
+tools/evals verify: 选项:
+tools/evals verify:   --pack <目录>       golden pack 目录(含 evals/*.yaml;fixtures/<id>.jsonl 为回放会话)
+tools/evals verify:   --subset <tag>      只跑带该 tag 的 case(如 smoke)
+tools/evals verify:   --case <id>         只跑指定 id 的 case
+tools/evals verify:   --adapter <id>      强制适配器 replay|acp(缺省逐 case:golden 的 adapter 字段)
+tools/evals verify:   --out <目录>        产物目录(缺省 ./dsh-evals-out/<时间戳>)
+tools/evals verify:   --provider/--model/--dsh-home   acp 适配器透传 DSH Python SDK 配置
+tools/evals verify:   --python <解释器>   acp driver 的解释器(缺省 python3,或 env DSH_EVALS_PYTHON)
+tools/evals verify:   --driver <脚本>     acp driver 路径(缺省包内 python/dsh_eval_driver.py)
+tools/evals verify: 退出码: 0 全部通过;1 存在失败;2 用法错误或无 case 可跑(schema 坏文件仅打印 SCHEMA-FAIL)
+tools/evals verify: --adapter 应为 replay|acp
+tools/evals verify: 未知命令: dance
+tools/evals verify: 用法: dsh-evals run --pack <目录> [选项]
+tools/evals verify: 选项:
+tools/evals verify:   --pack <目录>       golden pack 目录(含 evals/*.yaml;fixtures/<id>.jsonl 为回放会话)
+tools/evals verify:   --subset <tag>      只跑带该 tag 的 case(如 smoke)
+tools/evals verify:   --case <id>         只跑指定 id 的 case
+tools/evals verify:   --adapter <id>      强制适配器 replay|acp(缺省逐 case:golden 的 adapter 字段)
+tools/evals verify:   --out <目录>        产物目录(缺省 ./dsh-evals-out/<时间戳>)
+tools/evals verify:   --provider/--model/--dsh-home   acp 适配器透传 DSH Python SDK 配置
+tools/evals verify:   --python <解释器>   acp driver 的解释器(缺省 python3,或 env DSH_EVALS_PYTHON)
+tools/evals verify:   --driver <脚本>     acp driver 路径(缺省包内 python/dsh_eval_driver.py)
+tools/evals verify: 退出码: 0 全部通过;1 存在失败;2 用法错误或无 case 可跑(schema 坏文件仅打印 SCHEMA-FAIL)
+tools/evals verify: 用法: dsh-evals run --pack <目录> [选项]
+tools/evals verify: 选项:
+tools/evals verify:   --pack <目录>       golden pack 目录(含 evals/*.yaml;fixtures/<id>.jsonl 为回放会话)
+tools/evals verify:   --subset <tag>      只跑带该 tag 的 case(如 smoke)
+tools/evals verify:   --case <id>         只跑指定 id 的 case
+tools/evals verify:   --adapter <id>      强制适配器 replay|acp(缺省逐 case:golden 的 adapter 字段)
+tools/evals verify:   --out <目录>        产物目录(缺省 ./dsh-evals-out/<时间戳>)
+tools/evals verify:   --provider/--model/--dsh-home   acp 适配器透传 DSH Python SDK 配置
+tools/evals verify:   --python <解释器>   acp driver 的解释器(缺省 python3,或 env DSH_EVALS_PYTHON)
+tools/evals verify:   --driver <脚本>     acp driver 路径(缺省包内 python/dsh_eval_driver.py)
+tools/evals verify: 退出码: 0 全部通过;1 存在失败;2 用法错误或无 case 可跑(schema 坏文件仅打印 SCHEMA-FAIL)
+tools/evals verify: pack=/Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini adapter=auto total=0 pass=0 fail=0
+tools/evals verify:   [SCHEMA-FAIL] /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml: /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml.final_state 应为 数组,实际: {"file_assert":{"path":"whatever.md"}}
+tools/evals verify: report: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-w49Gxp/none/report.md
+tools/evals verify: sessions: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-w49Gxp/none/sessions.jsonl
+tools/evals verify: pack=/Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini adapter=auto total=1 pass=1 fail=0
+tools/evals verify:   [PASS] approval-redline 
+tools/evals verify:   [SCHEMA-FAIL] /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml: /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml.final_state 应为 数组,实际: {"file_assert":{"path":"whatever.md"}}
+tools/evals verify: report: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-w49Gxp/case/report.md
+tools/evals verify: sessions: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-w49Gxp/case/sessions.jsonl
+tools/evals verify:  ✓ tests/runner.replay.spec.ts (11 tests) 171ms
+tools/evals verify:  ✓ tests/cli.spec.ts (7 tests) 511ms
+tools/evals verify:  ✓ tests/acp.adapter.spec.ts (7 tests) 1775ms
+tools/evals verify:      ✓ approval_response 传参:红线 case 按 approval_flow.outcome 应答,缺省 allowed-once  311ms
+tools/evals verify:      ✓ 超时 → SIGKILL + 拒绝(case 配 timeout_seconds: 1 对 5s 沉睡 stub)  1003ms
+tools/evals verify:  Test Files  10 passed (10)
+tools/evals verify:       Tests  97 passed (97)
+tools/evals verify:    Start at  16:57:09
+tools/evals verify:    Duration  2.02s (transform 326ms, setup 0ms, import 724ms, tests 2.88s, environment 1ms)
+tools/evals verify: ...................
+tools/evals verify: ----------------------------------------------------------------------
+tools/evals verify: Ran 19 tests in 0.002s
+tools/evals verify: OK
+tools/evals verify: Done
+core/contracts verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/attachments verify$ node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run
+packages/brand verify$ node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run
+packages/audit verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/attachments verify:   lib/client.js  71.9kb
+packages/attachments verify: ⚡ Done in 4ms
+packages/brand verify:   lib/client.js  72.4kb
+packages/brand verify: ⚡ Done in 5ms
+packages/audit verify: Found 0 warnings and 0 errors.
+packages/audit verify: Finished in 847ms on 9 files with 87 rules using 10 threads.
+core/contracts verify: Found 0 warnings and 0 errors.
+core/contracts verify: Finished in 846ms on 14 files with 87 rules using 10 threads.
+packages/attachments verify: Found 0 warnings and 0 errors.
+packages/attachments verify: Finished in 829ms on 8 files with 87 rules using 10 threads.
+packages/brand verify: Found 0 warnings and 0 errors.
+packages/brand verify: Finished in 943ms on 10 files with 87 rules using 10 threads.
+core/contracts verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/core/contracts
+packages/audit verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/audit
+packages/attachments verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/attachments
+core/contracts verify:  ✓ tests/contracts.spec.ts (3 tests) 9ms
+core/contracts verify:  Test Files  1 passed (1)
+core/contracts verify:       Tests  3 passed (3)
+core/contracts verify:    Start at  16:57:13
+core/contracts verify:    Duration  322ms (transform 117ms, setup 0ms, import 152ms, tests 9ms, environment 0ms)
+core/contracts verify: Done
+packages/cache-guard verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/audit verify:  ✓ tests/daily-sink.spec.ts (3 tests) 19ms
+packages/attachments verify:  ✓ tests/client-bundle.test.ts (4 tests) 9ms
+packages/attachments verify:  ✓ tests/host-plugin.test.ts (2 tests) 2ms
+packages/attachments verify:  Test Files  2 passed (2)
+packages/attachments verify:       Tests  6 passed (6)
+packages/attachments verify:    Start at  16:57:14
+packages/attachments verify:    Duration  177ms (transform 24ms, setup 0ms, import 45ms, tests 11ms, environment 0ms)
+packages/brand verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/brand
+packages/audit verify:  ✓ tests/plugin.spec.ts (6 tests) 14ms
+packages/audit verify:  ✓ tests/query.spec.ts (8 tests) 29ms
+packages/audit verify:  Test Files  3 passed (3)
+packages/audit verify:       Tests  17 passed (17)
+packages/audit verify:    Start at  16:57:13
+packages/audit verify:    Duration  281ms (transform 151ms, setup 0ms, import 258ms, tests 61ms, environment 0ms)
+packages/attachments verify: Done
+packages/compaction verify$ node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ../../node_modules/.bin/tsc --noEmit && ../../node_modules/.bin/vitest run
+packages/audit verify: Done
+packages/extra verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/compaction verify:   lib/client.js  96.6kb
+packages/compaction verify: ⚡ Done in 8ms
+packages/brand verify:  ✓ tests/skills-brand.test.ts (10 tests) 16ms
+packages/brand verify:  ✓ tests/brand.test.ts (17 tests) 11ms
+packages/brand verify:  ✓ tests/client-hero.test.ts (11 tests) 8ms
+packages/brand verify:  Test Files  3 passed (3)
+packages/brand verify:       Tests  38 passed (38)
+packages/brand verify:    Start at  16:57:14
+packages/brand verify:    Duration  218ms (transform 111ms, setup 0ms, import 165ms, tests 34ms, environment 0ms)
+packages/brand verify: Done
+packages/interact verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/cache-guard verify: Found 0 warnings and 0 errors.
+packages/cache-guard verify: Finished in 821ms on 10 files with 87 rules using 10 threads.
+packages/extra verify: Found 0 warnings and 0 errors.
+packages/extra verify: Finished in 845ms on 13 files with 87 rules using 10 threads.
+packages/interact verify: Found 0 warnings and 0 errors.
+packages/interact verify: Finished in 954ms on 16 files with 87 rules using 10 threads.
+packages/compaction verify: Found 0 warnings and 0 errors.
+packages/compaction verify: Finished in 1.3s on 46 files with 87 rules using 10 threads.
+packages/cache-guard verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/cache-guard
+packages/extra verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/extra
+packages/cache-guard verify:  ✓ tests/guard.spec.ts (8 tests) 5ms
+packages/cache-guard verify:  ✓ tests/stability.spec.ts (25 tests) 15ms
+packages/cache-guard verify:  ✓ tests/hitrate.spec.ts (13 tests) 5ms
+packages/cache-guard verify:  Test Files  3 passed (3)
+packages/cache-guard verify:       Tests  46 passed (46)
+packages/cache-guard verify:    Start at  16:57:16
+packages/cache-guard verify:    Duration  380ms (transform 268ms, setup 0ms, import 372ms, tests 24ms, environment 0ms)
+packages/cache-guard verify: Done
+packages/knowledge-admin verify$ node scripts/build-client.mjs && node tests/render-smoke.cjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ../../node_modules/.bin/tsc --noEmit -p tsconfig.json && ../../node_modules/.bin/vitest run
+packages/knowledge-admin verify: [build-client] ok /Users/sunny/code/agent-basis-rc5/packages/knowledge-admin/lib/client.js (66531 bytes)
+packages/extra verify:  ✓ tests/domain-whitelist.spec.ts (42 tests) 10ms
+packages/extra verify:  ✓ tests/tenant-realm.spec.ts (27 tests) 15ms
+packages/extra verify:  ✓ tests/reviewer-preset.spec.ts (29 tests) 21ms
+packages/extra verify:  ✓ tests/egress-wrapper.spec.ts (17 tests) 7ms
+packages/extra verify:  Test Files  4 passed (4)
+packages/extra verify:       Tests  115 passed (115)
+packages/extra verify:    Start at  16:57:16
+packages/extra verify:    Duration  336ms (transform 205ms, setup 0ms, import 376ms, tests 54ms, environment 0ms)
+packages/interact verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/interact
+packages/extra verify: Done
+packages/llm-doctor verify$ node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run
+packages/knowledge-admin verify: markers: used=18 styled=21 (all covered)
+packages/knowledge-admin verify: onClick handlers invoked: 96
+packages/knowledge-admin verify: render ok: slots=2 dict=67 methods=18 html=14760 bytes
+packages/knowledge-admin verify: UI handlers: 28, state keys: 31
+packages/llm-doctor verify:   lib/client.js  61.1kb
+packages/llm-doctor verify: ⚡ Done in 6ms
+packages/interact verify:  ✓ tests/ask.spec.ts (12 tests) 12ms
+packages/interact verify:  ✓ tests/card.spec.ts (9 tests) 5ms
+packages/interact verify:  ✓ tests/presets.spec.ts (9 tests) 13ms
+packages/interact verify:  ✓ tests/hitl.spec.ts (16 tests) 10ms
+packages/interact verify:  ✓ tests/negative.spec.ts (9 tests) 26ms
+packages/interact verify:  ✓ tests/escalation.spec.ts (14 tests) 16ms
+packages/interact verify:  Test Files  6 passed (6)
+packages/interact verify:       Tests  69 passed (69)
+packages/interact verify:    Start at  16:57:16
+packages/interact verify:    Duration  452ms (transform 555ms, setup 0ms, import 1.19s, tests 81ms, environment 0ms)
+packages/interact verify: Done
+packages/toolkit verify$ ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ../../node_modules/.bin/tsc --noEmit && ../../node_modules/.bin/vitest run
+packages/compaction verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/compaction
+packages/compaction verify:  ✓ tests/command-plugin.spec.ts (9 tests) 39ms
+packages/compaction verify:  ✓ tests/basic-region.spec.ts (7 tests) 15ms
+packages/compaction verify:  ✓ tests/basic-attachments.spec.ts (24 tests) 30ms
+packages/compaction verify:  ✓ tests/rc5-semantics.spec.ts (11 tests) 38ms
+packages/compaction verify: stdout | tests/e2e-compaction.spec.ts > C12 E2E:L3 长会话压缩(附件 + 持久日志) > pre-step 触发 L3:checkpoint 8 标题+尾注+附件块并入单条 user/message,start|end 配对,遮蔽原文仍在持久日志,尾段逐字
+packages/compaction verify: [c12-metrics] l3-transaction surfaceNodes=5 shadowedSeqs=19 shadowedTokens=10217 totalBefore=12302 threshold=9600 startToSummaryTimeDiffMs=3 wallClockMs=3.652
+packages/compaction verify: stdout | tests/e2e-compaction.spec.ts > C12 cache-guard 对照:L3 单 replace > 一次前缀突变(单转移单边界,prefix-mutation),保留尾段段级逐字,后续轮次全量保留
+packages/compaction verify: [c12-metrics] cache-guard-l3 mutationAtSegment=1 commonPrefix=81/48461 nextTransitionRetention=9363/9363
+packages/compaction verify:  ✓ tests/basic-hotreload.spec.ts (7 tests) 161ms
+packages/compaction verify: stdout | tests/e2e-compaction.spec.ts > C12 E2E:L2→L3 联动 > 先 L2 后 L3:L2 占位先落盘,summarize 输入含占位符,start|end 配对且无熔断误报
+packages/compaction verify: [c12-metrics] l2-then-l3 staleSavedTokens=1444 totalBefore=10933 postL2=9489 threshold=8800 shadowedTokens=5137
+packages/llm-doctor verify: Found 0 warnings and 0 errors.
+packages/llm-doctor verify: Finished in 1.2s on 12 files with 87 rules using 10 threads.
+packages/compaction verify: stdout | tests/e2e-compaction.spec.ts > C12 E2E:L2→L3 联动 > L2 后压力复测短路:L2 清够 → 零摘要调用、无压缩事务、无熔断误报
+packages/compaction verify: [c12-metrics] l2-short-circuit totalBefore=6033 staleSavedTokens=4744 postL2=1289 threshold=8800 summarizeCalls=0
+packages/compaction verify:  ✓ tests/evals-golden.spec.ts (27 tests) 140ms
+packages/compaction verify: stdout | tests/e2e-compaction.spec.ts > C12 cache-guard 对照:L2 一次多节点 replace > 单转移单边界突变(prefix-mutation),段序不乱、恰好候选段文本变化,后续轮次全量保留
+packages/compaction verify: [c12-metrics] cache-guard-l2 cleared=4 savedTokens=4744 mutationAtSegment=3 commonPrefix=2690/23625 nextTransitionRetention=4649/4649
+packages/compaction verify: stdout | tests/e2e-compaction.spec.ts > C12 基线采集 > rapid-refill 熔断频次:3 步窗口内第 3 次连续压力触发跳闸,state 计数落盘
+packages/compaction verify: [c12-metrics] rapid-refill window=3 limit=3 trips=1 thresholdTokens=8000 lastRapidRefillAt=2026-11-20T08:57:18.470Z
+packages/compaction verify:  ✓ tests/basic-refill.spec.ts (6 tests) 202ms
+packages/compaction verify: stdout | tests/e2e-compaction.spec.ts > C12 基线采集 > L2 回收量分布:三档负载 savedTokens 单调增长且与公式镜像一致
+packages/compaction verify: [c12-metrics] l2-savings-sweep 2000c:4nodes/1944tok | 4000c:4nodes/3944tok | 8000c:4nodes/7944tok
+packages/compaction verify:  ✓ tests/e2e-compaction.spec.ts (7 tests) 215ms
+packages/compaction verify:  ✓ tests/admin-stats.spec.ts (14 tests) 300ms
+packages/knowledge-admin verify: Found 0 warnings and 0 errors.
+packages/knowledge-admin verify: Finished in 1.4s on 22 files with 87 rules using 10 threads.
+packages/compaction verify:  ✓ tests/basic-overflow.spec.ts (7 tests) 9ms
+packages/compaction verify:  ✓ tests/stale.spec.ts (24 tests) 18ms
+packages/compaction verify:  ✓ tests/basic-config.spec.ts (20 tests) 6ms
+packages/compaction verify:  ✓ tests/basic-prompt.spec.ts (14 tests) 13ms
+packages/compaction verify:  ✓ tests/evals-compare.spec.ts (14 tests) 17ms
+packages/compaction verify:  ✓ tests/basic-convergence.spec.ts (17 tests) 17ms
+packages/compaction verify:  ✓ tests/client-announcement.spec.ts (11 tests) 5ms
+packages/compaction verify:  ✓ tests/evals-judge.spec.ts (9 tests) 7ms
+packages/compaction verify:  ✓ tests/client-section.spec.ts (13 tests) 5ms
+packages/compaction verify:  Test Files  18 passed (18)
+packages/compaction verify:       Tests  241 passed (241)
+packages/compaction verify:    Start at  16:57:17
+packages/compaction verify:    Duration  1.12s (transform 1.24s, setup 0ms, import 2.61s, tests 1.24s, environment 1ms)
+packages/compaction verify: Done
+packages/usage-stats verify$ node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run
+packages/toolkit verify: Found 0 warnings and 0 errors.
+packages/toolkit verify: Finished in 1.5s on 37 files with 87 rules using 10 threads.
+packages/usage-stats verify:   lib/client.js  83.9kb
+packages/usage-stats verify: ⚡ Done in 6ms
+packages/llm-doctor verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/llm-doctor
+packages/knowledge-admin verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/knowledge-admin
+packages/usage-stats verify: Found 0 warnings and 0 errors.
+packages/usage-stats verify: Finished in 933ms on 4 files with 87 rules using 10 threads.
+packages/llm-doctor verify:  ✓ tests/client-bundle.test.ts (2 tests) 3ms
+packages/llm-doctor verify: stdout | tests/host-plugin.test.ts > checkNow 自动适配流程 > path-missing + 候选存在 → edit 写回 baseURL,health 记录 verdict
+packages/llm-doctor verify: llm-doctor: 自动适配 mimo(anthropic-messages)baseURL http://gw.test/v1 → http://gw.test
+packages/llm-doctor verify:  ✓ tests/capability-probe.spec.ts (32 tests) 58ms
+packages/llm-doctor verify:  ✓ tests/doctor.test.ts (16 tests) 106ms
+packages/toolkit verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/toolkit
+packages/knowledge-admin verify:  ✓ tests/paths.spec.ts (12 tests) 31ms
+packages/knowledge-admin verify:  ✓ tests/fusion.spec.ts (9 tests) 147ms
+packages/knowledge-admin verify:  ✓ tests/sources.spec.ts (19 tests) 160ms
+packages/toolkit verify:  ✓ tests/contract.spec.ts (28 tests) 8ms
+packages/toolkit verify:  ✓ tests/normalized-blocks.spec.ts (17 tests) 6ms
+packages/knowledge-admin verify:  ✓ tests/documents.spec.ts (11 tests) 313ms
+packages/knowledge-admin verify:  Test Files  4 passed (4)
+packages/knowledge-admin verify:       Tests  51 passed (51)
+packages/knowledge-admin verify:    Start at  16:57:20
+packages/knowledge-admin verify:    Duration  825ms (transform 923ms, setup 0ms, import 1.32s, tests 651ms, environment 0ms)
+packages/knowledge-admin verify: Done
+packages/toolkit verify:  ✓ tests/providers/deepseek.spec.ts (31 tests) 13ms
+packages/toolkit verify:  ✓ tests/providers/mimo.spec.ts (26 tests) 20ms
+packages/toolkit verify:  ✓ tests/providers/glm.spec.ts (18 tests) 11ms
+packages/toolkit verify:  ✓ tests/plugin.spec.ts (12 tests) 5ms
+packages/toolkit verify:  ✓ tests/providers/generic.spec.ts (15 tests) 11ms
+packages/toolkit verify:  ✓ tests/contract-parity.spec.ts (18 tests) 12ms
+packages/toolkit verify:  ✓ tests/router.spec.ts (37 tests) 13ms
+packages/llm-doctor verify:  ✓ tests/host-plugin.test.ts (11 tests) 757ms
+packages/llm-doctor verify:      ✓ apply 注册 volatile-update 监听并返回 disposer  703ms
+packages/llm-doctor verify:  Test Files  4 passed (4)
+packages/llm-doctor verify:       Tests  61 passed (61)
+packages/llm-doctor verify:    Start at  16:57:19
+packages/llm-doctor verify:    Duration  1.08s (transform 148ms, setup 0ms, import 268ms, tests 925ms, environment 0ms)
+packages/llm-doctor verify: Done
+packages/toolkit verify:  ✓ tests/search-routing.spec.ts (9 tests) 12ms
+packages/toolkit verify:  ✓ tests/matrix.spec.ts (24 tests) 5ms
+packages/toolkit verify:  ✓ tests/files-fallback.spec.ts (8 tests) 3ms
+packages/toolkit verify:  ✓ tests/egress-wiring.spec.ts (6 tests) 5ms
+packages/toolkit verify:  Test Files  13 passed (13)
+packages/toolkit verify:       Tests  249 passed (249)
+packages/toolkit verify:    Start at  16:57:20
+packages/toolkit verify:    Duration  707ms (transform 1.11s, setup 0ms, import 1.82s, tests 124ms, environment 8ms)
+packages/toolkit verify: Done
+packages/usage-stats verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/usage-stats
+packages/usage-stats verify:  ✓ tests/aggregate.test.ts (4 tests) 8ms
+packages/usage-stats verify:  Test Files  1 passed (1)
+packages/usage-stats verify:       Tests  4 passed (4)
+packages/usage-stats verify:    Start at  16:57:21
+packages/usage-stats verify:    Duration  126ms (transform 15ms, setup 0ms, import 23ms, tests 8ms, environment 0ms)
+packages/usage-stats verify: Done
+packages/access verify$ node scripts/build-client.mjs && oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/llm verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+core/runtime verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/approval-cli verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/access verify:   lib/client.js  310.2kb
+packages/access verify: ⚡ Done in 12ms
+packages/approval-cli verify: Found 0 warnings and 0 errors.
+packages/approval-cli verify: Finished in 648ms on 4 files with 87 rules using 10 threads.
+packages/llm verify: Found 0 warnings and 0 errors.
+packages/llm verify: Finished in 704ms on 5 files with 87 rules using 10 threads.
+core/runtime verify: Found 0 warnings and 0 errors.
+core/runtime verify: Finished in 721ms on 8 files with 87 rules using 10 threads.
+packages/approval-cli verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/approval-cli
+packages/llm verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/llm
+core/runtime verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/core/runtime
+packages/access verify: Found 0 warnings and 0 errors.
+packages/access verify: Finished in 1.5s on 113 files with 87 rules using 10 threads.
+packages/approval-cli verify:  ✓ tests/approval.spec.ts (6 tests) 7ms
+packages/approval-cli verify:  Test Files  1 passed (1)
+packages/approval-cli verify:       Tests  6 passed (6)
+packages/approval-cli verify:    Start at  16:57:23
+packages/approval-cli verify:    Duration  280ms (transform 86ms, setup 0ms, import 114ms, tests 7ms, environment 0ms)
+packages/llm verify:  ✓ tests/llm.spec.ts (5 tests) 34ms
+packages/llm verify:  Test Files  1 passed (1)
+packages/llm verify:       Tests  5 passed (5)
+packages/llm verify:    Start at  16:57:23
+packages/llm verify:    Duration  306ms (transform 96ms, setup 0ms, import 122ms, tests 34ms, environment 0ms)
+packages/approval-cli verify: Done
+packages/prompt-studio verify$ node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run
+packages/llm verify: Done
+packages/session verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+core/runtime verify:  ✓ tests/cli.spec.ts (7 tests) 19ms
+core/runtime verify:  ✓ tests/boot.spec.ts (6 tests) 25ms
+core/runtime verify:  Test Files  2 passed (2)
+core/runtime verify:       Tests  13 passed (13)
+core/runtime verify:    Start at  16:57:23
+core/runtime verify:    Duration  311ms (transform 216ms, setup 0ms, import 290ms, tests 44ms, environment 0ms)
+core/runtime verify: Done
+packages/system-prompt verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/prompt-studio verify:   lib/client.js  303.6kb
+packages/prompt-studio verify: ⚡ Done in 13ms
+packages/session verify: Found 0 warnings and 0 errors.
+packages/session verify: Finished in 731ms on 4 files with 87 rules using 10 threads.
+packages/system-prompt verify: Found 0 warnings and 0 errors.
+packages/system-prompt verify: Finished in 744ms on 4 files with 87 rules using 10 threads.
+packages/prompt-studio verify: Found 0 warnings and 0 errors.
+packages/prompt-studio verify: Finished in 1.4s on 47 files with 87 rules using 10 threads.
+packages/session verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/session
+packages/system-prompt verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/system-prompt
+packages/system-prompt verify:  ✓ tests/registry.spec.ts (5 tests) 5ms
+packages/system-prompt verify:  Test Files  1 passed (1)
+packages/system-prompt verify:       Tests  5 passed (5)
+packages/system-prompt verify:    Start at  16:57:25
+packages/system-prompt verify:    Duration  280ms (transform 95ms, setup 0ms, import 124ms, tests 5ms, environment 0ms)
+packages/session verify:  ✓ tests/store.spec.ts (4 tests) 10ms
+packages/session verify:  Test Files  1 passed (1)
+packages/session verify:       Tests  4 passed (4)
+packages/session verify:    Start at  16:57:25
+packages/session verify:    Duration  300ms (transform 104ms, setup 0ms, import 133ms, tests 10ms, environment 0ms)
+packages/session verify: Done
+packages/system-prompt verify: Done
+packages/tasks verify$ node scripts/build-client.mjs && oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/tools verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/tasks verify:   lib/client.js  145.3kb
+packages/tasks verify: ⚡ Done in 9ms
+packages/access verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+packages/tools verify: Found 0 warnings and 0 errors.
+packages/tools verify: Finished in 946ms on 5 files with 87 rules using 10 threads.
+packages/access verify: To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-QhcUG6/origin.git
+packages/access verify:  * [new branch]      main -> main
+packages/access verify: To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-dQWixp/origin.git
+packages/access verify:  * [new branch]      main -> main
+packages/tools verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/tools
+packages/access verify: Cloning into '/var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-dQWixp/merge-work'...
+packages/access verify: done.
+packages/access verify: From /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-dQWixp/origin
+packages/access verify:  * branch            publish/my-tool-0.1.0 -> FETCH_HEAD
+packages/access verify: To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-dQWixp/origin.git
+packages/access verify:    1fe7689..d11e03d  main -> main
+packages/tools verify:  ✓ tests/tools.spec.ts (8 tests) 13ms
+packages/tools verify:  Test Files  1 passed (1)
+packages/tools verify:       Tests  8 passed (8)
+packages/tools verify:    Start at  16:57:28
+packages/tools verify:    Duration  594ms (transform 324ms, setup 0ms, import 393ms, tests 13ms, environment 0ms)
+packages/tools verify: Done
+packages/tasks verify: Found 0 warnings and 0 errors.
+packages/tasks verify: Finished in 3.3s on 121 files with 87 rules using 10 threads.
+packages/prompt-studio verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/prompt-studio
+packages/access verify: To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-CCtavl/origin.git
+packages/access verify:  * [new branch]      main -> main
+packages/access verify:  ✓ tests/workspace-session-actions.spec.ts (19 tests) 3164ms
+packages/access verify:      ✓ unarchiveSession: 他人 sessionId → 拒绝帧(中文文案)+零直调  309ms
+packages/access verify:  ✓ tests/chat-import-gate.spec.ts (20 tests) 3378ms
+packages/access verify:        ✓ 客户端断开(close,无 outcome 行):对账补记,审计 import.cancelled  315ms
+packages/access verify:  ✓ tests/tenant.spec.ts (20 tests) 3386ms
+packages/prompt-studio verify:  ✓ tests/trace.test.ts (19 tests) 106ms
+packages/prompt-studio verify:  ✓ tests/persona-patch.test.ts (20 tests) 102ms
+packages/prompt-studio verify:  ✓ tests/entry-patch.test.ts (31 tests) 77ms
+packages/access verify: Cloning into '/var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-CCtavl/merge-work'...
+packages/access verify: done.
+packages/access verify: From /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-CCtavl/origin
+packages/access verify:  * branch            publish/my-tool-0.1.0 -> FETCH_HEAD
+packages/access verify: To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-CCtavl/origin.git
+packages/access verify:    e734e5b..2fea8e3  main -> main
+packages/access verify:  ✓ tests/mcp-personal-routes.spec.ts (24 tests) 4171ms
+packages/access verify:      ✓ 条目上限 8:第 9 条拒绝  329ms
+packages/prompt-studio verify:  ✓ tests/validator-diff.test.ts (37 tests) 159ms
+packages/prompt-studio verify:  ✓ tests/registry.test.ts (23 tests) 84ms
+packages/prompt-studio verify:  ✓ tests/version-store.test.ts (14 tests) 132ms
+packages/access verify:  ✓ tests/store.spec.ts (19 tests) 4423ms
+packages/access verify:      ✓ D11:基名可用直用;重名后缀从 01 递增  495ms
+packages/access verify:      ✓ D11:手工占用的同后缀号自动跳过  371ms
+packages/access verify:      ✓ D11:基名已含后缀形态的重名照常递增,基名与后缀号互不干扰  363ms
+packages/access verify:      ✓ setPassword:验旧密;成功后 password_version 递增(旧会话吊销原语)  387ms
+packages/access verify:      ✓ deleteUser 护栏:不能删自己;最后一个 admin 不可删;普通用户可删  369ms
+packages/access verify:      ✓ WS-C 迁移:旧 CHECK 存量库 → new UserStore 触发重建,数据/FK 完整且可写 approver  582ms
+packages/prompt-studio verify:  ✓ tests/assembly-replay.test.ts (33 tests) 78ms
+packages/access verify: To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-AniH6S/origin.git
+packages/access verify:  * [new branch]      main -> main
+packages/prompt-studio verify: stderr | tests/config-editor-write.test.ts > 写链路 configEditor 通道(真实 cordis 根 Context + 桩注入) > ③ seam 还原不可用(行被重组合移除)→ 退字节级还原,基线字节仍恢复
+packages/prompt-studio verify: prompt-studio: 写后验证失败且通道还原失败(退字节级还原):行 preset-standard 不在 configEditor 活跃条目中(重组合瞬态或行已裁撤)
+packages/prompt-studio verify:  ✓ tests/config-editor-write.test.ts (20 tests) 144ms
+packages/prompt-studio verify:  ✓ tests/ai-service.test.ts (32 tests) 197ms
+packages/prompt-studio verify:  ✓ tests/session-snapshot.test.ts (17 tests) 306ms
+packages/access verify:  ✓ tests/tenant-guard-matrix.spec.ts (26 tests) 4660ms
+packages/access verify:      ✓ list: bob 视图只见自己的会话;alice 会话出现次数=0  340ms
+packages/access verify:      ✓ thinkingAuto: 本人读放行;他人/未登录拒绝;零控制器调用  307ms
+packages/prompt-studio verify:  ✓ tests/client-bundle.test.ts (20 tests) 97ms
+packages/prompt-studio verify:  ✓ tests/version-governance.test.ts (8 tests) 11ms
+packages/prompt-studio verify:  ✓ tests/approval-audit.test.ts (16 tests) 19ms
+packages/prompt-studio verify:  ✓ tests/host-plugin.test.ts (48 tests) 569ms
+packages/prompt-studio verify:  ✓ tests/admin-gate.test.ts (4 tests) 58ms
+packages/access verify: To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-scD3PX/origin.git
+packages/access verify:  * [new branch]      main -> main
+packages/access verify:  ✓ tests/knowledge-admin-guard.spec.ts (6 tests) 1910ms
+packages/access verify:      ✓ A. 未登录 → tenant/unauthenticated  544ms
+packages/access verify:      ✓ B. 非管理员指向他人账号 → tenant/denied + 审计,零直调服务面  385ms
+packages/prompt-studio verify:  ✓ tests/boot-migrate.test.ts (7 tests) 2012ms
+packages/prompt-studio verify:      ✓ ① 等值零移植+基线建立:prev=模板拷贝、基线缺席 → dst 字节不动,基线按模板写出 6 条非空值  318ms
+packages/prompt-studio verify:      ✓ ③ 基线漂移保护:旧文件=旧模板默认、基线记旧默认、新模板已改默认 → 不移植,新基线落地  377ms
+packages/prompt-studio verify:      ✓ ④ 基线坏 json → 回退「旧文件 vs 新模板」对比:用户编辑照常移植(存量卷首启的一次性口径)  309ms
+packages/prompt-studio verify:      ✓ ⑦ fatal:缺参/模板不可读 → exit 1 + 成因明示,不产基线  401ms
+packages/prompt-studio verify:  Test Files  16 passed (16)
+packages/prompt-studio verify:       Tests  349 passed (349)
+packages/prompt-studio verify:    Start at  16:57:29
+packages/prompt-studio verify:    Duration  2.76s (transform 4.18s, setup 0ms, import 7.30s, tests 4.15s, environment 1ms)
+packages/prompt-studio verify: Done
+packages/access verify:  ✓ tests/user-plugins.spec.ts (8 tests) 1049ms
+packages/access verify:  ✓ tests/mux-policy.spec.ts (7 tests) 972ms
+packages/access verify:  ✓ tests/mux-peer-drift.spec.ts (14 tests) 2502ms
+packages/access verify:      ✓ TERM-004 终端一元路径 → eterna-user Peer(与 mux 同用户缓存;无 cookie 401)  339ms
+packages/access verify:  ✓ tests/tasks-settings.spec.ts (8 tests) 2676ms
+packages/access verify:      ✓ 匿名:roles 与 settings 都 401  505ms
+packages/access verify:      ✓ 普通用户:roles 200(徽标可用),settings 读写 403  484ms
+packages/access verify:      ✓ 内核缺席(tasks 未装载):503 fail-closed,不返回假设置  412ms
+packages/access verify:      ✓ POST 参数校验:缺 value / 非法 block / 非整数 revision → 400,不调数据面  354ms
+packages/access verify: To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-6JA95l/origin.git
+packages/access verify:  * [new branch]      main -> main
+packages/access verify:  ✓ tests/gateway-role-gate.spec.ts (23 tests) 6302ms
+packages/access verify:      ✓ ① /access/api/me:三角色 role 字段正确(JSON 特征字段)  394ms
+packages/access verify:      ✓ ② bindingsFor:三角色内容绑定同构(仅本人资源,零放宽不变式)  634ms
+packages/access verify:      ✓ ③ admin 面端点对 approver 403:用户列表/建号/删号/角色变更/插件启停(审批人≠管理员)  629ms
+packages/access verify:      ✓ ① 三档谓词×账本:store 角色行逐档映射;角色变更即档位翻转(WS-D 消费契约)  731ms
+packages/access verify:      ✓ ② 普通用户(self 档):两面均只见本人条目(JSON 特征字段);本人裁决后条目消失  397ms
+packages/access verify:      ✓ ② 审批人(tenant-pending 档)不放宽既有两面:见本人、不见他人;跨用户裁决 404(缺口 2 fail-closed)  442ms
+packages/access verify:      ✓ ② 管理员(all 档)不放宽既有两面:本人零条目;他人条目不可见不可决(缺口 2 fail-closed)  300ms
+packages/access verify:      ✓ ③ 档位翻转即时:mux 内容绑定零放宽不变式在 tenant-pending 档仍成立(M-2 不变式翻转时点)  376ms
+packages/access verify:  ✓ tests/password.spec.ts (5 tests) 316ms
+packages/access verify: To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-ISVpvy/origin.git
+packages/access verify:  * [new branch]      main -> main
+packages/access verify:  ✓ tests/market-gate-coverage.spec.ts (6 tests) 774ms
+packages/access verify:  ✓ tests/routes.spec.ts (31 tests) 6655ms
+packages/access verify:      ✓ 登录即开通:成功登录触发 provisionWorkspace(带用户 id+账号);失败登录不触发  319ms
+packages/access verify:      ✓ 同源闸反代形态:PUBLIC_URL 声明的 https 公网根放行(声明域+默认端口);http 交叉拒  301ms
+packages/access verify:      ✓ 改密:错旧密 400;成功后旧会话 cookie 失效(pwv 吊销)、新 cookie 可用  500ms
+packages/access verify:      ✓ 用户列表与创建:非 admin 403;admin 建号默认昵称=账号;重名自动后缀;非法角色/弱密码 400  624ms
+packages/access verify:      ✓ WS-C ③:审计断言——access.user.role 事件 detail 含 target/from/to,account=操作者  401ms
+packages/access verify:      ✓ WS-C ④:非法值 admin/root → 400(端点值域仅 approver/user);目标不存在 404  327ms
+packages/access verify:      ✓ WS-C ⑤:普通用户/审批人调端点 403(审批人无权分配角色)  414ms
+packages/access verify:  ✓ tests/workbench-stream.spec.ts (5 tests) 472ms
+packages/access verify:  ✓ tests/panel-isolation.spec.ts (5 tests) 647ms
+packages/access verify:  ✓ tests/terminal-tenant.spec.ts (6 tests) 275ms
+packages/access verify:  ✓ tests/mcp-personal-runtime.spec.ts (16 tests) 2205ms
+packages/access verify:      ✓ personalMcpClientInput:stdio/http 两形态与 8s/60s 默认  325ms
+packages/access verify:  ✓ tests/within-root.spec.ts (6 tests) 743ms
+packages/access verify:  ✓ tests/sandbox-clamp.spec.ts (7 tests) 463ms
+packages/access verify:  ✓ tests/companion.spec.ts (4 tests) 439ms
+packages/access verify:  ✓ tests/thinking-auto.spec.ts (15 tests) 169ms
+packages/access verify:  ✓ tests/tenant-plugins.spec.ts (11 tests) 97ms
+packages/access verify: To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-BUVvZP/origin.git
+packages/access verify:  * [new branch]      main -> main
+packages/access verify:  ✓ tests/session-create-cwd.spec.ts (3 tests) 415ms
+packages/access verify:  ✓ tests/mux-drift.spec.ts (19 tests) 217ms
+packages/access verify:  ✓ tests/plugin.spec.ts (4 tests) 385ms
+packages/access verify:  ✓ tests/role-expansion-anchor.spec.ts (3 tests) 9ms
+packages/access verify:  ✓ tests/question-bridge.spec.ts (16 tests) 39ms
+packages/access verify:  ✓ tests/client-rpc.spec.ts (5 tests) 57ms
+packages/access verify:  ✓ tests/approval-bridge.spec.ts (10 tests) 69ms
+packages/access verify:  ✓ tests/mcp-personal-client.spec.ts (19 tests) 81ms
+packages/access verify:  ✓ tests/thinking-context.spec.ts (9 tests) 13ms
+packages/access verify:  ✓ tests/thinking-score.spec.ts (16 tests) 4ms
+packages/access verify:  ✓ tests/decision-layer.spec.ts (11 tests) 4ms
+packages/access verify:  ✓ tests/companion-inject.spec.ts (12 tests) 50ms
+packages/access verify:  ✓ tests/mcp-manager-drift.spec.ts (9 tests) 7ms
+packages/access verify:  ✓ tests/channels-webhook.spec.ts (4 tests) 9ms
+packages/access verify:  ✓ tests/model-catalog.spec.ts (4 tests) 3ms
+packages/access verify:  ✓ tests/link-opening.spec.ts (8 tests) 13ms
+packages/access verify:  ✓ tests/tool-schema.spec.ts (6 tests) 6ms
+packages/access verify:  ✓ tests/session.spec.ts (6 tests) 4ms
+packages/access verify:  ✓ tests/login-gate.spec.ts (7 tests) 8ms
+packages/access verify:  ✓ tests/channels-webhook-contract.spec.ts (3 tests) 8ms
+packages/access verify:  ✓ tests/mcp-personal-wiring.spec.ts (5 tests) 9ms
+packages/access verify:  ✓ tests/bias-view.spec.ts (3 tests) 2ms
+packages/access verify:  ✓ tests/ratelimit.spec.ts (3 tests) 4ms
+packages/access verify: To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-hD4OZt/origin.git
+packages/access verify:  * [new branch]      main -> main
+packages/access verify:  ✓ tests/pages.spec.ts (5 tests) 3ms
+packages/access verify:  ✓ tests/market-publish.spec.ts (11 tests) 8985ms
+packages/access verify:      ✓ 首发全流程:组装/清单重写/两段 commit/push 到裸仓/compare 链接  957ms
+packages/access verify:      ✓ 二次发布自动递增版本;索引多版本按 SemVer 降序  1881ms
+packages/access verify:      ✓ 撞版先查:显式已存在版本在 commit 之前被拒  1368ms
+packages/access verify:      ✓ 远端同名分支已存在 → 拒绝(上次 PR 未合并)  1070ms
+packages/access verify:      ✓ 负路径:TS 源拒发/UI 型拒发/越权目录拒发/缺 package.json 拒发  818ms
+packages/access verify:      ✓ 凭据纪律:token 只在 env 与 Authorization header,argv/PR body 恒不含本体;PR 用 API 开  333ms
+packages/access verify:      ✓ 校验红:回退到 origin/main、不 push、带回校验输出  964ms
+packages/access verify:      ✓ push=false:停在本地分支,不 push 不开 PR  933ms
+packages/access verify:      ✓ clone 缺席自动克隆;clone 不干净拒绝继续  660ms
+packages/access verify:  Test Files  49 passed (49)
+packages/access verify:       Tests  512 passed (512)
+packages/access verify:    Start at  16:57:25
+packages/access verify:    Duration  9.52s (transform 2.35s, setup 0ms, import 5.60s, tests 62.25s, environment 10ms)
+packages/access verify: Done
+packages/tasks verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/tasks
+packages/tasks verify: stderr | tests/plugin-boot.spec.ts > channels 投递面自宿主 ctx 派生(A1):ctx 带 channels 服务 fixture 即派生注入,回执经 channels 结算(UNWIRED 不再是终态)
+packages/tasks verify: [tasks] sessionHost 派生失败:宿主服务缺席 sessionController, workspaceRegistry, permissionPresets, sessionPersistence, agents(reflect=true)
+packages/tasks verify: stderr | tests/webchat-entry.spec.ts > 主会话 id 缺席不接线(fail-safe 不猜主会话)
+packages/tasks verify: [tasks] sessionHost 派生失败:宿主服务缺席 sessionController, workspaceRegistry, permissionPresets, sessionPersistence, agents(reflect=true)
+packages/tasks verify: stderr | tests/webchat-entry.spec.ts > masterId 自 KV 复得即安装监听(三断点①②:profile 裸挂载行的二次启动也接线)
+packages/tasks verify: [tasks] sessionHost 派生失败:宿主服务缺席 sessionController, workspaceRegistry, permissionPresets, sessionPersistence, agents(reflect=true)
+packages/tasks verify: [tasks] sessionHost 派生失败:宿主服务缺席 sessionController, workspaceRegistry, permissionPresets, sessionPersistence, agents(reflect=true)
+packages/tasks verify: stderr | tests/plugin-boot.spec.ts > 插件形态:apply(ctx) 以 TASKS_SERVICE_ID provide ctx.tasks 服务,disposer 先撤服务再逆序关停
+packages/tasks verify: [tasks] sessionHost 派生失败:宿主服务缺席 sessionController, workspaceRegistry, permissionPresets, sessionPersistence, agents(reflect=true)
+packages/tasks verify:  ✓ tests/store.spec.ts (19 tests) 177ms
+packages/tasks verify:  ✓ tests/delivery.spec.ts (4 tests) 190ms
+packages/tasks verify:  ✓ tests/runtime-lifecycle.spec.ts (3 tests) 221ms
+packages/tasks verify:  ✓ tests/webchat-entry.spec.ts (10 tests) 246ms
+packages/tasks verify: stderr | tests/plugin-boot.spec.ts > sessionHost 派生 fail-closed:宿主仅提供部分服务(缺 agents/sessionPersistence)即回落 stub,不造桩
+packages/tasks verify: [tasks] sessionHost 派生失败:宿主服务缺席 sessionPersistence, agents(reflect=true)
+packages/tasks verify:  ✓ tests/plugin-boot.spec.ts (13 tests) 256ms
+packages/tasks verify:  ✓ tests/route-golden.spec.ts (5 tests) 311ms
+packages/tasks verify:  ✓ tests/concurrency.spec.ts (4 tests) 335ms
+packages/tasks verify:  ✓ tests/pass.spec.ts (5 tests) 335ms
+packages/tasks verify:  ✓ tests/effects.spec.ts (13 tests) 358ms
+packages/tasks verify:  ✓ tests/core-engine.spec.ts (48 tests) 71ms
+packages/tasks verify:  ✓ tests/assessor.spec.ts (11 tests) 88ms
+packages/tasks verify:  ✓ tests/runtime.spec.ts (1 test) 100ms
+packages/tasks verify:  ✓ tests/prompts.spec.ts (19 tests) 108ms
+packages/tasks verify:  ✓ tests/effects-resume.spec.ts (3 tests) 88ms
+packages/tasks verify: stderr | tests/tools.spec.ts > 角色分面(34 §4-D;24 §8.3-4) > 装配面的 when 白名单(35-A21 诊断清单②):主会话 id 在场时 orchestrator 面只在主会话可见
+packages/tasks verify: [tasks] sessionHost 派生失败:宿主服务缺席 sessionController, workspaceRegistry, permissionPresets, sessionPersistence, agents(reflect=true)
+packages/tasks verify: [tasks] sessionHost 派生失败:宿主服务缺席 sessionController, workspaceRegistry, permissionPresets, sessionPersistence, agents(reflect=true)
+packages/tasks verify:  ✓ tests/tools.spec.ts (11 tests) 103ms
+packages/tasks verify:  ✓ tests/settings-face.spec.ts (13 tests) 74ms
+packages/tasks verify:  ✓ tests/budget.spec.ts (12 tests) 80ms
+packages/tasks verify:  ✓ tests/policy.spec.ts (332 tests) 83ms
+packages/tasks verify:  ✓ tests/assignment-files.spec.ts (3 tests) 52ms
+packages/tasks verify:  ✓ tests/role-model-seeding.spec.ts (5 tests) 91ms
+packages/tasks verify:  ✓ tests/sessions.spec.ts (7 tests) 84ms
+packages/tasks verify:  ✓ tests/settings.spec.ts (7 tests) 69ms
+packages/tasks verify:  ✓ tests/realm.spec.ts (6 tests) 55ms
+packages/tasks verify:  ✓ tests/outbox.spec.ts (7 tests) 65ms
+packages/tasks verify:  ✓ tests/subagent-receipt.spec.ts (3 tests) 41ms
+packages/tasks verify:  ✓ tests/domain-events.spec.ts (5 tests) 50ms
+packages/tasks verify:  ✓ tests/channels-delivery.spec.ts (5 tests) 133ms
+packages/tasks verify:  ✓ tests/candidate-context.spec.ts (11 tests) 28ms
+packages/tasks verify:  ✓ tests/schema.spec.ts (3 tests) 22ms
+packages/tasks verify:  ✓ tests/timeline.spec.ts (4 tests) 26ms
+packages/tasks verify: stderr | tests/active-tickets.spec.ts > prompt section seam 注入与 pass 周期刷新(28 §6;C6 拍板) > defineTasksPlugin:宿主 system-prompt 在场时经 systemPrompt.section 注入,disposer 配逆
+packages/tasks verify: [tasks] sessionHost 派生失败:宿主服务缺席 sessionController, workspaceRegistry, permissionPresets, sessionPersistence, agents(reflect=true)
+packages/tasks verify: stderr | tests/active-tickets.spec.ts > prompt section seam 注入与 pass 周期刷新(28 §6;C6 拍板) > 宿主 system-prompt 缺席:插件装载不受影响,section 不注册(注入面归宿主装配)
+packages/tasks verify: [tasks] sessionHost 派生失败:宿主服务缺席 sessionController, workspaceRegistry, permissionPresets, sessionPersistence, agents(reflect=true)
+packages/tasks verify:  ✓ tests/active-tickets.spec.ts (13 tests) 35ms
+packages/tasks verify:  ✓ tests/eval-delegation.spec.ts (8 tests) 44ms
+packages/tasks verify:  ✓ tests/background.spec.ts (9 tests) 16ms
+packages/tasks verify:  ✓ tests/followups.spec.ts (10 tests) 29ms
+packages/tasks verify:  ✓ tests/attention.spec.ts (12 tests) 31ms
+packages/tasks verify:  ✓ tests/mandate-policy.spec.ts (6 tests) 18ms
+packages/tasks verify:  ✓ tests/class-docs.spec.ts (1 test) 13ms
+packages/tasks verify:  ✓ tests/model-surface.spec.ts (8 tests) 16ms
+packages/tasks verify:  ✓ tests/memory.spec.ts (15 tests) 9ms
+packages/tasks verify:  ✓ tests/workspace.spec.ts (7 tests) 13ms
+packages/tasks verify:  ✓ tests/preset.spec.ts (8 tests) 5ms
+packages/tasks verify:  ✓ tests/health.spec.ts (25 tests) 22ms
+packages/tasks verify:  ✓ tests/subagent-policies.spec.ts (10 tests) 17ms
+packages/tasks verify:  ✓ tests/deliverable-check.spec.ts (11 tests) 7ms
+packages/tasks verify:  ✓ tests/client-settings-model.spec.ts (19 tests) 6ms
+packages/tasks verify:  ✓ tests/idempotency.spec.ts (8 tests) 15ms
+packages/tasks verify:  ✓ tests/channel-adapter.spec.ts (5 tests) 12ms
+packages/tasks verify:  ✓ tests/role-models.spec.ts (4 tests) 7ms
+packages/tasks verify:  ✓ tests/client-session-role.spec.ts (7 tests) 3ms
+packages/tasks verify:  ✓ tests/client-candidate-card.spec.ts (11 tests) 3ms
+packages/tasks verify:  ✓ tests/model.spec.ts (42 tests) 6ms
+packages/tasks verify:  ✓ tests/stage.spec.ts (31 tests) 3ms
+packages/tasks verify:  ✓ tests/skeleton.spec.ts (2 tests) 2ms
+packages/tasks verify:  Test Files  53 passed (53)
+packages/tasks verify:       Tests  864 passed (864)
+packages/tasks verify:    Start at  16:57:35
+packages/tasks verify:    Duration  3.47s (transform 3.07s, setup 0ms, import 14.54s, tests 4.27s, environment 4ms)
+packages/tasks verify: Done
+packages/agent-loop verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+tools/packctl verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/workbench verify$ node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run
+packages/workbench verify:   lib/client.js  273.5kb
+packages/workbench verify: ⚡ Done in 28ms
+packages/agent-loop verify: Found 0 warnings and 0 errors.
+packages/agent-loop verify: Finished in 1.1s on 5 files with 87 rules using 10 threads.
+tools/packctl verify: Found 0 warnings and 0 errors.
+tools/packctl verify: Finished in 1.3s on 26 files with 87 rules using 10 threads.
+packages/workbench verify: Found 0 warnings and 0 errors.
+packages/workbench verify: Finished in 1.2s on 59 files with 87 rules using 10 threads.
+packages/agent-loop verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/agent-loop
+packages/agent-loop verify:  ✓ tests/loop.spec.ts (7 tests) 9ms
+packages/agent-loop verify:  Test Files  1 passed (1)
+packages/agent-loop verify:       Tests  7 passed (7)
+packages/agent-loop verify:    Start at  16:57:41
+packages/agent-loop verify:    Duration  423ms (transform 173ms, setup 0ms, import 225ms, tests 9ms, environment 0ms)
+packages/agent-loop verify: Done
+tools/packctl verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/tools/packctl
+tools/packctl verify:  ✓ tests/tenant.spec.ts (12 tests) 57ms
+tools/packctl verify:  ✓ tests/golden.spec.ts (12 tests) 29ms
+tools/packctl verify:  ✓ tests/skills.spec.ts (8 tests) 44ms
+tools/packctl verify:  ✓ tests/structure.spec.ts (7 tests) 89ms
+tools/packctl verify:  ✓ tests/init.spec.ts (9 tests) 117ms
+tools/packctl verify:  ✓ tests/cli.spec.ts (8 tests) 77ms
+tools/packctl verify:  ✓ tests/badpacks.spec.ts (9 tests) 137ms
+tools/packctl verify:  ✓ tests/cordis.spec.ts (15 tests) 8ms
+tools/packctl verify:  ✓ tests/prompt.spec.ts (11 tests) 306ms
+tools/packctl verify:  ✓ tests/form.spec.ts (14 tests) 385ms
+tools/packctl verify:      ✓ CLI: 仓库外 cwd 运行 form-check → 不报「真值源缺失」,退出码不为 2  322ms
+tools/packctl verify:  Test Files  10 passed (10)
+tools/packctl verify:       Tests  105 passed (105)
+tools/packctl verify:    Start at  16:57:42
+tools/packctl verify:    Duration  959ms (transform 1.11s, setup 0ms, import 1.94s, tests 1.25s, environment 1ms)
+tools/packctl verify: Done
+packages/workbench verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/workbench
+packages/workbench verify:  ✓ tests/client-bundle.spec.ts (6 tests) 14ms
+packages/workbench verify:  ✓ tests/canvas-a11y.spec.tsx (23 tests) 17ms
+packages/workbench verify:  ✓ tests/panel-workbench-views.spec.tsx (20 tests) 14ms
+packages/workbench verify:  ✓ tests/panel-mount.spec.ts (6 tests) 39ms
+packages/workbench verify:  ✓ tests/canvas-theme.spec.ts (12 tests) 16ms
+packages/workbench verify:  ✓ tests/theme-tokens.spec.ts (15 tests) 9ms
+packages/workbench verify:  ✓ tests/sse-decoder.spec.ts (10 tests) 12ms
+packages/workbench verify:  ✓ tests/log-view-pii.spec.ts (11 tests) 10ms
+packages/workbench verify:  ✓ tests/task-sidebar.spec.tsx (19 tests) 10ms
+packages/workbench verify:  ✓ tests/eval-view.spec.ts (12 tests) 17ms
+packages/workbench verify:  ✓ tests/attention-banner.spec.tsx (18 tests) 15ms
+packages/workbench verify:  ✓ tests/worker-inspector.spec.tsx (18 tests) 54ms
+packages/workbench verify:  ✓ tests/kanban-view.spec.ts (18 tests) 65ms
+packages/workbench verify:  ✓ tests/workbench-sessions.spec.tsx (7 tests) 4ms
+packages/workbench verify:  ✓ tests/stream-batching.spec.ts (4 tests) 761ms
+packages/workbench verify:      ✓ 快照→增量→续传全链(真实 fetch + 解码器消费)  757ms
+packages/workbench verify:  ✓ tests/master-link.spec.tsx (3 tests) 2ms
+packages/workbench verify:  ✓ tests/beijing-time.spec.ts (3 tests) 3ms
+packages/workbench verify:  ✓ tests/live-events.spec.ts (8 tests) 616ms
+packages/workbench verify:  ✓ tests/mock-stream.spec.ts (5 tests) 1758ms
+packages/workbench verify:      ✓ 先收全量快照(seq 1),后渐进应用增量:eval-run 追点、log 追行、ticket 流转翻列  652ms
+packages/workbench verify:      ✓ 断线重连请求携带 Last-Event-ID(30 号 §3;首连不带)  1011ms
+packages/workbench verify:  Test Files  19 passed (19)
+packages/workbench verify:       Tests  218 passed (218)
+packages/workbench verify:    Start at  16:57:43
+packages/workbench verify:    Duration  2.13s (transform 2.60s, setup 0ms, import 4.30s, tests 3.44s, environment 1ms)
+packages/workbench verify: Done
+packages/evolve verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/evolve verify: Found 0 warnings and 0 errors.
+packages/evolve verify: Finished in 739ms on 21 files with 87 rules using 10 threads.
+packages/evolve verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/evolve
+packages/evolve verify:  ✓ tests/aievo.spec.ts (6 tests) 5ms
+packages/evolve verify:  ✓ tests/models.spec.ts (4 tests) 6ms
+packages/evolve verify:  ✓ tests/ledger.spec.ts (6 tests) 25ms
+packages/evolve verify:  ✓ tests/reflector.spec.ts (10 tests) 16ms
+packages/evolve verify:  ✓ tests/entry.spec.ts (15 tests) 32ms
+packages/evolve verify:  ✓ tests/audit.spec.ts (8 tests) 48ms
+packages/evolve verify:  ✓ tests/e2e.spec.ts (6 tests) 66ms
+packages/evolve verify:  ✓ tests/gates.spec.ts (9 tests) 76ms
+packages/evolve verify:  Test Files  8 passed (8)
+packages/evolve verify:       Tests  64 passed (64)
+packages/evolve verify:    Start at  16:57:47
+packages/evolve verify:    Duration  578ms (transform 1.36s, setup 0ms, import 2.47s, tests 274ms, environment 1ms)
+packages/evolve verify: Done
+packages/memory verify$ node scripts/build-client.mjs && oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+packages/memory verify:   lib/client.js  136.3kb
+packages/memory verify: ⚡ Done in 5ms
+packages/memory verify: Found 0 warnings and 0 errors.
+packages/memory verify: Finished in 1.1s on 53 files with 87 rules using 10 threads.
+packages/memory verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/memory
+packages/memory verify:  ✓ tests/distill.spec.ts (15 tests) 186ms
+packages/memory verify:  ✓ tests/domain.spec.ts (33 tests) 73ms
+packages/memory verify:  ✓ tests/entity-store.spec.ts (28 tests) 79ms
+packages/memory verify:  ✓ tests/notes.spec.ts (17 tests) 109ms
+packages/memory verify:  ✓ tests/admin-plugin.spec.ts (21 tests) 133ms
+packages/memory verify:  ✓ tests/distill-curate.spec.ts (8 tests) 162ms
+packages/memory verify:  ✓ tests/memory.spec.ts (15 tests) 179ms
+packages/memory verify:  ✓ tests/tools.spec.ts (58 tests) 332ms
+packages/memory verify:  ✓ tests/client-bundle.spec.ts (4 tests) 14ms
+packages/memory verify:  ✓ tests/index-builder.spec.ts (28 tests) 69ms
+packages/memory verify:  ✓ tests/client-sources.spec.ts (21 tests) 7ms
+packages/memory verify:  ✓ tests/account-router.spec.ts (10 tests) 38ms
+packages/memory verify:  ✓ tests/approval.spec.ts (11 tests) 29ms
+packages/memory verify:  ✓ tests/config-bridge.spec.ts (17 tests) 8ms
+packages/memory verify:  ✓ tests/metrics.spec.ts (8 tests) 22ms
+packages/memory verify:  ✓ tests/sources-meta.spec.ts (7 tests) 8ms
+packages/memory verify:  ✓ tests/client-settings.spec.ts (16 tests) 4ms
+packages/memory verify:  ✓ tests/pii.spec.ts (6 tests) 3ms
+packages/memory verify:  ✓ tests/portrait.spec.ts (14 tests) 4ms
+packages/memory verify:  ✓ tests/tokens.spec.ts (5 tests) 2ms
+packages/memory verify:  ✓ tests/consolidation.spec.ts (162 tests) 889ms
+packages/memory verify:  Test Files  21 passed (21)
+packages/memory verify:       Tests  504 passed (504)
+packages/memory verify:    Start at  16:57:51
+packages/memory verify:    Duration  1.53s (transform 2.38s, setup 0ms, import 5.68s, tests 2.35s, environment 3ms)
+packages/memory verify: Done
+packages/glue verify$ oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run --passWithNoTests
+packages/panel verify$ node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run
+packages/panel verify:   lib/client.js  192.9kb
+packages/panel verify: ⚡ Done in 6ms
+packages/glue verify: Found 0 warnings and 0 errors.
+packages/glue verify: Finished in 784ms on 24 files with 87 rules using 10 threads.
+packages/panel verify: Found 0 warnings and 0 errors.
+packages/panel verify: Finished in 744ms on 25 files with 87 rules using 10 threads.
+packages/glue verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/glue
+packages/panel verify:  RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/panel
+packages/glue verify:  ✓ tests/channels-plugin.spec.ts (9 tests) 91ms
+packages/glue verify:  ✓ tests/governance-plugin.spec.ts (14 tests) 130ms
+packages/glue verify:  ✓ tests/egress-plugin.spec.ts (11 tests) 30ms
+packages/glue verify:  ✓ tests/governance-audit-trail.spec.ts (4 tests) 64ms
+packages/panel verify:  ✓ tests/prompts.test.ts (3 tests) 6ms
+packages/panel verify:  ✓ tests/client-bundle.test.ts (5 tests) 38ms
+packages/panel verify:  ✓ tests/session-logs.test.ts (7 tests) 9ms
+packages/panel verify:  ✓ tests/client-portrait.test.ts (8 tests) 6ms
+packages/panel verify:  ✓ tests/chips-store.test.ts (7 tests) 19ms
+packages/panel verify:  ✓ tests/client-chips.test.ts (14 tests) 9ms
+packages/glue verify:  ✓ tests/governance-rules-fixture.spec.ts (7 tests) 5ms
+packages/glue verify:  ✓ tests/interact-plugin.spec.ts (7 tests) 21ms
+packages/glue verify:  ✓ tests/tasks-access-bridge-plugin.spec.ts (8 tests) 4ms
+packages/glue verify:  ✓ tests/memory-routing.spec.ts (7 tests) 58ms
+packages/glue verify:  ✓ tests/memory-plugin.spec.ts (10 tests) 79ms
+packages/glue verify:  ✓ tests/memory-session-face.spec.ts (7 tests) 157ms
+packages/panel verify:  ✓ tests/host-plugin.test.ts (16 tests) 6ms
+packages/panel verify:  ✓ tests/snapshot.test.ts (17 tests) 33ms
+packages/panel verify:  Test Files  8 passed (8)
+packages/panel verify:       Tests  77 passed (77)
+packages/panel verify:    Start at  16:57:55
+packages/panel verify:    Duration  865ms (transform 1.24s, setup 0ms, import 1.77s, tests 127ms, environment 0ms)
+packages/panel verify: Done
+packages/glue verify:  ✓ tests/memory-consolidation.spec.ts (17 tests) 682ms
+packages/glue verify:  ✓ tests/memory-domain.spec.ts (12 tests) 724ms
+packages/glue verify:  Test Files  12 passed (12)
+packages/glue verify:       Tests  113 passed (113)
+packages/glue verify:    Start at  16:57:55
+packages/glue verify:    Duration  1.75s (transform 3.55s, setup 0ms, import 5.40s, tests 2.05s, environment 1ms)
+packages/glue verify: Done
+VERIFY_EXIT=0

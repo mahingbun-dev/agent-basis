@@ -17,12 +17,14 @@ function Avatar(props: { url: string | null; nickname: string; size?: number }):
   return <span className="ea-avatar" style={{ width: size, height: size }}>{props.nickname.slice(0, 1) || '?'}</span>
 }
 
-/** 密码输入(右缘可见性切换,与登录页同交互)。 */
-function PasswordInput(props: {
+/** 密码输入(右缘可见性切换,与登录页同交互;MCP 分区复用为 write-only 密钥输入)。 */
+export function PasswordInput(props: {
   readonly id: string
   readonly value: string
   readonly placeholder?: string
   readonly autoComplete?: string
+  /** 无可见 label 的场景(行内 header 密钥)提供可访问名。 */
+  readonly ariaLabel?: string
   readonly onChange: (value: string) => void
   readonly t: Translate
 }): React.JSX.Element {
@@ -30,6 +32,7 @@ function PasswordInput(props: {
   return <div style={{ position: 'relative', display: 'block' }}>
     <input id={props.id} className='ea-input' type={visible ? 'text' : 'password'}
       autoComplete={props.autoComplete} placeholder={props.placeholder} value={props.value}
+      aria-label={props.ariaLabel}
       onChange={event => { props.onChange(event.target.value) }} style={{ paddingRight: 46 }} />
     <button type="button" aria-label={props.t('account.passwordToggle')} title={props.t('account.passwordToggleTitle')}
       onClick={() => { setVisible(v => !v) }}

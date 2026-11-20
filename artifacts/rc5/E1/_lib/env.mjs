@@ -1,0 +1,152 @@
+/** E1 套件公共环境：路径、docker 调用、账号 cookie、DB 读取。 */
+import { existsSync, readFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { homedir } from 'node:os'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import {
+  bootTokenFromContainer,
+  bootstrapDshSession,
+  loadAccounts,
+  login,
+  rpc,
+} from '../../../../scripts/rc5-test-client.mjs'
+import { redact, shape } from './evidence.mjs'
+
+const here = dirname(fileURLToPath(import.meta.url))
+export const REPO = resolve(here, '..', '..', '..', '..')
+
+export const LANE = {
+  repoRoot: REPO,
+  evidenceRoot: resolve(REPO, 'artifacts', 'rc5', 'E1'),
+  dataBase: resolve(homedir(), 'eterna-data', 'test-20261120'),
+  instance: 'e1',
+  project: 'rc5-e1suite',
+  container: 'rc5-e1suite',
+  port: 3118,
+  base: 'http://127.0.0.1:3118',
+  imageTag: 'eterna-agent:rc5-test',
+  imageId: 'sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb',
+  fixtures: resolve(REPO, 'tests', 'fixtures'),
+  accountsFile: resolve(homedir(), 'eterna-data', 'test-rc5', '.test-accounts.json'),
+  sourceTestRoot: resolve(homedir(), 'eterna-data', 'test-rc5', 'e1'),
+  composeEnv: resolve(homedir(), 'eterna-data', 'test-20261120', '.env.e1suite'),
+  override: resolve(REPO, 'artifacts', 'rc5', 'E1', '_setup', 'compose.e1suite.override.yml'),
+}
+LANE.dataRoot = join(LANE.dataBase, LANE.instance)
+LANE.freshRoot = join(LANE.dataBase, 'fresh')
+LANE.superRoot = join(LANE.dataBase, 'super')
+LANE.superContainer = 'rc5-e1suite-super'
+LANE.superPort = 3117
+
+export function run(cmd, args, { env, timeout = 300_000, input } = {}) {
+  const printable = [cmd, ...args].map(item => (/^[A-Za-z0-9_./:=@%,-]+$/.test(item) ? item : `'${item.replace(/'/g, `'\\''`)}'`)).join(' ')
+  const result = spawnSync(cmd, args, {
+    encoding: 'utf8', timeout, env: env ?? process.env, input,
+    maxBuffer: 64 * 1024 * 1024,
+  })
+  return {
+    exit: result.status ?? -1,
+    stdout: (result.stdout ?? '').trim(),
+    stderr: (result.stderr ?? '').trim(),
+    display: redact(printable),
+  }
+}
+
+export function docker(args, options) {
+  return run('docker', args, options)
+}
+
+export function composeArgs(project = LANE.project, envFile = LANE.composeEnv) {
+  return ['compose', '-p', project, '--env-file', envFile,
+    '-f', join(REPO, 'docker-compose.yml'), '-f', LANE.override]
+}
+
+export function sleep(ms) {
+  return new Promise(resolvePromise => setTimeout(resolvePromise, ms))
+}
+
+export async function waitHealth(container, tries = 60) {
+  let health = 'unknown'
+  for (let attempt = 0; attempt < tries; attempt++) {
+    const probe = docker(['inspect', container, '--format', '{{.State.Health.Status}}'])
+    health = probe.stdout
+    if (health === 'healthy' || health === 'unhealthy' || probe.stderr.includes('No such object')) break
+    await sleep(2000)
+  }
+  return health
+}
+
+/** 容器 restart 后：等 HTTP 面真正接受请求（healthcheck 只反映进程内探针，不保证 listen 完成）。 */
+export async function waitApi(base = LANE.base, tries = 60, delayMs = 500) {
+  for (let attempt = 0; attempt < tries; attempt += 1) {
+    try {
+      const response = await fetch(`${base}/login`, { redirect: 'manual' })
+      if (response.status >= 200) return true
+    } catch {
+      // 连接拒绝/中断=尚未 ready，继续轮询
+    }
+    await sleep(delayMs)
+  }
+  return false
+}
+
+/* --------------------------------------------------------------- 账号 */
+
+let cached = undefined
+
+export async function sessions() {
+  if (cached !== undefined) return cached
+  const accounts = loadAccounts(LANE.accountsFile)
+  const base = LANE.base
+  const dsh = await bootstrapDshSession(base, bootTokenFromContainer(LANE.container))
+  const authA = await login(base, accounts.admin.account, accounts.admin.password)
+  const authB = await login(base, accounts.user_b.account, accounts.user_b.password)
+  const authC = await login(base, accounts.user_c.account, accounts.user_c.password)
+  cached = {
+    accounts,
+    dsh,
+    admin: { ...authA, cookie: `${dsh}; ${authA.cookie}`, account: accounts.admin.account },
+    userB: { ...authB, cookie: `${dsh}; ${authB.cookie}`, account: accounts.user_b.account },
+    userC: { ...authC, cookie: `${dsh}; ${authC.cookie}`, account: accounts.user_c.account },
+  }
+  return cached
+}
+
+export async function call(cookie, method, args = {}, options = {}) {
+  return rpc(LANE.base, cookie, method, args, { timeoutMs: options.timeoutMs ?? 60_000 })
+}
+
+/* --------------------------------------------------------------- DB */
+
+export function readDb(sql, params = [], dbPath = join(LANE.dataRoot, 'access', 'users.db')) {
+  if (!existsSync(dbPath)) throw new Error(`DB 不存在: ${dbPath}`)
+  const code = 'const {DatabaseSync}=require("node:sqlite");const db=new DatabaseSync(process.argv[1],{readOnly:true});db.exec("PRAGMA busy_timeout=5000");process.stdout.write(JSON.stringify(db.prepare(process.argv[2]).all(...JSON.parse(process.argv[3]))))'
+  const result = spawnSync(process.execPath, ['-e', code, dbPath, sql, JSON.stringify(params)], { encoding: 'utf8', timeout: 20_000 })
+  if (result.status !== 0) throw new Error(`sqlite 读取失败: ${(result.stderr ?? '').slice(0, 240)}`)
+  return JSON.parse(result.stdout)
+}
+
+export function userIdOf(account) {
+  return readDb('SELECT id FROM users WHERE account = ?', [account])[0]?.id
+}
+
+export function workspaceOf(userId) {
+  return readDb('SELECT workspace_id, path FROM workspaces WHERE owner_id = ?', [userId])[0]
+}
+
+export function gitHead() {
+  const result = run('git', ['-C', REPO, 'rev-parse', 'HEAD'])
+  return result.stdout
+}
+
+export { shape, redact }
+
+export function imageInfo() {
+  const result = docker(['inspect', LANE.container, '--format', '{{.Image}} {{index .Config.Labels "org.opencontainers.image.revision"}}'])
+  return result.stdout
+}
+
+export function readText(path) {
+  return readFileSync(path, 'utf8')
+}

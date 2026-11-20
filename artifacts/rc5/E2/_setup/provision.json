@@ -1,0 +1,23 @@
+{
+  "admin": {
+    "login": 200,
+    "initializeDefault": true,
+    "workspaceId": "a2e8bdc1-59b0-4924-a38b-a8770e32fe97",
+    "workspacePath": "/data/workspaces/rc5admin",
+    "workspaceList": null
+  },
+  "user_b": {
+    "login": 200,
+    "initializeDefault": true,
+    "workspaceId": "02dce76e-18b8-4858-beba-637cca6710c7",
+    "workspacePath": "/data/workspaces/rc5userb",
+    "workspaceList": null
+  },
+  "user_c": {
+    "login": 200,
+    "initializeDefault": true,
+    "workspaceId": "452fbc3f-9a39-45fa-880c-0fd05b835fa5",
+    "workspacePath": "/data/workspaces/rc5userc",
+    "workspaceList": null
+  }
+}

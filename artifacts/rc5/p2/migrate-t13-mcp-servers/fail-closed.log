@@ -1,0 +1,15 @@
+$ node docker/profile/migrate-mcp-servers.mjs artifacts/rc5/p2/migrate-t13-mcp-servers/fixture/manager/cordis.patch.yml artifacts/rc5/p2/migrate-t13-mcp-servers/fixture/new-bad.yml artifacts/rc5/p2/migrate-t13-mcp-servers/backup-json.json
+[migrate-mcp-servers]: 失败（fail-closed，新 patch 保留原样）: artifacts/rc5/p2/migrate-t13-mcp-servers/fixture/new-bad.yml: YAML 解析失败:Flow sequence in block collection must be sufficiently indented and end with a ] at line 2, column 1:
+
+a: [unclosed
+
+^
+
+[migrate-mcp-servers]: 备份 JSON: artifacts/rc5/p2/migrate-t13-mcp-servers/backup-json.json
+EXIT=1
+---
+BAD_SHA0=c6805db000294063f88b41c3aad67635747d4723073c43a74a09f1f42a3b4992 BAD_SHA1=c6805db000294063f88b41c3aad67635747d4723073c43a74a09f1f42a3b4992
+ASSERT PASS: 坏新 patch：EXIT=1（fail-closed）
+ASSERT PASS: 坏新 patch：文件字节不变
+ASSERT PASS: 坏新 patch：备份 JSON 存在且 0600
+ASSERT PASS: 备份 JSON 凭据脱敏（token=占位符也不落盘）

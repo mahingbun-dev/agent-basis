@@ -1,0 +1,119 @@
+{
+  "id": "RC5-TERM-006",
+  "suite": "E3-super",
+  "priority": "P0",
+  "title": "同 session 调 9 动作全部成功（TERM-006）",
+  "expected": "close/create/environment/list/rename/shells + attach/retain/watch 全部成功、语义正确",
+  "status": "PASS",
+  "startedAt": "2026-11-20T07:10:15.908Z",
+  "finishedAt": "2026-11-20T07:10:17.041Z",
+  "assertions": [
+    {
+      "name": "admin 登录 200",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "admin 测试工作区可解析（E3 users.db 只读）",
+      "ok": true,
+      "detail": "090d9317-36d5-40bd-b640-a2c6963652fe"
+    },
+    {
+      "name": "新建会话成功",
+      "ok": true,
+      "detail": "{\"sessionId\":\"session-c2e3ecc4-4f9b-4a6e-9b09-79759a0a601b\",\"agentPreset\":\"standard\"}"
+    },
+    {
+      "name": "terminal/environment 成功（A 自己的会话）",
+      "ok": true,
+      "detail": "{\"cwd\":\"/data/workspaces/Mr.Ma\",\"maxInputBytes\":65536,\"maxBufferedBytes\":2097152,\"maxCols\":500,\"maxRows\":200,\"scrollback\":1000}"
+    },
+    {
+      "name": "terminal/shells 成功且含 /bin/bash",
+      "ok": true,
+      "detail": "[{\"path\":\"/bin/bash\",\"name\":\"bash\",\"args\":[\"-i\"]}]"
+    },
+    {
+      "name": "terminal/list 成功（数组）",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "terminal/create 成功（9 动作前置）",
+      "ok": true,
+      "detail": "{\"id\":\"e3-probe-term\",\"shell\":{\"path\":\"/bin/bash\",\"name\":\"bash\",\"args\":[\"-i\"]},\"title\":\"bash\",\"cwd\":\"/data/workspaces/Mr.Ma\",\"cols\":120,\"rows\":40,\"state\":\"running\",\"exitCode\":null,\"origin\":\"user\",\"control\":\"user\"}"
+    },
+    {
+      "name": "6 个 unary 动作全部成功",
+      "ok": true,
+      "detail": "all ok"
+    },
+    {
+      "name": "同镜像 E2 lane 复验 9/9（含 attach/retain/watch 流）",
+      "ok": true,
+      "detail": "PASS :: 9/9 已断言动作成功"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)",
+      "exit": 0,
+      "note": "boot token 不入证据"
+    },
+    {
+      "cmd": "GET /connect + GET /?token=… (dsh session bootstrap)",
+      "exit": 200,
+      "note": "token 已脱敏"
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 200,
+      "note": ""
+    },
+    {
+      "cmd": "POST /api/session/create",
+      "exit": 200,
+      "note": "ok·workspace=090d9317…"
+    },
+    {
+      "cmd": "POST /api/terminal/environment",
+      "exit": 200,
+      "note": "A"
+    },
+    {
+      "cmd": "POST /api/terminal/shells",
+      "exit": 200,
+      "note": "A"
+    },
+    {
+      "cmd": "POST /api/terminal/list",
+      "exit": 200,
+      "note": "A"
+    },
+    {
+      "cmd": "POST /api/terminal/create",
+      "exit": 200,
+      "note": "A"
+    },
+    {
+      "cmd": "POST /api/terminal/rename",
+      "exit": 200,
+      "note": "A"
+    },
+    {
+      "cmd": "POST /api/terminal/close",
+      "exit": 200,
+      "note": "A"
+    }
+  ],
+  "notes": [
+    "E3 本 lane 现场复跑 6 个 unary；attach/retain/watch 三流动作由同镜像 E2 lane 的 WS mux 证据补足（9/9 PASS，artifacts/rc5/E2/TERM/summary.json）。"
+  ],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "id": "RC5-ACP-009",
+  "priority": "P1",
+  "title": "文档定位：仅可信操作员、无租户隔离、共享 /data、不暴露公网",
+  "status": "PASS",
+  "at": "2026-11-20T05:10:37.542Z",
+  "detail": "✓ trusted-stdio: 「受信 stdio 面」；✓ trusted-operator-only: 「只允许管理员/运维在本机启动」；✓ no-tenant-isolation: 「无租户隔离」；✓ shared-data-root: 「共享同一 `/data` 实例根」",
+  "assertions": [
+    {
+      "name": "trusted-stdio: 「受信 stdio 面」",
+      "expected": "文档明确 ACP 是受信 stdio 面/受信控制器，不是 Web 功能",
+      "observed": "deploy/README.md:288, docker-compose.yml:115",
+      "ok": true
+    },
+    {
+      "name": "trusted-operator-only: 「只允许管理员/运维在本机启动」",
+      "expected": "明确仅可信操作员/本机驱动，不暴露公网/端口",
+      "observed": "docs/design/47-上游DSH-0.2.2-rc.5合并评估与开发方案.md:1186",
+      "ok": true
+    },
+    {
+      "name": "no-tenant-isolation: 「无租户隔离」",
+      "expected": "明确 ACP 是无租户隔离的受信面，可读全部租户数据",
+      "observed": "docs/design/49-上游rc.5合并总设计.md:345",
+      "ok": true
+    },
+    {
+      "name": "shared-data-root: 「共享同一 `/data` 实例根」",
+      "expected": "明确与 web 共享 /data（跨租户数据可读）",
+      "observed": "deploy/README.md:294, docs/docker-deploy.md:35",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+$ pnpm --filter @eterna/brand verify
+$ node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run
+
+  lib/client.js  72.4kb
+
+⚡ Done in 3ms
+Found 0 warnings and 0 errors.
+Finished in 880ms on 10 files with 87 rules using 10 threads.
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/brand
+
+ ✓ tests/skills-brand.test.ts (10 tests) 14ms
+ ✓ tests/brand.test.ts (17 tests) 6ms
+ ✓ tests/client-hero.test.ts (11 tests) 7ms
+
+ Test Files  3 passed (3)
+      Tests  38 passed (38)
+   Start at  03:35:44
+   Duration  153ms (transform 80ms, setup 0ms, import 106ms, tests 27ms, environment 0ms)
+
+EXIT=0

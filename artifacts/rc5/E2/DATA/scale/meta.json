@@ -1,0 +1,19 @@
+{
+  "tag": "data-009-scale",
+  "startedAt": "2026-11-20T07:37:17.784Z",
+  "plannedSeconds": 86400,
+  "plannedEndAt": "2026-11-21T07:37:17.784Z",
+  "container": "eterna-rc5-scale",
+  "dataRoot": "/Users/sunny/eterna-data/test-rc5/scale",
+  "base": "http://127.0.0.1:3244",
+  "image": "sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb",
+  "writers": 50,
+  "readIntervalSeconds": 60,
+  "writeIntervalSeconds": 300,
+  "dbIntervalSeconds": 7200,
+  "requirement": "48 §4.5 ≥50 会话 24h + 每 2h 全库 integrity + SQLITE_BUSY/locked 扫描",
+  "logs": {
+    "ticks": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/DATA/scale/ticks.jsonl",
+    "run": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/DATA/scale/run.log"
+  }
+}

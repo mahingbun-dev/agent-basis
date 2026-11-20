@@ -1,0 +1,63 @@
+$ git status --short packages/access
+ M packages/access/package.json
+ M packages/access/src/client/index.tsx
+ M packages/access/src/client/sections.tsx
+ M packages/access/src/client/styles.ts
+ M packages/access/src/market-publish.ts
+ M packages/access/src/mux.ts
+ M packages/access/src/plugin.ts
+ M packages/access/src/routes.ts
+ M packages/access/src/store.ts
+ M packages/access/src/tenant.ts
+ M packages/access/tests/gateway-role-gate.spec.ts
+ M packages/access/tests/market-publish.spec.ts
+ M packages/access/tests/mux-policy.spec.ts
+?? packages/access/src/chat-import.ts
+?? packages/access/src/client/mcp-personal-api.ts
+?? packages/access/src/client/mcp-servers-locales.ts
+?? packages/access/src/client/mcp-servers-model.ts
+?? packages/access/src/client/mcp-servers-section.tsx
+?? packages/access/src/client/settings-nav.ts
+?? packages/access/src/mcp-personal-runtime.ts
+?? packages/access/src/mcp-personal.ts
+?? packages/access/tests/channels-webhook-contract.spec.ts
+?? packages/access/tests/chat-import-gate.spec.ts
+?? packages/access/tests/market-gate-coverage.spec.ts
+?? packages/access/tests/mcp-manager-drift.spec.ts
+?? packages/access/tests/mcp-personal-client.spec.ts
+?? packages/access/tests/mcp-personal-routes.spec.ts
+?? packages/access/tests/mcp-personal-runtime.spec.ts
+?? packages/access/tests/mcp-personal-wiring.spec.ts
+
+$ git diff --stat -- packages/access
+ packages/access/package.json                    |   2 +
+ packages/access/src/client/index.tsx            |  29 +--
+ packages/access/src/client/sections.tsx         |   7 +-
+ packages/access/src/client/styles.ts            | 119 ++++++++++++
+ packages/access/src/market-publish.ts           |   4 +-
+ packages/access/src/mux.ts                      |   9 +
+ packages/access/src/plugin.ts                   |  97 ++++++++++
+ packages/access/src/routes.ts                   |  15 +-
+ packages/access/src/store.ts                    | 238 ++++++++++++++++++++++++
+ packages/access/src/tenant.ts                   |  90 ++++++++-
+ packages/access/tests/gateway-role-gate.spec.ts | 154 ++++++++++++++-
+ packages/access/tests/market-publish.spec.ts    |   6 +-
+ packages/access/tests/mux-policy.spec.ts        |   6 +
+ 13 files changed, 743 insertions(+), 33 deletions(-)
+
+# 硬边界 1:mux.ts / tenant.ts 未被本 lane 改动(其既有改动为 W0/B14 车道内容)
+$ git diff -- packages/access/src/mux.ts packages/access/src/tenant.ts | grep -ci "chat-import\|chatImport"
+0
+
+# 硬边界 2:client/** 未被本 lane 改动。工作树里 client/** 的 M/?? 条目是并行车道(T28 个人层 UI)
+# 于本 lane 开工后写入的(mtime 03:22:26–03:30:32);本 lane 只写过下列四个文件:
+Nov 20 03:33:20 2026 packages/access/src/chat-import.ts
+Nov 20 03:23:58 2026 packages/access/src/plugin.ts
+Nov 20 03:33:27 2026 packages/access/tests/chat-import-gate.spec.ts
+Nov 20 03:30:53 2026 packages/access/tests/market-gate-coverage.spec.ts
+
+# 硬边界 3:生产容器未动(本 lane 全程只跑本地 pnpm/vitest/tsc/oxlint 与 grep)
+$ docker ps --format "{{.Names}} {{.Status}}" | head -5
+eterna-agent Up 2 hours (healthy)
+dsh-daemon Up 34 hours (healthy)
+invest-backend Up 34 hours

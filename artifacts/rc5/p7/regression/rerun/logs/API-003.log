@@ -1,0 +1,4 @@
+$ pnpm --filter @eterna/llm-openai typecheck
+$ tsc -p tsconfig.json --noEmit
+EXIT=0
+

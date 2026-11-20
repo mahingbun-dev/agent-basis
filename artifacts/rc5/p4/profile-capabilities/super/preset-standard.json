@@ -1,0 +1,101 @@
+{
+ "declaredRows": [
+  {
+   "id": "persona"
+  },
+  {
+   "id": "agent-instructions"
+  },
+  {
+   "id": "time-context"
+  },
+  {
+   "id": "tool-bash",
+   "disabled": "process.platform === 'win32'"
+  },
+  {
+   "id": "tool-pwsh",
+   "disabled": "process.platform !== 'win32'"
+  },
+  {
+   "id": "tool-fs"
+  },
+  {
+   "id": "tool-fs-search"
+  },
+  {
+   "id": "tool-jobs"
+  },
+  {
+   "id": "tool-schedule"
+  },
+  {
+   "id": "skill-filesystem"
+  },
+  {
+   "id": "tool-skill"
+  },
+  {
+   "id": "command-goal"
+  },
+  {
+   "id": "tool-goal"
+  },
+  {
+   "id": "plan-mode"
+  },
+  {
+   "id": "stale-tool-result-pruner"
+  },
+  {
+   "id": "compaction-basic"
+  },
+  {
+   "id": "command-compact"
+  },
+  {
+   "id": "tool-result-pruner"
+  },
+  {
+   "id": "tool-subagent-control"
+  },
+  {
+   "id": "tool-subagent"
+  },
+  {
+   "id": "tool-subagent-fork"
+  },
+  {
+   "id": "workflow-ptc",
+   "disabled": true
+  },
+  {
+   "id": "tool-workflow",
+   "disabled": true
+  },
+  {
+   "id": "tool-ask-user"
+  },
+  {
+   "id": "tool-todo"
+  },
+  {
+   "id": "tool-web"
+  },
+  {
+   "id": "present"
+  },
+  {
+   "id": "tool-office"
+  },
+  {
+   "id": "tool-plugin-manager",
+   "disabled": true
+  },
+  {
+   "id": "tool-plugin-market",
+   "disabled": true
+  }
+ ],
+ "drift": []
+}

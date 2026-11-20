@@ -1,0 +1,263 @@
+EternaAgent rc.5 P5 image/deploy static verification
+commit: 02f4857
+branch: feat/dsh-rc5-merge
+date: 2026-11-19T20:39:54Z
+
+=== 1 entrypoint POSIX syntax (dash) ===
+$ sh -n docker/entrypoint.sh
+EXIT=0
+
+=== 2 deploy scripts bash syntax ===
+$ bash -n deploy/init-data-dirs.sh && bash -n deploy/backup-data.sh && bash -n deploy/pre-restart-check.sh
+EXIT=0
+
+=== 3 Dockerfile: only dsh rc.5, no separate mcp-client, no rc.1 workarounds ===
+$ grep -n 'npm i -g' Dockerfile; grep -c 'dsh-mcp-client@' Dockerfile || true; grep -c 'auto_install_peers\|npm_config_verify' Dockerfile || true
+8:#   `<dsh>/node_modules/@deepseek-ai/*`),不再单独 `npm i -g dsh-mcp-client`。
+76:# mcp-client 收敛(T37/T48):内核安装是唯一 @deepseek-ai 来源,不再 `npm i -g
+85: && npm i -g @deepseek-ai/dsh@0.2.2-rc.5 \
+0
+0
+EXIT=0
+
+=== 4 Dockerfile: node>=24.9 assert + rc.5 probe + v1 strip + fonts/python ===
+$ grep -n 'process.versions.node\|0.2.2-rc.5\|rm -rf /repo/core\|fonts-noto-cjk\|python-pptx\|fc-list' Dockerfile
+2:# 全局 dsh 内核(registry 钉版 0.2.2-rc.5,与验收实例同版)+仓库本体。
+6:# - 只装 `@deepseek-ai/dsh@0.2.2-rc.5`——dsh 自身依赖里已带同版 dsh-mcp-client /
+12:# - T41 office:字体 Noto CJK/Liberation/DejaVu + python-docx/openpyxl/python-pptx,
+13:#   构建期探针(`python3 -c 'import docx, openpyxl, pptx'` + `fc-list` 断言)。
+22:RUN node -e 'const [maj, min] = process.versions.node.split(".").map(Number); if (maj < 24 || (maj === 24 && min < 9)) { console.error("[build] FATAL node " + process.versions.node + " < 24.9"); process.exit(1); } console.log("[build] node " + process.versions.node)'
+27:# (此前公网 404 断链的根因);仓库 catalog 与全局内核同为 0.2.2-rc.5,peer 自然满足。
+49:RUN rm -rf /repo/core /repo/basis.yml \
+70:# fontconfig 显式装(--no-install-recommends 下字体包不带 fc-list/缓存)。Python:
+71:# python3-docx/python3-openpyxl 走 Debian 包;python-pptx 在 bookworm 无 apt 包
+81:      fontconfig fonts-noto-cjk fonts-liberation fonts-dejavu-core \
+83: && pip3 install --no-cache-dir --break-system-packages "python-pptx==1.0.2" \
+85: && npm i -g @deepseek-ai/dsh@0.2.2-rc.5 \
+95:# - dsh --version 必须逐字 0.2.2-rc.5;
+100:# - 字体/Python 三库可 import/fc-list。
+103:    [ "$(dsh --version)" = "0.2.2-rc.5" ] || { echo "[build] FATAL dsh --version=$(dsh --version) != 0.2.2-rc.5"; exit 1; }; \
+108:    python3 -c 'import docx, openpyxl, pptx; print("[build] python-docx/openpyxl/python-pptx OK")'; \
+109:    fc-list | grep -qi 'Noto Sans CJK' || { echo "[build] FATAL Noto Sans CJK 字体缺失"; exit 1; }; \
+110:    fc-list | grep -qi 'Liberation' || { echo "[build] FATAL Liberation 字体缺失"; exit 1; }; \
+111:    fc-list | grep -qi 'DejaVu' || { echo "[build] FATAL DejaVu 字体缺失"; exit 1; }; \
+EXIT=0
+
+=== 5 compose base config (default profile) ===
+$ ETERNA_DATA_ROOT=/Users/sunny/eterna-data docker compose -f docker-compose.yml config > /tmp/p5-compose-base.out && grep -c 'eterna-agent-acp' /tmp/p5-compose-base.out || true
+0
+EXIT=0
+
+=== 6 compose base config with acp profile (no ports, stdin_open) ===
+$ ETERNA_DATA_ROOT=/Users/sunny/eterna-data docker compose --profile acp -f docker-compose.yml config > /tmp/p5-compose-acp.out && awk '/eterna-agent-acp:/{f=1} f' /tmp/p5-compose-acp.out | grep -c 'published' || true
+0
+EXIT=0
+
+=== 7 compose base ACP assertions ===
+$ awk '/eterna-agent-acp:/{f=1} f' /tmp/p5-compose-acp.out | grep -E 'profiles:|- acp|container_name|stdin_open|tty|restart|disable: true|source:.*/super'
+    profiles:
+      - acp
+    container_name: eterna-agent-acp
+      disable: true
+    restart: 'no'
+    stdin_open: true
+        source: /Users/sunny/eterna-data/super
+EXIT=0
+
+=== 8 compose fail-closed without ETERNA_DATA_ROOT ===
+$ env -u ETERNA_DATA_ROOT docker compose -f docker-compose.yml config
+error while interpolating services.eterna-agent.volumes.[]: required variable ETERNA_DATA_ROOT is missing a value: set ETERNA_DATA_ROOT in .env (absolute host path)
+EXIT=1
+
+=== 9 compose parameter overrides ===
+$ ETERNA_DATA_ROOT=/tmp/eterna-data ETERNA_CONTAINER_NAME=eterna-agent-test ETERNA_PORT=3108 ETERNA_RELAY_PORT=9318 ETERNA_INSTANCE=test-20261120 docker compose -f docker-compose.yml config | grep -E 'container_name|published|source: /tmp'
+    container_name: eterna-agent-test
+        published: "3108"
+        published: "9318"
+        source: /tmp/eterna-data/test-20261120
+EXIT=0
+
+=== 10 compose super bind root default super-2 ===
+$ ETERNA_DATA_ROOT=/Users/sunny/eterna-data docker compose -f docker-compose.super.yml config | grep -E 'container_name|published|source: /Users|DSH_AGENTS_HOME'
+    container_name: eterna-agent-super
+      DSH_AGENTS_HOME: /data/agents
+        published: "3220"
+        published: "9320"
+        source: /Users/sunny/eterna-data/super-2
+        source: /Users/sunny/code/agent-basis-rc5/docker/profile/cordis.super.patch.yml.template
+EXIT=0
+
+=== 11 init-data-dirs run1+run2 idempotent ===
+$ rm -rf /tmp/p5-data && ETERNA_DATA_ROOT=/tmp/p5-data bash deploy/init-data-dirs.sh super test-20261120 > /tmp/p5-init1.out && ETERNA_DATA_ROOT=/tmp/p5-data bash deploy/init-data-dirs.sh super test-20261120 > /tmp/p5-init2.out && diff /tmp/p5-init1.out /tmp/p5-init2.out && echo IDEMPOTENT
+IDEMPOTENT
+EXIT=0
+
+=== 12 init-data-dirs modes 0700 ===
+$ stat -f '%Sp %N' /tmp/p5-data /tmp/p5-data/super /tmp/p5-data/super/agents /tmp/p5-data/super/access /tmp/p5-data/backups
+drwx------ /tmp/p5-data
+drwx------ /tmp/p5-data/super
+drwx------ /tmp/p5-data/super/agents
+drwx------ /tmp/p5-data/super/access
+drwx------ /tmp/p5-data/backups
+EXIT=0
+
+=== 13 init-data-dirs rejects relative root ===
+$ ETERNA_DATA_ROOT=relative/dir bash deploy/init-data-dirs.sh
+[init-data-dirs] ETERNA_DATA_ROOT 必须是绝对路径（当前: relative/dir）
+EXIT=1
+
+=== 14 init-data-dirs rejects git worktree ===
+$ rm -rf /tmp/p5-gitprobe && mkdir -p /tmp/p5-gitprobe && git -C /tmp/p5-gitprobe init -q && ETERNA_DATA_ROOT=/tmp/p5-gitprobe/data bash deploy/init-data-dirs.sh
+[init-data-dirs] /tmp/p5-gitprobe/data 位于 git 工作树内（/tmp/p5-gitprobe）——数据根不得纳入版本控制（48 §6.4）
+EXIT=1
+
+=== 15 backup-data cold-backup logic (SKIP_STOP, exclusions, 0600) ===
+$ mkdir -p /tmp/p5-data/super/office-kit/outputs /tmp/p5-data/super/.pnpm-store /tmp/p5-data/super/access && echo keep > /tmp/p5-data/super/access/users.db && echo tmp > /tmp/p5-data/super/office-kit/outputs/x.docx && echo store > /tmp/p5-data/super/.pnpm-store/blob && ETERNA_DATA_ROOT=/tmp/p5-data SKIP_STOP=1 bash deploy/backup-data.sh super && TGZ=$(ls /tmp/p5-data/backups/*.tgz | head -1) && tar tzf "$TGZ" | grep -E 'users.db|outputs|pnpm-store' && stat -f '%Sp %N' "$TGZ"
+[backup-data] SKIP_STOP=1：假定容器已是冷态，不执行 stop/start
+[backup-data] 归档: /tmp/p5-data/super -> /tmp/p5-data/backups/super-20261120-043955.tgz
+[backup-data] 校验 OK: 18 文件条目（4.0K）
+[backup-data] 冷备完成: /tmp/p5-data/backups/super-20261120-043955.tgz
+./access/users.db
+-rw------- /tmp/p5-data/backups/super-20261120-043955.tgz
+EXIT=0
+
+=== 16 backup-data missing instance rejected ===
+$ ETERNA_DATA_ROOT=/tmp/p5-data SKIP_STOP=1 bash deploy/backup-data.sh nope
+[backup-data] 实例根不存在: /tmp/p5-data/nope（先跑 deploy/init-data-dirs.sh nope 或检查 ETERNA_DATA_ROOT）
+EXIT=1
+
+=== 17 npm -g dsh rc.5 layout probe (nested mcp-client/acp-app) ===
+$ ls /tmp/dshprobe-rc5/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/ | grep -E 'dsh-mcp-client|dsh-acp-app|dsh-agent-preset' && node -e 'console.log(require("/tmp/dshprobe-rc5/lib/node_modules/@deepseek-ai/dsh/package.json").version, require("/tmp/dshprobe-rc5/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-mcp-client/package.json").version)' && /tmp/dshprobe-rc5/bin/dsh --version && readlink -f /tmp/dshprobe-rc5/bin/dsh
+dsh-acp-app
+dsh-agent-preset
+dsh-agent-preset-registry
+dsh-mcp-client
+0.2.2-rc.5 0.2.2-rc.5
+0.2.2-rc.5
+/private/tmp/dshprobe-rc5/lib/node_modules/@deepseek-ai/dsh/lib/bin.js
+EXIT=0
+
+=== 18 entrypoint: ACP branch and no global exec 1>&2 ===
+$ grep -n 'ETERNA_FORM" = "acp"\|exec dsh --profile\|exec 1>&2\|flock\|mountpoint\|/data 不是挂载点\|DSH_AGENTS_HOME' docker/entrypoint.sh | grep -v '^.*#'
+40:DSH_AGENTS_HOME="${DSH_AGENTS_HOME:-$DSH_HOME/agents}"
+41:export DSH_AGENTS_HOME
+76:  if [ "$ETERNA_FORM" = "acp" ]; then
+88:  printf '%s\n' "[entrypoint] FATAL /data 不是挂载点——数据会落容器层,拒启(48 §6.1)" >&2
+91:log "[entrypoint] /data mountpoint OK (DSH_HOME=$DSH_HOME DSH_AGENTS_HOME=$DSH_AGENTS_HOME)"
+96:mkdir -p "$DSH_AGENTS_HOME"
+97:chmod 700 "$DSH_AGENTS_HOME" 2>/dev/null || true
+98:case "$DSH_AGENTS_HOME" in
+100:  *) log "[entrypoint] WARNING DSH_AGENTS_HOME=$DSH_AGENTS_HOME 不在 $DSH_HOME 下——用户级 AGENTS/skills 可能落容器层" ;;
+169:  if [ "$ETERNA_FORM" = "acp" ]; then
+197:  if [ "$ETERNA_FORM" = "acp" ]; then
+279:  if [ "$ETERNA_FORM" = "acp" ]; then
+360:  if [ "$ETERNA_FORM" = "acp" ]; then
+385:  if [ "$ETERNA_FORM" = "acp" ]; then
+392:if command -v flock >/dev/null 2>&1; then
+394:  flock -x 9
+396:  flock -u 9
+399:  log "[entrypoint] WARNING flock 不可用——profile 渲染无互斥锁(web/ACP 同时首启有竞争风险)"
+428:if [ "$ETERNA_FORM" = "acp" ]; then
+430:  log "[entrypoint] acp:exec dsh --profile $PROFILE_NAME(stdout 保留给 JSON-RPC;日志走 stderr)"
+431:  exec dsh --profile "$PROFILE_NAME" "$@"
+EXIT=0
+
+=== 19 entrypoint: migrate wiring order (prompt -> migrate -> strip) + acp skip ===
+$ grep -n 'migrate-prompt-edits\|migrate-profile-bundles\|migrate-mcp-servers\|profile-upgrade-check\|plugin strip applied' docker/entrypoint.sh
+17:#   提示词工坊托管值(2026-11-18 补:migrate-prompt-edits.mjs)另走基线快照移植
+172:    node /repo/docker/profile/migrate-prompt-edits.mjs \
+192:  #            行时不重复写,防 serverName 双实例;见 migrate-mcp-servers.mjs 头注)。
+201:    if ! node /repo/docker/profile/migrate-profile-bundles.mjs \
+207:      if ! node /repo/docker/profile/migrate-mcp-servers.mjs \
+220:  node /repo/scripts/profile-upgrade-check.mjs "$PROFILE_DIR" \
+249:      console.log("[entrypoint] plugin strip applied:", [...disabled].filter((id) => !redLine.has(id)).join(", ") || "(none)", "| removed:", [...removed].join(", ") || "(none)")
+EXIT=0
+
+=== 20 reverse proxy doc: 512m + read timeout ===
+$ grep -n 'client_max_body_size\|proxy_read_timeout\|proxy_send_timeout' deploy/README.md
+162:client_max_body_size 512m;
+163:proxy_read_timeout 1800s;    # 覆盖一次导入的时长(慢盘/大包)
+164:proxy_send_timeout 1800s;
+215:| chat-import 大包 413/504 | 反代未放开：`client_max_body_size 512m` + `proxy_read_timeout 1800s`（§5） |
+EXIT=0
+
+=== 21 changed file list ===
+$ git status --short Dockerfile docker/entrypoint.sh docker-compose.yml docker-compose.super.yml deploy docs/docker-deploy.md
+ M Dockerfile
+ M deploy/README.md
+ M deploy/env.production.example
+ M deploy/pre-restart-check.sh
+ M docker-compose.super.yml
+ M docker-compose.yml
+ M docker/entrypoint.sh
+ M docs/docker-deploy.md
+?? deploy/backup-data.sh
+?? deploy/init-data-dirs.sh
+EXIT=0
+
+=== 22 dash POSIX syntax (real dash) ===
+$ dash -n docker/entrypoint.sh
+EXIT=0
+
+=== 23 mountpoint predicate unit test (awk from 48 §6.1) ===
+$ printf 'proc /proc proc rw 0 0\n/dev/sda1 /data ext4 rw 0 0\n' | awk '$2 == "/data" { found = 1 } END { exit found ? 0 : 1 }'; echo MOUNTED_RC=$?; printf 'proc /proc proc rw 0 0\n' | awk '$2 == "/data" { found = 1 } END { exit found ? 0 : 1 }'; echo NOT_MOUNTED_RC=$?
+MOUNTED_RC=0
+NOT_MOUNTED_RC=1
+EXIT=0
+
+=== 24 entrypoint fail-closed: no /proc/mounts on host -> FATAL, exit 1 ===
+$ MIMO_API_KEY=dummy dash docker/entrypoint.sh
+[entrypoint] form=base profile=eterna-web template=cordis.patch.yml.template manifest=package.json
+awk: can't open file /proc/mounts
+ source line number 1
+[entrypoint] FATAL /data 不是挂载点——数据会落容器层,拒启(48 §6.1)
+EXIT=1
+
+=== 25 entrypoint invalid ETERNA_FORM fail-closed ===
+$ MIMO_API_KEY=dummy ETERNA_FORM=bogus dash docker/entrypoint.sh
+[entrypoint] ETERNA_FORM 非法值: bogus(仅 base|web|super|acp)——fail-closed 拒启(31 号 §2.5/40 号 S-5)
+EXIT=1
+
+=== 26 ACP mode stdout purity up to precheck (stdout empty, FATAL on stderr) ===
+$ MIMO_API_KEY=dummy ETERNA_FORM=acp dash docker/entrypoint.sh > /tmp/p5-acp-out.txt 2> /tmp/p5-acp-err.txt; echo STDOUT_BYTES=$(wc -c < /tmp/p5-acp-out.txt); grep -c 'FATAL /data 不是挂载点' /tmp/p5-acp-err.txt
+STDOUT_BYTES= 0
+1
+EXIT=0
+
+=== 27 compose tty:false + stdin_open + profiles in source ===
+$ grep -n 'stdin_open: true\|tty: false\|profiles: \["acp"\]\|disable: true' docker-compose.yml
+102:    profiles: ["acp"]
+103:    stdin_open: true
+104:    tty: false
+108:      disable: true
+EXIT=0
+
+=== 28 data-root bind + external volume removed ===
+$ grep -n 'ETERNA_DATA_ROOT\|external: true\|eterna-home' docker-compose.yml docker-compose.super.yml
+docker-compose.yml:6:#      并设 ETERNA_DATA_ROOT=<宿主绝对路径>(48 §5.1;缺省 $HOME/eterna-data)
+docker-compose.yml:19:#   `${ETERNA_DATA_ROOT:?}/<实例>`(默认实例名 super),升级镜像不丢数据。
+docker-compose.yml:28:#   ETERNA_DATA_ROOT       宿主数据区根(必填,绝对路径)
+docker-compose.yml:77:      # 数据根 bind(48 §5.1;T43):宿主 `${ETERNA_DATA_ROOT}/<实例>` 整树挂 /data。
+docker-compose.yml:79:      - ${ETERNA_DATA_ROOT:?set ETERNA_DATA_ROOT in .env (absolute host path)}/${ETERNA_INSTANCE:-super}:/data
+docker-compose.yml:118:      - ${ETERNA_DATA_ROOT:?set ETERNA_DATA_ROOT in .env (absolute host path)}/${ETERNA_INSTANCE:-super}:/data
+docker-compose.super.yml:8:#   - 数据根：bind 目录 `${ETERNA_DATA_ROOT}/<实例>`，与生产根**永不互通**（G4-7）。
+docker-compose.super.yml:15:# 设 ETERNA_DATA_ROOT 后
+docker-compose.super.yml:22:# ETERNA_INSTANCE / ETERNA_DATA_ROOT / ETERNA_IMAGE，语义同 docker-compose.yml。
+docker-compose.super.yml:61:      # 数据根 bind(48 §5.1;T43):`:?` fail-closed，未设 ETERNA_DATA_ROOT 直接拒启。
+docker-compose.super.yml:62:      # 默认实例 super-2 → 与生产根(${ETERNA_DATA_ROOT}/super)分离。
+docker-compose.super.yml:63:      - ${ETERNA_DATA_ROOT:?set ETERNA_DATA_ROOT in .env (absolute host path)}/${ETERNA_INSTANCE:-super-2}:/data
+EXIT=0
+
+=== 29 Dockerfile RUN shell syntax (dash -n per RUN, comments stripped like BuildKit) ===
+$ python3 artifacts/rc5/p5/image-deploy/verify-dockerfile-runs.py Dockerfile
+Dockerfile: instructions=19 RUNs=8
+RUN#1: OK
+RUN#2: OK
+RUN#3: OK
+RUN#4: OK
+RUN#5: OK
+RUN#6: OK
+RUN#7: OK
+RUN#8: OK
+FAILED_RUNS=0
+EXIT=0

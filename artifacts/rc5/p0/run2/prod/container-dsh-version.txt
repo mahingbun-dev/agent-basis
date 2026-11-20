@@ -1,0 +1,9 @@
+{
+  "name": "@deepseek-ai/dsh",
+  "description": "dsh CLI: profile launch, plugin management, and configuration inspection",
+  "version": "0.2.2-alpha.3",
+  "publishConfig": {
+/usr/local/lib/node_modules/@deepseek-ai/dsh
+/usr/local/lib/node_modules/@deepseek-ai/dsh-mcp-client
+0.2.2-alpha.3
+EXIT=0

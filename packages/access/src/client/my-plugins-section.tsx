@@ -4,6 +4,7 @@
  * UI 纪律:ea-* 令牌类(styles.ts)/合并保存思路/两击确认/防重复点击。
  */
 import { useCallback, useEffect, useState } from 'react'
+import type { PluginTabProps, PluginTabUpdate } from '@deepseek-ai/dsh-client-ui-plugin-manager'
 import { ArmedDelete } from './confirm-button.tsx'
 import type { Translate } from './i18n.ts'
 import { postRpc } from './rpc.ts'
@@ -40,15 +41,18 @@ interface NotificationItem {
   read: number
 }
 
-/** 侧栏插件页页签形态(plugins.tab):PluginTabProps 提供页面级 install/openPackage,
- *  本页自有安装/转内置链路不依赖它们——自绘内容即 MyPluginsSection 全量功能。 */
-export function MyPluginsTab(props: {
-  readonly install: (target: unknown) => void
-  readonly openPackage: (name: string) => void
-  readonly t: Translate
-}): React.JSX.Element {
+/** 侧栏插件页页签形态(plugins.tab):owner props 按 rc.5 `PluginTabProps` 全量声明
+ *  (install/update/openPackage 均必填;`update` 为 rc.5 新增项)。
+ *  本页签的个人层插件走自绘目录导入/转内置链路,不依赖页面的安装与 git 更新能力
+ *  ——`update` 只作契约对齐位,不渲染更新入口;`t` 由 slot inject 注入。 */
+export function MyPluginsTab(props: PluginTabProps & { readonly t: Translate }): React.JSX.Element {
   return <MyPluginsSection t={props.t} />
 }
+
+/** 编译期断言(rc.5):页签 props 必须携带必填 `update(target: PluginTabUpdate)`。
+ *  契约影子若漏项/走形,此处先红;仅存在于类型层,不进 bundle。 */
+export type MyPluginsTabCarriesUpdate =
+  Parameters<typeof MyPluginsTab>[0]['update'] extends (target: PluginTabUpdate) => void ? true : false
 
 export function MyPluginsSection(props: { readonly t: Translate }): React.JSX.Element {
   const { t } = props

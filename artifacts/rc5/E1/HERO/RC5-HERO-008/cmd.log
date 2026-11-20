@@ -1,0 +1,12 @@
+# HERO/RC5-HERO-008
+# started 2026-11-20T07:02:52.274Z
+
+$ IAB: 新建会话 → 计数 frame/layer；点击会话列表 treeitem 切回活动会话 → 再计数
+EXIT=0
+{"fresh":{"phase":"hero","frameCount":1,"layerCount":1},"back":{"phase":"active","frameCount":0,"layerCount":0,"brandText":false}}
+
+[ASSERT] 新空白会话：恰好 1 个 hero frame、1 个 layer => PASS
+
+[ASSERT] 切回活动会话：frame/layer 均移除（0） => PASS
+
+[ASSERT] 切回后无品牌标残留 => PASS

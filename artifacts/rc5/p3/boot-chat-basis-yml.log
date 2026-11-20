@@ -1,0 +1,4 @@
+# node v24.18.0
+# env -u LITELLM_API_KEY node core/runtime/bin/basis.mjs chat --bundle basis.yml </dev/null
+basis chat 已就绪(/exit 或 EOF 退出;每行输入 = 一个 turn)
+> EXIT=0

@@ -10,6 +10,7 @@
  * (/api/my-plugins/shared/*),启停即时生效(区别于上方 @eterna 插件的重启语义)。
  */
 import { useCallback, useEffect, useState } from 'react'
+import type { PluginTabProps, PluginTabUpdate } from '@deepseek-ai/dsh-client-ui-plugin-manager'
 import { api, type PluginRowView } from './api.ts'
 import { ArmedDelete } from './confirm-button.tsx'
 import { PLUGIN_META } from './plugin-meta.tsx'
@@ -94,8 +95,16 @@ function Switch(props: {
   </button>
 }
 
-/** 恒灵插件管理页签(Plugins 页 tabs,原生插件页卡片形态)。 */
-export function ManageTab(): React.JSX.Element {
+/** 编译期断言(rc.5):页签 props 必须携带必填 `update(target: PluginTabUpdate)`。
+ *  契约影子若漏项/走形,此处先红;仅存在于类型层,不进 bundle。 */
+export type ManageTabCarriesUpdate =
+  Parameters<typeof ManageTab>[0]['update'] extends (target: PluginTabUpdate) => void ? true : false
+
+/** 恒灵插件管理页签(Plugins 页 tabs,原生插件页卡片形态)。
+ *  owner props 按 rc.5 `PluginTabProps` 全量声明(install/update/openPackage 必填;
+ *  `update` 为 rc.5 新增项)。本页签自绘 @eterna 插件停用/删除链路,不消费页面的
+ *  安装与 git 更新能力,owner props 只作契约对齐位。 */
+export function ManageTab(_props: PluginTabProps): React.JSX.Element {
   const [plugins, setPlugins] = useState<PluginRowView[]>([])
   const [loaded, setLoaded] = useState(false)
   const [busyId, setBusyId] = useState('')

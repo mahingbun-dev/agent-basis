@@ -1,0 +1,31 @@
+# MCPP/RC5-MCPP-023
+# started 2026-11-20T07:05:03.526Z
+
+$ POST /api/mcp-personal/upsert {name:persist-probe,stdio,catalogId:echo}（B）
+EXIT=200
+ok=true serverName=p2_persist-probe
+
+$ POST /api/mcp-personal/list（重启前，dsh+eterna cookie）
+EXIT=200
+items=["p2_persist-probe"]
+
+$ docker restart --time 20 rc5-e2suite
+EXIT=0
+Flag --time has been deprecated, use --timeout instead
+rc5-e2suite
+
+$ docker inspect rc5-e2suite --format {{.State.Health.Status}}
+EXIT=0
+healthy
+
+$ POST /api/mcp-personal/list（重启后，完整 cookie）
+EXIT=200
+items=["p2_persist-probe"] code=-
+
+$ POST /api/mcp-personal/delete（清理 persist-probe）
+EXIT=200
+ok=true
+
+[ASSERT] 重启后 healthy => PASS
+
+[ASSERT] 重启后同一行仍在（完整 cookie） => PASS :: ["p2_persist-probe"]

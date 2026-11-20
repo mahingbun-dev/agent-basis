@@ -1,0 +1,20 @@
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/compaction
+
+ ✓ tests/rc5-semantics.spec.ts > rc.5 批量 append 发布语义(seq/surface) > 发布期 session.seq/surface 已含整批,currentBatchPublication 逐成员;compaction surface 断言通过 5ms
+ ✓ tests/rc5-semantics.spec.ts > rc.5 批量 append 发布语义(seq/surface) > 同一批内的 shadow-price 替换:发布期 surface/replaceGeneration 已是终态 1ms
+ ✓ tests/rc5-semantics.spec.ts > 摘要失败 LlmError.fromFailure(rc.5 语义) > error 终止 → LlmError 原样携带 provider message/code/status/retry/requestId 0ms
+ ✓ tests/rc5-semantics.spec.ts > 摘要失败 LlmError.fromFailure(rc.5 语义) > aborted 终止 → 同一 fromFailure 路径(取消不当普通 Error 泄漏) 0ms
+ ✓ tests/rc5-semantics.spec.ts > fork 种子与压缩 bracket(rc.5 行为对照) > 活 bracket → busy 且零摘要调用(compaction link 已激活) 1ms
+ ✓ tests/rc5-semantics.spec.ts > fork 种子与压缩 bracket(rc.5 行为对照) > 开 turn → busy 且零摘要调用(manual compaction 只收 idle 会话) 0ms
+ ✓ tests/rc5-semantics.spec.ts > fork 种子与压缩 bracket(rc.5 行为对照) > reload 后 end-seed 晚于孤儿 compaction/start → bracket 视为陈旧,压缩成功 1ms
+ ✓ tests/rc5-semantics.spec.ts > fork 种子与压缩 bracket(rc.5 行为对照) > fork 种子切开 turn 内活 bracket → 子会话 bracket 陈旧,压缩成功 1ms
+ ✓ tests/rc5-semantics.spec.ts > tool-result-pruner 行为对照(rc.5 同口径) > head/tail 按码点裁剪且不切代理对(与 rc.5 逐字公式一致) 0ms
+ ✓ tests/rc5-semantics.spec.ts > tool-result-pruner 行为对照(rc.5 同口径) > 非文本块原序保留,移除区间两侧文本按预算保留 0ms
+ ✓ tests/rc5-semantics.spec.ts > tool-result-pruner 行为对照(rc.5 同口径) > 会话事务:shadow-price 紧邻替换、完整 data 保留、引用被替换 seq、二次收敛 1ms
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+   Start at  03:13:09
+   Duration  165ms (transform 42ms, setup 0ms, import 65ms, tests 13ms, environment 0ms)
+

@@ -1,0 +1,10 @@
+# BOOT/RC5-BOOT-009
+# started 2026-11-20T07:02:32.644Z
+
+$ docker run -d … rc5-e1suite-boot8（用户 opt-out 后再启）
+EXIT=0
+before=5 after=5 health=healthy
+
+[ASSERT] opt-out 项未被回加 => PASS :: terminalBundle=true
+
+[ASSERT] marker 仍记录该默认项 => PASS :: marker 含 terminal=true

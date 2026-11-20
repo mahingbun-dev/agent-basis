@@ -1,0 +1,3 @@
+[FAIL] E3-PREP :: 18/19 assertions
+  FAIL 生产容器未重启/未换容器（ID+StartedAt+RestartCount 与基线一致） :: before=[] now=[ID=492c35a4d450fddd1e65c993e4237e14fb497499e9fb077095dec796786fae7c StartedAt=2026-11-19T17:21:06.582265918Z RestartCount=0 Image=eterna-agent:0.1.51]
+EXIT=1

@@ -1,0 +1,205 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 14.49kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/node:24-bookworm-slim
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 566B done
+#3 DONE 0.0s
+
+#4 [build 1/7] FROM docker.io/library/node:24-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54
+#4 resolve docker.io/library/node:24-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 271.16kB 0.1s done
+#5 DONE 0.1s
+
+#6 [build 2/7] RUN corepack enable
+#6 CACHED
+
+#7 [build 3/7] WORKDIR /repo
+#7 CACHED
+
+#8 [build 4/7] COPY . .
+#8 DONE 0.5s
+
+#9 [build 5/7] RUN node -e 'const [maj, min] = process.versions.node.split(".").map(Number); if (maj < 24 || (maj === 24 && min < 9)) { console.error("[build] FATAL node " + process.versions.node + " < 24.9"); process.exit(1); } console.log("[build] node " + process.versions.node)'
+#9 0.185 [build] node 24.22.3
+#9 DONE 0.2s
+
+#10 [build 6/7] RUN --mount=type=cache,target=/var/cache/apt,sharing=locked     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked     --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked     set -eu;     export DEBIAN_FRONTEND=noninteractive;     if [ -n "" ]; then       echo "[build] DEBIAN_MIRROR=";       for f in /etc/apt/sources.list /etc/apt/sources.list.d/debian.sources; do         if [ -f "$f" ]; then sed -i "s|http://deb.debian.org||g" "$f"; fi;       done;     fi;     retry() { n=0; until "$@" </dev/null; do n=$((n + 1)); if [ "${n}" -ge 3 ]; then echo "[build] FATAL retry exhausted: $*" >&2; return 1; fi; echo "[build] retry ${n}/3 after failure: $*" >&2; sleep 5; done; };     apt_get() { apt-get -o Acquire::Retries=6 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 "$@"; };     retry apt_get update;     retry apt_get install -y --no-install-recommends zip;     retry pnpm install --frozen-lockfile;     sh -c 'for d in /repo/packages/*/; do if [ -f "$d/scripts/build-client.mjs" ]; then (cd "$d" && node scripts/build-client.mjs); fi; done';     sh -c 'cd /repo/packages/browser-relay && node build.mjs && cd /repo/packages/extension-companion && node build.mjs';     sh -c 'cd /repo/packages/llm-openai && ./node_modules/.bin/tsc -p tsconfig.build.json';     sh -c 'cd /repo/packages/knowledge-admin && ./node_modules/.bin/tsc -p tsconfig.build.json'
+#10 0.340 Hit:1 http://deb.debian.org/debian bookworm InRelease
+#10 0.395 Hit:2 http://deb.debian.org/debian bookworm-updates InRelease
+#10 0.456 Hit:3 http://deb.debian.org/debian-security bookworm-security InRelease
+#10 0.479 Reading package lists...
+#10 0.739 Reading package lists...
+#10 0.954 Building dependency tree...
+#10 1.005 Reading state information...
+#10 1.068 Recommended packages:
+#10 1.068   unzip
+#10 1.077 The following NEW packages will be installed:
+#10 1.077   zip
+#10 1.211 0 upgraded, 1 newly installed, 0 to remove and 0 not upgraded.
+#10 1.211 Need to get 223 kB of archives.
+#10 1.211 After this operation, 817 kB of additional disk space will be used.
+#10 1.211 Get:1 http://deb.debian.org/debian-security bookworm-security/main arm64 zip arm64 3.0-13+deb12u1 [223 kB]
+#10 1.284 debconf: delaying package configuration, since apt-utils is not installed
+#10 1.295 Fetched 223 kB in 0s (1679 kB/s)
+#10 1.305 Selecting previously unselected package zip.
+#10 1.305 (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6090 files and directories currently installed.)
+#10 1.316 Preparing to unpack .../zip_3.0-13+deb12u1_arm64.deb ...
+#10 1.317 Unpacking zip (3.0-13+deb12u1) ...
+#10 1.335 Setting up zip (3.0-13+deb12u1) ...
+#10 1.385 ! Corepack is about to download https://registry.npmjs.org/pnpm/-/pnpm-11.7.0.tgz
+#10 2.206 Scope: all 40 workspace projects
+#10 2.287 ? Verifying lockfile against supply-chain policies (895 entries)...
+#10 2.292 Lockfile is up to date, resolution step is skipped
+#10 2.365 Progress: resolved 1, reused 0, downloaded 0, added 0
+#10 2.488 Packages: +751
+#10 2.488 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#10 3.337 
+#10 3.337    ╭───────────────────────────────────────────────╮
+#10 3.337    │                                               │
+#10 3.337    │      Update available! 11.7.0 → 12.21.0.      │
+#10 3.337    │     Changelog: https://pnpm.io/v/12.21.0      │
+#10 3.337    │   To update, run: corepack use pnpm@12.21.0   │
+#10 3.337    │                                               │
+#10 3.337    ╰───────────────────────────────────────────────╯
+#10 3.337 
+#10 3.365 Progress: resolved 751, reused 751, downloaded 0, added 85
+#10 4.368 Progress: resolved 751, reused 751, downloaded 0, added 262
+#10 5.392 ✓ Lockfile passes supply-chain policies (895 entries in 3.1s)
+#10 5.392 Progress: resolved 751, reused 751, downloaded 0, added 388
+#10 6.391 Progress: resolved 751, reused 751, downloaded 0, added 553
+#10 7.392 Progress: resolved 751, reused 751, downloaded 0, added 750
+#10 7.475 Progress: resolved 751, reused 751, downloaded 0, added 751, done
+#10 8.612 .../node_modules/protobufjs postinstall$ node scripts/postinstall
+#10 8.613 .../node_modules/node-pty install$ node scripts/prebuild.js || node-gyp rebuild
+#10 8.613 .../.pnpm/koffi@3.1.1/node_modules/koffi install$ node ./cnoke.cjs -P . -D src/koffi --prebuild --release
+#10 8.645 .../node_modules/node-pty install: [32m> Checking prebuilds...[0m
+#10 8.647 .../node_modules/protobufjs postinstall: Done
+#10 8.650 .../node_modules/node-pty install: Done
+#10 8.651 .../node_modules/node-pty postinstall$ node scripts/post-install.js
+#10 8.683 .../node_modules/node-pty postinstall: [32m> Cleaning release folder...[0m
+#10 8.684 .../node_modules/node-pty postinstall: [32m> Moving conpty.dll...[0m
+#10 8.684 .../node_modules/node-pty postinstall:   SKIPPED (not Windows)
+#10 8.684 .../node_modules/node-pty postinstall: Done
+#10 8.692 .../.pnpm/koffi@3.1.1/node_modules/koffi install: Done
+#10 8.777 .../node_modules/@google/genai preinstall$ echo 'preinstall: no-op'
+#10 8.788 .../node_modules/@google/genai preinstall: preinstall: no-op
+#10 8.789 .../node_modules/@google/genai preinstall: Done
+#10 8.789 .../@deepseek-ai/dsh-subprocess-local postinstall$ node scripts/ensure-spawn-helper.mjs
+#10 8.827 .../@deepseek-ai/dsh-subprocess-local postinstall: Done
+#10 9.629 
+#10 9.629 devDependencies:
+#10 9.629 + @deepseek-ai/dsh 0.2.2-rc.5
+#10 9.629 + @deepseek-ai/dsh-sdk-client 0.2.2-rc.5
+#10 9.629 + @stylistic/eslint-plugin 5.10.0
+#10 9.629 + @types/node 24.19.2
+#10 9.629 + eslint-plugin-sonarjs 4.2.2
+#10 9.629 + oxlint 1.81.0
+#10 9.629 + oxlint-tsgolint 7.0.2001
+#10 9.629 + typescript 6.0.3
+#10 9.629 + vitest 4.1.12
+#10 9.629 
+#10 10.30 Done in 8.4s using pnpm v11.7.0
+#10 10.38 
+#10 10.38   lib/client.js  309.7kb
+#10 10.38 
+#10 10.38 ⚡ Done in 12ms
+#10 10.40 
+#10 10.40   lib/client.js  71.9kb
+#10 10.40 
+#10 10.40 ⚡ Done in 4ms
+#10 10.43 
+#10 10.43   lib/client.js  72.4kb
+#10 10.43 
+#10 10.43 ⚡ Done in 3ms
+#10 10.46 
+#10 10.46   lib/client.js  96.6kb
+#10 10.46 
+#10 10.46 ⚡ Done in 4ms
+#10 10.49 [build-client] ok /repo/packages/knowledge-admin/lib/client.js (66531 bytes)
+#10 10.51 
+#10 10.51   lib/client.js  61.1kb
+#10 10.51 
+#10 10.51 ⚡ Done in 3ms
+#10 10.54 
+#10 10.54   lib/client.js  136.3kb
+#10 10.54 
+#10 10.54 ⚡ Done in 6ms
+#10 10.57 
+#10 10.57   lib/client.js  161.5kb
+#10 10.57 
+#10 10.57 ⚡ Done in 5ms
+#10 10.60 
+#10 10.60   lib/client.js  303.6kb
+#10 10.60 
+#10 10.60 ⚡ Done in 10ms
+#10 10.63 
+#10 10.63   lib/client.js  145.3kb
+#10 10.63 
+#10 10.63 ⚡ Done in 6ms
+#10 10.66 
+#10 10.66   lib/client.js  83.9kb
+#10 10.66 
+#10 10.66 ⚡ Done in 5ms
+#10 10.69 
+#10 10.69   lib/client.js  273.5kb
+#10 10.69 
+#10 10.69 ⚡ Done in 9ms
+#10 10.71 
+#10 10.71   dist/cli.mjs  55.1kb
+#10 10.71   dist/mcp.mjs   9.2kb
+#10 10.71 
+#10 10.71 ⚡ Done in 4ms
+#10 10.72 relay dist 已生成
+#10 10.74 
+#10 10.74   dist/background.js  10.5kb
+#10 10.74   dist/options.js      2.6kb
+#10 10.74 
+#10 10.74 ⚡ Done in 2ms
+#10 10.74 extension dist 已生成
+#10 10.74 zip 已生成: /repo/packages/extension-companion/eterna-companion.zip
+#10 DONE 12.2s
+
+#11 [build 7/7] RUN rm -rf /repo/core /repo/basis.yml       /repo/packages/system-prompt /repo/packages/session /repo/packages/tools       /repo/packages/llm /repo/packages/approval-cli /repo/packages/agent-loop  && test ! -e /repo/core  && test ! -e /repo/basis.yml  && for p in system-prompt session tools llm approval-cli agent-loop; do       test ! -e "/repo/packages/$p" || { echo "[build] FATAL v1 包未剥离: $p"; exit 1; };     done  && echo "[build] v1 stripped: core/, basis.yml, 6 @basis packages"
+#11 0.330 [build] v1 stripped: core/, basis.yml, 6 @basis packages
+#11 DONE 0.3s
+
+#12 [stage-1 2/7] RUN --mount=type=cache,target=/var/cache/apt,sharing=locked     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked     --mount=type=cache,target=/root/.cache/pip,sharing=locked     --mount=type=cache,target=/root/.npm,sharing=locked     set -eu;     export DEBIAN_FRONTEND=noninteractive;     if [ -n "" ]; then       echo "[build] DEBIAN_MIRROR=";       for f in /etc/apt/sources.list /etc/apt/sources.list.d/debian.sources; do         if [ -f "$f" ]; then sed -i "s|http://deb.debian.org||g" "$f"; fi;       done;     fi;     retry() { n=0; until "$@" </dev/null; do n=$((n + 1)); if [ "${n}" -ge 3 ]; then echo "[build] FATAL retry exhausted: $*" >&2; return 1; fi; echo "[build] retry ${n}/3 after failure: $*" >&2; sleep 5; done; };     apt_get() { apt-get -o Acquire::Retries=6 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 "$@"; };     retry apt_get update;     retry apt_get install -y --no-install-recommends       python3 make g++ curl git ca-certificates       fontconfig fonts-noto-cjk fonts-liberation fonts-dejavu-core       python3-pip python3-docx python3-openpyxl;     retry pip3 install --break-system-packages --retries 10 --timeout 60 "python-pptx==1.0.2";     retry npm i -g --fetch-retries=5 --fetch-retry-maxtimeout=120000 @deepseek-ai/dsh@0.2.2-rc.5;     corepack enable;     retry corepack prepare pnpm@11.7.0 --activate
+#12 CACHED
+
+#13 [stage-1 3/7] RUN set -eu;     DSH_PKG="$(dirname "$(dirname "$(readlink -f "$(command -v dsh)")")")";     [ "$(dsh --version)" = "0.2.2-rc.5" ] || { echo "[build] FATAL dsh --version=$(dsh --version) != 0.2.2-rc.5"; exit 1; };     test -f "$DSH_PKG/node_modules/@deepseek-ai/dsh-mcp-client/package.json" || { echo "[build] FATAL dsh-mcp-client 不在 $DSH_PKG/node_modules/@deepseek-ai/"; exit 1; };     test -d "$DSH_PKG/node_modules/@deepseek-ai/dsh-acp-app" || { echo "[build] FATAL dsh-acp-app 缺失(ACP profile 不可 boot)"; exit 1; };     node -e 'const root = process.argv[1]; const kernel = require(root + "/package.json").version; const mcp = require(root + "/node_modules/@deepseek-ai/dsh-mcp-client/package.json").version; if (kernel !== mcp) { console.error("[build] FATAL mcp-client " + mcp + " != dsh " + kernel); process.exit(1); } console.log("[build] mcp-client " + mcp + " == dsh " + kernel)' "$DSH_PKG";     command -v flock >/dev/null || { echo "[build] FATAL flock 缺失(entrypoint 渲染锁)"; exit 1; };     python3 -c 'import docx, openpyxl, pptx; print("[build] python-docx/openpyxl/python-pptx OK")';     fc-list | grep -qi 'Noto Sans CJK' || { echo "[build] FATAL Noto Sans CJK 字体缺失"; exit 1; };     fc-list | grep -qi 'Liberation' || { echo "[build] FATAL Liberation 字体缺失"; exit 1; };     fc-list | grep -qi 'DejaVu' || { echo "[build] FATAL DejaVu 字体缺失"; exit 1; };     echo "[build] probes OK: dsh $DSH_PKG"
+#13 CACHED
+
+#14 [stage-1 4/7] COPY --from=build /repo /repo
+#14 DONE 5.5s
+
+#15 [stage-1 5/7] RUN test ! -e /repo/core && test ! -e /repo/basis.yml  && for p in system-prompt session tools llm approval-cli agent-loop; do test ! -e "/repo/packages/$p" || exit 1; done
+#15 DONE 0.3s
+
+#16 [stage-1 6/7] COPY docker/entrypoint.sh /app/entrypoint.sh
+#16 DONE 0.0s
+
+#17 [stage-1 7/7] RUN chmod +x /app/entrypoint.sh && mkdir -p /data
+#17 DONE 0.2s
+
+#18 exporting to image
+#18 exporting layers
+#18 exporting layers 15.4s done
+#18 exporting manifest sha256:82f63c4485676c947f963e2af06ddd2b8a698401a516c94098bb687d74245995 done
+#18 exporting config sha256:5c3efe00bd7d6ec801faa4bc73b7bce9d37c55763a9e38edb2f8b7e73d9a38a0 done
+#18 exporting attestation manifest sha256:f38c30812ea4ca95ee9e82d36983ceac7ed76684ad5ce58d975f20dd5ebbb606 done
+#18 exporting manifest list sha256:0364ff86c91e800fa889f969dcbab6670b6e5a2e3c1ebdba5ead45d0cc3825d4 done
+#18 naming to docker.io/library/eterna-agent:rc5-p5-repair done
+#18 unpacking to docker.io/library/eterna-agent:rc5-p5-repair
+#18 unpacking to docker.io/library/eterna-agent:rc5-p5-repair 5.8s done
+#18 DONE 21.3s
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/tlyzjbc4k76nfgxj6mp960in0

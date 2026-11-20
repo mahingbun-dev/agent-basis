@@ -1,0 +1,12 @@
+npm warn Unknown project config "verify-deps-before-run". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown project config "verifyDepsBeforeRun". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/brand
+
+ ✓ tests/brand.test.ts (17 tests) 5ms
+
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+   Start at  02:45:53
+   Duration  119ms (transform 19ms, setup 0ms, import 26ms, tests 5ms, environment 0ms)
+

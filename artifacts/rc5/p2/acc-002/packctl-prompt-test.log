@@ -1,0 +1,26 @@
+# T17 packctl 测试(ACC-002)
+# cmd: pnpm --filter @eterna/packctl test
+# cwd: /Users/sunny/code/agent-basis-rc5
+# head: 02f4857
+# date: 2026-11-19T18:11:04Z
+$ vitest run
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/tools/packctl
+
+ ✓ tests/tenant.spec.ts (12 tests) 22ms
+ ✓ tests/golden.spec.ts (12 tests) 21ms
+ ✓ tests/skills.spec.ts (8 tests) 24ms
+ ✓ tests/structure.spec.ts (7 tests) 41ms
+ ✓ tests/init.spec.ts (9 tests) 69ms
+ ✓ tests/cli.spec.ts (8 tests) 49ms
+ ✓ tests/badpacks.spec.ts (9 tests) 83ms
+ ✓ tests/cordis.spec.ts (15 tests) 3ms
+ ✓ tests/prompt.spec.ts (11 tests) 161ms
+ ✓ tests/form.spec.ts (14 tests) 228ms
+
+ Test Files  10 passed (10)
+      Tests  105 passed (105)
+   Start at  02:11:04
+   Duration  524ms (transform 526ms, setup 0ms, import 939ms, tests 701ms, environment 1ms)
+
+# EXIT=0

@@ -1,0 +1,6 @@
+src/mcp-personal.ts(552,9): error TS6133: 'rowOwned' is declared but its value is never read.
+src/mcp-personal.ts(558,61): error TS6133: 'caller' is declared but its value is never read.
+src/store.ts(817,18): error TS6133: 'userId' is declared but its value is never read.
+src/store.ts(822,25): error TS6133: 'userId' is declared but its value is never read.
+src/store.ts(827,16): error TS6133: 'userId' is declared but its value is never read.
+src/store.ts(827,32): error TS6133: 'id' is declared but its value is never read.

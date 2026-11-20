@@ -35,3 +35,7 @@ docs/dev
 # 门禁证据与截图(镜像不需要)
 acceptance/
 gui-test-screenshots/
+artifacts/
+# 测试代码与夹具(镜像只带运行态源码/构建产物;排除后镜像内无测试口令与凭证夹具)
+**/tests
+tests

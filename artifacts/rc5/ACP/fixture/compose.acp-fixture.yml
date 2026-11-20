@@ -1,0 +1,13 @@
+# E4 ACP 测试夹具 override（仅 artifacts/rc5/ACP/**；不入镜像、不改主 compose）。
+#
+# - 把 ACP patch 模板换成 local-fixture 版：llm-pi-ai 的 MiMo 直连路由改指宿主机
+#   假模型服务器（host.docker.internal:18080），其余行逐字来自仓库模板。
+# - extra_hosts 只在 Linux 需要；macOS Docker Desktop 本身即有 host.docker.internal。
+services:
+  eterna-agent-acp:
+    volumes:
+      - /Users/sunny/code/agent-basis-rc5/artifacts/rc5/ACP/fixture/cordis.acp.fixture.yml.template:/repo/docker/profile/cordis.acp.patch.yml.template:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      ACP_FIXTURE_API_KEY: ${ACP_FIXTURE_API_KEY:-acp-fixture-local-key}

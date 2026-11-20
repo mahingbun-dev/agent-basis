@@ -1,0 +1,21 @@
+# T39 / 51 §3.12 RC5-CMD-001 — `/` 命令面板可见、rc.5 命令齐全
+# 工作树: /Users/sunny/code/agent-basis-rc5 (feat/dsh-rc5-merge)
+# 时间: 2026-11-20
+# 形态: 本地真 boot eterna-web profile(临时 DSH_HOME, --port 0) + Chromium 登录
+
+[1] node artifacts/rc5/p4/commands/T39-MODEL/run-ui.mjs
+EXIT=0
+断言(browser-assertions.json):
+- slash-menu-visible: 29 rows
+- slash-menu-host-commands: 目标goal / 计划plan / 反馈feedback / 压缩compact / 下载日志export 均在
+- slash-menu-permission-filtered: 菜单无 permission(access pages/list 重写按设计滤除;主机目录仍有)
+- slash-menu-compact-single: "压缩compact压缩以上对话内容" 恰 1 行
+- slash-menu-model-single: "模型model选择本会话使用的模型" 恰 1 行
+- slash-menu-unique-ids: 29 行 id 唯一
+截图: slash-menu.png(命令面板实拍;指令区含 压缩/模型/下载日志)
+
+[2] 主机目录同源核对(活体 probe): 见 ../RC5-CMD-002/probe.stdout.log
+names = ["compact","export","feedback","goal","permission","plan"], commandCount=6, duplicateNames=[]
+→ 菜单 = 主机 6 条中 permission 被 access 滤除后的 5 条 + 客户端 model + skills
+
+结论: PASS(客户端菜单可见、rc.5 六条首方命令在主机目录齐全;permission 的菜单缺席为既有 access 设计)

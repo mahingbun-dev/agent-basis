@@ -1,0 +1,43 @@
+$ git status --short packages/brand/skills
+ D packages/brand/skills/agent-experience/SKILL.md
+ D packages/brand/skills/cordis-composition-reference/SKILL.md
+ D packages/brand/skills/cordis-composition-reference/references/packages.md
+ D packages/brand/skills/cordis-plugin-development/SKILL.md
+ D packages/brand/skills/cordis-plugin-development/references/host-plugin.md
+ D packages/brand/skills/cordis-plugin-development/references/mcp-bundle.md
+ D packages/brand/skills/cordis-plugin-development/references/personal-tools.md
+ D packages/brand/skills/cordis-plugin-development/references/practices.md
+ D packages/brand/skills/cordis-plugin-development/references/ui-plugin.md
+ D packages/brand/skills/cordis-plugin-development/references/user-actions.md
+ D packages/brand/skills/cordis-plugin-development/references/verification.md
+ D packages/brand/skills/cordis-plugin-development/templates/decoration/client.js
+ D packages/brand/skills/cordis-plugin-development/templates/decoration/cordis.patch.yml
+ D packages/brand/skills/cordis-plugin-development/templates/decoration/icon.svg
+ D packages/brand/skills/cordis-plugin-development/templates/decoration/index.js
+ D packages/brand/skills/cordis-plugin-development/templates/decoration/locale/de.json
+ D packages/brand/skills/cordis-plugin-development/templates/decoration/locale/en.json
+ D packages/brand/skills/cordis-plugin-development/templates/decoration/locale/es.json
+ D packages/brand/skills/cordis-plugin-development/templates/decoration/locale/fr.json
+ D packages/brand/skills/cordis-plugin-development/templates/decoration/locale/ja.json
+ D packages/brand/skills/cordis-plugin-development/templates/decoration/locale/pt.json
+ D packages/brand/skills/cordis-plugin-development/templates/decoration/locale/ru.json
+ D packages/brand/skills/cordis-plugin-development/templates/decoration/package.json
+ D packages/brand/skills/cordis-plugin-development/templates/mcp/cordis.patch.yml
+ D packages/brand/skills/cordis-plugin-development/templates/mcp/icon.svg
+ D packages/brand/skills/cordis-plugin-development/templates/mcp/locale/de.json
+ D packages/brand/skills/cordis-plugin-development/templates/mcp/locale/en.json
+ D packages/brand/skills/cordis-plugin-development/templates/mcp/locale/es.json
+ D packages/brand/skills/cordis-plugin-development/templates/mcp/locale/fr.json
+ D packages/brand/skills/cordis-plugin-development/templates/mcp/locale/ja.json
+ D packages/brand/skills/cordis-plugin-development/templates/mcp/locale/pt.json
+ D packages/brand/skills/cordis-plugin-development/templates/mcp/locale/ru.json
+ D packages/brand/skills/cordis-plugin-development/templates/mcp/package.json
+ D packages/brand/skills/cordis-plugin-development/templates/personal-tool/index.js
+ D packages/brand/skills/cordis-plugin-development/templates/personal-tool/package.json
+ D packages/brand/skills/editing-cordis-compositions/SKILL.md
+?? packages/brand/skills/dsh-doc/
+
+$ git status --short packages/brand
+ M packages/brand/tests/brand.test.ts
+?? packages/brand/skills/dsh-doc/
+?? packages/brand/tests/skills-brand.test.ts

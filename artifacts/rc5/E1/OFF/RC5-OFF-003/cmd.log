@@ -1,0 +1,10 @@
+# OFF/RC5-OFF-003
+# started 2026-11-20T07:03:23.856Z
+
+$ docker exec rc5-e1suite node /tmp/office/probe.mjs（pptx convert + renderImages page1）
+EXIT=0
+backend=wasm pageCount=2 missingFonts=["Arial"]
+
+[ASSERT] pptx → pdf 成功 => PASS
+
+[ASSERT] 首屏版式不崩（标题/副标题居中，中文可读） => PASS :: sample-pptx-page1.png

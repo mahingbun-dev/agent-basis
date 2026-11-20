@@ -47,9 +47,9 @@ describe('access 路由核心', () => {
       dataDir: dir,
       provisionWorkspace: async (user) => { provisioned.push(user) },
     }
-    const admin = store.createUserWithSuffix({ account: 'Mr.Ma', password: 'MqbSunny0702', role: 'admin' })
+    const admin = store.createUserWithSuffix({ account: 'Mr.Ma', password: 'Test-only-pass-9', role: 'admin' })
     adminId = admin.user.id
-    adminCookie = login('Mr.Ma', 'MqbSunny0702')
+    adminCookie = login('Mr.Ma', 'Test-only-pass-9')
   })
   afterEach(() => {
     store.close()
@@ -103,7 +103,7 @@ describe('access 路由核心', () => {
     const failEvent = auditEvents.find(e => e.kind === 'access.login' && e.ok === false)
     expect(failEvent?.account).toBe('ghost')
     const good = handleAccessRequest(deps, req({
-      method: 'POST', pathname: '/login', contentType: 'application/json', body: Buffer.from(JSON.stringify({ account: 'Mr.Ma', password: 'MqbSunny0702' })),
+      method: 'POST', pathname: '/login', contentType: 'application/json', body: Buffer.from(JSON.stringify({ account: 'Mr.Ma', password: 'Test-only-pass-9' })),
     }))
     expect(good.status).toBe(200)
     expect(JSON.parse(good.body as string)).toHaveProperty('redirect')
@@ -143,7 +143,7 @@ describe('access 路由核心', () => {
   })
 
   it('变更类同源闸:外来 Origin 与 Origin: null 一律 403;缺省放行', () => {
-    const base = { method: 'POST', pathname: '/login', body: Buffer.from('{"account":"Mr.Ma","password":"MqbSunny0702"}'), contentType: 'application/json' }
+    const base = { method: 'POST', pathname: '/login', body: Buffer.from('{"account":"Mr.Ma","password":"Test-only-pass-9"}'), contentType: 'application/json' }
     expect(handleAccessRequest(deps, req({ ...base, origin: 'http://evil.example' })).status).toBe(403)
     expect(handleAccessRequest(deps, req({ ...base, origin: 'null' })).status).toBe(403)
     expect(handleAccessRequest(deps, req({ ...base, origin: 'http://localhost:3210', contentType: 'application/json' })).status).toBe(200)
@@ -156,7 +156,7 @@ describe('access 路由核心', () => {
       session: new SessionService(Buffer.from('test-secret-test-secret-test-s'), { secure: true }),
       publicOrigin: 'https://eternity-electricity.cn',
     }
-    const base = { method: 'POST', pathname: '/login', contentType: 'application/json', body: Buffer.from(JSON.stringify({ account: 'Mr.Ma', password: 'MqbSunny0702' })), host: 'eternity-electricity.cn' }
+    const base = { method: 'POST', pathname: '/login', contentType: 'application/json', body: Buffer.from(JSON.stringify({ account: 'Mr.Ma', password: 'Test-only-pass-9' })), host: 'eternity-electricity.cn' }
     const attempt = (origin: string): AccessReply => handleAccessRequest(deps, req({ ...base, origin }))
     expect(attempt('https://eternity-electricity.cn').status).toBe(200)
     expect(attempt('http://eternity-electricity.cn').status).toBe(403)
@@ -202,7 +202,7 @@ describe('access 路由核心', () => {
     expect(bad.status).toBe(400)
     const ok = handleAccessRequest(deps, req({
       method: 'POST', pathname: '/access/api/password', cookie: adminCookie,
-      body: Buffer.from(JSON.stringify({ oldPassword: 'MqbSunny0702', newPassword: 'NewPassword9' })),
+      body: Buffer.from(JSON.stringify({ oldPassword: 'Test-only-pass-9', newPassword: 'NewPassword9' })),
     }))
     expect(ok.status).toBe(200)
     const newCookie = cookieOf(ok)

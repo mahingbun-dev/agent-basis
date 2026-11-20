@@ -1,0 +1,55 @@
+# MCPP/RC5-MCPP-018
+# started 2026-11-20T05:53:18.466Z
+
+$ pnpm --filter @eterna/access exec vitest run tests/mcp-personal-runtime.spec.ts -t personalMcpClientInput
+EXIT=0
+ ✓ tests/mcp-personal-runtime.spec.ts (16 tests | 15 skipped) 58ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 15 skipped (16)
+   Start at  13:53:19
+   Duration  335ms (transform 63ms, setup 0ms, import 167ms, tests 58ms, environment 0ms)
+
+$ POST /api/mcp-personal/catalog（B）
+EXIT=200
+items=["echo","hung","flaky"]
+
+$ POST /api/mcp-personal/upsert {name:flaky,stdio,catalogId:flaky}（B）
+EXIT=200
+ok=true serverName=p2_flaky code=- msg=
+
+$ POST /api/session/prompt（基线 echo，假模型）
+EXIT=200
+absent=false echoed=true failure=
+
+$ POST /api/session/prompt（掉线后重连窗口内再调）
+EXIT=200
+elapsedMs=4135 rows=[{"absent":false,"echoed":false},{"absent":false,"echoed":true}]
+
+$ POST /api/session/prompt（20s 后检查工具是否注销）
+EXIT=200
+elapsedMs=20294 absent=true echoed=false failure=
+
+$ POST /api/mcp-personal/delete（清理 flaky）
+EXIT=200
+ok=true
+
+$ POST /api/mcp-personal/upsert {name:recovered,catalogId:echo}（恢复用）
+EXIT=200
+ok=true serverName=p2_recovered
+
+$ 新会话 + 假模型 echo（恢复验证）
+EXIT=200
+recovered=true records=2
+
+[ASSERT] 配置腿：personalMcpClientInput 下传 reconnect{enabled,maxAttempts:3} => PASS ::       Tests  1 passed | 15 skipped (16)    Start at  13:53:19    Duration  335ms (transform 63ms, setup 0ms, import 167ms, tests 58ms, environment 0ms)
+
+[ASSERT] 前置：目录含 flaky（自退出 stdio）与 echo => PASS :: ["echo","hung","flaky"]
+
+[ASSERT] 基线：断线前 echo 工具可用 => PASS
+
+[ASSERT] 掉线后工具重新可用（重连并重新注册工具） => PASS :: [{"absent":false,"echoed":false},{"absent":false,"echoed":true}]
+
+[ASSERT] 20s 时工具已注销（3 次上限后 give-up，非 10 次/无限） => PASS :: absent=true echoed=false
+
+[ASSERT] give-up 后新会话挂载 echo 即恢复 => PASS

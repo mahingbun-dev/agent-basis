@@ -1,0 +1,8 @@
+# case: RC5-DATA-003  switched: 2026-11-19T22:08:11Z
+$ docker exec eterna-rc5-e1 sh -c printf %s "$DSH_HOME"
+# label: E1 DSH_HOME
+# started: 2026-11-19T22:08:11Z
+/data
+EXIT=0
+
+ASSERT PASS | 容器内 DSH_HOME=/data | actual=/data expected=/data

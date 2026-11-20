@@ -1,0 +1,52 @@
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+
+ ✓ tests/mcp-personal-wiring.spec.ts > B14 个人 MCP:bootstrap 接线防漂移 > plugin.ts 装配配置/主密钥/runtime/路由(五端点经 fetch 注册) 1ms
+ ✓ tests/mcp-personal-wiring.spec.ts > B14 个人 MCP:bootstrap 接线防漂移 > installMcpPersonalFetchRoutes 内部调用 registerMcpPersonalRoutes(登录门/信封统一) 0ms
+ ✓ tests/mcp-personal-wiring.spec.ts > B14 个人 MCP:bootstrap 接线防漂移 > store 构造器执行 user_version 0→1 迁移(两表) 0ms
+ ✓ tests/mcp-personal-wiring.spec.ts > B14 个人 MCP:bootstrap 接线防漂移 > runtime 的四个全局监听与 kill switch/限额/预算常量接线 0ms
+ ✓ tests/mcp-personal-wiring.spec.ts > B14 个人 MCP:bootstrap 接线防漂移 > package.json 声明 dsh-mcp-client / dsh-scope 依赖(catalog) 0ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > 未登录:list 返回 tenant/unauthenticated(401 语义) 69ms
+ ✓ tests/mcp-personal-runtime.spec.ts > B14 个人 MCP:运行时 > 每 Agent 最多 4 连接:6 条启用行只挂 4 条 53ms
+ ✓ tests/mcp-personal-runtime.spec.ts > B14 个人 MCP:运行时 > 无归属会话不挂载;禁用行不挂载 49ms
+ ✓ tests/mcp-personal-runtime.spec.ts > B14 个人 MCP:运行时 > 单条失败只 warn:其余条目照常挂载,全部失败则释放空 scope 48ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > 他人行与不存在同响应:bob 对 alice 的 id 做 delete/probe/upsert 全部同一文案 52ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > catalog 只回 name/label/transport/envNames(无 command/args/secrets) 48ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > stdio:合法 catalogId 由服务端解析 command/args,serverName 服务端生成 48ms
+ ✓ tests/mcp-personal-runtime.spec.ts > B14 个人 MCP:运行时 > 单条启动超预算(测试缩短为 20ms)→ warn 且不阻塞 Agent 创建 70ms
+ ✓ tests/mcp-personal-runtime.spec.ts > B14 个人 MCP:运行时 > createScope 收到的连接配置含 serverName/url/toolCallTimeout/startupTimeout 且无明文无关字段 49ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > stdio:自填 command/args 一律拒绝(含空值) 48ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > stdio:目录外 catalogId 拒绝 48ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > http:拒绝云元数据地址与非法协议 48ms
+ ✓ tests/mcp-personal-runtime.spec.ts > B14 个人 MCP:运行时 > 双守卫监听必须 {global:true} 48ms
+ ✓ tests/mcp-personal-runtime.spec.ts > B14 个人 MCP:运行时 > tools/pre-execute:同用户子代理放行、跨用户 deny、无归属 deny 49ms
+ ✓ tests/mcp-personal-runtime.spec.ts > B14 个人 MCP:运行时 > tools/execute:跨用户抛错兜底,同用户放行 49ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > personalHttpHosts 空=放行;非空=白名单且支持 *.suffix 49ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > http:headers 只允许 ${secret:REF} 占位,未提供的 ref 拒绝 48ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > AES-256-GCM:密文落库、可解密、列表只回 hasSecret/headerNames 49ms
+ ✓ tests/mcp-personal-runtime.spec.ts > B14 个人 MCP:运行时 > disposeUser:摘除该用户全部 live scope,幂等;不影响他人 48ms
+ ✓ tests/mcp-personal-runtime.spec.ts > B14 个人 MCP:运行时 > agent/disposed 摘除对应 scope 48ms
+ ✓ tests/mcp-personal-runtime.spec.ts > B14 个人 MCP:运行时 > disposeAll(effect 清理)释放全部 scope 且后续 created 不再挂载 48ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > AES-GCM:错密钥/篡改信封返回 undefined;IV 每次不同 48ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > 主密钥解析:hex/base64/32 字符;loadMcpMasterKey 支持 env 与文件,缺席 fail-closed 48ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > stdio env 按目录 envSchema 加密为 env:<NAME> ref 49ms
+ ✓ tests/mcp-personal-runtime.spec.ts > B14 个人 MCP:运行时 > 归属账本异常:created 只 warn 不挂;守卫 deny(异常不穿透) 48ms
+ ✓ tests/mcp-personal-runtime.spec.ts > B14 个人 MCP:运行时 > kill switch:enabled=false / 缺主密钥 → 不挂且守卫 deny 48ms
+ ✓ tests/mcp-personal-runtime.spec.ts > B14 个人 MCP:运行时 > personalMcpClientInput:stdio/http 两形态与 8s/60s 默认 47ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > 条目上限 8:第 9 条拒绝 50ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > 配置上限 256KB:超限拒绝且不落库 49ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > probe 成功只回 {ok,toolCount},不回显 headers/env/secrets 46ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > probe 失败错误文本脱敏(密钥值 → [redacted]) 46ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > probe 10s 超时:signal 被 abort,返回 ok=false 46ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > kill switch:enabled=false → 五端点全部 unavailable 53ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > 缺主密钥:整面 unavailable(不降级明文) 49ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > 配置解析失败:enabled=false + error(fail-closed) 48ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > delete 与 enabled=false 写入后调用 runtime.disposeUser(登出钩子另测) 49ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > store 迁移:user_version 0→1、两表存在、重开幂等 50ms
+ ✓ tests/mcp-personal-routes.spec.ts > B14 个人 MCP:存储/路由 > 登出 POST /logout 调用 onLogout(该用户 id/account) 49ms
+
+ Test Files  3 passed (3)
+      Tests  43 passed (43)
+   Start at  02:36:55
+   Duration  1.37s (transform 108ms, setup 0ms, import 206ms, tests 1.89s, environment 0ms)
+

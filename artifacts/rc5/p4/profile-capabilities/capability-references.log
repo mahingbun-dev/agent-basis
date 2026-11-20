@@ -1,0 +1,191 @@
+# capability references — raw greps (T29/T34/T35/B18)
+
+## T29 office — profile templates
+$ grep -n "tool-office" docker/profile/cordis.patch.yml.template docker/profile/cordis.super.patch.yml.template
+docker/profile/cordis.patch.yml.template:193:# interrupt:false（rc.5 默认，整份重述必须显式保留）；present 后补 tool-office
+docker/profile/cordis.patch.yml.template:371:      - id: tool-office
+docker/profile/cordis.patch.yml.template:372:        name: '@deepseek-ai/dsh-tool-office'
+docker/profile/cordis.patch.yml.template:387:#   - rc.5 默认补齐：tool-subagent-control interrupt:false、tool-office 行、
+docker/profile/cordis.patch.yml.template:559:      - id: tool-office
+docker/profile/cordis.patch.yml.template:560:        name: '@deepseek-ai/dsh-tool-office'
+docker/profile/cordis.super.patch.yml.template:194:# tool-subagent-control 补 interrupt:false（rc.5 默认）；present 后补 tool-office
+docker/profile/cordis.super.patch.yml.template:372:      - id: tool-office
+docker/profile/cordis.super.patch.yml.template:373:        name: '@deepseek-ai/dsh-tool-office'
+docker/profile/cordis.super.patch.yml.template:389:#   - rc.5 默认补齐：tool-subagent-control interrupt:false、tool-office 行、
+docker/profile/cordis.super.patch.yml.template:561:      - id: tool-office
+docker/profile/cordis.super.patch.yml.template:562:        name: '@deepseek-ai/dsh-tool-office'
+
+## T29 office — upstream web-app rows (installed 0.2.2-rc.5)
+$ grep -n "id: office-kit\|id: skill-office\|outputDirectory\|pythonEnvironment" $WEB/cordis.patch.yml
+291:    - id: office-kit
+294:        outputDirectory: !!js dshHomePath('office-kit', 'outputs')
+308:    - id: skill-office
+311:        pythonEnvironment: !!js "ctx.get('profileContext')?.name === 'desktop' && process.env.DSH_PRIMARY_RUNTIME ? 'workspace-dependencies' : 'user'"
+
+## T29 office — upstream retention defaults
+$ grep -n "outputDirectory: z\|outputRetentionMs: z\|maxOutputStoreBytes: z" $OK/src/index.ts
+95:  outputDirectory: z.string().min(1).default(dshHomePath('office-kit', 'outputs')),
+96:  outputRetentionMs: z.natural().min(1).max(2_147_483_647).default(24 * 60 * 60 * 1000),
+97:  maxOutputStoreBytes: z.natural().min(1).max(Number.MAX_SAFE_INTEGER).default(512 * 1024 * 1024),
+
+## T34 terminal — template override
+$ grep -n -A6 "id: optional-terminal-panel" docker/profile/cordis.patch.yml.template
+174:- id: optional-terminal-panel
+175-  config:
+176-    preferredShells:
+177-      - bash
+178-    readUserTerminals: false
+179-
+180-# ── 预设层（agent 平面；见文件头「已知偏差 2」）─────────────────────────────
+
+## T34 terminal — 6 tools (upstream)
+$ grep -n "name: 'terminal_" $TT/src/index.ts
+166:    name: 'terminal_open',
+203:    name: 'terminal_send',
+307:    name: 'terminal_read',
+340:    name: 'terminal_signal',
+365:    name: 'terminal_close',
+396:    name: 'terminal_list',
+
+## T34 terminal — access 9-method tenant guard
+$ grep -n -A4 "export const TERMINAL_METHODS" packages/access/src/terminal.ts
+24:export const TERMINAL_METHODS: readonly string[] = [
+25-  'environment', 'shells', 'list', 'create', 'close', 'rename', 'attach', 'retain', 'watch',
+26-] as const
+27-
+28-interface InvocationLike {
+
+## T35 agent-team — upstream bundle rows
+$ grep -n "id: agent-team\|id: tool-agent-team" $BASE
+366:    - id: agent-team
+371:    - id: tool-agent-team
+$ grep -n "id: ui-agent-team" $WEB/cordis.patch.yml
+412:    - id: ui-agent-team
+
+## T35 agent-team — default false (upstream source + docs)
+$ grep -n "defaultEnabled" /Users/sunny/code/deepseek-harness/packages/team/agent-team/src/index.ts
+51:    defaultEnabled: z.boolean().default(false),
+56:  private readonly defaultEnabled: boolean
+71:    this.defaultEnabled = config.defaultEnabled ?? false
+79:    if (this.defaultEnabled) {
+$ grep -n "New Sessions default to false" /Users/sunny/code/deepseek-harness/docs/subsystems/agent-team.md
+80:`agentTeam.enabled` exposes the root Session’s saved selection. New Sessions default to false; `team/mode` records explicit selections. Historical tasks imply enabled until an explicit selection. Only the root can call `setEnabled`; descendants share that mode. The Web menu calls the same method through `remote.agentTeams.setEnabled`, with the root Session id resolved to its live Agent by the Gateway. Mode writes take effect before awaiting persistence. Tools resolve availability at step preparation; prompt providers read the selection when evaluated. Task mutations check the current mode when their queued operation starts; admitted mutations may finish. Mode changes do not end inbox waits. A failed flush leaves the appended selection active; retrying the same selection flushes it without a duplicate event.
+
+## T35 agent-team — team tools in governance rules + fixture
+$ grep -n "allow-team-collab" -A2 docker/profile/governance.rules.yml
+96:  - id: allow-team-collab
+97-    effect: allow
+98-    tools: ['team_task_create', 'team_task_get', 'team_task_list', 'team_task_update', 'send_message', 'spawn_teammate', 'wait_agent', 'interrupt_agent']
+$ grep -n "team_task_create" packages/glue/tests/governance-rules-fixture.spec.ts
+43:  'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update', // ← 上游 team 协作族
+
+## B18 — optional bundles source/docs
+$ sed -n "56,73p" $OB/src/bundles.ts
+export const OPTIONAL_BUNDLES: readonly string[] = [
+  '@deepseek-ai/dsh-personalized-recommendations',
+  '@deepseek-ai/dsh-cua-bundle',
+  '@deepseek-ai/dsh-experimental-session-search',
+  '@deepseek-ai/dsh-experimental-ralph-bundle',
+  '@deepseek-ai/dsh-experimental-terminal-bundle',
+  '@deepseek-ai/dsh-experimental-badge-skill-bundle',
+  '@deepseek-ai/dsh-experimental-session-titles-bundle',
+  '@deepseek-ai/dsh-experimental-voice-input-bundle',
+  '@deepseek-ai/dsh-experimental-cot-translation-bundle',
+  '@deepseek-ai/dsh-experimental-auto-review',
+  '@deepseek-ai/dsh-experimental-inspector-profile',
+  '@deepseek-ai/dsh-experimental-liveshare',
+  '@deepseek-ai/dsh-experimental-plugin-market-bundle',
+  '@deepseek-ai/dsh-experimental-tool-worktree',
+  '@deepseek-ai/dsh-experimental-forge-bundle',
+  '@deepseek-ai/dsh-deepseek-chat-import',
+]
+
+## B18 — session-search cwd authorization (upstream tool)
+$ grep -n "outside the caller workspace\|kind: \"cwd\"\|values: \[cwd\]" $TQ/lib/index.js
+377:	return new HarnessError("session target is outside the caller workspace", "SESSION_QUERY_TOOL_UNAUTHORIZED");
+464:		kind: "cwd",
+465:		values: [cwd]
+489:		kind: "cwd",
+490:		values: [cwd]
+774:		kind: "cwd",
+775:		values: [cwd]
+
+## B18 — plugin-market write gate is admin-only
+$ grep -n -A6 "MARKET_ADMIN_PREFIXES: readonly" packages/access/src/mux.ts
+90:export const MARKET_ADMIN_PREFIXES: readonly string[] = [
+91-  '/api/pluginManager/',
+92-  '/api/pluginMarket/',
+93-  '/api/plugin-manager/',
+94-  '/api/plugin-market/',
+95-]
+96-
+$ grep -n "rejection: 401\|rejection: 403" packages/access/src/mux.ts
+496:      if (userId === undefined) return { rejection: 401 }
+497:      if (deps.store.getUserById(userId)?.role !== 'admin') return { rejection: 403 }
+
+## Requirements read (ask cites)
+$ grep -n "T29 | B15\|T34 | B20\|T35 | B4" docs/design/54-rc.5开发与测试验收完整workflow.md
+376:| T29 | B15 office 代码/预设 | L5 | WP4-5 | `tool-office` 进 standard/ptc；输出目录；`skill-office` 默认 | ⬜ |
+381:| T34 | B20 terminal | L4/L5 | WP4-10 | profile 配置；9 守卫；6 工具；侧栏旁观/接管；24h 浸泡脚本 | 🟠 |
+382:| T35 | B4 agent-team 试点 | L5 | WP4-11 | 三行真 boot；Team mode 默认关；`team_*` 审计；super 截图 | ⬜ |
+$ sed -n "359,370p" docs/design/50-上游rc.5合并开发落地文档.md
+### 3.5 WP4-5：office
+
+1. `Dockerfile` runtime 层加：
+   `fonts-noto-cjk fonts-liberation fonts-dejavu-core` 与
+   `python3-docx python3-openpyxl python3-pptx`（apt 不可用则 venv + pip）。
+2. 构建期探针：
+
+```dockerfile
+RUN python3 -c 'import docx, openpyxl, pptx' && fc-list | grep -qi 'Noto Sans CJK'
+```
+
+3. profile：`office-kit`/`skill-office` 由 web-app bundle 自带；只确认
+$ sed -n "274,292p" docs/design/49-上游rc.5合并总设计.md
+### 5.7 ACP（B17）
+
+- 独立 `eterna-acp` profile（`package.acp.json` = base + acp-app）与独立 service；
+  `profiles:["acp"]`、`stdin_open:true`、`tty:false`、无端口、同 `/data`。
+- entrypoint `ETERNA_FORM=acp`：entrypoint 自身日志逐条写 stderr（**禁止全局
+  `exec 1>&2`**，否则 dsh 的 JSON-RPC stdout 也被改道）；不启动 relay/web；
+  `flock` profile 渲染锁；最后 `exec dsh --profile eterna-acp`。
+- 挂 governance/audit/egress 三行；不挂 memory/knowledge/channels；
+  模型走 `mimo/mimo-v2.6-pro`；`session/request_permission` 承接治理 ask。
+- 受信控制器：可指定容器内 cwd/MCP 命令/env；只允许运维本机，不暴露端口。
+
+### 5.8 实验 bundle 默认化（B18）
+
+- 16 个 optional bundle 随镜像装入；默认开 chat-import / session-search /
+  plugin-market，terminal 由 B20 直接启用；其余默认关、插件页可开或标注不可用。
+- session-search 按 `cwd` 严格授权，跨用户 cwd deny。
+- plugin-market 写动作仍 admin-only。
+- 迁移脚本只追加一次；用户关闭后不回加。
+
+
+## Profile render path (entrypoint)
+$ grep -n "ETERNA_FORM=\|PATCH_TEMPLATE=\|PROFILE_NAME=\|ensure_rendered /repo/docker/profile/package.json\|ensure_rendered \"\$PATCH_TEMPLATE\"\|migrate-profile-bundles.mjs" docker/entrypoint.sh
+35:ETERNA_FORM="${ETERNA_FORM:-base}"
+38:    PROFILE_NAME=eterna-web
+39:    PATCH_TEMPLATE="$REPO/docker/profile/cordis.patch.yml.template"
+42:    PROFILE_NAME=eterna-super
+43:    PATCH_TEMPLATE="$REPO/docker/profile/cordis.super.patch.yml.template"
+94:ensure_rendered /repo/docker/profile/package.json "$PROFILE_DIR/package.json" "$PROFILE_DIR/.rendered.package.json.sha256" manifest
+136:if ! node /repo/docker/profile/migrate-profile-bundles.mjs \
+
+## B18 migration marker semantics
+$ sed -n "8,22p" docker/profile/migrate-profile-bundles.mjs
+ * manifest 模式整体保留（用户选择跨升级持久）——新默认不会自动出现。
+ * 本脚本按「只追加旧清单没有的默认项」补齐。
+ *
+ * marker（`.eterna-default-bundles.json`，与 profile package.json 同目录）：
+ * 记录本迁移「已知的默认集」。语义：
+ *   - 当前清单已含某默认项 → 记入 marker（用户以后删掉它 = opt-out，不再回加）；
+ *   - 当前清单缺该项且 marker 已记 → 用户已关闭，跳过；
+ *   - 当前清单缺该项且 marker 未记 → 追加（首次升级/新版本新增默认）。
+ * 因此幂等：二次运行零追加；已 opt-out 项不会被「修复」回加。
+ *
+ * Fail-closed（50 §5.5）：旧 package.json / 新模板解析失败 → 保留旧文件、打印
+ * 告警、退出非 0，由 entrypoint 决定是否继续启动（不得静默写坏文件）。同时在
+ * `<profile 同目录>/.upgrade-profile-bundles-backup.json`（0600）留痕——只记
+ * 路径/错误与可解析的 bundles 清单，不落 manifest 原文（依赖 URL 可能带凭据）。
+ *

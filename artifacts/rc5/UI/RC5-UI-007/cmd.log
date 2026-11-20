@@ -1,0 +1,14 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ node artifacts/rc5/UI/_suite/ui-scan.mjs UI-007
+# started 2026-11-19T22:19:04Z
+settings.section mcp-servers registration: present
+McpServersSection component used: true
+data-eterna-settings-section="mcp-servers": true
+access page routes containing mcp: none
+registered slot ids: thinking-feedback, session-probe, decision-layer, account, mcp-servers, notifications, my-plugins, users, approval-queue, manage
+PASS MCP registered as settings.section: index.tsx settings.section id=${NS}.mcp-servers
+PASS no standalone MCP page route: routes.ts 无 mcp 页面路由
+SUMMARY UI-007 failures=0
+
+EXIT 0
+# finished 2026-11-19T22:19:04Z

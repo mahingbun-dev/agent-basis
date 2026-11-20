@@ -1,0 +1,129 @@
+{
+  "id": "RC5-BOOT-013",
+  "suite": "E3-super",
+  "priority": "P1",
+  "title": "agent-team 三行与 Team mode（BOOT-013）",
+  "expected": "三行真 boot；Team mode 默认关；任务板/子代理 UI 不破面（花名册/工厂/工件面）",
+  "status": "PASS",
+  "startedAt": "2026-11-20T01:45:07.587Z",
+  "finishedAt": "2026-11-20T01:45:07.953Z",
+  "assertions": [
+    {
+      "name": "admin 登录 200",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "agent-team 三行真 boot（enabled+active）",
+      "ok": true,
+      "detail": "include:agent-team:@deepseek-ai/dsh-agent-team, include:tool-agent-team:@deepseek-ai/dsh-tool-agent-team, include:ui-agent-team:@deepseek-ai/dsh-client-ui-agent-team"
+    },
+    {
+      "name": "admin 测试工作区可解析（E3 users.db 只读）",
+      "ok": true,
+      "detail": "090d9317-36d5-40bd-b640-a2c6963652fe"
+    },
+    {
+      "name": "新建会话成功",
+      "ok": true,
+      "detail": "{\"sessionId\":\"session-ce9044bd-413a-4fdc-b2a9-17f3be7307f8\",\"agentPreset\":\"standard\"}"
+    },
+    {
+      "name": "Team mode 默认关（新会话 agentTeam.enabled=false）",
+      "ok": true,
+      "detail": "agentTeam={\"enabled\":false,\"tasks\":[]}"
+    },
+    {
+      "name": "花名册含 ui-agent-team（任务板/子代理 UI 半边）",
+      "ok": true,
+      "detail": "entries=80"
+    },
+    {
+      "name": "ui-agent-team bundle 可取且含 factory 注册",
+      "ok": true,
+      "detail": "status=200 bytes=5759732"
+    },
+    {
+      "name": "花名册含 @eterna/tasks 客户端半边",
+      "ok": true,
+      "detail": "entries=80"
+    },
+    {
+      "name": "@eterna/tasks bundle 可取且含 factory 注册",
+      "ok": true,
+      "detail": "status=200 bytes=3233804"
+    },
+    {
+      "name": "花名册含 @eterna/workbench 客户端半边",
+      "ok": true,
+      "detail": "entries=80"
+    },
+    {
+      "name": "@eterna/workbench bundle 可取且含 factory 注册",
+      "ok": true,
+      "detail": "status=200 bytes=3233804"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)",
+      "exit": 0,
+      "note": "boot token 不入证据"
+    },
+    {
+      "cmd": "GET /connect + GET /?token=… (dsh session bootstrap)",
+      "exit": 200,
+      "note": "token 已脱敏"
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 200,
+      "note": ""
+    },
+    {
+      "cmd": "POST /api/pluginInventory/list",
+      "exit": 200,
+      "note": ""
+    },
+    {
+      "cmd": "POST /api/session/create",
+      "exit": 200,
+      "note": "ok·workspace=090d9317…"
+    },
+    {
+      "cmd": "POST /api/session/projections",
+      "exit": 200,
+      "note": ""
+    },
+    {
+      "cmd": "GET /",
+      "exit": 200,
+      "note": "HTML 花名册（__DSH_BOOT__）"
+    },
+    {
+      "cmd": "index.html combo urls parsed (83 chunks)",
+      "exit": 200,
+      "note": ""
+    },
+    {
+      "cmd": "GET /plugins/??@deepseek-ai/dsh-api-gateway/client.js,@deepseek-ai/dsh-client-ui-file-actions/client.js,@deepseek-ai/dsh-client-ui-context-menu/client.js,@deepseek-ai/dsh-api-job-controller/client.js,@deepseek-ai/dsh-api-terminal-controller/client.js,@deepseek-ai/dsh-api-workspace-files/client.js,@deepseek-ai/dsh-client-hmr/client.js,@deepseek-ai/dsh-cordis-client-runner/client.js,@deepseek-ai/dsh-client-ui-theme/client.js,@deepseek-ai/dsh-client-locale/client.js,@deepseek-ai/dsh-client-shortcuts/client.js,@deepseek-ai/dsh-client-ui-layout/client.js,@deepseek-ai/dsh-client-ui-renderer/client.js,@deepseek-ai/dsh-client-ui-session/client.js,@deepseek-ai/dsh-client-resources/client.js,@deepseek-ai/dsh-client-ui-sidebar/client.js,@deepseek-ai/dsh-client-ui-sidebar-right/client.js,@deepseek-ai/dsh-client-ui-sidebar-documentpreview/client.js,@deepseek-ai/dsh-client-ui-sidebar-browser/client.js,@deepseek-ai/dsh-client-ui-sidebar-terminal/client.js,@deepseek-ai/dsh-client-ui-sidebar-files/client.js,@deepseek-ai/dsh-client-ui-settings/client.js,@deepseek-ai/dsh-client-ui-settings-general/client.js,@deepseek-ai/dsh-client-ui-settings-models/client.js,@deepseek-ai/dsh-client-ui-plugin-manager/client.js,@deepseek-ai/dsh-client-ui-settings-plugin-inventory/client.js,@deepseek-ai/dsh-client-ui-conversation/client.js,@deepseek-ai/dsh-client-ui-approval/client.js,@deepseek-ai/dsh-message-quotes/client.js,@deepseek-ai/dsh-client-ui-chat/client.js,@deepseek-ai/dsh-client-ui-attachment/client.js,@deepseek-ai/dsh-client-ui-file-drag/client.js,@deepseek-ai/dsh-client-ui-tool/client.js,@deepseek-ai/dsh-client-ui-cordis/client.js,@deepseek-ai/dsh-client-ui-workspace/client.js,@deepseek-ai/dsh-client-ui-input-trigger/client.js,@deepseek-ai/dsh-client-ui-commands/client.js,@deepseek-ai/dsh-client-ui-skill/client.js,@deepseek-ai/dsh-client-ui-agent-team/client.js,@deepseek-ai/dsh-client-ui-subagent/client.js,@deepseek-ai/dsh-client-ui-reference/client.js,@deepseek-ai/dsh-client-ui-secret-mask/client.js,@deepseek-ai/dsh-client-ui-jobs/client.js,@deepseek-ai/dsh-client-ui-schedule/client.js,@deepseek-ai/dsh-client-ui-goal/client.js,@deepseek-ai/dsh-client-ui-model-selection/client.js,@deepseek-ai/dsh-client-ui-permission-presets/client.js,@deepseek-ai/dsh-client-ui-agent-preset/client.js,@deepseek-ai/dsh-client-ui-entry-customization/client.js,@deepseek-ai/dsh-client-ui-settings-shell/client.js,@deepseek-ai/dsh-client-ui-settings-agent-loop/client.js,@deepseek-ai/dsh-client-ui-settings-subagent/client.js,@deepseek-ai/dsh-client-ui-settings-web-search/client.js,@deepseek-ai/dsh-client-ui-plan/client.js,@deepseek-ai/dsh-client-ui-user-questions/client.js,@deepseek-ai/dsh-client-ui-trajectory/client.js,@deepseek-ai/dsh-client-ui-plugin-market/client.js,@eterna/brand/client.js&rev=5b2e9df9f00d",
+      "exit": 200,
+      "note": "client bundle @deepseek-ai/dsh-client-ui-agent-team"
+    },
+    {
+      "cmd": "GET /plugins/??@eterna/attachments/client.js,@eterna/compaction/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deepseek-ai/dsh-session-log-export/client.js,@deepseek-ai/dsh-client-file-upload/client.js,@deepseek-ai/dsh-api-remotes/client.js,@deepseek-ai/dsh-client-ui-deliverables/client.js,@eterna/llm-doctor/client.js,@eterna/usage-stats/client.js,@eterna/knowledge-admin/client.js,@deepseek-ai/dsh-typert-registry/client.js,@deepseek-ai/dsh-client-connection/client.js,@eterna/prompt-studio/client.js,@deepseek-ai/dsh-api-workspace-controller/client.js,@deepseek-ai/dsh-deepseek-chat-import/client.js,@deepseek-ai/dsh-api-session-controller/client.js,@eterna/tasks/client.js,@eterna/memory/client.js,@eterna/panel/client.js,@eterna/workbench/client.js,@eterna/access/client.js&rev=292f111875c8",
+      "exit": 200,
+      "note": "client bundle @eterna/tasks"
+    }
+  ],
+  "notes": [
+    "UI 渲染面（真浏览器像素/交互）未在本用例判定；见 E3-UI-002（NOTRUN，凭据边界）。"
+  ],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

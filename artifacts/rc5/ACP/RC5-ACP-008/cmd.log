@@ -1,0 +1,6 @@
+cd /Users/sunny/code/agent-basis-rc5
+docker compose -p rc5-acp-conc-a --env-file /Users/sunny/code/agent-basis-rc5/artifacts/rc5/ACP/fixture/env.e4-fixture -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/ACP/fixture/compose.acp-fixture.yml --profile acp run --rm -T --no-deps eterna-agent-acp
+
+cd /Users/sunny/code/agent-basis-rc5
+docker compose -p rc5-acp-conc-b --env-file /Users/sunny/code/agent-basis-rc5/artifacts/rc5/ACP/fixture/env.e4-fixture-b -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/ACP/fixture/compose.acp-fixture.yml --profile acp run --rm -T --no-deps eterna-agent-acp
+EXIT={"A":{"code":0,"signal":null,"elapsedMs":3720},"B":{"code":0,"signal":null,"elapsedMs":3991}}

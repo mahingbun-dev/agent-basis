@@ -1,0 +1,93 @@
+# T33 / B19 hero — 命令原文与 EXIT（2026-11-20，工作树 /Users/sunny/code/agent-basis-rc5）
+
+## 1. 构建 / 类型 / 测试 / 护栏
+
+$ cd /Users/sunny/code/agent-basis-rc5
+$ node packages/brand/scripts/build-client.mjs
+  packages/brand/lib/client.js  72.5kb
+EXIT=0                                   # 日志 build-client.log
+
+$ ./node_modules/.bin/tsc -p packages/brand/tsconfig.json --noEmit
+EXIT=0                                   # 日志 typecheck.log（零输出）
+
+$ pnpm --filter @eterna/brand verify
+  node scripts/build-client.mjs && oxlint && tsc --noEmit && vitest run
+  Found 0 warnings and 0 errors.  (10 files, 87 rules)
+  Test Files  3 passed (3)
+       Tests  38 passed (38)
+EXIT=0                                   # 日志 verify.log
+
+$ ./node_modules/.bin/oxlint --config .oxlintrc.json packages/brand
+  Found 0 warnings and 0 errors.  (10 files, 87 rules)
+EXIT=0                                   # 日志 oxlint.log
+
+$ node scripts/lint-ui-tokens.mjs
+  UI 令牌检查通过:17 个目录 287 个文件,79 个 --et-* 令牌;
+  状态点强制 30/30 通过;v4 阶梯 0 债务。
+EXIT=0                                   # 日志 lint-ui-tokens.log
+
+$ sha256sum packages/brand/lib/client.js
+  a28ce5904d2517c5d9291f38692ef98f7556f49b6c028408ced96b2385c444e3
+$ wc -c packages/brand/lib/client.js
+  74117                                  # 原 18562 B
+
+$ git diff --stat -- packages/brand/src packages/brand/tests
+  packages/brand/src/client/index.ts | 45 +++++++++++++++++++++++++++++++++++---
+  packages/brand/src/client/state.ts | 13 +++++++++-
+  packages/brand/tests/brand.test.ts |  2 +-        # 既有改动(rc.1→rc.5),非本 lane
+  3 files changed, 55 insertions(+), 5 deletions(-)
+  ?? packages/brand/src/client/hero.ts
+  ?? packages/brand/src/client/styles.ts
+  ?? packages/brand/tests/client-hero.test.ts
+  ?? packages/brand/tests/skills-brand.test.ts     # 既有未跟踪文件,非本 lane
+
+## 2. 静态同构 harness（出厂 bundle → 元素树/CSS → 无头 Chrome）
+
+$ node artifacts/rc5/p4/hero/harness-gen.mjs
+  tokensCssBytes / heroCssBytes / htmlBytes 与注册清单见 harness-gen.out
+EXIT=0                                   # 产物 harness-light.html / harness-dark.html
+
+$ node artifacts/rc5/p4/hero/harness-shoot.mjs
+  6 格（light/dark × 1440/900/390）截图 + 命中/滚动断言
+EXIT=0                                   # 产物 assertions.json + hero-*.png
+
+$ node artifacts/rc5/p4/hero/layer-pixels.mjs
+  cardCoversWatermark=true, watermarkPaintsAtPoint=true
+EXIT=0                                   # 产物 layer-pixels.json
+
+## 3. 断言结果（汇总）
+
+- slot 注册（出厂 bundle）：conversation.hero.frame（id=eterna-hero-skin, order=0）
+  与 conversation.hero.brand.mark（single，无 id）均注册；disposer 撤销顺序
+  sidebar.brand.mark → sidebar.brand.name → conversation.hero.frame → conversation.hero.brand.mark。
+- hero=false：HeroFrame({hero:false,children}) 返回同一 children 引用；无新元素。
+- hero=true：外层 div[data-eterna-hero-frame] style.display=contents；品牌层
+  data-eterna-hero-layer + aria-hidden=true + 无 onClick/onPointerDown/onKeyDown；
+  children 顺序 [品牌层, children] 且 children 仅一次。
+- 品牌标：{size:34,className:'hero-fish'} → svg 34×34 / viewBox 0 0 24 24 /
+  fill=currentColor / aria-hidden=true / focusable=false；缺省 size=24。
+- CSS：品牌层含 position:absolute; inset:0; z-index:-1; pointer-events:none;
+  零字面色值、零 --dsw- 引用、var() 全为 --et-*；断点集合 = {1100,760,640}；
+  ≤760 玉环 display:none 且 --et-hero-gutter:16px；
+  prefers-reduced-motion → animation:none；深色 body[data-ds-dark-theme] 降低透明度。
+- 浏览器（6/6 格）：frame display=contents，layer absolute / top-left-right-bottom=0px /
+  z=-1 / pointer-events=none / 覆盖根矩形；elementFromPoint(输入中心)=input.composer-input；
+  真实点击后 activeElement=composer-input；滚轮后 scrollTop=88(1440)/208(900/390)；
+  mark 透明度 light 0.045 / dark 0.030；mark 宽 380/234/140px；玉环 block/block/none。
+- 层序像素：正常页水印包围盒内 (720,462) 与盒外 (720,702) 均为 rgb(251,250,246)；
+  同页卡片底色透明后 (720,462) = rgb(235,236,231) → 水印画到该点但被不透明卡片盖住，
+  即品牌层在内容之下。
+
+## 4. 上游前提（只读核对，未改）
+
+$ grep -rn "ui-brand-official\|eterna-brand" docker/profile/*.template
+  docker/profile/cordis.patch.yml.template:152:- id: ui-brand-official      # :153 disabled: true
+  docker/profile/cordis.patch.yml.template:651:    - id: eterna-brand        # :652 name: '@eterna/brand'
+  docker/profile/cordis.super.patch.yml.template:153:- id: ui-brand-official  # :154 disabled: true
+  docker/profile/cordis.super.patch.yml.template:649:    - id: eterna-brand
+EXIT=0
+
+## 5. 未执行
+
+- 真实 DSH web 壳内 boot + 登录态下的 hero 截图 / 输入面 E2E：NOT RUN（遗留 L1）。
+- 未触碰生产容器、未 git push/merge、未写 deepseek-harness。

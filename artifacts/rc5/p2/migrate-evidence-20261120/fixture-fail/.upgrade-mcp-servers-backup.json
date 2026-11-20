@@ -1,0 +1,6 @@
+{
+  "capturedAt": "2026-11-19T18:25:56.298Z",
+  "source": "/tmp/rc5-sim-KHSqBG/bad/profiles/eterna-web/.prev.cordis.patch.yml",
+  "error": "/tmp/rc5-sim-KHSqBG/bad/profiles/eterna-web/.prev.cordis.patch.yml: YAML 解析失败:Flow sequence in block collection must be sufficiently indented and end with a ] at line 6, column 1:",
+  "servers": null
+}

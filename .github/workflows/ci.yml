@@ -125,3 +125,94 @@ jobs:
 
       - name: 评测 replay 全量(dsh-evals,与本地命令一致,CI/本地互证)
         run: node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --adapter replay
+
+  # v1 自持线独立车道(B11 / 50 §3.3;验收 RC5-V1-001..007):core/{cordis,contracts,runtime}
+  # + basis.yml + 六个 @basis/* 插件,与产品 profile 不同运行入口、不依赖 dsh 安装。
+  # 路径过滤:只在 PR 触及 v1 源(含 workspace/lock 与本文件)时真跑,push 恒跑,
+  # schedule 由 job 级 if 跳过——既有 verify/upgrade-gate/daily-boot-gate 语义不变。
+  v1-line:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 变更检测需要 base...head 历史;默认 fetch-depth 1 拿不到 origin/<base>。
+          fetch-depth: 0
+
+      - name: v1 范围检测(PR 按改动过滤;push 恒跑)
+        id: scope
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" != "pull_request" ]; then
+            echo "match=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # diff 失败按“相关”处理(fail-open),不允许静默跳过 v1 门禁。
+          changed=$(git diff --name-only "origin/${BASE_REF}...HEAD" || echo "__diff_failed__")
+          echo "$changed"
+          if printf '%s\n' "$changed" | grep -Eq '^(core/|basis\.yml$|packages/(system-prompt|session|tools|llm|approval-cli|agent-loop)/|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|\.github/workflows/ci\.yml$|__diff_failed__$)'; then
+            echo "match=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "match=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: pnpm/action-setup@v4
+        if: steps.scope.outputs.match == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.scope.outputs.match == 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install(与主 verify 同锁)
+        if: steps.scope.outputs.match == 'true'
+        run: pnpm install --frozen-lockfile
+
+      # 消费方(contracts/runtime/六插件)经 exports.types 吃 core/cordis/lib/types;
+      # 该目录 gitignored,CI 必须先产声明,否则回落到 lib 源码按消费方严格度报错。
+      - name: cordis 声明出口(lib/types,gitignored)
+        if: steps.scope.outputs.match == 'true'
+        run: pnpm --filter @core/cordis declarations
+
+      - name: cordis vendor typecheck + smoke(RC5-V1-003/004)
+        if: steps.scope.outputs.match == 'true'
+        run: |
+          pnpm --filter @core/cordis typecheck
+          pnpm --filter @core/cordis test
+
+      - name: contracts/runtime typecheck + test(RC5-V1-005)
+        if: steps.scope.outputs.match == 'true'
+        run: |
+          pnpm --filter @core/contracts typecheck
+          pnpm --filter @core/contracts test
+          pnpm --filter @core/runtime typecheck
+          pnpm --filter @core/runtime test
+
+      - name: 六插件 typecheck + test
+        if: steps.scope.outputs.match == 'true'
+        run: |
+          for d in system-prompt session tools llm approval-cli agent-loop; do
+            echo "== @basis/$d typecheck/test"
+            pnpm --filter "./packages/$d" typecheck
+            pnpm --filter "./packages/$d" test
+          done
+
+      - name: v1 源不依赖产品线 dsh 包(RC5-V1-007)
+        if: steps.scope.outputs.match == 'true'
+        run: |
+          if grep -RIn --include='*.ts' --include='*.mjs' '@deepseek-ai/dsh' \
+            core packages/system-prompt packages/session packages/tools \
+            packages/llm packages/approval-cli packages/agent-loop; then
+            echo "v1 源出现产品线 @deepseek-ai/dsh 依赖(白名单:cosmokit/standard-schema)" >&2
+            exit 1
+          fi
+
+      - name: basis.yml 六插件装载冒烟(chat EOF 退出;V1-005)
+        if: steps.scope.outputs.match == 'true'
+        run: node core/runtime/bin/basis.mjs chat --bundle basis.yml </dev/null
+
+      - name: basis CLI 单 turn 冒烟(stub fixture)
+        if: steps.scope.outputs.match == 'true'
+        run: node core/runtime/bin/basis.mjs run "ping" --bundle core/runtime/tests/fixtures/basis-run.yml --json

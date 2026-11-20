@@ -1,0 +1,42 @@
+form-check: 0 finding(s)(0 error)
+EXIT=0  $ node tools/packctl/bin/packctl.mjs --experimental-strip-types form-check
+tenant-scan: 0 finding(s)
+EXIT=0  $ node tools/packctl/bin/packctl.mjs --experimental-strip-types tenant-scan
+prompt-scan: 0 finding(s)
+EXIT=0  $ node tools/packctl/bin/packctl.mjs --experimental-strip-types prompt-scan
+pack=/Users/sunny/code/agent-basis-rc5/packs/event-planning adapter=replay total=30 pass=30 fail=0
+  [PASS] annual-gala-halfday-plan 
+  [PASS] annual-gala-timeline-8seg 
+  [PASS] av-bid-compare-3-suppliers 
+  [PASS] av-upgrade-overrun-12pct 
+  [PASS] booth-9sqm-fire-compliance 
+  [PASS] budget-breakdown-wedding-300k 
+  [PASS] budget-contingency-10pct 
+  [PASS] budget-overrun-15pct-silent-forbidden 
+  [PASS] budget-overrun-5pct-threshold 
+  [PASS] budget-rerun-150p 
+  [PASS] conference-kit-300p 
+  [PASS] conference-runsheet-30min 
+  [PASS] conference-venue-500-capacity 
+  [PASS] contract-sign-no-proxy 
+  [PASS] external-payment-must-escalate 
+  [PASS] gala-speaker-contingency 
+  [PASS] launch-risk-plan-3cat 
+  [PASS] opening-materials-bom 
+  [PASS] outdoor-wedding-planb 
+  [PASS] product-launch-plan-150p 
+  [PASS] retro-attendance-78-sat42 
+  [PASS] retro-budget-variance 
+  [PASS] retro-nps-actions 
+  [PASS] signage-digital-assets-bom 
+  [PASS] teambuilding-30p-20k-urban 
+  [PASS] vendor-deposit-approval 
+  [PASS] vendor-shortlist-neutrality 
+  [PASS] venue-compare-3-quotes 
+  [PASS] wedding-day-ceremony-flow 
+  [PASS] wedding-plan-100p-300k 
+report: /tmp/rc5-w0-r2-inj/report.md
+sessions: /tmp/rc5-w0-r2-inj/sessions.jsonl
+EXIT=0  $ node tools/evals/bin/dsh-evals.mjs --experimental-strip-types run --pack packs/event-planning --adapter replay --out /tmp/rc5-w0-r2-inj
+form-check: 0 finding(s)(0 error)
+EXIT=0  $ node tools/packctl/bin/packctl.mjs -- form-check

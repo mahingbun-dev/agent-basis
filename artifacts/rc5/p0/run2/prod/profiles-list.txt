@@ -1,0 +1,6 @@
+total 20
+drwxr-xr-x  5 root root 4096 Nov 18 19:16 .
+drwx------ 18 root root 4096 Nov 19 17:21 ..
+drwxr-xr-x  4 root root 4096 Nov 19 17:21 eterna-super
+drwxr-xr-x  4 root root 4096 Nov 18 18:48 eterna-web
+drwxr-xr-x  2 root root 4096 Nov  9 10:03 web

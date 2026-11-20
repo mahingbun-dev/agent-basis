@@ -1,0 +1,11 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ node scripts/verify-rc5-env.mjs --api-static --json artifacts/rc5/ENV/_suite/verify-rc5-env.json
+# suite run 2026-11-19T22:04:26.457Z (mode=env+api-static); full stdout: artifacts/rc5/ENV/_suite/verify-rc5-env.stdout.log
+== ENV-006 [PASS] Dockerfile 内核钉版
+   口径:51 ENV-006:grep @deepseek-ai/dsh@ → 精确 rc.5,无 alpha.3;49 §4:只装 dsh,mcp-client 用宿主内嵌。
+   ✓ 全局内核精确 0.2.2-rc.5 — dsh@0.2.2-rc.5
+   ✓ 有效行无 alpha.* 钉版 — 无
+
+EXIT 0 (suite)
+# started 2026-11-19T22:04:26.457Z
+# finished 2026-11-19T22:04:26.457Z

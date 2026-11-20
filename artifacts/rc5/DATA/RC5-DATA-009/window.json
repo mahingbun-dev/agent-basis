@@ -1,0 +1,38 @@
+{
+  "case": "RC5-DATA-009",
+  "window": {
+    "startedAt": "2026-11-19T21:45:37.331Z",
+    "plannedEndAt": "2026-11-20T21:45:37.331Z",
+    "observedAt": "2026-11-19T22:29:43.776677+00:00",
+    "elapsedSeconds": 2408,
+    "elapsedHours": 0.67,
+    "requiredHours": 24,
+    "complete": false,
+    "remainingHours": 23.33,
+    "processAlive": true
+  },
+  "data": {
+    "ticks": 9,
+    "integrityAllOkTicks": 9,
+    "writeOk": 18,
+    "writeFail": 0,
+    "lockMatches": 0,
+    "walLogMatches": 0,
+    "walDatabases": [
+      ".eterna/memory.sqlite3",
+      "access/users.db"
+    ],
+    "lastSessions": 136
+  },
+  "term": {
+    "ticks": 44,
+    "fdFirst": 69,
+    "fdLast": 90,
+    "fdMin": 69,
+    "fdMax": 90,
+    "rssKbFirst": 586976,
+    "rssKbLast": 298780,
+    "churnFailTicks": 44
+  },
+  "verdict": "NOTRUN（窗口未满 24h，不得判通过）"
+}

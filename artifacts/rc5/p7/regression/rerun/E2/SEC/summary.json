@@ -1,0 +1,68 @@
+{
+  "suite": "SEC",
+  "commit": "c75f876c986415431c92b28cce771d847a36c52f",
+  "imageTag": "eterna-agent:rc5-test",
+  "imageId": "sha256:48782afaf8ba665e3ec3ea0995c8f5b3e844ebad764e03f34c281b14e48389d3",
+  "container": "rc5-e2suite",
+  "base": "http://127.0.0.1:3119",
+  "dataRoot": "/Users/sunny/eterna-data/test-20261120/e2",
+  "startedAt": "2026-11-20T01:52:03.953Z",
+  "finishedAt": "2026-11-20T01:52:05.130Z",
+  "total": 7,
+  "pass": 4,
+  "fail": 2,
+  "skip": 1,
+  "notrun": 0,
+  "counts": {
+    "PASS": 4,
+    "FAIL": 2,
+    "SKIP": 1,
+    "NOTRUN": 0
+  },
+  "halted": true,
+  "haltReason": "RC5-SEC-004：B 读到 A 工作区文件（跨租户）",
+  "cases": [
+    {
+      "id": "RC5-SEC-008",
+      "status": "PASS",
+      "title": "登录归属正确；登出后访问被拒",
+      "detail": "owner=2/02dce76e-18b8-4858-beba-637cca6710c7 logout=302 cleared=true afterMe=401 replay=200"
+    },
+    {
+      "id": "RC5-SEC-004",
+      "status": "FAIL",
+      "title": "跨租户枚举：session / workspace / 文件 / MCP 全部 403/deny",
+      "detail": "workspaceFiles/read 未拒绝：B 读到 A 工作区文件（value={\"absolutePath\":\"/data/workspaces/rc5admin/e2-marker.txt\",\"version\":\"43:211947:28:1795132187782666237:1795132187782666237\",\"bytes\":28,\"offset\":1,\"text\":\"E2-ADMI… contentLeak=true）；session/workspace 面正常拒绝"
+    },
+    {
+      "id": "RC5-SEC-005",
+      "status": "FAIL",
+      "title": "普通用户不可触达管理面（系统 MCP / 插件 / 用户 / 市场写）",
+      "detail": "可达面=mcpManager/probe,mcpManager/restart（probe ok=true restart ok=true）"
+    },
+    {
+      "id": "RC5-SEC-006",
+      "status": "PASS",
+      "title": "审计无明文；关键事件齐全",
+      "detail": "hits=0；kind=access.chatImport,access.login,access.login.gate,access.logout,access.mux.install,access.sandbox.install,access.tenant,access.terminal.install,mcp.personal.delete,mcp.personal.install,mcp.personal.probe,mcp.personal.upsert"
+    },
+    {
+      "id": "RC5-SEC-007",
+      "status": "PASS",
+      "title": "个人 MCP HTTP：内网地址放行、元数据地址拒绝",
+      "detail": "internal=true meta4=false meta6=false"
+    },
+    {
+      "id": "RC5-SEC-009",
+      "status": "PASS",
+      "title": "既有单测全绿（pnpm -w run verify）",
+      "detail": "exit=0 packages=38 tests=4193"
+    },
+    {
+      "id": "RC5-SEC-010",
+      "status": "SKIP",
+      "title": "升级后打开旧会话/旧记忆/旧提示词",
+      "detail": "未执行：本 lane 无旧版本数据实例（不伪造 PASS）"
+    }
+  ]
+}

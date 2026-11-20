@@ -131,9 +131,9 @@ async function buildGlue() {
       'yaml': '^2.9.1',
     },
     peerDependencies: {
-      '@deepseek-ai/cordis': '>=4.0.6-alpha.1',
-      '@deepseek-ai/dsh-system-prompt': '>=0.2.2-alpha.2',
-      '@deepseek-ai/dsh-tools': '>=0.2.2-alpha.2',
+      '@deepseek-ai/cordis': '>=4.1.0',
+      '@deepseek-ai/dsh-system-prompt': '>=0.2.2-rc.5',
+      '@deepseek-ai/dsh-tools': '>=0.2.2-rc.5',
     },
     dsh: { manifestVersion: 1, bundle: { patch: './cordis.patch.yml' } },
   }
@@ -190,8 +190,8 @@ async function buildPack() {
       './package.json': './package.json',
     },
     peerDependencies: {
-      '@deepseek-ai/cordis': '>=4.0.6-alpha.1',
-      '@deepseek-ai/dsh-tools': '>=0.2.2-alpha.2',
+      '@deepseek-ai/cordis': '>=4.1.0',
+      '@deepseek-ai/dsh-tools': '>=0.2.2-rc.5',
     },
     dsh: { manifestVersion: 1, bundle: { patch: './cordis.patch.yml' } },
   }

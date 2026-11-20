@@ -1,0 +1,14 @@
+# RC5-API-007 — 排空后代后无残留 running（API-007）
+CMD: node artifacts/rc5/e3-super/run-suite.mjs RC5-API-007
+START: 2026-11-20T07:01:46.772Z
+# 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
+
+[exit=0] docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)  # boot token 不入证据
+[exit=200] GET /connect + GET /?token=… (dsh session bootstrap)  # token 已脱敏
+[exit=429] POST /login (admin from 0600 accounts file)
+[exit=429] POST /login (admin from 0600 accounts file)  # retry#1
+[exit=429] POST /login (admin from 0600 accounts file)  # retry#2
+[exit=200] POST /login (admin from 0600 accounts file)  # retry#3
+[exit=200] GET /access/api/tasks/session-roles
+
+EXIT=0

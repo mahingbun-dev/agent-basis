@@ -1,0 +1,83 @@
+form-check: 0 finding(s)(0 error)
+EXIT=0  $ node tools/packctl/bin/packctl.mjs form-check
+tenant-scan: 0 finding(s)
+EXIT=0  $ node tools/packctl/bin/packctl.mjs tenant-scan
+prompt-scan: 0 finding(s)
+EXIT=0  $ node tools/packctl/bin/packctl.mjs prompt-scan
+$ tsc -p tsconfig.json --noEmit
+EXIT=0  $ pnpm --filter @eterna/llm-openai typecheck
+
+== SELF [PASS] 扫描规则自检
+   口径:正向/负向样例锁死 classifySpec / stripComment / splitArgs / isConstantCode。
+   ✓ 规则样例全部通过 — 16/16 条样例通过
+
+== ENV-003 [PASS] 版本族统一(全仓 package.json 免 v1/core + workspace catalog)
+   口径:51 ENV-003:全部 0.2.2-rc.5;cordis 4.1.0;cosmokit 1.9.0。硬门禁=0.2.1/rc.1/4.0.6 的钉版。
+   ✓ catalog dsh 全族 = 0.2.2-rc.5 — 28 个 @deepseek-ai/dsh-* catalog 条目,期望 0.2.2-rc.5;偏离:无
+   ✓ catalog @deepseek-ai/cordis = 4.1.0 — 实测 4.1.0
+   ✓ catalog @deepseek-ai/cosmokit = 1.9.0 — 实测 1.9.0
+   ✓ 清单中无 0.2.1/rc.1/4.0.6 钉版 — 扫描 47 个清单 / 63 条 @deepseek-ai/dsh* spec
+   ✓ 清单 dsh* 精确版无偏离 rc.5 — 全部 catalog:/workspace:/精确 rc.5
+
+== ENV-002 [PASS] 全仓版本残留(排除历史文档/锁文件)
+   口径:51 ENV-002:0.2.2-alpha.2|alpha.3|rc.1 命中 0;本仓另扫 0.2.1/4.0.6。非注释命中为硬门禁,注释命中为信息面。
+   ✓ 扫描面不含 .secrets/.env* — 凭据面 0 文件
+   ✓ 代码/配置无非注释残留 — 扫描 1687 个文件,非注释命中 0
+   ! 历史叙述命中 90 注释 + 278 文档 + 8 清单 description + 2 裸 rc.1(不计门禁):Dockerfile=11, core=6, docker=4, packages=88, profiles=5, scripts=1, tools=5, acceptance=3, docs=236, plans=19
+
+== ENV-006 [WARN] Dockerfile 内核钉版
+   口径:51 ENV-006:grep @deepseek-ai/dsh@ → 精确 rc.5,无 alpha.3;49 §4:只装 dsh,mcp-client 用宿主内嵌。
+   ✓ 全局内核精确 0.2.2-rc.5 — dsh@0.2.2-rc.5
+   ✓ 有效行无 alpha.* 钉版 — 无
+   ! 全局另装 dsh-mcp-client@0.2.2-rc.5;49 §4 目标为「只装 dsh,mcp-client 用宿主内嵌」
+   命中(2):
+     - Dockerfile:67 [npm-i-g-dsh/ok] npm i -g @deepseek-ai/dsh@0.2.2-rc.5
+     - Dockerfile:67 [npm-i-g-dsh-mcp-client/ok] npm i -g @deepseek-ai/dsh-mcp-client@0.2.2-rc.5
+
+== ENV-004 [PASS] 容器内 dsh --version = 0.2.2-rc.5(静态代理)
+   口径:51 ENV-004 的运行时半需 P5 镜像;此处只验「本仓实装版本 + 镜像钉版」两处静态事实。 运行时检查(容器内 dsh --version)未执行:需 P5 构建镜像。
+   ✓ workspace 实装 @deepseek-ai/dsh = rc.5 — 实测 0.2.2-rc.5
+   ✓ 镜像钉版 = rc.5(静态) — 0.2.2-rc.5
+
+== 汇总
+   4 PASS / 1 WARN / 0 FAIL
+   WARN 2 条:
+     - ENV-002: 历史叙述命中 90 注释 + 278 文档 + 8 清单 description + 2 裸 rc.1(不计门禁):Dockerfile=11, core=6, docker=4, packages=88, profiles=5, scripts=1, tools=5, acceptance=3, docs=236, plans=19
+     - ENV-006: 全局另装 dsh-mcp-client@0.2.2-rc.5;49 §4 目标为「只装 dsh,mcp-client 用宿主内嵌」
+
+EXIT 0(硬门禁全过)
+EXIT=0  $ node scripts/verify-rc5-env.mjs
+pack=/Users/sunny/code/agent-basis-rc5/packs/event-planning adapter=replay total=30 pass=30 fail=0
+  [PASS] annual-gala-halfday-plan 
+  [PASS] annual-gala-timeline-8seg 
+  [PASS] av-bid-compare-3-suppliers 
+  [PASS] av-upgrade-overrun-12pct 
+  [PASS] booth-9sqm-fire-compliance 
+  [PASS] budget-breakdown-wedding-300k 
+  [PASS] budget-contingency-10pct 
+  [PASS] budget-overrun-15pct-silent-forbidden 
+  [PASS] budget-overrun-5pct-threshold 
+  [PASS] budget-rerun-150p 
+  [PASS] conference-kit-300p 
+  [PASS] conference-runsheet-30min 
+  [PASS] conference-venue-500-capacity 
+  [PASS] contract-sign-no-proxy 
+  [PASS] external-payment-must-escalate 
+  [PASS] gala-speaker-contingency 
+  [PASS] launch-risk-plan-3cat 
+  [PASS] opening-materials-bom 
+  [PASS] outdoor-wedding-planb 
+  [PASS] product-launch-plan-150p 
+  [PASS] retro-attendance-78-sat42 
+  [PASS] retro-budget-variance 
+  [PASS] retro-nps-actions 
+  [PASS] signage-digital-assets-bom 
+  [PASS] teambuilding-30p-20k-urban 
+  [PASS] vendor-deposit-approval 
+  [PASS] vendor-shortlist-neutrality 
+  [PASS] venue-compare-3-quotes 
+  [PASS] wedding-day-ceremony-flow 
+  [PASS] wedding-plan-100p-300k 
+report: /tmp/rc5-w0-evals-final/report.md
+sessions: /tmp/rc5-w0-evals-final/sessions.jsonl
+EXIT=0  $ node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --adapter replay --out /tmp/rc5-w0-evals-final

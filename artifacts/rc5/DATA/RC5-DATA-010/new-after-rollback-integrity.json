@@ -1,0 +1,145 @@
+{
+  "root": "/src",
+  "checked": 17,
+  "ok": 17,
+  "fail": 0,
+  "failures": [],
+  "dbs": [
+    {
+      "path": ".eterna/channels.sqlite3",
+      "bytes": 32768,
+      "wal": 0,
+      "shm": 0,
+      "journal": "delete",
+      "integrity": "ok"
+    },
+    {
+      "path": ".eterna/knowledge.sqlite3",
+      "bytes": 45056,
+      "wal": 0,
+      "shm": 32768,
+      "journal": "wal",
+      "integrity": "ok"
+    },
+    {
+      "path": ".eterna/memory.sqlite3",
+      "bytes": 81920,
+      "wal": 350232,
+      "shm": 32768,
+      "journal": "wal",
+      "integrity": "ok"
+    },
+    {
+      "path": ".eterna/memory.sqlite3.migrated-1794768912209",
+      "bytes": 4096,
+      "wal": 0,
+      "shm": 32768,
+      "journal": "wal",
+      "integrity": "ok"
+    },
+    {
+      "path": ".pnpm-store/v11/index.db",
+      "bytes": 909312,
+      "wal": 0,
+      "shm": 0,
+      "journal": "wal",
+      "integrity": "ok"
+    },
+    {
+      "path": "access/users.db",
+      "bytes": 114688,
+      "wal": 0,
+      "shm": 32768,
+      "journal": "wal",
+      "integrity": "ok"
+    },
+    {
+      "path": "knowledge-admin/access.sqlite3",
+      "bytes": 16384,
+      "wal": 0,
+      "shm": 0,
+      "journal": "delete",
+      "integrity": "ok"
+    },
+    {
+      "path": "memory-distill/ledger.sqlite3",
+      "bytes": 20480,
+      "wal": 0,
+      "shm": 0,
+      "journal": "delete",
+      "integrity": "ok"
+    },
+    {
+      "path": "workspaces/Mr.Ma/.eterna/knowledge.sqlite3",
+      "bytes": 45056,
+      "wal": 0,
+      "shm": 0,
+      "journal": "delete",
+      "integrity": "ok"
+    },
+    {
+      "path": "workspaces/Mr.Ma/.eterna/memory.sqlite3",
+      "bytes": 32768,
+      "wal": 531512,
+      "shm": 32768,
+      "journal": "wal",
+      "integrity": "ok"
+    },
+    {
+      "path": "workspaces/Mr.Ma/.eterna/tasks.sqlite3",
+      "bytes": 118784,
+      "wal": 0,
+      "shm": 32768,
+      "journal": "wal",
+      "integrity": "ok"
+    },
+    {
+      "path": "workspaces/Mr.Ma/kh-admin-plugin/.tmp-probe/ledger/access.sqlite3",
+      "bytes": 16384,
+      "wal": 0,
+      "shm": 0,
+      "journal": "delete",
+      "integrity": "ok"
+    },
+    {
+      "path": "workspaces/Mr.Ma/kh-admin-plugin/.tmp-probe/tenants/demo/.eterna/knowledge.sqlite3",
+      "bytes": 45056,
+      "wal": 0,
+      "shm": 0,
+      "journal": "delete",
+      "integrity": "ok"
+    },
+    {
+      "path": "workspaces/cherry/.eterna/knowledge.sqlite3",
+      "bytes": 45056,
+      "wal": 0,
+      "shm": 0,
+      "journal": "wal",
+      "integrity": "ok"
+    },
+    {
+      "path": "workspaces/cherry/.eterna/memory.sqlite3",
+      "bytes": 65536,
+      "wal": 0,
+      "shm": 0,
+      "journal": "wal",
+      "integrity": "ok"
+    },
+    {
+      "path": "workspaces/iso-alpha/.eterna/memory.sqlite3",
+      "bytes": 32768,
+      "wal": 0,
+      "shm": 0,
+      "journal": "wal",
+      "integrity": "ok"
+    },
+    {
+      "path": "workspaces/iso-beta/.eterna/memory.sqlite3",
+      "bytes": 32768,
+      "wal": 0,
+      "shm": 0,
+      "journal": "wal",
+      "integrity": "ok"
+    }
+  ]
+}

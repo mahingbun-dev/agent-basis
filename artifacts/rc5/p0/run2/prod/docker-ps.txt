@@ -1,0 +1,9 @@
+# cmd: docker ps --format ...
+# started: 2026-11-19T18:15:18Z
+---
+eterna-agent	eterna-agent:0.1.51	Up 54 minutes (healthy)	0.0.0.0:9310->9310/tcp, [::]:9310->9310/tcp, 0.0.0.0:3210->8080/tcp, [::]:3210->8080/tcp
+kf-knowledge-e2e	eterna-agent:kf-knowledge-test	Exited (0) 12 hours ago	
+dsh-daemon	invest-pipeline:smoke	Up 32 hours (healthy)	
+invest-backend	invest-gateway-invest-backend	Up 32 hours	0.0.0.0:8787->8787/tcp, [::]:8787->8787/tcp
+---
+EXIT=0

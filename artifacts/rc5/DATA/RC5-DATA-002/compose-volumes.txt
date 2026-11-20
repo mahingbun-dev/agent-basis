@@ -1,0 +1,9 @@
+      - type: bind
+        source: /Users/sunny/eterna-data/test-rc5/e1
+        target: /data
+      - type: bind
+        source: /Users/sunny/code/agent-basis-rc5/docker/profile/cordis.patch.yml.template
+        read_only: true
+      - type: bind
+        source: /Users/sunny/code/agent-basis-rc5/docker/profile/cordis.super.patch.yml.template
+        read_only: true

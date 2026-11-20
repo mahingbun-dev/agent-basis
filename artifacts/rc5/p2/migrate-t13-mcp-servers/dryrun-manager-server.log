@@ -1,0 +1,21 @@
+# 输入：rc.1 开发档 + 运维手写 mcp-manager.config.servers.internal-docs（合成项）
+OLD_SHA256=743496dc581ecf3d76b762ab5fb883f30109da1db7e2c17f99bd75024db379db
+NEW_SHA256=902c94b71b118cb1c7705ef7dc331361b42cb335a6397d7b4d96cf8153ef0edf
+$ node docker/profile/migrate-mcp-servers.mjs artifacts/rc5/p2/migrate-t13-mcp-servers/fixture/manager/cordis.patch.yml artifacts/rc5/p2/migrate-t13-mcp-servers/fixture/new-manager.yml
+[migrate-mcp-servers]: 迁移 1 项 servers 到 mcp-manager（写后 1）| 备份: artifacts/rc5/p2/migrate-t13-mcp-servers/fixture/new-manager.yml.bak-2026-11-19T17-58-12-439Z
+[migrate-mcp-servers]: 新 patch 行已承载 browser，未复制到 mcp-manager（避免 serverName 双实例）
+EXIT=0
+---
+$ node docker/profile/migrate-mcp-servers.mjs artifacts/rc5/p2/migrate-t13-mcp-servers/fixture/manager/cordis.patch.yml artifacts/rc5/p2/migrate-t13-mcp-servers/fixture/new-manager.yml
+[migrate-mcp-servers]: 新 patch 自带 mcp-client 行承载 browser，跳过系统层迁移（避免 serverName 双实例）；无其它待迁移项，零写
+EXIT=0
+---
+SHA0=902c94b71b118cb1c7705ef7dc331361b42cb335a6397d7b4d96cf8153ef0edf SHA1=3ae49d49ef45fa0176b3c93be55567b70040aa3596851ec0210bd5a22790042f SHA2=3ae49d49ef45fa0176b3c93be55567b70040aa3596851ec0210bd5a22790042f BACKUPS=1/1
+ASSERT PASS: manager run1 EXIT=0 且写入（sha 变）
+ASSERT PASS: manager run1 恰 1 份备份
+ASSERT PASS: manager run2 EXIT=0 且零写
+ASSERT PASS: manager run2 无新备份
+ASSERT PASS: internal-docs 迁入 manager；browser 未重复（行承载）
+OLD_CARRIERS=browser,internal-docs
+NEW_CARRIERS=browser,internal-docs
+ASSERT PASS: servers 键集合一致（旧载体=新载体：browser + internal-docs）

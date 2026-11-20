@@ -23,7 +23,7 @@ import { Context } from '@deepseek-ai/cordis'
 import type { KvUnit } from '@deepseek-ai/dsh-storage'
 import plugin, {
   LoopPromptGateway, PROMPT_REGISTRY_ENTRIES, SESSION_CREATED_EVENT, SessionSnapshotStore,
-  SNAPSHOTS_TABLE, SNAPSHOT_UNIT_DESCRIPTOR, SNAPSHOT_UNIT_NAME, VERSION_UNIT_NAME,
+  SNAPSHOTS_TABLE, SNAPSHOT_UNIT_DESCRIPTOR, SNAPSHOT_UNIT_NAME, VERSION_UNIT_NAME, WEB_PATCH,
   captureSessionSnapshotEntries, sessionSnapshotChecksum,
 } from '../src/index.ts'
 import type {
@@ -199,7 +199,7 @@ describe('捕获纯函数 captureSessionSnapshotEntries(指针按条目型别分
       return text
     }
     // live patch + 领域 fixture 文件装进内存读取面。
-    files.set('profiles/eterna-web/cordis.patch.yml', livePatch())
+    files.set(WEB_PATCH, livePatch())
     files.set('packs/event-planning/cordis.patch.yml', readFileSync(join(repoRoot, 'packs/event-planning/cordis.patch.yml'), 'utf8'))
     files.set('packs/event-planning/persona.md', readFileSync(join(repoRoot, 'packs/event-planning/persona.md'), 'utf8'))
     const personaEntry = PROMPT_REGISTRY_ENTRIES.find(candidate => candidate.id === 'preset.standard.persona')!

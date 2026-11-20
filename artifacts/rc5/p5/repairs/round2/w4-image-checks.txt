@@ -1,0 +1,26 @@
+# W4 门禁重放(第 2 轮;2026-11-20)——镜像 eterna-agent:rc5-test 已按当前工作树重建
+# 未注入 MIMO_API_KEY、worktree 无 .env；走镜像自带 ENTRYPOINT(与门禁同形态)。
+
+## dsh --version
+0.2.2-rc.5
+EXIT=0
+
+## node -v
+v24.22.3
+EXIT=0
+
+## v1 stripped
+OK
+EXIT=0
+
+## fonts/python
+OK
+EXIT=0
+
+## 附加:整条命令作单 argv
+0.2.2-rc.5
+EXIT=0
+
+## 反向:无参数启动仍 fail-closed(生产路径未放开)
+/app/entrypoint.sh: 57: MIMO_API_KEY: MIMO_API_KEY required (env / compose .env——默认模型走 MiMo 直连)
+EXIT=2

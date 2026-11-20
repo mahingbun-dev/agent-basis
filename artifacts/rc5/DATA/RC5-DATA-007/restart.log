@@ -1,0 +1,4 @@
+$ docker restart eterna-rc5-p6b-a
+eterna-rc5-p6b-a
+EXIT=0
+healthy after 7s

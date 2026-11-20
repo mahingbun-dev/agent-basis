@@ -1,0 +1,18 @@
+$ docker volume inspect agent-basis_eterna-home
+[
+    {
+        "CreatedAt": "2026-11-09T08:38:27Z",
+        "Driver": "local",
+        "Labels": {
+            "com.docker.compose.config-hash": "6f86bb7b88e1cb5beeb3d475cc850dcefa0b38e175f558a3df7debd8c7b295f0",
+            "com.docker.compose.project": "agent-basis",
+            "com.docker.compose.version": "5.3.1",
+            "com.docker.compose.volume": "eterna-home"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/agent-basis_eterna-home/_data",
+        "Name": "agent-basis_eterna-home",
+        "Options": null,
+        "Scope": "local"
+    }
+]
+EXIT=0

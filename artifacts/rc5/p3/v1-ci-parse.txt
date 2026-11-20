@@ -1,0 +1,16 @@
+jobs: verify,daily-boot-gate,upgrade-gate,v1-line
+v1-line.if: github.event_name != 'schedule'
+v1-line.needs: (none)
+v1-line.steps: 12
+  - actions/checkout@v4
+  - v1 范围检测(PR 按改动过滤;push 恒跑)
+  - pnpm/action-setup@v4
+  - actions/setup-node@v4
+  - Install(与主 verify 同锁)
+  - cordis 声明出口(lib/types,gitignored)
+  - cordis vendor typecheck + smoke(RC5-V1-003/004)
+  - contracts/runtime typecheck + test(RC5-V1-005)
+  - 六插件 typecheck + test
+  - v1 源不依赖产品线 dsh 包(RC5-V1-007)
+  - basis.yml 六插件装载冒烟(chat EOF 退出;V1-005)
+  - basis CLI 单 turn 冒烟(stub fixture)

@@ -1,0 +1,31 @@
+- insert:
+    - id: t39-session-probe
+      name: t39-session-probe
+- id: llm-pi-ai
+  config:
+    providers:
+      mimo:
+        displayName: MiMo（测试直连）
+        api: openai-completions
+        baseURL: https://api.xiaomimimo.com/v1
+        models:
+          - id: mimo-v2.6-flash
+            name: MiMo V2.6 Flash
+            contextWindow: 300000
+            input:
+              - text
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: high
+          - id: mimo-v2.6-pro
+            name: MiMo V2.6 Pro
+            contextWindow: 300000
+            input:
+              - text
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: high

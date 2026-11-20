@@ -1,0 +1,23 @@
+{
+  "//": "self-reference 映射见 compilerOptions.paths:包内 declare module '@core/cordis' 需可解析(产物 d.ts 保持包名指定符,消费方经 node_modules 链接解析)",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@core/cordis": ["./src/index.ts"]
+    },
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "noImplicitThis": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": false,
+    "noImplicitOverride": false,
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+    "noFallthroughCasesInSwitch": false
+  },
+  "include": [
+    "src",
+    "tests"
+  ]
+}

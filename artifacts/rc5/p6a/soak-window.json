@@ -1,0 +1,67 @@
+{
+  "case": "RC5-DATA-009 + RC5-TERM-013",
+  "startedAt": "2026-11-20T05:06:19.450Z",
+  "plannedEndAt": "2026-11-21T05:06:19.450Z",
+  "plannedSeconds": 86400,
+  "observedElapsedSeconds": 919,
+  "observedElapsedHours": 0.26,
+  "observedAt": "2026-11-20T05:21:40.023Z",
+  "windowComplete": false,
+  "verdict": "INCOMPLETE",
+  "latestDataTick": {
+    "at": "2026-11-20T05:21:40.023Z",
+    "elapsedSeconds": 919,
+    "databases": [
+      {
+        "file": "access/users.db",
+        "walBytes": 65952,
+        "shmBytes": 32768,
+        "ok": true,
+        "journal": "wal",
+        "integrity": [
+          "ok"
+        ],
+        "sessions": 432
+      },
+      {
+        "file": ".eterna/memory.sqlite3",
+        "walBytes": 90672,
+        "shmBytes": 32768,
+        "ok": true,
+        "journal": "wal",
+        "integrity": [
+          "ok"
+        ]
+      },
+      {
+        "file": "knowledge-admin/access.sqlite3",
+        "walBytes": 0,
+        "shmBytes": 0,
+        "ok": true,
+        "journal": "delete",
+        "integrity": [
+          "ok"
+        ]
+      }
+    ],
+    "write": {
+      "ok": 2,
+      "failed": 0,
+      "errors": []
+    },
+    "lockMatches": 0,
+    "walLogMatches": 0
+  },
+  "latestTermTick": {
+    "at": "2026-11-20T05:24:43.568Z",
+    "elapsedSeconds": 1103,
+    "dshPid": 1,
+    "fds": 45,
+    "rssKb": 444592,
+    "threads": 11,
+    "longProcs": 1,
+    "churn": "ok",
+    "probeExit": 0
+  },
+  "note": "窗口未满 24h，不得判绿；留 leftover SOAK-24H"
+}

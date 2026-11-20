@@ -1,0 +1,16 @@
+# OFF/RC5-OFF-002
+# started 2026-11-20T07:03:23.855Z
+
+$ docker exec rc5-e1suite node /tmp/office/probe.mjs（xlsx convert + recalculate）
+EXIT=0
+backend=wasm pageCount=1 missingFonts=["Calibri"] recalc={"backend":"wasm","missingFonts":["Calibri"]}
+
+$ openpyxl 读 recalc.xlsx：data_only D2:D5 / 公式 D2:D5
+EXIT=0
+values [120000, 45000, 80000, 245000]; formulas [=B2*C2, =B3*C3, =B4*C4, =SUM(D2:D4)]
+
+[ASSERT] xlsx → pdf 成功 => PASS
+
+[ASSERT] 公式缓存值正确（B*C 与小计合计） => PASS :: 120000/45000/80000/245000
+
+[ASSERT] 渲染表格中文字可读 => PASS :: sample-xlsx-table.png

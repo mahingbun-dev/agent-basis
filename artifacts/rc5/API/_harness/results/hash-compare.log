@@ -1,0 +1,10 @@
+# host worktree
+39ebd4a790c14c75a7358f481b7cd178856ca940fbfab913e52b2adbcd931823  packages/tasks/src/executor/background.ts
+43437c35f7215ccb09f3785a334c431c2230b717c446a3c32d653942308c7b14  packages/tasks/src/executor/dsh.ts
+3eec4e1ddc1309da561d4819198cfc5b5bc5166503d98e3ca1d688c06c0be531  packages/tasks/src/session/sessions.ts
+e125ad1141067b2d1cf9005ad25c9cda5008266543ebcd52032db4f3c0ff3bd8  packages/tasks/src/plugin.ts
+# container /repo
+39ebd4a790c14c75a7358f481b7cd178856ca940fbfab913e52b2adbcd931823  packages/tasks/src/executor/background.ts
+43437c35f7215ccb09f3785a334c431c2230b717c446a3c32d653942308c7b14  packages/tasks/src/executor/dsh.ts
+3eec4e1ddc1309da561d4819198cfc5b5bc5166503d98e3ca1d688c06c0be531  packages/tasks/src/session/sessions.ts
+e125ad1141067b2d1cf9005ad25c9cda5008266543ebcd52032db4f3c0ff3bd8  packages/tasks/src/plugin.ts

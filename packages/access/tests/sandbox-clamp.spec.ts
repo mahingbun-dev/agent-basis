@@ -125,18 +125,38 @@ describe('T3:installSandboxBoundary', () => {
     const dispose = installSandboxBoundary(deps, svc)
     expect(dispose).toBeDefined()
     const root = join(deps.tenantRoot, 'alice')
+    const live = (id: string, cwd: string) => ({ id, header: { cwd }, snapshotEvents: () => [] })
     // cwd 漂移到根外 → 钳回账号根
-    const drifted = (svc.resolve as (r?: unknown) => { workspaceRoot: string })({ session: { id: 's-b1', header: { cwd: '/var' } } })
+    const drifted = (svc.resolve as (r?: unknown) => { workspaceRoot: string })({ session: live('s-b1', '/var') })
     expect(drifted.workspaceRoot).toBe(root)
     // cwd 在账号根内 → 保持
-    const inside = (svc.resolve as (r?: unknown) => { workspaceRoot: string })({ session: { id: 's-b1', header: { cwd: join(root, 'proj') } } })
+    const inside = (svc.resolve as (r?: unknown) => { workspaceRoot: string })({ session: live('s-b1', join(root, 'proj')) })
     expect(inside.workspaceRoot).toBe(join(root, 'proj'))
     // 未归属会话 → 原样
-    const orphan = (svc.resolve as (r?: unknown) => { workspaceRoot: string })({ session: { id: 's-none', header: { cwd: '/var' } } })
+    const orphan = (svc.resolve as (r?: unknown) => { workspaceRoot: string })({ session: live('s-none', '/var') })
     expect(orphan.workspaceRoot).toBe('/var')
     dispose?.()
     // 行为断言:dispose 后不再钳回(漂移边界原样返回)
-    const after = (svc.resolve as (r?: unknown) => { workspaceRoot: string })({ session: { id: 's-b1', header: { cwd: '/var' } } })
+    const after = (svc.resolve as (r?: unknown) => { workspaceRoot: string })({ session: live('s-b1', '/var') })
     expect(after.workspaceRoot).toBe('/var')
+  })
+
+  it('TERM-006 伪会话({id} 无 snapshotEvents)→ 剥 session 解析并直接钳账号根,不把伪对象喂给上游', () => {
+    // 回归锚:terminal 旧 T4 wrapper 传 {session:{id}} → 上游 overrideOf →
+    // sessionProjections.cellFor 调 session.snapshotEvents() → TypeError。
+    const original = vi.fn((request?: unknown) => {
+      const session = (request as { session?: { snapshotEvents?: unknown } } | undefined)?.session
+      // 断言:伪会话绝不透传(否则真实上游在这里就会崩)
+      expect(session).toBeUndefined()
+      return { mode: 'workspace-write', workspaceRoot: '/data' }
+    })
+    const svc = { resolve: original }
+    const dispose = installSandboxBoundary(deps, svc)
+    const root = join(deps.tenantRoot, 'alice')
+    const resolved = (svc.resolve as (r?: unknown) => { workspaceRoot: string; sessionId?: string })({ session: { id: 's-b1' } })
+    expect(resolved.workspaceRoot).toBe(root)
+    expect(resolved.sessionId).toBe('s-b1')
+    expect(original).toHaveBeenCalledTimes(1)
+    dispose?.()
   })
 })

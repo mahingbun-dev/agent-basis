@@ -1,0 +1,103 @@
+PASS A1:access /Users/sunny/code/agent-basis-rc5/packages/access/lib/client.js 存在
+PASS A1:access /Users/sunny/code/agent-basis-rc5/packages/access/lib/client.js 大小 317099 bytes
+PASS A2:access @eterna/access 外壳 = __ModuleLoader__.load({
+PASS A2:access @eterna/access 工件 id 与包名一致
+PASS A2:access @eterna/access factory(require) 形态
+PASS A2:access @eterna/access 工件闭合 return module.exports + });
+PASS A3:access @eterna/access require 集 ["react","react/jsx-runtime"] ⊆ rc.5 PLATFORM_MODULES
+PASS A4:access @eterna/access exports["./client"] → ./lib/client.js
+PASS A4:access @eterna/access dsh.client.platform = web
+PASS A1:attachments /Users/sunny/code/agent-basis-rc5/packages/attachments/lib/client.js 存在
+PASS A1:attachments /Users/sunny/code/agent-basis-rc5/packages/attachments/lib/client.js 大小 73619 bytes
+PASS A2:attachments @eterna/attachments 外壳 = __ModuleLoader__.load({
+PASS A2:attachments @eterna/attachments 工件 id 与包名一致
+PASS A2:attachments @eterna/attachments factory(require) 形态
+PASS A2:attachments @eterna/attachments 工件闭合 return module.exports + });
+PASS A3:attachments @eterna/attachments require 集 ["react","react/jsx-runtime"] ⊆ rc.5 PLATFORM_MODULES
+PASS A4:attachments @eterna/attachments exports["./client"] → ./lib/client.js
+PASS A4:attachments @eterna/attachments dsh.client.platform = web
+PASS A1:brand /Users/sunny/code/agent-basis-rc5/packages/brand/lib/client.js 存在
+PASS A1:brand /Users/sunny/code/agent-basis-rc5/packages/brand/lib/client.js 大小 74117 bytes
+PASS A2:brand @eterna/brand 外壳 = __ModuleLoader__.load({
+PASS A2:brand @eterna/brand 工件 id 与包名一致
+PASS A2:brand @eterna/brand factory(require) 形态
+PASS A2:brand @eterna/brand 工件闭合 return module.exports + });
+PASS A3:brand @eterna/brand require 集 ["react"] ⊆ rc.5 PLATFORM_MODULES
+PASS A4:brand @eterna/brand exports["./client"] → ./lib/client.js
+PASS A4:brand @eterna/brand dsh.client.platform = web
+PASS A1:compaction /Users/sunny/code/agent-basis-rc5/packages/compaction/lib/client.js 存在
+PASS A1:compaction /Users/sunny/code/agent-basis-rc5/packages/compaction/lib/client.js 大小 98896 bytes
+PASS A2:compaction @eterna/compaction 外壳 = __ModuleLoader__.load({
+PASS A2:compaction @eterna/compaction 工件 id 与包名一致
+PASS A2:compaction @eterna/compaction factory(require) 形态
+PASS A2:compaction @eterna/compaction 工件闭合 return module.exports + });
+PASS A3:compaction @eterna/compaction require 集 ["react","react/jsx-runtime"] ⊆ rc.5 PLATFORM_MODULES
+PASS A4:compaction @eterna/compaction exports["./client"] → ./lib/client.js
+PASS A4:compaction @eterna/compaction dsh.client.platform = web
+PASS A1:llm-doctor /Users/sunny/code/agent-basis-rc5/packages/llm-doctor/lib/client.js 存在
+PASS A1:llm-doctor /Users/sunny/code/agent-basis-rc5/packages/llm-doctor/lib/client.js 大小 62533 bytes
+PASS A2:llm-doctor @eterna/llm-doctor 外壳 = __ModuleLoader__.load({
+PASS A2:llm-doctor @eterna/llm-doctor 工件 id 与包名一致
+PASS A2:llm-doctor @eterna/llm-doctor factory(require) 形态
+PASS A2:llm-doctor @eterna/llm-doctor 工件闭合 return module.exports + });
+PASS A3:llm-doctor @eterna/llm-doctor require 集 ["react","@deepseek-ai/dsh-client-ui-primitives","react/jsx-runtime"] ⊆ rc.5 PLATFORM_MODULES
+PASS A4:llm-doctor @eterna/llm-doctor exports["./client"] → ./lib/client.js
+PASS A4:llm-doctor @eterna/llm-doctor dsh.client.platform = web
+PASS A1:memory /Users/sunny/code/agent-basis-rc5/packages/memory/lib/client.js 存在
+PASS A1:memory /Users/sunny/code/agent-basis-rc5/packages/memory/lib/client.js 大小 139579 bytes
+PASS A2:memory @eterna/memory 外壳 = __ModuleLoader__.load({
+PASS A2:memory @eterna/memory 工件 id 与包名一致
+PASS A2:memory @eterna/memory factory(require) 形态
+PASS A2:memory @eterna/memory 工件闭合 return module.exports + });
+PASS A3:memory @eterna/memory require 集 ["react","react/jsx-runtime"] ⊆ rc.5 PLATFORM_MODULES
+PASS A4:memory @eterna/memory exports["./client"] → ./lib/client.js
+PASS A4:memory @eterna/memory dsh.client.platform = web
+PASS A1:panel /Users/sunny/code/agent-basis-rc5/packages/panel/lib/client.js 存在
+PASS A1:panel /Users/sunny/code/agent-basis-rc5/packages/panel/lib/client.js 大小 165372 bytes
+PASS A2:panel @eterna/panel 外壳 = __ModuleLoader__.load({
+PASS A2:panel @eterna/panel 工件 id 与包名一致
+PASS A2:panel @eterna/panel factory(require) 形态
+PASS A2:panel @eterna/panel 工件闭合 return module.exports + });
+PASS A3:panel @eterna/panel require 集 ["react/jsx-runtime","react"] ⊆ rc.5 PLATFORM_MODULES
+PASS A4:panel @eterna/panel exports["./client"] → ./lib/client.js
+PASS A4:panel @eterna/panel dsh.client.platform = web
+PASS A1:prompt-studio /Users/sunny/code/agent-basis-rc5/packages/prompt-studio/lib/client.js 存在
+PASS A1:prompt-studio /Users/sunny/code/agent-basis-rc5/packages/prompt-studio/lib/client.js 大小 310922 bytes
+PASS A2:prompt-studio @eterna/prompt-studio 外壳 = __ModuleLoader__.load({
+PASS A2:prompt-studio @eterna/prompt-studio 工件 id 与包名一致
+PASS A2:prompt-studio @eterna/prompt-studio factory(require) 形态
+PASS A2:prompt-studio @eterna/prompt-studio 工件闭合 return module.exports + });
+PASS A3:prompt-studio @eterna/prompt-studio require 集 ["react/jsx-runtime","react"] ⊆ rc.5 PLATFORM_MODULES
+PASS A4:prompt-studio @eterna/prompt-studio exports["./client"] → ./lib/client.js
+PASS A4:prompt-studio @eterna/prompt-studio dsh.client.platform = web
+PASS A1:usage-stats /Users/sunny/code/agent-basis-rc5/packages/usage-stats/lib/client.js 存在
+PASS A1:usage-stats /Users/sunny/code/agent-basis-rc5/packages/usage-stats/lib/client.js 大小 85913 bytes
+PASS A2:usage-stats @eterna/usage-stats 外壳 = __ModuleLoader__.load({
+PASS A2:usage-stats @eterna/usage-stats 工件 id 与包名一致
+PASS A2:usage-stats @eterna/usage-stats factory(require) 形态
+PASS A2:usage-stats @eterna/usage-stats 工件闭合 return module.exports + });
+PASS A3:usage-stats @eterna/usage-stats require 集 ["react/jsx-runtime"] ⊆ rc.5 PLATFORM_MODULES
+PASS A4:usage-stats @eterna/usage-stats exports["./client"] → ./lib/client.js
+PASS A4:usage-stats @eterna/usage-stats dsh.client.platform = web
+PASS A1:workbench /Users/sunny/code/agent-basis-rc5/packages/workbench/lib/client.js 存在
+PASS A1:workbench /Users/sunny/code/agent-basis-rc5/packages/workbench/lib/client.js 大小 280070 bytes
+PASS A2:workbench @eterna/workbench 外壳 = __ModuleLoader__.load({
+PASS A2:workbench @eterna/workbench 工件 id 与包名一致
+PASS A2:workbench @eterna/workbench factory(require) 形态
+PASS A2:workbench @eterna/workbench 工件闭合 return module.exports + });
+PASS A3:workbench @eterna/workbench require 集 ["react/jsx-runtime","react"] ⊆ rc.5 PLATFORM_MODULES
+PASS A4:workbench @eterna/workbench exports["./client"] → ./lib/client.js
+PASS A4:workbench @eterna/workbench dsh.client.platform = web
+PASS A5:contract plugin-manager-contract.d.ts 存在
+PASS A5:contract 契约声明 rc.5 必填 update(target: PluginTabUpdate)
+PASS A5:contract 契约声明 install(target: PluginTabInstall)
+PASS A5:contract 契约声明 openPackage(packageName)
+PASS A6:my-plugins-section my-plugins-section 引入 PluginTabProps 契约
+PASS A6:my-plugins-section my-plugins-section 页签按全量 owner props 声明(export function MyPluginsTab(props: PluginTabProps & { readonly t: Translate }))
+PASS A6:my-plugins-section my-plugins-section 编译期断言 MyPluginsTabCarriesUpdate 存在(契约漏 update 即 tsc 红)
+PASS A6:plugins-manager plugins-manager 引入 PluginTabProps 契约
+PASS A6:plugins-manager plugins-manager 页签按全量 owner props 声明(export function ManageTab(_props: PluginTabProps))
+PASS A6:plugins-manager plugins-manager 编译期断言 ManageTabCarriesUpdate 存在(契约漏 update 即 tsc 红)
+
+SUMMARY failures=0
+EXIT:0

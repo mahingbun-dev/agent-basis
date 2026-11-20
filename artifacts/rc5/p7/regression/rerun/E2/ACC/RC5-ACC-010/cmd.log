@@ -1,0 +1,16 @@
+# ACC/RC5-ACC-010
+# started 2026-11-20T01:36:13.016Z
+
+$ pnpm --filter @eterna/access exec vitest run tests/mux-policy.spec.ts tests/mux-drift.spec.ts
+EXIT=0
+RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+
+ ✓ tests/mux-drift.spec.ts (19 tests) 55ms
+ ✓ tests/mux-policy.spec.ts (7 tests) 352ms
+
+ Test Files  2 passed (2)
+      Tests  26 passed (26)
+   Start at  09:36:13
+   Duration  498ms (transform 57ms, setup 0ms, import 138ms, tests 407ms, environment 0ms)
+
+[ASSERT] 全局事件 allowlist 单测绿（五个失效信号仍授 global） => PASS ::  ✓ tests/mux-policy.spec.ts (7 tests) 352ms |  |  Test Files  2 passed (2) |       Tests  26 passed (26) |    Start at  09:36:13 |    Duration  498ms (transform 57ms, setup 0ms, import 138ms, tests 407ms, environment 0ms)

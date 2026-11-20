@@ -1,0 +1,139 @@
+{
+  "id": "RC5-TERM-004",
+  "suite": "E3-super",
+  "priority": "P0",
+  "title": "B 用 A 的 sessionId：6 个 terminal unary 全部拒绝（TERM-004）",
+  "expected": "全部 403/deny；审计有记录",
+  "status": "PASS",
+  "startedAt": "2026-11-20T07:02:49.069Z",
+  "finishedAt": "2026-11-20T07:02:49.490Z",
+  "assertions": [
+    {
+      "name": "admin 登录 200",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "admin 测试工作区可解析（E3 users.db 只读）",
+      "ok": true,
+      "detail": "090d9317-36d5-40bd-b640-a2c6963652fe"
+    },
+    {
+      "name": "新建会话成功",
+      "ok": true,
+      "detail": "{\"sessionId\":\"session-5a783479-0e64-4e82-9485-9041af63f8e2\",\"agentPreset\":\"standard\"}"
+    },
+    {
+      "name": "正向控制：A 读自己会话 environment 成功",
+      "ok": true,
+      "detail": "{\"cwd\":\"/data/workspaces/Mr.Ma\",\"maxInputBytes\":65536,\"maxBufferedBytes\":2097152,\"maxCols\":500,\"maxRows\":200,\"scrollback\":1000}"
+    },
+    {
+      "name": "正向控制：A 读自己会话 shells 成功",
+      "ok": true,
+      "detail": "[{\"path\":\"/bin/bash\",\"name\":\"bash\",\"args\":[\"-i\"]}]"
+    },
+    {
+      "name": "user_b 夹具存在（E3 隔离数据根）",
+      "ok": true,
+      "detail": "rc5userb"
+    },
+    {
+      "name": "user_b 登录 200",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "B 用 A 的 sessionId 调 6 个 unary 全部 403/deny",
+      "ok": true,
+      "detail": "all denied"
+    },
+    {
+      "name": "B 未拿到 A 的 cwd/shells（无数据泄漏）",
+      "ok": true,
+      "detail": "{\"code\":\"remote-access/denied\",\"message\":\"remote access: terminal/environment: access denied (no-allow)\",\"details\":{\"action\":\"terminal/environment\",\"reason\":\"no-allow\"}}"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)",
+      "exit": 0,
+      "note": "boot token 不入证据"
+    },
+    {
+      "cmd": "GET /connect + GET /?token=… (dsh session bootstrap)",
+      "exit": 200,
+      "note": "token 已脱敏"
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 200,
+      "note": ""
+    },
+    {
+      "cmd": "POST /api/session/create",
+      "exit": 200,
+      "note": "ok·workspace=090d9317…"
+    },
+    {
+      "cmd": "POST /api/terminal/environment",
+      "exit": 200,
+      "note": "A 正向控制"
+    },
+    {
+      "cmd": "POST /api/terminal/shells",
+      "exit": 200,
+      "note": "A 正向控制"
+    },
+    {
+      "cmd": "GET /access/api/users",
+      "exit": 200,
+      "note": "seeding 前置：用户清单"
+    },
+    {
+      "cmd": "POST /login (user_b from 0600 accounts file)",
+      "exit": 200,
+      "note": ""
+    },
+    {
+      "cmd": "POST /api/terminal/environment",
+      "exit": 200,
+      "note": "B 打 A 的 sessionId"
+    },
+    {
+      "cmd": "POST /api/terminal/shells",
+      "exit": 200,
+      "note": "B 打 A 的 sessionId"
+    },
+    {
+      "cmd": "POST /api/terminal/list",
+      "exit": 200,
+      "note": "B 打 A 的 sessionId"
+    },
+    {
+      "cmd": "POST /api/terminal/create",
+      "exit": 200,
+      "note": "B 打 A 的 sessionId"
+    },
+    {
+      "cmd": "POST /api/terminal/rename",
+      "exit": 200,
+      "note": "B 打 A 的 sessionId"
+    },
+    {
+      "cmd": "POST /api/terminal/close",
+      "exit": 200,
+      "note": "B 打 A 的 sessionId"
+    }
+  ],
+  "notes": [
+    "2026-11-20 复跑（终版镜像 ae5ce8cb）：B 的 6 个 unary 全被 remote-access/denied 拒绝，未再取到 A 的 cwd/shells。修复=packages/access/src/terminal.ts 跨会话守卫 + mux admit 换血 eterna-user principal；修复前泄漏证据存档 artifacts/rc5/E1/TERM/terminal-guard-report.pre-fix.json（历史，不再复现）。"
+  ],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

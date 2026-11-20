@@ -1,0 +1,8 @@
+# 复现脚本/ harness 一致性（宿主 artifacts vs 容器 /tmp）
+$ shasum -a 256 artifacts/rc5/API/_harness/run-api005-007.sh artifacts/rc5/API/_harness/index.js
+0de31acef59c9680ff6b31edeaf94e1a0b3f3f6eee03c601240101ecd8d7a9cf  artifacts/rc5/API/_harness/run-api005-007.sh
+eb0d94a0307dfd252c38adadefee56d89515e8de0c2f79ce5f8515beb268c6a5  artifacts/rc5/API/_harness/index.js
+$ docker exec eterna-rc5-e1 sh -lc 'sha256sum /tmp/run-api005-007.sh /tmp/api-harness/index.js'
+0de31acef59c9680ff6b31edeaf94e1a0b3f3f6eee03c601240101ecd8d7a9cf  /tmp/run-api005-007.sh
+eb0d94a0307dfd252c38adadefee56d89515e8de0c2f79ce5f8515beb268c6a5  /tmp/api-harness/index.js
+EXIT 0

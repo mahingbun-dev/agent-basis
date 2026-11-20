@@ -1,0 +1,9 @@
+CMD: node scripts/prepare-rc5-envs.mjs e3
+START: 2026-11-19T22:15:23Z
+[PASS] ENV-e3 :: /Users/sunny/eterna-data/test-rc5/.env.e3 已存在（mode 600）
+[PASS] DATA-e3 :: /Users/sunny/eterna-data/test-rc5/e3（init-data-dirs exit=0）
+[PASS] BOOT-e3 :: container=eterna-rc5-e3 health=healthy image=eterna-agent:rc5-test
+[PASS] E3-FORM :: ETERNA_FORM=super
+
+[PREP] PASS=4 FAIL=0
+EXIT=0

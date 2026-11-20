@@ -1,0 +1,8 @@
+# RC5-API-004 — tasks 包 verify（API-004，51 原文命令）
+CMD: node artifacts/rc5/e3-super/run-suite.mjs RC5-API-004
+START: 2026-11-20T07:10:17.134Z
+# 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
+
+[exit=0] pnpm --filter @eterna/tasks verify（51 原文命令，主会话工作树执行）  # exit=0 files=53 tests=864
+
+EXIT=0

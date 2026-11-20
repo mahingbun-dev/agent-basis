@@ -1,0 +1,68 @@
+{
+  "suite": "SEC",
+  "commit": "c75f876c986415431c92b28cce771d847a36c52f",
+  "imageTag": "eterna-agent:rc5-test",
+  "imageId": "sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb",
+  "container": "rc5-e2suite",
+  "base": "http://127.0.0.1:3119",
+  "dataRoot": "/Users/sunny/eterna-data/test-20261120/e2",
+  "startedAt": "2026-11-20T07:06:06.819Z",
+  "finishedAt": "2026-11-20T07:07:12.779Z",
+  "total": 7,
+  "pass": 7,
+  "fail": 0,
+  "skip": 0,
+  "notrun": 0,
+  "counts": {
+    "PASS": 7,
+    "FAIL": 0,
+    "SKIP": 0,
+    "NOTRUN": 0
+  },
+  "halted": false,
+  "haltReason": "RC5-SEC-004：B 读到 A 工作区文件（跨租户）",
+  "cases": [
+    {
+      "id": "RC5-SEC-008",
+      "status": "PASS",
+      "title": "登录归属正确；登出后访问被拒",
+      "detail": "owner=2/02dce76e-18b8-4858-beba-637cca6710c7 logout=302 cleared=true afterMe=401 replay=200"
+    },
+    {
+      "id": "RC5-SEC-004",
+      "status": "PASS",
+      "title": "跨租户枚举：session / workspace / 文件 / MCP 全部 403/deny",
+      "detail": "session=200 workspace=200 file=200 mcp=[]"
+    },
+    {
+      "id": "RC5-SEC-005",
+      "status": "PASS",
+      "title": "普通用户不可触达管理面（系统 MCP / 插件 / 用户 / 市场写）",
+      "detail": "全部被拒"
+    },
+    {
+      "id": "RC5-SEC-006",
+      "status": "PASS",
+      "title": "审计无明文；关键事件齐全",
+      "detail": "hits=0；kind=access.chatImport,access.companion.install,access.login,access.login.gate,access.logout,access.mux.install,access.sandbox.install,access.tenant,access.terminal.install,access.thinking.auto,mcp.personal.delete,mcp.personal.install,mcp.personal.probe,mcp.personal.upsert,tool-call,turn-end,usage"
+    },
+    {
+      "id": "RC5-SEC-007",
+      "status": "PASS",
+      "title": "个人 MCP HTTP：内网地址放行、元数据地址拒绝",
+      "detail": "internal=true meta4=false meta6=false"
+    },
+    {
+      "id": "RC5-SEC-009",
+      "status": "PASS",
+      "title": "既有单测全绿（pnpm -w run verify）",
+      "detail": "exit=0 packages=38 tests=4187"
+    },
+    {
+      "id": "RC5-SEC-010",
+      "status": "PASS",
+      "title": "旧会话/记忆/提示词升级后可用且可继续对话",
+      "actual": "events=22 userText=「只回复两个字：收到」 assistant=「收到」 access={\"users\":2,\"sessions\":145,\"workspaces\":3} memory=12/15 prompt=155 health=healthy fatal=0 open=true continue=true fakeOnly=true"
+    }
+  ]
+}

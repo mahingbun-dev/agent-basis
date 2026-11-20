@@ -1,0 +1,22 @@
+# LLM/RC5-MCPS-003
+# started 2026-11-20T07:05:55.617Z
+
+# note: 确定性假模型只决定 tool_call；工具清单/执行/结果回传走产品代码
+
+$ POST /api/session/create（管理员，系统 MCP 会话）
+EXIT=200
+sessionId=session-6f9e9461-a2fe-49f4-b9c6-f94782d02a3f
+
+$ POST /api/session/prompt（@@CALL name=mcp__e2sys__echo）
+EXIT=200
+call=[{"name":"mcp__e2sys__echo","arguments":"{\"text\":\"rc5-mcps-003-ok\"}"}]
+
+$ POST /api/session/wait（回合记录）
+EXIT=200
+assistant_text=回合结束：共执行 1 次工具调用。
+
+[ASSERT] 模型请求的 tools 含 mcp__e2sys__echo 且派发成功 => PASS :: {"at":"2026-11-20T07:05:55.802Z","seq":108,"stream":true,"model":"fake-1","toolCount":59,"toolNames":["ask_user_question","bash","create_goal","edit","get_goal","glob","grep","install_personal_plugin","job_kill","job_list","job_output","kno…
+
+[ASSERT] 工具结果回传 echo:rc5-mcps-003-ok => PASS :: ["echo:rc5-mcps-003-ok"]
+
+[ASSERT] 会话记录出现该 tool-call => PASS :: [{"name":"mcp__e2sys__echo","arguments":"{\"text\":\"rc5-mcps-003-ok\"}"}]

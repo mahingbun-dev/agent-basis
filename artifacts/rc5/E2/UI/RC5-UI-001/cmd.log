@@ -1,0 +1,8 @@
+# UI/RC5-UI-001
+# started 2026-11-20T03:37:50.304Z
+
+$ node scripts/lint-ui-tokens.mjs
+EXIT=0
+UI 令牌检查通过:17 个目录 288 个文件,79 个 --et-* 令牌;状态点强制 30/30 通过;v4 阶梯 0 债务。
+
+[ASSERT] lint-ui-tokens 退出 0 且输出“UI 令牌检查通过” => PASS

@@ -7,6 +7,13 @@
  *
  * T6.1 市场面 admin 门(2026-11-19):同一包装对 MARKET_ADMIN_PREFIXES 路径先按 eterna
  * 登录态收口——无会话 401、非 admin 403(不触达原 admit)、admin 放行;角色逐请求现查。
+ *
+ * TERM-004 终端一元门(2026-11-20 W5):`/api/terminal/*` 必须换血 eterna-user Peer
+ * (rc.5 浏览器 admit 恒 owner,网关对 owner 跳过 decide → 服务入口守卫无身份可判);
+ * 无 eterna 会话 401、策略面未就绪 503(fail-closed,绝不退回 owner)。
+ *
+ * ACC-008/SEC-004 文件面门(2026-11-20 W5):`/api/workspaceFiles/*` 同因换血
+ * (workspaceFileScope lookup=会话资源);`/api/mcpManager/*` 仅 admin(403/401/503)。
  */
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -23,6 +30,7 @@ describe('T2 换血:admit 包装', () => {
   let store: UserStore
   let session: SessionService
   let aliceId: number
+  let adminId: number
   let aliceCookie: string
   let adminCookie: string
 
@@ -38,6 +46,7 @@ describe('T2 换血:admit 包装', () => {
     aliceCookie = cookieOf(aliceId)
     const root = store.createUserWithSuffix({ account: 'root', password: 'password8' })
     store.setUserRole(root.user.id, 'admin')
+    adminId = root.user.id
     adminCookie = cookieOf(root.user.id)
   })
   afterEach(() => {
@@ -100,12 +109,49 @@ describe('T2 换血:admit 包装', () => {
     install?.dispose()
   })
 
-  it('非 mux/非市场路径(含 unary HTTP+合法 cookie)→ 原 admit(owner,守卫路由硬性要求)', () => {
+  it('非 mux/非市场/非 terminal 路径(含 unary HTTP+合法 cookie)→ 原 admit(owner,守卫路由硬性要求)', () => {
     const connection = fakeConnection()
     const install = installMuxIsolation({ store, session }, connection, { registerPolicy: vi.fn() })
     const unary = admitOf(connection)(httpReq(aliceCookie))
     expect(unary.peer).toBe('owner-peer')
     expect(connection.created).toHaveLength(0)
+    install?.dispose()
+  })
+
+  it('TERM-004 终端一元路径 → eterna-user Peer(与 mux 同用户缓存;无 cookie 401)', () => {
+    // rc.5:terminal 六方法资源逐会话,但浏览器 admit 恒 owner Peer、网关对 owner
+    // 跳过 decide——不在 admit 换血则服务入口守卫拿不到任何身份(跨租户读 cwd/shells)。
+    const connection = fakeConnection()
+    const install = installMuxIsolation({ store, session }, connection, { registerPolicy: vi.fn() })
+    for (const method of ['environment', 'shells', 'list', 'create', 'close', 'rename']) {
+      const admitted = admitOf(connection)(marketReq(`/api/terminal/${method}`, aliceCookie))
+      expect((admitted.peer as { principal: unknown }).principal, method).toEqual({ kind: 'eterna-user', userId: aliceId })
+    }
+    // 同用户复用缓存(不逐请求建 Peer)
+    expect(connection.created).toHaveLength(1)
+    const anonymous = admitOf(connection)(marketReq('/api/terminal/environment'))
+    expect(anonymous.rejection).toBe(401)
+    const badCookie = admitOf(connection)(marketReq('/api/terminal/environment', 'eterna_session=garbage'))
+    expect(badCookie.rejection).toBe(401)
+    // 近形路径不倒(不能把其它 /api 面卷进换血)
+    for (const path of ['/api/terminalX/environment', '/api/terminals/list', '/api/session/list']) {
+      expect(admitOf(connection)(marketReq(path, aliceCookie)).peer, path).toBe('owner-peer')
+    }
+    install?.dispose()
+  })
+
+  it('TERM-004 策略面未就绪 → 终端一元 503(fail-closed,绝不退回 owner)', () => {
+    const connection = fakeConnection()
+    const box: { service?: { registerPolicy: () => unknown } } = {}
+    const install = installMuxIsolation({ store, session }, connection, () => box.service)
+    expect(install?.muxActive).toBe(false)
+    expect(admitOf(connection)(marketReq('/api/terminal/environment', aliceCookie)).rejection).toBe(503)
+    expect(connection.original).not.toHaveBeenCalled()
+    expect(connection.created).toHaveLength(0)
+    // 策略服务挂载后现场补注册即放行为 eterna-user Peer(无需重装)
+    box.service = { registerPolicy: vi.fn(() => vi.fn()) }
+    const admitted = admitOf(connection)(marketReq('/api/terminal/environment', aliceCookie))
+    expect((admitted.peer as { principal: unknown }).principal).toEqual({ kind: 'eterna-user', userId: aliceId })
     install?.dispose()
   })
 
@@ -154,6 +200,47 @@ describe('T2 换血:admit 包装', () => {
     expect(admitOf(connection)(marketReq('/api/pluginManager/listBundles', aliceCookie)).peer).toBe('owner-peer')
     store.setUserRole(aliceId, 'user')
     expect(admitOf(connection)(marketReq('/api/pluginManager/listBundles', aliceCookie)).rejection).toBe(403)
+    install?.dispose()
+  })
+
+  it('ACC-008 文件面一元路径 → eterna-user Peer;无 cookie 401;近形路径不倒', () => {
+    const connection = fakeConnection()
+    const install = installMuxIsolation({ store, session }, connection, { registerPolicy: vi.fn() })
+    for (const method of ['list', 'stat', 'read', 'readBytes', 'search']) {
+      const admitted = admitOf(connection)(marketReq(`/api/workspaceFiles/${method}`, aliceCookie))
+      expect((admitted.peer as { principal: unknown }).principal, method).toEqual({ kind: 'eterna-user', userId: aliceId })
+    }
+    expect(admitOf(connection)(marketReq('/api/workspaceFiles/list')).rejection).toBe(401)
+    expect(admitOf(connection)(marketReq('/api/workspaceFiles/list', 'eterna_session=garbage')).rejection).toBe(401)
+    // 流 changes 走 mux,近形路径不得被换血(避免卷入无关 /api 面)
+    for (const path of ['/api/workspaceFilesX/list', '/api/workspacefiles/list', '/api/workspaceFile/list']) {
+      expect(admitOf(connection)(marketReq(path, aliceCookie)).peer, path).toBe('owner-peer')
+    }
+    install?.dispose()
+  })
+
+  it('MCPS-006 系统 MCP 管理面:非 admin 403、无 cookie 401、admin 换血 eterna-user Peer', () => {
+    const connection = fakeConnection()
+    const install = installMuxIsolation({ store, session }, connection, { registerPolicy: vi.fn() })
+    for (const method of ['probe', 'restart']) {
+      expect(admitOf(connection)(marketReq(`/api/mcpManager/${method}`, aliceCookie)).rejection, method).toBe(403)
+      const allowed = admitOf(connection)(marketReq(`/api/mcpManager/${method}`, adminCookie))
+      expect((allowed.peer as { principal: unknown }).principal, method).toEqual({ kind: 'eterna-user', userId: adminId })
+    }
+    expect(admitOf(connection)(marketReq('/api/mcpManager/probe')).rejection).toBe(401)
+    // 近形路径不倒;个人层 `/api/mcp-personal/*` 不属于本门(自己的守卫路由)
+    for (const path of ['/api/mcpManagerX/probe', '/api/mcpmanager/probe', '/api/mcp-personal/list']) {
+      expect(admitOf(connection)(marketReq(path, aliceCookie)).peer, path).toBe('owner-peer')
+    }
+    install?.dispose()
+  })
+
+  it('MCPS-006 策略面未就绪 → 系统 MCP 一元 503(fail-closed)', () => {
+    const connection = fakeConnection()
+    const install = installMuxIsolation({ store, session }, connection, () => undefined)
+    expect(admitOf(connection)(marketReq('/api/mcpManager/probe', adminCookie)).rejection).toBe(503)
+    expect(admitOf(connection)(marketReq('/api/workspaceFiles/list', aliceCookie)).rejection).toBe(503)
+    expect(connection.original).not.toHaveBeenCalled()
     install?.dispose()
   })
 

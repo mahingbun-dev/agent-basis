@@ -1,0 +1,36 @@
+# render-fingerprint @ 2026-11-19T18:19:04Z
+## source templates (repo docker/profile)
+902c94b71b118cb1c7705ef7dc331361b42cb335a6397d7b4d96cf8153ef0edf  docker/profile/cordis.patch.yml.template
+97d027b519918488923488c1995b5be5a88c25e2fd21c1976b688e270b12a473  docker/profile/cordis.super.patch.yml.template
+500b15afd6459e64322324914fc57e56f945d49c528194a7f315a41f17777dae  docker/profile/package.json
+affc7e06f261f8354e60222f9be5c25166fc6df5c4219bef559b8e7a2988e394  docker/profile/package.acp.json
+    1058 docker/profile/cordis.patch.yml.template
+    1090 docker/profile/cordis.super.patch.yml.template
+    2148 total
+id_rows: base=146 super=152
+## materialized into temp DSH_HOME (must equal source sha)
+902c94b71b118cb1c7705ef7dc331361b42cb335a6397d7b4d96cf8153ef0edf  /tmp/eterna-rc5-p0-run2/web/profiles/eterna-web/cordis.patch.yml
+97d027b519918488923488c1995b5be5a88c25e2fd21c1976b688e270b12a473  /tmp/eterna-rc5-p0-run2/super/profiles/eterna-super/cordis.patch.yml
+## local profile bundle manifests
+{
+  "web": [
+    "@deepseek-ai/dsh-base",
+    "@deepseek-ai/dsh-web-app",
+    "@deepseek-ai/dsh-deepseek-chat-import",
+    "@deepseek-ai/dsh-experimental-session-search",
+    "@deepseek-ai/dsh-experimental-plugin-market-bundle",
+    "@deepseek-ai/dsh-experimental-terminal-bundle"
+  ],
+  "super": [
+    "@deepseek-ai/dsh-base",
+    "@deepseek-ai/dsh-web-app",
+    "@deepseek-ai/dsh-deepseek-chat-import",
+    "@deepseek-ai/dsh-experimental-session-search",
+    "@deepseek-ai/dsh-experimental-plugin-market-bundle",
+    "@deepseek-ai/dsh-experimental-terminal-bundle"
+  ]
+}
+## prod-vs-local line delta
+prod templates (container /repo/docker/profile): base=990 lines, super=1024 lines (fa6b2528…, 06158841…)
+local rc5 templates: base=1058, super=1090 (902c94b7…, 97d027b5…)
+delta: base +68, super +66

@@ -11,7 +11,18 @@ export interface LocaleFace {
 /** 槽位贡献 API(ctx.slots 消费面;panel 同款)。 */
 export interface SlotsFace {
   inject(name: string, contribute: () => (() => void) | Generator<() => void>): () => void
-  register(options: { name: string; inject?: () => Record<string, unknown> }, component: (props: never) => unknown): () => void
+  /**
+   * 注册槽位占用方。
+   * - hoc 槽位(`conversation.hero.frame`)必须带自己的 `id`(新 id 追加一层,
+   *   复用上游 id 会替换该层)与可选的 `order`(升序,最小者最外层);
+   * - single 槽位(`sidebar.brand.mark` / `conversation.hero.brand.mark`)不带 id。
+   */
+  register(options: {
+    name: string
+    id?: string
+    order?: number
+    inject?: () => Record<string, unknown>
+  }, component: (props: never) => unknown): () => void
 }
 
 /** 浏览器插件上下文(本包消费面)。 */

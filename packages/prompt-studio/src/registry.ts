@@ -1,7 +1,8 @@
 /**
  * 提示词注册表(T1.3,计划书 §6/§5「条目模型 + 三层存量全量登记」):
  *
- * 全产品提示词的唯一登记面——preset 层(profiles/eterna-web/cordis.patch.yml 两预设)、
+ * 全产品提示词的唯一登记面——preset 层(docker/profile/cordis.patch.yml.template
+ * 两预设;rc.5 起锚定容器模板=生产 profile 渲染源)、
  * 领域层(packs/{event-planning,industrial-analysis} 的 personaPrefix + persona.md)、运行时层
  * (ctx.systemPrompt.section 动态注入,现存使用者 memory/glue)、meta 层(工作室 AI 能力
  * 自管的元提示词,T3.1:计划书 §4「元提示词本身也进工作室注册表自管——吃自己的狗粮」)。
@@ -158,10 +159,17 @@ export interface PromptRegistryEntry {
 // ---------- 三层存量登记(对账基准=计划书 §2 现状清单,行号 2026-11-11 实测) ----------
 
 /**
- * preset 层 patch 文件(仓库根相对)。运行时(T1.4 读侧)由网关映射到本宿主的
- * live patch 层(profileContext.patchPath)——生产 eterna-web 档两者是同一文件。
+ * preset 层 patch 文件(仓库根相对)。rc.5 起锚定**容器模板**:生产 entrypoint 直拷
+ * 该模板落卷 profiles/<name>/cordis.patch.yml，模板与 live patch 行序逐字一致。
+ * 运行时(T1.4 读侧)由网关映射到本宿主的 live patch 层(profileContext.patchPath)。
  */
-export const WEB_PATCH = 'profiles/eterna-web/cordis.patch.yml'
+export const WEB_PATCH = 'docker/profile/cordis.patch.yml.template'
+
+/** super 双形态容器模板(ETERNA_FORM=super 渲染源;40 号 S-5/entrypoint :43)。 */
+export const SUPER_PATCH = 'docker/profile/cordis.super.patch.yml.template'
+
+/** ACP 自动化面容器模板(47 B17;独立 profile 源,不挂 ui-/client 包)。 */
+export const ACP_PATCH = 'docker/profile/cordis.acp.patch.yml.template'
 
 /**
  * 缺省条目 id(T1.4):不带 entryId 的旧调用形态(prompt-get/prompt-versions/
@@ -175,15 +183,13 @@ export const DEFAULT_ENTRY_ID = 'preset.standard.persona'
 const UPGRADE_OVERWRITE_RISK = 'profile/pack 升级合并可能覆盖本地编辑——preset 层 6 条托管键自 2026-11-18 起由 entrypoint 渲染门控按基线快照自动移植(docker/profile/migrate-prompt-edits.mjs);其余条目仍以版本库可回滚兜底'
 
 /**
- * 全部存量条目(15 条:preset×6、domain×4、runtime×3、meta×2——meta 层为
+ * 全部存量条目(17 条:preset×6、domain×4、runtime×5、meta×2——meta 层为
  * T3.1 新增的元提示词登记;runtime.memory.search-prefix 为 M-M1 T5 新增,
- * 19 §3-T5)。行号锚 2026-11-11 实测自本 worktree(persona 基线
- * 补三红线锚点后重测;memory 侧锚点随 M-M1 改动重测;2026-11-14 随压缩
- * C6 挂载(stale-tool-result-pruner 插行,eterna-web patch +10)重测
- * preset.standard 侧行号):
- * persona×2 = :310-311(standard 块标量 >-)/:149-150(cordis 块标量 >-);
- * agent-instructions = :162/:323(maxBytes: 65536);
- * plan-mode section = :196-207/:362 起(| 多段字面块)。
+ * 19 §3-T5;runtime.agent-loop 为 rc.5 B13 新增,v1 agent-loop 注入登记)。
+ * 行号锚 2026-11-20 按 rc.5 容器模板重测（B13：模板 = 生产渲染源）:
+ * persona×2 = :397-398(standard 块标量 >-)/:207-208(cordis 块标量 >-);
+ * agent-instructions = :228/:416(maxBytes: 65536);
+ * plan-mode section = :262-273/:461-472(| 多段字面块)。
  * time-context 两行仍在 live patch 里,但按 2026-11-11
  * 用户裁定不登记(见文件头「注册表不变量」),不再是注册表条目。
  */
@@ -196,8 +202,8 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-persona',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['persona'], configKey: 'prefix' },
     anchors: [
-      { file: WEB_PATCH, line: 314, contains: 'prefix: >-' },
-      { file: WEB_PATCH, line: 315, contains: 'You are a coding agent powered by the {{model}} model.' },
+      { file: WEB_PATCH, line: 397, contains: 'prefix: >-' },
+      { file: WEB_PATCH, line: 398, contains: 'You are a coding agent powered by the {{model}} model.' },
     ],
     note: '默认预设 persona 前缀(块标量 >-,2026-11-12 起基线自含三红线锚点):preset-standard 行 plugins[id=persona].config.prefix。',
     description: '所有标准会话系统提示的第一段:告诉模型它是谁、用哪个模型,并钉住三条全局红线(预算不超支/不代付/比选中立)。改动会影响之后每一个新会话的开场人设。',
@@ -217,7 +223,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-agent-instructions',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['agent-instructions'], configKey: 'maxBytes' },
     anchors: [
-      { file: WEB_PATCH, line: 327, contains: 'maxBytes: 65536' },
+      { file: WEB_PATCH, line: 416, contains: 'maxBytes: 65536' },
     ],
     note: '指令段容量上限(数值配置,非提示词文本):每条指令链(用户级/项目级 AGENTS.md)的渲染字节上限。',
     description: '指令链(用户级/项目级 AGENTS.md 等)渲染进系统提示时的字节容量上限(数值参数,非提示词文本):调小会截断长指令链,调大放宽。只影响 standard 预设会话。',
@@ -236,10 +242,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-plan-mode',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['planning', 'plan-mode'], configKey: 'section' },
     anchors: [
-      { file: WEB_PATCH, line: 366, contains: 'section: |' },
-      { file: WEB_PATCH, line: 367, contains: 'You are in plan mode.' },
+      { file: WEB_PATCH, line: 461, contains: 'section: |' },
+      { file: WEB_PATCH, line: 462, contains: 'You are in plan mode.' },
     ],
-    note: 'plan 模式整段系统提示(| 多段字面块,行 366 起):planning 组内 plan-mode 插件的 config.section。',
+    note: 'plan 模式整段系统提示(| 多段字面块,行 461 起):planning 组内 plan-mode 插件的 config.section。',
     description: 'plan 模式激活时注入的整段系统提示:规定模型只做只读探索与计划制定,必须经 exit_plan_mode 提交计划并获用户明确批准才能进入实现;plan 会话开场即带上。',
     risks: [UPGRADE_OVERWRITE_RISK, '上游 @deepseek-ai/dsh-plan-mode 升级改写该段时,本地编辑需与新版重新对齐(计划书 §3 风险标注)。'],
     redLine: 'exempt',
@@ -257,10 +263,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-persona',
     yaml: { file: WEB_PATCH, rowId: 'preset-cordis', pluginPath: ['persona'], configKey: 'prefix' },
     anchors: [
-      { file: WEB_PATCH, line: 149, contains: 'prefix: >-' },
-      { file: WEB_PATCH, line: 150, contains: 'You are a coding agent powered by the {{model}} model.' },
+      { file: WEB_PATCH, line: 207, contains: 'prefix: >-' },
+      { file: WEB_PATCH, line: 208, contains: 'You are a coding agent powered by the {{model}} model.' },
     ],
-    note: '创造模式 persona 前缀(>- 折叠块标量,行 149 起;2026-11-12 起基线自含三红线锚点):preset-cordis 行 plugins[id=persona].config.prefix。',
+    note: '创造模式 persona 前缀(>- 折叠块标量,行 207 起;2026-11-12 起基线自含三红线锚点,rc.5 补第三行定制句):preset-cordis 行 plugins[id=persona].config.prefix。',
     description: '创造模式(cordis 预设)会话系统提示的第一段:定位与默认 persona 同源,同样钉三条全局红线;只影响创造模式会话。',
     risks: [UPGRADE_OVERWRITE_RISK, '块标量写回必须整块替换(块头+续行),单行替换会残留续行产生脏 YAML(测试计划 §9.5)。'],
     redLine: 'required',
@@ -278,7 +284,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-agent-instructions',
     yaml: { file: WEB_PATCH, rowId: 'preset-cordis', pluginPath: ['agent-instructions'], configKey: 'maxBytes' },
     anchors: [
-      { file: WEB_PATCH, line: 162, contains: 'maxBytes: 65536' },
+      { file: WEB_PATCH, line: 228, contains: 'maxBytes: 65536' },
     ],
     note: '指令段容量上限(数值配置,非提示词文本),preset-cordis 行内与 standard 同值 65536。',
     description: '创造模式会话的指令链渲染字节上限(数值参数),作用同 standard 档;只影响 cordis 预设会话。',
@@ -297,10 +303,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-plan-mode',
     yaml: { file: WEB_PATCH, rowId: 'preset-cordis', pluginPath: ['planning', 'plan-mode'], configKey: 'section' },
     anchors: [
-      { file: WEB_PATCH, line: 196, contains: 'section: |' },
-      { file: WEB_PATCH, line: 197, contains: 'You are in plan mode.' },
+      { file: WEB_PATCH, line: 262, contains: 'section: |' },
+      { file: WEB_PATCH, line: 263, contains: 'You are in plan mode.' },
     ],
-    note: 'plan 模式整段系统提示(| 多段字面块,行 196-207):preset-cordis 行内 planning 组的 plan-mode config.section。',
+    note: 'plan 模式整段系统提示(| 多段字面块,行 262-273):preset-cordis 行内 planning 组的 plan-mode config.section。',
     description: '创造模式下的 plan 模式整段系统提示,作用同 standard 档;只影响 cordis 预设的 plan 会话。',
     risks: [UPGRADE_OVERWRITE_RISK, '上游 @deepseek-ai/dsh-plan-mode 升级改写该段时,本地编辑需与新版重新对齐。'],
     redLine: 'exempt',
@@ -452,6 +458,27 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
       note: '不可经工作室修改:保存对其 fail-closed 拒写(t7-e2e 15.27 实测);同一 section 的装载层,文本每次装配重建,不受快照回放冻结(回放按型跳过并审计,t7-e2e 15.28)。',
     },
   },
+  // ── 运行时层第 5 条(rc.5 B13;v1 线 agent-loop 注入登记)────────────────────
+  {
+    id: 'runtime.agent-loop',
+    layer: 'runtime',
+    kind: 'runtime-injection',
+    source: '@core/agent-loop',
+    anchors: [
+      { file: 'packages/agent-loop/src/plugin.ts', line: 15, contains: 'inject: { tools: true, llm: true, session: true, systemPrompt: true } as never' },
+      { file: 'packages/agent-loop/src/loop.ts', line: 56, contains: 'ctx.systemPrompt.assemble({ variables: options.promptVariables ?? {} })' },
+      { file: 'packages/agent-loop/src/loop.ts', line: 58, contains: "role: 'system'" },
+    ],
+    note: '运行时注入型:v1 线 agent-loop 插件(inject systemPrompt)把 ctx.systemPrompt.assemble() 的装配结果作为首条 system 消息送入模型——无自有提示词文本,只消费装配面;登记用于满足 prompt-scan 的「systemPrompt: true 注入声明必须登记」铁律(rc.5 B13 明文项)。',
+    description: 'v1 线 agent-loop 的系统提示消费点(运行时注入):每轮把宿主 systemPrompt 装配结果作为 system 消息送入模型;本身不产出提示词文本,不可编辑。',
+    risks: ['v1 线(basis.yml)独立于 DSH profile,不进生产 docker 组合;改动会改变 v1 会话的 system 消息装配。'],
+    redLine: 'exempt',
+    maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'runtime-rebuilt',
+      note: '不可经工作室修改(运行时注入型拒写);文本由 ctx.systemPrompt.assemble 每次装配动态重建,不受快照回放冻结。',
+    },
+  },
   // ── meta 层:工作室 AI 能力自管的元提示词(T3.1,计划书 §4「吃自己的狗粮」)────
   // AI 润色/审核调用时现读本层条目当前值作 system 消息——元提示词改后经 R3 审批
   // 写回,下次 AI 调用即用新文;永不进入任何会话的系统提示组装(回放按无映射段跳过)。
@@ -517,6 +544,57 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
       radius: 'runtime-rebuilt',
       note: '不可经工作室修改:保存对其 fail-closed 拒写(运行时注入型同款守卫);清单文本由 tasks 插件每轮 pass 重算缓存,装配时返回缓存(不逐次查询库)。',
     },
+  },
+]
+
+// ---------- 模板键登记(rc.5 T17/R19:prompt-scan 模板盲区收口) ----------
+
+/**
+ * 模板键登记(逐 key 的 YAML 定位,供 packctl prompt-scan 的 P1 登记判定消费)。
+ *
+ * 与 PROMPT_REGISTRY_ENTRIES 的分工(为什么不把这些键做成工作室条目):
+ * - super 模板的 persona/plan-mode 四键是 base 模板同名键的**同文镜像**
+ *   (40 号 S-5 双形态超集),另立条目会让同一提示词在工作室出现双条目
+ *   (与 profiles/eterna-super 开发档白名单同一裁定,见 prompt.ts 豁免标注);
+ * - ACP 模板的 system-prompt.personaPrefix 是 ACP 自动化面在模板内直接写定的
+ *   品牌身份/红线文本(不挂 @eterna/brand,studio 的 preset 读/写回落点只覆盖
+ *   base 模板 ↔ live patch,B13),登记成工作室条目会得到「看得见、写不回
+ *   live patch」的假管理面(entryWritePath 会直接改仓内模板文件)。
+ * 所以这里按四元组(file/rowId/pluginPath/configKey)逐 key 登记:模板新增未登记
+ * 键仍会因匹配失败被 prompt-scan 拦下——是逐键登记,不是整文件白名单。
+ */
+export interface PromptTemplateRegistration {
+  /** YAML 结构定位(与 PROMPT_REGISTRY_ENTRIES 条目同口径:file+rowId+pluginPath+configKey). */
+  readonly yaml: YamlLocator
+  /** 登记口径说明(审计/ledger 对账用):同文镜像真值条目,或模板原生面的归属. */
+  readonly note: string
+}
+
+/**
+ * 模板键登记表(2026-11-20 rc.5 T17 实测:模板 prompt key 逐 key 核对结果)。
+ * super 四键与 base 同名键同文(行号 2026-11-20 实测 :208/:263/:399/:463);
+ * ACP 一键为自动化面唯一提示词键(:44)。
+ */
+export const PROMPT_TEMPLATE_REGISTRATIONS: readonly PromptTemplateRegistration[] = [
+  {
+    yaml: { file: SUPER_PATCH, rowId: 'preset-cordis', pluginPath: ['persona'], configKey: 'prefix' },
+    note: 'super 模板 preset-cordis persona prefix = base 模板同键同文镜像(真值条目 preset.cordis.persona,registry yaml 锚定 WEB_PATCH);super 侧不立双条目',
+  },
+  {
+    yaml: { file: SUPER_PATCH, rowId: 'preset-cordis', pluginPath: ['planning', 'plan-mode'], configKey: 'section' },
+    note: 'super 模板 preset-cordis plan-mode section = base 模板同键同文镜像(真值条目 preset.cordis.plan-mode.section);super 侧不立双条目',
+  },
+  {
+    yaml: { file: SUPER_PATCH, rowId: 'preset-standard', pluginPath: ['persona'], configKey: 'prefix' },
+    note: 'super 模板 preset-standard persona prefix = base 模板同键同文镜像(真值条目 preset.standard.persona);super 侧不立双条目',
+  },
+  {
+    yaml: { file: SUPER_PATCH, rowId: 'preset-standard', pluginPath: ['planning', 'plan-mode'], configKey: 'section' },
+    note: 'super 模板 preset-standard plan-mode section = base 模板同键同文镜像(真值条目 preset.standard.plan-mode.section);super 侧不立双条目',
+  },
+  {
+    yaml: { file: ACP_PATCH, rowId: 'system-prompt', configKey: 'personaPrefix' },
+    note: 'ACP 自动化面模板的品牌身份+全局红线句(模板内直接写定,不挂 @eterna/brand);studio preset 读写回落点不覆盖 ACP 模板,故只做扫描面键级登记、不立工作室条目',
   },
 ]
 

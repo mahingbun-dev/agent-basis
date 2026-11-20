@@ -1,0 +1,87 @@
+# T24/B12 glue channels webhook 收口 — 复验(2026-11-20 02:1x CST;repo /Users/sunny/code/agent-basis-rc5)
+# 每条:命令原文 -> EXIT -> 关键断言行
+
+$ node tools/packctl/bin/packctl.mjs tenant-scan
+EXIT=0
+tenant-scan: 0 finding(s)
+
+$ pnpm --filter @eterna/access exec vitest run tests/channels-webhook-contract.spec.ts tests/channels-webhook.spec.ts
+EXIT=0
+ Test Files  2 passed (2)
+      Tests  7 passed (7)
+
+$ pnpm --filter @eterna/glue exec vitest run tests/channels-plugin.spec.ts
+EXIT=0
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+
+$ pnpm --filter @eterna/access exec vitest run
+EXIT=0
+ Test Files  43 passed (43)
+      Tests  410 passed (410)
+
+$ pnpm --filter @eterna/glue exec vitest run --passWithNoTests
+EXIT=0
+ Test Files  12 passed (12)
+      Tests  113 passed (113)
+
+$ pnpm --filter @eterna/glue run typecheck
+EXIT=0
+
+$ pnpm --filter @eterna/access run typecheck
+EXIT=2
+src/store.ts(817,18): error TS6133: 'userId' is declared but its value is never read.
+src/store.ts(822,25): error TS6133: 'userId' is declared but its value is never read.
+src/store.ts(827,16): error TS6133: 'userId' is declared but its value is never read.
+src/store.ts(827,32): error TS6133: 'id' is declared but its value is never read.
+
+$ pnpm --filter @eterna/access exec oxlint --config ../../.oxlintrc.json tests/channels-webhook-contract.spec.ts src/channels-webhook.ts
+EXIT=0
+Found 0 warnings and 0 errors.
+
+# --- 基线复现(de0d2b1^ 临时 worktree;只读检出,不触碰工作树) ---
+$ git worktree add --detach /tmp/b12-rerun-baseline de0d2b1^ && ln -s <repo>/tools/packctl/node_modules /tmp/b12-rerun-baseline/tools/packctl/node_modules
+$ (cd /tmp/b12-rerun-baseline && node tools/packctl/bin/packctl.mjs tenant-scan)
+$ git worktree add --detach /tmp/b12-rerun-baseline de0d2b1^ ...
+$ (cd /tmp/b12-rerun-baseline && node tools/packctl/bin/packctl.mjs tenant-scan)
+  EXIT=1
+  $ git worktree remove /tmp/b12-rerun-baseline --force
+  0 worktree-left
+
+# --- 断言有效性 mutation(临时追加 webServer.register 探针 -> 红 -> 还原 sha256 复核) ---
+$ printf "\nconst __mutationProbe = webServer.register(\n" >> packages/glue/src/plugins/channels-plugin.ts
+$ pnpm --filter @eterna/access exec vitest run tests/channels-webhook-contract.spec.ts
+       × T2 回潮门:glue 侧零自注册;access 侧接线恰好一次(插件改回自注册或漏接线即红) 3ms
+  AssertionError: glue channels-plugin 不得再持有任何 webServer.register 调用: expected '\nimport { mkdirSync } from \'node:fs…' not to contain 'webServer.register('
+        Tests  1 failed | 2 passed (3)
+EXIT=1(见 rr02-mutation-zero-self-register.log)
+$ cp 备份还原 && shasum -a 256
+  53ae1c398a01f22c79c8c9a70ef40555f2d980991806f242fbd9a7c08c4faae3  packages/glue/src/plugins/channels-plugin.ts
+
+# --- 路由面静态证据 ---
+见 rr02-route-surface.txt(glue 零命中;access 唯一接线 plugin.ts:357)
+# --- 定位/归属核验 ---
+$ git merge-base --is-ancestor de0d2b1 HEAD
+EXIT=0 (0 = 迁移 commit 已是 HEAD 祖先)
+$ git log -1 --format='%h %s' de0d2b1
+de0d2b1 refactor(channels): webhook 路由面移交 access 公共面登记——铁律 T2 路由面独占落地(24a 裁决口径)
+$ git status --porcelain -- packages/glue/src/plugins/channels-plugin.ts
+(空 = glue 插件工作树与 HEAD 一致,本 lane 未再改源码)
+
+$ pnpm --filter @eterna/access exec vitest run tests/channels-webhook-contract.spec.ts tests/channels-webhook.spec.ts   # 头注措辞修订(三件->四件)后复跑
+ ✓ tests/channels-webhook-contract.spec.ts (3 tests) 3ms
+ ✓ tests/channels-webhook.spec.ts (4 tests) 4ms
+ Test Files  2 passed (2)
+      Tests  7 passed (7)
+EXIT=0
+
+# --- 收尾 ---
+$ node tools/packctl/bin/packctl.mjs tenant-scan
+  tenant-scan: 0 finding(s)   EXIT=0 (rr02-tenant-scan-final.log)
+$ git worktree list | grep b12-rerun-baseline
+  (空 = 基线临时 worktree 已移除)
+$ git status --porcelain -- packages/glue/src/plugins/channels-plugin.ts packages/access/src/channels-webhook.ts packages/access/src/plugin.ts
+  (空 = 迁移三文件无残留改动)
+
+# 工作树 HEAD: 02f4857 2026-11-20 rc5: P1 依赖族统一 0.2.2-rc.5 + H1 LlmError + subagent/流动作适配 + UI 桥接补全
+# 迁移 commit: de0d2b1 2026-11-19 refactor(channels): webhook 路由面移交 access 公共面登记——铁律 T2 路由面独占落地(24a 裁决口径)

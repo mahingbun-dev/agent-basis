@@ -1,0 +1,12 @@
+# @core/cordis verify (typecheck + declarations + vitest)
+$ tsc --noEmit && tsc -p tsconfig.lib.json && vitest run
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/core/cordis
+
+ ✓ tests/smoke.spec.ts (5 tests) 7ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  00:58:58
+   Duration  191ms (transform 47ms, setup 0ms, import 63ms, tests 7ms, environment 0ms)
+

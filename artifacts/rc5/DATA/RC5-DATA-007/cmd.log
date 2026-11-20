@@ -1,0 +1,62 @@
+# case: RC5-DATA-007 —— 迁移副本起 rc.5 容器 + 重启前后数据面比对
+#
+# 本 case 的实跑序列（输出文件均在同目录；EXIT 为实测）：
+#   1) docker run --rm --network none -v $HOME/eterna-data/test-rc5/p6b-e5a:/data:ro #        -v $PWD/artifacts/rc5/DATA/_tools:/tools:ro eterna-agent:rc5-test #        node /tools/snapshot-data.mjs /data                       → EXIT=0  → preboot.json
+#   2) docker compose -p rc5-p6b --env-file ~/eterna-data/test-rc5/.env.p6b-a #        -f docker-compose.yml up -d --no-build                    → EXIT=0  → compose-up.log
+#   3) 同上 snapshot-data.mjs                                    → EXIT=0  → postboot.json
+#   4) docker restart eterna-rc5-p6b-a                           → EXIT=0；healthy after 7s → restart.log
+#   5) 同上 snapshot-data.mjs                                    → EXIT=0  → postrestart.json
+#   6) docker run … node /tools/check-sqlite.mjs /src --copy      → EXIT=0  → ../RC5-DATA-005/postboot-drill1.json
+#   7) 下列断言由本脚本复核当前容器状态 + 归档快照（复核时间见行首时间戳）。
+#
+# case: RC5-DATA-007  switched: 2026-11-19T22:28:29Z
+$ docker inspect eterna-rc5-p6b-a --format status={{.State.Status}} health={{.State.Health.Status}} restarts={{.RestartCount}} image={{.Image}}
+# label: 容器状态（重启后）
+# started: 2026-11-19T22:28:29Z
+status=running health=healthy restarts=0 image=sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00
+EXIT=0
+
+$ docker inspect eterna-rc5-p6b-a --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Source}} ({{.Type}}){{end}}{{end}}
+# label: 容器 /data 挂载
+# started: 2026-11-19T22:28:29Z
+/Users/sunny/eterna-data/test-rc5/p6b-e5a (bind)
+EXIT=0
+
+$ sh -c curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3230/login
+# label: 重启后 GET /login
+# started: 2026-11-19T22:28:29Z
+200EXIT=0
+
+$ sh -c curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3230/access/api/me
+# label: 重启后 GET /access/api/me
+# started: 2026-11-19T22:28:29Z
+401EXIT=0
+
+$ sh -c curl -s -o /dev/null -w '%{http_code} %{redirect_url}' http://127.0.0.1:3230/
+# label: 重启后 GET / 重定向
+# started: 2026-11-19T22:28:29Z
+302 http://127.0.0.1:3230/loginEXIT=0
+
+ASSERT PASS | 容器 healthy | actual=healthy expected=healthy
+ASSERT PASS | 容器 start 时间晚于创建时间（经历过 restart） | actual=yes expected=yes
+ASSERT PASS | /login 200 | actual=200 expected=200
+ASSERT PASS | 匿名 /access/api/me 401 | actual=401 expected=401
+ASSERT PASS | 根路径 302→/login | actual=302 expected=302
+ASSERT PASS | 容器日志无 FATAL | actual=0 expected=0
+ASSERT PASS | 迁移启动后 users 行数不变 | actual=True expected=True
+ASSERT PASS | 迁移启动后访问会话行数不变 | actual=True expected=True
+ASSERT PASS | 迁移启动后工作区行数不变 | actual=True expected=True
+ASSERT PASS | 迁移启动后记忆实体数不变 | actual=True expected=True
+ASSERT PASS | 迁移启动后工作区记忆实体数不变 | actual=True expected=True
+ASSERT PASS | 迁移启动后 sessions 文件数不变 | actual=True expected=True
+ASSERT PASS | 迁移启动后 storages 文件数不变 | actual=True expected=True
+ASSERT PASS | 迁移启动后 relay-token 指纹不变 | actual=True expected=True
+ASSERT PASS | 重启后 DB 行数全部一致 | actual=True expected=True
+ASSERT PASS | 重启后 sessions 文件数一致 | actual=True expected=True
+ASSERT PASS | 重启后 storages 文件数一致 | actual=True expected=True
+ASSERT PASS | 重启后 relay-token/凭据指纹一致 | actual=True expected=True
+ASSERT PASS | 重启后 profile 文件指纹一致 | actual=True expected=True
+ASSERT PASS | 重启后总文件数一致 | actual=True expected=True
+PY-ASSERT-FAILS=0
+PASS=20 FAIL=0（PY-ASSERT-FAILS 见 cmd.log）
+

@@ -1,0 +1,28 @@
+$ docker cp artifacts/rc5/API/_harness/index.js eterna-rc5-e1:/tmp/api-harness/index.js
+Error response from daemon: Could not find the file /tmp/api-harness in container eterna-rc5-e1
+EXIT=1
+$ docker cp artifacts/rc5/API/_harness/package.json eterna-rc5-e1:/tmp/api-harness/package.json
+Error response from daemon: Could not find the file /tmp/api-harness in container eterna-rc5-e1
+EXIT=1
+$ docker cp artifacts/rc5/API/_harness/run-api005-007.sh eterna-rc5-e1:/tmp/run-api005-007.sh
+EXIT=0
+$ docker exec eterna-rc5-e1 sh /tmp/run-api005-007.sh
+HARNESS_EXIT=124
+dsh: warning: 1 entry did not activate
+eterna-api-harness (@eterna/api-harness): failed to import: Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@eterna/api-harness' imported from /tmp/api-run-home/profiles/api-prof/
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:331:9)
+    at packageResolve (node:internal/modules/esm/resolve:784:25)
+    at moduleResolve (node:internal/modules/esm/resolve:873:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:705:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:725:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:763:56)
+    at file:///usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js:2715:77
+    at adapted (file:///usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js:2680:15)
+    at file:///usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js:2705:19
+dsh web: http://127.0.0.1:34029/?token=<redacted>
+--- harness.log ---
+EXIT=124
+$ docker cp eterna-rc5-e1:/tmp/api-run-home/out artifacts/rc5/p7/regression/rerun/API/out
+Error response from daemon: Could not find the file /tmp/api-run-home/out in container eterna-rc5-e1
+EXIT=1

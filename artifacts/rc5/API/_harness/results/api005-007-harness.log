@@ -1,0 +1,12 @@
+[2026-11-19T22:54:16.933Z] policy save {"ok":true,"saved":true,"revision":1}
+[2026-11-19T22:54:17.154Z] dispatch 1 stored explicit accept 709dea15795ec8518199c38e37d54e74
+[2026-11-19T22:54:17.161Z] dispatch 2 stored explicit accept 36ed884efff9cfc179578853b538df70
+[2026-11-19T22:54:17.362Z] worker ready worker-709dea15795ec8518199c38e37d54e74 running
+[2026-11-19T22:54:17.362Z] worker ready worker-36ed884efff9cfc179578853b538df70 running
+[2026-11-19T22:54:17.376Z] spawned child 1 7cb4fa40-67fa-4ee2-acc0-ef85bb51bc31 api-child-1
+[2026-11-19T22:54:17.384Z] spawned child 2 1ad10993-392d-457d-adab-cf8c3b2d5a63 api-child-2
+[2026-11-19T22:54:25.432Z] waitForTreeWork returned true 8048ms
+[2026-11-19T22:54:25.664Z] receipts {"ok":true,"count":2,"stopReasons":["completed","completed"],"senders":["7cb4fa40-67fa-4ee2-acc0-ef85bb51bc31","1ad10993-392d-457d-adab-cf8c3b2d5a63"],"expectedSenders":["7cb4fa40-67fa-4ee2-acc0-ef85bb51bc31","1ad10993-392d-457d-adab-cf8c3b2d5a63"]}
+[2026-11-19T22:54:25.701Z] listDescendants A ["7cb4fa40-67fa-4ee2-acc0-ef85bb51bc31","1ad10993-392d-457d-adab-cf8c3b2d5a63"]
+[2026-11-19T22:54:25.710Z] child B resident status running
+[2026-11-19T22:54:25.722Z] drain B {"ok":true,"residentAfter":[],"waitForTreeWorkAfter":false,"workerStatusAfter":"idle"}

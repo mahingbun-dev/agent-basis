@@ -1,0 +1,11 @@
+capturedAt=2026-11-19T18:27:19Z
+branch=feat/dsh-rc5-merge
+head=02f485788411b9aed1938a3c4b009793a090961e
+headSubject=rc5: P1 依赖族统一 0.2.2-rc.5 + H1 LlmError + subagent/流动作适配 + UI 桥接补全
+worktreeDirtyFiles=80
+7aed19709d21b9cfcd588d22b2a020fc7b0ee30041bfd3b2e34e4f0a214c6c2b  Dockerfile
+c8e24ac8a61d0ae63b8f618a1cd46fb8f353a083a80673403bf92554f0eaa9cb  packages/llm-openai/src/adapter.ts
+5a996dc4b7e1afcd0b24a004236ae0b8050022acb7bc89ed7e2966e33ea5554b  core/cordis/src/logger.ts
+1ea8d0360b14ff200b5c63018363d5ce255bab6ca30a816513de06bd281cd1ea  pnpm-workspace.yaml
+238c9c81b6b3362059b8914cfe7d11684074cf2060295d1ae15b4ec5971582b5  package.json
+872eb027bdb411a6fc309c8d9a236d7db1c07509d84a22f463b0bdb5a5f7e2d9  packages/access/package.json

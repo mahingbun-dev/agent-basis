@@ -1,0 +1,22 @@
+{
+  "id": "E3-UI-002",
+  "suite": "E3-super",
+  "priority": "P1",
+  "title": "（lane 本地）真浏览器渲染截图（super 工作台/任务板/terminal 面板）",
+  "expected": "深浅两主题 × 1440/900/390 截图 + 控制台无错",
+  "status": "NOTRUN",
+  "startedAt": "2026-11-20T07:04:59.854Z",
+  "finishedAt": "2026-11-20T07:04:59.854Z",
+  "assertions": [],
+  "commands": [],
+  "notes": [
+    "真浏览器渲染（工作台五视图/任务板/terminal 面板）需把 0600 测试口令或会话 cookie 传入浏览器自动化；无论 argv、页面代码或日志都会使凭据落盘/落日志，违反本 lane 凭据纪律。替代证据：E3-UI-001 HTML、WB-002 花名册/工厂、WB-001 SSE 快照、RC5-TERM-002 面板行/bundle。"
+  ],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

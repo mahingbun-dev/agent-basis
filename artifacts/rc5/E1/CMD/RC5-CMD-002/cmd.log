@@ -1,0 +1,14 @@
+# CMD/RC5-CMD-002
+# started 2026-11-20T07:02:42.243Z
+
+$ IAB 1440×900: 执行 /model → 读取选择器（aria-label="选择模型，当前 MiMo V2.6 Pro，推理等级 Default"）→ 截图
+EXIT=0
+pickerOpened=true current=MiMo V2.6 Pro level=Default messageSent=false
+
+[ASSERT] 内置命令 /model 打开模型选择器 => PASS
+
+[ASSERT] 选择器显示当前模型/推理等级 => PASS
+
+[ASSERT] 未向 transcript 发送普通消息 => PASS
+
+# note: 命令 token 保留在 composer 草稿（预期：命令未执行完不发送）；后续通过清 localStorage 草稿恢复空白态

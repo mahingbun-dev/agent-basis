@@ -1,0 +1,31 @@
+# rc.5 subagent 服务面签名(实测来源:node_modules/.pnpm/@deepseek-ai+dsh-subagent@0.2.2-rc.5_*/node_modules/@deepseek-ai/dsh-subagent)
+## node_modules/.pnpm/@deepseek-ai+dsh-subagent@0.2.2-rc.5_3cc1721e5e0cc59e8e4484ab1d132145/node_modules/@deepseek-ai/dsh-subagent/lib/types/index.d.ts
+185:    waitForTreeWork(root: Agent): Promise<boolean>;
+224:    drainDescendants(parents: readonly Agent[]): Promise<void>;
+241:    listDescendants(rootSessionId: SessionId, signal?: AbortSignal): Promise<SubagentDescendantListEntry[]>;
+## node_modules/.pnpm/@deepseek-ai+dsh-subagent@0.2.2-rc.5_3cc1721e5e0cc59e8e4484ab1d132145/node_modules/@deepseek-ai/dsh-subagent/lib/types/manager.d.ts
+78:    waitForTreeWork(root: Agent): Promise<boolean>;
+83:    drainDescendants(parents: readonly Agent[]): Promise<void>;
+## node_modules/.pnpm/@deepseek-ai+dsh-subagent@0.2.2-rc.5_3cc1721e5e0cc59e8e4484ab1d132145/node_modules/@deepseek-ai/dsh-subagent/src/index.ts 实现位
+351:  async waitForTreeWork(root: Agent): Promise<boolean> {
+404:  async drainDescendants(parents: readonly Agent[]): Promise<void> {
+427:  listDescendants(rootSessionId: SessionId, signal?: AbortSignal): Promise<SubagentDescendantListEntry[]> {
+## node_modules/.pnpm/@deepseek-ai+dsh-subagent@0.2.2-rc.5_3cc1721e5e0cc59e8e4484ab1d132145/node_modules/@deepseek-ai/dsh-subagent/src/list-children.ts
+67:export async function listDescendants(
+## node_modules/.pnpm/@deepseek-ai+dsh-subagent@0.2.2-rc.5_3cc1721e5e0cc59e8e4484ab1d132145/node_modules/@deepseek-ai/dsh-subagent/src/manager.ts drain 语义(closingRoots/DRAINING)
+175:      this.closingRoots.delete(agent)
+240:    this.draining = true
+291:    for (const root of roots) this.closingRoots.add(root)
+## 旧 API 名在 packages/tasks 是否残留
+(无匹配)
+## background.ts 实际调用面
+24:  waitForTreeWork(root: Agent): Promise<boolean>
+25:  listDescendants(rootSessionId: SessionId, signal?: AbortSignal): Promise<readonly { id: string }[]>
+26:  drainDescendants(parents: readonly Agent[]): Promise<void>
+58:    join = subagents.waitForTreeWork(agent).finally(() => { joins.delete(agent) })
+162:  const live = (await subagents.listDescendants(agent.id)).map(child => child.id).filter(id => ctx.agents.get(id as SessionId))
+164:  try { await until(subagents.drainDescendants([agent]), undefined, DRAIN_LIMIT_MS) }
+## fixture 回执文案对 rc.5 settlementSummary 的原文核对
+111:        ? `${subject} finished and will do no further work unless you send it more.`
+114:      return `${subject} was stopped before it finished.`
+122:      return `${subject} failed before it finished.`

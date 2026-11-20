@@ -1,0 +1,18 @@
+# BOOT/RC5-BOOT-011
+# started 2026-11-20T07:02:41.899Z
+
+$ docker exec rc5-e1suite printenv DSH_AGENTS_HOME
+EXIT=0
+/data/agents
+
+$ docker exec … node -e "require(dsh-home-paths).resolveAgentsHome(undefined, process.env)"
+EXIT=0
+/data/agents
+
+$ docker exec … test -f /data/agents/skills/e1suite-probe/SKILL.md
+EXIT=0
+present
+
+$ docker exec … grep agentsHome dsh-skill-filesystem/lib/index.js
+EXIT=0
+/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-skill-filesystem/lib/index.js

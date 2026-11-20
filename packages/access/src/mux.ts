@@ -8,6 +8,12 @@
  *   返回 per-user Peer(principal={kind:'eterna-user',userId});其余路径(含全部 unary HTTP)
  *   维持 owner Peer + 守卫路由双保险(unary fetch 路由上游硬性要求 owner,
  *   client-connection lib/index.js:830)。
+ * - TERM-004 终端一元门(2026-11-20 W5 门禁修复):`/api/terminal/*` 一元 RPC 同样换血
+ *   per-user Peer——rc.5 网关对 owner principal 跳过 prepareInvocation 的 decide
+ *   (dsh-api-gateway lib/index.js:1204),terminal 服务入口守卫因此拿不到身份,跨租户
+ *   可读他人会话 cwd/shells。terminal 六方法的资源逐会话(agent lookup→session),故
+ *   动作授在会话绑定(TERMINAL_UNARY_ACTIONS),他人会话由 decide 拒
+ *   (remote-access/denied);策略面未就绪时 fail-closed 503,绝不退回 owner。
  * - T6.1 市场面收口(2026-11-19,计划文档 §堵洞先行):同一 admit 包装兼任市场路径
  *   admin-only 门——插件市场 unary RPC 走 owner Peer、上游不认 eterna 角色,而装/卸/
  *   启停/索引源写入落**共享 profile**,影响全体用户。admit 是全部 `/api` 请求的请求级
@@ -99,6 +105,72 @@ export function isMarketPath(pathname: string): boolean {
   return MARKET_ADMIN_PREFIXES.some(prefix => pathname.startsWith(prefix))
 }
 
+/** 终端一元动作路径前缀(2026-11-20 W5 门禁修复 TERM-004;rc.5 实核)。 */
+export const TERMINAL_UNARY_PATH_PREFIX = '/api/terminal/'
+
+/** 路径是否属 terminal 一元 RPC(`POST /api/terminal/<method>`)。 */
+export function isTerminalUnaryPath(pathname: string): boolean {
+  return pathname.startsWith(TERMINAL_UNARY_PATH_PREFIX)
+}
+
+/** 文件面一元动作路径前缀(2026-11-20 W5 门禁修复 ACC-008/SEC-004)。
+ *
+ *  rc.5 workspaceFiles 五个一元方法的 scope 是 typert lookup `workspaceFileScope`
+ *  (wire 名 workspaceFileScopeId,resource:'session'),网关对**非 owner** Peer
+ *  会按会话资源 decide;但 `/api/workspaceFiles/<method>` 一元 HTTP 的 admit 恒
+ *  owner Peer,decide 整段跳过 → 必须在本包装换血成 per-user Peer,资源判定才生效。 */
+export const WORKSPACE_FILES_UNARY_PATH_PREFIX = '/api/workspaceFiles/'
+
+/** 路径是否属 workspaceFiles 一元 RPC。 */
+export function isWorkspaceFilesUnaryPath(pathname: string): boolean {
+  return pathname.startsWith(WORKSPACE_FILES_UNARY_PATH_PREFIX)
+}
+
+/** 系统层 MCP 管理面一元路径前缀(2026-11-20 W5 门禁修复 MCPS-006/SEC-005)。
+ *  probe/restart 只谈全局机群(可拉起任意 command),仅 admin;普通用户走个人层。 */
+export const MCP_MANAGER_PATH_PREFIX = '/api/mcpManager/'
+
+/** 路径是否属系统层 MCP 管理面一元 RPC。 */
+export function isMcpManagerPath(pathname: string): boolean {
+  return pathname.startsWith(MCP_MANAGER_PATH_PREFIX)
+}
+
+/** 文件面一元动作(5 个;changes 是会话级流,已在 SESSION_STREAM_ACTIONS)。
+ *  资源=会话(workspaceFileScope lookup),故授**会话绑定**:本人会话放行、
+ *  他人会话 deny;global 绑定永不命中会话资源(同 TERMINAL_UNARY_ACTIONS 纪律)。 */
+export const WORKSPACE_FILE_UNARY_ACTIONS: readonly string[] = [
+  'workspaceFiles/list',
+  'workspaceFiles/stat',
+  'workspaceFiles/read',
+  'workspaceFiles/readBytes',
+  'workspaceFiles/search',
+]
+
+/**
+ * 终端一元动作(6 个;stream 三件套 attach/retain/watch 走 mux,不在此列)。
+ *
+ * 为什么必须授在**会话绑定**上而不是全局:rc.5 网关 prepareInvocation 对非 owner
+ * Peer 先按 callResources 解析资源再 decide(dsh-api-gateway lib/index.js:1204-1215),
+ * terminal 六方法的资源全部逐会话——首参 `agent` 是 lookup(typert.host.js 描述符
+ * `source:'lookup', lookup:'agent'`;agent 注册 resource:'session',core/agent
+ * lib/index.js:452),`list` 是具名 sessionId 参数(session-controller lib/index.js:3495
+ * resolveSessionResource 按参数名直读)。remote-access evaluate 对资源做
+ * sameResource 严格匹配(lib/index.js:338)——global 绑定永不命中 session 资源,
+ * 只授 global 会让本人会话也恒 no-allow;授会话绑定则本人放行、他人会话 deny
+ * (`remote-access/denied`)。
+ *
+ * 防漂移:tests/mux-drift.spec.ts 断言本清单与上游 terminal typert.host.js 的
+ * 非流方法表一致。
+ */
+export const TERMINAL_UNARY_ACTIONS: readonly string[] = [
+  'terminal/environment',
+  'terminal/shells',
+  'terminal/list',
+  'terminal/create',
+  'terminal/close',
+  'terminal/rename',
+]
+
 /** 从 admit 请求的 url 面取 pathname。双形态兼容:node IncomingMessage 的 req.url
  *  为纯路径(`/api/...`),mux 升级/测试/部分载体可能带完整 URL——同 eternaUserOf
  *  的双形态纪律。解析失败按首段兜底(宁可少命中,不误伤其它路径)。 */
@@ -128,6 +200,12 @@ export const GLOBAL_STREAM_ACTIONS: readonly string[] = [
   'account/watchExpiry',
   'job/follow',
   'session/control',
+  // rc.5 新增流面(2026-11-20 对账):远程面不再只住 dsh-api-*,扫描面=全部 dsh-*;
+  // 资源 kind 由 mux-drift 按网关 callResources 口径推导并锁表。
+  'productAnalytics/watchPolicy',
+  'mcpManager/watch',
+  'speech/follow',
+  'forgePanel/changeRequestStates',
 ]
 
 /** 宿主级一元(非流)读面动作:浏览器 peer 换血为 eterna-user 后,客户端 whenAccess
@@ -145,6 +223,17 @@ export const GLOBAL_UNARY_ACTIONS: readonly string[] = [
   'pluginManager/listBundles',
   'session/create',
   'schedule/list',
+  // rc.5 会话导入入口门(2026-11-20 W5 门禁修复 UI-006):上游
+  // ImportSessionsAction 先 `useRemoteAccess('deepseekChatImport/limits')`,
+  // 答案非真直接返回 children(入口按钮不渲染);该动作无参数、无资源
+  // (typert.host.js limits descriptor) = GLOBAL。缺项=「导入 DeepSeek 会话」
+  // 入口整体消失,配额字段本身只读(maxUploadBytes)无泄露面。
+  'deepseekChatImport/limits',
+  // rc.5 B14 系统层 MCP 管理面(2026-11-20,50 §3.4.1):restart/probe 只谈全局机群
+  // (rebuild 单个 server / 连接探测),授予 global 绑定;非 admin 不下发(见
+  // ADMIN_ONLY_UNARY_ACTIONS)。写配置不走 RPC(settings 门收口),本组只开 UI 门。
+  'mcpManager/restart',
+  'mcpManager/probe',
 ]
 
 /** 管理员专属一元门(T6.1「Web 插件页角色门」,2026-11-19):「插件」页
@@ -159,6 +248,18 @@ export const GLOBAL_UNARY_ACTIONS: readonly string[] = [
  *  防漂移:mux-policy 断言 admin 含/非 admin 不含、本清单 ⊆ GLOBAL_UNARY_ACTIONS。 */
 export const ADMIN_ONLY_UNARY_ACTIONS: readonly string[] = [
   'pluginManager/listBundles',
+  // rc.5 B14(2026-11-20):系统层 MCP restart/probe 仅 admin——rebuild 全局 server
+  // (可拉起任意 command)与探测其连接面都是管理动作;普通用户只走个人层。
+  'mcpManager/restart',
+  'mcpManager/probe',
+]
+
+/** 管理员专属流门(2026-11-20,rc.5 B14):系统层 MCP 的 watch 面对非 admin 不下发
+ *  ——普通用户只走个人层(mcp-personal),系统层连接状态/服务器清单仅管理员可见。
+ *  纪律同 ADMIN_ONLY_UNARY_ACTIONS:本清单必须 ⊆ GLOBAL_STREAM_ACTIONS(只收窄);
+ *  非 admin 全局绑定 = GLOBAL_STREAM_ACTIONS − 本清单。*/
+export const ADMIN_ONLY_STREAM_ACTIONS: readonly string[] = [
+  'mcpManager/watch',
 ]
 
 /** 宿主级失效信号事件(策略 global 绑定;2026-11-18「设置页新增模型供应商保存后
@@ -282,9 +383,14 @@ export const SESSION_STREAM_ACTIONS: readonly string[] = [
   'session/control',
   'terminal/attach',
   'terminal/retain',
+  'terminal/watch',
   'workspaceFiles/changes',
   'job/list',
   'job/follow',
+  // rc.5 新增会话级流(逐会话资源,跨租户 deny):
+  'toolResults/watch',
+  'forgePanel/follow',
+  'userQuestions/attachWait',
 ]
 
 /** 工作区级流动作(策略 workspace 绑定;供 follow 逐项可见性过滤)。 */
@@ -374,13 +480,16 @@ export function bindingsFor(deps: MuxPolicyDeps, userId: number): readonly Tenan
   const unaryActions = role === 'admin'
     ? GLOBAL_UNARY_ACTIONS
     : GLOBAL_UNARY_ACTIONS.filter(action => !ADMIN_ONLY_UNARY_ACTIONS.includes(action))
-  const globalRole = { name: 'eterna:member-global', resource: 'global' as const, actions: [...GLOBAL_STREAM_ACTIONS, ...unaryActions, ...GLOBAL_EVENT_ACTIONS, ...pendingStreamActionsOf(visibilityScopeOf(role))] }
+  const streamActions = role === 'admin'
+    ? GLOBAL_STREAM_ACTIONS
+    : GLOBAL_STREAM_ACTIONS.filter(action => !ADMIN_ONLY_STREAM_ACTIONS.includes(action))
+  const globalRole = { name: 'eterna:member-global', resource: 'global' as const, actions: [...streamActions, ...unaryActions, ...GLOBAL_EVENT_ACTIONS, ...pendingStreamActionsOf(visibilityScopeOf(role))] }
   // 会话资源还须授予 workspace/follow:上游 workspace-controller 的 follow 流对
   // workspace.sessionIds 逐项 allows({kind:'session',id}) 判定,action 取当前
   // 调用面(=workspace/follow)——会话绑定不含此动作时,连用户自己的会话也会被从
   // workspace 视图的 sessionIds 里过滤掉(侧栏落「未分组」),blank 会话的
   // sessionWorkspace/chipTitle 断链 = 新用户首屏死锁根因(2026-11-11 E2E)。
-  const sessionRole = { name: 'eterna:session-member', resource: 'session' as const, actions: [...SESSION_STREAM_ACTIONS, ...WORKSPACE_STREAM_ACTIONS, ...SESSION_UNARY_ACTIONS, ...SESSION_EVENT_ACTIONS] }
+  const sessionRole = { name: 'eterna:session-member', resource: 'session' as const, actions: [...SESSION_STREAM_ACTIONS, ...TERMINAL_UNARY_ACTIONS, ...WORKSPACE_FILE_UNARY_ACTIONS, ...WORKSPACE_STREAM_ACTIONS, ...SESSION_UNARY_ACTIONS, ...SESSION_EVENT_ACTIONS] }
   const workspaceRole = { name: 'eterna:workspace-member', resource: 'workspace' as const, actions: [...WORKSPACE_STREAM_ACTIONS, ...WORKSPACE_UNARY_ACTIONS] }
   const bindings: TenantBinding[] = [{ resource: { kind: 'global' }, role: globalRole }]
   for (const sessionId of deps.store.sessionsOfOwner(userId)) {
@@ -449,14 +558,39 @@ export function installMuxIsolation(
   }
   retryPolicy()
 
-  // 2. 换血 + T6.1 市场门:单一 admit 包装,全部请求必经。
+  // 2. 换血 + T6.1 市场门 + TERM-004 终端一元门 + ACC-008 文件面门 + MCPS-006
+  //    系统 MCP 管理门:单一 admit 包装,全部请求必经。
   //    - 市场路径:先按 eterna 登录态收口(fail-closed:无会话 401、非 admin 403),
   //      admin 走原 admit(owner Peer)——见 MARKET_ADMIN_PREFIXES;
+  //    - 系统 MCP 管理面(/api/mcpManager/probe|restart):仅 admin。显式角色判
+  //      403(可执行文案)+ 换血 per-user Peer(策略面亦不含非 admin 的这两个
+  //      动作,双保险);普通用户只走个人层 /api/mcp-personal/*;
+  //    - 终端一元路径(/api/terminal/*):必须换血成 per-user Peer——rc.5 的
+  //      browser admit 恒 owner(client-connection lib/index.js:714/790-800),
+  //      而 owner principal 会被网关 prepareInvocation 的 decide 整段跳过
+  //      (dsh-api-gateway lib/index.js:1204 `peer.principal.kind !== 'owner'`),
+  //      terminal 服务入口的归属守卫(terminal.ts)因此看不到任何身份。换血后
+  //      网关按会话资源 decide:本人会话(会话绑定含 TERMINAL_UNARY_ACTIONS)放行,
+  //      他人会话 deny(remote-access/denied)。策略面未就绪时 fail-closed 503,
+  //      绝不以 owner 身份放行(否则跨租户读 cwd/shells 的老洞复现);
+  //    - 文件面一元路径(/api/workspaceFiles/*):同上换血;workspaceFileScope
+  //      lookup 解析为会话资源,他人会话 deny(ACC-008/SEC-004 读到他人文件的根因
+  //      = owner Peer 令 decide 跳过);
   //    - mux 路径:策略面就绪时按 eterna_session 换血 per-user Peer(≤20 人,常驻不逐
   //      连接 dispose);未就绪时维持原 admit(过渡态,同旧行为);
-  //    - 其余路径(含全部 unary HTTP 与 fetch 路由)→ 原 admit。
+  //    - 其余路径(含全部其它 unary HTTP 与 fetch 路由)→ 原 admit。
   const peers = new Map<number, { id: string; principal: unknown; dispose: () => unknown }>()
   const originalAdmit = admitFn.bind(connection)
+  const createPeerFn = connection.createPeer
+  const peerOf = (userId: number): { id: string; principal: unknown; dispose: () => unknown } => {
+    let peer = peers.get(userId)
+    if (peer === undefined) {
+      if (typeof createPeerFn !== 'function') throw new Error('connection.createPeer is unavailable')
+      peer = createPeerFn.call(connection, { principal: { kind: 'eterna-user', userId } })
+      peers.set(userId, peer)
+    }
+    return peer
+  }
   const wrapped = (request: unknown): unknown => {
     const rawUrl = (request as { url?: unknown }).url
     const path = typeof rawUrl === 'string' ? requestPathname(rawUrl) : ''
@@ -466,17 +600,37 @@ export function installMuxIsolation(
       if (deps.store.getUserById(userId)?.role !== 'admin') return { rejection: 403 }
       return originalAdmit(request)
     }
+    if (path !== '' && isMcpManagerPath(path)) {
+      if (!muxActive && !retryPolicy()) return { rejection: 503 }
+      const userId = eternaUserOf(deps, request)
+      if (userId === undefined) return { rejection: 401 }
+      if (deps.store.getUserById(userId)?.role !== 'admin') return { rejection: 403 }
+      if (typeof createPeerFn !== 'function') return { rejection: 503 }
+      return { peer: peerOf(userId) }
+    }
+    if (path !== '' && isTerminalUnaryPath(path)) {
+      // 策略未就绪(remoteAccess/createPeer 服务面缺席)→ 现场补注册;仍缺席则拒,
+      // 不退回 owner Peer(终端租户校验的唯一身份来源是 eterna-user principal)。
+      if (!muxActive && !retryPolicy()) return { rejection: 503 }
+      const userId = eternaUserOf(deps, request)
+      if (userId === undefined) return { rejection: 401 }
+      if (typeof createPeerFn !== 'function') return { rejection: 503 }
+      return { peer: peerOf(userId) }
+    }
+    if (path !== '' && isWorkspaceFilesUnaryPath(path)) {
+      // 同终端:策略面缺席时 fail-closed,不得退回 owner Peer(否则 decide 跳过=
+      // 跨租户读文件复现)。换血后由 workspaceFileScope 会话资源逐项判定。
+      if (!muxActive && !retryPolicy()) return { rejection: 503 }
+      const userId = eternaUserOf(deps, request)
+      if (userId === undefined) return { rejection: 401 }
+      if (typeof createPeerFn !== 'function') return { rejection: 503 }
+      return { peer: peerOf(userId) }
+    }
     const isMux = typeof rawUrl === 'string' && rawUrl.includes(MUX_PATH)
-    const createPeerFn = connection.createPeer
     if (!isMux || !muxActive || typeof createPeerFn !== 'function') return originalAdmit(request)
     const userId = eternaUserOf(deps, request)
     if (userId === undefined) return originalAdmit(request)
-    let peer = peers.get(userId)
-    if (peer === undefined) {
-      peer = createPeerFn.call(connection, { principal: { kind: 'eterna-user', userId } })
-      peers.set(userId, peer)
-    }
-    return { peer }
+    return { peer: peerOf(userId) }
   }
   ;(connection as { admit: unknown }).admit = wrapped
 

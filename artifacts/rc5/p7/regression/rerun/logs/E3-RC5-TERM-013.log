@@ -1,0 +1,3 @@
+[NOTRUN] RC5-TERM-013 :: 1/2 assertions
+  FAIL 浸泡跑在 E1（eterna-rc5-e1/3108），非 E3 容器 :: undefined
+EXIT=0

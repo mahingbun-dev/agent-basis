@@ -1,0 +1,26 @@
+# LLM/RC5-MCPP-019
+# started 2026-11-20T07:06:00.838Z
+
+$ POST /api/mcp-personal/upsert（B，stdio echo）
+EXIT=200
+serverName=p2_llm19
+
+$ POST /api/mcp-personal/delete（B 删除自己的 server）
+EXIT=200
+ok
+
+$ POST /api/session/prompt（删除前/后/新会话，同一工具名）
+EXIT=200
+before_present=true after_present=false fresh_present=false
+
+[ASSERT] 删除前 live 会话可见且回显成功 => PASS :: echo:live-before-delete
+
+[ASSERT] 删除后同一 live 会话工具当场消失 => PASS :: {"at":"2026-11-20T07:06:01.033Z","seq":122,"stream":true,"model":"fake-1","toolCount":59,"toolNames":["ask_user_question","bash","create_goal","edit","get_goal","glob","grep","install_personal_plugin","job_kill","job_list","job_output","kno…
+
+[ASSERT] 删除后调用被拒（无 echo 内容） => PASS :: echo:live-before-delete
+echo:live-before-delete
+Error: unknown tool "mcp__p2_llm19__echo"
+
+[ASSERT] 新会话亦无该工具 => PASS :: {"at":"2026-11-20T07:06:01.115Z","seq":124,"stream":true,"model":"fake-1","toolCount":59,"toolNames":["ask_user_question","bash","create_goal","edit","get_goal","glob","grep","install_personal_plugin","job_kill","job_list","job_output","kno…
+
+[ASSERT] 会话记录确认删除前调用过该工具 => PASS

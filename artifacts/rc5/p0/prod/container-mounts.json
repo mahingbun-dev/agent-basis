@@ -1,0 +1,28 @@
+[
+    {
+        "Type": "bind",
+        "Source": "/Users/sunny/code/agent-basis-main-0.1.51/docker/profile/cordis.super.patch.yml.template",
+        "Destination": "/repo/docker/profile/cordis.super.patch.yml.template",
+        "Mode": "ro",
+        "RW": false,
+        "Propagation": "rprivate"
+    },
+    {
+        "Type": "volume",
+        "Name": "agent-basis_eterna-home",
+        "Source": "/var/lib/docker/volumes/agent-basis_eterna-home/_data",
+        "Destination": "/data",
+        "Driver": "local",
+        "Mode": "rw",
+        "RW": true,
+        "Propagation": ""
+    },
+    {
+        "Type": "bind",
+        "Source": "/host_mnt/Users/sunny/code/agent-basis-main-0.1.51/docker/profile/cordis.patch.yml.template",
+        "Destination": "/repo/docker/profile/cordis.patch.yml.template",
+        "Mode": "ro",
+        "RW": false,
+        "Propagation": "rprivate"
+    }
+]

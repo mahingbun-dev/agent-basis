@@ -1,0 +1,4 @@
+A attach own (无活终端应为 terminal/unavailable) => error terminal/unavailable Terminal no longer exists in this Session
+B attach A.session => error remote-access/denied remote access: terminal/attach: access denied (no-allow)
+B retain A.session => error remote-access/denied remote access: terminal/retain: access denied (no-allow)
+B watch A.session => error remote-access/denied remote access: terminal/watch: access denied (no-allow)

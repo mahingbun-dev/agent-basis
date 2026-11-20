@@ -1,0 +1,101 @@
+# T52 DATA 快检 — 2026-11-20T01:49:19Z
+
+== DATA-001 init-data-dirs 幂等 + 0700 ==
+$ env ETERNA_DATA_ROOT=/Users/sunny/eterna-data/test-20261120/p7-data001 bash deploy/init-data-dirs.sh p7probe
+[init-data-dirs] 数据根: /Users/sunny/eterna-data/test-20261120/p7-data001 (0700)
+  /Users/sunny/eterna-data/test-20261120/p7-data001/backups
+  /Users/sunny/eterna-data/test-20261120/p7-data001/exports
+  /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/(0700)
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/.eterna
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/access
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/agents
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/attachments
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/cache
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/eterna-prompt-studio
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/knowledge-admin
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/knowledge.wiki
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/logs
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/market
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/memory-distill
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/office-kit
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/profiles
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/sessions
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/storages
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/workspaces
+[init-data-dirs] OK —— 下一步: 设 .env 的 ETERNA_DATA_ROOT=/Users/sunny/eterna-data/test-20261120/p7-data001 后 docker compose up -d
+EXIT=0
+
+$ env ETERNA_DATA_ROOT=/Users/sunny/eterna-data/test-20261120/p7-data001 bash deploy/init-data-dirs.sh p7probe
+[init-data-dirs] 数据根: /Users/sunny/eterna-data/test-20261120/p7-data001 (0700)
+  /Users/sunny/eterna-data/test-20261120/p7-data001/backups
+  /Users/sunny/eterna-data/test-20261120/p7-data001/exports
+  /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/(0700)
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/.eterna
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/access
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/agents
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/attachments
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/cache
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/eterna-prompt-studio
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/knowledge-admin
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/knowledge.wiki
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/logs
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/market
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/memory-distill
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/office-kit
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/profiles
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/sessions
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/storages
+    /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe/workspaces
+[init-data-dirs] OK —— 下一步: 设 .env 的 ETERNA_DATA_ROOT=/Users/sunny/eterna-data/test-20261120/p7-data001 后 docker compose up -d
+EXIT=0
+
+$ stat -c %a /Users/sunny/eterna-data/test-20261120/p7-data001 / /Users/sunny/eterna-data/test-20261120/p7-data001/p7probe
+stat: illegal option -- c
+usage: stat [-FLnq] [-f format | -l | -r | -s | -x] [-t timefmt] [file ...]
+stat: illegal option -- c
+usage: stat [-FLnq] [-f format | -l | -r | -s | -x] [-t timefmt] [file ...]
+ASSERT root-0700 FAIL
+stat: illegal option -- c
+usage: stat [-FLnq] [-f format | -l | -r | -s | -x] [-t timefmt] [file ...]
+ASSERT instance-0700 FAIL
+
+== DATA-002 E1 compose /data bind 测试数据根 ==
+$ docker inspect rc5-e1suite --format {{range .Mounts}}{{if eq .Destination "/data"}}{{.Source}} ({{.Type}}){{end}}{{end}}
+/Users/sunny/eterna-data/test-20261120/e1 (bind)
+EXIT=0
+
+ASSERT bind=/Users/sunny/eterna-data/test-20261120/e1 expected=/Users/sunny/eterna-data/test-20261120/e1
+
+== DATA-003 容器内 DSH_HOME=/data ==
+$ docker exec rc5-e1suite sh -c printf %s "$DSH_HOME"
+/dataEXIT=0
+
+
+== DATA-006 DSH_AGENTS_HOME=/data/agents ==
+$ docker exec rc5-e1suite sh -c printf %s "$DSH_AGENTS_HOME"
+/data/agentsEXIT=0
+
+$ docker exec rc5-e1suite sh -c ls -ld /data/agents && stat -c "%a" /data/agents
+drwx------ 3 root root 96 Nov 19 22:44 /data/agents
+700
+EXIT=0
+
+
+== DATA-007 重启后数据仍在（测试容器自身） ==
+$ before: sessions / settings / memory 行数
+sessions|1217
+users|3
+mcp_personal|0
+memory.sqlite3 bytes=4096
+$ docker restart rc5-e1suite
+rc5-e1suite
+EXIT=0
+
+health=healthy
+$ after
+sessions|1217
+users|3
+mcp_personal|0
+GET /login -> 200
+T52_DATA=DONE
+EXIT=0

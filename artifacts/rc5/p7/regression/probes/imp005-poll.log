@@ -1,0 +1,15 @@
+{
+ "upload": {
+  "status": 200,
+  "ok": true,
+  "sessionIds": 10,
+  "skipped": 1
+ },
+ "targetWorkspace": "6fd0ca27-26be-443a-bab0-453b37a1e244",
+ "polled": "10/10",
+ "sessionRows": 10,
+ "allOwnerB": true,
+ "emptyOwner": 0,
+ "pass": true
+}
+EXIT=0

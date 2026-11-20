@@ -1,0 +1,237 @@
+{
+  "schema": "eterna.rc5.p0.baseline/2",
+  "task": "T01/T02 P0 基线证据包与回滚点",
+  "generated_at_utc": "2026-11-19T18:20:00Z",
+  "generated_at_local": "2026-11-20T02:20:00+0800",
+  "evidence_root": "artifacts/rc5/p0/run2",
+  "provenance": "本轮(2026-11-20 02:12-02:20 +0800)实跑；artifacts/rc5/p0/{local,prod,backup,recon}/ 为上轮旧件，保留但不作为本文件数值来源",
+  "refs": {
+    "54": "§2.2 P0 审计 / §12.1 第 1 条",
+    "48": "§7.1 迁移前记录 / §7.2 冷备旧卷",
+    "51": "§0.3 证据规范",
+    "lane": "L0 主线（54 §8.1，独占 artifacts/rc5/**）"
+  },
+  "repo": {
+    "worktree": "/Users/sunny/code/agent-basis-rc5",
+    "branch": "feat/dsh-rc5-merge",
+    "head": "02f485788411b9aed1938a3c4b009793a090961e",
+    "head_subject": "rc5: P1 依赖族统一 0.2.2-rc.5 + H1 LlmError + subagent/流动作适配 + UI 桥接补全",
+    "dirty_entries": 72,
+    "dirty_entries_note": "本轮采集时刻(18:18Z)值；上轮记录 56 条，本轮未复核该值",
+    "pnpm_lock_sha256": "dfd900640d90bf3413bb6e2b8121a2f633a376871d65676f610e62fd80b0faa4",
+    "toolchain": { "node": "v24.18.0", "pnpm": "11.7.0", "docker_server": "29.7.2", "repo_dsh_cli": "0.2.2-rc.5" },
+    "evidence": "run2/local/repo-state.txt"
+  },
+  "local": {
+    "install_frozen_lockfile": {
+      "command": "pnpm install --frozen-lockfile",
+      "exit": 0,
+      "result": "Scope: all 40 workspace projects / Already up to date / Done in 191ms using pnpm v11.7.0",
+      "caveat": "node_modules 已预装，未覆盖全新检出冷装路径（P0-07）",
+      "evidence": "run2/local/install-frozen.log"
+    },
+    "workspace_verify": {
+      "command": "pnpm -w run verify",
+      "exit": 1,
+      "duration_s": 20,
+      "ui_tokens": "PASS - 17 个目录 278 个文件,79 个 --et-* 令牌;状态点强制 30/30 通过;v4 阶梯 0 债务",
+      "packages_done": 22,
+      "failed_package": "@eterna/access",
+      "failure": "oxlint Found 0 warnings and 16 errors；12 条 src/mcp-personal.ts（git ?? 未跟踪）+ 4 条 src/store.ts（git M）",
+      "aborted_rest": "pnpm -r fail-fast；其余 16 个 workspace 未采集",
+      "not_run": "干净 HEAD 的 verify（需隔离工作树）",
+      "evidence": "run2/local/verify.log"
+    },
+    "boot_web": {
+      "command": "ETERNA_PROFILE_HOME=/tmp/eterna-rc5-p0-run2/web node scripts/verify-eterna-web.mjs",
+      "exit": 0,
+      "assertions_pass": 17,
+      "assertions_fail": 0,
+      "entries_settled": 229,
+      "cut_rows": 22,
+      "kept_host_rows": 128,
+      "preset_rows_active": 22,
+      "presets": ["standard", "minimal", "cordis"],
+      "rendered_patch_sha256": "902c94b71b118cb1c7705ef7dc331361b42cb335a6397d7b4d96cf8153ef0edf",
+      "template_sha256": "902c94b71b118cb1c7705ef7dc331361b42cb335a6397d7b4d96cf8153ef0edf",
+      "rendered_equals_template": true,
+      "rendered_patch_lines": 1058,
+      "rendered_patch_id_rows": 146,
+      "bundles": ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app", "@deepseek-ai/dsh-deepseek-chat-import", "@deepseek-ai/dsh-experimental-session-search", "@deepseek-ai/dsh-experimental-plugin-market-bundle", "@deepseek-ai/dsh-experimental-terminal-bundle"],
+      "isolation": "临时空 DSH_HOME=/tmp/eterna-rc5-p0-run2/web，--port 0 --no-open，无模型调用、无凭据、不连生产",
+      "evidence": "run2/local/boot-web.log"
+    },
+    "boot_super": {
+      "command": "ETERNA_PROFILE_HOME=/tmp/eterna-rc5-p0-run2/super node scripts/verify-eterna-super.mjs",
+      "exit": 0,
+      "assertions_pass": 21,
+      "assertions_fail": 0,
+      "entries_settled": 235,
+      "duplicate_entry_id": 0,
+      "super_mount_rows_active": 22,
+      "kept_host_rows": 124,
+      "preset_rows_active": 22,
+      "rendered_patch_sha256": "97d027b519918488923488c1995b5be5a88c25e2fd21c1976b688e270b12a473",
+      "template_sha256": "97d027b519918488923488c1995b5be5a88c25e2fd21c1976b688e270b12a473",
+      "rendered_equals_template": true,
+      "rendered_patch_lines": 1090,
+      "rendered_patch_id_rows": 152,
+      "bundles": ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app", "@deepseek-ai/dsh-deepseek-chat-import", "@deepseek-ai/dsh-experimental-session-search", "@deepseek-ai/dsh-experimental-plugin-market-bundle", "@deepseek-ai/dsh-experimental-terminal-bundle"],
+      "isolation": "临时空 DSH_HOME=/tmp/eterna-rc5-p0-run2/super，--port 0 --no-open，无模型调用、无凭据、不连生产",
+      "evidence": "run2/local/boot-super.log"
+    },
+    "evals_replay": {
+      "command": "node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --adapter replay --out artifacts/rc5/p0/run2/local/evals-replay-out",
+      "exit": 0,
+      "total": 30,
+      "pass": 30,
+      "fail": 0,
+      "pass_rate": "100.0%",
+      "duration_s": 0.2,
+      "tags": { "acp-real": "6/6", "smoke": "9/9", "t14-replay": "20/20" },
+      "evidence": ["run2/local/evals-replay.log", "run2/local/evals-replay-out/report.md", "run2/local/evals-replay-out/sessions.jsonl"]
+    }
+  },
+  "prod": {
+    "mode": "只读（docker ps/inspect/exec cat + GET 探针）；未停/改容器，未改 compose，未跑需凭据步骤",
+    "container": {
+      "name": "eterna-agent",
+      "image": "eterna-agent:0.1.51",
+      "image_id": "sha256:3ca0d66055898b092f09761e5f67baa4a82741f1c7233d27bd2ddbd6de2b1a7b",
+      "repo_digests": ["eterna-agent@sha256:3ca0d66055898b092f09761e5f67baa4a82741f1c7233d27bd2ddbd6de2b1a7b"],
+      "image_created": "2026-11-19T17:19:57.83957547Z",
+      "image_size_bytes": 582574950,
+      "container_created": "2026-11-19T17:21:04.219030625Z",
+      "started_at": "2026-11-19T17:21:06.582265918Z",
+      "restart_policy": "unless-stopped",
+      "status": "running",
+      "health": "healthy",
+      "form": "super",
+      "dsh_home": "/data",
+      "env_total_keys": 20,
+      "env_redaction": "仅保留 ETERNA_FORM/DSH_HOME/PATH；其余 17 个 key 未落盘",
+      "ports": ["3210->8080/tcp", "9310->9310/tcp"],
+      "compose_project": "agent-basis",
+      "compose_config_file": "/Users/sunny/code/agent-basis-main-0.1.51/docker-compose.yml",
+      "compose_env_file": "/Users/sunny/code/agent-basis/.env",
+      "template_binds": [
+        "/Users/sunny/code/agent-basis-main-0.1.51/docker/profile/cordis.patch.yml.template -> /repo/docker/profile/cordis.patch.yml.template (ro)",
+        "/Users/sunny/code/agent-basis-main-0.1.51/docker/profile/cordis.super.patch.yml.template -> /repo/docker/profile/cordis.super.patch.yml.template (ro)"
+      ],
+      "kernel_version_in_container": "0.2.2-alpha.3",
+      "kernel_note": "与本地 catalog 0.2.2-rc.5 不同代；rc.5 上线须 L5 改 Dockerfile（P0-03）",
+      "evidence": ["run2/prod/docker-ps.txt", "run2/prod/container-state.txt", "run2/prod/image-inspect.json", "run2/prod/container-dsh-version.txt"]
+    },
+    "volume": {
+      "name": "agent-basis_eterna-home",
+      "created_at": "2026-11-09T08:38:27Z",
+      "mountpoint": "/var/lib/docker/volumes/agent-basis_eterna-home/_data",
+      "container_path": "/data",
+      "mode": "rw",
+      "compose_config_hash": "6f86bb7b88e1cb5beeb3d475cc850dcefa0b38e175f558a3df7debd8c7b295f0",
+      "evidence": "run2/prod/volume-inspect.json"
+    },
+    "data_top_level": {
+      "entries_count": 19,
+      "total_approx": "77 MB",
+      "du": { "profiles": "34M", "sessions": "15M", "market": "14M", "storages": "4.8M", "workspaces": "4.2M", ".pnpm-store": "2.5M", ".eterna": "2.2M", "attachments": "348K", "access": "168K", "eterna-prompt-studio": "108K", "logs": "68K", "memory-distill": "36K", "knowledge-admin": "24K" },
+      "entries": [".anonymous-user-id", ".credentials.yaml", ".eterna", ".pnpm-store", "access", "attachments", "demo", "eterna-prompt-studio", "knowledge-admin", "knowledge.wiki", "logs", "market", "memory-distill", "profiles", "relay-token", "sessions", "storages", "users", "workspaces"],
+      "sensitive_files": [".credentials.yaml (0600)", "relay-token (0600)"],
+      "evidence": ["run2/prod/data-top-level.txt"]
+    },
+    "profiles": {
+      "eterna-super": {
+        "package_json_sha256": "8bb20d49f247450f26c5ae2901f1b303dd3dc4b2da1a90a33e543194f1bfba1a",
+        "patch_sha256": "cd0e8815b29ea57b7f022b2cfedd964d34cb0988d31234e481baf3c484ed8a7f",
+        "patch_lines": 1036,
+        "patch_id_rows": 151,
+        "manifest_name": "dsh-profile-eterna-web",
+        "bundles": ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app", "@eterna/hello-market", "@deepseek-ai/dsh-experimental-plugin-market-bundle", "@deepseek-ai/dsh-experimental-voice-input-bundle", "@deepseek-ai/dsh-experimental-auto-review", "@deepseek-ai/dsh-experimental-forge-bundle", "@deepseek-ai/dsh-personalized-recommendations", "@deepseek-ai/dsh-experimental-inspector-profile", "@deepseek-ai/dsh-experimental-cot-translation-bundle", "@deepseek-ai/dsh-experimental-session-titles-bundle", "@deepseek-ai/dsh-experimental-agent-team-profile", "@deepseek-ai/dsh-experimental-badge-skill-bundle"]
+      },
+      "eterna-web": {
+        "package_json_sha256": "9153514a6eef71e36be70a2cf0f8829b8b61b5761c5470a88b65ac467c1e8d5d",
+        "patch_sha256": "7cf1287a508105601574390d3c7aa9b73c9c25bb924589ec092cee00743b76ec",
+        "patch_lines": 999,
+        "patch_id_rows": 143,
+        "bundles": ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app", "@deepseek-ai/dsh-experimental-agent-team-profile", "@deepseek-ai/dsh-experimental-voice-input-bundle", "@deepseek-ai/dsh-experimental-plugin-market-bundle", "@deepseek-ai/dsh-experimental-auto-review", "@deepseek-ai/dsh-experimental-forge-bundle", "@deepseek-ai/dsh-personalized-recommendations", "@deepseek-ai/dsh-experimental-inspector-profile", "@deepseek-ai/dsh-experimental-cot-translation-bundle", "@deepseek-ai/dsh-experimental-session-titles-bundle", "@deepseek-ai/dsh-experimental-badge-skill-bundle", "@eterna/knowledge-admin"]
+      },
+      "web": {
+        "package_json_sha256": "210068ddb9ebc4cdf395ebb53020be6ccaaedb917e74dae16296d62394626398",
+        "patch_sha256": "ef189a8c27db6d63930aa3046a3040482e952eafcb7487c644d508e8d461f027",
+        "patch_lines": 4,
+        "patch_id_rows": 0,
+        "bundles": ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app"]
+      },
+      "user_dependencies": {
+        "@eterna/hello-market": "github:mahingbun-dev/eterna-plugins#1633fc451214009b3f1b2ffac74d4670d85bed75&path:/bundles/hello-market",
+        "@eterna/knowledge-admin": "link:/data/workspaces/Mr.Ma/kh-admin-plugin"
+      },
+      "secret_scan": "profile 快照对 key|token|secret|password|sk-|bearer|apikey 0 命中",
+      "evidence": ["run2/prod/profiles/eterna-super.package.json", "run2/prod/profiles/eterna-web.package.json", "run2/prod/profiles/web.package.json", "run2/prod/profiles-fingerprint.txt"]
+    },
+    "prod_templates": {
+      "cordis.patch.yml.template": { "sha256": "fa6b2528c3b52357a8c95b2dd25dbb29d972ef01d4f56ddb5f9c6b1e1dc988ea", "lines": 990 },
+      "cordis.super.patch.yml.template": { "sha256": "06158841f6e7c2f331db1022ee798dcbba01503a39eabdbba0987ffd49aeeb3c", "lines": 1024 },
+      "delta_vs_local_rc5": "base +68 行、super +66 行（本地 1058/1090）",
+      "evidence": "run2/prod/profiles-fingerprint.txt"
+    },
+    "verify_sh": {
+      "full_run": false,
+      "reason": "第 3/4/5 与 8.5 运行时需管理员凭据（.env 读取见 deploy/verify.sh:19-22）且把明文密码放进 curl argv（deploy/verify.sh:37-41）；第 6/7 为 POST 语义——与凭据 argv 禁令/只读边界冲突",
+      "readonly_subset": [
+        { "item": "1 登录页 GET /login", "expect": 200, "actual": "200 text/html", "ok": true },
+        { "item": "2 匿名 GET /access/api/me", "expect": 401, "actual": 401, "ok": true },
+        { "item": "2.5 匿名根路径", "expect": "302 -> $BASE/login", "actual": "302 http://127.0.0.1:3210/login", "ok": true },
+        { "item": "8 治理规则活性", "expect": "1 1", "actual": "1 1", "ok": true },
+        { "item": "8.5 知识底座静态装载", "expect": "web|super 任一", "actual": "eterna-super", "ok": true },
+        { "item": "8 中继 /api/status", "expect": 200, "actual": 200, "ok": true },
+        { "item": "9 扩展包 Range 0-1", "expect": "PK", "actual": "PK", "ok": true },
+        { "item": "10 指引页 /companion/guide", "expect": "200 text/html", "actual": "200 text/html", "ok": true }
+      ],
+      "not_run": ["3 管理员登录", "4 me=admin", "5 插件清单红线", "8.5 knowledgeAdmin/overview 运行时", "6 未会话改名 401 (POST)", "7 错密码 401 (POST)"],
+      "evidence": "run2/prod/verify-sh-readonly-subset.log"
+    }
+  },
+  "backup": {
+    "command": "docker run --rm --entrypoint sh -v agent-basis_eterna-home:/src:ro -v $HOME/eterna-data/backups/rc5-2026-11-20:/backup eterna-agent:0.1.51 -c 'tar czf /backup/eterna-home-20261120-021802.tgz -C /src .'",
+    "exit": 0,
+    "path": "/Users/sunny/eterna-data/backups/rc5-2026-11-20/eterna-home-20261120-021802.tgz",
+    "bytes": 26566225,
+    "sha256": "5976686ff2caab6a668c7231daded925c10053e062b9d4b28ecb31e61fbbd281",
+    "entries": 10466,
+    "db_files": 16,
+    "sqlite_integrity_check": { "checked": 16, "ok": 16, "method": "python3 -I + PRAGMA integrity_check (read-only URI), extracted DBs only, temp dir removed" },
+    "dir_mode": "0700",
+    "caveat": "活卷 tar（未停容器/未冻结写入）；一致性由事后 integrity_check 反证；正式迁移窗口应按 48 §7.1 重做。备份包含 .credentials.yaml/relay-token，属敏感物。",
+    "evidence": ["run2/backup/backup-run.log", "run2/backup/backup-verify.log", "run2/backup/backup-integrity-check.log"]
+  },
+  "rollback_point": {
+    "images": [
+      { "tag": "eterna-agent:0.1.51", "id": "sha256:3ca0d66055898b092f09761e5f67baa4a82741f1c7233d27bd2ddbd6de2b1a7b", "created": "2026-11-19T17:19:57Z", "role": "current" },
+      { "tag": "eterna-agent:0.1.50", "id": "sha256:6b306037b6593d94e7c797a97f15e8fb7f60fe97f871fd673da6ce659e7b2052", "created": "2026-11-19T10:41:00Z", "role": "rollback" },
+      { "tag": "eterna-agent:0.1.38", "id": "sha256:b0dbe8bc6da4c918ee1a848548d92980d8caba4bb5301b26c5878932b5ae95e1", "created": "2026-11-19T03:05:37Z", "role": "older-fallback" }
+    ],
+    "data": "backup.path（sha256 见 backup.sha256）",
+    "compose": "未改动（本 lane 只读）",
+    "restore_drill": "未跑（需建临时实例，超出只读边界）",
+    "evidence": ["run2/prod/image-inspect-rollback.txt", "run2/prod/image-list.txt"]
+  },
+  "not_run": [
+    "干净 HEAD 的 pnpm -w run verify",
+    "deploy/verify.sh 全量（登录/me/插件红线/KB overview 运行时）",
+    "dsh-evals --adapter acp 真跑",
+    "冷备恢复演练",
+    "生产容器内 SQLite 在位 integrity_check（迁移后验收项）",
+    "全新检出 + 冷装（--store-dir 隔离）"
+  ],
+  "leftovers": [
+    "P0-01|pnpm -w run verify 在工作树 EXIT=1：16 条 oxlint 错误全在 L4 未提交改动（12 条未跟踪 mcp-personal.ts + 4 条已修改 store.ts），22 包 Done 后 fail-fast，其余 16 workspace 未采集|P1|L4 收口 16 条后由 L0 复跑并登记新基线",
+    "P0-02|生产 deploy/verify.sh 未全量执行（凭据进 curl argv + POST 语义）|P1|加 stdin/文件读凭据与 --readonly 模式，或由有凭据运维在窗口跑完归档",
+    "P0-03|生产镜像经容器内实测 dsh=0.2.2-alpha.3，与 catalog 0.2.2-rc.5 不同代|P1|L5 上线前改 Dockerfile 钉版重建镜像",
+    "P0-04|冷备为活卷 tar（未冻结写入），包内含 .credentials.yaml/relay-token|P2|迁移窗口按 48 §7.1 重做；备份目录保持 0700，禁止入 git/镜像/工单",
+    "P0-05|冷备恢复路径未演练|P2|用 E1 隔离实例做解包→boot→登录→会话可见演练并归档",
+    "P0-06|生产 eterna-super/package.json 的 name 仍是 dsh-profile-eterna-web|P3|L2 模板侧统一命名",
+    "P0-07|install --frozen-lockfile 为 Already up to date，未覆盖全新检出冷装|P3|需要时用独立 --store-dir 在临时目录复跑",
+    "P0-08|工作树采集期持续被其它 lane 写入（本轮快照 72 条；上轮记录 56 条），verify 结果随 WIP 变化|P2|P0-01 收口后固定一次干净基线并冻结"
+  ]
+}

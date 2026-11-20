@@ -1,0 +1,8 @@
+# TERM/RC5-TERM-SETUP
+# started 2026-11-20T01:38:51.630Z
+
+$ POST /api/session/create（A 建立活会话）
+EXIT=200
+ok=true sessionId=session-e169525a-d619-4402-b759-f4c100eb71db
+
+[ASSERT] 拿到 A 的 sessionId => PASS

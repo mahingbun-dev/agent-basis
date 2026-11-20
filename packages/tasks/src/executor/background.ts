@@ -19,11 +19,11 @@ interface Jobs {
   kill(id: string, caller: string, reason?: string): unknown
   readonly events: { subscribe(filter: { owner: string }, listener: (event: { type: string }) => void): () => void }
 }
-/** Executor 用到的 DSH subagent 面:join 某 worker 正干活的 subagent、列出其 subagent、释放它们。 */
+/** Executor 用到的 DSH subagent 面:join 某 worker 的整棵 subagent 树、列出其后代、释放其树。 */
 interface Subagents {
-  waitForChildren(parent: Agent): Promise<boolean>
-  listChildren(parentSessionId: string): Promise<readonly { id: string }[]>
-  drainChildren(parent: Agent, childIds: readonly string[]): Promise<void>
+  waitForTreeWork(root: Agent): Promise<boolean>
+  listDescendants(rootSessionId: SessionId, signal?: AbortSignal): Promise<readonly { id: string }[]>
+  drainDescendants(parents: readonly Agent[]): Promise<void>
 }
 /** 一次 stop 等被 kill 的 job 结束的时长;其结束被收集,使 worker 不被叫醒来听它。 */
 const KILL_WAIT_MS = 10_000
@@ -55,7 +55,7 @@ const joins = new WeakMap<Agent, Promise<boolean>>()
 function childrenEnd(subagents: Subagents, agent: Agent): Promise<boolean> {
   let join = joins.get(agent)
   if (!join) {
-    join = subagents.waitForChildren(agent).finally(() => { joins.delete(agent) })
+    join = subagents.waitForTreeWork(agent).finally(() => { joins.delete(agent) })
     joins.set(agent, join)
   }
   return join
@@ -148,17 +148,20 @@ Promise<JobEnd | undefined> {
 }
 
 /**
- * 释放 worker 的活跃 subagent,限时。DSH 在释放返回前把每个 subagent 的结束递送给
- * worker,这会唤醒它,因此 worker 的回合在之后取消(keepInbox 时保留其 inbox),
- * 该 stop 以那个回合结束。其 Session 仍可再开 subagent。
+ * 释放 worker 的活跃 subagent,限时。rc.5 的 drain 在 teardown 期间把每个后代的结束
+ * 回执注入 worker(不唤醒,故不再开新回合);worker 若仍在跑(自身回合尚未结束、或
+ * drain 超时),其回合被取消(keepInbox 时保留其 inbox),该 stop 以那个回合结束。
+ * rc.5 的 drain 同时关闭这棵树的派生准入(直到根 agent 被处置):同一根 session 之后
+ * 的再派生会被 DRAINING 拒绝;本函数只在 worker 停止/交接路径调用,故不额外绕行。
  */
 export async function stopSubagents(ctx: Context, agent: Agent, keepInbox = false): Promise<void> {
   const subagents = subagentsOf(ctx)
   if (!subagents) return
-  // 目录列出该 Session 有过的每个 subagent;已结束的在 agents 里没有 agent。
-  const live = (await subagents.listChildren(agent.id)).map(child => child.id).filter(id => ctx.agents.get(id as SessionId))
+  // rc.5:目录列出整棵树的每个后代(含已结束的持久行);只有驻留的后代仍有 agent。
+  // 只释放其自身为根的树——worker 是 assignment 的树根,普通成员不关闭他人树。
+  const live = (await subagents.listDescendants(agent.id)).map(child => child.id).filter(id => ctx.agents.get(id as SessionId))
   if (!live.length) return
-  try { await until(subagents.drainChildren(agent, live), undefined, DRAIN_LIMIT_MS) }
+  try { await until(subagents.drainDescendants([agent]), undefined, DRAIN_LIMIT_MS) }
   finally {
     if (agent.status !== 'idle') cancelled.add(agent)
     agent.cancel({ kind: 'user' }, { keepInbox })

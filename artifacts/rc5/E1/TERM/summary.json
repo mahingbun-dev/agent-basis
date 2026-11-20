@@ -1,0 +1,88 @@
+{
+  "suite": "TERM",
+  "commit": "c75f876c986415431c92b28cce771d847a36c52f",
+  "imageTag": "eterna-agent:rc5-test",
+  "imageId": "sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb",
+  "container": "rc5-e1suite",
+  "base": "http://127.0.0.1:3118",
+  "dataRoot": "/Users/sunny/eterna-data/test-20261120/e1",
+  "startedAt": "2026-11-20T07:03:24.189Z",
+  "finishedAt": "2026-11-20T07:03:42.249Z",
+  "total": 8,
+  "pass": 7,
+  "fail": 0,
+  "skip": 0,
+  "notrun": 1,
+  "counts": {
+    "PASS": 7,
+    "FAIL": 0,
+    "SKIP": 0,
+    "NOTRUN": 1
+  },
+  "halted": false,
+  "haltReason": "",
+  "failures": [],
+  "cases": [
+    {
+      "id": "RC5-TERM-001",
+      "status": "PASS",
+      "title": "profile 含 terminal bundle"
+    },
+    {
+      "id": "RC5-TERM-004",
+      "status": "PASS",
+      "title": "B 用 A 的 sessionId 调 terminal 6 个 unary 动作必须 403/deny"
+    },
+    {
+      "id": "RC5-TERM-007",
+      "status": "PASS",
+      "title": "容器终端配置"
+    },
+    {
+      "id": "RC5-TERM-009",
+      "status": "PASS",
+      "title": "长进程切页再回：进程存活、输出连续"
+    },
+    {
+      "id": "RC5-TERM-010",
+      "status": "PASS",
+      "title": "close 后再 attach：状态正确、无幽灵终端"
+    },
+    {
+      "id": "RC5-TERM-012",
+      "status": "PASS",
+      "title": "两会话各开终端：互不可见/互不输入"
+    },
+    {
+      "id": "RC5-TERM-014",
+      "status": "PASS",
+      "title": "shell 不存在时明确报错、容器不崩"
+    },
+    {
+      "id": "RC5-TERM-013",
+      "status": "NOTRUN",
+      "title": "24h 浸泡：长进程 + 多次 attach/close，无 fd 泄漏/内存增长"
+    }
+  ],
+  "laneScope": {
+    "e1Cases": [
+      "RC5-TERM-001",
+      "RC5-TERM-004",
+      "RC5-TERM-007",
+      "RC5-TERM-009",
+      "RC5-TERM-010",
+      "RC5-TERM-012",
+      "RC5-TERM-013",
+      "RC5-TERM-014"
+    ],
+    "e2Cases": [
+      "RC5-TERM-002",
+      "RC5-TERM-003",
+      "RC5-TERM-005",
+      "RC5-TERM-006",
+      "RC5-TERM-008",
+      "RC5-TERM-011"
+    ],
+    "note": "E2 lane 的行见 artifacts/rc5/E2/TERM/summary.json；验收矩阵按两 lane 并集计 14 条"
+  }
+}

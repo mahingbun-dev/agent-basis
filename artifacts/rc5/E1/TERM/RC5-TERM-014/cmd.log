@@ -1,0 +1,24 @@
+# TERM/RC5-TERM-014
+# started 2026-11-20T07:03:42.189Z
+
+$ POST /api/terminal/create（shellPath 不存在）
+EXIT=200
+ok=false code=gateway/internal msg=Selected shell is not available in this execution environment
+
+$ docker inspect（健康状态）
+EXIT=0
+healthy
+
+$ POST /api/terminal/create（默认 bash 回归）
+EXIT=200
+ok=true id=t14-bash-mwomut7y shell=/bin/bash
+
+[ASSERT] 请求不存在的 shell 明确报错（非静默成功） => PASS :: Selected shell is not available in this execution environment
+
+[ASSERT] 失败后容器仍 healthy（不崩） => PASS :: healthy
+
+[ASSERT] 随后默认 bash create 成功（服务未被损坏） => PASS :: id=t14-bash-mwomut7y
+
+$ node artifacts/rc5/E1/TERM/term-014.mjs
+EXIT=0
+PASS :: [TERM-014] PASS

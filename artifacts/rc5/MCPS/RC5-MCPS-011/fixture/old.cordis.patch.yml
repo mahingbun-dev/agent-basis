@@ -1,0 +1,16 @@
+# MCPS-011 fixture: old profile copy with system-layer MCP servers (H9 re-render).
+# Placeholder values only — no real credentials (AGENTS.md credential discipline).
+- id: mcp-manager
+  config:
+    servers:
+      alpha:
+        transport: http
+        url: http://127.0.0.1:9111/mcp
+      gamma:
+        transport: stdio
+        command: node
+        args:
+          - /tmp/gamma-mcp.mjs
+        env:
+          GAMMA_TOKEN: token-placeholder
+          GAMMA_URL: https://internal.example.invalid/mcp

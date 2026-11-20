@@ -1,0 +1,99 @@
+$ node scripts/build-client.mjs && oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run
+
+  lib/client.js  309.7kb
+
+⚡ Done in 14ms
+Found 0 warnings and 0 errors.
+Finished in 1.1s on 112 files with 87 rules using 10 threads.
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-MdOsbU/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-CNMgpG/origin.git
+ * [new branch]      main -> main
+ ✓ tests/tasks-settings.spec.ts (8 tests) 1137ms
+ ✓ tests/workspace-session-actions.spec.ts (19 tests) 1470ms
+Cloning into '/var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-CNMgpG/merge-work'...
+done.
+ ✓ tests/tenant.spec.ts (20 tests) 1536ms
+From /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-CNMgpG/origin
+ * branch            publish/my-tool-0.1.0 -> FETCH_HEAD
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-CNMgpG/origin.git
+   125ffc2..85bcf97  main -> main
+ ✓ tests/mcp-personal-routes.spec.ts (24 tests) 1803ms
+ ✓ tests/store.spec.ts (19 tests) 1859ms
+ ✓ tests/tenant-guard-matrix.spec.ts (26 tests) 1914ms
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-C7570Q/origin.git
+ * [new branch]      main -> main
+ ✓ tests/knowledge-admin-guard.spec.ts (6 tests) 705ms
+ ✓ tests/mcp-personal-runtime.spec.ts (14 tests) 1032ms
+ ✓ tests/user-plugins.spec.ts (8 tests) 596ms
+ ✓ tests/mux-peer-drift.spec.ts (9 tests) 665ms
+ ✓ tests/mux-policy.spec.ts (7 tests) 563ms
+ ✓ tests/gateway-role-gate.spec.ts (23 tests) 2861ms
+Cloning into '/var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-C7570Q/merge-work'...
+done.
+ ✓ tests/workbench-stream.spec.ts (5 tests) 274ms
+From /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-C7570Q/origin
+ * branch            publish/my-tool-0.1.0 -> FETCH_HEAD
+ ✓ tests/password.spec.ts (5 tests) 168ms
+ ✓ tests/routes.spec.ts (31 tests) 3038ms
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-C7570Q/origin.git
+   5cfd9ab..536959c  main -> main
+ ✓ tests/panel-isolation.spec.ts (3 tests) 263ms
+ ✓ tests/within-root.spec.ts (6 tests) 273ms
+ ✓ tests/market-gate-coverage.spec.ts (6 tests) 440ms
+ ✓ tests/chat-import-gate.spec.ts (20 tests) 1510ms
+ ✓ tests/companion.spec.ts (4 tests) 163ms
+ ✓ tests/terminal-tenant.spec.ts (4 tests) 121ms
+ ✓ tests/session-create-cwd.spec.ts (3 tests) 156ms
+ ✓ tests/sandbox-clamp.spec.ts (6 tests) 131ms
+ ✓ tests/thinking-auto.spec.ts (15 tests) 101ms
+ ✓ tests/tenant-plugins.spec.ts (11 tests) 60ms
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-VSinSl/origin.git
+ * [new branch]      main -> main
+ ✓ tests/approval-bridge.spec.ts (10 tests) 61ms
+ ✓ tests/plugin.spec.ts (4 tests) 154ms
+ ✓ tests/mux-drift.spec.ts (17 tests) 66ms
+ ✓ tests/question-bridge.spec.ts (16 tests) 35ms
+ ✓ tests/client-rpc.spec.ts (5 tests) 31ms
+ ✓ tests/thinking-context.spec.ts (9 tests) 7ms
+ ✓ tests/role-expansion-anchor.spec.ts (3 tests) 8ms
+ ✓ tests/channels-webhook.spec.ts (4 tests) 6ms
+ ✓ tests/mcp-personal-client.spec.ts (19 tests) 32ms
+ ✓ tests/thinking-score.spec.ts (16 tests) 8ms
+ ✓ tests/link-opening.spec.ts (8 tests) 6ms
+ ✓ tests/login-gate.spec.ts (7 tests) 7ms
+ ✓ tests/companion-inject.spec.ts (12 tests) 7ms
+ ✓ tests/mcp-personal-wiring.spec.ts (5 tests) 4ms
+ ✓ tests/channels-webhook-contract.spec.ts (3 tests) 6ms
+ ✓ tests/tool-schema.spec.ts (6 tests) 5ms
+ ✓ tests/decision-layer.spec.ts (11 tests) 6ms
+ ✓ tests/mcp-manager-drift.spec.ts (9 tests) 4ms
+ ✓ tests/session.spec.ts (6 tests) 3ms
+ ✓ tests/model-catalog.spec.ts (4 tests) 5ms
+ ✓ tests/bias-view.spec.ts (3 tests) 2ms
+ ✓ tests/ratelimit.spec.ts (3 tests) 2ms
+ ✓ tests/pages.spec.ts (5 tests) 2ms
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-JlOJKe/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-cZTp15/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-qtKLTK/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-biGK3D/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-gJIIgZ/origin.git
+ * [new branch]      main -> main
+ ✓ tests/market-publish.spec.ts (11 tests) 5066ms
+     ✓ 首发全流程:组装/清单重写/两段 commit/push 到裸仓/compare 链接  801ms
+     ✓ 二次发布自动递增版本;索引多版本按 SemVer 降序  1359ms
+     ✓ 撞版先查:显式已存在版本在 commit 之前被拒  1087ms
+     ✓ 远端同名分支已存在 → 拒绝(上次 PR 未合并)  743ms
+
+ Test Files  49 passed (49)
+      Tests  498 passed (498)
+   Start at  03:42:31
+   Duration  5.35s (transform 1.20s, setup 0ms, import 2.78s, tests 28.37s, environment 4ms)
+

@@ -1,0 +1,14 @@
+# IMP/RC5-IMP-005
+# started 2026-11-20T07:03:42.316Z
+
+$ scripts/verify-chat-import.mjs（IMP-005 行，上传响应后立即读）
+EXIT=1
+FAIL: B rows=0 delta=0 allImportedPresent=false ownerClean=true
+
+$ 同会话复测：再上传 10 会话 → 每 200ms 轮询 access users.db sessions 表
+EXIT=0
+upload 200 ok=true ids=10 before=20 t=396ms；poll0 t=398ms count=20 found=0；poll12 t=2839ms count=30 found=10
+
+[ASSERT] 导入会话最终在 sessions 表有 owner=B（10/10） => PASS :: t=2839ms found=10
+
+[ASSERT] 无空属主行 => PASS :: owner_id IS NULL/0 = 0

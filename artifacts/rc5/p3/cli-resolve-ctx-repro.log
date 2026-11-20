@@ -1,0 +1,3 @@
+bundle loaded (6 plugins): OK
+resolve without ctx threw: agents:物化 runner 需要 ctx(agent:default)
+resolve with ctx: OK

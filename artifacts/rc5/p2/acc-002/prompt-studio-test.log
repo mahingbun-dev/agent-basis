@@ -1,0 +1,35 @@
+# T17 prompt-studio 测试(ACC-002)
+# cmd: pnpm --filter @eterna/prompt-studio test
+# cwd: /Users/sunny/code/agent-basis-rc5
+# head: 02f4857
+# date: 2026-11-19T18:11:09Z
+$ ./node_modules/.bin/vitest run
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/prompt-studio
+
+ ✓ tests/trace.test.ts (19 tests) 72ms
+ ✓ tests/persona-patch.test.ts (20 tests) 73ms
+ ✓ tests/version-store.test.ts (14 tests) 78ms
+ ✓ tests/registry.test.ts (23 tests) 42ms
+ ✓ tests/entry-patch.test.ts (31 tests) 68ms
+ ✓ tests/client-bundle.test.ts (20 tests) 56ms
+ ✓ tests/assembly-replay.test.ts (33 tests) 81ms
+stderr | tests/config-editor-write.test.ts > 写链路 configEditor 通道(真实 cordis 根 Context + 桩注入) > ③ seam 还原不可用(行被重组合移除)→ 退字节级还原,基线字节仍恢复
+prompt-studio: 写后验证失败且通道还原失败(退字节级还原):行 preset-standard 不在 configEditor 活跃条目中(重组合瞬态或行已裁撤)
+
+ ✓ tests/config-editor-write.test.ts (20 tests) 142ms
+ ✓ tests/ai-service.test.ts (32 tests) 149ms
+ ✓ tests/validator-diff.test.ts (37 tests) 21ms
+ ✓ tests/session-snapshot.test.ts (17 tests) 241ms
+ ✓ tests/version-governance.test.ts (8 tests) 4ms
+ ✓ tests/approval-audit.test.ts (16 tests) 10ms
+ ✓ tests/admin-gate.test.ts (4 tests) 14ms
+ ✓ tests/host-plugin.test.ts (48 tests) 351ms
+ ✓ tests/boot-migrate.test.ts (7 tests) 981ms
+
+ Test Files  16 passed (16)
+      Tests  349 passed (349)
+   Start at  02:11:10
+   Duration  1.28s (transform 1.46s, setup 0ms, import 2.53s, tests 2.38s, environment 1ms)
+
+# EXIT=0

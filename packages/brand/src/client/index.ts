@@ -14,10 +14,19 @@
  * 4. tab 标题:ui-layout productTitle 硬编码,观察器拦截(含会话前缀形态)。
  * 5. favicon:SVG data-URI 换装。
  * 另:locale.register('common') 覆写 brand.localBuild 键(DOM 观察器兜底)。
+ *
+ * v6(B19 / 54 §4.6 T33 / 50 §3.8 / 47 §2.14):首屏品牌浮层走正式槽位——
+ * 6. `conversation.hero.frame`(hoc):hero=false 直返 children(零 DOM 增量);
+ *    hero=true 外层 display:contents,内部装饰品牌层 absolute/inset:0/
+ *    z-index:-1/pointer-events:none,children 原样渲染;
+ * 7. `conversation.hero.brand.mark`(single):复用 BrandMark,按 size 渲染,
+ *    替换上游首屏鱼回退(ui-brand-official 保持 CUT)。
  */
 import { createElement } from 'react'
 import { BRAND_BOLT_PATH } from '@eterna/ui/icon-data'
 import { BRAND } from './state.ts'
+import { HeroFrame } from './hero.ts'
+import { injectHeroStyles } from './styles.ts'
 import { hasBrandText, rebrandUiText } from './text-rules.ts'
 import type { BrandClientContext } from './state.ts'
 
@@ -36,12 +45,22 @@ function markInner(): string {
 }
 
 /** 恒灵标组件(sidebar.brand.mark slot;属主传 size)。必须返回 React 元素——
- * 返回 SVG 字符串会被 React 当纯文本渲染,页面直接显示标签源码(v2 实测教训)。 */
-function BrandMark(props: { size?: number } = {}): ReturnType<typeof createElement> {
+ * 返回 SVG 字符串会被 React 当纯文本渲染,页面直接显示标签源码(v2 实测教训)。
+ * 同一组件也是 conversation.hero.brand.mark 的占用方(属主传 size=34 与宿主
+ * 的 className 保留标几何;size 缺省 24 供侧栏使用)。 */
+function BrandMark(props: { size?: number; className?: string } = {}): ReturnType<typeof createElement> {
   const size = props.size ?? 24
   return createElement(
     'svg',
-    { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', 'aria-hidden': true },
+    {
+      className: props.className,
+      width: size,
+      height: size,
+      viewBox: '0 0 24 24',
+      fill: 'none',
+      'aria-hidden': true,
+      focusable: 'false',
+    },
     createElement('path', {
       d: BRAND_BOLT_PATH,
       fill: 'currentColor',
@@ -231,6 +250,8 @@ export function apply(ctx: BrandClientContext): () => void {
   // b) 侧栏 logo 官方席位(sidebar.brand.mark,ui-sidebar children 声明)。
   let disposeMark: (() => void) | undefined
   let disposeName: (() => void) | undefined
+  let disposeHeroFrame: (() => void) | undefined
+  let disposeHeroMark: (() => void) | undefined
   try {
     const slots = ctx.slots
     if (slots === undefined) throw new Error('slots 面缺席')
@@ -244,6 +265,22 @@ export function apply(ctx: BrandClientContext): () => void {
       { name: 'sidebar.brand.name' },
       BrandName,
     ))
+    // 首屏品牌浮层(B19):hoc 层只在声明出现时注入样式表(令牌桥接 + hero 样式),
+    // 未装载 ui-conversation 的产品面不留全局副作用。
+    disposeHeroFrame = slots.inject('conversation.hero.frame', () => {
+      injectHeroStyles()
+      return slots.register({
+        name: 'conversation.hero.frame',
+        // 自有 id:新 id 追加一层;复用上游 'pixel-whale' 会替换掉官方鲸鱼层。
+        id: 'eterna-hero-skin',
+        order: 0,
+      }, HeroFrame)
+    })
+    // 首屏品牌标(single):替换上游鱼回退,size/className 由宿主下发。
+    disposeHeroMark = slots.inject('conversation.hero.brand.mark', () => slots.register(
+      { name: 'conversation.hero.brand.mark' },
+      BrandMark,
+    ))
   } catch {
     // slot 声明缺席(上游重排)→ DOM 置换兜底仍在
   }
@@ -252,6 +289,8 @@ export function apply(ctx: BrandClientContext): () => void {
     disposeDom()
     disposeMark?.()
     disposeName?.()
+    disposeHeroFrame?.()
+    disposeHeroMark?.()
     disposeLocale?.()
   }
 }

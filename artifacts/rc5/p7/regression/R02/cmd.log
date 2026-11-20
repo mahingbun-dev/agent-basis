@@ -1,0 +1,28 @@
+PASS  LoggerLevel 数值语义 → API-009 证据档存在且 PASS
+artifacts/rc5/API/RC5-API-009/result.md
+
+PASS  投影帧：changes 数组 + seq 的参数序（rc.5 声明源）
+node_modules/.pnpm/@deepseek-ai+dsh-session-projection@0.2.2-rc.5_@deepseek-ai+cordis@4.1.0_@deepseek-ai+d_263a3a99bb1eb3e174413e8558a96966/node_modules/@deepseek-ai/dsh-session-projection/src/index.ts:154
+
+PASS  GenerateOptions 泛型 Purpose extends string（rc.5 声明源）
+node_modules/.pnpm/@deepseek-ai+dsh-llm@0.2.2-rc.5_@deepseek-ai+cordis@4.1.0_@deepseek-ai+dsh-error@0.2.2-rc.5_@deepseek-ai+cordis@4.1.0_/node_modules/@deepseek-ai/dsh-llm/src/types.ts:564
+
+PASS  本仓消费位按 rc.5 GenerateOptions 编译
+packages/compaction/evals/gateway.ts:15
+
+PASS  ToolGuardDenial 类型 + ToolGuard 返回位（rc.5 声明源）
+node_modules/.pnpm/@deepseek-ai+dsh-tools@0.2.2-rc.5_@deepseek-ai+cordis@4.1.0_@deepseek-ai+dsh-agent@0.2._0c9e84951de3b6c843c34fe86e0428ed/node_modules/@deepseek-ai/dsh-tools/src/contracts.ts:413
+
+PASS  本仓治理走 tools/pre-execute（deny 不可回翻由内核保证）
+packages/glue/src/plugins/governance-plugin.ts:42
+
+PASS  PluginTabProps.update 必填 + PluginTabUpdate（rc.5 声明源）
+node_modules/.pnpm/@deepseek-ai+dsh-client-ui-plugin-manager@0.2.2-rc.5_@deepseek-ai+cordis@4.1.0/node_modules/@deepseek-ai/dsh-client-ui-plugin-manager/src/client/slot-contract.ts:118
+
+PASS  本仓镜面契约 + 插件页消费位
+contract=40 consumer=13
+
+PASS  pnpm -w run verify 全工作区 EXIT=0（post-merge 日志）
+EXIT=0
+
+RESULT=PASS

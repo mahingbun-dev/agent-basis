@@ -1,0 +1,54 @@
+# T52 证据收口自检
+# started 2026-11-20T01:27:35Z
+# worktree /Users/sunny/code/agent-basis-rc5 branch feat/dsh-rc5-merge HEAD 02f4857
+
+## 1) 矩阵/阶段 summary 自检
+OK   MATRIX_ROWS_164 rows=164
+OK   MATRIX_UNIQUE_IDS_164 unique=164
+OK   MATRIX_STATUS_130_8_26 {"PASS":130,"MISSING":26,"FAIL":8}
+OK   MATRIX_SUITE_COUNTS_16 {"ENV":8,"BOOT":13,"API":9,"ACC":10,"MCPS":11,"MCPP":24,"TERM":14,"IMP":10,"ACP":10,"OFF":7,"HERO":8,"CMD":4,"V1":8,"DATA":10,"UI":8,"SEC":10}
+OK   MATRIX_PHASE_COUNTS {"P1":10,"P5":16,"P2":12,"P6a":97,"P4":17,"P3":7,"P6b":5}
+OK   MATRIX_STATUS_VOCAB
+OK   MATRIX_PASS_HAS_EVIDENCE
+OK   AUDIT_TOTAL_164 audit=164
+OK   P0_NOT_PASS_16_(FAIL8_MISSING8) p0=102 notpass=16
+OK   NOT_GREEN_RC5-DATA-009 matrix=MISSING audit=MISSING
+OK   NOT_GREEN_RC5-TERM-013 matrix=MISSING audit=MISSING
+OK   SUMMARY_P0_KEYS missing=- cases=true
+OK   SUMMARY_P1_KEYS missing=- cases=true
+OK   SUMMARY_P2_KEYS missing=- cases=true
+OK   SUMMARY_P3_KEYS missing=- cases=true
+OK   SUMMARY_P4_KEYS missing=- cases=true
+OK   SUMMARY_P5_KEYS missing=- cases=true
+OK   SUMMARY_P6A_KEYS missing=- cases=true
+OK   SUMMARY_P6B_KEYS missing=- cases=true
+OK   SUMMARY_P7_KEYS missing=- cases=true
+OK   P6B_LANE_CASES_PRESERVED cases=11
+OK   SOAK_PLANNED_24H {"plannedSeconds":86400}
+OK   SOAK_INCOMPLETE windowComplete=false observedHours=3.18
+OK   SOAK_OBSERVED_LT_24H observedHours=3.18
+OK   SECRET_SCAN_HITS_0 hits=0
+RESULT=ALL_ASSERTIONS_PASS
+EXIT=0
+
+## 2) 提交前卫生检查（禁止路径/高置信凭据）
+OK   FORBIDDEN_PATHS_0
+OK   HIGH_CONFIDENCE_SECRETS_0
+INFO scanned=1741 skipped=137 files=1878
+WARN test-fixture-password-assignments=0
+OK   DIFF_ADDED_SECRETS_0
+INFO diff_added_lines=4244
+RESULT=PASS
+EXIT=0
+
+## 3) 矩阵关键行
+ |  B 用 A sessionId 调 6 unary 全拒  |  RC5-TERM-004  |  P6a  |  PASS  |  artifacts/rc5/p6a/repairs/final-terminal-guard.{log,json} ［修后复跑 6/6 `remote-access/denied`；修前 E1/E2/E3 FAIL 日志保留，不参与当前判定］  |  T49b/L6  | 
+EXIT=0
+
+## 4) 修后复跑证据
+PRESENT artifacts/rc5/p6a/repairs/final-terminal-guard.json
+PRESENT artifacts/rc5/p6a/repairs/final-chat-import.json
+PRESENT artifacts/rc5/p6a/repairs/unit-vitest.log
+EXIT=0
+
+# finished 2026-11-20T01:27:35Z

@@ -1,0 +1,13 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ node artifacts/rc5/UI/_suite/ui-scan.mjs UI-004
+# started 2026-11-19T22:19:04Z
+NOTE inline svg packages/brand/src/client/index.ts:36 const FAVICON_SVG = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='5.25' fill='#146ef5'/><pat
+scope files=17 icon_imports=4 inline_svg=1 emoji=0 upstream_icon=0
+PASS uses @eterna/ui icons/icon-data: 4 imports
+PASS no emoji functional icons: 0 hits
+PASS no upstream icon package import: 0 hits
+NOTE 唯一 <svg> 为 brand FAVICON_SVG 数据 URI(品牌资产,AGENTS.md 豁免)。
+SUMMARY UI-004 failures=0
+
+EXIT 0
+# finished 2026-11-19T22:19:04Z

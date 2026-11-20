@@ -1,0 +1,133 @@
+{
+  "url": "http://127.0.0.1:64629/?token=<redacted>",
+  "sessionId": "session-414ab93f-e0c6-4689-904e-c33cbe39fe64",
+  "account": "cmdprobe",
+  "evidence": {
+    "open-session": {
+      "ok": true,
+      "detail": {
+        "sessionId": "session-414ab93f-e0c6-4689-904e-c33cbe39fe64"
+      }
+    },
+    "slash-menu-visible": {
+      "ok": true,
+      "detail": {
+        "count": 29
+      }
+    },
+    "slash-menu-compact-single": {
+      "ok": true,
+      "detail": {
+        "compactRows": [
+          {
+            "id": "dsh-slash-option-command-4",
+            "text": "压缩compact压缩以上对话内容"
+          }
+        ]
+      }
+    },
+    "slash-menu-model-single": {
+      "ok": true,
+      "detail": {
+        "modelRows": [
+          {
+            "id": "dsh-slash-option-command-5",
+            "text": "模型model选择本会话使用的模型"
+          }
+        ]
+      }
+    },
+    "slash-menu-host-commands": {
+      "ok": true,
+      "detail": {
+        "shortRows": [
+          "文件file",
+          "目标goal设置或查看长期任务目标",
+          "计划plan进入或退出计划模式",
+          "反馈feedback发送关于当前会话的反馈",
+          "压缩compact压缩以上对话内容",
+          "模型model选择本会话使用的模型",
+          "下载日志export将当前会话内容导出为 ZIP",
+          "office-docxCreate, read, edit, and validate Word documents (.docx).",
+          "office-pptxCreate, read, edit, and validate PowerPoint presentations (.pptx).",
+          "sdd-brainstorming仅用户 · 通过协作对话将想法转化为设计方案",
+          "sdd-executing-plans仅用户 · 自动执行 spec-plan.md 实施计划，包含验证与重试逻辑",
+          "sdd-global-change仅用户 · Manual trigger: /sdd-global-change <requirements>",
+          "sdd-global-init仅用户 · Manual trigger: /sdd-global-init",
+          "sdd-plan-human-verify仅用户 · 规划人类验收计划",
+          "sdd-start-human-verify仅用户 · AI 驱动的验收执行",
+          "sdd-writing-plans仅用户 · 从 spec-design.md 生成执行计划"
+        ]
+      }
+    },
+    "slash-menu-permission-filtered": {
+      "ok": true,
+      "detail": {
+        "shortRows": [
+          "文件file",
+          "目标goal设置或查看长期任务目标",
+          "计划plan进入或退出计划模式",
+          "反馈feedback发送关于当前会话的反馈",
+          "压缩compact压缩以上对话内容",
+          "模型model选择本会话使用的模型",
+          "下载日志export将当前会话内容导出为 ZIP",
+          "office-docxCreate, read, edit, and validate Word documents (.docx).",
+          "office-pptxCreate, read, edit, and validate PowerPoint presentations (.pptx).",
+          "sdd-brainstorming仅用户 · 通过协作对话将想法转化为设计方案",
+          "sdd-executing-plans仅用户 · 自动执行 spec-plan.md 实施计划，包含验证与重试逻辑",
+          "sdd-global-change仅用户 · Manual trigger: /sdd-global-change <requirements>",
+          "sdd-global-init仅用户 · Manual trigger: /sdd-global-init",
+          "sdd-plan-human-verify仅用户 · 规划人类验收计划",
+          "sdd-start-human-verify仅用户 · AI 驱动的验收执行",
+          "sdd-writing-plans仅用户 · 从 spec-design.md 生成执行计划"
+        ]
+      }
+    },
+    "slash-menu-unique-ids": {
+      "ok": true,
+      "detail": {
+        "count": 29
+      }
+    },
+    "model-menu-row": {
+      "ok": true,
+      "detail": "模型model选择本会话使用的模型"
+    },
+    "model-popup-options": {
+      "ok": true,
+      "detail": {
+        "modelOptions": [
+          {
+            "text": "MiMo V2.6 Flash",
+            "label": null
+          },
+          {
+            "text": "MiMo V2.6 Pro",
+            "label": null
+          }
+        ]
+      }
+    },
+    "model-switch-echo": {
+      "ok": true,
+      "detail": {
+        "beforeLabel": "选择模型，当前 MiMo V2.6 Pro，推理等级 Default",
+        "target": "MiMo V2.6 Flash",
+        "afterLabel": "选择模型，当前 MiMo V2.6 Flash，推理等级 Default"
+      }
+    },
+    "compact-executes": {
+      "ok": true,
+      "detail": {
+        "sessionId": "session-414ab93f-e0c6-4689-904e-c33cbe39fe64"
+      }
+    },
+    "compact-zh-alias": {
+      "ok": true,
+      "detail": {
+        "occurrences": 2
+      }
+    }
+  },
+  "failures": []
+}

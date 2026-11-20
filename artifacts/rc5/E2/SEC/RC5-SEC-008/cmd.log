@@ -1,0 +1,40 @@
+# SEC/RC5-SEC-008
+# started 2026-11-20T07:07:12.417Z
+
+$ GET /access/api/me（B）
+EXIT=200
+{"id":2,"account":"rc5userb","nickname":"rc5userb","role":"user","avatarUrl":null}
+
+$ POST /api/session/create {workspaceId:B 工作区}（B）
+EXIT=200
+ok=true workspaceId=- sessionId=session-50a0cb57-9375-4c4a-a82b-8e854a32…
+
+$ node:sqlite SELECT sessions WHERE session_id=<B 新会话>
+EXIT=0
+[{"owner_id":2,"workspace_id":"02dce76e-18b8-4858-beba-637cca6710c7"}]
+
+$ POST /logout（B，redirect:manual）
+EXIT=302
+location=/login set-cookie=eterna_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0
+
+$ GET /access/api/me（登出后，浏览器已丢 eterna_session）
+EXIT=401
+{"error":"未登录"}
+
+$ GET /access/api/me（登出后，重放旧 cookie —— 观察项）
+EXIT=200
+{"id":2,"account":"rc5userb","nickname":"rc5userb","role":"user","avatarUrl":null}
+
+[ASSERT] B 的 /me 归属 rc5userb => PASS :: rc5userb
+
+[ASSERT] B 新建会话的 owner_id 是 B => PASS :: owner=2 expected=2
+
+[ASSERT] B 新建会话落在 B 的工作区 => PASS :: ws=02dce76e-18b8-4858-beba-637cca6710c7 expected=02dce76e-18b8-4858-beba-637cca6710c7
+
+[ASSERT] 登出 302 回 /login => PASS :: status=302
+
+[ASSERT] 登出清空 eterna_session => PASS :: eterna_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0
+
+[ASSERT] 登出后（浏览器语义）访问被拒 401 => PASS :: status=401
+
+# note: 观察项：重放登出前的 eterna_session 仍返回 200（签名 cookie 无服务端吊销）

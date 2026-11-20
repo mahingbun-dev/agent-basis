@@ -1,0 +1,96 @@
+{
+  "root": "/data",
+  "files": 8625,
+  "bytes": 108891952,
+  "sessions": {
+    "files": 396,
+    "bytes": 13879937
+  },
+  "storages": {
+    "files": 353
+  },
+  "agents": {
+    "files": 0
+  },
+  "db": {
+    "users": 2,
+    "accessSessions": 145,
+    "workspaces": 3,
+    "approvals": 0,
+    "notifications": 0,
+    "userPlugins": 0,
+    "memoryEntities": 12,
+    "memoryDomains": 15,
+    "knowledgePermissions": 0,
+    "workspaceMemoryEntities": 24,
+    "tasksTickets": 0,
+    "tasksThreads": 1
+  },
+  "secretFiles": {
+    "credentials": {
+      "mode": "600"
+    },
+    "relayToken": {
+      "sha256": "913dbafe423fc7e6e6162b0ce48ae0081320e00a71bb07635de709e21714272b",
+      "bytes": 35
+    }
+  },
+  "profiles": {
+    "eterna-super": {
+      "packageJson": {
+        "bytes": 918,
+        "sha256": "c0d37735c332d6cf0c6daa73d9b29c197e1d4956e31447c2f02266a9c342c698"
+      },
+      "patch": {
+        "bytes": 55930,
+        "sha256": "23f8da0f82adeae00f6d78afe10659ea4848e994a9703c0c6c273d0666f9576a"
+      },
+      "bundles": 15
+    },
+    "eterna-web": {
+      "packageJson": {
+        "bytes": 921,
+        "sha256": "9153514a6eef71e36be70a2cf0f8829b8b61b5761c5470a88b65ac467c1e8d5d"
+      },
+      "patch": {
+        "bytes": 48599,
+        "sha256": "7cf1287a508105601574390d3c7aa9b73c9c25bb924589ec092cee00743b76ec"
+      },
+      "bundles": 13
+    },
+    "web": {
+      "packageJson": {
+        "bytes": 207,
+        "sha256": "210068ddb9ebc4cdf395ebb53020be6ccaaedb917e74dae16296d62394626398"
+      },
+      "patch": {
+        "bytes": 217,
+        "sha256": "ef189a8c27db6d63930aa3046a3040482e952eafcb7487c644d508e8d461f027"
+      },
+      "bundles": 2
+    }
+  },
+  "topLevel": [
+    ".anonymous-user-id",
+    ".credentials.yaml",
+    ".eterna",
+    ".pnpm-store",
+    ".profile-render.lock",
+    "access",
+    "agents",
+    "attachments",
+    "demo",
+    "eterna-prompt-studio",
+    "knowledge-admin",
+    "knowledge.wiki",
+    "logs",
+    "market",
+    "memory-distill",
+    "profiles",
+    "relay-token",
+    "sessions",
+    "storages",
+    "users",
+    "workspaces"
+  ]
+}

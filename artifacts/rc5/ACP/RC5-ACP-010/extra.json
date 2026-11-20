@@ -1,0 +1,25 @@
+{
+  "webHealthBefore": "healthy",
+  "webHealthAfter": "healthy",
+  "webPsBefore": "eterna-rc5-e1\tUp 4 minutes (healthy)",
+  "webPsAfter": "eterna-rc5-e1\tUp 4 minutes (healthy)",
+  "webRound": {
+    "loginStatus": 200,
+    "createdOk": true,
+    "sessionId": "session-daf6544f-188e-4cf5-98c7-7e0bf1d58e06",
+    "listedOk": true
+  },
+  "acpRound": {
+    "protocolVersion": 1,
+    "sessionId": "1e6010c1-a684-4575-8747-39cac4eacf34",
+    "stopReason": "end_turn"
+  },
+  "webLocked": false,
+  "acpLocked": false,
+  "acpRender": [
+    "[entrypoint] profile 渲染:模板未变,保留用户文件 package.json(启停/模型设置跨重启持久)",
+    "[entrypoint] profile 渲染:模板未变,保留用户文件 cordis.patch.yml(启停/模型设置跨重启持久)"
+  ],
+  "webLogLines": [],
+  "modelLog": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/ACP/runs/shared-volume/fake-model.log"
+}

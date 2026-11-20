@@ -1,0 +1,31 @@
+# W4 基座门禁 · 镜像内断言(2026-11-20;镜像 eterna-agent:rc5-p5-repair;不覆盖 entrypoint,走镜像自带 ENTRYPOINT)
+# 环境:未注入 MIMO_API_KEY、worktree 无 .env。
+# 注:本机 shell 为 zsh,unquoted $spec 不拆词——故同时记录「分开 argv」与「整条字符串」两种形态。
+
+### dsh --version  (argv 分开)
+0.2.2-rc.5
+EXIT=0
+
+### node -v  (argv 分开)
+v24.22.3
+EXIT=0
+
+### dsh --version  (整条字符串当一个 argv)
+0.2.2-rc.5
+EXIT=0
+
+### v1 stripped
+v1 stripped OK
+EXIT=0
+
+### fonts/python
+python docx/openpyxl/pptx OK
+Noto Sans CJK OK
+Liberation OK
+DejaVu OK
+EXIT=0
+
+### 排查入口:sh -c
+command-mode-ok
+0
+EXIT=0

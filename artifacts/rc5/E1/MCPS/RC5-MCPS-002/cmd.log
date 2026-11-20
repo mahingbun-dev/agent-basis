@@ -1,0 +1,10 @@
+# MCPS/RC5-MCPS-002
+# started 2026-11-20T07:02:52.848Z
+
+$ docker restart rc5-e1suite
+EXIT=0
+rc5-e1suite
+
+$ POST /api/mcpManager/probe {"name":"e1http"}（重启后）
+EXIT=200
+ok=true {"ok":true,"serverInfo":{"name":"fixture-echo","version":"1.0.0"},"toolNames":["echo"],"truncated":false,"durationMs":28,"closeConfirmed":true}

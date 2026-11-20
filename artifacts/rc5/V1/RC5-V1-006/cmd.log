@@ -1,0 +1,19 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ node artifacts/rc5/V1/RC5-V1-006/check-ci-lane.mjs
+# started 2026-11-19T22:10:21Z
+PASS v1-line job exists: ci.yml jobs.v1-line
+PASS v1-line has no job-level needs (independent): null
+PASS v1-line is not schedule-triggered: github.event_name != 'schedule'
+PASS runs cordis declarations + typecheck + test: 12 steps
+PASS runs runtime typecheck + test: steps
+PASS runs six @basis package typecheck/test loop: steps
+PASS runs basis.yml six-plugin chat smoke: steps
+PASS runs the V1-007 dsh import guard: steps
+PASS does not install a global dsh: no npm i -g dsh step
+PASS uses frozen lockfile install: steps
+scope: v1-line trigger paths= changed=$(git diff --name-only \"origin/${BASE_REF}...HEAD\" || echo \"__diff_failed__\")\necho \"$changed\"\nif printf '%s\\n' \"$changed\" | grep -Eq '^(core/
+NOTE: CI 实际 job 运行状态不在本地 E0 可验证面;此处只核对车道定义。
+SUMMARY failures=0
+
+EXIT 0
+# finished 2026-11-19T22:10:21Z

@@ -4,17 +4,21 @@
  * 「全产品提示词唯一管理面」的反面强制:涉及提示词工程而未在注册表登记的
  * 插件/包被 CI 拦截(计划书成功标准 4)。登记真值 =
  * @eterna/prompt-studio/registry 的 PROMPT_REGISTRY_ENTRIES(T1.3 三层
- * 存量登记,与 docs/dev/ps-v2-registry-ledger.md 双向锁住)——本扫描直接 import
- * 该表做匹配判定,不维护第二份清单,杜绝扫描器与注册表漂移。
+ * 存量登记,与 docs/dev/ps-v2-registry-ledger.md 双向锁住)与
+ * PROMPT_TEMPLATE_REGISTRATIONS(rc.5 T17/R19:容器模板内提示词键的逐 key
+ * 登记,同一 registry 模块导出)——本扫描直接 import 这两张表做匹配判定,
+ * 不维护第二份清单,杜绝扫描器与注册表漂移。
  *
  * 三个扫描面(计划书 §5「做」第 5 条原文:扫描 cordis.patch.yml 的 prompt 型
  * config 键 + ctx.systemPrompt.section 使用 + packs persona):
  *   P1 patch 层 prompt 型 config 键 —— profiles/ packs/ packages/ market/ 下全部
- *      cordis.patch.yml(成功标准 4 的「插件/包」也覆盖:packages 自有 bundle patch):
- *      personaPrefix(system-prompt 专属键,任意上下文)、persona 插件的 prefix、
- *      plan-mode 插件的 section(按最近包围列表项/行的 id 判定归属,防止其它插件
- *      的同名 config 键误报)。登记判定 = 注册表条目 yaml 定位
- *      (file+rowId+pluginPath+configKey)精确匹配。
+ *      cordis.patch.yml(成功标准 4 的「插件/包」也覆盖:packages 自有 bundle patch)
+ *      以及 docker/profile/ 下的容器模板(*.patch.yml.template;rc.5 T17/R19 收口:
+ *      开发档精确豁免后模板必须留在扫描面内):personaPrefix(system-prompt 专属键,
+ *      任意上下文)、persona 插件的 prefix、plan-mode 插件的 section(按最近包围
+ *      列表项/行的 id 判定归属,防止其它插件的同名 config 键误报)。登记判定 =
+ *      注册表条目 yaml 定位(file+rowId+pluginPath+configKey)精确匹配,或模板键
+ *      登记表(PROMPT_TEMPLATE_REGISTRATIONS)同口径匹配。
  *   P2 packs persona —— packs 下各领域包根的 persona.md(06 号 SOP S1 分诊:
  *      角色/语气/全局硬约束,唯一允许进 prompt 的三类)。登记判定 = 任一条目
  *      anchors 引用该文件。
@@ -24,62 +28,89 @@
  *      登记锚点即此行)。登记判定 = 任一条目 anchors 引用该源文件。
  *
  * 白名单与豁免标注(计划书 §7 风险对策「扫描规则带白名单与豁免标注」):
- * PROMPT_SCAN_WHITELIST 按路径前缀豁免,每条必须带 reason(豁免标注);缺 reason
- * 的条目本身产出 warning(prompt/whitelist-without-reason)——豁免决定必须可审查,
- * 不允许无声放行。
+ * PROMPT_SCAN_WHITELIST 按**精确文件路径**豁免(不支持目录前缀/startsWith——
+ * 前缀匹配会让同名兄弟文件与目录新增内容逃检,重新制造盲区),每条必须带
+ * reason(豁免标注);缺 reason 的条目本身产出 warning
+ * (prompt/whitelist-without-reason)——豁免决定必须可审查,不允许无声放行。
  *
  * 已知边界(如实,不造全覆盖假象):行级扫描对块标量正文里恰好像 `key: value` 的
  * 行会误报(走白名单豁免);alias 形态(`const sp = ctx.systemPrompt; sp.section()`)
- * 静态不可见;运行时 home(.eterna-home*,gitignored)不在扫描面。
+ * 静态不可见;运行时 home(.eterna-home*,gitignored)不在扫描面;模板键登记只判
+ * 键的存在/定位(不比对 super 镜像文本与 base 的逐字相等——镜像同文由双形态同步
+ * 纪律与发布走查看护,扫描器不重复实现内容 diff)。
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { PROMPT_REGISTRY_ENTRIES } from '@eterna/prompt-studio/registry'
-import type { PromptRegistryEntry } from '@eterna/prompt-studio/registry'
+import { PROMPT_REGISTRY_ENTRIES, PROMPT_TEMPLATE_REGISTRATIONS } from '@eterna/prompt-studio/registry'
+import type { PromptRegistryEntry, PromptTemplateRegistration } from '@eterna/prompt-studio/registry'
 import { error, warning, type Finding } from './types.ts'
 import { stripCommentsLineByLine } from './util.ts'
 
-/** 白名单豁免条目:路径前缀 + 豁免标注(reason 必填,缺失即扫描警告)。 */
+/** 白名单豁免条目:精确文件路径 + 豁免标注(reason 必填,缺失即扫描警告)。 */
 export interface PromptWhitelistEntry {
-  /** 仓库根相对 POSIX 路径前缀(目录以 / 结尾;也接受精确文件路径)。 */
+  /** 仓库根相对 POSIX 路径(精确文件,不接受目录前缀/尾斜杠;只豁免这一个文件). */
   readonly path: string
   /** 豁免标注:为什么这块可以不登记——供 PR 审查,不允许空。 */
   readonly reason: string
 }
 
 /**
- * 仓内既知豁免(2026-11-11 实测盘点):
- * - packages/prompt-studio:提示词注册表与工作室管理面本体——条目 anchors 内含
- *   `ctx.systemPrompt.section(section)`/`systemPrompt: true` 样例字面量,管理面
- *   非注入方(T1.3 登记制);
- * - market/pack-bundle:市场自包含构建产物(scripts/build-market.mjs 生成,README
- *   明示勿手改),镜像 packs/event-planning——提示词真值由源包条目登记。
+ * 仓内既知豁免(2026-11-20 rc.5 T17 实测盘点;全部为**精确文件**,无目录前缀):
+ * - packages/prompt-studio/src/registry.ts:提示词注册表本体——anchors 内含
+ *   `ctx.systemPrompt.section(section)` 样例字面量(如 :403),管理面非注入方
+ *   (T1.3 登记制);精确到该文件,包内其它源码新增注入调用照常被拦;
+ * - market/pack-bundle/cordis.patch.yml:市场自包含构建产物(scripts/build-market.mjs
+ *   生成,README 明示勿手改),镜像 packs/event-planning——提示词真值由源包条目登记;
+ * - profiles/eterna-web/cordis.patch.yml 与 eterna-super 同款:开发档是容器模板
+ *   docker/profile/*.template 的本地镜像/裁切基座(B13 后注册表 yaml 真值统一锚定
+ *   模板,运行时经 registryReadFile/resolveWritePath 映射到 live patch),非注入真值
+ *   源——同一提示词块已由模板条目/模板键登记表覆盖,开发档重复登记会让同一提示词
+ *   出现双条目。
+ * docker/profile/ 模板**不在豁免面**:模板键逐 key 登记在
+ * PROMPT_TEMPLATE_REGISTRATIONS,模板内新增未登记键必须被拦。
  */
 export const PROMPT_SCAN_WHITELIST: readonly PromptWhitelistEntry[] = [
   {
-    path: 'packages/prompt-studio/',
-    reason: '提示词注册表与工作室管理面本体:条目 anchors 含注入调用样例字面量,管理面非注入方(T1.3 登记制)',
+    path: 'packages/prompt-studio/src/registry.ts',
+    reason: '提示词注册表本体:anchors 含注入调用样例字面量(如 :403 的 ctx.systemPrompt.section(section)),管理面非注入方(T1.3 登记制);精确到该文件,包内其它源码的注入调用照常扫描',
   },
   {
-    path: 'market/pack-bundle/',
+    path: 'market/pack-bundle/cordis.patch.yml',
     reason: '市场自包含构建产物(scripts/build-market.mjs 生成,勿手改):镜像 packs/event-planning,提示词真值由源包条目登记',
   },
   {
+    path: 'profiles/eterna-web/cordis.patch.yml',
+    reason: '开发档 patch 是容器模板 docker/profile/cordis.patch.yml.template 的本地镜像/裁切基座,非注入真值源:B13 后注册表 yaml 真值统一锚定 docker/profile/*.template(运行时 registryReadFile/resolveWritePath 把 WEB_PATCH 映射到 live patch),preset persona/plan-mode 等同名提示词块已由模板条目登记;开发档随模板逐版重放(rc.5 行集对齐),此处豁免以免同一提示词按开发档路径重复登记成双条目',
+  },
+  {
     path: 'profiles/eterna-super/cordis.patch.yml',
-    reason: 'super 双形态档(40 号 S-5)的 patch 是 base 档(eterna-web)同名提示词块的超集镜像:persona prefix 与 planning/plan-mode section 在 preset-cordis/preset-standard 两行同文复制,登记真值锚定 profiles/eterna-web 的注册表条目(PROMPT_REGISTRY_ENTRIES yaml 定位);super 侧不另立条目以免同一提示词在注册表出现双条目,两模板成对漂移由双形态同步纪律(40 号 S-5)与 form-check FORM001 挂载面看护',
+    reason: 'super 双形态档(40 号 S-5)的 patch 是 base 档(eterna-web)同名提示词块的超集镜像:persona prefix 与 planning/plan-mode section 在 preset-cordis/preset-standard 两行同文复制;B13 后登记真值统一锚定 docker/profile/cordis.super.patch.yml.template(web 同源块对应 docker/profile/cordis.patch.yml.template 的注册表条目),super 侧不另立条目以免同一提示词在注册表出现双条目,两模板成对漂移由双形态同步纪律(40 号 S-5)与 form-check FORM001 挂载面看护',
   },
 ]
 
-/** promptScan 选项:登记真值与白名单均可注入(测试用;缺省=仓内既知事实)。 */
+/** promptScan 选项:登记真值、模板键登记与白名单均可注入(测试用;缺省=仓内既知事实)。 */
 export interface PromptScanOptions {
   /** 登记真值(缺省 = prompt-studio 注册表 PROMPT_REGISTRY_ENTRIES)。 */
   readonly registry?: readonly PromptRegistryEntry[]
-  /** 白名单(缺省 = PROMPT_SCAN_WHITELIST)。 */
+  /** 模板键登记(缺省 = prompt-studio 注册表 PROMPT_TEMPLATE_REGISTRATIONS;逐 key 四元组)。 */
+  readonly templateRegistrations?: readonly PromptTemplateRegistration[]
+  /** 白名单(缺省 = PROMPT_SCAN_WHITELIST;精确文件路径)。 */
   readonly whitelist?: readonly PromptWhitelistEntry[]
 }
 
-/** patch 层扫描根(profiles=patch 层本体;packages=插件自有 bundle patch;market=市场构建)。 */
-const PATCH_SCAN_ROOTS: readonly string[] = ['profiles', 'packs', 'packages', 'market']
+/** patch 层扫描根(profiles=patch 层本体;packages=插件自有 bundle patch;market=市场构建;
+ * docker/profile=容器渲染模板(rc.5 T17/R19:开发档豁免后模板必须留在扫描面内))。 */
+const PATCH_SCAN_ROOTS: readonly string[] = ['profiles', 'packs', 'packages', 'market', 'docker/profile']
+
+/**
+ * patch 文件取舍:各根下 `cordis.patch.yml`(既有语义);docker/profile 额外吃
+ * 容器模板 `cordis*.patch.yml.template`(base/super/acp)。其它根不放宽文件名,
+ * 避免无意扩大既有扫描面。
+ */
+function isPatchScanTarget(root: string, name: string): boolean {
+  if (name === 'cordis.patch.yml') return true
+  return root === 'docker/profile' && /^cordis(\.[\w-]+)?\.patch\.yml\.template$/.test(name)
+}
 
 /** 任意上下文都算提示词面的专属键(system-prompt 的 personaPrefix)。 */
 const CONTEXT_FREE_PROMPT_KEYS: ReadonlySet<string> = new Set(['personaPrefix'])
@@ -179,17 +210,28 @@ function enumeratePatchKeyUsages(file: string, text: string): readonly PatchKeyU
   return usages
 }
 
-/** P1 登记判定:注册表条目 yaml 定位与使用四元组精确匹配。 */
+/** P1 登记定位的四元组形状(注册表 YamlLocator 与模板键登记共用)。 */
+interface PromptKeyLocator {
+  readonly file: string
+  readonly rowId: string
+  readonly pluginPath?: readonly string[]
+  readonly configKey: string
+}
+
+/** P1 登记判定:注册表条目 yaml 定位(或模板键登记)与使用四元组精确匹配。 */
 function coveringEntryForUsage(
   usage: PatchKeyUsage,
   registry: readonly PromptRegistryEntry[],
-): PromptRegistryEntry | undefined {
+  templateRegistrations: readonly PromptTemplateRegistration[],
+): PromptRegistryEntry | PromptTemplateRegistration | undefined {
   const pluginPath = usage.pluginPath.join('/')
-  return registry.find(entry => entry.yaml !== undefined
-    && entry.yaml.file === usage.file
-    && entry.yaml.rowId === usage.rowId
-    && (entry.yaml.pluginPath ?? []).join('/') === pluginPath
-    && entry.yaml.configKey === usage.configKey)
+  const matches = (locator: PromptKeyLocator): boolean =>
+    locator.file === usage.file
+    && locator.rowId === usage.rowId
+    && (locator.pluginPath ?? []).join('/') === pluginPath
+    && locator.configKey === usage.configKey
+  return registry.find(entry => entry.yaml !== undefined && matches(entry.yaml))
+    ?? templateRegistrations.find(registration => matches(registration.yaml))
 }
 
 /** P2/P3 登记判定:任一条目的行锚点引用该文件(锚点行号对账归 registry.test.ts,此处只认文件归属)。 */
@@ -203,10 +245,12 @@ function entryAnchoringFile(file: string, registry: readonly PromptRegistryEntry
  */
 export function promptScan(repoRoot: string, options: PromptScanOptions = {}): readonly Finding[] {
   const registry = options.registry ?? PROMPT_REGISTRY_ENTRIES
+  const templateRegistrations = options.templateRegistrations ?? PROMPT_TEMPLATE_REGISTRATIONS
   const whitelist = options.whitelist ?? PROMPT_SCAN_WHITELIST
   const findings: Finding[] = []
-  const whitelisted = (path: string): boolean =>
-    whitelist.some(entry => path === entry.path || path.startsWith(entry.path))
+  // 精确文件匹配:豁免只覆盖登记的这一个文件(前缀/startsWith 会让同名兄弟文件与
+  // 目录新增内容逃检,重新制造盲区;rc.5 T17/R19)。
+  const whitelisted = (path: string): boolean => whitelist.some(entry => path === entry.path)
 
   // 豁免标注自检:白名单条目缺 reason 本身就是 finding(强制可审查,不允许无声放行)。
   for (const entry of whitelist) {
@@ -216,10 +260,11 @@ export function promptScan(repoRoot: string, options: PromptScanOptions = {}): r
     }
   }
 
-  // P1:patch 层 prompt 型 config 键(profiles/packs/packages/market 的 cordis.patch.yml)。
+  // P1:patch 层 prompt 型 config 键(profiles/packs/packages/market 的 cordis.patch.yml;
+  // docker/profile 的容器模板 cordis*.patch.yml.template)。
   const patchFiles: string[] = []
   for (const root of PATCH_SCAN_ROOTS) {
-    walkFiles(repoRoot, root, name => name === 'cordis.patch.yml', patchFiles)
+    walkFiles(repoRoot, root, name => isPatchScanTarget(root, name), patchFiles)
   }
   for (const file of patchFiles) {
     if (whitelisted(file)) continue
@@ -230,10 +275,10 @@ export function promptScan(repoRoot: string, options: PromptScanOptions = {}): r
       continue
     }
     for (const usage of enumeratePatchKeyUsages(file, text)) {
-      if (coveringEntryForUsage(usage, registry) !== undefined) continue
+      if (coveringEntryForUsage(usage, registry, templateRegistrations) !== undefined) continue
       const located = usage.pluginPath.length > 0 ? `, path=${usage.pluginPath.join('/')}` : ''
       findings.push(error('prompt/unregistered-prompt-key', `${file}:${usage.line}`,
-        `patch 层 prompt 型 config 键 ${usage.configKey}(row=${usage.rowId}${located})未在提示词注册表登记——在 packages/prompt-studio/src/registry.ts 增加条目并对账 docs/dev/ps-v2-registry-ledger.md,或确认属豁免面写明白名单标注后再提交`))
+        `patch 层 prompt 型 config 键 ${usage.configKey}(row=${usage.rowId}${located})未在提示词注册表登记——在 packages/prompt-studio/src/registry.ts 增加条目(容器模板逐 key 登记 PROMPT_TEMPLATE_REGISTRATIONS)并对账 docs/dev/ps-v2-registry-ledger.md;docker/profile 模板不设整文件豁免`))
     }
   }
 

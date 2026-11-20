@@ -141,9 +141,9 @@ function ensureProfile() {
     private: true,
     dependencies: {
       '@eterna/llm-openai': `file:${resolve(repoRoot, 'packages/llm-openai')}`,
-      '@deepseek-ai/dsh': '0.2.2-rc.1',
-      '@deepseek-ai/dsh-base': '0.2.2-rc.1',
-      '@deepseek-ai/dsh-web-app': '0.2.2-rc.1',
+      '@deepseek-ai/dsh': '0.2.2-rc.5',
+      '@deepseek-ai/dsh-base': '0.2.2-rc.5',
+      '@deepseek-ai/dsh-web-app': '0.2.2-rc.5',
     },
     dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'] } },
     pnpm: { onlyBuiltDependencies: ['esbuild', '@deepseek-ai/dsh-subprocess-local', 'koffi', 'node-pty'] },

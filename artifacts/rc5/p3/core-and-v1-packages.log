@@ -1,0 +1,112 @@
+===== @core/contracts =====
+$ tsc --noEmit
+$ vitest run
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/core/contracts
+
+ ✓ tests/contracts.spec.ts (3 tests) 4ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  00:59:03
+   Duration  201ms (transform 61ms, setup 0ms, import 80ms, tests 4ms, environment 0ms)
+
+===== @core/runtime =====
+$ tsc --noEmit
+$ vitest run
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/core/runtime
+
+ ✓ tests/cli.spec.ts (7 tests) 17ms
+ ✓ tests/boot.spec.ts (6 tests) 18ms
+
+ Test Files  2 passed (2)
+      Tests  13 passed (13)
+   Start at  00:59:05
+   Duration  270ms (transform 164ms, setup 0ms, import 263ms, tests 35ms, environment 0ms)
+
+===== @basis 六插件 =====
+== packages/system-prompt typecheck
+$ tsc --noEmit
+== packages/system-prompt test
+$ vitest run
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/system-prompt
+
+ ✓ tests/registry.spec.ts (5 tests) 4ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  00:59:06
+   Duration  180ms (transform 50ms, setup 0ms, import 65ms, tests 4ms, environment 0ms)
+
+== packages/session typecheck
+$ tsc --noEmit
+== packages/session test
+$ vitest run
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/session
+
+ ✓ tests/store.spec.ts (4 tests) 5ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  00:59:08
+   Duration  183ms (transform 49ms, setup 0ms, import 64ms, tests 5ms, environment 0ms)
+
+== packages/tools typecheck
+$ tsc --noEmit
+== packages/tools test
+$ vitest run
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/tools
+
+ ✓ tests/tools.spec.ts (8 tests) 8ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  00:59:09
+   Duration  233ms (transform 67ms, setup 0ms, import 93ms, tests 8ms, environment 0ms)
+
+== packages/llm typecheck
+$ tsc --noEmit
+== packages/llm test
+$ vitest run
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/llm
+
+ ✓ tests/llm.spec.ts (5 tests) 32ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  00:59:11
+   Duration  218ms (transform 53ms, setup 0ms, import 70ms, tests 32ms, environment 0ms)
+
+== packages/approval-cli typecheck
+$ tsc --noEmit
+== packages/approval-cli test
+$ vitest run
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/approval-cli
+
+ ✓ tests/approval.spec.ts (6 tests) 4ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  00:59:12
+   Duration  180ms (transform 48ms, setup 0ms, import 64ms, tests 4ms, environment 0ms)
+
+== packages/agent-loop typecheck
+$ tsc --noEmit
+== packages/agent-loop test
+$ vitest run
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/agent-loop
+
+ ✓ tests/loop.spec.ts (7 tests) 10ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  00:59:14
+   Duration  222ms (transform 71ms, setup 0ms, import 99ms, tests 10ms, environment 0ms)
+

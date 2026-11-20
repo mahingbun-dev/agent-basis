@@ -1,0 +1,40 @@
+[entrypoint] form=web profile=eterna-web template=cordis.patch.yml.template manifest=package.json
+[entrypoint] /data mountpoint OK (DSH_HOME=/data DSH_AGENTS_HOME=/data/agents)
+[entrypoint] profile 渲染:模板未变,保留用户文件 package.json(启停/模型设置跨重启持久)
+[entrypoint] profile 渲染:模板未变,保留用户文件 cordis.patch.yml(启停/模型设置跨重启持久)
+[entrypoint] 工坊值移植: 模板 6 条托管键 | 移植 0 处 | 基线已按新模板重写 → /data/profiles/eterna-web/.rendered.cordis.patch.yml.baseline.json
+[migrate-mcp-servers]: 新 patch 自带 mcp-client 行承载 browser，跳过系统层迁移（避免 serverName 双实例）；无其它待迁移项，零写
+[entrypoint] WARNING profile 存量迁移有失败项(原文件保留、留痕已写;成因见上方日志)
+[profile-upgrade-check]: profile=eterna-web mode=boot installAnchor=/usr/local/lib/node_modules/@deepseek-ai/dsh/package.json bundles[none]
+[profile-upgrade-check]: 留痕 /data/profiles/eterna-web/.upgrade-removed-bundles.json
+[entrypoint] governance rules: /repo/docker/profile/governance.rules.yml -> /data/.eterna/governance.rules.yml (cwd=/)
+[entrypoint] 警告: profile manifest 迁移失败 Unexpected token 'B', ..."ndles": [ BROKEN
+" is not valid JSON
+[entrypoint] dsh-mcp-client 0.2.2-rc.5 == dsh 0.2.2-rc.5 (/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-mcp-client)
+[entrypoint] companion relay 后台启动 :9310（token 已生成落卷 /data/relay-token；publicWsUrl=未设（guide 按本机默认展示））
+[entrypoint] container IP: 172.17.0.4  LLM: 三家直连(deepseek/mimo/glm,P2 网关)
+[entrypoint] sandbox runner: landlock full
+[migrate-profile-bundles]: ERROR /data/profiles/eterna-web/package.json: JSON 解析失败(Unexpected token 'B', ..."ndles": [ BROKEN
+" is not valid JSON)
+[migrate-profile-bundles]: 保留旧 package.json 不写（fail-closed）
+[migrate-profile-bundles]: 失败留痕: /data/profiles/eterna-web/.upgrade-profile-bundles-backup.json
+[profile-upgrade-check]: BAD (package.json) [manifest] package.json JSON 解析失败(Unexpected token 'B', ..."ndles": [ BROKEN
+" is not valid JSON)
+[relay] relay 监听 http://0.0.0.0:9310（/extension /cdp /api/tools /fixture）
+<anonymous_script>:3
+  "dsh": { "profile": { "bundles": [ BROKEN
+                                     ^
+
+SyntaxError: Unexpected token 'B', ..."ndles": [ BROKEN
+" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at readProfileManifest (file:///usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js:1697:22)
+    at loadProfile (file:///usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js:1859:37)
+    at prepareProfile (file:///usr/local/lib/node_modules/@deepseek-ai/dsh/lib/profile-boot-QhDEDXsF.js:219:18)
+    at composeProfile (file:///usr/local/lib/node_modules/@deepseek-ai/dsh/lib/profile-boot-QhDEDXsF.js:238:46)
+    at runProfile (file:///usr/local/lib/node_modules/@deepseek-ai/dsh/lib/profile-boot-QhDEDXsF.js:283:26)
+    at async Module.runCli (file:///usr/local/lib/node_modules/@deepseek-ai/dsh/lib/bin-CwxESKe-.js:214:5)
+    at async runCli (file:///usr/local/lib/node_modules/@deepseek-ai/dsh/lib/bin.js:21:2)
+    at async file:///usr/local/lib/node_modules/@deepseek-ai/dsh/lib/bin.js:25:33
+
+Node.js v24.22.3

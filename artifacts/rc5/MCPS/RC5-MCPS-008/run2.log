@@ -1,0 +1,1 @@
+[migrate-mcp-servers]: 新 patch 自带 mcp-client 行承载 browser，跳过系统层迁移（避免 serverName 双实例）；无其它待迁移项，零写

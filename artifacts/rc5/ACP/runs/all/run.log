@@ -1,0 +1,21 @@
+
+=== scenario: protocol ===
+[PASS] RC5-ACP-001 (P0) initialize：合法 JSON-RPC 响应 + 协议版本协商 :: protocolVersion=1 agent=deepseek-harness-acp version=0.0.1 mcpHttp=true
+[PASS] RC5-ACP-002 (P0) session/new + session/prompt 正常返回；无超时 :: sessionId=ff37a599-b26e-4820-9033-1014e5df08b3 stopReason=end_turn elapsed=184ms
+[PASS] RC5-ACP-004 (P0) ACP 容器无监听端口（无 host 端口映射 + /proc/net 无应用 LISTEN） :: container=52a1071381a8 ports={"8080/tcp":null} hostBindings=0 dockerPort="" appListeners=无 infra=127.0.0.11:41433
+[PASS] RC5-ACP-005 (P0) 非法 JSON → JSON-RPC error（-32700）且进程不崩 :: error.code=-32700 id=null aliveAfter=true
+[PASS] RC5-ACP-006 (P0) 工具需审批：ACP 按协议发 session/request_permission；客户端应答后不挂死 :: permissionRequest=toolCallId=call_acp_fixture_1 options=allow-once,reject-once stopReason=end_turn elapsed=221ms
+[PASS] RC5-ACP-007 (P0) 取消 prompt：取消生效（stopReason=cancelled）且后续请求可用 :: modelRequestArrived=true modelAborted=true stopReason=cancelled cancel→resp=19ms total=271ms afterInitialize=true afterSessionNew=true
+[PASS] RC5-ACP-003 (P0) stdout 纯净：每行均为 JSON-RPC 2.0，无日志/横幅/进度 :: lines=18 nonJsonRpc=0 parseErrors=0 kinds=response:result×8 method:session/update×8 response:error×1 method:session/request_permission×1
+[PASS] RC5-ACP-EXIT (INFO) ACP 容器关闭 stdin 后正常退出（stderr 诊断面不计入纯净性） :: exit={"code":0,"signal":null,"elapsedMs":3319} stderrLines=14
+
+=== scenario: concurrency ===
+[PASS] RC5-ACP-008 (P1) 两客户端并发：各自 initialize + session/new + prompt；会话隔离无串话 :: idA=888c0855-64b3-428d-8cdf-bc210b888583 idB=97bffe3a-7a71-48b7-a3f0-ee64139f436f stopA=end_turn stopB=end_turn crossA=0 crossB=0 ownA=3 ownB=3 lockedA=false lockedB=false exitA={"code":0,"signal":null,"elapsedMs":3685} exitB={"code":0,"signal":null,"elapsedMs":3894} elapsed=4150ms
+
+=== scenario: docs ===
+[PASS] RC5-ACP-009 (P1) 文档定位：仅可信操作员、无租户隔离、共享 /data、不暴露公网 :: ✓ trusted-stdio: 「受信 stdio 面」；✓ trusted-operator-only: 「只允许管理员/运维在本机启动」；✓ no-tenant-isolation: 「无租户隔离」；✓ shared-data-root: 「共享同一 `/data` 实例根」
+
+=== scenario: shared-volume ===
+[PASS] RC5-ACP-010 (P1) web 与 ACP 同时启动同卷各跑一轮：两端可用；SQLite 无 database is locked；无 profile 渲染竞争 :: web={"loginStatus":200,"createdOk":true,"sessionId":"session-48c1b0b5-d636-47f3-ad91-9233129f5949","listedOk":true} acp={"protocolVersion":1,"sessionId":"3a7df1c1-73b7-49af-9aef-b7c87c821c6e","stopReason":"end_turn"} webHealth=healthy→healthy locked(web/acp)=false/false acpExit={"code":0,"signal":null,"elapsedMs":2428}
+
+[ACP] PASS=11 FAIL=0 SKIP=0 NOTRUN=0

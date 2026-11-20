@@ -1,0 +1,102 @@
+{
+  "suite": "TERM",
+  "startedAt": "2026-11-20T07:05:49.938Z",
+  "finishedAt": "2026-11-20T07:05:50.170Z",
+  "env": {
+    "base": "http://127.0.0.1:3119",
+    "container": "rc5-e2suite",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e1"
+  },
+  "counts": {
+    "PASS": 11,
+    "FAIL": 0,
+    "SKIP": 0,
+    "NOTRUN": 1
+  },
+  "cases": [
+    {
+      "id": "SETUP-LOGIN",
+      "priority": "P0",
+      "status": "PASS",
+      "title": "A/B 登录",
+      "detail": "a=200 b=200"
+    },
+    {
+      "id": "RC5-TERM-007",
+      "priority": "P0",
+      "status": "PASS",
+      "title": "readUserTerminals=false / preferredShells=[bash] / terminal bundle 在",
+      "detail": "bundles-terminal=true readUserTerminals=false:true preferredShells=[bash]:true"
+    },
+    {
+      "id": "SETUP-VICTIM-SESSION",
+      "priority": "P0",
+      "status": "PASS",
+      "title": "A 建立活会话（terminal 方法的受害者）",
+      "detail": "sessionId=session-74823a71-ceeb-44b1-b088-e2ba8190338a"
+    },
+    {
+      "id": "CONTROL-A-ENVIRONMENT",
+      "priority": "P0",
+      "status": "PASS",
+      "title": "A 自己的 terminal/environment 成功（正向控制）",
+      "detail": "cwd=/data/workspaces/rc5admin"
+    },
+    {
+      "id": "CONTROL-A-SHELLS",
+      "priority": "P0",
+      "status": "PASS",
+      "title": "A 自己的 terminal/shells 成功（正向控制）",
+      "detail": "shells=1"
+    },
+    {
+      "id": "RC5-TERM-004a",
+      "priority": "P0",
+      "status": "PASS",
+      "title": "B 用 A 的 session 调 terminal/list 必须被拒",
+      "detail": "denied code=remote-access/denied"
+    },
+    {
+      "id": "RC5-TERM-004b",
+      "priority": "P0",
+      "status": "PASS",
+      "title": "B 用 A 的 session 调 terminal/environment 必须被拒",
+      "detail": "denied code=remote-access/denied"
+    },
+    {
+      "id": "RC5-TERM-004c",
+      "priority": "P0",
+      "status": "PASS",
+      "title": "B 用 A 的 session 调 terminal/shells 必须被拒",
+      "detail": "denied code=remote-access/denied"
+    },
+    {
+      "id": "RC5-TERM-004d",
+      "priority": "P0",
+      "status": "PASS",
+      "title": "B 用 A 的 session 调 terminal/create 必须被拒",
+      "detail": "denied code=remote-access/denied"
+    },
+    {
+      "id": "RC5-TERM-004e",
+      "priority": "P0",
+      "status": "PASS",
+      "title": "B 用 A 的 session 调 terminal/close 必须被拒",
+      "detail": "denied code=remote-access/denied"
+    },
+    {
+      "id": "RC5-TERM-004f",
+      "priority": "P0",
+      "status": "PASS",
+      "title": "B 用 A 的 session 调 terminal/rename 必须被拒",
+      "detail": "denied code=remote-access/denied"
+    },
+    {
+      "id": "RC5-TERM-005",
+      "priority": "P0",
+      "status": "NOTRUN",
+      "title": "attach/retain/watch 流动作被拒（WS mux 面）",
+      "detail": "策略清单已含 attach/retain/watch（静态核对通过），但流拒绝需 WS mux 客户端，本脚本未执行；P6 必跑"
+    }
+  ]
+}

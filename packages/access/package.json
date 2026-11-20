@@ -29,6 +29,8 @@
   },
   "dependencies": {
     "@deepseek-ai/cordis": "catalog:",
+    "@deepseek-ai/dsh-mcp-client": "catalog:",
+    "@deepseek-ai/dsh-scope": "catalog:",
     "@deepseek-ai/dsh-tools": "catalog:",
     "@eterna/audit": "workspace:*",
     "@eterna/ui": "workspace:*"

@@ -1,0 +1,9 @@
+$ node --experimental-sqlite -e '<PRAGMA integrity_check on backup copies>'
+access/users.db ok
+.eterna/memory.sqlite3 ok
+.eterna/knowledge.sqlite3 ok
+.eterna/channels.sqlite3 ok
+knowledge-admin/access.sqlite3 ok
+memory-distill/ledger.sqlite3 ok
+bad=0
+EXIT=0

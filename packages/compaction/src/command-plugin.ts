@@ -99,8 +99,12 @@ export function apply(ctx: Context): void {
     // invocation can enter while already-started handler promises quiesce.
     yield async () => { await Promise.allSettled(active) }
     yield ctx.commands.register({
-      // 2026-11-12 fork: 命令身份改用本包入口(与 profile 挂载行一致)。
-      definitionId: CommandDefinitionId('@eterna/compaction/command-plugin'),
+      // 2026-11-20 T39:命令身份是上游首方能力标识,不随本包模块名走。
+      // dsh-commands/builtin.ts BUILTINS.compact 按此 id 识别 /compact;
+      // 改成 '@eterna/compaction/command-plugin' 会让 / 菜单丢失本地化
+      // label/icon、/压缩 别名解析失败,且 SDK queryCommand 把 /compact
+      // 当普通提示词发给模型(T39 实测:builtinCommandName→undefined)。
+      definitionId: CommandDefinitionId('@deepseek-ai/dsh-command-compact'),
       name: 'compact',
       description: 'Compact older conversation history',
       handler,

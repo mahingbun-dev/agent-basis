@@ -1,0 +1,6 @@
+docker ps -q --filter label=com.docker.compose.project=rc5-acp-proto --filter label=com.docker.compose.service=eterna-agent-acp
+docker inspect --format '{{json .NetworkSettings.Ports}}' 824cf2c722d1
+docker port 824cf2c722d1
+docker exec 824cf2c722d1 sh -c 'cat /proc/net/tcp /proc/net/tcp6'
+docker exec 824cf2c722d1 sh -c 'ls -l /proc/[0-9]*/fd'
+EXIT={"code":0,"signal":null,"elapsedMs":3598}

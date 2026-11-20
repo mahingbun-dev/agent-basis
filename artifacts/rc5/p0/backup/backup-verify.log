@@ -1,0 +1,31 @@
+$ sha256sum /Users/sunny/eterna-data/backups/rc5-2026-11-20/eterna-home-20261120-013829.tgz
+df48d7e1db7415334d7055923976c0ffeb354a22e775fef4b9e58fc769b71640  /Users/sunny/eterna-data/backups/rc5-2026-11-20/eterna-home-20261120-013829.tgz
+EXIT=0
+
+$ tar tzf /Users/sunny/eterna-data/backups/rc5-2026-11-20/eterna-home-20261120-013829.tgz | wc -l
+   10461
+EXIT=0
+
+top-level entries:
+./
+./.anonymous-user-id
+./.credentials.yaml
+./relay-token
+
+dbs in archive:
+./workspaces/iso-beta/.eterna/memory.sqlite3
+./workspaces/Mr.Ma/kh-admin-plugin/.tmp-probe/ledger/access.sqlite3
+./workspaces/Mr.Ma/kh-admin-plugin/.tmp-probe/tenants/demo/.eterna/knowledge.sqlite3
+./workspaces/Mr.Ma/.eterna/knowledge.sqlite3
+./workspaces/Mr.Ma/.eterna/tasks.sqlite3
+./workspaces/Mr.Ma/.eterna/memory.sqlite3
+./workspaces/cherry/.eterna/knowledge.sqlite3
+./workspaces/cherry/.eterna/memory.sqlite3
+./workspaces/iso-alpha/.eterna/memory.sqlite3
+./memory-distill/ledger.sqlite3
+./.eterna/channels.sqlite3
+./.eterna/knowledge.sqlite3
+./.eterna/memory.sqlite3
+./access/users.db
+./knowledge-admin/access.sqlite3
+./.pnpm-store/v11/index.db

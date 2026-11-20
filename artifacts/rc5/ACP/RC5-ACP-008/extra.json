@@ -1,0 +1,68 @@
+{
+  "idA": "470b3af5-46ea-4bf4-b9df-72b9c0f8f0a3",
+  "idB": "f3b84836-f67f-4896-87d8-57f42cb86251",
+  "initA": {
+    "protocolVersion": 1,
+    "agentInfo": {
+      "name": "deepseek-harness-acp",
+      "version": "0.0.1"
+    },
+    "agentCapabilities": {
+      "mcpCapabilities": {
+        "http": true
+      },
+      "promptCapabilities": {
+        "image": true,
+        "audio": false,
+        "embeddedContext": false
+      },
+      "sessionCapabilities": {
+        "close": {},
+        "list": {},
+        "resume": {}
+      }
+    },
+    "authMethods": []
+  },
+  "initB": {
+    "protocolVersion": 1,
+    "agentInfo": {
+      "name": "deepseek-harness-acp",
+      "version": "0.0.1"
+    },
+    "agentCapabilities": {
+      "mcpCapabilities": {
+        "http": true
+      },
+      "promptCapabilities": {
+        "image": true,
+        "audio": false,
+        "embeddedContext": false
+      },
+      "sessionCapabilities": {
+        "close": {},
+        "list": {},
+        "resume": {}
+      }
+    },
+    "authMethods": []
+  },
+  "promptA": {
+    "stopReason": "end_turn"
+  },
+  "promptB": {
+    "stopReason": "end_turn"
+  },
+  "crossA": [],
+  "crossB": [],
+  "stderrAFile": "stderr-b.log",
+  "stderrBFile": "stderr-b.log",
+  "renderA": "[entrypoint] profile 渲染:模板未变,保留用户文件 package.json(启停/模型设置跨重启持久) | [entrypoint] profile 渲染:模板未变,保留用户文件 cordis.patch.yml(启停/模型设置跨重启持久)",
+  "renderB": "[entrypoint] profile 渲染:模板未变,保留用户文件 package.json(启停/模型设置跨重启持久) | [entrypoint] profile 渲染:模板未变,保留用户文件 cordis.patch.yml(启停/模型设置跨重启持久)",
+  "modelLog": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/ACP/runs/concurrency/fake-model.log",
+  "mergedFrames": {
+    "A": 5,
+    "B": 5,
+    "mentions": 3
+  }
+}

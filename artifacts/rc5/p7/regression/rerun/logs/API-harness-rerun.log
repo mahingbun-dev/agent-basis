@@ -1,0 +1,56 @@
+# T52 API-005/006/007 harness — 2026-11-20T01:49:19Z
+
+$ docker exec eterna-rc5-e1 mkdir -p /tmp/api-harness
+EXIT=0
+
+$ docker cp artifacts/rc5/API/_harness/index.js eterna-rc5-e1:/tmp/api-harness/index.js
+EXIT=0
+
+$ docker cp artifacts/rc5/API/_harness/package.json eterna-rc5-e1:/tmp/api-harness/package.json
+EXIT=0
+
+$ docker cp artifacts/rc5/API/_harness/run-api005-007.sh eterna-rc5-e1:/tmp/run-api005-007.sh
+EXIT=0
+
+$ docker exec eterna-rc5-e1 sh /tmp/run-api005-007.sh
+HARNESS_EXIT=0
+[2026-11-20T01:49:22.631Z] policy save {"ok":true,"saved":true,"revision":1}
+dsh web: http://127.0.0.1:41437/?token=<redacted>
+[2026-11-20T01:49:22.840Z] dispatch 1 stored explicit accept cbb95e4fc0f7c156eaee1c53aabf85d7
+[2026-11-20T01:49:22.844Z] dispatch 2 stored explicit accept 410bbeb091544f79fe9dbf7e0ae24a19
+[2026-11-20T01:49:23.047Z] worker ready worker-cbb95e4fc0f7c156eaee1c53aabf85d7 running
+[2026-11-20T01:49:23.047Z] worker ready worker-410bbeb091544f79fe9dbf7e0ae24a19 running
+[2026-11-20T01:49:23.057Z] spawned child 1 a665607a-43dc-4173-8dc6-a51336e17117 api-child-1
+[2026-11-20T01:49:23.064Z] spawned child 2 8a5d633f-305d-4b32-9b2d-54b60f8aa3d6 api-child-2
+[2026-11-20T01:49:31.136Z] waitForTreeWork returned true 8071ms
+[2026-11-20T01:49:31.383Z] receipts {"ok":true,"count":2,"stopReasons":["completed","completed"],"senders":["a665607a-43dc-4173-8dc6-a51336e17117","8a5d633f-305d-4b32-9b2d-54b60f8aa3d6"],"expectedSenders":["a665607a-43dc-4173-8dc6-a51336e17117","8a5d633f-305d-4b32-9b2d-54b60f8aa3d6"]}
+[2026-11-20T01:49:31.436Z] listDescendants A ["a665607a-43dc-4173-8dc6-a51336e17117","8a5d633f-305d-4b32-9b2d-54b60f8aa3d6"]
+[2026-11-20T01:49:31.498Z] child B resident status running
+[2026-11-20T01:49:31.540Z] drain B {"ok":true,"residentAfter":[],"waitForTreeWorkAfter":false,"workerStatusAfter":"idle"}
+[api-harness] ok= true
+--- harness.log ---
+[2026-11-20T01:49:22.631Z] policy save {"ok":true,"saved":true,"revision":1}
+[2026-11-20T01:49:22.840Z] dispatch 1 stored explicit accept cbb95e4fc0f7c156eaee1c53aabf85d7
+[2026-11-20T01:49:22.844Z] dispatch 2 stored explicit accept 410bbeb091544f79fe9dbf7e0ae24a19
+[2026-11-20T01:49:23.047Z] worker ready worker-cbb95e4fc0f7c156eaee1c53aabf85d7 running
+[2026-11-20T01:49:23.047Z] worker ready worker-410bbeb091544f79fe9dbf7e0ae24a19 running
+[2026-11-20T01:49:23.057Z] spawned child 1 a665607a-43dc-4173-8dc6-a51336e17117 api-child-1
+[2026-11-20T01:49:23.064Z] spawned child 2 8a5d633f-305d-4b32-9b2d-54b60f8aa3d6 api-child-2
+[2026-11-20T01:49:31.136Z] waitForTreeWork returned true 8071ms
+[2026-11-20T01:49:31.383Z] receipts {"ok":true,"count":2,"stopReasons":["completed","completed"],"senders":["a665607a-43dc-4173-8dc6-a51336e17117","8a5d633f-305d-4b32-9b2d-54b60f8aa3d6"],"expectedSenders":["a665607a-43dc-4173-8dc6-a51336e17117","8a5d633f-305d-4b32-9b2d-54b60f8aa3d6"]}
+[2026-11-20T01:49:31.436Z] listDescendants A ["a665607a-43dc-4173-8dc6-a51336e17117","8a5d633f-305d-4b32-9b2d-54b60f8aa3d6"]
+[2026-11-20T01:49:31.498Z] child B resident status running
+[2026-11-20T01:49:31.540Z] drain B {"ok":true,"residentAfter":[],"waitForTreeWorkAfter":false,"workerStatusAfter":"idle"}
+EXIT=0
+
+HARNESS_EXIT=0
+$ docker cp eterna-rc5-e1:/tmp/api-run-home/out /Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/API/out
+EXIT=0
+
+$ docker exec eterna-rc5-e1 sh -c ls -l /tmp/api-run-home/out 2>/dev/null | head -20
+total 24
+-rw-r--r-- 1 root root  1281 Nov 20 01:49 harness.log
+-rw-r--r-- 1 root root 17591 Nov 20 01:49 results.json
+EXIT=0
+
+EXIT=0

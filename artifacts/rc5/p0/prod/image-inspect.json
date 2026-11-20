@@ -1,0 +1,30 @@
+{
+  "Id": "sha256:3ca0d66055898b092f09761e5f67baa4a82741f1c7233d27bd2ddbd6de2b1a7b",
+  "RepoTags": [
+    "eterna-agent:0.1.51"
+  ],
+  "RepoDigests": [
+    "eterna-agent@sha256:3ca0d66055898b092f09761e5f67baa4a82741f1c7233d27bd2ddbd6de2b1a7b"
+  ],
+  "Created": "2026-11-19T17:19:57.83957547Z",
+  "Architecture": "arm64",
+  "Os": "linux",
+  "Size": 582574950,
+  "Config": {
+    "Env": [
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "NODE_VERSION=24.22.3",
+      "YARN_VERSION=1.22.22",
+      "DSH_HOME=/data"
+    ],
+    "Labels": {
+      "com.docker.compose.project": "agent-basis-main-0151",
+      "com.docker.compose.service": "eterna-agent",
+      "com.docker.compose.version": "5.3.1"
+    },
+    "Entrypoint": [
+      "/app/entrypoint.sh"
+    ],
+    "Cmd": null
+  }
+}

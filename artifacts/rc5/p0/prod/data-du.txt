@@ -1,0 +1,21 @@
+$ docker exec eterna-agent sh -lc 'du -sh /data/* /data/.[!.]* 2>/dev/null'
+140K	/data/access
+348K	/data/attachments
+4.0K	/data/demo
+108K	/data/eterna-prompt-studio
+24K	/data/knowledge-admin
+4.0K	/data/knowledge.wiki
+68K	/data/logs
+14M	/data/market
+36K	/data/memory-distill
+34M	/data/profiles
+4.0K	/data/relay-token
+15M	/data/sessions
+4.7M	/data/storages
+4.0K	/data/users
+4.2M	/data/workspaces
+4.0K	/data/.anonymous-user-id
+4.0K	/data/.credentials.yaml
+2.2M	/data/.eterna
+2.5M	/data/.pnpm-store
+EXIT=0

@@ -1,0 +1,15 @@
+# RC5-SEC-002
+# started 2026-11-20T05:25:24.785Z
+
+$ node artifacts/rc5/SEC/RC5-SEC-002/scan-secrets.mjs  # 静态：git 跟踪文件
+tracked files=3847 scanned_text=3527 skipped_binary=49
+summary: hits=0
+EXIT=0
+
+$ node artifacts/rc5/SEC/RC5-SEC-002/scan-runtime.mjs  # 运行时：镜像/argv/日志
+self_test=true（容器内 grep 对已知假 key 命中）
+runtime scope: image=eterna-agent:rc5-test paths=/app,/data,/opt,/fixtures,/repo,/usr/local/lib/node_modules/@deepseek-ai,/usr/local/lib/node_modules/@eterna; argv=rc5-e1suite; logs=tail2000
+image grep exit=1 bytes=0
+summary: hits=0
+EXIT=0
+# finished 2026-11-20T05:25:27.202Z

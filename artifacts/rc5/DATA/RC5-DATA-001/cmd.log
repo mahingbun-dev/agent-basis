@@ -1,0 +1,72 @@
+# case: RC5-DATA-001
+# host: ma-macminideMac-mini.local  user: sunny  time: 2026-11-19T22:06:10Z
+
+$ env ETERNA_DATA_ROOT=/Users/sunny/eterna-data/test-rc5/.p6b-data001/root bash deploy/init-data-dirs.sh probe
+# label: first run
+# started: 2026-11-19T22:06:10Z
+[init-data-dirs] 数据根: /Users/sunny/eterna-data/test-rc5/.p6b-data001/root (0700)
+  /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/backups
+  /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/exports
+  /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/(0700)
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/.eterna
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/access
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/agents
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/attachments
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/cache
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/eterna-prompt-studio
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/knowledge-admin
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/knowledge.wiki
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/logs
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/market
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/memory-distill
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/office-kit
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/profiles
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/sessions
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/storages
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/workspaces
+[init-data-dirs] OK —— 下一步: 设 .env 的 ETERNA_DATA_ROOT=/Users/sunny/eterna-data/test-rc5/.p6b-data001/root 后 docker compose up -d
+EXIT=0
+
+$ env ETERNA_DATA_ROOT=/Users/sunny/eterna-data/test-rc5/.p6b-data001/root bash deploy/init-data-dirs.sh probe
+# label: second run (idempotency)
+# started: 2026-11-19T22:06:10Z
+[init-data-dirs] 数据根: /Users/sunny/eterna-data/test-rc5/.p6b-data001/root (0700)
+  /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/backups
+  /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/exports
+  /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/(0700)
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/.eterna
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/access
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/agents
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/attachments
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/cache
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/eterna-prompt-studio
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/knowledge-admin
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/knowledge.wiki
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/logs
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/market
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/memory-distill
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/office-kit
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/profiles
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/sessions
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/storages
+    /Users/sunny/eterna-data/test-rc5/.p6b-data001/root/probe/workspaces
+[init-data-dirs] OK —— 下一步: 设 .env 的 ETERNA_DATA_ROOT=/Users/sunny/eterna-data/test-rc5/.p6b-data001/root 后 docker compose up -d
+EXIT=0
+
+== 断言 ==
+
+ASSERT PASS | 根目录 0700 | actual=700 expected=700
+ASSERT PASS | 实例根 0700 | actual=700 expected=700
+ASSERT PASS | backups 0700 | actual=700 expected=700
+ASSERT PASS | exports 0700 | actual=700 expected=700
+ASSERT PASS | 子目录齐全（16 个） | actual=ok expected=ok
+ASSERT PASS | 子目录权限均 0700 | actual=ok expected=ok
+ASSERT PASS | 二次执行树快照一致（幂等） | actual=identical expected=identical
+tree entries: 20
+
+ASSERT PASS | 负控-相对路径被拒 | actual=rejected expected=rejected
+ASSERT PASS | 负控-符号链接根被拒 | actual=rejected expected=rejected
+ASSERT PASS | 负控-越界实例名被拒 | actual=rejected expected=rejected
+ASSERT PASS | 负控-git 工作树内被拒且未创建目录 | actual=rejected expected=rejected
+PASS=11 FAIL=0
+

@@ -1,0 +1,35 @@
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+
+ ❯ tests/channels-webhook-contract.spec.ts (2 tests | 1 failed) 5ms
+     ✓ 单条 prefix 登记同时接住 webhook 与 approval,且只作用于 /channels/api 命名空间 2ms
+     × access 前缀字面量与 glue channels-plugin 缺省值同源(漂移即宿主 404) 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/channels-webhook-contract.spec.ts > channels webhook 公共面收口(T24/B12):两条端点族并一条 access 登记 > access 前缀字面量与 glue channels-plugin 缺省值同源(漂移即宿主 404)
+AssertionError: expected '/channels/api-drift' to be '/channels/api' // Object.is equality
+
+Expected: "/channels/api"
+Received: "/channels/api-drift"
+
+ ❯ tests/channels-webhook-contract.spec.ts:86:26
+     84|       const match = /export const CHANNELS_WEBHOOK_PATH_PREFIX = '([^'…
+     85|       expect(match, 'glue channels-plugin 必须保留 CHANNELS_WEBHOOK_PATH_P…
+     86|       expect(match?.[1]).toBe(CHANNELS_WEBHOOK_PATH_PREFIX)
+       |                          ^
+     87|     },
+     88|   )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  01:38:22
+   Duration  164ms (transform 26ms, setup 0ms, import 35ms, tests 5ms, environment 0ms)
+
+undefined
+/Users/sunny/code/agent-basis-rc5/packages/access:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run tests/channels-webhook-contract.spec.ts
+EXIT=1

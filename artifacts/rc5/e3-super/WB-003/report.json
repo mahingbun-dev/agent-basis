@@ -1,0 +1,54 @@
+{
+  "id": "WB-003",
+  "suite": "E3-super",
+  "priority": "P1",
+  "title": "（workbench）单元/类型/静态门",
+  "expected": "vitest/typecheck/oxlint 全绿",
+  "status": "PASS",
+  "startedAt": "2026-11-20T07:03:53.291Z",
+  "finishedAt": "2026-11-20T07:03:59.391Z",
+  "assertions": [
+    {
+      "name": "workbench vitest 全绿",
+      "ok": true,
+      "detail": "exit=0 files=19 tests=218"
+    },
+    {
+      "name": "workbench typecheck 绿",
+      "ok": true,
+      "detail": "exit=0"
+    },
+    {
+      "name": "workbench oxlint 0/0",
+      "ok": true,
+      "detail": "Found 0 warnings and 0 errors."
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "pnpm --filter @eterna/workbench test",
+      "exit": 0,
+      "note": "workbench vitest"
+    },
+    {
+      "cmd": "pnpm --filter @eterna/workbench typecheck",
+      "exit": 0,
+      "note": "tsc --noEmit"
+    },
+    {
+      "cmd": "pnpm exec oxlint --config ./.oxlintrc.json packages/workbench/src packages/workbench/tests",
+      "exit": 0,
+      "note": "oxlint"
+    }
+  ],
+  "notes": [
+    "未跑 composite verify（含 build:client 会写 packages/workbench/lib/client.js，超出本 lane 可改文件边界）。"
+  ],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

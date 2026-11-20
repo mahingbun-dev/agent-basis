@@ -1,0 +1,12 @@
+OK   packages/system-prompt name=@basis/system-prompt lockImporter=true
+OK   packages/session name=@basis/session lockImporter=true
+OK   packages/tools name=@basis/tools lockImporter=true
+OK   packages/llm name=@basis/llm lockImporter=true
+OK   packages/approval-cli name=@basis/approval-cli lockImporter=true
+OK   packages/agent-loop name=@basis/agent-loop lockImporter=true
+OK   core/cordis name=@core/cordis lockImporter=true
+OK   core/contracts name=@core/contracts lockImporter=true
+OK   core/runtime name=@core/runtime lockImporter=true
+workspace has core/*: true
+workspace has packages/*: true
+ALL=PASS

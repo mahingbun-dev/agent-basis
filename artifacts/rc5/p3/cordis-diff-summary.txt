@@ -1,0 +1,18 @@
+== upstream 4.0.6-alpha.1 -> 4.1.0 src diffstat ==
+ context.ts |    2 
+ events.ts  |  143 ++++++++++++++++++++++++++++++++-------------------------
+ fiber.ts   |  153 +++++++++++++++++++++++++++++++++++++------------------------
+ logger.ts  |   15 +++--
+ reflect.ts |   56 ++++++++++++++--------
+ utils.ts   |   49 +++++++++++--------
+ 6 files changed, 252 insertions(+), 166 deletions(-)
+
+== vendored(src/ after 12 transforms) vs upstream 4.1.0 diffstat ==
+ events.ts   |    6 +++--
+ fiber.ts    |   62 +++++++++++++++++++++++++++++++++-------------------------
+ logger.ts   |   20 +++++++++++-------
+ reflect.ts  |    7 ++++--
+ registry.ts |   64 +++++++++++++++++++++++++++++++++---------------------------
+ service.ts  |    5 +++-
+ utils.ts    |    2 -
+ 7 files changed, 98 insertions(+), 68 deletions(-)

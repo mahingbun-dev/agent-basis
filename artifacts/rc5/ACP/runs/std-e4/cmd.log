@@ -1,0 +1,3 @@
+cd /Users/sunny/code/agent-basis-rc5
+node scripts/verify-acp-stdio.mjs --env-file /Users/sunny/eterna-data/test-rc5/.env.e4 --project rc5-test-e4 --json artifacts/rc5/ACP/runs/std-e4/report.json
+EXIT=0

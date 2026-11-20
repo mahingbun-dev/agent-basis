@@ -1,0 +1,14 @@
+service systemPrompt: present
+service session: present
+service tools: present
+service llm: present
+service approval: present
+service agents: present
+plugin basis-system-prompt: fibers=1 states=[2]
+plugin basis-session: fibers=1 states=[2]
+plugin basis-tools: fibers=1 states=[2]
+plugin basis-llm: fibers=1 states=[2]
+plugin basis-approval-cli: fibers=1 states=[2]
+plugin basis-agent-loop: fibers=1 states=[2]
+registry size=6 entries=6
+disposed; failures=0

@@ -1,0 +1,53 @@
+{
+  "phase": "P1",
+  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "imageTag": null,
+  "imageId": null,
+  "startedAt": "2026-11-19T17:51:26Z",
+  "finishedAt": "2026-11-19T22:19:04Z",
+  "windowBasis": "p1 lane 日志 + ENV/API 套件 summary（evidence window，非严格墙钟）",
+  "commands": [
+    {
+      "cmd": "pnpm install --frozen-lockfile",
+      "exit": 0,
+      "log": "artifacts/rc5/ENV/RC5-ENV-001/cmd.log"
+    },
+    {
+      "cmd": "pnpm --filter @eterna/compaction verify",
+      "exit": 0,
+      "log": "artifacts/rc5/API/RC5-API-001/cmd.log"
+    },
+    {
+      "cmd": "pnpm --filter @eterna/memory verify",
+      "exit": 0,
+      "log": "artifacts/rc5/API/RC5-API-002/cmd.log"
+    },
+    {
+      "cmd": "pnpm --filter @eterna/llm-openai typecheck",
+      "exit": 0,
+      "log": "artifacts/rc5/API/RC5-API-003/cmd.log"
+    },
+    {
+      "cmd": "pnpm --filter @eterna/tasks verify",
+      "exit": 0,
+      "log": "artifacts/rc5/API/RC5-API-004/cmd.log"
+    },
+    {
+      "cmd": "pnpm -w run verify",
+      "exit": 0,
+      "log": "artifacts/rc5/ENV/RC5-ENV-007/cmd.log",
+      "note": "38 包/4187 tests（E2/SEC-009 复核）"
+    }
+  ],
+  "cases": {
+    "total": 10,
+    "pass": 10,
+    "fail": 0,
+    "skip": 0
+  },
+  "leftovers": [
+    "P1-01|pnpm -w run verify 已在工作树通过（ENV-007 EXIT 0；E2/SEC-009 38 包/4187 tests），但 P0 基线时刻曾 EXIT=1（L4 未提交改动）|P1|P0-01 收口后由 L0 在干净工作树复跑 verify 并登记 sha"
+  ],
+  "generatedBy": "T50/artifacts/rc5/p6a/scan-matrix.mjs",
+  "generatedAt": "2026-11-20T05:25:41Z"
+}

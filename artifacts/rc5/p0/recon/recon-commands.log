@@ -1,0 +1,137 @@
+# T00 现场核对 · 命令原文与 EXIT（只读；不含任何凭据/令牌）
+# 生成时间: 2026-11-20 02:00:12 +0800
+# 工作树: /Users/sunny/code/agent-basis-rc5
+
+## 1) 分支 / HEAD / 日志
+$ git rev-parse --abbrev-ref HEAD
+feat/dsh-rc5-merge
+EXIT=0
+$ git rev-parse HEAD
+02f485788411b9aed1938a3c4b009793a090961e
+EXIT=0
+$ git log --oneline -8
+02f4857 rc5: P1 依赖族统一 0.2.2-rc.5 + H1 LlmError + subagent/流动作适配 + UI 桥接补全
+33b01e9 docs(rc5): 53 开发执行 workflow 入库(阶段/并行 lane/派发协议/遗留处置)
+c7dee18 docs(rc5): 47-51 方案与执行清单入库 + v1 线源码入库(WA0 基线)
+9f40c2a docs(design): 52 号补 0.1.50 部署记录（PR #135、image 6b306037b659、verify 14/0、缓存回收） (#136)
+6f061a8 fix(tasks): 候选卡被回合收走才起评估 deadline + 时间统一北京时间 (#135)
+89a9550 fix(deploy): 升级重渲染保留用户新增 LLM provider——修复存量会话 NO_ADAPTER (#133)
+6e97ca8 feat(tasks): 会话行角色 chip + 候选卡可读化——区分主控/执行、消除原始 JSON 排队 (#132)
+7f46a49 docs(design): 主会话 400 根因与 0.1.48 热修记录 (#131)
+EXIT=0
+
+## 2) git status --short（全量）
+$ git status --short
+ M .github/workflows/ci.yml
+ M core/cordis/README.md
+ M core/cordis/package.json
+ M core/cordis/src/context.ts
+ M core/cordis/src/events.ts
+ M core/cordis/src/fiber.ts
+ M core/cordis/src/logger.ts
+ M core/cordis/src/reflect.ts
+ M core/cordis/src/utils.ts
+ M core/cordis/tests/smoke.spec.ts
+ M core/runtime/src/cli.ts
+ M docker/entrypoint.sh
+ M docker/profile/cordis.patch.yml.template
+ M docker/profile/cordis.super.patch.yml.template
+ M docker/profile/package.json
+ M "docs/design/53-rc.5\345\274\200\345\217\221\346\211\247\350\241\214workflow.md"
+ M docs/dev/TODO.md
+ M docs/dev/ps-v2-registry-ledger.md
+ M packages/access/src/mux.ts
+ M packages/access/src/store.ts
+ M packages/access/src/tenant.ts
+ M packages/access/tests/gateway-role-gate.spec.ts
+ M packages/access/tests/mux-policy.spec.ts
+ M packages/prompt-studio/src/client/entry-meta.ts
+ M packages/prompt-studio/src/registry.ts
+ M packages/prompt-studio/tests/assembly-replay.test.ts
+ M packages/prompt-studio/tests/registry.test.ts
+ M packages/prompt-studio/tests/session-snapshot.test.ts
+ M packages/tasks/src/executor/background.ts
+ M packages/tasks/tests/background.spec.ts
+ M packages/tasks/tests/fixtures/host.ts
+ M profiles/eterna-super/cordis.patch.yml
+ M profiles/eterna-web/cordis.patch.yml
+ M scripts/verify-eterna-super.mjs
+ M scripts/verify-eterna-web.mjs
+ M tools/packctl/src/prompt.ts
+ M tools/packctl/tests/prompt.spec.ts
+?? artifacts/rc5/p0/
+?? artifacts/rc5/p1/env-api-logs/
+?? artifacts/rc5/p1/env-api.json
+?? artifacts/rc5/p1/h2-api-contract.log
+?? artifacts/rc5/p1/h2-receipt-tests.log
+?? artifacts/rc5/p1/h2-report.md
+?? artifacts/rc5/p1/h2-revert-teeth.log
+?? artifacts/rc5/p1/h2-tasks-verify-baseline.log
+?? artifacts/rc5/p1/h2-tasks-verify.log
+?? artifacts/rc5/p1/verify-rc5-env.json
+?? artifacts/rc5/p1/verify-rc5-env.log
+?? artifacts/rc5/p2/
+?? artifacts/rc5/p3/
+?? artifacts/rc5/p4/
+?? core/cordis/LICENSE
+?? docker/profile/cordis.acp.patch.yml.template
+?? docker/profile/migrate-mcp-servers.mjs
+?? docker/profile/migrate-mcp-servers.test.mjs
+?? docker/profile/migrate-profile-bundles.mjs
+?? docker/profile/migrate-profile-bundles.test.mjs
+?? docker/profile/package.acp.json
+?? "docs/design/54-rc.5\345\274\200\345\217\221\344\270\216\346\265\213\350\257\225\351\252\214\346\224\266\345\256\214\346\225\264workflow.md"
+?? packages/access/src/mcp-personal.ts
+?? packages/access/tests/channels-webhook-contract.spec.ts
+?? packages/access/tests/mcp-manager-drift.spec.ts
+?? packages/tasks/tests/subagent-receipt.spec.ts
+?? scripts/profile-upgrade-check.mjs
+?? scripts/profile-upgrade-check.test.mjs
+?? scripts/verify-rc5-env.mjs
+EXIT=0
+
+## 2b) 计数
+$ git status --porcelain | awk ... (M/MM/A/??)
+M=37  MM=0  A=0  ??_entries=29  ??_files_uall=229
+EXIT=0
+
+## 3) artifacts/rc5 阶段目录
+artifacts/rc5/p0 EXISTS files=91 size=456K last_mtime=2026-11-20 02:00:12
+artifacts/rc5/p1 EXISTS files=20 size=488K last_mtime=2026-11-20 01:57:39
+artifacts/rc5/p2 EXISTS files=72 size=560K last_mtime=2026-11-20 01:58:23
+artifacts/rc5/p3 EXISTS files=11 size=92K last_mtime=2026-11-20 01:00:32
+artifacts/rc5/p4 EXISTS files=26 size=152K last_mtime=2026-11-20 01:58:16
+artifacts/rc5/p5 MISSING
+artifacts/rc5/p6a MISSING
+artifacts/rc5/p6b MISSING
+artifacts/rc5/p7 MISSING
+EXIT=0
+
+## 4) 并行会话检查
+$ git reflog -12 --date=iso
+02f4857 HEAD@{2026-11-20 00:50:57 +0800}: commit: rc5: P1 依赖族统一 0.2.2-rc.5 + H1 LlmError + subagent/流动作适配 + UI 桥接补全
+33b01e9 HEAD@{2026-11-20 00:50:57 +0800}: commit: docs(rc5): 53 开发执行 workflow 入库(阶段/并行 lane/派发协议/遗留处置)
+c7dee18 HEAD@{2026-11-20 00:41:43 +0800}: commit: docs(rc5): 47-51 方案与执行清单入库 + v1 线源码入库(WA0 基线)
+9f40c2a HEAD@{2026-11-20 00:41:05 +0800}: reset: moving to HEAD
+9f40c2a HEAD@{2026-11-20 00:41:05 +0800}: 
+EXIT=0
+$ git stash list
+stash@{0}: On dev: side-track cordis-core rollback 2026-11-06
+EXIT=0
+$ git worktree list
+/Users/sunny/code/agent-basis             b722a58 [feat/tasks-super-visibility]
+/Users/sunny/code/agent-basis-deploy-0117 b00a29b (detached HEAD)
+/Users/sunny/code/agent-basis-main-0.1.51 282675c (detached HEAD)
+/Users/sunny/code/agent-basis-rc5         02f4857 [feat/dsh-rc5-merge]
+/Users/sunny/code/eterna-deploy           504fe5c (detached HEAD)
+EXIT=0
+$ for f in MERGE_HEAD REBASE_HEAD CHERRY_PICK_HEAD rebase-merge rebase-apply; do test -e .git/$f; done
+absent .git/MERGE_HEAD
+absent .git/REBASE_HEAD
+absent .git/CHERRY_PICK_HEAD
+absent .git/rebase-merge
+absent .git/rebase-apply
+EXIT=0
+$ git rev-parse HEAD (recheck at end)
+02f485788411b9aed1938a3c4b009793a090961e
+EXIT=0

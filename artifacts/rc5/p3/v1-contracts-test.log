@@ -1,0 +1,11 @@
+$ vitest run
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/core/contracts
+
+ ✓ tests/contracts.spec.ts (3 tests) 3ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  02:59:42
+   Duration  150ms (transform 45ms, setup 0ms, import 59ms, tests 3ms, environment 0ms)
+

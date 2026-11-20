@@ -49,8 +49,8 @@ describe('任务设置路由(access)', () => {
     auditEvents = []
     savedBlocks = []
     const session = new SessionService(Buffer.from('test-secret-test-secret-test-s'))
-    store.createUserWithSuffix({ account: 'Mr.Ma', password: 'MqbSunny0702', role: 'admin' })
-    store.createUserWithSuffix({ account: 'worker1', password: 'MqbSunny0703', role: 'user' })
+    store.createUserWithSuffix({ account: 'Mr.Ma', password: 'Test-only-pass-9', role: 'admin' })
+    store.createUserWithSuffix({ account: 'worker1', password: 'Test-only-pass-10', role: 'user' })
     saveResult = { ok: true, saved: true, changed: false, revision: 3, policyVersion: 'pv-2', settings: { paused: false } }
     face = {
       read: () => VIEW,
@@ -71,8 +71,8 @@ describe('任务设置路由(access)', () => {
       provisionWorkspace: async () => {},
       tasksSettings: () => face,
     }
-    adminCookie = login('Mr.Ma', 'MqbSunny0702')
-    userCookie = login('worker1', 'MqbSunny0703')
+    adminCookie = login('Mr.Ma', 'Test-only-pass-9')
+    userCookie = login('worker1', 'Test-only-pass-10')
   })
   afterEach(() => {
     store.close()

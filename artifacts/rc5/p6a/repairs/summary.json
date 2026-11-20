@@ -1,0 +1,105 @@
+{
+  "phase": "P6a",
+  "lane": "W5",
+  "round": 1,
+  "worktree": "/Users/sunny/code/agent-basis-rc5",
+  "branch": "feat/dsh-rc5-merge",
+  "head": "02f4857",
+  "startedAt": "2026-11-20T01:05:00Z",
+  "finishedAt": "2026-11-20T01:24:00Z",
+  "image": {
+    "tag": "eterna-agent:rc5-test",
+    "id": "sha256:48782afaf8ba665e3ec3ea0995c8f5b3e844ebad764e03f34c281b14e48389d3",
+    "builtAt": "2026-11-20T01:14:31Z"
+  },
+  "container": {
+    "name": "eterna-rc5-e1",
+    "action": "recreate (up -d --force-recreate, test container only)",
+    "startedAt": "2026-11-20T01:15:29.862944468Z",
+    "health": "healthy"
+  },
+  "gates": {
+    "verify-terminal-guard": {
+      "before": { "pass": 5, "fail": 4, "skip": 0, "notrun": 3, "exit": 1 },
+      "beforeSource": "artifacts/rc5/E1/TERM/RC5-TERM-004/terminal-guard-report.json (2026-11-19T23:19:48Z, counts 与门禁失败原文一致)",
+      "after": { "pass": 11, "fail": 0, "skip": 0, "notrun": 1, "exit": 0 },
+      "remainingNotrun": ["RC5-TERM-005 (WS mux 流面；脚本设计上不在 HTTP 面执行，P6 必跑)"]
+    },
+    "verify-chat-import": {
+      "before": { "pass": 7, "fail": 1, "skip": 4, "notrun": 0, "exit": 1 },
+      "beforeSource": "artifacts/rc5/E1/IMP/IMP-report.json (2026-11-19T23:20:47Z) + repro-chat-import-before.log 本轮修前实跑",
+      "after": { "pass": 8, "fail": 0, "skip": 4, "notrun": 0, "exit": 0 }
+    }
+  },
+  "unit": {
+    "vitestAccessFull": { "files": 49, "tests": 504, "exit": 0 },
+    "vitestTargeted": { "files": 4, "tests": 43, "exit": 0 },
+    "tsc": { "exit": 0 },
+    "oxlint": { "warnings": 0, "errors": 0, "exit": 0 }
+  },
+  "rootCauses": [
+    {
+      "id": "R-TERM-1",
+      "summary": "rc.5 GatewayInvocation 无 principal 字段，旧守卫读 invocation.principal 恒 undefined → 校验静默失效",
+      "evidence": "dsh-api-gateway/lib/index.js GatewayInvocation(request/service/peer/signal/uplink_); dsh-typert-protocol/lib/index.js:294 principalOf=invocation?.peer.principal",
+      "fix": "packages/access/src/terminal.ts:72-84 principalOf/invocationOf(调用点 this.ctx 优先)"
+    },
+    {
+      "id": "R-TERM-2",
+      "summary": "浏览器 /api 一元请求恒 owner Peer，网关 prepareInvocation 对 owner 跳过 decide → terminal 一元面既无身份也无判定",
+      "evidence": "dsh-client-connection/lib/index.js:714,790-800 admit→browserPeer{kind:'owner'}; dsh-api-gateway/lib/index.js:1204 `if (request.peer.principal.kind !== 'owner')`",
+      "fix": "packages/access/src/mux.ts:557-565 /api/terminal/* admit 换血 eterna-user Peer；无会话 401、策略未就绪 503"
+    },
+    {
+      "id": "R-TERM-3",
+      "summary": "终端六一元动作资源逐会话(agent lookup→session / list 具名 sessionId)，策略未授会话绑定 → 本人也恒 no-allow",
+      "evidence": "dsh-api-terminal-controller/lib/typert.host.js parameters[0] source:'lookup',lookup:'agent'; dsh-api-session-controller/lib/index.js:3495 resolveSessionResource; dsh-api-remote-access/lib/index.js:338 sameResource 严格匹配",
+      "fix": "packages/access/src/mux.ts:132-145 TERMINAL_UNARY_ACTIONS + :453 并入会话角色"
+    },
+    {
+      "id": "R-IMP-1",
+      "summary": "测试容器长连接持有被删除的 users.db-wal/-shm，recordSession 写入不可见 → 门禁 delta=0（环境态，非产品缺陷）",
+      "evidence": "artifacts/rc5/p6a/repairs/imp005-rootcause-proc-fd.txt (/proc/1/fd → users.db-wal (deleted))",
+      "fix": "重建 eterna-rc5-e1 测试容器（新连接重开真实文件）；产品代码零改动"
+    }
+  ],
+  "files": [
+    "packages/access/src/mux.ts",
+    "packages/access/src/terminal.ts",
+    "packages/access/tests/mux-drift.spec.ts",
+    "packages/access/tests/mux-peer-drift.spec.ts",
+    "packages/access/tests/mux-policy.spec.ts",
+    "packages/access/tests/terminal-tenant.spec.ts",
+    "scripts/verify-terminal-guard.mjs"
+  ],
+  "leftovers": [
+    "R-TERM-CREATE|A/B 调 terminal/create 均返回 gateway/internal: session.snapshotEvents is not a function（上游 rc.5 控制器解析出的 session 句柄缺 snapshotEvents；与本次换血无关，修前同错）→ TERM-002/003/006/012 依赖|P1|上游缺陷：向 dsh-api-terminal-controller/dsh-agent-loop 报缺陷或等 rc.6；P6 复跑前确认 create 可用，否则 attach/retain/watch 无活终端可验证",
+    "RC5-TERM-005-NOTRUN|官方脚本只做静态清单核对，WS mux 流拒绝未在门禁内执行（本目录 probe-terminal-streams.log 提供真实 WS 证据：B attach/retain/watch 全 remote-access/denied）|P0|P6 用 WS 客户端跑 TERM-005 并落 result.md；本探针不得充当官方证据",
+    "DATA-ROOT-SHARED|eterna-data/test-rc5/e1 曾被 rc5-e1suite/-boot8/-super 多容器共用，导致在跑容器 WAL/SHM 被摘除、access 记账静默丢失（IMP-005 根因）；未来同类并发仍会复发|P1|suite 隔离：每套件独立 ETERNA_INSTANCE/数据根；prepare-rc5-envs 前置断言 `/proc/1/fd` 无 `(deleted)` 的 users.db-*；或容器内定时 `PRAGMA wal_checkpoint` 只读探针告警",
+    "DENY-CODE-DETECTOR|verify-terminal-guard 的 denied() 现接受上游 remote-access/denied（rc.5 一元唯一拒绝码；拿数据仍判非拒绝）|P2|后续同类脚本（E2 TERM-005 runner 等）统一以 remote-access/denied + tenant/denied 为拒绝码，勿再只认 403",
+    "TERMINAL-GUARD-2ND-LINE|网关 decide 已先拦下他人会话，terminal.ts 服务入口守卫成为第二道（仅在 peer.kind=owner 或 decide 放行后可达）；若未来 admit 契约再变（如取消 createPeer），第二道仍需依赖调用点 this.ctx 形态|P2|升级门禁按行号复核 GatewayInvocation 字段与 cordis ctx 追踪；mux-drift/terminal-tenant 测试已钉两处读法"
+  ],
+  "evidence": [
+    "artifacts/rc5/p6a/repairs/README.md",
+    "artifacts/rc5/E1/TERM/RC5-TERM-004/terminal-guard-report.json",
+    "artifacts/rc5/E1/IMP/IMP-report.json",
+    "artifacts/rc5/p6a/repairs/repro-chat-import-before.log",
+    "artifacts/rc5/p6a/repairs/final-terminal-guard.log",
+    "artifacts/rc5/p6a/repairs/final-chat-import.log",
+    "artifacts/rc5/p6a/repairs/final-terminal-guard.json",
+    "artifacts/rc5/p6a/repairs/final-chat-import.json",
+    "artifacts/rc5/p6a/repairs/imp005-rootcause-proc-fd.txt",
+    "artifacts/rc5/p6a/repairs/e1-post-recreate-state.txt",
+    "artifacts/rc5/p6a/repairs/e1-recreate.log",
+    "artifacts/rc5/p6a/repairs/build-image.log",
+    "artifacts/rc5/p6a/repairs/probe-terminal-positive.log",
+    "artifacts/rc5/p6a/repairs/probe-terminal-no-eterna.log",
+    "artifacts/rc5/p6a/repairs/probe-terminal-streams.log",
+    "artifacts/rc5/p6a/repairs/git-diff.patch",
+    "artifacts/rc5/p6a/repairs/git-diff-stat.txt",
+    "artifacts/rc5/p6a/repairs/unit-vitest.log",
+    "artifacts/rc5/p6a/repairs/unit-vitest-targeted.log",
+    "artifacts/rc5/p6a/repairs/unit-tsc.log",
+    "artifacts/rc5/p6a/repairs/unit-oxlint.log"
+  ]
+}

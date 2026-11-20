@@ -1,0 +1,48 @@
+# cmd: docker exec eterna-agent sh -lc 'ls -la /data'
+---
+total 84
+drwx------ 18 root root 4096 Nov 19 17:21 .
+drwxr-xr-x  1 root root 4096 Nov 19 17:21 ..
+-rw-r--r--  1 root root   37 Nov  9 10:03 .anonymous-user-id
+-rw-------  1 root root  273 Nov 18 07:31 .credentials.yaml
+drwxr-xr-x  2 root root 4096 Nov 19 17:36 .eterna
+drwxr-xr-x  3 root root 4096 Nov 18 11:58 .pnpm-store
+drwxr-xr-x  2 root root 4096 Nov 19 17:21 access
+drwx------  3 root root 4096 Nov 13 01:46 attachments
+drwxr-xr-x  2 root root 4096 Nov  9 08:45 demo
+drwxr-xr-x  2 root root 4096 Nov 11 07:28 eterna-prompt-studio
+drwxr-xr-x  2 root root 4096 Nov 18 18:11 knowledge-admin
+drwxr-xr-x  2 root root 4096 Nov 19 02:38 knowledge.wiki
+drwx------  2 root root 4096 Nov  9 16:05 logs
+drwxr-xr-x  4 root root 4096 Nov 19 01:40 market
+drwxr-xr-x  2 root root 4096 Nov 19 09:44 memory-distill
+drwxr-xr-x  5 root root 4096 Nov 18 19:16 profiles
+-rw-------  1 root root   35 Nov 11 03:11 relay-token
+drwx------ 20 root root 4096 Nov 19 02:22 sessions
+drwx------  5 root root 4096 Nov 19 17:53 storages
+drwxr-xr-x  2 root root 4096 Nov  9 10:57 users
+drwxr-xr-x 15 root root 4096 Nov 18 17:56 workspaces
+EXIT=0
+
+# cmd: docker exec eterna-agent sh -lc 'du -sh /data/* /data/.[!.]* 2>/dev/null'
+---
+168K	/data/access
+348K	/data/attachments
+4.0K	/data/demo
+108K	/data/eterna-prompt-studio
+24K	/data/knowledge-admin
+4.0K	/data/knowledge.wiki
+68K	/data/logs
+14M	/data/market
+36K	/data/memory-distill
+34M	/data/profiles
+4.0K	/data/relay-token
+15M	/data/sessions
+4.8M	/data/storages
+4.0K	/data/users
+4.2M	/data/workspaces
+4.0K	/data/.anonymous-user-id
+4.0K	/data/.credentials.yaml
+2.2M	/data/.eterna
+2.5M	/data/.pnpm-store
+EXIT=0

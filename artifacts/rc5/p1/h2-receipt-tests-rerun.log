@@ -1,0 +1,14 @@
+# command: pnpm --filter @eterna/tasks exec vitest run tests/subagent-receipt.spec.ts --reporter=verbose
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/tasks
+
+ ✓ tests/subagent-receipt.spec.ts > 完成路径:waitForTreeWork 等到整棵树结束,completed 回执都到 worker(不丢) 9ms
+ ✓ tests/subagent-receipt.spec.ts > 失败路径:error 终态回执到达 worker,并当面报告失败 4ms
+ ✓ tests/subagent-receipt.spec.ts > 取消路径:drainDescendants 停掉整棵树,aborted 回执注入,worker 回合被取消 4ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  02:15:49
+   Duration  341ms (transform 154ms, setup 0ms, import 235ms, tests 17ms, environment 0ms)
+
+# EXIT=0

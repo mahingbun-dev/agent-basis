@@ -1,0 +1,32 @@
+# branch
+feat/dsh-rc5-merge
+# head
+02f4857
+# node
+v24.18.0
+# pnpm
+11.7.0
+# status (this lane paths)
+ M packages/access/src/client/index.tsx
+ M packages/access/src/client/sections.tsx
+ M packages/access/src/client/styles.ts
+?? artifacts/rc5/p4/mcp-personal-ui/
+?? packages/access/src/client/mcp-personal-api.ts
+?? packages/access/src/client/mcp-servers-locales.ts
+?? packages/access/src/client/mcp-servers-model.ts
+?? packages/access/src/client/mcp-servers-section.tsx
+?? packages/access/src/client/settings-nav.ts
+?? packages/access/tests/mcp-personal-client.spec.ts
+# diffstat (tracked, this lane)
+ packages/access/src/client/index.tsx    |  29 ++++----
+ packages/access/src/client/sections.tsx |   7 +-
+ packages/access/src/client/styles.ts    | 119 ++++++++++++++++++++++++++++++++
+ 3 files changed, 141 insertions(+), 14 deletions(-)
+# new files (line counts)
+      89 packages/access/src/client/mcp-personal-api.ts
+     300 packages/access/src/client/mcp-servers-model.ts
+     427 packages/access/src/client/mcp-servers-section.tsx
+     175 packages/access/src/client/mcp-servers-locales.ts
+      27 packages/access/src/client/settings-nav.ts
+     278 packages/access/tests/mcp-personal-client.spec.ts
+    1296 total

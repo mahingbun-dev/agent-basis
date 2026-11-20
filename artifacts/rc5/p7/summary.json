@@ -1,0 +1,25 @@
+{
+  "phase": "P7",
+  "commit": null,
+  "imageTag": null,
+  "imageId": null,
+  "startedAt": null,
+  "finishedAt": null,
+  "windowBasis": "P6 已收口：矩阵 162 PASS / 0 FAIL / 0 MISSING / 2 WAIVED（TERM-013/DATA-009 产品签字豁免 2026-11-21 00:28，waiver-24h.{json,md}）；P0 102/102",
+  "commands": [],
+  "cases": {
+    "total": 164,
+    "pass": 162,
+    "fail": 0,
+    "skip": 0,
+    "waived": 2
+  },
+  "leftovers": [
+    "P7-RUNNING|push/PR/CI/合并/部署经用户 2026-11-21 授权执行中|P0|51 §6.1/§6.2、54 §3.2",
+    "WAIVED-24H|24h 满窗判据产品豁免；采样跑到满窗作事后观察|P1|p6b/waiver-24h.{json,md}",
+    "R22-TASKS-PROMPT|tasks 角色 prompt/preset 未接线（super bundles 未含 @eterna/tasks）|P1|下一次镜像变更窗口修复（p7/doc54-delivery-audit.md §2.1）",
+    "SIGNOFF|四方签字：产品豁免部分已签，开发/测试/运维待签|P0|p7/regression/signoff.md"
+  ],
+  "generatedBy": "T50/artifacts/rc5/p6a/scan-matrix.mjs + T56 refresh (waiver-24h)",
+  "generatedAt": "2026-11-21T00:35:00+08:00"
+}

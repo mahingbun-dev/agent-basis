@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-11-19T18:25:55.869Z",
+  "version": 1,
+  "profileDir": "/tmp/rc5-C-YuI7aG/profiles/eterna-web",
+  "profile": "eterna-web",
+  "mode": "boot",
+  "removed": [
+    "@deepseek-ai/dsh-experimental-agent-team-profile"
+  ],
+  "backup": "/tmp/rc5-C-YuI7aG/profiles/eterna-web/package.json.bak-2026-11-19T18-25-55-868Z",
+  "manifestError": null,
+  "patchError": null,
+  "bad": [
+    {
+      "bundle": "@eterna/knowledge-admin",
+      "status": "invalid",
+      "reason": "未声明 dsh.bundle（dsh 会跳过该层）"
+    }
+  ]
+}

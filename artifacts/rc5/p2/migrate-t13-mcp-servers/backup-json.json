@@ -1,0 +1,23 @@
+{
+  "capturedAt": "2026-11-19T17:58:12.867Z",
+  "source": "artifacts/rc5/p2/migrate-t13-mcp-servers/fixture/manager/cordis.patch.yml",
+  "error": "artifacts/rc5/p2/migrate-t13-mcp-servers/fixture/new-bad.yml: YAML 解析失败:Flow sequence in block collection must be sufficiently indented and end with a ] at line 2, column 1:\n\na: [unclosed\n\n^\n",
+  "servers": {
+    "internal-docs": {
+      "transport": "streamable-http",
+      "url": "https://mcp.internal.example/mcp"
+    },
+    "browser": {
+      "transport": "stdio",
+      "command": "node",
+      "args": [
+        "packages/browser-relay/dist/mcp.mjs"
+      ],
+      "env": {
+        "ETNA_RELAY_BASE": "http://127.0.0.1:9310",
+        "ETNA_RELAY_TOKEN": "[redacted]"
+      },
+      "toolCallTimeoutMs": 120000
+    }
+  }
+}

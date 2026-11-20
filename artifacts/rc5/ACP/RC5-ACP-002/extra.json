@@ -1,0 +1,12 @@
+{
+  "sessionId": "668313fe-c0ac-4922-a7ec-1d086fadd6b6",
+  "promptResponse": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "result": {
+      "stopReason": "end_turn"
+    }
+  },
+  "elapsedMs": 91,
+  "modelLog": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/ACP/runs/protocol/fake-model.log"
+}

@@ -1,0 +1,27 @@
+# entrypoint 指纹扫描(2026-11-20)——用于判定「门禁跑的是旧镜像」
+# 指纹 = /app/entrypoint.sh 里 MIMO_API_KEY 断言行号 + 是否含「直接命令模式」块。
+
+## 重建前(本轮开头实测；rc5-test Created=2026-11-19T21:01:23Z / 05:01 +0800)：
+#   eterna-agent:rc5-test            mimo@36 cmd_mode=0   ← 门禁报错行号 36 逐字对应
+#   eterna-agent:rc5-p5-repair       mimo@57 cmd_mode=1
+#   eterna-agent:rc5-p5-repair-compose mimo@36 cmd_mode=0
+#   eterna-agent:0.1.51 / 0.1.50     mimo@25 cmd_mode=0
+#   eterna-agent:kf-knowledge-test / 0.1.38  mimo@23 cmd_mode=0
+
+## 重建后(实时)：
+eterna-agent:0.1.38                      mimo@23 cmd_mode=0
+eterna-agent:0.1.50                      mimo@25 cmd_mode=0
+eterna-agent:0.1.51                      mimo@25 cmd_mode=0
+eterna-agent:kf-knowledge-test           mimo@23 cmd_mode=0
+eterna-agent:rc5-p5-repair               mimo@57 cmd_mode=1
+eterna-agent:rc5-p5-repair-compose       mimo@36 cmd_mode=0
+eterna-agent:rc5-test                    mimo@57 cmd_mode=1
+
+## 时间线：
+entrypoint.sh mtime = Nov 20 05:55:39 2026
+rc5-test Created = 2026-11-19T22:00:49.966685464Z Labels = null
+
+## 收尾（本机三张 rc5-* 标签对齐到同一修复版）：
+#   docker tag eterna-agent:rc5-test eterna-agent:rc5-p5-repair
+#   docker tag eterna-agent:rc5-test eterna-agent:rc5-p5-repair-compose
+#   ⇒ rc5-test / rc5-p5-repair / rc5-p5-repair-compose 均为 mimo@57 cmd_mode=1

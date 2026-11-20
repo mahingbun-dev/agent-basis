@@ -13,7 +13,8 @@ import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
-/** dsh web 壳的平台基线模块(packages/client/web/src/platform.ts PLATFORM_MODULES)。 */
+/** rc.5 平台基线模块:与 dsh-web-frontend@0.2.2-rc.5 的 PLATFORM_MODULES 种子表
+ *  逐字一致(2026-11-20 实读 dist 模块表);未引用的条目对产物无影响。 */
 const BASELINE_EXTERNALS = [
   'react',
   'react/jsx-runtime',
@@ -21,12 +22,11 @@ const BASELINE_EXTERNALS = [
   'react-dom/client',
   '@deepseek-ai/cordis',
   'zod',
+  '@tanstack/react-virtual',
   '@deepseek-ai/dsh-client-store',
   '@deepseek-ai/dsh-client-ui-slots',
+  '@deepseek-ai/dsh-client-ui-primitives',
   '@deepseek-ai/dsh-client-ui-dockkit',
-  '@deepseek-ai/dsh-client-locale',
-  '@deepseek-ai/dsh-api-gateway',
-  '@tanstack/react-virtual',
 ]
 
 mkdirSync(resolve(root, 'lib'), { recursive: true })

@@ -1,0 +1,20 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ echo "== git ls-files matching .eterna*home* / .secrets / .env* =="; git ls-files | grep -Ei "(^|/)\.eterna[-._]?[a-z]*home|(^|/)\.secrets(/|$)|(^|/)\.env($|\.)" || echo "NO_TRACKED_MATCH"; echo "== tracked top-level dotdirs =="; git ls-files | awk -F/ "\$1 ~ /^\./ {print \$1}" | sort -u; echo "== ignored credential/runtime paths =="; git check-ignore -v .secrets/ .env .env.local .eterna-home 2>/dev/null || true
+# started 2026-11-19T22:05:37Z
+== git ls-files matching .eterna*home* / .secrets / .env* ==
+.env.example
+== tracked top-level dotdirs ==
+.dockerignore
+.env.example
+.github
+.gitignore
+.npmrc
+.oxlintrc.json
+== ignored credential/runtime paths ==
+.gitignore:35:.secrets/	.secrets/
+.gitignore:2:.env	.env
+.gitignore:3:.env.*	.env.local
+.gitignore:49:/.eterna-home*/	.eterna-home
+
+EXIT 0
+# finished 2026-11-19T22:05:37Z

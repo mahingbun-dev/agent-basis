@@ -1,0 +1,691 @@
+{
+ "matrix": [
+  {
+   "id": "RC5-ENV-001",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "NOT_RERUN",
+   "evidence": ""
+  },
+  {
+   "id": "RC5-ENV-002",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/logs/E0-static.log"
+  },
+  {
+   "id": "RC5-ENV-003",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/logs/E0-static.log"
+  },
+  {
+   "id": "RC5-ENV-004",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "FAIL",
+   "evidence": "本轮运行时探针：/repo/tests/fixtures=present（6.0M，含 chat-import zip 与 mcp 夹具）→ 夹具进镜像"
+  },
+  {
+   "id": "RC5-ENV-005",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E0/verify-rc5-env-runtime.json"
+  },
+  {
+   "id": "RC5-ENV-006",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E0/verify-rc5-env-runtime.json"
+  },
+  {
+   "id": "RC5-BOOT-001",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/BOOT/RC5-BOOT-001"
+  },
+  {
+   "id": "RC5-BOOT-002",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E3/RC5-BOOT-002"
+  },
+  {
+   "id": "RC5-BOOT-003",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/BOOT/RC5-BOOT-003"
+  },
+  {
+   "id": "RC5-BOOT-004",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/BOOT/RC5-BOOT-004"
+  },
+  {
+   "id": "RC5-BOOT-005",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/BOOT/RC5-BOOT-005"
+  },
+  {
+   "id": "RC5-BOOT-006",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/BOOT/RC5-BOOT-006"
+  },
+  {
+   "id": "RC5-BOOT-007",
+   "priority": "P0",
+   "w5": "MISSING",
+   "rerun": "MISSING",
+   "evidence": "重跑仍 EXIT=1 / 0 bytes；runner 的空集 PASS 不成立（沿用 W5 判定）"
+  },
+  {
+   "id": "RC5-BOOT-008",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/BOOT/RC5-BOOT-008"
+  },
+  {
+   "id": "RC5-BOOT-009",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/BOOT/RC5-BOOT-009"
+  },
+  {
+   "id": "RC5-BOOT-011",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/BOOT/RC5-BOOT-011"
+  },
+  {
+   "id": "RC5-BOOT-012",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E3/RC5-BOOT-012"
+  },
+  {
+   "id": "RC5-API-001",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/logs/API-SEC-verify.log"
+  },
+  {
+   "id": "RC5-API-002",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/logs/API-SEC-verify.log"
+  },
+  {
+   "id": "RC5-API-003",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/logs/API-SEC-verify.log"
+  },
+  {
+   "id": "RC5-API-004",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/logs/API-SEC-verify.log"
+  },
+  {
+   "id": "RC5-API-005",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/API/out/results.json"
+  },
+  {
+   "id": "RC5-ACC-001",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/logs/E0-static.log"
+  },
+  {
+   "id": "RC5-ACC-002",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/logs/E0-static.log"
+  },
+  {
+   "id": "RC5-ACC-003",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/logs/E0-static.log"
+  },
+  {
+   "id": "RC5-ACC-004",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/ACC/RC5-ACC-004"
+  },
+  {
+   "id": "RC5-ACC-005",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/ACC/RC5-ACC-005"
+  },
+  {
+   "id": "RC5-ACC-006",
+   "priority": "P0",
+   "w5": "FAIL",
+   "rerun": "FAIL",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/ACC/RC5-ACC-006"
+  },
+  {
+   "id": "RC5-ACC-007",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/ACC/RC5-ACC-007"
+  },
+  {
+   "id": "RC5-ACC-008",
+   "priority": "P0",
+   "w5": "FAIL",
+   "rerun": "FAIL",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/ACC/RC5-ACC-008"
+  },
+  {
+   "id": "RC5-MCPS-001",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/MCPS/RC5-MCPS-001"
+  },
+  {
+   "id": "RC5-MCPS-002",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/MCPS/RC5-MCPS-002"
+  },
+  {
+   "id": "RC5-MCPS-003",
+   "priority": "P0",
+   "w5": "MISSING",
+   "rerun": "NOTRUN",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/MCPS/RC5-MCPS-003"
+  },
+  {
+   "id": "RC5-MCPS-004",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/MCPS/RC5-MCPS-004"
+  },
+  {
+   "id": "RC5-MCPS-005",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/MCPS/RC5-MCPS-005"
+  },
+  {
+   "id": "RC5-MCPS-006",
+   "priority": "P0",
+   "w5": "FAIL",
+   "rerun": "FAIL",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/MCPS/RC5-MCPS-006"
+  },
+  {
+   "id": "RC5-MCPS-011",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "NOT_RERUN",
+   "evidence": ""
+  },
+  {
+   "id": "RC5-MCPP-001",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/MCPP/RC5-MCPP-001"
+  },
+  {
+   "id": "RC5-MCPP-002",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/MCPP/RC5-MCPP-002"
+  },
+  {
+   "id": "RC5-MCPP-003",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/MCPP/RC5-MCPP-003"
+  },
+  {
+   "id": "RC5-MCPP-004",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/MCPP/RC5-MCPP-004"
+  },
+  {
+   "id": "RC5-MCPP-005",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/MCPP/RC5-MCPP-005"
+  },
+  {
+   "id": "RC5-MCPP-006",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/MCPP/RC5-MCPP-006"
+  },
+  {
+   "id": "RC5-MCPP-007",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/MCPP/RC5-MCPP-007"
+  },
+  {
+   "id": "RC5-MCPP-008",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/MCPP/RC5-MCPP-008"
+  },
+  {
+   "id": "RC5-MCPP-009",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/MCPP/RC5-MCPP-009"
+  },
+  {
+   "id": "RC5-MCPP-012",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/MCPP/RC5-MCPP-012"
+  },
+  {
+   "id": "RC5-MCPP-013",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/MCPP/RC5-MCPP-013"
+  },
+  {
+   "id": "RC5-MCPP-019",
+   "priority": "P0",
+   "w5": "MISSING",
+   "rerun": "NOT_RERUN",
+   "evidence": ""
+  },
+  {
+   "id": "RC5-MCPP-020",
+   "priority": "P0",
+   "w5": "MISSING",
+   "rerun": "NOT_RERUN",
+   "evidence": ""
+  },
+  {
+   "id": "RC5-MCPP-021",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/MCPP/RC5-MCPP-021"
+  },
+  {
+   "id": "RC5-MCPP-022",
+   "priority": "P0",
+   "w5": "MISSING",
+   "rerun": "NOT_RERUN",
+   "evidence": ""
+  },
+  {
+   "id": "RC5-MCPP-023",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "官方脚本假红（重启后仅 eterna_session 调 list）；套件受控复测同配置仍在"
+  },
+  {
+   "id": "RC5-TERM-001",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E3/RC5-TERM-001"
+  },
+  {
+   "id": "RC5-TERM-002",
+   "priority": "P0",
+   "w5": "MISSING",
+   "rerun": "NOTRUN",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E3/RC5-TERM-002"
+  },
+  {
+   "id": "RC5-TERM-003",
+   "priority": "P0",
+   "w5": "MISSING",
+   "rerun": "NOT_RERUN",
+   "evidence": ""
+  },
+  {
+   "id": "RC5-TERM-004",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "E1/E2 守卫脚本 6/6 denied；E3 suite 的 denied() 未识别 remote-access/denied，属脚手架假红"
+  },
+  {
+   "id": "RC5-TERM-005",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/TERM/RC5-TERM-005a"
+  },
+  {
+   "id": "RC5-TERM-006",
+   "priority": "P0",
+   "w5": "FAIL",
+   "rerun": "FAIL",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E3/RC5-TERM-006"
+  },
+  {
+   "id": "RC5-TERM-007",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E3/RC5-TERM-007"
+  },
+  {
+   "id": "RC5-TERM-008",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "FAIL",
+   "evidence": "复跑行为变化：伪造 sessionId 的 terminal/list 由「ok=true 空列表」变为 remote-access/denied（守卫 fail-closed）；无宿主枚举、但自动断言按旧语义判红"
+  },
+  {
+   "id": "RC5-TERM-012",
+   "priority": "P0",
+   "w5": "MISSING",
+   "rerun": "NOTRUN",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E3/RC5-TERM-012"
+  },
+  {
+   "id": "RC5-IMP-001",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/IMP/RC5-IMP-001"
+  },
+  {
+   "id": "RC5-IMP-002",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/IMP/RC5-IMP-002"
+  },
+  {
+   "id": "RC5-IMP-003",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/IMP/RC5-IMP-003"
+  },
+  {
+   "id": "RC5-IMP-004",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/IMP/RC5-IMP-004"
+  },
+  {
+   "id": "RC5-IMP-005",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "上传后轮询 10/10 行 owner=B、空属主 0（官方脚本即时读为记账延迟假红）"
+  },
+  {
+   "id": "RC5-ACP-001",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E4/acp-report.json"
+  },
+  {
+   "id": "RC5-ACP-002",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "NOTRUN",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E4/acp-report.json"
+  },
+  {
+   "id": "RC5-ACP-003",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E4/acp-report.json"
+  },
+  {
+   "id": "RC5-ACP-004",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E4/acp-report.json"
+  },
+  {
+   "id": "RC5-ACP-005",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E4/acp-report.json"
+  },
+  {
+   "id": "RC5-ACP-006",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "NOT_RERUN",
+   "evidence": ""
+  },
+  {
+   "id": "RC5-ACP-007",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "NOT_RERUN",
+   "evidence": ""
+  },
+  {
+   "id": "RC5-OFF-001",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/OFF/tools/probe-output.json"
+  },
+  {
+   "id": "RC5-OFF-002",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/OFF/tools/probe-output.json"
+  },
+  {
+   "id": "RC5-OFF-003",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/OFF/tools/probe-output.json"
+  },
+  {
+   "id": "RC5-HERO-001",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "NOT_RERUN",
+   "evidence": ""
+  },
+  {
+   "id": "RC5-HERO-002",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "NOT_RERUN",
+   "evidence": ""
+  },
+  {
+   "id": "RC5-HERO-003",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "NOT_RERUN",
+   "evidence": ""
+  },
+  {
+   "id": "RC5-DATA-001",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/logs/DATA-quick.log"
+  },
+  {
+   "id": "RC5-DATA-002",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/logs/DATA-quick.log"
+  },
+  {
+   "id": "RC5-DATA-003",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/logs/DATA-quick.log"
+  },
+  {
+   "id": "RC5-DATA-004",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "NOT_RERUN",
+   "evidence": ""
+  },
+  {
+   "id": "RC5-DATA-005",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "NOT_RERUN",
+   "evidence": ""
+  },
+  {
+   "id": "RC5-DATA-006",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/logs/DATA-quick.log"
+  },
+  {
+   "id": "RC5-DATA-007",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/logs/DATA-quick.log"
+  },
+  {
+   "id": "RC5-DATA-010",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "NOT_RERUN",
+   "evidence": ""
+  },
+  {
+   "id": "RC5-UI-001",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/logs/E0-static.log"
+  },
+  {
+   "id": "RC5-UI-006",
+   "priority": "P0",
+   "w5": "FAIL",
+   "rerun": "NOT_RERUN",
+   "evidence": ""
+  },
+  {
+   "id": "RC5-SEC-001",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/logs/E0-static.log"
+  },
+  {
+   "id": "RC5-SEC-002",
+   "priority": "P0",
+   "w5": "FAIL",
+   "rerun": "FAIL",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/logs/E0-static.log"
+  },
+  {
+   "id": "RC5-SEC-003",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/logs/E0-static.log"
+  },
+  {
+   "id": "RC5-SEC-004",
+   "priority": "P0",
+   "w5": "FAIL",
+   "rerun": "FAIL",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/SEC/RC5-SEC-004"
+  },
+  {
+   "id": "RC5-SEC-005",
+   "priority": "P0",
+   "w5": "FAIL",
+   "rerun": "FAIL",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/SEC/RC5-SEC-005"
+  },
+  {
+   "id": "RC5-SEC-006",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/SEC/RC5-SEC-006"
+  },
+  {
+   "id": "RC5-SEC-009",
+   "priority": "P0",
+   "w5": "PASS",
+   "rerun": "PASS",
+   "evidence": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/SEC/RC5-SEC-009"
+  }
+ ],
+ "counts": {
+  "PASS": 68,
+  "FAIL": 9,
+  "MISSING": 1,
+  "NOTRUN": 4,
+  "NOT_RERUN": 15,
+  "PARTIAL": 0
+ }
+}

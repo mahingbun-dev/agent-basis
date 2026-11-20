@@ -346,6 +346,34 @@ html body {
   --dsw-alias-illustration-shadow: rgba(38, 42, 36, 0.08);
   --dsw-alias-illustration-surface: #fbfaf6;
 
+  /* rc.5 新增别名：浮层（tooltip 标签/toast 动作/悬停卡）、卡片砖面、
+     JSON 树语法色、图表三色、轨迹强调。宿主升级后这批开始按名取值，
+     不覆盖就退回静态色板的纯白/电光蓝/原色语法。 */
+  --dsw-alias-tooltip-label: #fbfaf6;
+  --dsw-alias-toast-action: #a0c2ca;
+  --dsw-alias-hovercard-bg: #2c312e;
+  --dsw-alias-hovercard-label-primary: #fbfaf6;
+  --dsw-alias-hovercard-label-secondary: #d3cec2;
+  --dsw-alias-hovercard-label-tertiary: #b3ada1;
+  --dsw-alias-hovercard-state-done: #7d6c9e;
+  --dsw-alias-hovercard-state-error: #b9553f;
+  --dsw-alias-card-fill: #f7f5ef;
+  --dsw-alias-card-fill-hover: #efede5;
+  --dsw-alias-card-tile-fill: rgba(251, 250, 246, 0.7);
+  --dsw-alias-border-selected: #8f8a80;
+  --dsw-alias-label-on-color: #fbfaf6;
+  --dsw-alias-trajectory-accent: #2b6272;
+  --dsw-alias-chart-messages: #548697;
+  --dsw-alias-chart-system: #b3ada1;
+  --dsw-alias-chart-tools: #7d6c9e;
+  --dsw-alias-json-tree-property: #61527d;
+  --dsw-alias-json-tree-string: #a63d2e;
+  --dsw-alias-json-tree-number: #2b6272;
+  --dsw-alias-json-tree-keyword: #2b6272;
+  --dsw-alias-json-tree-punctuation: #1b1e1c;
+  --dsw-alias-json-tree-icon: #5f655f;
+  --dsw-alias-json-tree-hover: rgba(38, 42, 36, 0.06);
+
   /* ── 兜底层：静态色板本身 ──────────────────────────────────────
      别名只是指针，真正定义颜色的是这 82 个 --dsw-static-*。宿主组件里
      还有一批地方直接读静态令牌（不经过别名层），漏一个就是一处电光蓝。
@@ -456,6 +484,21 @@ html body {
   --dsw-specific-input-major: #e6e3d9;
   --dsw-specific-login-input: #fbfaf6;
   --dsw-specific-tip: #efede5;
+  /* rc.5 新增：上传轨道、引导头图、侧栏右缘闪光、毛玻璃三态、侧栏色调
+     与上下洗色（wash-top/bottom 及各自的透明收口）。玻璃面用宣纸白半透明，
+     洗色用黛青低透明——侧栏在深浅两侧都必须比页面底更沉。 */
+  --dsw-specific-file-upload-track: rgba(38, 42, 36, 0.08);
+  --dsw-specific-guide-hero: #dcd8cd;
+  --dsw-specific-sidebar-right-flash: #2b6272;
+  --dsw-specific-sidebar-glass-fill: rgba(251, 250, 246, 0.55);
+  --dsw-specific-sidebar-glass-hover: rgba(251, 250, 246, 0.3);
+  --dsw-specific-sidebar-glass-collapsed-fill: transparent;
+  --dsw-specific-sidebar-glass-collapsed-hover: rgba(38, 42, 36, 0.05);
+  --dsw-specific-sidebar-tint: color-mix(in oklab, #2b6272 6%, transparent);
+  --dsw-specific-sidebar-wash-top: rgba(43, 98, 114, 0.08);
+  --dsw-specific-sidebar-wash-top-clear: rgba(43, 98, 114, 0);
+  --dsw-specific-sidebar-wash-bottom: rgba(43, 98, 114, 0.07);
+  --dsw-specific-sidebar-wash-bottom-clear: rgba(43, 98, 114, 0);
 
 }
 
@@ -631,6 +674,32 @@ html body[data-ds-dark-theme] {
   --dsw-alias-illustration-shadow: rgba(0, 0, 0, 0.24);
   --dsw-alias-illustration-surface: #1d211f;
 
+  /* rc.5 新增别名（深色侧；与浅色那批一一对应） */
+  --dsw-alias-tooltip-label: #eceee9;
+  --dsw-alias-toast-action: #7fb2bd;
+  --dsw-alias-hovercard-bg: #242826;
+  --dsw-alias-hovercard-label-primary: #eceee9;
+  --dsw-alias-hovercard-label-secondary: #c4c9c2;
+  --dsw-alias-hovercard-label-tertiary: #9aa096;
+  --dsw-alias-hovercard-state-done: #a99bc4;
+  --dsw-alias-hovercard-state-error: #e08a7b;
+  --dsw-alias-card-fill: #242826;
+  --dsw-alias-card-fill-hover: #2c312e;
+  --dsw-alias-card-tile-fill: rgba(236, 238, 233, 0.06);
+  --dsw-alias-border-selected: #8b9188;
+  --dsw-alias-label-on-color: #fbfaf6;
+  --dsw-alias-trajectory-accent: #7fb2bd;
+  --dsw-alias-chart-messages: #7fb2bd;
+  --dsw-alias-chart-system: #9aa096;
+  --dsw-alias-chart-tools: #9d8bbd;
+  --dsw-alias-json-tree-property: #9d8bbd;
+  --dsw-alias-json-tree-string: #e08a7b;
+  --dsw-alias-json-tree-number: #7fb2bd;
+  --dsw-alias-json-tree-keyword: #7fb2bd;
+  --dsw-alias-json-tree-punctuation: #eceee9;
+  --dsw-alias-json-tree-icon: #9aa096;
+  --dsw-alias-json-tree-hover: rgba(236, 238, 233, 0.08);
+
   /* --dsw-specific-* 的深色侧（侧栏/气泡/菜单必须比页面底更沉，不能更亮） */
   --dsw-specific-sidebar-fill: #161917;
   --dsw-specific-sidebar-nav-item-active: #242826;
@@ -642,6 +711,18 @@ html body[data-ds-dark-theme] {
   --dsw-specific-input-major: #2c312e;
   --dsw-specific-login-input: #1d211f;
   --dsw-specific-tip: #242826;
+  --dsw-specific-file-upload-track: rgba(255, 255, 255, 0.08);
+  --dsw-specific-guide-hero: #3c423e;
+  --dsw-specific-sidebar-right-flash: #eceee9;
+  --dsw-specific-sidebar-glass-fill: rgba(255, 255, 255, 0.15);
+  --dsw-specific-sidebar-glass-hover: rgba(255, 255, 255, 0.3);
+  --dsw-specific-sidebar-glass-collapsed-fill: rgba(255, 255, 255, 0.15);
+  --dsw-specific-sidebar-glass-collapsed-hover: rgba(255, 255, 255, 0.08);
+  --dsw-specific-sidebar-tint: color-mix(in oklab, #7fb2bd 10%, transparent);
+  --dsw-specific-sidebar-wash-top: rgba(127, 178, 189, 0.08);
+  --dsw-specific-sidebar-wash-top-clear: rgba(127, 178, 189, 0);
+  --dsw-specific-sidebar-wash-bottom: rgba(127, 178, 189, 0.09);
+  --dsw-specific-sidebar-wash-bottom-clear: rgba(127, 178, 189, 0);
 
   /* 品牌层在深色下的本地派生（含柔影与语义软底：SHARED 给的是浅色基准） */
   --et-accent-fill: var(--dsw-alias-button-primary-fill);

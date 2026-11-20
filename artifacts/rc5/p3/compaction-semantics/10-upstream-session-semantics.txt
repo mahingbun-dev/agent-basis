@@ -1,0 +1,31 @@
+# upstream provenance
+repo=/Users/sunny/code/deepseek-harness (read-only, 未修改)
+tag=dsh-v0.2.2-rc.5
+commit=9c2670d3bce5275e0d1610272958121af87787bb
+
+# rc.5 session 批量发布语义(installed dsh-session@0.2.2-rc.5 d.ts 摘录)
+## lib/types/index.d.ts:51-62
+         */
+        'session/disposed'(this: Scoped<Session>, session: Session): void;
+        /**
+         * Post-commit, fire-and-forget append feed. The listener snapshot resolves
+         * before the log push, but callbacks run after it; observer failures are
+         * logged and contained without making the committed append fail.
+         * Array append commits every member before publishing them in order;
+         * `session.seq` and `session.surface` already include the complete batch.
+         * `session.currentBatchPublication` identifies the member being delivered.
+         * Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners
+         * receive only events from sessions entered through that agent's context.
+         * @param session - the session whose log grew.
+## lib/types/index.d.ts:245-250
+    isOwnSeq(seq: SessionSeq): boolean;
+    /** The next event's sequence number — always the log length (the `seq = log.length` contiguity contract). */
+    get seq(): SessionLogOffset;
+    /** Current event while synchronously notifying a batch's observers. */
+    get currentBatchPublication(): SessionEvent | undefined;
+    /**
+## lib/types/fork.d.ts:15-18
+ *   closers outside the inherited prefix counted by `inheritedEventCount`.
+ */
+export declare function buildForkSeed(events: readonly SessionEvent[], boundary: SessionSeqType): SessionEvent[];
+//# sourceMappingURL=fork.d.ts.map

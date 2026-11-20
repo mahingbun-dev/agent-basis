@@ -1,0 +1,76 @@
+{
+  "suite": "UI",
+  "commit": "c75f876c986415431c92b28cce771d847a36c52f",
+  "imageTag": "eterna-agent:rc5-test",
+  "imageId": "sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb",
+  "container": "rc5-e2suite",
+  "base": "http://127.0.0.1:3119",
+  "dataRoot": "/Users/sunny/eterna-data/test-20261120/e2",
+  "startedAt": "2026-11-20T03:37:50.295Z",
+  "finishedAt": "2026-11-20T07:10:02.249Z",
+  "total": 8,
+  "pass": 8,
+  "fail": 0,
+  "skip": 0,
+  "notrun": 0,
+  "counts": {
+    "PASS": 8,
+    "FAIL": 0,
+    "SKIP": 0,
+    "NOTRUN": 0
+  },
+  "halted": false,
+  "haltReason": "",
+  "cases": [
+    {
+      "id": "RC5-UI-001",
+      "status": "PASS",
+      "title": "UI 令牌门禁 0 违规（新包全覆盖）",
+      "detail": "UI 令牌检查通过:17 个目录 288 个文件,79 个 --et-* 令牌;状态点强制 30/30 通过;v4 阶梯 0 债务。"
+    },
+    {
+      "id": "RC5-UI-002",
+      "status": "PASS",
+      "title": "圆角只用 8/12/16/22/28/36/pill；嵌套同心",
+      "detail": "UI-002 failures=0"
+    },
+    {
+      "id": "RC5-UI-003",
+      "status": "PASS",
+      "title": "font-weight 只有 400/500/600；正文无 500",
+      "detail": "UI-003 failures=0"
+    },
+    {
+      "id": "RC5-UI-004",
+      "status": "PASS",
+      "title": "图标走 @eterna/ui/icons 或 icon-data，无 emoji/手写 SVG",
+      "detail": "UI-004 failures=0"
+    },
+    {
+      "id": "RC5-UI-005",
+      "status": "PASS",
+      "title": "断点只有 1100/760/640",
+      "detail": "UI-005 failures=0"
+    },
+    {
+      "id": "RC5-UI-007",
+      "status": "PASS",
+      "title": "MCP 作为 settings.section；无独立页面入口",
+      "detail": "UI-007 failures=0"
+    },
+    {
+      "id": "RC5-UI-008",
+      "status": "PASS",
+      "title": "z-index 只允许 1/40/100/200/1000/1100/1500（hero -1 例外）",
+      "detail": "UI-008 failures=0"
+    },
+    {
+      "id": "RC5-UI-006",
+      "status": "PASS",
+      "title": "双主题 × 三视口截图（MCP 设置 / terminal / hero / chat-import）",
+      "detail": "24 张截图产出；主题与横向溢出检查全绿（light 亮度 242 / dark 24.2；6/6 scrollWidth=innerWidth）；MCP 设置 6/6 可开；terminal 6/6 为真实 bash 终端；chat-import 6/6 入口渲染（hits=6）；390 hero：无决策卡时不渲染切换条（switch_labels=0），chips 行无遮挡"
+    }
+  ],
+  "observations": "artifacts/rc5/E2/UI/RC5-UI-006/observations.json",
+  "screenshots": 24
+}

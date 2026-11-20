@@ -1,0 +1,4 @@
+[migrate-mcp-servers]: 迁移 1 项 servers 到 mcp-manager（写前 1 / 写后 1）| 备份: /tmp/rc5-mcp-e2e-xXbh/new.yml.bak-2026-11-19T17-17-46-152Z
+EXIT=0
+[migrate-mcp-servers]: servers 已一致（1 项），幂等零写
+EXIT2=0

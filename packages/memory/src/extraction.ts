@@ -250,7 +250,7 @@ function finishError(finish: FinishReason, label: string): Error | undefined {
   switch (finish.kind) {
     case 'error':
     case 'aborted': {
-      return new LlmError(finish.failure.message, finish.failure.code, finish.failure)
+      return LlmError.fromFailure(finish.failure)
     }
     case 'max-tokens': {
       const truncated = new Error(`[memory] ${label}输出在 token 上限处截断(输出不完整)`) as Error & { code?: string }

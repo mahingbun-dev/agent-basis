@@ -1,0 +1,30 @@
+{
+  "name": "@core/cordis",
+  "description": "自持 cordis 内核:vendor 自 @deepseek-ai/cordis 4.1.0(MIT),机械化改造以适配 Node 原生 strip-types;改造清单与上游出处见 README.md NOTICE。",
+  "version": "4.1.0-basis.1",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./src/index.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "verify": "tsc --noEmit && tsc -p tsconfig.lib.json && vitest run",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "declarations": "tsc -p tsconfig.lib.json"
+  },
+  "dependencies": {
+    "@deepseek-ai/cosmokit": "catalog:",
+    "@standard-schema/spec": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,6 @@
+# cmd: pnpm exec oxlint packages/llm-openai/src packages/llm-openai/tests
+# cwd: /Users/sunny/code/agent-basis-rc5
+# date: 2026-11-19T19:08:21Z
+Found 0 warnings and 0 errors.
+Finished in 739ms on 8 files with 87 rules using 10 threads.
+# EXIT: 0

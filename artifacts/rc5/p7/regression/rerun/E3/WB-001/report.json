@@ -1,0 +1,72 @@
+{
+  "id": "WB-001",
+  "suite": "E3-super",
+  "priority": "P1",
+  "title": "（workbench）实时流首帧快照契约",
+  "expected": "200 SSE；snapshot 含 10 键；masterSessionId=orchestrator-*",
+  "status": "PASS",
+  "startedAt": "2026-11-20T01:47:19.000Z",
+  "finishedAt": "2026-11-20T01:47:19.075Z",
+  "assertions": [
+    {
+      "name": "admin 登录 200",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "SSE 200 text/event-stream",
+      "ok": true,
+      "detail": "200 text/event-stream; charset=utf-8"
+    },
+    {
+      "name": "首帧 kind=snapshot",
+      "ok": true,
+      "detail": "snapshot"
+    },
+    {
+      "name": "快照含五视图/检查器 10 个数据键",
+      "ok": true,
+      "detail": "tickets,conflict,logs,eval,flow,worker,sessions,assignments,timelines,masterSessionId"
+    },
+    {
+      "name": "masterSessionId 为 tasks 主会话",
+      "ok": true,
+      "detail": "orchestrator-Mr.Ma"
+    },
+    {
+      "name": "flow 节点/worker 分列投影在场",
+      "ok": true,
+      "detail": "flowNodes=7"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)",
+      "exit": 0,
+      "note": "boot token 不入证据"
+    },
+    {
+      "cmd": "GET /connect + GET /?token=… (dsh session bootstrap)",
+      "exit": 200,
+      "note": "token 已脱敏"
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 200,
+      "note": ""
+    },
+    {
+      "cmd": "GET /workbench/api/stream",
+      "exit": 200,
+      "note": "SSE 首帧"
+    }
+  ],
+  "notes": [],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

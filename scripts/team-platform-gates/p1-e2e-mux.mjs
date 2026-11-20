@@ -37,7 +37,7 @@ const BASE = pick('--base') ?? 'http://127.0.0.1:3211'
 const envText = readFileSync('/Users/sunny/code/agent-basis/.env', 'utf8')
 const envVal = (k) => (envText.match(new RegExp('^' + k + '=(.*)$', 'm'))?.[1] ?? '').trim()
 const ADMIN = { account: envVal('ETERNA_ACCESS_ADMIN_USER'), password: envVal('ETERNA_ACCESS_ADMIN_PASSWORD') }
-const BOB = { account: 'tp-bob', password: 'tp-bob-pass-8' }
+const BOB = { account: 'tp-bob', password: 'tp-bob-test-pass-8' }
 
 rmSync(join(OUT, 'profile-a'), { recursive: true, force: true })
 rmSync(join(OUT, 'profile-b'), { recursive: true, force: true })

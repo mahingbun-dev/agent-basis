@@ -1,0 +1,11 @@
+{
+  "total": 46,
+  "byTopDir": {
+    "docker": 1,
+    "market": 2,
+    "(root)": 1,
+    "packages": 36,
+    "packs": 3,
+    "tools": 3
+  }
+}

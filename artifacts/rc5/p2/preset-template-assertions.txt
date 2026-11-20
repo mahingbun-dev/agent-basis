@@ -1,0 +1,10 @@
+== docker/profile/cordis.patch.yml.template errors=0
+preset-cordis plugins(flat)=34 | personaLast="You help the user customize DeepSeek Harness itself." | subagent.interrupt=false | tool-office=present | customSkillDirs=[1 expression]
+preset-standard plugins(flat)=33 | personaLast="- 收束纪律:目标事实一经达成(页面已打开/检索已有结果/文件已写入),立即向用户交付结论并结束回合;禁止继续考古实现细节、重复验证或展开无关探测。" | subagent.interrupt=false | tool-office=present | customSkillDirs=[1 expression]
+mcp-manager config= {"servers":{}}
+optional-terminal-panel config= {"preferredShells":["bash"],"readUserTerminals":false}
+== docker/profile/cordis.super.patch.yml.template errors=0
+preset-cordis plugins(flat)=34 | personaLast="You help the user customize DeepSeek Harness itself." | subagent.interrupt=false | tool-office=present | customSkillDirs=[1 expression]
+preset-standard plugins(flat)=33 | personaLast="- 收束纪律:目标事实一经达成(页面已打开/检索已有结果/文件已写入),立即向用户交付结论并结束回合;禁止继续考古实现细节、重复验证或展开无关探测。" | subagent.interrupt=false | tool-office=present | customSkillDirs=[1 expression]
+mcp-manager config= {"servers":{}}
+optional-terminal-panel config= {"preferredShells":["bash"],"readUserTerminals":false}

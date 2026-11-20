@@ -1,0 +1,33 @@
+{
+  "id": "RC5-API-007",
+  "suite": "E3-super",
+  "priority": "P1",
+  "title": "排空后代后无残留 running（API-007）",
+  "expected": "drainDescendants 后无残留 running",
+  "status": "PASS",
+  "startedAt": "2026-11-20T08:46:37.088Z",
+  "finishedAt": "2026-11-20T08:48:17.524Z",
+  "realModel": true,
+  "evidence": [
+    "artifacts/rc5/e3-super/real-harness/results.json",
+    "artifacts/rc5/e3-super/real-harness/harness.log",
+    "artifacts/rc5/e3-super/API-005-real-model.md"
+  ],
+  "assertions": [
+    {
+      "name": "worker B 上派长驻 child 后 drainDescendants",
+      "ok": true,
+      "detail": "drainedChild=8192e459-072b-4289-8bdc-691ef8433db8；drainMs=10"
+    },
+    {
+      "name": "drain 后无残留 running（agents 注册表复查）",
+      "ok": true,
+      "detail": "residentAfter=[]；descendantsAfter=[{id:8192e459...,resident:false}]；waitForTreeWorkAfter=false；workerStatusAfter=idle"
+    },
+    {
+      "name": "确定性 stub 档同一断言",
+      "ok": true,
+      "detail": "artifacts/rc5/API/_harness/results/api005-007-results.json checks.drainDescendants.ok=true"
+    }
+  ]
+}

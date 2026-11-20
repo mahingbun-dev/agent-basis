@@ -91,16 +91,33 @@ export function installSandboxBoundary(
 ): (() => void) | undefined {
   if (sandboxPolicy === undefined || typeof sandboxPolicy.resolve !== 'function') return undefined
   const original = sandboxPolicy.resolve.bind(sandboxPolicy)
+  // 活会话判定:上游 resolve 会读 session.header 并做 projection 快照
+  // (sandboxPolicy.overrideOf → sessionProjections.cellFor → session.snapshotEvents),
+  // 只带 {id} 的伪会话会 TypeError(TERM-006 实证)。防御面:伪会话先剥掉再
+  // resolve,归属仍按 id 从账本解析,workspaceRoot 直接钳到账号根。
+  const liveSession = (value: unknown): boolean => {
+    if (typeof value !== 'object' || value === null) return false
+    const s = value as { snapshotEvents?: unknown }
+    return typeof s.snapshotEvents === 'function'
+  }
   const wrapped = (request?: unknown): unknown => {
-    const resolved: unknown = original(request)
+    const requestRecord = request as { session?: { id?: string } } | undefined
+    // 边界面对的是运行期任意值：类型上 session 可空，调用方也可能真传 null。
+    const session = requestRecord?.session as { id?: string } | null | undefined
+    const synthetic = session !== undefined && session !== null && typeof session === 'object' && !liveSession(session)
+    const sessionId = synthetic ? session.id : session?.id
+    // 伪会话 → 以无 session 形态解析(默认 mode + 配置根),随后强制钳到账号根
+    const effective = synthetic ? { ...(requestRecord ?? {}), session: undefined } : request
+    const resolved: unknown = original(effective)
     if (resolved === null || typeof resolved !== 'object') return resolved
     const shape = resolved as { workspaceRoot?: unknown; sessionId?: unknown }
-    const sessionId = typeof shape.sessionId === 'string' ? shape.sessionId
-      : (request as { session?: { id?: string } } | undefined)?.session?.id
-    const ownerId = sessionId === undefined ? undefined : deps.sessionOwner(sessionId)
+    const resolvedSessionId = typeof shape.sessionId === 'string' ? shape.sessionId : sessionId
+    const ownerId = resolvedSessionId === undefined ? undefined : deps.sessionOwner(resolvedSessionId)
     const account = ownerId === undefined ? undefined : deps.accountOf(ownerId)
     if (account === undefined) return resolved
     const root = userRootFor(deps.tenantRoot, account)
+    // 伪会话无真实 cwd/档位可读:直接落账号根(不可越界)
+    if (synthetic) return { ...resolved, workspaceRoot: root, ...(resolvedSessionId === undefined ? {} : { sessionId: resolvedSessionId }) }
     const boundary = typeof shape.workspaceRoot === 'string' ? shape.workspaceRoot : undefined
     // 边界越出账号根 → 钳回;边界在账号根内(session cwd 归属目录) → 保持
     if (boundary !== undefined && !withinRoot(boundary, root)) {

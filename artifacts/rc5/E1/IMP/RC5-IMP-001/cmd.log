@@ -1,0 +1,6 @@
+# IMP/RC5-IMP-001
+# started 2026-11-20T07:03:42.314Z
+
+$ scripts/verify-chat-import.mjs（RC5-IMP-001 行）
+EXIT=0
+PASS: status=401 count 0→0

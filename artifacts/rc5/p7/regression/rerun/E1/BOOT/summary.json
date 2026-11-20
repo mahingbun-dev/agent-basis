@@ -1,0 +1,82 @@
+{
+  "suite": "BOOT",
+  "commit": "c75f876c986415431c92b28cce771d847a36c52f",
+  "imageTag": "eterna-agent:rc5-test",
+  "imageId": "sha256:48782afaf8ba665e3ec3ea0995c8f5b3e844ebad764e03f34c281b14e48389d3",
+  "container": "rc5-e1suite",
+  "base": "http://127.0.0.1:3118",
+  "dataRoot": "/Users/sunny/eterna-data/test-20261120/e1",
+  "startedAt": "2026-11-20T01:42:26.660Z",
+  "finishedAt": "2026-11-20T01:43:14.103Z",
+  "total": 11,
+  "pass": 11,
+  "fail": 0,
+  "skip": 0,
+  "notrun": 0,
+  "counts": {
+    "PASS": 11,
+    "FAIL": 0,
+    "SKIP": 0,
+    "NOTRUN": 0
+  },
+  "halted": false,
+  "haltReason": "",
+  "failures": [],
+  "cases": [
+    {
+      "id": "RC5-BOOT-001",
+      "status": "PASS",
+      "title": "E1 空数据根首启"
+    },
+    {
+      "id": "RC5-BOOT-002",
+      "status": "PASS",
+      "title": "E3 super 形态启动"
+    },
+    {
+      "id": "RC5-BOOT-003",
+      "status": "PASS",
+      "title": "E4 ACP 容器启动（进程存活、stdio 纯净）"
+    },
+    {
+      "id": "RC5-BOOT-004",
+      "status": "PASS",
+      "title": "启动日志无未知 plugin 行"
+    },
+    {
+      "id": "RC5-BOOT-005",
+      "status": "PASS",
+      "title": "已删除行不再出现"
+    },
+    {
+      "id": "RC5-BOOT-006",
+      "status": "PASS",
+      "title": "rc.5 新增行全部到位"
+    },
+    {
+      "id": "RC5-BOOT-007",
+      "status": "PASS",
+      "title": "preset 全量替换后 rc.5 默认行无丢失"
+    },
+    {
+      "id": "RC5-BOOT-008",
+      "status": "PASS",
+      "title": "旧 profile 默认 bundle 迁移（只追加一次）"
+    },
+    {
+      "id": "RC5-BOOT-009",
+      "status": "PASS",
+      "title": "已 opt-out 的默认 bundle 不回加"
+    },
+    {
+      "id": "RC5-BOOT-010",
+      "status": "PASS",
+      "title": "损坏 package.json 的 profile 副本启动"
+    },
+    {
+      "id": "RC5-BOOT-011",
+      "status": "PASS",
+      "title": "DSH_AGENTS_HOME 落 /data/agents 且用户级技能可写"
+    }
+  ]
+}

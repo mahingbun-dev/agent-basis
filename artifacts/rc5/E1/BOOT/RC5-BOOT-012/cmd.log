@@ -1,0 +1,16 @@
+# BOOT/RC5-BOOT-012
+# started 2026-11-19T23:34:35.701Z
+
+$ IAB 1440×900: window.__DSH_BOOT__ / window.__ModuleLoader__ 读取
+EXIT=0
+{"rev":"273aa02c39b2","release":{"version":"0.2.2-rc.5","commit":"3f85d88"},"entries":78,"batches":[1,58,19],"loaderMode":"live","pendingQueue":0}
+
+$ DOM: 统计 @eterna/* 产品 client bundle 与“版本不匹配”提示
+EXIT=0
+eterna=10 @eterna/brand,@eterna/attachments,@eterna/compaction,@eterna/llm-doctor,@eterna/usage-stats,@eterna/knowledge-admin,@eterna/prompt-studio,@eterna/memory,@eterna/panel,@eterna/access；mismatchText=0；errorBanner=false
+
+[ASSERT] 产品 client bundle = 10 个 @eterna/* => PASS
+
+[ASSERT] 无“版本不匹配”提示/模块加载错误横幅 => PASS
+
+[ASSERT] ModuleLoader roster 完整（live，pendingQueue=0，3 批次 1+58+19=78） => PASS

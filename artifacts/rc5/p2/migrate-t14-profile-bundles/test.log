@@ -1,0 +1,16 @@
+$ node --test docker/profile/migrate-profile-bundles.test.mjs
+[migrate-profile-bundles]: ERROR /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-bundles-wqO4Bp/package.json: JSON 解析失败(Expected property name or '}' in JSON at position 2 (line 1 column 3))
+✔ 旧清单 → 新默认集：只追加缺失项并按模板顺序落位 (7.045042ms)
+✔ opt-out：marker 已记录且用户从清单移除的默认项不回加 (0.744542ms)
+✔ 幂等：二次运行零追加、且 marker/清单字节不变 (0.764334ms)
+✔ 坏 JSON fail-closed：旧文件保留、退出面报错、不写 marker (0.725333ms)
+✔ 旧清单缺 bundles 键：按空清单补齐全部默认项（不猜其它键） (0.501ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 133.917083
+EXIT=0

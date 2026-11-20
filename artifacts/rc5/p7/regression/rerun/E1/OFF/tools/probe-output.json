@@ -1,0 +1,125 @@
+{
+ "backend": "wasm",
+ "converts": [
+  {
+   "ext": "docx",
+   "backend": "wasm",
+   "missingFonts": [],
+   "pageCount": 1
+  },
+  {
+   "ext": "xlsx",
+   "backend": "wasm",
+   "missingFonts": [
+    "Calibri"
+   ],
+   "pageCount": 1
+  },
+  {
+   "ext": "pptx",
+   "backend": "wasm",
+   "missingFonts": [
+    "Arial"
+   ],
+   "pageCount": 2
+  }
+ ],
+ "recalculate": {
+  "backend": "wasm",
+  "missingFonts": [
+   "Calibri"
+  ]
+ },
+ "renders": [
+  {
+   "ext": "docx",
+   "schemaVersion": 1,
+   "backend": "wasm",
+   "rasterEngine": "libreoffice",
+   "source": "saved",
+   "inputPath": "/tmp/office/docx/sample.docx",
+   "sourceSha256": "cfce34a38922b0702ebe7d6c75c4d93cf58275086592a98d1a1d96b9814e80af",
+   "dpi": 144,
+   "pageCount": 1,
+   "images": [
+    {
+     "index": 1,
+     "page": 1,
+     "path": "/tmp/office/render/docx/page-0001.png",
+     "width": 1224,
+     "height": 1584,
+     "rectangle": {
+      "x": 0,
+      "y": 0,
+      "width": 816,
+      "height": 1056
+     },
+     "byteLength": 85058
+    }
+   ],
+   "missingFonts": []
+  },
+  {
+   "ext": "xlsx",
+   "schemaVersion": 1,
+   "backend": "wasm",
+   "rasterEngine": "libreoffice",
+   "source": "saved",
+   "inputPath": "/tmp/office/xlsx/sample.xlsx",
+   "sourceSha256": "326fe7bd7db379b9abeaa445845dfe3c48e85df2f728ed05f1272ea0860548d4",
+   "dpi": 144,
+   "pageCount": 1,
+   "images": [
+    {
+     "index": 1,
+     "sheet": "预算明细",
+     "range": "A1:D5",
+     "rtl": false,
+     "path": "/tmp/office/render/xlsx/page-0001.png",
+     "width": 609,
+     "height": 150,
+     "rectangle": {
+      "x": 0,
+      "y": 0,
+      "width": 406,
+      "height": 100
+     },
+     "byteLength": 20301
+    }
+   ],
+   "missingFonts": [
+    "Calibri"
+   ]
+  },
+  {
+   "ext": "pptx",
+   "schemaVersion": 1,
+   "backend": "wasm",
+   "rasterEngine": "libreoffice",
+   "source": "saved",
+   "inputPath": "/tmp/office/pptx/sample.pptx",
+   "sourceSha256": "8c30f9222f3930692cad1231e0b9910315c030195560d3e8f64ac2987a1c1487",
+   "dpi": 144,
+   "pageCount": 2,
+   "images": [
+    {
+     "index": 1,
+     "page": 1,
+     "path": "/tmp/office/render/pptx/page-0001.png",
+     "width": 1441,
+     "height": 1081,
+     "rectangle": {
+      "x": 0,
+      "y": 0,
+      "width": 960.0666666666667,
+      "height": 720.0666666666667
+     },
+     "byteLength": 50273
+    }
+   ],
+   "missingFonts": [
+    "Arial"
+   ]
+  }
+ ]
+}

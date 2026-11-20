@@ -1,0 +1,4 @@
+cd /Users/sunny/code/agent-basis-rc5
+node scripts/prepare-rc5-envs.mjs e5 --source "/Users/sunny/eterna-data/backups/rc5-2026-11-20/eterna-home-20261120-021802.tgz"
+EXIT=1
+EXIT=0

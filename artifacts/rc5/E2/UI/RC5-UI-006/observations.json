@@ -1,0 +1,568 @@
+[
+  {
+    "theme": "light",
+    "width": 1440,
+    "themeBackground": "rgb(244, 242, 236)",
+    "hero": {
+      "file": "RC5-UI-006-light-1440-hero.png",
+      "innerWidth": 1440,
+      "innerHeight": 900,
+      "scrollWidth": 1440,
+      "bodyBackground": "rgb(244, 242, 236)",
+      "surface": {
+        "x": 280,
+        "y": 325,
+        "width": 1153,
+        "height": 290,
+        "right": 1433,
+        "bottom": 615
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 242,
+      "text": "方寸灵台，运筹万里 rc5admin 标准模式 流程启动(Agent 会先向你确认所需信息): 知识检索 知识提案(fail-closed) 预算计算 付款审批红线(R3) 描述你想要构建的内容, / 调用指令, @ 文件或对话 工作区内修改 域:未识别 视觉 MiMo V2.6 Pro Default"
+    },
+    "mcp": {
+      "file": "RC5-UI-006-light-1440-mcp-settings.png",
+      "innerWidth": 1440,
+      "innerHeight": 900,
+      "scrollWidth": 1440,
+      "bodyBackground": "rgb(244, 242, 236)",
+      "surface": {
+        "x": 280,
+        "y": 90,
+        "width": 880,
+        "height": 720,
+        "right": 1160,
+        "bottom": 810
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 242,
+      "text": "设置 通用设置 模型 Agent 预设 账号 用户管理 MCP 服务器 消息与审批 上下文压缩 审批队列 记忆 打开配置文件 关闭 MCP 服务器 全局表由管理员配置，个人条目仅本人可用。 全局 管理员目录 全局服务器 全局服务器由管理员在内置插件设置中配置，作用于全团队。 打开全局设置",
+      "dialogOpen": true
+    },
+    "terminal": {
+      "file": "RC5-UI-006-light-1440-terminal.png",
+      "innerWidth": 1440,
+      "innerHeight": 900,
+      "scrollWidth": 1440,
+      "bodyBackground": "rgb(244, 242, 236)",
+      "surface": {
+        "x": 792,
+        "y": 0,
+        "width": 648,
+        "height": 900,
+        "right": 1440,
+        "bottom": 900
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 242,
+      "startText": "",
+      "text": "bash root@71cf1174be6d:/data/workspaces/rc5admin# ",
+      "tabs": [
+        "bash"
+      ]
+    },
+    "chatImport": {
+      "file": "RC5-UI-006-light-1440-chat-import-entry.png",
+      "innerWidth": 1440,
+      "innerHeight": 900,
+      "scrollWidth": 1440,
+      "bodyBackground": "rgb(244, 242, 236)",
+      "surface": {
+        "x": 4,
+        "y": 398,
+        "width": 274,
+        "height": 288,
+        "right": 278,
+        "bottom": 686
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 242,
+      "entry": {
+        "hits": 1,
+        "slotPresent": true,
+        "sample": [
+          "导入 DeepSeek 会话"
+        ]
+      }
+    }
+  },
+  {
+    "theme": "light",
+    "width": 900,
+    "themeBackground": "rgb(244, 242, 236)",
+    "hero": {
+      "file": "RC5-UI-006-light-900-hero.png",
+      "innerWidth": 900,
+      "innerHeight": 900,
+      "scrollWidth": 900,
+      "bodyBackground": "rgb(244, 242, 236)",
+      "surface": {
+        "x": 280,
+        "y": 325,
+        "width": 613,
+        "height": 290,
+        "right": 893,
+        "bottom": 615
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 242,
+      "text": "方寸灵台，运筹万里 rc5admin 标准模式 知识检索 知识提案(fail-closed) 预算计算 付款审批红线(R3) 描述你想要构建的内容, / 调用指令, @ 文件或对话 工作区内修改 域:未识别"
+    },
+    "mcp": {
+      "file": "RC5-UI-006-light-900-mcp-settings.png",
+      "innerWidth": 900,
+      "innerHeight": 900,
+      "scrollWidth": 900,
+      "bodyBackground": "rgb(244, 242, 236)",
+      "surface": {
+        "x": 24,
+        "y": 90,
+        "width": 852,
+        "height": 720,
+        "right": 876,
+        "bottom": 810
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 242,
+      "text": "设置 通用设置 模型 Agent 预设 账号 用户管理 MCP 服务器 消息与审批 上下文压缩 审批队列 记忆 打开配置文件 关闭 MCP 服务器 全局表由管理员配置，个人条目仅本人可用。 全局 管理员目录 全局服务器 全局服务器由管理员在内置插件设置中配置，作用于全团队。 打开全局设置",
+      "dialogOpen": true
+    },
+    "terminal": {
+      "file": "RC5-UI-006-light-900-terminal.png",
+      "innerWidth": 900,
+      "innerHeight": 900,
+      "scrollWidth": 900,
+      "bodyBackground": "rgb(244, 242, 236)",
+      "surface": {
+        "x": 495,
+        "y": 0,
+        "width": 405,
+        "height": 900,
+        "right": 900,
+        "bottom": 900
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 242,
+      "startText": "开始 收起侧边栏 ⇧ ⌘ B 工作区文件 浏览会话工作区的文件 ⌥ ⌘ P 新建终端 在会话工作区运行命令 ⌃ ` 浏览器 浏览网页 ⌥ ⌘ T 更多工具",
+      "text": "bash root@71cf1174be6d:/data/workspaces/rc5admin# ",
+      "tabs": [
+        "bash"
+      ]
+    },
+    "chatImport": {
+      "file": "RC5-UI-006-light-900-chat-import-entry.png",
+      "innerWidth": 900,
+      "innerHeight": 900,
+      "scrollWidth": 900,
+      "bodyBackground": "rgb(244, 242, 236)",
+      "surface": {
+        "x": 4,
+        "y": 398,
+        "width": 274,
+        "height": 288,
+        "right": 278,
+        "bottom": 686
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 242,
+      "entry": {
+        "hits": 1,
+        "slotPresent": true,
+        "sample": [
+          "导入 DeepSeek 会话"
+        ]
+      }
+    }
+  },
+  {
+    "theme": "light",
+    "width": 390,
+    "themeBackground": "rgb(244, 242, 236)",
+    "hero": {
+      "file": "RC5-UI-006-light-390-hero.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "scrollWidth": 390,
+      "bodyBackground": "rgb(244, 242, 236)",
+      "surface": {
+        "x": 0,
+        "y": 257,
+        "width": 383,
+        "height": 370,
+        "right": 383,
+        "bottom": 627
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 242,
+      "text": "方寸灵台，运筹万里 rc5admin 标准模式 知识检索 知识提案(fail-closed) 预算计算 付款审批红线(R3) 描述你想要构建的内容, / 调用指令, @ 文件或对话 域:未识别"
+    },
+    "mcp": {
+      "file": "RC5-UI-006-light-390-mcp-settings.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "scrollWidth": 390,
+      "bodyBackground": "rgb(244, 242, 236)",
+      "surface": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "right": 390,
+        "bottom": 844
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 242,
+      "text": "设置 通用设置 模型 Agent 预设 账号 用户管理 MCP 服务器 消息与审批 上下文压缩 审批队列 记忆 打开配置文件 关闭 MCP 服务器 全局表由管理员配置，个人条目仅本人可用。 全局 管理员目录 全局服务器 全局服务器由管理员在内置插件设置中配置，作用于全团队。 打开全局设置",
+      "dialogOpen": true
+    },
+    "terminal": {
+      "file": "RC5-UI-006-light-390-terminal.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "scrollWidth": 390,
+      "bodyBackground": "rgb(244, 242, 236)",
+      "surface": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "right": 390,
+        "bottom": 844
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 242,
+      "startText": "",
+      "text": "bash root@71cf1174be6d:/data/workspaces/rc5admin# ",
+      "tabs": [
+        "bash"
+      ]
+    },
+    "chatImport": {
+      "file": "RC5-UI-006-light-390-chat-import-entry.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "scrollWidth": 390,
+      "bodyBackground": "rgb(244, 242, 236)",
+      "surface": {
+        "x": -276,
+        "y": 398,
+        "width": 274,
+        "height": 288,
+        "right": -2,
+        "bottom": 686
+      },
+      "overflow": false,
+      "offscreen": true,
+      "luminance": 242,
+      "entry": {
+        "hits": 1,
+        "slotPresent": true,
+        "sample": [
+          "导入 DeepSeek 会话"
+        ]
+      }
+    }
+  },
+  {
+    "theme": "light",
+    "importLimitsProbe": {
+      "status": 200,
+      "body": "{\"type\":\"server-response\",\"rpcId\":\"e2-mwon1egu\",\"result\":{\"ok\":true,\"value\":{\"maxUploadBytes\":536870912}}}"
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "themeBackground": "rgb(22, 25, 23)",
+    "hero": {
+      "file": "RC5-UI-006-dark-1440-hero.png",
+      "innerWidth": 1440,
+      "innerHeight": 900,
+      "scrollWidth": 1440,
+      "bodyBackground": "rgb(22, 25, 23)",
+      "surface": {
+        "x": 280,
+        "y": 325,
+        "width": 1153,
+        "height": 290,
+        "right": 1433,
+        "bottom": 615
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 24.2,
+      "text": "方寸灵台，运筹万里 rc5admin 标准模式 流程启动(Agent 会先向你确认所需信息): 知识检索 知识提案(fail-closed) 预算计算 付款审批红线(R3) 描述你想要构建的内容, / 调用指令, @ 文件或对话 工作区内修改 域:未识别 视觉 MiMo V2.6 Pro Default"
+    },
+    "mcp": {
+      "file": "RC5-UI-006-dark-1440-mcp-settings.png",
+      "innerWidth": 1440,
+      "innerHeight": 900,
+      "scrollWidth": 1440,
+      "bodyBackground": "rgb(22, 25, 23)",
+      "surface": {
+        "x": 280,
+        "y": 90,
+        "width": 880,
+        "height": 720,
+        "right": 1160,
+        "bottom": 810
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 24.2,
+      "text": "设置 通用设置 模型 Agent 预设 账号 用户管理 MCP 服务器 消息与审批 上下文压缩 审批队列 记忆 打开配置文件 关闭 MCP 服务器 全局表由管理员配置，个人条目仅本人可用。 全局 管理员目录 全局服务器 全局服务器由管理员在内置插件设置中配置，作用于全团队。 打开全局设置",
+      "dialogOpen": true
+    },
+    "terminal": {
+      "file": "RC5-UI-006-dark-1440-terminal.png",
+      "innerWidth": 1440,
+      "innerHeight": 900,
+      "scrollWidth": 1440,
+      "bodyBackground": "rgb(22, 25, 23)",
+      "surface": {
+        "x": 792,
+        "y": 0,
+        "width": 648,
+        "height": 900,
+        "right": 1440,
+        "bottom": 900
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 24.2,
+      "startText": "",
+      "text": "bash root@71cf1174be6d:/data/workspaces/rc5admin# ",
+      "tabs": [
+        "bash"
+      ]
+    },
+    "chatImport": {
+      "file": "RC5-UI-006-dark-1440-chat-import-entry.png",
+      "innerWidth": 1440,
+      "innerHeight": 900,
+      "scrollWidth": 1440,
+      "bodyBackground": "rgb(22, 25, 23)",
+      "surface": {
+        "x": 4,
+        "y": 398,
+        "width": 274,
+        "height": 288,
+        "right": 278,
+        "bottom": 686
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 24.2,
+      "entry": {
+        "hits": 1,
+        "slotPresent": true,
+        "sample": [
+          "导入 DeepSeek 会话"
+        ]
+      }
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 900,
+    "themeBackground": "rgb(22, 25, 23)",
+    "hero": {
+      "file": "RC5-UI-006-dark-900-hero.png",
+      "innerWidth": 900,
+      "innerHeight": 900,
+      "scrollWidth": 900,
+      "bodyBackground": "rgb(22, 25, 23)",
+      "surface": {
+        "x": 280,
+        "y": 325,
+        "width": 613,
+        "height": 290,
+        "right": 893,
+        "bottom": 615
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 24.2,
+      "text": "方寸灵台，运筹万里 rc5admin 标准模式 知识检索 知识提案(fail-closed) 预算计算 付款审批红线(R3) 描述你想要构建的内容, / 调用指令, @ 文件或对话 工作区内修改 域:未识别"
+    },
+    "mcp": {
+      "file": "RC5-UI-006-dark-900-mcp-settings.png",
+      "innerWidth": 900,
+      "innerHeight": 900,
+      "scrollWidth": 900,
+      "bodyBackground": "rgb(22, 25, 23)",
+      "surface": {
+        "x": 24,
+        "y": 90,
+        "width": 852,
+        "height": 720,
+        "right": 876,
+        "bottom": 810
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 24.2,
+      "text": "设置 通用设置 模型 Agent 预设 账号 用户管理 MCP 服务器 消息与审批 上下文压缩 审批队列 记忆 打开配置文件 关闭 MCP 服务器 全局表由管理员配置，个人条目仅本人可用。 全局 管理员目录 全局服务器 全局服务器由管理员在内置插件设置中配置，作用于全团队。 打开全局设置",
+      "dialogOpen": true
+    },
+    "terminal": {
+      "file": "RC5-UI-006-dark-900-terminal.png",
+      "innerWidth": 900,
+      "innerHeight": 900,
+      "scrollWidth": 900,
+      "bodyBackground": "rgb(22, 25, 23)",
+      "surface": {
+        "x": 495,
+        "y": 0,
+        "width": 405,
+        "height": 900,
+        "right": 900,
+        "bottom": 900
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 24.2,
+      "startText": "开始 收起侧边栏 ⇧ ⌘ B 工作区文件 浏览会话工作区的文件 ⌥ ⌘ P 新建终端 在会话工作区运行命令 ⌃ ` 浏览器 浏览网页 ⌥ ⌘ T 更多工具",
+      "text": "bash root@71cf1174be6d:/data/workspaces/rc5admin# ",
+      "tabs": [
+        "bash"
+      ]
+    },
+    "chatImport": {
+      "file": "RC5-UI-006-dark-900-chat-import-entry.png",
+      "innerWidth": 900,
+      "innerHeight": 900,
+      "scrollWidth": 900,
+      "bodyBackground": "rgb(22, 25, 23)",
+      "surface": {
+        "x": 4,
+        "y": 398,
+        "width": 274,
+        "height": 288,
+        "right": 278,
+        "bottom": 686
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 24.2,
+      "entry": {
+        "hits": 1,
+        "slotPresent": true,
+        "sample": [
+          "导入 DeepSeek 会话"
+        ]
+      }
+    }
+  },
+  {
+    "theme": "dark",
+    "width": 390,
+    "themeBackground": "rgb(22, 25, 23)",
+    "hero": {
+      "file": "RC5-UI-006-dark-390-hero.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "scrollWidth": 390,
+      "bodyBackground": "rgb(22, 25, 23)",
+      "surface": {
+        "x": 0,
+        "y": 257,
+        "width": 383,
+        "height": 370,
+        "right": 383,
+        "bottom": 627
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 24.2,
+      "text": "方寸灵台，运筹万里 rc5admin 标准模式 知识检索 知识提案(fail-closed) 预算计算 付款审批红线(R3) 描述你想要构建的内容, / 调用指令, @ 文件或对话 域:未识别"
+    },
+    "mcp": {
+      "file": "RC5-UI-006-dark-390-mcp-settings.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "scrollWidth": 390,
+      "bodyBackground": "rgb(22, 25, 23)",
+      "surface": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "right": 390,
+        "bottom": 844
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 24.2,
+      "text": "设置 通用设置 模型 Agent 预设 账号 用户管理 MCP 服务器 消息与审批 上下文压缩 审批队列 记忆 打开配置文件 关闭 MCP 服务器 全局表由管理员配置，个人条目仅本人可用。 全局 管理员目录 全局服务器 全局服务器由管理员在内置插件设置中配置，作用于全团队。 打开全局设置",
+      "dialogOpen": true
+    },
+    "terminal": {
+      "file": "RC5-UI-006-dark-390-terminal.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "scrollWidth": 390,
+      "bodyBackground": "rgb(22, 25, 23)",
+      "surface": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "right": 390,
+        "bottom": 844
+      },
+      "overflow": false,
+      "offscreen": false,
+      "luminance": 24.2,
+      "startText": "",
+      "text": "bash root@71cf1174be6d:/data/workspaces/rc5admin# ",
+      "tabs": [
+        "bash"
+      ]
+    },
+    "chatImport": {
+      "file": "RC5-UI-006-dark-390-chat-import-entry.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "scrollWidth": 390,
+      "bodyBackground": "rgb(22, 25, 23)",
+      "surface": {
+        "x": -276,
+        "y": 398,
+        "width": 274,
+        "height": 288,
+        "right": -2,
+        "bottom": 686
+      },
+      "overflow": false,
+      "offscreen": true,
+      "luminance": 24.2,
+      "entry": {
+        "hits": 1,
+        "slotPresent": true,
+        "sample": [
+          "导入 DeepSeek 会话"
+        ]
+      }
+    }
+  },
+  {
+    "theme": "dark",
+    "importLimitsProbe": {
+      "status": 200,
+      "body": "{\"type\":\"server-response\",\"rpcId\":\"e2-mwon2ycq\",\"result\":{\"ok\":true,\"value\":{\"maxUploadBytes\":536870912}}}"
+    }
+  }
+]

@@ -1,0 +1,15 @@
+[PASS] SETUP-LOGIN (P0) A/B 登录 :: a=200 b=200
+[PASS] RC5-TERM-007 (P0) readUserTerminals=false / preferredShells=[bash] / terminal bundle 在 :: bundles-terminal=true readUserTerminals=false:true preferredShells=[bash]:true
+[PASS] SETUP-VICTIM-SESSION (P0) A 建立活会话（terminal 方法的受害者） :: sessionId=session-40375140-d462-44e4-96fb-73db54dbfb74
+[PASS] CONTROL-A-ENVIRONMENT (P0) A 自己的 terminal/environment 成功（正向控制） :: cwd=/data/workspaces/rc5admin
+[PASS] CONTROL-A-SHELLS (P0) A 自己的 terminal/shells 成功（正向控制） :: shells=1
+[PASS] RC5-TERM-004a (P0) B 用 A 的 session 调 terminal/list 必须被拒 :: denied code=remote-access/denied
+[PASS] RC5-TERM-004b (P0) B 用 A 的 session 调 terminal/environment 必须被拒 :: denied code=remote-access/denied
+[PASS] RC5-TERM-004c (P0) B 用 A 的 session 调 terminal/shells 必须被拒 :: denied code=remote-access/denied
+[PASS] RC5-TERM-004d (P0) B 用 A 的 session 调 terminal/create 必须被拒 :: denied code=remote-access/denied
+[PASS] RC5-TERM-004e (P0) B 用 A 的 session 调 terminal/close 必须被拒 :: denied code=remote-access/denied
+[PASS] RC5-TERM-004f (P0) B 用 A 的 session 调 terminal/rename 必须被拒 :: denied code=remote-access/denied
+[NOTRUN] RC5-TERM-005 (P0) attach/retain/watch 流动作被拒（WS mux 面） :: 策略清单已含 attach/retain/watch（静态核对通过），但流拒绝需 WS mux 客户端，本脚本未执行；P6 必跑
+
+[TERM] PASS=11 FAIL=0 SKIP=0 NOTRUN=1
+[TERM] report → artifacts/rc5/p6a/repairs/final-terminal-guard.json

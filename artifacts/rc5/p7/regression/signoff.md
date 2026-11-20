@@ -1,0 +1,48 @@
+# rc.5 · P7 签字表（最终状态）
+
+- 依据：51 §6.1（已知问题清单经产品签字）、51 §6.3（四方签字）、54 §11 / §3.2（P0 全绿；P1 清零或产品签字）
+- 权威状态：`artifacts/rc5/acceptance-matrix.md`（164 行）+ `artifacts/rc5/p7/doc54-delivery-audit.md`
+- 原则：**未复跑 ≠ 绿**；本表只写「最终镜像上实跑了什么、还缺什么」
+- 历史 T52 快照（14 条 P0 红项与 47 条 P1 未复跑清单）见 git 历史 `c75f876:artifacts/rc5/p7/regression/signoff.md`
+
+## 1. 最终结果摘要
+
+| 项 | 结果 | 证据 |
+|---|---|---|
+| 矩阵 164 条 | **162 PASS / 0 FAIL / 0 MISSING / 2 WAIVED** | `artifacts/rc5/acceptance-matrix.md` |
+| P0 102 条 | **102 PASS / 0 FAIL / 0 MISSING** | 同上 |
+| 24h 浸泡豁免 | **产品签字豁免**（2026-11-21 00:28，指令「不用等24小时了，直接进行接下来的流程」）；决策时点主 soak 10.3h / 规模 8.9h 全健康（609 tick churn 全 ok、fd 292→280、写/锁/integrity 0 异常）；采样跑到满窗作事后观察 | `artifacts/rc5/p6b/waiver-24h.{json,md}` |
+| API-005/006/007（真模型） | **PASS**：2 工单 / 2 真实 worker（`mimo/mimo-v2.6-pro`）/ 2 child / `waitForTreeWork` 41.9s / 2 条 completed 回执；`listDescendants` 精确；`drainDescendants` 后 `residentAfter=[]` | `artifacts/rc5/e3-super/API-005-real-model.md`、`e3-super/real-harness/results.json` |
+| 全工作区 verify | merge 前后各 **EXIT=0** | `p7/verify-precommit.log`、`verify-postmerge.log` |
+| CI 本地镜像 | `ci.yml` 全步骤 **35 EXIT=0**（含双 boot/tenant-scan/prompt-scan/evals/v1-line） | `p7/ci-local.log` |
+| 最终镜像 | `eterna-agent:rc5-test` = `sha256:22fe8acb…` | 各 lane summary.json |
+| 治理 ask/deny | **PASS**（deny/ask 审计+会话事件+工具结果；ask 卡片按 `approval:never` 产品口径不产生） | `E2/SEC/RC5-SEC-GOV/result.md` |
+| companion 中继 | **PASS（协议级）**；真实扩展 **NOTRUN** | `p7/regression/supplement/companion-relay.md` |
+| R02 行为项六件 | **PASS** | `p7/regression/R02/result.md` |
+
+## 2. 剩余 MISSING（不得视为绿）
+
+**无**（164 行矩阵 0 FAIL / 0 MISSING）。
+
+> 24h 浸泡（TERM-013/DATA-009）经产品签字豁免为 WAIVED：`artifacts/rc5/p6b/waiver-24h.{json,md}`（2026-11-21 00:28，指令「不用等24小时了，直接进行接下来的流程」）；决策时点两窗口全健康，采样跑到满窗后摘要仅作事后观察证据。
+> P0/P1 用例之外：远端 CI 待 push 后运行、真实扩展 NOTRUN、四方签字待签、P7 生产操作按用户授权执行。
+> 产品遗留 **R22**（tasks 角色 prompt/preset 接线）为 P1 缺陷、非用例行，随下一次镜像变更窗口修复；不影响 API-005/006/007 判据（`p7/doc54-delivery-audit.md` §2.1）。
+
+## 3. 补充回归面签字
+
+| 面 | 最终证据 | 需签字内容 | 建议结论 |
+|---|---|---|---|
+| 审计 jsonl | `p7/regression/supplement/supplement.json`：2862 行、窗口 2189 行、凭据值 0 命中（10 行夹具名单列） | 测试确认「事件齐全/无明文」 | 可签 |
+| 治理规则 | `E2/SEC/RC5-SEC-GOV/result.md`：deny/ask 各一例均命中并留痕；ask 因 `approval:never` 确定性 rejected，不产生决策卡 | 产品确认「ask 无卡片」仍符合 2026-11-19 静默裁决 | 可签（产品口径） |
+| companion 中继 | `supplement/companion-relay.md`：匿名 401、reset 签发、错误 token 拒、在线探测/断开回收全 PASS；真实扩展 NOTRUN | 产品/测试确认协议级口径可接受，或安排桌面验收机补真实扩展 | 待产品裁决 |
+
+## 4. 四方签字栏（51 §6.3）
+
+| 角色 | 签字内容 | 状态 | 日期 |
+|---|---|---|---|
+| 开发 | P0 用例执行完毕、证据齐 | **未签**：P0 102/102 已全绿（API-005 真模型档 PASS），待签字确认 | |
+| 测试 | 用例覆盖与结果复核 | **未签**：162/0/0/2 已核（2 条 WAIVED 为产品豁免），补充面边界已列 | |
+| 产品 | 已知问题/风险接受（H7/H16/terminal/rc.5 预发布；**24h 豁免已签**；R22 延期；companion 口径） | **24h 豁免已签**（2026-11-21 00:28 指令落字于 `p6b/waiver-24h.md`）；其余 **未签** | 2026-11-21（豁免部分） |
+| 运维 | 冷备/回滚/生产窗口确认（部署时间） | **未签** | |
+
+> 结论：**P6 已收口（P0 102/102，P1 全部 PASS 或产品豁免）；P7 按用户 2026-11-21 授权执行**（push → PR → CI → 合并 → 部署）。残余风险由上线后 24h 观察覆盖（发布说明 §8）。

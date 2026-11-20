@@ -1,0 +1,6 @@
+ERROR prompt/unregistered-prompt-key profiles/eterna-web/cordis.patch.yml:149: patch 层 prompt 型 config 键 prefix(row=preset-cordis, path=persona)未在提示词注册表登记——在 packages/prompt-studio/src/registry.ts 增加条目并对账 docs/dev/ps-v2-registry-ledger.md,或确认属豁免面写明白名单标注后再提交
+ERROR prompt/unregistered-prompt-key profiles/eterna-web/cordis.patch.yml:196: patch 层 prompt 型 config 键 section(row=preset-cordis, path=planning/plan-mode)未在提示词注册表登记——在 packages/prompt-studio/src/registry.ts 增加条目并对账 docs/dev/ps-v2-registry-ledger.md,或确认属豁免面写明白名单标注后再提交
+ERROR prompt/unregistered-prompt-key profiles/eterna-web/cordis.patch.yml:314: patch 层 prompt 型 config 键 prefix(row=preset-standard, path=persona)未在提示词注册表登记——在 packages/prompt-studio/src/registry.ts 增加条目并对账 docs/dev/ps-v2-registry-ledger.md,或确认属豁免面写明白名单标注后再提交
+ERROR prompt/unregistered-prompt-key profiles/eterna-web/cordis.patch.yml:366: patch 层 prompt 型 config 键 section(row=preset-standard, path=planning/plan-mode)未在提示词注册表登记——在 packages/prompt-studio/src/registry.ts 增加条目并对账 docs/dev/ps-v2-registry-ledger.md,或确认属豁免面写明白名单标注后再提交
+prompt-scan: 4 finding(s)
+EXIT=1

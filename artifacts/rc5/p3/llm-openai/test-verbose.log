@@ -1,0 +1,50 @@
+# cmd: ./node_modules/.bin/vitest run --reporter=verbose
+# cwd: /Users/sunny/code/agent-basis-rc5/packages/llm-openai
+# date: 2026-11-19T19:09:11Z
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/llm-openai
+
+ ✓ tests/translate.spec.ts > translate > streams reasoning then text with synthesized block ends, usage, and a stop finish 1ms
+ ✓ tests/translate.spec.ts > translate > accumulates tool-call fragments and emits deltas of new argument parts only 0ms
+ ✓ tests/translate.spec.ts > translate > maps finish reasons: length to max-tokens 0ms
+ ✓ tests/translate.spec.ts > translate > rejects a stream that ends without a finish reason 0ms
+ ✓ tests/translate.spec.ts > translate > rejects an empty response that stops without content 0ms
+ ✓ tests/translate.spec.ts > translate > ignores null usage fields and keeps usage from the terminal usage frame 0ms
+ ✓ tests/serialize.spec.ts > serialize > merges options.system, system snapshots, and developer updates into one leading system message 1ms
+ ✓ tests/serialize.spec.ts > serialize > skips empty user and assistant messages but keeps tool results with their call ids 0ms
+ ✓ tests/serialize.spec.ts > serialize > degrades unparseable historical tool arguments to an empty object 0ms
+ ✓ tests/serialize.spec.ts > serialize > drops assistant reasoning blocks by default 0ms
+ ✓ tests/serialize.spec.ts > serialize > preserves reasoning as reasoning_content under the preserve policy 0ms
+ ✓ tests/serialize.spec.ts > serialize > emits a pure-reasoning assistant message under preserve when no other content exists 0ms
+ ✓ tests/serialize.spec.ts > serialize > maps tools, stop sequences, temperature, and max_tokens precedence 0ms
+ ✓ tests/serialize.spec.ts > serialize > falls back to connection max_tokens when the catalog entry has none 0ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > maps HTTP 401 to AUTH with the status and body retained 21ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > maps HTTP 403 to AUTH with the status and body retained 0ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > maps HTTP 402 to QUOTA with the status and body retained 0ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > maps HTTP 429 to RATE_LIMIT with the status and body retained 0ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > maps HTTP 400 to INVALID_REQUEST with the status and body retained 1ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > maps HTTP 413 to INVALID_REQUEST with the status and body retained 1ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > maps HTTP 500 to SERVER with the status and body retained 0ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > maps HTTP 503 to SERVER with the status and body retained 0ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > maps HTTP 404 to HTTP_404 with the status and body retained 0ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > maps HTTP 422 to HTTP_422 with the status and body retained 0ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > classifies context-overflow wording over a generic 400 0ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > classifies terminal quota wording over a generic 429 0ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > uses the provider error type when the status is generic 0ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > classifies plain-text quota wording and bounds the message to 400 characters 0ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > reports EMPTY_RESPONSE when a successful answer carries no body 0ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > reports TRANSPORT for a fetch rejection and keeps the cause 0ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > reports MALFORMED_RESPONSE for an SSE data frame that is not JSON 0ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > passes an LlmError raised by the response body through unchanged 0ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > passes an LlmError raised by auth resolution through unchanged 0ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > reports ABORTED when the caller signal is already aborted 0ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter error mapping > reports TIMEOUT when the response stream stays idle past streamIdleTimeoutMs 27ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter transport > streams decoded chunks from SSE and sends the serialized request with auth headers 1ms
+ ✓ tests/adapter.spec.ts > BasisOpenAIAdapter transport > accepts arbitrary purpose strings from forwarding callers (compile-time contract) 0ms
+
+ Test Files  3 passed (3)
+      Tests  37 passed (37)
+   Start at  03:09:11
+   Duration  208ms (transform 86ms, setup 0ms, import 132ms, tests 60ms, environment 0ms)
+
+# EXIT: 0

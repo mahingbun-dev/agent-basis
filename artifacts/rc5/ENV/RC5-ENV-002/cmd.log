@@ -1,0 +1,12 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ node scripts/verify-rc5-env.mjs --api-static --json artifacts/rc5/ENV/_suite/verify-rc5-env.json
+# suite run 2026-11-19T22:04:26.457Z (mode=env+api-static); full stdout: artifacts/rc5/ENV/_suite/verify-rc5-env.stdout.log
+== ENV-002 [PASS] 全仓版本残留(排除历史文档/锁文件)
+   口径:51 ENV-002:0.2.2-alpha.2|alpha.3|rc.1 命中 0;本仓另扫 0.2.1/4.0.6。非注释命中为硬门禁,注释命中为信息面。
+   ✓ 扫描面不含 .secrets/.env* — 凭据面 0 文件
+   ✓ 代码/配置无非注释残留 — 扫描 1773 个文件,非注释命中 0
+   ! 历史叙述命中 80 注释 + 276 文档 + 8 清单 description + 2 裸 rc.1(不计门禁):Dockerfile=1, core=6, docker=3, packages=89, profiles=5, scripts=1, tools=5, acceptance=3, docs=234, plans=19
+
+EXIT 0 (suite)
+# started 2026-11-19T22:04:26.457Z
+# finished 2026-11-19T22:04:26.457Z

@@ -1,0 +1,25 @@
+{
+  "name": "@basis/approval-cli",
+  "description": "v1 插件面:CLI 审批面(ctx.approval)。request → approval/asked 事件 → stdin y/n + 理由 → approval/decided;io 注入可测;Web/通道审批后续复用同一 approval 契约。",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@core/cordis": "workspace:*",
+    "@core/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

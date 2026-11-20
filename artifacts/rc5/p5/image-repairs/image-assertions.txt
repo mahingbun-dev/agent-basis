@@ -1,0 +1,32 @@
+# 修复后镜像内断言(2026-11-20;eterna-agent:rc5-p5-repair,最终 Dockerfile 状态重建后)
+# 说明:entrypoint 会校验 MIMO_API_KEY(与本次修复无关),断网断言一律 --entrypoint 绕开,不注入任何凭据。
+
+$ docker run --rm --network=none --entrypoint pnpm eterna-agent:rc5-p5-repair --version
+11.7.0
+EXIT=0
+
+$ docker run --rm --network=none --entrypoint sh eterna-agent:rc5-p5-repair -c '<断言集>'
+dsh --version        : 0.2.2-rc.5
+node                 : v24.22.3
+python office libs   : docx/openpyxl/pptx import OK
+fonts Noto CJK count : 10
+flock                : /usr/bin/flock
+entrypoint           : -rwxr-xr-x executable
+v1 core/ in image    : absent-ok
+v1 basis.yml         : absent-ok
+v1 packages          : checked(无 -PRESENT-BAD 即通过)
+apt lists in image   : [auxfiles ]
+apt archives in image: [lock partial ]
+npm cache in image   : absent-ok
+pip cache in image   : absent-ok
+corepack home        : 20M
+koffi                : load OK 3.1.1
+repo size            : 929M
+fonts size           : 94M
+global node_modules  : 1.3G
+repo node_modules    : 884M
+EXIT=0
+
+$ docker images eterna-agent:rc5-p5-repair --format '{{.Size}}'
+3.92GB
+EXIT=0

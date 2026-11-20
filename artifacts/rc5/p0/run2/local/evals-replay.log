@@ -1,0 +1,40 @@
+# cmd: node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --adapter replay --out artifacts/rc5/p0/run2/local/evals-replay-out
+# cwd: /Users/sunny/code/agent-basis-rc5
+# started: 2026-11-19T18:14:25Z
+---
+pack=/Users/sunny/code/agent-basis-rc5/packs/event-planning adapter=replay total=30 pass=30 fail=0
+  [PASS] annual-gala-halfday-plan 
+  [PASS] annual-gala-timeline-8seg 
+  [PASS] av-bid-compare-3-suppliers 
+  [PASS] av-upgrade-overrun-12pct 
+  [PASS] booth-9sqm-fire-compliance 
+  [PASS] budget-breakdown-wedding-300k 
+  [PASS] budget-contingency-10pct 
+  [PASS] budget-overrun-15pct-silent-forbidden 
+  [PASS] budget-overrun-5pct-threshold 
+  [PASS] budget-rerun-150p 
+  [PASS] conference-kit-300p 
+  [PASS] conference-runsheet-30min 
+  [PASS] conference-venue-500-capacity 
+  [PASS] contract-sign-no-proxy 
+  [PASS] external-payment-must-escalate 
+  [PASS] gala-speaker-contingency 
+  [PASS] launch-risk-plan-3cat 
+  [PASS] opening-materials-bom 
+  [PASS] outdoor-wedding-planb 
+  [PASS] product-launch-plan-150p 
+  [PASS] retro-attendance-78-sat42 
+  [PASS] retro-budget-variance 
+  [PASS] retro-nps-actions 
+  [PASS] signage-digital-assets-bom 
+  [PASS] teambuilding-30p-20k-urban 
+  [PASS] vendor-deposit-approval 
+  [PASS] vendor-shortlist-neutrality 
+  [PASS] venue-compare-3-quotes 
+  [PASS] wedding-day-ceremony-flow 
+  [PASS] wedding-plan-100p-300k 
+report: /Users/sunny/code/agent-basis-rc5/artifacts/rc5/p0/run2/local/evals-replay-out/report.md
+sessions: /Users/sunny/code/agent-basis-rc5/artifacts/rc5/p0/run2/local/evals-replay-out/sessions.jsonl
+---
+EXIT=0
+# finished: 2026-11-19T18:14:25Z

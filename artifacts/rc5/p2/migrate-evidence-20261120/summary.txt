@@ -1,0 +1,32 @@
+T12/T13/T14 + H9/H11 迁移接线 — 证据摘要
+日期: 2026-11-19T18:24Z（UTC） | HEAD: 02f4857 | 分支: feat/dsh-rc5-merge | 平台: darwin arm64 / Node v24
+
+结果
+- harness: PASS=61 FAIL=0（harness.log）
+- 单测: 10 + 12 + 7 = 29 全绿
+- entrypoint: sh -n 通过；时序 渲染(94) < prompt(111) < bundles(136) < mcp(142) < relay sed(314) < exec(359)
+- 旧 rc.1 开发档两次 dry-run：run2 的 package.json/patch/marker sha256 与 mtime 全未变，无新备份（零写）
+- 失败路径：两个 .upgrade-*-backup.json 均 0600；entrypoint 只告警、仍 exit 0（boot 不炸）
+- 脱敏：日志/dump 中 家目录 → /Users/<user>，仓库路径中的用户名 → <user>；测试令牌未出现在日志/留痕
+
+本次改动（仅限允许文件）
+1. docker/profile/migrate-profile-bundles.mjs
+   - 解析失败时写 <profile>/.upgrade-profile-bundles-backup.json（0600），只记结构（profileBundles/路径/错误），不落 manifest 原文
+2. docker/profile/migrate-mcp-servers.mjs
+   - 合并语义改为“模板默认 + 旧表（旧表同键覆盖）”，再剔除独立 mcp-client 行承载名（50 §3.4.1「保留其余模板默认」）
+   - YAML 报错只留首行+行列，去掉含源码/令牌的 code frame
+3. docker/entrypoint.sh
+   - 2.4 段：T14 显式传 marker 路径；解析失败从“exit 1 停启”改为“WARNING 后继续”（47 §H9「只告警并保留模板空表」）
+   - 时序与 DSH_PKG 锚点保持不变
+4. 测试
+   - profile-upgrade-check.test.mjs：留痕 0600 断言
+   - migrate-mcp-servers.test.mjs：模板默认保留、code frame 不泄令牌、失败留痕 0600
+   - migrate-profile-bundles.test.mjs：失败留痕 0600、不落 manifest 原文、成功不产生留痕
+
+边界声明
+- 未 git push/merge；未启动/修改任何生产容器；未写 deepseek-harness；未触碰 agent-basis 工作树
+- 未修改其它 lane 文件
+- 未运行 lint：仓库 .oxlintrc.json 显式忽略 **/*.mjs（非通过项）
+
+遗留（详见 LaneReport leftovers）
+- 真容器 boot E2E 未跑（需镜像/卷；本 lane 只做 dry-run 与单测）

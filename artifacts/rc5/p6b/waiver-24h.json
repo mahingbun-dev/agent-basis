@@ -1,0 +1,50 @@
+{
+  "waived": ["RC5-TERM-013", "RC5-DATA-009"],
+  "level": "P1",
+  "decidedBy": "产品负责人（用户，本仓库唯一决策人）",
+  "decidedAtLocal": "2026-11-21 00:28 (UTC+8)",
+  "decidedAtUtc": "2026-11-20T16:28:18Z",
+  "instruction": "不用等24小时了，直接进行接下来的流程",
+  "scope": "仅豁免 24h 浸泡「满窗」时间判据；不豁免任何其它用例，不改变 51 的其余口径",
+  "basis": "51 §3 遗留处置「补跑或取得用户签字豁免」、54 §3.2 P1 清零或产品签字；本豁免即产品签字，替代四方签字中「产品」一栏对这两条的接受",
+  "evidenceAtDecision": {
+    "image": "eterna-agent:rc5-test = sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb",
+    "mainSoak": {
+      "elapsedSeconds": 37222,
+      "plannedSeconds": 86400,
+      "termTicks": 609,
+      "churnOk": 609,
+      "probeExitNonZero": 0,
+      "fdsFirst": 292,
+      "fdsLast": 280,
+      "rssKbFirst": 560816,
+      "rssKbLast": 380728,
+      "longProcessAlive": true,
+      "dataTicks": 122,
+      "writeOk": 244,
+      "writeFail": 0,
+      "lockMatches": 0,
+      "dbIntegrityAll": "ok（users.db / memory.sqlite3 / knowledge-admin access.sqlite3 ×122 tick）"
+    },
+    "scaleWindow": {
+      "elapsedSeconds": 31864,
+      "plannedSeconds": 86400,
+      "sessions": 50,
+      "readOk": 26500,
+      "readFail": 0,
+      "writeOk": 5300,
+      "writeFail": 0,
+      "lockMatches": 0,
+      "integrityChecks": 5,
+      "integrityAll": "ok"
+    }
+  },
+  "evidencePaths": [
+    "artifacts/rc5/p6b/soak/final-image2/{term-013-24h-final2.jsonl,data-009-24h-final2.jsonl,meta-24h-final2.json}",
+    "artifacts/rc5/E2/DATA/scale/{ticks.jsonl,meta.json}"
+  ],
+  "observationContinues": true,
+  "observationNote": "两条采样进程不中断，跑满 24h 后自动写 summary（2026-11-21T06:08Z / 07:37Z）；摘要仅作事后观察证据追加，不再回改本豁免与矩阵判定",
+  "residualRisk": "未观测的 13.5h/15h 内若出现 fd 泄漏、database locked 或 integrity 失败，将在生产上线后 24h 观察期（发布说明 §8）内暴露，回滚路径见 p7/rollback-record.md",
+  "matrixEffect": "TERM-013/DATA-009 判 WAIVED（非 PASS）：未真实满窗，不冒充绿；P0 计数不受影响"
+}

@@ -1,0 +1,11 @@
+# 替换表计数(仅统计,不写文件)
+# rules: "DeepSeek Harness (DSH)"->EternaAgent; "DeepSeek Harness"->EternaAgent; standalone DSH->EternaAgent
+SKILL.md: full=1 deepseek_harness=1 standalone_DSH=10
+references/artwork.md: full=0 deepseek_harness=0 standalone_DSH=1
+references/locate-docs.md: full=0 deepseek_harness=0 standalone_DSH=1
+references/packages.md: full=0 deepseek_harness=72 standalone_DSH=0
+references/plugin-development.md: full=0 deepseek_harness=0 standalone_DSH=1
+references/practices.md: full=0 deepseek_harness=0 standalone_DSH=1
+references/upgrading.md: full=0 deepseek_harness=0 standalone_DSH=4
+TOTAL: full=1 deepseek_harness=73 standalone_DSH=18
+EXIT=0

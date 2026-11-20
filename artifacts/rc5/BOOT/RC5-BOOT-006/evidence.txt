@@ -1,0 +1,29 @@
+## commands
+1) web/super verify boots (see RC5-BOOT-004/evidence.txt)
+2) node -e query on artifacts/rc5/p2/t11-slot-drift/{web,super}/*.json
+
+## assertion (web / super)
+web:   PASS  BOOT-006 rc.5 new rows present+active (9) — agent-team, tool-agent-team, ui-agent-team, ui-file-actions, ui-context-menu, mcp-manager, office-kit, skill-office, deepseek-chat-import
+super: PASS  BOOT-006 rc.5 new rows present+active (9) — agent-team, tool-agent-team, ui-agent-team, ui-file-actions, ui-context-menu, mcp-manager, office-kit, skill-office, deepseek-chat-import
+
+## live snapshot query (enabled/fiberPhase)
+== web ==
+agent-team             true/active
+tool-agent-team        true/active
+ui-agent-team          true/active
+ui-file-actions        true/active
+ui-context-menu        true/active
+mcp-manager            true/active
+office-kit             true/active
+skill-office           true/active
+deepseek-chat-import   true/active
+== super ==
+agent-team             true/active
+tool-agent-team        true/active
+ui-agent-team          true/active
+ui-file-actions        true/active
+ui-context-menu        true/active
+mcp-manager            true/active
+office-kit             true/active
+skill-office           true/active
+deepseek-chat-import   true/active

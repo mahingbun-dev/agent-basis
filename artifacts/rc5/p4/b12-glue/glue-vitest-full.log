@@ -1,0 +1,22 @@
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/glue
+
+ ✓ tests/interact-plugin.spec.ts (7 tests) 85ms
+ ✓ tests/governance-plugin.spec.ts (14 tests) 115ms
+ ✓ tests/channels-plugin.spec.ts (9 tests) 193ms
+ ✓ tests/governance-audit-trail.spec.ts (4 tests) 61ms
+ ✓ tests/tasks-access-bridge-plugin.spec.ts (8 tests) 7ms
+ ✓ tests/governance-rules-fixture.spec.ts (7 tests) 13ms
+ ✓ tests/egress-plugin.spec.ts (11 tests) 19ms
+ ✓ tests/memory-routing.spec.ts (7 tests) 72ms
+ ✓ tests/memory-plugin.spec.ts (10 tests) 98ms
+ ✓ tests/memory-session-face.spec.ts (7 tests) 177ms
+ ✓ tests/memory-consolidation.spec.ts (17 tests) 724ms
+ ✓ tests/memory-domain.spec.ts (12 tests) 732ms
+
+ Test Files  12 passed (12)
+      Tests  113 passed (113)
+   Start at  01:38:42
+   Duration  1.94s (transform 3.10s, setup 0ms, import 5.31s, tests 2.30s, environment 2ms)
+
+EXIT=0

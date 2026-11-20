@@ -1,0 +1,22 @@
+# OFF/RC5-OFF-006
+# started 2026-11-20T07:03:24.099Z
+
+$ docker exec rc5-e1suite node … 创建 session-aaaa…/<uuid-v4>/out.pdf（mtime 回拨 3 天）与 session-bbbb…/<uuid-v4>/（新鲜）；docker restart rc5-e1suite
+EXIT=0
+aged mtime=2026-11-16T23:29:07.836Z；fresh mtime=2026-11-19T23:29:07.838Z；restart 后 healthy
+
+$ docker exec rc5-e1suite ls -d /data/office-kit/outputs/session-aaaa… 与 session-bbbb…
+EXIT=2
+aged_exit=2（已删除）；fresh_exit=0（保留）
+
+$ grep -n "outputRetentionMs\|maxOutputStoreBytes" dsh-office-kit/lib/index.js；grep -n office-kit/outputs deploy/backup-data.sh
+EXIT=0
+outputRetentionMs default 1440*60*1e3（24h）；maxOutputStoreBytes default 512*1024*1024；backup-data.sh:81 --exclude=./office-kit/outputs
+
+[ASSERT] 过期输出目录在重启清理后消失 => PASS :: aged_exit=2
+
+[ASSERT] 未过期输出目录保留 => PASS :: fresh_exit=0
+
+[ASSERT] 保留期 24h / 上限 512MiB（默认值未被覆写） => PASS
+
+[ASSERT] 备份排除 office-kit/outputs => PASS :: deploy/backup-data.sh:81

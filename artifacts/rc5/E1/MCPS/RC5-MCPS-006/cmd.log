@@ -1,0 +1,10 @@
+# MCPS/RC5-MCPS-006
+# started 2026-11-20T07:03:00.694Z
+
+$ POST /api/mcpManager/probe（B 普通用户）
+EXIT=403
+ok=false code=- value=
+
+$ POST /api/mcpManager/restart（B 普通用户）
+EXIT=403
+ok=false code=-

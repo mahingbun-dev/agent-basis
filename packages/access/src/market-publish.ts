@@ -16,7 +16,7 @@
  *   头注;缺 default = 静默不装载),故 wrapper 恒生成 default 导出;
  * - 兼容闸评 engines.dsh 单独裁决(dsh-app-boot evaluatePluginCompatibility;
  *   memory compat-gate-reads-all-patch-referenced-packages),engines 一发即短接
- *   peers 逐个校验,range 取 >=0.2.2-alpha.2 对生产内核 alpha.3 满足;
+ *   peers 逐个校验,range 取 >=0.2.2-rc.5 对生产内核 rc.5 满足;
  * - insert 行必须带 id(eterna-plugins template/cordis.patch.yml 头注的 E2E 教训)。
  *
  * 凭据纪律(AGENTS.md):token 只走 compose .env → 容器 env,push 用
@@ -56,7 +56,7 @@ export function marketPublishEnvFromProcess(): MarketPublishEnv {
     // 铁律 T1(tenant-scan):持久化路径以 $DSH_HOME/cwd 为基,禁硬编码容器绝对路径
     // ——部署契约 working_dir=home(DSH_HOME=/data),故缺省落 <home>/market/eterna-plugins。
     repoDir: envOr('ETERNA_MARKET_REPO_DIR', join(process.env.DSH_HOME ?? process.cwd(), 'market', 'eterna-plugins')),
-    dshRange: envOr('ETERNA_MARKET_DSH_RANGE', '>=0.2.2-alpha.2'),
+    dshRange: envOr('ETERNA_MARKET_DSH_RANGE', '>=0.2.2-rc.5'),
     token: token === undefined || token === '' ? undefined : token,
   }
 }

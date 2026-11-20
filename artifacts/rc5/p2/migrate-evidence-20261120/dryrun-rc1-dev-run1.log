@@ -1,0 +1,8 @@
+-- run 1 --
+[migrate-profile-bundles]: 追加默认 bundle: @deepseek-ai/dsh-deepseek-chat-import, @deepseek-ai/dsh-experimental-session-search, @deepseek-ai/dsh-experimental-plugin-market-bundle, @deepseek-ai/dsh-experimental-terminal-bundle | 备份: /tmp/rc5-A-VO79SA/profiles/eterna-web/package.json.bak-2026-11-19T18-25-54-406Z
+EXIT_T14=0
+[migrate-mcp-servers]: 新 patch 自带 mcp-client 行承载 browser，跳过系统层迁移（避免 serverName 双实例）；无其它待迁移项，零写
+EXIT_T13=0
+[profile-upgrade-check]: profile=eterna-web mode=boot installAnchor=/Users/<user>/code/agent-basis-rc5/node_modules/.pnpm/@deepseek-ai+dsh@0.2.2-rc.5_8ca72e6bb32c9ec5bc17292fafab01ed/node_modules/@deepseek-ai/dsh/package.json bundles[ok=6]
+[profile-upgrade-check]: OK 无坏项
+EXIT_T12=0

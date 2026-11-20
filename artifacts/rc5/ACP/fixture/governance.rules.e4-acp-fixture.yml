@@ -1,0 +1,10 @@
+# E4 ACP-006 夹具规则（只存在于测试数据根；不入仓、不进镜像）
+# 目的：给 bash 的夹具命令显式 ask，触发 ACP session/request_permission；
+# 其余工具保持 default allow（与生产模板同口径）。
+default: allow
+rules:
+  - id: fixture-ask-acp-permission-bash
+    effect: ask
+    tools: ['bash']
+    argsContains: ['acp-permission-ok']
+    reason: "ACP-006 fixture — bash 命令需客户端审批"

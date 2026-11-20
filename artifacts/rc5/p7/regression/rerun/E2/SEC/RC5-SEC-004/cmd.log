@@ -1,0 +1,42 @@
+# SEC/RC5-SEC-004
+# started 2026-11-20T01:52:04.688Z
+
+$ POST /api/session/events {sessionId:A}（B）
+EXIT=200
+ok=false code=tenant/denied msg=会话不存在或不属于你
+
+$ POST /api/session/events {sessionId:不存在}（B）
+EXIT=200
+ok=false code=tenant/denied msg=会话不存在或不属于你
+
+$ POST /api/workspace/delete {A 工作区}（B）
+EXIT=200
+ok=false code=tenant/denied msg=工作区不存在或不属于你
+
+$ POST /api/workspace/delete {不存在}（B）
+EXIT=200
+ok=false code=tenant/denied msg=工作区不存在或不属于你
+
+$ POST /api/workspaceFiles/stat {scopeId:A session, path:e2-marker.txt}（B）
+EXIT=200
+ok=true value={"absolutePath":"/data/workspaces/rc5admin/e2-marker.txt","version":"43:211947:28:1795132187782666237:1795132187782666237","bytes":28} code=-
+
+$ POST /api/workspaceFiles/read {scopeId:A session, path:e2-marker.txt}（B）
+EXIT=200
+ok=true value={"absolutePath":"/data/workspaces/rc5admin/e2-marker.txt","version":"43:211947:28:1795132187782666237:1795132187782666237","bytes":28,"offset":1,"text":"E2-ADMI… code=-
+
+$ POST /api/mcp-personal/list（B）
+EXIT=200
+items=[]
+
+[ASSERT] B 读 A 的 session/events 被拒 => PASS :: status=200
+
+[ASSERT] A 会话与伪造会话的拒绝形态一致（无存在性泄漏） => PASS :: a=200 bogus=200
+
+[ASSERT] B 删 A 的工作区被拒 => PASS :: status=200
+
+[ASSERT] B 删伪造工作区同样被拒 => PASS :: status=200
+
+[ASSERT] B 用 A 的 sessionId 读工作区文件被拒 => FAIL :: stat=200 read=200 value={"absolutePath":"/data/workspaces/rc5admin/e2-marker.txt","version":"43:211947:2…
+
+[ASSERT] B 的个人 MCP 列表只含自己的 serverName => PASS :: []

@@ -1,0 +1,28 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+
+# 与 API-005 同一次真实宿主运行（3108 / eterna-rc5-e1；隔离 DSH_HOME=/tmp/api-run-home）
+$ docker cp artifacts/rc5/API/_harness/index.js eterna-rc5-e1:/tmp/api-harness/index.js
+$ docker cp artifacts/rc5/API/_harness/run-api005-007.sh eterna-rc5-e1:/tmp/run-api005-007.sh
+$ docker exec eterna-rc5-e1 sh /tmp/run-api005-007.sh
+[2026-11-19T22:54:17.161Z] dispatch 2 stored explicit accept 36ed884efff9cfc179578853b538df70
+[2026-11-19T22:54:17.362Z] worker ready worker-36ed884efff9cfc179578853b538df70 running
+[2026-11-19T22:54:25.432Z] waitForTreeWork returned true 8048ms
+[2026-11-19T22:54:25.710Z] child B resident status running
+[2026-11-19T22:54:25.722Z] drain B {"ok":true,"residentAfter":[],"waitForTreeWorkAfter":false,"workerStatusAfter":"idle"}
+[api-harness] ok= true
+HARNESS_EXIT=0
+DOCKER_EXEC_EXIT=0
+
+# 断言切片（results.json → drain.json）：
+#   descendants.workerBBefore = [{ id: d50af1bc-bfc3-44e1-a3b3-4453cffc0aef, status: "running" }]
+#   drain.drainMs = 9
+#   drain.descendantsAfter = [{ id: d50af1bc-..., resident: false }]
+#   drain.residentAfter = []
+#   drain.waitForTreeWorkAfter = false
+#   drain.workerStatusAfter = "idle"
+#   drain.subagentEnds = [{ stopReason: "aborted", at: 2026-11-19T22:54:25.719Z }]
+EXTRACT_EXIT=0
+
+# worker B 持久史切片（assignment + drain child catalog）
+#   输出：worker-b-session-extract.jsonl（7 事件；seq=18 subagent/catalog child=d50af1bc-...）
+EXTRACT_EXIT=0

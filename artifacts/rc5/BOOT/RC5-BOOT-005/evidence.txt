@@ -1,0 +1,13 @@
+## commands
+1) web/super verify boots (see RC5-BOOT-004/evidence.txt)
+2) node -e query on artifacts/rc5/p2/t11-slot-drift/{web,super}/*.json
+
+## assertion (web / super)
+web:   PASS  BOOT-005 deleted rows absent (account-controller, office-to-pdf) — absent in host tree and every preset
+super: PASS  BOOT-005 deleted rows absent (account-controller, office-to-pdf) — absent in host tree and every preset
+
+## live snapshot query (host entries + preset rows)
+web account-controller host=absent preset=absent
+web office-to-pdf host=absent preset=absent
+super account-controller host=absent preset=absent
+super office-to-pdf host=absent preset=absent

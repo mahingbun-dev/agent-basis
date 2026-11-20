@@ -1,0 +1,6 @@
+# MCPP/RC5-MCPP-005
+# started 2026-11-20T07:05:03.524Z
+
+$ node scripts/verify-mcp-personal.mjs --base http://127.0.0.1:3119 --accounts-file <0600> --data-root <E2 数据根> --container rc5-e2suite --json artifacts/rc5/E2/MCPP/report.json --full --restart
+EXIT=0
+PASS :: catalog=["echo","hung","flaky"]; command denied=true/stdio 的 command/args 只能来自管理员目录,禁止自填; args denied=true/stdio 的 command/args 只能来自管理员目录,禁止自填

@@ -1,0 +1,8 @@
+# TERM/RC5-TERM-001
+# started 2026-11-20T07:03:32.910Z
+
+$ node scripts/verify-terminal-guard.mjs --base http://127.0.0.1:3118 --accounts-file /Users/sunny/eterna-data/test-rc5/.test-accounts.json --data-root /Users/sunny/eterna-data/test-20261120/e1 --container rc5-e1suite --json /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E1/TERM/RC5-TERM-004/terminal-guard-report.json
+EXIT=0
+bundles-terminal=true :: bundles-terminal=true readUserTerminals=false:true preferredShells=[bash]:true
+
+[ASSERT] profile bundles 含 dsh-experimental-terminal-bundle => PASS

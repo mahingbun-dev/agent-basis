@@ -1,0 +1,16 @@
+{
+  "kinds": {
+    "response:result": 8,
+    "method:session/update": 8,
+    "response:error": 1,
+    "method:session/request_permission": 1
+  },
+  "nonJsonRpc": [],
+  "stderrLines": 14,
+  "exitInfo": {
+    "code": 0,
+    "signal": null,
+    "elapsedMs": 3598
+  },
+  "extraFrames": []
+}

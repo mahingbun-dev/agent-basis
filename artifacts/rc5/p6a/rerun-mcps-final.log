@@ -1,0 +1,25 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+[TypeError: fetch failed] {
+  [cause]: SocketError: other side closed
+      at Socket.onHttpSocketEnd (node:internal/deps/undici/undici:7825:26)
+      at Socket.emit (node:events:521:24)
+      at endReadableNT (node:internal/streams/readable:1729:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'UND_ERR_SOCKET',
+    socket: {
+      localAddress: '127.0.0.1',
+      localPort: 50830,
+      remoteAddress: '127.0.0.1',
+      remotePort: 3118,
+      remoteFamily: 'IPv4',
+      timeout: undefined,
+      bytesWritten: 2854,
+      bytesRead: 1205
+    }
+  }
+}
+
+Node.js v24.18.0

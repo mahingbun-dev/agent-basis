@@ -1,0 +1,20 @@
+✔ mcp-browser 旧行 → mcp-manager.config.servers（键名取 serverName） (19.3175ms)
+✔ 旧 mcp-manager servers 与 mcp-browser 合并（同键以旧 servers 为准） (1.523167ms)
+✔ 幂等：二次运行 servers 已一致 → 零写、无新备份 (1.843292ms)
+✔ 坏 YAML fail-closed：新 patch 原样保留、写 0600 备份 JSON、非 0 语义 (0.7835ms)
+✔ 模板默认 servers 保留：旧表只覆盖同名键，不整表替换 (1.280291ms)
+✔ 旧 patch 无 MCP 配置 → 明确空操作（exit 0 语义） (0.315333ms)
+✔ 旧 patch 不存在 → 空操作 (0.163125ms)
+✔ 新 patch 缺 mcp-manager 行 → fail-closed，新文件不写 (0.761041ms)
+✔ 新 patch 自带同名 mcp-client 行 → 不重复写入 mcp-manager（serverName 双实例防护） (0.728584ms)
+✔ 新 patch 行承载 browser 时，旧 manager 的其它 server 仍迁移 (1.21025ms)
+✔ 失败留痕 JSON 脱敏：servers 里的令牌/密钥值不落盘 (0.722583ms)
+✔ 坏 YAML 报错不打印 code frame（旧 patch 内令牌不落日志/留痕） (0.455958ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 98.128917

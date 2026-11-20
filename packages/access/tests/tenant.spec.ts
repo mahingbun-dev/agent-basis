@@ -30,6 +30,8 @@ describe('tenant 守卫', () => {
   // modelCatalog 专路测试注入口:配置行清单(缺省 undefined=纯透传)与上游返回值
   let configEditorConfiguration: unknown
   let upstreamCatalog: Record<string, unknown>
+  // 个人 MCP 补挂戏份(ensurePersonalMcp):只记 id,不测 runtime 本体
+  let personalMounts: string[]
   let audits: AccessAuditEvent[]
 
   beforeEach(() => {
@@ -111,7 +113,12 @@ describe('tenant 守卫', () => {
         return () => Promise.resolve()
       },
     }
-    registerTenantGuards({ store, session, reflect, tenantRoot: root, audit: (event) => { audits.push(event) } }, { fetch: registry })
+    personalMounts = []
+    registerTenantGuards({
+      store, session, reflect, tenantRoot: root,
+      audit: (event) => { audits.push(event) },
+      ensurePersonalMcp: async (sessionId) => { personalMounts.push(sessionId) },
+    }, { fetch: registry })
   })
   afterEach(() => {
     store.close()
@@ -213,7 +220,10 @@ describe('tenant 守卫', () => {
     expect(JSON.stringify(outside.result)).toContain('tenant/denied')
     const ok = await call('/api/session/create', 'alice', { request: { workspaceId: 'w-alice' } })
     expect(ok.result?.result).toMatchObject({ ok: true })
-    expect(store.sessionOwner((ok.result?.result as { value: { sessionId: string } }).value.sessionId)).toBe(aliceId)
+    const okSessionId = (ok.result?.result as { value: { sessionId: string } }).value.sessionId
+    expect(store.sessionOwner(okSessionId)).toBe(aliceId)
+    // 账本写入后必须补挂个人 MCP(agent/created 早于账本的时序缺口)
+    expect(personalMounts).toContain(okSessionId)
     // 复用会话 id 只认自己的:残留他人 id 剥掉按全新会话建(不泄权不误伤)
     const stripped = await call('/api/session/create', 'alice', { request: { workspaceId: 'w-alice', sessionId: 'not-mine' } })
     expect(stripped.result?.result).toMatchObject({ ok: true })
@@ -231,9 +241,11 @@ describe('tenant 守卫', () => {
       },
     }
     const reflect = { get: (key: string): unknown => localServices[key] }
-    const made = await ensureFirstSession({ store, reflect }, bobId, 'w-bob')
+    const mounts: string[] = []
+    const made = await ensureFirstSession({ store, reflect, ensurePersonalMcp: async (id) => { mounts.push(id) } }, bobId, 'w-bob')
     expect(made).toBe('s-first')
     expect(store.sessionOwner('s-first')).toBe(bobId)
+    expect(mounts).toEqual(['s-first'])
     expect(calls.at(-1)?.params[0]).toEqual({ workspaceId: 'w-bob' })
     const absent = await ensureFirstSession({ store, reflect: { get: () => undefined } }, bobId, 'w-bob')
     expect(absent).toBeUndefined()
@@ -282,7 +294,7 @@ describe('tenant 守卫', () => {
   })
 
   it('T2.5 迁移:存量 workspace 幂等划归首个 admin', () => {
-    const admin = store.createUserWithSuffix({ account: 'Mr.Ma', password: 'MqbSunny0702', role: 'admin' }).user
+    const admin = store.createUserWithSuffix({ account: 'Mr.Ma', password: 'Test-only-pass-9', role: 'admin' }).user
     const adopted = store.adoptOrphanWorkspaces(admin.id, [
       { workspaceId: 'legacy-1', path: '/data/demo' },
       { workspaceId: 'legacy-2', path: '/data/demo2' },

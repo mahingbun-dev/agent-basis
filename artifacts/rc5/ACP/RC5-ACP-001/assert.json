@@ -1,0 +1,34 @@
+{
+  "id": "RC5-ACP-001",
+  "priority": "P0",
+  "title": "initialize：合法 JSON-RPC 响应 + 协议版本协商",
+  "status": "PASS",
+  "at": "2026-11-20T05:10:31.469Z",
+  "detail": "protocolVersion=1 agent=deepseek-harness-acp version=0.0.1 mcpHttp=true",
+  "assertions": [
+    {
+      "name": "jsonrpc==2.0",
+      "expected": "2.0",
+      "observed": "2.0",
+      "ok": true
+    },
+    {
+      "name": "result.protocolVersion==1",
+      "expected": "1",
+      "observed": "1",
+      "ok": true
+    },
+    {
+      "name": "agentInfo.name 非空",
+      "expected": "非空字符串",
+      "observed": "deepseek-harness-acp",
+      "ok": true
+    },
+    {
+      "name": "无 error 字段",
+      "expected": "无",
+      "observed": "false",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-inyCcH/origin.git
+ * [new branch]      main -> main
+ ✓ tests/knowledge-admin-guard.spec.ts (6 tests) 745ms
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-AYfNe4/origin.git
+ * [new branch]      main -> main
+ ✓ tests/tasks-settings.spec.ts (8 tests) 1182ms
+ ✓ tests/workspace-session-actions.spec.ts (19 tests) 1434ms
+Cloning into '/var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-AYfNe4/merge-work'...
+done.
+ ✓ tests/tenant.spec.ts (20 tests) 1573ms
+ ✓ tests/mux-peer-drift.spec.ts (9 tests) 692ms
+From /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-AYfNe4/origin
+ * branch            publish/my-tool-0.1.0 -> FETCH_HEAD
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-AYfNe4/origin.git
+   b0527d6..bcd30c4  main -> main
+ ✓ tests/store.spec.ts (19 tests) 1941ms
+ ✓ tests/user-plugins.spec.ts (8 tests) 614ms
+ ✓ tests/tenant-guard-matrix.spec.ts (26 tests) 2040ms
+ ✓ tests/workbench-stream.spec.ts (5 tests) 303ms
+ ✓ tests/within-root.spec.ts (6 tests) 289ms
+ ✓ tests/mux-policy.spec.ts (7 tests) 552ms
+ ✓ tests/password.spec.ts (5 tests) 188ms
+ ✓ tests/session-create-cwd.spec.ts (3 tests) 151ms
+ ✓ tests/panel-isolation.spec.ts (3 tests) 273ms
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-WMlhUr/origin.git
+ * [new branch]      main -> main
+ ✓ tests/companion.spec.ts (4 tests) 161ms
+ ✓ tests/terminal-tenant.spec.ts (4 tests) 124ms
+ ✓ tests/plugin.spec.ts (4 tests) 159ms
+ ✓ tests/thinking-auto.spec.ts (15 tests) 96ms
+ ✓ tests/tenant-plugins.spec.ts (11 tests) 95ms
+ ✓ tests/sandbox-clamp.spec.ts (6 tests) 125ms
+ ✓ tests/approval-bridge.spec.ts (10 tests) 63ms
+ ✓ tests/question-bridge.spec.ts (16 tests) 37ms
+ ✓ tests/mux-drift.spec.ts (17 tests) 65ms
+ ✓ tests/role-expansion-anchor.spec.ts (3 tests) 8ms
+ ✓ tests/client-rpc.spec.ts (5 tests) 34ms
+ ✓ tests/thinking-score.spec.ts (16 tests) 4ms
+ ✓ tests/login-gate.spec.ts (7 tests) 3ms
+ ✓ tests/companion-inject.spec.ts (12 tests) 9ms
+ ✓ tests/link-opening.spec.ts (8 tests) 6ms
+Cloning into '/var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-WMlhUr/merge-work'...
+done.
+ ✓ tests/gateway-role-gate.spec.ts (23 tests) 3026ms
+     ✓ ③ 档位翻转即时:mux 内容绑定零放宽不变式在 tenant-pending 档仍成立(M-2 不变式翻转时点)  301ms
+ ✓ tests/decision-layer.spec.ts (11 tests) 4ms
+ ✓ tests/mcp-manager-drift.spec.ts (9 tests) 6ms
+From /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-WMlhUr/origin
+ * branch            publish/my-tool-0.1.0 -> FETCH_HEAD
+ ✓ tests/model-catalog.spec.ts (4 tests) 5ms
+ ✓ tests/routes.spec.ts (31 tests) 3155ms
+ ✓ tests/thinking-context.spec.ts (9 tests) 4ms
+ ✓ tests/session.spec.ts (6 tests) 5ms
+ ✓ tests/channels-webhook.spec.ts (4 tests) 4ms
+ ✓ tests/channels-webhook-contract.spec.ts (3 tests) 4ms
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-WMlhUr/origin.git
+   432a945..53617d5  main -> main
+ ✓ tests/ratelimit.spec.ts (3 tests) 2ms
+ ✓ tests/tool-schema.spec.ts (6 tests) 3ms
+ ✓ tests/pages.spec.ts (5 tests) 2ms
+ ✓ tests/bias-view.spec.ts (3 tests) 2ms
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-CzH0qn/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-jjy3sN/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-YGx6ka/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-UPZRmE/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-1KcrVx/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-xQHAWj/origin.git
+ * [new branch]      main -> main
+ ✓ tests/market-publish.spec.ts (11 tests) 4744ms
+     ✓ 首发全流程:组装/清单重写/两段 commit/push 到裸仓/compare 链接  781ms
+     ✓ 二次发布自动递增版本;索引多版本按 SemVer 降序  1447ms
+     ✓ 撞版先查:显式已存在版本在 commit 之前被拒  1071ms
+     ✓ 远端同名分支已存在 → 拒绝(上次 PR 未合并)  348ms
+
+ Test Files  43 passed (43)
+      Tests  410 passed (410)
+   Start at  02:18:09
+   Duration  5.03s (transform 1.07s, setup 0ms, import 2.15s, tests 23.93s, environment 3ms)
+

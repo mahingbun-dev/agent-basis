@@ -1,0 +1,49 @@
+# 步骤 1：先跑 T14（与 entrypoint 顺序一致：migrate-profile-bundles → precheck）
+$ node docker/profile/migrate-profile-bundles.mjs artifacts/rc5/p2/migrate-t12-profile-check/fixture/eterna-web/package.json artifacts/rc5/p2/migrate-t12-profile-check/fixture/template.package.json
+[migrate-profile-bundles]: 追加默认 bundle: @deepseek-ai/dsh-deepseek-chat-import, @deepseek-ai/dsh-experimental-session-search, @deepseek-ai/dsh-experimental-terminal-bundle | 备份: artifacts/rc5/p2/migrate-t12-profile-check/fixture/eterna-web/package.json.bak-2026-11-19T17-58-13-079Z
+EXIT=0
+---
+
+# 步骤 2：gate 模式（升级门禁；坏 bundle 必须非 0）
+$ node scripts/profile-upgrade-check.mjs artifacts/rc5/p2/migrate-t12-profile-check/fixture/eterna-web --install-anchor /Users/sunny/code/agent-basis-rc5/node_modules/.pnpm/@deepseek-ai+dsh@0.2.2-rc.5_6f7375c9304196d1bc29046501d27902/node_modules/@deepseek-ai/dsh/package.json
+[profile-upgrade-check]: profile=eterna-web mode=gate installAnchor=/Users/sunny/code/agent-basis-rc5/node_modules/.pnpm/@deepseek-ai+dsh@0.2.2-rc.5_6f7375c9304196d1bc29046501d27902/node_modules/@deepseek-ai/dsh/package.json bundles[ok=14 retired=1 invalid=1]
+[profile-upgrade-check]: BAD @deepseek-ai/dsh-experimental-agent-team-profile [retired] 上游 RETIRED_BUNDLES 已下架（47 §B1 迁移规则：删除该 bundle 项）
+[profile-upgrade-check]: BAD @eterna/knowledge-admin [invalid] 未声明 dsh.bundle（dsh 会跳过该层）
+[profile-upgrade-check]: 留痕 /Users/sunny/code/agent-basis-rc5/artifacts/rc5/p2/migrate-t12-profile-check/fixture/eterna-web/.upgrade-removed-bundles.json
+[profile-upgrade-check]: 预检失败（坏项见上；升级门禁拒绝）
+EXIT=1
+---
+GATE_EXIT=1
+ASSERT PASS: gate EXIT=1（下架 bundle）
+ASSERT PASS: gate 留痕存在且含 retired
+
+# 步骤 3：boot 模式 + --apply-removals（entrypoint 用；必须 EXIT=0 且移除下架项）
+$ node scripts/profile-upgrade-check.mjs artifacts/rc5/p2/migrate-t12-profile-check/fixture/eterna-web --install-anchor /Users/sunny/code/agent-basis-rc5/node_modules/.pnpm/@deepseek-ai+dsh@0.2.2-rc.5_6f7375c9304196d1bc29046501d27902/node_modules/@deepseek-ai/dsh/package.json --boot --apply-removals
+[profile-upgrade-check]: profile=eterna-web mode=boot installAnchor=/Users/sunny/code/agent-basis-rc5/node_modules/.pnpm/@deepseek-ai+dsh@0.2.2-rc.5_6f7375c9304196d1bc29046501d27902/node_modules/@deepseek-ai/dsh/package.json bundles[ok=14 removed-by-check=1 invalid=1]
+[profile-upgrade-check]: BAD @eterna/knowledge-admin [invalid] 未声明 dsh.bundle（dsh 会跳过该层）
+[profile-upgrade-check]: REMOVED @deepseek-ai/dsh-experimental-agent-team-profile（备份 /Users/sunny/code/agent-basis-rc5/artifacts/rc5/p2/migrate-t12-profile-check/fixture/eterna-web/package.json.bak-2026-11-19T17-58-13-388Z）
+[profile-upgrade-check]: 留痕 /Users/sunny/code/agent-basis-rc5/artifacts/rc5/p2/migrate-t12-profile-check/fixture/eterna-web/.upgrade-removed-bundles.json
+EXIT=0
+---
+BOOT1_EXIT=0 SHA0=b69cba5d8d5e1aa9521bcfd0b1014ebdc1c8ba87f8c27519890d3e18932a6cd0 SHA1=305d14f0374ebabff8e4796cf3d1948c71123b8585bc757dd41337c75973e3d6 BACKUPS=2 TRACE1=dd03ea0f13163893da9ff07c9e3135f004d33eb10c00c3f363650ac9de132352
+ASSERT PASS: boot1 EXIT=0（boot 不炸）
+ASSERT PASS: boot1 移除下架 bundle（package.json 变）
+ASSERT PASS: boot1 先备份（新备份 1 份）
+ASSERT PASS: boot1 下架项已不在 bundles
+
+# 步骤 4：再跑 boot（package.json 必须零写；留痕首次稳定化后可零写）
+$ node scripts/profile-upgrade-check.mjs artifacts/rc5/p2/migrate-t12-profile-check/fixture/eterna-web --install-anchor /Users/sunny/code/agent-basis-rc5/node_modules/.pnpm/@deepseek-ai+dsh@0.2.2-rc.5_6f7375c9304196d1bc29046501d27902/node_modules/@deepseek-ai/dsh/package.json --boot --apply-removals
+[profile-upgrade-check]: profile=eterna-web mode=boot installAnchor=/Users/sunny/code/agent-basis-rc5/node_modules/.pnpm/@deepseek-ai+dsh@0.2.2-rc.5_6f7375c9304196d1bc29046501d27902/node_modules/@deepseek-ai/dsh/package.json bundles[ok=14 invalid=1]
+[profile-upgrade-check]: BAD @eterna/knowledge-admin [invalid] 未声明 dsh.bundle（dsh 会跳过该层）
+EXIT=0
+---
+$ node scripts/profile-upgrade-check.mjs artifacts/rc5/p2/migrate-t12-profile-check/fixture/eterna-web --install-anchor /Users/sunny/code/agent-basis-rc5/node_modules/.pnpm/@deepseek-ai+dsh@0.2.2-rc.5_6f7375c9304196d1bc29046501d27902/node_modules/@deepseek-ai/dsh/package.json --boot --apply-removals
+[profile-upgrade-check]: profile=eterna-web mode=boot installAnchor=/Users/sunny/code/agent-basis-rc5/node_modules/.pnpm/@deepseek-ai+dsh@0.2.2-rc.5_6f7375c9304196d1bc29046501d27902/node_modules/@deepseek-ai/dsh/package.json bundles[ok=14 invalid=1]
+[profile-upgrade-check]: BAD @eterna/knowledge-admin [invalid] 未声明 dsh.bundle（dsh 会跳过该层）
+EXIT=0
+---
+BOOT2_EXIT=0 SHA2=305d14f0374ebabff8e4796cf3d1948c71123b8585bc757dd41337c75973e3d6 TRACE2=dd03ea0f13163893da9ff07c9e3135f004d33eb10c00c3f363650ac9de132352 BOOT3_EXIT=0 SHA3=305d14f0374ebabff8e4796cf3d1948c71123b8585bc757dd41337c75973e3d6 TRACE3=dd03ea0f13163893da9ff07c9e3135f004d33eb10c00c3f363650ac9de132352
+ASSERT PASS: boot2/boot3 EXIT=0
+ASSERT PASS: boot2/boot3 package.json 零写
+ASSERT PASS: boot3 留痕零写（boot2 已稳定）
+ASSERT PASS: 留痕保留移除历史（removed 仍有下架项）

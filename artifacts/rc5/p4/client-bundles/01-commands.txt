@@ -1,0 +1,49 @@
+T36 B5 客户端 bundle 重建 —— 命令原文(2026-11-20,工作树 /Users/sunny/code/agent-basis-rc5,分支 feat/dsh-rc5-merge)
+环境:node v24.18.0 / pnpm 11.7.0 / esbuild 0.28.2 / typescript 6.0.3
+时间戳:日志内 UTC(本地 +08:00)
+
+# 0) 静态事实(侦察)
+node -e "const j=require('./packages/<pkg>/package.json'); ..."        # 10 包 scripts/dsh.client/exports
+cat node_modules/.pnpm/@deepseek-ai+dsh-client-ui-plugin-manager@0.2.2-rc.5_@deepseek-ai+cordis@4.1.0/node_modules/@deepseek-ai/dsh-client-ui-plugin-manager/lib/types/client/slot-contract.d.ts
+# → rc.5 PluginTabProps = install/update/openPackage 三者必填(update 为 rc.1→rc.5 新增)
+
+# rc.5 PLATFORM_MODULES 种子表(实读 dsh-web-frontend@0.2.2-rc.5 dist 模块表)
+python3 -I - # 从 dist/assets/index-Ciz7DZxv.js 抽取 qJ() = {react, react/jsx-runtime, react-dom, react-dom/client,
+            #  @deepseek-ai/cordis, zod, @tanstack/react-virtual, @deepseek-ai/dsh-client-store,
+            #  @deepseek-ai/dsh-client-ui-slots, @deepseek-ai/dsh-client-ui-primitives,
+            #  @deepseek-ai/dsh-client-ui-dockkit}
+
+# 1) 10 包重建(各自 build:client 脚本;逐包 EXIT 见 02-build.log)
+cd /Users/sunny/code/agent-basis-rc5
+for p in access attachments brand compaction llm-doctor memory panel prompt-studio usage-stats workbench; do
+  ( cd packages/$p && pnpm run --silent build:client ); echo "$p EXIT:$?"
+done
+# 实际执行命令(带日志重定向)见本次会话;02-build.log 记录每包 EXIT 与 esbuild 输出,OVERALL_EXIT:0
+
+# 2) 10 包客户端类型(各包 typecheck 脚本;逐包 EXIT 见 04-typecheck.log)
+for p in access attachments brand compaction llm-doctor memory panel prompt-studio usage-stats workbench; do
+  ( cd packages/$p && pnpm run --silent typecheck ); echo "$p EXIT:$?"
+done
+# 契约影子进编译图证明:
+cd packages/access && ../../node_modules/.bin/tsc --noEmit --listFiles | grep plugin-manager-contract.d.ts
+# → /Users/sunny/code/agent-basis-rc5/packages/access/src/client/plugin-manager-contract.d.ts
+
+# 3) 契约负向测试(见 07-contract-negative-test.log)
+#    临时从 plugin-manager-contract.d.ts 删除 update() → tsc 必红;恢复 → tsc 绿
+cd packages/access
+cp src/client/plugin-manager-contract.d.ts /tmp/pmc.bak
+# (python 替换 readonly update 行)
+../../node_modules/.bin/tsc --noEmit   # EXIT_NEGATIVE:2(TS2339 ×2)
+cp /tmp/pmc.bak src/client/plugin-manager-contract.d.ts
+../../node_modules/.bin/tsc --noEmit   # EXIT_RESTORED:0
+
+# 4) UI 令牌门禁
+cd /Users/sunny/code/agent-basis-rc5
+node scripts/lint-ui-tokens.mjs        # EXIT:0(05-lint-ui-tokens.log)
+
+# 5) 工件断言 + roster
+node artifacts/rc5/p4/client-bundles/assert-bundles.mjs   # EXIT:0(03-assertions.log)
+python3 -I - # 生成 06-roster.txt / 06-roster.json(包名/路径/字节/mtime_utc/sha256)
+
+# 6) external 表一致性(08-externals-match.log)
+python3 -I - # 逐包比对 BASELINE_EXTERNALS == rc.5 PLATFORM_MODULES(11 项,逐字)

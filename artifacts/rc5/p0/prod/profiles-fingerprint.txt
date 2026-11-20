@@ -1,0 +1,30 @@
+$ docker exec eterna-agent sh -lc '<sha256sum + wc + id rows>'
+cd0e8815b29ea57b7f022b2cfedd964d34cb0988d31234e481baf3c484ed8a7f  eterna-super/cordis.patch.yml
+7cf1287a508105601574390d3c7aa9b73c9c25bb924589ec092cee00743b76ec  eterna-web/cordis.patch.yml
+ef189a8c27db6d63930aa3046a3040482e952eafcb7487c644d508e8d461f027  web/cordis.patch.yml
+8bb20d49f247450f26c5ae2901f1b303dd3dc4b2da1a90a33e543194f1bfba1a  eterna-super/package.json
+9153514a6eef71e36be70a2cf0f8829b8b61b5761c5470a88b65ac467c1e8d5d  eterna-web/package.json
+210068ddb9ebc4cdf395ebb53020be6ccaaedb917e74dae16296d62394626398  web/package.json
+---
+  1036 eterna-super/cordis.patch.yml
+   999 eterna-web/cordis.patch.yml
+     4 web/cordis.patch.yml
+    28 eterna-super/package.json
+    26 eterna-web/package.json
+    13 web/package.json
+  2106 total
+---
+[eterna-super] rows:
+otel session-telemetry-otel desktop-product-telemetry product-analytics authorization deepseek-account llm-deepseek llm-deepseek-account account-controller ui-settings-account ptc-runtime workflow-ptc tool-workflow tool-executor-ptc fs-observation-policy tool-plugin-manager ui-workflow-run session-log-deepseek ui-settings-session-log ui-settings-plugins office-to-pdf open-in-app ui-open-in-app ui-shortcuts ui-brand-official ui-message-feedback preset-ptc preset-cordis persona agent-instructions time-context tool-bash tool-pwsh tool-fs tool-fs-search tool-jobs tool-schedule command-goal tool-goal planning plan-mode compaction stale-tool-result-pruner compaction-basic command-compact tool-result-pruner delegation tool-subagent-control tool-subagent tool-subagent-fork workflow-ptc tool-workflow tool-ask-user tool-todo tool-web tool-cordis skill-filesystem tool-skill present tool-plugin-manager tool-plugin-market preset-standard persona agent-instructions time-context tool-bash tool-pwsh tool-fs tool-fs-search tool-jobs tool-schedule skill-filesystem tool-skill command-goal tool-goal planning plan-mode compaction stale-tool-result-pruner compaction-basic command-compact tool-result-pruner delegation tool-subagent-control tool-subagent tool-subagent-fork workflow-ptc tool-workflow tool-ask-user tool-todo tool-web present tool-plugin-manager tool-plugin-market ui-sidebar-browser permission approval directory-picker directory-picker-host eterna-governance eterna-audit eterna-egress eterna-memory eterna-knowledge eterna-llm-doctor eterna-brand eterna-access eterna-prompt-studio eterna-usage-stats eterna-panel eterna-workbench eterna-attachments eterna-compaction-client eterna-compaction-admin eterna-memory-client eterna-memory-admin eterna-tasks eterna-channels eterna-interact eterna-toolkit eterna-tasks-access-bridge mcp-browser llm-pi-ai deepseek-flash deepseek-v4-pro mimo-v2.6-flash mimo-v2.6-pro mimo-v2.6-pro-ultraspeed glm-5.3 glm-5.3-flash claude-haiku-5.5 deepseek-v4-flash deepseek-v4-flash-vision-exp deepseek-v4-pro deepseek-v4.1-flash deepseek-v4.1-flash-eco glm-5.3-flash glm-5.3-flashx gpt-6-luna hy4-preview kimi-k2.7-code mimo-v2.6-flash mimo-v2.6-pro minimax-m3.1-flash glm-5.3 deepseek-v4.1-flash-1017 glm-5.3-flash agent-default-model ui-settings-general session-log-deepseek agent-preset-registry 
+[eterna-web] rows:
+otel session-telemetry-otel desktop-product-telemetry product-analytics authorization deepseek-account llm-deepseek llm-deepseek-account account-controller ui-settings-account ptc-runtime workflow-ptc tool-workflow tool-executor-ptc fs-observation-policy tool-plugin-manager ui-workflow-run session-log-deepseek ui-settings-session-log ui-settings-plugins office-to-pdf open-in-app ui-open-in-app ui-shortcuts ui-brand-official ui-message-feedback preset-ptc preset-cordis persona agent-instructions time-context tool-bash tool-pwsh tool-fs tool-fs-search tool-jobs tool-schedule command-goal tool-goal planning plan-mode compaction stale-tool-result-pruner compaction-basic command-compact tool-result-pruner delegation tool-subagent-control tool-subagent tool-subagent-fork workflow-ptc tool-workflow tool-ask-user tool-todo tool-web tool-cordis skill-filesystem tool-skill present tool-plugin-manager tool-plugin-market preset-standard persona agent-instructions time-context tool-bash tool-pwsh tool-fs tool-fs-search tool-jobs tool-schedule skill-filesystem tool-skill command-goal tool-goal planning plan-mode compaction stale-tool-result-pruner compaction-basic command-compact tool-result-pruner delegation tool-subagent-control tool-subagent tool-subagent-fork workflow-ptc tool-workflow tool-ask-user tool-todo tool-web present tool-plugin-manager tool-plugin-market ui-sidebar-browser permission approval directory-picker directory-picker-host eterna-governance eterna-audit eterna-egress eterna-memory eterna-knowledge eterna-llm-doctor eterna-brand eterna-access eterna-prompt-studio eterna-usage-stats eterna-panel eterna-attachments eterna-compaction-client eterna-compaction-admin eterna-memory-client eterna-memory-admin mcp-browser llm-pi-ai deepseek-flash deepseek-v4-pro mimo-v2.6-flash mimo-v2.6-pro mimo-v2.6-pro-ultraspeed glm-5.3 glm-5.3-flash claude-haiku-5.5 deepseek-v4-flash deepseek-v4-flash-vision-exp deepseek-v4-pro deepseek-v4.1-flash deepseek-v4.1-flash-eco glm-5.3-flash glm-5.3-flashx gpt-6-luna hy4-preview kimi-k2.7-code mimo-v2.6-flash mimo-v2.6-pro minimax-m3.1-flash agent-default-model ui-settings-general session-log-deepseek agent-preset-registry ui-permission 
+[web] rows:
+
+---
+-rw-r--r-- 1 root root 7147 Nov 19 17:21 eterna-super/.rendered.cordis.patch.yml.baseline.json
+-rw-r--r-- 1 root root   64 Nov 19 06:14 eterna-super/.rendered.cordis.patch.yml.sha256
+-rw-r--r-- 1 root root   64 Nov 18 19:16 eterna-super/.rendered.package.json.sha256
+-rw-r--r-- 1 root root 7147 Nov 18 18:48 eterna-web/.rendered.cordis.patch.yml.baseline.json
+-rw-r--r-- 1 root root   64 Nov 18 18:48 eterna-web/.rendered.cordis.patch.yml.sha256
+-rw-r--r-- 1 root root   64 Nov 12 16:08 eterna-web/.rendered.package.json.sha256
+EXIT=0

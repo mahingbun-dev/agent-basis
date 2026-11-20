@@ -1,0 +1,29 @@
+# artifacts/rc5 阶段目录实况（不含 T00 自身证据目录 artifacts/rc5/p0/recon/）
+# 采集时间: 2026-11-20 02:00:44 +0800
+artifacts/rc5/p0 EXISTS files=90 size=484K last_mtime=2026-11-20 01:45:47
+artifacts/rc5/p1 EXISTS files=20 size=488K last_mtime=2026-11-20 01:57:39
+artifacts/rc5/p2 EXISTS files=72 size=560K last_mtime=2026-11-20 01:58:23
+artifacts/rc5/p3 EXISTS files=11 size=92K last_mtime=2026-11-20 01:00:32
+artifacts/rc5/p4 EXISTS files=26 size=152K last_mtime=2026-11-20 01:58:16
+artifacts/rc5/p5 MISSING
+artifacts/rc5/p6a MISSING
+artifacts/rc5/p6b MISSING
+artifacts/rc5/p7 MISSING
+
+# 各阶段顶层子目录
+artifacts/rc5
+artifacts/rc5/p0
+artifacts/rc5/p0/backup
+artifacts/rc5/p0/local
+artifacts/rc5/p0/prod
+artifacts/rc5/p1
+artifacts/rc5/p1/env-api-logs
+artifacts/rc5/p2
+artifacts/rc5/p2/migrate-t12-profile-check
+artifacts/rc5/p2/migrate-t13-mcp-servers
+artifacts/rc5/p2/migrate-t14-profile-bundles
+artifacts/rc5/p2/migrate-wiring
+artifacts/rc5/p3
+artifacts/rc5/p4
+artifacts/rc5/p4/b12-glue
+artifacts/rc5/p4/b14-system-gates

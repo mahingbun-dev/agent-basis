@@ -1,0 +1,47 @@
+{
+  "phase": "P5",
+  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "imageTag": "eterna-agent:rc5-test",
+  "imageId": "sha256:5b10f5136403b905c327f8438cedd07eb65979075b818cf625e088f623064172",
+  "startedAt": "2026-11-19T20:39:54Z",
+  "finishedAt": "2026-11-19T21:01:23Z",
+  "windowBasis": "p5/image-deploy summary + p5/testbed 六个 verify 脚本",
+  "commands": [
+    {
+      "cmd": "node scripts/verify-rc5-env.mjs --api-static --runtime-image eterna-agent:rc5-test --json artifacts/rc5/p5/testbed/env-runtime/report.json",
+      "exit": 0,
+      "log": "artifacts/rc5/p5/testbed/env-runtime/cmd.log",
+      "note": "dsh rc.5 / node v24.22.3 / v1 剥离 / 字体 / Python 全 PASS"
+    },
+    {
+      "cmd": "docker build ... -t eterna-agent:rc5-test",
+      "exit": 0,
+      "log": "artifacts/rc5/p5/repairs/round2/build-rc5-test.log",
+      "note": "镜像 digest sha256:5b10f5136403…，752.2 MiB"
+    },
+    {
+      "cmd": "node scripts/verify-terminal-guard.mjs",
+      "exit": 1,
+      "log": "artifacts/rc5/p5/testbed/terminal-guard/cmd.log",
+      "note": "PASS=5 FAIL=4 NOTRUN=3；与 P6 TERM-004/006 同根因"
+    },
+    {
+      "cmd": "node scripts/verify-mcp-personal.mjs",
+      "exit": 0,
+      "log": "artifacts/rc5/p5/testbed/mcp-personal/cmd.log",
+      "note": "PASS=15 FAIL=0 SKIP=7"
+    }
+  ],
+  "cases": {
+    "total": 16,
+    "pass": 16,
+    "fail": 0,
+    "skip": 0
+  },
+  "leftovers": [
+    "SOAK-24H|24h 浸泡窗口未满（实时观测见 artifacts/rc5/p6a/soak-window.json；plannedEnd 2026-11-21T05:06:19.450Z）|P0|满窗后复核 window.complete=true 与 verdict",
+    "P5-01|TERM-014（P2）随 TERM 套件中止未执行|P2|修复 TERM-004/006 后补跑"
+  ],
+  "generatedBy": "T50/artifacts/rc5/p6a/scan-matrix.mjs",
+  "generatedAt": "2026-11-20T05:25:41Z"
+}

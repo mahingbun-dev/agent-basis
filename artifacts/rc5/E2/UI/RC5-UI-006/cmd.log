@@ -1,0 +1,35 @@
+# UI/RC5-UI-006
+# started 2026-11-20T07:10:02.233Z
+
+$ node artifacts/rc5/E2/UI/ui-shot.mjs
+EXIT=0
+light/1440: hero_ov=false mcp_open=true terminal_tab=["bash"] import_hits=1 lum=242
+light/900: hero_ov=false mcp_open=true terminal_tab=["bash"] import_hits=1 lum=242
+light/390: hero_ov=false mcp_open=true terminal_tab=["bash"] import_hits=1 lum=242
+dark/1440: hero_ov=false mcp_open=true terminal_tab=["bash"] import_hits=1 lum=24.2
+dark/900: hero_ov=false mcp_open=true terminal_tab=["bash"] import_hits=1 lum=24.2
+dark/390: hero_ov=false mcp_open=true terminal_tab=["bash"] import_hits=1 lum=24.2
+
+$ POST /api/deepseekChatImport/limits（浏览器 cookie，light）
+EXIT=200
+{"type":"server-response","rpcId":"e2-mwon1egu","result":{"ok":true,"value":{"maxUploadBytes":536870912}}}
+
+$ POST /api/deepseekChatImport/limits（浏览器 cookie，dark）
+EXIT=200
+{"type":"server-response","rpcId":"e2-mwon2ycq","result":{"ok":true,"value":{"maxUploadBytes":536870912}}}
+
+[ASSERT] 双主题生效（浅色亮度>180 / 深色<80） => PASS :: light:242 light:242 light:242 dark:24.2 dark:24.2 dark:24.2
+
+[ASSERT] 6 组合均无文档横向溢出 => PASS
+
+[ASSERT] 6 组合 MCP 设置分区可开 => PASS
+
+[ASSERT] terminal 面板 6 组合均为真实终端页，无终端错误 => PASS :: terminal_tab=6/6
+
+[ASSERT] chat-import 入口按钮每组均渲染（至少 1 个） => PASS :: hits=6
+
+[ASSERT] chat-import 槽位存在（不是插槽缺失） => PASS
+
+[ASSERT] 空态 hero 不浮出决策层切换条（390 遮挡回归锚） => PASS :: switch_labels=0
+
+# note: 截图 24 张：RC5-UI-006/RC5-UI-006-light-1440-hero.png, RC5-UI-006/RC5-UI-006-light-1440-mcp-settings.png, RC5-UI-006/RC5-UI-006-light-1440-terminal.png, RC5-UI-006/RC5-UI-006-light-1440-chat-import-entry.png, RC5-UI-006/RC5-UI-006-light-900-hero.png, RC5-UI-006/RC5-UI-006-light-900-mcp-settings.png, RC5-UI-006/RC5-UI-006-light-900-terminal.png, RC5-UI-006/RC5-UI-006-light-900-chat-import-entry.png, RC5-UI-006/RC5-UI-006-light-390-hero.png, RC5-UI-006/RC5-UI-006-light-390-mcp-settings.png, RC5-UI-006/RC5-UI-006-light-390-terminal.png, RC5-UI-006/RC5-UI-006-light-390-chat-import-entry.png, RC5-UI-006/RC5-UI-006-dark-1440-hero.png, RC5-UI-006/RC5-UI-006-dark-1440-mcp-settings.png, RC5-UI-006/RC5-UI-006-dark-1440-terminal.png, RC5-UI-006/RC5-UI-006-dark-1440-chat-import-entry.png, RC5-UI-006/RC5-UI-006-dark-900-hero.png, RC5-UI-006/RC5-UI-006-dark-900-mcp-settings.png, RC5-UI-006/RC5-UI-006-dark-900-terminal.png, RC5-UI-006/RC5-UI-006-dark-900-chat-import-entry.png, RC5-UI-006/RC5-UI-006-dark-390-hero.png, RC5-UI-006/RC5-UI-006-dark-390-mcp-settings.png, RC5-UI-006/RC5-UI-006-dark-390-terminal.png, RC5-UI-006/RC5-UI-006-dark-390-chat-import-entry.png

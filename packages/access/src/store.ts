@@ -5,6 +5,7 @@
  * (base→base01→base02…两位零填充,99 满进三位,超 32 位截基座保后缀)。
  * pwv:password_version 随改密递增,会话载荷比对实现改密即全端下线。
  */
+import { randomUUID } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
@@ -40,6 +41,44 @@ export class UserNotFoundError extends Error {}
 export class OldPasswordMismatchError extends Error {}
 export class NicknamePolicyError extends Error {}
 export class SuffixExhaustedError extends Error {}
+/** MCP 个人层:目标行不存在或不属于本人(路由层统一映射 403,不区分二者防枚举)。 */
+export class McpServerNotFoundError extends Error {}
+/** MCP 个人层:serverName 已占用(含与全局/插件命名空间冲突)。 */
+export class McpServerNameConflictError extends Error {}
+
+/** MCP 个人层传输(与 47 §7 schema 的两值域一致)。 */
+export type McpTransport = 'stdio' | 'streamable-http'
+
+/** mcp_personal_server 行(仅 access 库,按 user_id 隔离)。 */
+export interface McpServerRow {
+  readonly id: string
+  readonly userId: number
+  readonly name: string
+  readonly serverName: string
+  readonly transport: McpTransport
+  readonly catalogId: string | undefined
+  readonly command: string | undefined
+  readonly args: readonly string[] | undefined
+  readonly url: string | undefined
+  readonly headers: Readonly<Record<string, string>> | undefined
+  readonly enabled: boolean
+  readonly createdAt: number
+  readonly updatedAt: number
+}
+
+/** upsert 收口输入(serverName 由路由层生成;command/args 只来自管理员目录)。 */
+export interface McpServerInput {
+  readonly id?: string
+  readonly name: string
+  readonly serverName: string
+  readonly transport: McpTransport
+  readonly catalogId?: string | null
+  readonly command?: string | null
+  readonly args?: readonly string[] | null
+  readonly url?: string | null
+  readonly headers?: Readonly<Record<string, string>> | null
+  readonly enabled?: boolean
+}
 
 const NICKNAME_MAX = 32
 const ACCOUNT_MAX = 32
@@ -131,6 +170,51 @@ export function migrateSessionsThinkingBias(db: DatabaseSync): void {
   }
   if (!columns.some(column => column.name === 'thinking_bias_at')) {
     db.exec('ALTER TABLE sessions ADD COLUMN thinking_bias_at INTEGER NOT NULL DEFAULT 0')
+  }
+}
+
+/**
+ * B14(2026-11-20):MCP 个人层两表迁移。user_version 门闩(0→1),旧库重开幂等;
+ * 建表 DDL 严格照 47 §7(未增删列):server 行只存 server_name/transport/目录解析后的
+ * command/args 或 http url/headers 占位,secret 行只存 AES-256-GCM 密文 BLOB。
+ * 迁移失败抛错(fail-loud:半迁移库不可继续服务)。
+ */
+export const MCP_PERSONAL_SCHEMA_VERSION = 1
+
+export function migrateMcpPersonalSchema(db: DatabaseSync): void {
+  const row = db.prepare('PRAGMA user_version').get() as { user_version?: number } | undefined
+  if ((row?.user_version ?? 0) >= MCP_PERSONAL_SCHEMA_VERSION) return
+  db.exec('BEGIN IMMEDIATE')
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS mcp_personal_server (
+      id            TEXT PRIMARY KEY,
+      user_id       INTEGER NOT NULL REFERENCES users(id),
+      name          TEXT NOT NULL,
+      server_name   TEXT NOT NULL,
+      transport     TEXT NOT NULL CHECK(transport IN ('stdio','streamable-http')),
+      catalog_id    TEXT,
+      command       TEXT,
+      args_json     TEXT,
+      url           TEXT,
+      headers_json  TEXT,
+      enabled       INTEGER NOT NULL DEFAULT 1,
+      created_at    INTEGER NOT NULL,
+      updated_at    INTEGER NOT NULL,
+      UNIQUE(user_id, server_name)
+    )`)
+    db.exec(`CREATE TABLE IF NOT EXISTS mcp_personal_secret (
+      id          TEXT PRIMARY KEY,
+      user_id     INTEGER NOT NULL REFERENCES users(id),
+      ref         TEXT NOT NULL,
+      ciphertext  BLOB NOT NULL,
+      created_at  INTEGER NOT NULL,
+      UNIQUE(user_id, ref)
+    )`)
+    db.exec(`PRAGMA user_version = ${MCP_PERSONAL_SCHEMA_VERSION}`)
+    db.exec('COMMIT')
+  } catch (error) {
+    try { db.exec('ROLLBACK') } catch { /* BEGIN 即失败时事务不存在 */ }
+    throw error
   }
 }
 
@@ -236,6 +320,8 @@ export class UserStore {
     migrateSessionsThinkingAuto(this.db)
     // V2(2026-11-18):反馈偏置两列(读时衰减;写入只存原始值与时间戳)
     migrateSessionsThinkingBias(this.db)
+    // B14(2026-11-20):MCP 个人层两表(user_version 门闩;旧库升级幂等)
+    migrateMcpPersonalSchema(this.db)
   }
 
   close(): void {
@@ -400,6 +486,9 @@ export class UserStore {
     this.db.prepare('DELETE FROM user_plugins WHERE user_id = ?').run(id)
     this.db.prepare('DELETE FROM approvals WHERE requester_id = ?').run(id)
     this.db.prepare('DELETE FROM notifications WHERE user_id = ?').run(id)
+    // B14:MCP 个人层两表随人级联(否则 FK 约束失败/孤儿密文残留)
+    this.db.prepare('DELETE FROM mcp_personal_secret WHERE user_id = ?').run(id)
+    this.db.prepare('DELETE FROM mcp_personal_server WHERE user_id = ?').run(id)
     this.db.prepare('DELETE FROM users WHERE id = ?').run(id)
   }
 
@@ -697,6 +786,130 @@ export class UserStore {
     return Number(r.changes) > 0
   }
 
+  // ── B14(2026-11-20):MCP 个人层存取(users.db 同库两表,所有查询带 user_id) ──
+
+  private static mcpRowOf(raw: Record<string, unknown>): McpServerRow {
+    const args = typeof raw.args_json === 'string' ? parseJsonArray(raw.args_json) : undefined
+    const headers = typeof raw.headers_json === 'string' ? parseJsonRecord(raw.headers_json) : undefined
+    return {
+      id: String(raw.id),
+      userId: Number(raw.user_id),
+      name: String(raw.name),
+      serverName: String(raw.server_name),
+      transport: raw.transport === 'stdio' ? 'stdio' : 'streamable-http',
+      catalogId: typeof raw.catalog_id === 'string' ? raw.catalog_id : undefined,
+      command: typeof raw.command === 'string' ? raw.command : undefined,
+      args,
+      url: typeof raw.url === 'string' ? raw.url : undefined,
+      headers,
+      enabled: Number(raw.enabled) === 1,
+      createdAt: Number(raw.created_at),
+      updatedAt: Number(raw.updated_at),
+    }
+  }
+
+  private mcpSelect(where: string, ...params: Array<string | number>): McpServerRow[] {
+    const rows = this.db.prepare(`SELECT * FROM mcp_personal_server WHERE ${where}`).all(...params) as Array<Record<string, unknown>>
+    return rows.map(row => UserStore.mcpRowOf(row))
+  }
+
+  /** 本人全部条目(最近更新最后;id/name 均由服务端记账)。 */
+  listMcpServers(userId: number): McpServerRow[] {
+    return this.mcpSelect('user_id = ? ORDER BY created_at, rowid', userId)
+  }
+
+  /** 仅启用行(挂载面;上限由路由层控制)。 */
+  listEnabledMcpServers(userId: number): McpServerRow[] {
+    return this.mcpSelect('user_id = ? AND enabled = 1 ORDER BY created_at, rowid', userId)
+  }
+
+  /** 属主+id 单查(禁止先在路由层按 id 查再判属主——统一 403 防枚举)。 */
+  getMcpServer(userId: number, id: string): McpServerRow | undefined {
+    return this.mcpSelect('user_id = ? AND id = ?', userId, id)[0]
+  }
+
+  countMcpServers(userId: number): number {
+    const row = this.db.prepare('SELECT COUNT(*) AS n FROM mcp_personal_server WHERE user_id = ?').get(userId) as { n: number }
+    return row.n
+  }
+
+  /** 新建/更新本人行;id 缺省=新建。不存在的 id/他人 id 抛 NotFound(路由统一 403)。 */
+  upsertMcpServer(userId: number, input: McpServerInput): McpServerRow {
+    const now = Date.now()
+    const enabled = input.enabled === false ? 0 : 1
+    const argsJson = input.args === undefined || input.args === null ? null : JSON.stringify([...input.args])
+    const headersJson = input.headers === undefined || input.headers === null ? null : JSON.stringify(input.headers)
+    try {
+      if (input.id !== undefined) {
+        const r = this.db.prepare(
+          'UPDATE mcp_personal_server SET name = ?, server_name = ?, transport = ?, catalog_id = ?, command = ?, ' +
+          'args_json = ?, url = ?, headers_json = ?, enabled = ?, updated_at = ? WHERE id = ? AND user_id = ?',
+        ).run(
+          input.name, input.serverName, input.transport, input.catalogId ?? null, input.command ?? null,
+          argsJson, input.url ?? null, headersJson, enabled, now, input.id, userId,
+        )
+        if (Number(r.changes) === 0) throw new McpServerNotFoundError('MCP 条目不存在或不属于你')
+        const row = this.getMcpServer(userId, input.id)
+        if (row === undefined) throw new McpServerNotFoundError('MCP 条目不存在或不属于你')
+        return row
+      }
+      const id = randomUUID()
+      this.db.prepare(
+        'INSERT INTO mcp_personal_server (id, user_id, name, server_name, transport, catalog_id, command, args_json, ' +
+        'url, headers_json, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      ).run(
+        id, userId, input.name, input.serverName, input.transport, input.catalogId ?? null, input.command ?? null,
+        argsJson, input.url ?? null, headersJson, enabled, now, now,
+      )
+      const row = this.getMcpServer(userId, id)
+      if (row === undefined) throw new McpServerNotFoundError('MCP 条目写入后不可读')
+      return row
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (message.includes('UNIQUE')) throw new McpServerNameConflictError('server_name 已被占用')
+      throw error
+    }
+  }
+
+  deleteMcpServer(userId: number, id: string): boolean {
+    const r = this.db.prepare('DELETE FROM mcp_personal_server WHERE id = ? AND user_id = ?').run(id, userId)
+    return Number(r.changes) > 0
+  }
+
+  setMcpServerEnabled(userId: number, id: string, enabled: boolean): boolean {
+    const r = this.db.prepare('UPDATE mcp_personal_server SET enabled = ?, updated_at = ? WHERE id = ? AND user_id = ?')
+      .run(enabled ? 1 : 0, Date.now(), id, userId)
+    return Number(r.changes) > 0
+  }
+
+  /** 密文写入(明文只在路由层加密后进入;ref 按用户唯一)。 */
+  putMcpSecret(userId: number, ref: string, ciphertext: Uint8Array): void {
+    this.db.prepare(
+      'INSERT INTO mcp_personal_secret (id, user_id, ref, ciphertext, created_at) VALUES (?, ?, ?, ?, ?) ' +
+      'ON CONFLICT(user_id, ref) DO UPDATE SET ciphertext = excluded.ciphertext',
+    ).run(randomUUID(), userId, ref, ciphertext, Date.now())
+  }
+
+  getMcpSecret(userId: number, ref: string): Uint8Array | undefined {
+    const row = this.db.prepare('SELECT ciphertext FROM mcp_personal_secret WHERE user_id = ? AND ref = ?')
+      .get(userId, ref) as { ciphertext: unknown } | undefined
+    return row?.ciphertext instanceof Uint8Array ? row.ciphertext : undefined
+  }
+
+  hasMcpSecret(userId: number, ref: string): boolean {
+    return this.getMcpSecret(userId, ref) !== undefined
+  }
+
+  mcpSecretRefs(userId: number): string[] {
+    const rows = this.db.prepare('SELECT ref FROM mcp_personal_secret WHERE user_id = ?').all(userId) as Array<{ ref: string }>
+    return rows.map(row => row.ref)
+  }
+
+  deleteMcpSecret(userId: number, ref: string): boolean {
+    const r = this.db.prepare('DELETE FROM mcp_personal_secret WHERE user_id = ? AND ref = ?').run(userId, ref)
+    return Number(r.changes) > 0
+  }
+
   /** 归属账本读取:mux 租户策略 bindings 用(T2,2026-11-11)。 */
   sessionsOfOwner(ownerId: number): string[] {
     const rows = this.db.prepare('SELECT session_id FROM sessions WHERE owner_id = ?').all(ownerId) as
@@ -803,5 +1016,30 @@ export class UserStore {
 
   saveRemovedPlugins(file: string): void {
     writeFileSync(file, JSON.stringify(this.removedPluginIds(), null, 2) + '\n', 'utf8')
+  }
+}
+
+/** mcp args_json 解析:非法 JSON 视为无参数(读面不炸;写面由路由校验先行)。 */
+function parseJsonArray(raw: string): readonly string[] | undefined {
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) && parsed.every(item => typeof item === 'string') ? parsed : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/** mcp headers_json 解析:非法 JSON 视为无 header(同上,fail-soft 读面)。 */
+function parseJsonRecord(raw: string): Readonly<Record<string, string>> | undefined {
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return undefined
+    const record: Record<string, string> = {}
+    for (const [key, value] of Object.entries(parsed)) {
+      if (typeof value === 'string') record[key] = value
+    }
+    return record
+  } catch {
+    return undefined
   }
 }

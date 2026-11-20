@@ -1,0 +1,2 @@
+[entrypoint] form=base profile=eterna-web template=cordis.patch.yml.template manifest=package.json
+[entrypoint] FATAL /data 不是挂载点——数据会落容器层,拒启(48 §6.1)

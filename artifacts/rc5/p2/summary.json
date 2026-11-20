@@ -1,0 +1,54 @@
+{
+  "phase": "P2",
+  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "imageTag": null,
+  "imageId": null,
+  "startedAt": "2026-11-19T17:58:14Z",
+  "finishedAt": "2026-11-19T23:34:35Z",
+  "windowBasis": "p2 lane 日志 + E1/BOOT 套件 summary（BOOT-004..012 在 E1 首跑）",
+  "commands": [
+    {
+      "cmd": "node tools/packctl/bin/packctl.mjs tenant-scan",
+      "exit": 0,
+      "log": "artifacts/rc5/E2/ACC/RC5-ACC-001/cmd.log"
+    },
+    {
+      "cmd": "node tools/packctl/bin/packctl.mjs prompt-scan",
+      "exit": 0,
+      "log": "artifacts/rc5/E2/ACC/RC5-ACC-002/cmd.log"
+    },
+    {
+      "cmd": "node tools/packctl/bin/packctl.mjs form-check",
+      "exit": 0,
+      "log": "artifacts/rc5/E2/ACC/RC5-ACC-003/cmd.log"
+    },
+    {
+      "cmd": "node --test docker/profile/migrate-mcp-servers.test.mjs",
+      "exit": 0,
+      "log": "artifacts/rc5/MCPS/RC5-MCPS-008/migrate-mcp-servers.test.log"
+    },
+    {
+      "cmd": "node --test docker/profile/migrate-profile-bundles.test.mjs",
+      "exit": 0,
+      "log": "artifacts/rc5/E1/BOOT/RC5-BOOT-008/migrate-profile-bundles.test.log"
+    },
+    {
+      "cmd": "docker exec rc5-e1suite sh -c 'DSH_HOME=/data dsh --profile eterna-web --dump-config'",
+      "exit": 0,
+      "log": "artifacts/rc5/E1/BOOT/RC5-BOOT-004/cmd.log",
+      "note": "unknown plugin row = 0"
+    }
+  ],
+  "cases": {
+    "total": 12,
+    "pass": 12,
+    "fail": 0,
+    "skip": 0
+  },
+  "leftovers": [
+    "P2-01|MCPS-011 H9 容器端到端重渲染 deferred（本地机制 11/11 PASS）|P1|P6a 用旧 profile 副本起容器实测 servers 保留与 0600 备份",
+    "P2-02|MCPS-008/011 证据使用 report.md + run*.log，未按 54 §5.4 命名 result.md|P2|补 result.md 或登记等价记录"
+  ],
+  "generatedBy": "T50/artifacts/rc5/p6a/scan-matrix.mjs",
+  "generatedAt": "2026-11-20T05:25:41Z"
+}

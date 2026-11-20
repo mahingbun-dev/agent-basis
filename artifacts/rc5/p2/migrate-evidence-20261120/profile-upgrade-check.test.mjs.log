@@ -1,0 +1,18 @@
+✔ 干净档：manifest/bundle/patch 全可解析，gate 通过且零留痕 (14.803583ms)
+✔ 下架 bundle：gate 留痕并返回非 0；--apply-removals 备份并移除，二次零写 (68.335791ms)
+✔ 缺失 bundle：gate 失败仍写留痕；--boot 退出 0（boot 不炸） (129.759417ms)
+✔ 坏 package.json：gate 非 0、留痕 manifestError、boot 退出 0 (139.657166ms)
+✔ 坏 patch：gate 非 0、patch 原样保留、留痕 patchError、boot 退出 0 (130.503416ms)
+✔ 坏 patch 的 YAML 报错不打印 code frame（patch 内令牌值不落日志） (67.590334ms)
+✔ bundle 形状：未声明 dsh.bundle / patch 文件缺失均判 invalid (1.802167ms)
+✔ 平台不匹配：判 platform-skipped（dsh 有意跳过，不算坏项） (1.291417ms)
+✔ 留痕幂等：同一坏项重复检查不重写（checkedAt 保持首次发现时间） (1.65975ms)
+✔ probeBundle 直接面：安装锚点优先于 profile 锚点（同名双份取安装） (1.079875ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 630.217042

@@ -1,0 +1,26 @@
+# TERM/RC5-TERM-004
+# started 2026-11-20T01:42:00.728Z
+
+$ node scripts/verify-terminal-guard.mjs --base http://127.0.0.1:3118 --accounts-file <0600> --data-root <E1 数据根> --container rc5-e1suite --json <case>/terminal-guard-report.json
+EXIT=1
+sessionId=session-5a18b3fd-ff73-42b0-bd12-c636521e6e10
+cwd=/data/workspaces/rc5admin
+shells=1
+list=PASS: denied code=remote-access/denied
+environment=PASS: denied code=remote-access/denied
+shells=PASS: denied code=remote-access/denied
+create=PASS: denied code=remote-access/denied
+close=PASS: denied code=remote-access/denied
+rename=PASS: denied code=remote-access/denied
+
+[ASSERT] 正向控制：A 自己的 environment/shells 成功 => PASS
+
+[ASSERT] B 调 terminal/list 被拒 => PASS :: denied code=remote-access/denied
+
+[ASSERT] B 调 terminal/environment 被拒 => PASS :: denied code=remote-access/denied
+
+[ASSERT] B 调 terminal/shells 被拒 => PASS :: denied code=remote-access/denied
+
+[ASSERT] B 调 terminal/close 被拒 => PASS :: denied code=remote-access/denied
+
+# note: terminal/create 与 rename 对 A 自身也报 gateway/internal（session.snapshotEvents is not a function）/ terminal-unavailable，授权面无法判定，记 NOTRUN 并作为独立功能项报告

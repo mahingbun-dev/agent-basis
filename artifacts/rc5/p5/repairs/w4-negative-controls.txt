@@ -1,0 +1,10 @@
+# 反向对照(2026-11-20):显式命令模式不得松掉生产启动链的 fail-closed
+# 期望:无参数 / 只给 dsh 旗标 → 仍要求 MIMO_API_KEY,退出码 2。
+
+### docker run --rm eterna-agent:rc5-p5-repair        (无参数 = 生产启动)
+/app/entrypoint.sh: 57: MIMO_API_KEY: MIMO_API_KEY required (env / compose .env——默认模型走 MiMo 直连)
+EXIT=2
+
+### docker run --rm eterna-agent:rc5-p5-repair --profile eterna-web   (旗标形态 = 历史语义)
+/app/entrypoint.sh: 57: MIMO_API_KEY: MIMO_API_KEY required (env / compose .env——默认模型走 MiMo 直连)
+EXIT=2

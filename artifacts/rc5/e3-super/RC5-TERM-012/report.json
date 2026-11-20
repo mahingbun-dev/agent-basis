@@ -1,0 +1,139 @@
+{
+  "id": "RC5-TERM-012",
+  "suite": "E3-super",
+  "priority": "P0",
+  "title": "两会话各开终端互不可见（TERM-012）",
+  "expected": "各自 list 只见自己的终端；跨会话 rename 被拒；close 不伤对方终端",
+  "status": "PASS",
+  "startedAt": "2026-11-20T07:03:50.371Z",
+  "finishedAt": "2026-11-20T07:03:52.641Z",
+  "assertions": [
+    {
+      "name": "admin 登录 200",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "admin 测试工作区可解析（E3 users.db 只读）",
+      "ok": true,
+      "detail": "090d9317-36d5-40bd-b640-a2c6963652fe"
+    },
+    {
+      "name": "新建会话成功",
+      "ok": true,
+      "detail": "{\"sessionId\":\"session-9a760350-407d-4e63-b401-36a2b494f6e2\",\"agentPreset\":\"standard\"}"
+    },
+    {
+      "name": "admin 测试工作区可解析（E3 users.db 只读）",
+      "ok": true,
+      "detail": "090d9317-36d5-40bd-b640-a2c6963652fe"
+    },
+    {
+      "name": "新建会话成功",
+      "ok": true,
+      "detail": "{\"sessionId\":\"session-a8237cbd-61aa-44b2-afa6-2393bf51744c\",\"agentPreset\":\"standard\"}"
+    },
+    {
+      "name": "两个会话各自建出终端（隔离判定前置）",
+      "ok": true,
+      "detail": "A=true B=true"
+    },
+    {
+      "name": "各自 list 只见自己的终端（互不可见）",
+      "ok": true,
+      "detail": "A=[\"e3-t12-a\"] B=[\"e3-t12-b\"]"
+    },
+    {
+      "name": "跨会话 rename 被拒（terminal/unavailable）",
+      "ok": true,
+      "detail": "{\"code\":\"terminal/unavailable\",\"message\":\"Terminal no longer exists in this Session\",\"details\":{}}"
+    },
+    {
+      "name": "跨会话 close 不伤及 B 的终端（仍 running、标题未变）",
+      "ok": true,
+      "detail": "close.ok=true before=running/bash after=running/bash"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)",
+      "exit": 0,
+      "note": "boot token 不入证据"
+    },
+    {
+      "cmd": "GET /connect + GET /?token=… (dsh session bootstrap)",
+      "exit": 200,
+      "note": "token 已脱敏"
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 200,
+      "note": ""
+    },
+    {
+      "cmd": "POST /api/session/create",
+      "exit": 200,
+      "note": "ok·workspace=090d9317…"
+    },
+    {
+      "cmd": "POST /api/session/create",
+      "exit": 200,
+      "note": "ok·workspace=090d9317…"
+    },
+    {
+      "cmd": "POST /api/terminal/create",
+      "exit": 200,
+      "note": "会话 A create"
+    },
+    {
+      "cmd": "POST /api/terminal/create",
+      "exit": 200,
+      "note": "会话 B create"
+    },
+    {
+      "cmd": "POST /api/terminal/list",
+      "exit": 200,
+      "note": "A list"
+    },
+    {
+      "cmd": "POST /api/terminal/list",
+      "exit": 200,
+      "note": "B list"
+    },
+    {
+      "cmd": "POST /api/terminal/rename",
+      "exit": 200,
+      "note": "A 改名 B 的终端"
+    },
+    {
+      "cmd": "POST /api/terminal/close",
+      "exit": 200,
+      "note": "A 关 B 的终端"
+    },
+    {
+      "cmd": "POST /api/terminal/list",
+      "exit": 200,
+      "note": "B 复验"
+    },
+    {
+      "cmd": "POST /api/terminal/close",
+      "exit": 200,
+      "note": "cleanup close A"
+    },
+    {
+      "cmd": "POST /api/terminal/close",
+      "exit": 200,
+      "note": "cleanup close B"
+    }
+  ],
+  "notes": [
+    "判定面=list 归属隔离 + 跨会话 rename 拒绝 + 跨会话 close 回看（B 终端不被改动）；输入面 attach 属流通道，见 TERM-005。"
+  ],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

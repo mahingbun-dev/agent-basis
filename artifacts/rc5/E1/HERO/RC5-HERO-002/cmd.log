@@ -1,0 +1,34 @@
+# HERO/RC5-HERO-002
+# started 2026-11-20T07:02:45.617Z
+
+$ IAB: setViewportSize(1440/900/390±) × 浅色/深色；screenshot() × 6；elementFromPoint(输入框中心)；getComputedStyle(frame/layer)
+EXIT=0
+{"frameDisplay":"contents","layer":{"position":"absolute","inset":"0px","zIndex":"-1","pointerEvents":"none"},"phase":"hero","layerRect":{"390":[56,40,334,804],"900":[280,40,620,860],"1440":[280,40,1160,860]}}
+
+[ASSERT] 视口 1440: 输入框中心命中可编辑区（非装饰层） => PASS :: composerRect=469,475,770,52
+
+[ASSERT] 视口 1440: 无横向溢出 => PASS
+
+[ASSERT] 视口 900: 输入框中心命中可编辑区（非装饰层） => PASS :: composerRect=296,452,577,52
+
+[ASSERT] 视口 900: 无横向溢出 => PASS
+
+[ASSERT] 视口 390: 输入框中心命中可编辑区（非装饰层） => PASS :: composerRect=72,439,291,52
+
+[ASSERT] 视口 390: 无横向溢出 => PASS
+
+[ASSERT] 视口 1440: 输入框中心命中可编辑区（非装饰层） => PASS :: composerRect=389,475,708,52
+
+[ASSERT] 视口 1440: 无横向溢出 => PASS
+
+[ASSERT] 视口 900: 输入框中心命中可编辑区（非装饰层） => PASS :: composerRect=296,452,577,52
+
+[ASSERT] 视口 900: 无横向溢出 => PASS
+
+[ASSERT] 视口 390: 输入框中心命中可编辑区（非装饰层） => PASS :: composerRect=72,439,291,52
+
+[ASSERT] 视口 390: 无横向溢出 => PASS
+
+[ASSERT] 外框 display:contents（布局中性） => PASS
+
+[ASSERT] 装饰层 absolute/inset:0/z-index:-1/pointer-events:none => PASS

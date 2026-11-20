@@ -1,0 +1,103 @@
+# case: RC5-DATA-005
+# host: ma-macminideMac-mini.local  user: sunny  time: 2026-11-19T22:08:49Z
+
+$ check_root drill1 /Users/sunny/eterna-data/test-rc5/p6b-e5a
+# label: drill-1 全库 integrity_check
+# started: 2026-11-19T22:08:49Z
+drill1: checked=17 ok=17 fail=0 rc=0
+  ok     delete   .eterna/channels.sqlite3
+  ok     wal      .eterna/knowledge.sqlite3
+  ok     wal      .eterna/memory.sqlite3
+  ok     wal      .eterna/memory.sqlite3.migrated-1794768912209
+  ok     wal      .pnpm-store/v11/index.db
+  ok     wal      access/users.db
+  ok     delete   knowledge-admin/access.sqlite3
+  ok     delete   memory-distill/ledger.sqlite3
+  ok     delete   workspaces/Mr.Ma/.eterna/knowledge.sqlite3
+  ok     wal      workspaces/Mr.Ma/.eterna/memory.sqlite3
+  ok     wal      workspaces/Mr.Ma/.eterna/tasks.sqlite3
+  ok     delete   workspaces/Mr.Ma/kh-admin-plugin/.tmp-probe/ledger/access.sqlite3
+  ok     delete   workspaces/Mr.Ma/kh-admin-plugin/.tmp-probe/tenants/demo/.eterna/knowledge.sqlite3
+  ok     wal      workspaces/cherry/.eterna/knowledge.sqlite3
+  ok     wal      workspaces/cherry/.eterna/memory.sqlite3
+  ok     wal      workspaces/iso-alpha/.eterna/memory.sqlite3
+  ok     wal      workspaces/iso-beta/.eterna/memory.sqlite3
+EXIT=0
+
+$ check_root drill2 /Users/sunny/eterna-data/test-rc5/p6b-e5b
+# label: drill-2 全库 integrity_check
+# started: 2026-11-19T22:08:51Z
+drill2: checked=17 ok=17 fail=0 rc=0
+  ok     delete   .eterna/channels.sqlite3
+  ok     wal      .eterna/knowledge.sqlite3
+  ok     wal      .eterna/memory.sqlite3
+  ok     wal      .eterna/memory.sqlite3.migrated-1794768912209
+  ok     wal      .pnpm-store/v11/index.db
+  ok     wal      access/users.db
+  ok     delete   knowledge-admin/access.sqlite3
+  ok     delete   memory-distill/ledger.sqlite3
+  ok     delete   workspaces/Mr.Ma/.eterna/knowledge.sqlite3
+  ok     wal      workspaces/Mr.Ma/.eterna/memory.sqlite3
+  ok     wal      workspaces/Mr.Ma/.eterna/tasks.sqlite3
+  ok     delete   workspaces/Mr.Ma/kh-admin-plugin/.tmp-probe/ledger/access.sqlite3
+  ok     delete   workspaces/Mr.Ma/kh-admin-plugin/.tmp-probe/tenants/demo/.eterna/knowledge.sqlite3
+  ok     wal      workspaces/cherry/.eterna/knowledge.sqlite3
+  ok     wal      workspaces/cherry/.eterna/memory.sqlite3
+  ok     wal      workspaces/iso-alpha/.eterna/memory.sqlite3
+  ok     wal      workspaces/iso-beta/.eterna/memory.sqlite3
+EXIT=0
+
+$ check_root p5-e5 /Users/sunny/eterna-data/test-rc5/e5
+# label: P5 e5（既有迁移副本）全库 integrity_check
+# started: 2026-11-19T22:08:54Z
+p5-e5: checked=17 ok=17 fail=0 rc=0
+  ok     delete   .eterna/channels.sqlite3
+  ok     wal      .eterna/knowledge.sqlite3
+  ok     wal      .eterna/memory.sqlite3
+  ok     wal      .eterna/memory.sqlite3.migrated-1794768912209
+  ok     wal      .pnpm-store/v11/index.db
+  ok     wal      access/users.db
+  ok     delete   knowledge-admin/access.sqlite3
+  ok     delete   memory-distill/ledger.sqlite3
+  ok     delete   workspaces/Mr.Ma/.eterna/knowledge.sqlite3
+  ok     wal      workspaces/Mr.Ma/.eterna/memory.sqlite3
+  ok     wal      workspaces/Mr.Ma/.eterna/tasks.sqlite3
+  ok     delete   workspaces/Mr.Ma/kh-admin-plugin/.tmp-probe/ledger/access.sqlite3
+  ok     delete   workspaces/Mr.Ma/kh-admin-plugin/.tmp-probe/tenants/demo/.eterna/knowledge.sqlite3
+  ok     wal      workspaces/cherry/.eterna/knowledge.sqlite3
+  ok     wal      workspaces/cherry/.eterna/memory.sqlite3
+  ok     wal      workspaces/iso-alpha/.eterna/memory.sqlite3
+  ok     wal      workspaces/iso-beta/.eterna/memory.sqlite3
+EXIT=0
+
+$ check_root staging1 /Users/sunny/eterna-data/test-rc5/.p6b-cold/p6b-e5a-eterna-home-20261120-021802
+# label: 冷备解包 staging 全库 integrity_check
+# started: 2026-11-19T22:08:56Z
+staging1: checked=17 ok=17 fail=0 rc=0
+  ok     delete   .eterna/channels.sqlite3
+  ok     wal      .eterna/knowledge.sqlite3
+  ok     wal      .eterna/memory.sqlite3
+  ok     wal      .eterna/memory.sqlite3.migrated-1794768912209
+  ok     wal      .pnpm-store/v11/index.db
+  ok     wal      access/users.db
+  ok     delete   knowledge-admin/access.sqlite3
+  ok     delete   memory-distill/ledger.sqlite3
+  ok     delete   workspaces/Mr.Ma/.eterna/knowledge.sqlite3
+  ok     wal      workspaces/Mr.Ma/.eterna/memory.sqlite3
+  ok     wal      workspaces/Mr.Ma/.eterna/tasks.sqlite3
+  ok     delete   workspaces/Mr.Ma/kh-admin-plugin/.tmp-probe/ledger/access.sqlite3
+  ok     delete   workspaces/Mr.Ma/kh-admin-plugin/.tmp-probe/tenants/demo/.eterna/knowledge.sqlite3
+  ok     wal      workspaces/cherry/.eterna/knowledge.sqlite3
+  ok     wal      workspaces/cherry/.eterna/memory.sqlite3
+  ok     wal      workspaces/iso-alpha/.eterna/memory.sqlite3
+  ok     wal      workspaces/iso-beta/.eterna/memory.sqlite3
+EXIT=0
+
+ASSERT PASS | 四份副本全库 integrity_check 全 ok 且覆盖 >0 个库 | actual=ok expected=ok
+
+# 实际执行命令（每个 root 一条；输出 JSON 见同目录 <name>.json；--copy = DB(+wal/shm) 复制到容器 /tmp 后再开，源目录只读）：
+# docker run --rm --network none -v <host-root>:/src:ro -v artifacts/rc5/DATA/_tools:/tools:ro \
+#   eterna-agent:rc5-test node /tools/check-sqlite.mjs /src --copy
+# roots: drill1=$HOME/eterna-data/test-rc5/p6b-e5a  drill2=…/p6b-e5b  p5-e5=…/e5  staging1=…/.p6b-cold/p6b-e5a-eterna-home-20261120-021802
+# postboot-drill1: p6b-e5a 在 rc.5 容器启动后复测（输出 postboot-drill1.json）
+# EXIT: drill1=0 drill2=0 p5-e5=0 staging1=0 postboot=0；报告 checked=17 ok=17 fail=0（postboot 同）

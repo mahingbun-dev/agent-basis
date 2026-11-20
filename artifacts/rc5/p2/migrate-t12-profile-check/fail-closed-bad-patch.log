@@ -1,0 +1,20 @@
+$ node scripts/profile-upgrade-check.mjs artifacts/rc5/p2/migrate-t12-profile-check/fixture/bad-patch --install-anchor /Users/sunny/code/agent-basis-rc5/node_modules/.pnpm/@deepseek-ai+dsh@0.2.2-rc.5_6f7375c9304196d1bc29046501d27902/node_modules/@deepseek-ai/dsh/package.json --trace artifacts/rc5/p2/migrate-t12-profile-check/fixture/bad-patch-trace.json
+[profile-upgrade-check]: profile=bad-patch mode=gate installAnchor=/Users/sunny/code/agent-basis-rc5/node_modules/.pnpm/@deepseek-ai+dsh@0.2.2-rc.5_6f7375c9304196d1bc29046501d27902/node_modules/@deepseek-ai/dsh/package.json bundles[ok=14 invalid=1]
+[profile-upgrade-check]: BAD @eterna/knowledge-admin [invalid] 未声明 dsh.bundle（dsh 会跳过该层）
+[profile-upgrade-check]: BAD (cordis.patch.yml) [patch] cordis.patch.yml 解析失败:Flow sequence in block collection must be sufficiently indented and end with a ] at line 2, column 1: (line 2, column 1)
+[profile-upgrade-check]: 留痕 /Users/sunny/code/agent-basis-rc5/artifacts/rc5/p2/migrate-t12-profile-check/fixture/bad-patch-trace.json
+[profile-upgrade-check]: 预检失败（坏项见上；升级门禁拒绝）
+EXIT=1
+---
+$ node scripts/profile-upgrade-check.mjs artifacts/rc5/p2/migrate-t12-profile-check/fixture/bad-patch --install-anchor /Users/sunny/code/agent-basis-rc5/node_modules/.pnpm/@deepseek-ai+dsh@0.2.2-rc.5_6f7375c9304196d1bc29046501d27902/node_modules/@deepseek-ai/dsh/package.json --trace artifacts/rc5/p2/migrate-t12-profile-check/fixture/bad-patch-trace.json --boot
+[profile-upgrade-check]: profile=bad-patch mode=boot installAnchor=/Users/sunny/code/agent-basis-rc5/node_modules/.pnpm/@deepseek-ai+dsh@0.2.2-rc.5_6f7375c9304196d1bc29046501d27902/node_modules/@deepseek-ai/dsh/package.json bundles[ok=14 invalid=1]
+[profile-upgrade-check]: BAD @eterna/knowledge-admin [invalid] 未声明 dsh.bundle（dsh 会跳过该层）
+[profile-upgrade-check]: BAD (cordis.patch.yml) [patch] cordis.patch.yml 解析失败:Flow sequence in block collection must be sufficiently indented and end with a ] at line 2, column 1: (line 2, column 1)
+[profile-upgrade-check]: 留痕 /Users/sunny/code/agent-basis-rc5/artifacts/rc5/p2/migrate-t12-profile-check/fixture/bad-patch-trace.json
+EXIT=0
+---
+GATE_EXIT=1 BOOT_EXIT=0 PATCH0=c6805db000294063f88b41c3aad67635747d4723073c43a74a09f1f42a3b4992 PATCH1=c6805db000294063f88b41c3aad67635747d4723073c43a74a09f1f42a3b4992
+ASSERT PASS: 坏 patch：gate EXIT=1
+ASSERT PASS: 坏 patch：文件字节不变
+ASSERT PASS: 坏 patch：boot EXIT=0
+ASSERT PASS: 坏 patch：留痕含 patchError 且无 code frame

@@ -1,0 +1,4 @@
+plugins:
+  - greeter
+  - host
+agent: default

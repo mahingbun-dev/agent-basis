@@ -25,6 +25,9 @@
  * 类状态全公开(#private 在网关 receiver shadow 上读取即抛)。
  */
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import type { Context } from '@deepseek-ai/cordis'
+// 仅在类型层引入 Loader 的 `loader/volatile-update` 事件增强(cordis 4.1.0 起 Events 键强类型化)。
+import type {} from '@deepseek-ai/cordis-plugin-loader'
 import {
   normalizeConfig, pingModel,
   type AutoFixRecord, type FetchLike, type PingResult, type ProviderRouteConfig, type RouteHealth,
@@ -64,11 +67,8 @@ export interface ConfigEditorFace {
   ): Promise<void>
 }
 
-/** 插件上下文消费面(结构子集;服务经 cordis get 解析)。 */
-export interface DoctorContextLike {
-  get(name: string): unknown
-  on(event: string, listener: () => void, options?: { global?: boolean }): () => void
-}
+/** 插件上下文消费面(cordis 4.1.0 起 `on` 按 Events 键强类型化,结构子集直接取自 Context)。 */
+export type DoctorContextLike = Pick<Context, 'get' | 'on'>
 
 /** 单路由快照(health 返回;含模型目录供 UI 渲染测试行)。 */
 export interface DoctorRouteSnapshot {

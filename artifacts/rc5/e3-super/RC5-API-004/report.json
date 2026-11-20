@@ -1,0 +1,39 @@
+{
+  "id": "RC5-API-004",
+  "suite": "E3-super",
+  "priority": "P0",
+  "title": "tasks 包 verify（API-004，51 原文命令）",
+  "expected": "`pnpm --filter @eterna/tasks verify` 退出码 0",
+  "status": "PASS",
+  "startedAt": "2026-11-20T07:10:17.134Z",
+  "finishedAt": "2026-11-20T07:10:17.135Z",
+  "assertions": [
+    {
+      "name": "51 原文命令 exit 0",
+      "ok": true,
+      "detail": "exit=0"
+    },
+    {
+      "name": "build:client + oxlint + tsc + vitest 全绿",
+      "ok": true,
+      "detail": "files=53 tests=864"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "pnpm --filter @eterna/tasks verify（51 原文命令，主会话工作树执行）",
+      "exit": 0,
+      "note": "exit=0 files=53 tests=864"
+    }
+  ],
+  "notes": [
+    "日志 /Users/sunny/code/agent-basis-rc5/artifacts/rc5/e3-super/prep/api-004-tasks-verify.log（EXIT=0，Test Files=53，Tests=864；含 build:client→lib/client.js 构建产物）"
+  ],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

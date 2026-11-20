@@ -1,0 +1,49 @@
+{
+  "id": "RC5-TERM-013",
+  "suite": "E3-super",
+  "priority": "P1",
+  "title": "24h 浸泡：长进程 + attach/close 无 fd 泄漏（TERM-013）",
+  "expected": "24h 窗口完成 + fd/RSS 曲线平稳 + churn 全 ok",
+  "status": "NOTRUN",
+  "startedAt": "2026-11-20T07:03:52.704Z",
+  "finishedAt": "2026-11-20T07:03:52.705Z",
+  "assertions": [
+    {
+      "name": "浸泡窗存在且在终版镜像 lane（eterna-rc5-e1）上起跑",
+      "ok": true,
+      "detail": "eterna-rc5-e1"
+    },
+    {
+      "name": "已有采样（窗口正在运行）",
+      "ok": true,
+      "detail": "samples=61"
+    },
+    {
+      "name": "churn（create→WS attach→close）历史采样全 ok",
+      "ok": true,
+      "detail": "fail=0/61"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "read artifacts/rc5/p6b/soak/final-image/meta-24h-final.json",
+      "exit": 0,
+      "note": "plannedEnd=2026-11-21T05:06:19.450Z container=eterna-rc5-e1"
+    },
+    {
+      "cmd": "read artifacts/rc5/p6b/soak/final-image/term-013-24h-final.jsonl",
+      "exit": 0,
+      "note": "samples=61"
+    }
+  ],
+  "notes": [
+    "24h 窗口未满：plannedEndAt=2026-11-21T05:06:19.450Z（now=2026-11-20T07:03:52.705Z），summary 未落盘；按 54 §6.3 记 NOTRUN，不得预先判过。"
+  ],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

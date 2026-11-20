@@ -1,0 +1,37 @@
+lane=T30/T38 chat-import 租户桥与检索/市场回归   worktree=/Users/sunny/code/agent-basis-rc5   date=2026-11-20
+
+$ pnpm --filter @eterna/access verify
+
+ Test Files  49 passed (49)
+      Tests  498 passed (498)
+   Start at  03:36:39
+   Duration  5.47s (transform 1.32s, setup 0ms, import 2.88s, tests 29.40s, environment 3ms)
+
+EXIT=0 (详见 access-verify.log / access-verify.exit)
+
+$ pnpm --filter @eterna/access exec vitest run tests/chat-import-gate.spec.ts tests/market-gate-coverage.spec.ts
+ ✓ tests/market-gate-coverage.spec.ts (6 tests) 294ms
+ ✓ tests/chat-import-gate.spec.ts (20 tests) 977ms
+
+ Test Files  2 passed (2)
+      Tests  26 passed (26)
+   Start at  03:36:50
+   Duration  1.13s (transform 89ms, setup 0ms, import 121ms, tests 1.27s, environment 0ms)
+
+EXIT=0 (详见 targeted-specs.log)
+
+$ pnpm --filter @eterna/access exec tsc --noEmit
+EXIT=0 (final-tsc.log 为空=clean)
+
+$ pnpm --filter @eterna/access exec vitest run tests/chat-import-gate.spec.ts tests/market-gate-coverage.spec.ts
+
+ Test Files  2 passed (2)
+      Tests  26 passed (26)
+   Start at  03:42:14
+   Duration  1.13s (transform 104ms, setup 0ms, import 140ms, tests 1.27s, environment 0ms)
+
+EXIT=0
+
+$ node artifacts/rc5/p4/chat-import/cordis-waterfall-probe.mjs
+{"order":["access:/api/x","vendor","inner"]}
+EXIT=0

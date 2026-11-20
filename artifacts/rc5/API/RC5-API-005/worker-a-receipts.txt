@@ -1,0 +1,10 @@
+seq=24 time=2026-11-19T22:54:19.435Z
+Background subagent api-child-1 finished and will do no further work unless you send it more.
+Its closing message:
+DONE-1
+
+---
+seq=32 time=2026-11-19T22:54:25.448Z
+Background subagent api-child-2 finished and will do no further work unless you send it more.
+Its closing message:
+DONE-2

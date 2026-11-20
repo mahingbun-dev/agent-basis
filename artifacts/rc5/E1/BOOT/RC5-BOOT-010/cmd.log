@@ -1,0 +1,12 @@
+# BOOT/RC5-BOOT-010
+# started 2026-11-20T07:02:39.447Z
+
+$ docker run -d … rc5-e1suite-boot10（package.json 损坏副本）
+EXIT=0
+health=unhealthy http=0 backup=true mode=600
+
+[ASSERT] 损坏原文件保留 => PASS :: preserved=true
+
+[ASSERT] 迁移留痕 0600 => PASS :: backup=true mode=600
+
+[ASSERT] 告警清晰 => PASS :: entrypointWarning=true scriptError=true

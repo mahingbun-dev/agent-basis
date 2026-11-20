@@ -1,0 +1,24 @@
+# 模板与本地渲染产物指纹（对照物）
+
+$ shasum -a 256 docker/profile/*.template docker/profile/package.json
+4694871a4ffb9a0839a39080e357a5a41b8efda92b881e1c679499cb3cd7c2d5  docker/profile/cordis.acp.patch.yml.template
+902c94b71b118cb1c7705ef7dc331361b42cb335a6397d7b4d96cf8153ef0edf  docker/profile/cordis.patch.yml.template
+97d027b519918488923488c1995b5be5a88c25e2fd21c1976b688e270b12a473  docker/profile/cordis.super.patch.yml.template
+500b15afd6459e64322324914fc57e56f945d49c528194a7f315a41f17777dae  docker/profile/package.json
+
+== local boot home: /tmp/eterna-rc5-p0-boot/web/profiles/eterna-web ==
+500b15afd6459e64322324914fc57e56f945d49c528194a7f315a41f17777dae  /tmp/eterna-rc5-p0-boot/web/profiles/eterna-web/package.json
+902c94b71b118cb1c7705ef7dc331361b42cb335a6397d7b4d96cf8153ef0edf  /tmp/eterna-rc5-p0-boot/web/profiles/eterna-web/cordis.patch.yml
+rows=146
+lines=    1058
+bundles:
+['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@deepseek-ai/dsh-deepseek-chat-import', '@deepseek-ai/dsh-experimental-session-search', '@deepseek-ai/dsh-experimental-plugin-market-bundle', '@deepseek-ai/dsh-experimental-terminal-bundle']
+
+== local boot home: /tmp/eterna-rc5-p0-boot/super/profiles/eterna-super ==
+94fb2d8e9c467f77aa62db035b7c0afd082f39f854fb932da7944fa584523a09  /tmp/eterna-rc5-p0-boot/super/profiles/eterna-super/package.json
+97d027b519918488923488c1995b5be5a88c25e2fd21c1976b688e270b12a473  /tmp/eterna-rc5-p0-boot/super/profiles/eterna-super/cordis.patch.yml
+rows=152
+lines=    1090
+bundles:
+['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@deepseek-ai/dsh-deepseek-chat-import', '@deepseek-ai/dsh-experimental-session-search', '@deepseek-ai/dsh-experimental-plugin-market-bundle', '@deepseek-ai/dsh-experimental-terminal-bundle']
+

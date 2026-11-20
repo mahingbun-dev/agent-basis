@@ -1,0 +1,40 @@
+{
+  "id": "RC5-ACP-004",
+  "priority": "P0",
+  "title": "ACP 容器无监听端口（无 host 端口映射 + /proc/net 无应用 LISTEN）",
+  "status": "PASS",
+  "at": "2026-11-20T05:10:31.763Z",
+  "detail": "container=824cf2c722d1 ports={\"8080/tcp\":null} hostBindings=0 dockerPort=\"\" appListeners=无 infra=127.0.0.11:39807",
+  "assertions": [
+    {
+      "name": "run 容器存在",
+      "expected": "非空 id",
+      "observed": "824cf2c722d1",
+      "ok": true
+    },
+    {
+      "name": "无 host 端口映射（docker inspect Ports 无 binding；EXPOSE 元数据不算）",
+      "expected": "0 binding",
+      "observed": "{\"8080/tcp\":null} → bindings=0",
+      "ok": true
+    },
+    {
+      "name": "docker port 输出为空",
+      "expected": "空",
+      "observed": "\"\"",
+      "ok": true
+    },
+    {
+      "name": "容器内应用 LISTEN==0",
+      "expected": "0",
+      "observed": "0",
+      "ok": true
+    },
+    {
+      "name": "/proc/net/tcp 可读",
+      "expected": "exit 0",
+      "observed": "tcp=0 fd=0",
+      "ok": true
+    }
+  ]
+}

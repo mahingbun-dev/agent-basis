@@ -1,0 +1,35 @@
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 请求级租户门 > 无 eterna 会话 → 401,不 next、不读请求体,审计 denied/unauthenticated 58ms
+ ✓ tests/market-gate-coverage.spec.ts > T38 市场面:admit 市场门 × 上游全方法表 > 上游方法表 = 15 pluginManager + 4 pluginMarket(锁版 rc.5;漂移即红) 60ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 请求级租户门 > 非法 cookie/改密后的旧 cookie → 401(pwv 比对,与守卫路由同口径) 94ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 请求级租户门 > workspaceId 缺失/空 → 400(与上游同口径,不触达导入体) 48ms
+ ✓ tests/market-gate-coverage.spec.ts > T38 市场面:admit 市场门 × 上游全方法表 > 19 个方法逐条:匿名 401、普通用户 403(不触达原 admit)、admin 放行 50ms
+ ✓ tests/market-gate-coverage.spec.ts > T38 市场面:admit 市场门 × 上游全方法表 > 安装/卸载/更新/启停/索引源写:写动作全在门内(共享 profile 收口) 48ms
+ ✓ tests/market-gate-coverage.spec.ts > T38 市场面:admit 市场门 × 上游全方法表 > detail-file 两条 exact 路由(带 query)同样在门内;近形路径不倒 48ms
+ ✓ tests/market-gate-coverage.spec.ts > T38 市场面:admit 市场门 × 上游全方法表 > 双层键控:个人层 /api/my-plugins/* 不在市场门内(普通用户可用),共享层在市场门内 48ms
+ ✓ tests/market-gate-coverage.spec.ts > T38 市场面:admit 市场门 × 上游全方法表 > mux 路径不受市场门影响(市场门只认路径前缀) 47ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 请求级租户门 > 他人 workspace → 403;未登记 workspace 同样 403(fail-closed) 48ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 请求级租户门 > 拒绝审计只记身份/结果,不含标题或压缩包内容 49ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 请求级租户门 > 非目标路径与非 POST 原样 next(不写状态、不记账) 48ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 请求级租户门 > query 顺序/额外参数不影响判定(只认 workspaceId) 45ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 流式记账(outcome.value.sessionIds) > 本人 workspace 放行:响应字节原样透传 + outcome sessionIds 逐条 recordSession 50ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 流式记账(outcome.value.sessionIds) > 跨 chunk 的半行被拼回(行解析不依赖 chunk 边界) 46ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 流式记账(outcome.value.sessionIds) > 坏行/非 outcome 行不阻断也不记账;ok:false 不按 outcome 记账 45ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 流式记账(outcome.value.sessionIds) > 幂等:重复导入同一包不重复记账;他人所有的 sessionId 一律不改写 45ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 流式记账(outcome.value.sessionIds) > 无 outcome 行且状态非 200(415/404 等)→ 记 import.rejected,不误记取消 45ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 流式记账(outcome.value.sessionIds) > 单行 >65536B 整行丢弃、后续行继续解析 45ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 失败/取消对账(workspaceRegistry.sessionIds) > outcome.ok=false(损坏包):已写入会话按 workspace 清单补记,审计 reconcile 计数 45ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 失败/取消对账(workspaceRegistry.sessionIds) > 客户端断开(close,无 outcome 行):对账补记,审计 import.cancelled 44ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 失败/取消对账(workspaceRegistry.sessionIds) > workspaceRegistry 缺席/形态漂移 → 对账降级为 0,不抛不阻断 45ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 安装与探针面 > installChatImportGate 以 prepend 注册 connection/request;host 缺面返回 undefined 45ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 安装与探针面 > workspaceSessionIdsOf 结构读取:命中 .sessionIds、服务缺席/异常一律 undefined 45ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 安装与探针面 > parseChatImportOutcome:只有 outcome 行有值,progress/坏行/非数组 sessionIds 安全降级 45ms
+ ✓ tests/chat-import-gate.spec.ts > chat-import 租户桥(B16/T30) > 安装与探针面 > createNdjsonTap 输出=输入(pass-through 不缓冲) 46ms
+
+ Test Files  2 passed (2)
+      Tests  26 passed (26)
+   Start at  03:37:51
+   Duration  1.15s (transform 122ms, setup 0ms, import 156ms, tests 1.28s, environment 0ms)
+

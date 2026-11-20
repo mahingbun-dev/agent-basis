@@ -1,0 +1,6 @@
+# TERM/RC5-TERM-004b
+# started 2026-11-20T07:05:50.178Z
+
+$ node scripts/verify-terminal-guard.mjs --base http://127.0.0.1:3119 --accounts-file /Users/sunny/eterna-data/test-rc5/.test-accounts.json --data-root /Users/sunny/eterna-data/test-20261120/e2 --container rc5-e2suite --json /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/TERM/report.json
+EXIT=0
+PASS :: denied code=remote-access/denied

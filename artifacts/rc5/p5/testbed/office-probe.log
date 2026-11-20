@@ -1,0 +1,3 @@
+sample.docx ok {"backend":"wasm","missingFonts":[],"pageCount":1}
+sample.xlsx ok {"backend":"wasm","missingFonts":["Calibri"],"pageCount":1}
+sample.pptx ok {"backend":"wasm","missingFonts":["Arial"],"pageCount":2}

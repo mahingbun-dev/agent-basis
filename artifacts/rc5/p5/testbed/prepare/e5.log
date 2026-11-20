@@ -1,0 +1,5 @@
+[PASS] E5-EXTRACT :: /Users/sunny/eterna-data/backups/rc5-2026-11-20/eterna-home-20261120-021802.tgz → /Users/sunny/eterna-data/test-rc5/.e5-cold/eterna-home-20261120-021802 entries=10466（0600/0700 测试根内）
+[PASS] E5 :: rsync -aH /Users/sunny/eterna-data/test-rc5/.e5-cold/eterna-home-20261120-021802 → /Users/sunny/eterna-data/test-rc5/e5（dry=0）
+[E5] 复核命令：bash scripts/verify-data-root.sh --migration-source /Users/sunny/eterna-data/test-rc5/.e5-cold/eterna-home-20261120-021802 --migration-dest /Users/sunny/eterna-data/test-rc5/e5
+
+[PREP] PASS=2 FAIL=0

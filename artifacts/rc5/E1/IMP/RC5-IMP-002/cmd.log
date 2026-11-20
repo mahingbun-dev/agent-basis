@@ -1,0 +1,6 @@
+# IMP/RC5-IMP-002
+# started 2026-11-20T07:03:42.315Z
+
+$ scripts/verify-chat-import.mjs（RC5-IMP-002 行）
+EXIT=0
+PASS: status=403 body=forbidden count 1→1

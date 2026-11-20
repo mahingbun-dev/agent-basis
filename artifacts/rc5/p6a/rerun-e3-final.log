@@ -1,0 +1,48 @@
+[PASS] E3-PREP :: 20/20 assertions
+=== RC5-BOOT-002 ===
+[PASS] RC5-BOOT-002 :: 14/14 assertions
+=== RC5-BOOT-013 ===
+[PASS] RC5-BOOT-013 :: 11/11 assertions
+=== RC5-BOOT-012 ===
+[PASS] RC5-BOOT-012 :: 3/3 assertions
+=== RC5-API-004 ===
+[NOTRUN] RC5-API-004 :: 3/3 assertions
+=== RC5-API-005 ===
+[NOTRUN] RC5-API-005 :: 6/6 assertions
+=== RC5-API-006 ===
+[NOTRUN] RC5-API-006 :: 3/3 assertions
+=== RC5-API-007 ===
+[NOTRUN] RC5-API-007 :: 2/2 assertions
+=== E3-TASKS-SURFACE ===
+[PASS] E3-TASKS-SURFACE :: 6/6 assertions
+=== RC5-TERM-001 ===
+[PASS] RC5-TERM-001 :: 3/3 assertions
+=== RC5-TERM-007 ===
+[PASS] RC5-TERM-007 :: 2/2 assertions
+=== RC5-TERM-006 ===
+[PASS] RC5-TERM-006 :: 8/8 assertions
+=== RC5-TERM-004 ===
+[FAIL] RC5-TERM-004 :: 8/9 assertions
+  FAIL B 用 A 的 sessionId 调 6 个 unary 全部 403/deny :: 未拒绝=environment,shells,list,create,rename,close :: environment: {"code":"remote-access/denied","message":"remote access: terminal/environment: access denied (no-allow)","details":{"action":"terminal/environment","reason":"no-allow"}} | shel
+=== RC5-TERM-005 ===
+[NOTRUN] RC5-TERM-005 :: 4/4 assertions
+=== RC5-TERM-002 ===
+[NOTRUN] RC5-TERM-002 :: 3/3 assertions
+=== RC5-TERM-012 ===
+[NOTRUN] RC5-TERM-012 :: 6/7 assertions
+  FAIL 两会话各自可建终端（隔离判定前置）缺失：create 均 gateway/internal :: createA=ok createB=ok
+=== RC5-TERM-013 ===
+[NOTRUN] RC5-TERM-013 :: 2/2 assertions
+=== WB-001 ===
+[PASS] WB-001 :: 6/6 assertions
+=== WB-002 ===
+[PASS] WB-002 :: 4/4 assertions
+=== WB-003 ===
+[PASS] WB-003 :: 3/3 assertions
+=== WB-004 ===
+[PASS] WB-004 :: 4/4 assertions
+=== E3-UI-001 ===
+[PASS] E3-UI-001 :: 2/2 assertions
+=== E3-UI-002 ===
+[NOTRUN] E3-UI-002 :: 0/0 assertions
+[E3-super] PASS=13 FAIL=1 NOTRUN=9 total=23 → summary.json / report.md

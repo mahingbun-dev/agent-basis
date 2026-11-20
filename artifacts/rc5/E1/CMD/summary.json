@@ -1,0 +1,47 @@
+{
+  "suite": "CMD",
+  "commit": "c75f876c986415431c92b28cce771d847a36c52f",
+  "imageTag": "eterna-agent:rc5-test",
+  "imageId": "",
+  "container": "rc5-e1suite",
+  "base": "http://127.0.0.1:3118",
+  "dataRoot": "",
+  "startedAt": "2026-11-20T07:02:42.238Z",
+  "finishedAt": "2026-11-20T07:02:45.548Z",
+  "total": 4,
+  "pass": 4,
+  "fail": 0,
+  "skip": 0,
+  "notrun": 0,
+  "counts": {
+    "PASS": 4,
+    "FAIL": 0,
+    "SKIP": 0,
+    "NOTRUN": 0
+  },
+  "halted": false,
+  "haltReason": "",
+  "failures": [],
+  "cases": [
+    {
+      "id": "RC5-CMD-001",
+      "status": "PASS",
+      "title": "输入 / 显示命令列表"
+    },
+    {
+      "id": "RC5-CMD-002",
+      "status": "PASS",
+      "title": "执行内置命令 /model"
+    },
+    {
+      "id": "RC5-CMD-003",
+      "status": "PASS",
+      "title": "slash 命令并存无冲突"
+    },
+    {
+      "id": "RC5-CMD-004",
+      "status": "PASS",
+      "title": "ACP 无命令面（无 UI 面）"
+    }
+  ]
+}

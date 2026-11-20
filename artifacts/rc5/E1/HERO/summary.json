@@ -1,0 +1,67 @@
+{
+  "suite": "HERO",
+  "commit": "c75f876c986415431c92b28cce771d847a36c52f",
+  "imageTag": "eterna-agent:rc5-test",
+  "imageId": "",
+  "container": "rc5-e1suite",
+  "base": "http://127.0.0.1:3118",
+  "dataRoot": "",
+  "startedAt": "2026-11-20T07:02:45.614Z",
+  "finishedAt": "2026-11-20T07:02:52.283Z",
+  "total": 8,
+  "pass": 8,
+  "fail": 0,
+  "skip": 0,
+  "notrun": 0,
+  "counts": {
+    "PASS": 8,
+    "FAIL": 0,
+    "SKIP": 0,
+    "NOTRUN": 0
+  },
+  "halted": false,
+  "haltReason": "",
+  "failures": [],
+  "cases": [
+    {
+      "id": "RC5-HERO-001",
+      "status": "PASS",
+      "title": "hero=false 页面无额外包裹"
+    },
+    {
+      "id": "RC5-HERO-002",
+      "status": "PASS",
+      "title": "空会话品牌层出现且不遮挡输入框"
+    },
+    {
+      "id": "RC5-HERO-003",
+      "status": "PASS",
+      "title": "hero 层下输入框可聚焦/输入/发送"
+    },
+    {
+      "id": "RC5-HERO-004",
+      "status": "PASS",
+      "title": "有消息后滚动无浮层错位/重影"
+    },
+    {
+      "id": "RC5-HERO-005",
+      "status": "PASS",
+      "title": "双主题品牌色跟随"
+    },
+    {
+      "id": "RC5-HERO-006",
+      "status": "PASS",
+      "title": "三视口布局只收缩不溢出"
+    },
+    {
+      "id": "RC5-HERO-007",
+      "status": "PASS",
+      "title": "prefers-reduced-motion 下 hero 静态呈现"
+    },
+    {
+      "id": "RC5-HERO-008",
+      "status": "PASS",
+      "title": "浮层只挂 hero 态，切换无残留"
+    }
+  ]
+}

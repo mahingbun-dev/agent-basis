@@ -1,0 +1,21 @@
+===== @eterna/access typecheck 2026-11-19T20:21:00Z =====
+EXIT:0
+===== @eterna/attachments typecheck 2026-11-19T20:21:02Z =====
+EXIT:0
+===== @eterna/brand typecheck 2026-11-19T20:21:02Z =====
+EXIT:0
+===== @eterna/compaction typecheck 2026-11-19T20:21:03Z =====
+EXIT:0
+===== @eterna/llm-doctor typecheck 2026-11-19T20:21:04Z =====
+EXIT:0
+===== @eterna/memory typecheck 2026-11-19T20:21:05Z =====
+EXIT:0
+===== @eterna/panel typecheck 2026-11-19T20:21:06Z =====
+EXIT:0
+===== @eterna/prompt-studio typecheck 2026-11-19T20:21:08Z =====
+EXIT:0
+===== @eterna/usage-stats typecheck 2026-11-19T20:21:09Z =====
+EXIT:0
+===== @eterna/workbench typecheck 2026-11-19T20:21:10Z =====
+EXIT:0
+OVERALL_EXIT:0

@@ -1,0 +1,6 @@
+# SEC/RC5-SEC-010
+# started 2026-11-20T01:52:05.107Z
+
+# note: 本 lane 数据根为全新播种（2026-11-20 E2），不存在旧版本 rc.4/rc.5 之前的历史数据；E1 车道同样从空数据根起。
+
+# note: 升级路径上的旧会话/旧记忆/旧提示词兼容性由 E0/profile-upgrade 车道与 `pnpm -w run verify` 内 profile-upgrade-check 覆盖。

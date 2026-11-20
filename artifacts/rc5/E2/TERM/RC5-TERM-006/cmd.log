@@ -1,0 +1,58 @@
+# TERM/RC5-TERM-006
+# started 2026-11-20T07:05:51.673Z
+
+$ POST /api/terminal/list（A）
+EXIT=200
+ok=true code=- value=[{"id":"e2-victim-term","shell":{"path":"/bin/bash","name":"bash","args":["-i"]},"title":"bash","cwd":"/data/workspaces/rc5admin","cols":80,"rows":24,"state":"r… msg=
+
+$ POST /api/terminal/environment（A）
+EXIT=200
+ok=true code=- value={"cwd":"/data/workspaces/rc5admin","maxInputBytes":65536,"maxBufferedBytes":2097152,"maxCols":500,"maxRows":200,"scrollback":1000} msg=
+
+$ POST /api/terminal/shells（A）
+EXIT=200
+ok=true code=- value=[{"path":"/bin/bash","name":"bash","args":["-i"]}] msg=
+
+$ POST /api/terminal/create（A）
+EXIT=200
+ok=true code=- value={"id":"e2-a-term","shell":{"path":"/bin/bash","name":"bash","args":["-i"]},"title":"bash","cwd":"/data/workspaces/rc5admin","cols":80,"rows":24,"state":"running… msg=
+
+$ POST /api/terminal/rename（A）
+EXIT=200
+ok=true code=- value= msg=
+
+$ WS /api/remote.mux open terminal/attach（A）
+EXIT=0
+frames=[{"type":"item","streamId":"e2-term-terminal-attach-3zbkwr","value":{"type":"snapshot","sequence":1,"screen":"root@71cf1174be6d:/data/workspaces/rc5admin# \u001b[?2004h","info":{"id":"e2-a-term","shell":{"path":"/bin/bash","name":"bash","args":["-i"]},"title":"e2-renamed","cwd":"/data/workspaces/rc5…
+
+$ WS /api/remote.mux open terminal/retain（A）
+EXIT=0
+frames=[{"type":"item","streamId":"e2-term-terminal-retain-s0pbzu","value":{"type":"retained"}}]
+
+$ WS /api/remote.mux open terminal/watch（A）
+EXIT=0
+frames=[{"type":"item","streamId":"e2-term-terminal-watch-wnefk1","value":[{"id":"e2-victim-term","shell":{"path":"/bin/bash","name":"bash","args":["-i"]},"title":"bash","cwd":"/data/workspaces/rc5admin","cols":80,"rows":24,"state":"running","exitCode":null,"origin":"user","control":"user"},{"id":"e2-a-ter…
+
+$ POST /api/terminal/close（A，最后关闭）
+EXIT=200
+ok=true code=- value= msg=
+
+[ASSERT] A list ok => PASS :: - 
+
+[ASSERT] A environment ok => PASS :: - 
+
+[ASSERT] A shells ok => PASS :: - 
+
+[ASSERT] A create ok => PASS :: - 
+
+[ASSERT] A close ok => PASS :: - 
+
+[ASSERT] A rename ok => PASS :: - 
+
+[ASSERT] A attach ok => PASS :: - 
+
+[ASSERT] A retain ok => PASS :: - 
+
+[ASSERT] A watch ok => PASS :: - 
+
+# note: attach 用真实 mux WS open（payload.args={agentId,id}）执行；首个帧为 snapshot（屏幕/state/writable），与浏览器端同一条 Remote stream 路径

@@ -1,0 +1,13 @@
+[PASS] ACC-admin :: admin=rc5admin login=200
+[PASS] ACC-user_b :: account=rc5userb 已存在
+[PASS] ACC-user_b-login :: login=200
+[PASS] ACC-user_b-workspace :: adf1e03e-505e-468b-b1b0-9ebc31f5e1a4
+[PASS] ACC-user_c :: account=rc5userc 已存在
+[PASS] ACC-user_c-login :: login=200
+[PASS] ACC-user_c-workspace :: d50c1c6b-58d9-4f07-8368-df994fa1acc0
+[PASS] E2-rc5admin :: workspaces=7439e2fd-4920-44b0-8fb2-b2bf80790427
+[PASS] E2-rc5userb :: workspaces=adf1e03e-505e-468b-b1b0-9ebc31f5e1a4
+[PASS] E2-rc5userc :: workspaces=d50c1c6b-58d9-4f07-8368-df994fa1acc0
+[E2] 浏览器矩阵入口：http://127.0.0.1:3108/login（A=rc5admin，B=rc5userb，C=rc5userc）；口令在 /Users/sunny/eterna-data/test-rc5/.test-accounts.json（0600），不打印
+
+[PREP] PASS=10 FAIL=0

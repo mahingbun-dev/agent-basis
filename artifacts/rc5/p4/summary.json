@@ -1,0 +1,43 @@
+{
+  "phase": "P4",
+  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "imageTag": null,
+  "imageId": null,
+  "startedAt": "2026-11-19T20:20:53Z",
+  "finishedAt": "2026-11-20T00:28:37Z",
+  "windowBasis": "p4 lane 日志 + UI/ACC/SEC 静态套件与 E2 UI 截图（evidence window）",
+  "commands": [
+    {
+      "cmd": "node scripts/lint-ui-tokens.mjs",
+      "exit": 0,
+      "log": "artifacts/rc5/UI/RC5-UI-001/cmd.log"
+    },
+    {
+      "cmd": "pnpm --filter @eterna/access exec vitest run tests/mux-drift.spec.ts tests/mux-peer-drift.spec.ts",
+      "exit": 0,
+      "log": "artifacts/rc5/E2/ACC/RC5-ACC-004/cmd.log"
+    },
+    {
+      "cmd": "pnpm --filter @eterna/access exec vitest run tests/mux-policy.spec.ts",
+      "exit": 0,
+      "log": "artifacts/rc5/E2/ACC/RC5-ACC-005/cmd.log"
+    },
+    {
+      "cmd": "10 包 build:client（access/attachments/brand/compaction/llm-doctor/memory/panel/prompt-studio/usage-stats/workbench）",
+      "exit": 0,
+      "log": "artifacts/rc5/p4/client-bundles/02-build.log"
+    }
+  ],
+  "cases": {
+    "total": 17,
+    "pass": 17,
+    "fail": 0,
+    "skip": 0
+  },
+  "leftovers": [
+    "P4-01|SEC-002 FAIL：跟踪测试文件含疑似口令字面量（已脱敏计数），属 P0 安全项|P0|替换为明显假值并全仓重扫",
+    "P4-02|ACC-001/003/004/005/010 的首跑证据落在 E2/ACC（P6a lane），P4 静态门禁日志见 p4/b12-glue、p4/b14-system-gates|P3|在阶段 summary 交叉引用，不重复计分"
+  ],
+  "generatedBy": "T50/artifacts/rc5/p6a/scan-matrix.mjs",
+  "generatedAt": "2026-11-20T05:25:41Z"
+}

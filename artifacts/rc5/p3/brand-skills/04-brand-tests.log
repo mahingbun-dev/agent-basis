@@ -1,0 +1,35 @@
+$ pnpm -C packages/brand test
+$ ./node_modules/.bin/vitest run
+
+ RUN  v4.1.12 <HOME>/code/agent-basis-rc5/packages/brand
+
+ ✓ tests/skills-brand.test.ts (10 tests) 7ms
+ ✓ tests/brand.test.ts (17 tests) 5ms
+
+ Test Files  2 passed (2)
+      Tests  27 passed (27)
+   Start at  03:09:22
+   Duration  126ms (transform 33ms, setup 0ms, import 49ms, tests 12ms, environment 0ms)
+
+EXIT=0
+
+$ pnpm -C packages/brand verify
+$ node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run
+
+  lib/client.js  18.1kb
+
+⚡ Done in 8ms
+Found 0 warnings and 0 errors.
+Finished in 735ms on 7 files with 87 rules using 10 threads.
+
+ RUN  v4.1.12 <HOME>/code/agent-basis-rc5/packages/brand
+
+ ✓ tests/skills-brand.test.ts (10 tests) 7ms
+ ✓ tests/brand.test.ts (17 tests) 5ms
+
+ Test Files  2 passed (2)
+      Tests  27 passed (27)
+   Start at  03:09:24
+   Duration  127ms (transform 35ms, setup 0ms, import 49ms, tests 12ms, environment 0ms)
+
+EXIT=0

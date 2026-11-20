@@ -180,7 +180,7 @@ describe('title 改写语义(经 bundle vm 驱动伪 DOM 验证)', () => {
         return { textContent: '' }
       },
       body: {
-        innerText: 'DSH 本地构建\n0.2.2-rc.1',
+        innerText: 'DSH 本地构建\n0.2.2-rc.5',
       },
       createTreeWalker(): { nextNode(): null } {
         return { nextNode: () => null }

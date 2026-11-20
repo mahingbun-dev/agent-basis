@@ -1,0 +1,14 @@
+$ git -C <UPSTREAM> archive dsh-v0.2.2-rc.5 packages/preset/agent-preset/skills/dsh-doc | tar -x -C /tmp/t21/rc5
+(基线已解包到 /tmp/t21/rc5;脚本按此路径比较)
+
+$ python3 -I artifacts/rc5/p3/brand-skills/replay_diff_check.py
+ALLOWED-INCREMENT SKILL.md
+ALLOWED-INCREMENT references/plugin-development.md
+baseline files compared: 43
+brand extras (documented increments): 3
+  EXTRA references/personal-tools.md
+  EXTRA templates/personal-tool/index.js
+  EXTRA templates/personal-tool/package.json
+unexpected: 0
+verdict: PASS
+EXIT=0

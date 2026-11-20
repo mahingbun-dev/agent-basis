@@ -1,0 +1,55 @@
+{
+  "name": "/eterna-agent",
+  "id": "492c35a4d450",
+  "image": "eterna-agent:0.1.51",
+  "imageId": "sha256:3ca0d66055898b092f09761e5f67baa4a82741f1c7233d27bd2ddbd6de2b1a7b",
+  "created": "2026-11-19T17:21:04.219030625Z",
+  "startedAt": "2026-11-19T17:21:06.582265918Z",
+  "status": "running",
+  "health": "healthy",
+  "restart": "unless-stopped",
+  "ports": {
+    "8080/tcp": [
+      {
+        "HostIp": "0.0.0.0",
+        "HostPort": "3210"
+      },
+      {
+        "HostIp": "::",
+        "HostPort": "3210"
+      }
+    ],
+    "9310/tcp": [
+      {
+        "HostIp": "0.0.0.0",
+        "HostPort": "9310"
+      },
+      {
+        "HostIp": "::",
+        "HostPort": "9310"
+      }
+    ]
+  },
+  "composeProject": "agent-basis",
+  "composeService": "eterna-agent",
+  "composeConfigFiles": "/Users/sunny/code/agent-basis-main-0.1.51/docker-compose.yml",
+  "composeEnvFiles": "/Users/sunny/code/agent-basis/.env"
+}
+{
+  "env_whitelist": [
+    {
+      "key": "ETERNA_FORM",
+      "value": "super"
+    },
+    {
+      "key": "PATH",
+      "value": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    },
+    {
+      "key": "DSH_HOME",
+      "value": "/data"
+    }
+  ],
+  "total_env_keys": 20
+}
+EXIT=0

@@ -1,0 +1,8 @@
+# ACC/RC5-ACC-001
+# started 2026-11-20T01:36:09.687Z
+
+$ node tools/packctl/bin/packctl.mjs tenant-scan
+EXIT=0
+tenant-scan: 0 finding(s)
+
+[ASSERT] tenant-scan 0 违规 => PASS :: tenant-scan: 0 finding(s)

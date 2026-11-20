@@ -1,0 +1,310 @@
+{
+ "profile": "eterna-super",
+ "liveSlotCatalogSize": 116,
+ "checkedPackages": 12,
+ "packages": [
+  {
+   "package": "@eterna/access",
+   "declared": 7,
+   "served": 7,
+   "missingFromBundle": [],
+   "extraInBundle": [],
+   "missingFromCatalog": [],
+   "bundleStatus": 200,
+   "rosterEntry": true,
+   "slots": [
+    "settings.launcher",
+    "conversation.chat.assistant-actions",
+    "conversation.input.overlay",
+    "settings.section",
+    "plugins.tab",
+    "conversation.hero.workspace.directoryFlow",
+    "sidebar.workspaces.directoryFlow"
+   ],
+   "sources": {
+    "settings.launcher": [
+     "packages/access/src/client/index.tsx:339"
+    ],
+    "conversation.chat.assistant-actions": [
+     "packages/access/src/client/index.tsx:362"
+    ],
+    "conversation.input.overlay": [
+     "packages/access/src/client/index.tsx:376",
+     "packages/access/src/client/index.tsx:402"
+    ],
+    "settings.section": [
+     "packages/access/src/client/index.tsx:412",
+     "packages/access/src/client/index.tsx:422",
+     "packages/access/src/client/index.tsx:440",
+     "packages/access/src/client/index.tsx:448"
+    ],
+    "plugins.tab": [
+     "packages/access/src/client/index.tsx:431",
+     "packages/access/src/client/index.tsx:461"
+    ],
+    "conversation.hero.workspace.directoryFlow": [
+     "packages/access/src/client/index.tsx:488"
+    ],
+    "sidebar.workspaces.directoryFlow": [
+     "packages/access/src/client/index.tsx:488"
+    ]
+   }
+  },
+  {
+   "package": "@eterna/attachments",
+   "declared": 1,
+   "served": 1,
+   "missingFromBundle": [],
+   "extraInBundle": [],
+   "missingFromCatalog": [],
+   "bundleStatus": 200,
+   "rosterEntry": true,
+   "slots": [
+    "conversation.input.left"
+   ],
+   "sources": {
+    "conversation.input.left": [
+     "packages/attachments/src/client/index.ts:30"
+    ]
+   }
+  },
+  {
+   "package": "@eterna/brand",
+   "declared": 2,
+   "served": 2,
+   "missingFromBundle": [],
+   "extraInBundle": [],
+   "missingFromCatalog": [],
+   "bundleStatus": 200,
+   "rosterEntry": true,
+   "slots": [
+    "sidebar.brand.mark",
+    "sidebar.brand.name"
+   ],
+   "sources": {
+    "sidebar.brand.mark": [
+     "packages/brand/src/client/index.ts:237"
+    ],
+    "sidebar.brand.name": [
+     "packages/brand/src/client/index.ts:243"
+    ]
+   }
+  },
+  {
+   "package": "@eterna/compaction",
+   "declared": 2,
+   "served": 2,
+   "missingFromBundle": [],
+   "extraInBundle": [],
+   "missingFromCatalog": [],
+   "bundleStatus": 200,
+   "rosterEntry": true,
+   "slots": [
+    "settings.section",
+    "conversation.chat.turnTail"
+   ],
+   "sources": {
+    "settings.section": [
+     "packages/compaction/src/client/index.tsx:450"
+    ],
+    "conversation.chat.turnTail": [
+     "packages/compaction/src/client/index.tsx:463"
+    ]
+   }
+  },
+  {
+   "package": "@eterna/knowledge-admin",
+   "declared": 2,
+   "served": 2,
+   "missingFromBundle": [],
+   "extraInBundle": [],
+   "missingFromCatalog": [],
+   "bundleStatus": 200,
+   "rosterEntry": true,
+   "slots": [
+    "sidebar.panellist",
+    "main"
+   ],
+   "sources": {
+    "sidebar.panellist": [
+     "packages/knowledge-admin/src/client/index.js:1222"
+    ],
+    "main": [
+     "packages/knowledge-admin/src/client/index.js:1239"
+    ]
+   }
+  },
+  {
+   "package": "@eterna/llm-doctor",
+   "declared": 1,
+   "served": 1,
+   "missingFromBundle": [],
+   "extraInBundle": [],
+   "missingFromCatalog": [],
+   "bundleStatus": 200,
+   "rosterEntry": true,
+   "slots": [
+    "settings.models.provider-card"
+   ],
+   "sources": {
+    "settings.models.provider-card": [
+     "packages/llm-doctor/src/client/index.ts:36"
+    ]
+   }
+  },
+  {
+   "package": "@eterna/memory",
+   "declared": 4,
+   "served": 4,
+   "missingFromBundle": [],
+   "extraInBundle": [],
+   "missingFromCatalog": [],
+   "bundleStatus": 200,
+   "rosterEntry": true,
+   "slots": [
+    "settings.section",
+    "plugins.tab",
+    "conversation.input.right",
+    "conversation.chat.turnTail"
+   ],
+   "sources": {
+    "settings.section": [
+     "packages/memory/src/client/index.tsx:129"
+    ],
+    "plugins.tab": [
+     "packages/memory/src/client/index.tsx:139"
+    ],
+    "conversation.input.right": [
+     "packages/memory/src/client/index.tsx:148"
+    ],
+    "conversation.chat.turnTail": [
+     "packages/memory/src/client/index.tsx:179"
+    ]
+   }
+  },
+  {
+   "package": "@eterna/panel",
+   "declared": 3,
+   "served": 3,
+   "missingFromBundle": [],
+   "extraInBundle": [],
+   "missingFromCatalog": [],
+   "bundleStatus": 200,
+   "rosterEntry": true,
+   "slots": [
+    "main",
+    "conversation.input.dock",
+    "sidebar.panellist"
+   ],
+   "sources": {
+    "main": [
+     "packages/panel/src/client/index.ts:156"
+    ],
+    "conversation.input.dock": [
+     "packages/panel/src/client/index.ts:180"
+    ],
+    "sidebar.panellist": [
+     "packages/panel/src/client/index.ts:186"
+    ]
+   }
+  },
+  {
+   "package": "@eterna/prompt-studio",
+   "declared": 2,
+   "served": 2,
+   "missingFromBundle": [],
+   "extraInBundle": [],
+   "missingFromCatalog": [],
+   "bundleStatus": 200,
+   "rosterEntry": true,
+   "slots": [
+    "main",
+    "sidebar.panellist"
+   ],
+   "sources": {
+    "main": [
+     "packages/prompt-studio/src/client/index.ts:131",
+     "packages/prompt-studio/src/client/index.ts:142"
+    ],
+    "sidebar.panellist": [
+     "packages/prompt-studio/src/client/index.ts:153",
+     "packages/prompt-studio/src/client/index.ts:160"
+    ]
+   }
+  },
+  {
+   "package": "@eterna/tasks",
+   "declared": 4,
+   "served": 4,
+   "missingFromBundle": [],
+   "extraInBundle": [],
+   "missingFromCatalog": [],
+   "bundleStatus": 200,
+   "rosterEntry": true,
+   "slots": [
+    "settings.section",
+    "conversation.session.header.utilities",
+    "sidebar.session.row.trailing",
+    "conversation.user.text.node"
+   ],
+   "sources": {
+    "settings.section": [
+     "packages/tasks/src/client/index.tsx:74"
+    ],
+    "conversation.session.header.utilities": [
+     "packages/tasks/src/client/index.tsx:83"
+    ],
+    "sidebar.session.row.trailing": [
+     "packages/tasks/src/client/index.tsx:90"
+    ],
+    "conversation.user.text.node": [
+     "packages/tasks/src/client/index.tsx:101"
+    ]
+   }
+  },
+  {
+   "package": "@eterna/usage-stats",
+   "declared": 2,
+   "served": 2,
+   "missingFromBundle": [],
+   "extraInBundle": [],
+   "missingFromCatalog": [],
+   "bundleStatus": 200,
+   "rosterEntry": true,
+   "slots": [
+    "main",
+    "sidebar.panellist"
+   ],
+   "sources": {
+    "main": [
+     "packages/usage-stats/src/client/index.tsx:260"
+    ],
+    "sidebar.panellist": [
+     "packages/usage-stats/src/client/index.tsx:264"
+    ]
+   }
+  },
+  {
+   "package": "@eterna/workbench",
+   "declared": 2,
+   "served": 2,
+   "missingFromBundle": [],
+   "extraInBundle": [],
+   "missingFromCatalog": [],
+   "bundleStatus": 200,
+   "rosterEntry": true,
+   "slots": [
+    "main",
+    "sidebar.panellist"
+   ],
+   "sources": {
+    "main": [
+     "packages/workbench/src/client/index.ts:52"
+    ],
+    "sidebar.panellist": [
+     "packages/workbench/src/client/index.ts:69"
+    ]
+   }
+  }
+ ]
+}

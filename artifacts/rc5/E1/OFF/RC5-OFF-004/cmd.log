@@ -1,0 +1,10 @@
+# OFF/RC5-OFF-004
+# started 2026-11-20T07:03:23.856Z
+
+$ docker exec rc5-e1suite sh -lc "fc-list | grep -i 'Noto Sans CJK' | head -3"
+EXIT=0
+/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc: Noto Sans CJK JP:style=Regular
+/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc: Noto Sans CJK HK:style=Regular
+/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc: Noto Sans CJK KR:style=Regular
+
+[ASSERT] 镜像存在 Noto Sans CJK => PASS

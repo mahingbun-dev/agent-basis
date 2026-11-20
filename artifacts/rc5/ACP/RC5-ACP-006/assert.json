@@ -1,0 +1,46 @@
+{
+  "id": "RC5-ACP-006",
+  "priority": "P0",
+  "title": "工具需审批：ACP 按协议发 session/request_permission；客户端应答后不挂死",
+  "status": "PASS",
+  "at": "2026-11-20T05:10:31.993Z",
+  "detail": "permissionRequest=toolCallId=call_acp_fixture_1 options=allow-once,reject-once stopReason=end_turn elapsed=227ms",
+  "assertions": [
+    {
+      "name": "收到 session/request_permission",
+      "expected": "1 次",
+      "observed": "1",
+      "ok": true
+    },
+    {
+      "name": "请求带 sessionId",
+      "expected": "668313fe-c0ac-4922-a7ec-1d086fadd6b6",
+      "observed": "668313fe-c0ac-4922-a7ec-1d086fadd6b6",
+      "ok": true
+    },
+    {
+      "name": "请求带 toolCallId",
+      "expected": "非空",
+      "observed": "call_acp_fixture_1",
+      "ok": true
+    },
+    {
+      "name": "选项含 allow_once",
+      "expected": "true",
+      "observed": "true",
+      "ok": true
+    },
+    {
+      "name": "选项含 reject_once",
+      "expected": "true",
+      "observed": "true",
+      "ok": true
+    },
+    {
+      "name": "应答后 prompt 结束（不挂死）",
+      "expected": "<120000ms 且 end_turn",
+      "observed": "227ms/end_turn",
+      "ok": true
+    }
+  ]
+}

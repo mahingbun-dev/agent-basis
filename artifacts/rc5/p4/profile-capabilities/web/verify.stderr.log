@@ -1,0 +1,1 @@
+verify-eterna-web: boot http://127.0.0.1:59769/?token=<redacted>

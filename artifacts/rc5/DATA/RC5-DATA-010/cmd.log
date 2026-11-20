@@ -1,0 +1,77 @@
+# case: RC5-DATA-010
+# host: ma-macminideMac-mini.local  user: sunny  time: 2026-11-19T22:25:44Z
+
+旧镜像 sha256:3ca0d66055898b092f09761e5f67baa4a82741f1c7233d27bd2ddbd6de2b1a7b
+
+新镜像 sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00
+
+$ docker stop -t 60 eterna-rc5-p6b-a
+# label: 停新容器 eterna-rc5-p6b-a
+# started: 2026-11-19T22:25:46Z
+eterna-rc5-p6b-a
+EXIT=0
+
+ASSERT PASS | 新容器已停 | actual=false expected=false
+$ docker run -d --name eterna-rc5-p6b-old --env-file /Users/sunny/eterna-data/test-rc5/.env.p6b-old -v /Users/sunny/eterna-data/test-rc5/p6b-e5b:/data -p 3231:8080 -p 9331:9310 --restart no eterna-agent:0.1.51
+# label: 起旧容器（0.1.51 + 旧卷副本）
+# started: 2026-11-19T22:25:47Z
+c1fe10917e4ef2147ead18db14c324735f60d2b59e6be00a39e7a5bc13c7cfd7
+EXIT=0
+
+ASSERT PASS | 旧容器启动 EXIT=0 | actual=0 expected=0
+旧容器状态: running/healthy
+
+ASSERT PASS | 旧容器 running | actual=running expected=running
+$ sh -c curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3231/login
+# label: 旧版本 GET /login
+# started: 2026-11-19T22:25:53Z
+200EXIT=0
+
+$ sh -c curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3231/access/api/me
+# label: 旧版本 GET /access/api/me
+# started: 2026-11-19T22:25:53Z
+401EXIT=0
+
+ASSERT PASS | 旧版本 /login 返回 200 | actual=200 expected=200
+ASSERT PASS | 旧版本匿名 /access/api/me 返回 401 | actual=401 expected=401
+ASSERT PASS | 旧版本中继 /api/status 200 | actual=200 expected=200
+旧容器日志行数 18
+
+$ sh -c docker run --rm --network none -v '/Users/sunny/eterna-data/test-rc5/p6b-e5b:/data:ro' -v '/Users/sunny/code/agent-basis-rc5/artifacts/rc5/DATA/_tools:/tools:ro' eterna-agent:rc5-test node /tools/snapshot-data.mjs /data > '/Users/sunny/code/agent-basis-rc5/artifacts/rc5/DATA/RC5-DATA-010/old-volume-after-boot.json' 2>&1 || true
+# label: 旧版本会话数据可见（旧卷副本快照）
+# started: 2026-11-19T22:25:53Z
+EXIT=0
+
+ASSERT PASS | 旧卷副本用户=2 | actual=2 expected=2
+ASSERT PASS | 旧卷副本会话=145 | actual=145 expected=145
+$ docker stop -t 60 eterna-rc5-p6b-old
+# label: 停旧容器
+# started: 2026-11-19T22:25:54Z
+eterna-rc5-p6b-old
+EXIT=0
+
+ASSERT PASS | 旧卷副本全库 integrity_check | actual=0 expected=0
+$ docker start eterna-rc5-p6b-a
+# label: 起回新容器 eterna-rc5-p6b-a
+# started: 2026-11-19T22:25:57Z
+eterna-rc5-p6b-a
+EXIT=0
+
+新容器状态: running/healthy
+
+ASSERT PASS | 新容器恢复 healthy | actual=running/healthy expected=running/healthy
+ASSERT PASS | 新版本 /login 200 | actual=200 expected=200
+ASSERT PASS | 新根全库 integrity_check（回滚往返后） | actual=0 expected=0
+db True
+secretFiles True
+storages True
+sessions.files True 396 396
+files True 8625 8625
+db values {'users': 2, 'accessSessions': 145, 'workspaces': 3, 'approvals': 0, 'notifications': 0, 'userPlugins': 0, 'memoryEntities': 12, 'memoryDomains': 15, 'knowledgePermissions': 0, 'workspaceMemoryEntities': 24, 'tasksTickets': 0, 'tasksThreads': 1} {'users': 2, 'accessSessions': 145, 'workspaces': 3, 'approvals': 0, 'notifications': 0, 'userPlugins': 0, 'memoryEntities': 12, 'memoryDomains': 15, 'knowledgePermissions': 0, 'workspaceMemoryEntities': 24, 'tasksTickets': 0, 'tasksThreads': 1}
+ASSERT PASS | 往返后 DB 行数完全一致 | actual=1 expected=1
+ASSERT PASS | 往返后 relay-token/凭据指纹一致 | actual=1 expected=1
+ASSERT PASS | 往返后 storages 文件数一致 | actual=1 expected=1
+ASSERT PASS | 往返后 sessions 文件数一致 | actual=1 expected=1
+ASSERT PASS | 往返后总文件数一致 | actual=1 expected=1
+PASS=17 FAIL=0
+

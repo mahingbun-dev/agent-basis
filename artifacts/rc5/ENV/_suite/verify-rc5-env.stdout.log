@@ -1,0 +1,50 @@
+
+== SELF [PASS] 扫描规则自检
+   口径:正向/负向样例锁死 classifySpec / stripComment / splitArgs / isConstantCode。
+   ✓ 规则样例全部通过 — 19/19 条样例通过
+
+== ENV-003 [PASS] 版本族统一(全仓 package.json 免 v1/core + workspace catalog)
+   口径:51 ENV-003:全部 0.2.2-rc.5;cordis 4.1.0;cosmokit 1.9.0。硬门禁=0.2.1/rc.1/4.0.6 的钉版。
+   ✓ catalog dsh 全族 = 0.2.2-rc.5 — 28 个 @deepseek-ai/dsh-* catalog 条目,期望 0.2.2-rc.5;偏离:无
+   ✓ catalog @deepseek-ai/cordis = 4.1.0 — 实测 4.1.0
+   ✓ catalog @deepseek-ai/cosmokit = 1.9.0 — 实测 1.9.0
+   ✓ 清单中无 0.2.1/rc.1/4.0.6 钉版 — 扫描 47 个清单 / 63 条 @deepseek-ai/dsh* spec
+   ✓ 清单 dsh* 精确版无偏离 rc.5 — 全部 catalog:/workspace:/精确 rc.5
+
+== ENV-002 [PASS] 全仓版本残留(排除历史文档/锁文件)
+   口径:51 ENV-002:0.2.2-alpha.2|alpha.3|rc.1 命中 0;本仓另扫 0.2.1/4.0.6。非注释命中为硬门禁,注释命中为信息面。
+   ✓ 扫描面不含 .secrets/.env* — 凭据面 0 文件
+   ✓ 代码/配置无非注释残留 — 扫描 1773 个文件,非注释命中 0
+   ! 历史叙述命中 80 注释 + 276 文档 + 8 清单 description + 2 裸 rc.1(不计门禁):Dockerfile=1, core=6, docker=3, packages=89, profiles=5, scripts=1, tools=5, acceptance=3, docs=234, plans=19
+
+== ENV-006 [PASS] Dockerfile 内核钉版
+   口径:51 ENV-006:grep @deepseek-ai/dsh@ → 精确 rc.5,无 alpha.3;49 §4:只装 dsh,mcp-client 用宿主内嵌。
+   ✓ 全局内核精确 0.2.2-rc.5 — dsh@0.2.2-rc.5
+   ✓ 有效行无 alpha.* 钉版 — 无
+
+== ENV-004 [PASS] 容器内 dsh --version = 0.2.2-rc.5(静态代理)
+   口径:51 ENV-004 的运行时半需 P5 镜像;此处只验「本仓实装版本 + 镜像钉版」两处静态事实。 运行时检查(容器内 dsh --version)未执行:加 --runtime-image/--runtime-container。
+   ✓ workspace 实装 @deepseek-ai/dsh = rc.5 — 实测 0.2.2-rc.5
+   ✓ 镜像钉版 = rc.5(静态) — 0.2.2-rc.5
+
+== API-008 [PASS] LlmError 构造签名(rc.5: message, code, options?)
+   口径:51 API-008:无旧构造签名残留。静态扫描 new LlmError(...) 参数形态 + 记录 fromFailure 出点。
+   ✓ 无旧构造签名残留 — 15 处构造全部 (message, code[, options]);2 处 fromFailure 形态合法
+   ✓ 构造点非空(扫描面有效) — 命中 15 处
+
+== API-009 [PASS] LoggerLevel 数值语义(4.1.0: WARN=1 / INFO=2)
+   口径:51 API-009:级别显示正确(rc.5 数值语义)。静态半=常量值与全仓数值比较复核;真行为(E2E 触发 debug/info/warn)属 T49e。
+   ✓ vendor LoggerLevel = {ERROR:0, WARN:1, INFO:2, DEBUG:3} — {"ERROR":0,"WARN":1,"INFO":2,"DEBUG":3}
+   ✓ 构建产物 LoggerLevel 同值 — {"ERROR":0,"WARN":1,"INFO":2,"DEBUG":3}
+   ✓ 阈值缺省用 LoggerLevel.INFO 符号(非字面量 2) — logger.ts:159 形态匹配
+   ✓ 过滤方向 targetLevel < level(与上游 4.1.0 一致) — logger.ts:160 形态匹配
+   ✓ 全仓日志级别数值比较均在登记簿内 — 2 处命中,全部复核登记
+   ✓ 登记簿无失效条目 — 无
+
+== 汇总
+   7 PASS / 0 WARN / 0 FAIL
+   WARN 1 条:
+     - ENV-002: 历史叙述命中 80 注释 + 276 文档 + 8 清单 description + 2 裸 rc.1(不计门禁):Dockerfile=1, core=6, docker=3, packages=89, profiles=5, scripts=1, tools=5, acceptance=3, docs=234, plans=19
+
+EXIT 0(硬门禁全过)
+报告:/Users/sunny/code/agent-basis-rc5/artifacts/rc5/ENV/_suite/verify-rc5-env.json

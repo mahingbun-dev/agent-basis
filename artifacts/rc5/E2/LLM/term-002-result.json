@@ -1,0 +1,6 @@
+{
+  "id": "RC5-TERM-002",
+  "status": "PASS",
+  "title": "侧栏 terminal 面板可见/可开/可输入；首次按键人接管后 Agent 只读",
+  "detail": "open=true typed=true takeover=true agent_leaked=false"
+}

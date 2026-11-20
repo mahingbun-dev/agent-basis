@@ -1,0 +1,47 @@
+[2026-11-20T07:37:11.644Z] compose up EXIT=0 "\n Network rc5-scale_default Creating \n Network rc5-scale_default Created \n Container eterna-rc5-scale Creating \n Container eterna-rc5-scale Created \n Container eterna-rc5-scale Starting \n Container eterna-rc5-scale Started \n"
+[2026-11-20T07:37:17.932Z] admin 登录 status=200
+[2026-11-20T07:37:17.932Z] 并发创建 50 个基线会话 …
+[2026-11-20T07:37:18.673Z] 基线会话 50/50
+[2026-11-20T07:37:18.921Z] tick=1 read=50/50 write=50/50 db=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok locks=0
+[2026-11-20T07:37:48.926Z] tick=2 read=- write=- db=- locks=-
+[2026-11-20T07:38:19.014Z] tick=3 read=50/50 write=- db=- locks=-
+[2026-11-20T07:38:49.020Z] tick=4 read=- write=- db=- locks=-
+[2026-11-20T07:39:19.112Z] tick=5 read=50/50 write=- db=- locks=-
+[2026-11-20T07:39:49.116Z] tick=6 read=- write=- db=- locks=-
+[2026-11-20T07:40:19.197Z] tick=7 read=50/50 write=- db=- locks=-
+[2026-11-20T07:40:49.203Z] tick=8 read=- write=- db=- locks=-
+[2026-11-20T07:41:19.293Z] tick=9 read=50/50 write=- db=- locks=-
+[2026-11-20T07:41:49.295Z] tick=10 read=- write=- db=- locks=-
+[2026-11-20T07:42:19.665Z] tick=11 read=50/50 write=50/50 db=- locks=-
+[2026-11-20T07:42:49.668Z] tick=12 read=- write=- db=- locks=-
+[2026-11-20T07:43:19.756Z] tick=13 read=50/50 write=- db=- locks=-
+[2026-11-20T07:43:49.759Z] tick=14 read=- write=- db=- locks=-
+[2026-11-20T07:44:19.839Z] tick=15 read=50/50 write=- db=- locks=-
+[2026-11-20T07:44:49.844Z] tick=16 read=- write=- db=- locks=-
+[2026-11-20T07:45:19.942Z] tick=17 read=50/50 write=- db=- locks=-
+[2026-11-20T07:45:49.947Z] tick=18 read=- write=- db=- locks=-
+[2026-11-20T07:46:20.026Z] tick=19 read=50/50 write=- db=- locks=-
+[2026-11-20T07:46:50.029Z] tick=20 read=- write=- db=- locks=-
+[2026-11-20T07:47:20.456Z] tick=21 read=50/50 write=50/50 db=- locks=-
+[2026-11-20T07:47:50.460Z] tick=22 read=- write=- db=- locks=-
+[2026-11-20T07:48:20.556Z] tick=23 read=50/50 write=- db=- locks=-
+[2026-11-20T07:48:50.560Z] tick=24 read=- write=- db=- locks=-
+[2026-11-20T07:49:20.640Z] tick=25 read=50/50 write=- db=- locks=-
+[2026-11-20T07:49:50.644Z] tick=26 read=- write=- db=- locks=-
+[2026-11-20T07:50:20.720Z] tick=27 read=50/50 write=- db=- locks=-
+[2026-11-20T07:50:50.724Z] tick=28 read=- write=- db=- locks=-
+[2026-11-20T07:51:20.815Z] tick=29 read=50/50 write=- db=- locks=-
+[2026-11-20T07:51:50.819Z] tick=30 read=- write=- db=- locks=-
+[2026-11-20T07:52:21.203Z] tick=31 read=50/50 write=50/50 db=- locks=-
+[2026-11-20T07:52:51.206Z] tick=32 read=- write=- db=- locks=-
+[2026-11-20T07:53:21.316Z] tick=33 read=50/50 write=- db=- locks=-
+[2026-11-20T07:53:51.320Z] tick=34 read=- write=- db=- locks=-
+[2026-11-20T07:54:21.370Z] tick=35 read=50/50 write=- db=- locks=-
+[2026-11-20T07:54:51.375Z] tick=36 read=- write=- db=- locks=-
+[2026-11-20T07:55:21.488Z] tick=37 read=50/50 write=- db=- locks=-
+[2026-11-20T07:55:51.493Z] tick=38 read=- write=- db=- locks=-
+[2026-11-20T07:56:21.573Z] tick=39 read=50/50 write=- db=- locks=-
+[2026-11-20T07:56:51.579Z] tick=40 read=- write=- db=- locks=-
+[2026-11-20T07:57:21.943Z] tick=41 read=50/50 write=50/50 db=- locks=-
+[2026-11-20T07:57:51.945Z] tick=42 read=- write=- db=- locks=-
+[2026-11-20T07:58:22.018Z] tick=43 read=50/50 write=- db=- locks=-

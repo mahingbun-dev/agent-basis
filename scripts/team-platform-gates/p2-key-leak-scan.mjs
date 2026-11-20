@@ -117,14 +117,14 @@ report.roleGate.adminWriteOk = adminWrite.body?.result?.ok === true
 await page.evaluate(async () => {
   await fetch('/access/api/users', {
     method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ account: 'tp-bob', password: 'tp-bob-pass-8', role: 'user' }),
+    body: JSON.stringify({ account: 'tp-bob', password: 'tp-bob-test-pass-8', role: 'user' }),
   })
 })
 const ctxB = await ctx.browser().newContext({ viewport: { width: 1280, height: 800 } })
 const pageB = await ctxB.newPage()
 await pageB.goto(BASE + '/login', { waitUntil: 'networkidle' })
 await pageB.fill('#account', 'tp-bob')
-await pageB.fill('#password', 'tp-bob-pass-8')
+await pageB.fill('#password', 'tp-bob-test-pass-8')
 await pageB.click('#go')
 await pageB.waitForTimeout(8000)
 const bobWrite = await pageB.evaluate(async () => {

@@ -1,0 +1,93 @@
+npm warn Unknown project config "verify-deps-before-run". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown project config "verifyDepsBeforeRun". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-L6Nmwj/origin.git
+ * [new branch]      main -> main
+ ✓ tests/knowledge-admin-guard.spec.ts (6 tests) 931ms
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-xujlQW/origin.git
+ * [new branch]      main -> main
+ ✓ tests/tasks-settings.spec.ts (8 tests) 1457ms
+ ✓ tests/workspace-session-actions.spec.ts (19 tests) 1815ms
+ ✓ tests/tenant.spec.ts (20 tests) 1956ms
+ ✓ tests/mux-peer-drift.spec.ts (9 tests) 832ms
+Cloning into '/var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-xujlQW/merge-work'...
+done.
+From /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-xujlQW/origin
+ * branch            publish/my-tool-0.1.0 -> FETCH_HEAD
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-xujlQW/origin.git
+   096d5b0..064c8c0  main -> main
+ ✓ tests/store.spec.ts (19 tests) 2328ms
+ ✓ tests/tenant-guard-matrix.spec.ts (26 tests) 2425ms
+ ✓ tests/user-plugins.spec.ts (8 tests) 732ms
+ ✓ tests/panel-isolation.spec.ts (3 tests) 339ms
+ ✓ tests/workbench-stream.spec.ts (5 tests) 352ms
+ ✓ tests/mux-policy.spec.ts (7 tests) 686ms
+ ✓ tests/password.spec.ts (5 tests) 220ms
+ ✓ tests/within-root.spec.ts (6 tests) 394ms
+ ✓ tests/companion.spec.ts (4 tests) 257ms
+ ✓ tests/session-create-cwd.spec.ts (3 tests) 187ms
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-MaNdXz/origin.git
+ * [new branch]      main -> main
+ ✓ tests/terminal-tenant.spec.ts (4 tests) 165ms
+ ✓ tests/plugin.spec.ts (4 tests) 214ms
+ ✓ tests/sandbox-clamp.spec.ts (6 tests) 174ms
+ ✓ tests/thinking-auto.spec.ts (15 tests) 128ms
+ ✓ tests/client-rpc.spec.ts (5 tests) 48ms
+ ✓ tests/tenant-plugins.spec.ts (11 tests) 180ms
+ ✓ tests/companion-inject.spec.ts (12 tests) 10ms
+ ✓ tests/thinking-score.spec.ts (16 tests) 9ms
+ ✓ tests/question-bridge.spec.ts (16 tests) 39ms
+ ✓ tests/approval-bridge.spec.ts (10 tests) 62ms
+ ✓ tests/role-expansion-anchor.spec.ts (3 tests) 13ms
+ ✓ tests/gateway-role-gate.spec.ts (23 tests) 3722ms
+     ✓ ③ 档位翻转即时:mux 内容绑定零放宽不变式在 tenant-pending 档仍成立(M-2 不变式翻转时点)  315ms
+ ✓ tests/mux-drift.spec.ts (17 tests) 99ms
+ ✓ tests/thinking-context.spec.ts (9 tests) 6ms
+ ✓ tests/channels-webhook.spec.ts (4 tests) 7ms
+ ✓ tests/link-opening.spec.ts (8 tests) 4ms
+ ✓ tests/decision-layer.spec.ts (11 tests) 5ms
+Cloning into '/var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-MaNdXz/merge-work'...
+done.
+ ✓ tests/routes.spec.ts (31 tests) 3920ms
+ ✓ tests/channels-webhook-contract.spec.ts (2 tests) 4ms
+From /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-MaNdXz/origin
+ * branch            publish/my-tool-0.1.0 -> FETCH_HEAD
+ ✓ tests/mcp-manager-drift.spec.ts (9 tests) 7ms
+ ✓ tests/tool-schema.spec.ts (6 tests) 3ms
+ ✓ tests/login-gate.spec.ts (7 tests) 5ms
+ ✓ tests/ratelimit.spec.ts (3 tests) 2ms
+ ✓ tests/session.spec.ts (6 tests) 3ms
+ ✓ tests/model-catalog.spec.ts (4 tests) 4ms
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-MaNdXz/origin.git
+   8e5bb79..17de79c  main -> main
+ ✓ tests/bias-view.spec.ts (3 tests) 2ms
+ ✓ tests/pages.spec.ts (5 tests) 2ms
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-XeBFwy/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-afqYmC/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-7S3nxk/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-Xk33HX/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-gpKxRt/origin.git
+ * [new branch]      main -> main
+To /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/eterna-mkt-nNfxcO/origin.git
+ * [new branch]      main -> main
+ ✓ tests/market-publish.spec.ts (11 tests) 6185ms
+     ✓ 首发全流程:组装/清单重写/两段 commit/push 到裸仓/compare 链接  1085ms
+     ✓ 二次发布自动递增版本;索引多版本按 SemVer 降序  1835ms
+     ✓ 撞版先查:显式已存在版本在 commit 之前被拒  1292ms
+     ✓ 远端同名分支已存在 → 拒绝(上次 PR 未合并)  444ms
+     ✓ 负路径:TS 源拒发/UI 型拒发/越权目录拒发/缺 package.json 拒发  306ms
+     ✓ 校验红:回退到 origin/main、不 push、带回校验输出  387ms
+     ✓ push=false:停在本地分支,不 push 不开 PR  372ms
+     ✓ clone 缺席自动克隆;clone 不干净拒绝继续  350ms
+
+ Test Files  43 passed (43)
+      Tests  409 passed (409)
+   Start at  01:56:26
+   Duration  6.57s (transform 1.51s, setup 0ms, import 3.01s, tests 29.93s, environment 3ms)
+

@@ -1,0 +1,33 @@
+$ ./node_modules/.bin/vitest run
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/workbench
+
+ ✓ tests/client-bundle.spec.ts (6 tests) 15ms
+ ✓ tests/canvas-theme.spec.ts (12 tests) 14ms
+ ✓ tests/canvas-a11y.spec.tsx (23 tests) 16ms
+ ✓ tests/theme-tokens.spec.ts (15 tests) 6ms
+ ✓ tests/panel-mount.spec.ts (6 tests) 28ms
+ ✓ tests/panel-workbench-views.spec.tsx (20 tests) 11ms
+ ✓ tests/sse-decoder.spec.ts (10 tests) 6ms
+ ✓ tests/attention-banner.spec.tsx (18 tests) 5ms
+ ✓ tests/task-sidebar.spec.tsx (19 tests) 8ms
+ ✓ tests/eval-view.spec.ts (12 tests) 15ms
+ ✓ tests/worker-inspector.spec.tsx (18 tests) 40ms
+ ✓ tests/kanban-view.spec.ts (18 tests) 49ms
+ ✓ tests/workbench-sessions.spec.tsx (7 tests) 3ms
+ ✓ tests/log-view-pii.spec.ts (11 tests) 4ms
+ ✓ tests/master-link.spec.tsx (3 tests) 2ms
+ ✓ tests/beijing-time.spec.ts (3 tests) 2ms
+ ✓ tests/stream-batching.spec.ts (4 tests) 750ms
+     ✓ 快照→增量→续传全链(真实 fetch + 解码器消费)  745ms
+ ✓ tests/live-events.spec.ts (8 tests) 638ms
+ ✓ tests/mock-stream.spec.ts (5 tests) 1750ms
+     ✓ 先收全量快照(seq 1),后渐进应用增量:eval-run 追点、log 追行、ticket 流转翻列  627ms
+     ✓ 断线重连请求携带 Last-Event-ID(30 号 §3;首连不带)  1027ms
+
+ Test Files  19 passed (19)
+      Tests  218 passed (218)
+   Start at  06:15:00
+   Duration  2.05s (transform 1.89s, setup 0ms, import 3.27s, tests 3.36s, environment 1ms)
+
+EXIT=0

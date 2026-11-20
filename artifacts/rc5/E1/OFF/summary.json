@@ -1,0 +1,63 @@
+{
+  "suite": "OFF",
+  "commit": "c75f876c986415431c92b28cce771d847a36c52f",
+  "imageTag": "eterna-agent:rc5-test",
+  "imageId": "sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb",
+  "container": "rc5-e1suite",
+  "base": "http://127.0.0.1:3118",
+  "dataRoot": "/Users/sunny/eterna-data/test-20261120/e1",
+  "startedAt": "2026-11-20T07:03:23.853Z",
+  "finishedAt": "2026-11-20T07:03:24.118Z",
+  "total": 7,
+  "pass": 7,
+  "fail": 0,
+  "skip": 0,
+  "notrun": 0,
+  "counts": {
+    "PASS": 7,
+    "FAIL": 0,
+    "SKIP": 0,
+    "NOTRUN": 0
+  },
+  "halted": false,
+  "haltReason": "",
+  "failures": [],
+  "cases": [
+    {
+      "id": "RC5-OFF-001",
+      "status": "PASS",
+      "title": "docx → pdf（中文）"
+    },
+    {
+      "id": "RC5-OFF-002",
+      "status": "PASS",
+      "title": "xlsx → pdf（公式/表格）"
+    },
+    {
+      "id": "RC5-OFF-003",
+      "status": "PASS",
+      "title": "pptx → pdf（版式）"
+    },
+    {
+      "id": "RC5-OFF-004",
+      "status": "PASS",
+      "title": "镜像 CJK 字体"
+    },
+    {
+      "id": "RC5-OFF-005",
+      "status": "PASS",
+      "title": "镜像 Python Office 库"
+    },
+    {
+      "id": "RC5-OFF-006",
+      "status": "PASS",
+      "title": "输出目录 24h/512MB 清理与备份排除"
+    },
+    {
+      "id": "RC5-OFF-007",
+      "status": "PASS",
+      "title": "office-docx 技能加载 + 三工具下一步出现 + 产物复制回工作区",
+      "actual": "skillLoaded=true nextTools=[\"ask_user_question\",\"bash\",\"create_goal\",\"edit\",\"get_goal\",\"glob\",\"grep\",\"install_personal_plugin\",\"job_kill\",\"job_list\",\"job_output\",\"knowledge_admin\",\"knowledge_propose\",\"knowledge_read\",\"knowledge_search\",\"knowledge_status\",\"list_agents\",\"list_mcp_resource_templates\",\"list_mcp_resources\",\"list_subagent_models\",\"mcp__browser__browser_click\",\"mcp__browser__browser_fill\",\"mcp__browser__browser_snapshot\",\"mcp__e1http__echo\",\"memory_forget\",\"memory_read\",\"memory_search\",\"memory_write\",\"office_convert\",\"office_recalculate\",\"office_render\",\"present\",\"read\",\"read_image\",\"read_mcp_resource\",\"schedule_create\",\"schedule_edit\",\"schedule_list\",\"schedule_view\",\"send_message\",\"session_event_read\",\"session_event_search\",\"session_event_trace\",\"session_search\",\"session_trace\",\"skill\",\"subagent\",\"subagent_fork\",\"submit_plugin_to_market\",\"terminal_close\",\"terminal_list\",\"terminal_open\",\"terminal_read\",\"terminal_send\",\"terminal_signal\",\"todo_write\",\"update_goal\",\"wait_agent\",\"web_fetch\",\"workflow\",\"working_directory\",\"write\"] render=true convert=true pdf=/data/office-kit/outputs/session-d31998267d5005a8986877a7/fe73fed4-0a0f-4617-a3bd-463b016dfa9c/off-007-sample.pdf(47957B) onDisk=true bashCopy=true workspacePdf=47957B"
+    }
+  ]
+}

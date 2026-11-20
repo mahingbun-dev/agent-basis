@@ -1,0 +1,11 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ node scripts/verify-rc5-env.mjs --api-static --json artifacts/rc5/ENV/_suite/verify-rc5-env.json
+# suite run 2026-11-19T22:04:26.457Z (mode=env+api-static); full stdout: artifacts/rc5/ENV/_suite/verify-rc5-env.stdout.log
+== ENV-004 [PASS] 容器内 dsh --version = 0.2.2-rc.5(静态代理)
+   口径:51 ENV-004 的运行时半需 P5 镜像;此处只验「本仓实装版本 + 镜像钉版」两处静态事实。 运行时检查(容器内 dsh --version)未执行:加 --runtime-image/--runtime-container。
+   ✓ workspace 实装 @deepseek-ai/dsh = rc.5 — 实测 0.2.2-rc.5
+   ✓ 镜像钉版 = rc.5(静态) — 0.2.2-rc.5
+
+EXIT 0 (suite)
+# started 2026-11-19T22:04:26.457Z
+# finished 2026-11-19T22:04:26.457Z

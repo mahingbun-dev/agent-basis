@@ -1,0 +1,40 @@
+# ACC/RC5-ACC-008
+# started 2026-11-20T07:05:48.324Z
+
+$ POST /api/session/create（B 使用 A 的 workspace/session）
+EXIT=200
+session/create（A 的 workspaceId） denied=true ok=false code=tenant/denied value=
+
+$ POST /api/workspace/delete（B 使用 A 的 workspace/session）
+EXIT=200
+workspace/delete（A 的 workspaceId） denied=true ok=false code=tenant/denied value=
+
+$ POST /api/directoryPicker/list（B 使用 A 的 workspace/session）
+EXIT=200
+directoryPicker/list（A 的根路径） denied=true ok=false code=tenant/denied value=
+
+$ POST /api/session/search（B 使用 A 的 workspace/session）
+EXIT=200
+session/search（A 的 sessionId） denied=true ok=false code=tenant/denied value=
+
+$ POST /api/workspaceFiles/list（B 使用 A 的 workspace/session）
+EXIT=200
+workspaceFiles/list（A 的 sessionId） denied=true ok=false code=remote-access/denied value=
+
+$ POST /api/workspaceFiles/stat（B 使用 A 的 workspace/session）
+EXIT=200
+workspaceFiles/stat（A 的 sessionId） denied=true ok=false code=remote-access/denied value=
+
+$ POST /api/workspaceFiles/read（B 使用 A 的 workspace/session）
+EXIT=200
+workspaceFiles/read（A 的 sessionId） denied=true ok=false code=remote-access/denied value=
+
+$ POST /api/session/create（B 自己的 workspaceId，正向控制）
+EXIT=200
+ok=true sessionId=session-0fb37185-bee8-4108-a848-e31d9c65d19e
+
+[ASSERT] 跨租户文件/检索全部被拒 => PASS
+
+[ASSERT] 未读到 A 的文件内容 => PASS
+
+[ASSERT] 正向控制：B 自己的 workspace 可建会话 => PASS

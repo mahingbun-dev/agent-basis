@@ -61,7 +61,7 @@ describe('工作台实时流桥(access 登记面)', () => {
     store = new UserStore(join(dir, 'users.db'))
     session = new SessionService(Buffer.from('test-secret-test-secret-test-s'))
     auditEvents = []
-    const user = store.createUserWithSuffix({ account: 'wb-user', password: 'MqbSunny0702', role: 'user' }).user
+    const user = store.createUserWithSuffix({ account: 'wb-user', password: 'Test-only-pass-9', role: 'user' }).user
     const token = session.issue({ userId: user.id, passwordVersion: user.passwordVersion })
     cookie = session.setCookieHeader(token).split(';')[0] ?? ''
   })

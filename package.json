@@ -6,7 +6,7 @@
   "type": "module",
   "packageManager": "pnpm@11.7.0",
   "engines": {
-    "node": ">=22",
+    "node": ">=24.9.0",
     "pnpm": ">=10"
   },
   "scripts": {
@@ -24,7 +24,7 @@
     "oxlint-tsgolint": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "@deepseek-ai/dsh": "0.2.2-rc.1",
-    "@deepseek-ai/dsh-sdk-client": "0.2.2-rc.1"
+    "@deepseek-ai/dsh": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-sdk-client": "0.2.2-rc.5"
   }
 }

@@ -1,0 +1,167 @@
+{
+ "lines": 1058,
+ "blocks": 43,
+ "inserts": 3,
+ "overrides": [
+  {
+   "id": "otel",
+   "line": 46
+  },
+  {
+   "id": "session-telemetry-otel",
+   "line": 49
+  },
+  {
+   "id": "desktop-product-telemetry",
+   "line": 52
+  },
+  {
+   "id": "product-analytics",
+   "line": 55
+  },
+  {
+   "id": "authorization",
+   "line": 60
+  },
+  {
+   "id": "deepseek-account",
+   "line": 63
+  },
+  {
+   "id": "llm-deepseek",
+   "line": 66
+  },
+  {
+   "id": "llm-deepseek-account",
+   "line": 69
+  },
+  {
+   "id": "ui-settings-account",
+   "line": 75
+  },
+  {
+   "id": "ui-account-notifications",
+   "line": 83
+  },
+  {
+   "id": "workspace-dependencies",
+   "line": 86
+  },
+  {
+   "id": "ptc-runtime",
+   "line": 95
+  },
+  {
+   "id": "workflow-ptc",
+   "line": 98
+  },
+  {
+   "id": "tool-workflow",
+   "line": 101
+  },
+  {
+   "id": "tool-executor-ptc",
+   "line": 104
+  },
+  {
+   "id": "fs-observation-policy",
+   "line": 107
+  },
+  {
+   "id": "tool-plugin-manager",
+   "line": 110
+  },
+  {
+   "id": "ui-workflow-run",
+   "line": 113
+  },
+  {
+   "id": "session-log-deepseek",
+   "line": 118
+  },
+  {
+   "id": "ui-settings-session-log",
+   "line": 121
+  },
+  {
+   "id": "ui-settings-plugins",
+   "line": 129
+  },
+  {
+   "id": "open-in-app",
+   "line": 138
+  },
+  {
+   "id": "ui-open-in-app",
+   "line": 141
+  },
+  {
+   "id": "ui-shortcuts",
+   "line": 149
+  },
+  {
+   "id": "ui-brand-official",
+   "line": 152
+  },
+  {
+   "id": "ui-message-feedback",
+   "line": 155
+  },
+  {
+   "id": "mcp-manager",
+   "line": 163
+  },
+  {
+   "id": "optional-terminal-panel",
+   "line": 174
+  },
+  {
+   "id": "preset-ptc",
+   "line": 182
+  },
+  {
+   "id": "preset-cordis",
+   "line": 199
+  },
+  {
+   "id": "preset-standard",
+   "line": 389
+  },
+  {
+   "id": "ui-sidebar-browser",
+   "line": 569
+  },
+  {
+   "id": "permission",
+   "line": 582
+  },
+  {
+   "id": "approval",
+   "line": 596
+  },
+  {
+   "id": "directory-picker",
+   "line": 607
+  },
+  {
+   "id": "llm-pi-ai",
+   "line": 727
+  },
+  {
+   "id": "agent-default-model",
+   "line": 1037
+  },
+  {
+   "id": "ui-settings-general",
+   "line": 1041
+  },
+  {
+   "id": "session-log-deepseek",
+   "line": 1045
+  },
+  {
+   "id": "agent-preset-registry",
+   "line": 1055
+  }
+ ]
+}

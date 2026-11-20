@@ -1,0 +1,3 @@
+== tsc --noEmit --listFiles | grep plugin-manager-contract.d.ts ==
+/Users/sunny/code/agent-basis-rc5/packages/access/src/client/plugin-manager-contract.d.ts
+TSC_EXIT:0

@@ -1,0 +1,156 @@
+{
+  "id": "E3-PREP",
+  "suite": "E3-super",
+  "priority": "P0",
+  "title": "E3 super 独立测试容器（项目/端口/数据根/镜像）",
+  "expected": "rc5-test-e3 / eterna-rc5-e3 / 3109 / $HOME/eterna-data/test-rc5/e3 / eterna-agent:rc5-test；生产容器不动",
+  "status": "PASS",
+  "startedAt": "2026-11-20T07:01:35.400Z",
+  "finishedAt": "2026-11-20T07:01:35.657Z",
+  "assertions": [
+    {
+      "name": "E3 容器存在且 running",
+      "ok": true,
+      "detail": "running"
+    },
+    {
+      "name": "E3 healthcheck healthy",
+      "ok": true,
+      "detail": "healthy"
+    },
+    {
+      "name": "独立 compose 项目名 rc5-test-e3",
+      "ok": true,
+      "detail": "rc5-test-e3"
+    },
+    {
+      "name": "容器名 eterna-rc5-e3",
+      "ok": true,
+      "detail": "/eterna-rc5-e3"
+    },
+    {
+      "name": "镜像 tag eterna-agent:rc5-test",
+      "ok": true,
+      "detail": "eterna-agent:rc5-test"
+    },
+    {
+      "name": "容器运行镜像 = 当前 eterna-agent:rc5-test 标签镜像（无 tag 漂移）",
+      "ok": true,
+      "detail": "container=sha256:22fe8acb436f… tag=sha256:22fe8acb436f… created=2026-11-20T05:46:36.167453677Z"
+    },
+    {
+      "name": "端口 3109->8080（非生产 3210）",
+      "ok": true,
+      "detail": "3109->8080/tcp,9312->9310/tcp"
+    },
+    {
+      "name": "relay 9312->9310（非生产 9310）",
+      "ok": true,
+      "detail": "3109->8080/tcp,9312->9310/tcp"
+    },
+    {
+      "name": "数据根 bind = $HOME/eterna-data/test-rc5/e3",
+      "ok": true,
+      "detail": "/Users/sunny/code/agent-basis-rc5/docker/profile/cordis.super.patch.yml.template -> /repo/docker/profile/cordis.super.patch.yml.template (bind); /Users/sunny/eterna-data/test-rc5/e3 -> /data (bind); /Users/sunny/code/agent-basis-rc5/docker/profile/cordis.patch.yml.template -> /repo/docker/profile/cordis.patch.yml.template (bind)"
+    },
+    {
+      "name": "数据根与生产根不相交",
+      "ok": true,
+      "detail": "/Users/sunny/eterna-data/test-rc5/e3"
+    },
+    {
+      "name": "ETERNA_FORM=super",
+      "ok": true,
+      "detail": "super"
+    },
+    {
+      "name": "DSH_HOME=/data 且 DSH_AGENTS_HOME=/data/agents",
+      "ok": true,
+      "detail": "/data//data/agents"
+    },
+    {
+      "name": "compose config exit 0",
+      "ok": true,
+      "detail": "exit=0"
+    },
+    {
+      "name": "compose 项目 name=rc5-test-e3",
+      "ok": true,
+      "detail": "rc5-test-e3"
+    },
+    {
+      "name": "compose container_name=eterna-rc5-e3",
+      "ok": true,
+      "detail": "eterna-rc5-e3"
+    },
+    {
+      "name": "compose 发布端口 3109/9312",
+      "ok": true,
+      "detail": "[{\"mode\":\"ingress\",\"target\":8080,\"published\":\"3109\",\"protocol\":\"tcp\"},{\"mode\":\"ingress\",\"target\":9310,\"published\":\"9312\",\"protocol\":\"tcp\"}]"
+    },
+    {
+      "name": "compose /data 源 = E3 数据根",
+      "ok": true,
+      "detail": "/Users/sunny/eterna-data/test-rc5/e3"
+    },
+    {
+      "name": "prepare-rc5-envs e3 PASS=4 FAIL=0 EXIT=0",
+      "ok": true,
+      "detail": "[PASS] ENV-e3 :: /Users/sunny/eterna-data/test-rc5/.env.e3 已存在（mode 600） | [PASS] DATA-e3 :: /Users/sunny/eterna-data/test-rc5/e3（init-data-dirs exit=0） | [PASS] BOOT-e3 :: container=eterna-rc5-e3 health=healthy image=eterna-agent:rc5-test | [PASS] E3-FORM :: ETERNA_FORM=super | [PREP] PASS=4 FAIL=0"
+    },
+    {
+      "name": "测试镜像 eterna-agent:rc5-test 存在",
+      "ok": true,
+      "detail": "sha256:22fe8acb436f2"
+    },
+    {
+      "name": "生产容器未重启/未换容器（ID+StartedAt+RestartCount 与基线一致）",
+      "ok": true,
+      "detail": "before=[ID=492c35a4d450fddd1e65c993e4237e14fb497499e9fb077095dec796786fae7c StartedAt=2026-11-19T17:21:06.582265918Z RestartCount=0 Image=eterna-agent:0.1.51] now=[ID=492c35a4d450fddd1e65c993e4237e14fb497499e9fb077095dec796786fae7c StartedAt=2026-11-19T17:21:06.582265918Z RestartCount=0 Image=eterna-agent:0.1.51]"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "docker inspect eterna-rc5-e3 --format {{json .}}",
+      "exit": 0,
+      "note": "E3 容器 inspect（仅取白名单字段）"
+    },
+    {
+      "cmd": "docker image inspect eterna-agent:rc5-test --format {{json .}}",
+      "exit": 0,
+      "note": "测试镜像 inspect（只取 Id/Created）"
+    },
+    {
+      "cmd": "docker compose -p rc5-test-e3 --env-file /Users/sunny/eterna-data/test-rc5/.env.e3 -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml config --format json",
+      "exit": 0,
+      "note": "compose config（--format json，只取服务/端口/卷字段）"
+    },
+    {
+      "cmd": "read prep/prepare-e3.log",
+      "exit": 0,
+      "note": ""
+    },
+    {
+      "cmd": "docker image inspect eterna-agent:rc5-test --format {{.Id}}",
+      "exit": 0,
+      "note": "测试镜像存在性"
+    },
+    {
+      "cmd": "docker inspect eterna-agent --format ID={{.Id}} StartedAt={{.State.StartedAt}} RestartCount={{.RestartCount}} Image={{.Config.Image}}",
+      "exit": 0,
+      "note": "生产容器只读基线"
+    }
+  ],
+  "notes": [
+    "容器 /eterna-rc5-e3 project=rc5-test-e3 image=eterna-agent:rc5-test health=healthy",
+    "镜像 eterna-agent:rc5-test created=2026-11-20T05:46:36.167453677Z（container 于 2026-11-20T07:01:12.23566943Z 由 prepare e3 up 重建并沿用 E3 数据根）",
+    "镜像无 commit/OBS 标签（Config.Labels 缺失）：只能按镜像 id sha256:22fe8acb436f… 追溯；容器与标签同 id 即证明无 tag 漂移。"
+  ],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

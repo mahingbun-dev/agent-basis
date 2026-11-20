@@ -1,7 +1,7 @@
 /** Chat-completions transport with one cancellable lifecycle per model request. */
 
-import { attributionHeaders, LlmAdapter, LlmError } from '@deepseek-ai/dsh-llm'
-import type { GenerateOptions, LlmModelInfo, LlmResolvedModelInfo, PreparedAdapterCall, StreamChunk } from '@deepseek-ai/dsh-llm'
+import { attributionHeaders, isContextWindowExceededError, isQuotaExceededError, LlmAdapter, LlmError } from '@deepseek-ai/dsh-llm'
+import type { BuiltinLlmFailureCode, GenerateOptions, LlmModelInfo, LlmResolvedModelInfo, PreparedAdapterCall, StreamChunk } from '@deepseek-ai/dsh-llm'
 import { idleWatchdog, timeoutOf } from '@deepseek-ai/dsh-timeout'
 import type { BasisConnectionOptions as Connection } from './types.ts'
 import { serialize } from './serialize.ts'
@@ -17,6 +17,51 @@ export interface BasisAdapterOptions {
   options: () => Connection
   /** Resolve per-operation auth headers; rejects to fail the request. */
   resolveAuth: (connection: Connection) => Promise<BasisAuth>
+}
+
+/** Provider-owned fields of an OpenAI-style error envelope, when the body is one. */
+interface ProviderErrorFields {
+  /** Provider error `type` (e.g. `rate_limit_error`); empty when absent. */
+  type: string
+  /** Type, code, and message joined for wording classification. */
+  detail: string
+}
+
+function providerFields(text: string): ProviderErrorFields {
+  try {
+    const parsed: unknown = JSON.parse(text)
+    const error = typeof parsed === 'object' && parsed !== null
+      ? (parsed as Record<string, unknown>).error
+      : undefined
+    if (typeof error !== 'object' || error === null) return { type: '', detail: text }
+    const fields = error as Record<string, unknown>
+    return {
+      type: typeof fields.type === 'string' ? fields.type : '',
+      detail: [fields.type, fields.code, fields.message].filter(value => typeof value === 'string').join(' '),
+    }
+  } catch (_invalidErrorBody) {
+    return { type: '', detail: text }
+  }
+}
+
+/**
+ * Classify one non-2xx answer into the rc.5 {@link BuiltinLlmFailureCode} table,
+ * mirroring the upstream `llm-deepseek` provider classifier. Statuses the retry
+ * policy distinguishes (429/5xx) become RATE_LIMIT/SERVER so `llm-retry`'s
+ * default codes apply; provider error types, quota, and context-overflow
+ * wording win over the raw status. Remaining statuses keep `HTTP_<status>`.
+ * @param status - provider HTTP status.
+ * @param fields - provider type/detail text from the error body.
+ * @returns the provider-neutral failure code.
+ */
+function httpCode(status: number, fields: ProviderErrorFields): BuiltinLlmFailureCode {
+  if (status === 401 || status === 403 || ['authentication_error', 'permission_error'].includes(fields.type)) return 'AUTH'
+  if (status === 402 || isQuotaExceededError(fields.detail)) return 'QUOTA'
+  if (status === 429 || fields.type === 'rate_limit_error') return 'RATE_LIMIT'
+  if (isContextWindowExceededError(fields.detail)) return 'CONTEXT_WINDOW_EXCEEDED'
+  if (status === 400 || status === 413 || fields.type === 'invalid_request_error') return 'INVALID_REQUEST'
+  if (status >= 500 || ['api_error', 'overloaded_error'].includes(fields.type)) return 'SERVER'
+  return `HTTP_${status}`
 }
 
 /** OpenAI-compatible provider: text and tool streams over chat-completions SSE. */
@@ -102,7 +147,13 @@ export class BasisOpenAIAdapter extends LlmAdapter {
     })
     if (!response.ok) {
       const text = await response.text()
-      throw new LlmError(`Basis OpenAI gateway returned ${String(response.status)}: ${text.slice(0, 400)}`, 'PROVIDER_ERROR', { cause: new Error(text) })
+      // code 必须落在 BuiltinLlmFailureCode 的 `HTTP_${number}` 分支:插值须是数值表达式。
+      // `HTTP_${String(response.status)}` 会退化成 `HTTP_${string}`,tsc 直接拒(TS2345)。
+      throw new LlmError(
+        `Basis OpenAI gateway returned ${String(response.status)}: ${text.slice(0, 400)}`,
+        httpCode(response.status, providerFields(text)),
+        { cause: new Error(text), status: response.status },
+      )
     }
     if (response.body === null) throw new LlmError('Basis OpenAI gateway returned no response body', 'EMPTY_RESPONSE')
     yield* translate(readFrames(response.body, activity))
@@ -126,7 +177,11 @@ async function* readFrames(body: ReadableStream<Uint8Array>, activity: () => voi
       if (!line.startsWith('data:')) continue
       const payload = line.slice(5).trim()
       if (payload.length === 0 || payload === '[DONE]') continue
-      yield JSON.parse(payload) as Record<string, unknown>
+      try {
+        yield JSON.parse(payload) as Record<string, unknown>
+      } catch (_invalidSseJson) {
+        throw new LlmError('Basis OpenAI stream contains invalid JSON', 'MALFORMED_RESPONSE')
+      }
     }
   }
 }

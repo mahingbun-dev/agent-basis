@@ -1,0 +1,6 @@
+Preparing worktree (detached HEAD b537547)
+HEAD is now at b537547 fix(glue): channels 插件开库前建父目录——全新卷 cwd/.eterna 缺席不再炸装载
+ERROR tenant/route-escapes-gate glue/glue/src/plugins/channels-plugin.ts:72: 插件不得自行注册 Web 路由/fetch 路由/rpc 通道——数据端点必须经 eterna-access 租户守卫(铁律 T2);确属公共面请登记映射文档并在 PR 说明
+ERROR tenant/route-escapes-gate glue/glue/src/plugins/channels-plugin.ts:169: 插件不得自行注册 Web 路由/fetch 路由/rpc 通道——数据端点必须经 eterna-access 租户守卫(铁律 T2);确属公共面请登记映射文档并在 PR 说明
+tenant-scan: 2 finding(s)
+EXIT=1

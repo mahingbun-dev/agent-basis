@@ -1,0 +1,16 @@
+T36 B5 client bundle roster  generated_at=2026-11-19T20:21:17Z
+pkg            file                              bytes  mtime_utc            sha256[:16]
+----------------------------------------------------------------------------------------
+access         packages/access/lib/client.js    317099  2026-11-19T20:20:54Z 84d7502a7a899098
+attachments    packages/attachments/lib/client.js    73619  2026-11-19T20:20:54Z 607b89f85bef7367
+brand          packages/brand/lib/client.js      74117  2026-11-19T20:20:54Z a28ce5904d2517c5
+compaction     packages/compaction/lib/client.js    98896  2026-11-19T20:20:55Z 673c570b775af444
+llm-doctor     packages/llm-doctor/lib/client.js    62533  2026-11-19T20:20:55Z ddcddbbb1a16237c
+memory         packages/memory/lib/client.js    139579  2026-11-19T20:20:55Z bba81bf5b4781120
+panel          packages/panel/lib/client.js     165372  2026-11-19T20:20:56Z b9def5a097e07be2
+prompt-studio  packages/prompt-studio/lib/client.js   310922  2026-11-19T20:20:56Z 5cfd1f97221a34fe
+usage-stats    packages/usage-stats/lib/client.js    85913  2026-11-19T20:20:56Z 959c527dc4b43962
+workbench      packages/workbench/lib/client.js   280070  2026-11-19T20:20:56Z d163276c96f4fed4
+----------------------------------------------------------------------------------------
+total=10 files, 1608120 bytes
+EXIT:0

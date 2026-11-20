@@ -1,0 +1,37 @@
+# case: RC5-DATA-004
+# host: ma-macminideMac-mini.local  user: sunny  time: 2026-11-19T22:28:45Z
+
+$ cat /Users/sunny/code/agent-basis-rc5/artifacts/rc5/DATA/RC5-DATA-004/drill-1/stats.json
+# label: 第一遍 stats
+# started: 2026-11-19T22:28:45Z
+{
+  "source": "/Users/sunny/eterna-data/test-rc5/.p6b-cold/p6b-e5a-eterna-home-20261120-021802",
+  "dest": "/Users/sunny/eterna-data/test-rc5/p6b-e5a",
+  "src": {"files": 8620, "bytes": 108848480, "linkGroups": 3148, "symlinks": 352},
+  "dst": {"files": 8620, "bytes": 108848480, "linkGroups": 3148, "symlinks": 352},
+  "equal": true
+}
+EXIT=0
+
+$ cat /Users/sunny/code/agent-basis-rc5/artifacts/rc5/DATA/RC5-DATA-004/drill-2/stats.json
+# label: 第二遍 stats
+# started: 2026-11-19T22:28:45Z
+{
+  "source": "/Users/sunny/eterna-data/test-rc5/.p6b-cold/p6b-e5b-eterna-home-20261120-021802",
+  "dest": "/Users/sunny/eterna-data/test-rc5/p6b-e5b",
+  "src": {"files": 8620, "bytes": 108848480, "linkGroups": 3148, "symlinks": 352},
+  "dst": {"files": 8620, "bytes": 108848480, "linkGroups": 3148, "symlinks": 352},
+  "equal": true
+}
+EXIT=0
+
+p5-e5 copy: files=8620 bytes=108848480 linkGroups=3148 symlinks=352
+
+ASSERT PASS | 第一遍 files/bytes/linkGroups/symlinks 与源一致 | actual=True expected=True
+ASSERT PASS | 第二遍 files/bytes/linkGroups/symlinks 与源一致 | actual=True expected=True
+ASSERT PASS | 两遍副本统计完全一致 | actual={'files': 8620, 'bytes': 108848480, 'linkGroups': 3148, 'symlinks': 352} expected={'files': 8620, 'bytes': 108848480, 'linkGroups': 3148, 'symlinks': 352}
+ASSERT PASS | P5 E5 副本与两遍一致（第三份） | actual=(8620, 108848480, 3148, 352) expected=(8620, 108848480, 3148, 352)
+VALUES {'files': 8620, 'bytes': 108848480, 'linkGroups': 3148, 'symlinks': 352} {'files': 8620, 'bytes': 108848480, 'linkGroups': 3148, 'symlinks': 352} (8620, 108848480, 3148, 352)
+PY-ASSERT-FAILS=0
+PASS=4 FAIL=0
+

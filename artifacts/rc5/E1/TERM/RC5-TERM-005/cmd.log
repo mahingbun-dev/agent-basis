@@ -1,0 +1,8 @@
+# TERM/RC5-TERM-005
+# started 2026-11-19T23:26:01.352Z
+
+$ node scripts/verify-terminal-guard.mjs ...（TERM-005 行）
+EXIT=0
+策略清单已含 attach/retain/watch（静态核对通过），但流拒绝需 WS mux 客户端，本脚本未执行；P6 必跑
+
+# note: 静态：SESSION_STREAM_ACTIONS 已含 terminal/attach|retain|watch（packages/access/src/mux.ts:304-308）

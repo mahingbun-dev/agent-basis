@@ -1,0 +1,40 @@
+{
+  "points": {
+    "mark": {
+      "left": 530,
+      "top": 260,
+      "width": 380,
+      "height": 380
+    },
+    "inBolt": {
+      "x": 720,
+      "y": 462
+    },
+    "outsideBolt": {
+      "x": 720,
+      "y": 702
+    }
+  },
+  "sampled": {
+    "normal_inBolt": [
+      251,
+      250,
+      246,
+      255
+    ],
+    "normal_outsideBolt": [
+      251,
+      250,
+      246,
+      255
+    ],
+    "decoration_inBolt": [
+      235,
+      236,
+      231,
+      255
+    ]
+  },
+  "cardCoversWatermark": true,
+  "watermarkPaintsAtPoint": true
+}

@@ -1,0 +1,46 @@
+{
+  "id": "RC5-ACP-007",
+  "priority": "P0",
+  "title": "取消 prompt：取消生效（stopReason=cancelled）且后续请求可用",
+  "status": "PASS",
+  "at": "2026-11-20T05:10:32.332Z",
+  "detail": "modelRequestArrived=true modelAborted=true stopReason=cancelled cancel→resp=56ms total=311ms afterInitialize=true afterSessionNew=true",
+  "assertions": [
+    {
+      "name": "假模型收到 ACP-SLOW 请求",
+      "expected": "true",
+      "observed": "true",
+      "ok": true
+    },
+    {
+      "name": "取消打断上游流（aborted=true）",
+      "expected": "true",
+      "observed": "true",
+      "ok": true
+    },
+    {
+      "name": "stopReason==cancelled",
+      "expected": "cancelled",
+      "observed": "cancelled",
+      "ok": true
+    },
+    {
+      "name": "取消后响应 < 10s",
+      "expected": "<10000ms",
+      "observed": "56ms",
+      "ok": true
+    },
+    {
+      "name": "取消后 initialize 可用",
+      "expected": "true",
+      "observed": "true",
+      "ok": true
+    },
+    {
+      "name": "取消后 session/new 可用",
+      "expected": "true",
+      "observed": "true",
+      "ok": true
+    }
+  ]
+}

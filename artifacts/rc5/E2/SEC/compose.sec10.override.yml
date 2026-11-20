@@ -1,0 +1,6 @@
+# E2 · RC5-SEC-010 lane 覆盖：仅给旧数据升级容器注入假模型 API key（与 E1/E2 主 lane 同法）。
+# 假模型只在本机 127.0.0.1 起服，容器经 host.docker.internal 访问；不引入任何真实凭据。
+services:
+  eterna-agent:
+    environment:
+      FAKE_LLM_API_KEY: ${FAKE_LLM_API_KEY:-}

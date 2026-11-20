@@ -1,0 +1,12 @@
+# CMD/RC5-CMD-001
+# started 2026-11-20T07:02:42.240Z
+
+$ IAB 1440×900: 活动会话 composer.focus() → execCommand("insertText","/") → 读 [role="option"] 列表
+EXIT=0
+count=12 unique=true listbox="触发候选建议" commands=file,goal,plan,feedback,compact,model,export skills=dsh-doc,office,office-docx,office-pptx,office-xlsx
+
+[ASSERT] 输入 / 后命令列表可见 => PASS :: count=12
+
+[ASSERT] rc.5 内置命令齐全（file/goal/plan/feedback/compact/model/export） => PASS :: file,goal,plan,feedback,compact,model,export
+
+[ASSERT] 列表中无重复项 => PASS

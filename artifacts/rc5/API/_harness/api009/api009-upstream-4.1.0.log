@@ -1,0 +1,158 @@
+{
+  "entry": "/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/cordis/lib/index.js",
+  "loggerLevelExport": false,
+  "checks": [
+    {
+      "name": "LoggerLevel = {ERROR:0, WARN:1, INFO:2, DEBUG:3}",
+      "ok": true,
+      "detail": {
+        "actual": {
+          "ERROR": 0,
+          "WARN": 1,
+          "INFO": 2,
+          "DEBUG": 3
+        },
+        "source": "const enum fallback (values pinned by d.ts)"
+      }
+    },
+    {
+      "name": "数值序：ERROR < WARN < INFO < DEBUG（数字越大越 verbose）",
+      "ok": true,
+      "detail": "0<1<2<3"
+    },
+    {
+      "name": "阈值 0: 只收到 error",
+      "ok": true,
+      "detail": [
+        "error"
+      ]
+    },
+    {
+      "name": "阈值 1: 只收到 error+warn",
+      "ok": true,
+      "detail": [
+        "error",
+        "warn"
+      ]
+    },
+    {
+      "name": "阈值 2: 只收到 error+warn+info",
+      "ok": true,
+      "detail": [
+        "error",
+        "warn",
+        "info"
+      ]
+    },
+    {
+      "name": "阈值 3: 只收到 error+warn+info+debug",
+      "ok": true,
+      "detail": [
+        "error",
+        "warn",
+        "info",
+        "debug"
+      ]
+    },
+    {
+      "name": "四档消息的 level 数值 = {error:0, warn:1, info:2, debug:3}",
+      "ok": true,
+      "detail": [
+        {
+          "type": "error",
+          "level": 0,
+          "name": "api-009"
+        },
+        {
+          "type": "warn",
+          "level": 1,
+          "name": "api-009"
+        },
+        {
+          "type": "info",
+          "level": 2,
+          "name": "api-009"
+        },
+        {
+          "type": "debug",
+          "level": 3,
+          "name": "api-009"
+        }
+      ]
+    },
+    {
+      "name": "exporter 名称级覆盖：api-009 收到四档，default:0 的 other 只收 error",
+      "ok": true,
+      "detail": [
+        {
+          "type": "error",
+          "level": 0,
+          "name": "api-009"
+        },
+        {
+          "type": "warn",
+          "level": 1,
+          "name": "api-009"
+        },
+        {
+          "type": "info",
+          "level": 2,
+          "name": "api-009"
+        },
+        {
+          "type": "debug",
+          "level": 3,
+          "name": "api-009"
+        },
+        {
+          "type": "error",
+          "level": 0,
+          "name": "other"
+        },
+        {
+          "type": "error",
+          "level": 0,
+          "name": "capped"
+        }
+      ]
+    },
+    {
+      "name": "LoggerOptions.level=WARN 时只输出 error+warn",
+      "ok": true,
+      "detail": [
+        {
+          "type": "error",
+          "level": 0,
+          "name": "capped"
+        },
+        {
+          "type": "warn",
+          "level": 1,
+          "name": "capped"
+        }
+      ]
+    },
+    {
+      "name": "targetLevel < level 方向（阈值 0 仍收到 error=0）",
+      "ok": true,
+      "detail": [
+        {
+          "type": "error",
+          "level": 0,
+          "name": "api-009"
+        },
+        {
+          "type": "error",
+          "level": 0,
+          "name": "other"
+        },
+        {
+          "type": "error",
+          "level": 0,
+          "name": "capped"
+        }
+      ]
+    }
+  ],
+  "ok": true
+}

@@ -1,0 +1,17 @@
+node:fs:561
+  return binding.open(
+                 ^
+
+Error: ENOENT: no such file or directory, open '/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/IMP/RC5-IMP-006/archive-1001.zip'
+    at Object.openSync (node:fs:561:18)
+    at readFileSync (node:fs:445:35)
+    at file:///Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/IMP/extra.mjs:53:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/IMP/RC5-IMP-006/archive-1001.zip'
+}
+
+Node.js v24.18.0
+EXIT=1

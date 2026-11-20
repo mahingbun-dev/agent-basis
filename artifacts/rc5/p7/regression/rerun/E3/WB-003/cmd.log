@@ -1,0 +1,10 @@
+# WB-003 — （workbench）单元/类型/静态门
+CMD: node artifacts/rc5/e3-super/run-suite.mjs WB-003
+START: 2026-11-20T01:47:19.364Z
+# 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
+
+[exit=0] pnpm --filter @eterna/workbench test  # workbench vitest
+[exit=0] pnpm --filter @eterna/workbench typecheck  # tsc --noEmit
+[exit=0] pnpm exec oxlint --config ./.oxlintrc.json packages/workbench/src packages/workbench/tests  # oxlint
+
+EXIT=0

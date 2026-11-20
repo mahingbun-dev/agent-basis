@@ -1,0 +1,59 @@
+# cmd: docker exec eterna-agent sh -lc 'for p in eterna-super eterna-web web; do echo ...'
+---
+== eterna-super ==
+total 148
+drwxr-xr-x 4 root root  4096 Nov 19 17:21 .
+drwxr-xr-x 5 root root  4096 Nov 18 19:16 ..
+drwx------ 3 root root  4096 Nov 19 02:14 .plugin-manager
+-rw-r--r-- 1 root root  7147 Nov 19 17:21 .rendered.cordis.patch.yml.baseline.json
+-rw-r--r-- 1 root root    64 Nov 19 06:14 .rendered.cordis.patch.yml.sha256
+-rw-r--r-- 1 root root    64 Nov 18 19:16 .rendered.package.json.sha256
+-rw-r--r-- 1 root root 49125 Nov 19 17:21 cordis.patch.yml
+-rw-r--r-- 1 root root   223 Nov 19 17:21 cordis.yml
+drwxr-xr-x 6 root root  4096 Nov 19 02:14 node_modules
+-rw------- 1 root root  1128 Nov 19 06:14 package.json
+-rw------- 1 root root  1050 Nov 19 02:36 package.json.bak-20261119-install-kbadmin
+-rw------- 1 root root 56229 Nov 19 02:14 pnpm-lock.yaml
+8bb20d49f247450f26c5ae2901f1b303dd3dc4b2da1a90a33e543194f1bfba1a  /data/profiles/eterna-super/package.json
+cd0e8815b29ea57b7f022b2cfedd964d34cb0988d31234e481baf3c484ed8a7f  /data/profiles/eterna-super/cordis.patch.yml
+1036 /data/profiles/eterna-super/cordis.patch.yml
+151
+== eterna-web ==
+total 92
+drwxr-xr-x 4 root root  4096 Nov 18 18:48 .
+drwxr-xr-x 5 root root  4096 Nov 18 19:16 ..
+drwx------ 3 root root  4096 Nov 18 11:58 .plugin-manager
+-rw-r--r-- 1 root root  7147 Nov 18 18:48 .rendered.cordis.patch.yml.baseline.json
+-rw-r--r-- 1 root root    64 Nov 18 18:48 .rendered.cordis.patch.yml.sha256
+-rw-r--r-- 1 root root    64 Nov 12 16:08 .rendered.package.json.sha256
+-rw-r--r-- 1 root root 48599 Nov 18 18:48 cordis.patch.yml
+-rw-r--r-- 1 root root   223 Nov 18 18:48 cordis.yml
+drwxr-xr-x 5 root root  4096 Nov 18 11:58 node_modules
+-rw------- 1 root root   921 Nov 18 12:11 package.json
+-rw-r--r-- 1 root root   286 Nov 18 11:58 pnpm-lock.yaml
+9153514a6eef71e36be70a2cf0f8829b8b61b5761c5470a88b65ac467c1e8d5d  /data/profiles/eterna-web/package.json
+7cf1287a508105601574390d3c7aa9b73c9c25bb924589ec092cee00743b76ec  /data/profiles/eterna-web/cordis.patch.yml
+999 /data/profiles/eterna-web/cordis.patch.yml
+143
+== web ==
+total 24
+drwxr-xr-x 2 root root 4096 Nov  9 10:03 .
+drwxr-xr-x 5 root root 4096 Nov 18 19:16 ..
+-rw-r--r-- 1 root root  217 Nov  9 10:03 cordis.patch.yml
+-rw-r--r-- 1 root root  223 Nov  9 10:12 cordis.yml
+-rw-r--r-- 1 root root  207 Nov  9 10:03 package.json
+-rw-r--r-- 1 root root   61 Nov  9 10:03 pnpm-workspace.yaml
+210068ddb9ebc4cdf395ebb53020be6ccaaedb917e74dae16296d62394626398  /data/profiles/web/package.json
+ef189a8c27db6d63930aa3046a3040482e952eafcb7487c644d508e8d461f027  /data/profiles/web/cordis.patch.yml
+4 /data/profiles/web/cordis.patch.yml
+0
+EXIT=1
+
+# cmd: docker exec eterna-agent sha256sum /repo/docker/profile/*.template
+---
+fa6b2528c3b52357a8c95b2dd25dbb29d972ef01d4f56ddb5f9c6b1e1dc988ea  /repo/docker/profile/cordis.patch.yml.template
+06158841f6e7c2f331db1022ee798dcbba01503a39eabdbba0987ffd49aeeb3c  /repo/docker/profile/cordis.super.patch.yml.template
+  990 /repo/docker/profile/cordis.patch.yml.template
+ 1024 /repo/docker/profile/cordis.super.patch.yml.template
+ 2014 total
+EXIT=0

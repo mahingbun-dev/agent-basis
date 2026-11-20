@@ -1,0 +1,15 @@
+{
+  "suite": "DATA",
+  "root": "/Users/sunny/eterna-data/test-rc5",
+  "instance": "e1",
+  "container": "eterna-rc5-e1",
+  "counts": {"PASS": 6, "FAIL": 0, "NOTRUN": 0},
+  "cases": [
+    {"id":"RC5-DATA-001","status":"PASS","title":"init-data-dirs 幂等、根 0700、子目录齐全","detail":"root=700 instance=700 second-run=ok"},
+    {"id":"RC5-DATA-002","status":"PASS","title":"/data 绑定到测试数据根","detail":"source=/Users/sunny/eterna-data/test-rc5/e1"},
+    {"id":"RC5-DATA-002b","status":"PASS","title":"compose config 可用且 /data 为 bind","detail":"source: /Users/sunny/eterna-data/test-rc5/e1"},
+    {"id":"RC5-DATA-003","status":"PASS","title":"容器内 DSH_HOME=/data","detail":"DSH_HOME=/data"},
+    {"id":"RC5-DATA-006","status":"PASS","title":"容器内 DSH_AGENTS_HOME=/data/agents","detail":"DSH_AGENTS_HOME=/data/agents"},
+    {"id":"RC5-DATA-004","status":"PASS","title":"迁移副本硬链接/大小与源一致","detail":"files=8620 bytes=108848480 linkGroups=3148"}
+  ]
+}

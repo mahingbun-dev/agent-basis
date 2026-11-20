@@ -1,0 +1,20 @@
+# W4 基座门禁 · compose config(2026-11-20;worktree 无 .env,ETERNA_DATA_ROOT 未设)
+# 三条命令对应门禁的 compose config / super config / acp config。
+
+### docker compose -f docker-compose.yml config
+        source: /Users/sunny/eterna-data/super
+EXIT=0
+
+### docker compose -f docker-compose.super.yml config
+        source: /Users/sunny/eterna-data/super-2
+EXIT=0
+
+### docker compose -f docker-compose.yml --profile acp config
+服务数=3
+        source: /Users/sunny/eterna-data/super
+        source: /Users/sunny/eterna-data/super
+EXIT=0
+
+### 覆写仍生效:ETERNA_DATA_ROOT=/srv/alt docker compose -f docker-compose.yml config
+        source: /srv/alt/super
+EXIT=0

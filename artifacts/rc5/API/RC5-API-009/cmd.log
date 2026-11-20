@@ -1,0 +1,37 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+
+# 1) 静态复核（本 session 重跑；输出写入 /tmp，证据已复制到 ../_harness/api009/）
+$ node scripts/verify-rc5-env.mjs --api-static --json /tmp/api009-static.json > /tmp/api009-static.log 2>&1
+STATIC_EXIT=0
+== API-009 [PASS] LoggerLevel 数值语义(4.1.0: WARN=1 / INFO=2)
+   ✓ vendor LoggerLevel = {ERROR:0, WARN:1, INFO:2, DEBUG:3}
+   ✓ 构建产物 LoggerLevel 同值
+   ✓ 阈值缺省用 LoggerLevel.INFO 符号(非字面量 2) — logger.ts:159 形态匹配
+   ✓ 过滤方向 targetLevel < level(与上游 4.1.0 一致) — logger.ts:160 形态匹配
+   ✓ 全仓日志级别数值比较均在登记簿内 — 2 处命中,全部复核登记
+   ✓ 登记簿无失效条目 — 无
+
+# 2) 行为验证：vendored @core/cordis（宿主，运行时导出 LoggerLevel）
+$ node artifacts/rc5/API/_harness/api009.mjs /Users/sunny/code/agent-basis-rc5/core/cordis/src/index.ts > /tmp/api009-vendored-host.log 2>&1
+HOST_EXIT=0
+// loggerLevelExport=true；checks 10/10 全部 ok=true；ok=true
+
+# 3) 行为验证：上游 @deepseek-ai/cordis 4.1.0（3108 容器）
+$ docker cp artifacts/rc5/API/_harness/api009.mjs eterna-rc5-e1:/tmp/api009.mjs
+$ docker exec eterna-rc5-e1 node /tmp/api009.mjs /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/cordis/lib/index.js > /tmp/api009-upstream.log 2>&1
+UPSTREAM_EXIT=0
+{
+  "entry": "/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/cordis/lib/index.js",
+  "loggerLevelExport": false,
+  "checks": [ ... 10 项 ... ],
+  "ok": true
+}
+
+# 4) 版本核对
+$ docker exec eterna-rc5-e1 node -p 'require("/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/cordis/package.json").version'
+4.1.0
+$ docker exec eterna-rc5-e1 dsh --version
+0.2.2-rc.5
+
+# 完整结果：../_harness/api009/api009-{static,upstream-4.1.0,vendored-host}.log
+# 判定：静态 6/6；行为 vendored 10/10、上游 10/10；三者 EXIT 0。

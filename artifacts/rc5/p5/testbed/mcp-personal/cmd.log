@@ -1,0 +1,3 @@
+cd /Users/sunny/code/agent-basis-rc5
+node scripts/verify-mcp-personal.mjs --base http://127.0.0.1:3108 --accounts-file /Users/sunny/eterna-data/test-rc5/.test-accounts.json --data-root /Users/sunny/eterna-data/test-rc5/e1 --container eterna-rc5-e1 --json artifacts/rc5/p5/testbed/mcp-personal/report.json
+EXIT=0

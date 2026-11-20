@@ -1,0 +1,5 @@
+[PASS] ENV-e4 :: /Users/sunny/eterna-data/test-rc5/.env.e4 已存在（mode 600）
+[PASS] DATA-e4 :: /Users/sunny/eterna-data/test-rc5/e4（init-data-dirs exit=0）
+[PASS] E4-ACP-CONFIG :: compose --profile acp config exit=0
+
+[PREP] PASS=3 FAIL=0

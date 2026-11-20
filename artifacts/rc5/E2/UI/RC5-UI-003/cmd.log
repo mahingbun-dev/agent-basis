@@ -1,0 +1,14 @@
+# UI/RC5-UI-003
+# started 2026-11-20T03:37:50.542Z
+
+$ node artifacts/rc5/E2/UI/_suite/ui-scan.mjs UI-003
+EXIT=0
+scope files=17 font-weight declarations=30
+tokens=29 numeric=1 other=0
+numeric packages/brand/src/client/index.ts:74 600
+PASS weight tokens are 400/500/600: tokens.ts:136-138
+PASS weights only 400/500/600: 0 numeric + 0 other violations
+NOTE 正文不使用 numeric 500;500 仅经 --et-weight-emphasis 用于标题/强调(需目检标题层级)。
+SUMMARY UI-003 failures=0
+
+[ASSERT] UI-003 扫描退出 0 => PASS

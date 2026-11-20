@@ -1,0 +1,33 @@
+{
+  "id": "RC5-API-006",
+  "suite": "E3-super",
+  "priority": "P1",
+  "title": "查询后代列表与任务树一致（API-006）",
+  "expected": "listDescendants 返回与任务树一致",
+  "status": "PASS",
+  "startedAt": "2026-11-20T08:46:37.088Z",
+  "finishedAt": "2026-11-20T08:48:17.524Z",
+  "realModel": true,
+  "evidence": [
+    "artifacts/rc5/e3-super/real-harness/results.json",
+    "artifacts/rc5/e3-super/real-harness/harness.log",
+    "artifacts/rc5/e3-super/API-005-real-model.md"
+  ],
+  "assertions": [
+    {
+      "name": "worker A 上派 2 个真实 child 后，listDescendants 返回与树一致",
+      "ok": true,
+      "detail": "ids=[d172fc6d-a1a4-47d5-abd4-81b96e037c2f,f3ceb318-cc3b-4c58-b347-88d8e7409e51] expected 相同 extras=[]"
+    },
+    {
+      "name": "真模型档（mimo/mimo-v2.6-pro）同一结果",
+      "ok": true,
+      "detail": "results.realModel=true; 两条 child 均为真实 model 回合后归一"
+    },
+    {
+      "name": "确定性 stub 档同一断言",
+      "ok": true,
+      "detail": "artifacts/rc5/API/_harness/results/api005-007-results.json checks.listDescendants.ok=true"
+    }
+  ]
+}

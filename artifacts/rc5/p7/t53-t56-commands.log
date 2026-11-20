@@ -1,0 +1,218 @@
+# T53/T56 证据 — 2026-11-20T02:04:24Z — worktree=/Users/sunny/code/agent-basis-rc5
+# head=c75f876c986415431c92b28cce771d847a36c52f branch=feat/dsh-rc5-merge
+
+== branch/remote 状态（未 push） ==
+$ git status -sb | head -8
+## feat/dsh-rc5-merge...origin/main [ahead 14, behind 1]
+ M artifacts/rc5/p5/testbed/soak/console-24h.log
+ M artifacts/rc5/p5/testbed/soak/data-009-24h.jsonl
+ M artifacts/rc5/p5/testbed/soak/soak-24h.log
+ M artifacts/rc5/p5/testbed/soak/term-013-24h.jsonl
+?? artifacts/rc5/p7/PR.md
+?? artifacts/rc5/p7/regression/
+?? artifacts/rc5/p7/release-notes.md
+EXIT=0
+
+== 远端是否已有本分支（空=未 push） ==
+$ git ls-remote --heads origin feat/dsh-rc5-merge
+EXIT=0
+
+== merge-base / 领先落后 ==
+$ echo base=$(git merge-base HEAD origin/main); echo ahead=$(git rev-list --count origin/main..HEAD); echo behind=$(git rev-list --count HEAD..origin/main); git log --oneline HEAD..origin/main
+base=9f40c2a5edff37f76e6c38d5c2c15c2dc96184bd
+ahead=14
+behind=1
+282675c feat(panel): 流程启动条每用户可配置——设置分区+守卫双端点+动态数据源
+EXIT=0
+
+== 差异规模 ==
+$ git diff --shortstat origin/main...HEAD
+ 1956 files changed, 220965 insertions(+), 5436 deletions(-)
+EXIT=0
+
+== 差异按目录 ==
+$ git diff --name-only origin/main...HEAD | awk -F/ '{print $1"/"$2}' | sort | uniq -c | sort -rn | head -20
+1663 artifacts/rc5
+  59 packages/brand
+  37 packages/access
+  18 core/contracts
+  16 core/cordis
+  14 core/runtime
+  12 tests/fixtures
+   9 docker/profile
+   8 packages/tools
+   8 packages/llm
+   8 packages/agent-loop
+   7 packages/system-prompt
+   7 packages/session
+   7 packages/approval-cli
+   7 "docs/design
+   6 packages/prompt-studio
+   5 packages/compaction
+   4 packages/tasks
+   3 packages/llm-openai
+   3 packages/llm-doctor
+EXIT=0
+
+== P0 结果聚合（T52 P0-comparison.json） ==
+$ python3 -I -c "
+import json,collections
+d=json.load(open('artifacts/rc5/p7/regression/P0-comparison.json'))
+rows=d['matrix']
+print('counts',json.dumps(d['counts'],ensure_ascii=False,sort_keys=True))
+by=collections.defaultdict(collections.Counter)
+for r in rows: by[r['id'].replace('RC5-','').split('-')[0]][r['rerun']]+=1
+cols=['PASS','FAIL','MISSING','NOTRUN','NOT_RERUN']
+for s in sorted(by):
+    c=by[s]; print(s, sum(c.values()), [c.get(x,0) for x in cols])
+print('total', len(rows))
+"
+counts {"FAIL": 9, "MISSING": 1, "NOTRUN": 4, "NOT_RERUN": 15, "PARTIAL": 0, "PASS": 68}
+ACC 8 [6, 2, 0, 0, 0]
+ACP 7 [4, 0, 0, 1, 2]
+API 5 [5, 0, 0, 0, 0]
+BOOT 11 [10, 0, 1, 0, 0]
+DATA 8 [5, 0, 0, 0, 3]
+ENV 6 [4, 1, 0, 0, 1]
+HERO 3 [0, 0, 0, 0, 3]
+IMP 5 [5, 0, 0, 0, 0]
+MCPP 16 [13, 0, 0, 0, 3]
+MCPS 7 [4, 1, 0, 1, 1]
+OFF 3 [3, 0, 0, 0, 0]
+SEC 7 [4, 3, 0, 0, 0]
+TERM 9 [4, 2, 0, 2, 1]
+UI 2 [1, 0, 0, 0, 1]
+total 97
+EXIT=0
+
+== leftovers 条数 ==
+$ grep -c '^| [A-Z]' artifacts/rc5/p7/regression/leftovers.md
+24
+EXIT=0
+
+== 版本族（catalog） ==
+$ grep -nE "'@deepseek-ai/(dsh-[a-z-]+|cordis|cosmokit)':" pnpm-workspace.yaml | head -40
+12:  '@deepseek-ai/dsh-subprocess-local': true
+20:  '@deepseek-ai/cordis': 4.1.0
+22:  '@deepseek-ai/cosmokit': 1.9.0
+24:  '@deepseek-ai/dsh-agent': 0.2.2-rc.5
+28:  '@deepseek-ai/dsh-commands': 0.2.2-rc.5
+29:  '@deepseek-ai/dsh-compaction': 0.2.2-rc.5
+30:  '@deepseek-ai/dsh-token-meter': 0.2.2-rc.5
+31:  '@deepseek-ai/dsh-util-values': 0.2.2-rc.5
+33:  '@deepseek-ai/dsh-agent-preset': 0.2.2-rc.5
+34:  '@deepseek-ai/dsh-llm': 0.2.2-rc.5
+35:  '@deepseek-ai/dsh-message-feedback': 0.2.2-rc.5
+36:  '@deepseek-ai/dsh-permission-presets': 0.2.2-rc.5
+38:  '@deepseek-ai/dsh-persona': 0.2.2-rc.5
+39:  '@deepseek-ai/dsh-sandbox': 0.2.2-rc.5
+40:  '@deepseek-ai/dsh-subagent': 0.2.2-rc.5
+41:  '@deepseek-ai/dsh-session': 0.2.2-rc.5
+42:  '@deepseek-ai/dsh-storage': 0.2.2-rc.5
+44:  '@deepseek-ai/dsh-system-prompt': 0.2.2-rc.5
+45:  '@deepseek-ai/dsh-storage-domain': 0.2.2-rc.5
+46:  '@deepseek-ai/dsh-tools': 0.2.2-rc.5
+48:  '@deepseek-ai/dsh-user-approval': 0.2.2-rc.5
+49:  '@deepseek-ai/dsh-user-questions': 0.2.2-rc.5
+51:  '@deepseek-ai/dsh-typert-protocol': 0.2.2-rc.5
+54:  '@deepseek-ai/dsh-error': 0.2.2-rc.5
+55:  '@deepseek-ai/dsh-agent-preset-registry': 0.2.2-rc.5
+56:  '@deepseek-ai/dsh-typert-registry': 0.2.2-rc.5
+57:  '@deepseek-ai/dsh-timeout': 0.2.2-rc.5
+58:  '@deepseek-ai/dsh-credentials': 0.2.2-rc.5
+59:  '@deepseek-ai/dsh-mcp-client': 0.2.2-rc.5
+60:  '@deepseek-ai/dsh-mcp-manager': 0.2.2-rc.5
+61:  '@deepseek-ai/dsh-scope': 0.2.2-rc.5
+EXIT=0
+
+== Dockerfile 内核钉版 ==
+$ grep -n '@deepseek-ai/dsh@' Dockerfile | head -5
+6:# - 只装 `@deepseek-ai/dsh@0.2.2-rc.5`——dsh 自身依赖里已带同版 dsh-mcp-client /
+151:    retry npm i -g --fetch-retries=5 --fetch-retry-maxtimeout=120000 @deepseek-ai/dsh@0.2.2-rc.5; \
+EXIT=0
+
+== 默认 bundle 集 ==
+$ sed -n '1,30p' docker/profile/package.json
+{
+  "name": "dsh-profile-eterna-web",
+  "private": true,
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "@deepseek-ai/dsh-deepseek-chat-import",
+        "@deepseek-ai/dsh-experimental-session-search",
+        "@deepseek-ai/dsh-experimental-plugin-market-bundle",
+        "@deepseek-ai/dsh-experimental-terminal-bundle"
+      ]
+    }
+  }
+}
+EXIT=0
+
+== terminal 配置（web 模板） ==
+$ sed -n '174,178p' docker/profile/cordis.patch.yml.template
+- id: optional-terminal-panel
+  config:
+    preferredShells:
+      - bash
+    readUserTerminals: false
+EXIT=0
+
+== MCP 个人层边界常量 ==
+$ grep -n 'MCP_PERSONAL_MAX_SERVERS\|MCP_PERSONAL_MAX_CONFIG_BYTES\|MCP_PERSONAL_MAX_CONNECTIONS\|MCP_PERSONAL_STARTUP_TIMEOUT_MS\|METADATA_HOSTS\|DEFAULT_TOOL_CALL_TIMEOUT_MS' packages/access/src/mcp-personal.ts packages/access/src/mcp-personal-runtime.ts
+packages/access/src/mcp-personal.ts:33:export const MCP_PERSONAL_MAX_SERVERS = 8
+packages/access/src/mcp-personal.ts:35:export const MCP_PERSONAL_MAX_CONFIG_BYTES = 256 * 1024
+packages/access/src/mcp-personal.ts:39:export const MCP_PERSONAL_STARTUP_TIMEOUT_MS = 8000
+packages/access/src/mcp-personal.ts:41:export const MCP_PERSONAL_MAX_CONNECTIONS = 4
+packages/access/src/mcp-personal.ts:425:const METADATA_HOSTS = new Set(['169.254.169.254', 'fd00:ec2::254'])
+packages/access/src/mcp-personal.ts:433:  if (METADATA_HOSTS.has(host)) return true
+packages/access/src/mcp-personal.ts:629:    return okFrame(rpcId, { items, limit: MCP_PERSONAL_MAX_SERVERS })
+packages/access/src/mcp-personal.ts:745:    if (existing === undefined && store.countMcpServers(caller.userId) >= MCP_PERSONAL_MAX_SERVERS) {
+packages/access/src/mcp-personal.ts:747:      return deniedFrame(rpcId, `每人最多 ${MCP_PERSONAL_MAX_SERVERS} 个 MCP 服务器`)
+packages/access/src/mcp-personal.ts:753:    if (Buffer.byteLength(estimated, 'utf8') > MCP_PERSONAL_MAX_CONFIG_BYTES) {
+packages/access/src/mcp-personal.ts:755:      return deniedFrame(rpcId, `配置超过 ${MCP_PERSONAL_MAX_CONFIG_BYTES / 1024}KB 上限`)
+packages/access/src/mcp-personal-runtime.ts:25:  MCP_PERSONAL_MAX_CONNECTIONS, MCP_PERSONAL_STARTUP_TIMEOUT_MS,
+packages/access/src/mcp-personal-runtime.ts:46:const DEFAULT_TOOL_CALL_TIMEOUT_MS = 60_000
+packages/access/src/mcp-personal-runtime.ts:127:    toolCallTimeoutMs: options.toolCallTimeoutMs ?? DEFAULT_TOOL_CALL_TIMEOUT_MS,
+packages/access/src/mcp-personal-runtime.ts:128:    startupTimeoutMs: options.startupTimeoutMs ?? MCP_PERSONAL_STARTUP_TIMEOUT_MS,
+packages/access/src/mcp-personal-runtime.ts:160:  const connectionLimit = Math.max(1, deps.connectionsLimit ?? MCP_PERSONAL_MAX_CONNECTIONS)
+packages/access/src/mcp-personal-runtime.ts:161:  const startupBudget = deps.startupTimeoutMs ?? MCP_PERSONAL_STARTUP_TIMEOUT_MS
+EXIT=0
+
+== 回滚点（p0 summary 摘要） ==
+$ python3 -I -c "
+import json
+d=json.load(open('artifacts/rc5/p0/summary.json'))
+print('prod_image', d['prod']['container']['image'], d['prod']['container']['image_id'])
+for i in d['rollback_point']['images']: print(i['role'], i['tag'], i['id'])
+b=d['backup']; print('backup', b['path'], b['bytes'], b['sha256'], b['db_files'], b['sqlite_integrity_check'])
+print('backup_exit', b['exit'], 'dir_mode', b['dir_mode'])
+"
+prod_image eterna-agent:0.1.51 sha256:3ca0d66055898b092f09761e5f67baa4a82741f1c7233d27bd2ddbd6de2b1a7b
+current eterna-agent:0.1.51 sha256:3ca0d66055898b092f09761e5f67baa4a82741f1c7233d27bd2ddbd6de2b1a7b
+rollback eterna-agent:0.1.50 sha256:6b306037b6593d94e7c797a97f15e8fb7f60fe97f871fd673da6ce659e7b2052
+older-fallback eterna-agent:0.1.38 sha256:b0dbe8bc6da4c918ee1a848548d92980d8caba4bb5301b26c5878932b5ae95e1
+backup /Users/sunny/eterna-data/backups/rc5-2026-11-20/eterna-home-20261120-021802.tgz 26566225 5976686ff2caab6a668c7231daded925c10053e062b9d4b28ecb31e61fbbd281 16 {'checked': 16, 'ok': 16, 'method': 'python3 -I + PRAGMA integrity_check (read-only URI), extracted DBs only, temp dir removed'}
+backup_exit 0 dir_mode 0700
+EXIT=0
+
+== 浸泡窗口（只读 tail） ==
+$ tail -1 artifacts/rc5/p5/testbed/soak/data-009-24h.jsonl | cut -c1-200
+{"at":"2026-11-20T02:01:22.733Z","elapsedSeconds":15345,"databases":[{"file":"access/users.db","walBytes":968232,"shmBytes":32768,"ok":true,"journal":"wal","integrity":["ok"],"sessions":350},{"file":"
+EXIT=0
+
+== 产出文件 ==
+$ wc -l artifacts/rc5/p7/PR.md artifacts/rc5/p7/release-notes.md artifacts/rc5/p7/rollback-record.md
+     231 artifacts/rc5/p7/PR.md
+     154 artifacts/rc5/p7/release-notes.md
+     147 artifacts/rc5/p7/rollback-record.md
+     532 total
+EXIT=0
+
+== 产出脱敏自查（应无命中） ==
+$ grep -nEi 'token=|cookie:|password[[:space:]]*[:=]' artifacts/rc5/p7/PR.md artifacts/rc5/p7/release-notes.md artifacts/rc5/p7/rollback-record.md || true
+EXIT=0
+
+# 完成 2026-11-20T02:04:25Z

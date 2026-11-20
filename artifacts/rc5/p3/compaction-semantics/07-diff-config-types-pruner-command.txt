@@ -1,0 +1,141 @@
+--- /tmp/rc5-src/packages/compaction/compaction-basic/src/config.ts	2026-11-20 02:59:01
++++ packages/compaction/src/basic/config.ts	2026-11-20 00:41:05
+@@ -1,7 +1,7 @@
+ /**
+  * Load-time validation and routed-model policy resolution for compaction-basic.
+  *
+- * @module @deepseek-ai/dsh-compaction-basic/config
++ * @module @eterna/compaction/basic/config
+  */
+ 
+ import type { LlmCallConfig } from '@deepseek-ai/dsh-llm'
+@@ -33,6 +33,8 @@
+   'maxTokens',
+   'compactionRetries',
+   'maxOverflowRetries',
++  // 2026-11-14 C11(22 号 §5-C11):checkpoint 附件开关,默认 false。
++  'attachments',
+ ] as const
+ 
+ /** Complete public top-level configuration key set. */
+@@ -52,11 +54,19 @@
+ /** Target-specific pressure configuration failure eligible for warning suppression. */
+ export class TargetPressureConfigError extends Error {
+   /**
++   * 显式字段而非参数属性(2026-11-12 fork):本包以 TS 源码被 dsh 直接加载,
++   * Node 的 strip-only 类型擦除不支持 `constructor(readonly x)` 参数属性,
++   * 写成参数属性会在运行时抛 SyntaxError。
++   */
++  readonly targetKey: string
++
++  /**
+    * @param targetKey - exact provider/model route used as the warning key.
+    * @param message - actionable configuration failure detail.
+    */
+-  constructor(readonly targetKey: string, message: string) {
++  constructor(targetKey: string, message: string) {
+     super(message)
++    this.targetKey = targetKey
+   }
+ }
+ 
+@@ -104,6 +114,7 @@
+     maxTokens,
+     compactionRetries: config.compactionRetries ?? 1,
+     maxOverflowRetries: config.maxOverflowRetries ?? 1,
++    attachments: config.attachments ?? false,
+     modelPolicies,
+     auto: config.auto ?? true,
+   })
+@@ -135,6 +146,7 @@
+     maxTokens: override?.maxTokens ?? config.maxTokens,
+     compactionRetries: override?.compactionRetries ?? config.compactionRetries,
+     maxOverflowRetries: override?.maxOverflowRetries ?? config.maxOverflowRetries,
++    attachments: override?.attachments ?? config.attachments,
+   })
+ }
+ 
+@@ -213,6 +225,7 @@
+     maxTokens: policy.maxTokens,
+     compactionRetries: policy.compactionRetries,
+     maxOverflowRetries: policy.maxOverflowRetries,
++    attachments: policy.attachments,
+   })
+ }
+ 
+@@ -299,6 +312,11 @@
+   if (maxOverflowRetries !== undefined) {
+     assertNonNegativeInteger(`${name}.maxOverflowRetries`, maxOverflowRetries)
+   }
++  const attachments = config.attachments
++  // 2026-11-14 C11(22 号 §5-C11):附件开关只收布尔(默认 false 在 resolveConfig 落)。
++  if (attachments !== undefined && typeof attachments !== 'boolean') {
++    throw new Error(`${name}.attachments must be a boolean`)
++  }
+ 
+   validateSummarizationPair(config, name)
+ }
+--- /tmp/rc5-src/packages/compaction/compaction-basic/src/types.ts	2026-11-20 02:59:01
++++ packages/compaction/src/basic/types.ts	2026-11-20 00:41:05
+@@ -1,7 +1,7 @@
+ /**
+  * Configuration vocabulary for the replay-aware basic compaction backend.
+  *
+- * @module @deepseek-ai/dsh-compaction-basic/types
++ * @module @eterna/compaction/basic/types
+  */
+ 
+ declare module '@deepseek-ai/dsh-llm/types' {
+@@ -32,6 +32,12 @@
+   compactionRetries?: number
+   /** Maximum retries after canonical context overflow; `0` disables recovery. Defaults to `1`. */
+   maxOverflowRetries?: number
++  /**
++   * C11(22 号 §5-C11,2026-11-14):checkpoint 附件开关——压缩提交前重读被遮蔽
++   * 区间内文件类工具动过的工作区文件,把现场内容并入 checkpoint。默认 `false`;
++   * 工作区根取会话创建 cwd(`Session.header.cwd`),无 cwd 时附件面静默关闭。
++   */
++  attachments?: boolean
+ }
+ 
+ /** Exact provider/model override merged over the default compaction policy. */
+@@ -64,6 +70,8 @@
+   readonly maxTokens: number
+   readonly compactionRetries: number
+   readonly maxOverflowRetries: number
++  /** C11 checkpoint attachment switch; `false` keeps the pre-C11 behavior. */
++  readonly attachments: boolean
+ }
+ 
+ /** Validated immutable config whose target-specific defaults remain unresolved. */
+--- /tmp/rc5-src/packages/compaction/compaction-tool-result-pruner/src/index.ts	2026-11-20 02:59:01
++++ packages/compaction/src/pruner/index.ts	2026-11-20 00:41:05
+@@ -1,7 +1,7 @@
+ /**
+  * Replay-safe, model-free tool-result pruning service.
+  *
+- * @module @deepseek-ai/dsh-compaction-tool-result-pruner
++ * @module @eterna/compaction/pruner
+  */
+ 
+ import { Context, Service } from '@deepseek-ai/cordis'
+--- /tmp/rc5-src/packages/compaction/command-compact/src/index.ts	2026-11-20 02:59:01
++++ packages/compaction/src/command-plugin.ts	2026-11-20 00:41:05
+@@ -1,6 +1,6 @@
+ /**
+  * Human-facing `/compact` command over the backend-independent compaction seam.
+- * @module @deepseek-ai/dsh-command-compact
++ * @module @eterna/compaction/command
+  */
+ 
+ import type { Context } from '@deepseek-ai/cordis'
+@@ -99,7 +99,8 @@
+     // invocation can enter while already-started handler promises quiesce.
+     yield async () => { await Promise.allSettled(active) }
+     yield ctx.commands.register({
+-      definitionId: CommandDefinitionId('@deepseek-ai/dsh-command-compact'),
++      // 2026-11-12 fork: 命令身份改用本包入口(与 profile 挂载行一致)。
++      definitionId: CommandDefinitionId('@eterna/compaction/command-plugin'),
+       name: 'compact',
+       description: 'Compact older conversation history',
+       handler,

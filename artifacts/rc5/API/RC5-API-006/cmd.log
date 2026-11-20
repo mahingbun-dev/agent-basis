@@ -1,0 +1,41 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+
+# 与 API-005 同一次真实宿主运行（3108 / eterna-rc5-e1；隔离 DSH_HOME=/tmp/api-run-home）
+$ docker cp artifacts/rc5/API/_harness/index.js eterna-rc5-e1:/tmp/api-harness/index.js
+$ docker cp artifacts/rc5/API/_harness/run-api005-007.sh eterna-rc5-e1:/tmp/run-api005-007.sh
+$ docker exec eterna-rc5-e1 sh /tmp/run-api005-007.sh
+[2026-11-19T22:54:17.154Z] dispatch 1 stored explicit accept 709dea15795ec8518199c38e37d54e74
+[2026-11-19T22:54:17.161Z] dispatch 2 stored explicit accept 36ed884efff9cfc179578853b538df70
+[2026-11-19T22:54:17.376Z] spawned child 1 7cb4fa40-67fa-4ee2-acc0-ef85bb51bc31 api-child-1
+[2026-11-19T22:54:17.384Z] spawned child 2 1ad10993-392d-457d-adab-cf8c3b2d5a63 api-child-2
+[2026-11-19T22:54:25.432Z] waitForTreeWork returned true 8048ms
+[2026-11-19T22:54:25.701Z] listDescendants A ["7cb4fa40-67fa-4ee2-acc0-ef85bb51bc31","1ad10993-392d-457d-adab-cf8c3b2d5a63"]
+[api-harness] ok= true
+HARNESS_EXIT=0
+DOCKER_EXEC_EXIT=0
+
+# 断言切片（results.json → descendants.json）：
+#   entries[0].parent = worker-709dea15795ec8518199c38e37d54e74, path=api-child-1, depth=1
+#   entries[1].parent = worker-709dea15795ec8518199c38e37d54e74, path=api-child-2, depth=1
+#   ids 集合 == spawns[workerA].children ids
+EXTRACT_EXIT=0
+
+# 上游类型字段核对：SubagentDescendantListEntry.parentId / depth / path
+$ docker exec eterna-rc5-e1 sh -lc 'sed -n "9,24p" /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-subagent/lib/types/list-children.d.ts'
+import type { SubagentCatalogEntry } from './projection-types.ts';
+export type { SubagentListEntry } from './control-types.ts';
+/** One catalog descendant with its direct parent and edge distance from the requested root. */
+export type SubagentDescendantListEntry = SubagentListEntry & {
+    /** Parent whose catalog contains this child. */
+    readonly parentId: SessionId;
+    /** Edge distance from the requested root; direct children are `1`. */
+    readonly depth: number;
+    /** Slash-separated names from the requested root; absent when this child or an ancestor below the root has no name. */
+    readonly path?: string;
+};
+/**
+ * Read one parent's durable catalog through a live-preferred Session observation.
+ * @param ctx - context carrying the Session query service.
+ * @param parentSessionId - parent whose direct children are requested.
+ * @param signal - cancellation forwarded to the Session observation.
+TYPE_DUMP_EXIT=0

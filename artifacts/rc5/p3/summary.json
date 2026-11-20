@@ -1,0 +1,43 @@
+{
+  "phase": "P3",
+  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "imageTag": null,
+  "imageId": null,
+  "startedAt": "2026-11-19T19:08:21Z",
+  "finishedAt": "2026-11-19T22:19:04Z",
+  "windowBasis": "p3 lane 日志 + V1 套件 summary",
+  "commands": [
+    {
+      "cmd": "pnpm --filter @core/cordis test",
+      "exit": 0,
+      "log": "artifacts/rc5/V1/RC5-V1-004/cmd.log"
+    },
+    {
+      "cmd": "pnpm --filter @core/runtime test",
+      "exit": 0,
+      "log": "artifacts/rc5/V1/RC5-V1-005/cmd.log"
+    },
+    {
+      "cmd": "node packages/agent-loop/... chat --bundle basis.yml </dev/null",
+      "exit": 0,
+      "log": "artifacts/rc5/V1/RC5-V1-005/cmd.log",
+      "note": "6 插件解析装载、无 bundle-core"
+    },
+    {
+      "cmd": "node artifacts/rc5/V1/RC5-V1-006/check-ci-lane.mjs",
+      "exit": 0,
+      "log": "artifacts/rc5/V1/RC5-V1-006/cmd.log"
+    }
+  ],
+  "cases": {
+    "total": 7,
+    "pass": 7,
+    "fail": 0,
+    "skip": 0
+  },
+  "leftovers": [
+    "P3-01|V1-008 专用 docker run 断言未执行，改用 P5 镜像运行时探针（/repo 下 v1 8 项 absent）作为等价证据|P3|保留 P5 探针索引；如需逐字口径再跑一次 docker run"
+  ],
+  "generatedBy": "T50/artifacts/rc5/p6a/scan-matrix.mjs",
+  "generatedAt": "2026-11-20T05:25:41Z"
+}

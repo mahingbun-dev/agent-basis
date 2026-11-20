@@ -1,0 +1,158 @@
+$ ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run && python3 -m unittest discover -s python -p 'test_*.py'
+Found 0 warnings and 0 errors.
+Finished in 820ms on 25 files with 87 rules using 10 threads.
+
+ RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/tools/evals
+
+ ✓ tests/trajectory.spec.ts (14 tests) 4ms
+ ✓ tests/schema.spec.ts (23 tests) 38ms
+ ✓ tests/replay.spec.ts (6 tests) 37ms
+ ✓ tests/finalState.spec.ts (12 tests) 58ms
+ ✓ tests/acp-real-notification.spec.ts (5 tests) 96ms
+ ✓ tests/goldenset-event-planning.spec.ts (5 tests) 116ms
+pack=/Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini adapter=auto total=4 pass=4 fail=0
+  [PASS] approval-redline 
+  [PASS] script-check 
+  [PASS] smoke-file-plan 
+  [PASS] smoke-http-submit 
+  [SCHEMA-FAIL] /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml: /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml.final_state 应为 数组,实际: {"file_assert":{"path":"whatever.md"}}
+report: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-uOsl1K/smoke/report.md
+sessions: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-uOsl1K/smoke/sessions.jsonl
+ ✓ tests/budgetAnswer.spec.ts (7 tests) 3ms
+pack=/Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini adapter=auto total=6 pass=5 fail=1
+  [FAIL] answer-budget-fail — answer: 最终回答未包含 "这句话在最终回答里一定不存在",实际: 继续整理
+  [PASS] approval-redline 
+  [PASS] script-check 
+  [PASS] smoke-file-plan 
+  [PASS] smoke-http-submit 
+  [PASS] strict-trajectory 
+  [SCHEMA-FAIL] /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml: /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml.final_state 应为 数组,实际: {"file_assert":{"path":"whatever.md"}}
+report: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-uOsl1K/all/report.md
+sessions: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-uOsl1K/all/sessions.jsonl
+--pack 为必填
+用法: dsh-evals run --pack <目录> [选项]
+
+选项:
+  --pack <目录>       golden pack 目录(含 evals/*.yaml;fixtures/<id>.jsonl 为回放会话)
+  --subset <tag>      只跑带该 tag 的 case(如 smoke)
+  --case <id>         只跑指定 id 的 case
+  --adapter <id>      强制适配器 replay|acp(缺省逐 case:golden 的 adapter 字段)
+  --out <目录>        产物目录(缺省 ./dsh-evals-out/<时间戳>)
+  --provider/--model/--dsh-home   acp 适配器透传 DSH Python SDK 配置
+  --python <解释器>   acp driver 的解释器(缺省 python3,或 env DSH_EVALS_PYTHON)
+  --driver <脚本>     acp driver 路径(缺省包内 python/dsh_eval_driver.py)
+
+退出码: 0 全部通过;1 存在失败;2 用法错误或无 case 可跑(schema 坏文件仅打印 SCHEMA-FAIL)
+--adapter 应为 replay|acp
+未知命令: dance
+用法: dsh-evals run --pack <目录> [选项]
+
+选项:
+  --pack <目录>       golden pack 目录(含 evals/*.yaml;fixtures/<id>.jsonl 为回放会话)
+  --subset <tag>      只跑带该 tag 的 case(如 smoke)
+  --case <id>         只跑指定 id 的 case
+  --adapter <id>      强制适配器 replay|acp(缺省逐 case:golden 的 adapter 字段)
+  --out <目录>        产物目录(缺省 ./dsh-evals-out/<时间戳>)
+  --provider/--model/--dsh-home   acp 适配器透传 DSH Python SDK 配置
+  --python <解释器>   acp driver 的解释器(缺省 python3,或 env DSH_EVALS_PYTHON)
+  --driver <脚本>     acp driver 路径(缺省包内 python/dsh_eval_driver.py)
+
+退出码: 0 全部通过;1 存在失败;2 用法错误或无 case 可跑(schema 坏文件仅打印 SCHEMA-FAIL)
+dsh-evals: 参数解析失败(argv 数量=0)
+用法: dsh-evals run --pack <目录> [选项]
+
+选项:
+  --pack <目录>       golden pack 目录(含 evals/*.yaml;fixtures/<id>.jsonl 为回放会话)
+  --subset <tag>      只跑带该 tag 的 case(如 smoke)
+  --case <id>         只跑指定 id 的 case
+  --adapter <id>      强制适配器 replay|acp(缺省逐 case:golden 的 adapter 字段)
+  --out <目录>        产物目录(缺省 ./dsh-evals-out/<时间戳>)
+  --provider/--model/--dsh-home   acp 适配器透传 DSH Python SDK 配置
+  --python <解释器>   acp driver 的解释器(缺省 python3,或 env DSH_EVALS_PYTHON)
+  --driver <脚本>     acp driver 路径(缺省包内 python/dsh_eval_driver.py)
+
+退出码: 0 全部通过;1 存在失败;2 用法错误或无 case 可跑(schema 坏文件仅打印 SCHEMA-FAIL)
+pack=/Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini adapter=auto total=0 pass=0 fail=0
+  [SCHEMA-FAIL] /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml: /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml.final_state 应为 数组,实际: {"file_assert":{"path":"whatever.md"}}
+report: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-uOsl1K/none/report.md
+sessions: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-uOsl1K/none/sessions.jsonl
+pack=/Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini adapter=auto total=1 pass=1 fail=0
+  [PASS] approval-redline 
+  [SCHEMA-FAIL] /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml: /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml.final_state 应为 数组,实际: {"file_assert":{"path":"whatever.md"}}
+report: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-uOsl1K/case/report.md
+sessions: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-uOsl1K/case/sessions.jsonl
+pack=/Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini adapter=auto total=4 pass=4 fail=0
+  [PASS] approval-redline 
+  [PASS] script-check 
+  [PASS] smoke-file-plan 
+  [PASS] smoke-http-submit 
+  [SCHEMA-FAIL] /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml: /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml.final_state 应为 数组,实际: {"file_assert":{"path":"whatever.md"}}
+report: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-uOsl1K/leading-ddash/report.md
+sessions: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-uOsl1K/leading-ddash/sessions.jsonl
+pack=/Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini adapter=auto total=4 pass=4 fail=0
+  [PASS] approval-redline 
+  [PASS] script-check 
+  [PASS] smoke-file-plan 
+  [PASS] smoke-http-submit 
+  [SCHEMA-FAIL] /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml: /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml.final_state 应为 数组,实际: {"file_assert":{"path":"whatever.md"}}
+report: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-uOsl1K/injected-flag/report.md
+sessions: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-uOsl1K/injected-flag/sessions.jsonl
+pack=/Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini adapter=auto total=4 pass=4 fail=0
+  [PASS] approval-redline 
+  [PASS] script-check 
+  [PASS] smoke-file-plan 
+  [PASS] smoke-http-submit 
+  [SCHEMA-FAIL] /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml: /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml.final_state 应为 数组,实际: {"file_assert":{"path":"whatever.md"}}
+report: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-uOsl1K/implicit-run/report.md
+sessions: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-uOsl1K/implicit-run/sessions.jsonl
+pack=/Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini adapter=auto total=4 pass=4 fail=0
+  [PASS] approval-redline 
+  [PASS] script-check 
+  [PASS] smoke-file-plan 
+  [PASS] smoke-http-submit 
+  [SCHEMA-FAIL] /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml: /Users/sunny/code/agent-basis-rc5/tools/evals/tests/fixtures/pack-mini/evals/broken-schema.yaml.final_state 应为 数组,实际: {"file_assert":{"path":"whatever.md"}}
+report: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-uOsl1K/dangling-flag/report.md
+sessions: /var/folders/zn/bvvjyk6s5rg0rbs843vt9z3w0000gn/T/dsh-evals-cli-uOsl1K/dangling-flag/sessions.jsonl
+未知命令: dance
+用法: dsh-evals run --pack <目录> [选项]
+
+选项:
+  --pack <目录>       golden pack 目录(含 evals/*.yaml;fixtures/<id>.jsonl 为回放会话)
+  --subset <tag>      只跑带该 tag 的 case(如 smoke)
+  --case <id>         只跑指定 id 的 case
+  --adapter <id>      强制适配器 replay|acp(缺省逐 case:golden 的 adapter 字段)
+  --out <目录>        产物目录(缺省 ./dsh-evals-out/<时间戳>)
+  --provider/--model/--dsh-home   acp 适配器透传 DSH Python SDK 配置
+  --python <解释器>   acp driver 的解释器(缺省 python3,或 env DSH_EVALS_PYTHON)
+  --driver <脚本>     acp driver 路径(缺省包内 python/dsh_eval_driver.py)
+
+退出码: 0 全部通过;1 存在失败;2 用法错误或无 case 可跑(schema 坏文件仅打印 SCHEMA-FAIL)
+dsh-evals: 参数解析失败(argv 数量=4)
+用法: dsh-evals run --pack <目录> [选项]
+
+选项:
+  --pack <目录>       golden pack 目录(含 evals/*.yaml;fixtures/<id>.jsonl 为回放会话)
+  --subset <tag>      只跑带该 tag 的 case(如 smoke)
+  --case <id>         只跑指定 id 的 case
+  --adapter <id>      强制适配器 replay|acp(缺省逐 case:golden 的 adapter 字段)
+  --out <目录>        产物目录(缺省 ./dsh-evals-out/<时间戳>)
+  --provider/--model/--dsh-home   acp 适配器透传 DSH Python SDK 配置
+  --python <解释器>   acp driver 的解释器(缺省 python3,或 env DSH_EVALS_PYTHON)
+  --driver <脚本>     acp driver 路径(缺省包内 python/dsh_eval_driver.py)
+
+退出码: 0 全部通过;1 存在失败;2 用法错误或无 case 可跑(schema 坏文件仅打印 SCHEMA-FAIL)
+ ✓ tests/runner.replay.spec.ts (11 tests) 138ms
+ ✓ tests/cli.spec.ts (12 tests) 480ms
+ ✓ tests/acp.adapter.spec.ts (7 tests) 1631ms
+     ✓ 超时 → SIGKILL + 拒绝(case 配 timeout_seconds: 1 对 5s 沉睡 stub)  1004ms
+
+ Test Files  10 passed (10)
+      Tests  102 passed (102)
+   Start at  02:57:19
+   Duration  1.85s (transform 334ms, setup 0ms, import 719ms, tests 2.60s, environment 1ms)
+
+...................
+----------------------------------------------------------------------
+Ran 19 tests in 0.002s
+
+OK

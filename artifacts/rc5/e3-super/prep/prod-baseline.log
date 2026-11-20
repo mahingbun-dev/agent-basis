@@ -1,0 +1,3 @@
+CMD: docker inspect eterna-agent --format ... (production baseline)
+ID=492c35a4d450fddd1e65c993e4237e14fb497499e9fb077095dec796786fae7c StartedAt=2026-11-19T17:21:06.582265918Z RestartCount=0 Image=eterna-agent:0.1.51
+EXIT=0

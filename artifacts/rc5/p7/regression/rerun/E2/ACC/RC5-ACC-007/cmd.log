@@ -1,0 +1,30 @@
+# ACC/RC5-ACC-007
+# started 2026-11-20T01:36:12.578Z
+
+$ POST /api/session/state（B → A 的 sessionId）
+EXIT=200
+denied=true absent=false ok=false code=tenant/denied value=
+
+$ POST /api/session/projections（B → A 的 sessionId）
+EXIT=200
+denied=true absent=false ok=false code=tenant/denied value=
+
+$ POST /api/session/rename（B → A 的 sessionId）
+EXIT=200
+denied=true absent=false ok=false code=tenant/denied value=
+
+$ POST /api/session/search（B → A 的 sessionId）
+EXIT=200
+denied=true absent=false ok=false code=tenant/denied value=
+
+$ POST /api/session/title（B → A 的 sessionId）
+EXIT=404
+denied=false absent=true ok=false code=- value=
+
+$ POST /api/session/events（B → A 的 sessionId）
+EXIT=200
+denied=true absent=false ok=false code=tenant/denied value=
+
+[ASSERT] 存在的 unary 全部被拒 => PASS
+
+[ASSERT] 审计有拒绝记录 => PASS

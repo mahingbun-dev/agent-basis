@@ -1,0 +1,53 @@
+{
+ "audit": {
+  "files": [
+   "audit-20261119.jsonl",
+   "audit-20261120.jsonl"
+  ],
+  "rowsTotal": 2862,
+  "windowSince": "2026-11-20T01:35:00",
+  "windowRows": 2189,
+  "eventKinds": {
+   "mcp.personal.install": 33,
+   "access.login.gate": 33,
+   "access.mux.install": 33,
+   "access.chatImport": 40,
+   "access.sandbox.install": 61,
+   "access.login": 400,
+   "access.terminal.install": 28,
+   "access.tenant": 772,
+   "access.logout": 13,
+   "mcp.personal.upsert": 122,
+   "mcp.personal.delete": 112,
+   "mcp.personal.probe": 16,
+   "access.thinking.auto": 85,
+   "turn-end": 95,
+   "usage": 210,
+   "access.companion.install": 9,
+   "tool-call": 119,
+   "governance": 7,
+   "access.companion.token": 1
+  },
+  "secretFieldHits": 0,
+  "fixtureNameRows": 10,
+  "secretScanNote": "只扫凭据值形态（session/token/password/authorization/api-key 的值），字段名与夹具名不算；fixtureNameRows 单列"
+ },
+ "governance": {
+  "rulesFile": "/Users/sunny/eterna-data/test-20261120/e2/.eterna/governance.rules.yml",
+  "rulesFileBytes": 7839,
+  "actions": {
+   "allow": 15,
+   "ask": 0,
+   "deny": 1
+  },
+  "denyEventsInWindow": 4,
+  "note": "deny/ask 已由 E2/SEC/RC5-SEC-GOV 实跑（审计 decision=deny/ask + 会话 approval 事件）；ask 决策卡因产品 approval:never 口径不产生"
+ },
+ "companion": {
+  "anonymousStatus": 401,
+  "adminStatus": 200,
+  "adminTokenPresent": true,
+  "guideUrl": "present",
+  "note": "协议级见 supplement/companion-relay.md（PASS：token/在线探测/断开回收）；真实扩展与 mcp__browser__* 实跑 NOTRUN（headless 无法加载未打包 MV3）"
+ }
+}

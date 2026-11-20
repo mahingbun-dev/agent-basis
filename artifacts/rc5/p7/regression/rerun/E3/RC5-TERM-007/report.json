@@ -1,0 +1,37 @@
+{
+  "id": "RC5-TERM-007",
+  "suite": "E3-super",
+  "priority": "P0",
+  "title": "terminal 配置（TERM-007）",
+  "expected": "readUserTerminals=false；preferredShells=[bash]",
+  "status": "PASS",
+  "startedAt": "2026-11-20T01:46:17.553Z",
+  "finishedAt": "2026-11-20T01:46:17.621Z",
+  "assertions": [
+    {
+      "name": "preferredShells=[bash]",
+      "ok": true,
+      "detail": "preferredShells: [bash]"
+    },
+    {
+      "name": "readUserTerminals=false",
+      "ok": true,
+      "detail": "readUserTerminals: false"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "docker exec eterna-rc5-e3 cat /data/profiles/eterna-super/cordis.patch.yml",
+      "exit": 0,
+      "note": "rendered super patch"
+    }
+  ],
+  "notes": [],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

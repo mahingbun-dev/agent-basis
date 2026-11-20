@@ -1,0 +1,7 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ node scripts/lint-ui-tokens.mjs
+# started 2026-11-19T22:04:05Z
+UI 令牌检查通过:17 个目录 288 个文件,79 个 --et-* 令牌;状态点强制 30/30 通过;v4 阶梯 0 债务。
+
+EXIT 0
+# finished 2026-11-19T22:04:05Z

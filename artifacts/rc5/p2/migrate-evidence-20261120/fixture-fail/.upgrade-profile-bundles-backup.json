@@ -1,0 +1,7 @@
+{
+  "capturedAt": "2026-11-19T18:25:56.234Z",
+  "profilePath": "/tmp/rc5-sim-KHSqBG/bad/profiles/eterna-web/package.json",
+  "templatePath": "/Users/<user>/code/agent-basis-rc5/docker/profile/package.json",
+  "error": "/tmp/rc5-sim-KHSqBG/bad/profiles/eterna-web/package.json: JSON 解析失败(Expected property name or '}' in JSON at position 2 (line 1 column 3))",
+  "profileBundles": null
+}

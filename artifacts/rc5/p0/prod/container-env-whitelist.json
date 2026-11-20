@@ -1,0 +1,21 @@
+[
+  "OPENDESIGN_API_KEY=<redacted>",
+  "ETERNA_PUBLIC_URL=https://eternity-electricity.cn:3210",
+  "ETERNA_ACCESS_SECRET=<redacted>",
+  "ETERNA_TRUSTED_HOST=eternity-electricity.cn:3210 eternity-electricity.cn localhost:3210 127.0.0.1:3210",
+  "ETERNA_ACCESS_ADMIN_PASSWORD=<redacted>",
+  "ETERNA_ACCESS_SECURE=<redacted>",
+  "ETERNA_RELAY_TOKEN=<redacted>",
+  "ETERNA_ACCESS_ADMIN_USER=<redacted>",
+  "MIMO_API_KEY=<redacted>",
+  "ETERNA_MARKET_REPO_DIR=<redacted>",
+  "ETERNA_FORM=super",
+  "DEEPSEEK_API_KEY=<redacted>",
+  "ETERNA_MARKET_GITHUB_TOKEN=<redacted>",
+  "ETERNA_RELAY_PUBLIC_URL=<redacted>",
+  "ETERNA_MARKET_REPO_URL=<redacted>",
+  "BIGMODEL_API_KEY=<redacted>",
+  "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+  "NODE_VERSION=24.22.3",
+  "DSH_HOME=/data"
+]

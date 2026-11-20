@@ -1,0 +1,84 @@
+{
+  "id": "WB-004",
+  "suite": "E3-super",
+  "priority": "P1",
+  "title": "（workbench）tasks↔workbench 主会话/健康面链路",
+  "expected": "masterSessionId 一致；tickets 数组；health 可见",
+  "status": "PASS",
+  "startedAt": "2026-11-20T07:03:59.471Z",
+  "finishedAt": "2026-11-20T07:04:59.665Z",
+  "assertions": [
+    {
+      "name": "admin 登录 200",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "workbench masterSessionId 与 tasks masterId 一致",
+      "ok": true,
+      "detail": "workbench=orchestrator-Mr.Ma tasks=orchestrator-Mr.Ma"
+    },
+    {
+      "name": "tasks health.state=ready 且 master 组件 ready（工作台数据面）",
+      "ok": true,
+      "detail": "realm Mr.Ma 就绪"
+    },
+    {
+      "name": "快照 tickets 为数组（空树也合法）",
+      "ok": true,
+      "detail": "tickets=0"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)",
+      "exit": 0,
+      "note": "boot token 不入证据"
+    },
+    {
+      "cmd": "GET /connect + GET /?token=… (dsh session bootstrap)",
+      "exit": 200,
+      "note": "token 已脱敏"
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 429,
+      "note": ""
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 429,
+      "note": "retry#1"
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 429,
+      "note": "retry#2"
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 200,
+      "note": "retry#3"
+    },
+    {
+      "cmd": "GET /access/api/tasks/settings",
+      "exit": 200,
+      "note": ""
+    },
+    {
+      "cmd": "GET /workbench/api/stream",
+      "exit": 200,
+      "note": "SSE 首帧"
+    }
+  ],
+  "notes": [
+    "DomainEvents → 增量帧需真实工单流转（API-005 NOTRUN）；本用例只证快照-主会话-健康面链路。"
+  ],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

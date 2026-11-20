@@ -1,0 +1,34 @@
+{
+  "id": "RC5-ACP-003",
+  "priority": "P0",
+  "title": "stdout 纯净：每行均为 JSON-RPC 2.0，无日志/横幅/进度",
+  "status": "PASS",
+  "at": "2026-11-20T05:10:32.605Z",
+  "detail": "lines=18 nonJsonRpc=0 parseErrors=0 kinds=response:result×8 method:session/update×8 response:error×1 method:session/request_permission×1",
+  "assertions": [
+    {
+      "name": "stdout 行数 > 0",
+      "expected": ">0",
+      "observed": "18",
+      "ok": true
+    },
+    {
+      "name": "非 JSON-RPC 行 == 0",
+      "expected": "0",
+      "observed": "0",
+      "ok": true
+    },
+    {
+      "name": "JSON 解析失败 == 0",
+      "expected": "0",
+      "observed": "0",
+      "ok": true
+    },
+    {
+      "name": "首帧即 JSON-RPC（无启动横幅）",
+      "expected": "jsonrpc=2.0",
+      "observed": "2.0",
+      "ok": true
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "statusCounts": {
+    "PASS": 153,
+    "FAIL": 0,
+    "MISSING": 11
+  },
+  "phaseCounts": {
+    "P1": 10,
+    "P5": 16,
+    "P2": 12,
+    "P6a": 97,
+    "P4": 17,
+    "P3": 7,
+    "P6b": 5
+  },
+  "suiteCounts": {
+    "ENV": 8,
+    "BOOT": 13,
+    "API": 9,
+    "ACC": 10,
+    "MCPS": 11,
+    "MCPP": 24,
+    "TERM": 14,
+    "IMP": 10,
+    "ACP": 10,
+    "OFF": 7,
+    "HERO": 8,
+    "CMD": 4,
+    "V1": 8,
+    "DATA": 10,
+    "UI": 8,
+    "SEC": 10
+  },
+  "soak": {
+    "observedHours": 0.26,
+    "complete": false
+  },
+  "secretHits": 0
+}

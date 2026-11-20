@@ -1,0 +1,33 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ node artifacts/rc5/V1/RC5-V1-002/check-lock.mjs
+# started 2026-11-19T22:09:54Z
+importer core/cordis: present
+importer core/contracts: present
+importer core/runtime: present
+importer packages/system-prompt: present
+importer packages/session: present
+importer packages/tools: present
+importer packages/llm: present
+importer packages/approval-cli: present
+importer packages/agent-loop: present
+dep core/contracts dependencies.@core/cordis=workspace:* -> lock link:link:../cordis
+dep core/runtime dependencies.@core/cordis=workspace:* -> lock link:link:../cordis
+dep core/runtime dependencies.@core/contracts=workspace:* -> lock link:link:../contracts
+dep packages/system-prompt dependencies.@core/cordis=workspace:* -> lock link:link:../../core/cordis
+dep packages/system-prompt dependencies.@core/contracts=workspace:* -> lock link:link:../../core/contracts
+dep packages/session dependencies.@core/cordis=workspace:* -> lock link:link:../../core/cordis
+dep packages/session dependencies.@core/contracts=workspace:* -> lock link:link:../../core/contracts
+dep packages/tools dependencies.@core/cordis=workspace:* -> lock link:link:../../core/cordis
+dep packages/tools dependencies.@core/contracts=workspace:* -> lock link:link:../../core/contracts
+dep packages/llm dependencies.@core/cordis=workspace:* -> lock link:link:../../core/cordis
+dep packages/llm dependencies.@core/contracts=workspace:* -> lock link:link:../../core/contracts
+dep packages/approval-cli dependencies.@core/cordis=workspace:* -> lock link:link:../../core/cordis
+dep packages/approval-cli dependencies.@core/contracts=workspace:* -> lock link:link:../../core/contracts
+dep packages/agent-loop dependencies.@basis/llm=workspace:* -> lock link:link:../llm
+dep packages/agent-loop dependencies.@basis/tools=workspace:* -> lock link:link:../tools
+dep packages/agent-loop dependencies.@core/cordis=workspace:* -> lock link:link:../../core/cordis
+dep packages/agent-loop dependencies.@core/contracts=workspace:* -> lock link:link:../../core/contracts
+summary: importers=9 workspace-refs=17 failures=0
+
+EXIT 0
+# finished 2026-11-19T22:09:55Z

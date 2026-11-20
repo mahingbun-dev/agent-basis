@@ -1,0 +1,14 @@
+$ cd /Users/sunny/code/agent-basis-rc5
+$ node scripts/verify-rc5-env.mjs --api-static --json artifacts/rc5/ENV/_suite/verify-rc5-env.json
+# suite run 2026-11-19T22:04:26.457Z (mode=env+api-static); full stdout: artifacts/rc5/ENV/_suite/verify-rc5-env.stdout.log
+== ENV-003 [PASS] 版本族统一(全仓 package.json 免 v1/core + workspace catalog)
+   口径:51 ENV-003:全部 0.2.2-rc.5;cordis 4.1.0;cosmokit 1.9.0。硬门禁=0.2.1/rc.1/4.0.6 的钉版。
+   ✓ catalog dsh 全族 = 0.2.2-rc.5 — 28 个 @deepseek-ai/dsh-* catalog 条目,期望 0.2.2-rc.5;偏离:无
+   ✓ catalog @deepseek-ai/cordis = 4.1.0 — 实测 4.1.0
+   ✓ catalog @deepseek-ai/cosmokit = 1.9.0 — 实测 1.9.0
+   ✓ 清单中无 0.2.1/rc.1/4.0.6 钉版 — 扫描 47 个清单 / 63 条 @deepseek-ai/dsh* spec
+   ✓ 清单 dsh* 精确版无偏离 rc.5 — 全部 catalog:/workspace:/精确 rc.5
+
+EXIT 0 (suite)
+# started 2026-11-19T22:04:26.457Z
+# finished 2026-11-19T22:04:26.457Z

@@ -1,0 +1,5 @@
+[PASS] ENV-e1 :: /Users/sunny/eterna-data/test-rc5/.env.e1 已存在（mode 600）
+[PASS] DATA-e1 :: /Users/sunny/eterna-data/test-rc5/e1（init-data-dirs exit=0）
+[PASS] CONFIG-e1 :: compose config exit=0（--dry-run，不启动/重建容器）
+
+[PREP] PASS=3 FAIL=0

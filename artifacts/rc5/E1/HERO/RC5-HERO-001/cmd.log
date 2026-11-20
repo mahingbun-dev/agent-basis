@@ -1,0 +1,16 @@
+# HERO/RC5-HERO-001
+# started 2026-11-20T07:02:45.615Z
+
+$ IAB 1440×900: focus composer → execCommand("insertText","hero 自检 ping") → click button[aria-label="发送消息"]
+EXIT=0
+before: phase=hero frame=1；after: phase=active frame=0 layer=0 transcriptHasMessage=true
+
+[ASSERT] 发送后 phase=active（脱离空白首页） => PASS :: phase=active
+
+[ASSERT] DOM 无 [data-eterna-hero-frame] 包裹 => PASS :: count=0
+
+[ASSERT] DOM 无 [data-eterna-hero-layer] 装饰层 => PASS :: count=0
+
+[ASSERT] 普通消息进入 transcript（非 hero 态页面） => PASS
+
+# note: hero=false 时 HeroFrame 直接返回 children（packages/brand/src/client/hero.ts:63-64），实测零包裹/零层；模型回合因占位密钥 AUTH 失败，不影响 hero 相位切换的判定

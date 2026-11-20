@@ -1,0 +1,24 @@
+# SEC/RC5-SEC-007
+# started 2026-11-20T07:07:12.742Z
+
+$ POST /api/mcp-personal/upsert {url:http://10.0.0.1/mcp}（B）
+EXIT=200
+ok=true serverName=p2_internal-net code=- msg=
+
+$ POST /api/mcp-personal/delete（清理 internal-net）
+EXIT=200
+ok=true
+
+$ POST /api/mcp-personal/upsert {url:169.254.169.254}（B）
+EXIT=200
+ok=false code=tenant/denied msg=拒绝访问云元数据地址
+
+$ POST /api/mcp-personal/upsert {url:[fd00:ec2::254]}（B）
+EXIT=200
+ok=false code=tenant/denied msg=拒绝访问云元数据地址
+
+[ASSERT] 内网地址 10.0.0.1 被放行（按拍板 H16） => PASS :: ok=true
+
+[ASSERT] IPv4 元数据地址被拒 => PASS :: ok=false
+
+[ASSERT] IPv6 元数据地址被拒 => PASS :: ok=false

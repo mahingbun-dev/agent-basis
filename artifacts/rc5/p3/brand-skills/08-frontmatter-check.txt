@@ -1,0 +1,4 @@
+$ python3 -I - <<EOF ... yaml.safe_load(SKILL.md frontmatter) ... EOF
+name: dsh-doc
+description length: 501
+EXIT=0

@@ -1,0 +1,78 @@
+# OFF/RC5-OFF-007
+# started 2026-11-20T06:34:21.734Z
+
+$ docker cp tests/fixtures/office/sample.docx rc5-e1suite:/data/workspaces/rc5userb/off-007-sample.docx
+EXIT=0
+
+
+$ docker exec rc5-e1suite chmod 644 /data/workspaces/rc5userb/off-007-sample.docx
+EXIT=0
+
+
+$ PORT=4603 FAKE_LLM_LOG=… node artifacts/rc5/E2/LLM/fake-llm-server.mjs
+EXIT=0
+healthz=true
+
+$ settings/update llm-pi-ai.providers.fake + agent-default-model=fake/fake-1
+EXIT=200
+write=true model=true routable=true
+
+$ POST /api/session/create {cwd:/data/workspaces/rc5userb}（B）
+EXIT=200
+sessionId=session-9c2d3293-4c54-4382-8a0e-00c498fc1ea7
+
+$ POST /api/session/prompt（skill→render→convert→bash 复制）
+EXIT=200
+ok=true code=- msg=
+
+$ session/state 收尾（running=false，队列空）
+EXIT=200
+cursor=43
+
+$ 假模型日志：逐请求 pending/absent/toolNames
+EXIT=0
+[{"name":"skill","absent":false,"tools":59},{"name":"office_render","absent":false,"tools":62},{"name":"office_convert","absent":false,"tools":62},{"name":"bash","absent":false,"tools":62}]
+
+$ 技能结果（下一步工具清单）
+EXIT=0
+afterSkillTools=["ask_user_question","bash","create_goal","edit","get_goal","glob","grep","install_personal_plugin","job_kill","job_list","job_output","knowledge_admin","knowledge_propose","knowledge_read","knowledge_search","knowledge_status","list_agents","list_mcp_resource_templates","list_mcp_resources","list_subagent_models","mcp__browser__browser_click","mcp__browser__browser_fill","mcp__browser__browser_snapshot","mcp__e1http__echo","memory_forget","memory_read","memory_search","memory_write","office_convert","office_recalculate","office_render","present","read","read_image","read_mcp_resource","schedule_create","schedule_edit","schedule_list","schedule_view","send_message","session_event_read","session_event_search","session_event_trace","session_search","session_trace","skill","subagent","subagent_fork","submit_plugin_to_market","terminal_close","terminal_list","terminal_open","terminal_read","terminal_send","terminal_signal","todo_write","update_goal","wait_agent","web_fetch","workflow","working_directory","write"]
+
+$ office_render 结果片段
+EXIT=0
+Rendered 1 image of /data/workspaces/rc5userb/off-007-sample.docx (1 in the document) at 144 DPI. Page 1: 1224x1584 px Image sha256:6167654773b4680d1c0387159bad499edab9ab74153ef5e3a7000b0ffb0531aa; request preview 1224x1584px. Normalized copy (read-only; may be resized or re-encoded): "/data/attachments/v1/objects/61/6167654773b4680d1c0387159bad499edab9ab74153ef5e3a7000b0ffb0531aa" (1224x1584px, i
+
+$ office_convert 结果片段
+EXIT=0
+Converted /data/workspaces/rc5userb/off-007-sample.docx to pdf (47957 bytes, 1 page): /data/office-kit/outputs/session-d31998267d5005a8986877a7/fe73fed4-0a0f-4617-a3bd-463b016dfa9c/off-007-sample.pdf Copy this temporary file to its destination with the shell now; it may be deleted after a retention period or to free space, and is deleted when this conversation ends.
+
+$ bash 结果片段
+EXIT=0
+-rw------- 1 root root 47957 Nov 20 2026 /data/workspaces/rc5userb/off-007/sample.pdf
+
+$ docker exec 查看 office 输出与工作区复制件
+EXIT=0
+/data/office-kit/outputs/session-40f1b1ae2e7a9c10bb081342/b7a36bbb-678f-4375-966c-24d39240dfb3/off-007-sample.pdf 47957
+/data/office-kit/outputs/session-e47efb17779407884b0773a0/bfaa1341-104e-4f48-b28c-fa35fb2bbd16/off-007-sample.pdf 47957
+/data/office-kit/outputs/session-f01d52a49848a793b8f296b8/1abe047f-e716-48c8-86f9-60f8089645ce/off-007-sample.pdf 47957
+/data/office-kit/outputs/session-d31998267d5005a8986877a7/fe73fed4-0a0f-4617-a3bd-463b016dfa9c/off-007-sample.pdf 47957
+/data/office-kit/outputs/session-bbbbbbbbbbbbbbbbbbbbbbbb/22222222-2222-4222-8222-222222222222/out.pdf 5
+/data/office-ki…
+
+$ docker exec head -c 4 /data/workspaces/rc5userb/off-007/sample.pdf; stat -c %s
+EXIT=0
+%PDF
+47957
+
+[ASSERT] 假模型与工具管线就绪（4 次工具请求全部发出） => PASS :: pending=4
+
+[ASSERT] skill 可加载 office-docx（结果含技能正文） => PASS :: absent=false skillLoaded=true
+
+[ASSERT] 下一步工具清单出现 office_render/convert/recalculate => PASS :: ["ask_user_question","bash","create_goal","edit","get_goal","glob","grep","install_personal_plugin","job_kill","job_list","job_output","knowledge_admin","knowledge_propose","knowledge_read","knowledge_search","knowledge_status","list_agents","list_mcp_resource_templates","list_mcp_resources","list_subagent_models","mcp__browser__browser_click","mcp__browser__browser_fill","mcp__browser__browser_snapshot","mcp__e1http__echo","memory_forget","memory_read","memory_search","memory_write","office_convert","office_recalculate","office_render","present","read","read_image","read_mcp_resource","schedule_create","schedule_edit","schedule_list","schedule_view","send_message","session_event_read","session_event_search","session_event_trace","session_search","session_trace","skill","subagent","subagent_fork","submit_plugin_to_market","terminal_close","terminal_list","terminal_open","terminal_read","terminal_send","terminal_signal","todo_write","update_goal","wait_agent","web_fetch","workflow","working_directory","write"]
+
+[ASSERT] office_render 已注册并真实产出页面（非 absent/非错） => PASS :: absent=false result=Rendered 1 image of /data/workspaces/rc5userb/off-007-sample.docx (1 in the document) at 144 DPI. Page 1: 1224x1584 px Image sha256:6167654773b4680d1c0387159bad499edab9ab74153ef5e3a7000b0ffb0531aa; re…
+
+[ASSERT] office_convert 已注册并产出 PDF 临时文件 => PASS :: absent=false pdf=/data/office-kit/outputs/session-d31998267d5005a8986877a7/fe73fed4-0a0f-4617-a3bd-463b016dfa9c/off-007-sample.pdf bytes=47957 onDisk=true
+
+[ASSERT] bash 复制产物回工作区成功 => PASS :: absent=false hasSample=true listingCopy=true resultTail=-rw------- 1 root root 47957 Nov 20 2026 /data/workspaces/rc5userb/off-007/sample.pdf 
+
+[ASSERT] 工作区复制件是有效 PDF 且非空 => PASS :: bytes=47957

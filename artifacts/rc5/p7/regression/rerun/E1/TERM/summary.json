@@ -1,0 +1,97 @@
+{
+  "suite": "TERM",
+  "commit": "c75f876c986415431c92b28cce771d847a36c52f",
+  "imageTag": "eterna-agent:rc5-test",
+  "imageId": "",
+  "container": "rc5-e1suite",
+  "base": "http://127.0.0.1:3118",
+  "dataRoot": "",
+  "startedAt": "2026-11-20T01:42:00.726Z",
+  "finishedAt": "2026-11-20T01:42:00.751Z",
+  "total": 14,
+  "pass": 3,
+  "fail": 0,
+  "skip": 11,
+  "notrun": 0,
+  "counts": {
+    "PASS": 3,
+    "FAIL": 0,
+    "SKIP": 11,
+    "NOTRUN": 0
+  },
+  "halted": true,
+  "haltReason": "RC5-TERM-004 跨租户红（B 可读 A 会话终端）→ 按派发规则立即中止 TERM 套件",
+  "failures": [],
+  "cases": [
+    {
+      "id": "RC5-TERM-001",
+      "status": "PASS",
+      "title": "profile 含 terminal bundle"
+    },
+    {
+      "id": "RC5-TERM-002",
+      "status": "SKIP",
+      "title": "会话侧栏 terminal 面板可见/可开/可输入"
+    },
+    {
+      "id": "RC5-TERM-003",
+      "status": "SKIP",
+      "title": "6 个 terminal_* 工具逐个可调用且流式"
+    },
+    {
+      "id": "RC5-TERM-004",
+      "status": "PASS",
+      "title": "B 用 A 的 sessionId 调 terminal 6 个 unary 动作必须 403/deny"
+    },
+    {
+      "id": "RC5-TERM-005",
+      "status": "SKIP",
+      "title": "attach/retain/watch 三个流动作跨租户被拒"
+    },
+    {
+      "id": "RC5-TERM-006",
+      "status": "SKIP",
+      "title": "A 同会话调 9 动作全部成功"
+    },
+    {
+      "id": "RC5-TERM-008",
+      "status": "SKIP",
+      "title": "用户终端列表能力不可见/不可调"
+    },
+    {
+      "id": "RC5-TERM-009",
+      "status": "SKIP",
+      "title": "长进程切页再回：进程存活、输出连续"
+    },
+    {
+      "id": "RC5-TERM-010",
+      "status": "SKIP",
+      "title": "close 后再 attach 无幽灵终端"
+    },
+    {
+      "id": "RC5-TERM-011",
+      "status": "SKIP",
+      "title": "rename/retain 刷新后持久"
+    },
+    {
+      "id": "RC5-TERM-012",
+      "status": "SKIP",
+      "title": "两会话各开终端互不可见/互不输入"
+    },
+    {
+      "id": "RC5-TERM-013",
+      "status": "SKIP",
+      "title": "24h 浸泡无 fd 泄漏/内存增长"
+    },
+    {
+      "id": "RC5-TERM-014",
+      "status": "SKIP",
+      "title": "bash 不存在时明确报错"
+    },
+    {
+      "id": "RC5-TERM-007",
+      "status": "PASS",
+      "title": "容器终端配置"
+    }
+  ]
+}
