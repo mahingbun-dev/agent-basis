@@ -31,6 +31,11 @@ worker session、子代理、回执投递、`waitForTreeWork`、`listDescendants
 文本生成；任务 worker/子代理的生命周期、回执、持久化仍是真实路径。**真模型 worker
 回合未跑**，这是 P0 leftover `API005-REALMODEL` 的范围。
 
+> **2026-11-20 晚更新**：真模型档已补齐（`API_HARNESS_REAL=1` + `run-api005-real.sh`），
+> 在 E3 super 容器用生产已配置的 `mimo/mimo-v2.6-pro` 跑通 —— 2 工单 / 2 真实 worker /
+> 2 child / `waitForTreeWork` 41883ms / 2 条 completed 回执；`API005-REALMODEL` 已闭。
+> 本节「测试容器无凭据」只适用于默认 stub 档。证据：`artifacts/rc5/e3-super/API-005-real-model.md`。
+
 ## 复现
 
 前置：3108 容器健康；容器内存在 `/repo/packages/tasks` 与 `dsh`；`/tmp/api-harness`
@@ -71,12 +76,14 @@ docker exec eterna-rc5-e1 sh /tmp/run-api005-007.sh
 - `sessions/worker-b-session-extract.jsonl` — worker B 持久史切片（7 事件）
 - `api009/` — API-009 的静态复核与两套 cordis 行为日志
 - `api009.mjs` — API-009 行为脚本
-- `run-api005-007.sh` — 本 harness 的容器内复现脚本
+- `run-api005-007.sh` — 本 harness 的容器内复现脚本（stub 档）
+- `run-api005-real.sh` — 真模型档复现脚本（E3 super，`API_HARNESS_REAL=1`）
 
 ## 已知边界
 
-- 用例文档标 E3 super；本次按 lane 指令在 3108（e1，`ETERNA_FORM=web`）执行，e3（3109，`ETERNA_FORM=super`）未跑。
+- 用例文档标 E3 super；本 harness 的 stub 档在 3108（e1，`ETERNA_FORM=web`）执行，e3（3109，`ETERNA_FORM=super`）未跑。
   两者 tasks/subagent 源码相同，super 特有插件不在本用例断言面。
+  **2026-11-20 晚真模型档已在 E3 super 上跑通**（`run-api005-real.sh`），该边界对 stub 档仍适用。
 - harness 用两个 thread id 注入两条并发工单（`webchat:...::api-batch-1/2`）；
   同一主会话线程的第二条消息会按产品语义成为既有工单 follow-up。
 - 派发决策（accept）由 harness 以 `explicit` 注入，不是主会话 LLM 产出；由于容器无模型凭据，

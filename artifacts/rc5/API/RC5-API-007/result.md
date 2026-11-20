@@ -6,6 +6,8 @@
 - 命令与退出码：见 `cmd.log`（`DOCKER_EXEC_EXIT=0` / `HARNESS_EXIT=0`）
 - 判定：**PASS**
 
+> 后续（2026-11-20 晚）：E3 真模型档（`mimo/mimo-v2.6-pro`）已补跑 PASS，`drainDescendants` 后 `residentAfter=[]`；权威证据见 `artifacts/rc5/e3-super/API-005-real-model.md`。
+
 ## 预期
 
 排空后代；`drainDescendants` 后无残留 running。

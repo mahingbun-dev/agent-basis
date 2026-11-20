@@ -6,6 +6,8 @@
 - 命令与退出码：见 `cmd.log`（`DOCKER_EXEC_EXIT=0` / `HARNESS_EXIT=0`）
 - 判定：**PASS**
 
+> 后续（2026-11-20 晚）：E3 真模型档（`mimo/mimo-v2.6-pro`）已补跑 PASS，`listDescendants` 与真实 worker 树一致；权威证据见 `artifacts/rc5/e3-super/API-005-real-model.md`。
+
 ## 预期
 
 查询后代列表；`listDescendants` 返回与任务树一致。

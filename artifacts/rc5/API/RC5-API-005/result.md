@@ -4,7 +4,9 @@
 - 执行时间：2026-11-19T22:54:16.931Z → 2026-11-19T22:54:27.459Z
 - 环境：3108 测试容器 `eterna-rc5-e1`（healthy）；`dsh 0.2.2-rc.5`；上游 `@deepseek-ai/cordis 4.1.0`；隔离 `DSH_HOME=/tmp/api-run-home`；`realm=ApiHarness`
 - 命令与退出码：见 `cmd.log`（`DOCKER_EXEC_EXIT=0` / `HARNESS_EXIT=0`）
-- 判定：**PASS（API 语义）**（真实 tasks worker + 真实 SubagentManager）；真模型 E2E 未跑，见 P0 leftover `API005-REALMODEL`
+- 判定：**PASS（API 语义）**（真实 tasks worker + 真实 SubagentManager）
+
+> 后续（2026-11-20 晚，用户授权「用已配置的模型验证」）：E3 真模型档（`mimo/mimo-v2.6-pro`）已补跑 PASS —— 2 工单 / 2 真实 worker / 2 child / `waitForTreeWork` 41883ms / 2 条 completed 回执；权威证据见 `artifacts/rc5/e3-super/API-005-real-model.md`、`artifacts/rc5/e3-super/real-harness/`。本文件保留为确定性 stub 档记录。
 
 ## 预期
 
