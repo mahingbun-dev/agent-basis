@@ -7,10 +7,11 @@
 # 可能两者都暂无写入 → 本检查是「必要不充分」护栏,低峰窗口重建仍是纪律。
 #
 # 用法:bash deploy/pre-restart-check.sh [容器名] [静默窗秒]
+#   容器名缺省 $ETERNA_CONTAINER_NAME 或 eterna-agent(与 compose 参数化同源,T43)
 #   FORCE=1 bash deploy/pre-restart-check.sh   # 确认可中断活动后强行放行
 set -eu
 
-CONTAINER="${1:-eterna-agent}"
+CONTAINER="${1:-${ETERNA_CONTAINER_NAME:-eterna-agent}}"
 WINDOW="${2:-120}"
 
 now=$(date +%s)

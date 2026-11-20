@@ -1,10 +1,12 @@
 # Eterna Agent 本机容器部署(云端 agent:NAS 反代 → 本容器)。
 #
 # 首次启动:
-#   1. cp .env.example .env 并填 DEEPSEEK_API_KEY/MIMO_API_KEY/BIGMODEL_API_KEY 与管理员账号
-#      (ETERNA_ACCESS_ADMIN_USER / ETERNA_ACCESS_ADMIN_PASSWORD,首启自动播种)
-#   2. docker compose up -d --build
-#   3. 访问 http://<本机局域网IP>:3210/login 用管理员账号登录(无需 token)
+#   1. cp deploy/env.production.example .env 并填 DEEPSEEK_API_KEY/MIMO_API_KEY/BIGMODEL_API_KEY
+#      与管理员账号(ETERNA_ACCESS_ADMIN_USER / ETERNA_ACCESS_ADMIN_PASSWORD,首启自动播种),
+#      并设 ETERNA_DATA_ROOT=<宿主绝对路径>(48 §5.1;缺省 $HOME/eterna-data)
+#   2. bash deploy/init-data-dirs.sh
+#   3. docker compose up -d --build
+#   4. 访问 http://<本机局域网IP>:3210/login 用管理员账号登录(无需 token)
 #
 # 外网(用户自行配置 NAS 反代后):在 .env 设
 #   ETERNA_PUBLIC_URL=https://eternity-electricity.cn:<端口>
@@ -12,28 +14,53 @@
 #   ETERNA_ACCESS_SECURE=1        # 反代终结 TLS 时(Secure cookie)
 # 再 `docker compose up -d`(重渲染 profile,热生效)。
 #
-# 会话/存储/审计/用户库全部落 named volume eterna-home,升级镜像不丢数据。
+# 数据面(2026-11-20 rc.5,48 §4/§5;T43):
+#   会话/存储/审计/用户库/agents 全部落宿主 bind 目录
+#   `${ETERNA_DATA_ROOT:-$HOME/eterna-data}/<实例>`(默认实例名 super),升级镜像不丢数据。
+#   缺省 `$HOME/eterna-data`(48 §5.1 的缺省口径;2026-11-20 W4 门禁修复把原 `:?`
+#   硬必填改为缺省——否则无 .env 时 `docker compose config` 直接失败)。生产仍应在
+#   .env 显式设绝对路径;「/data 未挂载」由 entrypoint mountpoint 预检 fail-closed。
+#   容器内路径恒为 `/data`(48 §5.2:只换宿主源,不换容器目标)。
+#
+# 参数化(测试容器/多实例;50 §7.2):
+#   ETERNA_CONTAINER_NAME  容器名(默认 eterna-agent)
+#   ETERNA_PORT            web 宿主端口(默认 3210;测试用 3108,不撞生产)
+#   ETERNA_RELAY_PORT      companion 中继宿主端口(默认 9310;测试换一个)
+#   ETERNA_INSTANCE        数据根下实例目录(默认 super)
+#   ETERNA_DATA_ROOT       宿主数据区根(绝对路径;缺省 $HOME/eterna-data)
+#   ETERNA_IMAGE           镜像 tag(默认 eterna-agent:0.1.34)
+#   ETERNA_FORM            web 服务形态(默认 super;仅 base|super——ACP 走独立 service,
+#                          不要把 acp 设进 web 服务:它无 stdin/无 acp 模板挂载)
 
 services:
   eterna-agent:
-    build: .
-    image: eterna-agent:0.1.34
-    container_name: eterna-agent
-    # cwd=卷根:审计/治理规则/记忆库默认落 $cwd/.eterna → 持久化在 eterna-home 卷
+    build:
+      context: .
+      # 构建期 apt 换源逃生口(2026-11-20 构建事故):缺省空 = 走 Dockerfile 基镜像
+      # 自带的 http://deb.debian.org(行为不变)。出口被墙时在 .env 里设
+      # DEBIAN_MIRROR=https://mirrors.aliyun.com 再 `docker compose build`。
+      args:
+        DEBIAN_MIRROR: ${DEBIAN_MIRROR:-}
+    image: ${ETERNA_IMAGE:-eterna-agent:0.1.34}
+    container_name: ${ETERNA_CONTAINER_NAME:-eterna-agent}
+    # cwd=数据根:审计/治理规则/记忆库默认落 $cwd/.eterna → 持久化在 bind 数据根
     working_dir: /data
     ports:
-      - "3210:8080"
+      - "${ETERNA_PORT:-3210}:8080"
       # companion 中继（浏览器执行面）：扩展 ws 连入腿。生产经 NAS 反代把
       # wss://域名/<前缀>/extension 转发到 本机:9310/extension（见 deploy/README.md）。
-      - "9310:9310"
+      - "${ETERNA_RELAY_PORT:-9310}:9310"
     environment:
       # 形态(2026-11-19 用户指令「把 superagent 加入恒灵」;31 号 §2.5 super=base⊕…,
-      # 40 号 S-4):生产 3210 切 super 形态——同一镜像/端口/数据卷,挂载面=base 全部 24 行
+      # 40 号 S-4):生产 3210 切 super 形态——同一镜像/端口/数据根,挂载面=base 全部 24 行
       # ⊕ super 专属 6 行(workbench/tasks/channels/interact/toolkit/tasks-access-bridge)。
       # entrypoint 据此选 cordis.super.patch.yml.template 渲染 $DSH_HOME/profiles/eterna-super,
       # 并守卫式补 @eterna/tasks|channels|interact|workbench|toolkit symlink。
-      # 回退:删本行(缺省=base)即回 eterna-web 形态,base 卷内用户文件原样保留。
-      ETERNA_FORM: super
+      # 回退:设 ETERNA_FORM=base 或删本行(缺省=base)即回 eterna-web 形态。
+      ETERNA_FORM: ${ETERNA_FORM:-super}
+      # rc.5:容器内 home 恒为 /data(48 §5.2);用户级 AGENTS/skills 落 /data/agents(48 §6.2)
+      DSH_HOME: /data
+      DSH_AGENTS_HOME: /data/agents
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       MIMO_API_KEY: ${MIMO_API_KEY:-}
       BIGMODEL_API_KEY: ${BIGMODEL_API_KEY:-}
@@ -57,7 +84,12 @@ services:
       ETERNA_MARKET_REPO_DIR: ${ETERNA_MARKET_REPO_DIR:-}
       ETERNA_MARKET_GITHUB_TOKEN: ${ETERNA_MARKET_GITHUB_TOKEN:-}
     volumes:
-      - eterna-home:/data
+      # 数据根 bind(48 §5.1;T43):宿主 `${ETERNA_DATA_ROOT}/<实例>` 整树挂 /data。
+      # 缺省 `$HOME/eterna-data`(与 deploy/README.md §2、init-data-dirs.sh 一致)。
+      # 2026-11-20 W4 门禁修复:原 `:?` 硬必填让 `docker compose config` 在无 .env 时
+      # 直接报错(门禁三份 config 全红),故改为带缺省;「不静默写进仓库目录」由缺省值
+      # 落在 $HOME 保证,「/data 未挂载」仍由 entrypoint 的 mountpoint 预检 fail-closed。
+      - ${ETERNA_DATA_ROOT:-$HOME/eterna-data}/${ETERNA_INSTANCE:-super}:/data
       # 模板免重建挂载(2026-11-12):entrypoint 按模板哈希门控渲染卷内 profile
       # (模板未变保留用户文件,插件启停/模型设置跨重启持久;变更才重渲染+移植),
       # 镜像内烘焙的是构建时副本;挂载后模板改动 up -d 即生效,镜像重建(COPY . .)
@@ -68,9 +100,37 @@ services:
       - ./docker/profile/cordis.super.patch.yml.template:/repo/docker/profile/cordis.super.patch.yml.template:ro
     restart: unless-stopped
 
-volumes:
-  # 生产卷钉扎(2026-11-19):现网数据在 agent-basis_eterna-home(首建 compose 项目名),
-  # 本目录项目名不同会新建空卷——external 钉名后 compose up 恒挂生产卷。
-  eterna-home:
-    external: true
-    name: agent-basis_eterna-home
+  # ── ACP stdio 服务(2026-11-20 rc.5;T31/T43;47 B17 / 49 §5.7 / 50 §3.7)──────
+  # ACP 是自动化客户端的**受信 stdio 面**,不是 Web 功能:
+  #   - profiles:["acp"] → 缺省 `docker compose up` 不启动,只有显式 --profile acp 才起;
+  #   - stdin_open + tty:false → 客户端拿到的 stdout 只有 dsh 的 JSON-RPC 帧;
+  #   - 无 ports:只允许管理员/运维在本机用 `docker compose --profile acp run --rm -T` 驱动;
+  #   - 与 web 共享同一 /data 实例根(47 §B17:不同会话可并行;entrypoint 的 flock
+  #     串行化 profile 渲染,不并发写 manifest/patch);
+  #   - 镜像沿用 web 服务的 build/tag(不单独 COPY);healthcheck 关闭(无 8080)。
+  # ACP 客户端可指定容器内绝对 cwd 与 stdio/HTTP MCP:只在本机受信运行,勿接终端用户。
+  eterna-agent-acp:
+    image: ${ETERNA_IMAGE:-eterna-agent:0.1.34}
+    container_name: ${ETERNA_CONTAINER_NAME:-eterna-agent}-acp
+    profiles: ["acp"]
+    stdin_open: true
+    tty: false
+    working_dir: /data
+    # 无 ports(ACP 不监听网络);镜像级 HEALTHCHECK 探 8080,对 ACP 无意义,关掉。
+    healthcheck:
+      disable: true
+    environment:
+      ETERNA_FORM: acp
+      DSH_HOME: /data
+      DSH_AGENTS_HOME: /data/agents
+      # ACP 模板 llm-pi-ai/acp 行走 MiMo 直连(50 §3.7),只需要 MiMo 密钥;
+      # 不注入 DEEPSEEK/BIGMODEL(最小权限,ACP 模板已禁 llm-deepseek 系行)。
+      MIMO_API_KEY: ${MIMO_API_KEY:-}
+    volumes:
+      # 与 web 同一实例根(47 B17「与 web 共享 /data」):会话/日志跨进程可见。
+      # 与 web 同一实例根(47 B17「与 web 共享 /data」):会话/日志跨进程可见。
+      - ${ETERNA_DATA_ROOT:-$HOME/eterna-data}/${ETERNA_INSTANCE:-super}:/data
+      # ACP patch 模板只读挂载(同 web 先例):模板改动 up -d 即生效。
+      - ./docker/profile/cordis.acp.patch.yml.template:/repo/docker/profile/cordis.acp.patch.yml.template:ro
+    # stdio 服务由调用方持有生命周期,不做自动重启。
+    restart: "no"

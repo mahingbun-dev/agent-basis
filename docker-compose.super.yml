@@ -1,35 +1,53 @@
 # Eterna Agent super 形态本机容器部署（40 号 S-4；31 号 §2.5「切换=并存」）。
 #
-# 与 docker-compose.yml（base，一行不改）并列、同时跑的两个 compose 项目：
-#   - 单镜像不变（eterna-agent:<同一 tag>，31 号 §5 D2 暂定）：super 挂载面由
+# 与 docker-compose.yml 并列、同时跑的两个 compose 项目：
+#   - 单镜像不变（${ETERNA_IMAGE}，31 号 §5 D2 暂定）：super 挂载面由
 #     ETERNA_FORM=super → entrypoint 选 super 模板渲染 + super 形态 symlink 清单实现；
 #   - 端口：宿主 3220（base 占 3210）/ companion 中继宿主 9320（base 占 9310，
 #     容器内仍是 9310，仅映射不同——§9 Q3 暂定）；
-#   - 数据卷：named volume eterna-super-home（与 eterna-home 分离、永不互通，G4-7）；
+#   - 数据根：bind 目录 `${ETERNA_DATA_ROOT:-$HOME/eterna-data}/<实例>`（缺省
+#     $HOME/eterna-data；2026-11-20 W4 门禁修复：原 `:?` 改缺省，否则无 .env 时
+#     `docker compose config` 直接失败），与生产根**永不互通**（G4-7）。
+#     默认实例名 super-2（生产 docker-compose.yml 默认 super）；同一 .env 同时跑
+#     两个项目时必须给本文件一个不同的 ETERNA_INSTANCE（两个容器共享同一个根 =
+#     48 §3.1 明令禁止的形态）；
 #   - 容器名 eterna-agent-super（不复用 base 的 eterna-agent，并存相容负向断言见 40 号 S-4）。
 #
-# 首次启动：同 base——cp .env.example .env 填模型 key 与管理员账号后
+# 首次启动：同 base——cp deploy/env.production.example .env 填模型 key 与管理员账号，
+# 并**显式设** ETERNA_DATA_ROOT（不设则落缺省 $HOME/eterna-data）后
+#   bash deploy/init-data-dirs.sh super-2
 #   docker compose -f docker-compose.super.yml up -d --build
 #   访问 http://<本机局域网IP>:3220/login
-# 会话/存储/审计/用户库全部落 eterna-super-home 卷，升级镜像不丢数据。
+# 会话/存储/审计/用户库全部落 bind 数据根，升级镜像不丢数据。
+#
+# 参数化(T43):ETERNA_CONTAINER_NAME / ETERNA_PORT / ETERNA_RELAY_PORT /
+# ETERNA_INSTANCE / ETERNA_DATA_ROOT / ETERNA_IMAGE，语义同 docker-compose.yml。
 
 services:
   eterna-agent-super:
-    build: .
-    image: eterna-agent:0.1.7
-    container_name: eterna-agent-super
-    # cwd=卷根:审计/治理规则/记忆库默认落 $cwd/.eterna → 持久化在 eterna-super-home 卷
+    build:
+      context: .
+      # 构建期 apt 换源逃生口(2026-11-20 构建事故):缺省空 = 行为不变;
+      # 出口被墙时 `.env` 设 DEBIAN_MIRROR=https://mirrors.aliyun.com 再 build。
+      args:
+        DEBIAN_MIRROR: ${DEBIAN_MIRROR:-}
+    image: ${ETERNA_IMAGE:-eterna-agent:0.1.34}
+    container_name: ${ETERNA_CONTAINER_NAME:-eterna-agent-super}
+    # cwd=数据根:审计/治理规则/记忆库默认落 $cwd/.eterna → 持久化在 bind 数据根
     working_dir: /data
     ports:
-      - "3220:8080"
+      - "${ETERNA_PORT:-3220}:8080"
       # companion 中继（浏览器执行面）：容器内 9310 不变，仅宿主映射换 9320（并存不撞 base）
-      - "9320:9310"
+      - "${ETERNA_RELAY_PORT:-9320}:9310"
     environment:
       # 形态选择（31 号 §2.5）：entrypoint 据此选 super 模板渲染到
       # $DSH_HOME/profiles/eterna-super，并按 super 形态清单建 @eterna symlink
       # （Tier2 包守卫式 [ -d ] 存在才建链）。缺省/非法值处置见 entrypoint 头注。
       ETERNA_FORM: super
-      # 以下 env 逐字复制 base 服务段（docker-compose.yml:30-46）
+      # rc.5 数据面(48 §5.2/§6.2)
+      DSH_HOME: /data
+      DSH_AGENTS_HOME: /data/agents
+      # 以下 env 逐字复制 base 服务段（docker-compose.yml）
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       MIMO_API_KEY: ${MIMO_API_KEY:-}
       BIGMODEL_API_KEY: ${BIGMODEL_API_KEY:-}
@@ -47,8 +65,12 @@ services:
       ETERNA_ACCESS_SECRET: ${ETERNA_ACCESS_SECRET:-}
       ETERNA_ACCESS_SECURE: ${ETERNA_ACCESS_SECURE:-}
     volumes:
-      - eterna-super-home:/data
-      # 模板免重建挂载(照 base 先例 docker-compose.yml:53,只读):super 模板挂到
+      # 数据根 bind(48 §5.1;T43):缺省 `$HOME/eterna-data`(与 deploy/README.md §2
+      # 一致)。2026-11-20 W4 门禁修复:原 `:?` 硬必填让 `docker compose config` 无 .env
+      # 即报错,改为带缺省;生产仍应由 .env 显式设绝对路径,避免与测试实例混根。
+      # 默认实例 super-2 → 与生产根(${ETERNA_DATA_ROOT}/super)分离。
+      - ${ETERNA_DATA_ROOT:-$HOME/eterna-data}/${ETERNA_INSTANCE:-super-2}:/data
+      # 模板免重建挂载(照 base 先例 docker-compose.yml,只读):super 模板挂到
       # 镜像内同名路径 cordis.super.patch.yml.template——entrypoint 按 ETERNA_FORM
       # 选该文件渲染(哈希门控);镜像内烘焙的是构建时副本,挂载后模板改动 up -d 即生效。
       # (40 号 S-4 表行的容器侧路径写作 base 名,与 31 号 §2.5「entrypoint 选模板渲染」
@@ -56,6 +78,3 @@ services:
       # 取后者挂 super 名路径,否则 super 容器读不到挂载内容/裸容器读错模板。)
       - ./docker/profile/cordis.super.patch.yml.template:/repo/docker/profile/cordis.super.patch.yml.template:ro
     restart: unless-stopped
-
-volumes:
-  eterna-super-home:
