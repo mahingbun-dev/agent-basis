@@ -1,0 +1,84 @@
+{
+  "suite": "post-deploy-e2e",
+  "base": "https://eternity-electricity.cn:3210",
+  "container": "eterna-agent",
+  "startedAt": "2026-11-20T17:13:18.106Z",
+  "finishedAt": "2026-11-20T17:13:25.981Z",
+  "durationMs": 7875,
+  "pass": 12,
+  "fail": 0,
+  "cases": [
+    {
+      "id": "PDE-01",
+      "name": "匿名门禁（me 401 / 根跳登录）",
+      "ok": true,
+      "detail": "me=401 root=302 location=\"-\""
+    },
+    {
+      "id": "PDE-02",
+      "name": "管理员登录 + me 角色",
+      "ok": true,
+      "detail": "cookie=true me.status=200 role=undefined"
+    },
+    {
+      "id": "PDE-03",
+      "name": "dsh 铸票 + 合并罐 → session/list",
+      "ok": true,
+      "detail": "ok=true items=128 undefined"
+    },
+    {
+      "id": "PDE-04",
+      "name": "模型目录 + 默认模型（mimo 可路由）",
+      "ok": true,
+      "detail": "routable=[\"deepseek\",\"mimo\",\"glm\",\"opendesign\",\"baidu-token-plan\"] default={\n          \"provider\": \"mimo\",\n          \"model\": \"mimo-v2.6-pro\"\n}"
+    },
+    {
+      "id": "PDE-05",
+      "name": "session/create + rename",
+      "ok": true,
+      "detail": "sessionId=\"session-8f8b305d-7b9d-4d87-996a-f82052a7e680\""
+    },
+    {
+      "id": "PDE-06",
+      "name": "真·模型回合（mimo 直答）",
+      "ok": true,
+      "detail": "admitted=true cursor=18 replyContains=PROD-E2E-OK(true) undefined"
+    },
+    {
+      "id": "PDE-07",
+      "name": "terminal churn ×2（含跨用户面 readiness）",
+      "ok": true,
+      "detail": "2 轮 create/close 全成功；list ok=true terminals=0 running=0 undefined"
+    },
+    {
+      "id": "PDE-08",
+      "name": "个人 MCP 管理面（admin catalog）",
+      "ok": true,
+      "detail": "ok=true entries={\n          \"items\": [],\n          \"hostWhitelist\": []\n} undefined"
+    },
+    {
+      "id": "PDE-09",
+      "name": "chat-import 上传门（匿名拒 / 登录过门）",
+      "ok": true,
+      "detail": "anon=401 authed=400（无载荷，过门后被处理器 4xx 属预期）"
+    },
+    {
+      "id": "PDE-10",
+      "name": "companion 中继 status + guide（9310）",
+      "ok": true,
+      "detail": "status=200 guide=200"
+    },
+    {
+      "id": "PDE-11",
+      "name": "测试会话清理（归档出主列表）",
+      "ok": true,
+      "detail": "archiveSession ok=true undefined"
+    },
+    {
+      "id": "PDE-12",
+      "name": "审计 jsonl 追加（本套件动作留痕）",
+      "ok": true,
+      "detail": "lines=103→110（+7）"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "base": "https://eternity-electricity.cn:3210",
+  "landedUrl": "https://eternity-electricity.cn:3210/",
+  "loggedIn": true,
+  "composerFound": true,
+  "freshSession": true,
+  "turnOk": true,
+  "turnDetail": "页面出现助手回复（标记出现 2 处 = 用户气泡 + 助手）",
+  "serverAssistantHit": true,
+  "serverSessionId": "session-c74de867-9cfd-4033-84a2-dde2012516eb",
+  "consoleErrors": [
+    "WebSocket connection to 'ws://127.0.0.1:9230/ingest' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+    "WebSocket connection to 'ws://127.0.0.1:9230/ingest' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+    "WebSocket connection to 'ws://127.0.0.1:9230/ingest' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+    "WebSocket connection to 'ws://127.0.0.1:9230/ingest' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+    "WebSocket connection to 'ws://127.0.0.1:9230/ingest' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+    "WebSocket connection to 'ws://127.0.0.1:9230/ingest' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+    "WebSocket connection to 'ws://127.0.0.1:9230/ingest' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED"
+  ],
+  "archived": "target-not-found",
+  "durationMs": 11281
+}
