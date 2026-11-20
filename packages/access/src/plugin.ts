@@ -31,10 +31,13 @@ import { createStreamBridgeHandler } from './stream.ts'
 import { UserStore } from './store.ts'
 import { installThinkingAuto, type ThinkingAutoLlm } from './thinking-auto.ts'
 import { ensureFirstSession, ensureTenantWorkspace, registerTenantGuards, WORKBENCH_STREAM_ENDPOINT } from './tenant.ts'
+import { installMcpPersonalFetchRoutes, loadMcpMasterKey, MCP_PERSONAL_PROBE_TIMEOUT_MS, resolveMcpPersonalConfig } from './mcp-personal.ts'
+import { createMcpClientProbe, mountPersonalMcp } from './mcp-personal-runtime.ts'
 import { createTenantPluginLoader, type TenantPluginToolsFace } from './tenant-plugins.ts'
 import { defineInstallPersonalPluginTool } from './install-tool.ts'
 import { defineSubmitPluginToMarketTool } from './publish-tool.ts'
 import { installMuxIsolation, type MuxIsolationInstall } from './mux.ts'
+import { installChatImportGate, workspaceSessionIdsOf, type ChatImportEventHost } from './chat-import.ts'
 import { installLoginGate } from './login-gate.ts'
 import { registerChannelsWebhook } from './channels-webhook.ts'
 import { installToolClamp, installSandboxBoundary } from './sandbox.ts'
@@ -46,6 +49,15 @@ export const ACCESS_PLUGIN_NAME = 'eterna-access'
 export interface AccessPluginConfig {
   /** 数据目录(默认 $ETERNA_ACCESS_DIR,再退 $DSH_HOME/access);users.db/secret.key 落此。 */
   readonly dir?: string
+  /**
+   * B14 个人 MCP 配置(可选;profile 未来落点)。缺省全走环境变量
+   * (`mcp.personal.*` / `ETERNA_MCP_PERSONAL_*`),见 mcp-personal.ts。
+   */
+  readonly mcpPersonal?: {
+    readonly enabled?: unknown
+    readonly catalog?: unknown
+    readonly personalHttpHosts?: unknown
+  } | undefined
 }
 
 /** 本插件消费的 Web 载体 seam(WebServer.register/tapIndex 的结构子集)。 */
@@ -170,6 +182,35 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         secure: process.env.ETERNA_ACCESS_SECURE === '1',
       })
       const tenantRoot = process.env.ETERNA_TENANT_ROOT ?? join(process.env.DSH_HOME ?? process.cwd(), 'workspaces')
+      // ── B14(2026-11-20):个人 MCP 装配——配置/主密钥/runtime 在 deps 之前就绪,
+      // 路由与登出钩子共用同一 runtime。主密钥缺席 = fail-closed(路由 503 帧、
+      // runtime 不挂且守卫 deny),绝不生成临时密钥或降级明文。
+      const mcpPersonalConfig = resolveMcpPersonalConfig(config.mcpPersonal)
+      const mcpMasterKeyState = loadMcpMasterKey()
+      const mcpMasterKey = mcpMasterKeyState.key
+      const mcpRuntime = mountPersonalMcp(ctx, {
+        store,
+        sessionOwnerOf: (id: string) => store.sessionOwner(id),
+        logger: { warn: (message: string) => { console.warn(message) } },
+        config: mcpPersonalConfig,
+        masterKey: mcpMasterKey,
+        // stdio 子进程工作目录=该用户根(越权面与 terminal/sandbox 同口径)。
+        cwdOf: (userId: number): string | undefined => {
+          const account = store.getUserById(userId)?.account
+          return account === undefined ? undefined : join(tenantRoot, account)
+        },
+      })
+      audit({
+        kind: 'mcp.personal.install',
+        detail: {
+          enabled: mcpPersonalConfig.enabled,
+          catalogSize: mcpPersonalConfig.catalog.length,
+          httpHosts: mcpPersonalConfig.httpHosts.length,
+          masterKey: mcpMasterKey !== undefined,
+          ...(mcpPersonalConfig.error !== undefined ? { error: mcpPersonalConfig.error } : {}),
+          ...(mcpMasterKeyState.error !== undefined ? { masterKeyError: mcpMasterKeyState.error } : {}),
+        },
+      })
       // ── T6 装载器(2026-11-18):个人/共享工具插件进程内 mount(闭合 P4-T6 一期
       // 边界「mount 面留后续任务」)。tools 面惰性取用——ctx.tools 在 apply 时点可能
       // 未就绪(companion wrap 同款时序),bootScan 未就绪则跳过,由首个工具调用的
@@ -234,6 +275,9 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
             ? face as unknown as TasksSettingsFace
             : undefined
         },
+        // B14:登出即摘除个人 MCP live scope(50 §3.4.3 生命周期接线;失败由
+        // routes 侧 try/catch 吃掉,不影响登出)。
+        onLogout: (user): void => { void mcpRuntime.disposeUser(user.id) },
       }
       // 答者随插件卸载解除;disposers 数组在下方 createNodeHandler 后才初始化(TDZ),
       // 故先留柄、落数组时统一收编。on 注册面走结构面 cast(cordis on 具体重载不进桥)。
@@ -400,6 +444,21 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         }
       }
       ensureMux()
+      // ── B16 chat-import 租户桥(2026-11-20,T30;47 §2.11/B16 · 50 §3.6/§5.3 · 54 §4.6)──
+      // 上游 POST /api/deepseek-chat-import/archive 只有 owner 检查(unary HTTP 恒 owner
+      // Peer = 对本品登录用户等于没有租户校验),且导入直写 sessionPersistence 绕过
+      // recordSession。本门挂上游声明过的 connection/request waterfall(prepend:
+      // 先于其它监听器),请求级 401/400/403 + 响应体经 pass-through TransformStream
+      // 逐行取 outcome.value.sessionIds 幂等记账 + 终态按 workspace 会话清单对账。
+      // 不改 mux.ts(admit 包装属 W0 车道)、不碰上游源码、不 import 上游类型。
+      const chatImportDispose = installChatImportGate({
+        store,
+        session,
+        workspaceSessionIds: (workspaceId: string) => workspaceSessionIdsOf(ctx.reflect, workspaceId),
+        audit,
+      }, ctx as unknown as ChatImportEventHost)
+      if (chatImportDispose !== undefined) disposers.push(chatImportDispose)
+      audit({ kind: 'access.chatImport', detail: { action: 'gate.install', installed: chatImportDispose !== undefined } })
       // P1-T3(2026-11-11):沙箱写边界钉死=账号目录 + 工具参数逃逸钳制。
       // pre-execute 监听可即时挂(ctx.on 全局事件总线,沿 glue governance-plugin 挂法);
       // sandboxPolicy.resolve wrap 惰性(服务挂载时点,同 ensureMux)。
@@ -470,6 +529,44 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         ensureMux: () => { ensureMux(); ensureSandbox(); ensureTerminal() },
         pluginLoader,
       }, ctx.connection))
+      // ── B14 个人 MCP 五端点(2026-11-20,T26/T27 接线;54 §13.4 第 4 条):
+      // 与租户守卫同一登录门/信封/401 帧(installMcpPersonalFetchRoutes 内部实现,
+      // 不 import tenant.ts——tenant 属 T25 车道)。serverName 保留面取当前工具名
+      // 的 mcp__<server>__ 前缀,防与全局/插件 MCP 撞名。
+      const reservedServerNames = (): readonly string[] => {
+        try {
+          const tools = (ctx as unknown as {
+            readonly tools?: { schemas?: (scope?: unknown) => Array<{ readonly name?: unknown }> }
+          }).tools
+          const names = new Set<string>()
+          for (const schema of tools?.schemas?.() ?? []) {
+            if (typeof schema.name !== 'string') continue
+            const match = /^mcp__([A-Za-z0-9_-]+)__/.exec(schema.name)
+            if (match?.[1] !== undefined) names.add(match[1])
+          }
+          return [...names]
+        } catch {
+          return []
+        }
+      }
+      disposers.push(installMcpPersonalFetchRoutes({
+        store,
+        session,
+        audit,
+        config: mcpPersonalConfig,
+        masterKey: mcpMasterKey,
+        runtime: mcpRuntime,
+        reservedServerNames,
+        probe: createMcpClientProbe(ctx, { timeoutMs: MCP_PERSONAL_PROBE_TIMEOUT_MS }),
+        // 与 runtime 同口径:stdio probe 也落在该用户根,不跑宿主 cwd。
+        cwdOf: (userId: number): string | undefined => {
+          const account = store.getUserById(userId)?.account
+          return account === undefined ? undefined : join(tenantRoot, account)
+        },
+      }, {
+        fetch: ctx.connection.fetch,
+        onRequest: () => { ensureMux(); ensureSandbox(); ensureTerminal() },
+      }))
       return () => {
         for (const dispose of disposers) dispose()
         store.close()

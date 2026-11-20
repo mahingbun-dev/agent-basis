@@ -835,7 +835,53 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
   // HTTP 免疫,故第一层=守卫 fetch 路由(cookie 判角色,fetchRoutes 精确匹配优先于
   // gateway interceptor,同 session/list 生效通路);第二层=实例 wrap(invocation
   // principal 判角色,覆盖 mux/进程内调用面)。两层同语义,漏一层即红(key-leak E2E)。
-  const GATEWAY_SETTINGS_NS = 'llm-pi-ai'
+  // ── rc.5 B14 系统层第一道门(2026-11-20,50 §3.4.1/WP4-1)──────────────────
+  // 命名空间集合从 {'llm-pi-ai'} 扩为 {'llm-pi-ai','mcp-manager'}:系统层 MCP 服务器
+  // 机群的 servers 条目带 command/args/env/url,普通用户可写=在共享容器里拉起任意
+  // 进程并读其他租户数据(H14)。mcp-manager 的写面与 llm-pi-ai 同门:仅 admin;
+  // 普通用户走个人层(mcp-personal,按用户表),不碰全局表。
+  // 真值=行 id(settingsNs),与 profile 的 `- id: mcp-manager` 行同名。
+  const GATEWAY_SETTINGS_NS: ReadonlySet<string> = new Set(['llm-pi-ai', 'mcp-manager'])
+  /** 角色拒绝文案(按命名空间给可执行的下一步;同含「仅管理员可修改」便于客户端识别)。 */
+  const gatewaySettingsDeniedMessage = (ns: string): string => ns === 'mcp-manager'
+    ? '系统 MCP 服务器配置仅管理员可修改（普通用户请使用个人 MCP 设置）'
+    : '模型网关配置仅管理员可修改（普通用户只读）'
+  // ── rc.5 B14 系统层第三道门(2026-11-20,50 §3.4.1):describe 面对非 admin 过滤
+  // mcp-manager 命名空间。写门之外读面也要收:系统层 watch 流已被 mux 收窄
+  // (ADMIN_ONLY_STREAM_ACTIONS),但 describe 会整表下发每个命名空间的 schema/
+  // value/base/user——mcp-manager 的 servers(含 command/args/env/url)从这里照样
+  // 可读。llm-pi-ai **不在**过滤集(D1:普通用户可读脱敏视图,apiKeyEnv 槽永不回传值)。
+  const ADMIN_ONLY_SETTINGS_NS: ReadonlySet<string> = new Set(['mcp-manager'])
+  /**
+   * describe 响应过滤:非 admin 剥掉 ADMIN_ONLY_SETTINGS_NS 行,其余字段原样。
+   * 入参/出参形状=上游 SettingsDescribeValue{writable,hasDocument,namespaces[]}
+   * (dsh-api-settings-controller index.js:394-400)。形状漂移(上游改字段名)按
+   * **fail-closed** 处理:非 admin 得到空 namespaces,不把未知结构原样透出——
+   * 宁可见性回归/上报,不可静默泄露系统层配置。
+   */
+  const filterSettingsDescribe = (value: unknown, admin: boolean): unknown => {
+    if (admin) return value
+    if (typeof value !== 'object' || value === null) return value
+    const record = value as Record<string, unknown>
+    const namespaces = record.namespaces
+    if (!Array.isArray(namespaces)) return { ...record, namespaces: [] }
+    return {
+      ...record,
+      namespaces: namespaces.filter((row) => {
+        const ns = typeof row === 'object' && row !== null ? (row as { ns?: unknown }).ns : undefined
+        return typeof ns !== 'string' || !ADMIN_ONLY_SETTINGS_NS.has(ns)
+      }),
+    }
+  }
+  // describe 无参数(typert descriptor parameters:[]),HTTP fetch 路由直调实例;
+  // 同写面:精确 path 注册优先于 gateway interceptor,响应仍是标准 server-response 帧。
+  register('/api/settings/describe', async (rpcId, _args, ctx) => {
+    const sc = serviceOf(deps, 'settingsController')
+    if (sc === undefined) return failureFrame(rpcId, new Error('settingsController not ready'))
+    const value = await callService(sc, 'describe')
+    const user = deps.store.getUserById(ctx.userId)
+    return okFrame(rpcId, filterSettingsDescribe(value, user?.role === 'admin'))
+  })
   const settingsWritePaths = ['/api/settings/mutate', '/api/settings/update', '/api/settings/replace']
   const settingsMethodOf = (path: string): string => path.split('/').pop() ?? ''
   for (const path of settingsWritePaths) {
@@ -859,15 +905,15 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
       const callArgs: unknown[] = request0 !== undefined
         ? [request0.ns, request0[payloadKey], revisionOf(request0)]
         : [args.ns, args[payloadKey], revisionOf(args)]
-      if (ns !== GATEWAY_SETTINGS_NS) {
-        // 非网关命名空间(用户个人设置)原样代理,不做角色判断
+      if (ns === undefined || !GATEWAY_SETTINGS_NS.has(ns)) {
+        // 非系统层命名空间(用户个人设置)原样代理,不做角色判断
         const value = await callService(sc, method, ...callArgs)
         return okFrame(rpcId, value)
       }
       const user = deps.store.getUserById(ctx.userId)
       if (user?.role !== 'admin') {
         tenantAudit(deps, 'gateway.settings.denied', ctx.account, { ns, method })
-        return deniedFrame(rpcId, '模型网关配置仅管理员可修改（普通用户只读）')
+        return deniedFrame(rpcId, gatewaySettingsDeniedMessage(ns))
       }
       const value = await callService(sc, method, ...callArgs)
       return okFrame(rpcId, value)
@@ -879,24 +925,54 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
       const raw = (settingsController as { ctx?: { invocation?: { principal?: { kind?: string; userId?: number } } } }).ctx
       return raw?.invocation ?? {}
     }
+    // 写面 ns 读取**两种形态**都认:
+    // - 位置参数 settingsController.<method>(ns, payload, revision)(typert.host 直调;
+    //   守卫 fetch 路由即此形态)——只读对象 .ns 会恒得 undefined,wrap 静默放行;
+    // - 单对象 {request:{ns,…}} / {ns,…}(既有单测与部分内部调用形态)。
+    const settingsNsOf = (callArgs: unknown[]): string | undefined => {
+      const first = callArgs[0]
+      if (typeof first === 'string') return first
+      if (typeof first !== 'object' || first === null) return undefined
+      const top = (first as { ns?: unknown }).ns
+      if (typeof top === 'string') return top
+      const request = (first as { request?: unknown }).request
+      if (typeof request === 'object' && request !== null) {
+        const nested = (request as { ns?: unknown }).ns
+        if (typeof nested === 'string') return nested
+      }
+      return undefined
+    }
     for (const method of ['mutate', 'update', 'replace'] as const) {
       const original = settingsController[method]
       if (typeof original !== 'function') continue
       const bound = (original as (...args: unknown[]) => unknown).bind(settingsController)
       settingsController[method] = (...callArgs: unknown[]): unknown => {
-        const ns0 = (callArgs[0] as { ns?: string } | undefined)?.ns
-        if (ns0 !== GATEWAY_SETTINGS_NS) return bound(...callArgs)
+        const ns0 = settingsNsOf(callArgs)
+        if (ns0 === undefined || !GATEWAY_SETTINGS_NS.has(ns0)) return bound(...callArgs)
         // 角色门只管 eterna-user principal(mux 换血用户);owner/本地流放行
         const principal = invocationOf().principal
         if (principal?.kind !== 'eterna-user' || typeof principal.userId !== 'number') return bound(...callArgs)
         const user = deps.store.getUserById(principal.userId)
         if (user?.role !== 'admin') {
           tenantAudit(deps, 'gateway.settings.denied', user?.account ?? String(principal.userId), { ns: ns0, method })
-          const error = new Error('模型网关配置仅管理员可修改（普通用户只读）') as Error & { code?: string }
+          const error = new Error(gatewaySettingsDeniedMessage(ns0)) as Error & { code?: string }
           error.code = 'tenant/denied'
           throw error
         }
         return bound(...callArgs)
+      }
+    }
+    // 读面第三道门的实例侧(覆盖 mux/进程内 describe 调用面,与 HTTP 路由同语义):
+    // eterna-user 非 admin 拿到过滤后的 namespaces;owner/本地流原样放行。
+    const describeOriginal = settingsController.describe
+    if (typeof describeOriginal === 'function') {
+      const boundDescribe = (describeOriginal as (...args: unknown[]) => unknown).bind(settingsController)
+      settingsController.describe = (...callArgs: unknown[]): unknown => {
+        const value = boundDescribe(...callArgs)
+        const principal = invocationOf().principal
+        if (principal?.kind !== 'eterna-user' || typeof principal.userId !== 'number') return value
+        const user = deps.store.getUserById(principal.userId)
+        return filterSettingsDescribe(value, user?.role === 'admin')
       }
     }
   }

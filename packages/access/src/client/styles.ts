@@ -708,6 +708,125 @@ const CSS = `
 @media (prefers-reduced-motion: reduce) {
   .ea-think-feedback .ea-think-btn { transition: none; }
 }
+
+/* —— MCP 服务器分区(T28):页签 + 内联表单 + 行卡 ——
+   v4:所有颜色/字号/圆角/间距只取 --et-*;断点只用 760/640;
+   页签选中态用前景色而非 accent(强调色预算 ≤2/屏)。 */
+[data-eterna-access-root] .ea-mcp-tabs {
+  display: flex;
+  gap: var(--et-space-1);
+  border-bottom: 1px solid var(--et-border-soft);
+  overflow-x: auto;
+}
+[data-eterna-access-root] .ea-mcp-tab {
+  flex: none;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 var(--et-space-3);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--et-muted);
+  font-family: var(--et-font-body);
+  font-size: var(--et-text-caption);
+  font-weight: var(--et-weight-body);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--et-motion-fast) var(--et-ease), border-color var(--et-motion-fast) var(--et-ease);
+}
+[data-eterna-access-root] .ea-mcp-tab:hover { color: var(--et-fg); }
+[data-eterna-access-root] .ea-mcp-tab[data-active="true"] {
+  color: var(--et-fg);
+  border-bottom-color: var(--et-fg);
+  font-weight: var(--et-weight-emphasis);
+}
+[data-eterna-access-root] .ea-mcp-tab:focus-visible {
+  outline: none;
+  border-radius: var(--et-radius-sm);
+  box-shadow: var(--et-focus-ring);
+}
+[data-eterna-access-root] .ea-mcp-panel { display: flex; flex-direction: column; gap: var(--et-space-3); min-width: 0; }
+[data-eterna-access-root] .ea-mcp-card-title { margin: 0; font-size: var(--et-text-body); font-weight: var(--et-weight-display); }
+[data-eterna-access-root] .ea-mcp-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--et-space-3);
+}
+[data-eterna-access-root] .ea-mcp-field { display: flex; flex-direction: column; min-width: 0; }
+[data-eterna-access-root] .ea-mcp-field .ea-label { margin-top: 0; }
+[data-eterna-access-root] .ea-mcp-fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--et-space-2);
+  min-inline-size: 0;
+}
+[data-eterna-access-root] .ea-mcp-mono {
+  font-family: var(--et-font-mono);
+  font-size: var(--et-text-meta);
+  color: var(--et-muted);
+  overflow-wrap: anywhere;
+}
+[data-eterna-access-root] .ea-mcp-tags { display: flex; flex-wrap: wrap; align-items: center; gap: var(--et-space-1); }
+/* 内联表单卡 = 一级卡片同材质(lg 圆角 + r1 + space-5 内距) */
+[data-eterna-access-root] .ea-mcp-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--et-space-3);
+  padding: var(--et-space-5);
+  border: 1px solid var(--et-border-soft);
+  border-radius: var(--et-radius-lg);
+  background: var(--et-surface);
+  box-shadow: var(--et-shadow-r1);
+}
+[data-eterna-access-root] .ea-mcp-header-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--et-space-2); }
+[data-eterna-access-root] .ea-mcp-header-row .ea-input { flex: 1 1 160px; }
+[data-eterna-access-root] .ea-mcp-form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--et-space-2); }
+/* 列表行:主信息 + 操作,高 ≥56(v4 §6),窄屏操作整行下移 */
+[data-eterna-access-root] .ea-mcp-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--et-space-3);
+  padding: var(--et-space-4) 0;
+  min-height: 56px;
+  border-bottom: 1px solid var(--et-border-soft);
+}
+[data-eterna-access-root] .ea-mcp-item-main { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+[data-eterna-access-root] .ea-mcp-item-title {
+  font-size: var(--et-text-body);
+  font-weight: var(--et-weight-emphasis);
+  line-height: var(--et-leading-snug);
+  color: var(--et-fg);
+}
+[data-eterna-access-root] .ea-mcp-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--et-space-2);
+  font-size: var(--et-text-meta);
+  color: var(--et-muted);
+}
+[data-eterna-access-root] .ea-mcp-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--et-space-2);
+  margin-left: auto;
+}
+@media (max-width: 760px) {
+  [data-eterna-access-root] .ea-mcp-item { flex-wrap: wrap; }
+  [data-eterna-access-root] .ea-mcp-item-actions { width: 100%; margin-left: 0; }
+}
+@media (max-width: 640px) {
+  [data-eterna-access-root] .ea-mcp-fields { grid-template-columns: 1fr; }
+  [data-eterna-access-root] .ea-mcp-tabs { border-bottom: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-eterna-access-root] .ea-mcp-tab { transition: none; }
+}
 `
 
 export function injectAccessStyles(doc: Document = document): void {

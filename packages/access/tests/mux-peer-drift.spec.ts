@@ -7,6 +7,10 @@
  *
  * T6.1 市场面 admin 门(2026-11-19):同一包装对 MARKET_ADMIN_PREFIXES 路径先按 eterna
  * 登录态收口——无会话 401、非 admin 403(不触达原 admit)、admin 放行;角色逐请求现查。
+ *
+ * TERM-004 终端一元门(2026-11-20 W5):`/api/terminal/*` 必须换血 eterna-user Peer
+ * (rc.5 浏览器 admit 恒 owner,网关对 owner 跳过 decide → 服务入口守卫无身份可判);
+ * 无 eterna 会话 401、策略面未就绪 503(fail-closed,绝不退回 owner)。
  */
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -100,12 +104,49 @@ describe('T2 换血:admit 包装', () => {
     install?.dispose()
   })
 
-  it('非 mux/非市场路径(含 unary HTTP+合法 cookie)→ 原 admit(owner,守卫路由硬性要求)', () => {
+  it('非 mux/非市场/非 terminal 路径(含 unary HTTP+合法 cookie)→ 原 admit(owner,守卫路由硬性要求)', () => {
     const connection = fakeConnection()
     const install = installMuxIsolation({ store, session }, connection, { registerPolicy: vi.fn() })
     const unary = admitOf(connection)(httpReq(aliceCookie))
     expect(unary.peer).toBe('owner-peer')
     expect(connection.created).toHaveLength(0)
+    install?.dispose()
+  })
+
+  it('TERM-004 终端一元路径 → eterna-user Peer(与 mux 同用户缓存;无 cookie 401)', () => {
+    // rc.5:terminal 六方法资源逐会话,但浏览器 admit 恒 owner Peer、网关对 owner
+    // 跳过 decide——不在 admit 换血则服务入口守卫拿不到任何身份(跨租户读 cwd/shells)。
+    const connection = fakeConnection()
+    const install = installMuxIsolation({ store, session }, connection, { registerPolicy: vi.fn() })
+    for (const method of ['environment', 'shells', 'list', 'create', 'close', 'rename']) {
+      const admitted = admitOf(connection)(marketReq(`/api/terminal/${method}`, aliceCookie))
+      expect((admitted.peer as { principal: unknown }).principal, method).toEqual({ kind: 'eterna-user', userId: aliceId })
+    }
+    // 同用户复用缓存(不逐请求建 Peer)
+    expect(connection.created).toHaveLength(1)
+    const anonymous = admitOf(connection)(marketReq('/api/terminal/environment'))
+    expect(anonymous.rejection).toBe(401)
+    const badCookie = admitOf(connection)(marketReq('/api/terminal/environment', 'eterna_session=garbage'))
+    expect(badCookie.rejection).toBe(401)
+    // 近形路径不倒(不能把其它 /api 面卷进换血)
+    for (const path of ['/api/terminalX/environment', '/api/terminals/list', '/api/session/list']) {
+      expect(admitOf(connection)(marketReq(path, aliceCookie)).peer, path).toBe('owner-peer')
+    }
+    install?.dispose()
+  })
+
+  it('TERM-004 策略面未就绪 → 终端一元 503(fail-closed,绝不退回 owner)', () => {
+    const connection = fakeConnection()
+    const box: { service?: { registerPolicy: () => unknown } } = {}
+    const install = installMuxIsolation({ store, session }, connection, () => box.service)
+    expect(install?.muxActive).toBe(false)
+    expect(admitOf(connection)(marketReq('/api/terminal/environment', aliceCookie)).rejection).toBe(503)
+    expect(connection.original).not.toHaveBeenCalled()
+    expect(connection.created).toHaveLength(0)
+    // 策略服务挂载后现场补注册即放行为 eterna-user Peer(无需重装)
+    box.service = { registerPolicy: vi.fn(() => vi.fn()) }
+    const admitted = admitOf(connection)(marketReq('/api/terminal/environment', aliceCookie))
+    expect((admitted.peer as { principal: unknown }).principal).toEqual({ kind: 'eterna-user', userId: aliceId })
     install?.dispose()
   })
 

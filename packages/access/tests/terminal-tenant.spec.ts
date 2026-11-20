@@ -107,6 +107,52 @@ describe('T4:终端租户校验', () => {
     expect(ownerSvc.calls).toHaveLength(TERMINAL_METHODS.length)
   })
 
+  it('rc.5 身份形态:invocation.peer.principal 同样校验(旧 invocation.principal 恒 undefined 的回归锚)', () => {
+    // 2026-11-20 W5 门禁 TERM-004 根因:rc.5 GatewayInvocation 只暴露 peer,
+    // 旧读法 invocation.principal 恒 undefined → 他人会话不被拒(B 读到 A 的 cwd)。
+    const rc5Service = (principal: { kind?: string; userId?: number }) => {
+      const calls: string[] = []
+      const svc = {
+        ctx: { invocation: { peer: { principal } } },
+        environment: vi.fn((_agent?: unknown, _request?: unknown) => { calls.push('environment'); return { cwd: '/' } }),
+        shells: vi.fn((_agent?: unknown, _request?: unknown) => { calls.push('shells'); return [] }),
+        list: vi.fn((_sessionId?: string) => { calls.push('list'); return [] }),
+      }
+      return { svc, calls }
+    }
+    const own = rc5Service({ kind: 'eterna-user', userId: aliceId })
+    const disposeOwn = installTerminalTenant(deps, own.svc)
+    const env = own.svc.environment
+    env({ session: { id: aliceSession } }, {})
+    expect(own.calls).toContain('environment')
+    disposeOwn?.()
+
+    const foreign = rc5Service({ kind: 'eterna-user', userId: aliceId + 1 })
+    installTerminalTenant(deps, foreign.svc)
+    expect(() => foreign.svc.environment({ session: { id: aliceSession } }, {})).toThrow('终端不存在或不属于你的会话')
+    expect(foreign.calls).toHaveLength(0)
+
+    expect(() => foreign.svc.list(aliceSession)).toThrow('终端不存在或不属于你的会话')
+    expect(foreign.calls).toHaveLength(0)
+  })
+
+  it('调用点 this 透传:上游本体以网关 receiverContext 为 this 执行(流面 this.ctx.invocation 生命线)', () => {
+    // bind 到服务实例会把 cordis ctx 追踪钉在装配侧上下文 → attach/retain 的
+    // this.ctx.invocation 退化为 undefined("Terminal attachment requires a Remote
+    // invocation")。本锚断言 this 原样传给上游本体。
+    const seen: unknown[] = []
+    const svc = {
+      ctx: { invocation: { peer: { principal: { kind: 'eterna-user', userId: aliceId } } } },
+      environment: function (this: unknown) { seen.push(this); return { cwd: '/' } },
+    }
+    installTerminalTenant(deps, svc)
+    const callSite = { ctx: { invocation: { peer: { principal: { kind: 'eterna-user', userId: aliceId } } } }, marker: 'gateway-receiver' }
+    // oxlint-disable-next-line typescript/unbound-method -- 故意取未绑定引用以验证 this 透传
+    const fn = svc.environment as unknown as (this: unknown, ...args: unknown[]) => unknown
+    Reflect.apply(fn, callSite, [{ session: { id: aliceSession } }, {}])
+    expect(seen[0]).toBe(callSite)
+  })
+
   it('防漂移:TERMINAL_METHODS 与上游 typert.host 方法表一致(差集=∅)', () => {
     const upstream = upstreamTerminalMethods()
     expect(upstream.length).toBeGreaterThanOrEqual(8)

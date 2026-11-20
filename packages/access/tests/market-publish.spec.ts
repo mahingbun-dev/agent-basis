@@ -35,7 +35,7 @@ describe('一键发布:submit_plugin_to_market 核心流', () => {
     execFileSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-m', 'seed'], { cwd: seed })
     execFileSync('git', ['push', bare, 'main'], { cwd: seed })
     rmSync(seed, { recursive: true, force: true })
-    env = { repoUrl: bare, repoDir: join(dir, 'clone'), dshRange: '>=0.2.2-alpha.2', token: undefined }
+    env = { repoUrl: bare, repoDir: join(dir, 'clone'), dshRange: '>=0.2.2-rc.5', token: undefined }
   })
   afterEach(() => {
     rmSync(dir, { recursive: true, force: true })
@@ -71,7 +71,7 @@ describe('一键发布:submit_plugin_to_market 核心流', () => {
     expect(manifest.name).toBe('@eterna/my-tool')
     expect(manifest.version).toBe('0.1.0')
     expect(manifest.main).toBe('./__eterna_entry.js')
-    expect(manifest.engines).toEqual({ dsh: '>=0.2.2-alpha.2' })
+    expect(manifest.engines).toEqual({ dsh: '>=0.2.2-rc.5' })
     expect(manifest.private).toBeUndefined()
     expect(manifest.peerDependencies).toEqual({})
     const patch = readFileSync(join(env.repoDir, 'bundles', 'my-tool', 'cordis.patch.yml'), 'utf8')
@@ -279,7 +279,7 @@ describe('marketPublishEnvFromProcess:compose 空串口径', () => {
       const env = marketPublishEnvFromProcess()
       expect(env.repoUrl).toBe('https://github.com/mahingbun-dev/eterna-plugins.git')
       expect(env.repoDir).toBe('/tmp/dsh-home-env-spec/market/eterna-plugins')
-      expect(env.dshRange).toBe('>=0.2.2-alpha.2')
+      expect(env.dshRange).toBe('>=0.2.2-rc.5')
       // 空 token 必须退化为 undefined(否则凭据 helper 用空密码 push,报错误导)。
       expect(env.token).toBeUndefined()
     } finally {

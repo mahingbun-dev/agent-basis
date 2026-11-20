@@ -13,7 +13,7 @@
 import { readdirSync, readFileSync, existsSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { join } from 'node:path'
-import { GLOBAL_EVENT_ACTIONS, SESSION_EVENT_ACTIONS, SESSION_STREAM_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS, bindingsFor } from '../src/mux.ts'
+import { GLOBAL_EVENT_ACTIONS, SESSION_EVENT_ACTIONS, SESSION_STREAM_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_UNARY_ACTIONS, TERMINAL_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS, bindingsFor } from '../src/mux.ts'
 
 function findPnpmRoot(): string {
   let dir = new URL('..', import.meta.url).pathname
@@ -189,6 +189,34 @@ function classifyStreamResourceKind(
   return 'global'
 }
 
+/** 上游 terminal 控制器的**非流**方法表('terminal/x';读 typert.host.js 实库防漂移)。
+ *  终端一元六动作(TERM-004,2026-11-20)必须与该表一致——上游新增一元方法而清单
+ *  未跟时,该动作在会话绑定上无授权,网关 decide 恒 no-allow(本人终端也被拒)。 */
+function upstreamTerminalUnaryMethods(): string[] {
+  const root = findPnpmRoot()
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    if (!/^@deepseek-ai\+dsh-api-terminal-controller@/.test(entry.name)) continue
+    const file = join(root, entry.name, 'node_modules', '@deepseek-ai', 'dsh-api-terminal-controller', 'lib', 'typert.host.js')
+    if (!existsSync(file)) continue
+    const lines = readFileSync(file, 'utf8').split('\n')
+    const keyRe = /^\s+'terminal\/([a-zA-Z]+)': \{/
+    const unary: string[] = []
+    let current: string | undefined
+    let start = -1
+    for (let i = 0; i < lines.length; i++) {
+      const key = keyRe.exec(lines[i] ?? '')?.[1]
+      if (key !== undefined) {
+        if (current !== undefined && !/mode: 'stream'/.test(lines.slice(start, i).join('\n'))) unary.push(current)
+        current = key
+        start = i
+      }
+    }
+    if (current !== undefined && !/mode: 'stream'/.test(lines.slice(start).join('\n'))) unary.push(current)
+    return unary.map(method => `terminal/${method}`).sort()
+  }
+  throw new Error('找不到 dsh-api-terminal-controller/lib/typert.host.js')
+}
+
 /** 上游全部 mode:'emit' 的宿主广播事件('ns/method';typert.host.js 的声明 JSON)。 */
 function upstreamEmitEvents(): Set<string> {
   const root = findPnpmRoot()
@@ -263,6 +291,31 @@ describe('T2 防漂移:上游流方法表全覆盖', () => {
   it('宿主级 control 快照流 GLOBAL/会话绑定双在位(2026-11-12 回归锚:无载荷 open 按 global 资源判定,只授会话绑定恒 no-allow;内容过滤仍按会话绑定)', () => {
     expect(GLOBAL_STREAM_ACTIONS).toContain('session/control')
     expect(SESSION_STREAM_ACTIONS).toContain('session/control')
+  })
+
+  it('TERM-004 终端一元动作表与上游 typert.host.js 一致(差集=∅,双向)', () => {
+    const upstream = upstreamTerminalUnaryMethods()
+    // 表可解析的卫生锚:空表=解析失效,断言失去意义
+    expect(upstream).toContain('terminal/environment')
+    expect(upstream).toContain('terminal/list')
+    expect([...TERMINAL_UNARY_ACTIONS].sort()).toEqual(upstream)
+  })
+
+  it('TERM-004 终端一元动作授在会话绑定,且不混入流/GLOBAL 清单', () => {
+    const upstreamStream = new Set(upstreamStreamMethods())
+    for (const action of TERMINAL_UNARY_ACTIONS) {
+      // 流面三件套由 mux 面覆盖,一元清单不得含(否则重复放宽)
+      expect(upstreamStream.has(action), `${action} 是流方法`).toBe(false)
+      expect(GLOBAL_UNARY_ACTIONS, `${action} 资源逐会话,global 授予永不命中(禁区)`).not.toContain(action)
+      expect(SESSION_UNARY_ACTIONS, `${action} 归 TERMINAL_UNARY_ACTIONS 单列`).not.toContain(action)
+    }
+    // 会话绑定实名含全部终端一元动作(缺项=本人终端 decide 恒 no-allow)
+    const minimal = {
+      store: { sessionsOfOwner: () => ['s-own'], workspacesOfOwner: () => [] as string[], getUserById: () => undefined },
+      session: undefined,
+    } as never
+    const session = bindingsFor(minimal, 0).find(b => b.resource.kind === 'session')
+    for (const action of TERMINAL_UNARY_ACTIONS) expect(session?.role.actions, action).toContain(action)
   })
 
   it('上游全部 mode:\'emit\' 事件表可解析且含已知核心集(空表=解析失效,测试本身失去意义)', () => {

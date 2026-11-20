@@ -61,6 +61,11 @@ export interface AccessDeps {
    * access 为 Tier1,不 import @eterna/tasks——结构面声明在本文件(panel/stream 同纪律)。
    */
   readonly tasksSettings?: (() => TasksSettingsFace | undefined) | undefined
+  /**
+   * 登出回调(2026-11-20 B14 个人 MCP):会话 cookie 清除前摘除该用户 live scope。
+   * 同步签名,实现方自吞异常(登出不能被资源回收失败阻断)。
+   */
+  readonly onLogout?: ((user: { readonly id: number; readonly account: string }) => void) | undefined
 }
 
 /** tasks 设置视图(结构面;载荷整体 JSON 序列化,access 不解释领域字段)。 */
@@ -436,7 +441,15 @@ function parseLoginBody(body: Uint8Array | undefined): Record<string, unknown> {
 function handleLogout(deps: AccessDeps, req: AccessRequest, method: string, ip: string): AccessReply {
   if (method !== 'POST') return methodNotAllowed()
   const user = requireUser(deps, req)
-  if (user !== undefined) deps.audit({ kind: 'access.logout', account: user.account, ip })
+  if (user !== undefined) {
+    deps.audit({ kind: 'access.logout', account: user.account, ip })
+    // B14:登出即摘该用户个人 MCP live scope(失败不影响登出;回调实现方自吞)。
+    try {
+      deps.onLogout?.({ id: user.id, account: user.account })
+    } catch {
+      // 登出语义优先:资源回收失败留给 disposer/agent-disposed 兜底。
+    }
+  }
   return redirectReply('/login', [['set-cookie', deps.session.clearCookieHeader()]])
 }
 

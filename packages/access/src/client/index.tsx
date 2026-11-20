@@ -20,6 +20,9 @@ import { AccountLauncher, type AccountLauncherInjected } from './account-menu.ts
 import { installLinkOpeningDefault } from './link-opening.ts'
 import { ApprovalCards } from './approval-card.tsx'
 import { QuestionCards } from './question-card.tsx'
+import { McpServersSection } from './mcp-servers-section.tsx'
+import { MCP_LOCALES } from './mcp-servers-locales.ts'
+import { openSettingsSection } from './settings-nav.ts'
 /* React 基础件走 /react 子路径：根入口必须留纯 .ts（服务端 strip-only） */
 import { DecisionLayer } from '@eterna/ui/react'
 import { injectAccessStyles } from './styles.ts'
@@ -164,6 +167,7 @@ const LOCALES: Record<string, Record<string, string>> = {
     'menu.copyId': '复制账户 ID',
     'menu.copied': '已复制',
     'menu.admin': '管理员',
+    ...MCP_LOCALES.zh,
   },
   en: {
     'section.account': 'Account',
@@ -283,6 +287,7 @@ const LOCALES: Record<string, Record<string, string>> = {
     'menu.copyId': 'Copy account ID',
     'menu.copied': 'Copied',
     'menu.admin': 'Admin',
+    ...MCP_LOCALES.en,
   },
 }
 
@@ -417,6 +422,17 @@ export function apply(ctx: AccessClientContext): () => void {
       inject: () => ({ t }),
       label: () => t('section.account'),
     }, AccountSection))
+    // T28(B14 个人层 UI):MCP 服务器分区——admin 见「全局/管理员目录」,
+    // 普通用户见「我的服务器」(列表/新增/编辑/删除/测试);密钥 write-only。
+    // 全局表在上游内置插件设置里,故 admin 的「全局」页签只做说明 + 原生跳转。
+    ctx.slots.inject('settings.section', () => ctx.slots.register({
+      name: 'settings.section',
+      id: `${NS}.mcp-servers`,
+      order: 42,
+      locale: NS,
+      inject: () => ({ t, role, openSection: (id: string) => openSettingsSection(ctx.slots, id) }),
+      label: () => t('section.mcpServers'),
+    }, McpServersSection))
     // P4-T6.4/T7A(2026-11-11):消息与审批(全员);审批队列(admin)。
     // 「我的插件」(2026-11-11 第三轮)移入侧栏插件页 plugins.tab——插件管理统一入口。
     ctx.slots.inject('settings.section', () => ctx.slots.register({
@@ -548,18 +564,7 @@ function registerModelDrawer(ctx: AccessClientContext): void {
    * 返回 false=设置壳尚未注册(极早期或授权未到),调用方据此提示而非静默。
    */
   const openModelsSettings = (): boolean => {
-    try {
-      const seated = ctx.slots.entries?.('sidebar.settings') ?? []
-      for (const entry of seated) {
-        const handle = entry.store as { create?(): { actions?: { openSection?(id: string): void } } } | undefined
-        const actions = handle?.create?.().actions
-        if (typeof actions?.openSection === 'function') {
-          actions.openSection('models')
-          return true
-        }
-      }
-    } catch { /* 座位结构变化:降级为 false,由调用方提示 */ }
-    return false
+    return openSettingsSection(ctx.slots, 'models')
   }
 
   let menuHost: HTMLDivElement | null = null

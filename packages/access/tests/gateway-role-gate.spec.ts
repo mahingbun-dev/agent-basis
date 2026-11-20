@@ -25,10 +25,13 @@ describe('P2-T1.7a:网关配置角色门(实例 wrap)', () => {
   let session: SessionService
   let adminId: number
   let userId: number
-  let settingsCalls: Array<{ method: string }>
+  let settingsCalls: Array<{ method: string; args: unknown[] }>
+  let auditEvents: AccessAuditEvent[]
+  let describeValue: unknown
   let routes: Map<string, { fetch: (request: Request) => Promise<Response> }>
   interface SettingsControllerStub {
     ctx?: { invocation?: { principal?: { kind?: string; userId?: number } } }
+    describe: () => unknown
     mutate: (...args: unknown[]) => unknown
     update: (...args: unknown[]) => unknown
     replace: (...args: unknown[]) => unknown
@@ -44,18 +47,27 @@ describe('P2-T1.7a:网关配置角色门(实例 wrap)', () => {
     adminId = admin.user.id
     userId = user.user.id
     settingsCalls = []
+    auditEvents = []
+    describeValue = {
+      writable: true,
+      hasDocument: true,
+      namespaces: ['llm-pi-ai', 'mcp-manager', 'permission'].map(ns => ({
+        ns, autoGenerate: true, schema: {}, value: {}, applies: 'live', secrets: [], revision: 1,
+      })),
+    }
     settingsController = {
       ctx: {},
-      mutate: (_request: unknown) => { settingsCalls.push({ method: 'mutate' }); return { revision: 2 } },
-      update: (_request: unknown) => { settingsCalls.push({ method: 'update' }); return { revision: 3 } },
-      replace: (_request: unknown) => { settingsCalls.push({ method: 'replace' }); return { revision: 4 } },
+      describe: () => describeValue,
+      mutate: (_request: unknown) => { settingsCalls.push({ method: 'mutate', args: [_request] }); return { revision: 2 } },
+      update: (_request: unknown) => { settingsCalls.push({ method: 'update', args: [_request] }); return { revision: 3 } },
+      replace: (_request: unknown) => { settingsCalls.push({ method: 'replace', args: [_request] }); return { revision: 4 } },
     }
     const reflect = {
       get: (key: string): unknown => key === 'settingsController' ? settingsController : undefined,
     }
     routes = new Map()
     const registry: TenantFetchRegistry = { register: (route) => { routes.set(route.path, route); return () => Promise.resolve() } }
-    registerTenantGuards({ store, session, reflect, tenantRoot: join(dir, 'workspaces'), audit: () => {} }, { fetch: registry })
+    registerTenantGuards({ store, session, reflect, tenantRoot: join(dir, 'workspaces'), audit: event => auditEvents.push(event) }, { fetch: registry })
   })
   afterEach(() => {
     store.close()
@@ -66,6 +78,14 @@ describe('P2-T1.7a:网关配置角色门(实例 wrap)', () => {
     settingsController.ctx = { invocation: principal === undefined ? {} : { principal } }
     const fn = settingsController[method] as (...args: unknown[]) => unknown
     return fn({ ns, ops: [] })
+  }
+
+  /** typert.host 直调形态(位置参数 ns, payload, expectedRevision)——mux/守卫
+   *  fetch 路由的真实调用形态;此前的对象 .ns 读法在此形态恒 undefined=静默放行。 */
+  function writePositional(principal: { kind?: string; userId?: number } | undefined, method: string, ns: string): unknown {
+    settingsController.ctx = { invocation: principal === undefined ? {} : { principal } }
+    const fn = settingsController[method] as (...args: unknown[]) => unknown
+    return fn(ns, [], 1)
   }
 
   it('eterna-user(普通用户)写 llm-pi-ai → throw tenant/denied 中文文案+零直调(三方法)', () => {
@@ -100,6 +120,67 @@ describe('P2-T1.7a:网关配置角色门(实例 wrap)', () => {
     expect(r.revision).toBe(2)
     expect(settingsCalls).toHaveLength(1)
   })
+
+  // ── rc.5 B14 系统层:ns 集合 {'llm-pi-ai','mcp-manager'}(2026-11-20,T25) ──
+
+  it('B14:eterna-user 写 mcp-manager(位置参数形态)→ throw tenant/denied+审计+零直调(三方法)', () => {
+    for (const method of ['mutate', 'update', 'replace']) {
+      expect(() => writePositional({ kind: 'eterna-user', userId }, method, 'mcp-manager'))
+        .toThrow('仅管理员可修改')
+      try { writePositional({ kind: 'eterna-user', userId }, method, 'mcp-manager') } catch (e) {
+        expect((e as { code?: string }).code).toBe('tenant/denied')
+      }
+    }
+    expect(settingsCalls).toHaveLength(0)
+    const denied = auditEvents.filter(e => e.detail?.action === 'gateway.settings.denied')
+    expect(denied.length).toBeGreaterThanOrEqual(3)
+    for (const event of denied) {
+      expect(event.detail).toMatchObject({ ns: 'mcp-manager' })
+      expect(event.account).toBe('alice')
+    }
+  })
+
+  it('B14:eterna-user 写 mcp-manager(对象形态回归)→ 同样拒绝', () => {
+    expect(() => callAs({ kind: 'eterna-user', userId }, 'mutate', 'mcp-manager'))
+      .toThrow('系统 MCP 服务器配置仅管理员可修改')
+    expect(settingsCalls).toHaveLength(0)
+  })
+
+  it('B14:eterna-user(admin)/owner principal 写 mcp-manager → 放行(门只收窄 non-admin eterna-user)', () => {
+    for (const method of ['mutate', 'update', 'replace']) {
+      const r = writePositional({ kind: 'eterna-user', userId: adminId }, method, 'mcp-manager') as { revision: number }
+      expect(r.revision).toBeGreaterThan(0)
+    }
+    for (const method of ['mutate', 'update', 'replace']) {
+      const r = writePositional({ kind: 'owner' }, method, 'mcp-manager') as { revision: number }
+      expect(r.revision).toBeGreaterThan(0)
+    }
+    expect(settingsCalls).toHaveLength(6)
+  })
+
+  it('B14:describe 面非 admin 过滤 mcp-manager ns,其余命名空间与顶层字段原样', () => {
+    settingsController.ctx = { invocation: { principal: { kind: 'eterna-user', userId } } }
+    const asUser = settingsController.describe() as { writable: boolean; hasDocument: boolean; namespaces: Array<{ ns: string }> }
+    expect(asUser.namespaces.map(n => n.ns)).toEqual(['llm-pi-ai', 'permission'])
+    expect(asUser.writable).toBe(true)
+    expect(asUser.hasDocument).toBe(true)
+    // admin / owner(本地流)看到全量
+    settingsController.ctx = { invocation: { principal: { kind: 'eterna-user', userId: adminId } } }
+    expect((settingsController.describe() as { namespaces: Array<{ ns: string }> }).namespaces.map(n => n.ns))
+      .toEqual(['llm-pi-ai', 'mcp-manager', 'permission'])
+    settingsController.ctx = { invocation: { principal: { kind: 'owner' } } }
+    expect((settingsController.describe() as { namespaces: Array<{ ns: string }> }).namespaces.map(n => n.ns))
+      .toContain('mcp-manager')
+  })
+
+  it('B14:describe 形状漂移(上游改字段)→ 非 admin fail-closed 空清单,不原样透出', () => {
+    describeValue = { writable: true, hasDocument: true, namespaces: 'drifted' }
+    settingsController.ctx = { invocation: { principal: { kind: 'eterna-user', userId } } }
+    expect(settingsController.describe()).toEqual({ writable: true, hasDocument: true, namespaces: [] })
+    // admin 不受影响(透传原值)
+    settingsController.ctx = { invocation: { principal: { kind: 'eterna-user', userId: adminId } } }
+    expect(settingsController.describe()).toEqual({ writable: true, hasDocument: true, namespaces: 'drifted' })
+  })
 })
 
 
@@ -111,6 +192,7 @@ describe('P2-T1.7a:守卫 fetch 路由层(HTTP cookie 判角色)', () => {
   let adminId: number
   let userId: number
   let settingsCalls: Array<{ method: string; args: unknown[] }>
+  let auditEvents: AccessAuditEvent[]
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'eterna-gw-role-http-'))
@@ -121,11 +203,19 @@ describe('P2-T1.7a:守卫 fetch 路由层(HTTP cookie 判角色)', () => {
     adminId = admin.user.id
     userId = user.user.id
     settingsCalls = []
+    auditEvents = []
     routes = new Map()
     const reflect = {
       get: (key: string): unknown => key === 'settingsController'
         ? {
           // 直调签名=位置参数(...args)(typert.host);全量捕获供转发形状断言。
+          describe: () => ({
+            writable: true,
+            hasDocument: true,
+            namespaces: ['llm-pi-ai', 'mcp-manager', 'permission'].map(ns => ({
+              ns, autoGenerate: true, schema: {}, value: {}, applies: 'live', secrets: [], revision: 1,
+            })),
+          }),
           mutate: (...callArgs: unknown[]) => { settingsCalls.push({ method: 'mutate', args: callArgs }); return { revision: 2 } },
           update: (...callArgs: unknown[]) => { settingsCalls.push({ method: 'update', args: callArgs }); return { revision: 3 } },
           replace: (...callArgs: unknown[]) => { settingsCalls.push({ method: 'replace', args: callArgs }); return { revision: 4 } },
@@ -133,7 +223,7 @@ describe('P2-T1.7a:守卫 fetch 路由层(HTTP cookie 判角色)', () => {
         : undefined,
     }
     const registry: TenantFetchRegistry = { register: (route) => { routes.set(route.path, route); return () => Promise.resolve() } }
-    registerTenantGuards({ store, session, reflect, tenantRoot: join(dir, 'workspaces'), audit: () => {} }, { fetch: registry })
+    registerTenantGuards({ store, session, reflect, tenantRoot: join(dir, 'workspaces'), audit: event => auditEvents.push(event) }, { fetch: registry })
   })
   afterEach(() => {
     store.close()
@@ -198,6 +288,58 @@ describe('P2-T1.7a:守卫 fetch 路由层(HTTP cookie 判角色)', () => {
     expect(mutate?.args).toEqual(['agent-preset-registry', [{ op: 'set', path: ['defaultPreset'], value: 'cordis' }], 7])
     expect(update?.args).toEqual(['agent-preset-registry', { selectedDefault: 'cordis' }, 7])
     expect(replace?.args).toEqual(['agent-preset-registry', { selectedDefault: 'cordis' }, 7])
+  })
+
+  // ── rc.5 B14 系统层:HTTP 层的 ns 门 + describe 过滤(2026-11-20,T25) ──
+
+  async function settingsDescribe(account: 'root' | 'alice' | undefined) {
+    const handler = routes.get('/api/settings/describe')
+    if (handler === undefined) throw new Error('route missing: /api/settings/describe')
+    const headers: Record<string, string> = { 'content-type': 'application/json' }
+    if (account !== undefined) {
+      const uid = account === 'root' ? adminId : userId
+      headers.cookie = `eterna_session=${session.issue({ userId: uid, passwordVersion: store.getUserById(uid)?.passwordVersion ?? 1 })}`
+    }
+    const response = await handler.fetch(new Request('http://app.local/api/settings/describe', {
+      method: 'POST', headers,
+      body: JSON.stringify({ type: 'client-request', rpcId: 't1', method: 'settings/describe', payload: { args: {} } }),
+    }))
+    return JSON.parse(await response.text()) as Record<string, unknown>
+  }
+
+  it('B14:普通用户写 mcp-manager → 拒绝帧+审计+零直调(三路)', async () => {
+    for (const path of ['/api/settings/mutate', '/api/settings/update', '/api/settings/replace']) {
+      const r = await settingsWrite(path, 'alice', 'mcp-manager')
+      expect((r.result as { error?: { code?: string; message?: string } }).error).toMatchObject({ code: 'tenant/denied' })
+      expect((r.result as { error?: { message?: string } }).error?.message).toContain('仅管理员可修改')
+    }
+    expect(settingsCalls).toHaveLength(0)
+    const denied = auditEvents.filter(e => e.detail?.action === 'gateway.settings.denied')
+    expect(denied).toHaveLength(3)
+    for (const event of denied) expect(event.detail).toMatchObject({ ns: 'mcp-manager' })
+  })
+
+  it('B14:admin 写 mcp-manager → 代理直调(三路);普通用户仍可写其他 ns', async () => {
+    for (const path of ['/api/settings/mutate', '/api/settings/update', '/api/settings/replace']) {
+      const r = await settingsWrite(path, 'root', 'mcp-manager')
+      expect((r.result as { ok?: boolean }).ok).toBe(true)
+    }
+    expect(settingsCalls).toHaveLength(3)
+    const other = await settingsWrite('/api/settings/mutate', 'alice', 'permission')
+    expect((other.result as { ok?: boolean }).ok).toBe(true)
+    expect(settingsCalls).toHaveLength(4)
+  })
+
+  it('B14:describe 面非 admin 过滤 mcp-manager(HTTP cookie 判角色);admin 全量;未登录 401 帧', async () => {
+    const asUser = await settingsDescribe('alice')
+    const userValue = (asUser.result as { ok?: boolean; value?: { namespaces: Array<{ ns: string }> } }).value
+    expect((asUser.result as { ok?: boolean }).ok).toBe(true)
+    expect(userValue?.namespaces.map(n => n.ns)).toEqual(['llm-pi-ai', 'permission'])
+    const asAdmin = await settingsDescribe('root')
+    expect((asAdmin.result as { value?: { namespaces: Array<{ ns: string }> } }).value?.namespaces.map(n => n.ns))
+      .toEqual(['llm-pi-ai', 'mcp-manager', 'permission'])
+    const anonymous = await settingsDescribe(undefined)
+    expect((anonymous.result as { error?: { code?: string } }).error).toMatchObject({ code: 'tenant/unauthenticated' })
   })
 })
 
