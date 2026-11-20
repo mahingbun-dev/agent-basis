@@ -12,6 +12,7 @@
 | 验收矩阵（164 条） | **PASS 159 / FAIL 0 / MISSING 5** |
 | P0（102 条） | **101 PASS / 0 FAIL / 1 MISSING（RC5-API-005）** |
 | 全工作区门禁 | `pnpm -w run verify` **EXIT=0**（pre-merge 与 post-merge 各一次：`artifacts/rc5/p7/verify-precommit.log`、`verify-postmerge.log`） |
+| CI 本地镜像 | `ci.yml` 三个 job 的全部步骤本地逐条复跑 **EXIT=0**（install/verify/runtime-home/transplant/form-check/双 boot/packs lint/tenant-scan/prompt-scan/evals/v1-line；`artifacts/rc5/p7/ci-local.log`） |
 | 最终镜像复跑 | `eterna-agent:rc5-test` = `sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb` |
 | 未通过 5 条 | API-005/006/007（真模型 + realm 对齐）、TERM-013/DATA-009（24h 浸泡未满窗） |
 | 合并条件 | 1 条 P0 缺失需补跑或签字豁免；浸泡满窗后复核 |
@@ -184,6 +185,7 @@ bash deploy/verify.sh http://127.0.0.1:3210
 | `artifacts/rc5/e3-super/*/report.json` | E3 super 逐用例报告（18 PASS / 5 NOTRUN） |
 | `artifacts/rc5/p6a/rerun-{e1,e2,e3,acp}-final.log` | 最终镜像全车道复跑命令与 EXIT 原文 |
 | `artifacts/rc5/p7/verify-precommit.log` / `verify-postmerge.log` | `pnpm -w run verify` 全工作区 EXIT=0（合并 main 前后各一次） |
+| `artifacts/rc5/p7/ci-local.log` | `ci.yml` 全步骤本地镜像（35 个 EXIT=0，含双 boot/扫描/evals/v1-line） |
 | `artifacts/rc5/E2/SEC/RC5-SEC-010/result.md` | 旧数据升级验证 |
 | `artifacts/rc5/p6b/soak/final-image2/` | 24h 浸泡 meta/term/data 采样（未满窗） |
 | `artifacts/rc5/p7/regression/rerun/API/out/results.json` | API-005/006/007 真实 tasks 装配 harness（stub 模型） |
@@ -199,6 +201,7 @@ bash deploy/verify.sh http://127.0.0.1:3210
 
 - 164 行矩阵 159 PASS / 0 FAIL；P0 101/102。
 - `pnpm -w run verify` 全工作区 EXIT=0（38 包；merge `origin/main` 前后各一次）。
+- `ci.yml` 全步骤本地镜像 EXIT=0（`ci-local.log`，含双 boot、tenant-scan、prompt-scan、evals、v1-line）。
 - 最终镜像 E1/E2/E3 全车道复跑；TERM-002/005/006、API-004 等此前红项均在最终镜像转绿。
 - 迁移两遍、全库 integrity、回滚演练（DATA-004/005/010）PASS。
 - 双主题 × 三视口 UI 截图 24 张已归档（`artifacts/rc5/E2/UI/RC5-UI-006/`、`E2/MCPP/RC5-MCPP-024/`）。
@@ -210,7 +213,7 @@ bash deploy/verify.sh http://127.0.0.1:3210
    - 出路：真模型 + realm 对齐后补跑，或产品签字豁免。
 2. **API-006/007（P1）**：`listDescendants`/`drainDescendants` 无公开 RPC，需真实后代树；harness 已覆盖，app 级未覆盖。
 3. **TERM-013 / DATA-009（P1）**：24h 浸泡未满窗（`final-image2`，`plannedEndAt=2026-11-21T06:08:06.781Z`）；DATA-009 现行 soak 为 2 writers / 5min，未达 48 §4.5 的 ≥50 并发 + 2h 全库 integrity。
-4. **CI 未跑**：分支未 push，`upgrade-gate` 与 `v1-line` job 无运行记录；不得以本地结果代替。
+4. **远端 CI 未跑**：分支未 push；`ci.yml` 全步骤已在本地逐条复跑 EXIT=0（`ci-local.log`），但远端 `upgrade-gate` / `v1-line` 仍无运行记录，不得以本地代替。
 5. **签字**：`artifacts/rc5/p7/regression/signoff.md` 四方签字栏未签。
 
 ### 8.3 解除条件
