@@ -26,7 +26,7 @@
 
 > 24h 浸泡（TERM-013/DATA-009）经产品签字豁免为 WAIVED：`artifacts/rc5/p6b/waiver-24h.{json,md}`（2026-11-21 00:28，指令「不用等24小时了，直接进行接下来的流程」）；决策时点两窗口全健康，采样跑到满窗后摘要仅作事后观察证据。
 > P0/P1 用例之外：远端 CI 待 push 后运行、真实扩展 NOTRUN、四方签字待签、P7 生产操作按用户授权执行。
-> 产品遗留 **R22**（tasks 角色 prompt/preset 接线）为 P1 缺陷、非用例行，随下一次镜像变更窗口修复；不影响 API-005/006/007 判据（`p7/doc54-delivery-audit.md` §2.1）。
+> 产品遗留 ~~R22~~（tasks 角色 prompt/preset 接线）**已修复（2026-11-21）**：双 preset restatement 进 super 模板/开发档 profile + `Sessions.presets`/`rolePrompt` 接线 + per-agent 角色 prompt section；G1-1/G1-2 双跑绿、tasks 包 877 测试全绿（`p7/doc54-delivery-audit.md` §2）。随 R22 修复镜像窗口部署生效。
 
 ## 3. 补充回归面签字
 

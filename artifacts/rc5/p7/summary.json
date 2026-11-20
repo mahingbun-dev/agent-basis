@@ -17,7 +17,6 @@
   "leftovers": [
     "WAIVED-24H|24h 满窗判据产品豁免；采样跑到满窗作事后观察|P1|p6b/waiver-24h.{json,md}",
     "POST-24H-OBS|上线后 24h 观察无 P0 告警（承担豁免残余风险）|P0|p7/deploy-record.md §4",
-    "R22-TASKS-PROMPT|tasks 角色 prompt/preset 未接线（super bundles 未含 @eterna/tasks）|P1|下一次镜像变更窗口修复（p7/doc54-delivery-audit.md §2.1）",
     "SIGNOFF|四方签字：产品豁免部分已签，开发/测试/运维待签|P0|p7/regression/signoff.md"
   ],
   "generatedBy": "T50/artifacts/rc5/p6a/scan-matrix.mjs + T56 refresh (waiver-24h)",

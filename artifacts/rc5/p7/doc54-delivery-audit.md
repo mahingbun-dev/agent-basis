@@ -70,13 +70,13 @@
 | R20 | P1 | **closed（协议级；真实扩展 NOTRUN）** | 治理 ask/deny：`artifacts/rc5/E2/SEC/RC5-SEC-GOV/result.md`（deny/ask 均审计+会话事件+工具结果；ask 决策卡按产品 `approval:never` 口径不产生）；companion 中继：`p7/regression/supplement/companion-relay.md`（协议级 PASS；**真实扩展 NOTRUN**，见 §4.3-6）；审计 jsonl：`supplement.json`（2861 行、凭据值 0 命中） |
 | R21 | P2 | **closed** | 51 分节标题计数已对齐实际行：BOOT 13 / MCPS 11 / ACP 10 / OFF 7（`docs/design/51-上游rc.5合并测试用例与回归.md` §3.2/3.5/3.9/3.10） |
 
-> 按 54 §9 目标「P0/P1 清零」：**P0 已清零**（R01 关闭）；**P1 已清零**（R04 关闭）。本轮新发现 **R22（P1，任务角色 prompt/preset 接线）**，已定根因与修复方案，因最终镜像 24h 浸泡进行中、改动会作废窗口，按 54 §7 记入下一次镜像变更窗口，不阻塞本次判据。
+> 按 54 §9 目标「P0/P1 清零」：**P0 已清零**（R01 关闭）；**P1 已清零**（R04、R22 关闭——R22 于 2026-11-21 修复并通过 G1-1/G1-2/全包门禁，随 R22 修复镜像窗口重新部署）。
 
 ### 2.1 本轮新增 RAID
 
 | id | 级别 | 现状 | 根因/方案/证据 |
 |---|---|---|---|
-| R22 | P1（产品遗留，非 RC5 回归） | **open（deferred）** | **根因**：super profile `docker/profile/package.json` 的 bundles 未含 `@eterna/tasks` → `packages/tasks/cordis.patch.yml` 的 orchestrator/worker preset 未进 preset registry；`SessionsHost.presets` 从未注入；`prompts.composePrompt` 只在测试中使用。**现象**（E3 真模型实测）：主会话按标准 preset 创建（带 persona/subagent 工具），系统 prompt 无 `你是 orchestrator`/`## dispatch`，会自行派 subagent 与 tasks 路由重复。**方案**：bundles 加 `@eterna/tasks` → `eterna-tasks` 配置 `presets` → `Sessions.ensure` 在 `agent.ctx.systemPrompt.section(...)` 注册角色 prompt（additive，order 0）→ 单测覆盖「每 agent 一次/role 文本/缺席降级」。**为何 defer**：镜像 `22fe8acb…` 上的 TERM-013/DATA-009 24h 浸泡正在跑，改代码需重建镜像并重跑窗口。**证据**：`artifacts/rc5/e3-super/API-005-real-model.md` §4-2 |
+| R22 | P1（产品遗留，非 RC5 回归） | **closed（2026-11-21 修复,PR 待合并）** | **根因**：tasks 未进 bundles（base/super 共享 manifest,web 形态不得装载）→ 双 preset 未进 registry；`SessionsHost.presets`/`rolePrompt` 从未注入。**修复（三件套）**：① 40 号 S-3 纪律 2 的 restatement——双 preset 行逐字复述进 `cordis.super.patch.yml.template` 与 `profiles/eterna-super/cordis.patch.yml`（insert 块,漂移由 preset.spec「模板/开发档 ≡ 包源」深等断言守卫）；② `plugin.ts` 接线 `Sessions.presets`（常量 `src/session/presets.ts`）与 `rolePrompt`（`Prompts.compose` 现算）；③ `sessions.ts registerRoleSection`——每次 ensure 经该 agent 自己的 `agent.ctx.systemPrompt.section` 注册角色 prompt（additive order 0,provider 现算 Policy 段,WeakSet 每 agent 一次,fail-neutral）。**验证**：tasks 包 oxlint/tsc/vitest 877 全绿（新增 role-prompt-section.spec 8 例 + preset.spec restatement 深等）；G1-1 OK（base 不受影响,229 entries/3 presets）；**G1-2 OK（237 entries,5 presets,含 eterna-tasks-orchestrator/worker 在册 + 组成行 active,断言面同步扩）**；form-check 0；prompt-scan 0。**既有主会话的 recorded preset 替换归会话重建**（rc.5 create 语义「replacing a reused Session's recorded preset」,ops 可选）;角色 section 随重启 ensure 即生效（boot 日志 `[tasks] 角色 prompt section(...) 已注册`）。 |
 
 ---
 
@@ -108,7 +108,7 @@
 
 6. **真实 Chrome 扩展 REAL-EXT = NOTRUN**：headless 无人值守环境不能交互式加载未打包 MV3 扩展；中继协议/令牌/在线探测已协议级 PASS（`companion-relay.md`）。若要实测，需在带桌面会话的验收机执行。
 7. **H16 个人 MCP HTTP 可访问内网 / H7 回滚后 rc.5 新会话不可读 / terminal 接管不可交还**：49 §11 产品已书面接受，PR §5 与发布说明已逐条落字，控制项证据在 `packages/access/src/mcp-personal.ts`、`p7/rollback-record.md`、TERM 车道。
-8. **R22 任务角色 prompt/preset 接线（产品 P1，deferred）**：主会话当前按标准 preset 创建，角色 prompt 未投递，可能自行派 subagent 与 tasks 路由重复；不影响 API-005/006/007 的判据。修复方案与不在本镜像改的原因见 §2.1；发布说明需落字「tasks 编排角色 prompt 接线随下一次镜像窗口」。
+8. ~~R22 任务角色 prompt/preset 接线~~：**已修复（2026-11-21）**——restatement + presets/rolePrompt 接线 + per-agent section,双跑 G1-1/G1-2 绿；随 R22 修复镜像窗口部署后生效（boot 日志可见注册行）。
 
 ---
 

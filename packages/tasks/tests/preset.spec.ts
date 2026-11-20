@@ -25,7 +25,7 @@
  * 正确,行序由 packctl form-check FORM001 静态看护」)。
  */
 import { describe, expect, it } from 'vitest'
-import { parseTasksPatch } from './fixtures/patch.ts'
+import { devSuperProfileText, insertRowsOf, parseRows, parseTasksPatch, superTemplateText } from './fixtures/patch.ts'
 import { COMPACTION_ROW_ORDER, ORCHESTRATOR_PRESET_ID, WORKER_PRESET_ID } from '../src/session/presets.ts'
 
 /** 解析包根 cordis.patch.yml(单真值;行序即数组序,YAML 列表保序;!!js 前处理见 fixtures/patch.ts)。 */
@@ -115,5 +115,41 @@ describe('orchestrator/worker 双 preset 结构(34 §1 cordis.patch.yml 行)', (
     expect(bash, 'bash-sandbox 行存在').toBeDefined()
     expect(bash!.config.timeoutMs).toBe(5000)
     expect(bash!.config.maxTimeoutMs).toBe(5000)
+  })
+})
+
+describe('R22 restatement:super 模板/开发档 profile ≡ 包源(40 号 S-3 纪律 2;2026-11-21 接线)', () => {
+  /** 一份行集里的 tasks 双 preset 行(按 config.id 取,保持包源序)。 */
+  const restatedTasksPresets = (rows: Array<Record<string, unknown>>): Array<Record<string, unknown>> =>
+    (insertRowsOf(rows) ?? []).filter(row => row.name === '@deepseek-ai/dsh-agent-preset'
+      && [ORCHESTRATOR_PRESET_ID, WORKER_PRESET_ID].includes((row.config as Record<string, unknown> | undefined)?.id as string))
+  const sourcePresets = restatedTasksPresets(parseTasksPatch())
+
+  it('包源恰两行(前置 sanity:worker 前 orchestrator 后)', () => {
+    expect(sourcePresets).toHaveLength(2)
+    expect((sourcePresets[0]!.config as Record<string, unknown>).id).toBe(WORKER_PRESET_ID)
+    expect((sourcePresets[1]!.config as Record<string, unknown>).id).toBe(ORCHESTRATOR_PRESET_ID)
+  })
+
+  it.each([
+    ['super 容器模板', superTemplateText],
+    ['开发档 super profile', devSuperProfileText],
+  ])('%s 的 insert 复述与包源深等(逐字漂移即红)', (_name, text) => {
+    const restated = restatedTasksPresets(parseRows(text))
+    expect(restated).toHaveLength(2)
+    expect(restated).toEqual(sourcePresets)
+  })
+
+  it.each([
+    ['super 容器模板', superTemplateText],
+    ['开发档 super profile', devSuperProfileText],
+  ])('%s 的 eterna-tasks 挂载行在 preset 行之前(同一 insert 块内,R22 接线局部性)', (_name, text) => {
+    const rows = insertRowsOf(parseRows(text))
+    const presetAt = rows.findIndex(row => row.name === '@deepseek-ai/dsh-agent-preset'
+      && (row.config as Record<string, unknown> | undefined)?.id === ORCHESTRATOR_PRESET_ID)
+    const pluginAt = rows.findIndex(row => row.id === 'eterna-tasks' && row.name === '@eterna/tasks')
+    expect(presetAt).toBeGreaterThan(-1)
+    expect(pluginAt).toBeGreaterThan(-1)
+    expect(pluginAt).toBeLessThan(presetAt)
   })
 })
