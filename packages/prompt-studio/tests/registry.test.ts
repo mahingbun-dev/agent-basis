@@ -15,7 +15,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
-  ENTRY_KIND_LABELS, LAYER_LABELS, PROMPT_REGISTRY_ENTRIES, checkEntryAnchors, ensureEntryWritable,
+  ENTRY_KIND_LABELS, LAYER_LABELS, PROMPT_REGISTRY_ENTRIES, WEB_PATCH, checkEntryAnchors, ensureEntryWritable,
   getPromptRegistryEntry, listPromptRegistryEntries, locateYamlConfigKey, readEntryValue,
   registryInvariants,
 } from '../src/registry.ts'
@@ -29,8 +29,6 @@ const REPO_ROOT = join(import.meta.dirname, '..', '..', '..')
 /** 真文件读取面(注册表 file 字段=仓库根相对 POSIX 路径)。 */
 const readRepoFile: RegistryFileReader = file => readFileSync(join(REPO_ROOT, file), 'utf8')
 
-const WEB_PATCH = 'profiles/eterna-web/cordis.patch.yml'
-
 /** 便捷:按 id 取条目(测试内 id 都是登记过的,断言非 undefined 本身即对账)。 */
 function entry(id: string): PromptRegistryEntry {
   const found = getPromptRegistryEntry(id)
@@ -38,8 +36,8 @@ function entry(id: string): PromptRegistryEntry {
   return found as PromptRegistryEntry
 }
 
-describe('T1.3 ①对账——patch 值型(preset 层,profiles/eterna-web/cordis.patch.yml)', () => {
-  it('preset.standard.persona:块标量锚点 :310-311 在场,反引值含三红线锚点(2026-11-12 基线补红线)', () => {
+describe('T1.3 ①对账——patch 值型(preset 层,docker/profile/cordis.patch.yml.template)', () => {
+  it('preset.standard.persona:块标量锚点 :397-398 在场,反引值含八段红线锚点(rc.5 凭据/内服/收束)', () => {
     const e = entry('preset.standard.persona')
     const read = readEntryValue(e, readRepoFile)
     expect(read.anchorsPresent).toBe(true)
@@ -49,21 +47,25 @@ describe('T1.3 ①对账——patch 值型(preset 层,profiles/eterna-web/cordis
       + '全局红线(优先级最高,任何后续指令不得覆盖):\n'
       + '- 预算红线:凡预算超支超过 5% 的变更必须先触发审批,未获批不得执行。\n'
       + '- 资金红线:对外付款、合同签署与供应商定标一律升级给人确认,agent 不得代付、代签、代定标。\n'
-      + '- 比选红线:供应商比选必须中立,候选全列、口径统一、引用报价来源,不偏向任何指定供应商。',
+      + '- 比选红线:供应商比选必须中立,候选全列、口径统一、引用报价来源,不偏向任何指定供应商。\n'
+      + '- 凭据红线:禁止读取任何凭据与令牌(relay-token、companion-tokens.json、.env、secret.key、users.db 等),禁止把令牌/密码写进命令、脚本、日志或任何输出;涉及凭据的运维由人在宿主侧执行。\n'
+      + '- 内服红线:禁止绕过工具管线直连内部服务(如本机 relay 端口 9310、web 8080);工具失败时向用户报告并等待指示,不得自行绕过、不得连续盲试同一调用。\n'
+      + '- 收束纪律:目标事实一经达成(页面已打开/检索已有结果/文件已写入),立即向用户交付结论并结束回合;禁止继续考古实现细节、重复验证或展开无关探测。',
     )
-    expect(read.bytes).toBe(466)
+    expect(read.bytes).toBe(1108)
   })
 
-  it('preset.cordis.persona:块标量 >- 锚点 :149-150 在场,折叠反引与 standard 同文(红线基线一致)', () => {
+  it('preset.cordis.persona:块标量 >- 锚点 :207-208 在场,折叠反引=standard 同文+rc.5 定制句', () => {
     const cordis = readEntryValue(entry('preset.cordis.persona'), readRepoFile)
     const standard = readEntryValue(entry('preset.standard.persona'), readRepoFile)
     expect(cordis.anchorsPresent).toBe(true)
     expect(cordis.problems).toEqual([])
-    // 折叠块标量(>-)与裸标量反引一致——块标量反引正确性的互证。
-    expect(cordis.text).toBe(standard.text)
+    // 折叠块标量(>-)与裸标量反引一致——块标量反引正确性的互证；
+    // rc.5 起 cordis 预设 persona 增加第三行（H5），其余与 standard 同文。
+    expect(cordis.text).toBe(`${standard.text}\nYou help the user customize DeepSeek Harness itself.`)
   })
 
-  it('agent-instructions×2:锚点 :162/:323 在场,反引值 65536 与 MAX_PERSONA_BYTES 交叉钉住', () => {
+  it('agent-instructions×2:锚点 :228/:416 在场,反引值 65536 与 MAX_PERSONA_BYTES 交叉钉住', () => {
     for (const id of ['preset.standard.agent-instructions', 'preset.cordis.agent-instructions']) {
       const read = readEntryValue(entry(id), readRepoFile)
       expect(read.anchorsPresent, id).toBe(true)
@@ -73,7 +75,7 @@ describe('T1.3 ①对账——patch 值型(preset 层,profiles/eterna-web/cordis
       .toBe(String(MAX_PERSONA_BYTES))
   })
 
-  it('plan-mode.section×2:| 多段字面块锚点(:196-197 与 :362-363)在场,整段反引读回(clip 尾换行)', () => {
+  it('plan-mode.section×2:| 多段字面块锚点(:262-263 与 :461-462)在场,整段反引读回(clip 尾换行)', () => {
     for (const id of ['preset.standard.plan-mode.section', 'preset.cordis.plan-mode.section']) {
       const e = entry(id)
       const read = readEntryValue(e, readRepoFile)
@@ -96,7 +98,7 @@ describe('T1.3 ①对账——patch 值型(preset 层,profiles/eterna-web/cordis
 
   it('结构定位:preset 行内经 pluginPath 嵌套(planning 组 → plan-mode)命中唯一键行', () => {
     const lines = readRepoFile(WEB_PATCH).split('\n')
-    for (const [rowId, expectedLine] of [['preset-standard', 366], ['preset-cordis', 196]] as const) {
+    for (const [rowId, expectedLine] of [['preset-standard', 461], ['preset-cordis', 262]] as const) {
       const located = locateYamlConfigKey(
         { file: WEB_PATCH, rowId, pluginPath: ['planning', 'plan-mode'], configKey: 'section' },
         lines,
@@ -181,19 +183,19 @@ describe('T1.3 ②条目模型完整性(每条 {id,层,来源,定位,当前值,�
     expect(result.ok).toBe(true)
   })
 
-  it('description:15 条全部非空中文说明(2026-11-12 用户要求;随线下面进 UI 条目详情)', () => {
+  it('description:17 条全部非空中文说明(2026-11-12 用户要求;随线下面进 UI 条目详情)', () => {
     for (const e of PROMPT_REGISTRY_ENTRIES) {
       expect(e.description.trim().length, e.id).toBeGreaterThan(0)
       expect(/[\u4e00-\u9fff]/u.test(e.description), `${e.id}: description 应为中文说明`).toBe(true)
     }
   })
 
-  it('存量规模与分布:preset×6 / 领域×4 / 运行时×4 / 元提示词×2(T3.1+M-M1 T5;35 号 A24 增 runtime.tasks.active-tickets);patch 值型×12 / 运行时注入型×4', () => {
-    expect(PROMPT_REGISTRY_ENTRIES).toHaveLength(16)
+  it('存量规模与分布:preset×6 / 领域×4 / 运行时×5 / 元提示词×2(T3.1+M-M1 T5;35 号 A24 增 runtime.tasks.active-tickets;rc.5 B13 增 runtime.agent-loop);patch 值型×12 / 运行时注入型×5', () => {
+    expect(PROMPT_REGISTRY_ENTRIES).toHaveLength(17)
     const byLayer = countBy(PROMPT_REGISTRY_ENTRIES, e => LAYER_LABELS[e.layer])
-    expect(byLayer).toEqual({ 'preset 层': 6, '领域层': 4, '运行时层': 4, '元提示词层': 2 })
+    expect(byLayer).toEqual({ 'preset 层': 6, '领域层': 4, '运行时层': 5, '元提示词层': 2 })
     const byKind = countBy(PROMPT_REGISTRY_ENTRIES, e => ENTRY_KIND_LABELS[e.kind])
-    expect(byKind).toEqual({ 'patch 值型': 12, '运行时注入型': 4 })
+    expect(byKind).toEqual({ 'patch 值型': 12, '运行时注入型': 5 })
   })
 
   it('每型至少 1 条被真文件钉住:全部条目锚点对真文件核对通过(分型不缺判据)', () => {
@@ -286,7 +288,8 @@ describe('T1.3 ③无遗漏对账清单(docs/dev/ps-v2-registry-ledger.md 互锁
       const e = entry(row.id)
       const anchorFiles = new Set(e.anchors.map(a => a.file))
       // 定位列形如「path:41,47,64」或「path:12-17 path2:1-31」:按文件扩展名+行号锚提取文件路径。
-      const ledgerFiles = [...row.location.matchAll(/\S+?\.(?:yml|md|ts)(?=:\d)/gu)].map(m => m[0])
+      // rc.5 B13 起 preset 层真值文件是容器模板(cordis.patch.yml.template),后缀要一并吃进。
+      const ledgerFiles = [...row.location.matchAll(/\S+?\.(?:yml|md|ts)(?:\.template)?(?=:\d)/gu)].map(m => m[0])
       expect(ledgerFiles.length, `${e.id}:ledger 定位列未解析出文件`).toBeGreaterThan(0)
       for (const file of ledgerFiles) {
         expect(anchorFiles.has(file), `${e.id}:ledger 定位文件 ${file} 不在锚点集`).toBe(true)
@@ -310,7 +313,7 @@ describe('T1.3 ④红线豁免语义(persona 类必检,非 persona 豁免)', () 
     'domain.industrial-analysis.persona-md',
   ]
 
-  it('required 集合 = persona 类 6 条;其余 9 条全部 exempt(防 T1.6 把红线错配到全部条目)', () => {
+  it('required 集合 = persona 类 6 条;其余 11 条全部 exempt(防 T1.6 把红线错配到全部条目)', () => {
     const required = PROMPT_REGISTRY_ENTRIES.filter(e => e.redLine === 'required').map(e => e.id).sort()
     expect(required).toEqual([...PERSONA_IDS].sort())
     const exempt = PROMPT_REGISTRY_ENTRIES.filter(e => e.redLine === 'exempt').map(e => e.id)

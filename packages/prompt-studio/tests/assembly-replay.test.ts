@@ -25,7 +25,7 @@ import {
   ASSEMBLE_EVENT, PLAN_POLICY_SECTION_NAME, PERSONA_PREFIX_SECTION_NAME, PROMPT_REGISTRY_ENTRIES,
   REPLAY_SECTION_MAPPINGS, SKIP_COMPLETE_OWNER, SKIP_GOVERNING_AMBIGUOUS, SKIP_GOVERNING_UNKNOWN,
   SKIP_NO_AGENT_ID, SKIP_NO_SECTION_MAPPING, SKIP_RUNTIME_KIND, SKIP_SECTION_EMPTY,
-  SKIP_SNAPSHOT_ABSENT, SKIP_SNAPSHOT_TEXT_NULL, LoopPromptGateway, agentIdOfAssembleContext,
+  SKIP_SNAPSHOT_ABSENT, SKIP_SNAPSHOT_TEXT_NULL, WEB_PATCH, LoopPromptGateway, agentIdOfAssembleContext,
   pluginSpanOwnsCompleteFlag, resolveAssemblyReplay, replayMappedEntryIds,
 } from '../src/index.ts'
 import type { StudioContextLike } from '../src/types.ts'
@@ -199,32 +199,32 @@ describe('agentIdOfAssembleContext(防御式会话身份提取,spike §四.1)', 
 describe('pluginSpanOwnsCompleteFlag(complete 段在场检测,spike §四.2)', () => {
   it('persona 插件 span 声明 complete: true → true;未声明/定位失败 → false', () => {
     const entry = PROMPT_REGISTRY_ENTRIES.find(candidate => candidate.id === 'preset.standard.persona')!
-    expect(pluginSpanOwnsCompleteFlag(entry, readerOf(new Map([['profiles/eterna-web/cordis.patch.yml', livePatch({ completeStandard: true })]]))))
+    expect(pluginSpanOwnsCompleteFlag(entry, readerOf(new Map([[WEB_PATCH, livePatch({ completeStandard: true })]]))))
       .toBe(true)
-    expect(pluginSpanOwnsCompleteFlag(entry, readerOf(new Map([['profiles/eterna-web/cordis.patch.yml', livePatch()]]))))
+    expect(pluginSpanOwnsCompleteFlag(entry, readerOf(new Map([[WEB_PATCH, livePatch()]]))))
       .toBe(false)
     expect(pluginSpanOwnsCompleteFlag(entry, readerOf(new Map()))).toBe(false)
   })
   it('plan-mode 条目(pluginPath 两级)定位同样可达', () => {
     const entry = PROMPT_REGISTRY_ENTRIES.find(candidate => candidate.id === 'preset.standard.plan-mode.section')!
-    expect(pluginSpanOwnsCompleteFlag(entry, readerOf(new Map([['profiles/eterna-web/cordis.patch.yml', livePatch()]]))))
+    expect(pluginSpanOwnsCompleteFlag(entry, readerOf(new Map([[WEB_PATCH, livePatch()]]))))
       .toBe(false)
   })
   it('只认 configKey 同缩进兄弟键行:块标量正文字面 `complete: true` 行不误判(评审 #6)', () => {
     const entry = PROMPT_REGISTRY_ENTRIES.find(candidate => candidate.id === 'preset.standard.plan-mode.section')!
     const patch = livePatch({ plan: 'You are in plan mode.\ncomplete: true\nMore plan guidance.' })
     // plan 块正文行缩进(16)深于 section: 键行(14) → 不是兄弟键,不判 complete-owner。
-    expect(pluginSpanOwnsCompleteFlag(entry, readerOf(new Map([['profiles/eterna-web/cordis.patch.yml', patch]]))))
+    expect(pluginSpanOwnsCompleteFlag(entry, readerOf(new Map([[WEB_PATCH, patch]]))))
       .toBe(false)
     // 对照:真兄弟键(preset-standard persona 的 complete: true)仍命中。
     const personaEntry = PROMPT_REGISTRY_ENTRIES.find(candidate => candidate.id === 'preset.standard.persona')!
-    expect(pluginSpanOwnsCompleteFlag(personaEntry, readerOf(new Map([['profiles/eterna-web/cordis.patch.yml', livePatch({ completeStandard: true })]]))))
+    expect(pluginSpanOwnsCompleteFlag(personaEntry, readerOf(new Map([[WEB_PATCH, livePatch({ completeStandard: true })]]))))
       .toBe(true)
   })
 })
 
 describe('resolveAssemblyReplay(纯函数:身份判定与替换)', () => {
-  const WEB_PATCH_FILE = 'profiles/eterna-web/cordis.patch.yml'
+  const WEB_PATCH_FILE = WEB_PATCH
 
   function resolve(options: {
     sections: Array<{ name: string; text: string }>

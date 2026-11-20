@@ -19,7 +19,11 @@
 # Eterna enterprise Web 档（eterna-web）：dsh-base + dsh-web-app 之上的企业裁切层。
 #
 # 装载形态：DSH profile `$DSH_HOME/profiles/eterna-web`，其 package.json 声明
-# dsh.profile.bundles = ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app"]，
+# dsh.profile.bundles = ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app",
+# "@deepseek-ai/dsh-deepseek-chat-import", "@deepseek-ai/dsh-experimental-session-search",
+# "@deepseek-ai/dsh-experimental-plugin-market-bundle",
+# "@deepseek-ai/dsh-experimental-terminal-bundle"]（rc.5 默认集；开发档与容器模板同源，
+# 生产渲染源=docker/profile/cordis.patch.yml.template），
 # 本文件作为该 profile 的 cordis.patch.yml（用户层，最后写赢）。裁切=按 id 覆写
 # 既有行并置 disabled: true（补丁语义：裸 id 行只覆写既有行且整份替换 config，
 # 覆写 config 的行重述全部键；新增行必须用 "- insert:"——见
@@ -28,8 +32,12 @@
 #
 # 权威依据：plans/2026-11-06-dsh企业agent路线定案.md §11（§11.7 图纸复核、
 # §11.8 二次裁定为准）。行 id 核对自 deepseek-harness 两个 bundle patch 的
-# 装品版本（@deepseek-ai/dsh-base 0.2.2-rc.1、@deepseek-ai/dsh-web-app 0.2.2-rc.1，
+# 装品版本（@deepseek-ai/dsh-base 0.2.2-rc.5、@deepseek-ai/dsh-web-app 0.2.2-rc.5，
 # 即实际 boot 的补丁文本；仓库检出略超前，差异见 docs/eterna-web-profile.md）。
+# rc.5 增量（本开发档）：删 rc.5 已无的 account-controller/office-to-pdf 覆写；
+# 补 mcp-manager.servers、terminal panel 覆写、ui-account-notifications/
+# workspace-dependencies 禁用；两预设补 tool-subagent-control interrupt:false、
+# tool-office、skill-filesystem customSkillDirs（与容器模板 rc.5 行集对齐）。
 #
 # 两条已知偏差（对 §11.2/§11.8 的字面清单）：
 # 1. `credentials` 行保留不裁：client-connection（web 传输层，必需行
@@ -76,13 +84,38 @@
 - id: llm-deepseek-account
   disabled: true
 
-# 账号 API：硬注入 deepseekAccount（dsh-api-account-controller lib/index.js:199
-# static inject = ["deepseekAccount", "agents"]），底层行裁掉后不裁必 failed。
-- id: account-controller
-  disabled: true
-
+# 账号 API：account-controller 行 rc.5 已整体删除（47 §2.2）——旧覆写行删除；
+# include 对不存在 id 只 warn 跳过，死行会让「absent 即通过」的门禁假绿。
 - id: ui-settings-account
   disabled: true
+
+# rc.5 行集（50 §3.2 第 3 条「禁」）：
+# - ui-account-notifications：上游新增账号通知面；产品通知中心在设置分区
+#   （AGENTS 前端铁律 3），该行禁用。
+# - workspace-dependencies：Desktop 专属（上游 disabled 表达式只认
+#   profile=desktop 且 DSH_PRIMARY_RUNTIME 非空）；Web 档显式钉死禁用。
+- id: ui-account-notifications
+  disabled: true
+
+- id: workspace-dependencies
+  disabled: true
+
+# ── MCP 系统层（rc.5 mcp-manager；B14）──────────────────────────────────────
+# 行由 web-app bundle 提供（name/inject 沿用上游）；本层只写系统层 config.servers
+# 基线（默认空），admin 经设置弹窗写回本行，非 admin 在 settings/describe 过滤。
+- id: mcp-manager
+  config:
+    servers: {}
+
+# ── 终端（rc.5 terminal bundle；B20）────────────────────────────────────────
+# terminal 行集由 @deepseek-ai/dsh-experimental-terminal-bundle 引入（insert 组
+# optional-persistent-terminals 内）；本档覆写按 id 递归命中组内行。容器内固定
+# bash、关闭「读取用户自建终端」面（多租户共享容器，用户终端不跨账号暴露）。
+- id: optional-terminal-panel
+  config:
+    preferredShells:
+      - bash
+    readUserTerminals: false
 
 # ── ptc/workflow 家族·宿主行（2026-11-09 修订：创造模式（preset-cordis）回加后，
 # workflow-ptc 硬依赖 ptcRuntime 服务（static inject 含 ptcRuntime，且强制
@@ -120,9 +153,10 @@
   disabled: true
 
 # ── 场景裁切（§11.3/§11.8 确认维持）─────────────────────────────────────────
-- id: office-to-pdf
-  disabled: true
-
+# office-to-pdf 行 rc.5 已删除（web-app 行漂移：office-kit / skill-office /
+# workspace-dependencies 替代）——旧覆写行删除（死 id 只 warn 跳过，假绿）。
+# office-kit 与 skill-office 保持上游默认（web-app 自带 outputDirectory=
+# dshHomePath('office-kit','outputs') 与 pythonEnvironment='user'，不覆写）。
 - id: open-in-app
   disabled: true
 
@@ -174,6 +208,8 @@
             - 资金红线:对外付款、合同签署与供应商定标一律升级给人确认,agent 不得代付、代签、代定标。
 
             - 比选红线:供应商比选必须中立,候选全列、口径统一、引用报价来源,不偏向任何指定供应商。
+
+            You help the user customize DeepSeek Harness itself.
       - id: agent-instructions
         name: '@deepseek-ai/dsh-agent-instructions'
         config:
@@ -262,6 +298,9 @@
         config:
           - id: tool-subagent-control
             name: '@deepseek-ai/dsh-tool-subagent-control'
+            # rc.5 默认 interrupt:false（base 行与装品 standard/cordis preset 均显式声明）
+            config:
+              interrupt: false
           - id: tool-subagent
             name: '@deepseek-ai/dsh-tool-subagent'
             config:
@@ -310,6 +349,9 @@
         name: '@deepseek-ai/dsh-tool-skill'
       - id: present
         name: '@deepseek-ai/dsh-tool-present'
+      # rc.5 新增 office 工具行（B15）：Office 读写走 office-kit 宿主行。
+      - id: tool-office
+        name: '@deepseek-ai/dsh-tool-office'
       - id: tool-plugin-manager
         name: '@deepseek-ai/dsh-plugin-manager/tools'
         disabled: true
@@ -366,6 +408,11 @@
         name: '@deepseek-ai/dsh-tool-schedule'
       - id: skill-filesystem
         name: '@deepseek-ai/dsh-skill-filesystem'
+        config:
+          # rc.5 装品 standard preset 新增 customSkillDirs（上游指 dsh-agent-preset/skills）；
+          # 本品整份重述，必须显式补齐并改指品牌化 fork（@eterna/creation-skills）。
+          customSkillDirs:
+            - !!js process.getBuiltinModule('node:path').join(process.getBuiltinModule('node:path').dirname(process.getBuiltinModule('node:module').createRequire(baseUrl).resolve('@eterna/creation-skills/package.json')), 'skills')
       - id: tool-skill
         name: '@deepseek-ai/dsh-tool-skill'
       - id: command-goal
@@ -432,6 +479,9 @@
         config:
           - id: tool-subagent-control
             name: '@deepseek-ai/dsh-tool-subagent-control'
+            # rc.5 默认 interrupt:false（base 行与装品 standard/cordis preset 均显式声明）
+            config:
+              interrupt: false
           - id: tool-subagent
             name: '@deepseek-ai/dsh-tool-subagent'
             config:
@@ -469,6 +519,9 @@
           searchTimeoutMs: 60000
       - id: present
         name: '@deepseek-ai/dsh-tool-present'
+      # rc.5 新增 office 工具行（B15）：Office 读写走 office-kit 宿主行。
+      - id: tool-office
+        name: '@deepseek-ai/dsh-tool-office'
       - id: tool-plugin-manager
         name: '@deepseek-ai/dsh-plugin-manager/tools'
         disabled: true

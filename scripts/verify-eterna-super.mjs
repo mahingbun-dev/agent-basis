@@ -47,13 +47,37 @@ const profileDir = join(home, 'profiles', profileName)
 const BOOT_TIMEOUT_MS = 120_000
 const PROBE_TIMEOUT_MS = 10_000
 
+/**
+ * T11 出口口径（54 §4.4/§4.11、51 BOOT-004..007/012）：
+ *  - host entries 是本形态 settle 后的 Loader 树规模（rc.5 基线 235；行漂移即红）；
+ *  - 模板形态 43 blocks = 3 insert + 40 override（T10 交付数），override 必须
+ *    全部命中活体树，0 unknown；
+ *  - 槽位漂移：本仓 client 注册的 slot 必须命中活宿主 slot catalog，且源码声明
+ *    面 == 浏览器实收 bundle 的注册面（无缺失/无多出）；
+ *  - stderr 不得出现 app-boot 的 `disabling profile plugin`（兼容性冲突静默裁行）。
+ */
+const EXPECTED_HOST_ENTRIES = 235
+const EXPECTED_TEMPLATE_BLOCKS = 43
+const EXPECTED_TEMPLATE_INSERTS = 3
+const EXPECTED_TEMPLATE_OVERRIDES = 40
+/** T36 固定产品客户端包（super 全挂：10/10）。 */
+const T36_PRODUCT_CLIENT_PACKAGES = [
+  'access', 'attachments', 'brand', 'compaction', 'llm-doctor',
+  'memory', 'panel', 'prompt-studio', 'usage-stats', 'workbench',
+]
+/** 可选：设为目录时由本脚本落脱敏证据（inventory/boot 日志/槽位报告）。 */
+const EVIDENCE_DIR = process.env.ETERNA_EVIDENCE_DIR
+
 /** Rows the enterprise Web 档 cuts (plans §11.2/§11.3/§11.8)——super 裁切面继承 base。 */
 const CUT_ROWS = [
   // 遥测两处
   'otel', 'session-telemetry-otel', 'desktop-product-telemetry', 'product-analytics',
   // 凭据库 + 账号体系（credentials 保留：connection 必需行硬依赖，见 docs）
   'authorization', 'deepseek-account', 'llm-deepseek', 'llm-deepseek-account',
-  'account-controller', 'ui-settings-account',
+  // account-controller 行 rc.5 已整体删除（47 §2.2）；保留在清单里只会让 absent 假绿。
+  'ui-settings-account',
+  // 50 §3.2 第 3 条「禁」：账号通知面与 Desktop 专属依赖解析（模板显式 disabled 钉死）。
+  'ui-account-notifications', 'workspace-dependencies',
   // ptc 家族修订（2026-11-09）：创造模式（preset-cordis）回加后 ptc-runtime/
   // workflow-ptc/tool-workflow 三行宿主回加（workflow-ptc 硬依赖 ptcRuntime
   // 服务）；仅 tool-executor-ptc 维持裁切。标准会话经 preset-standard 内
@@ -61,7 +85,8 @@ const CUT_ROWS = [
   'tool-executor-ptc', 'fs-observation-policy', 'tool-plugin-manager', 'ui-workflow-run',
   // 场景裁切（shortcuts 不在此列：client 服务根，2026-11-09 浏览器 E2E 教训——
   // 裁掉即 26 个 client-ui 插件 web boot 全家 pending，宿主侧断言照绿）
-  'office-to-pdf', 'open-in-app', 'ui-open-in-app', 'ui-shortcuts',
+  // office-to-pdf 行 rc.5 已删除（47 §2.2），从裁切清单移除。
+  'open-in-app', 'ui-open-in-app', 'ui-shortcuts',
   'ui-brand-official', 'ui-message-feedback',
   // Session Log 上传（2026-11-09 用户裁定：通用设置去掉该开关，上传能力一并裁——数据不出内网）
   'session-log-deepseek', 'ui-settings-session-log',
@@ -78,7 +103,8 @@ const HOST_KEPT_ROWS = [
   'working-directory', 'tool-working-directory', 'session-projection', 'session-projection-cache',
   'storage', 'storage-json', 'storage-domain', 'attachment-local', 'mcp-resources',
   // 回加家族（host 半）
-  'goal', 'goal-round-driver', 'subagent', 'subagent-spawn-in-process', 'subagent-fork-in-process',
+  'goal', 'goal-round-driver', 'subagent', 'agent-team', 'tool-agent-team',
+  'subagent-spawn-in-process', 'subagent-fork-in-process',
   'schedule', 'web', 'web-search-deepseek', 'web-deepseek-api', 'web-fetch-http',
   // 创造模式宿主行（2026-11-09 回加：workflow-ptc 硬依赖 ptcRuntime）
   'ptc-runtime', 'workflow-ptc', 'tool-workflow',
@@ -89,6 +115,13 @@ const HOST_KEPT_ROWS = [
   'webserver', 'web-runtime', 'web-startup', 'connection', 'modules', 'plugin-inventory',
   // jobs/报告异步化（图纸⑦）
   'job-controller', 'ui-jobs', 'deliverable-file-references',
+  // rc.5 新增宿主行（47 §2.2 行漂移）：MCP 系统层 manager、Office 行集、
+  // 文件动作/上下文菜单/Agent Team UI、terminal bundle 组（组行+三内行）。
+  'mcp-manager', 'office-kit', 'skill-office',
+  'ui-file-actions', 'ui-context-menu', 'ui-agent-team',
+  // terminal bundle 的 cordis:group 行本身不进 inventory（2026-11-20 真 boot 实测：
+  // 229 entries 内是三个子行），组在场由子行全 active + 侧栏 terminal-controller 间接证明。
+  'optional-terminal-registry', 'optional-terminal-panel', 'optional-tool-terminal',
   // 企业挂载面（2026-11-18 补断言）：治理三行 + access/brand/llm-doctor/usage-stats
   // ——2026-11-17 端到端发现：symlink 缺链时这些行静默不激活且原断言面不覆盖，
   // /login 404、/access/api 无守卫。此处与 BASE_MOUNT_PACKAGES 一一对应防回归。
@@ -123,6 +156,8 @@ const PRESET_KEPT_ROWS = [
   'stale-tool-result-pruner',
   'tool-subagent-control', 'tool-subagent', 'tool-subagent-fork',
   'tool-todo', 'tool-web', 'agent-instructions', 'tool-ask-user',
+  // rc.5 B15：两预设均补 tool-office 行（整份重述不补即静默丢 rc.5 默认，H5）。
+  'tool-office',
 ]
 
 /** super 形态的 Tier2/接线包(守卫式 symlink:目录存在才建链,镜像 entrypoint 第 3 步同款)。 */
@@ -148,27 +183,18 @@ if (existsSync(homePatch)) {
 rmSync(profileDir, { recursive: true, force: true })
 mkdirSync(profileDir, { recursive: true })
 // 创造模式（preset-cordis）硬依赖：skill-filesystem 的 customSkillDirs 表达式
-// 以 createRequire(baseUrl) 解析 @deepseek-ai/dsh-agent-preset（baseUrl=profile
-// 目录）——必须把该包链接进 profile node_modules，否则 skill-filesystem 条目
-// failed（2026-11-09 实测 MODULE_NOT_FOUND）。rc.1 已钉版，取 .pnpm 内唯一实装。
+// 以 createRequire(baseUrl) 解析 **@eterna/creation-skills**（baseUrl=profile 目录；
+// rc.5 H5 起由 dsh-agent-preset/skills 改指品牌化 fork = packages/brand，entrypoint
+// 第 3 步建同名别名）——缺链即 skill-filesystem failed（MODULE_NOT_FOUND）。
 const pnpmDir = join(repoRoot, 'node_modules', '.pnpm')
-const presetCandidates = existsSync(pnpmDir)
-  ? readdirSync(pnpmDir).filter((dir) => dir.startsWith('@deepseek-ai+dsh-agent-preset@0.2.2-rc.1'))
-  : []
-if (presetCandidates.length === 0) {
-  console.error('verify-eterna-super: @deepseek-ai/dsh-agent-preset@0.2.2-rc.1 未安装——创造模式 skill 目录无法解析')
-  process.exit(1)
-}
-const agentPresetDir = join(pnpmDir, presetCandidates[0], 'node_modules', '@deepseek-ai', 'dsh-agent-preset')
 const profileNodeModules = join(profileDir, 'node_modules', '@deepseek-ai')
 mkdirSync(profileNodeModules, { recursive: true })
-symlinkSync(agentPresetDir, join(profileNodeModules, 'dsh-agent-preset'), 'dir')
 // companion 浏览器执行面（E1）：dsh-mcp-client 插件（mcp-browser 条目的 name 引用）
 const mcpClientCandidates = existsSync(pnpmDir)
-  ? readdirSync(pnpmDir).filter((dir) => dir.startsWith('@deepseek-ai+dsh-mcp-client@0.2.2-rc.1'))
+  ? readdirSync(pnpmDir).filter((dir) => dir.startsWith('@deepseek-ai+dsh-mcp-client@0.2.2-rc.5'))
   : []
 if (mcpClientCandidates.length === 0) {
-  console.error('verify-eterna-super: @deepseek-ai/dsh-mcp-client@0.2.2-rc.1 未安装——mcp-browser 条目无法解析')
+  console.error('verify-eterna-super: @deepseek-ai/dsh-mcp-client@0.2.2-rc.5 未安装——mcp-browser 条目无法解析')
   process.exit(1)
 }
 const mcpClientDir = join(pnpmDir, mcpClientCandidates[0], 'node_modules', '@deepseek-ai', 'dsh-mcp-client')
@@ -183,6 +209,7 @@ if (!existsSync(join(promptStudioPkg, 'lib', 'client.js'))) {
   process.exit(1)
 }
 mkdirSync(join(profileDir, 'node_modules', '@eterna'), { recursive: true })
+symlinkSync(join(repoRoot, 'packages', 'brand'), join(profileDir, 'node_modules', '@eterna', 'creation-skills'), 'dir')
 symlinkSync(promptStudioPkg, join(profileDir, 'node_modules', '@eterna', 'prompt-studio'), 'dir')
 // 附件入口（2026-11-12 生产挂载）：insert 行 name 解析 '@eterna/attachments'
 // 同样只经 profile node_modules；客户端双面包需宿主 Loader 条目 + lib/client.js。
@@ -242,7 +269,14 @@ for (const pkg of SUPER_FUTURE_PACKAGES) {
 writeFileSync(join(profileDir, 'package.json'), `${JSON.stringify({
   name: `dsh-profile-${profileName}`,
   private: true,
-  dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'] } },
+  dsh: { profile: { bundles: [
+    '@deepseek-ai/dsh-base',
+    '@deepseek-ai/dsh-web-app',
+    '@deepseek-ai/dsh-deepseek-chat-import',
+    '@deepseek-ai/dsh-experimental-session-search',
+    '@deepseek-ai/dsh-experimental-plugin-market-bundle',
+    '@deepseek-ai/dsh-experimental-terminal-bundle',
+  ] } },
 }, null, 2)}\n`)
 writeFileSync(join(profileDir, 'cordis.yml'), '[]\n')
 copyFileSync(sourcePatch, join(profileDir, 'cordis.patch.yml'))
@@ -251,6 +285,8 @@ if (copied !== readFileSync(sourcePatch, 'utf8')) {
   console.error('verify-eterna-super: profile patch copy drifted from the source file')
   process.exit(1)
 }
+// 模板形态静态口径（T10）：顶层 patch block = insert 块 + override 行。
+const templateStats = summarizeTemplate(copied)
 
 /**
  * super 挂载面行集（从清单派生,40 号 S-6 差异点 2）:insert 块内 @eterna 行的
@@ -296,6 +332,13 @@ const collect = (stream, sink) => {
 }
 collect(child.stdout, () => {})
 collect(child.stderr, () => {})
+// T11 的 `disabling profile plugin` 是 stderr 判据：与合并 output 分开留档。
+let stdoutText = ''
+let stderrText = ''
+child.stdout.setEncoding('utf8')
+child.stderr.setEncoding('utf8')
+child.stdout.on('data', (chunk) => { stdoutText += chunk })
+child.stderr.on('data', (chunk) => { stderrText += chunk })
 
 let urlLine
 try {
@@ -478,7 +521,212 @@ if (!roster.ok) {
 }
 
 // ---------------------------------------------------------------------------
+// 3f..3n. T11 出口面：模板形态 / 行集 / BOOT-004..007 / 槽位漂移 / BOOT-012。
+
+const hostIds = new Set(snapshot.entries.map((entry) => entry.entryId.replace(/^include:/, '')))
+const presetRowIds = new Set()
+for (const preset of presetByName.values()) {
+  for (const row of preset.rows) if (row.entryId !== null) presetRowIds.add(row.entryId)
+}
+const standardPreset = presetByName.get('standard')
+
+// 3f. 模板形态（T10 交付数：43 blocks = 3 insert + 40 override）。
+pass(`template shape: ${EXPECTED_TEMPLATE_BLOCKS} blocks = ${EXPECTED_TEMPLATE_INSERTS} insert + ${EXPECTED_TEMPLATE_OVERRIDES} override`,
+  templateStats.blocks === EXPECTED_TEMPLATE_BLOCKS
+    && templateStats.inserts === EXPECTED_TEMPLATE_INSERTS
+    && templateStats.overrides.length === EXPECTED_TEMPLATE_OVERRIDES,
+  `blocks=${templateStats.blocks}, insert=${templateStats.inserts}, override=${templateStats.overrides.length}, lines=${templateStats.lines}`)
+
+// 3g. 0 unknown：每个 override id 必须在活体 Loader 树里（死行=启动只 warn 跳过、门禁假绿）。
+const unknownOverrides = templateStats.overrides.filter((row) => !hostIds.has(row.id))
+pass(`template overrides: ${EXPECTED_TEMPLATE_OVERRIDES - unknownOverrides.length}/${EXPECTED_TEMPLATE_OVERRIDES} resolve in live host tree (0 unknown)`,
+  unknownOverrides.length === 0,
+  unknownOverrides.length === 0
+    ? 'all override ids present & settled'
+    : unknownOverrides.map((row) => `${row.id}@line ${row.line}`).join('; '))
+
+// 3h. host entry count（T11 交付口径：super 235）。
+pass(`host entry count = ${EXPECTED_HOST_ENTRIES}`, snapshot.entries.length === EXPECTED_HOST_ENTRIES,
+  `live=${snapshot.entries.length}, expected=${EXPECTED_HOST_ENTRIES}`)
+
+// 3h-pre. 静默 disable 扫描（T11 §4.11 / 49 §10.2）：stderr 无 `disabling profile plugin`。
+const disableLines = stderrText.split('\n').filter((line) => line.includes('disabling profile plugin'))
+pass('boot stderr clean (no disabling profile plugin)', disableLines.length === 0,
+  disableLines.length === 0
+    ? 'stderr 无兼容性裁行记录'
+    : `命中 ${disableLines.length} 行:${disableLines.slice(0, 5).map((line) => line.trim().slice(0, 180)).join(' | ')}`)
+
+// 3i. BOOT-004：未知行 id / 未知 patch 目标计数 0（app-boot 的 patch 告警面）。
+const unknownRowLines = output.join('').split('\n').filter((line) =>
+  /unknown plugin row|patch(?: insert)?: entry "[^"]+" (?:not found|is not a group)|patch: name mismatch/i.test(line))
+pass('BOOT-004 unknown plugin row count = 0', unknownRowLines.length === 0 && unknownOverrides.length === 0,
+  unknownRowLines.length === 0
+    ? `live patch targets all resolve (${templateStats.overrides.length} overrides)`
+    : `命中 ${unknownRowLines.length} 行:${unknownRowLines.slice(0, 5).map((line) => line.trim().slice(0, 180)).join(' | ')}`)
+
+// 3j. BOOT-005：rc.5 已删除行不得复活（host 与 preset 两面都查）。
+const REMOVED_ROWS = ['account-controller', 'office-to-pdf']
+const removedHits = []
+for (const id of REMOVED_ROWS) {
+  if (hostIds.has(id)) removedHits.push(`${id}: host`)
+  if (presetRowIds.has(id)) removedHits.push(`${id}: preset`)
+}
+pass('BOOT-005 deleted rows absent (account-controller, office-to-pdf)', removedHits.length === 0,
+  removedHits.join('; ') || 'absent in host tree and every preset')
+
+// 3k. BOOT-006：rc.5 新增行全在且 active。
+const NEW_ROWS = ['agent-team', 'tool-agent-team', 'ui-agent-team', 'ui-file-actions', 'ui-context-menu',
+  'mcp-manager', 'office-kit', 'skill-office', 'deepseek-chat-import']
+const newRowProblems = NEW_ROWS.flatMap((id) => {
+  const entry = hostByEntry.get(id)
+  if (entry === undefined) return [`${id}: absent`]
+  if (!entry.enabled || entry.fiberPhase !== 'active') return [`${id}: ${describe(entry)}`]
+  return []
+})
+pass(`BOOT-006 rc.5 new rows present+active (${NEW_ROWS.length})`, newRowProblems.length === 0,
+  newRowProblems.join('; ') || NEW_ROWS.join(', '))
+
+// 3l. BOOT-007：preset-standard 整份重述后仍保留 rc.5 默认，无丢行。
+const presetComposition = flattenPresetRows(copied, 'preset-standard')
+let presetDrift = []
+if (!presetComposition.ok) {
+  presetDrift = [`预设解析失败:${presetComposition.error}`]
+} else if (standardPreset === undefined) {
+  presetDrift = ['standard preset missing']
+} else {
+  const liveRows = new Map(standardPreset.rows.map((row) => [row.entryId, row]))
+  for (const row of presetComposition.rows) {
+    const live = liveRows.get(row.id)
+    if (live === undefined) { presetDrift.push(`${row.id}: absent`); continue }
+    if (row.disabled === true && live.enabled !== false) {
+      presetDrift.push(`${row.id}: declared disabled but enabled=${String(live.enabled)}`)
+    }
+    if (row.disabled === undefined && !(live.enabled === true && live.fiberPhase === 'active')) {
+      presetDrift.push(`${row.id}: ${JSON.stringify({ enabled: live.enabled, fiberPhase: live.fiberPhase })}`)
+    }
+  }
+}
+pass('BOOT-007 preset-standard restatement retains rc.5 default rows', presetDrift.length === 0,
+  presetDrift.join('; ') || `${presetComposition.rows?.length ?? 0} declared rows all present (disabled flags honored)`)
+
+// 3m. 槽位漂移（T11 §4.11 硬约束）：本仓 packages/*/src/client 的注册面必须
+// 命中活宿主的 slot catalog（served runner bundle 的 CLIENT_SLOT_API），且源码
+// 声明面 == 浏览器实收 bundle 的注册面（无缺失/无多出）。super 全挂 12 包。
+const declaredSlots = enumerateDeclaredSlots(join(repoRoot, 'packages'))
+const mountedPackages = new Set()
+for (const entry of snapshot.entries) {
+  const match = /^@eterna\/([^/]+)/.exec(entry.moduleName)
+  if (match !== null) mountedPackages.add(match[1])
+}
+const bootEntries = roster.ok ? (roster.boot?.entries ?? []) : []
+const bootEntryIds = new Set(bootEntries.map((entry) => entry.id))
+const servedBundles = roster.ok ? (roster.bundles ?? {}) : {}
+const liveSlotCatalog = new Set(roster.ok ? (roster.liveSlots ?? []) : [])
+const slotReports = []
+const slotProblems = { missingCatalog: [], missingBundle: [], extraBundle: [], notInRoster: [], fetchFailed: [] }
+let checkedSlotPackages = 0
+for (const [pkg, keys] of [...declaredSlots.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+  if (!mountedPackages.has(pkg)) {
+    console.log(`SKIP  slot drift [${pkg}] — 本形态未挂载该包（${keys.size} 个声明槽位不参与）`)
+    continue
+  }
+  checkedSlotPackages += 1
+  const bundle = servedBundles[pkg]
+  const served = new Set(bundle?.status === 200 ? extractSlotKeys(bundle.body) : [])
+  const missingFromBundle = [...keys.keys()].filter((key) => !served.has(key))
+  const extraInBundle = [...served].filter((key) => !keys.has(key))
+  const missingFromCatalog = [...keys.keys()].filter((key) => !liveSlotCatalog.has(key))
+  if (!bootEntryIds.has(`@eterna/${pkg}`)) slotProblems.notInRoster.push(pkg)
+  if (bundle === undefined || bundle.status !== 200) slotProblems.fetchFailed.push(`${pkg}:${bundle?.status ?? 'none'}`)
+  slotProblems.missingBundle.push(...missingFromBundle.map((key) => `${pkg}:${key}`))
+  slotProblems.extraBundle.push(...extraInBundle.map((key) => `${pkg}:${key}`))
+  slotProblems.missingCatalog.push(...missingFromCatalog.map((key) => `${pkg}:${key}`))
+  slotReports.push({
+    package: `@eterna/${pkg}`,
+    declared: keys.size,
+    served: served.size,
+    missingFromBundle,
+    extraInBundle,
+    missingFromCatalog,
+    bundleStatus: bundle?.status ?? 0,
+    rosterEntry: bootEntryIds.has(`@eterna/${pkg}`),
+    slots: [...keys.keys()],
+    sources: Object.fromEntries([...keys.entries()].map(([key, files]) => [key, files])),
+  })
+  console.log(`SLOT  [${pkg}] declared=${keys.size} served=${served.size} missing=${missingFromBundle.length} extra=${extraInBundle.length} catalogMiss=${missingFromCatalog.length}`)
+}
+const declaredKeyTotal = slotReports.reduce((sum, report) => sum + report.declared, 0)
+const familyCount = (prefix) => slotReports.reduce(
+  (sum, report) => sum + report.slots.filter((key) => key.startsWith(prefix)).length, 0)
+pass(`slot drift: all ${declaredKeyTotal} declared slot keys hit the live host slot catalog (${liveSlotCatalog.size} slots)`,
+  liveSlotCatalog.size > 0 && slotProblems.missingCatalog.length === 0,
+  liveSlotCatalog.size === 0
+    ? 'live slot catalog unavailable（runner bundle 未取到）'
+    : (slotProblems.missingCatalog.join('; ')
+      || `settings.section=${familyCount('settings.section')}, conversation.*=${familyCount('conversation.')}, plugins.tab=${familyCount('plugins.tab')}`))
+pass(`slot drift: ${checkedSlotPackages} mounted packages — declared == served (no missing / no extra)`,
+  checkedSlotPackages > 0 && slotProblems.missingBundle.length === 0 && slotProblems.extraBundle.length === 0,
+  [...slotProblems.missingBundle.map((item) => `missing ${item}`),
+    ...slotProblems.extraBundle.map((item) => `extra ${item}`)].join('; ')
+    || 'source declarations and served client bundles agree')
+pass('slot drift: every mounted slot-declaring package has a __ModuleLoader__ entry',
+  slotProblems.notInRoster.length === 0 && slotProblems.fetchFailed.length === 0 && bootEntries.length > 0,
+  [...slotProblems.notInRoster.map((pkg) => `${pkg}: no boot entry`),
+    ...slotProblems.fetchFailed.map((item) => `${item}: bundle fetch failed`)].join('; ')
+    || `${checkedSlotPackages} packages present in roster`)
+
+// 3n. BOOT-012：浏览器花名册完整（T36 产品 client bundle 全部在册、可取、
+// factory 注册在；release.version 与宿主 dsh 一致）。真实浏览器的
+// 「版本不匹配」控制台面仍需 E1/容器（W5），本断言覆盖花名册/工件半边。
+const dshVersion = readDshVersion()
+const bootProblems = []
+if (!roster.ok || roster.boot === undefined) {
+  bootProblems.push('__DSH_BOOT__ 花名册不可读')
+} else {
+  if (roster.boot.release?.version !== dshVersion) {
+    bootProblems.push(`release.version=${String(roster.boot.release?.version)}, dsh=${dshVersion}`)
+  }
+  for (const entry of bootEntries) {
+    if (typeof entry.url !== 'string' || typeof entry.rev !== 'string') {
+      bootProblems.push(`${String(entry.id)}: 花名册缺 url/rev`)
+      break
+    }
+  }
+  for (const pkg of T36_PRODUCT_CLIENT_PACKAGES) {
+    if (!mountedPackages.has(pkg)) continue
+    if (!bootEntryIds.has(`@eterna/${pkg}`)) bootProblems.push(`${pkg}: 不在花名册`)
+    const bundle = servedBundles[pkg]
+    if (bundle === undefined || bundle.status !== 200) bootProblems.push(`${pkg}: bundle ${bundle?.status ?? 0}`)
+    else if (!bundle.body.includes(`id: "@eterna/${pkg}"`)) bootProblems.push(`${pkg}: 无 factory 注册`)
+  }
+}
+const t36Mounted = T36_PRODUCT_CLIENT_PACKAGES.filter((pkg) => mountedPackages.has(pkg))
+pass(`BOOT-012 client roster complete: T36 ${t36Mounted.length}/${T36_PRODUCT_CLIENT_PACKAGES.length} mounted bundles + release`,
+  bootProblems.length === 0,
+  bootProblems.join('; ') || `${bootEntries.length} boot entries, release ${String(roster.boot?.release?.version)}, ${t36Mounted.join(', ')}`)
+
+// ---------------------------------------------------------------------------
 // 4. Verdict.
+
+// 证据落盘（默认关闭；T11 验收用 ETERNA_EVIDENCE_DIR 打开）：日志先脱敏。
+if (EVIDENCE_DIR !== undefined && EVIDENCE_DIR !== '') {
+  mkdirSync(EVIDENCE_DIR, { recursive: true })
+  writeFileSync(join(EVIDENCE_DIR, 'inventory.json'), `${JSON.stringify(snapshot, null, 1)}\n`)
+  writeFileSync(join(EVIDENCE_DIR, 'boot.stdout.log'), sanitizeLog(stdoutText))
+  writeFileSync(join(EVIDENCE_DIR, 'boot.stderr.log'), sanitizeLog(stderrText))
+  writeFileSync(join(EVIDENCE_DIR, 'template-stats.json'), `${JSON.stringify(templateStats, null, 1)}\n`)
+  writeFileSync(join(EVIDENCE_DIR, 'slot-drift.json'), `${JSON.stringify({
+    profile: profileName,
+    liveSlotCatalogSize: liveSlotCatalog.size,
+    checkedPackages: checkedSlotPackages,
+    packages: slotReports,
+  }, null, 1)}\n`)
+  writeFileSync(join(EVIDENCE_DIR, 'preset-standard.json'), `${JSON.stringify({
+    declaredRows: presetComposition.rows ?? [],
+    drift: presetDrift,
+  }, null, 1)}\n`)
+  console.log(`verify-eterna-super: evidence -> ${EVIDENCE_DIR}`)
+}
 
 console.log(`verify-eterna-super: boot ${urlLine}`)
 console.log(failures.length === 0
@@ -490,6 +738,199 @@ process.exitCode = failures.length === 0 ? 0 : 1
 
 function describe(entry) {
   return entry === undefined ? 'absent' : `${entry.enabled ? 'enabled' : 'disabled'}/${entry.fiberPhase ?? 'no-fiber'}`
+}
+
+/**
+ * 模板形态（T10/T11 同口径）：顶层 `- ` block = insert 块或 override 行。
+ * @param text - patch 模板原文。
+ * @returns 行数、顶层 block 数、insert 块数、override 行（id + 行号）。
+ */
+function summarizeTemplate(text) {
+  const lines = text.split('\n')
+  const overrides = []
+  let blocks = 0
+  let inserts = 0
+  for (let index = 0; index < lines.length; index += 1) {
+    const block = /^- (.*)$/.exec(lines[index])
+    if (block === null) continue
+    blocks += 1
+    const id = /^id:\s*(\S+)\s*$/.exec(block[1])
+    if (id !== null) {
+      overrides.push({ id: id[1], line: index + 1 })
+      continue
+    }
+    if (/^insert:\s*$/.test(block[1])) inserts += 1
+  }
+  return { lines: text.split('\n').length - (text.endsWith('\n') ? 1 : 0), blocks, inserts, overrides }
+}
+
+/** yaml 从 tools/packctl 依赖树解析（与 migrate-mcp-servers.mjs 同源）；缺失不炸脚本。 */
+function loadYamlForVerify() {
+  try {
+    return createRequire(join(repoRoot, 'tools', 'packctl', 'package.json'))('yaml')
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * preset 整份重述的扁平行集（BOOT-007）：跳过 group 行本身、递归 group config，
+ * 保留每行的 id（无 id 用 name）与显式 disabled 标记。
+ * @param patchText - 模板原文。
+ * @param presetId - 例如 `preset-standard`。
+ * @returns {ok, rows} 或 {ok:false,error}。
+ */
+function flattenPresetRows(patchText, presetId) {
+  const yaml = loadYamlForVerify()
+  if (yaml === undefined) return { ok: false, error: 'yaml 不可解析（tools/packctl/node_modules/yaml）' }
+  let data
+  try {
+    const doc = yaml.parseDocument(patchText, { strict: false })
+    if (doc.errors.length > 0) {
+      return { ok: false, error: `YAML 解析失败:${String(doc.errors[0]?.message ?? doc.errors[0]).split('\n')[0].slice(0, 200)}` }
+    }
+    data = doc.toJS({ maxAliasCount: 1000 })
+  } catch (error) {
+    return { ok: false, error: String(error?.message ?? error) }
+  }
+  if (!Array.isArray(data)) return { ok: false, error: '顶层不是补丁数组' }
+  const preset = data.find((entry) => entry !== null && typeof entry === 'object' && entry.id === presetId)
+  const plugins = preset?.config?.plugins
+  if (!Array.isArray(plugins)) return { ok: false, error: `${presetId} 行无 config.plugins` }
+  const rows = []
+  const walk = (list) => {
+    for (const entry of list) {
+      if (entry === null || typeof entry !== 'object') continue
+      if (Array.isArray(entry.config)) { walk(entry.config); continue }
+      if (entry.name === 'cordis:group') continue
+      const id = typeof entry.id === 'string' ? entry.id : (typeof entry.name === 'string' ? entry.name : undefined)
+      if (id === undefined) continue
+      rows.push({ id, disabled: entry.disabled })
+    }
+  }
+  walk(plugins)
+  return { ok: true, rows }
+}
+
+/**
+ * 源码注册面枚举：packages/<pkg>/src/client 下所有 `slots.inject('key'` 字面量。
+ * 注释先剥离（头注/契约说明大量出现槽位名，不剥会把文档当声明）。
+ * @param packagesRoot - 仓库 packages 目录。
+ * @returns Map<pkg, Map<key, sourceFile[]>>。
+ */
+function enumerateDeclaredSlots(packagesRoot) {
+  const byPackage = new Map()
+  const strip = (text) => {
+    let out = ''
+    let index = 0
+    let quote = null
+    while (index < text.length) {
+      const current = text[index]
+      const next = text[index + 1]
+      if (quote !== null) {
+        out += current
+        if (current === '\\') { out += text[index + 1] ?? ''; index += 2; continue }
+        if (current === quote) quote = null
+        index += 1
+        continue
+      }
+      if (current === '/' && next === '/') {
+        while (index < text.length && text[index] !== '\n') index += 1
+        continue
+      }
+      if (current === '/' && next === '*') {
+        index += 2
+        let newlines = ''
+        while (index < text.length && !(text[index] === '*' && text[index + 1] === '/')) {
+          if (text[index] === '\n') newlines += '\n'
+          index += 1
+        }
+        index += 2
+        // 保留行号与 token 分隔：块注释折算为空格 + 原有换行。
+        out += ` ${newlines}`
+        continue
+      }
+      if (current === '\'' || current === '"' || current === '`') quote = current
+      out += current
+      index += 1
+    }
+    return out
+  }
+  const visit = (dir, pkg) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name)
+      if (entry.isDirectory()) { visit(full, pkg); continue }
+      if (!/\.(?:ts|tsx|js|jsx)$/.test(entry.name)) continue
+      const source = strip(readFileSync(full, 'utf8'))
+      for (const match of source.matchAll(/slots\.inject\(\s*(['"`])([^'"`]+)\1/g)) {
+        const key = match[2]
+        if (!byPackage.has(pkg)) byPackage.set(pkg, new Map())
+        const bucket = byPackage.get(pkg)
+        if (!bucket.has(key)) bucket.set(key, [])
+        const relative = full.slice(repoRoot.length + 1)
+        const line = source.slice(0, match.index ?? 0).split('\n').length
+        bucket.get(key).push(`${relative}:${line}`)
+      }
+    }
+  }
+  for (const entry of readdirSync(packagesRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const clientDir = join(packagesRoot, entry.name, 'src', 'client')
+    if (existsSync(clientDir)) visit(clientDir, entry.name)
+  }
+  return byPackage
+}
+
+/** 从一段 client bundle / 源码里取 `slots.inject('key'` 字面量集合。 */
+function extractSlotKeys(code) {
+  return [...new Set([...code.matchAll(/slots\.inject\(\s*(['"`])([^'"`]+)\1/g)].map((match) => match[2]))]
+}
+
+/**
+ * 活宿主槽位契约：served runner bundle 里 `CLIENT_SLOT_API=[...]` 的 key 集。
+ * 用括号配对切出数组（bundle 是压缩后的单行，正则跨不过嵌套模板串）。
+ * @param bundle - 浏览器实收的 runner client.js。
+ * @returns 槽位 key 数组（空数组=未取到契约）。
+ */
+function extractLiveSlotCatalog(bundle) {
+  const marker = bundle.indexOf('CLIENT_SLOT_API')
+  if (marker < 0) return []
+  const start = bundle.indexOf('[', marker)
+  if (start < 0) return []
+  let depth = 0
+  let quote = null
+  let end = -1
+  for (let index = start; index < bundle.length; index += 1) {
+    const current = bundle[index]
+    if (quote !== null) {
+      if (current === '\\') { index += 1; continue }
+      if (current === quote) quote = null
+      continue
+    }
+    if (current === '\'' || current === '"' || current === '`') { quote = current; continue }
+    if (current === '[') depth += 1
+    else if (current === ']') {
+      depth -= 1
+      if (depth === 0) { end = index; break }
+    }
+  }
+  if (end < 0) return []
+  const slice = bundle.slice(start, end + 1)
+  return [...new Set([...slice.matchAll(/\bkey:\s*([`'"])([^`'"]+)\1\s*,\s*kind:\s*([`'"])([^`'"]+)\3/g)].map((match) => match[2]))]
+}
+
+/** 宿主 dsh 版本（BOOT-012 release.version 对照）。 */
+function readDshVersion() {
+  try {
+    return JSON.parse(readFileSync(join(repoRoot, 'node_modules', '@deepseek-ai', 'dsh', 'package.json'), 'utf8')).version
+  } catch {
+    return 'unknown'
+  }
+}
+
+/** 证据脱敏：boot URL 的会话 token 不落盘（AGENTS.md 凭据纪律）。 */
+function sanitizeLog(text) {
+  return text.replace(/token=[A-Za-z0-9_-]+/g, 'token=<redacted>')
 }
 
 /** One authenticated pluginInventory/list call against the booted web host. */
@@ -573,9 +1014,42 @@ async function probeRoster(url) {
       const combo = await fetch(`${index.origin}/${tasksCombo.replace(/^\/+/, '')}`, { headers: { cookie }, signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) })
       if (combo.ok) tasksBody = await combo.text()
     }
+    // T11 槽位漂移取证：__DSH_BOOT__ 花名册给出每个 client entry 的独立 URL；
+    // runner 的 client bundle 内嵌 CLIENT_SLOT_API（活宿主编译期槽位契约），
+    // 各 @eterna 包的 bundle 是浏览器实际收到的注册面。两者与源码枚举比对。
+    const bootMatch = html.match(/__DSH_BOOT__"\]\s*=\s*(\{[\s\S]*?\});?\s*<\/script>/)
+    let boot
+    try {
+      boot = bootMatch === null ? undefined : JSON.parse(bootMatch[1])
+    } catch {
+      boot = undefined
+    }
+    const bundles = {}
+    let liveSlots = []
+    if (boot !== undefined && Array.isArray(boot.entries)) {
+      for (const entry of boot.entries.filter((candidate) => typeof candidate.id === 'string' && candidate.id.startsWith('@eterna/'))) {
+        const pkg = entry.id.split('/')[1]
+        try {
+          const res = await fetch(`${index.origin}/${String(entry.url).replace(/^\/+/, '')}`, { headers: { cookie }, signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) })
+          bundles[pkg] = { status: res.status, body: res.ok ? await res.text() : '' }
+        } catch (error) {
+          bundles[pkg] = { status: 0, body: '', error: String(error?.message ?? error) }
+        }
+      }
+      const runnerEntry = boot.entries.find((candidate) => candidate.id === '@deepseek-ai/dsh-cordis-client-runner')
+      if (runnerEntry !== undefined) {
+        try {
+          const res = await fetch(`${index.origin}/${String(runnerEntry.url).replace(/^\/+/, '')}`, { headers: { cookie }, signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) })
+          if (res.ok) liveSlots = extractLiveSlotCatalog(await res.text())
+        } catch {
+          liveSlots = []
+        }
+      }
+    }
     return {
       ok: true, status: page.status, html, ours, comboBody, compactionCombo, compactionBody,
       attachmentsCombo, attachmentsBody, knowledgeCombo, knowledgeBody, tasksCombo, tasksBody,
+      boot, bundles, liveSlots,
     }
   } catch (error) {
     return { ok: false, error: { code: 'roster', message: String(error?.message ?? error) } }
