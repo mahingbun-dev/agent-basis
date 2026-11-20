@@ -136,6 +136,7 @@
 - [x] 矩阵 164 行无 FAIL/MISSING（162 PASS + 2 WAIVED），P0 102/102；
 - [x] 分支 push → PR #137 → 远端 CI 全绿（verify/upgrade-gate/v1-line）→ 合并（main=`343ea70`）；
 - [x] latest main 构建镜像 `eterna-agent:0.2.0-rc.5` 并部署（2026-11-21T16:47Z，停机 100s），`verify.sh` 14/0 + 三库 integrity + env 保真 15/15；
+- [x] 部署后端到端回归（2026-11-21）：API 面 12/12 + 浏览器面真回合 PASS + verify.sh 14/0——**无产品缺陷，未触发返工循环**（`p7/post-deploy-e2e/result.md`）；
 - [ ] 上线后 24h 无 P0 告警（承担 24h 豁免残余风险）；
 - [ ] 四方签字（开发/测试/运维栏；产品豁免部分已签）+ 发布说明/回滚记录归档。
 

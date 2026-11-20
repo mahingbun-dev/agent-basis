@@ -49,7 +49,9 @@
 | companion 中继 | `/api/status` 200、`/data/relay-token` 原值（拷贝保持） |
 | profile 插件面 | `@eterna` 22 包 symlink 齐（tasks/workbench/channels/interact/toolkit/…）；`@eterna/tasks` 未进 bundles 的 R22 现状不变（已知遗留） |
 
-**待人工**（用户侧）：浏览器登录走查（会话列表/历史打开、设置三分区、插件页）、上线后 24h 观察无 P0 告警。
+**端到端回归（部署后追加执行，2026-11-21T17:0x-17:2xZ）**：API 面 **12/12 PASS**（门禁/登录/铸票/模型面/建会话/**真·模型回合**/terminal churn/个人 MCP/chat-import 门/companion/清理/审计）+ 浏览器面 **PASS**（公网入口、系统 Chrome、UI 发送 → mimo 助手回复上屏，服务端事件双确认）+ `verify.sh` 复查 14/0。**未发现产品缺陷，「修复→再合并→再部署」循环未触发**。证据：`p7/post-deploy-e2e/{result.md,summary.json,ui-result.json,ui-evidence-*.png}`。
+
+**待人工**（用户侧）：上线后 24h 观察无 P0 告警；四方补签。
 
 ## 5. 边界与说明
 
