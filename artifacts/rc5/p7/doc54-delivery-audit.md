@@ -69,7 +69,7 @@
 | R18 | P1 | **closed** | 发布说明 + 反代 `IMP-010` PASS：`p7/release-notes.md`、`E1/IMP/RC5-IMP-010` |
 | R19 | P1 | **closed** | `PATCH_SCAN_ROOTS` 含 `docker/profile` + 未登记 key 被拦测试（`p2/acc-002`） |
 | R20 | P1 | **closed（协议级；真实扩展 NOTRUN）** | 治理 ask/deny：`artifacts/rc5/E2/SEC/RC5-SEC-GOV/result.md`（deny/ask 均审计+会话事件+工具结果；ask 决策卡按产品 `approval:never` 口径不产生）；companion 中继：`p7/regression/supplement/companion-relay.md`（协议级 PASS；**真实扩展 NOTRUN**，见 §4.3-6）；审计 jsonl：`supplement.json`（2861 行、凭据值 0 命中） |
-| R21 | P2 | **open（文档瑕疵）** | 51 分节标题计数落后实际行（BOOT/MCPS/ACP/OFF）；不影响 164 行判定，登记后续修标题 |
+| R21 | P2 | **closed** | 51 分节标题计数已对齐实际行：BOOT 13 / MCPS 11 / ACP 10 / OFF 7（`docs/design/51-上游rc.5合并测试用例与回归.md` §3.2/3.5/3.9/3.10） |
 
 > 按 54 §9 目标「P0/P1 清零」：当前 **P0 仅 R01 未清（API-005）**；P1 仅 **R04 未清（API-005/006/007）**，其余 P1 已闭。
 
