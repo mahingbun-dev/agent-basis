@@ -425,6 +425,63 @@ pnpm --filter @eterna/llm-openai typecheck
 - 未完成 → 次日：评审 49/50/51（重点：B14 挂载生命周期、terminal 9 守卫、
   v1 入库范围、DATA 迁移演练）；开工前把 47/48/49/50/51/TODO 迁入干净 worktree 并提交。
 
+### 2026-11-20
+
+- 开工：rc.5 开发窗（worktree `/Users/sunny/code/agent-basis-rc5`，分支
+  `feat/dsh-rc5-merge`，HEAD `02f4857`）。P0 基线证据包落地
+  `artifacts/rc5/p0/`（`summary.json` + `baseline.md`），依据 54 §2.2/§12.1、
+  48 §7、51 §0.3。
+- 本地基线（实跑）：`pnpm install --frozen-lockfile` EXIT=0（Already up to date）；
+  `pnpm -w run verify` **EXIT=1**——18 包 Done，`@eterna/access` 16 条 oxlint 错误
+  全部在 L4 未提交改动（12 条未跟踪 `src/mcp-personal.ts` + 4 条已修改
+  `src/store.ts`），其余包被 fail-fast 中止；双形态真 boot（临时 DSH_HOME、
+  `--port 0`、无凭据）`verify-eterna-web` 17/17 PASS（229 entries）与
+  `verify-eterna-super` 21/21 PASS（235 entries）；`dsh-evals replay`
+  pack=event-planning **30/30 pass，EXIT=0**。
+- 生产只读盘点：容器 `eterna-agent` / 镜像 `eterna-agent:0.1.51`
+  （`sha256:3ca0d660…1a7b`）/ 卷 `agent-basis_eterna-home`
+  （2026-11-09 创建）；`/data` 约 77MB；profile manifest 与 patch 指纹已快照
+  （super 151 行 / web 143 行）。生产 `deploy/verify.sh` 只跑免凭据只读子集
+  （8/8 ✅）；登录/me/插件红线/KB 运行时探针需凭据，**未跑**。
+- 回滚点：镜像 `eterna-agent:0.1.50`（`sha256:6b306037…b2052`）在册；冷备
+  `$HOME/eterna-data/backups/rc5-2026-11-20/eterna-home-20261120-013829.tgz`
+  （26,559,638 B，sha256 `df48d7e1…b71640`，6/6 SQLite integrity_check ok）。
+- 证据：`artifacts/rc5/p0/{summary.json,baseline.md,local/,prod/,backup/}`。
+- 未完成 → 次日/交接：P0-01 L4 收口 verify；P0-02 verify.sh 只读模式归 L5；
+  P0-03 镜像仍 alpha.3 内核须 L5 改 Dockerfile；P0-05 冷备恢复演练未做。
+- 边界：未 push/merge、未停改生产容器、未改 compose、未碰
+  `/Users/sunny/code/agent-basis` 与 `deepseek-harness`。
+- **P0 复跑复核（02:12–02:20，证据根 `artifacts/rc5/p0/run2/`）**：本轮全部重测，
+  不引用上一采旧件。`pnpm -w run verify` 仍 **EXIT=1**，但 Done 包数由上轮 18 升至
+  **22**；`@eterna/access` 仍 16 条（12 条 `mcp-personal.ts` 未跟踪 + 4 条
+  `store.ts` 已修改），其余 16 个 workspace 被 fail-fast 中止。双 boot
+  `verify-eterna-web` 17/17 PASS（229 entries）/ `verify-eterna-super` 21/21 PASS
+  （235 entries，22 条 @eterna 行 active）；`dsh-evals replay` 30/30。生产只读盘点与
+  上轮一致（0.1.51 / `3ca0d660…` / 77MB / super 151 行 / web 143 行），并在容器内实测
+  dsh=**0.2.2-alpha.3**。冷备重做：`eterna-home-20261120-021802.tgz`
+  （26,566,225 B，sha256 `5976686f…d281`，10,466 条目，**16/16 SQLite ok**）。
+  工作树采集期仍在被其它 lane 写入（脏条目 56→72），见遗留 P0-08。
+- **P6a 门禁修复（W5 round1，01:05–01:24Z）**：`verify-terminal-guard` 修前
+  PASS=5/FAIL=4 → 修后 **11/0/0/1**（NOTRUN 仅 TERM-005 WS 面）；`verify-chat-import`
+  修前 7/1/4 → 修后 **8/0/4**；access `vitest` 49 files/504 tests、tsc/oxlint 全 0。
+  根因：rc.5 `GatewayInvocation` 无 `principal` 字段（改读 `peer.principal`）、
+  `/api/terminal/*` 一元面恒 owner Peer（admit 换血 + 503 fail-closed）、
+  终端六动作需会话绑定；IMP-005 为测试容器持有已删 WAL 的环境态，重建容器后
+  `delta=10 allImportedPresent=true`。证据 `artifacts/rc5/p6a/repairs/`。
+- **T50/T52 证据收口（01:25–01:27Z）**：`artifacts/rc5/acceptance-matrix.md`
+  164 行 = **PASS 130 / FAIL 8 / MISSING 26**（P0 未通过 16：FAIL 8 + MISSING 8）；
+  `p0`–`p7` 阶段 summary 齐 54 §7.3 键；TERM-004 按修后复跑改判 PASS。
+  自检 `node artifacts/rc5/p6a/verify-matrix.mjs` → ALL_ASSERTIONS_PASS；
+  T52 复核日志 `artifacts/rc5/p7/t52-recheck.{log,md}`。仍未判绿：FAIL 8（全部 P0）、
+  MISSING 26（P0 8）、24h 浸泡未满、P7 全量复跑未执行。
+- **分组提交（T52，54 §13.8）**：G-A `67aac03`、G-B `6930e92`、G-C `7daf9c5`、
+  G-H `5b91c5f`（P4 客户端，§13.2 之后新增）、G-D `e5231cb`、G-E `e71e33d`、
+  G-I `ccd9380`（P5 部署，§13.2 之后新增）、G-F `a72d187`（脚本/夹具/证据）、
+  G-G 本次 docs(rc5)。提交前扫描：禁入路径 0、高置信凭据 0
+  （`artifacts/rc5/p7/check-commit-hygiene.mjs`）。
+- 未完成 → 下一批：P7 全量 164 复跑（P6 清零后）、PR/合并/生产窗口、24h 浸泡满窗复核；
+  FAIL 8 修复（workspaceFiles/mcp-manager 守卫 + 上游 terminal/create）。
+
 <!-- 新的一天复制上面四行，日期改为当天；不要删除旧记录。 -->
 
 ## 8. 明确不做
