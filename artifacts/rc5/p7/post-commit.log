@@ -1,0 +1,45 @@
+# T52 提交后核验
+# at 2026-11-20T01:30:23Z
+
+## git status --short（截至本文件生成；tar 见下）
+ M artifacts/rc5/p5/testbed/soak/term-013-24h.jsonl
+?? artifacts/rc5/p7/post-commit.log
+?? artifacts/rc5/p7/verify-commits.mjs
+
+## git log --oneline -8
+a89a73a docs(rc5): 54 完整 workflow + 分组提交落地 + TODO/部署文档（G-G）
+a72d187 rc5: 验证脚本/夹具/证据包（G-F）
+ccd9380 rc5: P5 镜像/数据根/compose/deploy 接线（G-I）
+e71e33d rc5: tasks 后台适配 rc.5 subagent 树 API + LLM/命令内核适配（G-E）
+e5231cb rc5: access 网关角色门 + MCP 个人层 + chat-import 门（G-D）
+5b91c5f rc5: P4 客户端 10 包 build-client + brand hero（G-H）
+7daf9c5 rc5: P3 v1 线 cordis 4.1.0 + 独立 CI 车道 + dsh-doc 技能（G-C）
+6930e92 rc5: P2 迁移脚本（mcp-servers/profile-bundles/ACP profile）+ entrypoint 接线（G-B）
+
+## 分组/范围/入库断言
+OK   COMMIT_67aac03_SUBJECT rc5: P2 profile/preset/bundle 重放 + prompt 锚点（G-A）
+OK   COMMIT_67aac03_SCOPE
+OK   COMMIT_6930e92_SUBJECT rc5: P2 迁移脚本（mcp-servers/profile-bundles/ACP profile）+ entrypoint 接线（G-B）
+OK   COMMIT_6930e92_SCOPE
+OK   COMMIT_7daf9c5_SUBJECT rc5: P3 v1 线 cordis 4.1.0 + 独立 CI 车道 + dsh-doc 技能（G-C）
+OK   COMMIT_7daf9c5_SCOPE
+OK   COMMIT_5b91c5f_SUBJECT rc5: P4 客户端 10 包 build-client + brand hero（G-H）
+OK   COMMIT_5b91c5f_SCOPE
+OK   COMMIT_e5231cb_SUBJECT rc5: access 网关角色门 + MCP 个人层 + chat-import 门（G-D）
+OK   COMMIT_e5231cb_SCOPE
+OK   COMMIT_e71e33d_SUBJECT rc5: tasks 后台适配 rc.5 subagent 树 API + LLM/命令内核适配（G-E）
+OK   COMMIT_e71e33d_SCOPE
+OK   COMMIT_ccd9380_SUBJECT rc5: P5 镜像/数据根/compose/deploy 接线（G-I）
+OK   COMMIT_ccd9380_SCOPE
+OK   COMMIT_a72d187_SUBJECT rc5: 验证脚本/夹具/证据包（G-F）
+OK   COMMIT_a72d187_SCOPE
+OK   COMMIT_a89a73a_SUBJECT docs(rc5): 54 完整 workflow + 分组提交落地 + TODO/部署文档（G-G）
+OK   COMMIT_a89a73a_SCOPE
+OK   PRODUCT_FILES_TRACKED
+OK   STATUS_NO_FORBIDDEN
+INFO status_entries=3 live_soak_appends=1
+STATUS  M artifacts/rc5/p5/testbed/soak/term-013-24h.jsonl
+STATUS ?? artifacts/rc5/p7/post-commit.log
+STATUS ?? artifacts/rc5/p7/verify-commits.mjs
+RESULT=ALL_COMMITS_SCOPED
+EXIT=0
