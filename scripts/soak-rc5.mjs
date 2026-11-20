@@ -37,6 +37,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { join, resolve } from 'node:path'
+import { openMuxSocket } from '../artifacts/rc5/E1/_lib/ws.mjs'
 import {
   STATUS,
   bootTokenFromContainer,
@@ -133,7 +134,7 @@ const meta = {
   out: OUT_DIR,
   logs: { term: TERM_LOG, data: DATA_LOG, soak: SOAK_LOG },
   limitations: [
-    'terminal/attach 走 WS mux（HTTP 不可达），脚本未执行 attach；created/closed churn 已记账',
+    'attach churn 每 tick 走一次 WS mux（open→snapshot→断开）+ create/close；崩溃/拒绝按 fail 记账',
     '进程/内存采样为容器 /proc 只读采样（60s 级），非 profiler',
   ],
 }
@@ -420,6 +421,25 @@ if (SUITE !== 'data') {
   log(`long process: ${longProcess.detail}`)
 }
 
+/** attach churn：带 cookie 开 mux 流 → 等首个 snapshot → 断开；失败只记账。 */
+async function attachCycle(terminalId) {
+  const port = Number(new URL(BASE).port || 80)
+  const socket = await openMuxSocket({ port, cookie }).catch(error => ({ error }))
+  if (socket.error !== undefined) return { ok: false, detail: `ws: ${socket.error.message}` }
+  const streamId = `soak-attach-${terminalId}`
+  try {
+    socket.send({ type: 'open', streamId, endpoint: 'terminal/attach', payload: { args: { agentId: victimSession, id: terminalId } } })
+    const frame = await socket.waitMessage(row => row.streamId === streamId && ['item', 'error', 'end'].includes(row.type), 10_000)
+      .catch(error => ({ timeout: error.message }))
+    if (frame.timeout !== undefined) return { ok: false, detail: 'attach-timeout' }
+    if (frame.type === 'error') return { ok: false, detail: `${frame.error?.code ?? 'error'}` }
+    if (frame.type === 'end') return { ok: false, detail: 'attach-ended' }
+    return { ok: frame.value?.type === 'snapshot', detail: frame.value?.type ?? 'item' }
+  } finally {
+    socket.close()
+  }
+}
+
 while (Date.now() < endsAt.getTime() && !stopping) {
   tick += 1
   const now = Date.now()
@@ -433,9 +453,14 @@ while (Date.now() < endsAt.getTime() && !stopping) {
       if (typeof victimSession === 'string') {
         const terminalId = `soak-${TAG.slice(0, 12)}-${tick}`
         const created = await call('terminal/create', { agentId: victimSession, request: { id: terminalId, cols: 80, rows: 24 } })
-        const closed = await call('terminal/close', { agentId: victimSession, id: terminalId })
-        churn = created.ok && closed.ok ? 'ok' : 'fail'
-        churnError = churn === 'ok' ? undefined : `create=${created.ok ? 'ok' : shape(created.error).slice(0, 80)} close=${closed.ok ? 'ok' : shape(closed.error).slice(0, 80)}`
+        let attached = { ok: false, detail: 'create-failed' }
+        let closed = { ok: false, detail: 'not-closed' }
+        if (created.ok === true) {
+          attached = await attachCycle(terminalId)
+          closed = await call('terminal/close', { agentId: victimSession, id: terminalId })
+        }
+        churn = created.ok && attached.ok && closed.ok ? 'ok' : 'fail'
+        churnError = churn === 'ok' ? undefined : `create=${created.ok ? 'ok' : shape(created.error).slice(0, 60)} attach=${attached.ok ? 'ok' : shape(attached.detail, 60)} close=${closed.ok ? 'ok' : shape(closed.error ?? closed.detail, 60)}`
       }
       const sample = {
         at: new Date().toISOString(),

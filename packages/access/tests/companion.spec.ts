@@ -68,10 +68,10 @@ describe('companion 端点', () => {
       provisionWorkspace: async () => {},
       relayPublicWsUrl: 'wss://eternity-electricity.cn:9310/extension',
     }
-    store.createUserWithSuffix({ account: 'Mr.Ma', password: 'MqbSunny0702', role: 'admin' })
+    store.createUserWithSuffix({ account: 'Mr.Ma', password: 'Test-only-pass-9', role: 'admin' })
     const loginReply = handleAccessRequest(deps, req({
       pathname: '/login', method: 'POST', contentType: 'application/json',
-      body: Buffer.from(JSON.stringify({ account: 'Mr.Ma', password: 'MqbSunny0702' })),
+      body: Buffer.from(JSON.stringify({ account: 'Mr.Ma', password: 'Test-only-pass-9' })),
     }))
     adminCookie = cookieOf(loginReply)!
   })

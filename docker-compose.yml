@@ -83,6 +83,17 @@ services:
       ETERNA_MARKET_REPO_URL: ${ETERNA_MARKET_REPO_URL:-}
       ETERNA_MARKET_REPO_DIR: ${ETERNA_MARKET_REPO_DIR:-}
       ETERNA_MARKET_GITHUB_TOKEN: ${ETERNA_MARKET_GITHUB_TOKEN:-}
+      # 个人 MCP(rc.5 B14/T26;生产接线 2026-11-20 W5):主密钥**只从 .secrets 文件**
+      # 读(不进 env/argv/镜像);文件缺席=整面 fail-closed(设置页报不可用,系统层
+      # 与其它功能不受影响)。生成:
+      #   mkdir -p $ETERNA_DATA_ROOT/<实例>/.secrets
+      #   openssl rand -base64 32 > .../.secrets/mcp-master-key && chmod 600 ...
+      # 管理员目录(catalog)为空=不提供 stdio 模板,普通用户仍可自建 HTTP 服务器;
+      # personalHttpHosts 留空=放行(http/私网可用,元数据地址仍拒——47 D22/H16 已拍板)。
+      ETERNA_MCP_PERSONAL_ENABLED: ${ETERNA_MCP_PERSONAL_ENABLED:-true}
+      ETERNA_MCP_MASTER_KEY_FILE: ${ETERNA_MCP_MASTER_KEY_FILE:-/data/.secrets/mcp-master-key}
+      ETERNA_MCP_PERSONAL_CATALOG: ${ETERNA_MCP_PERSONAL_CATALOG:-}
+      ETERNA_MCP_PERSONAL_HTTP_HOSTS: ${ETERNA_MCP_PERSONAL_HTTP_HOSTS:-}
     volumes:
       # 数据根 bind(48 §5.1;T43):宿主 `${ETERNA_DATA_ROOT}/<实例>` 整树挂 /data。
       # 缺省 `$HOME/eterna-data`(与 deploy/README.md §2、init-data-dirs.sh 一致)。

@@ -120,53 +120,18 @@ export function installTerminalTenant(
   }
 }
 
-interface SandboxLike {
-  confine?: (argv: readonly string[], policy: unknown, signal?: AbortSignal) => Promise<{ argv: readonly string[] }>
-}
-
-interface SandboxPolicyLike {
-  resolve?: (request?: unknown) => unknown
-}
-
-interface SpawnTerminalSpec {
-  readonly argv?: readonly string[]
-  readonly env?: { readonly DSH_SESSION_ID?: string }
-}
-
-interface SubprocessLike {
-  spawnTerminal?: (spec: unknown) => Promise<unknown>
-}
-
 /**
- * PTY 沙箱包装:spawnTerminal 的 argv 经 ctx.sandbox.confine(bash-sandbox 同款 seam),
- * policy=sandboxPolicy.resolve({session})——T3 边界 wrap 已把 workspaceRoot 钳到账号根,
- * 故终端 shell 的 landlock 写边界=账号根;read-only 档随预设降级。
- * 沙箱服务缺席/unusable 时 confine 抛错 → 上游 fail-closed(创建终端报错,不裸奔)。
+ * PTY 沙箱(2026-11-20 W5 门禁修复 TERM-006):**无本地包装**,上游已自带。
+ *
+ * alpha.3 期 T4 在本层包装 `subprocess.spawnTerminal` 再 confine 一次;rc.5 的
+ * `dsh-terminal-bash` 后端在 `BashTerminalBackend.spawn` 已用**真实 session**
+ * 解析策略并 `spawnArgv` 内 confine(lib/index.js:1056-1068 + 970-979):
+ *   `const policy = this.ctx.sandboxPolicy.resolve({ session: spec.owner.session })`
+ *   `const argv = await spawnArgv(this.ctx, this.config, policy, spec.signal)`
+ * 旧包装传的是伪 session `{id}`(只为拿 DSH_SESSION_ID),上游 `overrideOf` →
+ * `sessionProjections.cellFor` 会调 `session.snapshotEvents()`,伪对象无此方法 →
+ * `terminal/create` 恒 `gateway/internal: session.snapshotEvents is not a function`
+ * (TERM-006/UI-006 根因);即便修好也会对已 confine 的 argv 二次 confine。
+ * 写边界仍由 sandbox.ts 的 resolve wrap 钳到账号根;profile 固定 terminal-bash,
+ * 该后端是唯一 spawn 入口,故本层不再包装。
  */
-export function installTerminalSandbox(
-  sandbox: SandboxLike | undefined,
-  sandboxPolicy: SandboxPolicyLike | undefined,
-  subprocess: SubprocessLike | undefined,
-): (() => void) | undefined {
-  if (sandbox === undefined || typeof sandbox.confine !== 'function') return undefined
-  if (sandboxPolicy === undefined || typeof sandboxPolicy.resolve !== 'function') return undefined
-  if (subprocess === undefined || typeof subprocess.spawnTerminal !== 'function') return undefined
-  const resolveFn = sandboxPolicy.resolve
-  const original = subprocess.spawnTerminal.bind(subprocess)
-  const wrapped = async (spec: unknown): Promise<unknown> => {
-    const s = spec as SpawnTerminalSpec
-    const sessionId = s.env?.DSH_SESSION_ID
-    const argv = s.argv
-    if (sessionId === undefined || argv === undefined || argv.length === 0) return original(spec)
-    const policy = resolveFn.call(sandboxPolicy, { session: { id: sessionId } })
-    if (policy === null || typeof policy !== 'object') return original(spec)
-    const confineFn = sandbox.confine
-    if (typeof confineFn !== 'function') return original(spec)
-    const confined = await confineFn.call(sandbox, argv, policy)
-    const confinedArgv = (confined as { argv?: readonly string[] } | undefined)?.argv
-    if (confinedArgv === undefined || confinedArgv.length === 0) return original(spec)
-    return original({ ...(spec as Record<string, unknown>), argv: confinedArgv })
-  }
-  ;(subprocess as Record<string, unknown>).spawnTerminal = wrapped
-  return () => { (subprocess as Record<string, unknown>).spawnTerminal = original }
-}

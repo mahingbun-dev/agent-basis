@@ -8,7 +8,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { SessionService } from '../src/session.ts'
 import { UserStore } from '../src/store.ts'
-import { ADMIN_ONLY_STREAM_ACTIONS, ADMIN_ONLY_UNARY_ACTIONS, bindingsFor, GLOBAL_EVENT_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_EVENT_ACTIONS, SESSION_STREAM_ACTIONS, SESSION_UNARY_ACTIONS, TERMINAL_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS, visibilityScopeOf } from '../src/mux.ts'
+import { ADMIN_ONLY_STREAM_ACTIONS, ADMIN_ONLY_UNARY_ACTIONS, bindingsFor, GLOBAL_EVENT_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_EVENT_ACTIONS, SESSION_STREAM_ACTIONS, SESSION_UNARY_ACTIONS, TERMINAL_UNARY_ACTIONS, WORKSPACE_FILE_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS, visibilityScopeOf } from '../src/mux.ts'
 
 /** 非 admin 的全局一元动作 = 全员清单减去管理员专属 UI 门(T6.1 收窄面)。 */
 const memberUnary = GLOBAL_UNARY_ACTIONS.filter(action => !ADMIN_ONLY_UNARY_ACTIONS.includes(action))
@@ -60,8 +60,15 @@ describe('T2:mux 策略绑定', () => {
     expect(sessions.map(b => (b.resource as { id: string }).id).sort()).toEqual(['s-a1', 's-a2'])
     // 会话角色含 workspace/follow(workspace 视图 sessionIds 逐项 allows 用,见 mux.ts 注释)
     expect(sessions[0]?.role.actions).toEqual([
-      ...SESSION_STREAM_ACTIONS, ...TERMINAL_UNARY_ACTIONS, ...WORKSPACE_STREAM_ACTIONS, ...SESSION_UNARY_ACTIONS, ...SESSION_EVENT_ACTIONS,
+      ...SESSION_STREAM_ACTIONS, ...TERMINAL_UNARY_ACTIONS, ...WORKSPACE_FILE_UNARY_ACTIONS,
+      ...WORKSPACE_STREAM_ACTIONS, ...SESSION_UNARY_ACTIONS, ...SESSION_EVENT_ACTIONS,
     ])
+    // ACC-008/SEC-004(2026-11-20):文件面五一元动作资源=会话(workspaceFileScope
+    // lookup),必须授会话绑定——缺项=本人文件面板恒 no-allow;授 global 永不命中。
+    for (const action of WORKSPACE_FILE_UNARY_ACTIONS) expect(sessions[0]?.role.actions).toContain(action)
+    // UI-006(2026-11-20):会话导入入口门 useRemoteAccess('deepseekChatImport/limits')
+    // 无参数无资源=GLOBAL;缺项=「导入 DeepSeek 会话」入口不渲染。
+    expect(global[0]?.role.actions).toContain('deepseekChatImport/limits')
     // TERM-004(2026-11-20):终端六一元动作资源逐会话(agent lookup→session /
     // list 具名 sessionId),必须授在会话绑定——缺项=本人终端恒 no-allow;
     // 授 global 永不命中 sameResource(remote-access evaluate)。

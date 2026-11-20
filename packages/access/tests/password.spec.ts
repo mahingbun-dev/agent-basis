@@ -5,9 +5,9 @@ import {
 
 describe('password 密码服务', () => {
   it('哈希可被正确校验', () => {
-    const stored = hashPassword('MqbSunny0702')
+    const stored = hashPassword('Test-only-pass-9')
     expect(stored.startsWith('s1$')).toBe(true)
-    expect(verifyPassword('MqbSunny0702', stored)).toBe(true)
+    expect(verifyPassword('Test-only-pass-9', stored)).toBe(true)
     expect(verifyPassword('wrong-password', stored)).toBe(false)
   })
 

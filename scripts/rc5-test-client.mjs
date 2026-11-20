@@ -124,6 +124,17 @@ export function redact(text) {
     .replace(/(mcp-session-id:\s*)[^\s]+/gi, '$1<redacted>')
 }
 
+/**
+ * 连接级瞬时错误重试：容器 restart / keep-alive 空闲关闭会偶发
+ * `TypeError: fetch failed`（cause.code=UND_ERR_SOCKET / ECONNRESET / EPIPE）。
+ * 只对这些错误重试（最多 3 次、250ms 递增），HTTP 业务错误一概不重试。
+ */
+const TRANSIENT_NET_CODES = new Set(['UND_ERR_SOCKET', 'UND_ERR_CLOSED', 'ECONNRESET', 'EPIPE', 'ECONNREFUSED'])
+
+function transientNetCode(error) {
+  return error?.cause?.code ?? error?.code
+}
+
 export async function request(url, { method = 'GET', cookie, body, headers = {}, timeoutMs = 30_000 } = {}) {
   const init = {
     method,
@@ -136,14 +147,24 @@ export async function request(url, { method = 'GET', cookie, body, headers = {},
     init.headers['content-type'] = 'application/json'
     init.body = typeof body === 'string' ? body : JSON.stringify(body)
   }
-  const response = await fetch(url, init)
-  const text = await response.text()
-  return {
-    status: response.status,
-    headers: response.headers,
-    setCookies: typeof response.headers.getSetCookie === 'function' ? response.headers.getSetCookie() : [],
-    text,
+  let lastError
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await fetch(url, init)
+      const text = await response.text()
+      return {
+        status: response.status,
+        headers: response.headers,
+        setCookies: typeof response.headers.getSetCookie === 'function' ? response.headers.getSetCookie() : [],
+        text,
+      }
+    } catch (error) {
+      lastError = error
+      if (!TRANSIENT_NET_CODES.has(transientNetCode(error))) throw error
+      await new Promise(resolve => setTimeout(resolve, 250 * (attempt + 1)))
+    }
   }
+  throw lastError
 }
 
 /** 登录；返回 cookie 串（eterna_session=…）。 */

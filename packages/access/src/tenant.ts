@@ -47,6 +47,8 @@ export interface TenantDeps {
   readonly ensureMux?: () => void
   /** T6 装载器(2026-11-18):个人/共享插件进程内 mount;缺席=纯记账降级。 */
   readonly pluginLoader?: UserPluginLoader
+  /** 个人 MCP 补挂:会话归属行写入后调用(agent/created 早于账本,见 runtime 注)。 */
+  readonly ensurePersonalMcp?: ((sessionId: string) => Promise<void>) | undefined
 }
 
 /**
@@ -119,7 +121,7 @@ export async function ensureTenantWorkspace(
  * 工作区。空会话会被客户端复用(connectWorkspace 优先复用可复用空成员)。
  */
 export async function ensureFirstSession(
-  deps: Pick<TenantDeps, 'store' | 'reflect'>,
+  deps: Pick<TenantDeps, 'store' | 'reflect' | 'ensurePersonalMcp'>,
   userId: number,
   workspaceId: string,
 ): Promise<string | undefined> {
@@ -131,6 +133,7 @@ export async function ensureFirstSession(
     : typeof value?.id === 'string' ? value.id : undefined
   if (sessionId === undefined) return undefined
   deps.store.recordSession(sessionId, userId, workspaceId)
+  await deps.ensurePersonalMcp?.(sessionId)
   return sessionId
 }
 
@@ -375,7 +378,11 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     const payload = payload0 === undefined ? payload0 : { ...payload0, sessionId: reuseId }
     const value = await callService(sc, 'create', payload) as { sessionId?: string; id?: string } | undefined
     const sessionId = typeof value?.sessionId === 'string' ? value.sessionId : typeof value?.id === 'string' ? value.id : undefined
-    if (sessionId !== undefined) deps.store.recordSession(sessionId, ctx.userId, workspaceId ?? null)
+    if (sessionId !== undefined) {
+      deps.store.recordSession(sessionId, ctx.userId, workspaceId ?? null)
+      // 归属行已落库:补挂个人 MCP(agent/created 时账本还没这行 → 首挂会跳过)。
+      await deps.ensurePersonalMcp?.(sessionId)
+    }
     tenantAudit(deps, 'session.create', ctx.account, { workspaceId: workspaceId ?? null, cwd: cwd ?? (defaultCwdPatched ? root : null) })
     return okFrame(rpcId, value)
   })

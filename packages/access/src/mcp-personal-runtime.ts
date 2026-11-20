@@ -30,7 +30,11 @@ import type { UserStore } from './store.ts'
 
 /** 运行时消费的 Agent 结构子集(access 不 import @deepseek-ai/dsh-agent 类型面)。 */
 export interface PersonalMcpAgent {
-  readonly session: { readonly id: string }
+  readonly session: {
+    readonly id: string
+    /** 子代理会话的父会话(dsh-session header.parentSession)。 */
+    readonly header?: { readonly parentSession?: string | undefined } | undefined
+  }
 }
 
 /** createScope 的最小结构面(dsh-scope 的 Scope 满足)。 */
@@ -74,6 +78,14 @@ export interface PersonalMcpRuntimeDeps {
   readonly connectionsLimit?: number | undefined
   /** 单条启动预算(默认 8s)。 */
   readonly startupTimeoutMs?: number | undefined
+  /**
+   * 会话 id → 已建 Agent(真实件=`agents` 服务 registry)。
+   * 生命周期缺口(2026-11-20 实测):`session/create` 先 `agents.createSession`
+   * (此刻 agent/created 已发,但 access 的 sessions 归属行尚未写入)→ mountAgent
+   * 解析归属为 undefined 而跳过,个人工具永不挂载。故 create 记账后必须再用
+   * sessionId 回查 live Agent 补挂(mountSession)。
+   */
+  readonly agentsOf?: ((sessionId: string) => PersonalMcpAgent | undefined) | undefined
   /** 测试注入:scope 工厂(默认 dsh-scope createScope)。 */
   readonly createScope?: ((ctx: Context, agent: PersonalMcpAgent) => PersonalMcpScope) | undefined
   /** 测试注入:McpClient.Config 等价物(默认 dsh-mcp-client Config)。 */
@@ -85,6 +97,8 @@ export interface PersonalMcpRuntimeDeps {
 export interface PersonalMcpRuntime {
   /** 删除/禁用/登出:摘除该用户所有 live Agent 的个人 MCP scope;幂等。 */
   disposeUser(userId: number): Promise<void>
+  /** 会话归属行写入后补挂(覆盖 agent/created 早于账本写入的时序);幂等。 */
+  mountSession(sessionId: string): Promise<void>
   /** 卸载/关闭个人层:摘除全部 live scope;幂等。 */
   disposeAll(): Promise<void>
   /** 观测面(测试与审计):当前挂载的 Agent 数与连接数。 */
@@ -127,7 +141,9 @@ export function personalMcpClientInput(
     toolCallTimeoutMs: options.toolCallTimeoutMs ?? DEFAULT_TOOL_CALL_TIMEOUT_MS,
     startupTimeoutMs: options.startupTimeoutMs ?? MCP_PERSONAL_STARTUP_TIMEOUT_MS,
     failOnStartupError: false,
-    reconnect: { enabled: false },
+    // 50/54 的 T26/T27 明写「reconnect 上限 3 次」；rc.5 默认 10 次过宽。
+    // 断线后最多重试 3 次（500ms 起指数退避），之后停止；scope dispose 时随插件卸载取消。
+    reconnect: { enabled: true, maxAttempts: 3 },
   }
   if (resolved.transport === 'stdio') {
     return {
@@ -223,11 +239,26 @@ export function mountPersonalMcp(ctx: Context, deps: PersonalMcpRuntimeDeps): Pe
     }
   }
 
+  /**
+   * 归属解析:先查账本(用户建的会话),再沿 parentSession 上溯(子代理会话不在
+   * access 账本里,MCPP-020 要求同用户子代理可用)。上溯深度有界,未知即 undefined
+   * (fail-closed)。
+   */
+  const ownerOfSession = (sessionId: string): number | undefined => {
+    let id: string | undefined = sessionId
+    for (let depth = 0; depth < 8 && id !== undefined; depth += 1) {
+      const owner = deps.sessionOwnerOf(id)
+      if (owner !== undefined) return owner
+      id = deps.agentsOf?.(id)?.session.header?.parentSession
+    }
+    return undefined
+  }
+
   const mountAgent = async (agent: PersonalMcpAgent): Promise<void> => {
     if (!personalEnabled() || byAgent.has(agent)) return
     let userId: number | undefined
     try {
-      userId = deps.sessionOwnerOf(agent.session.id)
+      userId = ownerOfSession(agent.session.id)
     } catch (error) {
       deps.logger.warn(`[mcp-personal] 归属解析失败:${errorText(error)}`)
       return
@@ -264,6 +295,13 @@ export function mountPersonalMcp(ctx: Context, deps: PersonalMcpRuntimeDeps): Pe
     if (mounted.connections === 0) await disposeAgent(agent)
   }
 
+  const mountSession = async (sessionId: string): Promise<void> => {
+    if (!personalEnabled()) return
+    const agent = deps.agentsOf?.(sessionId)
+    if (agent === undefined) return
+    await mountAgent(agent)
+  }
+
   const guardFor = (exec: { readonly name: string; readonly agent?: PersonalMcpAgent | undefined }): string | undefined => {
     const match = PERSONAL_TOOL_PATTERN.exec(exec.name)
     if (match === null) return undefined
@@ -272,7 +310,7 @@ export function mountPersonalMcp(ctx: Context, deps: PersonalMcpRuntimeDeps): Pe
     const sessionId = exec.agent?.session.id
     let owner: number | undefined
     try {
-      owner = sessionId === undefined ? undefined : deps.sessionOwnerOf(sessionId)
+      owner = sessionId === undefined ? undefined : ownerOfSession(sessionId)
     } catch {
       // 归属账本异常 = 无法证明同租户 → deny(fail-closed,不让异常穿透成工具未捕获错)。
       owner = undefined
@@ -312,6 +350,7 @@ export function mountPersonalMcp(ctx: Context, deps: PersonalMcpRuntimeDeps): Pe
 
   return {
     disposeUser,
+    mountSession,
     disposeAll,
     mountedAgents(userId?: number): number {
       return userId === undefined ? byAgent.size : (byUser.get(userId)?.size ?? 0)

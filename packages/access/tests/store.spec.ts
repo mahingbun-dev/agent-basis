@@ -23,7 +23,7 @@ describe('UserStore 用户存储', () => {
   })
 
   it('seedAdmin:仅空表播种,幂等,无 env 不播种', () => {
-    expect(store.seedAdmin('Mr.Ma', 'MqbSunny0702')).toBe(true)
+    expect(store.seedAdmin('Mr.Ma', 'Test-only-pass-9')).toBe(true)
     expect(store.seedAdmin('Mr.Ma', 'x')).toBe(false)
     const empty = new UserStore(join(dir, 'empty.db'))
     try {

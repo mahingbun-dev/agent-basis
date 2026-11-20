@@ -74,6 +74,7 @@ describe('B14 个人 MCP:运行时', () => {
   let config: McpPersonalConfig
   let masterKey: Buffer | undefined
   let failServerNames: Set<string>
+  let registeredAgents: Map<string, { session: { id: string } }>
   let runtime: ReturnType<typeof mountPersonalMcp>
 
   beforeEach(() => {
@@ -93,6 +94,7 @@ describe('B14 个人 MCP:运行时', () => {
     config = CONFIG
     masterKey = MASTER_KEY
     failServerNames = new Set()
+    registeredAgents = new Map()
     runtime = mount()
   })
 
@@ -128,6 +130,7 @@ describe('B14 个人 MCP:运行时', () => {
       },
       mcpClientConfigOf: input => input,
       mcpClientPlugin: { name: 'fake-mcp-client' },
+      agentsOf: sessionId => registeredAgents.get(sessionId),
     })
   }
 
@@ -164,6 +167,35 @@ describe('B14 个人 MCP:运行时', () => {
     expect(scopes).toHaveLength(0)
     await host.emit('agent/created', { agent: agentOf('s-alice') })
     expect(pluginCalls).toHaveLength(1)
+  })
+
+  it('账本晚写(agent/created 先于 sessions 行):mountSession 回查 live Agent 补挂且幂等', async () => {
+    addRows(aliceId, 1)
+    // 真实时序复现:agent 已建、账本行还没写 → agent/created 挂载被跳过
+    const agent = agentOf('s-late')
+    registeredAgents.set('s-late', agent)
+    await host.emit('agent/created', { agent })
+    expect(scopes).toHaveLength(0)
+    // 账本写入后,create 路径补挂
+    store.recordSession('s-late', aliceId, null)
+    await runtime.mountSession('s-late')
+    expect(scopes).toHaveLength(1)
+    expect(runtime.mountedAgents(aliceId)).toBe(1)
+    // 幂等:再调不重复挂
+    await runtime.mountSession('s-late')
+    expect(scopes).toHaveLength(1)
+  })
+
+  it('子代理会话(父会话在账本):按 parentSession 上溯挂载,守卫同用户放行/跨用户拒', async () => {
+    addRows(aliceId, 1)
+    const child = { session: { id: 's-child', header: { parentSession: 's-alice' } } }
+    registeredAgents.set('s-child', child)
+    await host.emit('agent/created', { agent: child })
+    expect(pluginCalls).toHaveLength(1)
+    const own = await host.waterfall('tools/pre-execute', { name: `mcp__p${aliceId}_srv0__echo`, agent: child })
+    expect(own).toEqual({ kind: 'allow' })
+    const cross = await host.waterfall('tools/pre-execute', { name: `mcp__p${bobId}_srv0__echo`, agent: child })
+    expect(cross).toMatchObject({ kind: 'deny' })
   })
 
   it('单条失败只 warn:其余条目照常挂载,全部失败则释放空 scope', async () => {
@@ -352,6 +384,6 @@ describe('B14 个人 MCP:运行时', () => {
     expect(stdio.startupTimeoutMs).toBe(MCP_PERSONAL_STARTUP_TIMEOUT_MS)
     const http = personalMcpClientInput({ transport: 'streamable-http', serverName: 'p1_y', url: 'https://x.test/mcp', headers: { A: 'b' } })
     expect(http).toMatchObject({ transport: 'streamable-http', url: 'https://x.test/mcp', headers: { A: 'b' } })
-    expect(http.reconnect).toEqual({ enabled: false })
+    expect(http.reconnect).toEqual({ enabled: true, maxAttempts: 3 })
   })
 })

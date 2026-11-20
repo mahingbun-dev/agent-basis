@@ -70,13 +70,13 @@ await pageA.screenshot({ path: join(OUT, 'panel-admin.png') })
 checks.bobCreate = await pageA.evaluate(async () => {
   const r = await fetch('/access/api/users', {
     method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ account: 'tp-bob', password: 'tp-bob-pass-8', role: 'user' }),
+    body: JSON.stringify({ account: 'tp-bob', password: 'tp-bob-test-pass-8', role: 'user' }),
   })
   return { status: r.status, body: await r.json().catch(() => null) }
 })
 const bobFinal = checks.bobCreate?.body?.user?.finalAccount ?? 'tp-bob'
 const ctxB = await chromium.launchPersistentContext(join(OUT, 'profile-b'), { executablePath: CHROME, headless: true, viewport: { width: 1280, height: 800 }, args: ['--no-sandbox'] })
-const pageB = await login(ctxB, { account: bobFinal, password: 'tp-bob-pass-8' }, 'B')
+const pageB = await login(ctxB, { account: bobFinal, password: 'tp-bob-test-pass-8' }, 'B')
 await pageB.getByText('用量统计', { exact: false }).first().click().catch(() => {})
 await pageB.waitForTimeout(4000)
 checks.bobPanelVisible = await pageB.locator('[data-eterna-usage-stats]').isVisible().catch(() => false)

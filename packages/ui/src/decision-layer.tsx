@@ -43,6 +43,22 @@ export function DecisionLayer(props: DecisionLayerProps): ReactNode {
   const [narrow, setNarrow] = useState(false)
   /** 窄屏下当前呈第几张（其余排队）。 */
   const [focus, setFocus] = useState(0)
+  /** 是否真的有决策卡挂出（UI-006：审批/提问组件本身可能是空壳，元素非 null 不代表有卡）。 */
+  const [hasCard, setHasCard] = useState(false)
+
+  // 卡片存在性探测：items 是常驻的组件元素（审批/提问各自内部按队列渲染），
+  // 无待拍板项时二者都渲染空。若按 items.length 出切换条，首屏空会话会浮出
+  // 「第 1/2 项 · 点击切换」并压住 chips 行（390 实测）。以 DOM 中真实
+  // `.et-decision-card` 为准，MutationObserver 跟随增删。
+  useEffect(() => {
+    const layer = layerRef.current
+    if (layer === null || typeof MutationObserver === 'undefined') return
+    const sync = (): void => { setHasCard(layer.querySelector('.et-decision-card') !== null) }
+    sync()
+    const observer = new MutationObserver(sync)
+    observer.observe(layer, { childList: true, subtree: true })
+    return () => { observer.disconnect() }
+  }, [])
 
   // 窄屏判定：只在跨断点时重渲染，避免 resize 抖动
   useEffect(() => {
@@ -85,14 +101,15 @@ export function DecisionLayer(props: DecisionLayerProps): ReactNode {
   const shown = narrow
     ? [visible[focusIndex]]
     : visible.slice(0, cap)
-  const rest = visible.length - cap
+  // 切换/折叠条只在确有卡片时出现（空壳组件不算；见 hasCard 注释）
+  const rest = hasCard ? visible.length - cap : 0
 
   return (
     <div ref={layerRef} className='et-decision-layer'>
       {shown.map((node, index) => (
         <div key={index} style={{ display: 'contents' }}>{node}</div>
       ))}
-      {narrow && visible.length > 1
+      {narrow && hasCard && visible.length > 1
         ? (
           <button
             type='button'

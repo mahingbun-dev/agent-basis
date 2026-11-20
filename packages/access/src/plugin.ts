@@ -41,7 +41,7 @@ import { installChatImportGate, workspaceSessionIdsOf, type ChatImportEventHost 
 import { installLoginGate } from './login-gate.ts'
 import { registerChannelsWebhook } from './channels-webhook.ts'
 import { installToolClamp, installSandboxBoundary } from './sandbox.ts'
-import { installTerminalTenant, installTerminalSandbox } from './terminal.ts'
+import { installTerminalTenant } from './terminal.ts'
 import { BADGE_SCRIPT } from './pages.ts'
 
 export const ACCESS_PLUGIN_NAME = 'eterna-access'
@@ -199,6 +199,15 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
           const account = store.getUserById(userId)?.account
           return account === undefined ? undefined : join(tenantRoot, account)
         },
+        // 生命周期缺口(2026-11-20):agent/created 早于 access 账本写入,首次挂载
+        // 解析不出归属;create 记账后用 sessionId 回查 live Agent 补挂。
+        agentsOf: (sessionId: string) => {
+          const registry = ctx.reflect.get('agents', false) as { get?: (id: string) => unknown } | undefined
+          const agent = registry?.get?.(sessionId)
+          if (typeof agent !== 'object' || agent === null) return undefined
+          const session = (agent as { session?: { id?: unknown } }).session
+          return typeof session?.id === 'string' ? agent as never : undefined
+        },
       })
       audit({
         kind: 'mcp.personal.install',
@@ -257,7 +266,10 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         bridgeHome: (origin: string) => ctx.connection.authenticatedUrl(origin),
         publicOrigin: process.env.ETERNA_PUBLIC_URL !== undefined && process.env.ETERNA_PUBLIC_URL !== '' ? process.env.ETERNA_PUBLIC_URL : undefined,
         dataDir: dir,
-        provisionWorkspace: user => provisionTenantWorkspace({ store, reflect: ctx.reflect, tenantRoot, audit }, user),
+        provisionWorkspace: user => provisionTenantWorkspace({
+          store, reflect: ctx.reflect, tenantRoot, audit,
+          ensurePersonalMcp: (sessionId: string) => mcpRuntime.mountSession(sessionId),
+        }, user),
         relayPublicWsUrl: process.env.ETERNA_RELAY_PUBLIC_URL !== undefined && process.env.ETERNA_RELAY_PUBLIC_URL !== ''
           ? process.env.ETERNA_RELAY_PUBLIC_URL
           : undefined,
@@ -484,7 +496,9 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         if (dispose !== undefined) disposers.push(dispose)
         audit({ kind: 'access.sandbox.install', detail: { boundaryWrap: dispose !== undefined } })
       }
-      // P1-T4(2026-11-11):终端租户隔离(入口校验+PTY 沙箱包装,实例级 wrap)。
+      // P1-T4(2026-11-11):终端租户隔离(入口校验,实例级 wrap)。
+      // rc.5(2026-11-20 TERM-006):PTY 沙箱不再本地包装——上游 terminal-bash
+      // 已用真实 session 解析策略并在 spawnArgv 内 confine(见 terminal.ts 末注)。
       let terminalDone = false
       const ensureTerminal = (): void => {
         if (terminalDone) return
@@ -492,16 +506,11 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         const terminalSvc = ctx.reflect.get('terminalController', false) as never
         const tenantDispose = installTerminalTenant(sandboxDeps, terminalSvc)
         if (tenantDispose !== undefined) disposers.push(tenantDispose)
-        const subprocess = ctx.reflect.get('subprocess', false) as never
-        const sandbox = ctx.reflect.get('sandbox', false) as never
-        const policy = ctx.reflect.get('sandboxPolicy', false) as never
-        const sandboxDispose = installTerminalSandbox(sandbox, policy, subprocess)
-        if (sandboxDispose !== undefined) disposers.push(sandboxDispose)
         audit({
           kind: 'access.terminal.install',
           detail: {
             tenant: tenantDispose !== undefined,
-            ptySandbox: sandboxDispose !== undefined,
+            ptySandbox: 'upstream',
           },
         })
       }
@@ -528,6 +537,8 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         audit,
         ensureMux: () => { ensureMux(); ensureSandbox(); ensureTerminal() },
         pluginLoader,
+        // 个人 MCP:会话归属行写入后补挂(见 runtime agentsOf 注)。
+        ensurePersonalMcp: (sessionId: string) => mcpRuntime.mountSession(sessionId),
       }, ctx.connection))
       // ── B14 个人 MCP 五端点(2026-11-20,T26/T27 接线;54 §13.4 第 4 条):
       // 与租户守卫同一登录门/信封/401 帧(installMcpPersonalFetchRoutes 内部实现,
@@ -593,6 +604,7 @@ export async function provisionTenantWorkspace(
     readonly reflect: AuditReflect
     readonly tenantRoot: string
     audit(event: AccessAuditEvent): void
+    readonly ensurePersonalMcp?: ((sessionId: string) => Promise<void>) | undefined
   },
   user: { readonly id: number; readonly account: string },
 ): Promise<void> {

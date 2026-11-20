@@ -27,7 +27,7 @@
 
 ### M1 退 demo(管理员,NAS 上操作)——先决条件
 
-现状证据:容器 `ai-evo-api` 内 `env` 实测含 `AIEVO_DEMO_MODE=true` 与 `AIEVO_DEMO_MOCK_BASE_URL=http://127.0.0.1:8201`;来源是 `/data/ai-evo/compose.35288cc.yml` 中 `api:` 与 `worker:` 两个 service 的 `environment:` 各两行。demo 态的危害:demo 种子数据会把**模型配置写成指向平台内置 mock LLM(`demo_seed_service.py` 中 `api_key="aievo-demo-mock"`,端点指回 8201 自身)**,评测分数来自假模型。
+现状证据:容器 `ai-evo-api` 内 `env` 实测含 `AIEVO_DEMO_MODE=true` 与 `AIEVO_DEMO_MOCK_BASE_URL=http://127.0.0.1:8201`;来源是 `/data/ai-evo/compose.35288cc.yml` 中 `api:` 与 `worker:` 两个 service 的 `environment:` 各两行。demo 态的危害:demo 种子数据会把**模型配置写成指向平台内置 mock LLM(`demo_seed_service.py` 中 `api_key=` 的值为 `aievo-demo-mock`,端点指回 8201 自身)**,评测分数来自假模型。
 
 操作:
 1. SSH 上 NAS,编辑 `/data/ai-evo/compose.35288cc.yml`:删去或改掉 `api:` 与 `worker:` 下的 `- AIEVO_DEMO_MODE=true` 与 `- AIEVO_DEMO_MOCK_BASE_URL=...` 两行(共 4 行)。
