@@ -12,12 +12,12 @@ import { collectJob, killJobs, runningJobs, stopBackground, stopSubagents, until
 import { jobRegistry } from './fixtures/host.ts'
 
 /** 一个带 DSH job 注册表与 subagent 面的 context,和一个 idle 的 worker agent(带一个活 subagent `child-1`)。 */
-function setup(waitForChildren: (agent: Agent) => Promise<boolean>, drainChildren: () => Promise<void> = async () => {}) {
+function setup(waitForTreeWork: (agent: Agent) => Promise<boolean>, drainDescendants: () => Promise<void> = async () => {}) {
   const jobs = jobRegistry()
   const agent = {
     id: 'worker-t1', status: 'idle', whenIdle: async () => {}, inbox: { nextTurn: [], nextStep: [] }, cancel: vi.fn(),
   } as unknown as Agent & { status: string; cancel: ReturnType<typeof vi.fn> }
-  const subagents = { waitForChildren: vi.fn(waitForChildren), listChildren: async () => [{ id: 'child-1' }], drainChildren: vi.fn(drainChildren) }
+  const subagents = { waitForTreeWork: vi.fn(waitForTreeWork), listDescendants: async () => [{ id: 'child-1' }], drainDescendants: vi.fn(drainDescendants) }
   const services: Record<string, unknown> = { jobs: jobs.service, subagents }
   const ctx = { get: (name: string) => services[name], agents: { get: (id: string) => (id === 'child-1' ? { id } : agent) } } as unknown as Context
   return { ctx, agent, jobs, subagents }
@@ -59,6 +59,15 @@ it('只有 job 结束才再看一眼:吵闹 job 的每次输出不看', async ()
   expect(await quiet).toBe(true)
 })
 
+it('释放 subagent 的 teardown 失败照样取消 worker 回合,并把失败抛给调用方', async () => {
+  // rc.5 drainDescendants 以树根数组为参;teardown 失败在全部落定后抛 SubagentError,
+  // stopSubagents 的 finally 仍须取消 worker(其回合被 release 期间的回执唤醒)。
+  const { ctx, agent, subagents } = setup(async () => false, async () => { throw new Error('teardown failed') })
+  await expect(stopSubagents(ctx, agent)).rejects.toThrow('teardown failed')
+  expect(subagents.drainDescendants).toHaveBeenCalledWith([agent])
+  expect(agent.cancel).toHaveBeenCalledWith({ kind: 'user' }, { keepInbox: false })
+})
+
 it('等待 subagent 的多次查看只 join 一次(DSH 无法取消该 join)', async () => {
   const { ctx, agent, subagents } = setup(() => new Promise(() => {}))
   for (let look = 0; look < 3; look++) {
@@ -67,7 +76,7 @@ it('等待 subagent 的多次查看只 join 一次(DSH 无法取消该 join)', a
     stop.abort()
     expect(await quiet).toBe(false)
   }
-  expect(subagents.waitForChildren).toHaveBeenCalledTimes(1)
+  expect(subagents.waitForTreeWork).toHaveBeenCalledTimes(1)
 })
 
 it('10 秒内不结束的 subagent 释放被放弃,且其结束唤醒的回合被取消', async () => {
@@ -121,6 +130,6 @@ it('stopBackground 停掉 job 与 subagent,job 的 kill 失败也照样释放 su
   // kill 失败被聚合抛出——但 subagent 的释放照跑、agent 的回合被取消
   await expect(stopping).rejects.toThrow('Stopping the background work of worker-t1 failed')
   expect(jobs.service.list('worker-t1').find(job => job.id === id)?.status).toBe('completed')
-  expect(subagents.drainChildren).toHaveBeenCalled()
+  expect(subagents.drainDescendants).toHaveBeenCalled()
   expect(agent.cancel).toHaveBeenCalledWith({ kind: 'user' }, { keepInbox: false })
 })

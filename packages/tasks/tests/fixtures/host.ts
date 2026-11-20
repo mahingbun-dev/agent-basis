@@ -68,6 +68,24 @@ type RegisteredAgent = {
 const notice = (id: string, text: string): UserMessage =>
   freezeMessage({ id: MessageId(id), role: 'user', content: [{ type: 'text', text }],
     source: { kind: 'tool-jobs', form: 'notice' } } as unknown as UserMessage)
+/** rc.5 子代理终态(`SubagentResult.stopReason` 的本地子集;fake 只按这几种驱动回执)。 */
+export type SettlementStop = 'completed' | 'error' | 'aborted' | 'max-tokens' | 'refusal'
+/**
+ * rc.5 `createSettlementMessage` 形状的 subagent 回执:文本是其一行的中译语义原样
+ * (completed/aborted/error 三条),source 的 `stopReason` 记录终态——worker E2E 断言面
+ * (54 号 T06「worker 真回执」;API-005..007)。
+ */
+const settlement = (id: string, stopReason: SettlementStop): UserMessage => {
+  const subject = `Background subagent ${id}`
+  const summary = stopReason === 'completed' ? `${subject} finished and will do no further work unless you send it more.`
+    : stopReason === 'aborted' ? `${subject} was stopped before it finished.`
+      : stopReason === 'max-tokens' ? `${subject} ran out of room before it finished.`
+        : stopReason === 'refusal' ? `${subject} declined the task.`
+          : `${subject} failed before it finished.`
+  return freezeMessage({ id: MessageId(`settled-${id}`), role: 'user', content: [
+    { type: 'text', text: summary }, { type: 'text', text: 'It left no closing message.' },
+  ], source: { kind: 'subagent-settled', form: 'notice', summary, stopReason, senderSessionId: id } } as unknown as UserMessage)
+}
 
 export type Delivery = { sessionId: string; mode: 'queue' | 'steer' | 'inject'; id: string; text: string }
 
@@ -135,34 +153,53 @@ export function jobRegistry(owner: (sessionId: string) => RegisteredAgent | unde
 
 /**
  * DSH 的 subagent 面,如 Executor 用它的。`spawn` 起某 session 的一个 child(活着时是
- * agent),此后对该 session 后代的 drain 拒绝它;`settle` 结束一个,其结束唤醒闲着的
- * 父,或在等待其 children 返回前 steer 在跑的那个。释放或打断一个 child 也会 settle 它;
- * 后代的 drain 注入它们的结束。目录列出该 session 有过的每个 child。
+ * agent);`settle` 结束一个,其 rc.5 终态回执唤醒闲着的父,或在等其整棵树返回前 steer
+ * 在跑的那个;`drainDescendants` 关掉该树准入并注入 aborted 回执(不唤醒)。目录列出
+ * 该 session 有过的每个后代(活动与已结束),如 rc.5 的持久目录。
  */
 export function subagentRuntime(agents: Map<string, RegisteredAgent>) {
   const children = new Map<string, { parent: string; live: boolean; settled: PromiseWithResolvers<undefined> }>()
   const closed = new Set<string>()
-  const settle = (id: string, wake = true): void => {
+  const settle = (id: string, stopReason: SettlementStop = 'completed', wake = true): void => {
     const child = children.get(id)
     if (!child?.live) return
     child.live = false
     agents.delete(id)
     const parent = agents.get(child.parent)
-    const ended = notice(`settled-${id}`, `Subagent ${id} settled`)
+    const ended = settlement(id, stopReason)
     if (!wake) parent?.inject(ended)
     else if (parent?.status === 'idle') parent.followup(ended)
     else parent?.steer(ended)
     child.settled.resolve(undefined)
   }
+  const descendantIds = (root: string): string[] => {
+    const out: string[] = []
+    const walk = (parent: string): void => {
+      for (const [id, child] of children) {
+        if (child.parent !== parent) continue
+        out.push(id)
+        walk(id)
+      }
+    }
+    walk(root)
+    return out
+  }
   const service = {
-    waitForChildren: vi.fn(async (parent: { id: string }) => {
-      const live = [...children.values()].filter(child => child.parent === parent.id && child.live)
-      await Promise.all(live.map(child => child.settled.promise))
-      return live.length > 0
+    // rc.5 join 整棵树(不只直接子):树里仍活着的后代都等到结束。
+    waitForTreeWork: vi.fn(async (parent: { id: string }) => {
+      const pending = descendantIds(parent.id).flatMap((id) => {
+        const child = children.get(id)
+        return child?.live ? [child.settled.promise] : []
+      })
+      await Promise.all(pending)
+      return pending.length > 0
     }),
-    listChildren: vi.fn(async (id: string) =>
-      [...children].filter(([, child]) => child.parent === id).map(([childId]) => ({ id: childId }))),
-    drainChildren: vi.fn(async (_parent: { id: string }, ids: readonly string[]) => { for (const id of ids) settle(id) }),
+    listDescendants: vi.fn(async (id: string) => descendantIds(id).map(childId => ({ id: childId }))),
+    // rc.5 drain:先关整棵树的新派生准入,再逐个停掉;回执注入(teardown 不唤醒 worker)。
+    drainDescendants: vi.fn(async (parents: readonly { id: string }[]) => {
+      for (const parent of parents) closed.add(parent.id)
+      for (const parent of parents) for (const id of descendantIds(parent.id)) settle(id, 'aborted', false)
+    }),
   }
   const spawn = (parent: string): string => {
     if (closed.has(parent)) throw new Error('DRAINING: the Session admits no new subagents')
