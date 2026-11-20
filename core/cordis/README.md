@@ -4,10 +4,10 @@
 
 ## NOTICE(vendor 出处与许可)
 
-- **来源**:`@deepseek-ai/cordis` **4.0.6-alpha.1**(npm;源码目录 `src/` 随包发布)
-- **上游仓库**:https://github.com/deepseek-ai/deepseek-harness(`vendor/cordis` 目录),作者 Shigma(Shigma <shigma10826@gmail.com>)与 DeepSeek-AI
-- **许可**:MIT(保留原版权声明;本仓库发行物同样以 MIT 对外)
-- **vendor 日期**:2026-11-06
+- **来源**:`@deepseek-ai/cordis` **4.1.0**(上游 tag `dsh-v0.2.2-rc.5` = `9c2670d3bce5275e0d1610272958121af87787bb`,目录 `vendor/cordis`)
+- **上游仓库**:https://github.com/deepseek-ai/deepseek-harness,作者 Shigma(Shigma <shigma10826@gmail.com>)与 DeepSeek-AI
+- **许可**:MIT(保留原版权声明,见 `LICENSE`;本仓库发行物同样以 MIT 对外)
+- **vendor 日期**:2026-11-20(上游 4.1.0 发布提交 `60d811de43`,2026-11-04)
 
 ## 相对上游的机械化改造(全部为可机械验证的等价变换)
 
@@ -26,9 +26,31 @@
 | 9 | `registry.ts` `namespace Inject { resolve }` | 值承载 namespace(与 `Inject` 类型别名/装饰器函数三重合并) | `resolveInject()` 模块函数 + `InjectStatic` 类型化引用;`Inject.resolve` 名称退役 |
 | 10 | `service.ts` `Service` 构造器 | `protected ctx` 参数属性 | `protected ctx!: Context` 显式字段(赋值仍走 `self.ctx = ctx`) |
 | 11 | 5 处 `declare module './context.ts'` | 相对路径自增强 | 改为 `declare module '@core/cordis'` 包名自增强(包内解析靠 tsconfig `paths` 自映射;产物 d.ts 增强可被消费方合并) |
-| 12 | 4 处类型注补 | — | `state: FiberState` 字段注解、`resolveConfig` 结果窄化 cast、`task` catch cast、`getTraceable` hasOwn cast、`_updateState` 组合 cast(语义等价,仅为 tsc 空值检查) |
+| 12 | 5 处类型注补 | — | `state: FiberState` 字段注解、`resolveConfig` 结果窄化 cast、`task` catch cast、`getTraceable` hasOwn cast、`_updateState` 组合 cast(语义等价,仅为 tsc 空值检查) |
 
 type-only namespace(`Plugin` / `Property` / `LoggerService.Intercept`)经实测原生可擦除,**原样保留**。
+
+### 4.1.0 复核(2026-11-20)
+
+逐文件 diff `4.0.6-alpha.1 → 4.1.0` 后,上表 12 项仍是全集:新版没有引入新的不可擦除语法(无新参数属性 / `const enum` / 值 namespace),因此**未新增变换项**。落点变化:
+
+- `registry.ts` / `service.ts` / `index.ts` 与 4.0.6-alpha.1 逐字节相同,沿用上一版已改造文件;
+- 变更集中在 `context.ts` / `events.ts` / `fiber.ts` / `logger.ts` / `reflect.ts` / `utils.ts`,重跑变换 1–12;
+- 变换 7 仍落在 `reflect.ts` `ReflectService` 构造器;变换 11 仍为 5 处 `declare module '@core/cordis'`。
+
+### 4.0.6-alpha.1 → 4.1.0 上游语义变更清单(供消费方适配,非本包改造)
+
+| 面 | 变更 |
+|---|---|
+| `LoggerLevel` | **数值反转**:`WARN = 1` / `INFO = 2`(4.0.6 为 `INFO = 1` / `WARN = 2`);按数值比较级别的 exporter 必须复核 |
+| `Events` 接口 | `internal/config(fiber, next)`(原 `(this: Fiber, config, next)`);新增 `internal/commit(fiber, originalConfig)`;`internal/update(config, next)` 去掉 `noSave` 且返回 `Awaitable<void>`;新增 symbol 索引签名;`internal/dispatch` 的名称类型放宽为 `string \| symbol` |
+| `EventsService` | `register` / `unregister` 改为私有;`once` 接受 symbol;`parallel` 的 dispatch 模式上报改为 `'parallel'`(原误报 `'emit'`) |
+| `Fiber` | `config` 改为 raw input(原为 validated);`rawConfig` 读写同一字段,`effectiveConfig` 单独存放(激活/成功 `update` 才发布);`store` 退役为 `committed` + `provisions`;`update()` 返回 `Awaitable<void>`;FAILED fiber 不再因依赖变化自动恢复,须显式 `update()`;卸载等待 dependents 完成后再撤自身 effects |
+| `Impl`(reflect) | `fiber` 字段改为 `ctx`;新增 `uid` / `dependents` / `release` / `isolate`;`provide` disposer 等待 dependents;`notify()` 返回 `void`(原返回 fiber 列表) |
+| `utils` | 新增 `symbols.caller`;`createShadow` / `createTraceable` 区分 defSite(服务解析)与 useSite(intercept / isolate / effects);`createCallable` 走 `Reflect.apply` |
+| `context.ts` | `baseUrl?: string \| undefined`(对 `exactOptionalPropertyTypes` 消费方友好) |
+
+`FiberState` 数值与导出名不变;`CordisError` 码表不变。
 
 ## 本包纪律(内核区规则)
 
@@ -38,4 +60,4 @@ type-only namespace(`Plugin` / `Property` / `LoggerService.Intercept`)经实测�
 
 ## 冒烟测试
 
-`tests/smoke.spec.ts` 锁内核最小能力面:Context 代理 + provide/inject 依赖解析、effect 配逆(disposer LIFO)、事件 on/emit/waterfall、插件装卸与逆闭包回卷。
+`tests/smoke.spec.ts` 锁内核最小能力面:Context 代理 + provide/inject 依赖解析、effect 配逆(disposer LIFO)、事件 on/emit/waterfall、插件装卸与逆闭包回卷,以及 4.1.0 语义(`LoggerLevel` 数值序、`rawConfig` / `effectiveConfig` 分工)。

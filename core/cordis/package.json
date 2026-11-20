@@ -1,7 +1,7 @@
 {
   "name": "@core/cordis",
-  "description": "自持 cordis 内核:vendor 自 @deepseek-ai/cordis 4.0.6-alpha.1(MIT),机械化改造以适配 Node 原生 strip-types;改造清单与上游出处见 README.md NOTICE。",
-  "version": "4.0.6-alpha.1-basis.1",
+  "description": "自持 cordis 内核:vendor 自 @deepseek-ai/cordis 4.1.0(MIT),机械化改造以适配 Node 原生 strip-types;改造清单与上游出处见 README.md NOTICE。",
+  "version": "4.1.0-basis.1",
   "private": true,
   "type": "module",
   "license": "MIT",

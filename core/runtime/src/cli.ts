@@ -118,7 +118,7 @@ export async function runBasis(argv: readonly string[], io: CliIo): Promise<numb
       return 1
     }
     try {
-      const runner = bundle.ctx.agents.resolve(agentNameOf(parsed.flags, bundle))
+      const runner = bundle.ctx.agents.resolve(agentNameOf(parsed.flags, bundle), bundle.ctx)
       const result = await runner.run(prompt)
       if (parsed.flags['json'] === true) {
         io.writeLine(JSON.stringify(result))
@@ -143,7 +143,7 @@ export async function runBasis(argv: readonly string[], io: CliIo): Promise<numb
       return 1
     }
     try {
-      const runner = bundle.ctx.agents.resolve(agentNameOf(parsed.flags, bundle))
+      const runner = bundle.ctx.agents.resolve(agentNameOf(parsed.flags, bundle), bundle.ctx)
       io.writeLine('basis chat 已就绪(/exit 或 EOF 退出;每行输入 = 一个 turn)')
       // 会话事件回显:工具调用/结果与审批结论实时可见
       bundle.ctx.events.on('session/event', (event) => {

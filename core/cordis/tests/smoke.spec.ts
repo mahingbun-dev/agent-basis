@@ -6,8 +6,8 @@
  * - 对象插件装卸:apply 返回 disposer,dispose 后逆闭包回卷
  */
 import { describe, expect, it } from 'vitest'
-import { Context } from '../src/index.ts'
-import type { Context as Ctx } from '../src/index.ts'
+import { Context, LoggerLevel } from '../src/index.ts'
+import type { Context as Ctx, Plugin } from '../src/index.ts'
 
 type Greeting = { hello(): string }
 
@@ -88,5 +88,27 @@ describe('@core/cordis vendor smoke', () => {
     expect(seen).toEqual([7])
     await fiber.dispose()
     expect(ctx.bus!.kick).toBeUndefined()
+  })
+
+  it('4.1.0 语义:LoggerLevel 数值序 + raw/effectiveConfig 分工', async () => {
+    // 4.1.0 显式反转级别数值(4.0.6 为 INFO=1/WARN=2);消费方不得按旧序硬编码
+    expect(LoggerLevel.WARN).toBe(1)
+    expect(LoggerLevel.INFO).toBe(2)
+
+    const ctx = new Context()
+    const fiber = ctx.plugin({ name: 'cfg', apply() {} } as Plugin, { round: 1 })
+    await fiber
+    expect(fiber.effectiveConfig).toEqual({ round: 1 })
+
+    // 只改 raw 输入:不校验、不重启,运行实例仍读旧 effectiveConfig
+    fiber.rawConfig = { round: 2 }
+    expect(fiber.rawConfig).toEqual({ round: 2 })
+    expect(fiber.effectiveConfig).toEqual({ round: 1 })
+
+    // update():raw 与 effective 在重启完成后同步发布
+    await fiber.update({ round: 3 })
+    expect(fiber.rawConfig).toEqual({ round: 3 })
+    expect(fiber.effectiveConfig).toEqual({ round: 3 })
+    await fiber.dispose()
   })
 })
