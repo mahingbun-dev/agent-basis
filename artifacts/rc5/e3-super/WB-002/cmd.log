@@ -1,15 +1,14 @@
 # WB-002 — （workbench）panel 挂载 + 客户端工件
 CMD: node artifacts/rc5/e3-super/run-suite.mjs WB-002
-START: 2026-11-19T22:30:39.161Z
+START: 2026-11-20T07:03:52.965Z
 # 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
 
 [exit=0] docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)  # boot token 不入证据
 [exit=200] GET /connect + GET /?token=… (dsh session bootstrap)  # token 已脱敏
-[exit=429] POST /login (admin from 0600 accounts file)
-[exit=200] POST /login (admin from 0600 accounts file)  # retry#1
+[exit=200] POST /login (admin from 0600 accounts file)
 [exit=200] POST /api/pluginInventory/list
 [exit=200] GET /  # HTML 花名册（__DSH_BOOT__）
 [exit=200] index.html combo urls parsed (83 chunks)
-[exit=200] GET /plugins/??@eterna/attachments/client.js,@eterna/compaction/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deepseek-ai/dsh-session-log-export/client.js,@deepseek-ai/dsh-client-file-upload/client.js,@deepseek-ai/dsh-api-remotes/client.js,@deepseek-ai/dsh-client-ui-deliverables/client.js,@eterna/llm-doctor/client.js,@eterna/usage-stats/client.js,@eterna/knowledge-admin/client.js,@deepseek-ai/dsh-typert-registry/client.js,@deepseek-ai/dsh-client-connection/client.js,@eterna/prompt-studio/client.js,@deepseek-ai/dsh-api-workspace-controller/client.js,@deepseek-ai/dsh-deepseek-chat-import/client.js,@deepseek-ai/dsh-api-session-controller/client.js,@eterna/tasks/client.js,@eterna/memory/client.js,@eterna/panel/client.js,@eterna/workbench/client.js,@eterna/access/client.js&rev=3a1bee1f9a66  # client bundle @eterna/workbench
+[exit=200] GET /plugins/??@eterna/attachments/client.js,@eterna/compaction/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deepseek-ai/dsh-session-log-export/client.js,@deepseek-ai/dsh-client-file-upload/client.js,@deepseek-ai/dsh-api-remotes/client.js,@deepseek-ai/dsh-client-ui-deliverables/client.js,@eterna/llm-doctor/client.js,@eterna/usage-stats/client.js,@eterna/knowledge-admin/client.js,@deepseek-ai/dsh-typert-registry/client.js,@deepseek-ai/dsh-client-connection/client.js,@eterna/prompt-studio/client.js,@deepseek-ai/dsh-api-workspace-controller/client.js,@deepseek-ai/dsh-deepseek-chat-import/client.js,@deepseek-ai/dsh-api-session-controller/client.js,@eterna/tasks/client.js,@eterna/memory/client.js,@eterna/panel/client.js,@eterna/workbench/client.js,@eterna/access/client.js&rev=3b47b8b0497e  # client bundle @eterna/workbench
 
 EXIT=0

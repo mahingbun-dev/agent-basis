@@ -5,8 +5,8 @@
   "title": "E3 super 容器起：healthy + super 路由可访问",
   "expected": "healthy；super 路由可访问（/login、/、/access/api/tasks/*、/workbench/api/stream），22 行 @eterna 挂载 active",
   "status": "PASS",
-  "startedAt": "2026-11-19T22:26:30.343Z",
-  "finishedAt": "2026-11-19T22:26:30.744Z",
+  "startedAt": "2026-11-20T07:01:35.713Z",
+  "finishedAt": "2026-11-20T07:01:36.510Z",
   "assertions": [
     {
       "name": "super 容器 healthy",
@@ -66,7 +66,7 @@
     {
       "name": "工作台首帧为 snapshot",
       "ok": true,
-      "detail": "{\"kind\":\"snapshot\",\"seq\":2,\"snapshot\":{\"tickets\":[],\"conflict\":{\"attach\":{\"count\":0,\"note\":\"同线程候选挂接 · 7 日（routed 决策）\"},\"duplicate\":{\"percent\":0,\"thresholdPercent\":5,\"note\":\"幂等查重 · 计数接入后展示\",\"unavailabl"
+      "detail": "{\"kind\":\"snapshot\",\"seq\":1,\"snapshot\":{\"tickets\":[],\"conflict\":{\"attach\":{\"count\":0,\"note\":\"同线程候选挂接 · 7 日（routed 决策）\"},\"duplicate\":{\"percent\":0,\"thresholdPercent\":5,\"note\":\"幂等查重 · 计数接入后展示\",\"unavailabl"
     },
     {
       "name": "host entries=235（rc.5 基线）",
@@ -108,7 +108,7 @@
     {
       "cmd": "POST /login (admin from 0600 accounts file)",
       "exit": 200,
-      "note": "account=rc5admin"
+      "note": ""
     },
     {
       "cmd": "GET /",
@@ -133,7 +133,7 @@
     {
       "cmd": "POST /api/pluginInventory/list",
       "exit": 200,
-      "note": "ok=true"
+      "note": ""
     },
     {
       "cmd": "read docker/profile/cordis.super.patch.yml.template",

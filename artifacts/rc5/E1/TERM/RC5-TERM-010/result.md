@@ -1,22 +1,27 @@
-# RC5-TERM-010 · close 后再 attach 无幽灵终端
+# RC5-TERM-010 · close 后再 attach：状态正确、无幽灵终端
 
 - 套件：TERM
-- 结论：**SKIP**
-- 开始/结束：2026-11-19T23:26:01.353Z / 2026-11-19T23:26:01.353Z
+- 结论：**PASS**
+- 开始/结束：2026-11-20T07:03:38.268Z / 2026-11-20T07:03:39.537Z
 
 ## 预期
 
-按 51 §3.7 用例定义执行
+attach/retain 拒绝、list 不含该 id、同 id 不能复活（closedIds 生效）
 
 ## 实际
 
-未执行：套件中止
+attach=error/terminal/unavailable retain=error/terminal/unavailable absent=true resurrect=false
 
 ## 备注
 
-- RC5-TERM-004 跨租户红（B 可读 A 会话终端）→ 按派发规则立即中止 TERM 套件
-- 不再继续执行/标绿（派发规则）
+- 脚本：artifacts/rc5/E1/TERM/term-010.mjs（本 runner 现场执行）
 
 ## 证据附件
 
 - `cmd.log`
+
+## 执行命令
+
+```
+$ node artifacts/rc5/E1/TERM/term-010.mjs  # EXIT=0
+```

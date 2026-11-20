@@ -1,4 +1,8 @@
 # MCPS/RC5-MCPS-007
-# started 2026-11-19T22:50:49.780Z
+# started 2026-11-20T07:03:00.700Z
 
-# note: 套件已中止：RC5-MCPS-006: 普通用户 restart/probe 必须被拒
+$ WS /api/remote.mux open {endpoint:"mcpManager/watch"}（A 管理员）
+EXIT=0
+{"type":"item","streamId":"mcps-watch-a","value":[{"name":"e1http","configured":true,"status":{"state":"connected","toolCount":1,"connectedAt":1795158176966}}]}
+
+[ASSERT] 管理员 watch 流可用且首帧含已配置 server => PASS :: first=[{"name":"e1http","configured":true,"status":{"state":"connected","toolCount":1,"connectedAt":1795158176966}}]

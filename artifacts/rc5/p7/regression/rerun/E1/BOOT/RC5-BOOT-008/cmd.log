@@ -1,0 +1,22 @@
+# BOOT/RC5-BOOT-008
+# started 2026-11-20T01:42:43.918Z
+
+$ docker run -d … rc5-e1suite-boot8（基线启动，生成渲染 profile）
+EXIT=0
+health=healthy http=302
+
+$ docker run -d … rc5-e1suite-boot8（旧清单 → 首启迁移）
+EXIT=0
+appended=4 health=healthy
+
+$ docker run -d … rc5-e1suite-boot8（二次启动，幂等核对）
+EXIT=0
+after2=6 health=healthy
+
+[ASSERT] 首启追加 rc.5 默认 bundle => PASS :: appended=@deepseek-ai/dsh-deepseek-chat-import,@deepseek-ai/dsh-experimental-session-search,@deepseek-ai/dsh-experimental-plugin-market-bundle,@deepseek-ai/dsh-experimental-terminal-bundle
+
+[ASSERT] marker 记录默认集 => PASS :: marker=6
+
+[ASSERT] 二次启动不重复追加 => PASS :: after1=6 after2=6
+
+[ASSERT] 写回前备份存在 => PASS :: backups=package.json.bak-2026-11-20T01-42-51-289Z

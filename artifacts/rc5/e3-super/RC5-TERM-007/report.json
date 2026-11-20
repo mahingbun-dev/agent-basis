@@ -5,8 +5,8 @@
   "title": "terminal 配置（TERM-007）",
   "expected": "readUserTerminals=false；preferredShells=[bash]",
   "status": "PASS",
-  "startedAt": "2026-11-19T22:27:56.514Z",
-  "finishedAt": "2026-11-19T22:27:56.555Z",
+  "startedAt": "2026-11-20T07:02:47.593Z",
+  "finishedAt": "2026-11-20T07:02:47.674Z",
   "assertions": [
     {
       "name": "preferredShells=[bash]",

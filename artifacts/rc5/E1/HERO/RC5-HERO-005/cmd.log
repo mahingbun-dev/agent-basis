@@ -1,5 +1,5 @@
 # HERO/RC5-HERO-005
-# started 2026-11-19T23:17:24.413Z
+# started 2026-11-20T07:02:45.619Z
 
 $ IAB: 偏好设置 → 通用设置 → 外观 → 浅色/深色；getComputedStyle(hero mark/glow/ring)
 EXIT=0

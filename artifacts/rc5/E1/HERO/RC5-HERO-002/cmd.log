@@ -1,5 +1,5 @@
 # HERO/RC5-HERO-002
-# started 2026-11-19T23:17:24.412Z
+# started 2026-11-20T07:02:45.617Z
 
 $ IAB: setViewportSize(1440/900/390±) × 浅色/深色；screenshot() × 6；elementFromPoint(输入框中心)；getComputedStyle(frame/layer)
 EXIT=0

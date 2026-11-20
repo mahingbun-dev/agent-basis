@@ -3,3 +3,7 @@ services:
   eterna-agent:
     volumes:
       - ${RC5_FIXTURES:?set RC5_FIXTURES}:/fixtures:ro
+    environment:
+      # 确定性假模型（OFF-007 office 技能回合）：端点只在宿主本地，key 为无意义占位，
+      # 真值落 0600 .env.e1suite（与 E2 lane 同纪律）。
+      FAKE_LLM_API_KEY: ${FAKE_LLM_API_KEY:-}

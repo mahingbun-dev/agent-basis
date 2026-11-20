@@ -1,5 +1,5 @@
 # HERO/RC5-HERO-008
-# started 2026-11-19T23:17:24.419Z
+# started 2026-11-20T07:02:52.274Z
 
 $ IAB: 新建会话 → 计数 frame/layer；点击会话列表 treeitem 切回活动会话 → 再计数
 EXIT=0

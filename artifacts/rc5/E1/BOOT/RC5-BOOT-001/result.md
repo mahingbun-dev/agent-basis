@@ -2,7 +2,7 @@
 
 - 套件：BOOT
 - 结论：**PASS**
-- 开始/结束：2026-11-19T22:43:38.645Z / 2026-11-19T22:43:45.543Z
+- 开始/结束：2026-11-20T07:01:54.673Z / 2026-11-20T07:02:01.994Z
 
 ## 预期
 
@@ -14,7 +14,7 @@ health=healthy http=302 日志错误行=0 空根前置=true
 
 ## 备注
 
-- 首启耗时约 6s；空根=profiles:0 users.db:false sessions:0
+- 首启耗时约 7s；空根=profiles:0 users.db:false sessions:0
 
 ## 证据附件
 

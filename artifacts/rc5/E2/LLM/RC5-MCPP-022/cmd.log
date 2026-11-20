@@ -1,0 +1,30 @@
+# LLM/RC5-MCPP-022
+# started 2026-11-20T07:06:04.260Z
+
+$ POST /api/mcp-personal/upsert（B，登出前）
+EXIT=200
+serverName=p2_llm22
+
+$ POST /api/session/prompt（第一回合：登出前调用）
+EXIT=200
+tool_calls=1
+
+$ 假模型日志：登出前 echo 回显
+EXIT=200
+["echo:before-logout"]
+
+$ POST /logout（B 登出）
+EXIT=302
+redirect=/login clear_cookie=true
+
+$ 假模型请求日志（登出后同一会话回合）
+EXIT=200
+round1_echo=true round2_absent=true round2_tools_has=false
+
+[ASSERT] 登出前 live 会话可调用个人工具并回显 => PASS :: ["echo:before-logout"]
+
+[ASSERT] 登出返回 302 且清除浏览器会话 cookie（Max-Age=0） => PASS :: status=302 clear=true
+
+[ASSERT] 登出后同一 live 会话 tools 清单不再含个人工具 => PASS :: tools=59 present=false
+
+[ASSERT] 登出后调用被拒且无 echo 内容 => PASS :: ["echo:before-logout","Error: unknown tool \"mcp__p2_llm22__echo\""]

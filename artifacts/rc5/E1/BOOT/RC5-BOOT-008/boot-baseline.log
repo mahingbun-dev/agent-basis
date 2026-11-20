@@ -11,6 +11,6 @@
 [entrypoint] companion relay 后台启动 :9310（token 已生成落卷 /data/relay-token；publicWsUrl=未设（guide 按本机默认展示））
 [entrypoint] container IP: 172.17.0.3  LLM: 三家直连(deepseek/mimo/glm,P2 网关)
 [entrypoint] sandbox runner: landlock full
-dsh web: http://172.17.0.3:8080/?token=JYURbF8uAvu7_B0VnrXKNIdRTdICTc8Bo65EfFg1l1Q
+dsh web: http://172.17.0.3:8080/?token=Lfiraa_bXTuedWoI9IIY2VqLjvJQjn7nCbNCGgQznk8
 [relay] relay 监听 http://0.0.0.0:9310（/extension /cdp /api/tools /fixture）
 dsh web: listening on 172.17.0.3 over plain HTTP; restrict this port to a trusted proxy or network

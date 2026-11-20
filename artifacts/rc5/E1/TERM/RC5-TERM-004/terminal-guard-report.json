@@ -1,17 +1,17 @@
 {
   "suite": "TERM",
-  "startedAt": "2026-11-19T23:19:48.004Z",
-  "finishedAt": "2026-11-19T23:19:48.221Z",
+  "startedAt": "2026-11-20T07:03:24.239Z",
+  "finishedAt": "2026-11-20T07:03:32.897Z",
   "env": {
     "base": "http://127.0.0.1:3118",
     "container": "rc5-e1suite",
     "dataRoot": "/Users/sunny/eterna-data/test-rc5/e1"
   },
   "counts": {
-    "PASS": 5,
-    "FAIL": 4,
+    "PASS": 11,
+    "FAIL": 0,
     "SKIP": 0,
-    "NOTRUN": 3
+    "NOTRUN": 1
   },
   "cases": [
     {
@@ -33,7 +33,7 @@
       "priority": "P0",
       "status": "PASS",
       "title": "A 建立活会话（terminal 方法的受害者）",
-      "detail": "sessionId=session-86a835a3-9e46-42e1-bd8f-d7fe0057c1c8"
+      "detail": "sessionId=session-3eb7845e-b497-4e7c-975c-fa9b6c9bd7bd"
     },
     {
       "id": "CONTROL-A-ENVIRONMENT",
@@ -52,44 +52,44 @@
     {
       "id": "RC5-TERM-004a",
       "priority": "P0",
-      "status": "FAIL",
+      "status": "PASS",
       "title": "B 用 A 的 session 调 terminal/list 必须被拒",
-      "detail": "跨租户未拒绝：B 与 A 结果相同=true；B=[]"
+      "detail": "denied code=remote-access/denied"
     },
     {
       "id": "RC5-TERM-004b",
       "priority": "P0",
-      "status": "FAIL",
+      "status": "PASS",
       "title": "B 用 A 的 session 调 terminal/environment 必须被拒",
-      "detail": "跨租户未拒绝：B 与 A 结果相同=true；B={\n  \"cwd\": \"/data/workspaces/rc5admin\",\n  \"maxInputBytes\": 65536,\n  \"maxBufferedBytes\": 2097152,\n  \"maxCols\": 500,\n  \"maxRows\": 200,\n  \"scrollback\": 1000\n}"
+      "detail": "denied code=remote-access/denied"
     },
     {
       "id": "RC5-TERM-004c",
       "priority": "P0",
-      "status": "FAIL",
+      "status": "PASS",
       "title": "B 用 A 的 session 调 terminal/shells 必须被拒",
-      "detail": "跨租户未拒绝：B 与 A 结果相同=true；B=[\n  {\n    \"path\": \"/bin/bash\",\n    \"name\": \"bash\",\n    \"args\": [\n      \"-i\"\n    ]\n  }\n]"
+      "detail": "denied code=remote-access/denied"
     },
     {
       "id": "RC5-TERM-004d",
       "priority": "P0",
-      "status": "NOTRUN",
+      "status": "PASS",
       "title": "B 用 A 的 session 调 terminal/create 必须被拒",
-      "detail": "A/B 同错（方法不可用，无法判定授权）：A={\n  \"code\": \"gateway/internal\",\n  \"message\": \"session.snapshotEvents is not a function\",\n  \"details\" B={\n  \"code\": \"gateway/internal\",\n  \"message\": \"session.snapshotEvents is not a function\",\n  \"details\""
+      "detail": "denied code=remote-access/denied"
     },
     {
       "id": "RC5-TERM-004e",
       "priority": "P0",
-      "status": "FAIL",
+      "status": "PASS",
       "title": "B 用 A 的 session 调 terminal/close 必须被拒",
-      "detail": "跨租户未拒绝：B 与 A 结果相同=true；B=undefined"
+      "detail": "denied code=remote-access/denied"
     },
     {
       "id": "RC5-TERM-004f",
       "priority": "P0",
-      "status": "NOTRUN",
+      "status": "PASS",
       "title": "B 用 A 的 session 调 terminal/rename 必须被拒",
-      "detail": "A/B 同错（方法不可用，无法判定授权）：A={\n  \"code\": \"terminal/unavailable\",\n  \"message\": \"Terminal no longer exists in this Session\",\n  \"det B={\n  \"code\": \"terminal/unavailable\",\n  \"message\": \"Terminal no longer exists in this Session\",\n  \"det"
+      "detail": "denied code=remote-access/denied"
     },
     {
       "id": "RC5-TERM-005",

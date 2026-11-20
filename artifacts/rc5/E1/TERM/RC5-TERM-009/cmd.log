@@ -1,4 +1,40 @@
 # TERM/RC5-TERM-009
-# started 2026-11-19T23:26:01.353Z
+# started 2026-11-20T07:03:33.129Z
 
-# note: 套件中止：RC5-TERM-004 跨租户红（B 可读 A 会话终端）→ 按派发规则立即中止 TERM 套件
+$ POST /api/terminal/create
+EXIT=200
+id=t09-mwomum8a state=running
+
+$ WS terminal/attach（首次）
+EXIT=0
+{"type":"snapshot","sequence":1,"screen":"root@d8df24440e0b:/data/workspaces/rc5admin# \u001b[?2004h","info":{"id":"t09-mwomum8a","shell":{"path":"/bin/bash","name":"bash","args":["-i"]},"title":"bash","cwd":"/data/workspaces/rc5admin","col…
+
+$ WS 上行 item write（启动 tick 循环）
+EXIT=0
+saw_tick3=true max_before=3
+
+$ WS terminal/attach（切页再回）
+EXIT=0
+snapshot=true state=running max_after=14 screen=root@d8df24440e0b:/data/workspaces/rc5admin# for i in $(seq 1 120); do echo tick-$i; sleep 0.25; done
+tick-1
+tick-2
+tick-3
+tick-4
+tick-5
+tick-6
+tick-7
+tick-8
+tick-9
+tick-10
+tick-11
+tick-12…
+
+[ASSERT] 断开 attach 后终端仍 running（进程未被回收） => PASS :: state=running
+
+[ASSERT] 重新 attach 首帧是 snapshot（屏幕恢复） => PASS :: root@d8df24440e0b:/data/workspaces/rc5admin# for i in $(seq 1 120); do echo tick-$i; sleep 0.25; don…
+
+[ASSERT] 离开期间输出连续（tick 序号推进 > 2） => PASS :: before=3 after=14
+
+$ node artifacts/rc5/E1/TERM/term-009.mjs
+EXIT=0
+PASS :: [TERM-009] PASS

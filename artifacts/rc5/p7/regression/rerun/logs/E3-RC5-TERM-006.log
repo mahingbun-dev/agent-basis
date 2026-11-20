@@ -1,0 +1,4 @@
+[FAIL] RC5-TERM-006 :: 6/8 assertions
+  FAIL terminal/create 成功（9 动作前置） :: {"code":"gateway/internal","message":"session.snapshotEvents is not a function","details":{}}
+  FAIL 6 个 unary 动作全部成功 :: failed=create,rename
+EXIT=1

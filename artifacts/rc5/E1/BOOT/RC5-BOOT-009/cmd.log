@@ -1,5 +1,5 @@
 # BOOT/RC5-BOOT-009
-# started 2026-11-19T22:44:15.597Z
+# started 2026-11-20T07:02:32.644Z
 
 $ docker run -d … rc5-e1suite-boot8（用户 opt-out 后再启）
 EXIT=0

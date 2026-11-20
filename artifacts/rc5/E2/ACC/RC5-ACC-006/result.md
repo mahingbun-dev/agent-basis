@@ -1,8 +1,8 @@
 # RC5-ACC-006 · 普通用户访问 mcp-manager 设置/管理动作不可见且被拒
 
 - 套件：ACC
-- 结论：**FAIL**
-- 开始/结束：2026-11-19T23:52:00.096Z / 2026-11-19T23:52:00.344Z
+- 结论：**PASS**
+- 开始/结束：2026-11-20T07:05:48.435Z / 2026-11-20T07:05:48.751Z
 
 ## 预期
 
@@ -10,7 +10,7 @@ settings/describe 无 mcp-manager；watch/restart/probe 全 403/deny
 
 ## 实际
 
-设置隐藏=true 写拒=true watch拒=true unary拒=false（probe=200/true restart=200/true）
+设置隐藏=true 写拒=true watch拒=true unary拒=true（probe=403/false restart=403/false）
 
 ## 备注
 
@@ -28,6 +28,6 @@ $ POST /api/settings/describe（B）  # EXIT=200
 $ POST /api/settings/describe（A）  # EXIT=200
 $ POST /api/settings/update ns=mcp-manager（B）  # EXIT=200
 $ WS /api/remote.mux open {endpoint:"mcpManager/watch"}（B）  # EXIT=0
-$ POST /api/mcpManager/probe（B）  # EXIT=200
-$ POST /api/mcpManager/restart（B）  # EXIT=200
+$ POST /api/mcpManager/probe（B）  # EXIT=403
+$ POST /api/mcpManager/restart（B）  # EXIT=403
 ```

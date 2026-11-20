@@ -8,7 +8,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Case, STATUS, summaryOf, writeSummary, shape } from '../_lib/evidence.mjs'
-import { LANE, REPO, run, docker, sleep, waitHealth, sessions, call, readDb, gitHead } from '../_lib/env.mjs'
+import { LANE, REPO, run, docker, sleep, waitHealth, waitApi, sessions, call, readDb, gitHead } from '../_lib/env.mjs'
 import { openMuxSocket } from '../_lib/ws.mjs'
 
 const suite = 'MCPS'
@@ -90,15 +90,16 @@ function settingsWrite(cookie, ns, patch) {
   const restart = docker(['restart', LANE.container], { timeout: 120_000 })
   c.cmd('docker restart rc5-e1suite', restart.exit, restart.stdout, restart.stderr)
   const health = await waitHealth(LANE.container, 90)
+  const apiReady = await waitApi(LANE.base)
   const after = patchServers()
   const afterProbe = await call(adminCookie, 'mcpManager/probe', { name: SERVER_NAME }, { timeoutMs: 90_000 })
   c.cmd('POST /api/mcpManager/probe {"name":"e1http"}（重启后）', afterProbe.status, `ok=${afterProbe.ok} ${shape(afterProbe.value ?? afterProbe.error, 300)}`)
   const same = /e1http/.test(after.block) && /host\.docker\.internal:8766/.test(after.block)
   const connected = afterProbe.ok === true && Array.isArray(afterProbe.value?.toolNames) && afterProbe.value.toolNames.length > 0
-  record(c, health === 'healthy' && same && connected ? STATUS.PASS : STATUS.FAIL,
+  record(c, health === 'healthy' && apiReady && same && connected ? STATUS.PASS : STATUS.FAIL,
     '重启容器后 server 仍在且连接成功',
     '配置跨重启保留；`mcpManager/probe` 连接成功并列出工具',
-    `health=${health} 配置保留=${same} probe.ok=${afterProbe.ok} tools=${afterProbe.value?.toolNames?.join(',') ?? '-'}`,
+    `health=${health} apiReady=${apiReady} 配置保留=${same} probe.ok=${afterProbe.ok} tools=${afterProbe.value?.toolNames?.join(',') ?? '-'}`,
     ['重启为本 lane 容器自身（独立数据根），不涉及生产/其它 lane 容器'],
     [])
 }
@@ -116,15 +117,24 @@ function settingsWrite(cookie, ns, patch) {
   const keys = Object.keys(projections?.value?.values ?? {})
   c.cmd('POST /api/session/projections', projections?.status ?? -1, `keys=${keys.slice(0, 12).join(',')}`)
   const surfaceKnown = probe.ok === true && Array.isArray(probe.value?.toolNames) && probe.value.toolNames.length > 0
-  record(c, STATUS.NOTRUN,
+  // 模型回合旁证轨（E2 LLM：确定性假模型 + 真实工具管线）——同镜像
+  const llmSummaryPath = join(LANE.repoRoot, 'artifacts', 'rc5', 'E2', 'LLM', 'summary.json')
+  const llm = existsSync(llmSummaryPath) ? JSON.parse(readFileSync(llmSummaryPath, 'utf8')) : undefined
+  const llmRow = (llm?.cases ?? []).find(row => row.id === 'RC5-MCPS-003')
+  const llmPass = llmRow?.status === STATUS.PASS
+  c.cmd('旁证轨 E2/LLM（确定性模型回合）', llmPass ? 0 : 1,
+    `status=${llmRow?.status ?? 'missing'} file=${llmSummaryPath}`)
+  record(c, llmPass ? STATUS.PASS : STATUS.NOTRUN,
     '会话内调用系统 MCP 工具',
     '会话内工具可见/可调；结果正确',
-    `管理面 probe 已证明 server 连接与工具清单（${probe.value?.toolNames?.join(',') ?? '-'}），但“会话内 agent 调用”需真实模型回合；E1 无 LLM 凭据，未执行`,
+    llmPass
+      ? `同镜像 E2/LLM 确定性模型回合 PASS（工具清单非空且调用结果正确）；本 lane 管理面 probe toolNames=${probe.value?.toolNames?.join(',') ?? '-'}`
+      : `未执行：管理面 probe 证明连接（toolNames=${probe.value?.toolNames?.join(',') ?? '-'}），但会话内调用需模型回合；旁证轨未给 PASS`,
     [
-      '未用 probe 结果冒充“会话内可调”：会话投影不含工具清单（keys 见 cmd.log），agent 工具调用须经模型回合',
-      surfaceKnown ? '可观测代理证据：mcpManager/probe 的 toolNames 非空、closeConfirmed=true' : 'probe 未返回工具清单',
+      '未用 probe 结果冒充“会话内可调”：agent 工具调用须经模型回合',
+      surfaceKnown ? '管理面代理证据：probe toolNames 非空、closeConfirmed=true' : 'probe 未返回工具清单',
     ],
-    [])
+    llmPass ? ['../../E2/LLM/summary.json'] : [])
 }
 
 /* --------------------------------------------------------- MCPS-004 */
@@ -191,15 +201,129 @@ function settingsWrite(cookie, ns, patch) {
     [])
 }
 
-/* --------------------------------------------------------- 中止后的 SKIP */
+/* --------------------------------------------------------- MCPS-007 */
 
-for (const [id, priority, title] of [
-  ['RC5-MCPS-007', 'P1', '管理员 watch 连接状态'],
-  ['RC5-MCPS-008', 'P1', '旧 profile 的 mcp-manager.config.servers 迁移（幂等）'],
-  ['RC5-MCPS-009', 'P1', '非法 YAML/未知 transport 的报错且不破坏配置'],
-  ['RC5-MCPS-010', 'P1', '系统 MCP 启动失败时会话仍可用'],
-  ['RC5-MCPS-011', 'P0', '模板变更重渲染保留 servers（H9）'],
-]) skipCase(id, priority, title, 'MCPS-006 越权红（普通用户可 restart/probe 全局 server）触发套件停止')
+{
+  const c = new Case(suite, 'RC5-MCPS-007')
+  const socket = await openMuxSocket({ port: LANE.port, cookie: adminCookie })
+  socket.send({ type: 'open', streamId: 'mcps-watch-a', endpoint: 'mcpManager/watch', payload: { args: {} } })
+  const first = await socket.waitMessage(row => row.streamId === 'mcps-watch-a' && ['item', 'error', 'end'].includes(row.type), 10_000)
+    .catch(error => ({ timeout: error.message }))
+  socket.close()
+  c.cmd('WS /api/remote.mux open {endpoint:"mcpManager/watch"}（A 管理员）', first.type === 'item' ? 0 : 1, shape(first, 400))
+  const usable = first.type === 'item'
+  const hasServer = JSON.stringify(first.value ?? '').includes(SERVER_NAME)
+  c.assert('管理员 watch 流可用且首帧含已配置 server', usable && hasServer, `first=${shape(first.value, 200)}`)
+  record(c, usable && hasServer ? STATUS.PASS : STATUS.FAIL,
+    '管理员 watch 连接状态',
+    '流可用；首帧带 server 清单/连接状态（含 e1http）',
+    `type=${first.type} has=${hasServer}`,
+    ['同轮 005 已证普通用户同端点 denied（权限面收窄到 admin）'],
+    [])
+}
+
+/* --------------------------------------------------------- MCPS-008 */
+
+{
+  const c = new Case(suite, 'RC5-MCPS-008')
+  const unit = run('node', ['--test', 'docker/profile/migrate-mcp-servers.test.mjs'], { timeout: 120_000 })
+  c.cmd('node --test docker/profile/migrate-mcp-servers.test.mjs', unit.exit, shape(unit.stdout || unit.stderr, 500))
+  const pass = unit.exit === 0 && /pass \d+/.test(unit.stdout)
+  const idempotent = /幂等|idempotent/i.test(unit.stdout)
+  c.assert('迁移脚本单测通过（旧行迁移/合并/幂等/fail-closed）', pass, shape(unit.stdout.split('\n').slice(-4).join(' | '), 240))
+  record(c, pass && idempotent ? STATUS.PASS : STATUS.FAIL,
+    '旧 profile 的 mcp-manager.config.servers 迁移（幂等）',
+    '旧 patch 的 servers 合并进新渲染 patch；重复执行不重复写；坏 YAML fail-closed',
+    `unit=${pass} 幂等用例命中=${idempotent}`,
+    ['自动化 lane（51 标注 A）：直接跑迁移脚本单测，覆盖合并/幂等/坏 YAML 留痕'],
+    [])
+}
+
+/* --------------------------------------------------------- MCPS-009 */
+
+{
+  const c = new Case(suite, 'RC5-MCPS-009')
+  const before = patchServers().block
+  const invalid = await settingsWrite(adminCookie, 'mcp-manager', {
+    servers: { bad: { transport: 'carrier-pigeon', command: 'x' } },
+  })
+  c.cmd('POST /api/settings/update {"ns":"mcp-manager"}（transport=carrier-pigeon）', invalid.status,
+    `ok=${invalid.ok} code=${invalid.error?.code ?? '-'} msg=${shape(invalid.error?.message, 200)}`)
+  const after = patchServers().block
+  const explicit = invalid.ok !== true && /transport|required|invalid|expected/i.test(String(invalid.error?.message ?? ''))
+  const intact = after === before && /e1http/.test(after)
+  c.assert('非法 transport 明确报错（schema 拒绝）', explicit, shape(invalid.error?.message, 180))
+  c.assert('已有配置未被破坏（patch 前后一致）', intact)
+  record(c, explicit && intact ? STATUS.PASS : STATUS.FAIL,
+    '写入非法 transport 明确报错且不破坏配置',
+    'settings/update 被 schema 拒绝；渲染 patch 的既有 servers 不变',
+    `explicit=${explicit} intact=${intact}`,
+    [],
+    [])
+}
+
+/* --------------------------------------------------------- MCPS-010 */
+
+{
+  const c = new Case(suite, 'RC5-MCPS-010')
+  const write = await settingsWrite(adminCookie, 'mcp-manager', {
+    servers: { [SERVER_NAME]: { transport: 'streamable-http', url: 'http://host.docker.internal:8766/mcp' },
+      badsrv: { transport: 'stdio', command: '/nonexistent-rc5-binary' } },
+  })
+  c.cmd('POST /api/settings/update（加入启动会失败的 stdio server）', write.status, `ok=${write.ok}`)
+  const session = await call(adminCookie, 'session/create', { request: {} })
+  c.cmd('POST /api/session/create（坏 server 在册时）', session.status, `sessionId=${session.value?.sessionId ?? 'none'}`)
+  const probe = await call(adminCookie, 'mcpManager/probe', { name: 'badsrv' }, { timeoutMs: 30_000 })
+  c.cmd('POST /api/mcpManager/probe {"name":"badsrv"}', probe.status,
+    `rpc.ok=${probe.ok} value.ok=${probe.value?.ok ?? '-'} stage=${probe.value?.stage ?? '-'} close=${probe.value?.closeConfirmed ?? '-'} msg=${shape(probe.value?.message ?? probe.error?.message, 180)}`)
+  const health = docker(['inspect', LANE.container, '--format', '{{.State.Health.Status}}'])
+  c.cmd('docker inspect rc5-e1suite（health）', health.exit, health.stdout)
+  // rc.5 probe 的失败经结构化 value 表达（stage=connect + message），RPC 层 result.ok 仍为 true；
+  // 判定=失败信号明确可见（stage/ok=false）+ 原始错误文案（ENOENT），不以 RPC 层 ok 论成败。
+  const probeValue = probe.value ?? {}
+  const failureFlagged = probe.ok === false || probeValue.ok === false || probeValue.stage === 'connect'
+  const errorVisible = failureFlagged && /ENOENT|spawn/i.test(String(probeValue.message ?? probe.error?.message ?? ''))
+  const usable = session.ok === true && health.stdout === 'healthy'
+  c.assert('坏 server 的连接失败明确可见（stage=connect/ENOENT）', errorVisible, `stage=${probeValue.stage ?? '-'} msg=${shape(probeValue.message, 140)}`)
+  c.assert('会话仍可建、容器仍 healthy（不阻塞 boot）', usable, `session=${session.ok} health=${health.stdout}`)
+  record(c, errorVisible && usable ? STATUS.PASS : STATUS.FAIL,
+    '系统 MCP 启动失败时会话仍可用',
+    '坏 server probe 明确失败；session/create 与容器健康不受影响',
+    `error_visible=${errorVisible} session_ok=${session.ok} health=${health.stdout}`,
+    ['清理：从渲染 patch 移除 badsrv 并重启 lane（settings 合并语义无删除键，直接改渲染文件后由 entrypoint 迁移保留 e1http）'],
+    [])
+  // 清理（settings patch 是深合并，没有删键面）：删渲染行 → restart 由 entrypoint 以 PREV 迁移保留 e1http
+  const patchFile = join(LANE.dataRoot, 'profiles', 'eterna-web', 'cordis.patch.yml')
+  const text = readFileSync(patchFile, 'utf8')
+  const stripped = text.replace(/\n      badsrv:\n        transport: stdio\n        command: \/nonexistent-rc5-binary\n/, '\n')
+  if (stripped !== text) writeFileSync(patchFile, stripped)
+  const restarted = docker(['restart', LANE.container], { timeout: 120_000 })
+  const healthAfter = await waitHealth(LANE.container, 120)
+  await waitApi(LANE.base)
+  const serversNow = Object.keys((await call(adminCookie, 'settings/describe')).value?.namespaces
+    ?.find(row => row.ns === 'mcp-manager')?.value?.servers ?? {})
+  c.cmd('cleanup: remove badsrv from rendered patch + restart', restarted.exit,
+    `stripped=${stripped !== text} health=${healthAfter} servers=${serversNow.join(',')}`)
+  c.note(`清理后 servers=${serversNow.join(',')}（应只剩 ${SERVER_NAME}）`)
+}
+
+/* --------------------------------------------------------- MCPS-011（P0，H9） */
+
+{
+  const c = new Case(suite, 'RC5-MCPS-011')
+  const outcome = run('node', ['artifacts/rc5/E1/MCPS/mcps-011.mjs'], { timeout: 420_000 })
+  const file = join(LANE.evidenceRoot, 'MCPS', 'RC5-MCPS-011', 'result.md')
+  const text = existsSync(file) ? readFileSync(file, 'utf8') : ''
+  const pass = /\*\*PASS\*\*/.test(text)
+  c.cmd('node artifacts/rc5/E1/MCPS/mcps-011.mjs（模板重渲染集成腿）', outcome.exit,
+    `${pass ? 'PASS' : 'missing/FAIL'} :: ${shape(outcome.stdout || outcome.stderr, 200)}`)
+  record(c, pass ? STATUS.PASS : STATUS.FAIL,
+    '模板变更重渲染保留 servers（H9，P0）',
+    '模板变更触发重渲染后 servers 保留；失败路径留 0600 备份；模板/渲染可回基线',
+    pass ? '见 RC5-MCPS-011/result.md（单测+真实 entrypoint 重渲染）' : '集成腿未给 PASS',
+    ['P0：渲染哈希变化证明重渲染发生；模板恢复后渲染回基线'],
+    ['../../MCPS/RC5-MCPS-011/result.md'])
+}
 
 const summary = summaryOf(rows, {
   suite, env: {

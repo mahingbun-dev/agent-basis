@@ -1,5 +1,5 @@
 # MCPP/RC5-MCPP-001
-# started 2026-11-19T23:53:24.861Z
+# started 2026-11-20T07:05:03.522Z
 
 $ node scripts/verify-mcp-personal.mjs --base http://127.0.0.1:3119 --accounts-file <0600> --data-root <E2 数据根> --container rc5-e2suite --json artifacts/rc5/E2/MCPP/report.json --full --restart
 EXIT=0

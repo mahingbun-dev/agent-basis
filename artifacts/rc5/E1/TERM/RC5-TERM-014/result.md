@@ -1,22 +1,27 @@
-# RC5-TERM-014 · bash 不存在时明确报错
+# RC5-TERM-014 · shell 不存在时明确报错、容器不崩
 
 - 套件：TERM
-- 结论：**SKIP**
-- 开始/结束：2026-11-19T23:26:01.354Z / 2026-11-19T23:26:01.354Z
+- 结论：**PASS**
+- 开始/结束：2026-11-20T07:03:41.961Z / 2026-11-20T07:03:42.237Z
 
 ## 预期
 
-按 51 §3.7 用例定义执行
+不存在的 shellPath → 明确错误；容器 healthy；默认 bash 仍可建终端
 
 ## 实际
 
-未执行：套件中止
+explicit=true healthy=true recovered=true
 
 ## 备注
 
-- RC5-TERM-004 跨租户红（B 可读 A 会话终端）→ 按派发规则立即中止 TERM 套件
-- 不再继续执行/标绿（派发规则）
+- 脚本：artifacts/rc5/E1/TERM/term-014.mjs（本 runner 现场执行）
 
 ## 证据附件
 
 - `cmd.log`
+
+## 执行命令
+
+```
+$ node artifacts/rc5/E1/TERM/term-014.mjs  # EXIT=0
+```

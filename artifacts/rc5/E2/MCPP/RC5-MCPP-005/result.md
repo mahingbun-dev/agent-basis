@@ -2,7 +2,7 @@
 
 - 套件：MCPP
 - 结论：**PASS**
-- 开始/结束：2026-11-19T23:53:24.863Z / 2026-11-19T23:53:24.863Z
+- 开始/结束：2026-11-20T07:05:03.524Z / 2026-11-20T07:05:03.524Z
 
 ## 预期
 
@@ -10,7 +10,7 @@
 
 ## 实际
 
-catalog=["echo"]; command denied=true/stdio 的 command/args 只能来自管理员目录,禁止自填; args denied=true/stdio 的 command/args 只能来自管理员目录,禁止自填
+catalog=["echo","hung","flaky"]; command denied=true/stdio 的 command/args 只能来自管理员目录,禁止自填; args denied=true/stdio 的 command/args 只能来自管理员目录,禁止自填
 
 ## 备注
 

@@ -1,4 +1,16 @@
 # MCPS/RC5-MCPS-008
-# started 2026-11-19T22:50:49.780Z
+# started 2026-11-20T07:03:00.703Z
 
-# note: 套件已中止：RC5-MCPS-006: 普通用户 restart/probe 必须被拒
+$ node --test docker/profile/migrate-mcp-servers.test.mjs
+EXIT=0
+✔ mcp-browser 旧行 → mcp-manager.config.servers（键名取 serverName） (32.222333ms)
+✔ 旧 mcp-manager servers 与 mcp-browser 合并（同键以旧 servers 为准） (1.444959ms)
+✔ 幂等：二次运行 servers 已一致 → 零写、无新备份 (1.824ms)
+✔ 坏 YAML fail-closed：新 patch 原样保留、写 0600 备份 JSON、非 0 语义 (0.753625ms)
+✔ 模板默认 servers 保留：旧表只覆盖同名键，不整表替换 (1.171ms)
+✔ 旧 patch 无 MCP 配置 → 明确空操作（exit 0 语义） (0.366ms)
+✔ 旧 patch 不存在 → 空操作 (0.183166ms)
+✔ 新 patch 缺 mcp-manager 行 → fail-closed，新文件不写 (0.857917ms)
+✔ 新 patch 自带同名 mcp-client 行 → 不重复写入 mcp-manager（serverName …
+
+[ASSERT] 迁移脚本单测通过（旧行迁移/合并/幂等/fail-closed） => PASS :: ℹ cancelled 0 | ℹ skipped 0 | ℹ todo 0 | ℹ duration_ms 116.711125

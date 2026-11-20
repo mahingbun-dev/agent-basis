@@ -3,19 +3,19 @@
   "priority": "P0",
   "title": "session/new + session/prompt 正常返回；无超时",
   "status": "PASS",
-  "at": "2026-11-19T22:22:11.662Z",
-  "detail": "sessionId=ff37a599-b26e-4820-9033-1014e5df08b3 stopReason=end_turn elapsed=184ms",
+  "at": "2026-11-20T05:10:31.603Z",
+  "detail": "sessionId=668313fe-c0ac-4922-a7ec-1d086fadd6b6 stopReason=end_turn elapsed=91ms",
   "assertions": [
     {
       "name": "session/new 返回 sessionId",
       "expected": "非空字符串",
-      "observed": "ff37a599-b26e-4820-9033-1014e5df08b3",
+      "observed": "668313fe-c0ac-4922-a7ec-1d086fadd6b6",
       "ok": true
     },
     {
       "name": "session/prompt 无超时",
       "expected": "<120000ms",
-      "observed": "184ms",
+      "observed": "91ms",
       "ok": true
     },
     {

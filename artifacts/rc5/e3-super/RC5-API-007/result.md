@@ -3,7 +3,7 @@
 - 形态：**E3 super 测试容器**（`rc5-test-e3` / `eterna-rc5-e3` / 3109 / `$HOME/eterna-data/test-rc5/e3`）
 - 优先级：P1
 - 结论：**NOTRUN**
-- 时间：2026-11-19T22:27:51.606Z → 2026-11-19T22:27:51.684Z
+- 时间：2026-11-20T07:01:46.772Z → 2026-11-20T07:02:46.911Z
 
 ## 预期（51/54 原文口径）
 
@@ -20,7 +20,10 @@ drainDescendants 后无残留 running
 
 - `docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)` → exit=0（boot token 不入证据）
 - `GET /connect + GET /?token=… (dsh session bootstrap)` → exit=200（token 已脱敏）
-- `POST /login (admin from 0600 accounts file)` → exit=200（account=rc5admin）
+- `POST /login (admin from 0600 accounts file)` → exit=429
+- `POST /login (admin from 0600 accounts file)` → exit=429（retry#1）
+- `POST /login (admin from 0600 accounts file)` → exit=429（retry#2）
+- `POST /login (admin from 0600 accounts file)` → exit=200（retry#3）
 - `GET /access/api/tasks/session-roles` → exit=200
 
 ## 备注

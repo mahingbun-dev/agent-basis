@@ -34,14 +34,14 @@
   ],
   "cases": {
     "total": 16,
-    "pass": 15,
+    "pass": 16,
     "fail": 0,
-    "skip": 1
+    "skip": 0
   },
   "leftovers": [
-    "SOAK-24H|24h 浸泡窗口未满（实时观测见 artifacts/rc5/p6a/soak-window.json；plannedEnd 2026-11-20T21:45:37.331Z）|P0|满窗后复核 window.complete=true 与 verdict",
+    "SOAK-24H|24h 浸泡窗口未满（实时观测见 artifacts/rc5/p6a/soak-window.json；plannedEnd 2026-11-21T05:06:19.450Z）|P0|满窗后复核 window.complete=true 与 verdict",
     "P5-01|TERM-014（P2）随 TERM 套件中止未执行|P2|修复 TERM-004/006 后补跑"
   ],
   "generatedBy": "T50/artifacts/rc5/p6a/scan-matrix.mjs",
-  "generatedAt": "2026-11-20T00:58:23Z"
+  "generatedAt": "2026-11-20T05:25:41Z"
 }

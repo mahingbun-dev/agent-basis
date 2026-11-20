@@ -1,0 +1,6 @@
+# MCPS/RC5-MCPS-005
+# started 2026-11-20T01:41:33.795Z
+
+$ WS /api/remote.mux open {endpoint:"mcpManager/watch"}（B 普通用户）
+EXIT=0
+{"type":"error","streamId":"mcps-watch-b","error":{"code":"remote-access/denied","message":"remote access: mcpManager/watch: access denied (no-allow)","details":{"action":"mcpManager/watch","reason":"no-allow"}}}

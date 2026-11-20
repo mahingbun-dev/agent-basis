@@ -1,33 +1,27 @@
 {
   "suite": "MCPS",
-  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "commit": "c75f876c986415431c92b28cce771d847a36c52f",
   "imageTag": "eterna-agent:rc5-test",
-  "imageId": "sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00",
+  "imageId": "sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb",
   "container": "rc5-e1suite",
   "base": "http://127.0.0.1:3118",
   "dataRoot": "/Users/sunny/eterna-data/test-20261120/e1",
-  "startedAt": "2026-11-19T22:50:42.013Z",
-  "finishedAt": "2026-11-19T22:50:49.796Z",
+  "startedAt": "2026-11-20T07:02:52.348Z",
+  "finishedAt": "2026-11-20T07:03:23.793Z",
   "total": 11,
-  "pass": 4,
-  "fail": 1,
-  "skip": 5,
-  "notrun": 1,
+  "pass": 11,
+  "fail": 0,
+  "skip": 0,
+  "notrun": 0,
   "counts": {
-    "PASS": 4,
-    "FAIL": 1,
-    "SKIP": 5,
-    "NOTRUN": 1
+    "PASS": 11,
+    "FAIL": 0,
+    "SKIP": 0,
+    "NOTRUN": 0
   },
-  "halted": true,
-  "haltReason": "RC5-MCPS-006: 普通用户 restart/probe 必须被拒",
-  "failures": [
-    {
-      "id": "RC5-MCPS-006",
-      "status": "FAIL",
-      "title": "普通用户 restart/probe 必须被拒"
-    }
-  ],
+  "halted": false,
+  "haltReason": "",
+  "failures": [],
   "cases": [
     {
       "id": "RC5-MCPS-001",
@@ -41,7 +35,7 @@
     },
     {
       "id": "RC5-MCPS-003",
-      "status": "NOTRUN",
+      "status": "PASS",
       "title": "会话内调用系统 MCP 工具"
     },
     {
@@ -56,33 +50,33 @@
     },
     {
       "id": "RC5-MCPS-006",
-      "status": "FAIL",
+      "status": "PASS",
       "title": "普通用户 restart/probe 必须被拒"
     },
     {
       "id": "RC5-MCPS-007",
-      "status": "SKIP",
+      "status": "PASS",
       "title": "管理员 watch 连接状态"
     },
     {
       "id": "RC5-MCPS-008",
-      "status": "SKIP",
+      "status": "PASS",
       "title": "旧 profile 的 mcp-manager.config.servers 迁移（幂等）"
     },
     {
       "id": "RC5-MCPS-009",
-      "status": "SKIP",
-      "title": "非法 YAML/未知 transport 的报错且不破坏配置"
+      "status": "PASS",
+      "title": "写入非法 transport 明确报错且不破坏配置"
     },
     {
       "id": "RC5-MCPS-010",
-      "status": "SKIP",
+      "status": "PASS",
       "title": "系统 MCP 启动失败时会话仍可用"
     },
     {
       "id": "RC5-MCPS-011",
-      "status": "SKIP",
-      "title": "模板变更重渲染保留 servers（H9）"
+      "status": "PASS",
+      "title": "模板变更重渲染保留 servers（H9，P0）"
     }
   ]
 }

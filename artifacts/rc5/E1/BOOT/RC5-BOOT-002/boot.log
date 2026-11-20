@@ -17,7 +17,7 @@
 [entrypoint] companion relay 后台启动 :9310（token 已生成落卷 /data/relay-token；publicWsUrl=未设（guide 按本机默认展示））
 [entrypoint] container IP: 172.17.0.2  LLM: 三家直连(deepseek/mimo/glm,P2 网关)
 [entrypoint] sandbox runner: landlock full
-dsh web: http://172.17.0.2:8080/?token=j_776b0tGO1zDjJ9KodRlDMJb7SFWA1J7Iw-h0XJaew
+dsh web: http://172.17.0.2:8080/?token=gBwnZGP2d8mJcl0lRz4XDZnyXF4MGV5gWa9m-J7Z9Fo
 [relay] relay 监听 http://0.0.0.0:9310（/extension /cdp /api/tools /fixture）
 dsh web: listening on 172.17.0.2 over plain HTTP; restrict this port to a trusted proxy or network
 [eterna-tasks-access-bridge] realm「Mr.Ma」不在 access 用户表(realm 与登录账号名不对齐?),跳过主会话归属登记

@@ -1,13 +1,70 @@
 # MCPP/RC5-MCPP-011
-# started 2026-11-19T23:53:24.952Z
+# started 2026-11-20T05:52:07.647Z
 
-$ pnpm --filter @eterna/access exec vitest run tests/mcp-personal-routes.spec.ts -t personalHttpHosts
-EXIT=0
-RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
+$ POST /api/mcp-personal/catalog（B，读取生效白名单）
+EXIT=200
+hostWhitelist=["a.example","*.suffix.test","host.docker.internal","b.example:8443"]
 
- ✓ tests/mcp-personal-routes.spec.ts (24 tests | 23 skipped) 69ms
+$ POST /api/mcp-personal/upsert {name:wh-b,url:https://b.example/mcp}（期望 deny）
+EXIT=200
+ok=false code=tenant/denied serverName=- msg=该 host 不在管理员允许列表
 
- Test Files  1 passed (1)
-      Tests  1 passed | 23 skipped (24)
-   Start at  07:53:25
-   Duration  261ms (transform 70ms, setup 0ms, import 90ms, tests 69ms, environment 0ms)
+$ POST /api/mcp-personal/upsert {name:wh-a,url:https://a.example/mcp}（期望 allow）
+EXIT=200
+ok=true code=- serverName=p2_wh-a msg=
+
+$ POST /api/mcp-personal/upsert {name:wh-wild,url:https://svc.suffix.test/mcp}（期望 allow）
+EXIT=200
+ok=true code=- serverName=p2_wh-wild msg=
+
+$ POST /api/mcp-personal/upsert {name:wh-apex,url:https://suffix.test/mcp}（期望 deny）
+EXIT=200
+ok=false code=tenant/denied serverName=- msg=该 host 不在管理员允许列表
+
+$ POST /api/mcp-personal/upsert {name:wh-anyport,url:https://a.example:8443/mcp}（期望 allow）
+EXIT=200
+ok=true code=- serverName=p2_wh-anyport msg=
+
+$ POST /api/mcp-personal/upsert {name:wh-port-ok,url:https://b.example:8443/mcp}（期望 allow）
+EXIT=200
+ok=true code=- serverName=p2_wh-port-ok msg=
+
+$ POST /api/mcp-personal/upsert {name:wh-port-bad,url:https://b.example:9443/mcp}（期望 deny）
+EXIT=200
+ok=false code=tenant/denied serverName=- msg=该 host 不在管理员允许列表
+
+$ POST /api/mcp-personal/list（白名单尝试后）
+EXIT=200
+items=["wh-a","wh-wild","wh-anyport","wh-port-ok"]
+
+$ POST /api/mcp-personal/delete（清理白名单用例行）
+EXIT=200
+ok=true
+
+$ POST /api/mcp-personal/delete（清理白名单用例行）
+EXIT=200
+ok=true
+
+$ POST /api/mcp-personal/delete（清理白名单用例行）
+EXIT=200
+ok=true
+
+$ POST /api/mcp-personal/delete（清理白名单用例行）
+EXIT=200
+ok=true
+
+[ASSERT] 前置：lane 白名单已生效 => PASS :: ["a.example","*.suffix.test","host.docker.internal","b.example:8443"]
+
+[ASSERT] b.example 被拒且文案指向允许列表 => PASS :: [{"name":"wh-b","url":"https://b.example/mcp","expect":"deny","allowed":false,"deniedMessage":"该 host 不在管理员允许列表"},{"name":"wh-apex","url":"https://suffix.test/mcp","expect":"deny","allowed":false,"deniedMessage":"该 host 不在管理员允许列表"},{"name":…
+
+[ASSERT] a.example 与 *.suffix.test 子域被接受 => PASS
+
+[ASSERT] 后缀自身（suffix.test）不被 *.suffix.test 匹配 => PASS
+
+[ASSERT] 精确 host 不限端口（a.example:8443 放行） => PASS
+
+[ASSERT] host:port 精确项（b.example:8443 放行） => PASS
+
+[ASSERT] 未列端口（b.example:9443）被拒 => PASS
+
+[ASSERT] 被拒行未落库 => PASS :: ["wh-a","wh-wild","wh-anyport","wh-port-ok"]

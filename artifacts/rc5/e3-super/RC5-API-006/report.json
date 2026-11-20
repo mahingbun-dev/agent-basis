@@ -5,8 +5,8 @@
   "title": "查询后代列表与任务树一致（API-006）",
   "expected": "listDescendants 返回与任务树一致",
   "status": "NOTRUN",
-  "startedAt": "2026-11-19T22:27:51.442Z",
-  "finishedAt": "2026-11-19T22:27:51.548Z",
+  "startedAt": "2026-11-20T07:01:46.615Z",
+  "finishedAt": "2026-11-20T07:01:46.719Z",
   "assertions": [
     {
       "name": "admin 登录 200",
@@ -38,7 +38,7 @@
     {
       "cmd": "POST /login (admin from 0600 accounts file)",
       "exit": 200,
-      "note": "account=rc5admin"
+      "note": ""
     },
     {
       "cmd": "GET /access/api/tasks/settings",

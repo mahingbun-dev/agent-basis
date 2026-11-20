@@ -2,7 +2,7 @@
 
 - 套件：MCPP
 - 结论：**SKIP**
-- 开始/结束：2026-11-19T23:53:32.449Z / 2026-11-19T23:53:32.449Z
+- 开始/结束：2026-11-20T07:05:10.224Z / 2026-11-20T07:05:10.224Z
 
 ## 预期
 
@@ -10,7 +10,11 @@
 
 ## 实际
 
-未执行：需要 live 会话 + tools/list 观察
+本 runner 未测（证据在 LLM lane）：artifacts/rc5/E2/LLM/RC5-MCPP-019/result.md
+
+## 备注
+
+- 见 artifacts/rc5/E2/LLM/RC5-MCPP-019/result.md
 
 ## 证据附件
 

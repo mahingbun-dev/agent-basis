@@ -1,0 +1,89 @@
+{
+  "suite": "E2",
+  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "container": "rc5-e2suite",
+  "base": "http://127.0.0.1:3119",
+  "dataRoot": "/Users/sunny/eterna-data/test-20261120/e2",
+  "imageId": "sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00",
+  "startedAt": "2026-11-19T23:40:00.000Z",
+  "finishedAt": "2026-11-20T00:39:51.914Z",
+  "suites": {
+    "ACC": {
+      "total": 10,
+      "pass": 8,
+      "fail": 2,
+      "skip": 0,
+      "notrun": 0,
+      "halted": true,
+      "haltReason": "RC5-ACC-008: B 用 A 的 workspaceId/sessionId 打文件/检索必须 403/deny"
+    },
+    "MCPP": {
+      "total": 24,
+      "pass": 16,
+      "fail": 0,
+      "skip": 8,
+      "notrun": 0,
+      "halted": false,
+      "haltReason": ""
+    },
+    "TERM": {
+      "total": 16,
+      "pass": 6,
+      "fail": 5,
+      "skip": 3,
+      "notrun": 2,
+      "halted": true,
+      "haltReason": "RC5-TERM-004b/c：B 读到 A 的 cwd/shells（跨租户）"
+    },
+    "UI": {
+      "total": 8,
+      "pass": 7,
+      "fail": 1,
+      "skip": 0,
+      "notrun": 0,
+      "halted": false,
+      "haltReason": ""
+    },
+    "SEC": {
+      "total": 7,
+      "pass": 4,
+      "fail": 2,
+      "skip": 1,
+      "notrun": 0,
+      "halted": true,
+      "haltReason": "RC5-SEC-004：B 读到 A 工作区文件（跨租户）"
+    }
+  },
+  "rowsTotal": 65,
+  "pass": 41,
+  "fail": 10,
+  "skip": 12,
+  "notrun": 2,
+  "p0": [
+    {
+      "id": "ACC-006",
+      "detail": "普通用户 B unary 调 mcpManager/probe|restart 返回 200 ok=true（系统 MCP 管理面）"
+    },
+    {
+      "id": "ACC-008",
+      "detail": "B 用 A 的 sessionId 读 workspaceFiles/list|stat|read，读到 A 工作区文件与内容 E2-ADMIN-SECRET-MARKER-7f3a"
+    },
+    {
+      "id": "TERM-004",
+      "detail": "B 用 A 的 sessionId 调 terminal/list|environment|shells|close 未拒绝，读到 cwd=/data/workspaces/rc5admin、shells=[/bin/bash]"
+    },
+    {
+      "id": "SEC-004",
+      "detail": "同 ACC-008（文件面跨租户）；session/workspace 面正常 tenant/denied 且无存在性泄漏"
+    },
+    {
+      "id": "SEC-005",
+      "detail": "同 ACC-006：B 对系统 MCP server 的 probe/restart 可达（ok=true）"
+    },
+    {
+      "id": "UI-006",
+      "detail": "P0 用例未全绿：chat-import 面入口不渲染（mux 清单缺 deepseekChatImport/limits）；terminal 面板显示 create P1 错误；390 hero 提示浮层遮挡 chip"
+    }
+  ],
+  "note": "E2 双账号（rc5admin/rc5userb/rc5userc）三工作区；3108 被其它 lane 24h soak 占用，使用等价隔离容器 rc5-e2suite:3119（同镜像 sha256:99d8…）。任何跨租户可达按停线规则记 P0。"
+}

@@ -1,5 +1,5 @@
 # HERO/RC5-HERO-001
-# started 2026-11-19T23:17:24.411Z
+# started 2026-11-20T07:02:45.615Z
 
 $ IAB 1440×900: focus composer → execCommand("insertText","hero 自检 ping") → click button[aria-label="发送消息"]
 EXIT=0

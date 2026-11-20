@@ -2,19 +2,19 @@
 
 - 套件：TERM
 - 结论：**PASS**
-- 开始/结束：2026-11-20T00:39:26.905Z / 2026-11-20T00:39:26.922Z
+- 开始/结束：2026-11-20T07:05:53.983Z / 2026-11-20T07:05:53.993Z
 
 ## 预期
 
-伪造 sessionId 得到空列表；readUserTerminals=false
+伪造 sessionId 不返回宿主终端（拒绝或空数组）；readUserTerminals=false
 
 ## 实际
 
-A=[] B=[] readUserTerminals=false:true
+A=remote-access/denied B=remote-access/denied readUserTerminals=false:true
 
 ## 备注
 
-- terminal/list 只按 sessionId 取该会话的 retained 终端，没有“枚举宿主用户终端”的入参面
+- terminal/list 只按 sessionId 取该会话的 retained 终端；伪造 id 的 lookup 解析失败即 deny，没有“枚举宿主用户终端”的入参面
 
 ## 证据附件
 

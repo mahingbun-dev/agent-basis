@@ -1,0 +1,18 @@
+# SEC/RC5-SEC-006
+# started 2026-11-20T01:52:04.986Z
+
+$ ls /Users/sunny/eterna-data/test-20261120/e2/.eterna + /Users/sunny/eterna-data/test-20261120/e2/logs
+EXIT=0
+{"audit":["audit-20261119.jsonl","audit-20261120.jsonl"],"logs":[]}
+
+$ scan audit/log 文件（密钥/token/authorization/cookie/密码）
+EXIT=0
+0 hits
+
+$ 统计审计事件 kind
+EXIT=0
+[["access.chatImport",11],["access.login",113],["access.login.gate",8],["access.logout",5],["access.mux.install",8],["access.sandbox.install",16],["access.tenant",543],["access.terminal.install",8],["mcp.personal.delete",38],["mcp.personal.install",8],["mcp.personal.probe",5],["mcp.personal.upsert",38]]
+
+[ASSERT] 审计/日志无明文凭据 => PASS :: 0 hits
+
+[ASSERT] 关键事件齐全 => PASS :: access.login,access.logout,access.tenant,mcp.personal.upsert,mcp.personal.delete,mcp.personal.probe,access.chatImport,access.terminal.install,access.mux.install

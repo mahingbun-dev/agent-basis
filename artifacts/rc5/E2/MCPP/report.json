@@ -1,7 +1,7 @@
 {
   "suite": "MCPP",
-  "startedAt": "2026-11-19T23:52:17.060Z",
-  "finishedAt": "2026-11-19T23:52:21.194Z",
+  "startedAt": "2026-11-20T07:03:05.794Z",
+  "finishedAt": "2026-11-20T07:03:09.947Z",
   "env": {
     "base": "http://127.0.0.1:3119",
     "container": "rc5-e2suite",
@@ -28,14 +28,14 @@
       "priority": "P0",
       "status": "PASS",
       "title": "个人层可用（catalog 应答 ok）",
-      "detail": "items=1"
+      "detail": "items=3"
     },
     {
       "id": "RC5-MCPP-005",
       "priority": "P0",
       "status": "PASS",
       "title": "catalog 只含允许项；自填 stdio command 被拒",
-      "detail": "catalog=[\"echo\"]; command denied=true/stdio 的 command/args 只能来自管理员目录,禁止自填; args denied=true/stdio 的 command/args 只能来自管理员目录,禁止自填"
+      "detail": "catalog=[\"echo\",\"hung\",\"flaky\"]; command denied=true/stdio 的 command/args 只能来自管理员目录,禁止自填; args denied=true/stdio 的 command/args 只能来自管理员目录,禁止自填"
     },
     {
       "id": "RC5-MCPP-006",

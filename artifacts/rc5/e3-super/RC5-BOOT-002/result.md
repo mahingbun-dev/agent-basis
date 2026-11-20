@@ -3,7 +3,7 @@
 - 形态：**E3 super 测试容器**（`rc5-test-e3` / `eterna-rc5-e3` / 3109 / `$HOME/eterna-data/test-rc5/e3`）
 - 优先级：P0
 - 结论：**PASS**
-- 时间：2026-11-19T22:26:30.343Z → 2026-11-19T22:26:30.744Z
+- 时间：2026-11-20T07:01:35.713Z → 2026-11-20T07:01:36.510Z
 
 ## 预期（51/54 原文口径）
 
@@ -24,7 +24,7 @@ healthy；super 路由可访问（/login、/、/access/api/tasks/*、/workbench/
 | PASS | 任务设置含 realm/masterId/health/stats | {"realm":"Mr.Ma","masterId":"orchestrator-Mr.Ma","health":"object","stats":"object"} |
 | PASS | GET /access/api/tasks/session-roles 200 ok | {"ok":true,"masterId":"orchestrator-Mr.Ma","masterTitle":"eterna-tasks orchestrator","workerSessionIds":[]} |
 | PASS | GET /workbench/api/stream 200 text/event-stream | 200 text/event-stream; charset=utf-8 |
-| PASS | 工作台首帧为 snapshot | {"kind":"snapshot","seq":2,"snapshot":{"tickets":[],"conflict":{"attach":{"count":0,"note":"同线程候选挂接 · 7 日（routed 决策）"},"duplicate":{"percent":0,"thresholdPercent":5,"note":"幂等查重 · 计数接入后展示","unavailabl |
+| PASS | 工作台首帧为 snapshot | {"kind":"snapshot","seq":1,"snapshot":{"tickets":[],"conflict":{"attach":{"count":0,"note":"同线程候选挂接 · 7 日（routed 决策）"},"duplicate":{"percent":0,"thresholdPercent":5,"note":"幂等查重 · 计数接入后展示","unavailabl |
 | PASS | host entries=235（rc.5 基线） | entries=235 |
 | PASS | super 模板 22 行 @eterna insert 全部 enabled+active | eterna-governance, eterna-audit, eterna-egress, eterna-memory, eterna-knowledge, eterna-llm-doctor, eterna-brand, eterna-access, eterna-prompt-studio, eterna-usage-stats, eterna-panel, eterna-workbench, eterna-attachments, eterna-compaction-client, eterna-compaction-admin, eterna-memory-client, eterna-memory-admin, eterna-tasks, eterna-channels, eterna-interact, eterna-toolkit, eterna-tasks-access |
 
@@ -35,12 +35,12 @@ healthy；super 路由可访问（/login、/、/access/api/tasks/*、/workbench/
 - `GET /login` → exit=200（super 登录页）
 - `docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)` → exit=0（boot token 不入证据）
 - `GET /connect + GET /?token=… (dsh session bootstrap)` → exit=200（token 已脱敏）
-- `POST /login (admin from 0600 accounts file)` → exit=200（account=rc5admin）
+- `POST /login (admin from 0600 accounts file)` → exit=200
 - `GET /` → exit=200（super 应用壳（带会话））
 - `GET /access/api/tasks/settings` → exit=200（super 专属任务设置读面）
 - `GET /access/api/tasks/session-roles` → exit=200（super 专属会话角色读面）
 - `GET /workbench/api/stream` → exit=200（SSE 首帧）
-- `POST /api/pluginInventory/list` → exit=200（ok=true）
+- `POST /api/pluginInventory/list` → exit=200
 - `read docker/profile/cordis.super.patch.yml.template` → exit=0
 
 ## 备注

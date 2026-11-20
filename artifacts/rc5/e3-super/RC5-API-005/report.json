@@ -5,8 +5,8 @@
   "title": "主会话派 2 个 worker：waitForTreeWork 等到全部完成（API-005）",
   "expected": "E3 主会话派 2 worker；waitForTreeWork 全完成；无丢回执",
   "status": "NOTRUN",
-  "startedAt": "2026-11-19T22:27:37.740Z",
-  "finishedAt": "2026-11-19T22:27:39.513Z",
+  "startedAt": "2026-11-20T07:01:44.805Z",
+  "finishedAt": "2026-11-20T07:01:46.542Z",
   "assertions": [
     {
       "name": "admin 登录 200",
@@ -26,7 +26,7 @@
     {
       "name": "新建会话成功",
       "ok": true,
-      "detail": "{\"sessionId\":\"session-39356d9f-63fb-4c29-b9d2-ba98277f9c37\",\"agentPreset\":\"standard\"}"
+      "detail": "{\"sessionId\":\"session-2d60452d-87a4-4f1c-a827-361900289287\",\"agentPreset\":\"standard\"}"
     },
     {
       "name": "模型探针如实记录失败原因（AUTH 401 invalid API Key）",
@@ -53,22 +53,32 @@
     {
       "cmd": "POST /login (admin from 0600 accounts file)",
       "exit": 200,
-      "note": "account=rc5admin"
+      "note": ""
     },
     {
       "cmd": "POST /api/session/modelCatalog",
       "exit": 200,
-      "note": "ok=true"
+      "note": ""
     },
     {
       "cmd": "POST /api/session/create",
       "exit": 200,
-      "note": "ok=true"
+      "note": "ok·workspace=090d9317…"
     },
     {
-      "cmd": "POST /api/session/prompt (1 次最小真实模型探针)",
+      "cmd": "POST /api/session/prompt",
       "exit": 200,
-      "note": "不写 prompt 全文到证据"
+      "note": ""
+    },
+    {
+      "cmd": "session/prompt 载荷内容不写证据（仅一致性探针）",
+      "exit": 0,
+      "note": ""
+    },
+    {
+      "cmd": "POST /api/session/page",
+      "exit": 200,
+      "note": ""
     },
     {
       "cmd": "GET /access/api/tasks/settings",

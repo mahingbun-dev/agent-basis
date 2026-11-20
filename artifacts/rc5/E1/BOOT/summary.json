@@ -1,20 +1,23 @@
 {
   "suite": "BOOT",
-  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "commit": "c75f876c986415431c92b28cce771d847a36c52f",
   "imageTag": "eterna-agent:rc5-test",
-  "imageId": "sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00",
+  "imageId": "sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb",
   "container": "rc5-e1suite",
   "base": "http://127.0.0.1:3118",
   "dataRoot": "/Users/sunny/eterna-data/test-20261120/e1",
-  "startedAt": "2026-11-19T22:43:38.645Z",
-  "finishedAt": "2026-11-19T23:34:35.703Z",
-  "total": 13,
-  "pass": 13,
+  "startedAt": "2026-11-20T07:01:54.672Z",
+  "finishedAt": "2026-11-20T07:02:42.155Z",
+  "total": 11,
+  "pass": 11,
   "fail": 0,
   "skip": 0,
   "notrun": 0,
   "counts": {
-    "PASS": 13
+    "PASS": 11,
+    "FAIL": 0,
+    "SKIP": 0,
+    "NOTRUN": 0
   },
   "halted": false,
   "haltReason": "",
@@ -74,16 +77,6 @@
       "id": "RC5-BOOT-011",
       "status": "PASS",
       "title": "DSH_AGENTS_HOME 落 /data/agents 且用户级技能可写"
-    },
-    {
-      "id": "RC5-BOOT-012",
-      "status": "PASS",
-      "title": "浏览器加载：10 个产品 bundle 与 roster"
-    },
-    {
-      "id": "RC5-BOOT-013",
-      "status": "PASS",
-      "title": "super：agent-team 三行、Team 默认关、任务/子代理 UI"
     }
   ]
 }

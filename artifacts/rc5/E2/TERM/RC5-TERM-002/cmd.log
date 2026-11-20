@@ -1,4 +1,6 @@
 # TERM/RC5-TERM-002
-# started 2026-11-20T00:39:26.922Z
+# started 2026-11-20T07:05:53.994Z
 
-# note: 需要浏览器键盘实测；且上游 create P1 使活终端建不出来，UI 套件另测面板可达性
+$ 旁证轨 LLM/term-002.mjs（Playwright 真键盘）
+EXIT=0
+status=PASS file=/Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/LLM/term-002-result.json

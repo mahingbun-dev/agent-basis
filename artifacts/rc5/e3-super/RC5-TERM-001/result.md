@@ -3,7 +3,7 @@
 - 形态：**E3 super 测试容器**（`rc5-test-e3` / `eterna-rc5-e3` / 3109 / `$HOME/eterna-data/test-rc5/e3`）
 - 优先级：P0
 - 结论：**PASS**
-- 时间：2026-11-19T22:27:56.200Z → 2026-11-19T22:27:56.452Z
+- 时间：2026-11-20T07:02:47.186Z → 2026-11-20T07:02:47.485Z
 
 ## 预期（51/54 原文口径）
 
@@ -22,7 +22,7 @@ dsh-experimental-terminal-bundle 在；terminal 行 active
 - `docker exec eterna-rc5-e3 cat /data/profiles/eterna-super/package.json` → exit=0（profile package.json）
 - `docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)` → exit=0（boot token 不入证据）
 - `GET /connect + GET /?token=… (dsh session bootstrap)` → exit=200（token 已脱敏）
-- `POST /login (admin from 0600 accounts file)` → exit=200（account=rc5admin）
-- `POST /api/pluginInventory/list` → exit=200（ok=true）
+- `POST /login (admin from 0600 accounts file)` → exit=200
+- `POST /api/pluginInventory/list` → exit=200
 
 > 证据已脱敏：boot token/会话 cookie/口令/API key 均不入文件；生产容器只读 inspect，不 start/stop/exec。

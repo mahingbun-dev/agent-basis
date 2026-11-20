@@ -1,6 +1,120 @@
 # SEC/RC5-SEC-010
-# started 2026-11-20T00:37:12.651Z
+# started 2026-11-20T06:59:02.601Z
 
-# note: 本 lane 数据根为全新播种（2026-11-20 E2），不存在旧版本 rc.4/rc.5 之前的历史数据；E1 车道同样从空数据根起。
+$ rsync -aH /Users/sunny/eterna-data/test-rc5/p6b-e5b/ /Users/sunny/eterna-data/test-rc5/p6b-sec10/（旧卷副本 → 独立 sec10 根）
+EXIT=0
 
-# note: 升级路径上的旧会话/旧记忆/旧提示词兼容性由 E0/profile-upgrade 车道与 `pnpm -w run verify` 内 profile-upgrade-check 覆盖。
+
+$ sqlite: UPDATE users SET password_hash（Mr.Ma，仅口令）
+EXIT=0
+changed=1（旧卷口令不在任何存量配置中；重置仅用于登录，其余数据不动）
+
+$ zstd -dc …/session-2ef15ce5-f5f5-48d8-83ae-2b22da492720/session.v4.jsonl.zstd | wc -l
+EXIT=0
+events=22 counts={"session":1,"permission/preset":1,"sandbox/mode":1,"approval/policy":1,"model/selection":1,"agent/inbox/spliced":2,"turn/start":1,"step/start":1,"system/message":1,"user/message":4,"request/header":1,"request/context":1,"session/title":1,"session/title-llm-request":1,"assistant/message":1,"step/end":1,"turn/end":1,"session/end-seed":1} userText=只回复两个字：收到
+
+$ sqlite: access users/sessions/workspaces
+EXIT=0
+{"users":2,"sessions":145,"workspaces":3}
+
+$ sqlite: memory_entity/domain_registry + content sha256
+EXIT=0
+entities=12 domains=15 digest=0fbe097e61db9503…
+
+$ storages/eterna_prompt* 文件数 + 清单 sha256
+EXIT=0
+files=155 digest=572417de4d4fd7b3…
+
+$ 写 /Users/sunny/eterna-data/test-rc5/.env.sec10（0600；沿用 p6b-a 凭据，仅改实例/端口/数据根）
+EXIT=0
+keys=23 instance=p6b-sec10 form=web port=3232 root=/Users/sunny/eterna-data/test-rc5/p6b-sec10
+
+$ docker compose -p rc5-sec10 --env-file /Users/sunny/eterna-data/test-rc5/.env.sec10 -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/SEC/compose.sec10.override.yml up -d --no-build eterna-agent
+EXIT=0
+
+Network rc5-sec10_default Creating 
+ Network rc5-sec10_default Created 
+ Container eterna-rc5-sec10 Creating 
+ Container eterna-rc5-sec10 Created 
+ Container eterna-rc5-sec10 Starting 
+ Container eterna-rc5-sec10 Started
+
+$ docker inspect health/image
+EXIT=0
+health=healthy image=sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb
+
+$ docker logs（扫描 FATAL）
+EXIT=0
+fatalLines=0
+
+$ 管理员登录（旧数据用户 Mr.Ma）
+EXIT=200
+status=200 cookie=ok
+
+$ POST /api/session/state（旧会话）
+EXIT=200
+ok=true cursor=20 running=false
+
+$ POST /api/session/wait {cursor:0}
+EXIT=200
+ok=true assistantRecords=1
+
+$ POST /api/session/page（旧会话历史）
+EXIT=200
+ok=true records=21 userText=只回复两个字：收到 assistantText=收到
+
+$ 升级后 sqlite: access 计数
+EXIT=0
+{"users":2,"sessions":145,"workspaces":3}
+
+$ 升级后 memory 计数/摘要哈希
+EXIT=0
+entities=12 domains=15 digest=0fbe097e61db9503…
+
+$ 升级后 storages 提示词文件数/哈希
+EXIT=0
+files=155 digest=572417de4d4fd7b3…
+
+$ PORT=4607 FAKE_LLM_LOG=… node fake-llm-server.mjs
+EXIT=0
+healthz=true
+
+$ settings fake provider + agent-default-model + session/selectModel
+EXIT=200
+provider=true default=true selected={"provider":"fake","model":"fake-1"}
+
+$ POST /api/session/prompt（旧会话续聊，假模型）
+EXIT=200
+ok=true code=- msg=
+
+$ 续聊收尾（session/state）
+EXIT=200
+cursor=39 running=false
+
+$ 假模型日志（续聊请求数/模型）
+EXIT=0
+requests=2 model=fake-1 calledTools=[]
+
+[ASSERT] 旧卷副本复制成功（独立根，不碰源） => PASS
+
+[ASSERT] 升级前旧会话内容可读（4 user / 1 assistant，首条用户文本一致） => PASS :: counts={"session":1,"permission/preset":1,"sandbox/mode":1,"approval/policy":1,"model/selection":1,"agent/inbox/spliced":2,"turn/start":1,"step/start":1,"system/message":1,"user/message":4,"request/header":1,"request/context":1,"session/title":1,"session/title-llm-request":1,"assistant/message":1,"step/end":1,"turn/end":1,"session/end-seed":1} userText=只回复两个字：收到
+
+[ASSERT] 升级前数据面计数（users=2 / sessions=145 / 记忆 12 / 域 15 / 提示词文件 155） => PASS :: access={"users":2,"sessions":145,"workspaces":3} memory=12/15 prompt=155
+
+[ASSERT] 终版镜像起容器 healthy 且无 FATAL => PASS :: health=healthy image=sha256:22fe8acb436f2 fatal=0
+
+[ASSERT] 管理员登录后可打开旧会话（state ok / wait 返回记录） => PASS :: state=true wait=true page=true waitRecords=1 pageRecords=21
+
+[ASSERT] 旧会话内容完整（首条用户文本 + 助手回复逐字一致） => PASS :: user=只回复两个字：收到 assistant=收到
+
+[ASSERT] 旧记忆完整（实体/域计数与内容摘要哈希不变） => PASS :: pre=12/15/0fbe097e61db post=12/15/0fbe097e61db
+
+[ASSERT] 旧提示词工坊完整（文件数/清单哈希不变） => PASS :: pre=155/572417de4d4f post=155/572417de4d4f
+
+[ASSERT] 旧会话可继续对话（新回合完成并追加 assistant 回复） => PASS :: selected=true prompt=true newAssistant=1
+
+[ASSERT] 续聊只调用假模型（无真实模型出网） => PASS :: requests=2
+
+[ASSERT] 升级前后 access 计数不变 => PASS :: pre={"users":2,"sessions":145,"workspaces":3} post={"users":2,"sessions":145,"workspaces":3}
+
+# note: 清理：compose -p rc5-sec10 down → EXIT=0（bind 数据根保留 /Users/sunny/eterna-data/test-rc5/p6b-sec10）

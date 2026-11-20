@@ -1,7 +1,7 @@
 # E1 套件测试环境
 
-- 生成：2026-11-19T22:10:10.226Z
-- 镜像：`eterna-agent:rc5-test` → `sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00`
+- 生成：2026-11-20T06:29:20.808Z
+- 镜像：`eterna-agent:rc5-test` → `sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb`
 - 容器：`rc5-e1suite`（项目 `rc5-e1suite`），宿主端口 **3118** → 8080
 - 数据根：`/Users/sunny/eterna-data/test-20261120/e1`（fresh 根：`/Users/sunny/eterna-data/test-20261120/fresh`）
 - 夹具：`/Users/sunny/code/agent-basis-rc5/tests/fixtures` → `/fixtures:ro`

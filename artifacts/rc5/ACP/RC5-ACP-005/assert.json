@@ -3,7 +3,7 @@
   "priority": "P0",
   "title": "非法 JSON → JSON-RPC error（-32700）且进程不崩",
   "status": "PASS",
-  "at": "2026-11-19T22:22:11.894Z",
+  "at": "2026-11-20T05:10:31.765Z",
   "detail": "error.code=-32700 id=null aliveAfter=true",
   "assertions": [
     {

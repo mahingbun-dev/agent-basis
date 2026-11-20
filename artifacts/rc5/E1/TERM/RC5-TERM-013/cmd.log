@@ -1,4 +1,8 @@
 # TERM/RC5-TERM-013
-# started 2026-11-19T23:26:01.354Z
+# started 2026-11-20T07:03:42.238Z
 
-# note: 套件中止：RC5-TERM-004 跨租户红（B 可读 A 会话终端）→ 按派发规则立即中止 TERM 套件
+$ cat artifacts/rc5/p6b/soak/final-image/{meta,summary,term-013}-24h-final.*
+EXIT=1
+windowComplete=false plannedEnd=2026-11-21T05:06:19.450Z samples=61 churnAllOk=true verdict=NOTRUN last={"at":"2026-11-20T06:07:34.796Z","elapsedSeconds":3674,"dshPid":1,"fds":61,"rssKb":485212,"threads":11,"longProcs":1,"churn":"ok","probeExit":0}
+
+# note: churn 每 tick = create → WS attach(snapshot) → close；窗口未满时 summary 不落盘，本行只记 NOTRUN（54 §6.3）

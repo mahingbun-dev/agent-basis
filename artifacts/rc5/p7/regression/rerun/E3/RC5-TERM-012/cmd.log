@@ -1,0 +1,14 @@
+# RC5-TERM-012 — 两会话各开终端互不可见（TERM-012）
+CMD: node artifacts/rc5/e3-super/run-suite.mjs RC5-TERM-012
+START: 2026-11-20T01:47:18.779Z
+# 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
+
+[exit=0] docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)  # boot token 不入证据
+[exit=200] GET /connect + GET /?token=… (dsh session bootstrap)  # token 已脱敏
+[exit=200] POST /login (admin from 0600 accounts file)
+[exit=200] POST /api/session/create  # ok·workspace=090d9317…
+[exit=200] POST /api/session/create  # ok·workspace=090d9317…
+[exit=200] POST /api/terminal/create  # A 会话 1
+[exit=200] POST /api/terminal/create  # A 会话 2
+
+EXIT=0

@@ -1,5 +1,5 @@
 # CMD/RC5-CMD-002
-# started 2026-11-19T23:18:14.263Z
+# started 2026-11-20T07:02:42.243Z
 
 $ IAB 1440×900: 执行 /model → 读取选择器（aria-label="选择模型，当前 MiMo V2.6 Pro，推理等级 Default"）→ 截图
 EXIT=0

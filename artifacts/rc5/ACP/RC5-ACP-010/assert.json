@@ -3,8 +3,8 @@
   "priority": "P1",
   "title": "web 与 ACP 同时启动同卷各跑一轮：两端可用；SQLite 无 database is locked；无 profile 渲染竞争",
   "status": "PASS",
-  "at": "2026-11-19T22:22:20.484Z",
-  "detail": "web={\"loginStatus\":200,\"createdOk\":true,\"sessionId\":\"session-48c1b0b5-d636-47f3-ad91-9233129f5949\",\"listedOk\":true} acp={\"protocolVersion\":1,\"sessionId\":\"3a7df1c1-73b7-49af-9aef-b7c87c821c6e\",\"stopReason\":\"end_turn\"} webHealth=healthy→healthy locked(web/acp)=false/false acpExit={\"code\":0,\"signal\":null,\"elapsedMs\":2428}",
+  "at": "2026-11-20T05:10:42.141Z",
+  "detail": "web={\"loginStatus\":200,\"createdOk\":true,\"sessionId\":\"session-daf6544f-188e-4cf5-98c7-7e0bf1d58e06\",\"listedOk\":true} acp={\"protocolVersion\":1,\"sessionId\":\"1e6010c1-a684-4575-8747-39cac4eacf34\",\"stopReason\":\"end_turn\"} webHealth=healthy→healthy locked(web/acp)=false/false acpExit={\"code\":0,\"signal\":null,\"elapsedMs\":2936}",
   "assertions": [
     {
       "name": "web 登录 200",

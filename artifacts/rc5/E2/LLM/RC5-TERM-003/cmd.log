@@ -1,0 +1,26 @@
+# LLM/RC5-TERM-003
+# started 2026-11-20T07:05:55.869Z
+
+$ POST /api/session/create（终端工具会话）
+EXIT=200
+sessionId=session-7dcd1d3d-f695-4c91-9d21-bec41426af0d
+
+$ POST /api/session/prompt（@@CALL × 7 链式终端调用）
+EXIT=200
+called=terminal_open,terminal_send,terminal_read,terminal_send,terminal_signal,terminal_list,terminal_close
+
+$ POST /api/session/wait（回合记录）
+EXIT=200
+tool_calls=7
+
+[ASSERT] 6 个 terminal_* 工具均实际派发 => PASS :: requested=terminal_open,terminal_send,terminal_read,terminal_send,terminal_signal,terminal_list,terminal_close
+
+[ASSERT] open 返回终端 id => PASS :: ["started terminal session pty-1 [type: shell] root@71cf1174be6d:/data/workspaces/rc5admin#","started terminal session pty-1 [type: shell] root@71cf1174be6d:/data/workspaces/rc5admin#"]
+
+[ASSERT] send/read 返回真实输出 rc5-term-ok => PASS
+
+[ASSERT] signal 返回 delivered => PASS
+
+[ASSERT] list 返回该终端 => PASS
+
+[ASSERT] close 成功 => PASS

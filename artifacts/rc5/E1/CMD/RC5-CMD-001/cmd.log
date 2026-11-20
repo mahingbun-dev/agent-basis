@@ -1,5 +1,5 @@
 # CMD/RC5-CMD-001
-# started 2026-11-19T23:18:14.263Z
+# started 2026-11-20T07:02:42.240Z
 
 $ IAB 1440×900: 活动会话 composer.focus() → execCommand("insertText","/") → 读 [role="option"] 列表
 EXIT=0

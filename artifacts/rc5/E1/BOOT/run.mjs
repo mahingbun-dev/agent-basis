@@ -25,7 +25,12 @@ function record(c, status, title, expected, actual, notes = [], artifacts = []) 
 
 function dumpConfig(container, profile, extraArgs = []) {
   const outPath = `/tmp/dump-${profile}-${Date.now()}.yml`
-  const result = docker(['exec', container, 'sh', '-c', `DSH_HOME=/data dsh --profile ${profile} --dump-config ${extraArgs.join(' ')} > ${outPath}; echo EXIT=$?; wc -c < ${outPath}`])
+  // BOOT-007 修复(2026-11-20 W5):--dump-default-config 是独立输出模式,不能再拼
+  // --dump-config(旧拼法 EXIT=1/0 字节 → 默认集恒 0 → 假 PASS)。
+  const flags = extraArgs.includes('--dump-default-config')
+    ? [...extraArgs]
+    : ['--dump-config', ...extraArgs]
+  const result = docker(['exec', container, 'sh', '-c', `DSH_HOME=/data dsh --profile ${profile} ${flags.join(' ')} > ${outPath}; echo EXIT=$?; wc -c < ${outPath}`])
   const text = result.stdout
   const exit = /EXIT=(\d+)/.exec(text)?.[1] ?? '-1'
   const size = text.split('\n').pop() ?? '0'

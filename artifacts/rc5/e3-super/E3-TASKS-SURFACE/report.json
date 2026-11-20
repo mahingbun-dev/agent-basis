@@ -5,8 +5,8 @@
   "title": "（lane 本地）tasks 设置/角色面 live 契约",
   "expected": "settings/session-roles 可读；no-op 保存 changed=false；非法块 400",
   "status": "PASS",
-  "startedAt": "2026-11-19T22:27:51.747Z",
-  "finishedAt": "2026-11-19T22:27:51.829Z",
+  "startedAt": "2026-11-20T07:02:46.997Z",
+  "finishedAt": "2026-11-20T07:02:47.127Z",
   "assertions": [
     {
       "name": "admin 登录 200",
@@ -21,7 +21,7 @@
     {
       "name": "health/stats 载荷在场",
       "ok": true,
-      "detail": "{\"health\":{\"state\":\"ready\",\"detail\":\"realm Mr.Ma 就绪\",\"at\":\"2026-11-19T22:27:51.819Z\",\"components\":{\"tasks\":{\"state\":\"ready\",\"detail\":\"realm Mr.Ma 就绪(pass 2000ms)\",\"at\":\"2026-11-19T22:15:27.753Z\"},\"reply\":{\"state\":\"ready\",\"detail\":\"Nothing waiting\",\"at\":\"2026-11-19T22:15:27.751Z\"},\"assessment\":{\"stat"
+      "detail": "{\"health\":{\"state\":\"ready\",\"detail\":\"realm Mr.Ma 就绪\",\"at\":\"2026-11-20T07:02:47.113Z\",\"components\":{\"tasks\":{\"state\":\"ready\",\"detail\":\"realm Mr.Ma 就绪(pass 2000ms)\",\"at\":\"2026-11-20T07:01:17.358Z\"},\"reply\":{\"state\":\"ready\",\"detail\":\"Nothing waiting\",\"at\":\"2026-11-20T07:01:17.355Z\"},\"assessment\":{\"stat"
     },
     {
       "name": "no-op 保存 200 且 changed=false",
@@ -53,7 +53,7 @@
     {
       "cmd": "POST /login (admin from 0600 accounts file)",
       "exit": 200,
-      "note": "account=rc5admin"
+      "note": ""
     },
     {
       "cmd": "GET /access/api/tasks/settings",

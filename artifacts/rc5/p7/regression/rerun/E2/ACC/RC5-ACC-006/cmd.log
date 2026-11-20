@@ -1,0 +1,38 @@
+# ACC/RC5-ACC-006
+# started 2026-11-20T01:36:12.701Z
+
+$ POST /api/settings/update ns=mcp-manager（A 登记系统 server e2sys）
+EXIT=200
+ok=true code=-
+
+$ POST /api/settings/describe（B）
+EXIT=200
+namespaces=18 含mcp-manager=false
+
+$ POST /api/settings/describe（A）
+EXIT=200
+namespaces=19 含mcp-manager=true
+
+$ POST /api/settings/update ns=mcp-manager（B）
+EXIT=200
+ok=false code=tenant/denied
+
+$ WS /api/remote.mux open {endpoint:"mcpManager/watch"}（B）
+EXIT=0
+{"type":"error","streamId":"acc6-watch","error":{"code":"remote-access/denied","message":"remote access: mcpManager/watch: access denied (no-allow)","details":{"action":"mcpManager/watch","reason":"no-allow"}}}
+
+$ POST /api/mcpManager/probe（B）
+EXIT=200
+ok=true code=- value={"ok":true,"serverInfo":{"name":"fixture-echo","version":"1.0.0"},"toolNames":["echo"],"truncated":false,"durationMs":54,"closeConfirmed":true}
+
+$ POST /api/mcpManager/restart（B）
+EXIT=200
+ok=true code=-
+
+[ASSERT] B 的 describe 无 mcp-manager => PASS :: B含=false A含=true
+
+[ASSERT] B 写 mcp-manager 被拒 => PASS
+
+[ASSERT] B watch 被拒 => PASS
+
+[ASSERT] B probe/restart 均 403 => FAIL :: probe=200/true restart=200/true

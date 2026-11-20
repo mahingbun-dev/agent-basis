@@ -1,4 +1,6 @@
 # TERM/RC5-TERM-011
-# started 2026-11-20T00:39:26.923Z
+# started 2026-11-20T07:05:53.995Z
 
-# note: 依赖 create 成功；被同一 P1（session.snapshotEvents）阻断
+$ 旁证轨 TERM/term-011.mjs（同 context 重开页）
+EXIT=0
+status=PASS file=/Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/TERM/term-011-result.json

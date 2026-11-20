@@ -41,14 +41,14 @@
   ],
   "cases": {
     "total": 12,
-    "pass": 11,
+    "pass": 12,
     "fail": 0,
-    "skip": 1
+    "skip": 0
   },
   "leftovers": [
     "P2-01|MCPS-011 H9 容器端到端重渲染 deferred（本地机制 11/11 PASS）|P1|P6a 用旧 profile 副本起容器实测 servers 保留与 0600 备份",
     "P2-02|MCPS-008/011 证据使用 report.md + run*.log，未按 54 §5.4 命名 result.md|P2|补 result.md 或登记等价记录"
   ],
   "generatedBy": "T50/artifacts/rc5/p6a/scan-matrix.mjs",
-  "generatedAt": "2026-11-20T00:58:23Z"
+  "generatedAt": "2026-11-20T05:25:41Z"
 }

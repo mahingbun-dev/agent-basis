@@ -1,8 +1,14 @@
 # TERM/RC5-TERM-SETUP
-# started 2026-11-20T00:39:24.776Z
+# started 2026-11-20T07:05:50.329Z
 
 $ POST /api/session/create（A 建立活会话）
 EXIT=200
-ok=true sessionId=session-90fb975c-1a40-431a-b2cb-885c97342558
+ok=true sessionId=session-48caf76f-1af8-4db7-957f-a8361c3e4625
+
+$ POST /api/terminal/create（A 建受害终端，供 005 用真实 id）
+EXIT=200
+ok=true id=e2-victim-term state=running
 
 [ASSERT] 拿到 A 的 sessionId => PASS
+
+[ASSERT] A 建出受害终端（005 用真实 id，不用伪造 id） => PASS

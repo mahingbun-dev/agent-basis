@@ -5,8 +5,8 @@
   "title": "profile bundle 清单含 terminal bundle（TERM-001）",
   "expected": "dsh-experimental-terminal-bundle 在；terminal 行 active",
   "status": "PASS",
-  "startedAt": "2026-11-19T22:27:56.200Z",
-  "finishedAt": "2026-11-19T22:27:56.452Z",
+  "startedAt": "2026-11-20T07:02:47.186Z",
+  "finishedAt": "2026-11-20T07:02:47.485Z",
   "assertions": [
     {
       "name": "profile bundles 含 dsh-experimental-terminal-bundle",
@@ -43,12 +43,12 @@
     {
       "cmd": "POST /login (admin from 0600 accounts file)",
       "exit": 200,
-      "note": "account=rc5admin"
+      "note": ""
     },
     {
       "cmd": "POST /api/pluginInventory/list",
       "exit": 200,
-      "note": "ok=true"
+      "note": ""
     }
   ],
   "notes": [],

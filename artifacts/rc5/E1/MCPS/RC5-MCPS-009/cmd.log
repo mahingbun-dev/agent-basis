@@ -1,4 +1,10 @@
 # MCPS/RC5-MCPS-009
-# started 2026-11-19T22:50:49.780Z
+# started 2026-11-20T07:03:00.908Z
 
-# note: 套件已中止：RC5-MCPS-006: 普通用户 restart/probe 必须被拒
+$ POST /api/settings/update {"ns":"mcp-manager"}（transport=carrier-pigeon）
+EXIT=200
+ok=false code=gateway/internal msg=$.servers.bad.transport expected "stdio" | "streamable-http" but got "carrier-pigeon"
+
+[ASSERT] 非法 transport 明确报错（schema 拒绝） => PASS :: $.servers.bad.transport expected "stdio" | "streamable-http" but got "carrier-pigeon"
+
+[ASSERT] 已有配置未被破坏（patch 前后一致） => PASS

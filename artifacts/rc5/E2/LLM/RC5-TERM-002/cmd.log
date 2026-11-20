@@ -1,0 +1,26 @@
+# LLM/RC5-TERM-002
+# started 2026-11-20T04:38:20.580Z
+
+$ UI：聊天框发送 terminal_open 回合
+EXIT=200
+session=session-c64cd0a8-31e6-4758-beb3-4e20726ce0da terminal=690dbd66-3b7a-408c-853c-5cc0d6930a8b
+
+$ UI：xterm 键入 printf rc5-user-typed
+EXIT=200
+开始 沙箱 pty-7 root@29c4853ea3a3:/data/workspaces/rc5admin# printf rc5-user-typed rc5-user-typedroot@29c4853ea3a3:/data/workspaces/rc5admin#
+
+$ UI：聊天框发送 terminal_send（已接管）
+EXIT=200
+result=started terminal session pty-7 [type: shell] root@29c4853ea3a3:/data/workspaces/rc5admin#
+started terminal session pty-7 [type: shell] root@29c4853ea3a3:/data/workspaces/rc5admin#
+Error: The user has taken over this term… leaked=false
+
+[ASSERT] Agent terminal_open 建出终端且侧栏自动开 tab => PASS :: terminalId=690dbd66-3b7a-408c-853c-5cc0d6930a8b
+
+[ASSERT] 人能键入并在屏幕看到输出（首次输入即接管） => PASS
+
+[ASSERT] 接管后 Agent terminal_send 被 user-control 拒绝 => PASS :: started terminal session pty-7 [type: shell] root@29c4853ea3a3:/data/workspaces/rc5admin#
+started terminal session pty-7 [type: shell] root@29c4853ea3a3:/data/workspaces/rc5admin#
+Error: The user has …
+
+[ASSERT] Agent 输入未写进用户终端 => PASS

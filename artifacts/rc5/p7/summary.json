@@ -5,7 +5,7 @@
   "imageId": null,
   "startedAt": null,
   "finishedAt": null,
-  "windowBasis": "未执行（P6 未收口：FAIL 8 + MISSING 26，P0 未通过 16）",
+  "windowBasis": "未执行（P6 未收口：FAIL 0 + MISSING 11）",
   "commands": [],
   "cases": {
     "total": 0,
@@ -14,18 +14,8 @@
     "skip": 0
   },
   "leftovers": [
-    "P7-NOTRUN|P7 全量复跑/PR/合并/生产部署/上线后 24h 未执行（P6 未收口：FAIL 8 + MISSING 26，其中 P0 未通过 16）|P0|P6 清零后按 51 §6.1/§6.2、54 §3.2 执行"
+    "P7-NOTRUN|P7 全量复跑/PR/合并/生产部署/上线后 24h 未执行（P6 未收口）|P0|P6 清零后按 51 §6.1/§6.2、54 §3.2 执行"
   ],
   "generatedBy": "T50/artifacts/rc5/p6a/scan-matrix.mjs",
-  "generatedAt": "2026-11-20T00:58:23Z",
-  "recheckedAt": "2026-11-20T01:25:29Z",
-  "recheckNote": "T52 证据收口完成（矩阵 164 行/阶段 summary/修复复跑归档）；P7 全量 164 复跑仍未执行，P6 未收口",
-  "evidence": [
-    "artifacts/rc5/p7/t52-recheck.md",
-    "artifacts/rc5/p7/t52-recheck.log",
-    "artifacts/rc5/p7/run-t52-recheck.sh",
-    "artifacts/rc5/p7/check-commit-hygiene.mjs",
-    "artifacts/rc5/acceptance-matrix.md",
-    "artifacts/rc5/p6a/repairs/"
-  ]
+  "generatedAt": "2026-11-20T05:25:41Z"
 }

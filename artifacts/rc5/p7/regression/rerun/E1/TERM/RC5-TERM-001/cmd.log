@@ -1,0 +1,12 @@
+# TERM/RC5-TERM-001
+# started 2026-11-20T01:42:00.727Z
+
+$ node -e "require($DSH_HOME/profiles/eterna-web/package.json).dsh.profile.bundles"
+EXIT=0
+@deepseek-ai/dsh-base, dsh-web-app, dsh-deepseek-chat-import, dsh-experimental-session-search, dsh-experimental-plugin-market-bundle, dsh-experimental-terminal-bundle
+
+$ node scripts/verify-terminal-guard.mjs ...（脚本内 007 行同时核对 bundles-terminal）
+EXIT=0
+bundles-terminal=true readUserTerminals=false:true preferredShells=[bash]:true
+
+[ASSERT] profile bundles 含 dsh-experimental-terminal-bundle => PASS

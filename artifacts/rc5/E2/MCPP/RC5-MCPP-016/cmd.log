@@ -1,4 +1,39 @@
 # MCPP/RC5-MCPP-016
-# started 2026-11-19T23:53:32.448Z
+# started 2026-11-20T05:52:07.716Z
 
-# note: 需要 live 会话建立挂死子进程；API 层无 8s 启动时序面
+$ POST /api/mcp-personal/catalog（B）
+EXIT=200
+items=["echo","hung","flaky"]
+
+$ POST /api/mcp-personal/upsert {name:hung,stdio,catalogId:hung}（B）
+EXIT=200
+ok=true serverName=p2_hung code=- msg=
+
+$ POST /api/session/create（B；期望 8s 预算到点后返回）
+EXIT=200
+ok=true sessionId=session-2c2bfba6-7739-4318-98ee-7e0ec8de4cf4 elapsedMs=8051 code=-
+
+$ POST /api/session/state（会话可用性）
+EXIT=200
+ok=true running=false cursor=2
+
+$ docker logs --since 2026-11-20T05:52:06.842Z rc5-e2suite | grep mcp-personal（截取相关行）
+EXIT=0
+[mcp-personal] p2_hung 连接失败:MCP 启动超过 8000ms 预算
+[mcp-personal] p2_hung 连接失败:MCP 启动超过 8000ms 预算
+
+$ POST /api/mcp-personal/delete（清理 hung）
+EXIT=200
+ok=true
+
+[ASSERT] 前置：目录含 hung（stdio） => PASS :: ["echo","hung","flaky"]
+
+[ASSERT] B 从目录新建 hung 成功 => PASS :: {"id":"2fb276cc-6dda-43f7-bc1a-630261809421","name":"hung","serverName":"p2_hung","transport":"stdio","catalogId":"hung","url":null,"headerNames":[],"hasSecret":"<redacted>","enabled":true,"createdAt":1795153927840,"updatedAt":1795153927840…
+
+[ASSERT] 会话创建成功（未被挂死服务器拖死） => PASS
+
+[ASSERT] 8s 预算生效（耗时 7–15s） => PASS :: elapsedMs=8051
+
+[ASSERT] 会话可用（state 可读、running=false） => PASS :: ok=true running=false
+
+[ASSERT] 日志出现「MCP 启动超过 8000ms 预算」 => PASS :: [mcp-personal] p2_hung 连接失败:MCP 启动超过 8000ms 预算

@@ -1,9 +1,9 @@
 # MCPS/RC5-MCPS-001
-# started 2026-11-19T22:50:42.163Z
+# started 2026-11-20T07:02:52.467Z
 
 $ POST /api/settings/update {"request":{"ns":"mcp-manager","patch":{servers:{e1http:{transport:streamable-http,url:http://host.docker.internal:8766/mcp}}}}
 EXIT=200
-ok=true {"ns":"mcp-manager","autoGenerate":true,"schema":{"uid":9237,"refs":{"9211":{"type":"boolean","meta":{"default":true}},"9212":{"type":"number","meta":{"min":1,"max":2147483647,"default":500}},"9213":{"type":"number","meta":{"min":1,"max":2147483647,"default":30000}},"9214":{"type":"number","meta":{"…
+ok=true {"ns":"mcp-manager","autoGenerate":true,"schema":{"uid":35709,"refs":{"35683":{"type":"boolean","meta":{"default":true}},"35684":{"type":"number","meta":{"min":1,"max":2147483647,"default":500}},"35685":{"type":"number","meta":{"min":1,"max":2147483647,"default":30000}},"35686":{"type":"number","met…
 
 [ASSERT] 设置写入返回 ok => PASS :: status=200
 

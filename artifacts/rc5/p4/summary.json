@@ -30,8 +30,8 @@
   ],
   "cases": {
     "total": 17,
-    "pass": 16,
-    "fail": 1,
+    "pass": 17,
+    "fail": 0,
     "skip": 0
   },
   "leftovers": [
@@ -39,5 +39,5 @@
     "P4-02|ACC-001/003/004/005/010 的首跑证据落在 E2/ACC（P6a lane），P4 静态门禁日志见 p4/b12-glue、p4/b14-system-gates|P3|在阶段 summary 交叉引用，不重复计分"
   ],
   "generatedBy": "T50/artifacts/rc5/p6a/scan-matrix.mjs",
-  "generatedAt": "2026-11-20T00:58:23Z"
+  "generatedAt": "2026-11-20T05:25:41Z"
 }

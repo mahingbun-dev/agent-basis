@@ -3,13 +3,13 @@
   "priority": "P1",
   "title": "文档定位：仅可信操作员、无租户隔离、共享 /data、不暴露公网",
   "status": "PASS",
-  "at": "2026-11-19T22:22:28.460Z",
+  "at": "2026-11-20T05:10:37.542Z",
   "detail": "✓ trusted-stdio: 「受信 stdio 面」；✓ trusted-operator-only: 「只允许管理员/运维在本机启动」；✓ no-tenant-isolation: 「无租户隔离」；✓ shared-data-root: 「共享同一 `/data` 实例根」",
   "assertions": [
     {
       "name": "trusted-stdio: 「受信 stdio 面」",
       "expected": "文档明确 ACP 是受信 stdio 面/受信控制器，不是 Web 功能",
-      "observed": "deploy/README.md:288, docker-compose.yml:104",
+      "observed": "deploy/README.md:288, docker-compose.yml:115",
       "ok": true
     },
     {

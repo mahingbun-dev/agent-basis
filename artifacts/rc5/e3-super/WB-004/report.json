@@ -5,8 +5,8 @@
   "title": "（workbench）tasks↔workbench 主会话/健康面链路",
   "expected": "masterSessionId 一致；tickets 数组；health 可见",
   "status": "PASS",
-  "startedAt": "2026-11-19T22:30:59.456Z",
-  "finishedAt": "2026-11-19T22:30:59.540Z",
+  "startedAt": "2026-11-20T07:03:59.471Z",
+  "finishedAt": "2026-11-20T07:04:59.665Z",
   "assertions": [
     {
       "name": "admin 登录 200",
@@ -42,8 +42,23 @@
     },
     {
       "cmd": "POST /login (admin from 0600 accounts file)",
-      "exit": 200,
+      "exit": 429,
       "note": ""
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 429,
+      "note": "retry#1"
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 429,
+      "note": "retry#2"
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 200,
+      "note": "retry#3"
     },
     {
       "cmd": "GET /access/api/tasks/settings",

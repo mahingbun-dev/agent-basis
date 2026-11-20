@@ -1,14 +1,16 @@
 # RC5-API-005 — 主会话派 2 个 worker：waitForTreeWork 等到全部完成（API-005）
 CMD: node artifacts/rc5/e3-super/run-suite.mjs RC5-API-005
-START: 2026-11-19T22:27:37.740Z
+START: 2026-11-20T07:01:44.805Z
 # 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
 
 [exit=0] docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)  # boot token 不入证据
 [exit=200] GET /connect + GET /?token=… (dsh session bootstrap)  # token 已脱敏
-[exit=200] POST /login (admin from 0600 accounts file)  # account=rc5admin
-[exit=200] POST /api/session/modelCatalog  # ok=true
-[exit=200] POST /api/session/create  # ok=true
-[exit=200] POST /api/session/prompt (1 次最小真实模型探针)  # 不写 prompt 全文到证据
+[exit=200] POST /login (admin from 0600 accounts file)
+[exit=200] POST /api/session/modelCatalog
+[exit=200] POST /api/session/create  # ok·workspace=090d9317…
+[exit=200] POST /api/session/prompt
+[exit=0] session/prompt 载荷内容不写证据（仅一致性探针）
+[exit=200] POST /api/session/page
 [exit=200] GET /access/api/tasks/settings
 [exit=0] docker logs eterna-rc5-e3  # bridge 日志取 realm 登记事实
 

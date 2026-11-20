@@ -2,7 +2,7 @@
 
 - 套件：SEC
 - 结论：**PASS**
-- 开始/结束：2026-11-20T00:37:12.632Z / 2026-11-20T00:37:12.634Z
+- 开始/结束：2026-11-20T07:07:12.736Z / 2026-11-20T07:07:12.742Z
 
 ## 预期
 
@@ -10,7 +10,7 @@
 
 ## 实际
 
-hits=0；kind=access.chatImport,access.login,access.login.gate,access.logout,access.mux.install,access.sandbox.install,access.tenant,access.terminal.install,mcp.personal.delete,mcp.personal.install,mcp.personal.probe,mcp.personal.upsert
+hits=0；kind=access.chatImport,access.companion.install,access.login,access.login.gate,access.logout,access.mux.install,access.sandbox.install,access.tenant,access.terminal.install,access.thinking.auto,mcp.personal.delete,mcp.personal.install,mcp.personal.probe,mcp.personal.upsert,tool-call,turn-end,usage
 
 ## 备注
 

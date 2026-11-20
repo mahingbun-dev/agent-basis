@@ -1,9 +1,9 @@
 # RC5-TERM-013 — 24h 浸泡：长进程 + attach/close 无 fd 泄漏（TERM-013）
 CMD: node artifacts/rc5/e3-super/run-suite.mjs RC5-TERM-013
-START: 2026-11-19T22:32:54.728Z
+START: 2026-11-20T07:03:52.704Z
 # 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
 
-[exit=0] read artifacts/rc5/p5/testbed/soak/meta-24h.json
-[exit=0] read artifacts/rc5/p5/testbed/soak/term-013-24h.jsonl  # samples=48
+[exit=0] read artifacts/rc5/p6b/soak/final-image/meta-24h-final.json  # plannedEnd=2026-11-21T05:06:19.450Z container=eterna-rc5-e1
+[exit=0] read artifacts/rc5/p6b/soak/final-image/term-013-24h-final.jsonl  # samples=61
 
 EXIT=0

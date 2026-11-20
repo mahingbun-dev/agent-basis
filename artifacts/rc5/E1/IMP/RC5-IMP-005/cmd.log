@@ -1,5 +1,5 @@
 # IMP/RC5-IMP-005
-# started 2026-11-19T23:26:27.456Z
+# started 2026-11-20T07:03:42.316Z
 
 $ scripts/verify-chat-import.mjs（IMP-005 行，上传响应后立即读）
 EXIT=1

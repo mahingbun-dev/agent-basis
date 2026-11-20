@@ -1,17 +1,17 @@
 {
   "webHealthBefore": "healthy",
   "webHealthAfter": "healthy",
-  "webPsBefore": "eterna-rc5-e1\tUp About an hour (healthy)",
-  "webPsAfter": "eterna-rc5-e1\tUp About an hour (healthy)",
+  "webPsBefore": "eterna-rc5-e1\tUp 4 minutes (healthy)",
+  "webPsAfter": "eterna-rc5-e1\tUp 4 minutes (healthy)",
   "webRound": {
     "loginStatus": 200,
     "createdOk": true,
-    "sessionId": "session-48c1b0b5-d636-47f3-ad91-9233129f5949",
+    "sessionId": "session-daf6544f-188e-4cf5-98c7-7e0bf1d58e06",
     "listedOk": true
   },
   "acpRound": {
     "protocolVersion": 1,
-    "sessionId": "3a7df1c1-73b7-49af-9aef-b7c87c821c6e",
+    "sessionId": "1e6010c1-a684-4575-8747-39cac4eacf34",
     "stopReason": "end_turn"
   },
   "webLocked": false,

@@ -1,39 +1,17 @@
 {
   "suite": "E3-super",
-  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "commit": "c75f876c986415431c92b28cce771d847a36c52f",
   "imageTag": "eterna-agent:rc5-test",
-  "imageId": "sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00",
-  "startedAt": "2026-11-19T22:26:30.343Z",
-  "finishedAt": "2026-11-19T22:35:39.623Z",
+  "imageId": "sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb",
+  "startedAt": "2026-11-20T07:01:35.400Z",
+  "finishedAt": "2026-11-20T07:10:21.754Z",
   "total": 23,
-  "pass": 12,
-  "fail": 2,
+  "pass": 18,
+  "fail": 0,
   "skip": 0,
-  "notrun": 9,
-  "failures": [
-    {
-      "id": "RC5-TERM-006",
-      "title": "同 session 调 9 动作全部成功（TERM-006）",
-      "failed": [
-        "terminal/create 成功（9 动作前置）",
-        "6 个 unary 动作全部成功"
-      ]
-    },
-    {
-      "id": "RC5-TERM-004",
-      "title": "B 用 A 的 sessionId：6 个 terminal unary 全部拒绝（TERM-004）",
-      "failed": [
-        "B 用 A 的 sessionId 调 6 个 unary 全部 403/deny",
-        "B 未拿到 A 的 cwd/shells（无数据泄漏）"
-      ]
-    }
-  ],
+  "notrun": 5,
+  "failures": [],
   "notrunCases": [
-    {
-      "id": "RC5-API-004",
-      "title": "tasks 包 verify（API-004）——替代覆盖：test/typecheck/oxlint",
-      "reason": "51 的 API-004 命名命令 `pnpm --filter @eterna/tasks verify` 含 build:client（写 packages/tasks/lib/client.js）；本 lane 可改文件仅限 artifacts/rc5/e3-super/**，故未跑复合 verify，改跑 test/typecheck/oxlint 三段并如实标注。"
-    },
     {
       "id": "RC5-API-005",
       "title": "主会话派 2 个 worker：waitForTreeWork 等到全部完成（API-005）",
@@ -50,24 +28,9 @@
       "reason": "drainDescendants 需真实后代树；前置（模型/ realm）见 RC5-API-005。"
     },
     {
-      "id": "RC5-TERM-005",
-      "title": "attach/retain/watch 三流动作跨租户被拒（TERM-005）",
-      "reason": "TERM-005 为 P0 未跑项：需要 WS mux 客户端（同 P5 记录）。unary 面已证同族跨租户泄漏（TERM-004）。"
-    },
-    {
-      "id": "RC5-TERM-002",
-      "title": "侧栏 terminal 面板可见/可开/首次按键接管（TERM-002）",
-      "reason": "侧栏 terminal 面板的「可见/可开/首次按键接管/Agent 只读」需真浏览器交互与输入；本轮不做（凭据边界见 E3-UI-002）。"
-    },
-    {
-      "id": "RC5-TERM-012",
-      "title": "两会话各开终端互不可见（TERM-012）",
-      "reason": "terminal/create 被 gateway/internal（session.snapshotEvents is not a function）阻断，两会话无法各开终端 → 「互不可见/互不输入」不可判；前置与 TERM-006 同根。"
-    },
-    {
       "id": "RC5-TERM-013",
       "title": "24h 浸泡：长进程 + attach/close 无 fd 泄漏（TERM-013）",
-      "reason": "P5 24h 浸泡在 E1 运行，plannedEndAt=2026-11-20T21:45:37.331Z；当前采样 48 条、窗口未满不得判过；且 churn=create 持续 fail（同 session.snapshotEvents 错误）。"
+      "reason": "24h 窗口未满：plannedEndAt=2026-11-21T05:06:19.450Z（now=2026-11-20T07:03:52.705Z），summary 未落盘；按 54 §6.3 记 NOTRUN，不得预先判过。"
     },
     {
       "id": "E3-UI-002",
@@ -88,7 +51,7 @@
     "dsh": "0.2.2-rc.5"
   },
   "imageProvenance": {
-    "created": "2026-11-19T22:00:49.966685464Z",
+    "created": "2026-11-20T05:46:36.167453677Z",
     "labels": "null",
     "note": "镜像无 commit 标签：证据按 image id 追溯，不能等同于 worktree commit 的确定性构建。"
   },
@@ -119,9 +82,9 @@
     },
     {
       "id": "RC5-API-004",
-      "status": "NOTRUN",
+      "status": "PASS",
       "priority": "P0",
-      "title": "tasks 包 verify（API-004）——替代覆盖：test/typecheck/oxlint"
+      "title": "tasks 包 verify（API-004，51 原文命令）"
     },
     {
       "id": "RC5-API-005",
@@ -161,31 +124,31 @@
     },
     {
       "id": "RC5-TERM-006",
-      "status": "FAIL",
+      "status": "PASS",
       "priority": "P0",
       "title": "同 session 调 9 动作全部成功（TERM-006）"
     },
     {
       "id": "RC5-TERM-004",
-      "status": "FAIL",
+      "status": "PASS",
       "priority": "P0",
       "title": "B 用 A 的 sessionId：6 个 terminal unary 全部拒绝（TERM-004）"
     },
     {
       "id": "RC5-TERM-005",
-      "status": "NOTRUN",
+      "status": "PASS",
       "priority": "P0",
       "title": "attach/retain/watch 三流动作跨租户被拒（TERM-005）"
     },
     {
       "id": "RC5-TERM-002",
-      "status": "NOTRUN",
+      "status": "PASS",
       "priority": "P0",
       "title": "侧栏 terminal 面板可见/可开/首次按键接管（TERM-002）"
     },
     {
       "id": "RC5-TERM-012",
-      "status": "NOTRUN",
+      "status": "PASS",
       "priority": "P0",
       "title": "两会话各开终端互不可见（TERM-012）"
     },

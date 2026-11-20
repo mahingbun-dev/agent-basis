@@ -26,7 +26,7 @@ export const LANE = {
   port: 3118,
   base: 'http://127.0.0.1:3118',
   imageTag: 'eterna-agent:rc5-test',
-  imageId: 'sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00',
+  imageId: 'sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb',
   fixtures: resolve(REPO, 'tests', 'fixtures'),
   accountsFile: resolve(homedir(), 'eterna-data', 'test-rc5', '.test-accounts.json'),
   sourceTestRoot: resolve(homedir(), 'eterna-data', 'test-rc5', 'e1'),
@@ -75,6 +75,20 @@ export async function waitHealth(container, tries = 60) {
     await sleep(2000)
   }
   return health
+}
+
+/** 容器 restart 后：等 HTTP 面真正接受请求（healthcheck 只反映进程内探针，不保证 listen 完成）。 */
+export async function waitApi(base = LANE.base, tries = 60, delayMs = 500) {
+  for (let attempt = 0; attempt < tries; attempt += 1) {
+    try {
+      const response = await fetch(`${base}/login`, { redirect: 'manual' })
+      if (response.status >= 200) return true
+    } catch {
+      // 连接拒绝/中断=尚未 ready，继续轮询
+    }
+    await sleep(delayMs)
+  }
+  return false
 }
 
 /* --------------------------------------------------------------- 账号 */

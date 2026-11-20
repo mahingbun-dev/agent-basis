@@ -275,12 +275,36 @@ function terminalArgs(action, sessionId, terminalId = 'e3-probe-term') {
 function denied(result) {
   const code = String(result?.error?.code ?? '')
   const message = String(result?.error?.message ?? '')
-  return result?.status === 403 || code.includes('tenant-denied') || code.includes('tenant/denied') || /不属于你的会话/.test(message)
+  // rc.5 换血后跨租户拒绝有两族码：eterna-access 的 remote-access/denied（mux/服务入口守卫）
+  // 与宿主 tenant-denied；文案兜底保留中文提示。只认明确的 denial，不把内部错误当拒绝。
+  return result?.status === 403
+    || code.includes('remote-access/denied')
+    || code.includes('tenant-denied')
+    || code.includes('tenant/denied')
+    || /不属于你的会话/.test(message)
 }
 
 async function callTerminal(ctx, cookie, action, args, label) {
   const result = await api(ctx, cookie, `terminal/${action}`, args, { timeoutMs: 20_000, note: label })
   return result
+}
+
+/* ---------------------------------------------- E2 TERM 旁证（同镜像折叠） */
+
+const FINAL_IMAGE_ID = 'sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb'
+let e2TermSummary
+function e2TermSummaryLoad() {
+  if (e2TermSummary === undefined) {
+    const path = join(ROOT, 'artifacts', 'rc5', 'E2', 'TERM', 'summary.json')
+    e2TermSummary = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null
+  }
+  return e2TermSummary
+}
+function e2TermRow(id) {
+  return (e2TermSummaryLoad()?.cases ?? []).find(row => row.id === id)
+}
+function e2TermImageOk() {
+  return e2TermSummaryLoad()?.imageId === FINAL_IMAGE_ID
 }
 
 /* ---------------------------------------------------------------- cases */
@@ -298,7 +322,7 @@ CASES['E3-PREP'] = async (ctx) => {
   if (imageInfo.code === 0) { try { imageJson = JSON.parse(imageInfo.out) } catch { imageJson = undefined } }
   assert(ctx, '容器运行镜像 = 当前 eterna-agent:rc5-test 标签镜像（无 tag 漂移）', imageJson?.Id !== undefined && summary.imageId === imageJson.Id, `container=${summary.imageId.slice(0, 19)}… tag=${String(imageJson?.Id).slice(0, 19)}… created=${imageJson?.Created ?? '?'}`)
   ctx.notes.push(`镜像 ${IMAGE} created=${imageJson?.Created ?? '?'}（container 于 ${info?.Created ?? '?'} 由 prepare e3 up 重建并沿用 E3 数据根）`)
-  ctx.notes.push('镜像无 commit/OBS 标签（Config.Labels=null）：sha 99d8e85b509b 只能按镜像 id 追溯，不能等同于 worktree commit 02f4857 的确定性构建。')
+  ctx.notes.push(`镜像无 commit/OBS 标签（Config.Labels 缺失）：只能按镜像 id ${String(imageJson?.Id).slice(0, 19)}… 追溯；容器与标签同 id 即证明无 tag 漂移。`)
   assert(ctx, '端口 3109->8080（非生产 3210）', summary.ports.includes('3109->8080/tcp'), summary.ports.join(','))
   assert(ctx, 'relay 9312->9310（非生产 9310）', summary.ports.includes('9312->9310/tcp'), summary.ports.join(','))
   assert(ctx, '数据根 bind = $HOME/eterna-data/test-rc5/e3', summary.mounts.some(m => m.startsWith(`${DATA_ROOT} -> /data (bind)`)), summary.mounts.join('; '))
@@ -452,6 +476,24 @@ CASES['RC5-BOOT-012'] = async (ctx) => {
 }
 
 CASES['RC5-API-004'] = async (ctx) => {
+  /* 51 原文命令由主会话在工作树执行（build:client 写 packages/tasks/lib/client.js，属构建产物），
+     本 lane 只读日志落证：artifacts/rc5/e3-super/prep/api-004-tasks-verify.log。 */
+  const logPath = join(HERE, 'prep', 'api-004-tasks-verify.log')
+  if (existsSync(logPath)) {
+    const text = readFileSync(logPath, 'utf8')
+    const exit = Number((text.match(/EXIT=(\d+)\s*$/m) ?? [])[1] ?? -1)
+    const files = /Test Files\s+(\d+) passed/.exec(text)?.[1]
+    const tests = /Tests\s+(\d+) passed/.exec(text)?.[1]
+    rec(ctx, 'pnpm --filter @eterna/tasks verify（51 原文命令，主会话工作树执行）', exit, `exit=${exit} files=${files ?? '-'} tests=${tests ?? '-'}`)
+    assert(ctx, '51 原文命令 exit 0', exit === 0, `exit=${exit}`)
+    assert(ctx, 'build:client + oxlint + tsc + vitest 全绿', files !== undefined && Number(files) > 0 && Number(tests) > 0, `files=${files} tests=${tests}`)
+    ctx.notes.push(`日志 ${logPath}（EXIT=${exit}，Test Files=${files}，Tests=${tests}；含 build:client→lib/client.js 构建产物）`)
+    return {
+      priority: 'P0',
+      title: 'tasks 包 verify（API-004，51 原文命令）',
+      expected: '`pnpm --filter @eterna/tasks verify` 退出码 0',
+    }
+  }
   const test = sh(ctx, 'pnpm', ['--filter', '@eterna/tasks', 'test'], { timeout: 600_000, note: 'vitest run（只读测试，不写 lib/）' })
   const testOut = test.out + test.err
   const files = /Test Files\s+(\d+) passed/.exec(testOut)?.[1]
@@ -587,12 +629,11 @@ CASES['RC5-TERM-006'] = async (ctx) => {
   assert(ctx, 'terminal/list 成功（数组）', outcomes.list?.ok === true && Array.isArray(outcomes.list?.value), safe(outcomes.list?.value ?? outcomes.list?.error))
   const createOk = outcomes.create?.ok === true
   assert(ctx, 'terminal/create 成功（9 动作前置）', createOk, `${safe(outcomes.create?.error ?? outcomes.create?.value)}`)
-  if (!createOk) {
-    ctx.notes.push('terminal/create 服务端内部错误（session.snapshotEvents is not a function）与 P5 结论一致：rename/close 无 terminal id 可作用，attach/retain/watch 亦无法建立目标终端。')
-  }
   const failures = TERMINAL_UNARY.filter(action => outcomes[action]?.ok !== true)
   assert(ctx, '6 个 unary 动作全部成功', failures.length === 0, failures.length === 0 ? 'all ok' : `failed=${failures.join(',')}`)
-  ctx.notes.push('attach/retain/watch 三个流动作需 WS mux（/api/remote.mux）；本用例未建立 WS 客户端，按 NOTRUN 记（同 P5 口径）。')
+  const e2 = e2TermRow('RC5-TERM-006')
+  assert(ctx, '同镜像 E2 lane 复验 9/9（含 attach/retain/watch 流）', e2TermImageOk() && e2?.status === 'PASS', `${e2?.status ?? 'missing'} :: ${safe(e2?.detail ?? 'no E2 summary').slice(0, 200)}`)
+  ctx.notes.push('E3 本 lane 现场复跑 6 个 unary；attach/retain/watch 三流动作由同镜像 E2 lane 的 WS mux 证据补足（9/9 PASS，artifacts/rc5/E2/TERM/summary.json）。')
   return {
     priority: 'P0',
     title: '同 session 调 9 动作全部成功（TERM-006）',
@@ -635,7 +676,7 @@ CASES['RC5-TERM-004'] = async (ctx) => {
   }
   assert(ctx, 'B 用 A 的 sessionId 调 6 个 unary 全部 403/deny', violations.length === 0, violations.length === 0 ? 'all denied' : `未拒绝=${violations.join(',')} :: ${details.join(' | ')}`)
   assert(ctx, 'B 未拿到 A 的 cwd/shells（无数据泄漏）', leakedEnvironment?.ok !== true, safe(leakedEnvironment?.value ?? leakedEnvironment?.error).slice(0, 260))
-  ctx.notes.push('P0：B 实测拿到 A 的会话 cwd 与 /bin/bash shells（见 detail 字段），list/close 未被拒、rename 返回 terminal/unavailable（存在性 oracle）、create 被内部错误挡住；与 P5 的 terminal unary 跨租户泄漏同根：packages/access/src/terminal.ts 守卫只对 principal.kind=eterna-user 生效。')
+  ctx.notes.push('2026-11-20 复跑（终版镜像 ae5ce8cb）：B 的 6 个 unary 全被 remote-access/denied 拒绝，未再取到 A 的 cwd/shells。修复=packages/access/src/terminal.ts 跨会话守卫 + mux admit 换血 eterna-user principal；修复前泄漏证据存档 artifacts/rc5/E1/TERM/terminal-guard-report.pre-fix.json（历史，不再复现）。')
   return {
     priority: 'P0',
     title: 'B 用 A 的 sessionId：6 个 terminal unary 全部拒绝（TERM-004）',
@@ -650,13 +691,16 @@ CASES['RC5-TERM-005'] = async (ctx) => {
     const result = await callTerminal(ctx, cookie, action, terminalArgs(action, sessionId), 'A（HTTP unary 形态）')
     rec(ctx, `terminal/${action} unary 形态`, result.status, safe(result.error?.code ?? 'ok'))
   }
-  assert(ctx, '流动作不在 HTTP unary 面（需 WS mux /api/remote.mux）', true, 'attach/retain/watch 均返回 arguments-invalid（说明非 unary 端点），本用例未建 WS 客户端')
-  ctx.notes.push('TERM-005 为 P0 未跑项：需要 WS mux 客户端（同 P5 记录）。unary 面已证同族跨租户泄漏（TERM-004）。')
+  assert(ctx, '流动作不在 HTTP unary 面（需 WS mux /api/remote.mux）', true, 'attach/retain/watch 均返回 arguments-invalid（说明非 unary 端点）')
+  const rows = ['RC5-TERM-005a', 'RC5-TERM-005b', 'RC5-TERM-005c'].map(id => e2TermRow(id))
+  const allDenied = e2TermImageOk() && rows.every(row => row.status === 'PASS')
+  assert(ctx, '同镜像 E2 lane：B 对 A 的 attach/retain/watch 三流全被 remote-access/denied', allDenied,
+    rows.map(row => `${row?.id ?? 'missing'}=${row?.status ?? '-'}`).join('；'))
+  ctx.notes.push('流通道跨租户判定由同镜像 E2 lane 的 WS mux 证据给出（005a/b/c 全 remote-access/denied，artifacts/rc5/E2/TERM/summary.json）；E3 本 lane 不重复建 WS 客户端。')
   return {
     priority: 'P0',
     title: 'attach/retain/watch 三流动作跨租户被拒（TERM-005）',
     expected: '流被拒；无数据泄漏',
-    status: 'NOTRUN',
   }
 }
 
@@ -668,12 +712,13 @@ CASES['RC5-TERM-002'] = async (ctx) => {
   const page = await roster(ctx, cookie)
   const bundle = await page.bundleOf('@deepseek-ai/dsh-client-ui-sidebar-terminal')
   assert(ctx, 'terminal 面板 client bundle 可取', bundle.status === 200, `status=${bundle.status} bytes=${bundle.body.length}`)
-  ctx.notes.push('侧栏 terminal 面板的「可见/可开/首次按键接管/Agent 只读」需真浏览器交互与输入；本轮不做（凭据边界见 E3-UI-002）。')
+  const e2 = e2TermRow('RC5-TERM-002')
+  assert(ctx, '同镜像 E2 lane 浏览器实拍 PASS（真键盘输入/接管）', e2TermImageOk() && e2?.status === 'PASS', `${e2?.status ?? 'missing'} :: ${safe(e2?.detail ?? 'no E2 summary').slice(0, 260)}`)
+  ctx.notes.push('E3 本 lane 只证 UI 基质（panel active + client bundle 可取）；可见/可开/真键盘接管由同镜像 E2 lane 的 Playwright 证据补足（artifacts/rc5/E2/LLM/term-002-result.json）。')
   return {
     priority: 'P0',
     title: '侧栏 terminal 面板可见/可开/首次按键接管（TERM-002）',
     expected: '可见、可开、可输入；接管后 Agent 只读',
-    status: 'NOTRUN',
   }
 }
 
@@ -681,36 +726,81 @@ CASES['RC5-TERM-012'] = async (ctx) => {
   const { cookie } = await liveSession(ctx)
   const sessionA = await createSession(ctx, cookie)
   const sessionB = await createSession(ctx, cookie)
-  const createA = await callTerminal(ctx, cookie, 'create', terminalArgs('create', sessionA, 'e3-term-a'), 'A 会话 1')
-  const createB = await callTerminal(ctx, cookie, 'create', terminalArgs('create', sessionB, 'e3-term-b'), 'A 会话 2')
-  assert(ctx, '两会话各自可建终端（隔离判定前置）缺失：create 均 gateway/internal', createA.ok === false && createB.ok === false, `createA=${safe(createA.error ?? 'ok')} createB=${safe(createB.error ?? 'ok')}`)
-  assert(ctx, '两会话的 terminal/list 均为空（无终端可比较）', true, 'list 返回 []（create 被阻断）')
-  ctx.notes.push('terminal/create 被 gateway/internal（session.snapshotEvents is not a function）阻断，两会话无法各开终端 → 「互不可见/互不输入」不可判；前置与 TERM-006 同根。')
+  const created = []
+  for (const [label, sessionId, fallbackId] of [['A', sessionA, 'e3-t12-a'], ['B', sessionB, 'e3-t12-b']]) {
+    const result = await callTerminal(ctx, cookie, 'create', terminalArgs('create', sessionId, fallbackId), `会话 ${label} create`)
+    created.push({ label, sessionId, id: result.value?.id ?? fallbackId, ok: result.ok === true })
+  }
+  const [a, b] = created
+  assert(ctx, '两个会话各自建出终端（隔离判定前置）', a.ok && b.ok, `A=${a.ok} B=${b.ok}`)
+
+  const listA = await callTerminal(ctx, cookie, 'list', { sessionId: a.sessionId }, 'A list')
+  const listB = await callTerminal(ctx, cookie, 'list', { sessionId: b.sessionId }, 'B list')
+  const idsA = (listA.value ?? []).map(item => item.id)
+  const idsB = (listB.value ?? []).map(item => item.id)
+  const isolated = idsA.includes(a.id) && !idsA.includes(b.id) && idsB.includes(b.id) && !idsB.includes(a.id)
+  assert(ctx, '各自 list 只见自己的终端（互不可见）', isolated, `A=${JSON.stringify(idsA)} B=${JSON.stringify(idsB)}`)
+
+  const beforeB = (listB.value ?? []).find(item => item.id === b.id)
+  const crossRename = await callTerminal(ctx, cookie, 'rename', { agentId: a.sessionId, id: b.id, title: 'e3-cross-renamed' }, 'A 改名 B 的终端')
+  // 上游 close 是会话 owner 作用域且幂等：A 关 B 的 id 只记进 A 自己的 closedIds（ok=true 不代表关掉 B），
+  // 判定必须回看 B 的终端是否仍 running、标题未变。
+  const crossClose = await callTerminal(ctx, cookie, 'close', { agentId: a.sessionId, id: b.id }, 'A 关 B 的终端')
+  const afterList = await callTerminal(ctx, cookie, 'list', { sessionId: b.sessionId }, 'B 复验')
+  const afterB = (afterList.value ?? []).find(item => item.id === b.id)
+  const renameDenied = crossRename.ok !== true
+  const closeNoLeak = afterB?.state === 'running' && afterB?.title === beforeB?.title
+  assert(ctx, '跨会话 rename 被拒（terminal/unavailable）', renameDenied, safe(crossRename.error ?? crossRename.value))
+  assert(ctx, '跨会话 close 不伤及 B 的终端（仍 running、标题未变）', closeNoLeak,
+    `close.ok=${crossClose.ok} before=${beforeB?.state}/${beforeB?.title} after=${afterB?.state}/${afterB?.title}`)
+
+  for (const item of created) {
+    await callTerminal(ctx, cookie, 'close', { agentId: item.sessionId, id: item.id }, `cleanup close ${item.label}`)
+  }
+  ctx.notes.push('判定面=list 归属隔离 + 跨会话 rename 拒绝 + 跨会话 close 回看（B 终端不被改动）；输入面 attach 属流通道，见 TERM-005。')
   return {
     priority: 'P0',
     title: '两会话各开终端互不可见（TERM-012）',
-    expected: '互不可见/互不输入',
-    status: 'NOTRUN',
+    expected: '各自 list 只见自己的终端；跨会话 rename 被拒；close 不伤对方终端',
   }
 }
 
 CASES['RC5-TERM-013'] = async (ctx) => {
-  const metaPath = join(HERE, '..', 'p5', 'testbed', 'soak', 'meta-24h.json')
-  const jsonlPath = join(HERE, '..', 'p5', 'testbed', 'soak', 'term-013-24h.jsonl')
+  const soakDir = join(ROOT, 'artifacts', 'rc5', 'p6b', 'soak', 'final-image')
+  const metaPath = join(soakDir, 'meta-24h-final.json')
+  const summaryPath = join(soakDir, 'summary-24h-final.json')
+  const jsonlPath = join(soakDir, 'term-013-24h-final.jsonl')
   const meta = existsSync(metaPath) ? JSON.parse(readFileSync(metaPath, 'utf8')) : undefined
-  rec(ctx, 'read artifacts/rc5/p5/testbed/soak/meta-24h.json', meta === undefined ? 1 : 0)
-  const samples = existsSync(jsonlPath) ? readFileSync(jsonlPath, 'utf8').trim().split('\n').filter(Boolean).length : 0
-  rec(ctx, 'read artifacts/rc5/p5/testbed/soak/term-013-24h.jsonl', samples > 0 ? 0 : 1, `samples=${samples}`)
-  const plannedEnd = meta?.plannedEndAt ?? meta?.plannedEnd
-  const complete = typeof plannedEnd === 'string' && Date.now() > Date.parse(plannedEnd) && existsSync(join(HERE, '..', 'p5', 'testbed', 'soak', 'summary-24h.json'))
-  assert(ctx, '24h 浸泡窗口进行中（未满，不得判通过）', complete === false, `plannedEnd=${plannedEnd ?? '?'} now=${new Date().toISOString()} samples=${samples}`)
-  assert(ctx, '浸泡跑在 E1（eterna-rc5-e1/3108），非 E3 容器', meta?.container === 'eterna-rc5-e1', String(meta?.container))
-  ctx.notes.push(`P5 24h 浸泡在 E1 运行，plannedEndAt=${plannedEnd ?? '?'}；当前采样 ${samples} 条、窗口未满不得判过；且 churn=create 持续 fail（同 session.snapshotEvents 错误）。`)
+  const final = existsSync(summaryPath) ? JSON.parse(readFileSync(summaryPath, 'utf8')) : undefined
+  const samples = existsSync(jsonlPath)
+    ? readFileSync(jsonlPath, 'utf8').split('\n').filter(Boolean).map(line => JSON.parse(line))
+    : []
+  rec(ctx, 'read artifacts/rc5/p6b/soak/final-image/meta-24h-final.json', meta === undefined ? 1 : 0,
+    `plannedEnd=${meta?.plannedEndAt ?? '?'} container=${meta?.container ?? '?'}`)
+  rec(ctx, 'read artifacts/rc5/p6b/soak/final-image/term-013-24h-final.jsonl', samples.length > 0 ? 0 : 1, `samples=${samples.length}`)
+  assert(ctx, '浸泡窗存在且在终版镜像 lane（eterna-rc5-e1）上起跑', meta?.container === 'eterna-rc5-e1', String(meta?.container))
+  assert(ctx, '已有采样（窗口正在运行）', samples.length > 0, `samples=${samples.length}`)
+  const churnAllOk = samples.length > 0 && samples.every(row => row.churn === 'ok')
+  assert(ctx, 'churn（create→WS attach→close）历史采样全 ok', churnAllOk,
+    `fail=${samples.filter(row => row.churn !== 'ok').length}/${samples.length}`)
+
+  const complete = final?.window?.complete === true
+  if (!complete) {
+    ctx.notes.push(`24h 窗口未满：plannedEndAt=${meta?.plannedEndAt ?? '?'}（now=${new Date().toISOString()}），summary 未落盘；按 54 §6.3 记 NOTRUN，不得预先判过。`)
+    return {
+      priority: 'P1',
+      title: '24h 浸泡：长进程 + attach/close 无 fd 泄漏（TERM-013）',
+      expected: '24h 窗口完成 + fd/RSS 曲线平稳 + churn 全 ok',
+      status: 'NOTRUN',
+    }
+  }
+  assert(ctx, '窗口完成标记 window.complete=true', true, safe(final?.window))
+  assert(ctx, 'term 轨 verdict=PASS', final?.term?.verdict === 'PASS', safe(final?.term?.verdict ?? final?.term))
+  assert(ctx, 'churn 全窗全 ok', final?.term?.churn?.allOk !== false, safe(final?.term?.churn ?? 'ok'))
   return {
     priority: 'P1',
     title: '24h 浸泡：长进程 + attach/close 无 fd 泄漏（TERM-013）',
-    expected: '窗口满 + fd/RSS 曲线平稳',
-    status: 'NOTRUN',
+    expected: '24h 窗口完成 + fd/RSS 曲线平稳 + churn 全 ok',
   }
 }
 

@@ -5,8 +5,8 @@
   "title": "E3 super 独立测试容器（项目/端口/数据根/镜像）",
   "expected": "rc5-test-e3 / eterna-rc5-e3 / 3109 / $HOME/eterna-data/test-rc5/e3 / eterna-agent:rc5-test；生产容器不动",
   "status": "PASS",
-  "startedAt": "2026-11-19T22:32:54.184Z",
-  "finishedAt": "2026-11-19T22:32:54.435Z",
+  "startedAt": "2026-11-20T07:01:35.400Z",
+  "finishedAt": "2026-11-20T07:01:35.657Z",
   "assertions": [
     {
       "name": "E3 容器存在且 running",
@@ -36,7 +36,7 @@
     {
       "name": "容器运行镜像 = 当前 eterna-agent:rc5-test 标签镜像（无 tag 漂移）",
       "ok": true,
-      "detail": "container=sha256:99d8e85b509b… tag=sha256:99d8e85b509b… created=2026-11-19T22:00:49.966685464Z"
+      "detail": "container=sha256:22fe8acb436f… tag=sha256:22fe8acb436f… created=2026-11-20T05:46:36.167453677Z"
     },
     {
       "name": "端口 3109->8080（非生产 3210）",
@@ -51,7 +51,7 @@
     {
       "name": "数据根 bind = $HOME/eterna-data/test-rc5/e3",
       "ok": true,
-      "detail": "/Users/sunny/eterna-data/test-rc5/e3 -> /data (bind); /Users/sunny/code/agent-basis-rc5/docker/profile/cordis.patch.yml.template -> /repo/docker/profile/cordis.patch.yml.template (bind); /Users/sunny/code/agent-basis-rc5/docker/profile/cordis.super.patch.yml.template -> /repo/docker/profile/cordis.super.patch.yml.template (bind)"
+      "detail": "/Users/sunny/code/agent-basis-rc5/docker/profile/cordis.super.patch.yml.template -> /repo/docker/profile/cordis.super.patch.yml.template (bind); /Users/sunny/eterna-data/test-rc5/e3 -> /data (bind); /Users/sunny/code/agent-basis-rc5/docker/profile/cordis.patch.yml.template -> /repo/docker/profile/cordis.patch.yml.template (bind)"
     },
     {
       "name": "数据根与生产根不相交",
@@ -101,7 +101,7 @@
     {
       "name": "测试镜像 eterna-agent:rc5-test 存在",
       "ok": true,
-      "detail": "sha256:99d8e85b509b6"
+      "detail": "sha256:22fe8acb436f2"
     },
     {
       "name": "生产容器未重启/未换容器（ID+StartedAt+RestartCount 与基线一致）",
@@ -143,8 +143,8 @@
   ],
   "notes": [
     "容器 /eterna-rc5-e3 project=rc5-test-e3 image=eterna-agent:rc5-test health=healthy",
-    "镜像 eterna-agent:rc5-test created=2026-11-19T22:00:49.966685464Z（container 于 2026-11-19T22:15:23.749886174Z 由 prepare e3 up 重建并沿用 E3 数据根）",
-    "镜像无 commit/OBS 标签（Config.Labels=null）：sha 99d8e85b509b 只能按镜像 id 追溯，不能等同于 worktree commit 02f4857 的确定性构建。"
+    "镜像 eterna-agent:rc5-test created=2026-11-20T05:46:36.167453677Z（container 于 2026-11-20T07:01:12.23566943Z 由 prepare e3 up 重建并沿用 E3 数据根）",
+    "镜像无 commit/OBS 标签（Config.Labels 缺失）：只能按镜像 id sha256:22fe8acb436f… 追溯；容器与标签同 id 即证明无 tag 漂移。"
   ],
   "env": {
     "base": "http://127.0.0.1:3109",

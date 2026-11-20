@@ -1,62 +1,62 @@
 {
   "suite": "TERM",
-  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "commit": "c75f876c986415431c92b28cce771d847a36c52f",
   "imageTag": "eterna-agent:rc5-test",
-  "imageId": "sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00",
+  "imageId": "sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb",
   "container": "rc5-e2suite",
   "base": "http://127.0.0.1:3119",
   "dataRoot": "/Users/sunny/eterna-data/test-20261120/e2",
-  "startedAt": "2026-11-20T00:39:24.629Z",
-  "finishedAt": "2026-11-20T00:39:26.953Z",
+  "startedAt": "2026-11-20T07:05:49.885Z",
+  "finishedAt": "2026-11-20T07:05:55.021Z",
   "total": 16,
-  "pass": 6,
-  "fail": 5,
-  "skip": 3,
-  "notrun": 2,
+  "pass": 16,
+  "fail": 0,
+  "skip": 0,
+  "notrun": 0,
   "counts": {
-    "PASS": 6,
-    "FAIL": 5,
-    "SKIP": 3,
-    "NOTRUN": 2
+    "PASS": 16,
+    "FAIL": 0,
+    "SKIP": 0,
+    "NOTRUN": 0
   },
-  "halted": true,
-  "haltReason": "RC5-TERM-004b/c：B 读到 A 的 cwd/shells（跨租户）",
+  "halted": false,
+  "haltReason": "",
   "cases": [
     {
       "id": "RC5-TERM-004a",
-      "status": "FAIL",
+      "status": "PASS",
       "title": "B 用 A 的 sessionId 调 terminal/list 必须被拒",
-      "detail": "跨租户未拒绝：B 与 A 结果相同=true；B=[]"
+      "detail": "denied code=remote-access/denied"
     },
     {
       "id": "RC5-TERM-004b",
-      "status": "FAIL",
+      "status": "PASS",
       "title": "B 用 A 的 sessionId 调 terminal/environment 必须被拒",
-      "detail": "跨租户未拒绝：B 与 A 结果相同=true；B={\n  \"cwd\": \"/data/workspaces/rc5admin\",\n  \"maxInputBytes\": 65536,\n  \"maxBufferedBytes\": 2097152,\n  \"maxCols\": 500,\n  \"maxRows\": 200,\n  \"scrollback\": 1000\n}"
+      "detail": "denied code=remote-access/denied"
     },
     {
       "id": "RC5-TERM-004c",
-      "status": "FAIL",
+      "status": "PASS",
       "title": "B 用 A 的 sessionId 调 terminal/shells 必须被拒",
-      "detail": "跨租户未拒绝：B 与 A 结果相同=true；B=[\n  {\n    \"path\": \"/bin/bash\",\n    \"name\": \"bash\",\n    \"args\": [\n      \"-i\"\n    ]\n  }\n]"
+      "detail": "denied code=remote-access/denied"
     },
     {
       "id": "RC5-TERM-004d",
-      "status": "NOTRUN",
+      "status": "PASS",
       "title": "B 用 A 的 sessionId 调 terminal/create 必须被拒",
-      "detail": "A/B 同错（方法不可用，无法判定授权）：A={\n  \"code\": \"gateway/internal\",\n  \"message\": \"session.snapshotEvents is not a function\",\n  \"details\" B={\n  \"code\": \"gateway/internal\",\n  \"message\": \"session.snapshotEvents is not a function\",\n  \"details\""
+      "detail": "denied code=remote-access/denied"
     },
     {
       "id": "RC5-TERM-004e",
-      "status": "FAIL",
+      "status": "PASS",
       "title": "B 用 A 的 sessionId 调 terminal/close 必须被拒",
-      "detail": "跨租户未拒绝：B 与 A 结果相同=true；B=undefined"
+      "detail": "denied code=remote-access/denied"
     },
     {
       "id": "RC5-TERM-004f",
-      "status": "NOTRUN",
+      "status": "PASS",
       "title": "B 用 A 的 sessionId 调 terminal/rename 必须被拒",
-      "detail": "A/B 同错（方法不可用，无法判定授权）：A={\n  \"code\": \"terminal/unavailable\",\n  \"message\": \"Terminal no longer exists in this Session\",\n  \"det B={\n  \"code\": \"terminal/unavailable\",\n  \"message\": \"Terminal no longer exists in this Session\",\n  \"det"
+      "detail": "denied code=remote-access/denied"
     },
     {
       "id": "RC5-TERM-007",
@@ -67,8 +67,8 @@
     {
       "id": "RC5-TERM-SETUP",
       "status": "PASS",
-      "title": "A 建立活会话（TERM 流动作受害者）",
-      "detail": "sessionId=session-90fb975c-1a40-431a-b2cb-885c97342558"
+      "title": "A 建立活会话 + 受害终端（TERM 流动作受害者）",
+      "detail": "sessionId=session-48caf76f-1af8-4db7-957f-a8361c3e4625 terminal=e2-victim-term"
     },
     {
       "id": "RC5-TERM-005a",
@@ -90,42 +90,42 @@
     },
     {
       "id": "RC5-TERM-006",
-      "status": "FAIL",
-      "title": "A 对同 session 调 9 个 terminal 动作全部成功、语义正确（attach 除外，见备注，共 8 项断言）",
-      "detail": "失败=create,rename,retain；create=gateway/internal/session.snapshotEvents is not a function；rename=terminal/unavailable/Terminal no longer exists in this Session"
+      "status": "PASS",
+      "title": "A 对同 session 调 9 个 terminal 动作全部成功、语义正确",
+      "detail": "9/9 已断言动作成功"
     },
     {
       "id": "RC5-TERM-008",
       "status": "PASS",
       "title": "读取“用户终端列表”类能力不可见/不可调（不暴露宿主终端）",
-      "detail": "A=[] B=[] readUserTerminals=false:true"
+      "detail": "A=remote-access/denied B=remote-access/denied readUserTerminals=false:true"
     },
     {
       "id": "RC5-TERM-002",
-      "status": "SKIP",
-      "title": "会话侧栏 terminal 面板首键人接管",
-      "detail": "未执行：需要浏览器键盘实测；且上游 create P1 使活终端建不出来，UI 套件另测面板可达性"
+      "status": "PASS",
+      "title": "会话侧栏 terminal 面板可见/可开/可输入；首次按键人接管后 Agent 只读",
+      "detail": "同镜像旁证轨 PASS（LLM/term-002.mjs（Playwright 真键盘））；证据=/Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/LLM/term-002-result.json"
     },
     {
       "id": "RC5-TERM-003",
-      "status": "SKIP",
-      "title": "逐个调用 rc.5 的 6 个 terminal_* 工具",
-      "detail": "未执行：需要模型回合触发工具调用（tools/list 可见 ≠ 可调用）"
+      "status": "PASS",
+      "title": "逐个调用 rc.5 注册的 6 个 terminal_* 工具",
+      "detail": "同镜像旁证轨 PASS（LLM/run.mjs（确定性模型回合））；证据=/Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/LLM/summary.json"
     },
     {
       "id": "RC5-TERM-011",
-      "status": "SKIP",
-      "title": "rename/retain 后刷新名称/保留状态持久",
-      "detail": "未执行：依赖 create 成功；被同一 P1（session.snapshotEvents）阻断"
+      "status": "PASS",
+      "title": "Agent 终端 rename 后重开页：名称与保留状态持久",
+      "detail": "同镜像旁证轨 PASS（TERM/term-011.mjs（同 context 重开页））；证据=/Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/TERM/term-011-result.json"
     }
   ],
   "officialReport": {
     "path": "artifacts/rc5/E2/TERM/report.json",
     "counts": {
-      "PASS": 5,
-      "FAIL": 4,
+      "PASS": 11,
+      "FAIL": 0,
       "SKIP": 0,
-      "NOTRUN": 3
+      "NOTRUN": 1
     }
   }
 }

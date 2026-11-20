@@ -1,5 +1,5 @@
- Container rc5-acp-proto-eterna-agent-acp-run-9b6a27260ed2 Creating 
- Container rc5-acp-proto-eterna-agent-acp-run-9b6a27260ed2 Created 
+ Container rc5-acp-proto-eterna-agent-acp-run-64abbb48d48a Creating 
+ Container rc5-acp-proto-eterna-agent-acp-run-64abbb48d48a Created 
 [entrypoint] form=acp profile=eterna-acp template=cordis.acp.patch.yml.template manifest=package.acp.json
 [entrypoint] /data mountpoint OK (DSH_HOME=/data DSH_AGENTS_HOME=/data/agents)
 [entrypoint] profile 渲染:模板未变,保留用户文件 package.json(启停/模型设置跨重启持久)

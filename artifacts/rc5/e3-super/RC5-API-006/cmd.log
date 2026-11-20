@@ -1,11 +1,11 @@
 # RC5-API-006 — 查询后代列表与任务树一致（API-006）
 CMD: node artifacts/rc5/e3-super/run-suite.mjs RC5-API-006
-START: 2026-11-19T22:27:51.442Z
+START: 2026-11-20T07:01:46.615Z
 # 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
 
 [exit=0] docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)  # boot token 不入证据
 [exit=200] GET /connect + GET /?token=… (dsh session bootstrap)  # token 已脱敏
-[exit=200] POST /login (admin from 0600 accounts file)  # account=rc5admin
+[exit=200] POST /login (admin from 0600 accounts file)
 [exit=200] GET /access/api/tasks/settings
 [exit=200] GET /access/api/tasks/session-roles
 

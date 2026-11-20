@@ -1,4 +1,4 @@
 cd /Users/sunny/code/agent-basis-rc5
 docker compose -p rc5-acp-e1 --env-file /Users/sunny/code/agent-basis-rc5/artifacts/rc5/ACP/fixture/env.e1-acp -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/ACP/fixture/compose.acp-fixture.yml --profile acp run --rm -T --no-deps eterna-agent-acp
 # web 轮：HTTP 3108 login + session/create + session/list
-EXIT={"code":0,"signal":null,"elapsedMs":2428}
+EXIT={"code":0,"signal":null,"elapsedMs":2936}

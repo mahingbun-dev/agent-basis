@@ -1,22 +1,23 @@
-# RC5-MCPS-009 · 非法 YAML/未知 transport 的报错且不破坏配置
+# RC5-MCPS-009 · 写入非法 transport 明确报错且不破坏配置
 
 - 套件：MCPS
-- 结论：**SKIP**
-- 开始/结束：2026-11-19T22:50:49.780Z / 2026-11-19T22:50:49.781Z
+- 结论：**PASS**
+- 开始/结束：2026-11-20T07:03:00.908Z / 2026-11-20T07:03:01.002Z
 
 ## 预期
 
-按 51 用例定义执行
+settings/update 被 schema 拒绝；渲染 patch 的既有 servers 不变
 
 ## 实际
 
-未执行：MCPS-006 越权红（普通用户可 restart/probe 全局 server）触发套件停止
-
-## 备注
-
-- 中止原因=RC5-MCPS-006: 普通用户 restart/probe 必须被拒
-- 按派发规则「越权用例红 → 停止该套件」，不再继续标绿
+explicit=true intact=true
 
 ## 证据附件
 
 - `cmd.log`
+
+## 执行命令
+
+```
+$ POST /api/settings/update {"ns":"mcp-manager"}（transport=carrier-pigeon）  # EXIT=200
+```

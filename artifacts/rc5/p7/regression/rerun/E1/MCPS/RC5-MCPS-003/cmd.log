@@ -1,0 +1,14 @@
+# MCPS/RC5-MCPS-003
+# started 2026-11-20T01:41:33.712Z
+
+$ POST /api/mcpManager/probe {"name":"e1http"}
+EXIT=200
+ok=true {"ok":true,"serverInfo":{"name":"fixture-echo","version":"1.0.0"},"toolNames":["echo"],"truncated":false,"durationMs":5,"closeConfirmed":true}
+
+$ POST /api/session/create
+EXIT=200
+sessionId=session-88bdbb7c-99bd-4c53-92ba-b339c57cf8c0
+
+$ POST /api/session/projections
+EXIT=200
+keys=sessionStats,turnOutline,userQuestions,tokenUsage,contextPressure,title,agentPreset,goal,modelSelection,workingDirectory,contextBreakdown,inbox

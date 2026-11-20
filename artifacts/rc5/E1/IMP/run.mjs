@@ -8,9 +8,10 @@
  * - IMP-005：脚本即时读因记账流式异步（约 2.4s）误报；本会话追加轮询复测（10/10 行
  *   owner=2，t=2839ms）后判定 PASS，并留 P2 记账延迟项；
  * - IMP-006/008/010：artifacts/rc5/E1/IMP/extra.mjs；
- * - IMP-007：未执行（512MiB 压测 + 反代链路不在本容器模型内），记 NOTRUN。
+ * - IMP-007：artifacts/rc5/E1/IMP/imp-007.mjs（512MiB 流式上传经临时 nginx 反代，
+ *   client_max_body_size 512m / proxy_request_buffering off；结果落 extra-007.json）。
  */
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Case, STATUS, summaryOf, writeSummary } from '../_lib/evidence.mjs'
 import { LANE, gitHead } from '../_lib/env.mjs'
@@ -24,7 +25,8 @@ const byId = new Map(report.cases.map(row => [row.id, row]))
 const extraById = new Map(extra.map(row => [row.id, row]))
 
 const ENV = {
-  commit: gitHead(), imageTag: LANE.imageTag, container: LANE.container, base: LANE.base,
+  commit: gitHead(), imageTag: LANE.imageTag, imageId: LANE.imageId, container: LANE.container,
+  base: LANE.base, dataRoot: LANE.dataRoot,
   workspaceB: '6fd0ca27-26be-443a-bab0-453b37a1e244', startedAt,
 }
 
@@ -92,18 +94,25 @@ for (const [id, priority, title, expected] of [
   }))
 }
 
-/* 007 not run */
+/* 007：artifacts/rc5/E1/IMP/imp-007.mjs（512MiB 边界 + 临时反代实跑）
+   该用例自带完整 cmd.log/result.md（含逐条断言），此处只折叠结果进汇总，不重写证据。 */
 {
-  const c = new Case(suite, 'RC5-IMP-007')
-  c.note('未执行：512MiB 合成包上传需大体积构造与实时反代链路；E1 直连容器端口无 nginx，且同宿主存在其它 lane 24h 浸泡，压测风险外溢')
-  rows.push(c.finish({
-    status: STATUS.NOTRUN,
-    title: '512MiB 边界上传不 OOM',
-    expected: '反代/应用均接受；无 OOM',
-    actual: '未执行（本 lane 环境为大包压测做了规避：避免 512MiB 上传影响共享宿主上的浸泡容器）',
-    notes: ['建议 P6 专机执行（54 §5.1 IMP→P6）'],
-    artifacts: ['cmd.log'],
-  }))
+  const path = join(LANE.evidenceRoot, 'IMP', 'extra-007.json')
+  const row = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8'))[0] : undefined
+  if (row !== undefined) {
+    rows.push({ ...row, artifacts: ['cmd.log', 'extra-007.json'] })
+  } else {
+    const c = new Case(suite, 'RC5-IMP-007')
+    c.note('未执行：extra-007.json 缺失（先跑 artifacts/rc5/E1/IMP/imp-007.mjs）')
+    rows.push(c.finish({
+      status: STATUS.NOTRUN,
+      title: '512MiB 边界上传不 OOM',
+      expected: '反代/应用均接受；无 OOM',
+      actual: '未执行（extra-007.json 缺失）',
+      notes: ['先跑 artifacts/rc5/E1/IMP/imp-007.mjs'],
+      artifacts: ['cmd.log'],
+    }))
+  }
 }
 
 const summary = summaryOf(rows, { suite, env: ENV })

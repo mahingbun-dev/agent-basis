@@ -1,22 +1,28 @@
-# RC5-TERM-013 · 24h 浸泡无 fd 泄漏/内存增长
+# RC5-TERM-013 · 24h 浸泡：长进程 + 多次 attach/close，无 fd 泄漏/内存增长
 
 - 套件：TERM
-- 结论：**SKIP**
-- 开始/结束：2026-11-19T23:26:01.354Z / 2026-11-19T23:26:01.354Z
+- 结论：**NOTRUN**
+- 开始/结束：2026-11-20T07:03:42.238Z / 2026-11-20T07:03:42.239Z
 
 ## 预期
 
-按 51 §3.7 用例定义执行
+24h 窗口完成；fd/内存采样平稳；churn（create→attach→close 循环）全成功
 
 ## 实际
 
-未执行：套件中止；长浸泡不属本 lane 时长模型
+窗口未满：plannedEnd=2026-11-21T05:06:19.450Z samples=61 churnAllOk=true（当前进度证据）
 
 ## 备注
 
-- RC5-TERM-004 跨租户红（B 可读 A 会话终端）→ 按派发规则立即中止 TERM 套件
-- 不再继续执行/标绿（派发规则）
+- 24h 属 P6b 长跑轨（54 §3.5），不在套件运行期内等待；套件只读窗口证据
+- 本窗口在终版镜像（ae5ce8cb）上起跑；legacy 老镜像窗口证据在 p6b/soak/legacy-old-image（churn=fail，仅存档）
 
 ## 证据附件
 
 - `cmd.log`
+
+## 执行命令
+
+```
+$ cat artifacts/rc5/p6b/soak/final-image/{meta,summary,term-013}-24h-final.*  # EXIT=1
+```

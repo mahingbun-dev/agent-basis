@@ -1,8 +1,8 @@
 # RC5-TERM-004 · B 用 A 的 sessionId 调 terminal 6 个 unary 动作必须 403/deny
 
 - 套件：TERM
-- 结论：**FAIL**
-- 开始/结束：2026-11-19T23:26:01.352Z / 2026-11-19T23:26:01.352Z
+- 结论：**PASS**
+- 开始/结束：2026-11-20T07:03:32.912Z / 2026-11-20T07:03:32.913Z
 
 ## 预期
 
@@ -10,21 +10,21 @@ list/environment/shells/create/close/rename 全部 403/deny，无数据泄漏
 
 ## 实际
 
-list/environment/shells/close 均未拒绝：B 拿到 A 会话的 cwd=/data/workspaces/rc5admin、shells=[/bin/bash]、close 成功；create/rename 因方法自用即报错无法判定
+6/6 remote-access/denied（mux admit 换血 eterna-user principal + 服务入口租户守卫）
 
 ## 备注
 
-- 根因线索：installTerminalTenant 只在 principal.kind==="eterna-user" 时校验（packages/access/src/terminal.ts:63-73），而 HTTP unary 走 owner Peer（packages/access/src/mux.ts:6-9），tenant 守卫被绕过；access 无 terminal unary 路由守卫（grep terminal/ packages/access/src 仅 mux 策略）
-- 影响：任意登录用户可读他人会话终端环境/列出 shell/关闭终端（跨租户数据与破坏面）
-- RC5-TERM-004 跨租户红（B 可读 A 会话终端）→ 按派发规则立即中止 TERM 套件
+- 2026-11-20 复跑：W5 修复前本行为 FAIL（B 读到 A 的 cwd/shells）；修复后在 E1 容器实测 6/6 deny
+- 历史失败报告保留在 terminal-guard-report.pre-fix.json
 
 ## 证据附件
 
 - `terminal-guard-report.json`
+- `terminal-guard-report.pre-fix.json`
 - `cmd.log`
 
 ## 执行命令
 
 ```
-$ node scripts/verify-terminal-guard.mjs --base http://127.0.0.1:3118 --accounts-file <0600> --data-root <E1 数据根> --container rc5-e1suite --json <case>/terminal-guard-report.json  # EXIT=1
+$ node scripts/verify-terminal-guard.mjs --base http://127.0.0.1:3118 --accounts-file /Users/sunny/eterna-data/test-rc5/.test-accounts.json --data-root /Users/sunny/eterna-data/test-20261120/e1 --container rc5-e1suite --json /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E1/TERM/RC5-TERM-004/terminal-guard-report.json  # EXIT=0
 ```

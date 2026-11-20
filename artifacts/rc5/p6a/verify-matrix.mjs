@@ -25,8 +25,9 @@ ok("MATRIX_UNIQUE_IDS_164", new Set(ids).size === 164, `unique=${new Set(ids).si
 const byStatus = {};
 for (const c of rows) byStatus[c[4]] = (byStatus[c[4]] || 0) + 1;
 ok(
-  "MATRIX_STATUS_130_8_26",
-  byStatus.PASS === 130 && byStatus.FAIL === 8 && byStatus.MISSING === 26,
+  "MATRIX_STATUS_COUNTS",
+  byStatus.PASS + (byStatus.FAIL || 0) + (byStatus.MISSING || 0) === 164
+    && Object.keys(byStatus).every((k) => ["PASS", "FAIL", "MISSING"].includes(k)),
   JSON.stringify(byStatus),
 );
 
@@ -59,16 +60,22 @@ const p0 = list.filter((c) => c.priority === "P0");
 const p0np = p0.filter((c) => c.status !== "PASS");
 ok("AUDIT_TOTAL_164", list.length === 164, `audit=${list.length}`);
 ok(
-  "P0_NOT_PASS_16_(FAIL8_MISSING8)",
-  p0np.length === 16 && p0np.filter((c) => c.status === "FAIL").length === 8 && p0np.filter((c) => c.status === "MISSING").length === 8,
-  `p0=${p0.length} notpass=${p0np.length}`,
+  "P0_ALL_PASS",
+  p0np.length === 0,
+  `p0=${p0.length} notpass=${p0np.length}${p0np.length ? " :: " + p0np.map((c) => `${c.id}(${c.status})`).join(",") : ""}`,
 );
 
-// 不得判绿的两条
+// 24h 轨道：窗口未满时不得判绿；窗口满后必须判绿（以 final-image summary 为准）
+const soakState = JSON.parse(fs.readFileSync(`${ROOT}/p6a/soak-window.json`, "utf8"));
 for (const id of ["RC5-DATA-009", "RC5-TERM-013"]) {
   const row = rows.find((c) => c[2] === id);
   const a = list.find((c) => c.id === id);
-  ok(`NOT_GREEN_${id}`, row && row[4] !== "PASS" && a && a.status !== "PASS", `matrix=${row && row[4]} audit=${a && a.status}`);
+  const green = row && row[4] === "PASS" && a && a.status === "PASS";
+  ok(
+    `SOAK_STATUS_${id}`,
+    soakState.windowComplete === true ? green : !green,
+    `windowComplete=${soakState.windowComplete} matrix=${row && row[4]} audit=${a && a.status}`,
+  );
 }
 
 // ---------- phase summaries ----------
@@ -91,10 +98,18 @@ const p6b = JSON.parse(fs.readFileSync(`${ROOT}/p6b/summary.json`, "utf8"));
 ok("P6B_LANE_CASES_PRESERVED", Array.isArray(p6b.cases) && p6b.cases.length >= 11, `cases=${p6b.cases && p6b.cases.length}`);
 
 // ---------- soak ----------
-const soak = JSON.parse(fs.readFileSync(`${ROOT}/p6a/soak-window.json`, "utf8"));
+const soak = soakState;
 ok("SOAK_PLANNED_24H", soak.plannedSeconds === 86400 || soak.durationSeconds === 86400, JSON.stringify({ plannedSeconds: soak.plannedSeconds, durationSeconds: soak.durationSeconds }));
-ok("SOAK_INCOMPLETE", soak.windowComplete === false, `windowComplete=${soak.windowComplete} observedHours=${soak.observedElapsedHours}`);
-ok("SOAK_OBSERVED_LT_24H", Number(soak.observedElapsedHours) < 24, `observedHours=${soak.observedElapsedHours}`);
+ok("SOAK_WINDOW_STATE", typeof soak.windowComplete === "boolean", `windowComplete=${soak.windowComplete} observedHours=${soak.observedElapsedHours}`);
+if (soak.windowComplete === false) {
+  ok("SOAK_OUTPUTS_INCOMPLETE", Number(soak.observedElapsedHours) < 24, `observedHours=${soak.observedElapsedHours}`);
+} else {
+  const finalPath = `${ROOT}/p6b/soak/final-image/summary-24h-final.json`;
+  let final;
+  try { final = JSON.parse(fs.readFileSync(finalPath, "utf8")); } catch (e) { final = null; }
+  ok("SOAK_COMPLETE_VERDICT", final?.window?.complete === true && final?.term?.verdict === "PASS" && final?.data?.verdict === "PASS",
+    final ? `term=${final.term?.verdict} data=${final.data?.verdict}` : `缺 ${finalPath}`);
+}
 
 // ---------- secret scan ----------
 const scan = fs.readFileSync(`${ROOT}/p6a/secret-scan.log`, "utf8");

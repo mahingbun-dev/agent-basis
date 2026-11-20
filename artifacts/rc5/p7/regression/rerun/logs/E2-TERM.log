@@ -1,0 +1,2 @@
+[TERM] PASS=5 FAIL=6 SKIP=3 NOTRUN=2 halted=true
+EXIT=0

@@ -1,0 +1,10 @@
+# RC5-API-004 — tasks 包 verify（API-004）——替代覆盖：test/typecheck/oxlint
+CMD: node artifacts/rc5/e3-super/run-suite.mjs RC5-API-004
+START: 2026-11-20T01:45:08.322Z
+# 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
+
+[exit=0] pnpm --filter @eterna/tasks test  # vitest run（只读测试，不写 lib/）
+[exit=0] pnpm --filter @eterna/tasks typecheck  # tsc --noEmit
+[exit=0] pnpm exec oxlint --config ./.oxlintrc.json packages/tasks/src packages/tasks/tests  # oxlint
+
+EXIT=0

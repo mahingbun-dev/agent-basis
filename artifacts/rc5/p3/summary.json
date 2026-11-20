@@ -39,5 +39,5 @@
     "P3-01|V1-008 专用 docker run 断言未执行，改用 P5 镜像运行时探针（/repo 下 v1 8 项 absent）作为等价证据|P3|保留 P5 探针索引；如需逐字口径再跑一次 docker run"
   ],
   "generatedBy": "T50/artifacts/rc5/p6a/scan-matrix.mjs",
-  "generatedAt": "2026-11-20T00:58:23Z"
+  "generatedAt": "2026-11-20T05:25:41Z"
 }

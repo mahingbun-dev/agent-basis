@@ -1,0 +1,32 @@
+login status= 200 uidB= 2 workspaces= adf1e03e-505e-468b-b1b0-9ebc31f5e1a4,6fd0ca27-26be-443a-bab0-453b37a1e244
+{
+ "status": 200,
+ "workspaceId": "adf1e03e-505e-468b-b1b0-9ebc31f5e1a4",
+ "path": "/data/workspaces/rc5userb",
+ "lines": 1,
+ "firstLine": "{\"type\":\"outcome\",\"outcome\":{\"ok\":false,\"error\":{\"reason\":\"workspace-not-found\",\"message\":\"workspace adf1e03e-505e-468b-b1b0-9ebc31f5e1a4 does not exist\"}}}",
+ "outcome": {
+  "ok": false,
+  "message": "workspace adf1e03e-505e-468b-b1b0-9ebc31f5e1a4 does not exist",
+  "raw": "{\"ok\":false,\"error\":{\"reason\":\"workspace-not-found\",\"message\":\"workspace adf1e03e-505e-468b-b1b0-9ebc31f5e1a4 does not exist\"}}"
+ }
+}
+{
+ "status": 200,
+ "workspaceId": "6fd0ca27-26be-443a-bab0-453b37a1e244",
+ "path": "/data/workspaces/rc5userb",
+ "lines": 12,
+ "firstLine": "{\"type\":\"progress\",\"done\":0,\"total\":11}",
+ "outcome": {
+  "ok": true,
+  "sessionIds": 10,
+  "skipped": [
+   {
+    "conversationId": "conv-broken",
+    "title": null,
+    "reason": "invalid conversation file: not valid JSON"
+   }
+  ],
+  "raw": "{\"ok\":true,\"value\":{\"workspaceId\":\"6fd0ca27-26be-443a-bab0-453b37a1e244\",\"workspacePath\":\"/data/workspaces/rc5userb\",\"sessionIds\":[\"be8a320b-9b1f-44cf-a27b-fa5d97f700f5\",\"3230a0da-b042-4e0d-8c79-b4c349c47733\",\"0087ce19-4218-49b1-9523-a1df9aeba425\",\"c52734af-4d88-423a-bf11-7e95e805d91d\",\"f6b90ec7-4861-4422-91f1-9b4e2e058de0\",\"0ed13e43-4f11-4736-8565-cc94fa0ceaf1\",\"1163c2bd-8894-4e8e-aee5-6cc44e5348"
+ }
+}

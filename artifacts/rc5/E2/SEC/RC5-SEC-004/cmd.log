@@ -1,5 +1,5 @@
 # SEC/RC5-SEC-004
-# started 2026-11-20T00:37:12.515Z
+# started 2026-11-20T07:07:12.683Z
 
 $ POST /api/session/events {sessionId:A}（B）
 EXIT=200
@@ -19,11 +19,11 @@ ok=false code=tenant/denied msg=工作区不存在或不属于你
 
 $ POST /api/workspaceFiles/stat {scopeId:A session, path:e2-marker.txt}（B）
 EXIT=200
-ok=true value={"absolutePath":"/data/workspaces/rc5admin/e2-marker.txt","version":"43:211947:28:1795132187782666237:1795132187782666237","bytes":28} code=-
+ok=false value= code=remote-access/denied
 
 $ POST /api/workspaceFiles/read {scopeId:A session, path:e2-marker.txt}（B）
 EXIT=200
-ok=true value={"absolutePath":"/data/workspaces/rc5admin/e2-marker.txt","version":"43:211947:28:1795132187782666237:1795132187782666237","bytes":28,"offset":1,"text":"E2-ADMI… code=-
+ok=false value= code=remote-access/denied
 
 $ POST /api/mcp-personal/list（B）
 EXIT=200
@@ -37,6 +37,6 @@ items=[]
 
 [ASSERT] B 删伪造工作区同样被拒 => PASS :: status=200
 
-[ASSERT] B 用 A 的 sessionId 读工作区文件被拒 => FAIL :: stat=200 read=200 value={"absolutePath":"/data/workspaces/rc5admin/e2-marker.txt","version":"43:211947:2…
+[ASSERT] B 用 A 的 sessionId 读工作区文件被拒 => PASS :: stat=200 read=200 value=
 
 [ASSERT] B 的个人 MCP 列表只含自己的 serverName => PASS :: []

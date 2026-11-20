@@ -3,8 +3,8 @@
   "priority": "INFO",
   "title": "ACP 容器关闭 stdin 后正常退出（stderr 诊断面不计入纯净性）",
   "status": "PASS",
-  "at": "2026-11-19T22:22:12.642Z",
-  "detail": "exit={\"code\":0,\"signal\":null,\"elapsedMs\":3319} stderrLines=14",
+  "at": "2026-11-20T05:10:32.606Z",
+  "detail": "exit={\"code\":0,\"signal\":null,\"elapsedMs\":3598} stderrLines=14",
   "assertions": [
     {
       "name": "exit.code==0",

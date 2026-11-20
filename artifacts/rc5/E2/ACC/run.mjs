@@ -29,7 +29,13 @@ let haltReason = ''
 function denied(result) {
   const code = String(result?.error?.code ?? '')
   const message = String(result?.error?.message ?? '')
-  return result.status === 403 || code === 'tenant/denied' || code.includes('tenant/denied') || /不属于你/.test(message)
+  // 网关对非 owner Peer 先按资源 decide，拒绝码=remote-access/denied（workspaceFiles
+  // 的一元 HTTP 走此路，2026-11-20 ACC-008 修复后不再是 owner 直通）；守卫路由仍回
+  // tenant/denied。两者都是显式拒绝。
+  return result.status === 403
+    || code.includes('tenant/denied')
+    || code === 'remote-access/denied'
+    || /不属于你|access denied/.test(message)
 }
 
 function record(c, status, title, expected, actual, notes = []) {

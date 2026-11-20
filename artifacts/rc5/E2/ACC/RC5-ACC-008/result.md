@@ -1,8 +1,8 @@
 # RC5-ACC-008 · B 用 A 的 workspaceId/sessionId 打文件/检索必须 403/deny
 
 - 套件：ACC
-- 结论：**FAIL**
-- 开始/结束：2026-11-19T23:52:00.043Z / 2026-11-19T23:52:00.096Z
+- 结论：**PASS**
+- 开始/结束：2026-11-20T07:05:48.324Z / 2026-11-20T07:05:48.435Z
 
 ## 预期
 
@@ -10,7 +10,7 @@ workspace 系与文件/检索全部 403/deny；读不到 A 的文件内容
 
 ## 实际
 
-拒绝=4/7；未拒=workspaceFiles/list,workspaceFiles/stat,workspaceFiles/read；A 文件内容泄漏=true
+拒绝=7/7；未拒=无；A 文件内容泄漏=false
 
 ## 备注
 

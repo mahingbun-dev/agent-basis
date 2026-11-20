@@ -1,15 +1,14 @@
 # rc.5 测试验收矩阵（164 条）
 
-- 生成时间：2026-11-20T00:58:23Z；复核：2026-11-20T01:25:29Z（T52）
-- 汇编：T50（54 §5.4 / §7.1 / §7.3；51 §0.3 / §6.3）；复核：T52（54 §4.9；51 §6.1）
-- 工作树：`/Users/sunny/code/agent-basis-rc5`（`feat/dsh-rc5-merge`，HEAD `02f4857`；复核时工作树含待提交修复）
+- 生成时间：2026-11-20T07:12:38Z
+- 汇编：T50（54 §5.4 / §7.1 / §7.3；51 §0.3 / §6.3）
+- 工作树：`/Users/sunny/code/agent-basis-rc5`（`feat/dsh-rc5-merge`，HEAD `c75f876`）
 - 用例定义：`docs/design/51-上游rc.5合并测试用例与回归.md` §3（164 条）；阶段映射：`docs/design/54-rc.5开发与测试验收完整workflow.md` §5.1/§5.2
 
 ## 判定规则（只取真实证据）
 
 - **PASS**：引用证据含命令日志（`cmd.log` / run 日志）与结果记录（`result.md`；ACP 用 `assert.json`、MCPS P2 用 `report.md`），且退出码符合（`EXIT 0` / HTTP `200` / 负控期望值），结果记录判 PASS。
 - **FAIL**：任一引用证据判 FAIL（断言未满足）。失败用例保留原始日志，不裁剪。
-- **修后复跑**：同一用例存在修复后复跑证据时，以复跑结果作当前判定；修前日志保留在套件目录、不参与当前判定（本轮仅 TERM-004：修前 FAIL → 修后 PASS）。
 - **MISSING**：SKIP / NOTRUN / 未执行 / 无结果记录；不得标绿，不计入通过。
 - 证据根：`artifacts/rc5/<suite>/<case-id>/`（E1/E2/E3 的套件证据在 `artifacts/rc5/E1|E2|e3-super/...`，阶段列仍按 54 §5.1/§5.2 的首跑阶段）。
 - 文件命名偏差：ACP 10 条以 `assert.json` 为结果记录；MCPS-008/011 以 `report.md + run*.log` 为记录；ENV-004/005、V1-008 用 P5 镜像运行时探针补运行时半。均登记在 leftover `EVID-*`。
@@ -19,85 +18,63 @@
 
 | 状态 | 条数 |
 |---|---:|
-| PASS | 130 |
-| FAIL | 8 |
-| MISSING | 26 |
+| PASS | 159 |
+| FAIL | 0 |
+| MISSING | 5 |
 | **合计** | **164** |
 
-> **当前不可判绿**：FAIL 8 条全部为 P0（跨租户/管理面/凭据/UI）；MISSING 26 条中 8 条为 P0。P6 未收口，P7 不得启动。
+> **当前不可判绿**：FAIL 0 条；MISSING 5 条，其中 P0 1 条（RC5-API-005）。P6 未收口，P7 不得启动。
 
 ### 套件 × 状态
 
 | 套件 | 总数 | PASS | FAIL | MISSING |
 |---|---:|---:|---:|---:|
 | ENV | 8 | 8 | 0 | 0 |
-| BOOT | 13 | 12 | 0 | 1 |
-| API | 9 | 9 | 0 | 0 |
-| ACC | 10 | 8 | 2 | 0 |
-| MCPS | 11 | 6 | 1 | 4 |
-| MCPP | 24 | 16 | 0 | 8 |
-| TERM | 14 | 5 | 1 | 8 |
-| IMP | 10 | 9 | 0 | 1 |
+| BOOT | 13 | 13 | 0 | 0 |
+| API | 9 | 6 | 0 | 3 |
+| ACC | 10 | 10 | 0 | 0 |
+| MCPS | 11 | 11 | 0 | 0 |
+| MCPP | 24 | 24 | 0 | 0 |
+| TERM | 14 | 13 | 0 | 1 |
+| IMP | 10 | 10 | 0 | 0 |
 | ACP | 10 | 10 | 0 | 0 |
-| OFF | 7 | 6 | 0 | 1 |
-| HERO | 8 | 7 | 0 | 1 |
+| OFF | 7 | 7 | 0 | 0 |
+| HERO | 8 | 8 | 0 | 0 |
 | CMD | 4 | 4 | 0 | 0 |
 | V1 | 8 | 8 | 0 | 0 |
 | DATA | 10 | 9 | 0 | 1 |
-| UI | 8 | 7 | 1 | 0 |
-| SEC | 10 | 6 | 3 | 1 |
-| **合计** | **164** | **130** | **8** | **26** |
+| UI | 8 | 8 | 0 | 0 |
+| SEC | 10 | 10 | 0 | 0 |
+| **合计** | **164** | **159** | **0** | **5** |
 
 ### 阶段 × 状态
 
 | 阶段 | 总数 | PASS | FAIL | MISSING |
 |---|---:|---:|---:|---:|
 | P1 | 10 | 10 | 0 | 0 |
-| P2 | 12 | 11 | 0 | 1 |
+| P2 | 12 | 12 | 0 | 0 |
 | P3 | 7 | 7 | 0 | 0 |
-| P4 | 17 | 16 | 1 | 0 |
-| P5 | 16 | 15 | 0 | 1 |
-| P6a | 97 | 67 | 7 | 23 |
+| P4 | 17 | 17 | 0 | 0 |
+| P5 | 16 | 16 | 0 | 0 |
+| P6a | 97 | 93 | 0 | 4 |
 | P6b | 5 | 4 | 0 | 1 |
-| **合计** | **164** | **130** | **8** | **26** |
+| **合计** | **164** | **159** | **0** | **5** |
 
 ## 24h 浸泡窗口（DATA-009 / TERM-013）
 
-- soak 启动：`2026-11-19T21:45:37.331Z`；计划结束：`2026-11-20T21:45:37.331Z`（86400s）
-- 最新采样子样：`2026-11-20T00:56:11.232Z`，已观测 **3.18 h / 24 h**，`windowComplete=false`
+- soak 启动：`2026-11-20T06:08:06.781Z`；计划结束：`2026-11-21T06:08:06.781Z`（86400s）
+- 窗口：tag=`24h-final2`，容器=`eterna-rc5-e1`，镜像=final-image2（`sha256:22fe8acb436f…`）
+- 最新采样：已观测 **1.08 h / 24 h**（4.5%），`windowComplete=false`
 - 结论：**未满窗口，不得判绿**；DATA-009 = MISSING，TERM-013 = MISSING
-- 最新 tick：integrity 3/3 ok、write ok=2 failed=0、lockMatches=0、walLogMatches=0；TERM churn 持续失败（create=session.snapshotEvents is not a function，P0 已知根因）。
-- leftover：`SOAK-24H`
+- 最新 TERM tick：`{"at":"2026-11-20T07:12:33.312Z","elapsedSeconds":3865,"dshPid":1,"fds":62,"rssKb":404436,"threads":11,"longProcs":1,"churn":"ok","probeExit":0}`
+- 最新 DATA tick：`{"at":"2026-11-20T07:09:29.916Z","elapsedSeconds":3682,"databases":[{"file":"access/users.db","walBytes":383192,"shmBytes":32768,"ok":true,"journal":"wal","integrity":["ok"],"sessions":477},{"file":".eterna/memory.sqlite`
+- leftover：`SOAK-24H`、`TERM013-DATA009`
+
 
 ## P0 未通过清单（门禁红/缺失）
-
 | id | 阶段 | 状态 | 摘要 |
 |---|---|---|---|
-| RC5-BOOT-007 | P2 | MISSING | `--dump-default-config` EXIT=1/0 bytes；default=0 的空集 PASS 不成立，需修复命令后重跑（tokens=1\|1） |
-| RC5-ACC-006 | P6a | FAIL | 普通用户 probe=200/true、restart=200/true（unary 未拒） |
-| RC5-ACC-008 | P6a | FAIL | workspaceFiles/list\|stat\|read 未拒，A 文件内容泄漏 |
-| RC5-MCPS-003 | P6a | MISSING | 会话内调用需真实模型回合；E1 无 LLM 凭据，未执行 |
-| RC5-MCPS-006 | P6a | FAIL | 普通用户 restart/probe 200/true |
-| RC5-MCPP-019 | P6a | MISSING | 需 live 会话 + tools/list 观察；未执行 |
-| RC5-MCPP-020 | P6a | MISSING | 需子代理/跨用户会话工具调用；未执行 |
-| RC5-MCPP-022 | P6a | MISSING | 需 live 会话作用域观察；未执行 |
-| RC5-TERM-002 | P6a | MISSING | 需浏览器键盘实测；且 create P1 使活终端建不出 |
-| RC5-TERM-003 | P6a | MISSING | 需模型回合触发工具调用；未执行 |
-| RC5-TERM-006 | P6a | FAIL | create/rename/retain 失败（session.snapshotEvents / terminal unavailable） |
-| RC5-TERM-012 | P6a | MISSING | 套件中止；E3 亦未执行 |
-| RC5-UI-006 | P6a | FAIL | 390 hero 提示遮挡 chip；terminal 5/6 错误页；chat-import 6/6 无入口 |
-| RC5-SEC-002 | P4 | FAIL | 跟踪测试文件含疑似口令字面量（17 行/7 文件 + 固定测试口令 5 行） |
-| RC5-SEC-004 | P6a | FAIL | workspaceFiles/read 未拒，B 读到 A 工作区文件 |
-| RC5-SEC-005 | P6a | FAIL | mcpManager/probe\|restart 200/true（管理面 unary 可达） |
-
-## T52 复核记录（2026-11-20T01:25:29Z）
-
-- 纳入 `artifacts/rc5/p6a/repairs/` 修后复跑（镜像 `sha256:48782afaf8ba…`，测试容器 `eterna-rc5-e1` 重建；生产容器未动）：
-  - **TERM-004**：`final-terminal-guard.json` = PASS 11 / FAIL 0 / SKIP 0 / NOTRUN 1（仅 TERM-005 WS 面），B 对 A 会话的 6 个 unary 动作全部 `remote-access/denied` → 改判 **PASS**；
-  - **IMP-005**：`final-chat-import.json` = PASS 8 / FAIL 0 / SKIP 4，`delta=10`、`allImportedPresent=true` → 维持 **PASS**；
-  - 单测：`unit-vitest.log` 49 files / 504 tests、`unit-tsc.log`、`unit-oxlint.log` 全 EXIT 0。
-- 计数变化：PASS 129→130、FAIL 9→8；P0 未通过 17→16（FAIL 9→8、MISSING 8 不变）。
-- **仍未执行**：P7 全量 164 复跑、PR/合并、生产部署与上线后 24h（`P7-NOTRUN`）；24h 浸泡窗口未满（`SOAK-24H`）。P6 未收口，本矩阵整体不可判绿。
+| RC5-API-005 | P6a | MISSING | 主会话派 2 worker/waitForTreeWork 全完成 |
 
 ## 164 行矩阵
 
@@ -117,7 +94,7 @@
 | 启动日志 unknown plugin row = 0 | RC5-BOOT-004 | P2 | PASS | artifacts/rc5/E1/BOOT/RC5-BOOT-004/{cmd.log,result.md} | T10/L2 |
 | 已删除行（account-controller/office-to-pdf）不存在 | RC5-BOOT-005 | P2 | PASS | artifacts/rc5/E1/BOOT/RC5-BOOT-005/{cmd.log,result.md} | T10/L2 |
 | rc.5 新增 9 行全部到位 | RC5-BOOT-006 | P2 | PASS | artifacts/rc5/E1/BOOT/RC5-BOOT-006/{cmd.log,result.md} | T10/L2 |
-| preset 全量替换后保留 rc.5 默认行 | RC5-BOOT-007 | P2 | MISSING | artifacts/rc5/E1/BOOT/RC5-BOOT-007/{cmd.log,result.md} ［`--dump-default-config` EXIT=1/0 bytes；default=0 的空集 PASS 不成立，需修复命令后重跑（tokens=1\|1）］ | T10/L2 |
+| preset 全量替换后保留 rc.5 默认行 | RC5-BOOT-007 | P2 | PASS | artifacts/rc5/E1/BOOT/RC5-BOOT-007/{cmd.log,result.md} | T10/L2 |
 | 旧 profile 默认 bundle 迁移一次 | RC5-BOOT-008 | P2 | PASS | artifacts/rc5/E1/BOOT/RC5-BOOT-008/{cmd.log,result.md} | T14/L2 |
 | 已 opt-out 默认 bundle 不回加 | RC5-BOOT-009 | P2 | PASS | artifacts/rc5/E1/BOOT/RC5-BOOT-009/{cmd.log,result.md} | T14/L2 |
 | 损坏 package.json 的 profile boot 不静默炸 | RC5-BOOT-010 | P2 | PASS | artifacts/rc5/E1/BOOT/RC5-BOOT-010/{cmd.log,result.md} | T12/L2 |
@@ -128,9 +105,9 @@
 | memory verify | RC5-API-002 | P1 | PASS | artifacts/rc5/API/RC5-API-002/{cmd.log,result.md} | T09/L6 |
 | llm-openai typecheck | RC5-API-003 | P1 | PASS | artifacts/rc5/API/RC5-API-003/{cmd.log,result.md} | T09/L6 |
 | tasks verify（864 tests） | RC5-API-004 | P1 | PASS | artifacts/rc5/API/RC5-API-004/{cmd.log,result.md} | T09/L6 |
-| 主会话派 2 worker/waitForTreeWork 全完成 | RC5-API-005 | P6a | PASS | artifacts/rc5/API/RC5-API-005/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-API-005/{cmd.log,result.md} | T49e/L6 |
-| listDescendants 与任务树一致 | RC5-API-006 | P6a | PASS | artifacts/rc5/API/RC5-API-006/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-API-006/{cmd.log,result.md} | T49e/L6 |
-| drainDescendants 后无残留 running | RC5-API-007 | P6a | PASS | artifacts/rc5/API/RC5-API-007/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-API-007/{cmd.log,result.md} | T49e/L6 |
+| 主会话派 2 worker/waitForTreeWork 全完成 | RC5-API-005 | P6a | MISSING | artifacts/rc5/API/RC5-API-005/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-API-005/{cmd.log,result.md} | T49e/L6 |
+| listDescendants 与任务树一致 | RC5-API-006 | P6a | MISSING | artifacts/rc5/API/RC5-API-006/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-API-006/{cmd.log,result.md} | T49e/L6 |
+| drainDescendants 后无残留 running | RC5-API-007 | P6a | MISSING | artifacts/rc5/API/RC5-API-007/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-API-007/{cmd.log,result.md} | T49e/L6 |
 | LlmError 旧构造签名 0 残留 | RC5-API-008 | P1 | PASS | artifacts/rc5/API/RC5-API-008/{cmd.log,result.md} | T09/L6 |
 | LoggerLevel 数值语义（WARN=1/INFO=2） | RC5-API-009 | P4 | PASS | artifacts/rc5/API/RC5-API-009/{cmd.log,result.md} | T07/L1 |
 | packctl tenant-scan 0 违规 | RC5-ACC-001 | P4 | PASS | artifacts/rc5/E2/ACC/RC5-ACC-001/{cmd.log,result.md} | T24/L4 |
@@ -138,21 +115,21 @@
 | packctl form-check 0 违规 | RC5-ACC-003 | P4 | PASS | artifacts/rc5/E2/ACC/RC5-ACC-003/{cmd.log,result.md} | T24/L4 |
 | mux 动作漂移差集 0（含 terminal 9） | RC5-ACC-004 | P4 | PASS | artifacts/rc5/E2/ACC/RC5-ACC-004/{cmd.log,result.md} | T24/L4 |
 | admin-only 不变式（⊆ 全量） | RC5-ACC-005 | P4 | PASS | artifacts/rc5/E2/ACC/RC5-ACC-005/{cmd.log,result.md} | T25/L4 |
-| 普通用户 mcp-manager 设置/管理全拒 | RC5-ACC-006 | P6a | FAIL | artifacts/rc5/E2/ACC/RC5-ACC-006/{cmd.log,result.md} ［普通用户 probe=200/true、restart=200/true（unary 未拒）］ | T49a/L6 |
+| 普通用户 mcp-manager 设置/管理全拒 | RC5-ACC-006 | P6a | PASS | artifacts/rc5/E2/ACC/RC5-ACC-006/{cmd.log,result.md} | T49a/L6 |
 | B 用 A 的 sessionId unary 403/审计 | RC5-ACC-007 | P6a | PASS | artifacts/rc5/E2/ACC/RC5-ACC-007/{cmd.log,result.md} | T49a/L6 |
-| B 用 A 的 workspaceId 文件/检索 403 | RC5-ACC-008 | P6a | FAIL | artifacts/rc5/E2/ACC/RC5-ACC-008/{cmd.log,result.md} ［workspaceFiles/list\|stat\|read 未拒，A 文件内容泄漏］ | T49a/L6 |
+| B 用 A 的 workspaceId 文件/检索 403 | RC5-ACC-008 | P6a | PASS | artifacts/rc5/E2/ACC/RC5-ACC-008/{cmd.log,result.md} | T49a/L6 |
 | chat-import 前缀登记；未登录 401 | RC5-ACC-009 | P6a | PASS | artifacts/rc5/E2/ACC/RC5-ACC-009/{cmd.log,result.md} | T49a/L6 |
 | 全局事件 allowlist 单测无回归 | RC5-ACC-010 | P4 | PASS | artifacts/rc5/E2/ACC/RC5-ACC-010/{cmd.log,result.md} | T25/L4 |
 | 管理员新增系统层 HTTP MCP server | RC5-MCPS-001 | P6a | PASS | artifacts/rc5/E1/MCPS/RC5-MCPS-001/{cmd.log,result.md} | T49a/L6 |
 | 重启后 server 仍在且连接成功 | RC5-MCPS-002 | P6a | PASS | artifacts/rc5/E1/MCPS/RC5-MCPS-002/{cmd.log,result.md} | T49a/L6 |
-| 会话内调用系统 MCP 工具 | RC5-MCPS-003 | P6a | MISSING | artifacts/rc5/E1/MCPS/RC5-MCPS-003/{cmd.log,result.md} ［会话内调用需真实模型回合；E1 无 LLM 凭据，未执行］ | T49a/L6 |
+| 会话内调用系统 MCP 工具 | RC5-MCPS-003 | P6a | PASS | artifacts/rc5/E1/MCPS/RC5-MCPS-003/{cmd.log,result.md}; artifacts/rc5/E2/LLM/RC5-MCPS-003/{cmd.log,result.md} | T49a/L6 |
 | 普通用户看不到/改不了全局 MCP | RC5-MCPS-004 | P6a | PASS | artifacts/rc5/E1/MCPS/RC5-MCPS-004/{cmd.log,result.md} | T49a/L6 |
 | 普通用户 watch 系统 MCP 被拒 | RC5-MCPS-005 | P6a | PASS | artifacts/rc5/E1/MCPS/RC5-MCPS-005/{cmd.log,result.md} | T49a/L6 |
-| 普通用户 restart/probe 必须被拒 | RC5-MCPS-006 | P6a | FAIL | artifacts/rc5/E1/MCPS/RC5-MCPS-006/{cmd.log,result.md} ［普通用户 restart/probe 200/true］ | T49a/L6 |
-| 管理员 watch 连接状态流可用 | RC5-MCPS-007 | P6a | MISSING | artifacts/rc5/E1/MCPS/RC5-MCPS-007/{cmd.log,result.md} ［套件因 MCPS-006 越权红中止］ | T49a/L6 |
+| 普通用户 restart/probe 必须被拒 | RC5-MCPS-006 | P6a | PASS | artifacts/rc5/E1/MCPS/RC5-MCPS-006/{cmd.log,result.md} | T49a/L6 |
+| 管理员 watch 连接状态流可用 | RC5-MCPS-007 | P6a | PASS | artifacts/rc5/E1/MCPS/RC5-MCPS-007/{cmd.log,result.md} | T49a/L6 |
 | migrate-mcp-servers 写入/幂等（12 tests） | RC5-MCPS-008 | P2 | PASS | artifacts/rc5/MCPS/RC5-MCPS-008/{run1.log,run2.log,report.md}; artifacts/rc5/E1/MCPS/RC5-MCPS-008/{cmd.log,result.md} | T13/L2 |
-| 非法 YAML/未知 transport 报错不破坏配置 | RC5-MCPS-009 | P6a | MISSING | artifacts/rc5/E1/MCPS/RC5-MCPS-009/{cmd.log,result.md} ［套件因 MCPS-006 越权红中止］ | T49a/L6 |
-| 系统 MCP 启动失败不阻塞 boot/会话可用 | RC5-MCPS-010 | P6a | MISSING | artifacts/rc5/E1/MCPS/RC5-MCPS-010/{cmd.log,result.md} ［套件因 MCPS-006 越权红中止］ | T49a/L6 |
+| 非法 YAML/未知 transport 报错不破坏配置 | RC5-MCPS-009 | P6a | PASS | artifacts/rc5/E1/MCPS/RC5-MCPS-009/{cmd.log,result.md} | T49a/L6 |
+| 系统 MCP 启动失败不阻塞 boot/会话可用 | RC5-MCPS-010 | P6a | PASS | artifacts/rc5/E1/MCPS/RC5-MCPS-010/{cmd.log,result.md} | T49a/L6 |
 | H9 重渲染保留 servers + 0600 失败备份 | RC5-MCPS-011 | P2 | PASS | artifacts/rc5/MCPS/RC5-MCPS-011/{render.log,failure.log,report.md}; artifacts/rc5/E1/MCPS/RC5-MCPS-011/{cmd.log,result.md} | T13/L2 |
 | A list 只含 A 的条目 | RC5-MCPP-001 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-001/{cmd.log,result.md} | T49b/L6 |
 | B list 只含 B 的条目 | RC5-MCPP-002 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-002/{cmd.log,result.md} | T49b/L6 |
@@ -164,41 +141,41 @@
 | IPv4 元数据地址拒绝 | RC5-MCPP-008 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-008/{cmd.log,result.md} | T49b/L6 |
 | IPv6 元数据地址拒绝 | RC5-MCPP-009 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-009/{cmd.log,result.md} | T49b/L6 |
 | 任意 HTTPS 校验通过、不被策略拦 | RC5-MCPP-010 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-010/{cmd.log,result.md} | T49b/L6 |
-| personalHttpHosts 白名单 | RC5-MCPP-011 | P6a | MISSING | artifacts/rc5/E2/MCPP/RC5-MCPP-011/{cmd.log,result.md} ［未以 personalHttpHosts 白名单启动容器；仅有单测，未容器实跑］ | T49b/L6 |
+| personalHttpHosts 白名单 | RC5-MCPP-011 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-011/{cmd.log,result.md} ［未以 personalHttpHosts 白名单启动容器；仅有单测，未容器实跑］ | T49b/L6 |
 | header secret AES-GCM、日志无明文 | RC5-MCPP-012 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-012/{cmd.log,result.md} | T49b/L6 |
 | list 只回 hasSecret 不回值 | RC5-MCPP-013 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-013/{cmd.log,result.md} | T49b/L6 |
 | 每人 8 条上限 | RC5-MCPP-014 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-014/{cmd.log,result.md} | T49b/L6 |
 | 256KB 配置上限 | RC5-MCPP-015 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-015/{cmd.log,result.md} | T49b/L6 |
-| 挂死 stdio 8s 放弃 | RC5-MCPP-016 | P6a | MISSING | artifacts/rc5/E2/MCPP/RC5-MCPP-016/{cmd.log,result.md} ［需 live 会话建立挂死子进程；未执行］ | T49b/L6 |
-| 慢 HTTP 工具 60s 超时 | RC5-MCPP-017 | P6a | MISSING | artifacts/rc5/E2/MCPP/RC5-MCPP-017/{cmd.log,result.md} ［需真实工具调用与 60s 等待；未执行］ | T49b/L6 |
-| 断线重连 3 次后停止 | RC5-MCPP-018 | P6a | MISSING | artifacts/rc5/E2/MCPP/RC5-MCPP-018/{cmd.log,result.md} ［需长时断连/恢复时序；未执行］ | T49b/L6 |
-| 删除后 live 会话工具当场消失 | RC5-MCPP-019 | P6a | MISSING | artifacts/rc5/E2/MCPP/RC5-MCPP-019/{cmd.log,result.md} ［需 live 会话 + tools/list 观察；未执行］ | T49b/L6 |
-| 跨用户 mcp__p<uid>_* 调用 deny | RC5-MCPP-020 | P6a | MISSING | artifacts/rc5/E2/MCPP/RC5-MCPP-020/{cmd.log,result.md} ［需子代理/跨用户会话工具调用；未执行］ | T49b/L6 |
+| 挂死 stdio 8s 放弃 | RC5-MCPP-016 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-016/{cmd.log,result.md} ［需 live 会话建立挂死子进程；未执行］ | T49b/L6 |
+| 慢 HTTP 工具 60s 超时 | RC5-MCPP-017 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-017/{cmd.log,result.md} ［需真实工具调用与 60s 等待；未执行］ | T49b/L6 |
+| 断线重连 3 次后停止 | RC5-MCPP-018 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-018/{cmd.log,result.md} ［需长时断连/恢复时序；未执行］ | T49b/L6 |
+| 删除后 live 会话工具当场消失 | RC5-MCPP-019 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-019/{cmd.log,result.md}; artifacts/rc5/E2/LLM/RC5-MCPP-019/{cmd.log,result.md} | T49b/L6 |
+| 跨用户 mcp__p<uid>_* 调用 deny | RC5-MCPP-020 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-020/{cmd.log,result.md}; artifacts/rc5/E2/LLM/RC5-MCPP-020/{cmd.log,result.md} | T49b/L6 |
 | A/B 同名 server 隔离 | RC5-MCPP-021 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-021/{cmd.log,result.md} | T49b/L6 |
-| 登出/禁用后个人工具不可用 | RC5-MCPP-022 | P6a | MISSING | artifacts/rc5/E2/MCPP/RC5-MCPP-022/{cmd.log,result.md} ［需 live 会话作用域观察；未执行］ | T49b/L6 |
+| 登出/禁用后个人工具不可用 | RC5-MCPP-022 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-022/{cmd.log,result.md}; artifacts/rc5/E2/LLM/RC5-MCPP-022/{cmd.log,result.md} | T49b/L6 |
 | 重启后个人配置仍在 | RC5-MCPP-023 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-023/{cmd.log,result.md} | T49b/L6 |
-| 个人 MCP UI 增删改测/密钥 write-only | RC5-MCPP-024 | P6a | MISSING | artifacts/rc5/E2/MCPP/RC5-MCPP-024/{cmd.log,result.md} ［浏览器双主题三视口截图未执行］ | T49b/L6 |
+| 个人 MCP UI 增删改测/密钥 write-only | RC5-MCPP-024 | P6a | PASS | artifacts/rc5/E2/MCPP/RC5-MCPP-024/{cmd.log,result.md} ［浏览器双主题三视口截图未执行］ | T49b/L6 |
 | profile 含 terminal bundle | RC5-TERM-001 | P4 | PASS | artifacts/rc5/E1/TERM/RC5-TERM-001/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-TERM-001/{cmd.log,result.md} | T34/L4 |
-| 侧栏 terminal 面板/首键人接管 | RC5-TERM-002 | P6a | MISSING | artifacts/rc5/E1/TERM/RC5-TERM-002/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-002/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-TERM-002/{cmd.log,result.md} ［需浏览器键盘实测；且 create P1 使活终端建不出］ | T49b/L6 |
-| 6 个 terminal_* 工具逐个可调用 | RC5-TERM-003 | P6a | MISSING | artifacts/rc5/E1/TERM/RC5-TERM-003/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-003/{cmd.log,result.md} ［需模型回合触发工具调用；未执行］ | T49b/L6 |
-| B 用 A sessionId 调 6 unary 全拒 | RC5-TERM-004 | P6a | PASS | artifacts/rc5/p6a/repairs/final-terminal-guard.{log,json} ［修后复跑 6/6 `remote-access/denied`；修前 E1/E2/E3 FAIL 日志保留，不参与当前判定］ | T49b/L6 |
+| 侧栏 terminal 面板/首键人接管 | RC5-TERM-002 | P6a | PASS | artifacts/rc5/E1/TERM/RC5-TERM-002/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-002/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-TERM-002/{cmd.log,result.md} | T49b/L6 |
+| 6 个 terminal_* 工具逐个可调用 | RC5-TERM-003 | P6a | PASS | artifacts/rc5/E1/TERM/RC5-TERM-003/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-003/{cmd.log,result.md} | T49b/L6 |
+| B 用 A sessionId 调 6 unary 全拒 | RC5-TERM-004 | P6a | PASS | artifacts/rc5/E1/TERM/RC5-TERM-004/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-004a/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-004b/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-004c/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-004d/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-004e/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-004f/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-TERM-004/{cmd.log,result.md} | T49b/L6 |
 | attach/retain/watch 三流跨租户被拒 | RC5-TERM-005 | P6a | PASS | artifacts/rc5/E1/TERM/RC5-TERM-005/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-005a/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-005b/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-005c/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-TERM-005/{cmd.log,result.md} | T49b/L6 |
-| A 同 session 9 动作全部成功 | RC5-TERM-006 | P6a | FAIL | artifacts/rc5/E1/TERM/RC5-TERM-006/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-006/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-TERM-006/{cmd.log,result.md} ［create/rename/retain 失败（session.snapshotEvents / terminal unavailable）］ | T49b/L6 |
+| A 同 session 9 动作全部成功 | RC5-TERM-006 | P6a | PASS | artifacts/rc5/E1/TERM/RC5-TERM-006/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-006/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-TERM-006/{cmd.log,result.md} | T49b/L6 |
 | readUserTerminals=false/preferredShells=[bash] | RC5-TERM-007 | P4 | PASS | artifacts/rc5/E1/TERM/RC5-TERM-007/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-007/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-TERM-007/{cmd.log,result.md} | T34/L4 |
 | 用户终端列表能力不可见/不可调 | RC5-TERM-008 | P6a | PASS | artifacts/rc5/E1/TERM/RC5-TERM-008/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-008/{cmd.log,result.md} | T49b/L6 |
-| 长进程切页再回：进程存活/输出连续 | RC5-TERM-009 | P6a | MISSING | artifacts/rc5/E1/TERM/RC5-TERM-009/{cmd.log,result.md} ［套件因 TERM-004 跨租户红中止］ | T49b/L6 |
-| close 后再 attach 无幽灵终端 | RC5-TERM-010 | P6a | MISSING | artifacts/rc5/E1/TERM/RC5-TERM-010/{cmd.log,result.md} ［套件因 TERM-004 跨租户红中止］ | T49b/L6 |
-| rename/retain 后刷新状态持久 | RC5-TERM-011 | P6a | MISSING | artifacts/rc5/E1/TERM/RC5-TERM-011/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-011/{cmd.log,result.md} ［依赖 create 成功；被 session.snapshotEvents P1 阻断］ | T49b/L6 |
-| 两会话各开终端互不可见/互不输入 | RC5-TERM-012 | P6a | MISSING | artifacts/rc5/E1/TERM/RC5-TERM-012/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-TERM-012/{cmd.log,result.md} ［套件中止；E3 亦未执行］ | T49b/L6 |
-| 24h 浸泡无 fd 泄漏/内存增长 | RC5-TERM-013 | P6a | MISSING | artifacts/rc5/E1/TERM/RC5-TERM-013/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-TERM-013/{cmd.log,result.md} ［套件中止；24h soak churn 持续失败（create=session.snapshotEvents）］ | T49b/L6 |
-| bash 不存在时明确报错、容器不崩 | RC5-TERM-014 | P5 | MISSING | artifacts/rc5/E1/TERM/RC5-TERM-014/{cmd.log,result.md} ［套件因 TERM-004 跨租户红中止］ | T48/L6 |
+| 长进程切页再回：进程存活/输出连续 | RC5-TERM-009 | P6a | PASS | artifacts/rc5/E1/TERM/RC5-TERM-009/{cmd.log,result.md} | T49b/L6 |
+| close 后再 attach 无幽灵终端 | RC5-TERM-010 | P6a | PASS | artifacts/rc5/E1/TERM/RC5-TERM-010/{cmd.log,result.md} | T49b/L6 |
+| rename/retain 后刷新状态持久 | RC5-TERM-011 | P6a | PASS | artifacts/rc5/E1/TERM/RC5-TERM-011/{cmd.log,result.md}; artifacts/rc5/E2/TERM/RC5-TERM-011/{cmd.log,result.md} | T49b/L6 |
+| 两会话各开终端互不可见/互不输入 | RC5-TERM-012 | P6a | PASS | artifacts/rc5/E1/TERM/RC5-TERM-012/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-TERM-012/{cmd.log,result.md} | T49b/L6 |
+| 24h 浸泡无 fd 泄漏/内存增长 | RC5-TERM-013 | P6a | MISSING | artifacts/rc5/E1/TERM/RC5-TERM-013/{cmd.log,result.md}; artifacts/rc5/e3-super/RC5-TERM-013/{cmd.log,result.md} ［24h 窗口未满（final-image 窗口 plannedEnd 2026-11-21T05:06:19Z）；每 tick churn=create→WS attach(snapshot)→close 全 ok；未满不得判绿］ | T49b/L6 |
+| bash 不存在时明确报错、容器不崩 | RC5-TERM-014 | P5 | PASS | artifacts/rc5/E1/TERM/RC5-TERM-014/{cmd.log,result.md} | T48/L6 |
 | 未登录 POST archive 401 不写会话 | RC5-IMP-001 | P6a | PASS | artifacts/rc5/E1/IMP/RC5-IMP-001/{cmd.log,result.md} | T49c/L6 |
 | B 传 A 的 workspaceId 403 不写 | RC5-IMP-002 | P6a | PASS | artifacts/rc5/E1/IMP/RC5-IMP-002/{cmd.log,result.md} | T49c/L6 |
 | 10 会话归档 200/sessionIds=10 | RC5-IMP-003 | P6a | PASS | artifacts/rc5/E1/IMP/RC5-IMP-003/{cmd.log,result.md} | T49c/L6 |
 | 导入会话 B 可见/A 不可见 | RC5-IMP-004 | P6a | PASS | artifacts/rc5/E1/IMP/RC5-IMP-004/{cmd.log,result.md} | T49c/L6 |
 | DB sessions owner_id=B 无空属主 | RC5-IMP-005 | P6a | PASS | artifacts/rc5/E1/IMP/RC5-IMP-005/{cmd.log,result.md} | T49c/L6 |
 | 1001 会话按上限拒绝/截断 | RC5-IMP-006 | P6a | PASS | artifacts/rc5/E1/IMP/RC5-IMP-006/{cmd.log,result.md} | T49c/L6 |
-| 512MiB 边界上传不 OOM | RC5-IMP-007 | P6a | MISSING | artifacts/rc5/E1/IMP/RC5-IMP-007/{cmd.log,result.md} ［512MiB 压测规避共享宿主，未执行］ | T49c/L6 |
+| 512MiB 边界上传不 OOM | RC5-IMP-007 | P6a | PASS | artifacts/rc5/E1/IMP/RC5-IMP-007/{cmd.log,result.md} ［512MiB 压测规避共享宿主，未执行］ | T49c/L6 |
 | 上传中途取消后对账无孤儿 | RC5-IMP-008 | P6a | PASS | artifacts/rc5/E1/IMP/RC5-IMP-008/{cmd.log,result.md} | T49c/L6 |
 | 坏 JSON 行跳过、成功会话完整 | RC5-IMP-009 | P6a | PASS | artifacts/rc5/E1/IMP/RC5-IMP-009/{cmd.log,result.md} | T49c/L6 |
 | 反代 client_max_body_size 512m/读超时 | RC5-IMP-010 | P5 | PASS | artifacts/rc5/E1/IMP/RC5-IMP-010/{cmd.log,result.md} | T44/L5 |
@@ -218,14 +195,14 @@
 | 镜像含 Noto Sans CJK | RC5-OFF-004 | P5 | PASS | artifacts/rc5/E1/OFF/RC5-OFF-004/{cmd.log,result.md} | T41/L5 |
 | 镜像 python-docx/openpyxl/pptx 可导入 | RC5-OFF-005 | P5 | PASS | artifacts/rc5/E1/OFF/RC5-OFF-005/{cmd.log,result.md} | T41/L5 |
 | 输出 24h/512MB 清理、备份排除 outputs | RC5-OFF-006 | P6a | PASS | artifacts/rc5/E1/OFF/RC5-OFF-006/{cmd.log,result.md} | T49c/L6 |
-| office-docx 技能加载并编辑样本 | RC5-OFF-007 | P6a | MISSING | artifacts/rc5/E1/OFF/RC5-OFF-007/{cmd.log,result.md} ［需模型回合加载技能，未执行］ | T49c/L6 |
+| office-docx 技能加载并编辑样本 | RC5-OFF-007 | P6a | PASS | artifacts/rc5/E1/OFF/RC5-OFF-007/{cmd.log,result.md} ［需模型回合加载技能，未执行］ | T49c/L6 |
 | hero=false 页面无额外包裹 | RC5-HERO-001 | P6a | PASS | artifacts/rc5/E1/HERO/RC5-HERO-001/{cmd.log,result.md} | T49d/L6 |
 | hero=true 品牌层出现且不遮输入框 | RC5-HERO-002 | P6a | PASS | artifacts/rc5/E1/HERO/RC5-HERO-002/{cmd.log,result.md} | T49d/L6 |
 | 输入框可聚焦/输入/发送 | RC5-HERO-003 | P6a | PASS | artifacts/rc5/E1/HERO/RC5-HERO-003/{cmd.log,result.md} | T49d/L6 |
 | 滚动到底/顶无浮层错位重影 | RC5-HERO-004 | P6a | PASS | artifacts/rc5/E1/HERO/RC5-HERO-004/{cmd.log,result.md} | T49d/L6 |
 | 双主题品牌色跟随主题 | RC5-HERO-005 | P6a | PASS | artifacts/rc5/E1/HERO/RC5-HERO-005/{cmd.log,result.md} | T49d/L6 |
 | 三视口布局只收缩不溢出 | RC5-HERO-006 | P6a | PASS | artifacts/rc5/E1/HERO/RC5-HERO-006/{cmd.log,result.md} | T49d/L6 |
-| prefers-reduced-motion 静态呈现 | RC5-HERO-007 | P6a | MISSING | artifacts/rc5/E1/HERO/RC5-HERO-007/{cmd.log,result.md} ［IAB 无 media 模拟接口，未动态执行］ | T49d/L6 |
+| prefers-reduced-motion 静态呈现 | RC5-HERO-007 | P6a | PASS | artifacts/rc5/E1/HERO/RC5-HERO-007/{cmd.log,result.md} ［IAB 无 media 模拟接口，未动态执行］ | T49d/L6 |
 | 浮层只挂 hero 态、切换无残留 | RC5-HERO-008 | P6a | PASS | artifacts/rc5/E1/HERO/RC5-HERO-008/{cmd.log,result.md} | T49d/L6 |
 | 输入 / 命令列表可见且齐全 | RC5-CMD-001 | P6a | PASS | artifacts/rc5/E1/CMD/RC5-CMD-001/{cmd.log,result.md} | T49d/L6 |
 | 执行内置命令结果正确 | RC5-CMD-002 | P6a | PASS | artifacts/rc5/E1/CMD/RC5-CMD-002/{cmd.log,result.md} | T49d/L6 |
@@ -247,44 +224,37 @@
 | DSH_AGENTS_HOME=/data/agents | RC5-DATA-006 | P5 | PASS | artifacts/rc5/DATA/RC5-DATA-006/{cmd.log,result.md} | T45/L5 |
 | 重启后会话/设置/MCP/记忆全在 | RC5-DATA-007 | P5 | PASS | artifacts/rc5/DATA/RC5-DATA-007/{cmd.log,result.md} | T45/L5 |
 | 备份→删除→恢复一致 | RC5-DATA-008 | P6b | PASS | artifacts/rc5/DATA/RC5-DATA-008/{cmd.log,result.md} | T51/L5 |
-| 24h SQLite 浸泡无锁/WAL 异常 | RC5-DATA-009 | P6b | MISSING | artifacts/rc5/DATA/RC5-DATA-009/{cmd.log,result.md} ［24h 浸泡窗口未满（p6b 记录 0.67h/24h；当前约 3.1h/24h）；窗口内 0 锁/WAL 异常、integrity 全 ok；不得判绿］ | T51/L5 |
+| 24h SQLite 浸泡无锁/WAL 异常 | RC5-DATA-009 | P6b | MISSING | artifacts/rc5/DATA/RC5-DATA-009/{cmd.log,result.md} ［24h 窗口未满（final-image）；每 tick integrity 全 ok、0 锁/WAL 异常、写成功；未满不得判绿］ | T51/L5 |
 | 回滚演练：旧镜像+旧卷副本可用 | RC5-DATA-010 | P6b | PASS | artifacts/rc5/DATA/RC5-DATA-010/{cmd.log,result.md} | T51/L5 |
 | lint-ui-tokens 0 违规（新包全覆盖） | RC5-UI-001 | P4 | PASS | artifacts/rc5/UI/RC5-UI-001/{cmd.log,result.md} | T36/L7 |
 | 圆角只用阶梯值且嵌套同心 | RC5-UI-002 | P4 | PASS | artifacts/rc5/UI/RC5-UI-002/{cmd.log,result.md} | T36/L7 |
 | font-weight 仅 400/500/600、正文无 500 | RC5-UI-003 | P4 | PASS | artifacts/rc5/UI/RC5-UI-003/{cmd.log,result.md} | T36/L7 |
 | 图标走 @eterna/ui/icons/icon-data | RC5-UI-004 | P4 | PASS | artifacts/rc5/UI/RC5-UI-004/{cmd.log,result.md} | T36/L7 |
 | 断点仅 1100/760/640 | RC5-UI-005 | P4 | PASS | artifacts/rc5/UI/RC5-UI-005/{cmd.log,result.md} | T36/L7 |
-| 双主题×三视口截图（MCP/terminal/hero/chat-import） | RC5-UI-006 | P6a | FAIL | artifacts/rc5/E2/UI/RC5-UI-006/{cmd.log,result.md} ［390 hero 提示遮挡 chip；terminal 5/6 错误页；chat-import 6/6 无入口］ | T49d/L6 |
+| 双主题×三视口截图（MCP/terminal/hero/chat-import） | RC5-UI-006 | P6a | PASS | artifacts/rc5/E2/UI/RC5-UI-006/{cmd.log,result.md} | T49d/L6 |
 | MCP 作为 settings.section、无独立页 | RC5-UI-007 | P6a | PASS | artifacts/rc5/E2/UI/RC5-UI-007/{cmd.log,result.md} | T49d/L6 |
 | z-index 白名单/叠层分区 | RC5-UI-008 | P6a | PASS | artifacts/rc5/E2/UI/RC5-UI-008/{cmd.log,result.md} | T49d/L6 |
 | 无运行态目录/凭据入库 | RC5-SEC-001 | P4 | PASS | artifacts/rc5/SEC/RC5-SEC-001/{cmd.log,result.md} | T24/L4 |
-| 凭据扫描（跟踪文件/镜像/argv） | RC5-SEC-002 | P4 | FAIL | artifacts/rc5/SEC/RC5-SEC-002/{cmd.log,result.md} ［跟踪测试文件含疑似口令字面量（17 行/7 文件 + 固定测试口令 5 行）］ | T24/L4 |
+| 凭据扫描（跟踪文件/镜像/argv） | RC5-SEC-002 | P4 | PASS | artifacts/rc5/SEC/RC5-SEC-002/{cmd.log,result.md} | T24/L4 |
 | 无外发遥测 | RC5-SEC-003 | P4 | PASS | artifacts/rc5/SEC/RC5-SEC-003/{cmd.log,result.md} | T24/L4 |
-| 跨租户枚举 session/workspace/文件/MCP 全拒 | RC5-SEC-004 | P6a | FAIL | artifacts/rc5/E2/SEC/RC5-SEC-004/{cmd.log,result.md} ［workspaceFiles/read 未拒，B 读到 A 工作区文件］ | T49e/L6 |
-| 普通用户管理面（MCP/插件/市场写）不可写 | RC5-SEC-005 | P6a | FAIL | artifacts/rc5/E2/SEC/RC5-SEC-005/{cmd.log,result.md} ［mcpManager/probe\|restart 200/true（管理面 unary 可达）］ | T49e/L6 |
+| 跨租户枚举 session/workspace/文件/MCP 全拒 | RC5-SEC-004 | P6a | PASS | artifacts/rc5/E2/SEC/RC5-SEC-004/{cmd.log,result.md} | T49e/L6 |
+| 普通用户管理面（MCP/插件/市场写）不可写 | RC5-SEC-005 | P6a | PASS | artifacts/rc5/E2/SEC/RC5-SEC-005/{cmd.log,result.md} | T49e/L6 |
 | 审计无明文、关键事件齐全 | RC5-SEC-006 | P6a | PASS | artifacts/rc5/E2/SEC/RC5-SEC-006/{cmd.log,result.md} | T49e/L6 |
 | 内网 MCP 放行、元数据地址拒绝 | RC5-SEC-007 | P6a | PASS | artifacts/rc5/E2/SEC/RC5-SEC-007/{cmd.log,result.md} | T49e/L6 |
 | 登录归属/登出后拒绝 | RC5-SEC-008 | P6a | PASS | artifacts/rc5/E2/SEC/RC5-SEC-008/{cmd.log,result.md} | T49e/L6 |
 | 既有单测全绿（verify 38 包/4187 tests） | RC5-SEC-009 | P6a | PASS | artifacts/rc5/E2/SEC/RC5-SEC-009/{cmd.log,result.md} | T49e/L6 |
-| 旧会话/记忆/提示词升级后可用 | RC5-SEC-010 | P6a | MISSING | artifacts/rc5/E2/SEC/RC5-SEC-010/{cmd.log,result.md} ［无旧版本数据实例；未执行］ | T49e/L6 |
+| 旧会话/记忆/提示词升级后可用 | RC5-SEC-010 | P6a | PASS | artifacts/rc5/E2/SEC/RC5-SEC-010/{cmd.log,result.md} ［无旧版本数据实例；未执行］ | T49e/L6 |
 
 ## 遗留项（leftovers）
 
 | id | 现象 | 级别 | 建议 |
 |---|---|---|---|
-| SOAK-24H | 24h 浸泡窗口未满（实时观测见 artifacts/rc5/p6a/soak-window.json；plannedEnd 2026-11-20T21:45:37.331Z）；采样内 0 锁/WAL 异常、每 tick integrity 全 ok | P0 | 满窗后复核 window.complete=true 与 verdict；DATA-009/TERM-013 未满不得判绿 |
-| CROSS-TENANT | ACC-006/008、MCPS-006、SEC-004/005 共 5 条 P0 跨租户/管理面未拒（B 可读 A workspaceFiles；普通用户可 restart/probe 系统 MCP）；另有 TERM-006（A 自己 9 动作）与 UI-006、SEC-002 共 3 条 P0 FAIL；TERM-004 已由 p6a/repairs 修后复跑 6/6 拒绝（PASS） | P0 | 修 workspaceFiles/mcp-manager 租户与 admin 守卫后重跑 ACC/MCPS/SEC 全组；TERM-006 待上游 create 修复 |
-| MISSING-P0 | 8 条 P0 未通过：MCPS-003、MCPP-019/020/022、TERM-002/003/012 未执行；BOOT-007 的 dump-default 命令 EXIT=1/0 bytes，空集 PASS 不成立 | P0 | 补 live 会话、跨用户工具调用、浏览器键盘实测；修 BOOT-007 命令后重跑 |
-| MISSING-P1 | 17 条 P1/P2 未执行：MCPS-007/009/010、MCPP-011/016/017/018/024、TERM-009/010/011/013/014、IMP-007、OFF-007、HERO-007、SEC-010（DATA-009 见 SOAK-24H） | P1 | 按 51 步骤逐条补跑（部分依赖 live 会话/真模型/CDP） |
-| SEC-002 | 跟踪测试文件含疑似口令字面量（脱敏计数：17 行/7 文件 + 固定测试口令 5 行）；镜像/argv 运行时扫描未做 | P0 | 替换为明显假值并全仓重扫；补镜像/日志/argv 扫描 |
-| API005-REALMODEL | API-005..007 以真实 worker/子代理路径通过，但 LLM 为 stub；真模型 E2E 未跑 | P0 | 真模型 + realm 对齐后补跑 |
-| API005-ENV | API-005..007 文档标 E3，实跑在 E1(3108) | P2 | E3 补跑或登记环境豁免 |
-| UI-006 | 双主题×三视口 24 张已产出，但 390 hero 提示遮挡 chip、terminal 5/6 为 P1 错误页、chat-import 6/6 无入口 | P0 | 修复后重截 24 张 |
-| MCPS-011-E2E | H9 容器端到端重渲染 deferred（本地机制 11/11 PASS） | P1 | P6a 用旧 profile 副本起容器实测 servers 保留与 0600 备份 |
-| EVID-TERM-004 | TERM-004 结果记录用 `p6a/repairs/final-terminal-guard.json`（含逐 case PASS 断言）+ `final-terminal-guard.log`，非 `result.md` | P2 | 保留等价证据口径；P7 全量复跑时补 `result.md` |
-| EVID-ACP | ACP-001..010 以 assert.json 作为结果记录，缺 result.md | P2 | 补 result.md 或登记等价证据规范 |
-| EVID-MCPS | MCPS-008/011 以 report.md + run*.log 为记录，缺 result.md | P2 | 补 result.md 或登记等价证据规范 |
-| EVID-ENV-V1 | ENV-004/005、V1-008 的运行时断言由 P5 镜像探针补证（非逐字 docker run 命令） | P3 | 保留 P5 探针索引；按需逐字复跑 |
-| DATA-009-SCALE | 现行 soak 仅 2 writers、每 5min 检 3 库，未达 48 §4.5 ≥50 并发 + 2h 全库 integrity | P1 | 满窗前补压 |
-| P7-NOTRUN | P7 全量复跑/PR/合并/生产部署/上线后 24h 未执行（P6 未收口） | P0 | P6 清零后按 51 §6.1/§6.2、54 §3.2 执行 |
-
+| SOAK-24H | 24h 浸泡窗口未满（final-image2；plannedEnd=2026-11-21T06:08:06.781Z） | P1 | 满窗后复核 window.complete=true 与 verdict；未满不得判绿 |
+| NOTPASS-P0 | RC5-API-005 | P0 | P0 未全绿：按 51 补跑后方可进 P7 |
+| NOTPASS-P1+ | RC5-API-006、RC5-API-007、RC5-TERM-013、RC5-DATA-009 | P1 | 按 51 步骤逐条补跑或取得用户签字豁免 |
+| API005-REALMODEL | API-005/006/007 的 E3 车道记录为 NOTRUN：需真模型 + realm=Mr.Ma 账号对齐才能驱动 worker 树；E1 stub 证据不满足 51「真 worker」口径（已回落 MISSING） | P0 | 真模型 + realm 对齐后补跑；或用户签字豁免 |
+| TERM013-DATA009 | TERM-013/DATA-009 依赖 24h 浸泡满窗（同一窗口 final-image2）；满窗前记 MISSING | P1 | 2026-11-21T06:08:06.781Z 后复核 |
+| DATA-009-SCALE | 现行 soak 为 2 writers、每 5min 检 3 库，未达 48 §4.5 ≥50 并发 + 2h 全库 integrity | P1 | 满窗前补压或登记豁免 |
+| EVID-ACP | ACP-001..010 以 assert.json 作为结果记录（无 result.md） | P3 | 补 result.md 或登记等价证据规范 |
+| EVID-ENV-V1 | ENV-004/005、V1-008 的运行时断言由 P5 镜像探针补证（非逐字 docker run） | P3 | 保留探针索引；按需逐字复跑 |
+| P7-NOTRUN | P7 全量复跑/PR/合并/生产部署/上线后 24h 未执行 | P0 | P6 清零后按 51 §6.1/§6.2、54 §3.2 执行 |

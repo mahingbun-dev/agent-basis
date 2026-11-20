@@ -3,7 +3,7 @@
   "priority": "P0",
   "title": "stdout 纯净：每行均为 JSON-RPC 2.0，无日志/横幅/进度",
   "status": "PASS",
-  "at": "2026-11-19T22:22:12.642Z",
+  "at": "2026-11-20T05:10:32.605Z",
   "detail": "lines=18 nonJsonRpc=0 parseErrors=0 kinds=response:result×8 method:session/update×8 response:error×1 method:session/request_permission×1",
   "assertions": [
     {

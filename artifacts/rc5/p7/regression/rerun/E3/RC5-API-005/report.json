@@ -1,0 +1,105 @@
+{
+  "id": "RC5-API-005",
+  "suite": "E3-super",
+  "priority": "P0",
+  "title": "主会话派 2 个 worker：waitForTreeWork 等到全部完成（API-005）",
+  "expected": "E3 主会话派 2 worker；waitForTreeWork 全完成；无丢回执",
+  "status": "NOTRUN",
+  "startedAt": "2026-11-20T01:45:14.854Z",
+  "finishedAt": "2026-11-20T01:45:16.583Z",
+  "assertions": [
+    {
+      "name": "admin 登录 200",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "模型目录可读（证明路由在，但凭据另判）",
+      "ok": true,
+      "detail": "{\"provider\":\"mimo\",\"model\":\"mimo-v2.6-pro\"}"
+    },
+    {
+      "name": "admin 测试工作区可解析（E3 users.db 只读）",
+      "ok": true,
+      "detail": "090d9317-36d5-40bd-b640-a2c6963652fe"
+    },
+    {
+      "name": "新建会话成功",
+      "ok": true,
+      "detail": "{\"sessionId\":\"session-08922b03-5d58-4176-b076-39caeb5efca2\",\"agentPreset\":\"standard\"}"
+    },
+    {
+      "name": "模型探针如实记录失败原因（AUTH 401 invalid API Key）",
+      "ok": true,
+      "detail": "{\"kind\":\"error\",\"error\":{\"message\":\"401: {\\\"message\\\":\\\"Invalid API Key\\\",\\\"param\\\":\\\"Please provide valid API Key\\\",\\\"code\\\":\\\"401\\\",\\\"type\\\":\\\"invalid_key\\\"}\",\"code\":\"AUTH\"}}"
+    },
+    {
+      "name": "tasks 归属桥按 realm 对齐失败（realm=Mr.Ma 不在 access 用户表）",
+      "ok": true,
+      "detail": "[eterna-tasks-access-bridge] realm「Mr.Ma」不在 access 用户表(realm 与登录账号名不对齐?),跳过主会话归属登记"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)",
+      "exit": 0,
+      "note": "boot token 不入证据"
+    },
+    {
+      "cmd": "GET /connect + GET /?token=… (dsh session bootstrap)",
+      "exit": 200,
+      "note": "token 已脱敏"
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 200,
+      "note": ""
+    },
+    {
+      "cmd": "POST /api/session/modelCatalog",
+      "exit": 200,
+      "note": ""
+    },
+    {
+      "cmd": "POST /api/session/create",
+      "exit": 200,
+      "note": "ok·workspace=090d9317…"
+    },
+    {
+      "cmd": "POST /api/session/prompt",
+      "exit": 200,
+      "note": ""
+    },
+    {
+      "cmd": "session/prompt 载荷内容不写证据（仅一致性探针）",
+      "exit": 0,
+      "note": ""
+    },
+    {
+      "cmd": "POST /api/session/page",
+      "exit": 200,
+      "note": ""
+    },
+    {
+      "cmd": "GET /access/api/tasks/settings",
+      "exit": 200,
+      "note": ""
+    },
+    {
+      "cmd": "docker logs eterna-rc5-e3",
+      "exit": 0,
+      "note": "bridge 日志取 realm 登记事实"
+    }
+  ],
+  "notes": [
+    "tasks masterId=orchestrator-Mr.Ma realm=Mr.Ma",
+    "E3 测试账号 rc5admin 与模板 realm=Mr.Ma 不对齐 → orchestrator 主会话未登记；API-005 的「主会话派 2 个 worker」在 E3 无法成立（P6 需真模型 + realm 对齐账号）。"
+  ],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

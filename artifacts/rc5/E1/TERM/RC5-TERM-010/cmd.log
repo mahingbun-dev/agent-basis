@@ -1,4 +1,38 @@
 # TERM/RC5-TERM-010
-# started 2026-11-19T23:26:01.353Z
+# started 2026-11-20T07:03:38.466Z
 
-# note: 套件中止：RC5-TERM-004 跨租户红（B 可读 A 会话终端）→ 按派发规则立即中止 TERM 套件
+$ POST /api/terminal/create
+EXIT=200
+id=t10-mwomuqcj state=running
+
+$ POST /api/terminal/close
+EXIT=200
+ok=true code=-
+
+$ WS terminal/attach（close 后）
+EXIT=0
+{"kind":"error","code":"terminal/unavailable","message":"Terminal no longer exists in this Session"}
+
+$ WS terminal/retain（close 后）
+EXIT=0
+{"kind":"error","code":"terminal/unavailable","message":"Terminal is closing or unavailable"}
+
+$ POST /api/terminal/list（close 后）
+EXIT=200
+ids=[]
+
+$ POST /api/terminal/create（同 id 复活尝试）
+EXIT=200
+ok=false code=terminal/unavailable msg=Terminal was closed in this Session
+
+[ASSERT] close 后 attach 被 terminal/unavailable 拒绝 => PASS :: {"kind":"error","code":"terminal/unavailable","message":"Terminal no longer exists in this Session"}
+
+[ASSERT] close 后 retain 被 terminal/unavailable 拒绝 => PASS :: {"kind":"error","code":"terminal/unavailable","message":"Terminal is closing or unavailable"}
+
+[ASSERT] close 后 list 不再返回该终端（无幽灵） => PASS :: ids=[]
+
+[ASSERT] 同 id 不可复活（closed in this Session） => PASS :: Terminal was closed in this Session
+
+$ node artifacts/rc5/E1/TERM/term-010.mjs
+EXIT=0
+PASS :: [TERM-010] PASS

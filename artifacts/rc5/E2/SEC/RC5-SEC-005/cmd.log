@@ -1,5 +1,5 @@
 # SEC/RC5-SEC-005
-# started 2026-11-20T00:37:12.543Z
+# started 2026-11-20T07:07:12.711Z
 
 $ POST /api/settings/update {ns:mcp-manager}（B）
 EXIT=200
@@ -26,12 +26,12 @@ EXIT=403
 forbidden
 
 $ POST /api/mcpManager/probe {name:fixture-echo}（B）
-EXIT=200
-ok=true value={"ok":true,"serverInfo":{"name":"fixture-echo","version":"1.0.0"},"toolNames":["echo"],"truncated":false,"durationMs":52,"closeConfirmed":true} code=-
+EXIT=403
+ok=false value= code=-
 
 $ POST /api/mcpManager/restart {name:fixture-echo}（B）
-EXIT=200
-ok=true code=-
+EXIT=403
+ok=false code=-
 
 [ASSERT] B 写系统 MCP 配置被拒 => PASS :: status=200
 
@@ -45,6 +45,6 @@ ok=true code=-
 
 [ASSERT] B 市场写被拒（403） => PASS :: status=403
 
-[ASSERT] B 调系统 MCP probe 被拒 => FAIL :: status=200
+[ASSERT] B 调系统 MCP probe 被拒 => PASS :: status=403
 
-[ASSERT] B 调系统 MCP restart 被拒 => FAIL :: status=200
+[ASSERT] B 调系统 MCP restart 被拒 => PASS :: status=403

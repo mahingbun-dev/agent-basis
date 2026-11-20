@@ -2,7 +2,7 @@
 
 - 套件：MCPS
 - 结论：**PASS**
-- 开始/结束：2026-11-19T22:50:42.374Z / 2026-11-19T22:50:49.162Z
+- 开始/结束：2026-11-20T07:02:52.848Z / 2026-11-20T07:03:00.124Z
 
 ## 预期
 
@@ -10,7 +10,7 @@
 
 ## 实际
 
-health=healthy 配置保留=true probe.ok=true tools=echo
+health=healthy apiReady=true 配置保留=true probe.ok=true tools=echo
 
 ## 备注
 

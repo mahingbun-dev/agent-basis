@@ -38,7 +38,7 @@ export const LANE = {
   port: 3118,
   relayPort: 9321,
   imageTag: 'eterna-agent:rc5-test',
-  expectedImageId: 'sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00',
+  expectedImageId: 'sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb',
 }
 LANE.dataRoot = join(LANE.dataBase, LANE.instance)
 LANE.freshRoot = join(LANE.dataBase, LANE.freshInstance)

@@ -2,13 +2,12 @@
 /**
  * E2 · MCPP 套件（RC5-MCPP-001..024；51 §3.6）。
  *
- * 执行分两段：
+ * 执行分三段：
  *   1) scripts/verify-mcp-personal.mjs（51 §4 指定脚本，--full --restart）一次跑
  *      001–009/012–015/021/023；本 runner 把其 report.json 落成每用例证据。
- *   2) 本 runner 补测 010（HTTPS 可解析校验）与 011（host 白名单单测面）；
- *      023 用“重启后用完整 cookie（dsh-auth + eterna_session）复读”纠正官方脚本
- *      的假红（脚本重启后只用 eterna_session 调 mcp-personal/list → 401）。
- *   016–020/022 需要 live 会话/模型回合，024 需要浏览器，均按 SKIP 明示原因。
+ *   2) 本 runner 补测 010（HTTPS 可解析校验）与 023 的受控复测；
+ *   3) 011/016/017/018/024 由 run-extra.mjs 容器实跑，本 runner 解析 result.md 折叠；
+ *      019/020/022 的 live 回合证据在 LLM lane（明示指向，不冒充）。
  *
  * 停止规则：跨租户 P0 红 → 本套件 halted=true；已由 ACC-008 触发的停线不因本套件改变。
  */
@@ -78,49 +77,36 @@ for (const id of ['RC5-MCPP-001', 'RC5-MCPP-002', 'RC5-MCPP-003', 'RC5-MCPP-004'
   ])
 }
 
-/* ---------------------------------------------- MCPP-010 可解析 HTTPS 校验 */
-
+/* ---------------------------------------------- MCPP-010 空白名单 lane（mcpp-010.mjs 实跑，折叠结论） */
+/* 010 要求 personalHttpHosts 为空，与 011 的非空白名单互斥 → 独立容器 rc5-mcpp10。
+   证据：artifacts/rc5/E2/MCPP/RC5-MCPP-010/result.md（mcpp-010.mjs 产出），本 runner 只折叠。 */
 {
   const c = new Case(suite, 'RC5-MCPP-010')
-  const upsert = await call(s.userB.cookie, 'mcp-personal/upsert', {
-    request: { name: 'https-unresolvable', transport: 'streamable-http', url: 'https://unresolvable.invalid/mcp' },
-  })
-  c.cmd('POST /api/mcp-personal/upsert {name:https-unresolvable,url:https://unresolvable.invalid/mcp}（B）', upsert.status,
-    `ok=${upsert.ok} code=${upsert.error?.code ?? '-'} serverName=${upsert.value?.item?.serverName ?? '-'} msg=${shape(upsert.error?.message, 120)}`)
-  let probe
-  if (upsert.ok === true) {
-    probe = await call(s.userB.cookie, 'mcp-personal/probe', { request: { id: upsert.value?.item?.id } }, { timeoutMs: 30_000 })
-    c.cmd('POST /api/mcp-personal/probe（同一行）', probe.status,
-      `ok=${probe.ok} value=${shape(probe.value, 200)} code=${probe.error?.code ?? '-'}`)
-    await call(s.userB.cookie, 'mcp-personal/delete', { request: { id: upsert.value?.item?.id } })
+  const path = join(LANE.evidenceRoot, 'MCPP', 'RC5-MCPP-010', 'result.md')
+  const folded = existsSync(path) ? (() => {
+    const text = readFileSync(path, 'utf8')
+    const status = /- 结论：\*\*(PASS|FAIL|SKIP|NOTRUN)\*\*/.exec(text)?.[1]
+    const title = /^# RC5-MCPP-010 · (.+)$/m.exec(text)?.[1]
+    const actual = /## 实际\n\n([\s\S]*?)\n\n## /.exec(text)?.[1]?.trim().replace(/\n+/g, ' ') ?? ''
+    return { status, title, actual: shape(actual, 500) }
+  })() : undefined
+  if (folded?.status === 'PASS' || folded?.status === 'FAIL') {
+    rows.push({ id: 'RC5-MCPP-010', status: folded.status, title: folded.title, actual: folded.actual })
+    if (folded.status === 'FAIL' && !halted) {
+      halted = true
+      haltReason = `RC5-MCPP-010: ${folded.title ?? '任意 HTTPS 地址'}`
+    }
+  } else {
+    c.note('mcpp-010.mjs 无 PASS/FAIL 结论（或证据缺失）')
+    record(c, STATUS.NOTRUN, '任意 HTTPS 地址（不可解析域名）校验通过、不被策略拦',
+      'upsert 成功；probe 连接失败属网络层（白名单默认空）',
+      `未执行/未判：${folded?.actual ?? 'result.md 缺失'}（先跑 artifacts/rc5/E2/MCPP/mcpp-010.mjs）`)
   }
-  const accepted = upsert.ok === true && upsert.value?.item?.transport === 'streamable-http'
-  const probeFailedNetwork = probe === undefined ? false : (probe.value?.ok === false && String(probe.value?.error ?? '').length > 0)
-  c.assert('策略接受 https 任意 host（不被白名单拦）', accepted)
-  c.assert('probe 失败属网络层（返回 error 字段，非策略拒绝）', probeFailedNetwork)
-  record(c, accepted ? STATUS.PASS : STATUS.FAIL,
-    '任意 HTTPS 地址（不可解析域名）校验通过、不被策略拦',
-    'upsert 成功；probe 连接失败属网络层（白名单默认空）',
-    `upsert=${upsert.ok}/${upsert.value?.item?.transport ?? '-'}；probe=${shape(probe?.value ?? probe?.error, 120) || '未执行'}`,
-    ['不可解析域名用于证明“不做 DNS/连通性预检”，不依赖外网'])
 }
 
-/* ---------------------------------------------- MCPP-011 host 白名单（单测面） */
-
-{
-  const c = new Case(suite, 'RC5-MCPP-011')
-  const result = run('pnpm', ['--filter', '@eterna/access', 'exec', 'vitest', 'run',
-    'tests/mcp-personal-routes.spec.ts', '-t', 'personalHttpHosts'], { timeout: 300_000 })
-  c.cmd('pnpm --filter @eterna/access exec vitest run tests/mcp-personal-routes.spec.ts -t personalHttpHosts', result.exit, result.stdout, result.stderr)
-  const pass = result.exit === 0 && /1 passed/.test(result.stdout)
-  record(c, STATUS.SKIP,
-    'personalHttpHosts 白名单：b.example 拒 / a.example 过',
-    '配置 personalHttpHosts:[a.example] 时前者拒、后者过',
-    pass
-      ? '单测 `personalHttpHosts 空=放行;非空=白名单且支持 *.suffix` 绿；但本容器未以该白名单启动，未做容器实跑 → 记 SKIP（不以单测冒充容器结论）'
-      : `单测红/未命中：${result.stdout.split('\n').slice(-5).join(' | ')}`,
-    ['容器默认 httpHosts=[]（全放行），见 MCPP-010/007；白名单实跑需要另一实例环境，未在本 lane 执行'])
-}
+/* ---------------------------------------------- MCPP-011 host 白名单（容器实跑） */
+/* 结果见 artifacts/rc5/E2/MCPP/RC5-MCPP-011/result.md（run-extra.mjs 产出），
+   本 runner 只折叠，不重写证据。 */
 
 /* ---------------------------------------------- MCPP-023 受控复测（纠正官方脚本假红） */
 
@@ -164,20 +150,44 @@ for (const id of ['RC5-MCPP-001', 'RC5-MCPP-002', 'RC5-MCPP-003', 'RC5-MCPP-004'
     ])
 }
 
-/* ---------------------------------------------- 需要 live 会话/模型回合/浏览器 */
+/* ---------------------------------------------- 扩展用例折叠（run-extra.mjs 产出） */
+/* 011/016/017/018/024 由 artifacts/rc5/E2/MCPP/run-extra.mjs 在最终镜像上容器实跑，
+   证据各自落在 RC5-MCPP-<id>/result.md；本 runner 只解析结论并折叠，不重写。 */
+function extraResult(id) {
+  const path = join(LANE.evidenceRoot, 'MCPP', `RC5-MCPP-${id}`, 'result.md')
+  if (!existsSync(path)) return undefined
+  const text = readFileSync(path, 'utf8')
+  const status = /- 结论：\*\*(PASS|FAIL|SKIP|NOTRUN)\*\*/.exec(text)?.[1]
+  const title = new RegExp(`^# RC5-MCPP-${id} · (.+)$`, 'm').exec(text)?.[1]
+  const actual = /## 实际\n\n([\s\S]*?)\n\n## /.exec(text)?.[1]?.trim().replace(/\n+/g, ' ') ?? ''
+  return { id: `RC5-MCPP-${id}`, status, title, actual: shape(actual, 500) }
+}
 
-for (const [id, status, title, reason] of [
-  ['RC5-MCPP-016', STATUS.SKIP, '挂死 stdio 8s 放弃', '需要 live 会话建立挂死子进程；API 层无 8s 启动时序面'],
-  ['RC5-MCPP-017', STATUS.SKIP, '慢 HTTP 工具 60s 超时', '需要真实工具调用与 60s 等待（模型回合）'],
-  ['RC5-MCPP-018', STATUS.SKIP, '断线重连 3 次后停止', '需要长时断连/恢复时序'],
-  ['RC5-MCPP-019', STATUS.SKIP, '删除后 live 会话工具当场消失', '需要 live 会话 + tools/list 观察'],
-  ['RC5-MCPP-020', STATUS.SKIP, '跨用户 mcp__p<uid>_* 调用 deny', '需要子代理/跨用户会话工具调用（模型回合）'],
-  ['RC5-MCPP-022', STATUS.SKIP, '登出后个人工具不可用', '需要 live 会话作用域观察'],
-  ['RC5-MCPP-024', STATUS.SKIP, 'MCP UI 双主题三视口', '浏览器人工/截图（本 lane UI 套件另测；若 UI 未完成则保持 SKIP）'],
+for (const id of ['011', '016', '017', '018', '024']) {
+  const row = extraResult(id)
+  if (row?.status === 'PASS' || row?.status === 'FAIL') {
+    rows.push(row)
+    if (row.status === 'FAIL' && !halted) {
+      halted = true
+      haltReason = `${row.id}: ${row.title ?? '扩展用例'}`
+    }
+  } else {
+    const c = new Case(suite, `RC5-MCPP-${id}`)
+    c.note('run-extra.mjs 无 PASS/FAIL 结果（或证据缺失）')
+    record(c, STATUS.SKIP, row?.title ?? `RC5-MCPP-${id}`, '按 51 §3.6',
+      `未执行/未判：${row?.actual ?? 'result.md 缺失'}`)
+  }
+}
+
+/* ---------------------------------------------- live 回合证据在 LLM lane */
+for (const [id, title, evidence] of [
+  ['019', '删除后 live 会话工具当场消失', 'artifacts/rc5/E2/LLM/RC5-MCPP-019/result.md'],
+  ['020', '跨用户 mcp__p<uid>_* 调用 deny', 'artifacts/rc5/E2/LLM/RC5-MCPP-020/result.md'],
+  ['022', '登出后个人工具不可用', 'artifacts/rc5/E2/LLM/RC5-MCPP-022/result.md'],
 ]) {
-  const c = new Case(suite, id)
-  c.note(reason)
-  record(c, status, title, '按 51 §3.6', `未执行：${reason}`, [])
+  const c = new Case(suite, `RC5-MCPP-${id}`)
+  c.note(`live 会话/模型回合面由 LLM lane 实测：${evidence}`)
+  record(c, STATUS.SKIP, title, '按 51 §3.6', `本 runner 未测（证据在 LLM lane）：${evidence}`, [`见 ${evidence}`])
 }
 
 const corrected = rows.filter(row => row.id === 'RC5-MCPP-023').map(row => ({ ...row, status: row.status }))

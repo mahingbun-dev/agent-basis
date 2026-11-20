@@ -1,5 +1,5 @@
 # SEC/RC5-SEC-008
-# started 2026-11-20T00:37:12.380Z
+# started 2026-11-20T07:07:12.417Z
 
 $ GET /access/api/me（B）
 EXIT=200
@@ -7,7 +7,7 @@ EXIT=200
 
 $ POST /api/session/create {workspaceId:B 工作区}（B）
 EXIT=200
-ok=true workspaceId=- sessionId=session-a3c9af8c-2556-4c98-b708-2b2e6a76…
+ok=true workspaceId=- sessionId=session-50a0cb57-9375-4c4a-a82b-8e854a32…
 
 $ node:sqlite SELECT sessions WHERE session_id=<B 新会话>
 EXIT=0

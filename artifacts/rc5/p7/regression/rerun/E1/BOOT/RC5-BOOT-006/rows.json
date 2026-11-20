@@ -1,0 +1,47 @@
+[
+  {
+    "id": "agent-team",
+    "count": 1,
+    "enabled": true
+  },
+  {
+    "id": "tool-agent-team",
+    "count": 1,
+    "enabled": true
+  },
+  {
+    "id": "ui-agent-team",
+    "count": 1,
+    "enabled": true
+  },
+  {
+    "id": "ui-file-actions",
+    "count": 1,
+    "enabled": true
+  },
+  {
+    "id": "ui-context-menu",
+    "count": 1,
+    "enabled": true
+  },
+  {
+    "id": "mcp-manager",
+    "count": 1,
+    "enabled": true
+  },
+  {
+    "id": "office-kit",
+    "count": 1,
+    "enabled": true
+  },
+  {
+    "id": "skill-office",
+    "count": 1,
+    "enabled": true
+  },
+  {
+    "id": "deepseek-chat-import",
+    "count": 1,
+    "enabled": true
+  }
+]

@@ -1,0 +1,44 @@
+# T52 API/SEC 单测复跑 — 2026-11-20T01:50:51Z
+
+== API-001 compaction ==
+      Tests  241 passed (241)
+   Start at  09:50:54
+   Duration  540ms (transform 693ms, setup 0ms, import 1.42s, tests 352ms, environment 1ms)
+
+EXIT=0
+
+
+== API-002 memory ==
+      Tests  504 passed (504)
+   Start at  09:50:57
+   Duration  1.30s (transform 2.05s, setup 0ms, import 4.92s, tests 1.88s, environment 2ms)
+
+EXIT=0
+
+
+== API-003 llm-openai typecheck ==
+$ pnpm --filter @eterna/llm-openai typecheck
+$ tsc -p tsconfig.json --noEmit
+EXIT=0
+
+
+== API-004 tasks ==
+      Tests  864 passed (864)
+   Start at  09:51:02
+   Duration  2.68s (transform 2.28s, setup 0ms, import 11.07s, tests 3.45s, environment 3ms)
+
+EXIT=0
+
+
+== ENV-007 / SEC-009 全仓 verify ==
+$ pnpm -w run verify > /Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E2/SEC/_evidence/verify.log 2>&1
+EXIT=0
+packages/memory verify:  Test Files  21 passed (21)
+packages/memory verify:       Tests  504 passed (504)
+packages/panel verify:  Test Files  6 passed (6)
+packages/panel verify:       Tests  56 passed (56)
+packages/glue verify:  Test Files  12 passed (12)
+packages/glue verify:       Tests  113 passed (113)
+
+T52_VERIFY=ALL_GREEN
+EXIT=0

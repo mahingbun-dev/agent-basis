@@ -5,8 +5,8 @@
   "title": "（lane 本地）真浏览器渲染截图（super 工作台/任务板/terminal 面板）",
   "expected": "深浅两主题 × 1440/900/390 截图 + 控制台无错",
   "status": "NOTRUN",
-  "startedAt": "2026-11-19T22:31:11.480Z",
-  "finishedAt": "2026-11-19T22:31:11.481Z",
+  "startedAt": "2026-11-20T07:04:59.854Z",
+  "finishedAt": "2026-11-20T07:04:59.854Z",
   "assertions": [],
   "commands": [],
   "notes": [

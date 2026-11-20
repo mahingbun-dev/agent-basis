@@ -1,0 +1,14 @@
+# MCPS/RC5-MCPS-004
+# started 2026-11-20T01:41:33.745Z
+
+$ POST /api/settings/describe（B 普通用户）
+EXIT=200
+namespaces=18 含mcp-manager=false
+
+$ POST /api/settings/describe（A 管理员）
+EXIT=200
+namespaces=19 含mcp-manager=true
+
+$ POST /api/settings/update ns=mcp-manager（B 普通用户）
+EXIT=200
+ok=false code=tenant/denied msg=系统 MCP 服务器配置仅管理员可修改（普通用户请使用个人 MCP 设置）

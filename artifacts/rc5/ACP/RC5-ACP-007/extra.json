@@ -6,8 +6,8 @@
       "stopReason": "cancelled"
     }
   },
-  "cancelToResponseMs": 19,
-  "totalMs": 271,
+  "cancelToResponseMs": 56,
+  "totalMs": 311,
   "modelHit": true,
   "modelAbort": {
     "requestId": 4,

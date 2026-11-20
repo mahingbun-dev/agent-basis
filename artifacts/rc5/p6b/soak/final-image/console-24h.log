@@ -1,0 +1,23 @@
+[2026-11-20T05:06:19.450Z] soak start suite=both duration=86400s interval=60s dbInterval=300s container=eterna-rc5-e1
+[2026-11-20T05:06:19.451Z] plannedEnd=2026-11-21T05:06:19.450Z logs=/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p6b/soak/final-image
+[2026-11-20T05:06:19.569Z] auth refreshed
+[2026-11-20T05:06:19.604Z] victim session=session-e4225203-c133-4793-a625-4250b4141071
+[2026-11-20T05:06:19.746Z] long process: spawned pid detached
+[2026-11-20T05:06:20.883Z] term tick=1 fds=38 rssKb=564520 threads=11 longProcs=1 churn=ok
+[2026-11-20T05:06:21.119Z] data tick=1 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=425
+[2026-11-20T05:11:27.887Z] data tick=6 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=428
+[2026-11-20T05:16:34.043Z] data tick=11 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=430
+[2026-11-20T05:21:40.023Z] data tick=16 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=432
+[2026-11-20T05:26:46.099Z] data tick=21 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=434
+[2026-11-20T05:31:52.086Z] data tick=26 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=436
+[2026-11-20T05:35:56.743Z] term tick=30 fds=49 rssKb=444372 threads=11 longProcs=1 churn=ok
+[2026-11-20T05:36:58.144Z] data tick=31 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=438
+[2026-11-20T05:42:04.262Z] data tick=36 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=440
+[2026-11-20T05:47:10.752Z] data tick=41 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=442
+[2026-11-20T05:52:16.839Z] data tick=46 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=444
+[2026-11-20T05:57:22.989Z] data tick=51 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=446
+[2026-11-20T06:02:29.049Z] data tick=56 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=448
+[2026-11-20T06:06:33.674Z] term tick=60 fds=61 rssKb=485076 threads=11 longProcs=1 churn=ok
+[2026-11-20T06:07:35.062Z] data tick=61 integrity=access/users.db:ok,.eterna/memory.sqlite3:ok,knowledge-admin/access.sqlite3:ok writeOk=2/2 lockMatches=0 sessions=450
+[2026-11-20T06:07:41.765Z] signal SIGTERM
+[2026-11-20T06:07:41.766Z] soak stop reason=signal elapsed=3682s complete=false term=NOTRUN data=NOTRUN summary=/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p6b/soak/final-image/summary-24h-final.json

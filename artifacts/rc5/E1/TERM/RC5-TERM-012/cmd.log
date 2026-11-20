@@ -1,4 +1,46 @@
 # TERM/RC5-TERM-012
-# started 2026-11-19T23:26:01.354Z
+# started 2026-11-20T07:03:39.743Z
 
-# note: 套件中止：RC5-TERM-004 跨租户红（B 可读 A 会话终端）→ 按派发规则立即中止 TERM 套件
+$ POST /api/session/create（会话 a）
+EXIT=200
+sessionId=session-d43a8b83-d646-42a0-b3c2-3acd72f7bfdb
+
+$ POST /api/terminal/create（会话 a）
+EXIT=200
+{"id":"t12-a","shell":{"path":"/bin/bash","name":"bash","args":["-i"]},"title":"bash","cwd":"/data/workspaces/rc5admin","cols":80,"rows":24,"state":"running","exitCode":null,"origin":"user","control":"user"}
+
+$ POST /api/session/create（会话 b）
+EXIT=200
+sessionId=session-ff0e78fa-38fc-4001-9803-70ab5e6d8a9f
+
+$ POST /api/terminal/create（会话 b）
+EXIT=200
+{"id":"t12-b","shell":{"path":"/bin/bash","name":"bash","args":["-i"]},"title":"bash","cwd":"/data/workspaces/rc5admin","cols":80,"rows":24,"state":"running","exitCode":null,"origin":"user","control":"user"}
+
+$ POST /api/terminal/list（两个会话）
+EXIT=200
+A=["t12-a"] B=["t12-b"]
+
+$ POST /api/terminal/close（会话 A 关 B 的终端）
+EXIT=200
+ok=true
+
+$ POST /api/terminal/rename（会话 A 改名 B 的终端）
+EXIT=200
+ok=false {"code":"terminal/unavailable","message":"Terminal no longer exists in this Session","details":{}}
+
+$ POST /api/terminal/list（B 复验）
+EXIT=200
+state=running title=bash
+
+[ASSERT] 两个会话各自建出终端 => PASS :: [{"label":"a","sessionId":"session-d43a8b83-d646-42a0-b3c2-3acd72f7bfdb","terminalId":"t12-a","ok":true},{"label":"b","sessionId":"session-ff0e78fa-38fc-4001-9803-70ab5e6d8a9f","terminalId":"t12-b","ok":true}]
+
+[ASSERT] list 只见自己的终端（互不可见） => PASS :: A=["t12-a"] B=["t12-b"]
+
+[ASSERT] 跨会话 close 不伤及对方终端（B 仍 running、标题未变） => PASS :: close_ok=true B.state=running B.title=bash
+
+[ASSERT] 跨会话 rename 被拒（terminal/unavailable） => PASS :: rename_ok=false {"code":"terminal/unavailable","message":"Terminal no longer exists in this Session","details":{}}
+
+$ node artifacts/rc5/E1/TERM/term-012.mjs
+EXIT=0
+PASS :: [TERM-012] PASS

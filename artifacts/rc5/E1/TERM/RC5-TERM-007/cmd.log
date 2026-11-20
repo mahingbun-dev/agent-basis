@@ -1,15 +1,9 @@
 # TERM/RC5-TERM-007
-# started 2026-11-19T23:26:01.354Z
+# started 2026-11-20T07:03:32.913Z
 
-$ node scripts/verify-terminal-guard.mjs ...（脚本内 007 行，先于 004 执行）
+$ node scripts/verify-terminal-guard.mjs --base http://127.0.0.1:3118 --accounts-file /Users/sunny/eterna-data/test-rc5/.test-accounts.json --data-root /Users/sunny/eterna-data/test-20261120/e1 --container rc5-e1suite --json /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E1/TERM/RC5-TERM-004/terminal-guard-report.json
 EXIT=0
-bundles-terminal=true readUserTerminals=false:true preferredShells=[bash]:true
-
-$ grep -n -A6 "optional-terminal-panel" $DSH_HOME/profiles/eterna-web/cordis.patch.yml
-EXIT=0
-preferredShells:
-  - bash
-readUserTerminals: false
+PASS :: bundles-terminal=true readUserTerminals=false:true preferredShells=[bash]:true
 
 [ASSERT] readUserTerminals=false => PASS
 

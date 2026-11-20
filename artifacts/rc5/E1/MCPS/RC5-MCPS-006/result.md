@@ -1,8 +1,8 @@
 # RC5-MCPS-006 · 普通用户 restart/probe 必须被拒
 
 - 套件：MCPS
-- 结论：**FAIL**
-- 开始/结束：2026-11-19T22:50:49.762Z / 2026-11-19T22:50:49.780Z
+- 结论：**PASS**
+- 开始/结束：2026-11-20T07:03:00.694Z / 2026-11-20T07:03:00.700Z
 
 ## 预期
 
@@ -10,7 +10,7 @@ B 直接打 `mcpManager/restart`、`mcpManager/probe` → 403/deny；配置与�
 
 ## 实际
 
-probe: status=200 ok=true；restart: status=200 ok=true；普通用户实际可重启/探测全局 MCP server
+probe: status=403 ok=false；restart: status=403 ok=false；普通用户实际可重启/探测全局 MCP server
 
 ## 备注
 
@@ -25,6 +25,6 @@ probe: status=200 ok=true；restart: status=200 ok=true；普通用户实际可�
 ## 执行命令
 
 ```
-$ POST /api/mcpManager/probe（B 普通用户）  # EXIT=200
-$ POST /api/mcpManager/restart（B 普通用户）  # EXIT=200
+$ POST /api/mcpManager/probe（B 普通用户）  # EXIT=403
+$ POST /api/mcpManager/restart（B 普通用户）  # EXIT=403
 ```

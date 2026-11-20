@@ -1,4 +1,44 @@
 # MCPP/RC5-MCPP-017
-# started 2026-11-19T23:53:32.448Z
+# started 2026-11-20T05:52:15.937Z
 
-# note: 需要真实工具调用与 60s 等待（模型回合）
+$ POST /api/mcp-personal/catalog（读取白名单）
+EXIT=200
+hostWhitelist=["a.example","*.suffix.test","host.docker.internal","b.example:8443"]
+
+$ node tests/fixtures/mcp-slow-http-server.mjs --port 18122 --host 0.0.0.0
+EXIT=0
+healthy=true reused=false
+
+$ docker exec rc5-e2suite node -e fetch(http://host.docker.internal:18122/health)
+EXIT=0
+{"ok":true,"tag":"slow-http-fixture"}
+
+$ POST /api/mcp-personal/upsert {name:slow,url:http://host.docker.internal:18122/mcp}（B）
+EXIT=200
+ok=true serverName=p2_slow code=- msg=
+
+$ POST /api/session/create（B，慢工具会话）
+EXIT=200
+sessionId=session-49654e56-f061-4c5a-bdae-c17e2b1b0bee
+
+$ POST /api/session/prompt（假模型 @@CALL 慢工具）
+EXIT=200
+elapsedMs=60412 tool=mcp__p2_slow__slow
+
+$ 读取 fake-llm.jsonl（tools 清单/工具结果）
+EXIT=0
+dispatched=true absent=false texts=Error: Request timed out
+
+$ POST /api/session/wait（回合记录）
+EXIT=200
+records=2
+
+[ASSERT] 前置：白名单含 host.docker.internal => PASS :: ["a.example","*.suffix.test","host.docker.internal","b.example:8443"]
+
+[ASSERT] 慢工具已在 tools 清单并在本回合派发 => PASS :: {"at":"2026-11-20T05:52:17.730Z","seq":93,"stream":true,"model":"fake-1","toolCount":61,"toolNames":["ask_user_question","bash","create_goal","edit","get_goal","glob","grep","install_personal_plugin","job_kill","job_list","job_output","know…
+
+[ASSERT] 工具调用在 ~60s 超时（55–95s） => PASS :: elapsedMs=60412
+
+[ASSERT] 工具结果回传超时错误（非 90s 成功响应） => PASS :: Error: Request timed out
+
+[ASSERT] 回合正常结束（超时是工具级错误，不炸会话） => PASS :: records=2

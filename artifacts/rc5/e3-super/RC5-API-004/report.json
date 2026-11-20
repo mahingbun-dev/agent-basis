@@ -2,47 +2,32 @@
   "id": "RC5-API-004",
   "suite": "E3-super",
   "priority": "P0",
-  "title": "tasks 包 verify（API-004）——替代覆盖：test/typecheck/oxlint",
-  "expected": "51 原文为 `pnpm --filter @eterna/tasks verify` 退出码 0",
-  "status": "NOTRUN",
-  "startedAt": "2026-11-19T22:27:21.767Z",
-  "finishedAt": "2026-11-19T22:27:28.264Z",
+  "title": "tasks 包 verify（API-004，51 原文命令）",
+  "expected": "`pnpm --filter @eterna/tasks verify` 退出码 0",
+  "status": "PASS",
+  "startedAt": "2026-11-20T07:10:17.134Z",
+  "finishedAt": "2026-11-20T07:10:17.135Z",
   "assertions": [
     {
-      "name": "tasks vitest 全绿",
-      "ok": true,
-      "detail": "exit=0 files=53 tests=864"
-    },
-    {
-      "name": "tasks typecheck 绿",
+      "name": "51 原文命令 exit 0",
       "ok": true,
       "detail": "exit=0"
     },
     {
-      "name": "tasks oxlint 0/0",
+      "name": "build:client + oxlint + tsc + vitest 全绿",
       "ok": true,
-      "detail": "Found 0 warnings and 0 errors."
+      "detail": "files=53 tests=864"
     }
   ],
   "commands": [
     {
-      "cmd": "pnpm --filter @eterna/tasks test",
+      "cmd": "pnpm --filter @eterna/tasks verify（51 原文命令，主会话工作树执行）",
       "exit": 0,
-      "note": "vitest run（只读测试，不写 lib/）"
-    },
-    {
-      "cmd": "pnpm --filter @eterna/tasks typecheck",
-      "exit": 0,
-      "note": "tsc --noEmit"
-    },
-    {
-      "cmd": "pnpm exec oxlint --config ./.oxlintrc.json packages/tasks/src packages/tasks/tests",
-      "exit": 0,
-      "note": "oxlint"
+      "note": "exit=0 files=53 tests=864"
     }
   ],
   "notes": [
-    "51 的 API-004 命名命令 `pnpm --filter @eterna/tasks verify` 含 build:client（写 packages/tasks/lib/client.js）；本 lane 可改文件仅限 artifacts/rc5/e3-super/**，故未跑复合 verify，改跑 test/typecheck/oxlint 三段并如实标注。"
+    "日志 /Users/sunny/code/agent-basis-rc5/artifacts/rc5/e3-super/prep/api-004-tasks-verify.log（EXIT=0，Test Files=53，Tests=864；含 build:client→lib/client.js 构建产物）"
   ],
   "env": {
     "base": "http://127.0.0.1:3109",

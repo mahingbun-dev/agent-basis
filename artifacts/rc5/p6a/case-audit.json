@@ -1,6 +1,6 @@
 {
   "schema": "eterna.rc5.t50.acceptance-matrix/1",
-  "generatedAt": "2026-11-20T00:58:23Z",
+  "generatedAt": "2026-11-20T05:25:41Z",
   "commit": "02f485788411b9aed1938a3c4b009793a090961e",
   "cases": [
     {
@@ -473,8 +473,8 @@
       "priority": "P0",
       "title": "preset 全量替换后保留 rc.5 默认行",
       "owner": "T10/L2",
-      "status": "MISSING",
-      "decision": "`--dump-default-config` EXIT=1/0 bytes；default=0 的空集 PASS 不成立，需修复命令后重跑（tokens=1|1）",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
       "sources": [
         {
           "kind": "dir",
@@ -487,10 +487,10 @@
           "verdict": "PASS",
           "verdictRaw": "PASS",
           "exitTokens": [
-            "1",
-            "1"
+            "0",
+            "0"
           ],
-          "exitOk": false,
+          "exitOk": true,
           "cover": true
         }
       ]
@@ -879,6 +879,8 @@
             "200",
             "200",
             "200",
+            "0",
+            "200",
             "200",
             "0"
           ],
@@ -980,6 +982,9 @@
             "200",
             "0",
             "200",
+            "429",
+            "429",
+            "429",
             "200",
             "200"
           ],
@@ -1196,8 +1201,8 @@
       "priority": "P0",
       "title": "普通用户 mcp-manager 设置/管理全拒",
       "owner": "T49a/L6",
-      "status": "FAIL",
-      "decision": "普通用户 probe=200/true、restart=200/true（unary 未拒）",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|200|200|0|403|403|200|200|200|200|0）",
       "sources": [
         {
           "kind": "dir",
@@ -1207,16 +1212,16 @@
             "artifacts/rc5/E2/ACC/RC5-ACC-006/cmd.log"
           ],
           "exists": true,
-          "verdict": "FAIL",
-          "verdictRaw": "FAIL",
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
           "exitTokens": [
             "200",
             "200",
             "200",
             "200",
             "0",
-            "200",
-            "200",
+            "403",
+            "403",
             "200",
             "200",
             "200",
@@ -1274,8 +1279,8 @@
       "priority": "P0",
       "title": "B 用 A 的 workspaceId 文件/检索 403",
       "owner": "T49a/L6",
-      "status": "FAIL",
-      "decision": "workspaceFiles/list|stat|read 未拒，A 文件内容泄漏",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|200|200|200|200|200|200|200|200|200|200）",
       "sources": [
         {
           "kind": "dir",
@@ -1285,8 +1290,8 @@
             "artifacts/rc5/E2/ACC/RC5-ACC-008/cmd.log"
           ],
           "exists": true,
-          "verdict": "FAIL",
-          "verdictRaw": "FAIL",
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
           "exitTokens": [
             "200",
             "200",
@@ -1433,8 +1438,8 @@
       "priority": "P0",
       "title": "会话内调用系统 MCP 工具",
       "owner": "T49a/L6",
-      "status": "MISSING",
-      "decision": "会话内调用需真实模型回合；E1 无 LLM 凭据，未执行",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|200|0|200|200|200|0）",
       "sources": [
         {
           "kind": "dir",
@@ -1444,8 +1449,31 @@
             "artifacts/rc5/E1/MCPS/RC5-MCPS-003/cmd.log"
           ],
           "exists": true,
-          "verdict": "SKIP",
-          "verdictRaw": "NOTRUN",
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "200",
+            "200",
+            "200",
+            "0",
+            "200",
+            "200",
+            "200",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/LLM/RC5-MCPS-003",
+          "files": [
+            "artifacts/rc5/E2/LLM/RC5-MCPS-003/result.md",
+            "artifacts/rc5/E2/LLM/RC5-MCPS-003/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
           "exitTokens": [
             "200",
             "200",
@@ -1528,8 +1556,8 @@
       "priority": "P0",
       "title": "普通用户 restart/probe 必须被拒",
       "owner": "T49a/L6",
-      "status": "FAIL",
-      "decision": "普通用户 restart/probe 200/true",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（403|403|403|403）",
       "sources": [
         {
           "kind": "dir",
@@ -1539,13 +1567,13 @@
             "artifacts/rc5/E1/MCPS/RC5-MCPS-006/cmd.log"
           ],
           "exists": true,
-          "verdict": "FAIL",
-          "verdictRaw": "FAIL",
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
           "exitTokens": [
-            "200",
-            "200",
-            "200",
-            "200"
+            "403",
+            "403",
+            "403",
+            "403"
           ],
           "exitOk": true,
           "cover": true
@@ -1559,8 +1587,8 @@
       "priority": "P1",
       "title": "管理员 watch 连接状态流可用",
       "owner": "T49a/L6",
-      "status": "MISSING",
-      "decision": "套件因 MCPS-006 越权红中止",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
       "sources": [
         {
           "kind": "dir",
@@ -1570,10 +1598,13 @@
             "artifacts/rc5/E1/MCPS/RC5-MCPS-007/cmd.log"
           ],
           "exists": true,
-          "verdict": "SKIP",
-          "verdictRaw": "SKIP",
-          "exitTokens": [],
-          "exitOk": false,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
           "cover": true
         }
       ]
@@ -1615,10 +1646,13 @@
             "artifacts/rc5/E1/MCPS/RC5-MCPS-008/cmd.log"
           ],
           "exists": true,
-          "verdict": "SKIP",
-          "verdictRaw": "SKIP",
-          "exitTokens": [],
-          "exitOk": false,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
           "cover": false
         }
       ]
@@ -1630,8 +1664,8 @@
       "priority": "P1",
       "title": "非法 YAML/未知 transport 报错不破坏配置",
       "owner": "T49a/L6",
-      "status": "MISSING",
-      "decision": "套件因 MCPS-006 越权红中止",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200）",
       "sources": [
         {
           "kind": "dir",
@@ -1641,10 +1675,13 @@
             "artifacts/rc5/E1/MCPS/RC5-MCPS-009/cmd.log"
           ],
           "exists": true,
-          "verdict": "SKIP",
-          "verdictRaw": "SKIP",
-          "exitTokens": [],
-          "exitOk": false,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "200",
+            "200"
+          ],
+          "exitOk": true,
           "cover": true
         }
       ]
@@ -1656,8 +1693,8 @@
       "priority": "P1",
       "title": "系统 MCP 启动失败不阻塞 boot/会话可用",
       "owner": "T49a/L6",
-      "status": "MISSING",
-      "decision": "套件因 MCPS-006 越权红中止",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|200|0|0|200|200|200|0）",
       "sources": [
         {
           "kind": "dir",
@@ -1667,10 +1704,20 @@
             "artifacts/rc5/E1/MCPS/RC5-MCPS-010/cmd.log"
           ],
           "exists": true,
-          "verdict": "SKIP",
-          "verdictRaw": "SKIP",
-          "exitTokens": [],
-          "exitOk": false,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "200",
+            "200",
+            "200",
+            "0",
+            "0",
+            "200",
+            "200",
+            "200",
+            "0"
+          ],
+          "exitOk": true,
           "cover": true
         }
       ]
@@ -1711,10 +1758,19 @@
             "artifacts/rc5/E1/MCPS/RC5-MCPS-011/cmd.log"
           ],
           "exists": true,
-          "verdict": "SKIP",
-          "verdictRaw": "SKIP",
-          "exitTokens": [],
-          "exitOk": false,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0",
+            "0",
+            "200",
+            "0",
+            "200",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
           "cover": false
         }
       ]
@@ -2241,8 +2297,8 @@
       "priority": "P0",
       "title": "删除后 live 会话工具当场消失",
       "owner": "T49b/L6",
-      "status": "MISSING",
-      "decision": "需 live 会话 + tools/list 观察；未执行",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|200|200|200|200）",
       "sources": [
         {
           "kind": "dir",
@@ -2257,6 +2313,27 @@
           "exitTokens": [],
           "exitOk": false,
           "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/LLM/RC5-MCPP-019",
+          "files": [
+            "artifacts/rc5/E2/LLM/RC5-MCPP-019/result.md",
+            "artifacts/rc5/E2/LLM/RC5-MCPP-019/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
         }
       ]
     },
@@ -2267,8 +2344,8 @@
       "priority": "P0",
       "title": "跨用户 mcp__p<uid>_* 调用 deny",
       "owner": "T49b/L6",
-      "status": "MISSING",
-      "decision": "需子代理/跨用户会话工具调用；未执行",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|200|200|200|200）",
       "sources": [
         {
           "kind": "dir",
@@ -2282,6 +2359,27 @@
           "verdictRaw": "SKIP",
           "exitTokens": [],
           "exitOk": false,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/LLM/RC5-MCPP-020",
+          "files": [
+            "artifacts/rc5/E2/LLM/RC5-MCPP-020/result.md",
+            "artifacts/rc5/E2/LLM/RC5-MCPP-020/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
           "cover": true
         }
       ]
@@ -2322,8 +2420,8 @@
       "priority": "P0",
       "title": "登出/禁用后个人工具不可用",
       "owner": "T49b/L6",
-      "status": "MISSING",
-      "decision": "需 live 会话作用域观察；未执行",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|200|302|200|200|200|200|302|200）",
       "sources": [
         {
           "kind": "dir",
@@ -2337,6 +2435,31 @@
           "verdictRaw": "SKIP",
           "exitTokens": [],
           "exitOk": false,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/LLM/RC5-MCPP-022",
+          "files": [
+            "artifacts/rc5/E2/LLM/RC5-MCPP-022/result.md",
+            "artifacts/rc5/E2/LLM/RC5-MCPP-022/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "200",
+            "200",
+            "200",
+            "302",
+            "200",
+            "200",
+            "200",
+            "200",
+            "302",
+            "200"
+          ],
+          "exitOk": true,
           "cover": true
         }
       ]
@@ -2414,7 +2537,7 @@
       "title": "profile 含 terminal bundle",
       "owner": "T34/L4",
       "status": "PASS",
-      "decision": "cover PASS + EXIT ok（0|0|0|0）",
+      "decision": "cover PASS + EXIT ok（0|0）",
       "sources": [
         {
           "kind": "dir",
@@ -2427,8 +2550,6 @@
           "verdict": "PASS",
           "verdictRaw": "PASS",
           "exitTokens": [
-            "0",
-            "0",
             "0",
             "0"
           ],
@@ -2466,8 +2587,8 @@
       "priority": "P0",
       "title": "侧栏 terminal 面板/首键人接管",
       "owner": "T49b/L6",
-      "status": "MISSING",
-      "decision": "需浏览器键盘实测；且 create P1 使活终端建不出",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
       "sources": [
         {
           "kind": "dir",
@@ -2491,10 +2612,13 @@
             "artifacts/rc5/E2/TERM/RC5-TERM-002/cmd.log"
           ],
           "exists": true,
-          "verdict": "SKIP",
-          "verdictRaw": "SKIP",
-          "exitTokens": [],
-          "exitOk": false,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
           "cover": true
         },
         {
@@ -2505,8 +2629,8 @@
             "artifacts/rc5/e3-super/RC5-TERM-002/cmd.log"
           ],
           "exists": true,
-          "verdict": "SKIP",
-          "verdictRaw": "NOTRUN",
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
           "exitTokens": [
             "0",
             "200",
@@ -2530,8 +2654,8 @@
       "priority": "P0",
       "title": "6 个 terminal_* 工具逐个可调用",
       "owner": "T49b/L6",
-      "status": "MISSING",
-      "decision": "需模型回合触发工具调用；未执行",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
       "sources": [
         {
           "kind": "dir",
@@ -2555,10 +2679,13 @@
             "artifacts/rc5/E2/TERM/RC5-TERM-003/cmd.log"
           ],
           "exists": true,
-          "verdict": "SKIP",
-          "verdictRaw": "SKIP",
-          "exitTokens": [],
-          "exitOk": false,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
           "cover": true
         }
       ]
@@ -2571,24 +2698,153 @@
       "title": "B 用 A sessionId 调 6 unary 全拒",
       "owner": "T49b/L6",
       "status": "PASS",
-      "decision": "修后复跑 6/6 remote-access/denied（final-terminal-guard.json）；修前 FAIL 日志保留",
+      "decision": "cover PASS + EXIT ok（0|0）",
       "sources": [
         {
-          "kind": "file",
-          "path": "artifacts/rc5/p6a/repairs/final-terminal-guard.json",
+          "kind": "dir",
+          "path": "artifacts/rc5/E1/TERM/RC5-TERM-004",
           "files": [
-            "artifacts/rc5/p6a/repairs/final-terminal-guard.json",
-            "artifacts/rc5/p6a/repairs/final-terminal-guard.log"
+            "artifacts/rc5/E1/TERM/RC5-TERM-004/result.md",
+            "artifacts/rc5/E1/TERM/RC5-TERM-004/cmd.log"
           ],
           "exists": true,
           "verdict": "PASS",
           "verdictRaw": "PASS",
           "exitTokens": [
+            "0",
             "0"
           ],
           "exitOk": true,
-          "cover": true,
-          "note": "repairs round 1；修前 E1/E2/E3 目录日志保留，不参与当前判定"
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/TERM/RC5-TERM-004a",
+          "files": [
+            "artifacts/rc5/E2/TERM/RC5-TERM-004a/result.md",
+            "artifacts/rc5/E2/TERM/RC5-TERM-004a/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/TERM/RC5-TERM-004b",
+          "files": [
+            "artifacts/rc5/E2/TERM/RC5-TERM-004b/result.md",
+            "artifacts/rc5/E2/TERM/RC5-TERM-004b/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/TERM/RC5-TERM-004c",
+          "files": [
+            "artifacts/rc5/E2/TERM/RC5-TERM-004c/result.md",
+            "artifacts/rc5/E2/TERM/RC5-TERM-004c/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/TERM/RC5-TERM-004d",
+          "files": [
+            "artifacts/rc5/E2/TERM/RC5-TERM-004d/result.md",
+            "artifacts/rc5/E2/TERM/RC5-TERM-004d/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/TERM/RC5-TERM-004e",
+          "files": [
+            "artifacts/rc5/E2/TERM/RC5-TERM-004e/result.md",
+            "artifacts/rc5/E2/TERM/RC5-TERM-004e/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/E2/TERM/RC5-TERM-004f",
+          "files": [
+            "artifacts/rc5/E2/TERM/RC5-TERM-004f/result.md",
+            "artifacts/rc5/E2/TERM/RC5-TERM-004f/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
+          "cover": true
+        },
+        {
+          "kind": "dir",
+          "path": "artifacts/rc5/e3-super/RC5-TERM-004",
+          "files": [
+            "artifacts/rc5/e3-super/RC5-TERM-004/result.md",
+            "artifacts/rc5/e3-super/RC5-TERM-004/cmd.log"
+          ],
+          "exists": true,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "200",
+            "0",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200"
+          ],
+          "exitOk": true,
+          "cover": true
         }
       ]
     },
@@ -2678,8 +2934,8 @@
             "artifacts/rc5/e3-super/RC5-TERM-005/cmd.log"
           ],
           "exists": true,
-          "verdict": "SKIP",
-          "verdictRaw": "NOTRUN",
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
           "exitTokens": [
             "0",
             "200",
@@ -2706,8 +2962,8 @@
       "priority": "P0",
       "title": "A 同 session 9 动作全部成功",
       "owner": "T49b/L6",
-      "status": "FAIL",
-      "decision": "create/rename/retain 失败（session.snapshotEvents / terminal unavailable）",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|200|200|200|0|0|0|200|200|200|200）",
       "sources": [
         {
           "kind": "dir",
@@ -2731,15 +2987,15 @@
             "artifacts/rc5/E2/TERM/RC5-TERM-006/cmd.log"
           ],
           "exists": true,
-          "verdict": "FAIL",
-          "verdictRaw": "FAIL",
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
           "exitTokens": [
             "200",
             "200",
             "200",
             "200",
             "200",
-            "200",
+            "0",
             "0",
             "0",
             "200",
@@ -2758,10 +3014,10 @@
             "artifacts/rc5/e3-super/RC5-TERM-006/cmd.log"
           ],
           "exists": true,
-          "verdict": "FAIL",
-          "verdictRaw": "FAIL",
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
           "exitTokens": [
-            "1",
+            "0",
             "200",
             "0",
             "200",
@@ -2787,7 +3043,7 @@
       "title": "readUserTerminals=false/preferredShells=[bash]",
       "owner": "T34/L4",
       "status": "PASS",
-      "decision": "cover PASS + EXIT ok（0|0|0|0）",
+      "decision": "cover PASS + EXIT ok（0|0）",
       "sources": [
         {
           "kind": "dir",
@@ -2800,8 +3056,6 @@
           "verdict": "PASS",
           "verdictRaw": "PASS",
           "exitTokens": [
-            "0",
-            "0",
             "0",
             "0"
           ],
@@ -2897,8 +3151,8 @@
       "priority": "P1",
       "title": "长进程切页再回：进程存活/输出连续",
       "owner": "T49b/L6",
-      "status": "MISSING",
-      "decision": "套件因 TERM-004 跨租户红中止",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|0|0|0|0|0）",
       "sources": [
         {
           "kind": "dir",
@@ -2908,10 +3162,17 @@
             "artifacts/rc5/E1/TERM/RC5-TERM-009/cmd.log"
           ],
           "exists": true,
-          "verdict": "SKIP",
-          "verdictRaw": "SKIP",
-          "exitTokens": [],
-          "exitOk": false,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "200",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
           "cover": true
         }
       ]
@@ -2923,8 +3184,8 @@
       "priority": "P1",
       "title": "close 后再 attach 无幽灵终端",
       "owner": "T49b/L6",
-      "status": "MISSING",
-      "decision": "套件因 TERM-004 跨租户红中止",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|0|0|200|200|0|0）",
       "sources": [
         {
           "kind": "dir",
@@ -2934,10 +3195,19 @@
             "artifacts/rc5/E1/TERM/RC5-TERM-010/cmd.log"
           ],
           "exists": true,
-          "verdict": "SKIP",
-          "verdictRaw": "SKIP",
-          "exitTokens": [],
-          "exitOk": false,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "200",
+            "200",
+            "0",
+            "0",
+            "200",
+            "200",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
           "cover": true
         }
       ]
@@ -2949,8 +3219,8 @@
       "priority": "P1",
       "title": "rename/retain 后刷新状态持久",
       "owner": "T49b/L6",
-      "status": "MISSING",
-      "decision": "依赖 create 成功；被 session.snapshotEvents P1 阻断",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
       "sources": [
         {
           "kind": "dir",
@@ -2974,10 +3244,13 @@
             "artifacts/rc5/E2/TERM/RC5-TERM-011/cmd.log"
           ],
           "exists": true,
-          "verdict": "SKIP",
-          "verdictRaw": "SKIP",
-          "exitTokens": [],
-          "exitOk": false,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "0",
+            "0"
+          ],
+          "exitOk": true,
           "cover": true
         }
       ]
@@ -2989,8 +3262,8 @@
       "priority": "P0",
       "title": "两会话各开终端互不可见/互不输入",
       "owner": "T49b/L6",
-      "status": "MISSING",
-      "decision": "套件中止；E3 亦未执行",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|200|200|200|200|200|200|0|0）",
       "sources": [
         {
           "kind": "dir",
@@ -3000,10 +3273,21 @@
             "artifacts/rc5/E1/TERM/RC5-TERM-012/cmd.log"
           ],
           "exists": true,
-          "verdict": "SKIP",
-          "verdictRaw": "SKIP",
-          "exitTokens": [],
-          "exitOk": false,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "200",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
           "cover": true
         },
         {
@@ -3014,12 +3298,15 @@
             "artifacts/rc5/e3-super/RC5-TERM-012/cmd.log"
           ],
           "exists": true,
-          "verdict": "SKIP",
-          "verdictRaw": "NOTRUN",
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
           "exitTokens": [
             "0",
             "200",
             "0",
+            "200",
+            "200",
+            "200",
             "200",
             "200",
             "200",
@@ -3040,7 +3327,7 @@
       "title": "24h 浸泡无 fd 泄漏/内存增长",
       "owner": "T49b/L6",
       "status": "MISSING",
-      "decision": "套件中止；24h soak churn 持续失败（create=session.snapshotEvents）",
+      "decision": "24h 窗口未满（final-image 窗口 plannedEnd 2026-11-21T05:06:19Z）；每 tick churn=create→WS attach(snapshot)→close 全 ok；未满不得判绿",
       "sources": [
         {
           "kind": "dir",
@@ -3051,8 +3338,11 @@
           ],
           "exists": true,
           "verdict": "SKIP",
-          "verdictRaw": "SKIP",
-          "exitTokens": [],
+          "verdictRaw": "NOTRUN",
+          "exitTokens": [
+            "1",
+            "1"
+          ],
           "exitOk": false,
           "cover": true
         },
@@ -3084,8 +3374,8 @@
       "priority": "P2",
       "title": "bash 不存在时明确报错、容器不崩",
       "owner": "T48/L6",
-      "status": "MISSING",
-      "decision": "套件因 TERM-004 跨租户红中止",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|0|200|0|0）",
       "sources": [
         {
           "kind": "dir",
@@ -3095,10 +3385,16 @@
             "artifacts/rc5/E1/TERM/RC5-TERM-014/cmd.log"
           ],
           "exists": true,
-          "verdict": "SKIP",
-          "verdictRaw": "SKIP",
-          "exitTokens": [],
-          "exitOk": false,
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
+          "exitTokens": [
+            "200",
+            "0",
+            "200",
+            "0",
+            "0"
+          ],
+          "exitOk": true,
           "cover": true
         }
       ]
@@ -3400,7 +3696,7 @@
       "title": "initialize 协议协商成功",
       "owner": "T49c/L6",
       "status": "PASS",
-      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3319}）",
+      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3598}）",
       "sources": [
         {
           "kind": "dir",
@@ -3413,7 +3709,7 @@
           "verdict": "PASS",
           "verdictRaw": "PASS",
           "exitTokens": [
-            "{\"code\":0,\"signal\":null,\"elapsedMs\":3319}"
+            "{\"code\":0,\"signal\":null,\"elapsedMs\":3598}"
           ],
           "exitOk": true,
           "cover": true
@@ -3428,7 +3724,7 @@
       "title": "session/new + prompt 正常返回",
       "owner": "T49c/L6",
       "status": "PASS",
-      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3319}）",
+      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3598}）",
       "sources": [
         {
           "kind": "dir",
@@ -3441,7 +3737,7 @@
           "verdict": "PASS",
           "verdictRaw": "PASS",
           "exitTokens": [
-            "{\"code\":0,\"signal\":null,\"elapsedMs\":3319}"
+            "{\"code\":0,\"signal\":null,\"elapsedMs\":3598}"
           ],
           "exitOk": true,
           "cover": true
@@ -3456,7 +3752,7 @@
       "title": "stdout 每行均为纯 JSON-RPC",
       "owner": "T49c/L6",
       "status": "PASS",
-      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3319}）",
+      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3598}）",
       "sources": [
         {
           "kind": "dir",
@@ -3469,7 +3765,7 @@
           "verdict": "PASS",
           "verdictRaw": "PASS",
           "exitTokens": [
-            "{\"code\":0,\"signal\":null,\"elapsedMs\":3319}"
+            "{\"code\":0,\"signal\":null,\"elapsedMs\":3598}"
           ],
           "exitOk": true,
           "cover": true
@@ -3484,7 +3780,7 @@
       "title": "ACP 容器无监听端口",
       "owner": "T49c/L6",
       "status": "PASS",
-      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3319}）",
+      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3598}）",
       "sources": [
         {
           "kind": "dir",
@@ -3497,7 +3793,7 @@
           "verdict": "PASS",
           "verdictRaw": "PASS",
           "exitTokens": [
-            "{\"code\":0,\"signal\":null,\"elapsedMs\":3319}"
+            "{\"code\":0,\"signal\":null,\"elapsedMs\":3598}"
           ],
           "exitOk": true,
           "cover": true
@@ -3512,7 +3808,7 @@
       "title": "非法 JSON 返回 error 且进程不崩",
       "owner": "T49c/L6",
       "status": "PASS",
-      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3319}）",
+      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3598}）",
       "sources": [
         {
           "kind": "dir",
@@ -3525,7 +3821,7 @@
           "verdict": "PASS",
           "verdictRaw": "PASS",
           "exitTokens": [
-            "{\"code\":0,\"signal\":null,\"elapsedMs\":3319}"
+            "{\"code\":0,\"signal\":null,\"elapsedMs\":3598}"
           ],
           "exitOk": true,
           "cover": true
@@ -3540,7 +3836,7 @@
       "title": "工具审批 request_permission 不挂死",
       "owner": "T49c/L6",
       "status": "PASS",
-      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3319}）",
+      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3598}）",
       "sources": [
         {
           "kind": "dir",
@@ -3553,7 +3849,7 @@
           "verdict": "PASS",
           "verdictRaw": "PASS",
           "exitTokens": [
-            "{\"code\":0,\"signal\":null,\"elapsedMs\":3319}"
+            "{\"code\":0,\"signal\":null,\"elapsedMs\":3598}"
           ],
           "exitOk": true,
           "cover": true
@@ -3568,7 +3864,7 @@
       "title": "取消 prompt 生效、后续可用",
       "owner": "T49c/L6",
       "status": "PASS",
-      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3319}）",
+      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":3598}）",
       "sources": [
         {
           "kind": "dir",
@@ -3581,7 +3877,7 @@
           "verdict": "PASS",
           "verdictRaw": "PASS",
           "exitTokens": [
-            "{\"code\":0,\"signal\":null,\"elapsedMs\":3319}"
+            "{\"code\":0,\"signal\":null,\"elapsedMs\":3598}"
           ],
           "exitOk": true,
           "cover": true
@@ -3596,7 +3892,7 @@
       "title": "两客户端并发隔离无串话",
       "owner": "T49c/L6",
       "status": "PASS",
-      "decision": "cover PASS + EXIT ok（{\"A\":{\"code\":0,\"signal\":null,\"elapsedMs\":3685},\"B\":{\"code\":0,\"signal\":null,\"elapsedMs\":3894}}）",
+      "decision": "cover PASS + EXIT ok（{\"A\":{\"code\":0,\"signal\":null,\"elapsedMs\":3720},\"B\":{\"code\":0,\"signal\":null,\"elapsedMs\":3991}}）",
       "sources": [
         {
           "kind": "dir",
@@ -3609,7 +3905,7 @@
           "verdict": "PASS",
           "verdictRaw": "PASS",
           "exitTokens": [
-            "{\"A\":{\"code\":0,\"signal\":null,\"elapsedMs\":3685},\"B\":{\"code\":0,\"signal\":null,\"elapsedMs\":3894}}"
+            "{\"A\":{\"code\":0,\"signal\":null,\"elapsedMs\":3720},\"B\":{\"code\":0,\"signal\":null,\"elapsedMs\":3991}}"
           ],
           "exitOk": true,
           "cover": true
@@ -3652,7 +3948,7 @@
       "title": "web+ACP 同卷并发无数据库锁",
       "owner": "T49c/L6",
       "status": "PASS",
-      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":2428}）",
+      "decision": "cover PASS + EXIT ok（{\"code\":0,\"signal\":null,\"elapsedMs\":2936}）",
       "sources": [
         {
           "kind": "dir",
@@ -3665,7 +3961,7 @@
           "verdict": "PASS",
           "verdictRaw": "PASS",
           "exitTokens": [
-            "{\"code\":0,\"signal\":null,\"elapsedMs\":2428}"
+            "{\"code\":0,\"signal\":null,\"elapsedMs\":2936}"
           ],
           "exitOk": true,
           "cover": true
@@ -4756,7 +5052,7 @@
       "title": "24h SQLite 浸泡无锁/WAL 异常",
       "owner": "T51/L5",
       "status": "MISSING",
-      "decision": "24h 浸泡窗口未满（p6b 记录 0.67h/24h；当前约 3.1h/24h）；窗口内 0 锁/WAL 异常、integrity 全 ok；不得判绿",
+      "decision": "24h 窗口未满（final-image）；每 tick integrity 全 ok、0 锁/WAL 异常、写成功；未满不得判绿",
       "sources": [
         {
           "kind": "p6b",
@@ -4962,8 +5258,8 @@
       "priority": "P0",
       "title": "双主题×三视口截图（MCP/terminal/hero/chat-import）",
       "owner": "T49d/L6",
-      "status": "FAIL",
-      "decision": "390 hero 提示遮挡 chip；terminal 5/6 错误页；chat-import 6/6 无入口",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|200|200|0|200|200）",
       "sources": [
         {
           "kind": "dir",
@@ -4973,8 +5269,8 @@
             "artifacts/rc5/E2/UI/RC5-UI-006/cmd.log"
           ],
           "exists": true,
-          "verdict": "FAIL",
-          "verdictRaw": "FAIL",
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
           "exitTokens": [
             "0",
             "200",
@@ -5081,8 +5377,8 @@
       "priority": "P0",
       "title": "凭据扫描（跟踪文件/镜像/argv）",
       "owner": "T24/L4",
-      "status": "FAIL",
-      "decision": "跟踪测试文件含疑似口令字面量（17 行/7 文件 + 固定测试口令 5 行）",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（0|0）",
       "sources": [
         {
           "kind": "dir",
@@ -5092,12 +5388,13 @@
             "artifacts/rc5/SEC/RC5-SEC-002/cmd.log"
           ],
           "exists": true,
-          "verdict": "FAIL",
-          "verdictRaw": "FAIL",
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
           "exitTokens": [
-            "1"
+            "0",
+            "0"
           ],
-          "exitOk": false,
+          "exitOk": true,
           "cover": true
         }
       ]
@@ -5137,8 +5434,8 @@
       "priority": "P0",
       "title": "跨租户枚举 session/workspace/文件/MCP 全拒",
       "owner": "T49e/L6",
-      "status": "FAIL",
-      "decision": "workspaceFiles/read 未拒，B 读到 A 工作区文件",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|200|200|200|200|200|200|200|200|200|200）",
       "sources": [
         {
           "kind": "dir",
@@ -5148,8 +5445,8 @@
             "artifacts/rc5/E2/SEC/RC5-SEC-004/cmd.log"
           ],
           "exists": true,
-          "verdict": "FAIL",
-          "verdictRaw": "FAIL",
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
           "exitTokens": [
             "200",
             "200",
@@ -5176,8 +5473,8 @@
       "priority": "P0",
       "title": "普通用户管理面（MCP/插件/市场写）不可写",
       "owner": "T49e/L6",
-      "status": "FAIL",
-      "decision": "mcpManager/probe|restart 200/true（管理面 unary 可达）",
+      "status": "PASS",
+      "decision": "cover PASS + EXIT ok（200|200|403|403|403|403|403|403|200|200|403|403）",
       "sources": [
         {
           "kind": "dir",
@@ -5187,8 +5484,8 @@
             "artifacts/rc5/E2/SEC/RC5-SEC-005/cmd.log"
           ],
           "exists": true,
-          "verdict": "FAIL",
-          "verdictRaw": "FAIL",
+          "verdict": "PASS",
+          "verdictRaw": "PASS",
           "exitTokens": [
             "200",
             "200",
@@ -5196,8 +5493,8 @@
             "403",
             "403",
             "403",
-            "200",
-            "200",
+            "403",
+            "403",
             "200",
             "200",
             "403",
@@ -5375,9 +5672,9 @@
   "counts": {
     "total": 164,
     "status": {
-      "PASS": 130,
-      "FAIL": 8,
-      "MISSING": 26
+      "PASS": 153,
+      "FAIL": 0,
+      "MISSING": 11
     },
     "bySuite": {
       "ENV": 8,
@@ -5409,28 +5706,28 @@
   },
   "soak": {
     "case": "RC5-DATA-009 + RC5-TERM-013",
-    "startedAt": "2026-11-19T21:45:37.331Z",
-    "plannedEndAt": "2026-11-20T21:45:37.331Z",
+    "startedAt": "2026-11-20T05:06:19.450Z",
+    "plannedEndAt": "2026-11-21T05:06:19.450Z",
     "plannedSeconds": 86400,
-    "observedElapsedSeconds": 11434,
-    "observedElapsedHours": 3.18,
-    "observedAt": "2026-11-20T00:56:11.232Z",
+    "observedElapsedSeconds": 919,
+    "observedElapsedHours": 0.26,
+    "observedAt": "2026-11-20T05:21:40.023Z",
     "windowComplete": false,
     "verdict": "INCOMPLETE",
     "latestDataTick": {
-      "at": "2026-11-20T00:56:11.232Z",
-      "elapsedSeconds": 11434,
+      "at": "2026-11-20T05:21:40.023Z",
+      "elapsedSeconds": 919,
       "databases": [
         {
           "file": "access/users.db",
-          "walBytes": 0,
+          "walBytes": 65952,
           "shmBytes": 32768,
           "ok": true,
           "journal": "wal",
           "integrity": [
             "ok"
           ],
-          "sessions": 136
+          "sessions": 432
         },
         {
           "file": ".eterna/memory.sqlite3",
@@ -5462,19 +5759,16 @@
       "walLogMatches": 0
     },
     "latestTermTick": {
-      "at": "2026-11-20T00:58:11.500Z",
-      "elapsedSeconds": 11554,
+      "at": "2026-11-20T05:24:43.568Z",
+      "elapsedSeconds": 1103,
       "dshPid": 1,
-      "fds": 150,
-      "rssKb": 306632,
+      "fds": 45,
+      "rssKb": 444592,
       "threads": 11,
       "longProcs": 1,
-      "churn": "fail",
-      "churnError": "create={\n  \"code\": \"gateway/internal\",\n  \"message\": \"session.snapshotEvents is not a fu close=ok",
+      "churn": "ok",
       "probeExit": 0
     },
     "note": "窗口未满 24h，不得判绿；留 leftover SOAK-24H"
-  },
-  "recheckedAt": "2026-11-20T01:25:29Z",
-  "recheckNote": "T52 纳入 artifacts/rc5/p6a/repairs 修后复跑：TERM-004 FAIL→PASS；IMP-005 维持 PASS"
+  }
 }

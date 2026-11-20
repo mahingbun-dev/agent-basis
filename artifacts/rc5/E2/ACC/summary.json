@@ -1,26 +1,26 @@
 {
   "suite": "ACC",
-  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "commit": "c75f876c986415431c92b28cce771d847a36c52f",
   "imageTag": "eterna-agent:rc5-test",
-  "imageId": "sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00",
+  "imageId": "sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb",
   "container": "rc5-e2suite",
   "base": "http://127.0.0.1:3119",
   "dataRoot": "/Users/sunny/eterna-data/test-20261120/e2",
-  "startedAt": "2026-11-19T23:51:56.678Z",
-  "finishedAt": "2026-11-19T23:52:01.298Z",
+  "startedAt": "2026-11-20T07:05:44.659Z",
+  "finishedAt": "2026-11-20T07:05:49.825Z",
   "total": 10,
-  "pass": 8,
-  "fail": 2,
+  "pass": 10,
+  "fail": 0,
   "skip": 0,
   "notrun": 0,
   "counts": {
-    "PASS": 8,
-    "FAIL": 2,
+    "PASS": 10,
+    "FAIL": 0,
     "SKIP": 0,
     "NOTRUN": 0
   },
-  "halted": true,
-  "haltReason": "RC5-ACC-008: B 用 A 的 workspaceId/sessionId 打文件/检索必须 403/deny",
+  "halted": false,
+  "haltReason": "",
   "cases": [
     {
       "id": "RC5-ACC-001",
@@ -60,15 +60,15 @@
     },
     {
       "id": "RC5-ACC-008",
-      "status": "FAIL",
+      "status": "PASS",
       "title": "B 用 A 的 workspaceId/sessionId 打文件/检索必须 403/deny",
-      "detail": "拒绝=4/7；未拒=workspaceFiles/list,workspaceFiles/stat,workspaceFiles/read；A 文件内容泄漏=true"
+      "detail": "拒绝=7/7；未拒=无；A 文件内容泄漏=false"
     },
     {
       "id": "RC5-ACC-006",
-      "status": "FAIL",
+      "status": "PASS",
       "title": "普通用户访问 mcp-manager 设置/管理动作不可见且被拒",
-      "detail": "设置隐藏=true 写拒=true watch拒=true unary拒=false（probe=200/true restart=200/true）"
+      "detail": "设置隐藏=true 写拒=true watch拒=true unary拒=true（probe=403/false restart=403/false）"
     },
     {
       "id": "RC5-ACC-009",

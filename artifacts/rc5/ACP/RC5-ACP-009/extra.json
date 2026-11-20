@@ -12,7 +12,7 @@
         },
         {
           "file": "docker-compose.yml",
-          "line": 104,
+          "line": 115,
           "text": "# ACP 是自动化客户端的**受信 stdio 面**,不是 Web 功能:"
         }
       ]

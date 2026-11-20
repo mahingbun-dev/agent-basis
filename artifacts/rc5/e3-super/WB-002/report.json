@@ -5,8 +5,8 @@
   "title": "（workbench）panel 挂载 + 客户端工件",
   "expected": "行 active；花名册/工厂在",
   "status": "PASS",
-  "startedAt": "2026-11-19T22:30:39.161Z",
-  "finishedAt": "2026-11-19T22:30:59.375Z",
+  "startedAt": "2026-11-20T07:03:52.965Z",
+  "finishedAt": "2026-11-20T07:03:53.217Z",
   "assertions": [
     {
       "name": "admin 登录 200",
@@ -26,7 +26,7 @@
     {
       "name": "workbench bundle 可取且含 factory",
       "ok": true,
-      "detail": "status=200 bytes=3233804"
+      "detail": "status=200 bytes=3234341"
     }
   ],
   "commands": [
@@ -42,13 +42,8 @@
     },
     {
       "cmd": "POST /login (admin from 0600 accounts file)",
-      "exit": 429,
-      "note": ""
-    },
-    {
-      "cmd": "POST /login (admin from 0600 accounts file)",
       "exit": 200,
-      "note": "retry#1"
+      "note": ""
     },
     {
       "cmd": "POST /api/pluginInventory/list",
@@ -66,7 +61,7 @@
       "note": ""
     },
     {
-      "cmd": "GET /plugins/??@eterna/attachments/client.js,@eterna/compaction/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deepseek-ai/dsh-session-log-export/client.js,@deepseek-ai/dsh-client-file-upload/client.js,@deepseek-ai/dsh-api-remotes/client.js,@deepseek-ai/dsh-client-ui-deliverables/client.js,@eterna/llm-doctor/client.js,@eterna/usage-stats/client.js,@eterna/knowledge-admin/client.js,@deepseek-ai/dsh-typert-registry/client.js,@deepseek-ai/dsh-client-connection/client.js,@eterna/prompt-studio/client.js,@deepseek-ai/dsh-api-workspace-controller/client.js,@deepseek-ai/dsh-deepseek-chat-import/client.js,@deepseek-ai/dsh-api-session-controller/client.js,@eterna/tasks/client.js,@eterna/memory/client.js,@eterna/panel/client.js,@eterna/workbench/client.js,@eterna/access/client.js&rev=3a1bee1f9a66",
+      "cmd": "GET /plugins/??@eterna/attachments/client.js,@eterna/compaction/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deepseek-ai/dsh-session-log-export/client.js,@deepseek-ai/dsh-client-file-upload/client.js,@deepseek-ai/dsh-api-remotes/client.js,@deepseek-ai/dsh-client-ui-deliverables/client.js,@eterna/llm-doctor/client.js,@eterna/usage-stats/client.js,@eterna/knowledge-admin/client.js,@deepseek-ai/dsh-typert-registry/client.js,@deepseek-ai/dsh-client-connection/client.js,@eterna/prompt-studio/client.js,@deepseek-ai/dsh-api-workspace-controller/client.js,@deepseek-ai/dsh-deepseek-chat-import/client.js,@deepseek-ai/dsh-api-session-controller/client.js,@eterna/tasks/client.js,@eterna/memory/client.js,@eterna/panel/client.js,@eterna/workbench/client.js,@eterna/access/client.js&rev=3b47b8b0497e",
       "exit": 200,
       "note": "client bundle @eterna/workbench"
     }

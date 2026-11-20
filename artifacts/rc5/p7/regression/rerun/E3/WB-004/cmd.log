@@ -1,0 +1,15 @@
+# WB-004 — （workbench）tasks↔workbench 主会话/健康面链路
+CMD: node artifacts/rc5/e3-super/run-suite.mjs WB-004
+START: 2026-11-20T01:47:25.279Z
+# 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
+
+[exit=0] docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)  # boot token 不入证据
+[exit=200] GET /connect + GET /?token=… (dsh session bootstrap)  # token 已脱敏
+[exit=429] POST /login (admin from 0600 accounts file)
+[exit=429] POST /login (admin from 0600 accounts file)  # retry#1
+[exit=429] POST /login (admin from 0600 accounts file)  # retry#2
+[exit=200] POST /login (admin from 0600 accounts file)  # retry#3
+[exit=200] GET /access/api/tasks/settings
+[exit=200] GET /workbench/api/stream  # SSE 首帧
+
+EXIT=0

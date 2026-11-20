@@ -1,0 +1,6 @@
+# TERM/RC5-TERM-004b
+# started 2026-11-20T01:38:51.474Z
+
+$ node scripts/verify-terminal-guard.mjs --base http://127.0.0.1:3119 --accounts-file <0600> --data-root <E2 数据根> --container rc5-e2suite --json artifacts/rc5/E2/TERM/report.json
+EXIT=0
+PASS :: denied code=remote-access/denied

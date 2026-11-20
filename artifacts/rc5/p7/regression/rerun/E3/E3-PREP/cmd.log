@@ -1,0 +1,12 @@
+# E3-PREP — E3 super 独立测试容器（项目/端口/数据根/镜像）
+CMD: node artifacts/rc5/e3-super/run-suite.mjs E3-PREP
+START: 2026-11-20T01:45:06.480Z
+# 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
+
+[exit=0] docker inspect eterna-rc5-e3 --format {{json .}}  # E3 容器 inspect（仅取白名单字段）
+[exit=0] docker image inspect eterna-agent:rc5-test --format {{json .}}  # 测试镜像 inspect（只取 Id/Created）
+[exit=0] docker compose -p rc5-test-e3 --env-file /Users/sunny/eterna-data/test-rc5/.env.e3 -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml config --format json  # compose config（--format json，只取服务/端口/卷字段）
+[exit=0] docker image inspect eterna-agent:rc5-test --format {{.Id}}  # 测试镜像存在性
+[exit=0] docker inspect eterna-agent --format ID={{.Id}} StartedAt={{.State.StartedAt}} RestartCount={{.RestartCount}} Image={{.Config.Image}}  # 生产容器只读基线
+
+EXIT=1

@@ -3,36 +3,41 @@
   "suite": "E3-super",
   "priority": "P1",
   "title": "24h 浸泡：长进程 + attach/close 无 fd 泄漏（TERM-013）",
-  "expected": "窗口满 + fd/RSS 曲线平稳",
+  "expected": "24h 窗口完成 + fd/RSS 曲线平稳 + churn 全 ok",
   "status": "NOTRUN",
-  "startedAt": "2026-11-19T22:32:54.728Z",
-  "finishedAt": "2026-11-19T22:32:54.729Z",
+  "startedAt": "2026-11-20T07:03:52.704Z",
+  "finishedAt": "2026-11-20T07:03:52.705Z",
   "assertions": [
     {
-      "name": "24h 浸泡窗口进行中（未满，不得判通过）",
-      "ok": true,
-      "detail": "plannedEnd=2026-11-20T21:45:37.331Z now=2026-11-19T22:32:54.729Z samples=48"
-    },
-    {
-      "name": "浸泡跑在 E1（eterna-rc5-e1/3108），非 E3 容器",
+      "name": "浸泡窗存在且在终版镜像 lane（eterna-rc5-e1）上起跑",
       "ok": true,
       "detail": "eterna-rc5-e1"
+    },
+    {
+      "name": "已有采样（窗口正在运行）",
+      "ok": true,
+      "detail": "samples=61"
+    },
+    {
+      "name": "churn（create→WS attach→close）历史采样全 ok",
+      "ok": true,
+      "detail": "fail=0/61"
     }
   ],
   "commands": [
     {
-      "cmd": "read artifacts/rc5/p5/testbed/soak/meta-24h.json",
+      "cmd": "read artifacts/rc5/p6b/soak/final-image/meta-24h-final.json",
       "exit": 0,
-      "note": ""
+      "note": "plannedEnd=2026-11-21T05:06:19.450Z container=eterna-rc5-e1"
     },
     {
-      "cmd": "read artifacts/rc5/p5/testbed/soak/term-013-24h.jsonl",
+      "cmd": "read artifacts/rc5/p6b/soak/final-image/term-013-24h-final.jsonl",
       "exit": 0,
-      "note": "samples=48"
+      "note": "samples=61"
     }
   ],
   "notes": [
-    "P5 24h 浸泡在 E1 运行，plannedEndAt=2026-11-20T21:45:37.331Z；当前采样 48 条、窗口未满不得判过；且 churn=create 持续 fail（同 session.snapshotEvents 错误）。"
+    "24h 窗口未满：plannedEndAt=2026-11-21T05:06:19.450Z（now=2026-11-20T07:03:52.705Z），summary 未落盘；按 54 §6.3 记 NOTRUN，不得预先判过。"
   ],
   "env": {
     "base": "http://127.0.0.1:3109",

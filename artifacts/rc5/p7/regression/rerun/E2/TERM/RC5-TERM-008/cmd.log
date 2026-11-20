@@ -1,0 +1,16 @@
+# TERM/RC5-TERM-008
+# started 2026-11-20T01:38:53.805Z
+
+$ POST /api/terminal/list（A，伪造不存在的 sessionId）
+EXIT=200
+ok=false value= code=remote-access/denied
+
+$ POST /api/terminal/list（B，伪造不存在的 sessionId）
+EXIT=200
+ok=false value= code=remote-access/denied
+
+# note: readUserTerminals=false:true
+
+[ASSERT] 伪造 sessionId 的 terminal/list 返回空（无宿主终端枚举） => FAIL
+
+[ASSERT] readUserTerminals=false => PASS

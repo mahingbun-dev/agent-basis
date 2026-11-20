@@ -5,8 +5,8 @@
   "title": "（lane 本地）super 形态 UI 入口工件",
   "expected": "/login 200，v4 令牌块与中文登录文案",
   "status": "PASS",
-  "startedAt": "2026-11-19T22:31:11.390Z",
-  "finishedAt": "2026-11-19T22:31:11.428Z",
+  "startedAt": "2026-11-20T07:04:59.749Z",
+  "finishedAt": "2026-11-20T07:04:59.788Z",
   "assertions": [
     {
       "name": "登录页 200 且为 v4 令牌块 HTML",

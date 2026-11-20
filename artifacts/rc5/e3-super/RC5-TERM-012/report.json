@@ -3,10 +3,10 @@
   "suite": "E3-super",
   "priority": "P0",
   "title": "两会话各开终端互不可见（TERM-012）",
-  "expected": "互不可见/互不输入",
-  "status": "NOTRUN",
-  "startedAt": "2026-11-19T22:32:54.490Z",
-  "finishedAt": "2026-11-19T22:32:54.668Z",
+  "expected": "各自 list 只见自己的终端；跨会话 rename 被拒；close 不伤对方终端",
+  "status": "PASS",
+  "startedAt": "2026-11-20T07:03:50.371Z",
+  "finishedAt": "2026-11-20T07:03:52.641Z",
   "assertions": [
     {
       "name": "admin 登录 200",
@@ -21,7 +21,7 @@
     {
       "name": "新建会话成功",
       "ok": true,
-      "detail": "{\"sessionId\":\"session-a034094f-acab-4673-abcc-5294e8d0d270\",\"agentPreset\":\"standard\"}"
+      "detail": "{\"sessionId\":\"session-9a760350-407d-4e63-b401-36a2b494f6e2\",\"agentPreset\":\"standard\"}"
     },
     {
       "name": "admin 测试工作区可解析（E3 users.db 只读）",
@@ -31,17 +31,27 @@
     {
       "name": "新建会话成功",
       "ok": true,
-      "detail": "{\"sessionId\":\"session-e6dd5484-86c9-486c-9f9f-7c8f956dc89a\",\"agentPreset\":\"standard\"}"
+      "detail": "{\"sessionId\":\"session-a8237cbd-61aa-44b2-afa6-2393bf51744c\",\"agentPreset\":\"standard\"}"
     },
     {
-      "name": "两会话各自可建终端（隔离判定前置）缺失：create 均 gateway/internal",
+      "name": "两个会话各自建出终端（隔离判定前置）",
       "ok": true,
-      "detail": "createA={\"code\":\"gateway/internal\",\"message\":\"session.snapshotEvents is not a function\",\"details\":{}} createB={\"code\":\"gateway/internal\",\"message\":\"session.snapshotEvents is not a function\",\"details\":{}}"
+      "detail": "A=true B=true"
     },
     {
-      "name": "两会话的 terminal/list 均为空（无终端可比较）",
+      "name": "各自 list 只见自己的终端（互不可见）",
       "ok": true,
-      "detail": "list 返回 []（create 被阻断）"
+      "detail": "A=[\"e3-t12-a\"] B=[\"e3-t12-b\"]"
+    },
+    {
+      "name": "跨会话 rename 被拒（terminal/unavailable）",
+      "ok": true,
+      "detail": "{\"code\":\"terminal/unavailable\",\"message\":\"Terminal no longer exists in this Session\",\"details\":{}}"
+    },
+    {
+      "name": "跨会话 close 不伤及 B 的终端（仍 running、标题未变）",
+      "ok": true,
+      "detail": "close.ok=true before=running/bash after=running/bash"
     }
   ],
   "commands": [
@@ -73,16 +83,51 @@
     {
       "cmd": "POST /api/terminal/create",
       "exit": 200,
-      "note": "A 会话 1"
+      "note": "会话 A create"
     },
     {
       "cmd": "POST /api/terminal/create",
       "exit": 200,
-      "note": "A 会话 2"
+      "note": "会话 B create"
+    },
+    {
+      "cmd": "POST /api/terminal/list",
+      "exit": 200,
+      "note": "A list"
+    },
+    {
+      "cmd": "POST /api/terminal/list",
+      "exit": 200,
+      "note": "B list"
+    },
+    {
+      "cmd": "POST /api/terminal/rename",
+      "exit": 200,
+      "note": "A 改名 B 的终端"
+    },
+    {
+      "cmd": "POST /api/terminal/close",
+      "exit": 200,
+      "note": "A 关 B 的终端"
+    },
+    {
+      "cmd": "POST /api/terminal/list",
+      "exit": 200,
+      "note": "B 复验"
+    },
+    {
+      "cmd": "POST /api/terminal/close",
+      "exit": 200,
+      "note": "cleanup close A"
+    },
+    {
+      "cmd": "POST /api/terminal/close",
+      "exit": 200,
+      "note": "cleanup close B"
     }
   ],
   "notes": [
-    "terminal/create 被 gateway/internal（session.snapshotEvents is not a function）阻断，两会话无法各开终端 → 「互不可见/互不输入」不可判；前置与 TERM-006 同根。"
+    "判定面=list 归属隔离 + 跨会话 rename 拒绝 + 跨会话 close 回看（B 终端不被改动）；输入面 attach 属流通道，见 TERM-005。"
   ],
   "env": {
     "base": "http://127.0.0.1:3109",

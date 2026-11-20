@@ -1,4 +1,86 @@
 # MCPP/RC5-MCPP-024
-# started 2026-11-19T23:53:32.450Z
+# started 2026-11-20T06:05:48.402Z
 
-# note: 浏览器人工/截图（本 lane UI 套件另测；若 UI 未完成则保持 SKIP）
+$ POST /api/mcp-personal/catalog（B，前置白名单）
+EXIT=200
+hostWhitelist=["a.example","*.suffix.test","host.docker.internal","b.example:8443"]
+
+$ node tests/fixtures/mcp-http-server.mjs --port 18693 --host 0.0.0.0
+EXIT=0
+healthy=true
+
+$ 浏览器：登录 B → 设置 → MCP 服务器
+EXIT=200
+panel=visible
+
+$ UI 新增 ui-http（HTTP + Authorization 密钥）→ 保存
+EXIT=200
+ui-http
+HTTP（streamable-http）
+p2_ui-http
+已设置
+已启用
+测试
+编辑
+删除
+
+$ UI 编辑（密钥留空）→ 保存
+EXIT=200
+value= placeholder=留空保持不变 row=ui-http
+HTTP（streamable-http）
+p2_ui-http
+已设置
+已启用
+测试
+编辑
+删除
+
+$ UI 测试连接（echo 夹具）
+EXIT=200
+连接成功，发现 1 个工具
+
+$ 截图：深/浅（colorScheme）× 1440/900/390
+EXIT=0
+dark-1440x900.png,dark-900x900.png,dark-390x844.png,light-1440x900.png,light-900x900.png,light-390x844.png
+
+$ UI 删除（两击）
+EXIT=200
+rowBefore=1 armed={"confirmVisible":true,"rows":1} rowAfter=0 empty=true nativeDialogs=0
+
+$ POST /api/mcp-personal/list（UI 删除后）
+EXIT=200
+items=[]
+
+[ASSERT] 前置：白名单含 host.docker.internal => PASS :: ["a.example","*.suffix.test","host.docker.internal","b.example:8443"]
+
+[ASSERT] UI 保存成功（行内显示已设置） => PASS :: ui-http
+HTTP（streamable-http）
+p2_ui-http
+已设置
+已启用
+测试
+编辑
+删除
+
+[ASSERT] 密钥写入后不回显（DOM 无明文；编辑框为空且 placeholder=留空保持不变） => PASS :: secretInPage=false value='' placeholder=留空保持不变
+
+[ASSERT] 留空保存保持原密钥（仍显示已设置） => PASS :: ui-http
+HTTP（streamable-http）
+p2_ui-http
+已设置
+已启用
+测试
+编辑
+删除
+
+[ASSERT] 测试连接成功（echo，1 个工具） => PASS
+
+[ASSERT] 六张截图齐备（深/浅 × 三视口） => PASS :: dark-1440x900.png,dark-900x900.png,dark-390x844.png,light-1440x900.png,light-900x900.png,light-390x844.png
+
+[ASSERT] 删除两击确认：第一击后行仍在且按钮变确认删除 => PASS
+
+[ASSERT] 第二击后行消失、列表回到空态 => PASS :: rowAfter=0 empty=true
+
+[ASSERT] 无原生 confirm()/alert() => PASS :: []
+
+[ASSERT] 删除后 API 列表无残留 => PASS :: []

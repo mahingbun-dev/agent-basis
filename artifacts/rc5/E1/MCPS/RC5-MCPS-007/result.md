@@ -1,22 +1,27 @@
 # RC5-MCPS-007 · 管理员 watch 连接状态
 
 - 套件：MCPS
-- 结论：**SKIP**
-- 开始/结束：2026-11-19T22:50:49.780Z / 2026-11-19T22:50:49.780Z
+- 结论：**PASS**
+- 开始/结束：2026-11-20T07:03:00.700Z / 2026-11-20T07:03:00.703Z
 
 ## 预期
 
-按 51 用例定义执行
+流可用；首帧带 server 清单/连接状态（含 e1http）
 
 ## 实际
 
-未执行：MCPS-006 越权红（普通用户可 restart/probe 全局 server）触发套件停止
+type=item has=true
 
 ## 备注
 
-- 中止原因=RC5-MCPS-006: 普通用户 restart/probe 必须被拒
-- 按派发规则「越权用例红 → 停止该套件」，不再继续标绿
+- 同轮 005 已证普通用户同端点 denied（权限面收窄到 admin）
 
 ## 证据附件
 
 - `cmd.log`
+
+## 执行命令
+
+```
+$ WS /api/remote.mux open {endpoint:"mcpManager/watch"}（A 管理员）  # EXIT=0
+```

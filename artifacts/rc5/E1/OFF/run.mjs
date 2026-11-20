@@ -2,9 +2,9 @@
 /**
  * E1 · OFF 套件（RC5-OFF-001..007）。
  * 001–003/006 在 rc5-e1suite 容器内用镜像自带 @deepseek-ai/libreoffice-kit (WASM) 实测；
- * 004/005 容器内命令核对；007 需真实模型回合，记 NOTRUN（静态证据附注）。
+ * 004/005 容器内命令核对；007 由 off-007.mjs 用确定性假模型真实回合验证，本 runner 折叠其证据。
  */
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Case, STATUS, summaryOf, writeSummary } from '../_lib/evidence.mjs'
 import { LANE, gitHead, run, docker } from '../_lib/env.mjs'
@@ -134,25 +134,38 @@ const byExt = new Map(probe.converts.map(row => [row.ext, row]))
   }))
 }
 
-/* --------------------------------------------------------- 007 技能（需模型） */
-
+/* --------------------------------------------------------- 007 技能（假模型真实回合） */
+/* 证据见 artifacts/rc5/E1/OFF/RC5-OFF-007/result.md（off-007.mjs 产出），此处只折叠。 */
 {
-  const c = new Case(suite, 'RC5-OFF-007')
-  c.cmd('IAB: 输入 "/" → 候选列表（CMD-001 证据）', 0, 'office-docx / office-xlsx / office-pptx / office 技能出现在命令候选（12 条之一）')
-  c.cmd('grep -n -A2 "tool-office" $DSH_HOME/profiles/eterna-web/cordis.patch.yml', 0, "- insert: id: tool-office name: '@deepseek-ai/dsh-tool-office'（office_render/convert/recalculate 由该插件注册）")
-  c.note('加载技能并编辑样本需要真实模型回合；E1 占位密钥 AUTH 失败（HERO-003 实测），未执行')
-  rows.push(c.finish({
-    status: STATUS.NOTRUN,
-    title: 'office-docx 技能加载 + 编辑样本（未执行）',
-    expected: '技能可加载；office_render/convert/recalculate 下一步出现；产物可复制回工作区',
-    actual: '未执行：技能加载/工具下一步需模型回合，E1 无真实 LLM 凭据。静态证据：office-docx 技能在斜杠候选列表中；profile 插入 tool-office 行',
-    notes: ['不把“技能出现在候选列表”冒充“技能可加载并完成编辑”'],
-    artifacts: ['cmd.log'],
-  }))
+  const path = join(LANE.evidenceRoot, 'OFF', 'RC5-OFF-007', 'result.md')
+  const row = existsSync(path) ? (() => {
+    const text = readFileSync(path, 'utf8')
+    const status = /- 结论：\*\*(PASS|FAIL|SKIP|NOTRUN)\*\*/.exec(text)?.[1]
+    const title = /^# RC5-OFF-007 · (.+)$/m.exec(text)?.[1]
+    const actual = /## 实际\n\n([\s\S]*?)\n\n## /.exec(text)?.[1]?.trim().replace(/\n+/g, ' ') ?? ''
+    return { id: 'RC5-OFF-007', status, title, actual }
+  })() : undefined
+  if (row?.status === 'PASS' || row?.status === 'FAIL') {
+    rows.push(row)
+  } else {
+    const c = new Case(suite, 'RC5-OFF-007')
+    c.note('off-007.mjs 无 PASS/FAIL 结果（或证据缺失）')
+    rows.push(c.finish({
+      status: STATUS.NOTRUN,
+      title: 'office-docx 技能加载 + 编辑样本',
+      expected: '技能可加载；office_render/convert/recalculate 下一步出现；产物可复制回工作区',
+      actual: 'NOTRUN：先跑 artifacts/rc5/E1/OFF/off-007.mjs',
+      notes: [],
+      artifacts: ['cmd.log'],
+    }))
+  }
 }
 
 const summary = summaryOf(rows, {
-  suite, env: { commit: gitHead(), imageTag: LANE.imageTag, container: LANE.container, base: LANE.base, startedAt },
+  suite, env: {
+    commit: gitHead(), imageTag: LANE.imageTag, imageId: LANE.imageId, container: LANE.container,
+    base: LANE.base, dataRoot: LANE.dataRoot, startedAt,
+  },
 })
 writeSummary(suite, summary)
 console.log(`[OFF] PASS=${summary.pass} FAIL=${summary.fail} SKIP=${summary.skip} NOTRUN=${summary.notrun}`)

@@ -1,0 +1,23 @@
+[entrypoint] form=super profile=eterna-super template=cordis.super.patch.yml.template manifest=package.json
+[entrypoint] /data mountpoint OK (DSH_HOME=/data DSH_AGENTS_HOME=/data/agents)
+[entrypoint] profile 渲染:模板未变,保留用户文件 package.json(启停/模型设置跨重启持久)
+[entrypoint] profile 渲染:模板未变,保留用户文件 cordis.patch.yml(启停/模型设置跨重启持久)
+[entrypoint] 工坊值移植: 模板 6 条托管键 | 移植 0 处 | 基线已按新模板重写 → /data/profiles/eterna-super/.rendered.cordis.patch.yml.baseline.json
+[migrate-profile-bundles]: 无新增默认 bundle（已幂等）
+[migrate-mcp-servers]: 新 patch 自带 mcp-client 行承载 browser，跳过系统层迁移（避免 serverName 双实例）；无其它待迁移项，零写
+[profile-upgrade-check]: profile=eterna-super mode=boot installAnchor=/usr/local/lib/node_modules/@deepseek-ai/dsh/package.json bundles[ok=6]
+[profile-upgrade-check]: OK 无坏项
+[entrypoint] governance rules: /repo/docker/profile/governance.rules.yml -> /data/.eterna/governance.rules.yml (cwd=/)
+[entrypoint] super symlink: @eterna/tasks
+[entrypoint] super symlink: @eterna/channels
+[entrypoint] super symlink: @eterna/interact
+[entrypoint] super symlink: @eterna/workbench
+[entrypoint] super symlink: @eterna/toolkit
+[entrypoint] dsh-mcp-client 0.2.2-rc.5 == dsh 0.2.2-rc.5 (/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-mcp-client)
+[entrypoint] companion relay 后台启动 :9310（token 已生成落卷 /data/relay-token；publicWsUrl=未设（guide 按本机默认展示））
+[entrypoint] container IP: 172.17.0.2  LLM: 三家直连(deepseek/mimo/glm,P2 网关)
+[entrypoint] sandbox runner: landlock full
+dsh web: http://172.17.0.2:8080/?token=<redacted>
+[relay] relay 监听 http://0.0.0.0:9310（/extension /cdp /api/tools /fixture）
+dsh web: listening on 172.17.0.2 over plain HTTP; restrict this port to a trusted proxy or network
+[eterna-tasks-access-bridge] realm「Mr.Ma」不在 access 用户表(realm 与登录账号名不对齐?),跳过主会话归属登记

@@ -1,0 +1,24 @@
+# LLM/RC5-MCPP-020
+# started 2026-11-20T07:06:01.139Z
+
+$ POST /api/mcp-personal/upsert（A/B 各一条 echo）
+EXIT=200
+a=p1_llm20a b=p2_llm20b a_ok=true b_ok=true
+
+$ POST /api/session/prompt（B 构造 mcp__p<A>_*）
+EXIT=200
+absent=true results=Error: mcp-personal: cross-tenant tool call denied
+
+[ASSERT] 跨用户构造的 A 工具不在 B 的 tools 清单 => PASS :: {"at":"2026-11-20T07:06:01.240Z","seq":127,"stream":true,"model":"fake-1","toolCount":60,"toolNames":["ask_user_question","bash","create_goal","edit","get_goal","glob","grep","install_personal_plugin","job_kill","job_list","job_output","kno…
+
+[ASSERT] 跨用户调用被拒且无 A 的回显内容 => PASS :: Error: mcp-personal: cross-tenant tool call denied
+
+$ POST /api/session/prompt（B 的子代理调用 mcp__p<B>_*）
+EXIT=200
+child_requests_with_tool=5 echo=true
+
+[ASSERT] 子代理请求的 tools 含 B 自己的个人工具 => PASS :: requests=6
+
+[ASSERT] 子代理调用成功回显 => PASS :: started subagent agent-1
+echo:subagent-own-ok
+started subagent agent-1

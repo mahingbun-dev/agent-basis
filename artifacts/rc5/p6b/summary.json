@@ -141,7 +141,7 @@
   },
   "failures": [],
   "leftovers": [
-    "SOAK-24H|24h 浸泡窗口未满（实时观测见 artifacts/rc5/p6a/soak-window.json；plannedEnd 2026-11-20T21:45:37.331Z）|P0|满窗后复核 window.complete=true 与 verdict",
+    "SOAK-24H|24h 浸泡窗口未满（实时观测见 artifacts/rc5/p6a/soak-window.json；plannedEnd 2026-11-21T05:06:19.450Z）|P0|满窗后复核 window.complete=true 与 verdict",
     "DATA-009-SCALE|现行 soak 仅 2 writers、每 5min 检 3 库，未达 48 §4.5 ≥50 并发 + 2h 全库 integrity|P1|满窗前补压",
     "DATA-009-24H|24h 浸泡窗口未满（观测 0.67h/24h；采样内无锁/WAL 异常、integrity 9/9 ok）；plannedEnd 2026-11-20T21:45:37Z|P0|满窗后由 P6b 复核 summary-24h.json 的 window.complete=true 与 verdict，未满不得判绿",
     "DATA-007-RERENDER|rc.5 对带工坊编辑的存量 profile 每次重启都走「模板变更/首启接管」重渲染（内容幂等；同数据用 0.1.51 起时走 keep 路径）|P2|在 migrate-prompt-edits 之后重算并重写 .rendered.*.sha256（或让移植写入参与哈希），恢复「模板未变即保留」；另测插件启停/模型设置跨重启持久",

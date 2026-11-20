@@ -60,13 +60,13 @@
       "offscreen": false,
       "luminance": 242,
       "startText": "",
-      "text": "终端 重试 终端错误：session.snapshotEvents is not a function",
+      "text": "bash root@71cf1174be6d:/data/workspaces/rc5admin# ",
       "tabs": [
-        "终端"
+        "bash"
       ]
     },
     "chatImport": {
-      "file": "RC5-UI-006-light-1440-chat-import-entry-missing.png",
+      "file": "RC5-UI-006-light-1440-chat-import-entry.png",
       "innerWidth": 1440,
       "innerHeight": 900,
       "scrollWidth": 1440,
@@ -75,17 +75,19 @@
         "x": 4,
         "y": 398,
         "width": 274,
-        "height": 82,
+        "height": 288,
         "right": 278,
-        "bottom": 480
+        "bottom": 686
       },
       "overflow": false,
       "offscreen": false,
       "luminance": 242,
       "entry": {
-        "hits": 0,
+        "hits": 1,
         "slotPresent": true,
-        "sample": []
+        "sample": [
+          "导入 DeepSeek 会话"
+        ]
       }
     }
   },
@@ -149,14 +151,14 @@
       "overflow": false,
       "offscreen": false,
       "luminance": 242,
-      "startText": "",
-      "text": "终端 重试 终端错误：session.snapshotEvents is not a function",
+      "startText": "开始 收起侧边栏 ⇧ ⌘ B 工作区文件 浏览会话工作区的文件 ⌥ ⌘ P 新建终端 在会话工作区运行命令 ⌃ ` 浏览器 浏览网页 ⌥ ⌘ T 更多工具",
+      "text": "bash root@71cf1174be6d:/data/workspaces/rc5admin# ",
       "tabs": [
-        "终端"
+        "bash"
       ]
     },
     "chatImport": {
-      "file": "RC5-UI-006-light-900-chat-import-entry-missing.png",
+      "file": "RC5-UI-006-light-900-chat-import-entry.png",
       "innerWidth": 900,
       "innerHeight": 900,
       "scrollWidth": 900,
@@ -165,17 +167,19 @@
         "x": 4,
         "y": 398,
         "width": 274,
-        "height": 82,
+        "height": 288,
         "right": 278,
-        "bottom": 480
+        "bottom": 686
       },
       "overflow": false,
       "offscreen": false,
       "luminance": 242,
       "entry": {
-        "hits": 0,
+        "hits": 1,
         "slotPresent": true,
-        "sample": []
+        "sample": [
+          "导入 DeepSeek 会话"
+        ]
       }
     }
   },
@@ -200,7 +204,7 @@
       "overflow": false,
       "offscreen": false,
       "luminance": 242,
-      "text": "方寸灵台，运筹万里 rc5admin 标准模式 知识检索 知识提案(fail-closed) 预算计算 付款审批红线(R3) 第 1/2 项 · 点击切换 描述你想要构建的内容, / 调用指令, @ 文件或对话 域:未识别"
+      "text": "方寸灵台，运筹万里 rc5admin 标准模式 知识检索 知识提案(fail-closed) 预算计算 付款审批红线(R3) 描述你想要构建的内容, / 调用指令, @ 文件或对话 域:未识别"
     },
     "mcp": {
       "file": "RC5-UI-006-light-390-mcp-settings.png",
@@ -239,14 +243,14 @@
       "overflow": false,
       "offscreen": false,
       "luminance": 242,
-      "startText": "开始 收起侧边栏 ⇧ ⌘ B 工作区文件 浏览会话工作区的文件 ⌥ ⌘ P 新建终端 在会话工作区运行命令 ⌃ ` 浏览器 浏览网页 ⌥ ⌘ T 更多工具",
-      "text": "终端 重试 终端错误：session.snapshotEvents is not a function",
+      "startText": "",
+      "text": "bash root@71cf1174be6d:/data/workspaces/rc5admin# ",
       "tabs": [
-        "终端"
+        "bash"
       ]
     },
     "chatImport": {
-      "file": "RC5-UI-006-light-390-chat-import-entry-missing.png",
+      "file": "RC5-UI-006-light-390-chat-import-entry.png",
       "innerWidth": 390,
       "innerHeight": 844,
       "scrollWidth": 390,
@@ -255,17 +259,19 @@
         "x": -276,
         "y": 398,
         "width": 274,
-        "height": 82,
+        "height": 288,
         "right": -2,
-        "bottom": 480
+        "bottom": 686
       },
       "overflow": false,
       "offscreen": true,
       "luminance": 242,
       "entry": {
-        "hits": 0,
+        "hits": 1,
         "slotPresent": true,
-        "sample": []
+        "sample": [
+          "导入 DeepSeek 会话"
+        ]
       }
     }
   },
@@ -273,7 +279,7 @@
     "theme": "light",
     "importLimitsProbe": {
       "status": 200,
-      "body": "{\"type\":\"server-response\",\"rpcId\":\"e2-mwo8m3la\",\"result\":{\"ok\":true,\"value\":{\"maxUploadBytes\":536870912}}}"
+      "body": "{\"type\":\"server-response\",\"rpcId\":\"e2-mwon1egu\",\"result\":{\"ok\":true,\"value\":{\"maxUploadBytes\":536870912}}}"
     }
   },
   {
@@ -337,13 +343,13 @@
       "offscreen": false,
       "luminance": 24.2,
       "startText": "",
-      "text": "终端 重试 终端错误：session.snapshotEvents is not a function",
+      "text": "bash root@71cf1174be6d:/data/workspaces/rc5admin# ",
       "tabs": [
-        "终端"
+        "bash"
       ]
     },
     "chatImport": {
-      "file": "RC5-UI-006-dark-1440-chat-import-entry-missing.png",
+      "file": "RC5-UI-006-dark-1440-chat-import-entry.png",
       "innerWidth": 1440,
       "innerHeight": 900,
       "scrollWidth": 1440,
@@ -352,17 +358,19 @@
         "x": 4,
         "y": 398,
         "width": 274,
-        "height": 82,
+        "height": 288,
         "right": 278,
-        "bottom": 480
+        "bottom": 686
       },
       "overflow": false,
       "offscreen": false,
       "luminance": 24.2,
       "entry": {
-        "hits": 0,
+        "hits": 1,
         "slotPresent": true,
-        "sample": []
+        "sample": [
+          "导入 DeepSeek 会话"
+        ]
       }
     }
   },
@@ -426,14 +434,14 @@
       "overflow": false,
       "offscreen": false,
       "luminance": 24.2,
-      "startText": "",
-      "text": "终端 重试 终端错误：session.snapshotEvents is not a function",
+      "startText": "开始 收起侧边栏 ⇧ ⌘ B 工作区文件 浏览会话工作区的文件 ⌥ ⌘ P 新建终端 在会话工作区运行命令 ⌃ ` 浏览器 浏览网页 ⌥ ⌘ T 更多工具",
+      "text": "bash root@71cf1174be6d:/data/workspaces/rc5admin# ",
       "tabs": [
-        "终端"
+        "bash"
       ]
     },
     "chatImport": {
-      "file": "RC5-UI-006-dark-900-chat-import-entry-missing.png",
+      "file": "RC5-UI-006-dark-900-chat-import-entry.png",
       "innerWidth": 900,
       "innerHeight": 900,
       "scrollWidth": 900,
@@ -442,17 +450,19 @@
         "x": 4,
         "y": 398,
         "width": 274,
-        "height": 82,
+        "height": 288,
         "right": 278,
-        "bottom": 480
+        "bottom": 686
       },
       "overflow": false,
       "offscreen": false,
       "luminance": 24.2,
       "entry": {
-        "hits": 0,
+        "hits": 1,
         "slotPresent": true,
-        "sample": []
+        "sample": [
+          "导入 DeepSeek 会话"
+        ]
       }
     }
   },
@@ -477,7 +487,7 @@
       "overflow": false,
       "offscreen": false,
       "luminance": 24.2,
-      "text": "方寸灵台，运筹万里 rc5admin 标准模式 知识检索 知识提案(fail-closed) 预算计算 付款审批红线(R3) 第 1/2 项 · 点击切换 描述你想要构建的内容, / 调用指令, @ 文件或对话 域:未识别"
+      "text": "方寸灵台，运筹万里 rc5admin 标准模式 知识检索 知识提案(fail-closed) 预算计算 付款审批红线(R3) 描述你想要构建的内容, / 调用指令, @ 文件或对话 域:未识别"
     },
     "mcp": {
       "file": "RC5-UI-006-dark-390-mcp-settings.png",
@@ -516,14 +526,14 @@
       "overflow": false,
       "offscreen": false,
       "luminance": 24.2,
-      "startText": "开始 收起侧边栏 ⇧ ⌘ B 工作区文件 浏览会话工作区的文件 ⌥ ⌘ P 新建终端 在会话工作区运行命令 ⌃ ` 浏览器 浏览网页 ⌥ ⌘ T 更多工具",
-      "text": "开始 工作区文件 浏览会话工作区的文件 ⌥ ⌘ P 新建终端 在会话工作区运行命令 ⌃ ` 浏览器 浏览网页 ⌥ ⌘ T 更多工具",
+      "startText": "",
+      "text": "bash root@71cf1174be6d:/data/workspaces/rc5admin# ",
       "tabs": [
-        "开始"
+        "bash"
       ]
     },
     "chatImport": {
-      "file": "RC5-UI-006-dark-390-chat-import-entry-missing.png",
+      "file": "RC5-UI-006-dark-390-chat-import-entry.png",
       "innerWidth": 390,
       "innerHeight": 844,
       "scrollWidth": 390,
@@ -532,17 +542,19 @@
         "x": -276,
         "y": 398,
         "width": 274,
-        "height": 82,
+        "height": 288,
         "right": -2,
-        "bottom": 480
+        "bottom": 686
       },
       "overflow": false,
       "offscreen": true,
       "luminance": 24.2,
       "entry": {
-        "hits": 0,
+        "hits": 1,
         "slotPresent": true,
-        "sample": []
+        "sample": [
+          "导入 DeepSeek 会话"
+        ]
       }
     }
   },
@@ -550,7 +562,7 @@
     "theme": "dark",
     "importLimitsProbe": {
       "status": 200,
-      "body": "{\"type\":\"server-response\",\"rpcId\":\"e2-mwo8osuw\",\"result\":{\"ok\":true,\"value\":{\"maxUploadBytes\":536870912}}}"
+      "body": "{\"type\":\"server-response\",\"rpcId\":\"e2-mwon2ycq\",\"result\":{\"ok\":true,\"value\":{\"maxUploadBytes\":536870912}}}"
     }
   }
 ]

@@ -1,6 +1,6 @@
 # E3-PREP — E3 super 独立测试容器（项目/端口/数据根/镜像）
 CMD: node artifacts/rc5/e3-super/run-suite.mjs E3-PREP
-START: 2026-11-19T22:32:54.184Z
+START: 2026-11-20T07:01:35.400Z
 # 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
 
 [exit=0] docker inspect eterna-rc5-e3 --format {{json .}}  # E3 容器 inspect（仅取白名单字段）

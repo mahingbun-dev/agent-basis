@@ -1,25 +1,25 @@
 {
   "suite": "SEC",
-  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "commit": "c75f876c986415431c92b28cce771d847a36c52f",
   "imageTag": "eterna-agent:rc5-test",
-  "imageId": "sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00",
+  "imageId": "sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb",
   "container": "rc5-e2suite",
   "base": "http://127.0.0.1:3119",
   "dataRoot": "/Users/sunny/eterna-data/test-20261120/e2",
-  "startedAt": "2026-11-20T00:37:12.009Z",
-  "finishedAt": "2026-11-20T00:37:12.668Z",
+  "startedAt": "2026-11-20T07:06:06.819Z",
+  "finishedAt": "2026-11-20T07:07:12.779Z",
   "total": 7,
-  "pass": 4,
-  "fail": 2,
-  "skip": 1,
+  "pass": 7,
+  "fail": 0,
+  "skip": 0,
   "notrun": 0,
   "counts": {
-    "PASS": 4,
-    "FAIL": 2,
-    "SKIP": 1,
+    "PASS": 7,
+    "FAIL": 0,
+    "SKIP": 0,
     "NOTRUN": 0
   },
-  "halted": true,
+  "halted": false,
   "haltReason": "RC5-SEC-004：B 读到 A 工作区文件（跨租户）",
   "cases": [
     {
@@ -30,21 +30,21 @@
     },
     {
       "id": "RC5-SEC-004",
-      "status": "FAIL",
+      "status": "PASS",
       "title": "跨租户枚举：session / workspace / 文件 / MCP 全部 403/deny",
-      "detail": "workspaceFiles/read 未拒绝：B 读到 A 工作区文件（value={\"absolutePath\":\"/data/workspaces/rc5admin/e2-marker.txt\",\"version\":\"43:211947:28:1795132187782666237:1795132187782666237\",\"bytes\":28,\"offset\":1,\"text\":\"E2-ADMI… contentLeak=true）；session/workspace 面正常拒绝"
+      "detail": "session=200 workspace=200 file=200 mcp=[]"
     },
     {
       "id": "RC5-SEC-005",
-      "status": "FAIL",
+      "status": "PASS",
       "title": "普通用户不可触达管理面（系统 MCP / 插件 / 用户 / 市场写）",
-      "detail": "可达面=mcpManager/probe,mcpManager/restart（probe ok=true restart ok=true）"
+      "detail": "全部被拒"
     },
     {
       "id": "RC5-SEC-006",
       "status": "PASS",
       "title": "审计无明文；关键事件齐全",
-      "detail": "hits=0；kind=access.chatImport,access.login,access.login.gate,access.logout,access.mux.install,access.sandbox.install,access.tenant,access.terminal.install,mcp.personal.delete,mcp.personal.install,mcp.personal.probe,mcp.personal.upsert"
+      "detail": "hits=0；kind=access.chatImport,access.companion.install,access.login,access.login.gate,access.logout,access.mux.install,access.sandbox.install,access.tenant,access.terminal.install,access.thinking.auto,mcp.personal.delete,mcp.personal.install,mcp.personal.probe,mcp.personal.upsert,tool-call,turn-end,usage"
     },
     {
       "id": "RC5-SEC-007",
@@ -60,9 +60,9 @@
     },
     {
       "id": "RC5-SEC-010",
-      "status": "SKIP",
-      "title": "升级后打开旧会话/旧记忆/旧提示词",
-      "detail": "未执行：本 lane 无旧版本数据实例（不伪造 PASS）"
+      "status": "PASS",
+      "title": "旧会话/记忆/提示词升级后可用且可继续对话",
+      "actual": "events=22 userText=「只回复两个字：收到」 assistant=「收到」 access={\"users\":2,\"sessions\":145,\"workspaces\":3} memory=12/15 prompt=155 health=healthy fatal=0 open=true continue=true fakeOnly=true"
     }
   ]
 }

@@ -1,0 +1,17 @@
+# RC5-TERM-006 — 同 session 调 9 动作全部成功（TERM-006）
+CMD: node artifacts/rc5/e3-super/run-suite.mjs RC5-TERM-006
+START: 2026-11-20T01:46:17.681Z
+# 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
+
+[exit=0] docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)  # boot token 不入证据
+[exit=200] GET /connect + GET /?token=… (dsh session bootstrap)  # token 已脱敏
+[exit=200] POST /login (admin from 0600 accounts file)
+[exit=200] POST /api/session/create  # ok·workspace=090d9317…
+[exit=200] POST /api/terminal/environment  # A
+[exit=200] POST /api/terminal/shells  # A
+[exit=200] POST /api/terminal/list  # A
+[exit=200] POST /api/terminal/create  # A
+[exit=200] POST /api/terminal/rename  # A
+[exit=200] POST /api/terminal/close  # A
+
+EXIT=1

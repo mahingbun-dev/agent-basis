@@ -1,16 +1,16 @@
 # ACC/RC5-ACC-004
-# started 2026-11-19T23:51:58.019Z
+# started 2026-11-20T07:05:46.027Z
 
 $ pnpm --filter @eterna/access exec vitest run tests/mux-drift.spec.ts tests/mux-peer-drift.spec.ts
 EXIT=0
 RUN  v4.1.12 /Users/sunny/code/agent-basis-rc5/packages/access
 
- ✓ tests/mux-drift.spec.ts (17 tests) 47ms
- ✓ tests/mux-peer-drift.spec.ts (9 tests) 434ms
+ ✓ tests/mux-drift.spec.ts (19 tests) 61ms
+ ✓ tests/mux-peer-drift.spec.ts (14 tests) 672ms
 
  Test Files  2 passed (2)
-      Tests  26 passed (26)
-   Start at  07:51:58
-   Duration  590ms (transform 71ms, setup 0ms, import 245ms, tests 481ms, environment 0ms)
+      Tests  33 passed (33)
+   Start at  15:05:46
+   Duration  839ms (transform 84ms, setup 0ms, import 344ms, tests 734ms, environment 0ms)
 
-[ASSERT] mux 漂移测试绿（含 terminal 9 动作） => PASS ::  ✓ tests/mux-peer-drift.spec.ts (9 tests) 434ms |  |  Test Files  2 passed (2) |       Tests  26 passed (26) |    Start at  07:51:58 |    Duration  590ms (transform 71ms, setup 0ms, import 245ms, tests 481ms, environment 0ms)
+[ASSERT] mux 漂移测试绿（含 terminal 9 动作） => PASS ::  ✓ tests/mux-peer-drift.spec.ts (14 tests) 672ms |  |  Test Files  2 passed (2) |       Tests  33 passed (33) |    Start at  15:05:46 |    Duration  839ms (transform 84ms, setup 0ms, import 344ms, tests 734ms, environment 0ms)

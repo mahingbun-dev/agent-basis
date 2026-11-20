@@ -1,0 +1,8 @@
+# BOOT/RC5-BOOT-005
+# started 2026-11-20T01:42:43.783Z
+
+$ docker exec rc5-e1suite sh -c 'DSH_HOME=/data dsh --profile eterna-web --dump-config  > /tmp/dump-eterna-web-1795138963573.yml; echo EXIT=$?; wc -c < /tmp/dump-eterna-web-1795138963573.yml' && docker cp rc5-e1suite:/tmp/dump-eterna-web-1795138963573.yml
+EXIT=0
+dump bytes=61524
+
+[ASSERT] 已删除行不存在 => PASS :: 命中=none

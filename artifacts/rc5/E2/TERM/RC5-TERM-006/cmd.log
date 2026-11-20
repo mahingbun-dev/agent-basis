@@ -1,9 +1,9 @@
 # TERM/RC5-TERM-006
-# started 2026-11-20T00:39:26.018Z
+# started 2026-11-20T07:05:51.673Z
 
 $ POST /api/terminal/list（A）
 EXIT=200
-ok=true code=- value=[] msg=
+ok=true code=- value=[{"id":"e2-victim-term","shell":{"path":"/bin/bash","name":"bash","args":["-i"]},"title":"bash","cwd":"/data/workspaces/rc5admin","cols":80,"rows":24,"state":"r… msg=
 
 $ POST /api/terminal/environment（A）
 EXIT=200
@@ -15,23 +15,27 @@ ok=true code=- value=[{"path":"/bin/bash","name":"bash","args":["-i"]}] msg=
 
 $ POST /api/terminal/create（A）
 EXIT=200
-ok=false code=gateway/internal value= msg=session.snapshotEvents is not a function
-
-$ POST /api/terminal/close（A）
-EXIT=200
-ok=true code=- value= msg=
+ok=true code=- value={"id":"e2-a-term","shell":{"path":"/bin/bash","name":"bash","args":["-i"]},"title":"bash","cwd":"/data/workspaces/rc5admin","cols":80,"rows":24,"state":"running… msg=
 
 $ POST /api/terminal/rename（A）
 EXIT=200
-ok=false code=terminal/unavailable value= msg=Terminal no longer exists in this Session
+ok=true code=- value= msg=
+
+$ WS /api/remote.mux open terminal/attach（A）
+EXIT=0
+frames=[{"type":"item","streamId":"e2-term-terminal-attach-3zbkwr","value":{"type":"snapshot","sequence":1,"screen":"root@71cf1174be6d:/data/workspaces/rc5admin# \u001b[?2004h","info":{"id":"e2-a-term","shell":{"path":"/bin/bash","name":"bash","args":["-i"]},"title":"e2-renamed","cwd":"/data/workspaces/rc5…
 
 $ WS /api/remote.mux open terminal/retain（A）
 EXIT=0
-frames=[{"type":"error","streamId":"e2-term-terminal-retain-pbptot","error":{"code":"terminal/unavailable","message":"Terminal is closing or unavailable","details":{}}}]
+frames=[{"type":"item","streamId":"e2-term-terminal-retain-s0pbzu","value":{"type":"retained"}}]
 
 $ WS /api/remote.mux open terminal/watch（A）
 EXIT=0
-frames=[{"type":"item","streamId":"e2-term-terminal-watch-zldeof","value":[]}]
+frames=[{"type":"item","streamId":"e2-term-terminal-watch-wnefk1","value":[{"id":"e2-victim-term","shell":{"path":"/bin/bash","name":"bash","args":["-i"]},"title":"bash","cwd":"/data/workspaces/rc5admin","cols":80,"rows":24,"state":"running","exitCode":null,"origin":"user","control":"user"},{"id":"e2-a-ter…
+
+$ POST /api/terminal/close（A，最后关闭）
+EXIT=200
+ok=true code=- value= msg=
 
 [ASSERT] A list ok => PASS :: - 
 
@@ -39,14 +43,16 @@ frames=[{"type":"item","streamId":"e2-term-terminal-watch-zldeof","value":[]}]
 
 [ASSERT] A shells ok => PASS :: - 
 
-[ASSERT] A create ok => FAIL :: gateway/internal session.snapshotEvents is not a function
+[ASSERT] A create ok => PASS :: - 
 
 [ASSERT] A close ok => PASS :: - 
 
-[ASSERT] A rename ok => FAIL :: terminal/unavailable Terminal no longer exists in this Session
+[ASSERT] A rename ok => PASS :: - 
 
-[ASSERT] A retain ok => FAIL :: terminal/unavailable Terminal is closing or unavailable
+[ASSERT] A attach ok => PASS :: - 
+
+[ASSERT] A retain ok => PASS :: - 
 
 [ASSERT] A watch ok => PASS :: - 
 
-# note: terminal/attach 的 A 侧调用未被本 harness 覆盖：裸 WS open 帧报 `Terminal attachment requires a Remote invocation`（浏览器端以 Remote invocation 形态带 uplink 调用），故不计入断言；B 侧策略拒绝已由 TERM-005a 验证
+# note: attach 用真实 mux WS open（payload.args={agentId,id}）执行；首个帧为 snapshot（屏幕/state/writable），与浏览器端同一条 Remote stream 路径

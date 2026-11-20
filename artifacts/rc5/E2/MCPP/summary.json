@@ -1,22 +1,22 @@
 {
   "suite": "MCPP",
-  "commit": "02f485788411b9aed1938a3c4b009793a090961e",
+  "commit": "c75f876c986415431c92b28cce771d847a36c52f",
   "imageTag": "eterna-agent:rc5-test",
-  "imageId": "sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00",
+  "imageId": "sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb",
   "container": "rc5-e2suite",
   "base": "http://127.0.0.1:3119",
   "dataRoot": "/Users/sunny/eterna-data/test-20261120/e2",
-  "startedAt": "2026-11-19T23:53:24.563Z",
-  "finishedAt": "2026-11-19T23:53:32.478Z",
+  "startedAt": "2026-11-20T07:05:03.204Z",
+  "finishedAt": "2026-11-20T07:05:10.246Z",
   "total": 24,
-  "pass": 16,
+  "pass": 21,
   "fail": 0,
-  "skip": 8,
+  "skip": 3,
   "notrun": 0,
   "counts": {
-    "PASS": 16,
+    "PASS": 21,
     "FAIL": 0,
-    "SKIP": 8,
+    "SKIP": 3,
     "NOTRUN": 0
   },
   "halted": false,
@@ -50,7 +50,7 @@
       "id": "RC5-MCPP-005",
       "status": "PASS",
       "title": "catalog 只含允许项；自填 stdio command 被拒",
-      "detail": "catalog=[\"echo\"]; command denied=true/stdio 的 command/args 只能来自管理员目录,禁止自填; args denied=true/stdio 的 command/args 只能来自管理员目录,禁止自填"
+      "detail": "catalog=[\"echo\",\"hung\",\"flaky\"]; command denied=true/stdio 的 command/args 只能来自管理员目录,禁止自填; args denied=true/stdio 的 command/args 只能来自管理员目录,禁止自填"
     },
     {
       "id": "RC5-MCPP-006",
@@ -110,13 +110,7 @@
       "id": "RC5-MCPP-010",
       "status": "PASS",
       "title": "任意 HTTPS 地址（不可解析域名）校验通过、不被策略拦",
-      "detail": "upsert=true/streamable-http；probe={\"ok\":false,\"toolCount\":0,\"error\":\"SdkError: Version negotiation probe failed: fetch failed, cause: TypeError: fetch fai…"
-    },
-    {
-      "id": "RC5-MCPP-011",
-      "status": "SKIP",
-      "title": "personalHttpHosts 白名单：b.example 拒 / a.example 过",
-      "detail": "单测 `personalHttpHosts 空=放行;非空=白名单且支持 *.suffix` 绿；但本容器未以该白名单启动，未做容器实跑 → 记 SKIP（不以单测冒充容器结论）"
+      "actual": "hostWhitelist=[] upsert=true/streamable-http probe={\"ok\":false,\"toolCount\":0,\"error\":\"SdkError: Version negotiation probe failed: fetch failed, cause: TypeError: fetch failed, cause: getaddrinfo ENOTFOUND unreso…"
     },
     {
       "id": "RC5-MCPP-023",
@@ -125,46 +119,52 @@
       "detail": "健康=healthy 重启前=[\"p2_persist-probe\"] 重启后=[\"p2_persist-probe\"]"
     },
     {
+      "id": "RC5-MCPP-011",
+      "status": "PASS",
+      "title": "personalHttpHosts 白名单：精确 host / *.suffix / 非子域 / 端口",
+      "actual": "https://b.example/mcp=>DENY；https://a.example/mcp=>ALLOW；https://svc.suffix.test/mcp=>ALLOW；https://suffix.test/mcp=>DENY；https://a.example:8443/mcp=>ALLOW；https://b.example:8443/mcp=>ALLOW；https://b.example:9443/mcp=>DENY"
+    },
+    {
       "id": "RC5-MCPP-016",
-      "status": "SKIP",
-      "title": "挂死 stdio 8s 放弃",
-      "detail": "未执行：需要 live 会话建立挂死子进程；API 层无 8s 启动时序面"
+      "status": "PASS",
+      "title": "挂死 stdio 8s 启动预算：放弃该条、会话仍可建",
+      "actual": "upsert=true session=true elapsedMs=8051 state=true/false log=true"
     },
     {
       "id": "RC5-MCPP-017",
-      "status": "SKIP",
-      "title": "慢 HTTP 工具 60s 超时",
-      "detail": "未执行：需要真实工具调用与 60s 等待（模型回合）"
+      "status": "PASS",
+      "title": "慢 HTTP 工具 60s 调用超时（工具级错误，不炸会话）",
+      "actual": "dispatched=true elapsedMs=60412 timeoutText=Error: Request timed out turn=ok"
     },
     {
       "id": "RC5-MCPP-018",
-      "status": "SKIP",
-      "title": "断线重连 3 次后停止",
-      "detail": "未执行：需要长时断连/恢复时序"
+      "status": "PASS",
+      "title": "断线重连 3 次后停止；新会话恢复",
+      "actual": "unit=true baseline=true reconnected=true absentAt20s=true recovered=true"
+    },
+    {
+      "id": "RC5-MCPP-024",
+      "status": "PASS",
+      "title": "个人 MCP UI 增删改（密钥 write-only / 两击删除 / 双主题三视口）",
+      "actual": "saved=true secretInDom=false keep=true probe=true shots=6 armed=true/1 deleted=true nativeDialogs=0 remaining=0"
     },
     {
       "id": "RC5-MCPP-019",
       "status": "SKIP",
       "title": "删除后 live 会话工具当场消失",
-      "detail": "未执行：需要 live 会话 + tools/list 观察"
+      "detail": "本 runner 未测（证据在 LLM lane）：artifacts/rc5/E2/LLM/RC5-MCPP-019/result.md"
     },
     {
       "id": "RC5-MCPP-020",
       "status": "SKIP",
       "title": "跨用户 mcp__p<uid>_* 调用 deny",
-      "detail": "未执行：需要子代理/跨用户会话工具调用（模型回合）"
+      "detail": "本 runner 未测（证据在 LLM lane）：artifacts/rc5/E2/LLM/RC5-MCPP-020/result.md"
     },
     {
       "id": "RC5-MCPP-022",
       "status": "SKIP",
       "title": "登出后个人工具不可用",
-      "detail": "未执行：需要 live 会话作用域观察"
-    },
-    {
-      "id": "RC5-MCPP-024",
-      "status": "SKIP",
-      "title": "MCP UI 双主题三视口",
-      "detail": "未执行：浏览器人工/截图（本 lane UI 套件另测；若 UI 未完成则保持 SKIP）"
+      "detail": "本 runner 未测（证据在 LLM lane）：artifacts/rc5/E2/LLM/RC5-MCPP-022/result.md"
     }
   ],
   "officialReport": {

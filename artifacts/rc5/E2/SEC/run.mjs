@@ -8,7 +8,7 @@
  * SEC-007 个人 MCP 内网地址放行、元数据地址拒绝
  * SEC-008 登录归属 + 登出后不可继续
  * SEC-009 `pnpm -w run verify`（外部已在后台跑，本脚本只落结论）
- * SEC-010 旧版本数据打开 —— 本 lane 无旧版本数据，SKIP 并说明
+ * SEC-010 旧版本数据打开 —— 由 sec-010.mjs 在旧卷副本上实跑，本脚本只折叠其结论
  *
  * 判定口径遵循 lane 停线规则：跨租户可达 → P0 FAIL。
  */
@@ -113,7 +113,11 @@ s.userB.cookie = `${s.dsh}; ${reLoginB.cookie}`
   const mcpList = await call(s.userB.cookie, 'mcp-personal/list')
   const mcpNames = (mcpList.value?.items ?? []).map(item => item.serverName)
   c.cmd('POST /api/mcp-personal/list（B）', mcpList.status, `items=${JSON.stringify(mcpNames)}`)
-  const denied = result => result.status === 403 || String(result.error?.code ?? '').includes('tenant-denied') || String(result.error?.message ?? '').includes('不属于你')
+  const denied = result => result.status === 403
+    || String(result.error?.code ?? '').includes('tenant-denied')
+    || String(result.error?.code ?? '') === 'remote-access/denied'
+    || String(result.error?.message ?? '').includes('不属于你')
+    || /access denied/.test(String(result.error?.message ?? ''))
   const sameShape = eventsA.status === eventsBogus.status || (eventsA.status === 403 && eventsBogus.status === 403)
   c.assert('B 读 A 的 session/events 被拒', denied(eventsA), `status=${eventsA.status}`)
   c.assert('A 会话与伪造会话的拒绝形态一致（无存在性泄漏）', sameShape, `a=${eventsA.status} bogus=${eventsBogus.status}`)
@@ -129,7 +133,7 @@ s.userB.cookie = `${s.dsh}; ${reLoginB.cookie}`
     leak
       ? `workspaceFiles/read 未拒绝：B 读到 A 工作区文件（value=${shape(fileRead.value, 160)} contentLeak=${contentLeak}）；session/workspace 面正常拒绝`
       : `session=${eventsA.status} workspace=${deleteA.status} file=${fileRead.status} mcp=${JSON.stringify(mcpNames)}`,
-    ['文件面复现 ACC-008 的 P0：workspaceFiles/* 不在 tenant.ts 的 sessionValidated 守卫清单内',
+    ['文件面与 ACC-008 同根因已修：/api/workspaceFiles/* 在 mux admit 换血为 per-user Peer，网关按会话资源 decide（remote-access/denied）；tenant.ts 守卫路由仍回 tenant/denied',
       'session/events 与 workspace/delete 的拒绝形态与伪造 id 一致（无存在性泄漏）'])
 }
 
@@ -260,7 +264,9 @@ s.userB.cookie = `${s.dsh}; ${reLoginB.cookie}`
     '个人 MCP HTTP：内网地址放行、元数据地址拒绝',
     'http://10.0.0.1 接受；169.254.169.254 / fd00:ec2::254 拒绝',
     `internal=${internal.ok} meta4=${md4.ok} meta6=${md6.ok}`,
-    ['内网地址放行是 51 明示的拍板项（H16 已知风险），不是缺陷'])
+    ['内网地址放行是 51 明示的拍板项（H16 已知风险），不是缺陷',
+     'lane 个人 MCP host 允许列表含 10.0.0.1（E2 .env.e2suite）；MCPP-011 用 a.example/b.example 另证白名单收紧能力',
+     '两条元数据地址（169.254.169.254 / fd00:ec2::254）由产品硬拒，不受允许列表影响'])
 }
 
 /* ============================================================ SEC-009 verify */
@@ -282,16 +288,27 @@ s.userB.cookie = `${s.dsh}; ${reLoginB.cookie}`
     [`命令原文：pnpm -w run verify（日志 ${logPath}）；失败样例均为 tools/evals 的负向 fixture（预期 SCHEMA-FAIL/FAIL）`])
 }
 
-/* ============================================================ SEC-010 旧数据 */
-
+/* ============================================================ SEC-010 旧数据（sec-010.mjs 实跑，折叠结论） */
+/* 证据：artifacts/rc5/E2/SEC/RC5-SEC-010/result.md（独立 lane rc5-sec10，旧卷副本 + 终版镜像）。 */
 {
-  const c = new Case(suite, 'RC5-SEC-010')
-  c.note('本 lane 数据根为全新播种（2026-11-20 E2），不存在旧版本 rc.4/rc.5 之前的历史数据；E1 车道同样从空数据根起。')
-  c.note('升级路径上的旧会话/旧记忆/旧提示词兼容性由 E0/profile-upgrade 车道与 `pnpm -w run verify` 内 profile-upgrade-check 覆盖。')
-  record(c, STATUS.SKIP,
-    '升级后打开旧会话/旧记忆/旧提示词',
-    '内容完整、可继续对话',
-    '未执行：本 lane 无旧版本数据实例（不伪造 PASS）')
+  const path = join(LANE.evidenceRoot, 'SEC', 'RC5-SEC-010', 'result.md')
+  const folded = existsSync(path) ? (() => {
+    const text = readFileSync(path, 'utf8')
+    const status = /- 结论：\*\*(PASS|FAIL|SKIP|NOTRUN)\*\*/.exec(text)?.[1]
+    const title = /^# RC5-SEC-010 · (.+)$/m.exec(text)?.[1]
+    const actual = /## 实际\n\n([\s\S]*?)\n\n## /.exec(text)?.[1]?.trim().replace(/\n+/g, ' ') ?? ''
+    return { status, title, actual: shape(actual, 500) }
+  })() : undefined
+  if (folded?.status === 'PASS' || folded?.status === 'FAIL') {
+    rows.push({ id: 'RC5-SEC-010', status: folded.status, title: folded.title, actual: folded.actual })
+  } else {
+    const c = new Case(suite, 'RC5-SEC-010')
+    c.note('sec-010.mjs 无 PASS/FAIL 结论（或证据缺失）')
+    record(c, STATUS.NOTRUN,
+      '升级后打开旧会话/旧记忆/旧提示词',
+      '内容完整、可继续对话',
+      `未执行/未判：${folded?.actual ?? 'result.md 缺失'}（先跑 artifacts/rc5/E2/SEC/sec-010.mjs）`)
+  }
 }
 
 const summary = summaryOf(rows, {

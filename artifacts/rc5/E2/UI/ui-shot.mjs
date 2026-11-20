@@ -22,7 +22,7 @@
 import { createRequire } from 'node:module'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { LANE } from '../_lib/env.mjs'
+import { LANE, call, readDb } from '../_lib/env.mjs'
 import { bootTokenFromContainer, bootstrapDshSession, loadAccounts, login } from '../../../../scripts/rc5-test-client.mjs'
 
 const req = createRequire(join(LANE.repoRoot, 'packages/browser-relay/package.json'))
@@ -51,6 +51,26 @@ const VIEWPORTS = [
   { width: 900, height: 900 },
   { width: 390, height: 844 },
 ]
+
+const cookieHeader = `${dsh}; ${auth.cookie}`
+const adminUserId = readDb('SELECT id FROM users WHERE account = ?', [accounts.admin.account])[0]?.id
+
+/**
+ * 每个组合前清掉该账号全部会话的 retained 终端：UI-006 会连续开 6 次面板，
+ * terminal 每会话数量上限（默认 3）会让后几组呈「终端数量已达上限」——
+ * 这是上限语义正确、测试串行污染。用 API 关掉旧终端，保证每组都从干净态起步。
+ */
+async function closeAllTerminals() {
+  if (adminUserId === undefined) return
+  const rows = readDb('SELECT session_id FROM sessions WHERE owner_id = ?', [adminUserId])
+  for (const row of rows) {
+    const list = await call(cookieHeader, 'terminal/list', { sessionId: row.session_id }).catch(() => undefined)
+    if (list?.ok !== true) continue
+    for (const terminal of list.value ?? []) {
+      await call(cookieHeader, 'terminal/close', { agentId: row.session_id, id: terminal.id }).catch(() => undefined)
+    }
+  }
+}
 
 const browser = await chromium.launch({
   executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -181,6 +201,8 @@ async function mcpSettings(page, theme, width) {
 }
 
 async function terminalPanel(page, theme, width) {
+  // 串行组合会累积 retained 终端（终端数量上限是产品语义，不是破面）——先清空。
+  await closeAllTerminals()
   // 右侧栏折叠时先展开：开始页有「新建终端」卡片；随后按全局快捷键 ⌃`
   if ((await page.evaluate(() => (document.querySelector('[data-sidebar-right-panel]')?.innerText ?? '').trim().length)) === 0) {
     const expand = page.locator('[data-sidebar-right-expand]').first()
@@ -188,15 +210,24 @@ async function terminalPanel(page, theme, width) {
     await page.waitForTimeout(900)
   }
   const startText = await page.evaluate(() => (document.querySelector('[data-sidebar-right-panel]')?.innerText ?? '').replace(/\s+/g, ' ').slice(0, 160))
-  const terminalTabOpen = async () => page.evaluate(() => [...document.querySelectorAll('[data-dockkit-tab],[role="tab"]')].some(el => /终端/.test(el.textContent ?? '')))
+  const terminalTabOpen = async () => page.evaluate(() => {
+    // 终端页签标题是 shell 名（bash），不是「终端」；开始页签=「开始」。
+    // 旧判定 /终端/ 永远不命中 → 每轮再开一个，三次触到每会话上限（3）。
+    const tabs = [...document.querySelectorAll('[data-dockkit-tab],[role="tab"]')]
+      .map(el => (el.textContent ?? '').replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
+    return tabs.some(text => !/^开始$/.test(text))
+  })
   for (let attempt = 0; attempt < 3; attempt += 1) {
     if (await terminalTabOpen()) break
     await page.locator('[data-composer-input]').click().catch(() => {})
     await page.keyboard.press('Control+Backquote')
     await page.waitForTimeout(2500)
     if (await terminalTabOpen()) break
-    const card = page.locator('[data-sidebar-right-panel] button', { hasText: /新建终端/ }).first()
-    if (await card.count() > 0) await card.click().catch(() => {})
+    // 卡片可能是 div[role=button]（不是原生 button）——按可见文本点，390 实测
+    // 原生 button 选择器点不到「新建终端」。
+    const card = page.getByText(/^新建终端$/, { exact: true }).first()
+    if (await card.count() > 0) await card.click({ force: true }).catch(() => {})
     await page.waitForTimeout(2500)
   }
   const metrics = await measure(page, '[data-sidebar-right-panel]', join(OUT, `RC5-UI-006-${theme}-${width}-terminal.png`))

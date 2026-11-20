@@ -1,7 +1,7 @@
 {
   "suite": "ACP",
-  "startedAt": "2026-11-19T22:43:52.436Z",
-  "finishedAt": "2026-11-19T22:43:54.959Z",
+  "startedAt": "2026-11-20T07:02:09.116Z",
+  "finishedAt": "2026-11-20T07:02:11.701Z",
   "env": {
     "project": "rc5-e1suite",
     "envFile": "/Users/sunny/eterna-data/test-rc5/.env.e4",
@@ -26,7 +26,7 @@
       "priority": "P0",
       "status": "PASS",
       "title": "session/new 返回 sessionId",
-      "detail": "sessionId=2accecfb-5b9c-4ae7-9884-ec4def077800"
+      "detail": "sessionId=680564e6-599c-46f9-af4d-d2c0d73c44a5"
     },
     {
       "id": "RC5-ACP-002b",
@@ -40,7 +40,7 @@
       "priority": "P0",
       "status": "PASS",
       "title": "ACP 容器无监听端口",
-      "detail": "无应用监听（基础设施监听 1 个：127.0.0.11:49071）"
+      "detail": "无应用监听（基础设施监听 1 个：127.0.0.11:39843）"
     },
     {
       "id": "RC5-ACP-005",

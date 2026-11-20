@@ -1,4 +1,84 @@
 # IMP/RC5-IMP-007
-# started 2026-11-19T23:26:27.457Z
+# started 2026-11-20T06:20:20.505Z
 
-# note: 未执行：512MiB 合成包上传需大体积构造与实时反代链路；E1 直连容器端口无 nginx，且同宿主存在其它 lane 24h 浸泡，压测风险外溢
+$ python3 artifacts/rc5/E1/IMP/make-512m-export.py /tmp/imp-007-512m.zip
+EXIT=0
+archive=/tmp/imp-007-512m.zip bytes=536870912
+
+$ node -e statSync(/tmp/imp-007-512m.zip).size
+EXIT=0
+bytes=536870912 target=536870912
+
+$ POST /api/deepseek-chat-import/archive（坏包探针，逐个候选 workspaceId，直连容器）
+EXIT=0
+candidates=["adf1e03e-505e-468b-b1b0-9ebc31f5e1a4","6fd0ca27-26be-443a-bab0-453b37a1e244"] probes=[{"workspaceId":"adf1e03e-505e-468b-b1b0-9ebc31f5e1a4","status":200,"reason":"workspace-not-found"},{"workspaceId":"6fd0ca27-26be-443a-bab0-453b37a1e244","status":200,"reason":"unreadable-archive"}] chosen=6fd0ca27-26be-443a-bab0-453b37a1e244
+
+$ 会话：B(rc5userb) 登录 + dsh 会话
+EXIT=200
+userId=2 workspace=6fd0ca27-26be-443a-bab0-453b37a1e244
+
+$ docker rm -f rc5-imp-nginx
+EXIT=0
+
+
+$ docker run -d --name rc5-imp-nginx -p 3129:80 --add-host host.docker.internal:host-gateway -v /tmp/rc5-imp-nginx.conf:/etc/nginx/nginx.conf:ro nginx:alpine
+EXIT=0
+7b04fd6dede7ab45b5fce334b5a3f7529667d631fef9c6cf80f5938e8d5da84e
+
+$ docker exec rc5-imp-nginx nginx -t
+EXIT=0
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+$ GET http://127.0.0.1:3129/login（反代连通）
+EXIT=200
+status=200 elapsedMs=3 bytes=22116
+
+$ POST /api/deepseek-chat-import/archive（坏包 10B 经反代，前置鉴权探针）
+EXIT=200
+status=200 reason=unreadable-archive body={"type":"outcome","outcome":{"ok":false,"error":{"reason":"unreadable-archive","message":"the uploaded file is not a readable ZIP archive"}}}
+ elapsedMs=15
+
+$ docker exec rc5-e1suite cat /sys/fs/cgroup/memory.peak（上传前）
+EXIT=0
+peak=598040576 (570.3MiB) state={"oom":false,"health":"healthy","restarts":0}
+
+$ POST http://127.0.0.1:3129/api/deepseek-chat-import/archive?workspaceId=6fd0ca27-26be-443a-bab0-453b37a1e244（536870912 bytes 流式）
+EXIT=0
+status=200 elapsedMs=4325 respBytes=342 {"type":"progress","done":0,"total":1}
+{"type":"outcome","outcome":{"ok":true,"value":{"workspaceId":"6fd0ca27-26be-443a-bab0-453b37a1e244","workspacePath":"/data/workspaces/rc5userb","sessionIds":[],"conversationCount":1,"omittedByLimit":0,"skipped":[{"conversationId":"conv-1","title":"IMP-007","reason":"conversation has no messages"}]}}}
+
+$ docker exec rc5-e1suite cat /sys/fs/cgroup/memory.peak（上传后）
+EXIT=0
+peak=1049554944 (1000.9MiB) delta=451514368 state={"oom":false,"health":"healthy","restarts":0}
+
+$ docker logs rc5-imp-nginx（过滤访问日志）
+EXIT=0
+GET /login status=200 req_len=69 body=22129 time=0.003
+GET /login status=200 req_len=69 body=22145 time=0.002
+POST /api/deepseek-chat-import/archive?workspaceId=6fd0ca27-26be-443a-bab0-453b37a1e244 status=200 req_len=581 body=153 time=0.015
+POST /api/deepseek-chat-import/archive?workspaceId=6fd0ca27-26be-443a-bab0-453b37a1e244 status=200 req_len=536871492 body=360 time=4.316
+
+$ GET http://127.0.0.1:3129/login（上传后仍可服务）
+EXIT=200
+status=200
+
+[ASSERT] 夹具精确 512MiB（= maxUploadBytes 上限） => PASS :: 536870912 vs 536870912
+
+[ASSERT] 反代连通（/login 200） => PASS :: status=200
+
+[ASSERT] 反代鉴权通：坏包经反代回 unreadable-archive（非 401/403/workspace-not-found） => PASS :: status=200 reason=unreadable-archive
+
+[ASSERT] 512MiB 上传 200 且 outcome.ok=true => PASS :: status=200 ok=true bytes=342
+
+[ASSERT] 非 413（反代/应用均接受边界体积） => PASS :: status=200
+
+[ASSERT] nginx 访问日志 200 且请求长度≈512MiB => PASS :: log200=true req_len=536871492 tooLarge=false
+
+[ASSERT] 容器未 OOMKilled、无重启、health=healthy => PASS :: {"oom":false,"health":"healthy","restarts":0}
+
+[ASSERT] cgroup 记录到上传内存峰值（memory.peak 上升） => PASS :: before=570.3MiB after=1000.9MiB
+
+[ASSERT] 上传后容器仍可服务（/login 200） => PASS :: status=200
+
+# note: 清理：docker rm -f rc5-imp-nginx → EXIT=0

@@ -5,8 +5,8 @@
   "title": "（workbench）实时流首帧快照契约",
   "expected": "200 SSE；snapshot 含 10 键；masterSessionId=orchestrator-*",
   "status": "PASS",
-  "startedAt": "2026-11-19T22:30:38.997Z",
-  "finishedAt": "2026-11-19T22:30:39.104Z",
+  "startedAt": "2026-11-20T07:03:52.787Z",
+  "finishedAt": "2026-11-20T07:03:52.905Z",
   "assertions": [
     {
       "name": "admin 登录 200",

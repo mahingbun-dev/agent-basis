@@ -103,3 +103,148 @@ EXIT=0
 
 ---
 2026-11-19T22:10:10.226Z [setup] up 完成
+$ docker compose -p rc5-e1suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e1suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E1/_setup/compose.e1suite.override.yml down --remove-orphans
+EXIT=0
+
+Container rc5-e1suite Stopping 
+ Container rc5-e1suite Stopped 
+ Container rc5-e1suite Removing 
+ Container rc5-e1suite Removed 
+ Network rc5-e1suite_default Removing 
+ Network rc5-e1suite_default Removed
+---
+2026-11-20T03:25:34.780Z [setup] down exit=0
+$ docker image inspect eterna-agent:rc5-test --format '{{.Id}}'
+EXIT=0
+sha256:5ecd83cc9d537c106c6348435edd9f8ed60f4e617b2e50b4ccbb86c47cb7c45a
+
+---
+2026-11-20T03:25:34.918Z [setup] 镜像 tag=eterna-agent:rc5-test id=sha256:5ecd83cc9d537c106c6348435edd9f8ed60f4e617b2e50b4ccbb86c47cb7c45a
+$ docker compose -p rc5-e1suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e1suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E1/_setup/compose.e1suite.override.yml config --quiet
+EXIT=0
+
+
+---
+2026-11-20T03:25:34.968Z [setup] compose config OK
+$ docker compose -p rc5-e1suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e1suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E1/_setup/compose.e1suite.override.yml up -d eterna-agent
+EXIT=0
+
+Network rc5-e1suite_default Creating 
+ Network rc5-e1suite_default Created 
+ Container rc5-e1suite Creating 
+ Container rc5-e1suite Created 
+ Container rc5-e1suite Starting 
+ Container rc5-e1suite Started
+---
+2026-11-20T03:25:41.415Z [setup] container=rc5-e1suite health=healthy
+$ docker inspect rc5-e1suite --format '{{.Image}} {{.State.Health.Status}} {{json .NetworkSettings.Ports}}'
+EXIT=0
+sha256:5ecd83cc9d537c106c6348435edd9f8ed60f4e617b2e50b4ccbb86c47cb7c45a healthy {"8080/tcp":[{"HostIp":"0.0.0.0","HostPort":"3118"},{"HostIp":"::","HostPort":"3118"}],"9310/tcp":[{"HostIp":"0.0.0.0","HostPort":"9321"},{"HostIp":"::","HostPort":"9321"}]}
+
+---
+2026-11-20T03:25:41.439Z [setup] inspect: sha256:5ecd83cc9d537c106c6348435edd9f8ed60f4e617b2e50b4ccbb86c47cb7c45a healthy {"8080/tcp":[{"HostIp":"0.0.0.0","HostPort":"3118"},{"HostIp":"::","HostPort":"3118"}],"9310/tcp":[{"HostIp":"0.0.0.0","HostPort":"9321"},{"HostIp":"::","HostPort":"9321"}]}
+$ sqlite3 /Users/sunny/eterna-data/test-20261120/e1/access/users.db 'SELECT COUNT(*) FROM users'
+EXIT=0
+3
+
+---
+2026-11-20T03:25:41.527Z [setup] up 完成
+$ docker image inspect eterna-agent:rc5-test --format '{{.Id}}'
+EXIT=0
+sha256:ae5ce8cb4c9ed6e9d5297d070de9b204be2330113ced85b76ad6413bb0340c36
+
+---
+2026-11-20T04:56:31.818Z [setup] 镜像 tag=eterna-agent:rc5-test id=sha256:ae5ce8cb4c9ed6e9d5297d070de9b204be2330113ced85b76ad6413bb0340c36
+$ docker compose -p rc5-e1suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e1suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E1/_setup/compose.e1suite.override.yml config --quiet
+EXIT=0
+
+
+---
+2026-11-20T04:56:31.980Z [setup] compose config OK
+$ docker compose -p rc5-e1suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e1suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E1/_setup/compose.e1suite.override.yml up -d eterna-agent
+EXIT=0
+
+Container rc5-e1suite Creating 
+ Container rc5-e1suite Created 
+ Container rc5-e1suite Starting 
+ Container rc5-e1suite Started
+---
+2026-11-20T04:56:38.417Z [setup] container=rc5-e1suite health=healthy
+$ docker inspect rc5-e1suite --format '{{.Image}} {{.State.Health.Status}} {{json .NetworkSettings.Ports}}'
+EXIT=0
+sha256:ae5ce8cb4c9ed6e9d5297d070de9b204be2330113ced85b76ad6413bb0340c36 healthy {"8080/tcp":[{"HostIp":"0.0.0.0","HostPort":"3118"},{"HostIp":"::","HostPort":"3118"}],"9310/tcp":[{"HostIp":"0.0.0.0","HostPort":"9321"},{"HostIp":"::","HostPort":"9321"}]}
+
+---
+2026-11-20T04:56:38.441Z [setup] inspect: sha256:ae5ce8cb4c9ed6e9d5297d070de9b204be2330113ced85b76ad6413bb0340c36 healthy {"8080/tcp":[{"HostIp":"0.0.0.0","HostPort":"3118"},{"HostIp":"::","HostPort":"3118"}],"9310/tcp":[{"HostIp":"0.0.0.0","HostPort":"9321"},{"HostIp":"::","HostPort":"9321"}]}
+$ sqlite3 /Users/sunny/eterna-data/test-20261120/e1/access/users.db 'SELECT COUNT(*) FROM users'
+EXIT=0
+3
+
+---
+2026-11-20T04:56:38.528Z [setup] up 完成
+$ docker image inspect eterna-agent:rc5-test --format '{{.Id}}'
+EXIT=0
+sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb
+
+---
+2026-11-20T06:07:42.922Z [setup] 镜像 tag=eterna-agent:rc5-test id=sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb
+$ docker compose -p rc5-e1suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e1suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E1/_setup/compose.e1suite.override.yml config --quiet
+EXIT=0
+
+
+---
+2026-11-20T06:07:43.040Z [setup] compose config OK
+$ docker compose -p rc5-e1suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e1suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E1/_setup/compose.e1suite.override.yml up -d eterna-agent
+EXIT=0
+
+Container rc5-e1suite Recreate 
+ Container rc5-e1suite Recreated 
+ Container rc5-e1suite Starting 
+ Container rc5-e1suite Started
+---
+2026-11-20T06:07:51.240Z [setup] container=rc5-e1suite health=healthy
+$ docker inspect rc5-e1suite --format '{{.Image}} {{.State.Health.Status}} {{json .NetworkSettings.Ports}}'
+EXIT=0
+sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb healthy {"8080/tcp":[{"HostIp":"0.0.0.0","HostPort":"3118"},{"HostIp":"::","HostPort":"3118"}],"9310/tcp":[{"HostIp":"0.0.0.0","HostPort":"9321"},{"HostIp":"::","HostPort":"9321"}]}
+
+---
+2026-11-20T06:07:51.272Z [setup] inspect: sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb healthy {"8080/tcp":[{"HostIp":"0.0.0.0","HostPort":"3118"},{"HostIp":"::","HostPort":"3118"}],"9310/tcp":[{"HostIp":"0.0.0.0","HostPort":"9321"},{"HostIp":"::","HostPort":"9321"}]}
+$ sqlite3 /Users/sunny/eterna-data/test-20261120/e1/access/users.db 'SELECT COUNT(*) FROM users'
+EXIT=0
+3
+
+---
+2026-11-20T06:07:51.341Z [setup] up 完成
+$ docker image inspect eterna-agent:rc5-test --format '{{.Id}}'
+EXIT=0
+sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb
+
+---
+2026-11-20T06:29:13.076Z [setup] 镜像 tag=eterna-agent:rc5-test id=sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb
+$ docker compose -p rc5-e1suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e1suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E1/_setup/compose.e1suite.override.yml config --quiet
+EXIT=0
+
+
+---
+2026-11-20T06:29:13.188Z [setup] compose config OK
+$ docker compose -p rc5-e1suite --env-file /Users/sunny/eterna-data/test-20261120/.env.e1suite -f /Users/sunny/code/agent-basis-rc5/docker-compose.yml -f /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E1/_setup/compose.e1suite.override.yml up -d eterna-agent
+EXIT=0
+
+Container rc5-e1suite Recreate 
+ Container rc5-e1suite Recreated 
+ Container rc5-e1suite Starting 
+ Container rc5-e1suite Started
+---
+2026-11-20T06:29:20.769Z [setup] container=rc5-e1suite health=healthy
+$ docker inspect rc5-e1suite --format '{{.Image}} {{.State.Health.Status}} {{json .NetworkSettings.Ports}}'
+EXIT=0
+sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb healthy {"8080/tcp":[{"HostIp":"0.0.0.0","HostPort":"3118"},{"HostIp":"::","HostPort":"3118"}],"9310/tcp":[{"HostIp":"0.0.0.0","HostPort":"9321"},{"HostIp":"::","HostPort":"9321"}]}
+
+---
+2026-11-20T06:29:20.792Z [setup] inspect: sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb healthy {"8080/tcp":[{"HostIp":"0.0.0.0","HostPort":"3118"},{"HostIp":"::","HostPort":"3118"}],"9310/tcp":[{"HostIp":"0.0.0.0","HostPort":"9321"},{"HostIp":"::","HostPort":"9321"}]}
+$ sqlite3 /Users/sunny/eterna-data/test-20261120/e1/access/users.db 'SELECT COUNT(*) FROM users'
+EXIT=0
+3
+
+---
+2026-11-20T06:29:20.809Z [setup] up 完成

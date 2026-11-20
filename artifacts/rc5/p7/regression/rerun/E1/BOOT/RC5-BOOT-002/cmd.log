@@ -1,0 +1,10 @@
+# BOOT/RC5-BOOT-002
+# started 2026-11-20T01:42:33.579Z
+
+$ docker run -d … rc5-e1suite-super（ETERNA_FORM=super，127.0.0.1:3117:8080）
+EXIT=0
+3be67cf77ab2732cd8c09301ca62dcf3689cfbca207aeafa159cd0d21476d6c6
+
+$ curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3117/login
+EXIT=0
+200

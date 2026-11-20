@@ -1,0 +1,6 @@
+# TERM/RC5-TERM-005c
+# started 2026-11-20T01:38:52.488Z
+
+$ WS /api/remote.mux open terminal/watch {agentId:A.sessionId}（B）
+EXIT=0
+frames=[{"type":"error","streamId":"e2-term-terminal-watch-eyh2ax","error":{"code":"remote-access/denied","message":"remote access: terminal/watch: access denied (no-allow)","details":{"action":"terminal/watch","reason":"no-allow"}}}]

@@ -26,7 +26,7 @@ export const LANE = {
   port: 3119,
   base: 'http://127.0.0.1:3119',
   imageTag: 'eterna-agent:rc5-test',
-  imageId: 'sha256:99d8e85b509b6e3e1990481b2742a98cd550161621491cba16964d801d838f00',
+  imageId: 'sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb',
   fixtures: resolve(REPO, 'tests', 'fixtures'),
   accountsFile: resolve(homedir(), 'eterna-data', 'test-rc5', '.test-accounts.json'),
   sourceTestRoot: resolve(homedir(), 'eterna-data', 'test-rc5', 'e1'),

@@ -1,8 +1,8 @@
 # RC5-SEC-005 · 普通用户不可触达管理面（系统 MCP / 插件 / 用户 / 市场写）
 
 - 套件：SEC
-- 结论：**FAIL**
-- 开始/结束：2026-11-20T00:37:12.543Z / 2026-11-20T00:37:12.632Z
+- 结论：**PASS**
+- 开始/结束：2026-11-20T07:07:12.711Z / 2026-11-20T07:07:12.736Z
 
 ## 预期
 
@@ -10,7 +10,7 @@
 
 ## 实际
 
-可达面=mcpManager/probe,mcpManager/restart（probe ok=true restart ok=true）
+全部被拒
 
 ## 备注
 
@@ -29,6 +29,6 @@ $ POST /api/pluginManager/listBundles（B）  # EXIT=403
 $ POST /access/api/users（B）  # EXIT=403
 $ POST /access/api/plugins/eterna-panel（B）  # EXIT=403
 $ POST /api/pluginMarket/publish（B）  # EXIT=403
-$ POST /api/mcpManager/probe {name:fixture-echo}（B）  # EXIT=200
-$ POST /api/mcpManager/restart {name:fixture-echo}（B）  # EXIT=200
+$ POST /api/mcpManager/probe {name:fixture-echo}（B）  # EXIT=403
+$ POST /api/mcpManager/restart {name:fixture-echo}（B）  # EXIT=403
 ```

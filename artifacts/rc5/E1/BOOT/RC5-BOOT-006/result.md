@@ -2,7 +2,7 @@
 
 - 套件：BOOT
 - 结论：**PASS**
-- 开始/结束：2026-11-19T22:43:55.124Z / 2026-11-19T22:43:55.125Z
+- 开始/结束：2026-11-20T07:02:11.908Z / 2026-11-20T07:02:11.910Z
 
 ## 预期
 
@@ -25,5 +25,5 @@ missing=none disabled=none
 ## 执行命令
 
 ```
-$ docker exec rc5-e1suite sh -c 'DSH_HOME=/data dsh --profile eterna-web --dump-config  > /tmp/dump-eterna-web-1795128234963.yml; echo EXIT=$?; wc -c < /tmp/dump-eterna-web-1795128234963.yml' && docker cp rc5-e1suite:/tmp/dump-eterna-web-1795128234963.yml  # EXIT=0
+$ docker exec rc5-e1suite sh -c 'DSH_HOME=/data dsh --profile eterna-web --dump-config > /tmp/dump-eterna-web-1795158131706.yml; echo EXIT=$?; wc -c < /tmp/dump-eterna-web-1795158131706.yml' && docker cp rc5-e1suite:/tmp/dump-eterna-web-1795158131706.yml  # EXIT=0
 ```

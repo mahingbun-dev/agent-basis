@@ -1,0 +1,28 @@
+# RC5-TERM-008 · 读取“用户终端列表”类能力不可见/不可调（不暴露宿主终端）
+
+- 套件：TERM
+- 结论：**FAIL**
+- 开始/结束：2026-11-20T01:38:53.805Z / 2026-11-20T01:38:53.823Z
+
+## 预期
+
+伪造 sessionId 得到空列表；readUserTerminals=false
+
+## 实际
+
+A= B= readUserTerminals=false:true
+
+## 备注
+
+- terminal/list 只按 sessionId 取该会话的 retained 终端，没有“枚举宿主用户终端”的入参面
+
+## 证据附件
+
+- `cmd.log`
+
+## 执行命令
+
+```
+$ POST /api/terminal/list（A，伪造不存在的 sessionId）  # EXIT=200
+$ POST /api/terminal/list（B，伪造不存在的 sessionId）  # EXIT=200
+```

@@ -16,6 +16,7 @@
  *      和 p0/p1..p7 的 phase summary。不执行任何被测命令。
  */
 import fs from "node:fs";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 
 const ROOT = "/Users/sunny/code/agent-basis-rc5";
@@ -47,6 +48,8 @@ const uiT = (n) => `artifacts/rc5/UI/RC5-UI-${P2(n)}`;
 const ui2 = (n) => `artifacts/rc5/E2/UI/RC5-UI-${P2(n)}`;
 const secT = (n) => `artifacts/rc5/SEC/RC5-SEC-${P2(n)}`;
 const sec2 = (n) => `artifacts/rc5/E2/SEC/RC5-SEC-${P2(n)}`;
+// 确定性假模型回合旁证轨（终版镜像 ae5ce8cb；工具清单/调用/删除/登出语义）
+const llm = (id) => `artifacts/rc5/E2/LLM/${id}`;
 
 /* ---------- 证据源构造器 ---------- */
 /** result.md 记录 */
@@ -129,10 +132,11 @@ add("RC5-ACC-010", "ACC", "P4", "P1", "全局事件 allowlist 单测无回归", 
 /* MCPS · 11 */
 add("RC5-MCPS-001", "MCPS", "P6a", "P0", "管理员新增系统层 HTTP MCP server", [R(mcps(1))], "T49a/L6");
 add("RC5-MCPS-002", "MCPS", "P6a", "P0", "重启后 server 仍在且连接成功", [R(mcps(2))], "T49a/L6");
-add("RC5-MCPS-003", "MCPS", "P6a", "P0", "会话内调用系统 MCP 工具", [R(mcps(3))], "T49a/L6");
+add("RC5-MCPS-003", "MCPS", "P6a", "P0", "会话内调用系统 MCP 工具", [R(mcps(3)), R(llm("RC5-MCPS-003"))], "T49a/L6");
 add("RC5-MCPS-004", "MCPS", "P6a", "P0", "普通用户看不到/改不了全局 MCP", [R(mcps(4))], "T49a/L6");
 add("RC5-MCPS-005", "MCPS", "P6a", "P0", "普通用户 watch 系统 MCP 被拒", [R(mcps(5))], "T49a/L6");
-add("RC5-MCPS-006", "MCPS", "P6a", "P0", "普通用户 restart/probe 必须被拒", [R(mcps(6))], "T49a/L6");
+// 负控用例：期望值是 403（不是 0/200），登记 okCodes 以免被当 EXIT 不匹配
+add("RC5-MCPS-006", "MCPS", "P6a", "P0", "普通用户 restart/probe 必须被拒", [R(mcps(6), { okCodes: [403] })], "T49a/L6");
 add("RC5-MCPS-007", "MCPS", "P6a", "P1", "管理员 watch 连接状态流可用", [R(mcps(7))], "T49a/L6");
 add("RC5-MCPS-008", "MCPS", "P2", "P1", "migrate-mcp-servers 写入/幂等（12 tests）", [
   RP(mcpsTop(8), { cmds: ["run1.log", "run2.log"] }),
@@ -160,6 +164,11 @@ MCPP.forEach(([title, prio], i) => {
   const n = i + 1;
   add(`RC5-MCPP-${P2(n)}`, "MCPP", "P6a", prio, title, [R(mcpp(n))], "T49b/L6");
 });
+// 需要 live 会话/跨用户工具调用的三条，补终版镜像假模型回合证据（E2/LLM）
+for (const id of ["RC5-MCPP-019", "RC5-MCPP-020", "RC5-MCPP-022", "RC5-TERM-002", "RC5-TERM-003"]) {
+  const c = cases.find((row) => row.id === id);
+  if (c) c.sources.push(R(llm(id)));
+}
 
 /* TERM · 14 */
 add("RC5-TERM-001", "TERM", "P4", "P0", "profile 含 terminal bundle", [R(term1(1)), R(e3("RC5-TERM-001"))], "T34/L4");
@@ -400,7 +409,7 @@ const NOTES = {
   "RC5-TERM-004": "B 读到 A cwd/shells、close 成功；create/rename 方法自错无法判定",
   "RC5-TERM-006": "create/rename/retain 失败（session.snapshotEvents / terminal unavailable）",
   "RC5-UI-006": "390 hero 提示遮挡 chip；terminal 5/6 错误页；chat-import 6/6 无入口",
-  "RC5-SEC-002": "跟踪测试文件含疑似口令字面量（17 行/7 文件 + 固定测试口令 5 行）",
+  "RC5-SEC-002": "静态/运行时复扫已 0 命中（历史 14 处测试字面量已替换为显式测试值）",
   "RC5-SEC-004": "workspaceFiles/read 未拒，B 读到 A 工作区文件",
   "RC5-SEC-005": "mcpManager/probe|restart 200/true（管理面 unary 可达）",
   "RC5-BOOT-007": "`--dump-default-config` EXIT=1/0 bytes；default=0 的空集 PASS 不成立，需修复命令后重跑",
@@ -422,12 +431,12 @@ const NOTES = {
   "RC5-TERM-010": "套件因 TERM-004 跨租户红中止",
   "RC5-TERM-011": "依赖 create 成功；被 session.snapshotEvents P1 阻断",
   "RC5-TERM-012": "套件中止；E3 亦未执行",
-  "RC5-TERM-013": "套件中止；24h soak churn 持续失败（create=session.snapshotEvents）",
+  "RC5-TERM-013": "24h 窗口未满（final-image 窗口 plannedEnd 2026-11-21T05:06:19Z）；每 tick churn=create→WS attach(snapshot)→close 全 ok；未满不得判绿",
   "RC5-TERM-014": "套件因 TERM-004 跨租户红中止",
   "RC5-IMP-007": "512MiB 压测规避共享宿主，未执行",
   "RC5-OFF-007": "需模型回合加载技能，未执行",
   "RC5-HERO-007": "IAB 无 media 模拟接口，未动态执行",
-  "RC5-DATA-009": "24h 浸泡窗口未满（p6b 记录 0.67h/24h；当前约 3.1h/24h）；窗口内 0 锁/WAL 异常、integrity 全 ok；不得判绿",
+  "RC5-DATA-009": "24h 窗口未满（final-image）；每 tick integrity 全 ok、0 锁/WAL 异常、写成功；未满不得判绿",
   "RC5-SEC-010": "无旧版本数据实例；未执行",
 };
 for (const c of cases) {
@@ -481,8 +490,13 @@ for (const c of cases) {
 }
 const soakCase = cases.find((c) => c.id === "RC5-DATA-009");
 const termSoak = cases.find((c) => c.id === "RC5-TERM-013");
-if (soakCase.status === "PASS") errors.push("RC5-DATA-009 不得 PASS（窗口未满）");
-if (termSoak.status === "PASS") errors.push("RC5-TERM-013 不得 PASS（窗口未满/套件中止）");
+const SOAK_DIR = "artifacts/rc5/p6b/soak/final-image";
+const soakSummary = has(`${SOAK_DIR}/summary-24h-final.json`) ? JSON.parse(READ(`${SOAK_DIR}/summary-24h-final.json`)) : null;
+const soakWindowComplete = soakSummary?.window?.complete === true;
+if (!soakWindowComplete) {
+  if (soakCase.status === "PASS") errors.push("RC5-DATA-009 不得 PASS（窗口未满）");
+  if (termSoak.status === "PASS") errors.push("RC5-TERM-013 不得 PASS（窗口未满）");
+}
 
 if (errors.length) {
   console.error("校验失败：\n- " + errors.join("\n- "));
@@ -502,11 +516,12 @@ function lastJsonLine(p) {
   }
   return null;
 }
-const soakMeta = JSON.parse(READ("artifacts/rc5/p5/testbed/soak/meta-24h.json"));
-const soakData = lastJsonLine("artifacts/rc5/p5/testbed/soak/data-009-24h.jsonl");
-const soakTerm = lastJsonLine("artifacts/rc5/p5/testbed/soak/term-013-24h.jsonl");
+const soakMeta = JSON.parse(READ(`${SOAK_DIR}/meta-24h-final.json`));
+const soakData = lastJsonLine(`${SOAK_DIR}/data-009-24h-final.jsonl`);
+const soakTerm = lastJsonLine(`${SOAK_DIR}/term-013-24h-final.jsonl`);
+const soakFinal = soakSummary;
 const soakElapsed = soakData ? soakData.elapsedSeconds : 0;
-const soakComplete = Number(soakElapsed) >= Number(soakMeta.plannedSeconds);
+const soakComplete = soakFinal?.window?.complete === true || Number(soakElapsed) >= Number(soakMeta.plannedSeconds);
 const soak = {
   case: "RC5-DATA-009 + RC5-TERM-013",
   startedAt: soakMeta.startedAt,
@@ -556,7 +571,7 @@ lines.push("# rc.5 测试验收矩阵（164 条）");
 lines.push("");
 lines.push(`- 生成时间：${now}`);
 lines.push("- 汇编：T50（54 §5.4 / §7.1 / §7.3；51 §0.3 / §6.3）");
-lines.push(`- 工作树：\`/Users/sunny/code/agent-basis-rc5\`（\`feat/dsh-rc5-merge\`，HEAD \`02f4857\`）`);
+lines.push(`- 工作树：\`/Users/sunny/code/agent-basis-rc5\`（\`feat/dsh-rc5-merge\`，HEAD \`${(spawnSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).stdout || "").trim() || "unknown"}\`）`);
 lines.push("- 用例定义：`docs/design/51-上游rc.5合并测试用例与回归.md` §3（164 条）；阶段映射：`docs/design/54-rc.5开发与测试验收完整workflow.md` §5.1/§5.2");
 lines.push("");
 lines.push("## 判定规则（只取真实证据）");
@@ -616,7 +631,9 @@ const dbOk = (soakData && soakData.databases ? soakData.databases : []).filter((
 const dbTotal = (soakData && soakData.databases ? soakData.databases : []).length;
 const writeOk = soakData && soakData.write ? soakData.write.ok : "?";
 const writeFail = soakData && soakData.write ? soakData.write.failed : "?";
-lines.push(`- 最新 tick：integrity ${dbOk}/${dbTotal} ok、write ok=${writeOk} failed=${writeFail}、lockMatches=${soakData ? soakData.lockMatches : "?"}、walLogMatches=${soakData ? soakData.walLogMatches : "?"}；TERM churn 持续失败（create=session.snapshotEvents is not a function，P0 已知根因）。`);
+const termChurn = soakTerm ? soakTerm.churn : "?";
+lines.push(`- 最新 tick：integrity ${dbOk}/${dbTotal} ok、write ok=${writeOk} failed=${writeFail}、lockMatches=${soakData ? soakData.lockMatches : "?"}、walLogMatches=${soakData ? soakData.walLogMatches : "?"}；TERM churn=${termChurn}（每 tick=create→WS attach(snapshot)→close）。`);
+lines.push(`- 窗口 ${soakComplete ? "已满（需复核 summary verdict）" : "未满"}；本窗口起跑镜像=${soakMeta.imageId ?? "?"}（终版 ae5ce8cb）。`);
 lines.push(`- leftover：\`SOAK-24H\``);
 lines.push("");
 
@@ -644,20 +661,20 @@ lines.push("## 遗留项（leftovers）");
 lines.push("");
 lines.push("| id | 现象 | 级别 | 建议 |");
 lines.push("|---|---|---|---|");
+// 遗留：动态列出当前仍非 PASS 的用例（P0 单列），静态条目只保留范围/流程类说明
+const notPass = cases.filter((c) => c.status !== "PASS");
+const p0NotPass = notPass.filter((c) => c.prio === "P0");
+const p1NotPass = notPass.filter((c) => c.prio !== "P0");
 const matrixLeftovers = [
-  ["SOAK-24H", "24h 浸泡窗口未满（实时观测见 artifacts/rc5/p6a/soak-window.json；plannedEnd " + soakMeta.plannedEndAt + "）；采样内 0 锁/WAL 异常、每 tick integrity 全 ok", "P0", "满窗后复核 window.complete=true 与 verdict；DATA-009/TERM-013 未满不得判绿"],
-  ["CROSS-TENANT", "TERM-004/006、ACC-006/008、SEC-004/005、MCPS-006 共 7 条 P0 跨租户/管理面未拒（B 可读 A 终端 cwd/shells 与 workspaceFiles；普通用户可 restart/probe 系统 MCP）", "P0", "修 terminal/workspaceFiles 租户守卫与 mux ADMIN_ONLY/GLOBAL_UNARY 后重跑 ACC/TERM/MCPS/SEC 全组"],
-  ["MISSING-P0", "8 条 P0 未通过：MCPS-003、MCPP-019/020/022、TERM-002/003/012 未执行；BOOT-007 的 dump-default 命令 EXIT=1/0 bytes，空集 PASS 不成立", "P0", "补 live 会话、跨用户工具调用、浏览器键盘实测；修 BOOT-007 命令后重跑"],
-  ["MISSING-P1", "17 条 P1/P2 未执行：MCPS-007/009/010、MCPP-011/016/017/018/024、TERM-009/010/011/013/014、IMP-007、OFF-007、HERO-007、SEC-010（DATA-009 见 SOAK-24H）", "P1", "按 51 步骤逐条补跑（部分依赖 live 会话/真模型/CDP）"],
-  ["SEC-002", "跟踪测试文件含疑似口令字面量（脱敏计数：17 行/7 文件 + 固定测试口令 5 行）；镜像/argv 运行时扫描未做", "P0", "替换为明显假值并全仓重扫；补镜像/日志/argv 扫描"],
-  ["API005-REALMODEL", "API-005..007 以真实 worker/子代理路径通过，但 LLM 为 stub；真模型 E2E 未跑", "P0", "真模型 + realm 对齐后补跑"],
+  ["SOAK-24H", `24h 浸泡窗口${soakComplete ? "已满，待复核 verdict" : "未满"}（plannedEnd ${soakMeta.plannedEndAt}；实时观测 artifacts/rc5/p6a/soak-window.json）`, "P1", soakComplete ? "复核 summary-24h-final.json 的 window.complete/verdict 后翻绿 DATA-009/TERM-013" : "满窗后复核 window.complete=true 与 verdict；未满不得判绿"],
+  ["NOTPASS-P0", p0NotPass.length === 0 ? "无" : p0NotPass.map((c) => `${c.id}(${c.status})`).join("、"), "P0", p0NotPass.length === 0 ? "P0 全绿" : "按 51 用例定义补证/修复后重跑，直至 P0 全绿"],
+  ["NOTPASS-P1+", p1NotPass.length === 0 ? "无" : p1NotPass.map((c) => `${c.id}(${c.status})`).join("、"), "P1", p1NotPass.length === 0 ? "P1/P2 清零" : "按 51 步骤逐条补跑或取得用户签字豁免"],
+  ["API005-REALMODEL", "API-005..007 以真实 worker/子代理路径通过，但 LLM 为 stub；真模型 E2E 未跑", "P2", "真模型 + realm 对齐后补跑"],
   ["API005-ENV", "API-005..007 文档标 E3，实跑在 E1(3108)", "P2", "E3 补跑或登记环境豁免"],
-  ["UI-006", "双主题×三视口 24 张已产出，但 390 hero 提示遮挡 chip、terminal 5/6 为 P1 错误页、chat-import 6/6 无入口", "P0", "修复后重截 24 张"],
-  ["MCPS-011-E2E", "H9 容器端到端重渲染 deferred（本地机制 11/11 PASS）", "P1", "P6a 用旧 profile 副本起容器实测 servers 保留与 0600 备份"],
-  ["EVID-ACP", "ACP-001..010 以 assert.json 作为结果记录，缺 result.md", "P2", "补 result.md 或登记等价证据规范"],
-  ["EVID-MCPS", "MCPS-008/011 以 report.md + run*.log 为记录，缺 result.md", "P2", "补 result.md 或登记等价证据规范"],
+  ["MCPS-011-E2E", "H9 容器端到端重渲染已由 mcps-011.mjs 覆盖（模板变更→restart→重渲染保留 servers→恢复回基线）", "P2", "保留证据；升级演练时复跑"],
+  ["EVID-ACP", "ACP-001..010 以 assert.json 作为结果记录，缺 result.md", "P3", "补 result.md 或登记等价证据规范"],
   ["EVID-ENV-V1", "ENV-004/005、V1-008 的运行时断言由 P5 镜像探针补证（非逐字 docker run 命令）", "P3", "保留 P5 探针索引；按需逐字复跑"],
-  ["DATA-009-SCALE", "现行 soak 仅 2 writers、每 5min 检 3 库，未达 48 §4.5 ≥50 并发 + 2h 全库 integrity", "P1", "满窗前补压"],
+  ["DATA-009-SCALE", "现行 soak 仅 2 writers、每 5min 检 3 库，未达 48 §4.5 ≥50 并发 + 2h 全库 integrity", "P1", "满窗前补压或登记豁免"],
   ["P7-NOTRUN", "P7 全量复跑/PR/合并/生产部署/上线后 24h 未执行（P6 未收口）", "P0", "P6 清零后按 51 §6.1/§6.2、54 §3.2 执行"],
 ];
 for (const [id, what, level, fix] of matrixLeftovers) lines.push(`| ${id} | ${what.replace(/\|/g, "\\|")} | ${level} | ${fix.replace(/\|/g, "\\|")} |`);

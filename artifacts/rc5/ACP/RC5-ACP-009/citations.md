@@ -5,7 +5,7 @@
 口径：文档明确 ACP 是受信 stdio 面/受信控制器，不是 Web 功能
 
 - `deploy/README.md:288` — ACP 是**自动化客户端的受信 stdio 面**，不是 Web 功能（47 B17 / 49 §5.7）：
-- `docker-compose.yml:104` — # ACP 是自动化客户端的**受信 stdio 面**,不是 Web 功能:
+- `docker-compose.yml:115` — # ACP 是自动化客户端的**受信 stdio 面**,不是 Web 功能:
 
 ## trusted-operator-only
 

@@ -1,0 +1,32 @@
+[PASS] SETUP-LOGIN (P0) admin/user_b 登录 :: status a=200 b=200 c=200
+[PASS] SETUP-MCP-AVAILABLE (P0) 个人层可用（catalog 应答 ok） :: items=1
+[PASS] RC5-MCPP-005 (P0) catalog 只含允许项；自填 stdio command 被拒 :: catalog=["echo"]; command denied=true/stdio 的 command/args 只能来自管理员目录,禁止自填; args denied=true/stdio 的 command/args 只能来自管理员目录,禁止自填
+[PASS] RC5-MCPP-006 (P0) B 从管理员目录新建 echo :: serverName=p2_echo-b expected=p2_echo-b transport=stdio
+[PASS] RC5-MCPP-001 (P0) A 的 list 只含 A 的条目 :: count=1 names=["p1_a-echo"]
+[PASS] RC5-MCPP-002 (P0) B 的 list 只含 B 的条目 :: count=1 names=["p2_echo-b"]
+[PASS] RC5-MCPP-003 (P0) B upsert A 的行被拒且 A 行不变 :: denied=true code=tenant/denied unchanged=true
+[PASS] RC5-MCPP-004 (P0) B delete A 的行被拒且 A 行仍在 :: denied=true code=tenant/denied still=true
+[PASS] RC5-MCPP-007 (P0) 本地 HTTP MCP 新建并 probe 成功 :: serverName=p2_http-b probe={
+  "ok": true,
+  "toolCount": 1
+}
+[PASS] RC5-MCPP-008 (P0) IPv4 元数据地址被拒 :: denied=true code=tenant/denied message=拒绝访问云元数据地址
+[PASS] RC5-MCPP-009 (P0) IPv6 元数据地址被拒 :: denied=true code=tenant/denied message=拒绝访问云元数据地址
+[PASS] RC5-MCPP-012 (P0) header secret 以 AES-GCM 密文落库、日志无明文 :: db=ciphertext-only filesWithPlaintext=0 logPlaintext=false
+[PASS] RC5-MCPP-013 (P0) list 只回 hasSecret:true 与 header 名，不回值 :: hasSecret=true headerNames=["authorization"] leaked=false
+[PASS] RC5-MCPP-021 (P0) A/B 同名 server 的 serverName 不同且互不覆盖 :: a=p1_same b=p2_same aOnlyOwn=true bOnlyOwn=true
+[PASS] RC5-MCPP-014 (P1) 每人 8 条上限（第 9 条拒绝） :: ninth denied=true message=每人最多 8 个 MCP 服务器
+[PASS] RC5-MCPP-015 (P1) 256KB 配置上限（原配置不被覆盖） :: denied=true unchanged=true
+[FAIL] RC5-MCPP-023 (P0) 重启容器后个人配置仍在 :: before=4 after=0 same=false
+[SKIP] RC5-MCPP-016 (P1) 挂死 stdio 8s 放弃 :: 需要 live 会话建立挂死子进程；API 层无 8s 时序面
+[SKIP] RC5-MCPP-017 (P1) 慢 HTTP 工具 60s 超时 :: 需要真实工具调用与 60s 等待（P6 E2E）
+[SKIP] RC5-MCPP-018 (P1) 断线重连 3 次 :: 需要长时断连/恢复时序（P6 E2E）
+[SKIP] RC5-MCPP-019 (P0) 删除后 live 会话工具当场消失 :: 需要 live 会话 + tools/list 观察（P6 E2E）
+[SKIP] RC5-MCPP-020 (P0) 跨用户 mcp__p<uid>_* 调用 deny :: 需要子代理/跨用户会话工具调用（P6 E2E）
+[SKIP] RC5-MCPP-022 (P0) 登出后个人工具不可用 :: 需要 live 会话作用域观察（P6 E2E）
+[SKIP] RC5-MCPP-024 (P1) MCP UI 双主题三视口 :: 浏览器人工/截图（P6 UI）
+[PASS] CLEANUP (INFO) 清理本轮创建的测试条目 :: removed=14
+
+[MCPP] PASS=17 FAIL=1 SKIP=7 NOTRUN=0
+[MCPP] report → artifacts/rc5/p7/regression/rerun/E2/MCPP/report.json
+EXIT=1

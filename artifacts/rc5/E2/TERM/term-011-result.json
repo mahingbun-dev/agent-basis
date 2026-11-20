@@ -1,0 +1,6 @@
+{
+  "id": "RC5-TERM-011",
+  "status": "PASS",
+  "title": "Agent 终端 rename 后重开页：名称与保留状态持久",
+  "detail": "created=true origin=true rename=true first=true/true second=true/true list_title=true"
+}

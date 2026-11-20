@@ -7,10 +7,10 @@
  * cmd.log/result.md（命令原文=对应的 Playwright/DOM 调用，输出=实测值）。
  * 未执行项（HERO-007 媒体模拟）明确记 NOTRUN，不以静态推断冒充 PASS。
  */
-import { copyFileSync, existsSync, statSync } from 'node:fs'
+import { copyFileSync, existsSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { Case, STATUS, summaryOf, writeSummary } from '../_lib/evidence.mjs'
-import { LANE, gitHead } from '../_lib/env.mjs'
+import { Case, STATUS, summaryOf, writeSummary, shape } from '../_lib/evidence.mjs'
+import { LANE, gitHead, run } from '../_lib/env.mjs'
 
 const suite = 'HERO'
 const startedAt = new Date().toISOString()
@@ -183,18 +183,20 @@ function copyShot(from, to) {
 
 {
   const c = new Case(suite, 'RC5-HERO-007')
-  c.cmd('IAB: 查询 media 模拟能力（browser-client.mjs 仅暴露 setViewportSize；无 emulateMedia/CDP）', -1,
-    'IAB 后端不提供 prefers-reduced-motion 媒体模拟接口 → 动态验证未执行')
-  c.cmd('grep -n "animation|prefers-reduced-motion" packages/brand/src/client/styles.ts', 0,
-    '48: animation: eterna-hero-breathe 18s ...；110: @media (prefers-reduced-motion: reduce)；111: [data-eterna-hero-glow] { animation: none; }')
-  c.assert('样式表存在 reduced-motion 关断规则', true, 'styles.ts:110-111')
+  const outcome = run('node', [join(LANE.repoRoot, 'artifacts', 'rc5', 'E1', 'HERO', 'hero-007.mjs')], { timeout: 240_000 })
+  const file = join(heroDir, 'RC5-HERO-007', 'result.md')
+  const text = existsSync(file) ? readFileSync(file, 'utf8') : ''
+  const pass = /\*\*PASS\*\*/.test(text)
+  c.cmd('node artifacts/rc5/E1/HERO/hero-007.mjs（CDP reducedMotion 两态）', outcome.exit,
+    `${pass ? 'PASS' : 'missing/FAIL'} :: ${shape(outcome.stdout || outcome.stderr, 200)}`)
+  const actual = /\n## 实际\n\n([\s\S]*?)\n\n(?:## |$)/.exec(text)?.[1] ?? ''
   rows.push(c.finish({
-    status: STATUS.NOTRUN,
-    title: 'prefers-reduced-motion 静态呈现（未动态执行）',
+    status: pass ? STATUS.PASS : STATUS.FAIL,
+    title: 'prefers-reduced-motion 下 hero 静态呈现',
     expected: '模拟减弱动效 → 静态呈现；无动画',
-    actual: '未执行：IAB 后端无媒体模拟接口，不能切换 prefers-reduced-motion。静态证据：hero 光晕默认有 18s 呼吸动画（styles.ts:48），并已写 @media (prefers-reduced-motion: reduce){animation:none}（styles.ts:110-111）',
-    notes: ['不把静态规则推断记为 PASS；需在支持 CDP emulateMedia 的环境补测'],
-    artifacts: [],
+    actual: pass ? actual : 'hero-007.mjs 未给 PASS',
+    notes: ['Playwright reducedMotion=reduce/no-preference 两态实测；reduce 下 animate-name=none 且 0 动画元素，对照态有 eterna-hero-breathe'],
+    artifacts: ['reduce-1440.png', 'no-preference-1440.png'],
   }))
 }
 

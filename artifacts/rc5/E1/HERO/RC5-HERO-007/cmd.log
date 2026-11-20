@@ -1,12 +1,30 @@
 # HERO/RC5-HERO-007
-# started 2026-11-19T23:17:24.418Z
+# started 2026-11-20T07:02:45.866Z
 
-$ IAB: 查询 media 模拟能力（browser-client.mjs 仅暴露 setViewportSize；无 emulateMedia/CDP）
-EXIT=-1
-IAB 后端不提供 prefers-reduced-motion 媒体模拟接口 → 动态验证未执行
+$ POST /login（管理员，cookie 注入浏览器，不在页面打字）
+EXIT=200
+cookie=set
 
-$ grep -n "animation|prefers-reduced-motion" packages/brand/src/client/styles.ts
+$ Playwright reducedMotion=reduce → 1440×900 截图 + 计算样式
 EXIT=0
-48: animation: eterna-hero-breathe 18s ...；110: @media (prefers-reduced-motion: reduce)；111: [data-eterna-hero-glow] { animation: none; }
+{"mediaMatches":true,"layerVisible":true,"glowAnimation":"none","glowDuration":"0s","animatedCount":0,"animatedNames":[],"composerHit":true}
 
-[ASSERT] 样式表存在 reduced-motion 关断规则 => PASS :: styles.ts:110-111
+$ Playwright reducedMotion=no-preference → 1440×900 截图 + 计算样式
+EXIT=0
+{"mediaMatches":false,"layerVisible":true,"glowAnimation":"eterna-hero-breathe","glowDuration":"18s","animatedCount":1,"animatedNames":["glow:eterna-hero-breathe"],"composerHit":true}
+
+[ASSERT] 媒体模拟生效（reduce 下 matchMedia=true） => PASS :: matches=true
+
+[ASSERT] reduce：hero 仍在（不是隐藏） => PASS :: visible=true
+
+[ASSERT] reduce：光晕 animation-name=none => PASS :: animation=none/0s
+
+[ASSERT] reduce：hero 子树无任何动画元素 => PASS :: animated=none
+
+[ASSERT] 对照：no-preference 下同一光晕有 eterna-hero-breathe 动画 => PASS :: matches=false animation=eterna-hero-breathe/18s
+
+[ASSERT] 两态下输入框中心均命中可编辑区（光晕不挡） => PASS :: reduce=true normal=true
+
+$ node artifacts/rc5/E1/HERO/hero-007.mjs（CDP reducedMotion 两态）
+EXIT=0
+PASS :: [HERO-007] PASS

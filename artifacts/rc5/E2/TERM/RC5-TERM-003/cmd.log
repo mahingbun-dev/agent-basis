@@ -1,4 +1,6 @@
 # TERM/RC5-TERM-003
-# started 2026-11-20T00:39:26.922Z
+# started 2026-11-20T07:05:53.994Z
 
-# note: 需要模型回合触发工具调用（tools/list 可见 ≠ 可调用）
+$ 旁证轨 LLM/run.mjs（确定性模型回合）
+EXIT=0
+status=PASS file=/Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/LLM/summary.json

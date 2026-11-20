@@ -49,5 +49,5 @@
     "P1-01|pnpm -w run verify 已在工作树通过（ENV-007 EXIT 0；E2/SEC-009 38 包/4187 tests），但 P0 基线时刻曾 EXIT=1（L4 未提交改动）|P1|P0-01 收口后由 L0 在干净工作树复跑 verify 并登记 sha"
   ],
   "generatedBy": "T50/artifacts/rc5/p6a/scan-matrix.mjs",
-  "generatedAt": "2026-11-20T00:58:23Z"
+  "generatedAt": "2026-11-20T05:25:41Z"
 }

@@ -1,5 +1,5 @@
 # ACC/RC5-ACC-008
-# started 2026-11-19T23:52:00.043Z
+# started 2026-11-20T07:05:48.324Z
 
 $ POST /api/session/create（B 使用 A 的 workspace/session）
 EXIT=200
@@ -19,22 +19,22 @@ session/search（A 的 sessionId） denied=true ok=false code=tenant/denied valu
 
 $ POST /api/workspaceFiles/list（B 使用 A 的 workspace/session）
 EXIT=200
-workspaceFiles/list（A 的 sessionId） denied=false ok=true code=- value={"path":"","entries":[{"name":"e2-marker.txt","type":"file","size":28}],"truncated":false}
+workspaceFiles/list（A 的 sessionId） denied=true ok=false code=remote-access/denied value=
 
 $ POST /api/workspaceFiles/stat（B 使用 A 的 workspace/session）
 EXIT=200
-workspaceFiles/stat（A 的 sessionId） denied=false ok=true code=- value={"absolutePath":"/data/workspaces/rc5admin/e2-marker.txt","version":"43:211947:28:1795132187782666237:1795132187782666237","bytes":28}
+workspaceFiles/stat（A 的 sessionId） denied=true ok=false code=remote-access/denied value=
 
 $ POST /api/workspaceFiles/read（B 使用 A 的 workspace/session）
 EXIT=200
-workspaceFiles/read（A 的 sessionId） denied=false ok=true code=- value={"absolutePath":"/data/workspaces/rc5admin/e2-marker.txt","version":"43:211947:28:1795132187782666237:1795132187782666237","bytes":28,"offset":1,"text":"E2-ADMIN-SECRET-MARKER-7f3a","lines":1,"eof":true}
+workspaceFiles/read（A 的 sessionId） denied=true ok=false code=remote-access/denied value=
 
 $ POST /api/session/create（B 自己的 workspaceId，正向控制）
 EXIT=200
-ok=true sessionId=session-ceb29c2d-80bc-4196-81be-739139ab0490
+ok=true sessionId=session-0fb37185-bee8-4108-a848-e31d9c65d19e
 
-[ASSERT] 跨租户文件/检索全部被拒 => FAIL :: workspaceFiles/list,workspaceFiles/stat,workspaceFiles/read
+[ASSERT] 跨租户文件/检索全部被拒 => PASS
 
-[ASSERT] 未读到 A 的文件内容 => FAIL
+[ASSERT] 未读到 A 的文件内容 => PASS
 
 [ASSERT] 正向控制：B 自己的 workspace 可建会话 => PASS

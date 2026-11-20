@@ -1,0 +1,110 @@
+{
+  "script": "scripts/soak-rc5.mjs",
+  "tag": "24h-final",
+  "suite": "both",
+  "startedAt": "2026-11-20T05:06:19.450Z",
+  "endedAt": "2026-11-20T06:07:41.765Z",
+  "plannedSeconds": 86400,
+  "elapsedSeconds": 3682,
+  "reason": "signal",
+  "window": {
+    "complete": false,
+    "requirement": "24h 窗口未满不得判定通过（54 §6.3）",
+    "note": "窗口未满（3682s/86400s），本摘要只作进度证据"
+  },
+  "container": "eterna-rc5-e1",
+  "dataRoot": "/Users/sunny/eterna-data/test-rc5/e1",
+  "counts": {
+    "termSamples": 61,
+    "dataSamples": 13
+  },
+  "logs": {
+    "term": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p6b/soak/final-image/term-013-24h-final.jsonl",
+    "data": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p6b/soak/final-image/data-009-24h-final.jsonl",
+    "soak": "/Users/sunny/code/agent-basis-rc5/artifacts/rc5/p6b/soak/final-image/soak-24h-final.log"
+  },
+  "term": {
+    "verdict": "NOTRUN",
+    "samples": 61,
+    "basis": {
+      "warmupSeconds": 3600,
+      "baselineSamples": 10,
+      "steadySamples": 2,
+      "method": "预热期后基线中位数 vs 末 30min 中位数"
+    },
+    "fd": {
+      "first": 38,
+      "last": 61,
+      "min": 38,
+      "max": 61,
+      "baseline": 38.5,
+      "steady": 61,
+      "growth": 22.5,
+      "spreadAfterWarmup": 0,
+      "ok": false
+    },
+    "rssKb": {
+      "first": 564520,
+      "last": 485212,
+      "min": 411048,
+      "max": 569840,
+      "baseline": 524184,
+      "steady": 485144,
+      "growthMb": -38.13,
+      "limitMb": 40.95,
+      "ok": true
+    },
+    "churn": {
+      "cycles": 2,
+      "failures": 0,
+      "ok": true
+    },
+    "longProcess": {
+      "started": true,
+      "ok": true,
+      "detail": "spawned pid detached"
+    }
+  },
+  "data": {
+    "verdict": "NOTRUN",
+    "samples": 13,
+    "cycles": 26,
+    "writerFailures": 0,
+    "writerErrors": [],
+    "integrityFailures": [],
+    "lockMatches": 0,
+    "walBytesFirst": [
+      {
+        "file": "access/users.db",
+        "walBytes": 8272
+      },
+      {
+        "file": ".eterna/memory.sqlite3",
+        "walBytes": 90672
+      },
+      {
+        "file": "knowledge-admin/access.sqlite3",
+        "walBytes": 0
+      }
+    ],
+    "walBytesLast": [
+      {
+        "file": "access/users.db",
+        "walBytes": 226632
+      },
+      {
+        "file": ".eterna/memory.sqlite3",
+        "walBytes": 90672
+      },
+      {
+        "file": "knowledge-admin/access.sqlite3",
+        "walBytes": 0
+      }
+    ],
+    "sessionRows": 450
+  },
+  "limitations": [
+    "attach churn 每 tick 走一次 WS mux（open→snapshot→断开）+ create/close；崩溃/拒绝按 fail 记账",
+    "进程/内存采样为容器 /proc 只读采样（60s 级），非 profiler"
+  ]
+}

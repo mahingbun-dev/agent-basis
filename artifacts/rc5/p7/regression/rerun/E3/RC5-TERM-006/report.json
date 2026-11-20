@@ -1,0 +1,115 @@
+{
+  "id": "RC5-TERM-006",
+  "suite": "E3-super",
+  "priority": "P0",
+  "title": "同 session 调 9 动作全部成功（TERM-006）",
+  "expected": "close/create/environment/list/rename/shells + attach/retain/watch 全部成功、语义正确",
+  "status": "FAIL",
+  "startedAt": "2026-11-20T01:46:17.681Z",
+  "finishedAt": "2026-11-20T01:46:17.841Z",
+  "assertions": [
+    {
+      "name": "admin 登录 200",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "name": "admin 测试工作区可解析（E3 users.db 只读）",
+      "ok": true,
+      "detail": "090d9317-36d5-40bd-b640-a2c6963652fe"
+    },
+    {
+      "name": "新建会话成功",
+      "ok": true,
+      "detail": "{\"sessionId\":\"session-10cd7f83-70ee-43da-a9bd-e2ec5b8baf11\",\"agentPreset\":\"standard\"}"
+    },
+    {
+      "name": "terminal/environment 成功（A 自己的会话）",
+      "ok": true,
+      "detail": "{\"cwd\":\"/data/workspaces/Mr.Ma\",\"maxInputBytes\":65536,\"maxBufferedBytes\":2097152,\"maxCols\":500,\"maxRows\":200,\"scrollback\":1000}"
+    },
+    {
+      "name": "terminal/shells 成功且含 /bin/bash",
+      "ok": true,
+      "detail": "[{\"path\":\"/bin/bash\",\"name\":\"bash\",\"args\":[\"-i\"]}]"
+    },
+    {
+      "name": "terminal/list 成功（数组）",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "terminal/create 成功（9 动作前置）",
+      "ok": false,
+      "detail": "{\"code\":\"gateway/internal\",\"message\":\"session.snapshotEvents is not a function\",\"details\":{}}"
+    },
+    {
+      "name": "6 个 unary 动作全部成功",
+      "ok": false,
+      "detail": "failed=create,rename"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)",
+      "exit": 0,
+      "note": "boot token 不入证据"
+    },
+    {
+      "cmd": "GET /connect + GET /?token=… (dsh session bootstrap)",
+      "exit": 200,
+      "note": "token 已脱敏"
+    },
+    {
+      "cmd": "POST /login (admin from 0600 accounts file)",
+      "exit": 200,
+      "note": ""
+    },
+    {
+      "cmd": "POST /api/session/create",
+      "exit": 200,
+      "note": "ok·workspace=090d9317…"
+    },
+    {
+      "cmd": "POST /api/terminal/environment",
+      "exit": 200,
+      "note": "A"
+    },
+    {
+      "cmd": "POST /api/terminal/shells",
+      "exit": 200,
+      "note": "A"
+    },
+    {
+      "cmd": "POST /api/terminal/list",
+      "exit": 200,
+      "note": "A"
+    },
+    {
+      "cmd": "POST /api/terminal/create",
+      "exit": 200,
+      "note": "A"
+    },
+    {
+      "cmd": "POST /api/terminal/rename",
+      "exit": 200,
+      "note": "A"
+    },
+    {
+      "cmd": "POST /api/terminal/close",
+      "exit": 200,
+      "note": "A"
+    }
+  ],
+  "notes": [
+    "terminal/create 服务端内部错误（session.snapshotEvents is not a function）与 P5 结论一致：rename/close 无 terminal id 可作用，attach/retain/watch 亦无法建立目标终端。",
+    "attach/retain/watch 三个流动作需 WS mux（/api/remote.mux）；本用例未建立 WS 客户端，按 NOTRUN 记（同 P5 口径）。"
+  ],
+  "env": {
+    "base": "http://127.0.0.1:3109",
+    "container": "eterna-rc5-e3",
+    "project": "rc5-test-e3",
+    "image": "eterna-agent:rc5-test",
+    "dataRoot": "/Users/sunny/eterna-data/test-rc5/e3"
+  }
+}

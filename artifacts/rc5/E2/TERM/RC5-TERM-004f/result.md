@@ -1,8 +1,8 @@
 # RC5-TERM-004f · B 用 A 的 sessionId 调 terminal/rename 必须被拒
 
 - 套件：TERM
-- 结论：**NOTRUN**
-- 开始/结束：2026-11-20T00:39:24.632Z / 2026-11-20T00:39:24.632Z
+- 结论：**PASS**
+- 开始/结束：2026-11-20T07:05:50.180Z / 2026-11-20T07:05:50.180Z
 
 ## 预期
 
@@ -10,13 +10,7 @@
 
 ## 实际
 
-A/B 同错（方法不可用，无法判定授权）：A={
-  "code": "terminal/unavailable",
-  "message": "Terminal no longer exists in this Session",
-  "det B={
-  "code": "terminal/unavailable",
-  "message": "Terminal no longer exists in this Session",
-  "det
+denied code=remote-access/denied
 
 ## 备注
 
@@ -29,5 +23,5 @@ A/B 同错（方法不可用，无法判定授权）：A={
 ## 执行命令
 
 ```
-$ node scripts/verify-terminal-guard.mjs --base http://127.0.0.1:3119 --accounts-file <0600> --data-root <E2 数据根> --container rc5-e2suite --json artifacts/rc5/E2/TERM/report.json  # EXIT=0
+$ node scripts/verify-terminal-guard.mjs --base http://127.0.0.1:3119 --accounts-file /Users/sunny/eterna-data/test-rc5/.test-accounts.json --data-root /Users/sunny/eterna-data/test-20261120/e2 --container rc5-e2suite --json /Users/sunny/code/agent-basis-rc5/artifacts/rc5/E2/TERM/report.json  # EXIT=0
 ```

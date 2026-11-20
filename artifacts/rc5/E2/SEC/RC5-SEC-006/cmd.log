@@ -1,5 +1,5 @@
 # SEC/RC5-SEC-006
-# started 2026-11-20T00:37:12.632Z
+# started 2026-11-20T07:07:12.736Z
 
 $ ls /Users/sunny/eterna-data/test-20261120/e2/.eterna + /Users/sunny/eterna-data/test-20261120/e2/logs
 EXIT=0
@@ -11,7 +11,7 @@ EXIT=0
 
 $ 统计审计事件 kind
 EXIT=0
-[["access.chatImport",6],["access.login",76],["access.login.gate",4],["access.logout",3],["access.mux.install",4],["access.sandbox.install",8],["access.tenant",507],["access.terminal.install",4],["mcp.personal.delete",18],["mcp.personal.install",4],["mcp.personal.probe",2],["mcp.personal.upsert",18]]
+[["access.chatImport",38],["access.companion.install",6],["access.login",473],["access.login.gate",29],["access.logout",16],["access.mux.install",29],["access.sandbox.install",57],["access.tenant",1221],["access.terminal.install",28],["access.thinking.auto",78],["mcp.personal.delete",130],["mcp.personal.install",29],["mcp.personal.probe",18],["mcp.personal.upsert",140],["tool-call",112],["turn-end",88],["usage",196]]
 
 [ASSERT] 审计/日志无明文凭据 => PASS :: 0 hits
 

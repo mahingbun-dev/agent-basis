@@ -1,8 +1,8 @@
 # RC5-SEC-004 · 跨租户枚举：session / workspace / 文件 / MCP 全部 403/deny
 
 - 套件：SEC
-- 结论：**FAIL**
-- 开始/结束：2026-11-20T00:37:12.515Z / 2026-11-20T00:37:12.542Z
+- 结论：**PASS**
+- 开始/结束：2026-11-20T07:07:12.683Z / 2026-11-20T07:07:12.711Z
 
 ## 预期
 
@@ -10,11 +10,11 @@ B 对 A 的 session、workspace、文件、MCP 条目全部被拒；无存在性
 
 ## 实际
 
-workspaceFiles/read 未拒绝：B 读到 A 工作区文件（value={"absolutePath":"/data/workspaces/rc5admin/e2-marker.txt","version":"43:211947:28:1795132187782666237:1795132187782666237","bytes":28,"offset":1,"text":"E2-ADMI… contentLeak=true）；session/workspace 面正常拒绝
+session=200 workspace=200 file=200 mcp=[]
 
 ## 备注
 
-- 文件面复现 ACC-008 的 P0：workspaceFiles/* 不在 tenant.ts 的 sessionValidated 守卫清单内
+- 文件面与 ACC-008 同根因已修：/api/workspaceFiles/* 在 mux admit 换血为 per-user Peer，网关按会话资源 decide（remote-access/denied）；tenant.ts 守卫路由仍回 tenant/denied
 - session/events 与 workspace/delete 的拒绝形态与伪造 id 一致（无存在性泄漏）
 
 ## 证据附件

@@ -370,6 +370,23 @@
               low: low
               medium: medium
               high: high
+      fake:
+        displayName: RC5 Fake OFF（确定性验收夹具）
+        apiKeyEnv: FAKE_LLM_API_KEY
+        api: openai-completions
+        baseURL: http://host.docker.internal:4603/v1
+        models:
+          - id: fake-1
+            name: Fake 1
+            contextWindow: 128000
+            maxTokens: 4096
+            input:
+              - text
+              - image
+            compat:
+              supportsDeveloperRole: true
+              requiresReasoningContentOnAssistantMessages: false
+              maxTokensField: max_tokens
 # == @deepseek-ai/dsh-base
 - id: session-persistence-jsonl
   name: '@deepseek-ai/dsh-session-persistence-jsonl'
@@ -799,7 +816,10 @@
   inject:
     - credentials
   config:
-    servers: {}
+    servers:
+      e1http:
+        transport: streamable-http
+        url: http://host.docker.internal:8766/mcp
 # == @deepseek-ai/dsh-web-app
 - id: workspace-controller
   name: '@deepseek-ai/dsh-api-workspace-controller'

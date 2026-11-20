@@ -1,0 +1,25 @@
+# T52 OFF 复跑 — 2026-11-20T01:51:50Z
+$ docker exec rc5-e1suite mkdir -p /tmp/office/docx /tmp/office/xlsx /tmp/office/pptx /tmp/office/render
+EXIT=0
+
+$ docker cp tests/fixtures/office/sample.docx rc5-e1suite:/tmp/office/docx/sample.docx
+EXIT=0
+
+$ docker cp tests/fixtures/office/sample.xlsx rc5-e1suite:/tmp/office/xlsx/sample.xlsx
+EXIT=0
+
+$ docker cp tests/fixtures/office/sample.pptx rc5-e1suite:/tmp/office/pptx/sample.pptx
+EXIT=0
+
+$ docker cp artifacts/rc5/E1/OFF/tools/probe.mjs rc5-e1suite:/tmp/office/probe.mjs
+EXIT=0
+
+$ docker exec rc5-e1suite node /tmp/office/probe.mjs > /Users/sunny/code/agent-basis-rc5/artifacts/rc5/p7/regression/rerun/E1/OFF/tools/probe-output.json
+EXIT=0
+backend= wasm
+convert docx ok= True pages= 1 missingFonts= []
+convert xlsx ok= True pages= 1 missingFonts= ['Calibri']
+convert pptx ok= True pages= 2 missingFonts= ['Arial']
+renders= [('docx', 1), ('xlsx', 1), ('pptx', 1)]
+recalculate= {'backend': 'wasm', 'missingFonts': ['Calibri']}
+EXIT=0

@@ -5,8 +5,8 @@
   "title": "（workbench）单元/类型/静态门",
   "expected": "vitest/typecheck/oxlint 全绿",
   "status": "PASS",
-  "startedAt": "2026-11-19T22:31:05.674Z",
-  "finishedAt": "2026-11-19T22:31:11.337Z",
+  "startedAt": "2026-11-20T07:03:53.291Z",
+  "finishedAt": "2026-11-20T07:03:59.391Z",
   "assertions": [
     {
       "name": "workbench vitest 全绿",

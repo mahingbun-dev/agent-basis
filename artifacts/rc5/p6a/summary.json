@@ -34,57 +34,23 @@
       "exit": 200,
       "log": "artifacts/rc5/E2/ACC/RC5-ACC-008/cmd.log",
       "note": "HTTP 传输 200；断言 FAIL（3 项未拒）"
-    },
-    {
-      "cmd": "node scripts/verify-terminal-guard.mjs --json artifacts/rc5/p6a/repairs/final-terminal-guard.json",
-      "exit": 0,
-      "log": "artifacts/rc5/p6a/repairs/final-terminal-guard.log",
-      "note": "修后 PASS=11 FAIL=0 SKIP=0 NOTRUN=1（仅 TERM-005 WS 面）"
-    },
-    {
-      "cmd": "node scripts/verify-chat-import.mjs --json artifacts/rc5/p6a/repairs/final-chat-import.json",
-      "exit": 0,
-      "log": "artifacts/rc5/p6a/repairs/final-chat-import.log",
-      "note": "修后 PASS=8 FAIL=0 SKIP=4；delta=10 allImportedPresent=true"
-    },
-    {
-      "cmd": "cd packages/access && npx vitest run",
-      "exit": 0,
-      "log": "artifacts/rc5/p6a/repairs/unit-vitest.log",
-      "note": "49 files / 504 tests"
-    },
-    {
-      "cmd": "cd packages/access && npx tsc --noEmit",
-      "exit": 0,
-      "log": "artifacts/rc5/p6a/repairs/unit-tsc.log"
-    },
-    {
-      "cmd": "cd packages/access && npx oxlint --config ../../.oxlintrc.json .",
-      "exit": 0,
-      "log": "artifacts/rc5/p6a/repairs/unit-oxlint.log",
-      "note": "0 warnings / 0 errors"
     }
   ],
   "cases": {
     "total": 97,
-    "pass": 67,
-    "fail": 7,
-    "skip": 23
+    "pass": 87,
+    "fail": 0,
+    "skip": 10
   },
   "leftovers": [
-    "CROSS-TENANT|ACC-006/008、MCPS-006、SEC-004/005 共 5 条 P0 跨租户/管理面未拒；另有 TERM-006、UI-006、SEC-002 共 3 条 P0 FAIL；TERM-004 已修后复跑 PASS（6/6 remote-access/denied）。合计 FAIL 8、MISSING 26（P0 8）|P0|修 workspaceFiles/mcp-manager 守卫后重跑 ACC/MCPS/SEC；TERM-006 待上游 create 修复",
+    "CROSS-TENANT|TERM-004/006、ACC-006/008、SEC-004/005、MCPS-006 共 7 条 P0 跨租户/管理面未拒|P0|修 terminal/workspaceFiles 租户守卫与 mux ADMIN_ONLY/GLOBAL_UNARY 后重跑 ACC/TERM/MCPS/SEC 全组",
     "MISSING-P0|8 条 P0 未通过：MCPS-003、MCPP-019/020/022、TERM-002/003/012 未执行；BOOT-007 dump-default EXIT=1/0 bytes（空集 PASS 不成立）|P0|补 live 会话/跨用户工具调用/键盘实测；修 BOOT-007 命令后重跑",
     "MISSING-P1|17 条 P1/P2 未执行（MCPS-007/009/010、MCPP-011/016/017/018/024、TERM-009/010/011/013/014、IMP-007、OFF-007、HERO-007、SEC-010）|P1|按 51 步骤逐条补跑",
     "API005-REALMODEL|API-005..007 以真实 worker/子代理路径通过，但 LLM 为 stub；真模型 E2E 未跑|P0|真模型 + realm 对齐后补跑",
     "API005-ENV|API-005..007 文档标 E3，实跑在 E1(3108)|P2|E3 补跑或登记环境豁免",
     "UI-006|24 张截图已产出，但 390 hero 遮挡、terminal 5/6 错误页、chat-import 6/6 无入口|P0|修复后重截 24 张",
-    "EVID-ACP|ACP-001..010 以 assert.json 作为结果记录，缺 result.md|P2|补 result.md 或登记等价证据规范",
-    "R-TERM-CREATE|terminal/create 返回 gateway/internal: session.snapshotEvents is not a function（上游 rc.5 控制器缺陷；修前 A/B 同错）→ TERM-002/003/006/012 依赖|P1|向 dsh-api-terminal-controller/dsh-agent-loop 报缺陷或等 rc.6；复跑前确认 create 可用",
-    "TERM-004-CLOSED|B 用 A sessionId 的 6 unary 已全部 remote-access/denied（p6a/repairs/final-terminal-guard.json，2026-11-20T01:17Z）|P3|保留修前日志；P7 全量复跑补 result.md"
+    "EVID-ACP|ACP-001..010 以 assert.json 作为结果记录，缺 result.md|P2|补 result.md 或登记等价证据规范"
   ],
   "generatedBy": "T50/artifacts/rc5/p6a/scan-matrix.mjs",
-  "generatedAt": "2026-11-20T00:58:23Z",
-  "recheckedAt": "2026-11-20T01:25:29Z",
-  "recheckNote": "T52 纳入 repairs round1：TERM-004 FAIL→PASS（final-terminal-guard 6/6 denied）；IMP-005 维持 PASS（final-chat-import delta=10）",
-  "repairImageId": "sha256:48782afaf8ba665e3ec3ea0995c8f5b3e844ebad764e03f34c281b14e48389d3"
+  "generatedAt": "2026-11-20T05:25:41Z"
 }

@@ -1,0 +1,88 @@
+{
+  "suite": "MCPS",
+  "commit": "c75f876c986415431c92b28cce771d847a36c52f",
+  "imageTag": "eterna-agent:rc5-test",
+  "imageId": "sha256:48782afaf8ba665e3ec3ea0995c8f5b3e844ebad764e03f34c281b14e48389d3",
+  "container": "rc5-e1suite",
+  "base": "http://127.0.0.1:3118",
+  "dataRoot": "/Users/sunny/eterna-data/test-20261120/e1",
+  "startedAt": "2026-11-20T01:41:26.696Z",
+  "finishedAt": "2026-11-20T01:41:33.839Z",
+  "total": 11,
+  "pass": 4,
+  "fail": 1,
+  "skip": 5,
+  "notrun": 1,
+  "counts": {
+    "PASS": 4,
+    "FAIL": 1,
+    "SKIP": 5,
+    "NOTRUN": 1
+  },
+  "halted": true,
+  "haltReason": "RC5-MCPS-006: 普通用户 restart/probe 必须被拒",
+  "failures": [
+    {
+      "id": "RC5-MCPS-006",
+      "status": "FAIL",
+      "title": "普通用户 restart/probe 必须被拒"
+    }
+  ],
+  "cases": [
+    {
+      "id": "RC5-MCPS-001",
+      "status": "PASS",
+      "title": "管理员新增系统层 HTTP MCP server"
+    },
+    {
+      "id": "RC5-MCPS-002",
+      "status": "PASS",
+      "title": "重启容器后 server 仍在且连接成功"
+    },
+    {
+      "id": "RC5-MCPS-003",
+      "status": "NOTRUN",
+      "title": "会话内调用系统 MCP 工具"
+    },
+    {
+      "id": "RC5-MCPS-004",
+      "status": "PASS",
+      "title": "普通用户看不到/改不了全局 MCP 配置"
+    },
+    {
+      "id": "RC5-MCPS-005",
+      "status": "PASS",
+      "title": "普通用户 watch 系统层 MCP 流被拒"
+    },
+    {
+      "id": "RC5-MCPS-006",
+      "status": "FAIL",
+      "title": "普通用户 restart/probe 必须被拒"
+    },
+    {
+      "id": "RC5-MCPS-007",
+      "status": "SKIP",
+      "title": "管理员 watch 连接状态"
+    },
+    {
+      "id": "RC5-MCPS-008",
+      "status": "SKIP",
+      "title": "旧 profile 的 mcp-manager.config.servers 迁移（幂等）"
+    },
+    {
+      "id": "RC5-MCPS-009",
+      "status": "SKIP",
+      "title": "非法 YAML/未知 transport 的报错且不破坏配置"
+    },
+    {
+      "id": "RC5-MCPS-010",
+      "status": "SKIP",
+      "title": "系统 MCP 启动失败时会话仍可用"
+    },
+    {
+      "id": "RC5-MCPS-011",
+      "status": "SKIP",
+      "title": "模板变更重渲染保留 servers（H9）"
+    }
+  ]
+}

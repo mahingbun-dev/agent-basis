@@ -1,0 +1,19 @@
+# RC5-BOOT-002 — E3 super 容器起：healthy + super 路由可访问
+CMD: node artifacts/rc5/e3-super/run-suite.mjs RC5-BOOT-002
+START: 2026-11-20T01:45:06.752Z
+# 注：RPC 行 `[exit=200]` 是 HTTP 传输状态；RPC 成败/错误码见 report.json 的 assertions。
+
+[exit=0] docker inspect eterna-rc5-e3 --format {{json .}}  # E3 容器 inspect（仅取白名单字段）
+[exit=0] docker exec eterna-rc5-e3 dsh --version  # 容器内 dsh 版本
+[exit=200] GET /login  # super 登录页
+[exit=0] docker logs eterna-rc5-e3 | extract boot token (in-memory, never written)  # boot token 不入证据
+[exit=200] GET /connect + GET /?token=… (dsh session bootstrap)  # token 已脱敏
+[exit=200] POST /login (admin from 0600 accounts file)
+[exit=200] GET /  # super 应用壳（带会话）
+[exit=200] GET /access/api/tasks/settings  # super 专属任务设置读面
+[exit=200] GET /access/api/tasks/session-roles  # super 专属会话角色读面
+[exit=200] GET /workbench/api/stream  # SSE 首帧
+[exit=200] POST /api/pluginInventory/list
+[exit=0] read docker/profile/cordis.super.patch.yml.template
+
+EXIT=0
