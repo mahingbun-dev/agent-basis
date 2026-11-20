@@ -1,8 +1,8 @@
 # rc.5 测试验收矩阵（164 条）
 
-- 生成时间：2026-11-20T08:52:41Z
+- 生成时间：2026-11-20T09:01:08Z
 - 汇编：T50（54 §5.4 / §7.1 / §7.3；51 §0.3 / §6.3）
-- 工作树：`/Users/sunny/code/agent-basis-rc5`（`feat/dsh-rc5-merge`，HEAD `c70da3e`）
+- 工作树：`/Users/sunny/code/agent-basis-rc5`（`feat/dsh-rc5-merge`，HEAD `84b5823`）
 - 用例定义：`docs/design/51-上游rc.5合并测试用例与回归.md` §3（164 条）；阶段映射：`docs/design/54-rc.5开发与测试验收完整workflow.md` §5.1/§5.2
 
 ## 判定规则（只取真实证据）
@@ -64,10 +64,10 @@
 
 - soak 启动：`2026-11-20T06:08:06.781Z`；计划结束：`2026-11-21T06:08:06.781Z`（86400s）
 - 窗口：tag=`24h-final2`，容器=`eterna-rc5-e1`，镜像=final-image2（`sha256:22fe8acb436f…`）
-- 最新采样：已观测 **2.74 h / 24 h**（11.4%），`windowComplete=false`
+- 最新采样：已观测 **2.88 h / 24 h**（12.0%），`windowComplete=false`
 - 结论：**未满窗口，不得判绿**；DATA-009 = MISSING，TERM-013 = MISSING
-- 最新 TERM tick：`{"at":"2026-11-20T08:52:31.492Z","elapsedSeconds":9863,"dshPid":1,"fds":102,"rssKb":487732,"threads":11,"longProcs":1,"churn":"ok","probeExit":0}`
-- 最新 DATA tick：`{"at":"2026-11-20T08:51:30.267Z","elapsedSeconds":9802,"databases":[{"file":"access/users.db","walBytes":828152,"shmBytes":32768,"ok":true,"journal":"wal","integrity":["ok"],"sessions":517},{"file":".eterna/memory.sqlite`
+- 最新 TERM tick：`{"at":"2026-11-20T09:00:41.013Z","elapsedSeconds":10353,"dshPid":1,"fds":104,"rssKb":405364,"threads":11,"longProcs":1,"churn":"ok","probeExit":0}`
+- 最新 DATA tick：`{"at":"2026-11-20T08:56:36.384Z","elapsedSeconds":10108,"databases":[{"file":"access/users.db","walBytes":844632,"shmBytes":32768,"ok":true,"journal":"wal","integrity":["ok"],"sessions":519},{"file":".eterna/memory.sqlit`
 - leftover：`SOAK-24H`、`TERM013-DATA009`
 
 
@@ -253,7 +253,7 @@
 | NOTPASS-P0 | 无 | P0 | P0 全绿 |
 | NOTPASS-P1+ | RC5-TERM-013、RC5-DATA-009 | P1 | 按 51 步骤逐条补跑或取得用户签字豁免 |
 | TERM013-DATA009 | TERM-013/DATA-009 依赖 24h 浸泡满窗（同一窗口 final-image2）；满窗前记 MISSING | P1 | 2026-11-21T06:08:06.781Z 后复核 |
-| DATA-009-SCALE | 现行 soak 为 2 writers、每 5min 检 3 库，未达 48 §4.5 ≥50 并发 + 2h 全库 integrity | P1 | 满窗前补压或登记豁免 |
+| DATA-009-SCALE | 规模口径由独立 scale 窗口覆盖（50 持久会话 / 60s 50 并发读 / 5min 50 并发写 / 2h 全库 integrity，止 2026-11-21T07:37:17Z）；主窗口为 2 writers 的 24h 浸泡 | P1 | 满窗后合并两窗口判定 DATA-009 |
 | R22-TASKS-PROMPT | 任务主会话按标准 preset 创建，角色 prompt/preset 未接线；可能自行派 subagent 与 tasks 路由重复（产品遗留，不影响 API-005/006/007 判据） | P1 | 下一次镜像变更窗口：bundles 加 `@eterna/tasks` + 注入 presets + `agent.ctx.systemPrompt.section` 角色 prompt（见 `p7/doc54-delivery-audit.md` §2.1） |
 | EVID-ACP | ACP-001..010 以 assert.json 作为结果记录（无 result.md） | P3 | 补 result.md 或登记等价证据规范 |
 | EVID-ENV-V1 | ENV-004/005、V1-008 的运行时断言由 P5 镜像探针补证（非逐字 docker run） | P3 | 保留探针索引；按需逐字复跑 |

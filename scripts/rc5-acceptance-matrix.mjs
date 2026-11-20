@@ -231,7 +231,7 @@ leftover.push(`| NOTPASS-P0 | ${missingP0.length === 0 ? '无' : missingP0.join(
 const notPassP1 = missing.filter(id => !missingP0.includes(id))
 leftover.push(`| NOTPASS-P1+ | ${notPassP1.length === 0 ? '无' : notPassP1.join('、')} | P1 | 按 51 步骤逐条补跑或取得用户签字豁免 |`)
 leftover.push(`| TERM013-DATA009 | TERM-013/DATA-009 依赖 24h 浸泡满窗（同一窗口 final-image2）；满窗前记 MISSING | P1 | ${soak?.plannedEndAt ?? '见 meta-24h-final2.json'} 后复核 |`)
-leftover.push('| DATA-009-SCALE | 现行 soak 为 2 writers、每 5min 检 3 库，未达 48 §4.5 ≥50 并发 + 2h 全库 integrity | P1 | 满窗前补压或登记豁免 |')
+leftover.push('| DATA-009-SCALE | 规模口径由独立 scale 窗口覆盖（50 持久会话 / 60s 50 并发读 / 5min 50 并发写 / 2h 全库 integrity，止 2026-11-21T07:37:17Z）；主窗口为 2 writers 的 24h 浸泡 | P1 | 满窗后合并两窗口判定 DATA-009 |')
 leftover.push('| R22-TASKS-PROMPT | 任务主会话按标准 preset 创建，角色 prompt/preset 未接线；可能自行派 subagent 与 tasks 路由重复（产品遗留，不影响 API-005/006/007 判据） | P1 | 下一次镜像变更窗口：bundles 加 `@eterna/tasks` + 注入 presets + `agent.ctx.systemPrompt.section` 角色 prompt（见 `p7/doc54-delivery-audit.md` §2.1） |')
 leftover.push('| EVID-ACP | ACP-001..010 以 assert.json 作为结果记录（无 result.md） | P3 | 补 result.md 或登记等价证据规范 |')
 leftover.push('| EVID-ENV-V1 | ENV-004/005、V1-008 的运行时断言由 P5 镜像探针补证（非逐字 docker run） | P3 | 保留探针索引；按需逐字复跑 |')
