@@ -12,7 +12,7 @@
 | 类别 | 状态 |
 |---|---|
 | P0–P6 代码与测试 | **已收口到最终镜像**：矩阵 164 条 = **162 PASS / 0 FAIL / 2 MISSING**；P0 102 条 = **102 PASS / 0 FAIL / 0 MISSING** |
-| 全工作区门禁 | `pnpm -w run verify` merge 前后各 **EXIT=0**；`ci.yml` 全步骤本地镜像 **35 步 EXIT=0** |
+| 全工作区门禁 | `pnpm -w run verify` merge 前后 + 最终证据 HEAD `51cb527` 各 **EXIT=0**（`p7/verify-final-51cb527.log`）；`ci.yml` 全步骤本地镜像 **35 步 EXIT=0** |
 | P6 剩余 2 条 | 均为 P1 时间窗：TERM-013 / DATA-009 的 24h 未满（主 2026-11-21T06:08:06Z / 规模 07:37:17Z）。API-005/006/007 已由真模型档补跑 PASS |
 | P7 | **未执行**：未 push、未建 PR、未合并、未从 latest main 构建部署、无上线后 24h |
 | 签字 | 四方签字栏空 |
@@ -123,6 +123,7 @@
 | `artifacts/rc5/p7/regression/supplement/supplement.json` | 审计 jsonl/治理规则计数（2861 行；凭据值 0 命中） | 刷新 |
 | `artifacts/rc5/e3-super/real-harness/{results.json,harness.log,worker-a.jsonl,boot.log}` | **API-005/006/007 真模型补跑**（E3 隔离 DSH_HOME，`mimo/mimo-v2.6-pro`） | **PASS**：2 工单/2 真实 worker/2 child/`waitForTreeWork` 41883ms/2 completed 回执/`listDescendants` 精确/`drain` 后 `residentAfter=[]`；`executorTreeJoin` 记 advisory（确定性档补证） |
 | `artifacts/rc5/e3-super/API-005-real-model.md` | 真模型三组证据合并、边界与 R22 说明 | 新增 |
+| `artifacts/rc5/p7/verify-final-51cb527.log` | 最终证据 HEAD `51cb527` 全工作区 `pnpm -w run verify` | **EXIT=0**（38 包 `verify: Done`） |
 | `artifacts/rc5/API/_harness/{index.js,run-api005-real.sh}` | 真模型 harness 模式与复现脚本（`API_HARNESS_REAL=1`） | 新增 |
 
 ---

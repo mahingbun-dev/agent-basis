@@ -11,7 +11,7 @@
 |---|---|
 | 验收矩阵（164 条） | **PASS 162 / FAIL 0 / MISSING 2** |
 | P0（102 条） | **102 PASS / 0 FAIL / 0 MISSING** |
-| 全工作区门禁 | `pnpm -w run verify` **EXIT=0**（pre-merge 与 post-merge 各一次：`artifacts/rc5/p7/verify-precommit.log`、`verify-postmerge.log`） |
+| 全工作区门禁 | `pnpm -w run verify` **EXIT=0**（pre-merge / post-merge / 最终证据 HEAD 各一次：`artifacts/rc5/p7/verify-precommit.log`、`verify-postmerge.log`、`verify-final-51cb527.log`） |
 | CI 本地镜像 | `ci.yml` 三个 job 的全部步骤本地逐条复跑 **EXIT=0**（install/verify/runtime-home/transplant/form-check/双 boot/packs lint/tenant-scan/prompt-scan/evals/v1-line；`artifacts/rc5/p7/ci-local.log`） |
 | 最终镜像复跑 | `eterna-agent:rc5-test` = `sha256:22fe8acb436f2ce24ea7a6b790b08462b9b769e10b98acb096590352b739bcfb` |
 | 未通过 2 条 | TERM-013/DATA-009（24h 浸泡未满窗）；API-005/006/007 已由真模型档补跑 PASS |
@@ -99,7 +99,7 @@
 | E2（ACC 10 / LLM 5 / MCPP 24 / SEC 7 / TERM 16 / UI 8） | 67 PASS / 0 FAIL（MCPP 3 条 SKIP 由 LLM 车道覆盖） |
 | E3（super） | 21 PASS / 0 FAIL / 2 NOTRUN（TERM-013、E3-UI-002；API-005/006/007 真模型 PASS） |
 | 矩阵（164 条） | **162 PASS / 0 FAIL / 2 MISSING**（`artifacts/rc5/acceptance-matrix.md`） |
-| 全工作区门禁 | **EXIT=0**（38 个 workspace 包 `verify: Done`；pre-merge `verify-precommit.log`、post-merge `verify-postmerge.log`） |
+| 全工作区门禁 | **EXIT=0**（38 个 workspace 包 `verify: Done`；pre-merge `verify-precommit.log`、post-merge `verify-postmerge.log`、最终证据 HEAD `verify-final-51cb527.log`） |
 
 ### 4.2 P0 结果表（102 条）
 
@@ -187,7 +187,7 @@ bash deploy/verify.sh http://127.0.0.1:3210
 | `artifacts/rc5/E1/*/summary.json`、`E2/*/summary.json` | 最终镜像车道汇总（镜像 id、容器、数据根） |
 | `artifacts/rc5/e3-super/*/report.json` | E3 super 逐用例报告（21 PASS / 2 NOTRUN） |
 | `artifacts/rc5/p6a/rerun-{e1,e2,e3,acp}-final.log` | 最终镜像全车道复跑命令与 EXIT 原文 |
-| `artifacts/rc5/p7/verify-precommit.log` / `verify-postmerge.log` | `pnpm -w run verify` 全工作区 EXIT=0（合并 main 前后各一次） |
+| `artifacts/rc5/p7/verify-precommit.log` / `verify-postmerge.log` / `verify-final-51cb527.log` | `pnpm -w run verify` 全工作区 EXIT=0（合并 main 前后 + 最终证据 HEAD） |
 | `artifacts/rc5/p7/ci-local.log` | `ci.yml` 全步骤本地镜像（35 个 EXIT=0，含双 boot/扫描/evals/v1-line） |
 | `artifacts/rc5/E2/SEC/RC5-SEC-010/result.md` | 旧数据升级验证 |
 | `artifacts/rc5/p6b/soak/final-image2/` | 24h 浸泡 meta/term/data 采样（未满窗） |
@@ -209,7 +209,7 @@ bash deploy/verify.sh http://127.0.0.1:3210
 ### 8.1 已绿（有证据）
 
 - 164 行矩阵 162 PASS / 0 FAIL；P0 102/102。
-- `pnpm -w run verify` 全工作区 EXIT=0（38 包；merge `origin/main` 前后各一次）。
+- `pnpm -w run verify` 全工作区 EXIT=0（38 包；merge `origin/main` 前后 + 最终证据 HEAD `51cb527` 各一次）。
 - `ci.yml` 全步骤本地镜像 EXIT=0（`ci-local.log`，含双 boot、tenant-scan、prompt-scan、evals、v1-line）。
 - 最终镜像 E1/E2/E3 全车道复跑；TERM-002/005/006、API-004 等此前红项均在最终镜像转绿。
 - 迁移两遍、全库 integrity、回滚演练（DATA-004/005/010）PASS。
