@@ -1,10 +1,10 @@
 # 发布说明 · EternaAgent 上游 DSH 0.2.2-rc.5 合并（草案，未发布）
 
 - 任务：T56（54 §4.9 / §10.4；51 §6.2；49 §11）
-- 版本：产品镜像 `eterna-agent:<部署时钉定>`，内核 `@deepseek-ai/dsh* = 0.2.2-rc.5`（cordis 4.1.0 / cosmokit 1.9.0）
-- 分支：`feat/dsh-rc5-merge`（合并 `origin/main` 后 HEAD 见 PR 头部；未推送、未构建发布镜像）
+- 版本：产品镜像 **`eterna-agent:0.2.0-rc.5` = `sha256:57ab618f41079a7029fc541944e2f5f77d1f6aeefd56137dce303f80a473fb14`**（自 latest main `343ea70` 构建），内核 `@deepseek-ai/dsh* = 0.2.2-rc.5`（cordis 4.1.0 / cosmokit 1.9.0）
+- 合并：PR **#137** 已合并（merge commit `343ea70`，远端 CI 全绿）；**2026-11-21T16:47Z 已部署生产**（停机 100s，`p7/deploy-record.md`）
 - 依据：`docs/design/49-上游rc.5合并总设计.md`、`docs/design/51-上游rc.5合并测试用例与回归.md` §6.2、`docs/design/54-rc.5开发与测试验收完整workflow.md` §10.4/§10.6、`docs/upgrade-gate.md` §7
-- 状态：**发布草案。产品门禁全绿（矩阵 162 PASS / 0 FAIL / 0 MISSING / 2 WAIVED，P0 102/102）；24h 满窗判据经产品签字豁免。上线时补齐镜像 digest 并逐条勾 §8。**
+- 状态：**已上线（2026-11-21）。产品门禁全绿（矩阵 162 PASS / 0 FAIL / 0 MISSING / 2 WAIVED，P0 102/102）；24h 满窗判据经产品签字豁免。剩上线后 24h 观察与四方补签（§8）。**
 
 > **发布前提**：远端 CI 绿；`verify.sh` 绿；四方签字（产品对 24h 豁免的签字已落字）。P0 已 **102/102** 通过（API-005 真模型档已 PASS）；24h 浸泡满窗判据经产品豁免（`artifacts/rc5/p6b/waiver-24h.{json,md}`），残余风险由上线后 24h 观察覆盖。
 

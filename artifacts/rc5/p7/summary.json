@@ -1,11 +1,11 @@
 {
   "phase": "P7",
   "commit": null,
-  "imageTag": null,
-  "imageId": null,
+  "imageTag": "eterna-agent:0.2.0-rc.5",
+  "imageId": "sha256:57ab618f41079a7029fc541944e2f5f77d1f6aeefd56137dce303f80a473fb14",
   "startedAt": null,
   "finishedAt": null,
-  "windowBasis": "P6 已收口：矩阵 162 PASS / 0 FAIL / 0 MISSING / 2 WAIVED（TERM-013/DATA-009 产品签字豁免 2026-11-21 00:28，waiver-24h.{json,md}）；P0 102/102",
+  "windowBasis": "已上线（2026-11-21T16:47Z，停机 100s）：PR #137 合并（main=343ea70）、CI 全绿、verify.sh 14/0、三库 integrity ok、env 保真 15/15；剩上线后 24h 观察 + 补签",
   "commands": [],
   "cases": {
     "total": 164,
@@ -15,11 +15,11 @@
     "waived": 2
   },
   "leftovers": [
-    "P7-RUNNING|push/PR/CI/合并/部署经用户 2026-11-21 授权执行中|P0|51 §6.1/§6.2、54 §3.2",
     "WAIVED-24H|24h 满窗判据产品豁免；采样跑到满窗作事后观察|P1|p6b/waiver-24h.{json,md}",
+    "POST-24H-OBS|上线后 24h 观察无 P0 告警（承担豁免残余风险）|P0|p7/deploy-record.md §4",
     "R22-TASKS-PROMPT|tasks 角色 prompt/preset 未接线（super bundles 未含 @eterna/tasks）|P1|下一次镜像变更窗口修复（p7/doc54-delivery-audit.md §2.1）",
     "SIGNOFF|四方签字：产品豁免部分已签，开发/测试/运维待签|P0|p7/regression/signoff.md"
   ],
   "generatedBy": "T50/artifacts/rc5/p6a/scan-matrix.mjs + T56 refresh (waiver-24h)",
-  "generatedAt": "2026-11-21T00:35:00+08:00"
+  "generatedAt": "2026-11-21T00:52:00+08:00"
 }
