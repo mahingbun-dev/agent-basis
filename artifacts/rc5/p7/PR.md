@@ -1,7 +1,7 @@
 # PR · `feat/dsh-rc5-merge` → `main`：上游 DSH 0.2.2-rc.5 合并
 
 - 任务：T53（54 §4.9 / §10.1；53 §7）
-- 分支：`feat/dsh-rc5-merge`，HEAD `f1418dd`（已 merge `origin/main` = `282675c feat(panel): 流程启动条每用户可配置`）
+- 分支：`feat/dsh-rc5-merge`（已 merge `origin/main` = `282675c feat(panel): 流程启动条每用户可配置`；HEAD 以远端分支为准，合并后另有证据/文档提交）
 - 边界：**未 `git push`、未合并、未部署、未停/改生产容器**；push/合并/部署待生产确认
 - 依据：`docs/design/49-上游rc.5合并总设计.md`、`50-上游rc.5合并开发落地文档.md`、`51-上游rc.5合并测试用例与回归.md`、`54-rc.5开发与测试验收完整workflow.md`
 
