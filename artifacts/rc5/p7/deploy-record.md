@@ -53,6 +53,28 @@
 
 **待人工**（用户侧）：上线后 24h 观察无 P0 告警；四方补签。
 
+---
+
+## 6. R22 修复镜像窗口（2026-11-21T18:23Z,同日二次部署）
+
+| 项 | 值 |
+|---|---|
+| 触发 | PR **#140**（R22 角色接线）合并,main=`05e9252`（CI verify 2m08s / upgrade-gate 2m49s / v1-line 7s 全绿） |
+| 新镜像 | `eterna-agent:0.2.0-rc.5-2` = `sha256:6ab47e97c81f544fce1ba86ce7122b71fdf08589337d93c6d12a5bf1efbb2fc4`（内核仍 0.2.2-rc.5;上一镜像 `0.2.0-rc.5`=`57ab618f…` 保留 tag 作回滚点） |
+| 窗口 | `18:23:52Z → 18:24:20Z`,**28 秒**（数据根已是 bind,无需迁移;预检静默窗无会话活动） |
+| 验收 | verify.sh **14/0**;healthy/restarts=0;内核 0.2.2-rc.5 |
+
+### R22 落地验证（生产实测）
+
+1. **profile 重渲染**:模板变更 → cordis.patch.yml 重渲染,双 preset 行进树（G1-2 同款断言在开发档已绿:237 entries、双 preset 在册、组成行 active）。
+2. **主会话角色 section 自证**:向主会话 `orchestrator-Mr.Ma` 发自证探针 → 模型回答 `{"role":true,"dispatch":true}`(系统提示含「你是 orchestrator」与「## dispatch」)。
+3. **编排路由活性**:首个探针被 orchestrator 按受理档位评估并路由 ignore(助手 reasoning 原文「routed it as ignore」),主会话直答——admission/policy 段生效。
+4. **rc.5 空白复用语义实测**:`session/create {sessionId: 非空会话}` 不替换 recorded preset,而是分配新空白会话——**既有主会话保持 standard 记账 + 角色 section 叠加**;主会话 recorded preset 切换=归档该会话后重启重建(ops 可选项,本文不做)。
+5. **部署后全量回归复跑**:API 面 **12/12** + 浏览器面 **PASS**(freshSession=true,turnOk+serverAssistantHit)——R22 修复无回归。
+6. 探针/落点会话全部归档;主会话两条 R22 探针回合保留(带标签,即本节证据)。
+
+---
+
 ## 5. 边界与说明
 
 - 未删除旧卷/旧镜像/旧冷备；回滚按 `p7/rollback-record.md` §3（现处情形 B：bind 已生效）。
