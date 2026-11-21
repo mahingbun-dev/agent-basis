@@ -358,7 +358,20 @@ export class LlmDoctorGateway extends TypertRemoteService {
       ...(input?.genericRouteKey !== undefined ? { genericRouteKey: input.genericRouteKey } : {}),
       ...(input?.tavily !== undefined ? { tavily: input.tavily } : {}),
     }
-    return probeCapability(probeInput, { fetchImpl: this.fetchImpl, resolveApiKey: this.resolveApiKey })
+    // 探活 deps 的 resolveApiKey 是同步面(纯判定层 signature):这里把本行全部
+    // 路由 + Tavily 兜底的 apiKeyEnv 先按 credentials→env 口径预解析成快照,
+    // 探针按 ref 查表——避免把 async 渗透进 capability-probe 的纯函数签名。
+    const refs = new Set<string>()
+    for (const route of Object.values(routes)) {
+      if (typeof route.apiKeyEnv === 'string' && route.apiKeyEnv !== '') refs.add(route.apiKeyEnv)
+    }
+    if (typeof input?.tavily?.apiKeyEnv === 'string' && input.tavily.apiKeyEnv !== '') refs.add(input.tavily.apiKeyEnv)
+    const keys = new Map<string, string | undefined>()
+    for (const ref of refs) keys.set(ref, await this.apiKeyFor(ref))
+    return probeCapability(probeInput, {
+      fetchImpl: this.fetchImpl,
+      resolveApiKey: ref => (ref === undefined || ref === '' ? undefined : keys.get(ref) ?? this.resolveApiKey(ref)),
+    })
   }
 }
 

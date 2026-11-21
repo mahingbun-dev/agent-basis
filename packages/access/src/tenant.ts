@@ -36,6 +36,19 @@ export interface TenantFetchRegistry {
   }): () => Promise<void>
 }
 
+/** 宿主机 workspace 注册表消费面(dsh-workspace `workspaceRegistry`,结构子集)。
+ *  session/create 的「先建会话、记账、再挂工作区」顺序修复消费 attachSession
+ *  与成员/归档只读面(2026-11-19)。 */
+interface WorkspaceEntityFace {
+  readonly path: string
+  readonly sessionIds: readonly string[]
+  attachSession(sessionId: string): Promise<void>
+}
+interface WorkspaceRegistryFace {
+  get(id: string): WorkspaceEntityFace | undefined
+  readonly archivedSessionIds: readonly string[]
+}
+
 export interface TenantDeps {
   readonly store: UserStore
   readonly session: SessionService
@@ -178,6 +191,12 @@ function failureFrame(rpcId: string, error: unknown): Response {
     ok: false,
     error: { code: 'gateway/internal', message: error instanceof Error ? error.message : String(error), details: {} },
   })
+}
+
+/** 宿主业务错误帧(保留 code/details):客户端按 code 分流处理(如
+ *  `session/workspace-attach-failed` 的 details.sessionId 用于列表对账)。 */
+function errorFrame(rpcId: string, code: string, message: string, details: Record<string, unknown>): Response {
+  return frame(rpcId, { ok: false, error: { code, message, details } })
 }
 
 /** 归属解析:cookie → 会话(pwv 比对)→ 用户;失败返回 undefined(由守卫回 401 帧)。 */
@@ -355,7 +374,8 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
   // 自动落座由登录开通保障:开通过的工作区 + 首开空会话让 recentWorkspace 首屏
   // 选中用户自己的工作区(拒绝仅发生在点他人工作区/极端竞态,属预期反馈)。
   register('/api/session/create', async (rpcId, args, ctx) => {
-    const request = args.request as { workspaceId?: string; cwd?: string; sessionId?: string } | undefined
+    const request = args.request as
+      { workspaceId?: string; cwd?: string; sessionId?: string; agentPreset?: string } | undefined
     const root = userRoot(ctx)
     const workspaceId = typeof request?.workspaceId === 'string' ? request.workspaceId : undefined
     const cwd = typeof request?.cwd === 'string' ? resolve(request.cwd) : undefined
@@ -375,6 +395,46 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
       : undefined
     const sc = serviceOf(deps, 'sessionController')
     if (sc === undefined) return failureFrame(rpcId, new Error('sessionController not ready'))
+
+    // ── 顺序修复(2026-11-19):带 workspaceId 时「先建会话 → 记账 → 再 attachSession」──
+    // 宿主 sessionController.create 带 workspaceId 时内部先 workspace.attachSession()
+    // 广播成员关系、后返回 sessionId;守卫若照旧透传,广播早于 ownership 记账,mux 对
+    // workspace/follow 的逐会话判定(`session/<id>` 绑定)看不到新会话 → 成员关系更新
+    // 被丢弃 → 客户端 workspace 快照 sessionIds 恒空 → hero chip 回落「选择工作区」、
+    // 输入框 inert,且每次点击都新建 blank(新增工作区后必现,刷新一次才恢复)。
+    // 故改为以 cwd 建/复用(不触发 attach),记账后再 registry.attachSession 广播。
+    // 仅当未同时带 cwd(宿主本身拒 workspaceId+cwd 并存)且注册表可用时走此路;
+    // 注册表缺席(上游漂移)退回原直通路径,保持可用性。
+    const registry = serviceOf(deps, 'workspaceRegistry') as WorkspaceRegistryFace | undefined
+    if (workspaceId !== undefined && cwd === undefined && registry !== undefined) {
+      const workspace = registry.get(workspaceId)
+      if (workspace !== undefined) {
+        // 与宿主 reusable 谓词同构:未归档 + 本工作区成员;否则按全新会话建(剥掉残留 id)。
+        const reusable = reuseId !== undefined
+          && workspace.sessionIds.includes(reuseId)
+          && !registry.archivedSessionIds.includes(reuseId)
+        const createRequest: Record<string, unknown> = { cwd: workspace.path }
+        if (reusable) createRequest.sessionId = reuseId
+        if (request?.agentPreset !== undefined) createRequest.agentPreset = request.agentPreset
+        const value = await callService(sc, 'create', createRequest) as
+          { sessionId?: string; id?: string } | undefined
+        const sessionId = typeof value?.sessionId === 'string' ? value.sessionId
+          : typeof value?.id === 'string' ? value.id : undefined
+        if (sessionId !== undefined) {
+          deps.store.recordSession(sessionId, ctx.userId, workspaceId)
+          try {
+            await workspace.attachSession(sessionId)
+          } catch (error) {
+            return errorFrame(rpcId, 'session/workspace-attach-failed',
+              `session "${sessionId}" was created but could not attach to workspace "${workspaceId}": ${error instanceof Error ? error.message : String(error)}`,
+              { sessionId, workspaceId })
+          }
+        }
+        tenantAudit(deps, 'session.create', ctx.account, { workspaceId, cwd: null })
+        return okFrame(rpcId, value)
+      }
+    }
+
     const payload = payload0 === undefined ? payload0 : { ...payload0, sessionId: reuseId }
     const value = await callService(sc, 'create', payload) as { sessionId?: string; id?: string } | undefined
     const sessionId = typeof value?.sessionId === 'string' ? value.sessionId : typeof value?.id === 'string' ? value.id : undefined

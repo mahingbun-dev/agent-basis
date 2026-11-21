@@ -301,13 +301,19 @@ const CSS = `
 [data-eterna-panel='mem-pending-error'] { font-size: var(--et-text-caption); color: var(--et-danger); overflow-wrap: anywhere; }
 [data-eterna-panel='mem-pending-actions'] { display: flex; align-items: center; justify-content: flex-end; gap: var(--et-space-2); margin-top: var(--et-space-1); }
 [data-eterna-panel='mem-pending-actions'] button.eterna-panel-danger {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 5px 14px; min-height: 32px; font: inherit; font-size: var(--et-text-micro); font-weight: var(--et-weight-body);
+  white-space: nowrap; cursor: pointer;
   color: var(--et-fg-2); background: transparent;
   border: 1px solid var(--et-border); border-radius: var(--et-radius-sm);
   transition: border-color var(--et-motion-fast) var(--et-ease), background var(--et-motion-fast) var(--et-ease), color var(--et-motion-fast) var(--et-ease);
 }
 [data-eterna-panel='mem-pending-actions'] button.eterna-panel-danger:hover:not(:disabled) { border-color: var(--et-danger); color: var(--et-danger); }
+/* 臂起态 = danger-soft 底 + danger 字色加粗(access ea-del.ea-armed 同款):--et-danger
+   经 DSH 桥接是字色级红(#f25a5a/#ec1313),实心填充压白字对比度仅 ~2.6:1,不可读。 */
 [data-eterna-panel='mem-pending-actions'] button.eterna-panel-danger.is-armed {
-  border-color: var(--et-danger); color: var(--et-accent-on); background: var(--et-danger);
+  border-color: var(--et-danger); color: var(--et-danger); background: var(--et-danger-soft);
+  font-weight: var(--et-weight-display);
 }
 [data-eterna-panel='mem-pending-actions'] button:disabled { opacity: 0.6; cursor: default; }
 
