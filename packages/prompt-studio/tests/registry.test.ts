@@ -98,7 +98,7 @@ describe('T1.3 ①对账——patch 值型(preset 层,docker/profile/cordis.patc
 
   it('结构定位:preset 行内经 pluginPath 嵌套(planning 组 → plan-mode)命中唯一键行', () => {
     const lines = readRepoFile(WEB_PATCH).split('\n')
-    for (const [rowId, expectedLine] of [['preset-standard', 461], ['preset-cordis', 262]] as const) {
+    for (const [rowId, expectedLine] of [['preset-standard', 465], ['preset-cordis', 262]] as const) {
       const located = locateYamlConfigKey(
         { file: WEB_PATCH, rowId, pluginPath: ['planning', 'plan-mode'], configKey: 'section' },
         lines,

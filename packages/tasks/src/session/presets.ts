@@ -17,4 +17,4 @@ export const ORCHESTRATOR_PRESET_ID = 'eterna-tasks-orchestrator'
 export const WORKER_PRESET_ID = 'eterna-tasks-worker'
 
 /** 压缩组行序(28 号 §3/§4-2;stale 先于 basic 是有意的:先泄压后摘要,22 号 §4-C6)。 */
-export const COMPACTION_ROW_ORDER = ['stale-tool-result-pruner', 'compaction-basic', 'command-compact', 'tool-result-pruner'] as const
+export const COMPACTION_ROW_ORDER = ['stale-tool-result-pruner', 'compaction-basic', 'command-compact', 'command-clear', 'tool-result-pruner'] as const

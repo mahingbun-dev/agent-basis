@@ -107,7 +107,7 @@ interface TransactionFailure {
  * @param headSeq - seq at surface node 0 of a non-empty surface.
  * @returns the system head event, or `undefined` without one.
  */
-function systemHead(session: Session, headSeq: SessionSeq): SessionEvent<'system/message'> | undefined {
+export function systemHead(session: Session, headSeq: SessionSeq): SessionEvent<'system/message'> | undefined {
   // Surface nodes are current log seqs, so the event exists.
   // Existing Session history read; migration deferred.
   // oxlint-disable-next-line typescript/no-non-null-assertion, typescript/no-deprecated
@@ -604,7 +604,7 @@ function buildSummarizationInput(
 }
 
 /** Inspect open-turn, unmatched-compaction, and latest seed-boundary state independently. */
-function inspectCompactionEntryState(session: Session): CompactionEntryState {
+export function inspectCompactionEntryState(session: Session): CompactionEntryState {
   let openTurn: number | null = null
   let openTurnStateKnown = false
   let unmatchedCompactionStart: SessionEvent<'compaction/start'> | undefined

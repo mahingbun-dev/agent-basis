@@ -50,12 +50,13 @@ const PROBE_TIMEOUT_MS = 10_000
 /**
  * T11 出口口径（54 §4.4/§4.11、51 BOOT-004..007/012）：
  *  - host entries 是本形态 settle 后的 Loader 树规模（rc.5 基线 229；行漂移即红）；
- *  - 模板形态 43 blocks = 3 insert + 40 override（T10 交付数），override 必须
+ *  - 模板形态 43 blocks = 3 insert + 40 override（T10 交付数；/clear 组内嵌套行不占），override 必须
  *    全部命中活体树，0 unknown；
  *  - 槽位漂移：本仓 client 注册的 slot 必须命中活宿主 slot catalog，且源码声明
  *    面 == 浏览器实收 bundle 的注册面（无缺失/无多出）；
  *  - stderr 不得出现 app-boot 的 `disabling profile plugin`（兼容性冲突静默裁行）。
  */
+// 2026-11-23 /clear:command-clear 为组内嵌套行(顶层 `- ` 行口径不变),常量不动。
 const EXPECTED_HOST_ENTRIES = 229
 const EXPECTED_TEMPLATE_BLOCKS = 43
 const EXPECTED_TEMPLATE_INSERTS = 3
@@ -455,7 +456,7 @@ for (const preset of presetByName.values()) {
 }
 const standardPreset = presetByName.get('standard')
 
-// 3f. 模板形态（T10 交付数：43 blocks = 3 insert + 40 override）。
+// 3f. 模板形态（T10 交付数：43 blocks = 3 insert + 40 override；/clear 为组内嵌套行不占顶层口径）。
 pass(`template shape: ${EXPECTED_TEMPLATE_BLOCKS} blocks = ${EXPECTED_TEMPLATE_INSERTS} insert + ${EXPECTED_TEMPLATE_OVERRIDES} override`,
   templateStats.blocks === EXPECTED_TEMPLATE_BLOCKS
     && templateStats.inserts === EXPECTED_TEMPLATE_INSERTS
