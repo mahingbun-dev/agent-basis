@@ -168,6 +168,13 @@ export function sessionHostFromContext(ctx: Context): Omit<SessionsHost, 'effect
   return {
     context: ctx,
     ports: { controller, workspaces, permissions, persistence } as unknown as SessionHostPorts,
+    // ★角色 preset 装配闭合(53 号 §4-P0):派生束自带双角色 preset 值(同包常量,与
+    // cordis.patch.yml 两组 preset 的 config.id 交叉钉住)——生产 glue 不注入
+    // config.sessionHost,本派生分支即生产路径,主/worker 建会话请求自此带 agentPreset。
+    // 优先级不在此处:派生只在 config.sessionHost 缺席时产出(bootTasks 派生分支),
+    // 显式注入的 config.sessionHost.presets 经 createTasks 侧 options.sessionHost.presets
+    // 覆写语义恒优先。
+    presets: { orchestrator: ORCHESTRATOR_PRESET_ID, worker: WORKER_PRESET_ID },
   }
 }
 
@@ -426,6 +433,10 @@ export interface TasksRuntime extends TasksWorld {
   readonly executor: StubExecutor | DshExecutor
   /** worker session 面(sessionHost 注入时在场;A22;glue/测试深消费)。 */
   readonly sessions: Sessions | undefined
+  /** 生效的角色 preset 选择(53 号 §4-P0 探针面):主/worker 建会话请求 agentPreset 的实际
+   * 取值——显式注入 > 派生束常量(值即 src/session/presets.ts,boot 日志 presets 段同源);
+   * stub 装配(无宿主 session 面,不建会话)为 undefined。 */
+  readonly presets: Partial<Record<SessionRole, string>> | undefined
   /** A21 channels 入站汇(被动;glue 注给 channels webhook 网关 sink 位,39 §3-E3)。 */
   readonly sources: ChannelTriggerAdapter
   readonly board: HealthBoard
@@ -625,6 +636,8 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
   let executor: StubExecutor | DshExecutor = stubExecutor
   let sessions: Sessions | undefined
   let dshExecutor: DshExecutor | undefined
+  /** 生效的角色 preset 选择(53 号 §4-P0 探针面):建会话请求 agentPreset 的实际取值(executor 步赋值)。 */
+  let rolePresets: Partial<Record<SessionRole, string>> | undefined
   /** master 会话引导健康项('master';仅约定派生路径认领,见下——采信 id 的建立归 glue)。 */
   let masterHealth: HealthEntry | undefined
   if (options.sessionHost !== undefined) {
@@ -647,9 +660,13 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
     //   立即生效。既有主会话(标准 preset 记账)随 ensure 复用即获得角色 section;
     //   其 recorded preset 的替换归会话重建(见审计 §2.1 备注)。
     const rolePrompts = new Prompts(store)
+    // 生效 preset 选择(53 号 §4-P0):显式注入的 options.sessionHost.presets 恒优先(可为
+    // Partial——只注入一角色,另一角色随宿主缺省);缺席时回双角色常量。派生束自 P0 起已
+    // 自带同值(本行对派生路径幂等取同),对 glue 显式注入但不带 presets 的路径为回退面。
+    rolePresets = options.sessionHost.presets ?? { orchestrator: ORCHESTRATOR_PRESET_ID, worker: WORKER_PRESET_ID }
     sessions = new Sessions({ ...options.sessionHost, effects, lifetime: lifetime.signal,
       masterId: masterId ?? masterSessionId(realm), roleModel,
-      presets: options.sessionHost.presets ?? { orchestrator: ORCHESTRATOR_PRESET_ID, worker: WORKER_PRESET_ID },
+      presets: rolePresets,
       rolePrompt: (role: SessionRole): string => rolePrompts.compose(rolePrompts.current().config, role) })
     // ★候选卡投递面·自派生(★最后一公里·候选卡,2026-11-18):glue 未显式注入
     // deliverCandidate 时,Sessions 就绪即接线——候选卡经 Sessions.promptHeld 投到主会话
@@ -849,6 +866,7 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
     assessor,
     executor,
     sessions,
+    presets: rolePresets,
     sources,
     board,
     engine,
@@ -1076,7 +1094,20 @@ export function defineTasksPlugin(config: TasksPluginConfig = {}) {
         // governance-plugin.ts:100-103 同款);provide 的 disposer 运行时是 async
         // (reflect.ts:311-321),关停路径裸调用不 await,防阻塞宿主(audit 插件同款)。
         const disposeService = ctx.provide(TASKS_SERVICE_ID, runtime)
-        logger?.info?.(`[tasks] realm=${runtime.realm} boot=${runtime.boot.join('→')}`)
+        // preset 选择可见面(53 号 §4-P0 探针):boot 行尾附 presets 段——主/worker 建会话
+        // 请求的 agentPreset 取值(显式注入/派生束/缺省常量,值即 src/session/presets.ts
+        // 常量,与 runtime.presets 同源);stub 装配无宿主 session 面(不建会话)时为 '-'。
+        const presetLabel = ((): string => {
+          const presets = runtime.presets
+          if (presets === undefined) return '-'
+          const parts: string[] = []
+          for (const role of ['orchestrator', 'worker'] as const) {
+            const preset = presets[role]
+            if (preset !== undefined) parts.push(`${role}:${preset}`)
+          }
+          return parts.join(',')
+        })()
+        logger?.info?.(`[tasks] realm=${runtime.realm} boot=${runtime.boot.join('→')} presets=${presetLabel !== '' ? presetLabel : '-'}`)
         // 关停配逆(34 §4-E):先撤 webchat 入口订阅面与 section 注入面、ctx 服务(反注册面),
         // 再按装配逆序回放组件关停;装配配逆移交外层 disposer(stopped/disposeTasks 闭包态,
         // bootTasks 无返回值)。

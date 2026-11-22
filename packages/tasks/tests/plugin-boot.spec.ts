@@ -31,9 +31,10 @@ import { Store } from '../src/store/store.ts'
 import { TasksRealmRouter } from '../src/store/realm.ts'
 import { KV } from '../src/store/kv.ts'
 import {
-  createTasks, DEFAULT_TASKS_REALM, defineTasksPlugin, PASS_INTERVAL_MS, StubExecutor,
+  createTasks, DEFAULT_TASKS_REALM, defineTasksPlugin, PASS_INTERVAL_MS, sessionHostFromContext, StubExecutor,
   TASKS_PLUGIN_NAME, TASKS_SERVICE_ID,
 } from '../src/plugin.ts'
+import { ORCHESTRATOR_PRESET_ID, WORKER_PRESET_ID } from '../src/session/presets.ts'
 import { MasterAssessor } from '../src/session/assessor.ts'
 import { DshExecutor } from '../src/executor/dsh.ts'
 import { workerSessionId } from '../src/executor/dsh.ts'
@@ -300,12 +301,15 @@ interface FakeSessionHostHandle {
   readonly workspaces: Map<string, string>
   /** session id → 最近一次角色模型播种(46 号:settings→roleModel→agent.model.select 的落点)。 */
   readonly selections: Map<string, unknown>
+  /** session id → create 请求携带的 agentPreset(53 号 §4-P0 探针:主/worker 建会话 preset 选组断言面)。 */
+  readonly selectedPresets: Map<string, string>
 }
 
 function fakeSessionHost(ctx: Context): FakeSessionHostHandle {
   const agentIds: string[] = [], cwdBySession = new Map<string, string | undefined>()
   const renamed = new Map<string, string>(), permissions = new Map<string, string>(), workspaces = new Map<string, string>()
   const selections = new Map<string, unknown>()
+  const selectedPresets = new Map<string, string>()
   let workspaceSeq = 0
   const agents = new Map<string, unknown>()
   const makeAgent = (sessionId: string, cwd?: string): unknown => ({
@@ -329,6 +333,7 @@ function fakeSessionHost(ctx: Context): FakeSessionHostHandle {
         agents.set(id, makeAgent(id, cwd))
         cwdBySession.set(id, cwd)
         agentIds.push(id)
+        if (request.agentPreset !== undefined) selectedPresets.set(id, request.agentPreset)
         return { sessionId: id as never }
       }),
       rename: vi.fn(async (request: { sessionId: unknown; title: string }) => {
@@ -358,7 +363,7 @@ function fakeSessionHost(ctx: Context): FakeSessionHostHandle {
     list: (): unknown[] => [...agents.values()],
   }
   ctx.reflect.provide('agents', registry)
-  return { ports, agentIds, cwdBySession, renamed, permissions, workspaces, selections }
+  return { ports, agentIds, cwdBySession, renamed, permissions, workspaces, selections, selectedPresets }
 }
 
 it('A22 真实执行面接线:sessionHost 注入即 DshExecutor+Sessions 替换可控 stub,worker session 经真实宿主 seam 建在租户工作区', async () => {
@@ -497,11 +502,16 @@ it('sessionHost 自宿主 ctx 派生(三断点④):五服务齐全即真实 DshE
     const runtime = ctx.tasks as TasksRuntime
     expect(runtime.executor).toBeInstanceOf(DshExecutor)
     expect(runtime.sessions).toBeDefined()
+    // ★角色 preset 探针(53 号 §4-P0):派生束自带双角色 preset,生效选择即同包常量
+    // (boot 日志 presets 段与 runtime.presets 同源)。
+    expect(runtime.presets).toEqual({ orchestrator: ORCHESTRATOR_PRESET_ID, worker: WORKER_PRESET_ID })
     // 约定派生的主会话:宿主 session 面在场 → masterId 就绪(三断点①在该形态下恒成立)。
     expect(runtime.masterId).toBe('orchestrator-alice')
     // worker session 经派生出的宿主面真实建立(worker-<ticketId>,cwd = R4 目录)。
     return (async () => {
       await vi.waitFor(() => { expect(fake.agentIds).toContain('orchestrator-alice') })
+      // 主会话建会话请求即带 orchestrator preset(53 号 §4-P0 探针断言面)。
+      expect(fake.selectedPresets.get('orchestrator-alice')).toBe(ORCHESTRATOR_PRESET_ID)
       runtime.store.saveSettings({ policy: { sources: { [SOURCE]: { allowed: [{ id: MEMBER, name: 'Alice' }] } } } })
       const trigger = humanTrigger('1', '@bot 修复登录回归')
       expect(runtime.engine.receive(trigger)).toBe('stored')
@@ -515,8 +525,22 @@ it('sessionHost 自宿主 ctx 派生(三断点④):五服务齐全即真实 DshE
       })
       await runtime.effects.idle()
       expect(fake.agentIds).toContain(workerSessionId(decision.ticketId!))
+      // worker 建会话请求即带 worker preset(53 号 §4-P0 探针断言面)。
+      expect(fake.selectedPresets.get(workerSessionId(decision.ticketId!))).toBe(WORKER_PRESET_ID)
     })().finally(() => { dispose() })
   } catch (error) { dispose(); throw error }
+})
+
+it('sessionHostFromContext 派生束自带角色 presets(53 号 §4-P0):五服务齐全即返回双角色常量(与 cordis.patch.yml config.id 交叉钉住)', () => {
+  const ctx = new Context()
+  const fake = fakeSessionHost(ctx)
+  ctx.reflect.provide('sessionController', fake.ports.controller)
+  ctx.reflect.provide('workspaceRegistry', fake.ports.workspaces)
+  ctx.reflect.provide('permissionPresets', fake.ports.permissions)
+  ctx.reflect.provide('sessionPersistence', fake.ports.persistence)
+  const derived = sessionHostFromContext(ctx)
+  expect(derived).toBeDefined()
+  expect(derived!.presets).toEqual({ orchestrator: ORCHESTRATOR_PRESET_ID, worker: WORKER_PRESET_ID })
 })
 
 it('sessionHost 派生 fail-closed:宿主仅提供部分服务(缺 agents/sessionPersistence)即回落 stub,不造桩', () => {
@@ -534,6 +558,8 @@ it('sessionHost 派生 fail-closed:宿主仅提供部分服务(缺 agents/sessio
     const runtime = ctx.tasks as TasksRuntime
     expect(runtime.executor).toBeInstanceOf(StubExecutor)
     expect(runtime.sessions).toBeUndefined()
+    // stub 装配无宿主 session 面(不建会话):探针面如实为 undefined(boot 日志 presets='-')。
+    expect(runtime.presets).toBeUndefined()
     // 未派生 → 无从派生约定主会话(不猜),webchat 入口不装。
     expect(runtime.masterId).toBeUndefined()
     expect(runtime.health().components.webchat).toBeUndefined()
