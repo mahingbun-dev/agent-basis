@@ -531,6 +531,47 @@ it('sessionHost 自宿主 ctx 派生(三断点④):五服务齐全即真实 DshE
   } catch (error) { dispose(); throw error }
 })
 
+it('compaction 端口自宿主 ctx 派生(53 号 §4-P3;F3 复审修复的生产派生路径):defineTasksPlugin 未注入 config.compaction,boot 后派生现读面接线,工单终态即经宿主 compaction 服务 compactNow', async () => {
+  openRealm()
+  const ctx = new Context()
+  const fake = fakeSessionHost(ctx)
+  // 五 session 服务(与上一用例同款)+ compaction 结构假件 + 宿主 logger(观测面派生源)。
+  ctx.reflect.provide('sessionController', fake.ports.controller)
+  ctx.reflect.provide('workspaceRegistry', fake.ports.workspaces)
+  ctx.reflect.provide('permissionPresets', fake.ports.permissions)
+  ctx.reflect.provide('sessionPersistence', fake.ports.persistence)
+  const compactNow = vi.fn(async (_agent: unknown, _signal: AbortSignal): Promise<unknown> => null)
+  ctx.reflect.provide('compaction', { compactNow })
+  const logs: string[] = []
+  ctx.reflect.provide('logger', { debug: (message: string): void => { logs.push(message) } })
+  const plugin = defineTasksPlugin({ tenantRoot: root, realm: 'alice', passIntervalMs: 3_600_000, scope: testScope })
+  const dispose = plugin.apply(ctx)
+  try {
+    const runtime = ctx.tasks as TasksRuntime
+    expect(runtime.masterId).toBe('orchestrator-alice')
+    await vi.waitFor(() => { expect(fake.agentIds).toContain('orchestrator-alice') })
+    runtime.store.saveSettings({ policy: { sources: { [SOURCE]: { allowed: [{ id: MEMBER, name: 'Alice' }] } } } })
+    const trigger = humanTrigger('1', '@bot 修复登录回归')
+    expect(runtime.engine.receive(trigger)).toBe('stored')
+    runtime.pass()
+    const candidate = runtime.engine.candidate(trigger.id)
+    expect(candidate).toBeDefined()
+    runtime.engine.candidateDelivered(candidate!.evalId)
+    const decision = runtime.engine.decide(trigger.id, {
+      kind: 'accept', title: '修复登录回归', scope: 'Do the work described by the request.', reason: 'explicit request',
+      delegation: { objective: 'Fix it.', outputFormat: 'Patch.', toolGuidance: 'Tools.', taskBoundaries: 'Defect only.' },
+    })
+    await runtime.effects.idle()
+    // 工单终态落定 → 边界压缩钩子(生产派生路径)恰好一次 compactNow,参数 = 派生
+    // sessionHost 解析出的主会话 agent(compactionFromContext(ctx) 现读透传)。
+    runtime.engine.stopTicket(decision.ticketId!, '不再继续')
+    await vi.waitFor(() => { expect(compactNow).toHaveBeenCalledTimes(1) })
+    expect(compactNow.mock.calls[0]?.[0]).toEqual(expect.objectContaining({ id: 'orchestrator-alice' }))
+    // F3 修复前该路径在「boot 时 compaction 服务已就绪」的快序宿主上碰巧可达;本用例钉住
+    // 「派生面接线 + 触发时现读」语义,晚挂载自愈分支见 compaction-boundary.spec。
+  } finally { dispose() }
+})
+
 it('sessionHostFromContext 派生束自带角色 presets(53 号 §4-P0):五服务齐全即返回双角色常量(与 cordis.patch.yml config.id 交叉钉住)', () => {
   const ctx = new Context()
   const fake = fakeSessionHost(ctx)

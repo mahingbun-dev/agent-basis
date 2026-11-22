@@ -165,3 +165,98 @@ test('CLI:exit 0 / exit 1 / exit 2 与 --json 输出(spawnSync 真跑)', async (
     assert.equal(parsed.verdict, 'decay')
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
+
+// ── 口径指纹闸(F2 复审修复):同 pack 同 adapter 的确定性复跑 diff 恒 0 by construction,
+// 「无衰减」判定形同恒真——run.json 指纹相同 → 缺省拒绝判定(退出码 3),--allow-same-caliber
+// 显式放行(管线保活,输出明示门禁未武装);压缩态腿就位后指纹天然不同,门禁自动武装。
+
+/** 造一份 run.json manifest(对齐 tools/evals/src/runner.ts 落盘面)。 */
+const manifest = (fingerprint) => JSON.stringify({
+  packDir: '/pack',
+  adapterId: 'replay',
+  startedAt: '2026-11-23T00:00:00.000Z',
+  fingerprint,
+}, null, 2) + '\n'
+
+test('口径指纹:两侧 run.json 相同指纹 → 退出码 3 gate-not-armed(缺省拒绝恒真对比)', () => {
+  const dir = tmpDir()
+  try {
+    const a = join(dir, 'a')
+    const b = join(dir, 'b')
+    mkdirSync(a); mkdirSync(b)
+    writeFileSync(join(a, 'sessions.jsonl'), jsonl(20, 20))
+    writeFileSync(join(b, 'sessions.jsonl'), jsonl(20, 20))
+    writeFileSync(join(a, 'run.json'), manifest('fp-same'))
+    writeFileSync(join(b, 'run.json'), manifest('fp-same'))
+    const outcome = runDiff(a, b)
+    assert.equal(outcome.code, 3)
+    assert.equal(outcome.json.verdict, 'gate-not-armed')
+    assert.equal(outcome.json.caliber.same, true)
+    assert.match(outcome.summaryText.join('\n'), /门禁未武装/)
+    // --allow-same-caliber 显式放行:判定照常(0),但口径警告仍在场。
+    const allowed = runDiff(a, b, { allowSameCaliber: true })
+    assert.equal(allowed.code, 0)
+    assert.equal(allowed.json.verdict, 'no-decay')
+    assert.equal(allowed.json.caliber.same, true)
+    assert.match(allowed.summaryText.join('\n'), /门禁未武装/)
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
+test('口径指纹:不同指纹(真实压缩态腿)→ 照常判定;单侧缺 manifest → 指纹面不生效', () => {
+  const dir = tmpDir()
+  try {
+    const a = join(dir, 'a')
+    const b = join(dir, 'b')
+    const c = join(dir, 'c')
+    mkdirSync(a); mkdirSync(b); mkdirSync(c)
+    writeFileSync(join(a, 'sessions.jsonl'), jsonl(20, 20))
+    writeFileSync(join(b, 'sessions.jsonl'), jsonl(20, 19))
+    writeFileSync(join(c, 'sessions.jsonl'), jsonl(20, 19))
+    writeFileSync(join(a, 'run.json'), manifest('fp-clean'))
+    writeFileSync(join(b, 'run.json'), manifest('fp-compacted'))
+    // 指纹不同 = 口径不同(压缩态真跑)→ 衰减判定照常生效。
+    assert.equal(runDiff(a, b).code, 1)
+    // 单侧无 run.json(旧产物/文件输入)→ 不猜,按差值判定,口径面如实登记。
+    const partial = runDiff(a, c)
+    assert.equal(partial.code, 1)
+    assert.equal(partial.json.caliber.same, false)
+    assert.match(partial.json.caliber.manifest, /run\.json/)
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
+test('口径指纹:run.json 坏 JSON / 缺 fingerprint → 解析错误(不猜)', () => {
+  const dir = tmpDir()
+  try {
+    const a = join(dir, 'a')
+    const b = join(dir, 'b')
+    mkdirSync(a); mkdirSync(b)
+    writeFileSync(join(a, 'sessions.jsonl'), jsonl(20, 20))
+    writeFileSync(join(b, 'sessions.jsonl'), jsonl(20, 20))
+    writeFileSync(join(a, 'run.json'), 'not-json\n')
+    assert.throws(() => runDiff(a, b), /run\.json 不是合法 JSON/)
+    writeFileSync(join(a, 'run.json'), JSON.stringify({ packDir: '/pack' }))
+    assert.throws(() => runDiff(a, b), /缺 fingerprint/)
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
+test('CLI:同口径复跑缺省退出码 3,--allow-same-caliber 后退出码 0(spawnSync 真跑)', async () => {
+  const { spawnSync } = await import('node:child_process')
+  const { fileURLToPath } = await import('node:url')
+  const script = fileURLToPath(new URL('./diff-pass-rate.mjs', import.meta.url))
+  const dir = tmpDir()
+  try {
+    const a = join(dir, 'a')
+    const b = join(dir, 'b')
+    mkdirSync(a); mkdirSync(b)
+    writeFileSync(join(a, 'sessions.jsonl'), jsonl(20, 20))
+    writeFileSync(join(b, 'sessions.jsonl'), jsonl(20, 20))
+    writeFileSync(join(a, 'run.json'), manifest('fp-same'))
+    writeFileSync(join(b, 'run.json'), manifest('fp-same'))
+    assert.equal(spawnSync(process.execPath, [script, a, b]).status, 3)
+    assert.equal(spawnSync(process.execPath, [script, a, b, '--allow-same-caliber']).status, 0)
+    assert.equal(spawnSync(process.execPath, [script, a, b, '--json']).status, 3)
+    const parsed = JSON.parse(spawnSync(process.execPath, [script, a, b, '--json']).stdout.toString())
+    assert.equal(parsed.verdict, 'gate-not-armed')
+    assert.equal(parsed.caliber.same, true)
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})

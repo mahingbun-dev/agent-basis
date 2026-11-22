@@ -20,6 +20,14 @@
  *    可区分「压缩导致」vs「前缀污染」);
  * 5. 组合门(本文件):CACHE_GUARD_SERVICE_ID 唯一 ID 服务面 + 增量追踪(track/reset 配逆)。
  *
+ * ★生产消费面口径(53 号复审登记,诚实披露):本包当前为未挂载的库面——全仓无任何
+ * glue/profile 行 provide ctx.cacheGuard 或消费 hitRate/压缩打标块,唯一引用方是
+ * packages/compaction/tests/e2e-compaction.spec.ts(观测面未端到端接出)。28 §7-2 的
+ * 交付物 = 打标本身(监控项 + 标签,已交付:提取器 + 报表块 + 测试);挂载接入
+ * (12 号 §1.5「挂 request/header 事件、llm seam」的组合面)属独立集成项,不在
+ * 53 号 P0–P4 清单内,待监控面立项时一并接出——接出前,D6 打标只经本包测试与
+ * 下游消费方(未来 observe/admin 面)可见,不伪报「已上生产观测」。
+ *
  * Cordis 纪律:纯函数层零副作用、无旁路全局;组合门把全部能力以
  * `ctx.cacheGuard` 服务(注册表 + CACHE_GUARD_SERVICE_ID 唯一 ID)形态 provide,
  * 可交换、可配逆(track 累积 ↔ reset 清空,dispose 后 track 拒用)。

@@ -12,9 +12,18 @@
  * 输入可以是 run 产物目录(自动先找 sessions.jsonl、再 report.md)或直接给报告
  * 文件(.jsonl 按 JSONL 解析,其余按 markdown 解析)。
  *
+ * 口径指纹(F3 复审联动的 F2 修复):run 产物目录自带 run.json(含 pack 内容 +
+ * adapter + subset 的 sha256 指纹,tools/evals/src/runner.ts 落盘)。两侧指纹相同 =
+ * 同 pack 同 adapter 的确定性复跑,diff 恒 0 by construction——这种对比不具备衰减
+ * 检测力,缺省拒绝判定(退出码 3「门禁未武装」),`--allow-same-caliber` 显式放行
+ * (管线保活用,输出明示门禁未武装)。压缩态回放腿(真实压缩态重放器)就位后指纹
+ * 天然不同,门禁自动武装,无需改本工具。
+ *
  * 用法:
  *   node scripts/diff-pass-rate.mjs <baseline> <compacted> [--threshold <pp>] [--json]
- * 退出码:0 = 差值 ≤ 阈值(无衰减);1 = 差值 > 阈值(衰减超标);2 = 用法/解析错误。
+ *     [--allow-same-caliber]
+ * 退出码:0 = 差值 ≤ 阈值(无衰减);1 = 差值 > 阈值(衰减超标);2 = 用法/解析错误;
+ * 3 = 两侧口径指纹相同(恒真对比,门禁未武装;--allow-same-caliber 放行后按差值判 0/1)。
  * 两侧 case 集合不一致时(如压缩态 run 丢 case)在明细里列出,通过率仍按各自
  * total 归一计算——不猜平,判断交给人(README 差值一行记入里程碑评审登记)。
  */
@@ -90,6 +99,28 @@ export function reportOf(target, repoRoot = '') {
   return parseMarkdownReport(readFileSync(path, 'utf8'), path)
 }
 
+/**
+ * 目录输入的运行口径指纹(run.json,F3 复审联动的 F2 修复):tools/evals/src/runner.ts
+ * 落盘的 manifest;缺席(旧产物/文件输入)返回 undefined——不猜,指纹面只在双侧都有
+ * manifest 时生效。
+ */
+export function caliberOf(target, repoRoot = '') {
+  const path = resolve(repoRoot, target)
+  if (!existsSync(path) || !statSync(path).isDirectory()) return undefined
+  const manifest = resolve(path, 'run.json')
+  if (!existsSync(manifest)) return undefined
+  let parsed
+  try {
+    parsed = JSON.parse(readFileSync(manifest, 'utf8'))
+  } catch (cause) {
+    throw new Error(`${manifest}: run.json 不是合法 JSON(${cause instanceof Error ? cause.message : String(cause)})`)
+  }
+  if (typeof parsed !== 'object' || parsed === null || typeof parsed.fingerprint !== 'string') {
+    throw new Error(`${manifest}: run.json 缺 fingerprint 字段(应为 tools/evals run 产物)`)
+  }
+  return { fingerprint: parsed.fingerprint, adapterId: parsed.adapterId, packDir: parsed.packDir }
+}
+
 /** 通过率(百分点):{ total, pass, rate }(rate = pass/total*100,全精度)。 */
 export function passRateOf(cases) {
   const total = cases.size
@@ -118,7 +149,11 @@ export function diffPassRate(baseline, compacted) {
 }
 
 /** 对齐 CLI 语义(供单测复用):返回退出码;summaryText/json 为输出产物。 */
-export function runDiff(baselineInput, compactedInput, { threshold = DEFAULT_THRESHOLD, repoRoot = '' } = {}) {
+export function runDiff(baselineInput, compactedInput, {
+  threshold = DEFAULT_THRESHOLD,
+  repoRoot = '',
+  allowSameCaliber = false,
+} = {}) {
   if (!Number.isFinite(threshold) || threshold < 0) {
     throw new Error(`--threshold 应为 ≥0 的数(pp),实际: ${threshold}`)
   }
@@ -149,6 +184,28 @@ export function runDiff(baselineInput, compactedInput, { threshold = DEFAULT_THR
     verdict: verdict ? 'no-decay' : 'decay',
     missing: result.missing,
   }
+  // 口径指纹闸(F2 修复):双侧 run.json 在场且指纹相同 = 同 pack 同 adapter 确定性复跑,
+  // diff 恒 0 by construction,「无衰减」判定形同恒真——缺省拒绝判定(退出码 3),显式
+  // --allow-same-caliber 放行(管线保活)但输出明示门禁未武装,指标面照常给出。
+  const caliberA = caliberOf(baselineInput, repoRoot)
+  const caliberB = caliberOf(compactedInput, repoRoot)
+  const sameCaliber = caliberA !== undefined && caliberB !== undefined
+    && caliberA.fingerprint === caliberB.fingerprint
+  if (sameCaliber) {
+    const notice = '口径警告: 两侧 run.json 指纹相同(同 pack 同 adapter 的确定性复跑)——本对比不具备衰减检测力,门禁未武装(压缩态回放腿就位后指纹天然不同,无需改本工具)'
+    summaryText.push(notice)
+    json.caliber = { same: true, fingerprint: caliberA.fingerprint }
+    if (!allowSameCaliber) {
+      json.verdict = 'gate-not-armed'
+      return { code: 3, summaryText, json }
+    }
+  }
+  else {
+    json.caliber = {
+      same: false,
+      ...(caliberA !== undefined && caliberB !== undefined ? {} : { manifest: '至少一侧无 run.json(旧产物或文件输入),指纹面未生效' }),
+    }
+  }
   return { code: verdict ? 0 : 1, summaryText, json }
 }
 
@@ -158,6 +215,7 @@ export function main(argv) {
   const positional = []
   let threshold = DEFAULT_THRESHOLD
   let json = false
+  let allowSameCaliber = false
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index]
     if (token === '--threshold') {
@@ -168,6 +226,8 @@ export function main(argv) {
       threshold = Number(token.slice('--threshold='.length))
     } else if (token === '--json') {
       json = true
+    } else if (token === '--allow-same-caliber') {
+      allowSameCaliber = true
     } else if (token === '--help' || token === '-h') {
       usage()
       return 2
@@ -191,7 +251,7 @@ export function main(argv) {
   }
   let outcome
   try {
-    outcome = runDiff(positional[0], positional[1], { threshold })
+    outcome = runDiff(positional[0], positional[1], { threshold, allowSameCaliber })
   } catch (cause) {
     process.stderr.write(`解析失败: ${cause instanceof Error ? cause.message : String(cause)}\n`)
     return 2
@@ -204,10 +264,12 @@ export function main(argv) {
 
 function usage() {
   process.stderr.write([
-    '用法: node scripts/diff-pass-rate.mjs <baseline> <compacted> [--threshold <pp>] [--json]',
+    '用法: node scripts/diff-pass-rate.mjs <baseline> <compacted> [--threshold <pp>] [--json] [--allow-same-caliber]',
     '',
     '输入:dsh-evals run 产物目录(优先读 sessions.jsonl,兜底 report.md)或报告文件。',
     '口径:通过率差 ≤ 阈值(默认 2 pp)视为无衰减,退出码 0;超标退出码 1。',
+    '口径指纹:两侧目录 run.json 指纹相同 = 同 pack 同 adapter 确定性复跑,diff 恒 0',
+    '      by construction——退出码 3(门禁未武装);--allow-same-caliber 显式放行(保活)。',
     '',
   ].join('\n'))
 }

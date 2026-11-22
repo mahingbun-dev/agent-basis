@@ -234,6 +234,15 @@
                 # retainRatio/摘要模型空串对/重试次数均不动;初值即候选值,正式值以
                 # P1 度量 + P2 双门禁为准——压缩 golden userVerbatim 召回 100%(22 号
                 # :185 门槛基线)+ 路由金集压缩态回放通过率差 ≤2pp(28 号 §5 口径)。
+                # ★P2 双门禁现状(53 号复审补跑登记,2026-11-23):①压缩 golden 已补跑
+                # (run-golden.mjs --judge,liteLLM 网关凭据):三轮全量 r1/r2 均 3/4(失败
+                # 用例轮换——userVerbatim 红线单条逐字串被转写/转义的采样方差,judge 不
+                # 复核逐字线)、r3 4/4 全绿 exit 0,报告入库 packages/compaction/evals/
+                # reports/2026-11-23-golden-53-d2-r1/r2/r3.md。②路由金集压缩态回放腿
+                # 仍待真实压缩态重放器(DSH 会话+LLM 摘要,离线不可跑);diff-pass-rate
+                # 口径指纹闸已装(同口径恒真对比退出码 3,nightly --allow-same-caliber
+                # 显式豁免)。③admin 观测面实读 thresholdRatio=0.7/attachments=true
+                # 待人工验收环境。
                 # worker 组不落 D2 特化键(保持上游默认参 0.8/false,仅主会话特化)。
                 config:
                   summarizationProvider: ''

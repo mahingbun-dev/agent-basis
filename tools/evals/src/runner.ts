@@ -6,6 +6,8 @@
  * 失败明细(分类 harness),不拖垮整包(设计文档 14 §4 韧性规则)。
  */
 import * as path from 'node:path'
+import { createHash } from 'node:crypto'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { loadPackCases } from './schema.ts'
 import { summarize } from './events.ts'
 import { assertAnswer, assertBudget } from './budget.ts'
@@ -118,6 +120,17 @@ async function writeArtifacts(result: PackRunResult, outDir: string): Promise<vo
   await mkdir(outDir, { recursive: true })
   await writeFile(path.join(outDir, 'report.md'), renderReport(result), 'utf8')
   await writeFile(path.join(outDir, 'sessions.jsonl'), `${sessionsLines(result).join('\n')}\n`, 'utf8')
+  // 运行口径清单(F3 复审联动的 F2 修复):pack 内容 + 适配器 + subset 的 sha256 指纹。
+  // 同 pack 同 adapter 的两次确定性回放逐 case 同源,diff 恒 0 by construction——指纹让
+  // scripts/diff-pass-rate.mjs 能识别这种恒真对比并拒绝判定(退出码 3「门禁未武装」),
+  // 路由金集压缩态回放腿(真实压缩态重放器)就位前后用同一把尺。
+  await writeFile(path.join(outDir, 'run.json'), `${JSON.stringify({
+    packDir: result.packDir,
+    adapterId: result.adapterId,
+    ...(result.subset === undefined ? {} : { subset: result.subset }),
+    startedAt: result.startedAt,
+    fingerprint: packFingerprint(result.packDir, result.adapterId, result.subset),
+  }, null, 2)}\n`, 'utf8')
   // 原始事件流完整另存(一行一事件,与 driver NDJSON 的 event 包同形):T4 转换与
   // 失败复盘的直接对象,harness 失败(无事件)的 case 也落空文件以保齐全集。
   const eventsDir = path.join(outDir, 'events')
@@ -126,4 +139,40 @@ async function writeArtifacts(result: PackRunResult, outDir: string): Promise<vo
     const body = item.events.map(event => JSON.stringify(event)).join('\n')
     await writeFile(path.join(eventsDir, `${item.caseData.id}.jsonl`), `${body}\n`, 'utf8')
   }
+}
+
+/**
+ * 运行口径指纹:sha256(adapterId ⊕ subset ⊕ pack 逐文件相对路径与内容)。
+ * pack 目录内全部文件(evals/*.yaml + fixtures/*.jsonl)按相对路径排序后逐个入哈希——
+ * 判例增补/fixture 改写即变指纹;同内容同口径的两跑指纹一致(恒真对比的可识别前提)。
+ */
+function packFingerprint(packDir: string, adapterId: string, subset?: string): string {
+  const hash = createHash('sha256')
+  hash.update(`adapter=${adapterId}\n`)
+  hash.update(`subset=${subset ?? ''}\n`)
+  // pack 目录不可读(pack 目录不存在等错误路径,loadErrors 语义)→ fail-soft:以
+  // 「pack-unreadable」标记入哈希——同错误路径的两跑指纹仍一致,恒真对比识别不破。
+  let files: string[] = []
+  try {
+    const walk = (dir: string, prefix: string): string[] => {
+      const entries: string[] = []
+      for (const name of readdirSync(dir).sort()) {
+        const full = path.join(dir, name)
+        const rel = prefix.length === 0 ? name : `${prefix}/${name}`
+        if (statSync(full).isDirectory()) entries.push(...walk(full, rel))
+        else entries.push(rel)
+      }
+      return entries
+    }
+    files = walk(packDir, '')
+  } catch {
+    hash.update('pack-unreadable\n')
+    return hash.digest('hex')
+  }
+  for (const rel of files) {
+    hash.update(`${rel}\n`)
+    hash.update(readFileSync(path.join(packDir, rel)))
+    hash.update('\n')
+  }
+  return hash.digest('hex')
 }

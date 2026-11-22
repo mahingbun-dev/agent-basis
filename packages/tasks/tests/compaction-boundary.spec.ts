@@ -21,7 +21,7 @@ import { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { BoundaryCompaction, compactionFromContext, createTasks, type TasksOptions } from '../src/plugin.ts'
+import { BoundaryCompaction, compactionFromAgent, compactionFromContext, createTasks, type TasksOptions } from '../src/plugin.ts'
 import type { SessionHostPorts } from '../src/session/sessions.ts'
 import { MEMBER, SOURCE, humanTrigger } from './fixtures/host.ts'
 import type { DomainEvent, ScopeResult, SourceScope } from '../src/core/index.ts'
@@ -67,6 +67,93 @@ it('compactionFromContext:服务在但缺 compactNow 方法(旧宿主/结构漂�
   const ctx = new Context()
   ctx.reflect.provide('compaction', { compact: (): void => {} })
   expect(compactionFromContext(ctx)).toBeUndefined()
+})
+
+// ── compactionFromAgent + 每触发现读(F3 复审修复):boot 一次性解析钉死实例的两处隐患——
+// ①ctx.compaction 晚于 tasks boot 挂载 → D3 永久静默;②boot 解析到宿主树 standard 默认参
+// 实例 → orchestrator preset 特化参数(0.7/true,isolate.compaction 会话组)对 D3 不生效。
+// 修复后派生路径每触发现读:agent 作用域(会话特化实例所在)优先,宿主 ctx 兜底,缺席 debug 跳过。
+
+it('compactionFromAgent:agent 作用域带压缩服务 → 派生成功且直通;无 ctx 的假 agent → undefined', async () => {
+  const compactNow = vi.fn(async (): Promise<unknown> => null)
+  const scope = new Context()
+  scope.reflect.provide('compaction', { compactNow })
+  const agent = { id: 'orchestrator-main', session: { id: 'orchestrator-main' }, ctx: scope } as unknown as Agent
+  const derived = compactionFromAgent(agent)
+  expect(derived).toBeDefined()
+  await derived?.compactNow(agent, new AbortController().signal)
+  expect(compactNow).toHaveBeenCalledTimes(1)
+  // 裸假件(无 ctx 字段,compaction-boundary 原假件形态)→ undefined,不猜。
+  expect(compactionFromAgent(fakeAgent())).toBeUndefined()
+})
+
+it('compactionFromAgent:agent 作用域服务结构残缺(缺 compactNow)→ undefined(落宿主 ctx 兜底由调用方组合)', () => {
+  const scope = new Context()
+  scope.reflect.provide('compaction', { compact: (): void => {} })
+  const agent = { id: 'orchestrator-main', session: { id: 'orchestrator-main' }, ctx: scope } as unknown as Agent
+  expect(compactionFromAgent(agent)).toBeUndefined()
+})
+
+it('派生现读面(F3 修复①):压缩服务晚于 boot 挂载——首触发 debug 跳过,服务就绪后下一边界自愈', async () => {
+  // 每触发现读的组合面仿生产 bootTasks 派生(compactionFromAgent ?? compactionFromContext):
+  // state.seam 即「当下读到的端口」——boot 时缺席(undefined),压缩组挂载后有值。
+  const state: { seam?: { compactNow: (agent: Agent, signal: AbortSignal) => Promise<unknown> } } = {}
+  const calls: Agent[] = []
+  const logs: string[] = []
+  const hook = new BoundaryCompaction({
+    resolveCompaction: () => {
+      const seam = state.seam
+      if (seam === undefined) return undefined
+      return {
+        compactNow: async (agent: Agent, signal: AbortSignal) => {
+          calls.push(agent)
+          return seam.compactNow(agent, signal)
+        },
+      }
+    },
+    resolveAgent: async () => fakeAgent(),
+    signal: new AbortController().signal,
+    debug: (message) => { logs.push(message) },
+  })
+  // 第一边界:端口缺席 → debug 可见跳过(修复前:钩子整体不接线,永久静默零日志)。
+  await hook.onEvent(endedEvent('t6'))
+  expect(calls).toHaveLength(0)
+  expect(logs.some(message => message.includes('端口缺席') && message.includes('t6'))).toBe(true)
+  // 压缩组随后挂载(preset 组随首会话装载的常态)。
+  state.seam = { compactNow: async () => null }
+  await hook.onEvent(endedEvent('t7'))
+  expect(calls).toHaveLength(1)
+})
+
+it('派生现读面(F3 修复②):agent 作用域实例优先于宿主 ctx——orchestrator 特化参数位先取', async () => {
+  const hostNow = vi.fn(async (): Promise<unknown> => null)
+  const agentNow = vi.fn(async (): Promise<unknown> => null)
+  const hostCtx = new Context()
+  hostCtx.reflect.provide('compaction', { compactNow: hostNow })
+  const scope = new Context()
+  scope.reflect.provide('compaction', { compactNow: agentNow })
+  const agent = { id: 'orchestrator-main', session: { id: 'orchestrator-main' }, ctx: scope } as unknown as Agent
+  const logs: string[] = []
+  // 生产 bootTasks 同款组合:agent 作用域优先,宿主 ctx 兜底。
+  const hook = new BoundaryCompaction({
+    resolveCompaction: resolved => compactionFromAgent(resolved) ?? compactionFromContext(hostCtx),
+    resolveAgent: async () => agent,
+    signal: new AbortController().signal,
+    debug: (message) => { logs.push(message) },
+  })
+  await hook.onEvent(endedEvent('t8'))
+  expect(agentNow).toHaveBeenCalledTimes(1)
+  expect(hostNow).not.toHaveBeenCalled()
+  expect(logs).toEqual([])
+  // 会话作用域未挂压缩组(如非 preset 会话)→ 落宿主 ctx,不空转。
+  const plainAgent = fakeAgent()
+  const hookFallback = new BoundaryCompaction({
+    resolveCompaction: resolved => compactionFromAgent(resolved) ?? compactionFromContext(hostCtx),
+    resolveAgent: async () => plainAgent,
+    signal: new AbortController().signal,
+  })
+  await expect(hookFallback.onEvent(endedEvent('t9'))).resolves.toBeUndefined()
+  expect(hostNow).toHaveBeenCalledTimes(1)
 })
 
 // ── BoundaryCompaction:边界触发语义单测(53 号 §4-P3 三判据)──────────────────────────
@@ -313,6 +400,45 @@ it('compaction 服务缺席不接线:端口缺席(压缩组未挂载常态)→ �
     expect(runtime.store.tickets.get(ticket)?.ended).toMatchObject({ by: 'human', outcome: 'stopped' })
     // 不接线:无压缩端口可调,压缩 debug 日志为零(不猜不造桩)。
     expect(debugMessages.filter(message => message.includes('边界压缩'))).toHaveLength(0)
+  }
+  finally { runtime.dispose() }
+})
+
+// ── 派生现读路径装配(F3 复审修复):bootTasks 派生的每触发现读面经 compactionResolve 注入,
+// 与显式注入 compaction 的钉死语义并行(createTasks 接线二选一)。
+
+it('派生现读装配(compactionResolve):每触发经现读面调用,工单流不受影响;端口缺席 debug 可见', async () => {
+  const ctx = new Context()
+  const fake = fakeSessionHost(ctx)
+  const master = fake.seed('orchestrator-main')
+  const compactNow = vi.fn(async (_agent: Agent, _signal: AbortSignal): Promise<unknown> => { throw busyError() })
+  const debugMessages: string[] = []
+  // 现读面首两触发返回缺席(压缩组未挂载),其后返回真端口(挂载就绪)——现读语义下钩子自愈。
+  let mounted = false
+  const runtime = boot({
+    sessionHost: { context: ctx, masterId: 'orchestrator-main', ports: fake.ports },
+    compactionResolve: _agent => mounted ? { compactNow } : undefined,
+    compactionDebugLog: (message) => { debugMessages.push(message) },
+  })
+  try {
+    runtime.store.saveSettings({ policy: { sources: { [SOURCE]: { allowed: [{ id: MEMBER, name: 'Alice' }] } } } })
+    const first = acceptTicket(runtime, '7', '整理发布清单')
+    await runtime.effects.idle()
+    runtime.engine.stopTicket(first, '不再继续')
+    await new Promise((resolve) => { setTimeout(resolve, 30) })
+    // 挂载前:零 compactNow 调用 + 端口缺席 debug 可见(F3 修复前:无日志的永久静默)。
+    expect(compactNow).not.toHaveBeenCalled()
+    expect(debugMessages.some(message => message.includes('端口缺席') && message.includes(first))).toBe(true)
+    // 工单流不受缺席影响:终态照常落定。
+    expect(runtime.store.tickets.get(first)?.ended).toMatchObject({ by: 'human', outcome: 'stopped' })
+    // 压缩组挂载后,下一工单边界自愈:compactNow 收到解析出的主会话 agent。
+    mounted = true
+    const second = acceptTicket(runtime, '8', '补充验收清单')
+    await runtime.effects.idle()
+    runtime.engine.stopTicket(second, '不再继续')
+    await vi.waitFor(() => { expect(compactNow).toHaveBeenCalledTimes(1) })
+    expect(compactNow.mock.calls[0]?.[0]).toBe(master)
+    expect(debugMessages.some(message => message.includes('忙碌') && message.includes(second))).toBe(true)
   }
   finally { runtime.dispose() }
 })
