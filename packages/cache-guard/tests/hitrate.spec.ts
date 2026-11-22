@@ -15,7 +15,8 @@ import { aggregateSessionMetrics } from '@eterna/observe'
 import { describe, expect, it } from 'vitest'
 import {
   cacheHitRateFromEvents, cacheHitRateReport, collectCacheUsage, EVENT_FIELD_EXTRACTOR_IDS,
-  EVENT_FIELD_EXTRACTORS, extractCacheUsage, extractRequestRoute, hitRateFromSessionMetrics,
+  EVENT_FIELD_EXTRACTORS, extractCacheUsage, extractCompactionEvent, extractRequestRoute,
+  hitRateFromSessionMetrics,
 } from '../src/index.ts'
 import type { SessionEventLike } from '../src/index.ts'
 
@@ -33,6 +34,26 @@ function headerEvent(provider: string, model: string): SessionEventLike {
 
 function contextEvent(provider: string, model: string): SessionEventLike {
   return ev('request/context', { provider, model })
+}
+
+/**
+ * 压缩事务事件(载荷依据 @deepseek-ai/dsh-compaction 0.2.2-rc.5 src/types.ts:24,72
+ * SessionEventMap 合并:start/end = `{ compactionId, sourceCommandId?, turn: number|null }`
+ * (+ end 失败时的 `error?: string`);本仓同形 append(region.ts:221,248,256)。
+ */
+function compactionStartEvent(compactionId: string, turn: number | null, seq: number, time: number): SessionEventLike {
+  return { type: 'compaction/start', data: { compactionId, turn }, seq, time }
+}
+
+function compactionEndEvent(
+  compactionId: string, turn: number | null, error?: string, seq = 0, time = 0,
+): SessionEventLike {
+  return {
+    type: 'compaction/end',
+    data: { compactionId, turn, ...(error !== undefined && { error }) },
+    seq,
+    time,
+  }
 }
 
 describe('事件字段提取器', () => {
@@ -63,8 +84,36 @@ describe('事件字段提取器', () => {
     expect(extractRequestRoute(ev('request/header', { header: {}, reason: 'change' }))).toBeNull()
   })
 
+  it('compaction-event:compaction/start|end → 相位标记(seq/time 透传);其余事件 null', () => {
+    const start = extractCompactionEvent(compactionStartEvent('c-1', 3, 10, 1000))
+    expect(start).toEqual({ phase: 'start', compactionId: 'c-1', turn: 3, seq: 10, time: 1000 })
+    // 手动压缩事务:turn = null(dsh-compaction types.ts:24 number|null)。
+    expect(extractCompactionEvent(compactionStartEvent('c-2', null, 11, 1001)))
+      .toEqual({ phase: 'start', compactionId: 'c-2', turn: null, seq: 11, time: 1001 })
+    const end = extractCompactionEvent(compactionEndEvent('c-1', 3, undefined, 20, 2000))
+    expect(end).toEqual({ phase: 'end', compactionId: 'c-1', turn: 3, seq: 20, time: 2000 })
+    // 失败收尾:error 透传(errorChain 字符串,dsh-compaction types.ts:72)。
+    expect(extractCompactionEvent(compactionEndEvent('c-3', 4, 'invalid-summary: bad', 30, 3000)))
+      .toEqual({ phase: 'end', compactionId: 'c-3', turn: 4, error: 'invalid-summary: bad', seq: 30, time: 3000 })
+    expect(extractCompactionEvent(headerEvent('deepseek', 'deepseek-chat'))).toBeNull()
+    expect(extractCompactionEvent(usageEvent(1, 1, { inputTokens: 1, outputTokens: 1 }))).toBeNull()
+    expect(extractCompactionEvent(ev('turn/start', { turn: 1 }))).toBeNull()
+  })
+
+  it('compaction-event:坏数据防御(缺 compactionId/turn 坏值不计而非崩)', () => {
+    expect(extractCompactionEvent({ type: 'compaction/start', data: {}, seq: 1, time: 1 }))
+      .toEqual({ phase: 'start', seq: 1, time: 1 })
+    expect(extractCompactionEvent({ type: 'compaction/end', data: { turn: -1 }, seq: 2, time: 2 }))
+      .toEqual({ phase: 'end', seq: 2, time: 2 })
+    expect(extractCompactionEvent({ type: 'compaction/start', data: 'junk', seq: 3, time: 3 })).toBeNull()
+    expect(extractCompactionEvent({ type: 'compaction/end', data: null, seq: 4, time: 4 })).toBeNull()
+    // 无 seq/time 的事件包(结构兼容层允许缺省)→ 锚点缺省。
+    expect(extractCompactionEvent({ type: 'compaction/start', data: { compactionId: 'c' } }))
+      .toEqual({ phase: 'start', compactionId: 'c' })
+  })
+
   it('提取器注册表:全部唯一 ID 可取用且行为一致(可交换接口面)', () => {
-    expect(EVENT_FIELD_EXTRACTOR_IDS).toEqual(['cache-usage', 'request-route'])
+    expect(EVENT_FIELD_EXTRACTOR_IDS).toEqual(['cache-usage', 'request-route', 'compaction-event'])
     const event = usageEvent(2, 1, { inputTokens: 3, outputTokens: 4 })
     expect(EVENT_FIELD_EXTRACTORS['cache-usage'](event)).toEqual(
       extractCacheUsage(event),
@@ -72,6 +121,10 @@ describe('事件字段提取器', () => {
     const routeEvent = headerEvent('deepseek', 'deepseek-chat')
     expect(EVENT_FIELD_EXTRACTORS['request-route'](routeEvent)).toEqual(
       extractRequestRoute(routeEvent),
+    )
+    const compactionEvent = compactionStartEvent('c-1', 1, 10, 1000)
+    expect(EVENT_FIELD_EXTRACTORS['compaction-event'](compactionEvent)).toEqual(
+      extractCompactionEvent(compactionEvent),
     )
   })
 })
@@ -136,12 +189,84 @@ describe('命中率报表口径(手算)', () => {
     expect(zeroPrompt.hitRate).toBeNull()
   })
 
-  it('空事件流 → 空报表(calls=0,hitRate=null)', () => {
+  it('空事件流 → 空报表(calls=0,hitRate=null,压缩统计全零)', () => {
     const report = cacheHitRateFromEvents([])
     expect(report.calls).toBe(0)
     expect(report.promptTokens).toBe(0)
     expect(report.hitRate).toBeNull()
     expect(report.byRoute).toEqual([])
+    // 事件流路径的压缩面貌恒在场:空流事实为零(非未知)。
+    expect(report.compaction).toEqual({ starts: 0, ends: 0, errors: 0, markers: [] })
+  })
+
+  it('样本路径(cacheHitRateReport)不带事件流 → compaction 打标块缺省(未知不伪报 0)', () => {
+    const report = cacheHitRateReport([
+      { route: { provider: 'p', model: 'm' }, usage: { inputTokens: 10, outputTokens: 5, cacheReadTokens: 5 } },
+    ])
+    expect(report.hitRate).toBe(5 / 15)
+    expect('compaction' in report).toBe(false)
+  })
+})
+
+describe('压缩事件打标(53 号 D6,收口 28 号 §7-2:区分「压缩导致」vs「前缀污染」)', () => {
+  it('混合流:压缩标记入报表,不扰动命中率算式(压缩事件不携带 usage/路由)', () => {
+    const events: SessionEventLike[] = [
+      headerEvent('deepseek', 'deepseek-chat'),
+      usageEvent(1, 1, { inputTokens: 100, outputTokens: 200, cacheReadTokens: 50 }),
+      compactionStartEvent('c-1', 1, 11, 1000),
+      compactionEndEvent('c-1', 1, undefined, 12, 1100),
+      usageEvent(2, 1, { inputTokens: 0, outputTokens: 150, cacheReadTokens: 400 }),
+    ]
+    const report = cacheHitRateFromEvents(events)
+    // 命中率算式与无压缩流的混合口径一致:450/(100+50+0+400)。
+    expect(report.hitRate).toBe(450 / 550)
+    expect(report.compaction).toEqual({
+      starts: 1,
+      ends: 1,
+      errors: 0,
+      markers: [
+        { phase: 'start', compactionId: 'c-1', turn: 1, seq: 11, time: 1000 },
+        { phase: 'end', compactionId: 'c-1', turn: 1, seq: 12, time: 1100 },
+      ],
+    })
+  })
+
+  it('失败事务与未收尾开括号:errors 计数、start/end 不配对也各计', () => {
+    const report = cacheHitRateFromEvents([
+      compactionStartEvent('c-1', 1, 1, 100),
+      // c-1 从未收到 end(开括号悬挂)。
+      compactionStartEvent('c-2', 2, 2, 200),
+      compactionEndEvent('c-2', 2, 'invalid-summary: bad', 3, 300),
+      compactionEndEvent('c-3', 3, 'commit: conflict', 4, 400),
+    ])
+    expect(report.compaction?.starts).toBe(2)
+    expect(report.compaction?.ends).toBe(2)
+    expect(report.compaction?.errors).toBe(2)
+    // 标记明细按事件流出现序(出现序即时间序)。
+    expect(report.compaction?.markers).toEqual([
+      { phase: 'start', compactionId: 'c-1', turn: 1, seq: 1, time: 100 },
+      { phase: 'start', compactionId: 'c-2', turn: 2, seq: 2, time: 200 },
+      { phase: 'end', compactionId: 'c-2', turn: 2, error: 'invalid-summary: bad', seq: 3, time: 300 },
+      { phase: 'end', compactionId: 'c-3', turn: 3, error: 'commit: conflict', seq: 4, time: 400 },
+    ])
+  })
+
+  it('无压缩事件的真实流:压缩统计全零(事实为零,区别于样本路径的缺省未知)', () => {
+    const report = cacheHitRateFromEvents([headerEvent('deepseek', 'deepseek-chat'), usageEvent(1, 1, { inputTokens: 10, outputTokens: 5 })])
+    expect(report.compaction).toEqual({ starts: 0, ends: 0, errors: 0, markers: [] })
+  })
+
+  it('observe 桥接产物不带压缩面貌 → compaction 缺省(observe 指标不感知压缩事件)', () => {
+    const mixedStream: SessionEventLike[] = [
+      headerEvent('deepseek', 'deepseek-chat'),
+      compactionStartEvent('c-1', 1, 5, 500),
+      compactionEndEvent('c-1', 1, undefined, 6, 600),
+      usageEvent(1, 1, { inputTokens: 100, outputTokens: 200, cacheReadTokens: 50 }),
+    ]
+    const bridged = hitRateFromSessionMetrics(aggregateSessionMetrics(mixedStream))
+    expect('compaction' in bridged).toBe(false)
+    // 事件流路径同流可读出压缩标记:两侧打标能力差异如实保持。
+    expect(cacheHitRateFromEvents(mixedStream).compaction?.starts).toBe(1)
   })
 })
 
