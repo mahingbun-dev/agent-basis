@@ -95,6 +95,41 @@ jobs:
       - name: eterna-super 真启动门禁(G1-2)
         run: node scripts/verify-eterna-super.mjs
 
+  # 路由金集压缩态回放(nightly;35 号 G2-A9、53 号 §4-P1;28 号 §5 口径):
+  # 判例(packages/tasks/tests/route-golden/entries.ts,20 条)生成式包装为 dsh-evals
+  # replay pack,压缩前后各一遍,diff-pass-rate 差值 ≤2pp 判无衰减;节奏与 §12-10
+  # 「挂 CI 还是发布门禁」的落位拍板联动,当前按 nightly 口径挂在本 schedule 面。
+  # 现状(诚实口径):压缩态回放需真实会话态(DSH 会话 + 压缩后 context 重放器,
+  # 随 53 号 P0/P2 落地),离线不可跑——第二遍暂为同口径复跑作管线保活,重放器
+  # 就位后替换为压缩态 run,两遍口径同步改本注释与 route-golden/README.md。
+  route-golden-nightly:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: 判例生成 replay pack(route-golden → dsh-evals pack 契约)
+        run: node scripts/route-golden-pack.mjs --out dsh-evals-out/route-golden-pack
+
+      - name: 干净态回放一遍(dsh-evals,记录裁决面,20 条全过为门禁)
+        run: node tools/evals/bin/dsh-evals.mjs run --pack dsh-evals-out/route-golden-pack --adapter replay --out dsh-evals-out/route-golden-baseline
+
+      - name: 第二遍(重放器就位前为同口径保活;就位后替换为压缩态 run)
+        run: node tools/evals/bin/dsh-evals.mjs run --pack dsh-evals-out/route-golden-pack --adapter replay --out dsh-evals-out/route-golden-compacted
+
+      - name: 通过率差值门禁(≤2pp 无衰减,28 §5;超标退出码 1)
+        run: node scripts/diff-pass-rate.mjs dsh-evals-out/route-golden-baseline dsh-evals-out/route-golden-compacted --threshold 2
+
   # 升级门禁(SOP 见 docs/upgrade-gate.md):上游 @deepseek-ai/dsh-* 升版时,
   # 本地先跑同款四步(docs/upgrade-gate.md §本地门禁),CI 复跑互证后才裁决放行/回滚。
   # dsh-evals 退出码:0=放行(全过) / 1=质量不达标(存在失败) / 2=基础设施错误(用法错误或无 case 可跑)。
