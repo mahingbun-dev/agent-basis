@@ -58,6 +58,7 @@ const PROBE_TIMEOUT_MS = 10_000
  */
 // R22(2026-11-21):tasks 双 preset restatement 行进 super 树,+2(preset 行本身是树行;
 // 其组成插件行挂 preset 后面,不占宿主树)。
+// 2026-11-23 /clear:command-clear 为组内嵌套行(顶层 `- ` 行口径不变),常量不动。
 const EXPECTED_HOST_ENTRIES = 237
 const EXPECTED_TEMPLATE_BLOCKS = 43
 const EXPECTED_TEMPLATE_INSERTS = 3
@@ -569,7 +570,7 @@ for (const preset of presetByName.values()) {
 }
 const standardPreset = presetByName.get('standard')
 
-// 3f. 模板形态（T10 交付数：43 blocks = 3 insert + 40 override）。
+// 3f. 模板形态（T10 交付数：43 blocks = 3 insert + 40 override；/clear 为组内嵌套行不占顶层口径）。
 pass(`template shape: ${EXPECTED_TEMPLATE_BLOCKS} blocks = ${EXPECTED_TEMPLATE_INSERTS} insert + ${EXPECTED_TEMPLATE_OVERRIDES} override`,
   templateStats.blocks === EXPECTED_TEMPLATE_BLOCKS
     && templateStats.inserts === EXPECTED_TEMPLATE_INSERTS

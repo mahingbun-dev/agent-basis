@@ -296,6 +296,10 @@
             config: {}
           - id: command-compact
             name: '@eterna/compaction/command-plugin'
+          # /clear 清空当前会话上下文(surface replace 全清，2026-11-23)；与
+          # command-compact 同进退：同一组内挂载，acp 模板无 compact 不挂。
+          - id: command-clear
+            name: '@eterna/compaction/clear-plugin'
           - id: tool-result-pruner
             name: '@eterna/compaction/pruner-plugin'
             config:
@@ -495,6 +499,10 @@
             config: {}
           - id: command-compact
             name: '@eterna/compaction/command-plugin'
+          # /clear 清空当前会话上下文(surface replace 全清，2026-11-23)；与
+          # command-compact 同进退：同一组内挂载，acp 模板无 compact 不挂。
+          - id: command-clear
+            name: '@eterna/compaction/clear-plugin'
           - id: tool-result-pruner
             name: '@eterna/compaction/pruner-plugin'
             config:

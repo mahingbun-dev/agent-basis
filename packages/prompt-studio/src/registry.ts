@@ -186,10 +186,11 @@ const UPGRADE_OVERWRITE_RISK = 'profile/pack 升级合并可能覆盖本地编�
  * 全部存量条目(17 条:preset×6、domain×4、runtime×5、meta×2——meta 层为
  * T3.1 新增的元提示词登记;runtime.memory.search-prefix 为 M-M1 T5 新增,
  * 19 §3-T5;runtime.agent-loop 为 rc.5 B13 新增,v1 agent-loop 注入登记)。
- * 行号锚 2026-11-20 按 rc.5 容器模板重测（B13：模板 = 生产渲染源）:
- * persona×2 = :397-398(standard 块标量 >-)/:207-208(cordis 块标量 >-);
- * agent-instructions = :228/:416(maxBytes: 65536);
- * plan-mode section = :262-273/:461-472(| 多段字面块)。
+ * 行号锚 2026-11-20 按 rc.5 容器模板重测（B13：模板 = 生产渲染源）;
+ * 2026-11-23 随 command-clear 挂载(模板插行,standard 侧各 +4)重测:
+ * persona×2 = :401-402(standard 块标量 >-)/:207-208(cordis 块标量 >-);
+ * agent-instructions = :228/:420(maxBytes: 65536);
+ * plan-mode section = :262-273/:465-476(| 多段字面块)。
  * time-context 两行仍在 live patch 里,但按 2026-11-11
  * 用户裁定不登记(见文件头「注册表不变量」),不再是注册表条目。
  */
@@ -202,8 +203,8 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-persona',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['persona'], configKey: 'prefix' },
     anchors: [
-      { file: WEB_PATCH, line: 397, contains: 'prefix: >-' },
-      { file: WEB_PATCH, line: 398, contains: 'You are a coding agent powered by the {{model}} model.' },
+      { file: WEB_PATCH, line: 401, contains: 'prefix: >-' },
+      { file: WEB_PATCH, line: 402, contains: 'You are a coding agent powered by the {{model}} model.' },
     ],
     note: '默认预设 persona 前缀(块标量 >-,2026-11-12 起基线自含三红线锚点):preset-standard 行 plugins[id=persona].config.prefix。',
     description: '所有标准会话系统提示的第一段:告诉模型它是谁、用哪个模型,并钉住三条全局红线(预算不超支/不代付/比选中立)。改动会影响之后每一个新会话的开场人设。',
@@ -223,7 +224,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-agent-instructions',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['agent-instructions'], configKey: 'maxBytes' },
     anchors: [
-      { file: WEB_PATCH, line: 416, contains: 'maxBytes: 65536' },
+      { file: WEB_PATCH, line: 420, contains: 'maxBytes: 65536' },
     ],
     note: '指令段容量上限(数值配置,非提示词文本):每条指令链(用户级/项目级 AGENTS.md)的渲染字节上限。',
     description: '指令链(用户级/项目级 AGENTS.md 等)渲染进系统提示时的字节容量上限(数值参数,非提示词文本):调小会截断长指令链,调大放宽。只影响 standard 预设会话。',
@@ -242,10 +243,10 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@deepseek-ai/dsh-plan-mode',
     yaml: { file: WEB_PATCH, rowId: 'preset-standard', pluginPath: ['planning', 'plan-mode'], configKey: 'section' },
     anchors: [
-      { file: WEB_PATCH, line: 461, contains: 'section: |' },
-      { file: WEB_PATCH, line: 462, contains: 'You are in plan mode.' },
+      { file: WEB_PATCH, line: 465, contains: 'section: |' },
+      { file: WEB_PATCH, line: 466, contains: 'You are in plan mode.' },
     ],
-    note: 'plan 模式整段系统提示(| 多段字面块,行 461 起):planning 组内 plan-mode 插件的 config.section。',
+    note: 'plan 模式整段系统提示(| 多段字面块,行 465 起):planning 组内 plan-mode 插件的 config.section。',
     description: 'plan 模式激活时注入的整段系统提示:规定模型只做只读探索与计划制定,必须经 exit_plan_mode 提交计划并获用户明确批准才能进入实现;plan 会话开场即带上。',
     risks: [UPGRADE_OVERWRITE_RISK, '上游 @deepseek-ai/dsh-plan-mode 升级改写该段时,本地编辑需与新版重新对齐(计划书 §3 风险标注)。'],
     redLine: 'exempt',

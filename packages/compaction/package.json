@@ -20,6 +20,7 @@
     ".": "./src/index.ts",
     "./basic-plugin": "./src/basic/index.ts",
     "./command-plugin": "./src/command-plugin.ts",
+    "./clear-plugin": "./src/clear/command-plugin.ts",
     "./pruner-plugin": "./src/pruner/index.ts",
     "./stale-plugin": "./src/stale/index.ts",
     "./admin-plugin": "./src/admin-plugin.ts",
