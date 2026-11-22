@@ -15,7 +15,9 @@
  *   本包 preset 的 compaction-basic 行 name 即 '@eterna/compaction/basic-plugin',
  *   上游行在本 preset 中不存在而非 disabled,两种形态都等价于「不挂载」);
  * - 压缩组参数与生产(eterna-web profile 同组)一致:stale(5/4096/0.7)、pruner
- *   (8192/4096/1024)、basic 沿用默认参不覆写(28 号 §2.2);
+ *   (8192/4096/1024)两组同参;basic 参数按角色分置——worker 沿用默认参不覆写
+ *   (28 号 §2.2),orchestrator 落 53 号 D2 特化参数(thresholdRatio 0.7 +
+ *   attachments true,与生产 standard preset 有意分叉,断言在 role-models.spec.ts);
  * - C5 摘要分档键落位(24a C5;33 号 G2-A17):orchestrator 的 compaction-basic 带
  *   summarizationProvider/summarizationModel 空串对(22a §4 拍板 Q1 结论 A「维持会话
  *   模型」;35 号 §12-9 分档键暂留占位),worker 不落分档键——role-models.spec.ts 承接。
@@ -99,7 +101,7 @@ describe('orchestrator/worker 双 preset 结构(34 §1 cordis.patch.yml 行)', (
     expect(upstreamNames, `上游 compaction 包名的 name 值:${upstreamNames.join(', ') || '无'}`).toEqual([])
   })
 
-  it('压缩组参数与生产同组一致(eterna-web profile 同参;basic 默认参不覆写,28 §2.2)', () => {
+  it('压缩组参数与生产同组一致(eterna-web profile 同参;stale/pruner 行;basic 分置见 role-models.spec,28 §2.2 + 53 D2)', () => {
     for (const id of [ORCHESTRATOR_PRESET_ID, WORKER_PRESET_ID]) {
       const rowsById = new Map(compactionGroup(id).config.map(row => [String(row.id), row]))
       expect(rowsById.get('stale-tool-result-pruner')!.config).toEqual({ keepGroups: 5, minSavingsTokens: 4096, thresholdRatio: 0.7 })

@@ -904,9 +904,19 @@
                 # 二者必须成对置空或成对置值,basic/config.ts validateSummarizationPair)。
                 # 具体档名与成本口径 = 35 号 §12-9 开放问题(分档键暂留占位,拍板后回填);
                 # 分档配置改动必全量重跑压缩 golden(G2-A17:run-golden.mjs --judge)。
+                # ★53 号 D2 orchestrator 特化参数(53 号 §3-D2/§4-P2):thresholdRatio
+                # 0.8→0.7(与 L2 stale 层同档:stale 先泄压、basic 只在泄压不足时摘要兜底,
+                # 20 号 §3.2 分层意图;主会话话题杂、宁早压)、attachments false→true
+                # (C11 附件重读,22 号 §5-C11,多主题会话压缩后现场恢复最近文件)。
+                # retainRatio/摘要模型空串对/重试次数均不动;初值即候选值,正式值以
+                # P1 度量 + P2 双门禁为准——压缩 golden userVerbatim 召回 100%(22 号
+                # :185 门槛基线)+ 路由金集压缩态回放通过率差 ≤2pp(28 号 §5 口径)。
+                # worker 组不落 D2 特化键(保持上游默认参 0.8/false,仅主会话特化)。
                 config:
                   summarizationProvider: ''
                   summarizationModel: ''
+                  thresholdRatio: 0.7
+                  attachments: true
               - id: command-compact
                 name: '@eterna/compaction/command-plugin'
               # /clear 清空当前会话上下文(surface replace 全清，2026-11-23)；与

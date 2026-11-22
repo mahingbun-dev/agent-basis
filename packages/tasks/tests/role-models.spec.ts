@@ -18,6 +18,14 @@
  * 见 35 号 §12-9 开放问题(分档键暂留占位,拍板后回填);分档配置改动必全量重跑压缩
  * golden:`node packages/compaction/scripts/run-golden.mjs --judge`(G2-A17,报告入库)。
  * worker 组不落分档键(28 号 §9 配置面表:分档键落位在 orchestrator 组)。
+ *
+ * ★53 号 D2 orchestrator 特化压缩参数(53 号 §3-D2/§4-P2):orchestrator 的
+ * compaction-basic 行另落 `thresholdRatio: 0.7`(默认 0.8→0.7,与 L2 stale 层同档:
+ * stale 先泄压、basic 只在泄压不足时摘要兜底)与 `attachments: true`(默认 false→true,
+ * C11 附件重读,22 号 §5-C11);retainRatio/摘要模型空串对/重试次数均不动。worker 组
+ * 不落 D2 特化键(保持默认参)。初值即候选值,正式值以 P2 双门禁为准——压缩 golden
+ * userVerbatim 召回 100%(22 号 :185 门槛基线)+ 路由金集压缩态回放通过率差 ≤2pp
+ * (28 号 §5 口径)。
  */
 import { describe, expect, it } from 'vitest'
 import { parseTasksPatch } from './fixtures/patch.ts'
@@ -53,14 +61,20 @@ describe('双角色模型配置(34 §4-D role-models 行;SA role-models.ts 语�
   })
 })
 
-describe('★C5 主 Session 摘要档位绑定(22a 结论档;24a C5;G2-A17)', () => {
-  it('orchestrator 压缩组分档键落位为空串对 = 会话模型(22a §4 拍板 Q1 结论 A)', () => {
+describe('★C5 主 Session 摘要档位绑定(22a 结论档;24a C5;G2-A17)+ 53 号 D2 特化参数', () => {
+  it('orchestrator 压缩组分档键落位为空串对 = 会话模型(22a §4 拍板 Q1 结论 A)+ D2 特化参数', () => {
     const config = compactionBasicConfig(ORCHESTRATOR_PRESET_ID)
     expect(config, 'orchestrator compaction-basic 带 config').toBeDefined()
     // 成对落位:两键同在、同为空串(空 = 会话模型;非空即换档,须全量重跑压缩 golden)。
-    expect(Object.keys(config!).sort()).toEqual(['summarizationModel', 'summarizationProvider'])
+    // D2 特化键同落一行:thresholdRatio/attachments(键集钉死,漂移即红)。
+    expect(Object.keys(config!).sort())
+      .toEqual(['attachments', 'summarizationModel', 'summarizationProvider', 'thresholdRatio'])
     expect(config!.summarizationProvider).toBe('')
     expect(config!.summarizationModel).toBe('')
+    // 53 号 D2 初值:thresholdRatio 0.8→0.7(与 L2 stale 同档,主会话宁早压)、
+    // attachments false→true(C11 附件重读);retainRatio/重试不动(默认参,不落键)。
+    expect(config!.thresholdRatio).toBe(0.7)
+    expect(config!.attachments).toBe(true)
   })
 
   it('worker 组不落分档键(28 §9 配置面表:分档键落位在 orchestrator 组;28 §3 照搬 config: {})', () => {
