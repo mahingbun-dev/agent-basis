@@ -10,6 +10,7 @@
  * 标注,不伪报数值。
  */
 import type { DomainEvent, DomainEvents, Ticket } from '@eterna/tasks'
+import { ticketStage } from '@eterna/tasks'
 import { attachCountOf, conflictFromTasks } from './engine-view.ts'
 import type { AuditDayFile, EvalRunReport } from './trace-files.ts'
 import { evalSnapshotFromRuns, toolHistoryForTicket, traceEntriesForTicket } from './trace-files.ts'

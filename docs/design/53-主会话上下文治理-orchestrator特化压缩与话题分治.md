@@ -1,6 +1,6 @@
 # 53 - 主会话上下文治理：orchestrator 特化压缩与话题分治
 
-> 状态：**定稿 2026-11-23（D1–D6 已确认）；同日 P0–P4 已实施于 `feat/53-master-session-context-governance`（7 提交，未 push，双门禁与 M4 E2E 待补）；§1.5/§4-P0 有 2026-11-23 勘误（main 基线已随 rc.5-3 闭合 presets 接线）**。本文回答一个问题：super 形态的主会话 `orchestrator-<realm>` 是跨重启复用的单一长会话，用户每轮问的问题主题各异，会话内容持续膨胀——上下文应如何治理。
+> 状态：**定稿 2026-11-23（D1–D6 已确认）；同日 P0–P4 已实施于 `feat/53-master-session-context-governance`（7 提交，未 push，双门禁与 M4 E2E 待补）；§1.5/§4-P0 有 2026-11-23 勘误（main 基线已随 rc.5-3 闭合 presets 接线）；§1.7 为同日线上缺陷补记（D1 的结构半边：订阅面）**。本文回答一个问题：super 形态的主会话 `orchestrator-<realm>` 是跨重启复用的单一长会话，用户每轮问的问题主题各异，会话内容持续膨胀——上下文应如何治理。
 > 定位：`28` 号 §8-4 开放问题（「basic-plugin 是否需要 orchestrator 特化参数」）的拍板载体；同时收口 `20` 号 §3.1 登记未实现的「任务边界触发」、`35` 号 G2-A9（压缩态回放驱动）与 `28` 号 §7-2（cache-guard 打标）。
 > 关联：`28-上下文策略-主Session滚动治理与自研压缩替换.md`（§5 金集/§6 清单/§8-4）、`20/21/22/22b`（压缩线）、`34/35`（tasks 内核）、`24a`（拍板记录）、`43`（M4 真实链路验收）、`packages/compaction`、`packages/tasks`、`profiles/eterna-super/cordis.patch.yml`
 > 日期：2026-11-23
@@ -54,6 +54,18 @@
 ### 1.6 摘要模型
 
 Q1 已拍板「维持会话模型、不落值」——orchestrator preset 的 compaction-basic 已落空串对占位（`packages/tasks/cordis.patch.yml:217-226`，引 22a §4；二者必须成对置空/置值，`basic/config.ts:325-345` `validateSummarizationPair`）。主会话摘要分档仍属 35 号 §12-9 开放问题，本文档不翻案、不碰。
+
+### 1.7 结构半边：工单因 accept/attach 隐式订阅主会话线程（**2026-11-23 线上实测补记**）
+
+> D1 是话题分治的**提示词半边**；本节记同日生产暴露的**结构半边**——只加纪律不足以保证分治，因为订阅面会把新话题从结构上吞掉。
+
+- **根因**：`webchat` 线程就是主会话本身（`orchestrator-<realm>`，`sources/webchat.ts:67`）。修复前 `Tickets.accept` 让工单订阅发起线程（`core/tickets.ts:81`），`attach` 同（`:159`）。此后人在主会话里发**任何新话题**，都会先被 `Intake` 扇出成旧工单的一条 Input，`followupOwners`（`core/model.ts:86-99`）据此判「归该工单的 worker 裁决」——候选卡不生成、orchestrator 看不到，新任务被默认绑定到前一张工单。
+- **生产实证**（2026-11-23）：同一窗口里第二张单的调研请求成为第一张单的 handback 报告。
+- **修法**（同一闸贯穿四处）：`EngineOptions.isDispatchThread` 谓词由装配面注入（`plugin.ts`：`ref.source === WEBSCHAT_SOURCE && ref.id === masterId`；内核不认 webchat/masterId 词汇）；`create`/`attach` 经 `subscribeUnlessDispatch` 不订阅派发渠道线程（`core/tickets.ts`）；`Intake` 对派发渠道线程上的**存量订阅**当场不扇出（`core/intake.ts`）——旧库脏数据无需迁移即失效。
+- **可见性不因简化回退**：候选卡 `related_tickets` 改走 `relatedTicketsOnThread`（订阅 ∪ 从该线程真正到达过的单），保证 `dispatch.md` 的「先查再裁决」仍有落库事实可依；准入判定仍只看订阅面，不授权力。
+- **语义边界**：`attach` 到主会话线程的消息**仍**进工单（Input + `disposition.fanout` 照记），只是不订阅线程——「这条属于这张单」与「之后的同线程消息归候选」是两件事。
+- **缺省不变**：未注入谓词恒 `false`，普通线程的 accept/attach 语义逐字不变（`core-engine.spec.ts` 有反向断言）。
+- **同批修复（工作台槽位真读数）**：同一线上排查还暴露工作台「槽位 n/m」与「运行 N 分钟」按 Assignment **领域态**投影（`pending→running→ended` 只由 `endAssignment`/工单 end 迁移，worker 报 `waiting` 后回合早已结束），生产实证显示「运行 2843 分钟」。修法 = `stats().executor.usedSlots`（`DshExecutor` 的 WorkerSlots 真读数）为在线唯一权威，`ticketStage` 派生只在离线快照/mock 面兜底。
 
 ---
 
