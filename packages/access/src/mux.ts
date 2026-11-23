@@ -407,8 +407,9 @@ export interface TenantBinding {
 /** 策略所需的最小依赖面。 */
 export interface MuxPolicyDeps {
   /** WS-C(37 号 M-2):增 getUserById——bindings 回调内按 principal.userId 现查角色,
-   *  不得在 installMuxIsolation 时缓存(G2-C5「角色变更对 mux 可见性即时生效」)。 */
-  readonly store: Pick<UserStore, 'sessionsOfOwner' | 'workspacesOfOwner' | 'getUserById'>
+   *  不得在 installMuxIsolation 时缓存(G2-C5「角色变更对 mux 可见性即时生效」)。
+   *  2026-11-24:增 sessionIdsAccessibleBy——流绑定须覆盖子代理子孙会话(见 bindingsFor)。 */
+  readonly store: Pick<UserStore, 'sessionsOfOwner' | 'sessionIdsAccessibleBy' | 'workspacesOfOwner' | 'getUserById'>
   readonly session: SessionService
 }
 
@@ -492,7 +493,12 @@ export function bindingsFor(deps: MuxPolicyDeps, userId: number): readonly Tenan
   const sessionRole = { name: 'eterna:session-member', resource: 'session' as const, actions: [...SESSION_STREAM_ACTIONS, ...TERMINAL_UNARY_ACTIONS, ...WORKSPACE_FILE_UNARY_ACTIONS, ...WORKSPACE_STREAM_ACTIONS, ...SESSION_UNARY_ACTIONS, ...SESSION_EVENT_ACTIONS] }
   const workspaceRole = { name: 'eterna:workspace-member', resource: 'workspace' as const, actions: [...WORKSPACE_STREAM_ACTIONS, ...WORKSPACE_UNARY_ACTIONS] }
   const bindings: TenantBinding[] = [{ resource: { kind: 'global' }, role: globalRole }]
-  for (const sessionId of deps.store.sessionsOfOwner(userId)) {
+  // 2026-11-24:绑定源用 sessionIdsAccessibleBy(直接入账行 + 子代理后代)——
+  // 上游资源级答案严格查「该资源自身绑定」,global 不兜底(PR#57 教训);子会话
+  // 不在绑定点上 ⇒ session/follow 恒 no-allow,点击子智能体打开历史即「历史加载
+  // 失败:session/follow: access denied」。租户面不放宽:后代集合由账本父链推导,
+  // 他人父链的子会话仍无绑定。
+  for (const sessionId of deps.store.sessionIdsAccessibleBy(userId)) {
     bindings.push({ resource: { kind: 'session', id: sessionId }, role: sessionRole })
   }
   for (const workspaceId of deps.store.workspacesOfOwner(userId)) {

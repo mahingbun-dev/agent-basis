@@ -304,6 +304,16 @@ export class UserStore {
       thinking_bias REAL NOT NULL DEFAULT 0,
       thinking_bias_at INTEGER NOT NULL DEFAULT 0
     )`)
+    // 子代理父子归属(2026-11-24):子会话**不入 sessions 归属账本**(沿既有设计意图
+    // ——thinking_auto/usage 归属等口径不因 subagent 而变),只记父子边;归属判定
+    // 在读取时沿父链上溯(见 resolveSessionOwner)。表存在的唯一理由:一元守卫与
+    // mux 流绑定都要在同步判定里拿到父链,而上游 wire 的 parentSessionId 只在
+    // session/list 响应里出现——故落库缓存,来源=subagent/start 生命周期 + list 回填。
+    this.db.exec(`CREATE TABLE IF NOT EXISTS session_children (
+      session_id TEXT PRIMARY KEY,
+      parent_session_id TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`)
     // T6 装载器(2026-11-18):公共层共享插件记账(转内置产物;拷贝制,与个人行解耦——
     // 原作者删除不影响共享存续,隔离计划 §T7-B「已转内置的插件存续于公共层」)。
     this.db.exec(`CREATE TABLE IF NOT EXISTS shared_plugins (
@@ -546,11 +556,74 @@ export class UserStore {
     ).run(sessionId, ownerId, workspaceId)
   }
 
+  /**
+   * 会话归属:直接账本行优先;缺席则沿子代理父链上溯(2026-11-24)。
+   *
+   * 子代理子会话从不入 sessions 账本(设计意图:thinking_auto/usage 等按会话计价的
+   * 口径不因 subagent 而变),其归属=最近的已入账祖先。上游一切会话型 RPC
+   * (session/projections、session/follow、session/state、session/events…)都以
+   * 本函数为唯一判定源,故父链回退必须在**这里**而不是各守卫分支各自补——否则
+   * 每加一个端点就得再修一遍(本次事故正是 projections 与 follow 两处漏改同时炸)。
+   *
+   * 环防护:parent 链最多上溯 32 层(实测层级 ≤ 3;异常数据下不得死循环)。
+   * @param sessionId - 待判定的会话 id(可能是子代理子会话)。
+   * @returns 归属用户 id;无归属(孤儿/未登记/超深)返回 undefined。
+   */
   sessionOwner(sessionId: string): number | undefined {
-    const row = this.db.prepare('SELECT owner_id FROM sessions WHERE session_id = ?').get(sessionId) as
+    const direct = this.db.prepare('SELECT owner_id FROM sessions WHERE session_id = ?').get(sessionId) as
       | { owner_id: number }
       | undefined
-    return row === undefined ? undefined : row.owner_id
+    if (direct !== undefined) return direct.owner_id
+    return this.ownerOfAncestor(sessionId, 32)
+  }
+
+  /** 沿 child→parent 边上溯至最近的已入账祖先(上限 maxHops,防环)。 */
+  private ownerOfAncestor(sessionId: string, maxHops: number): number | undefined {
+    let current = sessionId
+    const visited = new Set<string>()
+    for (let hop = 0; hop < maxHops; hop += 1) {
+      if (visited.has(current)) return undefined
+      visited.add(current)
+      const edge = this.db.prepare('SELECT parent_session_id FROM session_children WHERE session_id = ?').get(current) as
+        | { parent_session_id: string }
+        | undefined
+      if (edge === undefined) return undefined
+      const owner = this.db.prepare('SELECT owner_id FROM sessions WHERE session_id = ?').get(edge.parent_session_id) as
+        | { owner_id: number }
+        | undefined
+      if (owner !== undefined) return owner.owner_id
+      current = edge.parent_session_id
+    }
+    return undefined
+  }
+
+  /**
+   * 记一条子代理父子边(幂等;来源 = subagent/start 生命周期 + session/list 回填)。
+   *
+   * 只记边、不建 sessions 归属行:子会话因此仍不进 usage 归属与 thinking_auto 口径,
+   * 而归属判定经 {@link sessionOwner} 的父链回退照旧可达。
+   * @param childSessionId - 子代理子会话 id。
+   * @param parentSessionId - 其直接父会话 id。
+   */
+  recordChildSession(childSessionId: string, parentSessionId: string): void {
+    if (childSessionId === parentSessionId) return
+    this.db.prepare(
+      'INSERT INTO session_children (session_id, parent_session_id) VALUES (?, ?) ' +
+      'ON CONFLICT(session_id) DO UPDATE SET parent_session_id = excluded.parent_session_id',
+    ).run(childSessionId, parentSessionId)
+  }
+
+  /** 已记的子代理父子边数量(回填幂等判定/观测用)。 */
+  childSessionCount(): number {
+    const row = this.db.prepare('SELECT COUNT(*) AS n FROM session_children').get() as { n: number }
+    return row.n
+  }
+
+  /** 某会话的直接子会话 id 列表(父链判定与清理用)。 */
+  childSessionsOf(parentSessionId: string): string[] {
+    const rows = this.db.prepare('SELECT session_id FROM session_children WHERE parent_session_id = ?')
+      .all(parentSessionId) as Array<{ session_id: string }>
+    return rows.map(row => row.session_id)
   }
 
   // ── 思考强度自动模式(2026-11-18):每会话开关,sessions.thinking_auto 列 ──
@@ -915,6 +988,41 @@ export class UserStore {
     const rows = this.db.prepare('SELECT session_id FROM sessions WHERE owner_id = ?').all(ownerId) as
       Array<{ session_id: string }>
     return rows.map(row => row.session_id)
+  }
+
+  /**
+   * 该用户名下**全部会话 id**(直接入账行 + 其子代理后代),mux 流绑定专用
+   * (2026-11-24)。
+   *
+   * 为什么不能复用 {@link sessionsOfOwner}:mux 策略按「资源 kind+id」逐项建绑定,
+   * 子会话不在绑定点上就没有任何流动作命中它——`session/follow` 的
+   * `access denied (no-allow)` 正是这么来的(点击子智能体打开历史即炸)。而
+   * sessionsOfOwner 的其它消费面(usage 归属、面板历史过滤)必须保持只认直接
+   * 入账行,否则子会话会被当作独立计价会话/独立历史条目。
+   * @param ownerId - 归属用户 id。
+   * @returns 该用户可直接访问的会话 id 全集(含子代理后代)。
+   */
+  sessionIdsAccessibleBy(ownerId: number): string[] {
+    const owned = this.sessionsOfOwner(ownerId)
+    if (owned.length === 0) return owned
+    const result = [...owned]
+    const seen = new Set(owned)
+    const queue = [...owned]
+    // 广度优先展开子代理后代(环防护靠 seen;层级实测 ≤ 3,批量 IN 查询避免逐条往返)
+    while (queue.length > 0) {
+      const parents = queue.splice(0, 200)
+      const placeholders = parents.map(() => '?').join(',')
+      const rows = this.db.prepare(
+        `SELECT session_id FROM session_children WHERE parent_session_id IN (${placeholders})`,
+      ).all(...parents) as Array<{ session_id: string }>
+      for (const row of rows) {
+        if (seen.has(row.session_id)) continue
+        seen.add(row.session_id)
+        result.push(row.session_id)
+        queue.push(row.session_id)
+      }
+    }
+    return result
   }
 
   /** 归属账本读取:mux 租户策略 bindings 用(T2,2026-11-11)。 */

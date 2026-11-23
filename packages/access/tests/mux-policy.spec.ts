@@ -109,6 +109,37 @@ describe('T2:mux 策略绑定', () => {
     expect(visibilityScopeOf('nobody' as never)).toBe('self')
   })
 
+  // ── 子代理子会话流绑定(2026-11-24 回归)──────────────────────────────────
+  // 事故:点击子智能体打开历史 → 「历史加载失败:session/follow: access denied
+  // (no-allow)」。根因=子会话不入 sessions 账本,而 bindings 只遍历 sessionsOfOwner,
+  // 资源级答案严格查该资源自身绑定、global 不兜底(PR#57 教训)。
+  it('子代理子会话获得会话流绑定(修 session/follow no-allow),但父链归属不跨租户', () => {
+    const deps = { store, session }
+    store.recordChildSession('s-a1-child', 's-a1')
+    store.recordChildSession('s-a1-grandchild', 's-a1-child')
+    const sessionIdsOf = (userId: number): string[] => bindingsFor(deps, userId)
+      .filter(b => b.resource.kind === 'session')
+      .map(b => (b.resource as { id: string }).id)
+    const alice = sessionIdsOf(aliceId)
+    expect(alice).toContain('s-a1-child')
+    expect(alice).toContain('s-a1-grandchild')
+    // 子会话绑定动作集与父会话同形(同一 sessionRole),含 session/follow 与 observeProjections
+    const childBinding = bindingsFor(deps, aliceId)
+      .find(b => b.resource.kind === 'session' && (b.resource as { id: string }).id === 's-a1-child')
+    expect(childBinding?.role.actions).toEqual([
+      ...SESSION_STREAM_ACTIONS, ...TERMINAL_UNARY_ACTIONS, ...WORKSPACE_FILE_UNARY_ACTIONS,
+      ...WORKSPACE_STREAM_ACTIONS, ...SESSION_UNARY_ACTIONS, ...SESSION_EVENT_ACTIONS,
+    ])
+    expect(childBinding?.role.actions).toContain('session/follow')
+    expect(childBinding?.role.actions).toContain('session/observeProjections')
+    // 租户面不放宽:bob 的绑定里不含 alice 子会话
+    expect(sessionIdsOf(bobId)).not.toContain('s-a1-child')
+    // 孤儿边(父未入账)不产生任何绑定
+    store.recordChildSession('s-orphan-child', 's-not-in-ledger')
+    expect(sessionIdsOf(aliceId)).not.toContain('s-orphan-child')
+    expect(sessionIdsOf(bobId)).not.toContain('s-orphan-child')
+  })
+
   it('WS-C ②:approver 与 user/admin 的 bindingsFor 内容面逐项全等(零放宽不变式;唯一豁免=管理员专属 UI 门收窄)', () => {
     const deps = { store, session }
     // 同一资源集跨三角色轮转对比(approver 化 → admin 化 → 回 user),逐项 deep-equal。
