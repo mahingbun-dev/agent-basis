@@ -37,6 +37,7 @@ import { createTenantPluginLoader, type TenantPluginToolsFace } from './tenant-p
 import { defineInstallPersonalPluginTool } from './install-tool.ts'
 import { defineSubmitPluginToMarketTool } from './publish-tool.ts'
 import { installMuxIsolation, type MuxIsolationInstall } from './mux.ts'
+import { installHistoryWindowClamp, resolvedPageMessages, type ClampableService } from './history-window.ts'
 import { installChatImportGate, workspaceSessionIdsOf, type ChatImportEventHost } from './chat-import.ts'
 import { installLoginGate } from './login-gate.ts'
 import { registerChannelsWebhook } from './channels-webhook.ts'
@@ -529,6 +530,35 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
           userIdByAccount: (account: string) => store.userIdByAccount(account),
         }))
       }
+      // 历史首屏窗口钳制(2026-11-24):上游客户端把每次历史请求写死在 500 条消息 /
+      // 至少 2 个 turn,长会话首屏一次取回近乎整份日志(生产实测最坏 14.22 MB),
+      // 前端长时间停在「载入历史…」且「加载更早」永不出现。这里在 Host 侧把
+      // events/page/follow 的入参预算收到 30 条(只降不升、轮次跳转页放行),详见
+      // history-window.ts 头注。sessionController 可能晚于本插件挂载,故走 inject
+      // 子 fiber 等它就绪(brand 的 webServer 同款姿势)。
+      const historyPageMessages = resolvedPageMessages(process.env.ETERNA_HISTORY_PAGE_MESSAGES)
+      ctx.inject(['sessionController'], (inner: Context) => {
+        // reflect.get 是 any 面(on-demand 服务读取口径同 tenant.ts 的 serviceOf)。
+        const controller: unknown = inner.reflect.get('sessionController', false)
+        const install = installHistoryWindowClamp(
+          controller as ClampableService | undefined,
+          historyPageMessages,
+        )
+        if (install === undefined) {
+          audit({
+            kind: 'access.history.window',
+            ok: false,
+            detail: { reason: 'sessionController 形态不匹配(上游漂移?)' },
+          })
+          return
+        }
+        disposers.push(install.dispose)
+        audit({
+          kind: 'access.history.window',
+          ok: true,
+          detail: { clamped: install.clamped, pageMessages: historyPageMessages },
+        })
+      })
       disposers.push(registerTenantGuards({
         store,
         session,

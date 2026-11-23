@@ -64,6 +64,12 @@ services:
       ETERNA_ACCESS_ADMIN_PASSWORD: ${ETERNA_ACCESS_ADMIN_PASSWORD:-}
       ETERNA_ACCESS_SECRET: ${ETERNA_ACCESS_SECRET:-}
       ETERNA_ACCESS_SECURE: ${ETERNA_ACCESS_SECURE:-}
+      # 历史首屏分页预算(2026-11-24):每次历史请求的消息条数,缺省 30。
+      # 上游客户端写死 500 条/至少 2 turn,长会话首屏一次取回近乎整份日志
+      # (生产实测最坏 14.22 MB,前端长时间停在「载入历史…」);access 插件在
+      # Host 侧把 events/page/follow 入参收到本值(只降不升、轮次跳转页放行),
+      # 「加载更早」按同预算续页。留空=用缺省 30。
+      ETERNA_HISTORY_PAGE_MESSAGES: ${ETERNA_HISTORY_PAGE_MESSAGES:-}
     volumes:
       # 数据根 bind(48 §5.1;T43):缺省 `$HOME/eterna-data`(与 deploy/README.md §2
       # 一致)。2026-11-20 W4 门禁修复:原 `:?` 硬必填让 `docker compose config` 无 .env
