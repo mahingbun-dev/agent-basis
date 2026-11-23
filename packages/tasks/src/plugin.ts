@@ -1029,6 +1029,18 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
     const byKind: Record<string, number> = {}
     let waiting = 0
     for (const row of kindRows) { byKind[row.kind] = row.n; waiting += row.n }
+    /**
+     * 订阅线程计数(2026-11-23 派发渠道纪律):**排除派发渠道线程**——主会话线程上旧版
+     * accept 写下的订阅已不再扇出(intake 闸,见 EngineOptions.isDispatchThread),把它计进
+     * 「N 订阅」会让工作台把失效订阅显示成活跃订阅。计数必须与扇出事实一致。
+     * 用参数化查询(不拼 SQL 值;表里存量行可能带任意 realm/session 文本)。
+     */
+    const countSubscribedThreads = (): number => {
+      if (masterId === undefined) return count('SELECT COUNT(*) AS n FROM thread WHERE subscribed IS NOT NULL')
+      const row = db.prepare('SELECT COUNT(*) AS n FROM thread WHERE subscribed IS NOT NULL AND key <> ?')
+        .get(`${WEBSCHAT_SOURCE}:${masterId}`) as { n: number | null } | undefined
+      return row?.n ?? 0
+    }
     const ticketRow = db.prepare('SELECT COUNT(*) AS n, SUM(open = 1) AS open, SUM(active = 1) AS active FROM ticket').get() as
       { n: number | null; open: number | null; active: number | null } | undefined
     const settings = store.settings()
@@ -1037,7 +1049,7 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
       tickets: { open: ticketRow?.open ?? 0, active: ticketRow?.active ?? 0, total: ticketRow?.n ?? 0 },
       threads: {
         active: count('SELECT COUNT(*) AS n FROM thread WHERE active = 1'),
-        subscribed: count('SELECT COUNT(*) AS n FROM thread WHERE subscribed IS NOT NULL'),
+        subscribed: countSubscribedThreads(),
       },
       triggers: { total: count('SELECT COUNT(*) AS n FROM trigger') },
       decisions: { total: count('SELECT COUNT(*) AS n FROM decision') },

@@ -8,7 +8,7 @@
  * 推断;reason 文案经 tasks `reasonText`(码表模板)。
  */
 import type { Ticket } from '@eterna/tasks'
-import { reasonText } from '@eterna/tasks'
+import { reasonText, ticketStage } from '@eterna/tasks'
 import type { WorkbenchLogEntry } from '../types.ts'
 import { beijingParts } from './time.ts'
 
@@ -124,14 +124,20 @@ export function ticketTraceEntries(store: TicketTraceStore, ticket: Ticket): rea
     duration: '—',
   })
   ticket.assignments.forEach((assignment, index) => {
+    // 运行时口径(2026-11-23 线上修复):`running` 是领域态,worker 报 waiting 后回合已结束。
+    // 故本行只在「该分支是工单最新分支且 ticketStage 判 working(非排队)」时才说执行中;
+    // 否则按报告态如实标注停泊,避免 audit 链把停泊工单记成「worker 执行中」。
+    const latest = index === ticket.assignments.length - 1
+    const live = latest && ticketStage(ticket).stage === 'working'
+    const reportState = assignment.report?.state
     entries.push({
       id: `trace-assignment-${assignment.id}`,
       ticketId: ticket.id,
       group: 'audit',
       time: clock(assignment.startedAt ?? assignment.createdAt),
       source: 'Assignment',
-      summary: [{ text: `Assignment ${index + 1} · ${assignment.state === 'running' ? 'worker 执行中' : assignment.state === 'pending' ? '排队待槽位' : `已结束（${assignment.endedReason ?? '完成'}）`}` }],
-      status: { label: assignment.state, tone: assignment.state === 'running' ? 'accent' : 'muted' },
+      summary: [{ text: `Assignment ${index + 1} · ${live ? 'worker 执行中' : reportState === 'waiting' ? '回合已结束 · 等后续消息' : assignment.state === 'pending' ? '排队待槽位' : `已结束（${assignment.endedReason ?? '完成'}）`}` }],
+      status: { label: live ? 'running' : assignment.state, tone: live ? 'accent' : 'muted' },
       duration: '—',
     })
     const report = assignment.report

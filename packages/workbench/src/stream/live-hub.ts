@@ -30,6 +30,7 @@ import {
   type FlowRingItem, type LiveSectionsInputs, type LiveSectionsTasks, type WorkbenchBudgetUsage,
 } from '../project/live-sections.ts'
 import { readAuditFiles, readEvalRuns, type AuditDayFile, type EvalRunReport } from '../project/trace-files.ts'
+import { ticketStage } from '@eterna/tasks'
 import type { DomainEvent, Thread, Ticket } from '@eterna/tasks'
 import type {
   AssignmentBranch, WorkbenchIncrement, WorkbenchSnapshot, WorkbenchStreamEvent,
@@ -148,20 +149,38 @@ function differs(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) !== JSON.stringify(right)
 }
 
-/** Assignment 分支投影(T6;退回/重试 = 同工单新分支,24 号 §7.2、27 号 §1.2;仅开放工单)。 */
+/**
+ * Assignment 分支投影(T6;退回/重试 = 同工单新分支,24 号 §7.2、27 号 §1.2;仅开放工单)。
+ *
+ * 运行时口径(2026-11-23 线上修复,同 `live-sections.latestRunning`):`working` 徽标只给
+ * **真的在跑**的分支。Assignment 的 `running` 是领域态(pending→running→ended 只由
+ * endAssignment/工单 end 迁移),worker 报 `waiting` 后回合早已结束,此前一律投影成
+ * `working` 让停泊工单在侧栏看着还在跑(生产实证「运行 2843 分钟」同源)。
+ * 判定复用 `ticketStage`:只有该工单最新分支且阶段为 working(非 queued)才是 working;
+ * waiting 报告的停泊分支标 `idle`,`pending` 排队的标 `queued`。
+ */
 function branchesOf(tickets: readonly Ticket[]): AssignmentBranch[] {
   const branches: AssignmentBranch[] = []
   for (const ticket of tickets) {
     if (ticket.ended !== undefined) continue
+    const stage = ticketStage(ticket)
+    const lastIndex = ticket.assignments.length - 1
     ticket.assignments.forEach((assignment, index) => {
       const report = assignment.report
-      branches.push({
-        ticketId: ticket.id,
-        seq: index + 1,
-        state: report?.state === 'ready' ? 'ready' : report?.state === 'failed' ? 'failed' : 'working',
-        note: report?.summary ?? (assignment.state === 'pending' ? '排队等待 worker 槽位' : assignment.state === 'running' ? '运行中' : assignment.endedReason ?? '—'),
-        active: index === ticket.assignments.length - 1,
-      })
+      const latest = index === lastIndex
+      const running = latest && stage.stage === 'working' && stage.action !== 'queued'
+      const queued = latest && stage.stage === 'working' && stage.action === 'queued'
+      const state: AssignmentBranch['state'] = report?.state === 'ready'
+        ? 'ready'
+        : report?.state === 'failed'
+          ? 'failed'
+          : running ? 'working' : 'idle'
+      const note = report?.summary
+        ?? (running ? '运行中'
+          : queued ? '排队等待 worker 槽位'
+            : latest ? '空闲 · 回合已结束,等后续消息'
+              : assignment.state === 'pending' ? '排队等待 worker 槽位' : assignment.endedReason ?? '—')
+      branches.push({ ticketId: ticket.id, seq: index + 1, state, note, active: latest })
     })
   }
   return branches

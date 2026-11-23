@@ -20,7 +20,7 @@ import { afterEach, beforeEach, expect, it } from 'vitest'
 import { createTasks, type DomainEvent, type SourceScope, type TasksRuntime, type Trigger } from '@eterna/tasks'
 import { createLiveWorkbenchHub, type TasksWorldView } from '../src/stream/live-hub.ts'
 import { createLiveStreamController, DEFAULT_LIVE_STREAM_PATH, type WorkbenchStreamState } from '../src/client/live-stream.ts'
-import type { WorkbenchStreamEvent } from '../src/types.ts'
+import type { WorkbenchSnapshot, WorkbenchStreamEvent } from '../src/types.ts'
 import { kanbanBoard } from '../src/project/kanban.ts'
 import { readAuditFiles, traceEntriesForTicket } from '../src/project/trace-files.ts'
 import { ticketTraceEntries } from '../src/project/ticket-trace.ts'
@@ -303,4 +303,75 @@ it('单工单回放真源(store 前链 + audit NDJSON R4 归账;F-10/O-4)', asyn
   expect(replayTrackFromEntries(ticketId, [])).toEqual({ ticketId, steps: [], nodeKeys: [], points: [] })
   expect(replayNarration(replayTrackFromEntries(ticketId, []))).toContain('暂无回放事件')
   runtime.dispose()
+})
+
+/**
+ * 运行时口径门禁(2026-11-23 线上修复续):工作台曾按 Assignment 领域态投影侧栏分支徽标,
+ * 于是 worker 报 `waiting`(回合已结束)后仍显示 `working` / 「运行中」——生产实证工单停泊
+ * 2843 分钟仍标运行中。本用例钉死:等待态一律 `idle` 徽标 + 停泊注记,只有真的在跑的
+ * 分支才是 `working`。
+ */
+it('waiting 报告的工单在侧栏分支投影为 idle(非 working),只有真在跑的分支才 accent', async () => {
+  const runtime = bootTasks()
+  const hub = createLiveWorkbenchHub({ tasks: (): TasksWorldView | undefined => runtime, refreshMs: 20 })
+  try {
+    const ticketId = openTicket(runtime, '1')
+    const assignmentId = runtime.store.tickets.get(ticketId)!.assignments[0]!.id
+    runtime.engine.assignmentStarted(ticketId, assignmentId)
+
+    // 注意:report/turnEnded 不产 DomainEvent,侧栏快照靠周期性重投影(live-hub refreshMs)
+    // 追平——本用例因此轮询等待,而不是只抓首帧。
+    const branchesNow = (): WorkbenchSnapshot['assignments'] => {
+      const frame = parseFrames([hub.snapshotFrame()])[0]
+      if (frame?.kind !== 'snapshot') throw new Error('首帧不是快照')
+      return frame.snapshot.assignments
+    }
+
+    // 真在跑:working
+    expect(branchesNow().map(branch => branch.state)).toEqual(['working'])
+
+    // worker 报 waiting → 回合已结束;领域态仍是 running(缺陷触发条件),投影必须是 idle
+    runtime.engine.report(ticketId, { state: 'waiting', summary: '本轮结束,等后续消息' })
+    runtime.engine.turnEnded(ticketId, assignmentId)
+    expect(runtime.store.tickets.get(ticketId)!.assignments.at(-1)!.state).toBe('running')
+    await waitFor(() => { expect(branchesNow().map(branch => branch.state)).toEqual(['idle']) })
+    expect(branchesNow()[0]!.note).toBe('本轮结束,等后续消息')
+  } finally {
+    hub.dispose()
+    runtime.dispose()
+  }
+})
+
+/**
+ * 同一批运行时口径修复的另一处消费面:工单前链 trace 的 Assignment 行此前按领域态
+ * `assignment.state === 'running'` 说「worker 执行中」,于是 worker 报 waiting(回合已结束)
+ * 的停泊工单在 audit 链上仍显示执行中。本用例钉死:只有真的在跑的最新分支才说执行中。
+ */
+it('waiting 停泊工单的前链 trace 不再标「worker 执行中」', () => {
+  const runtime = bootTasks()
+  try {
+    const ticketId = openTicket(runtime, '1')
+    const assignmentId = runtime.store.tickets.get(ticketId)!.assignments[0]!.id
+    runtime.engine.assignmentStarted(ticketId, assignmentId)
+    const store = {
+      db: { prepare: (sql: string) => runtime.store.db.prepare(sql) as unknown as { all(...parameters: unknown[]): unknown[] } },
+      triggers: { get: (id: string) => runtime.store.triggers.get(id) },
+      decisions: { get: (id: string) => runtime.store.decisions.get(id) },
+    }
+    const assignmentLine = (): string | undefined =>
+      ticketTraceEntries(store, runtime.store.tickets.get(ticketId)!)
+        .find(entry => entry.id === `trace-assignment-${assignmentId}`)
+        ?.summary.map(segment => segment.text).join('')
+
+    // 真在跑:执行中
+    expect(assignmentLine()).toContain('worker 执行中')
+
+    runtime.engine.report(ticketId, { state: 'waiting', summary: '本轮结束,等后续消息' })
+    runtime.engine.turnEnded(ticketId, assignmentId)
+    expect(runtime.store.tickets.get(ticketId)!.assignments.at(-1)!.state).toBe('running')
+    expect(assignmentLine()).toContain('回合已结束')
+    expect(assignmentLine()).not.toContain('worker 执行中')
+  } finally {
+    runtime.dispose()
+  }
 })
