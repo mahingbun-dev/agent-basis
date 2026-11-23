@@ -320,7 +320,12 @@ export class Evals extends EnginePart {
     const { id: evalId, strength, policyVersion } = evaluation
     // ★R1 effort 档位进候选卡字段(35 号 A17):领域包声明经 EngineOptions.effort 注入,缺席不带。
     const effort = this.options.effort?.()
-    return { evalId, thread, triggers, strength, policyVersion, tickets: this.ticketsOnThread(thread), ...(effort ? { effort } : {}) }
+    // ★候选卡的相关工单面走 relatedTicketsOnThread(2026-11-23 派发渠道化):订阅工单 ∪ 从本线程
+    // 真正到达过的工单——派发渠道线程(主会话)上工单不再订阅它,只取 ticketsOnThread 会让
+    // related_tickets 恒空,评估方失去「本窗口已有过哪些单」的落库事实。准入判定仍只看订阅面
+    // (ticketsOnThread,见 evaluate/directEval),本字段不授任何权力。
+    const tickets = this.relatedTicketsOnThread(thread)
+    return { evalId, thread, triggers, strength, policyVersion, tickets, ...(effort ? { effort } : {}) }
   }
   /**
    * 记录线程排队中的 Trigger `ids` 不开 Eval,附理由,并把它们移出队列。其 id 与 Eval 的不同,

@@ -137,6 +137,13 @@ export interface FlowLiveState {
   readonly liveEdges: readonly { readonly from: FlowNodeKey; readonly to: FlowNodeKey }[]
   /** WorkerSlots 容量(worker 节点「N/4 槽」分母)。 */
   readonly workerSlots: number
+  /**
+   * ★当前真实占用槽数(2026-11-23 线上修复):`stats().executor.usedSlots` 的读数,
+   * 与 `workerSlots` 同源于执行面。派生节点(flow-graph worker)与检查器头卡都用它当分子
+   * ——旧口径用「工单领域态 running 数」,会把 waiting 停泊的工单算成在跑(生产实证
+   * 「运行 2843 分钟」)。离线快照面由 ticketStage 派生补齐,值同源但可能偏保守。
+   */
+  readonly slotsUsed: number
   /** 单工单回放可选工单(原型 03 回放 select 两项;M4 由 audit trace 可回放性决定)。 */
   readonly replayOptions: readonly string[]
 }

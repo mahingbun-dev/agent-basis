@@ -15,6 +15,7 @@ import type { AuditDayFile, EvalRunReport } from './trace-files.ts'
 import { evalSnapshotFromRuns, toolHistoryForTicket, traceEntriesForTicket } from './trace-files.ts'
 import { ticketTraceEntries, type TicketTraceStore } from './ticket-trace.ts'
 import { beijingParts } from './time.ts'
+import { ticketStage } from '@eterna/tasks'
 import type {
   ConflictMetrics, EvalSnapshot, FlowLiveState, FlowNodeKey, FlowNodeLiveState, LogSegment,
   WorkbenchLogEntry, WorkerInspectorSnapshot, WorkerJobItem, WorkerTreeNode,
@@ -100,8 +101,13 @@ export interface LiveSectionsTasks {
   readonly db?: {
     prepare(sql: string): { all(...parameters: unknown[]): unknown[] }
   }
-  /** DshExecutor 插队计数暴露位(A22 接线后在册;stub 时缺省——如实标注)。 */
+  /** DshExecutor 计数暴露位(A22 接线后在册;stub 时缺省——如实标注)。 */
   readonly executor?: { readonly personBarges?: () => number }
+  /**
+   * 真实占槽读数(stats().executor.usedSlots;2026-11-23 线上修复)。
+   * 在场时槽位显示以它为唯一权威;缺席(离线快照/mock)才回退 ticketStage 派生近似。
+   */
+  readonly usedSlots?: number
 }
 
 /**
@@ -240,8 +246,35 @@ export function conflictSection(inputs: LiveSectionsInputs): ConflictMetrics {
   })
 }
 
-/** 最新 Assignment 是否 running(worker 槽位占用口径,executor/dsh.ts running 同源)。 */
-export const latestRunning = (ticket: Ticket): boolean => ticket.assignments.at(-1)?.state === 'running'
+/**
+ * 工单是否真的占着 worker 槽——**运行时口径**,不是领域态口径(2026-11-23 线上修复)。
+ *
+ * 陈旧事实(2026-11-23 生产实证):本文件此前一律用 `assignments.at(-1).state === 'running'`
+ * 当运行中,jobs「运行中 N 分钟」与「槽位 n/m」由此失真——worker 报 `waiting` 后其回合早已
+ * 结束(executor/dsh.ts:455 `running()` 只看 `agent.status === 'running' || settling`),但
+ * Assignment 的领域态仍是 `running`(pending→running→ended 只由 endAssignment/工单 end 迁移,
+ * core/model.ts:269),于是「运行 2843 分钟」的假象出现在检查器上。真实口径 = core/stage.ts
+ * 的 `ticketStage()`:`working` 且非排队才算跑着,`waiting` 报告的工单落 `idle` 不算。
+ *
+ * executor 的真实占槽面仍是唯一权威(`DshExecutor.usedSlots()`);本派生用于投影层无该读数
+ * 时(kiosk/mock/离线快照)的诚实近似。
+ */
+export const latestRunning = (ticket: Ticket): boolean => {
+  if (ticket.ended !== undefined) return false
+  const stage = ticketStage(ticket)
+  return stage.stage === 'working' && stage.action !== 'queued'
+}
+
+/**
+ * 占槽数的唯一取数口径(2026-11-23 线上修复):**真实执行面读数优先**
+ * (`stats().executor.usedSlots`,DshExecutor 的 WorkerSlots:在跑回合 + 正在启动的 launch),
+ * 缺席(离线快照/mock/数据端点未接线)才回退 `latestRunning` 派生近似。
+ *
+ * 为什么优先真读数:派生近似只能看领域数据,看不到「回合真的在跑没有」;真读数是执行面
+ * 自己记的账,不会把 waiting 停泊的工单算成在跑。
+ */
+export const slotsUsedOf = (inputs: LiveSectionsInputs, tickets: readonly Ticket[]): number =>
+  inputs.tasks?.usedSlots ?? tickets.filter(latestRunning).length
 
 /**
  * T9 信息流活况(F-1/F-3:节点即领域对象、边即 DomainEvents;真事件流驱动)。
@@ -260,7 +293,8 @@ export function flowSection(
     ring.filter(item => item.edge.some(edge => edge.from === key)).slice(-3).map(item => item.line)
   const decisions = decisionKindCounts(inputs.tasks)
   const weekReceived = triggerReceivedSince(inputs.tasks, new Date(Date.now() - 7 * 86_400_000).toISOString())
-  const working = tickets.filter(latestRunning)
+  // 槽位 n/m:真读数优先(slotsUsedOf 注);节点活跃态同口径。
+  const used = slotsUsedOf(inputs, tickets)
   const node = (key: Exclude<FlowNodeKey, 'assignment'>, sub: string, active: boolean): FlowNodeLiveState => {
     const events = eventsOn(key)
     return { key, state: events.length > 0 || active ? 'active' : 'idle', sub, events }
@@ -271,7 +305,7 @@ export function flowSection(
       node('thread', `${subscribedThreads} 订阅`, subscribedThreads > 0),
       node('eval', '合批 200ms', false),
       node('decision', `accept ${decisions.accept} · stop ${decisions.stop}`, false),
-      node('worker', `${working.length}/${workerSlots} 槽`, working.length > 0),
+      node('worker', `${used}/${workerSlots} 槽`, used > 0),
       node('report', '工单报告面', false),
       node('outbox', '回执投递面', false),
     ],
@@ -279,6 +313,7 @@ export function flowSection(
       .map(key => (key.split('→') as [FlowNodeKey, FlowNodeKey]))
       .map(([from, to]) => ({ from, to })),
     workerSlots,
+    slotsUsed: used,
     replayOptions: tickets.filter(ticket => ticket.ended === undefined).map(ticket => ticket.id),
   }
 }
@@ -315,7 +350,9 @@ export function workerSection(
   workerSlots: number,
   nowMs: number,
 ): WorkerInspectorSnapshot {
-  const working = tickets.filter(ticket => ticket.ended === undefined && ticket.assignments.at(-1)?.state === 'running')
+  // 运行时口径(latestRunning):waiting/blocked/failed/ready 报告的工单已结束本回合,不再占槽
+  // (2026-11-23 线上修复;陈旧口径见 latestRunning 注)。
+  const working = tickets.filter(latestRunning)
   const focused = working[0]
   const runMinutes = focused === undefined
     ? 0
@@ -336,14 +373,20 @@ export function workerSection(
     .flatMap((ticket) => {
       const assignment = ticket.assignments.at(-1)
       if (assignment === undefined) return []
-      return [{
-        id: assignment.id,
-        name: `${ticket.id} · Assignment ${ticket.assignments.length}`,
-        meta: assignment.state === 'running'
-          ? `运行 ${Math.max(0, Math.round((nowMs - Date.parse(assignment.startedAt ?? assignment.createdAt)) / 60_000))} 分钟`
-          : assignment.state === 'pending' ? '排队 · 待 worker 槽位' : `已结束 · ${assignment.endedReason ?? '完成'}`,
-        running: assignment.state === 'running',
-      }]
+      // 运行时口径:领域态 running 但 worker 回合已结束(waiting/blocked/failed)的工单不再
+      // 计入「运行中 jobs」,而按 stage 的 wait 面如实标注停泊(2026-11-23 线上修复)。
+      const live = latestRunning(ticket)
+      const stage = ticketStage(ticket)
+      const idleMinutes = Math.max(0, Math.round((nowMs
+        - Date.parse(assignment.idleAt ?? assignment.report?.at ?? assignment.startedAt ?? assignment.createdAt)) / 60_000))
+      const meta = live
+        ? `运行 ${Math.max(0, Math.round((nowMs - Date.parse(assignment.startedAt ?? assignment.createdAt)) / 60_000))} 分钟`
+        : stage.stage === 'working' && stage.action === 'queued' ? '排队 · 待 worker 槽位'
+          : stage.stage === 'person' ? `停泊 · 等${stage.action === 'review' ? '评审' : stage.action === 'answer' ? '回答' : stage.action === 'delivery' ? '投递' : '人'} · 已 ${idleMinutes} 分钟`
+            : assignment.state === 'ended' ? `已结束 · ${assignment.endedReason ?? '完成'}`
+              // waiting 报告(idle):回合已结束,等后续消息。
+              : `空闲 · 已 ${idleMinutes} 分钟`
+      return [{ id: assignment.id, name: `${ticket.id} · Assignment ${ticket.assignments.length}`, meta, running: live }]
     })
   const toolHistory = focused === undefined ? [] : toolHistoryForTicket(inputs.auditFiles ?? [], focused.id)
   const budget = inputs.budgetUsage
@@ -355,7 +398,8 @@ export function workerSection(
     ticketId: focused?.id ?? '—',
     runMinutes,
     presetNote: 'preset 将在任务开始执行时显示',
-    slotsUsed: working.length,
+    // 真读数优先(slotsUsedOf 注):在线时是执行面记的账,离线面回退 ticketStage 派生。
+    slotsUsed: slotsUsedOf(inputs, tickets),
     slotsTotal: workerSlots,
     domainPack: '待接入',
     tree,

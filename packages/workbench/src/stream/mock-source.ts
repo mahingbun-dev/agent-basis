@@ -661,6 +661,7 @@ export function initialMockSnapshot(): WorkbenchSnapshot {
         { from: 'ticket', to: 'assignment' },
       ],
       workerSlots: 4,
+      slotsUsed: 2,
       replayOptions: ['T-9c81', 'T-a21f'],
     },
     worker: mockWorkerSnapshot(),

@@ -92,7 +92,7 @@ function harness(initial: Settings = INITIAL) {
       effects: { waiting: 0, byKind: {} },
       outbox: { pending: 0, dropped: 0 },
       policy: { version: wiring.version ?? '', paused: false, evalMode: 'auto', rules: 1 },
-      executor: { maxWorkers: 3 },
+      executor: { maxWorkers: 3, usedSlots: 0 },
       masterId: 'orchestrator-alice',
     }),
     workerSessionIds: () => ['worker-T-1'],

@@ -183,7 +183,8 @@ it('裸挂载全链:master 引导 → webchat 入口安装 → 缺省 scope expl
     expect(ticket?.realm).toBe(REALM)
     expect(host.agentIds).toContain(workerSessionId(decision.ticketId!))
     expect(ticket?.assignments.at(-1)?.state).toBe('running')
-    // 工单订阅发起会话的线程(后续消息直达 worker 的扇出依据)。
-    expect(runtime.store.threads.get(`${WEBSCHAT_SOURCE}:${host.master}`)?.subscriptions).toEqual([decision.ticketId])
+    // ★派发渠道纪律(2026-11-23 线上修复):主会话线程是派发渠道而非话题线程,工单不订阅它——
+    // 否则同一窗口的下一条新话题会被扇出成这张单的 Input,候选卡不生成(旧断言即被推翻的语义)。
+    expect(runtime.store.threads.get(`${WEBSCHAT_SOURCE}:${host.master}`)?.subscriptions).toEqual([])
   } finally { dispose() }
 })

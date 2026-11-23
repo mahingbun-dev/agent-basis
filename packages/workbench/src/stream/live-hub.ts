@@ -65,7 +65,7 @@ export interface TasksWorldView {
     readonly triggers: { readonly total: number }
     readonly decisions: { readonly total: number }
     readonly outbox: { readonly pending: number; readonly dropped: number }
-    readonly executor: { readonly maxWorkers: number }
+    readonly executor: { readonly maxWorkers: number; readonly usedSlots: number }
     /** orchestrator 主会话 id(「主会话」入口寻址面;未引导时 undefined)。 */
     readonly masterId: string | undefined
   }
@@ -125,10 +125,13 @@ export interface WorkbenchLiveHubOptions {
   readonly refreshMs?: number
 }
 
-/** TasksWorld 读数面 → live-sections 查询面(LiveSectionsTasks:SELECT-only db + executor 计数位)。 */
+/** TasksWorld 读数面 → live-sections 查询面(LiveSectionsTasks:SELECT-only db + 槽位真读数)。 */
 function sectionsTasksOf(tasks: TasksWorldView): LiveSectionsTasks {
   return {
     db: { prepare: (sql: string) => ({ all: (...parameters: unknown[]) => tasks.query(sql, ...parameters) }) },
+    // ★占槽真读数(2026-11-23 线上修复):DshExecutor 的 WorkerSlots 计数经 stats() 暴露;
+    // 投影层不再按工单领域态推算在跑数(陈旧口径见 live-sections latestRunning 注)。
+    usedSlots: tasks.stats().executor.usedSlots,
     // 插队计数挂在 DshExecutor(A22 替换点接线后在册;stub 时缺省——live-sections 如实标注)
   }
 }

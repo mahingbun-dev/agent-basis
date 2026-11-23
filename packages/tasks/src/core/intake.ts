@@ -47,14 +47,20 @@ export class Intake extends EnginePart {
       const thread = this.thread(ref)
       if (!thread.lastAt || trigger.at > thread.lastAt) thread.lastAt = trigger.at
       thread.correlated = [...new Set([...thread.correlated, ...keys.filter(other => other !== thread.key)])]
-      for (const ticketId of thread.subscriptions) {
-        const ticket = this.repo.tickets.get(ticketId)
-        // 只有非 context 线程上的人的消息才恢复已结束工单;bot 与 CI 不恢复(Executor 恢复时会重读
-        // 线程),而被人 stop 的工单什么都收不到——其 Mandate 已被撤回。
-        const followed = !!thread.context?.includes(ticketId)
-        const resumes = trigger.human && ticket?.ended?.by !== 'human' && !followed
-        if (!ticket || (!liveTicket(ticket) && !resumes)) continue
-        reached.set(ticketId, { ticket, context: followed && (reached.get(ticketId)?.context ?? true) })
+      // ★派发渠道纪律(2026-11-23):派发渠道线程(webchat 主会话)上的订阅**一律不扇出**——该线程
+      // 上的每条消息都归候选卡,由主会话逐条 accept/attach/ignore(见 EngineOptions.isDispatchThread)。
+      // 存量库里由旧版 accept 写下、撤订阅也释放不掉归属的订阅因此当场失效,无需数据迁移;
+      // create/attach 已不再订阅它(见 tickets.ts 两处 subscribeUnlessDispatch)。
+      if (!this.dispatchThread(ref)) {
+        for (const ticketId of thread.subscriptions) {
+          const ticket = this.repo.tickets.get(ticketId)
+          // 只有非 context 线程上的人的消息才恢复已结束工单;bot 与 CI 不恢复(Executor 恢复时会重读
+          // 线程),而被人 stop 的工单什么都收不到——其 Mandate 已被撤回。
+          const followed = !!thread.context?.includes(ticketId)
+          const resumes = trigger.human && ticket?.ended?.by !== 'human' && !followed
+          if (!ticket || (!liveTicket(ticket) && !resumes)) continue
+          reached.set(ticketId, { ticket, context: followed && (reached.get(ticketId)?.context ?? true) })
+        }
       }
       this.repo.threads.save(thread)
     }
