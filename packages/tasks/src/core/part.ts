@@ -22,6 +22,22 @@ export interface EngineOptions {
    * Evals 在候选卡(`Candidate.effort`)上携带;声明缺席时返回 undefined(内核不发明默认档)。
    */
   effort?: () => EffortTier | undefined
+  /**
+   * ★派发渠道纪律(2026-11-23 线上修复;主会话话题分治的结构半边):该线程是否只是
+   * **派发渠道**而非话题线程——是的话,工单不因 accept/attach 隐式订阅它,于是其上的
+   * 每条新消息仍走候选卡,由主会话按 dispatch 纪律逐条 accept/attach/ignore。
+   *
+   * 为什么需要:webchat 线程就是主会话本身(`orchestrator-<realm>`,sources/webchat.ts:67)。
+   * 修复前 accept 让工单订阅了主会话线程(tickets.ts:81),此后人在主会话里发**任何新话题**
+   * 都会先被 intake 扇出成旧工单的一条 Input,`followupOwners`(model.ts:86-99)据此判
+   * 「归该工单的 worker 裁决」——候选卡不生成、orchestrator 看不到,新任务因此被默认绑定到
+   * 前一张工单(生产实证 2026-11-23:第二张单的调研请求成为第一张单的 handback 报告)。
+   *
+   * 注入面归装配(内核不认 webchat 与 masterId 词汇):plugin.ts 注入
+   * `ref.source === 'webchat' && ref.id === masterId`。缺省(未注入)恒 false——既有
+   * 语义逐字不变。
+   */
+  isDispatchThread?: (ref: ThreadRef) => boolean
   /** 判断某 Source 是否监听一条 Trigger;不监听的以 `filtered` 处置落库。 */
   scope: SourceScope
   assessor: Assessor
@@ -52,6 +68,21 @@ export abstract class EnginePart {
   }
   /** 其 worker 决定某人后续消息归属的工单集合:见 `followupOwners`。 */
   protected owners(trigger: Trigger): string[] { return followupOwners(trigger, this.repo) }
+  /**
+   * 该线程是否只是派发渠道(见 `EngineOptions.isDispatchThread`):工单不因 accept/attach
+   * 隐式订阅它,其上的每条消息仍走候选卡。缺省 false(未注入 = 既有语义)。
+   */
+  protected dispatchThread(ref: ThreadRef): boolean { return this.options.isDispatchThread?.(ref) === true }
+  /**
+   * 为工单订阅一条线程,**派发渠道除外**——这是订阅面的唯一闸(`Tickets.subscribe` 之外
+   * 的每个订阅点都经此,见 tickets.ts 的 create/attach 两处)。
+   * @returns 是否真的订阅了。
+   */
+  protected subscribeUnlessDispatch(ticketId: string, ref: ThreadRef, subscribe: (id: string, thread: ThreadRef) => void): boolean {
+    if (this.dispatchThread(ref)) return false
+    subscribe(ticketId, ref)
+    return true
+  }
   /** 拒绝主会话路由一条仍由某工单 worker 决定的后续消息。 */
   protected leftToWorkers(trigger: Trigger): void {
     const owners = this.owners(trigger)
@@ -106,6 +137,30 @@ export abstract class EnginePart {
   }
   protected ticketsOnThread(thread: Thread): Ticket[] {
     return thread.subscriptions.flatMap((id) => { const ticket = this.repo.tickets.get(id); return ticket ? [ticket] : [] })
+  }
+  /**
+   * 候选卡的相关工单面(`related_tickets`/`tickets_total`):线程上订阅的工单 ∪ 从该线程
+   * **真正到达过**的工单(其 Input 带该线程的某条 Trigger,或在该线程上被 accept)。
+   *
+   * 为什么需要兜底(2026-11-23 派发渠道化):派发渠道线程(webchat 主会话)上的工单不再订阅
+   * 该线程(`subscribeUnlessDispatch`),于是 `ticketsOnThread` 在其上恒空——评估主会话新话题时
+   * 候选卡就看不到「这个窗口里已经有哪些单」,而 dispatch.md:8 要求 related_tickets 为空时
+   * 先用 orchestrator_read 查,却又禁「凭记忆」。此兜底按落库事实补齐,评估方的可见性不因
+   * 结构简化而回退。gate 的准入判定仍只看 `ticketsOnThread`(见 evals/directEval)——
+   * 兜底只喂候选卡,不改任何权力。
+   *
+   * 归账口径:工单 `origin.triggerIds` 之一的 Trigger 落在该线程、或其 Inputs 里有该线程的
+   * Trigger。已结束工单照旧计入(27 号 §3.3-B 重复判定防线)。
+   */
+  protected relatedTicketsOnThread(thread: Thread): Ticket[] {
+    const reachable = new Set(thread.subscriptions)
+    for (const ticket of this.repo.tickets.list()) {
+      for (const triggerId of [...ticket.origin.triggerIds, ...ticket.inputs.flatMap(input => input.kind === 'trigger' ? [input.triggerId] : [])]) {
+        const trigger = this.repo.triggers.get(triggerId)
+        if (trigger?.threads.some(ref => threadKey(ref) === thread.key)) { reachable.add(ticket.id); break }
+      }
+    }
+    return [...reachable].flatMap((id) => { const ticket = this.repo.tickets.get(id); return ticket ? [ticket] : [] })
   }
   protected source(ticket: Ticket): Trigger | undefined { return this.repo.triggers.get(ticket.origin.triggerId) }
   protected reaches(ticket: Ticket, trigger: Trigger, context = true): boolean {

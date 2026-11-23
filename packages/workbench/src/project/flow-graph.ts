@@ -170,7 +170,6 @@ export function flowGraphView(snapshot: WorkbenchSnapshot): FlowGraphView {
   const flow: FlowLiveState = snapshot.flow
   const liveByKey = new Map(flow.nodes.map(node => [node.key, node]))
   const stuck = stuckTickets(snapshot.tickets)
-  const working = snapshot.tickets.filter(ticket => ticket.column === 'working')
   const maxStuck = stuck.reduce<WorkbenchTicket | undefined>(
     (current, ticket) => (current === undefined || (ticket.waitMinutes ?? 0) > (current.waitMinutes ?? 0) ? ticket : current),
     undefined,
@@ -210,8 +209,9 @@ export function flowGraphView(snapshot: WorkbenchSnapshot): FlowGraphView {
       }
     }
     if (key === 'worker') {
-      const used = working.length
-      const slots = `${used}/${flow.workerSlots} 槽`
+      // 分子取 flow.slotsUsed:真执行面读数(stats().executor.usedSlots),离线面为 ticketStage
+      // 派生近似(2026-11-23 线上修复——旧口径按工单领域态数 running,把 waiting 停泊算成在跑)。
+      const slots = `${flow.slotsUsed}/${flow.workerSlots} 槽`
       const events = live?.events ?? []
       // 在办清单为快照 flow 数据(原型 04 逐字;在办 worker 集合 ≠ working 工单
       // 集合——event-planning-01 在办但其工单卡点等人,原型即此口径)

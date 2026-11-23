@@ -281,4 +281,55 @@ describe('M4 实接:引擎真值源(workerSection;30 号 §2 视图 5 数据源�
     expect(empty.toolHistory).toHaveLength(0)
     expect(empty.workerId).toBe('—')
   })
+
+  /**
+   * 2026-11-23 线上缺陷门禁:worker 报 `waiting` 后其回合已结束,但 Assignment 领域态仍是
+   * `running`(pending→running→ended 只由 endAssignment/工单 end 迁移)。工作台此前按领域态
+   * 投影,于是「运行中 jobs」与「槽位 n/m」把停泊工单算成在跑(生产实证:一张单显示
+   * 「运行 2843 分钟」)。本用例钉死运行时口径:`waiting` 不得计入运行中与槽位占用。
+   */
+  it('waiting 报告的工单不算运行中、不占槽(运行时口径,非领域态口径)', () => {
+    const ticketId = openTicket(runtime, '1')
+    const assignmentId = runtime.store.tickets.get(ticketId)!.assignments[0]!.id
+    runtime.engine.assignmentStarted(ticketId, assignmentId)
+    runtime.engine.report(ticketId, { state: 'waiting', summary: '本轮结束,等后续消息' })
+    runtime.engine.turnEnded(ticketId, assignmentId)
+    // 前置事实:领域态仍为 running(正是缺陷的触发条件,断言它没被别处改掉)
+    const stored = runtime.store.tickets.get(ticketId)!
+    expect(stored.assignments.at(-1)!.state).toBe('running')
+    expect(stored.assignments.at(-1)!.report!.state).toBe('waiting')
+    const worker = workerSection({ tasks: { db: { prepare: (sql: string) => runtime.store.db.prepare(sql) as never } } },
+      runtime.store.tickets.list(), 3, Date.parse(stored.assignments.at(-1)!.idleAt!))
+    // 运行时口径:不占槽、不进运行中树、jobs 标空闲
+    expect(worker.slotsUsed).toBe(0)
+    expect(worker.tree.children).toEqual([])
+    const job = worker.jobs.find(item => item.id === assignmentId)!
+    expect(job.running).toBe(false)
+    expect(job.meta).toContain('空闲')
+    expect(job.meta).not.toContain('运行 0')
+  })
+
+  /**
+   * 2026-11-23 线上修复(槽位真读数):`stats().executor.usedSlots` 在场时槽位分子以它为唯一
+   * 权威,不再按工单领域态推算——派生近似只在离线快照/mock 面兜底。两者不一致时显示执行面
+   * 自己记的账(它知道回合真的在跑没有,投影层看不到)。
+   */
+  it('slotsUsed 取执行面真读数(usedSlots 在场即权威),缺席才回退 ticketStage 派生', () => {
+    const ticketId = openTicket(runtime, '1')
+    const assignmentId = runtime.store.tickets.get(ticketId)!.assignments[0]!.id
+    runtime.engine.assignmentStarted(ticketId, assignmentId)
+    const input = { tasks: { db: { prepare: (sql: string) => runtime.store.db.prepare(sql) as never } } }
+    // 在线面:执行面读数 1、派生也 1(工单在 working 且非排队)。
+    const online = workerSection({ ...input, tasks: { ...input.tasks, usedSlots: 1 } }, runtime.store.tickets.list(), 3, Date.now())
+    expect(online.slotsUsed).toBe(1)
+    // worker 报 waiting 后回合已结束;执行面读数 0 才是权威(领域态仍 running 不影响显示)。
+    runtime.engine.report(ticketId, { state: 'waiting', summary: '本轮结束' })
+    runtime.engine.turnEnded(ticketId, assignmentId)
+    const settled = workerSection({ tasks: { ...input.tasks, usedSlots: 0 } }, runtime.store.tickets.list(), 3, Date.now())
+    expect(settled.slotsUsed).toBe(0)
+    expect(runtime.store.tickets.get(ticketId)!.assignments.at(-1)!.state).toBe('running')
+    // 离线面(无 usedSlots 读数):回退 ticketStage 派生,同样得 0——两条口径在这条面上一致。
+    const offline = workerSection(input, runtime.store.tickets.list(), 3, Date.now())
+    expect(offline.slotsUsed).toBe(0)
+  })
 })

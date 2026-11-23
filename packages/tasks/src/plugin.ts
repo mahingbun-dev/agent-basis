@@ -421,7 +421,20 @@ export interface TasksStats {
   readonly effects: { readonly waiting: number; readonly byKind: Readonly<Record<string, number>> }
   readonly outbox: { readonly pending: number; readonly dropped: number }
   readonly policy: { readonly version: string; readonly paused: boolean; readonly evalMode: Settings['eval']['mode']; readonly rules: number }
-  readonly executor: { readonly maxWorkers: number }
+  readonly executor: {
+    /** 配置的并发槽上限(settings.executor.maxWorkers)。 */
+    readonly maxWorkers: number
+    /**
+     * ★当前真实占用的槽数(2026-11-23 线上修复):DshExecutor 的 WorkerSlots 读数——
+     * 在跑回合 + 正在启动的 launch。缺席(stub 执行面/未接线)时如实 0。
+     *
+     * 为什么补这一项:工作台此前只能用工单领域态推算占槽数,而 Assignment 的 `running`
+     * 是领域态(`pending→running→ended`,只由 endAssignment/工单 end 迁移),worker 报
+     * `waiting` 后回合早已结束,槽位「n/m」与「运行 N 分钟」因此虚高(生产实证 2843 分钟)。
+     * 投影层仍保留 ticketStage 派生作离线/快照面的诚实近似,但在线读数以本项为唯一权威。
+     */
+    readonly usedSlots: number
+  }
   /** orchestrator 主会话 id(★master 会话引导;undefined = 未引导,不猜主会话)。 */
   readonly masterId: string | undefined
 }
@@ -891,6 +904,10 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
     realmOf: (): string => realm,
     // R1 effort 档位(35 号 A17):领域包声明经装配注入,进候选卡字段;缺席不带档。
     effort: (): EffortTier | undefined => options.effort,
+    // ★派发渠道纪律(2026-11-23;见 EngineOptions.isDispatchThread):webchat 主会话线程 =
+    // 派发渠道,不是话题线程——accept/attach 不为工单订阅它,其上每条消息都走候选卡。
+    // 内核不认 webchat/masterId 词汇,装配面在此注入;masterId 经 getter 现读(引导可晚于装配)。
+    isDispatchThread: (ref): boolean => ref.source === WEBSCHAT_SOURCE && masterId !== undefined && ref.id === masterId,
     scope,
     assessor,
     executor,
@@ -1035,7 +1052,8 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
         evalMode: settings.eval.mode,
         rules: settings.policy.rules.length,
       },
-      executor: { maxWorkers: settings.executor.maxWorkers },
+      // usedSlots(2026-11-23 线上修复):真实执行面的 WorkerSlots 读数(stub 面缺席时如实 0)。
+      executor: { maxWorkers: settings.executor.maxWorkers, usedSlots: dshExecutor?.usedSlots() ?? 0 },
       masterId,
     }
   }
