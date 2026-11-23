@@ -1185,9 +1185,12 @@ export function defineTasksPlugin(config: TasksPluginConfig = {}) {
           }
         }
         // debug 日志面自宿主 logger 派生(53 号 §3-D3「busy 静默跳过」的观测位;缺席即静默)。
+        // ★必须经 receiver 调用:把方法先提取到局部变量再裸调会丢 this,首次触发即
+        // TypeError(this is not a function)且以未处理拒绝炸宿主(隔离容器 E2E 实测:
+        // 首个工单终态即 fatal)。bind 保 receiver,TS 收窄也跨闭包成立。
         const loggerDebug = logger?.debug
         const compactionDebugLog = typeof loggerDebug === 'function'
-          ? (message: string): void => { loggerDebug(message) }
+          ? (message: string): void => { loggerDebug.call(logger, message) }
           : undefined
         // 行配置注入(cordis loader apply(ctx, config) 第二参):realm/effort 等部署面
         // 从 super 模板 eterna-tasks 行 config 传入(优先于包内缺省)。
