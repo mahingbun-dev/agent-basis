@@ -19,7 +19,7 @@ sha256 前 32 位十六进制;装配 = 段内行以空格连接、空行分段,�
 | worker.md | runtime/worker | worker | b2eb7693aa31c93c213913285e7cd6ac |
 | subscriptions.md | runtime/subscriptions | orchestrator+worker | 8b25658ec1956ff66d5dcc70f0610e51 |
 | replies.md | runtime/replies | orchestrator+worker | 40e769405348a7a3ceac724ed0f0d469 |
-| dispatch.md | runtime/dispatch | orchestrator | 0ad7fb71eb83ac664a3f115dfdd7e09b |
+| dispatch.md | runtime/dispatch | orchestrator | 90a1d47d469d757eef5c4d9fec5c6205 |
 | work.md | runtime/work | worker | dedf7fb341c7c99b003bf4fa0b559413 |
 | admission.md | runtime/admission | orchestrator | c6d63b8b3357ebf6cd76da57495aa133 |
 | handoff.md | runtime/handoff/orchestrator、runtime/handoff/worker 共用前缀 | 按角色拼接 | 4037d7050068281c94d419ac90c00298 |

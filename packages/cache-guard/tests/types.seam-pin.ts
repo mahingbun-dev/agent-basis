@@ -11,6 +11,7 @@
  *   request/header|context、assistant/message 携带 usage)
  * - packages/llm/llm/src/types.ts:182-196(TokenUsage,互斥桶)
  * - packages/llm/llm/src/call-config.ts:31(LlmCallConfig:provider/model)
+ * - 压缩事件载荷:@deepseek-ai/dsh-compaction 0.2.2-rc.5 src/types.ts:24,72(钉住 ⑧)
  */
 import type { LlmCallConfig } from '@deepseek-ai/dsh-llm'
 import type { TokenUsage } from '@deepseek-ai/dsh-llm/types'
@@ -18,7 +19,8 @@ import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import type { SessionMetrics } from '@eterna/observe'
 import { aggregateSessionMetrics } from '@eterna/observe'
 import {
-  cacheHitRateFromEvents, collectCacheUsage, createCacheGuard, extractCacheUsage, extractRequestRoute,
+  cacheHitRateFromEvents, collectCacheUsage, createCacheGuard, extractCacheUsage,
+  extractCompactionEvent, extractRequestRoute,
 } from '../src/index.ts'
 import type { RouteRefLike, SessionEventLike, TokenUsageLike } from '../src/index.ts'
 
@@ -57,3 +59,38 @@ export const pinBridgeFromObserve = createCacheGuard().hitRateFromMetrics(observ
 
 /** 钉住 ⑦:SessionEventLike 与官方事件的结构兼容方向(官方 → 本包输入)。 */
 export const pinEventLike: SessionEventLike = assistantMessageEvent
+
+/**
+ * 钉住 ⑧(53 号 D6 压缩事件打标):官方压缩事务载荷可直喂 `compaction-event` 提取器。
+ * 载荷依据 @deepseek-ai/dsh-compaction 0.2.2-rc.5 src/types.ts:24,72(SessionEventMap
+ * 插件合并:start/end = `{ compactionId, sourceCommandId?, turn: number|null }`,
+ * end 失败追加 `error?: string`;CompactionId/CommandId 为字符串品牌,src/brand.ts:4,
+ * dsh-brand brand.ts:18 `string & {…}` → 可赋值 string)。本包不依赖 dsh-compaction
+ * (零依赖纪律,压缩事件与 cache-usage/request-route 同骑 session 事件流),按官方
+ * 载荷的结构子集钉住:DSH 升级改形时 tsc --noEmit 即失败。
+ */
+interface OfficialCompactionData {
+  compactionId: string
+  sourceCommandId?: string
+  turn: number | null
+}
+interface OfficialCompactionEndData extends OfficialCompactionData {
+  error?: string
+}
+declare const officialCompactionStartEvent: {
+  type: 'compaction/start'
+  data: OfficialCompactionData
+  seq: number
+  time: number
+}
+declare const officialCompactionEndEvent: {
+  type: 'compaction/end'
+  data: OfficialCompactionEndData
+  seq: number
+  time: number
+}
+export const pinCompactionStartExtraction = extractCompactionEvent(officialCompactionStartEvent)
+export const pinCompactionEndExtraction = extractCompactionEvent(officialCompactionEndEvent)
+
+/** 钉住 ⑧b:官方事件流(含压缩事件)走命中率管线时打标块在场且形态完整。 */
+export const pinCompactionLabelFromOfficialEvents = cacheHitRateFromEvents(sessionEvents).compaction

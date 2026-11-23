@@ -51,6 +51,8 @@
 import { join } from 'node:path'
 import type { SQLInputValue } from 'node:sqlite'
 import type { Context } from '@deepseek-ai/cordis'
+import type { Agent } from '@deepseek-ai/dsh-agent'
+import { SessionId } from '@deepseek-ai/dsh-session'
 import { Engine } from './core/engine.ts'
 import type { DomainEvent, EffortTier, EngineForMainSession, Executor, SourceScope, Thread, Ticket, Trigger } from './core/index.ts'
 import { Effects, HealthBoard, type Health, type HealthEntry } from './effects/effects.ts'
@@ -168,7 +170,70 @@ export function sessionHostFromContext(ctx: Context): Omit<SessionsHost, 'effect
   return {
     context: ctx,
     ports: { controller, workspaces, permissions, persistence } as unknown as SessionHostPorts,
+    // ★角色 preset 装配闭合(53 号 §4-P0):派生束自带双角色 preset 值(同包常量,与
+    // cordis.patch.yml 两组 preset 的 config.id 交叉钉住)——生产 glue 不注入
+    // config.sessionHost,本派生分支即生产路径,主/worker 建会话请求自此带 agentPreset。
+    // 优先级不在此处:派生只在 config.sessionHost 缺席时产出(bootTasks 派生分支),
+    // 显式注入的 config.sessionHost.presets 经 createTasks 侧 options.sessionHost.presets
+    // 覆写语义恒优先。
+    presets: { orchestrator: ORCHESTRATOR_PRESET_ID, worker: WORKER_PRESET_ID },
   }
+}
+
+/**
+ * ctx.compaction 的结构子集(53 号 §3-D3/§4-P3 结构端口纪律:不 import @eterna/compaction
+ * 与 dsh-compaction,tasks-access-bridge 的 AccessStoreBridgeFace 同款——只认 compactNow
+ * 一键,结构面残缺即不接线)。compactNow 即 dsh-compaction seam 的手动压缩面:要求会话
+ * idle 且无 waking queued work(在途/排队投递),否则抛 code='busy' 的 ManualCompactionError
+ * ——判别恒按 `code` 字符串,不 instanceof(「Discrimination is always by `code`,never by
+ * instanceof」,sessions.ts RemoteErrorSeam 同款纪律;本包不 import 该错误类)。
+ * 返回值只透传不计型(dsh CompactionResult;任务侧只发起不消费)。
+ */
+export interface CompactionSeam {
+  compactNow(agent: Agent, signal: AbortSignal): Promise<unknown>
+}
+
+/**
+ * 宿主 ctx → compaction 服务的机会读取(53 号 §3-D3 结构端口;sessionHostFromContext 同款
+ * 双路反射惯例:直读 try/catch + reflect.get(name, false) 兜底)。宿主压缩组未挂载(compaction
+ * preset 组缺席)或服务缺 compactNow 方法(旧宿主/结构漂移)即返回 undefined——任务边界触发
+ * 压缩静默不接线(fail-open,不报错不阻断工单流);显式注入 options.compaction 恒优先。
+ */
+export function compactionFromContext(ctx: Context): CompactionSeam | undefined {
+  const reflect = (ctx as unknown as { readonly reflect?: { get(name: string, strict?: boolean): unknown } }).reflect
+  const ctxAny = ctx as unknown as Record<string, unknown>
+  let service: unknown
+  try {
+    const direct = ctxAny['compaction']
+    if (typeof direct === 'object' && direct !== null) service = direct
+  } catch { /* filtered ctx 直读抛错=未注入,落 reflect 兜底(sessionHostFromContext 同款) */ }
+  if (service === undefined) {
+    const value = reflect?.get('compaction', false)
+    if (typeof value === 'object' && value !== null) service = value
+  }
+  if (service === undefined || typeof (service as Record<string, unknown>)['compactNow'] !== 'function') return undefined
+  return service as unknown as CompactionSeam
+}
+
+/**
+ * 会话 agent 自身作用域的 compaction 结构端口(F3 复审修复的现读主路径):dsh Agent 暴露
+ * agent 作用域 ctx(@deepseek-ai/dsh-agent runtime-types「Agent-scoped context;its
+ * contributions are agent-local」),会话按角色 preset 挂载的压缩组(isolate.compaction,
+ * orchestrator 特化参数 0.7/true 所在)即在该作用域内可见——宿主树展平的 standard 默认参
+ * 实例不是会话的压缩引擎。每触发现读、不缓存实例:preset 组晚于 tasks boot 装载/换挂时,
+ * 下一次边界触发即取到当下实例(D2 特化参数作用于 D3 边界压缩的前提)。
+ * 读不到(测试假 agent 无 ctx / 会话作用域未挂压缩组 / 结构漂移)返回 undefined,由调用方
+ * 落宿主 ctx 兜底;agent.ctx 直读不抛(属性在类型面恒声明,防御面仅挡裸对象假件)。
+ * 残余口径(诚实登记):「orchestrator preset 压缩组在 agent 作用域可见」依据 isolate 语义
+ * (composition-reference:「a preset plugin that provides a service isolates the provider
+ * and all consumers together」+ Agent-scoped ctx)静态推得,离线环境无活宿主未做生产实测
+ * (P3 验收「session log 出现 compaction/start-end 标记对」待真实链路);现读面使「当次触发
+ * 实际取到哪个实例」成为可观测问题——作用域缺席即自动落宿主 ctx,行为不劣于修复前的钉死。
+ */
+export function compactionFromAgent(agent: Agent): CompactionSeam | undefined {
+  const scope: unknown = (agent as { readonly ctx?: unknown }).ctx
+  if (typeof scope !== 'object' || scope === null) return undefined
+  return compactionFromContext(scope as Context)
 }
 
 /**
@@ -235,6 +300,32 @@ export interface TasksOptions {
   /** channels 回执投递适配器(A21 接线;缺省经 defineTasksPlugin 自宿主 ctx 派生
    *  (channels-delivery.ts),宿主亦无 channels 服务时回落 UNWIRED_CHANNELS——回执挂起等待,不落 dropped)。 */
   readonly channels?: ChannelsDelivery
+  /**
+   * 主会话边界压缩端口(53 号 §3-D3/§4-P3「任务边界触发」):ctx.compaction 的结构子集
+   *  (CompactionSeam)。显式注入恒优先;缺席时 defineTasksPlugin 自宿主 ctx 机会派生
+   *  (compactionFromContext),派生不出(裸宿主/压缩组未挂/结构残缺)即不接线——工单边界
+   *  触发压缩静默不生效(fail-open,不阻断工单流)。接线后行为:工单终态(ticket.ended)落定
+   *  → 主会话 id 已引导且 agent 可解析 → compactNow(主会话 agent,装配关停信号);busy
+   *  (非 idle/在途投递)或失败 → debug 日志静默跳过,绝不重试(BoundaryCompaction 注)。
+   */
+  readonly compaction?: CompactionSeam
+  /**
+   * 派生压缩端口的每触发现读面(53 号 F3 复审修复):boot 一次性解析 compactionFromContext
+   * 会让钩子钉死 boot 时的实例——ctx.compaction 晚于 tasks boot 挂载即 D3 永久静默,先挂载
+   * 的宿主级(standard 默认参)实例会顶住后挂载的会话特化组。本面在每次边界触发时现读:
+   * 入参 = 已解析的主会话 agent(实现应先读 agent.ctx——会话按角色 preset 挂载的压缩组
+   * isolate.compaction 在 agent 作用域可见,orchestrator 特化参数由此作用于 D3),落空再
+   * 落宿主 ctx;返回 undefined = 端口缺席(debug 跳过,fail-open 不阻断工单流)。
+   * 显式注入 options.compaction 恒优先——两者同时在位时本面不消费;defineTasksPlugin 派生
+   * 路径注入本面(不再落 compaction),显式注入走 compaction 钉死语义(glue 决策)。
+   */
+  readonly compactionResolve?: (agent: Agent) => CompactionSeam | undefined
+  /**
+   * 边界压缩钩子的 debug 日志面(53 号 §3-D3「busy 静默跳过」的观测位):busy/agent 不可
+   * 解析/压缩失败都只经本面记一条 debug,绝不重试、绝不外溢。缺省静默——观测面可缺席,
+   * 行为不变(fail-open 纪律);defineTasksPlugin 自宿主 ctx.logger 派生注入。
+   */
+  readonly compactionDebugLog?: (message: string) => void
   /**
    * 候选评估的线程上下文读取端口(A19/A21 接线位;缺省不提供——候选评估只用触发文本与批次,
    * 候选卡与 context 的 thread 节给「该 Source 无线程上下文」的显式说明)。
@@ -426,6 +517,10 @@ export interface TasksRuntime extends TasksWorld {
   readonly executor: StubExecutor | DshExecutor
   /** worker session 面(sessionHost 注入时在场;A22;glue/测试深消费)。 */
   readonly sessions: Sessions | undefined
+  /** 生效的角色 preset 选择(53 号 §4-P0 探针面):主/worker 建会话请求 agentPreset 的实际
+   * 取值——显式注入 > 派生束常量(值即 src/session/presets.ts,boot 日志 presets 段同源);
+   * stub 装配(无宿主 session 面,不建会话)为 undefined。 */
+  readonly presets: Partial<Record<SessionRole, string>> | undefined
   /** A21 channels 入站汇(被动;glue 注给 channels webhook 网关 sink 位,39 §3-E3)。 */
   readonly sources: ChannelTriggerAdapter
   readonly board: HealthBoard
@@ -476,6 +571,94 @@ export class PassDriver {
     if (this.timer === undefined) return
     clearInterval(this.timer)
     this.timer = undefined
+  }
+}
+
+/** BoundaryCompaction 的装配依赖(compaction/resolveCompaction 二选一——createTasks 仅在接线条件齐备时构造)。 */
+export interface BoundaryCompactionDeps {
+  /** 显式注入的 compaction 端口(glue 决策恒优先;与 resolveCompaction 同时在位时本面优先)。 */
+  readonly compaction?: CompactionSeam
+  /**
+   * 派生端口的每触发现读面(F3 复审修复;入参 = 已解析的主会话 agent)。实现应先读
+   * agent 作用域(compactionFromAgent,会话特化压缩实例所在)再落宿主 ctx;返回 undefined =
+   * 端口缺席(debug 跳过,不阻断)。与 compaction 二选一。
+   */
+  readonly resolveCompaction?: (agent: Agent) => CompactionSeam | undefined
+  /** 主会话 agent 解析面(masterId → 宿主 Agent;不可解析返回 undefined)。 */
+  readonly resolveAgent: () => Promise<Agent | undefined>
+  /** 装配关停信号(lifetime;dispose 中止在跑的压缩尝试)。 */
+  readonly signal: AbortSignal
+  /** debug 观测面(缺省静默——观测面可缺席,行为不变)。 */
+  readonly debug?: (message: string) => void
+}
+
+/**
+ * 工单边界压缩钩子(53 号 §3-D3/§4-P3「任务边界触发」;20 号 §3.1 附加触发):工单进入终态
+ * (`ticket.ended` 落定)时,若主会话在场且 agent 可解析,经结构端口发起一次 compactNow——
+ * 让压缩 checkpoint 落在任务干净边界,摘要质量最高。
+ *
+ * idle 与「无在途投递」的裁决在宿主 compactNow 内部(dsh runMaintenance 保留 next-turn
+ * admission:会话非 idle 或有 waking queued work——在途/排队投递——即抛 code='busy'),本钩子
+ * 不预判不复制该闸;busy 即预期分支:debug 日志静默跳过,下一工单边界再试。fail-open 纪律:
+ * 每事件恰一次尝试,任何失败(busy/解析失败/压缩报错/关停中止)只记 debug,绝不重试(无重试
+ * 风暴)、绝不外溢、绝不阻断工单流(emitEvent 分发器事务内同步回调,本钩子首行即异步让路,
+ * 不碰内核事务)。
+ * 导出仅为其单测面(53 号 §4-P3 具名单测;PassDriver 同款纪律),生产面由 createTasks 装配持有。
+ */
+export class BoundaryCompaction {
+  private readonly deps: BoundaryCompactionDeps
+  constructor(deps: BoundaryCompactionDeps) {
+    this.deps = deps
+  }
+  /**
+   * 领域事件入口(createTasks 的 emitEvent 装配位调用):只认 `ticket.ended`,其余事件零开销
+   * 直返。返回的 promise 供单测 await;生产面以 `void` 消化(fire-and-forget,trigger 不拒)。
+   */
+  onEvent(event: DomainEvent): Promise<void> {
+    if (event.type !== 'ticket.ended') return Promise.resolve()
+    return this.trigger(event.data.ticketId)
+  }
+  /** 一次边界压缩尝试:每事件恰一次,失败不重试(下一工单边界再试);任何失败不外溢。 */
+  async trigger(ticketId: string): Promise<void> {
+    const { resolveAgent, signal } = this.deps
+    let agent: Agent
+    try {
+      const resolved = await resolveAgent()
+      if (resolved === undefined) {
+        this.log(`主会话 agent 不可解析,工单 ${ticketId} 的边界压缩跳过(下一工单边界再试)`)
+        return
+      }
+      agent = resolved
+    } catch (error) {
+      this.log(`主会话 agent 解析失败,工单 ${ticketId} 的边界压缩跳过(不重试,不阻断工单流):${String(error)}`)
+      return
+    }
+    // 端口解析(显式注入钉死 / 派生现读,见 BoundaryCompactionDeps 注):缺席即 debug 跳过
+    // ——F3 修复前「boot 缺席 = 钩子整体不接线」的永久静默,收敛为每次触发的可见跳过。
+    let seam: CompactionSeam | undefined
+    try {
+      seam = this.deps.compaction ?? this.deps.resolveCompaction?.(agent)
+    } catch (error) {
+      this.log(`compaction 端口现读失败,工单 ${ticketId} 的边界压缩跳过(不重试,不阻断工单流):${String(error)}`)
+      return
+    }
+    if (seam === undefined) {
+      this.log(`compaction 端口缺席(压缩组未挂载),工单 ${ticketId} 的边界压缩跳过(下一工单边界再试)`)
+      return
+    }
+    try {
+      await seam.compactNow(agent, signal)
+    } catch (error) {
+      // busy = 宿主 idle 闸(会话非 idle 或有在途投递)——预期分支,静默跳过(53 号 §3-D3
+      // 「下一边界再试」);其余失败同口径记 debug。判别按 code,不 instanceof(CompactionSeam 注)。
+      const code = (error as { code?: unknown } | null | undefined)?.code
+      this.log(code === 'busy'
+        ? `主会话忙碌(非 idle 或有在途投递),工单 ${ticketId} 的边界压缩静默跳过,下一工单边界再试`
+        : `工单 ${ticketId} 边界压缩失败(不重试,不阻断工单流):${String(error)}`)
+    }
+  }
+  private log(message: string): void {
+    this.deps.debug?.(`[tasks] ${message}`)
   }
 }
 
@@ -625,6 +808,8 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
   let executor: StubExecutor | DshExecutor = stubExecutor
   let sessions: Sessions | undefined
   let dshExecutor: DshExecutor | undefined
+  /** 生效的角色 preset 选择(53 号 §4-P0 探针面):建会话请求 agentPreset 的实际取值(executor 步赋值)。 */
+  let rolePresets: Partial<Record<SessionRole, string>> | undefined
   /** master 会话引导健康项('master';仅约定派生路径认领,见下——采信 id 的建立归 glue)。 */
   let masterHealth: HealthEntry | undefined
   if (options.sessionHost !== undefined) {
@@ -647,9 +832,13 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
     //   立即生效。既有主会话(标准 preset 记账)随 ensure 复用即获得角色 section;
     //   其 recorded preset 的替换归会话重建(见审计 §2.1 备注)。
     const rolePrompts = new Prompts(store)
+    // 生效 preset 选择(53 号 §4-P0):显式注入的 options.sessionHost.presets 恒优先(可为
+    // Partial——只注入一角色,另一角色随宿主缺省);缺席时回双角色常量。派生束自 P0 起已
+    // 自带同值(本行对派生路径幂等取同),对 glue 显式注入但不带 presets 的路径为回退面。
+    rolePresets = options.sessionHost.presets ?? { orchestrator: ORCHESTRATOR_PRESET_ID, worker: WORKER_PRESET_ID }
     sessions = new Sessions({ ...options.sessionHost, effects, lifetime: lifetime.signal,
       masterId: masterId ?? masterSessionId(realm), roleModel,
-      presets: options.sessionHost.presets ?? { orchestrator: ORCHESTRATOR_PRESET_ID, worker: WORKER_PRESET_ID },
+      presets: rolePresets,
       rolePrompt: (role: SessionRole): string => rolePrompts.compose(rolePrompts.current().config, role) })
     // ★候选卡投递面·自派生(★最后一公里·候选卡,2026-11-18):glue 未显式注入
     // deliverCandidate 时,Sessions 就绪即接线——候选卡经 Sessions.promptHeld 投到主会话
@@ -720,6 +909,37 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
   // 下一轮 pass 开新 Eval 重投候选卡(Engine.resumeAssessments 注)。engineRef 赋值后立即
   // 执行(先于 passDriver.start,对账开的新 Eval 由 pass 周期评估)。
   engine.resumeAssessments()
+  // ★工单边界压缩钩子(53 号 §3-D3/§4-P3「任务边界触发」):压缩端口(显式注入
+  // TasksOptions.compaction,或派生现读面 TasksOptions.compactionResolve——F3 复审修复后
+  // 派生路径走后者,boot 缺席不再等于永久静默)与主会话解析面(sessionHost 在场且 masterId
+  // 已引导)双在场才接线——任一缺席即不接线,静默不报错(fail-open:裸宿主/测试装配常态缺席)。
+  // 接线后:ticket.ended 落定 → 解析主会话 agent → 端口解析(显式钉死/每触发现读,缺席
+  // debug 跳过)→ compactNow;busy(非 idle/在途投递)或失败 → debug 静默跳过,绝不重试
+  // (BoundaryCompaction 注:idle 与在途投递的裁决在宿主闸内)。订阅随 eventListeners
+  // (emitEvent 分发,订阅方异常不外溢),dispose 时 clear 收口;生产面的 promise 以 void
+  // 消化(trigger 全捕获不拒)。
+  if (options.sessionHost !== undefined && masterId !== undefined) {
+    const sessionHost = options.sessionHost
+    // 每事件现解析主会话 agent(resolveAgent 已有即取,宿主重启后由它复得;失败按 undefined
+    // 记 debug 跳过——不缓存宿主 Agent 实例,跨宿主重启不悬挂)。
+    const base = {
+      resolveAgent: async (): Promise<Agent | undefined> => {
+        const result = await sessionHost.ports.controller.resolveAgent(SessionId(masterId))
+        return 'error' in result ? undefined : result.agent
+      },
+      signal: lifetime.signal,
+      ...(options.compactionDebugLog !== undefined ? { debug: options.compactionDebugLog } : {}),
+    }
+    // 显式注入恒优先(glue 决策,钉死语义);派生路径走每触发现读(compactionResolve 注)。
+    if (options.compaction !== undefined) {
+      const boundaryCompaction = new BoundaryCompaction({ ...base, compaction: options.compaction })
+      eventListeners.add((event: DomainEvent): void => { void boundaryCompaction.onEvent(event) })
+    }
+    else if (options.compactionResolve !== undefined) {
+      const boundaryCompaction = new BoundaryCompaction({ ...base, resolveCompaction: options.compactionResolve })
+      eventListeners.add((event: DomainEvent): void => { void boundaryCompaction.onEvent(event) })
+    }
+  }
   // [active-tickets] 活跃工单清单 section(35 号 A24;28 号 §6;24a C6 拍板 pass 周期刷新):
   // 数据源全部现读(store 活跃面/executor.maxWorkers);缓存由 pass 驱动重算——PassDriver
   // 每轮 pass 在 evaluateDue 之后调 refresh(清单是提示不是协议,秒级延迟无害,28 §8-3);
@@ -849,6 +1069,7 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
     assessor,
     executor,
     sessions,
+    presets: rolePresets,
     sources,
     board,
     engine,
@@ -940,21 +1161,52 @@ export function defineTasksPlugin(config: TasksPluginConfig = {}) {
         // 方法逐调用现读,reply effect 的 Later 重试吸收挂载时序;结构面残缺 fail-closed
         // 不派生,回落 UNWIRED_CHANNELS。显式注入恒优先(glue 的适配面可按需覆写)。
         const channelsDerived = config.channels === undefined ? channelsDeliveryFromContext(ctx) : undefined
+        // 宿主 logger 机会读取(结构面,缺席静默——memory-plugin 同款口径,测试 ctx 可缺席;
+        // 提前到 resolved 构造前:compactionDebugLog 自其 debug 面派生注入)。
+        const logger = (ctx as unknown as { readonly logger?: {
+          readonly info?: (...args: unknown[]) => void
+          readonly debug?: (...args: unknown[]) => void } }).logger
+        // ★compaction 结构端口自派生(53 号 §3-D3/§4-P3;F3 复审修复:boot 一次性解析改为
+        // 每触发现读):glue 未显式注入 config.compaction(或行配置 compaction)时,不再在
+        // boot 时把 ctx.compaction 钉死进 options——旧实现两处隐患:①宿主压缩组晚于 tasks
+        // boot 挂载(preset 组随首会话装载的常态)→ 派生不出,D3 永久静默无日志;②boot 时
+        // 解析到的是宿主树展平的 standard 默认参实例(isolate.compaction 的会话特化组不可
+        // 见),钩子持该引用后 preset 特化参数(orchestrator 0.7/true)对 D3 边界压缩不生效。
+        // 改为派生「每触发现读」面注入 compactionResolve:agent 作用域压缩实例
+        // (compactionFromAgent,会话特化参数所在)优先,宿主 ctx.compaction 兜底;两处缺席
+        // = 每次触发一条 debug 跳过(fail-open,工单流不受影响,端口就绪即自愈)。显式注入
+        // 恒优先(钉死语义,glue 决策)。
+        let compactionDerived: { resolveCompaction: (agent: Agent) => CompactionSeam | undefined } | undefined
+        if (config.compaction === undefined && rowConfig?.compaction === undefined) {
+          compactionDerived = {
+            resolveCompaction: (agent: Agent): CompactionSeam | undefined =>
+              compactionFromAgent(agent) ?? compactionFromContext(ctx),
+          }
+        }
+        // debug 日志面自宿主 logger 派生(53 号 §3-D3「busy 静默跳过」的观测位;缺席即静默)。
+        const loggerDebug = logger?.debug
+        const compactionDebugLog = typeof loggerDebug === 'function'
+          ? (message: string): void => { loggerDebug(message) }
+          : undefined
         // 行配置注入(cordis loader apply(ctx, config) 第二参):realm/effort 等部署面
         // 从 super 模板 eterna-tasks 行 config 传入(优先于包内缺省)。
         const resolved: TasksPluginConfig = {
           ...config,
           ...(rowConfig ?? {}),
-          // 派生注入(sessionHost/channels 均为只读字段,经展开覆写而非属性赋值)。
+          // 派生注入(sessionHost/channels/compaction 均为只读字段,经展开覆写而非属性赋值)。
           ...(rowConfig?.sessionHost === undefined && config.sessionHost === undefined && derived !== undefined
             ? { sessionHost: derived }
             : {}),
           ...(rowConfig?.channels === undefined && config.channels === undefined && channelsDerived !== undefined
             ? { channels: channelsDerived }
             : {}),
+          ...(rowConfig?.compaction === undefined && config.compaction === undefined && compactionDerived !== undefined
+            ? { compactionResolve: compactionDerived.resolveCompaction }
+            : {}),
+          ...(rowConfig?.compactionDebugLog === undefined && config.compactionDebugLog === undefined && compactionDebugLog !== undefined
+            ? { compactionDebugLog }
+            : {}),
         }
-        // 宿主 logger 机会读取(结构面,缺席静默——memory-plugin 同款口径,测试 ctx 可缺席)。
-        const logger = (ctx as unknown as { readonly logger?: { readonly info?: (...args: unknown[]) => void } }).logger
         // ★sessionHost 装配面注入(④;2026-11-18 三断点④):glue 未显式注入 config.sessionHost
         // 时,自宿主 ctx 机会读取 session 服务束(反射惯例,见 sessionHostFromContext 注)派生
         // 注入——宿主服务缺席(裸 cordis ctx/测试裸宿主)即不派生,createTasks 回落
@@ -1076,7 +1328,20 @@ export function defineTasksPlugin(config: TasksPluginConfig = {}) {
         // governance-plugin.ts:100-103 同款);provide 的 disposer 运行时是 async
         // (reflect.ts:311-321),关停路径裸调用不 await,防阻塞宿主(audit 插件同款)。
         const disposeService = ctx.provide(TASKS_SERVICE_ID, runtime)
-        logger?.info?.(`[tasks] realm=${runtime.realm} boot=${runtime.boot.join('→')}`)
+        // preset 选择可见面(53 号 §4-P0 探针):boot 行尾附 presets 段——主/worker 建会话
+        // 请求的 agentPreset 取值(显式注入/派生束/缺省常量,值即 src/session/presets.ts
+        // 常量,与 runtime.presets 同源);stub 装配无宿主 session 面(不建会话)时为 '-'。
+        const presetLabel = ((): string => {
+          const presets = runtime.presets
+          if (presets === undefined) return '-'
+          const parts: string[] = []
+          for (const role of ['orchestrator', 'worker'] as const) {
+            const preset = presets[role]
+            if (preset !== undefined) parts.push(`${role}:${preset}`)
+          }
+          return parts.join(',')
+        })()
+        logger?.info?.(`[tasks] realm=${runtime.realm} boot=${runtime.boot.join('→')} presets=${presetLabel !== '' ? presetLabel : '-'}`)
         // 关停配逆(34 §4-E):先撤 webchat 入口订阅面与 section 注入面、ctx 服务(反注册面),
         // 再按装配逆序回放组件关停;装配配逆移交外层 disposer(stopped/disposeTasks 闭包态,
         // bootTasks 无返回值)。

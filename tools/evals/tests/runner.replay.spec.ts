@@ -83,6 +83,26 @@ describe('runPack:subset=smoke 全链路', () => {
     expect(events.some(event => event.type === 'approval/asked')).toBe(true)
     expect(events.some(event => event.type === 'approval/decided')).toBe(true)
   })
+
+  it('run.json 口径指纹 manifest(F2 复审修复):同 pack 同 adapter 稳定,换 adapter 即不同', async () => {
+    const outA = path.join(outRoot, 'manifest-a')
+    const outB = path.join(outRoot, 'manifest-b')
+    await runPack({ packDir: PACK, outDir: outA })
+    await runPack({ packDir: PACK, outDir: outB })
+    const a = JSON.parse(await fs.readFile(path.join(outA, 'run.json'), 'utf8')) as { fingerprint: string; adapterId: string; packDir: string }
+    const b = JSON.parse(await fs.readFile(path.join(outB, 'run.json'), 'utf8')) as { fingerprint: string }
+    expect(a.adapterId).toBe('auto')
+    expect(a.packDir).toBe(path.resolve(PACK))
+    expect(a.fingerprint).toMatch(/^[0-9a-f]{64}$/)
+    // 同 pack 同 adapter 的两跑指纹一致——diff-pass-rate 识别恒真对比的依据。
+    expect(b.fingerprint).toBe(a.fingerprint)
+    // 换 adapter(压缩态腿改口径的形态)指纹不同——门禁自动武装的依据。
+    const outC = path.join(outRoot, 'manifest-c')
+    await runPack({ packDir: PACK, adapterId: 'replay', outDir: outC })
+    const c = JSON.parse(await fs.readFile(path.join(outC, 'run.json'), 'utf8')) as { fingerprint: string; adapterId: string }
+    expect(c.adapterId).toBe('replay')
+    expect(c.fingerprint).not.toBe(a.fingerprint)
+  })
 })
 
 describe('runPack:全量(含负样本与 schema 违例)', () => {

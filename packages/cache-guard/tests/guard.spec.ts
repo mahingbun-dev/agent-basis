@@ -97,10 +97,22 @@ describe('createCacheGuard 组合门', () => {
     guard.dispose()
   })
 
-  it('hitRate/hitRateFromMetrics/report/extractors 服务面可用', () => {
+  it('hitRate/hitRateFromMetrics/report/extractors 服务面可用(含压缩事件打标门)', () => {
     const guard = createCacheGuard()
     expect(guard.extractors['cache-usage']).toBeTypeOf('function')
     expect(guard.hitRate([{ type: 'assistant/message', data: { usage: { inputTokens: 0, outputTokens: 1, cacheReadTokens: 4 } } }]).hitRate).toBe(1)
+    // 压缩事件打标(53 号 D6):hitRate 事件流路径携带 compaction 块。
+    const compactionHit = guard.hitRate([
+      { type: 'compaction/start', data: { compactionId: 'c-1', turn: 1 }, seq: 7, time: 700 },
+      { type: 'assistant/message', data: { usage: { inputTokens: 0, outputTokens: 1, cacheReadTokens: 4 } } },
+    ])
+    expect(compactionHit.hitRate).toBe(1)
+    expect(compactionHit.compaction?.starts).toBe(1)
+    expect(compactionHit.compaction?.markers[0]).toEqual({ phase: 'start', compactionId: 'c-1', turn: 1, seq: 7, time: 700 })
+    // extractCompaction 便捷门 = extractors['compaction-event']。
+    expect(guard.extractCompaction({ type: 'compaction/end', data: { compactionId: 'c-1', turn: 1, error: 'invalid-summary: x' }, seq: 8, time: 800 }))
+      .toEqual({ phase: 'end', compactionId: 'c-1', turn: 1, error: 'invalid-summary: x', seq: 8, time: 800 })
+    expect(guard.extractCompaction({ type: 'turn/start', data: { turn: 1 } })).toBeNull()
     const fromMetrics = guard.hitRateFromMetrics({
       turns: 1, steps: 1, modelCalls: 1,
       tokens: { input: 0, output: 5, cacheRead: 10, cacheWrite: 0, reasoning: 0, billed: 15 },
@@ -109,6 +121,10 @@ describe('createCacheGuard 组合门', () => {
     })
     expect(fromMetrics.hitRate).toBe(1)
     expect(fromMetrics.promptTokens).toBe(10)
+    // observe 桥接路径不感知压缩事件 → 打标块缺省(未知)。
+    expect('compaction' in fromMetrics).toBe(false)
+    // 样本路径同理缺省。
+    expect('compaction' in guard.report([])).toBe(false)
     expect(guard.report([]).calls).toBe(0)
     guard.dispose()
   })

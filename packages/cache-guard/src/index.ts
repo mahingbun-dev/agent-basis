@@ -13,10 +13,20 @@
  *    段内改写/截短/非末段增长/段序变动/尾部截断等明细;
  * 3. 稳定性检查(stability.ts):连续多轮序列 → 告警列表 + 稳定性评分
  *    (score = Σ共同前缀字符/Σ上轮字符,对失稳严格单调递减);
- * 4. 命中率输出(hitrate.ts):事件字段提取器注册表(cache-usage/request-route 唯一 ID)
- *    + 与 @eterna/observe aggregateSessionMetrics 同口径的 cacheRead/(input+cacheRead+cacheWrite)
- *    报表与桥接;
+ * 4. 命中率输出(hitrate.ts):事件字段提取器注册表(cache-usage/request-route/compaction-event
+ *    唯一 ID)+ 与 @eterna/observe aggregateSessionMetrics 同口径的
+ *    cacheRead/(input+cacheRead+cacheWrite) 报表与桥接,附压缩事件打标块
+ *    (compaction/start|end 计数与流内锚点;53 号 D6,收口 28 号 §7-2——命中率下降
+ *    可区分「压缩导致」vs「前缀污染」);
  * 5. 组合门(本文件):CACHE_GUARD_SERVICE_ID 唯一 ID 服务面 + 增量追踪(track/reset 配逆)。
+ *
+ * ★生产消费面口径(53 号复审登记,诚实披露):本包当前为未挂载的库面——全仓无任何
+ * glue/profile 行 provide ctx.cacheGuard 或消费 hitRate/压缩打标块,唯一引用方是
+ * packages/compaction/tests/e2e-compaction.spec.ts(观测面未端到端接出)。28 §7-2 的
+ * 交付物 = 打标本身(监控项 + 标签,已交付:提取器 + 报表块 + 测试);挂载接入
+ * (12 号 §1.5「挂 request/header 事件、llm seam」的组合面)属独立集成项,不在
+ * 53 号 P0–P4 清单内,待监控面立项时一并接出——接出前,D6 打标只经本包测试与
+ * 下游消费方(未来 observe/admin 面)可见,不伪报「已上生产观测」。
  *
  * Cordis 纪律:纯函数层零副作用、无旁路全局;组合门把全部能力以
  * `ctx.cacheGuard` 服务(注册表 + CACHE_GUARD_SERVICE_ID 唯一 ID)形态 provide,
@@ -25,10 +35,13 @@
  */
 import type { SessionMetrics } from '@eterna/observe'
 import { hitRateFromSessionMetrics } from './hitrate.ts'
-import { cacheHitRateFromEvents, cacheHitRateReport, EVENT_FIELD_EXTRACTORS, extractCacheUsage, extractRequestRoute } from './hitrate.ts'
+import { cacheHitRateFromEvents, cacheHitRateReport, EVENT_FIELD_EXTRACTORS, extractCacheUsage, extractCompactionEvent, extractRequestRoute } from './hitrate.ts'
 import type { UsageEventFields } from './hitrate.ts'
 import { analyzeStability } from './stability.ts'
-import type { CacheHitRateReport, CacheUsageSample, PromptAssembly, SessionEventLike, StabilityReport } from './types.ts'
+import type {
+  CacheHitRateReport, CacheUsageSample, CompactionEventMarker, PromptAssembly, SessionEventLike,
+  StabilityReport,
+} from './types.ts'
 import type { EventFieldExtractor, EventFieldExtractorId, RouteRefLike } from './types.ts'
 
 export { analyzeStability } from './stability.ts'
@@ -38,14 +51,16 @@ export { classifyVolatility, extractVolatileMatches, VOLATILE_PATTERNS } from '.
 export type { VolatileMatch, VolatilePattern, VolatilityClassification } from './volatile.ts'
 export {
   cacheHitRateFromEvents, cacheHitRateReport, collectCacheUsage, EVENT_FIELD_EXTRACTOR_IDS,
-  EVENT_FIELD_EXTRACTORS, extractCacheUsage, extractRequestRoute, hitRateFromSessionMetrics,
+  EVENT_FIELD_EXTRACTORS, extractCacheUsage, extractCompactionEvent, extractRequestRoute,
+  hitRateFromSessionMetrics,
 } from './hitrate.ts'
 export type { UsageEventFields } from './hitrate.ts'
 export { isRecord } from './types.ts'
 export type {
-  CacheHitRateReport, CacheUsageSample, EventFieldExtractor, EventFieldExtractorId, PromptAssembly,
-  PromptSegment, RouteCacheHitRate, RouteRefLike, SessionEventLike, StabilityReport, StabilityWarning,
-  StabilityWarningKind, TokenUsageLike, TransitionRetention,
+  CacheHitRateReport, CacheUsageSample, CompactionEventMarker, CompactionEventStats,
+  EventFieldExtractor, EventFieldExtractorId, PromptAssembly, PromptSegment, RouteCacheHitRate,
+  RouteRefLike, SessionEventLike, StabilityReport, StabilityWarning, StabilityWarningKind,
+  TokenUsageLike, TransitionRetention,
 } from './types.ts'
 
 /** 组合层注册 ctx.cacheGuard 服务时的唯一 ID(注册表 + 唯一 ID 形态,provide 可交换)。 */
@@ -73,9 +88,10 @@ export interface CacheGuard {
   hitRateFromMetrics(metrics: SessionMetrics): CacheHitRateReport
   /** 用量样本 → 报表(纯函数转发;供自定义事件源的消费方复用)。 */
   report(samples: readonly CacheUsageSample[]): CacheHitRateReport
-  /** 单事件字段提取便捷门(等价 extractors['cache-usage'] / extractors['request-route'])。 */
+  /** 单事件字段提取便捷门(等价 extractors['cache-usage'] / extractors['request-route'] / extractors['compaction-event'])。 */
   extractUsage(event: SessionEventLike): UsageEventFields | null
   extractRoute(event: SessionEventLike): RouteRefLike | null
+  extractCompaction(event: SessionEventLike): CompactionEventMarker | null
   /**
    * 增量追踪:追加一轮 prompt 组装,返回当前窗口序列的稳定性报告。
    * effect 面:窗口滑出超限最旧者(maxTracked ≤0 无界)。
@@ -104,6 +120,7 @@ export function createCacheGuard(options: CacheGuardOptions = {}): CacheGuard {
     report: samples => cacheHitRateReport(samples),
     extractUsage: event => extractCacheUsage(event),
     extractRoute: event => extractRequestRoute(event),
+    extractCompaction: event => extractCompactionEvent(event),
     track(assembly) {
       if (disposed) throw new Error('cache-guard disposed: track is no longer available')
       window.push(assembly)

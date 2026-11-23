@@ -9,15 +9,19 @@
  * - usage 骑在 assistant/message 事件上(session/src/types.ts:338-350;assistant/attempt 不带不计);
  * - 路由归属锚点:request/header(header.config,types.ts:395-403)→ request/context
  *   (types.ts:405-413),两者皆未出现时归 unknown/unknown(observe 同约定);
- * - 从未上报缓存桶(cacheRead/cacheWrite 皆缺)→ hitRate = null(未知,不伪报 0)。
+ * - 从未上报缓存桶(cacheRead/cacheWrite 皆缺)→ hitRate = null(未知,不伪报 0);
+ * - 压缩事件打标(53 号 D6,收口 28 号 §7-2):提取器 `compaction-event` 把
+ *   compaction/start|end(载荷形态见 types.ts CompactionEventMarker 注释)纳入
+ *   命中率报表的 compaction 打标块,命中率下降可区分「压缩导致」vs「前缀污染」。
  *
  * tests/hitrate.spec.ts 在相同事件流上断言:本包报表与 observe
  * aggregateSessionMetrics().cacheHitRate 逐位相等(对接验收门)。
  */
 import type { SessionMetrics } from '@eterna/observe'
 import type {
-  CacheHitRateReport, CacheUsageSample, EventFieldExtractor, EventFieldExtractorId,
-  RouteCacheHitRate, RouteRefLike, SessionEventLike, TokenUsageLike,
+  CacheHitRateReport, CacheUsageSample, CompactionEventMarker, CompactionEventStats,
+  EventFieldExtractor, EventFieldExtractorId, RouteCacheHitRate, RouteRefLike, SessionEventLike,
+  TokenUsageLike,
 } from './types.ts'
 import { isRecord } from './types.ts'
 
@@ -98,6 +102,35 @@ export const extractRequestRoute: EventFieldExtractor<RouteRefLike> = (event) =>
   return null
 }
 
+/** compaction 载荷 turn 字段的防御性读取(官方类型 turn: number|null,dsh-compaction types.ts:24)。 */
+function readCompactionTurn(value: unknown): number | null | undefined {
+  if (value === null) return null
+  return readNonNegative(value)
+}
+
+/**
+ * 提取器 `compaction-event`:compaction/start|end 事件 → 压缩事务标记
+ * (53 号 D6 压缩事件打标;28 号 §7-2:命中率下降可区分「压缩导致」vs「前缀污染」)。
+ * 载荷防御性读取(坏数据缺省而非崩):compactionId/turn/error 逐字段窄判,
+ * seq/time 透传(事件流锚点,供命中率下降窗口对齐);其余事件返回 null。
+ */
+export const extractCompactionEvent: EventFieldExtractor<CompactionEventMarker> = (event) => {
+  if (event.type !== 'compaction/start' && event.type !== 'compaction/end') return null
+  if (!isRecord(event.data)) return null
+  const phase: 'start' | 'end' = event.type === 'compaction/start' ? 'start' : 'end'
+  const compactionId = event.data['compactionId']
+  const turn = readCompactionTurn(event.data['turn'])
+  const error = event.data['error']
+  return {
+    phase,
+    ...(typeof compactionId === 'string' && { compactionId }),
+    ...(turn !== undefined && { turn }),
+    ...(phase === 'end' && typeof error === 'string' && { error }),
+    ...(event.seq !== undefined && { seq: event.seq }),
+    ...(event.time !== undefined && { time: event.time }),
+  }
+}
+
 /**
  * 事件字段提取器注册表(唯一 ID → 提取器;可交换接口面)。
  * 新提取器 = 新 ID 加进来,消费方按 ID 取用——不改任何既有签名。
@@ -105,10 +138,15 @@ export const extractRequestRoute: EventFieldExtractor<RouteRefLike> = (event) =>
 export const EVENT_FIELD_EXTRACTORS: Readonly<Record<EventFieldExtractorId, EventFieldExtractor<unknown>>> = {
   'cache-usage': extractCacheUsage,
   'request-route': extractRequestRoute,
+  'compaction-event': extractCompactionEvent,
 }
 
 /** 注册表全部 ID(出现序;供消费方遍历/校验)。 */
-export const EVENT_FIELD_EXTRACTOR_IDS: readonly EventFieldExtractorId[] = ['cache-usage', 'request-route']
+export const EVENT_FIELD_EXTRACTOR_IDS: readonly EventFieldExtractorId[] = [
+  'cache-usage',
+  'request-route',
+  'compaction-event',
+]
 
 /**
  * 走一遍事件流:锚定当前路由(request/header → request/context,observe 同约定),
@@ -151,7 +189,10 @@ function hitRateOf(cacheReportedCalls: number, promptTokens: number, cacheRead: 
   return cacheReportedCalls > 0 && promptTokens > 0 ? cacheRead / promptTokens : null
 }
 
-/** 样本序列 → 命中率报表(纯函数;总口径与 byRoute 同式)。 */
+/**
+ * 样本序列 → 命中率报表(纯函数;总口径与 byRoute 同式)。
+ * 样本路径不带事件流 → compaction 打标块缺省(压缩面貌未知,不作 0 计解读)。
+ */
 export function cacheHitRateReport(samples: readonly CacheUsageSample[]): CacheHitRateReport {
   const routes = new Map<string, RouteAccumulator>()
   let calls = 0
@@ -202,14 +243,46 @@ export function cacheHitRateReport(samples: readonly CacheUsageSample[]): CacheH
   }
 }
 
-/** 事件流 → 命中率报表(提取器管线两步组合的便捷门)。 */
+/**
+ * 事件流 → 压缩事件统计(提取器 `compaction-event` 逐事件收集,出现序)。
+ * 事件流中真实无压缩事件 → 全零统计(事实为零,非未知——与样本路径的缺省区分)。
+ */
+function compactionStatsFromEvents(events: readonly SessionEventLike[]): CompactionEventStats {
+  let starts = 0
+  let ends = 0
+  let errors = 0
+  const markers: CompactionEventMarker[] = []
+  for (const event of events) {
+    const marker = extractCompactionEvent(event)
+    if (marker === null) continue
+    markers.push(marker)
+    if (marker.phase === 'start') {
+      starts += 1
+    } else {
+      ends += 1
+      if (marker.error !== undefined) errors += 1
+    }
+  }
+  return { starts, ends, errors, markers }
+}
+
+/**
+ * 事件流 → 命中率报表(提取器管线组合的便捷门,附压缩事件打标块)。
+ * 压缩打标与命中率同源事件流:报告窗口内的 start/end/error 计数与标记锚点
+ * (seq/time)供消费方把命中率下降归因为「压缩导致」(窗口含压缩标记)或
+ * 「前缀污染」(无压缩标记而稳定性告警为 volatile-*,28 号 §7-2)。
+ */
 export function cacheHitRateFromEvents(events: readonly SessionEventLike[]): CacheHitRateReport {
-  return cacheHitRateReport(collectCacheUsage(events))
+  return {
+    ...cacheHitRateReport(collectCacheUsage(events)),
+    compaction: compactionStatsFromEvents(events),
+  }
 }
 
 /**
  * 桥接 @eterna/observe 指标聚合器:aggregateSessionMetrics 产物 → 本包报表形态。
  * hitRate 直接取 observe 口径值(同公式,互证由测试钉住);byRoute 由路由明细重组。
+ * observe 的 SessionMetrics 不感知压缩事件 → compaction 打标块缺省(未知)。
  */
 export function hitRateFromSessionMetrics(metrics: SessionMetrics): CacheHitRateReport {
   const byRoute: RouteCacheHitRate[] = metrics.routes.map((route) => {

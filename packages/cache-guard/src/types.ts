@@ -146,6 +146,42 @@ export interface RouteCacheHitRate {
   readonly hitRate: number | null
 }
 
+/**
+ * 单条压缩事件标记(事件流中 compaction/start|end 的锚点,53 号 D6 压缩事件打标)。
+ * 载荷依据 @deepseek-ai/dsh-compaction 0.2.2-rc.5 src/types.ts:24,72(SessionEventMap 合并):
+ * start = `{ compactionId, sourceCommandId?, turn: number|null }`,
+ * end = 同形 + `error?: string`(失败收尾,errorChain 字符串);
+ * 本仓压缩事务同形 append(packages/compaction/src/basic/region.ts:221,248,256)。
+ */
+export interface CompactionEventMarker {
+  /** 事务相位:start(开事务)/ end(收事务,成败由 error 区分)。 */
+  readonly phase: 'start' | 'end'
+  /** 压缩事务标识(跨 start/end 配对用;载荷缺字段时不透传)。 */
+  readonly compactionId?: string
+  /**
+   * 压缩归属轮(自动压缩为轮号,手动事务为 null;载荷缺/坏字段时缺省)。
+   * 与 StabilityWarning.fromTurn/toTurn 同域,供失稳转移与压缩对齐。
+   */
+  readonly turn?: number | null
+  /** 仅失败的 compaction/end 携带(errorChain 字符串);成功收尾无此字段。 */
+  readonly error?: string
+  /** 事件流锚点(seq/time 从事件透传;命中率下降窗口按此对齐)。 */
+  readonly seq?: number
+  readonly time?: number
+}
+
+/** 压缩事件统计(命中率报表的压缩打标块;28 号 §7-2:命中率下降可区分「压缩导致」vs「前缀污染」)。 */
+export interface CompactionEventStats {
+  /** compaction/start 计数(未收尾的开括号也计)。 */
+  readonly starts: number
+  /** compaction/end 计数(成败都计)。 */
+  readonly ends: number
+  /** 失败收尾数(带 error 的 end)。 */
+  readonly errors: number
+  /** 标记明细(事件流出现序)。 */
+  readonly markers: readonly CompactionEventMarker[]
+}
+
 /** 命中率指标报表(输出接口:对接 observe 指标聚合器,同公式可互证)。 */
 export interface CacheHitRateReport {
   readonly calls: number
@@ -159,10 +195,16 @@ export interface CacheHitRateReport {
   readonly hitRate: number | null
   /** 路由明细(出现序)。 */
   readonly byRoute: readonly RouteCacheHitRate[]
+  /**
+   * 压缩事件打标块(仅事件流管线 cacheHitRateFromEvents 携带)。
+   * 缺省 = 该报表不源于事件流(cacheHitRateReport 样本路径 / observe 桥接),
+   * 压缩面貌未知——同 hitRate=null 的「未知不伪报 0」纪律,缺省不作 0 计解读。
+   */
+  readonly compaction?: CompactionEventStats
 }
 
 /** 事件字段提取器 ID(注册表唯一键;可交换接口面)。 */
-export type EventFieldExtractorId = 'cache-usage' | 'request-route'
+export type EventFieldExtractorId = 'cache-usage' | 'request-route' | 'compaction-event'
 
 /**
  * 事件字段提取器:单事件 → 字段(null = 该事件不携带此字段)。
