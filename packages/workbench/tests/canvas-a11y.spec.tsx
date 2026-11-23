@@ -301,7 +301,7 @@ describe('卡点派生与事件驱动刷新(38 号 F-4/F-14;30 号 §2.1)', () =
     expect(compactDuration(6)).toBe('6m')
   })
 
-  it('ticket-moved(T-88b1 person→working)后:卡点 3→2、worker 槽位 3/4、气泡计数同步(派生幂等)', () => {
+  it('ticket-moved(T-88b1 person→working)后:卡点 3→2、worker 槽位仍 2/4(真读数)、气泡计数同步(派生幂等)', () => {
     const increment = mockTimeline().find(item => item.event.kind === 'ticket-moved')?.event
     if (increment?.kind !== 'ticket-moved') throw new Error('mock 时间线缺 ticket-moved')
     const event: WorkbenchStreamEvent = { ...increment, seq: 99 }
@@ -311,7 +311,11 @@ describe('卡点派生与事件驱动刷新(38 号 F-4/F-14;30 号 §2.1)', () =
     expect(assignment.events).toHaveLength(2)
     expect(assignment.sub).toBe('2 单等人 · 最长 4h')
     expect(assignment.eventsLabel).toBe('等待中的工单（2）')
-    expect(nextView.nodes.find(node => node.key === 'worker')!.sub).toBe('3/4 槽')
+    // 槽位分子取快照 flow 节的真实读数(`stats().executor.usedSlots`,2026-11-23 线上修复),
+    // 不再按工单列/领域态推算:单卡换列不代表执行面的占槽变了,故此处仍是 2/4;
+    // 真占槽变化经整节重投影(flow-updated)刷新。
+    expect(nextView.nodes.find(node => node.key === 'worker')!.sub).toBe(`${next.flow.slotsUsed}/${next.flow.workerSlots} 槽`)
+    expect(nextView.nodes.find(node => node.key === 'worker')!.sub).toBe('2/4 槽')
     expect(nextView.bubble?.text).toBe('person/* 卡点：2 单等人 · 最长 4 小时')
     const miss: WorkbenchStreamEvent = { kind: 'ticket-moved', ticketId: 'T-nope', column: 'working', metaLine: [], seq: 100 }
     expect(applyWorkbenchEvent(next, miss).tickets).toBe(next.tickets) // 未命中引用不变 → 跳过重绘

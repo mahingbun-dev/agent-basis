@@ -32,8 +32,10 @@ function trigger(id: string, overrides: Partial<Trigger> = {}): Trigger {
 interface Hooks {
   emit?: (event: { type: string; data: Record<string, unknown> }) => void
   prepareTicket?: EngineOptions['prepareTicket']
+  /** 派发渠道谓词(2026-11-23 线上修复;见 EngineOptions.isDispatchThread)。 */
+  isDispatchThread?: EngineOptions['isDispatchThread']
 }
-function harness(policyOverrides: Partial<Policy> = {}, { emit, prepareTicket }: Hooks = {}) {
+function harness(policyOverrides: Partial<Policy> = {}, { emit, prepareTicket, isDispatchThread }: Hooks = {}) {
   const repo = new MemoryRepositories()
   const outbox: OutboundMessage[] = []
   const withdrawn: string[] = []
@@ -71,6 +73,7 @@ function harness(policyOverrides: Partial<Policy> = {}, { emit, prepareTicket }:
     // ★realm 首参路由(A5/A6):Trigger 保存前经 realmOf 标注 realm(默认 tenant-a,meta.realm 可覆盖)。
     realmOf: t => (typeof t.meta.realm === 'string' ? t.meta.realm : REALM),
     ...emit ? { emit } : {}, ...prepareTicket ? { prepareTicket } : {},
+    ...isDispatchThread ? { isDispatchThread } : {},
     now: () => new Date(Date.UTC(2026, 8, 23, 0, 0, clock)).toISOString() })
   /** 模拟 Executor 启动排队的 Assignment(除非 launch=false)并投递工单等待中的 Inputs。 */
   function settle({ launch = true } = {}) {
@@ -700,6 +703,77 @@ describe('realm 首参路由(realm 标注落库断言)', () => {
     expect(h.repo.tickets.get(b)!.realm).toBe('tenant-c')
     expect(h.repo.tickets.get(b)!.mandate.realm).toBe('tenant-c')
     expect(h.repo.triggers.disposition('2')).toMatchObject({ realm: 'tenant-c' })
+  })
+})
+
+describe('派发渠道纪律(2026-11-23 线上修复:主会话线程不因 accept/attach 隐式订阅)', () => {
+  /** 派发渠道 = chat:d 线程(装配面的 `source='webchat' && id=masterId` 同构)。 */
+  const DISPATCH: EngineOptions['isDispatchThread'] = ref => ref.source === 'chat' && ref.id === 'd'
+  it('accept 不订阅派发渠道线程:同一线程上的下一条新话题照常开候选,不被旧单吞掉', () => {
+    const h = harness({}, { isDispatchThread: DISPATCH })
+    h.engine.receive(trigger('1', { threads: [{ source: 'chat', id: 'd' }] })); h.pump()
+    const candidate = h.requests.at(-1)!
+    // 候选卡上看得到本窗口已有的单(related_tickets 兜底:订阅 ∪ 从该线程真正到达过的)。
+    expect(candidate.tickets).toEqual([])
+    const decision = h.decide(candidate, { kind: 'accept', title: 'Fix', scope: 'small', reason: 'requested', delegation: DELEGATION })
+    h.settle()
+    const ticketId = decision.ticketId!
+    // ★核心断言:主会话线程上没有该工单的订阅。
+    expect(h.repo.threads.get('chat:d')?.subscriptions).toEqual([])
+    // 第二条消息不扇出给旧单、不被 followupOwners 判归它,而是开自己的候选。
+    h.engine.receive(trigger('2', { threads: [{ source: 'chat', id: 'd' }] })); h.pump()
+    expect(h.repo.triggers.disposition('2')?.fanout).toEqual([])
+    expect(followupOwners(h.repo.triggers.get('2')!, h.repo)).toEqual([])
+    expect(h.engine.candidate('2')).toBeDefined()
+    // related_tickets 兜底:候选卡仍列出本窗口已开出的工单(评估方看得见,不凭记忆)。
+    expect(h.engine.candidate('2')!.tickets.map(ticket => ticket.id)).toEqual([ticketId])
+    expect(h.repo.tickets.get(ticketId)!.undelivered).toEqual([])
+    // 同一条消息跑出的第二张单也不订阅它。
+    const second = h.decide(h.requests.at(-1)!, { kind: 'accept', title: 'Second', scope: 'small', reason: 'requested', delegation: DELEGATION })
+    h.settle()
+    expect(second.ticketId).not.toBe(ticketId)
+    expect(h.repo.threads.get('chat:d')?.subscriptions).toEqual([])
+  })
+  it('attach 到派发渠道线程上的消息也不订阅该线程:消息本身进工单(可跟进),后续同线程新话题仍走候选', () => {
+    const h = harness({}, { isDispatchThread: DISPATCH })
+    // 先在被订阅的普通线程上开一张单。
+    const ticketId = accepted(h, '1', 't1').ticketId!
+    // 主会话线程上一条明确指向该单的新消息。
+    h.engine.receive(trigger('2', { threads: [{ source: 'chat', id: 'd' }] })); h.pump()
+    h.engine.attach(ticketId, '2', '指向刚完成的那次变更')
+    h.settle()
+    // attach 的语义仍是「这条属于这张单」:Trigger 作为 Input 进工单、disposition.fanout 记本单。
+    expect(h.repo.tickets.get(ticketId)!.inputs.some(input => input.kind === 'trigger' && input.triggerId === '2')).toBe(true)
+    expect(h.repo.triggers.disposition('2')?.fanout).toEqual([ticketId])
+    // 但不订阅该线程:再来的第三条同线程消息仍开候选,由主会话裁决。
+    expect(h.repo.threads.get('chat:d')?.subscriptions).toEqual([])
+    h.engine.receive(trigger('3', { threads: [{ source: 'chat', id: 'd' }] })); h.pump()
+    expect(h.repo.triggers.disposition('3')?.fanout).toEqual([])
+    expect(h.engine.candidate('3')).toBeDefined()
+  })
+  it('存量脏数据免疫:intake 不扇出派发渠道线程上的既有订阅(撤订阅释放不掉归属的循环不再复现)', () => {
+    const h = harness({}, { isDispatchThread: DISPATCH })
+    const ticketId = accepted(h, '1', 't1').ticketId!
+    // 模拟修复前落库的存量:派发渠道线程行带着该工单的订阅(修复后 accept 不再创建它,
+    // 故此处手工落一行与旧版 accept 产物同形的数据)。
+    h.repo.threads.save({ key: 'chat:d', ref: { source: 'chat', id: 'd' }, createdAt: '2026-09-23T00:00:00.000Z',
+      subscriptions: [ticketId], correlated: [], pending: [], meta: {} })
+    h.repo.triggers.saveDisposition('2', { fanout: [ticketId], at: new Date().toISOString() })
+    h.engine.receive(trigger('2', { threads: [{ source: 'chat', id: 'd' }] })); h.pump()
+    // 存量订阅不生效:无扇出、无 owner、候选照开——无需数据迁移。
+    expect(h.repo.triggers.disposition('2')?.fanout).toEqual([])
+    expect(followupOwners(h.repo.triggers.get('2')!, h.repo)).toEqual([])
+    expect(h.engine.candidate('2')).toBeDefined()
+    expect(h.repo.tickets.get(ticketId)!.inputs.some(input => input.kind === 'trigger' && input.triggerId === '2')).toBe(false)
+  })
+  it('普通线程的既有语义不变:未注入谓词(缺省 false)时 accept 照旧订阅并扇出', () => {
+    const h = harness()
+    const ticketId = accepted(h).ticketId!
+    expect(h.repo.threads.get('chat:t1')?.subscriptions).toEqual([ticketId])
+    h.engine.receive(trigger('2', { actor: guest })); h.pump()
+    expect(h.repo.triggers.disposition('2')?.fanout).toEqual([ticketId])
+    expect(followupOwners(h.repo.triggers.get('2')!, h.repo)).toEqual([ticketId])
+    expect(h.engine.candidate('2')).toBeUndefined()
   })
 })
 

@@ -78,11 +78,21 @@ export class Tickets extends EnginePart {
     ticket = this.options.prepareTicket?.(ticket, outcome) ?? ticket
     const assignment = this.newAssignment(ticket)
     this.repo.tickets.save(ticket)
-    for (const triggerId of triggerIds) for (const ref of this.repo.triggers.get(triggerId)?.threads ?? []) this.subscribe(id, ref)
+    // ★派发渠道纪律(2026-11-23):主会话线程(orchestrator-<realm>)不因 accept 隐式订阅——
+    // 否则人在主会话里发下一条新话题时会先扇出成这张单的 Input、被 followupOwners 判归本单,
+    // 候选卡不生成(见 EngineOptions.isDispatchThread 注)。交接(handoffOf)同一条纪律。
+    for (const triggerId of triggerIds) {
+      for (const ref of this.repo.triggers.get(triggerId)?.threads ?? []) {
+        this.subscribeUnlessDispatch(id, ref, (tid, r) => { this.subscribe(tid, r) })
+      }
+    }
     // ★交接落点(A8):原 Ticket 订阅新工单线程——原工单的 worker 据此读到新工单线程上的动静(上下文)。
     if (outcome.handoffOf) {
-      for (const triggerId of triggerIds)
-        for (const ref of this.repo.triggers.get(triggerId)?.threads ?? []) this.subscribe(outcome.handoffOf, ref)
+      for (const triggerId of triggerIds) {
+        for (const ref of this.repo.triggers.get(triggerId)?.threads ?? []) {
+          this.subscribeUnlessDispatch(outcome.handoffOf, ref, (tid, r) => { this.subscribe(tid, r) })
+        }
+      }
     }
     if (outcome.acknowledgement && primary) this.replies.acknowledgeAccepted(id, primary, outcome.acknowledgement)
     this.options.executor.start(this.require(id), assignment)
@@ -156,7 +166,11 @@ export class Tickets extends EnginePart {
    * 新 Input,任何被 attach 的消息都会这样唤醒已结束的工单。
    */
   attach(ticketId: string, trigger: Trigger, note?: string): void {
-    for (const ref of trigger.threads) this.subscribe(ticketId, ref)
+    // ★派发渠道纪律(2026-11-23):attach 到主会话线程时不订阅它——否则下一次新话题又会被
+    // 扇出成本单的 Input(与 accept 同一根因)。attach 的意图仍是"这条属于这张单":该
+    // Trigger 本身照样以 Input 进来、disposition.fanout 照样记本单(followupOwners 据此判
+    // 归属),只是**不订阅线程**——之后的同线程新消息继续走候选卡,要不要再挂由主会话裁决。
+    for (const ref of trigger.threads) this.subscribeUnlessDispatch(ticketId, ref, (tid, r) => { this.subscribe(tid, r) })
     // 人把它送进 Eval 的那一次已了结,它「仅为上下文而读」的标记也一样。
     const current: TriggerDisposition = this.repo.triggers.disposition(trigger.id) ?? { fanout: [], at: this.now() }
     const { context, requeued, ...disposition } = current

@@ -253,12 +253,15 @@ it('入口链路:主会话用户消息 → Trigger stored → Eval 候选 → ac
     await runtime.effects.idle()
     const ticket = runtime.store.tickets.get(decision.ticketId!)
     expect(ticket?.assignments.at(-1)?.state).toBe('running')
-    // 工单订阅了发起会话的线程(后续消息直达 worker 的扇出依据)。
-    expect(runtime.store.threads.get(`${WEBSCHAT_SOURCE}:${MASTER}`)?.subscriptions).toEqual([decision.ticketId])
+    // ★派发渠道纪律(2026-11-23 线上修复):工单**不**订阅主会话线程——webchat 线程就是主会话
+    // 本身,若订阅,人在同一窗口里发的下一条新话题会先扇出成本单的 Input、被 followupOwners
+    // 判归本单,候选卡不生成(生产实证:第二张单的调研请求成为第一张单的 handback)。
+    // 此前的断言是「工单订阅了发起会话的线程」——正是被推翻的旧语义。
+    expect(runtime.store.threads.get(`${WEBSCHAT_SOURCE}:${MASTER}`)?.subscriptions).toEqual([])
   } finally { dispose() }
 })
 
-it('幂等收敛与后续消息:同一消息重放得 duplicate;accept 后的新消息直达工单不再开候选', () => {
+it('幂等收敛与后续消息:同一消息重放得 duplicate;accept 后同线程的新话题仍开候选(派发渠道纪律)', () => {
   const { ctx, runtime, dispose } = bootWebchat()
   try {
     emitUserMessage(ctx, MASTER, 'm-1', '请把深色模式补上')
@@ -274,11 +277,19 @@ it('幂等收敛与后续消息:同一消息重放得 duplicate;accept 后的新
       acknowledgement: '好的,这就安排。', delegation: DELEGATION,
     })
     runtime.pass()
-    // 同一会话线程上的新消息:落库并扇出给工单(undelivered),但工单的 worker 裁决它
-    // (followup 语义),不开新的 Eval 候选。
-    emitUserMessage(ctx, MASTER, 'm-2', '顺带把字号也调大一点')
-    expect(runtime.engine.candidate(key('tasks/webchat-trigger', MASTER, 'm-2'))).toBeUndefined()
-    expect(runtime.store.tickets.get(decision.ticketId!)?.undelivered.length).toBeGreaterThan(0)
+    const firstTicket = decision.ticketId!
+    // ★派发渠道纪律(2026-11-23 线上修复):主会话线程上的下一条消息**不是**这张单的后续——
+    // 它是新话题,照常落库并开自己的候选卡,由主会话按 dispatch 纪律 accept/attach/ignore。
+    // 修复前(工单订阅主会话线程)这条会被扇出成旧单的 Input、followupOwners 判归旧单,
+    // 候选不生成——正是「同一窗口发不同任务被绑到上一个工单」的生产缺陷。
+    emitUserMessage(ctx, MASTER, 'm-2', '换一件事:调研一下 PDF 阅读器的方案')
+    runtime.pass()
+    const second = runtime.engine.candidate(key('tasks/webchat-trigger', MASTER, 'm-2'))
+    expect(second).toBeDefined()
+    expect(second!.strength).toBe('explicit')
+    // 没被旧单吞掉:旧单没收到这条 Input,候选卡还能看到本窗口已有的工单(related_tickets 兜底)。
+    expect(runtime.store.tickets.get(firstTicket)?.undelivered).toEqual([])
+    expect(second!.tickets.map(ticket => ticket.id)).toEqual([firstTicket])
   } finally { dispose() }
 })
 
