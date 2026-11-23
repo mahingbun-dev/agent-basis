@@ -450,7 +450,7 @@ export async function startHost() {
   const executorHost: ExecutorHost = {
     context: ctx,
     get engine() { return engine },
-    store, effects, health: board.claim('worker'), lifetime: lifetime.signal, sessions,
+    store, effects, outbox: { status: () => undefined, sent: async () => {} }, health: board.claim('worker'), lifetime: lifetime.signal, sessions,
     closing: () => lifetime.signal.aborted,
     paused: () => store.settings().paused,
   }

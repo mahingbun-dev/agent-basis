@@ -30,7 +30,10 @@ import type { AssessmentOutcome, Assignment, EngineForExecutor, Execution, Polic
 import type { Settings } from '../policy/settings.ts'
 import type { Store } from '../store/store.ts'
 import { Later, type Effects, type HealthEntry } from '../effects/effects.ts'
+import type { Outbox } from '../effects/outbox.ts'
 import type { Sessions } from '../session/sessions.ts'
+import { workerToolsFor, type WorkerToolsHost } from '../tools/worker.ts'
+import { toDshTool } from '../tools/tool.ts'
 import { budgetUsage, effortGuide, ticketBudgetEntry, type TicketBudgetEntry, type TicketBudgetUsage } from './budget.ts'
 import { GATE_CONTRACT_CLAUSE } from './gates.ts'
 import { ticketDir } from './workspace.ts'
@@ -81,10 +84,13 @@ export function transient(error: unknown): boolean {
 export interface ExecutorHost {
   /** DSH Cordis context:session 注册表与四类宿主事件。 */
   readonly context: Context
-  /** Executor 向其报告 Assignment 与 Input 事实的 Engine 面。 */
+  /** Executor 向其报告 Assignment 与 Input 事实的 Engine 面(worker 面工具的 reply/markUnrelated/handback/followForContext 同源)。 */
   readonly engine: Pick<EngineForExecutor, 'assignmentStarted' | 'inputsDelivered' | 'inputsRead' | 'turnEnded' | 'deliveryFailed' | 'report'
-    | 'assignmentInterrupted'>
-  readonly store: Pick<Store, 'tickets' | 'triggers' | 'set' | 'settings' | 'atomic' | 'afterCommit' | 'workspaceDir'>
+    | 'assignmentInterrupted' | 'reply' | 'markUnrelated' | 'handback' | 'followForContext'>
+  /** 回执出站面(worker 面工具的 ack 状态读与 sent 等待;WorkerToolsHost 半边)。 */
+  readonly outbox: Pick<Outbox, 'status' | 'sent'>
+  readonly store: Pick<Store, 'tickets' | 'triggers' | 'set' | 'settings' | 'atomic' | 'afterCommit' | 'workspaceDir'
+    | 'replyStatus' | 'threads' | 'read' | 'blockRevision' | 'decisions'>
   /** launch 与 input 投递经它排队的持久 effect 队列。 */
   readonly effects: Pick<Effects, 'enqueue' | 'handle'>
   /** `worker` 健康项:报告 worker 事件处理是否失败。 */
@@ -228,6 +234,8 @@ export class DshExecutor {
   private readonly timers = new Set<ReturnType<typeof setTimeout>>()
   /** 注册 `launch` 与 `delivery` effect handler;两者在处理暂停期间被扣住(并发限 0)。 */
   private readonly host: ExecutorHost
+  /** 已装过 worker 工具面的 agent(每 agent 作用域注册一次;WeakSet 跟随对象生命周期)。 */
+  private readonly workerToolsAgents = new WeakSet<object>()
   constructor(host: ExecutorHost) {
     this.host = host
     this.slots = new WorkerSlots(() => this.host.store.tickets.open().filter(ticket => this.running(ticket)).map(ticket => ticket.id),
@@ -351,6 +359,9 @@ export class DshExecutor {
           if (!this.host.context.agents.get(SessionId(sessionId))) {
             await this.host.sessions.ensure(sessionId, ticket.execution?.directory ?? '', ticket.title, 'worker')
           }
+          // 每 agent 工具面安装幂等:跨重启 resume 的存量 worker 会话在此恢复工具面。
+          const workerAgent = this.host.context.agents.get(SessionId(sessionId))
+          if (workerAgent !== undefined) this.installWorkerTools(workerAgent, ticketId)
           if (input) await this.deliverInput(ticket, assignment, input)
         }
         catch (error) {
@@ -491,6 +502,8 @@ export class DshExecutor {
     this.budgetFor(ticket)
     const agent = await this.host.sessions.ensure(sessionId, workspace, ticket.title, 'worker')
     if (!current()) return
+    // worker 工具面每 agent 安装(launch 是新建与重启复用的公共必经点)。
+    this.installWorkerTools(agent, ticket.id)
     // 本 assignment 替换的那个的后台工作先停,使它的结束不清掉这一个的消息。
     await this.stopped(ticket.id)
     if (!current()) return
@@ -523,6 +536,34 @@ export class DshExecutor {
   private ticketOf(agent: Agent): Ticket | undefined {
     const ticketId = ticketOfSession(agent.id)
     return ticketId === undefined ? undefined : this.host.store.tickets.get(ticketId)
+  }
+  /**
+   * worker 工具面的每 agent 安装(2026-11-23 线上修复的正解形态):worker session 的
+   * cwd 是工单子目录(`.ticket/<id>/`,R4),其工具作用域与 realm 工作区不同层——宿主
+   * 层 ctx.tools.register(全局/realm 层)对它不可见(隔离容器 E2E 实测:master 51 工具
+   * 含全部 orchestrator_*,worker 43 个零 orchestrator_*),且 `orchestrator_read` 与
+   * orchestrator 面同名,全局层重复注册即抛错。宿主报错信息即正解:"for a per-agent
+   * variant, register through that agent's `agent.ctx` instead"——经 agent.ctx 每 agent
+   * 注册,作用域=该会话,天然实现 24 §8.3-4 分面;orchestrator_read 以 per-agent 变体
+   * 遮蔽全局同名(worker 命中窄化读)。幂等:每 agent 只装一次;ctx.tools 缺席 fail-open
+   * (宿主无工具服务时不阻断投递)。
+   */
+  installWorkerTools(agent: Agent, ticketId: string): void {
+    if (this.workerToolsAgents.has(agent)) return
+    const ctx = (agent as { readonly ctx?: { readonly tools?: { register(definition: unknown, options?: unknown): () => void } } }).ctx
+    const tools = ctx?.tools
+    if (tools === undefined || typeof tools.register !== 'function') return
+    const workerHost: WorkerToolsHost = {
+      engine: this.host.engine,
+      store: this.host.store,
+      outbox: this.host.outbox,
+      resources: { store: this.host.store },
+      relay: (requestId, text): void => { this.host.effects.enqueue('relay', requestId, { text }) },
+    }
+    for (const definition of workerToolsFor(workerHost, () => ticketId)) {
+      this.disposers.push(tools.register(toDshTool(definition), {}))
+    }
+    this.workerToolsAgents.add(agent)
   }
   /** 订阅宿主的 `agent/status`、`agent/inbox/claimed`、`session/event` 与 `agent/error` 事件(启动时调一次)。 */
   install(): void {
