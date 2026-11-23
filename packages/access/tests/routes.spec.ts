@@ -412,13 +412,16 @@ describe('access 路由核心', () => {
     expect(store.isPluginDisabled('eterna-memory')).toBe(false)
   })
 
-  it('T2.3 插件启停:非 admin 403;红线拒停;停用持久化到 disabled-plugins.json', () => {
+  it('T2.3/T6.2 插件启停:非 admin 写 403、读 200;红线拒停;停用持久化到 disabled-plugins.json', () => {
     const toggle = (id: string, action: string): AccessReply => handleAccessRequest(deps, req({
       method: 'POST', pathname: `/access/api/plugins/${id}/${action}`, cookie: adminCookie,
     }))
     store.createUserWithSuffix({ account: 'frank', password: 'password8' })
     const frankCookie = login('frank', 'password8')
+    // T6.2:清单登录即可读(非 admin 也要看到只读列表);写端点仍 admin 强制
+    expect(handleAccessRequest(deps, req({ pathname: '/access/api/plugins', cookie: frankCookie })).status).toBe(200)
     expect(handleAccessRequest(deps, req({ method: 'POST', pathname: '/access/api/plugins/eterna-memory/disable', cookie: frankCookie })).status).toBe(403)
+    expect(handleAccessRequest(deps, req({ method: 'POST', pathname: '/access/api/plugins/eterna-memory/remove', cookie: frankCookie })).status).toBe(403)
     expect(toggle('eterna-governance', 'disable').status).toBe(400)
     expect(toggle('eterna-memory', 'disable').status).toBe(200)
     expect(store.isPluginDisabled('eterna-memory')).toBe(true)

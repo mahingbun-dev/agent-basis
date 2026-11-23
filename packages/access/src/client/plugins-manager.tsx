@@ -103,8 +103,13 @@ export type ManageTabCarriesUpdate =
 /** 恒灵插件管理页签(Plugins 页 tabs,原生插件页卡片形态)。
  *  owner props 按 rc.5 `PluginTabProps` 全量声明(install/update/openPackage 必填;
  *  `update` 为 rc.5 新增项)。本页签自绘 @eterna 插件停用/删除链路,不消费页面的
- *  安装与 git 更新能力,owner props 只作契约对齐位。 */
-export function ManageTab(_props: PluginTabProps): React.JSX.Element {
+ *  安装与 git 更新能力,owner props 只作契约对齐位。
+ *
+ *  T6.2(2026-11-24):本页签对全体角色注册,`readOnly` 由角色注入(非 admin=true)
+ *  ——开关禁用、删除按钮不渲染、顶部文案改只读。服务端写端点仍 admin 强制,
+ *  本参数只是体验层(不让非 admin 点了才报错)。 */
+export function ManageTab(props: PluginTabProps & { readonly readOnly?: boolean | undefined }): React.JSX.Element {
+  const readOnly = props.readOnly === true
   const [plugins, setPlugins] = useState<PluginRowView[]>([])
   const [loaded, setLoaded] = useState(false)
   const [busyId, setBusyId] = useState('')
@@ -169,9 +174,11 @@ export function ManageTab(_props: PluginTabProps): React.JSX.Element {
     const pill = plugin.removed
       ? <span className="ea-pill warn">重启后卸载</span>
       : plugin.disabled ? <span className="ea-pill neutral">已停用</span> : null
-    const switchTitle = plugin.removed
-      ? '已标记删除，打开开关可撤销删除恢复挂载'
-      : plugin.disabled ? '启用（重启容器后生效）' : '停用（重启容器后生效）'
+    const switchTitle = readOnly
+      ? '只读:仅管理员可启停内置插件'
+      : plugin.removed
+        ? '已标记删除，打开开关可撤销删除恢复挂载'
+        : plugin.disabled ? '启用（重启容器后生效）' : '停用（重启容器后生效）'
     return <li className="ea-pcard ea-act" key={plugin.id}>
       <div className="ea-phead">
         <span className="ea-picon" aria-hidden="true">{icon}</span>
@@ -180,8 +187,8 @@ export function ManageTab(_props: PluginTabProps): React.JSX.Element {
           <span className="ea-pdesc">{desc}</span>
         </div>
         <div className="ea-pend">
-          {!plugin.removed ? <ArmedDelete busy={busy} onConfirm={() => { remove(plugin) }} /> : null}
-          <Switch checked={!plugin.disabled} disabled={busy} title={switchTitle}
+          {!plugin.removed && !readOnly ? <ArmedDelete busy={busy} onConfirm={() => { remove(plugin) }} /> : null}
+          <Switch checked={!plugin.disabled} disabled={busy || readOnly} title={switchTitle}
             label={`${title}（${plugin.removed ? '已标记删除' : plugin.disabled ? '已停用' : '启用中'}）`}
             onToggle={() => { toggle(plugin) }} />
         </div>
@@ -193,7 +200,9 @@ export function ManageTab(_props: PluginTabProps): React.JSX.Element {
   const toggleable = plugins.filter(p => !p.redLine)
 
   return <div data-eterna-access-root>
-    <p className="ea-lead">恒灵 L1 插件的停用与卸载（admin）。停用可随时恢复；删除为永久卸载，重启容器生效，重新打开开关可撤销。治理/审计/出网/门禁为红线，不可停用。</p>
+    <p className="ea-lead">{readOnly
+      ? '恒灵 L1 插件清单(只读)。启停与卸载仅管理员可操作。治理/审计/出网/门禁为红线，任何人不可停用。'
+      : '恒灵 L1 插件的停用与卸载（admin）。停用可随时恢复；删除为永久卸载，重启容器生效，重新打开开关可撤销。治理/审计/出网/门禁为红线，不可停用。'}</p>
     {!loaded ? <p className="ea-hint">加载中…</p> : <div>
       <section className="ea-group">
         <div className="ea-group-head">

@@ -185,6 +185,30 @@ const CSS = `
   [data-eterna-access-root] .ea-table { min-width: 560px; }
 }
 
+/* —— 插件页只读态(T6.2,2026-11-24:非 admin 全员可见只读;真正边界在服务端 403)——
+   选择器与 plugin-page-guard.ts 的 WRITE_CONTROLS 同口径:上游 ui-primitives
+   的 Switch/Button 无稳定 class(哈希随构建变),只能按语义面(role=switch +
+   固定 aria-label)定位。写控件置灰并摘掉指针事件;「刷新」是读操作,不在此列。 */
+html[data-eterna-access-role="member"] [data-plugin-panel] button[role="switch"],
+html[data-eterna-access-role="member"] [data-plugin-panel] button[aria-label^="添加插件"],
+html[data-eterna-access-role="member"] [data-plugin-panel] button[aria-label^="选择添加插件方式"],
+html[data-eterna-access-role="member"] [data-plugin-panel] button[aria-label^="卸载 "],
+html[data-eterna-access-role="member"] [data-plugin-panel] button[aria-label^="更新 "] {
+  opacity: .45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+/* 焦点环一并去掉:置灰控件仍可被 Tab 到达(disabled 属性不归我们管),但不应给出
+   「可操作」的视觉反馈。 */
+html[data-eterna-access-role="member"] [data-plugin-panel] button[role="switch"]:focus-visible,
+html[data-eterna-access-role="member"] [data-plugin-panel] button[aria-label^="添加插件"]:focus-visible,
+html[data-eterna-access-role="member"] [data-plugin-panel] button[aria-label^="选择添加插件方式"]:focus-visible,
+html[data-eterna-access-role="member"] [data-plugin-panel] button[aria-label^="卸载 "]:focus-visible,
+html[data-eterna-access-role="member"] [data-plugin-panel] button[aria-label^="更新 "]:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 /* 工作区行「+ 新建会话」常驻(2026-11-12 用户反馈:hover-only 发现性差=「不见了」;
    上游 Rows.tsx 的 rowActions 由 CSS hover 显隐,access 全局样式强制可见) */
 [data-row-key^="workspace:"] button[aria-label*="新建会话"] {

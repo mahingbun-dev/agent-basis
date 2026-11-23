@@ -435,8 +435,9 @@ describe('WS-C 审批人角色门(M-4 M1 段)', () => {
         kinds: bindings.map(b => b.resource.kind),
         roleNames: bindings.map(b => b.role.name),
         actions: bindings.map(b => [...b.role.actions].sort()),
-        // T6.1/B14:管理员专属门(插件页 UI 门 + 系统 MCP 流门)只收窄不放宽——剥离后比内容面,
-        // 与 mux-policy 的 contentView 同口径。
+        // T6.1/B14 管理员专属门(系统 MCP 流门 + 一元管理门)只收窄不放宽——剥离后比
+        // 内容面,与 mux-policy 的 contentView 同口径。T6.2 起插件页门已全员下发,
+        // 剔除集合里不再含它(对该动作是空操作)。
         contentActions: bindings.map(b => b.role.actions
           .filter(a => !ADMIN_ONLY_UNARY_ACTIONS.includes(a) && !ADMIN_ONLY_STREAM_ACTIONS.includes(a))
           .sort()),
@@ -455,9 +456,11 @@ describe('WS-C 审批人角色门(M-4 M1 段)', () => {
     expect(admin.kinds).toEqual(user.kinds)
     expect(admin.roleNames).toEqual(user.roleNames)
     expect(admin.contentActions).toEqual(user.contentActions)
-    // 唯一角色分派面(收窄):admin 多插件页整页门,非 admin 无——不得反向放宽
+    // T6.2:插件页整页门对三档角色全下发(非 admin 也能进插件页,只读);角色分派面
+    // 只剩系统层 MCP 管理面(B14),此处不断言它以免与本测试主题混淆。
     expect(admin.actions.flat().join(' ')).toContain('pluginManager/listBundles')
-    expect(user.actions.flat()).not.toContain('pluginManager/listBundles')
+    expect(approver.actions.flat()).toContain('pluginManager/listBundles')
+    expect(user.actions.flat()).toContain('pluginManager/listBundles')
     // 审批人仅见本人 session/workspace(不因 tenant-pending 档放宽 mux 内容绑定)
     expect(approver.sessionIds).toEqual([`s-${approverId}`])
     expect(approver.workspaceIds).toEqual([`w-${approverId}`])
@@ -465,13 +468,15 @@ describe('WS-C 审批人角色门(M-4 M1 段)', () => {
     expect(approver.workspaceIds).not.toContain(`w-${adminId}`)
   })
 
-  it('③ admin 面端点对 approver 403:用户列表/建号/删号/角色变更/插件启停(审批人≠管理员)', () => {
+  it('③ admin 面端点对 approver 403:用户列表/建号/删号/角色变更/插件启停(审批人≠管理员;T6.2 起插件清单读放开)', () => {
     expect(call({ pathname: '/access/api/users', cookie: approverCookie }).status).toBe(403)
     expect(call({ method: 'POST', pathname: '/access/api/users', cookie: approverCookie, body: Buffer.from('{"account":"x1","password":"password8"}') }).status).toBe(403)
     expect(call({ method: 'DELETE', pathname: `/access/api/users/${userId}`, cookie: approverCookie }).status).toBe(403)
     expect(call({ method: 'POST', pathname: `/access/api/users/${userId}/role`, cookie: approverCookie, body: Buffer.from('{"role":"user"}') }).status).toBe(403)
-    expect(call({ pathname: '/access/api/plugins', cookie: approverCookie }).status).toBe(403)
+    // T6.2:插件清单是只读数据(插件页全员可见只读),读放开;写仍 admin 专属
+    expect(call({ pathname: '/access/api/plugins', cookie: approverCookie }).status).toBe(200)
     expect(call({ method: 'POST', pathname: '/access/api/plugins/eterna-memory/disable', cookie: approverCookie }).status).toBe(403)
+    expect(call({ method: 'POST', pathname: '/access/api/plugins/eterna-memory/remove', cookie: approverCookie }).status).toBe(403)
   })
 })
 

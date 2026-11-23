@@ -192,6 +192,9 @@ export function DistillReportSection(props: DistillReportSectionProps): React.JS
   const [armEnable, setArmEnable] = useState(false)
   const [armRelease, setArmRelease] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<{ ok: boolean | null; text: string }>({ ok: null, text: '' })
+  /** 非 admin 命中 admin 端点 forbidden(T6.2 插件页全员可见后):渲染只读无权文案,
+   *  而不是把 forbidden 静默吞成空表(前者是「看到空 admin 界面」的既有缺陷)。 */
+  const [denied, setDenied] = useState(false)
 
   const call = useCallback(async (endpoint: string, payload: unknown): Promise<unknown> => {
     const result = await connection.rpc.call('/api', endpoint, { args: payload })
@@ -209,6 +212,11 @@ export function DistillReportSection(props: DistillReportSectionProps): React.JS
       setView(viewValue)
       setReport(reportValue.ok === true ? reportValue.report : null)
       setCandidates(candidatesValue.ok === true ? candidatesValue.candidates : [])
+      // T6.2:admin 端点对非 admin 返回**值** `{ok:false,code:'forbidden'}`
+      // (不是异常)——此前被 `ok===true ? … : null/[]` 静默吞成空表,非 admin 看到
+      // 一个空的 admin 界面。改为置 denied 渲染无权文案。
+      const forbidden = [reportValue, candidatesValue].find(v => v.ok === false && v.code === 'forbidden')
+      setDenied(forbidden !== undefined)
       setError(null)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t('distillLoadFailed'))
@@ -243,6 +251,9 @@ export function DistillReportSection(props: DistillReportSectionProps): React.JS
 
   if (error !== null && view === null) {
     return <div data-eterna-memory-distill><div className="em-empty">{t('distillLoadFailed')}:{error}</div></div>
+  }
+  if (denied) {
+    return <div data-eterna-memory-distill data-eterna-distill-denied><div className="em-empty">{t('distillNeedAdmin')}</div></div>
   }
   if (view === null) {
     return <div data-eterna-memory-distill><div className="em-empty">{t('loading')}</div></div>

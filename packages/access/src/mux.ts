@@ -14,11 +14,12 @@
  *   可读他人会话 cwd/shells。terminal 六方法的资源逐会话(agent lookup→session),故
  *   动作授在会话绑定(TERMINAL_UNARY_ACTIONS),他人会话由 decide 拒
  *   (remote-access/denied);策略面未就绪时 fail-closed 503,绝不退回 owner。
- * - T6.1 市场面收口(2026-11-19,计划文档 §堵洞先行):同一 admit 包装兼任市场路径
- *   admin-only 门——插件市场 unary RPC 走 owner Peer、上游不认 eterna 角色,而装/卸/
+ * - T6.1 市场面收口(2026-11-19)→ T6.2 读放行/写 admin(2026-11-24):同一 admit 包装
+ *   兼任市场路径门——插件市场 unary RPC 走 owner Peer、上游不认 eterna 角色,而装/卸/
  *   启停/索引源写入落**共享 profile**,影响全体用户。admit 是全部 `/api` 请求的请求级
  *   必经点(client-connection lib/index.js:1049 前缀路由 handler 首行),故在此 fail-closed
- *   收口(路径清单见 MARKET_ADMIN_PREFIXES;无 eterna 会话 401、非 admin 403)。
+ *   收口:无 eterna 会话 401;admin 全量放行;非 admin 只放行读白名单
+ *   (MARKET_MEMBER_METHODS + 两条 detail-file),写方法与宿主探测方法 403。
  * - 策略经 ctx.remoteAccess.registerPolicy('eterna-user', …):bindings 按归属账本
  *   (store.sessionOwner/workspaceOwner)返回资源绑定;此后流 open 越权抛 remote-access/denied、
  *   workspace/follow 列表按 allows() 逐项过滤(workspace-controller lib/index.js:965)全部
@@ -68,10 +69,15 @@ export interface EternaUserPrincipal {
 /** mux 通道路径(=上游 REMOTE_STREAM_MUX_PATH,dsh-api-gateway lib/index.js:534)。 */
 export const MUX_PATH = '/api/remote.mux'
 
-/** T6.1 市场面 admin-only 路径前缀(2026-11-19 落地;计划文档 §堵洞先行
- *  「pluginManager/pluginMarket RPC 与 detail-file 路由 admin-only」)。
+/** 市场面路径前缀(请求级收口的**作用域**;读/写方法分类见
+ *  MARKET_MEMBER_METHODS / MARKET_ADMIN_METHODS)。
  *
- *  为什么在市场 RPC 面做请求级门:市场所有动作(安装/更新/卸载/启停/版本豁免/
+ *  T6.2(2026-11-24 用户裁定「任何角色都能进插件页、看到全部页签,只有『我的插件』
+ *  可操作,其余只读」)把 T6.1 的整片 admin-only 改为**读放行 / 写 admin**:
+ *  市场读方法对所有登录用户开放(页面能看到插件清单),写方法与宿主探测方法
+ *  仍仅 admin。前端另加只读置灰(体验层),真正边界仍是本门。
+ *
+ *  为什么在市场 RPC 面做请求级门:市场写动作(安装/更新/卸载/启停/版本豁免/
  *  索引源写入)都落**共享 profile**(package.json + cordis.patch.yml + node_modules),
  *  影响全体用户;上游 unary 走 owner Peer(mux 策略只覆盖流通道),Web 面不认 eterna
  *  角色。admit 是 `/api` 全部请求的唯一必经点——前缀路由 handler 首行即
@@ -80,10 +86,7 @@ export const MUX_PATH = '/api/remote.mux'
  *
  *  路径形态(上游 0.2.2-rc.1 实核):
  *  - RPC 端点 = `/api/<method>`,方法名即路径段(endpointFromPath,lib/index.js:888):
- *    pluginManager/* 15 个方法(installBundle/updateBundle/removeBundle/setBundleEnabled/
- *    setPluginEnabled/setVersionExemption/cancelInstall/waitForInstall/inspect/
- *    readBundleDetail/listBundles/listPlugins/listVersions/listVersionExemptions/registries)
- *    与 pluginMarket/* 4 个方法(listIndexes/search/readEntryDetail/setIndexes)全被覆盖;
+ *    pluginManager/* 15 个方法与 pluginMarket/* 4 个方法由两份方法名清单分类覆盖;
  *  - detail-file fetch 路由 = `/api/plugin-manager/detail-file`(dsh-plugin-manager)与
  *    `/api/plugin-market/detail-file`(dsh-plugin-market lib/index.js:987)——二者经
  *    `/api` 前缀路由 admit 后才进 createSharedFetchHandler(lib/index.js:834),
@@ -91,18 +94,99 @@ export const MUX_PATH = '/api/remote.mux'
  *  - 大小写敏感与上游端点匹配同口径(方法名 camelCase);`%2F` 等编码段过不了上游
  *    endpoint 校验(恒 404),无需本门额外解码。
  *
- *  豁免面:admin(role='admin')放行并走原 admit;安全操作(登录/守卫路由/我的插件
+ *  豁免面:admin(role='admin')全量放行并走原 admit;非 admin 只放行读白名单
+ *  (MARKET_MEMBER_METHODS + 两条 detail-file);安全操作(登录/守卫路由/我的插件
  *  /api/my-plugins/*)不在清单内,不受影响——个人插件面走 eterna 自己的守卫路由。 */
-export const MARKET_ADMIN_PREFIXES: readonly string[] = [
+export const MARKET_SURFACE_PREFIXES: readonly string[] = [
   '/api/pluginManager/',
   '/api/pluginMarket/',
   '/api/plugin-manager/',
   '/api/plugin-market/',
 ]
 
+/** 市场面路径前缀的**向后兼容别名**(T6.1 命名;语义已由 T6.2 更新为「市场面」)。 */
+export const MARKET_ADMIN_PREFIXES: readonly string[] = MARKET_SURFACE_PREFIXES
+
 /** 路径是否属市场面(前缀口径;query 串由调用方先剥离)。 */
 export function isMarketPath(pathname: string): boolean {
-  return MARKET_ADMIN_PREFIXES.some(prefix => pathname.startsWith(prefix))
+  return MARKET_SURFACE_PREFIXES.some(prefix => pathname.startsWith(prefix))
+}
+
+/** `/api/<ns>/<method>` → `<ns>/<method>`;空方法名或含额外路径段 → undefined。
+ *
+ *  纪律:只认两段且**命名空间必须是 RPC 命名空间**(pluginManager / pluginMarket);
+ *  `/api/pluginManager/listBundles` ✓;`/api/pluginManager/a/b` 与
+ *  `/api/plugin-manager/detail-file`(kebab 命名空间的 fetch 路由,由
+ *  MARKET_MEMBER_FETCH_PATHS 精确匹配)在本函数下均不产生方法名——否则
+ *  `/api/plugin-manager/anything` 会被误当成方法而绕过 fail-closed 语义。 */
+export function marketMethodOf(pathname: string): string | undefined {
+  const match = /^\/api\/(pluginManager|pluginMarket)\/([^/]+)$/u.exec(pathname)
+  if (match === null) return undefined
+  const namespace = match[1]
+  const method = match[2]
+  if (namespace === undefined || method === undefined) return undefined
+  return `${namespace}/${method}`
+}
+
+/** 非 admin 可读的市场方法(T6.2 读白名单;**fail-closed**:不在本清单即拒)。
+ *
+ *  口径=「插件页渲染所需的最小读面」:
+ *  - 已安装页:listBundles / listPlugins / listVersions / listVersionExemptions /
+ *    readBundleDetail;
+ *  - 发现页:listIndexes / search / readEntryDetail。
+ *
+ *  **不收** inspect / registries:二者接受路径 spec、可探测宿主文件系统,而只有
+ *  安装对话框消费它们(非 admin 无法安装)——归写面。
+ *
+ *  防漂移:`tests/mux-drift.spec.ts` 读上游 typert 声明,断言
+ *  「上游全部插件方法 ⊆ MARKET_MEMBER_METHODS ∪ MARKET_ADMIN_METHODS」,
+ *  上游新增方法未分类即 CI 红(本清单是读侧白名单,未知方法默认拒)。 */
+export const MARKET_MEMBER_METHODS: readonly string[] = [
+  'pluginManager/listBundles',
+  'pluginManager/listPlugins',
+  'pluginManager/listVersions',
+  'pluginManager/listVersionExemptions',
+  'pluginManager/readBundleDetail',
+  'pluginMarket/listIndexes',
+  'pluginMarket/search',
+  'pluginMarket/readEntryDetail',
+]
+
+/** 非 admin 可读的市场 detail-file 路由(只读图片)。
+ *
+ *  上游已钳(2026-11-24 实核):只允许「活详情文档自身文件源」的相对路径,
+ *  `..`/绝对路径/反斜杠/NUL 全拒,仅图片扩展名,≤5 MiB——不构成任意文件读,
+ *  故随读白名单放行(详情页缩略图对非 admin 可显示)。 */
+export const MARKET_MEMBER_FETCH_PATHS: readonly string[] = [
+  '/api/plugin-manager/detail-file',
+  '/api/plugin-market/detail-file',
+]
+
+/** 市场写方法 + 宿主探测方法(仅 admin)。
+ *
+ *  - 写:installBundle / updateBundle / removeBundle / setBundleEnabled /
+ *    setPluginEnabled / setVersionExemption / cancelInstall / waitForInstall
+ *    (安装流程状态机)、pluginMarket/setIndexes(索引源写入,落 profile);
+ *  - 探测:inspect / registries(接受路径 spec,可探宿主文件系统;仅安装对话框消费)。 */
+export const MARKET_ADMIN_METHODS: readonly string[] = [
+  'pluginManager/installBundle',
+  'pluginManager/updateBundle',
+  'pluginManager/removeBundle',
+  'pluginManager/setBundleEnabled',
+  'pluginManager/setPluginEnabled',
+  'pluginManager/setVersionExemption',
+  'pluginManager/cancelInstall',
+  'pluginManager/waitForInstall',
+  'pluginManager/inspect',
+  'pluginManager/registries',
+  'pluginMarket/setIndexes',
+]
+
+/** 非 admin 对该市场路径是否可读(读白名单 + 两条 detail-file;其余一律 false)。 */
+export function marketMemberAllowed(pathname: string): boolean {
+  if (MARKET_MEMBER_FETCH_PATHS.includes(pathname)) return true
+  const method = marketMethodOf(pathname)
+  return method !== undefined && MARKET_MEMBER_METHODS.includes(method)
 }
 
 /** 终端一元动作路径前缀(2026-11-20 W5 门禁修复 TERM-004;rc.5 实核)。 */
@@ -236,18 +320,21 @@ export const GLOBAL_UNARY_ACTIONS: readonly string[] = [
   'mcpManager/probe',
 ]
 
-/** 管理员专属一元门(T6.1「Web 插件页角色门」,2026-11-19):「插件」页
- *  (已安装 + 发现两 tab 同页)整页门由 pluginManager/listBundles 控制
- *  (T2 期观察:缺项=整页不渲染)。市场面是共享 profile 级动作,仅 admin 可用
- *  (请求级收口见 MARKET_ADMIN_PREFIXES);本清单让非 admin 不下发该 UI 门=
- *  入口自然隐藏,避免「页面可见、RPC 全 403」的破面。
+/** 管理员专属一元门(角色 UI 门收窄面)。
+ *
+ *  T6.2(2026-11-24)从本清单**移除** `pluginManager/listBundles`:插件页
+ *  (已安装 + 发现 + 恒灵插件 + 我的插件 + 全局蒸馏)对三档角色全部渲染,
+ *  页面内写控件按角色置灰(体验层),服务端写方法仍 403(请求级门见
+ *  MARKET_MEMBER_METHODS / MARKET_ADMIN_METHODS)。T6.1 时代本清单用它让非
+ *  admin 整页不渲染——那使「我的插件」页签对非 admin 完全不可达(用户报告的
+ *  原始问题),T6.2 起废除此用法。
  *
  *  分派纪律:只收窄不放宽——非 admin 动作集 = GLOBAL_UNARY_ACTIONS 减去本清单,
- *  内容绑定(流/会话/工作区)三角色仍逐项同构(WS-C 零放宽不变式)。admin-only
- *  门不得含任何流动作(流面按资源绑定判,本清单只谈 UI 快照门)。
- *  防漂移:mux-policy 断言 admin 含/非 admin 不含、本清单 ⊆ GLOBAL_UNARY_ACTIONS。 */
+ *  内容绑定(流/会话/工作区)三角色仍逐项同构(WS-C 零放宽不变式)。本清单
+ *  不得含任何流动作(流面按资源绑定判,只谈 UI 快照门)。
+ *  防漂移:mux-policy 断言本清单 ⊆ GLOBAL_UNARY_ACTIONS、非 admin 不含清单项、
+ *  且 listBundles **不在**本清单(三档角色都在位)。 */
 export const ADMIN_ONLY_UNARY_ACTIONS: readonly string[] = [
-  'pluginManager/listBundles',
   // rc.5 B14(2026-11-20):系统层 MCP restart/probe 仅 admin——rebuild 全局 server
   // (可拉起任意 command)与探测其连接面都是管理动作;普通用户只走个人层。
   'mcpManager/restart',
@@ -474,7 +561,8 @@ function eternaUserOf(deps: MuxPolicyDeps, request: unknown): number | undefined
  * 审批人见「待人项」(工作台数据面),未授权跨租户会话/工作区内容流;「管理员全量」同样是
  * 工作台数据语义(30 §4.5),mux 内容流无放宽依据(37 号 §7 缺口 3)。角色现查(不缓存)
  * 仅驱动两处:**收窄**面=待人项动作分派点 pendingStreamActionsOf(本批三档皆空)与
- * 管理员专属 UI 门 ADMIN_ONLY_UNARY_ACTIONS(T6.1 插件页整页门,非 admin 不下发);
+ * 管理员专属 UI 门 ADMIN_ONLY_UNARY_ACTIONS(非 admin 不下发;T6.2 起只剩系统层
+ * MCP 管理面——插件页整页门已按用户裁定放开,见该清单注释);
  * 任何角色档都不得因角色获得额外内容绑定(零放宽)。 */
 export function bindingsFor(deps: MuxPolicyDeps, userId: number): readonly TenantBinding[] {
   const role: UserRole = deps.store.getUserById(userId)?.role ?? 'user'
@@ -601,9 +689,11 @@ export function installMuxIsolation(
     const rawUrl = (request as { url?: unknown }).url
     const path = typeof rawUrl === 'string' ? requestPathname(rawUrl) : ''
     if (path !== '' && isMarketPath(path)) {
+      // T6.2:无 eterna 会话 401(持 owner 级 dsh cookie 也拒,fail-closed);
+      // admin 全量走原 admit;非 admin 只放行读白名单(未知方法默认拒)。
       const userId = eternaUserOf(deps, request)
       if (userId === undefined) return { rejection: 401 }
-      if (deps.store.getUserById(userId)?.role !== 'admin') return { rejection: 403 }
+      if (deps.store.getUserById(userId)?.role !== 'admin' && !marketMemberAllowed(path)) return { rejection: 403 }
       return originalAdmit(request)
     }
     if (path !== '' && isMcpManagerPath(path)) {
