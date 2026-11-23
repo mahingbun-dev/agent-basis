@@ -259,7 +259,10 @@ export function createLiveWorkbenchHub(options: WorkbenchLiveHubOptions): Workbe
       conflict: conflictSection(sectionInputs()),
       logs: traceLogsSection({ tickets: view.tickets, ...(auditFiles.length > 0 ? { auditFiles } : {}) }),
       eval: evalSection(sectionInputs(), nowMs()),
-      flow: flowSection(sectionInputs(), view.tickets, workerSlots, view.threads.filter(thread => thread.subscriptions.length > 0).length),
+      // 订阅计数走 stats().threads.subscribed(而非就地过滤 view.threads):该计数已排除
+      // 派发渠道线程(tasks/plugin.ts countSubscribedThreads——主会话线程上的订阅不再扇出,
+      // 计进去就是把失效订阅显示成活跃订阅)。就地过滤会绕过那个口径(2026-11-23 部署核验实证)。
+      flow: flowSection(sectionInputs(), view.tickets, workerSlots, stats.threads.subscribed),
       worker: workerSection(sectionInputs(), view.tickets, workerSlots, nowMs()),
       sessions: [],
       assignments: branchesOf(view.tickets),

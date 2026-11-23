@@ -375,3 +375,36 @@ it('waiting 停泊工单的前链 trace 不再标「worker 执行中」', () => 
     runtime.dispose()
   }
 })
+
+/**
+ * 订阅计数走 stats 面(2026-11-23 部署核验实证的遗漏):flowSection 此前就地过滤
+ * `view.threads`,绕过了 tasks 侧「排除派发渠道线程」的口径——生产上主会话线程上那条
+ * 已不再扇出的陈旧订阅仍被显示成「1 订阅」。本用例钉死:flow 的 thread 节点读数来自
+ * `stats().threads.subscribed`,不自己再算一遍。
+ */
+it('flow thread 节点读 stats().threads.subscribed(不就地过滤 view.threads)', async () => {
+  const runtime = bootTasks()
+  const hub = createLiveWorkbenchHub({ tasks: (): TasksWorldView | undefined => runtime, refreshMs: 20 })
+  try {
+    const threadNodeSub = (): string | undefined => {
+      const frame = parseFrames([hub.snapshotFrame()])[0]
+      if (frame?.kind !== 'snapshot') throw new Error('首帧不是快照')
+      return frame.snapshot.flow.nodes.find(node => node.key === 'thread')?.sub
+    }
+    expect(threadNodeSub()).toBe(`${runtime.stats().threads.subscribed} 订阅`)
+
+    // 造一条普通话题线程的订阅:stats 与 flow 节点同步 +1(证明读数真的来自 stats)。
+    const ticketId = openTicket(runtime, '1')
+    const baseline = runtime.stats().threads.subscribed
+    runtime.store.threads.save({
+      key: 'test:topic-1', ref: { source: 'test', id: 'topic-1' }, createdAt: new Date().toISOString(),
+      subscriptions: [ticketId], correlated: [], pending: [], meta: {},
+    })
+    expect(runtime.stats().threads.subscribed).toBe(baseline + 1)
+    // 快照靠周期性重投影(live-hub refreshMs)追平直写库的变更,故轮询等待。
+    await waitFor(() => { expect(threadNodeSub()).toBe(`${baseline + 1} 订阅`) })
+  } finally {
+    hub.dispose()
+    runtime.dispose()
+  }
+})
