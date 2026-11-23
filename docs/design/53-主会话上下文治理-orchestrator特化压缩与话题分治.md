@@ -1,6 +1,6 @@
 # 53 - 主会话上下文治理：orchestrator 特化压缩与话题分治
 
-> 状态：**定稿 2026-11-23（D1–D6 已确认），未实施**。本文回答一个问题：super 形态的主会话 `orchestrator-<realm>` 是跨重启复用的单一长会话，用户每轮问的问题主题各异，会话内容持续膨胀——上下文应如何治理。
+> 状态：**定稿 2026-11-23（D1–D6 已确认）；同日 P0–P4 已实施于 `feat/53-master-session-context-governance`（7 提交，未 push，双门禁与 M4 E2E 待补）；§1.5/§4-P0 有 2026-11-23 勘误（main 基线已随 rc.5-3 闭合 presets 接线）**。本文回答一个问题：super 形态的主会话 `orchestrator-<realm>` 是跨重启复用的单一长会话，用户每轮问的问题主题各异，会话内容持续膨胀——上下文应如何治理。
 > 定位：`28` 号 §8-4 开放问题（「basic-plugin 是否需要 orchestrator 特化参数」）的拍板载体；同时收口 `20` 号 §3.1 登记未实现的「任务边界触发」、`35` 号 G2-A9（压缩态回放驱动）与 `28` 号 §7-2（cache-guard 打标）。
 > 关联：`28-上下文策略-主Session滚动治理与自研压缩替换.md`（§5 金集/§6 清单/§8-4）、`20/21/22/22b`（压缩线）、`34/35`（tasks 内核）、`24a`（拍板记录）、`43`（M4 真实链路验收）、`packages/compaction`、`packages/tasks`、`profiles/eterna-super/cordis.patch.yml`
 > 日期：2026-11-23
@@ -42,12 +42,14 @@
 - **压缩态回放 + 差值门禁未建**（G2-A9 待建：dsh-evals replay pack 适配 + `diff-pass-rate.mjs`，跑动节奏 nightly 已登记，`route-golden/README.md:19-24`）；
 - 压缩 golden（evals-golden 25 用例）已有，纪律「分档配置改动必全量重跑压缩 golden」已登记（`packages/tasks/cordis.patch.yml:223` 注）。
 
-### 1.5 角色 preset：已声明、已钉住、**未接线**（本文档新增发现）
+### 1.5 角色 preset：装配接线（**2026-11-23 勘误：main 已随 rc.5-3 闭合**）
+
+> **勘误**：本节初稿（2026-11-23 上午）断言「生产装配链没有任何一环注入 presets，主/worker 会话实际运行宿主缺省 preset」——该断言只在勘察时所在分支 `feat/tasks-super-visibility` 成立。**实测 origin/main（ddecd00 = 0.2.0-rc.5-3，PR#142 合入线）的 `packages/tasks/src/plugin.ts:652` 已含派生缺省**：`presets: options.sessionHost.presets ?? { orchestrator: ORCHESTRATOR_PRESET_ID, worker: WORKER_PRESET_ID }`（显式注入恒优先，注释 `:639-642`）。角色 preset 接线在 main 基线已是现状，主会话运行 `eterna-tasks-orchestrator` preset（只读+路由工具面）自 rc.5-3 起即生产事实。以下初稿两行保留作勘察记录，结论以本勘误为准。
 
 - 两角色 preset 已声明于 `packages/tasks/cordis.patch.yml`：`eterna-tasks-orchestrator-preset`（id `eterna-tasks-orchestrator`，`:147-152`，只含路由所需工具、fs 只读）与 `eterna-tasks-worker-preset`（id `eterna-tasks-worker`，`:51-54`），各自带独立 compaction 组（orchestrator 的在 `:203-234`，worker 的在 `:116-143`）；yml 与常量双向钉住（`packages/tasks/src/session/presets.ts:14,17,20`、`tests/preset.spec.ts:51-57`、`tests/role-models.spec.ts:58-67`）。
 - 消费面已备：`SessionsHost.presets?: Partial<Record<SessionRole, string>>`（`packages/tasks/src/session/sessions.ts:128`），`Sessions.ensure` 按 role 取用并传 `agentPreset` 建会话（`sessions.ts:188-190`）。
-- **但生产装配链没有任何一环注入它**：eterna-super 档 `eterna-tasks` 插件 config 只带 `realm`（`profiles/eterna-super/cordis.patch.yml:587-592`）；未显式注入时由 `sessionHostFromContext(ctx)` 自派生，返回 `{context, ports}` 不含 presets（`packages/tasks/src/plugin.ts:131-171`，返回面 `:167-170`）；`new Sessions({...options.sessionHost, ...})` 的 spread 自然也不带（`plugin.ts:635-636`）。全仓 grep 无其它注入点。
-- **推论**：生产主会话/worker 会话实际运行在宿主缺省 preset（eterna-super 的 preset-standard，压缩组同样全套挂载——与 `.eterna-super-home/.eterna/compaction.state.json` 存在生产证据一致）。角色 preset 的「专用工具面 + 特化压缩参数」**双未生效**；orchestrator 特化参数的落点（orchestrator preset 的 compaction-basic config）以 P0 接线闭合为前提。
+- ~~**但生产装配链没有任何一环注入它**~~（勘误：见上——main 的 `sessionHostFromContext` 派生返回值已带 presets 缺省，`plugin.ts:652`）。
+- ~~**推论**：…角色 preset 的「专用工具面 + 特化压缩参数」双未生效…~~（勘误：两者在 main 均已生效；P2 参数落地的前提早已满足）。**修正后的推论**：§4-P0 的净增量收窄为**可见性与钉住**——boot 探针与 `Sessions.ensure` 断言建会话请求带正确 `agentPreset`（实施分支 `plugin-boot` 探针 14/14）；「主会话工具面收窄」不再是本清单的行为变更，其 M4 E2E 重跑转为 **rc.5-3 存量行为的验收债**（仍须补跑）。
 
 ### 1.6 摘要模型
 
@@ -82,10 +84,10 @@ Q1 已拍板「维持会话模型、不落值」——orchestrator preset 的 co
 
 | # | 事项 | 落点 | 工作量 | 依赖 |
 |---|---|---|---|---|
-| **P0** | **presets 接线闭合**：`sessionHostFromContext` 派生返回值补 `presets: { orchestrator: ORCHESTRATOR_PRESET_ID, worker: WORKER_PRESET_ID }`（同包常量 `presets.ts:14,17`，无新依赖；显式注入的 `config.sessionHost.presets` 恒优先——spread 语义 `plugin.ts:635`）。加探针断言：boot log 或 dump-config 断言主/worker 会话建会话请求带 `agentPreset`。**行为变更需评审**：主会话从宿主缺省 preset（全工具）切到 `eterna-tasks-orchestrator`（只读+路由工具，28 §1.4「分类器不是规划器」的有意收窄）——验收必须重跑 M4 真实链路 E2E（43 号全链） | `packages/tasks/src/plugin.ts:167-170` | 小 | 无，其余全部前置 |
+| **P0** | **presets 接线闭合**（2026-11-23 勘误：main 的 `sessionHostFromContext` 已随 rc.5-3 带派生缺省 `plugin.ts:652`，本项落地内容=探针与单测钉住）：boot 探针 + `Sessions.ensure` 断言主/worker 会话建会话请求带正确 `agentPreset`（实施分支 plugin-boot 探针 14/14）。~~行为变更需评审~~——「主会话切到 `eterna-tasks-orchestrator`（只读+路由工具）」自 rc.5-3 即 main 现状，不再是本清单的行为变更；其 M4 真实链路 E2E 重跑转为存量行为验收债（43 号全链，仍须补跑） | `packages/tasks/src/plugin.ts` | 小 | 无，其余全部前置 |
 | **P1** | **G2-A9 压缩态回放驱动**：dsh-evals replay pack 适配（数据源 = `route-golden/entries.ts`）+ `scripts/diff-pass-rate.mjs`，nightly 挂接；落位与 CI/发布门禁口径随 35 号 §12-10 一并拍板 | `packages/tasks/tests/route-golden/`、`tools/evals/` | 中 | P0（回放需真实 preset 态） |
 | **P2** | **D2 参数落地**：orchestrator preset compaction-basic config 加键；**双门禁全绿才许合入**——压缩 golden（门槛基线：userVerbatim 召回 100%，`22` 号 `:185`）+ 路由金集压缩态回放（通过率差 ≤2pp，28 号 §5 口径） | `packages/tasks/cordis.patch.yml:217-226` | 小 | P0、P1 |
-| **P3** | **D3 任务边界触发**：tasks 侧 `ctx.compaction` 结构端口 + 工单终态钩子 + busy 静默跳过；单测覆盖「busy 跳过不重试风暴」「fail-open 不阻断工单流」 | `packages/tasks/src/plugin.ts`、`prompts/dispatch.md`（D1 同文件顺带） | 中 | P0 |
+| **P3** | **D3 任务边界触发**：tasks 侧 compaction 结构端口 + 工单终态钩子 + busy 静默跳过；端口为**每触发现读面**（复审 F3 修复：agent 作用域实例优先 = orchestrator 特化参数位，宿主 `ctx.compaction` 兜底；boot 后晚挂载下一边界自愈）——不钉死 boot 实例；单测覆盖「busy 跳过不重试风暴」「fail-open 不阻断工单流」「晚挂载自愈」「agent 作用域优先」 | `packages/tasks/src/plugin.ts`、`prompts/dispatch.md`（D1 同文件顺带） | 中 | P0 |
 | **P4** | **D6 cache-guard 打标** + D1 提示词行（若未随 P3 顺带） | glue audit/cache-guard 监控面 | 小 | 无，可先行 |
 
 **明确不做**：摘要模型分档（等 35 号 §12-9）；worker 报告自动蒸馏（D5）；把主会话拆成多会话（super 流程只在主会话可达，拆会话破坏 40 号形态门禁与 44 号收官口径；话题隔离由工单承担）。
