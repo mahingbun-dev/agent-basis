@@ -303,11 +303,11 @@ function handleCompanionReset(deps: AccessDeps, req: AccessRequest, ip: string):
   return jsonResponse(200, { ok: true, token: entry.token, createdAt: entry.createdAt, guideUrl: companionGuideUrl(deps.relayPublicWsUrl) })
 }
 
-/** 插件启停清单(admin):含红线标记;停用重启后生效(entrypoint 渲染管线裁剪 patch 行)。 */
+/** 插件启停清单(登录即可读;停用/删除仍 admin——T6.2 全员可见只读)。含红线标记;
+ *  停用重启后生效(entrypoint 渲染管线裁剪 patch 行)。 */
 function handlePluginList(deps: AccessDeps, req: AccessRequest): AccessReply {
-  const admin = requireUser(deps, req)
-  if (admin === undefined) return errorReply(401, '未登录')
-  if (admin.role !== 'admin') return errorReply(403, '需要管理员权限')
+  const user = requireUser(deps, req)
+  if (user === undefined) return errorReply(401, '未登录')
   const plugins = [
     ...[...RED_LINE_PLUGINS].map(id => ({ id, label: id, redLine: true, disabled: false, removed: false })),
     ...TOGGLEABLE_PLUGINS.map((p) => {

@@ -199,11 +199,13 @@ pnpm add @deepseek-ai/dsh-experimental-plugin-market-bundle@0.2.2-rc.1
 # package.json 的 dsh.profile.bundles 追加该包名,然后重启宿主
 ```
 
-✅ **市场面仅管理员可用(T6.1,2026-11-19 落地)**:安装/卸载/启停/索引源写入与 detail-file 仅 `admin` 角色可调用(普通用户/审批人 403;未登录会话 401);非 admin 的「插件」页整页不渲染,个人插件走设置弹窗「我的插件」。机制与实测证据见 `docs/PLUGIN-AUTHORING.md` §7。
+✅ **插件页全员可见、只有「我的插件」可写(T6.2,2026-11-24 起;取代 T6.1 的整页 admin-only)**:任何角色都能进侧栏「插件」页并看到全部标签(已安装/发现/恒灵插件/我的插件/全局蒸馏)。写操作仍归 `admin`:安装/卸载/启停/索引源写入与 install-inspect 一类方法在服务端按方法名 403(普通用户/审批人;未登录会话 401),前端把对应控件置灰并拦掉点击——绕过前端也改不了任何东西。读方法(`listBundles`/`listPlugins`/`listVersions`/`listVersionExemptions`/`readBundleDetail`/`listIndexes`/`search`/`readEntryDetail` 与两条 `detail-file` 图片路由)对登录用户放行。上游将来新增的方法若未显式分类,默认拒(防漂移测试在 CI 拦)。机制与证据见 `docs/PLUGIN-AUTHORING.md` §7。
+
+> 残余边界(如实登记):`listBundles` 的 `source` 字段对第三方 profile 依赖会给绝对路径,非 admin 因此能看到宿主机路径字符串(非用户数据);`inspect`/`registries` 因接受路径 spec 可探测宿主文件系统,维持 admin-only。
 
 ### 创造模式插件上架官方市场(一键发布,推荐)
 
-创造模式开发的个人插件想给**全员**用,不必手工走仓库发布流程——直接在会话里让 agent 调用 `submit_plugin_to_market`(或在设置弹窗「我的插件」确认目录名后发起):
+创造模式开发的个人插件想给**全员**用,不必手工走仓库发布流程——直接在会话里让 agent 调用 `submit_plugin_to_market`(或在「插件」页「我的插件」标签确认目录名后发起):
 
 - 自动完成:bundle 化改写 → 官方仓库分支 commit(bundle + 索引两段,索引钉 bundle SHA)→ 零漂移校验 → push → **开 PR**;
 - 你只做一件事:**合并 PR**(仓库 main 有分支保护,CI validate 绿才能合;PR 链接工具会直接给出);
@@ -220,7 +222,7 @@ pnpm add @deepseek-ai/dsh-experimental-plugin-market-bundle@0.2.2-rc.1
 3. 搜索/按标签筛选 → 卡片上点「**安装**」→ 确认对话框(显示版本、来源 spec、commit)→ 确认后进入安装检查(不兼容版本会被拒并提示豁免方式)
 4. 装完到「已安装」标签启用/停用;启用行写入 profile 的 `dsh.profile.bundles`。`dsh --profile` 启动(带 profileContext)时 dsh-base 默认开 **HMR 配置重载**:首装/启停即时重组合(浏览器刷新页面即见 UI),结果字段 `application=applied`;仅**替换已装载模块代码**(如重装同路径新版本)且 hmr `root: []`(不 watch 源码)时需重启容器,或给 profile 配 `hmr root: ['.']` 打开模块替换
 
-安装/启用是管理员面;普通用户的个人工具插件走设置弹窗「我的插件」(免重启,见 `docs/dev/tenant-plugins.md`)。
+安装/启用是管理员面(普通用户看到的是只读列表);普通用户的个人工具插件走「插件」页「我的插件」标签(免重启,见 `docs/dev/tenant-plugins.md`)。
 
 ### 会话内让代理装(工具链)
 
@@ -264,7 +266,7 @@ cd ~/.dsh/profiles/eterna-web && pnpm install
 | 登出 | 角标 → 「退出」 |
 | 未登录访问应用 | 页面自动跳转到 `/login` |
 | 工作区隔离 | 每个账号一个家目录（`$DSH_HOME/workspaces/<账号>/`）：登录即自动开通自己的工作区（名下零工作区时，首开还会建好第一个空会话，进入即可直接使用）；建工作区/浏览目录/建会话都被钳制在自己的目录内。点他人的工作区新建会话会**明确报错并引导**（「请在左侧点击你自己的工作区」），自动引导极端情况下挑中他人工作区时页面底部也会弹出同样的引导条；不会动他人任何数据，写操作（改名/删除）对他人工作区一律拒绝 |
-| 插件停用/删除 | 仅管理员：侧栏「插件」页 →「恒灵插件」页签。停用可随时恢复；**删除**为永久卸载（重启容器生效，「恢复」可撤销）。治理/审计/出网/门禁为红线不可动 |
+| 插件停用/删除 | 仅管理员：侧栏「插件」页 →「恒灵插件」页签。停用可随时恢复；**删除**为永久卸载（重启容器生效，「恢复」可撤销）。治理/审计/出网/门禁为红线不可动。普通用户与审批人可见该页签的完整清单但控件置灰（只读，服务端对写方法 403） |
 
 安全语义:不开放注册(用户只能由管理员添加);登录限速(每 IP+账号 5 次/分钟,
 每 IP 变更类请求 30 次/分钟);登录(含失败)、建删用户、资料与密码修改全部
@@ -289,7 +291,7 @@ cd ~/.dsh/profiles/eterna-web && pnpm install
 - **OpenDesign（Go 套餐）分组**（2026-11-12）：模型选择器新增 OpenDesign 分组（anthropic-messages 协议直连 `amr-link.open-design.ai`），14 个模型（Claude Haiku 5.5 / DeepSeek V4 与 V4.1 系 / GLM 5.3 Flash 系 / GPT-6 Luna / Kimi K2.7 Code / MiMo V2.6 系 / MiniMax M3.1 等）。key 经 `OPENDESIGN_API_KEY` env 注入；上下文声明统一 300K（Kimi K2.7 Code 按官方元数据 262K）。
 - **会话与工作区隔离**：成员只能看到自己的工作区与会话（含侧栏列表与搜索）；「添加工作区」走目录树，只能在本人目录内选择与新建文件夹。
 - **用量统计**：侧栏「用量统计」面板查看 Token 总量、缓存命中率、近 14 天趋势与按模型分布。普通成员看本人，管理员看全局。
-- **我的插件**：设置弹窗新分区——把工具型插件放进本人 `plugins/` 目录即可安装，仅本人可见；安装/启停/移除**即时生效，无需重启**（T6 装载器，2026-11-18）。创造模式里开发的插件，点「扫描 plugins 目录」一键导入；会话里代理也可直接调 `install_personal_plugin` 帮你装。行内徽标显示装载状态（已装载 n 个工具/装载失败原因）；「转内置」提交申请，管理员在「审批队列」通过后**即刻全员可用**（「恒灵插件」页签「共享工具」分区可启停）。契约与边界见 `docs/dev/tenant-plugins.md`：仅工具型（UI/bundle 型需管理员 bundle 安装），最小模板在品牌技能 `templates/personal-tool/`。
+- **我的插件**：侧栏「插件」页 →「我的插件」标签（全员可操作，无需管理员）——把工具型插件放进本人 `plugins/` 目录即可安装，仅本人可见；安装/启停/移除**即时生效，无需重启**（T6 装载器，2026-11-18）。创造模式里开发的插件，点「扫描 plugins 目录」一键导入；会话里代理也可直接调 `install_personal_plugin` 帮你装。行内徽标显示装载状态（已装载 n 个工具/装载失败原因）；「转内置」提交申请，管理员在「审批队列」通过后**即刻全员可用**（「恒灵插件」页签「共享工具」分区可启停）。契约与边界见 `docs/dev/tenant-plugins.md`：仅工具型（UI/bundle 型需管理员 bundle 安装），最小模板在品牌技能 `templates/personal-tool/`。
 - **消息与审批**：设置弹窗新分区——审批结果与待办的站内提醒。
 - 已知问题：浏览器若缓存了旧版登录页，密码小眼睛可能出现位移——硬刷新（⌘⇧R）即可。
 - 全部功能验收证据：`acceptance/team-platform/`（分阶段门禁 gate-summary 与工件）。

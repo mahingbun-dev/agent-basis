@@ -13,7 +13,7 @@
 import { readdirSync, readFileSync, existsSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { join } from 'node:path'
-import { GLOBAL_EVENT_ACTIONS, SESSION_EVENT_ACTIONS, SESSION_STREAM_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_UNARY_ACTIONS, TERMINAL_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS, bindingsFor } from '../src/mux.ts'
+import { GLOBAL_EVENT_ACTIONS, SESSION_EVENT_ACTIONS, SESSION_STREAM_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_UNARY_ACTIONS, TERMINAL_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS, bindingsFor, MARKET_ADMIN_METHODS, MARKET_MEMBER_FETCH_PATHS, MARKET_MEMBER_METHODS, marketMemberAllowed, marketMethodOf } from '../src/mux.ts'
 
 function findPnpmRoot(): string {
   let dir = new URL('..', import.meta.url).pathname
@@ -374,6 +374,79 @@ describe('T2 防漂移:上游流方法表全覆盖', () => {
 
   it('停止按钮生命线事件在位(2026-11-13 回归锚:running 旗标唯此一路,缺席=回合中无停止按钮)', () => {
     expect(SESSION_EVENT_ACTIONS).toContain('event:api-session/status')
+  })
+})
+
+describe('T6.2 防漂移:市场面读白名单覆盖上游全部插件方法(2026-11-24)', () => {
+  /** 上游 pluginManager/* 与 pluginMarket/* 的全部 RPC 方法名(读上游 typert 声明,
+   *  与 mux.ts MARKET_MEMBER_METHODS / MARKET_ADMIN_METHODS 对账)。 */
+  function upstreamPluginMethods(): string[] {
+    const root = findPnpmRoot()
+    const methods = new Set<string>()
+    for (const pkg of ['dsh-plugin-manager', 'dsh-plugin-market']) {
+      let found: string | undefined
+      for (const entry of readdirSync(root, { withFileTypes: true })) {
+        if (!entry.name.startsWith(`@deepseek-ai+${pkg}@`)) continue
+        const file = join(root, entry.name, 'node_modules', '@deepseek-ai', pkg, 'lib', 'typert.remote-client.d.ts')
+        if (existsSync(file)) { found = file; break }
+      }
+      if (found === undefined) continue
+      for (const match of readFileSync(found, 'utf8').matchAll(/'(plugin(?:Manager|Market)\/[a-zA-Z]+)':/g)) {
+        const method = match[1]
+        if (method !== undefined) methods.add(method)
+      }
+    }
+    return [...methods].sort()
+  }
+
+  it('两清单非空且互斥(同一方法不得既放行又拒收)', () => {
+    expect(MARKET_MEMBER_METHODS.length).toBeGreaterThan(0)
+    expect(MARKET_ADMIN_METHODS.length).toBeGreaterThan(0)
+    for (const method of MARKET_MEMBER_METHODS) expect(MARKET_ADMIN_METHODS).not.toContain(method)
+  })
+
+  it('上游全部 pluginManager/* 与 pluginMarket/* 方法 ⊆ 放行 ∪ 拒收(新方法漏分类即红)', () => {
+    const upstream = upstreamPluginMethods()
+    // 解析失效保护:已知核心方法必须在表内,否则本断言失去意义
+    expect(upstream).toContain('pluginManager/listBundles')
+    expect(upstream).toContain('pluginMarket/setIndexes')
+    const classified = new Set([...MARKET_MEMBER_METHODS, ...MARKET_ADMIN_METHODS])
+    expect(upstream.filter(method => !classified.has(method))).toEqual([])
+  })
+
+  it('两清单无僵尸方法(每个方法都在上游 —— 防清单含未注册方法造成虚假覆盖)', () => {
+    const upstream = new Set(upstreamPluginMethods())
+    const zombie = [...MARKET_MEMBER_METHODS, ...MARKET_ADMIN_METHODS].filter(method => !upstream.has(method))
+    expect(zombie).toEqual([])
+  })
+
+  it('写方法一个都不在放行清单(读白名单不得夹带写能力)', () => {
+    for (const method of [
+      'pluginManager/installBundle', 'pluginManager/updateBundle', 'pluginManager/removeBundle',
+      'pluginManager/setBundleEnabled', 'pluginManager/setPluginEnabled', 'pluginManager/setVersionExemption',
+      'pluginManager/cancelInstall', 'pluginManager/waitForInstall', 'pluginMarket/setIndexes',
+    ]) {
+      expect(MARKET_MEMBER_METHODS).not.toContain(method)
+      expect(MARKET_ADMIN_METHODS).toContain(method)
+    }
+  })
+
+  it('路径→方法解析与上游同口径(camelCase 段;含 / 或空段不认,交给上游 404)', () => {
+    expect(marketMethodOf('/api/pluginManager/listBundles')).toBe('pluginManager/listBundles')
+    expect(marketMethodOf('/api/pluginMarket/search')).toBe('pluginMarket/search')
+    // 非 RPC 路由(两条 detail-file)与方法解析面分离
+    expect(marketMethodOf('/api/plugin-manager/detail-file')).toBeUndefined()
+    // 编码段/多段路径不解析 → 非 admin 恒拒(上游也恒 404,双保险)
+    expect(marketMethodOf('/api/pluginManager/listBundles/extra')).toBeUndefined()
+    expect(marketMethodOf('/api/pluginManager/')).toBeUndefined()
+  })
+
+  it('marketMemberAllowed 与清单同源(白名单放行、其余拒;两条 detail-file 是唯一路径级放行)', () => {
+    for (const method of MARKET_MEMBER_METHODS) expect(marketMemberAllowed(`/api/${method}`)).toBe(true)
+    for (const method of MARKET_ADMIN_METHODS) expect(marketMemberAllowed(`/api/${method}`)).toBe(false)
+    for (const path of MARKET_MEMBER_FETCH_PATHS) expect(marketMemberAllowed(path)).toBe(true)
+    // 同前缀下的其它 detail-file 变体不放行
+    expect(marketMemberAllowed('/api/plugin-manager/detail-file/extra')).toBe(false)
   })
 })
 

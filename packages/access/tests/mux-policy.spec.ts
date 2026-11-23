@@ -10,7 +10,7 @@ import { SessionService } from '../src/session.ts'
 import { UserStore } from '../src/store.ts'
 import { ADMIN_ONLY_STREAM_ACTIONS, ADMIN_ONLY_UNARY_ACTIONS, bindingsFor, GLOBAL_EVENT_ACTIONS, GLOBAL_STREAM_ACTIONS, GLOBAL_UNARY_ACTIONS, SESSION_EVENT_ACTIONS, SESSION_STREAM_ACTIONS, SESSION_UNARY_ACTIONS, TERMINAL_UNARY_ACTIONS, WORKSPACE_FILE_UNARY_ACTIONS, WORKSPACE_STREAM_ACTIONS, WORKSPACE_UNARY_ACTIONS, visibilityScopeOf } from '../src/mux.ts'
 
-/** 非 admin 的全局一元动作 = 全员清单减去管理员专属 UI 门(T6.1 收窄面)。 */
+/** 非 admin 的全局一元动作 = 全员清单减去管理员专属 UI 门(T6.2 起只剩系统 MCP 管理面)。 */
 const memberUnary = GLOBAL_UNARY_ACTIONS.filter(action => !ADMIN_ONLY_UNARY_ACTIONS.includes(action))
 
 /** 管理员专属门(UI 一元门 + 系统 MCP 流门)统一视为收窄面。 */
@@ -140,11 +140,11 @@ describe('T2:mux 策略绑定', () => {
     expect(sessionIdsOf(bobId)).not.toContain('s-orphan-child')
   })
 
-  it('WS-C ②:approver 与 user/admin 的 bindingsFor 内容面逐项全等(零放宽不变式;唯一豁免=管理员专属 UI 门收窄)', () => {
+  it('WS-C ②:approver 与 user/admin 的 bindingsFor 内容面逐项全等(零放宽不变式;T6.2 起插件页门已全员下发)', () => {
     const deps = { store, session }
     // 同一资源集跨三角色轮转对比(approver 化 → admin 化 → 回 user),逐项 deep-equal。
-    // T6.1 后 admin 多出 ADMIN_ONLY_UNARY_ACTIONS(插件页整页门),只收窄不放宽——
-    // 内容面(流动作/会话/工作区)三方仍逐项全等,剥离 UI 门后比较。
+    // T6.2(2026-11-24)后 ADMIN_ONLY_UNARY_ACTIONS 不含 pluginManager/listBundles(插件页
+    // 全员可见),仅剩系统层 MCP 管理面;剥离步骤保留(机制留给按角色收窄的未来项)。
     const asUser = bindingsFor(deps, aliceId)
     store.setUserRole(aliceId, 'approver')
     const asApprover = bindingsFor(deps, aliceId)
@@ -153,11 +153,11 @@ describe('T2:mux 策略绑定', () => {
     store.setUserRole(aliceId, 'user')
     expect(contentView(asApprover)).toEqual(contentView(asUser))
     expect(contentView(asAdmin)).toEqual(contentView(asUser))
-    // admin 专属面明示:仅 admin 含插件页整页门,且绝不额外获得任何内容动作
     const actionsOf = (bindings: ReturnType<typeof bindingsFor>) => (bindings.find(b => b.resource.kind === 'global') as { role: { actions: readonly string[] } }).role.actions
     expect(actionsOf(asAdmin)).toEqual([...GLOBAL_STREAM_ACTIONS, ...GLOBAL_UNARY_ACTIONS, ...GLOBAL_EVENT_ACTIONS])
-    expect(actionsOf(asApprover)).not.toContain('pluginManager/listBundles')
-    expect(actionsOf(asUser)).not.toContain('pluginManager/listBundles')
+    // T6.2:插件页整页门对三档角色全下发(非 admin 也能进插件页)
+    expect(actionsOf(asApprover)).toContain('pluginManager/listBundles')
+    expect(actionsOf(asUser)).toContain('pluginManager/listBundles')
     // rc.5 B14:系统层 MCP watch 仅 admin
     expect(actionsOf(asAdmin)).toContain('mcpManager/watch')
     expect(actionsOf(asApprover)).not.toContain('mcpManager/watch')
@@ -177,25 +177,28 @@ describe('T2:mux 策略绑定', () => {
       .not.toContain('s-stranger')
   })
 
-  it('T6.1 管理员专属 UI 门:pluginManager/listBundles 仅 admin 下发(插件页整页门),清单 ⊆ 全员门', () => {
+  it('T6.2 管理员专属 UI 门:插件页门已移出清单(三档全员下发);清单纪律仍 ⊆ 全员门', () => {
     const deps = { store, session }
     const unaryOf = (userId: number) => (bindingsFor(deps, userId)
       .find(b => b.resource.kind === 'global') as { role: { actions: readonly string[] } }).role.actions
-    expect(ADMIN_ONLY_UNARY_ACTIONS).toContain('pluginManager/listBundles')
+    // T6.2 显式裁定:listBundles 不在收窄清单(非 admin 也要插件页),加回必须同步改本断言
+    expect(ADMIN_ONLY_UNARY_ACTIONS).not.toContain('pluginManager/listBundles')
     // 清单纪律:必须是全员门的子集(只收窄,不得引入清单外动作)
     for (const action of ADMIN_ONLY_UNARY_ACTIONS) expect(GLOBAL_UNARY_ACTIONS).toContain(action)
     for (const action of ADMIN_ONLY_STREAM_ACTIONS) expect(GLOBAL_STREAM_ACTIONS).toContain(action)
     // 管理员专属门不得含任何会话/工作区资源动作(只谈全局面)
     for (const action of ADMIN_ONLY_STREAM_ACTIONS) expect(SESSION_STREAM_ACTIONS).not.toContain(action)
-    // 非 admin 两档(审批人同 user)不下发
+    // 插件页整页门对三档全员下发(非 admin 与 admin 一致)
     const bobRole = store.getUserById(bobId)!.role
     expect(bobRole).toBe('user')
-    expect(unaryOf(bobId)).not.toContain('pluginManager/listBundles')
+    expect(unaryOf(bobId)).toContain('pluginManager/listBundles')
     store.setUserRole(bobId, 'approver')
-    expect(unaryOf(bobId)).not.toContain('pluginManager/listBundles')
+    expect(unaryOf(bobId)).toContain('pluginManager/listBundles')
     store.setUserRole(bobId, 'admin')
     expect(unaryOf(bobId)).toContain('pluginManager/listBundles')
     store.setUserRole(bobId, 'user')
+    // 系统层 MCP 管理面仍按 admin 收窄(T6.2 未动)
+    for (const action of ['mcpManager/restart', 'mcpManager/probe']) expect(unaryOf(bobId)).not.toContain(action)
     // 其余全员门不受影响(设置弹窗/新建会话/日程入口)
     for (const action of ['settings/describe', 'session/create', 'schedule/list']) {
       expect(unaryOf(bobId)).toContain(action)

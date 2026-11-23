@@ -2,8 +2,8 @@
  * access 客户端半边:产品内功能走原生扩展点。
  * - 设置弹窗分区(settings.section):「账号」(所有人:资料合并保存+密码独立)、
  *   「用户管理」(仅 admin)
- * - 右侧「插件」页(plugins.tab slot,仅 admin):「恒灵插件」页签——@eterna
- *   插件的停用/删除管理(不与上游 Installed/内置插件配置重合)
+ * - 右侧「插件」页(plugins.tab slot):「我的插件」(全员可操作) +「恒灵插件」
+ *   (全员可见;T6.2 起非 admin 只读——服务端写端点仍 admin 强制)
  * - 上游设计宣言:adding a setting never means editing the shell
  *   (dsh-client-ui-settings contract/slots.d.ts);AGENTS.md 前端与产品形态铁律
  * - 数据走同源 /access/api/*(Host 半边提供,eterna_session cookie 自动携带)
@@ -18,6 +18,7 @@ import { SessionBindingProbe } from './session-probe.tsx'
 import { activeSessionId } from './session-bridge.ts'
 import { AccountLauncher, type AccountLauncherInjected } from './account-menu.tsx'
 import { installLinkOpeningDefault } from './link-opening.ts'
+import { applyPluginPageRole } from './plugin-page-guard.ts'
 import { ApprovalCards } from './approval-card.tsx'
 import { QuestionCards } from './question-card.tsx'
 import { McpServersSection } from './mcp-servers-section.tsx'
@@ -452,6 +453,23 @@ export function apply(ctx: AccessClientContext): () => void {
       inject: () => ({ t }),
       label: () => t('section.myPlugins'),
     }, MyPluginsTab))
+    // 侧栏「插件」页:「恒灵插件」管理页签(T6.2 起全员注册——非 admin 只读)。
+    // plugins.tab=upstream ui-plugin-manager 主面板声明的 list slot
+    // (index.ts:140)。2026-11-11 第一轮曾误判 slot 名不匹配改注 settings.plugins.tab
+    // ——实际当时整页被 pluginManager/listBundles 门控隐藏;mux 补授权后页面可达,
+    // 本名即正确挂载。
+    // T6.2(2026-11-24,用户裁定「任何角色都能进插件页、看到全部页签,只有『我的
+    // 插件』可操作」):移出 admin 分支——读方法已对非 admin 放行(mux.ts
+    // MARKET_MEMBER_METHODS),服务端写端点仍 admin 强制;本页签按角色注入
+    // readOnly 决定给不给写控件。
+    ctx.slots.inject('plugins.tab', () => ctx.slots.register({
+      name: 'plugins.tab',
+      id: `${NS}.manage`,
+      order: 20,
+      locale: NS,
+      inject: () => ({ readOnly: role !== 'admin' }),
+      label: () => t('tab.manage'),
+    }, ManageTab))
     if (role === 'admin') {
       ctx.slots.inject('settings.section', () => ctx.slots.register({
         name: 'settings.section',
@@ -469,26 +487,19 @@ export function apply(ctx: AccessClientContext): () => void {
         inject: () => ({ t }),
         label: () => t('section.approvalQueue'),
       }, ApprovalQueueSection))
-      // 侧栏「插件」页:「恒灵插件」管理页签(admin;与已安装/我的插件同层)。
-      // plugins.tab=upstream ui-plugin-manager 主面板声明的 list slot
-      // (index.ts:140)。2026-11-11 第一轮曾误判 slot 名不匹配改注 settings.plugins.tab
-      // ——实际当时整页被 pluginManager/listBundles 门控隐藏;mux 补授权后页面可达,
-      // 本名即正确挂载。
-      ctx.slots.inject('plugins.tab', () => ctx.slots.register({
-        name: 'plugins.tab',
-        id: `${NS}.manage`,
-        order: 20,
-        locale: NS,
-        label: () => t('tab.manage'),
-      }, ManageTab))
     }
   }
 
-  // 角色判定:未登录(401)不注册分区(登录页场景 client 不在应用壳内);admin 追加管理面
+  // 角色判定:未登录(401)不注册分区(登录页场景 client 不在应用壳内);admin 追加管理面。
+  // T6.2:同时把角色写到 <html data-eterna-access-role> 并对非 admin 装只读守卫
+  // (plugin-page-guard.ts:插件页写控件置灰+拦截;真正边界在服务端 403)。
+  let disposePluginPageRole: (() => void) | undefined
   void fetch('/access/api/me', { credentials: 'same-origin' }).then(res => {
     if (!res.ok) return
     return res.json().then((me: { role?: string }) => {
-      registerSections(me.role === 'admin' ? 'admin' : 'user')
+      const role: 'admin' | 'user' = me.role === 'admin' ? 'admin' : 'user'
+      disposePluginPageRole = applyPluginPageRole(role)
+      registerSections(role)
     }).catch(() => {})
   }).catch(() => {})
 
@@ -522,6 +533,7 @@ export function apply(ctx: AccessClientContext): () => void {
 
   const disposeLocaleOriginal = disposeLocale
   return () => {
+    try { disposePluginPageRole?.() } catch { /* 尽力而为 */ }
     disposeLocaleOriginal()
   }
 }

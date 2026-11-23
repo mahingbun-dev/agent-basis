@@ -1,14 +1,17 @@
 /**
  * T38 检索/市场回归(2026-11-20;47 §B7/B8 · 50 §3.4 · 54 §4.6/§4.11)。
+ * T6.2(2026-11-24)改判:市场面从「整片 admin」改为「读放行 / 写 admin」。
  *
  * 市场面(可执行部分):
  * - **上游方法表防漂移**:从 node_modules 上游 typert 描述符取
  *   `pluginManager/*`(15)+ `pluginMarket/*`(4)全表,逐个断言
- *   `access admit` 的市场门行为——匿名 401、普通用户 403(不触达原 admit)、
- *   admin 放行(owner Peer)。上游加方法而门失效/清单漏改时本测试红;
+ *   `access admit` 的市场门行为——匿名 401;普通用户**读方法放行到原 admit**
+ *   (插件页全员可见只读的前提),**写方法 403**;admin 全放行(owner Peer)。
+ *   上游加方法而门失效/清单漏改时本测试红;
  * - **安装/卸载/启停/索引源写**动作(installBundle/updateBundle/removeBundle/
- *   setBundleEnabled/setPluginEnabled/setVersionExemption/setIndexes)全在表内;
- * - **双层键控**:共享层 = 市场 RPC(admin-only,落共享 profile);个人层 =
+ *   setBundleEnabled/setPluginEnabled/setVersionExemption/setIndexes)全在
+ *   管理员名单内,普通用户一律 403;
+ * - **双层键控**:共享层 = 市场 RPC(读全员/写 admin,落共享 profile);个人层 =
  *   `/api/my-plugins/*`(access 守卫路由,cookie 判归属,`user:<account>:<name>`
  *   命名禁 shadow 公共 id)——个人层**不在**市场门内,普通用户照常可用。
  *
@@ -21,7 +24,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { installMuxIsolation, MARKET_ADMIN_PREFIXES, MUX_PATH } from '../src/mux.ts'
+import { installMuxIsolation, MARKET_ADMIN_METHODS, MARKET_MEMBER_METHODS, MARKET_SURFACE_PREFIXES, MUX_PATH } from '../src/mux.ts'
 import { SessionService } from '../src/session.ts'
 import { UserStore } from '../src/store.ts'
 import { personalPluginId, USER_PLUGINS_PREFIX } from '../src/user-plugins.ts'
@@ -136,7 +139,7 @@ describe('T38 市场面:admit 市场门 × 上游全方法表', () => {
     expect(upstream).toEqual([...EXPECTED_MARKET_METHODS].sort())
   })
 
-  it('19 个方法逐条:匿名 401、普通用户 403(不触达原 admit)、admin 放行', () => {
+  it('19 个方法逐条:匿名 401、普通用户读放行/写 403、admin 全放行', () => {
     const connection = fakeConnection()
     const install = installMuxIsolation({ store, session }, connection, { registerPolicy: () => {} })
     const admit = admitOf(connection)
@@ -144,7 +147,14 @@ describe('T38 市场面:admit 市场门 × 上游全方法表', () => {
     for (const method of EXPECTED_MARKET_METHODS) {
       const path = `/api/${method}`
       expect(admit(requestOf(path)).rejection, `${method} 匿名应 401`).toBe(401)
-      expect(admit(requestOf(path, aliceCookie)).rejection, `${method} 普通用户应 403`).toBe(403)
+      const member = admit(requestOf(path, aliceCookie))
+      // T6.2:读方法(插件页全员可见只读)放行到原 admit;写方法 403
+      if (MARKET_MEMBER_METHODS.includes(method)) {
+        expect(member.peer, `${method} 普通用户读应放行`).toBe('owner-peer')
+      } else {
+        expect(MARKET_ADMIN_METHODS, `${method} 必须显式归入某一侧`).toContain(method)
+        expect(member.rejection, `${method} 普通用户写应 403`).toBe(403)
+      }
       const allowed = admit(requestOf(path, adminCookie))
       expect(allowed.peer, `${method} admin 应放行`).toBe('owner-peer')
       adminCalls += 1
@@ -173,12 +183,14 @@ describe('T38 市场面:admit 市场门 × 上游全方法表', () => {
     install?.dispose()
   })
 
-  it('detail-file 两条 exact 路由(带 query)同样在门内;近形路径不倒', () => {
+  it('detail-file 两条 exact 路由(带 query):登录即可读、匿名 401、近形路径不倒', () => {
     const connection = fakeConnection()
     const install = installMuxIsolation({ store, session }, connection, { registerPolicy: () => {} })
     const admit = admitOf(connection)
     for (const path of DETAIL_FILE_PATHS) {
-      expect(admit(requestOf(`${path}?document=d&path=img/a.png`, aliceCookie)).rejection).toBe(403)
+      // T6.2:detail-file 是只读图片路由(上游限定在已列出的 bundle 文档内),
+      // 插件页全员可见后普通用户必须能取其详情图,否则只读页面缺图。
+      expect(admit(requestOf(`${path}?document=d&path=img/a.png`, aliceCookie)).peer).toBe('owner-peer')
       expect(admit(requestOf(`${path}?document=d&path=img/a.png`)).rejection).toBe(401)
       expect(admit(requestOf(`${path}?document=d&path=img/a.png`, adminCookie)).peer).toBe('owner-peer')
     }
@@ -189,8 +201,8 @@ describe('T38 市场面:admit 市场门 × 上游全方法表', () => {
   })
 
   it('双层键控:个人层 /api/my-plugins/* 不在市场门内(普通用户可用),共享层在市场门内', () => {
-    expect(MARKET_ADMIN_PREFIXES.some(prefix => USER_PLUGINS_PREFIX.startsWith(prefix))).toBe(false)
-    expect(MARKET_ADMIN_PREFIXES).toEqual([
+    expect(MARKET_SURFACE_PREFIXES.some(prefix => USER_PLUGINS_PREFIX.startsWith(prefix))).toBe(false)
+    expect(MARKET_SURFACE_PREFIXES).toEqual([
       '/api/pluginManager/',
       '/api/pluginMarket/',
       '/api/plugin-manager/',

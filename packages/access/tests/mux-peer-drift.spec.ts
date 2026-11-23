@@ -5,8 +5,10 @@
  * - 非 mux/非市场路径(含 unary HTTP)→ 原 admit(owner——上游 fetch 路由硬性要求 owner);
  * - dispose 后 admit 还原、Peer dispose。
  *
- * T6.1 市场面 admin 门(2026-11-19):同一包装对 MARKET_ADMIN_PREFIXES 路径先按 eterna
- * 登录态收口——无会话 401、非 admin 403(不触达原 admit)、admin 放行;角色逐请求现查。
+ * T6.1 市场面 admin 门(2026-11-19)→ T6.2 读放行/写 admin(2026-11-24):同一包装对
+ * MARKET_SURFACE_PREFIXES 路径先按 eterna 登录态收口——无会话 401;admin 全量放行;
+ * 非 admin 只放行读白名单(MARKET_MEMBER_METHODS + 两条 detail-file),其余 403。
+ * 角色逐请求现查。
  *
  * TERM-004 终端一元门(2026-11-20 W5):`/api/terminal/*` 必须换血 eterna-user Peer
  * (rc.5 浏览器 admit 恒 owner,网关对 owner 跳过 decide → 服务入口守卫无身份可判);
@@ -155,7 +157,7 @@ describe('T2 换血:admit 包装', () => {
     install?.dispose()
   })
 
-  it('T6.1 市场面:非 admin 403、无 eterna 会话 401,均不触达原 admit', () => {
+  it('T6.2 市场面:非 admin 的写方法 403、无 eterna 会话 401,均不触达原 admit', () => {
     const connection = fakeConnection()
     const install = installMuxIsolation({ store, session }, connection, { registerPolicy: vi.fn() })
     const denied = admitOf(connection)(marketReq('/api/pluginManager/installBundle', aliceCookie))
@@ -169,37 +171,67 @@ describe('T2 换血:admit 包装', () => {
     install?.dispose()
   })
 
-  it('T6.1 市场面:admin 放行到原 admit(owner Peer)', () => {
+  it('T6.2 市场面:admin 对写方法与读方法都放行到原 admit(owner Peer)', () => {
     const connection = fakeConnection()
     const install = installMuxIsolation({ store, session }, connection, { registerPolicy: vi.fn() })
-    const allowed = admitOf(connection)(marketReq('/api/pluginManager/installBundle', adminCookie))
-    expect(allowed.peer).toBe('owner-peer')
-    expect(connection.original).toHaveBeenCalledTimes(1)
+    for (const path of ['/api/pluginManager/installBundle', '/api/pluginManager/inspect', '/api/pluginManager/listBundles']) {
+      expect(admitOf(connection)(marketReq(path, adminCookie)).peer, path).toBe('owner-peer')
+    }
+    expect(connection.original).toHaveBeenCalledTimes(3)
     install?.dispose()
   })
 
-  it('T6.1 路径覆盖:RPC 端点 + 两 detail-file(带 query)全覆盖;近形路径与个人插件面不倒', () => {
+  it('T6.2 市场面:非 admin 的读方法放行到原 admit(插件页全员可见只读的请求级支撑)', () => {
     const connection = fakeConnection()
     const install = installMuxIsolation({ store, session }, connection, { registerPolicy: vi.fn() })
-    expect(admitOf(connection)(marketReq('/api/pluginManager/updateBundle', aliceCookie)).rejection).toBe(403)
-    expect(admitOf(connection)(marketReq('/api/pluginMarket/search', aliceCookie)).rejection).toBe(403)
-    expect(admitOf(connection)(marketReq('/api/plugin-manager/detail-file?document=d&path=img/a.png', aliceCookie)).rejection).toBe(403)
-    expect(admitOf(connection)(marketReq('/api/plugin-market/detail-file?document=d&path=img/a.png', aliceCookie)).rejection).toBe(403)
+    // 已安装页 + 详情页 + 发现页加载所需的全部读方法
+    for (const method of [
+      'listBundles', 'listPlugins', 'listVersions', 'listVersionExemptions', 'readBundleDetail',
+    ]) {
+      expect(admitOf(connection)(marketReq(`/api/pluginManager/${method}`, aliceCookie)).peer, method).toBe('owner-peer')
+    }
+    for (const method of ['listIndexes', 'search', 'readEntryDetail']) {
+      expect(admitOf(connection)(marketReq(`/api/pluginMarket/${method}`, aliceCookie)).peer, method).toBe('owner-peer')
+    }
+    // 两条 detail-file 只读图片路由(带 query 也要放行)
+    expect(admitOf(connection)(marketReq('/api/plugin-manager/detail-file?document=d&path=img/a.png', aliceCookie)).peer).toBe('owner-peer')
+    expect(admitOf(connection)(marketReq('/api/plugin-market/detail-file?document=d&path=img/a.png', aliceCookie)).peer).toBe('owner-peer')
+    install?.dispose()
+  })
+
+  it('T6.2 市场面:未知/未分类方法与仅安装流程消费的读一律 403(fail-closed)', () => {
+    const connection = fakeConnection()
+    const install = installMuxIsolation({ store, session }, connection, { registerPolicy: vi.fn() })
+    // 上游将来新增的方法名(读白名单外)默认拒——这是读白名单的核心保证
+    for (const method of ['someFutureWrite', 'someFutureRead']) {
+      expect(admitOf(connection)(marketReq(`/api/pluginManager/${method}`, aliceCookie)).rejection, method).toBe(403)
+    }
+    // inspect/registries:安装对话框专用,接受路径 spec 可探测宿主文件系统 → 不开放
+    expect(admitOf(connection)(marketReq('/api/pluginManager/inspect', aliceCookie)).rejection).toBe(403)
+    expect(admitOf(connection)(marketReq('/api/pluginManager/registries', aliceCookie)).rejection).toBe(403)
+    // 市场面内但不属已知详情页的路由同样拒
+    expect(admitOf(connection)(marketReq('/api/plugin-manager/other', aliceCookie)).rejection).toBe(403)
+    install?.dispose()
+  })
+
+  it('T6.2 路径覆盖:近形路径与个人插件面不倒', () => {
+    const connection = fakeConnection()
+    const install = installMuxIsolation({ store, session }, connection, { registerPolicy: vi.fn() })
     // 个人插件面(eterna 自己的守卫路由)与近似路径不在市场面:普通用户照常放行到原 admit
     for (const path of ['/api/my-plugins/list', '/api/pluginManagerX/list', '/api/pluginmanager/list', '/api/session/list']) {
-      expect(admitOf(connection)(marketReq(path, aliceCookie)).peer).toBe('owner-peer')
+      expect(admitOf(connection)(marketReq(path, aliceCookie)).peer, path).toBe('owner-peer')
     }
     install?.dispose()
   })
 
-  it('T6.1 角色现查:同一已装包装,用户提为 admin 后即刻放行(无重装/无缓存)', () => {
+  it('T6.2 角色现查:同一已装包装,用户提为 admin 后写方法即刻放行(无重装/无缓存)', () => {
     const connection = fakeConnection()
     const install = installMuxIsolation({ store, session }, connection, { registerPolicy: vi.fn() })
-    expect(admitOf(connection)(marketReq('/api/pluginManager/listBundles', aliceCookie)).rejection).toBe(403)
+    expect(admitOf(connection)(marketReq('/api/pluginManager/installBundle', aliceCookie)).rejection).toBe(403)
     store.setUserRole(aliceId, 'admin')
-    expect(admitOf(connection)(marketReq('/api/pluginManager/listBundles', aliceCookie)).peer).toBe('owner-peer')
+    expect(admitOf(connection)(marketReq('/api/pluginManager/installBundle', aliceCookie)).peer).toBe('owner-peer')
     store.setUserRole(aliceId, 'user')
-    expect(admitOf(connection)(marketReq('/api/pluginManager/listBundles', aliceCookie)).rejection).toBe(403)
+    expect(admitOf(connection)(marketReq('/api/pluginManager/installBundle', aliceCookie)).rejection).toBe(403)
     install?.dispose()
   })
 

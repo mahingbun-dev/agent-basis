@@ -8,7 +8,7 @@
 
 ```
 创造模式会话 ──写──▶ workspaces/<账号>/plugins/<dir>/ ──install_personal_plugin──┐
-设置弹窗「我的插件」(install/enable/disable/remove/scan) ──────────────────────┤
+侧栏「插件」页 ›「我的插件」标签(install/enable/disable/remove/scan) ────────────┤
                                                                                 ▼
                                               T6 装载器(packages/access/src/tenant-plugins.ts)
                               装载契约校验 → 动态 import(破 ESM 缓存) → 受限 ctx.apply
@@ -44,8 +44,8 @@
 | Agent 工具 `install_personal_plugin` | `packages/access/src/install-tool.ts`;apply 直注(glue knowledge/memory 先例),失败降级审计 | 装完返回装载的工具名清单;免审批(2026-11-10 隔离计划裁定:个人层安装/启停免 admin 审批);无主会话拒绝;目录钳本人 plugins 根 |
 | 路由 `/api/my-plugins/*` | `user-plugins.ts`(install/enable/disable/remove/scan/shared/*;installPersonalPlugin 助手与工具共用同一份逻辑) | enable=mount、disable/remove=unmount、转内置=共享行+全局 mount |
 | `scan` | 列 `plugins/` 根下未登记目录 | 创造模式产物一键导入(UI「扫描 plugins 目录」按钮) |
-| UI「我的插件」 | `client/my-plugins-section.tsx`:装载徽标(`data-eterna-plugin-mount`)+扫描导入 | 启停即生效(hint 文案已改) |
-| UI「恒灵插件」共享分区 | `client/plugins-manager.tsx` `SharedSection`(`data-eterna-shared-plugins`) | admin 启停共享工具,即时生效(与上方 @eterna 插件的重启语义显式区分) |
+| UI「我的插件」 | `client/my-plugins-section.tsx`:装载徽标(`data-eterna-plugin-mount`)+扫描导入 | 启停即生效(hint 文案已改);页签全员可操作(个人层不经 admin) |
+| UI「恒灵插件」共享分区 | `client/plugins-manager.tsx` `SharedSection`(`data-eterna-shared-plugins`) | admin 启停共享工具,即时生效(与上方 @eterna 插件的重启语义显式区分);非 admin 只读(T6.2) |
 
 ## 4. 边界(诚实声明)
 
@@ -53,6 +53,7 @@
 2. 受限 ctx 非沙箱( tenant-realm.md 既定口径):防线=契约校验+归属可见性+审计+转内置人审。
 3. 装载器在 access 插件 apply 内创建(偏离隔离计划「独立 tenant-plugins 包」的命名,理由:access 已 inject tools+持有 store/tenantRoot,免新增装载行/FOROM 漂移;原计划的挂点名即本文件)。
 4. `shared_plugins` 表:拷贝制(与个人行解耦,原作者删除不影响共享存续——隔离计划 §T7-B 既定)。
+5. 上游四个插件页签(已安装/发现/恒灵插件/全局蒸馏)对**所有角色可见**(T6.2,2026-11-24):服务端按方法名放行读、拒写(`packages/access/src/mux.ts` 的 `MARKET_MEMBER_METHODS` / `MARKET_ADMIN_METHODS`),前端把写控件置灰并拦点击(`client/plugin-page-guard.ts`)。「我的插件」是我方自绘页签,不受该门影响,全员可操作。
 
 ## 5. 验证(2026-11-18 实测)
 
