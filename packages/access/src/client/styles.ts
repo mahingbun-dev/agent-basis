@@ -271,6 +271,53 @@ const CSS = `
   }
 }
 
+/* 模型菜单搜索框(2026-11-23):菜单根挂 document.body,故全局类名。
+   胶囊描边 + 放大镜前缀;聚焦=描边转强调色 + 统一 3px 光环(frontend-style §3)。
+   输入本体零边框(视觉由外层容器承担),占位符用 --et-meta。 */
+.ea-model-search {
+  transition: border-color var(--et-motion-fast) var(--et-ease), box-shadow var(--et-motion-fast) var(--et-ease);
+}
+.ea-model-search:hover { border-color: var(--et-fg-2); }
+.ea-model-search:focus-within {
+  border-color: var(--et-accent);
+  box-shadow: var(--et-focus-ring);
+}
+.ea-model-search .ea-model-search-input {
+  appearance: none;
+  -webkit-appearance: none;
+}
+.ea-model-search .ea-model-search-input::placeholder { color: var(--et-meta); }
+.ea-model-search .ea-model-search-input:focus { outline: none; }
+/* 原生 search 清除按钮隐藏:自绘清除按钮(.ea-model-search-clear)可访问名称、
+   可键盘操作,且无需在深色主题下反色原生字形。 */
+.ea-model-search .ea-model-search-input::-webkit-search-cancel-button {
+  appearance: none;
+  -webkit-appearance: none;
+  display: none;
+}
+.ea-model-search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: var(--et-radius-pill);
+  background: transparent;
+  color: var(--et-muted);
+  cursor: pointer;
+}
+.ea-model-search-clear:hover { background: var(--et-surface); color: var(--et-fg); }
+.ea-model-search-clear:focus-visible {
+  outline: none;
+  box-shadow: var(--et-focus-ring);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ea-model-search { transition: none; }
+}
+
 /* 模型菜单思考偏置行(2026-11-18 V2):chip 显示本会话有效偏置 + 「重置」两击确认。
    菜单根挂在 document.body(不在 [data-eterna-access-root] 内),故全局类名;
    全 --et-* 令牌,深浅主题经桥接自动跟随。 */
