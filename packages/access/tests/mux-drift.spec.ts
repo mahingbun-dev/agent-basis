@@ -311,7 +311,7 @@ describe('T2 防漂移:上游流方法表全覆盖', () => {
     }
     // 会话绑定实名含全部终端一元动作(缺项=本人终端 decide 恒 no-allow)
     const minimal = {
-      store: { sessionsOfOwner: () => ['s-own'], workspacesOfOwner: () => [] as string[], getUserById: () => undefined },
+      store: { sessionIdsAccessibleBy: () => ['s-own'], workspacesOfOwner: () => [] as string[], getUserById: () => undefined },
       session: undefined,
     } as never
     const session = bindingsFor(minimal, 0).find(b => b.resource.kind === 'session')
@@ -358,9 +358,10 @@ describe('T2 防漂移:上游流方法表全覆盖', () => {
 
   it('全局绑定只含白名单失效事件(其余 event:* 仍恒拒;会话事件仍走会话绑定)', () => {
     // bindingsFor 依赖 store.session/session 仅为类型面;直接构造最小依赖
-    // (WS-C 后 Pick 增 getUserById——角色现查,此处桩返回 undefined=fail-closed 按 user 档)
+    // (WS-C 后 Pick 增 getUserById——角色现查,此处桩返回 undefined=fail-closed 按 user 档;
+    //  2026-11-24 绑定源改 sessionIdsAccessibleBy[会话+子代理后代],桩须同形)
     const minimal = {
-      store: { sessionsOfOwner: () => [] as string[], workspacesOfOwner: () => [] as string[], getUserById: () => undefined },
+      store: { sessionIdsAccessibleBy: () => [] as string[], workspacesOfOwner: () => [] as string[], getUserById: () => undefined },
       session: undefined,
     } as never
     const bindings = bindingsFor(minimal, 0)

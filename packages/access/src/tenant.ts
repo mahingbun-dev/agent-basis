@@ -640,6 +640,15 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     if (sc === undefined) return failureFrame(rpcId, new Error('sessionController not ready'))
     const value = await callService(sc, 'list', args.request, signal) as { items?: Array<Record<string, unknown>> } | undefined
     const items = Array.isArray(value?.items) ? value.items : []
+    // 父子边回填(2026-11-24):list 是宿主唯一成批给出 parentSessionId 的 RPC,顺手
+    // 落库——否则历史子会话(本补丁之前创建的)在 mux 绑定与一元判定里永远无主,
+    // 表现为「无法加载子智能体」+「session/follow no-allow」。幂等 upsert,逐次 list
+    // 自愈;新会话另有 subagent/start 生命周期实时登记(plugin.ts)。
+    for (const item of items) {
+      const childId = typeof item.sessionId === 'string' ? item.sessionId : undefined
+      const parentId = typeof item.parentSessionId === 'string' ? item.parentSessionId : undefined
+      if (childId !== undefined && parentId !== undefined) deps.store.recordChildSession(childId, parentId)
+    }
     const filtered = items.filter((item) => {
       const id = typeof item.sessionId === 'string' ? item.sessionId : undefined
       const parentId = typeof item.parentSessionId === 'string' ? item.parentSessionId : undefined

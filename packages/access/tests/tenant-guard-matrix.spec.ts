@@ -154,6 +154,26 @@ describe('T1 守卫矩阵:session 补全端点 × 三身份', () => {
     denyBody(steal)
   })
 
+  // ── 子代理子会话的一元访问(2026-11-24 回归)────────────────────────────────
+  // 事故:子智能体面板「无法加载子智能体」——ui-subagent 的 prepareCatalog 对每个
+  // 子会话调 session/projections(refreshProjections({sessionId})),而子会话不在
+  // sessions 账本 ⇒ 守卫回「会话不存在或不属于你」。归属经父链回退后应放行本人。
+  it('projections: 本人子会话(仅父子边入账)放行;他人同子会话拒绝', async () => {
+    store.recordChildSession('s-alice-sub-2', aliceSessionId)
+    const own = await call('/api/session/projections', 'alice', { request: { sessionId: 's-alice-sub-2' } })
+    expect(own.result?.result).toMatchObject({ ok: true })
+    const steal = await call('/api/session/projections', 'bob', { request: { sessionId: 's-alice-sub-2' } })
+    denyBody(steal)
+  })
+
+  it('list: 回填历史子会话的父子边(旧会话无生命周期登记也能自愈)', async () => {
+    // 桩 list 返回 s-alice-sub(parent=s-alice-1)——首次守卫 list 即应落库父子边,
+    // 此后该子会话的一元访问与 mux 绑定都可达。
+    await call('/api/session/list', 'alice', {})
+    expect(store.sessionOwner('s-alice-sub')).toBe(aliceId)
+    expect(store.childSessionsOf(aliceSessionId)).toContain('s-alice-sub')
+  })
+
   // ── list 结果集过滤 × 3 = 3 例 ──
   it('list: 本人视图只含自己+自己的子代理;他人与孤儿条目剔除', async () => {
     const r = await call('/api/session/list', 'alice', {})

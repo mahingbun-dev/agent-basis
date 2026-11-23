@@ -319,6 +319,23 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
           on: (event: string, listener: (...args: unknown[]) => void) => () => void
         }).on(event, listener),
       )
+      // ── 子代理父子边实时登记(2026-11-24)────────────────────────────────
+      // 子会话不入 sessions 归属账本(thinking_auto/usage 口径不变),只记父子边;
+      // 归属判定在 store.sessionOwner 里沿父链上溯(一元守卫)与 bindingsFor 里
+      // 展开后代(mux 流)。两条登记来源互补:
+      //  ① 本监听 = 新会话即时(子代理一创建就登记,不等下一次 list);
+      //  ② session/list 守卫回填 = 本补丁之前就存在的历史子会话(见 tenant.ts)。
+      // 只监听 start(不含 end):边是持久事实,与运行状态无关。
+      // 监听体全同步(emit 分发不回等 promise);异常独立吞掉,绝不影响子代理启动。
+      const offSubagentStart = (ctx as unknown as {
+        on: (event: string, listener: (info: { id?: unknown; parentSessionId?: unknown }) => void) => () => void
+      }).on('subagent/start', (info) => {
+        try {
+          const childId = typeof info.id === 'string' ? info.id : undefined
+          const parentId = typeof info.parentSessionId === 'string' ? info.parentSessionId : undefined
+          if (childId !== undefined && parentId !== undefined) store.recordChildSession(childId, parentId)
+        } catch { /* 归属登记失败不影响子代理运行 */ }
+      })
       // P3(2026-11-11):把归属账本 provide 出去(usage-stats 聚合的归属唯一事实源;
       // reflect 键 eternaAccessStore)。只读面不含凭据;A2(2026-11-19)增受限写面
       // recordSession 与映射读取面 userIdByAccount——账本写权限收口在本包(消费方
@@ -386,6 +403,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       disposers.push(offApprovalAnswerer)
       disposers.push(offQuestionAnswerer)
       disposers.push(offThinkingAuto)
+      disposers.push(offSubagentStart)
       // ── T6 自研安装工具(2026-11-18):install_personal_plugin。注册走 apply 直注
       // (glue knowledge/memory 先例;inject ['tools'] 使 ctx.tools 就绪),失败只降级
       // (审计+日志,不炸装配);装载器 disposer 随插件卸载(全部 mount 子树回收)。
