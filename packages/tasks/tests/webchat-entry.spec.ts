@@ -258,6 +258,18 @@ it('入口链路:主会话用户消息 → Trigger stored → Eval 候选 → ac
     // 判归本单,候选卡不生成(生产实证:第二张单的调研请求成为第一张单的 handback)。
     // 此前的断言是「工单订阅了发起会话的线程」——正是被推翻的旧语义。
     expect(runtime.store.threads.get(`${WEBSCHAT_SOURCE}:${MASTER}`)?.subscriptions).toEqual([])
+    // 订阅计数同样不把派发渠道线程算进去(工作台「N 订阅」读 stats().threads.subscribed):
+    // 存量库里旧版 accept 写下的订阅已不再扇出,计数若含它就是显示失效订阅为活跃。
+    expect(runtime.stats().threads.subscribed).toBe(0)
+    // 反向护栏:普通话题线程上的订阅照常计数(排除逻辑只认派发渠道这一个线程键)。
+    runtime.store.threads.save({
+      key: `${WEBSCHAT_SOURCE}:topic-1`,
+      ref: { source: WEBSCHAT_SOURCE, id: 'topic-1' },
+      createdAt: new Date().toISOString(),
+      subscriptions: [decision.ticketId!],
+      correlated: [], pending: [], meta: {},
+    })
+    expect(runtime.stats().threads.subscribed).toBe(1)
   } finally { dispose() }
 })
 

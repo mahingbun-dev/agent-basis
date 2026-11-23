@@ -59,12 +59,16 @@ export function branchChipLabel(branch: AssignmentBranch): string {
   return `分支 ${String(branch.seq)} · ${branch.note}`
 }
 
-/** 分支态徽标语义色(failed=danger、ready=success、working=accent)。 */
-export function branchStateTone(state: AssignmentBranch['state']): 'accent' | 'success' | 'danger' {
+/**
+ * 分支态徽标语义色(failed=danger、ready=success、working=accent、idle=muted)。
+ * idle = 回合已结束的停泊分支:不能再给强调色,否则侧栏看着「还在跑」。
+ */
+export function branchStateTone(state: AssignmentBranch['state']): 'accent' | 'success' | 'danger' | 'muted' {
   switch (state) {
     case 'failed': return 'danger'
     case 'ready': return 'success'
     case 'working': return 'accent'
+    case 'idle': return 'muted'
   }
 }
 

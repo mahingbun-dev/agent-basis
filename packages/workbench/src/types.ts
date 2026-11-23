@@ -221,8 +221,13 @@ export interface AssignmentBranch {
   readonly ticketId: string
   /** Assignment 序号(分支号,1 起)。 */
   readonly seq: number
-  /** 分支态(Assignment/Report 六态的侧栏词汇:working/ready/failed;blocked 归入 working 注记)。 */
-  readonly state: 'working' | 'ready' | 'failed'
+  /**
+   * 分支态(侧栏词汇):working = 回合真的在跑(= `ticketStage` 判 working 且非排队);
+   * ready = worker 报了 ready 待人评审;failed = worker 报了 failed;idle = 回合已结束的
+   * 停泊分支(如 worker 报 waiting 后等后续消息)——领域态 `running` 不等于在跑,见
+   * `live-hub.branchesOf` 的运行时口径注。
+   */
+  readonly state: 'working' | 'ready' | 'failed' | 'idle'
   /** 分支注记(侧栏 chip 副行,如「退回：口径复核」/「首轮 · failed 重试」)。 */
   readonly note: string
   /** 当前活跃分支(工单在办 Assignment;切换入口高亮基准)。 */
