@@ -16,7 +16,6 @@ import type { AuditDayFile, EvalRunReport } from './trace-files.ts'
 import { evalSnapshotFromRuns, toolHistoryForTicket, traceEntriesForTicket } from './trace-files.ts'
 import { ticketTraceEntries, type TicketTraceStore } from './ticket-trace.ts'
 import { beijingParts } from './time.ts'
-import { ticketStage } from '@eterna/tasks'
 import type {
   ConflictMetrics, EvalSnapshot, FlowLiveState, FlowNodeKey, FlowNodeLiveState, LogSegment,
   WorkbenchLogEntry, WorkerInspectorSnapshot, WorkerJobItem, WorkerTreeNode,
