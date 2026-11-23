@@ -534,7 +534,7 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     anchors: [
       { file: 'packages/tasks/src/session/sections.ts', line: 44, contains: "ACTIVE_TICKETS_SECTION_NAME = 'eterna-tasks:active-tickets'" },
       { file: 'packages/tasks/src/session/sections.ts', line: 50, contains: 'ACTIVE_TICKETS_SECTION_ORDER = 9050' },
-      { file: 'packages/tasks/src/plugin.ts', line: 1321, contains: 'systemPrompt.section(runtime.activeTickets)' },
+      { file: 'packages/tasks/src/plugin.ts', line: 1340, contains: 'systemPrompt.section(runtime.activeTickets)' },
     ],
     note: '运行时注入型:活跃工单清单 section(eterna-tasks:active-tickets,order 9050)——28 号 §6 主 Session 保底摘要,一行一单(id+标题截断+stage+等谁),上限 20 行超出折叠 orchestrator_read 指引;文本由 tasks 插件 pass 周期重算(24a C6 拍板),无静态全文,插件的 systemPrompt 注册面在 plugin.ts(宿主 system-prompt 服务在场时注册)。',
     description: '活跃工单清单段(运行时注入):主 Session 系统提示常驻「当前有哪些活、各等谁」的一行一单清单——压缩无论怎么摘要它永远在场(tasks 压缩互补件);清单是提示不是协议,pass 周期秒级刷新;无静态全文,不可编辑。',

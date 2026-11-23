@@ -1,0 +1,227 @@
+{
+ "model": "deepseek-flash",
+ "threshold": 2,
+ "generatedAt": "2026-11-23T02:50:23.600Z",
+ "total": 20,
+ "live": 19,
+ "gated": [
+  "RG-16"
+ ],
+ "rates": {
+  "clean": 0.9473684210526315,
+  "compacted": 0.9473684210526315
+ },
+ "exit": 0,
+ "details": [
+  {
+   "id": "RG-01",
+   "kind": "accept",
+   "clean": "accept",
+   "compacted": "accept",
+   "cleanPass": true,
+   "compactedPass": true,
+   "cleanText": "发送者在名单内，消息明确对准 agent 且提出修复回归的任务；当前无活跃工单，应受理并开新工单。\n\nroute=accept",
+   "compactedText": "发送者 u-alice 在名单内，消息对准 agent，内容为明确的修复任务；当前无活跃工单且无相关工单可挂接。应受理并开工单。\n\nroute=accept",
+   "digest": "此前会话无活跃工单与未决事项。"
+  },
+  {
+   "id": "RG-02",
+   "kind": "accept",
+   "clean": "accept",
+   "compacted": "accept",
+   "cleanPass": true,
+   "compactedPass": true,
+   "cleanText": "该请求来自名单内发送者，对准 agent，且无相关既有工单，应受理并开工单。\n\nroute=accept",
+   "compactedText": "受理该请求并创建工单。\n\nroute=accept",
+   "digest": "此前会话无活跃工单与未决事项。"
+  },
+  {
+   "id": "RG-03",
+   "kind": "accept",
+   "clean": "accept",
+   "compacted": "accept",
+   "cleanPass": true,
+   "compactedPass": true,
+   "cleanText": "该请求来自名单内的 u-bob，且明确对 bot 发起，要求排查并修复线上 500 错误。当前无相关工单，应受理并开工单。\n\nroute=accept",
+   "compactedText": "裁决：受理，开启新工单。发送者 u-bob 在名单内，消息明确点名 bot，并给出可执行的生产故障排查与修复请求；当前无已有工单可挂载。\nroute=accept",
+   "digest": "此前会话无活跃工单与未决事项；无人的消息原文；无未决问题。"
+  },
+  {
+   "id": "RG-04",
+   "kind": "accept",
+   "clean": "accept",
+   "compacted": "accept",
+   "cleanPass": true,
+   "compactedPass": true,
+   "cleanText": "受理该请求：发送者在名单内，明确 @bot，且当前无既有工单可挂靠；应新建工单处理“夜间批处理任务偶尔漏跑”的修复。\n\nroute=accept",
+   "compactedText": "发送者为名单内人类用户，明确 @bot 要求“再开一个”并描述新的修复事项；当前无活跃工单可挂载，也不是 bot 消息或停止指令，因此应受理并开工单。\n\nroute=accept",
+   "digest": "此前会话无活跃工单与未决事项。"
+  },
+  {
+   "id": "RG-05",
+   "kind": "accept",
+   "clean": "accept",
+   "compacted": "accept",
+   "cleanPass": true,
+   "compactedPass": true,
+   "cleanText": "该消息来自名单内发送者，明确 @bot，且包含可执行任务与验收标准；当前无相关工单，因此应受理并开工单。\n\nroute=accept",
+   "compactedText": "受理该请求，创建新工单：更新 README 安装步骤为 pnpm 版，并以“新人照文档能一次跑通”为验收标准。\n\nroute=accept",
+   "digest": "本会话没有活跃工单，也没有未决事项。此前历史为空；没有工单 id、人物消息或待决问题需要保留。后续路由不需要依据本会话做裁决。"
+  },
+  {
+   "id": "RG-06",
+   "kind": "accept",
+   "clean": "accept",
+   "compacted": "accept",
+   "cleanPass": true,
+   "compactedPass": true,
+   "cleanText": "该消息来自名单内用户 u-alice，明确对准 agent，且当前无既有工单可挂载，应作为新指令受理并开工单。\n\nroute=accept",
+   "compactedText": "受理并开工单。发送者在名单内，消息明确对准 agent，且给出具体可执行改动：仅将副标题改为「浏览网页」，其他不动。当前无既有工单可挂，故不走 attach/stop；也非 bot 消息。\n\nroute=accept",
+   "digest": "此前会话无活跃工单与未决事项；无工单 id、人的消息原文、工单状态及未决问题。"
+  },
+  {
+   "id": "RG-07",
+   "kind": "attach",
+   "clean": "attach",
+   "compacted": "attach",
+   "cleanPass": true,
+   "compactedPass": true,
+   "cleanText": "该消息来自名单内发送者且对准 agent，内容是对进行中工单 s7 的补充/关联请求，应挂到已有工单处理，而不是新开工单或忽略。\nroute=attach",
+   "compactedText": "该消息来自名单内发送者，且对准 agent；内容与进行中的工单 s7 相关，属于同一上下文中的补充要求，不另开工单，也不应忽略或停止现有工单。应挂到 s7 继续处理。\n\nroute=attach",
+   "digest": "工单 s7：人消息(trigger s7,名单内发送者)「@bot 修复设置页保存失败的回归」→ 路由裁决:受理为工单 s7。工单 s7 状态:进行中(worker 执行中)。未决问题:历史中未记录。"
+  },
+  {
+   "id": "RG-08",
+   "kind": "attach",
+   "clean": "attach",
+   "compacted": "attach",
+   "cleanPass": true,
+   "compactedPass": true,
+   "cleanText": "该消息明确引用“刚才登录回归那个修复”，并要求将同一鉴权问题在注册接口一并修复，属于对既有工单 s8 的范围补充，应挂到 s8，而不是新建工单。\n\nroute=attach",
+   "compactedText": "该消息指向正在进行的工单 s8，并要求把同一鉴权问题扩展到注册接口一并修复，属于对既有工单的范围补充，应挂到 s8 处理。\n\nroute=attach",
+   "digest": "人消息（trigger s8，名单内发送者）：“@bot 修复登录回归”。路由裁决：受理为工单 s8。工单 s8 状态：进行中（worker 执行中）。未决问题：工单 s8 尚未完成，登录回归待修复。"
+  },
+  {
+   "id": "RG-09",
+   "kind": "attach",
+   "clean": "attach",
+   "compacted": "attach",
+   "cleanPass": true,
+   "compactedPass": true,
+   "cleanText": "该消息是对已有工单 s9 的补充需求，应由现有工单承接，不新建工单，也不停止工单。\nroute=attach",
+   "compactedText": "该消息是对已有工单 s9 的补充要求（登出覆盖），应挂到进行中的工单继续处理，无需新建工单。\nroute=attach",
+   "digest": "工单 s9：trigger s9 名单内发送者消息「@bot 修复登录回归」，已受理。当前状态：进行中（worker 执行中）。未决问题：待完成登录回归修复。"
+  },
+  {
+   "id": "RG-10",
+   "kind": "attach",
+   "clean": "accept",
+   "compacted": "accept",
+   "cleanPass": false,
+   "compactedPass": false,
+   "cleanText": "该消息来自名单内发送者且明确对准 agent；既有工单 s10 已结束，本次为上线后复现的新处理请求，应重新受理开工单，而不是挂到已结束工单或停止工单。\n\nroute=accept",
+   "compactedText": "该消息来自名单内发送者 u-alice，且对准 agent；内容表明已结束工单 s10 的登录回归问题再次复现，需要继续排查，属于新的待处理任务，应重新开单受理。\n\nroute=accept",
+   "digest": "工单 s10:名单内发送者消息原文「@bot 修复登录回归」。路由裁决:受理为工单 s10。worker 汇报 ready:工单 s10 已完成结束。未决问题:无。"
+  },
+  {
+   "id": "RG-11",
+   "kind": "attach",
+   "clean": "attach",
+   "compacted": "attach",
+   "cleanPass": true,
+   "compactedPass": true,
+   "cleanText": "候选消息来自名单内发送者 u-alice，且明确指向已有的「修复设置页保存失败的回归」事项，属于对工单 s11 的补充确认/推进信息；不应新建工单，也不应停止既有工单。  \nroute=attach",
+   "compactedText": "该消息指向既有工单 s11，属于对其“已获批、开工”的补充确认，不应新建工单，应挂到 s11。\n\nroute=attach",
+   "digest": "工单 s11：受理。人消息原文：「@bot 修复设置页保存失败的回归」。状态：进行中（worker 执行中）。未决问题：无明确记录。"
+  },
+  {
+   "id": "RG-12",
+   "kind": "ignore-bot",
+   "clean": "ignore-bot",
+   "compacted": "ignore-bot",
+   "cleanPass": true,
+   "compactedPass": true,
+   "cleanText": "该候选为 CI 流水线通知，属 bot 消息，且未对准 agent；当前无相关工单可挂接，也不应新开工单。  \nroute=ignore-bot",
+   "compactedText": "该消息是 bot 发送且未对准 agent，也无相关工单可挂接；按规则忽略 bot 消息。\n\nroute=ignore-bot",
+   "digest": "无活跃工单；无未决事项；无人的消息记录。"
+  },
+  {
+   "id": "RG-13",
+   "kind": "ignore-bot",
+   "clean": "ignore-bot",
+   "compacted": "ignore-bot",
+   "cleanPass": true,
+   "compactedPass": true,
+   "cleanText": "该候选为 bot 消息，且未对准 agent，按规则应忽略。\n\nroute=ignore-bot",
+   "compactedText": "该候选为 bot 发送且未对准 agent，按规则忽略。\n\nroute=ignore-bot",
+   "digest": "（此前会话无活跃工单与未决事项。）"
+  },
+  {
+   "id": "RG-14",
+   "kind": "ignore-bot",
+   "clean": "ignore-bot",
+   "compacted": "ignore-bot",
+   "cleanPass": true,
+   "compactedPass": true,
+   "cleanText": "route=ignore-bot",
+   "compactedText": "该候选为 bot 发送的日报信息，且未对准 agent，无相关工单；应忽略 bot 消息。\n\nroute=ignore-bot",
+   "digest": "此前会话无活跃工单与未决事项。"
+  },
+  {
+   "id": "RG-15",
+   "kind": "ignore-bot",
+   "clean": "ignore-bot",
+   "compacted": "ignore-bot",
+   "cleanPass": true,
+   "compactedPass": true,
+   "cleanText": "该消息为已登记 bot 的生产上线通知，且未对准 agent、无相关工单，按规则默认忽略。\n\nroute=ignore-bot",
+   "compactedText": "该消息来自 bot 且未对准 agent，相关工单为空，按默认策略忽略 bot 消息。\n\nroute=ignore-bot",
+   "digest": "此前会话无活跃工单与未决事项。"
+  },
+  {
+   "id": "RG-17",
+   "kind": "stop",
+   "clean": "stop",
+   "compacted": "stop",
+   "cleanPass": true,
+   "compactedPass": true,
+   "cleanText": "该消息明确要求停止正在进行的“登录回归”工单 s17，发送者在名单内且对准 agent，因此应停止既有工单。\n\nroute=stop",
+   "compactedText": "该消息明确要求停止正在进行的登录回归工单 s17，发送者在名单内且对准 agent，因此裁决为停止既有工单。\n\nroute=stop",
+   "digest": "人消息(trigger s17,名单内发送者):「@bot 修复登录回归」;路由裁决:受理为工单 s17;工单 s17 状态:进行中(worker 执行中)。未决问题:无明确记录。"
+  },
+  {
+   "id": "RG-18",
+   "kind": "stop",
+   "clean": "stop",
+   "compacted": "stop",
+   "cleanPass": true,
+   "compactedPass": true,
+   "cleanText": "该消息来自名单内发送者 u-alice，明确要求停掉正在进行的设置页工单 s18，等待产品设计定稿后再开。应停止既有工单。\n\nroute=stop",
+   "compactedText": "裁决：该消息来自名单内发送者，明确要求停掉设置页对应工单，且相关工单 s18 正在进行中，应停止既有工单。\n\nroute=stop",
+   "digest": "工单 s18:人消息(名单内发送者,trigger s18)原文「@bot 改设置页布局」→ 路由裁决:受理为工单 s18。当前状态:工单 s18 进行中(worker 执行中)。未决问题:无。"
+  },
+  {
+   "id": "RG-19",
+   "kind": "stop",
+   "clean": "stop",
+   "compacted": "stop",
+   "cleanPass": true,
+   "compactedPass": true,
+   "cleanText": "该消息来自名单内发送者 u-alice，明确要求停止正在进行的导出工单 s19；相关工单确为 s19 且处于进行中，因此裁决为停止既有工单。\n\nroute=stop",
+   "compactedText": "裁决：u-alice 明确要求停止正在进行的导出工单 s19，应停止既有工单。\n\nroute=stop",
+   "digest": "工单 s19（trigger s19）：人消息原文「@bot 实现导出功能」；路由裁决：受理为工单 s19；当前状态：进行中（worker 执行中）。未决问题：导出功能实现尚未完成，待 worker 执行结果。"
+  },
+  {
+   "id": "RG-20",
+   "kind": "stop",
+   "clean": "stop",
+   "compacted": "stop",
+   "cleanPass": true,
+   "compactedPass": true,
+   "cleanText": "候选消息明确要求停止“登录回归”相关工单，指向已有工单 s20；应按停止既有工单处理。\nroute=stop",
+   "compactedText": "该消息明确要求停止“登录回归”相关工单，对应已登记的工单 s20；发送者在名单内且对准 agent。虽然 s20 已结束，但应按停止既有工单处理。\nroute=stop",
+   "digest": "名单内发送者消息：「@bot 修复登录回归」。路由裁决：受理为工单 s20。worker 汇报 ready：工单 s20 已完成结束。未决问题：无。"
+  }
+ ],
+ "note": "v0 会话历史为判例字段确定性派生的合成转录;真实 audit trace 灌入随 24a C4 扩展(见脚本文件头)。"
+}

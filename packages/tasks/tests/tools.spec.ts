@@ -26,7 +26,8 @@ import { WorktreeNameSchema, orchestratorTools, type OrchestratorToolsHost } fro
 import { defineTasksPlugin } from '../src/plugin.ts'
 import { RESOURCES, readResource, resourceGrammar, type ResourceHost } from '../src/tools/resources.ts'
 import { IM_WORDS, NOTE_WORDS, readTool, toDshTool, tool, wordCount } from '../src/tools/tool.ts'
-import { workerTools, type WorkerToolsHost } from '../src/tools/worker.ts'
+import { workerTools, workerToolsFor, type WorkerToolsHost } from '../src/tools/worker.ts'
+import { DshExecutor } from '../src/executor/dsh.ts'
 import { Store } from '../src/store/store.ts'
 
 /** worker 专属的工具名(实现权/协作面;主会话数组必须不含它们)。 */
@@ -107,23 +108,131 @@ describe('角色分面(34 §4-D;24 §8.3-4)', () => {
         dispose()
       } finally { rmSync(root, { recursive: true, force: true }) }
     }
-    // 主会话白名单:主会话 true;普通 web 聊天会话与 worker session 一律 false(14 项全一致)。
+    // 主会话白名单:orchestrator 13 个工具面只在主会话可见;orchestrator_read 双模共享
+    // (2026-11-23 worker 接线:主会话与 worker session 双向放行,普通 web 会话不可见)。
+    // worker 6 个工具面不经全局注册——由 executor 每 agent 安装(DshExecutor.installWorkerTools,
+    // worker cwd 是工单子目录,全局/realm 层注册对它不可见),在此不计。
     boot('orchestrator-main')
     expect(registered).toHaveLength(14)
-    for (const when of registered) {
+    const readWhen = registered[0]!
+    expect(readWhen({ agent: { id: 'orchestrator-main' } })).toBe(true)
+    expect(readWhen({ agent: { id: 'worker-t1' } })).toBe(true)
+    expect(readWhen({ agent: { id: 'plain-chat-session' } })).toBe(false)
+    for (const when of registered.slice(1)) {
       expect(when!({ agent: { id: 'orchestrator-main' } })).toBe(true)
       expect(when!({ agent: { id: 'plain-chat-session' } })).toBe(false)
       expect(when!({ agent: { id: 'worker-t1' } })).toBe(false)
     }
-    // 主会话 id 缺席:退回既有基线「非 worker 会话」(worker 恒不可见,分面不破)。
+    // 主会话 id 缺席:orchestrator 13 面退回既有基线「非 worker 会话」;双模 read 全放行
+    // (execute 按 agent 现分窄:worker 只读其工单子树)。
     registered.length = 0
     boot()
     expect(registered).toHaveLength(14)
-    for (const when of registered) {
+    const readWhenU = registered[0]!
+    expect(readWhenU({ agent: { id: 'orchestrator-main' } })).toBe(true)
+    expect(readWhenU({ agent: { id: 'plain-chat-session' } })).toBe(true)
+    expect(readWhenU({ agent: { id: 'worker-t1' } })).toBe(true)
+    for (const when of registered.slice(1)) {
       expect(when!({ agent: { id: 'orchestrator-main' } })).toBe(true)
       expect(when!({ agent: { id: 'plain-chat-session' } })).toBe(true)
       expect(when!({ agent: { id: 'worker-t1' } })).toBe(false)
     }
+  })
+})
+
+describe('worker 工具面动态绑定(2026-11-23 线上修复:工单 4e348403 的 answer/report 通道不可用根因)', () => {
+  /** 最小 worker 工单(引擎与库假件共用;liveTicket 只看 ended)。 */
+  const fakeTicket = (id: string): unknown => ({ id, title: `T-${id}`, ended: false, updatedAt: '2026-11-23T00:00:00.000Z', inputs: [] })
+  /** 抓 engine.report 收到的 ticketId 与 relay 载荷的假宿主。 */
+  const recordingHost = (): { host: WorkerToolsHost; reported: string[]; relayed: string[] } => {
+    const reported: string[] = []
+    const relayed: string[] = []
+    const host: WorkerToolsHost = {
+      engine: { report: (ticketId: string): unknown => { reported.push(ticketId); return fakeTicket(ticketId) } } as unknown as WorkerToolsHost['engine'],
+      store: { tickets: { get: (id: string): unknown => fakeTicket(id) } } as unknown as WorkerToolsHost['store'],
+      outbox: { sent: (): Promise<void> => Promise.resolve(), status: () => undefined },
+      resources: {} as WorkerToolsHost['resources'],
+      relay: (requestId: string): void => { relayed.push(requestId) },
+    }
+    return { host, reported, relayed }
+  }
+  /** 真实解析面(与 plugin.ts 注册路径同一形态):agent.id → ticketOfSession。 */
+  const resolver = async (): Promise<(agent: unknown) => string | undefined> => {
+    const { ticketOfSession } = await import('../src/executor/dsh.ts')
+    return (agent: unknown): string | undefined => {
+      const id = (agent as { readonly id?: unknown } | null | undefined)?.id
+      return typeof id === 'string' ? ticketOfSession(id) : undefined
+    }
+  }
+
+  it('execute 按执行主体的 agent.id 现解析工单:worker-t1 的 report 落到工单 t1 并 relay', async () => {
+    const { host, reported, relayed } = recordingHost()
+    const ticketIdOf = await resolver()
+    const report = workerToolsFor(host, ticketIdOf).find(definition => definition.name === 'orchestrator_report')!
+    const outcome = await report.execute({ state: 'progress', summary: '推进中' },
+      new AbortController().signal, { id: 'worker-t1' })
+    expect(reported).toEqual(['t1'])
+    expect((outcome as { reported: boolean }).reported).toBe(true)
+    expect(relayed).toHaveLength(1)
+  })
+
+  it('执行主体缺席或非 worker 会话:execute 报错且不触引擎(fail-closed,不误落他单)', async () => {
+    const { host, reported } = recordingHost()
+    const ticketIdOf = await resolver()
+    const report = workerToolsFor(host, ticketIdOf).find(definition => definition.name === 'orchestrator_report')!
+    await expect(report.execute({ state: 'progress', summary: '推进中' }, new AbortController().signal))
+      .rejects.toThrow('worker session')
+    await expect(report.execute({ state: 'progress', summary: '推进中' },
+      new AbortController().signal, { id: 'orchestrator-main' })).rejects.toThrow('worker session')
+    expect(reported).toEqual([])
+  })
+
+  it('单工单绑定版 workerTools(host, ticket) 与动态版等价:execute 无 agent 也落绑定工单', async () => {
+    const { host, reported } = recordingHost()
+    const report = workerTools(host, { id: 't-fixed' } as Parameters<typeof workerTools>[1])
+      .find(definition => definition.name === 'orchestrator_report')!
+    await report.execute({ state: 'progress', summary: '推进中' }, new AbortController().signal)
+    expect(reported).toEqual(['t-fixed'])
+  })
+})
+
+describe('worker 工具面每 agent 安装(DshExecutor.installWorkerTools;2026-11-23 线上修复)', () => {
+  /** 假 agent:ctx.tools.register 捕获注册(与 dsh Agent.ctx 的结构子集同形)。 */
+  const fakeAgent = (id: string, captured?: Array<{ name: string; hasWhen: boolean }>) => ({
+    id,
+    ctx: {
+      tools: {
+        register: (definition: { name: string }, options?: { when?: unknown }): () => void => {
+          captured?.push({ name: definition.name, hasWhen: options?.when !== undefined })
+          return () => {}
+        },
+      },
+    },
+  })
+  /** 最小假宿主(构造器订阅 effect handler,给 no-op;install() 不调)。 */
+  const fakeExecutor = (): DshExecutor =>
+    new DshExecutor({
+      context: {} as never, engine: {} as never, store: {} as never, outbox: {} as never,
+      effects: { handle: (): () => void => () => {}, enqueue: (): void => {} } as never,
+      health: {} as never, lifetime: new AbortController().signal,
+      sessions: {} as never, closing: () => false, paused: () => false,
+    })
+  it('经 agent.ctx 每 agent 注册 6 工具(read 双模遮蔽全局同名);每 agent 幂等;ctx 缺席 fail-open', () => {
+    const captured: Array<{ name: string; hasWhen: boolean }> = []
+    const executor = fakeExecutor()
+    const agent = fakeAgent('worker-t1', captured)
+    executor.installWorkerTools(agent as never, 't1')
+    expect(captured.map(r => r.name)).toEqual([
+      'orchestrator_read', 'orchestrator_ack', 'orchestrator_thread_unrelated',
+      'orchestrator_thread_follow', 'orchestrator_trigger_handback', 'orchestrator_report',
+    ])
+    // 每 agent 作用域注册:分面由作用域天然承担,无需 when 谓词。
+    expect(captured.every(r => !r.hasWhen)).toBe(true)
+    const before = captured.length
+    executor.installWorkerTools(agent as never, 't1')
+    expect(captured.length).toBe(before)
+    // ctx.tools 缺席(老宿主/结构漂移):fail-open 不抛、不阻断投递。
+    expect(() => { executor.installWorkerTools({ id: 'worker-t2' } as never, 't2') }).not.toThrow()
   })
 })
 

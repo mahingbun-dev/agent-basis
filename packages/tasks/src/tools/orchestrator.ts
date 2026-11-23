@@ -31,6 +31,7 @@ import { EvalConfigSchema, ExecutorConfigSchema, PolicyConfigSchema, SourceInsta
 import { policyEffects, type PolicyWiring } from '../policy/gate.ts'
 import { policyVersion } from '../policy/version.ts'
 import { readResource, type ResourceHost } from './resources.ts'
+import { ticketOfSession } from '../executor/dsh.ts'
 import { ticketCard } from '../session/candidate.ts'
 import { AssessmentSchema, EvalReadSchema, type MasterAssessor } from '../session/assessor.ts'
 import { Prompts, PromptConfigSchema } from '../session/prompts.ts'
@@ -249,8 +250,16 @@ function mergeBlock(settings: Settings, block: 'policy' | 'eval' | 'executor' | 
  */
 export function orchestratorTools(host: OrchestratorToolsHost): Tool[] {
   return [
+    // ★共享 read 双模(2026-11-23 worker 工具面接线):orchestrator_read 是两角色同名工具
+    // (worker 面同名词,全局层同名词注册即抛错)——注册一次,execute 按执行主体现分窄/全:
+    // worker session(worker-<ticketId>)只读其工单子树(executor=true 同款收窄),
+    // 主会话/其余会话读全表。
     readTool('读 resource 参数列出的一页资源,如工单列表或一张工单;跟随 next_offset,页面点名 next_resource 时读它。',
-      false, (resource, offset, limit, signal) => readResource(host.resources, resource, offset, limit, undefined, signal)),
+      false, (resource, offset, limit, signal, agent) => {
+        const id = (agent as { readonly id?: unknown } | null | undefined)?.id
+        const ticketId = typeof id === 'string' ? ticketOfSession(id) : undefined
+        return readResource(host.resources, resource, offset, limit, ticketId, signal)
+      }),
     routeTool(host),
     tool({
       name: 'orchestrator_ticket_retry',

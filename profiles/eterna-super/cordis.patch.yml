@@ -848,11 +848,13 @@
                 # (run-golden.mjs --judge,liteLLM 网关凭据):三轮全量 r1/r2 均 3/4(失败
                 # 用例轮换——userVerbatim 红线单条逐字串被转写/转义的采样方差,judge 不
                 # 复核逐字线)、r3 4/4 全绿 exit 0,报告入库 packages/compaction/evals/
-                # reports/2026-11-23-golden-53-d2-r1/r2/r3.md。②路由金集压缩态回放腿
-                # 仍待真实压缩态重放器(DSH 会话+LLM 摘要,离线不可跑);diff-pass-rate
-                # 口径指纹闸已装(同口径恒真对比退出码 3,nightly --allow-same-caliber
-                # 显式豁免)。③admin 观测面实读 thresholdRatio=0.7/attachments=true
-                # 待人工验收环境。
+                # reports/2026-11-23-golden-53-d2-r1/r2/r3.md。②路由金集压缩态回放腿已
+                # 落地(scripts/route-compaction-replay.mjs,2026-11-23 首跑:19 条双腿
+                # 94.7% vs 94.7%,差 0.0pp exit 0 无衰减,报告入库 route-golden/reports/
+                # 2026-11-23-compaction-leg-r1.md;nightly replay 腿保持保活,真腿在有
+                # 凭据环境跑)。③admin 观测面实读已验收(docs/design/53a-D2参数admin
+                # 实读验收记录.md:eternaCompaction RPC 实读 + 渲染 profile + 运行态
+                # state 三面一致 0.7/true,rapidRefillCount=0 熔断零触发)。
                 # worker 组不落 D2 特化键(保持上游默认参 0.8/false,仅主会话特化)。
                 config:
                   summarizationProvider: ''

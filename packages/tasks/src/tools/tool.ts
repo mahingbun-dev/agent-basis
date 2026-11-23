@@ -27,7 +27,13 @@ export interface Tool<S extends z.ZodType = z.ZodType> {
   name: string
   description: string
   schema: S
-  execute: (args: z.infer<S>, signal: AbortSignal) => Promise<unknown>
+  /**
+   * 第三参 `agent` = 宿主 execute 上下文的执行主体(dsh ToolRunContext.agent,2026-11-23
+   * worker 工具面接线新增):全局注册 + when 分面的工具(orchestrator 14 面/worker 6 面)
+   * 据它在 execute 时现解析会话绑定(worker 6 面按 agent.id 解出 worker-<ticketId> 的
+   * 工单)。按会话闭包绑定的旧形态(workerTools(host, ticket))不消费本参。
+   */
+  execute: (args: z.infer<S>, signal: AbortSignal, agent?: unknown) => Promise<unknown>
 }
 /** 收窄类型标注(实现处以 `tool({...})` 包裹,使 z.infer 不致散布 unknown)。 */
 export const tool = <S extends z.ZodType>(definition: Tool<S>): Tool => definition
@@ -50,7 +56,8 @@ export function wordCount(text: string): number {
  * 主会话可读全部资源,worker 只可读其工单子树(资源语法随角色收窄)。
  */
 export function readTool(description: string, executor: boolean,
-  read: (resource: string, offset: number, limit: number | undefined, signal: AbortSignal) => Promise<unknown>): Tool {
+  read: (resource: string, offset: number, limit: number | undefined, signal: AbortSignal,
+    agent?: unknown) => Promise<unknown>): Tool {
   return tool({
     name: 'orchestrator_read',
     description,
@@ -155,6 +162,6 @@ export function toDshTool(definition: Tool): ToolDefinition {
       render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
     },
     // canonical JSON 值面:工具返回对象即 lossless JSON;投影产物经 as never 收口(值校验以 zod 为准)。
-    execute: async (args: unknown, exec) => await definition.execute(schema.parse(args), exec.signal) as never,
+    execute: async (args: unknown, exec) => await definition.execute(schema.parse(args), exec.signal, exec.agent) as never,
   })
 }

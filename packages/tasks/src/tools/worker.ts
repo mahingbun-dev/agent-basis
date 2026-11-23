@@ -41,14 +41,28 @@ export interface WorkerToolsHost {
 }
 
 /**
- * worker 的 6 个工具,绑定其工单(SA executorTools(host, ticket) 同构——工具面随 worker
- * session 建立时装入,装配点在 executor(★A22 接线);分面纪律:这些工具不出现在主会话面)。
+ * 工单解析面:从 execute 上下文的执行主体(dsh ToolRunContext.agent)现解析其工单 id。
+ * 全局注册形态(plugin.ts 的 worker 工具面接线,2026-11-23)传 `agent => ticketOfSession(agent.id)`;
+ * 测试/单工单形态见 {@link workerTools}。
  */
-export function workerTools(host: WorkerToolsHost, ticket: Ticket): Tool[] {
-  const ticketId = ticket.id
+export type WorkerTicketResolver = (agent: unknown) => string | undefined
+
+/**
+ * worker 的 6 个工具·动态绑定版(全局注册 + when 分面用):每次 execute 从执行主体的
+ * agent.id 现解析工单绑定——worker session 跨宿主重启 resume 后无需重装(2026-11-23
+ * 线上工单 4e348403 的 report/answer 通道不可用根因即本面从未接线,重启后的存量
+ * worker 会话由此形态直接恢复工具面)。
+ */
+export function workerToolsFor(host: WorkerToolsHost, ticketIdOf: WorkerTicketResolver): Tool[] {
+  const ticketIdOfCall = (agent: unknown): string => {
+    const ticketId = ticketIdOf(agent)
+    if (ticketId === undefined) throw new Error('本工具只能在 worker session(worker-<ticketId>)里调用')
+    return ticketId
+  }
   return [
     readTool('读 resource 参数列出的本工单的一页资源;跟随 next_offset,页面点名 next_resource 时读它。R4 产物经 ticket/<id>/files 列出、ticket/<id>/file/<path> 读全文——读文件,不要凭记忆汇报。',
-      true, (resource, offset, limit, signal) => readResource(host.resources, resource, offset, limit, ticketId, signal)),
+      true, async (resource, offset, limit, signal, agent) =>
+        readResource(host.resources, resource, offset, limit, ticketIdOfCall(agent), signal)),
     tool({
       name: 'orchestrator_ack',
       description: '在实质开工前确认一条原始的人的请求,如 replies 段所说;它作为对那条消息的回复发出。',
@@ -56,8 +70,8 @@ export function workerTools(host: WorkerToolsHost, ticket: Ticket): Tool[] {
         trigger_id: z.string().describe('要确认的原始人消息的 trigger id'),
         text: z.string().trim().min(1).refine(text => wordCount(text) <= IM_WORDS, `至多 ${IM_WORDS} 词(中文按词);写一句短话。`).describe(`至多 ${IM_WORDS} 词;支持 Markdown。`),
       }).strict(),
-      execute: async (args) => {
-        const reply = host.engine.reply({ purpose: 'acknowledgement', ticketId, triggerId: args.trigger_id, text: args.text })
+      execute: async (args, _signal, agent) => {
+        const reply = host.engine.reply({ purpose: 'acknowledgement', ticketId: ticketIdOfCall(agent), triggerId: args.trigger_id, text: args.text })
         if (reply.status !== 'sent') await host.outbox.sent()
         return { trigger_id: args.trigger_id, acknowledgement: host.store.replyStatus(reply.id) ?? reply.status, reused: reply.reused }
       },
@@ -69,10 +83,10 @@ export function workerTools(host: WorkerToolsHost, ticket: Ticket): Tool[] {
         thread: z.string().min(1).describe('线程键;trigger/<id> 的 thread 字段显示它,如 feishu:<chat>:<root> 或 github:<number>。'),
         reason: z.string().trim().min(1).max(300).describe('一句话说明该线程为何与本工单无关。'),
       }).strict(),
-      execute: (args) => {
-        host.engine.markUnrelated(ticketId, args.thread, args.reason)
-        return Promise.resolve({ removed: true, thread: args.thread })
-      },
+      execute: (args, _signal, agent) => Promise.resolve().then(() => {
+        host.engine.markUnrelated(ticketIdOfCall(agent), args.thread, args.reason)
+        return { removed: true, thread: args.thread }
+      }),
     }),
     tool({
       name: 'orchestrator_thread_follow',
@@ -81,13 +95,15 @@ export function workerTools(host: WorkerToolsHost, ticket: Ticket): Tool[] {
         thread: z.string().describe('线程键,如 github:<number>。'),
         reason: z.string().trim().min(1).max(300).describe('一句话说明它与本工单的关系。'),
       }).strict(),
-      execute: (args) => {
+      execute: (args, _signal, agent) => Promise.resolve().then(() => {
         // 线程键必须形如 <source>:<id>(SA 同构校验)。
         const at = args.thread.indexOf(':')
-        if (at < 1 || at === args.thread.length - 1) return Promise.reject(new Error('线程键形如 <source>:<id>,如 github:<number>'))
-        const followed = host.engine.followForContext(ticketId, { source: args.thread.slice(0, at), id: args.thread.slice(at + 1) })
-        return Promise.resolve({ followed, thread: args.thread })
-      },
+        if (at < 1 || at === args.thread.length - 1) throw new Error('线程键形如 <source>:<id>,如 github:<number>')
+        const ticketId = ticketIdOfCall(agent)
+        const followed = host.engine.followForContext(ticketId,
+          { source: args.thread.slice(0, at), id: args.thread.slice(at + 1) })
+        return { followed, thread: args.thread }
+      }),
     }),
     tool({
       name: 'orchestrator_trigger_handback',
@@ -96,8 +112,8 @@ export function workerTools(host: WorkerToolsHost, ticket: Ticket): Tool[] {
         trigger_id: z.string().min(1).describe('要交回的消息 id'),
         reason: z.string().trim().min(1).max(300).describe('一句话说明它请求了本工单之外的什么。'),
       }).strict(),
-      execute: args => Promise.resolve({ trigger_id: args.trigger_id,
-        queued: host.engine.handback(ticketId, args.trigger_id, args.reason) }),
+      execute: (args, _signal, agent) => Promise.resolve().then(() => ({ trigger_id: args.trigger_id,
+        queued: host.engine.handback(ticketIdOfCall(agent), args.trigger_id, args.reason) })),
     }),
     tool({
       name: 'orchestrator_report',
@@ -109,10 +125,11 @@ export function workerTools(host: WorkerToolsHost, ticket: Ticket): Tool[] {
         question_for_trigger_id: z.string().optional().describe('带 human_action 时:提出该问题的人的消息;问题回到那个人写下之处。'),
         reply_to_trigger_id: z.string().optional().describe('本报告所答复的那条人的显式提问;普通进度不用。'),
       }).strict(),
-      execute: (args, signal) => {
+      execute: async (args, signal, agent) => {
         signal.throwIfAborted()
+        const ticketId = ticketIdOfCall(agent)
         const current = host.store.tickets.get(ticketId)
-        if (!current || !liveTicket(current)) return Promise.reject(new Error('工单已结束(PR 已关闭或工作已完成);不要恢复它'))
+        if (!current || !liveTicket(current)) throw new Error('工单已结束(PR 已关闭或工作已完成);不要恢复它')
         const report = { state: args.state, summary: args.summary,
           ...(args.human_action !== undefined && args.human_action !== null ? { question: args.human_action } : {}),
           ...(args.question_for_trigger_id ? { askedBy: args.question_for_trigger_id } : {}),
@@ -126,4 +143,13 @@ export function workerTools(host: WorkerToolsHost, ticket: Ticket): Tool[] {
       },
     }),
   ]
+}
+
+/**
+ * worker 的 6 个工具·单工单绑定版(SA executorTools(host, ticket) 同构签名,既有测试与
+ * 调用面):等价于把 {@link workerToolsFor} 的解析面钉死为本工单。生产注册走动态版
+ * (plugin.ts 的 worker 工具面接线,2026-11-23 起)。
+ */
+export function workerTools(host: WorkerToolsHost, ticket: Ticket): Tool[] {
+  return workerToolsFor(host, () => ticket.id)
 }

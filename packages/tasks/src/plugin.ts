@@ -855,6 +855,7 @@ export function createTasks(options: TasksOptions = {}): TasksRuntime {
       context: options.sessionHost.context,
       get engine() { return engineRef.value as ExecutorHost['engine'] },
       store,
+      outbox,
       effects,
       health: board.claim('worker'),
       lifetime: lifetime.signal,
@@ -1184,9 +1185,12 @@ export function defineTasksPlugin(config: TasksPluginConfig = {}) {
           }
         }
         // debug 日志面自宿主 logger 派生(53 号 §3-D3「busy 静默跳过」的观测位;缺席即静默)。
+        // ★必须经 receiver 调用:把方法先提取到局部变量再裸调会丢 this,首次触发即
+        // TypeError(this is not a function)且以未处理拒绝炸宿主(隔离容器 E2E 实测:
+        // 首个工单终态即 fatal)。bind 保 receiver,TS 收窄也跨闭包成立。
         const loggerDebug = logger?.debug
         const compactionDebugLog = typeof loggerDebug === 'function'
-          ? (message: string): void => { loggerDebug(message) }
+          ? (message: string): void => { loggerDebug.call(logger, message) }
           : undefined
         // 行配置注入(cordis loader apply(ctx, config) 第二参):realm/effort 等部署面
         // 从 super 模板 eterna-tasks 行 config 传入(优先于包内缺省)。
@@ -1228,8 +1232,12 @@ export function defineTasksPlugin(config: TasksPluginConfig = {}) {
         // (dsh-tools 服务,机会读取——裸 cordis ctx/测试宿主缺席即跳过,不炸装配)。角色分面
         // (24 §8.3-4;34 §4-D tools 行)经注册 when 谓词钉住:worker session(id 约定
         // worker-<ticketId>,executor/dsh.ts ticketOfSession)的步骤里主会话面不可见。
-        // worker 6 工具面(tools/worker.ts)随 executor 建 worker session 时装入(★A22 接线点,
-        // SA executorTools 同款时机),不经全局注册。
+        // worker 工具面(tools/worker.ts)由 executor 每 agent 安装(DshExecutor.installWorkerTools,
+        // 2026-11-23 线上修复:launch/delivery 必经点经 agent.ctx 作用域注册;此前「随 executor
+        // 建 worker session 时装入」只存在于注释,workerTools 全仓无消费方,worker 会话自始
+        // 没有 report/ack/handback 工具——工单 4e348403 的 answer/report 通道不可用即此根因;
+        // worker cwd 是工单子目录(R4),全局/realm 层注册对它不可见——隔离容器 E2E 实测
+        // master 51 工具含全部 orchestrator_* 而 worker 43 个零 orchestrator_*)。
         try {
           const tools = (ctx as unknown as { readonly tools?: { register(definition: ToolDefinition,
             options?: { when?: (activation: { readonly agent: { readonly id: string } }) => boolean }): () => void } }).tools
@@ -1254,18 +1262,29 @@ export function defineTasksPlugin(config: TasksPluginConfig = {}) {
             }
             ctx.effect(function* (): Generator<() => void, void, void> {
               for (const definition of orchestratorTools(host)) {
+                // ★orchestrator_read 双模共享(2026-11-23 worker 工具面接线):worker 面同名词
+                // (全局层同名词注册即抛错"already registered"),故 read 单独注册——when 对
+                // 主会话与 worker session 双向放行,execute 按执行主体现分窄(worker 只读其
+                // 工单子树,orchestrator.ts 的 read 闭包)/全表;其余 13 个工具面只在主会话
+                // 可见(主会话 id 缺席时退回既有基线「非 worker 会话」,分面不破)。
+                const isSharedRead = definition.name === 'orchestrator_read'
                 yield tools.register(toDshTool(definition), {
-                  // ★工具可见性(35-A21 诊断清单②;24 §8.3-4 角色分面):主会话 id 在场时按
-                  // 「realm 内主会话」白名单——orchestrator 14 工具面只在主会话可见,普通 web
-                  // 聊天会话与 worker session(worker-<ticketId>)一律不可见;主会话 id 缺席时
-                  // 退回既有基线「非 worker 会话」(worker 恒不可见,分面不破)。
-                  when: ({ agent }) => masterId !== undefined
-                    ? agent.id === masterId
-                    : ticketOfSession(agent.id) === undefined,
+                  when: isSharedRead
+                    ? ({ agent }) => ticketOfSession(agent.id) !== undefined
+                      || masterId === undefined || agent.id === masterId
+                    : ({ agent }) => masterId !== undefined
+                      ? agent.id === masterId
+                      : ticketOfSession(agent.id) === undefined,
                 })
               }
             }, 'tasks orchestrator tools')
-            logger?.info?.('[tasks] orchestrator 工具面已注册(14,worker 面随 executor 接线)')
+            logger?.info?.('[tasks] orchestrator 工具面已注册(14,read 双模共享)')
+            // worker 工具面不在此全局注册:worker session 的 cwd 是工单子目录(R4),其工具
+            // 作用域与 realm 工作区不同层,全局/realm 层注册对它不可见(2026-11-23 隔离容器
+            // E2E 实测:master 51 工具含全部 orchestrator_*,worker 43 个零 orchestrator_*),
+            // 且 orchestrator_read 两面同名、全局层重复注册即抛错。安装点在 executor 的
+            // 每 agent 作用域(DshExecutor.installWorkerTools,launch/delivery 必经;宿主报错
+            // 信息即此正解:"register through that agent's agent.ctx instead")。
           }
         } catch (error) {
           logger?.info?.(`[tasks] orchestrator 工具面注册跳过:${String(error)}`)

@@ -30,15 +30,22 @@
   产档路径 = 各 run 目录下的 `report.md` + `sessions.jsonl` + `events/<case-id>.jsonl`
   + `run.json`(F2 复审修复:口径指纹 manifest——pack 内容 + adapter + subset 的
   sha256,tools/evals/src/runner.ts 落盘)(dsh-evals-out/ 已 gitignore);超标处置 =
-  调摘要档位或保留策略,不允许靠改 prompt 纪律硬扛(25 号教训)。**现状(诚实口径,
-  F2 复审修复后)**:第二遍的压缩态回放需真实会话态(DSH 会话 + 压缩后 context
-  重放器 + LLM 摘要,随 53 号 P0/P2 落地),当前离线可跑的是记录裁决面的形态校验
-  回放 + 差值管线保活(nightly job 注释同步登记)。**同口径复跑的恒真对比已被工具
-  结构性识别**:两侧 run.json 指纹相同 = 同 pack 同 adapter 确定性复跑、diff 恒 0
-  by construction——diff-pass-rate 缺省拒绝判定(退出码 3「门禁未武装」),nightly
-  job 以 `--allow-same-caliber` 显式放行保活(28 §5 的 ≤2pp 衰减门禁在压缩态腿就位
-  前是显式豁免而非形似恒真);压缩态重放器落地后指纹天然不同,门禁自动武装,无需
-  改驱动三步。差值一行仍照 33 号 G2-A9 原文记入里程碑评审登记。
+  调摘要档位或保留策略,不允许靠改 prompt 纪律硬扛(25 号教训)。
+  **压缩态真腿已落地(2026-11-23,G2-A9 收口)**:`scripts/route-compaction-replay.mjs`
+  ——同一金集、同一模型(deepseek-flash,liteLLM 网关,凭据运行时读 `.secrets/`),
+  干净态(完整历史)与压缩态(历史经 LLM 压缩,触发原文逐字留在候选卡,21 号 D3)
+  各路由一遍,判据 = 记录裁决;byGate 判例单列;产物 JSONL 同形 sessions.jsonl 契约,
+  直喂 diff-pass-rate。**首跑报告入库** `reports/2026-11-23-compaction-leg-r1.md`:
+  19 条双腿(1 条 byGate 单列)干净态 94.7% vs 压缩态 94.7%,差 0.0pp,exit 0 无衰减
+  (RG-10 两腿一致偏 accept = 判例与现模型的基线偏差,非压缩衰减,归 24a C4 月度
+  增补复核)。v0 会话历史为判例字段确定性派生的合成转录,真实 audit trace 灌入随
+  24a C4 扩展(脚本 `buildHistoryText` 是唯一替换点)。CI 无凭据面,nightly replay
+  腿保持保活(`--allow-same-caliber`);真腿在有凭据环境跑,产物可直喂 diff-pass-rate
+  互证。**同口径复跑的恒真对比已被工具结构性识别**:两侧 run.json 指纹相同 =
+  同 pack 同 adapter 确定性复跑、diff 恒 0 by construction——diff-pass-rate 缺省
+  拒绝判定(退出码 3「门禁未武装」),nightly job 以 `--allow-same-caliber` 显式
+  放行保活;真腿产物指纹天然不同,门禁自动武装。差值一行仍照 33 号 G2-A9 原文
+  记入里程碑评审登记。
 - **vitest 面**:`tests/route-golden.spec.ts` 对全部判例做两件事——形态校验(20 条、
   四类齐、id 唯一、触发原文非空)与干净态回放(经模拟宿主 Engine,断言每条的落点)。
   干净态回放是金集自身的正确性守卫,随包级 verify 跑;衰减度量(dsh-evals 跑法)以
