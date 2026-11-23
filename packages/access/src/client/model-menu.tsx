@@ -16,10 +16,19 @@
  *   服务端 access 网关在 /api/session/modelCatalog 上按 llm-pi-ai 配置富化
  *   「视觉」,见 src/model-catalog.ts)渲染为名后 chip——上游菜单位次;
  *   文案按 navigator.language 解析 LocalizedText(en 兜底,镜像上游 resolveText)
+ * - 模糊搜索(2026-11-23,ZCode 模型菜单搜索同构):「模型」标题行右侧常驻搜索框
+ *   (放大镜+胶囊输入,上游 chat.toolbar.model.searchPlaceholder 文案)。语义见
+ *   model-search.ts——**只按展示名**做大小写不敏感子序列匹配(上游明确修正过
+ *   「不得命中分组名/模型值」)。与上游的一处自觉扩展:查询非空时跨**全部供应商**
+ *   搜索(菜单已有完整目录),来自非当前供应商的行补供应商名;否则用户在 A 供应商
+ *   下搜 B 的模型会得到「未找到」的假空态。输入框内 ↑↓ 移动高亮、Enter 选中、
+ *   Esc 先清查询再关面板;空结果给「未找到匹配模型」。
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Icon } from '@eterna/ui/icons'
 import { biasLabel, biasVisible } from './bias-view.ts'
 import { TwoClickButton } from './confirm-button.tsx'
+import { fuzzyMatch, normalizeQuery, stepIndex } from './model-search.ts'
 
 /** typert RPC 同构信封(POST /api/session/<method>)。 */
 async function rpc<T>(method: string, args: Record<string, unknown>): Promise<T> {
@@ -71,6 +80,30 @@ const S = {
   section: {
     padding: 'var(--et-space-2) var(--et-space-3) var(--et-space-1)', fontSize: 'var(--et-text-meta)',
     color: 'var(--et-muted)',
+  } as React.CSSProperties,
+  // 「模型」标题行 = 左标题 + 右搜索框(2026-11-23);标题与输入同基线居中
+  sectionRow: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    gap: 'var(--et-space-2)',
+    padding: 'var(--et-space-2) var(--et-space-3) var(--et-space-1)',
+    boxSizing: 'border-box',
+  } as React.CSSProperties,
+  // 标题行内的字形标签:内距已由 sectionRow 提供,这里不再重复
+  sectionLabel: {
+    fontSize: 'var(--et-text-meta)', color: 'var(--et-muted)', flexShrink: 0,
+  } as React.CSSProperties,
+  // 搜索框:胶囊 + 1px 描边 + 放大镜前缀(上游同形);聚焦光环走 .ea-model-search
+  searchWrap: {
+    display: 'inline-flex', alignItems: 'center', gap: 'var(--et-space-1)',
+    padding: '0 var(--et-space-2)', minWidth: 0, flex: '0 1 148px',
+    border: '1px solid var(--et-border)', borderRadius: 'var(--et-radius-pill)',
+    background: 'var(--et-surface-2)', color: 'var(--et-muted)',
+    boxSizing: 'border-box', height: 28,
+  } as React.CSSProperties,
+  searchInput: {
+    border: 'none', outline: 'none', background: 'transparent',
+    color: 'var(--et-fg)', font: 'inherit', fontSize: 'var(--et-text-micro)',
+    width: '100%', minWidth: 0, padding: 0, height: '100%',
   } as React.CSSProperties,
   divider: { height: 1, background: 'var(--et-border-soft)', margin: '5px 0' } as React.CSSProperties,
   logo: {
@@ -172,6 +205,12 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
   // 仅作可观测字段,菜单不拿它显示(否则显示的是陈旧值)。
   const [bias, setBias] = useState<{ readonly bias: number; readonly effectiveBias: number } | null>(null)
   const [biasError, setBiasError] = useState<string | null>(null)
+  // 模型模糊搜索(2026-11-23):query=输入值;hit=键盘高亮(过滤后列表下标,
+  // null=无高亮 ⇒ 回车不选任何项,避免「随手输入+回车」误切模型)
+  const [query, setQuery] = useState('')
+  const [hit, setHit] = useState<number | null>(null)
+  const searchRef = useRef<HTMLInputElement | null>(null)
+  const searching = normalizeQuery(query) !== ''
   // 偏置显示口径(声明在一切 effect 之前:主面板 rect 重测依赖 biasShown)。
   // 只认 effectiveBias(与服务端 decayBias 同源),可见阈值与判档死区严格同值
   // (0.01,bias-view.BIAS_VISIBLE_MIN)——四舍五入到 0.1 会把仍在生效的
@@ -285,16 +324,37 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
     }
   }, [dismiss])
 
+  const curProvider = useMemo(() => groups?.find(g => g.id === current?.provider) ?? null, [groups, current])
+  const curModels = curProvider?.models ?? []
+  // —— 搜索可见行(2026-11-23):空查询=当前供应商(原行为);有查询=跨全部供应商 ——
+  // 跨供应商是相对上游的自觉扩展:菜单本就持有完整目录,只搜当前组会让
+  // 「在 A 供应商下搜 B 的模型」恒得空态(假阴),用户无从判断是拼错了还是
+  // 模型不在本组。来自非当前供应商的行补供应商名,避免同名模型无法区分。
+  interface SearchRow { readonly provider: string; readonly providerName: string; readonly model: CatalogModel }
+  const searchRows = useMemo<readonly SearchRow[]>(() => {
+    const q = normalizeQuery(query)
+    if (q === '') {
+      return curModels.map(m => ({ provider: curProvider?.id ?? '', providerName: curProvider?.name ?? curProvider?.id ?? '', model: m }))
+    }
+    const rows: SearchRow[] = []
+    for (const group of groups ?? []) {
+      for (const model of group.models ?? []) {
+        if (fuzzyMatch(model.name, q)) rows.push({ provider: group.id, providerName: group.name ?? group.id, model })
+      }
+    }
+    return rows
+  }, [groups, curModels, curProvider, query])
+  // 高亮下标夹紧:过滤后列表收缩/清空时旧下标失效(=无高亮),回车不误选
+  const hitIdx = hit !== null && hit >= 0 && hit < searchRows.length ? hit : null
+
   // 主面板实测 rect(子面板定位基准;above=bottom 定位时 top 由渲染结果给出)。
-  // 偏置行异步出现/消失会改变主面板高度 ⇒ 行显隐也触发重测(F8)。
+  // 偏置行异步出现/消失会改变主面板高度 ⇒ 行显隐也触发重测(F8);
+  // 搜索改变可见行数(列表高度)同理(mainRect 供子面板顶部对齐)。
   useLayoutEffect(() => {
     if (mainRef.current === null) return
     const r = mainRef.current.getBoundingClientRect()
     setMainRect({ left: r.left, top: r.top, right: r.right })
-  }, [subOpen, biasShown])
-
-  const curProvider = useMemo(() => groups?.find(g => g.id === current?.provider) ?? null, [groups, current])
-  const curModels = curProvider?.models ?? []
+  }, [subOpen, biasShown, searching, searchRows.length])
   const curModel = useMemo(() => curModels.find(m => m.id === current?.model) ?? null, [curModels, current])
   const curEfforts = curModel?.reasoning?.efforts ?? []
   // 档位语义:未显式选档=跟随 defaultEffort;两者都缺显示「默认」不误标第一档
@@ -411,24 +471,81 @@ export function ModelMenu(props: ModelMenuOwner): React.JSX.Element {
         <span aria-hidden="true" style={{ opacity: 0.55, flexShrink: 0 }}>›</span>
       </button>
       <div style={S.divider} />
-      <div style={S.section}>模型</div>
-      <div style={{ maxHeight: 240, overflowY: 'auto' }}>
-        {curModels.map(m => {
-          const active = m.id === current?.model
-          return <button key={m.id} type="button" role="menuitemradio" aria-checked={active} disabled={busy}
-            style={{ ...S.row, justifyContent: 'space-between' }}
-            onClick={() => { if (current !== null) submit({ provider: current.provider, model: m.id }, { closeAfter: true }) }}>
+      {/* 「模型」标题行 + 搜索框(2026-11-23):搜索常驻不折叠,避免多一次展开成本;
+          输入框内 ↑↓ 移高亮、Enter 选、Esc 先清空查询(空查询时 Esc 才关面板)。 */}
+      <div style={S.sectionRow}>
+        <span style={S.sectionLabel}>模型</span>
+        <span className="ea-model-search" style={S.searchWrap}>
+          <Icon name="search" size={14} />
+          <input
+            ref={searchRef}
+            type="search"
+            className="ea-model-search-input"
+            value={query}
+            placeholder="搜索模型..."
+            aria-label="搜索模型"
+            autoComplete="off"
+            spellCheck={false}
+            style={S.searchInput}
+            onChange={e => { setQuery(e.target.value); setHit(null) }}
+            onKeyDown={e => {
+              if (e.key === 'Escape') {
+                // 有查询先清查询(菜单留驻);空查询放行给文档级监听器关面板
+                if (searching) { e.preventDefault(); e.stopPropagation(); setQuery(''); setHit(null) }
+                return
+              }
+              if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault()
+                setHit(stepIndex(hitIdx, e.key === 'ArrowDown' ? 1 : -1, searchRows.length))
+                return
+              }
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                const row = hitIdx === null ? undefined : searchRows[hitIdx]
+                if (row !== undefined) submit({ provider: row.provider, model: row.model.id }, { closeAfter: true })
+              }
+            }}
+          />
+          {query !== '' && (
+            <button type="button" className="ea-model-search-clear" aria-label="清除搜索"
+              onClick={() => { setQuery(''); setHit(null); searchRef.current?.focus() }}>
+              <Icon name="close" size={12} />
+            </button>
+          )}
+        </span>
+      </div>
+      <div style={{ maxHeight: 240, overflowY: 'auto' }} role="group" aria-label="模型列表">
+        {searchRows.map((row, index) => {
+          const active = row.model.id === current?.model && row.provider === current?.provider
+          const isHit = index === hitIdx
+          return <button key={`${row.provider}/${row.model.id}`} type="button" role="menuitemradio" aria-checked={active} disabled={busy}
+            data-model-hit={isHit ? 'true' : undefined}
+            style={{
+              ...S.row, justifyContent: 'space-between',
+              ...(isHit ? { background: 'var(--et-accent-soft)', color: 'var(--et-accent)' } : {}),
+            }}
+            onMouseEnter={() => { setHit(index) }}
+            onClick={() => { submit({ provider: row.provider, model: row.model.id }, { closeAfter: true }) }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-              {m.badge !== undefined &&
-                <span style={{ ...S.badge, ...BADGE_TONES[m.badge.tone ?? 'neutral'] }}>
-                  {resolveBadgeText(m.badge.text)}
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.model.name}</span>
+              {row.model.badge !== undefined &&
+                <span style={{ ...S.badge, ...BADGE_TONES[row.model.badge.tone ?? 'neutral'] }}>
+                  {resolveBadgeText(row.model.badge.text)}
+                </span>}
+              {/* 跨供应商命中时补供应商名(同上区分同名模型) */}
+              {searching && row.provider !== current?.provider &&
+                <span style={{ fontSize: 'var(--et-text-micro)', color: 'var(--et-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  {row.providerName}
                 </span>}
             </span>
             {active && <span aria-hidden="true" style={S.check}>✓</span>}
           </button>
         })}
-        {curModels.length === 0 && <div style={{ ...S.row, opacity: 0.5, cursor: 'default' }}>目录读取中…</div>}
+        {searchRows.length === 0 && (
+          <div style={{ ...S.row, opacity: 0.5, cursor: 'default' }}>
+            {groups === null ? '目录读取中…' : searching ? '未找到匹配模型' : '当前供应商暂无模型'}
+          </div>
+        )}
       </div>
       {/* 思考偏置行(2026-11-18 V2 收尾):放在「思考强度」条件块之外——偏置是会话
           属性,不依赖当前模型的档位表。显隐阈值与判档死区同值(0.01);自动关闭时
