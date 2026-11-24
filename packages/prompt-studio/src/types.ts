@@ -174,6 +174,64 @@ export interface TraceApprovalPoint {
   readonly decidedAt: string | null
 }
 
+/**
+ * token 互斥四桶的逐轮/逐会话计数(口径对齐 @deepseek-ai/dsh-llm TokenUsage 与
+ * @eterna/observe TokenBuckets:input=未缓存输入,cacheRead/cacheWrite 单列,
+ * output 已含推理 token 不重复累计;billed = input + cacheRead + cacheWrite + output)。
+ */
+export interface TraceTokenBuckets {
+  readonly input: number
+  readonly output: number
+  readonly cacheRead: number
+  readonly cacheWrite: number
+  /** 计费口径合计 = input + cacheRead + cacheWrite + output。 */
+  readonly billed: number
+}
+
+/**
+ * 单个 step 的时间归因与 token(step = 一次模型调用 + 它请求的全部工具执行,
+ * dsh-session types.d.ts SessionEventMap['step/start'])。
+ *
+ * 归因口径(全部取自日志事实,无推断):
+ * - `ttftMs` = 官方 `assistantStreamFirstTokenTime(stream)` − `step/start.time`,
+ *   即「这一步从开始到拿到首个 token」。不是 `stream[0].time`(首记录是
+ *   block-start,实测 59% 的流上二者不等,最大偏 200ms)。无重试时 step/start
+ *   与 request/header 相差毫秒级,故等价于「请求发出→首 token」;**发生过重试的
+ *   step 会包含失败尝试的耗时**——这是用户实际等待的时长,失败尝试的独立时序见
+ *   `TraceAnalysis.attempts`。
+ * - `genMs` = 流末记录时刻 − 首个 token 时刻。
+ * - `toolMs` = 本 step 内 tool/call → 同 callId tool/result 的区间之和(严格 FIFO
+ *   配对后即删;配对不上的调用不计入)。
+ * - `wallMs` = `step/end.time` − `step/start.time`(缺 step/end 为 null)。
+ * - `otherMs` = wallMs − ttftMs − genMs − toolMs (下限 0;仅 wallMs 非 null 时有值)。
+ */
+export interface TraceStep {
+  readonly step: number
+  readonly startedAt: string | null
+  readonly endedAt: string | null
+  readonly wallMs: number | null
+  /** 请求发出 → 首个 token(缺 stream/无 token delta 时 null)。 */
+  readonly ttftMs: number | null
+  /** 首个 token → 流结束(缺 stream 时 null)。 */
+  readonly genMs: number | null
+  readonly toolMs: number
+  /** 墙钟里未被上述三项覆盖的部分(仅 wallMs 非 null 时有值;下限 0)。 */
+  readonly otherMs: number | null
+  /** 本步 assistant/message.usage 的互斥四桶(无 usage 时 null)。 */
+  readonly tokens: TraceTokenBuckets | null
+  /**
+   * 本次请求的 prompt token = input + cacheRead + cacheWrite(上下文水位口径)。
+   * 无 usage 时 null——这是「这一步把多少上下文送给模型」的实测值。
+   */
+  readonly promptTokens: number | null
+  /** 本步内发起的工具调用数。 */
+  readonly toolCalls: number
+  /** 本步内返回错误的工具调用数。 */
+  readonly toolErrors: number
+  /** 本步出现的工具名(去重保序;UI 用于一行摘要)。 */
+  readonly toolNames: readonly string[]
+}
+
 /** 单轮投影(字段缺失容错降级:缺失侧为 null/空,不抛错;T7.4 增推理摘要)。 */
 export interface TraceTurn {
   readonly turn: number
@@ -194,6 +252,84 @@ export interface TraceTurn {
   readonly reasoningPreview: string | null
   readonly tools: readonly TraceToolCall[]
   readonly approvalPoints: readonly TraceApprovalPoint[]
+  /** 本轮各 step(按 step 升序;T8 分析面数据源)。 */
+  readonly steps: readonly TraceStep[]
+  /** 本轮四桶 token 合计(各 step usage 求和;无 usage 时为全 0)。 */
+  readonly tokens: TraceTokenBuckets
+  /** 本轮时间归因合计(各 step 求和;未收尾轮次的 wallMs 为 null)。 */
+  readonly time: TraceTurnTime
+}
+
+/**
+ * 一轮的时间归因合计。`wallMs` 与四个分量分开给:未收尾轮次(turn/end 缺失)
+ * wallMs 为 null,而分量仍有值——UI 必须以「已观测分量之和」为分母并显式标注,
+ * 不得把已观测量当成完整墙钟。
+ */
+export interface TraceTurnTime {
+  readonly wallMs: number | null
+  /** 等首字合计(各 step ttftMs 之和)。 */
+  readonly ttftMs: number
+  /** 生成合计。 */
+  readonly genMs: number
+  /** 工具执行合计。 */
+  readonly toolMs: number
+  /** 其他开销合计(仅统计有墙钟的 step)。 */
+  readonly otherMs: number
+  /** 计入等首字统计的 step 数(缺 stream 的 step 不计)。 */
+  readonly observedSteps: number
+}
+
+/**
+ * 工具聚合行(按工具名归集;耗时只计严格配对成功的调用)。
+ * `p95Ms` 取最近秩法(升序第 ceil(0.95·n) 个),不插值。
+ */
+export interface TraceToolStat {
+  readonly name: string
+  readonly calls: number
+  readonly errors: number
+  readonly totalMs: number
+  readonly avgMs: number
+  readonly p95Ms: number
+  readonly maxMs: number
+}
+
+/**
+ * 参数逐字节相同的重复调用组。判定 = 工具名 + 完整 `arguments` 原始 JSON 串相等
+ * (不是「近似相似」,也不做 JSON 规范化——规范化会把键序不同的调用判成相同)。
+ */
+export interface TraceRepeatGroup {
+  readonly name: string
+  /** 参数预览(截断,供 UI 展示;判等用的是完整串)。 */
+  readonly argsPreview: string
+  /** 总出现次数(≥2)。 */
+  readonly times: number
+  /** 出现位置,形如 `turn.step`。 */
+  readonly at: readonly string[]
+  /** 该组重复调用累计耗时(仅配对成功的部分;用于「重复浪费了多少时间」)。 */
+  readonly totalMs: number
+}
+
+/** 压缩事件摘要(compaction/*)。 */
+export interface TraceCompaction {
+  /** compaction/start 次数。 */
+  readonly events: number
+  /** compaction/prune 的 shadowedTokenCount 累加(被剪除的 token)。 */
+  readonly prunedTokens: number
+  /** compaction/end 报告 error 的次数(压缩本身失败)。 */
+  readonly failures: number
+}
+
+/**
+ * 一次模型尝试失败(assistant/attempt):该 attempt 未提交可见消息,其 stream 保留
+ * 了失败/重试/取消的完整时序。`ttftMs` 口径同 TraceStep。
+ */
+export interface TraceAttempt {
+  readonly turn: number
+  readonly step: number
+  readonly at: string | null
+  readonly ttftMs: number | null
+  /** 流持续时长(首 token → 流末);无 token 时 null。 */
+  readonly streamMs: number | null
 }
 
 /** 指定会话的轮次树(容错:字段缺失降级,skipped 记坏行数,T7.4 口径)。 */
@@ -201,6 +337,61 @@ export interface SessionTrace {
   readonly sessionId: string
   readonly turns: readonly TraceTurn[]
   readonly events: { readonly total: number; readonly projected: number; readonly skipped: number }
+  /** 会话级分析面(T8:确定性规则的数据源)。 */
+  readonly analysis: TraceAnalysis
+}
+
+/**
+ * 会话级分析数据(全部为日志事实的聚合,不含推断)。
+ *
+ * 设计约束:这里的每个字段都必须能从会话日志直接算出;凡是「需要猜测」的量
+ * (例如压缩策略的触发阈值)一律不出现在契约里——UI 也就无法伪报。
+ */
+export interface TraceAnalysis {
+  /** 会话头(type='session')的元数据;头行不在读取窗口内时为 null 字段。 */
+  readonly session: {
+    readonly createdAt: string | null
+    readonly cwd: string | null
+    readonly preset: string | null
+    readonly origin: string | null
+    readonly delegationDepth: number | null
+  }
+  /** 最后一条 session/title 的标题(无标题事件时空串)。 */
+  readonly title: string
+  /** 当前路由 `provider/model`(取最后一个 request/header 或 request/context;未知 null)。 */
+  readonly route: string | null
+  /** 路由的上下文窗口 token 数(request/context.contextWindow;未知 null)。 */
+  readonly contextWindow: number | null
+  /** 全会话 token 合计(各 step usage 求和)。 */
+  readonly tokens: TraceTokenBuckets
+  /** 缓存命中率 = cacheRead / (input+cacheRead+cacheWrite);未报告缓存桶时 null。 */
+  readonly cacheHitRate: number | null
+  /** 轮数/步数/模型调用数。 */
+  readonly counts: {
+    readonly turns: number
+    readonly steps: number
+    readonly modelCalls: number
+    readonly toolCalls: number
+    readonly userMessages: number
+  }
+  /** 时间归因合计(各轮求和)。 */
+  readonly time: TraceTurnTime
+  /** 工具聚合(按总耗时降序)。 */
+  readonly tools: readonly TraceToolStat[]
+  /** 重复调用组(按次数降序;无重复时为空)。 */
+  readonly repeats: readonly TraceRepeatGroup[]
+  readonly compaction: TraceCompaction
+  /** 失败的模型尝试(assistant/attempt;按出现序)。 */
+  readonly attempts: readonly TraceAttempt[]
+  /**
+   * 上下文水位采样点(每个有 usage 的 step 一个,按出现序)。
+   * `promptTokens` = input+cacheRead+cacheWrite,即真正送进模型的上下文量。
+   */
+  readonly pressure: readonly { readonly turn: number; readonly step: number; readonly promptTokens: number }[]
+  /** 水位峰值(无采样点时 null)。 */
+  readonly pressurePeak: number | null
+  /** 审批点计数(asked=提出的审批数;decided=有决定结果的数)。 */
+  readonly approvals: { readonly asked: number; readonly decided: number }
 }
 
 /** 端点 loopPrompt/trace 的返回。 */

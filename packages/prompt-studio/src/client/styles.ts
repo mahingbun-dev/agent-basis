@@ -1055,6 +1055,323 @@ const CSS = `
 }
 [data-t7-approval-point-name] { font-weight: var(--et-weight-display); }
 [data-t7-approval-point-time] { font-size: var(--et-text-meta); color: var(--et-muted); }
+/* —— 循环轨迹:分析视图(三层并列) —— */
+
+/* 会话卡标题(列表卡主行;标题缺失时回落 sessionId,由组件保证非空)。 */
+[data-t7-session-title] {
+  font-size: var(--et-text-caption); font-weight: var(--et-weight-display); color: var(--et-fg);
+  overflow-wrap: anywhere;
+}
+[data-t7-session-item]:hover [data-t7-session-title] { color: var(--et-accent); }
+
+/* 详情头:标题 + 会话 id + 元信息行 */
+[data-t7-trace-session-title] {
+  font-size: var(--et-text-caption); font-weight: var(--et-weight-display); color: var(--et-fg);
+  overflow-wrap: anywhere;
+}
+[data-t7-trace-meta] {
+  display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin: 0 0 24px;
+  font-size: var(--et-text-micro); color: var(--et-muted);
+}
+[data-t7-trace-meta-item] {
+  padding: 2px 8px; border-radius: var(--et-radius-sm);
+  background: var(--et-surface-2); color: var(--et-fg-2);
+}
+[data-t7-mono] { font-family: var(--et-font-mono); font-variant-numeric: tabular-nums; }
+[data-t7-muted] { color: var(--et-muted); }
+[data-t7-tone='danger'] { color: var(--et-danger); }
+
+/* 三层容器:窄屏单列,宽屏两列(诊断占首屏整行,成本/复盘并列) */
+[data-t7-layers] { display: flex; flex-direction: column; gap: 40px; }
+[data-t7-layer] { display: flex; flex-direction: column; min-width: 0; }
+[data-t7-layer-title] {
+  margin: 0 0 4px; font-size: var(--et-text-lead); font-weight: var(--et-weight-display);
+  color: var(--et-fg); letter-spacing: -0.01em;
+}
+[data-t7-layer-note] { margin: 0 0 20px; font-size: var(--et-text-micro); color: var(--et-muted); }
+[data-t7-layer='diag'] { order: 1; }
+[data-t7-layer='cost'] { order: 2; }
+[data-t7-layer='replay'] { order: 3; }
+
+/* 指标瓦片行 */
+[data-t7-tiles] {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 28px;
+}
+[data-t7-tile] {
+  display: flex; flex-direction: column; gap: 4px; padding: 16px 18px;
+  background: var(--et-surface); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md);
+}
+[data-t7-tile-label] { font-size: var(--et-text-micro); color: var(--et-muted); }
+[data-t7-tile-value] {
+  font-size: var(--et-text-h3); line-height: 1.15; font-weight: var(--et-weight-display);
+  color: var(--et-fg); font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+}
+[data-t7-tile][data-tone='warn'] [data-t7-tile-value] { color: var(--et-warn); }
+[data-t7-tile][data-tone='success'] [data-t7-tile-value] { color: var(--et-success); }
+[data-t7-tile][data-tone='accent'] [data-t7-tile-value] { color: var(--et-accent); }
+[data-t7-tile-note] { font-size: var(--et-text-micro); color: var(--et-muted); font-variant-numeric: tabular-nums; }
+
+/* 分节 */
+[data-t7-section] { margin-bottom: 32px; }
+[data-t7-section]:last-child { margin-bottom: 0; }
+[data-t7-section-head] { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+[data-t7-section-title] {
+  margin: 0; font-size: var(--et-text-caption); font-weight: var(--et-weight-display); color: var(--et-fg);
+}
+[data-t7-section-note] { margin: 0 0 14px; font-size: var(--et-text-micro); color: var(--et-muted); line-height: 1.6; }
+
+/* 结论卡:左侧色条表示严重度,判据用等宽块 */
+[data-t7-findings] { display: flex; flex-direction: column; gap: 10px; }
+/* 严重度用 border-left 表达:**不能**用 grid + ::before 色条——伪元素占第一列后
+   后续子元素会自动落进那 3px 的列,正文被压成一字一行(本次实证抓到的缺陷)。 */
+[data-t7-finding] {
+  padding: 14px 16px;
+  background: var(--et-surface); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md);
+  border-left: 3px solid var(--et-border);
+}
+[data-t7-finding][data-severity='high'] { border-left-color: var(--et-warn); }
+[data-t7-finding][data-severity='medium'] { border-left-color: var(--et-accent); }
+[data-t7-finding][data-severity='low'] { border-left-color: var(--et-border); }
+[data-t7-finding-head] { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+[data-t7-finding-tag] {
+  font-size: var(--et-text-micro); font-weight: 600; padding: 1px 8px; border-radius: var(--et-radius-sm);
+  color: var(--et-fg-2); background: var(--et-surface-2); white-space: nowrap;
+}
+[data-t7-finding][data-severity='high'] [data-t7-finding-tag] {
+  color: var(--et-warn); background: color-mix(in oklab, var(--et-warn), transparent 88%);
+}
+[data-t7-finding-title] { font-size: var(--et-text-caption); font-weight: var(--et-weight-display); color: var(--et-fg); }
+[data-t7-finding-text] { margin: 6px 0 0; font-size: var(--et-text-micro); color: var(--et-fg-2); line-height: 1.7; }
+[data-t7-finding-evidence] {
+  margin: 10px 0 0; padding: 10px 12px; overflow-x: auto;
+  font-family: var(--et-font-mono); font-size: var(--et-text-micro); line-height: 1.7;
+  color: var(--et-muted); background: var(--et-surface-2);
+  border-radius: var(--et-radius-sm); white-space: pre-wrap; overflow-wrap: anywhere;
+}
+
+/* 逐轮时间归因:堆叠条 + 图例 */
+[data-t7-trace-turns] { display: flex; flex-direction: column; gap: 14px; }
+[data-t7-trace-node] {
+  padding: 14px 16px; border-radius: var(--et-radius-md);
+  background: var(--et-surface); border: 1px solid var(--et-border-soft);
+}
+[data-t7-trace-node-head] { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+[data-t7-trace-turn] { font-size: var(--et-text-caption); font-weight: var(--et-weight-display); color: var(--et-fg); }
+[data-t7-trace-duration] { font-size: var(--et-text-caption); font-variant-numeric: tabular-nums; color: var(--et-fg-2); }
+[data-t7-trace-tokens] { font-size: var(--et-text-micro); font-variant-numeric: tabular-nums; color: var(--et-muted); }
+[data-t7-turn-reason-badge] {
+  margin-left: auto; font-size: var(--et-text-micro); padding: 2px 8px; border-radius: var(--et-radius-sm);
+  color: var(--et-muted); background: var(--et-surface-2); white-space: nowrap;
+}
+[data-t7-turn-reason-badge][data-tone='ok'] {
+  color: var(--et-success); background: color-mix(in oklab, var(--et-success), transparent 88%);
+}
+[data-t7-turn-reason-badge][data-tone='info'] {
+  color: var(--et-accent); background: var(--et-accent-soft);
+}
+[data-t7-turn-reason-badge][data-tone='warn'] {
+  color: var(--et-warn); background: color-mix(in oklab, var(--et-warn), transparent 88%);
+}
+[data-t7-turn-bar] {
+  display: flex; align-items: stretch; gap: 2px; height: 12px; width: 100%;
+  border-radius: var(--et-radius-sm); overflow: hidden; background: var(--et-surface-2);
+}
+/* 圆角阶梯(42 号 §2.2):微元素(2px 色条/8px 色块)不参与圆角阶梯,一律 0;
+   容器本身已有 --et-radius-sm 的裁切,子段无需再自己圆角。 */
+[data-t7-turn-bar] > [data-t7-turn-seg] { display: block; min-width: 2px; border-radius: 0; }
+[data-t7-turn-seg='ttft'] { background: var(--et-warn); }
+[data-t7-turn-seg='gen'] { background: var(--et-accent); }
+[data-t7-turn-seg='tool'] { background: var(--et-success); }
+[data-t7-turn-seg='other'] { background: var(--et-border); }
+[data-t7-turn-legend] {
+  display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-top: 10px;
+  font-size: var(--et-text-micro); color: var(--et-muted);
+}
+[data-t7-turn-legend-item] { display: inline-flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums; }
+[data-t7-turn-legend-item] b { color: var(--et-fg-2); font-weight: 600; }
+[data-t7-swatch] { display: inline-block; width: 8px; height: 8px; border-radius: 0; }
+[data-t7-swatch='ttft'] { background: var(--et-warn); }
+[data-t7-swatch='gen'] { background: var(--et-accent); }
+[data-t7-swatch='tool'] { background: var(--et-success); }
+[data-t7-swatch='other'] { background: var(--et-border); }
+[data-t7-turn-legend-note] { color: var(--et-warn); }
+
+/* 表格(容器内横向滚动,不撑破页面) */
+[data-t7-tbl-wrap] {
+  overflow-x: auto; border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md);
+  background: var(--et-surface);
+}
+[data-t7-table] { width: 100%; border-collapse: collapse; font-size: var(--et-text-micro); }
+[data-t7-table] th {
+  text-align: left; padding: 10px 14px; font-weight: 600; color: var(--et-muted);
+  border-bottom: 1px solid var(--et-border-soft); white-space: nowrap;
+}
+[data-t7-table] td { padding: 10px 14px; color: var(--et-fg-2); border-bottom: 1px solid var(--et-border-soft); }
+[data-t7-table] tr:last-child td { border-bottom: 0; }
+[data-t7-table] td[data-t7-mono] { font-family: var(--et-font-mono); }
+[data-t7-table] td[data-t7-muted] { color: var(--et-muted); }
+
+/* 单元格内条(相对最大值;用于排行与慢步骤) */
+[data-t7-cellbar] { display: flex; align-items: center; gap: 10px; min-width: 120px; }
+[data-t7-cellbar-track] {
+  flex: 1; min-width: 48px; height: 6px; border-radius: var(--et-radius-pill);
+  background: var(--et-surface-2); overflow: hidden;
+}
+[data-t7-cellbar-fill] {
+  display: block; height: 100%; border-radius: var(--et-radius-pill);
+  background: var(--et-accent);
+}
+[data-t7-cellbar-value] { font-variant-numeric: tabular-nums; color: var(--et-fg-2); white-space: nowrap; }
+
+/* 逐轮 token 构成条 */
+[data-t7-cost-bars] { display: flex; flex-direction: column; gap: 10px; }
+[data-t7-cost-row] {
+  display: grid; grid-template-columns: 140px minmax(0, 1fr) auto; align-items: center; gap: 14px;
+  padding: 6px 0;
+}
+[data-t7-cost-name] { font-size: var(--et-text-micro); color: var(--et-fg-2); white-space: nowrap; }
+[data-t7-cost-track] {
+  display: flex; align-items: stretch; gap: 2px; height: 10px; min-width: 0;
+  border-radius: var(--et-radius-sm); background: var(--et-surface-2); overflow: hidden;
+}
+[data-t7-cost-seg='input'] { background: var(--et-accent); min-width: 1px; }
+[data-t7-cost-seg='cache'] { background: var(--et-success); min-width: 1px; }
+[data-t7-cost-seg='output'] { background: var(--et-warn); min-width: 1px; }
+[data-t7-cost-value] {
+  font-size: var(--et-text-micro); color: var(--et-muted);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+
+/* 上下文水位柱状图 */
+[data-t7-chart] {
+  padding: 16px 18px; background: var(--et-surface);
+  border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md);
+}
+[data-t7-chart-head] { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+[data-t7-chart-title] { font-size: var(--et-text-micro); font-weight: 600; color: var(--et-fg-2); }
+[data-t7-chart-sub] { font-size: var(--et-text-micro); color: var(--et-muted); font-variant-numeric: tabular-nums; }
+[data-t7-chart-bars] {
+  display: flex; align-items: flex-end; gap: 1px; height: 120px;
+  padding-bottom: 1px; border-bottom: 1px solid var(--et-border-soft);
+}
+[data-t7-chart-bar] {
+  flex: 1; min-width: 1px; display: block;
+  background: var(--et-accent); opacity: 0.45;
+  border-radius: 0;
+}
+[data-t7-chart-bar][data-hot='true'] { background: var(--et-warn); opacity: 0.9; }
+[data-t7-chart-axis] {
+  display: flex; justify-content: space-between; margin-top: 8px;
+  font-size: var(--et-text-micro); color: var(--et-muted);
+}
+[data-t7-chart-legend] { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 10px; font-size: var(--et-text-micro); color: var(--et-muted); }
+[data-t7-chart-legend-item] { display: inline-flex; align-items: center; gap: 6px; }
+[data-t7-chart-legend-item]::before {
+  content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 0;
+  background: var(--et-accent); opacity: 0.45;
+}
+[data-t7-chart-legend-item]:first-child::before { background: var(--et-warn); opacity: 0.9; }
+
+/* 重复调用行:三行网格(名称/次数/耗时 · 出现位置 · 参数预览),不挤成竖排 */
+[data-t7-repeats] { display: flex; flex-direction: column; gap: 8px; }
+[data-t7-repeat-row] {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: baseline;
+  column-gap: 12px; row-gap: 4px;
+  padding: 10px 14px; font-size: var(--et-text-micro);
+  background: var(--et-surface); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md);
+}
+[data-t7-repeat-name] {
+  grid-column: 1; font-family: var(--et-font-mono); font-weight: 600; color: var(--et-fg-2);
+  overflow-wrap: anywhere; min-width: 0;
+}
+[data-t7-repeat-times] {
+  grid-column: 2; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--et-warn);
+  padding: 0 8px; border-radius: var(--et-radius-sm);
+  background: color-mix(in oklab, var(--et-warn), transparent 90%); white-space: nowrap;
+}
+[data-t7-repeat-cost] { grid-column: 3; font-variant-numeric: tabular-nums; color: var(--et-muted); white-space: nowrap; }
+[data-t7-repeat-at] {
+  grid-column: 1 / -1; font-family: var(--et-font-mono); font-size: var(--et-text-micro);
+  color: var(--et-muted); overflow-wrap: anywhere; line-height: 1.5;
+}
+[data-t7-repeat-args] {
+  grid-column: 1 / -1; font-family: var(--et-font-mono); font-size: var(--et-text-micro);
+  color: var(--et-muted); overflow-wrap: anywhere; line-height: 1.5;
+  /* 长参数预览限两行,避免单条占去整屏 */
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+
+/* 逐轮执行明细(details 折叠) */
+[data-t7-replay-turns] { display: flex; flex-direction: column; gap: 8px; }
+[data-t7-replay-turn] {
+  background: var(--et-surface); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md);
+  overflow: hidden;
+}
+[data-t7-replay-summary] {
+  display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  padding: 12px 16px; cursor: pointer; font-size: var(--et-text-micro); color: var(--et-fg-2);
+  list-style: none;
+}
+[data-t7-replay-summary]::-webkit-details-marker { display: none; }
+[data-t7-replay-summary]::before {
+  content: '▸'; display: inline-block; width: 12px; color: var(--et-muted);
+  transition: transform var(--et-motion-fast) var(--et-ease);
+}
+[data-t7-replay-turn][open] > [data-t7-replay-summary]::before { transform: rotate(90deg); }
+[data-t7-replay-summary]:hover { background: var(--et-surface-2); }
+[data-t7-replay-summary]:focus-visible { outline: 2px solid var(--et-accent); outline-offset: -2px; }
+[data-t7-replay-body] { padding: 0 16px 16px; border-top: 1px solid var(--et-border-soft); }
+[data-t7-replay-steps] { display: flex; flex-direction: column; margin-top: 10px; }
+[data-t7-replay-step] {
+  display: grid; grid-template-columns: 40px repeat(3, minmax(56px, auto)) minmax(0, 1fr);
+  align-items: baseline; gap: 12px; padding: 7px 0;
+  font-size: var(--et-text-micro); font-variant-numeric: tabular-nums;
+  border-bottom: 1px dashed var(--et-border-soft);
+}
+[data-t7-replay-step]:last-child { border-bottom: 0; }
+[data-t7-replay-step-no] { font-family: var(--et-font-mono); color: var(--et-muted); }
+[data-t7-replay-step-ttft] { color: var(--et-warn); }
+[data-t7-replay-step-gen] { color: var(--et-fg-2); }
+[data-t7-replay-step-tool] { color: var(--et-fg-2); }
+[data-t7-replay-step-names] { font-family: var(--et-font-mono); overflow-wrap: anywhere; }
+
+/* 推理摘要 */
+[data-t7-reasoning] { margin-top: 12px; }
+[data-t7-reasoning-label] { display: block; margin-bottom: 6px; font-size: var(--et-text-micro); color: var(--et-muted); }
+[data-t7-reasoning-text] {
+  margin: 0; padding: 10px 12px; overflow-x: auto;
+  font-family: var(--et-font-mono); font-size: var(--et-text-micro); line-height: 1.7;
+  color: var(--et-fg-2); background: var(--et-surface-2);
+  border-radius: var(--et-radius-sm); white-space: pre-wrap; overflow-wrap: anywhere;
+}
+
+/* —— 循环轨迹:分析视图响应式 —— */
+/* 1100px:瓦片两列,重复行纵向化 */
+@media (max-width: 1100px) {
+  [data-t7-tiles] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* 760px:逐轮 token 条与重复行改为纵向堆叠(横向两列会被压扁) */
+@media (max-width: 760px) {
+  [data-t7-cost-row] { grid-template-columns: 1fr; gap: 6px; }
+  [data-t7-cost-track] { height: 8px; }
+  [data-t7-repeat-row] { grid-template-columns: minmax(0, 1fr) auto; }
+  [data-t7-repeat-cost] { grid-column: 2; }
+  [data-t7-trace-meta] { gap: 8px; }
+  [data-t7-replay-step] {
+    grid-template-columns: 32px repeat(3, auto); row-gap: 4px;
+  }
+  [data-t7-replay-step-names] { grid-column: 1 / -1; }
+}
+/* 640px:瓦片单列,表格保持容器内滚动 */
+@media (max-width: 640px) {
+  [data-t7-tiles] { grid-template-columns: 1fr; }
+  [data-t7-tile-value] { font-size: var(--et-text-lead); }
+  [data-t7-layer-title] { font-size: var(--et-text-body); }
+  [data-t7-finding] { padding: 12px; border-left-width: 2px; }
+  [data-t7-chart-bars] { height: 90px; }
+  [data-t7-turn-legend] { gap: 10px; }
+}
+
 
 @media (prefers-reduced-motion: reduce) {
   [data-t7-studio-root] button,
