@@ -7,14 +7,33 @@
  * 另加「窗口从帧中间开始」的魔数重同步——尾部读取防御必需)。事件形态以官方
  * SessionEventMap 为准(本仓库实测 0.2.2-rc.1):
  *   - turn/start{turn} / turn/end{turn,reason{kind}}        (dsh-session types)
+ *   - step/start{turn,step} / step/end{turn,step}            (一次模型调用 + 它请求的工具)
  *   - tool/call{turn,step,callId,name,arguments(原始 JSON 串)}
  *   - tool/result{turn,step,message{toolCallId,isError},error?{name,code}}
- *   - assistant/message{turn,step,message{content:ContentBlock[]},usage?,interrupted?}
+ *   - assistant/message{turn,step,message{content:ContentBlock[]},stream,usage?,interrupted?}
  *     —— 推理文本 = content 中 type:'reasoning' 块(ReasoningBlock{text},dsh-llm)
+ *     —— stream = AssistantStreamRecord[](紧凑计时流,T8 起用于首 token/生成时长)
+ *   - assistant/attempt{turn,step,stream}                     —— 未提交可见消息的失败尝试
+ *   - request/header{header.config{provider,model,maxTokens}} / request/context{provider,model,contextWindow}
+ *   - compaction/start{compactionId,turn} / compaction/prune{shadowedRange,shadowedSeqs,shadowedTokenCount}
+ *     / compaction/end{compactionId,turn,error?}
  *   - approval/asked{id,toolName,callId?,reason?} / approval/decided{id,outcome}
  *     (@deepseek-ai/dsh-user-approval;审计事件不带 turn,按 callId 归轮、
  *      缺则归「最近一个 turn/start」的轮,再缺归 0 号未知节点)
- *   - session/title{title,messageSeqs,source} → 会话卡标题(列表折叠;最后一条胜出)
+ *   - session(头行)/ session/title{title,messageSeqs,source} → 会话卡标题(列表折叠;最后一条胜出)
+ *
+ * 计时口径的三个硬约束(每条都由真实日志验证过,单测钉死):
+ * 1. **TTFT 必须用官方 assistantStreamFirstTokenTime**,不能用 `stream[0].time`:
+ *    实测 743 条流首记录 100% 是 `block-start`(不是 token delta),59% 的流上二者
+ *    不等(最大偏 200ms)。官方函数的语义 = 「第一个非空 text/reasoning delta,或
+ *    带 name 的 tool-call delta」,对齐 provider 的实际首 token。
+ * 2. **工具配对必须按 callId 严格 FIFO,配对后立刻从表里删除**。压缩
+ *    (compaction/prune)会把被裁剪的历史事件重新追加一遍,于是同一个 callId 出现在
+ *    两条 tool/result 上;用 `Map.get` 回填会被第二次覆盖,把一次 31ms 的 bash 算成
+ *    30249 秒(实测 session-0e93,turn 1 step 15)。
+ * 3. **未收尾轮次没有墙钟**。turn/end 缺失时 durationMs=null,四个分量仍然有值;
+ *    占比一律由调用方以「已观测分量之和」为分母并显式标注,不得伪造成完整墙钟。
+ *
  * 容错(T7.4 钉死口径):坏行计 skipped;字段缺失降级(缺 turn 的事件落 0 号未知
  * 节点,缺起止的轮次 durationMs=null,缺标题的会话 title='');容器头行(type=
  * 'session',无 data 字段)与未折叠的已知事件(request/header、agent/inbox/spliced
@@ -26,7 +45,13 @@
 import { closeSync, openSync, readSync, readdirSync, statSync, fstatSync } from 'node:fs'
 import { join } from 'node:path'
 import { zstdDecompressSync } from 'node:zlib'
-import type { SessionTrace, TraceApprovalPoint, TraceSessionCard, TraceTurn } from './types.ts'
+import { assistantStreamFirstTokenTime } from '@deepseek-ai/dsh-llm'
+import type { AssistantStreamRecord } from '@deepseek-ai/dsh-llm'
+import type {
+  SessionTrace, TraceAnalysis, TraceApprovalPoint, TraceAttempt, TraceCompaction,
+  TraceRepeatGroup, TraceSessionCard, TraceStep, TraceTokenBuckets,
+  TraceToolStat, TraceTurn, TraceTurnTime,
+} from './types.ts'
 
 /** 列表默认条数(计划书 §4:最近 20 条会话)。 */
 export const TRACE_SESSION_LIMIT_DEFAULT = 20
@@ -195,6 +220,10 @@ interface MutableToolCall {
   name: string
   at: string | null
   argsPreview: string
+  /** 完整参数字符串(重复调用判等用;不截断)。 */
+  argsRaw: string
+  turn: number
+  step: number
   isError: boolean
   errorName: string | null
   durationMs: number | null
@@ -209,6 +238,21 @@ interface MutableApprovalPoint {
   decidedAt: string | null
 }
 
+/** 单个 step 的累积态(step/start 建,assistant/message 补 ttft/gen,tool/result 补 toolMs)。 */
+interface StepAccumulator {
+  turn: number
+  step: number
+  startedAt: number | undefined
+  endedAt: number | undefined
+  ttftMs: number | null
+  genMs: number | null
+  toolMs: number
+  toolCalls: number
+  toolErrors: number
+  toolNames: string[]
+  tokens: TraceTokenBuckets | null
+}
+
 /** 单个可变轮次累积器。 */
 interface TurnAccumulator {
   turn: number
@@ -219,10 +263,63 @@ interface TurnAccumulator {
   reasoning: string | null
   tools: Map<string, { call: MutableToolCall; callAt: number | undefined }>
   approvals: MutableApprovalPoint[]
+  steps: Map<number, StepAccumulator>
 }
 
 function emptyTurn(turn: number): TurnAccumulator {
-  return { turn, startedAt: undefined, endedAt: undefined, endReason: null, usage: null, reasoning: null, tools: new Map(), approvals: [] }
+  return {
+    turn, startedAt: undefined, endedAt: undefined, endReason: null, usage: null, reasoning: null,
+    tools: new Map(), approvals: [], steps: new Map(),
+  }
+}
+
+function emptyStep(turn: number, step: number): StepAccumulator {
+  return {
+    turn, step, startedAt: undefined, endedAt: undefined, ttftMs: null, genMs: null,
+    toolMs: 0, toolCalls: 0, toolErrors: 0, toolNames: [], tokens: null,
+  }
+}
+
+/** 零值时间归因。 */
+const ZERO_TIME: TraceTurnTime = { wallMs: null, ttftMs: 0, genMs: 0, toolMs: 0, otherMs: 0, observedSteps: 0 }
+
+/** TokenUsage(互斥四桶)→ 线契约四桶(billed 按 input+cacheRead+cacheWrite+output 派生)。 */
+function bucketsOf(usage: unknown): TraceTokenBuckets | null {
+  const record = asRecord(usage)
+  if (record === null) return null
+  const input = asNumber(record['inputTokens']) ?? 0
+  const output = asNumber(record['outputTokens']) ?? 0
+  const cacheRead = asNumber(record['cacheReadTokens']) ?? 0
+  const cacheWrite = asNumber(record['cacheWriteTokens']) ?? 0
+  return { input, output, cacheRead, cacheWrite, billed: input + cacheRead + cacheWrite + output }
+}
+
+/**
+ * 计时流的可观测跨度:`首 token 时刻`(官方语义)与`流末时刻`。
+ *
+ * 为什么要单独算流末:`assistantStreamFirstTokenTime` 只给首 token;生成时长需要
+ * 末端。末端的取法 = 所有记录里最晚的时刻(chunk.time 直接给;打包 run 用
+ * time0 + Σdt 还原——AssistantStreamRecord 的紧凑形的语义,见 dsh-llm
+ * assistant-stream.d.ts)。
+ */
+function streamSpan(stream: readonly AssistantStreamRecord[]): { first: number; last: number } | null {
+  if (stream.length === 0) return null
+  const first = assistantStreamFirstTokenTime(stream)
+  let last = Number.NEGATIVE_INFINITY
+  for (const record of stream) {
+    // 判别联合:chunk 直接带 time;打包 run 用 time0 + Σdt 还原尾部时刻。
+    let end: number
+    if (record.type === 'chunk') {
+      end = record.time
+    } else {
+      let acc = 0
+      for (const dt of record.dt) if (typeof dt === 'number') acc += dt
+      end = record.time0 + acc
+    }
+    if (end > last) last = end
+  }
+  if (first === undefined || last === Number.NEGATIVE_INFINITY) return null
+  return { first, last: Math.max(first, last) }
 }
 
 /** 推理摘要:assistant 消息 content 中 type='reasoning' 块按序拼接并截断。 */
@@ -240,15 +337,41 @@ function reasoningPreviewOf(message: Record<string, unknown> | null): string | n
   return truncate(parts.join('\n'), TRACE_REASONING_PREVIEW_LIMIT)
 }
 
-/** 事件行流 → 轮次树(容错折叠;坏行计 skipped;事件形态口径见文件头)。 */
+/** 事件行流 → 轮次树 + 会话分析面(容错折叠;坏行计 skipped;事件形态口径见文件头)。 */
 export function projectSessionTrace(sessionId: string, lines: readonly string[]): SessionTrace {
   const turns = new Map<number, TurnAccumulator>()
   const order: number[] = []
   const approvalById = new Map<string, MutableApprovalPoint>()
+  /**
+   * 未配对工具调用(严格 FIFO:配对成功即删)。
+   *
+   * 为什么必须删:压缩会把被裁剪的历史 tool/result 重新追加一遍,同一 callId 出现
+   * 两次。若不删,第二次会覆盖第一次的结论(实测把 31ms 的 bash 算成 30249s)。
+   * 用 open 表而不是永久 Map,第二次同 callId 找不到调用方 → 视为未配对丢弃。
+   */
+  const openTools = new Map<string, { call: MutableToolCall; callAt: number | undefined; acc: TurnAccumulator }>()
+  /** 全部配对成功的工具调用(按配对完成序;工具排行/重复检测的数据源)。 */
+  const pairedTools: MutableToolCall[] = []
+  const attempts: TraceAttempt[] = []
   let currentTurn: number | undefined
   let total = 0
   let projected = 0
   let skipped = 0
+  // —— 会话级元数据 ——
+  let title = ''
+  let createdAt: number | undefined
+  let cwd: string | null = null
+  let preset: string | null = null
+  let origin: string | null = null
+  let delegationDepth: number | null = null
+  let route: string | null = null
+  let contextWindow: number | null = null
+  let compactionEvents = 0
+  let prunedTokens = 0
+  let compactionFailures = 0
+  let userMessages = 0
+  let approvalsAsked = 0
+  let approvalsDecided = 0
   const turnOf = (turn: number | undefined): TurnAccumulator => {
     const key = turn ?? 0
     let acc = turns.get(key)
@@ -258,6 +381,17 @@ export function projectSessionTrace(sessionId: string, lines: readonly string[])
       order.push(key)
     }
     return acc
+  }
+  /** 取(或建)某轮的某 step 累积器;step 号缺失时不建(无法归位,不计)。 */
+  const stepOf = (turn: number | undefined, step: number | undefined): StepAccumulator | undefined => {
+    if (step === undefined) return undefined
+    const acc = turnOf(turn ?? currentTurn)
+    let row = acc.steps.get(step)
+    if (row === undefined) {
+      row = emptyStep(acc.turn, step)
+      acc.steps.set(step, row)
+    }
+    return row
   }
   for (const line of lines) {
     if (line.trim().length === 0) continue
@@ -279,7 +413,16 @@ export function projectSessionTrace(sessionId: string, lines: readonly string[])
       skipped += 1
       continue
     }
-    if (type === 'session') continue // 容器头行(version/id/createdAt,无 data 字段):合法行,无折叠面
+    // 容器头行:挂在行本身而非 data 上(version/id/createdAt/cwd/agentPreset/origin)。
+    if (type === 'session') {
+      createdAt = asNumber(record['createdAt']) ?? createdAt
+      cwd = asString(record['cwd']) ?? cwd
+      preset = asString(record['agentPreset']) ?? preset
+      origin = asString(record['origin']) ?? origin
+      const depth = asNumber(record['delegationDepth'])
+      if (depth !== undefined) delegationDepth = depth
+      continue
+    }
     const data = asRecord(record['data'])
     if (data === null) {
       skipped += 1
@@ -287,6 +430,7 @@ export function projectSessionTrace(sessionId: string, lines: readonly string[])
     }
     const time = asNumber(record['time'])
     const turn = asNumber(data['turn'])
+    const step = asNumber(data['step'])
     switch (type) {
       case 'turn/start': {
         const acc = turnOf(turn)
@@ -304,6 +448,26 @@ export function projectSessionTrace(sessionId: string, lines: readonly string[])
         projected += 1
         break
       }
+      case 'step/start': {
+        const row = stepOf(turn, step)
+        if (row === undefined) {
+          skipped += 1
+          break
+        }
+        row.startedAt = time ?? row.startedAt
+        projected += 1
+        break
+      }
+      case 'step/end': {
+        const row = stepOf(turn, step)
+        if (row === undefined) {
+          skipped += 1
+          break
+        }
+        row.endedAt = time ?? row.endedAt
+        projected += 1
+        break
+      }
       case 'tool/call': {
         const callId = asString(data['callId'])
         if (callId === undefined) {
@@ -311,19 +475,26 @@ export function projectSessionTrace(sessionId: string, lines: readonly string[])
           break
         }
         const acc = turnOf(turn ?? currentTurn)
-        const argsPreview = truncate(asString(data['arguments']) ?? '', TRACE_ARGS_PREVIEW_LIMIT)
-        acc.tools.set(callId, {
-          call: {
-            callId,
-            name: asString(data['name']) ?? '',
-            at: isoOf(time),
-            argsPreview,
-            isError: false,
-            errorName: null,
-            durationMs: null,
-          },
-          callAt: time,
-        })
+        const argsRaw = asString(data['arguments']) ?? ''
+        const call: MutableToolCall = {
+          callId,
+          name: asString(data['name']) ?? '',
+          at: isoOf(time),
+          argsPreview: truncate(argsRaw, TRACE_ARGS_PREVIEW_LIMIT),
+          argsRaw,
+          turn: acc.turn,
+          step: step ?? 0,
+          isError: false,
+          errorName: null,
+          durationMs: null,
+        }
+        acc.tools.set(callId, { call, callAt: time })
+        openTools.set(callId, { call, callAt: time, acc })
+        const row = stepOf(acc.turn, step)
+        if (row !== undefined) {
+          row.toolCalls += 1
+          if (!row.toolNames.includes(call.name)) row.toolNames.push(call.name)
+        }
         projected += 1
         break
       }
@@ -334,15 +505,23 @@ export function projectSessionTrace(sessionId: string, lines: readonly string[])
           skipped += 1
           break
         }
-        const acc = turnOf(turn ?? currentTurn)
-        const entry = acc.tools.get(toolCallId)
-        if (entry !== undefined) {
-          entry.call.isError = message?.['isError'] === true
+        // 严格 FIFO:只在「调用仍在等待结果」时才认领;认领后立即删除,
+        // 因此压缩重放出来的第二条同 id result 会走「未配对」分支被丢弃。
+        const pending = openTools.get(toolCallId)
+        if (pending !== undefined) {
+          openTools.delete(toolCallId)
+          const isError = message?.['isError'] === true
           const error = asRecord(data['error'])
-          entry.call.errorName = asString(error?.['name']) ?? null
-          if (entry.callAt !== undefined && time !== undefined) {
-            entry.call.durationMs = Math.max(0, time - entry.callAt)
+          pending.call.isError = isError
+          pending.call.errorName = asString(error?.['name']) ?? null
+          if (pending.callAt !== undefined && time !== undefined) {
+            pending.call.durationMs = Math.max(0, time - pending.callAt)
+            const row = pending.acc.steps.get(pending.call.step)
+            if (row !== undefined) row.toolMs += pending.call.durationMs
           }
+          const row = pending.acc.steps.get(pending.call.step)
+          if (row !== undefined && isError) row.toolErrors += 1
+          pairedTools.push(pending.call)
         }
         projected += 1
         break
@@ -356,9 +535,86 @@ export function projectSessionTrace(sessionId: string, lines: readonly string[])
           const totalTokens = asNumber(usage['totalTokens']) ?? (inputTokens + outputTokens)
           acc.usage = { inputTokens, outputTokens, totalTokens }
         }
+        const row = stepOf(turn, step)
+        if (row !== undefined) {
+          const buckets = bucketsOf(data['usage'])
+          if (buckets !== null) row.tokens = buckets
+          // 计时只认 assistant/message 的 stream:它是这一步真正提交给模型可见面的
+          // 输出;assistant/attempt 走单独分支(失败尝试,不覆盖本步计时)。
+          const stream = data['stream']
+          if (Array.isArray(stream)) {
+            const span = streamSpan(stream as readonly AssistantStreamRecord[])
+            if (span !== null && row.startedAt !== undefined) {
+              row.ttftMs = Math.max(0, span.first - row.startedAt)
+              row.genMs = Math.max(0, span.last - span.first)
+            }
+          }
+        }
         // 推理摘要:多 step 轮次「最后一条 assistant 消息胜出」(确定口径)。
         const reasoning = reasoningPreviewOf(asRecord(data['message']))
         if (reasoning !== null) acc.reasoning = reasoning
+        projected += 1
+        break
+      }
+      case 'assistant/attempt': {
+        // 失败/重试尝试:不提交可见消息,但有完整计时流(可用于区分「慢」与「失败重试」)。
+        const acc = turnOf(turn ?? currentTurn)
+        const stream = data['stream']
+        const span = Array.isArray(stream)
+          ? streamSpan(stream as readonly AssistantStreamRecord[])
+          : null
+        const stepStart = step !== undefined ? acc.steps.get(step)?.startedAt : undefined
+        attempts.push({
+          turn: acc.turn,
+          step: step ?? 0,
+          at: isoOf(time),
+          ttftMs: span !== null && stepStart !== undefined ? Math.max(0, span.first - stepStart) : null,
+          streamMs: span !== null ? Math.max(0, span.last - span.first) : null,
+        })
+        projected += 1
+        break
+      }
+      case 'request/header': {
+        const header = asRecord(data['header'])
+        const config = asRecord(header?.['config'])
+        const provider = asString(config?.['provider'])
+        const model = asString(config?.['model'])
+        if (provider !== undefined && model !== undefined) route = `${provider}/${model}`
+        projected += 1
+        break
+      }
+      case 'request/context': {
+        const provider = asString(data['provider'])
+        const model = asString(data['model'])
+        if (provider !== undefined && model !== undefined) route = `${provider}/${model}`
+        const window = asNumber(data['contextWindow'])
+        if (window !== undefined && window > 0) contextWindow = window
+        projected += 1
+        break
+      }
+      case 'compaction/start': {
+        compactionEvents += 1
+        projected += 1
+        break
+      }
+      case 'compaction/prune': {
+        prunedTokens += asNumber(data['shadowedTokenCount']) ?? 0
+        projected += 1
+        break
+      }
+      case 'compaction/end': {
+        if (asString(data['error']) !== undefined) compactionFailures += 1
+        projected += 1
+        break
+      }
+      case 'user/message': {
+        userMessages += 1
+        projected += 1
+        break
+      }
+      case 'session/title': {
+        const next = asString(data['title'])
+        if (next !== undefined) title = next
         projected += 1
         break
       }
@@ -385,6 +641,7 @@ export function projectSessionTrace(sessionId: string, lines: readonly string[])
         if (acc === undefined) acc = turnOf(currentTurn)
         acc.approvals.push(point)
         if (askId !== undefined) approvalById.set(askId, point)
+        approvalsAsked += 1
         projected += 1
         break
       }
@@ -394,32 +651,283 @@ export function projectSessionTrace(sessionId: string, lines: readonly string[])
         if (point === undefined) break // 未配对(如 asked 落在读取窗口外):不计 projected
         point.outcome = asString(data['outcome']) ?? point.outcome
         point.decidedAt = isoOf(time)
+        approvalsDecided += 1
         projected += 1
         break
       }
       default:
-        break // 未折叠事件(session、request/header、session/title 等)不是坏行
+        break // 未折叠事件(session/end-seed、agent/inbox/spliced、job/* 等)不是坏行
     }
   }
   const sorted = [...order].sort((a, b) => a - b)
+  const turnViews = sorted.map((key): TraceTurn => {
+    const acc = turns.get(key) as TurnAccumulator
+    const steps = [...acc.steps.values()].sort((a, b) => a.step - b.step).map(toStepView)
+    return {
+      turn: acc.turn,
+      startedAt: isoOf(acc.startedAt),
+      endedAt: isoOf(acc.endedAt),
+      durationMs: acc.startedAt !== undefined && acc.endedAt !== undefined ? Math.max(0, acc.endedAt - acc.startedAt) : null,
+      endReason: acc.endReason,
+      usage: acc.usage,
+      reasoningPreview: acc.reasoning,
+      tools: [...acc.tools.values()].map(entry => entry.call),
+      approvalPoints: acc.approvals.map((point): TraceApprovalPoint => ({ ...point })),
+      steps,
+      tokens: sumBuckets(steps),
+      time: sumTime(steps, acc.startedAt !== undefined && acc.endedAt !== undefined
+        ? Math.max(0, acc.endedAt - acc.startedAt)
+        : null),
+    }
+  })
   return {
     sessionId,
-    turns: sorted.map((key): TraceTurn => {
-      const acc = turns.get(key) as TurnAccumulator
-      return {
-        turn: acc.turn,
-        startedAt: isoOf(acc.startedAt),
-        endedAt: isoOf(acc.endedAt),
-        durationMs: acc.startedAt !== undefined && acc.endedAt !== undefined ? Math.max(0, acc.endedAt - acc.startedAt) : null,
-        endReason: acc.endReason,
-        usage: acc.usage,
-        reasoningPreview: acc.reasoning,
-        tools: [...acc.tools.values()].map(entry => entry.call),
-        approvalPoints: acc.approvals.map((point): TraceApprovalPoint => ({ ...point })),
-      }
-    }),
+    turns: turnViews,
     events: { total, projected, skipped },
+    analysis: buildAnalysis({
+      createdAt, cwd, preset, origin, delegationDepth, title, route, contextWindow,
+      turns: turnViews, pairedTools, attempts, compactionEvents, prunedTokens, compactionFailures,
+      userMessages, approvalsAsked, approvalsDecided,
+    }),
   }
+}
+
+/** step 累积态 → 线契约(墙钟/其他开销在此收口)。 */
+function toStepView(row: StepAccumulator): TraceStep {
+  const wallMs = row.startedAt !== undefined && row.endedAt !== undefined
+    ? Math.max(0, row.endedAt - row.startedAt)
+    : null
+  const otherMs = wallMs === null
+    ? null
+    : Math.max(0, wallMs - (row.ttftMs ?? 0) - (row.genMs ?? 0) - row.toolMs)
+  return {
+    step: row.step,
+    startedAt: isoOf(row.startedAt),
+    endedAt: isoOf(row.endedAt),
+    wallMs,
+    ttftMs: row.ttftMs,
+    genMs: row.genMs,
+    toolMs: row.toolMs,
+    otherMs,
+    tokens: row.tokens,
+    promptTokens: row.tokens === null ? null : row.tokens.input + row.tokens.cacheRead + row.tokens.cacheWrite,
+    toolCalls: row.toolCalls,
+    toolErrors: row.toolErrors,
+    toolNames: row.toolNames,
+  }
+}
+
+/** 各 step 四桶求和。 */
+function sumBuckets(steps: readonly TraceStep[]): TraceTokenBuckets {
+  let input = 0
+  let output = 0
+  let cacheRead = 0
+  let cacheWrite = 0
+  for (const row of steps) {
+    if (row.tokens === null) continue
+    input += row.tokens.input
+    output += row.tokens.output
+    cacheRead += row.tokens.cacheRead
+    cacheWrite += row.tokens.cacheWrite
+  }
+  return { input, output, cacheRead, cacheWrite, billed: input + cacheRead + cacheWrite + output }
+}
+
+/**
+ * 各 step 时间归因求和。`wallMs` 由调用方给(轮的 turn/start→turn/end),
+ * 分量只累加有实测值的部分——未收尾轮次 wallMs=null 而分量非空,这是刻意的:
+ * 「已观测到多久」与「这一轮总共多久」是两个事实,不能混同。
+ */
+function sumTime(steps: readonly TraceStep[], wallMs: number | null): TraceTurnTime {
+  if (steps.length === 0) return { ...ZERO_TIME, wallMs }
+  let ttftMs = 0
+  let genMs = 0
+  let toolMs = 0
+  let otherMs = 0
+  let observedSteps = 0
+  for (const row of steps) {
+    toolMs += row.toolMs
+    if (row.ttftMs !== null) {
+      ttftMs += row.ttftMs
+      observedSteps += 1
+    }
+    if (row.genMs !== null) genMs += row.genMs
+    if (row.otherMs !== null) otherMs += row.otherMs
+  }
+  return { wallMs, ttftMs, genMs, toolMs, otherMs, observedSteps }
+}
+
+/** 工具聚合的输入上下文(见 buildAnalysis)。 */
+interface AnalysisInput {
+  createdAt: number | undefined
+  cwd: string | null
+  preset: string | null
+  origin: string | null
+  delegationDepth: number | null
+  title: string
+  route: string | null
+  contextWindow: number | null
+  turns: readonly TraceTurn[]
+  pairedTools: readonly MutableToolCall[]
+  attempts: readonly TraceAttempt[]
+  compactionEvents: number
+  prunedTokens: number
+  compactionFailures: number
+  userMessages: number
+  approvalsAsked: number
+  approvalsDecided: number
+}
+
+/** 最近秩法分位(升序第 ceil(q·n) 个,1-based;不插值,不做分布假设)。 */
+function percentile(values: readonly number[], q: number): number {
+  if (values.length === 0) return 0
+  const sorted = [...values].sort((a, b) => a - b)
+  const rank = Math.min(sorted.length, Math.max(1, Math.ceil(q * sorted.length)))
+  return sorted[rank - 1] ?? 0
+}
+
+/** 工具排行:按工具名归集,只计配对成功的调用。 */
+function toolStats(tools: readonly MutableToolCall[]): readonly TraceToolStat[] {
+  const byName = new Map<string, { calls: number; errors: number; totalMs: number; maxMs: number; durs: number[] }>()
+  for (const tool of tools) {
+    let row = byName.get(tool.name)
+    if (row === undefined) {
+      row = { calls: 0, errors: 0, totalMs: 0, maxMs: 0, durs: [] }
+      byName.set(tool.name, row)
+    }
+    row.calls += 1
+    if (tool.isError) row.errors += 1
+    if (tool.durationMs !== null) {
+      row.totalMs += tool.durationMs
+      row.durs.push(tool.durationMs)
+      if (tool.durationMs > row.maxMs) row.maxMs = tool.durationMs
+    }
+  }
+  return [...byName.entries()]
+    .map(([name, row]): TraceToolStat => ({
+      name,
+      calls: row.calls,
+      errors: row.errors,
+      totalMs: row.totalMs,
+      avgMs: row.durs.length === 0 ? 0 : Math.round(row.totalMs / row.durs.length),
+      p95Ms: percentile(row.durs, 0.95),
+      maxMs: row.maxMs,
+    }))
+    .sort((a, b) => b.totalMs - a.totalMs || b.calls - a.calls || a.name.localeCompare(b.name))
+}
+
+/**
+ * 重复调用组:工具名 + 完整参数字符串逐字节相等。
+ *
+ * 刻意不做 JSON 规范化:键序不同的同一逻辑调用不是「重复发起」,规范化会把两次
+ * 独立决策误判成一次浪费;反过来,只比预览会漏判(预览被截断)。
+ */
+function repeatGroups(tools: readonly MutableToolCall[]): readonly TraceRepeatGroup[] {
+  const groups = new Map<string, { name: string; argsPreview: string; times: number; at: string[]; totalMs: number }>()
+  for (const tool of tools) {
+    // 统一分隔符:工具名与参数都可能含任意字符,用长度前缀避免拼接歧义。
+    const key = `${tool.name.length}:${tool.name}|${tool.argsRaw}`
+    let row = groups.get(key)
+    if (row === undefined) {
+      row = { name: tool.name, argsPreview: tool.argsPreview, times: 0, at: [], totalMs: 0 }
+      groups.set(key, row)
+    }
+    row.times += 1
+    row.at.push(`${tool.turn}.${tool.step}`)
+    if (tool.durationMs !== null) row.totalMs += tool.durationMs
+  }
+  return [...groups.values()]
+    .filter(row => row.times > 1)
+    .map((row): TraceRepeatGroup => ({
+      name: row.name,
+      argsPreview: row.argsPreview,
+      times: row.times,
+      at: row.at,
+      totalMs: row.totalMs,
+    }))
+    .sort((a, b) => b.times - a.times || b.totalMs - a.totalMs || a.name.localeCompare(b.name))
+}
+
+/** 会话级分析聚合(纯汇总,不含推断;字段语义见 types.ts TraceAnalysis)。 */
+function buildAnalysis(input: AnalysisInput): TraceAnalysis {
+  const tokens = sumBucketsAll(input.turns)
+  const promptTotal = tokens.input + tokens.cacheRead + tokens.cacheWrite
+  let steps = 0
+  let modelCalls = 0
+  let ttftMs = 0
+  let genMs = 0
+  let toolMs = 0
+  let otherMs = 0
+  let observedSteps = 0
+  let wallMs: number | null = 0
+  const pressure: { turn: number; step: number; promptTokens: number }[] = []
+  for (const turn of input.turns) {
+    steps += turn.steps.length
+    modelCalls += turn.steps.filter(row => row.tokens !== null).length
+    ttftMs += turn.time.ttftMs
+    genMs += turn.time.genMs
+    toolMs += turn.time.toolMs
+    otherMs += turn.time.otherMs
+    observedSteps += turn.time.observedSteps
+    // 任一轮未收尾 → 会话级墙钟也是 null(不能把部分之和冒充总量)。
+    if (wallMs !== null) wallMs = turn.time.wallMs === null ? null : wallMs + turn.time.wallMs
+    for (const row of turn.steps) {
+      if (row.promptTokens !== null) pressure.push({ turn: turn.turn, step: row.step, promptTokens: row.promptTokens })
+    }
+  }
+  const peak = pressure.reduce((max, row) => Math.max(max, row.promptTokens), 0)
+  const compaction: TraceCompaction = {
+    events: input.compactionEvents,
+    prunedTokens: input.prunedTokens,
+    failures: input.compactionFailures,
+  }
+  return {
+    session: {
+      createdAt: isoOf(input.createdAt),
+      cwd: input.cwd,
+      preset: input.preset,
+      origin: input.origin,
+      delegationDepth: input.delegationDepth,
+    },
+    title: input.title,
+    route: input.route,
+    contextWindow: input.contextWindow,
+    tokens,
+    // 未报告过缓存桶 → null(未知),不伪报 0(对齐 @eterna/observe 口径)。
+    cacheHitRate: promptTotal > 0 && (tokens.cacheRead > 0 || tokens.cacheWrite > 0)
+      ? tokens.cacheRead / promptTotal
+      : null,
+    counts: {
+      turns: input.turns.length,
+      steps,
+      modelCalls,
+      toolCalls: input.pairedTools.length,
+      userMessages: input.userMessages,
+    },
+    time: { wallMs, ttftMs, genMs, toolMs, otherMs, observedSteps },
+    tools: toolStats(input.pairedTools),
+    repeats: repeatGroups(input.pairedTools),
+    compaction,
+    attempts: input.attempts,
+    pressure,
+    pressurePeak: pressure.length === 0 ? null : peak,
+    approvals: { asked: input.approvalsAsked, decided: input.approvalsDecided },
+  }
+}
+
+/** 各轮四桶合计。 */
+function sumBucketsAll(turns: readonly TraceTurn[]): TraceTokenBuckets {
+  let input = 0
+  let output = 0
+  let cacheRead = 0
+  let cacheWrite = 0
+  for (const turn of turns) {
+    input += turn.tokens.input
+    output += turn.tokens.output
+    cacheRead += turn.tokens.cacheRead
+    cacheWrite += turn.tokens.cacheWrite
+  }
+  return { input, output, cacheRead, cacheWrite, billed: input + cacheRead + cacheWrite + output }
 }
 
 /** 会话日志列表(mtime 新→旧;目录约定 <root>/<area>/session-<id>/,与 panel 一致)。 */

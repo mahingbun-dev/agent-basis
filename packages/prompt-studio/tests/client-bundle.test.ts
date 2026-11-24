@@ -388,8 +388,7 @@ describe('模块装载冒烟(vm)', () => {
     }
   }
 
-  it('apply 注册两个 main keyed 面板与两个侧栏入口(id=key 对齐)', async () => {
-    const seen: string[] = []
+  it('apply 注册两个 main keyed 面板与两个侧栏入口(id=key 对齐)', async () => {    const seen: string[] = []
     const exports = loadBundle(seen)
     const { ctx, injected, registered } = fakeCtx()
     const dispose = (exports.apply as (context: unknown) => () => void)(ctx)
@@ -406,5 +405,79 @@ describe('模块装载冒烟(vm)', () => {
     // 初始拉数(刷新函数在门放行后立即执行):connection rpc 已被调用(loopPrompt/*)
     expect(seen.every(specifier => BASELINE_EXTERNALS.includes(specifier as (typeof BASELINE_EXTERNALS)[number]))).toBe(true)
     dispose()
+  })
+})
+
+describe('T8 循环轨迹分析面工件(三层并列 + 结论必带证据)', () => {
+  const bundle = (): string => readFileSync(bundlePath, 'utf8')
+  const pageSource = (): string => readFileSync(join(clientSrcDir, 'TracePage.tsx'), 'utf8')
+
+  it('三层并列锚点在 bundle:性能诊断/成本与上下文/行为复盘', () => {
+    const code = bundle()
+    // bundle 里三层以 data-t7-layer 承载层名(diag/cost/replay 三值齐全)。
+    for (const layer of ['diag', 'cost', 'replay']) {
+      expect(code, `缺少层锚点 ${layer}`).toContain(layer)
+    }
+    expect(code, '缺少层锚点 data-t7-layer').toContain('data-t7-layer')
+    // 中文层标题(esbuild ASCII 转义形态)。
+    const escaped = (text: string): string => text.split('')
+      .map(ch => (ch.charCodeAt(0) <= 0x7e ? ch : `\\u${ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`))
+      .join('')
+    for (const title of ['性能诊断', '成本与上下文', '行为复盘']) {
+      expect(code, `缺少层标题「${title}」`).toContain(escaped(title))
+    }
+  })
+
+  it('分析面结构锚点齐全(时间归因/步骤表/工具排行/重复/水压/压缩/重试/回放)', () => {
+    const code = bundle()
+    for (const anchor of [
+      'data-t7-turn-closed', 'data-t7-turn-bar', 'data-t7-turn-seg', 'data-t7-turn-legend-note',
+      'data-t7-step-row', 'data-t7-cost-row', 'data-t7-tool-row', 'data-t7-repeat-row',
+      'data-t7-chart-bar', 'data-t7-replay-step', 'data-t7-approval-point',
+      'data-t7-tile', 'data-t7-layer', 'data-t7-finding',
+    ]) {
+      expect(code, `缺少 T8 分析面锚点 ${anchor}`).toContain(anchor)
+    }
+  })
+
+  it('结论必带证据:每条 FindingCard 都渲染 data-t7-finding-evidence(契约级,不靠实现自觉)', () => {
+    const source = pageSource()
+    // FindingCard 是唯一结论载体:标题/正文/证据三件套必须同处一个组件体内。
+    const card = source.slice(source.indexOf('function FindingCard'), source.indexOf('function FindingCard') + 3000)
+    expect(card, 'FindingCard 必须渲染 data-t7-finding-title').toContain('data-t7-finding-title')
+    expect(card, 'FindingCard 必须渲染 data-t7-finding-text').toContain('data-t7-finding-text')
+    expect(card, 'FindingCard 必须渲染 data-t7-finding-evidence').toContain('data-t7-finding-evidence')
+    // evidence 非可选:入参类型里 evidence 是必填 string(locales/规则产出侧同源)。
+    expect(source).toMatch(/readonly evidence:\s*string/u)
+  })
+
+  it('三层各有错误边界:单层渲染异常降级为可见结论卡,不留空白', () => {
+    const source = pageSource()
+    expect(source, '缺少分层错误边界组件 Layer').toMatch(/function Layer\(/u)
+    // 三层都被 Layer 包裹(逐个锚点后紧跟 Layer render)。
+    for (const layer of ['diag', 'cost', 'replay']) {
+      const at = source.indexOf(`data-t7-layer="${layer}"`)
+      expect(at, `缺少层 ${layer}`).toBeGreaterThan(-1)
+      const segment = source.slice(at, at + 700)
+      expect(segment, `层 ${layer} 未被错误边界包裹`).toContain('<Layer name=')
+    }
+    expect(source, '错误边界必须提示「不是缺少数据」以免被误读为无内容').toContain('不是该会话缺少数据')
+  })
+
+  it('TTFT 取自官方 assistantStreamFirstTokenTime(不得退回 stream[0].time)', () => {
+    const raw = readFileSync(join(import.meta.dirname, '..', 'src', 'trace.ts'), 'utf8')
+    expect(raw).toContain('assistantStreamFirstTokenTime')
+    // 反例钉死:注释里记录了为什么不能用 stream[0].time,代码里不得出现该取法。
+    // 因此先剥掉注释,只对可执行代码做反例断言(否则会命中那条禁止性注释)。
+    const code = raw
+      .replace(/\/\*[\s\S]*?\*\//gu, '')
+      .replace(/(^|[^:])\/\/[^\n]*/gu, '$1')
+    expect(code).not.toMatch(/stream\[0\]\.time/u)
+  })
+
+  it('令牌基线抬升:styles.ts 的 --et-*/--dsw-alias-* 出现次数 ≥ 579(T8 三层视图实测量)', () => {
+    const code = readFileSync(join(clientSrcDir, 'styles.ts'), 'utf8')
+    const count = [...code.matchAll(/--(?:et|dsw-alias)-[a-z0-9-]+/gu)].length
+    expect(count).toBeGreaterThanOrEqual(579)
   })
 })

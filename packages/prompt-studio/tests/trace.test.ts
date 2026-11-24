@@ -218,34 +218,103 @@ describe('T7.0 真实日志脱敏 fixture:投影快照(字段口径钉死)', () 
 
   it('projectSessionTrace 快照:两轮逐字段钉死(起止/耗时/endReason/usage/空工具/空审批/计数)', () => {
     const trace = projectSessionTrace('session-fa97514a-b440-4e70-ac92-b2542283ca26', fixtureLines)
-    expect(trace).toEqual({
-      sessionId: 'session-fa97514a-b440-4e70-ac92-b2542283ca26',
-      turns: [
-        {
-          turn: 1,
-          startedAt: iso(1793986073587),
-          endedAt: iso(1793986074345),
-          durationMs: 758,
-          endReason: 'completed',
-          usage: { inputTokens: 10070, outputTokens: 2, totalTokens: 18520 },
-          reasoningPreview: null,
-          tools: [],
-          approvalPoints: [],
-        },
-        {
-          turn: 2,
-          startedAt: iso(1793986083686),
-          endedAt: iso(1793986084541),
-          durationMs: 855,
-          endReason: 'completed',
-          usage: { inputTokens: 10082, outputTokens: 2, totalTokens: 19940 },
-          reasoningPreview: null,
-          tools: [],
-          approvalPoints: [],
-        },
-      ],
-      events: { total: 29, projected: 6, skipped: 0 },
+    expect(trace.sessionId).toBe('session-fa97514a-b440-4e70-ac92-b2542283ca26')
+    // projected 从 6 升到 19:T8 起额外折叠 step/start|end、request/header|context、
+    // user/message、session/title(T7.4 只折叠 4 类 + 审批 2 类)。
+    expect(trace.events).toEqual({ total: 29, projected: 19, skipped: 0 })
+    expect(trace.turns).toHaveLength(2)
+
+    const [first, second] = trace.turns
+    expect(first).toMatchObject({
+      turn: 1,
+      startedAt: iso(1793986073587),
+      endedAt: iso(1793986074345),
+      durationMs: 758,
+      endReason: 'completed',
+      usage: { inputTokens: 10070, outputTokens: 2, totalTokens: 18520 },
+      reasoningPreview: null,
+      tools: [],
+      approvalPoints: [],
     })
+    expect(second).toMatchObject({
+      turn: 2,
+      startedAt: iso(1793986083686),
+      endedAt: iso(1793986084541),
+      durationMs: 855,
+      endReason: 'completed',
+      usage: { inputTokens: 10082, outputTokens: 2, totalTokens: 19940 },
+      reasoningPreview: null,
+      tools: [],
+      approvalPoints: [],
+    })
+
+    // —— step 级归因(本轮唯一一步)——
+    expect(first?.steps).toHaveLength(1)
+    expect(first?.steps[0]).toMatchObject({
+      step: 1,
+      startedAt: iso(1793986073628),
+      endedAt: iso(1793986074344),
+      wallMs: 716,
+      // TTFT 口径 = 官方首 token 语义(不是 stream[0].time)
+      ttftMs: 696,
+      genMs: 17,
+      toolMs: 0,
+      otherMs: 3,
+      toolCalls: 0,
+      toolErrors: 0,
+      toolNames: [],
+    })
+    // 关键口径:promptTokens = input + cacheRead + cacheWrite,不是 usage.inputTokens。
+    // fixture 里 input=10070、cacheRead=8448 → 真实送进模型的上下文是 18518。
+    expect(first?.steps[0]?.promptTokens).toBe(18518)
+    expect(first?.steps[0]?.tokens).toEqual({
+      input: 10070, output: 2, cacheRead: 8448, cacheWrite: 0, billed: 18520,
+    })
+
+    // 轮级聚合 = 各 step 求和;墙钟来自 turn/start→turn/end(与 step 墙钟不必相等)。
+    expect(first?.time).toEqual({
+      wallMs: 758, ttftMs: 696, genMs: 17, toolMs: 0, otherMs: 3, observedSteps: 1,
+    })
+    expect(first?.tokens).toEqual({
+      input: 10070, output: 2, cacheRead: 8448, cacheWrite: 0, billed: 18520,
+    })
+    expect(second?.time).toEqual({
+      wallMs: 855, ttftMs: 809, genMs: 20, toolMs: 0, otherMs: 2, observedSteps: 1,
+    })
+
+    // —— 会话分析面 ——
+    expect(trace.analysis.session).toEqual({
+      createdAt: iso(1793986073570),
+      cwd: '/tmp/t7-spike-ws-48637',
+      preset: 'standard',
+      origin: null,
+      delegationDepth: 0,
+    })
+    expect(trace.analysis.title).toBe('要求仅回复在线二字')
+    expect(trace.analysis.route).toBe('eterna/deepseek-flash')
+    // fixture 无 request/context 事件 → 窗口未知,必须是 null 而不是编一个数。
+    expect(trace.analysis.contextWindow).toBeNull()
+    expect(trace.analysis.tokens).toEqual({
+      input: 20152, output: 4, cacheRead: 18304, cacheWrite: 0, billed: 38460,
+    })
+    expect(trace.analysis.counts).toEqual({
+      turns: 2, steps: 2, modelCalls: 2, toolCalls: 0, userMessages: 5,
+    })
+    expect(trace.analysis.time).toEqual({
+      wallMs: 1613, ttftMs: 1505, genMs: 37, toolMs: 0, otherMs: 5, observedSteps: 2,
+    })
+    expect(trace.analysis.pressure).toEqual([
+      { turn: 1, step: 1, promptTokens: 18518 },
+      { turn: 2, step: 1, promptTokens: 19938 },
+    ])
+    expect(trace.analysis.pressurePeak).toBe(19938)
+    expect(trace.analysis.repeats).toEqual([])
+    expect(trace.analysis.tools).toEqual([])
+    expect(trace.analysis.attempts).toEqual([])
+    expect(trace.analysis.compaction).toEqual({ events: 0, prunedTokens: 0, failures: 0 })
+    expect(trace.analysis.approvals).toEqual({ asked: 0, decided: 0 })
+    // 命中率 = cacheRead / (input+cacheRead+cacheWrite),分母是全部 prompt token。
+    expect(trace.analysis.cacheHitRate).toBeCloseTo(18304 / 38456, 10)
   })
 
   it('真实容器路径:fixture 重建多帧 zstd 容器(+torn 尾巴)→ 解码投影结果一致', () => {
@@ -259,8 +328,9 @@ describe('T7.0 真实日志脱敏 fixture:投影快照(字段口径钉死)', () 
     const text = decodeZstdLog(container)
     const trace = projectSessionTrace('session-fa97514a-b440-4e70-ac92-b2542283ca26', text.split('\n'))
     expect(trace.turns).toHaveLength(2)
-    expect(trace.events).toEqual({ total: 29, projected: 6, skipped: 0 })
+    expect(trace.events).toEqual({ total: 29, projected: 19, skipped: 0 })
     expect(trace.turns[0]?.usage).toEqual({ inputTokens: 10070, outputTokens: 2, totalTokens: 18520 })
+    expect(trace.analysis.pressurePeak).toBe(19938)
   })
 })
 
@@ -371,5 +441,225 @@ describe('会话列表与指定会话投影', () => {
 
   it('根目录不存在 → 空列表(容错)', () => {
     expect(listTraceSessions(join(root, 'nope'), 5)).toEqual([])
+  })
+})
+
+/**
+ * T8 分析面:计时归因与聚合的语义钉死。
+ *
+ * 这一组测试的存在理由:每条断言背后都是一个真实踩过的归因错误,列出来供复核
+ * ——(a) 用 stream[0].time 当首 token 会偏(首记录是 block-start);
+ * (b) 压缩重放会让同一 callId 出现两条 result,用 Map.get 回填会把毫秒级调用
+ * 算成数小时;(c) 未收尾轮次没有墙钟,把分量之和冒充墙钟会造出 >100% 的占比;
+ * (d) 键序不同的同逻辑调用不是重复;(e) input 是未缓存输入,上下文量要加缓存桶。
+ */
+describe('T8 分析面:计时归因与聚合', () => {
+  /** 构造一条计时流:block-start 在前(真实日志 100% 如此),首个 token delta 在后。 */
+  function streamWithGap(startTime: number, firstTokenDelay: number, genDuration: number): unknown[] {
+    return [
+      { type: 'chunk', time: startTime, chunk: { type: 'block-start', block: { type: 'text' } } },
+      { type: 'chunk', time: startTime + firstTokenDelay, chunk: { type: 'text-delta', text: 'a' } },
+      { type: 'text-chunks', time0: startTime + firstTokenDelay + 1, index: 0, dt: [genDuration], texts: ['b'] },
+    ]
+  }
+
+  it('TTFT 取官方首 token 语义(跳过 block-start),不是 stream[0].time', () => {
+    const lines = [
+      eventLine('turn/start', 1000, { turn: 1 }),
+      eventLine('step/start', 2000, { turn: 1, step: 1 }),
+      eventLine('assistant/message', 5000, {
+        turn: 1, step: 1,
+        // block-start 在 2000(step 起点后就到),真正的首 token 在 2600。
+        stream: streamWithGap(2000, 600, 100),
+        usage: { inputTokens: 10, outputTokens: 20 },
+      }),
+      eventLine('step/end', 6000, { turn: 1, step: 1 }),
+      eventLine('turn/end', 6500, { turn: 1, reason: { kind: 'completed' } }),
+    ]
+    const step = projectSessionTrace('session-x', lines).turns[0]?.steps[0]
+    // stream[0].time - stepStart = 0;官方首 token - stepStart = 600。必须是后者。
+    expect(step?.ttftMs).toBe(600)
+    expect(step?.genMs).toBe(101)
+    expect(step?.wallMs).toBe(4000)
+    expect(step?.otherMs).toBe(4000 - 600 - 101)
+  })
+
+  it('压缩重放:同一 callId 的第二条 tool/result 不得覆盖第一次的耗时', () => {
+    const lines = [
+      eventLine('turn/start', 1000, { turn: 1 }),
+      eventLine('step/start', 1000, { turn: 1, step: 1 }),
+      eventLine('tool/call', 1100, { turn: 1, step: 1, callId: 'c1', name: 'bash', arguments: '{"cmd":"ls"}' }),
+      eventLine('tool/result', 1131, { turn: 1, step: 1, message: { toolCallId: 'c1' } }),
+      eventLine('step/end', 1200, { turn: 1, step: 1 }),
+      // 压缩:prune 后把被裁剪的 result 重新追加一遍(时间戳是重放时刻)。
+      eventLine('compaction/prune', 5000000, { shadowedRange: { start: 3, end: 3 }, shadowedSeqs: [3], shadowedTokenCount: 120 }),
+      eventLine('tool/result', 5000001, { turn: 1, step: 1, message: { toolCallId: 'c1' } }),
+      eventLine('turn/end', 5000100, { turn: 1, reason: { kind: 'completed' } }),
+    ]
+    const trace = projectSessionTrace('session-x', lines)
+    const tool = trace.turns[0]?.tools[0]
+    // 真值 31ms;若被重放覆盖会变成 4,998,901ms(约 83 分钟)。
+    expect(tool?.durationMs).toBe(31)
+    expect(trace.turns[0]?.steps[0]?.toolMs).toBe(31)
+    // 工具排行/会话合计同口径,不能被重放污染。
+    expect(trace.analysis.tools).toEqual([
+      { name: 'bash', calls: 1, errors: 0, totalMs: 31, avgMs: 31, p95Ms: 31, maxMs: 31 },
+    ])
+    expect(trace.analysis.time.toolMs).toBe(31)
+    // prune 计数照实累加。
+    expect(trace.analysis.compaction).toEqual({ events: 0, prunedTokens: 120, failures: 0 })
+  })
+
+  it('未收尾轮次:墙钟 null 而分量有值,会话级墙钟也随之 null(不冒充总量)', () => {
+    const lines = [
+      eventLine('turn/start', 1000, { turn: 1 }),
+      eventLine('step/start', 1000, { turn: 1, step: 1 }),
+      eventLine('assistant/message', 3000, {
+        turn: 1, step: 1, stream: streamWithGap(1000, 500, 200), usage: { inputTokens: 5, outputTokens: 5 },
+      }),
+      eventLine('step/end', 3500, { turn: 1, step: 1 }),
+      // 缺 turn/end(会话被中断,日志到此为止)。
+    ]
+    const trace = projectSessionTrace('session-x', lines)
+    expect(trace.turns[0]?.durationMs).toBeNull()
+    expect(trace.turns[0]?.time.wallMs).toBeNull()
+    // 分量仍然可观测:700 = 500 等首字 + 201 生成 + 其他(3500-1000-500-201=1799)
+    expect(trace.turns[0]?.time.ttftMs).toBe(500)
+    expect(trace.turns[0]?.time.genMs).toBe(201)
+    // 该 step 墙钟 = 3500-1000 = 2500,减等首字 500、生成 201 → 其他 1799
+    expect(trace.turns[0]?.steps[0]?.otherMs).toBe(2500 - 500 - 201)
+    expect(trace.turns[0]?.time.otherMs).toBe(2500 - 500 - 201)
+    // 会话级:任一轮未收尾 → 总墙钟 null(不能把部分之和当总量)。
+    expect(trace.analysis.time.wallMs).toBeNull()
+  })
+
+  it('重复调用:工具名 + 完整参数逐字节相等才算;键序不同不算', () => {
+    const lines = [
+      eventLine('turn/start', 1000, { turn: 1 }),
+      eventLine('step/start', 1000, { turn: 1, step: 1 }),
+      eventLine('tool/call', 1100, { turn: 1, step: 1, callId: 'c1', name: 'plugin', arguments: '{"id":"a","v":1}' }),
+      eventLine('tool/result', 1200, { turn: 1, step: 1, message: { toolCallId: 'c1' } }),
+      eventLine('step/end', 1300, { turn: 1, step: 1 }),
+      eventLine('step/start', 1400, { turn: 1, step: 2 }),
+      // 逐字节相同 → 计入重复
+      eventLine('tool/call', 1500, { turn: 1, step: 2, callId: 'c2', name: 'plugin', arguments: '{"id":"a","v":1}' }),
+      eventLine('tool/result', 1600, { turn: 1, step: 2, message: { toolCallId: 'c2' } }),
+      // 键序不同 → 不算重复(是另一次决策,不是复读)
+      eventLine('tool/call', 1700, { turn: 1, step: 2, callId: 'c3', name: 'plugin', arguments: '{"v":1,"id":"a"}' }),
+      eventLine('tool/result', 1800, { turn: 1, step: 2, message: { toolCallId: 'c3' } }),
+      eventLine('step/end', 1900, { turn: 1, step: 2 }),
+      eventLine('turn/end', 2000, { turn: 1, reason: { kind: 'completed' } }),
+    ]
+    const repeats = projectSessionTrace('session-x', lines).analysis.repeats
+    expect(repeats).toHaveLength(1)
+    expect(repeats[0]).toMatchObject({ name: 'plugin', times: 2, at: ['1.1', '1.2'], totalMs: 200 })
+  })
+
+  it('上下文水位与命中率:promptTokens 含缓存桶,命中率分母是全部 prompt token', () => {
+    const lines = [
+      eventLine('turn/start', 1000, { turn: 1 }),
+      eventLine('request/context', 1050, { provider: 'p', model: 'm', contextWindow: 300000 }),
+      eventLine('step/start', 1100, { turn: 1, step: 1 }),
+      eventLine('assistant/message', 2000, {
+        turn: 1, step: 1,
+        usage: { inputTokens: 1000, outputTokens: 500, cacheReadTokens: 9000, cacheWriteTokens: 200 },
+      }),
+      eventLine('step/end', 2100, { turn: 1, step: 1 }),
+      eventLine('turn/end', 2200, { turn: 1, reason: { kind: 'completed' } }),
+    ]
+    const analysis = projectSessionTrace('session-x', lines).analysis
+    // 上下文量 = 1000 + 9000 + 200 = 10200(不是 inputTokens 的 1000)
+    expect(analysis.pressure).toEqual([{ turn: 1, step: 1, promptTokens: 10200 }])
+    expect(analysis.pressurePeak).toBe(10200)
+    expect(analysis.contextWindow).toBe(300000)
+    expect(analysis.tokens).toEqual({ input: 1000, output: 500, cacheRead: 9000, cacheWrite: 200, billed: 10700 })
+    expect(analysis.cacheHitRate).toBeCloseTo(9000 / 10200, 10)
+    // 路由取自 request/context
+    expect(analysis.route).toBe('p/m')
+  })
+
+  it('缓存桶从未上报 → 命中率 null(未知),不伪报 0', () => {
+    const lines = [
+      eventLine('turn/start', 1000, { turn: 1 }),
+      eventLine('step/start', 1100, { turn: 1, step: 1 }),
+      eventLine('assistant/message', 2000, { turn: 1, step: 1, usage: { inputTokens: 1000, outputTokens: 500 } }),
+      eventLine('step/end', 2100, { turn: 1, step: 1 }),
+      eventLine('turn/end', 2200, { turn: 1, reason: { kind: 'completed' } }),
+    ]
+    const analysis = projectSessionTrace('session-x', lines).analysis
+    expect(analysis.cacheHitRate).toBeNull()
+    expect(analysis.contextWindow).toBeNull()
+  })
+
+  it('失败尝试(assistant/attempt)单独归档,不干扰本步正式计时', () => {
+    const lines = [
+      eventLine('turn/start', 1000, { turn: 1 }),
+      eventLine('step/start', 1000, { turn: 1, step: 1 }),
+      // 第一次尝试失败(未提交可见消息)
+      eventLine('assistant/attempt', 4000, { turn: 1, step: 1, stream: streamWithGap(1000, 900, 100) }),
+      // 重试成功
+      eventLine('assistant/message', 8000, {
+        turn: 1, step: 1, stream: streamWithGap(4000, 700, 300), usage: { inputTokens: 10, outputTokens: 10 },
+      }),
+      eventLine('step/end', 9000, { turn: 1, step: 1 }),
+      eventLine('turn/end', 9500, { turn: 1, reason: { kind: 'completed' } }),
+    ]
+    const trace = projectSessionTrace('session-x', lines)
+    expect(trace.analysis.attempts).toHaveLength(1)
+    expect(trace.analysis.attempts[0]).toMatchObject({ turn: 1, step: 1, ttftMs: 900, streamMs: 101 })
+    // 本步的正式计时来自 assistant/message,不被 attempt 的流覆盖。
+    // TTFT 从 step/start 起算:700(等首字)是 message 流的首个 token 距 step 起点
+    // 的距离,即 8000+700-4000=4700? 不是——首 token 绝对时刻 = 4000+700 = 4700,
+    // 距 step 起点(1000)是 3700。这也是为什么「含重试的 step」的等首字会偏大:
+    // 用户确实多等了失败的那一次。失败尝试的独立时序在 attempts 里。
+    expect(trace.turns[0]?.steps[0]?.ttftMs).toBe(3700)
+    expect(trace.turns[0]?.steps[0]?.genMs).toBe(301)
+  })
+
+  it('压缩失败计数:compaction/end 带 error 计入 failures', () => {
+    const lines = [
+      eventLine('turn/start', 1000, { turn: 1 }),
+      eventLine('compaction/start', 1100, { compactionId: 'k1', turn: 1 }),
+      eventLine('compaction/end', 1200, { compactionId: 'k1', turn: 1, error: 'invalid-summary: missing section' }),
+      eventLine('compaction/start', 1300, { compactionId: 'k2', turn: 1 }),
+      eventLine('compaction/end', 1400, { compactionId: 'k2', turn: 1 }),
+      eventLine('turn/end', 1500, { turn: 1, reason: { kind: 'completed' } }),
+    ]
+    expect(projectSessionTrace('session-x', lines).analysis.compaction).toEqual({
+      events: 2, prunedTokens: 0, failures: 1,
+    })
+  })
+
+  it('工具排队:未配对调用的耗时为 null 且不计入任何排行', () => {
+    const lines = [
+      eventLine('turn/start', 1000, { turn: 1 }),
+      eventLine('step/start', 1000, { turn: 1, step: 1 }),
+      eventLine('tool/call', 1100, { turn: 1, step: 1, callId: 'c1', name: 'slow', arguments: '{}' }),
+      eventLine('step/end', 1200, { turn: 1, step: 1 }),
+      eventLine('turn/end', 1300, { turn: 1, reason: { kind: 'completed' } }),
+    ]
+    const trace = projectSessionTrace('session-x', lines)
+    expect(trace.turns[0]?.tools[0]?.durationMs).toBeNull()
+    // 计数照实记(调用发生了),但耗时排行/重复组只认配对成功者。
+    expect(trace.turns[0]?.steps[0]?.toolCalls).toBe(1)
+    expect(trace.analysis.counts.toolCalls).toBe(0)
+    expect(trace.analysis.tools).toEqual([])
+    expect(trace.analysis.time.toolMs).toBe(0)
+  })
+
+  it('p95 用最近秩法(升序第 ceil(0.95n) 个,不插值)', () => {
+    const lines = [eventLine('turn/start', 0, { turn: 1 })]
+    // 20 次调用,耗时 1..20 → ceil(0.95*20)=19 → 第 19 个 = 19
+    for (let i = 1; i <= 20; i += 1) {
+      lines.push(eventLine('step/start', i * 100, { turn: 1, step: i }))
+      lines.push(eventLine('tool/call', i * 100 + 10, { turn: 1, step: i, callId: `c${i}`, name: 't', arguments: '{}' }))
+      lines.push(eventLine('tool/result', i * 100 + 10 + i, { turn: 1, step: i, message: { toolCallId: `c${i}` } }))
+      lines.push(eventLine('step/end', i * 100 + 50 + i, { turn: 1, step: i }))
+    }
+    const stat = projectSessionTrace('session-x', lines).analysis.tools[0]
+    expect(stat?.calls).toBe(20)
+    expect(stat?.maxMs).toBe(20)
+    expect(stat?.p95Ms).toBe(19)
+    expect(stat?.totalMs).toBe(210)
   })
 })

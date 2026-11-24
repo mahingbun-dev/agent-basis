@@ -27,6 +27,31 @@ export function formatDuration(ms: number | null | undefined): string {
   return `${Math.round(ms)}ms`
 }
 
+/**
+ * 毫秒时长 → 长跨度人话(秒/分/小时三档;null → —)。
+ *
+ * 与 formatDuration 的分工:单个工具调用通常是毫秒到秒级(formatDuration 够用);
+ * 而会话/轮次的总时长会到分钟甚至小时级,「1326.4s」这种读数无法一眼读懂。
+ */
+export function formatLongDuration(ms: number | null | undefined): string {
+  if (ms === undefined || ms === null) return '—'
+  if (ms >= 3_600_000) {
+    const hours = ms / 3_600_000
+    return `${hours >= 10 ? hours.toFixed(0) : hours.toFixed(1)} 小时`
+  }
+  if (ms >= 60_000) {
+    const minutes = ms / 60_000
+    return `${minutes >= 10 ? minutes.toFixed(0) : minutes.toFixed(1)} 分`
+  }
+  return formatDuration(ms)
+}
+
+/** 比例(0..1)→ 百分比串(一位小数;非法值回退 —)。 */
+export function formatPercent(ratio: number | null | undefined): string {
+  if (ratio === undefined || ratio === null || !Number.isFinite(ratio)) return '—'
+  return `${(ratio * 100).toFixed(1)}%`
+}
+
 /** token 数 → 千分位串。 */
 export function formatTokens(n: number | null | undefined): string {
   if (n === undefined || n === null) return '—'
