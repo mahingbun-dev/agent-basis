@@ -59,7 +59,8 @@ const PROBE_TIMEOUT_MS = 10_000
 // R22(2026-11-21):tasks 双 preset restatement 行进 super 树,+2(preset 行本身是树行;
 // 其组成插件行挂 preset 后面,不占宿主树)。
 // 2026-11-23 /clear:command-clear 为组内嵌套行(顶层 `- ` 行口径不变),常量不动。
-const EXPECTED_HOST_ENTRIES = 237
+// 2026-11-24 54 号:参谋面板 +2 行(eterna-adviser 挂载行 + eterna-adviser-preset)。
+const EXPECTED_HOST_ENTRIES = 239
 const EXPECTED_TEMPLATE_BLOCKS = 43
 const EXPECTED_TEMPLATE_INSERTS = 3
 const EXPECTED_TEMPLATE_OVERRIDES = 40
@@ -149,6 +150,8 @@ const HOST_KEPT_ROWS = [
   'eterna-prompt-studio',
   // 附件入口（2026-11-12 生产挂载，输入框工具行「附件」按钮，客户端双面包）
   'eterna-attachments',
+  // 参谋面板（2026-11-24 54 号 P9，与 eterna-web 同构；base⊆super 超集）
+  'eterna-adviser',
 ]
 
 /** Kept rows that live behind agent presets: present + enabled + active in `standard`. */
@@ -255,7 +258,7 @@ if (!existsSync(join(knowledgeAdminPkg, 'lib', 'client.js'))) {
   console.error('verify-eterna-super: packages/knowledge-admin/lib/client.js 缺失——先跑 pnpm --filter @eterna/knowledge-admin run build:client')
   process.exit(1)
 }
-const BASE_MOUNT_PACKAGES = ['glue', 'llm-doctor', 'brand', 'panel', 'llm-openai', 'access', 'usage-stats', 'governance', 'knowledge-admin']
+const BASE_MOUNT_PACKAGES = ['glue', 'llm-doctor', 'brand', 'panel', 'llm-openai', 'access', 'usage-stats', 'governance', 'knowledge-admin', 'adviser']
 for (const pkg of BASE_MOUNT_PACKAGES) {
   symlinkSync(join(repoRoot, 'packages', pkg), join(profileDir, 'node_modules', '@eterna', pkg), 'dir')
 }

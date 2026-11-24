@@ -25,7 +25,10 @@ import type { Context } from '@deepseek-ai/cordis'
 // 空类型导入 = dsh-tools 对 cordis Events('tools/pre-execute')增广的触发器（governance-plugin 同款）：
 // 下方 companion 身份注入钩子的监听签名依赖该声明文件进入本包 tsc 程序。
 import type {} from '@deepseek-ai/dsh-tools'
-import { handleAccessRequest, type AccessDeps, type TasksSettingsFace } from './routes.ts'
+import {
+  ADVISER_ROUTE_PREFIX, handleAccessRequest, handleAdviserRequest,
+  type AccessDeps, type AdviserFace, type TasksSettingsFace,
+} from './routes.ts'
 import { loadOrCreateSecret, SessionService } from './session.ts'
 import { SlidingWindow } from './ratelimit.ts'
 import { createStreamBridgeHandler } from './stream.ts'
@@ -147,7 +150,10 @@ function createNodeHandler(deps: AccessDeps): (req: IncomingMessage, res: Server
       body: collected.data,
     }
     try {
-      const reply = handleAccessRequest(deps, request)
+      // 参谋面是唯一异步路由面(服务面 Promise),走独立入口;其余全部同步。
+      const reply = pathname.startsWith(ADVISER_ROUTE_PREFIX)
+        ? await handleAdviserRequest(deps, request)
+        : handleAccessRequest(deps, request)
       res.statusCode = reply.status
       for (const [name, value] of reply.headers) res.setHeader(name, value)
       if (reply.body === undefined) res.end()
@@ -306,6 +312,16 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
           const candidate = face as Record<string, unknown>
           return typeof candidate.read === 'function' && typeof candidate.roles === 'function' && typeof candidate.save === 'function'
             ? face as unknown as TasksSettingsFace
+            : undefined
+        },
+        // 参谋服务面(2026-11-24 参谋面板):反射键 'eternaAdviser' 现读
+        // (@eterna/adviser 的 mountAdviser provide 的 AdviserService;插件未装载 → 端点 503)。
+        // 三键齐备才算就绪(结构校验 fail-closed,同 tasksSettings 纪律;access 不 import adviser)。
+        adviser: (): AdviserFace | undefined => {
+          const raw = ctx.reflect.get('eternaAdviser', false) as Record<string, unknown> | undefined
+          if (raw === undefined) return undefined
+          return typeof raw.list === 'function' && typeof raw.create === 'function' && typeof raw.deliver === 'function'
+            ? raw as unknown as AdviserFace
             : undefined
         },
         // B14:登出即摘除个人 MCP live scope(50 §3.4.3 生命周期接线;失败由

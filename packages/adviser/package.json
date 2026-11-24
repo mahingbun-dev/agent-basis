@@ -1,0 +1,50 @@
+{
+  "name": "@eterna/adviser",
+  "description": "参谋面板:会话内辅助对话双面插件。在右侧栏贡献「参谋」tab(官方席位 sidebar.right.pane.tab + 自带会话子槽位,复用 conversation.content embedded Factory 渲染完整对话),参谋会话为 subagent child(dsh-subagent spawn provider + 只读 eterna-adviser preset,delivery caller)——独立上下文、只读工具面、不带执行权,按需经 tool-session-query 读父会话实时与历史内容,结论由用户确认后以 inject(不唤醒)或 followup(自成一轮)投递给主会话。设计见 docs/design/54-adviser-P0-probe.md 与 plans/2026-11-24-会话辅助对话-参谋面板.md。",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tool-guard": "./src/tool-guard-plugin.ts",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-resources",
+        "@deepseek-ai/dsh-client-shortcuts",
+        "@deepseek-ai/dsh-client-ui-commands",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-sidebar-right",
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-message-quotes"
+      ],
+      "platform": "web"
+    }
+  },
+  "scripts": {
+    "build:client": "node scripts/build-client.mjs",
+    "verify": "node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run",
+    "test": "./node_modules/.bin/vitest run",
+    "typecheck": "./node_modules/.bin/tsc --noEmit"
+  },
+  "dependencies": {
+    "@eterna/ui": "workspace:*",
+    "@deepseek-ai/cordis": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "esbuild": "catalog:",
+    "react": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

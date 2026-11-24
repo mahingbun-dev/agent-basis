@@ -1,0 +1,103 @@
+/**
+ * 参谋面板的语言字典。
+ *
+ * 面向用户的文字一律中文(AGENTS.md 纪律);key 的命名按视图分组。
+ * 称号「参谋」为暂定值(计划书 §4 待定项),交付前由用户过一遍。
+ */
+export const NS = 'eterna-adviser'
+
+export const zh = {
+  'tab.title': '参谋',
+  'guide.title': '参谋',
+  'guide.description': '开一个独立上下文的辅助对话,只读主会话与工作区,结论由你确认后送回主会话。',
+  'panel.title': '参谋',
+  'panel.subtitle': '独立上下文的辅助对话:只读主会话与工作区,结论由你确认后送回主会话。',
+  'panel.loading': '正在打开参谋会话…',
+  'panel.detached': '参谋会话已不可用(可能已被关闭或清理)。请新开一个参谋。',
+  'panel.openFailed': '参谋会话打开失败:该会话可能已被删除,或当前无权访问。',
+  'panel.noSession': '请先进入一个主会话,再打开参谋。',
+
+  'picker.loading': '正在查找本会话的参谋…',
+  'picker.empty': '本会话还没有参谋。点下方按钮新建一个。',
+  'picker.listLabel': '本会话已有的参谋',
+  'picker.rowLabel': '参谋 {n}',
+  'picker.state.running': '工作中',
+  'picker.state.inactive': '待命',
+  'picker.create': '新建参谋',
+  'picker.creating': '正在创建…',
+  'picker.retry': '重试',
+
+  'picker.error.unauthorized': '登录已失效,请重新登录后再试。',
+  'picker.error.unavailable': '参谋服务当前不可用(内核未就绪),请稍后重试。',
+  'picker.error.rateLimited': '请求过于频繁,请稍后再试。',
+
+  'feedback.title': '把结论送回主会话',
+  'feedback.label': '结论内容',
+  'feedback.placeholder': '写下要让主会话看到的内容(可先在上面问参谋,再把要点搬过来)。',
+  'feedback.inject': '附言',
+  'feedback.followup': '立即发送',
+  'feedback.confirmFollowup': '确认发送?',
+  'feedback.confirmHint': '再点一次即发送给主会话;3 秒不点会自动取消。',
+  'feedback.injectHint': '附言:不唤醒主会话,它下次发言时才会看到。',
+  'feedback.followupHint': '立即发送:主会话立刻自成一轮处理,会消耗一轮用量。',
+  'feedback.sent.inject': '已附言:主会话下次发言时会看到。',
+  'feedback.sent.followup': '已发送:主会话已开始处理。',
+  'feedback.error.unauthorized': '登录已失效,请重新登录后再试。',
+  'feedback.error.unavailable': '主会话当前不接受投递(可能正在卸载或已关闭)。',
+  'feedback.error.parentMissing': '主会话不存在或当前不可用。',
+  'feedback.error.rateLimited': '请求过于频繁,请稍后再试。',
+
+  'command.label': '参谋',
+  'command.description': '在右侧栏开一个独立上下文的辅助对话(只读主会话)。',
+  'shortcut.label': '打开参谋面板',
+  'shortcut.noSession': '请先进入一个会话,再打开参谋。',
+  'selection.ask': '问参谋',
+}
+
+export const en = {
+  'tab.title': 'Adviser',
+  'guide.title': 'Adviser',
+  'guide.description': 'Open a side conversation with its own context: read-only over the main session and workspace, conclusions sent back only after you confirm.',
+  'panel.title': 'Adviser',
+  'panel.subtitle': 'A side conversation with its own context: read-only over the main session and workspace; conclusions reach the main session only after you confirm.',
+  'panel.loading': 'Opening the adviser session…',
+  'panel.detached': 'This adviser session is no longer available (closed or cleaned up). Start a new one.',
+  'panel.openFailed': 'Could not open the adviser session: it may have been deleted, or you lack access.',
+  'panel.noSession': 'Open a main session first, then open an adviser.',
+
+  'picker.loading': 'Looking up advisers for this session…',
+  'picker.empty': 'This session has no adviser yet. Create one below.',
+  'picker.listLabel': 'Advisers in this session',
+  'picker.rowLabel': 'Adviser {n}',
+  'picker.state.running': 'Working',
+  'picker.state.inactive': 'Idle',
+  'picker.create': 'New adviser',
+  'picker.creating': 'Creating…',
+  'picker.retry': 'Retry',
+
+  'picker.error.unauthorized': 'Your session has expired. Sign in again.',
+  'picker.error.unavailable': 'The adviser service is unavailable right now. Try again shortly.',
+  'picker.error.rateLimited': 'Too many requests. Try again shortly.',
+
+  'feedback.title': 'Send a conclusion back',
+  'feedback.label': 'Conclusion',
+  'feedback.placeholder': 'Write what the main session should see (ask the adviser above, then move the essentials here).',
+  'feedback.inject': 'Side note',
+  'feedback.followup': 'Send now',
+  'feedback.confirmFollowup': 'Confirm send?',
+  'feedback.confirmHint': 'Click again to send to the main session; this cancels in 3 seconds.',
+  'feedback.injectHint': 'Side note: does not wake the main session; it reads it on its next turn.',
+  'feedback.followupHint': 'Send now: the main session starts a new turn immediately and spends usage.',
+  'feedback.sent.inject': 'Noted: the main session will see it on its next turn.',
+  'feedback.sent.followup': 'Sent: the main session is handling it now.',
+  'feedback.error.unauthorized': 'Your session has expired. Sign in again.',
+  'feedback.error.unavailable': 'The main session is not accepting deliveries right now.',
+  'feedback.error.parentMissing': 'The main session does not exist or is unavailable.',
+  'feedback.error.rateLimited': 'Too many requests. Try again shortly.',
+
+  'command.label': 'Adviser',
+  'command.description': 'Open a side conversation with its own context in the right sidebar (read-only over the main session).',
+  'shortcut.label': 'Open the adviser panel',
+  'shortcut.noSession': 'Open a session first, then the adviser.',
+  'selection.ask': 'Ask adviser',
+}
