@@ -950,6 +950,96 @@
       # (删行 reboot 幂等回登)。realm 必须与登录账号名对齐(桥按 userIdByAccount(realm)
       # 查 id),不对齐时 fail-closed 不登记、log 显式可见。44 号 §二 #4 收口。
 
+    # ── 参谋面板挂载（2026-11-24，54 号 P9）──────────────────────────────────
+    # @eterna/adviser 双面插件（Host 半边 idle 载具 + 浏览器半边右栏「参谋」tab）。
+    # 前置：profile node_modules symlink @eterna/adviser（verify-eterna-*.mjs 物化 /
+    # entrypoint 第 3 步全量清单）；缺链即整行静默 disable（tab 类型/导引卡/三入口
+    # 全不出现，access 的 /access/api/adviser/* 恒 503 fail-closed）。
+    - id: eterna-adviser
+      name: '@eterna/adviser'
+    # ── eterna-adviser preset（参谋组合：只读工具面 + 独立压缩组）────────────
+    # ⚠ 必须在 profile 里定义：profile 的 patch 只 insert 插件行，不加载包内
+    # bundle patch —— 只加挂载行时 create 报 `Unknown agent preset: eterna-adviser`
+    # （2026-11-24 P9 实机定谳）。包内 cordis.patch.yml 的同段是同源复述。
+    #
+    # 只读纪律由「工具面缺失 + 守门」硬保证，不靠提示词：
+    #   - 不挂 tool-bash / tool-pwsh → 无命令执行；
+    #   - tool-fs 关 write/edit/applyPatch → 只读文件；
+    #   - 不挂 tool-subagent / tool-jobs / tool-schedule / tool-goal / tool-todo
+    #     → 不能委派、不能寻址其他会话、无后台动作；
+    #   - 末尾 tool-guard：动态 deny = 全部**全局**工具 − 只读白名单。上游
+    #     ToolsService.view(scope) = 全局层 ∪ 作用域链层，预设挡不住根 ctx 注册的
+    #     knowledge_propose / memory_write / install_personal_plugin 等写工具
+    #     （2026-11-24 实机探针 9/10 → FAIL 实证）。白名单保留 glue 全局注册的
+    #     knowledge_search/read/status（继承其租户分库路由）。
+    #   - 工单概览 adviser_tickets 不在此处：预设 scope 是 isolate 的，读不到宿主
+    #     tasks —— 由宿主半边在创建参谋后注册（packages/adviser/src/ticket-tools.ts）。
+    #
+    # 读父会话 = dsh-tool-session-query 五个只读工具：跨会话授权按 cwd 精确匹配，
+    # 参谋与父会话同 cwd 故可读父；搜索天然排除调用者自身（54 号 §11.5）。
+    - id: eterna-adviser-preset
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: eterna-adviser
+        name: Eterna 参谋
+        description: "会话内辅助对话(参谋)专用 preset:只读工具面——读主会话历史、读工作区文件、检索;无写盘、无命令执行、无委派、无工单。"
+        order: 92
+        plugins:
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+            config:
+              read: true
+              write: false
+              edit: false
+              applyPatch: false
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+          - id: tool-session-query
+            name: '@deepseek-ai/dsh-tool-session-query'
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          # ── 压缩组（28 号 §3 分层顺序；参数取缺省）────────────────────────
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+              staleToolResultPruner: true
+            config:
+              - id: stale-tool-result-pruner
+                name: '@eterna/compaction/stale-plugin'
+                config:
+                  keepGroups: 5
+                  minSavingsTokens: 4096
+                  thresholdRatio: 0.7
+              - id: compaction-basic
+                name: '@eterna/compaction/basic-plugin'
+                config:
+                  summarizationProvider: ''
+                  summarizationModel: ''
+              - id: command-compact
+                name: '@eterna/compaction/command-plugin'
+              - id: tool-result-pruner
+                name: '@eterna/compaction/pruner-plugin'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024
+          # ── 全局工具守门（必须最后一行；见本段头注）────────────────────────
+          - id: tool-guard
+            name: '@eterna/adviser/tool-guard'
+
 # ── Companion 浏览器执行面（E4 生产挂载，2026-11-11）：用户浏览器=执行面 ────
 # dsh-mcp-client stdio 挂 browser-relay 的 MCP server（三工具 mcp__browser__*）；
 # relay 同容器 127.0.0.1:9310（entrypoint 后台拉起，扩展 ws 连入）。

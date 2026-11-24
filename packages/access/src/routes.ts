@@ -69,11 +69,46 @@ export interface AccessDeps {
    */
   readonly releaseNotes?: ReleaseCatalog | undefined
   /**
+   * 参谋服务面(2026-11-24 参谋面板;反射键 'eternaAdviser' 的结构面):
+   * 每次请求现读,adviser 插件未装载/未就绪返回 undefined → 端点 503(fail-closed)。
+   * access 为 Tier1,**不 import @eterna/adviser**——结构面声明在本文件
+   * (tasks settings / stream / panel 同纪律;铁律 T2:数据面经 adviser 提供、
+   * HTTP 面只在 access 登记)。
+   */
+  readonly adviser?: (() => AdviserFace | undefined) | undefined
+  /**
    * 登出回调(2026-11-20 B14 个人 MCP):会话 cookie 清除前摘除该用户 live scope。
    * 同步签名,实现方自吞异常(登出不能被资源回收失败阻断)。
    */
   readonly onLogout?: ((user: { readonly id: number; readonly account: string }) => void) | undefined
 }
+
+/**
+ * 参谋服务面(结构子集;`packages/adviser/src/service.ts` 的 AdviserService 签名)。
+ * 归属校验不在本层做——`parentSessionId` 由路由用 `store.sessionOwner` 校验后传入。
+ */
+export interface AdviserFace {
+  list(parentSessionId: string): Promise<readonly AdviserSessionRow[]>
+  create(parentSessionId: string, seedText: string, childId?: string): Promise<AdviserCreateOutcome>
+  deliver(parentSessionId: string, text: string, delivery: 'inject' | 'followup'): Promise<AdviserDeliverOutcome>
+}
+
+/** 参谋会话行(与 adviser 侧 AdviserSessionView 同形)。 */
+export interface AdviserSessionRow {
+  readonly sessionId: string
+  readonly label: string
+  readonly activity: 'running' | 'inactive'
+}
+
+/** 创建结果(与 adviser 侧 AdviserCreateResult 同形)。 */
+export type AdviserCreateOutcome =
+  | { readonly ok: true; readonly sessionId: string; readonly messageId: string }
+  | { readonly ok: false; readonly code: string; readonly message: string }
+
+/** 投递结果(与 adviser 侧 AdviserDeliverResult 同形)。 */
+export type AdviserDeliverOutcome =
+  | { readonly ok: true; readonly delivery: 'inject' | 'followup'; readonly sessionId: string }
+  | { readonly ok: false; readonly code: string; readonly message: string }
 
 /** tasks 设置视图(结构面;载荷整体 JSON 序列化,access 不解释领域字段)。 */
 export interface TasksSettingsView {
@@ -129,6 +164,10 @@ export const TOGGLEABLE_PLUGINS: ReadonlyArray<{ id: string; label: string }> = 
   { id: 'eterna-attachments', label: '附件入口' },
   { id: 'eterna-prompt-studio', label: '提示词工作室' },
   { id: 'eterna-usage-stats', label: '用量统计' },
+  // 参谋面板(2026-11-24,54 号 P9):停用后右栏 tab 类型、导引卡、三入口(命令/
+  // 快捷键/选中文字)与回写条一并消失,主会话不再收到 [adviser] 纪律段;
+  // access 的 /access/api/adviser/* 因服务面缺席回 503 fail-closed(不是 500)。
+  { id: 'eterna-adviser', label: '参谋面板' },
 ]
 
 export function handleAccessRequest(deps: AccessDeps, req: AccessRequest): AccessReply {
@@ -183,7 +222,145 @@ export function handleAccessRequest(deps: AccessDeps, req: AccessRequest): Acces
   if (req.pathname === '/access/api/release-notes' && method === 'GET') return handleReleaseNotesView(deps, req)
   if (req.pathname === '/access/api/release-notes/seen' && method === 'POST') return handleReleaseNotesSeen(deps, req, ip)
   if (req.pathname.startsWith(RELEASE_ASSET_PREFIX) && method === 'GET') return handleReleaseNotesAsset(deps, req)
+  // 参谋面板的异步端点不在这里:handleAccessRequest 是纯同步契约(既有 20+ 测试
+  // 直取 reply.status),故参谋面走独立入口 handleAdviserRequest(见下),
+  // 由 createNodeHandler 在同步路由之前分流。
   return errorReply(404, 'not found')
+}
+
+/** 参谋端点是否属于本路由面(createNodeHandler 用它决定走异步入口)。 */
+export const ADVISER_ROUTE_PREFIX = '/access/api/adviser/'
+
+/**
+ * 参谋面板异步入口(2026-11-24):三条端点全部异步(服务面本身是 Promise)。
+ * 与 {@link handleAccessRequest} 分离的原因:后者被既有测试当作同步纯函数
+ * 直接取 `.status`,改成 union 会连带改 20+ 处测试,得不偿失。
+ * @param deps - access 依赖面。
+ * @param req - 已解析请求。
+ * @returns 应答(永不 reject;内部异常收口为 503)。
+ */
+export async function handleAdviserRequest(deps: AccessDeps, req: AccessRequest): Promise<AccessReply> {
+  const method = req.method.toUpperCase()
+  const ip = clientIp(req.xff)
+  if (method !== 'POST') return errorReply(405, 'method not allowed')
+  if (!isSameOrigin(req.origin, req.host, deps.session.secure, deps.publicOrigin)) return errorReply(403, '跨源请求被拒绝')
+  if (!deps.globalWindow.hit(ip)) return errorReply(429, '请求过于频繁，请稍后再试')
+  const action = req.pathname.slice(ADVISER_ROUTE_PREFIX.length)
+  if (action === 'list') return handleAdviserList(deps, req, readBodyParent(req))
+  if (action === 'create') return handleAdviserCreate(deps, req, ip)
+  if (action === 'deliver') return handleAdviserDeliver(deps, req, ip)
+  return errorReply(404, 'not found')
+}
+
+// ── 参谋面板(2026-11-24)────────────────────────────────────────────
+// 三条端点,全部要求登录 + 父会话归属本人(跨租户一律 404 不泄漏存在性):
+//   POST /access/api/adviser/list     {parent}
+//   POST /access/api/adviser/create   {parent, seed}
+//   POST /access/api/adviser/deliver  {parent, text, delivery:'inject'|'followup'}
+// 归属判定 = store.sessionOwner(子代理父链回退已内置,参谋会话也判到它的父会话)。
+// 三端点都用 POST + JSON body:createNodeHandler 的 pathname 已剥掉 query
+// (new URL(...).pathname),GET 读不到 parent;POST 顺带吃到同源闸(CSRF)与全局限速。
+// no-store:列表含实时 activity,缓存会让人对着已结束的参谋点按钮。
+
+/** 参谋端点须登录+归属本人;越权/不存在统一 404(不泄漏会话是否存在)。 */
+function authorizeAdviser(deps: AccessDeps, req: AccessRequest, parent: string):
+  | { readonly ok: true; readonly face: AdviserFace; readonly user: UserRow }
+  | { readonly ok: false; readonly reply: AccessReply } {
+  const user = requireUser(deps, req)
+  if (user === undefined) return { ok: false, reply: errorReply(401, '未登录') }
+  if (parent === '') return { ok: false, reply: errorReply(400, '参数不合法：缺少主会话 id') }
+  const owner = deps.store.sessionOwner(parent)
+  if (owner !== user.id) return { ok: false, reply: errorReply(404, '主会话不存在或不属于你') }
+  const face = deps.adviser?.()
+  if (face === undefined) return { ok: false, reply: errorReply(503, '参谋内核未就绪') }
+  return { ok: true, face, user }
+}
+
+/** 从 JSON body 取 parent(三条端点同形)。 */
+function readBodyParent(req: AccessRequest): string {
+  const body = parseJsonBody(req.body)
+  return typeof body?.parent === 'string' ? body.parent : ''
+}
+
+function handleAdviserList(deps: AccessDeps, req: AccessRequest, parent: string): Promise<AccessReply> {
+  const authorized = authorizeAdviser(deps, req, parent)
+  if (!authorized.ok) return Promise.resolve(authorized.reply)
+  return runAdviser(authorized.face.list(parent), rows =>
+    jsonResponse(200, { ok: true, advisers: rows }, [['cache-control', 'no-store']]))
+}
+
+function handleAdviserCreate(deps: AccessDeps, req: AccessRequest, ip: string): Promise<AccessReply> {
+  const body = parseJsonBody(req.body)
+  const parent = typeof body?.parent === 'string' ? body.parent : ''
+  const seed = typeof body?.seed === 'string' ? body.seed : ''
+  const authorized = authorizeAdviser(deps, req, parent)
+  if (!authorized.ok) return Promise.resolve(authorized.reply)
+  if (seed.trim() === '') return Promise.resolve(errorReply(400, '参数不合法：缺少开场内容'))
+  const { face, user } = authorized
+  return runAdviser(face.create(parent, seed), (result) => {
+    deps.audit({
+      kind: 'access.adviser.create', account: user.account, ip, ok: result.ok,
+      detail: { parent, ...result.ok ? { sessionId: result.sessionId } : { code: result.code } },
+    })
+    if (!result.ok) return adviserFailureReply(result.code, result.message)
+    return jsonResponse(200, { ok: true, sessionId: result.sessionId, messageId: result.messageId })
+  })
+}
+
+function handleAdviserDeliver(deps: AccessDeps, req: AccessRequest, ip: string): Promise<AccessReply> {
+  const body = parseJsonBody(req.body)
+  const parent = typeof body?.parent === 'string' ? body.parent : ''
+  const text = typeof body?.text === 'string' ? body.text : ''
+  const delivery = body?.delivery === 'inject' || body?.delivery === 'followup' ? body.delivery : ''
+  const authorized = authorizeAdviser(deps, req, parent)
+  if (!authorized.ok) return Promise.resolve(authorized.reply)
+  if (delivery === '') return Promise.resolve(errorReply(400, '参数不合法：delivery 只能是 inject 或 followup'))
+  if (text.trim() === '') return Promise.resolve(errorReply(400, '参数不合法：投递内容不能为空'))
+  const { face, user } = authorized
+  return runAdviser(face.deliver(parent, text, delivery), (result) => {
+    deps.audit({
+      kind: 'access.adviser.deliver', account: user.account, ip, ok: result.ok,
+      detail: { parent, delivery, ...result.ok ? {} : { code: result.code } },
+    })
+    if (!result.ok) return adviserFailureReply(result.code, result.message)
+    return jsonResponse(200, { ok: true, delivery: result.delivery, sessionId: result.sessionId })
+  })
+}
+
+/** adviser 失败码 → HTTP(与既有端点同口径:404 不泄漏存在性、503 内核缺席、400 参数)。 */
+function adviserFailureReply(code: string, message: string): AccessReply {
+  switch (code) {
+    case 'forbidden':
+    case 'parent-missing':
+      return errorReply(404, message)
+    case 'limit':
+    case 'invalid':
+      return errorReply(400, message)
+    case 'preset-missing':
+    case 'unavailable':
+      return errorReply(503, message)
+    default:
+      return errorReply(500, message)
+  }
+}
+
+/**
+ * 统一把异步服务调用转成 reply,并收口异常:
+ * 服务面理论上不抛(内部已映射失败码),但端口层可能有竞态异常——
+ * 一律 503 + 不泄漏内部堆栈。
+ *
+ * 调用点只有 adviser 三条:参谋面走 handleAdviserRequest 独立异步入口后,
+ * `handleAccessRequest` 保持同步契约(`AccessReply`),既有 20+ 测试的用法不变。
+ */
+async function runAdviser<Value>(
+  pending: Promise<Value>,
+  toReply: (value: Value) => AccessReply,
+): Promise<AccessReply> {
+  try {
+    return toReply(await pending)
+  } catch {
+    return errorReply(503, '参谋内核暂无响应，请稍后重试')
+  }
 }
 
 /** companion 浏览器执行面:当前用户的令牌视图(未生成=null;不含他人令牌)。 */

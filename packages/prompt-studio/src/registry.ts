@@ -480,6 +480,31 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
       note: '不可经工作室修改(运行时注入型拒写);文本由 ctx.systemPrompt.assemble 每次装配动态重建,不受快照回放冻结。',
     },
   },
+  // ── 运行时层第 6 条(54 号 P8;参谋面板的主会话纪律)────────────────────────
+  {
+    id: 'runtime.adviser.discipline',
+    layer: 'runtime',
+    kind: 'runtime-injection',
+    source: '@eterna/adviser',
+    anchors: [
+      { file: 'packages/adviser/src/section.ts', line: 45, contains: "ADVISER_SECTION_NAME = 'eterna-adviser:discipline'" },
+      { file: 'packages/adviser/src/section.ts', line: 54, contains: 'ADVISER_SECTION_ORDER = 9060' },
+      { file: 'packages/adviser/src/section.ts', line: 65, contains: 'ADVISER_DISCIPLINE_TEXT = `[adviser]' },
+      { file: 'packages/adviser/src/index.ts', line: 50, contains: 'systemPrompt.section(createAdviserSection())' },
+    ],
+    note: '运行时注入型:参谋面板的 [adviser] 纪律段(section 名 eterna-adviser:discipline,order 9060,紧随 tasks 的 [active-tickets] 9050),静态文本由 section.ts 提供——声明「参谋是用户私人旁注、不得主动寻址、不得等待其输入」。存在理由:spawn 出的参谋恒进父会话 subagent catalog(54 号 §2 实测),主会话能 list_agents 到它、也能给它发消息,故须显式约束其行为。',
+    description: '参谋纪律段(运行时注入):每次会话装配系统提示时追加一段 [adviser] 说明——右侧栏的「参谋」是用户自己的私人旁注,主会话不得主动给它发消息、不得把它当委派的子任务、不得等待它返回结果,只把用户贴过来的参谋结论当作补充说明处理。没有它,模型可能主动去「问参谋」或等参谋回复而卡住。',
+    risks: [
+      '文本是行为约束不是建议:改写若删掉「不得主动寻址 / 不得等待其输入」两条,主会话可能主动寻址参谋或空等其返回(54 号 R1 风险的唯一缓解手段)。',
+      '纪律只覆盖提示词面:catalog 里参谋仍可见(上游行为,本仓不改),属「界面/提示词约束」而非数据隔离。',
+    ],
+    redLine: 'exempt',
+    maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'runtime-rebuilt',
+      note: '静态文本:改后新会话立即用新文;进行中会话沿用装配时快照。不可经工作室修改(当前无版本链读取面,回落内置常量)。',
+    },
+  },
   // ── meta 层:工作室 AI 能力自管的元提示词(T3.1,计划书 §4「吃自己的狗粮」)────
   // AI 润色/审核调用时现读本层条目当前值作 system 消息——元提示词改后经 R3 审批
   // 写回,下次 AI 调用即用新文;永不进入任何会话的系统提示组装(回放按无映射段跳过)。

@@ -27,6 +27,9 @@ catalogs:
     '@deepseek-ai/dsh-llm':
       specifier: 0.2.2-rc.5
       version: 0.2.2-rc.5
+    '@deepseek-ai/dsh-mcp-client':
+      specifier: 0.2.2-rc.5
+      version: 0.2.2-rc.5
     '@deepseek-ai/dsh-message-feedback':
       specifier: 0.2.2-rc.5
       version: 0.2.2-rc.5
@@ -37,6 +40,9 @@ catalogs:
       specifier: 0.2.2-rc.5
       version: 0.2.2-rc.5
     '@deepseek-ai/dsh-sandbox':
+      specifier: 0.2.2-rc.5
+      version: 0.2.2-rc.5
+    '@deepseek-ai/dsh-scope':
       specifier: 0.2.2-rc.5
       version: 0.2.2-rc.5
     '@deepseek-ai/dsh-session':
@@ -227,6 +233,34 @@ importers:
       '@eterna/audit':
         specifier: workspace:*
         version: link:../audit
+      '@eterna/ui':
+        specifier: workspace:*
+        version: link:../ui
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      '@types/react':
+        specifier: 'catalog:'
+        version: 18.3.31
+      esbuild:
+        specifier: 'catalog:'
+        version: 0.28.2
+      react:
+        specifier: 'catalog:'
+        version: 18.3.1
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.12(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
+
+  packages/adviser:
+    dependencies:
+      '@deepseek-ai/cordis':
+        specifier: 'catalog:'
+        version: 4.1.0(@deepseek-ai/cordis-plugin-include@1.1.0)(@deepseek-ai/cordis-plugin-loader@1.1.0)
       '@eterna/ui':
         specifier: workspace:*
         version: link:../ui

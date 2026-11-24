@@ -300,7 +300,9 @@ render_profile() {
   if [ "$ETERNA_FORM" = "acp" ]; then
     ETERNA_PKGS="glue"
   else
-    ETERNA_PKGS="glue llm-doctor brand panel prompt-studio llm-openai access usage-stats compaction attachments memory governance knowledge-admin"
+    # adviser(2026-11-24 54 号 P9):参谋面板双面插件,行在 insert 块末;缺链即整行静默
+    # disable(右栏 tab 类型/导引卡/三入口全不出现,access 的 /access/api/adviser/* 恒 503)。
+    ETERNA_PKGS="glue llm-doctor brand panel prompt-studio llm-openai access usage-stats compaction attachments memory governance knowledge-admin adviser"
   fi
   for pkg in $ETERNA_PKGS; do
     ln -sfn "$REPO/packages/$pkg" "$PROFILE_DIR/node_modules/@eterna/$pkg"

@@ -120,6 +120,20 @@ kbresp=$(curl -s -b "$JAR" --max-time 10 -X POST "$BASE/api/knowledgeAdmin/overv
 echo "$kbresp" | grep -q '"ok":true' && ok "知识底座运行探针（overview ok）" \
   || bad "知识底座运行探针失败（${kbresp:-不可达}）"
 
+# 8.6) 参谋面板内置装载（2026-11-24，54 号 P9）：静态两件（profile patch 的
+#      eterna-adviser 行 + @eterna/adviser 链——缺链即整行静默 disable，右栏
+#      「参谋」tab/三入口/回写条一起消失）；运行时一件（匿名访问 /access/api/adviser/
+#      回 401 而非 404——路由面忘了接线时恒 404，401 证明已挂进 access）。
+adv=$(docker exec "$CONTAINER" sh -c 'for p in /data/profiles/eterna-web /data/profiles/eterna-super; do if grep -q "name: .@eterna/adviser." "$p/cordis.patch.yml" 2>/dev/null && [ -e "$p/node_modules/@eterna/adviser" ]; then basename "$p"; break; fi; done' 2>/dev/null)
+if [ -n "$adv" ]; then
+  ok "参谋面板内置装载（profile: ${adv}）"
+else
+  bad "参谋面板未内置装载（patch 行 name/symlink 任一缺席）——右栏「参谋」tab 与三入口会一起消失"
+fi
+advcode=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 -X POST "$BASE/access/api/adviser/list" \
+  -H 'Content-Type: application/json' -d '{"parent":"verify-none"}')
+check "参谋端点已接线（匿名 401）" 401 "$advcode"
+
 rm -f "$JAR"
 
 # ── companion 中继（浏览器执行面，8-10）：直连宿主映射端口 9310 ─────────────

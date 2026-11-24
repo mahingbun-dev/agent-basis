@@ -149,6 +149,9 @@ const HOST_KEPT_ROWS = [
   'eterna-prompt-studio',
   // 附件入口（2026-11-12 生产挂载，输入框工具行「附件」按钮，客户端双面包）
   'eterna-attachments',
+  // 参谋面板（2026-11-24 54 号 P9 生产挂载：右栏「参谋」tab + 三入口 + 回写条；
+  // @eterna/adviser 双面包，行在 insert 块末）
+  'eterna-adviser',
 ]
 
 /** Kept rows that live behind agent presets: present + enabled + active in `standard`. */
@@ -244,7 +247,7 @@ if (!existsSync(join(knowledgeAdminPkg, 'lib', 'client.js'))) {
   console.error('verify-eterna-web: packages/knowledge-admin/lib/client.js 缺失——先跑 pnpm --filter @eterna/knowledge-admin run build:client')
   process.exit(1)
 }
-const BASE_MOUNT_PACKAGES = ['glue', 'llm-doctor', 'brand', 'access', 'usage-stats', 'panel', 'knowledge-admin']
+const BASE_MOUNT_PACKAGES = ['glue', 'llm-doctor', 'brand', 'access', 'usage-stats', 'panel', 'knowledge-admin', 'adviser']
 for (const pkg of BASE_MOUNT_PACKAGES) {
   symlinkSync(join(repoRoot, 'packages', pkg), join(profileDir, 'node_modules', '@eterna', pkg), 'dir')
 }

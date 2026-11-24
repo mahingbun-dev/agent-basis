@@ -50,6 +50,8 @@ export const ENTRY_META_LOCALE_ZH: Record<string, string> = {
   [entryEffectNoteKey('runtime.tasks.active-tickets')]: '不可经工作室修改:保存对其 fail-closed 拒写(运行时注入型同款守卫);清单文本由 tasks 插件每轮 pass 重算缓存,装配时返回缓存(不逐次查询库)。',
   [entryDescriptionKey('runtime.agent-loop')]: 'v1 线 agent-loop 的系统提示消费点(运行时注入):每轮把宿主 systemPrompt 装配结果作为 system 消息送入模型;本身不产出提示词文本,不可编辑。',
   [entryEffectNoteKey('runtime.agent-loop')]: '不可经工作室修改(运行时注入型拒写);文本由 ctx.systemPrompt.assemble 每次装配动态重建,不受快照回放冻结。',
+  [entryDescriptionKey('runtime.adviser.discipline')]: '参谋纪律段(运行时注入):每次会话装配系统提示时追加一段 [adviser] 说明——右侧栏的「参谋」是用户自己的私人旁注,主会话不得主动给它发消息、不得把它当委派的子任务、不得等待它返回结果,只把用户贴过来的参谋结论当作补充说明处理。没有它,模型可能主动去「问参谋」或等参谋回复而卡住。',
+  [entryEffectNoteKey('runtime.adviser.discipline')]: '静态文本:改后新会话立即用新文;进行中会话沿用装配时快照。不可经工作室修改(当前无版本链读取面,回落内置常量)。',
 }
 
 /** en:翻译层(新增条目时补;缺键回退注册表中文原文)。 */
@@ -84,6 +86,8 @@ export const ENTRY_META_LOCALE_EN: Record<string, string> = {
   [entryEffectNoteKey('runtime.tasks.active-tickets')]: 'Cannot be modified through the studio: the save path fail-closed rejects writes to it (same guard as other runtime-injection entries); the list text is recomputed into a cache by the tasks plugin on every pass cycle, and assemblies read the cache (no per-assembly store queries).',
   [entryDescriptionKey('runtime.agent-loop')]: 'System-prompt consumption point of the v1 agent-loop (runtime injection): each turn sends the host systemPrompt assembly result to the model as the system message; it produces no prompt text of its own and is not editable.',
   [entryEffectNoteKey('runtime.agent-loop')]: 'Cannot be modified through the studio (runtime-injection writes are rejected); the text is rebuilt dynamically by ctx.systemPrompt.assemble at every assembly and is not frozen by snapshot replay.',
+  [entryDescriptionKey('runtime.adviser.discipline')]: "The adviser discipline section (runtime injection): appended to every session's system prompt — it states that the sidebar 'adviser' is the user's own private side note, that the main session must not message it, must not treat it as a delegated subtask, and must not wait for it to return, and that any conclusion the user pastes in is just extra user input. Without it the model may go ask the adviser or wait on it and stall.",
+  [entryEffectNoteKey('runtime.adviser.discipline')]: 'Static text: new sessions pick up a change immediately while in-flight sessions keep their assembly snapshot; not editable through the studio (no version-chain read face yet, falls back to the built-in constant).',
   [entryDescriptionKey('meta.studio.ai-polish')]: "Meta-prompt for AI polish: the studio's \"AI polish\" uses it as the system message when calling the model, defining polish discipline (suggest-only, never applied, keep red-line sections, etc.); changing it changes polish behavior — the next polish run uses the new text.",
   [entryEffectNoteKey('meta.studio.ai-polish')]: "Enters no session's system-prompt assembly; AI polish reads the registry's current value at call time — after an R3-approved write-back, the next polish call uses the new text.",
   [entryDescriptionKey('meta.studio.ai-review')]: "Meta-prompt for AI review: the studio's \"AI review\" uses it as the system message when producing findings, defining review dimensions and output format; changing it changes review behavior — the next review run uses the new text.",

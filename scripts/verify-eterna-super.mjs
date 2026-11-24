@@ -149,6 +149,8 @@ const HOST_KEPT_ROWS = [
   'eterna-prompt-studio',
   // 附件入口（2026-11-12 生产挂载，输入框工具行「附件」按钮，客户端双面包）
   'eterna-attachments',
+  // 参谋面板（2026-11-24 54 号 P9，与 eterna-web 同构；base⊆super 超集）
+  'eterna-adviser',
 ]
 
 /** Kept rows that live behind agent presets: present + enabled + active in `standard`. */
@@ -164,7 +166,7 @@ const PRESET_KEPT_ROWS = [
 ]
 
 /** super 形态的 Tier2/接线包(守卫式 symlink:目录存在才建链,镜像 entrypoint 第 3 步同款)。 */
-const SUPER_FUTURE_PACKAGES = ['tasks', 'channels', 'interact', 'workbench', 'toolkit']
+const SUPER_FUTURE_PACKAGES = ['tasks', 'channels', 'interact', 'workbench', 'toolkit', 'adviser']
 
 // ---------------------------------------------------------------------------
 // 1. Materialize the profile under the DSH home.
@@ -255,7 +257,7 @@ if (!existsSync(join(knowledgeAdminPkg, 'lib', 'client.js'))) {
   console.error('verify-eterna-super: packages/knowledge-admin/lib/client.js 缺失——先跑 pnpm --filter @eterna/knowledge-admin run build:client')
   process.exit(1)
 }
-const BASE_MOUNT_PACKAGES = ['glue', 'llm-doctor', 'brand', 'panel', 'llm-openai', 'access', 'usage-stats', 'governance', 'knowledge-admin']
+const BASE_MOUNT_PACKAGES = ['glue', 'llm-doctor', 'brand', 'panel', 'llm-openai', 'access', 'usage-stats', 'governance', 'knowledge-admin', 'adviser']
 for (const pkg of BASE_MOUNT_PACKAGES) {
   symlinkSync(join(repoRoot, 'packages', pkg), join(profileDir, 'node_modules', '@eterna', pkg), 'dir')
 }
