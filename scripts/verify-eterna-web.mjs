@@ -57,7 +57,8 @@ const PROBE_TIMEOUT_MS = 10_000
  *  - stderr 不得出现 app-boot 的 `disabling profile plugin`（兼容性冲突静默裁行）。
  */
 // 2026-11-23 /clear:command-clear 为组内嵌套行(顶层 `- ` 行口径不变),常量不动。
-const EXPECTED_HOST_ENTRIES = 229
+// 2026-11-24 54 号:参谋面板 +2 行(eterna-adviser 挂载行 + eterna-adviser-preset)。
+const EXPECTED_HOST_ENTRIES = 231
 const EXPECTED_TEMPLATE_BLOCKS = 43
 const EXPECTED_TEMPLATE_INSERTS = 3
 const EXPECTED_TEMPLATE_OVERRIDES = 40

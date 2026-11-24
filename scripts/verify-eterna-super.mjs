@@ -59,7 +59,8 @@ const PROBE_TIMEOUT_MS = 10_000
 // R22(2026-11-21):tasks 双 preset restatement 行进 super 树,+2(preset 行本身是树行;
 // 其组成插件行挂 preset 后面,不占宿主树)。
 // 2026-11-23 /clear:command-clear 为组内嵌套行(顶层 `- ` 行口径不变),常量不动。
-const EXPECTED_HOST_ENTRIES = 237
+// 2026-11-24 54 号:参谋面板 +2 行(eterna-adviser 挂载行 + eterna-adviser-preset)。
+const EXPECTED_HOST_ENTRIES = 239
 const EXPECTED_TEMPLATE_BLOCKS = 43
 const EXPECTED_TEMPLATE_INSERTS = 3
 const EXPECTED_TEMPLATE_OVERRIDES = 40
@@ -166,7 +167,7 @@ const PRESET_KEPT_ROWS = [
 ]
 
 /** super 形态的 Tier2/接线包(守卫式 symlink:目录存在才建链,镜像 entrypoint 第 3 步同款)。 */
-const SUPER_FUTURE_PACKAGES = ['tasks', 'channels', 'interact', 'workbench', 'toolkit', 'adviser']
+const SUPER_FUTURE_PACKAGES = ['tasks', 'channels', 'interact', 'workbench', 'toolkit']
 
 // ---------------------------------------------------------------------------
 // 1. Materialize the profile under the DSH home.
