@@ -71,12 +71,12 @@ notes=$(curl -s -b "$JAR" --max-time 8 "$BASE/access/api/release-notes")
 if [ -z "$REL_VERSION" ]; then
   bad "仓库缺 VERSION——发布说明无从判定（55 号 §5.1）"
 elif ! printf '%s' "$notes" | grep -q "\"version\":\"$REL_VERSION\""; then
-  bad "发布说明未指向 $REL_VERSION（$notes）"
+  bad "发布说明未指向 ${REL_VERSION}（${notes}）"
 elif printf '%s' "$notes" | grep -q '"current":null'; then
   bad "发布说明 current 为空（镜像缺 releases/$REL_VERSION/release.json？）"
 else
   slides=$(printf '%s' "$notes" | grep -o '"kind":"' | wc -l | tr -d ' ')
-  if [ "${slides:-0}" -ge 3 ]; then ok "发布说明 $REL_VERSION（$slides 页）"; else bad "发布说明页数不足（实得 $slides）"; fi
+  if [ "${slides:-0}" -ge 3 ]; then ok "发布说明 ${REL_VERSION}（$slides 页）"; else bad "发布说明页数不足（实得 ${slides}）"; fi
 fi
 
 # 6) 越权变更拒绝（无 cookie 改昵称 → 401）
