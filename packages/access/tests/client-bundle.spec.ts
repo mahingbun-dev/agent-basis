@@ -219,6 +219,9 @@ describe('模块装载冒烟(vm)', () => {
     // 管理面页签(用户管理/审批队列)仍只给 admin
     expect(idsIn(harness, 'settings.section')).not.toContain('eterna-access.users')
     expect(idsIn(harness, 'settings.section')).not.toContain('eterna-access.approval-queue')
+    // 「更新记录」全员可见只读(55 号);shell.overlay 席位常驻(不弹时零尺寸根)
+    expect(idsIn(harness, 'settings.section')).toContain('eterna-access.release-notes')
+    expect(idsIn(harness, 'shell.overlay')).toContain('eterna-access.release-notes')
     harness.dispose()
   })
 
@@ -232,7 +235,10 @@ describe('模块装载冒烟(vm)', () => {
     expect(injectOf?.()).toEqual({ readOnly: false })
     // admin 专属页签在位(其余全员分区不逐项列举——main 会追加,子集断言更稳)
     const sections = idsIn(harness, 'settings.section')
-    for (const id of ['eterna-access.account', 'eterna-access.users', 'eterna-access.approval-queue']) {
+    for (const id of [
+      'eterna-access.account', 'eterna-access.users', 'eterna-access.approval-queue',
+      'eterna-access.release-notes',
+    ]) {
       expect(sections, id).toContain(id)
     }
     harness.dispose()

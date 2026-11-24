@@ -7,6 +7,8 @@
 export interface AccessRequest {
   readonly method: string
   readonly pathname: string
+  /** 原始查询串(不含 `?`);55 号「回看历史版」`?version=` 用。 */
+  readonly query?: string | undefined
   readonly cookie: string | undefined
   readonly origin: string | undefined
   readonly host: string | undefined

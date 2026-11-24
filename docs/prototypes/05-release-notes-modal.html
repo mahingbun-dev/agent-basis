@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-zcode-design>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>原型 · 版本更新介绍弹窗 · EternaAgent</title>
+<style>
+/* ===== 设计令牌：实值内联自 packages/ui/src/tokens.ts（结构同 WEBFLOW_TOKENS_CSS）===== */
+:root, [data-eterna-theme='light'] {
+  color-scheme: light;
+  --et-bg: #ffffff;
+  --et-surface: #ffffff;
+  --et-surface-2: #f7f7f7;
+  --et-fg: #080808;
+  --et-fg-2: #363636;
+  --et-muted: #5a5a5a;
+  --et-meta: #6b6b6b;
+  --et-border: #d8d8d8;
+  --et-border-soft: #ebebeb;
+  --et-accent: #146ef5;
+  --et-accent-hover: #0055d4;
+  --et-accent-active: #0b4fc0;
+  --et-accent-fill: #146ef5;
+  --et-accent-fill-hover: #0055d4;
+  --et-accent-on: #ffffff;
+  --et-accent-soft: color-mix(in oklab, var(--et-accent), transparent 90%);
+  --et-success: #067a1c;
+  --et-warn: #8a5a00;
+  --et-danger: #d3122b;
+  --et-danger-soft: color-mix(in oklab, var(--et-danger), transparent 90%);
+  --et-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 24px 64px rgba(0, 0, 0, 0.08);
+  --et-shadow-raised:
+    0px 84px 24px rgba(0, 0, 0, 0),
+    0px 54px 22px rgba(0, 0, 0, 0.01),
+    0px 30px 18px rgba(0, 0, 0, 0.04),
+    0px 13px 13px rgba(0, 0, 0, 0.08),
+    0px 3px 7px rgba(0, 0, 0, 0.09);
+  --et-focus-ring: 0 0 0 3px color-mix(in oklab, var(--et-accent), transparent 70%);
+  --et-selection: color-mix(in oklab, var(--et-accent), transparent 78%);
+  --et-overlay: rgba(0, 0, 0, 0.5);
+  --et-font-display: "WF Visual Sans Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --et-font-body: "WF Visual Sans Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --et-font-mono: "Inconsolata", ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  --et-text-micro: 12px;
+  --et-text-caption: 14px;
+  --et-text-body: 16px;
+  --et-text-lead: 20px;
+  --et-text-h3: 24px;
+  --et-text-h2: 32px;
+  --et-text-h1: 56px;
+  --et-leading-body: 1.6;
+  --et-leading-tight: 1.04;
+  --et-leading-snug: 1.3;
+  --et-tracking-display: -0.01em;
+  --et-weight-body: 500;
+  --et-weight-display: 600;
+  --et-space-1: 4px;
+  --et-space-2: 8px;
+  --et-space-3: 12px;
+  --et-space-4: 16px;
+  --et-space-5: 20px;
+  --et-space-6: 24px;
+  --et-space-8: 32px;
+  --et-space-12: 48px;
+  --et-space-24: 96px;
+  --et-radius-sm: 4px;
+  --et-radius-md: 4px;
+  --et-radius-lg: 8px;
+  --et-radius-pill: 9999px;
+  --et-motion-fast: 150ms;
+  --et-motion-base: 200ms;
+  --et-ease: cubic-bezier(0.2, 0, 0, 1);
+  /* 弹窗尺寸族：与设置弹窗(880×720)同族，视口不足时四周留 24px（frontend-style v3.2） */
+  --wn-width: 880px;
+  --wn-height: 720px;
+  --wn-gutter: 24px;
+}
+[data-eterna-theme='dark'] {
+  color-scheme: dark;
+  --et-bg: #080808;
+  --et-surface: #101010;
+  --et-surface-2: #161616;
+  --et-fg: #f5f5f5;
+  --et-fg-2: #d4d4d4;
+  --et-muted: #a3a3a3;
+  --et-meta: #8a8a8a;
+  --et-border: #2a2a2a;
+  --et-border-soft: #1e1e1e;
+  --et-accent: #3b89ff;
+  --et-accent-hover: #6aa6ff;
+  --et-accent-active: #146ef5;
+  --et-accent-fill: #2a6fd0;
+  --et-accent-fill-hover: #1f5bb0;
+  --et-accent-on: #ffffff;
+  --et-accent-soft: color-mix(in oklab, var(--et-accent), transparent 88%);
+  --et-success: #35e35f;
+  --et-warn: #ffb020;
+  --et-danger: #ff4d5f;
+  --et-danger-soft: color-mix(in oklab, var(--et-danger), transparent 88%);
+  --et-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 24px 64px rgba(0, 0, 0, 0.45);
+  --et-shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.6), 0 24px 64px rgba(0, 0, 0, 0.45);
+  --et-focus-ring: 0 0 0 3px color-mix(in oklab, var(--et-accent), transparent 65%);
+  --et-selection: color-mix(in oklab, var(--et-accent), transparent 70%);
+  --et-overlay: rgba(0, 0, 0, 0.72);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-eterna-theme='light']) {
+    color-scheme: dark;
+    --et-bg: #080808;
+    --et-surface: #101010;
+    --et-surface-2: #161616;
+    --et-fg: #f5f5f5;
+    --et-fg-2: #d4d4d4;
+    --et-muted: #a3a3a3;
+    --et-meta: #8a8a8a;
+    --et-border: #2a2a2a;
+    --et-border-soft: #1e1e1e;
+    --et-accent: #3b89ff;
+    --et-accent-hover: #6aa6ff;
+    --et-accent-active: #146ef5;
+    --et-accent-fill: #2a6fd0;
+    --et-accent-fill-hover: #1f5bb0;
+    --et-accent-on: #ffffff;
+    --et-accent-soft: color-mix(in oklab, var(--et-accent), transparent 88%);
+    --et-success: #35e35f;
+    --et-warn: #ffb020;
+    --et-danger: #ff4d5f;
+    --et-danger-soft: color-mix(in oklab, var(--et-danger), transparent 88%);
+    --et-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 24px 64px rgba(0, 0, 0, 0.45);
+    --et-shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.6), 0 24px 64px rgba(0, 0, 0, 0.45);
+    --et-focus-ring: 0 0 0 3px color-mix(in oklab, var(--et-accent), transparent 65%);
+    --et-selection: color-mix(in oklab, var(--et-accent), transparent 70%);
+    --et-overlay: rgba(0, 0, 0, 0.72);
+  }
+}
+
+/* ===== 基底 ===== */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--et-bg);
+  color: var(--et-fg);
+  font-family: var(--et-font-body);
+  font-size: var(--et-text-body);
+  line-height: var(--et-leading-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+h1, h2, h3, p, ul, figure { margin: 0; }
+ul { padding: 0; list-style: none; }
+button { font: inherit; color: inherit; background: none; border: 0; }
+:focus-visible { outline: none; box-shadow: var(--et-focus-ring); border-radius: var(--et-radius-sm); }
+::selection { background: var(--et-selection); }
+.tnum { font-variant-numeric: tabular-nums; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+
+/* ===== 原型控制条（不属于产品界面）===== */
+.demo-bar {
+  position: fixed; inset-block-start: var(--wn-gutter); inset-inline-end: var(--wn-gutter); z-index: 90;
+  display: flex; align-items: center; gap: var(--et-space-2);
+  padding: var(--et-space-2);
+  background: var(--et-surface);
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius-lg);
+  box-shadow: var(--et-shadow);
+  font-size: var(--et-text-micro);
+  color: var(--et-muted);
+}
+.demo-bar__label { padding-inline: var(--et-space-2); letter-spacing: 0.02em; }
+.demo-bar button {
+  min-height: 32px; padding: 0 var(--et-space-3);
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius-sm);
+  color: var(--et-fg-2); cursor: pointer;
+  transition: background var(--et-motion-fast) var(--et-ease), color var(--et-motion-fast) var(--et-ease);
+}
+.demo-bar button:hover { background: var(--et-surface-2); color: var(--et-fg); }
+.demo-bar button[aria-pressed='true'] { background: var(--et-accent-soft); border-color: var(--et-accent); color: var(--et-accent); }
+
+/* ===== 应用壳背景（示意上下文：骨架体块，不代表本功能）===== */
+.app-mock {
+  position: fixed; inset: 0; display: flex;
+  background: var(--et-bg);
+  overflow: hidden;
+}
+.app-mock__side {
+  width: 252px; flex: 0 0 auto;
+  border-inline-end: 1px solid var(--et-border-soft);
+  padding: var(--et-space-4) var(--et-space-3);
+  display: flex; flex-direction: column; gap: var(--et-space-4);
+}
+.app-mock__brand { display: flex; align-items: center; gap: var(--et-space-2); padding-inline: var(--et-space-2); }
+.app-mock__brand-name { font-size: var(--et-text-caption); font-weight: var(--et-weight-display); letter-spacing: 0; }
+.app-mock__row {
+  height: 34px; border-radius: var(--et-radius-sm);
+  background: var(--et-surface-2);
+  display: flex; align-items: center; gap: var(--et-space-2);
+  padding-inline: var(--et-space-3);
+}
+.app-mock__row--active { background: var(--et-accent-soft); }
+.app-mock__dot { width: 6px; height: 6px; border-radius: var(--et-radius-pill); background: var(--et-border); flex: 0 0 auto; }
+.app-mock__row--active .app-mock__dot { background: var(--et-accent); }
+.app-mock__bar { height: 8px; border-radius: var(--et-radius-pill); background: var(--et-border-soft); }
+.app-mock__main { flex: 1; display: flex; flex-direction: column; padding: var(--et-space-6) var(--et-space-8); gap: var(--et-space-6); }
+.app-mock__head { display: flex; align-items: center; justify-content: space-between; }
+.app-mock__title { font-size: var(--et-text-lead); font-weight: var(--et-weight-display); color: var(--et-fg-2); }
+.app-mock__pill { height: 28px; width: 96px; border-radius: var(--et-radius-pill); background: var(--et-surface-2); border: 1px solid var(--et-border-soft); }
+.app-mock__thread { flex: 1; display: flex; flex-direction: column; gap: var(--et-space-5); max-width: 720px; }
+.app-mock__msg { display: flex; gap: var(--et-space-3); }
+.app-mock__avatar { width: 28px; height: 28px; border-radius: var(--et-radius-md); background: var(--et-surface-2); border: 1px solid var(--et-border-soft); flex: 0 0 auto; }
+.app-mock__bubble { flex: 1; display: flex; flex-direction: column; gap: var(--et-space-2); padding-block-start: var(--et-space-1); }
+.app-mock__composer {
+  max-width: 720px; min-height: 88px;
+  border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-lg);
+  background: var(--et-surface); padding: var(--et-space-4);
+  display: flex; flex-direction: column; justify-content: space-between; gap: var(--et-space-3);
+}
+.app-mock__composer-foot { display: flex; align-items: center; justify-content: space-between; }
+.app-mock__send { width: 32px; height: 32px; border-radius: var(--et-radius-md); background: var(--et-accent); opacity: 0.85; }
+
+/* ===== 遮罩与弹窗 ===== */
+.scrim {
+  position: fixed; inset: 0; z-index: 60;
+  display: grid; place-items: center;
+  padding: var(--wn-gutter);
+  background: var(--et-overlay);
+  backdrop-filter: blur(2px);
+  opacity: 0; visibility: hidden;
+  transition: opacity var(--et-motion-base) var(--et-ease), visibility var(--et-motion-base) var(--et-ease);
+}
+.scrim[data-open='true'] { opacity: 1; visibility: visible; }
+.scrim[data-open='true'] .wn { transform: translateY(0) scale(1); opacity: 1; }
+
+.wn {
+  position: relative;
+  width: min(var(--wn-width), 100%);
+  height: min(var(--wn-height), calc(100vh - var(--wn-gutter) * 2));
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: var(--et-surface);
+  border: 1px solid var(--et-border-soft);
+  border-radius: var(--et-radius-lg);
+  box-shadow: var(--et-shadow-raised);
+  overflow: hidden;
+  transform: translateY(8px) scale(0.995);
+  opacity: 0;
+  transition: transform var(--et-motion-base) var(--et-ease), opacity var(--et-motion-base) var(--et-ease);
+}
+
+/* 头部：版本徽标 + 关闭 */
+.wn-head {
+  display: flex; align-items: center; gap: var(--et-space-3);
+  padding: var(--et-space-5) var(--et-space-6);
+  border-block-end: 1px solid var(--et-border-soft);
+  min-width: 0;
+}
+.wn-head__ver {
+  display: inline-flex; align-items: center; gap: var(--et-space-2);
+  height: 26px; padding-inline: 10px;
+  border-radius: var(--et-radius-sm);
+  background: var(--et-accent-soft);
+  color: var(--et-fg-2);
+  font-size: var(--et-text-micro); font-weight: var(--et-weight-display);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.wn-head__sep { width: 1px; height: 16px; background: var(--et-border); flex: 0 0 auto; }
+.wn-head__date { font-size: var(--et-text-micro); color: var(--et-meta); white-space: nowrap; }
+.wn-head__spacer { flex: 1; }
+.wn-close {
+  width: 36px; height: 36px; flex: 0 0 auto;
+  display: grid; place-items: center;
+  border-radius: var(--et-radius-sm);
+  color: var(--et-muted); cursor: pointer;
+  transition: background var(--et-motion-fast) var(--et-ease), color var(--et-motion-fast) var(--et-ease);
+}
+.wn-close:hover { background: var(--et-surface-2); color: var(--et-fg); }
+
+/* ===== 幻灯片轨道 ===== */
+.wn-track {
+  display: flex;
+  overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.wn-track::-webkit-scrollbar { display: none; }
+.slide {
+  flex: 0 0 100%; width: 100%;
+  scroll-snap-align: center; scroll-snap-stop: always;
+  padding: var(--et-space-6);
+  display: grid;
+  align-content: center;
+  gap: var(--et-space-5);
+  min-width: 0;
+}
+/* 图文页：图左文右 */
+.slide--split { grid-template-columns: minmax(0, 1.95fr) minmax(0, 1fr); gap: var(--et-space-6); align-content: center; }
+.slide--split .slide__copy { padding-block: var(--et-space-2); }
+
+.media {
+  position: relative;
+  border: 1px solid var(--et-border-soft);
+  border-radius: var(--et-radius-lg);
+  background: var(--et-surface-2);
+  overflow: hidden;
+}
+.media > svg { display: block; width: 100%; height: auto; }
+.media__tag {
+  position: absolute; inset-block-end: 8px; inset-inline-start: 8px;
+  padding: 2px 6px;
+  border-radius: var(--et-radius-sm);
+  background: color-mix(in oklab, var(--et-surface), transparent 8%);
+  border: 1px solid var(--et-border-soft);
+  color: var(--et-meta);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.media__cap {
+  margin: 0;
+  padding: 8px 12px 10px;
+  border-block-start: 1px solid var(--et-border-soft);
+  background: var(--et-surface-2);
+  font-size: var(--et-text-micro);
+  color: var(--et-meta);
+  line-height: 1.5;
+}
+
+
+.kicker {
+  display: inline-flex; align-items: center; gap: var(--et-space-2);
+  font-size: var(--et-text-micro); font-weight: var(--et-weight-display);
+  letter-spacing: 0.04em;
+  color: var(--et-accent);
+}
+.kicker::before {
+  content: ''; width: 14px; height: 1.75px; border-radius: var(--et-radius-pill);
+  background: currentColor; flex: 0 0 auto;
+}
+.slide__title {
+  font-size: 26px;
+  font-weight: var(--et-weight-display);
+  line-height: var(--et-leading-snug);
+  letter-spacing: var(--et-tracking-display);
+  text-wrap: balance;
+}
+.slide__body {
+  font-size: var(--et-text-body);
+  line-height: 1.7;
+  color: var(--et-fg-2);
+  max-width: 42ch;
+}
+.facts { display: flex; flex-direction: column; gap: var(--et-space-2); margin-block-start: var(--et-space-1); }
+.facts li {
+  display: grid; grid-template-columns: 16px 1fr; gap: var(--et-space-2);
+  align-items: start;
+  font-size: 13px;
+  color: var(--et-muted);
+  line-height: 1.5;
+}
+.facts svg { margin-block-start: 2px; color: var(--et-success); }
+.facts code {
+  font-family: var(--et-font-mono); font-size: 12px;
+  background: var(--et-surface-2);
+  border: 1px solid var(--et-border-soft);
+  border-radius: 3px; padding: 0 4px;
+  color: var(--et-fg-2);
+}
+/* ===== 封面页 ===== */
+.slide--cover {
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: center;
+  gap: var(--et-space-6);
+  background:
+    radial-gradient(120% 90% at 100% 0%, var(--et-accent-soft), transparent 62%),
+    var(--et-surface);
+}
+.cover__ver {
+  font-family: var(--et-font-mono);
+  font-size: var(--et-text-micro);
+  color: var(--et-muted);
+  letter-spacing: 0.06em;
+}
+.cover__title {
+  font-size: var(--et-text-h2);
+  font-weight: var(--et-weight-display);
+  line-height: 1.14;
+  letter-spacing: var(--et-tracking-display);
+  text-wrap: balance;
+  margin-block-start: var(--et-space-2);
+}
+.cover__sub {
+  margin-block-start: var(--et-space-3);
+  font-size: var(--et-text-caption);
+  color: var(--et-fg-2);
+  max-width: 34ch;
+}
+.cover__chips { display: flex; flex-wrap: wrap; gap: var(--et-space-2); margin-block-start: var(--et-space-5); }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding-inline: 10px;
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius-pill);
+  font-size: var(--et-text-micro);
+  color: var(--et-fg-2);
+  background: var(--et-surface);
+}
+.chip__n {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--et-weight-display);
+  color: var(--et-accent);
+}
+.cover__art { display: grid; justify-items: center; gap: var(--et-space-3); }
+.cover__art svg { width: 100%; max-width: 260px; height: auto; }
+.cover__art-cap {
+  font-size: 11px; color: var(--et-meta); text-align: center; line-height: 1.5;
+}
+
+/* ===== 收尾页 ===== */
+.slide--end {
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+  gap: var(--et-space-4);
+}
+.end__mark {
+  width: 64px; height: 64px; display: grid; place-items: center;
+  border-radius: var(--et-radius-pill);
+  background: var(--et-accent-soft);
+  color: var(--et-accent);
+}
+.end__title { font-size: var(--et-text-h3); font-weight: var(--et-weight-display); line-height: var(--et-leading-snug); }
+.end__body { font-size: var(--et-text-caption); color: var(--et-fg-2); max-width: 44ch; }
+.end__cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--et-space-3); width: 100%; max-width: 600px; text-align: start; }
+.end__card {
+  display: grid; gap: var(--et-space-1);
+  padding: var(--et-space-4);
+  border: 1px solid var(--et-border-soft);
+  border-radius: var(--et-radius-lg);
+  background: var(--et-surface-2);
+  text-align: start;
+}
+.end__card-title { display: flex; align-items: center; gap: var(--et-space-2); font-size: var(--et-text-caption); font-weight: var(--et-weight-display); }
+.end__card-title svg { color: var(--et-accent); }
+.end__card-note { font-size: var(--et-text-micro); color: var(--et-muted); line-height: 1.5; }
+
+/* ===== 页脚：进度 + 操作 ===== */
+.wn-foot {
+  display: flex; align-items: center; gap: var(--et-space-4);
+  padding: var(--et-space-4) var(--et-space-6);
+  border-block-start: 1px solid var(--et-border-soft);
+}
+.progress { display: flex; align-items: center; gap: var(--et-space-2); min-width: 0; }
+.progress__segs { display: flex; gap: 4px; }
+.progress__seg {
+  width: 28px; height: 4px; border-radius: var(--et-radius-pill);
+  background: var(--et-border);
+  transition: background var(--et-motion-fast) var(--et-ease);
+  cursor: pointer; padding: 0; border: 0;
+  position: relative;
+}
+.progress__seg::after { content: ''; position: absolute; inset: -9px -2px; }
+.progress__seg[data-state='done'] { background: var(--et-accent); opacity: 0.45; }
+.progress__seg[data-state='current'] { background: var(--et-accent); width: 34px; }
+.progress__count {
+  font-size: var(--et-text-micro); color: var(--et-muted);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.wn-foot__spacer { flex: 1; }
+.btn {
+  min-height: 40px; padding: 0 var(--et-space-4);
+  border-radius: var(--et-radius-sm);
+  font-size: var(--et-text-caption); font-weight: var(--et-weight-body);
+  cursor: pointer; display: inline-flex; align-items: center; gap: var(--et-space-2);
+  transition: background var(--et-motion-fast) var(--et-ease), border-color var(--et-motion-fast) var(--et-ease);
+}
+.btn--ghost { color: var(--et-muted); }
+.btn--ghost:hover { color: var(--et-fg); background: var(--et-surface-2); }
+.btn--outline { border: 1px solid var(--et-border); color: var(--et-fg-2); background: var(--et-surface); }
+.btn--outline:hover { border-color: var(--et-muted); background: var(--et-surface-2); }
+.btn--primary { background: var(--et-accent-fill); color: var(--et-accent-on); border: 1px solid transparent; }
+.btn--primary:hover { background: var(--et-accent-fill-hover); }
+.btn[disabled] { opacity: 0.4; cursor: default; }
+.btn svg { flex: 0 0 auto; }
+
+/* ===== 轻提示（关闭后的去路说明）===== */
+.wn-toast {
+  position: fixed; inset-block-end: var(--wn-gutter); inset-inline-start: 50%;
+  transform: translateX(-50%) translateY(8px);
+  z-index: 95;
+  display: flex; align-items: center; gap: var(--et-space-2);
+  max-width: min(560px, calc(100vw - 32px));
+  padding: 10px var(--et-space-4);
+  background: var(--et-surface);
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius-lg);
+  box-shadow: var(--et-shadow);
+  font-size: var(--et-text-caption); color: var(--et-fg-2);
+  opacity: 0; visibility: hidden;
+  transition: opacity var(--et-motion-base) var(--et-ease), transform var(--et-motion-base) var(--et-ease), visibility var(--et-motion-base) var(--et-ease);
+}
+.wn-toast[data-show='true'] { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+.wn-toast svg { color: var(--et-accent); flex: 0 0 auto; }
+
+/* ===== 响应式 ===== */
+@media (max-width: 860px) {
+  .slide--split, .slide--cover { grid-template-columns: minmax(0, 1fr); align-content: start; overflow-y: auto; }
+  .cover__art { display: none; }
+  .wn { height: min(var(--wn-height), calc(100vh - 32px)); }
+}
+@media (max-width: 640px) {
+  .app-mock { display: none; }
+  .scrim { padding: 0; place-items: stretch; }
+  .wn { width: 100%; height: 100%; border-radius: 0; border: 0; }
+  .wn-head, .wn-foot { padding-inline: var(--et-space-4); }
+  .slide { padding: var(--et-space-4); gap: var(--et-space-4); }
+  .wn-foot { flex-wrap: wrap; row-gap: var(--et-space-2); }
+  .wn-foot .progress { flex: 1 0 100%; }
+  .wn-foot__spacer { display: none; }
+  .wn-foot .btn { flex: 1 1 auto; justify-content: center; }
+  .progress__seg::after { inset: -16px -4px; }
+  .demo-bar { display: none; }
+  .end__cards { grid-template-columns: minmax(0, 1fr); }
+  .slide__title { font-size: var(--et-text-lead); }
+  .cover__title { font-size: var(--et-text-h3); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important; animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important; scroll-behavior: auto !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- 应用壳背景：仅交代遮罩语境（骨架体块，非本次交付主题） -->
+<div class="app-mock" aria-hidden="true">
+  <aside class="app-mock__side">
+    <div class="app-mock__brand">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="2.5" y="3.5" width="19" height="17" rx="4" stroke="currentColor" stroke-width="1.75"/>
+        <path d="M7 14.5 10.2 9l2.4 3.6 1.7-2 2.7 3.9" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="app-mock__brand-name">EternaAgent</span>
+    </div>
+    <div class="app-mock__row app-mock__row--active"><span class="app-mock__dot"></span><span class="app-mock__bar" style="width:64%;height:6px;background:var(--et-accent);opacity:.35"></span></div>
+    <div class="app-mock__row"><span class="app-mock__dot"></span><span class="app-mock__bar" style="width:76%;height:6px"></span></div>
+    <div class="app-mock__row"><span class="app-mock__dot"></span><span class="app-mock__bar" style="width:52%;height:6px"></span></div>
+    <div class="app-mock__row"><span class="app-mock__dot"></span><span class="app-mock__bar" style="width:68%;height:6px"></span></div>
+    <div style="flex:1"></div>
+    <div class="app-mock__row"><span class="app-mock__dot"></span><span class="app-mock__bar" style="width:40%;height:6px"></span></div>
+  </aside>
+  <div class="app-mock__main">
+    <div class="app-mock__head">
+      <span class="app-mock__title">新会话</span>
+      <span class="app-mock__pill"></span>
+    </div>
+    <div class="app-mock__thread">
+      <div class="app-mock__msg">
+        <div class="app-mock__avatar"></div>
+        <div class="app-mock__bubble">
+          <span class="app-mock__bar" style="width:38%"></span>
+          <span class="app-mock__bar" style="width:74%"></span>
+          <span class="app-mock__bar" style="width:61%"></span>
+        </div>
+      </div>
+      <div class="app-mock__msg">
+        <div class="app-mock__avatar" style="background:var(--et-accent-soft);border-color:var(--et-accent)"></div>
+        <div class="app-mock__bubble">
+          <span class="app-mock__bar" style="width:88%"></span>
+          <span class="app-mock__bar" style="width:66%"></span>
+          <span class="app-mock__bar" style="width:79%"></span>
+          <span class="app-mock__bar" style="width:42%"></span>
+        </div>
+      </div>
+    </div>
+    <div class="app-mock__composer">
+      <span class="app-mock__bar" style="width:52%"></span>
+      <div class="app-mock__composer-foot">
+        <span class="app-mock__bar" style="width:120px"></span>
+        <span class="app-mock__send"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 原型控制条 -->
+<div class="demo-bar" role="group" aria-label="原型控制">
+  <span class="demo-bar__label">原型控制</span>
+  <button type="button" id="btn-theme" aria-pressed="false">深色</button>
+  <button type="button" id="btn-reopen">重开弹窗</button>
+  <button type="button" id="btn-goto">跳到第 3 页</button>
+</div>
+
+<div class="wn-toast" id="wn-toast" role="status" aria-live="polite">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="1.75"/>
+    <path d="M12 10.8v5.4M12 7.6v.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+  </svg>
+  <span id="wn-toast-text"></span>
+</div>
+
+<!-- ===== 更新弹窗 ===== -->
+<div class="scrim" id="scrim" data-open="true">
+  <section class="wn" role="dialog" aria-modal="true" aria-labelledby="wn-title" aria-describedby="wn-lead" id="wn">
+    <header class="wn-head">
+      <span class="wn-head__ver tnum">v0.2.1</span>
+      <span class="wn-head__sep" aria-hidden="true"></span>
+      <span class="wn-head__date tnum">2026-11-24 发布</span>
+      <span class="wn-head__spacer"></span>
+      <button type="button" class="wn-close" id="wn-close" aria-label="关闭更新说明">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="wn-track" id="track" tabindex="-1">
+      <p class="sr-only" id="wn-lead">本次更新共 6 页，可用左右方向键翻页。</p>
+      <p class="sr-only" id="wn-live" aria-live="polite"></p>
+
+      <!-- 1 封面 -->
+      <article class="slide slide--cover" aria-label="第 1 页，共 6 页：封面">
+        <div class="slide__copy">
+          <p class="cover__ver tnum">RELEASE 0.2.1</p>
+          <h1 class="cover__title" id="wn-title">更清楚，<br>也更可控</h1>
+          <p class="cover__sub">本次更新集中在你每天都会碰到的三处：会话上下文、任务工单、插件权限。另有升级配置保留的修复。</p>
+          <div class="cover__chips">
+            <span class="chip"><span class="chip__n tnum">01</span>一键清空上下文</span>
+            <span class="chip"><span class="chip__n tnum">02</span>工单状态诚实</span>
+            <span class="chip"><span class="chip__n tnum">03</span>插件页全员可见</span>
+          </div>
+        </div>
+        <div class="cover__art" aria-hidden="true">
+          <svg viewBox="0 0 260 260" fill="none">
+            <circle cx="130" cy="130" r="104" stroke="var(--et-border)" stroke-width="1.75" stroke-dasharray="2 7" stroke-linecap="round"/>
+            <circle cx="130" cy="130" r="76" stroke="var(--et-accent)" stroke-width="1.75" opacity="0.35"/>
+            <circle cx="130" cy="130" r="48" stroke="var(--et-accent)" stroke-width="1.75"/>
+            <path d="M130 54v30M130 176v30M54 130h30M176 130h30" stroke="var(--et-border)" stroke-width="1.75" stroke-linecap="round"/>
+            <circle cx="130" cy="130" r="18" fill="var(--et-accent)" opacity="0.16"/>
+            <circle cx="130" cy="130" r="6.5" fill="var(--et-accent)"/>
+            <circle cx="206" cy="130" r="5" fill="var(--et-accent)"/>
+            <circle cx="86" cy="196" r="4" fill="var(--et-border)" stroke="none"/>
+          </svg>
+        </div>
+      </article>
+
+      <!-- 2 会话上下文 -->
+      <article class="slide slide--split" aria-label="第 2 页，共 6 页：一键清空上下文">
+        <figure class="media">
+          <svg viewBox="0 0 480 300" fill="none" role="img" aria-label="输入斜杠命令 clear 后，命令面板列出「清空当前会话上下文」，输入框显示上下文占用归零">
+            <rect x="0" y="0" width="480" height="300" fill="var(--et-surface)"/>
+            <rect x="20" y="18" width="120" height="7" rx="3.5" fill="var(--et-border-soft)"/>
+            <rect x="20" y="36" width="250" height="7" rx="3.5" fill="var(--et-border-soft)"/>
+            <rect x="20" y="54" width="180" height="7" rx="3.5" fill="var(--et-border-soft)"/>
+            <g>
+              <rect x="20" y="70" width="320" height="118" rx="8" fill="var(--et-surface)" stroke="var(--et-border)"/>
+              <path d="M20 78a8 8 0 0 1 8-8h304a8 8 0 0 1 8 8v26H20z" fill="var(--et-surface-2)"/>
+              <text x="34" y="93" font-size="11" fill="var(--et-meta)">斜杠命令</text>
+              <rect x="28" y="108" width="304" height="42" rx="4" fill="var(--et-accent-soft)"/>
+              <rect x="28" y="108" width="3" height="42" rx="1.5" fill="var(--et-accent)"/>
+              <text x="42" y="126" font-family="Inconsolata, ui-monospace, monospace" font-size="15" fill="var(--et-accent)">/clear</text>
+              <text x="108" y="126" font-size="13" fill="var(--et-fg)">清空当前会话上下文</text>
+              <text x="42" y="142" font-size="11" fill="var(--et-muted)">上下文全清，审计留痕</text>
+              <text x="42" y="170" font-family="Inconsolata, ui-monospace, monospace" font-size="14" fill="var(--et-fg-2)">/compact</text>
+              <text x="122" y="170" font-size="12" fill="var(--et-muted)">手动压缩上下文</text>
+            </g>
+            <g>
+              <rect x="20" y="200" width="440" height="80" rx="8" fill="var(--et-surface)" stroke="var(--et-border)"/>
+              <rect x="36" y="214" width="54" height="20" rx="3" fill="var(--et-accent-soft)"/>
+              <text x="43" y="229" font-family="Inconsolata, ui-monospace, monospace" font-size="13" fill="var(--et-accent)">/clear</text>
+              <rect x="98" y="216" width="2" height="16" fill="var(--et-accent)"/>
+              <text x="36" y="252" font-size="12" fill="var(--et-meta)">回车执行 · 事件写入审计</text>
+              <rect x="36" y="258" width="126" height="18" rx="9" fill="var(--et-surface-2)" stroke="var(--et-border-soft)"/>
+              <text x="46" y="271" font-size="11" fill="var(--et-muted)">上下文 62% → 0%</text>
+              <rect x="404" y="246" width="40" height="22" rx="4" fill="var(--et-accent)"/>
+              <rect x="414" y="254" width="20" height="6" rx="3" fill="var(--et-accent-on)" opacity="0.9"/>
+            </g>
+          </svg>
+          <figcaption class="media__cap">示意图：输入 <code>/clear</code> 调出命令面板，执行后上下文归零</figcaption>
+        </figure>
+        <div class="slide__copy">
+          <p class="kicker">会话</p>
+          <h2 class="slide__title">一个命令，重开会话</h2>
+          <p class="slide__body">输入 <code>/clear</code> 清空当前会话的全部上下文。几十轮旧话题不再拖住新任务，而对话记录与文件原样保留。</p>
+          <ul class="facts">
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 6.8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span>清空动作落审计，谁在何时清的可追</span></li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 6.8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span>会话本身不删，随时接着聊</span></li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 6.8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span>适合切换新主题前的一次彻底重置</span></li>
+          </ul>
+        </div>
+      </article>
+
+      <!-- 3 任务工单 -->
+      <article class="slide slide--split" aria-label="第 3 页，共 6 页：工单状态诚实化">
+        <figure class="media">
+          <svg viewBox="0 0 480 300" fill="none" role="img" aria-label="工单列表：原先常驻「运行中」的工单现在如实显示「已完成」，新任务绑定在正确的工单上">
+            <rect x="0" y="0" width="480" height="300" fill="var(--et-surface)"/>
+            <text x="20" y="32" font-size="14" font-weight="600" fill="var(--et-fg)">工单</text>
+            <rect x="336" y="16" width="124" height="24" rx="4" fill="var(--et-surface)" stroke="var(--et-border)"/>
+            <text x="348" y="32" font-size="11" fill="var(--et-muted)">回收口径 · 实测</text>
+            <text x="20" y="60" font-size="11" fill="var(--et-meta)">旧</text>
+            <rect x="34" y="48" width="426" height="52" rx="8" fill="var(--et-surface-2)" stroke="var(--et-border-soft)"/>
+            <rect x="50" y="64" width="130" height="7" rx="3.5" fill="var(--et-border)"/>
+            <rect x="50" y="80" width="80" height="6" rx="3" fill="var(--et-border-soft)"/>
+            <rect x="338" y="62" width="92" height="24" rx="12" fill="var(--et-warn)" opacity="0.14"/>
+            <circle cx="354" cy="74" r="3.5" fill="var(--et-warn)"/>
+            <text x="366" y="79" font-size="11" fill="var(--et-warn)">运行中</text>
+            <path d="M56 76l274 8" stroke="var(--et-danger)" stroke-width="1.75" stroke-linecap="round" opacity="0.45"/>
+            <text x="20" y="128" font-size="11" fill="var(--et-accent)">新</text>
+            <rect x="34" y="116" width="426" height="52" rx="8" fill="var(--et-surface)" stroke="var(--et-border)"/>
+            <rect x="50" y="132" width="130" height="7" rx="3.5" fill="var(--et-fg-2)"/>
+            <rect x="50" y="148" width="80" height="6" rx="3" fill="var(--et-border-soft)"/>
+            <rect x="338" y="130" width="92" height="24" rx="12" fill="var(--et-success)" opacity="0.14"/>
+            <path d="M352 142.5l3.4 3.4 6-6.2" stroke="var(--et-success)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            <text x="366" y="147" font-size="11" fill="var(--et-success)">已完成</text>
+            <rect x="34" y="182" width="426" height="56" rx="8" fill="var(--et-surface)" stroke="var(--et-border)"/>
+            <text x="50" y="204" font-size="12" fill="var(--et-fg)">新任务</text>
+            <rect x="50" y="212" width="122" height="20" rx="4" fill="var(--et-accent-soft)"/>
+            <text x="58" y="226" font-size="11" fill="var(--et-accent)">派发渠道 · 主会话</text>
+            <rect x="180" y="212" width="82" height="20" rx="4" fill="var(--et-surface-2)" stroke="var(--et-border-soft)"/>
+            <text x="188" y="226" font-size="11" fill="var(--et-muted)">工单 #129</text>
+            <rect x="20" y="252" width="440" height="30" rx="4" fill="var(--et-surface-2)" stroke="var(--et-border-soft)"/>
+            <text x="34" y="271" font-size="11" fill="var(--et-muted)">状态只按内核真实回收结果判定</text>
+          </svg>
+          <figcaption class="media__cap">示意图：状态判定改为回收口径，派发渠道独立成项</figcaption>
+        </figure>
+        <div class="slide__copy">
+          <p class="kicker">任务</p>
+          <h2 class="slide__title">不再有「假运行中」</h2>
+          <p class="slide__body">工单状态改为按真实回收口径判定；新任务不再绑到上一张旧单上，主会话派发走独立渠道。</p>
+          <ul class="facts">
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 6.8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span>状态与内核一致，可信度优先</span></li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 6.8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span>历史工单自动按新口径回显</span></li>
+          </ul>
+        </div>
+      </article>
+
+      <!-- 4 插件页权限 -->
+      <article class="slide slide--split" aria-label="第 4 页，共 6 页：插件页全员可见只读">
+        <figure class="media">
+          <svg viewBox="0 0 480 300" fill="none" role="img" aria-label="插件页列表：非管理员可见已装插件与版本，启停与卸载按钮为置灰只读状态">
+            <rect x="0" y="0" width="480" height="300" fill="var(--et-surface)"/>
+            <text x="20" y="32" font-size="14" font-weight="600" fill="var(--et-fg)">恒灵插件</text>
+            <rect x="298" y="16" width="162" height="24" rx="4" fill="var(--et-warn)" opacity="0.12"/>
+            <text x="310" y="32" font-size="11" fill="var(--et-warn)">只读 · 仅管理员可操作</text>
+            <text x="20" y="62" font-size="11" fill="var(--et-meta)">插件</text>
+            <text x="300" y="62" font-size="11" fill="var(--et-meta)">版本</text>
+            <text x="358" y="62" font-size="11" fill="var(--et-meta)">状态</text>
+            <text x="422" y="62" font-size="11" fill="var(--et-meta)">操作</text>
+            <path d="M20 70h440" stroke="var(--et-border-soft)"/>
+            <g>
+              <rect x="20" y="80" width="26" height="26" rx="6" fill="var(--et-accent-soft)"/>
+              <path d="M27 93h12M33 87v12" stroke="var(--et-accent)" stroke-width="1.75" stroke-linecap="round"/>
+              <text x="58" y="92" font-size="12" fill="var(--et-fg)">知识库</text>
+              <text x="58" y="106" font-size="10" fill="var(--et-meta)">dsh-knowledge</text>
+              <text x="300" y="98" font-family="Inconsolata, ui-monospace, monospace" font-size="11" fill="var(--et-fg-2)">0.2.1</text>
+              <rect x="358" y="86" width="52" height="20" rx="10" fill="var(--et-success)" opacity="0.14"/>
+              <text x="369" y="100" font-size="10" fill="var(--et-success)">已启用</text>
+              <rect x="422" y="86" width="38" height="20" rx="3" fill="var(--et-surface-2)" stroke="var(--et-border-soft)"/>
+              <text x="430" y="100" font-size="10" fill="var(--et-meta)">停用</text>
+              <path d="M20 118h440" stroke="var(--et-border-soft)"/>
+            </g>
+            <g>
+              <rect x="20" y="128" width="26" height="26" rx="6" fill="var(--et-surface-2)" stroke="var(--et-border-soft)"/>
+              <circle cx="33" cy="141" r="5.5" stroke="var(--et-muted)" stroke-width="1.5"/>
+              <text x="58" y="140" font-size="12" fill="var(--et-fg)">任务工坊</text>
+              <text x="58" y="154" font-size="10" fill="var(--et-meta)">dsh-tasks</text>
+              <text x="300" y="146" font-family="Inconsolata, ui-monospace, monospace" font-size="11" fill="var(--et-fg-2)">0.2.1</text>
+              <rect x="358" y="134" width="52" height="20" rx="10" fill="var(--et-surface-2)"/>
+              <text x="369" y="148" font-size="10" fill="var(--et-muted)">已停用</text>
+              <rect x="422" y="134" width="38" height="20" rx="3" fill="var(--et-surface-2)" stroke="var(--et-border-soft)"/>
+              <text x="430" y="148" font-size="10" fill="var(--et-meta)">启用</text>
+              <path d="M20 166h440" stroke="var(--et-border-soft)"/>
+            </g>
+            <g>
+              <rect x="20" y="176" width="26" height="26" rx="6" fill="var(--et-surface-2)" stroke="var(--et-border-soft)"/>
+              <path d="M27 186l6 6 6-6" stroke="var(--et-muted)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+              <text x="58" y="188" font-size="12" fill="var(--et-fg)">提示词工坊</text>
+              <text x="58" y="202" font-size="10" fill="var(--et-meta)">dsh-prompt-studio</text>
+              <text x="300" y="194" font-family="Inconsolata, ui-monospace, monospace" font-size="11" fill="var(--et-fg-2)">0.2.0</text>
+              <rect x="358" y="182" width="52" height="20" rx="10" fill="var(--et-success)" opacity="0.14"/>
+              <text x="369" y="196" font-size="10" fill="var(--et-success)">已启用</text>
+              <rect x="422" y="182" width="38" height="20" rx="3" fill="var(--et-surface-2)" stroke="var(--et-border-soft)"/>
+              <text x="430" y="196" font-size="10" fill="var(--et-meta)">停用</text>
+            </g>
+            <rect x="20" y="222" width="440" height="60" rx="4" fill="var(--et-surface-2)"/>
+            <text x="34" y="244" font-size="11" fill="var(--et-muted)">读接口对全员开放，写接口仍由服务端强制管理员——</text>
+            <text x="34" y="264" font-size="11" fill="var(--et-muted)">前端置灰只是提示，越权请求会被直接拒绝。</text>
+          </svg>
+          <figcaption class="media__cap">示意图：列表可见、控件置灰；真正的边界在服务端</figcaption>
+        </figure>
+        <div class="slide__copy">
+          <p class="kicker">权限</p>
+          <h2 class="slide__title">插件页对全员开放</h2>
+          <p class="slide__body">非管理员也能查看已装插件、版本与启用状态，排障不必再问管理员。启停与卸载仍由管理员执行。</p>
+          <ul class="facts">
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 6.8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span>只读范围限方法白名单内的读接口</span></li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 6.8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span>写操作失败即拒绝，不靠前端自约束</span></li>
+          </ul>
+        </div>
+      </article>
+
+      <!-- 5 升级保留配置 -->
+      <article class="slide slide--split" aria-label="第 5 页，共 6 页：升级不再丢模型供应商">
+        <figure class="media">
+          <svg viewBox="0 0 480 300" fill="none" role="img" aria-label="模型设置：升级前后对比，自建模型供应商在升级后仍保留在列表中">
+            <rect x="0" y="0" width="480" height="300" fill="var(--et-surface)"/>
+            <text x="20" y="32" font-size="14" font-weight="600" fill="var(--et-fg)">模型供应商</text>
+            <rect x="20" y="44" width="204" height="204" rx="8" fill="var(--et-surface-2)" stroke="var(--et-border-soft)"/>
+            <text x="34" y="66" font-size="11" fill="var(--et-meta)">升级前</text>
+            <g>
+              <rect x="32" y="76" width="180" height="42" rx="6" fill="var(--et-surface)" stroke="var(--et-border-soft)"/>
+              <rect x="42" y="88" width="18" height="18" rx="4" fill="var(--et-accent-soft)"/>
+              <text x="68" y="98" font-size="12" fill="var(--et-fg)">DeepSeek</text>
+              <text x="68" y="111" font-size="10" fill="var(--et-meta)">内置</text>
+              <rect x="32" y="126" width="180" height="42" rx="6" fill="var(--et-surface)" stroke="var(--et-border-soft)"/>
+              <rect x="42" y="138" width="18" height="18" rx="4" fill="var(--et-surface-2)" stroke="var(--et-border-soft)"/>
+              <text x="68" y="148" font-size="12" fill="var(--et-fg)">自建兼容端点</text>
+              <text x="68" y="161" font-size="10" fill="var(--et-meta)">自行添加</text>
+              <rect x="32" y="176" width="180" height="42" rx="6" fill="var(--et-surface)" stroke="var(--et-border-soft)"/>
+              <rect x="42" y="188" width="18" height="18" rx="4" fill="var(--et-surface-2)" stroke="var(--et-border-soft)"/>
+              <text x="68" y="198" font-size="12" fill="var(--et-fg)">OpenDesign</text>
+              <text x="68" y="211" font-size="10" fill="var(--et-meta)">自建兼容端点</text>
+            </g>
+            <path d="M232 146h16" stroke="var(--et-border)" stroke-width="1.75" stroke-linecap="round"/>
+            <path d="M243 141l5 5-5 5" stroke="var(--et-border)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="256" y="44" width="204" height="204" rx="8" fill="var(--et-surface)" stroke="var(--et-accent)" stroke-opacity="0.5"/>
+            <text x="270" y="66" font-size="11" fill="var(--et-accent)">升级后</text>
+            <g>
+              <rect x="268" y="76" width="180" height="42" rx="6" fill="var(--et-surface)" stroke="var(--et-border-soft)"/>
+              <rect x="278" y="88" width="18" height="18" rx="4" fill="var(--et-accent-soft)"/>
+              <text x="304" y="98" font-size="12" fill="var(--et-fg)">DeepSeek</text>
+              <text x="304" y="111" font-size="10" fill="var(--et-meta)">内置</text>
+              <rect x="268" y="126" width="180" height="42" rx="6" fill="var(--et-surface)" stroke="var(--et-border-soft)"/>
+              <rect x="278" y="138" width="18" height="18" rx="4" fill="var(--et-surface-2)" stroke="var(--et-border-soft)"/>
+              <text x="304" y="148" font-size="12" fill="var(--et-fg)">自建兼容端点</text>
+              <text x="304" y="161" font-size="10" fill="var(--et-success)">已保留</text>
+              <path d="M424 148l3 3 5.5-6" stroke="var(--et-success)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="268" y="176" width="180" height="42" rx="6" fill="var(--et-surface)" stroke="var(--et-border-soft)"/>
+              <rect x="278" y="188" width="18" height="18" rx="4" fill="var(--et-surface-2)" stroke="var(--et-border-soft)"/>
+              <text x="304" y="198" font-size="12" fill="var(--et-fg)">OpenDesign</text>
+              <text x="304" y="211" font-size="10" fill="var(--et-success)">已保留</text>
+              <path d="M424 198l3 3 5.5-6" stroke="var(--et-success)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+            <text x="20" y="272" font-size="11" fill="var(--et-muted)">升级只在配置骨架变化时重渲染，用户新增条目合并保留</text>
+          </svg>
+          <figcaption class="media__cap">示意图：升级前后供应商列表对比（NoAdapter 事故修复）</figcaption>
+        </figure>
+        <div class="slide__copy">
+          <p class="kicker">修复</p>
+          <h2 class="slide__title">升级不再弄丢你的模型</h2>
+          <p class="slide__body">升级重渲染现在会保留你自行新增的模型供应商。此前「模型不存在」导致对话不可用的故障不再复现。</p>
+          <ul class="facts">
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 6.8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span>仅示意图，无需任何手工迁移</span></li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 6.8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg><span>升级后首轮对话即可验证</span></li>
+          </ul>
+        </div>
+      </article>
+
+      <!-- 6 收尾 -->
+      <article class="slide slide--end" aria-label="第 6 页，共 6 页：更多">
+        <span class="end__mark" aria-hidden="true">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="1.75"/>
+            <path d="M7.6 12.4l3.1 3.1 5.7-6.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <div>
+          <p class="kicker">继续</p>
+          <h2 class="end__title">这些改动现在就能用</h2>
+          <p class="end__body">此说明只讲重点。完整条目、字段与边界条件在更新记录与使用指南里，随产品一起演进。</p>
+        </div>
+        <div class="end__cards">
+          <button type="button" class="end__card">
+            <span class="end__card-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 4.5h11.5L21 9v10.5H5z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M16 4.5V9h4.5" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>
+              完整更新记录
+            </span>
+            <span class="end__card-note">设置 → 更新记录：本版全部条目与历史版本</span>
+          </button>
+          <button type="button" class="end__card">
+            <span class="end__card-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4.5 5.5h15v11h-9l-4 3v-3h-2z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M8.5 9h7M8.5 12.5h4.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+              使用指南
+            </span>
+            <span class="end__card-note">斜杠命令、工单口径与权限说明</span>
+          </button>
+        </div>
+        <p class="end__body" style="color:var(--et-meta);font-size:12px">提问或反馈：直接在主会话里说，我们会看到。</p>
+      </article>
+    </div>
+
+    <footer class="wn-foot">
+      <div class="progress" id="progress" role="group" aria-label="翻页">
+        <div class="progress__segs" id="segs"></div>
+        <span class="progress__count tnum" id="count" aria-live="polite">1 / 6</span>
+      </div>
+      <span class="wn-foot__spacer"></span>
+      <button type="button" class="btn btn--ghost" id="wn-skip">以后再看</button>
+      <button type="button" class="btn btn--outline" id="wn-prev" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="transform:rotate(180deg)"><path d="M9.5 6l6 6-6 6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        上一页
+      </button>
+      <button type="button" class="btn btn--primary" id="wn-next">
+        <span id="wn-next-label">下一页</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9.5 6l6 6-6 6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </footer>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var scrim = document.getElementById('scrim');
+  var track = document.getElementById('track');
+  var wn = document.getElementById('wn');
+  var segsBox = document.getElementById('segs');
+  var countEl = document.getElementById('count');
+  var prevBtn = document.getElementById('wn-prev');
+  var nextBtn = document.getElementById('wn-next');
+  var nextLabel = document.getElementById('wn-next-label');
+  var closeBtn = document.getElementById('wn-close');
+  var skipBtn = document.getElementById('wn-skip');
+  var slides = Array.prototype.slice.call(track.querySelectorAll('.slide'));
+  var total = slides.length;
+  var index = 0;
+  var lastFocus = null;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  // 进度段
+  slides.forEach(function (s, i) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'progress__seg';
+    b.setAttribute('aria-label', '跳到第 ' + (i + 1) + ' 页');
+    b.addEventListener('click', function () { go(i); });
+    segsBox.appendChild(b);
+  });
+  var segs = Array.prototype.slice.call(segsBox.children);
+
+  function markSeen() {
+    // 生产：POST /access/api/whats-new/seen {version}；seen 按 user+version 落库
+    document.documentElement.setAttribute('data-wn-seen', '1');
+  }
+
+  function paint() {
+    countEl.textContent = (index + 1) + ' / ' + total;
+    prevBtn.disabled = index === 0;
+    segs.forEach(function (seg, i) {
+      seg.setAttribute('data-state', i === index ? 'current' : (i < index ? 'done' : 'todo'));
+      seg.setAttribute('aria-current', i === index ? 'true' : 'false');
+    });
+    var last = index === total - 1;
+    nextLabel.textContent = last ? '知道了' : '下一页';
+    skipBtn.hidden = last;
+    if (last) {
+      nextBtn.classList.remove('btn--primary');
+      nextBtn.classList.add('btn--primary');
+    }
+    track.setAttribute('aria-label', '第 ' + (index + 1) + ' 页，共 ' + total + ' 页');
+    var liveEl = document.getElementById('wn-live');
+    var head = slides[index].getAttribute('aria-label') || '';
+    if (liveEl) {
+      liveEl.textContent = '第 ' + (index + 1) + ' 页，共 ' + total + ' 页：' +
+        head.replace(/^第 \d+ 页，共 \d+ 页：/, '');
+    }
+  }
+
+  // 翻页不移动焦点：实测在 scroll-snap 容器里 focus() 会打断平滑滚动，
+  // 结果是"页码前进、画面不动"。改为独立 aria-live 播报页序与标题。
+  var settleTimer = 0;
+  function scrollToSlide(left) {
+    if (reduce.matches) { track.scrollLeft = left; return }
+    if (typeof track.scrollTo === 'function') {
+      track.scrollTo({ left: left, behavior: 'smooth' })
+    } else {
+      track.scrollLeft = left
+      return
+    }
+    // 兜底：部分内嵌引擎忽略 scrollTo 的 options 形式（实测 no-op），
+    // 平滑未生效时在动画窗口结束后直接落位，避免"页码动了画面没动"。
+    clearTimeout(settleTimer)
+    settleTimer = setTimeout(function () {
+      if (Math.abs(track.scrollLeft - left) > 2) track.scrollLeft = left
+    }, 480)
+  }
+
+  function go(i) {
+    index = Math.max(0, Math.min(total - 1, i));
+    scrollToSlide(index * track.clientWidth);
+    paint();
+  }
+
+  // 滚动 → 索引同步（snap 停止后取最近页）
+  var raf = 0;
+  track.addEventListener('scroll', function () {
+    if (raf) return;
+    raf = requestAnimationFrame(function () {
+      raf = 0;
+      var i = Math.round(track.scrollLeft / track.clientWidth);
+      if (i !== index) { index = Math.max(0, Math.min(total - 1, i)); paint(); }
+    });
+  }, { passive: true });
+
+  function openDialog() {
+    lastFocus = document.activeElement;
+    scrim.setAttribute('data-open', 'true');
+    document.body.style.overflow = 'hidden';
+    go(0);
+    wn.setAttribute('tabindex', '-1');
+    wn.focus();
+    document.addEventListener('keydown', onKey, true);
+  }
+
+  function closeDialog(via) {
+    markSeen();
+    scrim.setAttribute('data-open', 'false');
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', onKey, true);
+    if (lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
+    if (via === '以后再看') {
+      toast('已记录已读。更新内容留在「设置 → 更新记录」，随时可重看。');
+    }
+  }
+
+  var toastTimer = 0;
+  function toast(text) {
+    var box = document.getElementById('wn-toast');
+    document.getElementById('wn-toast-text').textContent = text;
+    box.setAttribute('data-show', 'true');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { box.setAttribute('data-show', 'false'); }, 4200);
+  }
+
+  function onKey(e) {
+    if (e.key === 'Escape') { e.preventDefault(); closeDialog('Esc'); return; }
+    var focusables = Array.prototype.slice.call(
+      wn.querySelectorAll('button:not([disabled]), a[href]')
+    ).filter(function (el) { return el.offsetParent !== null; });
+    if (e.key === 'Tab' && focusables.length) {
+      var first = focusables[0], last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); return; }
+      if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); return; }
+    }
+    // 监听器只在弹窗打开期间存在，因此不需要再判断焦点落点；
+    // 早先的 `e.target` 判据会把 body/document 上的按键整段丢掉（实测）。
+    if (e.key === 'ArrowRight') { e.preventDefault(); go(index + 1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); go(index - 1); }
+    if (e.key === 'Home') { e.preventDefault(); go(0); }
+    if (e.key === 'End') { e.preventDefault(); go(total - 1); }
+  }
+
+  nextBtn.addEventListener('click', function () {
+    if (index === total - 1) { closeDialog('知道了'); return; }
+    go(index + 1);
+  });
+  prevBtn.addEventListener('click', function () { go(index - 1); });
+  skipBtn.addEventListener('click', function () { closeDialog('以后再看'); });
+  closeBtn.addEventListener('click', function () { closeDialog('关闭按钮'); });
+  scrim.addEventListener('click', function (e) { if (e.target === scrim) closeDialog('点击遮罩'); });
+
+  // 原型控制
+  var themeBtn = document.getElementById('btn-theme');
+  themeBtn.addEventListener('click', function () {
+    var dark = document.documentElement.getAttribute('data-eterna-theme') === 'dark';
+    document.documentElement.setAttribute('data-eterna-theme', dark ? 'light' : 'dark');
+    themeBtn.setAttribute('aria-pressed', String(!dark));
+    themeBtn.textContent = dark ? '深色' : '浅色';
+  });
+  document.getElementById('btn-reopen').addEventListener('click', openDialog);
+  // 收尾页两卡：本原型只示意动作，不真的切页（产品内分别打开设置分区与使用指南）
+  Array.prototype.forEach.call(document.querySelectorAll('.end__card'), function (card) {
+    card.addEventListener('click', function () {
+      toast('示意：此处将打开「' + card.querySelector('.end__card-title').textContent.trim() + '」');
+    });
+  });
+  document.getElementById('btn-goto').addEventListener('click', function () { go(2); });
+
+  // 打开时把焦点放进弹窗；滚轮横向（触控板）与拖动翻页由 snap 处理
+  track.addEventListener('wheel', function (e) {
+    if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) return; // 纵向留给内容
+  }, { passive: true });
+
+  paint();
+  openDialog();
+})();
+</script>
+<div id="wn-log" hidden></div>
+</body>
+</html>

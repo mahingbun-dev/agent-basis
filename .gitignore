@@ -57,6 +57,9 @@ tools/evals/pnpm-lock.yaml
 # 与 access/secret.key(HMAC 签名钥)被推到 PUBLIC 仓库,同时导致 CI G1-2 因
 # 检出后 644 权限被 credentials-local 拒启。本地运行态永不入库。
 /.eterna-super-home*/
+# 发布说明截图流水线(55 号)的隔离 home 与 CI 产物目录
+/.release-shots-home*/
+/.release-shots/
 packages/browser-relay/smoke/.browsers/
 packages/browser-relay/smoke/.gate-relay-port
 

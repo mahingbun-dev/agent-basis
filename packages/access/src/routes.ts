@@ -15,6 +15,7 @@ import type { UserQuestionView } from './question-bridge.ts'
 import { PasswordPolicyError } from './password.ts'
 import { renderLoginPage } from './pages.ts'
 import { SlidingWindow } from './ratelimit.ts'
+import { isReleaseSeenVia, type ReleaseCatalog } from './release-notes.ts'
 import { SessionService } from './session.ts'
 import {
   LastAdminError, NicknamePolicyError, OldPasswordMismatchError, SelfDeleteError, SuffixExhaustedError,
@@ -61,6 +62,12 @@ export interface AccessDeps {
    * access 为 Tier1,不 import @eterna/tasks——结构面声明在本文件(panel/stream 同纪律)。
    */
   readonly tasksSettings?: (() => TasksSettingsFace | undefined) | undefined
+  /**
+   * 发布说明目录(55 号 §4.2):启动时读 `releases/<VERSION>/release.json`。
+   * 未装配 = 功能整体缺席(端点 404);生产装配见 plugin.ts,CI boot 门禁断言
+   * 匿名访问返回 401 而非 404,防「忘了接线」静默。
+   */
+  readonly releaseNotes?: ReleaseCatalog | undefined
   /**
    * 登出回调(2026-11-20 B14 个人 MCP):会话 cookie 清除前摘除该用户 live scope。
    * 同步签名,实现方自吞异常(登出不能被资源回收失败阻断)。
@@ -172,6 +179,10 @@ export function handleAccessRequest(deps: AccessDeps, req: AccessRequest): Acces
   if (req.pathname === '/access/api/tasks/session-roles' && method === 'GET') return handleTasksSessionRoles(deps, req)
   if (req.pathname === '/access/api/tasks/settings' && method === 'GET') return handleTasksSettingsView(deps, req)
   if (req.pathname === '/access/api/tasks/settings' && method === 'POST') return handleTasksSettingsSave(deps, req, ip)
+  // 版本更新介绍(55 号):登录后首屏判定 + 资产流。读面全员、写面只有「记已读」。
+  if (req.pathname === '/access/api/release-notes' && method === 'GET') return handleReleaseNotesView(deps, req)
+  if (req.pathname === '/access/api/release-notes/seen' && method === 'POST') return handleReleaseNotesSeen(deps, req, ip)
+  if (req.pathname.startsWith(RELEASE_ASSET_PREFIX) && method === 'GET') return handleReleaseNotesAsset(deps, req)
   return errorReply(404, 'not found')
 }
 
@@ -292,6 +303,92 @@ function handleTasksSettingsSave(deps: AccessDeps, req: AccessRequest, ip: strin
     policyVersion: result.policyVersion,
     settings: result.settings,
   }, [['cache-control', 'no-store']])
+}
+
+const RELEASE_ASSET_PREFIX = '/access/api/release-notes/asset/'
+
+/**
+ * 当前版发布说明(55 号 §4.2)。`current` 直接带 `announce`——rc/热修清单
+ * (`announce:false`)照常可读可回看,只是客户端不弹(§5.4 规则三)。
+ * `?version=<v>` 供设置分区回看历史版;非法版本按 404,不落到「最新」。
+ */
+function handleReleaseNotesView(deps: AccessDeps, req: AccessRequest): AccessReply {
+  const user = requireUser(deps, req)
+  if (user === undefined) return errorReply(401, '未登录')
+  const catalog = deps.releaseNotes
+  if (catalog === undefined) return errorReply(404, 'not found')
+  const requested = new URLSearchParams(req.query ?? '').get('version')
+  const version = requested ?? catalog.currentVersion ?? catalog.latestVersion
+  if (version !== undefined && requested !== null && catalog.manifestOf(version) === undefined) {
+    return errorReply(404, '版本不存在')
+  }
+  const manifest = version === undefined ? undefined : catalog.manifestOf(version)
+  const seen = deps.store.releaseNotesSeen(user.id)
+  return jsonResponse(200, {
+    latest: catalog.latestVersion ?? null,
+    version: version ?? null,
+    current: manifest ?? null,
+    seen: version !== undefined && seen.has(version),
+    history: catalog.summaries().map(summary => ({
+      version: summary.version,
+      releasedAt: summary.releasedAt,
+      theme: summary.theme,
+      announce: summary.announce,
+      seen: seen.has(summary.version),
+    })),
+  }, [['cache-control', 'no-store']])
+}
+
+/** 记已读(幂等;任何关闭路径都调一次,55 号 D2)。 */
+function handleReleaseNotesSeen(deps: AccessDeps, req: AccessRequest, ip: string): AccessReply {
+  const user = requireUser(deps, req)
+  if (user === undefined) return errorReply(401, '未登录')
+  const catalog = deps.releaseNotes
+  if (catalog === undefined) return errorReply(404, 'not found')
+  const body = parseJsonBody(req.body)
+  const version = body?.version
+  const via = body?.via
+  if (typeof version !== 'string' || catalog.manifestOf(version) === undefined) return errorReply(400, '版本不存在')
+  if (!isReleaseSeenVia(via)) return errorReply(400, '关闭原因不合法')
+  deps.store.markReleaseNotesSeen(user.id, version, via)
+  deps.audit({ kind: 'access.release-notes.seen', account: user.account, ip, detail: { version, via } })
+  return { status: 204, headers: [['cache-control', 'no-store']], body: undefined }
+}
+
+/**
+ * 资产字节流。白名单三层(55 号 §4.2):
+ * 版本必须已入目录 → 文件名必须精确命中该版 assets/ 目录 → 扩展名在类型表内。
+ * 路径含版本且内容随镜像不可变,故可长缓存。
+ */
+function handleReleaseNotesAsset(deps: AccessDeps, req: AccessRequest): AccessReply {
+  const user = requireUser(deps, req)
+  if (user === undefined) return errorReply(401, '未登录')
+  const catalog = deps.releaseNotes
+  if (catalog === undefined) return errorReply(404, 'not found')
+  const rest = req.pathname.slice(RELEASE_ASSET_PREFIX.length)
+  const slash = rest.indexOf('/')
+  if (slash <= 0) return errorReply(404, 'not found')
+  let version: string
+  let file: string
+  try {
+    version = decodeURIComponent(rest.slice(0, slash))
+    file = decodeURIComponent(rest.slice(slash + 1))
+  } catch {
+    return errorReply(400, '路径不合法')
+  }
+  if (file.includes('/') || file.includes('\\')) return errorReply(400, '路径不合法')
+  const asset = catalog.asset(version, file)
+  if (asset === undefined) return errorReply(404, 'not found')
+  return {
+    status: 200,
+    headers: [
+      ['content-type', asset.contentType],
+      ['content-length', String(asset.bytes.byteLength)],
+      ['cache-control', 'public, max-age=31536000, immutable'],
+      ['x-content-type-options', 'nosniff'],
+    ],
+    body: asset.bytes,
+  }
 }
 
 /** companion 令牌生成/重置(覆盖旧值即刻失效);审计只记动作不记令牌值。 */

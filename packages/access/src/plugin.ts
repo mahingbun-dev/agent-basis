@@ -19,6 +19,7 @@ import { companionTokenOf } from './companion.ts'
 import { installCompanionExecutableWrap, readToolsService, routeCompanion } from './companion-inject.ts'
 import { ApprovalBridge, toolApprovalTimeoutMs } from './approval-bridge.ts'
 import { QuestionBridge, userQuestionTimeoutMs } from './question-bridge.ts'
+import { ReleaseCatalog } from './release-notes.ts'
 import { type AccessRequest } from './http.ts'
 import type { Context } from '@deepseek-ai/cordis'
 // 空类型导入 = dsh-tools 对 cordis Events('tools/pre-execute')增广的触发器（governance-plugin 同款）：
@@ -118,8 +119,11 @@ function collectBody(req: IncomingMessage): Promise<BodyResult> {
 function createNodeHandler(deps: AccessDeps): (req: IncomingMessage, res: ServerResponse) => Promise<void> {
   return async (req, res) => {
     let pathname = '/'
+    let query: string | undefined
     try {
-      pathname = new URL(req.url ?? '/', 'http://local').pathname
+      const url = new URL(req.url ?? '/', 'http://local')
+      pathname = url.pathname
+      query = url.search === '' ? undefined : url.search.slice(1)
     } catch {
       // 非法 URL 按 / 处理,交 404
     }
@@ -134,6 +138,7 @@ function createNodeHandler(deps: AccessDeps): (req: IncomingMessage, res: Server
     const request: AccessRequest = {
       method: (req.method ?? 'GET').toUpperCase(),
       pathname,
+      query,
       cookie: req.headers.cookie,
       origin: req.headers.origin,
       host: req.headers.host,
@@ -258,6 +263,20 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         audit,
         timeoutMs: userQuestionTimeoutMs(process.env),
       })
+      // ── 发布说明目录(55 号 §4.2):启动时读 releases/<VERSION>/release.json。
+      // 解析失败不拦启动(装饰性能力),但逐条落审计——部署侧另有 entrypoint
+      // fail-closed + verify.sh 第 15 项兜住「内容缺失」。
+      const releaseNotes = new ReleaseCatalog()
+      for (const issue of releaseNotes.issues) {
+        audit({ kind: 'access.release-notes.load', ok: false, detail: { issue } })
+      }
+      if (releaseNotes.issues.length === 0 && releaseNotes.currentVersion !== undefined) {
+        audit({
+          kind: 'access.release-notes.load',
+          ok: true,
+          detail: { version: releaseNotes.currentVersion, versions: releaseNotes.summaries().length },
+        })
+      }
       const deps: AccessDeps = {
         store,
         session,
@@ -276,6 +295,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
           : undefined,
         approvalBridge,
         questionBridge,
+        releaseNotes,
         // tasks 设置面(2026-11-19 任务设置分区):反射键 'tasks' 现读(ctx.provide('tasks', runtime)
         // 的服务;ephemeral/装配竞态下缺席 → 端点 503)。三键齐备才算就绪(结构校验 fail-closed,
         // 同 stream.ts/tenant.ts serviceOf 纪律;access 不 import @eterna/tasks)。

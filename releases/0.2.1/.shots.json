@@ -1,0 +1,17 @@
+{
+  "version": "0.2.1",
+  "form": "super",
+  "capturedAt": "2026-11-24T06:39:38.396Z",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "theme": "light",
+  "files": {
+    "01-clear.webp": "d6ed7d85c4cb4b92caa16c11296f8752782ca9cd4d4ba16619890141da579a78",
+    "02-tasks.webp": "572eede27657c1b439046adb3272982fbec892879f30cfad75a91d2a3f2f5b79",
+    "03-plugins.webp": "300f6870ceea8caadb3e7261b1c4dd850c3c6b8d335c75bdf83865b56115d1bd",
+    "04-providers.webp": "49da3c125e7660580f85c139aad13eb5aa9d9eacaf1343a3e15e2966f9a42bbb"
+  },
+  "skipped": []
+}

@@ -9,6 +9,8 @@ on:
   # cron 时点为实现自由度(Q8:任一固定时刻即可,不构成行为设计)。
   schedule:
     - cron: '19 21 * * *'
+  # 发布说明截图流水线(55 号 §3.3 D5):手动触发,产物走 artifact,不自动提交。
+  workflow_dispatch:
 
 jobs:
   verify:
@@ -63,6 +65,11 @@ jobs:
 
       - name: 提示词登记扫描(patch 键/section 使用/packs persona,prompt-scan)
         run: node tools/packctl/bin/packctl.mjs prompt-scan
+
+      # 发布说明门禁(55 号 §5.3 ②):VERSION 与 releases/<v>/release.json 的存在、
+      # 文案字数、图片尺寸/哈希/孤儿资产、announce 语义——12 条全过才允许合入。
+      - name: 发布说明门禁(55 号,G-RN-01..12)
+        run: node scripts/release-notes-gate.mjs
 
       - name: 评测 replay 冒烟(dsh-evals,t14-replay 子集)
         run: node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --subset t14-replay --adapter replay
@@ -133,6 +140,46 @@ jobs:
 
       - name: 通过率差值门禁(≤2pp 无衰减,28 §5;超标退出码 1;同口径恒真对比退出码 3——保活期显式豁免)
         run: node scripts/diff-pass-rate.mjs dsh-evals-out/route-golden-baseline dsh-evals-out/route-golden-compacted --threshold 2 --allow-same-caliber
+
+  # 发布说明截图流水线(55 号 §3.3 D5「截图 CI 自动化」)。
+  # 逻辑=本地同一条命令:真启动隔离实例 → Chrome 按 shots.plan.json 走界面 →
+  # Playwright 原生 webp → 产物 artifact。**不比对像素**(跨机器字体渲染天然有差异),
+  # 也**不自动提交**截图(落库属发布动作);合规性由 release-notes-gate 断言。
+  # 依赖:playwright-core 随 packages/browser-relay 已装,无需新增依赖。
+  release-shots:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # 截图所需的客户端工件:全仓逐包构建(任一缺 lib/client.js,对应行在浏览器里不激活)
+      - name: 构建客户端工件(全仓 build:client)
+        run: pnpm -r --if-present run build:client
+
+      # runner 自带 Google Chrome;这一步兜住「channel:chrome 不可用」的环境差异
+      - name: 安装 Chromium(playwright-core 自带 CLI)
+        run: pnpm --filter @eterna/browser-relay exec playwright-core install chromium
+
+      # super = 生产形态(任务工坊等行只在 super 模板里);base 见本地 --form=base
+      - name: 自动截图(真启动 + 1440×900 浅色 + webp)
+        run: node scripts/release-shots.mjs --version="$(tr -d '[:space:]' < VERSION)" --form=super --out .release-shots
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-shots
+          path: .release-shots
+          if-no-files-found: warn
 
   # 升级门禁(SOP 见 docs/upgrade-gate.md):上游 @deepseek-ai/dsh-* 升版时,
   # 本地先跑同款四步(docs/upgrade-gate.md §本地门禁),CI 复跑互证后才裁决放行/回滚。

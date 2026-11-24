@@ -24,6 +24,7 @@ import { QuestionCards } from './question-card.tsx'
 import { McpServersSection } from './mcp-servers-section.tsx'
 import { MCP_LOCALES } from './mcp-servers-locales.ts'
 import { openSettingsSection } from './settings-nav.ts'
+import { RELEASE_NOTES_SECTION_ID, ReleaseNotesOverlay, ReleaseNotesSection, type ReleaseNotesInjected } from './release-notes.tsx'
 /* React 基础件走 /react 子路径：根入口必须留纯 .ts（服务端 strip-only） */
 import { DecisionLayer } from '@eterna/ui/react'
 import { injectAccessStyles } from './styles.ts'
@@ -48,6 +49,25 @@ const LOCALES: Record<string, Record<string, string>> = {
     'tab.manage': '恒灵插件',
     'section.myPlugins': '我的插件',
     'section.notifications': '消息与审批',
+    'section.releaseNotes': '更新记录',
+    'releaseNotes.released': ' 发布',
+    'releaseNotes.review': '回看',
+    'releaseNotes.close': '关闭更新说明',
+    'releaseNotes.lead': '本次更新共 {count} 页，可用左右方向键翻页。',
+    'releaseNotes.pageOf': '第 {page} 页，共 {total} 页：{title}',
+    'releaseNotes.pager': '幻灯片进度',
+    'releaseNotes.goPage': '跳到第 {page} 页',
+    'releaseNotes.skip': '以后再看',
+    'releaseNotes.prev': '上一页',
+    'releaseNotes.next': '下一页',
+    'releaseNotes.done': '知道了',
+    'releaseNotes.skipToast': '可在 设置 → 更新记录 重新查看',
+    'releaseNotes.imageUnavailable': '图片暂不可用，文字说明仍完整',
+    'releaseNotes.sectionHint': '每次发布后在此保留完整记录；点任意版本可回看。',
+    'releaseNotes.sectionEmpty': '暂无更新记录',
+    'releaseNotes.sectionFailed': '更新记录读取失败，请稍后重试',
+    'releaseNotes.unread': '本版未读',
+    'releaseNotes.view': '查看',
     'section.approvalQueue': '审批队列',
     // 思考强度显式反馈(2026-11-18 V2):assistant 动作条两枚轻按钮
     'thinking.less': '想浅点',
@@ -176,6 +196,25 @@ const LOCALES: Record<string, Record<string, string>> = {
     'tab.manage': 'Eterna Plugins',
     'section.myPlugins': 'My Plugins',
     'section.notifications': 'Notifications',
+    'section.releaseNotes': 'Release notes',
+    'releaseNotes.released': ' released',
+    'releaseNotes.review': 'Reviewing',
+    'releaseNotes.close': 'Close release notes',
+    'releaseNotes.lead': 'This release note has {count} pages; use the left and right arrow keys to page.',
+    'releaseNotes.pageOf': 'Page {page} of {total}: {title}',
+    'releaseNotes.pager': 'Slide progress',
+    'releaseNotes.goPage': 'Go to page {page}',
+    'releaseNotes.skip': 'Later',
+    'releaseNotes.prev': 'Previous',
+    'releaseNotes.next': 'Next',
+    'releaseNotes.done': 'Got it',
+    'releaseNotes.skipToast': 'You can revisit it in Settings → Release notes',
+    'releaseNotes.imageUnavailable': 'Image unavailable; the text description is complete',
+    'releaseNotes.sectionHint': 'Every release is kept here; click any version to review it.',
+    'releaseNotes.sectionEmpty': 'No release notes yet',
+    'releaseNotes.sectionFailed': 'Failed to load release notes; try again later',
+    'releaseNotes.unread': 'Unread',
+    'releaseNotes.view': 'View',
     'section.approvalQueue': 'Approvals',
     'account.loading': 'Loading…',
     'account.passwordToggle': 'Toggle password visibility',
@@ -387,6 +426,23 @@ export function apply(ctx: AccessClientContext): () => void {
   }
   registerSessionProbe()
 
+  // 版本更新介绍(55 号):注册进 `shell.overlay`(layout 声明的 list/root 框级浮层槽,
+  // 上游已有真对话框占用者)。槽只给席位,弹不弹由服务端数据决定——组件不弹时
+  // 零尺寸常驻(关闭通知订阅不能随渲染消失)。读面失败/未登录一律静默。
+  const registerReleaseNotes = (): void => {
+    ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+      name: 'shell.overlay',
+      id: `${NS}.release-notes`,
+      order: 80,
+      locale: NS,
+      inject: (): ReleaseNotesInjected => ({
+        t,
+        openSettingsSection: (id: string) => openSettingsSection(ctx.slots, id),
+      }),
+    }, ReleaseNotesOverlay))
+  }
+  registerReleaseNotes()
+
   // 网页链接默认打开方式联动:自己的浏览器扩展在线且用户未显式选择过 → 默认走
   // 系统默认浏览器(见 link-opening.ts 头注;全程静默,失败不影响主流程)。
   void installLinkOpeningDefault({
@@ -423,6 +479,16 @@ export function apply(ctx: AccessClientContext): () => void {
       inject: () => ({ t }),
       label: () => t('section.account'),
     }, AccountSection))
+    // 「更新记录」(55 号):全员可见、只读;点任意版本打开同一个遮罩。
+    // 座位序取 45:origin/main 的 MCP 分区已占 42,不挪别人的序。
+    ctx.slots.inject('settings.section', () => ctx.slots.register({
+      name: 'settings.section',
+      id: RELEASE_NOTES_SECTION_ID,
+      order: 45,
+      locale: NS,
+      inject: () => ({ t }),
+      label: () => t('section.releaseNotes'),
+    }, ReleaseNotesSection))
     // T28(B14 个人层 UI):MCP 服务器分区——admin 见「全局/管理员目录」,
     // 普通用户见「我的服务器」(列表/新增/编辑/删除/测试);密钥 write-only。
     // 全局表在上游内置插件设置里,故 admin 的「全局」页签只做说明 + 原生跳转。

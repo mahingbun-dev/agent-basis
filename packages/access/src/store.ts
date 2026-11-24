@@ -286,6 +286,14 @@ export class UserStore {
       read INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`)
+    // 55 号:版本更新介绍已读账(每账号每版一行;任何关闭路径都记,55 号 D2)。
+    this.db.exec(`CREATE TABLE IF NOT EXISTS release_notes_seen (
+      user_id  INTEGER NOT NULL REFERENCES users(id),
+      version  TEXT    NOT NULL,
+      via      TEXT    NOT NULL,
+      seen_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, version)
+    )`)
     this.db.exec(`CREATE TABLE IF NOT EXISTS user_plugins (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id),
@@ -496,6 +504,7 @@ export class UserStore {
     this.db.prepare('DELETE FROM user_plugins WHERE user_id = ?').run(id)
     this.db.prepare('DELETE FROM approvals WHERE requester_id = ?').run(id)
     this.db.prepare('DELETE FROM notifications WHERE user_id = ?').run(id)
+    this.db.prepare('DELETE FROM release_notes_seen WHERE user_id = ?').run(id)
     // B14:MCP 个人层两表随人级联(否则 FK 约束失败/孤儿密文残留)
     this.db.prepare('DELETE FROM mcp_personal_secret WHERE user_id = ?').run(id)
     this.db.prepare('DELETE FROM mcp_personal_server WHERE user_id = ?').run(id)
@@ -851,6 +860,30 @@ export class UserStore {
   /** 级联销毁(T8):删用户时清其插件登记行。 */
   forgetUserPlugins(ownerId: number): void {
     this.db.prepare('DELETE FROM user_plugins WHERE user_id = ?').run(ownerId)
+  }
+
+  /** 该账号已读的版本集合(55 号 §4.2;历史列表的未读点判定源)。 */
+  releaseNotesSeen(userId: number): ReadonlySet<string> {
+    const rows = this.db.prepare('SELECT version FROM release_notes_seen WHERE user_id = ?').all(userId) as
+      Array<{ version: string }>
+    return new Set(rows.map(row => row.version))
+  }
+
+  /**
+   * 记已读(幂等)。`INSERT OR IGNORE` = 首次关闭的 via/seen_at 永久保留,
+   * 「设置 → 更新记录」回看不会改写历史(55 号 §2.2)。
+   */
+  markReleaseNotesSeen(userId: number, version: string, via: string): void {
+    this.db.prepare(
+      'INSERT OR IGNORE INTO release_notes_seen (user_id, version, via) VALUES (?, ?, ?)',
+    ).run(userId, version, via)
+  }
+
+  /** 单行已读记录(首次关闭原因与时间;回看不改写由 markReleaseNotesSeen 保证)。 */
+  releaseNotesSeenRow(userId: number, version: string): { readonly via: string; readonly seenAt: string } | undefined {
+    const row = this.db.prepare('SELECT via, seen_at FROM release_notes_seen WHERE user_id = ? AND version = ?')
+      .get(userId, version) as { via: string; seen_at: string } | undefined
+    return row === undefined ? undefined : { via: row.via, seenAt: row.seen_at }
   }
 
   /** 单行移除(个人插件 remove)。 */

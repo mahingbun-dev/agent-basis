@@ -60,6 +60,25 @@ echo "$me" | grep -q '"role":"admin"' && ok "me 返回 admin 角色" || bad "me 
 plugins=$(curl -s -b "$JAR" --max-time 8 "$BASE/access/api/plugins")
 echo "$plugins" | grep -q '"redLine":true' && ok "插件清单含红线标记" || bad "插件清单缺红线标记"
 
+# 5.5) 发布说明路由已挂载（55 号）：匿名必须 401——404 说明 access 没接线或镜像缺清单
+code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 "$BASE/access/api/release-notes")
+check "匿名 /access/api/release-notes 拒绝" 401 "$code"
+
+# 15) 发布说明（55 号 §5.3 ④；编号沿用设计文档的清单序）：current.version == VERSION 且 ≥3 页
+#     镜像里的 VERSION 与清单是同一份事实；这里验「线上真的读到了它」。
+REL_VERSION="$(tr -d '[:space:]' < "$SCRIPT_DIR/../VERSION" 2>/dev/null || true)"
+notes=$(curl -s -b "$JAR" --max-time 8 "$BASE/access/api/release-notes")
+if [ -z "$REL_VERSION" ]; then
+  bad "仓库缺 VERSION——发布说明无从判定（55 号 §5.1）"
+elif ! printf '%s' "$notes" | grep -q "\"version\":\"$REL_VERSION\""; then
+  bad "发布说明未指向 $REL_VERSION（$notes）"
+elif printf '%s' "$notes" | grep -q '"current":null'; then
+  bad "发布说明 current 为空（镜像缺 releases/$REL_VERSION/release.json？）"
+else
+  slides=$(printf '%s' "$notes" | grep -o '"kind":"' | wc -l | tr -d ' ')
+  if [ "${slides:-0}" -ge 3 ]; then ok "发布说明 $REL_VERSION（$slides 页）"; else bad "发布说明页数不足（实得 $slides）"; fi
+fi
+
 # 6) 越权变更拒绝（无 cookie 改昵称 → 401）
 code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 -X POST "$BASE/access/api/nickname" \
   -H 'Content-Type: application/json' -d '{"nickname":"x"}')
