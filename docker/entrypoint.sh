@@ -421,6 +421,27 @@ else
   run_render
 fi
 
+# ── 2.7 版本与发布说明(55 号 §5.3 ③):缺当前版本说明 = 镜像不合规,拒启 ──
+# VERSION 是唯一事实源(仓库根,随镜像进 /repo);镜像 tag 与它一致由部署脚本
+# deploy/release-notes-check.sh 在 build 之前判。这里只兜「镜像里没有这一版的
+# 说明」——有人绕过 SOP 直接 compose up 时,这是最后一道。
+# ALLOW_MISSING_RELEASE_NOTES=1 是留痕式后门(仅限热修):必须显式打开,日志一行可 grep。
+RELEASE_VERSION="$(tr -d '[:space:]' < /repo/VERSION 2>/dev/null || true)"
+if [ -z "$RELEASE_VERSION" ]; then
+  printf '%s\n' "[entrypoint] FATAL 缺少 /repo/VERSION——镜像不合规(55 号 §5.1)" >&2
+  exit 1
+fi
+if [ ! -s "/repo/releases/$RELEASE_VERSION/release.json" ]; then
+  if [ "${ALLOW_MISSING_RELEASE_NOTES:-0}" = "1" ]; then
+    log "[entrypoint] WARN $RELEASE_VERSION 缺发布说明,ALLOW_MISSING_RELEASE_NOTES=1 已放行(仅限热修)"
+  else
+    printf '%s\n' "[entrypoint] FATAL 缺少 releases/$RELEASE_VERSION/release.json——部署规范要求每次发布先写更新内容(55 号 §5.4)" >&2
+    exit 1
+  fi
+else
+  log "[entrypoint] release notes: $RELEASE_VERSION"
+fi
+
 # ── 沙箱 runner 预检(P1-T3):landlock probe 非 full → 告警(沙箱 fail-closed 由上游保证,
 #    预检只做可见性;实测基镜像 probe=full,见隔离计划 T0.1)。
 # 沙箱 runner 预检(P1-T3):直调 landlock-run --probe(等价 probe() 语义:exit 0 且无

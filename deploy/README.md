@@ -43,6 +43,7 @@ Happy Eyeballs 双栈竞速撞 v4 死路 = 间歇性「网络错误」。**修�
 ```bash
 cp deploy/env.production.example .env   # 填模型密钥 + 管理员密码 + ETERNA_DATA_ROOT(宿主绝对路径)
 bash deploy/init-data-dirs.sh           # 建宿主数据根 0700 + 实例子目录(幂等)
+bash deploy/release-notes-check.sh      # 发布说明在位 + 镜像 tag 必须等于 VERSION（55 号）
 docker compose build && docker compose up -d
 bash deploy/verify.sh                   # 部署验证清单（§6）
 ```
@@ -69,6 +70,12 @@ docker compose -p agent-basis-test -f docker-compose.yml up -d
 「完全权限」档即静默全拒——2026-11-10 事故，规则集内工具名逐字对账见该文件头注）。
 免重建改规则：在数据根放 `access/governance.rules.yml`（存在即优先），重启容器生效；
 改后需跑 `packages/glue` 的 `governance-rules-fixture` 单测口径自行对账工具名。
+
+发布说明（55 号）：版本号唯一事实源是仓库根 `VERSION`，本版内容在
+`releases/<VERSION>/release.json`（+ `assets/` 截图）。`.env` 的 `ETERNA_IMAGE` tag 必须
+与之相等——`release-notes-check.sh` 在 build 前判；镜像里缺这一版说明时 entrypoint
+**拒启**（`ALLOW_MISSING_RELEASE_NOTES=1` 仅限热修，启动日志留 WARN）。发版五步见
+[docs/RELEASE-PROCESS.md](../docs/RELEASE-PROCESS.md)。
 
 ## 4. 服务迁移（换机/换盘）与数据根
 
@@ -176,9 +183,9 @@ DNS：推荐 **v6-only**（AAAA）。实测记录：家宽 v4 入站被运营商
 
 ## 6. 验证清单
 
-自动化：`bash deploy/verify.sh [BASE_URL]` —— 12 项门禁（登录页/匿名拒绝/匿名根路径跳登录页/
-管理员登录/角色回显/红线清单/无会话拒绝/错密码 401/治理规则活性/companion 中继/
-分发包下载/指引页），全过退出 0。
+自动化：`bash deploy/verify.sh [BASE_URL]` —— 14 项门禁（登录页/匿名拒绝/匿名根路径跳登录页/
+管理员登录/角色回显/红线清单/发布说明路由挂载/无会话拒绝/错密码 401/治理规则活性/
+companion 中继/分发包下载/指引页/发布说明 current.version == VERSION 且 ≥3 页），全过退出 0。
 
 人工：登录落地对话一轮（真模型）→ 设置弹窗三分区（账号/用户管理）→ 插件页「恒灵插件」
 页签 → 审计 jsonl 增长。
@@ -191,7 +198,7 @@ DNS：推荐 **v6-only**（AAAA）。实测记录：家宽 v4 入站被运营商
 ```bash
 bash deploy/pre-restart-check.sh   # 近 120s 有会话写入则拒绝继续;确认可中断时 FORCE=1 放行
 bash deploy/backup-data.sh         # 升级前冷备（48 §8.1：stop → tar → start）
-git pull && docker compose build && docker compose up -d
+git pull && bash deploy/release-notes-check.sh && docker compose build && docker compose up -d
 bash deploy/verify.sh
 ```
 
@@ -207,6 +214,7 @@ rc.5 升级额外步骤（首启一次性）：entrypoint 的 rc.5 存量迁移�
 
 | 症状 | 排查 |
 | --- | --- |
+| 启动即退：`FATAL 缺少 releases/<版本>/release.json` | 镜像不含当前 `VERSION` 的发布说明：补 `releases/<VERSION>/`（`node scripts/release-notes-new.mjs`）并重建；仅热修才用 `ALLOW_MISSING_RELEASE_NOTES=1` |
 | 启动即退：`FATAL /data 不是挂载点` | compose 卷行缺失/写错（48 §6.1 预检）：确认 `volumes` 里 `${ETERNA_DATA_ROOT}/<实例>:/data` 存在、`up` 不是用旧 compose 文件 |
 | 数据落到了 `$HOME/eterna-data` 而预期是自定义根 | `.env` 未设 `ETERNA_DATA_ROOT`；compose 缺省即 `$HOME/eterna-data`（2026-11-20 起不再硬必填报错）。`cp deploy/env.production.example .env` 后补该行并迁移数据 |
 | 启动日志 `DSH_AGENTS_HOME=... 不在 /data 下` | 覆写了 `DSH_AGENTS_HOME` 指向容器层——用户级 AGENTS/skills 会丢，改回 `/data/agents`（48 §6.2） |

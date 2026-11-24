@@ -1,0 +1,133 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "scenes": [
+    {
+      "id": "clear",
+      "file": "01-clear.webp",
+      "steps": [
+        {
+          "goto": "/"
+        },
+        {
+          "waitFor": "[data-eterna-access-role]"
+        },
+        {
+          "closeReleaseNotes": true
+        },
+        {
+          "click": {
+            "text": "新会话",
+            "exact": true
+          }
+        },
+        {
+          "click": {
+            "selector": "textarea, [contenteditable=\"true\"]"
+          }
+        },
+        {
+          "type": "/cl"
+        },
+        {
+          "waitForText": "清空当前会话上下文"
+        },
+        {
+          "waitMs": 400
+        }
+      ]
+    },
+    {
+      "id": "tasks",
+      "file": "02-tasks.webp",
+      "form": "super",
+      "steps": [
+        {
+          "goto": "/"
+        },
+        {
+          "waitFor": "[data-eterna-access-role]"
+        },
+        {
+          "closeReleaseNotes": true
+        },
+        {
+          "click": {
+            "text": "工作台",
+            "exact": true
+          }
+        },
+        {
+          "waitMs": 1200
+        }
+      ]
+    },
+    {
+      "id": "plugins",
+      "file": "03-plugins.webp",
+      "steps": [
+        {
+          "goto": "/"
+        },
+        {
+          "waitFor": "[data-eterna-access-role]"
+        },
+        {
+          "closeReleaseNotes": true
+        },
+        {
+          "click": {
+            "text": "插件",
+            "exact": true
+          }
+        },
+        {
+          "waitForText": "恒灵插件"
+        },
+        {
+          "click": {
+            "text": "恒灵插件",
+            "exact": true
+          }
+        },
+        {
+          "waitForText": "治理基座"
+        },
+        {
+          "waitMs": 400
+        }
+      ]
+    },
+    {
+      "id": "providers",
+      "file": "04-providers.webp",
+      "steps": [
+        {
+          "goto": "/"
+        },
+        {
+          "waitFor": "[data-eterna-access-role]"
+        },
+        {
+          "closeReleaseNotes": true
+        },
+        {
+          "click": {
+            "selector": "button[aria-label=\"偏好设置\"]"
+          }
+        },
+        {
+          "click": {
+            "text": "模型",
+            "exact": true
+          }
+        },
+        {
+          "waitMs": 800
+        }
+      ]
+    }
+  ]
+}
