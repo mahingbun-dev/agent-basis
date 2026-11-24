@@ -1,0 +1,53 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "scenes": [
+    {
+      "id": "adviser",
+      "file": "01-adviser.webp",
+      "steps": [
+        {
+          "goto": "/"
+        },
+        {
+          "waitFor": "[data-eterna-access-role]"
+        },
+        {
+          "closeReleaseNotes": true
+        },
+        {
+          "click": {
+            "text": "新会话",
+            "exact": true
+          }
+        },
+        {
+          "waitMs": 2500
+        },
+        {
+          "click": {
+            "selector": "textarea, [contenteditable=\"true\"]"
+          }
+        },
+        {
+          "type": "/adviser"
+        },
+        {
+          "waitForText": "在右侧栏开一个独立上下文的辅助对话"
+        },
+        {
+          "press": "Enter"
+        },
+        {
+          "waitFor": "[data-eterna-adviser=\"panel\"]",
+          "timeout": 20000
+        },
+        {
+          "waitMs": 1200
+        }
+      ]
+    }
+  ]
+}
