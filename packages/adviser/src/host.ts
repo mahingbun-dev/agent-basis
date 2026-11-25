@@ -21,7 +21,9 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import {
+  AdviserModelRejection,
   AdviserService,
+  type AdviserModelSelection,
   type AdviserPorts,
 } from './service.ts'
 import { registerTicketTool } from './ticket-tools.ts'
@@ -32,11 +34,44 @@ export const ADVISER_SERVICE_ID = 'eternaAdviser'
 /** 服务面暴露给 access 的结构子集(access 侧有同名结构声明,two-side 不 import)。 */
 export interface AdviserFace extends AdviserService {}
 
+/** 宿主 Agent 的模型面(上游 `AgentModel`;旧宿主/测试假件可能缺席)。 */
+interface HostModel {
+  current?(): unknown
+  select?(selection: AdviserModelSelection): unknown
+}
+
 /** 宿主 Agent 的最小子集(结构面:避免 import 上游 agent 包)。 */
 interface HostAgent {
   readonly id: string
   inject(message: unknown): void
   followup(message: unknown): void
+  readonly model?: HostModel
+}
+
+/** `ctx.sessionQuery` 的结构子集(冷会话模型读取:modelSelection 投影)。 */
+interface SessionQueryLike {
+  observeSession(sessionId: string, options?: { readonly projectionMode?: 'all' | 'none' }): Promise<{
+    readonly projections?: {
+      readonly values?: {
+        readonly modelSelection?: { readonly lastUsed?: unknown; readonly next?: unknown }
+      }
+    }
+    readonly [Symbol.dispose]: () => void
+  }>
+}
+
+/** 冷会话写句柄的结构子集(上游 SessionHandle)。 */
+interface PersistenceHandleLike {
+  read(offset?: number): Promise<{ readonly events: readonly { readonly seq?: unknown }[] }>
+  append(events: readonly unknown[]): Promise<void>
+  flush(): Promise<void>
+  close(): Promise<void>
+}
+
+/** `ctx.sessionPersistence` 的结构子集(只在冷会话切换模型时用到写面)。 */
+interface SessionPersistenceLike {
+  stat(sessionId: string): Promise<{ readonly eventCount?: number }>
+  open(sessionId: string, access: 'write'): Promise<PersistenceHandleLike>
 }
 
 /** `ctx.sessionController` 的结构子集(web-app 装配时才在)。 */
@@ -84,6 +119,38 @@ function asSessionController(value: unknown): SessionControllerLike | undefined 
     : undefined
 }
 
+/** `ctx.sessionQuery` 形状检查(只认 observeSession)。 */
+function asSessionQuery(value: unknown): SessionQueryLike | undefined {
+  if (typeof value !== 'object' || value === null) return undefined
+  return typeof (value as Record<string, unknown>).observeSession === 'function'
+    ? value as SessionQueryLike
+    : undefined
+}
+
+/** `ctx.sessionPersistence` 形状检查(stat + open 都要在)。 */
+function asSessionPersistence(value: unknown): SessionPersistenceLike | undefined {
+  if (typeof value !== 'object' || value === null) return undefined
+  const candidate = value as Record<string, unknown>
+  return typeof candidate.stat === 'function' && typeof candidate.open === 'function'
+    ? value as SessionPersistenceLike
+    : undefined
+}
+
+/**
+ * 规范化一个外部选择对象(host 侧只做形状校验,值域校验交给 `llm.resolveCallConfig`)。
+ * @param value - 上游 `ModelSelection` 或持久化事件里的 `data`。
+ * @returns provider/model 至少非空的选择;否则 undefined。
+ */
+function asSelection(value: unknown): AdviserModelSelection | undefined {
+  if (typeof value !== 'object' || value === null) return undefined
+  const candidate = value as Record<string, unknown>
+  const provider = typeof candidate.provider === 'string' ? candidate.provider : ''
+  const model = typeof candidate.model === 'string' ? candidate.model : ''
+  if (provider === '' || model === '') return undefined
+  const effort = typeof candidate.reasoningEffort === 'string' ? candidate.reasoningEffort : ''
+  return { provider, model, ...effort === '' ? {} : { reasoningEffort: effort } }
+}
+
 /** 上游 id 是 branded string,运行时就是字符串;只认字符串,其余一律空串。 */
 function asId(value: unknown): string {
   return typeof value === 'string' ? value : ''
@@ -127,6 +194,7 @@ function activationSpec(shared: {
   parent: HostAgent
   prompt: readonly { readonly type: 'text'; readonly text: string }[]
   agentPreset: string
+  agentOptions?: AdviserModelSelection
   signal: AbortSignal
   delivery: 'caller'
 }): unknown {
@@ -134,6 +202,7 @@ function activationSpec(shared: {
     parent: shared.parent,
     prompt: shared.prompt,
     agentPreset: shared.agentPreset,
+    ...shared.agentOptions === undefined ? {} : { agentOptions: shared.agentOptions },
   }
   return {
     provider: shared.provider,
@@ -146,6 +215,7 @@ function activationSpec(shared: {
     parent: shared.parent,
     prompt: shared.prompt,
     agentPreset: shared.agentPreset,
+    ...shared.agentOptions === undefined ? {} : { agentOptions: shared.agentOptions },
     // ── alpha 线(0.2.2-alpha.2):request 装箱 ──
     request,
   }
@@ -190,6 +260,35 @@ export function createHostPorts(ctx: Context): AdviserPorts {
   const agentsNow = (): { get(id: string): unknown } | undefined => asAgentRegistry(readService(ctx, 'agents'))
   const subagentsNow = (): SubagentsLike | undefined => asSubagents(readService(ctx, 'subagents'))
   const controllerNow = (): SessionControllerLike | undefined => asSessionController(readService(ctx, 'sessionController'))
+  const queryNow = (): SessionQueryLike | undefined => asSessionQuery(readService(ctx, 'sessionQuery'))
+  const persistenceNow = (): SessionPersistenceLike | undefined => asSessionPersistence(readService(ctx, 'sessionPersistence'))
+
+  /** live Agent 的当前模型(旧宿主无 model 面 → undefined,由服务面显示「未知」)。 */
+  const liveSelection = (sessionId: string): AdviserModelSelection | undefined => {
+    const agent = asHostAgent(agentsNow()?.get(sessionId))
+    const model = agent?.model
+    if (model === undefined || typeof model.current !== 'function') return undefined
+    try {
+      return asSelection(model.current.call(model))
+    } catch {
+      return undefined
+    }
+  }
+
+  /**
+   * 校验所选模型在本机是否可用(供应商已装配、档位被适配器支持)。
+   * `llm` 缺席(旧宿主/base 形态)时放行——真正的拒绝会落在下一次请求上,
+   * 不该让「没装 llm 服务」把切换面整体打成不可用。
+   */
+  const assertModelAvailable = async (selection: AdviserModelSelection): Promise<void> => {
+    const llm = readService(ctx, 'llm') as { resolveCallConfig?: (config: unknown) => Promise<unknown> } | undefined
+    if (typeof llm?.resolveCallConfig !== 'function') return
+    try {
+      await llm.resolveCallConfig(selection)
+    } catch {
+      throw new AdviserModelRejection('invalid', `所选模型不可用:${selection.provider}/${selection.model}`)
+    }
+  }
 
   /** ① live 优先;② 有 session-controller 时委托它的去重冷恢复;③ 否则放弃。 */
   const resolveAgent = async (sessionId: string): Promise<HostAgent | undefined> => {
@@ -227,6 +326,7 @@ export function createHostPorts(ctx: Context): AdviserPorts {
         parent,
         prompt: spec.request.prompt,
         agentPreset: spec.request.agentPreset,
+        ...spec.request.agentOptions === undefined ? {} : { agentOptions: spec.request.agentOptions },
         signal: spec.signal,
         delivery: spec.delivery,
       }))
@@ -294,7 +394,89 @@ export function createHostPorts(ctx: Context): AdviserPorts {
         return false
       }
     },
+    parentModel(parentSessionId) {
+      return liveSelection(parentSessionId)
+    },
+    async readModel(childSessionId) {
+      // live 优先:Agent 的 model.current() 与上游模型选择器看到的是同一份投影。
+      const live = liveSelection(childSessionId)
+      if (live !== undefined) return live
+      // 冷会话:sessionQuery 的 modelSelection 投影(next = 待用选择)。
+      const query = queryNow()
+      if (query === undefined) return undefined
+      try {
+        using observation = await query.observeSession(childSessionId, { projectionMode: 'all' })
+        const selection = observation.projections?.values?.modelSelection
+        return asSelection(selection?.next) ?? asSelection(selection?.lastUsed)
+      } catch {
+        // 会话不存在/投影不可用:交给服务面回 undefined(UI 显示「未知」)。
+        return undefined
+      }
+    },
+    async writeModel(childSessionId, selection) {
+      await assertModelAvailable(selection)
+      const agent = asHostAgent(agentsNow()?.get(childSessionId))
+      const model = agent?.model
+      if (model !== undefined && typeof model.select === 'function') {
+        try {
+          // 必须带接收者调用(上游 AgentModel 用 this.session)。
+          model.select.call(model, selection)
+          return
+        } catch (error) {
+          throw new AdviserModelRejection('unavailable', `切换参谋模型失败:${errorText(error)}`)
+        }
+      }
+      // 冷会话:直接向持久化日志追加 `model/selection`(与 live 的 select 落同一事件,
+      // 恢复后投影一致)。不自造 resume:那会产出一个没有参谋预设的错配 Agent。
+      const persistence = persistenceNow()
+      if (persistence === undefined) {
+        throw new AdviserModelRejection('unavailable', '参谋会话尚未激活,当前无法切换模型')
+      }
+      let handle: PersistenceHandleLike
+      try {
+        handle = await persistence.open(childSessionId, 'write')
+      } catch {
+        throw new AdviserModelRejection('unavailable', '参谋会话当前不可写(可能正被占用或正在恢复),请稍后再试')
+      }
+      try {
+        const seq = await nextEventSeq(persistence, handle, childSessionId)
+        await handle.append([{ type: 'model/selection', seq, time: Date.now(), data: selection }])
+        await handle.flush()
+      } catch {
+        // 写句柄失主/日志损坏:一律「暂不可写」,不把英文内部错误递给浏览器。
+        throw new AdviserModelRejection('unavailable', '参谋会话当前不可写(可能正被占用或正在恢复),请稍后再试')
+      } finally {
+        // 句柄释放失败不掩盖写入结果(close 幂等;写句柄 close 自带持久化）。
+        await handle.close().catch(() => { /* 已关/已失主:忽略 */ })
+      }
+    },
   }
+}
+
+/** 异常文本(消息为空时给类型名;不泄露堆栈)。 */
+function errorText(error: unknown): string {
+  if (error instanceof Error) return error.message === '' ? error.name : error.message
+  return String(error)
+}
+
+/**
+ * 冷会话下一个事件 seq:优先 `stat().eventCount`(seq 从 0 连续,count=next),
+ * 统计不可用时退化为读全量日志取末条 seq+1(仅冷会话切换模型这条低频路径)。
+ */
+async function nextEventSeq(
+  persistence: SessionPersistenceLike,
+  handle: PersistenceHandleLike,
+  sessionId: string,
+): Promise<number> {
+  try {
+    const stat = await persistence.stat(sessionId)
+    if (typeof stat.eventCount === 'number' && stat.eventCount >= 0) return stat.eventCount
+  } catch {
+    // stat 不可用:走全量读。
+  }
+  const { events } = await handle.read()
+  const last = events[events.length - 1]
+  return (last !== undefined && typeof last.seq === 'number' ? last.seq : -1) + 1
 }
 
 /**

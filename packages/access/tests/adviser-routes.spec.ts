@@ -8,7 +8,7 @@
  * - create/deliver 失败码映射:limit/invalid→400、parent-missing/forbidden→404、
  *   preset-missing/unavailable→503;
  * - 成功 create/deliver 出审计(不记投递正文);list 响应 no-store。
- * 数据面用假件(AdviserFace 三键),不涉真实 adviser 服务——语义面由
+ * 数据面用假件(AdviserFace 四键),不涉真实 adviser 服务——语义面由
  * adviser/tests/service.test.ts 覆盖。
  */
 import { mkdtempSync, rmSync } from 'node:fs'
@@ -51,6 +51,7 @@ describe('参谋面板路由(access)', () => {
       list: async () => [{ sessionId: 'a1', label: 'adviser', activity: 'inactive' }],
       create: async () => ({ ok: true, sessionId: 'a1', messageId: 'm1' }),
       deliver: async (_parent, _text, delivery) => ({ ok: true, delivery, sessionId: _parent }),
+      model: async (_parent, _child, selection) => ({ ok: true, selection }),
     }
     deps = {
       store,
@@ -235,5 +236,63 @@ describe('参谋面板路由(access)', () => {
       body: Buffer.from(JSON.stringify({ parent: aliceSessionId })),
     }))
     expect(reply.status).toBe(404)
+  })
+
+  // ── 模型读写(2026-11-25 参谋模型解耦)──────────────────────────────────
+  it('model/read 匿名 401;跨租户 404;缺 child 400', async () => {
+    expect((await post('model/read', { parent: aliceSessionId, child: 'a1' }, '')).status).toBe(401)
+    expect((await post('model/read', { parent: aliceSessionId, child: 'a1' }, userCookie)).status).toBe(404)
+    expect((await post('model/read', { parent: aliceSessionId }, adminCookie)).status).toBe(400)
+  })
+
+  it('model/read:200 + no-store;选择缺席回 null', async () => {
+    face = { ...face!, model: async () => ({ ok: true, selection: undefined }) }
+    const reply = await post('model/read', { parent: aliceSessionId, child: 'a1' })
+    expect(reply.status).toBe(200)
+    expect(reply.headers.some(([n, v]) => n === 'cache-control' && v === 'no-store')).toBe(true)
+    expect(bodyOf(reply)).toEqual({ ok: true, selection: null })
+  })
+
+  it('model/read:不写审计(与 list 同口径)', async () => {
+    await post('model/read', { parent: aliceSessionId, child: 'a1' })
+    expect(auditEvents.some(e => e.kind.startsWith('access.adviser.model'))).toBe(false)
+  })
+
+  it('model:成功 200、provider/model 去空白后透传,并出审计', async () => {
+    const seen: unknown[] = []
+    face = {
+      ...face!,
+      model: async (_parent, _child, selection) => { seen.push(selection); return { ok: true, selection } },
+    }
+    const reply = await post('model', {
+      parent: aliceSessionId, child: 'a1', provider: ' route-a ', model: ' m-1 ', reasoningEffort: ' high ',
+    })
+    expect(reply.status).toBe(200)
+    expect(seen).toEqual([{ provider: 'route-a', model: 'm-1', reasoningEffort: 'high' }])
+    const audited = auditEvents.find(e => e.kind === 'access.adviser.model')
+    expect(audited?.ok).toBe(true)
+    expect(JSON.stringify(audited)).toContain('route-a')
+  })
+
+  it('model:缺 provider/model 400(不打到服务面)', async () => {
+    let called = false
+    face = { ...face!, model: async () => { called = true; return { ok: true, selection: undefined } } }
+    expect((await post('model', { parent: aliceSessionId, child: 'a1', model: 'm' })).status).toBe(400)
+    expect((await post('model', { parent: aliceSessionId, child: 'a1', provider: 'p' })).status).toBe(400)
+    expect(called).toBe(false)
+  })
+
+  it('model:失败码映射 forbidden→404、invalid→400、unavailable→503,且审计记 ok=false', async () => {
+    const cases: Array<[string, number]> = [['forbidden', 404], ['invalid', 400], ['unavailable', 503]]
+    for (const [code, status] of cases) {
+      face = {
+        ...face!,
+        model: async () => ({ ok: false, code, message: 'x' }),
+      }
+      const reply = await post('model', { parent: aliceSessionId, child: 'a1', provider: 'p', model: 'm' })
+      expect(reply.status, code).toBe(status)
+    }
+    const audited = auditEvents.filter(e => e.kind === 'access.adviser.model')
+    expect(audited.every(e => e.ok === false)).toBe(true)
   })
 })

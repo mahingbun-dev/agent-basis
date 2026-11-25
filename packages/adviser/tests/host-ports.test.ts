@@ -232,6 +232,193 @@ describe('createHostPorts:服务懒解析(不在 apply 时固化快照)', () => 
   })
 })
 
+describe('createHostPorts:模型继承与独立切换(2026-11-25)', () => {
+  it('parentModel 读 agent.model.current();无模型面=undefined', () => {
+    const { ctx } = fakeCtx({
+      agents: {
+        get: (id: string) => id === 'p1'
+          ? { ...fakeAgent('p1', { calls: [] }), model: { current: () => ({ provider: 'r', model: 'm', reasoningEffort: 'high', extra: 1 }) } }
+          : fakeAgent(id, { calls: [] }),
+      },
+    })
+    const ports = createHostPorts(ctx)
+    expect(ports.parentModel('p1')).toEqual({ provider: 'r', model: 'm', reasoningEffort: 'high' })
+    expect(ports.parentModel('plain')).toBeUndefined()   // 假件没有 model 面
+  })
+
+  it('readModel:live 优先读 model.current()', async () => {
+    const { ctx } = fakeCtx({
+      agents: {
+        get: () => ({ ...fakeAgent('c1', { calls: [] }), model: { current: () => ({ provider: 'r', model: 'm' }) } }),
+      },
+      // query 即便在场也不该被 live 路径调用
+      sessionQuery: { observeSession: async () => { throw new Error('should not be called') } },
+    })
+    const ports = createHostPorts(ctx)
+    expect(await ports.readModel('c1')).toEqual({ provider: 'r', model: 'm' })
+  })
+
+  it('readModel:冷会话读 modelSelection 投影(next 优先),并在用后释放观察', async () => {
+    let disposed = false
+    const { ctx } = fakeCtx({
+      sessionQuery: {
+        observeSession: async (id: string, options: { projectionMode?: string }) => {
+          expect(id).toBe('c1')
+          expect(options.projectionMode).toBe('all')
+          return {
+            projections: { values: { modelSelection: { lastUsed: { provider: 'r', model: 'old' }, next: { provider: 'r', model: 'new' } } } },
+            [Symbol.dispose]: () => { disposed = true },
+          }
+        },
+      },
+    })
+    const ports = createHostPorts(ctx)
+    expect(await ports.readModel('c1')).toEqual({ provider: 'r', model: 'new' })
+    expect(disposed).toBe(true)
+  })
+
+  it('readModel:投影缺席 next 时回退 lastUsed;观察异常收敛为 undefined', async () => {
+    const { ctx } = fakeCtx({
+      sessionQuery: {
+        observeSession: async (id: string) => {
+          if (id === 'boom') throw new Error('not found')
+          return {
+            projections: { values: { modelSelection: { lastUsed: { provider: 'r', model: 'used' }, next: null } } },
+            [Symbol.dispose]: () => {},
+          }
+        },
+      },
+    })
+    const ports = createHostPorts(ctx)
+    expect(await ports.readModel('c1')).toEqual({ provider: 'r', model: 'used' })
+    expect(await ports.readModel('boom')).toBeUndefined()
+  })
+
+  it('writeModel:live 走 model.select(带接收者),并先用 llm 校验可用性', async () => {
+    const calls: string[] = []
+    const model = {
+      select(this: unknown, selection: { provider: string; model: string }) {
+        calls.push(`select:${this === model ? 'receiver' : 'detached'}:${selection.provider}/${selection.model}`)
+      },
+    }
+    const { ctx } = fakeCtx({
+      agents: { get: () => ({ ...fakeAgent('c1', { calls: [] }), model }) },
+      llm: { resolveCallConfig: async (selection: unknown) => { calls.push(`validate:${JSON.stringify(selection)}`); return selection } },
+    })
+    const ports = createHostPorts(ctx)
+    await ports.writeModel('c1', { provider: 'r', model: 'm', reasoningEffort: 'low' })
+    expect(calls).toEqual([
+      'validate:{"provider":"r","model":"m","reasoningEffort":"low"}',
+      'select:receiver:r/m',
+    ])
+  })
+
+  it('writeModel:模型不可用(llm 拒绝)→ AdviserModelRejection(invalid),不调 select', async () => {
+    let selected = false
+    const { ctx } = fakeCtx({
+      agents: {
+        get: () => ({ ...fakeAgent('c1', { calls: [] }), model: { select: () => { selected = true } } }),
+      },
+      llm: { resolveCallConfig: async () => { throw new Error('unknown route') } },
+    })
+    const ports = createHostPorts(ctx)
+    await expect(ports.writeModel('c1', { provider: 'nope', model: 'x' }))
+      .rejects.toMatchObject({ code: 'invalid' })
+    expect(selected).toBe(false)
+  })
+
+  it('writeModel:冷会话向持久化追加 model/selection(seq 取 stat.eventCount),flush 后关句柄', async () => {
+    const calls: string[] = []
+    let opened: string | undefined
+    let appended: readonly unknown[] = []
+    const handle = {
+      read: async () => { calls.push('read'); return { events: [] } },
+      append: async (events: readonly unknown[]) => { appended = events; calls.push('append') },
+      flush: async () => { calls.push('flush') },
+      close: async () => { calls.push('close') },
+    }
+    const { ctx } = fakeCtx({
+      sessionPersistence: {
+        stat: async () => ({ eventCount: 7 }),
+        open: async (id: string, access: string) => { opened = `${id}/${access}`; return handle },
+      },
+    })
+    const ports = createHostPorts(ctx)
+    await ports.writeModel('c1', { provider: 'r', model: 'm' })
+    const events = appended as readonly { type?: unknown; seq?: unknown; time?: unknown; data?: unknown }[]
+    expect(opened).toBe('c1/write')
+    expect(events).toHaveLength(1)
+    expect(events[0]?.type).toBe('model/selection')
+    expect(events[0]?.seq).toBe(7)
+    expect(typeof events[0]?.time).toBe('number')
+    expect(events[0]?.data).toEqual({ provider: 'r', model: 'm' })
+    // stat.eventCount 可用时不读全量日志;持久化屏障在关句柄之前。
+    expect(calls).toEqual(['append', 'flush', 'close'])
+  })
+
+  it('writeModel:stat 无 eventCount 时读日志末条 seq+1(冷会话低频路径)', async () => {
+    let appended: readonly { seq?: unknown }[] = []
+    const { ctx } = fakeCtx({
+      sessionPersistence: {
+        stat: async () => ({}),
+        open: async () => ({
+          read: async () => ({ events: [{ seq: 4 }, { seq: 5 }] }),
+          append: async (events: readonly { seq?: unknown }[]) => { appended = events },
+          flush: async () => {},
+          close: async () => {},
+        }),
+      },
+    })
+    const ports = createHostPorts(ctx)
+    await ports.writeModel('c1', { provider: 'r', model: 'm' })
+    expect(appended[0]?.seq).toBe(6)
+  })
+
+  it('writeModel:冷会话写句柄被占用 → AdviserModelRejection(unavailable)', async () => {
+    const { ctx } = fakeCtx({
+      sessionPersistence: {
+        stat: async () => ({ eventCount: 0 }),
+        open: async () => { throw new Error('session already owned') },
+      },
+    })
+    const ports = createHostPorts(ctx)
+    await expect(ports.writeModel('c1', { provider: 'r', model: 'm' }))
+      .rejects.toMatchObject({ code: 'unavailable' })
+  })
+
+  it('writeModel:既非 live 也无持久化 → unavailable', async () => {
+    const { ctx } = fakeCtx({})
+    const ports = createHostPorts(ctx)
+    await expect(ports.writeModel('c1', { provider: 'r', model: 'm' }))
+      .rejects.toMatchObject({ code: 'unavailable' })
+  })
+
+  it('startActivation 把 inherited agentOptions 双写(rc 顶层 + alpha request 装箱)', async () => {
+    const parent = fakeAgent('p1', { calls: [] })
+    let seen: Record<string, unknown> | undefined
+    const { ctx } = fakeCtx({
+      agents: { get: () => parent },
+      subagents: {
+        startActivation: async (spec: Record<string, unknown>) => { seen = spec; return { childId: 'c1' } },
+        listDescendants: async () => [],
+      },
+    })
+    const ports = createHostPorts(ctx)
+    await ports.startActivation({
+      provider: 'spawn', label: 'adviser', name: 'adviser-1', childId: 'c1',
+      request: {
+        parent: { id: 'p1' },
+        prompt: [{ type: 'text', text: 'x' }],
+        agentPreset: 'eterna-adviser',
+        agentOptions: { provider: 'r', model: 'm' },
+      },
+      signal: new AbortController().signal, delivery: 'caller',
+    })
+    expect(seen?.agentOptions).toEqual({ provider: 'r', model: 'm' })
+    expect((seen?.request as { agentOptions?: unknown }).agentOptions).toEqual({ provider: 'r', model: 'm' })
+  })
+})
+
 describe('mountAdviser', () => {
   it('以 ADVISER_SERVICE_ID provide 出服务对象', () => {
     const { ctx, provided } = fakeCtx({})

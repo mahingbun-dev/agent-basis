@@ -98,6 +98,11 @@ export interface AdviserFace {
   list(parentSessionId: string): Promise<readonly AdviserSessionRow[]>
   create(parentSessionId: string, seedText: string, childId?: string): Promise<AdviserCreateOutcome>
   deliver(parentSessionId: string, text: string, delivery: 'inject' | 'followup'): Promise<AdviserDeliverOutcome>
+  /**
+   * 参谋模型读写(2026-11-25 模型解耦):selection 省略=只读。
+   * 子父关系校验在 adviser 服务内(access 只校验父会话归属)。
+   */
+  model(parentSessionId: string, childSessionId: string, selection?: AdviserModelChoice): Promise<AdviserModelOutcome>
 }
 
 /**
@@ -131,6 +136,18 @@ export type AdviserCreateOutcome =
 /** 投递结果(与 adviser 侧 AdviserDeliverResult 同形)。 */
 export type AdviserDeliverOutcome =
   | { readonly ok: true; readonly delivery: 'inject' | 'followup'; readonly sessionId: string }
+  | { readonly ok: false; readonly code: string; readonly message: string }
+
+/** 参谋模型选择(与 adviser 侧 AdviserModelSelection 同形)。 */
+export interface AdviserModelChoice {
+  readonly provider: string
+  readonly model: string
+  readonly reasoningEffort?: string
+}
+
+/** 模型读/写结果(与 adviser 侧 AdviserModelOutcome 同形)。 */
+export type AdviserModelOutcome =
+  | { readonly ok: true; readonly selection: AdviserModelChoice | undefined }
   | { readonly ok: false; readonly code: string; readonly message: string }
 
 /** tasks 设置视图(结构面;载荷整体 JSON 序列化,access 不解释领域字段)。 */
@@ -261,7 +278,7 @@ export const ADVISER_ROUTE_PREFIX = '/access/api/adviser/'
 export const SESSION_EVAL_ROUTE_PREFIX = '/access/api/session-eval/'
 
 /**
- * 参谋面板异步入口(2026-11-24):三条端点全部异步(服务面本身是 Promise)。
+ * 参谋面板异步入口(2026-11-24):五条端点全部异步(服务面本身是 Promise)。
  * 与 {@link handleAccessRequest} 分离的原因:后者被既有测试当作同步纯函数
  * 直接取 `.status`,改成 union 会连带改 20+ 处测试,得不偿失。
  * @param deps - access 依赖面。
@@ -278,18 +295,22 @@ export async function handleAdviserRequest(deps: AccessDeps, req: AccessRequest)
   if (action === 'list') return handleAdviserList(deps, req, readBodyParent(req))
   if (action === 'create') return handleAdviserCreate(deps, req, ip)
   if (action === 'deliver') return handleAdviserDeliver(deps, req, ip)
+  if (action === 'model/read') return handleAdviserModelRead(deps, req)
+  if (action === 'model') return handleAdviserModelSet(deps, req, ip)
   return errorReply(404, 'not found')
 }
 
 // ── 参谋面板(2026-11-24)────────────────────────────────────────────
-// 三条端点,全部要求登录 + 父会话归属本人(跨租户一律 404 不泄漏存在性):
-//   POST /access/api/adviser/list     {parent}
-//   POST /access/api/adviser/create   {parent, seed}
-//   POST /access/api/adviser/deliver  {parent, text, delivery:'inject'|'followup'}
+// 五条端点,全部要求登录 + 父会话归属本人(跨租户一律 404 不泄漏存在性):
+//   POST /access/api/adviser/list       {parent}
+//   POST /access/api/adviser/create     {parent, seed}
+//   POST /access/api/adviser/deliver    {parent, text, delivery:'inject'|'followup'}
+//   POST /access/api/adviser/model/read {parent, child}                    ← 2026-11-25
+//   POST /access/api/adviser/model      {parent, child, provider, model, reasoningEffort?}
 // 归属判定 = store.sessionOwner(子代理父链回退已内置,参谋会话也判到它的父会话)。
-// 三端点都用 POST + JSON body:createNodeHandler 的 pathname 已剥掉 query
+// 五端点都用 POST + JSON body:createNodeHandler 的 pathname 已剥掉 query
 // (new URL(...).pathname),GET 读不到 parent;POST 顺带吃到同源闸(CSRF)与全局限速。
-// no-store:列表含实时 activity,缓存会让人对着已结束的参谋点按钮。
+// no-store:列表含实时 activity、模型读面含实时选择,缓存会让面板显示过期状态。
 
 /** 参谋端点须登录+归属本人;越权/不存在统一 404(不泄漏会话是否存在)。 */
 function authorizeAdviser(deps: AccessDeps, req: AccessRequest, parent: string):
@@ -353,6 +374,57 @@ function handleAdviserDeliver(deps: AccessDeps, req: AccessRequest, ip: string):
     })
     if (!result.ok) return adviserFailureReply(result.code, result.message)
     return jsonResponse(200, { ok: true, delivery: result.delivery, sessionId: result.sessionId })
+  })
+}
+
+/**
+ * 读参谋模型(2026-11-25):只读面,不出审计(与 list 同口径)。
+ * 服务面缺席 503;子父关系不符由服务面回 forbidden → 404。
+ */
+function handleAdviserModelRead(deps: AccessDeps, req: AccessRequest): Promise<AccessReply> {
+  const body = parseJsonBody(req.body)
+  const parent = typeof body?.parent === 'string' ? body.parent : ''
+  const child = typeof body?.child === 'string' ? body.child : ''
+  const authorized = authorizeAdviser(deps, req, parent)
+  if (!authorized.ok) return Promise.resolve(authorized.reply)
+  if (child === '') return Promise.resolve(errorReply(400, '参数不合法：缺少参谋会话 id'))
+  return runAdviser(authorized.face.model(parent, child), (result) => {
+    if (!result.ok) return adviserFailureReply(result.code, result.message)
+    return jsonResponse(200, { ok: true, selection: result.selection ?? null }, [['cache-control', 'no-store']])
+  })
+}
+
+/**
+ * 切参谋模型(2026-11-25):写面出审计(只记路由,不记请求正文以外的东西)。
+ * 成功回服务面确认后的选择(标准化过的 provider/model/effort)。
+ */
+function handleAdviserModelSet(deps: AccessDeps, req: AccessRequest, ip: string): Promise<AccessReply> {
+  const body = parseJsonBody(req.body)
+  const parent = typeof body?.parent === 'string' ? body.parent : ''
+  const child = typeof body?.child === 'string' ? body.child : ''
+  const provider = typeof body?.provider === 'string' ? body.provider.trim() : ''
+  const model = typeof body?.model === 'string' ? body.model.trim() : ''
+  const reasoningEffort = typeof body?.reasoningEffort === 'string' ? body.reasoningEffort.trim() : ''
+  const authorized = authorizeAdviser(deps, req, parent)
+  if (!authorized.ok) return Promise.resolve(authorized.reply)
+  if (child === '' || provider === '' || model === '') {
+    return Promise.resolve(errorReply(400, '参数不合法：缺少参谋会话或模型'))
+  }
+  const selection: AdviserModelChoice = {
+    provider, model, ...reasoningEffort === '' ? {} : { reasoningEffort },
+  }
+  const { face, user } = authorized
+  return runAdviser(face.model(parent, child, selection), (result) => {
+    deps.audit({
+      kind: 'access.adviser.model', account: user.account, ip, ok: result.ok,
+      detail: {
+        parent, child, provider, model,
+        ...reasoningEffort === '' ? {} : { reasoningEffort },
+        ...result.ok ? {} : { code: result.code },
+      },
+    })
+    if (!result.ok) return adviserFailureReply(result.code, result.message)
+    return jsonResponse(200, { ok: true, selection: result.selection ?? selection })
   })
 }
 

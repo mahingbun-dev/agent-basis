@@ -14,8 +14,8 @@ import { ManageTab } from './plugins-manager.tsx'
 import { DirectoryTreeFlow } from './directory-tree.tsx'
 import { ModelMenu } from './model-menu.tsx'
 import { ThinkingFeedbackActions, type ThinkingFeedbackInjected } from './thinking-feedback.tsx'
-import { SessionBindingProbe } from './session-probe.tsx'
-import { activeSessionId } from './session-bridge.ts'
+import { SessionBindingProbe, type SessionProbeProps } from './session-probe.tsx'
+import { activeSessionId, isSubagentSession } from './session-bridge.ts'
 import { AccountLauncher, type AccountLauncherInjected } from './account-menu.tsx'
 import { installLinkOpeningDefault } from './link-opening.ts'
 import { applyPluginPageRole } from './plugin-page-guard.ts'
@@ -364,6 +364,11 @@ interface AccessClientContext {
     projectionStore?(sessionId: string): {
       apply?(key: string, value: unknown, seq: number): void
     } | undefined
+    /**
+     * 上游 ClientSessions:解析 subagent 地址(参谋/子代理子会话非普通会话)。
+     * 与 ui-model-selection 的可用性门同源;旧壳缺席=不判。
+     */
+    subagentAddress?(sessionId: string): unknown
   }
   /** 设置域基础服务结构子集(link-opening.ts 消费面;服务缺席=联动跳过)。 */
   readonly configForms?: {
@@ -417,11 +422,17 @@ export function apply(ctx: AccessClientContext): () => void {
   // 会话绑定探针(2026-11-18 收尾):conversation.input.overlay(session 作用域 list)
   // 渲染 null,只把标准席位的 sessionId 写入会话桥——模型菜单/动作条据此取
   // 「真正渲染当前对话」的会话,不再只依赖 localStorage 导航快照。
+  // 2026-11-25:按上游 subagentAddress 注入子会话判定——参谋面板等**子会话**
+  // 的输入区同样渲染本槽位,若让它覆盖桥,主会话切模型会被宿主以
+  // `session/agent-busy`(owned by subagent routing)拒绝。
   const registerSessionProbe = (): void => {
     ctx.slots.inject('conversation.input.overlay', () => ctx.slots.register({
       name: 'conversation.input.overlay',
       id: `${NS}.session-probe`,
       order: 70,
+      inject: (sessionId?: string): Pick<SessionProbeProps, 'subagent'> => ({
+        subagent: isSubagentSession(ctx.sessions, sessionId),
+      }),
     }, SessionBindingProbe))
   }
   registerSessionProbe()
@@ -694,13 +705,28 @@ function registerModelDrawer(ctx: AccessClientContext): void {
     } catch { return null }
   }
 
+  /**
+   * 取触发按钮**自己所属对话**的会话 id(2026-11-25):
+   * 上游 ConversationContent 在每段对话的 body 上带 `data-conversation-session`,
+   * 模型按钮就在该 body 的 composer 里。按 DOM 最近祖先解析,参谋面板/子代理聊天
+   * 这类**嵌在同一页里的第二段对话**再怎么挂载都不会让主会话菜单拿错会话
+   * (只靠会话桥的「最后写入者」时,子会话会把桥覆盖成 `…--adviser-N`)。
+   * @param btn - 被劫持的模型触发按钮。
+   * @returns 按钮所属对话的会话 id;结构不符(旧壳/浮层外挂)时 null。
+   */
+  const sessionIdOfComposer = (btn: Element): string | null => {
+    const owner = btn.closest('[data-conversation-session]')
+    const id = owner?.getAttribute('data-conversation-session') ?? null
+    return id === '' ? null : id
+  }
+
   const attach = (): void => {
     const btn = [...document.querySelectorAll('button')].find(b => (b.getAttribute('aria-label') || '').startsWith('选择模型'))
     if (btn === undefined || btn.getAttribute('data-eterna-drawer-bound') === '1') return
     btn.setAttribute('data-eterna-drawer-bound', '1')
     btn.addEventListener('click', (e: MouseEvent) => {
       if (e.shiftKey) return // shift+click 保留上游菜单
-      const sessionId = activeSessionId() ?? readCurrentSession()
+      const sessionId = sessionIdOfComposer(btn) ?? activeSessionId() ?? readCurrentSession()
       if (sessionId === null) return
       e.stopImmediatePropagation()
       e.preventDefault()

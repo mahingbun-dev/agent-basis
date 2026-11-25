@@ -235,6 +235,168 @@ const CSS = `
   box-shadow: var(--et-focus-ring);
 }
 
+/* ── 模型控件(2026-11-25 模型解耦)─────────────────────────────────────────
+ * chip + 弹层:弹层用绝对定位挂在 chip 的锚点上(不 portal)——右栏 tab 是
+ * 有界的对话列,往下覆盖对话区即可;不写 position:fixed,避免被宿主的
+ * transform 层劫持。 */
+[data-eterna-adviser='modelbar'] {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--et-space-2);
+  padding: var(--et-space-2) var(--et-space-4);
+  border-bottom: 1px solid var(--et-border);
+  background: var(--et-surface);
+  color: var(--et-fg);
+  font-size: var(--et-text-micro);
+}
+[data-eterna-adviser='modelbar'] .et-adviser-model-label {
+  flex: 0 0 auto;
+  color: var(--et-muted);
+}
+.et-adviser-model-anchor {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+.et-adviser-model-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--et-space-1);
+  max-width: 100%;
+  min-height: 28px;
+  padding: 0 var(--et-space-3);
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius-pill);
+  background: var(--et-surface-2);
+  color: var(--et-fg);
+  font: inherit;
+  font-size: var(--et-text-micro);
+  cursor: pointer;
+  transition: background var(--et-motion-fast) var(--et-ease), border-color var(--et-motion-fast) var(--et-ease);
+}
+.et-adviser-model-chip:hover:not(:disabled) {
+  border-color: var(--et-accent);
+  color: var(--et-accent);
+}
+.et-adviser-model-chip:focus-visible {
+  outline: none;
+  box-shadow: var(--et-focus-ring);
+}
+.et-adviser-model-chip:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+.et-adviser-model-chip .et-adviser-model-chip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.et-adviser-model-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: var(--et-space-4);
+  right: var(--et-space-4);
+  z-index: 100;
+  max-height: min(360px, 60vh);
+  overflow-y: auto;
+  padding: var(--et-space-2) 0;
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius-lg);
+  background: var(--et-surface);
+  color: var(--et-fg);
+  box-shadow: var(--et-shadow-raised);
+  box-sizing: border-box;
+}
+.et-adviser-model-popover .et-adviser-model-hint {
+  margin: 0;
+  padding: var(--et-space-1) var(--et-space-3);
+  color: var(--et-muted);
+  font-size: var(--et-text-micro);
+  line-height: var(--et-leading-body);
+}
+.et-adviser-model-popover .et-adviser-model-error {
+  margin: 0;
+  padding: var(--et-space-1) var(--et-space-3);
+  color: var(--et-danger);
+  font-size: var(--et-text-micro);
+}
+.et-adviser-model-group + .et-adviser-model-group {
+  margin-top: var(--et-space-1);
+  padding-top: var(--et-space-1);
+  border-top: 1px solid var(--et-border-soft);
+}
+.et-adviser-model-group-title {
+  margin: 0;
+  padding: var(--et-space-1) var(--et-space-3);
+  color: var(--et-muted);
+  font-size: var(--et-text-micro);
+  font-weight: var(--et-weight-display);
+}
+.et-adviser-model-row,
+.et-adviser-model-effort {
+  display: flex;
+  align-items: center;
+  gap: var(--et-space-2);
+  width: 100%;
+  padding: 0 var(--et-space-3);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--et-motion-fast) var(--et-ease);
+}
+.et-adviser-model-row {
+  min-height: 36px;
+  font-size: var(--et-text-caption);
+}
+.et-adviser-model-row:hover:not(:disabled),
+.et-adviser-model-effort:hover:not(:disabled) {
+  background: var(--et-surface-2);
+}
+.et-adviser-model-row:focus-visible,
+.et-adviser-model-effort:focus-visible {
+  outline: none;
+  box-shadow: var(--et-focus-ring);
+}
+.et-adviser-model-row:disabled,
+.et-adviser-model-effort:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+.et-adviser-model-row .et-adviser-model-row-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.et-adviser-model-row svg,
+.et-adviser-model-effort svg {
+  flex: 0 0 auto;
+  color: var(--et-accent);
+}
+.et-adviser-model-efforts {
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 var(--et-space-1) var(--et-space-4);
+}
+.et-adviser-model-effort {
+  min-height: 32px;
+  font-size: var(--et-text-micro);
+  color: var(--et-fg-2);
+}
+.et-adviser-model-effort[aria-checked='true'] {
+  color: var(--et-fg);
+  font-weight: var(--et-weight-emphasis);
+}
+.et-adviser-model-effort > span {
+  flex: 1 1 auto;
+}
+
 /* ── 按钮 ────────────────────────────────────────────────────────────────── */
 [data-eterna-adviser='actions'] {
   display: flex;
