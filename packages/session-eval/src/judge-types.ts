@@ -47,6 +47,10 @@ export interface JudgeScoreView {
   readonly latencyMs?: number
   /** 裁判调用 token 总量(计费口径单列,不混入被测会话). */
   readonly tokens?: number
+  /** 人工复核结果(与当前判定同一评分值时才回显;agrees=false = 判错了). */
+  readonly label?: 'agrees' | 'disagrees'
+  /** 可否人工复核(只有模型裁判且已有 ok 结论的评分才能标注). */
+  readonly labelable?: boolean
 }
 
 /** 裁判触发方式. */
@@ -111,6 +115,128 @@ export type BusinessSaveReply =
   | { readonly ok: true; readonly version: number; readonly metric: BusinessMetric; readonly yaml: string }
   | { readonly ok: false; readonly code: 'conflict' | 'invalid' | 'io'; readonly error: string }
 
+/** 混淆矩阵(行=人工判定,列=裁判判定;只有 ok 评分可标注). */
+export interface CalibrationMatrix {
+  readonly humanPassJudgePass: number
+  readonly humanPassJudgeFail: number
+  readonly humanFailJudgePass: number
+  readonly humanFailJudgeFail: number
+}
+
+/** 单指标校准状态(阈值:≥20 条人工样本且一致率 ≥85%). */
+export interface CalibrationMetricView {
+  readonly key: string
+  readonly name: string
+  readonly category: JudgeCategory
+  /** 已标注条数(同一条重标只算最新一次). */
+  readonly labeled: number
+  /** 与裁判判定一致的条数. */
+  readonly agrees: number
+  /** 一致率(labeled=0 时为 null). */
+  readonly agreement: number | null
+  readonly matrix: CalibrationMatrix
+  /** not_started=无样本 / insufficient=样本不足 / uncalibrated=一致率未到阈值 / calibrated=已校准. */
+  readonly status: 'not_started' | 'insufficient' | 'uncalibrated' | 'calibrated'
+  /** 偏松=放过了人工判未过的;偏紧=否掉了人工判通过的;balanced=无反向样本或两向相等. */
+  readonly bias: 'lenient' | 'strict' | 'balanced'
+}
+
+/** 全部指标合计(同口径,无名称/类别). */
+export interface CalibrationTotals {
+  readonly labeled: number
+  readonly agrees: number
+  readonly agreement: number | null
+  readonly matrix: CalibrationMatrix
+  readonly status: CalibrationMetricView['status']
+}
+
+/** 校准读面(设置分区「校准」). */
+export interface CalibrationView {
+  readonly metrics: readonly CalibrationMetricView[]
+  /** 全部指标合计(同口径). */
+  readonly totals: CalibrationTotals
+  readonly thresholds: { readonly minSamples: number; readonly minAgreement: number }
+}
+
+/** 总览 KPI(近 14 天,本人会话). */
+export interface OverviewTotals {
+  /** 有结果类结论的会话数(没评完的不进分母). */
+  readonly evaluatedSessions: number
+  readonly passedSessions: number
+  /** 综合通过率(0..1;无已终评会话为 null). */
+  readonly passRate: number | null
+  /** 关键项(结果类 gating)未过的会话数. */
+  readonly gatingFailedSessions: number
+  /** 裁判调用平均耗时(近 14 天,有耗时的模型评分). */
+  readonly averageLatencyMs: number | null
+  /** 今日裁判用量与日预算(部署级). */
+  readonly usageToday: number
+  readonly budgetPerDay: number
+}
+
+/** 按天通过率(近 14 天;evaluated=0 时 passRate 为 null). */
+export interface OverviewDay {
+  readonly day: string
+  readonly evaluated: number
+  readonly passed: number
+  readonly passRate: number | null
+}
+
+/** 按指标(整条会话口径的最新一次评分;逐轮指标不进总览). */
+export interface OverviewMetricRow {
+  readonly key: string
+  readonly name: string
+  readonly category: JudgeCategory
+  readonly source: 'builtin' | 'business'
+  readonly pass: number
+  readonly fail: number
+  readonly notApplicable: number
+  readonly passRate: number | null
+}
+
+/** 评测总览视图(main 页). */
+export interface OverviewView {
+  readonly windowDays: 14
+  readonly totals: OverviewTotals
+  readonly byDay: readonly OverviewDay[]
+  readonly metrics: readonly OverviewMetricRow[]
+}
+
+/** 总览应答(评分库不可用时 io). */
+export type OverviewReply =
+  | { readonly ok: true; readonly overview: OverviewView }
+  | { readonly ok: false; readonly code: 'io'; readonly error: string }
+
+/** 单指标试跑结果(真实模型;原始输出原样带回,不落评分行). */
+export interface JudgeTrialView {
+  readonly metricKey: string
+  readonly metricName: string
+  readonly scope: JudgeScope
+  readonly status: JudgeStatus
+  readonly value: boolean | null
+  readonly display: string
+  readonly rationale: string
+  /** 模型原始输出(调用失败时可能为空;UI 用 pre 原样展示). */
+  readonly raw: string
+  readonly latencyMs: number
+  readonly tokens?: number
+  readonly route: JudgeRoute
+}
+
+/** 试跑应答(失败码:未配置/预算/参数/不存在/会话未加载/无内容/非模型指标/内部异常). */
+export type JudgeTrialReply =
+  | { readonly ok: true; readonly trial: JudgeTrialView }
+  | {
+    readonly ok: false
+    readonly code: 'unconfigured' | 'budget' | 'invalid' | 'not_found' | 'not_loaded' | 'no_content' | 'not_model' | 'io'
+    readonly error: string
+  }
+
+/** 人工复核保存结果. */
+export type JudgeLabelReply =
+  | { readonly ok: true; readonly label: 'agrees' | 'disagrees' }
+  | { readonly ok: false; readonly code: 'not_found' | 'invalid' | 'io'; readonly error: string }
+
 /** 设置分区读面:配置 + 可选的指标目录 + 可用 provider 目录 + 账号业务指标覆盖层. */
 export interface JudgeSettingsView {
   readonly config: JudgeConfig
@@ -124,6 +250,8 @@ export interface JudgeSettingsView {
   readonly providers: readonly { readonly id: string; readonly models: readonly string[] }[]
   /** 业务指标覆盖层(登录账号自己的 metrics.yaml). */
   readonly business?: BusinessMetricsView
+  /** 人工复核校准(全局，按指标聚合). */
+  readonly calibration?: CalibrationView
   /** 配置损坏等说明(设置页顶部提示;保存一次即可修复). */
   readonly note?: string
 }

@@ -45,6 +45,33 @@ export function renderReport(result: PackRunResult): string {
     lines.push(`schema 加载失败文件(未计入用例): ${result.loadErrors.length} 个`)
     for (const error of result.loadErrors) lines.push(`- ${error.file}: ${error.message}`)
   }
+  const scored = result.results.filter(item => item.sessionEval !== undefined)
+  const unscored = result.results.filter(item => item.sessionEvalError !== undefined)
+  if (scored.length > 0 || unscored.length > 0) {
+    lines.push('')
+    lines.push('## 会话评测规则分（--session-eval）', '')
+    lines.push('口径：与在线「评测」面板同一套纯函数（内置确定性规则 + metrics.yaml 业务规则）。回放无模型，裁判型与逐轮条目跳过（下表「跳过」列计数）。')
+    const versions = [...new Set(scored.map(item => item.sessionEval?.metricsVersion ?? null))]
+    if (versions.length === 1 && versions[0] !== null) lines.push(`- metrics.yaml: v${versions[0]}`)
+    lines.push('')
+    lines.push('| 规则结论 | 条数 |', '|---|---|')
+    for (const level of ['pass', 'warn', 'unrated'] as const) {
+      lines.push(`| ${level} | ${scored.filter(item => item.sessionEval?.rules.verdict.level === level).length} |`)
+    }
+    if (unscored.length > 0) lines.push(`| 未评分 | ${unscored.length} |`)
+    lines.push('')
+    lines.push('| case | 规则结论 | 未过判定项 | 业务规则未过/总计 | 跳过 |', '|---|---|---|---|---|')
+    for (const item of result.results) {
+      if (item.sessionEval === undefined) {
+        lines.push(`| ${item.caseData.id} | 未评分 | - | - | ${item.sessionEvalError ?? ''} |`)
+        continue
+      }
+      const { rules, business, skipped } = item.sessionEval
+      const failedRules = rules.metrics.filter(metric => metric.pass === false).map(metric => metric.key).join(', ') || '-'
+      const failedBusiness = business.filter(metric => metric.status === 'ok' && metric.value === false).length
+      lines.push(`| ${item.caseData.id} | ${rules.verdict.level}（${rules.verdict.label}） | ${failedRules} | ${failedBusiness}/${business.length} | ${skipped.length} |`)
+    }
+  }
   lines.push('')
   lines.push('## 用例明细', '')
   lines.push('| id | adapter | status | tags | 失败分类 |', '|---|---|---|---|---|')

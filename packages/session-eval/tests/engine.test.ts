@@ -10,7 +10,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { JudgeEngine, type JudgeEnginePorts } from '../src/engine.ts'
 import { readJudgeConfig, writeJudgeConfig } from '../src/judge-config.ts'
-import { openJudgeStore } from '../src/score-store.ts'
+import { openJudgeStore, type StoredJudgeScore } from '../src/score-store.ts'
 import { businessMetricsPath, saveBusinessMetric } from '../src/business-store.ts'
 import { DEFAULT_JUDGE_CONFIG, type JudgeConfig } from '../src/judge-types.ts'
 import type { JudgeLlmPort } from '../src/judge-call.ts'
@@ -625,5 +625,295 @@ describe('业务指标(账号覆盖层)', () => {
     const bare = newEngine()
     engine = bare
     expect(await bare.saveBusinessMetric('alice', rubricInput(), 0)).toMatchObject({ ok: false, code: 'io' })
+  })
+})
+
+
+describe('人工复核与校准(P2-3)', () => {
+  beforeEach(() => {
+    writeConfig()
+  })
+
+  it('标注模型评分:回显 label + labelable;校准视图记入 1 条(偏松)', async () => {
+    engine = newEngine()
+    await engine.evaluate('s1')
+    await settle(engine)
+    const reply = await engine.label('s1', { metric: 'judge.task_completion', agrees: false }, 'alice')
+    expect(reply).toEqual({ ok: true, label: 'disagrees' })
+    const snapshot = await engine.snapshot('s1', NOW)
+    expect(snapshot.scores.find(score => score.key === 'judge.task_completion'))
+      .toMatchObject({ label: 'disagrees', labelable: true })
+    // 过程类也可标注(逐轮目标)。
+    expect(snapshot.scores.find(score => score.key === 'judge.tool_selection')?.labelable).toBe(true)
+    const calibration = (await engine.settings('alice')).calibration
+    expect(calibration).toBeDefined()
+    const metric = calibration?.metrics.find(item => item.key === 'judge.task_completion')
+    expect(metric).toMatchObject({
+      labeled: 1, agrees: 0, agreement: 0,
+      matrix: { humanPassJudgePass: 0, humanPassJudgeFail: 0, humanFailJudgePass: 1, humanFailJudgeFail: 0 },
+      status: 'insufficient', bias: 'lenient',
+    })
+    expect(calibration?.totals).toMatchObject({ labeled: 1, agrees: 0 })
+    expect(calibration?.thresholds).toEqual({ minSamples: 20, minAgreement: 0.85 })
+  })
+
+  it('标注校验:未知指标/轮次不符/规则型评分 → not_found;参数形状 → invalid', async () => {
+    engine = newEngine()
+    await engine.evaluate('s1')
+    await settle(engine)
+    expect(await engine.label('s1', { metric: 'judge.unknown', agrees: true }, 'alice'))
+      .toMatchObject({ ok: false, code: 'not_found' })
+    // 会话类条目没有 turn:带 turn 找不到目标。
+    expect(await engine.label('s1', { metric: 'judge.task_completion', turn: 1, agrees: true }, 'alice'))
+      .toMatchObject({ ok: false, code: 'not_found' })
+    expect(await engine.label('s1', { metric: 'judge.task_completion', agrees: 'yes' }, 'alice'))
+      .toMatchObject({ ok: false, code: 'invalid' })
+    expect(await engine.label('', { metric: 'judge.task_completion', agrees: true }, 'alice'))
+      .toMatchObject({ ok: false, code: 'invalid' })
+
+    // 规则型行(provider/model 为空)不可复核。
+    writeBusinessMetrics('alice', [{
+      key: 'no-hedge', name: '回复禁语', category: 'process', scope: 'session',
+      answer: { not_contains: ['稍等'] },
+    }])
+    engine.dispose()
+    engine = businessEngine()
+    await engine.evaluate('s1', { account: 'alice' })
+    await settle(engine)
+    expect(await engine.label('s1', { metric: 'no-hedge', agrees: true }, 'alice'))
+      .toMatchObject({ ok: false, code: 'not_found' })
+  })
+
+  it('阈值:≥20 条且一致率 ≥85% 才 calibrated;20 条前一律 insufficient', async () => {
+    engine = newEngine()
+    const store = openJudgeStore(storePath)
+    for (let index = 1; index <= 19; index += 1) {
+      store.saveLabel({
+        sessionId: `seed-${index}`, metricKey: 'judge.task_completion', metricName: '任务完成度',
+        category: 'outcome', scope: 'session', targetTurn: null, judgeValue: true,
+        agrees: true, labeledBy: 'alice', labeledAt: NOW - index,
+      })
+    }
+    const before = (await engine.settings()).calibration?.metrics.find(item => item.key === 'judge.task_completion')
+    expect(before).toMatchObject({ labeled: 19, status: 'insufficient' })
+    store.saveLabel({
+      sessionId: 'seed-20', metricKey: 'judge.task_completion', metricName: '任务完成度',
+      category: 'outcome', scope: 'session', targetTurn: null, judgeValue: true,
+      agrees: true, labeledBy: 'alice', labeledAt: NOW,
+    })
+    // 第 21 条判错:19/20 = 95% ≥85%,仍算已校准(阈值按一致率,不要求全对)。
+    store.saveLabel({
+      sessionId: 'seed-21', metricKey: 'judge.task_completion', metricName: '任务完成度',
+      category: 'outcome', scope: 'session', targetTurn: null, judgeValue: true,
+      agrees: false, labeledBy: 'alice', labeledAt: NOW,
+    })
+    store.close()
+    const calibrated = (await engine.settings()).calibration?.metrics.find(item => item.key === 'judge.task_completion')
+    expect(calibrated).toMatchObject({ labeled: 21, agrees: 20, status: 'calibrated', bias: 'lenient' })
+    expect(calibrated?.agreement).toBeCloseTo(20 / 21, 5)
+  })
+
+  it('重评后裁判值变了:旧标注不回显(snapshot);校准统计仍按标注当时快照', async () => {
+    engine = newEngine()
+    await engine.evaluate('s1')
+    await settle(engine)
+    await engine.label('s1', { metric: 'judge.task_completion', agrees: true }, 'alice')
+    expect((await engine.snapshot('s1', NOW)).scores.find(score => score.key === 'judge.task_completion')?.label)
+      .toBe('agrees')
+    // 改成未过并重评 → 同一评分行 value 变化,旧标注不再显示。
+    replyText = '{"verdict":"fail","rationale":"缺少交付物"}'
+    await engine.evaluate('s1', { scope: 'outcome' })
+    await settle(engine)
+    const after = (await engine.snapshot('s1', NOW)).scores.find(score => score.key === 'judge.task_completion')
+    expect(after).toMatchObject({ pass: false, labelable: true })
+    expect(after?.label).toBeUndefined()
+    const metric = (await engine.settings()).calibration?.metrics.find(item => item.key === 'judge.task_completion')
+    expect(metric).toMatchObject({ labeled: 1, agrees: 1 })
+  })
+})
+
+describe('试跑(P2-3b)', () => {
+  beforeEach(() => {
+    writeConfig()
+  })
+
+  it('内置指标试跑:原始输出/tokens/路由原样返回;不落评分行,只记日预算', async () => {
+    engine = newEngine()
+    const reply = await engine.trial('s1', 'judge.task_completion', undefined, 'alice')
+    expect(reply.ok).toBe(true)
+    if (!reply.ok) return
+    expect(reply.trial).toMatchObject({
+      metricKey: 'judge.task_completion', metricName: '任务完成度', scope: 'session',
+      status: 'ok', value: true, display: '通过', raw: replyText, tokens: 100,
+      route: { provider: 'deepseek', model: 'deepseek-chat' },
+    })
+    expect(reply.trial.rationale).not.toBe('')
+    expect(calls).toHaveLength(1)
+    expect(engine.pendingTotal()).toBe(0)
+    // 快照仍是「待评」:试跑不入库、不冒充正式评分。
+    expect((await engine.snapshot('s1', NOW)).scores.find(score => score.key === 'judge.task_completion'))
+      .toMatchObject({ status: 'pending', display: '待评' })
+    const store = openJudgeStore(storePath)
+    expect(store.list('s1')).toHaveLength(0)
+    expect(store.usage(DAY)).toBe(100)
+    store.close()
+  })
+
+  it('输出不合法:试跑照常回包(status=error,raw 原文保留,便于定位提示词/契约问题)', async () => {
+    engine = newEngine()
+    replyText = '抱歉,我无法按该格式输出'
+    const reply = await engine.trial('s1', 'judge.task_completion', undefined, 'alice')
+    expect(reply.ok).toBe(true)
+    if (!reply.ok) return
+    expect(reply.trial).toMatchObject({ status: 'error', value: null, display: '出错', raw: '抱歉,我无法按该格式输出' })
+  })
+
+  it('规则型业务指标拒绝试跑(not_model);rubric 业务指标可试跑且原始输出可见', async () => {
+    writeBusinessMetrics('alice', [
+      rubricInput(),
+      { key: 'no-hedge', name: '回复禁语', category: 'process', scope: 'session', answer: { not_contains: ['稍等'] } },
+    ])
+    engine = businessEngine()
+    expect(await engine.trial('s1', 'no-hedge', undefined, 'alice'))
+      .toMatchObject({ ok: false, code: 'not_model' })
+    const reply = await engine.trial('s1', 'reply-quality', undefined, 'alice')
+    expect(reply.ok).toBe(true)
+    if (!reply.ok) return
+    expect(reply.trial).toMatchObject({ metricKey: 'reply-quality', status: 'ok', value: true, raw: RUBRIC_PASS })
+    const store = openJudgeStore(storePath)
+    expect(store.list('s1')).toHaveLength(0)
+    store.close()
+  })
+
+  it('前置闸:未配置模型/预算用尽/会话未加载/指标不存在/轮次越界各自给码,均不调模型', async () => {
+    engine = newEngine()
+    expect(await engine.trial('s1', 'judge.task_completion', undefined, 'alice'))
+      .toMatchObject({ ok: true })
+    calls.length = 0
+    writeConfig({ route: null })
+    expect(await engine.trial('s1', 'judge.task_completion', undefined, 'alice'))
+      .toMatchObject({ ok: false, code: 'unconfigured' })
+    writeConfig()
+    expect(await engine.trial('missing-session', 'judge.task_completion', undefined, 'alice'))
+      .toMatchObject({ ok: false, code: 'not_loaded' })
+    expect(await engine.trial('s1', 'judge.unknown_metric', undefined, 'alice'))
+      .toMatchObject({ ok: false, code: 'not_found' })
+    // 逐轮指标:默认末轮可跑;越界轮次拒绝。
+    expect(await engine.trial('s1', 'judge.tool_selection', undefined, 'alice')).toMatchObject({ ok: true })
+    expect(await engine.trial('s1', 'judge.tool_selection', 9, 'alice'))
+      .toMatchObject({ ok: false, code: 'invalid' })
+    expect(calls).toHaveLength(1)
+    const store = openJudgeStore(storePath)
+    store.addUsage(DAY, 200_000)
+    store.close()
+    expect(await engine.trial('s1', 'judge.task_completion', undefined, 'alice'))
+      .toMatchObject({ ok: false, code: 'budget' })
+  })
+
+  it('参数形状:会话/指标为空或 turn 非法 → invalid,不调模型', async () => {
+    engine = newEngine()
+    expect(await engine.trial('', 'judge.task_completion', undefined, 'alice')).toMatchObject({ ok: false, code: 'invalid' })
+    expect(await engine.trial('s1', '  ', undefined, 'alice')).toMatchObject({ ok: false, code: 'invalid' })
+    expect(await engine.trial('s1', 'judge.task_completion', 0, 'alice')).toMatchObject({ ok: false, code: 'invalid' })
+    expect(await engine.trial('s1', 'judge.task_completion', 1.5, 'alice')).toMatchObject({ ok: false, code: 'invalid' })
+    expect(calls).toHaveLength(0)
+  })
+})
+
+describe('评测总览(P2-3c)', () => {
+  beforeEach(() => {
+    writeConfig()
+  })
+
+  /** 评分行种子(默认:整条会话结果类 ok/通过/gating/1000ms). */
+  function score(sessionId: string, patch: Partial<StoredJudgeScore> = {}): StoredJudgeScore {
+    return {
+      sessionId, metricKey: 'judge.task_completion', metricName: '任务完成度',
+      category: 'outcome', scope: 'session', targetTurn: null, status: 'ok', value: true,
+      rationale: null, provider: 'deepseek', model: 'deepseek-chat', latencyMs: 1000,
+      tokens: 100, gating: true, metricVersion: null, createdAt: NOW,
+      ...patch,
+    }
+  }
+
+  it('两会话:综合通过率/关键项未过/按天/按指标/耗时/今日用量', async () => {
+    engine = newEngine()
+    const store = openJudgeStore(storePath)
+    store.upsert(score('s-pass'))
+    store.upsert(score('s-fail', { value: false, latencyMs: 2000 }))
+    store.addUsage(DAY, 500)
+    store.close()
+    const reply = await engine.overview(['s-pass', 's-fail', 's-not-there'], NOW)
+    expect(reply.ok).toBe(true)
+    if (!reply.ok) return
+    const view = reply.overview
+    expect(view.totals).toMatchObject({
+      evaluatedSessions: 2, passedSessions: 1, passRate: 0.5, gatingFailedSessions: 1,
+      averageLatencyMs: 1500, usageToday: 500, budgetPerDay: 200_000,
+    })
+    expect(view.windowDays).toBe(14)
+    expect(view.byDay).toHaveLength(14)
+    const today = view.byDay[13]
+    expect(today).toMatchObject({ day: DAY, evaluated: 2, passed: 1, passRate: 0.5 })
+    expect(view.metrics).toEqual([{
+      key: 'judge.task_completion', name: '任务完成度', category: 'outcome', source: 'builtin',
+      pass: 1, fail: 1, notApplicable: 0, passRate: 0.5,
+    }])
+    // 未登记会话不参与(调用方给什么就只聚合什么)。
+    expect(view.totals.evaluatedSessions).toBe(2)
+  })
+
+  it('没评完不进分母:只有过程行/只有不适用 → evaluated=0;na 单独计数', async () => {
+    engine = newEngine()
+    const store = openJudgeStore(storePath)
+    store.upsert(score('s-process', { category: 'process', metricKey: 'judge.tool_selection' }))
+    store.upsert(score('s-na', { status: 'not_applicable', value: null }))
+    store.close()
+    const reply = await engine.overview(['s-process', 's-na'], NOW)
+    expect(reply.ok).toBe(true)
+    if (!reply.ok) return
+    expect(reply.overview.totals).toMatchObject({ evaluatedSessions: 0, passedSessions: 0, passRate: null })
+    const table = reply.overview.metrics.find(row => row.key === 'judge.task_completion')
+    expect(table).toMatchObject({ pass: 0, fail: 0, notApplicable: 1, passRate: null })
+  })
+
+  it('重评只算最新一次:upsert 覆盖旧行,不把历史失败重复计入', async () => {
+    engine = newEngine()
+    const store = openJudgeStore(storePath)
+    store.upsert(score('s-retry', { value: false, createdAt: NOW - 60_000 }))
+    store.upsert(score('s-retry', { value: true, createdAt: NOW }))
+    store.close()
+    const reply = await engine.overview(['s-retry'], NOW)
+    expect(reply.ok).toBe(true)
+    if (!reply.ok) return
+    expect(reply.overview.totals).toMatchObject({ evaluatedSessions: 1, passedSessions: 1, passRate: 1 })
+    expect(reply.overview.metrics[0]).toMatchObject({ pass: 1, fail: 0, passRate: 1 })
+  })
+
+  it('窗口:14 天前的评分不计入(分母/条带/按指标都不含)', async () => {
+    engine = newEngine()
+    const store = openJudgeStore(storePath)
+    store.upsert(score('s-old', { createdAt: NOW - 15 * 86_400_000 }))
+    store.close()
+    const reply = await engine.overview(['s-old'], NOW)
+    expect(reply.ok).toBe(true)
+    if (!reply.ok) return
+    expect(reply.overview.totals.evaluatedSessions).toBe(0)
+    expect(reply.overview.metrics).toEqual([])
+    expect(reply.overview.byDay.every(day => day.evaluated === 0)).toBe(true)
+  })
+
+  it('无 gating 行时以全部结果类为准;逐轮指标不进总览', async () => {
+    engine = newEngine()
+    const store = openJudgeStore(storePath)
+    store.upsert(score('s-soft', { gating: null, metricKey: 'judge.answer_support', value: false }))
+    store.upsert(score('s-turn', { scope: 'turn', targetTurn: 2, metricKey: 'judge.tool_selection' }))
+    store.close()
+    const reply = await engine.overview(['s-soft', 's-turn'], NOW)
+    expect(reply.ok).toBe(true)
+    if (!reply.ok) return
+    // s-soft 无 gating → 全部结果类参与判定;失败会计入未过但不计入「关键项未过」。
+    expect(reply.overview.totals).toMatchObject({ evaluatedSessions: 1, passedSessions: 0, gatingFailedSessions: 0 })
+    expect(reply.overview.metrics.map(row => row.key)).toEqual(['judge.answer_support'])
   })
 })

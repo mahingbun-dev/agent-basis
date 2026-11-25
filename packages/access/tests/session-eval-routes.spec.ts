@@ -98,6 +98,34 @@ describe('实时评测路由(access)', () => {
         calls.push(`parseBusinessMetrics:${text.length}`)
         return { ok: true, version: 3, updatedAt: '', updatedBy: 'alice', metrics: [] }
       },
+      label: async (sessionId, input, account) => {
+        const agrees = (input as { agrees?: unknown }).agrees
+        calls.push(`label:${sessionId}:${account}:${String(agrees)}`)
+        return { ok: true, label: agrees === false ? 'disagrees' : 'agrees' }
+      },
+      trial: async (sessionId, metricKey, turn, account) => {
+        calls.push(`trial:${sessionId}:${metricKey}:${String(turn)}:${account}`)
+        return {
+          ok: true,
+          trial: {
+            metricKey, metricName: '任务完成度', scope: 'session', status: 'ok', value: true,
+            display: '通过', rationale: '演示理由', raw: '{"verdict":"pass"}', latencyMs: 1200,
+            route: { provider: 'deepseek', model: 'deepseek-chat' },
+          },
+        }
+      },
+      overview: async (sessionIds) => {
+        calls.push(`overview:${sessionIds.join(',')}`)
+        return {
+          ok: true,
+          overview: {
+            windowDays: 14, totals: {
+              evaluatedSessions: 1, passedSessions: 1, passRate: 1, gatingFailedSessions: 0,
+              averageLatencyMs: 1200, usageToday: 100, budgetPerDay: 200_000,
+            }, byDay: [], metrics: [],
+          },
+        }
+      },
     }
   }
 
@@ -179,6 +207,9 @@ describe('实时评测路由(access)', () => {
       saveConfig: async () => { throw new Error('boom: internal detail') },
       saveBusinessMetric: async () => { throw new Error('boom: internal detail') },
       parseBusinessMetrics: async () => { throw new Error('boom: internal detail') },
+      label: async () => { throw new Error('boom: internal detail') },
+      trial: async () => { throw new Error('boom: internal detail') },
+      overview: async () => { throw new Error('boom: internal detail') },
     }
     const reply = await post({ session: aliceSessionId })
     expect(reply.status).toBe(503)
@@ -353,6 +384,121 @@ describe('实时评测路由(access)', () => {
       parseBusinessMetrics: async () => { throw new Error('boom: internal detail') },
     }
     const reply = await post({ text: 'version: 0\n' }, userCookie, 'metrics/parse')
+    expect(reply.status).toBe(503)
+    expect(reply.body).not.toContain('boom')
+  })
+
+  it('labels/save:登录用户可标注自己的会话(标注人只认 cookie);成功 200 + 审计', async () => {
+    const reply = await post({ session: aliceSessionId, metric: 'judge.task_completion', agrees: true }, adminCookie, 'labels/save')
+    expect(reply.status).toBe(200)
+    expect(JSON.parse(reply.body as string)).toMatchObject({ ok: true, label: 'agrees' })
+    expect(reply.headers).toContainEqual(['cache-control', 'no-store'])
+    expect(calls).toContain(`label:${aliceSessionId}:alice:true`)
+    expect(auditEvents.some(event => event.kind === 'access.session-eval.label' && event.ok === true)).toBe(true)
+    expect((await post({ session: aliceSessionId, metric: 'x', agrees: true }, '', 'labels/save')).status).toBe(401)
+  })
+
+  it('labels/save 参数形状:metric/agrees 缺失或 turn 非法 400,均不触达服务面', async () => {
+    expect((await post({ session: aliceSessionId, agrees: true }, adminCookie, 'labels/save')).status).toBe(400)
+    expect((await post({ session: aliceSessionId, metric: 'x' }, adminCookie, 'labels/save')).status).toBe(400)
+    expect((await post({ session: aliceSessionId, metric: 'x', agrees: true, turn: 0 }, adminCookie, 'labels/save')).status).toBe(400)
+    expect((await post({ session: aliceSessionId, metric: 'x', agrees: true, turn: 1.5 }, adminCookie, 'labels/save')).status).toBe(400)
+    expect(calls.filter(call => call.startsWith('label:'))).toEqual([])
+  })
+
+  it('labels/save 跨租户:404,不泄漏会话存在性', async () => {
+    expect((await post({ session: aliceSessionId, metric: 'judge.task_completion', agrees: false }, userCookie, 'labels/save')).status).toBe(404)
+    expect(calls.filter(call => call.startsWith('label:'))).toEqual([])
+  })
+
+  it('labels/save 业务拒绝按码分流:无可复核评分 409 / 非法 400 / 存储 503;失败均审计', async () => {
+    face = {
+      ...(face ?? makeFace()),
+      label: async () => ({ ok: false, code: 'not_found', error: '没有可复核的模型评分' }),
+    }
+    expect((await post({ session: aliceSessionId, metric: 'x', agrees: true }, adminCookie, 'labels/save')).status).toBe(409)
+    face = {
+      ...(face ?? makeFace()),
+      label: async () => ({ ok: false, code: 'invalid', error: '参数不合法' }),
+    }
+    expect((await post({ session: aliceSessionId, metric: 'x', agrees: true }, adminCookie, 'labels/save')).status).toBe(400)
+    face = {
+      ...(face ?? makeFace()),
+      label: async () => ({ ok: false, code: 'io', error: '写入失败' }),
+    }
+    expect((await post({ session: aliceSessionId, metric: 'x', agrees: true }, adminCookie, 'labels/save')).status).toBe(503)
+    expect(auditEvents.filter(event => event.kind === 'access.session-eval.label' && event.ok === false)).toHaveLength(3)
+  })
+
+  it('labels/save 服务面抛错:503,不泄漏堆栈', async () => {
+    face = {
+      ...(face ?? makeFace()),
+      label: async () => { throw new Error('boom: internal detail') },
+    }
+    const reply = await post({ session: aliceSessionId, metric: 'x', agrees: true }, adminCookie, 'labels/save')
+    expect(reply.status).toBe(503)
+    expect(reply.body).not.toContain('boom')
+  })
+
+  it('overview:只把**本人名下**的会话集交给服务面(跨租户不聚合);200 + no-store', async () => {
+    const reply = await post({}, adminCookie, 'overview')
+    expect(reply.status).toBe(200)
+    expect(JSON.parse(reply.body as string)).toMatchObject({ ok: true })
+    expect(reply.headers).toContainEqual(['cache-control', 'no-store'])
+    expect(calls).toContain(`overview:${aliceSessionId}`)
+    expect(calls.every(call => !call.includes(bobSessionId))).toBe(true)
+    expect((await post({}, '', 'overview')).status).toBe(401)
+  })
+
+  it('overview 失败:服务面 io → 503;抛错 → 503 且不泄漏堆栈', async () => {
+    face = { ...(face ?? makeFace()), overview: async () => ({ ok: false, code: 'io', error: '评分库不可用' }) }
+    expect((await post({}, adminCookie, 'overview')).status).toBe(503)
+    face = { ...(face ?? makeFace()), overview: async () => { throw new Error('boom: internal detail') } }
+    const reply = await post({}, adminCookie, 'overview')
+    expect(reply.status).toBe(503)
+    expect(reply.body).not.toContain('boom')
+  })
+
+  it('trial:登录用户可试跑自己的会话(账号来自 cookie);成功 200 + no-store + 审计', async () => {
+    const reply = await post({ session: aliceSessionId, metric: 'judge.task_completion', turn: 2 }, adminCookie, 'trial')
+    expect(reply.status).toBe(200)
+    const parsed = JSON.parse(reply.body as string) as Record<string, unknown>
+    expect(parsed.ok).toBe(true)
+    expect((parsed.trial as Record<string, unknown>).raw).toBe('{"verdict":"pass"}')
+    expect(reply.headers).toContainEqual(['cache-control', 'no-store'])
+    expect(calls).toContain(`trial:${aliceSessionId}:judge.task_completion:2:alice`)
+    expect(auditEvents.some(event => event.kind === 'access.session-eval.trial' && event.ok === true)).toBe(true)
+    expect((await post({ session: aliceSessionId, metric: 'x' }, '', 'trial')).status).toBe(401)
+  })
+
+  it('trial 参数形状:metric 缺失或 turn 非法 400,均不触达服务面', async () => {
+    expect((await post({ session: aliceSessionId }, adminCookie, 'trial')).status).toBe(400)
+    expect((await post({ session: aliceSessionId, metric: '  ' }, adminCookie, 'trial')).status).toBe(400)
+    expect((await post({ session: aliceSessionId, metric: 'x', turn: 0 }, adminCookie, 'trial')).status).toBe(400)
+    expect((await post({ session: aliceSessionId, metric: 'x', turn: 1.5 }, adminCookie, 'trial')).status).toBe(400)
+    expect(calls.filter(call => call.startsWith('trial:'))).toEqual([])
+  })
+
+  it('trial 跨租户:404,不泄漏会话存在性', async () => {
+    expect((await post({ session: aliceSessionId, metric: 'judge.task_completion' }, userCookie, 'trial')).status).toBe(404)
+    expect(calls.filter(call => call.startsWith('trial:'))).toEqual([])
+  })
+
+  it('trial 失败码分流:预算 429 / 未加载与不存在 404 / 未配置与非模型 400 / 内部 503;失败均审计', async () => {
+    const cases: Array<[string, number]> = [
+      ['budget', 429], ['not_loaded', 404], ['not_found', 404],
+      ['unconfigured', 400], ['not_model', 400], ['io', 503],
+    ]
+    for (const [code, status] of cases) {
+      face = { ...(face ?? makeFace()), trial: async () => ({ ok: false, code, error: `拒绝：${code}` }) }
+      expect((await post({ session: aliceSessionId, metric: 'x' }, adminCookie, 'trial')).status).toBe(status)
+    }
+    expect(auditEvents.filter(event => event.kind === 'access.session-eval.trial' && event.ok === false)).toHaveLength(6)
+  })
+
+  it('trial 服务面抛错:503,不泄漏堆栈', async () => {
+    face = { ...(face ?? makeFace()), trial: async () => { throw new Error('boom: internal detail') } }
+    const reply = await post({ session: aliceSessionId, metric: 'x' }, adminCookie, 'trial')
     expect(reply.status).toBe(503)
     expect(reply.body).not.toContain('boom')
   })

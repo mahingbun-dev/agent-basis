@@ -586,6 +586,39 @@ export class UserStore {
     return this.ownerOfAncestor(sessionId, 32)
   }
 
+  /**
+   * 某账号名下的会话 id(含其子代理子会话,沿 child→parent 边向下展开)。
+   *
+   * 总览聚合的归属过滤用:**只**返回登记册里已入账给该 owner 的会话及其后代;
+   * 不在册的会话不参与(宁可少统计,不跨租户)。
+   * @param ownerId - 用户 id(登录态解析).
+   * @returns 会话 id 列表(去重;最多 20000 条).
+   */
+  sessionIdsOwned(ownerId: number): string[] {
+    const direct = this.db.prepare('SELECT session_id FROM sessions WHERE owner_id = ?').all(ownerId) as
+      Array<{ session_id: string }>
+    const owned = new Set(direct.map(row => row.session_id))
+    const edges = this.db.prepare('SELECT session_id, parent_session_id FROM session_children').all() as
+      Array<{ session_id: string; parent_session_id: string }>
+    const children = new Map<string, string[]>()
+    for (const edge of edges) {
+      const bucket = children.get(edge.parent_session_id)
+      if (bucket === undefined) children.set(edge.parent_session_id, [edge.session_id])
+      else bucket.push(edge.session_id)
+    }
+    const queue = [...owned]
+    while (queue.length > 0 && owned.size < 20_000) {
+      const current = queue.shift()
+      if (current === undefined) break
+      for (const child of children.get(current) ?? []) {
+        if (owned.has(child)) continue
+        owned.add(child)
+        queue.push(child)
+      }
+    }
+    return [...owned]
+  }
+
   /** 沿 child→parent 边上溯至最近的已入账祖先(上限 maxHops,防环)。 */
   private ownerOfAncestor(sessionId: string, maxHops: number): number | undefined {
     let current = sessionId

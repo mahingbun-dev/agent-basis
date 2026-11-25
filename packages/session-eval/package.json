@@ -7,6 +7,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./client": "./lib/client.js",
+    "./replay": "./src/replay.ts",
     "./package.json": "./package.json"
   },
   "dsh": {

@@ -9,7 +9,7 @@
  */
 import type { EvalSnapshot } from '../types.ts'
 import type { BusinessMetric } from '../business-metrics.ts'
-import type { JudgeConfig, JudgeSettingsView } from '../judge-types.ts'
+import type { JudgeConfig, JudgeSettingsView, JudgeTrialView, OverviewView } from '../judge-types.ts'
 
 /** 带 HTTP 状态的服务端失败(UI 据此选文案). */
 export class SessionEvalApiError extends Error {
@@ -94,6 +94,20 @@ export async function evaluateSession(
 }
 
 /**
+ * 读评测总览(近 14 天,服务端只聚合**本人名下**的会话)。
+ * @param signal - 取消信号.
+ * @returns 总览视图(服务端按登录身份过滤会话集).
+ */
+export async function fetchOverview(signal?: AbortSignal): Promise<OverviewView> {
+  const parsed = await postJson('overview', {}, signal)
+  const overview = parsed.overview
+  if (typeof overview !== 'object' || overview === null) {
+    throw new SessionEvalApiError(200, '应答缺少 overview 字段')
+  }
+  return overview as OverviewView
+}
+
+/**
  * 读裁判设置(配置 + 指标目录 + 模型目录)。
  * @param signal - 取消信号.
  * @returns 设置视图与当前用户是否管理员(保存按钮据此禁用)。
@@ -159,6 +173,52 @@ export async function parseMetricsYaml(text: string, signal?: AbortSignal): Prom
       ? metrics.filter((item): item is BusinessMetric => typeof item === 'object' && item !== null)
       : [],
   }
+}
+
+/** 人工复核结果(判得对=agrees / 判错了=disagrees). */
+export type JudgeLabelMark = 'agrees' | 'disagrees'
+
+/**
+ * 记录一条人工复核(校准数据;标注人由服务端从登录态取)。
+ * @param session - 会话 id.
+ * @param metric - 裁判指标键.
+ * @param turn - 逐轮指标的目标轮(会话类不传).
+ * @param agrees - 人工是否认可裁判判定.
+ * @returns 服务端确认的标注值.
+ */
+export async function saveJudgeLabel(
+  session: string,
+  metric: string,
+  turn: number | undefined,
+  agrees: boolean,
+  signal?: AbortSignal,
+): Promise<JudgeLabelMark> {
+  const parsed = await postJson('labels/save', {
+    session, metric, agrees, ...turn === undefined ? {} : { turn },
+  }, signal)
+  return parsed.label === 'disagrees' ? 'disagrees' : 'agrees'
+}
+
+/**
+ * 单指标试跑(真实模型;不落评分行,计入日预算;原始输出原样返回)。
+ * @param session - 会话 id.
+ * @param metric - 指标键(内置 judge.* 或本账号 rubric 业务指标).
+ * @param turn - 逐轮指标的目标轮(缺省末轮).
+ * @param signal - 取消信号.
+ * @returns 试跑结果(含模型原始输出).
+ */
+export async function runJudgeTrial(
+  session: string,
+  metric: string,
+  turn: number | undefined,
+  signal?: AbortSignal,
+): Promise<JudgeTrialView> {
+  const parsed = await postJson('trial', { session, metric, ...turn === undefined ? {} : { turn } }, signal)
+  const trial = parsed.trial
+  if (typeof trial !== 'object' || trial === null) {
+    throw new SessionEvalApiError(200, '应答缺少 trial 字段')
+  }
+  return trial as JudgeTrialView
 }
 
 /**

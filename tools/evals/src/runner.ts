@@ -8,6 +8,8 @@
 import * as path from 'node:path'
 import { createHash } from 'node:crypto'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { scoreReplayEvents } from '@eterna/session-eval/replay'
+import type { ReplayScore } from '@eterna/session-eval/replay'
 import { loadPackCases } from './schema.ts'
 import { summarize } from './events.ts'
 import { assertAnswer, assertBudget } from './budget.ts'
@@ -30,6 +32,12 @@ export interface RunPackOptions {
   /** 产物目录;report.md / sessions.jsonl / workspaces/ 写到这里。 */
   readonly outDir: string
   readonly acpOptions?: AcpAdapterOptions
+  /**
+   * 会话评测规则分(56 号 P2-3d):开启后每个 case 的事件流按在线评分口径再算一遍,
+   * 结果写入 CaseResult.sessionEval / sessions.jsonl / report.md。
+   * `metricsYaml` = 业务指标文件原文(与线上 metrics.yaml 同格式;缺省只算内置规则)。
+   */
+  readonly sessionEval?: { readonly metricsYaml?: string }
 }
 
 export async function runPack(options: RunPackOptions): Promise<PackRunResult> {
@@ -95,6 +103,22 @@ async function runCase(caseData: GoldenCase, options: RunPackOptions): Promise<C
   } catch (cause) {
     failures = [{ category: 'harness', message: cause instanceof Error ? cause.message : String(cause) }]
   }
+  // 会话评测规则分:与在线 snapshot 同一套纯函数;评分失败只单列原因,不改本包 pass/fail。
+  let sessionEval: ReplayScore | undefined
+  let sessionEvalError: string | undefined
+  if (options.sessionEval !== undefined) {
+    if (events.length === 0) {
+      sessionEvalError = '没有会话事件可评。'
+    } else {
+      const reply = scoreReplayEvents({
+        sessionId: caseData.id,
+        events,
+        ...options.sessionEval.metricsYaml === undefined ? {} : { metricsYaml: options.sessionEval.metricsYaml },
+      })
+      if (reply.ok) sessionEval = reply.score
+      else sessionEvalError = reply.error
+    }
+  }
   return {
     caseData,
     adapterId,
@@ -106,6 +130,8 @@ async function runCase(caseData: GoldenCase, options: RunPackOptions): Promise<C
     finalAnswerText,
     durationMs: Date.now() - startMs,
     notes,
+    ...sessionEval === undefined ? {} : { sessionEval },
+    ...sessionEvalError === undefined ? {} : { sessionEvalError },
   }
 }
 

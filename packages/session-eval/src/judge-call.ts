@@ -43,6 +43,8 @@ export interface JudgeRunResult {
   readonly rationale: string
   readonly latencyMs: number
   readonly tokens?: number
+  /** 模型原始输出(试跑展示用;调用失败时为已收到的文本或空). */
+  readonly raw?: string
 }
 
 /**
@@ -62,6 +64,7 @@ export async function runJudge(
   options: { readonly turn?: number; readonly signal?: AbortSignal } = {},
 ): Promise<JudgeRunResult> {
   const started = performance.now()
+  let raw: string | undefined
   try {
     const response = await llm.call({
       route,
@@ -70,6 +73,7 @@ export async function runJudge(
       maxTokens: JUDGE_MAX_TOKENS,
       ...options.signal === undefined ? {} : { signal: options.signal },
     })
+    raw = response.text
     const parsed = parseJudgeOutput(response.text)
     const mapped = verdictToScore(parsed.verdict)
     return {
@@ -78,6 +82,7 @@ export async function runJudge(
       rationale: parsed.rationale,
       latencyMs: Math.round(response.latencyMs ?? performance.now() - started),
       ...response.tokens === undefined ? {} : { tokens: response.tokens },
+      raw,
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
@@ -87,6 +92,7 @@ export async function runJudge(
       value: null,
       rationale,
       latencyMs: Math.round(performance.now() - started),
+      ...raw === undefined ? {} : { raw },
     }
   }
 }

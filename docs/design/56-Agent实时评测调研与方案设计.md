@@ -1001,4 +1001,217 @@ metrics:
 
 ### 14.4 P2 余下（P2-3）
 
-三角色 rubric 试跑（真实模型）、人工校准（一致率/混淆矩阵）、评测总览（遵守「不做独立页面」：候选为面板内视图切换）、dsh-evals 回放对接。条目级 `judge.model` 仍只落盘，执行用全局裁判路由（§9.3 注记）。
+三角色 rubric 试跑（真实模型）、人工校准（一致率/混淆矩阵）、评测总览（遵守「不做独立页面」：候选为面板内视图切换）、dsh-evals 回放对接。条目级 `judge.model` 仍只落盘，执行用全局裁判路由（§9.3 注记）。其中人工校准、试跑、总览、回放已分别由 §15–§18 交付。
+
+## 15. 实现状态（2026-11-25：P2-3a 人工复核与校准已交付）
+
+> 数字全部为当轮实测：`pnpm run verify`（全仓 EXIT=0）、`node scripts/verify-eterna-{web,super}.mjs`、
+> `node scripts/lint-ui-tokens.mjs`、`node tools/packctl/bin/packctl.mjs {form-check,tenant-scan,prompt-scan}`。
+
+### 15.1 已交付
+
+| 面 | 内容 | 位置 |
+|---|---|---|
+| 标注存储 | `judge_label` STRICT 表（会话/指标/名称/类别/作用域/目标轮/裁判值/是否认可/标注人/时间），主键复用评分行 id（upsert，同一条重标只留最新）；索引 `metric_key` | `src/score-store.ts` |
+| 引擎标注面 | `label(sessionId, input, account)`：参数校验（metric 非空、agrees 布尔、turn 正整数）→ 按 metricKey + 轮次找到**本会话**评分行 → 仅 `status=ok` 且有 provider/model 的行可标 → 落库并回 `agrees/disagrees`；失败码 `invalid / not_found / io` | `src/engine.ts` |
+| 校准聚合 | 按指标聚合（内置六项全列出，业务指标按标注过的 key 追加）：已标注 / 一致 / 一致率 / 混淆矩阵 / 状态（`not_started` / `insufficient` / `uncalibrated` / `calibrated`，阈值 20 条 + 85%）/ 偏向（`lenient` / `strict` / `balanced`）；另给全指标合计 | `src/engine.ts`（`calibrationOf`） |
+| 快照标注态 | 评分视图增 `labelable`（可标：ok + 有裁判来源）与 `label`（已标结果）；**裁判值变化后旧标注在快照里隐藏**（不把旧结论贴在 new 判定上） | `src/engine.ts` |
+| 路由 | `POST /access/api/session-eval/labels/save`：登录 + 会话归属（跨租户 404）；`not_found → 409`、`io → 503`、其余 400；200 回标注值 + `no-store`；审计 `access.session-eval.label` | `packages/access/src/routes.ts` |
+| 面板复核 | 每条可标裁判行的折叠区里「判得对 / 判错了」（`aria-pressed` 反映已标、在途禁用、成功后重拉快照回显、失败给中文原因） | `src/client/EvalPanel.tsx` |
+| 设置校准区 | `settings.section` 内新增「校准」块：一致率 KPI（N/M 条）+ 状态徽标与下一步说明；指标表（指标/已标注/一致率/状态，行内按钮切换混淆矩阵）；混淆矩阵（行人工 × 列裁判）+ 偏松/偏紧结论 + 阈值说明；无样本显「还没开始」，不给 0% | `src/client/CalibrationSection.tsx` |
+| 部署探针 | `deploy/verify.sh` §8.7 增至五件：`snapshot / settings / metrics/save / metrics/parse / labels/save` 匿名均 401 | `deploy/verify.sh` |
+
+### 15.2 口径决定（本轮）
+
+1. **标注 = 是否认可裁判判定**，不是重新判一遍；人工判定由「裁判值 + 是否认可」反推（认可 → 人工=裁判；不认可 → 人工=相反），混淆矩阵四格由此得出。
+2. **同一条重标只算最新一次**：`judge_label` 主键 = 评分行 id（会话 + 指标 + 作用域 + 轮次），重标走 upsert；校准统计按标注时的裁判值留存，**不随评分行重算而改写历史**。
+3. **旧标注不在新判定上显示**：快照 `label` 仅当存储的 `judgeValue` 与当前行值相等时回显；值变了 = 旧结论已失效，但校准样本仍按历史计入（标注那一刻的事实）。
+4. **阈值 20 条 + 85% + 偏向定义**：`insufficient`（<20 条）优先于 `uncalibrated`；偏向 = 混淆矩阵两个反向格比较（`humanFailJudgePass > humanPassJudgeFail` → 偏松，反之偏紧，相等或都 0 → balanced）。
+5. **标注入口只在会话面板**：设置分区只读展示聚合（设置弹窗脱离会话上下文，避免「在设置里标注别的会话」的越权错觉）；跨租户由路由层 404 兜底。
+
+### 15.3 验证证据
+
+| 门禁 | 结果 |
+|---|---|
+| `pnpm --filter @eterna/session-eval verify` | oxlint 0/0；19 个测试文件 **180 passed**（+4：标注回显/参数校验/阈值升级/失效标注隐藏） |
+| `packages/access` verify | 55 个测试文件 **634 passed**；session-eval 路由 **29 项**（+5：labels/save 成功+审计+no-store+匿名 401 / 参数形状 / 跨租户 404 / 失败码映射 / 抛错 503） |
+| 全仓 `pnpm run verify` | **EXIT=0** |
+| `verify-eterna-web.mjs`（真实 boot） | OK — **232** host entries；`settings.section=5` |
+| `verify-eterna-super.mjs`（真实 boot） | OK — **240** host entries；`settings.section=6` |
+| `scripts/lint-ui-tokens.mjs` | 19 目录 **347** 文件、79 个 `--et-*` 令牌、状态点 30/30、v4 阶梯 0 债务 |
+| `packctl form-check / tenant-scan / prompt-scan` | 0 / 0 / 0 findings |
+
+截图（深浅 × 1440/900/390，共 12 张；真实 `lib/client.js` + 真实令牌；标注/校准数值为演示数据）：
+
+| 面 | 文件 |
+|---|---|
+| 面板人工复核（展开理由与复核按钮，已标态可见） | `docs/assets/screenshots/session-eval-p2-3-labels-{light,dark}-{1440,900,390}.png` |
+| 设置「校准」（KPI + 指标表 + 混淆矩阵） | `docs/assets/screenshots/session-eval-p2-3-calibration-{light,dark}-{1440,900,390}.png` |
+
+§7 自查：12 张逐张断言 `scrollWidth === innerWidth`（1440/900/390 全部相等）与主题底色（light `rgb(244,242,236)` / dark `rgb(22,25,23)`）；可标行 3 组、`aria-pressed` 已标 2 处、混淆矩阵四格 `8/1/2/1` 均由 DOM 断言核过。**本轮实测修出两处真缺陷**（均属「标记无样式规则」类）：`data-tone='warn'` 徽标没有规则（「未校准」状态退化成普通文字）、`aria-pressed='true'` 复核按钮没有规则（选中态不可见）；已补 warn 徽标软底与 accent 软底选中态，并重截 12 张。
+
+### 15.4 P2-3 余下
+
+P2-3b 试跑（真实模型 + 原始输出/不合法输出态）、P2-3c 评测总览（候选 `sidebar.panellist` + `main`，遵守「不做独立页面」）、P2-3d dsh-evals 回放对接。其中**试跑已由 §16 交付**。
+
+## 16. 实现状态（2026-11-25：P2-3b 试跑已交付）
+
+> 数字全部为当轮实测：`pnpm run verify`（全仓 EXIT=0）、`node scripts/verify-eterna-{web,super}.mjs`、
+> `node scripts/lint-ui-tokens.mjs`、`node tools/packctl/bin/packctl.mjs {form-check,tenant-scan,prompt-scan}`。
+
+### 16.1 已交付
+
+| 面 | 内容 | 位置 |
+|---|---|---|
+| 原始输出捕获 | 裁判/ rubric 结果增 `raw`（模型文本原样保留；解析失败与调用失败路径同样保留已收到文本，不因抛错丢证据） | `src/judge-call.ts`、`src/business-judge.ts` |
+| 引擎试跑 | `trial(sessionId, metricKey, turn, account)`：**单指标真实模型**；前置闸（未配置/预算/参数/指标不存在/会话未加载/无内容/规则型）；逐轮默认末轮、越界拒绝；**不写评分行**、只记日预算；回 `status/value/display/rationale/raw/latency/tokens/route` | `src/engine.ts` |
+| 服务面 | `trial(...)` 透传；裁判层缺席 → `io`（路由层 503） | `src/service.ts` |
+| 路由 | `POST /access/api/session-eval/trial`：登录 + 会话归属（跨租户 404）；`budget → 429`、`not_loaded / not_found → 404`、`io → 503`、其余 400；200 + `no-store`；审计 `access.session-eval.trial` | `packages/access/src/routes.ts` |
+| 面板试跑卡 | 裁判卡下「试跑一条指标（真实模型）」：折叠展开时**惰性**读设置目录（内置六项 + 本账号 rubric 业务指标，实测 7 项）；逐轮指标给目标轮输入（留空 = 末轮）；结果展示判定/理由/路由/耗时/tokens + **模型原始输出**（`pre` 软换行、限高滚动）；请求失败与「输出不合法」分开显示（后者 `status=error` 但原文照常展示） | `src/client/EvalPanel.tsx`、`src/client/api.ts` |
+| 部署探针 | `deploy/verify.sh` §8.7 增至六件：`snapshot / settings / metrics/save / metrics/parse / labels/save / trial` 匿名均 401 | `deploy/verify.sh` |
+
+### 16.2 口径决定（本轮）
+
+1. **试跑不落评分行**：避免一次试跑污染会话结论与校准样本；但**计入日预算**（模型真实花钱，与「立即评测」同预算口径）。
+2. **入口在会话面板不在设置**：`settings.section` 没有会话上下文；若在设置里选「样本会话」需新增会话枚举面并放大跨租户面。面板本身对着当前会话，最贴近「拿真实轨迹试一条」。
+3. **规则型指标不给试跑**：确定性断言没有模型调用，回 `not_model` 并指向「立即评测」。
+4. **失败也保留原始输出**：「这次试跑没有出分」不等于 0 分；`raw` 留原文便于定位提示词/输出契约问题。
+5. **目录惰性加载**：展开试跑才读设置（含本账号 YAML 全文），避免每次打开面板多一次大载荷。
+
+### 16.3 验证证据
+
+| 门禁 | 结果 |
+|---|---|
+| `pnpm --filter @eterna/session-eval verify` | oxlint 0/0；19 个测试文件 **185 passed**（+5：成功不落库只记预算 / 非法输出保留原文 / 规则型拒绝与 rubric 可跑 / 前置闸码 / 参数形状） |
+| `packages/access` verify | 55 个测试文件 **639 passed**；session-eval 路由 **34 项**（+5：trial 成功+审计+no-store+匿名 401 / 参数形状 / 跨租户 404 / 失败码分流 / 抛错 503） |
+| 全仓 `pnpm run verify` | **EXIT=0** |
+| `verify-eterna-web.mjs`（真实 boot） | OK — **232** host entries；`settings.section=5` |
+| `verify-eterna-super.mjs`（真实 boot） | OK — **240** host entries；`settings.section=6` |
+| `scripts/lint-ui-tokens.mjs` | 19 目录 **347** 文件、79 个 `--et-*` 令牌、状态点 30/30、v4 阶梯 0 债务 |
+| `packctl form-check / tenant-scan / prompt-scan` | 0 / 0 / 0 findings |
+
+截图（深浅 × 1440/900/390，共 12 张；真实 `lib/client.js` + 真实令牌；指标与数值为演示数据）：
+
+| 面 | 文件 |
+|---|---|
+| 试跑成功（未过 + 原始 JSON） | `docs/assets/screenshots/session-eval-p2-3-trial-{light,dark}-{1440,900,390}.png` |
+| 试跑失败（出错 + 非 JSON 原文） | `docs/assets/screenshots/session-eval-p2-3-trial-error-{light,dark}-{1440,900,390}.png` |
+
+§7 自查：12 张逐张断言 `scrollWidth === innerWidth` 与主题底色（light `rgb(244,242,236)` / dark `rgb(22,25,23)`）；试跑旗标 `未过 / 出错`、原始输出首段、指标选项 7 项均由 DOM 断言核过；390 下控件行按既有断点换行、原始输出软换行不撑宽。本轮未发现新的样式缺陷。
+
+### 16.4 P2-3 余下
+
+P2-3c 评测总览（候选 `sidebar.panellist` + `main`，遵守「不做独立页面」）、P2-3d dsh-evals 回放对接；**两件已分别由 §17/§18 交付**。
+
+
+## 17. 实现状态（2026-11-25：P2-3c 评测总览已交付）
+
+> 数字全部为当轮实测：`pnpm run verify`（全仓 EXIT=0）、`node scripts/verify-eterna-{web,super}.mjs`、
+> `node scripts/lint-ui-tokens.mjs`、`node tools/packctl/bin/packctl.mjs {form-check,tenant-scan,prompt-scan}`。
+
+### 17.1 已交付
+
+| 面 | 内容 | 位置 |
+|---|---|---|
+| 总览类型 | `OverviewView`（`windowDays=14` / `totals` / `byDay` / `metrics`）、`OverviewTotals`（已终评、通过、通过率、关键项未过、平均裁判耗时、今日用量与日预算）、`OverviewDay`、`OverviewMetricRow`（来源 `builtin`/`business`）；`OverviewReply` 失败只回 `io` | `src/judge-types.ts` |
+| 评分库批量读 | `listMany(sessionIds)`：去重后按 400 一批 `IN` 查询，列与 `list()` 共用 `rowToScore` 映射（不复制列清单） | `src/score-store.ts` |
+| 总览聚合 | `overview(sessionIds, now?)`：**服务面不枚举会话**，只聚合调用方传入的 id；纯函数 `buildOverview` 负责窗口裁剪、会话结论、按天趋势、按指标表；失败回 `io` | `src/engine.ts` |
+| 会话集归属 | `sessionIdsOwned(ownerId)`：直接归属（`sessions.owner_id`）+ `session_children` 子会话 BFS 展开，上限 20000；路由层据此过滤后再调引擎 | `packages/access/src/store.ts` |
+| 路由 | `POST /access/api/session-eval/overview`：登录闸 + 本人会话集；`io → 503`；200 + `no-store`；不新增审计事件（只读聚合，重复拉取无副作用） | `packages/access/src/routes.ts` |
+| 客户端入口 | 侧栏席位 `sidebar.panellist`（id/key `@eterna/session-eval/overview`，order 24，图标走 `@eterna/ui/icons` 的 `chart`）；页面挂宿主 `main` keyed 槽（key 同 id）——**没有独立页面路由**，符合「原生扩展点」铁律 | `src/client/index.ts` |
+| 总览页 | 4 个 KPI（综合通过率/关键项未过/平均裁判耗时/今日用量）、近 14 天通过率条带（`role="img"` + 最低/最高 aria、每天 `title` 给绝对值）、「怎么读这些数」口径说明、按指标表（通过/未过/不适用/通过率 + 低位告警条）；空态/错误/加载三态；60 秒自动刷新 + 手动刷新 | `src/client/OverviewPage.tsx`、`src/client/styles.ts` |
+| API 封装 | `fetchOverview(signal?)`：POST `overview`，应答缺 `overview` 视为协议错误（与其它端点同形） | `src/client/api.ts` |
+| 部署探针 | `deploy/verify.sh` §8.7 增至七件：`snapshot / settings / metrics/save / metrics/parse / labels/save / trial / overview` 匿名均 401 | `deploy/verify.sh` |
+
+### 17.2 口径决定（本轮）
+
+1. **总览是「本人视角」**：会话集由 access 按登录身份给出（直接归属 + 子会话），引擎不自行枚举；全局管理员跨账号总览不在本轮（避免新增跨租户聚合面，留待有明确验收口径再加）。
+2. **「已终评」= 至少一条整条会话口径的结果类评分行**（`scope=session`、`category=outcome`、`status=ok`）；没评完的会话不进分母，通过率为空显示「—」而非 0%。
+3. **会话通过判定沿用关键项优先**：该会话最新一次各结果类评分里，有 `gating=true` 的项就只看 gating 项（全 true 才算过），没有 gating 项则看全部结果类；`关键项未过` 单列计数，便于从总览定位问题会话。
+4. **趋势按「结论日」归桶**：一个会话落在其最新结果类评分 `createdAt` 所在日（`decidedAt`），不按每条评分行摊到多天；同一会话只计一次。
+5. **按指标表只取整条会话口径**：每个会话每个指标取最新一次（`createdAt` 最大）`status ∈ {ok, not_applicable}` 行；`不适用` 单列、不进通过率分母；逐轮指标不聚合（在会话面板逐轮看）。
+6. **平均裁判耗时只算真实模型调用**：`provider != null && latency_ms != null` 的行；规则型/缓存/未调用不拉低或抬高均值。今日用量与日预算取部署级（与设置分区同源）。
+7. **条带柱高按窗口「最低–最高」归一（30% 起步）**：截图实测发现按峰值归一（58%–75% 压进 77%–100%）几乎看不出趋势；改为相对最低值归一，绝对值由「峰值 N%」与每天 `title` 给出。这是本轮实测修出的一处**呈现缺陷**（非缺规则），已重截全部 6 张。
+
+### 17.3 验证证据
+
+| 门禁 | 结果 |
+|---|---|
+| `pnpm --filter @eterna/session-eval verify` | oxlint 0/0；19 个测试文件 **190 passed**（+5：两会话合计/趋势/指标表 / 未终评不进分母+不适用 / 同指标只取最新 / 14 天窗口裁剪 / 无 gating 回退+逐轮行排除） |
+| `packages/access` verify | 55 个测试文件 **641 passed**；session-eval 路由 **36 项**（+2：overview 只聚合本人会话集+200+no-store+匿名 401 / io 与抛错均 503） |
+| 全仓 `pnpm run verify` | **EXIT=0** |
+| `verify-eterna-web.mjs`（真实 boot） | OK — **232** host entries；`settings.section=5`；35 个声明槽位键全部命中活槽目录（含 `sidebar.panellist` / `main`） |
+| `verify-eterna-super.mjs`（真实 boot） | OK — **240** host entries；`settings.section=6`；41 个声明槽位键全部命中 |
+| `scripts/lint-ui-tokens.mjs` | 19 目录 **348** 文件、79 个 `--et-*` 令牌、状态点 30/30、v4 阶梯 0 债务 |
+| `packctl form-check / tenant-scan / prompt-scan` | 0 / 0 / 0 findings |
+
+截图（深浅 × 1440/900/390，共 6 张；真实 `lib/client.js` + 真实令牌；数值为演示数据）：
+
+| 面 | 文件 |
+|---|---|
+| 评测总览（KPI + 14 天条带 + 读法 + 按指标表） | `docs/assets/screenshots/session-eval-p2-3-overview-{light,dark}-{1440,900,390}.png` |
+
+§7 自查：6 张逐张断言 `scrollWidth === innerWidth`（1440/900/390 全相等）与主题底色（light `rgb(244,242,236)` / dark `rgb(22,25,23)`）；KPI 4 卡、条带 14 天、指标表 5 行、条带 aria「最低 58%，最高 75%」、综合通过率 `72%` 均由 DOM 断言核过；390 下 KPI 两列、读数说明与表格按既有断点收缩，表格横向滚动不撑宽页面。
+
+### 17.4 P2-3 余下
+
+P2-3d dsh-evals 回放对接（把 dsh-evals 既有用例回放到本插件评分口径上）。P2-3 三块（a 校准 / b 试跑 / c 总览）至此全部交付；**P2-3d 已由 §18 交付**。
+
+## 18. 实现状态（2026-11-25：P2-3d dsh-evals 回放对接已交付）
+
+> 数字全部为当轮实测：`pnpm run verify`（全仓 EXIT=0）、`node scripts/verify-eterna-{web,super}.mjs`、
+> `node scripts/lint-ui-tokens.mjs`、`node tools/packctl/bin/packctl.mjs {form-check,tenant-scan,prompt-scan}`、
+> `node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --adapter replay --session-eval`。
+
+### 18.1 已交付
+
+| 面 | 内容 | 位置 |
+|---|---|---|
+| 回放评分纯函数 | `scoreReplayEvents({sessionId, events, metricsYaml?})`：内置规则直接复用 `aggregateSessionMetrics` + `projectTrajectory` + `evaluateRules`（与在线快照同一实现）；业务规则解析与线上同格式 `metrics.yaml`，只跑确定性形态；空事件/坏 YAML 如实报错 | `packages/session-eval/src/replay.ts` |
+| 子路径导出 | `@eterna/session-eval/replay`（纯函数面，不牵动 host/client 半边） | `packages/session-eval/package.json` |
+| 评分跳过口径 | 停用 / 逐轮口径 / 裁判型三类跳过并带中文原因；不静默丢弃、不把「不适用」记成未过 | `replay.ts`（`BLOCKER_REASON`） |
+| dsh-evals 打分开关 | `runPack({ sessionEval })`：每个 case 的事件流评一遍，结果挂 `CaseResult.sessionEval`；评分失败只记 `sessionEvalError`，**不改** golden 断言 pass/fail | `tools/evals/src/runner.ts` |
+| CLI | `--session-eval`（裸开关）+ `--metrics <文件>`（缺省自动发现 `<pack>/evals/metrics.yaml`）；文件起跑前预校验，非法/不可读 → 退出码 2；stdout 增 `session-eval: scored=N/M` | `tools/evals/src/cli.ts` |
+| 产物 | `sessions.jsonl` 每行增 `session_eval`（verdict / 15 项规则 / 业务规则 / 跳过 / metrics 版本）或 `session_eval_error`；`report.md` 增「会话评测规则分」节（结论计数 + 逐 case 未过判定项 + 业务未过/总计 + 跳过数） | `tools/evals/src/sessions.ts`、`src/report.ts` |
+| 目录约定 | `evals/metrics.yaml` 与 `threshold.yml` 一样**不是 golden case**（loader 跳过），因此可作 pack 级默认业务规则 | `tools/evals/src/schema.ts` |
+| 文档 | tools/evals README 增「会话评测规则分」一节（口径与产物） | `tools/evals/README.md` |
+
+### 18.2 口径决定（本轮）
+
+1. **回灌方向 = 分数进 dsh-evals 产物，不写在线评分库**：离线回放没有 DSH_HOME/会话身份，写 `judge_score` 会污染线上结论与总览；`sessions.jsonl` / `report.md` 已能承载「同一批金集的两条评分轨」对比。在线侧仍由「立即评测」写库。
+2. **离线只跑确定性规则**：内置 15 项规则零模型成本可全量；业务规则只执行 `trajectory.approval_flow` / `answer.not_contains` / `budget`。裁判型（无模型）与逐轮口径（无目标轮）跳过并列出原因，不伪造成 0 分或未过。
+3. **业务规则来源显式**：`--metrics` 指向与线上同格式的 `metrics.yaml`；`--session-eval` 缺省自动发现 pack 内 `evals/metrics.yaml`（存在才用）。账号线上配置仍以自己的覆盖层为准，pack 文件只是离线默认。
+4. **评分失败不改变金集结论**：dsh-evals 的 pass/fail 仍由 answer/final_state/trajectory/budget 四组断言决定；`session_eval_error` 单列，避免一次评分器缺陷把金集门禁染红（反向也避免评分通过掩盖断言失败）。
+5. **case id 即回放会话 id**：同一 fixture 反复回放得到同一报告键；不伪造 host session id。
+6. **不新增独立 CLI / 页面**：能力挂在既有 `dsh-evals` CLI 的开关与产物上；产品 UI 无新增入口（前端铁律不受影响）。
+7. **结论措辞沿用在线口径**：规则层无异常时是 `pass（确定性检查通过（结果类未评））`，不把它说成整体通过；审批被拒/工具失败计入 `warn`，与在线快照一致。
+
+### 18.3 验证证据
+
+| 门禁 | 结果 |
+|---|---|
+| `pnpm --filter @eterna/session-eval verify` | oxlint 0/0；20 个测试文件 **196 passed**（+6：内置规则 pass/warn / 空事件报错 / 业务三态+跳过原因 / 坏 YAML / 预校验版本条目数） |
+| `pnpm --filter @eterna/evals verify` | oxlint 0/0；tsc strict 0；11 个测试文件 **107 passed**（+9：runPack 评分/产物/报告/未开启/坏 YAML 单列 / metrics.yaml 不误当 case / CLI 裸开关+自动发现 / 非法与不可读退出码 2）；Python driver 单测 **19 passed** |
+| 全仓 `pnpm run verify` | **EXIT=0** |
+| `verify-eterna-web.mjs`（真实 boot） | OK — **232** host entries；`settings.section=5` |
+| `verify-eterna-super.mjs`（真实 boot） | OK — **240** host entries；`settings.section=6` |
+| `scripts/lint-ui-tokens.mjs` | 19 目录 **349** 文件、79 个 `--et-*` 令牌、状态点 30/30、v4 阶梯 0 债务 |
+| `packctl form-check / tenant-scan / prompt-scan` | 0 / 0 / 0 findings |
+
+**领域包端到端（实测）**：`packs/event-planning` 30 条 golden + 30 份 replay fixture，跑
+`dsh-evals run --pack packs/event-planning --adapter replay --session-eval`：
+
+- golden 断言 `total=30 pass=30 fail=0`；评分 `scored=30/30`；
+- 规则结论 `pass 25 / warn 5 / unrated 0`；每条 15 项内置规则全部产出；
+- 5 条 `warn` 恰是审批被拒/被拒调用失败的用例：`budget-overrun-15pct-silent-forbidden`、
+  `budget-overrun-5pct-threshold`、`contract-sign-no-proxy`、`external-payment-must-escalate`、
+  `vendor-shortlist-neutrality`（与在线规则「审批拒绝 + 工具失败」同口径）；
+- 业务规则端到端由 pack-mini 测试覆盖：`trajectory.approval_flow`（`send_group_message`）在
+  `approval-redline` 判通过、其余 3 条判未过；裁判型条目进入 `skipped`（原因「裁判型（回放无模型）」）。
+
+### 18.4 P2-3 收官
+
+P2-3a 校准 / b 试跑 / c 总览 / d 回放对接全部交付。在线评分库、总览与金集回放现在共用同一套
+规则实现（`evaluateRules` / `runBusinessRule` / `buildBusinessRuleFacts`），语义漂移由单测与
+30 条 domain pack 回放实证。后续可选项（不在本轮）：acp 适配器上的业务规则实跑、评分库回灌导出、
+pack 级 metrics.yaml 的产品化编辑入口。

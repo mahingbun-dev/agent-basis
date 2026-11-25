@@ -20,13 +20,17 @@ import type { SessionEventLike } from './types.ts'
 import {
   DEFAULT_JUDGE_CONFIG, JUDGE_RATIONALE_MAX,
   type BusinessSaveReply,
-  type BusinessParseReply, type JudgeConfig, type JudgeEvaluateReply, type JudgeRoute, type JudgeSaveConfigReply,
-  type JudgeScoreView, type JudgeSettingsView, type JudgeSnapshot, type JudgeTrigger,
+  type BusinessParseReply, type CalibrationMetricView, type CalibrationView, type JudgeConfig,
+  type JudgeEvaluateReply, type JudgeLabelReply, type JudgeRoute, type JudgeSaveConfigReply,
+  type JudgeTrialReply, type JudgeTrialView,
+  type OverviewDay, type OverviewMetricRow, type OverviewReply, type OverviewTotals, type OverviewView,
+  type JudgeScope, type JudgeScoreView, type JudgeSettingsView, type JudgeSnapshot, type JudgeStatus,
+  type JudgeTrigger,
 } from './judge-types.ts'
 import { BUILTIN_JUDGE_METRICS, findJudgeMetric, type JudgeMetricDef } from './judge-metrics.ts'
 import { projectJudgeInput } from './judge-input.ts'
 import { runJudge, type JudgeLlmPort, type JudgeRunResult } from './judge-call.ts'
-import { JudgeScoreStore, openJudgeStore, type StoredJudgeScore } from './score-store.ts'
+import { JudgeScoreStore, openJudgeStore, type StoredJudgeLabel, type StoredJudgeScore } from './score-store.ts'
 import { parseJudgeConfig, readJudgeConfig, writeJudgeConfig, type JudgeConfigRead } from './judge-config.ts'
 import { isBusinessJudgeMetric, runBusinessJudge, type BusinessJudgeMetric } from './business-judge.ts'
 import { buildBusinessRuleFacts, isBusinessRuleMetric, runBusinessRule, type BusinessRuleMetric } from './business-rules.ts'
@@ -39,6 +43,10 @@ export const JUDGE_CONCURRENCY = 5
 
 /** 会话 id 长度上限(与 service.ts 同口径). */
 const SESSION_ID_MAX = 200
+
+/** 校准门槛(56 号 §10-D5):≥20 条人工样本且一致率 ≥85% 才显示为已校准。 */
+export const CALIBRATION_MIN_SAMPLES = 20
+export const CALIBRATION_MIN_AGREEMENT = 0.85
 
 /** provider 目录项(设置分区的模型选择面). */
 export interface JudgeProviderCatalog {
@@ -222,7 +230,7 @@ export class JudgeEngine {
     const configRead = this.#config()
     const config = configRead.config
     const rows = this.#listScores(sessionId)
-    const scores = buildScoreViews(config, rows)
+    const scores = buildScoreViews(config, rows, this.#labelsFor(sessionId))
     const pending = this.pendingFor(sessionId)
     const used = this.#usage(at)
     const overall = buildOverall(config, rows)
@@ -280,6 +288,7 @@ export class JudgeEngine {
       })),
       providers,
       ...business === undefined ? {} : { business },
+      calibration: this.#calibrationView(),
       ...configRead.warning === undefined ? {} : { note: configRead.warning },
     }
   }
@@ -338,6 +347,245 @@ export class JudgeEngine {
       updatedBy: parsed.file.updatedBy,
       metrics: parsed.file.metrics,
     })
+  }
+
+  /**
+   * 人工复核一条模型评分(56 号 P2-3 校准):agrees=false = 判错了。
+   * @param sessionId - 会话 id(调用方已完成归属校验).
+   * @param input - {metric, turn?, agrees}.
+   * @param account - 标注人(登录账号,access 传入).
+   * @returns 保存后的标注;只有「模型裁判 + ok 结论」的评分可标注.
+   */
+  label(sessionId: string, input: unknown, account: string): Promise<JudgeLabelReply> {
+    const id = typeof sessionId === 'string' ? sessionId.trim() : ''
+    if (id === '' || id.length > SESSION_ID_MAX || account.trim() === '') {
+      return Promise.resolve({ ok: false, code: 'invalid', error: '参数不合法：缺少会话或标注人。' })
+    }
+    const record = typeof input === 'object' && input !== null && !Array.isArray(input)
+      ? input as Record<string, unknown>
+      : undefined
+    const metricKey = typeof record?.metric === 'string' ? record.metric.trim() : ''
+    const agrees = record?.agrees
+    const turn = record?.turn
+    if (metricKey === '' || typeof agrees !== 'boolean'
+      || (turn !== undefined && (typeof turn !== 'number' || !Number.isInteger(turn) || turn < 1))) {
+      return Promise.resolve({ ok: false, code: 'invalid', error: '参数不合法：metric / agrees / turn。' })
+    }
+    let row: StoredJudgeScore | undefined
+    try {
+      row = this.#listScores(id).find(candidate => candidate.metricKey === metricKey
+        && (turn === undefined ? candidate.targetTurn === null : candidate.targetTurn === turn))
+    } catch {
+      return Promise.resolve({ ok: false, code: 'io', error: '评分库不可读。' })
+    }
+    if (row === undefined || row.status !== 'ok' || row.value === null || row.provider === null || row.model === null) {
+      return Promise.resolve({ ok: false, code: 'not_found', error: '没有可复核的模型评分：先运行该指标再标注。' })
+    }
+    const store = this.#openStore()
+    if (store === undefined) return Promise.resolve({ ok: false, code: 'io', error: '评分库不可读（可能损坏）。' })
+    try {
+      store.saveLabel({
+        sessionId: id,
+        metricKey: row.metricKey,
+        metricName: row.metricName,
+        category: row.category,
+        scope: row.scope,
+        targetTurn: row.targetTurn,
+        judgeValue: row.value,
+        agrees,
+        labeledBy: account.trim(),
+        labeledAt: this.#now(),
+      })
+    } catch {
+      return Promise.resolve({ ok: false, code: 'io', error: '人工复核写入失败。' })
+    }
+    return Promise.resolve({ ok: true, label: agrees ? 'agrees' : 'disagrees' })
+  }
+
+  /** 会话内人工复核映射(只用于回显;评分重评后值变了就不回显). */
+  /**
+   * 评测总览(近 14 天,仅传入会话集):综合通过率 / 关键项未过 / 平均耗时 / 今日用量 /
+   * 按天条带 / 按指标表。
+   *
+   * 口径:①只算**已终评**会话(至少一条整条会话口径的结果类结论),没评完的不进分母;
+   * ②会话结论取各结果类指标**最新一次** ok 评分;有 gating 项时以 gating 项为准;
+   * ③按指标表取每条会话每个指标的**最新一次**(重评不重复计数);
+   * ④逐轮指标不进总览(轮次口径由面板逐会话看)。会话集由 access 按 owner 归属传入,
+   * 服务面不自行枚举会话(多租户隔离:不知道谁的会话就不聚合)。
+   * @param sessionIds - 允许参与聚合的会话 id(调用方已完成归属过滤).
+   * @param now - 聚合时刻(测试注入;缺省 Date.now()).
+   */
+  overview(sessionIds: readonly string[], now?: number): Promise<OverviewReply> {
+    try {
+      const at = now ?? this.#now()
+      const ids = [...new Set(sessionIds.filter(id => typeof id === 'string' && id !== ''))]
+      const store = this.#openStore()
+      if (store === undefined) {
+        return Promise.resolve({ ok: false, code: 'io', error: '评分库不可用。' })
+      }
+      const rows = store.listMany(ids)
+      const config = this.#config().config
+      const view = buildOverview(rows, at, {
+        usageToday: store.usage(dayKey(at)),
+        budgetPerDay: config.budgetTokensPerDay,
+      })
+      return Promise.resolve({ ok: true, overview: view })
+    } catch {
+      return Promise.resolve({ ok: false, code: 'io', error: '总览聚合失败（评分库读取异常）。' })
+    }
+  }
+
+  /**
+   * 单指标试跑:用真实裁判路由跑一条指标,返回原始输出与用量,**不落评分行**。
+   *
+   * 与「立即评测」的差别:不入队列、不写 scores.db(避免试跑污染会话结论),
+   * 但**计入日预算**(模型调用照常花钱);规则型指标不走模型,如实拒绝。
+   * @param sessionId - 会话 id(调用方已校验归属与登录)。
+   * @param metricKey - 指标键(内置 judge.* 或当前账号覆盖层的 rubric 指标)。
+   * @param turn - 逐轮指标的目标轮(缺省末轮;会话类忽略)。
+   * @param account - 已登录账号(解析业务指标覆盖层)。
+   */
+  trial(sessionId: string, metricKey: string, turn: number | undefined, account: string): Promise<JudgeTrialReply> {
+    const id = typeof sessionId === 'string' ? sessionId.trim() : ''
+    const key = typeof metricKey === 'string' ? metricKey.trim() : ''
+    if (id === '' || id.length > SESSION_ID_MAX || key === '') {
+      return Promise.resolve({ ok: false, code: 'invalid', error: '参数不合法：缺少会话或指标。' })
+    }
+    if (turn !== undefined && (!Number.isInteger(turn) || turn < 1)) {
+      return Promise.resolve({ ok: false, code: 'invalid', error: '参数不合法：turn 必须是正整数。' })
+    }
+    const config = this.#config().config
+    if (config.route === null) {
+      return Promise.resolve({ ok: false, code: 'unconfigured', error: '尚未配置裁判模型：请到 设置 → 评测 里选择模型后重试。' })
+    }
+    if (this.#usage(this.#now()) >= config.budgetTokensPerDay) {
+      return Promise.resolve({ ok: false, code: 'budget', error: '今日裁判预算已用尽：明日恢复，或在 设置 → 评测 里调高预算。' })
+    }
+    const builtin = findJudgeMetric(key)
+    let metric: JudgeMetricDef | BusinessJudgeMetric | undefined = builtin
+    if (metric === undefined) {
+      const business = this.#businessForEvaluate(account).metrics.find(candidate => candidate.key === key && candidate.enabled)
+      if (business === undefined) {
+        return Promise.resolve({ ok: false, code: 'not_found', error: '没有找到该指标（不存在或已停用）。' })
+      }
+      if (!isBusinessJudgeMetric(business)) {
+        return Promise.resolve({
+          ok: false, code: 'not_model',
+          error: '规则型指标是确定性断言，不需要模型试跑：用「立即评测」直接看结果。',
+        })
+      }
+      metric = business
+    }
+    const events = this.#ports.readEvents(id)
+    if (events === undefined) {
+      return Promise.resolve({ ok: false, code: 'not_loaded', error: '会话不在宿主内存（未打开）：打开后可试跑。' })
+    }
+    if (events.length === 0) {
+      return Promise.resolve({ ok: false, code: 'no_content', error: '会话还没有可投影的事件。' })
+    }
+    const input = projectJudgeInput(events)
+    if (input.task === '' && input.turns.length === 0) {
+      return Promise.resolve({ ok: false, code: 'no_content', error: '会话还没有可投影的事件。' })
+    }
+    const targetTurn = metric.scope === 'turn'
+      ? turn ?? input.turns[input.turns.length - 1]?.turn
+      : undefined
+    if (metric.scope === 'turn' && (targetTurn === undefined || !input.turns.some(candidate => candidate.turn === targetTurn))) {
+      return Promise.resolve({ ok: false, code: 'invalid', error: '目标轮不在可评范围内（该轮还没有完整事件）。' })
+    }
+    return this.#runTrial(metric, input, config.route, targetTurn)
+  }
+
+  /** 试跑执行(调用收敛成 error 状态;用量计入日预算,评分不入库). */
+  async #runTrial(
+    metric: JudgeMetricDef | BusinessJudgeMetric,
+    input: ReturnType<typeof projectJudgeInput>,
+    route: JudgeRoute,
+    turn: number | undefined,
+  ): Promise<JudgeTrialReply> {
+    const options = turn === undefined ? {} : { turn }
+    let result: JudgeRunResult
+    try {
+      result = isBusinessJudgeMetric(metric)
+        ? await runBusinessJudge(metric, input, route, this.#ports.llm, options)
+        : await runJudge(metric, input, route, this.#ports.llm, options)
+    } catch {
+      return { ok: false, code: 'io', error: '试跑调用异常（内部读取失败）。' }
+    }
+    if (result.tokens !== undefined) {
+      try {
+        this.#openStore()?.addUsage(dayKey(this.#now()), result.tokens)
+      } catch {
+        // 用量记账失败不抹掉试跑结果(与评分落库失败同口径:如实展示已有结果)。
+        this.#lastError = '试跑用量未记入日预算。'
+      }
+    }
+    const trial: JudgeTrialView = {
+      metricKey: metric.key,
+      metricName: metric.name,
+      scope: metric.scope,
+      status: result.status,
+      value: result.value,
+      display: trialDisplay(result.status, result.value),
+      rationale: result.rationale,
+      raw: result.raw ?? '',
+      latencyMs: result.latencyMs,
+      ...result.tokens === undefined ? {} : { tokens: result.tokens },
+      route,
+    }
+    return { ok: true, trial }
+  }
+
+  #labelsFor(sessionId: string): ReadonlyMap<string, LabelMark> {
+    const store = this.#openStore()
+    if (store === undefined) return new Map()
+    try {
+      return new Map(store.labels(sessionId).map(label => [
+        labelKeyOf(label.metricKey, label.scope, label.targetTurn),
+        { agrees: label.agrees, judgeValue: label.judgeValue },
+      ]))
+    } catch {
+      this.#lastError = '人工复核读取失败，本次快照不含标注。'
+      return new Map()
+    }
+  }
+
+  /** 校准读面:内置指标全列(无样本也列出),业务指标只列有标注的. */
+  #calibrationView(): CalibrationView {
+    const store = this.#openStore()
+    let labels: readonly StoredJudgeLabel[] = []
+    if (store !== undefined) {
+      try {
+        labels = store.allLabels()
+      } catch {
+        this.#lastError = '人工复核读取失败，校准视图为空。'
+      }
+    }
+    const byKey = new Map<string, StoredJudgeLabel[]>()
+    for (const label of labels) {
+      const bucket = byKey.get(label.metricKey)
+      if (bucket === undefined) byKey.set(label.metricKey, [label])
+      else bucket.push(label)
+    }
+    const metrics: CalibrationMetricView[] = BUILTIN_JUDGE_METRICS.map((metric) => {
+      const bucket = byKey.get(metric.key) ?? []
+      byKey.delete(metric.key)
+      return { key: metric.key, name: metric.name, category: metric.category, ...calibrationOf(bucket) }
+    })
+    for (const [key, bucket] of [...byKey.entries()].sort(([left], [right]) => left.localeCompare(right))) {
+      const first = bucket[0]
+      if (first === undefined) continue
+      metrics.push({ key, name: first.metricName, category: first.category, ...calibrationOf(bucket) })
+    }
+    const totals = calibrationOf(labels)
+    return {
+      metrics,
+      totals: {
+        labeled: totals.labeled, agrees: totals.agrees, agreement: totals.agreement,
+        matrix: totals.matrix, status: totals.status,
+      },
+      thresholds: { minSamples: CALIBRATION_MIN_SAMPLES, minAgreement: CALIBRATION_MIN_AGREEMENT },
+    }
   }
 
   /**
@@ -717,7 +965,11 @@ function displayOf(row: StoredJudgeScore | undefined, config: JudgeConfig, metri
 }
 
 /** 一条评分行 → 视图(内置与业务共用;业务行的名称/类别/范围随定义版本落库). */
-function viewOfRow(row: StoredJudgeScore, fallbackRoute: JudgeScoreView['route']): JudgeScoreView {
+function viewOfRow(
+  row: StoredJudgeScore,
+  fallbackRoute: JudgeScoreView['route'],
+  labels?: ReadonlyMap<string, LabelMark>,
+): JudgeScoreView {
   const route = row.provider !== null && row.model !== null ? { provider: row.provider, model: row.model } : fallbackRoute
   return {
     key: row.metricKey,
@@ -733,7 +985,154 @@ function viewOfRow(row: StoredJudgeScore, fallbackRoute: JudgeScoreView['route']
     route,
     ...row.latencyMs === null ? {} : { latencyMs: row.latencyMs },
     ...row.tokens === null ? {} : { tokens: row.tokens },
+    ...labelFields(row, labels),
   }
+}
+
+
+/** 总览窗口(近 14 天). */
+const OVERVIEW_WINDOW_DAYS = 14
+const DAY_MS = 86_400_000
+
+/** 会话结论(近 14 天窗口内). */
+interface SessionRollup {
+  readonly pass: boolean
+  readonly gatingFailed: boolean
+  readonly decidedAt: number
+}
+
+/** 最新一次评分(同指标取 createdAt 最大;并列取后者). */
+function latestRows(rows: readonly StoredJudgeScore[]): Map<string, StoredJudgeScore> {
+  const latest = new Map<string, StoredJudgeScore>()
+  for (const row of rows) {
+    const previous = latest.get(row.metricKey)
+    if (previous === undefined || row.createdAt >= previous.createdAt) latest.set(row.metricKey, row)
+  }
+  return latest
+}
+
+/** 单会话结论:结果类 ok 评分;有 gating 项以 gating 为准,没有则看全部结果类. */
+function rollupSession(rows: readonly StoredJudgeScore[]): SessionRollup | undefined {
+  const latest = latestRows(rows)
+  const outcomes = [...latest.values()].filter(row => row.category === 'outcome' && row.status === 'ok')
+  if (outcomes.length === 0) return undefined
+  const gating = outcomes.filter(row => row.gating === true)
+  const decisive = gating.length > 0 ? gating : outcomes
+  const decidedAt = Math.max(...outcomes.map(row => row.createdAt))
+  return {
+    pass: decisive.every(row => row.value === true),
+    gatingFailed: gating.some(row => row.value === false),
+    decidedAt,
+  }
+}
+
+/**
+ * 总览聚合(纯函数,便于单测):输入已归属过滤的评分行与时钟。
+ * @param rows - 评分行(允许含窗口外行;函数内部按窗口裁剪).
+ * @param now - 聚合时刻.
+ * @param runtime - 今日用量与日预算(部署级).
+ */
+function buildOverview(
+  rows: readonly StoredJudgeScore[],
+  now: number,
+  runtime: { readonly usageToday: number; readonly budgetPerDay: number },
+): OverviewView {
+  const days: string[] = []
+  for (let offset = OVERVIEW_WINDOW_DAYS - 1; offset >= 0; offset -= 1) {
+    days.push(dayKey(now - offset * DAY_MS))
+  }
+  const start = now - (OVERVIEW_WINDOW_DAYS - 1) * DAY_MS
+  const inWindow = rows.filter(row => row.createdAt >= start)
+  const bySession = new Map<string, StoredJudgeScore[]>()
+  for (const row of inWindow) {
+    const bucket = bySession.get(row.sessionId)
+    if (bucket === undefined) bySession.set(row.sessionId, [row])
+    else bucket.push(row)
+  }
+  const rollups: Array<{ sessionId: string; rollup: SessionRollup }> = []
+  for (const [sessionId, sessionRows] of bySession) {
+    const rollup = rollupSession(sessionRows.filter(row => row.scope === 'session'))
+    if (rollup !== undefined) rollups.push({ sessionId, rollup })
+  }
+  const evaluatedSessions = rollups.length
+  const passedSessions = rollups.filter(entry => entry.rollup.pass).length
+  const gatingFailedSessions = rollups.filter(entry => entry.rollup.gatingFailed).length
+  const latencies = inWindow
+    .filter(row => row.provider !== null && row.latencyMs !== null)
+    .map(row => row.latencyMs as number)
+  const averageLatencyMs = latencies.length === 0
+    ? null
+    : Math.round(latencies.reduce((sum, value) => sum + value, 0) / latencies.length)
+
+  const trend = new Map<string, { evaluated: number; passed: number }>()
+  for (const entry of rollups) {
+    const key = dayKey(entry.rollup.decidedAt)
+    const bucket = trend.get(key) ?? { evaluated: 0, passed: 0 }
+    bucket.evaluated += 1
+    if (entry.rollup.pass) bucket.passed += 1
+    trend.set(key, bucket)
+  }
+  const byDay: OverviewDay[] = days.map((day) => {
+    const bucket = trend.get(day)
+    const evaluated = bucket?.evaluated ?? 0
+    const passed = bucket?.passed ?? 0
+    return { day, evaluated, passed, passRate: evaluated === 0 ? null : passed / evaluated }
+  })
+
+  // 按指标:每条会话每个指标取最新一次整条会话口径评分;na 单独计数,不伪造未过。
+  const metricBuckets = new Map<string, {
+    name: string
+    category: StoredJudgeScore['category']
+    pass: number
+    fail: number
+    notApplicable: number
+  }>()
+  for (const sessionRows of bySession.values()) {
+    for (const row of latestRows(sessionRows.filter(candidate => candidate.scope === 'session')).values()) {
+      if (row.status !== 'ok' && row.status !== 'not_applicable') continue
+      const bucket = metricBuckets.get(row.metricKey) ?? {
+        name: row.metricName, category: row.category, pass: 0, fail: 0, notApplicable: 0,
+      }
+      if (row.status === 'not_applicable') bucket.notApplicable += 1
+      else if (row.value === true) bucket.pass += 1
+      else bucket.fail += 1
+      metricBuckets.set(row.metricKey, bucket)
+    }
+  }
+  const metrics: OverviewMetricRow[] = [...metricBuckets.entries()]
+    .map(([key, bucket]): OverviewMetricRow => {
+      const scored = bucket.pass + bucket.fail
+      return {
+        key,
+        name: bucket.name,
+        category: bucket.category,
+        source: findJudgeMetric(key) === undefined ? 'business' : 'builtin',
+        pass: bucket.pass,
+        fail: bucket.fail,
+        notApplicable: bucket.notApplicable,
+        passRate: scored === 0 ? null : bucket.pass / scored,
+      }
+    })
+    .sort((left, right) => (right.pass + right.fail) - (left.pass + left.fail) || left.key.localeCompare(right.key))
+
+  const totals: OverviewTotals = {
+    evaluatedSessions,
+    passedSessions,
+    passRate: evaluatedSessions === 0 ? null : passedSessions / evaluatedSessions,
+    gatingFailedSessions,
+    averageLatencyMs,
+    usageToday: runtime.usageToday,
+    budgetPerDay: runtime.budgetPerDay,
+  }
+  return { windowDays: OVERVIEW_WINDOW_DAYS, totals, byDay, metrics }
+}
+
+/** 试跑结果文案(没有分数就显示状态). */
+function trialDisplay(status: JudgeStatus, value: boolean | null): string {
+  if (status === 'ok') return value === true ? '通过' : '未过'
+  if (status === 'not_applicable') return '不适用'
+  if (status === 'error') return '出错'
+  return '跳过'
 }
 
 /** 已落库行的展示文案(没有分数就显示状态). */
@@ -749,7 +1148,11 @@ function rowDisplay(row: StoredJudgeScore): string {
 }
 
 /** 组装裁判视图:六项内置(缺行给显式状态)+ 业务已评条目(按 key 取最近一条). */
-function buildScoreViews(config: JudgeConfig, rows: readonly StoredJudgeScore[]): JudgeScoreView[] {
+function buildScoreViews(
+  config: JudgeConfig,
+  rows: readonly StoredJudgeScore[],
+  labels?: ReadonlyMap<string, LabelMark>,
+): JudgeScoreView[] {
   const views: JudgeScoreView[] = BUILTIN_JUDGE_METRICS.map((metric) => {
     const row = latestForMetric(rows, metric)
     const { display, status } = displayOf(row, config, metric)
@@ -770,14 +1173,80 @@ function buildScoreViews(config: JudgeConfig, rows: readonly StoredJudgeScore[])
       route,
       ...row?.latencyMs === null || row?.latencyMs === undefined ? {} : { latencyMs: row.latencyMs },
       ...row?.tokens === null || row?.tokens === undefined ? {} : { tokens: row.tokens },
+      ...row === undefined ? {} : labelFields(row, labels),
     }
   })
   const businessKeys = [...new Set(rows.filter(row => findJudgeMetric(row.metricKey) === undefined).map(row => row.metricKey))]
   for (const key of businessKeys) {
     const row = latestRow(rows.filter(candidate => candidate.metricKey === key))
-    if (row !== undefined) views.push(viewOfRow(row, config.route))
+    if (row !== undefined) views.push(viewOfRow(row, config.route, labels))
   }
   return views
+}
+
+/** 人工复核回显标记(agrees + 标注当时的裁判值). */
+interface LabelMark {
+  readonly agrees: boolean
+  readonly judgeValue: boolean
+}
+
+/** 评分/标注的身份键(会话内唯一):metric + scope + turn. */
+function labelKeyOf(metricKey: string, scope: JudgeScope, turn: number | null): string {
+  return JSON.stringify([metricKey, scope, scope === 'turn' ? turn : null])
+}
+
+/** 可复核 + 回显字段:只有「模型裁判 + ok 结论」可标注;评分重评后值变了不回显旧标注. */
+function labelFields(
+  row: StoredJudgeScore,
+  labels: ReadonlyMap<string, LabelMark> | undefined,
+): { readonly labelable?: boolean; readonly label?: 'agrees' | 'disagrees' } {
+  const labelable = row.status === 'ok' && row.value !== null && row.provider !== null && row.model !== null
+  if (!labelable) return {}
+  const mark = labels?.get(labelKeyOf(row.metricKey, row.scope, row.targetTurn))
+  if (mark === undefined || mark.judgeValue !== row.value) return { labelable: true }
+  return { labelable: true, label: mark.agrees ? 'agrees' : 'disagrees' }
+}
+
+/** 一致率 / 混淆矩阵 / 校准状态 / 偏松偏紧(纯函数). */
+function calibrationOf(labels: readonly StoredJudgeLabel[]): {
+  readonly labeled: number
+  readonly agrees: number
+  readonly agreement: number | null
+  readonly matrix: CalibrationMetricView['matrix']
+  readonly status: CalibrationMetricView['status']
+  readonly bias: CalibrationMetricView['bias']
+} {
+  let humanPassJudgePass = 0
+  let humanPassJudgeFail = 0
+  let humanFailJudgePass = 0
+  let humanFailJudgeFail = 0
+  let agrees = 0
+  for (const label of labels) {
+    if (label.agrees) agrees += 1
+    if (label.judgeValue) {
+      if (label.agrees) humanPassJudgePass += 1
+      else humanFailJudgePass += 1
+    } else if (label.agrees) humanFailJudgeFail += 1
+    else humanPassJudgeFail += 1
+  }
+  const labeled = labels.length
+  const agreement = labeled === 0 ? null : agrees / labeled
+  const status: CalibrationMetricView['status'] = labeled === 0
+    ? 'not_started'
+    : labeled < CALIBRATION_MIN_SAMPLES
+      ? 'insufficient'
+      : (agreement ?? 0) >= CALIBRATION_MIN_AGREEMENT ? 'calibrated' : 'uncalibrated'
+  const bias: CalibrationMetricView['bias'] = humanFailJudgePass > humanPassJudgeFail
+    ? 'lenient'
+    : humanPassJudgeFail > humanFailJudgePass ? 'strict' : 'balanced'
+  return {
+    labeled,
+    agrees,
+    agreement,
+    matrix: { humanPassJudgePass, humanPassJudgeFail, humanFailJudgePass, humanFailJudgeFail },
+    status,
+    bias,
+  }
 }
 
 /** 结果类综合结论(关键项全过才算通过;不适用按豁免计,缺评如实说未评). */
