@@ -161,6 +161,30 @@ export async function parseMetricsYaml(text: string, signal?: AbortSignal): Prom
   }
 }
 
+/** 人工复核结果(判得对=agrees / 判错了=disagrees). */
+export type JudgeLabelMark = 'agrees' | 'disagrees'
+
+/**
+ * 记录一条人工复核(校准数据;标注人由服务端从登录态取)。
+ * @param session - 会话 id.
+ * @param metric - 裁判指标键.
+ * @param turn - 逐轮指标的目标轮(会话类不传).
+ * @param agrees - 人工是否认可裁判判定.
+ * @returns 服务端确认的标注值.
+ */
+export async function saveJudgeLabel(
+  session: string,
+  metric: string,
+  turn: number | undefined,
+  agrees: boolean,
+  signal?: AbortSignal,
+): Promise<JudgeLabelMark> {
+  const parsed = await postJson('labels/save', {
+    session, metric, agrees, ...turn === undefined ? {} : { turn },
+  }, signal)
+  return parsed.label === 'disagrees' ? 'disagrees' : 'agrees'
+}
+
 /**
  * 保存裁判配置(仅管理员;服务端二次校验)。
  * @param config - 完整配置对象(不做部分合并).

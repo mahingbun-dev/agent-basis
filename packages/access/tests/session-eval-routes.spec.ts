@@ -98,6 +98,11 @@ describe('实时评测路由(access)', () => {
         calls.push(`parseBusinessMetrics:${text.length}`)
         return { ok: true, version: 3, updatedAt: '', updatedBy: 'alice', metrics: [] }
       },
+      label: async (sessionId, input, account) => {
+        const agrees = (input as { agrees?: unknown }).agrees
+        calls.push(`label:${sessionId}:${account}:${String(agrees)}`)
+        return { ok: true, label: agrees === false ? 'disagrees' : 'agrees' }
+      },
     }
   }
 
@@ -179,6 +184,7 @@ describe('实时评测路由(access)', () => {
       saveConfig: async () => { throw new Error('boom: internal detail') },
       saveBusinessMetric: async () => { throw new Error('boom: internal detail') },
       parseBusinessMetrics: async () => { throw new Error('boom: internal detail') },
+      label: async () => { throw new Error('boom: internal detail') },
     }
     const reply = await post({ session: aliceSessionId })
     expect(reply.status).toBe(503)
@@ -353,6 +359,58 @@ describe('实时评测路由(access)', () => {
       parseBusinessMetrics: async () => { throw new Error('boom: internal detail') },
     }
     const reply = await post({ text: 'version: 0\n' }, userCookie, 'metrics/parse')
+    expect(reply.status).toBe(503)
+    expect(reply.body).not.toContain('boom')
+  })
+
+  it('labels/save:登录用户可标注自己的会话(标注人只认 cookie);成功 200 + 审计', async () => {
+    const reply = await post({ session: aliceSessionId, metric: 'judge.task_completion', agrees: true }, adminCookie, 'labels/save')
+    expect(reply.status).toBe(200)
+    expect(JSON.parse(reply.body as string)).toMatchObject({ ok: true, label: 'agrees' })
+    expect(reply.headers).toContainEqual(['cache-control', 'no-store'])
+    expect(calls).toContain(`label:${aliceSessionId}:alice:true`)
+    expect(auditEvents.some(event => event.kind === 'access.session-eval.label' && event.ok === true)).toBe(true)
+    expect((await post({ session: aliceSessionId, metric: 'x', agrees: true }, '', 'labels/save')).status).toBe(401)
+  })
+
+  it('labels/save 参数形状:metric/agrees 缺失或 turn 非法 400,均不触达服务面', async () => {
+    expect((await post({ session: aliceSessionId, agrees: true }, adminCookie, 'labels/save')).status).toBe(400)
+    expect((await post({ session: aliceSessionId, metric: 'x' }, adminCookie, 'labels/save')).status).toBe(400)
+    expect((await post({ session: aliceSessionId, metric: 'x', agrees: true, turn: 0 }, adminCookie, 'labels/save')).status).toBe(400)
+    expect((await post({ session: aliceSessionId, metric: 'x', agrees: true, turn: 1.5 }, adminCookie, 'labels/save')).status).toBe(400)
+    expect(calls.filter(call => call.startsWith('label:'))).toEqual([])
+  })
+
+  it('labels/save 跨租户:404,不泄漏会话存在性', async () => {
+    expect((await post({ session: aliceSessionId, metric: 'judge.task_completion', agrees: false }, userCookie, 'labels/save')).status).toBe(404)
+    expect(calls.filter(call => call.startsWith('label:'))).toEqual([])
+  })
+
+  it('labels/save 业务拒绝按码分流:无可复核评分 409 / 非法 400 / 存储 503;失败均审计', async () => {
+    face = {
+      ...(face ?? makeFace()),
+      label: async () => ({ ok: false, code: 'not_found', error: '没有可复核的模型评分' }),
+    }
+    expect((await post({ session: aliceSessionId, metric: 'x', agrees: true }, adminCookie, 'labels/save')).status).toBe(409)
+    face = {
+      ...(face ?? makeFace()),
+      label: async () => ({ ok: false, code: 'invalid', error: '参数不合法' }),
+    }
+    expect((await post({ session: aliceSessionId, metric: 'x', agrees: true }, adminCookie, 'labels/save')).status).toBe(400)
+    face = {
+      ...(face ?? makeFace()),
+      label: async () => ({ ok: false, code: 'io', error: '写入失败' }),
+    }
+    expect((await post({ session: aliceSessionId, metric: 'x', agrees: true }, adminCookie, 'labels/save')).status).toBe(503)
+    expect(auditEvents.filter(event => event.kind === 'access.session-eval.label' && event.ok === false)).toHaveLength(3)
+  })
+
+  it('labels/save 服务面抛错:503,不泄漏堆栈', async () => {
+    face = {
+      ...(face ?? makeFace()),
+      label: async () => { throw new Error('boom: internal detail') },
+    }
+    const reply = await post({ session: aliceSessionId, metric: 'x', agrees: true }, adminCookie, 'labels/save')
     expect(reply.status).toBe(503)
     expect(reply.body).not.toContain('boom')
   })

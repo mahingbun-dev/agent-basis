@@ -20,13 +20,14 @@ import type { SessionEventLike } from './types.ts'
 import {
   DEFAULT_JUDGE_CONFIG, JUDGE_RATIONALE_MAX,
   type BusinessSaveReply,
-  type BusinessParseReply, type JudgeConfig, type JudgeEvaluateReply, type JudgeRoute, type JudgeSaveConfigReply,
-  type JudgeScoreView, type JudgeSettingsView, type JudgeSnapshot, type JudgeTrigger,
+  type BusinessParseReply, type CalibrationMetricView, type CalibrationView, type JudgeConfig,
+  type JudgeEvaluateReply, type JudgeLabelReply, type JudgeRoute, type JudgeSaveConfigReply,
+  type JudgeScope, type JudgeScoreView, type JudgeSettingsView, type JudgeSnapshot, type JudgeTrigger,
 } from './judge-types.ts'
 import { BUILTIN_JUDGE_METRICS, findJudgeMetric, type JudgeMetricDef } from './judge-metrics.ts'
 import { projectJudgeInput } from './judge-input.ts'
 import { runJudge, type JudgeLlmPort, type JudgeRunResult } from './judge-call.ts'
-import { JudgeScoreStore, openJudgeStore, type StoredJudgeScore } from './score-store.ts'
+import { JudgeScoreStore, openJudgeStore, type StoredJudgeLabel, type StoredJudgeScore } from './score-store.ts'
 import { parseJudgeConfig, readJudgeConfig, writeJudgeConfig, type JudgeConfigRead } from './judge-config.ts'
 import { isBusinessJudgeMetric, runBusinessJudge, type BusinessJudgeMetric } from './business-judge.ts'
 import { buildBusinessRuleFacts, isBusinessRuleMetric, runBusinessRule, type BusinessRuleMetric } from './business-rules.ts'
@@ -39,6 +40,10 @@ export const JUDGE_CONCURRENCY = 5
 
 /** 会话 id 长度上限(与 service.ts 同口径). */
 const SESSION_ID_MAX = 200
+
+/** 校准门槛(56 号 §10-D5):≥20 条人工样本且一致率 ≥85% 才显示为已校准。 */
+export const CALIBRATION_MIN_SAMPLES = 20
+export const CALIBRATION_MIN_AGREEMENT = 0.85
 
 /** provider 目录项(设置分区的模型选择面). */
 export interface JudgeProviderCatalog {
@@ -222,7 +227,7 @@ export class JudgeEngine {
     const configRead = this.#config()
     const config = configRead.config
     const rows = this.#listScores(sessionId)
-    const scores = buildScoreViews(config, rows)
+    const scores = buildScoreViews(config, rows, this.#labelsFor(sessionId))
     const pending = this.pendingFor(sessionId)
     const used = this.#usage(at)
     const overall = buildOverall(config, rows)
@@ -280,6 +285,7 @@ export class JudgeEngine {
       })),
       providers,
       ...business === undefined ? {} : { business },
+      calibration: this.#calibrationView(),
       ...configRead.warning === undefined ? {} : { note: configRead.warning },
     }
   }
@@ -338,6 +344,112 @@ export class JudgeEngine {
       updatedBy: parsed.file.updatedBy,
       metrics: parsed.file.metrics,
     })
+  }
+
+  /**
+   * 人工复核一条模型评分(56 号 P2-3 校准):agrees=false = 判错了。
+   * @param sessionId - 会话 id(调用方已完成归属校验).
+   * @param input - {metric, turn?, agrees}.
+   * @param account - 标注人(登录账号,access 传入).
+   * @returns 保存后的标注;只有「模型裁判 + ok 结论」的评分可标注.
+   */
+  label(sessionId: string, input: unknown, account: string): Promise<JudgeLabelReply> {
+    const id = typeof sessionId === 'string' ? sessionId.trim() : ''
+    if (id === '' || id.length > SESSION_ID_MAX || account.trim() === '') {
+      return Promise.resolve({ ok: false, code: 'invalid', error: '参数不合法：缺少会话或标注人。' })
+    }
+    const record = typeof input === 'object' && input !== null && !Array.isArray(input)
+      ? input as Record<string, unknown>
+      : undefined
+    const metricKey = typeof record?.metric === 'string' ? record.metric.trim() : ''
+    const agrees = record?.agrees
+    const turn = record?.turn
+    if (metricKey === '' || typeof agrees !== 'boolean'
+      || (turn !== undefined && (typeof turn !== 'number' || !Number.isInteger(turn) || turn < 1))) {
+      return Promise.resolve({ ok: false, code: 'invalid', error: '参数不合法：metric / agrees / turn。' })
+    }
+    let row: StoredJudgeScore | undefined
+    try {
+      row = this.#listScores(id).find(candidate => candidate.metricKey === metricKey
+        && (turn === undefined ? candidate.targetTurn === null : candidate.targetTurn === turn))
+    } catch {
+      return Promise.resolve({ ok: false, code: 'io', error: '评分库不可读。' })
+    }
+    if (row === undefined || row.status !== 'ok' || row.value === null || row.provider === null || row.model === null) {
+      return Promise.resolve({ ok: false, code: 'not_found', error: '没有可复核的模型评分：先运行该指标再标注。' })
+    }
+    const store = this.#openStore()
+    if (store === undefined) return Promise.resolve({ ok: false, code: 'io', error: '评分库不可读（可能损坏）。' })
+    try {
+      store.saveLabel({
+        sessionId: id,
+        metricKey: row.metricKey,
+        metricName: row.metricName,
+        category: row.category,
+        scope: row.scope,
+        targetTurn: row.targetTurn,
+        judgeValue: row.value,
+        agrees,
+        labeledBy: account.trim(),
+        labeledAt: this.#now(),
+      })
+    } catch {
+      return Promise.resolve({ ok: false, code: 'io', error: '人工复核写入失败。' })
+    }
+    return Promise.resolve({ ok: true, label: agrees ? 'agrees' : 'disagrees' })
+  }
+
+  /** 会话内人工复核映射(只用于回显;评分重评后值变了就不回显). */
+  #labelsFor(sessionId: string): ReadonlyMap<string, LabelMark> {
+    const store = this.#openStore()
+    if (store === undefined) return new Map()
+    try {
+      return new Map(store.labels(sessionId).map(label => [
+        labelKeyOf(label.metricKey, label.scope, label.targetTurn),
+        { agrees: label.agrees, judgeValue: label.judgeValue },
+      ]))
+    } catch {
+      this.#lastError = '人工复核读取失败，本次快照不含标注。'
+      return new Map()
+    }
+  }
+
+  /** 校准读面:内置指标全列(无样本也列出),业务指标只列有标注的. */
+  #calibrationView(): CalibrationView {
+    const store = this.#openStore()
+    let labels: readonly StoredJudgeLabel[] = []
+    if (store !== undefined) {
+      try {
+        labels = store.allLabels()
+      } catch {
+        this.#lastError = '人工复核读取失败，校准视图为空。'
+      }
+    }
+    const byKey = new Map<string, StoredJudgeLabel[]>()
+    for (const label of labels) {
+      const bucket = byKey.get(label.metricKey)
+      if (bucket === undefined) byKey.set(label.metricKey, [label])
+      else bucket.push(label)
+    }
+    const metrics: CalibrationMetricView[] = BUILTIN_JUDGE_METRICS.map((metric) => {
+      const bucket = byKey.get(metric.key) ?? []
+      byKey.delete(metric.key)
+      return { key: metric.key, name: metric.name, category: metric.category, ...calibrationOf(bucket) }
+    })
+    for (const [key, bucket] of [...byKey.entries()].sort(([left], [right]) => left.localeCompare(right))) {
+      const first = bucket[0]
+      if (first === undefined) continue
+      metrics.push({ key, name: first.metricName, category: first.category, ...calibrationOf(bucket) })
+    }
+    const totals = calibrationOf(labels)
+    return {
+      metrics,
+      totals: {
+        labeled: totals.labeled, agrees: totals.agrees, agreement: totals.agreement,
+        matrix: totals.matrix, status: totals.status,
+      },
+      thresholds: { minSamples: CALIBRATION_MIN_SAMPLES, minAgreement: CALIBRATION_MIN_AGREEMENT },
+    }
   }
 
   /**
@@ -717,7 +829,11 @@ function displayOf(row: StoredJudgeScore | undefined, config: JudgeConfig, metri
 }
 
 /** 一条评分行 → 视图(内置与业务共用;业务行的名称/类别/范围随定义版本落库). */
-function viewOfRow(row: StoredJudgeScore, fallbackRoute: JudgeScoreView['route']): JudgeScoreView {
+function viewOfRow(
+  row: StoredJudgeScore,
+  fallbackRoute: JudgeScoreView['route'],
+  labels?: ReadonlyMap<string, LabelMark>,
+): JudgeScoreView {
   const route = row.provider !== null && row.model !== null ? { provider: row.provider, model: row.model } : fallbackRoute
   return {
     key: row.metricKey,
@@ -733,6 +849,7 @@ function viewOfRow(row: StoredJudgeScore, fallbackRoute: JudgeScoreView['route']
     route,
     ...row.latencyMs === null ? {} : { latencyMs: row.latencyMs },
     ...row.tokens === null ? {} : { tokens: row.tokens },
+    ...labelFields(row, labels),
   }
 }
 
@@ -749,7 +866,11 @@ function rowDisplay(row: StoredJudgeScore): string {
 }
 
 /** 组装裁判视图:六项内置(缺行给显式状态)+ 业务已评条目(按 key 取最近一条). */
-function buildScoreViews(config: JudgeConfig, rows: readonly StoredJudgeScore[]): JudgeScoreView[] {
+function buildScoreViews(
+  config: JudgeConfig,
+  rows: readonly StoredJudgeScore[],
+  labels?: ReadonlyMap<string, LabelMark>,
+): JudgeScoreView[] {
   const views: JudgeScoreView[] = BUILTIN_JUDGE_METRICS.map((metric) => {
     const row = latestForMetric(rows, metric)
     const { display, status } = displayOf(row, config, metric)
@@ -770,14 +891,80 @@ function buildScoreViews(config: JudgeConfig, rows: readonly StoredJudgeScore[])
       route,
       ...row?.latencyMs === null || row?.latencyMs === undefined ? {} : { latencyMs: row.latencyMs },
       ...row?.tokens === null || row?.tokens === undefined ? {} : { tokens: row.tokens },
+      ...row === undefined ? {} : labelFields(row, labels),
     }
   })
   const businessKeys = [...new Set(rows.filter(row => findJudgeMetric(row.metricKey) === undefined).map(row => row.metricKey))]
   for (const key of businessKeys) {
     const row = latestRow(rows.filter(candidate => candidate.metricKey === key))
-    if (row !== undefined) views.push(viewOfRow(row, config.route))
+    if (row !== undefined) views.push(viewOfRow(row, config.route, labels))
   }
   return views
+}
+
+/** 人工复核回显标记(agrees + 标注当时的裁判值). */
+interface LabelMark {
+  readonly agrees: boolean
+  readonly judgeValue: boolean
+}
+
+/** 评分/标注的身份键(会话内唯一):metric + scope + turn. */
+function labelKeyOf(metricKey: string, scope: JudgeScope, turn: number | null): string {
+  return JSON.stringify([metricKey, scope, scope === 'turn' ? turn : null])
+}
+
+/** 可复核 + 回显字段:只有「模型裁判 + ok 结论」可标注;评分重评后值变了不回显旧标注. */
+function labelFields(
+  row: StoredJudgeScore,
+  labels: ReadonlyMap<string, LabelMark> | undefined,
+): { readonly labelable?: boolean; readonly label?: 'agrees' | 'disagrees' } {
+  const labelable = row.status === 'ok' && row.value !== null && row.provider !== null && row.model !== null
+  if (!labelable) return {}
+  const mark = labels?.get(labelKeyOf(row.metricKey, row.scope, row.targetTurn))
+  if (mark === undefined || mark.judgeValue !== row.value) return { labelable: true }
+  return { labelable: true, label: mark.agrees ? 'agrees' : 'disagrees' }
+}
+
+/** 一致率 / 混淆矩阵 / 校准状态 / 偏松偏紧(纯函数). */
+function calibrationOf(labels: readonly StoredJudgeLabel[]): {
+  readonly labeled: number
+  readonly agrees: number
+  readonly agreement: number | null
+  readonly matrix: CalibrationMetricView['matrix']
+  readonly status: CalibrationMetricView['status']
+  readonly bias: CalibrationMetricView['bias']
+} {
+  let humanPassJudgePass = 0
+  let humanPassJudgeFail = 0
+  let humanFailJudgePass = 0
+  let humanFailJudgeFail = 0
+  let agrees = 0
+  for (const label of labels) {
+    if (label.agrees) agrees += 1
+    if (label.judgeValue) {
+      if (label.agrees) humanPassJudgePass += 1
+      else humanFailJudgePass += 1
+    } else if (label.agrees) humanFailJudgeFail += 1
+    else humanPassJudgeFail += 1
+  }
+  const labeled = labels.length
+  const agreement = labeled === 0 ? null : agrees / labeled
+  const status: CalibrationMetricView['status'] = labeled === 0
+    ? 'not_started'
+    : labeled < CALIBRATION_MIN_SAMPLES
+      ? 'insufficient'
+      : (agreement ?? 0) >= CALIBRATION_MIN_AGREEMENT ? 'calibrated' : 'uncalibrated'
+  const bias: CalibrationMetricView['bias'] = humanFailJudgePass > humanPassJudgeFail
+    ? 'lenient'
+    : humanPassJudgeFail > humanFailJudgePass ? 'strict' : 'balanced'
+  return {
+    labeled,
+    agrees,
+    agreement,
+    matrix: { humanPassJudgePass, humanPassJudgeFail, humanFailJudgePass, humanFailJudgeFail },
+    status,
+    bias,
+  }
 }
 
 /** 结果类综合结论(关键项全过才算通过;不适用按豁免计,缺评如实说未评). */

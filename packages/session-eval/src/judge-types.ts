@@ -47,6 +47,10 @@ export interface JudgeScoreView {
   readonly latencyMs?: number
   /** 裁判调用 token 总量(计费口径单列,不混入被测会话). */
   readonly tokens?: number
+  /** 人工复核结果(与当前判定同一评分值时才回显;agrees=false = 判错了). */
+  readonly label?: 'agrees' | 'disagrees'
+  /** 可否人工复核(只有模型裁判且已有 ok 结论的评分才能标注). */
+  readonly labelable?: boolean
 }
 
 /** 裁判触发方式. */
@@ -111,6 +115,54 @@ export type BusinessSaveReply =
   | { readonly ok: true; readonly version: number; readonly metric: BusinessMetric; readonly yaml: string }
   | { readonly ok: false; readonly code: 'conflict' | 'invalid' | 'io'; readonly error: string }
 
+/** 混淆矩阵(行=人工判定,列=裁判判定;只有 ok 评分可标注). */
+export interface CalibrationMatrix {
+  readonly humanPassJudgePass: number
+  readonly humanPassJudgeFail: number
+  readonly humanFailJudgePass: number
+  readonly humanFailJudgeFail: number
+}
+
+/** 单指标校准状态(阈值:≥20 条人工样本且一致率 ≥85%). */
+export interface CalibrationMetricView {
+  readonly key: string
+  readonly name: string
+  readonly category: JudgeCategory
+  /** 已标注条数(同一条重标只算最新一次). */
+  readonly labeled: number
+  /** 与裁判判定一致的条数. */
+  readonly agrees: number
+  /** 一致率(labeled=0 时为 null). */
+  readonly agreement: number | null
+  readonly matrix: CalibrationMatrix
+  /** not_started=无样本 / insufficient=样本不足 / uncalibrated=一致率未到阈值 / calibrated=已校准. */
+  readonly status: 'not_started' | 'insufficient' | 'uncalibrated' | 'calibrated'
+  /** 偏松=放过了人工判未过的;偏紧=否掉了人工判通过的;balanced=无反向样本或两向相等. */
+  readonly bias: 'lenient' | 'strict' | 'balanced'
+}
+
+/** 全部指标合计(同口径,无名称/类别). */
+export interface CalibrationTotals {
+  readonly labeled: number
+  readonly agrees: number
+  readonly agreement: number | null
+  readonly matrix: CalibrationMatrix
+  readonly status: CalibrationMetricView['status']
+}
+
+/** 校准读面(设置分区「校准」). */
+export interface CalibrationView {
+  readonly metrics: readonly CalibrationMetricView[]
+  /** 全部指标合计(同口径). */
+  readonly totals: CalibrationTotals
+  readonly thresholds: { readonly minSamples: number; readonly minAgreement: number }
+}
+
+/** 人工复核保存结果. */
+export type JudgeLabelReply =
+  | { readonly ok: true; readonly label: 'agrees' | 'disagrees' }
+  | { readonly ok: false; readonly code: 'not_found' | 'invalid' | 'io'; readonly error: string }
+
 /** 设置分区读面:配置 + 可选的指标目录 + 可用 provider 目录 + 账号业务指标覆盖层. */
 export interface JudgeSettingsView {
   readonly config: JudgeConfig
@@ -124,6 +176,8 @@ export interface JudgeSettingsView {
   readonly providers: readonly { readonly id: string; readonly models: readonly string[] }[]
   /** 业务指标覆盖层(登录账号自己的 metrics.yaml). */
   readonly business?: BusinessMetricsView
+  /** 人工复核校准(全局，按指标聚合). */
+  readonly calibration?: CalibrationView
   /** 配置损坏等说明(设置页顶部提示;保存一次即可修复). */
   readonly note?: string
 }

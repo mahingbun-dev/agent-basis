@@ -14,6 +14,7 @@ import { Icon } from '@eterna/ui/icons'
 import type { JudgeConfig, JudgeSettingsView } from '../judge-types.ts'
 import { SessionEvalApiError, fetchJudgeSettings, saveJudgeConfig } from './api.ts'
 import { BusinessMetricsSection } from './BusinessMetricsSection.tsx'
+import { CalibrationSection } from './CalibrationSection.tsx'
 
 /** 表单态(数字输入以字符串承载;提交时统一校验). */
 interface FormState {
@@ -104,6 +105,7 @@ export function EvalSettingsSection(): ReactElement {
             metrics: previous.metrics,
             providers: previous.providers,
             ...previous.note === undefined ? {} : { note: previous.note },
+            ...previous.calibration === undefined ? {} : { calibration: previous.calibration },
             ...reply.settings.business === undefined ? {} : { business: reply.settings.business },
           })
       })
@@ -338,6 +340,8 @@ export function EvalSettingsSection(): ReactElement {
       </fieldset>
 
       <BusinessMetricsSection business={settings.business} onChanged={refreshBusiness} />
+
+      <CalibrationSection {...settings.calibration === undefined ? {} : { calibration: settings.calibration }} />
 
       <div data-eterna-eval-set="actions">
         <button

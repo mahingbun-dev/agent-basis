@@ -1001,4 +1001,56 @@ metrics:
 
 ### 14.4 P2 余下（P2-3）
 
-三角色 rubric 试跑（真实模型）、人工校准（一致率/混淆矩阵）、评测总览（遵守「不做独立页面」：候选为面板内视图切换）、dsh-evals 回放对接。条目级 `judge.model` 仍只落盘，执行用全局裁判路由（§9.3 注记）。
+三角色 rubric 试跑（真实模型）、人工校准（一致率/混淆矩阵）、评测总览（遵守「不做独立页面」：候选为面板内视图切换）、dsh-evals 回放对接。条目级 `judge.model` 仍只落盘，执行用全局裁判路由（§9.3 注记）。其中**人工校准已由 §15 交付**；试跑/总览/回放仍待做。
+
+## 15. 实现状态（2026-11-25：P2-3a 人工复核与校准已交付）
+
+> 数字全部为当轮实测：`pnpm run verify`（全仓 EXIT=0）、`node scripts/verify-eterna-{web,super}.mjs`、
+> `node scripts/lint-ui-tokens.mjs`、`node tools/packctl/bin/packctl.mjs {form-check,tenant-scan,prompt-scan}`。
+
+### 15.1 已交付
+
+| 面 | 内容 | 位置 |
+|---|---|---|
+| 标注存储 | `judge_label` STRICT 表（会话/指标/名称/类别/作用域/目标轮/裁判值/是否认可/标注人/时间），主键复用评分行 id（upsert，同一条重标只留最新）；索引 `metric_key` | `src/score-store.ts` |
+| 引擎标注面 | `label(sessionId, input, account)`：参数校验（metric 非空、agrees 布尔、turn 正整数）→ 按 metricKey + 轮次找到**本会话**评分行 → 仅 `status=ok` 且有 provider/model 的行可标 → 落库并回 `agrees/disagrees`；失败码 `invalid / not_found / io` | `src/engine.ts` |
+| 校准聚合 | 按指标聚合（内置六项全列出，业务指标按标注过的 key 追加）：已标注 / 一致 / 一致率 / 混淆矩阵 / 状态（`not_started` / `insufficient` / `uncalibrated` / `calibrated`，阈值 20 条 + 85%）/ 偏向（`lenient` / `strict` / `balanced`）；另给全指标合计 | `src/engine.ts`（`calibrationOf`） |
+| 快照标注态 | 评分视图增 `labelable`（可标：ok + 有裁判来源）与 `label`（已标结果）；**裁判值变化后旧标注在快照里隐藏**（不把旧结论贴在 new 判定上） | `src/engine.ts` |
+| 路由 | `POST /access/api/session-eval/labels/save`：登录 + 会话归属（跨租户 404）；`not_found → 409`、`io → 503`、其余 400；200 回标注值 + `no-store`；审计 `access.session-eval.label` | `packages/access/src/routes.ts` |
+| 面板复核 | 每条可标裁判行的折叠区里「判得对 / 判错了」（`aria-pressed` 反映已标、在途禁用、成功后重拉快照回显、失败给中文原因） | `src/client/EvalPanel.tsx` |
+| 设置校准区 | `settings.section` 内新增「校准」块：一致率 KPI（N/M 条）+ 状态徽标与下一步说明；指标表（指标/已标注/一致率/状态，行内按钮切换混淆矩阵）；混淆矩阵（行人工 × 列裁判）+ 偏松/偏紧结论 + 阈值说明；无样本显「还没开始」，不给 0% | `src/client/CalibrationSection.tsx` |
+| 部署探针 | `deploy/verify.sh` §8.7 增至五件：`snapshot / settings / metrics/save / metrics/parse / labels/save` 匿名均 401 | `deploy/verify.sh` |
+
+### 15.2 口径决定（本轮）
+
+1. **标注 = 是否认可裁判判定**，不是重新判一遍；人工判定由「裁判值 + 是否认可」反推（认可 → 人工=裁判；不认可 → 人工=相反），混淆矩阵四格由此得出。
+2. **同一条重标只算最新一次**：`judge_label` 主键 = 评分行 id（会话 + 指标 + 作用域 + 轮次），重标走 upsert；校准统计按标注时的裁判值留存，**不随评分行重算而改写历史**。
+3. **旧标注不在新判定上显示**：快照 `label` 仅当存储的 `judgeValue` 与当前行值相等时回显；值变了 = 旧结论已失效，但校准样本仍按历史计入（标注那一刻的事实）。
+4. **阈值 20 条 + 85% + 偏向定义**：`insufficient`（<20 条）优先于 `uncalibrated`；偏向 = 混淆矩阵两个反向格比较（`humanFailJudgePass > humanPassJudgeFail` → 偏松，反之偏紧，相等或都 0 → balanced）。
+5. **标注入口只在会话面板**：设置分区只读展示聚合（设置弹窗脱离会话上下文，避免「在设置里标注别的会话」的越权错觉）；跨租户由路由层 404 兜底。
+
+### 15.3 验证证据
+
+| 门禁 | 结果 |
+|---|---|
+| `pnpm --filter @eterna/session-eval verify` | oxlint 0/0；19 个测试文件 **180 passed**（+4：标注回显/参数校验/阈值升级/失效标注隐藏） |
+| `packages/access` verify | 55 个测试文件 **634 passed**；session-eval 路由 **29 项**（+5：labels/save 成功+审计+no-store+匿名 401 / 参数形状 / 跨租户 404 / 失败码映射 / 抛错 503） |
+| 全仓 `pnpm run verify` | **EXIT=0** |
+| `verify-eterna-web.mjs`（真实 boot） | OK — **232** host entries；`settings.section=5` |
+| `verify-eterna-super.mjs`（真实 boot） | OK — **240** host entries；`settings.section=6` |
+| `scripts/lint-ui-tokens.mjs` | 19 目录 **347** 文件、79 个 `--et-*` 令牌、状态点 30/30、v4 阶梯 0 债务 |
+| `packctl form-check / tenant-scan / prompt-scan` | 0 / 0 / 0 findings |
+
+截图（深浅 × 1440/900/390，共 12 张；真实 `lib/client.js` + 真实令牌；标注/校准数值为演示数据）：
+
+| 面 | 文件 |
+|---|---|
+| 面板人工复核（展开理由与复核按钮，已标态可见） | `docs/assets/screenshots/session-eval-p2-3-labels-{light,dark}-{1440,900,390}.png` |
+| 设置「校准」（KPI + 指标表 + 混淆矩阵） | `docs/assets/screenshots/session-eval-p2-3-calibration-{light,dark}-{1440,900,390}.png` |
+
+§7 自查：12 张逐张断言 `scrollWidth === innerWidth`（1440/900/390 全部相等）与主题底色（light `rgb(244,242,236)` / dark `rgb(22,25,23)`）；可标行 3 组、`aria-pressed` 已标 2 处、混淆矩阵四格 `8/1/2/1` 均由 DOM 断言核过。**本轮实测修出两处真缺陷**（均属「标记无样式规则」类）：`data-tone='warn'` 徽标没有规则（「未校准」状态退化成普通文字）、`aria-pressed='true'` 复核按钮没有规则（选中态不可见）；已补 warn 徽标软底与 accent 软底选中态，并重截 12 张。
+
+### 15.4 P2-3 余下
+
+P2-3b 试跑（真实模型 + 原始输出/不合法输出态）、P2-3c 评测总览（候选 `sidebar.panellist` + `main`，遵守「不做独立页面」）、P2-3d dsh-evals 回放对接。
+

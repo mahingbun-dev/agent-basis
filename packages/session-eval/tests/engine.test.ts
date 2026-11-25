@@ -627,3 +627,107 @@ describe('业务指标(账号覆盖层)', () => {
     expect(await bare.saveBusinessMetric('alice', rubricInput(), 0)).toMatchObject({ ok: false, code: 'io' })
   })
 })
+
+
+describe('人工复核与校准(P2-3)', () => {
+  beforeEach(() => {
+    writeConfig()
+  })
+
+  it('标注模型评分:回显 label + labelable;校准视图记入 1 条(偏松)', async () => {
+    engine = newEngine()
+    await engine.evaluate('s1')
+    await settle(engine)
+    const reply = await engine.label('s1', { metric: 'judge.task_completion', agrees: false }, 'alice')
+    expect(reply).toEqual({ ok: true, label: 'disagrees' })
+    const snapshot = await engine.snapshot('s1', NOW)
+    expect(snapshot.scores.find(score => score.key === 'judge.task_completion'))
+      .toMatchObject({ label: 'disagrees', labelable: true })
+    // 过程类也可标注(逐轮目标)。
+    expect(snapshot.scores.find(score => score.key === 'judge.tool_selection')?.labelable).toBe(true)
+    const calibration = (await engine.settings('alice')).calibration
+    expect(calibration).toBeDefined()
+    const metric = calibration?.metrics.find(item => item.key === 'judge.task_completion')
+    expect(metric).toMatchObject({
+      labeled: 1, agrees: 0, agreement: 0,
+      matrix: { humanPassJudgePass: 0, humanPassJudgeFail: 0, humanFailJudgePass: 1, humanFailJudgeFail: 0 },
+      status: 'insufficient', bias: 'lenient',
+    })
+    expect(calibration?.totals).toMatchObject({ labeled: 1, agrees: 0 })
+    expect(calibration?.thresholds).toEqual({ minSamples: 20, minAgreement: 0.85 })
+  })
+
+  it('标注校验:未知指标/轮次不符/规则型评分 → not_found;参数形状 → invalid', async () => {
+    engine = newEngine()
+    await engine.evaluate('s1')
+    await settle(engine)
+    expect(await engine.label('s1', { metric: 'judge.unknown', agrees: true }, 'alice'))
+      .toMatchObject({ ok: false, code: 'not_found' })
+    // 会话类条目没有 turn:带 turn 找不到目标。
+    expect(await engine.label('s1', { metric: 'judge.task_completion', turn: 1, agrees: true }, 'alice'))
+      .toMatchObject({ ok: false, code: 'not_found' })
+    expect(await engine.label('s1', { metric: 'judge.task_completion', agrees: 'yes' }, 'alice'))
+      .toMatchObject({ ok: false, code: 'invalid' })
+    expect(await engine.label('', { metric: 'judge.task_completion', agrees: true }, 'alice'))
+      .toMatchObject({ ok: false, code: 'invalid' })
+
+    // 规则型行(provider/model 为空)不可复核。
+    writeBusinessMetrics('alice', [{
+      key: 'no-hedge', name: '回复禁语', category: 'process', scope: 'session',
+      answer: { not_contains: ['稍等'] },
+    }])
+    engine.dispose()
+    engine = businessEngine()
+    await engine.evaluate('s1', { account: 'alice' })
+    await settle(engine)
+    expect(await engine.label('s1', { metric: 'no-hedge', agrees: true }, 'alice'))
+      .toMatchObject({ ok: false, code: 'not_found' })
+  })
+
+  it('阈值:≥20 条且一致率 ≥85% 才 calibrated;20 条前一律 insufficient', async () => {
+    engine = newEngine()
+    const store = openJudgeStore(storePath)
+    for (let index = 1; index <= 19; index += 1) {
+      store.saveLabel({
+        sessionId: `seed-${index}`, metricKey: 'judge.task_completion', metricName: '任务完成度',
+        category: 'outcome', scope: 'session', targetTurn: null, judgeValue: true,
+        agrees: true, labeledBy: 'alice', labeledAt: NOW - index,
+      })
+    }
+    const before = (await engine.settings()).calibration?.metrics.find(item => item.key === 'judge.task_completion')
+    expect(before).toMatchObject({ labeled: 19, status: 'insufficient' })
+    store.saveLabel({
+      sessionId: 'seed-20', metricKey: 'judge.task_completion', metricName: '任务完成度',
+      category: 'outcome', scope: 'session', targetTurn: null, judgeValue: true,
+      agrees: true, labeledBy: 'alice', labeledAt: NOW,
+    })
+    // 第 21 条判错:19/20 = 95% ≥85%,仍算已校准(阈值按一致率,不要求全对)。
+    store.saveLabel({
+      sessionId: 'seed-21', metricKey: 'judge.task_completion', metricName: '任务完成度',
+      category: 'outcome', scope: 'session', targetTurn: null, judgeValue: true,
+      agrees: false, labeledBy: 'alice', labeledAt: NOW,
+    })
+    store.close()
+    const calibrated = (await engine.settings()).calibration?.metrics.find(item => item.key === 'judge.task_completion')
+    expect(calibrated).toMatchObject({ labeled: 21, agrees: 20, status: 'calibrated', bias: 'lenient' })
+    expect(calibrated?.agreement).toBeCloseTo(20 / 21, 5)
+  })
+
+  it('重评后裁判值变了:旧标注不回显(snapshot);校准统计仍按标注当时快照', async () => {
+    engine = newEngine()
+    await engine.evaluate('s1')
+    await settle(engine)
+    await engine.label('s1', { metric: 'judge.task_completion', agrees: true }, 'alice')
+    expect((await engine.snapshot('s1', NOW)).scores.find(score => score.key === 'judge.task_completion')?.label)
+      .toBe('agrees')
+    // 改成未过并重评 → 同一评分行 value 变化,旧标注不再显示。
+    replyText = '{"verdict":"fail","rationale":"缺少交付物"}'
+    await engine.evaluate('s1', { scope: 'outcome' })
+    await settle(engine)
+    const after = (await engine.snapshot('s1', NOW)).scores.find(score => score.key === 'judge.task_completion')
+    expect(after).toMatchObject({ pass: false, labelable: true })
+    expect(after?.label).toBeUndefined()
+    const metric = (await engine.settings()).calibration?.metrics.find(item => item.key === 'judge.task_completion')
+    expect(metric).toMatchObject({ labeled: 1, agrees: 1 })
+  })
+})

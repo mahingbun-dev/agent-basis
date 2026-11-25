@@ -36,6 +36,20 @@ export interface StoredJudgeScore {
   readonly createdAt: number
 }
 
+/** 一条人工复核(56 号 P2-3 校准;judge_value 是标注当时的裁判判定快照). */
+export interface StoredJudgeLabel {
+  readonly sessionId: string
+  readonly metricKey: string
+  readonly metricName: string
+  readonly category: JudgeCategory
+  readonly scope: JudgeScope
+  readonly targetTurn: number | null
+  readonly judgeValue: boolean
+  readonly agrees: boolean
+  readonly labeledBy: string
+  readonly labeledAt: number
+}
+
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS judge_score (
   id TEXT PRIMARY KEY,
@@ -61,6 +75,20 @@ CREATE TABLE IF NOT EXISTS judge_usage (
   day TEXT PRIMARY KEY,
   tokens INTEGER NOT NULL
 ) STRICT;
+CREATE TABLE IF NOT EXISTS judge_label (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  metric_key TEXT NOT NULL,
+  metric_name TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('outcome','process')),
+  scope TEXT NOT NULL CHECK (scope IN ('session','turn')),
+  target_turn INTEGER,
+  judge_value INTEGER NOT NULL CHECK (judge_value IN (0,1)),
+  agrees INTEGER NOT NULL CHECK (agrees IN (0,1)),
+  labeled_by TEXT NOT NULL,
+  labeled_at INTEGER NOT NULL
+) STRICT;
+CREATE INDEX IF NOT EXISTS idx_judge_label_metric ON judge_label (metric_key);
 `
 
 /** 幂等键:`session + metric + target`(重评覆盖). */
@@ -79,6 +107,22 @@ function textOf(value: unknown): string | null {
   return typeof value === 'string' ? value : null
 }
 
+/** 人工复核行 → 结构面. */
+function labelOfRow(row: Record<string, unknown>): StoredJudgeLabel {
+  return {
+    sessionId: String(row.session_id),
+    metricKey: String(row.metric_key),
+    metricName: String(row.metric_name),
+    category: row.category === 'outcome' ? 'outcome' : 'process',
+    scope: row.scope === 'turn' ? 'turn' : 'session',
+    targetTurn: numberOf(row.target_turn),
+    judgeValue: numberOf(row.judge_value) === 1,
+    agrees: numberOf(row.agrees) === 1,
+    labeledBy: String(row.labeled_by),
+    labeledAt: Number(row.labeled_at),
+  }
+}
+
 /** 可选数字列(unknown → number|null). */
 function numberOf(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
@@ -93,6 +137,9 @@ export class JudgeScoreStore {
   readonly #list: ReturnType<DatabaseSync['prepare']>
   readonly #usage: ReturnType<DatabaseSync['prepare']>
   readonly #addUsage: ReturnType<DatabaseSync['prepare']>
+  readonly #saveLabel: ReturnType<DatabaseSync['prepare']>
+  readonly #labelsForSession: ReturnType<DatabaseSync['prepare']>
+  readonly #allLabels: ReturnType<DatabaseSync['prepare']>
 
   constructor(path: string) {
     this.#db = new DatabaseSync(path)
@@ -133,6 +180,29 @@ export class JudgeScoreStore {
     this.#addUsage = this.#db.prepare(`
       INSERT INTO judge_usage (day, tokens) VALUES (?, ?)
       ON CONFLICT (day) DO UPDATE SET tokens = tokens + excluded.tokens
+    `)
+    this.#saveLabel = this.#db.prepare(`
+      INSERT INTO judge_label
+        (id, session_id, metric_key, metric_name, category, scope, target_turn,
+         judge_value, agrees, labeled_by, labeled_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT (id) DO UPDATE SET
+        metric_name = excluded.metric_name,
+        category = excluded.category,
+        judge_value = excluded.judge_value,
+        agrees = excluded.agrees,
+        labeled_by = excluded.labeled_by,
+        labeled_at = excluded.labeled_at
+    `)
+    this.#labelsForSession = this.#db.prepare(`
+      SELECT session_id, metric_key, metric_name, category, scope, target_turn,
+             judge_value, agrees, labeled_by, labeled_at
+      FROM judge_label WHERE session_id = ? ORDER BY metric_key, target_turn
+    `)
+    this.#allLabels = this.#db.prepare(`
+      SELECT session_id, metric_key, metric_name, category, scope, target_turn,
+             judge_value, agrees, labeled_by, labeled_at
+      FROM judge_label ORDER BY metric_key, target_turn
     `)
   }
 
@@ -180,6 +250,26 @@ export class JudgeScoreStore {
   addUsage(day: string, tokens: number): void {
     if (!Number.isFinite(tokens) || tokens <= 0) return
     this.#addUsage.run(day, Math.round(tokens))
+  }
+
+  /** 写入/覆盖一条人工复核(同会话同指标同目标只保留最新一次). */
+  saveLabel(label: StoredJudgeLabel): void {
+    this.#saveLabel.run(
+      scoreId(label.sessionId, label.metricKey, label.scope, label.targetTurn),
+      label.sessionId, label.metricKey, label.metricName, label.category, label.scope,
+      label.targetTurn, label.judgeValue ? 1 : 0, label.agrees ? 1 : 0,
+      label.labeledBy, label.labeledAt,
+    )
+  }
+
+  /** 某会话的人工复核(面板回显用). */
+  labels(sessionId: string): StoredJudgeLabel[] {
+    return (this.#labelsForSession.all(sessionId) as Record<string, unknown>[]).map(labelOfRow)
+  }
+
+  /** 全部人工复核(校准聚合用). */
+  allLabels(): StoredJudgeLabel[] {
+    return (this.#allLabels.all() as Record<string, unknown>[]).map(labelOfRow)
   }
 
   /** 关闭库(插件卸载/测试清场). */

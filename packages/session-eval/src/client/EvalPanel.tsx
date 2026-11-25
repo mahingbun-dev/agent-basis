@@ -16,7 +16,7 @@ import { Icon } from '@eterna/ui/icons'
 import { ISSUE_LIMIT, ISSUE_OVERFLOW_NOTE } from '../types.ts'
 import type { EvalIssue, EvalSnapshot, MetricScore } from '../types.ts'
 import type { JudgeScoreView, JudgeSnapshot } from '../judge-types.ts'
-import { SessionEvalApiError, evaluateSession, fetchSnapshot } from './api.ts'
+import { SessionEvalApiError, evaluateSession, fetchSnapshot, saveJudgeLabel } from './api.ts'
 import { formatClock, formatCost, formatDuration, formatInt, formatPercent } from '../format.ts'
 
 /** 自动刷新间隔(可见时;只读投影,无副作用)。 */
@@ -91,10 +91,15 @@ function JudgeFlag(props: { readonly score: JudgeScoreView }): ReactElement {
   return <span data-eterna-eval="flag" data-tone={tone}>{score.display}</span>
 }
 
-/** 单条裁判评分行(指标 + 判定 + 耗时;理由与用量默认折叠). */
-function JudgeScoreRow(props: { readonly score: JudgeScoreView }): ReactElement {
-  const { score } = props
+/** 单条裁判评分行(指标 + 判定 + 耗时;理由与用量默认折叠;模型判定可人工复核). */
+function JudgeScoreRow(props: {
+  readonly score: JudgeScoreView
+  readonly onLabel: (score: JudgeScoreView, agrees: boolean) => void
+  readonly labeling: boolean
+}): ReactElement {
+  const { score, onLabel, labeling } = props
   const hasDetail = score.rationale !== undefined || score.route !== null || score.tokens !== undefined
+    || score.labelable === true
   return (
     <>
       <tr>
@@ -109,13 +114,38 @@ function JudgeScoreRow(props: { readonly score: JudgeScoreView }): ReactElement 
         <tr data-eterna-eval="judge-detail-row">
           <td colSpan={3}>
             <details>
-              <summary>理由与用量</summary>
+              <summary>{score.labelable === true ? '理由与用量 · 判得对 / 判错了' : '理由与用量'}</summary>
               {score.rationale === undefined ? null : <p data-eterna-eval="rationale">{score.rationale}</p>}
               <p data-eterna-eval="detail">
                 {`来源：裁判 · ${score.route === null ? '路由未配置' : `${score.route.provider} / ${score.route.model}`}`}
                 {score.tokens === undefined ? '' : ` · ${formatInt(score.tokens)} tokens`}
                 {score.latencyMs === undefined ? '' : ` · ${formatDuration(score.latencyMs)}`}
               </p>
+              {score.labelable !== true ? null : (
+                <div data-eterna-eval="label-group" role="group" aria-label={`${score.name} 的裁判判定是否正确`}>
+                  <button
+                    type="button"
+                    className="et-eval-button"
+                    aria-pressed={score.label === 'agrees'}
+                    disabled={labeling}
+                    onClick={() => { onLabel(score, true) }}
+                  >
+                    <Icon name="check" size={14} />
+                    判得对
+                  </button>
+                  <button
+                    type="button"
+                    className="et-eval-button"
+                    aria-pressed={score.label === 'disagrees'}
+                    disabled={labeling}
+                    onClick={() => { onLabel(score, false) }}
+                  >
+                    <Icon name="close" size={14} />
+                    判错了
+                  </button>
+                  <span data-eterna-eval="detail">标注会计入 设置 → 评测 → 校准。</span>
+                </div>
+              )}
             </details>
           </td>
         </tr>
@@ -130,8 +160,10 @@ function JudgeCard(props: {
   readonly onEvaluate: () => void
   readonly evaluating: boolean
   readonly feedback: string
+  readonly onLabel: (score: JudgeScoreView, agrees: boolean) => void
+  readonly labeling: boolean
 }): ReactElement {
-  const { judge, onEvaluate, evaluating, feedback } = props
+  const { judge, onEvaluate, evaluating, feedback, onLabel, labeling } = props
   const unconfigured = judge.state === 'unconfigured'
   return (
     <section data-eterna-eval="card" data-role="judge" aria-labelledby="et-eval-judge-heading">
@@ -161,7 +193,9 @@ function JudgeCard(props: {
           <tr><th scope="col">指标</th><th scope="col">判定</th><th scope="col">耗时</th></tr>
         </thead>
         <tbody>
-          {judge.scores.map(score => <JudgeScoreRow key={score.key} score={score} />)}
+          {judge.scores.map(score => (
+            <JudgeScoreRow key={score.key} score={score} onLabel={onLabel} labeling={labeling} />
+          ))}
         </tbody>
       </table>
       {judge.overall.reasons.length === 0 ? null : (
@@ -180,8 +214,10 @@ function SnapshotBody(props: {
   readonly onEvaluate: () => void
   readonly evaluating: boolean
   readonly feedback: string
+  readonly onLabel: (score: JudgeScoreView, agrees: boolean) => void
+  readonly labeling: boolean
 }): ReactElement {
-  const { snapshot, onEvaluate, evaluating, feedback } = props
+  const { snapshot, onEvaluate, evaluating, feedback, onLabel, labeling } = props
   const failing = snapshot.metrics.filter(metric => metric.pass === false)
   const overLimit = snapshot.issues.length >= ISSUE_LIMIT
   return (
@@ -200,6 +236,8 @@ function SnapshotBody(props: {
           onEvaluate={onEvaluate}
           evaluating={evaluating}
           feedback={feedback}
+          onLabel={onLabel}
+          labeling={labeling}
         />
       )}
 
@@ -281,6 +319,7 @@ export function EvalPanel(props: EvalPanelProps): ReactElement {
   const [state, setState] = useState<PanelState>({ status: 'idle' })
   const [nonce, setNonce] = useState(0)
   const [evaluating, setEvaluating] = useState(false)
+  const [labelingKey, setLabelingKey] = useState<string | undefined>(undefined)
   const [judgeFeedback, setJudgeFeedback] = useState('')
   /** 已渲染的快照保留在 loading 态里:刷新时页面不闪空。 */
   const latest = useRef<EvalSnapshot | undefined>(undefined)
@@ -304,6 +343,24 @@ export function EvalPanel(props: EvalPanelProps): ReactElement {
       })
       .finally(() => { setEvaluating(false) })
   }, [sessionId, evaluating, refresh])
+
+  /** 人工复核:成功后重拉快照回显标注;失败给中文原因。 */
+  const handleLabel = useCallback((score: JudgeScoreView, agrees: boolean): void => {
+    if (sessionId === undefined || sessionId === '' || labelingKey !== undefined) return
+    setLabelingKey(score.key)
+    setJudgeFeedback('')
+    saveJudgeLabel(sessionId, score.key, score.turn, agrees)
+      .then(() => {
+        setJudgeFeedback(agrees
+          ? `已记录「${score.name}」判得对（计入校准）。`
+          : `已记录「${score.name}」判错了，会计入校准。`)
+        refresh()
+      })
+      .catch((error: unknown) => {
+        setJudgeFeedback(errorMessageOf(error) || '标注失败。')
+      })
+      .finally(() => { setLabelingKey(undefined) })
+  }, [sessionId, labelingKey, refresh])
 
   useEffect(() => {
     if (sessionId === undefined || sessionId === '') {
@@ -382,6 +439,8 @@ export function EvalPanel(props: EvalPanelProps): ReactElement {
               onEvaluate={handleEvaluate}
               evaluating={evaluating}
               feedback={judgeFeedback}
+              onLabel={handleLabel}
+              labeling={labelingKey !== undefined}
             />
           )}
         </>
@@ -393,6 +452,8 @@ export function EvalPanel(props: EvalPanelProps): ReactElement {
           onEvaluate={handleEvaluate}
           evaluating={evaluating}
           feedback={judgeFeedback}
+          onLabel={handleLabel}
+          labeling={labelingKey !== undefined}
         />
       ) : (
         <EmptyBody snapshot={snapshot} />

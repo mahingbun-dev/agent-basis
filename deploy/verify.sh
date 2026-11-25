@@ -157,6 +157,9 @@ check "评测业务指标端点已接线（匿名 401）" 401 "$sevbmcode"
 sevbmparse=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 -X POST "$BASE/access/api/session-eval/metrics/parse" \
   -H 'Content-Type: application/json' -d '{"text":"version: 0"}')
 check "评测 YAML 导入端点已接线（匿名 401）" 401 "$sevbmparse"
+sevlabel=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 -X POST "$BASE/access/api/session-eval/labels/save" \
+  -H 'Content-Type: application/json' -d '{"session":"verify-none","metric":"judge.task_completion","agrees":true}')
+check "评测人工复核端点已接线（匿名 401）" 401 "$sevlabel"
 
 rm -f "$JAR"
 

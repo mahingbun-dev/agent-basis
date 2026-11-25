@@ -111,6 +111,7 @@ export interface SessionEvalFace {
   saveConfig(input: unknown): Promise<unknown>
   saveBusinessMetric(account: string, input: unknown, baseVersion: number): Promise<unknown>
   parseBusinessMetrics(text: string): Promise<unknown>
+  label(sessionId: string, input: unknown, account: string): Promise<unknown>
 }
 
 /** 参谋会话行(与 adviser 侧 AdviserSessionView 同形)。 */
@@ -371,7 +372,7 @@ export async function handleSessionEvalRequest(deps: AccessDeps, req: AccessRequ
   if (!isSameOrigin(req.origin, req.host, deps.session.secure, deps.publicOrigin)) return errorReply(403, '跨源请求被拒绝')
   if (!deps.globalWindow.hit(ip)) return errorReply(429, '请求过于频繁，请稍后再试')
   const action = req.pathname.slice(SESSION_EVAL_ROUTE_PREFIX.length)
-  const knownActions = ['snapshot', 'evaluate', 'settings', 'config/save', 'metrics/save', 'metrics/parse']
+  const knownActions = ['snapshot', 'evaluate', 'settings', 'config/save', 'metrics/save', 'metrics/parse', 'labels/save']
   if (!knownActions.includes(action)) {
     return errorReply(404, 'not found')
   }
@@ -483,6 +484,34 @@ export async function handleSessionEvalRequest(deps: AccessDeps, req: AccessRequ
   if (session === '') return errorReply(400, '参数不合法：缺少会话 id')
   const owner = deps.store.sessionOwner(session)
   if (owner !== user.id) return errorReply(404, '会话不存在或不属于你')
+
+  // 人工复核:标注人只认登录身份;评分存在性/可复核性由服务面判。
+  if (action === 'labels/save') {
+    const metric = typeof body?.metric === 'string' ? body.metric.trim() : ''
+    if (metric === '' || typeof body?.agrees !== 'boolean') {
+      return errorReply(400, '参数不合法：metric 与 agrees 必填')
+    }
+    if (body.turn !== undefined && (typeof body.turn !== 'number' || !Number.isInteger(body.turn) || body.turn < 1)) {
+      return errorReply(400, '参数不合法：turn 必须是正整数')
+    }
+    try {
+      const result = await face.label(session, {
+        metric,
+        agrees: body.agrees,
+        ...typeof body.turn === 'number' ? { turn: body.turn } : {},
+      }, user.account) as { readonly ok?: unknown; readonly code?: unknown; readonly error?: unknown; readonly label?: unknown }
+      if (result.ok !== true) {
+        const code = typeof result.code === 'string' ? result.code : 'invalid'
+        const message = typeof result.error === 'string' ? result.error : '人工复核保存失败'
+        deps.audit({ kind: 'access.session-eval.label', account: user.account, ip, ok: false, detail: { session, metric, code } })
+        return errorReply(code === 'not_found' ? 409 : code === 'io' ? 503 : 400, message)
+      }
+      deps.audit({ kind: 'access.session-eval.label', account: user.account, ip, ok: true, detail: { session, metric, agrees: body.agrees } })
+      return jsonResponse(200, { ok: true, label: result.label ?? null }, [['cache-control', 'no-store']])
+    } catch {
+      return errorReply(503, '评测服务异常')
+    }
+  }
 
   if (action === 'snapshot') {
     try {
