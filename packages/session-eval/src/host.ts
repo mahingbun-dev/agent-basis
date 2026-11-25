@@ -27,6 +27,7 @@ import { deepFreeze } from '@deepseek-ai/dsh-util-values'
 import { SessionEvalService, type SessionEvalPorts } from './service.ts'
 import { JudgeEngine, type JudgeEnginePorts, type JudgeProviderCatalog } from './engine.ts'
 import { judgeConfigPath, judgeStorePath } from './judge-config.ts'
+import { businessMetricsPath } from './business-store.ts'
 import type { JudgeLlmPort } from './judge-call.ts'
 import type { SessionEventLike } from './types.ts'
 
@@ -273,6 +274,7 @@ export function createJudgeEngine(ctx: Context): JudgeEngine {
     readEvents: sessionId => host.readEvents(sessionId),
     llm: createLlmJudgePort(ctx),
     listProviders: () => listProviderCatalog(ctx),
+    businessPath: account => businessMetricsPath(undefined, account),
   }
   return new JudgeEngine({
     configPath: judgeConfigPath(),

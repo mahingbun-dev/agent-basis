@@ -232,16 +232,24 @@ export const JUDGE_WINDOW_MAX_TURNS = 3
  * @param input - projectJudgeInput 的产物.
  * @param scope - session=全轮(从末轮往前取到窗口上限) / turn=指定轮及其前 2 轮.
  * @param turn - 过程裁判的目标轮(scope=turn 时必填).
+ * @param limits - 窗口覆写(业务指标 judge.window.max_steps 映射到轮数上限).
  * @returns 用户消息正文(已按字符上限截断,超出时标注).
  */
-export function renderJudgeUserText(input: JudgeInput, scope: 'session' | 'turn', turn?: number): string {
+export function renderJudgeUserText(
+  input: JudgeInput,
+  scope: 'session' | 'turn',
+  turn?: number,
+  limits: { readonly maxTurns?: number; readonly maxChars?: number } = {},
+): string {
+  const maxTurns = Math.max(1, Math.min(limits.maxTurns ?? JUDGE_WINDOW_MAX_TURNS, 50))
+  const maxChars = Math.max(1_000, Math.min(limits.maxChars ?? JUDGE_WINDOW_MAX_CHARS, JUDGE_WINDOW_MAX_CHARS))
   const header: string[] = []
   header.push(input.task === ''
     ? '## 任务（用户原始要求）\n(未记录到用户原始消息)'
     : `## 任务（用户原始要求）\n${input.task}`)
 
   const all = scope === 'turn' && turn !== undefined
-    ? input.turns.filter(item => item.turn <= turn).slice(-JUDGE_WINDOW_MAX_TURNS)
+    ? input.turns.filter(item => item.turn <= turn).slice(-maxTurns)
     : input.turns
   // session 口径:从末轮往前累加到窗口上限(至少保留末轮;截断要显式标注)。
   let selected: readonly JudgeTurnRecord[] = all
@@ -251,7 +259,7 @@ export function renderJudgeUserText(input: JudgeInput, scope: 'session' | 'turn'
     for (let index = all.length - 1; index >= 0; index -= 1) {
       const candidate = all[index] as JudgeTurnRecord
       const next = [candidate, ...kept]
-      if (kept.length > 0 && next.map(renderTurn).join('\n\n').length > JUDGE_WINDOW_MAX_CHARS) {
+      if (kept.length > 0 && next.map(renderTurn).join('\n\n').length > maxChars) {
         truncated = true
         break
       }
@@ -266,9 +274,9 @@ export function renderJudgeUserText(input: JudgeInput, scope: 'session' | 'turn'
     : '## 轨迹')
   header.push(selected.length === 0 ? '(该轮次没有可用内容)' : selected.map(renderTurn).join('\n\n'))
   const text = header.join('\n\n')
-  return text.length <= JUDGE_WINDOW_MAX_CHARS
+  return text.length <= maxChars
     ? text
-    : `${text.slice(0, JUDGE_WINDOW_MAX_CHARS - 1)}…`
+    : `${text.slice(0, maxChars - 1)}…`
 }
 
 /** 单轮渲染(用户/助手/工具,紧凑行式). */

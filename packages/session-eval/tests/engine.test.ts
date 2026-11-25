@@ -4,13 +4,14 @@
  *
  * 时间与随机源全部注入:空闲终评用假计时器,预算用固定时钟的 ISO 日期键。
  */
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { JudgeEngine, type JudgeEnginePorts } from '../src/engine.ts'
 import { readJudgeConfig, writeJudgeConfig } from '../src/judge-config.ts'
 import { openJudgeStore } from '../src/score-store.ts'
+import { businessMetricsPath, saveBusinessMetric } from '../src/business-store.ts'
 import { DEFAULT_JUDGE_CONFIG, type JudgeConfig } from '../src/judge-types.ts'
 import type { JudgeLlmPort } from '../src/judge-call.ts'
 import type { SessionEventLike } from '../src/types.ts'
@@ -363,5 +364,180 @@ describe('卸载', () => {
     await vi.advanceTimersByTimeAsync(300_000)
     expect(calls).toEqual([])
     engine = undefined
+  })
+})
+
+
+/** 账号覆盖层路径(fixture 与引擎端口同源). */
+function businessPathOf(account: string): string {
+  // 与宿主同一路径函数(含账号合法性与前缀校验),不给引擎喂未校验的拼接。
+  return businessMetricsPath(dir, account)
+}
+
+/** 把若干指标写入账号覆盖层(逐条保存,版本递增). */
+function writeBusinessMetrics(account: string, inputs: readonly Record<string, unknown>[]): void {
+  let baseVersion = 0
+  for (const input of inputs) {
+    const reply = saveBusinessMetric(businessPathOf(account), input, { baseVersion, updatedBy: account, now: NOW })
+    if (!reply.ok) throw new Error(`fixture 保存失败:${reply.error}`)
+    baseVersion = reply.version
+  }
+}
+
+/** 合法 rubric 指标输入(保存端点同形). */
+function rubricInput(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    key: 'reply-quality',
+    name: '回复质量',
+    category: 'outcome',
+    scope: 'session',
+    gating: true,
+    judge: {
+      window: { max_steps: 12 },
+      allow_skip: true,
+      pass: { min_score: 0.8 },
+      criteria: [
+        { text: '先给出结论', weight: 2, critical: true },
+        { text: '出现「马上就好的」空话', weight: -1, critical: false },
+      ],
+    },
+    ...overrides,
+  }
+}
+
+/** 正常 rubric 输出(第 1 条成立、第 2 条不成立). */
+const RUBRIC_PASS = JSON.stringify({
+  criteria: [{ index: 1, hit: true }, { index: 2, hit: false }],
+  rationale: '结论先行，未出现空话',
+})
+
+/** 关键条不成立的输出. */
+const RUBRIC_CRITICAL_FAIL = JSON.stringify({
+  criteria: [{ index: 1, hit: false }, { index: 2, hit: false }],
+  rationale: '没有先给结论',
+})
+
+/** 业务引擎:按提示词类型路由两种输出(system 判型,不依赖调用顺序). */
+function businessEngine(rubricReply = RUBRIC_PASS): JudgeEngine {
+  return newEngine({
+    businessPath: account => businessPathOf(account),
+    llm: {
+      call: async (input) => {
+        calls.push({ system: input.system, user: input.user })
+        const text = input.system.includes('你是按评分细则判定的裁判') ? rubricReply : replyText
+        return { text, tokens: 100 }
+      },
+    },
+  })
+}
+
+describe('业务指标(账号覆盖层)', () => {
+  beforeEach(() => {
+    writeConfig()
+  })
+
+  it('settings(account):覆盖层视图(版本/条目/YAML);不带账号无 business;他账号独立', async () => {
+    writeBusinessMetrics('alice', [rubricInput()])
+    engine = businessEngine()
+    const mine = await engine.settings('alice')
+    expect(mine.business).toMatchObject({ version: 1, updatedBy: 'alice' })
+    expect(mine.business?.metrics.map(metric => metric.key)).toEqual(['reply-quality'])
+    expect(mine.business?.yaml).toContain('  - key: reply-quality')
+    expect((await engine.settings()).business).toBeUndefined()
+    expect((await engine.settings('bob')).business).toMatchObject({ version: 0, metrics: [] })
+  })
+
+  it('手动评测带账号:内置六项 + 业务 rubric 一项;gating/条目版本落库', async () => {
+    writeBusinessMetrics('alice', [rubricInput()])
+    engine = businessEngine()
+    const reply = await engine.evaluate('s1', { account: 'alice' })
+    expect(reply.ok).toBe(true)
+    if (reply.ok) expect(reply.accepted).toBe(7)
+    await settle(engine)
+    expect(calls).toHaveLength(7)
+    const snapshot = await engine.snapshot('s1', NOW)
+    const business = snapshot.scores.find(score => score.key === 'reply-quality')
+    expect(business).toMatchObject({ name: '回复质量', category: 'outcome', status: 'ok', pass: true, display: '通过' })
+    expect(business?.rationale).toContain('得分 1.00')
+    expect(snapshot.overall.level).toBe('pass')
+    const store = openJudgeStore(storePath)
+    const row = store.list('s1').find(item => item.metricKey === 'reply-quality')
+    store.close()
+    expect(row).toMatchObject({ gating: true, metricVersion: 1 })
+  })
+
+  it('业务关键项未过 → 结论 warn(与内置结果取最严);非关键项只进理由', async () => {
+    writeBusinessMetrics('alice', [rubricInput()])
+    engine = businessEngine(RUBRIC_CRITICAL_FAIL)
+    await engine.evaluate('s1', { account: 'alice' })
+    await settle(engine)
+    const snapshot = await engine.snapshot('s1', NOW)
+    expect(snapshot.overall.level).toBe('warn')
+    expect(snapshot.overall.label).toBe('结果类：1 项关键项未过')
+    expect(snapshot.overall.reasons).toContain('回复质量未通过')
+
+    engine.dispose()
+    writeBusinessMetrics('bob', [rubricInput({ key: 'soft-quality', name: '回复友好度', gating: false })])
+    eventsById = { s1: EVENTS, s2: EVENTS }
+    engine = businessEngine(RUBRIC_CRITICAL_FAIL)
+    await engine.evaluate('s2', { account: 'bob' })
+    await settle(engine)
+    const soft = await engine.snapshot('s2', NOW)
+    expect(soft.overall.level).toBe('pass')
+    expect(soft.overall.reasons).toContain('回复友好度未通过（非关键项，不进结论门控）')
+  })
+
+  it('停用条目 → 不执行(受理 6 项,无该条目评分)', async () => {
+    writeBusinessMetrics('alice', [rubricInput({ enabled: false })])
+    engine = businessEngine()
+    const reply = await engine.evaluate('s1', { account: 'alice' })
+    if (reply.ok) expect(reply.accepted).toBe(6)
+    await settle(engine)
+    expect(calls).toHaveLength(6)
+    const snapshot = await engine.snapshot('s1', NOW)
+    expect(snapshot.scores.some(score => score.key === 'reply-quality')).toBe(false)
+  })
+
+  it('规则型条目 → 显式跳过原因(本批不执行,不静默)', async () => {
+    writeBusinessMetrics('alice', [{
+      key: 'no-hedge',
+      name: '回复禁语',
+      category: 'process',
+      scope: 'turn',
+      answer: { not_contains: ['稍等'] },
+    }])
+    engine = businessEngine()
+    const reply = await engine.evaluate('s1', { account: 'alice' })
+    expect(reply.ok).toBe(true)
+    if (reply.ok) expect(reply.skipped).toContain('回复禁语：规则型业务指标随后续批次提供')
+    await settle(engine)
+    expect(calls).toHaveLength(6)
+  })
+
+  it('覆盖层损坏 → settings 带 warning(原文回显);evaluate 记跳过原因且不触达该条目', async () => {
+    mkdirSync(join(dir, 'workspaces', 'alice', '.eterna', 'eval'), { recursive: true })
+    writeFileSync(businessPathOf('alice'), 'version: [\n', 'utf8')
+    engine = businessEngine()
+    const settings = await engine.settings('alice')
+    expect(settings.business?.warning).toContain('YAML 解析失败')
+    expect(settings.business?.yaml).toBe('version: [\n')
+    const reply = await engine.evaluate('s1', { account: 'alice' })
+    expect(reply.ok).toBe(true)
+    if (reply.ok) expect(reply.skipped.some(reason => reason.includes('业务指标文件不可读'))).toBe(true)
+    await settle(engine)
+    expect(calls).toHaveLength(6)
+  })
+
+  it('saveBusinessMetric:写入本人覆盖层;冲突/非法账号/未接线各有中文错误', async () => {
+    engine = businessEngine()
+    const saved = await engine.saveBusinessMetric('alice', rubricInput(), 0)
+    expect(saved).toMatchObject({ ok: true, version: 1 })
+    if (saved.ok) expect(saved.metric.key).toBe('reply-quality')
+    expect(await engine.saveBusinessMetric('alice', rubricInput(), 0)).toMatchObject({ ok: false, code: 'conflict' })
+    expect(await engine.saveBusinessMetric('../x', rubricInput(), 0)).toMatchObject({ ok: false, code: 'invalid' })
+    engine.dispose()
+    const bare = newEngine()
+    engine = bare
+    expect(await bare.saveBusinessMetric('alice', rubricInput(), 0)).toMatchObject({ ok: false, code: 'io' })
   })
 })
