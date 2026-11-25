@@ -90,6 +90,10 @@ describe('实时评测路由(access)', () => {
         calls.push('saveConfig')
         return { ok: true, config: input }
       },
+      saveBusinessMetric: async (account, input, baseVersion) => {
+        calls.push(`saveBusinessMetric:${account}:${baseVersion}`)
+        return { ok: true, version: baseVersion + 1, metric: input, yaml: '' }
+      },
     }
   }
 
@@ -169,6 +173,7 @@ describe('实时评测路由(access)', () => {
       evaluate: async () => { throw new Error('boom: internal detail') },
       settings: async () => { throw new Error('boom: internal detail') },
       saveConfig: async () => { throw new Error('boom: internal detail') },
+      saveBusinessMetric: async () => { throw new Error('boom: internal detail') },
     }
     const reply = await post({ session: aliceSessionId })
     expect(reply.status).toBe(503)
@@ -237,6 +242,75 @@ describe('实时评测路由(access)', () => {
     expect(reply.status).toBe(200)
     expect(calls).toContain('saveConfig')
     expect(auditEvents.some(event => event.kind === 'access.session-eval.config' && event.ok === true)).toBe(true)
+  })
+
+  it('settings/evaluate 带上登录账号(业务指标按账号读写)', async () => {
+    const settingsSeen: (string | undefined)[] = []
+    const evaluateSeen: (string | undefined)[] = []
+    face = {
+      ...(face ?? makeFace()),
+      settings: async (account) => {
+        settingsSeen.push(account)
+        return { config: { enabled: false, route: null }, metrics: [], providers: [] }
+      },
+      evaluate: async (_sessionId, options) => {
+        evaluateSeen.push(options?.account)
+        return { ok: true, accepted: 1, pending: 1, skipped: [] }
+      },
+    }
+    expect((await post({}, userCookie, 'settings')).status).toBe(200)
+    expect((await post({ session: aliceSessionId }, adminCookie, 'evaluate')).status).toBe(200)
+    expect(settingsSeen).toEqual(['bob'])
+    expect(evaluateSeen).toEqual(['alice'])
+  })
+
+  it('metrics/save:普通用户可写自己的覆盖层(账号来自 cookie,不从 body 收)', async () => {
+    const seen: { account: string; input: unknown; base: number }[] = []
+    face = {
+      ...(face ?? makeFace()),
+      saveBusinessMetric: async (account, input, baseVersion) => {
+        seen.push({ account, input, base: baseVersion })
+        return { ok: true, version: baseVersion + 1, metric: input, yaml: 'version: 2\n' }
+      },
+    }
+    const metric = { key: 'reply-no-promise', name: '回复禁语' }
+    const reply = await post({ baseVersion: 1, metric, account: 'alice' }, userCookie, 'metrics/save')
+    expect(reply.status).toBe(200)
+    expect(JSON.parse(reply.body as string)).toMatchObject({ ok: true, version: 2, metric })
+    expect(reply.headers).toContainEqual(['cache-control', 'no-store'])
+    // body 里伪装的 account 必须被忽略:写入账号只认登录身份。
+    expect(seen).toEqual([{ account: 'bob', input: metric, base: 1 }])
+    expect(auditEvents.some(event => event.kind === 'access.session-eval.metrics' && event.ok === true)).toBe(true)
+    expect((await post({ baseVersion: 0, metric }, '', 'metrics/save')).status).toBe(401)
+  })
+
+  it('metrics/save 参数形状:baseVersion 缺失/负数/小数 400 且不触达服务面', async () => {
+    const metric = { key: 'reply-no-promise', name: '回复禁语' }
+    expect((await post({ metric }, userCookie, 'metrics/save')).status).toBe(400)
+    expect((await post({ baseVersion: -1, metric }, userCookie, 'metrics/save')).status).toBe(400)
+    expect((await post({ baseVersion: 1.5, metric }, userCookie, 'metrics/save')).status).toBe(400)
+    expect(calls.filter(call => call.startsWith('saveBusinessMetric'))).toEqual([])
+  })
+
+  it('metrics/save 业务拒绝按码分流:冲突 409 / 校验 400 / 存储 503;失败均审计', async () => {
+    face = {
+      ...(face ?? makeFace()),
+      saveBusinessMetric: async () => ({ ok: false, code: 'conflict', error: '版本冲突' }),
+    }
+    const conflict = await post({ baseVersion: 0, metric: {} }, userCookie, 'metrics/save')
+    expect(conflict.status).toBe(409)
+    expect(conflict.body).toContain('版本冲突')
+    face = {
+      ...(face ?? makeFace()),
+      saveBusinessMetric: async () => ({ ok: false, code: 'invalid', error: '标识不合法' }),
+    }
+    expect((await post({ baseVersion: 0, metric: {} }, userCookie, 'metrics/save')).status).toBe(400)
+    face = {
+      ...(face ?? makeFace()),
+      saveBusinessMetric: async () => ({ ok: false, code: 'io', error: '目录不可写' }),
+    }
+    expect((await post({ baseVersion: 0, metric: {} }, userCookie, 'metrics/save')).status).toBe(503)
+    expect(auditEvents.filter(event => event.kind === 'access.session-eval.metrics' && event.ok === false)).toHaveLength(3)
   })
 
   it('config/save 校验失败:400 + 中文原因 + 失败审计', async () => {

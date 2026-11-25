@@ -8,6 +8,7 @@
  * 「预算用尽 429」「在途冲突 409」。
  */
 import type { EvalSnapshot } from '../types.ts'
+import type { BusinessMetric } from '../business-metrics.ts'
 import type { JudgeConfig, JudgeSettingsView } from '../judge-types.ts'
 
 /** 带 HTTP 状态的服务端失败(UI 据此选文案). */
@@ -104,6 +105,33 @@ export async function fetchJudgeSettings(signal?: AbortSignal): Promise<JudgeSet
     throw new SessionEvalApiError(200, '应答缺少 settings 字段')
   }
   return { settings: settings as JudgeSettingsView, admin: parsed.admin === true }
+}
+
+/** 业务指标保存应答(文件新版本 + 回显条目 + 完整 YAML). */
+export interface BusinessSavedReply {
+  readonly version: number
+  readonly metric: BusinessMetric
+  readonly yaml: string
+}
+
+/**
+ * 保存一条业务指标(写入**当前账号**的覆盖层;账号由服务端从登录态取)。
+ * @param metric - 指标对象(外层 camelCase,嵌套 snake_case,与 metrics.yaml 同形).
+ * @param baseVersion - 前端读到的文件版本(乐观锁;409 = 请重新读取).
+ * @param signal - 取消信号.
+ * @returns 文件新版本、回显条目与完整 YAML.
+ */
+export async function saveBusinessMetric(metric: unknown, baseVersion: number, signal?: AbortSignal): Promise<BusinessSavedReply> {
+  const parsed = await postJson('metrics/save', { metric, baseVersion }, signal)
+  const saved = parsed.metric
+  if (typeof saved !== 'object' || saved === null) {
+    throw new SessionEvalApiError(200, '应答缺少 metric 字段')
+  }
+  return {
+    version: typeof parsed.version === 'number' ? parsed.version : baseVersion + 1,
+    metric: saved as BusinessMetric,
+    yaml: typeof parsed.yaml === 'string' ? parsed.yaml : '',
+  }
 }
 
 /**

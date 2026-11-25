@@ -81,7 +81,7 @@ const CSS = `
   box-shadow: var(--et-focus-ring);
 }
 .et-eval-button:disabled {
-  cursor: progress;
+  cursor: not-allowed;
   opacity: 0.6;
 }
 [data-eterna-eval='card'] {
@@ -318,6 +318,7 @@ const CSS = `
 [data-eterna-eval-set] select,
 [data-eterna-eval-set] input[type='number'],
 [data-eterna-eval-set] input[type='text'] {
+  box-sizing: border-box; /* 窄屏 width:100% 时内边距不再撑出网格(390 实测水平溢出 449px) */
   min-height: 36px; /* 触控热区下限(frontend-style §7) */
   padding: 0 var(--et-space-2);
   border: 1px solid var(--et-border);
@@ -402,6 +403,105 @@ const CSS = `
   align-items: center;
   gap: var(--et-space-2);
 }
+[data-eterna-eval-set='business-list'] {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+[data-eterna-eval-set='business-item'] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--et-space-2);
+  min-height: 44px; /* 行内 checkbox 热区 36px + 上下留白 */
+  padding: var(--et-space-1) 0;
+  border-top: 1px solid var(--et-border-soft);
+}
+[data-eterna-eval-set='business-list'] > li:first-child {
+  border-top: none;
+}
+[data-eterna-eval-set='business-main'] {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+[data-eterna-eval-set='business-name'] {
+  color: var(--et-fg);
+  overflow-wrap: anywhere;
+}
+[data-eterna-eval-set='business-actions'] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--et-space-2);
+}
+[data-eterna-eval-set='switch'] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--et-space-1);
+  min-height: 36px; /* 触控热区下限(frontend-style §7) */
+  color: var(--et-fg-2);
+  font-size: var(--et-text-micro);
+}
+[data-eterna-eval-set='business-tools'] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--et-space-2);
+}
+[data-eterna-eval-set='editor'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--et-space-2);
+  padding: var(--et-space-3);
+  border: 1px solid var(--et-border-soft);
+  border-radius: var(--et-radius-sm); /* 阶梯值;内嵌子块与 tasks 设置内嵌块同值 */
+  background: var(--et-surface-2);
+}
+[data-eterna-eval-set='criteria'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--et-space-2);
+}
+[data-eterna-eval-set='criterion'] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 88px auto auto;
+  align-items: center;
+  gap: var(--et-space-2);
+}
+[data-eterna-eval-set='criterion'] input[type='text'] {
+  min-width: 0;
+}
+[data-eterna-eval-set='criterion'] input[type='number'] {
+  width: 100%;
+}
+[data-eterna-eval-set='yaml-box'] summary {
+  display: flex;
+  align-items: center;
+  min-height: 36px; /* 触控热区下限(frontend-style §7) */
+  color: var(--et-fg-2);
+  font-size: var(--et-text-micro);
+  cursor: pointer;
+}
+[data-eterna-eval-set='yaml'] {
+  margin: var(--et-space-2) 0 0;
+  padding: var(--et-space-3);
+  border: 1px solid var(--et-border-soft);
+  border-radius: var(--et-radius-xs);
+  background: var(--et-surface);
+  color: var(--et-fg-2);
+  font-family: var(--et-font-mono);
+  font-size: var(--et-text-micro);
+  line-height: var(--et-leading-snug);
+  max-height: 220px;
+  overflow: auto;
+  /* 软换行:white-space:pre 会让最长 YAML 行成为整卡最小宽度,390 下把设置卡片撑出视口。 */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 [data-eterna-eval-set='feedback'] {
   color: var(--et-fg-2);
   font-size: var(--et-text-micro);
@@ -418,6 +518,9 @@ const CSS = `
 @media (max-width: 760px) {
   /* 形态收缩:标签上、控件下(位置规则不变),否则窄屏 label 列被控件挤成逐字换行。 */
   [data-eterna-eval-set='row'] { grid-template-columns: minmax(0, 1fr); }
+  [data-eterna-eval-set='business-item'] { grid-template-columns: minmax(0, 1fr); }
+  [data-eterna-eval-set='criterion'] { grid-template-columns: minmax(0, 1fr); }
+  [data-eterna-eval-set='criterion'] input[type='number'] { width: 100%; }
   [data-eterna-eval-set='field'] { justify-content: flex-start; }
   [data-eterna-eval-set] select,
   [data-eterna-eval-set] input[type='text'] { width: 100%; min-width: 0; }

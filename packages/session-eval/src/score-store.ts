@@ -29,6 +29,10 @@ export interface StoredJudgeScore {
   readonly model: string | null
   readonly latencyMs: number | null
   readonly tokens: number | null
+  /** 该指标是否关键项(业务指标门控用;内置项恒有定义,列可空). */
+  readonly gating: boolean | null
+  /** 指标定义版本(业务指标 §9.6;内置项为 null). */
+  readonly metricVersion: number | null
   readonly createdAt: number
 }
 
@@ -48,6 +52,8 @@ CREATE TABLE IF NOT EXISTS judge_score (
   model TEXT,
   latency_ms INTEGER,
   tokens INTEGER,
+  gating INTEGER,
+  metric_version INTEGER,
   created_at INTEGER NOT NULL
 ) STRICT;
 CREATE INDEX IF NOT EXISTS idx_judge_score_session ON judge_score (session_id, metric_key);
@@ -91,11 +97,19 @@ export class JudgeScoreStore {
   constructor(path: string) {
     this.#db = new DatabaseSync(path)
     this.#db.exec(SCHEMA)
+    // 旧库(P1)迁移:两列后加,缺列时补(列名固定,不读用户输入)。
+    for (const column of ['gating', 'metric_version']) {
+      try {
+        this.#db.exec(`ALTER TABLE judge_score ADD COLUMN ${column} INTEGER`)
+      } catch {
+        // 已存在(新库或已迁移)。
+      }
+    }
     this.#upsert = this.#db.prepare(`
       INSERT INTO judge_score
         (id, session_id, metric_key, metric_name, category, scope, target_turn, status, value,
-         rationale, provider, model, latency_ms, tokens, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         rationale, provider, model, latency_ms, tokens, gating, metric_version, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (id) DO UPDATE SET
         metric_name = excluded.metric_name,
         category = excluded.category,
@@ -106,11 +120,13 @@ export class JudgeScoreStore {
         model = excluded.model,
         latency_ms = excluded.latency_ms,
         tokens = excluded.tokens,
+        gating = excluded.gating,
+        metric_version = excluded.metric_version,
         created_at = excluded.created_at
     `)
     this.#list = this.#db.prepare(`
       SELECT session_id, metric_key, metric_name, category, scope, target_turn, status, value,
-             rationale, provider, model, latency_ms, tokens, created_at
+             rationale, provider, model, latency_ms, tokens, gating, metric_version, created_at
       FROM judge_score WHERE session_id = ? ORDER BY metric_key, target_turn
     `)
     this.#usage = this.#db.prepare('SELECT tokens FROM judge_usage WHERE day = ?')
@@ -126,7 +142,8 @@ export class JudgeScoreStore {
       scoreId(score.sessionId, score.metricKey, score.scope, score.targetTurn),
       score.sessionId, score.metricKey, score.metricName, score.category, score.scope,
       score.targetTurn, score.status, score.value === null ? null : score.value ? 1 : 0,
-      score.rationale, score.provider, score.model, score.latencyMs, score.tokens, score.createdAt,
+      score.rationale, score.provider, score.model, score.latencyMs, score.tokens,
+      score.gating === null ? null : score.gating ? 1 : 0, score.metricVersion, score.createdAt,
     )
   }
 
@@ -147,6 +164,8 @@ export class JudgeScoreStore {
       model: textOf(row.model),
       latencyMs: numberOf(row.latency_ms),
       tokens: numberOf(row.tokens),
+      gating: numberOf(row.gating) === null ? null : numberOf(row.gating) === 1,
+      metricVersion: numberOf(row.metric_version),
       createdAt: Number(row.created_at),
     }))
   }

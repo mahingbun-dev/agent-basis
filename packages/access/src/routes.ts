@@ -106,9 +106,10 @@ export interface AdviserFace {
  */
 export interface SessionEvalFace {
   snapshot(sessionId: string, now?: number): Promise<unknown>
-  evaluate(sessionId: string, options?: { readonly scope?: 'all' | 'outcome' | 'process'; readonly turn?: number }): Promise<unknown>
-  settings(): Promise<unknown>
+  evaluate(sessionId: string, options?: { readonly scope?: 'all' | 'outcome' | 'process'; readonly turn?: number; readonly account?: string }): Promise<unknown>
+  settings(account?: string): Promise<unknown>
   saveConfig(input: unknown): Promise<unknown>
+  saveBusinessMetric(account: string, input: unknown, baseVersion: number): Promise<unknown>
 }
 
 /** 参谋会话行(与 adviser 侧 AdviserSessionView 同形)。 */
@@ -369,7 +370,8 @@ export async function handleSessionEvalRequest(deps: AccessDeps, req: AccessRequ
   if (!isSameOrigin(req.origin, req.host, deps.session.secure, deps.publicOrigin)) return errorReply(403, '跨源请求被拒绝')
   if (!deps.globalWindow.hit(ip)) return errorReply(429, '请求过于频繁，请稍后再试')
   const action = req.pathname.slice(SESSION_EVAL_ROUTE_PREFIX.length)
-  if (action !== 'snapshot' && action !== 'evaluate' && action !== 'settings' && action !== 'config/save') {
+  const knownActions = ['snapshot', 'evaluate', 'settings', 'config/save', 'metrics/save']
+  if (!knownActions.includes(action)) {
     return errorReply(404, 'not found')
   }
   const body = parseJsonBody(req.body)
@@ -378,11 +380,45 @@ export async function handleSessionEvalRequest(deps: AccessDeps, req: AccessRequ
   const face = deps.sessionEval?.()
   if (face === undefined) return errorReply(503, '评测内核未就绪')
 
-  // 设置读面:不绑会话(配置是部署级的);非管理员只读。
+  // 设置读面:不绑会话(裁判配置是部署级、只读给非管理员;业务指标层按账号)。
   if (action === 'settings') {
     try {
-      const settings = await face.settings()
+      const settings = await face.settings(user.account)
       return jsonResponse(200, { ok: true, settings, admin: user.role === 'admin' }, [['cache-control', 'no-store']])
+    } catch {
+      return errorReply(503, '评测服务异常')
+    }
+  }
+
+  // 业务指标保存:只写**当前账号自己的**覆盖层(账号来自会话身份,不从 body 收)。
+  if (action === 'metrics/save') {
+    const baseVersion = body?.baseVersion
+    if (typeof baseVersion !== 'number' || !Number.isInteger(baseVersion) || baseVersion < 0) {
+      return errorReply(400, '参数不合法：baseVersion 必须是非负整数')
+    }
+    try {
+      const result = await face.saveBusinessMetric(user.account, body?.metric, baseVersion) as {
+        readonly ok?: unknown
+        readonly code?: unknown
+        readonly error?: unknown
+        readonly version?: unknown
+        readonly metric?: unknown
+        readonly yaml?: unknown
+      }
+      if (result.ok !== true) {
+        const code = typeof result.code === 'string' ? result.code : 'invalid'
+        const message = typeof result.error === 'string' ? result.error : '业务指标保存失败'
+        deps.audit({ kind: 'access.session-eval.metrics', account: user.account, ip, ok: false, detail: { code } })
+        // 版本冲突 = 409(前端刷新后重试);校验失败 = 400;存储失败 = 503。
+        return errorReply(code === 'conflict' ? 409 : code === 'io' ? 503 : 400, message)
+      }
+      deps.audit({ kind: 'access.session-eval.metrics', account: user.account, ip, ok: true, detail: { version: result.version ?? 0 } })
+      return jsonResponse(200, {
+        ok: true,
+        version: result.version ?? 0,
+        metric: result.metric ?? null,
+        yaml: result.yaml ?? '',
+      }, [['cache-control', 'no-store']])
     } catch {
       return errorReply(503, '评测服务异常')
     }
@@ -437,6 +473,7 @@ export async function handleSessionEvalRequest(deps: AccessDeps, req: AccessRequ
     const reply = await face.evaluate(session, {
       ...scope === undefined ? {} : { scope },
       ...typeof body?.turn === 'number' ? { turn: body.turn } : {},
+      account: user.account,
     }) as {
       readonly ok?: unknown
       readonly accepted?: unknown

@@ -15,15 +15,16 @@ import { aggregateSessionMetrics } from '@eterna/observe'
 import { evaluateRules, type RuleEvaluation } from './metrics.ts'
 import { projectTrajectory } from './trajectory.ts'
 import type { EvalSnapshot, EvalVerdict, SessionEventLike } from './types.ts'
-import type { JudgeEvaluateReply, JudgeSaveConfigReply, JudgeSettingsView, JudgeSnapshot } from './judge-types.ts'
+import type { BusinessSaveReply, JudgeEvaluateReply, JudgeSaveConfigReply, JudgeSettingsView, JudgeSnapshot } from './judge-types.ts'
 import type { JudgeEvaluateOptions } from './engine.ts'
 
 /** 裁判引擎的结构面(host 传 JudgeEngine;测试注入假件)。 */
 export interface JudgeEngineFace {
   snapshot(sessionId: string, now?: number): Promise<JudgeSnapshot>
   evaluate(sessionId: string, options?: JudgeEvaluateOptions): Promise<JudgeEvaluateReply>
-  settings(): Promise<JudgeSettingsView>
+  settings(account?: string): Promise<JudgeSettingsView>
   saveConfig(input: unknown): Promise<JudgeSaveConfigReply>
+  saveBusinessMetric(account: string, input: unknown, baseVersion: number): Promise<BusinessSaveReply>
 }
 
 /** 服务端口:只读事件面(host.ts 接宿主 agents/sessions;测试注入固定数组). */
@@ -42,8 +43,9 @@ export interface SessionEvalPorts {
 export interface SessionEvalFace {
   snapshot(sessionId: string, now?: number): Promise<EvalSnapshot>
   evaluate(sessionId: string, options?: JudgeEvaluateOptions): Promise<JudgeEvaluateReply>
-  settings(): Promise<JudgeSettingsView>
+  settings(account?: string): Promise<JudgeSettingsView>
   saveConfig(input: unknown): Promise<JudgeSaveConfigReply>
+  saveBusinessMetric(account: string, input: unknown, baseVersion: number): Promise<BusinessSaveReply>
 }
 
 /** 会话 id 的合法形状(只做防呆:非空、长度上限,不做前缀白名单). */
@@ -123,13 +125,22 @@ export class SessionEvalService implements SessionEvalFace {
     return judge.evaluate(sessionId, options)
   }
 
-  /** 设置分区读面(配置 + 指标目录 + 模型目录). */
-  settings(): Promise<JudgeSettingsView> {
+  /** 设置分区读面(配置 + 指标目录 + 模型目录 + 账号业务指标覆盖层). */
+  settings(account?: string): Promise<JudgeSettingsView> {
     const judge = this.ports.judge
     if (judge === undefined) {
       return Promise.reject(new Error('judge layer not mounted'))
     }
-    return judge.settings()
+    return judge.settings(account)
+  }
+
+  /** 保存当前账号的业务指标(乐观锁;账号由 access 身份解析传入). */
+  saveBusinessMetric(account: string, input: unknown, baseVersion: number): Promise<BusinessSaveReply> {
+    const judge = this.ports.judge
+    if (judge === undefined) {
+      return Promise.resolve({ ok: false, code: 'io', error: '裁判层未装载（插件仍在启动）。' })
+    }
+    return judge.saveBusinessMetric(account, input, baseVersion)
   }
 
   /** 保存裁判配置(严格校验 + 目录自检)。 */

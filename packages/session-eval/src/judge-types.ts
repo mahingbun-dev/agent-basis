@@ -5,6 +5,8 @@
  * 模块或服务端依赖(esbuild 客户端构建会把 import 链整条打进来)。
  */
 
+import type { BusinessMetric } from './business-metrics.ts'
+
 /** 裁判路由(provider + model;结果面必须显示,换模型等于换榜单). */
 export interface JudgeRoute {
   readonly provider: string
@@ -82,7 +84,23 @@ export interface JudgeConfig {
   readonly metrics: Readonly<Record<string, boolean>>
 }
 
-/** 设置分区读面:配置 + 可选的指标目录 + 可用 provider 目录. */
+/** 账号覆盖层读面(设置分区「业务指标」;yaml = 当前文件原文的规范化形式). */
+export interface BusinessMetricsView {
+  readonly version: number
+  readonly updatedAt: string
+  readonly updatedBy: string
+  readonly metrics: readonly BusinessMetric[]
+  readonly yaml: string
+  /** 文件损坏等说明(顶部提示;此时保存会被拒绝). */
+  readonly warning?: string
+}
+
+/** 业务指标保存结果(客户端安全形状;不暴露文件系统路径). */
+export type BusinessSaveReply =
+  | { readonly ok: true; readonly version: number; readonly metric: BusinessMetric; readonly yaml: string }
+  | { readonly ok: false; readonly code: 'conflict' | 'invalid' | 'io'; readonly error: string }
+
+/** 设置分区读面:配置 + 可选的指标目录 + 可用 provider 目录 + 账号业务指标覆盖层. */
 export interface JudgeSettingsView {
   readonly config: JudgeConfig
   readonly metrics: readonly {
@@ -93,6 +111,8 @@ export interface JudgeSettingsView {
     readonly gating: boolean
   }[]
   readonly providers: readonly { readonly id: string; readonly models: readonly string[] }[]
+  /** 业务指标覆盖层(登录账号自己的 metrics.yaml). */
+  readonly business?: BusinessMetricsView
   /** 配置损坏等说明(设置页顶部提示;保存一次即可修复). */
   readonly note?: string
 }

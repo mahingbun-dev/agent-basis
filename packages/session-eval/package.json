@@ -32,7 +32,8 @@
     "@eterna/ui": "workspace:*",
     "@deepseek-ai/cordis": "catalog:",
     "@deepseek-ai/dsh-llm": "catalog:",
-    "@deepseek-ai/dsh-util-values": "catalog:"
+    "@deepseek-ai/dsh-util-values": "catalog:",
+    "yaml": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

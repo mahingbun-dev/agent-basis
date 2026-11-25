@@ -22,6 +22,8 @@ function row(overrides: Partial<StoredJudgeScore> = {}): StoredJudgeScore {
     model: 'deepseek-chat',
     latencyMs: 800,
     tokens: 120,
+    gating: null,
+    metricVersion: null,
     createdAt: 1000,
     ...overrides,
   }

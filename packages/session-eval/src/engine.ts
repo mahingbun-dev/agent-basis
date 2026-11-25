@@ -19,14 +19,18 @@
 import type { SessionEventLike } from './types.ts'
 import {
   DEFAULT_JUDGE_CONFIG, JUDGE_RATIONALE_MAX,
+  type BusinessSaveReply,
   type JudgeConfig, type JudgeEvaluateReply, type JudgeSaveConfigReply,
   type JudgeScoreView, type JudgeSettingsView, type JudgeSnapshot, type JudgeTrigger,
 } from './judge-types.ts'
-import { BUILTIN_JUDGE_METRICS, type JudgeMetricDef } from './judge-metrics.ts'
+import { BUILTIN_JUDGE_METRICS, findJudgeMetric, type JudgeMetricDef } from './judge-metrics.ts'
 import { projectJudgeInput } from './judge-input.ts'
 import { runJudge, type JudgeLlmPort } from './judge-call.ts'
 import { JudgeScoreStore, openJudgeStore, type StoredJudgeScore } from './score-store.ts'
 import { parseJudgeConfig, readJudgeConfig, writeJudgeConfig, type JudgeConfigRead } from './judge-config.ts'
+import { isBusinessJudgeMetric, runBusinessJudge, type BusinessJudgeMetric } from './business-judge.ts'
+import { serializeBusinessMetrics, type BusinessMetricsFile } from './business-metrics.ts'
+import { readBusinessFile, saveBusinessMetric as saveBusinessMetricFile } from './business-store.ts'
 
 /** 队列并发上限(§5.4 表「队列」;D8 先按 5,P2 用真实数据定)。 */
 export const JUDGE_CONCURRENCY = 5
@@ -52,6 +56,8 @@ export interface JudgeEnginePorts {
   now?(): number
   /** 抽样随机源(测试注入). */
   random?(): number
+  /** 账号覆盖层 metrics.yaml 路径(宿主给 businessMetricsPath;缺席时业务指标不可用). */
+  businessPath?(account: string): string
 }
 
 /** 引擎构造参数. */
@@ -63,11 +69,14 @@ export interface JudgeEngineOptions {
   readonly concurrency?: number
 }
 
+/** 任务指标(内置裁判 / 业务 rubric). */
+type JudgeTaskMetric = JudgeMetricDef | BusinessJudgeMetric
+
 /** 队列任务. */
 interface JudgeTask {
   readonly id: string
   readonly sessionId: string
-  readonly metric: JudgeMetricDef
+  readonly metric: JudgeTaskMetric
   readonly turn: number | undefined
   readonly trigger: JudgeTrigger
 }
@@ -77,6 +86,8 @@ export interface JudgeEvaluateOptions {
   readonly scope?: 'all' | 'outcome' | 'process'
   /** 过程裁判的目标轮(缺省 = 末轮). */
   readonly turn?: number
+  /** 已登录账号(access 校验归属后传入):业务指标按该账号覆盖层执行. */
+  readonly account?: string
 }
 
 /** ISO 日期键(UTC;与 usage-stats dayOf 同口径). */
@@ -247,7 +258,7 @@ export class JudgeEngine {
    * 设置分区读面(配置 + 指标目录 + 模型目录)。
    * @returns 设置视图;`note` 携带配置损坏说明。
    */
-  async settings(): Promise<JudgeSettingsView> {
+  async settings(account?: string): Promise<JudgeSettingsView> {
     const configRead = this.#config()
     let providers: readonly JudgeProviderCatalog[] = []
     try {
@@ -255,6 +266,7 @@ export class JudgeEngine {
     } catch {
       providers = []
     }
+    const business = this.#businessView(account)
     return {
       config: configRead.config,
       metrics: BUILTIN_JUDGE_METRICS.map(metric => ({
@@ -265,8 +277,48 @@ export class JudgeEngine {
         gating: metric.gating,
       })),
       providers,
+      ...business === undefined ? {} : { business },
       ...configRead.warning === undefined ? {} : { note: configRead.warning },
     }
+  }
+
+  /** 账号覆盖层读面(未登录/无路径 → undefined;损坏文件带 warning). */
+  #businessView(account: string | undefined): JudgeSettingsView['business'] | undefined {
+    if (account === undefined || this.#ports.businessPath === undefined) return undefined
+    let read: ReturnType<typeof readBusinessFile>
+    try {
+      read = readBusinessFile(this.#ports.businessPath(account))
+    } catch {
+      return undefined
+    }
+    const yaml = read.warning === undefined ? serializeBusinessMetrics(read.file) : read.raw ?? ''
+    return {
+      version: read.file.version,
+      updatedAt: read.file.updatedAt,
+      updatedBy: read.file.updatedBy,
+      metrics: read.file.metrics,
+      yaml,
+      ...read.warning === undefined ? {} : { warning: read.warning },
+    }
+  }
+
+  /**
+   * 保存一条业务指标(仅当前账号的覆盖层;版本冲突拒绝覆盖)。
+   * @param account - 已登录账号(access 传入).
+   * @param input - 指标对象.
+   * @param baseVersion - 前端读到的文件版本.
+   */
+  saveBusinessMetric(account: string, input: unknown, baseVersion: number): Promise<BusinessSaveReply> {
+    if (this.#ports.businessPath === undefined) {
+      return Promise.resolve({ ok: false, code: 'io', error: '业务指标存储未接线（宿主未提供账号路径）。' })
+    }
+    let path: string
+    try {
+      path = this.#ports.businessPath(account)
+    } catch {
+      return Promise.resolve({ ok: false, code: 'invalid', error: '账号不合法，无法写入业务指标。' })
+    }
+    return Promise.resolve(saveBusinessMetricFile(path, input, { baseVersion, updatedBy: account, now: this.#now() }))
   }
 
   /**
@@ -356,12 +408,44 @@ export class JudgeEngine {
       if (this.#enqueue(metric, id, turn, 'manual')) accepted += 1
       else skipped.push(`${metric.name}：相同评分已在队列中`)
     }
+    const business = this.#businessForEvaluate(options.account)
+    for (const metric of business.metrics) {
+      if (!isBusinessJudgeMetric(metric)) {
+        skipped.push(`${metric.name}：规则型业务指标随后续批次提供`)
+        continue
+      }
+      if (!metric.enabled) continue
+      if (scope === 'outcome' && metric.scope !== 'session') continue
+      if (scope === 'process' && metric.scope !== 'turn') continue
+      const turn = metric.scope === 'turn' ? options.turn ?? lastTurn : undefined
+      if (metric.scope === 'turn' && turn === undefined) {
+        skipped.push(`${metric.name}：没有可评的轮次`)
+        continue
+      }
+      if (this.#enqueue(metric, id, turn, 'manual')) accepted += 1
+      else skipped.push(`${metric.name}：相同评分已在队列中`)
+    }
+    if (business.warning !== undefined) skipped.push(`业务指标文件不可读：${business.warning}`)
     if (accepted === 0) {
       return skipped.length === 0
         ? { ok: false, code: 'no_content', message: '没有可执行的裁判指标（指标可能均已停用）。' }
         : { ok: false, code: 'busy', message: `裁判已在队列中：${skipped.join('；')}` }
     }
     return { ok: true, accepted, pending: this.pendingFor(id), skipped }
+  }
+
+  /** 账号覆盖层的可执行指标(未传账号/路径未接线 → 空;损坏文件带 warning). */
+  #businessForEvaluate(account: string | undefined): { readonly metrics: readonly BusinessMetricsFile['metrics'][number][]; readonly warning?: string } {
+    if (account === undefined || this.#ports.businessPath === undefined) return { metrics: [] }
+    try {
+      const read = readBusinessFile(this.#ports.businessPath(account))
+      return {
+        metrics: read.file.metrics,
+        ...read.warning === undefined ? {} : { warning: read.warning },
+      }
+    } catch {
+      return { metrics: [], warning: '账号路径不可用' }
+    }
   }
 
   /**
@@ -443,7 +527,7 @@ export class JudgeEngine {
   }
 
   /** 入队(同键在途去重);返回是否受理. */
-  #enqueue(metric: JudgeMetricDef, sessionId: string, turn: number | undefined, trigger: JudgeTrigger): boolean {
+  #enqueue(metric: JudgeTaskMetric, sessionId: string, turn: number | undefined, trigger: JudgeTrigger): boolean {
     if (this.#abort.signal.aborted) return false
     const id = `${sessionId}\u0000${metric.key}\u0000${turn === undefined ? 'session' : `turn:${turn}`}`
     if (this.#inflight.has(id)) return false
@@ -479,10 +563,13 @@ export class JudgeEngine {
         if (task.turn === undefined) return
         if (!input.turns.some(turn => turn.turn === task.turn)) return
       }
-      const result = await runJudge(task.metric, input, route, this.#ports.llm, {
+      const judgeOptions = {
         ...task.turn === undefined ? {} : { turn: task.turn },
         signal: this.#abort.signal,
-      })
+      }
+      const result = isBusinessJudgeMetric(task.metric)
+        ? await runBusinessJudge(task.metric, input, route, this.#ports.llm, judgeOptions)
+        : await runJudge(task.metric, input, route, this.#ports.llm, judgeOptions)
       if (this.#abort.signal.aborted) return
       const createdAt = this.#now()
       const store = this.#openStore()
@@ -501,6 +588,8 @@ export class JudgeEngine {
         model: route.model,
         latencyMs: result.latencyMs,
         tokens: result.tokens ?? null,
+        gating: task.metric.gating,
+        metricVersion: isBusinessJudgeMetric(task.metric) ? task.metric.version : null,
         createdAt,
       })
       if (result.tokens !== undefined) store.addUsage(dayKey(createdAt), result.tokens)
@@ -579,9 +668,41 @@ function displayOf(row: StoredJudgeScore | undefined, config: JudgeConfig, metri
   return { display: '待评', status: 'pending' }
 }
 
-/** 组装六项裁判指标的视图(缺行给显式状态,不伪造). */
+/** 一条评分行 → 视图(内置与业务共用;业务行的名称/类别/范围随定义版本落库). */
+function viewOfRow(row: StoredJudgeScore, fallbackRoute: JudgeScoreView['route']): JudgeScoreView {
+  const route = row.provider !== null && row.model !== null ? { provider: row.provider, model: row.model } : fallbackRoute
+  return {
+    key: row.metricKey,
+    name: row.metricName,
+    category: row.category,
+    scope: row.scope,
+    status: row.status,
+    value: row.status === 'ok' ? row.value : null,
+    display: rowDisplay(row),
+    pass: row.status === 'ok' ? row.value : null,
+    ...row.rationale === null ? {} : { rationale: row.rationale },
+    ...row.targetTurn === null ? {} : { turn: row.targetTurn },
+    route,
+    ...row.latencyMs === null ? {} : { latencyMs: row.latencyMs },
+    ...row.tokens === null ? {} : { tokens: row.tokens },
+  }
+}
+
+/** 已落库行的展示文案(没有分数就显示状态). */
+function rowDisplay(row: StoredJudgeScore): string {
+  switch (row.status) {
+    case 'ok': return row.value === true ? '通过' : '未过'
+    case 'not_applicable': return '不适用'
+    case 'error': return '出错'
+    case 'skipped': return '跳过'
+    case 'sampled_out': return '未采样'
+    case 'pending': return '排队中'
+  }
+}
+
+/** 组装裁判视图:六项内置(缺行给显式状态)+ 业务已评条目(按 key 取最近一条). */
 function buildScoreViews(config: JudgeConfig, rows: readonly StoredJudgeScore[]): JudgeScoreView[] {
-  return BUILTIN_JUDGE_METRICS.map((metric) => {
+  const views: JudgeScoreView[] = BUILTIN_JUDGE_METRICS.map((metric) => {
     const row = latestForMetric(rows, metric)
     const { display, status } = displayOf(row, config, metric)
     const route = row !== undefined && row.provider !== null && row.model !== null
@@ -603,6 +724,12 @@ function buildScoreViews(config: JudgeConfig, rows: readonly StoredJudgeScore[])
       ...row?.tokens === null || row?.tokens === undefined ? {} : { tokens: row.tokens },
     }
   })
+  const businessKeys = [...new Set(rows.filter(row => findJudgeMetric(row.metricKey) === undefined).map(row => row.metricKey))]
+  for (const key of businessKeys) {
+    const row = latestRow(rows.filter(candidate => candidate.metricKey === key))
+    if (row !== undefined) views.push(viewOfRow(row, config.route))
+  }
+  return views
 }
 
 /** 结果类综合结论(关键项全过才算通过;不适用按豁免计,缺评如实说未评). */
@@ -618,16 +745,29 @@ function buildOverall(config: JudgeConfig, rows: readonly StoredJudgeScore[]): J
     metric.category === 'outcome' && metric.gating && config.metrics[metric.key] !== false)
   const judged = gating.map(metric => ({ metric, row: latestForMetric(rows, metric) }))
     .filter(entry => entry.row?.status === 'ok' || entry.row?.status === 'not_applicable')
-  const failures = judged.filter(entry => entry.row?.status === 'ok' && entry.row.value === false)
-  const waived = judged.filter(entry => entry.row?.status === 'not_applicable')
+  const builtinKeys = new Set(BUILTIN_JUDGE_METRICS.map(metric => metric.key))
+  const businessRows = rows.filter(row => !builtinKeys.has(row.metricKey) && row.category === 'outcome')
+  const businessGating = businessRows.filter(row => row.gating === true)
+  const businessFailures = businessGating.filter(row => row.status === 'ok' && row.value === false)
+  const failures = [
+    ...judged.filter(entry => entry.row?.status === 'ok' && entry.row.value === false)
+      .map(entry => ({ name: entry.metric.name })),
+    ...businessFailures.map(row => ({ name: row.metricName })),
+  ]
+  const waived = [
+    ...judged.filter(entry => entry.row?.status === 'not_applicable').map(entry => ({ name: entry.metric.name })),
+    ...businessGating.filter(row => row.status === 'not_applicable').map(row => ({ name: row.metricName })),
+  ]
   const softFails = BUILTIN_JUDGE_METRICS
     .filter(metric => metric.category === 'outcome' && !metric.gating && config.metrics[metric.key] !== false)
     .map(metric => ({ metric, row: latestForMetric(rows, metric) }))
     .filter(entry => entry.row?.status === 'ok' && entry.row.value === false)
   const reasons = [
-    ...failures.map(entry => `${entry.metric.name}未通过`),
+    ...failures.map(entry => `${entry.name}未通过`),
     ...softFails.map(entry => `${entry.metric.name}未通过（非关键项，不进结论门控）`),
-    ...waived.map(entry => `${entry.metric.name}不适用`),
+    ...businessRows.filter(row => row.gating !== true && row.status === 'ok' && row.value === false)
+      .map(row => `${row.metricName}未通过（非关键项，不进结论门控）`),
+    ...waived.map(entry => `${entry.name}不适用`),
   ]
   if (failures.length > 0) {
     return { level: 'warn', label: `结果类：${failures.length} 项关键项未过`, reasons }

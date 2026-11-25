@@ -92,6 +92,7 @@ function judgeOf(overrides: Partial<JudgeSnapshot> = {}): JudgeEngineFace {
     evaluate: async () => ({ ok: true, accepted: 1, pending: 1, skipped: [] }),
     settings: async () => ({ config: DEFAULT_JUDGE_CONFIG, metrics: [], providers: [] }),
     saveConfig: async () => ({ ok: true, config: DEFAULT_JUDGE_CONFIG }),
+    saveBusinessMetric: async () => ({ ok: false, code: 'io', error: '测试假件未接线' }),
   }
 }
 

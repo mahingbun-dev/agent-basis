@@ -13,6 +13,7 @@ import type { ReactElement } from 'react'
 import { Icon } from '@eterna/ui/icons'
 import type { JudgeConfig, JudgeSettingsView } from '../judge-types.ts'
 import { SessionEvalApiError, fetchJudgeSettings, saveJudgeConfig } from './api.ts'
+import { BusinessMetricsSection } from './BusinessMetricsSection.tsx'
 
 /** 表单态(数字输入以字符串承载;提交时统一校验). */
 interface FormState {
@@ -91,6 +92,25 @@ export function EvalSettingsSection(): ReactElement {
   const [baseline, setBaseline] = useState<FormState | undefined>(undefined)
   const [feedback, setFeedback] = useState('')
   const [saving, setSaving] = useState(false)
+
+  /** 业务指标保存后只重读设置面(不碰下方配置表单,避免抹掉未保存的修改). */
+  const refreshBusiness = useCallback((): void => {
+    fetchJudgeSettings()
+      .then((reply) => {
+        setSettings(previous => previous === undefined
+          ? previous
+          : {
+            config: previous.config,
+            metrics: previous.metrics,
+            providers: previous.providers,
+            ...previous.note === undefined ? {} : { note: previous.note },
+            ...reply.settings.business === undefined ? {} : { business: reply.settings.business },
+          })
+      })
+      .catch(() => {
+        // 冲突/失败提示由业务指标子区给出;下次打开设置会整份重读。
+      })
+  }, [])
 
   const load = useCallback((signal?: AbortSignal): void => {
     fetchJudgeSettings(signal)
@@ -316,6 +336,8 @@ export function EvalSettingsSection(): ReactElement {
           })}
         </ul>
       </fieldset>
+
+      <BusinessMetricsSection business={settings.business} onChanged={refreshBusiness} />
 
       <div data-eterna-eval-set="actions">
         <button

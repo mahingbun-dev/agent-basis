@@ -889,6 +889,60 @@ metrics:
 
 §7 自查结论：无横向溢出（390 下右栏全宽、设置表单标签上/控件下）；控件 36px 触控热区；`:focus-visible` 光圈齐备；深色走宿主 `data-ds-dark-theme` → `--dsw-alias-*` 桥接实测换肤；强调色只在「关键项」徽标与控件上，未超两处强调；卡内正文 ≤3 行；断点只用 1100/760/640。
 
-### 12.3 P2 待做（按 §5.7 分期）
+### 12.3 P2 待做（按 §5.7 分期；P2-1 已落地，见 §13）
 
 业务指标前端配置 + `metrics.yaml` 读写与回读校验（§9）、rubric 权重/关键项门控落地、人工校准与一致率、评测总览页、dsh-evals 回放对接；轮尾内联徽标（`conversation.chat.turnTail`）仍按 §5.5-B 留到真机验证后再启用。
+
+---
+
+## 13. 实现状态（2026-11-25：P2-1 业务指标账号覆盖层已入库）
+
+> 数字全部为当轮实测：`pnpm --filter @eterna/session-eval verify`、`packages/access` verify、
+> `pnpm -w run verify`、`node scripts/verify-eterna-{web,super}.mjs`、
+> `node scripts/lint-ui-tokens.mjs`、`node tools/packctl/bin/packctl.mjs {form-check,tenant-scan,prompt-scan}`。
+
+### 13.1 已交付
+
+| 面 | 内容 | 位置 |
+|---|---|---|
+| 指标契约 | `BusinessMetric`（judge / trajectory / answer / budget 恰一种）、§9.4 固定键序序列化（引号触发与单引号翻倍）、§9.5 逐字段校验、`metricInputOf`（文件条目 → 保存端点输入） | `src/business-metrics.ts` |
+| YAML 解析 | `parseDocument({strict,uniqueKeys})`；语法错误带行号；文件级/条目级校验失败一律中文原因；重复指标 key 拒绝；`snake_case → camelCase` 归一 | `src/business-yaml.ts` |
+| 账号存储 | `$DSH_HOME/workspaces/<账号>/.eterna/eval/metrics.yaml`；账号白名单 + 逐段 `resolve` 前缀校验；临时文件 + rename 原子写；文件版本乐观锁（冲突 409）；条目版本每次保存 +1；**损坏文件拒绝覆盖**（避免一次保存抹掉人工内容）；停用写 `enabled: false` 不删行 | `src/business-store.ts` |
+| rubric 裁判 | 提示词按条目动态生成（细则权重 / 关键标记 / 负权重=红线）；输出严格 `{"criteria":[{index,hit}…],"rationale"}`（条数/index 唯一/hit 三态）；得分由引擎算（命中正权重 / 正权重总和，负权重命中扣分，关键条直接门控）；**`na` 的正权重从分母剔除**；`allow_skip: false` 时 na 落 error 不猜结论 | `src/business-judge.ts` |
+| 引擎接线 | `settings(account)` 带账号覆盖层视图（损坏带 warning + 原文）；`saveBusinessMetric(account,input,baseVersion)`；手动评测按账号执行 rubric 业务指标；`gating` / `metric_version` 两列随评分落库（含 `ALTER TABLE` 迁移循环） | `src/engine.ts` / `src/score-store.ts` |
+| 路由面 | `POST /access/api/session-eval/metrics/save`：**写入账号只认登录身份**（body 里的 account 忽略），baseVersion 非负整数校验，ok→200 / conflict→409 / invalid→400 / io→503，`no-store`，审计 `access.session-eval.metrics`；`settings`/`evaluate` 透传 `user.account` | `packages/access/src/routes.ts` |
+| 客户端 | 设置分区新增「业务指标（当前账号）」：条目列表（类别/范围/rubric 或规则型/关键项/已停用徽标）、启用开关（即改即存）、rubric 编辑器（标识不可改、名称/说明/类别/范围/关键项/通过线/窗口/allow_skip、细则 text/weight/critical 增删）、**YAML 实时预览**（与服务端同一序列化器，`updated_at/updated_by` 注明保存时写入）、409 冲突自动重读 | `src/client/BusinessMetricsSection.tsx` |
+
+### 13.2 口径决定（本轮）
+
+1. **业务指标存每账号覆盖层**（2026-11-25 用户拍板）：文件在 `workspaces/<账号>/.eterna/eval/metrics.yaml`，普通用户自助读写；裁判配置（模型/预算/抽样）仍部署级、管理员只读，两条边界互不覆盖。
+2. **自动抽样只跑内置六项**：宿主侧自动触发没有账号上下文；业务指标只在「立即评测」按当前登录账号执行。面板文案如实说明（§13.1 客户端）。
+3. **校验器/序列化器单一来源**：前端预览与保存端点 import 同一纯模块，服务端二次校验为准；`metrics.yaml` 的键序、引号规则、错误文案不因入口不同而漂移。
+4. **评分行记条目版本**：`metric_version` 随评分落库，条目改版后历史分数仍可追溯到当时定义；覆盖层文件控制「是否执行 / 用哪版」，不改变「某会话已产生的评分」的可见性（评分属于会话）。
+5. **规则型（trajectory/answer/budget）本轮只做存储与启停**：校验/序列化/往返已就绪，执行引擎与 YAML 导入留 P2-2；列表里可启停但「编辑」禁用并附说明（title），不静默忽略。
+
+### 13.3 验证证据
+
+| 门禁 | 结果 |
+|---|---|
+| `pnpm --filter @eterna/session-eval verify` | oxlint 0/0；18 个测试文件 **162 passed**（+48：business-metrics 13 / business-yaml 6 / business-store 12 / business-judge 10 / engine 业务路径 7） |
+| `packages/access` verify | 55 个测试文件 **625 passed**；session-eval 路由 **20 项**（+4：账号透传、metrics/save 自助写/参数/冲突 409/校验 400/存储 503/审计） |
+| 全仓 `pnpm -w run verify` | **EXIT=0** |
+| `verify-eterna-web.mjs`（真实 boot） | OK — **232** host entries；`settings.section=5`；12 个挂载包 declared==served |
+| `verify-eterna-super.mjs`（真实 boot） | OK — **240** host entries；`settings.section=6`；14 个挂载包；super 挂载面 24 行 active |
+| `scripts/lint-ui-tokens.mjs` | 19 目录 **345** 文件、79 个 `--et-*` 令牌、状态点 30/30、v4 阶梯 0 债务 |
+| `packctl form-check / tenant-scan / prompt-scan` | 0 / 0 / 0 findings |
+
+截图（深浅 × 1440/900/390，真实 `lib/client.js` + 真实令牌；YAML 预览由真实序列化器生成，条目数值为演示数据）：
+
+| 业务指标分区（列表） | rubric 编辑器 + YAML 预览 |
+|---|---|
+| `docs/assets/screenshots/session-eval-p2-business-{light,dark}-{1440,900,390}.png` | `docs/assets/screenshots/session-eval-p2-editor-{light,dark}-{1440,900,390}.png` |
+
+§7 自查与截图实测抓到的两个真缺陷（均已修，截图复验）：
+1. **390 下设置卡片横向溢出**（`document.scrollWidth=449 > 390`）：根因是 `<pre>` 的 `white-space: pre` 让最长 YAML 行成为整卡最小宽度；改 `pre-wrap + overflow-wrap: anywhere`（预览仍可读，长行不再撑宽）。
+2. **窄屏输入框撑出网格**：`width:100%` 配默认 `content-box`，内边距叠加到控件宽度；给设置面 input/select 补 `box-sizing: border-box`（对照修复前后 `scrollWidth` 390）。另把 `.et-eval-button:disabled` 光标从 `progress` 改为 `not-allowed`（停用/进行中是两种语义）。
+
+### 13.4 P2 余下（按 §5.7 分批）
+
+规则型业务指标执行（`trajectory.approval_flow` / `answer.not_contains` / `budget` 与 YAML 导入及行级错误）、三角色 rubric 试跑（真实模型）、人工校准（一致率/混淆矩阵）、评测总览（遵守「不做独立页面」：候选为面板内视图切换）、dsh-evals 回放对接。条目级 `judge.model` 本轮只落盘，执行仍用全局裁判路由（§9.3 注记）。
