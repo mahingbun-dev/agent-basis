@@ -20,17 +20,19 @@ import type { SessionEventLike } from './types.ts'
 import {
   DEFAULT_JUDGE_CONFIG, JUDGE_RATIONALE_MAX,
   type BusinessSaveReply,
-  type JudgeConfig, type JudgeEvaluateReply, type JudgeSaveConfigReply,
+  type BusinessParseReply, type JudgeConfig, type JudgeEvaluateReply, type JudgeRoute, type JudgeSaveConfigReply,
   type JudgeScoreView, type JudgeSettingsView, type JudgeSnapshot, type JudgeTrigger,
 } from './judge-types.ts'
 import { BUILTIN_JUDGE_METRICS, findJudgeMetric, type JudgeMetricDef } from './judge-metrics.ts'
 import { projectJudgeInput } from './judge-input.ts'
-import { runJudge, type JudgeLlmPort } from './judge-call.ts'
+import { runJudge, type JudgeLlmPort, type JudgeRunResult } from './judge-call.ts'
 import { JudgeScoreStore, openJudgeStore, type StoredJudgeScore } from './score-store.ts'
 import { parseJudgeConfig, readJudgeConfig, writeJudgeConfig, type JudgeConfigRead } from './judge-config.ts'
 import { isBusinessJudgeMetric, runBusinessJudge, type BusinessJudgeMetric } from './business-judge.ts'
+import { buildBusinessRuleFacts, isBusinessRuleMetric, runBusinessRule, type BusinessRuleMetric } from './business-rules.ts'
 import { serializeBusinessMetrics, type BusinessMetricsFile } from './business-metrics.ts'
 import { readBusinessFile, saveBusinessMetric as saveBusinessMetricFile } from './business-store.ts'
+import { parseBusinessMetrics as parseBusinessMetricsText } from './business-yaml.ts'
 
 /** 队列并发上限(§5.4 表「队列」;D8 先按 5,P2 用真实数据定)。 */
 export const JUDGE_CONCURRENCY = 5
@@ -70,7 +72,7 @@ export interface JudgeEngineOptions {
 }
 
 /** 任务指标(内置裁判 / 业务 rubric). */
-type JudgeTaskMetric = JudgeMetricDef | BusinessJudgeMetric
+type JudgeTaskMetric = JudgeMetricDef | BusinessJudgeMetric | BusinessRuleMetric
 
 /** 队列任务. */
 interface JudgeTask {
@@ -322,6 +324,23 @@ export class JudgeEngine {
   }
 
   /**
+   * 解析导入的 metrics.yaml(纯解析,不落盘;行级错误原样返回)。
+   * @param text - 粘贴/上传的文件原文.
+   * @returns 条目与文件元信息,或带中文原因(含行号)的失败.
+   */
+  parseBusinessMetrics(text: string): Promise<BusinessParseReply> {
+    const parsed = parseBusinessMetricsText(text)
+    if (!parsed.ok) return Promise.resolve(parsed)
+    return Promise.resolve({
+      ok: true,
+      version: parsed.file.version,
+      updatedAt: parsed.file.updatedAt,
+      updatedBy: parsed.file.updatedBy,
+      metrics: parsed.file.metrics,
+    })
+  }
+
+  /**
    * 保存配置(严格校验 + 路由目录自检 + 原子写)。
    * @param input - 设置分区提交的配置对象.
    * @returns 保存结果;校验失败返回中文原因(不写文件)。
@@ -377,9 +396,6 @@ export class JudgeEngine {
     const id = typeof sessionId === 'string' ? sessionId.trim() : ''
     if (id === '' || id.length > SESSION_ID_MAX) return { ok: false, code: 'invalid', message: '会话 id 不合法。' }
     const config = this.#config().config
-    if (config.route === null) {
-      return { ok: false, code: 'unconfigured', message: '尚未配置裁判模型：请到 设置 → 评测 里选择模型后重试。' }
-    }
     const events = this.#ports.readEvents(id)
     if (events === undefined || events.length === 0) {
       return { ok: false, code: 'no_content', message: '会话不在内存或尚无内容，无法评测。' }
@@ -389,17 +405,23 @@ export class JudgeEngine {
       return { ok: false, code: 'no_content', message: '会话尚无可用轨迹内容，无法评测。' }
     }
     const now = this.#now()
-    if (this.#usage(now) >= config.budgetTokensPerDay) {
-      return { ok: false, code: 'budget', message: '今日裁判预算已用尽：明日恢复，或在 设置 → 评测 里调高预算。' }
-    }
+    // 模型类裁判(内置 + rubric)的闸;规则型是确定性断言,不受路由/预算限制。
+    const judgeBlocked = config.route === null
+      ? 'unconfigured'
+      : this.#usage(now) >= config.budgetTokensPerDay ? 'budget' : undefined
     const scope = options.scope ?? 'all'
     const lastTurn = input.turns.length === 0 ? undefined : input.turns[input.turns.length - 1]?.turn
     const skipped: string[] = []
     let accepted = 0
+    let builtinBlocked = false
     for (const metric of BUILTIN_JUDGE_METRICS) {
       if (config.metrics[metric.key] === false) continue
       if (scope === 'outcome' && metric.scope !== 'session') continue
       if (scope === 'process' && metric.scope !== 'turn') continue
+      if (judgeBlocked !== undefined) {
+        builtinBlocked = true
+        continue
+      }
       const turn = metric.scope === 'turn' ? options.turn ?? lastTurn : undefined
       if (metric.scope === 'turn' && turn === undefined) {
         skipped.push(`${metric.name}：没有可评的轮次`)
@@ -408,12 +430,11 @@ export class JudgeEngine {
       if (this.#enqueue(metric, id, turn, 'manual')) accepted += 1
       else skipped.push(`${metric.name}：相同评分已在队列中`)
     }
+    if (builtinBlocked) {
+      skipped.push(judgeBlocked === 'budget' ? '内置裁判：当日预算已用尽' : '内置裁判：未配置裁判模型')
+    }
     const business = this.#businessForEvaluate(options.account)
     for (const metric of business.metrics) {
-      if (!isBusinessJudgeMetric(metric)) {
-        skipped.push(`${metric.name}：规则型业务指标随后续批次提供`)
-        continue
-      }
       if (!metric.enabled) continue
       if (scope === 'outcome' && metric.scope !== 'session') continue
       if (scope === 'process' && metric.scope !== 'turn') continue
@@ -422,11 +443,23 @@ export class JudgeEngine {
         skipped.push(`${metric.name}：没有可评的轮次`)
         continue
       }
-      if (this.#enqueue(metric, id, turn, 'manual')) accepted += 1
+      const runnable = isBusinessJudgeMetric(metric) ? metric : isBusinessRuleMetric(metric) ? metric : undefined
+      if (runnable === undefined) continue
+      if (!isBusinessRuleMetric(runnable) && judgeBlocked !== undefined) {
+        skipped.push(`${metric.name}：${judgeBlocked === 'budget' ? '当日预算已用尽' : '未配置裁判模型'}`)
+        continue
+      }
+      if (this.#enqueue(runnable, id, turn, 'manual')) accepted += 1
       else skipped.push(`${metric.name}：相同评分已在队列中`)
     }
     if (business.warning !== undefined) skipped.push(`业务指标文件不可读：${business.warning}`)
     if (accepted === 0) {
+      if (judgeBlocked === 'unconfigured') {
+        return { ok: false, code: 'unconfigured', message: '尚未配置裁判模型：请到 设置 → 评测 里选择模型后重试。' }
+      }
+      if (judgeBlocked === 'budget') {
+        return { ok: false, code: 'budget', message: '今日裁判预算已用尽：明日恢复，或在 设置 → 评测 里调高预算。' }
+      }
       return skipped.length === 0
         ? { ok: false, code: 'no_content', message: '没有可执行的裁判指标（指标可能均已停用）。' }
         : { ok: false, code: 'busy', message: `裁判已在队列中：${skipped.join('；')}` }
@@ -550,11 +583,16 @@ export class JudgeEngine {
   /** 执行一个任务(预算/路由/内容三闸;任何异常收敛为不入库). */
   async #run(task: JudgeTask): Promise<void> {
     try {
-      const config = this.#config().config
-      const route = config.route
-      if (route === null) return
-      const now = this.#now()
-      if (this.#usage(now) >= config.budgetTokensPerDay) return
+      // 规则型:确定性断言,不需要路由,不占裁判预算(零模型成本)。
+      const ruleMetric = isBusinessRuleMetric(task.metric) ? task.metric : undefined
+      let route: JudgeRoute | null = null
+      if (ruleMetric === undefined) {
+        const config = this.#config().config
+        const configured = config.route
+        if (configured === null) return
+        if (this.#usage(this.#now()) >= config.budgetTokensPerDay) return
+        route = configured
+      }
       const events = this.#ports.readEvents(task.sessionId)
       if (events === undefined || events.length === 0) return
       const input = projectJudgeInput(events)
@@ -567,9 +605,17 @@ export class JudgeEngine {
         ...task.turn === undefined ? {} : { turn: task.turn },
         signal: this.#abort.signal,
       }
-      const result = isBusinessJudgeMetric(task.metric)
-        ? await runBusinessJudge(task.metric, input, route, this.#ports.llm, judgeOptions)
-        : await runJudge(task.metric, input, route, this.#ports.llm, judgeOptions)
+      let result: JudgeRunResult
+      if (isBusinessRuleMetric(task.metric)) {
+        result = runBusinessRule(task.metric, buildBusinessRuleFacts(events), task.turn)
+      } else if (route === null) {
+        // 上方闸已拦;这里只为类型收敛(不改变行为)。
+        return
+      } else if (isBusinessJudgeMetric(task.metric)) {
+        result = await runBusinessJudge(task.metric, input, route, this.#ports.llm, judgeOptions)
+      } else {
+        result = await runJudge(task.metric, input, route, this.#ports.llm, judgeOptions)
+      }
       if (this.#abort.signal.aborted) return
       const createdAt = this.#now()
       const store = this.#openStore()
@@ -584,12 +630,14 @@ export class JudgeEngine {
         status: result.status,
         value: result.value,
         rationale: result.rationale === '' ? null : result.rationale.slice(0, JUDGE_RATIONALE_MAX),
-        provider: route.provider,
-        model: route.model,
+        provider: route === null ? null : route.provider,
+        model: route === null ? null : route.model,
         latencyMs: result.latencyMs,
         tokens: result.tokens ?? null,
         gating: task.metric.gating,
-        metricVersion: isBusinessJudgeMetric(task.metric) ? task.metric.version : null,
+        metricVersion: isBusinessJudgeMetric(task.metric) || isBusinessRuleMetric(task.metric)
+          ? task.metric.version
+          : null,
         createdAt,
       })
       if (result.tokens !== undefined) store.addUsage(dayKey(createdAt), result.tokens)

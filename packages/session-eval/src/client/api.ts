@@ -134,6 +134,33 @@ export async function saveBusinessMetric(metric: unknown, baseVersion: number, s
   }
 }
 
+/** YAML 导入解析结果(文件元信息 + 条目;不落盘). */
+export interface BusinessParsedReply {
+  readonly version: number
+  readonly updatedAt: string
+  readonly updatedBy: string
+  readonly metrics: readonly BusinessMetric[]
+}
+
+/**
+ * 解析导入的 metrics.yaml(纯解析,不写文件;失败抛 400 带行级中文原因)。
+ * @param text - 粘贴的文件原文.
+ * @param signal - 取消信号.
+ * @returns 文件版本/更新者与解析出的条目.
+ */
+export async function parseMetricsYaml(text: string, signal?: AbortSignal): Promise<BusinessParsedReply> {
+  const parsed = await postJson('metrics/parse', { text }, signal)
+  const metrics = parsed.metrics
+  return {
+    version: typeof parsed.version === 'number' ? parsed.version : 0,
+    updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : '',
+    updatedBy: typeof parsed.updatedBy === 'string' ? parsed.updatedBy : '',
+    metrics: Array.isArray(metrics)
+      ? metrics.filter((item): item is BusinessMetric => typeof item === 'object' && item !== null)
+      : [],
+  }
+}
+
 /**
  * 保存裁判配置(仅管理员;服务端二次校验)。
  * @param config - 完整配置对象(不做部分合并).

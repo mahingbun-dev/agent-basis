@@ -889,7 +889,7 @@ metrics:
 
 §7 自查结论：无横向溢出（390 下右栏全宽、设置表单标签上/控件下）；控件 36px 触控热区；`:focus-visible` 光圈齐备；深色走宿主 `data-ds-dark-theme` → `--dsw-alias-*` 桥接实测换肤；强调色只在「关键项」徽标与控件上，未超两处强调；卡内正文 ≤3 行；断点只用 1100/760/640。
 
-### 12.3 P2 待做（按 §5.7 分期；P2-1 已落地，见 §13）
+### 12.3 P2 待做（按 §5.7 分期；P2-1/P2-2 已落地，见 §13/§14）
 
 业务指标前端配置 + `metrics.yaml` 读写与回读校验（§9）、rubric 权重/关键项门控落地、人工校准与一致率、评测总览页、dsh-evals 回放对接；轮尾内联徽标（`conversation.chat.turnTail`）仍按 §5.5-B 留到真机验证后再启用。
 
@@ -946,3 +946,59 @@ metrics:
 ### 13.4 P2 余下（按 §5.7 分批）
 
 规则型业务指标执行（`trajectory.approval_flow` / `answer.not_contains` / `budget` 与 YAML 导入及行级错误）、三角色 rubric 试跑（真实模型）、人工校准（一致率/混淆矩阵）、评测总览（遵守「不做独立页面」：候选为面板内视图切换）、dsh-evals 回放对接。条目级 `judge.model` 本轮只落盘，执行仍用全局裁判路由（§9.3 注记）。
+
+> 后续：规则型执行与 YAML 导入已在 §14 落地；余下 P2-3 见 §14.4。
+
+---
+
+## 14. 实现状态（2026-11-25：P2-2 规则型执行 + YAML 导入已入库）
+
+> 数字全部为当轮实测：`pnpm run verify`（全仓 40 个包 EXIT=0）、
+> `node scripts/verify-eterna-{web,super}.mjs`、`node scripts/lint-ui-tokens.mjs`、
+> `node tools/packctl/bin/packctl.mjs {form-check,tenant-scan,prompt-scan}`。
+
+### 14.1 已交付
+
+| 面 | 内容 | 位置 |
+|---|---|---|
+| 规则执行器 | 事件流一次投影出规则事实（`turn/start` 去重轮数、计费 token、`approval/asked` 按 tool 保序、最终回答/逐轮末答），三类断言 `trajectory.approval_flow` / `answer.not_contains` / `budget`；外来字段缺失一律 fail-closed（按「无该事实」不抛） | `src/business-rules.ts` |
+| 引擎接线 | 规则型进队列后**不读路由、不占预算**（零模型调用）；评分行 `provider/model/tokens = null`，照常落 `gating` 与 `metric_version`；手动评测在未配置裁判模型/预算耗尽时仍受理规则型，模型类指标给逐条跳过原因（拒绝码 `unconfigured`/`budget` 只在一条都受理不了时返回） | `src/engine.ts` |
+| 校验补充 | `budget` 只有整条会话口径（`scope` 非 session 直接拒），对应 `budget.scope` 语义而不是静默降级 | `src/business-metrics.ts` |
+| 导入解析路由 | `POST /access/api/session-eval/metrics/parse`：登录即可用（纯解析不落盘）；`text` 必须是字符串且 ≤ 200000 字符；成功 200 + `version/updatedAt/updatedBy/metrics` + `no-store`；解析失败 400 + **行级中文原因**；抛错 503 不泄漏堆栈；审计 `access.session-eval.parse` | `packages/access/src/routes.ts` |
+| 设置编辑器 | 判定方式四选一（rubric / 审批流 / 禁语 / 预算）：条件字段随形态渲染；`budget` 自动锁定「整条会话」；列表徽标细分 `rubric|审批流|禁语|预算`；**YAML 导入面板**（粘贴 → 服务端解析 → 条目列表 → 载入编辑器 → 用户确认保存）；解析失败原样显示行号；409 自动重读沿用 | `src/client/BusinessMetricsSection.tsx`、`src/client/api.ts` |
+| 部署探针 | `deploy/verify.sh` §8.7 运行时四件：`snapshot/settings/metrics/save/metrics/parse` 匿名均 401（404 即路由未接线） | `deploy/verify.sh` |
+
+### 14.2 口径决定（本轮）
+
+1. **审批流按「审批问询次数」不是工具调用次数**：与 dsh-evals 金集 `assertTrajectory` 同语义，数 `approval/asked` 且 `toolName` 相等（≥ `min_count`）。单轮口径的轮次归属走 `asked.callId → tool/call.turn`；无 `callId` 的问询不计入单轮（会话口径照常计数）。
+2. **禁语断言只看作用域内最后一条助手文本**（会话 = 最终回答，逐轮 = 该轮末答），命中任一禁语即未过；作用域内没有可判文本 → `not_applicable`，不伪造成 0 分/未过。
+3. **预算双上限**：轮数 = `turn/start` 去重计数；token = `assistant/message.usage.totalTokens`（缺失时 `input+output+cacheRead+cacheWrite`），超任一项即未过；仅整条会话口径。
+4. **规则型零成本、无前置配置**：确定性断言不需要裁判路由也不消耗日预算；「立即评测」在模型未配置时仍能跑规则型。自动抽样（L1/L2）维持只跑内置六项。
+5. **YAML 导入 = 解析 → 确认 → 保存**：解析结果只在内存/应答里，绝不直接改写覆盖层；每条导入都要经过编辑器确认走既有乐观锁保存路径（同 key 覆盖、异 key 追加）。
+
+### 14.3 验证证据
+
+| 门禁 | 结果 |
+|---|---|
+| `pnpm --filter @eterna/session-eval verify` | oxlint 0/0；19 个测试文件 **176 passed**（+14：business-rules 11 / 引擎 4 项新增减 1 项旧「规则型跳过」） |
+| `packages/access` verify | 55 个测试文件 **629 passed**；session-eval 路由 **24 项**（+4：导入解析成功/参数形状/行级失败/抛错 503） |
+| 全仓 `pnpm run verify` | **EXIT=0**（40 个包 verify Done） |
+| `verify-eterna-web.mjs`（真实 boot） | OK — **232** host entries；`settings.section=5`；12 个挂载包 declared==served；slot drift 0 |
+| `verify-eterna-super.mjs`（真实 boot） | OK — **240** host entries；`settings.section=6`；14 个挂载包；super 挂载面 24 行 active |
+| `scripts/lint-ui-tokens.mjs` | 19 目录 **346** 文件、79 个 `--et-*` 令牌、状态点 30/30、v4 阶梯 0 债务 |
+| `packctl form-check / tenant-scan / prompt-scan` | 0 / 0 / 0 findings |
+
+截图（深浅 × 1440/900/390，共 24 张；真实 `lib/client.js` + 真实令牌；导入条目的数值为演示数据）：
+
+| 面 | 文件 |
+|---|---|
+| 列表（徽标细分 + 导入入口） | `docs/assets/screenshots/session-eval-p2-2-list-{light,dark}-{1440,900,390}.png` |
+| rubric 编辑器 + YAML 预览 | `docs/assets/screenshots/session-eval-p2-2-editor-{light,dark}-{1440,900,390}.png` |
+| 规则编辑器（禁语形态） | `docs/assets/screenshots/session-eval-p2-2-rule-{light,dark}-{1440,900,390}.png` |
+| YAML 导入（解析成功 + 载入列表） | `docs/assets/screenshots/session-eval-p2-2-import-{light,dark}-{1440,900,390}.png` |
+
+§7 自查：24 张截图逐张断言 `document.documentElement.scrollWidth === innerWidth`（1440/900/390 全部相等）与主题底色（light `rgb(244,242,236)` / dark `rgb(22,25,23)`）；390 下 import 列表按既有断点收成单列、按钮落在行下方，textarea 用 `box-sizing:border-box + width:100%` 不撑宽。本轮**未发现新的产品侧样式缺陷**（上一轮记录的两条仍由既有回归截图覆盖）。
+
+### 14.4 P2 余下（P2-3）
+
+三角色 rubric 试跑（真实模型）、人工校准（一致率/混淆矩阵）、评测总览（遵守「不做独立页面」：候选为面板内视图切换）、dsh-evals 回放对接。条目级 `judge.model` 仍只落盘，执行用全局裁判路由（§9.3 注记）。

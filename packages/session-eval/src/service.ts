@@ -15,7 +15,9 @@ import { aggregateSessionMetrics } from '@eterna/observe'
 import { evaluateRules, type RuleEvaluation } from './metrics.ts'
 import { projectTrajectory } from './trajectory.ts'
 import type { EvalSnapshot, EvalVerdict, SessionEventLike } from './types.ts'
-import type { BusinessSaveReply, JudgeEvaluateReply, JudgeSaveConfigReply, JudgeSettingsView, JudgeSnapshot } from './judge-types.ts'
+import type {
+  BusinessParseReply, BusinessSaveReply, JudgeEvaluateReply, JudgeSaveConfigReply, JudgeSettingsView, JudgeSnapshot,
+} from './judge-types.ts'
 import type { JudgeEvaluateOptions } from './engine.ts'
 
 /** 裁判引擎的结构面(host 传 JudgeEngine;测试注入假件)。 */
@@ -25,6 +27,7 @@ export interface JudgeEngineFace {
   settings(account?: string): Promise<JudgeSettingsView>
   saveConfig(input: unknown): Promise<JudgeSaveConfigReply>
   saveBusinessMetric(account: string, input: unknown, baseVersion: number): Promise<BusinessSaveReply>
+  parseBusinessMetrics(text: string): Promise<BusinessParseReply>
 }
 
 /** 服务端口:只读事件面(host.ts 接宿主 agents/sessions;测试注入固定数组). */
@@ -46,6 +49,7 @@ export interface SessionEvalFace {
   settings(account?: string): Promise<JudgeSettingsView>
   saveConfig(input: unknown): Promise<JudgeSaveConfigReply>
   saveBusinessMetric(account: string, input: unknown, baseVersion: number): Promise<BusinessSaveReply>
+  parseBusinessMetrics(text: string): Promise<BusinessParseReply>
 }
 
 /** 会话 id 的合法形状(只做防呆:非空、长度上限,不做前缀白名单). */
@@ -141,6 +145,15 @@ export class SessionEvalService implements SessionEvalFace {
       return Promise.resolve({ ok: false, code: 'io', error: '裁判层未装载（插件仍在启动）。' })
     }
     return judge.saveBusinessMetric(account, input, baseVersion)
+  }
+
+  /** 解析导入的 metrics.yaml(纯解析,不落盘;裁判层缺席时不可用). */
+  parseBusinessMetrics(text: string): Promise<BusinessParseReply> {
+    const judge = this.ports.judge
+    if (judge === undefined) {
+      return Promise.resolve({ ok: false, error: '裁判层未装载（插件仍在启动）。' })
+    }
+    return judge.parseBusinessMetrics(text)
   }
 
   /** 保存裁判配置(严格校验 + 目录自检)。 */

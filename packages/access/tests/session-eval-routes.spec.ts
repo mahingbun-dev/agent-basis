@@ -94,6 +94,10 @@ describe('实时评测路由(access)', () => {
         calls.push(`saveBusinessMetric:${account}:${baseVersion}`)
         return { ok: true, version: baseVersion + 1, metric: input, yaml: '' }
       },
+      parseBusinessMetrics: async (text) => {
+        calls.push(`parseBusinessMetrics:${text.length}`)
+        return { ok: true, version: 3, updatedAt: '', updatedBy: 'alice', metrics: [] }
+      },
     }
   }
 
@@ -174,6 +178,7 @@ describe('实时评测路由(access)', () => {
       settings: async () => { throw new Error('boom: internal detail') },
       saveConfig: async () => { throw new Error('boom: internal detail') },
       saveBusinessMetric: async () => { throw new Error('boom: internal detail') },
+      parseBusinessMetrics: async () => { throw new Error('boom: internal detail') },
     }
     const reply = await post({ session: aliceSessionId })
     expect(reply.status).toBe(503)
@@ -311,6 +316,45 @@ describe('实时评测路由(access)', () => {
     }
     expect((await post({ baseVersion: 0, metric: {} }, userCookie, 'metrics/save')).status).toBe(503)
     expect(auditEvents.filter(event => event.kind === 'access.session-eval.metrics' && event.ok === false)).toHaveLength(3)
+  })
+
+  it('metrics/parse:登录即可解析(不写文件);成功 200 + no-store + 审计;匿名 401', async () => {
+    const reply = await post({ text: 'version: 3\nmetrics: []\n' }, userCookie, 'metrics/parse')
+    expect(reply.status).toBe(200)
+    expect(JSON.parse(reply.body as string)).toMatchObject({ ok: true, version: 3, metrics: [] })
+    expect(reply.headers).toContainEqual(['cache-control', 'no-store'])
+    expect(calls.some(call => call.startsWith('parseBusinessMetrics:'))).toBe(true)
+    expect(auditEvents.some(event => event.kind === 'access.session-eval.parse' && event.ok === true)).toBe(true)
+    expect((await post({ text: 'version: 0\n' }, '', 'metrics/parse')).status).toBe(401)
+  })
+
+  it('metrics/parse 参数形状:缺失/非字符串/超长 400,均不触达服务面', async () => {
+    const long = `version: 0\n# ${'x'.repeat(200_000)}`
+    expect((await post({}, userCookie, 'metrics/parse')).status).toBe(400)
+    expect((await post({ text: 42 }, userCookie, 'metrics/parse')).status).toBe(400)
+    expect((await post({ text: long }, userCookie, 'metrics/parse')).status).toBe(400)
+    expect(calls.filter(call => call.startsWith('parseBusinessMetrics'))).toEqual([])
+  })
+
+  it('metrics/parse 解析失败:400 + 行级中文原因 + 失败审计', async () => {
+    face = {
+      ...(face ?? makeFace()),
+      parseBusinessMetrics: async () => ({ ok: false, error: 'YAML 解析失败（第 3 行）：unexpected end of stream' }),
+    }
+    const reply = await post({ text: 'version: [\n' }, userCookie, 'metrics/parse')
+    expect(reply.status).toBe(400)
+    expect(reply.body).toContain('第 3 行')
+    expect(auditEvents.some(event => event.kind === 'access.session-eval.parse' && event.ok === false)).toBe(true)
+  })
+
+  it('metrics/parse 服务面抛错:503,不泄漏堆栈', async () => {
+    face = {
+      ...(face ?? makeFace()),
+      parseBusinessMetrics: async () => { throw new Error('boom: internal detail') },
+    }
+    const reply = await post({ text: 'version: 0\n' }, userCookie, 'metrics/parse')
+    expect(reply.status).toBe(503)
+    expect(reply.body).not.toContain('boom')
   })
 
   it('config/save 校验失败:400 + 中文原因 + 失败审计', async () => {

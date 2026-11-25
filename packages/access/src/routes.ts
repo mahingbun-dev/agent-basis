@@ -110,6 +110,7 @@ export interface SessionEvalFace {
   settings(account?: string): Promise<unknown>
   saveConfig(input: unknown): Promise<unknown>
   saveBusinessMetric(account: string, input: unknown, baseVersion: number): Promise<unknown>
+  parseBusinessMetrics(text: string): Promise<unknown>
 }
 
 /** 参谋会话行(与 adviser 侧 AdviserSessionView 同形)。 */
@@ -370,7 +371,7 @@ export async function handleSessionEvalRequest(deps: AccessDeps, req: AccessRequ
   if (!isSameOrigin(req.origin, req.host, deps.session.secure, deps.publicOrigin)) return errorReply(403, '跨源请求被拒绝')
   if (!deps.globalWindow.hit(ip)) return errorReply(429, '请求过于频繁，请稍后再试')
   const action = req.pathname.slice(SESSION_EVAL_ROUTE_PREFIX.length)
-  const knownActions = ['snapshot', 'evaluate', 'settings', 'config/save', 'metrics/save']
+  const knownActions = ['snapshot', 'evaluate', 'settings', 'config/save', 'metrics/save', 'metrics/parse']
   if (!knownActions.includes(action)) {
     return errorReply(404, 'not found')
   }
@@ -418,6 +419,38 @@ export async function handleSessionEvalRequest(deps: AccessDeps, req: AccessRequ
         version: result.version ?? 0,
         metric: result.metric ?? null,
         yaml: result.yaml ?? '',
+      }, [['cache-control', 'no-store']])
+    } catch {
+      return errorReply(503, '评测服务异常')
+    }
+  }
+
+  // 业务指标 YAML 导入解析:登录即可用(纯解析不落盘,结果只回给当前用户)。
+  if (action === 'metrics/parse') {
+    const text = body?.text
+    if (typeof text !== 'string') return errorReply(400, '参数不合法：text 必须是字符串')
+    if (text.length > 200_000) return errorReply(400, '参数不合法：text 超过 200000 字符上限')
+    try {
+      const result = await face.parseBusinessMetrics(text) as {
+        readonly ok?: unknown
+        readonly error?: unknown
+        readonly version?: unknown
+        readonly updatedAt?: unknown
+        readonly updatedBy?: unknown
+        readonly metrics?: unknown
+      }
+      if (result.ok !== true) {
+        const message = typeof result.error === 'string' ? result.error : 'YAML 解析失败'
+        deps.audit({ kind: 'access.session-eval.parse', account: user.account, ip, ok: false })
+        return errorReply(400, message)
+      }
+      deps.audit({ kind: 'access.session-eval.parse', account: user.account, ip, ok: true, detail: { version: result.version ?? 0 } })
+      return jsonResponse(200, {
+        ok: true,
+        version: result.version ?? 0,
+        updatedAt: result.updatedAt ?? '',
+        updatedBy: result.updatedBy ?? '',
+        metrics: Array.isArray(result.metrics) ? result.metrics : [],
       }, [['cache-control', 'no-store']])
     } catch {
       return errorReply(503, '评测服务异常')
