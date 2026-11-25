@@ -6,10 +6,13 @@
  *                 [--adapter replay|acp] [--out <目录>]
  *                 [--provider <id>] [--model <id>] [--dsh-home <目录>]
  *                 [--python <解释器>] [--driver <脚本>]
+ *                 [--session-eval] [--metrics <metrics.yaml>]
  *
  * 退出码:0 = 全部通过(且至少一条 case);1 = 存在失败;2 = 用法/加载错误。
  */
 import * as path from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
+import { validateReplayMetrics } from '@eterna/session-eval/replay'
 import { runPack } from './runner.ts'
 
 interface CliArgs {
@@ -24,6 +27,8 @@ interface CliArgs {
   readonly dshHome?: string | undefined
   readonly python?: string | undefined
   readonly driver?: string | undefined
+  readonly sessionEval: boolean
+  readonly metrics?: string | undefined
 }
 
 export async function main(argv: readonly string[]): Promise<number> {
@@ -46,6 +51,11 @@ export async function main(argv: readonly string[]): Promise<number> {
     process.stderr.write('--adapter 应为 replay|acp\n')
     return 2
   }
+  const scoring = resolveSessionEval(parsed)
+  if (scoring.error !== undefined) {
+    process.stderr.write(`${scoring.error}\n`)
+    return 2
+  }
   const outDir = parsed.outDir === undefined
     ? path.join(process.cwd(), 'dsh-evals-out', `${parsed.adapter ?? 'auto'}-${timestampDir()}`)
     : path.resolve(parsed.outDir)
@@ -59,6 +69,7 @@ export async function main(argv: readonly string[]): Promise<number> {
     ...(parsed.subset === undefined ? {} : { subset: parsed.subset }),
     ...(parsed.caseId === undefined ? {} : { caseId: parsed.caseId }),
     outDir,
+    ...(scoring.options === undefined ? {} : { sessionEval: scoring.options }),
     acpOptions: {
       ...(parsed.python === undefined ? {} : { pythonBin: parsed.python }),
       ...(parsed.driver === undefined ? {} : { driverPath: parsed.driver }),
@@ -69,6 +80,10 @@ export async function main(argv: readonly string[]): Promise<number> {
   const pass = result.results.filter(item => item.status === 'pass').length
   const loadFailed = result.loadErrors.length
   process.stdout.write(`pack=${result.packDir} adapter=${result.adapterId} total=${total} pass=${pass} fail=${total - pass}\n`)
+  if (scoring.options !== undefined) {
+    const scored = result.results.filter(item => item.sessionEval !== undefined).length
+    process.stdout.write(`session-eval: scored=${scored}/${total}${scored === total ? '' : `（未评分 ${total - scored}）`}\n`)
+  }
   for (const item of result.results) {
     const head = item.status === 'pass' ? 'PASS' : 'FAIL'
     const first = item.failures[0]?.message ?? ''
@@ -117,6 +132,12 @@ function parseArgs(argv: readonly string[]): CliArgs | undefined {
     }
     const key = token.slice(2)
     const value = argv[index + 1]
+    // 布尔开关(--session-eval 可裸用,也可 --session-eval=1)
+    if (key === 'session-eval' && (value === undefined || value.startsWith('--'))) {
+      flags.set(key, '1')
+      index += 1
+      continue
+    }
     if (value === undefined || value.startsWith('--')) return undefined
     flags.set(key, value)
     index += 2
@@ -134,7 +155,31 @@ function parseArgs(argv: readonly string[]): CliArgs | undefined {
     dshHome: flags.get('dsh-home'),
     python: flags.get('python'),
     driver: flags.get('driver'),
+    sessionEval: flags.has('session-eval') || flags.has('metrics'),
+    metrics: flags.get('metrics'),
   }
+}
+
+/**
+ * 解析会话评测评分配置:显式 --metrics 优先;否则 `--session-eval` 自动发现
+ * `<pack>/evals/metrics.yaml`(存在才用)。文件在起跑前预校验,非法直接用法错误。
+ */
+function resolveSessionEval(parsed: CliArgs): {
+  readonly options?: { readonly metricsYaml?: string } | undefined
+  readonly error?: string | undefined
+} {
+  if (!parsed.sessionEval || parsed.packDir === undefined) return {}
+  const target = parsed.metrics ?? path.join(parsed.packDir, 'evals', 'metrics.yaml')
+  if (parsed.metrics === undefined && !existsSync(target)) return { options: {} }
+  let text: string
+  try {
+    text = readFileSync(target, 'utf8')
+  } catch (cause) {
+    return { error: `metrics.yaml 不可读(${target})：${cause instanceof Error ? cause.message : String(cause)}` }
+  }
+  const validation = validateReplayMetrics(text)
+  if (!validation.ok) return { error: `metrics.yaml 非法（${target}）：${validation.error}` }
+  return { options: { metricsYaml: text } }
 }
 
 function printUsage(): void {
@@ -150,6 +195,8 @@ function printUsage(): void {
     '  --provider/--model/--dsh-home   acp 适配器透传 DSH Python SDK 配置',
     '  --python <解释器>   acp driver 的解释器(缺省 python3,或 env DSH_EVALS_PYTHON)',
     '  --driver <脚本>     acp driver 路径(缺省包内 python/dsh_eval_driver.py)',
+    '  --session-eval      每个 case 再算一遍会话评测规则分(与在线「评测」面板同套纯函数)',
+    '  --metrics <文件>    业务指标 YAML(与线上 metrics.yaml 同格式;缺省自动发现 <pack>/evals/metrics.yaml)',
     '',
     '退出码: 0 全部通过;1 存在失败;2 用法错误或无 case 可跑(schema 坏文件仅打印 SCHEMA-FAIL)',
     '',

@@ -1304,6 +1304,9 @@ importers:
       '@deepseek-ai/dsh-user-approval':
         specifier: 0.2.2-rc.5
         version: 0.2.2-rc.5(3b5da5a163d911e06a2cca6f415e2b64)
+      '@eterna/session-eval':
+        specifier: workspace:*
+        version: link:../../packages/session-eval
       yaml:
         specifier: ^2.9.1
         version: 2.9.1

@@ -283,8 +283,11 @@ export function parseGoldenCase(text: string, sourceFile: string): GoldenCase {
   return { ...clean(out), sourceFile }
 }
 
-/** packctl(06 号模板)放在 evals/ 根、但不是 golden case 的已知文件名。 */
-const NON_CASE_EVALS_FILES = new Set(['threshold.yml'])
+/** packctl(06 号模板)放在 evals/ 根、但不是 golden case 的已知文件名。
+ * - threshold.yml:门禁阈值配置(07 号);
+ * - metrics.yaml:业务指标定义(56 号 §9,`--session-eval` 自动发现),与线上 metrics.yaml 同格式。
+ */
+const NON_CASE_EVALS_FILES = new Set(['threshold.yml', 'metrics.yaml'])
 
 function isYamlName(name: string): boolean {
   return name.endsWith('.yaml') || name.endsWith('.yml')

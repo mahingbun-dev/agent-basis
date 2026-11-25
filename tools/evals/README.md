@@ -73,6 +73,7 @@ pnpm --filter @eterna/evals exec node bin/dsh-evals.mjs run --pack <目录> --su
 dsh-evals run --pack <目录> [--subset smoke] [--case <id>] [--adapter replay|acp]
               [--out <目录>] [--provider] [--model] [--dsh-home]
               [--python <解释器>] [--driver <脚本>]
+              [--session-eval] [--metrics <metrics.yaml>]
 ```
 
 退出码:`0` 全过;`1` 有失败;`2` 用法错误或无 case 可跑(schema 坏文件只打印 `SCHEMA-FAIL`,不拖垮 subset 运行)。产物(默认 `./dsh-evals-out/<时间戳>/`):
@@ -81,9 +82,23 @@ dsh-evals run --pack <目录> [--subset smoke] [--case <id>] [--adapter replay|a
 - `sessions.jsonl` —— 一行一 case,字段对齐 ai-evo 会话数据集(user_input/answer/tags + 结果与指标),可导入;
 - `workspaces/<case-id>/` —— 每 case 的独立工作区。
 
+## 会话评测规则分（--session-eval，56 号 §9.7）
+
+`--session-eval` 让每个 case 的事件流按 `@eterna/session-eval` 的**在线评分口径**再算一遍
+（`aggregateSessionMetrics` + `projectTrajectory` + `evaluateRules`，与产品内「评测」面板同一实现）：
+
+- 内置 15 项确定性规则（轮/步/工具失败/参数合法/重复/审批拒绝/异常轮/耗时/token/成本/缓存）；
+- 业务规则来自 `--metrics <文件>`（与线上 `metrics.yaml` 同格式；缺省自动发现 `<pack>/evals/metrics.yaml`，
+  存在才加载；`evals/metrics.yaml` 不会被当作 golden case）。只执行 `trajectory.approval_flow` /
+  `answer.not_contains` / `budget`；裁判型与逐轮条目跳过并在报告里列原因。
+- 结果写进 `CaseResult.sessionEval`、`sessions.jsonl` 的 `session_eval` 块与 `report.md`
+  「会话评测规则分」节；评分失败只单列 `session_eval_error`，**不改变**本包 golden 断言的 pass/fail。
+- 口径纪律：一个会话的规则结论只反映确定性异常；结果类裁判缺席时结论是 `pass（结果类未评）`
+  或 `warn`，不会伪报整体通过。
+
 ## 工程纪律
 
 - 独立 CLI(B'),不注册任何 Cordis ctx seam;可交换接口 = `AgentAdapter` 注册表(唯一 id);
 - 断言器全部纯函数/显式 IO;fixture 与真实会话的 JSON 一律运行期校验(events.ts),schema 违例不抛给进程而是记 `loadErrors`(分类 schema);
 - 验证门:`pnpm --filter @eterna/evals run verify` = oxlint + tsc --noEmit(strict)+ vitest run + `python3 -m unittest discover -s python`(driver 侧 EventMapper 单测,含真实样本回放)。
-  调用形态:依赖用钉版本(非 catalog:)、bin 用包内/仓根显式相对路径 —— 单包 scope 的 install-before-run 与 PATH 注入缺失场景(验收环境实证)均不依赖 workspace catalogs 与注入 PATH;升级版本时同步改 pnpm-workspace.yaml catalog。
+  调用形态:依赖用钉版本(非 catalog:;唯一 workspace 依赖是 `@eterna/session-eval`——`--session-eval` 复用在线评分实现)、bin 用包内/仓根显式相对路径 —— 单包 scope 的 install-before-run 与 PATH 注入缺失场景(验收环境实证)均不依赖 workspace catalogs 与注入 PATH;升级版本时同步改 pnpm-workspace.yaml catalog。

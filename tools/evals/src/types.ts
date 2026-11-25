@@ -13,6 +13,7 @@
  * 本包只声明评测实际消费的字段(fixture 与真实 session 的 JSON 都按此在运行期校验),
  * 由 tests/types.seam-pin.ts 在编译期断言官方类型可赋值进来。
  */
+import type { ReplayScore } from '@eterna/session-eval/replay'
 
 /** DSH SessionEvent 事件包的结构子集(fixture jsonl 每行一个;真实 session 同形)。 */
 export interface SessionEventLike {
@@ -231,6 +232,10 @@ export interface CaseResult {
   readonly finalAnswerText: string
   readonly durationMs: number
   readonly notes: readonly string[]
+  /** 会话评测规则分(--session-eval;未启用或无法评分时缺席). */
+  readonly sessionEval?: ReplayScore
+  /** 评分失败原因(不构成本包断言的失败;报告单列). */
+  readonly sessionEvalError?: string
 }
 
 /** 从会话事件流聚合的指标(sessions.jsonl / report.md 消费)。 */

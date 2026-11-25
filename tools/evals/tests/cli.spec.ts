@@ -55,6 +55,48 @@ describe('cliMain(进程内)', () => {
     const code = await cliMain(['run', '--pack', PACK, '--case', 'approval-redline', '--out', path.join(outRoot, 'case')])
     expect(code).toBe(0)
   })
+
+  it('--session-eval 裸开关 + 自动发现 <pack>/evals/metrics.yaml', async () => {
+    const packCopy = path.join(outRoot, 'pack-auto')
+    await fs.cp(PACK, packCopy, { recursive: true })
+    await fs.writeFile(path.join(packCopy, 'evals', 'metrics.yaml'), [
+      'version: 9',
+      'metrics:',
+      '  - key: any-approval',
+      '    name: 受阻审批',
+      '    description: 演示用',
+      '    category: process',
+      '    scope: session',
+      '    gating: false',
+      '    enabled: true',
+      '    version: 1',
+      '    trajectory:',
+      '      approval_flow: {tool: send_group_message, min_count: 1}',
+      '',
+    ].join('\n'), 'utf8')
+    const outDir = path.join(outRoot, 'auto-metrics')
+    const code = await cliMain(['run', '--pack', packCopy, '--subset', 'smoke', '--out', outDir, '--session-eval'])
+    expect(code).toBe(0)
+    const rows = (await fs.readFile(path.join(outDir, 'sessions.jsonl'), 'utf8')).trim().split('\n')
+      .map(line => JSON.parse(line) as Record<string, unknown>)
+    for (const row of rows) {
+      const block = row.session_eval as Record<string, unknown> | undefined
+      expect(block?.metrics_version).toBe(9)
+      expect(block?.business).toBeDefined()
+    }
+  })
+
+  it('--metrics 非法 YAML → exit 2(起跑前预校验)', async () => {
+    const bad = path.join(outRoot, 'bad-metrics.yaml')
+    await fs.writeFile(bad, 'version: 0\nmetrics: [', 'utf8')
+    const code = await cliMain(['run', '--pack', PACK, '--subset', 'smoke', '--out', path.join(outRoot, 'bad'), '--metrics', bad])
+    expect(code).toBe(2)
+  })
+
+  it('--metrics 不可读 → exit 2', async () => {
+    const code = await cliMain(['run', '--pack', PACK, '--subset', 'smoke', '--out', path.join(outRoot, 'missing'), '--metrics', path.join(outRoot, 'nope.yaml')])
+    expect(code).toBe(2)
+  })
 })
 
 describe('bin/dsh-evals.mjs(真子进程,Node type-stripping)', () => {

@@ -1155,4 +1155,63 @@ P2-3c 评测总览（候选 `sidebar.panellist` + `main`，遵守「不做独立
 
 ### 17.4 P2-3 余下
 
-P2-3d dsh-evals 回放对接（把 dsh-evals 既有用例回放到本插件评分口径上）。P2-3 三块（a 校准 / b 试跑 / c 总览）至此全部交付。
+P2-3d dsh-evals 回放对接（把 dsh-evals 既有用例回放到本插件评分口径上）。P2-3 三块（a 校准 / b 试跑 / c 总览）至此全部交付；**P2-3d 已由 §18 交付**。
+
+## 18. 实现状态（2026-11-25：P2-3d dsh-evals 回放对接已交付）
+
+> 数字全部为当轮实测：`pnpm run verify`（全仓 EXIT=0）、`node scripts/verify-eterna-{web,super}.mjs`、
+> `node scripts/lint-ui-tokens.mjs`、`node tools/packctl/bin/packctl.mjs {form-check,tenant-scan,prompt-scan}`、
+> `node tools/evals/bin/dsh-evals.mjs run --pack packs/event-planning --adapter replay --session-eval`。
+
+### 18.1 已交付
+
+| 面 | 内容 | 位置 |
+|---|---|---|
+| 回放评分纯函数 | `scoreReplayEvents({sessionId, events, metricsYaml?})`：内置规则直接复用 `aggregateSessionMetrics` + `projectTrajectory` + `evaluateRules`（与在线快照同一实现）；业务规则解析与线上同格式 `metrics.yaml`，只跑确定性形态；空事件/坏 YAML 如实报错 | `packages/session-eval/src/replay.ts` |
+| 子路径导出 | `@eterna/session-eval/replay`（纯函数面，不牵动 host/client 半边） | `packages/session-eval/package.json` |
+| 评分跳过口径 | 停用 / 逐轮口径 / 裁判型三类跳过并带中文原因；不静默丢弃、不把「不适用」记成未过 | `replay.ts`（`BLOCKER_REASON`） |
+| dsh-evals 打分开关 | `runPack({ sessionEval })`：每个 case 的事件流评一遍，结果挂 `CaseResult.sessionEval`；评分失败只记 `sessionEvalError`，**不改** golden 断言 pass/fail | `tools/evals/src/runner.ts` |
+| CLI | `--session-eval`（裸开关）+ `--metrics <文件>`（缺省自动发现 `<pack>/evals/metrics.yaml`）；文件起跑前预校验，非法/不可读 → 退出码 2；stdout 增 `session-eval: scored=N/M` | `tools/evals/src/cli.ts` |
+| 产物 | `sessions.jsonl` 每行增 `session_eval`（verdict / 15 项规则 / 业务规则 / 跳过 / metrics 版本）或 `session_eval_error`；`report.md` 增「会话评测规则分」节（结论计数 + 逐 case 未过判定项 + 业务未过/总计 + 跳过数） | `tools/evals/src/sessions.ts`、`src/report.ts` |
+| 目录约定 | `evals/metrics.yaml` 与 `threshold.yml` 一样**不是 golden case**（loader 跳过），因此可作 pack 级默认业务规则 | `tools/evals/src/schema.ts` |
+| 文档 | tools/evals README 增「会话评测规则分」一节（口径与产物） | `tools/evals/README.md` |
+
+### 18.2 口径决定（本轮）
+
+1. **回灌方向 = 分数进 dsh-evals 产物，不写在线评分库**：离线回放没有 DSH_HOME/会话身份，写 `judge_score` 会污染线上结论与总览；`sessions.jsonl` / `report.md` 已能承载「同一批金集的两条评分轨」对比。在线侧仍由「立即评测」写库。
+2. **离线只跑确定性规则**：内置 15 项规则零模型成本可全量；业务规则只执行 `trajectory.approval_flow` / `answer.not_contains` / `budget`。裁判型（无模型）与逐轮口径（无目标轮）跳过并列出原因，不伪造成 0 分或未过。
+3. **业务规则来源显式**：`--metrics` 指向与线上同格式的 `metrics.yaml`；`--session-eval` 缺省自动发现 pack 内 `evals/metrics.yaml`（存在才用）。账号线上配置仍以自己的覆盖层为准，pack 文件只是离线默认。
+4. **评分失败不改变金集结论**：dsh-evals 的 pass/fail 仍由 answer/final_state/trajectory/budget 四组断言决定；`session_eval_error` 单列，避免一次评分器缺陷把金集门禁染红（反向也避免评分通过掩盖断言失败）。
+5. **case id 即回放会话 id**：同一 fixture 反复回放得到同一报告键；不伪造 host session id。
+6. **不新增独立 CLI / 页面**：能力挂在既有 `dsh-evals` CLI 的开关与产物上；产品 UI 无新增入口（前端铁律不受影响）。
+7. **结论措辞沿用在线口径**：规则层无异常时是 `pass（确定性检查通过（结果类未评））`，不把它说成整体通过；审批被拒/工具失败计入 `warn`，与在线快照一致。
+
+### 18.3 验证证据
+
+| 门禁 | 结果 |
+|---|---|
+| `pnpm --filter @eterna/session-eval verify` | oxlint 0/0；20 个测试文件 **196 passed**（+6：内置规则 pass/warn / 空事件报错 / 业务三态+跳过原因 / 坏 YAML / 预校验版本条目数） |
+| `pnpm --filter @eterna/evals verify` | oxlint 0/0；tsc strict 0；11 个测试文件 **107 passed**（+9：runPack 评分/产物/报告/未开启/坏 YAML 单列 / metrics.yaml 不误当 case / CLI 裸开关+自动发现 / 非法与不可读退出码 2）；Python driver 单测 **19 passed** |
+| 全仓 `pnpm run verify` | **EXIT=0** |
+| `verify-eterna-web.mjs`（真实 boot） | OK — **232** host entries；`settings.section=5` |
+| `verify-eterna-super.mjs`（真实 boot） | OK — **240** host entries；`settings.section=6` |
+| `scripts/lint-ui-tokens.mjs` | 19 目录 **349** 文件、79 个 `--et-*` 令牌、状态点 30/30、v4 阶梯 0 债务 |
+| `packctl form-check / tenant-scan / prompt-scan` | 0 / 0 / 0 findings |
+
+**领域包端到端（实测）**：`packs/event-planning` 30 条 golden + 30 份 replay fixture，跑
+`dsh-evals run --pack packs/event-planning --adapter replay --session-eval`：
+
+- golden 断言 `total=30 pass=30 fail=0`；评分 `scored=30/30`；
+- 规则结论 `pass 25 / warn 5 / unrated 0`；每条 15 项内置规则全部产出；
+- 5 条 `warn` 恰是审批被拒/被拒调用失败的用例：`budget-overrun-15pct-silent-forbidden`、
+  `budget-overrun-5pct-threshold`、`contract-sign-no-proxy`、`external-payment-must-escalate`、
+  `vendor-shortlist-neutrality`（与在线规则「审批拒绝 + 工具失败」同口径）；
+- 业务规则端到端由 pack-mini 测试覆盖：`trajectory.approval_flow`（`send_group_message`）在
+  `approval-redline` 判通过、其余 3 条判未过；裁判型条目进入 `skipped`（原因「裁判型（回放无模型）」）。
+
+### 18.4 P2-3 收官
+
+P2-3a 校准 / b 试跑 / c 总览 / d 回放对接全部交付。在线评分库、总览与金集回放现在共用同一套
+规则实现（`evaluateRules` / `runBusinessRule` / `buildBusinessRuleFacts`），语义漂移由单测与
+30 条 domain pack 回放实证。后续可选项（不在本轮）：acp 适配器上的业务规则实跑、评分库回灌导出、
+pack 级 metrics.yaml 的产品化编辑入口。
