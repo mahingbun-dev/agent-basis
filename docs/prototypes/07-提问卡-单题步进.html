@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-zcode-design data-eterna-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>原型 · 提问卡 v3（单题步进） · EternaAgent</title>
+<style>
+/* ===== v4 令牌：内联自 packages/ui/src/tokens.ts（宣纸/墨玉、黛青、8→36 圆角阶梯） ===== */
+:root, [data-eterna-theme='light'] {
+  color-scheme: light;
+  --et-bg: #f4f2ec;
+  --et-surface: #fbfaf6;
+  --et-surface-2: #efede5;
+  --et-surface-3: #e6e3d9;
+  --et-fg: #1b1e1c;
+  --et-fg-2: #3c423e;
+  --et-muted: #5f655f;
+  --et-meta: #6f756e;
+  --et-border: #dcd8cd;
+  --et-border-soft: #eae6dc;
+  --et-accent: #2b6272;
+  --et-accent-hover: #224f5c;
+  --et-accent-active: #1b4049;
+  --et-accent-fill: #2b6272;
+  --et-accent-fill-hover: #224f5c;
+  --et-accent-on: #fbfaf6;
+  --et-accent-soft: rgba(43, 98, 114, 0.10);
+  --et-success: #2d7a55;
+  --et-warn: #94661c;
+  --et-warn-soft: rgba(148, 102, 28, 0.10);
+  --et-danger: #a63d2e;
+  --et-danger-soft: rgba(166, 61, 46, 0.10);
+  --et-shadow-r1: 0 1px 2px rgba(38, 42, 36, 0.05), 0 2px 6px rgba(38, 42, 36, 0.04);
+  --et-shadow-r2: 0 1px 2px rgba(38, 42, 36, 0.05), 0 8px 24px rgba(38, 42, 36, 0.07);
+  --et-shadow-r3: 0 2px 6px rgba(38, 42, 36, 0.07), 0 16px 40px rgba(38, 42, 36, 0.10);
+  --et-focus-ring: 0 0 0 3px rgba(43, 98, 114, 0.22);
+  --et-selection: rgba(43, 98, 114, 0.22);
+}
+[data-eterna-theme='dark'] {
+  color-scheme: dark;
+  --et-bg: #161917;
+  --et-surface: #1d211f;
+  --et-surface-2: #242826;
+  --et-surface-3: #2c312e;
+  --et-fg: #eceee9;
+  --et-fg-2: #c4c9c2;
+  --et-muted: #9aa096;
+  --et-meta: #8b9188;
+  --et-border: #333835;
+  --et-border-soft: #272b29;
+  --et-accent: #7fb2bd;
+  --et-accent-hover: #9cc7d0;
+  --et-accent-active: #6ba3af;
+  --et-accent-fill: #39727f;
+  --et-accent-fill-hover: #43828f;
+  --et-accent-on: #f7fbfc;
+  --et-accent-soft: rgba(127, 178, 189, 0.16);
+  --et-success: #6cc294;
+  --et-warn: #dfae62;
+  --et-warn-soft: rgba(223, 174, 98, 0.14);
+  --et-danger: #e08a7b;
+  --et-danger-soft: rgba(224, 138, 123, 0.14);
+  --et-shadow-r1: 0 1px 2px rgba(0, 0, 0, 0.30);
+  --et-shadow-r2: 0 2px 6px rgba(0, 0, 0, 0.34), 0 10px 28px rgba(0, 0, 0, 0.24);
+  --et-shadow-r3: 0 4px 12px rgba(0, 0, 0, 0.40), 0 18px 44px rgba(0, 0, 0, 0.34);
+  --et-focus-ring: 0 0 0 3px rgba(127, 178, 189, 0.26);
+  --et-selection: rgba(127, 178, 189, 0.26);
+}
+:root {
+  --et-font-display: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", "STSong", Georgia, serif;
+  --et-font-body: "PingFang SC", "HarmonyOS Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", -apple-system, sans-serif;
+  --et-font-mono: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --et-text-micro: 11px;
+  --et-text-meta: 12px;
+  --et-text-caption: 13px;
+  --et-text-body: 15px;
+  --et-text-lead: 17px;
+  --et-text-h3: 22px;
+  --et-leading-body: 1.7;
+  --et-leading-snug: 1.35;
+  --et-weight-body: 400;
+  --et-weight-emphasis: 500;
+  --et-weight-display: 600;
+  --et-space-1: 4px;
+  --et-space-2: 8px;
+  --et-space-3: 12px;
+  --et-space-4: 16px;
+  --et-space-5: 20px;
+  --et-space-6: 24px;
+  --et-radius-xs: 8px;
+  --et-radius-sm: 12px;
+  --et-radius-md: 16px;
+  --et-radius-lg: 22px;
+  --et-radius-pill: 9999px;
+  --et-motion-fast: 120ms;
+  --et-motion-base: 220ms;
+  --et-ease: cubic-bezier(0.22, 0.61, 0.24, 1);
+  --bar-h: 56px;
+  --composer-h: 136px;
+  --avail: min(720px, calc(100dvh - var(--bar-h) - var(--composer-h) - 20px));
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--et-bg);
+  color: var(--et-fg);
+  font-family: var(--et-font-body);
+  font-size: var(--et-text-body);
+  line-height: var(--et-leading-body);
+  font-weight: var(--et-weight-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== 演示外壳：产品内会话页（背景上下文，非本次设计重点） ===== */
+.app {
+  display: grid;
+  grid-template-rows: var(--bar-h) minmax(0, 1fr) auto;
+  height: 100dvh;
+  max-width: 1440px;
+  margin: 0 auto;
+  border-inline: 1px solid var(--et-border-soft);
+  background: var(--et-bg);
+}
+.app-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--et-border-soft);
+  background: var(--et-surface);
+}
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand-mark {
+  width: 26px; height: 26px; flex: none;
+  display: grid; place-items: center;
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius-xs);
+  color: var(--et-accent);
+  font-family: var(--et-font-display);
+  font-size: 15px;
+  line-height: 1;
+}
+.brand-name { font-family: var(--et-font-display); font-size: 16px; font-weight: var(--et-weight-display); letter-spacing: 0.01em; }
+.brand-sep { color: var(--et-border); }
+.crumb { color: var(--et-muted); font-size: var(--et-text-caption); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-tools { display: flex; align-items: center; gap: 8px; flex: none; }
+.theme-switch { display: inline-flex; padding: 2px; border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-pill); background: var(--et-surface-2); }
+.theme-switch button {
+  height: 24px; padding: 0 10px; border: 0; border-radius: var(--et-radius-pill);
+  background: transparent; color: var(--et-muted); font: inherit; font-size: var(--et-text-meta); cursor: pointer;
+}
+.theme-switch button[aria-pressed='true'] { background: var(--et-surface); color: var(--et-fg); box-shadow: var(--et-shadow-r1); }
+.theme-switch button:focus-visible { outline: none; box-shadow: var(--et-focus-ring); }
+
+.thread {
+  overflow-y: auto;
+  padding: 28px 24px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--et-fg) 20%, transparent) transparent;
+}
+.thread-inner { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+.msg-meta { margin: 0 0 6px; font-size: var(--et-text-meta); color: var(--et-meta); }
+.msg-user {
+  align-self: flex-end;
+  max-width: 78%;
+  padding: 10px 14px;
+  border: 1px solid var(--et-border-soft);
+  border-radius: var(--et-radius-md);
+  background: var(--et-surface-2);
+  line-height: var(--et-leading-snug);
+}
+.msg-agent { max-width: 92%; }
+.msg-agent p { margin: 0 0 10px; }
+.msg-agent p:last-child { margin-bottom: 0; }
+.msg-agent ul { margin: 0 0 10px; padding-inline-start: 20px; }
+.msg-agent li { margin: 2px 0; }
+.callout {
+  display: flex; gap: 10px; align-items: flex-start;
+  margin: 12px 0; padding: 12px 14px;
+  border: 1px solid var(--et-border-soft); border-inline-start: 2px solid var(--et-accent);
+  border-radius: var(--et-radius-sm);
+  background: var(--et-surface);
+  font-size: var(--et-text-caption);
+  color: var(--et-fg-2);
+}
+
+/* ===== 输入区 + 决策层锚点（生产同构：卡片贴输入卡顶边向上生长） ===== */
+.composer-wrap { padding: 0 16px 16px; background: linear-gradient(to top, var(--et-bg) 72%, transparent); }
+.composer-anchor { position: relative; max-width: 760px; margin: 0 auto; }
+.composer {
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius-lg);
+  background: var(--et-surface);
+  box-shadow: var(--et-shadow-r1);
+  padding: 12px 14px 10px;
+}
+.composer-input {
+  width: 100%; min-height: 40px; max-height: 120px; resize: none;
+  border: 0; background: transparent; color: var(--et-fg);
+  font: inherit; line-height: var(--et-leading-snug); outline: none;
+}
+.composer-input::placeholder { color: var(--et-meta); }
+.composer-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 6px; }
+.composer-hint { display: flex; align-items: center; gap: 6px; color: var(--et-meta); font-size: var(--et-text-caption); }
+.chip-mini {
+  display: inline-flex; align-items: center; height: 22px; padding: 0 8px;
+  border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-pill);
+  color: var(--et-muted); font-size: var(--et-text-micro);
+}
+.send-btn {
+  width: 32px; height: 32px; display: grid; place-items: center;
+  border: 0; border-radius: var(--et-radius-pill);
+  background: var(--et-accent-fill); color: var(--et-accent-on);
+  cursor: pointer;
+}
+.send-btn:disabled { opacity: 0.45; cursor: default; }
+
+/* ===== 决策层（贴输入卡顶边，向上生长） ===== */
+.decision-layer {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: calc(100% - 12px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-height: var(--avail);
+  pointer-events: none;
+  z-index: 200;
+}
+.decision-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: min(240px, var(--avail));
+  max-height: var(--avail);
+  width: min(760px, 100%);
+  overflow: hidden;
+  pointer-events: auto;
+  border: 1px solid color-mix(in oklab, var(--et-accent), transparent 62%);
+  border-radius: var(--et-radius-lg);
+  background: var(--et-surface);
+  box-shadow: var(--et-shadow-r3);
+  color: var(--et-fg);
+  font-size: var(--et-text-body);
+  font-weight: var(--et-weight-body);
+  line-height: var(--et-leading-body);
+  animation: card-in var(--et-motion-base) var(--et-ease);
+}
+@keyframes card-in { from { opacity: 0; transform: translateY(10px); } }
+
+/* 倒计时贴卡片顶边 2px，不占一行 */
+.decision-track { position: absolute; inset-block-start: 0; inset-inline: 0; height: 2px; background: var(--et-surface-3); }
+.decision-track > i { display: block; height: 100%; width: 62%; background: var(--et-accent); border-radius: var(--et-radius-pill); }
+
+/* 头部：固定，不随题区滚动 */
+.q-head {
+  flex: none;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 18px 20px 10px 20px;
+}
+.q-head-main { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; flex: 1 1 auto; }
+.badge {
+  display: inline-flex; align-items: center; height: 22px; padding: 0 9px;
+  border-radius: var(--et-radius-pill);
+  background: var(--et-accent-soft); color: var(--et-accent);
+  font-size: var(--et-text-meta); font-weight: var(--et-weight-emphasis);
+  white-space: nowrap;
+}
+.q-title { margin: 0; font-size: var(--et-text-body); font-weight: var(--et-weight-display); line-height: var(--et-leading-snug); }
+.q-count { margin: 1px 0 0; flex: none; font-size: var(--et-text-meta); color: var(--et-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* 题区：唯一滚动轴。自定义细滚动条常驻，明确“下面还有题”。 */
+.q-body-wrap { position: relative; flex: 1 1 auto; min-height: 0; display: flex; }
+.q-body-wrap::before, .q-body-wrap::after {
+  content: ''; position: absolute; inset-inline: 0; height: 20px;
+  pointer-events: none; opacity: 0; transition: opacity var(--et-motion-fast) var(--et-ease);
+  z-index: 1;
+}
+.q-body-wrap::before { top: 0; background: linear-gradient(to bottom, var(--et-surface), transparent); }
+.q-body-wrap::after { bottom: 0; background: linear-gradient(to top, var(--et-surface), transparent); }
+.q-body-wrap[data-edge~='top']::before { opacity: 1; }
+.q-body-wrap[data-edge~='bottom']::after { opacity: 1; }
+.q-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 22px;
+  padding: 4px 20px 10px;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--et-fg) 22%, transparent) transparent;
+}
+.q-body::-webkit-scrollbar { width: 10px; }
+.q-body::-webkit-scrollbar-track { background: transparent; }
+.q-body::-webkit-scrollbar-thumb {
+  border: 3px solid transparent; border-radius: var(--et-radius-pill);
+  background: color-mix(in oklab, var(--et-fg) 22%, transparent);
+  background-clip: content-box;
+}
+.q-body::-webkit-scrollbar-thumb:hover { background: color-mix(in oklab, var(--et-fg) 36%, transparent); background-clip: content-box; }
+
+.q-field { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 10px; min-inline-size: 0; }
+/* 单题步进：一次只显示当前题（hidden 覆盖 .q-field 的 display:flex） */
+.q-field[hidden] { display: none; }
+.q-qhead { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.q-tag { color: var(--et-accent); font-size: var(--et-text-caption); font-weight: var(--et-weight-emphasis); white-space: nowrap; }
+.q-question { color: var(--et-fg); font-size: var(--et-text-body); line-height: var(--et-leading-snug); }
+.q-multi {
+  padding: 1px 7px; border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-pill);
+  color: var(--et-muted); font-size: var(--et-text-micro); line-height: 1.5; white-space: nowrap;
+}
+
+/* 选项 = 整行卡片（ZCode 形态）：圆环 + 标题 + 说明；选中只染边框与浅底 */
+.q-options { display: flex; flex-direction: column; gap: 8px; }
+.q-option {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 11px 14px;
+  border: 1px solid var(--et-border-soft);
+  border-radius: var(--et-radius-sm);
+  background: var(--et-surface);
+  cursor: pointer;
+  transition: border-color var(--et-motion-fast) var(--et-ease), background-color var(--et-motion-fast) var(--et-ease);
+}
+.q-option:hover { border-color: color-mix(in oklab, var(--et-accent), transparent 55%); }
+.q-option:focus-within { box-shadow: var(--et-focus-ring); }
+.q-option.is-on { border-color: var(--et-accent); background: var(--et-accent-soft); }
+/* 自绘圆环：深色 UA 会把原生 radio 渲染成白实心，看起来像全部选中 */
+.q-option input {
+  appearance: none; -webkit-appearance: none;
+  flex: none;
+  display: grid; place-items: center;
+  width: 18px; height: 18px; margin: 2px 0 0;
+  border: 1.5px solid color-mix(in oklab, var(--et-meta), transparent 30%);
+  border-radius: var(--et-radius-pill);
+  background: var(--et-surface);
+  cursor: pointer;
+  transition: border-color var(--et-motion-fast) var(--et-ease), background-color var(--et-motion-fast) var(--et-ease);
+}
+.q-option input:focus-visible { outline: none; box-shadow: var(--et-focus-ring); }
+.q-option input:checked { border-color: var(--et-accent-fill); background: var(--et-accent-fill); }
+.q-option input[type='radio']:checked::after {
+  content: ''; width: 7px; height: 7px; border-radius: var(--et-radius-pill); background: var(--et-accent-on);
+}
+.q-option input[type='checkbox']:checked::after {
+  content: ''; width: 8px; height: 5px; margin-top: -2px;
+  border-left: 1.5px solid var(--et-accent-on); border-bottom: 1.5px solid var(--et-accent-on);
+  transform: rotate(-45deg);
+}
+.q-option-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.q-option-label { font-size: var(--et-text-body); line-height: 1.5; color: var(--et-fg); }
+.q-option-desc { font-size: var(--et-text-caption); line-height: 1.55; color: var(--et-muted); }
+
+.q-custom {
+  width: 100%; height: 40px;
+  padding: 0 var(--et-space-3);
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius-sm);
+  background: var(--et-surface-3);
+  color: var(--et-fg);
+  font-family: var(--et-font-body); font-size: var(--et-text-body); font-weight: var(--et-weight-body);
+  transition: border-color var(--et-motion-fast) var(--et-ease), box-shadow var(--et-motion-fast) var(--et-ease);
+}
+.q-custom::placeholder { color: var(--et-meta); }
+.q-custom:focus { outline: none; border-color: var(--et-accent); box-shadow: var(--et-focus-ring); }
+
+/* 底部：固定操作条。倒计时在上；下一行＝跳过（左）· 题号步进器（中）· 提交（右） */
+.q-foot {
+  flex: none;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 20px 12px;
+  border-top: 1px solid var(--et-border-soft);
+}
+.q-meta { margin: 0; font-size: var(--et-text-caption); color: var(--et-muted); }
+.q-actions {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  width: 100%; margin: 0;
+}
+.q-stepper { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.q-nav { width: 32px; padding: 0; flex: none; color: var(--et-fg-2); }
+.q-nav-flip { transform: rotate(180deg); }
+.q-step {
+  font-size: var(--et-text-caption); color: var(--et-fg-2);
+  font-weight: var(--et-weight-emphasis); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 32px; padding: 0 12px;
+  border: 1px solid transparent; border-radius: var(--et-radius-sm);
+  background: transparent; color: var(--et-fg);
+  font-family: var(--et-font-body); font-size: var(--et-text-caption); font-weight: var(--et-weight-emphasis);
+  line-height: 1; white-space: nowrap; cursor: pointer;
+  transition: background-color var(--et-motion-fast) var(--et-ease), color var(--et-motion-fast) var(--et-ease), border-color var(--et-motion-fast) var(--et-ease);
+}
+.btn:focus-visible { outline: none; box-shadow: var(--et-focus-ring); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-ghost { color: var(--et-muted); }
+.btn-ghost:hover:not(:disabled) { background: var(--et-surface-2); color: var(--et-fg); }
+.btn-primary { background: var(--et-accent-fill); color: var(--et-accent-on); box-shadow: var(--et-shadow-r1); }
+.btn-primary:hover:not(:disabled) { background: var(--et-accent-fill-hover); }
+
+@media (max-width: 760px) {
+  :root { --bar-h: 52px; --composer-h: 128px; }
+  .app { border-inline: 0; }
+  .app-bar { padding: 0 14px; }
+  .crumb { display: none; }
+  .thread { padding: 18px 14px 8px; }
+  .q-head { padding: 16px 14px 8px 14px; }
+  .q-body { padding: 2px 14px 8px; }
+  .q-body-wrap::before, .q-body-wrap::after { right: 6px; }
+  .q-foot { padding: 10px 14px 12px; }
+  .q-option { padding: 10px 12px; }
+  .theme-switch { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .decision-card { animation: none; }
+  .q-option, .q-custom, .btn { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="app-bar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">恒</span>
+      <span class="brand-name">恒灵</span>
+      <span class="brand-sep" aria-hidden="true">·</span>
+      <span class="crumb">产品方案讨论</span>
+    </div>
+    <div class="app-tools">
+      <div class="theme-switch" role="group" aria-label="主题">
+        <button type="button" data-theme-set="light" aria-pressed="true">浅色</button>
+        <button type="button" data-theme-set="dark" aria-pressed="false">深色</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="thread" id="thread">
+    <div class="thread-inner">
+      <div>
+        <p class="msg-meta">你 · 14:02</p>
+        <div class="msg-user">先把 PDF 阅读这块的方案主干定下来：本地解析还是云端解析，权限怎么隔离。</div>
+      </div>
+      <div class="msg-agent">
+        <p class="msg-meta">恒灵 · 14:03</p>
+        <p>我把主干拆成了四个决策点，其中三个会直接决定架构形状，另一个只影响交付节奏。</p>
+        <div class="callout">当前卡在「文件内容能否出本机」这一条：它决定了后面所有同步协议与索引设计。</div>
+        <p>为避免返工，我先向你确认四个问题，然后再收敛成方案文档。</p>
+      </div>
+    </div>
+  </main>
+
+  <div class="composer-wrap">
+    <div class="composer-anchor">
+    <div class="decision-layer">
+      <section class="decision-card" data-kind="question" role="dialog" aria-modal="false" aria-labelledby="q-title">
+        <div class="decision-track" aria-hidden="true"><i></i></div>
+        <header class="q-head">
+          <div class="q-head-main">
+            <span class="badge">待回答</span>
+            <h2 class="q-title" id="q-title">需要你的回答才能继续</h2>
+          </div>
+          <p class="q-count" id="q-count">已答 4/4</p>
+        </header>
+
+        <div class="q-body-wrap" id="q-body-wrap">
+        <div class="q-body" id="q-body">
+          <div class="q-field" role="group" aria-labelledby="q1-h">
+            <div class="q-qhead" id="q1-h">
+              <span class="q-tag">合规红线</span>
+              <span class="q-question">客户环境里有强合规要求吗（这决定文件内容能否出本机）？</span>
+            </div>
+            <div class="q-options">
+              <label class="q-option">
+                <input type="radio" name="q1" value="a">
+                <span class="q-option-text">
+                  <span class="q-option-label">有：私有化部署 / 数据不出内网 / 代码不得上传</span>
+                  <span class="q-option-desc">文件内容必须留在本机，云只能见元数据与 diff 摘要，架构要为此让路。</span>
+                </span>
+              </label>
+              <label class="q-option is-on">
+                <input type="radio" name="q1" value="b" checked>
+                <span class="q-option-text">
+                  <span class="q-option-label">无硬约束，但尽量少上传（默认隐私友好）</span>
+                  <span class="q-option-desc">按需拉取单文件是做得到的，但允许必要的上下文上传。</span>
+                </span>
+              </label>
+              <label class="q-option">
+                <input type="radio" name="q1" value="c">
+                <span class="q-option-text">
+                  <span class="q-option-label">尚无定论，需要方案本身支持两种模式切换</span>
+                  <span class="q-option-desc">要设计成可配置的「数据面驻留策略」，工程成本显著上升。</span>
+                </span>
+              </label>
+            </div>
+            <input class="q-custom" type="text" placeholder="其他（可补充说明）">
+          </div>
+
+          <div class="q-field" role="group" aria-labelledby="q2-h" hidden>
+            <div class="q-qhead" id="q2-h">
+              <span class="q-tag">本轮讨论目标</span>
+              <span class="q-question">这一轮讨论你希望产出形式是？</span>
+            </div>
+            <div class="q-options">
+              <label class="q-option is-on">
+                <input type="radio" name="q2" value="a" checked>
+                <span class="q-option-text">
+                  <span class="q-option-label">对话式深挖：先厘清关键决策点，再成文</span>
+                  <span class="q-option-desc">我们先在对话里把几条主干决策炒清楚，最后我再收敛成正式方案文档。</span>
+                </span>
+              </label>
+              <label class="q-option">
+                <input type="radio" name="q2" value="b">
+                <span class="q-option-text">
+                  <span class="q-option-label">直接产出方案文档初稿，我读完再提意见</span>
+                  <span class="q-option-desc">我按判断先写完整方案（含架构、协议、权限模型、路线），你集中反馈。</span>
+                </span>
+              </label>
+              <label class="q-option">
+                <input type="radio" name="q2" value="c">
+                <span class="q-option-text">
+                  <span class="q-option-label">先只讨论最难的 2–3 个点（权限模型、冲突、云端价值）</span>
+                  <span class="q-option-desc">不铺全面，聚焦在做错就会返工的地方。</span>
+                </span>
+              </label>
+            </div>
+            <input class="q-custom" type="text" placeholder="其他（可补充说明）">
+          </div>
+
+          <div class="q-field" role="group" aria-labelledby="q3-h" hidden>
+            <div class="q-qhead" id="q3-h">
+              <span class="q-tag">优先级</span>
+              <span class="q-question">最先处理哪一块？</span>
+              <span class="q-multi">可多选</span>
+            </div>
+            <div class="q-options">
+              <label class="q-option is-on">
+                <input type="checkbox" name="q3" value="a" checked>
+                <span class="q-option-text">
+                  <span class="q-option-label">权限模型</span>
+                  <span class="q-option-desc">谁能看到、谁能改、跨租户边界。</span>
+                </span>
+              </label>
+              <label class="q-option">
+                <input type="checkbox" name="q3" value="b">
+                <span class="q-option-text">
+                  <span class="q-option-label">同步协议</span>
+                  <span class="q-option-desc">离线冲突与版本合并。</span>
+                </span>
+              </label>
+              <label class="q-option is-on">
+                <input type="checkbox" name="q3" value="c" checked>
+                <span class="q-option-text">
+                  <span class="q-option-label">云端价值</span>
+                  <span class="q-option-desc">哪些能力只有云端能给。</span>
+                </span>
+              </label>
+            </div>
+            <input class="q-custom" type="text" placeholder="其他（可补充说明）">
+          </div>
+
+          <div class="q-field" role="group" aria-labelledby="q4-h" hidden>
+            <div class="q-qhead" id="q4-h">
+              <span class="q-tag">交付节奏</span>
+              <span class="q-question">首版交付窗口你倾向哪个？</span>
+            </div>
+            <div class="q-options">
+              <label class="q-option is-on">
+                <input type="radio" name="q4" value="a" checked>
+                <span class="q-option-text">
+                  <span class="q-option-label">两周内先出可用版，接受粗糙</span>
+                  <span class="q-option-desc">先把主链路跑通，后续迭代补细节。</span>
+                </span>
+              </label>
+              <label class="q-option">
+                <input type="radio" name="q4" value="b">
+                <span class="q-option-text">
+                  <span class="q-option-label">四周内出完整版，一次到位</span>
+                  <span class="q-option-desc">范围更稳，但首版上线更晚。</span>
+                </span>
+              </label>
+              <label class="q-option">
+                <input type="radio" name="q4" value="c">
+                <span class="q-option-text">
+                  <span class="q-option-label">暂不承诺时间，按质量推进</span>
+                  <span class="q-option-desc">节奏服从质量，里程碑滚动更新。</span>
+                </span>
+              </label>
+            </div>
+            <input class="q-custom" type="text" placeholder="其他（可补充说明）">
+          </div>
+        </div>
+        </div>
+
+        <footer class="q-foot">
+          <p class="q-meta" id="q-meta">224 秒后自动放行（模型会说明未获回答继续）</p>
+          <div class="q-actions">
+            <button type="button" class="btn btn-ghost">跳过本轮</button>
+            <div class="q-stepper" role="group" aria-label="题目切换">
+              <button type="button" class="btn btn-ghost q-nav" id="q-prev" aria-label="上一题" title="上一题">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true" class="q-nav-flip"><path d="M9.5 6.5l5.5 5.5-5.5 5.5"/></svg>
+              </button>
+              <span class="q-step" id="q-step">第 1/4 题</span>
+              <button type="button" class="btn btn-ghost q-nav" id="q-next" aria-label="下一题" title="下一题">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M9.5 6.5l5.5 5.5-5.5 5.5"/></svg>
+              </button>
+            </div>
+            <button type="button" class="btn btn-primary" id="q-submit">提交回答</button>
+          </div>
+        </footer>
+      </section>
+    </div>
+
+    <div class="composer">
+      <textarea class="composer-input" rows="1" placeholder="发消息或创建任务，/ 调用指令，@ 文件或对话"></textarea>
+      <div class="composer-row">
+        <div class="composer-hint">
+          <span class="chip-mini">Claude · 深度思考</span>
+          <span class="chip-mini">联网搜索</span>
+        </div>
+        <button type="button" class="send-btn" aria-label="发送" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/></svg>
+        </button>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict'
+
+  // 主题切换（原型控制，非产品功能）
+  var root = document.documentElement
+  document.querySelectorAll('[data-theme-set]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var next = button.getAttribute('data-theme-set')
+      root.setAttribute('data-eterna-theme', next)
+      document.querySelectorAll('[data-theme-set]').forEach(function (other) {
+        other.setAttribute('aria-pressed', other === button ? 'true' : 'false')
+      })
+    })
+  })
+
+  var fields = Array.prototype.slice.call(document.querySelectorAll('#q-body .q-field'))
+  // 选项行：选中态由 JS 同步类名（生产实现直接用 React 状态）
+  function sync() {
+    var answered = 0
+    fields.forEach(function (field) {
+      var on = field.querySelector('.q-option.is-on')
+      var custom = field.querySelector('.q-custom')
+      // 单选组：有自定义文本时也视为已回答；没有选中项时清空
+      if (on || custom.value.trim() !== '') answered += 1
+    })
+    document.getElementById('q-count').textContent = '已答 ' + answered + '/' + fields.length
+    document.getElementById('q-submit').disabled = answered !== fields.length
+  }
+  // 题区边缘渐隐：有被遮住的内容时才出现，提示“下面还有题”
+  var bodyWrap = document.getElementById('q-body-wrap')
+  var body = document.getElementById('q-body')
+  function syncEdges() {
+    var edges = ''
+    if (body.scrollTop > 2) edges += ' top'
+    if (body.scrollTop + body.clientHeight < body.scrollHeight - 2) edges += ' bottom'
+    bodyWrap.setAttribute('data-edge', edges.trim())
+  }
+  body.addEventListener('scroll', syncEdges, { passive: true })
+  window.addEventListener('resize', syncEdges)
+  document.querySelectorAll('.q-option input').forEach(function (input) {
+    input.addEventListener('change', function () {
+      var field = input.closest('.q-field')
+      if (input.type === 'radio') {
+        field.querySelectorAll('.q-option').forEach(function (row) {
+          row.classList.toggle('is-on', row.contains(input))
+        })
+      } else {
+        input.closest('.q-option').classList.toggle('is-on', input.checked)
+      }
+      sync()
+    })
+  })
+  document.querySelectorAll('.q-custom').forEach(function (input) {
+    input.addEventListener('input', sync)
+  })
+
+  // ===== 单题步进：一次只显示一题，底栏 ‹ 第 n/N 题 › 切换 =====
+  var step = 0
+  var stepLabel = document.getElementById('q-step')
+  var prevBtn = document.getElementById('q-prev')
+  var nextBtn = document.getElementById('q-next')
+  function showStep() {
+    fields.forEach(function (field, i) { field.hidden = i !== step })
+    stepLabel.textContent = '第 ' + (step + 1) + '/' + fields.length + ' 题'
+    prevBtn.disabled = step === 0
+    nextBtn.disabled = step === fields.length - 1
+    body.scrollTop = 0
+    syncEdges()
+  }
+  function go(delta) {
+    var next = Math.min(Math.max(0, step + delta), fields.length - 1)
+    if (next === step) return
+    step = next
+    showStep()
+  }
+  prevBtn.addEventListener('click', function () { go(-1) })
+  nextBtn.addEventListener('click', function () { go(1) })
+  window.addEventListener('keydown', function (event) {
+    var target = event.target
+    if (target && target.closest && target.closest('input, textarea, select, [contenteditable="true"]')) return
+    if (event.key === 'ArrowLeft') { event.preventDefault(); go(-1) }
+    else if (event.key === 'ArrowRight') { event.preventDefault(); go(1) }
+  })
+
+  sync()
+  showStep()
+})()
+</script>
+</body>
+</html>

@@ -230,6 +230,31 @@ describe('圆角与层级：只允许阶梯值', () => {
   })
 })
 
+describe('决策卡限高：题多不许顶穿视口', () => {
+  it('.et-decision-card 有 max-height，取决策层量测变量', () => {
+    const start = COMPONENT_CSS.indexOf('.et-decision-card {')
+    expect(start).toBeGreaterThan(-1)
+    const rule = COMPONENT_CSS.slice(start, COMPONENT_CSS.indexOf('}', start))
+    expect(rule).toContain('max-height: min(720px, var(--decision-avail, 68dvh))')
+  })
+
+  it('提问卡变体是纵向 flex，题区才能成为唯一滚动轴', () => {
+    const start = COMPONENT_CSS.indexOf(".et-decision-card[data-kind='question']")
+    expect(start).toBeGreaterThan(-1)
+    const rule = COMPONENT_CSS.slice(start, COMPONENT_CSS.indexOf('}', start))
+    expect(rule).toContain('display: flex')
+    expect(rule).toContain('flex-direction: column')
+    expect(rule).toContain('padding: 0')
+  })
+
+  it('决策层自身也有 max-height，多卡堆叠同样被约束', () => {
+    const start = COMPONENT_CSS.indexOf('.et-decision-layer {')
+    expect(start).toBeGreaterThan(-1)
+    const rule = COMPONENT_CSS.slice(start, COMPONENT_CSS.indexOf('}', start))
+    expect(rule).toContain('max-height: var(--decision-avail, 68dvh)')
+  })
+})
+
 describe('品牌层与桥接层互不污染', () => {
   it('别名覆盖只落在 body，不挂到插件面元素', () => {
     // 一旦把 --dsw-alias-* 定义到 [data-eterna-ui]，插件面会自持浅色别名；深色主题失效。

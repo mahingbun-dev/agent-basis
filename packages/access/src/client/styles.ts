@@ -665,19 +665,96 @@ html[data-eterna-access-role="member"] [data-plugin-panel] button[aria-label^="�
 [data-eterna-ui] .eap-reason code { word-break: break-all; }
 [data-eterna-ui] .eap-meta { margin: 0; font-size: var(--et-text-meta); color: var(--et-meta); }
 
-/* ── 提问卡(2026-11-17):ask_user_question 的 web 可见面。上游前端卡片组件在
+/* ── 提问卡(v2 2026-11-25):ask_user_question 的 web 可见面。上游前端卡片组件在
    mux 换血后收不到 waterfall(网关只发 owner peer),本卡=宿主提问桥的浏览器半边。
-   与审批卡同层叠放(z-index 同档,纵向堆叠),但语义色用 accent 而非 warn。 ── */
-[data-eterna-ui] .eq-body {
+   与审批卡同层叠放,但语义色用 accent 而非 warn。
+   v2 根因:旧卡没有高度上限,题一多就从输入卡顶边往上顶穿视口——顶部题目被裁掉,
+   且卡片自身不可滚动(用户实测「太多题,直接看不见」)。现在:卡片定高(上限=
+   决策层量测的 --decision-avail),头部/底部固定,题区 .eq-body 是唯一滚动轴,
+   边缘渐隐 + 「共 N 题 · 已答 K/N」明示还有多少题没看。 ── */
+[data-eterna-ui] .eq-head {
+  flex: none;
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: var(--et-space-3);
-  padding: 12px 16px 0;
+  flex-wrap: wrap;
+  padding: 18px var(--et-space-5) 10px;
+}
+[data-eterna-ui] .eq-head-main {
+  display: flex;
+  align-items: center;
+  gap: var(--et-space-2);
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 [data-eterna-ui] .eq-title {
   margin: 0;
   font-size: var(--et-text-body);
-  font-weight: var(--et-weight-body);
+  font-weight: var(--et-weight-display);
+  line-height: var(--et-leading-snug);
+}
+[data-eterna-ui] .eq-count {
+  margin: 1px 0 0;
+  flex: none;
+  font-size: var(--et-text-meta);
+  color: var(--et-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* 题区定高 + 唯一滚动轴:头部/底部不随题滚走;上下渐隐只在真有被遮内容时出现。 */
+[data-eterna-ui] .eq-body-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+[data-eterna-ui] .eq-body-wrap::before,
+[data-eterna-ui] .eq-body-wrap::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  height: 28px;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 1;
+  transition: opacity var(--et-motion-fast) var(--et-ease);
+}
+[data-eterna-ui] .eq-body-wrap::before {
+  inset-block-start: 0;
+  background: linear-gradient(to bottom, var(--et-surface), transparent);
+}
+[data-eterna-ui] .eq-body-wrap::after {
+  inset-block-end: 0;
+  background: linear-gradient(to top, var(--et-surface), transparent);
+}
+[data-eterna-ui] .eq-body-wrap[data-edge~='top']::before,
+[data-eterna-ui] .eq-body-wrap[data-edge~='bottom']::after { opacity: 1; }
+[data-eterna-ui] .eq-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--et-space-5);
+  padding: 4px var(--et-space-5) 10px;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--et-fg) 22%, transparent) transparent;
+}
+[data-eterna-ui] .eq-body::-webkit-scrollbar { width: 10px; }
+[data-eterna-ui] .eq-body::-webkit-scrollbar-track { background: transparent; }
+[data-eterna-ui] .eq-body::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: var(--et-radius-pill);
+  background: color-mix(in oklab, var(--et-fg) 22%, transparent);
+  background-clip: content-box;
+}
+[data-eterna-ui] .eq-body::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklab, var(--et-fg) 36%, transparent);
+  background-clip: content-box;
 }
 [data-eterna-ui] .eq-field {
   margin: 0;
@@ -685,76 +762,175 @@ html[data-eterna-access-role="member"] [data-plugin-panel] button[aria-label^="�
   border: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--et-space-2);
+  gap: 10px;
   min-inline-size: 0;
 }
-[data-eterna-ui] .eq-question {
-  padding: 0;
-  font-size: var(--et-text-caption);
-  color: var(--et-fg-2);
+[data-eterna-ui] .eq-qhead {
   display: flex;
-  align-items: center;
-  gap: var(--et-space-2);
+  align-items: baseline;
   flex-wrap: wrap;
+  gap: var(--et-space-2);
 }
-[data-eterna-ui] .eq-chip {
-  display: inline-block;
-  padding: 1px 8px;
-  border-radius: var(--et-radius-pill);
-  background: var(--et-accent-soft);
+[data-eterna-ui] .eq-tag {
   color: var(--et-accent);
   font-size: var(--et-text-caption);
+  font-weight: var(--et-weight-emphasis);
+  white-space: nowrap;
+}
+[data-eterna-ui] .eq-question {
+  color: var(--et-fg);
+  font-size: var(--et-text-body);
+  line-height: var(--et-leading-snug);
+}
+[data-eterna-ui] .eq-multi {
+  padding: 1px 7px;
+  border: 1px solid var(--et-border-soft);
+  border-radius: var(--et-radius-pill);
+  color: var(--et-muted);
+  font-size: var(--et-text-micro);
+  line-height: 1.5;
+  white-space: nowrap;
 }
 [data-eterna-ui] .eq-options {
   display: flex;
   flex-direction: column;
-  gap: var(--et-space-1);
+  gap: var(--et-space-2);
 }
+/* 选项 = 整行卡片(ZCode 形态):圆环 + 标题 + 说明;选中只染边框与浅底。 */
 [data-eterna-ui] .eq-option {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 2px var(--et-space-2);
-  align-items: start;
-  padding: 8px 10px;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 14px;
   border: 1px solid var(--et-border-soft);
   border-radius: var(--et-radius-sm);
+  background: var(--et-surface);
   cursor: pointer;
-  transition: border-color var(--et-motion-fast) var(--et-ease), background var(--et-motion-fast) var(--et-ease);
+  transition: border-color var(--et-motion-fast) var(--et-ease), background-color var(--et-motion-fast) var(--et-ease);
 }
-[data-eterna-ui] .eq-option:hover { border-color: var(--et-accent); }
+[data-eterna-ui] .eq-option:hover { border-color: color-mix(in oklab, var(--et-accent), transparent 55%); }
 [data-eterna-ui] .eq-option:focus-within { box-shadow: var(--et-focus-ring); }
 [data-eterna-ui] .eq-option-on {
   border-color: var(--et-accent);
   background: var(--et-accent-soft);
 }
+/* 原生控件只留语义与焦点，视觉由 .eq-mark 自绘——深色 UA 会把未选中的
+   radio 渲染成白实心，看起来像全部选中（2026-11-25 深色实测）。 */
 [data-eterna-ui] .eq-option input {
-  grid-row: 1 / span 2;
-  margin: 2px 0 0;
-  accent-color: var(--et-accent);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
 }
-[data-eterna-ui] .eq-option-label { font-size: var(--et-text-body); }
+[data-eterna-ui] .eq-mark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border: 1.5px solid color-mix(in oklab, var(--et-meta), transparent 30%);
+  border-radius: var(--et-radius-pill);
+  background: var(--et-surface);
+  color: var(--et-accent-on);
+  transition: border-color var(--et-motion-fast) var(--et-ease), background-color var(--et-motion-fast) var(--et-ease);
+}
+[data-eterna-ui] .eq-option-on .eq-mark {
+  border-color: var(--et-accent-fill);
+  background: var(--et-accent-fill);
+}
+[data-eterna-ui] .eq-radio-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--et-radius-pill);
+  background: var(--et-accent-on);
+}
+[data-eterna-ui] .eq-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+[data-eterna-ui] .eq-option-label {
+  font-size: var(--et-text-body);
+  line-height: 1.5;
+  color: var(--et-fg);
+}
 [data-eterna-ui] .eq-option-desc {
-  grid-column: 2;
   font-size: var(--et-text-caption);
+  line-height: 1.55;
   color: var(--et-muted);
 }
-[data-eterna-ui] .eq-custom {
-  padding: 7px 10px;
-  border: 1px solid var(--et-border-soft);
-  border-radius: var(--et-radius-sm);
-  background: var(--et-surface);
-  color: var(--et-fg);
-  font: inherit;
-  font-size: var(--et-text-body);
+/* 「其他」输入沿用 .et-input 的 v4 输入契约(surface-3 凹槽 + sm 圆角 + 40 高)。 */
+[data-eterna-ui] .eq-custom { width: 100%; }
+[data-eterna-ui] .eq-error {
+  flex: none;
+  margin: 0;
+  padding: 0 var(--et-space-5) var(--et-space-2);
+  font-size: var(--et-text-caption);
+  color: var(--et-danger);
 }
-[data-eterna-ui] .eq-custom:focus {
-  outline: none;
-  border-color: var(--et-accent);
-  box-shadow: var(--et-focus-ring);
+[data-eterna-ui] .eq-foot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px var(--et-space-5) 12px;
+  border-top: 1px solid var(--et-border-soft);
 }
 [data-eterna-ui] .eq-meta { margin: 0; font-size: var(--et-text-caption); color: var(--et-muted); }
+/* 底栏三段：跳过（左）— 题号步进器（中）— 提交（右） */
+[data-eterna-ui] .eq-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--et-space-2);
+  flex-wrap: wrap;
+  width: 100%;
+  margin: 0;
+}
+[data-eterna-ui] .eq-stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--et-space-2);
+  min-width: 0;
+}
+[data-eterna-ui] .eq-nav { width: 32px; padding: 0; flex: none; color: var(--et-fg-2); }
+[data-eterna-ui] .eq-nav-flip { transform: rotate(180deg); }
+[data-eterna-ui] .eq-step {
+  font-size: var(--et-text-caption);
+  color: var(--et-fg-2);
+  font-weight: var(--et-weight-emphasis);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* 读屏播报用（切题时更新）；视觉不可见 */
+[data-eterna-ui] .eq-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+@media (max-width: 760px) {
+  [data-eterna-ui] .eq-head { padding: 16px 14px 8px; }
+  [data-eterna-ui] .eq-body { padding: 2px 14px 8px; }
+  [data-eterna-ui] .eq-foot { padding: 10px 14px 12px; }
+  [data-eterna-ui] .eq-option { padding: 10px 12px; }
+}
 @media (prefers-reduced-motion: reduce) {
-  [data-eterna-ui] .eq-option { transition: none; }
+  [data-eterna-ui] .eq-option,
+  [data-eterna-ui] .eq-mark,
+  [data-eterna-ui] .eq-body-wrap::before,
+  [data-eterna-ui] .eq-body-wrap::after { transition: none; }
 }
 /* 思考强度反馈按钮(2026-11-18 V2):挂 assistant 动作条,不在 access root 内,
    故不加 [data-eterna-access-root] 前缀;令牌桥接后深浅主题自动跟随。 */
