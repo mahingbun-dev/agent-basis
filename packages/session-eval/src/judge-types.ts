@@ -96,6 +96,17 @@ export interface BusinessMetricsView {
 }
 
 /** 业务指标保存结果(客户端安全形状;不暴露文件系统路径). */
+/** YAML 导入解析结果(只回读条目与文件元信息,不落盘). */
+export type BusinessParseReply =
+  | {
+    readonly ok: true
+    readonly version: number
+    readonly updatedAt: string
+    readonly updatedBy: string
+    readonly metrics: readonly BusinessMetric[]
+  }
+  | { readonly ok: false; readonly error: string }
+
 export type BusinessSaveReply =
   | { readonly ok: true; readonly version: number; readonly metric: BusinessMetric; readonly yaml: string }
   | { readonly ok: false; readonly code: 'conflict' | 'invalid' | 'io'; readonly error: string }

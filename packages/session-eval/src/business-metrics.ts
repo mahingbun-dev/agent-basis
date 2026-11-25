@@ -324,6 +324,7 @@ export function validateBusinessMetric(
   }
   let budget: BusinessBudgetSpec | undefined
   if (record.budget !== undefined) {
+    if (scope !== 'session') return { ok: false, error: 'budget 只支持整条会话范围（scope 必须是 session）。' }
     const raw = asRecord(record.budget)
     const maxTurns = raw?.max_turns
     const maxTokens = raw?.max_tokens
@@ -358,6 +359,15 @@ export function validateBusinessMetric(
 /** 指标形态(设置列表/面板徽标用). */
 export function businessKindOf(metric: BusinessMetric): 'judge' | 'rule' {
   return metric.judge !== undefined ? 'judge' : 'rule'
+}
+
+/** 判定方式细分(设置列表徽标与编辑器模式用). */
+export function businessFormOf(metric: BusinessMetric): 'judge' | 'approval' | 'answer' | 'budget' | 'unknown' {
+  if (metric.judge !== undefined) return 'judge'
+  if (metric.trajectory !== undefined) return 'approval'
+  if (metric.answer !== undefined) return 'answer'
+  if (metric.budget !== undefined) return 'budget'
+  return 'unknown'
 }
 
 /**

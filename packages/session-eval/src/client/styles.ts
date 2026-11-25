@@ -478,13 +478,33 @@ const CSS = `
 [data-eterna-eval-set='criterion'] input[type='number'] {
   width: 100%;
 }
-[data-eterna-eval-set='yaml-box'] summary {
+[data-eterna-eval-set='yaml-box'] summary,
+[data-eterna-eval-set='import-box'] summary {
   display: flex;
   align-items: center;
   min-height: 36px; /* 触控热区下限(frontend-style §7) */
   color: var(--et-fg-2);
   font-size: var(--et-text-micro);
   cursor: pointer;
+}
+[data-eterna-eval-set='import-text'] {
+  box-sizing: border-box; /* 窄屏 width:100% 不叠内边距 */
+  width: 100%;
+  min-height: 120px; /* 6 行可读;resize 纵向可放大 */
+  padding: var(--et-space-2);
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius-sm);
+  background: var(--et-surface);
+  color: var(--et-fg);
+  font-family: var(--et-font-mono);
+  font-size: var(--et-text-micro);
+  line-height: var(--et-leading-snug);
+  resize: vertical;
+}
+[data-eterna-eval-set='import-result'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--et-space-2);
 }
 [data-eterna-eval-set='yaml'] {
   margin: var(--et-space-2) 0 0;

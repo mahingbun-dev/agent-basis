@@ -498,20 +498,81 @@ describe('业务指标(账号覆盖层)', () => {
     expect(snapshot.scores.some(score => score.key === 'reply-quality')).toBe(false)
   })
 
-  it('规则型条目 → 显式跳过原因(本批不执行,不静默)', async () => {
+  it('规则型条目 → 无路由也执行(确定性,零模型调用、零预算),provider/model 落空', async () => {
+    writeConfig({ route: null })
     writeBusinessMetrics('alice', [{
       key: 'no-hedge',
       name: '回复禁语',
       category: 'process',
-      scope: 'turn',
+      scope: 'session',
       answer: { not_contains: ['稍等'] },
     }])
     engine = businessEngine()
     const reply = await engine.evaluate('s1', { account: 'alice' })
     expect(reply.ok).toBe(true)
-    if (reply.ok) expect(reply.skipped).toContain('回复禁语：规则型业务指标随后续批次提供')
+    if (reply.ok) {
+      expect(reply.accepted).toBe(1)
+      expect(reply.skipped.some(reason => reason.includes('未配置裁判模型'))).toBe(true)
+    }
     await settle(engine)
-    expect(calls).toHaveLength(6)
+    expect(calls).toEqual([])
+    const snapshot = await engine.snapshot('s1', NOW)
+    const score = snapshot.scores.find(item => item.key === 'no-hedge')
+    expect(score).toMatchObject({ status: 'ok', pass: true, display: '通过' })
+    expect(score?.rationale).toContain('禁语未出现')
+    expect(snapshot.budget.usedTokens).toBe(0)
+    const store = openJudgeStore(storePath)
+    const row = store.list('s1').find(item => item.metricKey === 'no-hedge')
+    store.close()
+    expect(row).toMatchObject({ provider: null, model: null, tokens: null, gating: false, metricVersion: 1 })
+  })
+
+  it('预算用尽 → 模型类跳过,规则型仍执行(零 token)', async () => {
+    writeConfig()
+    const usage = openJudgeStore(storePath)
+    usage.addUsage(DAY, 200_000)
+    usage.close()
+    writeBusinessMetrics('alice', [{
+      key: 'no-hedge',
+      name: '回复禁语',
+      category: 'process',
+      scope: 'session',
+      gating: false,
+      answer: { not_contains: ['稍等'] },
+    }, rubricInput()])
+    engine = businessEngine()
+    const reply = await engine.evaluate('s1', { account: 'alice' })
+    expect(reply.ok).toBe(true)
+    if (reply.ok) {
+      expect(reply.accepted).toBe(1)
+      expect(reply.skipped).toContain('内置裁判：当日预算已用尽')
+      expect(reply.skipped).toContain('回复质量：当日预算已用尽')
+    }
+    await settle(engine)
+    expect(calls).toEqual([])
+    const snapshot = await engine.snapshot('s1', NOW)
+    expect(snapshot.scores.some(score => score.key === 'no-hedge' && score.status === 'ok')).toBe(true)
+    expect(snapshot.scores.some(score => score.key === 'reply-quality')).toBe(false)
+    // 规则型零 token:用量保持预置值,没有新增。
+    expect(snapshot.budget.usedTokens).toBe(200_000)
+  })
+
+  it('规则型关键项未过 → 结论 warn(与 rubric 同一门控口径)', async () => {
+    writeBusinessMetrics('alice', [{
+      key: 'final-answer',
+      name: '最终答复合规',
+      category: 'outcome',
+      scope: 'session',
+      gating: true,
+      answer: { not_contains: ['完成第二轮'] },
+    }])
+    engine = businessEngine()
+    await engine.evaluate('s1', { account: 'alice' })
+    await settle(engine)
+    const snapshot = await engine.snapshot('s1', NOW)
+    expect(snapshot.overall.level).toBe('warn')
+    expect(snapshot.overall.label).toBe('结果类：1 项关键项未过')
+    expect(snapshot.scores.find(score => score.key === 'final-answer')).toMatchObject({ pass: false, display: '未过' })
   })
 
   it('覆盖层损坏 → settings 带 warning(原文回显);evaluate 记跳过原因且不触达该条目', async () => {
@@ -526,6 +587,31 @@ describe('业务指标(账号覆盖层)', () => {
     if (reply.ok) expect(reply.skipped.some(reason => reason.includes('业务指标文件不可读'))).toBe(true)
     await settle(engine)
     expect(calls).toHaveLength(6)
+  })
+
+  it('parseBusinessMetrics:YAML 文本 → 文件视图(不落盘);语法错误带行号', async () => {
+    engine = businessEngine()
+    const parsed = await engine.parseBusinessMetrics([
+      'version: 4',
+      'updated_by: alice',
+      'metrics:',
+      '  - key: no-hedge',
+      '    name: 回复禁语',
+      '    category: process',
+      '    scope: session',
+      '    answer:',
+      '      not_contains:',
+      '        - 稍等',
+      '',
+    ].join('\n'))
+    expect(parsed).toMatchObject({ ok: true, version: 4, updatedBy: 'alice' })
+    if (parsed.ok) {
+      expect(parsed.metrics).toHaveLength(1)
+      expect(parsed.metrics[0]).toMatchObject({ key: 'no-hedge', answer: { notContains: ['稍等'] } })
+    }
+    const broken = await engine.parseBusinessMetrics('version: [\n')
+    expect(broken.ok).toBe(false)
+    if (!broken.ok) expect(broken.error).toMatch(/第 \d+ 行/)
   })
 
   it('saveBusinessMetric:写入本人覆盖层;冲突/非法账号/未接线各有中文错误', async () => {
