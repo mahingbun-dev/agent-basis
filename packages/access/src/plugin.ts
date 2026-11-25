@@ -26,8 +26,9 @@ import type { Context } from '@deepseek-ai/cordis'
 // 下方 companion 身份注入钩子的监听签名依赖该声明文件进入本包 tsc 程序。
 import type {} from '@deepseek-ai/dsh-tools'
 import {
-  ADVISER_ROUTE_PREFIX, handleAccessRequest, handleAdviserRequest,
-  type AccessDeps, type AdviserFace, type TasksSettingsFace,
+  ADVISER_ROUTE_PREFIX, SESSION_EVAL_ROUTE_PREFIX, handleAccessRequest, handleAdviserRequest,
+  handleSessionEvalRequest,
+  type AccessDeps, type AdviserFace, type SessionEvalFace, type TasksSettingsFace,
 } from './routes.ts'
 import { loadOrCreateSecret, SessionService } from './session.ts'
 import { SlidingWindow } from './ratelimit.ts'
@@ -150,10 +151,12 @@ function createNodeHandler(deps: AccessDeps): (req: IncomingMessage, res: Server
       body: collected.data,
     }
     try {
-      // 参谋面是唯一异步路由面(服务面 Promise),走独立入口;其余全部同步。
+      // 参谋面与评测面是异步路由面(服务面 Promise),走独立入口;其余全部同步。
       const reply = pathname.startsWith(ADVISER_ROUTE_PREFIX)
         ? await handleAdviserRequest(deps, request)
-        : handleAccessRequest(deps, request)
+        : pathname.startsWith(SESSION_EVAL_ROUTE_PREFIX)
+          ? await handleSessionEvalRequest(deps, request)
+          : handleAccessRequest(deps, request)
       res.statusCode = reply.status
       for (const [name, value] of reply.headers) res.setHeader(name, value)
       if (reply.body === undefined) res.end()
@@ -322,6 +325,17 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
           if (raw === undefined) return undefined
           return typeof raw.list === 'function' && typeof raw.create === 'function' && typeof raw.deliver === 'function'
             ? raw as unknown as AdviserFace
+            : undefined
+        },
+        // 实时评测服务面(2026-11-25,56 号 P0):反射键 'eternaSessionEval' 现读
+        // (@eterna/session-eval 的 mountSessionEval provide 的 SessionEvalService;
+        // 插件未装载 → 端点 503)。只认 snapshot 一个方法(结构校验 fail-closed;
+        // access 不 import session-eval)。
+        sessionEval: (): SessionEvalFace | undefined => {
+          const raw = ctx.reflect.get('eternaSessionEval', false) as Record<string, unknown> | undefined
+          if (raw === undefined) return undefined
+          return typeof raw.snapshot === 'function'
+            ? raw as unknown as SessionEvalFace
             : undefined
         },
         // B14:登出即摘除个人 MCP live scope(50 §3.4.3 生命周期接线;失败由

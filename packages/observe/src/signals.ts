@@ -32,9 +32,15 @@ export type SignalStorePath = string
 
 /** 未知对象行 → EvolveSignal 的解码错误(库被外部写坏时上抛,不静默)。 */
 export class SignalDecodeError extends Error {
-  constructor(readonly rowId: number, cause: string) {
+  // 显式字段而非参数属性(2026-11-25):dsh 宿主以 Node strip-only TS 直载 src,参数属性
+  // 触发 SyntaxError ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX 让整条 import 链炸;包级
+  // tsc/vitest 走 esbuild 拦不住(真实 boot 才发现,见 56 号 P0 首轮门禁)。
+  readonly rowId: number
+
+  constructor(rowId: number, cause: string) {
     super(`[observe] evolve_signal#${rowId} 解码失败:${cause}`)
     this.name = 'SignalDecodeError'
+    this.rowId = rowId
   }
 }
 

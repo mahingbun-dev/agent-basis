@@ -892,6 +892,15 @@
     # 全不出现，access 的 /access/api/adviser/* 恒 503 fail-closed）。
     - id: eterna-adviser
       name: '@eterna/adviser'
+
+    # ── 实时评测挂载（2026-11-25，56 号 P0）──────────────────────────────────
+    # @eterna/session-eval 双面插件（Host 半边 idle 载具 + 只读服务面 + 浏览器半边
+    # 右栏「评测」tab）。前置：profile node_modules symlink @eterna/session-eval
+    # （verify-eterna-*.mjs 物化 / entrypoint 第 3 步全量清单）；缺链即整行静默
+    # disable（「评测」tab 不出现，access 的 /access/api/session-eval/* 恒 503
+    # fail-closed）。快照只读、零模型成本，不改会话日志。
+    - id: eterna-session-eval
+      name: '@eterna/session-eval'
     # ── eterna-adviser preset（参谋组合：只读工具面 + 独立压缩组）────────────
     # ⚠ 必须在 profile 里定义：profile 的 patch 只 insert 插件行，不加载包内
     # bundle patch —— 只加挂载行时 create 报 `Unknown agent preset: eterna-adviser`

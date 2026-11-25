@@ -134,6 +134,20 @@ advcode=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 -X POST "$BASE/acc
   -H 'Content-Type: application/json' -d '{"parent":"verify-none"}')
 check "参谋端点已接线（匿名 401）" 401 "$advcode"
 
+# 8.7) 实时评测内置装载（2026-11-25，56 号 P0）：静态两件（profile patch 的
+#      eterna-session-eval 行 + @eterna/session-eval 链——缺链即整行静默 disable，
+#      右栏「评测」tab 消失）；运行时一件（匿名访问 /access/api/session-eval/snapshot
+#      回 401 而非 404——路由面忘了接线时恒 404，401 证明已挂进 access）。
+sev=$(docker exec "$CONTAINER" sh -c 'for p in /data/profiles/eterna-web /data/profiles/eterna-super; do if grep -q "name: .@eterna/session-eval." "$p/cordis.patch.yml" 2>/dev/null && [ -e "$p/node_modules/@eterna/session-eval" ]; then basename "$p"; break; fi; done' 2>/dev/null)
+if [ -n "$sev" ]; then
+  ok "实时评测内置装载（profile: ${sev}）"
+else
+  bad "实时评测未内置装载（patch 行 name/symlink 任一缺席）——右栏「评测」tab 会消失"
+fi
+sevcode=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 -X POST "$BASE/access/api/session-eval/snapshot" \
+  -H 'Content-Type: application/json' -d '{"session":"verify-none"}')
+check "实时评测端点已接线（匿名 401）" 401 "$sevcode"
+
 rm -f "$JAR"
 
 # ── companion 中继（浏览器执行面，8-10）：直连宿主映射端口 9310 ─────────────

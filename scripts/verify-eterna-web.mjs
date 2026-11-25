@@ -58,7 +58,8 @@ const PROBE_TIMEOUT_MS = 10_000
  */
 // 2026-11-23 /clear:command-clear 为组内嵌套行(顶层 `- ` 行口径不变),常量不动。
 // 2026-11-24 54 号:参谋面板 +2 行(eterna-adviser 挂载行 + eterna-adviser-preset)。
-const EXPECTED_HOST_ENTRIES = 231
+// 2026-11-25 56 号:实时评测 P0 +1 行(eterna-session-eval 挂载行,单插行无 preset)。
+const EXPECTED_HOST_ENTRIES = 232
 const EXPECTED_TEMPLATE_BLOCKS = 43
 const EXPECTED_TEMPLATE_INSERTS = 3
 const EXPECTED_TEMPLATE_OVERRIDES = 40
@@ -153,6 +154,12 @@ const HOST_KEPT_ROWS = [
   // 参谋面板（2026-11-24 54 号 P9 生产挂载：右栏「参谋」tab + 三入口 + 回写条；
   // @eterna/adviser 双面包，行在 insert 块末）
   'eterna-adviser',
+  // 实时评测（2026-11-25 56 号 P0 生产挂载：右栏「评测」tab + 只读快照端点；
+  // @eterna/session-eval 双面包）。必须列在这里：只查「无 failed 行」漏得掉
+  // fiberPhase=null（导入失败的行 enabled=true 但从未激活，2026-11-25 首轮实测：
+  // observe/src/signals.ts 参数属性触发 strip-only 语法错，行静默不激活、client 半边
+  // 不进花名册）。本行断言 enabled+active，正是这类缺口的回归面。
+  'eterna-session-eval',
 ]
 
 /** Kept rows that live behind agent presets: present + enabled + active in `standard`. */
@@ -248,7 +255,7 @@ if (!existsSync(join(knowledgeAdminPkg, 'lib', 'client.js'))) {
   console.error('verify-eterna-web: packages/knowledge-admin/lib/client.js 缺失——先跑 pnpm --filter @eterna/knowledge-admin run build:client')
   process.exit(1)
 }
-const BASE_MOUNT_PACKAGES = ['glue', 'llm-doctor', 'brand', 'access', 'usage-stats', 'panel', 'knowledge-admin', 'adviser']
+const BASE_MOUNT_PACKAGES = ['glue', 'llm-doctor', 'brand', 'access', 'usage-stats', 'panel', 'knowledge-admin', 'adviser', 'session-eval']
 for (const pkg of BASE_MOUNT_PACKAGES) {
   symlinkSync(join(repoRoot, 'packages', pkg), join(profileDir, 'node_modules', '@eterna', pkg), 'dir')
 }

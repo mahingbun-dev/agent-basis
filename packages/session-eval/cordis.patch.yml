@@ -1,0 +1,16 @@
+# @eterna/session-eval bundle:实时评测 P0(一行一面 + 客户半边)。
+# 装载形态:insert 语义插入基础树(裸 id 行只覆写既有行,基础树无 eterna-session-eval
+# 行会被 applyPatches 丢弃;与 @eterna/panel / @eterna/adviser 同款)。
+# - Host 半边:name 解析到本包 exports "."(src/index.ts)——
+#   ① idle 装载载具(客户端双面包需宿主 Loader 条目才能进浏览器花名册);
+#   ② 承载只读服务面 ctx.eternaSessionEval(snapshot 现读会话事件快照并投影)。
+# - 浏览器半边:本包 package.json 声明 dsh.client(platform: web)且导出
+#   ./client(lib/client.js),宿主 client-modules 扫描把该行组进
+#   window.__DSH_BOOT__ 浏览器花名册,注册 sidebar.right.pane.tab「评测」tab。
+# - HTTP 面不在这里:快照走 eterna-access 的守卫路由(/access/api/session-eval/snapshot),
+#   本包不注册任何路由(铁律 T2,packctl tenant-scan 强制)。
+#
+# P0 不做:评分库、裁判调用、队列与预算、设置分区、总览页(56 号 §5.7 P1/P2)。
+- insert:
+    - id: eterna-session-eval
+      name: '@eterna/session-eval'
