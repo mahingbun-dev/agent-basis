@@ -1,12 +1,13 @@
 /**
- * @eterna/session-eval 浏览器半边:右侧栏「评测」tab(P0 只读)。
+ * @eterna/session-eval 浏览器半边:右侧栏「评测」tab + 设置弹窗「评测」分区。
  *
- * ## 两段注册(ui-sidebar-right 的 tab 契约)
- * 1. **tab 类型** —— `ctx.sidebarRightTabs.register({ id, kind, priority, title, guide })`
- *    静态声明。本插件不需要资源协议(不承载第二段会话),是**页面型** tab:
- *    从右栏导引卡片按 kind 打开,body 直接读主会话(`sessionId` 标准 prop),
+ * ## 注册面(两处原生扩展点,无独立页面入口)
+ * 1. **右栏 tab 类型** —— `ctx.sidebarRightTabs.register({ id, kind, priority, title, guide })`
+ *    静态声明;页面型 tab(不承载第二段会话),body 直接读主会话(`sessionId` 标准 prop),
  *    快照经 access 守卫路由取。
- * 2. **body** —— `ctx.slots.register({ name: 'sidebar.right.pane.tab', key: 类型 id }, EvalPanel)`。
+ * 2. **右栏 tab body** —— `ctx.slots.register({ name: 'sidebar.right.pane.tab', key }, EvalPanel)`。
+ * 3. **设置分区** —— `ctx.slots.register({ name: 'settings.section', id, order, label }, EvalSettingsSection)`:
+ *    裁判模型 / 抽样 / 预算 / 指标启停(资料类字段合并保存;非管理员只读)。
  *
  * ## 为什么不声明 patterns / 资源提供者
  * 评测面板没有「每个 tab 一份独立内容」的语义(同一会话只有一份评测),因此
@@ -18,11 +19,15 @@
  * 依赖(adviser / panel / attachments 同款纪律)。
  */
 import { EvalPanel } from './EvalPanel.tsx'
+import { EvalSettingsSection } from './EvalSettings.tsx'
 import { injectSessionEvalStyles } from './styles.ts'
 import type { SessionEvalClientContext } from './client-types.ts'
 
 /** tab 类型的全系统身份(ui-sidebar-right 契约:id 唯一,kind 至多一 builtin 一 extension)。 */
 const TAB_TYPE_ID = '@eterna/session-eval/panel'
+
+/** 设置分区的全系统身份(settings.section 契约:id 唯一)。 */
+export const SESSION_EVAL_SECTION_ID = '@eterna/session-eval/settings'
 
 /** tab kind(按 kind 打开页面;不与上游 kind 撞名)。 */
 export const SESSION_EVAL_TAB_KIND = 'eval'
@@ -31,9 +36,9 @@ export const SESSION_EVAL_TAB_KIND = 'eval'
 export const inject = ['slots', 'sidebarRightTabs']
 
 /**
- * 评测面板插件体:注入样式、注册 tab 类型与其 body。
+ * 评测面板插件体:注入样式、注册 tab 类型/body 与设置分区。
  * @param ctx - 浏览器插件上下文.
- * @returns disposer(注册随插件 fiber 自撤).
+ * @returns disposer(注册随插件 fiber 自撤)。
  */
 export function apply(ctx: SessionEvalClientContext): () => void {
   const disposeStyles = injectSessionEvalStyles()
@@ -51,7 +56,7 @@ export function apply(ctx: SessionEvalClientContext): () => void {
       id: 'open',
       order: 41,
       title: () => '评测',
-      description: () => '当前会话的确定性评分：工具成败、参数合法、重复调用、审批与用量（零模型成本）。',
+      description: () => '当前会话的确定性评分与模型裁判：工具成败、参数合法、重复调用、审批与用量；任务完成与约束遵循由裁判异步出分。',
     }],
   })
 
@@ -60,7 +65,17 @@ export function apply(ctx: SessionEvalClientContext): () => void {
     key: TAB_TYPE_ID,
   }, EvalPanel as never))
 
+  // 设置分区:裁判模型 / 抽样 / 预算 / 指标启停(order 48:40–47 已被账号、MCP、
+  // 通知、压缩、更新记录、记忆、基座、任务占用;不挪别人的序)。
+  const disposeSection = ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section',
+    id: SESSION_EVAL_SECTION_ID,
+    order: 48,
+    label: () => '评测',
+  }, EvalSettingsSection as never))
+
   return () => {
+    disposeSection()
     disposeBody()
     disposeType()
     disposeStyles()

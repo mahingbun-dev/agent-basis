@@ -101,9 +101,9 @@ describe('evaluateRules(手算对账)', () => {
     expect(fixture.issues.map(issue => issue.turn)).toEqual([1, 1, 2, 2, 2, 2, 0])
   })
 
-  it('未评说明常驻三条(结果类/阈值校准/pass^k)', () => {
+  it('未评说明常驻三条(结果类裁判/阈值校准/pass^k)', () => {
     expect(fixture.pending).toHaveLength(3)
-    expect(fixture.pending[0]).toContain('P1')
+    expect(fixture.pending[0]).toContain('裁判')
     expect(fixture.pending[2]).toContain('pass^k')
   })
 })

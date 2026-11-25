@@ -1,12 +1,13 @@
 /**
- * 客户端 bundle 工件与装载冒烟(P0 面板)。
+ * 客户端 bundle 工件与装载冒烟(P0 面板 + P1 设置分区)。
  *
  * 两层断言:
  * 1. **工件形态**:闭包工厂包装(`window.__ModuleLoader__.load`)、react 基线外部模块
  *    以 require 引用而非内联、id 与本包名一致。
- * 2. **装载冒烟(vm + 伪 ctx)**:跑 apply,锁住两段注册——
+ * 2. **装载冒烟(vm + 伪 ctx)**:跑 apply,锁住三段注册——
  *    ① `sidebarRightTabs.register` 声明页面型 tab(kind eval + 导引卡);
- *    ② `sidebar.right.pane.tab` 键控 body 注册在类型 id 下。
+ *    ② `sidebar.right.pane.tab` 键控 body 注册在类型 id 下;
+ *    ③ `settings.section` 设置分区(id/order 48/label「评测」)。
  *
  * 依赖 verify 链先跑 build:client(pnpm run verify 顺序保证)。
  */
@@ -151,10 +152,19 @@ describe('模块装载冒烟(vm)', () => {
 
   it('body:sidebar.right.pane.tab 的键控注册挂在类型 id 下', () => {
     const { recorded } = loadBundle()
-    expect(recorded.injections).toEqual(['sidebar.right.pane.tab'])
+    expect(recorded.injections).toEqual(['sidebar.right.pane.tab', 'settings.section'])
     const body = recorded.slots.find(slot => slot.options.name === 'sidebar.right.pane.tab')
     expect(body?.options.key).toBe('@eterna/session-eval/panel')
     expect(typeof body?.component).toBe('function')
+  })
+
+  it('设置分区:settings.section(id/order 48/label 评测,组件可渲染)', () => {
+    const { recorded } = loadBundle()
+    const section = recorded.slots.find(slot => slot.options.name === 'settings.section')
+    expect(section?.options.id).toBe('@eterna/session-eval/settings')
+    expect(section?.options.order).toBe(48)
+    expect((section?.options.label as (() => string) | undefined)?.()).toBe('评测')
+    expect(typeof section?.component).toBe('function')
   })
 
   it('重复装载不冲突(两个独立实例各自持有注册记录)', () => {

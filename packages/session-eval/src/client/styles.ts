@@ -232,7 +232,196 @@ const CSS = `
   color: var(--et-muted);
   font-size: var(--et-text-micro);
 }
+[data-eterna-eval='judge-head'] {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--et-space-2);
+}
+[data-eterna-eval='judge-meta'] {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  color: var(--et-muted);
+  font-size: var(--et-text-micro);
+}
+[data-eterna-eval='judge-meta'] [data-eterna-eval='verdict-title'] {
+  color: var(--et-fg);
+  font-size: var(--et-text-caption);
+}
+/* 结论级 warn/未评:靠墨色与文案表达(--et-warn 作字色对比度不足,不实心填充)。 */
+[data-eterna-eval='judge-meta'] [data-eterna-eval='verdict-title'][data-level='unrated'] {
+  color: var(--et-muted);
+}
+[data-eterna-eval='judge-head'] .et-eval-button {
+  margin-left: auto;
+  flex: none;
+  white-space: nowrap;
+}
+[data-eterna-eval='judge-detail-row'] td {
+  padding-top: 0;
+}
+[data-eterna-eval='judge-detail-row'] details summary {
+  cursor: pointer;
+  color: var(--et-muted);
+  font-size: var(--et-text-micro);
+}
+[data-eterna-eval='rationale'] {
+  margin: var(--et-space-1) 0;
+  color: var(--et-fg-2);
+}
 
+/* ── 设置分区「评测」(settings.section) ─────────────────────────────── */
+[data-eterna-eval-set='section'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--et-space-4);
+  color: var(--et-fg);
+  font-size: var(--et-text-caption);
+  line-height: var(--et-leading-body);
+}
+[data-eterna-eval-set='group'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--et-space-2);
+  margin: 0;
+  padding: var(--et-space-4);
+  border: 1px solid var(--et-border-soft);
+  border-radius: var(--et-radius-md);
+  background: var(--et-surface);
+}
+[data-eterna-eval-set='group'] legend {
+  padding: 0 var(--et-space-1);
+  color: var(--et-fg-2);
+  font-weight: var(--et-weight-display);
+}
+[data-eterna-eval-set='row'] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--et-space-3);
+  min-height: 36px; /* 触控热区下限(frontend-style §7) */
+}
+[data-eterna-eval-set='row'] label {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  color: var(--et-fg-2);
+}
+[data-eterna-eval-set='field'] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--et-space-2);
+}
+[data-eterna-eval-set] select,
+[data-eterna-eval-set] input[type='number'],
+[data-eterna-eval-set] input[type='text'] {
+  min-height: 36px; /* 触控热区下限(frontend-style §7) */
+  padding: 0 var(--et-space-2);
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius-sm); /* 同心弧:父卡片 md = 16,内距 4 → 子 12 */
+  background: var(--et-surface);
+  color: var(--et-fg);
+  font: inherit;
+  font-size: var(--et-text-micro);
+}
+[data-eterna-eval-set] select {
+  min-width: 200px;
+}
+[data-eterna-eval-set] input[type='number'] {
+  width: 120px;
+  font-variant-numeric: tabular-nums;
+}
+[data-eterna-eval-set] input[type='text'] {
+  min-width: 220px;
+}
+[data-eterna-eval-set] select:focus-visible,
+[data-eterna-eval-set] input:focus-visible {
+  outline: none;
+  box-shadow: var(--et-focus-ring);
+}
+[data-eterna-eval-set] select:disabled,
+[data-eterna-eval-set] input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+[data-eterna-eval-set] input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--et-accent);
+}
+[data-eterna-eval-set='unit'],
+[data-eterna-eval-set='hint'] {
+  margin: 0;
+  color: var(--et-muted);
+  font-size: var(--et-text-micro);
+}
+[data-eterna-eval-set='metrics'] {
+  display: flex;
+  flex-direction: column;
+  gap: 0; /* 每行已按 36px 触控热区撑高，行间不再叠加间距(设置弹窗总高可控) */
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+[data-eterna-eval-set='metric'] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--et-space-2);
+  min-height: 36px; /* 触控热区下限(frontend-style §7) */
+}
+[data-eterna-eval-set='metric'] label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--et-space-2);
+  min-height: 36px;
+  color: var(--et-fg-2);
+}
+[data-eterna-eval-set='badges'] {
+  display: inline-flex;
+  gap: var(--et-space-1);
+}
+[data-eterna-eval-set='badge'] {
+  padding: 0 var(--et-space-1);
+  border-radius: var(--et-radius-xs);
+  background: var(--et-surface-2);
+  color: var(--et-muted);
+  font-size: var(--et-text-micro);
+}
+[data-eterna-eval-set='badge'][data-tone='accent'] {
+  color: var(--et-accent);
+  background: var(--et-accent-soft);
+}
+[data-eterna-eval-set='actions'] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--et-space-2);
+}
+[data-eterna-eval-set='feedback'] {
+  color: var(--et-fg-2);
+  font-size: var(--et-text-micro);
+}
+[data-eterna-eval-set='error'] {
+  margin: 0;
+  padding: var(--et-space-3);
+  border: 1px solid var(--et-danger);
+  border-radius: var(--et-radius-sm);
+  color: var(--et-danger);
+  background: var(--et-danger-soft);
+}
+
+@media (max-width: 760px) {
+  /* 形态收缩:标签上、控件下(位置规则不变),否则窄屏 label 列被控件挤成逐字换行。 */
+  [data-eterna-eval-set='row'] { grid-template-columns: minmax(0, 1fr); }
+  [data-eterna-eval-set='field'] { justify-content: flex-start; }
+  [data-eterna-eval-set] select,
+  [data-eterna-eval-set] input[type='text'] { width: 100%; min-width: 0; }
+}
 @media (max-width: 640px) {
   [data-eterna-eval='panel'] { padding: var(--et-space-4); }
 }

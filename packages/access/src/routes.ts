@@ -102,10 +102,13 @@ export interface AdviserFace {
 
 /**
  * 评测服务面(结构子集;`packages/session-eval/src/service.ts` 的 SessionEvalService)。
- * 快照载荷整体 JSON 序列化,access 不解释领域字段(只透传 + 归属校验)。
+ * 载荷整体 JSON 序列化,access 不解释领域字段(只透传 + 归属校验 + 角色闸)。
  */
 export interface SessionEvalFace {
   snapshot(sessionId: string, now?: number): Promise<unknown>
+  evaluate(sessionId: string, options?: { readonly scope?: 'all' | 'outcome' | 'process'; readonly turn?: number }): Promise<unknown>
+  settings(): Promise<unknown>
+  saveConfig(input: unknown): Promise<unknown>
 }
 
 /** 参谋会话行(与 adviser 侧 AdviserSessionView 同形)。 */
@@ -349,11 +352,15 @@ function handleAdviserDeliver(deps: AccessDeps, req: AccessRequest, ip: string):
 }
 
 /**
- * 评测端点(2026-11-25,56 号 P0):`POST /access/api/session-eval/snapshot {session}`。
+ * 评测端点(2026-11-25,56 号 P0/P1):
+ * - `POST …/snapshot {session}`:当前会话确定性快照(含裁判区);
+ * - `POST …/evaluate {session, scope?, turn?}`:手动触发裁判(「立即评测」);
+ * - `POST …/settings`:设置分区读面(配置 + 指标目录 + 模型目录,任何登录用户可读);
+ * - `POST …/config/save {config}`:保存裁判配置(**仅管理员**;全局配置影响所有用户)。
  *
- * 只读:生成一份当前会话的确定性评分快照。权限与 adviser 同口径——登录 +
- * 会话归属本人;越权/不存在统一 404(不泄漏存在性);服务面缺席 503(fail-closed)。
- * no-store:快照含实时数字与生成时刻,缓存会让面板对着过期结果。
+ * 权限与 adviser 同口径——登录 + 会话归属本人;越权/不存在统一 404(不泄漏存在性);
+ * 服务面缺席 503(fail-closed)。no-store:载荷含实时数字与生成时刻,缓存会让面板
+ * 对着过期结果。评测是显式动作与只读面,不改变会话内容。
  */
 export async function handleSessionEvalRequest(deps: AccessDeps, req: AccessRequest): Promise<AccessReply> {
   const method = req.method.toUpperCase()
@@ -362,21 +369,100 @@ export async function handleSessionEvalRequest(deps: AccessDeps, req: AccessRequ
   if (!isSameOrigin(req.origin, req.host, deps.session.secure, deps.publicOrigin)) return errorReply(403, '跨源请求被拒绝')
   if (!deps.globalWindow.hit(ip)) return errorReply(429, '请求过于频繁，请稍后再试')
   const action = req.pathname.slice(SESSION_EVAL_ROUTE_PREFIX.length)
-  if (action !== 'snapshot') return errorReply(404, 'not found')
+  if (action !== 'snapshot' && action !== 'evaluate' && action !== 'settings' && action !== 'config/save') {
+    return errorReply(404, 'not found')
+  }
   const body = parseJsonBody(req.body)
-  const session = typeof body?.session === 'string' ? body.session.trim() : ''
   const user = requireUser(deps, req)
   if (user === undefined) return errorReply(401, '未登录')
+  const face = deps.sessionEval?.()
+  if (face === undefined) return errorReply(503, '评测内核未就绪')
+
+  // 设置读面:不绑会话(配置是部署级的);非管理员只读。
+  if (action === 'settings') {
+    try {
+      const settings = await face.settings()
+      return jsonResponse(200, { ok: true, settings, admin: user.role === 'admin' }, [['cache-control', 'no-store']])
+    } catch {
+      return errorReply(503, '评测服务异常')
+    }
+  }
+
+  // 配置保存:仅管理员(全局模型/预算会影响所有用户的评测口径)。
+  if (action === 'config/save') {
+    if (user.role !== 'admin') return errorReply(403, '评测配置仅管理员可修改')
+    const config = body?.config
+    try {
+      const result = await face.saveConfig(config) as { readonly ok?: unknown; readonly error?: unknown; readonly config?: unknown }
+      if (result.ok !== true) {
+        const message = typeof result.error === 'string' ? result.error : '配置保存失败'
+        deps.audit({ kind: 'access.session-eval.config', account: user.account, ip, ok: false, detail: { error: message } })
+        return errorReply(400, message)
+      }
+      deps.audit({
+        kind: 'access.session-eval.config', account: user.account, ip, ok: true,
+        detail: { route: (result.config as { route?: unknown } | undefined)?.route ?? null },
+      })
+      return jsonResponse(200, { ok: true, config: result.config }, [['cache-control', 'no-store']])
+    } catch {
+      return errorReply(503, '评测服务异常')
+    }
+  }
+
+  // 会话级动作:snapshot / evaluate —— 登录 + 归属校验。
+  const session = typeof body?.session === 'string' ? body.session.trim() : ''
   if (session === '') return errorReply(400, '参数不合法：缺少会话 id')
   const owner = deps.store.sessionOwner(session)
   if (owner !== user.id) return errorReply(404, '会话不存在或不属于你')
-  const face = deps.sessionEval?.()
-  if (face === undefined) return errorReply(503, '评测内核未就绪')
+
+  if (action === 'snapshot') {
+    try {
+      const snapshot = await face.snapshot(session)
+      return jsonResponse(200, { ok: true, snapshot }, [['cache-control', 'no-store']])
+    } catch {
+      // 服务面内部异常不把堆栈递给浏览器(与 adviser 的 runAdviser 同口径)。
+      return errorReply(503, '评测服务异常')
+    }
+  }
+
+  // evaluate:scope/turn 只做形状校验,业务含义由服务面判(不合法给中文原因)。
+  const scope = body?.scope === 'all' || body?.scope === 'outcome' || body?.scope === 'process' ? body.scope : undefined
+  if (body?.scope !== undefined && scope === undefined) {
+    return errorReply(400, '参数不合法：scope 只能是 all / outcome / process')
+  }
+  if (body?.turn !== undefined && (typeof body.turn !== 'number' || !Number.isInteger(body.turn) || body.turn < 1)) {
+    return errorReply(400, '参数不合法：turn 必须是正整数')
+  }
   try {
-    const snapshot = await face.snapshot(session)
-    return jsonResponse(200, { ok: true, snapshot }, [['cache-control', 'no-store']])
+    const reply = await face.evaluate(session, {
+      ...scope === undefined ? {} : { scope },
+      ...typeof body?.turn === 'number' ? { turn: body.turn } : {},
+    }) as {
+      readonly ok?: unknown
+      readonly accepted?: unknown
+      readonly pending?: unknown
+      readonly skipped?: unknown
+      readonly code?: unknown
+      readonly message?: unknown
+    }
+    if (reply.ok !== true) {
+      const code = typeof reply.code === 'string' ? reply.code : 'invalid'
+      const message = typeof reply.message === 'string' ? reply.message : '评测请求被拒绝'
+      // 预算用尽 = 临时配额(429);在途冲突 = 409;其余为业务拒绝(400)。
+      const status = code === 'budget' ? 429 : code === 'busy' ? 409 : 400
+      return errorReply(status, message)
+    }
+    deps.audit({
+      kind: 'access.session-eval.evaluate', account: user.account, ip, ok: true,
+      detail: { session, accepted: reply.accepted ?? 0 },
+    })
+    return jsonResponse(200, {
+      ok: true,
+      accepted: reply.accepted ?? 0,
+      pending: reply.pending ?? 0,
+      skipped: reply.skipped ?? [],
+    }, [['cache-control', 'no-store']])
   } catch {
-    // 服务面内部异常不把堆栈递给浏览器(与 adviser 的 runAdviser 同口径)。
     return errorReply(503, '评测服务异常')
   }
 }

@@ -30,7 +30,9 @@
   "dependencies": {
     "@eterna/observe": "workspace:*",
     "@eterna/ui": "workspace:*",
-    "@deepseek-ai/cordis": "catalog:"
+    "@deepseek-ai/cordis": "catalog:",
+    "@deepseek-ai/dsh-llm": "catalog:",
+    "@deepseek-ai/dsh-util-values": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

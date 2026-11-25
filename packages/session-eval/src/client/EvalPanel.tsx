@@ -1,24 +1,29 @@
 /**
- * 评测面板正文(P0):右栏 tab body,只读展示当前会话的确定性评分。
+ * 评测面板正文(P0/P1):右栏 tab body,只读展示当前会话的确定性评分与裁判评分。
  *
  * 三条纪律(56 号 §5.5-A):
- * 1. **没有分数就显示状态,不显示 0** —— not_applicable / error 各有文案;
- * 2. **过程指标只诊断** —— 结论卡只说确定性检查,并明写「结果类未评(P1)」;
- * 3. **每个数字带来源与版本** —— P0 全部来源 = 规则(零模型成本),版本 = 指标键。
+ * 1. **没有分数就显示状态,不显示 0** —— not_applicable / error / 待评 / 未采样各有文案;
+ * 2. **过程指标只诊断** —— 结论卡合并规则与结果类裁判;结果类未评时明写「结果类未评」;
+ * 3. **每个数字带来源与版本** —— 规则项来源 = 规则(零模型成本),裁判项来源 = 模型
+ *    (显示路由/耗时/tokens,换模型等于换榜单)。
  *
  * 刷新:手动按钮 + 可见时 20 秒自动一次(只读投影,重复拉取无副作用);切会话
- * 立即重拉并中止在途请求。
+ * 立即重拉并中止在途请求。「立即评测」触发裁判队列入队,受理后延时重拉一次。
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import { Icon } from '@eterna/ui/icons'
 import { ISSUE_LIMIT, ISSUE_OVERFLOW_NOTE } from '../types.ts'
 import type { EvalIssue, EvalSnapshot, MetricScore } from '../types.ts'
-import { SnapshotApiError, fetchSnapshot } from './api.ts'
+import type { JudgeScoreView, JudgeSnapshot } from '../judge-types.ts'
+import { SessionEvalApiError, evaluateSession, fetchSnapshot } from './api.ts'
 import { formatClock, formatCost, formatDuration, formatInt, formatPercent } from '../format.ts'
 
 /** 自动刷新间隔(可见时;只读投影,无副作用)。 */
 const AUTO_REFRESH_MS = 20_000
+
+/** 手动评测受理后的首轮重拉延迟(裁判调用通常数秒内完成)。 */
+const EVALUATE_REFRESH_MS = 4_000
 
 /** 面板渲染态。 */
 type PanelState =
@@ -32,11 +37,13 @@ export interface EvalPanelProps {
   readonly sessionId?: string | undefined
 }
 
-/** 错误文案:按 HTTP 状态分流(401/404/503 各有含义,不混成一句「失败」). */
+/** 错误文案:按 HTTP 状态分流(401/404/409/429/503 各有含义,不混成一句「失败」). */
 function errorMessageOf(error: unknown): string {
-  if (error instanceof SnapshotApiError) {
+  if (error instanceof SessionEvalApiError) {
     if (error.status === 401) return '登录状态已失效，请重新登录后刷新。'
     if (error.status === 404) return '会话不存在或不属于当前账号。'
+    if (error.status === 409) return error.message
+    if (error.status === 429) return error.message
     if (error.status === 503) return '评测内核未就绪（插件未装载或仍在启动）。'
     return `评测请求失败（HTTP ${error.status}）：${error.message}`
   }
@@ -77,9 +84,104 @@ function IssueItem(props: { readonly issue: EvalIssue }): ReactElement {
   )
 }
 
-/** 快照正文(ready 态;纯展示,无副作用). */
-function SnapshotBody(props: { readonly snapshot: EvalSnapshot }): ReactElement {
-  const { snapshot } = props
+/** 裁判状态徽标:通过=中性、未过=红、出错/待评=灰(没有分数就显示状态). */
+function JudgeFlag(props: { readonly score: JudgeScoreView }): ReactElement {
+  const { score } = props
+  const tone = score.pass === false ? 'danger' : score.status === 'error' ? 'warn' : undefined
+  return <span data-eterna-eval="flag" data-tone={tone}>{score.display}</span>
+}
+
+/** 单条裁判评分行(指标 + 判定 + 耗时;理由与用量默认折叠). */
+function JudgeScoreRow(props: { readonly score: JudgeScoreView }): ReactElement {
+  const { score } = props
+  const hasDetail = score.rationale !== undefined || score.route !== null || score.tokens !== undefined
+  return (
+    <>
+      <tr>
+        <td>
+          {score.name}
+          {score.turn === undefined ? null : <span data-eterna-eval="detail">{` · 第 ${score.turn} 轮`}</span>}
+        </td>
+        <td><JudgeFlag score={score} /></td>
+        <td data-num="true">{score.latencyMs === undefined ? '—' : formatDuration(score.latencyMs)}</td>
+      </tr>
+      {!hasDetail ? null : (
+        <tr data-eterna-eval="judge-detail-row">
+          <td colSpan={3}>
+            <details>
+              <summary>理由与用量</summary>
+              {score.rationale === undefined ? null : <p data-eterna-eval="rationale">{score.rationale}</p>}
+              <p data-eterna-eval="detail">
+                {`来源：裁判 · ${score.route === null ? '路由未配置' : `${score.route.provider} / ${score.route.model}`}`}
+                {score.tokens === undefined ? '' : ` · ${formatInt(score.tokens)} tokens`}
+                {score.latencyMs === undefined ? '' : ` · ${formatDuration(score.latencyMs)}`}
+              </p>
+            </details>
+          </td>
+        </tr>
+      )}
+    </>
+  )
+}
+
+/** 裁判卡片:结果类综合结论 + 六项评分 + 预算 + 立即评测. */
+function JudgeCard(props: {
+  readonly judge: JudgeSnapshot
+  readonly onEvaluate: () => void
+  readonly evaluating: boolean
+  readonly feedback: string
+}): ReactElement {
+  const { judge, onEvaluate, evaluating, feedback } = props
+  const unconfigured = judge.state === 'unconfigured'
+  return (
+    <section data-eterna-eval="card" data-role="judge" aria-labelledby="et-eval-judge-heading">
+      <h3 id="et-eval-judge-heading">裁判评分（模型 · 异步）</h3>
+      <div data-eterna-eval="judge-head">
+        <div data-eterna-eval="judge-meta">
+          <span data-eterna-eval="verdict-title" data-level={judge.overall.level}>{judge.overall.label}</span>
+          <span>
+            {`${judge.pending > 0 ? `排队 ${judge.pending}` : '空闲'} · 预算 ${formatInt(judge.budget.usedTokens)} / ${formatInt(judge.budget.maxTokensPerDay)} tokens（当日）`}
+          </span>
+        </div>
+        <button
+          type="button"
+          className="et-eval-button"
+          onClick={onEvaluate}
+          disabled={unconfigured || evaluating}
+          title={unconfigured ? '先在 设置 → 评测 里选择裁判模型' : '整条会话结果类 + 末轮过程类裁判'}
+        >
+          <Icon name="play" size={14} />
+          {evaluating ? '排队中…' : '立即评测'}
+        </button>
+      </div>
+      {feedback === '' ? null : <p data-eterna-eval="hint" role="status">{feedback}</p>}
+      <table data-eterna-eval="table">
+        <caption>通过 / 未过来自模型判定；出错、待评、未采样、已停用都不是分数。</caption>
+        <thead>
+          <tr><th scope="col">指标</th><th scope="col">判定</th><th scope="col">耗时</th></tr>
+        </thead>
+        <tbody>
+          {judge.scores.map(score => <JudgeScoreRow key={score.key} score={score} />)}
+        </tbody>
+      </table>
+      {judge.overall.reasons.length === 0 ? null : (
+        <ul data-eterna-eval="reasons">
+          {judge.overall.reasons.map(reason => <li key={reason}>{reason}</li>)}
+        </ul>
+      )}
+      {judge.note === undefined ? null : <p data-eterna-eval="hint">{judge.note}</p>}
+    </section>
+  )
+}
+
+/** 快照正文(ready 态;裁判卡紧跟结论卡——需要模型算力的结果优先于逐项规则明细). */
+function SnapshotBody(props: {
+  readonly snapshot: EvalSnapshot
+  readonly onEvaluate: () => void
+  readonly evaluating: boolean
+  readonly feedback: string
+}): ReactElement {
+  const { snapshot, onEvaluate, evaluating, feedback } = props
   const failing = snapshot.metrics.filter(metric => metric.pass === false)
   const overLimit = snapshot.issues.length >= ISSUE_LIMIT
   return (
@@ -91,6 +193,15 @@ function SnapshotBody(props: { readonly snapshot: EvalSnapshot }): ReactElement 
           {snapshot.verdict.reasons.map(reason => <li key={reason}>{reason}</li>)}
         </ul>
       </section>
+
+      {snapshot.judge === undefined ? null : (
+        <JudgeCard
+          judge={snapshot.judge}
+          onEvaluate={onEvaluate}
+          evaluating={evaluating}
+          feedback={feedback}
+        />
+      )}
 
       <section data-eterna-eval="card" aria-labelledby="et-eval-process-heading">
         <h3 id="et-eval-process-heading">过程指标（规则 · 零模型成本）</h3>
@@ -143,9 +254,11 @@ function SnapshotBody(props: { readonly snapshot: EvalSnapshot }): ReactElement 
       </section>
 
       <p data-eterna-eval="hint">
-        {failing.length === 0
-          ? '本快照不含裁判分数；结果类与业务 rubric 在 P1 接入后并入结论。'
-          : `有 ${failing.length} 项硬规则异常；过程异常不等于任务失败，需结合结果类判定看。`}
+        {snapshot.judge === undefined
+          ? '裁判层未装载；当前只有确定性规则评分。'
+          : failing.length === 0
+            ? '裁判分数在上方卡片异步产出；结果类关键项通过才进结论门控。'
+            : `有 ${failing.length} 项硬规则异常；过程异常不等于任务失败，需结合结果类判定看。`}
       </p>
     </>
   )
@@ -167,10 +280,30 @@ export function EvalPanel(props: EvalPanelProps): ReactElement {
   const { sessionId } = props
   const [state, setState] = useState<PanelState>({ status: 'idle' })
   const [nonce, setNonce] = useState(0)
+  const [evaluating, setEvaluating] = useState(false)
+  const [judgeFeedback, setJudgeFeedback] = useState('')
   /** 已渲染的快照保留在 loading 态里:刷新时页面不闪空。 */
   const latest = useRef<EvalSnapshot | undefined>(undefined)
 
   const refresh = useCallback((): void => { setNonce(value => value + 1) }, [])
+
+  /** 立即评测:入队成功后延时重拉(裁判数秒级完成);失败按状态給中文原因。 */
+  const handleEvaluate = useCallback((): void => {
+    if (sessionId === undefined || sessionId === '' || evaluating) return
+    setEvaluating(true)
+    setJudgeFeedback('')
+    evaluateSession(sessionId, { scope: 'all' })
+      .then((reply) => {
+        setJudgeFeedback(reply.skipped.length === 0
+          ? `已受理 ${reply.accepted} 项裁判（排队 ${reply.pending}）；结果稍后自动刷新。`
+          : `已受理 ${reply.accepted} 项裁判；跳过：${reply.skipped.join('；')}`)
+        window.setTimeout(refresh, EVALUATE_REFRESH_MS)
+      })
+      .catch((error: unknown) => {
+        setJudgeFeedback(errorMessageOf(error) || '评测请求被中止。')
+      })
+      .finally(() => { setEvaluating(false) })
+  }, [sessionId, evaluating, refresh])
 
   useEffect(() => {
     if (sessionId === undefined || sessionId === '') {
@@ -243,12 +376,24 @@ export function EvalPanel(props: EvalPanelProps): ReactElement {
       ) : state.status === 'error' ? (
         <>
           <p data-eterna-eval="error" role="alert">{state.message}</p>
-          {snapshot === undefined ? null : <SnapshotBody snapshot={snapshot} />}
+          {snapshot === undefined ? null : (
+            <SnapshotBody
+              snapshot={snapshot}
+              onEvaluate={handleEvaluate}
+              evaluating={evaluating}
+              feedback={judgeFeedback}
+            />
+          )}
         </>
       ) : snapshot === undefined ? (
         <p data-eterna-eval="hint" aria-busy="true">正在读取会话轨迹…</p>
       ) : snapshot.state === 'ok' ? (
-        <SnapshotBody snapshot={snapshot} />
+        <SnapshotBody
+          snapshot={snapshot}
+          onEvaluate={handleEvaluate}
+          evaluating={evaluating}
+          feedback={judgeFeedback}
+        />
       ) : (
         <EmptyBody snapshot={snapshot} />
       )}

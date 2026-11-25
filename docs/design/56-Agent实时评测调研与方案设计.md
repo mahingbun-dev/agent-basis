@@ -837,3 +837,58 @@ metrics:
 | `acceptance/team-platform/**`、`docs/release-gate-v2/**` | 历史验收证据 | 保留为历史记录，标注「已完成历史」 | 低 |
 
 建议顺序：① 先让实时评测 P0 提供会话级结论 → ② 用 dsh-evals 补发布门禁 → ③ 再摘除 evolve/memory 的 aievo 依赖 → ④ 最后改文档与脚本，避免中途出现「既无平台门禁也无在线评测」的空窗。
+
+---
+
+## 12. 实现状态（2026-11-25：P0 + P1 已入库）
+
+> 数字全部为当轮实测：`pnpm --filter @eterna/session-eval verify`、`node scripts/verify-eterna-web.mjs`、
+> `node scripts/verify-eterna-super.mjs`、`node scripts/lint-ui-tokens.mjs`、
+> `node tools/packctl/bin/packctl.mjs {form-check,tenant-scan,prompt-scan}`。
+
+### 12.1 已交付
+
+| 面 | 内容 | 位置 |
+|---|---|---|
+| 包 | `@eterna/session-eval`：Host 半边（服务 + 裁判引擎）+ 浏览器半边（右栏 tab + 设置分区） | `packages/session-eval` |
+| 原生扩展点 | `sidebar.right.pane.tab`（tab 类型 id `@eterna/session-eval/panel`，kind `eval`）+ `settings.section`（id `@eterna/session-eval/settings`，order 48，label「评测」） | `src/client/index.ts` |
+| 路由面 | `POST /access/api/session-eval/{snapshot,evaluate,settings,config/save}`（401/403/404/405/409/429/503 契约 + `cache-control: no-store`） | `packages/access/src/routes.ts` |
+| P0 规则层 | 轨迹投影、15 项确定性指标、问题定位、结论卡；零模型成本 | `src/trajectory.ts` / `src/metrics.ts` |
+| P1 裁判层 | 输入投影、6 项冻结裁判指标（结果类 3 / 过程类 3）、严格单 JSON 校验（多键/坏 JSON 即 error，不重试不猜）、评分库（按 session+metric+target 幂等 upsert）、并发 5 队列、L1 轮末抽样（采样率 × 3 项过程指标）+ L2 空闲终评（默认 120s，新输入撤销）、每日 token 预算（`judge_usage` 单列，不混入会话成本）、手动「立即评测」 | `src/judge-*.ts` / `src/engine.ts` / `src/host.ts` |
+| 配置 | `$DSH_HOME/.eterna/session-eval/config.json`（缺失用缺省；损坏回退缺省 + 中文告警；保存 = 校验 + provider 目录自检 + 原子写） | `src/judge-config.ts` |
+| 评分库 | `$DSH_HOME/.eterna/session-eval/scores.db`（`node:sqlite` STRICT；父目录显式 mkdir） | `src/score-store.ts` |
+| 面板 | 裁判卡紧跟结论卡：综合结论（关键项门控）、排队/预算、立即评测、6 项评分 + 轮次徽标 + 耗时、理由与用量折叠（路由/tokens/耗时单列） | `src/client/EvalPanel.tsx` |
+| 设置分区 | 裁判模型（provider/model 目录自选）、自动评测开关、轮末抽样率（含预估调用量）、每日预算、空闲终评、6 指标启停；资料类合并保存 + 脏检查 + 单按钮；非管理员只读 | `src/client/EvalSettings.tsx` |
+
+**权限口径**：`settings` 登录即可读（返回 `admin` 标志）；`config/save` 仅管理员（403 且服务面不被触达，实现 + 测试双钉）；`snapshot/evaluate` 按 `store.sessionOwner` 校归属，跨租户 404。审计事件 `access.session-eval.evaluate` / `access.session-eval.config`（成功与失败都记）。
+
+**有意为之的两个决定**：
+1. **裁判提示词冻结在包内**，不登记 prompt-studio：prompt-scan 只扫 `systemPrompt: true` / `ctx.systemPrompt.section` 注册面；裁判提示词是评测口径的一部分，必须随版本冻结、由单测钉住（`tests/judge-metrics.test.ts` 逐字断言），登记进工坊反而让「换提示词等于换榜单」失去约束。
+2. **裁判用量单列**：`judge_usage` 只服务预算闸与面板展示，不并入被测会话的 token/成本（否则「评测动作改变被评对象」）。
+
+**本轮 P1 的范围收窄（与 §5.7 的差异，明确记账）**：§5.7 把「业务指标编辑器 + YAML 生成 + 试跑 + 导入」列在 P1 末段，但它们与 P2 的 `metrics.yaml` 契约（§9）同源；分两轮写会先产出一版 YAML 生成器再被编辑器推翻。故本轮 P1 只落**裁判层 + 基础设置分区（模型/抽样/预算/空闲/指标启停）**，业务指标那一组整体并入 P2，一次落地。同理，§5.7 P1 验收里的「试跑在真实模型上出分」需生产凭据，本轮**未做**（裁判管道由 fake llm 端口单测钉住），留部署后演练。
+
+### 12.2 验证证据
+
+| 门禁 | 结果 |
+|---|---|
+| `pnpm --filter @eterna/session-eval verify`（build-client + oxlint + tsc + vitest） | oxlint 0 warning / 0 error；14 个测试文件 **114 passed** |
+| `packages/access` 路由门禁 | 16 项通过（跨租户/管理员/预算 429/在途 409/no-store/审计） |
+| 全仓 `pnpm -w run verify` | **EXIT=0**（含面板/参谋/记忆等全部既有包） |
+| `verify-eterna-web.mjs`（真实 boot） | OK — **232** host entries；slot drift `settings.section=5`、12 个挂载包 declared==served |
+| `verify-eterna-super.mjs`（真实 boot） | OK — **240** host entries；slot drift `settings.section=6`、14 个挂载包 declared==served |
+| `scripts/lint-ui-tokens.mjs` | 19 目录 340 文件、79 个 `--et-*` 令牌、v4 阶梯 **0 债务** |
+| `packctl form-check / tenant-scan / prompt-scan` | 0 findings / 0 findings / 0 findings |
+| `deploy/verify.sh` §8.7 | 新增匿名 `settings` 401 探针（路由面漏接线时恒 404） |
+
+截图（深浅 × 1440/900/390，均来自真实 `lib/client.js` 工件 + 真实令牌；演示数据只用于填满视觉状态，不冒充实测）：
+
+| 面板 | 设置分区 |
+|---|---|
+| `docs/assets/screenshots/session-eval-p1-panel-{light,dark}-{1440,900,390}.png` | `docs/assets/screenshots/session-eval-p1-settings-{light,dark}-{1440,900,390}.png` |
+
+§7 自查结论：无横向溢出（390 下右栏全宽、设置表单标签上/控件下）；控件 36px 触控热区；`:focus-visible` 光圈齐备；深色走宿主 `data-ds-dark-theme` → `--dsw-alias-*` 桥接实测换肤；强调色只在「关键项」徽标与控件上，未超两处强调；卡内正文 ≤3 行；断点只用 1100/760/640。
+
+### 12.3 P2 待做（按 §5.7 分期）
+
+业务指标前端配置 + `metrics.yaml` 读写与回读校验（§9）、rubric 权重/关键项门控落地、人工校准与一致率、评测总览页、dsh-evals 回放对接；轮尾内联徽标（`conversation.chat.turnTail`）仍按 §5.5-B 留到真机验证后再启用。

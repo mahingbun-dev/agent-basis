@@ -1,0 +1,654 @@
+/**
+ * 裁判编排引擎(56 号 §5.4):队列 / 采样 / 预算 / 触发 / 评分库 / 面板快照。
+ *
+ * 四档触发(§4.3 在线档位):
+ * - **手动**(`evaluate`,面板「立即评测」):结果类整条 + 末轮过程类,需已配置路由;
+ * - **L1 轮末**(`turn_end`):`turn/end` 后按 `sampling` 概率抽该轮,跑 3 项过程裁判;
+ * - **L2 空闲终评**(`idle`):轮结束后 `idleTimeoutMs` 无新输入 → 跑 3 项结果裁判;
+ *   有新输入(turn/start、user/message)即撤销计时(整条评比逐步评准,§5.4)。
+ *
+ * 成本纪律:
+ * - 队列**独立于会话回合**(不阻塞 agent),并发上限 {@link JUDGE_CONCURRENCY};
+ * - 每日 token 预算硬闸(用尽即不再发新调用;面板 note 如实说明);
+ * - 裁判用量单列(`judge_usage`),不混入被测会话成本;
+ * - 同一 (会话, 指标, 目标) 在途去重;完成后重评**覆盖**(不堆历史)。
+ *
+ * 关闭纪律(`enabled=false`):自动触发(抽样/空闲)不生效,手动评测仍可用
+ * (用户显式点击是一次授权,不因关闭自动评测而失效)。
+ */
+import type { SessionEventLike } from './types.ts'
+import {
+  DEFAULT_JUDGE_CONFIG, JUDGE_RATIONALE_MAX,
+  type JudgeConfig, type JudgeEvaluateReply, type JudgeSaveConfigReply,
+  type JudgeScoreView, type JudgeSettingsView, type JudgeSnapshot, type JudgeTrigger,
+} from './judge-types.ts'
+import { BUILTIN_JUDGE_METRICS, type JudgeMetricDef } from './judge-metrics.ts'
+import { projectJudgeInput } from './judge-input.ts'
+import { runJudge, type JudgeLlmPort } from './judge-call.ts'
+import { JudgeScoreStore, openJudgeStore, type StoredJudgeScore } from './score-store.ts'
+import { parseJudgeConfig, readJudgeConfig, writeJudgeConfig, type JudgeConfigRead } from './judge-config.ts'
+
+/** 队列并发上限(§5.4 表「队列」;D8 先按 5,P2 用真实数据定)。 */
+export const JUDGE_CONCURRENCY = 5
+
+/** 会话 id 长度上限(与 service.ts 同口径). */
+const SESSION_ID_MAX = 200
+
+/** provider 目录项(设置分区的模型选择面). */
+export interface JudgeProviderCatalog {
+  readonly id: string
+  readonly models: readonly string[]
+}
+
+/** 引擎端口(服务面从宿主编织;测试注入假件). */
+export interface JudgeEnginePorts {
+  /** 读会话事件快照;会话未加载返回 undefined. */
+  readEvents(sessionId: string): readonly SessionEventLike[] | undefined
+  /** 一次性直调端口(host 接 ctx.llm). */
+  readonly llm: JudgeLlmPort
+  /** provider/model 目录(设置分区的下拉;失败降级空列表). */
+  listProviders(): Promise<readonly JudgeProviderCatalog[]>
+  /** 时钟(测试注入). */
+  now?(): number
+  /** 抽样随机源(测试注入). */
+  random?(): number
+}
+
+/** 引擎构造参数. */
+export interface JudgeEngineOptions {
+  readonly configPath: string
+  readonly storePath: string
+  readonly ports: JudgeEnginePorts
+  /** 队列并发上限覆写(测试用;缺省 {@link JUDGE_CONCURRENCY}). */
+  readonly concurrency?: number
+}
+
+/** 队列任务. */
+interface JudgeTask {
+  readonly id: string
+  readonly sessionId: string
+  readonly metric: JudgeMetricDef
+  readonly turn: number | undefined
+  readonly trigger: JudgeTrigger
+}
+
+/** 手动评测选项. */
+export interface JudgeEvaluateOptions {
+  readonly scope?: 'all' | 'outcome' | 'process'
+  /** 过程裁判的目标轮(缺省 = 末轮). */
+  readonly turn?: number
+}
+
+/** ISO 日期键(UTC;与 usage-stats dayOf 同口径). */
+function dayKey(time: number): string {
+  return new Date(time).toISOString().slice(0, 10)
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined
+}
+
+function asNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === 'string' && value !== '' ? value : undefined
+}
+
+/**
+ * 裁判编排引擎。
+ */
+export class JudgeEngine {
+  readonly #configPath: string
+  readonly #storePath: string
+  readonly #ports: JudgeEnginePorts
+  readonly #concurrency: number
+  /** 懒开的评分库(失败留空 + 原因,面板如实说明). */
+  #store: JudgeScoreStore | undefined
+  #storeError: string | undefined
+  #storeTried = false
+  /** 待执行队列(FIFO). */
+  readonly #queue: JudgeTask[] = []
+  /** 在途任务(排队 + 执行中;键 = 去重键). */
+  readonly #inflight = new Map<string, JudgeTask>()
+  /** 空闲终评计时器(每会话一个;新输入即撤销). */
+  readonly #idleTimers = new Map<string, ReturnType<typeof setTimeout>>()
+  /** 卸载信号(中止在途调用). */
+  readonly #abort = new AbortController()
+  /** 最近一次引擎级失败(库/文件异常;写进面板 note). */
+  #lastError: string | undefined
+
+  constructor(options: JudgeEngineOptions) {
+    this.#configPath = options.configPath
+    this.#storePath = options.storePath
+    this.#ports = options.ports
+    this.#concurrency = options.concurrency ?? JUDGE_CONCURRENCY
+  }
+
+  /** 当前时钟. */
+  #now(): number {
+    return this.#ports.now?.() ?? Date.now()
+  }
+
+  /** 抽样随机源. */
+  #random(): number {
+    return this.#ports.random?.() ?? Math.random()
+  }
+
+  /** 现读配置(文件损坏回默认值 + warning). */
+  #config(): JudgeConfigRead {
+    try {
+      return readJudgeConfig(this.#configPath)
+    } catch {
+      return { config: DEFAULT_JUDGE_CONFIG, warning: '裁判配置读取失败，已回默认值。' }
+    }
+  }
+
+  /** 懒开评分库(只尝试一次;失败记原因). */
+  #openStore(): JudgeScoreStore | undefined {
+    if (this.#storeTried) return this.#store
+    this.#storeTried = true
+    try {
+      this.#store = openJudgeStore(this.#storePath)
+    } catch {
+      this.#storeError = '评分库不可读（可能损坏），评分暂不可用；删除该库文件后会自动重建。'
+      this.#store = undefined
+    }
+    return this.#store
+  }
+
+  /** 列某会话评分(库异常 → 空列表 + 原因). */
+  #listScores(sessionId: string): readonly StoredJudgeScore[] {
+    const store = this.#openStore()
+    if (store === undefined) return []
+    try {
+      return store.list(sessionId)
+    } catch {
+      this.#lastError = '评分库查询失败，本次快照不含已存评分。'
+      return []
+    }
+  }
+
+  /** 当日已用裁判 token(库异常按 0 计,但 note 说明). */
+  #usage(now: number): number {
+    const store = this.#openStore()
+    if (store === undefined) return 0
+    try {
+      return store.usage(dayKey(now))
+    } catch {
+      this.#lastError = '裁判用量读取失败，预算按 0 计。'
+      return 0
+    }
+  }
+
+  /** 某会话在途/排队任务数. */
+  pendingFor(sessionId: string): number {
+    let count = 0
+    for (const task of this.#inflight.values()) {
+      if (task.sessionId === sessionId) count += 1
+    }
+    return count
+  }
+
+  /** 全部在途/排队任务数. */
+  pendingTotal(): number {
+    return this.#inflight.size
+  }
+
+  /**
+   * 面板快照:评分视图 + 预算 + 综合结论。
+   * @param sessionId - 会话 id(调用方已完成归属校验).
+   * @param now - 快照时刻(测试注入).
+   * @returns 裁判区;未配置/停用/预算用尽都如实进 `state` 与 `note`(不伪报分数)。
+   */
+  snapshot(sessionId: string, now?: number): Promise<JudgeSnapshot> {
+    const at = now ?? this.#now()
+    const configRead = this.#config()
+    const config = configRead.config
+    const rows = this.#listScores(sessionId)
+    const scores = buildScoreViews(config, rows)
+    const pending = this.pendingFor(sessionId)
+    const used = this.#usage(at)
+    const overall = buildOverall(config, rows)
+    const latestError = latestRow(rows.filter(row => row.status === 'error'), 'session')
+      ?? latestRow(rows.filter(row => row.status === 'error'), 'turn')
+    const notes: string[] = []
+    if (configRead.warning !== undefined) notes.push(configRead.warning)
+    if (round(used) >= config.budgetTokensPerDay) {
+      notes.push(`今日裁判预算已用尽（${used} / ${config.budgetTokensPerDay} tokens），自动与手动评测暂停。`)
+    }
+    if (config.route === null) notes.push('未配置裁判模型：可在 设置 → 评测 里选择 provider 与模型。')
+    else if (!config.enabled) notes.push('自动评测已关闭；可在 设置 → 评测 打开，或点「立即评测」手动出分。')
+    if (this.#storeError !== undefined) notes.push(this.#storeError)
+    if (this.#lastError !== undefined) notes.push(this.#lastError)
+    const state: JudgeSnapshot['state'] = config.route === null
+      ? 'unconfigured'
+      : pending > 0
+        ? 'running'
+        : latestError !== undefined
+          ? 'error'
+          : config.enabled
+            ? 'ready'
+            : 'disabled'
+    return Promise.resolve({
+      state,
+      scores,
+      pending,
+      budget: { usedTokens: used, maxTokensPerDay: config.budgetTokensPerDay },
+      overall,
+      ...notes.length === 0 ? {} : { note: notes.join(' ') },
+    })
+  }
+
+  /**
+   * 设置分区读面(配置 + 指标目录 + 模型目录)。
+   * @returns 设置视图;`note` 携带配置损坏说明。
+   */
+  async settings(): Promise<JudgeSettingsView> {
+    const configRead = this.#config()
+    let providers: readonly JudgeProviderCatalog[] = []
+    try {
+      providers = await this.#ports.listProviders()
+    } catch {
+      providers = []
+    }
+    return {
+      config: configRead.config,
+      metrics: BUILTIN_JUDGE_METRICS.map(metric => ({
+        key: metric.key,
+        name: metric.name,
+        category: metric.category,
+        scope: metric.scope,
+        gating: metric.gating,
+      })),
+      providers,
+      ...configRead.warning === undefined ? {} : { note: configRead.warning },
+    }
+  }
+
+  /**
+   * 保存配置(严格校验 + 路由目录自检 + 原子写)。
+   * @param input - 设置分区提交的配置对象.
+   * @returns 保存结果;校验失败返回中文原因(不写文件)。
+   */
+  async saveConfig(input: unknown): Promise<JudgeSaveConfigReply> {
+    const parsed = parseJudgeConfig(input)
+    if (!parsed.ok) return parsed
+    // 保存自检(§5.4):路由可枚举时,provider 必须注册、model 必须在目录里。
+    // 目录查询失败(适配器离线/枚举不支持)不拦保存——首次评测会显式报错。
+    if (parsed.config.route !== null) {
+      const route = parsed.config.route
+      let providers: readonly JudgeProviderCatalog[] | undefined
+      try {
+        providers = await this.#ports.listProviders()
+      } catch {
+        providers = undefined
+      }
+      if (providers !== undefined && providers.length > 0) {
+        const provider = providers.find(entry => entry.id === route.provider)
+        if (provider === undefined) {
+          return { ok: false, error: `模型路由不可用：provider "${route.provider}" 未注册。` }
+        }
+        if (provider.models.length > 0 && !provider.models.includes(route.model)) {
+          return { ok: false, error: `模型 "${route.model}" 不在 provider "${route.provider}" 的目录中。` }
+        }
+      }
+    }
+    try {
+      writeJudgeConfig(this.#configPath, parsed.config)
+      return { ok: true, config: parsed.config }
+    } catch {
+      return { ok: false, error: '配置写入失败：评测数据目录不可写。' }
+    }
+  }
+
+  /**
+   * 手动评测(面板「立即评测」)。
+   * @param sessionId - 会话 id.
+   * @param options - 范围与目标轮.
+   * @returns 受理数量与跳过原因;未配置/无内容/预算用尽为业务失败(不抛)。
+   */
+  evaluate(sessionId: string, options: JudgeEvaluateOptions = {}): Promise<JudgeEvaluateReply> {
+    try {
+      return Promise.resolve(this.#evaluateNow(sessionId, options))
+    } catch {
+      // 消费端口抛错(事件读取竞态等)收敛成业务失败,不给面板递堆栈。
+      return Promise.resolve({ ok: false, code: 'invalid', message: '评测请求异常（内部读取失败）。' })
+    }
+  }
+
+  /** 同步受理核心(公开面只包一层 Promise;受理本身不做 IO 等待). */
+  #evaluateNow(sessionId: string, options: JudgeEvaluateOptions): JudgeEvaluateReply {
+    const id = typeof sessionId === 'string' ? sessionId.trim() : ''
+    if (id === '' || id.length > SESSION_ID_MAX) return { ok: false, code: 'invalid', message: '会话 id 不合法。' }
+    const config = this.#config().config
+    if (config.route === null) {
+      return { ok: false, code: 'unconfigured', message: '尚未配置裁判模型：请到 设置 → 评测 里选择模型后重试。' }
+    }
+    const events = this.#ports.readEvents(id)
+    if (events === undefined || events.length === 0) {
+      return { ok: false, code: 'no_content', message: '会话不在内存或尚无内容，无法评测。' }
+    }
+    const input = projectJudgeInput(events)
+    if (input.task === '' && input.turns.length === 0) {
+      return { ok: false, code: 'no_content', message: '会话尚无可用轨迹内容，无法评测。' }
+    }
+    const now = this.#now()
+    if (this.#usage(now) >= config.budgetTokensPerDay) {
+      return { ok: false, code: 'budget', message: '今日裁判预算已用尽：明日恢复，或在 设置 → 评测 里调高预算。' }
+    }
+    const scope = options.scope ?? 'all'
+    const lastTurn = input.turns.length === 0 ? undefined : input.turns[input.turns.length - 1]?.turn
+    const skipped: string[] = []
+    let accepted = 0
+    for (const metric of BUILTIN_JUDGE_METRICS) {
+      if (config.metrics[metric.key] === false) continue
+      if (scope === 'outcome' && metric.scope !== 'session') continue
+      if (scope === 'process' && metric.scope !== 'turn') continue
+      const turn = metric.scope === 'turn' ? options.turn ?? lastTurn : undefined
+      if (metric.scope === 'turn' && turn === undefined) {
+        skipped.push(`${metric.name}：没有可评的轮次`)
+        continue
+      }
+      if (this.#enqueue(metric, id, turn, 'manual')) accepted += 1
+      else skipped.push(`${metric.name}：相同评分已在队列中`)
+    }
+    if (accepted === 0) {
+      return skipped.length === 0
+        ? { ok: false, code: 'no_content', message: '没有可执行的裁判指标（指标可能均已停用）。' }
+        : { ok: false, code: 'busy', message: `裁判已在队列中：${skipped.join('；')}` }
+    }
+    return { ok: true, accepted, pending: this.pendingFor(id), skipped }
+  }
+
+  /**
+   * 会话事件观察入口(host 接 `ctx.on('session/event')`)。
+   * 只处理三种事件:turn/end 触发抽样与空闲计时;turn/start、user/message 撤销空闲计时。
+   * 任何异常都不上抛(评测观察永不阻断会话)。
+   * @param session - 宿主会话(读 `.id`).
+   * @param event - 会话事件(读 `.type` / `.data`).
+   */
+  handleEvent(session: unknown, event: unknown): void {
+    try {
+      const sessionId = asString(asRecord(session)?.id)
+      const type = asString(asRecord(event)?.type)
+      if (sessionId === undefined || type === undefined) return
+      if (type === 'turn/start' || type === 'user/message') {
+        this.#clearIdle(sessionId)
+        return
+      }
+      if (type !== 'turn/end') return
+      const data = asRecord(asRecord(event)?.data)
+      const turn = asNumber(data?.turn)
+      const config = this.#config().config
+      if (config.route === null) return
+      if (config.enabled && turn !== undefined && config.sampling > 0 && this.#random() < config.sampling) {
+        for (const metric of BUILTIN_JUDGE_METRICS) {
+          if (metric.scope !== 'turn' || config.metrics[metric.key] === false) continue
+          this.#enqueue(metric, sessionId, turn, 'turn_end')
+        }
+      }
+      if (config.enabled) this.#scheduleIdle(sessionId, config.idleTimeoutMs)
+    } catch {
+      // 观察面静默:评测是增强面,不因自身异常影响会话主流程。
+    }
+  }
+
+  /** 撤销某会话的空闲计时器. */
+  #clearIdle(sessionId: string): void {
+    const timer = this.#idleTimers.get(sessionId)
+    if (timer === undefined) return
+    clearTimeout(timer)
+    this.#idleTimers.delete(sessionId)
+  }
+
+  /** 排一次空闲终评(同会话重设即覆盖旧计时). */
+  #scheduleIdle(sessionId: string, delayMs: number): void {
+    this.#clearIdle(sessionId)
+    const timer = setTimeout(() => {
+      this.#idleTimers.delete(sessionId)
+      this.#idleOutcome(sessionId)
+    }, delayMs)
+    // 计时器不该把进程钉在事件循环里(node 专有;浏览器侧不会走到)。
+    ;(timer as { unref?: () => void }).unref?.()
+    this.#idleTimers.set(sessionId, timer)
+  }
+
+  /** 空闲终评:内容自上次结果类评分后有变化才跑(避免重复计费). */
+  #idleOutcome(sessionId: string): void {
+    try {
+      const config = this.#config().config
+      if (!config.enabled || config.route === null) return
+      if (this.pendingFor(sessionId) > 0) {
+        // 已有在途评分(多半是过程类):等它结束后再检查一次,不并发抢预算。
+        this.#scheduleIdle(sessionId, 5_000)
+        return
+      }
+      const events = this.#ports.readEvents(sessionId)
+      if (events === undefined || events.length === 0) return
+      const lastEvent = latestEventTime(events)
+      const fresh = this.#listScores(sessionId).some(row =>
+        row.scope === 'session' && row.status === 'ok' && (lastEvent === undefined || row.createdAt >= lastEvent))
+      if (fresh) return
+      for (const metric of BUILTIN_JUDGE_METRICS) {
+        if (metric.scope !== 'session' || config.metrics[metric.key] === false) continue
+        this.#enqueue(metric, sessionId, undefined, 'idle')
+      }
+    } catch {
+      // 空闲终评失败静默(下一次轮末会重新计时)。
+    }
+  }
+
+  /** 入队(同键在途去重);返回是否受理. */
+  #enqueue(metric: JudgeMetricDef, sessionId: string, turn: number | undefined, trigger: JudgeTrigger): boolean {
+    if (this.#abort.signal.aborted) return false
+    const id = `${sessionId}\u0000${metric.key}\u0000${turn === undefined ? 'session' : `turn:${turn}`}`
+    if (this.#inflight.has(id)) return false
+    const task: JudgeTask = { id, sessionId, metric, turn, trigger }
+    this.#inflight.set(id, task)
+    this.#queue.push(task)
+    this.#pump()
+    return true
+  }
+
+  /** 起任务(受并发上限约束). */
+  #pump(): void {
+    while (this.pendingTotal() - this.#queue.length < this.#concurrency && this.#queue.length > 0) {
+      const task = this.#queue.shift()
+      if (task === undefined) return
+      void this.#run(task)
+    }
+  }
+
+  /** 执行一个任务(预算/路由/内容三闸;任何异常收敛为不入库). */
+  async #run(task: JudgeTask): Promise<void> {
+    try {
+      const config = this.#config().config
+      const route = config.route
+      if (route === null) return
+      const now = this.#now()
+      if (this.#usage(now) >= config.budgetTokensPerDay) return
+      const events = this.#ports.readEvents(task.sessionId)
+      if (events === undefined || events.length === 0) return
+      const input = projectJudgeInput(events)
+      if (input.task === '' && input.turns.length === 0) return
+      if (task.metric.scope === 'turn') {
+        if (task.turn === undefined) return
+        if (!input.turns.some(turn => turn.turn === task.turn)) return
+      }
+      const result = await runJudge(task.metric, input, route, this.#ports.llm, {
+        ...task.turn === undefined ? {} : { turn: task.turn },
+        signal: this.#abort.signal,
+      })
+      if (this.#abort.signal.aborted) return
+      const createdAt = this.#now()
+      const store = this.#openStore()
+      if (store === undefined) return
+      store.upsert({
+        sessionId: task.sessionId,
+        metricKey: task.metric.key,
+        metricName: task.metric.name,
+        category: task.metric.category,
+        scope: task.metric.scope,
+        targetTurn: task.metric.scope === 'turn' ? task.turn ?? null : null,
+        status: result.status,
+        value: result.value,
+        rationale: result.rationale === '' ? null : result.rationale.slice(0, JUDGE_RATIONALE_MAX),
+        provider: route.provider,
+        model: route.model,
+        latencyMs: result.latencyMs,
+        tokens: result.tokens ?? null,
+        createdAt,
+      })
+      if (result.tokens !== undefined) store.addUsage(dayKey(createdAt), result.tokens)
+    } catch {
+      // 库写失败/事件读取竞态:不落库,面板无分(不伪造成 error 评分,error 评分只来自裁判调用)。
+      this.#lastError = '裁判结果落库失败，本次评分未保存。'
+    } finally {
+      this.#inflight.delete(task.id)
+      this.#pump()
+    }
+  }
+
+  /** 卸载:撤计时器、中止在途调用、关库. */
+  dispose(): void {
+    for (const timer of this.#idleTimers.values()) clearTimeout(timer)
+    this.#idleTimers.clear()
+    this.#abort.abort()
+    this.#queue.length = 0
+    this.#inflight.clear()
+    try {
+      this.#store?.close()
+    } catch {
+      // 关库失败不影响卸载。
+    }
+    this.#store = undefined
+  }
+}
+
+/** 取指定 scope 里最近一条评分行(targetTurn 最大,同轮取 createdAt 最新). */
+function latestRow(rows: readonly StoredJudgeScore[], scope?: 'session' | 'turn'): StoredJudgeScore | undefined {
+  let best: StoredJudgeScore | undefined
+  for (const row of rows) {
+    if (scope !== undefined && row.scope !== scope) continue
+    if (best === undefined) { best = row; continue }
+    if ((row.targetTurn ?? 0) > (best.targetTurn ?? 0)) { best = row; continue }
+    if ((row.targetTurn ?? 0) === (best.targetTurn ?? 0) && row.createdAt >= best.createdAt) best = row
+  }
+  return best
+}
+
+/** 指标 → 最近一条评分行. */
+function latestForMetric(rows: readonly StoredJudgeScore[], metric: JudgeMetricDef): StoredJudgeScore | undefined {
+  return latestRow(rows.filter(row => row.metricKey === metric.key), metric.scope)
+}
+
+/** 最近事件时间(无 time 字段 → undefined). */
+function latestEventTime(events: readonly SessionEventLike[]): number | undefined {
+  let latest: number | undefined
+  for (const event of events) {
+    if (typeof event.time !== 'number' || !Number.isFinite(event.time)) continue
+    if (latest === undefined || event.time > latest) latest = event.time
+  }
+  return latest
+}
+
+/** 评分状态 → 面板展示文案(没有分数就显示状态,不显示 0). */
+function displayOf(row: StoredJudgeScore | undefined, config: JudgeConfig, metric: JudgeMetricDef): { display: string; status: JudgeScoreView['status'] } {
+  if (row !== undefined) {
+    switch (row.status) {
+      case 'ok':
+        return { display: row.value === true ? '通过' : '未过', status: 'ok' }
+      case 'not_applicable':
+        return { display: '不适用', status: 'not_applicable' }
+      case 'error':
+        return { display: '出错', status: 'error' }
+      case 'skipped':
+        return { display: '跳过', status: 'skipped' }
+      case 'sampled_out':
+        return { display: '未采样', status: 'sampled_out' }
+      case 'pending':
+        return { display: '排队中', status: 'pending' }
+    }
+  }
+  if (config.metrics[metric.key] === false) return { display: '已停用', status: 'skipped' }
+  if (config.route === null) return { display: '未配置裁判', status: 'skipped' }
+  return { display: '待评', status: 'pending' }
+}
+
+/** 组装六项裁判指标的视图(缺行给显式状态,不伪造). */
+function buildScoreViews(config: JudgeConfig, rows: readonly StoredJudgeScore[]): JudgeScoreView[] {
+  return BUILTIN_JUDGE_METRICS.map((metric) => {
+    const row = latestForMetric(rows, metric)
+    const { display, status } = displayOf(row, config, metric)
+    const route = row !== undefined && row.provider !== null && row.model !== null
+      ? { provider: row.provider, model: row.model }
+      : config.route
+    return {
+      key: metric.key,
+      name: metric.name,
+      category: metric.category,
+      scope: metric.scope,
+      status,
+      value: row?.status === 'ok' ? row.value : null,
+      display,
+      pass: row?.status === 'ok' ? row.value : null,
+      ...row?.rationale === null || row?.rationale === undefined ? {} : { rationale: row.rationale },
+      ...row?.targetTurn === null || row?.targetTurn === undefined ? {} : { turn: row.targetTurn },
+      route,
+      ...row?.latencyMs === null || row?.latencyMs === undefined ? {} : { latencyMs: row.latencyMs },
+      ...row?.tokens === null || row?.tokens === undefined ? {} : { tokens: row.tokens },
+    }
+  })
+}
+
+/** 结果类综合结论(关键项全过才算通过;不适用按豁免计,缺评如实说未评). */
+function buildOverall(config: JudgeConfig, rows: readonly StoredJudgeScore[]): JudgeSnapshot['overall'] {
+  if (config.route === null) {
+    return {
+      level: 'unrated',
+      label: '结果类：未配置裁判',
+      reasons: ['未选择裁判模型，结果类指标不会产生评分。'],
+    }
+  }
+  const gating = BUILTIN_JUDGE_METRICS.filter(metric =>
+    metric.category === 'outcome' && metric.gating && config.metrics[metric.key] !== false)
+  const judged = gating.map(metric => ({ metric, row: latestForMetric(rows, metric) }))
+    .filter(entry => entry.row?.status === 'ok' || entry.row?.status === 'not_applicable')
+  const failures = judged.filter(entry => entry.row?.status === 'ok' && entry.row.value === false)
+  const waived = judged.filter(entry => entry.row?.status === 'not_applicable')
+  const softFails = BUILTIN_JUDGE_METRICS
+    .filter(metric => metric.category === 'outcome' && !metric.gating && config.metrics[metric.key] !== false)
+    .map(metric => ({ metric, row: latestForMetric(rows, metric) }))
+    .filter(entry => entry.row?.status === 'ok' && entry.row.value === false)
+  const reasons = [
+    ...failures.map(entry => `${entry.metric.name}未通过`),
+    ...softFails.map(entry => `${entry.metric.name}未通过（非关键项，不进结论门控）`),
+    ...waived.map(entry => `${entry.metric.name}不适用`),
+  ]
+  if (failures.length > 0) {
+    return { level: 'warn', label: `结果类：${failures.length} 项关键项未过`, reasons }
+  }
+  if (judged.length < gating.length) {
+    const missing = gating.filter(metric => !judged.some(entry => entry.metric.key === metric.key))
+    reasons.push(...missing.map(metric => `${metric.name}尚未评`))
+    return {
+      level: 'unrated',
+      label: `结果类：关键项未评全（${judged.length}/${gating.length}）`,
+      reasons,
+    }
+  }
+  return {
+    level: 'pass',
+    label: '结果类：通过',
+    reasons: reasons.length > 0 ? reasons : ['关键项全部通过。'],
+  }
+}
+
+/** 用量取整(预算比较用整数 token). */
+function round(value: number): number {
+  return Number.isFinite(value) ? Math.round(value) : 0
+}

@@ -5,6 +5,7 @@
  * 序列化,客户端只按此形状渲染),因此不 import 上游类型包:上游事件形状用结构
  * 子集声明(与 observe / cache-guard 同纪律),升级破坏面由测试的 seam 断言兜住。
  */
+import type { JudgeSnapshot } from './judge-types.ts'
 
 /**
  * session 事件流的最小事件包(结构兼容 dsh `SessionEvent`:{type, seq, time, data}).
@@ -163,6 +164,8 @@ export interface EvalSnapshot {
   readonly issues: readonly EvalIssue[]
   /** 待评/未评说明(P1 裁判项与不可在线测项,一次性列清,不混进分数)。 */
   readonly pending: readonly string[]
+  /** 裁判区(P1;服务面缺席/未配置时也返回结构完整的区块,不省略). */
+  readonly judge?: JudgeSnapshot
 }
 
 /** 快照请求/应答的线上形状(access 守卫路由与客户端 api.ts 共用)。 */
