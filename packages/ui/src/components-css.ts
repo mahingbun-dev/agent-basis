@@ -247,12 +247,18 @@ export const COMPONENT_CSS = `
   position: absolute; inset-inline: 0; left: 0; right: 0; bottom: 0;
   display: flex; flex-direction: column; align-items: center; gap: var(--et-space-2);
   z-index: 200; pointer-events: none;
+  /* 可用高度由 DecisionLayer 量测输入卡顶边后写入（生产实测；缺省 68dvh）。
+     卡片内部滚动消费这个上限，题多也不会顶穿视口。 */
+  max-height: var(--decision-avail, 68dvh);
 }
 /* 决策卡是最外层容器:必须自带文字基线,否则 color/font-size 继承文档默认
-   (深色下实测标题变纯黑、在墨玉底上不可读)。 */
+   (深色下实测标题变纯黑、在墨玉底上不可读)。
+   v2(2026-11-25):卡片有高度上限。提问卡改为纵向 flex（头部/底部固定、
+   题区唯一滚动轴），内距下放到三段；审批卡保持整卡内距并允许整卡滚动。 */
 [data-eterna-ui] .et-decision-card {
   position: relative; overflow: hidden; pointer-events: auto;
   width: min(760px, 100%);
+  max-height: min(720px, var(--decision-avail, 68dvh));
   border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-lg);
   background: var(--et-surface); box-shadow: var(--et-shadow-r3);
   padding: var(--et-space-5);
@@ -261,6 +267,14 @@ export const COMPONENT_CSS = `
   font-size: var(--et-text-body);
   font-weight: var(--et-weight-body);
   line-height: var(--et-leading-body);
+  animation: et-decision-in var(--et-motion-base) var(--et-ease);
+}
+[data-eterna-ui] .et-decision-card[data-kind='question'] {
+  display: flex; flex-direction: column; padding: 0;
+}
+[data-eterna-ui] .et-decision-card[data-kind='approval'] { overflow-y: auto; }
+@keyframes et-decision-in {
+  0% { opacity: 0; transform: translateY(10px); }
 }
 /* 倒计时：贴卡片顶边的 2px 条，不是独立一行（否则卡内出现一条横线切断内容） */
 [data-eterna-ui] .et-decision-track { position: absolute; inset-block-start: 0; inset-inline: 0; height: 2px; background: var(--et-surface-3); }
@@ -275,6 +289,7 @@ export const COMPONENT_CSS = `
 
 /* 队列：宽屏最多 2 张，其余折叠为「另有 N 项」 */
 [data-eterna-ui] .et-decision-more {
+  flex: none;
   pointer-events: auto; display: inline-flex; align-items: center; gap: var(--et-space-2);
   height: 32px; padding: 0 var(--et-space-3); border: 1px solid var(--et-border-soft);
   border-radius: var(--et-radius-pill); background: var(--et-surface); box-shadow: var(--et-shadow-r1);
@@ -287,5 +302,6 @@ export const COMPONENT_CSS = `
   }
   [data-eterna-ui] .et-btn:active:not(:disabled), [data-eterna-ui] .et-row:hover { transform: none; }
   [data-eterna-ui] .et-dot[data-state='running'] { animation: none; }
+  [data-eterna-ui] .et-decision-card { animation: none; }
 }
 `

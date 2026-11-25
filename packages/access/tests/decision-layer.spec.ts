@@ -53,6 +53,39 @@ describe('决策层挂载位置', () => {
   })
 })
 
+describe('提问卡 v2：题多可滚，不许顶穿视口', () => {
+  it('卡片有固定头部 / 滚动题区 / 固定底部三段', () => {
+    expect(questionCard).toContain("className='eq-head'")
+    expect(questionCard).toContain("className='eq-body-wrap'")
+    expect(questionCard).toContain("className='eq-body'")
+    expect(questionCard).toContain("className='eq-foot'")
+  })
+
+  it('题区是唯一滚动轴（overflow-y:auto），外框不滚', () => {
+    const start = styles.indexOf('.eq-body {')
+    expect(start, '找不到 .eq-body 规则').toBeGreaterThan(-1)
+    const rule = styles.slice(start, styles.indexOf('}', start))
+    expect(rule, '题区缺 overflow-y:auto 就回退到「题多不可见」').toContain('overflow-y: auto')
+    const wrapStart = styles.indexOf('.eq-body-wrap {')
+    expect(wrapStart).toBeGreaterThan(-1)
+    const wrapRule = styles.slice(wrapStart, styles.indexOf('}', wrapStart))
+    expect(wrapRule).not.toContain('overflow')
+  })
+
+  it('多题时明示已答进度（已答 K/N），不靠用户猜还有几题没答', () => {
+    expect(questionCard).toContain('已答 ')
+  })
+
+  it('一次只呈当前题，页脚用 ‹ 第 n/N 题 › 左右切换', () => {
+    expect(questionCard).toContain('props.item.questions[index]')
+    expect(questionCard.match(/<QuestionField/gu)?.length, '题区只能挂一个 QuestionField').toBe(1)
+    expect(questionCard).toContain("aria-label='上一题'")
+    expect(questionCard).toContain("aria-label='下一题'")
+    expect(questionCard).toContain('第 ')
+    expect(questionCard).toContain('题')
+  })
+})
+
 describe('层级与旧样式清理', () => {
   it('样式表里不再有 fixed top:16px 的决策卡叠层', () => {
     // 旧形态：.eap-overlay / .eq-overlay { position: fixed; inset-block-start: 16px; z-index: 10000 }

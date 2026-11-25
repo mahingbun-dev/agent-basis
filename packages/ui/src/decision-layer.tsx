@@ -38,6 +38,9 @@ export interface DecisionLayerProps {
 /** 决策层实测高度的 CSS 自定义属性名（信息流消费）。 */
 export const DECISION_INSET_VAR = '--decision-inset'
 
+/** 决策层可用高度的 CSS 自定义属性名（卡片 max-height / 内部滚动消费）。 */
+export const DECISION_AVAIL_VAR = '--decision-avail'
+
 export function DecisionLayer(props: DecisionLayerProps): ReactNode {
   const layerRef = useRef<HTMLDivElement | null>(null)
   const [narrow, setNarrow] = useState(false)
@@ -69,6 +72,34 @@ export function DecisionLayer(props: DecisionLayerProps): ReactNode {
     query.addEventListener('change', sync)
     return () => { query.removeEventListener('change', sync) }
   }, [])
+
+  // 可用高度：层底边 = 宿主输入卡顶边（bottom:0 锚在零高度锚点内）。
+  // 减去 72px = 宿主顶栏(48–56px) + 16px 呼吸位——卡片可以很高，但不许压住顶栏。
+  // 没有这个上限时，题一多卡片就从输入卡顶边往上顶穿视口，顶部题目不可见
+  // 且无法滚动（2026-11-25 提问卡实测）。
+  useEffect(() => {
+    const layer = layerRef.current
+    if (layer === null) return
+    const write = (): void => {
+      const bottom = layer.getBoundingClientRect().bottom
+      if (bottom <= 0) return
+      const avail = Math.max(160, Math.floor(bottom - 72))
+      layer.style.setProperty(DECISION_AVAIL_VAR, `${String(avail)}px`)
+    }
+    write()
+    window.addEventListener('resize', write)
+    // 输入卡变高（多行输入/附件）时锚点上移：观察宿主容器尺寸兜底。
+    const host = layer.parentElement?.parentElement ?? null
+    const observer = typeof ResizeObserver === 'undefined' || host === null
+      ? undefined
+      : new ResizeObserver(() => { write() })
+    if (observer !== undefined && host !== null) observer.observe(host)
+    return () => {
+      window.removeEventListener('resize', write)
+      observer?.disconnect()
+      layer.style.removeProperty(DECISION_AVAIL_VAR)
+    }
+  }, [hasCard])
 
   // 补偿：把决策层实测高度写进信息流下内距，并滚到底（卡片压住的正是要回看的证据）
   useEffect(() => {
