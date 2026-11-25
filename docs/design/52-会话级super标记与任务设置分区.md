@@ -220,7 +220,22 @@ live hub 快照 `sessions` 恒空占位(宿主 session 面未接线);客户端�
   `policyVersion=565427af…` 未变。
 - 回滚:0.1.48 → 0.1.47 image id `sha256:fa76f0ca047a…` → `up -d`。
 
-### 7.3 候选卡排队与北京时间(0.1.50)
+### 7.3 会话行标识 + 候选卡可读化(0.1.49)
+
+- PR **#132** → `6e97ca8`;干净 worktree `agent-basis-main-0.1.49` →
+  `eterna-agent:0.1.49`(image id `a57d711252a7`);client bundle **142628 B**
+  (`data-eterna-tasks-candidate` 5 处、`session-row-badge` 1 处)。
+- 首次 `pre-restart-check` 被另一会话(`session-fab59d78…`)120s 内活动拦下,
+  等静默窗后通过 → `up -d` → `verify.sh` **14 过 / 0 败**。
+- 生产只读取证(刷新后):侧边栏 `eterna-tasks orchestrator` 行出现紧凑「主控」chip
+  (`data-eterna-tasks-compact="true"`),头部「主控」同在;页面 DOM 无
+  `"kind":"candidate"` 原文。历史候选消息未落正文(当时只在排队区出现),故候选 chip
+  的正例在隔离实例(同镜像+新 client.js)取证:排队预览与正文两处均渲染,
+  raw JSON 不可见(截图 `artifacts/0.1.49-session-markers/`)。
+- 截图:双主题 × 1440/900/390 共 6 张 + 隔离排队态 + 生产只读取证。
+- 回滚:0.1.49 → 0.1.48 image id `sha256:8e9ddd5612cc…` → `up -d`。
+
+### 7.4 候选卡排队与北京时间(0.1.50)
 
 - **现象**(2026-11-19 用户截图,生产 0.1.49):主会话排队区持续累积同一条候选卡,
   多行是同一份原始 JSON、`at` 同为 `2026-11-19T09:36:24.503Z`(UTC,显示比北京时间少 8 小时)。
