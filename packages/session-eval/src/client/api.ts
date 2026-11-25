@@ -9,7 +9,7 @@
  */
 import type { EvalSnapshot } from '../types.ts'
 import type { BusinessMetric } from '../business-metrics.ts'
-import type { JudgeConfig, JudgeSettingsView, JudgeTrialView } from '../judge-types.ts'
+import type { JudgeConfig, JudgeSettingsView, JudgeTrialView, OverviewView } from '../judge-types.ts'
 
 /** 带 HTTP 状态的服务端失败(UI 据此选文案). */
 export class SessionEvalApiError extends Error {
@@ -91,6 +91,20 @@ export async function evaluateSession(
     pending: typeof parsed.pending === 'number' ? parsed.pending : 0,
     skipped: Array.isArray(parsed.skipped) ? parsed.skipped.filter((item): item is string => typeof item === 'string') : [],
   }
+}
+
+/**
+ * 读评测总览(近 14 天,服务端只聚合**本人名下**的会话)。
+ * @param signal - 取消信号.
+ * @returns 总览视图(服务端按登录身份过滤会话集).
+ */
+export async function fetchOverview(signal?: AbortSignal): Promise<OverviewView> {
+  const parsed = await postJson('overview', {}, signal)
+  const overview = parsed.overview
+  if (typeof overview !== 'object' || overview === null) {
+    throw new SessionEvalApiError(200, '应答缺少 overview 字段')
+  }
+  return overview as OverviewView
 }
 
 /**

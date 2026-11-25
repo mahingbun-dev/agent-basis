@@ -10,7 +10,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { JudgeEngine, type JudgeEnginePorts } from '../src/engine.ts'
 import { readJudgeConfig, writeJudgeConfig } from '../src/judge-config.ts'
-import { openJudgeStore } from '../src/score-store.ts'
+import { openJudgeStore, type StoredJudgeScore } from '../src/score-store.ts'
 import { businessMetricsPath, saveBusinessMetric } from '../src/business-store.ts'
 import { DEFAULT_JUDGE_CONFIG, type JudgeConfig } from '../src/judge-types.ts'
 import type { JudgeLlmPort } from '../src/judge-call.ts'
@@ -817,5 +817,103 @@ describe('试跑(P2-3b)', () => {
     expect(await engine.trial('s1', 'judge.task_completion', 0, 'alice')).toMatchObject({ ok: false, code: 'invalid' })
     expect(await engine.trial('s1', 'judge.task_completion', 1.5, 'alice')).toMatchObject({ ok: false, code: 'invalid' })
     expect(calls).toHaveLength(0)
+  })
+})
+
+describe('评测总览(P2-3c)', () => {
+  beforeEach(() => {
+    writeConfig()
+  })
+
+  /** 评分行种子(默认:整条会话结果类 ok/通过/gating/1000ms). */
+  function score(sessionId: string, patch: Partial<StoredJudgeScore> = {}): StoredJudgeScore {
+    return {
+      sessionId, metricKey: 'judge.task_completion', metricName: '任务完成度',
+      category: 'outcome', scope: 'session', targetTurn: null, status: 'ok', value: true,
+      rationale: null, provider: 'deepseek', model: 'deepseek-chat', latencyMs: 1000,
+      tokens: 100, gating: true, metricVersion: null, createdAt: NOW,
+      ...patch,
+    }
+  }
+
+  it('两会话:综合通过率/关键项未过/按天/按指标/耗时/今日用量', async () => {
+    engine = newEngine()
+    const store = openJudgeStore(storePath)
+    store.upsert(score('s-pass'))
+    store.upsert(score('s-fail', { value: false, latencyMs: 2000 }))
+    store.addUsage(DAY, 500)
+    store.close()
+    const reply = await engine.overview(['s-pass', 's-fail', 's-not-there'], NOW)
+    expect(reply.ok).toBe(true)
+    if (!reply.ok) return
+    const view = reply.overview
+    expect(view.totals).toMatchObject({
+      evaluatedSessions: 2, passedSessions: 1, passRate: 0.5, gatingFailedSessions: 1,
+      averageLatencyMs: 1500, usageToday: 500, budgetPerDay: 200_000,
+    })
+    expect(view.windowDays).toBe(14)
+    expect(view.byDay).toHaveLength(14)
+    const today = view.byDay[13]
+    expect(today).toMatchObject({ day: DAY, evaluated: 2, passed: 1, passRate: 0.5 })
+    expect(view.metrics).toEqual([{
+      key: 'judge.task_completion', name: '任务完成度', category: 'outcome', source: 'builtin',
+      pass: 1, fail: 1, notApplicable: 0, passRate: 0.5,
+    }])
+    // 未登记会话不参与(调用方给什么就只聚合什么)。
+    expect(view.totals.evaluatedSessions).toBe(2)
+  })
+
+  it('没评完不进分母:只有过程行/只有不适用 → evaluated=0;na 单独计数', async () => {
+    engine = newEngine()
+    const store = openJudgeStore(storePath)
+    store.upsert(score('s-process', { category: 'process', metricKey: 'judge.tool_selection' }))
+    store.upsert(score('s-na', { status: 'not_applicable', value: null }))
+    store.close()
+    const reply = await engine.overview(['s-process', 's-na'], NOW)
+    expect(reply.ok).toBe(true)
+    if (!reply.ok) return
+    expect(reply.overview.totals).toMatchObject({ evaluatedSessions: 0, passedSessions: 0, passRate: null })
+    const table = reply.overview.metrics.find(row => row.key === 'judge.task_completion')
+    expect(table).toMatchObject({ pass: 0, fail: 0, notApplicable: 1, passRate: null })
+  })
+
+  it('重评只算最新一次:upsert 覆盖旧行,不把历史失败重复计入', async () => {
+    engine = newEngine()
+    const store = openJudgeStore(storePath)
+    store.upsert(score('s-retry', { value: false, createdAt: NOW - 60_000 }))
+    store.upsert(score('s-retry', { value: true, createdAt: NOW }))
+    store.close()
+    const reply = await engine.overview(['s-retry'], NOW)
+    expect(reply.ok).toBe(true)
+    if (!reply.ok) return
+    expect(reply.overview.totals).toMatchObject({ evaluatedSessions: 1, passedSessions: 1, passRate: 1 })
+    expect(reply.overview.metrics[0]).toMatchObject({ pass: 1, fail: 0, passRate: 1 })
+  })
+
+  it('窗口:14 天前的评分不计入(分母/条带/按指标都不含)', async () => {
+    engine = newEngine()
+    const store = openJudgeStore(storePath)
+    store.upsert(score('s-old', { createdAt: NOW - 15 * 86_400_000 }))
+    store.close()
+    const reply = await engine.overview(['s-old'], NOW)
+    expect(reply.ok).toBe(true)
+    if (!reply.ok) return
+    expect(reply.overview.totals.evaluatedSessions).toBe(0)
+    expect(reply.overview.metrics).toEqual([])
+    expect(reply.overview.byDay.every(day => day.evaluated === 0)).toBe(true)
+  })
+
+  it('无 gating 行时以全部结果类为准;逐轮指标不进总览', async () => {
+    engine = newEngine()
+    const store = openJudgeStore(storePath)
+    store.upsert(score('s-soft', { gating: null, metricKey: 'judge.answer_support', value: false }))
+    store.upsert(score('s-turn', { scope: 'turn', targetTurn: 2, metricKey: 'judge.tool_selection' }))
+    store.close()
+    const reply = await engine.overview(['s-soft', 's-turn'], NOW)
+    expect(reply.ok).toBe(true)
+    if (!reply.ok) return
+    // s-soft 无 gating → 全部结果类参与判定;失败会计入未过但不计入「关键项未过」。
+    expect(reply.overview.totals).toMatchObject({ evaluatedSessions: 1, passedSessions: 0, gatingFailedSessions: 0 })
+    expect(reply.overview.metrics.map(row => row.key)).toEqual(['judge.answer_support'])
   })
 })

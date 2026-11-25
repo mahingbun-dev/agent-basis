@@ -152,7 +152,7 @@ describe('模块装载冒烟(vm)', () => {
 
   it('body:sidebar.right.pane.tab 的键控注册挂在类型 id 下', () => {
     const { recorded } = loadBundle()
-    expect(recorded.injections).toEqual(['sidebar.right.pane.tab', 'settings.section'])
+    expect(recorded.injections).toEqual(['sidebar.right.pane.tab', 'settings.section', 'main', 'sidebar.panellist'])
     const body = recorded.slots.find(slot => slot.options.name === 'sidebar.right.pane.tab')
     expect(body?.options.key).toBe('@eterna/session-eval/panel')
     expect(typeof body?.component).toBe('function')

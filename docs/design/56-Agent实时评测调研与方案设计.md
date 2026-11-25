@@ -1103,3 +1103,56 @@ P2-3b 试跑（真实模型 + 原始输出/不合法输出态）、P2-3c 评测�
 
 P2-3c 评测总览（候选 `sidebar.panellist` + `main`，遵守「不做独立页面」）、P2-3d dsh-evals 回放对接。
 
+
+## 17. 实现状态（2026-11-25：P2-3c 评测总览已交付）
+
+> 数字全部为当轮实测：`pnpm run verify`（全仓 EXIT=0）、`node scripts/verify-eterna-{web,super}.mjs`、
+> `node scripts/lint-ui-tokens.mjs`、`node tools/packctl/bin/packctl.mjs {form-check,tenant-scan,prompt-scan}`。
+
+### 17.1 已交付
+
+| 面 | 内容 | 位置 |
+|---|---|---|
+| 总览类型 | `OverviewView`（`windowDays=14` / `totals` / `byDay` / `metrics`）、`OverviewTotals`（已终评、通过、通过率、关键项未过、平均裁判耗时、今日用量与日预算）、`OverviewDay`、`OverviewMetricRow`（来源 `builtin`/`business`）；`OverviewReply` 失败只回 `io` | `src/judge-types.ts` |
+| 评分库批量读 | `listMany(sessionIds)`：去重后按 400 一批 `IN` 查询，列与 `list()` 共用 `rowToScore` 映射（不复制列清单） | `src/score-store.ts` |
+| 总览聚合 | `overview(sessionIds, now?)`：**服务面不枚举会话**，只聚合调用方传入的 id；纯函数 `buildOverview` 负责窗口裁剪、会话结论、按天趋势、按指标表；失败回 `io` | `src/engine.ts` |
+| 会话集归属 | `sessionIdsOwned(ownerId)`：直接归属（`sessions.owner_id`）+ `session_children` 子会话 BFS 展开，上限 20000；路由层据此过滤后再调引擎 | `packages/access/src/store.ts` |
+| 路由 | `POST /access/api/session-eval/overview`：登录闸 + 本人会话集；`io → 503`；200 + `no-store`；不新增审计事件（只读聚合，重复拉取无副作用） | `packages/access/src/routes.ts` |
+| 客户端入口 | 侧栏席位 `sidebar.panellist`（id/key `@eterna/session-eval/overview`，order 24，图标走 `@eterna/ui/icons` 的 `chart`）；页面挂宿主 `main` keyed 槽（key 同 id）——**没有独立页面路由**，符合「原生扩展点」铁律 | `src/client/index.ts` |
+| 总览页 | 4 个 KPI（综合通过率/关键项未过/平均裁判耗时/今日用量）、近 14 天通过率条带（`role="img"` + 最低/最高 aria、每天 `title` 给绝对值）、「怎么读这些数」口径说明、按指标表（通过/未过/不适用/通过率 + 低位告警条）；空态/错误/加载三态；60 秒自动刷新 + 手动刷新 | `src/client/OverviewPage.tsx`、`src/client/styles.ts` |
+| API 封装 | `fetchOverview(signal?)`：POST `overview`，应答缺 `overview` 视为协议错误（与其它端点同形） | `src/client/api.ts` |
+| 部署探针 | `deploy/verify.sh` §8.7 增至七件：`snapshot / settings / metrics/save / metrics/parse / labels/save / trial / overview` 匿名均 401 | `deploy/verify.sh` |
+
+### 17.2 口径决定（本轮）
+
+1. **总览是「本人视角」**：会话集由 access 按登录身份给出（直接归属 + 子会话），引擎不自行枚举；全局管理员跨账号总览不在本轮（避免新增跨租户聚合面，留待有明确验收口径再加）。
+2. **「已终评」= 至少一条整条会话口径的结果类评分行**（`scope=session`、`category=outcome`、`status=ok`）；没评完的会话不进分母，通过率为空显示「—」而非 0%。
+3. **会话通过判定沿用关键项优先**：该会话最新一次各结果类评分里，有 `gating=true` 的项就只看 gating 项（全 true 才算过），没有 gating 项则看全部结果类；`关键项未过` 单列计数，便于从总览定位问题会话。
+4. **趋势按「结论日」归桶**：一个会话落在其最新结果类评分 `createdAt` 所在日（`decidedAt`），不按每条评分行摊到多天；同一会话只计一次。
+5. **按指标表只取整条会话口径**：每个会话每个指标取最新一次（`createdAt` 最大）`status ∈ {ok, not_applicable}` 行；`不适用` 单列、不进通过率分母；逐轮指标不聚合（在会话面板逐轮看）。
+6. **平均裁判耗时只算真实模型调用**：`provider != null && latency_ms != null` 的行；规则型/缓存/未调用不拉低或抬高均值。今日用量与日预算取部署级（与设置分区同源）。
+7. **条带柱高按窗口「最低–最高」归一（30% 起步）**：截图实测发现按峰值归一（58%–75% 压进 77%–100%）几乎看不出趋势；改为相对最低值归一，绝对值由「峰值 N%」与每天 `title` 给出。这是本轮实测修出的一处**呈现缺陷**（非缺规则），已重截全部 6 张。
+
+### 17.3 验证证据
+
+| 门禁 | 结果 |
+|---|---|
+| `pnpm --filter @eterna/session-eval verify` | oxlint 0/0；19 个测试文件 **190 passed**（+5：两会话合计/趋势/指标表 / 未终评不进分母+不适用 / 同指标只取最新 / 14 天窗口裁剪 / 无 gating 回退+逐轮行排除） |
+| `packages/access` verify | 55 个测试文件 **641 passed**；session-eval 路由 **36 项**（+2：overview 只聚合本人会话集+200+no-store+匿名 401 / io 与抛错均 503） |
+| 全仓 `pnpm run verify` | **EXIT=0** |
+| `verify-eterna-web.mjs`（真实 boot） | OK — **232** host entries；`settings.section=5`；35 个声明槽位键全部命中活槽目录（含 `sidebar.panellist` / `main`） |
+| `verify-eterna-super.mjs`（真实 boot） | OK — **240** host entries；`settings.section=6`；41 个声明槽位键全部命中 |
+| `scripts/lint-ui-tokens.mjs` | 19 目录 **348** 文件、79 个 `--et-*` 令牌、状态点 30/30、v4 阶梯 0 债务 |
+| `packctl form-check / tenant-scan / prompt-scan` | 0 / 0 / 0 findings |
+
+截图（深浅 × 1440/900/390，共 6 张；真实 `lib/client.js` + 真实令牌；数值为演示数据）：
+
+| 面 | 文件 |
+|---|---|
+| 评测总览（KPI + 14 天条带 + 读法 + 按指标表） | `docs/assets/screenshots/session-eval-p2-3-overview-{light,dark}-{1440,900,390}.png` |
+
+§7 自查：6 张逐张断言 `scrollWidth === innerWidth`（1440/900/390 全相等）与主题底色（light `rgb(244,242,236)` / dark `rgb(22,25,23)`）；KPI 4 卡、条带 14 天、指标表 5 行、条带 aria「最低 58%，最高 75%」、综合通过率 `72%` 均由 DOM 断言核过；390 下 KPI 两列、读数说明与表格按既有断点收缩，表格横向滚动不撑宽页面。
+
+### 17.4 P2-3 余下
+
+P2-3d dsh-evals 回放对接（把 dsh-evals 既有用例回放到本插件评分口径上）。P2-3 三块（a 校准 / b 试跑 / c 总览）至此全部交付。

@@ -2,6 +2,8 @@
  * @eterna/session-eval 浏览器半边:右侧栏「评测」tab + 设置弹窗「评测」分区。
  *
  * ## 注册面(两处原生扩展点,无独立页面入口)
+ * 0. **评测总览** —— 侧栏席位 `sidebar.panellist`(图标入口)+ 宿主 `main` 槽 keyed 页:
+ *    总览是「页面」而非会话内面板,但仍挂在原生扩展点上,不注册独立 Web 路由。
  * 1. **右栏 tab 类型** —— `ctx.sidebarRightTabs.register({ id, kind, priority, title, guide })`
  *    静态声明;页面型 tab(不承载第二段会话),body 直接读主会话(`sessionId` 标准 prop),
  *    快照经 access 守卫路由取。
@@ -20,6 +22,7 @@
  */
 import { EvalPanel } from './EvalPanel.tsx'
 import { EvalSettingsSection } from './EvalSettings.tsx'
+import { OverviewEntryIcon, OverviewPage } from './OverviewPage.tsx'
 import { injectSessionEvalStyles } from './styles.ts'
 import type { SessionEvalClientContext } from './client-types.ts'
 
@@ -28,6 +31,9 @@ const TAB_TYPE_ID = '@eterna/session-eval/panel'
 
 /** 设置分区的全系统身份(settings.section 契约:id 唯一)。 */
 export const SESSION_EVAL_SECTION_ID = '@eterna/session-eval/settings'
+
+/** 总览页身份(sidebar.panellist 条目 id = main keyed 槽 key;同一值)。 */
+export const OVERVIEW_PANEL_ID = '@eterna/session-eval/overview'
 
 /** tab kind(按 kind 打开页面;不与上游 kind 撞名)。 */
 export const SESSION_EVAL_TAB_KIND = 'eval'
@@ -74,7 +80,23 @@ export function apply(ctx: SessionEvalClientContext): () => void {
     label: () => '评测',
   }, EvalSettingsSection as never))
 
+  // 评测总览:侧栏入口 + main keyed 页(总览页无 locale/无 hooks;组件自拉数据,
+  // 复用本插件已声明的 access 守卫路由)。order 24:20–23 已被基座/工坊/追踪/用量占用。
+  const disposeOverviewPage = ctx.slots.inject('main', () => ctx.slots.register({
+    name: 'main',
+    key: OVERVIEW_PANEL_ID,
+    inject: () => ({}),
+  }, OverviewPage as never))
+  const disposeOverviewEntry = ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+    name: 'sidebar.panellist',
+    id: OVERVIEW_PANEL_ID,
+    order: 24,
+    label: () => '评测总览',
+  }, OverviewEntryIcon as never))
+
   return () => {
+    disposeOverviewEntry()
+    disposeOverviewPage()
     disposeSection()
     disposeBody()
     disposeType()

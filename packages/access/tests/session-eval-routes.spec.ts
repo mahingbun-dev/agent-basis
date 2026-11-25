@@ -114,6 +114,18 @@ describe('实时评测路由(access)', () => {
           },
         }
       },
+      overview: async (sessionIds) => {
+        calls.push(`overview:${sessionIds.join(',')}`)
+        return {
+          ok: true,
+          overview: {
+            windowDays: 14, totals: {
+              evaluatedSessions: 1, passedSessions: 1, passRate: 1, gatingFailedSessions: 0,
+              averageLatencyMs: 1200, usageToday: 100, budgetPerDay: 200_000,
+            }, byDay: [], metrics: [],
+          },
+        }
+      },
     }
   }
 
@@ -197,6 +209,7 @@ describe('实时评测路由(access)', () => {
       parseBusinessMetrics: async () => { throw new Error('boom: internal detail') },
       label: async () => { throw new Error('boom: internal detail') },
       trial: async () => { throw new Error('boom: internal detail') },
+      overview: async () => { throw new Error('boom: internal detail') },
     }
     const reply = await post({ session: aliceSessionId })
     expect(reply.status).toBe(503)
@@ -423,6 +436,25 @@ describe('实时评测路由(access)', () => {
       label: async () => { throw new Error('boom: internal detail') },
     }
     const reply = await post({ session: aliceSessionId, metric: 'x', agrees: true }, adminCookie, 'labels/save')
+    expect(reply.status).toBe(503)
+    expect(reply.body).not.toContain('boom')
+  })
+
+  it('overview:只把**本人名下**的会话集交给服务面(跨租户不聚合);200 + no-store', async () => {
+    const reply = await post({}, adminCookie, 'overview')
+    expect(reply.status).toBe(200)
+    expect(JSON.parse(reply.body as string)).toMatchObject({ ok: true })
+    expect(reply.headers).toContainEqual(['cache-control', 'no-store'])
+    expect(calls).toContain(`overview:${aliceSessionId}`)
+    expect(calls.every(call => !call.includes(bobSessionId))).toBe(true)
+    expect((await post({}, '', 'overview')).status).toBe(401)
+  })
+
+  it('overview 失败:服务面 io → 503;抛错 → 503 且不泄漏堆栈', async () => {
+    face = { ...(face ?? makeFace()), overview: async () => ({ ok: false, code: 'io', error: '评分库不可用' }) }
+    expect((await post({}, adminCookie, 'overview')).status).toBe(503)
+    face = { ...(face ?? makeFace()), overview: async () => { throw new Error('boom: internal detail') } }
+    const reply = await post({}, adminCookie, 'overview')
     expect(reply.status).toBe(503)
     expect(reply.body).not.toContain('boom')
   })

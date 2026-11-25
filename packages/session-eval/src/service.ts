@@ -17,7 +17,7 @@ import { projectTrajectory } from './trajectory.ts'
 import type { EvalSnapshot, EvalVerdict, SessionEventLike } from './types.ts'
 import type {
   BusinessParseReply, BusinessSaveReply, JudgeEvaluateReply, JudgeLabelReply,
-  JudgeSaveConfigReply, JudgeSettingsView, JudgeSnapshot, JudgeTrialReply,
+  JudgeSaveConfigReply, JudgeSettingsView, JudgeSnapshot, JudgeTrialReply, OverviewReply,
 } from './judge-types.ts'
 import type { JudgeEvaluateOptions } from './engine.ts'
 
@@ -31,6 +31,7 @@ export interface JudgeEngineFace {
   parseBusinessMetrics(text: string): Promise<BusinessParseReply>
   label(sessionId: string, input: unknown, account: string): Promise<JudgeLabelReply>
   trial(sessionId: string, metricKey: string, turn: number | undefined, account: string): Promise<JudgeTrialReply>
+  overview(sessionIds: readonly string[], now?: number): Promise<OverviewReply>
 }
 
 /** 服务端口:只读事件面(host.ts 接宿主 agents/sessions;测试注入固定数组). */
@@ -55,6 +56,7 @@ export interface SessionEvalFace {
   parseBusinessMetrics(text: string): Promise<BusinessParseReply>
   label(sessionId: string, input: unknown, account: string): Promise<JudgeLabelReply>
   trial(sessionId: string, metricKey: string, turn: number | undefined, account: string): Promise<JudgeTrialReply>
+  overview(sessionIds: readonly string[], now?: number): Promise<OverviewReply>
 }
 
 /** 会话 id 的合法形状(只做防呆:非空、长度上限,不做前缀白名单). */
@@ -168,6 +170,15 @@ export class SessionEvalService implements SessionEvalFace {
       return Promise.resolve({ ok: false, code: 'io', error: '裁判层未装载（插件仍在启动）。' })
     }
     return judge.label(sessionId, input, account)
+  }
+
+  /** 评测总览(会话集由 access 按归属过滤后传入). */
+  overview(sessionIds: readonly string[], now?: number): Promise<OverviewReply> {
+    const judge = this.ports.judge
+    if (judge === undefined) {
+      return Promise.resolve({ ok: false, code: 'io', error: '裁判层未装载（插件仍在启动）。' })
+    }
+    return judge.overview(sessionIds, now)
   }
 
   /** 单指标试跑(真实模型;不落评分行,计入日预算). */

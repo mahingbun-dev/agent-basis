@@ -96,6 +96,7 @@ function judgeOf(overrides: Partial<JudgeSnapshot> = {}): JudgeEngineFace {
     parseBusinessMetrics: async () => ({ ok: false, error: '测试假件未接线' }),
     label: async () => ({ ok: false, code: 'io', error: '测试假件未接线' }),
     trial: async () => ({ ok: false, code: 'io', error: '测试假件未接线' }),
+    overview: async () => ({ ok: false, code: 'io', error: '测试假件未接线' }),
   }
 }
 

@@ -23,6 +23,7 @@ import {
   type BusinessParseReply, type CalibrationMetricView, type CalibrationView, type JudgeConfig,
   type JudgeEvaluateReply, type JudgeLabelReply, type JudgeRoute, type JudgeSaveConfigReply,
   type JudgeTrialReply, type JudgeTrialView,
+  type OverviewDay, type OverviewMetricRow, type OverviewReply, type OverviewTotals, type OverviewView,
   type JudgeScope, type JudgeScoreView, type JudgeSettingsView, type JudgeSnapshot, type JudgeStatus,
   type JudgeTrigger,
 } from './judge-types.ts'
@@ -402,6 +403,38 @@ export class JudgeEngine {
   }
 
   /** 会话内人工复核映射(只用于回显;评分重评后值变了就不回显). */
+  /**
+   * 评测总览(近 14 天,仅传入会话集):综合通过率 / 关键项未过 / 平均耗时 / 今日用量 /
+   * 按天条带 / 按指标表。
+   *
+   * 口径:①只算**已终评**会话(至少一条整条会话口径的结果类结论),没评完的不进分母;
+   * ②会话结论取各结果类指标**最新一次** ok 评分;有 gating 项时以 gating 项为准;
+   * ③按指标表取每条会话每个指标的**最新一次**(重评不重复计数);
+   * ④逐轮指标不进总览(轮次口径由面板逐会话看)。会话集由 access 按 owner 归属传入,
+   * 服务面不自行枚举会话(多租户隔离:不知道谁的会话就不聚合)。
+   * @param sessionIds - 允许参与聚合的会话 id(调用方已完成归属过滤).
+   * @param now - 聚合时刻(测试注入;缺省 Date.now()).
+   */
+  overview(sessionIds: readonly string[], now?: number): Promise<OverviewReply> {
+    try {
+      const at = now ?? this.#now()
+      const ids = [...new Set(sessionIds.filter(id => typeof id === 'string' && id !== ''))]
+      const store = this.#openStore()
+      if (store === undefined) {
+        return Promise.resolve({ ok: false, code: 'io', error: '评分库不可用。' })
+      }
+      const rows = store.listMany(ids)
+      const config = this.#config().config
+      const view = buildOverview(rows, at, {
+        usageToday: store.usage(dayKey(at)),
+        budgetPerDay: config.budgetTokensPerDay,
+      })
+      return Promise.resolve({ ok: true, overview: view })
+    } catch {
+      return Promise.resolve({ ok: false, code: 'io', error: '总览聚合失败（评分库读取异常）。' })
+    }
+  }
+
   /**
    * 单指标试跑:用真实裁判路由跑一条指标,返回原始输出与用量,**不落评分行**。
    *
@@ -954,6 +987,144 @@ function viewOfRow(
     ...row.tokens === null ? {} : { tokens: row.tokens },
     ...labelFields(row, labels),
   }
+}
+
+
+/** 总览窗口(近 14 天). */
+const OVERVIEW_WINDOW_DAYS = 14
+const DAY_MS = 86_400_000
+
+/** 会话结论(近 14 天窗口内). */
+interface SessionRollup {
+  readonly pass: boolean
+  readonly gatingFailed: boolean
+  readonly decidedAt: number
+}
+
+/** 最新一次评分(同指标取 createdAt 最大;并列取后者). */
+function latestRows(rows: readonly StoredJudgeScore[]): Map<string, StoredJudgeScore> {
+  const latest = new Map<string, StoredJudgeScore>()
+  for (const row of rows) {
+    const previous = latest.get(row.metricKey)
+    if (previous === undefined || row.createdAt >= previous.createdAt) latest.set(row.metricKey, row)
+  }
+  return latest
+}
+
+/** 单会话结论:结果类 ok 评分;有 gating 项以 gating 为准,没有则看全部结果类. */
+function rollupSession(rows: readonly StoredJudgeScore[]): SessionRollup | undefined {
+  const latest = latestRows(rows)
+  const outcomes = [...latest.values()].filter(row => row.category === 'outcome' && row.status === 'ok')
+  if (outcomes.length === 0) return undefined
+  const gating = outcomes.filter(row => row.gating === true)
+  const decisive = gating.length > 0 ? gating : outcomes
+  const decidedAt = Math.max(...outcomes.map(row => row.createdAt))
+  return {
+    pass: decisive.every(row => row.value === true),
+    gatingFailed: gating.some(row => row.value === false),
+    decidedAt,
+  }
+}
+
+/**
+ * 总览聚合(纯函数,便于单测):输入已归属过滤的评分行与时钟。
+ * @param rows - 评分行(允许含窗口外行;函数内部按窗口裁剪).
+ * @param now - 聚合时刻.
+ * @param runtime - 今日用量与日预算(部署级).
+ */
+function buildOverview(
+  rows: readonly StoredJudgeScore[],
+  now: number,
+  runtime: { readonly usageToday: number; readonly budgetPerDay: number },
+): OverviewView {
+  const days: string[] = []
+  for (let offset = OVERVIEW_WINDOW_DAYS - 1; offset >= 0; offset -= 1) {
+    days.push(dayKey(now - offset * DAY_MS))
+  }
+  const start = now - (OVERVIEW_WINDOW_DAYS - 1) * DAY_MS
+  const inWindow = rows.filter(row => row.createdAt >= start)
+  const bySession = new Map<string, StoredJudgeScore[]>()
+  for (const row of inWindow) {
+    const bucket = bySession.get(row.sessionId)
+    if (bucket === undefined) bySession.set(row.sessionId, [row])
+    else bucket.push(row)
+  }
+  const rollups: Array<{ sessionId: string; rollup: SessionRollup }> = []
+  for (const [sessionId, sessionRows] of bySession) {
+    const rollup = rollupSession(sessionRows.filter(row => row.scope === 'session'))
+    if (rollup !== undefined) rollups.push({ sessionId, rollup })
+  }
+  const evaluatedSessions = rollups.length
+  const passedSessions = rollups.filter(entry => entry.rollup.pass).length
+  const gatingFailedSessions = rollups.filter(entry => entry.rollup.gatingFailed).length
+  const latencies = inWindow
+    .filter(row => row.provider !== null && row.latencyMs !== null)
+    .map(row => row.latencyMs as number)
+  const averageLatencyMs = latencies.length === 0
+    ? null
+    : Math.round(latencies.reduce((sum, value) => sum + value, 0) / latencies.length)
+
+  const trend = new Map<string, { evaluated: number; passed: number }>()
+  for (const entry of rollups) {
+    const key = dayKey(entry.rollup.decidedAt)
+    const bucket = trend.get(key) ?? { evaluated: 0, passed: 0 }
+    bucket.evaluated += 1
+    if (entry.rollup.pass) bucket.passed += 1
+    trend.set(key, bucket)
+  }
+  const byDay: OverviewDay[] = days.map((day) => {
+    const bucket = trend.get(day)
+    const evaluated = bucket?.evaluated ?? 0
+    const passed = bucket?.passed ?? 0
+    return { day, evaluated, passed, passRate: evaluated === 0 ? null : passed / evaluated }
+  })
+
+  // 按指标:每条会话每个指标取最新一次整条会话口径评分;na 单独计数,不伪造未过。
+  const metricBuckets = new Map<string, {
+    name: string
+    category: StoredJudgeScore['category']
+    pass: number
+    fail: number
+    notApplicable: number
+  }>()
+  for (const sessionRows of bySession.values()) {
+    for (const row of latestRows(sessionRows.filter(candidate => candidate.scope === 'session')).values()) {
+      if (row.status !== 'ok' && row.status !== 'not_applicable') continue
+      const bucket = metricBuckets.get(row.metricKey) ?? {
+        name: row.metricName, category: row.category, pass: 0, fail: 0, notApplicable: 0,
+      }
+      if (row.status === 'not_applicable') bucket.notApplicable += 1
+      else if (row.value === true) bucket.pass += 1
+      else bucket.fail += 1
+      metricBuckets.set(row.metricKey, bucket)
+    }
+  }
+  const metrics: OverviewMetricRow[] = [...metricBuckets.entries()]
+    .map(([key, bucket]): OverviewMetricRow => {
+      const scored = bucket.pass + bucket.fail
+      return {
+        key,
+        name: bucket.name,
+        category: bucket.category,
+        source: findJudgeMetric(key) === undefined ? 'business' : 'builtin',
+        pass: bucket.pass,
+        fail: bucket.fail,
+        notApplicable: bucket.notApplicable,
+        passRate: scored === 0 ? null : bucket.pass / scored,
+      }
+    })
+    .sort((left, right) => (right.pass + right.fail) - (left.pass + left.fail) || left.key.localeCompare(right.key))
+
+  const totals: OverviewTotals = {
+    evaluatedSessions,
+    passedSessions,
+    passRate: evaluatedSessions === 0 ? null : passedSessions / evaluatedSessions,
+    gatingFailedSessions,
+    averageLatencyMs,
+    usageToday: runtime.usageToday,
+    budgetPerDay: runtime.budgetPerDay,
+  }
+  return { windowDays: OVERVIEW_WINDOW_DAYS, totals, byDay, metrics }
 }
 
 /** 试跑结果文案(没有分数就显示状态). */

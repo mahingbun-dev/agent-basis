@@ -113,6 +113,7 @@ export interface SessionEvalFace {
   parseBusinessMetrics(text: string): Promise<unknown>
   label(sessionId: string, input: unknown, account: string): Promise<unknown>
   trial(sessionId: string, metricKey: string, turn: number | undefined, account: string): Promise<unknown>
+  overview(sessionIds: readonly string[], now?: number): Promise<unknown>
 }
 
 /** 参谋会话行(与 adviser 侧 AdviserSessionView 同形)。 */
@@ -375,6 +376,7 @@ export async function handleSessionEvalRequest(deps: AccessDeps, req: AccessRequ
   const action = req.pathname.slice(SESSION_EVAL_ROUTE_PREFIX.length)
   const knownActions = [
     'snapshot', 'evaluate', 'settings', 'config/save', 'metrics/save', 'metrics/parse', 'labels/save', 'trial',
+    'overview',
   ]
   if (!knownActions.includes(action)) {
     return errorReply(404, 'not found')
@@ -390,6 +392,23 @@ export async function handleSessionEvalRequest(deps: AccessDeps, req: AccessRequ
     try {
       const settings = await face.settings(user.account)
       return jsonResponse(200, { ok: true, settings, admin: user.role === 'admin' }, [['cache-control', 'no-store']])
+    } catch {
+      return errorReply(503, '评测服务异常')
+    }
+  }
+
+  // 评测总览:只聚合**当前账号名下**的会话(登记册过滤;不自行枚举租户数据)。
+  if (action === 'overview') {
+    try {
+      const result = await face.overview(deps.store.sessionIdsOwned(user.id)) as {
+        readonly ok?: unknown
+        readonly overview?: unknown
+        readonly error?: unknown
+      }
+      if (result.ok !== true) {
+        return errorReply(503, typeof result.error === 'string' ? result.error : '总览读取失败')
+      }
+      return jsonResponse(200, { ok: true, overview: result.overview ?? null }, [['cache-control', 'no-store']])
     } catch {
       return errorReply(503, '评测服务异常')
     }

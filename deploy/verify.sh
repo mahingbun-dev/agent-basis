@@ -136,9 +136,9 @@ check "参谋端点已接线（匿名 401）" 401 "$advcode"
 
 # 8.7) 实时评测内置装载（2026-11-25，56 号 P0/P1/P2-1/P2-2）：静态两件（profile patch 的
 #      eterna-session-eval 行 + @eterna/session-eval 链——缺链即整行静默 disable，
-#      右栏「评测」tab 消失）；运行时四件（匿名访问 snapshot / settings / metrics/save /
-#      metrics/parse 回 401 而非 404——路由面忘了接线时恒 404，401 证明已挂进 access
-#      且登录闸在前）。
+#      右栏「评测」tab 消失）；运行时七件（匿名访问 snapshot / settings / metrics/save /
+#      metrics/parse / labels/save / trial / overview 回 401 而非 404——路由面忘了接线时
+#      恒 404，401 证明已挂进 access 且登录闸在前）。
 sev=$(docker exec "$CONTAINER" sh -c 'for p in /data/profiles/eterna-web /data/profiles/eterna-super; do if grep -q "name: .@eterna/session-eval." "$p/cordis.patch.yml" 2>/dev/null && [ -e "$p/node_modules/@eterna/session-eval" ]; then basename "$p"; break; fi; done' 2>/dev/null)
 if [ -n "$sev" ]; then
   ok "实时评测内置装载（profile: ${sev}）"
@@ -163,6 +163,9 @@ check "评测人工复核端点已接线（匿名 401）" 401 "$sevlabel"
 sevtrial=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 -X POST "$BASE/access/api/session-eval/trial" \
   -H 'Content-Type: application/json' -d '{"session":"verify-none","metric":"judge.task_completion"}')
 check "评测试跑端点已接线（匿名 401）" 401 "$sevtrial"
+sevoverview=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 -X POST "$BASE/access/api/session-eval/overview" \
+  -H 'Content-Type: application/json' -d '{}')
+check "评测总览端点已接线（匿名 401）" 401 "$sevoverview"
 
 rm -f "$JAR"
 

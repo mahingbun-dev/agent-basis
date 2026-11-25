@@ -107,6 +107,28 @@ function textOf(value: unknown): string | null {
   return typeof value === 'string' ? value : null
 }
 
+/** 评分行 → 对象(列名同上;list / listMany 共用). */
+function rowToScore(row: Record<string, unknown>): StoredJudgeScore {
+  return {
+    sessionId: String(row.session_id),
+    metricKey: String(row.metric_key),
+    metricName: String(row.metric_name),
+    category: row.category === 'outcome' ? 'outcome' : 'process',
+    scope: row.scope === 'turn' ? 'turn' : 'session',
+    targetTurn: numberOf(row.target_turn),
+    status: String(row.status) as JudgeStatus,
+    value: numberOf(row.value) === null ? null : numberOf(row.value) === 1,
+    rationale: textOf(row.rationale),
+    provider: textOf(row.provider),
+    model: textOf(row.model),
+    latencyMs: numberOf(row.latency_ms),
+    tokens: numberOf(row.tokens),
+    gating: numberOf(row.gating) === null ? null : numberOf(row.gating) === 1,
+    metricVersion: numberOf(row.metric_version),
+    createdAt: Number(row.created_at),
+  }
+}
+
 /** 人工复核行 → 结构面. */
 function labelOfRow(row: Record<string, unknown>): StoredJudgeLabel {
   return {
@@ -220,24 +242,25 @@ export class JudgeScoreStore {
   /** 列出某会话的全部评分(按指标键与轮次排序). */
   list(sessionId: string): StoredJudgeScore[] {
     const rows = this.#list.all(sessionId) as Record<string, unknown>[]
-    return rows.map(row => ({
-      sessionId: String(row.session_id),
-      metricKey: String(row.metric_key),
-      metricName: String(row.metric_name),
-      category: row.category === 'outcome' ? 'outcome' : 'process',
-      scope: row.scope === 'turn' ? 'turn' : 'session',
-      targetTurn: numberOf(row.target_turn),
-      status: String(row.status) as JudgeStatus,
-      value: numberOf(row.value) === null ? null : numberOf(row.value) === 1,
-      rationale: textOf(row.rationale),
-      provider: textOf(row.provider),
-      model: textOf(row.model),
-      latencyMs: numberOf(row.latency_ms),
-      tokens: numberOf(row.tokens),
-      gating: numberOf(row.gating) === null ? null : numberOf(row.gating) === 1,
-      metricVersion: numberOf(row.metric_version),
-      createdAt: Number(row.created_at),
-    }))
+    return rows.map(rowToScore)
+  }
+
+  /** 列出给定会话的全部评分(总览聚合;分块 IN 查询,上限由调用方控). */
+  listMany(sessionIds: readonly string[]): StoredJudgeScore[] {
+    if (sessionIds.length === 0) return []
+    const rows: Record<string, unknown>[] = []
+    const chunk = 400
+    for (let offset = 0; offset < sessionIds.length; offset += chunk) {
+      const slice = sessionIds.slice(offset, offset + chunk)
+      const placeholders = slice.map(() => '?').join(',')
+      const statement = this.#db.prepare(
+        `SELECT session_id, metric_key, metric_name, category, scope, target_turn, status, value,
+                rationale, provider, model, latency_ms, tokens, gating, metric_version, created_at
+           FROM judge_score WHERE session_id IN (${placeholders})`,
+      )
+      rows.push(...statement.all(...slice) as Record<string, unknown>[])
+    }
+    return rows.map(rowToScore)
   }
 
   /** 某天已用裁判 token. */

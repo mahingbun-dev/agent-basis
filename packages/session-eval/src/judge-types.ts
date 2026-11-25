@@ -158,6 +158,55 @@ export interface CalibrationView {
   readonly thresholds: { readonly minSamples: number; readonly minAgreement: number }
 }
 
+/** 总览 KPI(近 14 天,本人会话). */
+export interface OverviewTotals {
+  /** 有结果类结论的会话数(没评完的不进分母). */
+  readonly evaluatedSessions: number
+  readonly passedSessions: number
+  /** 综合通过率(0..1;无已终评会话为 null). */
+  readonly passRate: number | null
+  /** 关键项(结果类 gating)未过的会话数. */
+  readonly gatingFailedSessions: number
+  /** 裁判调用平均耗时(近 14 天,有耗时的模型评分). */
+  readonly averageLatencyMs: number | null
+  /** 今日裁判用量与日预算(部署级). */
+  readonly usageToday: number
+  readonly budgetPerDay: number
+}
+
+/** 按天通过率(近 14 天;evaluated=0 时 passRate 为 null). */
+export interface OverviewDay {
+  readonly day: string
+  readonly evaluated: number
+  readonly passed: number
+  readonly passRate: number | null
+}
+
+/** 按指标(整条会话口径的最新一次评分;逐轮指标不进总览). */
+export interface OverviewMetricRow {
+  readonly key: string
+  readonly name: string
+  readonly category: JudgeCategory
+  readonly source: 'builtin' | 'business'
+  readonly pass: number
+  readonly fail: number
+  readonly notApplicable: number
+  readonly passRate: number | null
+}
+
+/** 评测总览视图(main 页). */
+export interface OverviewView {
+  readonly windowDays: 14
+  readonly totals: OverviewTotals
+  readonly byDay: readonly OverviewDay[]
+  readonly metrics: readonly OverviewMetricRow[]
+}
+
+/** 总览应答(评分库不可用时 io). */
+export type OverviewReply =
+  | { readonly ok: true; readonly overview: OverviewView }
+  | { readonly ok: false; readonly code: 'io'; readonly error: string }
+
 /** 单指标试跑结果(真实模型;原始输出原样带回,不落评分行). */
 export interface JudgeTrialView {
   readonly metricKey: string
