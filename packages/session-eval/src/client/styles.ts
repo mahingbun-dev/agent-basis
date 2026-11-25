@@ -232,11 +232,16 @@ const CSS = `
   color: var(--et-muted);
   font-size: var(--et-text-micro);
 }
+[data-eterna-eval='judge-head'] {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--et-space-2);
+}
 [data-eterna-eval='judge-meta'] {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--et-space-2);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
   color: var(--et-muted);
   font-size: var(--et-text-micro);
 }
@@ -248,8 +253,10 @@ const CSS = `
 [data-eterna-eval='judge-meta'] [data-eterna-eval='verdict-title'][data-level='unrated'] {
   color: var(--et-muted);
 }
-[data-eterna-eval='judge-meta'] .et-eval-button {
+[data-eterna-eval='judge-head'] .et-eval-button {
   margin-left: auto;
+  flex: none;
+  white-space: nowrap;
 }
 [data-eterna-eval='judge-detail-row'] td {
   padding-top: 0;
@@ -293,8 +300,12 @@ const CSS = `
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--et-space-3);
+  min-height: 36px; /* 触控热区下限(frontend-style §7) */
 }
 [data-eterna-eval-set='row'] label {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
   color: var(--et-fg-2);
 }
 [data-eterna-eval-set='field'] {
@@ -350,7 +361,7 @@ const CSS = `
 [data-eterna-eval-set='metrics'] {
   display: flex;
   flex-direction: column;
-  gap: var(--et-space-2);
+  gap: 0; /* 每行已按 36px 触控热区撑高，行间不再叠加间距(设置弹窗总高可控) */
   margin: 0;
   padding: 0;
   list-style: none;
@@ -361,11 +372,13 @@ const CSS = `
   align-items: center;
   justify-content: space-between;
   gap: var(--et-space-2);
+  min-height: 36px; /* 触控热区下限(frontend-style §7) */
 }
 [data-eterna-eval-set='metric'] label {
   display: inline-flex;
   align-items: center;
   gap: var(--et-space-2);
+  min-height: 36px;
   color: var(--et-fg-2);
 }
 [data-eterna-eval-set='badges'] {
@@ -402,6 +415,13 @@ const CSS = `
   background: var(--et-danger-soft);
 }
 
+@media (max-width: 760px) {
+  /* 形态收缩:标签上、控件下(位置规则不变),否则窄屏 label 列被控件挤成逐字换行。 */
+  [data-eterna-eval-set='row'] { grid-template-columns: minmax(0, 1fr); }
+  [data-eterna-eval-set='field'] { justify-content: flex-start; }
+  [data-eterna-eval-set] select,
+  [data-eterna-eval-set] input[type='text'] { width: 100%; min-width: 0; }
+}
 @media (max-width: 640px) {
   [data-eterna-eval='panel'] { padding: var(--et-space-4); }
 }

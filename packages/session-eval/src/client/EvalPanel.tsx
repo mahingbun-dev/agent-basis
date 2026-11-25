@@ -136,12 +136,13 @@ function JudgeCard(props: {
   return (
     <section data-eterna-eval="card" data-role="judge" aria-labelledby="et-eval-judge-heading">
       <h3 id="et-eval-judge-heading">裁判评分（模型 · 异步）</h3>
-      <div data-eterna-eval="judge-meta">
-        <span data-eterna-eval="verdict-title" data-level={judge.overall.level}>{judge.overall.label}</span>
-        <span aria-hidden="true">·</span>
-        <span>{judge.pending > 0 ? `排队 ${judge.pending}` : '空闲'}</span>
-        <span aria-hidden="true">·</span>
-        <span>{`预算 ${formatInt(judge.budget.usedTokens)} / ${formatInt(judge.budget.maxTokensPerDay)} tokens（当日）`}</span>
+      <div data-eterna-eval="judge-head">
+        <div data-eterna-eval="judge-meta">
+          <span data-eterna-eval="verdict-title" data-level={judge.overall.level}>{judge.overall.label}</span>
+          <span>
+            {`${judge.pending > 0 ? `排队 ${judge.pending}` : '空闲'} · 预算 ${formatInt(judge.budget.usedTokens)} / ${formatInt(judge.budget.maxTokensPerDay)} tokens（当日）`}
+          </span>
+        </div>
         <button
           type="button"
           className="et-eval-button"
@@ -173,9 +174,14 @@ function JudgeCard(props: {
   )
 }
 
-/** 快照正文(ready 态;纯展示,无副作用). */
-function SnapshotBody(props: { readonly snapshot: EvalSnapshot }): ReactElement {
-  const { snapshot } = props
+/** 快照正文(ready 态;裁判卡紧跟结论卡——需要模型算力的结果优先于逐项规则明细). */
+function SnapshotBody(props: {
+  readonly snapshot: EvalSnapshot
+  readonly onEvaluate: () => void
+  readonly evaluating: boolean
+  readonly feedback: string
+}): ReactElement {
+  const { snapshot, onEvaluate, evaluating, feedback } = props
   const failing = snapshot.metrics.filter(metric => metric.pass === false)
   const overLimit = snapshot.issues.length >= ISSUE_LIMIT
   return (
@@ -187,6 +193,15 @@ function SnapshotBody(props: { readonly snapshot: EvalSnapshot }): ReactElement 
           {snapshot.verdict.reasons.map(reason => <li key={reason}>{reason}</li>)}
         </ul>
       </section>
+
+      {snapshot.judge === undefined ? null : (
+        <JudgeCard
+          judge={snapshot.judge}
+          onEvaluate={onEvaluate}
+          evaluating={evaluating}
+          feedback={feedback}
+        />
+      )}
 
       <section data-eterna-eval="card" aria-labelledby="et-eval-process-heading">
         <h3 id="et-eval-process-heading">过程指标（规则 · 零模型成本）</h3>
@@ -242,7 +257,7 @@ function SnapshotBody(props: { readonly snapshot: EvalSnapshot }): ReactElement 
         {snapshot.judge === undefined
           ? '裁判层未装载；当前只有确定性规则评分。'
           : failing.length === 0
-            ? '裁判分数在下方卡片异步产出；结果类关键项通过才进结论门控。'
+            ? '裁判分数在上方卡片异步产出；结果类关键项通过才进结论门控。'
             : `有 ${failing.length} 项硬规则异常；过程异常不等于任务失败，需结合结果类判定看。`}
       </p>
     </>
@@ -361,22 +376,24 @@ export function EvalPanel(props: EvalPanelProps): ReactElement {
       ) : state.status === 'error' ? (
         <>
           <p data-eterna-eval="error" role="alert">{state.message}</p>
-          {snapshot === undefined ? null : <SnapshotBody snapshot={snapshot} />}
-        </>
-      ) : snapshot === undefined ? (
-        <p data-eterna-eval="hint" aria-busy="true">正在读取会话轨迹…</p>
-      ) : snapshot.state === 'ok' ? (
-        <>
-          <SnapshotBody snapshot={snapshot} />
-          {snapshot.judge === undefined ? null : (
-            <JudgeCard
-              judge={snapshot.judge}
+          {snapshot === undefined ? null : (
+            <SnapshotBody
+              snapshot={snapshot}
               onEvaluate={handleEvaluate}
               evaluating={evaluating}
               feedback={judgeFeedback}
             />
           )}
         </>
+      ) : snapshot === undefined ? (
+        <p data-eterna-eval="hint" aria-busy="true">正在读取会话轨迹…</p>
+      ) : snapshot.state === 'ok' ? (
+        <SnapshotBody
+          snapshot={snapshot}
+          onEvaluate={handleEvaluate}
+          evaluating={evaluating}
+          feedback={judgeFeedback}
+        />
       ) : (
         <EmptyBody snapshot={snapshot} />
       )}
