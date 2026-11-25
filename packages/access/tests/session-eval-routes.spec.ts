@@ -103,6 +103,17 @@ describe('实时评测路由(access)', () => {
         calls.push(`label:${sessionId}:${account}:${String(agrees)}`)
         return { ok: true, label: agrees === false ? 'disagrees' : 'agrees' }
       },
+      trial: async (sessionId, metricKey, turn, account) => {
+        calls.push(`trial:${sessionId}:${metricKey}:${String(turn)}:${account}`)
+        return {
+          ok: true,
+          trial: {
+            metricKey, metricName: '任务完成度', scope: 'session', status: 'ok', value: true,
+            display: '通过', rationale: '演示理由', raw: '{"verdict":"pass"}', latencyMs: 1200,
+            route: { provider: 'deepseek', model: 'deepseek-chat' },
+          },
+        }
+      },
     }
   }
 
@@ -185,6 +196,7 @@ describe('实时评测路由(access)', () => {
       saveBusinessMetric: async () => { throw new Error('boom: internal detail') },
       parseBusinessMetrics: async () => { throw new Error('boom: internal detail') },
       label: async () => { throw new Error('boom: internal detail') },
+      trial: async () => { throw new Error('boom: internal detail') },
     }
     const reply = await post({ session: aliceSessionId })
     expect(reply.status).toBe(503)
@@ -411,6 +423,50 @@ describe('实时评测路由(access)', () => {
       label: async () => { throw new Error('boom: internal detail') },
     }
     const reply = await post({ session: aliceSessionId, metric: 'x', agrees: true }, adminCookie, 'labels/save')
+    expect(reply.status).toBe(503)
+    expect(reply.body).not.toContain('boom')
+  })
+
+  it('trial:登录用户可试跑自己的会话(账号来自 cookie);成功 200 + no-store + 审计', async () => {
+    const reply = await post({ session: aliceSessionId, metric: 'judge.task_completion', turn: 2 }, adminCookie, 'trial')
+    expect(reply.status).toBe(200)
+    const parsed = JSON.parse(reply.body as string) as Record<string, unknown>
+    expect(parsed.ok).toBe(true)
+    expect((parsed.trial as Record<string, unknown>).raw).toBe('{"verdict":"pass"}')
+    expect(reply.headers).toContainEqual(['cache-control', 'no-store'])
+    expect(calls).toContain(`trial:${aliceSessionId}:judge.task_completion:2:alice`)
+    expect(auditEvents.some(event => event.kind === 'access.session-eval.trial' && event.ok === true)).toBe(true)
+    expect((await post({ session: aliceSessionId, metric: 'x' }, '', 'trial')).status).toBe(401)
+  })
+
+  it('trial 参数形状:metric 缺失或 turn 非法 400,均不触达服务面', async () => {
+    expect((await post({ session: aliceSessionId }, adminCookie, 'trial')).status).toBe(400)
+    expect((await post({ session: aliceSessionId, metric: '  ' }, adminCookie, 'trial')).status).toBe(400)
+    expect((await post({ session: aliceSessionId, metric: 'x', turn: 0 }, adminCookie, 'trial')).status).toBe(400)
+    expect((await post({ session: aliceSessionId, metric: 'x', turn: 1.5 }, adminCookie, 'trial')).status).toBe(400)
+    expect(calls.filter(call => call.startsWith('trial:'))).toEqual([])
+  })
+
+  it('trial 跨租户:404,不泄漏会话存在性', async () => {
+    expect((await post({ session: aliceSessionId, metric: 'judge.task_completion' }, userCookie, 'trial')).status).toBe(404)
+    expect(calls.filter(call => call.startsWith('trial:'))).toEqual([])
+  })
+
+  it('trial 失败码分流:预算 429 / 未加载与不存在 404 / 未配置与非模型 400 / 内部 503;失败均审计', async () => {
+    const cases: Array<[string, number]> = [
+      ['budget', 429], ['not_loaded', 404], ['not_found', 404],
+      ['unconfigured', 400], ['not_model', 400], ['io', 503],
+    ]
+    for (const [code, status] of cases) {
+      face = { ...(face ?? makeFace()), trial: async () => ({ ok: false, code, error: `拒绝：${code}` }) }
+      expect((await post({ session: aliceSessionId, metric: 'x' }, adminCookie, 'trial')).status).toBe(status)
+    }
+    expect(auditEvents.filter(event => event.kind === 'access.session-eval.trial' && event.ok === false)).toHaveLength(6)
+  })
+
+  it('trial 服务面抛错:503,不泄漏堆栈', async () => {
+    face = { ...(face ?? makeFace()), trial: async () => { throw new Error('boom: internal detail') } }
+    const reply = await post({ session: aliceSessionId, metric: 'x' }, adminCookie, 'trial')
     expect(reply.status).toBe(503)
     expect(reply.body).not.toContain('boom')
   })

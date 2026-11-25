@@ -15,8 +15,8 @@ import type { ReactElement } from 'react'
 import { Icon } from '@eterna/ui/icons'
 import { ISSUE_LIMIT, ISSUE_OVERFLOW_NOTE } from '../types.ts'
 import type { EvalIssue, EvalSnapshot, MetricScore } from '../types.ts'
-import type { JudgeScoreView, JudgeSnapshot } from '../judge-types.ts'
-import { SessionEvalApiError, evaluateSession, fetchSnapshot, saveJudgeLabel } from './api.ts'
+import type { JudgeScoreView, JudgeSnapshot, JudgeTrialView, JudgeScope } from '../judge-types.ts'
+import { SessionEvalApiError, evaluateSession, fetchJudgeSettings, fetchSnapshot, runJudgeTrial, saveJudgeLabel } from './api.ts'
 import { formatClock, formatCost, formatDuration, formatInt, formatPercent } from '../format.ts'
 
 /** 自动刷新间隔(可见时;只读投影,无副作用)。 */
@@ -208,6 +208,149 @@ function JudgeCard(props: {
   )
 }
 
+
+/** 试跑可选指标(内置六项 + 当前账号 rubric 业务指标). */
+interface TrialMetric {
+  readonly key: string
+  readonly name: string
+  readonly scope: JudgeScope
+}
+
+/** 试跑结果旗标色调(错误 = warn,未过 = danger). */
+function trialTone(trial: JudgeTrialView): 'danger' | 'warn' | undefined {
+  if (trial.status === 'error') return 'warn'
+  if (trial.status === 'ok' && trial.value === false) return 'danger'
+  return undefined
+}
+
+/**
+ * 试跑卡:一条指标走真实模型,展示判定/理由/**原始输出**。
+ *
+ * 与「立即评测」的差别(服务端口径):不入队列、不写评分行(不污染会话结论),
+ * 计入日预算;规则型指标不走模型,服务端如实拒绝。
+ */
+function TrialCard(props: { readonly sessionId: string }): ReactElement {
+  const { sessionId } = props
+  const [catalog, setCatalog] = useState<readonly TrialMetric[] | undefined>(undefined)
+  const [catalogError, setCatalogError] = useState('')
+  const [loadingCatalog, setLoadingCatalog] = useState(false)
+  const [metricKey, setMetricKey] = useState('')
+  const [turn, setTurn] = useState('')
+  const [running, setRunning] = useState(false)
+  const [trial, setTrial] = useState<JudgeTrialView | undefined>(undefined)
+  const [error, setError] = useState('')
+
+  const loadCatalog = useCallback((): void => {
+    setLoadingCatalog(true)
+    setCatalogError('')
+    fetchJudgeSettings()
+      .then((reply) => {
+        const builtin: TrialMetric[] = reply.settings.metrics.map(metric => ({
+          key: metric.key, name: metric.name, scope: metric.scope,
+        }))
+        const business: TrialMetric[] = (reply.settings.business?.metrics ?? [])
+          .filter(metric => metric.enabled === true && 'judge' in metric)
+          .map(metric => ({ key: metric.key, name: metric.name, scope: metric.scope }))
+        const all = [...builtin, ...business]
+        setCatalog(all)
+        setMetricKey(previous => previous === '' ? all[0]?.key ?? '' : previous)
+      })
+      .catch((cause: unknown) => { setCatalogError(errorMessageOf(cause)) })
+      .finally(() => { setLoadingCatalog(false) })
+  }, [])
+
+  const selected = catalog?.find(metric => metric.key === metricKey)
+
+  const run = useCallback((): void => {
+    if (running || metricKey === '') return
+    const turnNumber = turn.trim() === '' ? undefined : Number(turn)
+    if (turnNumber !== undefined && (!Number.isInteger(turnNumber) || turnNumber < 1)) {
+      setError('目标轮必须是正整数（留空 = 末轮）。')
+      return
+    }
+    setRunning(true)
+    setError('')
+    setTrial(undefined)
+    runJudgeTrial(sessionId, metricKey, turnNumber)
+      .then((result) => { setTrial(result) })
+      .catch((cause: unknown) => { setError(errorMessageOf(cause)) })
+      .finally(() => { setRunning(false) })
+  }, [running, metricKey, turn, sessionId])
+
+  return (
+    <section data-eterna-eval="card" data-role="trial" aria-labelledby="et-eval-trial-heading">
+      <h3 id="et-eval-trial-heading">试跑一条指标（真实模型）</h3>
+      <p data-eterna-eval="detail">
+        只跑选中的一条、不写入评分库，计入当日裁判预算；原始输出原样展示，便于核对提示词与输出契约。
+      </p>
+      <details
+        data-eterna-eval="trial-box"
+        onToggle={(event) => {
+          const opened = event.currentTarget.open
+          if (opened && catalog === undefined && !loadingCatalog) loadCatalog()
+        }}
+      >
+        <summary>展开试跑</summary>
+        {catalogError === '' ? null : <p data-eterna-eval="hint" role="alert">{catalogError}</p>}
+        {catalog === undefined ? (
+          <p data-eterna-eval="hint" aria-busy={loadingCatalog}>{loadingCatalog ? '正在读取指标目录…' : '展开后读取指标目录。'}</p>
+        ) : catalog.length === 0 ? (
+          <p data-eterna-eval="hint">没有可试跑的模型指标（内置裁判指标未装载，业务指标里也没有 rubric 型）。</p>
+        ) : (
+          <>
+            <div data-eterna-eval="trial-controls">
+              <label htmlFor="et-eval-trial-metric">指标</label>
+              <select
+                id="et-eval-trial-metric"
+                value={metricKey}
+                onChange={(event) => { setMetricKey(event.target.value); setTrial(undefined); setError('') }}
+              >
+                {catalog.map(metric => <option key={metric.key} value={metric.key}>{metric.name}</option>)}
+              </select>
+              {selected?.scope === 'turn' ? (
+                <>
+                  <label htmlFor="et-eval-trial-turn">目标轮</label>
+                  <input
+                    id="et-eval-trial-turn"
+                    type="number"
+                    min={1}
+                    step={1}
+                    placeholder="末轮"
+                    value={turn}
+                    onChange={(event) => { setTurn(event.target.value) }}
+                  />
+                </>
+              ) : null}
+              <button type="button" className="et-eval-button" onClick={run} disabled={running || metricKey === ''}>
+                <Icon name="play" size={14} />
+                {running ? '试跑中…' : '运行试跑'}
+              </button>
+            </div>
+            {error === '' ? null : <p data-eterna-eval="hint" role="alert">{`这次试跑没有出分。${error}`}</p>}
+            {trial === undefined ? null : (
+              <div data-eterna-eval="trial-result">
+                <p data-eterna-eval="trial-head">
+                  <span data-eterna-eval="flag" data-tone={trialTone(trial)}>{trial.display}</span>
+                  <span data-eterna-eval="detail">{trial.metricName}</span>
+                </p>
+                <p data-eterna-eval="rationale">{trial.rationale}</p>
+                <p data-eterna-eval="detail">
+                  {`来源：裁判 · ${trial.route.provider} / ${trial.route.model} · ${formatDuration(trial.latencyMs)}`}
+                  {trial.tokens === undefined ? '' : ` · ${formatInt(trial.tokens)} tokens`}
+                </p>
+                <details data-eterna-eval="trial-raw-box">
+                  <summary>模型原始输出</summary>
+                  <pre data-eterna-eval="trial-raw">{trial.raw === '' ? '（未收到模型文本）' : trial.raw}</pre>
+                </details>
+              </div>
+            )}
+          </>
+        )}
+      </details>
+    </section>
+  )
+}
+
 /** 快照正文(ready 态;裁判卡紧跟结论卡——需要模型算力的结果优先于逐项规则明细). */
 function SnapshotBody(props: {
   readonly snapshot: EvalSnapshot
@@ -231,14 +374,17 @@ function SnapshotBody(props: {
       </section>
 
       {snapshot.judge === undefined ? null : (
-        <JudgeCard
-          judge={snapshot.judge}
-          onEvaluate={onEvaluate}
-          evaluating={evaluating}
-          feedback={feedback}
-          onLabel={onLabel}
-          labeling={labeling}
-        />
+        <>
+          <JudgeCard
+            judge={snapshot.judge}
+            onEvaluate={onEvaluate}
+            evaluating={evaluating}
+            feedback={feedback}
+            onLabel={onLabel}
+            labeling={labeling}
+          />
+          <TrialCard sessionId={snapshot.sessionId} />
+        </>
       )}
 
       <section data-eterna-eval="card" aria-labelledby="et-eval-process-heading">

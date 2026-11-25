@@ -9,7 +9,7 @@
  */
 import type { EvalSnapshot } from '../types.ts'
 import type { BusinessMetric } from '../business-metrics.ts'
-import type { JudgeConfig, JudgeSettingsView } from '../judge-types.ts'
+import type { JudgeConfig, JudgeSettingsView, JudgeTrialView } from '../judge-types.ts'
 
 /** 带 HTTP 状态的服务端失败(UI 据此选文案). */
 export class SessionEvalApiError extends Error {
@@ -183,6 +183,28 @@ export async function saveJudgeLabel(
     session, metric, agrees, ...turn === undefined ? {} : { turn },
   }, signal)
   return parsed.label === 'disagrees' ? 'disagrees' : 'agrees'
+}
+
+/**
+ * 单指标试跑(真实模型;不落评分行,计入日预算;原始输出原样返回)。
+ * @param session - 会话 id.
+ * @param metric - 指标键(内置 judge.* 或本账号 rubric 业务指标).
+ * @param turn - 逐轮指标的目标轮(缺省末轮).
+ * @param signal - 取消信号.
+ * @returns 试跑结果(含模型原始输出).
+ */
+export async function runJudgeTrial(
+  session: string,
+  metric: string,
+  turn: number | undefined,
+  signal?: AbortSignal,
+): Promise<JudgeTrialView> {
+  const parsed = await postJson('trial', { session, metric, ...turn === undefined ? {} : { turn } }, signal)
+  const trial = parsed.trial
+  if (typeof trial !== 'object' || trial === null) {
+    throw new SessionEvalApiError(200, '应答缺少 trial 字段')
+  }
+  return trial as JudgeTrialView
 }
 
 /**

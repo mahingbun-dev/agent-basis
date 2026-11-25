@@ -1052,5 +1052,54 @@ metrics:
 
 ### 15.4 P2-3 余下
 
-P2-3b 试跑（真实模型 + 原始输出/不合法输出态）、P2-3c 评测总览（候选 `sidebar.panellist` + `main`，遵守「不做独立页面」）、P2-3d dsh-evals 回放对接。
+P2-3b 试跑（真实模型 + 原始输出/不合法输出态）、P2-3c 评测总览（候选 `sidebar.panellist` + `main`，遵守「不做独立页面」）、P2-3d dsh-evals 回放对接。其中**试跑已由 §16 交付**。
+
+## 16. 实现状态（2026-11-25：P2-3b 试跑已交付）
+
+> 数字全部为当轮实测：`pnpm run verify`（全仓 EXIT=0）、`node scripts/verify-eterna-{web,super}.mjs`、
+> `node scripts/lint-ui-tokens.mjs`、`node tools/packctl/bin/packctl.mjs {form-check,tenant-scan,prompt-scan}`。
+
+### 16.1 已交付
+
+| 面 | 内容 | 位置 |
+|---|---|---|
+| 原始输出捕获 | 裁判/ rubric 结果增 `raw`（模型文本原样保留；解析失败与调用失败路径同样保留已收到文本，不因抛错丢证据） | `src/judge-call.ts`、`src/business-judge.ts` |
+| 引擎试跑 | `trial(sessionId, metricKey, turn, account)`：**单指标真实模型**；前置闸（未配置/预算/参数/指标不存在/会话未加载/无内容/规则型）；逐轮默认末轮、越界拒绝；**不写评分行**、只记日预算；回 `status/value/display/rationale/raw/latency/tokens/route` | `src/engine.ts` |
+| 服务面 | `trial(...)` 透传；裁判层缺席 → `io`（路由层 503） | `src/service.ts` |
+| 路由 | `POST /access/api/session-eval/trial`：登录 + 会话归属（跨租户 404）；`budget → 429`、`not_loaded / not_found → 404`、`io → 503`、其余 400；200 + `no-store`；审计 `access.session-eval.trial` | `packages/access/src/routes.ts` |
+| 面板试跑卡 | 裁判卡下「试跑一条指标（真实模型）」：折叠展开时**惰性**读设置目录（内置六项 + 本账号 rubric 业务指标，实测 7 项）；逐轮指标给目标轮输入（留空 = 末轮）；结果展示判定/理由/路由/耗时/tokens + **模型原始输出**（`pre` 软换行、限高滚动）；请求失败与「输出不合法」分开显示（后者 `status=error` 但原文照常展示） | `src/client/EvalPanel.tsx`、`src/client/api.ts` |
+| 部署探针 | `deploy/verify.sh` §8.7 增至六件：`snapshot / settings / metrics/save / metrics/parse / labels/save / trial` 匿名均 401 | `deploy/verify.sh` |
+
+### 16.2 口径决定（本轮）
+
+1. **试跑不落评分行**：避免一次试跑污染会话结论与校准样本；但**计入日预算**（模型真实花钱，与「立即评测」同预算口径）。
+2. **入口在会话面板不在设置**：`settings.section` 没有会话上下文；若在设置里选「样本会话」需新增会话枚举面并放大跨租户面。面板本身对着当前会话，最贴近「拿真实轨迹试一条」。
+3. **规则型指标不给试跑**：确定性断言没有模型调用，回 `not_model` 并指向「立即评测」。
+4. **失败也保留原始输出**：「这次试跑没有出分」不等于 0 分；`raw` 留原文便于定位提示词/输出契约问题。
+5. **目录惰性加载**：展开试跑才读设置（含本账号 YAML 全文），避免每次打开面板多一次大载荷。
+
+### 16.3 验证证据
+
+| 门禁 | 结果 |
+|---|---|
+| `pnpm --filter @eterna/session-eval verify` | oxlint 0/0；19 个测试文件 **185 passed**（+5：成功不落库只记预算 / 非法输出保留原文 / 规则型拒绝与 rubric 可跑 / 前置闸码 / 参数形状） |
+| `packages/access` verify | 55 个测试文件 **639 passed**；session-eval 路由 **34 项**（+5：trial 成功+审计+no-store+匿名 401 / 参数形状 / 跨租户 404 / 失败码分流 / 抛错 503） |
+| 全仓 `pnpm run verify` | **EXIT=0** |
+| `verify-eterna-web.mjs`（真实 boot） | OK — **232** host entries；`settings.section=5` |
+| `verify-eterna-super.mjs`（真实 boot） | OK — **240** host entries；`settings.section=6` |
+| `scripts/lint-ui-tokens.mjs` | 19 目录 **347** 文件、79 个 `--et-*` 令牌、状态点 30/30、v4 阶梯 0 债务 |
+| `packctl form-check / tenant-scan / prompt-scan` | 0 / 0 / 0 findings |
+
+截图（深浅 × 1440/900/390，共 12 张；真实 `lib/client.js` + 真实令牌；指标与数值为演示数据）：
+
+| 面 | 文件 |
+|---|---|
+| 试跑成功（未过 + 原始 JSON） | `docs/assets/screenshots/session-eval-p2-3-trial-{light,dark}-{1440,900,390}.png` |
+| 试跑失败（出错 + 非 JSON 原文） | `docs/assets/screenshots/session-eval-p2-3-trial-error-{light,dark}-{1440,900,390}.png` |
+
+§7 自查：12 张逐张断言 `scrollWidth === innerWidth` 与主题底色（light `rgb(244,242,236)` / dark `rgb(22,25,23)`）；试跑旗标 `未过 / 出错`、原始输出首段、指标选项 7 项均由 DOM 断言核过；390 下控件行按既有断点换行、原始输出软换行不撑宽。本轮未发现新的样式缺陷。
+
+### 16.4 P2-3 余下
+
+P2-3c 评测总览（候选 `sidebar.panellist` + `main`，遵守「不做独立页面」）、P2-3d dsh-evals 回放对接。
 

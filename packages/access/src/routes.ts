@@ -112,6 +112,7 @@ export interface SessionEvalFace {
   saveBusinessMetric(account: string, input: unknown, baseVersion: number): Promise<unknown>
   parseBusinessMetrics(text: string): Promise<unknown>
   label(sessionId: string, input: unknown, account: string): Promise<unknown>
+  trial(sessionId: string, metricKey: string, turn: number | undefined, account: string): Promise<unknown>
 }
 
 /** 参谋会话行(与 adviser 侧 AdviserSessionView 同形)。 */
@@ -372,7 +373,9 @@ export async function handleSessionEvalRequest(deps: AccessDeps, req: AccessRequ
   if (!isSameOrigin(req.origin, req.host, deps.session.secure, deps.publicOrigin)) return errorReply(403, '跨源请求被拒绝')
   if (!deps.globalWindow.hit(ip)) return errorReply(429, '请求过于频繁，请稍后再试')
   const action = req.pathname.slice(SESSION_EVAL_ROUTE_PREFIX.length)
-  const knownActions = ['snapshot', 'evaluate', 'settings', 'config/save', 'metrics/save', 'metrics/parse', 'labels/save']
+  const knownActions = [
+    'snapshot', 'evaluate', 'settings', 'config/save', 'metrics/save', 'metrics/parse', 'labels/save', 'trial',
+  ]
   if (!knownActions.includes(action)) {
     return errorReply(404, 'not found')
   }
@@ -508,6 +511,34 @@ export async function handleSessionEvalRequest(deps: AccessDeps, req: AccessRequ
       }
       deps.audit({ kind: 'access.session-eval.label', account: user.account, ip, ok: true, detail: { session, metric, agrees: body.agrees } })
       return jsonResponse(200, { ok: true, label: result.label ?? null }, [['cache-control', 'no-store']])
+    } catch {
+      return errorReply(503, '评测服务异常')
+    }
+  }
+
+  // 单指标试跑:一条指标走真实模型,原始输出原样回给面板(不落评分行)。
+  if (action === 'trial') {
+    const metric = typeof body?.metric === 'string' ? body.metric.trim() : ''
+    if (metric === '') return errorReply(400, '参数不合法：缺少指标键')
+    if (body?.turn !== undefined && (typeof body.turn !== 'number' || !Number.isInteger(body.turn) || body.turn < 1)) {
+      return errorReply(400, '参数不合法：turn 必须是正整数')
+    }
+    try {
+      const reply = await face.trial(session, metric, typeof body?.turn === 'number' ? body.turn : undefined, user.account) as {
+        readonly ok?: unknown
+        readonly trial?: unknown
+        readonly code?: unknown
+        readonly error?: unknown
+      }
+      if (reply.ok !== true) {
+        const code = typeof reply.code === 'string' ? reply.code : 'invalid'
+        const message = typeof reply.error === 'string' ? reply.error : '试跑被拒绝'
+        deps.audit({ kind: 'access.session-eval.trial', account: user.account, ip, ok: false, detail: { session, metric, code } })
+        const status = code === 'budget' ? 429 : code === 'not_loaded' || code === 'not_found' ? 404 : code === 'io' ? 503 : 400
+        return errorReply(status, message)
+      }
+      deps.audit({ kind: 'access.session-eval.trial', account: user.account, ip, ok: true, detail: { session, metric } })
+      return jsonResponse(200, { ok: true, trial: reply.trial ?? null }, [['cache-control', 'no-store']])
     } catch {
       return errorReply(503, '评测服务异常')
     }

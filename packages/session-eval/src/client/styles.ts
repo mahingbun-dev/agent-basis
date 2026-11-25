@@ -687,6 +687,77 @@ const CSS = `
   align-items: center;
   gap: var(--et-space-2);
 }
+/* ── 试跑(单指标 · 真实模型):折叠入口 + 控件行 + 原始输出 ── */
+[data-eterna-eval='trial-box'] summary,
+[data-eterna-eval='trial-raw-box'] summary {
+  display: flex;
+  align-items: center;
+  min-height: 36px; /* 触控热区下限(frontend-style §7) */
+  color: var(--et-fg-2);
+  font-size: var(--et-text-micro);
+  cursor: pointer;
+}
+[data-eterna-eval='trial-controls'] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--et-space-2);
+  margin: var(--et-space-2) 0;
+}
+[data-eterna-eval='trial-controls'] label {
+  color: var(--et-fg-2);
+  font-size: var(--et-text-micro);
+}
+[data-eterna-eval='trial-controls'] select,
+[data-eterna-eval='trial-controls'] input[type='number'] {
+  box-sizing: border-box; /* 窄屏不叠内边距 */
+  min-height: 36px;
+  padding: 0 var(--et-space-2);
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius-sm);
+  background: var(--et-surface);
+  color: var(--et-fg);
+  font: inherit;
+  font-size: var(--et-text-micro);
+}
+[data-eterna-eval='trial-controls'] select { max-width: 100%; }
+[data-eterna-eval='trial-controls'] input[type='number'] { width: 96px; }
+[data-eterna-eval='trial-controls'] select:focus-visible,
+[data-eterna-eval='trial-controls'] input[type='number']:focus-visible {
+  outline: none;
+  box-shadow: var(--et-focus-ring);
+}
+[data-eterna-eval='trial-result'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--et-space-2);
+  padding: var(--et-space-3);
+  border: 1px solid var(--et-border-soft);
+  border-radius: var(--et-radius-sm);
+  background: var(--et-surface-2);
+  min-width: 0;
+}
+[data-eterna-eval='trial-head'] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--et-space-2);
+  margin: 0;
+}
+[data-eterna-eval='trial-raw'] {
+  margin: 0;
+  padding: var(--et-space-2);
+  border-radius: var(--et-radius-xs);
+  background: var(--et-surface);
+  font-family: var(--et-font-mono);
+  font-size: var(--et-text-micro);
+  line-height: var(--et-leading-snug);
+  max-height: 220px;
+  overflow: auto;
+  /* 软换行:pre 会把最长原始输出撑成整卡最小宽度(390 撑破视口)。 */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 /* 已复核 = 软底 + 强调字(不实心填充压白字;深浅主题都跟随)。 */
 [data-eterna-eval='label-group'] .et-eval-button[aria-pressed='true'] {
   border-color: var(--et-accent);

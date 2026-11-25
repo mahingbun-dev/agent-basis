@@ -160,6 +160,9 @@ check "评测 YAML 导入端点已接线（匿名 401）" 401 "$sevbmparse"
 sevlabel=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 -X POST "$BASE/access/api/session-eval/labels/save" \
   -H 'Content-Type: application/json' -d '{"session":"verify-none","metric":"judge.task_completion","agrees":true}')
 check "评测人工复核端点已接线（匿名 401）" 401 "$sevlabel"
+sevtrial=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 -X POST "$BASE/access/api/session-eval/trial" \
+  -H 'Content-Type: application/json' -d '{"session":"verify-none","metric":"judge.task_completion"}')
+check "评测试跑端点已接线（匿名 401）" 401 "$sevtrial"
 
 rm -f "$JAR"
 

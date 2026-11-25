@@ -206,6 +206,7 @@ export async function runBusinessJudge(
   options: { readonly turn?: number; readonly signal?: AbortSignal } = {},
 ): Promise<JudgeRunResult> {
   const started = performance.now()
+  let raw: string | undefined
   try {
     const response = await llm.call({
       route,
@@ -214,6 +215,7 @@ export async function runBusinessJudge(
       maxTokens: BUSINESS_JUDGE_MAX_TOKENS,
       ...options.signal === undefined ? {} : { signal: options.signal },
     })
+    raw = response.text
     const parsed = parseBusinessJudgeOutput(response.text, metric.judge.criteria.length)
     const result = scoreRubric(metric.judge, parsed.criteria)
     const latencyMs = Math.round(response.latencyMs ?? performance.now() - started)
@@ -226,6 +228,7 @@ export async function runBusinessJudge(
           rationale: `有 ${result.na} 条细则无法判断，且该指标未允许跳过（allow_skip: false）。`,
           latencyMs,
           ...tokens,
+          raw,
         }
       }
       return {
@@ -234,6 +237,7 @@ export async function runBusinessJudge(
         rationale: `有 ${result.na} 条细则无法判断，按不适用处理。${parsed.rationale}`.slice(0, JUDGE_RATIONALE_MAX),
         latencyMs,
         ...tokens,
+        raw,
       }
     }
     return {
@@ -242,6 +246,7 @@ export async function runBusinessJudge(
       rationale: `${parsed.rationale}（${scoreNote(metric.judge, result)}）`.slice(0, JUDGE_RATIONALE_MAX),
       latencyMs,
       ...tokens,
+      raw,
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
@@ -251,6 +256,7 @@ export async function runBusinessJudge(
       value: null,
       rationale: compact.length <= JUDGE_RATIONALE_MAX ? compact : `${compact.slice(0, JUDGE_RATIONALE_MAX - 1)}…`,
       latencyMs: Math.round(performance.now() - started),
+      ...raw === undefined ? {} : { raw },
     }
   }
 }

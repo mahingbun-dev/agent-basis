@@ -158,6 +158,31 @@ export interface CalibrationView {
   readonly thresholds: { readonly minSamples: number; readonly minAgreement: number }
 }
 
+/** 单指标试跑结果(真实模型;原始输出原样带回,不落评分行). */
+export interface JudgeTrialView {
+  readonly metricKey: string
+  readonly metricName: string
+  readonly scope: JudgeScope
+  readonly status: JudgeStatus
+  readonly value: boolean | null
+  readonly display: string
+  readonly rationale: string
+  /** 模型原始输出(调用失败时可能为空;UI 用 pre 原样展示). */
+  readonly raw: string
+  readonly latencyMs: number
+  readonly tokens?: number
+  readonly route: JudgeRoute
+}
+
+/** 试跑应答(失败码:未配置/预算/参数/不存在/会话未加载/无内容/非模型指标/内部异常). */
+export type JudgeTrialReply =
+  | { readonly ok: true; readonly trial: JudgeTrialView }
+  | {
+    readonly ok: false
+    readonly code: 'unconfigured' | 'budget' | 'invalid' | 'not_found' | 'not_loaded' | 'no_content' | 'not_model' | 'io'
+    readonly error: string
+  }
+
 /** 人工复核保存结果. */
 export type JudgeLabelReply =
   | { readonly ok: true; readonly label: 'agrees' | 'disagrees' }

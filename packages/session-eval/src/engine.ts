@@ -22,7 +22,9 @@ import {
   type BusinessSaveReply,
   type BusinessParseReply, type CalibrationMetricView, type CalibrationView, type JudgeConfig,
   type JudgeEvaluateReply, type JudgeLabelReply, type JudgeRoute, type JudgeSaveConfigReply,
-  type JudgeScope, type JudgeScoreView, type JudgeSettingsView, type JudgeSnapshot, type JudgeTrigger,
+  type JudgeTrialReply, type JudgeTrialView,
+  type JudgeScope, type JudgeScoreView, type JudgeSettingsView, type JudgeSnapshot, type JudgeStatus,
+  type JudgeTrigger,
 } from './judge-types.ts'
 import { BUILTIN_JUDGE_METRICS, findJudgeMetric, type JudgeMetricDef } from './judge-metrics.ts'
 import { projectJudgeInput } from './judge-input.ts'
@@ -400,6 +402,107 @@ export class JudgeEngine {
   }
 
   /** 会话内人工复核映射(只用于回显;评分重评后值变了就不回显). */
+  /**
+   * 单指标试跑:用真实裁判路由跑一条指标,返回原始输出与用量,**不落评分行**。
+   *
+   * 与「立即评测」的差别:不入队列、不写 scores.db(避免试跑污染会话结论),
+   * 但**计入日预算**(模型调用照常花钱);规则型指标不走模型,如实拒绝。
+   * @param sessionId - 会话 id(调用方已校验归属与登录)。
+   * @param metricKey - 指标键(内置 judge.* 或当前账号覆盖层的 rubric 指标)。
+   * @param turn - 逐轮指标的目标轮(缺省末轮;会话类忽略)。
+   * @param account - 已登录账号(解析业务指标覆盖层)。
+   */
+  trial(sessionId: string, metricKey: string, turn: number | undefined, account: string): Promise<JudgeTrialReply> {
+    const id = typeof sessionId === 'string' ? sessionId.trim() : ''
+    const key = typeof metricKey === 'string' ? metricKey.trim() : ''
+    if (id === '' || id.length > SESSION_ID_MAX || key === '') {
+      return Promise.resolve({ ok: false, code: 'invalid', error: '参数不合法：缺少会话或指标。' })
+    }
+    if (turn !== undefined && (!Number.isInteger(turn) || turn < 1)) {
+      return Promise.resolve({ ok: false, code: 'invalid', error: '参数不合法：turn 必须是正整数。' })
+    }
+    const config = this.#config().config
+    if (config.route === null) {
+      return Promise.resolve({ ok: false, code: 'unconfigured', error: '尚未配置裁判模型：请到 设置 → 评测 里选择模型后重试。' })
+    }
+    if (this.#usage(this.#now()) >= config.budgetTokensPerDay) {
+      return Promise.resolve({ ok: false, code: 'budget', error: '今日裁判预算已用尽：明日恢复，或在 设置 → 评测 里调高预算。' })
+    }
+    const builtin = findJudgeMetric(key)
+    let metric: JudgeMetricDef | BusinessJudgeMetric | undefined = builtin
+    if (metric === undefined) {
+      const business = this.#businessForEvaluate(account).metrics.find(candidate => candidate.key === key && candidate.enabled)
+      if (business === undefined) {
+        return Promise.resolve({ ok: false, code: 'not_found', error: '没有找到该指标（不存在或已停用）。' })
+      }
+      if (!isBusinessJudgeMetric(business)) {
+        return Promise.resolve({
+          ok: false, code: 'not_model',
+          error: '规则型指标是确定性断言，不需要模型试跑：用「立即评测」直接看结果。',
+        })
+      }
+      metric = business
+    }
+    const events = this.#ports.readEvents(id)
+    if (events === undefined) {
+      return Promise.resolve({ ok: false, code: 'not_loaded', error: '会话不在宿主内存（未打开）：打开后可试跑。' })
+    }
+    if (events.length === 0) {
+      return Promise.resolve({ ok: false, code: 'no_content', error: '会话还没有可投影的事件。' })
+    }
+    const input = projectJudgeInput(events)
+    if (input.task === '' && input.turns.length === 0) {
+      return Promise.resolve({ ok: false, code: 'no_content', error: '会话还没有可投影的事件。' })
+    }
+    const targetTurn = metric.scope === 'turn'
+      ? turn ?? input.turns[input.turns.length - 1]?.turn
+      : undefined
+    if (metric.scope === 'turn' && (targetTurn === undefined || !input.turns.some(candidate => candidate.turn === targetTurn))) {
+      return Promise.resolve({ ok: false, code: 'invalid', error: '目标轮不在可评范围内（该轮还没有完整事件）。' })
+    }
+    return this.#runTrial(metric, input, config.route, targetTurn)
+  }
+
+  /** 试跑执行(调用收敛成 error 状态;用量计入日预算,评分不入库). */
+  async #runTrial(
+    metric: JudgeMetricDef | BusinessJudgeMetric,
+    input: ReturnType<typeof projectJudgeInput>,
+    route: JudgeRoute,
+    turn: number | undefined,
+  ): Promise<JudgeTrialReply> {
+    const options = turn === undefined ? {} : { turn }
+    let result: JudgeRunResult
+    try {
+      result = isBusinessJudgeMetric(metric)
+        ? await runBusinessJudge(metric, input, route, this.#ports.llm, options)
+        : await runJudge(metric, input, route, this.#ports.llm, options)
+    } catch {
+      return { ok: false, code: 'io', error: '试跑调用异常（内部读取失败）。' }
+    }
+    if (result.tokens !== undefined) {
+      try {
+        this.#openStore()?.addUsage(dayKey(this.#now()), result.tokens)
+      } catch {
+        // 用量记账失败不抹掉试跑结果(与评分落库失败同口径:如实展示已有结果)。
+        this.#lastError = '试跑用量未记入日预算。'
+      }
+    }
+    const trial: JudgeTrialView = {
+      metricKey: metric.key,
+      metricName: metric.name,
+      scope: metric.scope,
+      status: result.status,
+      value: result.value,
+      display: trialDisplay(result.status, result.value),
+      rationale: result.rationale,
+      raw: result.raw ?? '',
+      latencyMs: result.latencyMs,
+      ...result.tokens === undefined ? {} : { tokens: result.tokens },
+      route,
+    }
+    return { ok: true, trial }
+  }
+
   #labelsFor(sessionId: string): ReadonlyMap<string, LabelMark> {
     const store = this.#openStore()
     if (store === undefined) return new Map()
@@ -851,6 +954,14 @@ function viewOfRow(
     ...row.tokens === null ? {} : { tokens: row.tokens },
     ...labelFields(row, labels),
   }
+}
+
+/** 试跑结果文案(没有分数就显示状态). */
+function trialDisplay(status: JudgeStatus, value: boolean | null): string {
+  if (status === 'ok') return value === true ? '通过' : '未过'
+  if (status === 'not_applicable') return '不适用'
+  if (status === 'error') return '出错'
+  return '跳过'
 }
 
 /** 已落库行的展示文案(没有分数就显示状态). */

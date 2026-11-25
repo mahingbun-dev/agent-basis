@@ -731,3 +731,91 @@ describe('人工复核与校准(P2-3)', () => {
     expect(metric).toMatchObject({ labeled: 1, agrees: 1 })
   })
 })
+
+describe('试跑(P2-3b)', () => {
+  beforeEach(() => {
+    writeConfig()
+  })
+
+  it('内置指标试跑:原始输出/tokens/路由原样返回;不落评分行,只记日预算', async () => {
+    engine = newEngine()
+    const reply = await engine.trial('s1', 'judge.task_completion', undefined, 'alice')
+    expect(reply.ok).toBe(true)
+    if (!reply.ok) return
+    expect(reply.trial).toMatchObject({
+      metricKey: 'judge.task_completion', metricName: '任务完成度', scope: 'session',
+      status: 'ok', value: true, display: '通过', raw: replyText, tokens: 100,
+      route: { provider: 'deepseek', model: 'deepseek-chat' },
+    })
+    expect(reply.trial.rationale).not.toBe('')
+    expect(calls).toHaveLength(1)
+    expect(engine.pendingTotal()).toBe(0)
+    // 快照仍是「待评」:试跑不入库、不冒充正式评分。
+    expect((await engine.snapshot('s1', NOW)).scores.find(score => score.key === 'judge.task_completion'))
+      .toMatchObject({ status: 'pending', display: '待评' })
+    const store = openJudgeStore(storePath)
+    expect(store.list('s1')).toHaveLength(0)
+    expect(store.usage(DAY)).toBe(100)
+    store.close()
+  })
+
+  it('输出不合法:试跑照常回包(status=error,raw 原文保留,便于定位提示词/契约问题)', async () => {
+    engine = newEngine()
+    replyText = '抱歉,我无法按该格式输出'
+    const reply = await engine.trial('s1', 'judge.task_completion', undefined, 'alice')
+    expect(reply.ok).toBe(true)
+    if (!reply.ok) return
+    expect(reply.trial).toMatchObject({ status: 'error', value: null, display: '出错', raw: '抱歉,我无法按该格式输出' })
+  })
+
+  it('规则型业务指标拒绝试跑(not_model);rubric 业务指标可试跑且原始输出可见', async () => {
+    writeBusinessMetrics('alice', [
+      rubricInput(),
+      { key: 'no-hedge', name: '回复禁语', category: 'process', scope: 'session', answer: { not_contains: ['稍等'] } },
+    ])
+    engine = businessEngine()
+    expect(await engine.trial('s1', 'no-hedge', undefined, 'alice'))
+      .toMatchObject({ ok: false, code: 'not_model' })
+    const reply = await engine.trial('s1', 'reply-quality', undefined, 'alice')
+    expect(reply.ok).toBe(true)
+    if (!reply.ok) return
+    expect(reply.trial).toMatchObject({ metricKey: 'reply-quality', status: 'ok', value: true, raw: RUBRIC_PASS })
+    const store = openJudgeStore(storePath)
+    expect(store.list('s1')).toHaveLength(0)
+    store.close()
+  })
+
+  it('前置闸:未配置模型/预算用尽/会话未加载/指标不存在/轮次越界各自给码,均不调模型', async () => {
+    engine = newEngine()
+    expect(await engine.trial('s1', 'judge.task_completion', undefined, 'alice'))
+      .toMatchObject({ ok: true })
+    calls.length = 0
+    writeConfig({ route: null })
+    expect(await engine.trial('s1', 'judge.task_completion', undefined, 'alice'))
+      .toMatchObject({ ok: false, code: 'unconfigured' })
+    writeConfig()
+    expect(await engine.trial('missing-session', 'judge.task_completion', undefined, 'alice'))
+      .toMatchObject({ ok: false, code: 'not_loaded' })
+    expect(await engine.trial('s1', 'judge.unknown_metric', undefined, 'alice'))
+      .toMatchObject({ ok: false, code: 'not_found' })
+    // 逐轮指标:默认末轮可跑;越界轮次拒绝。
+    expect(await engine.trial('s1', 'judge.tool_selection', undefined, 'alice')).toMatchObject({ ok: true })
+    expect(await engine.trial('s1', 'judge.tool_selection', 9, 'alice'))
+      .toMatchObject({ ok: false, code: 'invalid' })
+    expect(calls).toHaveLength(1)
+    const store = openJudgeStore(storePath)
+    store.addUsage(DAY, 200_000)
+    store.close()
+    expect(await engine.trial('s1', 'judge.task_completion', undefined, 'alice'))
+      .toMatchObject({ ok: false, code: 'budget' })
+  })
+
+  it('参数形状:会话/指标为空或 turn 非法 → invalid,不调模型', async () => {
+    engine = newEngine()
+    expect(await engine.trial('', 'judge.task_completion', undefined, 'alice')).toMatchObject({ ok: false, code: 'invalid' })
+    expect(await engine.trial('s1', '  ', undefined, 'alice')).toMatchObject({ ok: false, code: 'invalid' })
+    expect(await engine.trial('s1', 'judge.task_completion', 0, 'alice')).toMatchObject({ ok: false, code: 'invalid' })
+    expect(await engine.trial('s1', 'judge.task_completion', 1.5, 'alice')).toMatchObject({ ok: false, code: 'invalid' })
+    expect(calls).toHaveLength(0)
+  })
+})
