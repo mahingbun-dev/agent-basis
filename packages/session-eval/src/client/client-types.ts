@@ -35,13 +35,15 @@ export interface SidebarRightTabsFace {
   register(definition: TabTypeDefinition): () => void
 }
 
-/** 槽位注册选项(keyed 槽条目). */
+/** 槽位注册选项(keyed 槽条目 / 设置分区条目公用). */
 export interface SlotRegisterOptions {
   readonly name: string
   readonly key?: string
   readonly id?: string
   readonly order?: number
   readonly locale?: string
+  /** 设置分区的左侧导航标题(settings.section 契约). */
+  readonly label?: () => string
   readonly children?: Record<string, { readonly kind: 'single' | 'list' | 'keyed' | 'chain' | 'hoc'; readonly scope: 'root' | 'session-maybe' | 'session' }>
   readonly inject?: () => Record<string, unknown>
 }

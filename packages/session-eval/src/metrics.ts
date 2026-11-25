@@ -254,8 +254,8 @@ export function evaluateRules(input: RuleMetricInput): RuleEvaluation {
   const failures = metrics.filter(metric => metric.pass === false)
   const verdict = buildVerdict(failures, trajectory)
   const pending = [
-    '结果类指标(任务完成、约束满足、业务 rubric)需要裁判模型,属于 P1;当前不上报、不判通过。',
-    '通过线阈值需要校准后才能用于门禁(P1 校准面);当前比率类只计量。',
+    '结果类指标(任务完成、约束满足、业务 rubric)由裁判层异步产出，不在规则快照里；见裁判区。',
+    '通过线阈值需要校准后才能用于门禁(校准面待建);当前比率类只计量。',
     'pass^k 一致性需要重跑同一任务,不在线做(第二轨 dsh-evals / ai-evo 的职责)。',
   ]
 

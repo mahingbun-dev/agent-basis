@@ -1048,6 +1048,12 @@ importers:
       '@deepseek-ai/cordis':
         specifier: 'catalog:'
         version: 4.1.0(@deepseek-ai/cordis-plugin-include@1.1.0)(@deepseek-ai/cordis-plugin-loader@1.1.0)
+      '@deepseek-ai/dsh-llm':
+        specifier: 'catalog:'
+        version: 0.2.2-rc.5(@deepseek-ai/cordis@4.1.0)(@deepseek-ai/dsh-error@0.2.2-rc.5(@deepseek-ai/cordis@4.1.0))
+      '@deepseek-ai/dsh-util-values':
+        specifier: 'catalog:'
+        version: 0.2.2-rc.5(@deepseek-ai/cordis@4.1.0)
       '@eterna/observe':
         specifier: workspace:*
         version: link:../observe

@@ -1,10 +1,11 @@
 /**
  * 评测服务编排(56 号 §5.4/§5.6):会话事件快照 → 轨迹投影 → 规则评分 → 快照。
  *
- * P0 刻意**无状态、无存储、无队列**:
- * - 不订阅 `session/event`(不占回合、不怕装载顺序)——读的是宿主内存里的既有事件;
- * - 不落库(评分库是 P1);同一事件数组的重复读取结果完全相同(纯投影);
- * - 不调模型(规则层零成本)。
+ * 分层口径:
+ * - **规则层**(本文件上半,P0):同步纯投影,零模型成本,同一事件数组的重复读取
+ *   结果完全相同;
+ * - **裁判层**(P1,`engine.ts`):异步队列 + 评分库,快照里以 `judge` 区块并入
+ *   (服务面缺席裁判引擎时退化为 P0 只读语义,`judge` 字段省略)。
  *
  * 会话从哪来:面板永远对着**当前打开的会话**,它必然在宿主内存里(agents 或
  * sessions 注册表)。两处都读不到 = 会话未加载:如实回 `not_loaded`,由面板
@@ -13,7 +14,17 @@
 import { aggregateSessionMetrics } from '@eterna/observe'
 import { evaluateRules, type RuleEvaluation } from './metrics.ts'
 import { projectTrajectory } from './trajectory.ts'
-import type { EvalSnapshot, SessionEventLike } from './types.ts'
+import type { EvalSnapshot, EvalVerdict, SessionEventLike } from './types.ts'
+import type { JudgeEvaluateReply, JudgeSaveConfigReply, JudgeSettingsView, JudgeSnapshot } from './judge-types.ts'
+import type { JudgeEvaluateOptions } from './engine.ts'
+
+/** 裁判引擎的结构面(host 传 JudgeEngine;测试注入假件)。 */
+export interface JudgeEngineFace {
+  snapshot(sessionId: string, now?: number): Promise<JudgeSnapshot>
+  evaluate(sessionId: string, options?: JudgeEvaluateOptions): Promise<JudgeEvaluateReply>
+  settings(): Promise<JudgeSettingsView>
+  saveConfig(input: unknown): Promise<JudgeSaveConfigReply>
+}
 
 /** 服务端口:只读事件面(host.ts 接宿主 agents/sessions;测试注入固定数组). */
 export interface SessionEvalPorts {
@@ -23,18 +34,23 @@ export interface SessionEvalPorts {
    * @returns 事件数组;会话不在内存时为 undefined(不是空数组)。
    */
   readEvents(sessionId: string): readonly SessionEventLike[] | undefined
+  /** 裁判引擎(P1);缺席 = 只提供确定性规则(P0 语义). */
+  readonly judge?: JudgeEngineFace
 }
 
 /** 服务面暴露给 access 的结构子集(access 侧有同名结构声明,two-side 不 import). */
 export interface SessionEvalFace {
   snapshot(sessionId: string, now?: number): Promise<EvalSnapshot>
+  evaluate(sessionId: string, options?: JudgeEvaluateOptions): Promise<JudgeEvaluateReply>
+  settings(): Promise<JudgeSettingsView>
+  saveConfig(input: unknown): Promise<JudgeSaveConfigReply>
 }
 
 /** 会话 id 的合法形状(只做防呆:非空、长度上限,不做前缀白名单). */
 const SESSION_ID_MAX = 200
 
 /**
- * 评测服务:P0 只提供 snapshot(生成一份只读快照)。
+ * 评测服务:规则快照 + 裁判区(裁判引擎在场时)。
  */
 export class SessionEvalService implements SessionEvalFace {
   private readonly ports: SessionEvalPorts
@@ -49,15 +65,16 @@ export class SessionEvalService implements SessionEvalFace {
    * @param now - 生成时刻(测试注入;缺省 Date.now())。
    * @returns 快照;会话未加载/无事件也返回**结构完整**的快照(状态区分,不抛)。
    */
-  snapshot(sessionId: string, now?: number): Promise<EvalSnapshot> {
+  async snapshot(sessionId: string, now?: number): Promise<EvalSnapshot> {
     const generatedAt = now ?? Date.now()
     const id = typeof sessionId === 'string' ? sessionId.trim() : ''
+    const judge = await this.judgeSnapshot(id, generatedAt)
     const events = id === '' || id.length > SESSION_ID_MAX ? undefined : this.ports.readEvents(id)
     if (events === undefined) {
-      return Promise.resolve(emptySnapshot(id, 'not_loaded', generatedAt))
+      return emptySnapshot(id, 'not_loaded', generatedAt, judge)
     }
     if (events.length === 0) {
-      return Promise.resolve(emptySnapshot(id, 'empty', generatedAt))
+      return emptySnapshot(id, 'empty', generatedAt, judge)
     }
     const aggregate = aggregateSessionMetrics(events)
     const trajectory = projectTrajectory(id, events)
@@ -65,7 +82,7 @@ export class SessionEvalService implements SessionEvalFace {
     const duration = trajectory.window.firstTime !== undefined && trajectory.window.lastTime !== undefined
       ? Math.max(0, trajectory.window.lastTime - trajectory.window.firstTime)
       : null
-    return Promise.resolve({
+    return {
       sessionId: id,
       state: 'ok',
       generatedAt,
@@ -84,16 +101,95 @@ export class SessionEvalService implements SessionEvalFace {
       cacheHitRate: aggregate.cacheHitRate,
       costUsd: evaluation.costUsd,
       route: trajectory.route,
-      verdict: evaluation.verdict,
+      verdict: judge === undefined ? evaluation.verdict : composeVerdict(evaluation.verdict, judge.overall),
       metrics: evaluation.metrics,
       issues: evaluation.issues,
       pending: evaluation.pending,
-    })
+      ...judge === undefined ? {} : { judge },
+    }
+  }
+
+  /**
+   * 手动评测(「立即评测」按钮)。
+   * @param sessionId - 会话 id.
+   * @param options - 范围与目标轮.
+   * @returns 受理结果;裁判层未装载时如实拒绝。
+   */
+  evaluate(sessionId: string, options?: JudgeEvaluateOptions): Promise<JudgeEvaluateReply> {
+    const judge = this.ports.judge
+    if (judge === undefined) {
+      return Promise.resolve({ ok: false, code: 'invalid', message: '裁判层未装载（插件仍在启动）。' })
+    }
+    return judge.evaluate(sessionId, options)
+  }
+
+  /** 设置分区读面(配置 + 指标目录 + 模型目录). */
+  settings(): Promise<JudgeSettingsView> {
+    const judge = this.ports.judge
+    if (judge === undefined) {
+      return Promise.reject(new Error('judge layer not mounted'))
+    }
+    return judge.settings()
+  }
+
+  /** 保存裁判配置(严格校验 + 目录自检)。 */
+  saveConfig(input: unknown): Promise<JudgeSaveConfigReply> {
+    const judge = this.ports.judge
+    if (judge === undefined) {
+      return Promise.resolve({ ok: false, error: '裁判层未装载（插件仍在启动）。' })
+    }
+    return judge.saveConfig(input)
+  }
+
+  /** 裁判区快照;引擎缺席或异常都退化为 undefined(规则层仍可用). */
+  private async judgeSnapshot(sessionId: string, now: number): Promise<JudgeSnapshot | undefined> {
+    const judge = this.ports.judge
+    if (judge === undefined) return undefined
+    try {
+      return await judge.snapshot(sessionId, now)
+    } catch {
+      return undefined
+    }
   }
 }
 
+/**
+ * 组合规则结论与裁判结论(面板顶部结论卡):
+ * 任一方 warn → warn;双方都有结论且无 warn → pass;任一方无结论 → 如实标 unrated
+ * (规则 pass + 裁判未评时保留规则文案,其中已明写「结果类未评」)。
+ * @param rule - 规则层结论.
+ * @param overall - 结果类裁判综合结论.
+ */
+export function composeVerdict(rule: EvalVerdict, overall: JudgeSnapshot['overall']): EvalVerdict {
+  const reasons = [...rule.reasons, ...overall.reasons]
+  if (rule.level === 'warn' || overall.level === 'warn') {
+    const label = rule.level === 'warn' && overall.level === 'warn'
+      ? '规则与裁判均发现问题'
+      : rule.level === 'warn'
+        ? rule.label
+        : `规则通过 · ${overall.label}`
+    return { level: 'warn', label, reasons }
+  }
+  if (rule.level === 'pass' && overall.level === 'pass') {
+    return { level: 'pass', label: '规则与裁判均通过', reasons }
+  }
+  if (rule.level === 'pass') {
+    // 裁判未评(未配置/未产生结果类评分):规则文案本身已标「结果类未评」。
+    return { level: 'pass', label: rule.label, reasons }
+  }
+  if (overall.level === 'pass') {
+    return { level: 'pass', label: '结果类裁判通过（规则未评）', reasons }
+  }
+  return { level: 'unrated', label: rule.label, reasons }
+}
+
 /** 空态快照(结构完整:客户端只按 state 选文案,其余字段保持形状). */
-function emptySnapshot(sessionId: string, state: 'empty' | 'not_loaded', generatedAt: number): EvalSnapshot {
+function emptySnapshot(
+  sessionId: string,
+  state: 'empty' | 'not_loaded',
+  generatedAt: number,
+  judge: JudgeSnapshot | undefined,
+): EvalSnapshot {
   return {
     sessionId,
     state,
@@ -112,5 +208,6 @@ function emptySnapshot(sessionId: string, state: 'empty' | 'not_loaded', generat
     metrics: [],
     issues: [],
     pending: [],
+    ...judge === undefined ? {} : { judge },
   }
 }

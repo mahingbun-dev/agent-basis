@@ -13,9 +13,17 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { mountSessionEval } from './host.ts'
 
-export { SESSION_EVAL_SERVICE_ID, createHostPorts, mountSessionEval } from './host.ts'
+export { SESSION_EVAL_SERVICE_ID, billedTokens, createHostPorts, createJudgeEngine, createLlmJudgePort, listProviderCatalog, mountSessionEval } from './host.ts'
+export { composeVerdict, SessionEvalService, type JudgeEngineFace, type SessionEvalFace, type SessionEvalPorts } from './service.ts'
 export { evaluateRules, ISSUE_LIMIT, ISSUE_OVERFLOW_NOTE, RULE_METRIC_KEYS, type RuleEvaluation } from './metrics.ts'
-export { SessionEvalService, type SessionEvalFace, type SessionEvalPorts } from './service.ts'
+export { JUDGE_CONCURRENCY, JudgeEngine, type JudgeEngineOptions, type JudgeEnginePorts, type JudgeEvaluateOptions, type JudgeProviderCatalog } from './engine.ts'
+export { judgeConfigPath, judgeStateRoot, judgeStorePath, parseJudgeConfig, readJudgeConfig, writeJudgeConfig, type JudgeConfigParse, type JudgeConfigRead } from './judge-config.ts'
+export { JUDGE_MAX_TOKENS, JUDGE_RATIONALE_MAX, type JudgeCategory, type JudgeConfig, type JudgeEvaluateReply, type JudgeRoute, type JudgeSaveConfigReply, type JudgeScope, type JudgeSettingsView, type JudgeSnapshot, type JudgeScoreView, type JudgeStatus, type JudgeTrigger } from './judge-types.ts'
+export { JUDGE_OUTPUT_CONTRACT, BUILTIN_JUDGE_METRICS, findJudgeMetric, judgeSystemPrompt, type JudgeMetricDef } from './judge-metrics.ts'
+export { JUDGE_WINDOW_MAX_CHARS, JUDGE_WINDOW_MAX_TURNS, projectJudgeInput, renderJudgeUserText, type JudgeInput, type JudgeTurnRecord } from './judge-input.ts'
+export { JudgeOutputError, parseJudgeOutput, verdictToScore, type JudgeVerdict, type ParsedJudgeOutput } from './judge-parse.ts'
+export { runJudge, type JudgeCallResponse, type JudgeLlmPort, type JudgeRunResult } from './judge-call.ts'
+export { JudgeScoreStore, openJudgeStore, type StoredJudgeScore } from './score-store.ts'
 export { projectTrajectory } from './trajectory.ts'
 export type {
   EvalIssue,
