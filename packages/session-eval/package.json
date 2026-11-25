@@ -1,0 +1,43 @@
+{
+  "name": "@eterna/session-eval",
+  "description": "实时评测(第三轨)P0 确定性底座:把当前会话的事件快照投影成轨迹(工具调用配对/失败/参数合法/重复/审批结局/逐轮耗时)并计算 §4.2 规则指标(零模型成本),以 ctx.eternaSessionEval 提供服务面;HTTP 面由 eterna-access 守卫 (/access/api/session-eval/snapshot),右栏「评测」tab 只读展示。轨迹投影与规则评分均为纯函数,评分库/裁判/队列属 P1,不在本包 P0 范围。设计见 docs/design/56-Agent实时评测调研与方案设计.md。",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar-right",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ],
+      "platform": "web"
+    }
+  },
+  "scripts": {
+    "build:client": "node scripts/build-client.mjs",
+    "verify": "node scripts/build-client.mjs && ../../node_modules/.bin/oxlint --config ../../.oxlintrc.json . && ./node_modules/.bin/tsc --noEmit && ./node_modules/.bin/vitest run",
+    "test": "./node_modules/.bin/vitest run",
+    "typecheck": "./node_modules/.bin/tsc --noEmit"
+  },
+  "dependencies": {
+    "@eterna/observe": "workspace:*",
+    "@eterna/ui": "workspace:*",
+    "@deepseek-ai/cordis": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "esbuild": "catalog:",
+    "react": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -77,6 +77,13 @@ export interface AccessDeps {
    */
   readonly adviser?: (() => AdviserFace | undefined) | undefined
   /**
+   * 实时评测服务面(2026-11-25 56 号 P0;反射键 'eternaSessionEval' 的结构面):
+   * 每次请求现读,插件未装载返回 undefined → 端点 503(fail-closed)。
+   * access 为 Tier1,**不 import @eterna/session-eval**——结构面声明在本文件
+   * (adviser 同纪律;铁律 T2:数据面经插件提供、HTTP 面只在 access 登记)。
+   */
+  readonly sessionEval?: (() => SessionEvalFace | undefined) | undefined
+  /**
    * 登出回调(2026-11-20 B14 个人 MCP):会话 cookie 清除前摘除该用户 live scope。
    * 同步签名,实现方自吞异常(登出不能被资源回收失败阻断)。
    */
@@ -91,6 +98,14 @@ export interface AdviserFace {
   list(parentSessionId: string): Promise<readonly AdviserSessionRow[]>
   create(parentSessionId: string, seedText: string, childId?: string): Promise<AdviserCreateOutcome>
   deliver(parentSessionId: string, text: string, delivery: 'inject' | 'followup'): Promise<AdviserDeliverOutcome>
+}
+
+/**
+ * 评测服务面(结构子集;`packages/session-eval/src/service.ts` 的 SessionEvalService)。
+ * 快照载荷整体 JSON 序列化,access 不解释领域字段(只透传 + 归属校验)。
+ */
+export interface SessionEvalFace {
+  snapshot(sessionId: string, now?: number): Promise<unknown>
 }
 
 /** 参谋会话行(与 adviser 侧 AdviserSessionView 同形)。 */
@@ -168,6 +183,9 @@ export const TOGGLEABLE_PLUGINS: ReadonlyArray<{ id: string; label: string }> = 
   // 快捷键/选中文字)与回写条一并消失,主会话不再收到 [adviser] 纪律段;
   // access 的 /access/api/adviser/* 因服务面缺席回 503 fail-closed(不是 500)。
   { id: 'eterna-adviser', label: '参谋面板' },
+  // 实时评测(2026-11-25,56 号 P0):停用后右栏「评测」tab 与导引卡消失;
+  // access 的 /access/api/session-eval/* 因服务面缺席回 503 fail-closed(不是 500)。
+  { id: 'eterna-session-eval', label: '实时评测' },
 ]
 
 export function handleAccessRequest(deps: AccessDeps, req: AccessRequest): AccessReply {
@@ -230,6 +248,9 @@ export function handleAccessRequest(deps: AccessDeps, req: AccessRequest): Acces
 
 /** 参谋端点是否属于本路由面(createNodeHandler 用它决定走异步入口)。 */
 export const ADVISER_ROUTE_PREFIX = '/access/api/adviser/'
+
+/** 评测端点前缀(createNodeHandler 用它决定走异步入口). */
+export const SESSION_EVAL_ROUTE_PREFIX = '/access/api/session-eval/'
 
 /**
  * 参谋面板异步入口(2026-11-24):三条端点全部异步(服务面本身是 Promise)。
@@ -325,6 +346,39 @@ function handleAdviserDeliver(deps: AccessDeps, req: AccessRequest, ip: string):
     if (!result.ok) return adviserFailureReply(result.code, result.message)
     return jsonResponse(200, { ok: true, delivery: result.delivery, sessionId: result.sessionId })
   })
+}
+
+/**
+ * 评测端点(2026-11-25,56 号 P0):`POST /access/api/session-eval/snapshot {session}`。
+ *
+ * 只读:生成一份当前会话的确定性评分快照。权限与 adviser 同口径——登录 +
+ * 会话归属本人;越权/不存在统一 404(不泄漏存在性);服务面缺席 503(fail-closed)。
+ * no-store:快照含实时数字与生成时刻,缓存会让面板对着过期结果。
+ */
+export async function handleSessionEvalRequest(deps: AccessDeps, req: AccessRequest): Promise<AccessReply> {
+  const method = req.method.toUpperCase()
+  const ip = clientIp(req.xff)
+  if (method !== 'POST') return errorReply(405, 'method not allowed')
+  if (!isSameOrigin(req.origin, req.host, deps.session.secure, deps.publicOrigin)) return errorReply(403, '跨源请求被拒绝')
+  if (!deps.globalWindow.hit(ip)) return errorReply(429, '请求过于频繁，请稍后再试')
+  const action = req.pathname.slice(SESSION_EVAL_ROUTE_PREFIX.length)
+  if (action !== 'snapshot') return errorReply(404, 'not found')
+  const body = parseJsonBody(req.body)
+  const session = typeof body?.session === 'string' ? body.session.trim() : ''
+  const user = requireUser(deps, req)
+  if (user === undefined) return errorReply(401, '未登录')
+  if (session === '') return errorReply(400, '参数不合法：缺少会话 id')
+  const owner = deps.store.sessionOwner(session)
+  if (owner !== user.id) return errorReply(404, '会话不存在或不属于你')
+  const face = deps.sessionEval?.()
+  if (face === undefined) return errorReply(503, '评测内核未就绪')
+  try {
+    const snapshot = await face.snapshot(session)
+    return jsonResponse(200, { ok: true, snapshot }, [['cache-control', 'no-store']])
+  } catch {
+    // 服务面内部异常不把堆栈递给浏览器(与 adviser 的 runAdviser 同口径)。
+    return errorReply(503, '评测服务异常')
+  }
 }
 
 /** adviser 失败码 → HTTP(与既有端点同口径:404 不泄漏存在性、503 内核缺席、400 参数)。 */

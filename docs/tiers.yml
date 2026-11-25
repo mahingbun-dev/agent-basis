@@ -8,11 +8,13 @@
 # agent-loop/approval-cli/llm/session/system-prompt 五名在途未落地,按「tier2 允许登记
 # 未落地包」暂列 tier2,各自落地 PR 时按「新包落地时登记」移回 tier1;
 # bundle-core/ 无 package.json 不算包),逐名列出、不用通配——真值源必须显式。
+# session-eval 登记(2026-11-25):56 号 P0 确定性底座落地(packages/session-eval,
+# insert 行 + dsh.client + 只读服务面),同「新包落地时登记」纪律入 tier1 参与 TIER001 扫描。
 # adviser 登记(2026-11-24):同「新包落地时登记」纪律——54 号(参谋面板)双面包已落地
 # (packages/adviser,insert 行 + dsh.client),入 tier1 参与 TIER001 扫描。
 # 设计依据 docs/design/54-adviser-P0-probe.md。
 tier1:
-  # ── packages/ 25 名(2026-11-19 toolkit 落地 +1;2026-11-24 adviser +1)──
+  # ── packages/ 26 名(2026-11-19 toolkit 落地 +1;2026-11-24 adviser +1;2026-11-25 session-eval +1)──
   - access
   - adviser
   - attachments
@@ -35,6 +37,7 @@ tier1:
   - observe
   - panel
   - prompt-studio
+  - session-eval
   - toolkit
   - ui
   - usage-stats
