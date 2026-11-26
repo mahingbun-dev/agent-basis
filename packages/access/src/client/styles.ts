@@ -959,13 +959,13 @@ html[data-eterna-access-role="member"] [data-plugin-panel] button[aria-label^="�
 /* —— MCP 服务器分区(T28):页签 + 内联表单 + 行卡 ——
    v4:所有颜色/字号/圆角/间距只取 --et-*;断点只用 760/640;
    页签选中态用前景色而非 accent(强调色预算 ≤2/屏)。 */
-[data-eterna-access-root] .ea-mcp-tabs {
+[data-eterna-access-root] :is(.ea-mcp-tabs, .ea-tabs) {
   display: flex;
   gap: var(--et-space-1);
   border-bottom: 1px solid var(--et-border-soft);
   overflow-x: auto;
 }
-[data-eterna-access-root] .ea-mcp-tab {
+[data-eterna-access-root] :is(.ea-mcp-tab, .ea-tab) {
   flex: none;
   min-height: 40px;
   margin: 0;
@@ -982,13 +982,13 @@ html[data-eterna-access-role="member"] [data-plugin-panel] button[aria-label^="�
   cursor: pointer;
   transition: color var(--et-motion-fast) var(--et-ease), border-color var(--et-motion-fast) var(--et-ease);
 }
-[data-eterna-access-root] .ea-mcp-tab:hover { color: var(--et-fg); }
-[data-eterna-access-root] .ea-mcp-tab[data-active="true"] {
+[data-eterna-access-root] :is(.ea-mcp-tab, .ea-tab):hover { color: var(--et-fg); }
+[data-eterna-access-root] :is(.ea-mcp-tab, .ea-tab)[data-active="true"] {
   color: var(--et-fg);
   border-bottom-color: var(--et-fg);
   font-weight: var(--et-weight-emphasis);
 }
-[data-eterna-access-root] .ea-mcp-tab:focus-visible {
+[data-eterna-access-root] :is(.ea-mcp-tab, .ea-tab):focus-visible {
   outline: none;
   border-radius: var(--et-radius-sm);
   box-shadow: var(--et-focus-ring);
@@ -1032,6 +1032,103 @@ html[data-eterna-access-role="member"] [data-plugin-panel] button[aria-label^="�
 [data-eterna-access-root] .ea-mcp-header-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--et-space-2); }
 [data-eterna-access-root] .ea-mcp-header-row .ea-input { flex: 1 1 160px; }
 [data-eterna-access-root] .ea-mcp-form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--et-space-2); }
+[data-eterna-access-root] .ea-mcp-probe {
+  display: flex;
+  flex-direction: column;
+  gap: var(--et-space-2);
+  padding-top: var(--et-space-3);
+  border-top: 1px solid var(--et-border-soft);
+}
+[data-eterna-access-root] .ea-mcp-args { resize: vertical; min-height: 72px; font-family: var(--et-font-mono); }
+/* 工具名/文件 chips:可换行,长名不撑破卡片 */
+[data-eterna-access-root] .ea-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--et-space-1); min-width: 0; }
+[data-eterna-access-root] .ea-chips .ea-tag { max-width: 100%; overflow-wrap: anywhere; }
+/* ===== 技能分区(我的/共享):卡片复用 ea-pcard,编辑器/安装区只补本分区壳 ===== */
+[data-eterna-access-root] .ea-skill-panel { display: flex; flex-direction: column; gap: var(--et-space-3); min-width: 0; }
+[data-eterna-access-root] .ea-skill-toolbar { gap: var(--et-space-3); }
+[data-eterna-access-root] .ea-skill-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--et-space-2); }
+[data-eterna-access-root] .ea-skill-card-title { margin: 0; font-size: var(--et-text-body); font-weight: var(--et-weight-display); }
+[data-eterna-access-root] .ea-skill-install {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--et-space-4);
+  padding: var(--et-space-4) var(--et-space-5);
+  border: 1px solid var(--et-border-soft);
+  border-radius: var(--et-radius-lg);
+  background: var(--et-surface-2);
+}
+[data-eterna-access-root] .ea-skill-install-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+[data-eterna-access-root] .ea-skill-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--et-space-3);
+  padding: var(--et-space-5);
+  border: 1px solid var(--et-border-soft);
+  border-radius: var(--et-radius-lg);
+  background: var(--et-surface);
+  box-shadow: var(--et-shadow-r1);
+}
+[data-eterna-access-root] .ea-skill-field { display: flex; flex-direction: column; gap: var(--et-space-2); min-width: 0; }
+[data-eterna-access-root] .ea-skill-field .ea-label { margin-top: 0; }
+[data-eterna-access-root] .ea-skill-editor {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 280px;
+  max-height: 60vh;
+  padding: var(--et-space-3);
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius-md);
+  background: var(--et-surface-2);
+  color: var(--et-fg);
+  font-family: var(--et-font-mono);
+  font-size: var(--et-text-meta);
+  line-height: var(--et-leading-body);
+  resize: vertical;
+}
+[data-eterna-access-root] .ea-skill-editor:focus-visible {
+  outline: none;
+  border-color: var(--et-accent);
+  box-shadow: var(--et-focus-ring);
+}
+[data-eterna-access-root] .ea-skill-editor[readonly] { color: var(--et-muted); }
+[data-eterna-access-root] .ea-skill-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--et-space-2) var(--et-space-4);
+  padding: var(--et-space-2) var(--et-space-3);
+  border-radius: var(--et-radius-md);
+  background: var(--et-surface-2);
+  color: var(--et-muted);
+  font-size: var(--et-text-meta);
+  line-height: var(--et-leading-body);
+}
+[data-eterna-access-root] .ea-skill-preview strong { color: var(--et-fg-2); font-weight: var(--et-weight-emphasis); }
+[data-eterna-access-root] .ea-skill-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--et-space-1);
+  color: var(--et-muted);
+  font-size: var(--et-text-meta);
+  line-height: var(--et-leading-body);
+}
+[data-eterna-access-root] .ea-skill-meta code {
+  font-family: var(--et-font-mono);
+  font-size: var(--et-text-meta);
+  overflow-wrap: anywhere;
+}
+[data-eterna-access-root] .ea-skill-form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--et-space-2); }
+@media (max-width: 760px) {
+  [data-eterna-access-root] .ea-skill-install { flex-direction: column; align-items: stretch; }
+}
+@media (max-width: 640px) {
+  [data-eterna-access-root] .ea-skill-form { padding: var(--et-space-4); }
+  [data-eterna-access-root] .ea-skill-editor { min-height: 220px; }
+  [data-eterna-access-root] .ea-skill-actions { width: 100%; }
+  [data-eterna-access-root] .ea-skill-actions .ea-btn { flex: 1 1 auto; }
+}
 /* 列表行:主信息 + 操作,高 ≥56(v4 §6),窄屏操作整行下移 */
 [data-eterna-access-root] .ea-mcp-item {
   display: flex;
@@ -1069,10 +1166,10 @@ html[data-eterna-access-role="member"] [data-plugin-panel] button[aria-label^="�
 }
 @media (max-width: 640px) {
   [data-eterna-access-root] .ea-mcp-fields { grid-template-columns: 1fr; }
-  [data-eterna-access-root] .ea-mcp-tabs { border-bottom: 0; }
+  [data-eterna-access-root] :is(.ea-mcp-tabs, .ea-tabs) { border-bottom: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  [data-eterna-access-root] .ea-mcp-tab { transition: none; }
+  [data-eterna-access-root] :is(.ea-mcp-tab, .ea-tab) { transition: none; }
 }
 /* ===== 版本更新介绍弹窗(55 号):shell.overlay 席位 + 设置分区列表 =====
    浮层由 layout 的 list/root 槽承载,该层可穿透——根节点本身不收指针,

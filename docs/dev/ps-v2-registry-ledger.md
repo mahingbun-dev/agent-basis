@@ -30,7 +30,7 @@
 > (maxBytes 数值参数,但该插件本体是提示词注入器)与 T3.1 meta 元提示词条目保留
 > ——它们拥有提示词语义。
 
-## 对账清单(18 条:preset 层 6 / 领域层 4 / 运行时层 6 / 元提示词层 2;2026-11-11 裁定后,M-M1 T5 增 runtime.memory.search-prefix;35 号 A24 增 runtime.tasks.active-tickets;rc.5 B13 增 runtime.agent-loop;54 号 P8 增 runtime.adviser.discipline)
+## 对账清单(19 条:preset 层 6 / 领域层 4 / 运行时层 7 / 元提示词层 2;2026-11-11 裁定后,M-M1 T5 增 runtime.memory.search-prefix;35 号 A24 增 runtime.tasks.active-tickets;rc.5 B13 增 runtime.agent-loop;54 号 P8 增 runtime.adviser.discipline;2026-11-26 增 runtime.basis.skills-catalog(basis CLI 技能目录))
 
 | id | 层 | 型别 | 来源插件/包 | 定位(文件:行号) | 红线 | 生效半径(T2.2) |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -50,8 +50,9 @@
 | runtime.memory.search-prefix | 运行时层 | 运行时注入型 | @eterna/memory | packages/memory/src/tools.ts:59,223,409 | exempt | runtime-rebuilt |
 | runtime.glue.memory-plugin | 运行时层 | 运行时注入型 | @eterna/glue | packages/glue/src/plugins/memory-plugin.ts:112,177 | exempt | runtime-rebuilt |
 | runtime.tasks.active-tickets | 运行时层 | 运行时注入型 | @eterna/tasks | packages/tasks/src/session/sections.ts:44,50 packages/tasks/src/plugin.ts:1054 | exempt | runtime-rebuilt |
-| runtime.agent-loop | 运行时层 | 运行时注入型 | @core/agent-loop | packages/agent-loop/src/plugin.ts:15 packages/agent-loop/src/loop.ts:56,58 | exempt | runtime-rebuilt |
+| runtime.agent-loop | 运行时层 | 运行时注入型 | @core/agent-loop | packages/agent-loop/src/plugin.ts:15 packages/agent-loop/src/loop.ts:60,62 | exempt | runtime-rebuilt |
 | runtime.adviser.discipline | 运行时层 | 运行时注入型 | @eterna/adviser | packages/adviser/src/section.ts:45,54,65 packages/adviser/src/index.ts:50 | exempt | runtime-rebuilt |
+| runtime.basis.skills-catalog | 运行时层 | 运行时注入型 | @basis/skills | packages/skills/src/plugin.ts:23,79,82 | exempt | runtime-rebuilt |
 | meta.studio.ai-polish | 元提示词层 | patch 值型 | @eterna/prompt-studio | packages/prompt-studio/ai/polish.md:1-24 | exempt | not-composed-anywhere |
 | meta.studio.ai-review | 元提示词层 | patch 值型 | @eterna/prompt-studio | packages/prompt-studio/ai/review.md:1-34 | exempt | not-composed-anywhere |
 

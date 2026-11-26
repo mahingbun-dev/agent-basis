@@ -480,6 +480,22 @@ export function registerTenantGuards(deps: TenantDeps, connection: { fetch: Tena
     })
   }
 
+  // ── skills/list(冷会话斜杠菜单):上游 SessionSkillCatalog 只按 sessionId 读投影,
+  //    不校验归属。这里按会话账本补同一把锁,他人会话一律拒;数据面仍委派上游
+  //    服务(不复制 cwd/preset 解析)。热会话同一路径也经此,归属一致。
+  register('/api/skills/list', async (rpcId, args, ctx, signal) => {
+    const request0 = args.request as Record<string, unknown> | undefined
+    const sessionId = firstString(request0, 'sessionId') ?? firstString(args, 'sessionId')
+    if (sessionId === undefined || deps.store.sessionOwner(sessionId) !== ctx.userId) {
+      tenantAudit(deps, 'skills.list.denied', ctx.account, { reason: 'owner' })
+      return deniedFrame(rpcId, '会话不存在或不属于你')
+    }
+    const catalog = serviceOf(deps, 'sessionSkillCatalog')
+    if (catalog === undefined) return failureFrame(rpcId, new Error('sessionSkillCatalog not ready'))
+    const value = await callService(catalog, 'list', request0 ?? args, signal)
+    return okFrame(rpcId, value)
+  })
+
   // ── session/modelCatalog 专路(2026-11-13,模型能力 tag):catalog 请求不带
   //    sessionId/workspaceId/cwd,通用循环守卫本就全放行——专路只为在响应上富化
   //    「视觉」badge(能力真值=llm-pi-ai 配置行 input/defaultInput,见 model-catalog.ts)。

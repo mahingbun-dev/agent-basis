@@ -4,6 +4,7 @@ plugins:
   - packages/system-prompt   # ctx.systemPrompt
   - packages/session         # ctx.session
   - packages/tools           # ctx.tools
+  - packages/skills          # 技能目录(system prompt)+ `skill` 工具
   - packages/llm             # ctx.llm(LiteLLM 路由;需 LITELLM_API_KEY)
   - packages/approval-cli    # ctx.approval(CLI 审批面)
   - packages/agent-loop      # ctx.agents(default agent)

@@ -38,6 +38,9 @@ import { installThinkingAuto, type ThinkingAutoLlm } from './thinking-auto.ts'
 import { ensureFirstSession, ensureTenantWorkspace, registerTenantGuards, WORKBENCH_STREAM_ENDPOINT } from './tenant.ts'
 import { installMcpPersonalFetchRoutes, loadMcpMasterKey, MCP_PERSONAL_PROBE_TIMEOUT_MS, resolveMcpPersonalConfig } from './mcp-personal.ts'
 import { createMcpClientProbe, mountPersonalMcp } from './mcp-personal-runtime.ts'
+import { installSkillsFetchRoutes } from './skills-routes.ts'
+import { mountAccessSkills } from './skills-provider.ts'
+import { SkillStore } from './skills-store.ts'
 import { createTenantPluginLoader, type TenantPluginToolsFace } from './tenant-plugins.ts'
 import { defineInstallPersonalPluginTool } from './install-tool.ts'
 import { defineSubmitPluginToMarketTool } from './publish-tool.ts'
@@ -203,6 +206,26 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       const mcpPersonalConfig = resolveMcpPersonalConfig(config.mcpPersonal)
       const mcpMasterKeyState = loadMcpMasterKey()
       const mcpMasterKey = mcpMasterKeyState.key
+      // ── Skill 个人/共享(2026-11-26)──────────────────────────────────────
+      // 文件系统即事实源;provider 按 cwd 解析账号挂进 ctx.skills(见 skills-provider.ts)。
+      // 初始化失败只降级(管理面 503 帧、provider 不挂),绝不阻断 boot。
+      const skillLogger = { warn: (message: string): void => { console.warn(message) } }
+      const skillStore = new SkillStore({ tenantRoot, accessDir: dir, logger: skillLogger })
+      // 共享目录不可用(只读卷/权限)时管理面返回 503,provider 不挂——绝不把自己的
+      // "空观测"当成权威目录覆盖模型侧 last-good catalog(见 skills-provider list)。
+      const skillsRuntime = skillStore.available
+        ? mountAccessSkills(ctx, {
+          store: skillStore,
+          tenantRoot,
+          isAccount: (account: string): boolean => store.userIdByAccount(account) !== undefined,
+          // 活会话硬身份:scope 里的 sessionId → 账本归属账号;冷会话回退 cwd。
+          accountOfSession: (sessionId: string): string | undefined => {
+            const owner = store.sessionOwner(sessionId)
+            return owner === undefined ? undefined : store.getUserById(owner)?.account
+          },
+          logger: skillLogger,
+        })
+        : { invalidate(): void { /* 存储不可用:无 provider 可失效 */ }, mounted: false }
       const mcpRuntime = mountPersonalMcp(ctx, {
         store,
         sessionOwnerOf: (id: string) => store.sessionOwner(id),
@@ -341,6 +364,8 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
         // B14:登出即摘除个人 MCP live scope(50 §3.4.3 生命周期接线;失败由
         // routes 侧 try/catch 吃掉,不影响登出)。
         onLogout: (user): void => { void mcpRuntime.disposeUser(user.id) },
+        // Skill:删除用户时清掉其个人技能与共享资源缓存(避免同账号重建继承旧技能)。
+        onUserDeleted: (user): void => { skillStore.removeUserRoots(user.account) },
       }
       // 答者随插件卸载解除;disposers 数组在下方 createNodeHandler 后才初始化(TDZ),
       // 故先留柄、落数组时统一收编。on 注册面走结构面 cast(cordis on 具体重载不进桥)。
@@ -672,6 +697,22 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
           const account = store.getUserById(userId)?.account
           return account === undefined ? undefined : join(tenantRoot, account)
         },
+      }, {
+        fetch: ctx.connection.fetch,
+        onRequest: () => { ensureMux(); ensureSandbox(); ensureTerminal() },
+      }))
+      // ── Skill 七端点(2026-11-26):个人+共享管理;同登录门/信封/401 帧,
+      // 前缀 /api/skills-manage(不遮蔽上游 session 级 skills/list Remote)。
+      disposers.push(installSkillsFetchRoutes({
+        skills: skillStore,
+        session,
+        audit,
+        runtime: skillsRuntime,
+        userOf: (userId: number) => {
+          const user = store.getUserById(userId)
+          return user === undefined ? undefined : { account: user.account, role: user.role }
+        },
+        passwordVersionOf: (userId: number) => store.getPasswordVersion(userId),
       }, {
         fetch: ctx.connection.fetch,
         onRequest: () => { ensureMux(); ensureSandbox(); ensureTerminal() },

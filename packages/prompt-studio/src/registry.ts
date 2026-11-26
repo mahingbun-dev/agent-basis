@@ -467,8 +467,8 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     source: '@core/agent-loop',
     anchors: [
       { file: 'packages/agent-loop/src/plugin.ts', line: 15, contains: 'inject: { tools: true, llm: true, session: true, systemPrompt: true } as never' },
-      { file: 'packages/agent-loop/src/loop.ts', line: 56, contains: 'ctx.systemPrompt.assemble({ variables: options.promptVariables ?? {} })' },
-      { file: 'packages/agent-loop/src/loop.ts', line: 58, contains: "role: 'system'" },
+      { file: 'packages/agent-loop/src/loop.ts', line: 60, contains: 'ctx.systemPrompt.assemble({ variables: options.promptVariables ?? {} })' },
+      { file: 'packages/agent-loop/src/loop.ts', line: 62, contains: "role: 'system'" },
     ],
     note: '运行时注入型:v1 线 agent-loop 插件(inject systemPrompt)把 ctx.systemPrompt.assemble() 的装配结果作为首条 system 消息送入模型——无自有提示词文本,只消费装配面;登记用于满足 prompt-scan 的「systemPrompt: true 注入声明必须登记」铁律(rc.5 B13 明文项)。',
     description: 'v1 线 agent-loop 的系统提示消费点(运行时注入):每轮把宿主 systemPrompt 装配结果作为 system 消息送入模型;本身不产出提示词文本,不可编辑。',
@@ -503,6 +503,30 @@ export const PROMPT_REGISTRY_ENTRIES: readonly PromptRegistryEntry[] = [
     effect: {
       radius: 'runtime-rebuilt',
       note: '静态文本:改后新会话立即用新文;进行中会话沿用装配时快照。不可经工作室修改(当前无版本链读取面,回落内置常量)。',
+    },
+  },
+  // ── 运行时层第 7 条(basis CLI 独立进程;技能目录)──────────────────────────
+  {
+    id: 'runtime.basis.skills-catalog',
+    layer: 'runtime',
+    kind: 'runtime-injection',
+    source: '@basis/skills',
+    anchors: [
+      { file: 'packages/skills/src/plugin.ts', line: 23, contains: "SKILLS_SECTION_NAME = 'basis-skills'" },
+      { file: 'packages/skills/src/plugin.ts', line: 79, contains: 'ctx.systemPrompt.section({' },
+      { file: 'packages/skills/src/plugin.ts', line: 82, contains: 'text: () => service.catalog(),' },
+    ],
+    note: '运行时注入型(basis CLI,不进 DSH profile):技能目录 section(basis-skills,order 300)由 packages/skills 在每次 system prompt 装配时现扫 .basis/skills、skills、packages/brand/skills 生成 <available_skills>;`skill` 工具按 name 加载 SKILL.md。目录内容随文件系统变化,无静态全文。',
+    description: 'basis 技能目录(运行时注入):basis CLI 每次装配系统提示时扫描技能目录并追加 <available_skills> 清单(名称/描述/适用场景);模型据此决定是否调用 `skill` 工具加载正文与资源路径。技能文件改动下一次会话装配即生效,不可经工作室编辑。',
+    risks: [
+      '目录文本随本地技能文件动态变化;技能 frontmatter 坏/重名/名目录不一致会被扫描器跳过并记 warning,不阻塞其他技能。',
+      '技能正文是模型指令:写入不可信技能等于改变模型行为;技能目录仅本地部署者可写,不进网络上传面(个人/共享技能由 access 侧独立管理)。',
+    ],
+    redLine: 'exempt',
+    maxBytes: MAX_PERSONA_BYTES,
+    effect: {
+      radius: 'runtime-rebuilt',
+      note: '不可经工作室修改(运行时注入型拒写);basis 独立进程每次装配重扫目录,文件改动下一次 run/会话即生效,进行中 turn 的 system prompt 沿用装配时快照。',
     },
   },
   // ── meta 层:工作室 AI 能力自管的元提示词(T3.1,计划书 §4「吃自己的狗粮」)────

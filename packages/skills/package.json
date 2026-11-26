@@ -1,0 +1,25 @@
+{
+  "name": "@basis/skills",
+  "description": "v1 插件面:文件系统技能目录(.basis/skills、skills、packages/brand/skills)+ system prompt <available_skills> 目录 + `skill` 工具(按名加载 SKILL.md 与资源路径)。",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "verify": "oxlint --config ../../.oxlintrc.json . && tsc --noEmit && vitest run",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@core/cordis": "workspace:*",
+    "@core/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

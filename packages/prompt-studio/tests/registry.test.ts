@@ -190,12 +190,12 @@ describe('T1.3 ②条目模型完整性(每条 {id,层,来源,定位,当前值,�
     }
   })
 
-  it('存量规模与分布:preset×6 / 领域×4 / 运行时×6 / 元提示词×2(T3.1+M-M1 T5;35 号 A24 增 runtime.tasks.active-tickets;rc.5 B13 增 runtime.agent-loop;54 号 P8 增 runtime.adviser.discipline);patch 值型×12 / 运行时注入型×6', () => {
-    expect(PROMPT_REGISTRY_ENTRIES).toHaveLength(18)
+  it('存量规模与分布:preset×6 / 领域×4 / 运行时×7 / 元提示词×2(T3.1+M-M1 T5;35 号 A24 增 runtime.tasks.active-tickets;rc.5 B13 增 runtime.agent-loop;54 号 P8 增 runtime.adviser.discipline;2026-11-26 增 runtime.basis.skills-catalog);patch 值型×12 / 运行时注入型×7', () => {
+    expect(PROMPT_REGISTRY_ENTRIES).toHaveLength(19)
     const byLayer = countBy(PROMPT_REGISTRY_ENTRIES, e => LAYER_LABELS[e.layer])
-    expect(byLayer).toEqual({ 'preset 层': 6, '领域层': 4, '运行时层': 6, '元提示词层': 2 })
+    expect(byLayer).toEqual({ 'preset 层': 6, '领域层': 4, '运行时层': 7, '元提示词层': 2 })
     const byKind = countBy(PROMPT_REGISTRY_ENTRIES, e => ENTRY_KIND_LABELS[e.kind])
-    expect(byKind).toEqual({ 'patch 值型': 12, '运行时注入型': 6 })
+    expect(byKind).toEqual({ 'patch 值型': 12, '运行时注入型': 7 })
   })
 
   it('每型至少 1 条被真文件钉住:全部条目锚点对真文件核对通过(分型不缺判据)', () => {

@@ -23,6 +23,8 @@ import { ApprovalCards } from './approval-card.tsx'
 import { QuestionCards } from './question-card.tsx'
 import { McpServersSection } from './mcp-servers-section.tsx'
 import { MCP_LOCALES } from './mcp-servers-locales.ts'
+import { SkillsSection } from './skills-section.tsx'
+import { SKILL_LOCALES } from './skills-locales.ts'
 import { openSettingsSection } from './settings-nav.ts'
 import { RELEASE_NOTES_SECTION_ID, ReleaseNotesOverlay, ReleaseNotesSection, type ReleaseNotesInjected } from './release-notes.tsx'
 /* React 基础件走 /react 子路径：根入口必须留纯 .ts（服务端 strip-only） */
@@ -189,6 +191,7 @@ const LOCALES: Record<string, Record<string, string>> = {
     'menu.copied': '已复制',
     'menu.admin': '管理员',
     ...MCP_LOCALES.zh,
+    ...SKILL_LOCALES.zh,
   },
   en: {
     'section.account': 'Account',
@@ -328,6 +331,7 @@ const LOCALES: Record<string, Record<string, string>> = {
     'menu.copied': 'Copied',
     'menu.admin': 'Admin',
     ...MCP_LOCALES.en,
+    ...SKILL_LOCALES.en,
   },
 }
 
@@ -502,15 +506,25 @@ export function apply(ctx: AccessClientContext): () => void {
     }, ReleaseNotesSection))
     // T28(B14 个人层 UI):MCP 服务器分区——admin 见「全局/管理员目录」,
     // 普通用户见「我的服务器」(列表/新增/编辑/删除/测试);密钥 write-only。
-    // 全局表在上游内置插件设置里,故 admin 的「全局」页签只做说明 + 原生跳转。
+    // 「全局」页签是 configForms('mcp-manager') 的真编辑器(新增/编辑/启停/删除)。
     ctx.slots.inject('settings.section', () => ctx.slots.register({
       name: 'settings.section',
       id: `${NS}.mcp-servers`,
       order: 42,
       locale: NS,
-      inject: () => ({ t, role, openSection: (id: string) => openSettingsSection(ctx.slots, id) }),
+      inject: () => ({ t, role, configForms: ctx.configForms }),
       label: () => t('section.mcpServers'),
     }, McpServersSection))
+    // 技能(个人/共享):全员可见;个人可写,共享仅 admin 可写。
+    // 序取 49(排在 MCP 42/通知 43/更新 45/任务与评测之后),不挪既有分区。
+    ctx.slots.inject('settings.section', () => ctx.slots.register({
+      name: 'settings.section',
+      id: `${NS}.skills`,
+      order: 49,
+      locale: NS,
+      inject: () => ({ t, role }),
+      label: () => t('section.skills'),
+    }, SkillsSection))
     // P4-T6.4/T7A(2026-11-11):消息与审批(全员);审批队列(admin)。
     // 「我的插件」(2026-11-11 第三轮)移入侧栏插件页 plugins.tab——插件管理统一入口。
     ctx.slots.inject('settings.section', () => ctx.slots.register({

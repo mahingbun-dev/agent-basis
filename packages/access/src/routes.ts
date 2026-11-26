@@ -43,6 +43,8 @@ export interface AccessDeps {
   readonly provisionWorkspace: (user: { readonly id: number; readonly account: string }) => Promise<void>
   /** companion 中继公网 ws 地址(ETERNA_RELAY_PUBLIC_URL;缺省=指引页按本机端口展示)。 */
   readonly relayPublicWsUrl?: string | undefined
+  /** 用户删除后的磁盘清账(个人技能/共享资源缓存);失败不阻断删除。 */
+  readonly onUserDeleted?: ((user: { readonly id: number; readonly account: string }) => void) | undefined
   /** 工具审批桥(2026-11-13):治理 ask 的 web 可见面;未装配=端点返回空表。 */
   readonly approvalBridge?: {
     listFor(ownerId: number): ToolApprovalView[]
@@ -1211,6 +1213,17 @@ function handleUserDelete(deps: AccessDeps, req: AccessRequest, ip: string): Acc
     deps.store.deleteUser(id, admin.id)
   } catch (error) {
     return storeErrorToReply(error)
+  }
+  try {
+    deps.onUserDeleted?.({ id: target.id, account: target.account })
+  } catch (error) {
+    deps.audit({
+      kind: 'access.user.delete',
+      account: target.account,
+      ok: false,
+      ip,
+      detail: { cleanup: error instanceof Error ? error.message : String(error) },
+    })
   }
   deps.audit({ kind: 'access.user.delete', account: target.account, ip })
   return jsonResponse(200, { ok: true })

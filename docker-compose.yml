@@ -28,7 +28,7 @@
 #   ETERNA_RELAY_PORT      companion 中继宿主端口(默认 9310;测试换一个)
 #   ETERNA_INSTANCE        数据根下实例目录(默认 super)
 #   ETERNA_DATA_ROOT       宿主数据区根(绝对路径;缺省 $HOME/eterna-data)
-#   ETERNA_IMAGE           镜像 tag(默认 eterna-agent:0.1.34)
+#   ETERNA_IMAGE           镜像 tag(默认 eterna-agent:0.2.4)
 #   ETERNA_FORM            web 服务形态(默认 super;仅 base|super——ACP 走独立 service,
 #                          不要把 acp 设进 web 服务:它无 stdin/无 acp 模板挂载)
 
@@ -41,7 +41,7 @@ services:
       # DEBIAN_MIRROR=https://mirrors.aliyun.com 再 `docker compose build`。
       args:
         DEBIAN_MIRROR: ${DEBIAN_MIRROR:-}
-    image: ${ETERNA_IMAGE:-eterna-agent:0.1.34}
+    image: ${ETERNA_IMAGE:-eterna-agent:0.2.4}
     container_name: ${ETERNA_CONTAINER_NAME:-eterna-agent}
     # cwd=数据根:审计/治理规则/记忆库默认落 $cwd/.eterna → 持久化在 bind 数据根
     working_dir: /data
@@ -127,7 +127,7 @@ services:
   #   - 镜像沿用 web 服务的 build/tag(不单独 COPY);healthcheck 关闭(无 8080)。
   # ACP 客户端可指定容器内绝对 cwd 与 stdio/HTTP MCP:只在本机受信运行,勿接终端用户。
   eterna-agent-acp:
-    image: ${ETERNA_IMAGE:-eterna-agent:0.1.34}
+    image: ${ETERNA_IMAGE:-eterna-agent:0.2.4}
     container_name: ${ETERNA_CONTAINER_NAME:-eterna-agent}-acp
     profiles: ["acp"]
     stdin_open: true

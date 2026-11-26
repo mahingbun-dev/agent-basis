@@ -134,9 +134,16 @@ describe('agent loop', () => {
       // 模拟预算守卫:首轮即超限
       event.agent.cancel({ kind: 'hook', reason: '[governance] 预算超限' })
     })
+    let preStepSignal: AbortSignal | undefined
+    ctx.events.on('agent/pre-step', (draft: StepDraft, next: () => Promise<StepDraft>) => {
+      preStepSignal = draft.signal
+      return next()
+    })
     const runner = createAgentRunner(ctx)
     const result = await runner.run('hi')
     expect(result.stoppedBy).toContain('预算超限')
+    // cancel 必须同步 abort 同一 turn 信号(插件可据此停掉外部工作)
+    expect(preStepSignal?.aborted).toBe(true)
     const turnEnd = (ctx as unknown as {
       session: { query(filter: { type: string }): { data: { reason: { kind: string; message?: string } } }[] }
     }).session.query({ type: 'turn/end' })[0]
@@ -146,13 +153,19 @@ describe('agent loop', () => {
   it('pre-step waterfall 可改写 messages', async () => {
     const seen: number[] = []
     const { ctx } = makeCtx(scriptedProvider([STOP]))
+    const drafts: StepDraft[] = []
     ctx.events.on('agent/pre-step', (draft: StepDraft, next: () => Promise<StepDraft>) => {
       seen.push(draft.messages.length)
+      drafts.push(draft)
       return next()
     })
     const runner = createAgentRunner(ctx)
     await runner.run('hi')
     expect(seen).toEqual([2])
+    // pre-step 能拿到 turn 级 agent 与取消信号(技能 catalog 注入依赖)
+    expect(drafts[0]?.agent?.id).toEqual(expect.any(String))
+    expect(drafts[0]?.signal).toBeInstanceOf(AbortSignal)
+    expect(drafts[0]?.signal?.aborted).toBe(false)
   })
 
   it('step 预算:provider 永远出工具欠账 → 截断并 stoppedBy', async () => {

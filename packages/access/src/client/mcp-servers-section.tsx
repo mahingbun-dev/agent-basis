@@ -15,6 +15,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Icon } from '@eterna/ui/icons'
 import { ArmedDelete } from './confirm-button.tsx'
 import type { Translate } from './i18n.ts'
+import { GlobalPanel } from './mcp-global-panel.tsx'
+import { Switch } from './switch.tsx'
 import {
   mcpPersonalApi, rpcFailureMessage,
   type McpCatalogEntry, type McpCatalogView, type McpPersonalItem, type McpTransportValue,
@@ -23,15 +25,15 @@ import {
   MCP_MAX_SERVERS, MCP_NAME_MAX,
   buildToggleRequest, buildUpsertRequest, draftIssue, draftIssueMessageKey, draftOfItem, draftOfNew,
   probeSummary, quotaLabel, tabsForRole, toggleIssueMessageKey, transportLabelKey, withCatalog,
-  type McpDraft, type McpHeaderDraft, type McpSectionRole, type McpTab, type McpTabId,
+  type McpConfigForms, type McpDraft, type McpHeaderDraft, type McpSectionRole, type McpTab, type McpTabId,
 } from './mcp-servers-model.ts'
 import { PasswordInput } from './sections.tsx'
 
 export interface McpServersSectionProps {
   readonly role: McpSectionRole
   readonly t: Translate
-  /** 设置壳分区跳转(settings-nav.ts);壳未就绪返回 false。 */
-  readonly openSection: (id: string) => boolean
+  /** 设置域基础服务(admin 全局编辑器读 mcp-manager 命名空间)。 */
+  readonly configForms?: McpConfigForms | undefined
 }
 
 interface Message {
@@ -43,11 +45,13 @@ interface ProbeState {
   readonly busy: boolean
   readonly ok: boolean
   readonly text: string
+  readonly toolNames: readonly string[]
+  readonly truncated: boolean
 }
 
 /** 分区外壳:按角色出页签;普通用户只有一个「我的服务器」视图。 */
 export function McpServersSection(props: McpServersSectionProps): React.JSX.Element {
-  const { role, t, openSection } = props
+  const { role, t, configForms } = props
   const tabs = tabsForRole(role)
   const fallbackTab = tabs[0]?.id ?? 'mine'
   const [selected, setSelected] = useState(fallbackTab)
@@ -59,7 +63,7 @@ export function McpServersSection(props: McpServersSectionProps): React.JSX.Elem
     {tabs.length > 1 && <McpTabBar tabs={tabs} active={active} onSelect={setSelected} t={t} />}
     <div className="ea-mcp-panel" id={`ea-mcp-panel-${active}`} role="tabpanel"
       aria-labelledby={tabs.length > 1 ? `ea-mcp-tab-${active}` : undefined}>
-      {active === 'global' && <GlobalPanel t={t} openSection={openSection} />}
+      {active === 'global' && <GlobalPanel t={t} configForms={configForms} />}
       {active === 'catalog' && <CatalogPanel t={t} />}
       {active === 'mine' && <MyServersPanel t={t} />}
     </div>
@@ -95,22 +99,6 @@ function McpTabBar(props: {
           else if (event.key === 'End') { event.preventDefault(); move(tabs.length - 1) }
         }}>{t(tab.labelKey)}</button>
     })}
-  </div>
-}
-
-/** admin「全局」:全局表不在 access,说明入口指向上游内置插件设置。 */
-function GlobalPanel(props: { readonly t: Translate; readonly openSection: (id: string) => boolean }): React.JSX.Element {
-  const { t, openSection } = props
-  const [seatMissing, setSeatMissing] = useState(false)
-  return <div className="ea-card ea-card-wide">
-    <h4 className="ea-mcp-card-title">{t('mcp.globalTitle')}</h4>
-    <p className="ea-hint" style={{ margin: 'var(--et-space-2) 0 0' }}>{t('mcp.globalDesc')}</p>
-    <div className="ea-row" style={{ marginTop: 'var(--et-space-3)' }}>
-      <button type="button" className="ea-btn" onClick={() => { setSeatMissing(!openSection('plugins')) }}>
-        {t('mcp.globalOpen')}
-      </button>
-    </div>
-    {seatMissing && <p className="ea-err" role="alert">{t('mcp.globalSeatMissing')}</p>}
   </div>
 }
 
@@ -232,6 +220,7 @@ function MyServersPanel(props: { readonly t: Translate }): React.JSX.Element {
       const result = await mcpPersonalApi.remove(item.id)
       if (result.ok) {
         setMessage({ ok: true, text: t('mcp.deleted') })
+        setDraft(null)
         await refresh()
       } else {
         setMessage({ ok: false, text: rpcFailureMessage(result, t('mcp.deleteFailed')) })
@@ -267,17 +256,33 @@ function MyServersPanel(props: { readonly t: Translate }): React.JSX.Element {
   }
 
   const probe = async (item: McpPersonalItem): Promise<void> => {
-    setProbes(previous => ({ ...previous, [item.id]: { busy: true, ok: true, text: t('mcp.testing') } }))
+    setProbes(previous => ({
+      ...previous,
+      [item.id]: { busy: true, ok: true, text: t('mcp.testing'), toolNames: [], truncated: false },
+    }))
     try {
       const result = await mcpPersonalApi.probe(item.id)
       const summary = result.ok && result.value !== undefined
         ? probeSummary(result.value, t)
         : { ok: false, text: rpcFailureMessage(result, t('mcp.actionFailed')) }
-      setProbes(previous => ({ ...previous, [item.id]: { busy: false, ok: summary.ok, text: summary.text } }))
+      const value = result.value
+      setProbes(previous => ({
+        ...previous,
+        [item.id]: {
+          busy: false,
+          ok: summary.ok,
+          text: summary.text,
+          toolNames: value?.toolNames ?? [],
+          truncated: value?.truncated === true,
+        },
+      }))
     } catch (error) {
       setProbes(previous => ({
         ...previous,
-        [item.id]: { busy: false, ok: false, text: error instanceof Error ? error.message : t('mcp.actionFailed') },
+        [item.id]: {
+          busy: false, ok: false, text: error instanceof Error ? error.message : t('mcp.actionFailed'),
+          toolNames: [], truncated: false,
+        },
       }))
     }
   }
@@ -311,6 +316,8 @@ function MyServersPanel(props: { readonly t: Translate }): React.JSX.Element {
 
   const spent = items.length
   const atLimit = spent >= limit
+  const editingItem = draft === null || draft.id === null ? undefined : items.find(row => row.id === draft.id)
+  const editingProbe = editingItem === undefined ? undefined : probes[editingItem.id]
   const form = draft === null ? null : <form className="ea-mcp-form" onSubmit={(event) => { event.preventDefault(); void save() }}>
     <h4 className="ea-mcp-card-title">{draft.id === null ? t('mcp.formAddTitle') : t('mcp.formEditTitle')}</h4>
     <div className="ea-mcp-fields">
@@ -374,9 +381,24 @@ function MyServersPanel(props: { readonly t: Translate }): React.JSX.Element {
         </button>
       </fieldset>
     </>}
+    {editingItem !== undefined && <div className="ea-mcp-probe">
+      <div className="ea-row between">
+        <button type="button" className="ea-btn ghost" disabled={busy || editingProbe?.busy === true}
+          onClick={() => { void probe(editingItem) }}>
+          <Icon name="replay" size={16} />{editingProbe?.busy === true ? t('mcp.testing') : t('mcp.test')}
+        </button>
+        {editingProbe !== undefined && <span className={editingProbe.ok ? 'ea-ok' : 'ea-err'} role="status">{editingProbe.text}</span>}
+      </div>
+      {editingProbe !== undefined && editingProbe.toolNames.length > 0 && <div className="ea-chips" data-eterna-mcp-tools>
+        {editingProbe.toolNames.map(name => <span key={name} className="ea-tag">{name}</span>)}
+        {editingProbe.truncated && <span className="ea-tag neutral">{t('mcp.toolsTruncated')}</span>}
+      </div>}
+    </div>}
     <div className="ea-mcp-form-actions">
       <button type="submit" className="ea-btn" disabled={busy}>{busy ? t('mcp.saving') : t('mcp.save')}</button>
       <button type="button" className="ea-btn ghost" disabled={busy} onClick={() => { setDraft(null) }}>{t('mcp.cancel')}</button>
+      {editingItem !== undefined && <ArmedDelete busy={busy} label={t('mcp.delete')} confirmLabel={t('mcp.deleteConfirm')}
+        onConfirm={() => { void remove(editingItem) }} />}
     </div>
   </form>
 
@@ -394,35 +416,30 @@ function MyServersPanel(props: { readonly t: Translate }): React.JSX.Element {
     {form}
     {items.length === 0
       ? <p className="ea-hint">{t('mcp.mineEmpty')}</p>
-      : <div className="ea-list">
-        {items.map(item => {
-          const state = probes[item.id]
-          return <div key={item.id} className="ea-mcp-item" data-eterna-mcp-server={item.id}>
-            <div className="ea-mcp-item-main">
-              <span className="ea-mcp-item-title">{item.name}</span>
-              <span className="ea-mcp-item-meta">
-                <span>{t(transportLabelKey(item.transport))}</span>
-                <code className="ea-mcp-mono">{item.serverName}</code>
-                {item.hasSecret && <span className="ea-tag">{t('mcp.secretSet')}</span>}
-                <span>{item.enabled ? t('mcp.enabled') : t('mcp.disabled')}</span>
-              </span>
-              {state !== undefined && <span className={state.ok ? 'ea-ok' : 'ea-err'} role="status">{state.text}</span>}
+      : <ul className="ea-cards">
+        {items.map(item => <li key={item.id} className="ea-pcard ea-act" data-eterna-mcp-server={item.id}>
+          <div className="ea-phead">
+            <span className="ea-picon" aria-hidden="true"><Icon name="flow" size={20} /></span>
+            <div className="ea-pmain">
+              <div className="ea-ptitle-row">
+                <span className="ea-ptitle">{item.name}</span>
+                <span className="ea-pill neutral">{t(transportLabelKey(item.transport))}</span>
+                <span className={item.enabled ? 'ea-pill' : 'ea-pill neutral'}>
+                  {item.enabled ? t('mcp.enabled') : t('mcp.disabled')}
+                </span>
+                {item.hasSecret && <span className="ea-pill neutral">{t('mcp.secretSet')}</span>}
+              </div>
+              <span className="ea-pdesc">{item.serverName}</span>
             </div>
-            <span className="ea-mcp-item-actions">
-              <button type="button" className="ea-switch" role="switch" aria-checked={item.enabled}
-                aria-label={(item.enabled ? t('mcp.disableAria') : t('mcp.enableAria')).replace('{name}', item.name)}
-                disabled={busy} onClick={() => { void toggle(item) }}>
-                <span className="ea-thumb" />
-              </button>
-              <button type="button" className="ea-btn ghost" disabled={busy || state?.busy === true}
-                onClick={() => { void probe(item) }}>{state?.busy === true ? t('mcp.testing') : t('mcp.test')}</button>
+            <div className="ea-pend">
+              <Switch checked={item.enabled} disabled={busy}
+                label={(item.enabled ? t('mcp.disableAria') : t('mcp.enableAria')).replace('{name}', item.name)}
+                onToggle={() => { void toggle(item) }} />
               <button type="button" className="ea-btn ghost" disabled={busy}
                 onClick={() => { setMessage(null); setDraft(draftOfItem(item, catalog)) }}>{t('mcp.edit')}</button>
-              <ArmedDelete busy={busy} label={t('mcp.delete')} confirmLabel={t('mcp.deleteConfirm')}
-                onConfirm={() => { void remove(item) }} />
-            </span>
+            </div>
           </div>
-        })}
-      </div>}
+        </li>)}
+      </ul>}
   </div>
 }
