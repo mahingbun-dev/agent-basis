@@ -197,6 +197,10 @@ async function loadBundle(role: string | undefined): Promise<Harness> {
 const idsIn = (harness: Harness, slot: string): string[] =>
   harness.slots.filter(entry => entry.slot === slot).map(entry => entry.options.id as string)
 
+/** main 是 keyed 槽:身份在 options.key 而不是 id。 */
+const keysIn = (harness: Harness, slot: string): string[] =>
+  harness.slots.filter(entry => entry.slot === slot).map(entry => entry.options.key as string)
+
 describe('模块装载冒烟(vm)', () => {
   it('factory 暴露 apply 函数与 inject 服务表', async () => {
     const harness = await loadBundle('user')
@@ -223,6 +227,17 @@ describe('模块装载冒烟(vm)', () => {
     expect(idsIn(harness, 'settings.section')).toContain('eterna-access.release-notes')
     expect(idsIn(harness, 'shell.overlay')).toContain('eterna-access.release-notes')
     harness.dispose()
+  })
+
+  it('技能/MCP 走左侧入口:main 页 + sidebar 入口两种角色都在位,设置分区不再重复', async () => {
+    for (const role of ['user', 'admin']) {
+      const harness = await loadBundle(role)
+      expect(keysIn(harness, 'main')).toEqual(expect.arrayContaining(['eterna-access.skills', 'eterna-access.mcp-servers']))
+      expect(idsIn(harness, 'sidebar.panellist')).toEqual(expect.arrayContaining(['eterna-access.skills', 'eterna-access.mcp-servers']))
+      expect(idsIn(harness, 'settings.section')).not.toContain('eterna-access.skills')
+      expect(idsIn(harness, 'settings.section')).not.toContain('eterna-access.mcp-servers')
+      harness.dispose()
+    }
   })
 
   it('admin:plugins.tab 两枚页签都在位,恒灵插件可写', async () => {

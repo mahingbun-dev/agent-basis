@@ -1,5 +1,5 @@
 /**
- * 设置分区「技能」:个人 / 共享两个页签。
+ * 「技能」页(侧栏入口 + main keyed 页):个人 / 共享两个页签。
  *
  * - 个人技能仅本人可见可写;共享技能全员可见,admin 可写、普通用户只读;
  * - 新建/编辑统一为「SKILL.md 原文」单个 textarea(含 frontmatter),服务端解析;
@@ -25,7 +25,7 @@ import {
   type SkillMarkdownIssue, type SkillSectionRole, type SkillTab, type SkillTabId, type SkillUploadIssue, type SkillUploadKind,
 } from './skills-model.ts'
 
-export interface SkillsSectionProps {
+export interface SkillsPageProps {
   readonly role: SkillSectionRole
   readonly t: Translate
 }
@@ -43,21 +43,28 @@ interface EditorState {
   readonly loading: boolean
 }
 
-/** 分区外壳:两个页签常驻;写权限按角色在面板内收口。 */
-export function SkillsSection(props: SkillsSectionProps): React.JSX.Element {
+/** 页面外壳:大标题 + 两个页签常驻;写权限按角色在面板内收口。 */
+export function SkillsPage(props: SkillsPageProps): React.JSX.Element {
   const { role, t } = props
   const [active, setActive] = useState<SkillTabId>('mine')
   const scope = scopeOfTab(active)
 
-  return <section className="ea-section" data-eterna-access-root data-eterna-settings-section="skills">
-    <h3>{t('skills.title')}</h3>
-    <p className="ea-hint">{role === 'admin' ? t('skills.adminHint') : t('skills.userHint')}</p>
+  return <div className="ea-section ea-page" data-eterna-access-root data-eterna-skills-page>
+    <header className="ea-page-head">
+      <h1 className="ea-page-title">{t('skills.title')}</h1>
+      <p className="ea-page-desc">{role === 'admin' ? t('skills.adminHint') : t('skills.userHint')}</p>
+    </header>
     <SkillTabBar active={active} onSelect={(id) => { setActive(id) }} t={t} />
     <div className="ea-skill-panel" id={`ea-skill-panel-${active}`} role="tabpanel"
       aria-labelledby={`ea-skill-tab-${active}`}>
       <SkillsPanel role={role} scope={scope} t={t} />
     </div>
-  </section>
+  </div>
+}
+
+/** 侧栏入口图标(图标统一走 @eterna/ui/icons)。 */
+export function SkillsNavIcon(): React.JSX.Element {
+  return <Icon name="knowledge" size={16} />
 }
 
 /** 页签条(左右方向键/Home/End;选中项是唯一 tab stop)。 */

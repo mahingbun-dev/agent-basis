@@ -1043,7 +1043,37 @@ html[data-eterna-access-role="member"] [data-plugin-panel] button[aria-label^="�
 /* 工具名/文件 chips:可换行,长名不撑破卡片 */
 [data-eterna-access-root] .ea-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--et-space-1); min-width: 0; }
 [data-eterna-access-root] .ea-chips .ea-tag { max-width: 100%; overflow-wrap: anywhere; }
-/* ===== 技能分区(我的/共享):卡片复用 ea-pcard,编辑器/安装区只补本分区壳 ===== */
+/* ===== 左侧入口整页(技能 / MCP 服务器):大标题 + 页签 + 卡片 =====
+   与用量统计/工坊页同族:根自带页边距,不依赖宿主 shell 的 padding;
+   断点只用 1100/640(gutter 24/16),与 v4 §6 一致。 */
+[data-eterna-access-root].ea-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--et-space-4);
+  padding: 48px 48px 96px;
+}
+[data-eterna-access-root].ea-page .ea-page-head { display: flex; flex-direction: column; gap: var(--et-space-2); }
+[data-eterna-access-root].ea-page .ea-page-title {
+  margin: 0;
+  font-size: var(--et-text-h2);
+  line-height: var(--et-leading-tight);
+  font-weight: var(--et-weight-display);
+  letter-spacing: var(--et-tracking-display);
+  font-family: var(--et-font-display);
+}
+[data-eterna-access-root].ea-page .ea-page-desc {
+  margin: 0;
+  color: var(--et-muted);
+  font-size: var(--et-text-caption);
+  line-height: var(--et-leading-body);
+}
+@media (max-width: 1100px) {
+  [data-eterna-access-root].ea-page { padding: 32px 24px 72px; }
+}
+@media (max-width: 640px) {
+  [data-eterna-access-root].ea-page { padding: 24px 16px 64px; }
+}
+/* ===== 技能页(我的/共享):卡片复用 ea-pcard,编辑器/安装区只补本页壳 ===== */
 [data-eterna-access-root] .ea-skill-panel { display: flex; flex-direction: column; gap: var(--et-space-3); min-width: 0; }
 [data-eterna-access-root] .ea-skill-toolbar { gap: var(--et-space-3); }
 [data-eterna-access-root] .ea-skill-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--et-space-2); }

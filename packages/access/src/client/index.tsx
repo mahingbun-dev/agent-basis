@@ -21,9 +21,9 @@ import { installLinkOpeningDefault } from './link-opening.ts'
 import { applyPluginPageRole } from './plugin-page-guard.ts'
 import { ApprovalCards } from './approval-card.tsx'
 import { QuestionCards } from './question-card.tsx'
-import { McpServersSection } from './mcp-servers-section.tsx'
+import { McpNavIcon, McpServersPage } from './mcp-servers-section.tsx'
 import { MCP_LOCALES } from './mcp-servers-locales.ts'
-import { SkillsSection } from './skills-section.tsx'
+import { SkillsNavIcon, SkillsPage } from './skills-section.tsx'
 import { SKILL_LOCALES } from './skills-locales.ts'
 import { openSettingsSection } from './settings-nav.ts'
 import { RELEASE_NOTES_SECTION_ID, ReleaseNotesOverlay, ReleaseNotesSection, type ReleaseNotesInjected } from './release-notes.tsx'
@@ -44,6 +44,13 @@ const USAGE_PANEL_ID = 'eterna-usage-stats'
 export const inject = ['slots', 'locale', 'theme', 'layout', 'uiWorkspace', 'sessions', 'configForms']
 
 const NS = 'eterna-access'
+
+/**
+ * 「技能」/「MCP 服务器」页 id(sidebar.panellist 条目 id = main keyed 槽 key)。
+ * 2026-11-26 用户裁定:两页从设置分区迁到左侧入口(与「插件」同级的整页形态)。
+ */
+const SKILLS_PANEL_ID = `${NS}.skills`
+const MCP_PANEL_ID = `${NS}.mcp-servers`
 const LOCALES: Record<string, Record<string, string>> = {
   zh: {
     'section.account': '账号',
@@ -504,27 +511,36 @@ export function apply(ctx: AccessClientContext): () => void {
       inject: () => ({ t }),
       label: () => t('section.releaseNotes'),
     }, ReleaseNotesSection))
-    // T28(B14 个人层 UI):MCP 服务器分区——admin 见「全局/管理员目录」,
-    // 普通用户见「我的服务器」(列表/新增/编辑/删除/测试);密钥 write-only。
-    // 「全局」页签是 configForms('mcp-manager') 的真编辑器(新增/编辑/启停/删除)。
-    ctx.slots.inject('settings.section', () => ctx.slots.register({
-      name: 'settings.section',
-      id: `${NS}.mcp-servers`,
-      order: 42,
+    // T28(B14 个人层 UI):MCP 服务器页——admin 见「全局/管理员目录/我的服务器」,
+    // 普通用户只见「我的服务器」;密钥 write-only。2026-11-26 用户裁定从设置分区
+    // 迁到左侧入口(main + sidebar.panellist 同 key),页面形态与插件页一致。
+    ctx.slots.inject('main', () => ctx.slots.register({
+      name: 'main',
+      key: MCP_PANEL_ID,
       locale: NS,
       inject: () => ({ t, role, configForms: ctx.configForms }),
+    }, McpServersPage))
+    ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+      name: 'sidebar.panellist',
+      id: MCP_PANEL_ID,
+      order: 26,
+      locale: NS,
       label: () => t('section.mcpServers'),
-    }, McpServersSection))
-    // 技能(个人/共享):全员可见;个人可写,共享仅 admin 可写。
-    // 序取 49(排在 MCP 42/通知 43/更新 45/任务与评测之后),不挪既有分区。
-    ctx.slots.inject('settings.section', () => ctx.slots.register({
-      name: 'settings.section',
-      id: `${NS}.skills`,
-      order: 49,
+    }, McpNavIcon))
+    // 技能页(个人/共享):全员可见;个人可写,共享仅 admin 可写。同批复用左侧入口。
+    ctx.slots.inject('main', () => ctx.slots.register({
+      name: 'main',
+      key: SKILLS_PANEL_ID,
       locale: NS,
       inject: () => ({ t, role }),
+    }, SkillsPage))
+    ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+      name: 'sidebar.panellist',
+      id: SKILLS_PANEL_ID,
+      order: 25,
+      locale: NS,
       label: () => t('section.skills'),
-    }, SkillsSection))
+    }, SkillsNavIcon))
     // P4-T6.4/T7A(2026-11-11):消息与审批(全员);审批队列(admin)。
     // 「我的插件」(2026-11-11 第三轮)移入侧栏插件页 plugins.tab——插件管理统一入口。
     ctx.slots.inject('settings.section', () => ctx.slots.register({
