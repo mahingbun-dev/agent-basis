@@ -29,14 +29,17 @@ class CancelableAgent implements AgentHandle {
   cancelled: boolean = false
   stopReason: string = ''
   readonly id: string
+  readonly controller: AbortController
 
-  constructor(id: string) {
+  constructor(id: string, controller: AbortController = new AbortController()) {
     this.id = id
+    this.controller = controller
   }
 
   cancel(cause: { readonly kind: 'hook'; readonly reason: string }, _options?: { readonly keepInbox?: boolean }): void {
     this.cancelled = true
     this.stopReason = cause.reason
+    this.controller.abort()
   }
 }
 
@@ -49,6 +52,7 @@ export function createAgentRunner(ctx: Context, options: LoopOptions = {}): { ru
     async run(input: string): Promise<TurnResult> {
       const turn = 1 + ctx.session.query().filter(event => event.type === 'turn/start').length
       const agent = new CancelableAgent(agentId)
+      const signal = agent.controller.signal
       // 读取经函数边界:守卫的 cancel 发生在 parallel 分发期间,属性流分析不可见
       const isCancelled = (): boolean => agent.cancelled
       ctx.session.append('turn/start', { turn, input })
@@ -76,7 +80,7 @@ export function createAgentRunner(ctx: Context, options: LoopOptions = {}): { ru
           steps = step
 
           // 1) pre-step waterfall:可改写 messages/tools
-          const stepDraft = { turn, step, messages: [...messages], tools }
+          const stepDraft = { turn, step, messages: [...messages], tools, agent, signal }
           const nextDraft = (): Promise<StepDraft> => Promise.resolve(stepDraft)
           const draft: StepDraft = await ctx.waterfall('agent/pre-step', stepDraft, nextDraft)
           const effectiveMessages = draft.messages
@@ -135,7 +139,7 @@ export function createAgentRunner(ctx: Context, options: LoopOptions = {}): { ru
           ctx.session.append('step/end', { turn, step })
 
           // 4) turn-stopping 检查点:守卫插件经 agent.cancel 终止(串行语义)
-          await ctx.parallel('agent/turn-stopping', { agent, turn, signal: new AbortController().signal })
+          await ctx.parallel('agent/turn-stopping', { agent, turn, signal })
           if (isCancelled()) {
             stoppedBy = agent.stopReason
             break

@@ -62,6 +62,27 @@ export interface McpPersonalConfig {
   readonly error?: string
 }
 
+/** probe 工具名展示上限(响应体积/审计面收口)。 */
+const MCP_PROBE_TOOL_NAMES_MAX = 40
+const MCP_PROBE_TOOL_NAME_MAX_CHARS = 96
+
+/** 工具名白名单化:只保留非空字符串、去重、限长、限条数。 */
+function probeToolNames(names: readonly string[] | undefined, upstreamTruncated = false): { toolNames?: string[]; truncated: boolean } {
+  if (names === undefined) return { truncated: upstreamTruncated }
+  const seen = new Set<string>()
+  for (const raw of names) {
+    if (typeof raw !== 'string') continue
+    const name = raw.trim().slice(0, MCP_PROBE_TOOL_NAME_MAX_CHARS)
+    if (name !== '') seen.add(name)
+    if (seen.size > MCP_PROBE_TOOL_NAMES_MAX) break
+  }
+  const list = [...seen]
+  if (list.length > MCP_PROBE_TOOL_NAMES_MAX) {
+    return { toolNames: list.slice(0, MCP_PROBE_TOOL_NAMES_MAX), truncated: true }
+  }
+  return { toolNames: list, truncated: upstreamTruncated }
+}
+
 /** 个人层传输解析结果(runtime/probe 共用;headers 值已解密为明文,绝不落库/日志)。 */
 export type McpResolvedTransport =
   | {
@@ -80,10 +101,14 @@ export type McpResolvedTransport =
     readonly headers: Readonly<Record<string, string>>
   }
 
-/** probe 结果(路由只回这三个字段,不回显 headers/env)。 */
+/** probe 结果(路由只回这几个字段,不回显 headers/env)。 */
 export interface McpProbeOutcome {
   readonly ok: boolean
   readonly toolCount: number
+  /** 工具名(上游 probeServer 提供;可选,测试假件可省略)。 */
+  readonly toolNames?: readonly string[]
+  /** 工具名超出展示上限被截断。 */
+  readonly truncated?: boolean
   readonly error?: string
 }
 
@@ -867,6 +892,7 @@ export function registerMcpPersonalRoutes(deps: McpPersonalDeps, register: McpPe
       const redactedError = result.error === undefined
         ? undefined
         : redactSecrets(result.error, store, caller.userId, deps.masterKey)
+      const toolView = probeToolNames(result.toolNames, result.truncated === true)
       deps.audit({
         kind: 'mcp.personal.probe',
         account: caller.account,
@@ -877,12 +903,15 @@ export function registerMcpPersonalRoutes(deps: McpPersonalDeps, register: McpPe
           transport: row.transport,
           host: safeHost(row.url),
           toolCount: result.toolCount,
+          ...(toolView.truncated ? { toolNamesTruncated: true } : {}),
           ...(redactedError !== undefined ? { error: redactedError.slice(0, 256) } : {}),
         },
       })
       return okFrame(rpcId, {
         ok: result.ok,
         toolCount: result.toolCount,
+        ...(toolView.toolNames === undefined ? {} : { toolNames: toolView.toolNames }),
+        ...(toolView.truncated ? { truncated: true } : {}),
         ...(redactedError !== undefined ? { error: redactedError } : {}),
       })
     } catch (error) {

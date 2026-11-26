@@ -27,6 +27,7 @@ export interface McpTab {
 const ADMIN_TABS: readonly McpTab[] = [
   { id: 'global', labelKey: 'mcp.tab.global' },
   { id: 'catalog', labelKey: 'mcp.tab.catalog' },
+  { id: 'mine', labelKey: 'mcp.tab.mine' },
 ]
 const USER_TABS: readonly McpTab[] = [
   { id: 'mine', labelKey: 'mcp.tab.mine' },
@@ -297,4 +298,218 @@ export function probeSummary(
   if (result.ok) return { ok: true, text: t('mcp.testOk').replace('{count}', String(result.toolCount)) }
   const reason = result.error === undefined || result.error === '' ? t('mcp.unknownError') : result.error
   return { ok: false, text: t('mcp.testFail').replace('{reason}', reason) }
+}
+
+// ── 全局服务器编辑器(上游 mcp-manager 命名空间)─────────────────────────
+
+/** 上游 mcp-client 的 serverName 口径(管理器写入门同源)。 */
+export const MCP_GLOBAL_NAME_PATTERN = /^[A-Za-z0-9_-]{1,32}$/u
+export const MCP_GLOBAL_VALUE_MAX = 8192
+
+/** mcp-manager 的 entries 结构子集(只声明本编辑器读写的字段)。 */
+export interface McpGlobalEntry {
+  readonly transport: McpTransportValue
+  readonly command: string
+  readonly args: readonly string[]
+  readonly env: Readonly<Record<string, string>>
+  readonly cwd: string
+  readonly url: string
+  readonly headers: Readonly<Record<string, string>>
+  readonly enabled: boolean
+  readonly toolCallTimeoutMs?: number | undefined
+  readonly startupTimeoutMs?: number | undefined
+  readonly closeTimeoutMs?: number | undefined
+  readonly reconnect?: Readonly<Record<string, unknown>> | undefined
+}
+
+export interface McpGlobalConfig {
+  readonly servers?: Readonly<Record<string, McpGlobalEntry>> | undefined
+}
+
+/** configForms 快照子集(settings 域公开契约)。 */
+export interface McpGlobalSnapshot {
+  readonly status: 'loading' | 'ready' | 'unavailable'
+  readonly value?: McpGlobalConfig | undefined
+  readonly base?: unknown
+  readonly user?: unknown
+  readonly revision?: number | undefined
+  readonly writable: boolean
+}
+
+/** configForms.mutate 的路径操作子集(`@deepseek-ai/dsh-settings` 结构同形)。 */
+export type McpGlobalOp =
+  | { readonly op: 'set'; readonly path: readonly string[]; readonly value: unknown }
+  | { readonly op: 'unset'; readonly path: readonly string[] }
+
+export interface McpGlobalForm {
+  getSnapshot(): McpGlobalSnapshot
+  subscribe(listener: () => void): () => void
+  mutate(ops: readonly McpGlobalOp[], expectedRevision?: number): Promise<boolean>
+}
+
+/** configForms 服务结构子集(access client 只声明 mcp-manager 的 get)。 */
+export interface McpConfigForms {
+  get(entryId: string): McpGlobalForm
+}
+
+/** 表单里的键值行(env / headers 共用)。 */
+export interface McpKeyValueDraft {
+  readonly name: string
+  readonly value: string
+}
+
+/** 全局条目表单草稿;name 在编辑态不可改(键即 serverName)。 */
+export interface McpGlobalDraft {
+  readonly existing: string | null
+  readonly name: string
+  readonly transport: McpTransportValue
+  readonly command: string
+  readonly args: string
+  readonly cwd: string
+  readonly env: readonly McpKeyValueDraft[]
+  readonly url: string
+  readonly headers: readonly McpKeyValueDraft[]
+}
+
+export function draftOfGlobalNew(): McpGlobalDraft {
+  return {
+    existing: null,
+    name: '',
+    transport: 'stdio',
+    command: '',
+    args: '',
+    cwd: '',
+    env: [],
+    url: '',
+    headers: [],
+  }
+}
+
+export function draftOfGlobal(name: string, entry: McpGlobalEntry): McpGlobalDraft {
+  return {
+    existing: name,
+    name,
+    transport: entry.transport,
+    command: entry.command,
+    args: entry.args.join('\n'),
+    cwd: entry.cwd,
+    env: Object.entries(entry.env).map(([key, value]) => ({ name: key, value })),
+    url: entry.url,
+    headers: Object.entries(entry.headers).map(([key, value]) => ({ name: key, value })),
+  }
+}
+
+/** 参数输入:每行一个参数(不经 shell,空格不拆)。 */
+export function splitGlobalArgs(text: string): string[] {
+  return text.split('\n').map(line => line.trim()).filter(line => line !== '')
+}
+
+function keyValueObject(rows: readonly McpKeyValueDraft[]): Record<string, string> {
+  const result: Record<string, string> = {}
+  for (const row of rows) {
+    const name = row.name.trim()
+    if (name !== '') result[name] = row.value
+  }
+  return result
+}
+
+export type McpGlobalIssue = 'name' | 'command' | 'url' | 'envName' | 'headerName' | 'valueLength'
+
+const ENV_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/u
+const GLOBAL_HEADER_NAME_PATTERN = /^[A-Za-z0-9!#$%&'*+.^_`|~-]+$/u
+
+function rowIssue(rows: readonly McpKeyValueDraft[], pattern: RegExp): 'envName' | 'headerName' | 'valueLength' | undefined {
+  const seen = new Set<string>()
+  for (const row of rows) {
+    const name = row.name.trim()
+    if (!pattern.test(name)) return pattern === ENV_NAME_PATTERN ? 'envName' : 'headerName'
+    const folded = name.toLowerCase()
+    if (seen.has(folded)) return pattern === ENV_NAME_PATTERN ? 'envName' : 'headerName'
+    seen.add(folded)
+    if (row.value.length > MCP_GLOBAL_VALUE_MAX) return 'valueLength'
+  }
+  return undefined
+}
+
+export function globalDraftIssue(draft: McpGlobalDraft): McpGlobalIssue | undefined {
+  if (draft.existing === null && !MCP_GLOBAL_NAME_PATTERN.test(draft.name.trim())) return 'name'
+  if (draft.transport === 'stdio') {
+    if (draft.command.trim() === '') return 'command'
+    return rowIssue(draft.env, ENV_NAME_PATTERN)
+  }
+  if (!isAcceptableHttpUrl(draft.url)) return 'url'
+  return rowIssue(draft.headers, GLOBAL_HEADER_NAME_PATTERN)
+}
+
+export function globalIssueMessageKey(issue: McpGlobalIssue): string {
+  switch (issue) {
+    case 'name': return 'mcp.globalNameInvalid'
+    case 'command': return 'mcp.globalCommandRequired'
+    case 'url': return 'mcp.globalUrlInvalid'
+    case 'envName': return 'mcp.globalEnvInvalid'
+    case 'headerName': return 'mcp.globalHeaderInvalid'
+    case 'valueLength': return 'mcp.globalValueTooLong'
+  }
+}
+
+/**
+ * 草稿 → 完整 entry。保留原条目的高级字段(timeout/reconnect);
+ * 互斥字段按 transport 清空——上游 validateEntries 对跨传输残留是硬拒。
+ */
+export function buildGlobalEntry(draft: McpGlobalDraft, original: McpGlobalEntry | undefined): McpGlobalEntry {
+  const stdio = draft.transport === 'stdio'
+  const base: McpGlobalEntry = original ?? {
+    transport: 'stdio',
+    command: '',
+    args: [],
+    env: {},
+    cwd: '',
+    url: '',
+    headers: {},
+    enabled: true,
+    startupTimeoutMs: 30_000,
+    reconnect: { enabled: true, initialDelayMs: 500, maxDelayMs: 30_000, maxAttempts: 10 },
+  }
+  return {
+    ...base,
+    transport: draft.transport,
+    enabled: original?.enabled ?? true,
+    command: stdio ? draft.command.trim() : '',
+    args: stdio ? splitGlobalArgs(draft.args) : [],
+    env: stdio ? keyValueObject(draft.env) : {},
+    cwd: stdio ? draft.cwd.trim() : '',
+    url: stdio ? '' : draft.url.trim(),
+    headers: stdio ? {} : keyValueObject(draft.headers),
+  }
+}
+
+/** 保存操作:新增/编辑都整条 set(编辑保留高级字段)。 */
+export function globalSaveOps(draft: McpGlobalDraft, original: McpGlobalEntry | undefined): readonly McpGlobalOp[] {
+  return [{ op: 'set', path: ['servers', draft.name.trim()], value: buildGlobalEntry(draft, original) }]
+}
+
+/** 启停只写 enabled 子路径:不把继承项整条复制进用户层。 */
+export function globalToggleOps(name: string, enabled: boolean): readonly McpGlobalOp[] {
+  return [{ op: 'set', path: ['servers', name, 'enabled'], value: enabled }]
+}
+
+/** 删除/恢复统一走 unset;部署层条目 unset 后回落到基座。 */
+export function globalUnsetOps(name: string): readonly McpGlobalOp[] {
+  return [{ op: 'unset', path: ['servers', name] }]
+}
+
+/** 读 raw 层里某 server 的覆盖标记(user 层出现即覆盖,不论值是否等于基线)。 */
+export function hasUserServer(user: unknown, name: string): boolean {
+  if (typeof user !== 'object' || user === null) return false
+  const servers = (user as { servers?: unknown }).servers
+  if (typeof servers !== 'object' || servers === null) return false
+  return Object.prototype.hasOwnProperty.call(servers, name)
+}
+
+/** base 层是否提供同名条目(部署配置=不可删除,只能停用)。 */
+export function hasBaseServer(base: unknown, name: string): boolean {
+  if (typeof base !== 'object' || base === null) return false
+  const servers = (base as { servers?: unknown }).servers
+  if (typeof servers !== 'object' || servers === null) return false
+  return Object.prototype.hasOwnProperty.call(servers, name)
 }

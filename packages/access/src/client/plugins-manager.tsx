@@ -15,6 +15,7 @@ import { api, type PluginRowView } from './api.ts'
 import { ArmedDelete } from './confirm-button.tsx'
 import { PLUGIN_META } from './plugin-meta.tsx'
 import { postRpc } from './rpc.ts'
+import { Switch } from './switch.tsx'
 
 interface SharedPlugin {
   pluginId: string
@@ -81,19 +82,6 @@ function SharedSection(): React.JSX.Element | null {
 }
 
 /** 开关(原生 Switch 同构):button[role=switch]+圆点,形态由 CSS 承担。 */
-function Switch(props: {
-  checked: boolean
-  disabled: boolean
-  label: string
-  title?: string
-  onToggle: () => void
-}): React.JSX.Element {
-  return <button type="button" role="switch" aria-checked={props.checked} aria-label={props.label}
-    title={props.title} disabled={props.disabled} className="ea-switch"
-    onClick={() => { props.onToggle() }}>
-    <span className="ea-thumb" />
-  </button>
-}
 
 /** 编译期断言(rc.5):页签 props 必须携带必填 `update(target: PluginTabUpdate)`。
  *  契约影子若漏项/走形,此处先红;仅存在于类型层,不进 bundle。 */

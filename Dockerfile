@@ -82,17 +82,19 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     sh -c 'cd /repo/packages/knowledge-admin && ./node_modules/.bin/tsc -p tsconfig.build.json'
 
 # 构建末剥离 v1(B11;50 §3.3/T40):v1 线源码与清单仍入仓、参与 workspace install
-# (T18–T23 的 CI 走源码树),但**运行镜像不带**。剥离点必须在 install/构建之后、
-# final COPY 之前——放 .dockerignore 会让 `pnpm install --frozen-lockfile` 缺包。
+# (T18–T23 的 CI 走源码树),但**运行镜像不带**。2026-11-26 增 packages/skills
+# (新增 v1 技能插件,依赖 @core/contracts,须与 core 同步剥离)。剥离点必须在
+# install/构建之后、final COPY 之前——放 .dockerignore 会让 `pnpm install --frozen-lockfile` 缺包。
 RUN rm -rf /repo/core /repo/basis.yml \
       /repo/packages/system-prompt /repo/packages/session /repo/packages/tools \
+      /repo/packages/skills \
       /repo/packages/llm /repo/packages/approval-cli /repo/packages/agent-loop \
  && test ! -e /repo/core \
  && test ! -e /repo/basis.yml \
- && for p in system-prompt session tools llm approval-cli agent-loop; do \
+ && for p in system-prompt session tools skills llm approval-cli agent-loop; do \
       test ! -e "/repo/packages/$p" || { echo "[build] FATAL v1 包未剥离: $p"; exit 1; }; \
     done \
- && echo "[build] v1 stripped: core/, basis.yml, 6 @basis packages"
+ && echo "[build] v1 stripped: core/, basis.yml, 7 @basis packages"
 
 FROM node:24-bookworm-slim
 # 与 build 阶段同一换源逃生口(ARG 作用域按阶段隔离,须重新声明)。

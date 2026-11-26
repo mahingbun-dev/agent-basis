@@ -52,6 +52,8 @@ export const ENTRY_META_LOCALE_ZH: Record<string, string> = {
   [entryEffectNoteKey('runtime.agent-loop')]: '不可经工作室修改(运行时注入型拒写);文本由 ctx.systemPrompt.assemble 每次装配动态重建,不受快照回放冻结。',
   [entryDescriptionKey('runtime.adviser.discipline')]: '参谋纪律段(运行时注入):每次会话装配系统提示时追加一段 [adviser] 说明——右侧栏的「参谋」是用户自己的私人旁注,主会话不得主动给它发消息、不得把它当委派的子任务、不得等待它返回结果,只把用户贴过来的参谋结论当作补充说明处理。没有它,模型可能主动去「问参谋」或等参谋回复而卡住。',
   [entryEffectNoteKey('runtime.adviser.discipline')]: '静态文本:改后新会话立即用新文;进行中会话沿用装配时快照。不可经工作室修改(当前无版本链读取面,回落内置常量)。',
+  [entryDescriptionKey('runtime.basis.skills-catalog')]: 'basis 技能目录(运行时注入):basis CLI 每次装配系统提示时扫描技能目录并追加 <available_skills> 清单(名称/描述/适用场景);模型据此决定是否调用 `skill` 工具加载正文与资源路径。技能文件改动下一次会话装配即生效,不可经工作室编辑。',
+  [entryEffectNoteKey('runtime.basis.skills-catalog')]: '不可经工作室修改(运行时注入型拒写);basis 独立进程每次装配重扫目录,文件改动下一次 run/会话即生效,进行中 turn 的 system prompt 沿用装配时快照。',
 }
 
 /** en:翻译层(新增条目时补;缺键回退注册表中文原文)。 */
@@ -88,6 +90,8 @@ export const ENTRY_META_LOCALE_EN: Record<string, string> = {
   [entryEffectNoteKey('runtime.agent-loop')]: 'Cannot be modified through the studio (runtime-injection writes are rejected); the text is rebuilt dynamically by ctx.systemPrompt.assemble at every assembly and is not frozen by snapshot replay.',
   [entryDescriptionKey('runtime.adviser.discipline')]: "The adviser discipline section (runtime injection): appended to every session's system prompt — it states that the sidebar 'adviser' is the user's own private side note, that the main session must not message it, must not treat it as a delegated subtask, and must not wait for it to return, and that any conclusion the user pastes in is just extra user input. Without it the model may go ask the adviser or wait on it and stall.",
   [entryEffectNoteKey('runtime.adviser.discipline')]: 'Static text: new sessions pick up a change immediately while in-flight sessions keep their assembly snapshot; not editable through the studio (no version-chain read face yet, falls back to the built-in constant).',
+  [entryDescriptionKey('runtime.basis.skills-catalog')]: 'Basis skill catalog (runtime injection): the basis CLI scans skill directories at every system-prompt assembly and appends an <available_skills> list (name/description/when-to-use); the model uses it to decide whether to call the `skill` tool and load the full text plus resource paths. Skill-file changes apply to the next assembly; not editable through the studio.',
+  [entryEffectNoteKey('runtime.basis.skills-catalog')]: 'Not editable through the studio (runtime-injection writes are rejected); the standalone basis process rescans directories at each assembly, so file changes apply to the next run/session while an in-flight turn keeps its assembly snapshot.',
   [entryDescriptionKey('meta.studio.ai-polish')]: "Meta-prompt for AI polish: the studio's \"AI polish\" uses it as the system message when calling the model, defining polish discipline (suggest-only, never applied, keep red-line sections, etc.); changing it changes polish behavior — the next polish run uses the new text.",
   [entryEffectNoteKey('meta.studio.ai-polish')]: "Enters no session's system-prompt assembly; AI polish reads the registry's current value at call time — after an R3-approved write-back, the next polish call uses the new text.",
   [entryDescriptionKey('meta.studio.ai-review')]: "Meta-prompt for AI review: the studio's \"AI review\" uses it as the system message when producing findings, defining review dimensions and output format; changing it changes review behavior — the next review run uses the new text.",

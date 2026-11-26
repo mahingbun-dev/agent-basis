@@ -24,7 +24,7 @@ import * as mcpClientModule from '@deepseek-ai/dsh-mcp-client'
 import {
   MCP_PERSONAL_MAX_CONNECTIONS, MCP_PERSONAL_STARTUP_TIMEOUT_MS,
   decryptMcpSecret, resolveMcpTransport,
-  type McpPersonalConfig, type McpResolvedTransport,
+  type McpPersonalConfig, type McpProbeOutcome, type McpResolvedTransport,
 } from './mcp-personal.ts'
 import type { UserStore } from './store.ts'
 
@@ -365,12 +365,12 @@ export function mountPersonalMcp(ctx: Context, deps: PersonalMcpRuntimeDeps): Pe
 
 /**
  * 生产 probe 适配器:dsh-mcp-client probeServer(不注册工具、不占用 serverName)。
- * 结果收敛为 {ok,toolCount,error?};错误文本由路由层脱敏后回给调用方。
+ * 结果收敛为 {ok,toolCount,toolNames?,truncated?,error?};错误文本由路由层脱敏后回给调用方。
  */
 export function createMcpClientProbe(
   ctx: Context,
   options: { readonly timeoutMs?: number } = {},
-): (config: McpResolvedTransport, signal: AbortSignal) => Promise<{ ok: boolean; toolCount: number; error?: string }> {
+): (config: McpResolvedTransport, signal: AbortSignal) => Promise<McpProbeOutcome> {
   return async (resolved, signal) => {
     const input = personalMcpClientInput(resolved, {
       cwd: resolved.transport === 'stdio' ? resolved.cwd : undefined,
@@ -379,7 +379,14 @@ export function createMcpClientProbe(
       ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
       signal,
     })
-    if (result.ok) return { ok: true, toolCount: result.toolNames.length }
+    if (result.ok) {
+      return {
+        ok: true,
+        toolCount: result.toolNames.length,
+        toolNames: [...result.toolNames],
+        ...(result.truncated ? { truncated: true } : {}),
+      }
+    }
     return { ok: false, toolCount: 0, error: result.message }
   }
 }

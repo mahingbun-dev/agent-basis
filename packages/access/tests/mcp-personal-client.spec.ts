@@ -17,9 +17,11 @@ import {
   MCP_LOCALES,
 } from '../src/client/mcp-servers-locales.ts'
 import {
-  buildToggleRequest, buildUpsertRequest, draftIssue, draftIssueMessageKey, draftOfItem, draftOfNew,
-  isAcceptableHttpUrl, probeSummary, quotaLabel, secretRefForHeader, tabsForRole, transportLabelKey, withCatalog,
-  type McpDraft,
+  buildGlobalEntry, buildToggleRequest, buildUpsertRequest, draftIssue, draftIssueMessageKey, draftOfGlobal,
+  draftOfGlobalNew, draftOfItem, draftOfNew, globalDraftIssue, globalSaveOps, globalToggleOps, globalUnsetOps,
+  hasBaseServer, hasUserServer, isAcceptableHttpUrl, probeSummary, quotaLabel, secretRefForHeader, tabsForRole,
+  transportLabelKey, withCatalog,
+  type McpDraft, type McpGlobalEntry,
 } from '../src/client/mcp-servers-model.ts'
 import { openSettingsSection } from '../src/client/settings-nav.ts'
 
@@ -94,7 +96,7 @@ describe('MCP 个人层 API 信封', () => {
 
 describe('角色 → 页签', () => {
   it('admin:全局/管理员目录;普通用户:仅我的服务器', () => {
-    expect(tabsForRole('admin').map(tab => tab.id)).toStrictEqual(['global', 'catalog'])
+    expect(tabsForRole('admin').map(tab => tab.id)).toStrictEqual(['global', 'catalog', 'mine'])
     expect(tabsForRole('user').map(tab => tab.id)).toStrictEqual(['mine'])
     expect(tabsForRole('user')[0]?.labelKey).toBe('mcp.tab.mine')
   })
@@ -225,6 +227,58 @@ describe('行内启停 / 测试 / 配额', () => {
   })
 })
 
+
+describe('全局 MCP 编辑器模型(mcp-manager)', () => {
+  const entry: McpGlobalEntry = {
+    transport: 'stdio',
+    command: 'npx',
+    args: ['-y', 'demo-server'],
+    env: { DEMO_TOKEN: '${credential:DEMO_TOKEN}' },
+    cwd: '/srv',
+    url: '',
+    headers: {},
+    enabled: true,
+    startupTimeoutMs: 30_000,
+    reconnect: { enabled: true, initialDelayMs: 500 },
+  }
+
+  it('条目 → 草稿 → 保留高级字段;跨传输字段清空', () => {
+    const draft = draftOfGlobal('demo', entry)
+    expect(draft.args).toBe('-y\ndemo-server')
+    expect(globalDraftIssue(draft)).toBeUndefined()
+    const http = buildGlobalEntry({ ...draft, transport: 'streamable-http', url: 'https://example.com/mcp', headers: [{ name: 'Authorization', value: '${credential:A}' }] }, entry)
+    expect(http).toMatchObject({
+      transport: 'streamable-http', command: '', args: [], env: {}, cwd: '', url: 'https://example.com/mcp',
+      headers: { Authorization: '${credential:A}' }, startupTimeoutMs: 30_000, enabled: true,
+    })
+    expect(http.reconnect).toEqual(entry.reconnect)
+  })
+
+  it('新增最小 entry 带默认 timeout/reconnect;URL/命令/名称/键名校验', () => {
+    const built = buildGlobalEntry({ ...draftOfGlobalNew(), name: 'demo', command: 'npx' }, undefined)
+    expect(built.startupTimeoutMs).toBe(30_000)
+    expect(built.enabled).toBe(true)
+    expect(built.reconnect).toBeDefined()
+    expect(globalDraftIssue({ ...draftOfGlobalNew(), name: 'bad name', command: 'x' })).toBe('name')
+    expect(globalDraftIssue({ ...draftOfGlobalNew(), name: 'demo' })).toBe('command')
+    expect(globalDraftIssue({ ...draftOfGlobalNew(), name: 'demo', transport: 'streamable-http', url: 'ftp://x' })).toBe('url')
+    expect(globalDraftIssue({ ...draftOfGlobalNew(), name: 'demo', command: 'x', env: [{ name: '1BAD', value: '' }] })).toBe('envName')
+    expect(globalDraftIssue({ ...draftOfGlobalNew(), name: 'demo', command: 'x', env: [{ name: 'A', value: 'v' }, { name: 'a', value: 'v' }] })).toBe('envName')
+  })
+
+  it('写操作:整条 set / 仅 enabled 子路径 / unset;user/base 覆盖判定', () => {
+    const save = globalSaveOps({ ...draftOfGlobalNew(), name: 'demo', command: 'x' }, undefined)
+    expect(save).toHaveLength(1)
+    expect(save[0]).toMatchObject({ op: 'set', path: ['servers', 'demo'] })
+    expect(globalToggleOps('demo', false)).toStrictEqual([{ op: 'set', path: ['servers', 'demo', 'enabled'], value: false }])
+    expect(globalUnsetOps('demo')).toStrictEqual([{ op: 'unset', path: ['servers', 'demo'] }])
+    expect(hasUserServer({ servers: { demo: { enabled: false } } }, 'demo')).toBe(true)
+    expect(hasUserServer({ servers: {} }, 'demo')).toBe(false)
+    expect(hasBaseServer({ servers: { demo: {} } }, 'demo')).toBe(true)
+    expect(hasBaseServer(undefined, 'demo')).toBe(false)
+  })
+})
+
 describe('设置壳跳转(原生扩展点)', () => {
   it('座位 store 暴露 openSection → 跳转并返回 true;缺席/异常 → false', () => {
     const opened: string[] = []
@@ -238,7 +292,7 @@ describe('设置壳跳转(原生扩展点)', () => {
 
 describe('文案与 UI 纪律', () => {
   const sourceKeys = new Set<string>()
-  for (const file of ['mcp-servers-section.tsx', 'mcp-servers-model.ts']) {
+  for (const file of ['mcp-servers-section.tsx', 'mcp-servers-model.ts', 'mcp-global-panel.tsx']) {
     for (const match of readClient(file).matchAll(/\bmcp\.[a-z][a-zA-Z0-9.]*/gu)) sourceKeys.add(match[0])
   }
 
@@ -262,7 +316,7 @@ describe('文案与 UI 纪律', () => {
   })
 
   it('新增客户端源码:无原生 confirm()/alert(),无字面色值,删除走两击组件', () => {
-    for (const file of ['mcp-servers-section.tsx', 'mcp-servers-model.ts', 'mcp-personal-api.ts', 'settings-nav.ts', 'mcp-servers-locales.ts']) {
+    for (const file of ['mcp-servers-section.tsx', 'mcp-servers-model.ts', 'mcp-global-panel.tsx', 'mcp-personal-api.ts', 'settings-nav.ts', 'mcp-servers-locales.ts']) {
       const source = readClient(file)
       expect(source, file).not.toMatch(/\bwindow\.confirm\s*\(|\bwindow\.alert\s*\(/u)
       expect(source, file).not.toMatch(/\balert\(/u)

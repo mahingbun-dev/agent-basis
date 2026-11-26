@@ -352,6 +352,24 @@ describe('B14 个人 MCP:存储/路由', () => {
 
   // ── probe ─────────────────────────────────────────────────────────────────
 
+  it('probe 回传工具名(去重/限长/截断),旧假件形状不变', async () => {
+    const created = await call('/api/mcp-personal/upsert', aliceCookie, {
+      request: { name: 'probe-tools', transport: 'stdio', catalogId: 'fs' },
+    })
+    const id = String((created.value?.item as { id?: string } | undefined)?.id)
+    probe = async () => ({
+      ok: true,
+      toolCount: 5,
+      toolNames: ['echo', ' echo ', '', 'x'.repeat(200), 'second', 'third'],
+      truncated: true,
+    })
+    const result = await call('/api/mcp-personal/probe', aliceCookie, { request: { id } })
+    expect(result.ok).toBe(true)
+    expect(result.value?.toolCount).toBe(5)
+    expect(result.value?.toolNames).toEqual(['echo', 'x'.repeat(96), 'second', 'third'])
+    expect(result.value?.truncated).toBe(true)
+  })
+
   it('probe 成功只回 {ok,toolCount},不回显 headers/env/secrets', async () => {
     await upsertHttp('probe-me', { headers: { Authorization: '${secret:token}' }, secrets: { token: 'probe-secret' } })
     const id = store.listMcpServers(aliceId)[0]?.id ?? ''

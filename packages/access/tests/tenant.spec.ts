@@ -105,6 +105,12 @@ describe('tenant 守卫', () => {
       configEditor: {
         configuration: () => configEditorConfiguration,
       },
+      sessionSkillCatalog: {
+        list: (request: unknown) => {
+          calls.push({ service: 'sessionSkillCatalog', method: 'list', params: [request] })
+          return { skills: [{ name: 'smoke-skill' }] }
+        },
+      },
     }
     const reflect = { get: (key: string): unknown => services[key] }
     const registry: TenantFetchRegistry = {
@@ -486,5 +492,27 @@ describe('tenant 守卫', () => {
     const denied = audits.filter(event => event.detail?.action === 'thinking.auto.denied'
       && event.detail?.reason === 'enabled')
     expect(denied.length).toBeGreaterThanOrEqual(5)
+  })
+
+  it('skills/list:会话归属校验后才委派上游 catalog;他人/缺 id 拒绝且不直调', async () => {
+    store.recordSession('s-skill-alice', aliceId, null)
+    const before = calls.filter(call => call.service === 'sessionSkillCatalog').length
+    const foreign = await call('/api/skills/list', 'bob', { request: { sessionId: 's-skill-alice' } })
+    expect(foreign.result?.result).toMatchObject({ ok: false, error: { code: 'tenant/denied' } })
+    const missing = await call('/api/skills/list', 'alice', { request: {} })
+    expect(missing.result?.result).toMatchObject({ ok: false, error: { code: 'tenant/denied' } })
+    expect(calls.filter(call => call.service === 'sessionSkillCatalog')).toHaveLength(before)
+
+    const ok = await call('/api/skills/list', 'alice', { request: { sessionId: 's-skill-alice' } })
+    expect(ok.result?.result).toMatchObject({ ok: true, value: { skills: [{ name: 'smoke-skill' }] } })
+    expect(calls.filter(call => call.service === 'sessionSkillCatalog')).toHaveLength(before + 1)
+
+    // 旧的裸 args.sessionId 形态同样过归属校验并原样委派
+    const bare = await call('/api/skills/list', 'alice', { sessionId: 's-skill-alice' })
+    expect(bare.result?.result).toMatchObject({ ok: true })
+    expect(calls.filter(call => call.service === 'sessionSkillCatalog').at(-1)?.params[0])
+      .toStrictEqual({ sessionId: 's-skill-alice' })
+    const denied = audits.filter(event => event.detail?.action === 'skills.list.denied')
+    expect(denied.map(event => event.detail?.reason)).toStrictEqual(['owner', 'owner'])
   })
 })

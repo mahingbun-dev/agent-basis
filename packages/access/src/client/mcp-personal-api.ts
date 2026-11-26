@@ -49,6 +49,10 @@ export interface McpListView {
 export interface McpProbeView {
   readonly ok: boolean
   readonly toolCount: number
+  /** 已连接工具名(旧服务端/假件可能不返回)。 */
+  readonly toolNames?: readonly string[]
+  /** 工具名列表被服务端截断。 */
+  readonly truncated?: boolean
   readonly error?: string
 }
 

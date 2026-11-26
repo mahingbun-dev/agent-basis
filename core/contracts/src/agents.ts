@@ -26,6 +26,10 @@ export interface StepDraft {
   readonly step: number
   readonly messages: readonly LlmMessage[]
   readonly tools: readonly ToolSchema[]
+  /** 当前 agent(守卫/插件可读 id 或 cancel;可选,stub 可省略)。 */
+  readonly agent?: AgentHandle
+  /** 本 turn 的取消信号:turn-stopping cancel 时 abort(可选,stub 可省略)。 */
+  readonly signal?: AbortSignal
 }
 
 /** 一个 turn 的终态。 */
