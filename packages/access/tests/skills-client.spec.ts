@@ -77,9 +77,9 @@ describe('技能 API 信封', () => {
 })
 
 describe('技能页签与写权限', () => {
-  it('两个页签常驻;scope 映射与写权限按角色', () => {
+  it('三个页签常驻(我的/共享/市场);scope 映射与写权限按角色', () => {
     expect(SKILL_TABS.map(tab => `${tab.id}/${tab.labelKey}`)).toStrictEqual([
-      'mine/skills.tab.mine', 'shared/skills.tab.shared',
+      'mine/skills.tab.mine', 'shared/skills.tab.shared', 'market/skills.tab.market',
     ])
     expect(scopeOfTab('mine')).toBe('personal')
     expect(scopeOfTab('shared')).toBe('shared')

@@ -7,18 +7,26 @@
  */
 import type { SkillScopeValue, SkillItemView } from './skills-api.ts'
 
-export type SkillTabId = 'mine' | 'shared'
+export type SkillTabId = 'mine' | 'shared' | 'market'
+/** 作用域页签(市场页不是作用域,单独渲染)。 */
+export type SkillScopeTabId = 'mine' | 'shared'
 
 export interface SkillTab {
   readonly id: SkillTabId
   readonly labelKey: string
 }
 
-/** 页签顺序(普通用户也看共享;写权限由 writableFor 决定)。 */
+/** 页签顺序(普通用户也看共享;写权限由 writableFor 决定;市场全员可浏览)。 */
 export const SKILL_TABS: readonly SkillTab[] = [
   { id: 'mine', labelKey: 'skills.tab.mine' },
   { id: 'shared', labelKey: 'skills.tab.shared' },
+  { id: 'market', labelKey: 'skills.tab.market' },
 ]
+
+/** 作用域页签判定(市场页签没有 scope)。 */
+export function isScopeTab(tab: SkillTabId): tab is SkillScopeTabId {
+  return tab === 'mine' || tab === 'shared'
+}
 
 /** SKILL.md 客户端上限(与 SKILL_MARKDOWN_MAX 一致)。 */
 export const SKILL_MARKDOWN_CLIENT_MAX = 512 * 1024
@@ -30,7 +38,7 @@ export type SkillUploadKind = 'md' | 'zip'
 export type SkillUploadIssue = 'kind' | 'empty' | 'too-large'
 export type SkillMarkdownIssue = 'empty' | 'too-large'
 
-export function scopeOfTab(tab: SkillTabId): SkillScopeValue {
+export function scopeOfTab(tab: SkillScopeTabId): SkillScopeValue {
   return tab === 'mine' ? 'personal' : 'shared'
 }
 
@@ -107,7 +115,13 @@ export function originLabelKey(origin: string): string {
   if (origin === 'form') return 'skills.originForm'
   if (origin === 'upload-md') return 'skills.originUploadMd'
   if (origin === 'upload-zip') return 'skills.originZip'
+  if (origin === 'market') return 'skills.originMarket'
   return 'skills.originInstalled'
+}
+
+/** 市场安装可选目标:普通用户只装个人;管理员可装共享。 */
+export function installTargetsFor(role: SkillSectionRole): readonly SkillScopeValue[] {
+  return role === 'admin' ? ['personal', 'shared'] : ['personal']
 }
 
 export interface SkillFrontmatterPreview {

@@ -14,6 +14,8 @@
  */
 import type { AccessAuditEvent } from './audit.ts'
 import type { SessionService } from './session.ts'
+import type { SkillMarket } from './skill-market.ts'
+import { registerSkillMarketRoutes } from './skill-market-routes.ts'
 import {
   SkillStoreError, SKILL_LIMITS,
   type SkillEntry, type SkillItem, type SkillScope, type SkillStore,
@@ -48,6 +50,8 @@ export interface SkillsDeps {
   readonly userOf: (userId: number) => { readonly account: string; readonly role: 'admin' | 'approver' | 'user' } | undefined
   /** 改密即下线:与 tenant 守卫同一 password_version 口径。 */
   readonly passwordVersionOf: (userId: number) => number | undefined
+  /** 技能市场(缺席=不注册 market/* 端点)。 */
+  readonly market?: SkillMarket | undefined
 }
 
 export interface SkillsFetchRegistry {
@@ -64,17 +68,9 @@ export interface SkillsFetchHost {
   readonly onRequest?: (() => void) | undefined
 }
 
-/** 注册七条端点(调用方=已含登录门/信封的 register 面)。 */
-export function registerSkillsRoutes(deps: SkillsDeps, register: SkillsRegister): void {
-  const store = deps.skills
-
-  const auditOk = (caller: SkillsCaller, action: string, detail: Record<string, unknown> = {}): void => {
-    deps.audit({ kind: 'skills.manage', account: caller.account, ok: true, detail: { action, ...detail } })
-  }
-  const auditDeny = (caller: SkillsCaller, action: string, reason: string, detail: Record<string, unknown> = {}): void => {
-    deps.audit({ kind: 'skills.manage', account: caller.account, ok: false, detail: { action, reason, ...detail } })
-  }
-  const viewOf = (entry: SkillEntry): SkillItem => ({
+/** 条目 → 前端视图(市场安装的响应也复用同一形状)。 */
+export function skillItemOf(entry: SkillEntry): SkillItem {
+  return {
     scope: entry.scope,
     name: entry.name,
     description: entry.description,
@@ -84,7 +80,20 @@ export function registerSkillsRoutes(deps: SkillsDeps, register: SkillsRegister)
     files: entry.files,
     bytes: entry.bytes,
     updatedAt: entry.updatedAt,
-  })
+  }
+}
+
+/** 注册技能 + 市场端点(调用方=已含登录门/信封的 register 面)。 */
+export function registerSkillsRoutes(deps: SkillsDeps, register: SkillsRegister): void {
+  const store = deps.skills
+
+  const auditOk = (caller: SkillsCaller, action: string, detail: Record<string, unknown> = {}): void => {
+    deps.audit({ kind: 'skills.manage', account: caller.account, ok: true, detail: { action, ...detail } })
+  }
+  const auditDeny = (caller: SkillsCaller, action: string, reason: string, detail: Record<string, unknown> = {}): void => {
+    deps.audit({ kind: 'skills.manage', account: caller.account, ok: false, detail: { action, reason, ...detail } })
+  }
+  const viewOf = (entry: SkillEntry): SkillItem => skillItemOf(entry)
 
   const scopeOf = (args: Record<string, unknown>): SkillScope | undefined =>
     args.scope === 'personal' || args.scope === 'shared' ? args.scope : undefined
@@ -223,6 +232,9 @@ export function registerSkillsRoutes(deps: SkillsDeps, register: SkillsRegister)
       return storeFailure(rpcId, error, caller, deps, 'delete', { scope, name })
     }
   })
+
+  // 技能市场(2026-11-26):来源由 admin 维护;浏览/安装全员,shared 安装仅 admin。
+  if (deps.market !== undefined) registerSkillMarketRoutes(deps, register)
 }
 
 /** 把 registerSkillsRoutes 挂到 connection.fetch(登录门/信封/401 帧同 MCP 个人层)。 */
@@ -285,18 +297,18 @@ function callerOf(deps: SkillsDeps, request: Request): SkillsCaller | undefined 
   return { userId: claims.userId, account: user.account, role: user.role }
 }
 
-function frame(rpcId: string, result: unknown): Response {
+export function frame(rpcId: string, result: unknown): Response {
   return new Response(JSON.stringify({ type: 'server-response', rpcId, result }), {
     status: 200,
     headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
   })
 }
 
-function okFrame(rpcId: string, value: unknown): Response {
+export function okFrame(rpcId: string, value: unknown): Response {
   return frame(rpcId, { ok: true, value })
 }
 
-function deniedFrame(rpcId: string, message: string): Response {
+export function deniedFrame(rpcId: string, message: string): Response {
   return frame(rpcId, { ok: false, error: { code: 'skills/denied', message, details: {} } })
 }
 

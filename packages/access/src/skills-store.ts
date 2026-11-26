@@ -410,16 +410,16 @@ export class SkillStore {
     return this.#entryRequired(target, scope)
   }
 
-  /** 安装单 .md(与 save 同结构,origin 记 upload-md)。 */
-  installMarkdown(scope: SkillScope, account: string, content: string): SkillEntry {
+  /** 安装单 .md(与 save 同结构,origin 默认 upload-md;市场安装传 market)。 */
+  installMarkdown(scope: SkillScope, account: string, content: string, origin = 'upload-md'): SkillEntry {
     const entry = this.save(scope, account, content)
     const dir = this.#dirOf(scope, account, entry.name, false)
-    writeMeta(dir, { origin: 'upload-md' })
-    return { ...entry, origin: 'upload-md' }
+    writeMeta(dir, { origin })
+    return { ...entry, origin }
   }
 
-  /** 安装 zip(单技能;可含 references/resources)。 */
-  installZip(scope: SkillScope, account: string, bytes: Buffer): SkillEntry {
+  /** 安装 zip(单技能;可含 references/resources)。origin 默认 upload-zip。 */
+  installZip(scope: SkillScope, account: string, bytes: Buffer, origin = 'upload-zip'): SkillEntry {
     if (bytes.length > SKILL_ZIP_MAX_BYTES) {
       throw new SkillStoreError('invalid', `zip 不能超过 ${SKILL_ZIP_MAX_BYTES / 1024 / 1024}MB`)
     }
@@ -456,7 +456,7 @@ export class SkillStore {
         throw new SkillStoreError('invalid', 'zip 内容超过技能包上限')
       }
       // 以 SKILL.md 原文落盘(上面逐条写入已包含它)
-      writeMeta(temp, { enabled: true, origin: 'upload-zip', installedAt: Date.now(), updatedAt: Date.now() })
+      writeMeta(temp, { enabled: true, origin, installedAt: Date.now(), updatedAt: Date.now() })
       renameSync(temp, target)
     } catch (error) {
       try { rmSync(temp, { recursive: true, force: true }) } catch { /* 同上 */ }

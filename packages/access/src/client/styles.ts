@@ -1073,6 +1073,41 @@ html[data-eterna-access-role="member"] [data-plugin-panel] button[aria-label^="�
 @media (max-width: 640px) {
   [data-eterna-access-root].ea-page { padding: 24px 16px 64px; }
 }
+/* ===== 技能市场(2026-11-26):来源/搜索工具栏 + 结果卡片(复用 ea-pcard) ===== */
+[data-eterna-access-root] .ea-market { display: flex; flex-direction: column; gap: var(--et-space-3); min-width: 0; }
+[data-eterna-access-root] .ea-market-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--et-space-2);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+[data-eterna-access-root] .ea-row select.ea-market-source { flex: 0 0 auto; width: 168px; min-width: 148px; max-width: 240px; }
+[data-eterna-access-root] .ea-market-search { display: flex; align-items: center; gap: var(--et-space-2); flex: 1 1 260px; min-width: 0; }
+[data-eterna-access-root] .ea-market-search .ea-input { flex: 1 1 auto; min-width: 0; }
+[data-eterna-access-root] .ea-market-search .ea-btn { flex: 0 0 auto; white-space: nowrap; }
+[data-eterna-access-root] .ea-market-summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+[data-eterna-access-root] .ea-market-sources { flex-direction: column; align-items: stretch; }
+[data-eterna-access-root] .ea-market-source-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--et-space-1); }
+[data-eterna-access-root] .ea-market-source-list li { display: flex; align-items: center; gap: var(--et-space-2); flex-wrap: wrap; }
+[data-eterna-access-root] .ea-market-url { color: var(--et-muted); font-size: var(--et-text-meta); overflow-wrap: anywhere; max-width: 100%; }
+[data-eterna-access-root] .ea-market-add { display: flex; flex-wrap: wrap; align-items: center; gap: var(--et-space-2); margin-top: var(--et-space-2); }
+[data-eterna-access-root] .ea-market-add .ea-input { flex: 1 1 180px; min-width: 0; width: auto; }
+@media (max-width: 640px) {
+  [data-eterna-access-root] .ea-market-controls { flex-direction: column; align-items: stretch; }
+  [data-eterna-access-root] .ea-row select.ea-market-source { width: 100%; max-width: none; }
+  [data-eterna-access-root] .ea-market-search { flex-basis: auto; }
+  [data-eterna-access-root] .ea-market-add .ea-input { flex-basis: 100%; }
+  /* 窄屏:市场卡片两个动作(安装/装到共享)整体下移一行,不挤压摘要 */
+  [data-eterna-access-root] .ea-market .ea-phead { flex-wrap: wrap; }
+  [data-eterna-access-root] .ea-market .ea-pend { flex: 1 1 100%; justify-content: flex-end; padding-top: var(--et-space-2); }
+}
 /* ===== 技能页(我的/共享):卡片复用 ea-pcard,编辑器/安装区只补本页壳 ===== */
 [data-eterna-access-root] .ea-skill-panel { display: flex; flex-direction: column; gap: var(--et-space-3); min-width: 0; }
 [data-eterna-access-root] .ea-skill-toolbar { gap: var(--et-space-3); }

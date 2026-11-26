@@ -40,6 +40,7 @@ import { installMcpPersonalFetchRoutes, loadMcpMasterKey, MCP_PERSONAL_PROBE_TIM
 import { createMcpClientProbe, mountPersonalMcp } from './mcp-personal-runtime.ts'
 import { installSkillsFetchRoutes } from './skills-routes.ts'
 import { mountAccessSkills } from './skills-provider.ts'
+import { SkillMarket } from './skill-market.ts'
 import { SkillStore } from './skills-store.ts'
 import { createTenantPluginLoader, type TenantPluginToolsFace } from './tenant-plugins.ts'
 import { defineInstallPersonalPluginTool } from './install-tool.ts'
@@ -211,6 +212,14 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
       // 初始化失败只降级(管理面 503 帧、provider 不挂),绝不阻断 boot。
       const skillLogger = { warn: (message: string): void => { console.warn(message) } }
       const skillStore = new SkillStore({ tenantRoot, accessDir: dir, logger: skillLogger })
+      // 技能市场(2026-11-26):来源表落 access 数据目录;内置 SkillHub 恒在。
+      // ETERNA_SKILL_MARKET_HTTP_HOSTS = http 来源白名单(内网/测试;缺省只允许 https)。
+      const skillMarket = new SkillMarket({
+        accessDir: dir,
+        httpHosts: (process.env.ETERNA_SKILL_MARKET_HTTP_HOSTS ?? '')
+          .split(',').map(item => item.trim().toLowerCase()).filter(item => item !== ''),
+        logger: skillLogger,
+      })
       // 共享目录不可用(只读卷/权限)时管理面返回 503,provider 不挂——绝不把自己的
       // "空观测"当成权威目录覆盖模型侧 last-good catalog(见 skills-provider list)。
       const skillsRuntime = skillStore.available
@@ -713,6 +722,7 @@ export function defineAccessPlugin(config: AccessPluginConfig = {}) {
           return user === undefined ? undefined : { account: user.account, role: user.role }
         },
         passwordVersionOf: (userId: number) => store.getPasswordVersion(userId),
+        market: skillMarket,
       }, {
         fetch: ctx.connection.fetch,
         onRequest: () => { ensureMux(); ensureSandbox(); ensureTerminal() },
