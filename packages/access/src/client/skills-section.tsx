@@ -19,11 +19,16 @@ import {
 } from './skills-api.ts'
 import {
   SKILL_MARKDOWN_CLIENT_MAX, SKILL_TABS, SKILL_ZIP_CLIENT_MAX,
-  base64FromBytes, bytesLabel, countLabel, frontmatterPreview, itemsOfScope,
+  base64FromBytes, bytesLabel, countLabel, frontmatterPreview, installTargetsFor, isScopeTab, itemsOfScope,
   markdownIssue, markdownIssueMessageKey, newSkillTemplate, originLabelKey, quotaLabel,
   scopeOfTab, uploadIssue, uploadIssueMessageKey, writableFor,
   type SkillMarkdownIssue, type SkillSectionRole, type SkillTab, type SkillTabId, type SkillUploadIssue, type SkillUploadKind,
 } from './skills-model.ts'
+import { marketApi, type MarketEntryView, type MarketSourceView } from './market-api.ts'
+import {
+  MARKET_QUERY_MAX, installedMessage, installLabelKey, installsLabel, marketFailureMessage,
+  marketQueryIssue, marketSummary, sourceOptionLabel, versionLabel,
+} from './market-model.ts'
 
 export interface SkillsPageProps {
   readonly role: SkillSectionRole
@@ -43,11 +48,10 @@ interface EditorState {
   readonly loading: boolean
 }
 
-/** 页面外壳:大标题 + 两个页签常驻;写权限按角色在面板内收口。 */
+/** 页面外壳:大标题 + 三个页签(我的/共享/技能市场);写权限按角色在面板内收口。 */
 export function SkillsPage(props: SkillsPageProps): React.JSX.Element {
   const { role, t } = props
   const [active, setActive] = useState<SkillTabId>('mine')
-  const scope = scopeOfTab(active)
 
   return <div className="ea-section ea-page" data-eterna-access-root data-eterna-skills-page>
     <header className="ea-page-head">
@@ -57,7 +61,9 @@ export function SkillsPage(props: SkillsPageProps): React.JSX.Element {
     <SkillTabBar active={active} onSelect={(id) => { setActive(id) }} t={t} />
     <div className="ea-skill-panel" id={`ea-skill-panel-${active}`} role="tabpanel"
       aria-labelledby={`ea-skill-tab-${active}`}>
-      <SkillsPanel role={role} scope={scope} t={t} />
+      {isScopeTab(active)
+        ? <SkillsPanel role={role} scope={scopeOfTab(active)} t={t} />
+        : <MarketPanel role={role} t={t} />}
     </div>
   </div>
 }
@@ -421,5 +427,256 @@ function SkillsPanel(props: {
             </li>)}
           </ul>}
       </>}
+  </div>
+}
+/**
+ * 技能市场面板(2026-11-26):来源下拉 + 搜索 + 结果卡片 + 管理员来源维护。
+ *
+ * 来源由管理员维护(内置 SkillHub 恒在);浏览/搜索全员;安装默认个人,
+ * 管理员可另选共享。安装成功只提示,切换回「我的技能」时列表自动重取。
+ */
+function MarketPanel(props: {
+  readonly role: SkillSectionRole
+  readonly t: Translate
+}): React.JSX.Element {
+  const { role, t } = props
+  const [sources, setSources] = useState<readonly MarketSourceView[] | null>(null)
+  const [sourceId, setSourceId] = useState('skillhub')
+  const [query, setQuery] = useState('')
+  const [entries, setEntries] = useState<readonly MarketEntryView[] | null>(null)
+  // 结果列表整块换 key:宿主对 slot 子树的既有 DOM 偶发不随替换清理(实测残留首屏卡片),
+  // 显式 remount 比依赖同名 key 的 diff 更可靠。
+  const [listSeq, setListSeq] = useState(0)
+  const [busy, setBusy] = useState(false)
+  const [installing, setInstalling] = useState<string | null>(null)
+  const [message, setMessage] = useState<Message | null>(null)
+  const [managing, setManaging] = useState(false)
+  const [sourcesBusy, setSourcesBusy] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newUrl, setNewUrl] = useState('')
+
+  const runSearch = useCallback(async (id: string, text: string): Promise<void> => {
+    const issue = marketQueryIssue(text)
+    if (issue !== undefined) {
+      setMessage({ ok: false, text: t(issue) })
+      return
+    }
+    setBusy(true)
+    setMessage(null)
+    try {
+      const result = await marketApi.search(id, text)
+      if (result.ok && result.value !== undefined) {
+        setEntries(result.value.entries)
+        setListSeq(previous => previous + 1)
+      } else {
+        setEntries([])
+        setMessage({ ok: false, text: marketFailureMessage(result, t('skills.market.searchFailed')) })
+      }
+    } catch (error) {
+      setEntries([])
+      setMessage({ ok: false, text: error instanceof Error ? error.message : t('skills.market.searchFailed') })
+    } finally {
+      setBusy(false)
+    }
+  }, [t])
+
+  const loadSources = useCallback(async (): Promise<void> => {
+    try {
+      const result = await marketApi.sources()
+      if (result.ok && result.value !== undefined) {
+        const list = result.value.sources
+        setSources(list)
+        const next = list.some(source => source.id === 'skillhub') ? 'skillhub' : (list[0]?.id ?? '')
+        setSourceId(next)
+        if (next !== '') void runSearch(next, '')
+      } else {
+        setSources([])
+        setMessage({ ok: false, text: marketFailureMessage(result, t('skills.market.sourcesFailed')) })
+      }
+    } catch (error) {
+      setSources([])
+      setMessage({ ok: false, text: error instanceof Error ? error.message : t('skills.market.sourcesFailed') })
+    }
+  }, [runSearch, t])
+
+  // 只拉一次来源并加载默认列表:依赖 t 的回调在宿主重渲染时可能换身份,用 ref 闸住循环。
+  const started = useRef(false)
+  useEffect(() => {
+    if (started.current) return
+    started.current = true
+    void loadSources()
+  }, [loadSources])
+
+  const install = async (entry: MarketEntryView, scope: SkillScopeValue): Promise<void> => {
+    const key = `${entry.slug}:${scope}`
+    setInstalling(key)
+    setMessage(null)
+    try {
+      const result = await marketApi.install({
+        scope,
+        sourceId: entry.sourceId,
+        slug: entry.slug,
+        ...(entry.namespace === undefined ? {} : { namespace: entry.namespace }),
+        ...(entry.version === '' ? {} : { version: entry.version }),
+      })
+      if (result.ok && result.value !== undefined) {
+        setMessage({ ok: true, text: installedMessage(t('skills.market.installOk'), result.value.item.name) })
+      } else {
+        setMessage({ ok: false, text: marketFailureMessage(result, t('skills.market.installFailed')) })
+      }
+    } catch (error) {
+      setMessage({ ok: false, text: error instanceof Error ? error.message : t('skills.market.installFailed') })
+    } finally {
+      setInstalling(null)
+    }
+  }
+
+  const addSource = async (): Promise<void> => {
+    if (newName.trim() === '' || newUrl.trim() === '') {
+      setMessage({ ok: false, text: t('skills.market.sourceFieldsRequired') })
+      return
+    }
+    setSourcesBusy(true)
+    setMessage(null)
+    try {
+      const result = await marketApi.addSource(newName.trim(), newUrl.trim())
+      if (result.ok) {
+        setNewName('')
+        setNewUrl('')
+        setMessage({ ok: true, text: t('skills.market.sourceAdded') })
+        await loadSources()
+      } else {
+        setMessage({ ok: false, text: marketFailureMessage(result, t('skills.market.sourceAddFailed')) })
+      }
+    } catch (error) {
+      setMessage({ ok: false, text: error instanceof Error ? error.message : t('skills.market.sourceAddFailed') })
+    } finally {
+      setSourcesBusy(false)
+    }
+  }
+
+  const removeSource = async (id: string): Promise<void> => {
+    setSourcesBusy(true)
+    setMessage(null)
+    try {
+      const result = await marketApi.removeSource(id)
+      if (result.ok) {
+        setMessage({ ok: true, text: t('skills.market.sourceRemoved') })
+        await loadSources()
+      } else {
+        setMessage({ ok: false, text: marketFailureMessage(result, t('skills.market.sourceRemoveFailed')) })
+      }
+    } catch (error) {
+      setMessage({ ok: false, text: error instanceof Error ? error.message : t('skills.market.sourceRemoveFailed') })
+    } finally {
+      setSourcesBusy(false)
+    }
+  }
+
+  const targets = installTargetsFor(role)
+  const sourceName = (id: string): string => sources?.find(source => source.id === id)?.name ?? id
+
+  return <div className="ea-market" data-eterna-market>
+    <div className="ea-row between ea-skill-toolbar">
+      <div className="ea-market-controls">
+        <select id="ea-market-source" className="ea-input ea-market-source" data-eterna-market-source
+          value={sourceId} disabled={busy || sources === null}
+          aria-label={t('skills.market.sourceLabel')}
+          onChange={(event) => {
+            const next = event.target.value
+            setSourceId(next)
+            void runSearch(next, '')
+          }}>
+          {(sources ?? []).map(source =>
+            <option key={source.id} value={source.id}>{sourceOptionLabel(source, t('skills.market.builtinSuffix'))}</option>)}
+        </select>
+        <form className="ea-market-search" onSubmit={(event) => { event.preventDefault(); void runSearch(sourceId, query) }}>
+          <input className="ea-input" value={query} maxLength={MARKET_QUERY_MAX} data-eterna-market-query
+            placeholder={t('skills.market.searchPlaceholder')} aria-label={t('skills.market.searchPlaceholder')}
+            onChange={(event) => { setQuery(event.target.value) }} />
+          <button type="submit" className="ea-btn" disabled={busy || sources === null} data-eterna-market-search>
+            <Icon name="search" size={16} />{busy ? t('skills.market.searching') : t('skills.market.search')}
+          </button>
+        </form>
+      </div>
+      <div className="ea-skill-actions">
+        <button type="button" className="ea-btn ghost" disabled={busy}
+          onClick={() => { setQuery(''); void runSearch(sourceId, '') }}>
+          <Icon name="replay" size={16} />{t('skills.market.refresh')}
+        </button>
+        {role === 'admin' && <button type="button" className="ea-btn ghost" data-eterna-market-manage
+          aria-expanded={managing}
+          onClick={() => { setManaging(previous => !previous) }}>
+          <Icon name="settings" size={16} />{t('skills.market.manage')}
+        </button>}
+      </div>
+    </div>
+    <p className="ea-hint" style={{ margin: 0 }}>{t('skills.market.hint')}</p>
+    {message !== null && <p className={message.ok ? 'ea-ok' : 'ea-err'} role={message.ok ? 'status' : 'alert'}>{message.text}</p>}
+
+    {managing && role === 'admin' && <div className="ea-skill-install ea-market-sources" data-eterna-market-sources>
+      <div className="ea-skill-install-main">
+        <h4 className="ea-skill-card-title">{t('skills.market.sourcesTitle')}</h4>
+        <p className="ea-hint" style={{ margin: 0 }}>{t('skills.market.sourcesHint')}</p>
+        <ul className="ea-market-source-list">
+          {(sources ?? []).map(source => <li key={source.id} data-eterna-market-source-item={source.id}>
+            <span className="ea-ptitle">{source.name}</span>
+            <span className="ea-pill neutral">{source.builtin ? t('skills.market.builtin') : t('skills.market.custom')}</span>
+            <code className="ea-market-url">{source.url}</code>
+            {!source.builtin && <ArmedDelete busy={sourcesBusy}
+              label={t('skills.market.removeSource')} confirmLabel={t('skills.market.removeSourceConfirm')}
+              onConfirm={() => { void removeSource(source.id) }} />}
+          </li>)}
+        </ul>
+        <form className="ea-market-add" onSubmit={(event) => { event.preventDefault(); void addSource() }}>
+          <input className="ea-input" value={newName} maxLength={40} data-eterna-market-new-name
+            placeholder={t('skills.market.namePlaceholder')} aria-label={t('skills.market.namePlaceholder')}
+            onChange={(event) => { setNewName(event.target.value) }} />
+          <input className="ea-input" value={newUrl} data-eterna-market-new-url
+            placeholder={t('skills.market.urlPlaceholder')} aria-label={t('skills.market.urlPlaceholder')}
+            onChange={(event) => { setNewUrl(event.target.value) }} />
+          <button type="submit" className="ea-btn" disabled={sourcesBusy} data-eterna-market-add>
+            {t('skills.market.addSource')}
+          </button>
+        </form>
+      </div>
+    </div>}
+
+    {entries === null
+      ? <p className="ea-hint">{busy ? t('skills.market.loading') : t('skills.market.loading')}</p>
+      : entries.length === 0
+        ? <p className="ea-hint">{t('skills.market.empty')}</p>
+        : <ul className="ea-cards" key={`market-${listSeq}`} data-eterna-market-list>
+          {entries.map(entry => <li key={`${entry.sourceId}/${entry.slug}`} className="ea-pcard ea-act"
+            data-eterna-market-entry={entry.slug}>
+            <div className="ea-phead">
+              <span className="ea-picon" aria-hidden="true"><Icon name="knowledge" size={20} /></span>
+              <div className="ea-pmain">
+                <div className="ea-ptitle-row">
+                  <span className="ea-ptitle">{entry.name}</span>
+                  <span className="ea-pill neutral">{sourceName(entry.sourceId)}</span>
+                  {entry.version !== '' && <span className="ea-pill neutral">v{versionLabel(entry.version)}</span>}
+                </div>
+                <span className="ea-pdesc ea-market-summary">{marketSummary(entry.summary)}</span>
+                <span className="ea-skill-meta">
+                  <code>/{entry.slug}</code>
+                  {installsLabel(entry.installs, t('skills.market.installs')) !== '' && <>
+                    <span>·</span>
+                    <span>{installsLabel(entry.installs, t('skills.market.installs'))}</span>
+                  </>}
+                </span>
+              </div>
+              <div className="ea-pend">
+                {targets.map(scope => <button key={scope} type="button"
+                  className="ea-btn ghost"
+                  disabled={busy || installing !== null}
+                  data-eterna-market-install={scope}
+                  onClick={() => { void install(entry, scope) }}>
+                  {installing === `${entry.slug}:${scope}` ? t('skills.market.installing') : t(installLabelKey(scope))}
+                </button>)}
+              </div>
+            </div>
+          </li>)}
+        </ul>}
   </div>
 }

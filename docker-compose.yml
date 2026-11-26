@@ -100,6 +100,9 @@ services:
       ETERNA_MCP_MASTER_KEY_FILE: ${ETERNA_MCP_MASTER_KEY_FILE:-/data/.secrets/mcp-master-key}
       ETERNA_MCP_PERSONAL_CATALOG: ${ETERNA_MCP_PERSONAL_CATALOG:-}
       ETERNA_MCP_PERSONAL_HTTP_HOSTS: ${ETERNA_MCP_PERSONAL_HTTP_HOSTS:-}
+      # 技能市场(2026-11-26):http 来源白名单(逗号分隔主机名;空=只允许 https)。
+      # 公网市场(SkillHub)走 https,无需配置;内网自定义索引若只有 http 才需要。
+      ETERNA_SKILL_MARKET_HTTP_HOSTS: ${ETERNA_SKILL_MARKET_HTTP_HOSTS:-}
     volumes:
       # 数据根 bind(48 §5.1;T43):宿主 `${ETERNA_DATA_ROOT}/<实例>` 整树挂 /data。
       # 缺省 `$HOME/eterna-data`(与 deploy/README.md §2、init-data-dirs.sh 一致)。
