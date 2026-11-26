@@ -101,11 +101,24 @@ describe('角色 → 页签', () => {
     expect(tabsForRole('user')[0]?.labelKey).toBe('mcp.tab.mine')
   })
 
-  it('分区注册进入 settings.section,标签用「MCP 服务器」', () => {
+  it('注册为左侧入口:main keyed 页 + sidebar.panellist 同 key,标签用「MCP 服务器」', () => {
     const source = readClient('index.tsx')
-    expect(source).toContain('${NS}.mcp-servers')
+    expect(source).toContain('const MCP_PANEL_ID = `${NS}.mcp-servers`')
+    expect(source).toMatch(/name: 'main',\s*\n\s*key: MCP_PANEL_ID,/u)
+    expect(source).toMatch(/name: 'sidebar\.panellist',\s*\n\s*id: MCP_PANEL_ID,/u)
     expect(source).toContain("label: () => t('section.mcpServers')")
+    // 设置分区已移除(2026-11-26 用户裁定:配置只在左侧入口)
+    expect(source).not.toContain('id: `${NS}.mcp-servers`,\n      order: 42,')
     expect(MCP_LOCALES.zh['section.mcpServers']).toBe('MCP 服务器')
+  })
+
+  it('页面外壳带标题/描述与侧栏图标;不再是设置分区节点', () => {
+    const page = readClient('mcp-servers-section.tsx')
+    expect(page).toContain('ea-page')
+    expect(page).toContain('ea-page-title')
+    expect(page).toContain('data-eterna-mcp-page')
+    expect(page).toContain('export function McpNavIcon')
+    expect(page).not.toContain('data-eterna-settings-section')
   })
 })
 

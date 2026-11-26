@@ -176,12 +176,24 @@ describe('frontmatter 预览', () => {
 describe('源码纪律与文案', () => {
   const files = ['skills-section.tsx', 'skills-model.ts', 'skills-api.ts', 'skills-locales.ts']
 
-  it('index 注册设置分区:order 49、label 技能、注入 role', () => {
+  it('index 注册左侧入口:main keyed 页 + sidebar.panellist 同 key、注入 role', () => {
     const source = readClient('index.tsx')
-    expect(source).toContain('${NS}.skills')
+    expect(source).toContain('const SKILLS_PANEL_ID = `${NS}.skills`')
+    expect(source).toMatch(/name: 'main',\s*\n\s*key: SKILLS_PANEL_ID,/u)
+    expect(source).toMatch(/name: 'sidebar\.panellist',\s*\n\s*id: SKILLS_PANEL_ID,/u)
     expect(source).toContain("label: () => t('section.skills')")
-    expect(source).toMatch(/id: `\$\{NS\}\.skills`,\s*\n\s*order: 49,/u)
     expect(source).toContain('inject: () => ({ t, role })')
+    // 设置分区已移除(2026-11-26 用户裁定:配置只在左侧入口)
+    expect(source).not.toContain('id: `${NS}.skills`,\n      order: 49,')
+  })
+
+  it('页面外壳带标题/描述与侧栏图标;不再是设置分区节点', () => {
+    const page = readClient('skills-section.tsx')
+    expect(page).toContain('ea-page')
+    expect(page).toContain('ea-page-title')
+    expect(page).toContain('data-eterna-skills-page')
+    expect(page).toContain('export function SkillsNavIcon')
+    expect(page).not.toContain('data-eterna-settings-section')
   })
 
   it('卡片复用插件页类名与通用页签;编辑器/删除走两击组件', () => {

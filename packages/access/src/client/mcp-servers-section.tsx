@@ -1,8 +1,8 @@
 /**
- * 设置分区「MCP 服务器」(T28 / 50 §3.4.4)。
+ * 「MCP 服务器」页(侧栏入口 + main keyed 页;T28 / 50 §3.4.4)。
  *
- * - admin: 两个页签——「全局」(说明 + 跳转上游内置插件设置)与「管理员目录」
- *   (只读:stdio 目录项 + HTTP 白名单);
+ * - admin: 三个页签——「全局」(configForms 真编辑器)、「管理员目录」
+ *   (只读:stdio 目录项 + HTTP 白名单)、「我的服务器」;
  * - 普通用户: 「我的服务器」——列表 / 新增 / 编辑 / 删除 / 连接测试。
  *
  * 纪律:
@@ -29,7 +29,7 @@ import {
 } from './mcp-servers-model.ts'
 import { PasswordInput } from './sections.tsx'
 
-export interface McpServersSectionProps {
+export interface McpServersPageProps {
   readonly role: McpSectionRole
   readonly t: Translate
   /** 设置域基础服务(admin 全局编辑器读 mcp-manager 命名空间)。 */
@@ -49,17 +49,19 @@ interface ProbeState {
   readonly truncated: boolean
 }
 
-/** 分区外壳:按角色出页签;普通用户只有一个「我的服务器」视图。 */
-export function McpServersSection(props: McpServersSectionProps): React.JSX.Element {
+/** 页面外壳:大标题 + 按角色出页签;普通用户只有一个「我的服务器」视图。 */
+export function McpServersPage(props: McpServersPageProps): React.JSX.Element {
   const { role, t, configForms } = props
   const tabs = tabsForRole(role)
   const fallbackTab = tabs[0]?.id ?? 'mine'
   const [selected, setSelected] = useState(fallbackTab)
   const active = tabs.some(tab => tab.id === selected) ? selected : fallbackTab
 
-  return <section className="ea-section" data-eterna-access-root data-eterna-settings-section="mcp-servers">
-    <h3>{t('mcp.title')}</h3>
-    <p className="ea-hint">{role === 'admin' ? t('mcp.adminHint') : t('mcp.userHint')}</p>
+  return <div className="ea-section ea-page" data-eterna-access-root data-eterna-mcp-page>
+    <header className="ea-page-head">
+      <h1 className="ea-page-title">{t('mcp.title')}</h1>
+      <p className="ea-page-desc">{role === 'admin' ? t('mcp.adminHint') : t('mcp.userHint')}</p>
+    </header>
     {tabs.length > 1 && <McpTabBar tabs={tabs} active={active} onSelect={setSelected} t={t} />}
     <div className="ea-mcp-panel" id={`ea-mcp-panel-${active}`} role="tabpanel"
       aria-labelledby={tabs.length > 1 ? `ea-mcp-tab-${active}` : undefined}>
@@ -67,7 +69,12 @@ export function McpServersSection(props: McpServersSectionProps): React.JSX.Elem
       {active === 'catalog' && <CatalogPanel t={t} />}
       {active === 'mine' && <MyServersPanel t={t} />}
     </div>
-  </section>
+  </div>
+}
+
+/** 侧栏入口图标(图标统一走 @eterna/ui/icons)。 */
+export function McpNavIcon(): React.JSX.Element {
+  return <Icon name="flow" size={16} />
 }
 
 /** 页签条(左右方向键 + Home/End;选中项是唯一的 tab stop)。 */
