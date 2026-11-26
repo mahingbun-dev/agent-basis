@@ -1,0 +1,15 @@
+{
+  "version": "0.2.5",
+  "form": "super",
+  "capturedAt": "2026-11-26T06:53:10.228Z",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "theme": "light",
+  "files": {
+    "01-trace.webp": "f28c2352f49d57c82021996db7e1e6cc7ecf6efdc69c77d3f5fbe17280f49c91",
+    "02-usage.webp": "8b0c7b7aceab903485cbaa5ceeba4798bc19b7cb9dac533c91ad72af2f6de831"
+  },
+  "skipped": []
+}

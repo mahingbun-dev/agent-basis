@@ -1,0 +1,90 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "scenes": [
+    {
+      "id": "trace",
+      "file": "01-trace.webp",
+      "steps": [
+        {
+          "goto": "/"
+        },
+        {
+          "waitFor": "[data-eterna-access-role]",
+          "timeout": 30000
+        },
+        {
+          "closeReleaseNotes": true
+        },
+        {
+          "waitMs": 800
+        },
+        {
+          "click": {
+            "text": "循环轨迹",
+            "exact": true
+          }
+        },
+        {
+          "waitFor": "[data-t7-trace-root]",
+          "timeout": 20000
+        },
+        {
+          "closeReleaseNotes": true
+        },
+        {
+          "waitMs": 1200
+        },
+        {
+          "waitMs": 1500
+        },
+        {
+          "click": {
+            "selector": "[data-t7-session-item=\"session-6e950042-9e98-4378-9266-a68970dfa9f3\"]"
+          }
+        },
+        {
+          "waitFor": "[data-t7-layer]",
+          "timeout": 25000
+        },
+        {
+          "waitMs": 2500
+        }
+      ]
+    },
+    {
+      "id": "usage",
+      "file": "02-usage.webp",
+      "steps": [
+        {
+          "goto": "/"
+        },
+        {
+          "waitFor": "[data-eterna-access-role]",
+          "timeout": 30000
+        },
+        {
+          "closeReleaseNotes": true
+        },
+        {
+          "waitMs": 800
+        },
+        {
+          "click": {
+            "text": "用量统计",
+            "exact": true
+          }
+        },
+        {
+          "waitFor": "[data-eterna-usage-stats] .us-card",
+          "timeout": 20000
+        },
+        {
+          "waitMs": 2000
+        }
+      ]
+    }
+  ]
+}
