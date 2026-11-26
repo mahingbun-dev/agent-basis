@@ -43,7 +43,10 @@ const CSS = `
 [data-eterna-usage-stats] .us-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--et-space-4); margin-bottom: var(--et-space-8); }
 [data-eterna-usage-stats] .us-card { padding: var(--et-space-5); border: 1px solid var(--et-border-soft); border-radius: var(--et-radius-md); box-shadow: var(--et-shadow-r1); background: var(--et-surface); }
 [data-eterna-usage-stats] .us-kicker { font-size: var(--et-text-meta); line-height: var(--et-leading-snug); letter-spacing: var(--et-tracking-caps); color: var(--et-muted); margin-bottom: var(--et-space-1); }
-[data-eterna-usage-stats] /* v4:字号只走阶梯,不做 vw 插值(阶梯外值一律打回) */
+/* v4:字号只走阶梯,不做 vw 插值(阶梯外值一律打回)。
+   注释必须独占一行——上一版接在根选择器之后,解析器把注释两侧的选择器片段拼成
+   自嵌套后代选择器(根 根 .us-value),永不匹配,大数字一直静默退回继承字号
+   (生产实测 15px)。 */
 [data-eterna-usage-stats] .us-value { font-size: var(--et-text-h1); line-height: var(--et-leading-tight); font-weight: var(--et-weight-display); font-family: var(--et-font-display); font-variant-numeric: tabular-nums; color: var(--et-fg); white-space: nowrap; }
 [data-eterna-usage-stats] .us-grid { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: var(--et-space-6); align-items: start; }
 [data-eterna-usage-stats] .us-section { margin-top: 0; }
