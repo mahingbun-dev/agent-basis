@@ -40,6 +40,9 @@ function makePorts(overrides: Partial<AdviserPorts> = {}): AdviserPorts & { call
     },
     inject: (agentId, text) => { calls.inject.push({ agentId, text }); return true },
     followup: (agentId, text) => { calls.followup.push({ agentId, text }); return true },
+    parentModel: () => undefined,
+    readModel: async () => undefined,
+    writeModel: async () => {},
     ...overrides,
   }
   return { ...base, calls }
@@ -166,6 +169,112 @@ describe('create:fork + label + caller delivery', () => {
     const service = new AdviserService(ports)
     const result = await service.create('parent-1', 'x')
     expect(result).toMatchObject({ ok: false, code: 'unavailable' })
+  })
+})
+
+describe('create:继承主会话当前模型(2026-11-25 模型解耦)', () => {
+  it('把父会话当前选择装进 request.agentOptions(不是创建时 options 的旧路由)', async () => {
+    const ports = makePorts({
+      parentModel: () => ({ provider: 'route-a', model: 'model-b', reasoningEffort: 'high' }),
+    })
+    const service = new AdviserService(ports)
+    await service.create('parent-1', 'x')
+    const spec = ports.calls.startActivation[0]!
+    // 继承必须是**当前**路由:用户切过模型后 parent.options 仍是旧值,
+    // 上游 spawn 的默认继承只读 parent.options,所以这里必须显式传。
+    expect(spec.request.agentOptions).toEqual({ provider: 'route-a', model: 'model-b', reasoningEffort: 'high' })
+  })
+
+  it('父会话模型未知(旧宿主/空会话)时不伪造字段,交给上游默认', async () => {
+    const ports = makePorts({ parentModel: () => undefined })
+    const service = new AdviserService(ports)
+    await service.create('parent-1', 'x')
+    expect(ports.calls.startActivation[0]!.request).not.toHaveProperty('agentOptions')
+  })
+
+  it('后续切换互不影响:create 读取的是一次性快照', async () => {
+    let parentSelection: { provider: string; model: string } | undefined = { provider: 'p', model: 'm1' }
+    const ports = makePorts({ parentModel: () => parentSelection })
+    const service = new AdviserService(ports)
+    await service.create('parent-1', 'x')
+    parentSelection = { provider: 'p', model: 'm2' }   // 主会话之后切模型
+    expect(ports.calls.startActivation[0]!.request.agentOptions).toEqual({ provider: 'p', model: 'm1' })
+  })
+})
+
+describe('model:参谋独立读/写(需本父会话归属)', () => {
+  const children = async (): Promise<readonly { id: string; label: string }[]> => [
+    { id: 'p--adviser-1', label: ADVISER_LABEL },
+  ]
+
+  it('非本父会话的参谋 → forbidden,不触达 readModel/writeModel', async () => {
+    const readModel = vi.fn(async () => undefined)
+    const writeModel = vi.fn(async () => {})
+    const ports = makePorts({ listDescendants: children, readModel, writeModel })
+    const service = new AdviserService(ports)
+    expect(await service.model('parent-1', 'other--adviser-1')).toMatchObject({ ok: false, code: 'forbidden' })
+    expect(await service.model('parent-1', 'other--adviser-1', { provider: 'p', model: 'm' }))
+      .toMatchObject({ ok: false, code: 'forbidden' })
+    expect(readModel).not.toHaveBeenCalled()
+    expect(writeModel).not.toHaveBeenCalled()
+  })
+
+  it('读:返回端口读数(未知=undefined,UI 自行降级)', async () => {
+    const ports = makePorts({
+      listDescendants: children,
+      readModel: async id => id === 'p--adviser-1' ? { provider: 'p', model: 'm', reasoningEffort: 'low' } : undefined,
+    })
+    const service = new AdviserService(ports)
+    expect(await service.model('parent-1', 'p--adviser-1')).toEqual({
+      ok: true, selection: { provider: 'p', model: 'm', reasoningEffort: 'low' },
+    })
+  })
+
+  it('写:规范化后交给 writeModel(空档位视同省略)', async () => {
+    const writeModel = vi.fn(async () => {})
+    const ports = makePorts({ listDescendants: children, writeModel })
+    const service = new AdviserService(ports)
+    const result = await service.model('parent-1', 'p--adviser-1', {
+      provider: ' p ', model: ' m ', reasoningEffort: ' ',
+    })
+    expect(result).toEqual({ ok: true, selection: { provider: 'p', model: 'm' } })
+    expect(writeModel).toHaveBeenCalledWith('p--adviser-1', { provider: 'p', model: 'm' })
+  })
+
+  it('写:空 provider/model → invalid,不触达端口', async () => {
+    const writeModel = vi.fn(async () => {})
+    const ports = makePorts({ listDescendants: children, writeModel })
+    const service = new AdviserService(ports)
+    expect(await service.model('parent-1', 'p--adviser-1', { provider: '', model: 'm' }))
+      .toMatchObject({ ok: false, code: 'invalid' })
+    expect(writeModel).not.toHaveBeenCalled()
+  })
+
+  it('写:端口拒绝的 code 原样透传(invalid=模型不可用 / unavailable=冷会话被占用)', async () => {
+    const invalid = makePorts({
+      listDescendants: children,
+      writeModel: async () => { throw Object.assign(new Error('所选模型不可用'), { code: 'invalid' }) },
+    })
+    expect(await new AdviserService(invalid).model('parent-1', 'p--adviser-1', { provider: 'p', model: 'm' }))
+      .toMatchObject({ ok: false, code: 'invalid', message: '所选模型不可用' })
+
+    const busy = makePorts({
+      listDescendants: children,
+      writeModel: async () => { throw Object.assign(new Error('参谋会话当前正忙'), { code: 'unavailable' }) },
+    })
+    expect(await new AdviserService(busy).model('parent-1', 'p--adviser-1', { provider: 'p', model: 'm' }))
+      .toMatchObject({ ok: false, code: 'unavailable' })
+  })
+
+  it('写:无 code 的未知异常 → unavailable(不误报 400)', async () => {
+    const ports = makePorts({
+      listDescendants: children,
+      writeModel: async () => { throw new Error('boom') },
+    })
+    const service = new AdviserService(ports)
+    const result = await service.model('parent-1', 'p--adviser-1', { provider: 'p', model: 'm' })
+    expect(result).toMatchObject({ ok: false, code: 'unavailable' })
+    if (!result.ok) expect(result.message).toContain('boom')
   })
 })
 

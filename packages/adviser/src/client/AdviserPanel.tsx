@@ -22,6 +22,7 @@ import { Icon } from '@eterna/ui/icons'
 import { adviserChatAddress, parseAdviserChatAddress } from './address.ts'
 import type { AdviserChatResource } from './resource.ts'
 import { AdviserFeedbackBar } from './AdviserFeedbackBar.tsx'
+import { AdviserModelBar } from './AdviserModelBar.tsx'
 import { AdviserPicker } from './AdviserPicker.tsx'
 import type {
   SessionProviderFace, UseResourceFace, UseTabInfoFace,
@@ -115,6 +116,9 @@ export function AdviserPanel(props: AdviserPanelProps): ReactElement {
   }
   return (
     <div data-eterna-adviser="chat">
+      {/* 模型控件(2026-11-25 模型解耦):参谋模型独立于主会话,创建时继承主会话当前模型。
+          放在对话区上沿:切换是「会话级」动作,不混入 composer 的工具面。 */}
+      <AdviserModelBar t={t} parent={value.parentSessionId} child={value.childSessionId} />
       <div data-eterna-adviser="conversation">
         <SessionProvider
           session={value.reference}

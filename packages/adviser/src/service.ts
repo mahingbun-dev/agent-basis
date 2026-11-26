@@ -87,6 +87,36 @@ export type AdviserDeliverResult =
   | { readonly ok: true; readonly delivery: AdviserDelivery; readonly sessionId: string }
   | { readonly ok: false; readonly code: AdviserFailureCode; readonly message: string }
 
+/**
+ * 参谋会话的模型选择(与上游 `ModelSelection` 同形:provider + model + 可选档位)。
+ * 只承载**路由选择**,不含采样参数——参谋的上下文预算等仍沿用父会话派生值。
+ */
+export interface AdviserModelSelection {
+  readonly provider: string
+  readonly model: string
+  /** 显式思考档位;省略=由适配器默认/FETCH 时解析(与上游语义一致)。 */
+  readonly reasoningEffort?: string
+}
+
+/** 模型读/写结果(失败码与投递/创建同一闭集,便于 access 统一映射 HTTP)。 */
+export type AdviserModelOutcome =
+  | { readonly ok: true; readonly selection: AdviserModelSelection | undefined }
+  | { readonly ok: false; readonly code: AdviserFailureCode; readonly message: string }
+
+/**
+ * 模型写入被端口层拒绝(可用性校验失败 / 冷会话被占用)。
+ * 端口抛这个类型,服务面按 `code` 映射失败码;不把内部异常原文递给浏览器。
+ */
+export class AdviserModelRejection extends Error {
+  readonly code: 'invalid' | 'unavailable'
+
+  constructor(code: 'invalid' | 'unavailable', message: string) {
+    super(message)
+    this.name = 'AdviserModelRejection'
+    this.code = code
+  }
+}
+
 /** 失败码闭集(中文 message 面向用户)。 */
 export type AdviserFailureCode =
   | 'forbidden'        // 目标会话不属于调用者 / 不是参谋
@@ -124,6 +154,16 @@ export interface AdviserActivationSpec {
     readonly parent: unknown
     readonly prompt: readonly { readonly type: 'text'; readonly text: string }[]
     readonly agentPreset: string
+    /**
+     * 创建时继承的**父会话当前模型**(2026-11-25)。
+     *
+     * 必须显式传,不能指望 spawn 的默认继承:上游 `resolveChildAgentOptions`
+     * 只读 `parent.options`(会话创建时的路由),而用户在会话里切过的模型落在
+     * `model/selection` 事件与 `agent.model.current()` 上——不传就会得到一个
+     * 「与主会话当前模型不一致」的参谋。传了以后参谋从第一条消息起就用同一路由,
+     * 此后两边各自独立(切换互不影响)。
+     */
+    readonly agentOptions?: AdviserModelSelection
   }
   readonly signal: AbortSignal
   readonly delivery: 'caller'
@@ -143,6 +183,23 @@ export interface AdviserPorts {
   inject(agentId: string, text: string): boolean
   /** 给某个 live Agent 投递(自成一轮)。 */
   followup(agentId: string, text: string): boolean
+  /**
+   * 父会话**当前**模型(创建参谋时继承用;缺席=不覆盖上游默认)。
+   * 读 `agent.model.current()`(pending ?? lastUsed ?? 创建时 options)。
+   */
+  parentModel(parentSessionId: string): AdviserModelSelection | undefined
+  /**
+   * 读参谋会话当前模型:live 走 `agent.model.current()`,冷会话走
+   * `sessionQuery.observeSession` 的 modelSelection 投影(`next ?? lastUsed`)。
+   */
+  readModel(childSessionId: string): Promise<AdviserModelSelection | undefined>
+  /**
+   * 写参谋会话模型:live 走 `agent.model.select()`(落 `model/selection` 事件);
+   * 冷会话直接向持久化日志追加同一事件(取写句柄→append→flush)。
+   * 模型不可用抛 {@link AdviserModelRejection}('invalid');冷会话被占用/持久化
+   * 缺席抛同类的 'unavailable'。
+   */
+  writeModel(childSessionId: string, selection: AdviserModelSelection): Promise<void>
 }
 
 /** 参谋服务面(access 守卫路由的调用对象)。 */
@@ -195,6 +252,9 @@ export class AdviserService {
     }
     const resolvedChildId = childId ?? mintAdviserSessionId(parentSessionId, existing.length + 1)
     const ordinal = existing.length + 1
+    // 创建时继承主会话**当前**路由(注意不是 parent.options 的创建时路由:
+    // 用户在会话里切过模型后二者不同,见 request.agentOptions 注)。
+    const inheritedModel = this.ports.parentModel(parentSessionId)
     try {
       const activation = await this.ports.startActivation({
         // spawn(不是 fork):只有它支持独立 preset,而只读纪律必须由**工具面缺失**
@@ -208,6 +268,7 @@ export class AdviserService {
           prompt: [{ type: 'text', text: seedText }],
           // preset 在 request 内(与 parent/prompt 同级),不是顶层字段。
           agentPreset: ADVISER_PRESET_ID,
+          ...inheritedModel === undefined ? {} : { agentOptions: inheritedModel },
         },
         signal: new AbortController().signal,
         delivery: 'caller',
@@ -241,6 +302,53 @@ export class AdviserService {
     }
     return { ok: true, delivery, sessionId: parentSessionId }
   }
+
+  /**
+   * 读/写某个参谋的模型(2026-11-25 模型解耦)。
+   *
+   * 归属校验在服务层再做一次(不只信 access):`childSessionId` 必须出现在本
+   * 父会话的参谋清单里——否则一个合法登录用户可以把任意子会话 id 塞进来改模型
+   * (access 只校验了父会话归属,子父关系是本层知识)。
+   *
+   * @param parentSessionId - 主会话 id(调用方须已校验归属)。
+   * @param childSessionId - 参谋会话 id。
+   * @param selection - 省略=只读;给出=切换(路由 + 可选档位)。
+   */
+  async model(
+    parentSessionId: string,
+    childSessionId: string,
+    selection?: AdviserModelSelection,
+  ): Promise<AdviserModelOutcome> {
+    if (childSessionId === '') {
+      return { ok: false, code: 'invalid', message: '参数不合法:缺少参谋会话 id' }
+    }
+    const rows = await this.list(parentSessionId)
+    if (!rows.some(row => row.sessionId === childSessionId)) {
+      // 不泄漏该会话是否存在:不是本父会话的参谋一律同一种说法。
+      return { ok: false, code: 'forbidden', message: '该会话不是本主会话的参谋' }
+    }
+    if (selection === undefined) {
+      try {
+        return { ok: true, selection: await this.ports.readModel(childSessionId) }
+      } catch (error) {
+        return { ok: false, code: 'unavailable', message: `读取参谋模型失败:${errorText(error)}` }
+      }
+    }
+    const normalized = normalizeModelSelection(selection)
+    if (normalized === undefined) {
+      return { ok: false, code: 'invalid', message: '参数不合法:provider/model 不能为空' }
+    }
+    try {
+      await this.ports.writeModel(childSessionId, normalized)
+    } catch (error) {
+      const code = (error as { code?: unknown } | undefined)?.code
+      if (code === 'invalid' || code === 'unavailable') {
+        return { ok: false, code, message: errorText(error) }
+      }
+      return { ok: false, code: 'unavailable', message: `切换参谋模型失败:${errorText(error)}` }
+    }
+    return { ok: true, selection: normalized }
+  }
 }
 
 /**
@@ -265,6 +373,30 @@ function describeFailure(error: unknown): { code: AdviserFailureCode; message: s
     return { code: 'forbidden', message: '无权在该会话上创建参谋' }
   }
   return { code: 'unavailable', message: `参谋会话创建失败:${raw}` }
+}
+
+/** 异常文本(空消息兜一个可读类型名;不把堆栈递给 HTTP 层)。 */
+function errorText(error: unknown): string {
+  if (error instanceof Error) return error.message === '' ? error.name : error.message
+  return String(error)
+}
+
+/**
+ * 规范化模型选择(纯函数,单测可钉):
+ * provider/model 去空白后必须非空;档位空串视同省略(与上游 `exactOptional` 一致)。
+ * @param selection - 待规范化的选择。
+ * @returns 规范化结果;非法=undefined(服务面映射 invalid)。
+ */
+export function normalizeModelSelection(selection: {
+  readonly provider?: unknown
+  readonly model?: unknown
+  readonly reasoningEffort?: unknown
+}): AdviserModelSelection | undefined {
+  const provider = typeof selection.provider === 'string' ? selection.provider.trim() : ''
+  const model = typeof selection.model === 'string' ? selection.model.trim() : ''
+  if (provider === '' || model === '') return undefined
+  const effort = typeof selection.reasoningEffort === 'string' ? selection.reasoningEffort.trim() : ''
+  return { provider, model, ...effort === '' ? {} : { reasoningEffort: effort } }
 }
 
 /** DSH bundle loader 取 default export 插件实例。 */

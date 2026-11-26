@@ -16,6 +16,23 @@
 双重保证——预设挡不住根 ctx 注册的全局工具（54 号 §15 实机定谳）。验收：两形态
 真实 profile 各 13/13 PASS（零写工具泄漏）、全仓 `pnpm -w run verify` 绿。
 
+**P11 模型解耦**（2026-11-25）：参谋可独立设置模型，创建时继承主会话**当前**模型。
+上游对 subagent 子会话不渲染模型选择器（`ui-model-selection` 的可用性门），通用
+`selectModel` 也会以 `session/agent-busy`（owned by subagent routing）拒绝，故参谋
+模型走自己的数据面：
+
+- 创建：`AdviserActivationSpec.request.agentOptions` ← 父会话 `agent.model.current()`
+  （不是 `parent.options` 的创建时路由——用户切过模型后二者不同）；
+- 读：live 走 `agent.model.current()`，冷会话走 `sessionQuery` 的 `modelSelection`
+  投影（`next ?? lastUsed`）；
+- 写：live 走 `agent.model.select()`（落 `model/selection` 事件）；冷会话直接向
+  持久化日志追加同一事件（`sessionPersistence.open(child,'write')` → `append` → `flush`），
+  恢复后投影一致。写入前经 `llm.resolveCallConfig` 校验路由/档位可用性；
+- HTTP：`POST /access/api/adviser/model/read` 与 `POST /access/api/adviser/model`
+  （access 守卫路由；父会话归属 + 服务内子父关系校验，均出审计）；
+- UI：参谋 tab 对话区上沿的 chip + 弹层（`AdviserModelBar.tsx`），只影响参谋，
+  主会话模型菜单完全不受影响。
+
 ## 关键约束
 
 | 约束 | 来源 |
@@ -38,6 +55,7 @@ src/tool-guard.ts         全局工具守门（动态 deny = 全局工具 − �
 src/tool-guard-plugin.ts  preset 内的守门行入口
 src/client/index.ts       浏览器半边：tab 类型 + body 注册
 src/client/AdviserPanel.tsx  面板正文（conversation.content embedded 完整对话）
+src/client/AdviserModelBar.tsx 参谋模型 chip + 弹层（独立于主会话；P11）
 src/client/AdviserPicker.tsx 多开选择面板
 src/client/AdviserFeedbackBar.tsx  回写条（inject/followup 双按钮）
 src/client/client-types.ts   本地结构面（不导入跨包类型，零运行时依赖）
