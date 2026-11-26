@@ -21,7 +21,10 @@ const CSS = `
   overflow-x: hidden;
   scrollbar-gutter: stable;
   display: block;
-  padding: var(var(--et-text-h1)) var(var(--et-text-h1)) 80px;
+  /* 页面 gutter 与 panel/usage-stats 同档:48 / 48 / 96;断点内距见文末 1100/640。
+     (曾误写成嵌套 var():var() 名字位必须是自定义属性名,整条声明在计算期失效
+     回退 initial,padding 实测 0,页头与三栏全部贴边,2026-11-26 用户报障) */
+  padding: 48px 48px 96px;
   max-width: none;
   margin: 0 auto;
   font-family: var(--et-font-body);
@@ -32,23 +35,25 @@ const CSS = `
 }
 [data-t7-studio-root] *, [data-t7-trace-root] * { min-width: 0; overflow-wrap: anywhere; box-sizing: border-box; }
 
-/* —— 头部 —— */
+/* —— 头部(与 知识库/用量统计/基座面板 同构:宋体 28 页标题 + 13 导语) —— */
 [data-t7-heading] {
-  margin: 0; font-size: var(--et-text-h1); line-height: var(--et-leading-tight);
+  margin: 0; font-size: var(--et-text-h2); line-height: var(--et-leading-snug);
   letter-spacing: var(--et-tracking-display); color: var(--et-fg);
   font-family: var(--et-font-display); font-weight: var(--et-weight-display);
 }
-[data-t7-sub] { margin: 8px 0 0; font-size: var(--et-text-body); line-height: var(--et-leading-body); color: var(--et-muted); }
-[data-t7-toolbar] { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+[data-t7-sub] { margin: var(--et-space-2) 0 0; font-size: var(--et-text-caption); line-height: var(--et-leading-body); color: var(--et-muted); }
+[data-t7-toolbar] { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 0; }
 [data-t7-refresh] {
-  padding: 5px 14px; font: inherit; font-size: var(--et-text-meta); cursor: pointer;
-  color: var(--et-fg-2); background: transparent;
-  border: 1px solid var(--et-border); border-radius: var(--et-radius-sm);
+  /* 次按钮(v4 §7):surface 底 + border 描边 + 高 40 + md 圆角;与知识库/用量统计页动作同档 */
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  height: 40px; padding: 0 var(--et-space-4); font: inherit; font-size: var(--et-text-caption);
+  color: var(--et-fg); background: var(--et-surface); cursor: pointer; white-space: nowrap;
+  border: 1px solid var(--et-border); border-radius: var(--et-radius-md);
 }
 [data-t7-refresh]:hover { background: var(--et-surface-2); color: var(--et-fg); }
 
 /* —— 大数字瓦片 —— */
-[data-t7-stat-row] { display: flex; align-items: baseline; gap: 36px; margin: 20px 0 40px; flex-wrap: wrap; }
+[data-t7-stat-row] { display: flex; align-items: baseline; gap: 36px; margin: var(--et-space-5) 0 var(--et-space-6); flex-wrap: wrap; }
 [data-t7-stat] { display: inline-flex; flex-direction: column; gap: 2px; }
 [data-t7-stat-value] {
   font-size: var(--et-text-h2); line-height: var(--et-leading-tight); font-weight: var(--et-weight-display); font-variant-numeric: tabular-nums;
@@ -671,19 +676,14 @@ const CSS = `
 }
 
 /* —— 2026-11-13 原型改版:三栏工作台(库 / 编辑器 / AI 助手) —— */
-.ps-page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+.ps-page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--et-space-6); margin-bottom: var(--et-space-6); }
 .ps-page-head-text { min-width: 0; }
+/* 页眉小标:kicker 语义(42 号 §5.2 —— 小号标签 +0.08em、500 强调,不做标题字重) */
 .ps-eyebrow {
-  margin: 0 0 8px; font-size: var(--et-text-caption); font-weight: var(--et-weight-display);
-  letter-spacing: 0.14em; color: var(--et-accent);
+  margin: 0 0 var(--et-space-2); font-size: var(--et-text-caption); font-weight: var(--et-weight-emphasis);
+  letter-spacing: var(--et-tracking-caps); color: var(--et-accent);
 }
-.ps-page-actions { flex: none; display: flex; gap: 10px; padding-top: 4px; }
-.ps-page-actions [data-t7-refresh] {
-  padding: 7px 16px; font-size: var(--et-text-caption);
-  color: var(--et-fg-2); background: transparent;
-  border: 1px solid var(--et-border); border-radius: var(--et-radius-sm);
-}
-.ps-page-actions [data-t7-refresh]:hover { background: var(--et-surface-2); color: var(--et-fg); }
+.ps-page-actions { flex: none; display: flex; gap: var(--et-space-2); padding-top: 0; }
 
 [data-ps-workspace] {
   /* 42 号 §8:工坊三栏 320 / 1fr / 320 */
